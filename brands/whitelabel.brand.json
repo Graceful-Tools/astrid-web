@@ -38,6 +38,7 @@
       "openclaw"
     ],
     "capabilities": {
+      "githubProjects": false,
       "authGoogle": true,
       "authApple": true,
       "authPasskey": true,

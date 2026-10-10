@@ -1,6 +1,6 @@
 {
   "name": "Lanes for GitHub Projects",
-  "description": "The GitHub Projects partner brand (spec docs/specs/GITHUB_PROJECTS_WHITELABEL.md §11.1, AWTD-1103): a generic Graceful Tools brand, \"Lanes for GitHub Projects\" — the descriptive form GitHub's brand guidelines allow. Signs in with GitHub (through the brand's own GitHub App) and SSO; Project Mode on; Issues sync, Google Tasks and task cost off, since GitHub Projects is the backend. Artwork reuses the GitHub-styled whitelabel images until the brand has its own. The GitHub App slug is a placeholder until the App is registered, and NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS joins this profile when P4 builds that capability.",
+  "description": "The GitHub Projects partner brand (spec docs/specs/GITHUB_PROJECTS_WHITELABEL.md §11.1, AWTD-1103): a generic Graceful Tools brand, \"Lanes for GitHub Projects\" — the descriptive form GitHub's brand guidelines allow. Signs in with GitHub (through the brand's own GitHub App) and SSO; Project Mode on; Issues sync, Google Tasks and task cost off, since GitHub Projects is the backend. Artwork reuses the GitHub-styled whitelabel images until the brand has its own. The GitHub App slug is a placeholder until the App is registered, NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS turns on the Projects backend (P4c, AWTD-1151).",
   "env": {
     "NEXT_PUBLIC_BRAND_NAME": "Lanes",
     "NEXT_PUBLIC_BRAND_TITLE": "Lanes for GitHub Projects",
@@ -24,6 +24,7 @@
     "NEXT_PUBLIC_BRAND_APP_URL_SCHEME": "astrid",
     "NEXT_PUBLIC_BRAND_AUTH_PROVIDERS": "github,sso",
     "NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE": "true",
+    "NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS": "true",
     "NEXT_PUBLIC_BRAND_ENABLE_SYNC_GITHUB_ISSUES": "false",
     "NEXT_PUBLIC_BRAND_ENABLE_SYNC_GOOGLE_TASKS": "false",
     "NEXT_PUBLIC_BRAND_ENABLE_TASK_COST": "false",
@@ -46,6 +47,7 @@
       "claude"
     ],
     "capabilities": {
+      "githubProjects": true,
       "authGithub": true,
       "authSso": true,
       "authGoogle": false,

@@ -19,7 +19,7 @@
  * otherwise have had access.
  *
  * Every capability defaults to ENABLED, so an existing deployment that sets nothing
- * behaves exactly as before.
+ * behaves exactly as before — except `githubProjects`, which is off unless set.
  *
  * These are `NEXT_PUBLIC_` because the UI must reflect them (there is no point offering
  * a Google sign-in button a disabled server will refuse). They are switches, not
@@ -37,6 +37,14 @@ function enabled(value: string | undefined): boolean {
   const normalized = value?.trim().toLowerCase()
   if (!normalized) return true
   return !['false', '0', 'off', 'no'].includes(normalized)
+}
+
+/**
+ * The exception: a capability that is OFF unless a deployment turns it on.
+ * Only for things astrid.cc must never have by accident (spec D5).
+ */
+function explicitlyEnabled(value: string | undefined): boolean {
+  return ['true', '1', 'on', 'yes'].includes(value?.trim().toLowerCase() ?? '')
 }
 
 const integrationCustomAgents = enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW)
@@ -105,6 +113,13 @@ export const CAPABILITIES = {
    * the capability first (see lib/project-mode.ts, which does both in order).
    */
   projectMode: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE),
+  /**
+   * GitHub Projects as a task backend: org projects bound as boards, mirrored
+   * from GitHub (docs/specs/GITHUB_PROJECTS_WHITELABEL.md §8). OFF unless the
+   * brand sets it — never on astrid.cc (D5), pinned by
+   * tests/rules/astrid-never-enables-github-projects.test.ts (AWTD-1151).
+   */
+  githubProjects: explicitlyEnabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS),
   taskCost: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_TASK_COST),
 
   // --- Other services -----------------------------------------------------

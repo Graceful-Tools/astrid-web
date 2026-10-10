@@ -67,7 +67,7 @@ import { loadV1TaskForEvent } from '@/lib/tasks/v1-task-shape'
 import { broadcastTaskCreated } from './task-create-broadcast'
 import { dispatchAgentAssignment } from '@/services/agent-assignment-dispatch'
 import { TASK_CREATE_INCLUDE, TASK_UPDATE_EXISTING_INCLUDE, type CreatedTask } from '@/services/task-includes'
-import { taskBackendFor } from '@/lib/backends/resolve'
+import { taskBackendFor, listsBeforeAndAfter } from '@/lib/backends/resolve'
 import {
   computeAutomaticReminders,
   scheduleReminders,
@@ -256,7 +256,7 @@ export async function deleteTaskWithSideEffects(args: {
 
   // The owning backend first (spec §5.3), before anything is cancelled or
   // re-evaluated: a refusal must leave the task, and its agent, untouched.
-  const removal = await taskBackendFor(previousListIds).deleteTask({ actorId }, taskId)
+  const removal = await (await taskBackendFor(previousListIds)).deleteTask({ actorId }, taskId)
   if (!removal.ok) return { deleted: false, audience: [], refused: { status: removal.status, error: removal.error } }
 
   // Who was waiting on this task — read BEFORE the delete, because the
@@ -640,7 +640,7 @@ export async function createTaskWithSideEffects(args: {
     lists: { connect: connectListIds.map(id => ({ id })) },
   }
 
-  const accepted = await taskBackendFor(connectListIds).createTask({ actorId }, data)
+  const accepted = await (await taskBackendFor(connectListIds)).createTask({ actorId }, data)
   if (!accepted.ok) return { ok: false, status: accepted.status, error: accepted.error }
   let task: CreatedTask
   try {
@@ -1169,7 +1169,7 @@ export async function updateTaskWithSideEffects(args: {
   }
 
   const lists = validatedListIds ?? (existingTask.lists ?? []).map((list: { id: string }) => list.id)
-  const accepted = await taskBackendFor(lists).updateTask({ actorId }, taskId, data)
+  const accepted = await (await taskBackendFor(listsBeforeAndAfter(existingTask.lists, lists))).updateTask({ actorId }, taskId, data)
   if (!accepted.ok) return { ok: false, status: accepted.status, error: accepted.error }
   const task = await prisma.task.update({
     where: { id: taskId },

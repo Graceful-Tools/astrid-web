@@ -1294,7 +1294,32 @@ recordings.
   recorded page goes through P4a's `normaliseItem` to the expected tasks.
 - The items stay in the test project for P4f: `wordlesolver#1` and `#2`, plus one draft.
 
-The remaining slices: [AWTD-1151](https://astrid.cc/t/AWTD-1151) bind and import · [AWTD-1152](https://astrid.cc/t/AWTD-1152)
+**P4c ([AWTD-1151](https://astrid.cc/t/AWTD-1151)), done.** What was built:
+- **The switch.** `githubProjects` is the one capability that is **off unless set**
+  (`NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS`). The GitHub brand sets it. Astrid's profile
+  never does, which `tests/rules/astrid-never-enables-github-projects.test.ts` enforces
+  (D5). `GET /api/v1/capabilities` reports it as `product.githubProjects`.
+- **The routes** from §11.2: list, bind, and binding GET/PATCH/DELETE. Each returns 404
+  when the switch is off. Listing and binding read with the **user's own** App token,
+  so GitHub decides which projects they can see. The import uses the installation token.
+  A user's GitHub token that can't be used gives `auth_required` as a 403, because a
+  401 would sign the client out.
+- **The proposal** (`lib/github/projects/bind.ts`) is made by field name and was tested
+  against the real test project. That project has a Priority field with no options;
+  it's left unbound.
+- **The read-only seam.** `taskBackendFor` is now async. On a deployment without the
+  switch it never queries, so astrid.cc pays nothing. On a GitHub-bound list it refuses
+  every Astrid-side edit with `403 github_project_read_only` until write-through (P5).
+- **The replica writer** is `services/github-projects.service.ts`, sitting beside the
+  seam rather than going through it. New tasks go through `createTasksInBulk` in
+  `fromRemote` mode: GitHub's identifiers are used, no project key is minted, and
+  they're marked shared. Each page costs two reads.
+- **The import** runs after the bind response, within a 300s function budget. P4d
+  moves it onto the job queue.
+- Unbinding keeps the board as an ordinary Astrid board. The tasks keep their remote
+  identity, so binding again finds them instead of duplicating them.
+
+The remaining slices: [AWTD-1152](https://astrid.cc/t/AWTD-1152)
 the job queue and webhooks · [AWTD-1153](https://astrid.cc/t/AWTD-1153) reconcile, roles and uninstall ·
 [AWTD-1154](https://astrid.cc/t/AWTD-1154) the live smoke test.
 

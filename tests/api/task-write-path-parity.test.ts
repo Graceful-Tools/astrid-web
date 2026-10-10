@@ -59,7 +59,10 @@ vi.mock('@/lib/task-state-change-tracker', () => ({
 vi.mock('@/lib/task-events', () => ({ diffTaskEvents: vi.fn(() => []), recordTaskEvents }))
 vi.mock('@/lib/notification-store', () => ({ notifyTaskUpdate }))
 vi.mock('@/services/agent-assignment-dispatch', () => ({ dispatchAgentAssignment }))
-vi.mock('@/lib/backends/resolve', () => ({ taskBackendFor: () => fakeBackend }))
+vi.mock('@/lib/backends/resolve', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/lib/backends/resolve')>()),
+  taskBackendFor: async () => fakeBackend,
+}))
 const authorizeAssigneeChange = vi.hoisted(() => vi.fn())
 vi.mock('@/services/assignee-authorization', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/services/assignee-authorization')>()

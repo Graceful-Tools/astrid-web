@@ -67,6 +67,8 @@ export async function GET() {
       // request-access affordance. Task dd7172d8 / AWTD-566.
       product: {
         projectMode: CAPABILITIES.projectMode,
+        // GitHub Projects boards (spec §11.2). Additive; absent reads as off.
+        githubProjects: CAPABILITIES.githubProjects,
       },
       // The brand this deployment presents itself as. TEXT ONLY, and deliberately so:
       // one mobile binary can point at several deployments, so the brand cannot be a
