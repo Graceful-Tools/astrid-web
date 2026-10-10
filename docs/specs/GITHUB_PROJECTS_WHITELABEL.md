@@ -1319,8 +1319,28 @@ recordings.
 - Unbinding keeps the board as an ordinary Astrid board. The tasks keep their remote
   identity, so binding again finds them instead of duplicating them.
 
-The remaining slices: [AWTD-1152](https://astrid.cc/t/AWTD-1152)
-the job queue and webhooks · [AWTD-1153](https://astrid.cc/t/AWTD-1153) reconcile, roles and uninstall ·
+**P4d ([AWTD-1152](https://astrid.cc/t/AWTD-1152)), done.** What was built:
+- **Webhook.** `projects_v2_item` on the App webhook only enqueues a hydrate job. The
+  payload is a trigger, not data. The job's dedupe key `item:<node>:<2s bucket>`
+  coalesces a burst of edits, `X-GitHub-Delivery` deduplicates redeliveries, and edits
+  to unbound projects are ignored.
+- **The App webhook route** now answers a deployment with GitHub Projects even when the
+  coding agent is off. Before this, the GitHub brand would never have received
+  installation or project events.
+- **Queue rules** are in `lib/github/projects/jobs.ts`: round-robin by installation, at
+  most 2 jobs per installation per drain, and backoff from 30s to 1h. A job is dead
+  after 8 attempts, with its error kept.
+- **Draining** is in `services/github-sync-jobs.service.ts`. It claims each job with a
+  conditional update and waits out a rate limit rather than backing off. It runs after
+  the webhook response and from `/api/cron/github-projects-sync` every minute, which
+  answers 404 on Astrid.
+- An item GitHub no longer has leaves the board, and the task is kept.
+- New rows in PERFORMANCE_BUDGETS: webhook ack, edit to replica (measured in P4f),
+  apply read count, and reconcile share.
+- **Not handled yet:** `projects_v2` events (project closed or deleted, fields edited)
+  are ignored until P4e's reconcile.
+
+The remaining slices: [AWTD-1153](https://astrid.cc/t/AWTD-1153) reconcile, roles and uninstall ·
 [AWTD-1154](https://astrid.cc/t/AWTD-1154) the live smoke test.
 
 ### P5–P8 — write-through, fields, recurrence, per-org SSO, brand: not started

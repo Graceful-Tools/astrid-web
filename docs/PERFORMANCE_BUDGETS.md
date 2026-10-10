@@ -25,6 +25,10 @@ Insights was collecting the numbers — see below.
 | Redis cache hit rate | >= 80% after warm-up | `/admin/analytics` → **Redis Cache**, per day, from the `CacheMetricBucket` table | **not yet sampled — needs the deploy carrying the writer** |
 | Initial JavaScript | <= 250 KiB compressed | shared baseline only — see below | 2026-09-11 |
 | Core Web Vitals (p75) | LCP <= 2.5 s; INP <= 200 ms; CLS <= 0.1 | Vercel Speed Insights (history, dashboard only) + `scripts/measure-web-vitals.ts` (scriptable, no history yet) — see below | **not yet transcribed** |
+| GitHub Projects webhook ack | p95 <= 300 ms (delivery check, one indexed read, one insert; work runs after the response) | `vercel logs --query projects_v2_item` route timings; shape pinned by `tests/api/github-projects-webhook.test.ts` (AWTD-1152) | **never — no brand has GitHub Projects on yet** |
+| GitHub Projects edit → replica | p95 <= 10 s from a github.com edit to the Astrid row | P4f live smoke test against the Graceful-Fools test org (AWTD-1154) | **never — measured in P4f** |
+| GitHub Projects apply | <= 2 reads per 100-item page, no N+1 | `tests/services/github-projects-service.test.ts` pins the read count (AWTD-1151) | pinned continuously |
+| GitHub reconcile share | <= 30% of an installation's hourly GraphQL budget | `admit()` in `lib/github/rate-limiter.ts`, table-tested (AWTD-1150) | pinned continuously |
 
 ## Compressed or decoded: say which, or the budget means nothing
 

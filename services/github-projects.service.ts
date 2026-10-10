@@ -264,6 +264,33 @@ export async function boundBoard(projectId: string): Promise<(BoundBoard & { pro
   }
 }
 
+/** The board a GitHub project is bound to, by its node id (webhooks name projects that way). */
+export async function boardForProjectNode(projectNodeId: string) {
+  const binding = await prisma.gitHubProjectBinding.findUnique({
+    where: { projectNodeId },
+    select: { projectId: true },
+  })
+  return binding ? boundBoard(binding.projectId) : null
+}
+
+/**
+ * An item GitHub no longer has (deleted, or out of the installation's reach):
+ * it leaves the board, and the task itself is kept (§8.7).
+ */
+export async function removeProjectItem(board: BoundBoard, itemNodeId: string): Promise<boolean> {
+  const membership = await prisma.gitHubProjectItem.findUnique({
+    where: { itemNodeId },
+    select: { taskId: true, archived: true, projectId: true },
+  })
+  if (!membership || membership.archived || membership.projectId !== board.projectId) return false
+  await prisma.$transaction([
+    prisma.gitHubProjectItem.update({ where: { itemNodeId }, data: { archived: true } }),
+    prisma.task.update({ where: { id: membership.taskId }, data: { lists: { disconnect: { id: board.listId } } } }),
+  ])
+  await RedisCache.invalidate.userTasks(board.ownerId, [board.listId]).catch(() => {})
+  return true
+}
+
 /** Page through every item and apply it (the initial import, §8.7). */
 export async function importGitHubProject(projectId: string, client: GraphqlClient): Promise<ApplySummary> {
   const board = await boundBoard(projectId)

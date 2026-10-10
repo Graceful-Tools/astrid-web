@@ -9,12 +9,13 @@ import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import { createLogger } from '@/lib/logger'
 import { completeTask } from '@/services/complete-task'
-import { capabilityGate } from '@/lib/brand/capabilities'
+import { capabilityGate, hasCapability } from '@/lib/brand/capabilities'
 import {
   handleInstallationEvent,
   handleInstallationRepositoriesEvent,
 } from '@/lib/github/webhooks/installation'
 import { handleIssuesWebhook } from '@/lib/github/webhooks/issues'
+import { handleProjectsV2ItemWebhook } from '@/lib/github/webhooks/projects'
 
 const log = createLogger('api.github.webhooks')
 
@@ -71,6 +72,13 @@ webhooks?.on('installation_repositories', ({ payload }) => handleInstallationRep
  */
 webhooks?.on(['issues', 'issue_comment'], ({ id, name, payload }) =>
   handleIssuesWebhook(name, payload, id)
+)
+
+/**
+ * GitHub Projects boards: an item changed, so read it again (AWTD-1152).
+ */
+webhooks?.on('projects_v2_item', ({ id, payload }) =>
+  handleProjectsV2ItemWebhook(payload as never, id).then(() => undefined)
 )
 
 /**
@@ -341,8 +349,11 @@ webhooks?.onError((error) => {
  */
 export async function POST(request: NextRequest) {
   // A deployment without the coding agent must refuse
-  // server-side, not merely hide the UI (task 229c175c).
-  const capabilityBlocked = capabilityGate('codingAgent')
+  // server-side, not merely hide the UI (task 229c175c) — unless it has
+  // GitHub Projects boards, which need this App's installation and
+  // projects_v2_item events (AWTD-1152). The coding agent's own handlers act
+  // only on its workflows, which such a deployment never creates.
+  const capabilityBlocked = hasCapability('githubProjects') ? null : capabilityGate('codingAgent')
   if (capabilityBlocked) return capabilityBlocked
 
   try {
@@ -402,8 +413,11 @@ export async function POST(request: NextRequest) {
  */
 export async function GET() {
   // A deployment without the coding agent must refuse
-  // server-side, not merely hide the UI (task 229c175c).
-  const capabilityBlocked = capabilityGate('codingAgent')
+  // server-side, not merely hide the UI (task 229c175c) — unless it has
+  // GitHub Projects boards, which need this App's installation and
+  // projects_v2_item events (AWTD-1152). The coding agent's own handlers act
+  // only on its workflows, which such a deployment never creates.
+  const capabilityBlocked = hasCapability('githubProjects') ? null : capabilityGate('codingAgent')
   if (capabilityBlocked) return capabilityBlocked
 
   return NextResponse.json({
