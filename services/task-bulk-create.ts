@@ -57,6 +57,8 @@ export interface BulkTaskInput {
   listIds: string[]
   /** History carried over verbatim — a copy keeps its comments' authors. */
   comments?: Array<{ content: string; authorId: string | null }>
+  /** fromRemote only: the remote's identifier (owner/repo#N), used as is. */
+  identifier?: string | null
 }
 
 export interface BulkCreateResult {
@@ -70,6 +72,13 @@ export async function createTasksInBulk(args: {
   actorId: string
   /** Shown in the creation comments; looked up when omitted. */
   actorName?: string
+  /**
+   * The remote's own state arriving in the replica — the GitHub Projects sync
+   * engine (AWTD-1151). The backend is where these rows came FROM, so it is
+   * not asked; identifiers are the remote's, never minted from a project key;
+   * the creation comment says where the task came from.
+   */
+  fromRemote?: { source: string }
 }): Promise<BulkCreateResult> {
   const { actorId } = args
   if (args.tasks.length === 0) return { tasks: [] }
@@ -79,7 +88,11 @@ export async function createTasksInBulk(args: {
   const accepted: Array<{ input: BulkTaskInput; data: BulkTaskData; id: string }> = []
   const rejected: NonNullable<BulkCreateResult['rejected']> = []
   for (const [index, input] of args.tasks.entries()) {
-    const verdict = await taskBackendFor(input.listIds).createTask({ actorId }, input.data as never)
+    if (args.fromRemote) {
+      accepted.push({ input, data: input.data, id: randomUUID() })
+      continue
+    }
+    const verdict = await (await taskBackendFor(input.listIds)).createTask({ actorId }, input.data as never)
     if (verdict.ok) accepted.push({ input, data: verdict.value as BulkTaskData, id: randomUUID() })
     else rejected.push({ index, status: verdict.status, error: verdict.error })
   }
@@ -104,7 +117,9 @@ export async function createTasksInBulk(args: {
         orderBy: { createdAt: 'asc' },
       })
 
-      const identifiers = await mintIdentifierRanges(accepted, lists, tx)
+      const identifiers = args.fromRemote
+        ? remoteIdentifiers(accepted)
+        : await mintIdentifierRanges(accepted, lists, tx)
 
       await tx.task.createMany({
         data: accepted.map(row => ({
@@ -138,7 +153,12 @@ export async function createTasksInBulk(args: {
       }
 
       const comments = accepted.flatMap(row => [
-        { taskId: row.id, authorId: null, content: `${creatorName} created this task`, type: 'TEXT' as const },
+        {
+          taskId: row.id,
+          authorId: null,
+          content: args.fromRemote ? `Imported from ${args.fromRemote.source}` : `${creatorName} created this task`,
+          type: 'TEXT' as const,
+        },
         ...(row.input.comments ?? []).map(comment => ({
           taskId: row.id,
           authorId: comment.authorId,
@@ -162,6 +182,13 @@ export async function createTasksInBulk(args: {
   await runBulkCreateSideEffects({ tasks, actorId, creatorName, manualLists, allListIds })
 
   return rejected.length > 0 ? { tasks, rejected } : { tasks }
+}
+
+/** fromRemote: the identifier each row arrived with; no sequence. */
+function remoteIdentifiers(rows: Array<{ input: BulkTaskInput; id: string }>) {
+  const out = new Map<string, { identifier: string; sequence: number | null }>()
+  for (const row of rows) if (row.input.identifier) out.set(row.id, { identifier: row.input.identifier, sequence: null })
+  return out
 }
 
 /**

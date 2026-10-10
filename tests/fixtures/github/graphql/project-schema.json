@@ -1,0 +1,207 @@
+{
+  "data": {
+    "node": {
+      "id": "PVT_kwDOFEb-HM4BmXS2",
+      "number": 2,
+      "title": "Graceful-Tools Test",
+      "url": "https://github.com/orgs/Graceful-Fools/projects/2",
+      "closed": false,
+      "owner": {
+        "__typename": "Organization",
+        "login": "Graceful-Fools",
+        "databaseId": 340196892
+      },
+      "fields": {
+        "nodes": [
+          {
+            "__typename": "ProjectV2Field",
+            "id": "PVTF_lADOFEb-HM4BmXS2zhlApMU",
+            "name": "Title",
+            "dataType": "TITLE"
+          },
+          {
+            "__typename": "ProjectV2Field",
+            "id": "PVTF_lADOFEb-HM4BmXS2zhlApMY",
+            "name": "Assignees",
+            "dataType": "ASSIGNEES"
+          },
+          {
+            "__typename": "ProjectV2SingleSelectField",
+            "id": "PVTSSF_lADOFEb-HM4BmXS2zhlApMc",
+            "name": "Status",
+            "dataType": "SINGLE_SELECT",
+            "options": [
+              {
+                "id": "f75ad846",
+                "name": "Todo"
+              },
+              {
+                "id": "47fc9ee4",
+                "name": "In progress"
+              },
+              {
+                "id": "98236657",
+                "name": "Done"
+              }
+            ]
+          },
+          {
+            "__typename": "ProjectV2Field",
+            "id": "PVTF_lADOFEb-HM4BmXS2zhlApMg",
+            "name": "Labels",
+            "dataType": "LABELS"
+          },
+          {
+            "__typename": "ProjectV2Field",
+            "id": "PVTF_lADOFEb-HM4BmXS2zhlApMk",
+            "name": "Linked pull requests",
+            "dataType": "LINKED_PULL_REQUESTS"
+          },
+          {
+            "__typename": "ProjectV2Field",
+            "id": "PVTF_lADOFEb-HM4BmXS2zhlApMo",
+            "name": "Milestone",
+            "dataType": "MILESTONE"
+          },
+          {
+            "__typename": "ProjectV2Field",
+            "id": "PVTF_lADOFEb-HM4BmXS2zhlApMs",
+            "name": "Repository",
+            "dataType": "REPOSITORY"
+          },
+          {
+            "__typename": "ProjectV2Field",
+            "id": "PVTF_lADOFEb-HM4BmXS2zhlApM0",
+            "name": "Reviewers",
+            "dataType": "REVIEWERS"
+          },
+          {
+            "__typename": "ProjectV2Field",
+            "id": "PVTF_lADOFEb-HM4BmXS2zhlApM4",
+            "name": "Parent issue",
+            "dataType": "PARENT_ISSUE"
+          },
+          {
+            "__typename": "ProjectV2Field",
+            "id": "PVTF_lADOFEb-HM4BmXS2zhlApM8",
+            "name": "Sub-issues progress",
+            "dataType": "SUB_ISSUES_PROGRESS"
+          },
+          {
+            "__typename": "ProjectV2Field",
+            "id": "PVTF_lADOFEb-HM4BmXS2zhlApNA",
+            "name": "Created",
+            "dataType": "CREATED"
+          },
+          {
+            "__typename": "ProjectV2Field",
+            "id": "PVTF_lADOFEb-HM4BmXS2zhlApNE",
+            "name": "Updated",
+            "dataType": "UPDATED"
+          },
+          {
+            "__typename": "ProjectV2Field",
+            "id": "PVTF_lADOFEb-HM4BmXS2zhlApNI",
+            "name": "Closed",
+            "dataType": "CLOSED"
+          },
+          {
+            "__typename": "ProjectV2SingleSelectField",
+            "id": "PVTSSF_lADOFEb-HM4BmXS2zhlAp7s",
+            "name": "Priority",
+            "dataType": "SINGLE_SELECT",
+            "options": []
+          },
+          {
+            "__typename": "ProjectV2SingleSelectField",
+            "id": "PVTSSF_lADOFEb-HM4BmXS2zhlAp7w",
+            "name": "Size",
+            "dataType": "SINGLE_SELECT",
+            "options": [
+              {
+                "id": "6c778388",
+                "name": "XS"
+              },
+              {
+                "id": "0b047b53",
+                "name": "S"
+              },
+              {
+                "id": "2e9c54e0",
+                "name": "M"
+              },
+              {
+                "id": "6c9bddd6",
+                "name": "L"
+              },
+              {
+                "id": "d00da288",
+                "name": "XL"
+              }
+            ]
+          },
+          {
+            "__typename": "ProjectV2Field",
+            "id": "PVTF_lADOFEb-HM4BmXS2zhlAp70",
+            "name": "Estimate",
+            "dataType": "NUMBER"
+          },
+          {
+            "__typename": "ProjectV2IterationField",
+            "id": "PVTIF_lADOFEb-HM4BmXS2zhlAp74",
+            "name": "Iteration",
+            "dataType": "ITERATION"
+          },
+          {
+            "__typename": "ProjectV2Field",
+            "id": "PVTF_lADOFEb-HM4BmXS2zhlAp78",
+            "name": "Start date",
+            "dataType": "DATE"
+          },
+          {
+            "__typename": "ProjectV2Field",
+            "id": "PVTF_lADOFEb-HM4BmXS2zhlAp8A",
+            "name": "Target date",
+            "dataType": "DATE"
+          },
+          {
+            "__typename": "ProjectV2SingleSelectField",
+            "id": "PVTSSF_lADOFEb-HM4BmXS2zhlAqSg",
+            "name": "Effort",
+            "dataType": "SINGLE_SELECT",
+            "options": []
+          },
+          {
+            "__typename": "ProjectV2Field",
+            "id": "PVTF_lADOFEb-HM4BmXS2zhlAqgM",
+            "name": "magic",
+            "dataType": "TEXT"
+          },
+          {
+            "__typename": "ProjectV2IterationField",
+            "id": "PVTIF_lADOFEb-HM4BmXS2zhlAqmk",
+            "name": "Iteration_field",
+            "dataType": "ITERATION"
+          },
+          {
+            "__typename": "ProjectV2Field",
+            "id": "PVTF_lADOFEb-HM4BmXS2zhlAqy4",
+            "name": "secret sauce",
+            "dataType": "TEXT"
+          },
+          {
+            "__typename": "ProjectV2Field",
+            "id": "PVTF_lADOFEb-HM4BmXS2zhlAq8E",
+            "name": "Wow Factor",
+            "dataType": "NUMBER"
+          }
+        ]
+      }
+    },
+    "rateLimit": {
+      "cost": 1,
+      "remaining": 4990,
+      "resetAt": "2026-10-10T14:41:11Z"
+    }
+  }
+}

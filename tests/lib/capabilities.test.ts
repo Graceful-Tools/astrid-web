@@ -34,13 +34,14 @@ describe('capability defaults (task 97208a72)', () => {
     process.env = { ...ORIGINAL_ENV }
   })
 
-  it('enables every capability when nothing is configured — except the opt-in sign-in providers', async () => {
+  it('enables every capability when nothing is configured — except the opt-in sign-in providers and GitHub Projects', async () => {
     const { CAPABILITIES } = await import('@/lib/brand/capabilities')
 
     // GitHub and SSO sign-in need credentials, so they are on only when listed
     // in NEXT_PUBLIC_BRAND_AUTH_PROVIDERS (spec §6.2). Defaulting them on would
     // put a failing button on every existing deployment.
-    const OPT_IN = new Set(['authGithub', 'authSso'])
+    // GitHub Projects is off unless a brand sets it: never on Astrid (D5, AWTD-1151).
+    const OPT_IN = new Set(['authGithub', 'authSso', 'githubProjects'])
     for (const [key, value] of Object.entries(CAPABILITIES)) {
       expect(value, `${key} default`).toBe(!OPT_IN.has(key))
     }

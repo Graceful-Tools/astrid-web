@@ -237,6 +237,8 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
       githubIssues: caps.syncGithubIssues,
     })
     expect(body.integrations.codingAgent).toBe(caps.codingAgent)
+    // Additive (spec §11.2); off unless the brand turns it on (D5).
+    expect(body.product.githubProjects).toBe(caps.githubProjects)
     expect(body.brand.appName).toBe(profile.expect.appName)
   })
 
