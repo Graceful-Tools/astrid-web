@@ -1,17 +1,18 @@
 "use client"
 
 import { getListImageUrl, getConsistentDefaultImage } from "@/lib/default-images"
-import { ListGlyph } from "@/components/list-glyph"
 import { useListImagesVisibility } from "@/contexts/list-images-context"
 import type { TaskList } from "@/types/task"
 
 /**
- * The list header's 64px image — or, under hide_list_images, the list's glyph
- * with no click-to-pick: no image drawn, nothing to set.
+ * The list header's 64px image — or, under hide_list_images, nothing: no
+ * image, nothing to pick, and no glyph either. The header's width goes to the
+ * list's name, which a glyph there used to squeeze into "Astrid Web T…"
+ * beside the view toggle and buttons (AWTD-1155).
  */
 export function ListHeaderImage({ list, onPick }: { list: TaskList; onPick?: () => void }) {
   const { showListImages } = useListImagesVisibility()
-  if (!showListImages) return <ListGlyph list={list} className="w-6 h-6 flex-shrink-0" />
+  if (!showListImages) return null
 
   return (
     <img

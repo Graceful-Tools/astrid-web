@@ -22,6 +22,8 @@ interface TaskViewToggleProps {
    * to icon-only below a wider viewport breakpoint (e.g. `min-[1300px]:inline`).
    */
   labelClassName?: string
+  /** Smaller segments, for the 3-column list header where the list's name needs the width (AWTD-1155). */
+  compact?: boolean
 }
 
 const segmentMeta: Record<HeaderToggleSegment, { label: string; Icon: typeof ListChecks }> = {
@@ -41,6 +43,7 @@ export function TaskViewToggle({
   onTaskViewModeChange,
   onToggleActivePanel,
   labelClassName = 'hidden sm:inline',
+  compact = false,
 }: TaskViewToggleProps) {
   const headerToggle = getHeaderViewToggle({
     isOneColumn,
@@ -87,7 +90,7 @@ export function TaskViewToggle({
             size="sm"
             variant={active ? 'default' : 'ghost'}
             onClick={() => handleSegmentClick(segment)}
-            className="h-8 gap-1.5 px-2.5"
+            className={compact ? 'h-7 gap-1 px-1.5' : 'h-8 gap-1.5 px-2.5'}
             aria-pressed={active}
             title={label}
             data-segment={segment}

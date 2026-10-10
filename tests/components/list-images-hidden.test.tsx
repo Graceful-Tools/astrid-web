@@ -2,8 +2,9 @@
  * @vitest-environment jsdom
  *
  * The hide_list_images A/B test at its render sites: with images hidden the
- * sidebar row and list header show the list's glyph, and neither the header
- * nor list settings offers an image to pick. With images shown, both are unchanged.
+ * sidebar row shows the list's glyph, the list header shows nothing at all —
+ * its width goes to the title (AWTD-1155) — and neither the header nor list
+ * settings offers an image to pick. With images shown, both are unchanged.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -98,11 +99,10 @@ describe('list header', () => {
     expect(onPick).toHaveBeenCalled()
   })
 
-  it('draws no image and offers no picker when they are hidden', () => {
+  it('draws nothing when they are hidden: no image, no picker, no glyph taking the title\'s room (AWTD-1155)', () => {
     visibility.showListImages = false
     const onPick = vi.fn()
     const { container } = render(<ListHeaderImage list={list} onPick={onPick} />)
-    expect(container.querySelector('img')).toBeNull()
-    expect(container.querySelector('svg')).not.toBeNull()
+    expect(container).toBeEmptyDOMElement()
   })
 })
