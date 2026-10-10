@@ -595,7 +595,7 @@ export function MainContent({
                 if (!currentList) return null
 
                 return (
-                  <div className="flex items-center justify-start space-x-4 mb-4">
+                  <div className="flex items-center justify-start gap-4 mb-4">
                     <ListHeaderImage
                       list={currentList}
                       onPick={canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleListImageClick(currentList.id) : undefined}
@@ -624,7 +624,7 @@ export function MainContent({
                           </Button>
                         </div>
                       ) : (
-                        <h1 className={`text-2xl font-semibold tracking-tight theme-text-primary mb-1 text-left truncate ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
+                        <h1 className={`text-2xl font-semibold tracking-tight theme-text-primary mb-1 text-left line-clamp-2 break-words ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
                             onClick={!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleEditListName(currentList) : undefined}>
                           {newFilterState.filters.search.trim() ? 'Search Results' : currentList.name}
                           {!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured}
@@ -700,11 +700,11 @@ export function MainContent({
                       )}
                     </div>
 
-                    {/* Share and Settings Buttons */}
-                    <div className="flex items-center space-x-2 flex-shrink-0">
+                    {/* View toggle, filters, settings: compact so the name keeps the room (AWTD-1155) */}
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
                       {is3Column && hasProjectBoard && (
                         <TaskViewToggle
-                          labelClassName="hidden min-[1300px]:inline"
+                          labelClassName="hidden min-[1300px]:inline" compact
                           isOneColumn={false}
                           hasProjectBoard={hasProjectBoard}
                           chatAvailable={false}

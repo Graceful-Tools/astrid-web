@@ -67,12 +67,12 @@ export function ListHeaderActions({
           onOpenSortFilters(listId)
         }}
         onMouseDown={(e) => e.stopPropagation()}
-        className="theme-text-muted hover:theme-text-primary p-2"
+        className="theme-text-muted hover:theme-text-primary h-8 w-8 p-0"
         data-sort-filters-button="true"
         aria-label={t('listSettings.sortAndFilters')}
         title={t('listSettings.sortAndFilters')}
       >
-        <Filter className="w-5 h-5" />
+        <Filter className="w-4 h-4" />
       </Button>
       <Button
         variant="ghost"
@@ -82,10 +82,12 @@ export function ListHeaderActions({
           onOpenSettings(listId)
         }}
         onMouseDown={(e) => e.stopPropagation()}
-        className="theme-text-muted hover:theme-text-primary p-2"
+        className="theme-text-muted hover:theme-text-primary h-8 w-8 p-0"
         data-settings-button="true"
+        aria-label={t('listSettings.adminSettings')}
+        title={t('listSettings.adminSettings')}
       >
-        <Settings className="w-5 h-5" />
+        <Settings className="w-4 h-4" />
       </Button>
     </>
   )
