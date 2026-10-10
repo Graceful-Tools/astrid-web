@@ -473,6 +473,11 @@
         "sdkNeedsBoth": "서버에는 둘 다 필요합니다. API를 호출하기 위한 이 자격 증명과 전달을 검증하기 위한 아래의 웹훅 시크릿입니다.",
         "manage": "연결에서 관리",
         "error": "자격 증명을 만들 수 없습니다"
+      },
+      "githubConnection": {
+        "title": "GitHub 연결",
+        "description": "서버에서 실행되는 코딩 에이전트는 설정 → 연결의 GitHub 연결을 사용하며, 연결된 모든 조직이 그곳에 표시됩니다.",
+        "open": "연결 열기"
       }
     },
     "apiAccess": {
@@ -960,6 +965,37 @@
         "title": "개발자",
         "description": "OAuth 앱을 직접 만들고, API를 테스트하고, OpenAPI를 지원하는 어시스턴트를 연결합니다.",
         "openTester": "API 테스터 열기"
+      },
+      "github": {
+        "title": "GitHub",
+        "description": "{appName}을(를) GitHub 계정 및 조직에 연결합니다. 서버에서 실행되는 코딩 에이전트는 이 연결을 통해 브랜치와 풀 리퀘스트를 만듭니다.",
+        "empty": "아직 GitHub에 연결되지 않았습니다.",
+        "connect": "GitHub 연결",
+        "installAnother": "다른 조직 추가",
+        "refresh": "저장소 새로고침",
+        "refreshed": "저장소를 새로고침했습니다",
+        "refreshError": "저장소를 새로고침할 수 없습니다",
+        "loadError": "GitHub 연결을 불러올 수 없습니다",
+        "installError": "GitHub 설치를 시작할 수 없습니다",
+        "organization": "조직",
+        "personal": "개인 계정",
+        "repoCountOne": "저장소 1개",
+        "repoCountMany": "저장소 {count}개",
+        "allRepos": "모든 저장소",
+        "suspended": "일시 중지됨",
+        "disconnect": "연결 해제",
+        "disconnectTitle": "{account} 연결을 해제할까요?",
+        "disconnectDescription": "{account}의 저장소에서 코딩 에이전트가 더 이상 작동하지 않습니다. GitHub 앱은 그대로 설치되어 있으니, 완전히 제거하려면 GitHub에서 제거하세요.",
+        "disconnected": "{account} 연결을 해제했습니다",
+        "disconnectError": "연결을 해제할 수 없습니다",
+        "outcomes": {
+          "connected": "GitHub에 연결했습니다",
+          "updated": "GitHub 연결을 업데이트했습니다",
+          "not_authorized": "GitHub에 따르면 회원님의 계정은 해당 설치를 볼 수 없습니다",
+          "already_connected": "해당 설치는 이미 다른 계정에 연결되어 있습니다",
+          "verification_unavailable": "이 서버에 GitHub 로그인이 구성되지 않아 설치를 확인할 수 없습니다",
+          "error": "GitHub 연결 중 문제가 발생했습니다"
+        }
       }
     }
   },

@@ -473,6 +473,11 @@
         "sdkNeedsBoth": "サーバーには両方が必要です。API を呼び出すためのこの認証情報と、配信を検証するための下の Webhook シークレットです。",
         "manage": "接続で管理",
         "error": "認証情報を作成できませんでした"
+      },
+      "githubConnection": {
+        "title": "GitHub 接続",
+        "description": "サーバーで実行されるコーディングエージェントは、設定 → 接続 にある GitHub 接続を使用します。接続済みの組織はすべてそこに表示されます。",
+        "open": "接続を開く"
       }
     },
     "apiAccess": {
@@ -960,6 +965,37 @@
         "title": "開発者",
         "description": "OAuth アプリを手動で作成し、API をテストし、OpenAPI 対応のアシスタントを接続します。",
         "openTester": "API テスターを開く"
+      },
+      "github": {
+        "title": "GitHub",
+        "description": "{appName} を GitHub のアカウントや組織に接続します。サーバーで実行されるコーディングエージェントは、この接続を通じてブランチとプルリクエストを作成します。",
+        "empty": "まだ GitHub に接続されていません。",
+        "connect": "GitHub に接続",
+        "installAnother": "別の組織を追加",
+        "refresh": "リポジトリを更新",
+        "refreshed": "リポジトリを更新しました",
+        "refreshError": "リポジトリを更新できませんでした",
+        "loadError": "GitHub 接続を読み込めませんでした",
+        "installError": "GitHub のインストールを開始できませんでした",
+        "organization": "組織",
+        "personal": "個人アカウント",
+        "repoCountOne": "1 件のリポジトリ",
+        "repoCountMany": "{count} 件のリポジトリ",
+        "allRepos": "すべてのリポジトリ",
+        "suspended": "停止中",
+        "disconnect": "接続を解除",
+        "disconnectTitle": "{account} の接続を解除しますか?",
+        "disconnectDescription": "{account} のリポジトリではコーディングエージェントが動作しなくなります。GitHub アプリはインストールされたままです。完全に削除するには GitHub でアンインストールしてください。",
+        "disconnected": "{account} の接続を解除しました",
+        "disconnectError": "接続を解除できませんでした",
+        "outcomes": {
+          "connected": "GitHub に接続しました",
+          "updated": "GitHub 接続を更新しました",
+          "not_authorized": "GitHub によると、あなたのアカウントはそのインストールを参照できません",
+          "already_connected": "そのインストールはすでに別のアカウントに接続されています",
+          "verification_unavailable": "このサーバーでは GitHub サインインが設定されていないため、インストールを確認できませんでした",
+          "error": "GitHub への接続中に問題が発生しました"
+        }
       }
     }
   },

@@ -38,7 +38,8 @@ import {
 const log = createLogger('github.setup')
 
 function settingsRedirect(request: NextRequest, github?: string) {
-  const path = github ? `/settings/agents?github=${github}` : '/settings/agents'
+  // The one GitHub card lives on Connections (AWTD-1114); it reads ?github=.
+  const path = github ? `/settings/connections?github=${github}` : '/settings/connections'
   return NextResponse.redirect(new URL(path, request.url))
 }
 

@@ -200,3 +200,44 @@ export async function installationsForUser(userId: string): Promise<Array<{ id: 
   })
   return rows.map(r => r.installation)
 }
+
+/** One installation as the Connections card shows it. */
+export interface InstallationSummary {
+  id: number
+  accountLogin: string
+  accountType: string | null
+  repositorySelection: string | null
+  repoCount: number
+  suspended: boolean
+}
+
+/**
+ * Every installation the user can act on, suspended ones included (the card
+ * says so rather than hiding them), oldest access first.
+ */
+export async function installationSummariesForUser(userId: string): Promise<InstallationSummary[]> {
+  const rows = await prisma.gitHubInstallationAccess.findMany({
+    where: { userId },
+    orderBy: { refreshedAt: 'asc' },
+    select: {
+      installation: {
+        select: {
+          id: true,
+          accountLogin: true,
+          accountType: true,
+          repositorySelection: true,
+          suspendedAt: true,
+          _count: { select: { repos: true } },
+        },
+      },
+    },
+  })
+  return rows.map(({ installation }) => ({
+    id: installation.id,
+    accountLogin: installation.accountLogin,
+    accountType: installation.accountType,
+    repositorySelection: installation.repositorySelection,
+    repoCount: installation._count.repos,
+    suspended: installation.suspendedAt !== null,
+  }))
+}
