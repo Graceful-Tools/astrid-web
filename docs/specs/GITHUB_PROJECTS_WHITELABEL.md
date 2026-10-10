@@ -1388,7 +1388,33 @@ The test puts the fixture items back afterwards. Still open, because they need a
 GitHub-Projects brand and real seeding: the webhook leg of the ≤10s p95, and a
 2,000-item import.
 
-### P5–P8 — write-through, fields, recurrence, per-org SSO, brand: not started
+### P5 — write-through: in progress, split into P5a–P5c
+
+**P5a ([AWTD-1116](https://astrid.cc/t/AWTD-1116), first slice), done.** Edits to a mirrored
+task go through to GitHub **as the acting user**: their App user token, never the
+installation's. A rule in the tests keeps the App and installation tokens out of
+`lib/backends/github-project.ts`.
+- **What gets sent.** `lib/github/projects/write.ts` plans only the GitHub-owned fields
+  that actually change, as one document of aliased mutations: title and body by content
+  kind, the bound Status option on each project, Done also closes an issue, reopen,
+  not-planned closes as NOT_PLANNED, and the bound priority and due fields.
+- **Refusals.** A PR is never closed from here. An unbound field or an unmapped role is
+  refused with a 400 naming it, never silently dropped.
+- **Conflicts.** A body edit is checked against the current `updatedAt` first, and a
+  stale base is a 409 `conflict`.
+- **Writes are strict.** Any GraphQL error fails the whole write. Reads still accept
+  partial data.
+- **Errors.** `auth_required` (no usable token: nothing is written),
+  `forbidden`, `rate_limited` with `retryAfter`, `sso_required` with `ssoUrl` (from
+  `X-GitHub-SSO`), and `upstream_unavailable`. v1 `PUT /tasks/{id}` passes `retryAfter`
+  and `ssoUrl` through.
+- **Verified against GitHub.** All mutation shapes were recorded against the real test
+  project (`write-*.json`).
+
+Still to do: P5b (create, partial failure, offline idempotency) and P5c (assignees,
+comments, position, remove from project).
+
+### P6–P8 — fields, recurrence, per-org SSO, brand: not started
 
 These need, in order:
 1. A decision to apply the additive schema in §4/§8.5/§9.4.1 at a deploy.

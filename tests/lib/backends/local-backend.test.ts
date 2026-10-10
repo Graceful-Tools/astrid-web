@@ -48,7 +48,7 @@ describe('taskBackendFor (AWTD-1151)', () => {
   })
 })
 
-describe('githubProjectTaskBackend — read-only in P4 (AWTD-1151)', () => {
+describe('githubProjectTaskBackend — refusals (AWTD-1151, AWTD-1116)', () => {
   it.each(['createTask', 'updateTask', 'deleteTask'] as const)('accepts %s that came FROM GitHub (AWTD-1153)', async method => {
     const ctx = { actorId: 'u', origin: 'remote' as const }
     const call =
@@ -60,7 +60,8 @@ describe('githubProjectTaskBackend — read-only in P4 (AWTD-1151)', () => {
     await expect(call).resolves.toMatchObject({ ok: true })
   })
 
-  it.each(['createTask', 'updateTask', 'deleteTask'] as const)('refuses %s with a typed 403', async method => {
+  // update of a task that is not mirrored (the shared prisma mock finds none)
+  it.each(['createTask', 'updateTask', 'deleteTask'] as const)('refuses %s from Astrid with a typed 403 (update: an unmirrored task)', async method => {
     const call =
       method === 'createTask'
         ? githubProjectTaskBackend.createTask({ actorId: 'u' }, { title: 'x' })

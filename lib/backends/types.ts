@@ -33,7 +33,7 @@ export type TaskBackendRow = Record<string, unknown>
 
 export type TaskBackendResult<T> =
   | { ok: true; value: T }
-  | { ok: false; status: 400 | 403 | 409; error: string }
+  | { ok: false; status: 400 | 403 | 409 | 429 | 502; error: string; retryAfter?: number; ssoUrl?: string }
 
 export interface TaskBackend {
   readonly kind: TaskBackendKind
