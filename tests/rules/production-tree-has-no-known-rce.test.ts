@@ -113,9 +113,11 @@ const ADVISORY_FLOORS: Array<{
   },
   {
     name: 'sharp',
-    minVersion: '0.35.4',
+    minVersion: '0.35.5',
     severity: 'high',
-    advisory: 'GHSA-rgj7-g3m4-5g8c (libheif); <0.35.4. Reached through `next`',
+    advisory:
+      'GHSA-wq5f-xc86-pv6w (librsvg; <0.35.5, AWTD-1131) and ' +
+      'GHSA-rgj7-g3m4-5g8c (libheif; <0.35.4). Reached through `next`',
   },
   {
     name: 'js-yaml',
@@ -170,6 +172,14 @@ const ADVISORY_FLOORS: Array<{
       'GHSA-j6r3-76f7-8jcv (isInSubnet compares across address families), ' +
       'GHSA-h3mg-xc3c-68pw (unbounded parse diagnostic DoS), GHSA-rpw4-54j3-4h4q and ' +
       'GHSA-2vr4-cq9g-pvrc (link-local / NAT64 SSRF classifier gaps); <=10.7.0 — AWTD-1068',
+  },
+  {
+    name: 'proxy-addr',
+    minVersion: '2.0.8',
+    severity: 'critical',
+    advisory:
+      'GHSA-jqcg-44mw-7w3h (IP spoofing via an IPv4-mapped IPv6 trust subnet); ' +
+      '>=1.1.0 <2.0.8 — AWTD-1130. Reached through @modelcontextprotocol/sdk → express',
   },
   {
     name: 'dompurify',

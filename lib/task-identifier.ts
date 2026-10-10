@@ -102,19 +102,38 @@ export async function allocateSequence(
   projectId: string,
   client: PrismaLike = prisma
 ): Promise<{ sequence: number; key: string | null } | null> {
+  const range = await allocateSequenceRange(projectId, 1, client)
+  return range ? { sequence: range.firstSequence, key: range.key } : null
+}
+
+/**
+ * Take `count` consecutive sequence numbers in one statement (AWTD-1124): a
+ * bulk create pays one row lock per project, not one per task. Returns the
+ * first; the batch owns `firstSequence … firstSequence + count - 1`.
+ */
+export async function allocateSequenceRange(
+  projectId: string,
+  count: number,
+  client: PrismaLike = prisma
+): Promise<{ firstSequence: number; key: string | null } | null> {
   // The key comes back from the same row lock as the number (AWTD-1024): a
   // create that read AWTD just before a rename to WEB committed would otherwise
   // mint AWTD-13 after every other AWTD-N had become WEB-N.
-  const rows = await client.$queryRaw<Array<{ nextSequence: number; key: string | null }>>(
+  // `${count}` is a bound parameter Postgres types as bigint, and int4 - int8
+  // is int8, which $queryRaw hands back as a JS BigInt — and task.create
+  // rejects a BigInt for the Int `sequence` column. That 500'd every task
+  // create on a project board in production (2026-10-09). Keep the arithmetic
+  // in integer, and coerce anyway: the column type is the database's to change.
+  const rows = await client.$queryRaw<Array<{ nextSequence: number | bigint; key: string | null }>>(
     Prisma.sql`
       UPDATE "Project"
-      SET "nextSequence" = "nextSequence" + 1
+      SET "nextSequence" = "nextSequence" + ${count}::integer
       WHERE "id" = ${projectId}
-      RETURNING "nextSequence" - 1 AS "nextSequence", "key"
+      RETURNING ("nextSequence" - ${count}::integer)::integer AS "nextSequence", "key"
     `
   )
   const row = rows[0]
-  return row ? { sequence: row.nextSequence, key: row.key } : null
+  return row ? { firstSequence: Number(row.nextSequence), key: row.key } : null
 }
 
 /**

@@ -20,13 +20,17 @@
  *   4. Linking adopts the account first: credentials registered while the
  *      address was unproven (a pre-hijacking passkey) do not survive (1a52195f).
  *
- * Returns whether the sign-in may proceed. On `true` with no existing account,
- * NextAuth creates the user through the adapter.
+ * `linkFederatedIdentity` (NextAuth's signIn callback) returns whether the
+ * sign-in may proceed; on `true` with no existing account, NextAuth creates the
+ * user through the adapter. `signInWithVerifiedIdentity` (the native Apple and
+ * Google routes, which have no adapter) applies the same rule and creates the
+ * user itself.
  */
 
 import { prisma } from '@/lib/prisma'
 import { adoptUnverifiedAccount } from '@/lib/auth/adopt-unverified-account'
 import { isBrandAgentEmail } from '@/lib/brand/agent-emails'
+import { createDefaultListsForUser } from '@/lib/default-lists'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('auth.federated-linking')
@@ -57,9 +61,27 @@ const ACCOUNT_TOKEN_FIELDS = [
   'refresh_token', 'access_token', 'expires_at', 'token_type', 'scope', 'id_token', 'session_state',
 ] as const
 
-export async function linkFederatedIdentity(signIn: FederatedSignIn): Promise<boolean> {
+function accountTokens(account: FederatedSignIn['account']): Record<string, unknown> {
+  const tokens: Record<string, unknown> = {}
+  for (const field of ACCOUNT_TOKEN_FIELDS) if (account[field] !== undefined) tokens[field] = account[field]
+  return tokens
+}
+
+/** What the rule decided, before anyone is created. */
+type LinkDecision =
+  | { kind: 'known'; userId: string }
+  | { kind: 'linked'; userId: string }
+  | { kind: 'new'; email: string }
+  | { kind: 'refused'; reason: 'refused' | 'missing-email' }
+
+/**
+ * The rule itself, shared by NextAuth (which creates new users through its
+ * adapter) and the native routes (which create them here). `email` may be
+ * null only for an identity that is already linked: Apple sends the email on
+ * the first sign-in and not reliably after.
+ */
+async function decideFederatedLink(signIn: Omit<FederatedSignIn, 'email'> & { email: string | null }): Promise<LinkDecision> {
   const { provider, account, profile } = signIn
-  const email = signIn.email.trim().toLowerCase()
 
   const known = await prisma.account.findUnique({
     where: { provider_providerAccountId: { provider, providerAccountId: account.providerAccountId } },
@@ -67,35 +89,36 @@ export async function linkFederatedIdentity(signIn: FederatedSignIn): Promise<bo
   if (known) {
     // A returning user: keep their picture current, as Google sign-in always has.
     if (profile.image) await prisma.user.update({ where: { id: known.userId }, data: { image: profile.image } })
-    return true
+    return { kind: 'known', userId: known.userId }
   }
+
+  if (!signIn.email) return { kind: 'refused', reason: 'missing-email' }
+  const email = signIn.email.trim().toLowerCase()
 
   if (signIn.emailTrust === 'none') {
     log.warn({ provider }, 'Refusing federated sign-in: the provider does not vouch for the email')
-    return false
+    return { kind: 'refused', reason: 'refused' }
   }
   if (signIn.emailTrust === 'domain-bound' && !(signIn.allowedDomains ?? []).map(d => d.toLowerCase()).includes(domainOf(email))) {
     log.warn({ provider, domain: domainOf(email) }, 'Refusing SSO sign-in: email outside the connection’s domains')
-    return false
+    return { kind: 'refused', reason: 'refused' }
   }
   if (isProtectedAddress(email)) {
     log.warn({ provider }, 'Refusing federated sign-in onto a protected address')
-    return false
+    return { kind: 'refused', reason: 'refused' }
   }
 
   const existing = await prisma.user.findUnique({ where: { email } })
-  if (!existing) return true
+  if (!existing) return { kind: 'new', email }
   if (existing.isAIAgent) {
     log.warn({ provider }, 'Refusing federated sign-in onto an AI agent')
-    return false
+    return { kind: 'refused', reason: 'refused' }
   }
 
   await adoptUnverifiedAccount(prisma, existing, provider)
 
-  const tokens: Record<string, unknown> = {}
-  for (const field of ACCOUNT_TOKEN_FIELDS) if (account[field] !== undefined) tokens[field] = account[field]
   await prisma.account.create({
-    data: { userId: existing.id, type: account.type, provider, providerAccountId: account.providerAccountId, ...tokens },
+    data: { userId: existing.id, type: account.type, provider, providerAccountId: account.providerAccountId, ...accountTokens(account) },
   })
 
   // Fill in what the account lacks; never overwrite a name the user chose.
@@ -104,5 +127,62 @@ export async function linkFederatedIdentity(signIn: FederatedSignIn): Promise<bo
   if (profile.image) update.image = profile.image
   if (Object.keys(update).length > 0) await prisma.user.update({ where: { id: existing.id }, data: update })
 
-  return true
+  return { kind: 'linked', userId: existing.id }
+}
+
+export async function linkFederatedIdentity(signIn: FederatedSignIn): Promise<boolean> {
+  return (await decideFederatedLink(signIn)).kind !== 'refused'
+}
+
+export interface SignedInUser {
+  id: string
+  email: string
+  name: string | null
+  image: string | null
+}
+
+export type VerifiedIdentitySignIn =
+  | { ok: true; user: SignedInUser; created: boolean; linked: boolean }
+  | { ok: false; reason: 'refused' | 'missing-email' }
+
+/**
+ * The same rule for a caller with no NextAuth adapter behind it — the native
+ * Apple and Google routes (AWTD-1104) — so it also creates the user, verified
+ * and with default lists, when the identity and its email are both new.
+ */
+export async function signInWithVerifiedIdentity(
+  signIn: Omit<FederatedSignIn, 'email'> & { email: string | null },
+): Promise<VerifiedIdentitySignIn> {
+  const decision = await decideFederatedLink(signIn)
+  if (decision.kind === 'refused') return { ok: false, reason: decision.reason }
+
+  if (decision.kind === 'new') {
+    const { provider, account, profile } = signIn
+    const user = await prisma.user.create({
+      data: {
+        email: decision.email,
+        name: profile.name || decision.email.split('@')[0],
+        image: profile.image ?? null,
+        emailVerified: new Date(),
+        accounts: {
+          create: { type: account.type, provider, providerAccountId: account.providerAccountId, ...accountTokens(account) },
+        },
+      },
+    })
+    await createDefaultListsForUser(user.id)
+    return { ok: true, user: pickUser(user), created: true, linked: false }
+  }
+
+  let user = await prisma.user.findUnique({ where: { id: decision.userId } })
+  if (!user) throw new Error('Linked account points at a missing user')
+  // Apple gives the name only on the first authorization, client-side, so a
+  // returning user can be the first chance to fill one in.
+  if (decision.kind === 'known' && signIn.profile.name && !user.name) {
+    user = await prisma.user.update({ where: { id: user.id }, data: { name: signIn.profile.name } })
+  }
+  return { ok: true, user: pickUser(user), created: false, linked: decision.kind === 'linked' }
+}
+
+function pickUser(user: { id: string; email: string; name: string | null; image: string | null }): SignedInUser {
+  return { id: user.id, email: user.email, name: user.name, image: user.image }
 }

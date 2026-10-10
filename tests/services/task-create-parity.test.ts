@@ -493,3 +493,82 @@ describe('create goes through the owning TaskBackend first (spec §5.2 step 8)',
   })
 })
 
+/**
+ * AWTD-1123: a task can be CREATED already done.
+ *
+ * GitHub issue import creates a closed issue's task in one write and needs the
+ * same three fields the update path writes on completion. CreateTaskInput had
+ * none of them, which is half of why import wrote its rows raw.
+ */
+describe('create carries completion fields (AWTD-1123)', () => {
+  it('writes completedAt, completedSource and closedReason on a completed create', async () => {
+    const { createTaskWithSideEffects } = await service()
+
+    const result = await createTaskWithSideEffects({
+      input: {
+        title: 'A task',
+        listIds: ['list-1'],
+        completed: true,
+        completedAt: '2026-08-15T08:30:00Z',
+        completedSource: 'github',
+        closedReason: 'canceled',
+      },
+      actorId: 'creator-1',
+    })
+
+    expect(result.ok).toBe(true)
+    expect(taskCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          completed: true,
+          completedAt: new Date('2026-08-15T08:30:00Z'),
+          completedSource: 'github',
+          closedReason: 'canceled',
+        }),
+      })
+    )
+  })
+
+  it('stamps now, with the app as provenance, when a completed create gives neither', async () => {
+    // The update path's rule: a completed task always carries a stamp.
+    const { createTaskWithSideEffects } = await service()
+
+    await createTaskWithSideEffects({ input: { title: 'A task', listIds: ['list-1'], completed: true }, actorId: 'creator-1' })
+
+    const data = taskCreate.mock.calls[0][0].data
+    expect(data.completedAt).toBeInstanceOf(Date)
+    expect(data.completedSource).toBe('astrid')
+  })
+
+  it('writes none of them on an open task, whatever the input says', async () => {
+    const { createTaskWithSideEffects } = await service()
+
+    await createTaskWithSideEffects({
+      input: { title: 'A task', listIds: ['list-1'], completedAt: '2026-08-15T08:30:00Z', completedSource: 'github', closedReason: 'canceled' },
+      actorId: 'creator-1',
+    })
+
+    const data = taskCreate.mock.calls[0][0].data
+    expect(data).not.toHaveProperty('completedAt')
+    expect(data).not.toHaveProperty('completedSource')
+    expect(data).not.toHaveProperty('closedReason')
+  })
+
+  it('rejects an unknown closedReason or completedSource rather than writing it', async () => {
+    const { createTaskWithSideEffects } = await service()
+
+    const badReason = await createTaskWithSideEffects({
+      input: { title: 'A task', listIds: ['list-1'], completed: true, closedReason: 'bogus' },
+      actorId: 'creator-1',
+    })
+    const badSource = await createTaskWithSideEffects({
+      input: { title: 'A task', listIds: ['list-1'], completed: true, completedSource: 'bogus' },
+      actorId: 'creator-1',
+    })
+
+    expect(badReason).toMatchObject({ ok: false, status: 400 })
+    expect(badSource).toMatchObject({ ok: false, status: 400 })
+    expect(taskCreate).not.toHaveBeenCalled()
+  })
+})
+

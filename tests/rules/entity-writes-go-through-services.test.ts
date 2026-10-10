@@ -39,18 +39,14 @@ const ALLOWED: Record<string, string> = {
   'lib/list-ownership-transfer.ts': 'one transaction with the owner change; announced with announceListMemberRemoved',
   'app/api/invitations/[token]/route.ts': 'membership upserted in the transaction that consumes the invitation; announced after commit',
   'app/api/lists/[id]/route.ts':
-    'roster replace inside the image-ownership transaction, announced with announceRosterChanges; ' +
-    'bulk unassign when a list goes public',
+    'roster replace inside the image-ownership transaction, announced with announceRosterChanges',
 
   // ── A new list's initial roster: nobody can be viewing it yet ──────────
   'app/api/lists/route.ts': 'members of a list being created',
   'lib/email-to-task-service.ts': 'members of the shared list an email creates',
 
   // ── Bulk or system creates, deliberately outside the per-task path ─────
-  'lib/copy-utils.ts': 'list/task copies: per-task side effects would multiply past the function budget; history copied verbatim',
-  'lib/task-batch-copy.ts': 'copy into several lists; assignee gated by authorizeNewTaskAssignee',
   'lib/system-tasks.ts': 'system-authored verify-email task (no creator), shared with the weekly batch insert',
-  'lib/sync/github/apply-issues.ts': 'import create, transactional with its ExternalTaskLink row; updates go through the service',
   'lib/projects-service.ts': 'a deleted board column clears its lane across the board in one statement',
 }
 
