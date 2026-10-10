@@ -41,7 +41,9 @@ const ROOT = process.cwd()
 // signed-in user claim any org's GitHub App installation.
 // 143 → 142: AWTD-1114 — GET /api/github/installations reads through
 // lib/github/installations instead of Prisma.
-const CEILING = 142 // 145 → 144: v1 task GET reads through lib/tasks/v1-task-shape (AWTD-1040)
+// 142 → 141: AWTD-1113 — /api/webhooks/github-issues nudges through
+// lib/github/webhooks/issues, shared with the App webhook.
+const CEILING = 141 // 145 → 144: v1 task GET reads through lib/tasks/v1-task-shape (AWTD-1040)
 
 function routeFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
