@@ -336,11 +336,11 @@ signInWithVerifiedIdentity({
   - **Sign-in flow:** the sign-in page offers "Continue with SSO", asks for a work
     email, looks up the domain, and redirects to that connection.
   - **Enforcement:** `required` blocks other providers for that domain.
-  - **SAML via a broker, never hand-rolled.** Signature, audience, replay and clock skew
-    are vetted code. **Recommendation:** embed BoxyHQ SAML Jackson
-    (`@boxyhq/saml-jackson`, OSS). It presents SAML IdPs to Astrid as OIDC, so the app
-    speaks exactly one protocol and the vendor stays swappable in the spirit of
-    WHITELABELING's service-provider section. WorkOS is the hosted alternative.
+  - **SAML via a broker, never hand-rolled, and the partner's broker.** Signature,
+    audience, replay and clock skew are vetted code. Astrid speaks only OIDC; a SAML IdP
+    reaches it through whatever broker the partner runs (BoxyHQ SAML Jackson, WorkOS,
+    or the IdP's own OIDC endpoint), in the spirit of WHITELABELING's service-provider
+    section. We do not choose or embed one (§15 C1).
 - **GitHub-org SAML interplay (GitHub brand).** When an org enforces SAML, a GitHub user
   token works only while the user has an active SAML session for that org. GitHub answers
   `403` with `X-GitHub-SSO: required; url=…`. The client maps that onto a typed error that
@@ -611,7 +611,7 @@ by construction. Transfers record an alias.
 | A user edits in Astrid | **That user's** user-to-server token | GitHub attributes the edit and enforces the user's own permissions, so Astrid does not re-implement GitHub's permission model |
 | Hydration, reconcile, access refresh | Installation token | No user is involved |
 | An AI agent comments or moves a card | Installation token (App bot), body prefixed "**\<Agent\>** (via \<Brand\>)" | Agents aren't GitHub users |
-| Assigning an agent | No GitHub assignee. Stored in the replica, and mirrored as label `agent:<name>` when `BRAND_GITHUB_AGENT_LABELS` (default on) | github.com users can see who's working it |
+| Assigning an agent | No GitHub assignee. Stored in the replica, and mirrored as label `agent:<name>` when the brand enables `NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS` (default off, §15 C3) | github.com users can see who's working it |
 
 **User-token refresh failure** makes the user's GitHub lists read-only, with
 `auth_required`. **No fallback to the installation token**, pinned by a rule test.
@@ -1037,7 +1037,7 @@ from the fixes themselves. Sizes: S = days, M = 1–2 weeks, L = 3+ weeks.
 | **P4 Projects: read-only mirror** | §8.1, §8.3–§8.8; bind wizard, import, webhooks, reconcile, roles, uninstall | L | Hydration and apply are pure-function tests per item kind and webhook action, from recorded fixtures. A killed webhook is healed by reconcile. Fairness across two installations. |
 | **P5 Projects: write-through** | Create, title, body, status with done-closes, assignees, comments, position, remove, idempotency, partial failure | L | Every write attributed to the acting user. Outbox replayed twice → one issue. Refresh failure → read-only, never installation-token writes. |
 | **P6 Fields and recurrence** | §9.4 read/write, §9.5, labels, iterations, milestones, sub-issues, dependencies, PR items, §10 spawn | M–L | Each field type's round trip. Payload fixture inside budget. Webhook + Astrid completion race → exactly one spawned issue. |
-| **P7 Per-org SSO** | §6.4 v2: `SsoConnection`, domain verification, SAML via Jackson | M | Domain-bound linking. `required` enforcement. SAML replay and audience tests from the broker's suite. |
+| **P7 Per-org SSO** | §6.4 v2: `SsoConnection`, domain verification, against the OIDC interface; SAML is the partner's broker (§15 C1) | M | Domain-bound linking. `required` enforcement. A stub OIDC issuer stands in for any broker. |
 | **P8 Brand and clients** | §11.3, §12 | M | `check:brands` green. The brand audit finds no Astrid literals. The Astrid profile still pins `githubProjects: false`. |
 
 ### 14.2 Test infrastructure introduced
@@ -1052,14 +1052,37 @@ from the fixes themselves. Sizes: S = days, M = 1–2 weeks, L = 3+ weeks.
 
 ---
 
-## 15. Remaining open questions
+## 15. Partner choices: what the white label leaves configurable
 
-| # | Question | Recommendation |
-|---|---|---|
-| Q1 | SAML broker: embedded BoxyHQ Jackson (OSS, self-hosted) or WorkOS (hosted, per-connection pricing)? | Jackson. It keeps the provider swappable and costs nothing per tenant. |
-| Q2 | Accept the Issues-sync convenience cost on astrid.cc (the App reaches only installed repos)? | Yes. It is the price of fixing S1 and having one credential. The pre-flight report sizes it before cut-over. |
-| Q3 | Mirror agent assignment as an `agent:<name>` label by default? | Yes, so github.com users can see it. Brands can turn it off. |
-| Q4 | Pricing and Marketplace: free listing, or paid plans through GitHub Marketplace (`marketplace_purchase` events)? | Business decision. Technically, a paid listing adds one webhook handler and a plan column on `GitHubInstallation`. |
+**These are not open questions for us.** Revision 2 asked Jon to choose a SAML broker, a
+pricing model and two defaults, as if we were building this for one customer. We are not
+(Jon, 2026-10-09, [AWTD-1102](https://astrid.cc/t/AWTD-1102)): *"We are enabling a
+third party to build Astrid, or to use a white-labelled version of Astrid in their
+infrastructure."*
+
+So each question below becomes a **choice the partner makes**. The platform's job is to
+define the extension point, the configuration that selects it, and the default. It does
+not ship the partner's implementation. Nothing in this section is built for a specific
+customer.
+
+| # | Partner choice | What the platform provides | Default |
+|---|---|---|---|
+| C1 | **Which SAML broker, if any** (was Q1) | An SSO extension point: SAML IdPs reach Astrid as **OIDC**, so the app keeps speaking one protocol (§6.4). The partner points `AUTH_SSO_*` (v1) or an `SsoConnection.brokerRef` (v2) at whichever broker they run: BoxyHQ SAML Jackson (OSS, self-hosted), WorkOS (hosted), their IdP's own OIDC endpoint, or none. | None. Deployment-level OIDC only. |
+| C2 | **Whether Issues sync uses the App-only credential** (was Q2) | The brand flag `NEXT_PUBLIC_BRAND_ENABLE_SYNC_GITHUB_ISSUES`, plus the pre-flight report (§7.4). The report lists the repos a partner's users would lose, because an App reaches only the repos it is installed on, unlike a `repo`-scoped OAuth token. | Off on the GitHub brand (§11.1), where Projects is the backend. |
+| C3 | **Whether agent assignment is mirrored to GitHub as an `agent:<name>` label** (was Q3) | A brand capability, `NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS`, read by the P6c mapping (§8.6). | **Off.** A partner opts in. A label written to their customers' repos is their call, not ours. |
+| C4 | **Pricing and GitHub Marketplace** (was Q4) | Out of scope for the platform. The hook a partner would use is named only: a `marketplace_purchase` webhook handler and a plan column on `GitHubInstallation`. Billing, plans and the listing are the partner's. | No listing, no plans. |
+
+**What stays our decision:** astrid.cc's own configuration. astrid.cc never enables
+`githubProjects` (D5). Moving astrid.cc's Issues sync onto the App (P3b) is judged on
+astrid.cc's own pre-flight report, not on the partner default above.
+
+**How this changes the phases:**
+- **P7** no longer embeds a broker. It builds the `SsoConnection` model, domain
+  verification, `required` enforcement and domain-bound linking against the OIDC
+  interface. Its tests use a stub OIDC issuer, not a vendor's suite.
+- **P6c** reads C3 and does not assume the label.
+- **P8** documents C1–C4 in the GitHub-partner checklist in WHITELABELING §8, so a
+  partner sees every choice in one place.
 
 ---
 
@@ -1185,7 +1208,7 @@ Every remaining item is a task, written to stand on its own.
 | Owner | Tasks |
 |---|---|
 | **Jon: before the next deploy** | [AWTD-1096](https://astrid.cc/t/AWTD-1096) GitHub App callback URLs + OAuth client in prod · [AWTD-1097](https://astrid.cc/t/AWTD-1097) whitelabel-partner `CODING_AGENT=false` · [AWTD-1098](https://astrid.cc/t/AWTD-1098) ship P0–P2 |
-| **Jon: unblockers** | [AWTD-1099](https://astrid.cc/t/AWTD-1099) schema decision · [AWTD-1100](https://astrid.cc/t/AWTD-1100) App permissions/events · [AWTD-1101](https://astrid.cc/t/AWTD-1101) test org · [AWTD-1102](https://astrid.cc/t/AWTD-1102) §15 questions · [AWTD-1103](https://astrid.cc/t/AWTD-1103) partner brand |
+| **Jon: unblockers** | [AWTD-1099](https://astrid.cc/t/AWTD-1099) schema decision · [AWTD-1100](https://astrid.cc/t/AWTD-1100) App permissions/events · [AWTD-1101](https://astrid.cc/t/AWTD-1101) test org · [AWTD-1102](https://astrid.cc/t/AWTD-1102) §15, answered: partner choices, not ours · [AWTD-1103](https://astrid.cc/t/AWTD-1103) partner brand |
 | P2 remainder | [AWTD-1104](https://astrid.cc/t/AWTD-1104) mobile routes onto the shared rule · [AWTD-1110](https://astrid.cc/t/AWTD-1110) Apple on web · [AITD-465](https://astrid.cc/t/AITD-465) iOS/Mac GitHub + SSO sign-in |
 | P3 remainder | [AWTD-1111](https://astrid.cc/t/AWTD-1111) installation model · [AWTD-1112](https://astrid.cc/t/AWTD-1112) user tokens + Issues sync migration · [AWTD-1113](https://astrid.cc/t/AWTD-1113) one webhook · [AWTD-1114](https://astrid.cc/t/AWTD-1114) Connections card |
 | P4–P8 | [AWTD-1115](https://astrid.cc/t/AWTD-1115) P4 mirror · [AWTD-1116](https://astrid.cc/t/AWTD-1116) P5 write-through · [AWTD-1117](https://astrid.cc/t/AWTD-1117) P6a fields · [AWTD-1118](https://astrid.cc/t/AWTD-1118) P6b spawn recurrence · [AWTD-1119](https://astrid.cc/t/AWTD-1119) P6c rich mapping · [AWTD-1120](https://astrid.cc/t/AWTD-1120) P7 per-org SSO · [AWTD-1121](https://astrid.cc/t/AWTD-1121) P8 brand · [AITD-466](https://astrid.cc/t/AITD-466) iOS/Mac boards · [AWTD2-66](https://astrid.cc/t/AWTD2-66) Windows fixtures |
