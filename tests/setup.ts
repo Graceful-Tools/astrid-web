@@ -244,6 +244,13 @@ export const mockPrisma = {
     delete: vi.fn().mockResolvedValue({}),
     deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
   },
+  integration: {
+    findUnique: vi.fn().mockResolvedValue(null),
+    findFirst: vi.fn().mockResolvedValue(null),
+    findMany: vi.fn().mockResolvedValue([]),
+    update: vi.fn().mockResolvedValue({}),
+    upsert: vi.fn().mockResolvedValue({}),
+  },
   externalListLink: {
     findUnique: vi.fn().mockResolvedValue(null),
     findFirst: vi.fn().mockResolvedValue(null),

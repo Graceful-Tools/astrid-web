@@ -241,3 +241,15 @@ export async function installationSummariesForUser(userId: string): Promise<Inst
     suspended: installation.suspendedAt !== null,
   }))
 }
+
+/** Does one of the user's (unsuspended) installations reach `owner/repo`? */
+export async function userInstallationReachesRepo(userId: string, repo: string): Promise<boolean> {
+  const row = await prisma.gitHubInstallationRepo.findFirst({
+    where: {
+      fullName: { equals: repo, mode: 'insensitive' },
+      installation: { suspendedAt: null, access: { some: { userId } } },
+    },
+    select: { repoId: true },
+  })
+  return row !== null
+}

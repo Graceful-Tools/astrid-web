@@ -1432,6 +1432,9 @@ enum ExternalSyncProvider {
   APPLE_REMINDERS
   GOOGLE_TASKS
   GITHUB_ISSUES
+  /// The GitHub App's user-to-server token (8h access + 6-month refresh) —
+  /// a credential, not a sync provider (AWTD-1112, spec §7.2).
+  GITHUB
 }
 
 enum ExternalSyncDirection {

@@ -1188,7 +1188,21 @@ Done:
   de-duplicated on `X-GitHub-Delivery`. Both entry points share
   `lib/github/webhooks/issues.ts`.
 
+- **App user-to-server tokens** ([AWTD-1112](https://astrid.cc/t/AWTD-1112)): an
+  `Integration[GITHUB]` slot (additive enum migration), written by the setup route and
+  refreshed on use by `lib/github/user-tokens.ts`. That module never falls back to an
+  installation token, and a rule test pins it. `githubTokenFor(userId, repo)` dual-reads
+  **per repo**: it uses the App token where one of the user's installations reaches the
+  repo, and the legacy OAuth token everywhere else. An App token can't see uninstalled
+  repos, so a blanket preference would 404 uncovered links. Production pre-flight
+  (2026-10-10, read-only): 2 links, both covered.
+
 Not done, and why:
+- **The Issues-sync cut-over** (its own task): switching the sync "Connect GitHub" flow to
+  the App client, re-pointing `ExternalListLink`/`ExternalTaskLink.integrationId` in a
+  transaction, revoking the legacy token and calling GitHub's delete-grant API, and adding
+  `installUrl` to repo-not-installed errors. These change behaviour and write production
+  data, so they ship as a deliberate step.
 - **Retiring `/api/webhooks/github-issues` and `GITHUB_SYNC_WEBHOOK_SECRET`.** This waits
   until the App path has shipped, **and** every org's installation has accepted the new
   `issues` event subscription (2026-10-10: Graceful-Tools had not), **and** the hand-made
