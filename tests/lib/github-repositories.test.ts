@@ -17,6 +17,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     gitHubIntegration: { findFirst: vi.fn(), update: vi.fn() },
+    gitHubInstallation: { upsert: vi.fn() },
+    gitHubInstallationRepo: { upsert: vi.fn(), deleteMany: vi.fn() },
   },
 }))
 
@@ -100,6 +102,25 @@ describe('listGitHubRepositories (task e0613ae5)', () => {
     expect(mockPrisma.gitHubIntegration.update).toHaveBeenCalledWith(
       expect.objectContaining({ where: { id: 'gh-1' } }),
     )
+    expect(result).toMatchObject({ cached: false })
+    // AWTD-1111: THIS link's installation is asked, and its repos recorded.
+    expect(getInstallationRepositories).toHaveBeenCalledWith(111)
+    expect(mockPrisma.gitHubInstallationRepo.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ repoId: BigInt(9), installationId: 111, fullName: 'o/fresh' }),
+      }),
+    )
+  })
+
+  it('still returns the fresh list when recording it in the installation model fails (AWTD-1111)', async () => {
+    getInstallationRepositories.mockResolvedValue([
+      { id: 9, name: 'fresh', fullName: 'o/fresh', defaultBranch: 'trunk', private: false },
+    ])
+    mockPrisma.gitHubInstallation.upsert.mockRejectedValueOnce(new Error('db hiccup'))
+
+    const result = await listGitHubRepositories({ userId: 'u-1', refresh: true })
+
+    expect(result.repositories.map(r => r.fullName)).toEqual(['o/fresh'])
     expect(result).toMatchObject({ cached: false })
   })
 

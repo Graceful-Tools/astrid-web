@@ -86,6 +86,7 @@ model User {
   authenticators               Authenticator[]
   comments                     Comment[]
   githubIntegrations           GitHubIntegration[]
+  githubInstallationAccess     GitHubInstallationAccess[]
   receivedInvitations          Invitation[]             @relation("InvitationReceiver")
   sentInvitations              Invitation[]             @relation("InvitationSender")
   createdInvites               ListInvite[]             @relation("ListInviteCreator")
@@ -1016,6 +1017,53 @@ model GitHubIntegration {
 
   @@unique([userId, installationId])
   @@index([userId])
+}
+
+/// One row per GitHub App installation (an org or a user account). Replaces
+/// GitHubIntegration, which is still dual-written until P3b moves its readers.
+/// Access is derived from GitHub, never claimed (GITHUB_PROJECTS_WHITELABEL §7.2–7.3).
+model GitHubInstallation {
+  id                  Int                        @id // GitHub installation id
+  accountLogin        String
+  accountType         String? // Organization | User
+  accountNodeId       String?                    @unique // O_… / U_…; filled on the next refresh for backfilled rows
+  repositorySelection String? // all | selected
+  suspendedAt         DateTime?
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  repos               GitHubInstallationRepo[]
+  access              GitHubInstallationAccess[]
+}
+
+/// A repo an installation reaches. Keyed by GitHub's numeric repo id, which the
+/// cached links already had; a transferred repo moves installation in place.
+model GitHubInstallationRepo {
+  repoId         BigInt             @id
+  installationId Int
+  fullName       String // owner/repo
+  defaultBranch  String             @default("main")
+  private        Boolean            @default(false)
+  nodeId         String?            @unique // R_…, for GraphQL (P4)
+  updatedAt      DateTime           @updatedAt
+  installation   GitHubInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
+  @@index([installationId])
+  @@index([fullName])
+}
+
+/// "This user can act on this installation." Written only where GitHub has just
+/// listed the installation for the user's own token (source 'verified'), or by
+/// the migration from the links in force before this table (source 'legacy').
+model GitHubInstallationAccess {
+  userId         String
+  installationId Int
+  refreshedAt    DateTime           @default(now())
+  source         String             @default("verified") // verified | legacy
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  installation   GitHubInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
+  @@id([userId, installationId])
+  @@index([installationId])
 }
 
 model CodingTaskWorkflow {

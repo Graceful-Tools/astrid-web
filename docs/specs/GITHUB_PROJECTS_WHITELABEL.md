@@ -427,6 +427,20 @@ model GitHubInstallationAccess {
 }
 ```
 
+**As built ([AWTD-1111](https://astrid.cc/t/AWTD-1111)), three deliberate differences from
+the sketch above:**
+- Installation ids are `Int`, matching `GitHubIntegration.installationId`. Widen both
+  together if GitHub's ids ever approach 2³¹.
+- `GitHubInstallationRepo` is keyed by GitHub's **numeric** repo id (`repoId BigInt`).
+  `nodeId` is optional and unique: the links being migrated never stored node ids.
+  `accountNodeId` is nullable for the same reason, and is filled on the next refresh.
+- Access rows carry `source`: `verified` (the setup route, after GitHub listed the
+  installation for the user's own token) or `legacy` (the migration's backfill from the
+  links in force before it, which grants nothing new).
+
+The one writer is `lib/github/installations.ts`. The installation webhooks live in
+`lib/github/webhooks/installation.ts` and never grant access.
+
 - **User-to-server tokens** live in the existing encrypted `Integration` store under a
   new provider value, `GITHUB`: access token (8h), refresh token (6 months), expiries and
   `externalAccountId = numeric GitHub id`. Sign-in creates the NextAuth `Account`
@@ -1156,10 +1170,18 @@ Done:
 - One App instance and one host module (`1c971f62`).
 - `githubGraphQL` timed.
 
+- **The installation model** ([AWTD-1111](https://astrid.cc/t/AWTD-1111)): the
+  `GitHubInstallation` / `GitHubInstallationRepo` / `GitHubInstallationAccess` tables,
+  backfilled from `GitHubIntegration` by their migration. The setup, refresh, webhook and
+  disconnect paths dual-write them. The coding agent resolves a repo's installation
+  across **all** the user's installations, so the first-installation-only bug is gone.
+  The migration applies at the next approved deploy.
+
 Not done, and why:
-- **The `GitHubInstallation` / `GitHubInstallationAccess` / `GitHubInstallationRepo`
-  tables and the move from `GitHubIntegration`.** These are schema migrations, which apply
-  at deploy and so wait for an approved deploy.
+- **Retiring `GitHubIntegration`.** Status, the installations list and the integration
+  route still read it. They move with the Connections card (P3d). Dropping the table, and
+  its dead `appId`/`privateKey`/`webhookSecret` columns, is a destructive migration, so it
+  takes two deploys (docs/CLI_OPERATIONS.md, AWTD-959).
 - **User-to-server tokens in `Integration[GITHUB]` and the Issues-sync migration with
   dual-read.** These need the App's permissions extended (Issues, Email addresses) on
   GitHub, and the pre-flight report run against production.
