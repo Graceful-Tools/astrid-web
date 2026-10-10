@@ -39,11 +39,12 @@ export async function nudgeIssuesSubscribers(repo: string, event: string): Promi
 }
 
 /**
- * True unless this delivery was already handled. With Redis down it answers
+ * True unless this delivery was already handled — shared by every App webhook
+ * handler (issues, projects_v2_item). With Redis down it answers
  * true: a duplicate nudge costs one extra pull, a dropped one leaves a client
  * stale until its next poll.
  */
-async function firstDelivery(deliveryId: string | undefined): Promise<boolean> {
+export async function firstDelivery(deliveryId: string | undefined): Promise<boolean> {
   if (!deliveryId || deliveryId === 'unknown') return true
   if (!(await isRedisAvailable())) return true
   return RedisCache.claimOnce(`github:delivery:${deliveryId}`, DELIVERY_TTL_SECONDS)
