@@ -16,6 +16,8 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import { BRAND } from '@/lib/brand/config'
+import { runAfterResponse } from '@/lib/background'
 import {
   LOCK_MS,
   MAX_ATTEMPTS,
@@ -37,6 +39,7 @@ import { applyProjectItems, boardForProjectNode, removeProjectItem } from '@/ser
 import { reconcileProject, syncBoardRoles } from '@/services/github-projects-lifecycle.service'
 import { boundBoard } from '@/services/github-projects.service'
 import { ADD_ITEM_DOCUMENT, planInitialFields, type CreatedContent } from '@/lib/github/projects/create'
+import { itemMoves, planItemMoves } from '@/lib/github/projects/position'
 
 const log = createLogger('services.github-sync-jobs')
 
@@ -106,6 +109,101 @@ export interface DrainDeps {
   userClientFor?: (userId: string) => Promise<GraphqlClient | null>
   /** A writeback is the user's own write, on the user's token at write priority. */
   writeClientFor?: (userId: string) => Promise<GraphqlClient | null>
+  /** An agent's comment goes out as the App bot (§8.6). */
+  agentClientFor?: (installationId: number) => GraphqlClient
+}
+
+interface PositionPayload {
+  listId: string
+  actorId: string
+  previous: string[]
+  next: string[]
+}
+
+/** Queue a GitHub board's reorder (AWTD-1116 P5c); nothing if nothing moved. */
+export async function enqueuePositionSync(payload: PositionPayload): Promise<boolean> {
+  if (itemMoves(payload.previous, payload.next).length === 0) return false
+  const list = await prisma.taskList.findUnique({
+    where: { id: payload.listId },
+    select: { project: { select: { githubBinding: { select: { installationId: true } } } } },
+  })
+  const installationId = list?.project?.githubBinding?.installationId
+  if (!installationId) return false
+  // Unique per reorder: each is its own user action, applied in order.
+  const queued = await enqueue('position', installationId, `position:${payload.listId}:${Date.now()}`, payload)
+  runAfterResponse('github-projects-drain', () => drainSyncJobs())
+  return queued
+}
+
+async function runPositionSync(payload: PositionPayload, client: GraphqlClient | null): Promise<void> {
+  if (!client) throw new Error('auth_required: the user who reordered has no usable GitHub token')
+  const list = await prisma.taskList.findUnique({
+    where: { id: payload.listId },
+    select: { project: { select: { githubBinding: { select: { projectId: true, projectNodeId: true } } } } },
+  })
+  const binding = list?.project?.githubBinding
+  if (!binding) return
+  const items = await prisma.gitHubProjectItem.findMany({
+    where: { projectId: binding.projectId, archived: false, taskId: { in: payload.next } },
+    select: { taskId: true, itemNodeId: true },
+  })
+  const itemFor = new Map(items.map(i => [i.taskId, i.itemNodeId]))
+  const plan = planItemMoves(binding.projectNodeId, itemMoves(payload.previous, payload.next), id => itemFor.get(id))
+  if (plan) await client.query(plan.document, plan.variables, { strict: true })
+}
+
+interface CommentPayload {
+  commentId: string
+}
+
+/**
+ * Queue a new Astrid comment for its GitHub issue or PR (AWTD-1116 P5c). Not
+ * for drafts (GitHub gives them no comments), system comments (no author), or
+ * tasks on no GitHub board. One indexed read when it applies.
+ */
+export async function enqueueCommentPush(commentId: string, taskId: string): Promise<boolean> {
+  const item = await prisma.gitHubProjectItem.findFirst({
+    where: { taskId, archived: false, task: { remoteKind: { in: ['issue', 'pull_request'] } } },
+    select: { binding: { select: { installationId: true } } },
+  })
+  if (!item) return false
+  const queued = await enqueue('comment', item.binding.installationId, `comment:${commentId}`, { commentId })
+  runAfterResponse('github-projects-drain', () => drainSyncJobs())
+  return queued
+}
+
+/**
+ * Post an Astrid comment to GitHub: a person's as themselves (their token);
+ * an agent's as the App bot, prefixed "**<Agent>** (via <Brand>)" (§8.6).
+ */
+async function runCommentPush(
+  payload: CommentPayload,
+  installationId: number,
+  clients: { user: (id: string) => Promise<GraphqlClient | null>; installation: (id: number) => GraphqlClient },
+): Promise<void> {
+  const comment = await prisma.comment.findUnique({
+    where: { id: payload.commentId },
+    select: {
+      content: true,
+      authorId: true,
+      type: true,
+      author: { select: { name: true, isAIAgent: true } },
+      task: { select: { remoteNodeId: true } },
+    },
+  })
+  // Deleted since, a system line, or not mirrored: nothing to post.
+  if (!comment?.authorId || !comment.task.remoteNodeId || comment.type !== 'TEXT' || !comment.content.trim()) return
+
+  const asAgent = Boolean(comment.author?.isAIAgent)
+  const client = asAgent ? clients.installation(installationId) : await clients.user(comment.authorId)
+  if (!client) throw new Error('auth_required: the comment author has no usable GitHub token')
+  const body = asAgent ? `**${comment.author?.name ?? 'Agent'}** (via ${BRAND.appName})\n\n${comment.content}` : comment.content
+
+  await client.query(
+    'mutation($s: ID!, $b: String!) { m0: addComment(input: { subjectId: $s, body: $b }) { commentEdge { node { id } } } }',
+    { s: comment.task.remoteNodeId, b: body },
+    { strict: true },
+  )
 }
 
 interface WritebackPayload {
@@ -194,6 +292,15 @@ export async function drainSyncJobs(limit = 20, deps: DrainDeps = {}): Promise<D
         for (const { projectId } of boards) await syncBoardRoles(projectId, userClientFor)
         return
       }
+      case 'position': {
+        const payload = job.payload as unknown as PositionPayload
+        return runPositionSync(payload, await writeClientFor(payload.actorId))
+      }
+      case 'comment':
+        return runCommentPush(job.payload as unknown as CommentPayload, job.installationId, {
+          user: writeClientFor,
+          installation: deps.agentClientFor ?? (id => installationGraphqlClient(id, 'write')),
+        })
       case 'writeback': {
         const payload = job.payload as unknown as WritebackPayload
         return runWriteback(payload, await writeClientFor(payload.actorId))

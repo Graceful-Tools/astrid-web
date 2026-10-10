@@ -18,7 +18,7 @@ import { createLogger } from '@/lib/logger'
 import { isListOwner } from '@/lib/list-member-utils'
 import { GITHUB_PROJECT_BACKEND } from '@/lib/backends/resolve'
 import { hydrateItem, projectItemPages } from '@/lib/github/projects/hydrate'
-import { fetchViewerRole, type BoardRole } from '@/lib/github/projects/roles'
+import { fetchViewerRole, type GithubIdentity } from '@/lib/github/projects/roles'
 import type { GraphqlClient } from '@/lib/github/rate-limiter'
 import { applyProjectItems, boundBoard, removeProjectItem, type ApplySummary } from '@/services/github-projects.service'
 import { addListMember, changeListMemberRole, removeListMember } from '@/services/list-member.service'
@@ -119,7 +119,8 @@ export async function syncBoardRoles(
       summary.unknown++
       continue
     }
-    const role: BoardRole | null = await fetchViewerRole(client, board.projectNodeId)
+    const { role, identity } = await fetchViewerRole(client, board.projectNodeId)
+    if (identity) await recordGithubIdentity(user.id, identity)
     const had = current.get(user.id)
     if (role && !had) {
       await addListMember({ list, member: user, role, actor })
@@ -133,6 +134,23 @@ export async function syncBoardRoles(
     }
   }
   return summary
+}
+
+/**
+ * Remember who a user is on GitHub, so tasks can be assigned to them
+ * (AWTD-1116 P5c). Only when unrecorded or changed; a GitHub account already
+ * linked to another Astrid user is left alone rather than moved.
+ */
+async function recordGithubIdentity(userId: string, identity: GithubIdentity): Promise<void> {
+  try {
+    await prisma.user.updateMany({
+      // NOT alone would skip NULL (SQL: NULL <> x is NULL), the very rows to fill.
+      where: { id: userId, OR: [{ githubNodeId: null }, { NOT: { githubNodeId: identity.nodeId } }] },
+      data: { githubNodeId: identity.nodeId, githubUserId: identity.databaseId },
+    })
+  } catch (err) {
+    log.warn({ err, userId }, 'GitHub identity already belongs to another user; not recorded')
+  }
 }
 
 // ── Deletion ────────────────────────────────────────────────────────────────

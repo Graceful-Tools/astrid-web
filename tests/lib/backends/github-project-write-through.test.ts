@@ -15,7 +15,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const db = vi.hoisted(() => ({ task: { findUnique: vi.fn() } }))
+const db = vi.hoisted(() => ({ task: { findUnique: vi.fn() }, taskList: { findMany: vi.fn() }, user: { findUnique: vi.fn() } }))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
 
 import { createGithubProjectTaskBackend, GITHUB_PROJECT_READ_ONLY } from '@/lib/backends/github-project'
@@ -36,10 +36,11 @@ const mirrored = (over: Record<string, unknown> = {}) => ({
   statusRole: 'ready',
   priority: 0,
   dueDateTime: null,
+  assignee: { id: 'human-1', githubNodeId: 'U_human1', isAIAgent: false },
   githubProjectItems: [
     {
       itemNodeId: 'PVTI_lADOFEb-HM4BmXS2zg_2m1A',
-      binding: { projectNodeId: 'PVT_kwDOFEb-HM4BmXS2', detachedAt: null, ...binding },
+      binding: { projectId: 'board-1', project: { lists: [{ id: 'gh-list' }] }, projectNodeId: 'PVT_kwDOFEb-HM4BmXS2', detachedAt: null, ...binding },
     },
   ],
   ...over,
@@ -70,6 +71,7 @@ const ctx = { actorId: 'u1' }
 beforeEach(() => {
   vi.clearAllMocks()
   db.task.findUnique.mockResolvedValue(mirrored())
+  db.taskList.findMany.mockResolvedValue([])
 })
 
 describe('write-through (AWTD-1116 P5a)', () => {
@@ -178,10 +180,88 @@ describe('write-through (AWTD-1116 P5a)', () => {
 
   it('a board whose installation was uninstalled or suspended is read-only', async () => {
     db.task.findUnique.mockResolvedValue(
-      mirrored({ githubProjectItems: [{ itemNodeId: 'x', binding: { projectNodeId: 'p', detachedAt: new Date(), ...binding } }] }),
+      mirrored({ githubProjectItems: [{ itemNodeId: 'x', binding: { projectId: 'board-1', project: { lists: [] }, projectNodeId: 'p', detachedAt: new Date(), ...binding } }] }),
     )
     const backend = createGithubProjectTaskBackend({ userClient: vi.fn() })
     expect(await backend.updateTask(ctx, 't1', { title: 'x' })).toEqual({ ok: false, status: 403, error: GITHUB_PROJECT_READ_ONLY })
+  })
+
+  it('moving a task off its GitHub list removes the item from the project (the issue stays)', async () => {
+    const { client, sent } = userClientReplaying({ body: { data: { m0: { deletedItemId: 'PVTI_lADOFEb-HM4BmXS2zg_2m1A' } } } })
+    const backend = createGithubProjectTaskBackend({ userClient: async () => client })
+
+    const result = await backend.updateTask(ctx, 't1', { lists: { set: [{ id: 'personal' }] } })
+
+    expect(sent[0].query).toMatch(/m0: deleteProjectV2Item/)
+    expect(result).toMatchObject({
+      ok: true,
+      value: { githubProjectItems: { deleteMany: { itemNodeId: { in: ['PVTI_lADOFEb-HM4BmXS2zg_2m1A'] } } } },
+    })
+  })
+
+  it('putting a mirrored task on another GitHub board adds it there and records the item', async () => {
+    db.taskList.findMany.mockResolvedValue([{ project: { githubBinding: { projectNodeId: 'PVT_other', projectId: 'board-2' } } }])
+    const { client, sent } = userClientReplaying({ body: { data: { m0: { item: { id: 'PVTI_new' } } } } })
+    const backend = createGithubProjectTaskBackend({ userClient: async () => client })
+
+    const result = await backend.updateTask(ctx, 't1', { lists: { set: [{ id: 'gh-list' }, { id: 'gh-list-2' }] } })
+
+    expect(sent[0].query).toMatch(/m0: addProjectV2ItemById/)
+    expect(sent[0].variables).toMatchObject({ m0_projectId: 'PVT_other', m0_contentId: 'I_kwDOVCns8c8AAAABWTcnYA' })
+    expect(result).toMatchObject({
+      ok: true,
+      value: { githubProjectItems: { create: [{ itemNodeId: 'PVTI_new', projectId: 'board-2' }] } },
+    })
+  })
+
+  it('an Astrid delete removes the item from every project, as the user', async () => {
+    const { client, sent } = userClientReplaying({ body: { data: { m0: { deletedItemId: 'x' } } } })
+    const backend = createGithubProjectTaskBackend({ userClient: async () => client })
+
+    expect(await backend.deleteTask(ctx, 't1')).toEqual({ ok: true, value: undefined })
+    expect(sent[0].query).toMatch(/deleteProjectV2Item/)
+    expect(sent[0].query).not.toMatch(/deleteIssue/)
+  })
+
+  it('a delete with no usable token is refused, so nothing is removed on either side', async () => {
+    const backend = createGithubProjectTaskBackend({ userClient: async () => null })
+    expect(await backend.deleteTask(ctx, 't1')).toEqual({ ok: false, status: 403, error: 'auth_required' })
+  })
+
+  it('reassigning to a linked person swaps the assignee on GitHub, as the user', async () => {
+    db.user.findUnique.mockResolvedValue({ githubNodeId: 'U_human2', isAIAgent: false })
+    const { client, sent } = userClientReplaying({ body: { data: { m0: { clientMutationId: null }, m1: { clientMutationId: null } } } })
+    const backend = createGithubProjectTaskBackend({ userClient: async () => client })
+
+    expect(await backend.updateTask(ctx, 't1', { assigneeId: 'human-2' })).toMatchObject({ ok: true })
+    expect(sent[0].variables).toMatchObject({ m0_assigneeIds: ['U_human1'], m1_assigneeIds: ['U_human2'] })
+  })
+
+  it('assigning an agent never makes it a GitHub assignee — it only unassigns the person', async () => {
+    db.user.findUnique.mockResolvedValue({ githubNodeId: null, isAIAgent: true })
+    const { client, sent } = userClientReplaying({ body: { data: { m0: { clientMutationId: null } } } })
+    const backend = createGithubProjectTaskBackend({ userClient: async () => client })
+
+    expect(await backend.updateTask(ctx, 't1', { assigneeId: 'ai-agent-claude' })).toMatchObject({ ok: true })
+    expect(sent[0].query).toMatch(/removeAssigneesFromAssignable/)
+    expect(sent[0].query).not.toMatch(/addAssigneesToAssignable/)
+  })
+
+  it('a person with no GitHub identity yet is refused, with a code that says why', async () => {
+    db.user.findUnique.mockResolvedValue({ githubNodeId: null, isAIAgent: false })
+    const backend = createGithubProjectTaskBackend({ userClient: vi.fn() })
+    expect(await backend.updateTask(ctx, 't1', { assigneeId: 'human-3' })).toEqual({
+      ok: false,
+      status: 400,
+      error: 'github_assignee_not_linked',
+    })
+  })
+
+  it('an unchanged assignee in a whole-task save sends nothing', async () => {
+    const userClient = vi.fn()
+    const backend = createGithubProjectTaskBackend({ userClient })
+    expect(await backend.updateTask(ctx, 't1', { assigneeId: 'human-1' })).toMatchObject({ ok: true })
+    expect(userClient).not.toHaveBeenCalled()
   })
 
   it('the backend module never reaches for the App or an installation token (§8.6)', () => {
