@@ -5,6 +5,7 @@
 
 import type { App } from '@octokit/app'
 import { getGitHubApp } from '@/lib/github/app'
+import { installationReposForUser, installationsForUser } from '@/lib/github/installations'
 import { Octokit } from '@octokit/rest'
 import { prisma } from './prisma'
 import { createLogger } from './logger'
@@ -60,6 +61,7 @@ export class GitHubClient {
   private defaultInstallationId: number | null = null
   private installationIds: number[] = []
   private repositories: RepositoryInfo[] = [] // Per-repo installation mapping
+  private accountInstallations: Map<string, number> = new Map() // owner login → installation
 
   constructor() {
     // Initialize GitHub App
@@ -85,59 +87,70 @@ export class GitHubClient {
   /**
    * Authenticate the client for every one of the user's GitHub installations.
    *
-   * A user has one GitHubIntegration row per installation (org), and each row
-   * caches only that installation's repos — so the ROW says which installation
-   * a repo belongs to. The entries cannot be trusted for it: the
-   * installation_repositories webhook and the repositories refresh wrote them
-   * without an installationId. (AWTD-1107)
+   * The repo → installation map spans EVERY installation the user can act on:
+   * the installation model (AWTD-1111) first, then each GitHubIntegration row's
+   * cached repos, attributed to that ROW's installation — the cached entries
+   * cannot be trusted for it, since the webhook and refresh once wrote them
+   * without an installationId (AWTD-1107). While GitHubIntegration is still
+   * dual-written, no link that worked before stops working.
    */
   private async authenticateForUser(userId: string): Promise<void> {
-    log.debug({ userId }, 'Authenticating for user')
+    const [installations, installationRepos, legacyIntegrations] = await Promise.all([
+      installationsForUser(userId),
+      installationReposForUser(userId),
+      prisma.gitHubIntegration.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } }),
+    ])
 
-    const integrations = (await prisma.gitHubIntegration.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'asc' }
-    })).filter(integration => integration.installationId)
+    const known = new Set(installationRepos.map(repo => repo.fullName.toLowerCase()))
+    const legacyRepos: RepositoryInfo[] = []
+    for (const integration of legacyIntegrations) {
+      if (!integration.installationId || !Array.isArray(integration.repositories)) continue
+      for (const repo of integration.repositories as Record<string, any>[]) {
+        // Cached rows may predate the camelCase mapping.
+        const fullName: string | undefined = repo?.fullName || repo?.full_name
+        if (!fullName || known.has(fullName.toLowerCase())) continue
+        known.add(fullName.toLowerCase())
+        // The cached installationId was missing on webhook-added repos; the
+        // link's own installation is the one that reaches them.
+        legacyRepos.push({ ...repo, fullName, installationId: integration.installationId } as RepositoryInfo)
+      }
+    }
+    this.repositories = [...installationRepos, ...legacyRepos]
+
+    this.accountInstallations = new Map()
+    for (const installation of installations) {
+      this.accountInstallations.set(installation.accountLogin.toLowerCase(), installation.id)
+    }
+    for (const repo of this.repositories) {
+      const owner = repo.fullName.split('/')[0]?.toLowerCase()
+      if (owner && !this.accountInstallations.has(owner)) this.accountInstallations.set(owner, repo.installationId)
+    }
+
+    // Every installation the user can act on, oldest first: the model's, then
+    // any only a legacy row still knows.
+    this.installationIds = [
+      ...new Set([
+        ...installations.map(installation => installation.id),
+        ...legacyIntegrations.flatMap(integration => (integration.installationId ? [integration.installationId] : [])),
+      ]),
+    ]
+    // The oldest installation, for the calls that are not about one repo.
+    this.defaultInstallationId = this.installationIds[0] ?? null
 
     log.debug({
       userId,
-      installationIds: integrations.map(i => i.installationId)
-    }, 'Integration lookup result')
+      installations: installations.length,
+      repoCount: this.repositories.length,
+      legacyRepoCount: legacyRepos.length,
+      defaultInstallationId: this.defaultInstallationId,
+    }, 'Loaded repository installation mappings')
 
-    if (integrations.length === 0) {
+    if (!this.defaultInstallationId) {
       throw new Error(`No GitHub integration found for user ${userId}`)
     }
 
-    this.installationIds = integrations.map(i => i.installationId as number)
-    // The oldest installation, for the calls that are not about one repo.
-    const defaultInstallationId = this.installationIds[0]
-    this.defaultInstallationId = defaultInstallationId
-
-    this.repositories = integrations.flatMap(integration => {
-      const repos = Array.isArray(integration.repositories)
-        ? integration.repositories as Record<string, any>[]
-        : []
-      return repos.map(repo => ({
-        ...repo,
-        // Cached rows may predate the camelCase mapping.
-        fullName: repo.fullName || repo.full_name,
-        installationId: integration.installationId as number
-      }) as RepositoryInfo)
-    })
-    log.debug({
-      repoCount: this.repositories.length,
-      repos: this.repositories.map(r => `${r.fullName} (inst: ${r.installationId})`)
-    }, 'Loaded repository installation mappings')
-
     try {
-      // Create authenticated Octokit instance for the default installation
-      log.debug({ installationId: defaultInstallationId }, 'Creating default Octokit instance')
-      const octokit = await this.app.getInstallationOctokit(defaultInstallationId)
-      this.octokitCache.set(defaultInstallationId, octokit)
-      log.debug({
-        hasOctokit: !!octokit,
-        installationId: defaultInstallationId
-      }, 'Octokit created successfully')
+      await this.getOctokitForInstallation(this.defaultInstallationId)
     } catch (error) {
       log.error({ error }, 'Failed to create Octokit')
       throw new Error(`Failed to authenticate GitHub App: ${error instanceof Error ? error.message : String(error)}`)
@@ -145,24 +158,22 @@ export class GitHubClient {
   }
 
   /**
-   * Get the installation ID for a specific repository.
+   * The installation that reaches a repo: the one that lists it, else the one
+   * on the repo owner's account (a repo added since the last refresh).
    *
-   * Never falls back across installations: with several, a repo missing from
-   * the cached mapping could belong to any of them, and a guess hands it the
-   * wrong org's token. Only a user with a single installation gets that one.
+   * Never guesses across installations: with several, a repo matching neither
+   * could belong to any of them, and a guess hands it the wrong org's token.
+   * Only a user with a single installation gets that one. (AWTD-1107)
    */
   private getInstallationIdForRepo(repoFullName: string): number {
     const repoInfo = this.repositories.find(
       r => r.fullName?.toLowerCase() === repoFullName.toLowerCase()
     )
+    if (repoInfo) return repoInfo.installationId
 
-    if (repoInfo) {
-      log.debug({
-        repo: repoFullName,
-        installationId: repoInfo.installationId
-      }, 'Found per-repo installation ID')
-      return repoInfo.installationId
-    }
+    const owner = repoFullName.split('/')[0]?.toLowerCase()
+    const byOwner = owner ? this.accountInstallations.get(owner) : undefined
+    if (byOwner) return byOwner
 
     if (!this.defaultInstallationId) {
       throw new Error('GitHub client not authenticated. Call authenticateForUser() first.')

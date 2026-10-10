@@ -10,6 +10,10 @@ import crypto from 'crypto'
 import { createLogger } from '@/lib/logger'
 import { completeTask } from '@/services/complete-task'
 import { capabilityGate } from '@/lib/brand/capabilities'
+import {
+  handleInstallationEvent,
+  handleInstallationRepositoriesEvent,
+} from '@/lib/github/webhooks/installation'
 
 const log = createLogger('api.github.webhooks')
 
@@ -54,89 +58,11 @@ async function sendSSENotification(userId: string, event: any) {
 }
 
 /**
- * Handle GitHub App installation events
+ * Installation lifecycle and repository access — kept current in the
+ * installation model (lib/github/webhooks/installation.ts, AWTD-1111).
  */
-webhooks?.on('installation', async ({ payload }) => {
-  log.info({ action: payload.action }, '🔧 GitHub App installation event:')
-
-  if (payload.action === 'created') {
-    const account = payload.installation.account
-    log.info({
-      installationId: payload.installation.id,
-      account: account && 'login' in account ? account.login : 'unknown',
-      repositories: payload.repositories?.length || 0
-    }, '📦 New installation:')
-
-    // Store installation info (we'll need to associate with user later)
-    // For now, just log it
-    log.info('ℹ️ Installation will be associated when user connects their GitHub')
-  }
-
-  if (payload.action === 'deleted') {
-    log.info(payload.installation.id, '🗑️ Installation removed:')
-
-    // Clean up any GitHub integrations using this installation
-    await prisma.gitHubIntegration.deleteMany({
-      where: { installationId: payload.installation.id }
-    })
-  }
-})
-
-/**
- * Handle repository access changes
- */
-webhooks?.on('installation_repositories', async ({ payload }) => {
-  log.info({ action: payload.action }, '📚 Repository access changed:')
-
-  // Update repository lists for affected integrations
-  const integrations = await prisma.gitHubIntegration.findMany({
-    where: { installationId: payload.installation.id }
-  })
-
-  for (const integration of integrations) {
-    if (payload.action === 'added') {
-      const currentRepos = Array.isArray(integration.repositories)
-        ? integration.repositories as any[]
-        : []
-
-      const newRepos = payload.repositories_added?.map(repo => ({
-        id: repo.id,
-        name: repo.name,
-        fullName: repo.full_name,
-        defaultBranch: ('default_branch' in repo ? repo.default_branch : null) || 'main',
-        // Record whose repo this is, as the refresh route does (AWTD-1107).
-        installationId: payload.installation.id
-      })) || []
-
-      await prisma.gitHubIntegration.update({
-        where: { id: integration.id },
-        data: {
-          repositories: [...currentRepos, ...newRepos]
-        }
-      })
-
-      log.info(`✅ Added ${newRepos.length} repositories to integration ${integration.id}`)
-    }
-
-    if (payload.action === 'removed') {
-      const currentRepos = Array.isArray(integration.repositories)
-        ? integration.repositories as any[]
-        : []
-
-      const removedRepoIds = payload.repositories_removed?.map(repo => repo.id) || []
-      const updatedRepos = currentRepos.filter(repo => !removedRepoIds.includes(repo.id))
-
-      await prisma.gitHubIntegration.update({
-        where: { id: integration.id },
-        data: {
-          repositories: updatedRepos
-        }
-      })
-
-      log.info(`🗑️ Removed ${removedRepoIds.length} repositories from integration ${integration.id}`)
-    }
-  }
-})
+webhooks?.on('installation', ({ payload }) => handleInstallationEvent(payload))
+webhooks?.on('installation_repositories', ({ payload }) => handleInstallationRepositoriesEvent(payload))
 
 /**
  * Handle pull request events

@@ -17,6 +17,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     gitHubIntegration: { findFirst: vi.fn(), findMany: vi.fn() },
+    // The installation model (AWTD-1111) is empty here: these tests pin the
+    // legacy GitHubIntegration path the client still falls back to.
+    gitHubInstallationAccess: { findMany: vi.fn(async () => []) },
+    gitHubInstallationRepo: { findMany: vi.fn(async () => []) },
   },
 }))
 

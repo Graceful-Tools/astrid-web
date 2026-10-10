@@ -12,6 +12,7 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import { replaceInstallationRepos } from '@/lib/github/installations'
 
 const log = createLogger('github-repositories')
 
@@ -80,9 +81,9 @@ export async function listGitHubRepositories(args: {
     try {
       const { GitHubClient } = await import('@/lib/github-client')
       const githubClient = await GitHubClient.forUser(userId)
-      const installationRepos = await githubClient.getInstallationRepositories(
-        githubIntegration.installationId
-      )
+      // This installation, not the client's default: the refreshed list is
+      // written back onto this integration's row.
+      const installationRepos = await githubClient.getInstallationRepositories(githubIntegration.installationId)
 
       repositories = installationRepos.map(repo => ({
         id: repo.id,
@@ -101,6 +102,12 @@ export async function listGitHubRepositories(args: {
         // array as `any`.
         data: { repositories: repositories as Prisma.InputJsonValue },
       })
+
+      // Dual-write (AWTD-1111). Best effort: the user asked for a fresh list and
+      // has one; a failure here must not turn it back into the cached one.
+      await replaceInstallationRepos(githubIntegration.installationId, installationRepos).catch(err =>
+        log.error({ err, userId }, 'Failed to record refreshed repos in the installation model'),
+      )
 
       log.info({ count: repositories.length, userId }, 'Refreshed repositories from GitHub')
     } catch (error) {

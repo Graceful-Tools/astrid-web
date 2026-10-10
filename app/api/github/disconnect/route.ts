@@ -9,6 +9,7 @@ import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { capabilityGate } from '@/lib/brand/capabilities'
+import { revokeInstallationAccess } from '@/lib/github/installations'
 
 const log = createLogger('github.disconnect')
 
@@ -33,6 +34,10 @@ export async function POST(request: NextRequest) {
     } catch {
       // No body or invalid JSON, disconnect all (backward compatible)
     }
+
+    // Access first: if the legacy delete below throws "does not exist", the
+    // user still ends up disconnected in the installation model (AWTD-1111).
+    await revokeInstallationAccess(session.user.id, installationId)
 
     if (installationId) {
       // Disconnect specific installation
