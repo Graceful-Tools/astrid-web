@@ -1,0 +1,135 @@
+{
+  "data": {
+    "node": {
+      "items": {
+        "pageInfo": {
+          "hasNextPage": false,
+          "endCursor": "Y3Vyc29yOnYyOpK5MDAwMDAwMDAuMzMzMzMzMzMzMzMzMzMzM84P9pt2"
+        },
+        "nodes": [
+          {
+            "id": "PVTI_lADOFEb-HM4BmXS2zg_2m1A",
+            "isArchived": false,
+            "type": "ISSUE",
+            "updatedAt": "2026-10-10T13:41:41Z",
+            "content": {
+              "__typename": "Issue",
+              "id": "I_kwDOVCns8c8AAAABWTcnYA",
+              "title": "[Astrid sync fixture] Open issue in Todo",
+              "body": "Recorded by Astrid P4b (AWTD-1150) as a hydration fixture.\n\nDo not close.",
+              "updatedAt": "2026-10-10T13:41:38Z",
+              "number": 1,
+              "url": "https://github.com/Graceful-Fools/wordlesolver/issues/1",
+              "state": "OPEN",
+              "stateReason": null,
+              "repository": {
+                "nameWithOwner": "Graceful-Fools/wordlesolver"
+              }
+            },
+            "fieldValues": {
+              "nodes": [
+                {
+                  "__typename": "ProjectV2ItemFieldRepositoryValue"
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldTextValue",
+                  "text": "[Astrid sync fixture] Open issue in Todo",
+                  "field": {
+                    "id": "PVTF_lADOFEb-HM4BmXS2zhlApMU"
+                  }
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                  "optionId": "f75ad846",
+                  "name": "Todo",
+                  "field": {
+                    "id": "PVTSSF_lADOFEb-HM4BmXS2zhlApMc"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "PVTI_lADOFEb-HM4BmXS2zg_2m1Q",
+            "isArchived": false,
+            "type": "ISSUE",
+            "updatedAt": "2026-10-10T13:41:45Z",
+            "content": {
+              "__typename": "Issue",
+              "id": "I_kwDOVCns8c8AAAABWTcneA",
+              "title": "[Astrid sync fixture] Closed as not planned",
+              "body": "Recorded by Astrid P4b (AWTD-1150).",
+              "updatedAt": "2026-10-10T13:41:44Z",
+              "number": 2,
+              "url": "https://github.com/Graceful-Fools/wordlesolver/issues/2",
+              "state": "CLOSED",
+              "stateReason": "NOT_PLANNED",
+              "repository": {
+                "nameWithOwner": "Graceful-Fools/wordlesolver"
+              }
+            },
+            "fieldValues": {
+              "nodes": [
+                {
+                  "__typename": "ProjectV2ItemFieldRepositoryValue"
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldTextValue",
+                  "text": "[Astrid sync fixture] Closed as not planned",
+                  "field": {
+                    "id": "PVTF_lADOFEb-HM4BmXS2zhlApMU"
+                  }
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                  "optionId": "98236657",
+                  "name": "Done",
+                  "field": {
+                    "id": "PVTSSF_lADOFEb-HM4BmXS2zhlApMc"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "id": "PVTI_lADOFEb-HM4BmXS2zg_2m3Y",
+            "isArchived": false,
+            "type": "DRAFT_ISSUE",
+            "updatedAt": "2026-10-10T13:41:52Z",
+            "content": {
+              "__typename": "DraftIssue",
+              "id": "DI_lADOFEb-HM4BmXS2zgLVgc8",
+              "title": "[Astrid sync fixture] Draft in progress",
+              "body": "A draft: no repository, no number.",
+              "updatedAt": "2026-10-10T13:41:45Z"
+            },
+            "fieldValues": {
+              "nodes": [
+                {
+                  "__typename": "ProjectV2ItemFieldTextValue",
+                  "text": "[Astrid sync fixture] Draft in progress",
+                  "field": {
+                    "id": "PVTF_lADOFEb-HM4BmXS2zhlApMU"
+                  }
+                },
+                {
+                  "__typename": "ProjectV2ItemFieldSingleSelectValue",
+                  "optionId": "47fc9ee4",
+                  "name": "In progress",
+                  "field": {
+                    "id": "PVTSSF_lADOFEb-HM4BmXS2zhlApMc"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "rateLimit": {
+      "cost": 1,
+      "remaining": 4993,
+      "resetAt": "2026-10-10T14:41:11Z"
+    }
+  }
+}
