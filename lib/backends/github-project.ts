@@ -13,10 +13,19 @@
  *   send      strict: any GraphQL error fails the whole write
  *   accept    the row data, with the remoteVersion GitHub reported
  *
- * GitHub's own news (ctx.origin 'remote') is accepted as is. Create and delete
- * are still refused here: P5b and P5c.
+ * Create (P5b) makes the content as the user — an issue in the board's
+ * default repo, or a draft — adds it to the project and sets its fields
+ * (lib/github/projects/create.ts). With a clientRequestId, an outbox row is
+ * written FIRST: a replay after GitHub answered returns that same issue, and
+ * a replay while one is in flight is told so (409), never a second issue.
+ * Content made but fields not set is kept as syncState 'pending' with a
+ * writeback job to finish it.
+ *
+ * GitHub's own news (ctx.origin 'remote') is accepted as is. Delete is still
+ * refused here: P5c.
  */
 
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import type { BindingFieldMap } from '@/lib/github/projects/apply'
 import {
@@ -25,6 +34,13 @@ import {
   type WritableMembership,
   type WritableTask,
 } from '@/lib/github/projects/write'
+import {
+  ADD_ITEM_DOCUMENT,
+  parseCreatedContent,
+  planCreateContent,
+  planInitialFields,
+  type CreatedContent,
+} from '@/lib/github/projects/create'
 import type { GraphqlClient } from '@/lib/github/rate-limiter'
 import type { TaskBackend, TaskBackendResult, TaskBackendRow } from './types'
 
@@ -120,10 +136,197 @@ function refusalFor(err: unknown): TaskBackendResult<never> {
   throw err
 }
 
+// ── Create ──────────────────────────────────────────────────────────────────
+
+/** How long a create in flight holds its clientRequestId before a replay may take over. */
+const CREATE_LOCK_MS = 2 * 60_000
+
+type CreateClaim = { kind: 'new' } | { kind: 'done'; remote: CreatedContent } | { kind: 'busy' }
+
+const createKey = (clientRequestId: string) => `create:${clientRequestId}`
+
+/**
+ * The outbox row, written BEFORE GitHub is called. Stored as an already-done
+ * GitHubSyncJob so no drainer runs it; its payload gains `remote` once GitHub
+ * has answered.
+ */
+async function claimCreate(clientRequestId: string, installationId: number): Promise<CreateClaim> {
+  const now = Date.now()
+  try {
+    await prisma.gitHubSyncJob.create({
+      data: {
+        kind: 'create',
+        dedupeKey: createKey(clientRequestId),
+        installationId,
+        payload: {},
+        doneAt: new Date(now),
+        lockedUntil: new Date(now + CREATE_LOCK_MS),
+      },
+    })
+    return { kind: 'new' }
+  } catch (err) {
+    if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002')) throw err
+  }
+  const row = await prisma.gitHubSyncJob.findUnique({ where: { dedupeKey: createKey(clientRequestId) } })
+  const remote = (row?.payload as { remote?: CreatedContent } | null)?.remote
+  if (remote) return { kind: 'done', remote }
+  // An abandoned attempt (its lock expired) may be retried; a live one may not.
+  const { count } = await prisma.gitHubSyncJob.updateMany({
+    where: { dedupeKey: createKey(clientRequestId), lockedUntil: { lt: new Date(now) } },
+    data: { lockedUntil: new Date(now + CREATE_LOCK_MS) },
+  })
+  return count === 1 ? { kind: 'new' } : { kind: 'busy' }
+}
+
+const recordCreated = (clientRequestId: string, remote: CreatedContent) =>
+  prisma.gitHubSyncJob.update({
+    where: { dedupeKey: createKey(clientRequestId) },
+    data: { payload: { remote } as unknown as Prisma.InputJsonValue, lockedUntil: null },
+  })
+
+const releaseCreate = (clientRequestId: string) =>
+  prisma.gitHubSyncJob.deleteMany({ where: { dedupeKey: createKey(clientRequestId) } })
+
+/** The fields step 3 sets — kept on a writeback job if it fails. */
+const FIELD_KEYS = ['statusRole', 'priority', 'dueDateTime', 'completed', 'closedReason'] as const
+
+async function loadBoardForCreate(data: TaskBackendRow) {
+  const connect = (data.lists as { connect?: Array<{ id: string }> } | undefined)?.connect ?? []
+  const list = await prisma.taskList.findFirst({
+    where: { id: { in: connect.map(l => l.id) }, backend: 'github_project' },
+    select: {
+      project: {
+        select: {
+          githubBinding: {
+            select: {
+              projectId: true,
+              projectNodeId: true,
+              installationId: true,
+              detachedAt: true,
+              defaultRepoNodeId: true,
+              statusFieldId: true,
+              statusOptionMap: true,
+              priorityFieldId: true,
+              priorityOptionMap: true,
+              dueFieldId: true,
+            },
+          },
+        },
+      },
+    },
+  })
+  return list?.project?.githubBinding ?? null
+}
+
+/** The row to insert: Astrid's data plus GitHub's identity for it. */
+function acceptCreated(data: TaskBackendRow, content: CreatedContent, projectId: string, syncState: string | null) {
+  return {
+    ...data,
+    remoteNodeId: content.remoteNodeId,
+    remoteKind: content.remoteKind,
+    remoteVersion: content.remoteVersion,
+    // GitHub's owner/repo#N; a draft has none until converted (§9.3).
+    identifier: content.identifier,
+    sequence: null,
+    isPrivate: false,
+    syncState,
+    ...(content.itemNodeId
+      ? { githubProjectItems: { create: [{ itemNodeId: content.itemNodeId, projectId }] } }
+      : {}),
+  }
+}
+
 export function createGithubProjectTaskBackend(deps: GithubBackendDeps): TaskBackend {
   return {
     kind: 'github_project',
-    createTask: async (ctx, data) => (ctx.origin === 'remote' ? { ok: true, value: data } : refusal),
+
+    async createTask(ctx, data): Promise<TaskBackendResult<TaskBackendRow>> {
+      if (ctx.origin === 'remote') return { ok: true, value: data }
+
+      const binding = await loadBoardForCreate(data)
+      if (!binding || binding.detachedAt) return refusal
+
+      const membershipFor = (itemNodeId: string): WritableMembership => ({
+        projectNodeId: binding.projectNodeId,
+        itemNodeId,
+        binding: {
+          statusFieldId: binding.statusFieldId,
+          statusOptionMap: (binding.statusOptionMap ?? {}) as Record<string, string>,
+          priorityFieldId: binding.priorityFieldId,
+          priorityOptionMap: (binding.priorityOptionMap ?? null) as Record<string, number> | null,
+          dueFieldId: binding.dueFieldId,
+        },
+      })
+      // Refuse an impossible lane or field BEFORE anything exists on GitHub.
+      const kind = binding.defaultRepoNodeId ? 'issue' : 'draft'
+      const preview = planInitialFields(
+        { remoteNodeId: 'pending', remoteKind: kind, remoteVersion: '', identifier: null, itemNodeId: 'pending' },
+        membershipFor('pending'),
+        data,
+      )
+      if ('refused' in preview) return fail(400, `github_${preview.refused}`)
+
+      const client = await deps.userClient(ctx.actorId)
+      if (!client) return fail(403, 'auth_required')
+
+      const clientRequestId = typeof data.clientRequestId === 'string' ? data.clientRequestId : null
+      if (clientRequestId) {
+        const claim = await claimCreate(clientRequestId, binding.installationId)
+        if (claim.kind === 'busy') return fail(409, 'create_in_progress')
+        if (claim.kind === 'done') return { ok: true, value: acceptCreated(data, claim.remote, binding.projectId, null) }
+      }
+
+      // 1. The content. A failure here leaves nothing on GitHub: release the claim.
+      let content: CreatedContent
+      try {
+        const plan = planCreateContent(binding, data as { title: string; description?: string | null })
+        content = parseCreatedContent(await client.query(plan.document, plan.variables, { strict: true }))
+      } catch (err) {
+        if (clientRequestId) await releaseCreate(clientRequestId)
+        return refusalFor(err)
+      }
+      if (clientRequestId) await recordCreated(clientRequestId, content)
+
+      // 2 + 3. The item and its fields. The content exists now, so a failure
+      // here is partial: keep the task, and let a writeback job finish it.
+      let syncState: string | null = null
+      try {
+        if (!content.itemNodeId) {
+          const added = await client.query<{ m0: { item: { id: string } } }>(
+            ADD_ITEM_DOCUMENT,
+            { p: binding.projectNodeId, c: content.remoteNodeId },
+            { strict: true },
+          )
+          content = { ...content, itemNodeId: added.m0.item.id }
+          if (clientRequestId) await recordCreated(clientRequestId, content)
+        }
+        const fields = planInitialFields(content, membershipFor(content.itemNodeId!), data)
+        if (!('refused' in fields) && fields.document) {
+          await client.query(fields.document, fields.variables, { strict: true })
+        }
+      } catch {
+        syncState = 'pending'
+        await prisma.gitHubSyncJob.createMany({
+          data: [
+            {
+              kind: 'writeback',
+              installationId: binding.installationId,
+              dedupeKey: `writeback:${content.remoteNodeId}`,
+              payload: {
+                actorId: ctx.actorId,
+                projectId: binding.projectId,
+                content,
+                fields: Object.fromEntries(FIELD_KEYS.filter(k => k in data).map(k => [k, data[k]])),
+              } as unknown as Prisma.InputJsonValue,
+            },
+          ],
+          skipDuplicates: true,
+        })
+      }
+
+      return { ok: true, value: acceptCreated(data, content, binding.projectId, syncState) }
+    },
+
     deleteTask: async ctx => (ctx.origin === 'remote' ? { ok: true, value: undefined } : refusal),
 
     async updateTask(ctx, taskId, data): Promise<TaskBackendResult<TaskBackendRow>> {

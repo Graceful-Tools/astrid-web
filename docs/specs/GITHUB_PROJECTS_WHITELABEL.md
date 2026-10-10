@@ -1411,8 +1411,34 @@ installation's. A rule in the tests keeps the App and installation tokens out of
 - **Verified against GitHub.** All mutation shapes were recorded against the real test
   project (`write-*.json`).
 
-Still to do: P5b (create, partial failure, offline idempotency) and P5c (assignees,
-comments, position, remove from project).
+**P5b, done.** Creating a task on a GitHub board takes three requests on the user's
+token (`lib/github/projects/create.ts`):
+1. Create the content: an issue in `defaultRepoNodeId`, or a draft when there is none.
+2. For an issue, add it to the project with `addProjectV2ItemById`. This deliberately
+   doesn't use `createIssue`'s `projectV2Ids`. In the recording from 2026-10-10, GitHub
+   added the item asynchronously and the response listed none, so there was nothing to
+   set fields on. `addProjectV2ItemById` is idempotent and returns the item GitHub
+   already made.
+3. Set the fields, planned as an edit from a blank card.
+
+How the edge cases behave:
+- **Impossible lanes** are refused before anything exists on GitHub.
+- **Offline idempotency.** With a `clientRequestId`, an outbox row (a done
+  `GitHubSyncJob` keyed `create:<id>`) is written **before** GitHub is called. A replay
+  after GitHub answered returns the same issue, so replaying twice makes one issue
+  (tested). A replay while the first is in flight gets 409 `create_in_progress`. An
+  abandoned attempt, with its 2-minute lock expired and no answer recorded, may be
+  retried.
+  - Residual risk: a crash after GitHub created the issue but before its answer was
+    recorded can make a second issue on retry. GitHub's create has no idempotency key.
+- **Partial failure.** If the content exists but the item or fields failed, the task is
+  kept with `syncState 'pending'` (an additive column) and a `writeback` job, which
+  finishes it as the same user and clears it.
+- The inserted row carries GitHub's identity: `remoteNodeId`, `owner/repo#N` as its
+  identifier, shared visibility, and its `GitHubProjectItem`. The shape was checked
+  against a real Postgres.
+
+Still to do: P5c (assignees, comments, position, remove from project).
 
 ### P6–P8 — fields, recurrence, per-org SSO, brand: not started
 
