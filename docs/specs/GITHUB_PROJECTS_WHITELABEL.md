@@ -1077,9 +1077,11 @@ customer.
 astrid.cc's own pre-flight report, not on the partner default above.
 
 **How this changes the phases:**
-- **P7** no longer embeds a broker. It builds the `SsoConnection` model, domain
-  verification, `required` enforcement and domain-bound linking against the OIDC
-  interface. Its tests use a stub OIDC issuer, not a vendor's suite.
+- **P7** no longer embeds a broker. Whether it is built at all (the `SsoConnection`
+  model, domain verification, `required` enforcement and domain-bound linking, against
+  the OIDC interface with a stub issuer) or only specified as a partner implementation
+  guide is open on [AWTD-1120](https://astrid.cc/t/AWTD-1120). Deployment-level OIDC
+  (P2) already ships either way.
 - **P6c** reads C3 and does not assume the label.
 - **P8** documents C1–C4 in the GitHub-partner checklist in WHITELABELING §8, so a
   partner sees every choice in one place.
