@@ -146,7 +146,7 @@ const BUDGETS: Record<string, number> = {
   // followed into mcp/task-schemas.ts. Smaller than before the feature again.
   // 564 → 553: AWTD-1086's blocker tools live in mcp/blockers.ts behind one
   // dispatch line, and getTaskComments lost its hand-rolled JSON wrapper.
-  'mcp/mcp-server-oauth.ts': 553,
+  'mcp/mcp-server-oauth.ts': 552,
   // 919 → 901: task 10f26dc6 added a card explaining when a manual client is
   // needed at all. Both that card and GRANT_TYPE_OPTIONS — the same question,
   // asked as a form field — moved to components/oauth-client-guide.tsx.

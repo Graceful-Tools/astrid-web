@@ -329,6 +329,41 @@ Create a comment on a task. Supports file attachments via `fileId`.
 - `fileId` links an existing SecureFile to the comment
 - Files can be from the user's uploads or from chat channels the user has access to
 
+### POST `/api/v1/tasks/{taskId}/attachment-uploads`
+Mint a ticket to upload one image to a task (OAuth/API clients and MCP `create_task_attachment_upload`). Scope `comments:write`; caller must have task access. `taskId` may be an identifier such as `AWTD-1172`.
+
+**Request:**
+```json
+{
+  "fileName": "shot.png",
+  "mimeType": "image/png (optional; png | jpeg | gif | webp, derived from extension)",
+  "caption": "string (optional, max 1000; default 'Attached: <fileName>')",
+  "clientRequestId": "string (optional idempotency key)",
+  "aiAgentId": "string (optional; agent author, as on comments)"
+}
+```
+
+**Response (201):**
+```json
+{
+  "taskId": "uuid", "fileName": "shot.png", "mimeType": "image/png", "clientRequestId": "string",
+  "upload": {
+    "method": "PUT",
+    "url": "https://<host>/api/v1/attachment-uploads",
+    "headers": { "X-Upload-Ticket": "<signed ticket>", "Content-Type": "image/png" },
+    "expiresAt": "ISO-8601 (15 min)",
+    "maxBytes": 4194304
+  }
+}
+```
+Errors: 400 (unsupported type incl. SVG, extension/type mismatch, path in name, caption too long, bad `aiAgentId`), 404 (no task access).
+
+### PUT `/api/v1/attachment-uploads`
+Upload the raw image bytes with the `upload.headers` above. The ticket is the credential (no OAuth header). Bytes are magic-number checked against the ticket's type; task access is re-checked. Stores a SecureFile and posts an `ATTACHMENT` comment on the task.
+
+- **201** `{ comment, fileId, taskId }`; **200** same payload on a replay of the same ticket/`clientRequestId`
+- **401** missing/tampered/expired ticket; **400** empty or non-image body; **404** access revoked; **413** over 4 MB
+
 ### PUT `/api/comments/{id}`
 Update a comment.
 
