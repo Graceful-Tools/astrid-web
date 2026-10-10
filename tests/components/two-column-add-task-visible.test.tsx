@@ -166,14 +166,14 @@ describe('Add-task input visibility across desktop layouts', () => {
   it('is visible in the 2-column layout', () => {
     render(<MainContent {...baseProps} is2Column={true} is3Column={false} />)
 
-    const input = screen.getByPlaceholderText(/add task/i)
+    const input = screen.getByPlaceholderText(/add a task/i)
     expect(input).toBeVisible()
   })
 
   it('stays visible in the 3-column layout', () => {
     render(<MainContent {...baseProps} is2Column={false} is3Column={true} />)
 
-    const input = screen.getByPlaceholderText(/add task/i)
+    const input = screen.getByPlaceholderText(/add a task/i)
     expect(input).toBeVisible()
   })
 
@@ -206,7 +206,7 @@ describe('Add-task input visibility across desktop layouts', () => {
       />,
     )
 
-    expect(screen.getByPlaceholderText(/add task/i)).toBeVisible()
+    expect(screen.getByPlaceholderText(/add a task/i)).toBeVisible()
     expect(screen.queryByText(/copy list/i)).toBeNull()
   })
 })

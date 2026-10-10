@@ -93,12 +93,8 @@
       "description": "説明を追加...",
       "comment": "コメントを書く..."
     },
-    "addTaskPlaceholder": "タスクを追加",
-    "addTaskToList": "{listName} にタスクを追加...",
-    "addTaskToCurrentList": "現在のリストにタスクを追加...",
-    "addTaskShort": "タスクを追加...",
+    "addTaskPlaceholder": "タスクを追加...",
     "quickAdd": "クイック追加...",
-    "addNewTask": "新しいタスクを追加...",
     "wontDo": "Won't do",
     "reopen": "Reopen",
     "status": "ステータス",

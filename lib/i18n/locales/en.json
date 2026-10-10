@@ -93,12 +93,8 @@
       "description": "Add a description...",
       "comment": "Write a comment..."
     },
-    "addTaskPlaceholder": "Add a task",
-    "addTaskToList": "Add task to {listName}...",
-    "addTaskToCurrentList": "Add task to current list...",
-    "addTaskShort": "Add task...",
+    "addTaskPlaceholder": "Add a task...",
     "quickAdd": "Quick add...",
-    "addNewTask": "Add a new task...",
     "wontDo": "Won't do",
     "reopen": "Reopen",
     "status": "Status",

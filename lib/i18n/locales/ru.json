@@ -93,12 +93,8 @@
       "description": "Добавить описание...",
       "comment": "Написать комментарий..."
     },
-    "addTaskPlaceholder": "Добавить задачу",
-    "addTaskToList": "Добавить задачу в {listName}...",
-    "addTaskToCurrentList": "Добавить задачу в текущий список...",
-    "addTaskShort": "Добавить задачу...",
+    "addTaskPlaceholder": "Добавить задачу...",
     "quickAdd": "Быстрое добавление...",
-    "addNewTask": "Добавить новую задачу...",
     "wontDo": "Won't do",
     "reopen": "Reopen",
     "status": "Статус",
