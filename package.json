@@ -80,6 +80,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:integration:postgres": "vitest run --config vitest.postgres.config.ts",
+    "test:live:github-projects": "vitest run --config vitest.live.config.ts tests/live/github-projects-smoke.live.test.ts",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
     "check:risk-controls": "tsx scripts/check-test-risk-controls.ts",

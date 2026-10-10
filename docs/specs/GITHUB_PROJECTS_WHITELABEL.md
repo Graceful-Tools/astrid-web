@@ -5,7 +5,7 @@ Projects (v2). This also covers the three workstreams that make it possible:
 consolidating the write path, a login-provider registry, and one GitHub connection.
 Revision 2, 2026-10-05.*
 
-Status: **In progress — P0, P1, P2 done; P3 partly done; P4–P8 not started** (2026-10-05).
+Status: **In progress — P0–P2 done; P3 partly done; P4 built (2026-10-10); P5–P8 not started.**
 See §17 for exactly what landed, what did not, and what each remaining phase needs. None
 of it is deployed: production deploys are manual (CLAUDE.md rule 1).
 
@@ -1263,7 +1263,7 @@ Not done, and why:
   those events on GitHub.
 - **The Connections → GitHub settings card.**
 
-### P4 — the Projects backend: in progress, split into P4a–P4f
+### P4 — the Projects backend: built (P4a–P4f); two measurements wait on a brand deployment
 
 **P4a ([AWTD-1149](https://astrid.cc/t/AWTD-1149)), done.** The §8.5 tables and columns,
 in an additive migration, and `lib/github/projects/apply.ts`: pure
@@ -1369,7 +1369,24 @@ recordings.
   - A suspended board is never purged.
   - A task someone also put on a personal list is kept.
 
-The remaining slice: [AWTD-1154](https://astrid.cc/t/AWTD-1154) the live smoke test.
+**P4f ([AWTD-1154](https://astrid.cc/t/AWTD-1154)), done except for the measurements
+that need a deployment.** `npm run test:live:github-projects` (`tests/live/`, its own
+vitest config, excluded from predeploy) runs against the real Graceful-Fools project and a
+throwaway localhost Postgres. It's gated on `GITHUB_PROJECTS_LIVE=1` and a safe
+`TEST_DATABASE_URL`. It covers:
+- bind and import into the right lanes;
+- an edit on GitHub reaching the replica through a hydrate job;
+- reconcile healing an edit no webhook announced;
+- real query counts.
+
+Measured on 2026-10-10:
+- One changed item costs 3 queries.
+- An import page costs 25 queries plus 0 per item.
+- Edit → hydrate → replica took about 1.2 s.
+
+The test puts the fixture items back afterwards. Still open, because they need a deployed
+GitHub-Projects brand and real seeding: the webhook leg of the ≤10s p95, and a
+2,000-item import.
 
 ### P5–P8 — write-through, fields, recurrence, per-org SSO, brand: not started
 
