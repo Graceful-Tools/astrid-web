@@ -29,7 +29,12 @@ const db = vi.hoisted(() => ({
   },
   gitHubProjectBinding: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
   project: { create: vi.fn() },
-  taskList: { create: vi.fn() },
+  taskList: {
+    create: vi.fn(),
+    findMany: vi.fn(),
+    createMany: vi.fn(),
+    update: vi.fn((args: unknown) => ({ op: 'list.update', args })),
+  },
   $transaction: vi.fn(),
 }))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
@@ -37,7 +42,7 @@ vi.mock('@/lib/prisma', () => ({ prisma: db }))
 const bulk = vi.hoisted(() => ({ createTasksInBulk: vi.fn() }))
 vi.mock('@/services/task-bulk-create', () => bulk)
 
-vi.mock('@/lib/redis', () => ({ RedisCache: { invalidate: { userTasks: vi.fn(async () => {}) } } }))
+vi.mock('@/lib/redis', () => ({ RedisCache: { invalidate: { userTasks: vi.fn(async () => {}), userLists: vi.fn(async () => {}) } } }))
 
 import { applyProjectItems, bindGitHubProject, type BoundBoard } from '@/services/github-projects.service'
 import { normaliseItem, type RemoteProjectItem } from '@/lib/github/projects/apply'
@@ -68,6 +73,7 @@ function replicaOf(item: RemoteProjectItem, id: string) {
     parentTaskId: null as string | null,
     parentTask: null as { remoteNodeId: string | null } | null,
     blockedBy: [] as Array<{ blockingTaskId: string }>,
+    lists: [] as Array<{ id: string; remoteNodeId: string | null }>,
   }
 }
 
@@ -75,6 +81,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   db.task.findMany.mockResolvedValue([])
   db.gitHubProjectItem.findMany.mockResolvedValue([])
+  db.taskList.findMany.mockResolvedValue([])
   db.$transaction.mockImplementation(async (arg: unknown) => (typeof arg === 'function' ? (arg as (tx: typeof db) => unknown)(db) : arg))
   bulk.createTasksInBulk.mockImplementation(async ({ tasks }: { tasks: Array<{ data: { remoteNodeId: string } }> }) => ({
     tasks: tasks.map((t, i) => ({ id: `new-${i}`, remoteNodeId: t.data.remoteNodeId })),
@@ -256,6 +263,143 @@ describe('applyProjectItems — sub-issues and dependencies (AWTD-1119)', () => 
     await applyProjectItems(board, items.map(item => (item.content?.__typename === 'Issue' ? related(item, null) : item)))
 
     expect(db.task.findMany).toHaveBeenCalledTimes(1)
+    expect(db.$transaction).not.toHaveBeenCalled()
+  })
+})
+
+type Label = { id: string; name: string; color: string }
+
+/** `item` with GitHub labels (the fragment's AWTD-1188 field). */
+function labelled(item: RemoteProjectItem, labels: Label[], totalCount = labels.length): RemoteProjectItem {
+  return { ...item, content: { ...item.content!, labels: { totalCount, nodes: labels } } }
+}
+
+describe('applyProjectItems — labels become label lists (AWTD-1188)', () => {
+  const [issue] = items
+  const bug: Label = { id: 'LA_bug', name: 'bug', color: 'D73A4A' }
+  const docs: Label = { id: 'LA_docs', name: 'documentation', color: '0075CA' }
+  const bugList = { id: 'label-bug', remoteNodeId: 'LA_bug', name: 'bug', color: '#d73a4a' }
+  const docsList = { id: 'label-docs', remoteNodeId: 'LA_docs', name: 'documentation', color: '#0075ca' }
+  const member = [{ itemNodeId: issue.id, archived: false }]
+  /** The issue as already mirrored, carrying these label lists. */
+  const carrying = (...lists: Array<{ id: string; remoteNodeId: string }>) => ({
+    ...replicaOf(issue, 't0'),
+    lists: lists.map(({ id, remoteNodeId }) => ({ id, remoteNodeId })),
+  })
+
+  it('a label nobody has seen becomes a label list for its repo, and the new task joins it', async () => {
+    db.taskList.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([bugList])
+
+    await applyProjectItems(board, [labelled(issue, [bug])])
+
+    expect(db.taskList.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          name: 'bug',
+          color: '#d73a4a',
+          description: 'Graceful-Fools/wordlesolver',
+          ownerId: 'user-1',
+          listType: 'label',
+          remoteNodeId: 'LA_bug',
+        },
+      ],
+      // Two jobs meeting the same new label make one list: the node id is unique.
+      skipDuplicates: true,
+    })
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 'new-0' }, data: { lists: { connect: [{ id: 'label-bug' }] } } })
+  })
+
+  it('a known label costs ONE read for the page: no create, the task joins the list that exists', async () => {
+    db.task.findMany.mockResolvedValue([carrying()])
+    db.gitHubProjectItem.findMany.mockResolvedValue(member)
+    db.taskList.findMany.mockResolvedValue([bugList])
+
+    await applyProjectItems(board, [labelled(issue, [bug])])
+
+    expect(db.taskList.findMany).toHaveBeenCalledTimes(1)
+    expect(db.taskList.findMany.mock.calls[0][0].where).toEqual({ remoteNodeId: { in: ['LA_bug'] } })
+    expect(db.taskList.createMany).not.toHaveBeenCalled()
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 't0' }, data: { lists: { connect: [{ id: 'label-bug' }] } } })
+  })
+
+  it('a label removed on GitHub is left here, in the same write that joins the one added', async () => {
+    db.task.findMany.mockResolvedValue([carrying(bugList)])
+    db.gitHubProjectItem.findMany.mockResolvedValue(member)
+    db.taskList.findMany.mockResolvedValue([docsList])
+
+    await applyProjectItems(board, [labelled(issue, [docs])])
+
+    expect(db.task.update).toHaveBeenCalledWith({
+      where: { id: 't0' },
+      data: { lists: { connect: [{ id: 'label-docs' }], disconnect: [{ id: 'label-bug' }] } },
+    })
+  })
+
+  it('the last label removed on GitHub needs no list read at all', async () => {
+    db.task.findMany.mockResolvedValue([carrying(bugList)])
+    db.gitHubProjectItem.findMany.mockResolvedValue(member)
+
+    await applyProjectItems(board, [labelled(issue, [])])
+
+    expect(db.taskList.findMany).not.toHaveBeenCalled()
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 't0' }, data: { lists: { disconnect: [{ id: 'label-bug' }] } } })
+  })
+
+  it('more labels than were read: the task joins what it was shown and leaves nothing', async () => {
+    db.task.findMany.mockResolvedValue([carrying(docsList)])
+    db.gitHubProjectItem.findMany.mockResolvedValue(member)
+    db.taskList.findMany.mockResolvedValue([bugList])
+
+    await applyProjectItems(board, [labelled(issue, [bug], 25)])
+
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 't0' }, data: { lists: { connect: [{ id: 'label-bug' }] } } })
+  })
+
+  it('a label renamed on GitHub renames its list; the memberships are untouched', async () => {
+    db.task.findMany.mockResolvedValue([carrying(bugList)])
+    db.gitHubProjectItem.findMany.mockResolvedValue(member)
+    db.taskList.findMany.mockResolvedValue([bugList])
+
+    await applyProjectItems(board, [labelled(issue, [{ ...bug, name: 'defect' }])])
+
+    expect(db.taskList.update).toHaveBeenCalledWith({ where: { id: 'label-bug' }, data: { name: 'defect' } })
+    expect(db.task.update).not.toHaveBeenCalled()
+  })
+
+  it('labels that already agree write nothing', async () => {
+    db.task.findMany.mockResolvedValue([carrying(bugList)])
+    db.gitHubProjectItem.findMany.mockResolvedValue(member)
+    db.taskList.findMany.mockResolvedValue([bugList])
+
+    expect(await applyProjectItems(board, [labelled(issue, [bug])])).toMatchObject({ unchanged: 1 })
+    expect(db.$transaction).not.toHaveBeenCalled()
+  })
+
+  it('an archived item’s labels are left as they are', async () => {
+    db.task.findMany.mockResolvedValue([carrying(bugList)])
+
+    await applyProjectItems(board, [{ ...labelled(issue, []), isArchived: true }])
+
+    expect(db.taskList.findMany).not.toHaveBeenCalled()
+    expect(db.task.update).not.toHaveBeenCalled()
+  })
+
+  it('reads back only GITHUB label lists, so an Astrid label on a mirrored task is never GitHub’s to remove', async () => {
+    await applyProjectItems(board, [labelled(issue, [])])
+
+    expect(db.task.findMany.mock.calls[0][0].select.lists).toEqual({
+      where: { listType: 'label', remoteNodeId: { not: null } },
+      select: { id: true, remoteNodeId: true },
+    })
+  })
+
+  it('a page with no labels costs no label read and no label write', async () => {
+    db.task.findMany.mockResolvedValue(items.map((item, i) => replicaOf(item, `t${i}`)))
+    db.gitHubProjectItem.findMany.mockResolvedValue(items.map(item => ({ itemNodeId: item.id, archived: false })))
+
+    await applyProjectItems(board, items.map(item => (item.content?.__typename === 'Issue' ? labelled(item, []) : item)))
+
+    expect(db.taskList.findMany).not.toHaveBeenCalled()
     expect(db.$transaction).not.toHaveBeenCalled()
   })
 })

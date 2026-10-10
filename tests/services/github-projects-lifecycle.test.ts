@@ -221,10 +221,15 @@ describe('uninstall and suspend (AWTD-1153)', () => {
     })
     expect(db.project.delete).toHaveBeenCalledWith({ where: { id: 'uninstalled' } })
     expect(db.project.delete).not.toHaveBeenCalledWith({ where: { id: 'suspended' } })
-    // Only tasks on this board and nowhere else.
+    // Only tasks on this board and nowhere else. A GitHub label is part of the
+    // replica, not somewhere else: a labelled task must not outlive the purge
+    // (AWTD-1188).
+    const githubLabel = { listType: 'label', remoteNodeId: { not: null } }
     expect((db.task.deleteMany.mock.calls[0][0] as { where: unknown }).where).toMatchObject({
       remoteNodeId: { not: null },
-      lists: { every: { id: { in: ['gh-list'] } } },
+      lists: { every: { OR: [{ id: { in: ['gh-list'] } }, githubLabel] } },
     })
+    // Then the label lists the purge emptied go with it.
+    expect(db.taskList.deleteMany).toHaveBeenCalledWith({ where: { ...githubLabel, tasks: { none: {} } } })
   })
 })

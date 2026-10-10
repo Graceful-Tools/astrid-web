@@ -68,6 +68,16 @@ describe('the fragment (AWTD-1150)', () => {
 })
 
 describe('fetchProjectItemsPage → normaliseItem, from a real recording (AWTD-1150)', () => {
+  it('reads labels on issues AND pull requests, with totalCount so truncation shows (AWTD-1188)', () => {
+    const labels = 'labels(first: 20) { totalCount nodes { id name color } }'
+    const from = (start: string, end: string) =>
+      PROJECT_ITEM_FRAGMENT.slice(PROJECT_ITEM_FRAGMENT.indexOf(start), PROJECT_ITEM_FRAGMENT.indexOf(end))
+    expect(from('... on Issue', '... on PullRequest')).toContain(labels)
+    expect(from('... on PullRequest', 'fieldValues')).toContain(labels)
+    // A draft has no labels: asking for them there is a schema error.
+    expect(from('... on DraftIssue', '... on Issue')).not.toContain('labels')
+  })
+
   it('a recorded page applies as P4a expects: open issue, closed-not-planned, draft', async () => {
     const fetchImpl = replay(load('project-items-page.json'))
     const page = await fetchProjectItemsPage(clientFor(fetchImpl), PROJECT)

@@ -29,6 +29,10 @@
               "blockedBy": {
                 "totalCount": 0,
                 "nodes": []
+              },
+              "labels": {
+                "totalCount": 0,
+                "nodes": []
               }
             },
             "fieldValues": {
@@ -74,6 +78,10 @@
               },
               "parent": null,
               "blockedBy": {
+                "totalCount": 0,
+                "nodes": []
+              },
+              "labels": {
                 "totalCount": 0,
                 "nodes": []
               }

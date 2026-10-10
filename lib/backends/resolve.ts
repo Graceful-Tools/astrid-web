@@ -14,6 +14,7 @@ import { prisma } from '@/lib/prisma'
 import { CAPABILITIES } from '@/lib/brand/capabilities'
 import { localTaskBackend } from './local'
 import { githubProjectTaskBackend } from './github-project'
+import { withGithubLabelGuard } from './github-labels'
 import type { TaskBackend } from './types'
 
 export const GITHUB_PROJECT_BACKEND = 'github_project'
@@ -37,7 +38,9 @@ export async function taskBackendFor(
   deps: ResolveDeps = defaults,
 ): Promise<TaskBackend> {
   if (!deps.githubProjects || listIds.length === 0) return localTaskBackend
-  return (await deps.countBound(listIds)) > 0 ? githubProjectTaskBackend : localTaskBackend
+  // Guarded either way: a GitHub label's list is not a bound board, so a
+  // local task can be dropped onto one too (AWTD-1188).
+  return withGithubLabelGuard((await deps.countBound(listIds)) > 0 ? githubProjectTaskBackend : localTaskBackend)
 }
 
 /**

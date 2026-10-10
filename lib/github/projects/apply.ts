@@ -45,6 +45,8 @@ export interface RemoteProjectItem {
     parent?: { id: string } | null
     /** Issues only: the issues this one waits on (relations.ts). */
     blockedBy?: { totalCount: number; nodes: Array<{ id: string }> }
+    /** Issues and pull requests: the repo's labels on this one (labels.ts). Null when the repo has none readable. */
+    labels?: { totalCount: number; nodes: Array<{ id: string; name: string; color: string }> } | null
   }
   fieldValues: { nodes: RemoteFieldValue[] }
 }

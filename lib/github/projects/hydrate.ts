@@ -23,6 +23,12 @@ const FIELD_VALUES_PER_ITEM = 20
  */
 const BLOCKERS_PER_ISSUE = 20
 
+/**
+ * Labels read per issue or pull request (AWTD-1188). One with more reports a
+ * larger totalCount, and its labels are then added to but never pruned (labels.ts).
+ */
+const LABELS_PER_ITEM = 20
+
 /** GitHub's maximum page size for project items. */
 export const ITEMS_PAGE_SIZE = 100
 
@@ -44,10 +50,12 @@ fragment ProjectItemFields on ProjectV2Item {
       repository { nameWithOwner }
       parent { id }
       blockedBy(first: ${BLOCKERS_PER_ISSUE}) { totalCount nodes { id } }
+      labels(first: ${LABELS_PER_ITEM}) { totalCount nodes { id name color } }
     }
     ... on PullRequest {
       id title body updatedAt number url state
       repository { nameWithOwner }
+      labels(first: ${LABELS_PER_ITEM}) { totalCount nodes { id name color } }
     }
   }
   fieldValues(first: ${FIELD_VALUES_PER_ITEM}) {

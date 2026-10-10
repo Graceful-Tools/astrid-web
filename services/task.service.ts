@@ -38,7 +38,7 @@ import { prisma } from '@/lib/prisma'
 // be a third answer to one question (AWTD-891, ratcheted by
 // tests/rules/assignee-rule-reaches-both-write-paths.test.ts).
 import { PROJECT_ACCESS_INCLUDE, hasExplicitListRole } from '@/lib/list-permissions'
-import { getListMemberIds, hasListAccess } from '@/lib/list-member-utils'
+import { getListMemberIds } from '@/lib/list-member-utils'
 import { authorizeAssigneeChange, authorizeNewTaskAssignee, resolveAssignee } from '@/services/assignee-authorization'
 import { audienceForTask, recordDeletion } from '@/lib/deletion-log'
 import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
@@ -68,6 +68,7 @@ import { broadcastTaskCreated } from './task-create-broadcast'
 import { dispatchAgentAssignment } from '@/services/agent-assignment-dispatch'
 import { TASK_CREATE_INCLUDE, TASK_UPDATE_EXISTING_INCLUDE, type CreatedTask } from '@/services/task-includes'
 import { taskBackendFor, listsBeforeAndAfter } from '@/lib/backends/resolve'
+import { listRefusingTask } from '@/lib/list-add-permission'
 import {
   computeAutomaticReminders,
   scheduleReminders,
@@ -464,18 +465,8 @@ export async function createTaskWithSideEffects(args: {
       return { ok: false, status: 400, error: `Invalid list IDs: ${missing.join(', ')}` }
     }
 
-    for (const list of lists) {
-      // A collaborative public list is one anyone may add to, which is exactly
-      // what makes it collaborative — so no role is required there.
-      const isCollaborativePublic =
-        list.privacy === 'PUBLIC' && list.publicListType === 'collaborative'
-      if (!hasListAccess(list as never, actorId) && !isCollaborativePublic) {
-        return {
-          ok: false,
-          status: 403,
-          error: `You don't have permission to create tasks in this list`,
-        }
-      }
+    if (listRefusingTask(lists as never, actorId)) {
+      return { ok: false, status: 403, error: `You don't have permission to create tasks in this list` }
     }
 
     // One copy-only public list in the set is enough: the task becomes
@@ -978,6 +969,7 @@ export async function updateTaskWithSideEffects(args: {
           isVirtual: true,
           projectId: true,
           listType: true,
+          remoteNodeId: true,
           listMembers: { select: { userId: true, role: true } },
         },
       })
@@ -988,16 +980,9 @@ export async function updateTaskWithSideEffects(args: {
         return { ok: false, status: 400, error: `Invalid list IDs: ${missing.join(', ')}` }
       }
 
-      for (const list of lists) {
-        const isCollaborativePublic =
-          list.privacy === 'PUBLIC' && list.publicListType === 'collaborative'
-        if (!hasListAccess(list as never, actorId) && !isCollaborativePublic) {
-          return {
-            ok: false,
-            status: 403,
-            error: `You don't have permission to add tasks to list: ${list.name}`,
-          }
-        }
+      const refusing = listRefusingTask(lists, actorId, existingTask.lists)
+      if (refusing) {
+        return { ok: false, status: 403, error: `You don't have permission to add tasks to list: ${refusing.name}` }
       }
 
       validatedListIds = lists.filter(list => !list.isVirtual).map(list => list.id)

@@ -24,6 +24,16 @@ import { createLogger } from '@/lib/logger'
 import { GITHUB_PROJECT_BACKEND } from '@/lib/backends/resolve'
 import { normaliseItem, planItemApply, type BindingFieldMap, type RemoteProjectItem, type ReplicaTask } from '@/lib/github/projects/apply'
 import { planRelations, remoteRelations } from '@/lib/github/projects/relations'
+import {
+  isEmptyLabelPlan,
+  labelListColor,
+  labelListDrift,
+  planLabels,
+  remoteLabels,
+  type RemoteLabel,
+} from '@/lib/github/projects/labels'
+import { GITHUB_LABEL_LIST } from '@/lib/backends/github-labels'
+import { LIST_TYPE_LABEL } from '@/lib/list-flavors'
 import { projectItemPages } from '@/lib/github/projects/hydrate'
 import type { BindingProposal, ProjectSchema } from '@/lib/github/projects/bind'
 import type { GraphqlClient } from '@/lib/github/rate-limiter'
@@ -66,6 +76,9 @@ const REPLICA_SELECT = {
   parentTaskId: true,
   parentTask: { select: { remoteNodeId: true } },
   blockedBy: { where: { blockingTask: { remoteNodeId: { not: null } } }, select: { blockingTaskId: true } },
+  // Labels (AWTD-1188). Only lists that mirror a GITHUB label are read back:
+  // a label a person gave the task in Astrid is never GitHub's to remove.
+  lists: { where: GITHUB_LABEL_LIST, select: { id: true, remoteNodeId: true } },
 } as const
 
 type ReplicaRow = Prisma.TaskGetPayload<{ select: typeof REPLICA_SELECT }>
@@ -129,6 +142,88 @@ async function applyRelations(
   // Straight to the table, not through task-dependency.service: its cycle
   // check is for Astrid writes, and GitHub's cycles are accepted (§8.4).
   if (blockers.length > 0) writes.push(prisma.taskDependency.createMany({ data: blockers, skipDuplicates: true }))
+
+  if (writes.length > 0) await prisma.$transaction(writes)
+  return writes.length > 0
+}
+
+const LABEL_LIST_SELECT = { id: true, remoteNodeId: true, name: true, color: true } as const
+
+/**
+ * Labels for one page (AWTD-1188): each GitHub label is a label-flavor list,
+ * one per label node, and a task carries the label by being on it. The labels
+ * a task holds ride on the page's replica read; the lists cost one read for
+ * the page, and two more queries only when a label is new. A list belongs to
+ * no project — a repo can feed several boards — and to the owner of the board
+ * that met its label first.
+ */
+async function applyLabels(
+  board: BoundBoard,
+  items: RemoteProjectItem[],
+  replicas: Map<string, ReplicaRow>,
+  created: Map<string, string>,
+): Promise<boolean> {
+  const labelled = items.flatMap(item => {
+    const remote = item.isArchived ? null : remoteLabels(item)
+    const row = item.content ? replicas.get(item.content.id) : undefined
+    const taskId = row?.id ?? (item.content ? created.get(item.content.id) : undefined)
+    return remote && taskId ? [{ remote, taskId, held: row?.lists ?? [] }] : []
+  })
+
+  const seen = new Map<string, RemoteLabel & { repository: string | null }>()
+  for (const { remote } of labelled) {
+    for (const label of remote.labels) seen.set(label.nodeId, { ...label, repository: remote.repository })
+  }
+
+  const writes: Prisma.PrismaPromise<unknown>[] = []
+  const listIds = new Map<string, string>()
+  if (seen.size > 0) {
+    const known = await prisma.taskList.findMany({ where: { remoteNodeId: { in: [...seen.keys()] } }, select: LABEL_LIST_SELECT })
+    for (const list of known) {
+      listIds.set(list.remoteNodeId as string, list.id)
+      const drift = labelListDrift(seen.get(list.remoteNodeId as string)!, list)
+      if (drift) writes.push(prisma.taskList.update({ where: { id: list.id }, data: drift }))
+    }
+
+    const fresh = [...seen.values()].filter(label => !listIds.has(label.nodeId))
+    if (fresh.length > 0) {
+      await prisma.taskList.createMany({
+        data: fresh.map(label => ({
+          name: label.name,
+          color: labelListColor(label.color),
+          description: label.repository,
+          ownerId: board.ownerId,
+          listType: LIST_TYPE_LABEL,
+          remoteNodeId: label.nodeId,
+        })),
+        // Another job may have met the same label: the node id is unique.
+        skipDuplicates: true,
+      })
+      const made = await prisma.taskList.findMany({
+        where: { remoteNodeId: { in: fresh.map(label => label.nodeId) } },
+        select: LABEL_LIST_SELECT,
+      })
+      for (const list of made) listIds.set(list.remoteNodeId as string, list.id)
+      await RedisCache.invalidate.userLists(board.ownerId).catch(err => {
+        log.warn({ err, projectId: board.projectId }, 'Failed to clear the board owner’s list cache')
+      })
+    }
+  }
+
+  for (const { remote, taskId, held } of labelled) {
+    const plan = planLabels(remote, held.map(list => list.remoteNodeId as string))
+    if (isEmptyLabelPlan(plan)) continue
+    const connect = plan.join.flatMap(nodeId => (listIds.has(nodeId) ? [{ id: listIds.get(nodeId)! }] : []))
+    const leaving = new Set(plan.leave)
+    const disconnect = held.filter(list => leaving.has(list.remoteNodeId as string)).map(list => ({ id: list.id }))
+    if (connect.length === 0 && disconnect.length === 0) continue
+    writes.push(
+      prisma.task.update({
+        where: { id: taskId },
+        data: { lists: { ...(connect.length > 0 ? { connect } : {}), ...(disconnect.length > 0 ? { disconnect } : {}) } },
+      }),
+    )
+  }
 
   if (writes.length > 0) await prisma.$transaction(writes)
   return writes.length > 0
@@ -236,10 +331,11 @@ export async function applyProjectItems(board: BoundBoard, items: RemoteProjectI
   }
 
   const relationsChanged = await applyRelations(items, replicaByNode, createdByNode)
+  const labelsChanged = await applyLabels(board, items, replicaByNode, createdByNode)
 
-  // createTasksInBulk clears caches for what it created; updates, leaves and
-  // relationship changes are ours to clear.
-  if (writes.length > 0 || relationsChanged) {
+  // createTasksInBulk clears caches for what it created; updates, leaves,
+  // relationship and label changes are ours to clear.
+  if (writes.length > 0 || relationsChanged || labelsChanged) {
     await RedisCache.invalidate.userTasks(board.ownerId, [board.listId]).catch(err => {
       log.warn({ err, projectId: board.projectId }, 'Failed to clear the board owner’s task cache')
     })
