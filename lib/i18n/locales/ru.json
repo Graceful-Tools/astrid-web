@@ -7,7 +7,9 @@
     "publicSharedLists": "Публичные общие списки",
     "publicLists": "Публичные списки",
     "seeAllCollaborative": "Все совместные списки →",
-    "seeAllSuggested": "Все рекомендуемые списки →"
+    "seeAllSuggested": "Все рекомендуемые списки →",
+    "hideSidebar": "Скрыть боковую панель",
+    "showSidebar": "Показать боковую панель"
   },
   "userMenu": {
     "settings": "Настройки",

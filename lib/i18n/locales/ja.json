@@ -7,7 +7,9 @@
     "publicSharedLists": "公開共有リスト",
     "publicLists": "公開リスト",
     "seeAllCollaborative": "すべてのコラボリストを見る →",
-    "seeAllSuggested": "すべてのおすすめリストを見る →"
+    "seeAllSuggested": "すべてのおすすめリストを見る →",
+    "hideSidebar": "サイドバーを隠す",
+    "showSidebar": "サイドバーを表示"
   },
   "userMenu": {
     "settings": "設定",
