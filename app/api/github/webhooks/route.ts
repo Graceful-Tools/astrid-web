@@ -14,6 +14,7 @@ import {
   handleInstallationEvent,
   handleInstallationRepositoriesEvent,
 } from '@/lib/github/webhooks/installation'
+import { handleIssuesWebhook } from '@/lib/github/webhooks/issues'
 
 const log = createLogger('api.github.webhooks')
 
@@ -63,6 +64,14 @@ async function sendSSENotification(userId: string, event: any) {
  */
 webhooks?.on('installation', ({ payload }) => handleInstallationEvent(payload))
 webhooks?.on('installation_repositories', ({ payload }) => handleInstallationRepositoriesEvent(payload))
+
+/**
+ * Issues sync: nudge the clients of lists linked to the repo (AWTD-1113). This
+ * runs alongside the coding agent's own issue_comment handler below.
+ */
+webhooks?.on(['issues', 'issue_comment'], ({ id, name, payload }) =>
+  handleIssuesWebhook(name, payload, id)
+)
 
 /**
  * Handle pull request events

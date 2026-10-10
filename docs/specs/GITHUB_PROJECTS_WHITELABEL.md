@@ -1224,7 +1224,19 @@ Done:
   route's outcome shown as a toast. The Agents page points to it, and its two old GitHub
   components are deleted. The coding agent's repo picker lists every connected org.
 
+- **One webhook for Issues sync** ([AWTD-1113](https://astrid.cc/t/AWTD-1113)): the App's
+  webhook handles `issues` / `issue_comment` and sends the same SSE nudge iOS consumes,
+  de-duplicated on `X-GitHub-Delivery`. Both entry points share
+  `lib/github/webhooks/issues.ts`.
+
 Not done, and why:
+- **Retiring `/api/webhooks/github-issues` and `GITHUB_SYNC_WEBHOOK_SECRET`.** This waits
+  until the App path has shipped, **and** every org's installation has accepted the new
+  `issues` event subscription (2026-10-10: Graceful-Tools had not), **and** the hand-made
+  per-repo hooks are removed. Until then a repo may nudge twice, which costs one extra pull.
+- **The App webhook is still gated on `codingAgent`.** The spec's `githubConnection`
+  capability (§7.5) doesn't exist yet, so a brand with the coding agent off gets no App
+  webhooks. It must exist before the per-repo hook is retired for such a brand.
 - **Retiring `GitHubIntegration`.** Status, the legacy installations list and the
   integration route still read it. List-admin Issues sync reading installation repos
   waits for P3b's user tokens. Dropping the table, and
