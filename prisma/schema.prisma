@@ -87,6 +87,8 @@ model User {
   comments                     Comment[]
   githubIntegrations           GitHubIntegration[]
   githubInstallationAccess     GitHubInstallationAccess[]
+  /// GitHub's numeric user id — the identity link, never the login (AWTD-1149, §8.4).
+  githubUserId                 Int?                     @unique
   receivedInvitations          Invitation[]             @relation("InvitationReceiver")
   sentInvitations              Invitation[]             @relation("InvitationSender")
   createdInvites               ListInvite[]             @relation("ListInviteCreator")
@@ -179,6 +181,8 @@ model TaskList {
   imageUrl                String?
   projectId               String?
   listType                String                   @default("regular")
+  /// The one switch the TaskBackend seam reads: null = Astrid, 'github_project' = a GitHub Project (AWTD-1149).
+  backend                 String?
   privacy                 TaskListPrivacy          @default(PRIVATE)
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
@@ -276,6 +280,9 @@ model Project {
   members      ProjectMember[]
   lists        TaskList[]
   keyAliases   ProjectKeyAlias[]
+  /// The GitHub App installation a GitHub-backed board belongs to — its tenant (AWTD-1149, §8.1).
+  githubInstallationId Int?
+  githubBinding GitHubProjectBinding?
 
   @@unique([key])
   @@index([ownerId])
@@ -402,6 +409,13 @@ model Task {
   /// Tasks this one waits for, and the ones waiting on it (AWTD-1002).
   blockedBy      TaskDependency[]    @relation("TaskBlockedBy")
   blocks         TaskDependency[]    @relation("TaskBlocks")
+  /// GitHub-backed tasks (AWTD-1149, spec §8.5): the content's node id is the
+  /// identity (stable across transfers), the kind, and its updatedAt as the
+  /// body-conflict base. Null for every task not mirrored from GitHub.
+  remoteNodeId   String?             @unique
+  remoteKind     String?
+  remoteVersion  String?
+  githubProjectItems GitHubProjectItem[]
   events         TaskEvent[]
   notifications  Notification[]
   reminderQueue  ReminderQueue[]
@@ -1064,6 +1078,63 @@ model GitHubInstallationAccess {
 
   @@id([userId, installationId])
   @@index([installationId])
+}
+
+/// A GitHub Project (v2) bound to an Astrid Project, and how its fields map
+/// onto Astrid's (AWTD-1149, spec §8.5). Written by the bind wizard (P4c).
+model GitHubProjectBinding {
+  projectId         String              @id
+  installationId    Int
+  projectNodeId     String              @unique // PVT_…
+  number            Int
+  statusFieldId     String?
+  statusOptionMap   Json // { optionId: statusRole | "done" }
+  priorityFieldId   String?
+  priorityOptionMap Json? // { optionId: 0..3 }
+  dueFieldId        String?
+  estimateFieldId   String?
+  defaultRepoNodeId String? // "New task" creates an issue here; null = a draft
+  lastReconciledAt  DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  project           Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items             GitHubProjectItem[]
+
+  @@index([installationId])
+}
+
+/// A task's membership of a bound project: one ProjectV2Item (AWTD-1149).
+model GitHubProjectItem {
+  itemNodeId String               @id // PVTI_…
+  projectId  String
+  taskId     String
+  archived   Boolean              @default(false)
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+  binding    GitHubProjectBinding @relation(fields: [projectId], references: [projectId], onDelete: Cascade)
+  task       Task                 @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, taskId])
+  @@index([taskId])
+}
+
+/// Durable, idempotent GitHub sync work (AWTD-1149, spec §8.5/§8.7). Drained
+/// inline via waitUntil and by the per-minute cron, round-robin by
+/// installation (P4d).
+model GitHubSyncJob {
+  id             String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  dedupeKey      String    @unique // delivery id | item:<node>:<2s bucket> | reconcile:<project>:<window> | …
+  kind           String // webhook | hydrate | reconcile | writeback | recur | access
+  installationId Int
+  payload        Json
+  attempts       Int       @default(0)
+  runAfter       DateTime  @default(now())
+  lockedUntil    DateTime?
+  doneAt         DateTime?
+  error          String?
+  createdAt      DateTime  @default(now())
+
+  @@index([doneAt, runAfter, installationId])
 }
 
 model CodingTaskWorkflow {

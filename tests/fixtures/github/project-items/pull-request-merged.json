@@ -1,0 +1,18 @@
+{
+  "id": "PVTI_pr_merged",
+  "isArchived": false,
+  "type": "PULL_REQUEST",
+  "updatedAt": "2026-10-10T09:40:00Z",
+  "content": {
+    "__typename": "PullRequest",
+    "id": "PR_kwDOAcme005",
+    "number": 45,
+    "title": "Add a solver cache",
+    "body": "Closes #42",
+    "url": "https://github.com/Graceful-Fools/wordlesolver/pull/45",
+    "state": "MERGED",
+    "updatedAt": "2026-10-10T09:39:00Z",
+    "repository": { "nameWithOwner": "Graceful-Fools/wordlesolver" }
+  },
+  "fieldValues": { "nodes": [] }
+}

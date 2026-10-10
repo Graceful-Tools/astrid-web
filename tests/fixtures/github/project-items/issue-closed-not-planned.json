@@ -1,0 +1,23 @@
+{
+  "id": "PVTI_issue_closed",
+  "isArchived": false,
+  "type": "ISSUE",
+  "updatedAt": "2026-10-10T09:10:00Z",
+  "content": {
+    "__typename": "Issue",
+    "id": "I_kwDOAcme002",
+    "number": 43,
+    "title": "Support IE11",
+    "body": "",
+    "url": "https://github.com/Graceful-Fools/wordlesolver/issues/43",
+    "state": "CLOSED",
+    "stateReason": "NOT_PLANNED",
+    "updatedAt": "2026-10-10T09:09:00Z",
+    "repository": { "nameWithOwner": "Graceful-Fools/wordlesolver" }
+  },
+  "fieldValues": {
+    "nodes": [
+      { "__typename": "ProjectV2ItemFieldSingleSelectValue", "optionId": "opt_progress", "name": "In Progress", "field": { "id": "PVTSSF_status" } }
+    ]
+  }
+}
