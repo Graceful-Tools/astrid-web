@@ -4,6 +4,11 @@ import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/tasks/[id]/copy/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
 
+// The copy is created through the bulk path (AWTD-1124), whose own side
+// effects are tests/services/task-bulk-create.test.ts.
+const createTasksInBulk = vi.hoisted(() => vi.fn())
+vi.mock('@/services/task-bulk-create', () => ({ createTasksInBulk }))
+
 // Mock NextRequest
 const createMockRequest = (data?: unknown) => {
   const request = new NextRequest('http://localhost:3000/api/tasks/test-task-id/copy', {
@@ -96,7 +101,7 @@ describe('Task Copy API', () => {
         .mockResolvedValueOnce(row({ creatorId: 'other-user-id' })) // Second call: stats invalidation fetches creator
         .mockResolvedValueOnce(copiedTaskWithRelations) // Third call: API fetches with relations
 
-      mockPrisma.task.create.mockResolvedValue(copiedTask)
+      createTasksInBulk.mockResolvedValue({ tasks: [copiedTask] })
 
       const requestData = {
         targetListId: 'target-list-id',
@@ -188,7 +193,7 @@ describe('Task Copy API', () => {
         .mockResolvedValueOnce(row({ creatorId: 'other-user-id' })) // Second call: stats invalidation
         .mockResolvedValueOnce(copiedTaskWithRelations) // Third call: fetch with relations
 
-      mockPrisma.task.create.mockResolvedValue(copiedTask)
+      createTasksInBulk.mockResolvedValue({ tasks: [copiedTask] })
 
       const requestData = {
         targetListId: 'target-list-id',
@@ -237,7 +242,7 @@ describe('Task Copy API', () => {
         .mockResolvedValueOnce(row({ creatorId: 'other-user-id' })) // Second call: stats invalidation
         .mockResolvedValueOnce(copiedTaskWithRelations) // Third call: fetch with relations
 
-      mockPrisma.task.create.mockResolvedValue(copiedTask)
+      createTasksInBulk.mockResolvedValue({ tasks: [copiedTask] })
 
       const requestData = {
         targetListId: 'target-list-id',
@@ -290,8 +295,7 @@ describe('Task Copy API', () => {
         .mockResolvedValueOnce(row({ creatorId: 'other-user-id' })) // Second call: stats invalidation
         .mockResolvedValueOnce(copiedTaskWithRelations) // Third call: fetch with relations
 
-      mockPrisma.task.create.mockResolvedValue(copiedTask)
-      mockPrisma.comment.createMany.mockResolvedValue(row({ count: 1 }))
+      createTasksInBulk.mockResolvedValue({ tasks: [copiedTask] })
 
       const requestData = {
         targetListId: 'target-list-id',
@@ -304,22 +308,10 @@ describe('Task Copy API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      
-      // Verify createMany was called with only the user comment
-      expect(mockPrisma.comment.createMany).toHaveBeenCalledWith({
-        data: [
-          expect.objectContaining({
-            content: 'User comment',
-            authorId: 'user-1'
-          })
-        ]
-      })
-      
-      // Verify it was NOT called with the system comment
-      const createManyCalls = mockPrisma.comment.createMany.mock.calls
-      const createdComments = createManyCalls[0][0].data
-      expect(createdComments).toHaveLength(1)
-      expect(createdComments.find((c: any) => c.content === 'System comment')).toBeUndefined()
+
+      // Only the authored comment is carried over, with its author.
+      const carried = createTasksInBulk.mock.calls[0][0].tasks[0].comments
+      expect(carried).toEqual([{ content: 'User comment', authorId: 'user-1' }])
     })
   })
 })

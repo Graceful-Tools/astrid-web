@@ -59,6 +59,7 @@ export class GitHubClient {
   private app: App
   private octokitCache: Map<number, any> = new Map() // Cache Octokit per installationId
   private defaultInstallationId: number | null = null
+  private installationIds: number[] = []
   private repositories: RepositoryInfo[] = [] // Per-repo installation mapping
   private accountInstallations: Map<string, number> = new Map() // owner login → installation
 
@@ -84,16 +85,14 @@ export class GitHubClient {
   }
 
   /**
-   * Authenticate the client for a specific user.
+   * Authenticate the client for every one of the user's GitHub installations.
    *
-   * The repo → installation map spans EVERY installation the user can act on
-   * (AWTD-1111). It used to come from the user's first GitHubIntegration row
-   * only, so a repo in a second org resolved to the first org's installation,
-   * whose token cannot see it.
-   *
-   * While GitHubIntegration is still dual-written (until P3b), its cached
-   * repos fill in anything the installation model does not have yet, so no
-   * link that worked before this change stops working.
+   * The repo → installation map spans EVERY installation the user can act on:
+   * the installation model (AWTD-1111) first, then each GitHubIntegration row's
+   * cached repos, attributed to that ROW's installation — the cached entries
+   * cannot be trusted for it, since the webhook and refresh once wrote them
+   * without an installationId (AWTD-1107). While GitHubIntegration is still
+   * dual-written, no link that worked before stops working.
    */
   private async authenticateForUser(userId: string): Promise<void> {
     const [installations, installationRepos, legacyIntegrations] = await Promise.all([
@@ -106,12 +105,14 @@ export class GitHubClient {
     const legacyRepos: RepositoryInfo[] = []
     for (const integration of legacyIntegrations) {
       if (!integration.installationId || !Array.isArray(integration.repositories)) continue
-      for (const repo of integration.repositories as unknown as Partial<RepositoryInfo>[]) {
-        if (!repo?.fullName || known.has(repo.fullName.toLowerCase())) continue
-        known.add(repo.fullName.toLowerCase())
+      for (const repo of integration.repositories as Record<string, any>[]) {
+        // Cached rows may predate the camelCase mapping.
+        const fullName: string | undefined = repo?.fullName || repo?.full_name
+        if (!fullName || known.has(fullName.toLowerCase())) continue
+        known.add(fullName.toLowerCase())
         // The cached installationId was missing on webhook-added repos; the
         // link's own installation is the one that reaches them.
-        legacyRepos.push({ ...(repo as RepositoryInfo), installationId: integration.installationId })
+        legacyRepos.push({ ...repo, fullName, installationId: integration.installationId } as RepositoryInfo)
       }
     }
     this.repositories = [...installationRepos, ...legacyRepos]
@@ -125,8 +126,16 @@ export class GitHubClient {
       if (owner && !this.accountInstallations.has(owner)) this.accountInstallations.set(owner, repo.installationId)
     }
 
-    this.defaultInstallationId =
-      installations[0]?.id ?? legacyIntegrations.find(i => i.installationId)?.installationId ?? null
+    // Every installation the user can act on, oldest first: the model's, then
+    // any only a legacy row still knows.
+    this.installationIds = [
+      ...new Set([
+        ...installations.map(installation => installation.id),
+        ...legacyIntegrations.flatMap(integration => (integration.installationId ? [integration.installationId] : [])),
+      ]),
+    ]
+    // The oldest installation, for the calls that are not about one repo.
+    this.defaultInstallationId = this.installationIds[0] ?? null
 
     log.debug({
       userId,
@@ -150,12 +159,15 @@ export class GitHubClient {
 
   /**
    * The installation that reaches a repo: the one that lists it, else the one
-   * on the repo owner's account (a repo added since the last refresh), and only
-   * then the default — which is the wrong org for any repo outside it.
+   * on the repo owner's account (a repo added since the last refresh).
+   *
+   * Never guesses across installations: with several, a repo matching neither
+   * could belong to any of them, and a guess hands it the wrong org's token.
+   * Only a user with a single installation gets that one. (AWTD-1107)
    */
   private getInstallationIdForRepo(repoFullName: string): number {
     const repoInfo = this.repositories.find(
-      r => r.fullName.toLowerCase() === repoFullName.toLowerCase()
+      r => r.fullName?.toLowerCase() === repoFullName.toLowerCase()
     )
     if (repoInfo) return repoInfo.installationId
 
@@ -166,7 +178,17 @@ export class GitHubClient {
     if (!this.defaultInstallationId) {
       throw new Error('GitHub client not authenticated. Call authenticateForUser() first.')
     }
-    log.debug({ repo: repoFullName, installationId: this.defaultInstallationId }, 'Using default installation ID (repo not in mapping)')
+
+    if (this.installationIds.length > 1) {
+      throw new Error(
+        `Repository ${repoFullName} is not among the cached repositories of your ${this.installationIds.length} GitHub installations. Refresh your GitHub repositories and try again.`
+      )
+    }
+
+    log.debug({
+      repo: repoFullName,
+      installationId: this.defaultInstallationId
+    }, 'Using the only installation ID (repo not in mapping)')
     return this.defaultInstallationId
   }
 
@@ -674,7 +696,9 @@ export class GitHubClient {
   }
 
   /**
-   * Get installation repositories for the current user
+   * Get the repositories of one of the user's installations — the default one
+   * unless named. A caller caching the result on an integration row must name
+   * that row's installation, or it caches another org's repos there.
    */
   async getInstallationRepositories(installationId?: number): Promise<Array<{
     id: number
@@ -683,9 +707,12 @@ export class GitHubClient {
     private: boolean
     defaultBranch: string
   }>> {
-    const octokit = installationId
-      ? await this.getOctokitForInstallation(installationId)
-      : this.ensureAuthenticated()
+    if (installationId !== undefined && !this.installationIds.includes(installationId)) {
+      throw new Error(`Installation ${installationId} is not one of this user's GitHub installations`)
+    }
+    const octokit = installationId === undefined
+      ? this.ensureAuthenticated()
+      : await this.getOctokitForInstallation(installationId)
 
     try {
       const { data } = await octokit.apps.listReposAccessibleToInstallation()

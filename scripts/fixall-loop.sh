@@ -158,6 +158,15 @@ if [ "${FIXALL_FORCE:-0}" != "1" ]; then
     else
       skip_guard2 "HEAD is on $BRANCH, not main, with commits origin/main lacks"
     fi
+  else
+    # UNPUSHED COMMITS ON MAIN ARE WORK IN PROGRESS TOO (AWTD-1095). On
+    # 2026-10-05 an interactive session's tree was clean for a moment between
+    # commits, with main ahead of origin, and the 07:53 tick started on it.
+    git fetch -q origin main 2>/dev/null
+    AHEAD=$(git rev-list --count origin/main..HEAD 2>/dev/null)
+    if [ -n "$AHEAD" ] && [ "$AHEAD" -gt 0 ]; then
+      skip_guard2 "main has $AHEAD commit(s) origin/main lacks — someone's work in progress"
+    fi
   fi
 fi
 rm -f "$STUCK_FILE"
@@ -302,7 +311,7 @@ BUDGET_ARGS=()
 
 # Every task this run claims is recorded here (scripts/claim-fixall-task.ts), so
 # the ones it leaves in Doing can be released after it — exactly, no heuristic.
-CLAIMS_FILE=$(mktemp -t fixall-web-claims)
+CLAIMS_FILE=$(mktemp "${TMPDIR:-/tmp}/fixall-web-claims.XXXXXX")
 export ASTRID_FIXALL_CLAIMS_FILE="$CLAIMS_FILE"
 
 echo "→ /fixall ($MODEL, watchdog ${MAX_MINUTES}m${MAX_USD:+, cap \$$MAX_USD})"
@@ -335,13 +344,40 @@ kill "$WATCHDOG_PID" 2>/dev/null
 # itself gets a wip/ branch — and it is marked UNFINISHED so nobody ships it.
 # --no-verify because the work is by definition unverified; the pre-commit hook
 # would refuse it and put us back where we started.
+#
+# BUT ONLY ON A TASK BRANCH (AWTD-1095). Guard 2 started the run on a clean
+# main, so a task branch is the run's own. Changes on MAIN could be anyone's: on
+# 2026-10-05 an interactive session was editing main during a tick, and this
+# block committed its edits to a wip/ branch and checked out main — removing
+# them from under it. So main is only SNAPSHOTTED: the commit is built with a
+# temporary index and pushed, and HEAD, the index and the files are left exactly
+# as they were. The next tick then skips on the dirty tree, and guard 2's stuck
+# alert says so — losing nobody's work is worth a skipped tick.
 SAVED_BRANCH=""
 END_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
-if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
-  if [ "$END_BRANCH" = "main" ] || [ "$END_BRANCH" = "HEAD" ]; then
-    END_BRANCH="wip/fixall-web-$(date +%Y%m%d-%H%M%S)"
-    git checkout -q -b "$END_BRANCH"
+if [ -n "$(git status --porcelain 2>/dev/null)" ] && { [ "$END_BRANCH" = "main" ] || [ "$END_BRANCH" = "HEAD" ]; }; then
+  SNAP_BRANCH="wip/fixall-web-$(date +%Y%m%d-%H%M%S)"
+  SNAP_INDEX=$(mktemp "${TMPDIR:-/tmp}/fixall-web-index.XXXXXX")
+  # Start from the real index so staged work is in the snapshot; a missing
+  # index must be a missing file, since git reads an empty one as corrupt.
+  cp "$(git rev-parse --git-path index)" "$SNAP_INDEX" 2>/dev/null || rm -f "$SNAP_INDEX"
+  if GIT_INDEX_FILE="$SNAP_INDEX" git add -A \
+     && SNAP_TREE=$(GIT_INDEX_FILE="$SNAP_INDEX" git write-tree) \
+     && SNAP_COMMIT=$(git commit-tree "$SNAP_TREE" -p HEAD -m "wip: uncommitted changes on $END_BRANCH after a scheduled /fixall run — UNFINISHED, UNVERIFIED
+
+Snapshotted by scripts/fixall-loop.sh (claude exit $STATUS). They may be the
+run's or another session's, so the checkout was left exactly as it was; this
+commit is only a copy. Predeploy has not been run on this. Do not ship it.") \
+     && git branch "$SNAP_BRANCH" "$SNAP_COMMIT" \
+     && git push -q origin "$SNAP_BRANCH" 2>/dev/null; then
+    SAVED_BRANCH="$SNAP_BRANCH"
+    echo "  $END_BRANCH has uncommitted changes — left them in place, copy pushed to $SNAP_BRANCH"
+    post_to_list "**Scheduled /fixall (web) left uncommitted changes on $END_BRANCH where they are** — they may be another session's, so the checkout was not touched. A copy is on \`$SNAP_BRANCH\`. Ticks will skip until the tree is clean."
+  else
+    echo "  ⚠️  $END_BRANCH has uncommitted changes and no copy could be pushed — left them in place"
   fi
+  rm -f "$SNAP_INDEX"
+elif [ -n "$(git status --porcelain 2>/dev/null)" ]; then
   if git add -A && git commit -q --no-verify -m "wip: scheduled /fixall run ended mid-task — UNFINISHED, UNVERIFIED
 
 Saved by scripts/fixall-loop.sh (claude exit $STATUS) so the checkout can return

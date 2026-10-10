@@ -618,19 +618,60 @@ Send a message. Body: `{ content, type?, fileId?, replyToId?, clientRequestId? }
 ### GET `/api/sse`
 Server-Sent Events endpoint for real-time updates.
 
-**Events:**
-- `task:created` - New task created
-- `task:updated` - Task modified
-- `task:deleted` - Task removed
-- `list:created` - New list created
-- `list:updated` - List modified
-- `list:deleted` - List removed
-- `comment:created` - New comment added
+Every event is an unnamed SSE message (read it in `onmessage`, not `addEventListener`) whose
+body is `{ "type": "<event>", "timestamp": "<ISO 8601>", "data": { … } }` (`connected` and
+`ping` carry no `data`). Switch on `type`.
+
+**Events** — names are snake_case, exactly as below. The canonical list is
+`lib/sse-event-types.ts`; the server cannot send a type missing from it, and
+`tests/rules/sse-event-names-match-the-contract.test.ts` fails if this list drifts from it.
+(This list once read `task:created`, `comment:created`, … — names the server never sent.)
+
+Connection:
+- `connected` - Stream opened
+- `ping` - Keep-alive heartbeat
+- `reconnect` - Server is closing the stream; reconnect with `since` to recover missed events
+
+Tasks:
+- `task_created` - New task created
+- `task_updated` - Task modified
+- `task_completed` - Task modified, and the change completed it (sent instead of `task_updated`)
+- `task_deleted` - Task removed
+- `task_assigned` - Task assigned to the recipient
+
+Comments:
+- `comment_created` - New comment added
+- `comment_updated` - Comment edited
+- `comment_deleted` - Comment removed
+
+Lists and membership:
+- `list_created` - New list created
+- `list_updated` - List modified
+- `list_deleted` - List removed
+- `list_member_added` - Member added to a list
+- `list_member_removed` - Member removed from a list
+- `list_member_role_changed` - Member role changed (to anything but admin)
+- `list_admin_role_granted` - Member promoted to admin
+
+Chat:
 - `chat_message_created` - New chat message
 - `chat_message_updated` - Chat message edited
 - `chat_message_deleted` - Chat message removed
+- `chat_mention` - Recipient was @-mentioned in a chat message
+
+AI agents:
 - `agent_typing_start` - AI agent began processing (show typing indicator)
 - `agent_typing_stop` - AI agent finished processing (hide typing indicator)
+- `agent_task_start` - A scheduled agent task has started
+- `agent_task_comment` - A comment on a task assigned to an agent
+- `ai_agent_assigned` - An AI agent was assigned a task
+- `ai_agent_activity` - Activity reported by an external AI agent webhook
+
+User and app state:
+- `my_tasks_preferences_updated` - My Tasks filter/sort preferences changed
+- `user_settings_updated` - User settings changed
+- `feature_flags_updated` - Feature flags changed; refetch them
+- `external_sync_refresh` - An external source (e.g. GitHub issues) changed; refetch the affected list
 
 ---
 

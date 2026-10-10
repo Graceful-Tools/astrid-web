@@ -3,6 +3,7 @@ import { hasCapability, assertUsableAuthConfiguration } from '@/lib/brand/capabi
 import type { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import GithubProvider from "next-auth/providers/github"
+import AppleProvider from "next-auth/providers/apple"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "./prisma"
 import { getConsistentDefaultImage } from "./default-images"
@@ -14,6 +15,9 @@ import { createLogger } from '@/lib/logger'
 import { isGoogleEmailVerified } from '@/lib/auth/google-identity'
 import { linkFederatedIdentity, type FederatedSignIn } from '@/lib/auth/federated-identity-linking'
 import { githubVerifiedPrimaryEmail } from '@/lib/auth/github-verified-email'
+import { isEmailVerified as isAppleEmailVerified } from '@/lib/auth/apple-identity'
+import { appleClientSecret } from '@/lib/auth/apple-client-secret'
+import { hasAppleWebCredentials } from '@/lib/auth/provider-credentials'
 
 const log = createLogger('auth-config')
 
@@ -164,12 +168,14 @@ function buildProviders() {
 
   if (hasCapability('authSso')) {
     // Deployment-level OIDC SSO (spec §6.4 v1): one IdP from env. Identities
-    // are trusted only for AUTH_SSO_DOMAINS — see emailTrustFor.
+    // are trusted only for AUTH_SSO_DOMAINS — see emailTrustFor. A missing issuer
+    // must not throw here: this module is imported by every authed route, and
+    // instrumentation.ts already fails the boot naming the missing variables.
     providers.push({
       id: 'sso',
       name: process.env.AUTH_SSO_LABEL?.trim() || 'SSO',
       type: 'oauth',
-      wellKnown: `${process.env.AUTH_SSO_ISSUER!.replace(/\/+$/, '')}/.well-known/openid-configuration`,
+      wellKnown: `${(process.env.AUTH_SSO_ISSUER ?? '').replace(/\/+$/, '')}/.well-known/openid-configuration`,
       clientId: process.env.AUTH_SSO_CLIENT_ID!,
       clientSecret: process.env.AUTH_SSO_CLIENT_SECRET!,
       authorization: { params: { scope: 'openid email profile' } },
@@ -201,15 +207,37 @@ function buildProviders() {
     }))
   }
 
+  // Apple is a legacy default-on provider, and its native sign-in (iOS/Mac) needs
+  // no server secret — so the switch alone must not put a web button on every
+  // deployment. The web provider exists only once its credentials do (AWTD-1110).
+  // Its Services ID's Return URL must be /api/auth/callback/apple.
+  if (hasCapability('authApple') && hasAppleWebCredentials()) {
+    // Minted at module load, so a bad key must cost the Apple button only — not
+    // every sign-in method on the page.
+    try {
+      providers.push(AppleProvider({
+        clientId: process.env.APPLE_SERVICES_ID!,
+        clientSecret: appleClientSecret({
+          teamId: process.env.APPLE_TEAM_ID!,
+          keyId: process.env.APPLE_KEY_ID!,
+          clientId: process.env.APPLE_SERVICES_ID!,
+          privateKey: process.env.APPLE_PRIVATE_KEY!,
+        }),
+      }))
+    } catch (error) {
+      log.error({ err: error }, 'APPLE_PRIVATE_KEY is not a usable .p8 PEM — web Apple sign-in disabled')
+    }
+  }
+
   return providers
 }
 
 /** Providers whose sign-in goes through linkFederatedIdentity. */
-const FEDERATED_PROVIDERS = new Set(['google', 'github', 'sso'])
+const FEDERATED_PROVIDERS = new Set(['google', 'github', 'sso', 'apple'])
 
 /**
  * How far a provider vouches for the email it handed over (spec §6.3).
- * Google: its email_verified claim. GitHub: the primary address it reports as
+ * Google and Apple: their email_verified claim. GitHub: the primary address it reports as
  * verified in /user/emails — the profile email can be unverified, and NextAuth's
  * own fallback picks the primary without checking. SSO: domain-bound.
  */
@@ -226,6 +254,11 @@ async function emailTrustFor(
   if (provider === 'github') {
     const verified = account.access_token ? await githubVerifiedPrimaryEmail(account.access_token) : null
     return { emailTrust: verified && verified.toLowerCase() === email.toLowerCase() ? 'verified' : 'none' }
+  }
+  if (provider === 'apple') {
+    // The id token's claim, as the native routes read it (lib/auth/apple-identity.ts).
+    const claim = (profile as { email_verified?: string | boolean } | undefined)?.email_verified
+    return { emailTrust: isAppleEmailVerified(claim) ? 'verified' : 'none' }
   }
   if (provider === 'sso') {
     const allowedDomains = (process.env.AUTH_SSO_DOMAINS ?? '').split(',').map(d => d.trim().toLowerCase()).filter(Boolean)
@@ -387,6 +420,17 @@ const authConfig: NextAuthOptions = {
         secure: true,
         domain: `.${BRAND.domain}`,
       },
+    },
+    // Apple returns with a cross-site form_post, on which a SameSite=Lax cookie is
+    // not sent — the callback would find no PKCE verifier or state and fail. None
+    // (Secure) lets them through; both are single-use and httpOnly (AWTD-1110).
+    pkceCodeVerifier: {
+      name: `__Secure-next-auth.pkce.code_verifier`,
+      options: { httpOnly: true, sameSite: "none", path: "/", secure: true, maxAge: 60 * 15 },
+    },
+    state: {
+      name: `__Secure-next-auth.state`,
+      options: { httpOnly: true, sameSite: "none", path: "/", secure: true, maxAge: 60 * 15 },
     },
     csrfToken: {
       name: `__Host-next-auth.csrf-token`,

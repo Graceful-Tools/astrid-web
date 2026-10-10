@@ -8,7 +8,7 @@ import { prisma } from '@/lib/prisma'
 import { AIOrchestrator } from '@/lib/ai-orchestrator'
 import { getPreferredAIService } from '@/lib/api-key-cache'
 import { createLogger } from '@/lib/logger'
-import { getBaseUrl } from '@/lib/base-url'
+import { postCommentAs } from '@/services/post-comment-as'
 import { capabilityGate } from '@/lib/brand/capabilities'
 
 const log = createLogger('coding-workflow.request-changes')
@@ -66,12 +66,19 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
+    // Through the comment service, as the agent on the task (AWTD-1106). These
+    // were an uncredentialed fetch to our own v1 API, which refused every one.
+    const postWorkflowComment = async (content: string) => {
+      const posted = await postCommentAs({
+        taskId,
+        authorId: workflow.task.assigneeId ?? session.user.id,
+        content,
+      })
+      if (!posted.ok) log.error({ taskId, error: posted.error }, 'Posting change-request comment failed')
+    }
+
     // Post acknowledgment comment
-    await fetch(`${getBaseUrl()}/api/v1/tasks/${taskId}/comments`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content: `📝 **Change Request Received**
+    await postWorkflowComment(`📝 **Change Request Received**
 
 I've received your feedback and will work on addressing the requested changes:
 
@@ -84,10 +91,7 @@ I've received your feedback and will work on addressing the requested changes:
 4. Update the pull request with the new code
 5. Post an updated preview for your review
 
-Working on it now... 🔧`,
-        type: 'MARKDOWN'
-      })
-    })
+Working on it now... 🔧`)
 
     // Update workflow status
     await prisma.codingTaskWorkflow.update({
@@ -116,20 +120,13 @@ Working on it now... 🔧`,
         log.error({ err: error }, '❌ [Change Request] Revision process failed:')
 
         // Post error comment
-        fetch(`${getBaseUrl()}/api/v1/tasks/${taskId}/comments`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            content: `❌ **Error Processing Changes**
+        return postWorkflowComment(`❌ **Error Processing Changes**
 
 I encountered an error while processing your change request:
 
 \`${error instanceof Error ? error.message : 'Unknown error'}\`
 
-Please try again or contact support if the issue persists.`,
-            type: 'MARKDOWN'
-          })
-        })
+Please try again or contact support if the issue persists.`)
       })
 
     log.info('📝 [Change Request] Change request initiated successfully')

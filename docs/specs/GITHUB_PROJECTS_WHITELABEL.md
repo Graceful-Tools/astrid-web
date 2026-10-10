@@ -881,7 +881,10 @@ delta. The detail pane shows "Previous occurrence" and "Next occurrence" links f
 
 ### 11.1 Brand profile (GitHub brand)
 
-The partner name is a placeholder: `brands/github-projects.brand.json`.
+`brands/github-projects.brand.json` is **Lanes for GitHub Projects**, a generic Graceful
+Tools brand at `projects.gracefultools.com` (AWTD-1103). Its GitHub App slug,
+`lanes-for-github-projects`, is a placeholder until that App is registered, and
+`NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS` joins the profile when P4 builds it.
 
 ```json
 "NEXT_PUBLIC_BRAND_AUTH_PROVIDERS": "github,sso",
@@ -1156,11 +1159,24 @@ Commit `6cf7c53e`:
 - sign-in buttons
 - WHITELABELING.md "Sign-in providers"
 
+AWTD-1104: the four mobile token routes (`/api/auth/{apple,google}`,
+`/api/v1/auth/{apple,google}`) now verify the provider token and hand off to
+`lib/auth/native-sign-in.ts`:
+- `signInWithVerifiedIdentity` applies the same linking rule.
+- Each route issues the NextAuth JWT that passkey and desktop use, set as
+  `next-auth.session-token`, and in production also as the `__Secure-` name.
+- They no longer write `Session` rows. The cookie fallback
+  (`lib/auth/session-cookie.ts`) still accepts old rows until they expire.
+
 **Not done:**
-- Moving the four mobile token routes (`/api/auth/{apple,google}`, `/api/v1/auth/{apple,google}`)
-  onto the shared helper, and the single session format (§6.5).
+- Deleting the database-session fallbacks (`lib/auth/session-cookie.ts`, `mobile-session`, and
+  the ad-hoc `prisma.session` reads in sse, secure-files, ai-api-keys and signout) once the last
+  pre-AWTD-1104 row has expired.
+- The `sessionEpoch` revocation claim (§6.5), which waits on SSO deprovisioning (P7).
 - Per-org SSO and SAML (§6.4 v2, P7).
-- Native GitHub/SSO sign-in in astrid-ios, via the desktop hand-off.
+- Native GitHub/SSO sign-in in astrid-ios, via the desktop hand-off. The web half is done
+  ([AWTD-1105](https://astrid.cc/t/AWTD-1105)): `ios` and `mac` hand-off clients, and
+  `/auth/desktop?provider=github|google|sso` starts that provider directly for a signed-out user.
 
 ### P3 — one GitHub connection (§7): partly done
 

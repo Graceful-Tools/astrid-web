@@ -9,6 +9,7 @@
  * the two are the same shape by construction, not by two includes kept in step.
  */
 
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import type { V1TaskBlockerIds } from '@/lib/api-contracts/v1-ios-shapes'
 import { TASK_COMMENTS_RESPONSE_LIMIT } from '@/lib/task-query-utils'
@@ -87,8 +88,12 @@ export async function loadV1Task(taskId: string) {
     where: { id: taskId },
     include: V1_TASK_READ_INCLUDE,
   })
-  if (!task) return null
+  return task ? shapeV1Task(task) : null
+}
 
+type V1TaskRow = Prisma.TaskGetPayload<{ include: typeof V1_TASK_READ_INCLUDE }>
+
+function shapeV1Task(task: V1TaskRow) {
   return {
     ...task,
     // Query is newest-first so the cap keeps recent comments; the wire order
@@ -117,5 +122,23 @@ export async function loadV1TaskForEvent(taskId: string): Promise<V1Task | undef
   } catch (err) {
     log.error({ err }, 'Failed to load the v1 task for a task event')
     return undefined
+  }
+}
+
+/**
+ * The same, for a batch of tasks in one query (AWTD-1124). A task missing from
+ * the map goes out lean, and a failed read sends them all lean.
+ */
+export async function loadV1TasksForEvent(taskIds: string[]): Promise<Map<string, V1Task>> {
+  if (taskIds.length === 0) return new Map()
+  try {
+    const rows = await prisma.task.findMany({
+      where: { id: { in: taskIds } },
+      include: V1_TASK_READ_INCLUDE,
+    })
+    return new Map(rows.map(row => [row.id, shapeV1Task(row)]))
+  } catch (err) {
+    log.error({ err }, 'Failed to load the v1 tasks for task events')
+    return new Map()
   }
 }

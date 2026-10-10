@@ -44,7 +44,9 @@ describe('coding-workflow server-side fetches (task ad494362)', () => {
     it(`${file} builds absolute urls`, () => {
       const targets = fetchTargets(readFileSync(file, 'utf8'))
 
-      expect(targets.length).toBeGreaterThan(0)
+      // AWTD-1106 moved the comment posts off fetch entirely (they were
+      // uncredentialed, so even an absolute url was refused); any fetch that
+      // returns must still be absolute.
       for (const target of targets) {
         // Relative paths are the bug. Anything interpolating a base, or an
         // absolute http(s) url, is fine.

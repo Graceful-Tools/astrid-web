@@ -3,12 +3,15 @@
  *
  * Re-runs the promotion gate: removing the last outstanding blocker unblocks
  * the task, exactly as completing that blocker would.
+ *
+ * Either id may be an identifier (AWTD-1007) — see the sibling route (AWTD-1086).
  */
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { requireTaskAccess } from '@/lib/api-auth-middleware'
 import { projectModeGate } from '@/lib/project-mode'
+import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import { removeBlocker } from '@/services/task-dependency.service'
 import type { V1BlockerMutationResponse } from '@/lib/api-contracts/v1-ios-shapes'
 
@@ -20,8 +23,15 @@ export const DELETE = withAuth<RouteContext>(
     const gate = await projectModeGate(auth.userId)
     if (gate) return gate
 
-    const { id: taskId, blockingTaskId } = await params
+    const { id: rawId, blockingTaskId: rawBlockingTaskId } = await params
+    const taskId = await resolveTaskIdOrIdentifier(rawId)
+    if (!taskId) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
     await requireTaskAccess(auth.userId, taskId)
+
+    const blockingTaskId = await resolveTaskIdOrIdentifier(rawBlockingTaskId)
+    if (!blockingTaskId) {
+      return NextResponse.json({ error: 'Blocking task not found' }, { status: 404 })
+    }
 
     const result = await removeBlocker({ taskId, blockingTaskId, userId: auth.userId })
     if (!result.ok) {
