@@ -1,0 +1,18 @@
+{
+  "data": {
+    "m0": {
+      "issue": {
+        "id": "I_kwDOVCns8c8AAAABWUFWOA",
+        "number": 3,
+        "url": "https://github.com/Graceful-Fools/wordlesolver/issues/3",
+        "updatedAt": "2026-10-10T15:04:48Z",
+        "repository": {
+          "nameWithOwner": "Graceful-Fools/wordlesolver"
+        },
+        "projectItems": {
+          "nodes": []
+        }
+      }
+    }
+  }
+}

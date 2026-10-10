@@ -18,10 +18,14 @@ import { join } from 'node:path'
 const db = vi.hoisted(() => ({
   gitHubSyncJob: { createMany: vi.fn(), findMany: vi.fn(), updateMany: vi.fn(), update: vi.fn() },
   gitHubProjectBinding: { findMany: vi.fn() },
+  task: { findUnique: vi.fn(), update: vi.fn((a: unknown) => ({ op: 'task.update', a })) },
+  gitHubProjectItem: { upsert: vi.fn((a: unknown) => ({ op: 'item.upsert', a })) },
+  $transaction: vi.fn(async (ops: unknown) => ops),
 }))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
 
 const projects = vi.hoisted(() => ({
+  boundBoard: vi.fn(),
   boardForProjectNode: vi.fn(),
   applyProjectItems: vi.fn(async () => ({})),
   removeProjectItem: vi.fn(async () => true),
@@ -220,5 +224,33 @@ describe('reconcile and access jobs (AWTD-1153)', () => {
       data: [{ kind: 'reconcile', installationId: 5, dedupeKey: `reconcile:p1:${Math.floor(NOW.getTime() / 3_600_000)}`, payload: { projectId: 'p1' } }],
       skipDuplicates: true,
     })
+  })
+})
+
+describe('writeback jobs (AWTD-1116 P5b)', () => {
+  const content = { remoteNodeId: 'I_new', remoteKind: 'issue', remoteVersion: 'v', identifier: 'o/r#9', itemNodeId: null }
+  const job = { id: 'w1', kind: 'writeback', installationId: 5, attempts: 0, payload: { actorId: 'u1', projectId: 'proj-1', content, fields: { statusRole: 'doing' } } }
+
+  it('finishes a half-made create as the same user: item, fields, then the task is synced', async () => {
+    db.gitHubSyncJob.findMany.mockResolvedValue([job])
+    projects.boundBoard.mockResolvedValue({ ...board, projectNodeId: 'PVT_kwDOFEb-HM4BmXS2' })
+    db.task.findUnique.mockResolvedValue({ id: 't9' })
+    const sent: string[] = []
+    const client = { query: vi.fn(async (q: string) => { sent.push(q); return q.includes('addProjectV2ItemById') ? { m0: { item: { id: 'PVTI_new' } } } : {} }) }
+    const writeClientFor = vi.fn(async () => client as never)
+
+    expect(await drainSyncJobs(20, { now: () => NOW, writeClientFor })).toMatchObject({ succeeded: 1 })
+    expect(writeClientFor).toHaveBeenCalledWith('u1')
+    expect(sent[0]).toMatch(/addProjectV2ItemById/)
+    expect(sent[1]).toMatch(/updateProjectV2ItemFieldValue/)
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 't9' }, data: { syncState: null } })
+    expect(db.gitHubProjectItem.upsert).toHaveBeenCalledWith(expect.objectContaining({ create: { itemNodeId: 'PVTI_new', projectId: 'proj-1', taskId: 't9' } }))
+  })
+
+  it('without the creating user’s token it fails and retries — never the installation', async () => {
+    db.gitHubSyncJob.findMany.mockResolvedValue([job])
+    projects.boundBoard.mockResolvedValue(board)
+    expect(await drainSyncJobs(20, { now: () => NOW, writeClientFor: async () => null })).toMatchObject({ failed: 1 })
+    expect(db.gitHubSyncJob.update.mock.calls[0][0].data.error).toMatch(/auth_required/)
   })
 })

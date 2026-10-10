@@ -18,7 +18,7 @@ export const MAX_ATTEMPTS = 8
 /** How long a claimed job is ours before another drainer may take it. */
 export const LOCK_MS = 2 * 60_000
 
-export type SyncJobKind = 'hydrate' | 'reconcile' | 'access'
+export type SyncJobKind = 'hydrate' | 'reconcile' | 'access' | 'writeback'
 
 export interface HydratePayload {
   itemNodeId: string

@@ -35,6 +35,8 @@ import { installationGraphqlClient, userGraphqlClient } from '@/lib/github/graph
 import type { GraphqlClient } from '@/lib/github/rate-limiter'
 import { applyProjectItems, boardForProjectNode, removeProjectItem } from '@/services/github-projects.service'
 import { reconcileProject, syncBoardRoles } from '@/services/github-projects-lifecycle.service'
+import { boundBoard } from '@/services/github-projects.service'
+import { ADD_ITEM_DOCUMENT, planInitialFields, type CreatedContent } from '@/lib/github/projects/create'
 
 const log = createLogger('services.github-sync-jobs')
 
@@ -102,6 +104,52 @@ export interface DrainDeps {
   /** Reconcile's client: the 'reconcile' priority, capped at 30% of the budget (§8.8). */
   reconcileClientFor?: (installationId: number) => GraphqlClient
   userClientFor?: (userId: string) => Promise<GraphqlClient | null>
+  /** A writeback is the user's own write, on the user's token at write priority. */
+  writeClientFor?: (userId: string) => Promise<GraphqlClient | null>
+}
+
+interface WritebackPayload {
+  actorId: string
+  projectId: string
+  content: CreatedContent
+  fields: Record<string, unknown>
+}
+
+/**
+ * Finish a create that made its content but not its item or fields (P5b):
+ * as the same user, never the installation (§8.6). Then the task is synced.
+ */
+async function runWriteback(payload: WritebackPayload, client: GraphqlClient | null): Promise<void> {
+  if (!client) throw new Error('auth_required: the creating user has no usable GitHub token')
+  const board = await boundBoard(payload.projectId)
+  if (!board) return // unbound since: nothing left to finish
+
+  let itemNodeId = payload.content.itemNodeId
+  if (!itemNodeId) {
+    const added = await client.query<{ m0: { item: { id: string } } }>(
+      ADD_ITEM_DOCUMENT,
+      { p: board.projectNodeId, c: payload.content.remoteNodeId },
+      { strict: true },
+    )
+    itemNodeId = added.m0.item.id
+  }
+  const plan = planInitialFields(
+    { ...payload.content, itemNodeId },
+    { projectNodeId: board.projectNodeId, itemNodeId, binding: board.binding },
+    payload.fields,
+  )
+  if (!('refused' in plan) && plan.document) await client.query(plan.document, plan.variables, { strict: true })
+
+  const task = await prisma.task.findUnique({ where: { remoteNodeId: payload.content.remoteNodeId }, select: { id: true } })
+  if (!task) return
+  await prisma.$transaction([
+    prisma.gitHubProjectItem.upsert({
+      where: { itemNodeId },
+      create: { itemNodeId, projectId: board.projectId, taskId: task.id },
+      update: {},
+    }),
+    prisma.task.update({ where: { id: task.id }, data: { syncState: null } }),
+  ])
 }
 
 /** Run one hydrate job: GitHub's current state onto every board of that project. */
@@ -126,6 +174,7 @@ export async function drainSyncJobs(limit = 20, deps: DrainDeps = {}): Promise<D
   const clientFor = deps.clientFor ?? (id => installationGraphqlClient(id, 'hydrate'))
   const reconcileClientFor = deps.reconcileClientFor ?? (id => installationGraphqlClient(id, 'reconcile'))
   const userClientFor = deps.userClientFor ?? (userId => userGraphqlClient(userId, 'hydrate'))
+  const writeClientFor = deps.writeClientFor ?? (userId => userGraphqlClient(userId, 'write'))
 
   const run = async (job: ClaimedJob): Promise<void> => {
     switch (job.kind) {
@@ -144,6 +193,10 @@ export async function drainSyncJobs(limit = 20, deps: DrainDeps = {}): Promise<D
         })
         for (const { projectId } of boards) await syncBoardRoles(projectId, userClientFor)
         return
+      }
+      case 'writeback': {
+        const payload = job.payload as unknown as WritebackPayload
+        return runWriteback(payload, await writeClientFor(payload.actorId))
       }
       default:
         throw new Error(`Unknown sync job kind: ${job.kind}`)

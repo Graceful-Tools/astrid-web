@@ -415,6 +415,9 @@ model Task {
   remoteNodeId   String?             @unique
   remoteKind     String?
   remoteVersion  String?
+  /// GitHub-backed tasks: 'pending' while a write-through is half done (content
+  /// created, fields not yet set) and a writeback job is finishing it (AWTD-1116 P5b).
+  syncState      String?
   githubProjectItems GitHubProjectItem[]
   events         TaskEvent[]
   notifications  Notification[]
