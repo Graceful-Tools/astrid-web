@@ -14,7 +14,8 @@ import { runAfterResponse } from '@/lib/background'
 import { createLogger } from '@/lib/logger'
 import { firstDelivery } from './issues'
 import { boardsForProjectNodes } from '@/services/github-projects.service'
-import { drainSyncJobs, enqueueHydrate } from '@/services/github-sync-jobs.service'
+import { drainSyncJobs, enqueueAccessRefresh, enqueueHydrate } from '@/services/github-sync-jobs.service'
+import { deleteRemoteTask } from '@/services/github-projects-lifecycle.service'
 
 const log = createLogger('github.webhooks.projects')
 
@@ -44,4 +45,29 @@ export async function handleProjectsV2ItemWebhook(payload: ProjectsV2ItemPayload
   runAfterResponse('github-projects-drain', () => drainSyncJobs())
   log.info({ action: payload.action, itemNodeId, enqueued }, 'projects_v2_item → hydrate')
   return enqueued
+}
+
+/**
+ * `member`, `membership`, `organization`: someone's access to the org changed,
+ * so every board in the installation re-derives its roles (§8.6) — coalesced
+ * to one refresh per installation per 10 minutes.
+ */
+export async function handleOrgAccessWebhook(payload: { installation?: { id?: number } }, deliveryId?: string): Promise<boolean> {
+  if (!hasCapability('githubProjects')) return false
+  const installationId = payload.installation?.id
+  if (!installationId || !(await firstDelivery(deliveryId))) return false
+  const enqueued = await enqueueAccessRefresh(installationId)
+  runAfterResponse('github-projects-drain', () => drainSyncJobs())
+  return enqueued
+}
+
+/** `issues.deleted`: the task mirroring that issue is deleted too (§8.7). */
+export async function handleIssueDeletedForProjects(payload: {
+  action?: string
+  issue?: { node_id?: string }
+}): Promise<boolean> {
+  if (!hasCapability('githubProjects') || payload.action !== 'deleted' || !payload.issue?.node_id) return false
+  const deleted = await deleteRemoteTask(payload.issue.node_id, 'system')
+  if (deleted) log.info({ issue: payload.issue.node_id }, 'issues.deleted → mirrored task deleted')
+  return deleted
 }

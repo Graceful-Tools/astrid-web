@@ -18,11 +18,32 @@ export const MAX_ATTEMPTS = 8
 /** How long a claimed job is ours before another drainer may take it. */
 export const LOCK_MS = 2 * 60_000
 
-export type SyncJobKind = 'hydrate'
+export type SyncJobKind = 'hydrate' | 'reconcile' | 'access'
 
 export interface HydratePayload {
   itemNodeId: string
   projectNodeId: string
+}
+
+export interface ReconcilePayload {
+  projectId: string
+}
+
+export interface AccessPayload {
+  installationId: number
+}
+
+/** How often a bound project is reconciled when nothing else asks. */
+export const RECONCILE_INTERVAL_MS = 60 * 60 * 1000
+
+/** One reconcile per project per interval, however often it is asked for. */
+export function reconcileDedupeKey(projectId: string, now: number): string {
+  return `reconcile:${projectId}:${Math.floor(now / RECONCILE_INTERVAL_MS)}`
+}
+
+/** A burst of org membership events is one role refresh per 10 minutes. */
+export function accessDedupeKey(installationId: number, now: number): string {
+  return `access:${installationId}:${Math.floor(now / (10 * 60_000))}`
 }
 
 export function hydrateDedupeKey(itemNodeId: string, now: number): string {

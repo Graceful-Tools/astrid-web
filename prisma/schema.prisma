@@ -1095,6 +1095,9 @@ model GitHubProjectBinding {
   estimateFieldId   String?
   defaultRepoNodeId String? // "New task" creates an issue here; null = a draft
   lastReconciledAt  DateTime?
+  /// Set when the installation is uninstalled or suspended: the board is read-only,
+  /// and purged 30 days after an uninstall (AWTD-1153, §8.1). Cleared on unsuspend.
+  detachedAt        DateTime?
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
   project           Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
