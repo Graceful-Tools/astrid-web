@@ -1366,7 +1366,7 @@
       }
     },
     {
-      "name": "an interval of 0 days stays on the same date",
+      "name": "an interval of 0 days steps one day (AWTD-1080)",
       "request": {
         "repeating": "custom",
         "pattern": {
@@ -1380,13 +1380,13 @@
         "repeatFrom": "DUE_DATE"
       },
       "answer": {
-        "nextDueDate": "2026-01-05T09:00:00.000Z",
+        "nextDueDate": "2026-01-06T09:00:00.000Z",
         "shouldTerminate": false,
         "newOccurrenceCount": 1
       }
     },
     {
-      "name": "a monthly pattern with no monthRepeatType ends the series",
+      "name": "a monthly pattern with no monthRepeatType repeats on the same date (AWTD-1077)",
       "request": {
         "repeating": "custom",
         "pattern": {
@@ -1401,8 +1401,8 @@
         "isAllDay": true
       },
       "answer": {
-        "nextDueDate": null,
-        "shouldTerminate": true,
+        "nextDueDate": "2026-07-15T00:00:00.000Z",
+        "shouldTerminate": false,
         "newOccurrenceCount": 1
       }
     },

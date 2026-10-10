@@ -306,8 +306,12 @@ function nextWeekdayOccurrence(ms: number, weekdays: Weekday[], zone: string): n
 
 function nextMonthOccurrence(ms: number, pattern: ReadPattern, interval: number, zone: string): number | null {
   if (interval < 0) return null
-  if (pattern.monthRepeatType === 'same_date') return addingMonthsOverflowing(ms, interval, zone)
-  if (pattern.monthRepeatType !== 'same_weekday' || !pattern.monthWeekday) return null
+  // A missing type is read as `same_date` rather than ending the series (AWTD-1077). Writes always
+  // store one since AWTD-1074, which also backfilled the ten production patterns that lacked it,
+  // so this only catches a row an offline client wrote without going through the API.
+  const monthRepeatType = pattern.monthRepeatType ?? 'same_date'
+  if (monthRepeatType === 'same_date') return addingMonthsOverflowing(ms, interval, zone)
+  if (monthRepeatType !== 'same_weekday' || !pattern.monthWeekday) return null
   const { weekday, weekOfMonth } = pattern.monthWeekday
   // The intermediate step only decides WHICH month to search, and it overflows too (D5).
   const target = new Date(local(addingMonthsOverflowing(ms, interval, zone), zone))
@@ -350,19 +354,24 @@ function customNext(
   const anchor = anchorDate(currentDueDate, completionDate, repeatFrom, zone)
   if (pattern.unit === null || pattern.interval === null) return ended
 
+  // A stored interval below 1 steps as 1 (AWTD-1080). Without this a 0 or negative interval
+  // re-opens the task on the same date forever, or — for months — ends the series. An ABSENT
+  // interval still ends it: that is the `null` check above, and a different case (D-null).
+  const interval = Math.max(pattern.interval, 1)
+
   let next: number | null
   switch (pattern.unit) {
     case 'days':
-      next = addingDays(anchor, pattern.interval, zone)
+      next = addingDays(anchor, interval, zone)
       break
     case 'weeks':
       next = pattern.weekdays ? nextWeekdayOccurrence(anchor, pattern.weekdays, zone) : null
       break
     case 'months':
-      next = nextMonthOccurrence(anchor, pattern, pattern.interval, zone)
+      next = nextMonthOccurrence(anchor, pattern, interval, zone)
       break
     case 'years':
-      next = nextYearOccurrence(anchor, pattern, pattern.interval, zone)
+      next = nextYearOccurrence(anchor, pattern, interval, zone)
       break
     default:
       next = null

@@ -241,11 +241,14 @@ const completionCases = [
   ['a yearly month and day from a 31st', { repeating: 'custom', pattern: { type: 'custom', unit: 'years', interval: 1, endCondition: 'never', month: 2, day: 10 }, currentDueDate: '2026-01-31T09:00:00Z', completion: '2026-01-31T09:00:00Z', repeatFrom: 'DUE_DATE' }],
   ['a same-date monthly pattern with no stored day', { repeating: 'custom', pattern: { type: 'custom', unit: 'months', interval: 1, endCondition: 'never', monthRepeatType: 'same_date' }, currentDueDate: '2026-01-15T09:00:00Z', completion: '2026-01-15T09:00:00Z', repeatFrom: 'DUE_DATE' }],
   ['a custom pattern with no interval ends the series', { repeating: 'custom', pattern: { type: 'custom', unit: 'days', endCondition: 'never' }, currentDueDate: '2026-01-05T09:00:00Z', completion: '2026-01-05T09:00:00Z', repeatFrom: 'DUE_DATE' }],
-  ['an interval of 0 days stays on the same date', { repeating: 'custom', pattern: { type: 'custom', unit: 'days', interval: 0, endCondition: 'never' }, currentDueDate: '2026-01-05T09:00:00Z', completion: '2026-01-05T09:00:00Z', repeatFrom: 'DUE_DATE' }],
-  // Every client reads this the same way today, and it is a bug: an "every 6 months" pattern
-  // stored without `monthRepeatType` (production holds ten) ENDS at its next completion. Locked
-  // here so the fix is a deliberate change on every client at once, not a drift.
-  ['a monthly pattern with no monthRepeatType ends the series', { repeating: 'custom', pattern: { type: 'custom', unit: 'months', interval: 6, endCondition: 'never' }, currentDueDate: '2026-01-15T00:00:00Z', completion: '2026-01-15T00:00:00Z', repeatFrom: 'DUE_DATE', isAllDay: true }],
+  // A stored interval below 1 is READ as 1 (AWTD-1080), so the series steps instead of re-opening
+  // on the same date forever. The write side stores it as 1 already (AWTD-1075); this is the
+  // reader, for a row written before that landed or by an offline client that skipped the API.
+  ['an interval of 0 days steps one day (AWTD-1080)', { repeating: 'custom', pattern: { type: 'custom', unit: 'days', interval: 0, endCondition: 'never' }, currentDueDate: '2026-01-05T09:00:00Z', completion: '2026-01-05T09:00:00Z', repeatFrom: 'DUE_DATE' }],
+  // A missing `monthRepeatType` is READ as `same_date` (AWTD-1077), counted from the repeat
+  // anchor. It used to END the series on every client, which is what AWTD-1074 backfilled the ten
+  // production patterns for; this is the reader half, changed on every client at once.
+  ['a monthly pattern with no monthRepeatType repeats on the same date (AWTD-1077)', { repeating: 'custom', pattern: { type: 'custom', unit: 'months', interval: 6, endCondition: 'never' }, currentDueDate: '2026-01-15T00:00:00Z', completion: '2026-01-15T00:00:00Z', repeatFrom: 'DUE_DATE', isAllDay: true }],
   ['an unknown unit ends the series', { repeating: 'custom', pattern: { type: 'custom', unit: 'fortnights', interval: 1, endCondition: 'never' }, currentDueDate: '2026-01-05T09:00:00Z', completion: '2026-01-05T09:00:00Z', repeatFrom: 'DUE_DATE' }],
 ]
 
