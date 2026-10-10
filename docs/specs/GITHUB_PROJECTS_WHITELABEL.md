@@ -1218,9 +1218,16 @@ Done:
   across **all** the user's installations, so the first-installation-only bug is gone.
   The migration applies at the next approved deploy.
 
+- **The Connections → GitHub card** ([AWTD-1114](https://astrid.cc/t/AWTD-1114)): one card
+  listing every installation the user can act on (`GET /api/v1/github/installations`),
+  with repo counts, "Add another organization", refresh and disconnect, and the setup
+  route's outcome shown as a toast. The Agents page points to it, and its two old GitHub
+  components are deleted. The coding agent's repo picker lists every connected org.
+
 Not done, and why:
-- **Retiring `GitHubIntegration`.** Status, the installations list and the integration
-  route still read it. They move with the Connections card (P3d). Dropping the table, and
+- **Retiring `GitHubIntegration`.** Status, the legacy installations list and the
+  integration route still read it. List-admin Issues sync reading installation repos
+  waits for P3b's user tokens. Dropping the table, and
   its dead `appId`/`privateKey`/`webhookSecret` columns, is a destructive migration, so it
   takes two deploys (docs/CLI_OPERATIONS.md, AWTD-959).
 - **User-to-server tokens in `Integration[GITHUB]` and the Issues-sync migration with

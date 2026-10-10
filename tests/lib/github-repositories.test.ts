@@ -18,7 +18,7 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     gitHubIntegration: { findFirst: vi.fn(), update: vi.fn() },
     gitHubInstallation: { upsert: vi.fn() },
-    gitHubInstallationRepo: { upsert: vi.fn(), deleteMany: vi.fn() },
+    gitHubInstallationRepo: { upsert: vi.fn(), deleteMany: vi.fn(), findMany: vi.fn() },
   },
 }))
 
@@ -50,6 +50,7 @@ beforeEach(() => {
   mockPrisma.gitHubIntegration.findFirst.mockResolvedValue({ ...INTEGRATION } as never)
   mockPrisma.gitHubIntegration.update.mockResolvedValue({} as never)
   getInstallationRepositories.mockResolvedValue([])
+  mockPrisma.gitHubInstallationRepo.findMany.mockResolvedValue([] as never)
 })
 
 describe('listGitHubRepositories (task e0613ae5)', () => {
@@ -160,5 +161,25 @@ describe('listGitHubRepositories (task e0613ae5)', () => {
     await listGitHubRepositories({ userId: 'u-1', refresh: true })
 
     expect(getInstallationRepositories).not.toHaveBeenCalled()
+  })
+})
+
+describe('the repo picker lists every connected org (AWTD-1114)', () => {
+  it("includes repos from the user's second installation, not only the first link's", async () => {
+    mockPrisma.gitHubInstallationRepo.findMany.mockResolvedValue([
+      { repoId: BigInt(1), installationId: 111, fullName: 'Graceful-Tools/astrid-web', defaultBranch: 'main', private: true },
+      { repoId: BigInt(2), installationId: 222, fullName: 'jonparis/dotfiles', defaultBranch: 'trunk', private: false },
+    ] as never)
+
+    const result = await listGitHubRepositories({ userId: 'u-1', refresh: false })
+
+    expect(result.repositories.map(r => r.fullName)).toEqual(['Graceful-Tools/astrid-web', 'jonparis/dotfiles'])
+    expect(result.repositories[1]).toEqual({
+      id: 2,
+      name: 'dotfiles',
+      fullName: 'jonparis/dotfiles',
+      defaultBranch: 'trunk',
+      private: false,
+    })
   })
 })

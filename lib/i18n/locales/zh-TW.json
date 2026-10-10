@@ -473,6 +473,11 @@
         "sdkNeedsBoth": "您的伺服器兩者都需要：用這些憑證呼叫 API，用下方的 Webhook 密鑰驗證投遞。",
         "manage": "在連線中管理",
         "error": "無法建立憑證"
+      },
+      "githubConnection": {
+        "title": "GitHub 連線",
+        "description": "在伺服器上執行的程式設計代理使用「設定 → 連線」中的 GitHub 連線，所有已連接的組織都列在那裡。",
+        "open": "開啟連線"
       }
     },
     "apiAccess": {
@@ -960,6 +965,37 @@
         "title": "開發者",
         "description": "手動建立 OAuth 應用程式、測試 API，並連接支援 OpenAPI 的助理。",
         "openTester": "開啟 API 測試器"
+      },
+      "github": {
+        "title": "GitHub",
+        "description": "將 {appName} 連接到你的 GitHub 帳號和組織。在伺服器上執行的程式設計代理會透過此連線建立分支和提取要求。",
+        "empty": "尚未連接 GitHub。",
+        "connect": "連接 GitHub",
+        "installAnother": "新增另一個組織",
+        "refresh": "重新整理存放庫",
+        "refreshed": "存放庫已重新整理",
+        "refreshError": "無法重新整理存放庫",
+        "loadError": "無法載入你的 GitHub 連線",
+        "installError": "無法開始 GitHub 安裝",
+        "organization": "組織",
+        "personal": "個人帳號",
+        "repoCountOne": "1 個存放庫",
+        "repoCountMany": "{count} 個存放庫",
+        "allRepos": "所有存放庫",
+        "suspended": "已暫停",
+        "disconnect": "中斷連線",
+        "disconnectTitle": "要中斷 {account} 的連線嗎？",
+        "disconnectDescription": "程式設計代理將無法在 {account} 的存放庫中運作。GitHub 應用程式仍會保持安裝；如要完全移除，請在 GitHub 上解除安裝。",
+        "disconnected": "已中斷 {account} 的連線",
+        "disconnectError": "無法中斷連線",
+        "outcomes": {
+          "connected": "已連接 GitHub",
+          "updated": "GitHub 連線已更新",
+          "not_authorized": "GitHub 表示你的帳號無法檢視該安裝",
+          "already_connected": "該安裝已連接到另一個帳號",
+          "verification_unavailable": "此伺服器未設定 GitHub 登入，因此無法驗證該安裝",
+          "error": "連接 GitHub 時發生錯誤"
+        }
       }
     }
   },

@@ -473,6 +473,11 @@
         "sdkNeedsBoth": "Your server needs both: these client credentials to call the API, and the webhook secret below to verify deliveries.",
         "manage": "Manage in Connections",
         "error": "Could not create credentials"
+      },
+      "githubConnection": {
+        "title": "GitHub connection",
+        "description": "Server-run coding agents use the GitHub connection on Settings → Connections, where every connected organization is listed.",
+        "open": "Open Connections"
       }
     },
     "apiAccess": {
@@ -960,6 +965,37 @@
         "title": "Developer",
         "description": "Create OAuth apps by hand, test the API, and connect assistants that speak OpenAPI.",
         "openTester": "Open API tester"
+      },
+      "github": {
+        "title": "GitHub",
+        "description": "Connects {appName} to your GitHub accounts and organizations. Server-run coding agents create branches and pull requests through it.",
+        "empty": "Not connected to GitHub yet.",
+        "connect": "Connect GitHub",
+        "installAnother": "Add another organization",
+        "refresh": "Refresh repositories",
+        "refreshed": "Repositories refreshed",
+        "refreshError": "Couldn't refresh repositories",
+        "loadError": "Couldn't load your GitHub connection",
+        "installError": "Couldn't start the GitHub installation",
+        "organization": "Organization",
+        "personal": "Personal account",
+        "repoCountOne": "1 repository",
+        "repoCountMany": "{count} repositories",
+        "allRepos": "all repositories",
+        "suspended": "Suspended",
+        "disconnect": "Disconnect",
+        "disconnectTitle": "Disconnect {account}?",
+        "disconnectDescription": "Coding agents will stop working in {account}'s repositories. The GitHub App stays installed there; uninstall it on GitHub to remove it completely.",
+        "disconnected": "Disconnected {account}",
+        "disconnectError": "Couldn't disconnect",
+        "outcomes": {
+          "connected": "GitHub connected",
+          "updated": "GitHub connection updated",
+          "not_authorized": "GitHub says your account can't see that installation",
+          "already_connected": "That installation is already connected to another account",
+          "verification_unavailable": "GitHub sign-in isn't configured on this server, so the installation couldn't be verified",
+          "error": "Something went wrong connecting GitHub"
+        }
       }
     }
   },

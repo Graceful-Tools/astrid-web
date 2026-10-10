@@ -473,6 +473,11 @@
         "sdkNeedsBoth": "Votre serveur a besoin des deux : ces identifiants pour appeler l’API et le secret du webhook ci-dessous pour vérifier les livraisons.",
         "manage": "Gérer dans Connexions",
         "error": "Impossible de créer les identifiants"
+      },
+      "githubConnection": {
+        "title": "Connexion GitHub",
+        "description": "Les agents de code exécutés sur le serveur utilisent la connexion GitHub de Réglages → Connexions, où chaque organisation connectée est listée.",
+        "open": "Ouvrir Connexions"
       }
     },
     "apiAccess": {
@@ -960,6 +965,37 @@
         "title": "Développeur",
         "description": "Créez des apps OAuth à la main, testez l’API et connectez des assistants qui parlent OpenAPI.",
         "openTester": "Ouvrir le testeur d’API"
+      },
+      "github": {
+        "title": "GitHub",
+        "description": "Connecte {appName} à vos comptes et organisations GitHub. Les agents de code exécutés sur le serveur créent des branches et des pull requests grâce à cette connexion.",
+        "empty": "Pas encore connecté à GitHub.",
+        "connect": "Connecter GitHub",
+        "installAnother": "Ajouter une autre organisation",
+        "refresh": "Actualiser les dépôts",
+        "refreshed": "Dépôts actualisés",
+        "refreshError": "Impossible d'actualiser les dépôts",
+        "loadError": "Impossible de charger votre connexion GitHub",
+        "installError": "Impossible de lancer l'installation GitHub",
+        "organization": "Organisation",
+        "personal": "Compte personnel",
+        "repoCountOne": "1 dépôt",
+        "repoCountMany": "{count} dépôts",
+        "allRepos": "tous les dépôts",
+        "suspended": "Suspendue",
+        "disconnect": "Déconnecter",
+        "disconnectTitle": "Déconnecter {account} ?",
+        "disconnectDescription": "Les agents de code cesseront de fonctionner dans les dépôts de {account}. L'app GitHub y reste installée ; désinstallez-la sur GitHub pour la supprimer complètement.",
+        "disconnected": "{account} déconnecté",
+        "disconnectError": "Impossible de déconnecter",
+        "outcomes": {
+          "connected": "GitHub connecté",
+          "updated": "Connexion GitHub mise à jour",
+          "not_authorized": "Selon GitHub, votre compte ne peut pas voir cette installation",
+          "already_connected": "Cette installation est déjà connectée à un autre compte",
+          "verification_unavailable": "La connexion GitHub n'est pas configurée sur ce serveur, l'installation n'a donc pas pu être vérifiée",
+          "error": "Un problème est survenu lors de la connexion à GitHub"
+        }
       }
     }
   },

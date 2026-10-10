@@ -473,6 +473,11 @@
         "sdkNeedsBoth": "Ihr Server braucht beides: diese Zugangsdaten für API-Aufrufe und das Webhook-Secret unten zur Prüfung der Zustellungen.",
         "manage": "Unter Verbindungen verwalten",
         "error": "Zugangsdaten konnten nicht erstellt werden"
+      },
+      "githubConnection": {
+        "title": "GitHub-Verbindung",
+        "description": "Vom Server ausgeführte Coding-Agenten nutzen die GitHub-Verbindung unter Einstellungen → Verbindungen, wo jede verbundene Organisation aufgeführt ist.",
+        "open": "Verbindungen öffnen"
       }
     },
     "apiAccess": {
@@ -960,6 +965,37 @@
         "title": "Entwickler",
         "description": "OAuth-Apps manuell erstellen, die API testen und Assistenten anbinden, die OpenAPI sprechen.",
         "openTester": "API-Tester öffnen"
+      },
+      "github": {
+        "title": "GitHub",
+        "description": "Verbindet {appName} mit deinen GitHub-Konten und -Organisationen. Vom Server ausgeführte Coding-Agenten erstellen darüber Branches und Pull Requests.",
+        "empty": "Noch nicht mit GitHub verbunden.",
+        "connect": "GitHub verbinden",
+        "installAnother": "Weitere Organisation hinzufügen",
+        "refresh": "Repositories aktualisieren",
+        "refreshed": "Repositories aktualisiert",
+        "refreshError": "Repositories konnten nicht aktualisiert werden",
+        "loadError": "Deine GitHub-Verbindung konnte nicht geladen werden",
+        "installError": "Die GitHub-Installation konnte nicht gestartet werden",
+        "organization": "Organisation",
+        "personal": "Persönliches Konto",
+        "repoCountOne": "1 Repository",
+        "repoCountMany": "{count} Repositories",
+        "allRepos": "alle Repositories",
+        "suspended": "Gesperrt",
+        "disconnect": "Trennen",
+        "disconnectTitle": "{account} trennen?",
+        "disconnectDescription": "Coding-Agenten funktionieren in den Repositories von {account} nicht mehr. Die GitHub-App bleibt dort installiert; deinstalliere sie auf GitHub, um sie vollständig zu entfernen.",
+        "disconnected": "{account} getrennt",
+        "disconnectError": "Trennen fehlgeschlagen",
+        "outcomes": {
+          "connected": "GitHub verbunden",
+          "updated": "GitHub-Verbindung aktualisiert",
+          "not_authorized": "Laut GitHub kann dein Konto diese Installation nicht sehen",
+          "already_connected": "Diese Installation ist bereits mit einem anderen Konto verbunden",
+          "verification_unavailable": "Die GitHub-Anmeldung ist auf diesem Server nicht eingerichtet, daher konnte die Installation nicht überprüft werden",
+          "error": "Beim Verbinden mit GitHub ist etwas schiefgelaufen"
+        }
       }
     }
   },

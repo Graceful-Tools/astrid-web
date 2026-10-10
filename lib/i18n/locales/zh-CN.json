@@ -473,6 +473,11 @@
         "sdkNeedsBoth": "您的服务器两者都需要：用这些凭据调用 API，用下方的 Webhook 密钥验证投递。",
         "manage": "在连接中管理",
         "error": "无法创建凭据"
+      },
+      "githubConnection": {
+        "title": "GitHub 连接",
+        "description": "在服务器上运行的编程智能体使用“设置 → 连接”中的 GitHub 连接，所有已连接的组织都列在那里。",
+        "open": "打开连接"
       }
     },
     "apiAccess": {
@@ -960,6 +965,37 @@
         "title": "开发者",
         "description": "手动创建 OAuth 应用、测试 API，并连接支持 OpenAPI 的助手。",
         "openTester": "打开 API 测试器"
+      },
+      "github": {
+        "title": "GitHub",
+        "description": "将 {appName} 连接到你的 GitHub 账号和组织。在服务器上运行的编程智能体通过此连接创建分支和拉取请求。",
+        "empty": "尚未连接 GitHub。",
+        "connect": "连接 GitHub",
+        "installAnother": "添加另一个组织",
+        "refresh": "刷新仓库",
+        "refreshed": "仓库已刷新",
+        "refreshError": "无法刷新仓库",
+        "loadError": "无法加载你的 GitHub 连接",
+        "installError": "无法开始 GitHub 安装",
+        "organization": "组织",
+        "personal": "个人账号",
+        "repoCountOne": "1 个仓库",
+        "repoCountMany": "{count} 个仓库",
+        "allRepos": "全部仓库",
+        "suspended": "已暂停",
+        "disconnect": "断开连接",
+        "disconnectTitle": "断开 {account} 的连接？",
+        "disconnectDescription": "编程智能体将无法在 {account} 的仓库中工作。GitHub 应用仍会保留安装；如需彻底移除，请在 GitHub 上卸载。",
+        "disconnected": "已断开 {account}",
+        "disconnectError": "无法断开连接",
+        "outcomes": {
+          "connected": "已连接 GitHub",
+          "updated": "GitHub 连接已更新",
+          "not_authorized": "GitHub 表示你的账号无法查看该安装",
+          "already_connected": "该安装已连接到另一个账号",
+          "verification_unavailable": "此服务器未配置 GitHub 登录，因此无法验证该安装",
+          "error": "连接 GitHub 时出错"
+        }
       }
     }
   },

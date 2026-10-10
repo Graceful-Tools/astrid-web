@@ -89,7 +89,9 @@ const ROOT = process.cwd()
 // call now goes through lib/api.ts, not through a helper that hides it.
 // 93 → 92: AWTD-1087 removed the "connect detected installation" button from
 // github-shared-setup.tsx along with the route it POSTed to.
-const CEILING = 92 // 115 → 107: task 1b381810 deleted the dead components
+// 92 → 88: AWTD-1114 replaced github-shared-setup.tsx and
+// github-integration-settings.tsx with the Connections GitHub card (lib/api.ts).
+const CEILING = 88 // 115 → 107: task 1b381810 deleted the dead components
 // (task-form and its picker subtree, ai-api-key-manager, sync-status,
 // public-task-browser, list-detail and the rest), taking their raw mutations
 // with them. Nothing was migrated to the offline client here — the count fell

@@ -1,12 +1,11 @@
 "use client"
 
 import { BRAND } from '@/lib/brand/config'
+import { CAPABILITIES } from '@/lib/brand/capabilities'
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AgentHub } from "@/components/agent-hub"
-import { GitHubIntegrationSettings } from "@/components/github-integration-settings"
-import { GitHubSharedSetup } from "@/components/github-shared-setup"
 import { agentServiceLabel } from "@/lib/ai/agent-config"
 import { useTranslations } from "@/lib/i18n/client"
 import {
@@ -14,8 +13,6 @@ import {
   FileText,
   Bot,
   Check,
-  ChevronDown,
-  ChevronUp,
   Github
 } from "lucide-react"
 import Link from "next/link"
@@ -121,44 +118,30 @@ function AstridAgentSelector() {
 }
 
 /**
- * The account-level GitHub App connection. Not agent-specific — every
- * server-run coding agent creates branches and PRs through it — so it sits
- * beside the agent list rather than inside any one row. Collapsed: connect
- * once, then never look at it again.
+ * Server-run coding agents create branches and PRs through the GitHub App
+ * connection, which lives on Settings → Connections (AWTD-1114): one place
+ * for it, listing every connected org. This only points there.
  */
-function GithubConnectionCard() {
-  const [open, setOpen] = useState(false)
-
+function GithubConnectionPointer() {
+  const { t } = useTranslations()
   return (
     <Card className="theme-bg-secondary theme-border">
-      <CardHeader>
-        <div
-          className="flex items-center justify-between cursor-pointer"
-          onClick={() => setOpen(!open)}
-        >
-          <div>
-            <CardTitle className="theme-text-primary flex items-center gap-2">
-              <Github className="w-5 h-5" />
-              GitHub connection
-            </CardTitle>
-            <CardDescription className="theme-text-muted">
-              Only needed when <strong>{BRAND.appName} runs it</strong>: server-run agents create
-              branches and pull requests through this connection. A harness or webhook server you
-              run yourself uses its own GitHub access. Pick the repository per list in List
-              Settings → Admin.
-            </CardDescription>
+      <CardContent className="p-4 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3">
+        <div className="flex items-start gap-3 min-w-0">
+          <Github className="w-5 h-5 mt-0.5 shrink-0 theme-text-muted" />
+          <div className="min-w-0">
+            <div className="text-sm font-medium theme-text-primary">
+              {t('settingsPages.aiAgents.githubConnection.title')}
+            </div>
+            <p className="text-sm theme-text-muted">
+              {t('settingsPages.aiAgents.githubConnection.description', { appName: BRAND.appName })}
+            </p>
           </div>
-          <Button variant="ghost" size="sm">
-            {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          </Button>
         </div>
-      </CardHeader>
-      {open && (
-        <CardContent className="space-y-4 pt-0">
-          <GitHubSharedSetup />
-          <GitHubIntegrationSettings />
-        </CardContent>
-      )}
+        <Button asChild variant="outline" size="sm" className="shrink-0">
+          <Link href="/settings/connections">{t('settingsPages.aiAgents.githubConnection.open')}</Link>
+        </Button>
+      </CardContent>
     </Card>
   )
 }
@@ -216,7 +199,7 @@ export default function AgentsSettings(_props: AgentsSettingsProps) {
         </Card>
 
         {/* Account-level GitHub App — only server-run coding agents use it */}
-        <GithubConnectionCard />
+        {CAPABILITIES.codingAgent && <GithubConnectionPointer />}
 
         {/* List Instructions Tip */}
         <Card className="theme-bg-secondary theme-border border-dashed">

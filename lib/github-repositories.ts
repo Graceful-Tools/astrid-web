@@ -12,7 +12,7 @@
 import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
-import { replaceInstallationRepos } from '@/lib/github/installations'
+import { installationReposForUser, replaceInstallationRepos } from '@/lib/github/installations'
 
 const log = createLogger('github-repositories')
 
@@ -117,7 +117,24 @@ export async function listGitHubRepositories(args: {
       repositories = cached()
     }
   } else {
-    repositories = cached()
+    // Every connected org (AWTD-1114): the installation model first, then any
+    // repo only the legacy cache still knows. The cache alone held the FIRST
+    // link's repos, so a second org's never reached the picker.
+    const fromInstallations = await installationReposForUser(userId)
+    const known = new Set(fromInstallations.map(repo => repo.fullName.toLowerCase()))
+    repositories = [
+      ...fromInstallations.map(({ id, name, fullName, defaultBranch, private: isPrivate }) => ({
+        id,
+        name,
+        fullName,
+        defaultBranch,
+        private: isPrivate,
+      })),
+      ...cached().filter(repo => {
+        const fullName = String(repo.fullName || repo.full_name || '').toLowerCase()
+        return fullName && !known.has(fullName)
+      }),
+    ]
   }
 
   return {
