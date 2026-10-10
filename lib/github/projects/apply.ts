@@ -41,6 +41,10 @@ export interface RemoteProjectItem {
     state?: 'OPEN' | 'CLOSED' | 'MERGED'
     stateReason?: 'COMPLETED' | 'NOT_PLANNED' | 'REOPENED' | 'DUPLICATE' | null
     repository?: { nameWithOwner: string }
+    /** Issues only: the issue this is a sub-issue of (relations.ts). */
+    parent?: { id: string } | null
+    /** Issues only: the issues this one waits on (relations.ts). */
+    blockedBy?: { totalCount: number; nodes: Array<{ id: string }> }
   }
   fieldValues: { nodes: RemoteFieldValue[] }
 }

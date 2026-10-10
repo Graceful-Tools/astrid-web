@@ -23,6 +23,7 @@ import { RedisCache } from '@/lib/redis'
 import { createLogger } from '@/lib/logger'
 import { GITHUB_PROJECT_BACKEND } from '@/lib/backends/resolve'
 import { normaliseItem, planItemApply, type BindingFieldMap, type RemoteProjectItem, type ReplicaTask } from '@/lib/github/projects/apply'
+import { planRelations, remoteRelations } from '@/lib/github/projects/relations'
 import { projectItemPages } from '@/lib/github/projects/hydrate'
 import type { BindingProposal, ProjectSchema } from '@/lib/github/projects/bind'
 import type { GraphqlClient } from '@/lib/github/rate-limiter'
@@ -60,12 +61,77 @@ const REPLICA_SELECT = {
   identifier: true,
   remoteKind: true,
   remoteVersion: true,
+  // Relationships (AWTD-1119). Only MIRRORED blockers are read back: a blocker
+  // on a local Astrid task is never GitHub's to remove.
+  parentTaskId: true,
+  parentTask: { select: { remoteNodeId: true } },
+  blockedBy: { where: { blockingTask: { remoteNodeId: { not: null } } }, select: { blockingTaskId: true } },
 } as const
+
+type ReplicaRow = Prisma.TaskGetPayload<{ select: typeof REPLICA_SELECT }>
 
 /** completedAt follows completed: stamped when it turns on, cleared when off. */
 function completionStamp(patch: { completed?: boolean }): { completedAt?: Date | null } {
   if (patch.completed === undefined) return {}
   return { completedAt: patch.completed ? new Date() : null }
+}
+
+/**
+ * Sub-issues and dependencies for one page (AWTD-1119), after its tasks exist
+ * so that a child imported beside its parent can point at it. An end that is
+ * not on this page costs one read for the whole page; an end no board mirrors
+ * is not a relationship here. A child paged in before its parent is healed the
+ * next time it is hydrated or reconciled.
+ */
+async function applyRelations(
+  items: RemoteProjectItem[],
+  replicas: Map<string, ReplicaRow>,
+  created: Map<string, string>,
+): Promise<boolean> {
+  const taskIds = new Map<string, string>(created)
+  for (const [nodeId, row] of replicas) taskIds.set(nodeId, row.id)
+
+  const related = items.flatMap(item => {
+    const remote = item.isArchived ? null : remoteRelations(item)
+    const taskId = item.content ? taskIds.get(item.content.id) : undefined
+    return remote && taskId ? [{ remote, taskId, row: replicas.get(item.content!.id) }] : []
+  })
+
+  const elsewhere = [
+    ...new Set(related.flatMap(({ remote }) => [remote.parentNodeId, ...remote.blockedByNodeIds])),
+  ].filter((nodeId): nodeId is string => nodeId !== null && !taskIds.has(nodeId))
+  if (elsewhere.length > 0) {
+    const rows = await prisma.task.findMany({ where: { remoteNodeId: { in: elsewhere } }, select: { id: true, remoteNodeId: true } })
+    for (const row of rows) taskIds.set(row.remoteNodeId as string, row.id)
+  }
+
+  const writes: Prisma.PrismaPromise<unknown>[] = []
+  const blockers: Prisma.TaskDependencyCreateManyInput[] = []
+  for (const { remote, taskId, row } of related) {
+    const plan = planRelations(
+      remote,
+      {
+        taskId,
+        parentTaskId: row?.parentTaskId ?? null,
+        parentIsLocal: Boolean(row?.parentTaskId) && !row?.parentTask?.remoteNodeId,
+        mirroredBlockerTaskIds: row?.blockedBy.map(dependency => dependency.blockingTaskId) ?? [],
+      },
+      nodeId => taskIds.get(nodeId),
+    )
+    if (plan.parentTaskId !== undefined) {
+      writes.push(prisma.task.update({ where: { id: taskId }, data: { parentTaskId: plan.parentTaskId } }))
+    }
+    if (plan.removeBlockers.length > 0) {
+      writes.push(prisma.taskDependency.deleteMany({ where: { blockedTaskId: taskId, blockingTaskId: { in: plan.removeBlockers } } }))
+    }
+    blockers.push(...plan.addBlockers.map(blockingTaskId => ({ blockedTaskId: taskId, blockingTaskId })))
+  }
+  // Straight to the table, not through task-dependency.service: its cycle
+  // check is for Astrid writes, and GitHub's cycles are accepted (§8.4).
+  if (blockers.length > 0) writes.push(prisma.taskDependency.createMany({ data: blockers, skipDuplicates: true }))
+
+  if (writes.length > 0) await prisma.$transaction(writes)
+  return writes.length > 0
 }
 
 /** Apply one hydrated page of a project's items to its board. */
@@ -80,7 +146,9 @@ export async function applyProjectItems(board: BoundBoard, items: RemoteProjectI
       select: { itemNodeId: true, archived: true },
     }),
   ])
+  const replicaByNode = new Map(replicaRows.map(row => [row.remoteNodeId as string, row]))
   const replicas = new Map(replicaRows.map(row => [row.remoteNodeId as string, row as unknown as ReplicaTask]))
+  const createdByNode = new Map<string, string>()
   const memberOf = new Map(memberships.map(m => [m.itemNodeId, m]))
 
   const creates: Array<{ itemNodeId: string; data: NonNullable<ReturnType<typeof normaliseItem>> }> = []
@@ -164,11 +232,14 @@ export async function applyProjectItems(board: BoundBoard, items: RemoteProjectI
       skipDuplicates: true,
     })
     summary.created += tasks.length
+    for (const task of tasks) createdByNode.set((task as unknown as { remoteNodeId: string }).remoteNodeId, task.id)
   }
 
-  // createTasksInBulk clears caches for what it created; updates and leaves
-  // are ours to clear.
-  if (writes.length > 0) {
+  const relationsChanged = await applyRelations(items, replicaByNode, createdByNode)
+
+  // createTasksInBulk clears caches for what it created; updates, leaves and
+  // relationship changes are ours to clear.
+  if (writes.length > 0 || relationsChanged) {
     await RedisCache.invalidate.userTasks(board.ownerId, [board.listId]).catch(err => {
       log.warn({ err, projectId: board.projectId }, 'Failed to clear the board owner’s task cache')
     })

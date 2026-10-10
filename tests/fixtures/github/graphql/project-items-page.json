@@ -24,6 +24,11 @@
               "stateReason": null,
               "repository": {
                 "nameWithOwner": "Graceful-Fools/wordlesolver"
+              },
+              "parent": null,
+              "blockedBy": {
+                "totalCount": 0,
+                "nodes": []
               }
             },
             "fieldValues": {
@@ -66,6 +71,11 @@
               "stateReason": "NOT_PLANNED",
               "repository": {
                 "nameWithOwner": "Graceful-Fools/wordlesolver"
+              },
+              "parent": null,
+              "blockedBy": {
+                "totalCount": 0,
+                "nodes": []
               }
             },
             "fieldValues": {

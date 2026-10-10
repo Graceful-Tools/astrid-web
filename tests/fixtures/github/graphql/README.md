@@ -16,5 +16,14 @@ since a recording is what proves the fragment is valid against GitHub's schema.
 | `viewer-permissions.json` | viewer role | `viewerCanUpdate` / `viewerCanClose` (recorded as the App, so admin) |
 | `binding-graceful-fools.json` | none | The binding a bind wizard would store for that project's Status field |
 
+**2026-10-10, AWTD-1119.** The fragment grew `parent { id }` and
+`blockedBy(first: 20) { totalCount nodes { id } }` on issues. It was re-run against the
+project the same day: GitHub accepted it and answered `parent: null` and an empty `blockedBy`
+for both issues, and the page's `rateLimit.cost` went from 1 to 2. Only those two fields were
+added to `project-items-page.json`. The rest of the recording was kept because the live
+project had drifted by then (#1 sat in Done, reopened), and other tests pin the lanes as
+first recorded. No fixture issue has a parent or a blocker, so a non-empty answer is not yet
+recorded.
+
 The items are `Graceful-Fools/wordlesolver#1` and `#2` and one draft, all titled
 "[Astrid sync fixture] …". Leave them there, because the P4f live smoke test reads them.
