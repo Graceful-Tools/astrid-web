@@ -26,7 +26,8 @@ export interface TaskRowContentProps {
   /** The task's list is on a project board: tap opens the options popover
    *  whatever the display mode (task 036ef139). */
   onBoard?: boolean
-  /** Task id to show, muted, before the title (AWTD-1017). The caller decides
+  /** Task id to show, muted, in the metadata row with the due time and the list
+   *  pills (AWTD-1017, moved off the title line by AWTD-1170). The caller decides
    *  with shouldShowTaskIdentifier — only board cards pass one. */
   identifier?: string | null
   /** The list being viewed; its chip is not repeated on every row (AWTD-1025). */
@@ -80,9 +81,6 @@ export function TaskRowContent({
               ? "theme-text-selected"
               : "theme-text-primary"
         }`}>
-          {identifier && (
-            <span className="mr-1.5 text-xs font-mono font-normal theme-text-muted">{identifier}</span>
-          )}
           {task.title}
           {/* Canceled tasks are visually distinct from finished ones (task
               11042ae3). Nothing renders when closedReason is null, which is
@@ -94,8 +92,11 @@ export function TaskRowContent({
           )}
         </div>
 
-        {((task.dueDateTime && !shouldHideTaskWhen(task)) || domainLists.length > 0 || labels.length > 0) && (
+        {(identifier || (task.dueDateTime && !shouldHideTaskWhen(task)) || domainLists.length > 0 || labels.length > 0) && (
           <div className="flex items-center mt-1 gap-2">
+            {identifier && (
+              <span className="text-xs font-mono theme-text-muted flex-shrink-0">{identifier}</span>
+            )}
             {task.dueDateTime && !shouldHideTaskWhen(task) && (
               <div className="text-xs theme-text-muted flex-shrink-0">
                 {formatDateForDisplay(new Date(task.dueDateTime), task.isAllDay)}
