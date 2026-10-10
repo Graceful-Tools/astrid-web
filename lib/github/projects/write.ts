@@ -53,6 +53,10 @@ export interface MutationPlan {
   variables: Record<string, unknown>
   /** Aliases whose result carries the content's new updatedAt. */
   versionAliases: string[]
+  /** alias → project node id, for items this plan adds (their ids come back). */
+  addedItems: Record<string, string>
+  /** Items this plan removes from their projects. */
+  removedItems: string[]
   /** The body is being edited: the caller must check remoteVersion first. */
   editsBody: boolean
 }
@@ -93,7 +97,7 @@ class Builder {
   readonly versionAliases: string[] = []
   private n = 0
 
-  add(mutation: string, args: Record<string, [type: string, value: unknown]>, selection: string, carriesVersion = false) {
+  add(mutation: string, args: Record<string, [type: string, value: unknown]>, selection: string, carriesVersion = false): string {
     const alias = `m${this.n++}`
     const input: string[] = []
     for (const [name, [type, value]] of Object.entries(args)) {
@@ -104,6 +108,7 @@ class Builder {
     }
     this.fields.push(`${alias}: ${mutation}(input: { ${input.join(', ')} }) { ${selection} }`)
     if (carriesVersion) this.versionAliases.push(alias)
+    return alias
   }
 
   /** A field value: the variable is the whole `value` input object. */
@@ -139,13 +144,50 @@ const CONTENT_SELECTION: Record<WritableTask['remoteKind'], string> = {
   draft: 'draftIssue { id updatedAt }',
 }
 
+/**
+ * Board membership changes (P5c). Leaving a GitHub list removes the item from
+ * that project — the issue itself stays on GitHub (§8.7: an Astrid delete on
+ * a GitHub board means remove from project). Joining one adds the content.
+ */
+/**
+ * An assignee change, as GitHub node ids (resolved by the caller). Agents are
+ * never GitHub assignees (§8.6): assigning one arrives here as `to: null`.
+ */
+export interface AssigneeChange {
+  from: string | null
+  to: string | null
+}
+
+export interface MembershipChanges {
+  remove: WritableMembership[]
+  /** Project node ids the content joins. */
+  add: string[]
+}
+
 export function planRemoteUpdate(
   task: WritableTask,
   memberships: WritableMembership[],
   rowData: Record<string, unknown>,
+  changes: MembershipChanges = { remove: [], add: [] },
+  assignee?: AssigneeChange,
 ): MutationPlan | WriteRefusal {
   const data = changedMirroredFields(task, rowData)
   const b = new Builder()
+  const addedItems: Record<string, string> = {}
+
+  for (const m of changes.remove) {
+    b.add('deleteProjectV2Item', { projectId: ['ID!', m.projectNodeId], itemId: ['ID!', m.itemNodeId] }, 'deletedItemId')
+  }
+  for (const projectNodeId of changes.add) {
+    const alias = b.add(
+      'addProjectV2ItemById',
+      { projectId: ['ID!', projectNodeId], contentId: ['ID!', task.remoteNodeId] },
+      'item { id }',
+    )
+    addedItems[alias] = projectNodeId
+  }
+  const removed = new Set(changes.remove.map(m => m.itemNodeId))
+  memberships = memberships.filter(m => !removed.has(m.itemNodeId))
 
   // ── Content: title and body ───────────────────────────────────────────
   const content: Record<string, [string, unknown]> = {}
@@ -159,6 +201,33 @@ export function planRemoteUpdate(
           ? ['updatePullRequest', 'pullRequestId']
           : ['updateProjectV2DraftIssue', 'draftIssueId']
     b.add(mutation, { [idArg]: ['ID!', task.remoteNodeId], ...content }, CONTENT_SELECTION[task.remoteKind], true)
+  }
+
+  // ── Assignee ──────────────────────────────────────────────────────────
+  if (assignee && assignee.from !== assignee.to) {
+    if (task.remoteKind === 'draft') {
+      b.add(
+        'updateProjectV2DraftIssue',
+        { draftIssueId: ['ID!', task.remoteNodeId], assigneeIds: ['[ID!]', assignee.to ? [assignee.to] : []] },
+        'draftIssue { id updatedAt }',
+        true,
+      )
+    } else {
+      if (assignee.from) {
+        b.add(
+          'removeAssigneesFromAssignable',
+          { assignableId: ['ID!', task.remoteNodeId], assigneeIds: ['[ID!]!', [assignee.from]] },
+          'clientMutationId',
+        )
+      }
+      if (assignee.to) {
+        b.add(
+          'addAssigneesToAssignable',
+          { assignableId: ['ID!', task.remoteNodeId], assigneeIds: ['[ID!]!', [assignee.to]] },
+          'clientMutationId',
+        )
+      }
+    }
   }
 
   // ── Open / closed (issues; a PR is closed by merging, not from here) ──
@@ -210,7 +279,25 @@ export function planRemoteUpdate(
     document: b.document(),
     variables: b.variables,
     versionAliases: b.versionAliases,
+    addedItems,
+    removedItems: changes.remove.map(m => m.itemNodeId),
     editsBody: 'description' in data,
+  }
+}
+
+/** Removing a task from every project it is on: an Astrid delete on a GitHub board. */
+export function planRemoveFromProjects(memberships: WritableMembership[]): MutationPlan {
+  const b = new Builder()
+  for (const m of memberships) {
+    b.add('deleteProjectV2Item', { projectId: ['ID!', m.projectNodeId], itemId: ['ID!', m.itemNodeId] }, 'deletedItemId')
+  }
+  return {
+    document: b.document(),
+    variables: b.variables,
+    versionAliases: [],
+    addedItems: {},
+    removedItems: memberships.map(m => m.itemNodeId),
+    editsBody: false,
   }
 }
 

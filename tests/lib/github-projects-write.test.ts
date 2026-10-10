@@ -168,6 +168,33 @@ describe('planRemoteUpdate (AWTD-1116 P5a)', () => {
   })
 })
 
+describe('assignees and board moves (AWTD-1116 P5c)', () => {
+  it('reassigning swaps the GitHub assignee: remove the old, add the new', () => {
+    const p = planRemoteUpdate(issue, [membership], {}, { remove: [], add: [] }, { from: 'U_old', to: 'U_new' }) as MutationPlan
+    expect(mutations(p)).toEqual(['removeAssigneesFromAssignable', 'addAssigneesToAssignable'])
+    expect(p.variables).toMatchObject({ m0_assigneeIds: ['U_old'], m1_assigneeIds: ['U_new'] })
+  })
+
+  it('a draft sets its assignee list directly', () => {
+    const draft = { ...issue, remoteKind: 'draft' as const, remoteNodeId: 'DI_1' }
+    const p = planRemoteUpdate(draft, [membership], {}, { remove: [], add: [] }, { from: null, to: 'U_new' }) as MutationPlan
+    expect(mutations(p)).toEqual(['updateProjectV2DraftIssue'])
+    expect(p.variables).toMatchObject({ m0_assigneeIds: ['U_new'] })
+  })
+
+  it('leaving a board removes the item and no longer sets fields there', () => {
+    const p = planRemoteUpdate(issue, [membership], { statusRole: 'doing' }, { remove: [membership], add: [] }) as MutationPlan
+    expect(mutations(p)).toEqual(['deleteProjectV2Item'])
+    expect(p.removedItems).toEqual([membership.itemNodeId])
+  })
+
+  it('joining a board adds the content and reports which alias carries the new item', () => {
+    const p = planRemoteUpdate(issue, [membership], {}, { remove: [], add: ['PVT_2'] }) as MutationPlan
+    expect(mutations(p)).toEqual(['addProjectV2ItemById'])
+    expect(p.addedItems).toEqual({ m0: 'PVT_2' })
+  })
+})
+
 describe('versionFromResult (AWTD-1116 P5a)', () => {
   it('reads the new version from a REAL recorded response', () => {
     expect(versionFromResult(load('write-issue-title-status.json').data, ['m0'])).toBe('2026-10-10T14:46:32Z')

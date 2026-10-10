@@ -1388,7 +1388,7 @@ The test puts the fixture items back afterwards. Still open, because they need a
 GitHub-Projects brand and real seeding: the webhook leg of the ≤10s p95, and a
 2,000-item import.
 
-### P5 — write-through: in progress, split into P5a–P5c
+### P5 — write-through: built (P5a–P5c)
 
 **P5a ([AWTD-1116](https://astrid.cc/t/AWTD-1116), first slice), done.** Edits to a mirrored
 task go through to GitHub **as the acting user**: their App user token, never the
@@ -1438,7 +1438,31 @@ How the edge cases behave:
   identifier, shared visibility, and its `GitHubProjectItem`. The shape was checked
   against a real Postgres.
 
-Still to do: P5c (assignees, comments, position, remove from project).
+**P5c, done. P5 is complete.**
+- **Board membership.**
+  - Moving a task off a GitHub list removes the item from that project; the issue stays.
+  - Putting a mirrored task on another GitHub board adds it there.
+  - An Astrid delete on a GitHub board removes the item from every project, as the user.
+    Deleting the issue itself isn't offered.
+- **Assignees** are swapped on GitHub as the user. A draft sets its own assignee list.
+  An agent is never a GitHub assignee (§8.6): assigning one only unassigns the person.
+  Someone with no GitHub identity yet is refused with `github_assignee_not_linked`.
+  - Identities (`User.githubNodeId`, an additive column with a unique index) are recorded
+    during the role sync, in the same request as each member's own permission check. So
+    the people who can be assigned are exactly the people who have them.
+- **Comments** on a mirrored issue or PR are queued and posted to GitHub (`comment` jobs):
+  - a person's comment is posted as them;
+  - an agent's goes out as the App bot, prefixed "**<Agent>** (via <Brand>)";
+  - system lines and drafts are never posted;
+  - nothing at all happens on a deployment without GitHub Projects.
+- **Position.** A manual reorder on a GitHub board becomes `updateProjectV2ItemPosition`
+  for the items whose predecessor changed, at most three per drag (`position` jobs), as
+  the user.
+- **Verified against GitHub.** Every mutation shape was checked live, and the probes were
+  cleaned up.
+
+Not yet: GitHub comments flowing **into** Astrid. This is outbound only, so inbound
+mirroring will need to dedupe by GitHub comment id.
 
 ### P6–P8 — fields, recurrence, per-org SSO, brand: not started
 

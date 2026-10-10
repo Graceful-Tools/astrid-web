@@ -22,6 +22,7 @@ const db = vi.hoisted(() => ({
   gitHubProjectBinding: { update: vi.fn(), updateMany: vi.fn(), findMany: vi.fn() },
   gitHubInstallation: { findMany: vi.fn() },
   gitHubInstallationAccess: { findMany: vi.fn() },
+  user: { updateMany: vi.fn() },
   taskList: { findUnique: vi.fn(), findMany: vi.fn(), deleteMany: vi.fn((a: unknown) => ({ op: 'list.deleteMany', a })) },
   task: { findUnique: vi.fn(), deleteMany: vi.fn((a: unknown) => ({ op: 'task.deleteMany', a })) },
   project: { delete: vi.fn((a: unknown) => ({ op: 'project.delete', a })) },
@@ -122,7 +123,13 @@ describe('reconcileProject (AWTD-1153)', () => {
 describe('syncBoardRoles (AWTD-1153)', () => {
   const user = (id: string) => ({ user: { id, name: id, email: `${id}@example.com`, image: null } })
   const viewer = (canUpdate: boolean, canClose: boolean) =>
-    replaying({ data: { node: { id: 'PVT', viewerCanUpdate: canUpdate, viewerCanClose: canClose }, rateLimit: { cost: 1, remaining: 1, resetAt: '2026-10-10T15:00:00Z' } } })
+    replaying({
+      data: {
+        node: { id: 'PVT', viewerCanUpdate: canUpdate, viewerCanClose: canClose },
+        viewer: { id: 'U_newcomer', databaseId: 42 },
+        rateLimit: { cost: 1, remaining: 1, resetAt: '2026-10-10T15:00:00Z' },
+      },
+    })
   const hidden = () => replaying({ data: { node: null, rateLimit: { cost: 1, remaining: 1, resetAt: '2026-10-10T15:00:00Z' } } })
 
   beforeEach(() => {
@@ -160,6 +167,14 @@ describe('syncBoardRoles (AWTD-1153)', () => {
     expect(members.addListMember).toHaveBeenCalledWith(expect.objectContaining({ role: 'member', member: expect.objectContaining({ id: 'newcomer' }) }))
     expect(members.changeListMemberRole).toHaveBeenCalledWith(expect.objectContaining({ role: 'viewer', member: expect.objectContaining({ id: 'demoted' }) }))
     expect(members.removeListMember).toHaveBeenCalledWith(expect.objectContaining({ member: expect.objectContaining({ id: 'left' }) }))
+  })
+
+  it('records each member’s GitHub identity on the way — what assigning needs (AWTD-1116 P5c)', async () => {
+    await syncBoardRoles('proj-1', async id => (id === 'newcomer' ? viewer(true, false) : null))
+    expect(db.user.updateMany).toHaveBeenCalledWith({
+      where: { id: 'newcomer', OR: [{ githubNodeId: null }, { NOT: { githubNodeId: 'U_newcomer' } }] },
+      data: { githubNodeId: 'U_newcomer', githubUserId: 42 },
+    })
   })
 })
 

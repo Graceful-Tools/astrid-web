@@ -32,13 +32,16 @@ describe('roleFromViewer (AWTD-1153)', () => {
     expect(roleFromViewer(viewer)).toBe(role)
   })
 
-  it('reads the recorded permissions (the App can close the test project: admin)', async () => {
-    expect(await fetchViewerRole(replaying(load('viewer-permissions.json')), 'PVT_kwDOFEb-HM4BmXS2')).toBe('admin')
+  it('reads the recorded permissions and who the viewer is (as the App: admin, a bot id)', async () => {
+    expect(await fetchViewerRole(replaying(load('viewer-permissions.json')), 'PVT_kwDOFEb-HM4BmXS2')).toEqual({
+      role: 'admin',
+      identity: { nodeId: 'BOT_kgDODepURQ', databaseId: 233460805 },
+    })
   })
 
   it('a project the user cannot see is no role at all', async () => {
     const hidden = { data: { node: null, rateLimit: { cost: 1, remaining: 1, resetAt: '2026-10-10T15:00:00Z' } } }
-    expect(await fetchViewerRole(replaying(hidden), 'PVT_x')).toBeNull()
+    expect((await fetchViewerRole(replaying(hidden), 'PVT_x')).role).toBeNull()
   })
 })
 

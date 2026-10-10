@@ -29,8 +29,10 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import type { BindingFieldMap } from '@/lib/github/projects/apply'
 import {
+  planRemoveFromProjects,
   planRemoteUpdate,
   versionFromResult,
+  type MembershipChanges,
   type WritableMembership,
   type WritableTask,
 } from '@/lib/github/projects/write'
@@ -66,9 +68,16 @@ export interface GithubBackendDeps {
   userClient: (userId: string) => Promise<GraphqlClient | null>
 }
 
+type BoardMembership = WritableMembership & { listId: string | null; projectId: string }
+
 async function loadWritable(
   taskId: string,
-): Promise<{ task: WritableTask; memberships: WritableMembership[]; detached: boolean } | null> {
+): Promise<{
+  task: WritableTask
+  memberships: BoardMembership[]
+  detached: boolean
+  assignee: { id: string; githubNodeId: string | null; isAIAgent: boolean } | null
+} | null> {
   const row = await prisma.task.findUnique({
     where: { id: taskId },
     select: {
@@ -82,14 +91,17 @@ async function loadWritable(
       statusRole: true,
       priority: true,
       dueDateTime: true,
+      assignee: { select: { id: true, githubNodeId: true, isAIAgent: true } },
       githubProjectItems: {
         where: { archived: false },
         select: {
           itemNodeId: true,
           binding: {
             select: {
+              projectId: true,
               projectNodeId: true,
               detachedAt: true,
+              project: { select: { lists: { where: { backend: 'github_project' }, select: { id: true }, take: 1 } } },
               statusFieldId: true,
               statusOptionMap: true,
               priorityFieldId: true,
@@ -103,9 +115,12 @@ async function loadWritable(
   })
   if (!row?.remoteNodeId || !row.remoteKind) return null
   return {
+    assignee: row.assignee,
     task: { ...row, remoteNodeId: row.remoteNodeId, remoteKind: row.remoteKind as WritableTask['remoteKind'] },
     detached: row.githubProjectItems.some(m => m.binding.detachedAt !== null),
     memberships: row.githubProjectItems.map(m => ({
+      projectId: m.binding.projectId,
+      listId: m.binding.project.lists[0]?.id ?? null,
       projectNodeId: m.binding.projectNodeId,
       itemNodeId: m.itemNodeId,
       binding: {
@@ -117,6 +132,73 @@ async function loadWritable(
       } satisfies BindingFieldMap,
     })),
   }
+}
+
+/**
+ * What `lists: { set }` does to the task's GitHub boards: boards it leaves
+ * lose the item; GitHub lists it joins gain one. Other list changes
+ * (connect/disconnect of personal or status lists) are Astrid-only.
+ */
+async function membershipChanges(
+  data: TaskBackendRow,
+  memberships: BoardMembership[],
+): Promise<MembershipChanges & { addedProjects: Record<string, string> }> {
+  const set = (data.lists as { set?: Array<{ id: string }> } | undefined)?.set
+  if (!set) return { remove: [], add: [], addedProjects: {} }
+  const next = new Set(set.map(l => l.id))
+  const remove = memberships.filter(m => m.listId && !next.has(m.listId))
+  const held = new Set(memberships.map(m => m.listId))
+  const joining = [...next].filter(id => !held.has(id))
+  if (joining.length === 0) return { remove, add: [], addedProjects: {} }
+
+  const boards = await prisma.taskList.findMany({
+    where: { id: { in: joining }, backend: 'github_project' },
+    select: { project: { select: { githubBinding: { select: { projectNodeId: true, projectId: true } } } } },
+  })
+  const addedProjects: Record<string, string> = {}
+  for (const b of boards) {
+    const binding = b.project?.githubBinding
+    if (binding) addedProjects[binding.projectNodeId] = binding.projectId
+  }
+  return { remove, add: Object.keys(addedProjects), addedProjects }
+}
+
+/** The GitHubProjectItem rows to match: removed items go, added ones arrive. */
+function membershipRows(
+  result: Record<string, unknown>,
+  plan: { addedItems: Record<string, string>; removedItems: string[] },
+  addedProjects: Record<string, string>,
+) {
+  const create = Object.entries(plan.addedItems).flatMap(([alias, projectNodeId]) => {
+    const id = (result[alias] as { item?: { id?: string } } | undefined)?.item?.id
+    return id ? [{ itemNodeId: id, projectId: addedProjects[projectNodeId] }] : []
+  })
+  if (create.length === 0 && plan.removedItems.length === 0) return {}
+  return {
+    githubProjectItems: {
+      ...(plan.removedItems.length ? { deleteMany: { itemNodeId: { in: plan.removedItems } } } : {}),
+      ...(create.length ? { create } : {}),
+    },
+  }
+}
+
+/**
+ * The assignee change as GitHub node ids, or a refusal. An agent is never a
+ * GitHub assignee (§8.6): assigning one only unassigns the previous person.
+ * A person who has not authorised the App has no node id yet.
+ */
+async function assigneeChange(
+  data: TaskBackendRow,
+  current: { id: string; githubNodeId: string | null; isAIAgent: boolean } | null,
+): Promise<{ change?: { from: string | null; to: string | null }; refused?: string }> {
+  if (!('assigneeId' in data) || (data.assigneeId ?? null) === (current?.id ?? null)) return {}
+  const from = current && !current.isAIAgent ? current.githubNodeId : null
+  const nextId = data.assigneeId as string | null
+  if (!nextId) return { change: { from, to: null } }
+  const next = await prisma.user.findUnique({ where: { id: nextId }, select: { githubNodeId: true, isAIAgent: true } })
+  if (next?.isAIAgent) return { change: { from, to: null } }
+  if (!next?.githubNodeId) return { refused: 'github_assignee_not_linked' }
+  return { change: { from, to: next.githubNodeId } }
 }
 
 /** A GitHub failure as a backend refusal, in the v1 vocabulary (§11.2). */
@@ -327,7 +409,27 @@ export function createGithubProjectTaskBackend(deps: GithubBackendDeps): TaskBac
       return { ok: true, value: acceptCreated(data, content, binding.projectId, syncState) }
     },
 
-    deleteTask: async ctx => (ctx.origin === 'remote' ? { ok: true, value: undefined } : refusal),
+    /**
+     * An Astrid delete on a GitHub board REMOVES the item from its projects
+     * (§8.7); the issue stays on GitHub. Deleting the issue itself is not
+     * offered here — it needs explicit confirmation and repo admin rights.
+     */
+    async deleteTask(ctx, taskId): Promise<TaskBackendResult<void>> {
+      if (ctx.origin === 'remote') return { ok: true, value: undefined }
+      const loaded = await loadWritable(taskId)
+      if (!loaded || loaded.memberships.length === 0) return { ok: true, value: undefined }
+      if (loaded.detached) return refusal
+
+      const client = await deps.userClient(ctx.actorId)
+      if (!client) return fail(403, 'auth_required')
+      try {
+        const plan = planRemoveFromProjects(loaded.memberships)
+        await client.query(plan.document, plan.variables, { strict: true })
+        return { ok: true, value: undefined }
+      } catch (err) {
+        return refusalFor(err)
+      }
+    },
 
     async updateTask(ctx, taskId, data): Promise<TaskBackendResult<TaskBackendRow>> {
       if (ctx.origin === 'remote') return { ok: true, value: data }
@@ -336,7 +438,10 @@ export function createGithubProjectTaskBackend(deps: GithubBackendDeps): TaskBac
       // Not a mirrored task (P5b creates them), or its installation is gone.
       if (!loaded || loaded.detached) return refusal
 
-      const plan = planRemoteUpdate(loaded.task, loaded.memberships, data)
+      const changes = await membershipChanges(data, loaded.memberships)
+      const assignee = await assigneeChange(data, loaded.assignee)
+      if (assignee.refused) return fail(400, assignee.refused)
+      const plan = planRemoteUpdate(loaded.task, loaded.memberships, data, changes, assignee.change)
       if ('refused' in plan) return fail(400, `github_${plan.refused}`)
       if (!plan.document) return { ok: true, value: data } // nothing GitHub owns changed
 
@@ -354,7 +459,14 @@ export function createGithubProjectTaskBackend(deps: GithubBackendDeps): TaskBac
         }
         const result = await client.query<Record<string, unknown>>(plan.document, plan.variables, { strict: true })
         const remoteVersion = versionFromResult(result, plan.versionAliases)
-        return { ok: true, value: remoteVersion ? { ...data, remoteVersion } : data }
+        return {
+          ok: true,
+          value: {
+            ...data,
+            ...(remoteVersion ? { remoteVersion } : {}),
+            ...membershipRows(result, plan, changes.addedProjects),
+          },
+        }
       } catch (err) {
         return refusalFor(err)
       }

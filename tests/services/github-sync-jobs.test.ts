@@ -19,7 +19,8 @@ const db = vi.hoisted(() => ({
   gitHubSyncJob: { createMany: vi.fn(), findMany: vi.fn(), updateMany: vi.fn(), update: vi.fn() },
   gitHubProjectBinding: { findMany: vi.fn() },
   task: { findUnique: vi.fn(), update: vi.fn((a: unknown) => ({ op: 'task.update', a })) },
-  gitHubProjectItem: { upsert: vi.fn((a: unknown) => ({ op: 'item.upsert', a })) },
+  gitHubProjectItem: { upsert: vi.fn((a: unknown) => ({ op: 'item.upsert', a })), findFirst: vi.fn() },
+  comment: { findUnique: vi.fn() },
   $transaction: vi.fn(async (ops: unknown) => ops),
 }))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
@@ -36,7 +37,9 @@ vi.mock('@/lib/github/graphql-clients', () => ({ installationGraphqlClient: vi.f
 const lifecycle = vi.hoisted(() => ({ reconcileProject: vi.fn(async () => ({})), syncBoardRoles: vi.fn(async () => ({})) }))
 vi.mock('@/services/github-projects-lifecycle.service', () => lifecycle)
 
-import { drainSyncJobs, enqueueDueReconciles, enqueueHydrate } from '@/services/github-sync-jobs.service'
+import { drainSyncJobs, enqueueCommentPush, enqueueDueReconciles, enqueueHydrate } from '@/services/github-sync-jobs.service'
+
+vi.mock('@/lib/background', () => ({ runAfterResponse: vi.fn() }))
 import { MAX_ATTEMPTS } from '@/lib/github/projects/jobs'
 import { createBudget, createGraphqlClient, memoryBudgetStore } from '@/lib/github/rate-limiter'
 
@@ -252,5 +255,73 @@ describe('writeback jobs (AWTD-1116 P5b)', () => {
     projects.boundBoard.mockResolvedValue(board)
     expect(await drainSyncJobs(20, { now: () => NOW, writeClientFor: async () => null })).toMatchObject({ failed: 1 })
     expect(db.gitHubSyncJob.update.mock.calls[0][0].data.error).toMatch(/auth_required/)
+  })
+})
+
+describe('comments to GitHub (AWTD-1116 P5c)', () => {
+  const job = { id: 'c1', kind: 'comment', installationId: 5, attempts: 0, payload: { commentId: 'cm1' } }
+  const comment = (over: Record<string, unknown> = {}) => ({
+    content: 'Looks good',
+    authorId: 'u1',
+    type: 'TEXT',
+    author: { name: 'Jon', isAIAgent: false },
+    task: { remoteNodeId: 'I_kwDOVCns8c8AAAABWTcnYA' },
+    ...over,
+  })
+  const recorder = () => {
+    const sent: Array<{ q: string; v: Record<string, unknown> }> = []
+    return { sent, client: { query: vi.fn(async (q: string, v: Record<string, unknown>) => (sent.push({ q, v }), {})) } as never }
+  }
+
+  it('queues a comment on a mirrored issue, once per comment', async () => {
+    db.gitHubProjectItem.findFirst.mockResolvedValue({ binding: { installationId: 5 } })
+    db.gitHubSyncJob.createMany.mockResolvedValue({ count: 1 })
+    expect(await enqueueCommentPush('cm1', 't1')).toBe(true)
+    expect(db.gitHubSyncJob.createMany.mock.calls[0][0].data[0]).toMatchObject({ kind: 'comment', dedupeKey: 'comment:cm1' })
+  })
+
+  it('does not queue for a draft or a task on no GitHub board', async () => {
+    db.gitHubProjectItem.findFirst.mockResolvedValue(null)
+    expect(await enqueueCommentPush('cm1', 't1')).toBe(false)
+    expect(db.gitHubProjectItem.findFirst.mock.calls[0][0].where.task).toEqual({ remoteKind: { in: ['issue', 'pull_request'] } })
+  })
+
+  it('a person’s comment is posted as them', async () => {
+    db.gitHubSyncJob.findMany.mockResolvedValue([job])
+    db.comment.findUnique.mockResolvedValue(comment())
+    const user = recorder()
+    const agentClientFor = vi.fn()
+    await drainSyncJobs(20, { now: () => NOW, writeClientFor: async id => (id === 'u1' ? user.client : null), agentClientFor })
+
+    expect(user.sent[0].q).toMatch(/addComment/)
+    expect(user.sent[0].v).toEqual({ s: 'I_kwDOVCns8c8AAAABWTcnYA', b: 'Looks good' })
+    expect(agentClientFor).not.toHaveBeenCalled()
+  })
+
+  it('an agent’s comment goes out as the App bot, prefixed with who said it (§8.6)', async () => {
+    db.gitHubSyncJob.findMany.mockResolvedValue([job])
+    db.comment.findUnique.mockResolvedValue(comment({ authorId: 'ai-agent-claude', author: { name: 'Claude', isAIAgent: true } }))
+    const bot = recorder()
+    const writeClientFor = vi.fn()
+    await drainSyncJobs(20, { now: () => NOW, writeClientFor, agentClientFor: () => bot.client })
+
+    expect(bot.sent[0].v.b).toMatch(/^\*\*Claude\*\* \(via .+\)\n\nLooks good$/)
+    expect(writeClientFor).not.toHaveBeenCalled()
+  })
+
+  it('system lines and comments deleted since are not posted', async () => {
+    db.gitHubSyncJob.findMany.mockResolvedValue([job])
+    db.comment.findUnique.mockResolvedValue(comment({ authorId: null }))
+    const user = recorder()
+    expect(await drainSyncJobs(20, { now: () => NOW, writeClientFor: async () => user.client })).toMatchObject({ succeeded: 1 })
+    expect(user.sent).toHaveLength(0)
+  })
+
+  it('a person with no usable token: the job retries, never posting as the installation', async () => {
+    db.gitHubSyncJob.findMany.mockResolvedValue([job])
+    db.comment.findUnique.mockResolvedValue(comment())
+    const agentClientFor = vi.fn()
+    expect(await drainSyncJobs(20, { now: () => NOW, writeClientFor: async () => null, agentClientFor })).toMatchObject({ failed: 1 })
+    expect(agentClientFor).not.toHaveBeenCalled()
   })
 })

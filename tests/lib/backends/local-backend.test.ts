@@ -61,7 +61,9 @@ describe('githubProjectTaskBackend — refusals (AWTD-1151, AWTD-1116)', () => {
   })
 
   // update of a task that is not mirrored (the shared prisma mock finds none)
-  it.each(['createTask', 'updateTask', 'deleteTask'] as const)('refuses %s from Astrid with a typed 403 (update: an unmirrored task)', async method => {
+  // create/update of a task that is not mirrored (the shared prisma mock finds none);
+  // a delete of one has nothing on GitHub to remove, so it is not refused (P5c).
+  it.each(['createTask', 'updateTask'] as const)('refuses %s from Astrid with a typed 403 (an unmirrored task)', async method => {
     const call =
       method === 'createTask'
         ? githubProjectTaskBackend.createTask({ actorId: 'u' }, { title: 'x' })

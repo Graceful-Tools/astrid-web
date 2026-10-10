@@ -28,6 +28,7 @@
  */
 import type { CommentType, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { hasCapability } from '@/lib/brand/capabilities'
 import { createLogger } from '@/lib/logger'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { applyCommentActorRule, commentAudience } from '@/lib/comment-permissions'
@@ -180,8 +181,24 @@ export async function createCommentWithSideEffects<TComment = CreatedComment>(
   broadcastCommentCreated(comment, task, authorId, args.additionalAudience)
   pingOpenClawAssignee(comment, task, authorId)
   await runSideEffects(comment, task, authorId)
+  await pushToGitHub(comment.id, task.id)
 
   return { kind: 'created', comment } as CreateCommentOutcome<TComment>
+}
+
+/**
+ * A comment on a GitHub-backed issue or PR goes to GitHub too (AWTD-1116 P5c)
+ * — queued, so a GitHub hiccup retries instead of failing the comment.
+ * Free on a deployment without GitHub Projects: no import, no query.
+ */
+async function pushToGitHub(commentId: string, taskId: string): Promise<void> {
+  if (!hasCapability('githubProjects')) return
+  try {
+    const { enqueueCommentPush } = await import('@/services/github-sync-jobs.service')
+    await enqueueCommentPush(commentId, taskId)
+  } catch (err) {
+    log.error({ err, commentId }, 'Failed to queue the comment for GitHub')
+  }
 }
 
 async function linkFile(
