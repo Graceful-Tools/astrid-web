@@ -129,6 +129,17 @@ describe('the setup route records the installation and grants proven access (AWT
     )
   })
 
+  it("stores the user's own App token for Issues sync (AWTD-1112)", async () => {
+    stubGithubUser([INSTALLATION])
+    const state = mintOAuthStateWithSubject(ME, 'github-app', String(INSTALLATION))
+
+    await setup(getRequest(`http://localhost/api/github/setup?code=abc&state=${state}`))
+
+    expect(mockPrisma.integration.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId_provider: { userId: ME, provider: 'GITHUB' } } }),
+    )
+  })
+
   it('grants nothing when GitHub says the user cannot see the installation', async () => {
     stubGithubUser([999])
     const state = mintOAuthStateWithSubject(ME, 'github-app', String(INSTALLATION))
@@ -136,6 +147,7 @@ describe('the setup route records the installation and grants proven access (AWT
     await setup(getRequest(`http://localhost/api/github/setup?code=abc&state=${state}`))
 
     expect(mockPrisma.gitHubInstallationAccess.upsert).not.toHaveBeenCalled()
+    expect(mockPrisma.integration.upsert).not.toHaveBeenCalled()
   })
 })
 

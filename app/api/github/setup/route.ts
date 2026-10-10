@@ -34,6 +34,7 @@ import {
   replaceInstallationRepos,
   type InstallationAccount,
 } from '@/lib/github/installations'
+import { storeGithubAppUserToken } from '@/lib/github/user-tokens'
 
 const log = createLogger('github.setup')
 
@@ -113,8 +114,8 @@ export async function GET(request: NextRequest) {
         return settingsRedirect(request, 'not_authorized')
       }
       const installationId = Number(verified.subject)
-      const userToken = await exchangeGithubAppCode(credentials, code, setupRedirectUri(request))
-      if (!userToken || !(await userCanAccessInstallation(userToken, installationId))) {
+      const userTokens = await exchangeGithubAppCode(credentials, code, setupRedirectUri(request))
+      if (!userTokens || !(await userCanAccessInstallation(userTokens.access_token, installationId))) {
         log.warn({ installationId }, 'User cannot see the GitHub installation they tried to link')
         return settingsRedirect(request, 'not_authorized')
       }
@@ -154,6 +155,9 @@ export async function GET(request: NextRequest) {
         await recordInstallation({ installationId, account, repositorySelection })
         if (account) await replaceInstallationRepos(installationId, repositories)
         await grantInstallationAccess(userId, installationId)
+        // The user's own App token: Issues sync uses it for repos an
+        // installation reaches (AWTD-1112).
+        await storeGithubAppUserToken(userId, userTokens)
       } catch (err) {
         log.error({ err, installationId }, 'Failed to record the installation model; the legacy link is saved')
       }
