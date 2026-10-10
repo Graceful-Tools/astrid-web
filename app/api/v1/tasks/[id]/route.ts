@@ -276,7 +276,12 @@ export const PUT = withAuth<RouteContext>(
           { status: 412 }
         )
       }
-      return NextResponse.json({ error: result.error }, { status: result.status })
+      // retryAfter (rate_limited) and ssoUrl (sso_required) come from a
+      // GitHub-backed list's write-through (AWTD-1116); absent otherwise.
+      return NextResponse.json(
+        { error: result.error, retryAfter: result.retryAfter, ssoUrl: result.ssoUrl },
+        { status: result.status }
+      )
     }
 
     const task = result.task

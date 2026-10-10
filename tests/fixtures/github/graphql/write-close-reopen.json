@@ -1,0 +1,18 @@
+{
+  "data": {
+    "m0": {
+      "issue": {
+        "id": "I_kwDOVCns8c8AAAABWTcnYA",
+        "updatedAt": "2026-10-10T14:53:43Z",
+        "state": "CLOSED"
+      }
+    },
+    "m1": {
+      "issue": {
+        "id": "I_kwDOVCns8c8AAAABWTcnYA",
+        "updatedAt": "2026-10-10T14:53:43Z",
+        "state": "OPEN"
+      }
+    }
+  }
+}

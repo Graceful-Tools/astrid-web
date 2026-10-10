@@ -1,0 +1,20 @@
+{
+  "data": {
+    "m0": null
+  },
+  "errors": [
+    {
+      "type": "NOT_FOUND",
+      "path": [
+        "m0"
+      ],
+      "locations": [
+        {
+          "line": 1,
+          "column": 21
+        }
+      ],
+      "message": "Could not resolve to a node with the global id of 'I_kwDOVCns8c8AAAABdoesnotexist'"
+    }
+  ]
+}

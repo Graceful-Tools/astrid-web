@@ -366,7 +366,7 @@ export interface CreateTaskInput extends CreateCompletionInput {
 
 export type CreateTaskResult =
   | { ok: true; task: CreatedTask; idempotent: boolean }
-  | { ok: false; status: 400 | 403 | 409; error: string }
+  | { ok: false; status: 400 | 403 | 409 | 429 | 502; error: string }
 
 /**
  * Create a task, with every side effect the create implies.
@@ -843,7 +843,7 @@ export interface UpdateTaskIntent {
  */
 export type UpdateTaskResult =
   | { ok: true; task: any; rolledForward: boolean; stateChangeComment?: any }
-  | { ok: false; status: 400 | 403 | 404 | 409 | 412; error: string; code?: string; conflict?: any }
+  | { ok: false; status: 400 | 403 | 404 | 409 | 412 | 429 | 502; error: string; code?: string; conflict?: any; retryAfter?: number; ssoUrl?: string }
 
 
 /**
@@ -1170,7 +1170,7 @@ export async function updateTaskWithSideEffects(args: {
 
   const lists = validatedListIds ?? (existingTask.lists ?? []).map((list: { id: string }) => list.id)
   const accepted = await (await taskBackendFor(listsBeforeAndAfter(existingTask.lists, lists))).updateTask({ actorId }, taskId, data)
-  if (!accepted.ok) return { ok: false, status: accepted.status, error: accepted.error }
+  if (!accepted.ok) return { ok: false, status: accepted.status, error: accepted.error, retryAfter: accepted.retryAfter, ssoUrl: accepted.ssoUrl }
   const task = await prisma.task.update({
     where: { id: taskId },
     data: accepted.value as never,

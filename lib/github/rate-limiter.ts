@@ -96,6 +96,8 @@ export class GitHubGraphqlError extends Error {
     message: string,
     readonly status: number,
     readonly errors?: Array<{ type?: string; message: string }>,
+    /** Set when GitHub wants SAML SSO authorisation for this org (X-GitHub-SSO). */
+    readonly ssoUrl?: string,
   ) {
     super(message)
     this.name = 'GitHubGraphqlError'
@@ -171,8 +173,17 @@ export function memoryBudgetStore() {
 
 // ── The client ──────────────────────────────────────────────────────────────
 
+export interface QueryOptions {
+  /**
+   * Writes: any GraphQL error fails the call. Reads accept partial data (one
+   * unreadable field should not lose a page); a mutation that half-applied
+   * must not be reported as done.
+   */
+  strict?: boolean
+}
+
 export interface GraphqlClient {
-  query<T>(query: string, variables?: Record<string, unknown>): Promise<T>
+  query<T>(query: string, variables?: Record<string, unknown>, options?: QueryOptions): Promise<T>
 }
 
 export interface GraphqlClientOptions {
@@ -213,7 +224,7 @@ export function createGraphqlClient(options: GraphqlClientOptions): GraphqlClien
   const estimate = options.estimatedCost ?? 1
 
   return {
-    async query<T>(query: string, variables: Record<string, unknown> = {}): Promise<T> {
+    async query<T>(query: string, variables: Record<string, unknown> = {}, queryOptions: QueryOptions = {}): Promise<T> {
       const admission = admit(await budget.read(options.bucket), options.priority, estimate, clock())
       if (!admission.ok) throw new GitHubRateLimitedError(options.bucket, admission.retryAfterMs, admission.reason)
 
@@ -245,7 +256,9 @@ export function createGraphqlClient(options: GraphqlClientOptions): GraphqlClien
 
         const body = (await res.json().catch(() => ({}))) as GraphqlResponse<T>
         if (!res.ok) {
-          throw new GitHubGraphqlError(`GitHub GraphQL ${res.status}`, res.status, body.errors)
+          const sso = res.headers.get('x-github-sso')
+          const ssoUrl = sso?.match(/url=([^;\s]+)/)?.[1]
+          throw new GitHubGraphqlError(`GitHub GraphQL ${res.status}`, res.status, body.errors, ssoUrl)
         }
 
         const rate = body.data?.rateLimit
@@ -258,6 +271,11 @@ export function createGraphqlClient(options: GraphqlClientOptions): GraphqlClien
 
         if (body.errors?.some(e => e.type === 'RATE_LIMITED')) {
           throw new GitHubRateLimitedError(options.bucket, rate ? Math.max(1000, Date.parse(rate.resetAt) - clock()) : 60_000, 'exhausted')
+        }
+        if (queryOptions.strict && body.errors?.length) {
+          const type = body.errors[0].type
+          const status = type === 'FORBIDDEN' ? 403 : type === 'NOT_FOUND' ? 404 : 422
+          throw new GitHubGraphqlError(body.errors[0].message, status, body.errors)
         }
         // GitHub returns partial data with errors (e.g. one inaccessible
         // field). A query with no data at all is a failure.
