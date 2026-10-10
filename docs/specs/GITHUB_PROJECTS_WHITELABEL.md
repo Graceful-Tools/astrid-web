@@ -883,8 +883,10 @@ delta. The detail pane shows "Previous occurrence" and "Next occurrence" links f
 
 `brands/github-projects.brand.json` is **Lanes for GitHub Projects**, a generic Graceful
 Tools brand at `projects.gracefultools.com` (AWTD-1103). Its GitHub App slug,
-`lanes-for-github-projects`, is a placeholder until that App is registered, and
-`NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS` joins the profile when P4 builds it.
+`lanes-for-github-projects`, is a placeholder until that App is registered
+(docs/deployment/LANES_GITHUB_MARKETPLACE.md). GitHub Projects on requires Project Mode
+on: the server refuses to start otherwise, and the brand matrix runs the same check
+against every profile (AWTD-1121).
 
 ```json
 "NEXT_PUBLIC_BRAND_AUTH_PROVIDERS": "github,sso",
@@ -1474,6 +1476,12 @@ These need, in order:
 4. The astrid-ios work in §11.3.
 
 The seam they plug into, `TaskBackend` (§5.3), is in place.
+
+**P8 — brand: built in the repo, not delivered** (AWTD-1121). Done: the profile, the
+trademark lint, the boot assertion (§11.1), the D5 rule test (§8.3), the board copy in
+`BoardViewSection` moved into i18n, WHITELABELING §3 and §8, and draft listing copy. Not
+done, and not doable from the repo: registering the App, the brand preview (it will not
+boot without that App's OAuth client), and publishing the listing.
 
 ### Where the remaining work is tracked
 

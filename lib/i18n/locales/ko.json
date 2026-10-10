@@ -1018,7 +1018,16 @@
     "keyInvalid": "{min}~{max}자의 문자 또는 숫자, 문자로 시작",
     "keyRename": "이름 변경",
     "keyRenameHint": "작업이 {next}(으)로 바뀝니다. {old}도 계속 작동합니다",
-    "keyRenameFailed": "접두사를 변경하지 못했습니다"
+    "keyRenameFailed": "접두사를 변경하지 못했습니다",
+    "createBoard": "보드 만들기",
+    "creatingBoard": "만드는 중...",
+    "createBoardFailed": "보드를 만들지 못했습니다",
+    "disableBoard": "보드 비활성화",
+    "disablingBoard": "비활성화하는 중...",
+    "disableBoardFailed": "보드를 비활성화하지 못했습니다",
+    "disableBoardTitle": "보드 보기 비활성화",
+    "disableBoardBody": "작업은 이 목록에 남지만 Ready/Doing/Waiting 열은 제거됩니다.",
+    "disableBoardNote": "상태 열에 있는 작업은 상태를 잃습니다. 완료된 작업은 완료된 상태로 유지됩니다."
   },
   "listSettings": {
     "color": {

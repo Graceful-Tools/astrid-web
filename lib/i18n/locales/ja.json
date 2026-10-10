@@ -1018,7 +1018,16 @@
     "keyInvalid": "{min}〜{max} 文字の英数字（先頭は英字）",
     "keyRename": "名前を変更",
     "keyRenameHint": "タスクは {next} になります。{old} も引き続き使えます",
-    "keyRenameFailed": "接頭辞を変更できませんでした"
+    "keyRenameFailed": "接頭辞を変更できませんでした",
+    "createBoard": "ボードを作成",
+    "creatingBoard": "作成中...",
+    "createBoardFailed": "ボードを作成できませんでした",
+    "disableBoard": "ボードを無効にする",
+    "disablingBoard": "無効化中...",
+    "disableBoardFailed": "ボードを無効にできませんでした",
+    "disableBoardTitle": "ボード表示を無効にする",
+    "disableBoardBody": "タスクはこのリストに残りますが、Ready/Doing/Waiting の列は削除されます。",
+    "disableBoardNote": "ステータス列にあるタスクはステータスを失います。完了したタスクは完了のままです。"
   },
   "listSettings": {
     "color": {
