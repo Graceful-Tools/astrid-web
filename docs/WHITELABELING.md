@@ -124,7 +124,7 @@ NEXT_PUBLIC_BRAND_AUTH_PROVIDERS="github,google,apple,passkey,sso"   # also the 
 |---|---|---|
 | `github` | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` — the brand's **GitHub App's own** OAuth client (`Iv…`), with "Email addresses: read" and `/api/auth/callback/github` among its callback URLs | GitHub reports it as the user's verified primary |
 | `google` | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google's `email_verified` claim |
-| `apple` | the mobile token routes (no web button yet) | Apple's `email_verified` claim |
+| `apple` | Nothing for iOS/Mac (the native token routes). The **web** button additionally needs `APPLE_SERVICES_ID`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` (a Sign in with Apple .p8 key), with `/api/auth/callback/apple` as the Services ID's Return URL; without all four the web button is simply absent, and a partial set is logged | Apple's `email_verified` claim |
 | `passkey` | — (RP ID per §7) | verified by email, as before |
 | `sso` | `AUTH_SSO_ISSUER`, `AUTH_SSO_CLIENT_ID`, `AUTH_SSO_CLIENT_SECRET`, `AUTH_SSO_DOMAINS` (optional `AUTH_SSO_LABEL`) — any OIDC IdP | it is in `AUTH_SSO_DOMAINS` — an IdP can assert any address, so trust is bound to domains |
 

@@ -125,6 +125,22 @@ describe('listGitHubRepositories (task e0613ae5)', () => {
     expect(result).toMatchObject({ cached: false })
   })
 
+  it("lists the row's own installation and records it on every cached entry (AWTD-1107)", async () => {
+    getInstallationRepositories.mockResolvedValue([
+      { id: 9, name: 'fresh', fullName: 'o/fresh', defaultBranch: 'trunk', private: false },
+    ])
+
+    await listGitHubRepositories({ userId: 'u-1', refresh: true })
+
+    // Listing the client's default installation instead could cache another
+    // org's repos on this row, and the client trusts the row for the mapping.
+    expect(getInstallationRepositories).toHaveBeenCalledWith(111)
+    expect(mockPrisma.gitHubIntegration.update).toHaveBeenCalledWith({
+      where: { id: 'gh-1' },
+      data: { repositories: [expect.objectContaining({ fullName: 'o/fresh', installationId: 111 })] },
+    })
+  })
+
   it('falls back to the cache when the refresh throws', async () => {
     // The user asked for fresher data. Failing to get it should not make the
     // list disappear.

@@ -1,31 +1,21 @@
 /**
  * POST /api/v1/auth/apple
  *
- * Apple Sign In for iOS. Verifies the identity token against Apple's JWKS,
- * upserts the user, links the OAuth account, mints a NextAuth-compatible
- * database session, and sets the session + CSRF cookies. Mirrors POST
- * /api/auth/apple — same behaviour, plus the v1 `meta` envelope.
- *
- * Independent implementation rather than shared handler: failure-domain
- * isolation while iOS migrates from legacy → v1.
+ * Apple Sign In for iOS. Verifies the identity token against Apple's JWKS;
+ * linking and the session are lib/auth/native-sign-in.ts, shared with the
+ * other native routes (AWTD-1104) — four copies of the linking rule had
+ * drifted apart. Mirrors POST /api/auth/apple, plus the v1 `meta` envelope.
  */
 
 import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from 'next/server'
-import { randomBytes } from 'crypto'
 import { createRemoteJWKSet, jwtVerify, JWTPayload } from 'jose'
-import { prisma } from '@/lib/prisma'
-import { adoptUnverifiedAccount } from '@/lib/auth/adopt-unverified-account'
 import { resolveAppleIdentity, appleAllowedAudiences } from '@/lib/auth/apple-identity'
-import { createDefaultListsForUser } from '@/lib/default-lists'
+import { completeNativeSignIn } from '@/lib/auth/native-sign-in'
 import { withRateLimitHandlerAsync, authRateLimiter } from '@/lib/rate-limiter'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('v1.auth.apple')
-
-function generateSecureToken(prefix: string): string {
-  return `${prefix}-${randomBytes(32).toString('hex')}`
-}
 
 const APPLE_JWKS_URL = new URL('https://appleid.apple.com/auth/keys')
 const appleJWKS = createRemoteJWKSet(APPLE_JWKS_URL)
@@ -70,135 +60,23 @@ async function appleSignInHandler(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid identity token' }, { status: 401 })
     }
 
-    const appleUserId = verifiedPayload.sub
     // Identity comes ONLY from the verified token. The body `email` was
     // previously trusted over the claim, which allowed account takeover:
     // an attacker's valid token + a victim's email linked the attacker's
     // Apple id onto the victim's account. Body email is display-only now
     // (and unused); body fullName is fine (Apple provides the name only
     // client-side on first auth).
-    const { email: tokenEmail, emailVerified } = resolveAppleIdentity(verifiedPayload)
+    const { email, emailVerified } = resolveAppleIdentity(verifiedPayload)
 
-    // Returning user: the Apple account row is the primary key. This also
-    // fixes logins after Apple stops sending the email claim consistently.
-    const linkedAccount = await prisma.account.findFirst({
-      where: { provider: 'apple', providerAccountId: appleUserId },
-    })
-
-    let existingUser =
-      linkedAccount
-        ? await prisma.user.findUnique({
-            where: { id: linkedAccount.userId },
-            include: { accounts: true },
-          })
-        : null
-
-    if (!existingUser) {
-      if (!tokenEmail) {
-        return NextResponse.json({ error: 'Email is required' }, { status: 400 })
-      }
-      existingUser = await prisma.user.findUnique({
-        where: { email: tokenEmail },
-        include: { accounts: true },
-      })
-
-      if (existingUser) {
-        // Linking onto an EXISTING account requires Apple to affirm the
-        // email is verified — otherwise reject rather than merge.
-        if (!emailVerified) {
-          log.error({ appleUserId }, 'Apple link refused: email not verified by token')
-          return NextResponse.json({ error: 'Account verification failed' }, { status: 401 })
-        }
-
-        // See app/api/auth/apple/route.ts — Apple has affirmed ownership, the
-        // row found by email had proved nothing, and passkey signup creates
-        // exactly such unverified rows (task 1a52195f).
-        await adoptUnverifiedAccount(prisma, existingUser, 'apple')
-
-        const appleAccount = existingUser.accounts.find(acc => acc.provider === 'apple')
-        if (!appleAccount) {
-          await prisma.account.create({
-            data: {
-              userId: existingUser.id,
-              type: 'oauth',
-              provider: 'apple',
-              providerAccountId: appleUserId,
-              id_token: identityToken,
-            },
-          })
-        } else if (appleAccount.providerAccountId !== appleUserId) {
-          log.error({ appleUserId }, 'Apple user ID mismatch for email')
-          return NextResponse.json({ error: 'Account verification failed' }, { status: 401 })
-        }
-      } else {
-        existingUser = await prisma.user.create({
-          data: {
-            email: tokenEmail,
-            name: fullName || tokenEmail.split('@')[0],
-            emailVerified: new Date(),
-            accounts: {
-              create: {
-                type: 'oauth',
-                provider: 'apple',
-                providerAccountId: appleUserId,
-                id_token: identityToken,
-              },
-            },
-          },
-          include: { accounts: true },
-        })
-        await createDefaultListsForUser(existingUser.id)
-      }
-    }
-
-    if (existingUser && fullName && !existingUser.name) {
-      existingUser = await prisma.user.update({
-        where: { id: existingUser.id },
-        data: { name: fullName },
-        include: { accounts: true },
-      })
-    }
-
-    if (!existingUser) {
-      throw new Error('Failed to locate or create user for Apple Sign In')
-    }
-
-    const session = await prisma.session.create({
-      data: {
-        userId: existingUser.id,
-        sessionToken: generateSecureToken('apple'),
-        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      },
-    })
-
-    const csrfToken = generateSecureToken('csrf')
-
-    const response = NextResponse.json({
-      user: {
-        id: existingUser.id,
-        email: existingUser.email,
-        name: existingUser.name,
-        image: existingUser.image,
-      },
+    return await completeNativeSignIn({
+      provider: 'apple',
+      providerAccountId: verifiedPayload.sub,
+      idToken: identityToken,
+      email,
+      emailTrust: emailVerified ? 'verified' : 'none',
+      profile: { name: typeof fullName === 'string' && fullName ? fullName : null },
       meta: { apiVersion: 'v1' as const, authSource: 'apple' },
     })
-
-    response.cookies.set('next-auth.session-token', session.sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60,
-      path: '/',
-    })
-    response.cookies.set('next-auth.csrf-token', csrfToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60,
-      path: '/',
-    })
-
-    return response
   } catch (error) {
     log.error({ err: error }, 'Apple Sign In error')
     return NextResponse.json({ error: 'Apple Sign In failed' }, { status: 500 })

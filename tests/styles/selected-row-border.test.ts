@@ -30,13 +30,27 @@ const css = readFileSync(join(process.cwd(), 'styles', 'components.css'), 'utf8'
 
 describe('selected task row border (AWTD-1084, after task 37464d1f)', () => {
   const body = ruleBody(css, '.task-row-selected')
+  // Every row carries the outline's colour, width and offset; selection only
+  // switches it on (AWTD-1085, below).
+  const card = ruleBody(css, '.task-card')
 
   it('AWTD-1084: outlines the selected row with a solid 2px accent-blue border', () => {
-    expect(body).toMatch(/outline:\s*2px solid rgb\(var\(--theme-accent\)\)/)
+    expect(card).toMatch(/outline:\s*2px none rgb\(var\(--theme-accent\)\)/)
+    expect(body).toMatch(/outline-style:\s*solid/)
   })
 
   it('AWTD-1084: draws the border inside the row so selecting does not shift layout', () => {
-    expect(body).toMatch(/outline-offset:\s*-2px/)
+    expect(card).toMatch(/outline-offset:\s*-2px/)
+  })
+
+  // Rows carry transition-theme (transition-all). If selection set the outline
+  // colour, the new outline animated in from the default currentColor — the
+  // dark text colour — so the border flashed black for ~200ms before turning
+  // blue. outline-style is discrete and never animates, so selection must
+  // change nothing else.
+  it('AWTD-1085: selecting changes only outline-style, so the border never animates from black', () => {
+    expect(body).not.toMatch(/outline:/)
+    expect(body).not.toMatch(/outline-(color|width|offset)/)
   })
 
   it('37464d1f: still no glow ring and no heavier drop shadow than normal rows', () => {

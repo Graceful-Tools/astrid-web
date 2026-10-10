@@ -22,7 +22,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { profileEnv } from '@/lib/brand/profile'
+import { profileEnv, brandNameTrademarkProblem } from '@/lib/brand/profile'
 
 // next-intl's middleware cannot load under vitest. The plumbing assertions
 // below (apex redirect, CORS) run before it, so stub it out — the same
@@ -75,6 +75,30 @@ it('finds the brand profiles', () => {
   // A glob that silently matches nothing would make every test below vacuously pass.
   expect(PROFILES.length).toBeGreaterThanOrEqual(2)
   expect(PROFILES.map((p) => p.name)).toEqual(expect.arrayContaining(['Astrid', 'Acme']))
+})
+
+describe('GitHub trademark rule (AWTD-1103, spec §11.1)', () => {
+  // GitHub's brand guidelines allow "<Brand> for GitHub Projects", never a product name
+  // that starts with GitHub.
+  it.each(['GitHub Tasks', 'github', 'Git Hub Boards', 'GITHUB'])('rejects "%s"', (name) => {
+    expect(brandNameTrademarkProblem(name)).toMatch(/for GitHub Projects/)
+  })
+
+  it.each(['Lanes', 'Astrid', 'Boards for GitHub Projects'])('accepts "%s"', (name) => {
+    expect(brandNameTrademarkProblem(name)).toBeNull()
+  })
+
+  it('holds for every profile', () => {
+    for (const profile of PROFILES) {
+      const name = profile.env.NEXT_PUBLIC_BRAND_NAME ?? profile.expect.appName
+      expect(brandNameTrademarkProblem(name), profile.name).toBeNull()
+    }
+  })
+
+  it('has a GitHub Projects partner profile', () => {
+    const partner = PROFILES.find((p) => p.env.NEXT_PUBLIC_BRAND_TITLE?.endsWith(' for GitHub Projects'))
+    expect(partner, 'brands/github-projects.brand.json').toBeDefined()
+  })
 })
 
 describe.each(PROFILES)('brand profile: $name', (profile) => {
