@@ -56,7 +56,9 @@ const BUDGETS: Record<string, number> = {
   // 1125 → 1115: the list header's two buttons moved to ListHeaderActions
   // when Sort & Filters gained its own control (task aa4e7eb0).
   // 1115 → 1100: the board-row context memos moved to useBoardRowContext (AWTD-1025).
-  'components/TaskManager/MainContent/MainContent.tsx': 1088,
+  // 1088 → 1043: the duplicated view toggles and the system-list filter button
+  // became ListViewToggle / ListFilterRow in ListHeaderActions (AWTD-1167).
+  'components/TaskManager/MainContent/MainContent.tsx': 1043,
   'lib/cache-manager.ts': 935,
   // 819 → 797: its two hand-rolled comment inserts and SSE fan-outs went
   // through the comment service (spec §5.2 step 4).

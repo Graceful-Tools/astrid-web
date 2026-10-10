@@ -15,7 +15,6 @@ import { taskDragCapability } from "@/lib/touch-drag-sort"
 import { PROMOTE_DROP_TARGET_ID } from "@/lib/subtask-promotion"
 import { useMobileDragSort } from "@/hooks/use-mobile-drag-sort"
 import { TaskRow } from "./TaskRow"
-import { TaskViewToggle } from "../Header/TaskViewToggle"
 import { VirtualizedTaskList } from "./VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { useTaskRowController } from "@/hooks/task-manager/useTaskRowController"
@@ -35,9 +34,9 @@ import {
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { ListHeaderImage } from "./ListHeaderImage"
 import type { Task, TaskList } from "@/types/task"
-import { canUserManageList } from "@/lib/list-permissions"
+import { canUserManageList, isSystemListId } from "@/lib/list-permissions"
 import { useTranslations } from "@/lib/i18n/client"
-import { ListHeaderActions } from "./ListHeaderActions"
+import { ListFilterRow, ListSettingsButton, ListViewToggle } from "./ListHeaderActions"
 
 interface MainContentProps {
   // Layout and responsive props
@@ -576,7 +575,7 @@ export function MainContent({
       }}>
         <div
           className="px-4 py-5 theme-border border-b"
-          style={{ display: is3Column && !(hasProjectBoard && taskViewMode === 'board') ? 'block' : 'none' }}
+          style={{ display: is3Column ? 'block' : 'none' }}
         >
           {isSearchActive ? (
             <div className="flex items-center justify-start space-x-4 mb-4">
@@ -700,30 +699,10 @@ export function MainContent({
                       )}
                     </div>
 
-                    {/* View toggle, filters, settings: compact so the name keeps the room (AWTD-1155) */}
+                    {/* View toggle and settings, compact so the name keeps the room (AWTD-1155); filters sit below (AWTD-1167) */}
                     <div className="flex items-center gap-0.5 flex-shrink-0">
-                      {is3Column && hasProjectBoard && (
-                        <TaskViewToggle
-                          labelClassName="hidden min-[1300px]:inline" compact
-                          isOneColumn={false}
-                          hasProjectBoard={hasProjectBoard}
-                          chatAvailable={false}
-                          activeView="list"
-                          isSearching={Boolean(newFilterState.filters.search.trim())}
-                          activePanel="tasks"
-                          taskViewMode={taskViewMode}
-                          onTaskViewModeChange={onTaskViewModeChange}
-                          onToggleActivePanel={undefined}
-                        />
-                      )}
-                      <ListHeaderActions
-                        listId={selectedListId}
-                        list={currentList as never}
-                        currentUserId={effectiveSession?.user?.id}
-                        isViewingFromFeatured={isViewingFromFeatured}
-                        onOpenSortFilters={setShowSortFiltersFor}
-                        onOpenSettings={setShowSettingsPopover}
-                      />
+                      <ListViewToggle hasProjectBoard={Boolean(is3Column && hasProjectBoard)} taskViewMode={taskViewMode} onTaskViewModeChange={onTaskViewModeChange} isSearching={Boolean(newFilterState.filters.search.trim())} />
+                      <ListSettingsButton list={currentList as never} currentUserId={effectiveSession?.user?.id} isViewingFromFeatured={isViewingFromFeatured} onOpen={() => setShowSettingsPopover(selectedListId)} />
                     </div>
                   </div>
                 )
@@ -737,36 +716,8 @@ export function MainContent({
                   <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1 truncate">{getSelectedListInfo().name}</h1>
                   <p className="theme-text-muted text-sm truncate">{getSelectedListInfo().description}</p>
                 </div>
-                <div className="flex items-center space-x-2 flex-shrink-0">
-                  {is3Column && hasProjectBoard && (
-                    <TaskViewToggle
-                      labelClassName="hidden min-[1300px]:inline"
-                      isOneColumn={false}
-                      hasProjectBoard={hasProjectBoard}
-                      chatAvailable={false}
-                      activeView="list"
-                      isSearching={Boolean(newFilterState.filters.search.trim())}
-                      activePanel="tasks"
-                      taskViewMode={taskViewMode}
-                      onTaskViewModeChange={onTaskViewModeChange}
-                      onToggleActivePanel={undefined}
-                    />
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setShowSettingsPopover(selectedListId)
-                    }}
-                    onMouseDown={(e) => {
-                      e.stopPropagation()
-                    }}
-                    className="theme-text-muted hover:theme-text-primary p-2"
-                    data-settings-button="true"
-                  >
-                    <Filter className="w-5 h-5" />
-                  </Button>
+                <div className="flex items-center gap-0.5 flex-shrink-0">
+                  <ListViewToggle hasProjectBoard={Boolean(is3Column && hasProjectBoard)} taskViewMode={taskViewMode} onTaskViewModeChange={onTaskViewModeChange} isSearching={Boolean(newFilterState.filters.search.trim())} />
                 </div>
               </div>
             )}
@@ -822,6 +773,10 @@ export function MainContent({
               its own row below; mobile version is fixed at bottom). Gated on
               is3Column so there is no hidden duplicate in the 2-column DOM. */}
           {!isSearchActive && is3Column && !(hasProjectBoard && taskViewMode === 'board') && renderAddTaskInput()}
+          {/* Sort & filters: below "Add a task...", above the line over the tasks — on the board too (AWTD-1167, AWTD-1168) */}
+          {!isSearchActive && is3Column && selectedListId && (isSystemListId(selectedListId)
+            ? <ListFilterRow onOpen={() => setShowSettingsPopover(selectedListId)} />
+            : <ListFilterRow list={(lists.find(l => l.id === selectedListId) || listMetadata) as never} currentUserId={effectiveSession?.user?.id} isViewingFromFeatured={isViewingFromFeatured} onOpen={() => setShowSortFiltersFor(selectedListId)} />)}
         </div>
 
         {/* 2-column add-task row. The header block above is display:none in

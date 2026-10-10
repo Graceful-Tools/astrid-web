@@ -14,7 +14,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { buildTask, buildUser } from '../fixtures/domain'
 import { buildTaskList } from '../fixtures/domain'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { MainContent } from '@/components/TaskManager/MainContent/MainContent'
 import type { Task, TaskList, User } from '@/types/task'
 
@@ -208,5 +208,58 @@ describe('Add-task input visibility across desktop layouts', () => {
 
     expect(screen.getByPlaceholderText(/add a task/i)).toBeVisible()
     expect(screen.queryByText(/copy list/i)).toBeNull()
+  })
+})
+
+describe('desktop list header controls (AWTD-1167, AWTD-1168)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  const header3Col = (props: Record<string, unknown> = {}) =>
+    render(<MainContent {...baseProps} is2Column={false} is3Column={true} {...props} />)
+
+  it('sort & filters sits on its own row below "Add a task...", not beside the name', () => {
+    const { container } = header3Col()
+    const input = screen.getByPlaceholderText(/add a task/i)
+    const filterRow = screen.getByTestId('list-filter-row')
+    // DOM order: the input comes before the filter row.
+    expect(input.compareDocumentPosition(filterRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // And the title row keeps only the settings gear.
+    const titleRow = container.querySelector('h1')!.closest('.flex.items-center')!
+    expect(titleRow.querySelector('[data-sort-filters-button]')).toBeNull()
+    expect(titleRow.querySelector('[data-settings-button]')).not.toBeNull()
+  })
+
+  it('the funnel opens this viewer’s Sort & Filters, not the shared list settings', () => {
+    const setShowSettingsPopover = vi.fn()
+    header3Col({ setShowSettingsPopover })
+    fireEvent.click(screen.getByRole('button', { name: /sort/i }))
+    expect(setShowSettingsPopover).not.toHaveBeenCalled()
+  })
+
+  it('system lists get the same row (it opens their fixed settings)', () => {
+    const setShowSettingsPopover = vi.fn()
+    header3Col({ selectedListId: 'today', setShowSettingsPopover })
+    fireEvent.click(screen.getByRole('button', { name: /sort/i }))
+    expect(setShowSettingsPopover).toHaveBeenCalledWith('today')
+  })
+
+  it('the List / Board toggle shows icons only, at every width', () => {
+    header3Col({ hasProjectBoard: true })
+    const toggle = screen.getByTestId('header-list-board-toggle')
+    for (const label of toggle.querySelectorAll('button span')) {
+      expect(label.className).toBe('sr-only')
+    }
+    // Still named for screen readers.
+    expect(screen.getByRole('button', { name: /board/i })).toBeInTheDocument()
+  })
+
+  it('the board view keeps the header: toggle back to the list, and sort & filters', () => {
+    header3Col({ hasProjectBoard: true, taskViewMode: 'board' })
+    expect(screen.getByTestId('header-list-board-toggle')).toBeVisible()
+    expect(screen.getByTestId('list-filter-row')).toBeVisible()
+    // Columns have their own add, so the header's input is not shown there.
+    expect(screen.queryByPlaceholderText(/add a task/i)).toBeNull()
   })
 })
