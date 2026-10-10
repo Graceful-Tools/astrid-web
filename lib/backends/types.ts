@@ -21,6 +21,12 @@ export type TaskBackendKind = 'local' | 'github_project'
 /** Who is writing, for attribution on the remote side. */
 export interface TaskBackendContext {
   actorId: string
+  /**
+   * 'remote': the change came FROM the backend (a GitHub webhook said the
+   * issue was deleted). The backend accepts its own news; refusing it would
+   * leave the replica disagreeing with the remote for good.
+   */
+  origin?: 'remote'
 }
 
 export type TaskBackendRow = Record<string, unknown>

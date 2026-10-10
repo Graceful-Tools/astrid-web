@@ -19,37 +19,73 @@ import { createLogger } from '@/lib/logger'
 import {
   LOCK_MS,
   MAX_ATTEMPTS,
+  RECONCILE_INTERVAL_MS,
+  accessDedupeKey,
   backoffMs,
   hydrateDedupeKey,
   pickRoundRobin,
+  reconcileDedupeKey,
+  type AccessPayload,
   type HydratePayload,
+  type ReconcilePayload,
+  type SyncJobKind,
 } from '@/lib/github/projects/jobs'
 import { hydrateItem } from '@/lib/github/projects/hydrate'
-import { installationGraphqlClient } from '@/lib/github/graphql-clients'
+import { installationGraphqlClient, userGraphqlClient } from '@/lib/github/graphql-clients'
 import type { GraphqlClient } from '@/lib/github/rate-limiter'
 import { applyProjectItems, boardForProjectNode, removeProjectItem } from '@/services/github-projects.service'
+import { reconcileProject, syncBoardRoles } from '@/services/github-projects-lifecycle.service'
 
 const log = createLogger('services.github-sync-jobs')
 
-export async function enqueueHydrate(args: {
+async function enqueue(kind: SyncJobKind, installationId: number, dedupeKey: string, payload: object): Promise<boolean> {
+  const { count } = await prisma.gitHubSyncJob.createMany({
+    data: [{ kind, installationId, dedupeKey, payload: payload as Prisma.InputJsonValue }],
+    skipDuplicates: true,
+  })
+  return count > 0
+}
+
+export function enqueueHydrate(args: {
   installationId: number
   itemNodeId: string
   projectNodeId: string
   now?: number
 }): Promise<boolean> {
   const payload: HydratePayload = { itemNodeId: args.itemNodeId, projectNodeId: args.projectNodeId }
+  return enqueue('hydrate', args.installationId, hydrateDedupeKey(args.itemNodeId, args.now ?? Date.now()), payload)
+}
+
+/** Refresh board roles for everyone in an installation (org membership changed). */
+export function enqueueAccessRefresh(installationId: number, now = Date.now()): Promise<boolean> {
+  const payload: AccessPayload = { installationId }
+  return enqueue('access', installationId, accessDedupeKey(installationId, now), payload)
+}
+
+/**
+ * A reconcile job for every attached board not reconciled within the
+ * interval (§8.7). Cheap — one indexed read and one insert — so the
+ * per-minute cron calls it every time.
+ */
+export async function enqueueDueReconciles(now = Date.now()): Promise<number> {
+  const due = await prisma.gitHubProjectBinding.findMany({
+    where: {
+      detachedAt: null,
+      OR: [{ lastReconciledAt: null }, { lastReconciledAt: { lt: new Date(now - RECONCILE_INTERVAL_MS) } }],
+    },
+    select: { projectId: true, installationId: true },
+  })
+  if (due.length === 0) return 0
   const { count } = await prisma.gitHubSyncJob.createMany({
-    data: [
-      {
-        kind: 'hydrate',
-        installationId: args.installationId,
-        dedupeKey: hydrateDedupeKey(args.itemNodeId, args.now ?? Date.now()),
-        payload: payload as unknown as Prisma.InputJsonValue,
-      },
-    ],
+    data: due.map(b => ({
+      kind: 'reconcile',
+      installationId: b.installationId,
+      dedupeKey: reconcileDedupeKey(b.projectId, now),
+      payload: { projectId: b.projectId } satisfies ReconcilePayload as Prisma.InputJsonValue,
+    })),
     skipDuplicates: true,
   })
-  return count > 0
+  return count
 }
 
 interface ClaimedJob {
@@ -63,6 +99,9 @@ interface ClaimedJob {
 export interface DrainDeps {
   now?: () => Date
   clientFor?: (installationId: number) => GraphqlClient
+  /** Reconcile's client: the 'reconcile' priority, capped at 30% of the budget (§8.8). */
+  reconcileClientFor?: (installationId: number) => GraphqlClient
+  userClientFor?: (userId: string) => Promise<GraphqlClient | null>
 }
 
 /** Run one hydrate job: GitHub's current state onto every board of that project. */
@@ -85,6 +124,31 @@ export interface DrainSummary {
 export async function drainSyncJobs(limit = 20, deps: DrainDeps = {}): Promise<DrainSummary> {
   const now = deps.now?.() ?? new Date()
   const clientFor = deps.clientFor ?? (id => installationGraphqlClient(id, 'hydrate'))
+  const reconcileClientFor = deps.reconcileClientFor ?? (id => installationGraphqlClient(id, 'reconcile'))
+  const userClientFor = deps.userClientFor ?? (userId => userGraphqlClient(userId, 'hydrate'))
+
+  const run = async (job: ClaimedJob): Promise<void> => {
+    switch (job.kind) {
+      case 'hydrate':
+        return runHydrate(job, clientFor(job.installationId))
+      case 'reconcile': {
+        const { projectId } = job.payload as unknown as ReconcilePayload
+        await reconcileProject(projectId, reconcileClientFor(job.installationId))
+        await syncBoardRoles(projectId, userClientFor)
+        return
+      }
+      case 'access': {
+        const boards = await prisma.gitHubProjectBinding.findMany({
+          where: { installationId: (job.payload as unknown as AccessPayload).installationId, detachedAt: null },
+          select: { projectId: true },
+        })
+        for (const { projectId } of boards) await syncBoardRoles(projectId, userClientFor)
+        return
+      }
+      default:
+        throw new Error(`Unknown sync job kind: ${job.kind}`)
+    }
+  }
 
   const due = await prisma.gitHubSyncJob.findMany({
     where: {
@@ -111,8 +175,7 @@ export async function drainSyncJobs(limit = 20, deps: DrainDeps = {}): Promise<D
   await Promise.all(
     claimed.map(async job => {
       try {
-        if (job.kind !== 'hydrate') throw new Error(`Unknown sync job kind: ${job.kind}`)
-        await runHydrate(job, clientFor(job.installationId))
+        await run(job)
         await prisma.gitHubSyncJob.update({
           where: { id: job.id },
           data: { doneAt: new Date(), lockedUntil: null, error: null },

@@ -17,6 +17,7 @@ import { join } from 'node:path'
 
 const db = vi.hoisted(() => ({
   gitHubSyncJob: { createMany: vi.fn(), findMany: vi.fn(), updateMany: vi.fn(), update: vi.fn() },
+  gitHubProjectBinding: { findMany: vi.fn() },
 }))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
 
@@ -26,9 +27,12 @@ const projects = vi.hoisted(() => ({
   removeProjectItem: vi.fn(async () => true),
 }))
 vi.mock('@/services/github-projects.service', () => projects)
-vi.mock('@/lib/github/graphql-clients', () => ({ installationGraphqlClient: vi.fn() }))
+vi.mock('@/lib/github/graphql-clients', () => ({ installationGraphqlClient: vi.fn(), userGraphqlClient: vi.fn() }))
 
-import { drainSyncJobs, enqueueHydrate } from '@/services/github-sync-jobs.service'
+const lifecycle = vi.hoisted(() => ({ reconcileProject: vi.fn(async () => ({})), syncBoardRoles: vi.fn(async () => ({})) }))
+vi.mock('@/services/github-projects-lifecycle.service', () => lifecycle)
+
+import { drainSyncJobs, enqueueDueReconciles, enqueueHydrate } from '@/services/github-sync-jobs.service'
 import { MAX_ATTEMPTS } from '@/lib/github/projects/jobs'
 import { createBudget, createGraphqlClient, memoryBudgetStore } from '@/lib/github/rate-limiter'
 
@@ -180,6 +184,41 @@ describe('drainSyncJobs (AWTD-1152)', () => {
       doneAt: null,
       runAfter: { lte: NOW },
       OR: [{ lockedUntil: null }, { lockedUntil: { lt: NOW } }],
+    })
+  })
+})
+
+describe('reconcile and access jobs (AWTD-1153)', () => {
+  it('a reconcile job reconciles on the reconcile-priority client (30% cap), then re-derives roles', async () => {
+    db.gitHubSyncJob.findMany.mockResolvedValue([{ id: 'r1', kind: 'reconcile', installationId: 5, attempts: 0, payload: { projectId: 'proj-1' } }])
+    const reconcileClient = { query: vi.fn() }
+    const reconcileClientFor = vi.fn(() => reconcileClient)
+    const userClientFor = vi.fn()
+
+    expect(await drainSyncJobs(20, { now: () => NOW, reconcileClientFor, userClientFor })).toMatchObject({ succeeded: 1 })
+    expect(reconcileClientFor).toHaveBeenCalledWith(5)
+    expect(lifecycle.reconcileProject).toHaveBeenCalledWith('proj-1', reconcileClient)
+    expect(lifecycle.syncBoardRoles).toHaveBeenCalledWith('proj-1', userClientFor)
+  })
+
+  it('an access job re-derives roles on every attached board of the installation', async () => {
+    db.gitHubSyncJob.findMany.mockResolvedValue([{ id: 'a1', kind: 'access', installationId: 5, attempts: 0, payload: { installationId: 5 } }])
+    db.gitHubProjectBinding.findMany.mockResolvedValue([{ projectId: 'p1' }, { projectId: 'p2' }])
+
+    await drainSyncJobs(20, { now: () => NOW, userClientFor: vi.fn() })
+    expect(db.gitHubProjectBinding.findMany.mock.calls[0][0].where).toEqual({ installationId: 5, detachedAt: null })
+    expect(lifecycle.syncBoardRoles).toHaveBeenCalledTimes(2)
+  })
+
+  it('enqueueDueReconciles: attached boards stale for an hour, one job per project per hour', async () => {
+    db.gitHubProjectBinding.findMany.mockResolvedValue([{ projectId: 'p1', installationId: 5 }])
+    db.gitHubSyncJob.createMany.mockResolvedValue({ count: 1 })
+
+    expect(await enqueueDueReconciles(NOW.getTime())).toBe(1)
+    expect(db.gitHubProjectBinding.findMany.mock.calls[0][0].where).toMatchObject({ detachedAt: null })
+    expect(db.gitHubSyncJob.createMany.mock.calls[0][0]).toEqual({
+      data: [{ kind: 'reconcile', installationId: 5, dedupeKey: `reconcile:p1:${Math.floor(NOW.getTime() / 3_600_000)}`, payload: { projectId: 'p1' } }],
+      skipDuplicates: true,
     })
   })
 })

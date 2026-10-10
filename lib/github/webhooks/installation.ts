@@ -22,6 +22,8 @@ import {
   type InstallationAccount,
   type InstallationRepoInput,
 } from '@/lib/github/installations'
+import { hasCapability } from '@/lib/brand/capabilities'
+import { detachInstallationBoards, reattachInstallationBoards } from '@/services/github-projects-lifecycle.service'
 
 const log = createLogger('github.webhooks.installation')
 
@@ -65,15 +67,20 @@ export async function handleInstallationEvent(payload: InstallationPayload): Pro
       if (repos?.length) await addInstallationRepos(installationId, repos.map(toRepoInput))
       return
     }
+    // GitHub Projects boards in the installation go read-only on uninstall and
+    // suspend, and are purged 30 days after an uninstall (AWTD-1153, §8.1).
     case 'deleted':
       await prisma.gitHubIntegration.deleteMany({ where: { installationId } })
       await deleteInstallation(installationId)
+      if (hasCapability('githubProjects')) await detachInstallationBoards(installationId)
       return
     case 'suspend':
       await setInstallationSuspended(installationId, true)
+      if (hasCapability('githubProjects')) await detachInstallationBoards(installationId)
       return
     case 'unsuspend':
       await setInstallationSuspended(installationId, false)
+      if (hasCapability('githubProjects')) await reattachInstallationBoards(installationId)
       return
   }
 }

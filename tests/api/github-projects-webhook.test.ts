@@ -26,8 +26,11 @@ vi.mock('@/lib/brand/capabilities', async importOriginal => {
 const projects = vi.hoisted(() => ({ boardsForProjectNodes: vi.fn() }))
 vi.mock('@/services/github-projects.service', () => projects)
 
-const queue = vi.hoisted(() => ({ enqueueHydrate: vi.fn(async () => true), drainSyncJobs: vi.fn(async () => ({ claimed: 0, succeeded: 0, failed: 0 })) }))
+const queue = vi.hoisted(() => ({ enqueueAccessRefresh: vi.fn(async () => true), enqueueHydrate: vi.fn(async () => true), drainSyncJobs: vi.fn(async () => ({ claimed: 0, succeeded: 0, failed: 0 })) }))
 vi.mock('@/services/github-sync-jobs.service', () => queue)
+
+const lifecycle = vi.hoisted(() => ({ deleteRemoteTask: vi.fn(async () => true) }))
+vi.mock('@/services/github-projects-lifecycle.service', () => lifecycle)
 
 const deferred = vi.hoisted(() => ({ jobs: [] as Array<() => Promise<unknown>> }))
 vi.mock('@/lib/background', () => ({ runAfterResponse: (_l: string, work: () => Promise<unknown>) => deferred.jobs.push(work) }))
@@ -35,7 +38,11 @@ vi.mock('@/lib/background', () => ({ runAfterResponse: (_l: string, work: () => 
 const delivery = vi.hoisted(() => ({ first: true }))
 vi.mock('@/lib/github/webhooks/issues', () => ({ firstDelivery: vi.fn(async () => delivery.first) }))
 
-import { handleProjectsV2ItemWebhook } from '@/lib/github/webhooks/projects'
+import {
+  handleIssueDeletedForProjects,
+  handleOrgAccessWebhook,
+  handleProjectsV2ItemWebhook,
+} from '@/lib/github/webhooks/projects'
 
 const payload = {
   action: 'edited',
@@ -126,5 +133,32 @@ describe('the App webhook route answers a GitHub Projects deployment (AWTD-1152)
     const { POST } = await import('@/app/api/github/webhooks/route')
     const res = await POST(new Request('https://x.example/api/github/webhooks', { method: 'POST', body: '{}' }) as never)
     expect(res.status).toBe(404)
+  })
+})
+
+describe('org access and issue deletion (AWTD-1153)', () => {
+  it('a member/membership/organization event refreshes the installation’s roles', async () => {
+    expect(await handleOrgAccessWebhook({ installation: { id: 7 } }, 'd1')).toBe(true)
+    expect(queue.enqueueAccessRefresh).toHaveBeenCalledWith(7)
+    expect(deferred.jobs).toHaveLength(1)
+  })
+
+  it('…and does nothing on Astrid', async () => {
+    caps.githubProjects = false
+    expect(await handleOrgAccessWebhook({ installation: { id: 7 } }, 'd1')).toBe(false)
+    expect(queue.enqueueAccessRefresh).not.toHaveBeenCalled()
+  })
+
+  it('issues.deleted deletes the mirrored task; other actions do not', async () => {
+    expect(await handleIssueDeletedForProjects({ action: 'deleted', issue: { node_id: 'I_kw' } })).toBe(true)
+    expect(lifecycle.deleteRemoteTask).toHaveBeenCalledWith('I_kw', 'system')
+    lifecycle.deleteRemoteTask.mockClear()
+    expect(await handleIssueDeletedForProjects({ action: 'closed', issue: { node_id: 'I_kw' } })).toBe(false)
+    expect(lifecycle.deleteRemoteTask).not.toHaveBeenCalled()
+  })
+
+  it('issue deletion is ignored on Astrid', async () => {
+    caps.githubProjects = false
+    expect(await handleIssueDeletedForProjects({ action: 'deleted', issue: { node_id: 'I_kw' } })).toBe(false)
   })
 })

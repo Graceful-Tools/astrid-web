@@ -13,11 +13,12 @@ import type { TaskBackend } from './types'
 /** The refusal's error code. Stable: clients match on it. */
 export const GITHUB_PROJECT_READ_ONLY = 'github_project_read_only'
 
-const refuse = async () => ({ ok: false as const, status: 403 as const, error: GITHUB_PROJECT_READ_ONLY })
+const refusal = { ok: false as const, status: 403 as const, error: GITHUB_PROJECT_READ_ONLY }
 
+/** GitHub's own news (ctx.origin 'remote') is accepted; an Astrid-side edit is refused. */
 export const githubProjectTaskBackend: TaskBackend = {
   kind: 'github_project',
-  createTask: refuse,
-  updateTask: refuse,
-  deleteTask: refuse,
+  createTask: async (ctx, data) => (ctx.origin === 'remote' ? { ok: true, value: data } : refusal),
+  updateTask: async (ctx, _taskId, data) => (ctx.origin === 'remote' ? { ok: true, value: data } : refusal),
+  deleteTask: async ctx => (ctx.origin === 'remote' ? { ok: true, value: undefined } : refusal),
 }

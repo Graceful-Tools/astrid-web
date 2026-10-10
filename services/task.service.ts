@@ -228,8 +228,9 @@ export async function deleteTaskWithSideEffects(args: {
   actorId: string
   /** Shown in the SSE payload; surfaces that have it can pass it. */
   actorName?: string
+  origin?: 'remote' // the remote backend deleted it, e.g. an issue deleted on GitHub
 }): Promise<{ deleted: boolean; audience: string[]; refused?: { status: number; error: string } }> {
-  const { taskId, actorId, actorName } = args
+  const { taskId, actorId, actorName, origin } = args
 
   // Read the audience while the relations still exist.
   const task = await prisma.task.findUnique({
@@ -256,7 +257,7 @@ export async function deleteTaskWithSideEffects(args: {
 
   // The owning backend first (spec §5.3), before anything is cancelled or
   // re-evaluated: a refusal must leave the task, and its agent, untouched.
-  const removal = await (await taskBackendFor(previousListIds)).deleteTask({ actorId }, taskId)
+  const removal = await (await taskBackendFor(previousListIds)).deleteTask({ actorId, origin }, taskId)
   if (!removal.ok) return { deleted: false, audience: [], refused: { status: removal.status, error: removal.error } }
 
   // Who was waiting on this task — read BEFORE the delete, because the
@@ -275,10 +276,9 @@ export async function deleteTaskWithSideEffects(args: {
   // A deleted blocker is one fewer blocker: its dependents may now be free.
   await deps.reevaluateBlockedTasks({ taskIds: dependentTaskIds, actorId }).catch(() => {})
 
-  // Everything below is best-effort: the row is already gone. try/await rather
-  // than .catch() so a caller that stubs these with a plain function — as a
-  // test reasonably might — does not turn a swallowed failure into a thrown
-  // TypeError on `undefined.catch`.
+  // Everything below is best-effort: the row is already gone. try/await, not .catch(),
+  // so a caller stubbing these with a plain function (as a test might) does not
+  // turn a swallowed failure into a thrown TypeError on `undefined.catch`.
   try {
     await recordDeletion('task', taskId, audience)
   } catch {

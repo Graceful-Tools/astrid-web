@@ -15,7 +15,11 @@ import {
   handleInstallationRepositoriesEvent,
 } from '@/lib/github/webhooks/installation'
 import { handleIssuesWebhook } from '@/lib/github/webhooks/issues'
-import { handleProjectsV2ItemWebhook } from '@/lib/github/webhooks/projects'
+import {
+  handleIssueDeletedForProjects,
+  handleOrgAccessWebhook,
+  handleProjectsV2ItemWebhook,
+} from '@/lib/github/webhooks/projects'
 
 const log = createLogger('api.github.webhooks')
 
@@ -80,6 +84,11 @@ webhooks?.on(['issues', 'issue_comment'], ({ id, name, payload }) =>
 webhooks?.on('projects_v2_item', ({ id, payload }) =>
   handleProjectsV2ItemWebhook(payload as never, id).then(() => undefined)
 )
+// Roles follow org membership; a deleted issue takes its task (AWTD-1153).
+webhooks?.on(['member', 'membership', 'organization'], ({ id, payload }) =>
+  handleOrgAccessWebhook(payload as never, id).then(() => undefined)
+)
+webhooks?.on('issues', ({ payload }) => handleIssueDeletedForProjects(payload as never).then(() => undefined))
 
 /**
  * Handle pull request events

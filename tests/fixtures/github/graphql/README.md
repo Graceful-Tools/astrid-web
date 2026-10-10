@@ -11,6 +11,9 @@ since a recording is what proves the fragment is valid against GitHub's schema.
 | `project-items-page.json` | items page | Open issue in Todo, issue closed as not planned (Done), draft in progress. Includes the fieldless `ProjectV2ItemFieldRepositoryValue`. |
 | `hydrate-item-draft.json` | one item | The draft by item id |
 | `hydrate-item-missing.json` | one item | An unknown id returns `node: null` with a NOT_FOUND error beside partial data |
+| `org-projects.json` | org projects | The org's projects, for the bind wizard's list |
+| `project-schema.json` | project fields | Status, an option-less Priority, Size, Estimate, dates, and more |
+| `viewer-permissions.json` | viewer role | `viewerCanUpdate` / `viewerCanClose` (recorded as the App, so admin) |
 | `binding-graceful-fools.json` | none | The binding a bind wizard would store for that project's Status field |
 
 The items are `Graceful-Fools/wordlesolver#1` and `#2` and one draft, all titled

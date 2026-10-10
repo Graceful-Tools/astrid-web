@@ -1,0 +1,14 @@
+{
+  "data": {
+    "node": {
+      "id": "PVT_kwDOFEb-HM4BmXS2",
+      "viewerCanUpdate": true,
+      "viewerCanClose": true
+    },
+    "rateLimit": {
+      "cost": 1,
+      "remaining": 4986,
+      "resetAt": "2026-10-10T14:41:11Z"
+    }
+  }
+}

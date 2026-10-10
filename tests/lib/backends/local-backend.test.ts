@@ -49,6 +49,17 @@ describe('taskBackendFor (AWTD-1151)', () => {
 })
 
 describe('githubProjectTaskBackend — read-only in P4 (AWTD-1151)', () => {
+  it.each(['createTask', 'updateTask', 'deleteTask'] as const)('accepts %s that came FROM GitHub (AWTD-1153)', async method => {
+    const ctx = { actorId: 'u', origin: 'remote' as const }
+    const call =
+      method === 'createTask'
+        ? githubProjectTaskBackend.createTask(ctx, { title: 'x' })
+        : method === 'updateTask'
+          ? githubProjectTaskBackend.updateTask(ctx, 't', { title: 'x' })
+          : githubProjectTaskBackend.deleteTask(ctx, 't')
+    await expect(call).resolves.toMatchObject({ ok: true })
+  })
+
   it.each(['createTask', 'updateTask', 'deleteTask'] as const)('refuses %s with a typed 403', async method => {
     const call =
       method === 'createTask'

@@ -1340,8 +1340,36 @@ recordings.
 - **Not handled yet:** `projects_v2` events (project closed or deleted, fields edited)
   are ignored until P4e's reconcile.
 
-The remaining slices: [AWTD-1153](https://astrid.cc/t/AWTD-1153) reconcile, roles and uninstall ·
-[AWTD-1154](https://astrid.cc/t/AWTD-1154) the live smoke test.
+**P4e ([AWTD-1153](https://astrid.cc/t/AWTD-1153)), done.** What was built, in
+`services/github-projects-lifecycle.service.ts`:
+- **Reconcile** pages the whole project on the `reconcile` priority, so it stays under
+  the 30% cap. An item Astrid holds that GitHub didn't list is checked by id, and
+  leaves only if GitHub confirms it's gone. That replaces "missing from two
+  reconciles": one direct question is stronger, and it needs no counter column.
+  A killed webhook is healed by the next pass (tested).
+- **Scheduling.** The per-minute cron enqueues a reconcile for every attached board
+  not reconciled in the last hour, one job per project per hour.
+- **Redelivery.** Failed webhook deliveries from the last two hours are redelivered
+  hourly, once each (`lib/github/redeliver.ts`).
+- **Roles** come from each user's own token: `viewerCanClose` maps to admin,
+  `viewerCanUpdate` to member, visible to viewer, and not visible to removed.
+  - They go through `list-member.service`, so the usual events and caches follow.
+  - The board owner is never touched.
+  - A user whose GitHub token can't be used keeps their membership as it is.
+  - Roles are refreshed after each reconcile and on `member`, `membership` and
+    `organization` events, coalesced to one refresh per installation per 10 min.
+  - Not yet refreshed at sign-in. The hourly reconcile covers that gap.
+- **Deletion.** `issues.deleted` deletes the mirrored task through
+  `deleteTaskWithSideEffects`. It passes `origin: 'remote'`, which the GitHub
+  backend accepts as GitHub's own news, so the tombstone, SSE and caches all follow.
+- **Uninstall and suspend.** Both set `GitHubProjectBinding.detachedAt`, an additive
+  migration, and unsuspend clears it.
+  - 30 days after an **uninstall** (installation row gone), the hourly cron purges the
+    board: its list, its project, and the mirrored tasks on no other list.
+  - A suspended board is never purged.
+  - A task someone also put on a personal list is kept.
+
+The remaining slice: [AWTD-1154](https://astrid.cc/t/AWTD-1154) the live smoke test.
 
 ### P5–P8 — write-through, fields, recurrence, per-org SSO, brand: not started
 
