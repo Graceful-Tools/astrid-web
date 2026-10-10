@@ -26,8 +26,9 @@ Insights was collecting the numbers — see below.
 | Initial JavaScript | <= 250 KiB compressed | shared baseline only — see below | 2026-09-11 |
 | Core Web Vitals (p75) | LCP <= 2.5 s; INP <= 200 ms; CLS <= 0.1 | Vercel Speed Insights (history, dashboard only) + `scripts/measure-web-vitals.ts` (scriptable, no history yet) — see below | **not yet transcribed** |
 | GitHub Projects webhook ack | p95 <= 300 ms (delivery check, one indexed read, one insert; work runs after the response) | `vercel logs --query projects_v2_item` route timings; shape pinned by `tests/api/github-projects-webhook.test.ts` (AWTD-1152) | **never — no brand has GitHub Projects on yet** |
-| GitHub Projects edit → replica | p95 <= 10 s from a github.com edit to the Astrid row | P4f live smoke test against the Graceful-Fools test org (AWTD-1154) | **never — measured in P4f** |
-| GitHub Projects apply | <= 2 reads per 100-item page, no N+1 | `tests/services/github-projects-service.test.ts` pins the read count (AWTD-1151) | pinned continuously |
+| GitHub Projects edit → replica | p95 <= 10 s from a github.com edit to the Astrid row | `npm run test:live:github-projects` (AWTD-1154) measures edit → hydrate job → replica; the webhook leg needs a deployed GitHub-Projects brand | 2026-10-10: **~1.0–1.2 s** for edit → hydrate → replica, webhook leg excluded (one run, not a p95) |
+| GitHub Projects apply | <= 4 queries per item event; no N+1 | `tests/services/github-projects-service.test.ts` pins the reads (AWTD-1151); `npm run test:live:github-projects` counts real queries (AWTD-1154) | 2026-10-10: **3** for one changed item; an import page is **25 fixed + 0 per item**, so 0.25 per item at 100-item pages |
+| GitHub Projects initial import | 2,000-item project <= 5 min | `npm run test:live:github-projects` (AWTD-1154) | 2026-10-10: 3 items in ~0.6 s. **2,000 not yet measured**: GitHub's content-creation caps make seeding 2,000 items a multi-hour job |
 | GitHub reconcile share | <= 30% of an installation's hourly GraphQL budget | `admit()` in `lib/github/rate-limiter.ts`, table-tested (AWTD-1150) | pinned continuously |
 
 ## Compressed or decoded: say which, or the budget means nothing
