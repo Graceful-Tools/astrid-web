@@ -1263,7 +1263,26 @@ Not done, and why:
   those events on GitHub.
 - **The Connections → GitHub settings card.**
 
-### P4–P8 — the Projects backend, fields, recurrence, per-org SSO, brand: not started
+### P4 — the Projects backend: in progress, split into P4a–P4f
+
+**P4a ([AWTD-1149](https://astrid.cc/t/AWTD-1149)), done.** The §8.5 tables and columns,
+in an additive migration, and `lib/github/projects/apply.ts`: pure
+`normaliseItem → diffTask → planItemApply`, tested from `tests/fixtures/github/project-items/`.
+As built:
+- Ids are `Int`, as in §7.2.
+- `Estimate` stays a project field (P6a), because Task has no estimate column.
+- An unmapped Status option lands in Inbox until the binding learns it.
+- A PR closed unmerged is `completed` with `closedReason: 'canceled'`.
+- Every plan costs at most 2 queries.
+
+The fixtures are hand-written against GitHub's schema until P4b records real ones.
+
+The remaining slices: [AWTD-1150](https://astrid.cc/t/AWTD-1150) hydration and rate limits ·
+[AWTD-1151](https://astrid.cc/t/AWTD-1151) bind and import · [AWTD-1152](https://astrid.cc/t/AWTD-1152)
+the job queue and webhooks · [AWTD-1153](https://astrid.cc/t/AWTD-1153) reconcile, roles and uninstall ·
+[AWTD-1154](https://astrid.cc/t/AWTD-1154) the live smoke test.
+
+### P5–P8 — write-through, fields, recurrence, per-org SSO, brand: not started
 
 These need, in order:
 1. A decision to apply the additive schema in §4/§8.5/§9.4.1 at a deploy.

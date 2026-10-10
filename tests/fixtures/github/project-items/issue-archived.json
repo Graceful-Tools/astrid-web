@@ -1,0 +1,19 @@
+{
+  "id": "PVTI_archived",
+  "isArchived": true,
+  "type": "ISSUE",
+  "updatedAt": "2026-10-10T09:50:00Z",
+  "content": {
+    "__typename": "Issue",
+    "id": "I_kwDOAcme007",
+    "number": 47,
+    "title": "Old chore",
+    "body": "",
+    "url": "https://github.com/Graceful-Fools/wordlesolver/issues/47",
+    "state": "OPEN",
+    "stateReason": null,
+    "updatedAt": "2026-10-01T00:00:00Z",
+    "repository": { "nameWithOwner": "Graceful-Fools/wordlesolver" }
+  },
+  "fieldValues": { "nodes": [] }
+}
