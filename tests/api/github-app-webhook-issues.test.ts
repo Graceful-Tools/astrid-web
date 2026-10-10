@@ -41,7 +41,7 @@ vi.mock('@/lib/brand/capabilities', async importOriginal => {
 import { mockPrisma } from '../setup'
 import { POST } from '@/app/api/github/webhooks/route'
 
-function signed(event: string, payload: unknown, delivery = crypto.randomUUID()) {
+function signed(event: string, payload: unknown, delivery: string = crypto.randomUUID()) {
   const body = JSON.stringify(payload)
   const signature = 'sha256=' + crypto.createHmac('sha256', SECRET).update(body).digest('hex')
   const headers = new Map([
