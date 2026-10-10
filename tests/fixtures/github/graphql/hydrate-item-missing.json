@@ -1,0 +1,25 @@
+{
+  "data": {
+    "node": null,
+    "rateLimit": {
+      "cost": 1,
+      "remaining": 4991,
+      "resetAt": "2026-10-10T14:41:11Z"
+    }
+  },
+  "errors": [
+    {
+      "type": "NOT_FOUND",
+      "path": [
+        "node"
+      ],
+      "locations": [
+        {
+          "line": 3,
+          "column": 3
+        }
+      ],
+      "message": "Could not resolve to a node with the global id of 'PVTI_lADOFEb-HM4BmXS2zg_doesnotexist'"
+    }
+  ]
+}

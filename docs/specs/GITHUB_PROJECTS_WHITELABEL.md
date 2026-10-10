@@ -1275,10 +1275,26 @@ As built:
 - A PR closed unmerged is `completed` with `closedReason: 'canceled'`.
 - Every plan costs at most 2 queries.
 
-The fixtures are hand-written against GitHub's schema until P4b records real ones.
+The fixtures are hand-written against GitHub's schema. P4b checked them against real
+recordings.
 
-The remaining slices: [AWTD-1150](https://astrid.cc/t/AWTD-1150) hydration and rate limits ·
-[AWTD-1151](https://astrid.cc/t/AWTD-1151) bind and import · [AWTD-1152](https://astrid.cc/t/AWTD-1152)
+**P4b ([AWTD-1150](https://astrid.cc/t/AWTD-1150)), done.** What was built:
+- `lib/github/projects/hydrate.ts` has the single item fragment, used by both the
+  one-item query and the 100-item page query, and each asks for `rateLimit`.
+- `lib/github/rate-limiter.ts`:
+  - `admit()` gives each priority a share of the hourly budget: a person's write 100%,
+    hydration 90%, reconcile 30%. Reconcile's share counts only its own spend.
+  - Usage is counted per bucket per hour in Redis. GitHub's reported `remaining`
+    overrides that count.
+  - A secondary limit is waited out twice, then reported. Every call has a 15s timeout.
+- No new dependency. Octokit's throttling plugin isn't installed, so the limiter reads
+  GitHub's headers itself.
+- The tests replay **real responses** recorded from the Graceful-Fools test project into
+  `tests/fixtures/github/graphql/`, so the fragment is proven against GitHub's schema. A
+  recorded page goes through P4a's `normaliseItem` to the expected tasks.
+- The items stay in the test project for P4f: `wordlesolver#1` and `#2`, plus one draft.
+
+The remaining slices: [AWTD-1151](https://astrid.cc/t/AWTD-1151) bind and import · [AWTD-1152](https://astrid.cc/t/AWTD-1152)
 the job queue and webhooks · [AWTD-1153](https://astrid.cc/t/AWTD-1153) reconcile, roles and uninstall ·
 [AWTD-1154](https://astrid.cc/t/AWTD-1154) the live smoke test.
 

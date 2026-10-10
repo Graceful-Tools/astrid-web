@@ -1,0 +1,41 @@
+{
+  "data": {
+    "node": {
+      "id": "PVTI_lADOFEb-HM4BmXS2zg_2m3Y",
+      "isArchived": false,
+      "type": "DRAFT_ISSUE",
+      "updatedAt": "2026-10-10T13:41:52Z",
+      "content": {
+        "__typename": "DraftIssue",
+        "id": "DI_lADOFEb-HM4BmXS2zgLVgc8",
+        "title": "[Astrid sync fixture] Draft in progress",
+        "body": "A draft: no repository, no number.",
+        "updatedAt": "2026-10-10T13:41:45Z"
+      },
+      "fieldValues": {
+        "nodes": [
+          {
+            "__typename": "ProjectV2ItemFieldTextValue",
+            "text": "[Astrid sync fixture] Draft in progress",
+            "field": {
+              "id": "PVTF_lADOFEb-HM4BmXS2zhlApMU"
+            }
+          },
+          {
+            "__typename": "ProjectV2ItemFieldSingleSelectValue",
+            "optionId": "47fc9ee4",
+            "name": "In progress",
+            "field": {
+              "id": "PVTSSF_lADOFEb-HM4BmXS2zhlApMc"
+            }
+          }
+        ]
+      }
+    },
+    "rateLimit": {
+      "cost": 1,
+      "remaining": 4992,
+      "resetAt": "2026-10-10T14:41:11Z"
+    }
+  }
+}
