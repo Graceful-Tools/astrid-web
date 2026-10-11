@@ -6,7 +6,7 @@
  * of them, plus 30 more the next day — and the loop worked ONE task in 48
  * ticks. Nothing was posted to the board the whole time: guard 1 echoed
  * `RESULT: SKIPPED` and exited without touching STUCK_FILE, so
- * skip_guard2's alert could never fire for it. The longest outage class the
+ * the tracker's alert (then named skip_guard2) could never fire for it. The
  * loop has was the one class it never reported, and the only reason anyone
  * found out was that the queue felt slow two days later.
  *
