@@ -231,6 +231,60 @@ session's edits as its own WIP and checked out `main` (AWTD-1095). The loop is m
 careful now: it skips when `main` has unpushed commits, and it never moves a dirty `main`.
 But a lock-free session stays invisible to it whenever its tree happens to be clean.
 
+### Why a tick does not run (AWTD-1207)
+
+A skip exits 0 and reads as healthy, so an idle loop and a muted one look identical
+in the log. Count the outcomes before concluding anything:
+
+```bash
+grep -c "fixall loop (web)" ~/Library/Logs/astrid-fixall-web.log   # ticks that fired
+grep "RESULT:" ~/Library/Logs/astrid-fixall-web.log | sort | uniq -c | sort -rn
+```
+
+48 ticks a day is the full count (`:20` and `:50`). Three guards can refuse one, and all
+three now report through the same tracker: after `FIXALL_STUCK_ALERT_MINUTES` (default
+120) of unbroken skips the loop posts to the board chat once, and the marker clears as
+soon as a tick reaches the queue.
+
+| Guard | Skips when | Knob |
+|-------|------------|------|
+| 1 — one session per tree | another **live** session holds the lock | take the lock, and release it when you stop |
+| 2 — never clobber work | tree dirty, off `main`, or `main` ahead of origin | `FIXALL_FORCE=1` (testing only) |
+| 2b — machine buried | 5-minute load average over cores × 4 | `FIXALL_MAX_LOAD`, `FIXALL_MAX_LOAD_PER_CPU` |
+
+Guard 2b exists because a run needs a green `npm run predeploy` to finish a task, and on
+2026-10-10 two runs could not get one: predeploy went red twice on test timeouts in
+unrelated files with the load average over 120, and each red run auto-filed a failure
+task for nothing. The iOS loop's simulator suite and two self-hosted Actions runners
+share this Mac.
+
+**An age cap on the lock is not the fix for guard 1.** `scripts/lib/fixall-session-lock.ts`
+decides staleness by liveness on purpose — a lock that expires under a session that is
+genuinely working is worse than no lock. The 2026-10-09 holder was live for all 15½ hours
+it held the tree. The alert is the fix; releasing the lock when you stop working is the
+other half.
+
+### Sleep is the other half, and it is a machine setting
+
+A run that has started holds `caffeinate -i -m -w <pid>` for exactly as long as it lives,
+so idle sleep cannot kill it mid-task. Nothing in the repo can wake a Mac for a tick that
+has **not** started: on 2026-10-07 only 30 of 48 ticks fired and on 2026-10-08 only 38,
+whole hours missing while the machine slept. launchd does not backfill a missed
+`StartCalendarInterval`; it fires once on wake and carries on.
+
+Two machine-level steps close that gap — both are Jon's call, neither belongs in a script:
+
+```bash
+sudo pmset repeat wakeorpoweron MTWRFSU 07:15:00   # one daily wake before the morning ticks
+pmset -g sched                                     # confirm it
+```
+
+`pmset repeat` holds exactly one repeating event, so this recovers the morning window
+rather than all 48 ticks. For full coverage the Mac must not idle-sleep at all: on AC,
+System Settings → Battery → Options → "Prevent automatic sleeping on power adapter when
+the display is off". With the lid closed on battery, nothing — `caffeinate` included —
+keeps it awake.
+
 Present tasks, ask which to work on, then implement. Run `npm run predeploy` **after**
 implementation, not before. Follow the per-task coding workflow in
 [ASTRID.md](../ASTRID.md) (strategy comment → RED-GREEN TDD → verify → fix-summary comment).
