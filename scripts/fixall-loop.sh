@@ -119,7 +119,7 @@ skip_tracked() {
 # ── Guard 1: one session per working tree ────────────────────────────────────
 # Cheap by design: no Claude session is started just to discover the tree is
 # busy. Also backs off correctly when Jon is running /fixall interactively.
-"$TSX" scripts/fixall-session.ts acquire --pid $$ --harness claude-code
+"$TSX" scripts/fixall-session.ts acquire --pid $$ --harness claude-code --scheduled
 LOCK_STATUS=$?
 if [ "$LOCK_STATUS" -eq 2 ]; then
   skip_tracked "another live session holds this checkout"
@@ -144,6 +144,27 @@ export ASTRID_FIXALL_LOCK_HELD=1
 # with a ~10-minute predeploy each do not fit the 50m watchdog: on 2026-09-27 the
 # 16:20 run was killed partway into its first task. The next tick takes the next.
 export ASTRID_FIXALL_MAX_TASKS="${FIXALL_MAX_TASKS:-1}"
+
+# ── Guard 1b: stand down while someone is working ────────────────────────────
+# The lock above is per WORKING TREE; contention is per MACHINE. On 2026-10-11 a
+# session worked astrid-web while the iOS loop ran a simulator suite and this
+# loop ran predeploy: the 5-minute load average peaked over 890, and that is how
+# a run ends up red on test timeouts in files that pass alone (AWTD-1192,
+# AWTD-1197). So an interactive `fixall-session.ts acquire` in ANY repo on this
+# Mac stands both loops down, and `npm run fixall:pause` covers the work no
+# session knows about — plain Xcode, a manual build (AWTD-1212).
+#
+# Through skip_tracked, so a pause nobody lifts is announced on the board like
+# any other long skip. An unreadable pause state runs the tick anyway: a loop
+# that stalls on a bad file is a worse outage than one run too many, which is
+# the same call guard 2b makes about an unreadable load.
+YIELD_OUT=$("$TSX" scripts/fixall-pause.ts yield --self-pid $$ 2>&1)
+YIELD_STATUS=$?
+if [ "$YIELD_STATUS" -eq 2 ]; then
+  skip_tracked "$YIELD_OUT"
+elif [ "$YIELD_STATUS" -ne 0 ]; then
+  echo "  ⚠️  could not read the pause state, running anyway: $YIELD_OUT"
+fi
 
 # ── Guard 2: never clobber work in progress ──────────────────────────────────
 # /fixstuff takes no lock, so an interactive session editing files here is
