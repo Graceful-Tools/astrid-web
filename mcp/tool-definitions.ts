@@ -20,6 +20,7 @@ import { MIN_TASK_PRIORITY, MAX_TASK_PRIORITY } from "../lib/task-priority"
 // Declared beside their handler (AWTD-1086); listed here so this stays the one
 // array every surface advertises.
 import { BLOCKER_TOOLS } from "./blockers"
+import { ATTACHMENT_TOOLS } from "./task-attachments"
 
 export const OAUTH_MCP_TOOLS = [
       {
@@ -333,4 +334,5 @@ export const OAUTH_MCP_TOOLS = [
         },
       },
       ...BLOCKER_TOOLS,
+      ...ATTACHMENT_TOOLS,
 ] as const

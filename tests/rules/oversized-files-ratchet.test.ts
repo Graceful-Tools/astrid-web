@@ -52,7 +52,7 @@ const BUDGETS: Record<string, number> = {
   // next change to this file should still take something out.
   'components/task-detail.tsx': 1591,
   'lib/ai-orchestrator.ts': 1547,
-  'components/TaskManagerView.tsx': 1212,
+  'components/TaskManagerView.tsx': 1207,
   // 1125 → 1115: the list header's two buttons moved to ListHeaderActions
   // when Sort & Filters gained its own control (task aa4e7eb0).
   // 1115 → 1100: the board-row context memos moved to useBoardRowContext (AWTD-1025).
@@ -146,7 +146,7 @@ const BUDGETS: Record<string, number> = {
   // followed into mcp/task-schemas.ts. Smaller than before the feature again.
   // 564 → 553: AWTD-1086's blocker tools live in mcp/blockers.ts behind one
   // dispatch line, and getTaskComments lost its hand-rolled JSON wrapper.
-  'mcp/mcp-server-oauth.ts': 553,
+  'mcp/mcp-server-oauth.ts': 552,
   // 919 → 901: task 10f26dc6 added a card explaining when a manual client is
   // needed at all. Both that card and GRANT_TYPE_OPTIONS — the same question,
   // asked as a form field — moved to components/oauth-client-guide.tsx.

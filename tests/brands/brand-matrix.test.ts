@@ -117,6 +117,13 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     vi.resetModules()
   })
 
+  it('enables no capability without the one it depends on (AWTD-1121)', async () => {
+    // The check instrumentation.ts makes at server start: a profile that fails it
+    // here would be a deployment that refuses to boot.
+    const { assertCoherentCapabilities } = await import('@/lib/brand/capabilities')
+    expect(() => assertCoherentCapabilities()).not.toThrow()
+  })
+
   it('derives the expected brand values', async () => {
     const { BRAND, brandOrigin } = await import('@/lib/brand/config')
 

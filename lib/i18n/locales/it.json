@@ -9,7 +9,9 @@
     "seeAllCollaborative": "Vedi tutte le liste collaborative →",
     "seeAllSuggested": "Vedi tutte le liste suggerite →",
     "hideSidebar": "Nascondi barra laterale",
-    "showSidebar": "Mostra barra laterale"
+    "showSidebar": "Mostra barra laterale",
+    "hideMessages": "Nascondi messaggi",
+    "showMessages": "Mostra messaggi"
   },
   "userMenu": {
     "settings": "Impostazioni",
@@ -1018,7 +1020,16 @@
     "keyInvalid": "Da {min} a {max} lettere o cifre, iniziando con una lettera",
     "keyRename": "Rinomina",
     "keyRenameHint": "Le attività diventano {next}; {old} continua a funzionare",
-    "keyRenameFailed": "Impossibile rinominare il prefisso"
+    "keyRenameFailed": "Impossibile rinominare il prefisso",
+    "createBoard": "Crea bacheca",
+    "creatingBoard": "Creazione...",
+    "createBoardFailed": "Impossibile creare la bacheca",
+    "disableBoard": "Disattiva bacheca",
+    "disablingBoard": "Disattivazione...",
+    "disableBoardFailed": "Impossibile disattivare la bacheca",
+    "disableBoardTitle": "Disattiva la vista bacheca",
+    "disableBoardBody": "Le attività restano in questa lista, ma le colonne Ready/Doing/Waiting verranno rimosse.",
+    "disableBoardNote": "Le attività in una colonna di stato perderanno il loro stato. Le attività completate restano completate."
   },
   "listSettings": {
     "color": {
