@@ -218,10 +218,21 @@ if [ "${FIXALL_FORCE:-0}" != "1" ]; then
   # must not be silent either, or the guard is indistinguishable from one that
   # looked and found the machine idle. That silence is what made the first CI
   # failure unreadable: the whole output was "FELL THROUGH".
-  if [ -z "$LOAD_5M" ] || [ -z "$MAX_LOAD" ]; then
+  # SHELL INTEGER COMPARISON, NOT awk. `awk 'BEGIN { exit !(load > max) }'`
+  # decided this on macOS and decided it the other way under mawk on Linux CI,
+  # silently — same inputs, opposite answer, and the only output was the
+  # fall-through. A threshold of "cores x 4" does not need the fraction, so drop
+  # it and compare integers, which every shell does identically.
+  LOAD_INT="${LOAD_5M%%.*}"
+  if [ -z "$LOAD_5M" ] || [ -z "$MAX_LOAD" ] || ! [ "$LOAD_INT" -ge 0 ] 2>/dev/null; then
     echo "  ⚠️  could not read the load from $SYSCTL (load='$LOAD_5M' cores='$NCPU') — not guarding this tick"
-  elif awk -v load="$LOAD_5M" -v max="$MAX_LOAD" 'BEGIN { exit !(load > max) }'; then
+  elif [ "$LOAD_INT" -gt "$MAX_LOAD" ]; then
     skip_tracked "machine is buried — 5-minute load $LOAD_5M is over $MAX_LOAD, so predeploy would time out"
+  else
+    # Said out loud, so a tick that ran past this guard is distinguishable in the
+    # log from one where the guard could not look. Being blind here cost two CI
+    # round-trips.
+    echo "  load ok — 5-minute average $LOAD_5M against a budget of $MAX_LOAD"
   fi
 fi
 

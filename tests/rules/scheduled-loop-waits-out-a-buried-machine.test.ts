@@ -77,7 +77,22 @@ describe('the scheduled loop waits out a buried machine', () => {
 
   it('ignores a 1-minute spike — only a sustained load blocks a run', () => {
     sysctl('{ 101.13 5.00 4.00 }')
-    expect(run()).toContain('FELL THROUGH')
+    const out = run()
+    expect(out).toContain('FELL THROUGH')
+    // Says what it compared. Without this the first two CI failures printed
+    // nothing but "FELL THROUGH", which cannot distinguish "looked and the box
+    // was idle" from "could not look at all" — and the real cause was neither.
+    expect(out).toMatch(/load ok — 5-minute average 5\.00 against a budget of 32/)
+  })
+
+  it('decides it in the shell, not in awk', () => {
+    // `awk 'BEGIN { exit !(load > max) }'` answered one way on macOS and the
+    // other under mawk on Linux CI, with the same inputs and no output either
+    // way. The threshold does not need the fraction.
+    const loop = readFileSync(join(process.cwd(), 'scripts/fixall-loop.sh'), 'utf8')
+    const block = loop.slice(loop.indexOf('# ── Guard 2b'), loop.indexOf('rm -f "$STUCK_FILE"'))
+    expect(block).toMatch(/\[ "\$LOAD_INT" -gt "\$MAX_LOAD" \]/)
+    expect(block).not.toMatch(/awk -v load/)
   })
 
   it('scales the budget to the machine, not to a fixed number', () => {
