@@ -1018,7 +1018,16 @@
     "keyInvalid": "{min}–{max} Buchstaben oder Ziffern, beginnend mit einem Buchstaben",
     "keyRename": "Umbenennen",
     "keyRenameHint": "Aufgaben werden zu {next}; {old} funktioniert weiter",
-    "keyRenameFailed": "Präfix konnte nicht umbenannt werden"
+    "keyRenameFailed": "Präfix konnte nicht umbenannt werden",
+    "createBoard": "Board erstellen",
+    "creatingBoard": "Wird erstellt...",
+    "createBoardFailed": "Board konnte nicht erstellt werden",
+    "disableBoard": "Board deaktivieren",
+    "disablingBoard": "Wird deaktiviert...",
+    "disableBoardFailed": "Board konnte nicht deaktiviert werden",
+    "disableBoardTitle": "Board-Ansicht deaktivieren",
+    "disableBoardBody": "Die Aufgaben bleiben in dieser Liste, aber die Spalten Ready/Doing/Waiting werden entfernt.",
+    "disableBoardNote": "Aufgaben in einer Statusspalte verlieren ihren Status. Erledigte Aufgaben bleiben erledigt."
   },
   "listSettings": {
     "color": {

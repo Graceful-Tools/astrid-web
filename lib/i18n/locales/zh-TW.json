@@ -1018,7 +1018,16 @@
     "keyInvalid": "{min}–{max} 個字母或數字，以字母開頭",
     "keyRename": "重新命名",
     "keyRenameHint": "任務將變為 {next}；{old} 仍然有效",
-    "keyRenameFailed": "無法重新命名前綴"
+    "keyRenameFailed": "無法重新命名前綴",
+    "createBoard": "建立看板",
+    "creatingBoard": "正在建立...",
+    "createBoardFailed": "無法建立看板",
+    "disableBoard": "停用看板",
+    "disablingBoard": "正在停用...",
+    "disableBoardFailed": "無法停用看板",
+    "disableBoardTitle": "停用看板檢視",
+    "disableBoardBody": "任務會保留在此清單中，但 Ready/Doing/Waiting 欄將被移除。",
+    "disableBoardNote": "位於狀態欄中的任務將失去其狀態。已完成的任務仍為已完成。"
   },
   "listSettings": {
     "color": {
