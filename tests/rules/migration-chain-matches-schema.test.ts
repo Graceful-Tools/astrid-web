@@ -13,13 +13,18 @@
  *   3. SecureFile.chatMessageId — column, index and foreign key — was in no
  *      migration at all.
  *
- * Production matched the SCHEMA on all three (read from its catalog on
+ * The first real replay then found two more nobody had listed: GitHubIntegration
+ * was unique on userId alone in the chain and on (userId, installationId) in
+ * the schema, and Comment's (parentCommentId, createdAt) index had no migration.
+ *
+ * Production matched the SCHEMA on every one (read from its catalog on
  * 2026-10-11), so the chain was the side that was wrong. That matters because
  * `prisma migrate dev` offers to "repair" a difference like this, and the
  * repair it writes is derived from whichever side it trusts.
  *
  * This is the half that runs without a database: it pins those three so the
- * reconciling migration cannot be dropped or half-reverted. The real check —
+ * reconciling migration cannot be dropped or half-reverted (the "three" above
+ * are five here). The real check —
  * `prisma migrate diff --exit-code` against a migrated Postgres — lives in
  * tests/integration/postgres-risk.test.ts and runs in CI, where it catches the
  * next drift whatever it turns out to be.
@@ -76,6 +81,22 @@ describe('the migration chain creates what schema.prisma declares (AWTD-1199)', 
     )
     expect(chain).toMatch(
       /ADD CONSTRAINT "SecureFile_chatMessageId_fkey" FOREIGN KEY \("chatMessageId"\) REFERENCES ("public"\.)?"ChatMessage"\("id"\) ON DELETE CASCADE ON UPDATE CASCADE/,
+    )
+  })
+
+  it('makes GitHubIntegration unique per (userId, installationId), not per user', () => {
+    const created = lastIndexOfPattern(/CREATE UNIQUE INDEX (IF NOT EXISTS )?"GitHubIntegration_userId_key"/)
+    const dropped = lastIndexOfPattern(/DROP INDEX (IF EXISTS )?("public"\.)?"GitHubIntegration_userId_key"/)
+
+    expect(dropped).toBeGreaterThan(created)
+    expect(chain).toMatch(
+      /CREATE UNIQUE INDEX (IF NOT EXISTS )?"GitHubIntegration_userId_installationId_key" ON ("public"\.)?"GitHubIntegration"\("userId", "installationId"\)/,
+    )
+  })
+
+  it('creates the Comment (parentCommentId, createdAt) index', () => {
+    expect(chain).toMatch(
+      /CREATE INDEX (IF NOT EXISTS )?"Comment_parentCommentId_createdAt_idx" ON ("public"\.)?"Comment"\("parentCommentId", "createdAt"\)/,
     )
   })
 })

@@ -2,7 +2,7 @@
 -- describes — and what production already has.
 --
 -- `prisma migrate diff` between a freshly migrated database and schema.prisma
--- was not empty: three changes had reached production by another route (db
+-- was not empty: five changes had reached production by another route (db
 -- push, or SQL run by hand) and the schema was updated to match while no
 -- migration was written. Production's catalog was read on 2026-10-11 and agrees
 -- with the schema on every one, so the chain is the side being corrected.
@@ -40,3 +40,12 @@ BEGIN
     ALTER TABLE "SecureFile" ADD CONSTRAINT "SecureFile_chatMessageId_fkey" FOREIGN KEY ("chatMessageId") REFERENCES "ChatMessage"("id") ON DELETE CASCADE ON UPDATE CASCADE;
   END IF;
 END $$;
+
+-- 4. GitHubIntegration. 20250920150047 made userId unique on its own. The
+--    schema's rule is one row per (userId, installationId), and production has
+--    three rows for one user — which the chain's index would have refused.
+DROP INDEX IF EXISTS "GitHubIntegration_userId_key";
+CREATE UNIQUE INDEX IF NOT EXISTS "GitHubIntegration_userId_installationId_key" ON "GitHubIntegration"("userId", "installationId");
+
+-- 5. Comment. The reply-thread index the schema declares and production has.
+CREATE INDEX IF NOT EXISTS "Comment_parentCommentId_createdAt_idx" ON "Comment"("parentCommentId", "createdAt");
