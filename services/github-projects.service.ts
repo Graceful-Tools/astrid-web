@@ -32,6 +32,8 @@ import {
   remoteLabels,
   type RemoteLabel,
 } from '@/lib/github/projects/labels'
+import { planAssignees, remoteAssignees } from '@/lib/github/projects/assignees'
+import { assigneeIdsOf } from '@/lib/task-assignees'
 import { GITHUB_LABEL_LIST } from '@/lib/backends/github-labels'
 import { LIST_TYPE_LABEL } from '@/lib/list-flavors'
 import { projectItemPages } from '@/lib/github/projects/hydrate'
@@ -79,6 +81,10 @@ const REPLICA_SELECT = {
   // Labels (AWTD-1188). Only lists that mirror a GITHUB label are read back:
   // a label a person gave the task in Astrid is never GitHub's to remove.
   lists: { where: GITHUB_LABEL_LIST, select: { id: true, remoteNodeId: true } },
+  // Assignees (AWTD-1190). An agent is never GitHub's to unassign.
+  assigneeId: true,
+  assigneeIds: true,
+  assignee: { select: { isAIAgent: true } },
 } as const
 
 type ReplicaRow = Prisma.TaskGetPayload<{ select: typeof REPLICA_SELECT }>
@@ -142,6 +148,46 @@ async function applyRelations(
   // Straight to the table, not through task-dependency.service: its cycle
   // check is for Astrid writes, and GitHub's cycles are accepted (§8.4).
   if (blockers.length > 0) writes.push(prisma.taskDependency.createMany({ data: blockers, skipDuplicates: true }))
+
+  if (writes.length > 0) await prisma.$transaction(writes)
+  return writes.length > 0
+}
+
+/**
+ * Assignees for one page (AWTD-1190): GitHub's people, matched by
+ * `User.githubNodeId`, become the task's assigneeIds. One read for the page,
+ * and none when nobody on it is assigned. A task created on this page starts
+ * from nobody, whatever default the bulk create gave it.
+ */
+async function applyAssignees(
+  items: RemoteProjectItem[],
+  replicas: Map<string, ReplicaRow>,
+  created: Map<string, string>,
+): Promise<boolean> {
+  const assigned = items.flatMap(item => {
+    const remote = item.isArchived ? null : remoteAssignees(item)
+    const row = item.content ? replicas.get(item.content.id) : undefined
+    const taskId = row?.id ?? (item.content ? created.get(item.content.id) : undefined)
+    return remote && taskId ? [{ remote, taskId, row }] : []
+  })
+
+  const nodeIds = [...new Set(assigned.flatMap(({ remote }) => remote))]
+  const users =
+    nodeIds.length > 0
+      ? await prisma.user.findMany({ where: { githubNodeId: { in: nodeIds } }, select: { id: true, githubNodeId: true } })
+      : []
+  const userIdByNodeId = new Map(users.map(user => [user.githubNodeId as string, user.id]))
+
+  const writes: Prisma.PrismaPromise<unknown>[] = []
+  for (const { remote, taskId, row } of assigned) {
+    const next = planAssignees({
+      remote,
+      held: row ? assigneeIdsOf(row) : [],
+      primaryIsAgent: row?.assignee?.isAIAgent === true,
+      userIdByNodeId,
+    })
+    if (next) writes.push(prisma.task.update({ where: { id: taskId }, data: { assigneeId: next[0] ?? null, assigneeIds: next } }))
+  }
 
   if (writes.length > 0) await prisma.$transaction(writes)
   return writes.length > 0
@@ -332,10 +378,11 @@ export async function applyProjectItems(board: BoundBoard, items: RemoteProjectI
 
   const relationsChanged = await applyRelations(items, replicaByNode, createdByNode)
   const labelsChanged = await applyLabels(board, items, replicaByNode, createdByNode)
+  const assigneesChanged = await applyAssignees(items, replicaByNode, createdByNode)
 
   // createTasksInBulk clears caches for what it created; updates, leaves,
-  // relationship and label changes are ours to clear.
-  if (writes.length > 0 || relationsChanged || labelsChanged) {
+  // relationship, label and assignee changes are ours to clear.
+  if (writes.length > 0 || relationsChanged || labelsChanged || assigneesChanged) {
     await RedisCache.invalidate.userTasks(board.ownerId, [board.listId]).catch(err => {
       log.warn({ err, projectId: board.projectId }, 'Failed to clear the board owner’s task cache')
     })

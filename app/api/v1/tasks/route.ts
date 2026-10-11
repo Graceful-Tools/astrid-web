@@ -16,6 +16,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { createTaskWithSideEffects, type CreatedTask } from '@/services/task.service'
 import { createLogger } from '@/lib/logger'
 import { getDeletionsSince } from '@/lib/deletion-log'
+import { assigneeIdsOf } from '@/lib/task-assignees'
 
 const log = createLogger('v1.tasks')
 
@@ -136,6 +137,7 @@ export const GET = withAuth(
           title: true,
           description: true,
           assigneeId: true,
+          assigneeIds: true,
           creatorId: true,
           dueDateTime: true,
           isAllDay: true,
@@ -254,7 +256,9 @@ export const GET = withAuth(
     // iOS expects a flat listIds array alongside the relation
     const tasksWithListIds = tasks.map(task => ({
       ...task,
-      listIds: task.lists?.map(list => list.id) || []
+      listIds: task.lists?.map(list => list.id) || [],
+      // Everyone assigned, `assigneeId` first (AWTD-1190).
+      assigneeIds: assigneeIdsOf(task),
     }))
 
     // Delta responses also carry what disappeared. Tasks are hard-deleted, so
@@ -409,6 +413,7 @@ function narrowCreatedTaskForV1(task: CreatedTask) {
 
   return {
     ...scalars,
+    assigneeIds: assigneeIdsOf(scalars),
     lists: (lists ?? []).map((list: any) => ({
       id: list.id,
       name: list.name,

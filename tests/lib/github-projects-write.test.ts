@@ -178,16 +178,31 @@ describe('planRemoteUpdate (AWTD-1116 P5a)', () => {
 
 describe('assignees and board moves (AWTD-1116 P5c)', () => {
   it('reassigning swaps the GitHub assignee: remove the old, add the new', () => {
-    const p = planRemoteUpdate(issue, [membership], {}, { remove: [], add: [] }, { from: 'U_old', to: 'U_new' }) as MutationPlan
+    const p = planRemoteUpdate(issue, [membership], {}, { remove: [], add: [] }, { remove: ['U_old'], add: ['U_new'], set: ['U_new'] }) as MutationPlan
     expect(mutations(p)).toEqual(['removeAssigneesFromAssignable', 'addAssigneesToAssignable'])
     expect(p.variables).toMatchObject({ m0_assigneeIds: ['U_old'], m1_assigneeIds: ['U_new'] })
   })
 
   it('a draft sets its assignee list directly', () => {
     const draft = { ...issue, remoteKind: 'draft' as const, remoteNodeId: 'DI_1' }
-    const p = planRemoteUpdate(draft, [membership], {}, { remove: [], add: [] }, { from: null, to: 'U_new' }) as MutationPlan
+    const p = planRemoteUpdate(draft, [membership], {}, { remove: [], add: [] }, { remove: [], add: ['U_new'], set: ['U_kept', 'U_new'] }) as MutationPlan
     expect(mutations(p)).toEqual(['updateProjectV2DraftIssue'])
-    expect(p.variables).toMatchObject({ m0_assigneeIds: ['U_new'] })
+    expect(p.variables).toMatchObject({ m0_assigneeIds: ['U_kept', 'U_new'] })
+  })
+
+  it('several assignees change by exactly the difference: one remove, one add (AWTD-1190)', () => {
+    const change = { remove: ['U_a', 'U_b'], add: ['U_c', 'U_d'], set: ['U_keep', 'U_c', 'U_d'] }
+    const p = planRemoteUpdate(issue, [membership], {}, { remove: [], add: [] }, change) as MutationPlan
+    expect(mutations(p)).toEqual(['removeAssigneesFromAssignable', 'addAssigneesToAssignable'])
+    expect(p.variables).toMatchObject({ m0_assigneeIds: ['U_a', 'U_b'], m1_assigneeIds: ['U_c', 'U_d'] })
+  })
+
+  it('adding someone removes nobody, and an empty difference sends nothing (AWTD-1190)', () => {
+    const none = { remove: [], add: [] }
+    const adding = planRemoteUpdate(issue, [membership], {}, none, { remove: [], add: ['U_c'], set: ['U_a', 'U_c'] }) as MutationPlan
+    expect(mutations(adding)).toEqual(['addAssigneesToAssignable'])
+    const same = planRemoteUpdate(issue, [membership], {}, none, { remove: [], add: [], set: ['U_a'] }) as MutationPlan
+    expect(same.document).toBeFalsy()
   })
 
   it('leaving a board removes the item and no longer sets fields there', () => {

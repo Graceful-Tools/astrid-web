@@ -33,6 +33,9 @@
               "labels": {
                 "totalCount": 0,
                 "nodes": []
+              },
+              "assignees": {
+                "nodes": []
               }
             },
             "fieldValues": {
@@ -84,6 +87,9 @@
               "labels": {
                 "totalCount": 0,
                 "nodes": []
+              },
+              "assignees": {
+                "nodes": []
               }
             },
             "fieldValues": {
@@ -119,6 +125,9 @@
               "id": "DI_lADOFEb-HM4BmXS2zgLVgc8",
               "title": "[Astrid sync fixture] Draft in progress",
               "body": "A draft: no repository, no number.",
+              "assignees": {
+                "nodes": []
+              },
               "updatedAt": "2026-10-10T13:41:45Z"
             },
             "fieldValues": {

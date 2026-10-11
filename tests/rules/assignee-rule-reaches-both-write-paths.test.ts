@@ -32,7 +32,9 @@ const AUTHORIZATION = readFileSync(join(process.cwd(), 'services/assignee-author
  */
 const WRITE_PATHS = [
   ['createTaskWithSideEffects', 'authorizeNewTaskAssignee'],
-  ['updateTaskWithSideEffects', 'authorizeAssigneeChange'],
+  // Since AWTD-1190 an update may name several assignees, so update has a
+  // wrapper too: it puts each one through the same decision.
+  ['updateTaskWithSideEffects', 'authorizeAssigneeWrite'],
 ] as const
 
 /** The body of one exported service function, up to the next top-level export. */
@@ -49,12 +51,13 @@ describe('the assignee rule reaches both task-write paths (AWTD-891)', () => {
     expect(bodyOf(fn)).toMatch(new RegExp(`await ${entryPoint}\\(`))
   })
 
-  it("create's entry point is a wrapper around the same decision, not a second one", () => {
+  it.each(WRITE_PATHS)("%s's entry point is a wrapper around the same decision, not a second one", (_fn, entryPoint) => {
     // Otherwise the indirection above becomes the place the answers diverge.
-    const wrapper = AUTHORIZATION.slice(
-      AUTHORIZATION.indexOf('export async function authorizeNewTaskAssignee(')
-    )
-    expect(wrapper).toMatch(/await authorizeAssigneeChange\(/)
+    const start = AUTHORIZATION.indexOf(`export async function ${entryPoint}(`)
+    expect(start, `${entryPoint} not found in services/assignee-authorization.ts`).toBeGreaterThan(-1)
+    const rest = AUTHORIZATION.slice(start + 1)
+    const end = rest.indexOf('\nexport ')
+    expect(end === -1 ? rest : rest.slice(0, end)).toMatch(/await authorizeAssigneeChange\(/)
   })
 
   it.each(WRITE_PATHS)('%s does not re-derive the people rule inline', (fn) => {

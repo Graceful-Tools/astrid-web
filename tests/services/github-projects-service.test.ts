@@ -29,6 +29,7 @@ const db = vi.hoisted(() => ({
   },
   gitHubProjectBinding: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
   project: { create: vi.fn() },
+  user: { findMany: vi.fn() },
   taskList: {
     create: vi.fn(),
     findMany: vi.fn(),
@@ -400,6 +401,82 @@ describe('applyProjectItems — labels become label lists (AWTD-1188)', () => {
     await applyProjectItems(board, items.map(item => (item.content?.__typename === 'Issue' ? labelled(item, []) : item)))
 
     expect(db.taskList.findMany).not.toHaveBeenCalled()
+    expect(db.$transaction).not.toHaveBeenCalled()
+  })
+})
+
+/** `item` with GitHub assignees (the fragment's AWTD-1190 field). */
+function assignedTo(item: RemoteProjectItem, nodeIds: string[]): RemoteProjectItem {
+  return { ...item, content: { ...item.content!, assignees: { nodes: nodeIds.map(id => ({ id })) } } }
+}
+
+describe('applyProjectItems — GitHub’s assignees become assigneeIds (AWTD-1190)', () => {
+  const [issue] = items
+  const member = [{ itemNodeId: issue.id, archived: false }]
+  const ada = { id: 'user-ada', githubNodeId: 'U_ada' }
+  const bob = { id: 'user-bob', githubNodeId: 'U_bob' }
+  /** The issue as already mirrored, assigned to these people. */
+  const heldBy = (assigneeIds: string[], isAIAgent = false) => ({
+    ...replicaOf(issue, 't0'),
+    assigneeId: assigneeIds[0] ?? null,
+    assigneeIds,
+    assignee: assigneeIds.length > 0 ? { isAIAgent } : null,
+  })
+  const assigneeWrites = () =>
+    db.task.update.mock.calls.map(([args]) => args as { data: Record<string, unknown> }).filter(args => 'assigneeIds' in args.data)
+
+  beforeEach(() => {
+    db.gitHubProjectItem.findMany.mockResolvedValue(member)
+  })
+
+  it('everyone GitHub names who has an Astrid identity is assigned, the first as primary', async () => {
+    db.task.findMany.mockResolvedValue([heldBy([])])
+    db.user.findMany.mockResolvedValue([ada, bob])
+
+    await applyProjectItems(board, [assignedTo(issue, ['U_bob', 'U_stranger', 'U_ada'])])
+
+    expect(db.user.findMany).toHaveBeenCalledWith({
+      where: { githubNodeId: { in: ['U_bob', 'U_stranger', 'U_ada'] } },
+      select: { id: true, githubNodeId: true },
+    })
+    expect(assigneeWrites()).toEqual([
+      { where: { id: 't0' }, data: { assigneeId: 'user-bob', assigneeIds: ['user-bob', 'user-ada'] } },
+    ])
+  })
+
+  it('someone unassigned on GitHub is unassigned here, and the next person becomes primary', async () => {
+    db.task.findMany.mockResolvedValue([heldBy(['user-ada', 'user-bob'])])
+    db.user.findMany.mockResolvedValue([bob])
+
+    await applyProjectItems(board, [assignedTo(issue, ['U_bob'])])
+
+    expect(assigneeWrites()).toEqual([{ where: { id: 't0' }, data: { assigneeId: 'user-bob', assigneeIds: ['user-bob'] } }])
+  })
+
+  it('assignees that already agree write nothing, whatever order GitHub lists them in', async () => {
+    db.task.findMany.mockResolvedValue([heldBy(['user-ada', 'user-bob'])])
+    db.user.findMany.mockResolvedValue([ada, bob])
+
+    await applyProjectItems(board, [assignedTo(issue, ['U_bob', 'U_ada'])])
+
+    expect(db.$transaction).not.toHaveBeenCalled()
+  })
+
+  it('an agent assigned in Astrid stays assigned: GitHub never names one', async () => {
+    db.task.findMany.mockResolvedValue([heldBy(['ai-agent-claude'], true)])
+
+    await applyProjectItems(board, [assignedTo(issue, [])])
+
+    expect(db.user.findMany).not.toHaveBeenCalled()
+    expect(db.$transaction).not.toHaveBeenCalled()
+  })
+
+  it('an item hydrated without the field leaves its assignees alone', async () => {
+    db.task.findMany.mockResolvedValue([heldBy(['user-ada'])])
+
+    const { assignees: _assignees, ...content } = issue.content!
+    await applyProjectItems(board, [{ ...issue, content }])
+
     expect(db.$transaction).not.toHaveBeenCalled()
   })
 })

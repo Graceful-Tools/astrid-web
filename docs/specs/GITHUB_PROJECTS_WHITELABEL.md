@@ -1468,7 +1468,7 @@ How the edge cases behave:
 Not yet: GitHub comments flowing **into** Astrid. This is outbound only, so inbound
 mirroring will need to dedupe by GitHub comment id.
 
-### P6c — rich mapping: relationships and labels built, the rest open
+### P6c — rich mapping: relationships, labels and multiple assignees built, the rest open
 
 **Relationships slice ([AWTD-1119](https://astrid.cc/t/AWTD-1119)), done. Inbound only.**
 - **Sub-issues.** An issue's `parent` becomes the task's `parentTaskId`
@@ -1523,8 +1523,41 @@ closed from here (P5a).
   fixture issue has a label and the project has no PR, so a non-empty answer has not been
   recorded.
 
+**Multiple assignees slice ([AWTD-1190](https://astrid.cc/t/AWTD-1190)), built. Both directions.**
+- **The field.** `Task.assigneeIds String[]` (additive, default empty, not backfilled) and
+  the v1 task field `assigneeIds`. The list a client sees is derived
+  (`lib/task-assignees.ts`): `assigneeId` first, then the stored others. So a task that has
+  only ever had `assigneeId` reads as `[assigneeId]`, and code that still writes `assigneeId`
+  directly cannot break `assigneeId === assigneeIds[0]`.
+- **Writes.** `assigneeIds` replaces the whole list. `assigneeId` alone replaces only the
+  first entry; clearing it removes the first and promotes the next. Both together must agree
+  on who is first (400 `assignee_ids_mismatch`). More than ten is 400 `too_many_assignees`.
+- **Classic lists** refuse a second assignee with 400 `multiple_assignees_not_supported`.
+  A task that leaves its GitHub board drops to one assignee at its next assignment.
+- **`list.supports`.** v1 lists now carry `supports: { multipleAssignees }`, true only on a
+  GitHub-backed list. The other §11.2 keys arrive with their own slices.
+- **Authorisation.** The update path's gate is `authorizeAssigneeWrite`: every person added
+  goes through `authorizeAssigneeChange`, and nobody already assigned is re-checked.
+- **An agent is first or not at all** (400 `agent_must_be_first_assignee`). A run is keyed
+  on `assigneeId`, so an agent further down would be assigned and never run.
+- **Inbound.** The fragment reads `assignees(first: 10) { nodes { id } }` on issues, pull
+  requests and drafts. People are matched by `User.githubNodeId`; someone with no Astrid
+  identity is skipped. People already assigned keep Astrid's order and newcomers follow, so
+  a sync never changes who is primary. An agent assigned in Astrid stays: GitHub never names one.
+- **Outbound.** Exactly the difference: one `removeAssigneesFromAssignable` and one
+  `addAssigneesToAssignable`. A reorder sends nothing. Someone Astrid cannot name is never
+  removed from an issue. A **draft** takes its whole list at once, so an assignment made in
+  Astrid does drop a draft's unmatched GitHub assignees.
+- **Create** still takes one assignee. Several are set by an update.
+- **Not notified.** Additional assignees get no "assigned to you" notification yet; those
+  are keyed on `assigneeId`.
+- **Cost.** One more read per page that has assignees. The page query's GraphQL cost went
+  from 3 to 4.
+- **Verified against GitHub.** The grown fragment was run against the test project. Nobody
+  is assigned to a fixture item, so a non-empty answer has not been recorded.
+
 Not yet: writing a parent, a blocker or a label **from** Astrid to GitHub, iterations,
-milestones, `assigneeIds[]`, and the `agent:<name>` label.
+milestones, and the `agent:<name>` label.
 
 ### P6–P8 — fields, recurrence, per-org SSO, brand: not started
 
