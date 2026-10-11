@@ -10,7 +10,7 @@ on:
 jobs:
   authenticated-critical:
     timeout-minutes: 30
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:15
@@ -64,8 +64,7 @@ jobs:
 
   test:
     timeout-minutes: 60
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:15
@@ -161,8 +160,7 @@ jobs:
   # Mobile tests as separate job
   test-mobile:
     timeout-minutes: 60
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:15

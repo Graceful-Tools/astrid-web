@@ -33,7 +33,7 @@ jobs:
     name: 'List Ready Tasks'
     # The default manual path uses the dedicated organization runner. A queued
     # self-hosted job cannot automatically fail over to cloud.
-    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-latest"]' || '["self-hosted","astrid-web"]') }}
+    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-24.04"]' || '["self-hosted","astrid-web"]') }}
     outputs:
       has_tasks: ${{ steps.list.outputs.has_tasks }}
       task_count: ${{ steps.list.outputs.task_count }}
@@ -95,7 +95,7 @@ jobs:
 
   dry-run-report:
     name: 'Dry Run — Task Report'
-    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-latest"]' || '["self-hosted","astrid-web"]') }}
+    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-24.04"]' || '["self-hosted","astrid-web"]') }}
     needs: list-ready-tasks
     if: ${{ inputs.dry_run == true }}
     steps:
@@ -109,7 +109,7 @@ jobs:
 
   work-tasks:
     name: 'Work Ready Tasks'
-    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-latest"]' || '["self-hosted","astrid-web"]') }}
+    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-24.04"]' || '["self-hosted","astrid-web"]') }}
     needs: list-ready-tasks
     if: ${{ inputs.dry_run != true && needs.list-ready-tasks.outputs.has_tasks == 'true' }}
     steps:
@@ -247,7 +247,7 @@ jobs:
 
   no-tasks:
     name: 'Nothing to do'
-    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-latest"]' || '["self-hosted","astrid-web"]') }}
+    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-24.04"]' || '["self-hosted","astrid-web"]') }}
     needs: list-ready-tasks
     if: ${{ needs.list-ready-tasks.outputs.has_tasks == 'false' }}
     steps:

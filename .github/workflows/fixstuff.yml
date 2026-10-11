@@ -23,7 +23,7 @@ env:
 jobs:
   validate:
     name: 'Validate Task'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       task_id: ${{ steps.validate.outputs.task_id }}
     steps:
@@ -134,7 +134,7 @@ jobs:
 
   deploy-preview:
     name: 'Deploy Preview'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [validate, fix-task]
     if: ${{ inputs.deploy_preview == true && needs.fix-task.result == 'success' }}
     steps:
