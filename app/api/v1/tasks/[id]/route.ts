@@ -25,6 +25,7 @@ import { TASK_COMMENTS_RESPONSE_LIMIT } from '@/lib/task-query-utils'
 import { validateV1TaskUpdate, type V1TaskUpdateRequest } from '@/lib/api-contracts/v1-request-shapes'
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
 import { resolveAgentAuthor } from '@/lib/ai-agent-author'
+import { assigneeIdsOf } from '@/lib/task-assignees'
 
 const log = createLogger('v1.tasks.id')
 
@@ -209,6 +210,7 @@ export const PUT = withAuth<RouteContext>(
     if (body.repeatFrom !== undefined) intent.repeatFrom = body.repeatFrom
     if (body.occurrenceCount !== undefined) intent.occurrenceCount = body.occurrenceCount
     if (body.assigneeId !== undefined) intent.assigneeId = body.assigneeId || null
+    if (body.assigneeIds !== undefined) intent.assigneeIds = body.assigneeIds
     if (body.timerDuration !== undefined) intent.timerDuration = body.timerDuration
     if (body.lastTimerValue !== undefined) intent.lastTimerValue = body.lastTimerValue
     if (body.listIds !== undefined && Array.isArray(body.listIds)) intent.listIds = body.listIds
@@ -302,7 +304,11 @@ export const PUT = withAuth<RouteContext>(
 
     return NextResponse.json(
       {
-        task: { ...task, listIds: task.lists?.map((list: { id: string }) => list.id) || [] },
+        task: {
+          ...task,
+          listIds: task.lists?.map((list: { id: string }) => list.id) || [],
+          assigneeIds: assigneeIdsOf(task),
+        },
         meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }

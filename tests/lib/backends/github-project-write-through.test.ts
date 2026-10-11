@@ -15,7 +15,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const db = vi.hoisted(() => ({ task: { findUnique: vi.fn() }, taskList: { findMany: vi.fn() }, user: { findUnique: vi.fn() } }))
+const db = vi.hoisted(() => ({ task: { findUnique: vi.fn() }, taskList: { findMany: vi.fn() }, user: { findMany: vi.fn() } }))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
 
 import { createGithubProjectTaskBackend, GITHUB_PROJECT_READ_ONLY } from '@/lib/backends/github-project'
@@ -36,7 +36,8 @@ const mirrored = (over: Record<string, unknown> = {}) => ({
   statusRole: 'ready',
   priority: 0,
   dueDateTime: null,
-  assignee: { id: 'human-1', githubNodeId: 'U_human1', isAIAgent: false },
+  assigneeId: 'human-1',
+  assigneeIds: [],
   githubProjectItems: [
     {
       itemNodeId: 'PVTI_lADOFEb-HM4BmXS2zg_2m1A',
@@ -67,6 +68,8 @@ function userClientReplaying(...responses: Array<{ body: unknown; status?: numbe
 }
 
 const ctx = { actorId: 'u1' }
+const human1 = { id: 'human-1', githubNodeId: 'U_human1', isAIAgent: false }
+const human2 = { id: 'human-2', githubNodeId: 'U_human2', isAIAgent: false }
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -229,7 +232,7 @@ describe('write-through (AWTD-1116 P5a)', () => {
   })
 
   it('reassigning to a linked person swaps the assignee on GitHub, as the user', async () => {
-    db.user.findUnique.mockResolvedValue({ githubNodeId: 'U_human2', isAIAgent: false })
+    db.user.findMany.mockResolvedValue([human1, human2])
     const { client, sent } = userClientReplaying({ body: { data: { m0: { clientMutationId: null }, m1: { clientMutationId: null } } } })
     const backend = createGithubProjectTaskBackend({ userClient: async () => client })
 
@@ -238,7 +241,7 @@ describe('write-through (AWTD-1116 P5a)', () => {
   })
 
   it('assigning an agent never makes it a GitHub assignee — it only unassigns the person', async () => {
-    db.user.findUnique.mockResolvedValue({ githubNodeId: null, isAIAgent: true })
+    db.user.findMany.mockResolvedValue([human1, { id: 'ai-agent-claude', githubNodeId: null, isAIAgent: true }])
     const { client, sent } = userClientReplaying({ body: { data: { m0: { clientMutationId: null } } } })
     const backend = createGithubProjectTaskBackend({ userClient: async () => client })
 
@@ -248,13 +251,44 @@ describe('write-through (AWTD-1116 P5a)', () => {
   })
 
   it('a person with no GitHub identity yet is refused, with a code that says why', async () => {
-    db.user.findUnique.mockResolvedValue({ githubNodeId: null, isAIAgent: false })
+    db.user.findMany.mockResolvedValue([human1, { id: 'human-3', githubNodeId: null, isAIAgent: false }])
     const backend = createGithubProjectTaskBackend({ userClient: vi.fn() })
     expect(await backend.updateTask(ctx, 't1', { assigneeId: 'human-3' })).toEqual({
       ok: false,
       status: 400,
       error: 'github_assignee_not_linked',
     })
+  })
+
+  it('adding a second assignee adds exactly that person and removes nobody (AWTD-1190)', async () => {
+    db.user.findMany.mockResolvedValue([human1, human2])
+    const { client, sent } = userClientReplaying({ body: { data: { m0: { clientMutationId: null } } } })
+    const backend = createGithubProjectTaskBackend({ userClient: async () => client })
+
+    const data = { assigneeId: 'human-1', assigneeIds: ['human-1', 'human-2'] }
+    expect(await backend.updateTask(ctx, 't1', data)).toMatchObject({ ok: true })
+    expect(sent[0].query).not.toMatch(/removeAssigneesFromAssignable/)
+    expect(sent[0].variables).toMatchObject({ m0_assigneeIds: ['U_human2'] })
+  })
+
+  it('an old client replacing the first assignee leaves the others on GitHub (AWTD-1190)', async () => {
+    db.task.findUnique.mockResolvedValue(mirrored({ assigneeIds: ['human-1', 'human-2'] }))
+    db.user.findMany.mockResolvedValue([human1, human2, { id: 'human-4', githubNodeId: 'U_human4', isAIAgent: false }])
+    const { client, sent } = userClientReplaying({ body: { data: { m0: { clientMutationId: null }, m1: { clientMutationId: null } } } })
+    const backend = createGithubProjectTaskBackend({ userClient: async () => client })
+
+    const data = { assigneeId: 'human-4', assigneeIds: ['human-4', 'human-2'] }
+    expect(await backend.updateTask(ctx, 't1', data)).toMatchObject({ ok: true })
+    expect(sent[0].variables).toMatchObject({ m0_assigneeIds: ['U_human1'], m1_assigneeIds: ['U_human4'] })
+  })
+
+  it('reordering the same people sends nothing: GitHub has no primary (AWTD-1190)', async () => {
+    db.task.findUnique.mockResolvedValue(mirrored({ assigneeIds: ['human-1', 'human-2'] }))
+    const userClient = vi.fn()
+    const backend = createGithubProjectTaskBackend({ userClient })
+    const data = { assigneeId: 'human-2', assigneeIds: ['human-2', 'human-1'] }
+    expect(await backend.updateTask(ctx, 't1', data)).toMatchObject({ ok: true })
+    expect(userClient).not.toHaveBeenCalled()
   })
 
   it('an unchanged assignee in a whole-task save sends nothing', async () => {

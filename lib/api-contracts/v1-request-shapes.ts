@@ -122,6 +122,13 @@ export interface V1TaskUpdateRequest {
    */
   assigneeId?: string | null
 
+  /**
+   * Everyone assigned, primary first (AWTD-1190). Replaces the whole list;
+   * `assigneeId` alone replaces only the first entry and keeps the rest. More
+   * than one is accepted only where `list.supports.multipleAssignees`.
+   */
+  assigneeIds?: string[]
+
   timerDuration?: number | null
   lastTimerValue?: number | null
 

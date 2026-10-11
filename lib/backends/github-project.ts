@@ -28,10 +28,12 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import type { BindingFieldMap } from '@/lib/github/projects/apply'
+import { assigneeIdsOf, nextAssigneeIds } from '@/lib/task-assignees'
 import {
   planRemoveFromProjects,
   planRemoteUpdate,
   versionFromResult,
+  type AssigneeChange,
   type MembershipChanges,
   type WritableMembership,
   type WritableTask,
@@ -76,7 +78,8 @@ async function loadWritable(
   task: WritableTask
   memberships: BoardMembership[]
   detached: boolean
-  assignee: { id: string; githubNodeId: string | null; isAIAgent: boolean } | null
+  /** Everyone assigned today, primary first (AWTD-1190). */
+  assigneeIds: string[]
 } | null> {
   const row = await prisma.task.findUnique({
     where: { id: taskId },
@@ -91,7 +94,8 @@ async function loadWritable(
       statusRole: true,
       priority: true,
       dueDateTime: true,
-      assignee: { select: { id: true, githubNodeId: true, isAIAgent: true } },
+      assigneeId: true,
+      assigneeIds: true,
       githubProjectItems: {
         where: { archived: false },
         select: {
@@ -115,7 +119,7 @@ async function loadWritable(
   })
   if (!row?.remoteNodeId || !row.remoteKind) return null
   return {
-    assignee: row.assignee,
+    assigneeIds: assigneeIdsOf(row),
     task: { ...row, remoteNodeId: row.remoteNodeId, remoteKind: row.remoteKind as WritableTask['remoteKind'] },
     detached: row.githubProjectItems.some(m => m.binding.detachedAt !== null),
     memberships: row.githubProjectItems.map(m => ({
@@ -183,22 +187,36 @@ function membershipRows(
 }
 
 /**
- * The assignee change as GitHub node ids, or a refusal. An agent is never a
- * GitHub assignee (§8.6): assigning one only unassigns the previous person.
- * A person who has not authorised the App has no node id yet.
+ * The assignee change as GitHub node ids — exactly who was added and who was
+ * removed (AWTD-1190) — or a refusal. An agent is never a GitHub assignee
+ * (§8.6): assigning one adds nobody there. A person who has not authorised
+ * the App has no node id yet, so cannot be added.
  */
 async function assigneeChange(
   data: TaskBackendRow,
-  current: { id: string; githubNodeId: string | null; isAIAgent: boolean } | null,
-): Promise<{ change?: { from: string | null; to: string | null }; refused?: string }> {
-  if (!('assigneeId' in data) || (data.assigneeId ?? null) === (current?.id ?? null)) return {}
-  const from = current && !current.isAIAgent ? current.githubNodeId : null
-  const nextId = data.assigneeId as string | null
-  if (!nextId) return { change: { from, to: null } }
-  const next = await prisma.user.findUnique({ where: { id: nextId }, select: { githubNodeId: true, isAIAgent: true } })
-  if (next?.isAIAgent) return { change: { from, to: null } }
-  if (!next?.githubNodeId) return { refused: 'github_assignee_not_linked' }
-  return { change: { from, to: next.githubNodeId } }
+  current: string[],
+): Promise<{ change?: AssigneeChange; refused?: string }> {
+  if (!('assigneeId' in data) && !('assigneeIds' in data)) return {}
+  // The service writes both. A caller that writes assigneeId alone replaces the first entry.
+  const written = Array.isArray(data.assigneeIds)
+    ? ({ ok: true, assigneeIds: data.assigneeIds as string[] } as const)
+    : nextAssigneeIds({ current, intent: { assigneeId: data.assigneeId as string | null }, multiple: true })
+  const next = written.ok ? written.assigneeIds : current
+  const added = next.filter(id => !current.includes(id))
+  const removed = current.filter(id => !next.includes(id))
+  if (added.length === 0 && removed.length === 0) return {}
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: [...next, ...removed] } },
+    select: { id: true, githubNodeId: true, isAIAgent: true },
+  })
+  const agents = new Set(users.filter(user => user.isAIAgent).map(user => user.id))
+  const nodeIdOf = new Map(
+    users.filter(user => !user.isAIAgent && user.githubNodeId).map(user => [user.id, user.githubNodeId as string]),
+  )
+  if (added.some(id => !agents.has(id) && !nodeIdOf.has(id))) return { refused: 'github_assignee_not_linked' }
+  const nodeIds = (ids: string[]) => ids.flatMap(id => (nodeIdOf.has(id) ? [nodeIdOf.get(id) as string] : []))
+  return { change: { add: nodeIds(added), remove: nodeIds(removed), set: nodeIds(next) } }
 }
 
 /** A GitHub failure as a backend refusal, in the v1 vocabulary (§11.2). */
@@ -439,7 +457,7 @@ export function createGithubProjectTaskBackend(deps: GithubBackendDeps): TaskBac
       if (!loaded || loaded.detached) return refusal
 
       const changes = await membershipChanges(data, loaded.memberships)
-      const assignee = await assigneeChange(data, loaded.assignee)
+      const assignee = await assigneeChange(data, loaded.assigneeIds)
       if (assignee.refused) return fail(400, assignee.refused)
       const plan = planRemoteUpdate(loaded.task, loaded.memberships, data, changes, assignee.change)
       if ('refused' in plan) return fail(400, `github_${plan.refused}`)

@@ -14,6 +14,7 @@ import { prisma } from '@/lib/prisma'
 import type { V1TaskBlockerIds } from '@/lib/api-contracts/v1-ios-shapes'
 import { TASK_COMMENTS_RESPONSE_LIMIT } from '@/lib/task-query-utils'
 import { createLogger } from '@/lib/logger'
+import { assigneeIdsOf } from '@/lib/task-assignees'
 
 const log = createLogger('tasks.v1-task-shape')
 
@@ -102,6 +103,8 @@ function shapeV1Task(task: V1TaskRow) {
     comments: task.comments ? [...task.comments].reverse() : task.comments,
     // iOS expects a flat listIds array alongside the relation
     listIds: task.lists?.map(list => list.id) || [],
+    // Everyone assigned, `assigneeId` first (AWTD-1190).
+    assigneeIds: assigneeIdsOf(task),
     ...({
       blockedBy: task.blockedBy?.map(row => row.blockingTaskId) ?? [],
       blocks: task.blocks?.map(row => row.blockedTaskId) ?? [],

@@ -13,6 +13,7 @@
 
 import type { RemoteProjectItem } from './apply'
 import type { GraphqlClient } from '../rate-limiter'
+import { ASSIGNEES_PER_ITEM } from './assignees'
 
 /** Field values read per item. Status, Priority, a date and a few custom fields fit easily. */
 const FIELD_VALUES_PER_ITEM = 20
@@ -44,18 +45,20 @@ fragment ProjectItemFields on ProjectV2Item {
   updatedAt
   content {
     __typename
-    ... on DraftIssue { id title body updatedAt }
+    ... on DraftIssue { id title body updatedAt assignees(first: ${ASSIGNEES_PER_ITEM}) { nodes { id } } }
     ... on Issue {
       id title body updatedAt number url state stateReason
       repository { nameWithOwner }
       parent { id }
       blockedBy(first: ${BLOCKERS_PER_ISSUE}) { totalCount nodes { id } }
       labels(first: ${LABELS_PER_ITEM}) { totalCount nodes { id name color } }
+      assignees(first: ${ASSIGNEES_PER_ITEM}) { nodes { id } }
     }
     ... on PullRequest {
       id title body updatedAt number url state
       repository { nameWithOwner }
       labels(first: ${LABELS_PER_ITEM}) { totalCount nodes { id name color } }
+      assignees(first: ${ASSIGNEES_PER_ITEM}) { nodes { id } }
     }
   }
   fieldValues(first: ${FIELD_VALUES_PER_ITEM}) {

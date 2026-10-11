@@ -39,7 +39,7 @@ import { prisma } from '@/lib/prisma'
 // tests/rules/assignee-rule-reaches-both-write-paths.test.ts).
 import { PROJECT_ACCESS_INCLUDE, hasExplicitListRole } from '@/lib/list-permissions'
 import { getListMemberIds } from '@/lib/list-member-utils'
-import { authorizeAssigneeChange, authorizeNewTaskAssignee, resolveAssignee } from '@/services/assignee-authorization'
+import { authorizeAssigneeWrite, authorizeNewTaskAssignee, resolveAssignee } from '@/services/assignee-authorization'
 import { audienceForTask, recordDeletion } from '@/lib/deletion-log'
 import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
 import { cancelCodingWorkflowForUpdate } from './coding-workflow-on-update'
@@ -623,6 +623,7 @@ export async function createTaskWithSideEffects(args: {
     ...completion.data,
     creatorId: actorId,
     assigneeId: finalAssigneeId,
+    assigneeIds: finalAssigneeId ? [finalAssigneeId] : [],
     identifier: minted?.identifier ?? null,
     sequence: minted?.sequence ?? null,
     clientRequestId,
@@ -815,6 +816,8 @@ export interface UpdateTaskIntent {
    */
   occurrenceCount?: number
   assigneeId?: string | null
+  /** Everyone assigned, primary first (AWTD-1190). More than one only on a GitHub board. */
+  assigneeIds?: string[]
   timerDuration?: number | null
   lastTimerValue?: number | null
   parentTaskId?: string | null
@@ -1010,25 +1013,22 @@ export async function updateTaskWithSideEffects(args: {
   const requestedCompleted = completedFromStatus ?? intent.completed
 
   // ── Assignee ──────────────────────────────────────────────────────────────
-  if (has('assigneeId')) {
-    const assigneeId = intent.assigneeId || null
-    // Self-assignment needs no permission: the actor is already the one who can
-    // see the task, and nobody is being handed anything they did not ask for.
-    if (assigneeId && assigneeId !== actorId) {
-      const currentListIds = (existingTask.lists ?? []).map((list: any) => list.id)
-      const authorized = await authorizeAssigneeChange({
-        assigneeId,
-        actorId,
-        task: { id: existingTask.id, creatorId: existingTask.creatorId },
-        targetListIds: validatedListIds ?? currentListIds,
-        requireListMembership: requireAssigneeListMembership === true,
-      })
-      if (!authorized.ok) {
-        return { ok: false, status: authorized.status, error: authorized.error }
-      }
+  if (has('assigneeId') || has('assigneeIds')) {
+    const currentListIds = (existingTask.lists ?? []).map((list: any) => list.id)
+    // One decision for one assignee or several (AWTD-1190).
+    const authorized = await authorizeAssigneeWrite({
+      intent,
+      actorId,
+      task: existingTask,
+      targetListIds: validatedListIds ?? currentListIds,
+      requireListMembership: requireAssigneeListMembership === true,
+    })
+    if (!authorized.ok) {
+      return { ok: false, status: authorized.status, error: authorized.error }
     }
 
-    data.assigneeId = assigneeId
+    data.assigneeId = authorized.assigneeIds[0] ?? null
+    data.assigneeIds = authorized.assigneeIds
   }
 
   // ── Closed reason ─────────────────────────────────────────────────────────

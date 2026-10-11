@@ -10,6 +10,8 @@
 import { prisma } from '@/lib/prisma'
 import { assigneeCanBeAssigned } from '@/lib/task-assignee'
 import { canUserAssignAgentToTask, PROJECT_ACCESS_INCLUDE } from '@/lib/list-permissions'
+import { taskBackendFor, GITHUB_PROJECT_BACKEND } from '@/lib/backends/resolve'
+import { assigneeIdsOf, nextAssigneeIds } from '@/lib/task-assignees'
 
 export type AssigneeAuthorization =
   /**
@@ -121,6 +123,53 @@ export async function authorizeAssigneeChange(args: {
   // actor owns, while the run bills the other.
   const allowed = lists.every(list => canUserAssignAgentToTask({ id: actorId }, task, list as never))
   return allowed ? { ok: true, assigneeExists } : refusal
+}
+
+/**
+ * The UPDATE path's whole assignee gate, for one assignee or several (AWTD-1190).
+ *
+ * Works out who the write leaves assigned (lib/task-assignees.ts), then puts
+ * the assignee the caller named and everyone newly added through
+ * `authorizeAssigneeChange` — the same decision each, never a second one.
+ */
+export async function authorizeAssigneeWrite(args: {
+  intent: { assigneeId?: string | null; assigneeIds?: unknown }
+  actorId: string
+  task: { id: string; creatorId: string | null; assigneeId?: string | null; assigneeIds?: readonly string[] | null }
+  targetListIds: string[]
+  requireListMembership: boolean
+}): Promise<{ ok: true; assigneeIds: string[] } | { ok: false; status: 400 | 403; error: string }> {
+  const { intent, actorId, task, targetListIds, requireListMembership } = args
+
+  // Several assignees only where the backend has them: a GitHub board.
+  // `assigneeId` alone replaces the first entry and keeps the rest (§9.5).
+  const multiple = (await taskBackendFor(targetListIds)).kind === GITHUB_PROJECT_BACKEND
+  const next = nextAssigneeIds({ current: assigneeIdsOf(task), intent, multiple })
+  if (!next.ok) return { ok: false, status: 400, error: next.error }
+
+  // Self-assignment needs no permission: the actor is already the one who can
+  // see the task, and nobody is being handed anything they did not ask for.
+  const toAuthorize = new Set([...(intent.assigneeId ? [intent.assigneeId] : []), ...next.added])
+  toAuthorize.delete(actorId)
+  for (const assigneeId of toAuthorize) {
+    const authorized = await authorizeAssigneeChange({
+      assigneeId,
+      actorId,
+      task: { id: task.id, creatorId: task.creatorId },
+      targetListIds,
+      requireListMembership,
+    })
+    if (!authorized.ok) return authorized
+  }
+
+  // An agent run is keyed on `assigneeId`, so an agent further down the list
+  // would be assigned and never run.
+  const others = next.assigneeIds.slice(1)
+  if (others.length > 0 && (await prisma.user.count({ where: { id: { in: others }, isAIAgent: true } })) > 0) {
+    return { ok: false, status: 400, error: 'agent_must_be_first_assignee' }
+  }
+
+  return { ok: true, assigneeIds: next.assigneeIds }
 }
 
 /**
