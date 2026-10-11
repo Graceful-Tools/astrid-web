@@ -40,6 +40,15 @@ import { reconcileProject, syncBoardRoles } from '@/services/github-projects-lif
 import { boundBoard } from '@/services/github-projects.service'
 import { ADD_ITEM_DOCUMENT, planInitialFields, type CreatedContent } from '@/lib/github/projects/create'
 import { itemMoves, planItemMoves } from '@/lib/github/projects/position'
+import {
+  createdAgentLabelIds,
+  parseAgentLabelLookup,
+  planAgentLabelChange,
+  planAgentLabelCreate,
+  planAgentLabelLookup,
+  planAgentLabelWrite,
+  type AgentLabelPayload,
+} from '@/lib/github/projects/agent-labels'
 
 const log = createLogger('services.github-sync-jobs')
 
@@ -109,7 +118,7 @@ export interface DrainDeps {
   userClientFor?: (userId: string) => Promise<GraphqlClient | null>
   /** A writeback is the user's own write, on the user's token at write priority. */
   writeClientFor?: (userId: string) => Promise<GraphqlClient | null>
-  /** An agent's comment goes out as the App bot (§8.6). */
+  /** An agent's comment, and its `agent:<name>` label, go out as the App bot (§8.6). */
   agentClientFor?: (installationId: number) => GraphqlClient
 }
 
@@ -204,6 +213,27 @@ async function runCommentPush(
     { s: comment.task.remoteNodeId, b: body },
     { strict: true },
   )
+}
+
+/**
+ * Make an issue's `agent:<name>` labels match the agents assigned in Astrid
+ * (AWTD-1191 P6c-5), creating a label the repo lacks. As the App bot: an
+ * agent is not a GitHub user, and the label reports Astrid's assignment
+ * rather than making a person's edit (§8.6). Safe to run twice.
+ */
+async function runAgentLabelSync(payload: AgentLabelPayload, client: GraphqlClient): Promise<void> {
+  const lookup = planAgentLabelLookup(payload.remoteNodeId, payload.labels)
+  const state = parseAgentLabelLookup(await client.query(lookup.document, lookup.variables), payload.labels)
+  if (!state) return // deleted on GitHub, or no longer visible to the App
+
+  const change = planAgentLabelChange(state, payload.labels)
+  let created: string[] = []
+  if (change.create.length > 0) {
+    const create = planAgentLabelCreate(state.repositoryId, change.create, `Assigned to an AI agent in ${BRAND.appName}`)
+    created = createdAgentLabelIds(await client.query(create.document, create.variables, { strict: true }), change.create.length)
+  }
+  const write = planAgentLabelWrite(payload.remoteNodeId, [...change.add, ...created], change.remove)
+  if (write) await client.query(write.document, write.variables, { strict: true })
 }
 
 interface WritebackPayload {
@@ -301,6 +331,11 @@ export async function drainSyncJobs(limit = 20, deps: DrainDeps = {}): Promise<D
           user: writeClientFor,
           installation: deps.agentClientFor ?? (id => installationGraphqlClient(id, 'write')),
         })
+      case 'agent_label':
+        return runAgentLabelSync(
+          job.payload as unknown as AgentLabelPayload,
+          (deps.agentClientFor ?? (id => installationGraphqlClient(id, 'write')))(job.installationId),
+        )
       case 'writeback': {
         const payload = job.payload as unknown as WritebackPayload
         return runWriteback(payload, await writeClientFor(payload.actorId))

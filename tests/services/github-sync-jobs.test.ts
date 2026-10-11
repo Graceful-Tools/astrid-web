@@ -325,3 +325,65 @@ describe('comments to GitHub (AWTD-1116 P5c)', () => {
     expect(agentClientFor).not.toHaveBeenCalled()
   })
 })
+
+describe('agent labels to GitHub (AWTD-1191 P6c-5)', () => {
+  const ISSUE = 'I_kwDOVCns8c8AAAABWTcnYA'
+  const job = (labels: string[]) => ({
+    id: 'al1',
+    kind: 'agent_label',
+    installationId: 5,
+    attempts: 0,
+    payload: { remoteNodeId: ISSUE, labels },
+  })
+  /** The App bot's client, answering each document in order. */
+  const bot = (...answers: unknown[]) => {
+    const sent: Array<{ q: string; v: Record<string, unknown> }> = []
+    const queue = [...answers]
+    const query = vi.fn(async (q: string, v: Record<string, unknown>) => (sent.push({ q, v }), queue.shift() ?? {}))
+    return { sent, client: { query } as never }
+  }
+
+  it('creates the label in the repo when it is missing, then adds it — as the App bot (§8.6)', async () => {
+    db.gitHubSyncJob.findMany.mockResolvedValue([job(['agent:claude'])])
+    const app = bot(
+      { node: { labels: { nodes: [{ id: 'LA_bug', name: 'bug' }] }, repository: { id: 'R_1', l0: null } } },
+      { c0: { label: { id: 'LA_new' } } },
+    )
+    const writeClientFor = vi.fn()
+    const agentClientFor = vi.fn(() => app.client)
+
+    expect(await drainSyncJobs(20, { now: () => NOW, writeClientFor, agentClientFor })).toMatchObject({ succeeded: 1 })
+    expect(agentClientFor).toHaveBeenCalledWith(5)
+    expect(writeClientFor).not.toHaveBeenCalled()
+    expect(app.sent[1].q).toMatch(/createLabel/)
+    expect(app.sent[1].v).toMatchObject({ r: 'R_1', n0: 'agent:claude' })
+    expect(app.sent[2].q).toMatch(/addLabelsToLabelable/)
+    expect(app.sent[2].v).toEqual({ id: ISSUE, add: ['LA_new'], remove: [] })
+  })
+
+  it('removes the label once no agent is assigned, and leaves every other label', async () => {
+    db.gitHubSyncJob.findMany.mockResolvedValue([job([])])
+    const onIssue = [
+      { id: 'LA_claude', name: 'agent:claude' },
+      { id: 'LA_bug', name: 'bug' },
+    ]
+    const app = bot({ node: { labels: { nodes: onIssue }, repository: { id: 'R_1' } } })
+
+    await drainSyncJobs(20, { now: () => NOW, agentClientFor: () => app.client })
+    expect(app.sent).toHaveLength(2)
+    expect(app.sent[1].q).toMatch(/removeLabelsFromLabelable/)
+    expect(app.sent[1].v).toEqual({ id: ISSUE, add: [], remove: ['LA_claude'] })
+  })
+
+  it('writes nothing when the issue already matches, or is gone', async () => {
+    db.gitHubSyncJob.findMany.mockResolvedValue([job(['agent:claude'])])
+    const onIssue = [{ id: 'LA_claude', name: 'agent:claude' }]
+    const matching = bot({ node: { labels: { nodes: onIssue }, repository: { id: 'R_1', l0: { id: 'LA_claude' } } } })
+    await drainSyncJobs(20, { now: () => NOW, agentClientFor: () => matching.client })
+    expect(matching.sent).toHaveLength(1)
+
+    const gone = bot({ node: null })
+    expect(await drainSyncJobs(20, { now: () => NOW, agentClientFor: () => gone.client })).toMatchObject({ succeeded: 1 })
+    expect(gone.sent).toHaveLength(1)
+  })
+})
