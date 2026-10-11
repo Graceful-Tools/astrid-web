@@ -135,6 +135,14 @@ export function formatDateForDisplay(date: Date | null, isAllDay: boolean = fals
       day: 'numeric'
     })
   } else {
-    return date.toLocaleDateString()
+    // The same shape as the all-day branch above, in the viewer's own zone
+    // (AWTD-1184). This used to be a bare toLocaleDateString(), which is
+    // locale-numeric — so an all-day task read "Oct 8, 2026" while a timed one
+    // a day later read "11/9/2026", in the same column.
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
   }
 }
