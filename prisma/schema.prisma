@@ -402,6 +402,15 @@ model Task {
   parentTaskId           String?
   parentTask             Task?              @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
   subtasks               Task[]             @relation("TaskSubtasks")
+  /// Recurrence on a GitHub board SPAWNS the next occurrence as a new issue
+  /// rather than rolling this row forward (AWTD-1118, spec §10), so a series
+  /// is a chain of tasks: this points at the occurrence that was completed to
+  /// make this one. NULL on every task outside that mode, which is almost all
+  /// of them. SetNull, not Cascade: deleting a predecessor must not destroy
+  /// the occurrence that replaced it — the series lives on the newest one.
+  previousOccurrenceId   String?
+  previousOccurrence     Task?              @relation("TaskOccurrences", fields: [previousOccurrenceId], references: [id], onDelete: SetNull)
+  nextOccurrences        Task[]             @relation("TaskOccurrences")
   externalLinks          ExternalTaskLink[] @relation("TaskExternalLinks")
   attachments            Attachment[]
   /// Expected cost in MICROCENTS at the time work was authorised. Null = never
@@ -454,6 +463,7 @@ model Task {
   @@index([repeating])
   @@index([creatorId, createdAt])
   @@index([parentTaskId])
+  @@index([previousOccurrenceId])
   @@index([closedReason])
   @@index([statusRole])
 }

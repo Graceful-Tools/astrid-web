@@ -5,7 +5,8 @@ Projects (v2). This also covers the three workstreams that make it possible:
 consolidating the write path, a login-provider registry, and one GitHub connection.
 Revision 2, 2026-10-05.*
 
-Status: **In progress — P0–P2 done; P3 partly done; P4 built (2026-10-10); P5–P8 not started.**
+Status: **In progress — P0–P2 done; P3 partly done; P4 built (2026-10-10); P5 done;
+P6b built (2026-10-11), P6c partly built; P7–P8 not started.**
 See §17 for exactly what landed, what did not, and what each remaining phase needs. None
 of it is deployed: production deploys are manual (CLAUDE.md rule 1).
 
@@ -1467,6 +1468,50 @@ How the edge cases behave:
 
 Not yet: GitHub comments flowing **into** Astrid. This is outbound only, so inbound
 mirroring will need to dedupe by GitHub comment id.
+
+### P6b — spawn recurrence ([AWTD-1118](https://astrid.cc/t/AWTD-1118)): built, server side
+
+Completing a repeating task on a GitHub board no longer rolls the row forward. The issue
+stays closed as history and the next occurrence is a **new issue linked to it** (§10).
+
+- **Both triggers, one issue.** Completing from Astrid and `issues.closed` on github.com
+  both queue a `recur` job keyed `recur:<taskId>:<occurrenceCount>`, so the completion and
+  the webhook it causes race to the same key. The Astrid side hands over in
+  `resolveRepeatingTaskCompletion`, which is where the repeating rules already live for every
+  write surface; the inbound side hands over from `applyProjectItems`, which writes a remote
+  close straight to the replica and so never passes that path.
+- **Rolling forward is the fallback, never silence.** If the handoff cannot queue, the series
+  rolls forward as it always did: a series running in the old mode is recoverable, one
+  silently dropped is not.
+- **What the successor copies** (`lib/github/projects/recur.ts`, pure): title, body plus a
+  `Previous occurrence: owner/repo#N` footer, labels, assignees and milestone, in the
+  predecessor's own repo. A draft spawns a draft. It is added to **every** project the
+  predecessor was on, with each card's field values copied except Status, which resets to
+  that binding's first non-done option, and the due field, which carries the next date. A
+  field type the mirror does not own (an iteration, a users field) is left as GitHub makes it
+  rather than guessed.
+- **The series moves.** The successor carries the recurrence configuration with
+  `occurrenceCount + 1` and `Task.previousOccurrenceId` pointing back; the predecessor's
+  configuration is cleared. `Next occurrence: #M` is commented on the predecessor, and a
+  failure to comment never fails the spawn.
+- **Ending the series.** Count or until reached clears the configuration and spawns nothing.
+  A close as not planned, cancelled or duplicate ends it too — the same closed-reason rule
+  the local mode already applies.
+- **Every guard is re-checked in the job**, not trusted from the payload: a job may run long
+  after it was queued, and either trigger may have raced it. An occurrence count that has
+  moved on, a task reopened since, or a pull request all spawn nothing.
+- **The wire.** `list.supports.repeatMode` is `'spawn'` on a GitHub board and
+  `'roll_forward'` everywhere else; `previousOccurrenceId` is an additive, nullable column
+  that reaches v1 payloads with the rest of the row. Both halves ship independently of any
+  client.
+- **Not verified against GitHub.** Unlike P5 and P6c, no mutation here has been run live:
+  `createIssue` with `labelIds`/`assigneeIds`/`milestoneId`, and the spawned card's field
+  copies, are built from the schema and the existing P5b create path. Worth one live probe
+  before this is relied on.
+
+Not yet, and client work rather than server: the detail pane's "Previous occurrence" /
+"Next occurrence" links, and iOS/web declining to roll forward locally when
+`supports.repeatMode` is `spawn` ([AWTD-1219](https://astrid.cc/t/AWTD-1219)).
 
 ### P6c — rich mapping: relationships, labels, multiple assignees and the agent label built, the rest open
 
