@@ -52,7 +52,7 @@ function run(env: Record<string, string> = {}): string {
     // FIXALL_SYSCTL, not PATH: on Linux `sysctl` exists but answers neither
     // vm.loadavg nor hw.ncpu, so a PATH-stubbed test passed on macOS and fell
     // through silently on CI.
-    env: { PATH: `${bin}:/usr/bin:/bin`, HOME: dir, FIXALL_SYSCTL: join(bin, 'sysctl'), ...env },
+    env: { NODE_ENV: 'test', PATH: `${bin}:/usr/bin:/bin`, HOME: dir, FIXALL_SYSCTL: join(bin, 'sysctl'), ...env },
   })
 }
 

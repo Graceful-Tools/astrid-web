@@ -49,6 +49,7 @@ function run(env: Record<string, string>): string {
     cwd: dir,
     encoding: 'utf8',
     env: {
+      NODE_ENV: 'test',
       PATH: `${bin}:/usr/bin:/bin:/usr/sbin:/sbin`,
       HOME: dir,
       TMPDIR: dir,
