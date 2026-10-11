@@ -43,6 +43,7 @@
 #   FIXALL_MAX_USD      CLI budget bound for one run (default: 10; empty = none)
 #   FIXALL_CAFFEINATE   caffeinate binary that holds the Mac awake for the run
 #                       (default: caffeinate; empty = do not assert)
+#   FIXALL_SYSCTL       sysctl binary the load guard reads (default: from PATH)
 #   FIXALL_MAX_LOAD     skip the tick if the 5-minute load average is over this
 #                       (default: cores x FIXALL_MAX_LOAD_PER_CPU)
 #   FIXALL_MAX_LOAD_PER_CPU  per-core load budget behind that default (default: 4)
@@ -200,18 +201,26 @@ fi
 # a run that waits holds the working-tree lock the whole time it waits.
 MAX_LOAD_PER_CPU="${FIXALL_MAX_LOAD_PER_CPU:-4}"
 if [ "${FIXALL_FORCE:-0}" != "1" ]; then
-  # sysctl lives in /usr/sbin, which a launchd PATH need not carry. Without the
-  # fallback a missing sysctl makes this guard a silent no-op forever.
-  SYSCTL=$(command -v sysctl 2>/dev/null) || SYSCTL=/usr/sbin/sysctl
+  # FIXALL_SYSCTL is the seam, not PATH. sysctl lives in /usr/sbin, which a
+  # launchd PATH need not carry, and resolving it by PATH is also what made this
+  # guard's test pass on macOS and fail on Linux CI: there `sysctl` exists but
+  # answers neither vm.loadavg nor hw.ncpu, the reads came back empty, and the
+  # guard fell through SILENTLY. An explicit seam is how FIXALL_TSX and
+  # FIXALL_CAFFEINATE are already testable.
+  SYSCTL="${FIXALL_SYSCTL:-$(command -v sysctl 2>/dev/null || echo /usr/sbin/sysctl)}"
   LOAD_5M=$("$SYSCTL" -n vm.loadavg 2>/dev/null | awk '{print $3}')
   NCPU=$("$SYSCTL" -n hw.ncpu 2>/dev/null)
   MAX_LOAD="${FIXALL_MAX_LOAD:-}"
   if [ -z "$MAX_LOAD" ] && [ -n "$NCPU" ]; then
     MAX_LOAD=$(( NCPU * MAX_LOAD_PER_CPU ))
   fi
-  # No numbers, no opinion: an unreadable load must never stall the loop.
-  if [ -n "$LOAD_5M" ] && [ -n "$MAX_LOAD" ] \
-     && awk -v load="$LOAD_5M" -v max="$MAX_LOAD" 'BEGIN { exit !(load > max) }'; then
+  # No numbers, no opinion: an unreadable load must never stall the loop — but it
+  # must not be silent either, or the guard is indistinguishable from one that
+  # looked and found the machine idle. That silence is what made the first CI
+  # failure unreadable: the whole output was "FELL THROUGH".
+  if [ -z "$LOAD_5M" ] || [ -z "$MAX_LOAD" ]; then
+    echo "  ⚠️  could not read the load from $SYSCTL (load='$LOAD_5M' cores='$NCPU') — not guarding this tick"
+  elif awk -v load="$LOAD_5M" -v max="$MAX_LOAD" 'BEGIN { exit !(load > max) }'; then
     skip_tracked "machine is buried — 5-minute load $LOAD_5M is over $MAX_LOAD, so predeploy would time out"
   fi
 fi

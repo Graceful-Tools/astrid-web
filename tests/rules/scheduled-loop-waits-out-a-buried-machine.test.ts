@@ -49,7 +49,10 @@ function run(env: Record<string, string> = {}): string {
   return execFileSync('bash', ['-c', script], {
     cwd: dir,
     encoding: 'utf8',
-    env: { PATH: `${bin}:/usr/bin:/bin`, HOME: dir, ...env },
+    // FIXALL_SYSCTL, not PATH: on Linux `sysctl` exists but answers neither
+    // vm.loadavg nor hw.ncpu, so a PATH-stubbed test passed on macOS and fell
+    // through silently on CI.
+    env: { PATH: `${bin}:/usr/bin:/bin`, HOME: dir, FIXALL_SYSCTL: join(bin, 'sysctl'), ...env },
   })
 }
 
@@ -93,9 +96,20 @@ describe('the scheduled loop waits out a buried machine', () => {
     expect(run({ FIXALL_FORCE: '1' })).toContain('FELL THROUGH')
   })
 
-  it('runs rather than stalls when the load cannot be read', () => {
+  it('runs rather than stalls when the load cannot be read — and says so', () => {
     writeFileSync(join(bin, 'sysctl'), '#!/bin/bash\nexit 1\n', 'utf8')
     chmodSync(join(bin, 'sysctl'), 0o755)
-    expect(run()).toContain('FELL THROUGH')
+    const out = run()
+    expect(out).toContain('FELL THROUGH')
+    // Silence here is what made the first CI failure unreadable: a guard that
+    // could not look must not be mistaken for one that looked and saw an idle box.
+    expect(out).toContain('could not read the load')
+  })
+
+  it('is not satisfied by a sysctl that merely exists, as on Linux', () => {
+    // `sysctl -n vm.loadavg` is a BSD/macOS key; Linux's sysctl exits non-zero.
+    writeFileSync(join(bin, 'sysctl'), '#!/bin/bash\necho "error: unknown key" >&2\nexit 1\n', 'utf8')
+    chmodSync(join(bin, 'sysctl'), 0o755)
+    expect(run()).toContain('could not read the load')
   })
 })
