@@ -9,7 +9,9 @@
     "seeAllCollaborative": "すべてのコラボリストを見る →",
     "seeAllSuggested": "すべてのおすすめリストを見る →",
     "hideSidebar": "サイドバーを隠す",
-    "showSidebar": "サイドバーを表示"
+    "showSidebar": "サイドバーを表示",
+    "hideMessages": "メッセージを隠す",
+    "showMessages": "メッセージを表示"
   },
   "userMenu": {
     "settings": "設定",

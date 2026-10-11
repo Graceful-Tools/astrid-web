@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 /**
  * Which surface fills the main content column.
  * - `settings`  — the Settings panel (+ optional second pane on wide layouts)
- * - `mobileChat`— messages replace the task surface (mobile / board only)
+ * - `mobileChat`— messages replace the task surface (1-column only)
  * - `content`   — the normal task list / board (MainContent)
  */
 export type TaskManagerMainSurface = 'settings' | 'mobileChat' | 'content'
@@ -44,7 +44,7 @@ export interface TaskManagerLayoutDecisions {
   mainSurface: TaskManagerMainSurface
   /** Settings shows its illustrated second pane (wide layouts). */
   showSettingsSecondPane: boolean
-  /** The inline chat column on the right (2/3-column, non-board, non-settings). */
+  /** The inline chat column on the right (2/3-column, non-settings) — beside the board too (AWTD-1178). */
   showDesktopChatPanel: boolean
   /** Floating settings detail pane on the right (desktop). */
   showDesktopSettingsDetailPane: boolean
@@ -87,11 +87,13 @@ export function useTaskManagerLayoutRouter(
   } = input
 
   return useMemo(() => {
-    const isIOSDrawer = showHamburgerMenu || isBoardMode
+    // The board takes the phone's drawer-and-swap layout only ON the phone.
+    // On 2/3-column it keeps the desktop frame, as on Mac (AWTD-1178).
+    const isIOSDrawer = showHamburgerMenu || (isMobile && isBoardMode)
 
     const mainSurface: TaskManagerMainSurface = isSettingsActive
       ? 'settings'
-      : activePanel === 'chat' && (isMobile || isBoardMode) && !isSearchActive
+      : activePanel === 'chat' && isMobile && !isSearchActive
         ? 'mobileChat'
         : 'content'
 
@@ -99,8 +101,7 @@ export function useTaskManagerLayoutRouter(
       isIOSDrawer,
       mainSurface,
       showSettingsSecondPane: isSettingsActive && (is3Column || is2Column),
-      showDesktopChatPanel:
-        (is3Column || is2Column) && hasUser && !isSettingsActive && taskViewMode !== 'board',
+      showDesktopChatPanel: (is3Column || is2Column) && hasUser && !isSettingsActive,
       showDesktopSettingsDetailPane:
         !is1Column && (Boolean(settingsSubPage) || isSettingsPaneClosing) && isSettingsActive,
       showDesktopTaskPane:

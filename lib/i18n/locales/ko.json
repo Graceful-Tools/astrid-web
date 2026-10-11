@@ -9,7 +9,9 @@
     "seeAllCollaborative": "모든 협업 목록 보기 →",
     "seeAllSuggested": "모든 추천 목록 보기 →",
     "hideSidebar": "사이드바 숨기기",
-    "showSidebar": "사이드바 표시"
+    "showSidebar": "사이드바 표시",
+    "hideMessages": "메시지 숨기기",
+    "showMessages": "메시지 표시"
   },
   "userMenu": {
     "settings": "설정",

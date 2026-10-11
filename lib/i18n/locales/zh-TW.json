@@ -9,7 +9,9 @@
     "seeAllCollaborative": "查看所有協作列表 →",
     "seeAllSuggested": "查看所有推薦列表 →",
     "hideSidebar": "隱藏側邊欄",
-    "showSidebar": "顯示側邊欄"
+    "showSidebar": "顯示側邊欄",
+    "hideMessages": "隱藏訊息",
+    "showMessages": "顯示訊息"
   },
   "userMenu": {
     "settings": "設定",
