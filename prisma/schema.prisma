@@ -186,6 +186,9 @@ model TaskList {
   listType                String                   @default("regular")
   /// The one switch the TaskBackend seam reads: null = Astrid, 'github_project' = a GitHub Project (AWTD-1149).
   backend                 String?
+  /// A GitHub label's node id, on the label-flavor list that mirrors it (AWTD-1188).
+  /// The node IS (repo, label): one name in two repos is two nodes, and a rename keeps it.
+  remoteNodeId            String?                  @unique
   privacy                 TaskListPrivacy          @default(PRIVATE)
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt

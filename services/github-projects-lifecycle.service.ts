@@ -17,6 +17,7 @@ import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { isListOwner } from '@/lib/list-member-utils'
 import { GITHUB_PROJECT_BACKEND } from '@/lib/backends/resolve'
+import { GITHUB_LABEL_LIST } from '@/lib/backends/github-labels'
 import { hydrateItem, projectItemPages } from '@/lib/github/projects/hydrate'
 import { fetchViewerRole, type GithubIdentity } from '@/lib/github/projects/roles'
 import type { GraphqlClient } from '@/lib/github/rate-limiter'
@@ -211,15 +212,19 @@ export async function purgeDetachedBoards(now = new Date()): Promise<number> {
     const listIds = lists.map(l => l.id)
     await prisma.$transaction([
       // Mirrored tasks on this board and nowhere else. A task someone also
-      // put on a personal list stays theirs (§8.2).
+      // put on a personal list stays theirs (§8.2). A GitHub label's list is
+      // part of the replica, not somewhere else (AWTD-1188).
       prisma.task.deleteMany({
         where: {
           remoteNodeId: { not: null },
-          lists: { every: { id: { in: listIds } } },
+          lists: { every: { OR: [{ id: { in: listIds } }, GITHUB_LABEL_LIST] } },
           githubProjectItems: { some: { projectId } },
         },
       }),
       prisma.taskList.deleteMany({ where: { id: { in: listIds } } }),
+      // The label lists that purge emptied. One still carried by another
+      // board's tasks stays.
+      prisma.taskList.deleteMany({ where: { ...GITHUB_LABEL_LIST, tasks: { none: {} } } }),
       prisma.project.delete({ where: { id: projectId } }),
     ])
     purged++

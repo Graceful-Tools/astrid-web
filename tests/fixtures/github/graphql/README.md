@@ -25,5 +25,14 @@ project had drifted by then (#1 sat in Done, reopened), and other tests pin the 
 first recorded. No fixture issue has a parent or a blocker, so a non-empty answer is not yet
 recorded.
 
+**2026-10-10, AWTD-1188.** The fragment grew
+`labels(first: 20) { totalCount nodes { id name color } }` on issues and pull requests. It was
+re-run against the project the same day: GitHub accepted it (HTTP 200, no errors) and answered
+`labels: { totalCount: 0, nodes: [] }` for both issues and no `labels` key for the draft. The
+page's `rateLimit.cost` went from 2 to 3. Only that field was added to
+`project-items-page.json`, for the same reason as above. No fixture issue carries a label and
+the project holds no pull request, so a non-empty answer and a PR's labels are not yet
+recorded. The fixture issues were left unlabelled, since other tests read them as they are.
+
 The items are `Graceful-Fools/wordlesolver#1` and `#2` and one draft, all titled
 "[Astrid sync fixture] …". Leave them there, because the P4f live smoke test reads them.

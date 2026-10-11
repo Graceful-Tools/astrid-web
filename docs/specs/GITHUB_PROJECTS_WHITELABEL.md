@@ -610,6 +610,7 @@ Project fields are in §9.4.
 |---|---|---|
 | `Project` | `githubInstallationId BigInt?` | Tenancy (§8.1) |
 | `TaskList` | `backend String?` | The one switch the seam reads |
+| `TaskList` | `remoteNodeId String? @unique` | The GitHub label a label-flavor list mirrors (AWTD-1188) |
 | `Task` | `remoteNodeId String? @unique`, `remoteKind String?`, `remoteVersion String?` | Identity and the body-conflict base |
 | `Task` | `assigneeIds String[]` | §9.5 |
 | `Task` | `previousOccurrenceId String?` (indexed) | §10 |
@@ -1465,7 +1466,7 @@ How the edge cases behave:
 Not yet: GitHub comments flowing **into** Astrid. This is outbound only, so inbound
 mirroring will need to dedupe by GitHub comment id.
 
-### P6c — rich mapping: relationships built, the rest open
+### P6c — rich mapping: relationships and labels built, the rest open
 
 **Relationships slice ([AWTD-1119](https://astrid.cc/t/AWTD-1119)), done. Inbound only.**
 - **Sub-issues.** An issue's `parent` becomes the task's `parentTaskId`
@@ -1490,7 +1491,37 @@ mirroring will need to dedupe by GitHub comment id.
 Already true before this slice: Priority maps by option order (P4c), and a PR is never
 closed from here (P5a).
 
-Not yet: writing a parent or a blocker **from** Astrid to GitHub, labels, iterations,
+**Labels slice ([AWTD-1188](https://astrid.cc/t/AWTD-1188)), done. Inbound only.**
+- **One list per label.** An issue's or PR's labels become membership in label-flavor lists
+  (`lib/github/projects/labels.ts`). A list is keyed by the label's node id in the new
+  `TaskList.remoteNodeId` (unique, additive). One name in two repos is two lists. A label
+  renamed or recoloured on GitHub renames or recolours its list. A draft has no labels.
+- **Not `githubRepositoryId`.** The repo is in the list's description. The coding-agent
+  paths read `githubRepositoryId` off any list a task is on, so a label list must not carry it.
+- **Owner and project.** A label list is in no project, because a repo can feed several
+  boards. Its owner is the owner of the board that met the label first.
+- **Who sees it.** The chip shows to everyone who can see the task. The list itself is in
+  its owner's lists only, until board roles are materialised onto label lists
+  ([AWTD-1193](https://astrid.cc/t/AWTD-1193)).
+- **v1.** A GitHub label list is an ordinary `listType: "label"` list in v1 payloads. v1
+  lists have no `supports` block yet (§11.2), so none was added.
+- **Read-only from Astrid.** Adding or removing a GitHub label on a task is refused with 400
+  `github_label_read_only`, on create and on update, whichever backend owns the task
+  (`lib/backends/github-labels.ts`). Nothing is written through to GitHub in this slice.
+  A list edit that keeps the task's GitHub labels passes, and needs no permission on the
+  label lists it keeps.
+- **More than 20 labels** on one item: its labels are added to and never pruned.
+- **Astrid's own labels are left alone.** Only lists that mirror a GitHub label are read
+  back, so a label a person gave a mirrored task in Astrid stays.
+- **Cost.** Held labels ride on the page's replica read. One more read per page that has
+  labels, two more queries when a label is new. The page query's GraphQL cost went from 2 to 3.
+- **Purge.** A detached board's purge counts GitHub label lists as part of the replica, so a
+  labelled task is still deleted with its board, and label lists left empty go too.
+- **Verified against GitHub.** The grown fragment was run against the test project. No
+  fixture issue has a label and the project has no PR, so a non-empty answer has not been
+  recorded.
+
+Not yet: writing a parent, a blocker or a label **from** Astrid to GitHub, iterations,
 milestones, `assigneeIds[]`, and the `agent:<name>` label.
 
 ### P6–P8 — fields, recurrence, per-org SSO, brand: not started
