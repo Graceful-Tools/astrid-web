@@ -352,6 +352,26 @@ describe('/api/lists - List Defaults', () => {
               listType: "status",
               project: { lists: { some: { listMembers: { some: { userId: mockSession.user.id } } } } },
             },
+            // A GitHub label's list is visible through a task the viewer can
+            // already see, rather than through ListMember rows (AWTD-1193).
+            {
+              listType: "label",
+              remoteNodeId: { not: null },
+              tasks: {
+                some: {
+                  lists: {
+                    some: {
+                      OR: [
+                        { ownerId: mockSession.user.id },
+                        { listMembers: { some: { userId: mockSession.user.id } } },
+                        { project: { ownerId: mockSession.user.id } },
+                        { project: { members: { some: { userId: mockSession.user.id } } } },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
             { privacy: "PUBLIC" }
           ],
         },

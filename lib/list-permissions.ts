@@ -1,5 +1,6 @@
 import type { TaskList, User } from "@/types/task"
 import { createLogger } from '@/lib/logger'
+import { LIST_TYPE_LABEL } from '@/lib/list-flavors'
 
 const log = createLogger('list-permissions')
 
@@ -188,19 +189,44 @@ export function listVisibilityWhere(
   userId: string,
   options: { includePublic: boolean }
 ) {
-  const clauses: Array<Record<string, unknown>> = [
+  // The ways a list is DIRECTLY the viewer's: owned, shared with them, or in a
+  // project they own or belong to. Named because the label clause below reaches
+  // a label list through one of these rather than repeating them.
+  const direct: Array<Record<string, unknown>> = [
     { ownerId: userId },
     { listMembers: { some: { userId } } },
     // Project membership cascades to every list in the project, including its
     // status lists.
     { project: { ownerId: userId } },
     { project: { members: { some: { userId } } } },
+  ]
+
+  const clauses: Array<Record<string, unknown>> = [
+    ...direct,
     // A board's status lists are visible to anyone shared on one of its domain
     // lists — that is how boards are actually shared (task 142e4dd9). Mirrors
     // the status-list branch of getProjectRole; the two must agree.
     {
       listType: "status",
       project: { lists: { some: { listMembers: { some: { userId } } } } },
+    },
+    // A GitHub label's list is visible to anyone who can see a task carrying
+    // that label (AWTD-1193). It is owned by whoever's board met the label
+    // first, sits in no project and has no members, so without this a board
+    // member saw the label chip on a row and could not open the list behind it.
+    //
+    // DERIVED, not materialised as ListMember rows: a repo can feed several
+    // boards, so access is the union over them, and detaching one board must
+    // not revoke access another still grants. A stored row would have to get
+    // that right on every detach; a derived clause cannot get it wrong.
+    //
+    // `remoteNodeId` keeps this to lists that MIRROR a GitHub label. A label
+    // list someone converted from their own regular list (canConvertListFlavor)
+    // has none, and must not be shared out to everyone who can see a task on it.
+    {
+      listType: LIST_TYPE_LABEL,
+      remoteNodeId: { not: null },
+      tasks: { some: { lists: { some: { OR: direct } } } },
     },
   ]
 

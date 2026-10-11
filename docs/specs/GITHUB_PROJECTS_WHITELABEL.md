@@ -1547,9 +1547,21 @@ closed from here (P5a).
   paths read `githubRepositoryId` off any list a task is on, so a label list must not carry it.
 - **Owner and project.** A label list is in no project, because a repo can feed several
   boards. Its owner is the owner of the board that met the label first.
-- **Who sees it.** The chip shows to everyone who can see the task. The list itself is in
-  its owner's lists only, until board roles are materialised onto label lists
-  ([AWTD-1193](https://astrid.cc/t/AWTD-1193)).
+- **Who sees it.** The chip shows to everyone who can see the task, and so does the LIST
+  ([AWTD-1193](https://astrid.cc/t/AWTD-1193)): `listVisibilityWhere` gains a clause for
+  label lists reached through a task on a list the viewer can already see. **Derived, not
+  materialised** — board roles are NOT copied onto label lists as `ListMember` rows. A repo
+  can feed several boards, so access is the union over them, and detaching one board must
+  not revoke access another still grants; a stored row would have to get that right on every
+  detach, and a derived clause cannot get it wrong. The clause is limited to lists carrying
+  a `remoteNodeId`, so a label list someone converted from their own regular list is never
+  shared out by it.
+- **Read-only for everyone, with one error.** Adding a GitHub label from Astrid is refused
+  by name — 400 `github_label_read_only` — whoever asks. The add-permission check
+  (`lib/list-add-permission.ts`) steps aside for every GitHub label list rather than only
+  for one the task already carries: nothing can be added to one by anyone, so a role test
+  there could only decide WHICH error a doomed write got, and it gave the owner the named
+  refusal and a board member a bare 403 about a list they could not open.
 - **v1.** A GitHub label list is an ordinary `listType: "label"` list in v1 payloads. v1
   lists have no `supports` block yet (§11.2), so none was added.
 - **Read-only from Astrid.** Adding or removing a GitHub label on a task is refused with 400
