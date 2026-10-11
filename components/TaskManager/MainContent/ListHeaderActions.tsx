@@ -95,13 +95,18 @@ export function ListSettingsButton({ onOpen, ...visibility }: ListControlsVisibi
  * sits half a pixel above the 1px line's true centre — not expressible in
  * Tailwind's scale, and not visible.
  *
+ * `theme-bg-primary` is the pane's own background, and it is load-bearing: the
+ * border runs the full width behind this control, so without it the line is
+ * drawn straight through the middle of the icon. It masks exactly the control's
+ * 32px box, which reads as the line making way for the button.
+ *
  * System lists pass no visibility (always shown).
  */
 export function ListFilterRow({ onOpen, ...visibility }: Partial<ListControlsVisibility> & { onOpen: () => void }) {
   const { t } = useTranslations()
   if (visibility.list !== undefined && !canUseListControls(visibility as ListControlsVisibility)) return null
   return (
-    <div className="absolute left-[29px] -bottom-4 z-10" data-testid="list-filter-row">
+    <div className="absolute left-[29px] -bottom-4 z-10 theme-bg-primary" data-testid="list-filter-row">
       <Button
         variant="ghost"
         size="sm"

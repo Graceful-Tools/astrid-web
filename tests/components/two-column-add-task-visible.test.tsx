@@ -235,6 +235,9 @@ describe('desktop list header controls (AWTD-1167, AWTD-1168)', () => {
     expect(filterRow.className).toContain('absolute')
     expect(filterRow.className).toContain('left-[29px]')
     expect(filterRow.className).toContain('-bottom-4')
+    // The border runs the full width behind it, so the control must mask the
+    // line rather than let it draw through the icon.
+    expect(filterRow.className).toContain('theme-bg-primary')
     // Out of flow: it must not re-acquire the margins that made the border
     // sit below it rather than through it.
     expect(filterRow.className).not.toContain('justify-end')
