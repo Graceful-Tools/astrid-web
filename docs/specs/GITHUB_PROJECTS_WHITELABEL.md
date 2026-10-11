@@ -5,7 +5,8 @@ Projects (v2). This also covers the three workstreams that make it possible:
 consolidating the write path, a login-provider registry, and one GitHub connection.
 Revision 2, 2026-10-05.*
 
-Status: **In progress — P0–P2 done; P3 partly done; P4 built (2026-10-10); P5–P8 not started.**
+Status: **In progress — P0–P2 done; P3 partly done; P4 built (2026-10-10); P5 done;
+P6b built (2026-10-11), P6c partly built; P7–P8 not started.**
 See §17 for exactly what landed, what did not, and what each remaining phase needs. None
 of it is deployed: production deploys are manual (CLAUDE.md rule 1).
 
@@ -1468,6 +1469,50 @@ How the edge cases behave:
 Not yet: GitHub comments flowing **into** Astrid. This is outbound only, so inbound
 mirroring will need to dedupe by GitHub comment id.
 
+### P6b — spawn recurrence ([AWTD-1118](https://astrid.cc/t/AWTD-1118)): built, server side
+
+Completing a repeating task on a GitHub board no longer rolls the row forward. The issue
+stays closed as history and the next occurrence is a **new issue linked to it** (§10).
+
+- **Both triggers, one issue.** Completing from Astrid and `issues.closed` on github.com
+  both queue a `recur` job keyed `recur:<taskId>:<occurrenceCount>`, so the completion and
+  the webhook it causes race to the same key. The Astrid side hands over in
+  `resolveRepeatingTaskCompletion`, which is where the repeating rules already live for every
+  write surface; the inbound side hands over from `applyProjectItems`, which writes a remote
+  close straight to the replica and so never passes that path.
+- **Rolling forward is the fallback, never silence.** If the handoff cannot queue, the series
+  rolls forward as it always did: a series running in the old mode is recoverable, one
+  silently dropped is not.
+- **What the successor copies** (`lib/github/projects/recur.ts`, pure): title, body plus a
+  `Previous occurrence: owner/repo#N` footer, labels, assignees and milestone, in the
+  predecessor's own repo. A draft spawns a draft. It is added to **every** project the
+  predecessor was on, with each card's field values copied except Status, which resets to
+  that binding's first non-done option, and the due field, which carries the next date. A
+  field type the mirror does not own (an iteration, a users field) is left as GitHub makes it
+  rather than guessed.
+- **The series moves.** The successor carries the recurrence configuration with
+  `occurrenceCount + 1` and `Task.previousOccurrenceId` pointing back; the predecessor's
+  configuration is cleared. `Next occurrence: #M` is commented on the predecessor, and a
+  failure to comment never fails the spawn.
+- **Ending the series.** Count or until reached clears the configuration and spawns nothing.
+  A close as not planned, cancelled or duplicate ends it too — the same closed-reason rule
+  the local mode already applies.
+- **Every guard is re-checked in the job**, not trusted from the payload: a job may run long
+  after it was queued, and either trigger may have raced it. An occurrence count that has
+  moved on, a task reopened since, or a pull request all spawn nothing.
+- **The wire.** `list.supports.repeatMode` is `'spawn'` on a GitHub board and
+  `'roll_forward'` everywhere else; `previousOccurrenceId` is an additive, nullable column
+  that reaches v1 payloads with the rest of the row. Both halves ship independently of any
+  client.
+- **Not verified against GitHub.** Unlike P5 and P6c, no mutation here has been run live:
+  `createIssue` with `labelIds`/`assigneeIds`/`milestoneId`, and the spawned card's field
+  copies, are built from the schema and the existing P5b create path. Worth one live probe
+  before this is relied on.
+
+Not yet, and client work rather than server: the detail pane's "Previous occurrence" /
+"Next occurrence" links, and iOS/web declining to roll forward locally when
+`supports.repeatMode` is `spawn` ([AWTD-1219](https://astrid.cc/t/AWTD-1219)).
+
 ### P6c — rich mapping: relationships, labels, multiple assignees and the agent label built, the rest open
 
 **Relationships slice ([AWTD-1119](https://astrid.cc/t/AWTD-1119)), done. Inbound only.**
@@ -1502,9 +1547,21 @@ closed from here (P5a).
   paths read `githubRepositoryId` off any list a task is on, so a label list must not carry it.
 - **Owner and project.** A label list is in no project, because a repo can feed several
   boards. Its owner is the owner of the board that met the label first.
-- **Who sees it.** The chip shows to everyone who can see the task. The list itself is in
-  its owner's lists only, until board roles are materialised onto label lists
-  ([AWTD-1193](https://astrid.cc/t/AWTD-1193)).
+- **Who sees it.** The chip shows to everyone who can see the task, and so does the LIST
+  ([AWTD-1193](https://astrid.cc/t/AWTD-1193)): `listVisibilityWhere` gains a clause for
+  label lists reached through a task on a list the viewer can already see. **Derived, not
+  materialised** — board roles are NOT copied onto label lists as `ListMember` rows. A repo
+  can feed several boards, so access is the union over them, and detaching one board must
+  not revoke access another still grants; a stored row would have to get that right on every
+  detach, and a derived clause cannot get it wrong. The clause is limited to lists carrying
+  a `remoteNodeId`, so a label list someone converted from their own regular list is never
+  shared out by it.
+- **Read-only for everyone, with one error.** Adding a GitHub label from Astrid is refused
+  by name — 400 `github_label_read_only` — whoever asks. The add-permission check
+  (`lib/list-add-permission.ts`) steps aside for every GitHub label list rather than only
+  for one the task already carries: nothing can be added to one by anyone, so a role test
+  there could only decide WHICH error a doomed write got, and it gave the owner the named
+  refusal and a board member a bare 403 about a list they could not open.
 - **v1.** A GitHub label list is an ordinary `listType: "label"` list in v1 payloads. v1
   lists have no `supports` block yet (§11.2), so none was added.
 - **Read-only from Astrid.** Adding or removing a GitHub label on a task is refused with 400

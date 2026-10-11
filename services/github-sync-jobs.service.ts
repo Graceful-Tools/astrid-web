@@ -49,6 +49,7 @@ import {
   planAgentLabelWrite,
   type AgentLabelPayload,
 } from '@/lib/github/projects/agent-labels'
+import type { RecurPayload } from '@/lib/github/projects/recur'
 
 const log = createLogger('services.github-sync-jobs')
 
@@ -331,6 +332,17 @@ export async function drainSyncJobs(limit = 20, deps: DrainDeps = {}): Promise<D
           user: writeClientFor,
           installation: deps.agentClientFor ?? (id => installationGraphqlClient(id, 'write')),
         })
+      case 'recur': {
+        // The mirror's own bookkeeping, not a person's edit: the successor
+        // goes out on the App bot, as an agent's comment and its agent label
+        // already do (§8.6).
+        const { runRecurSpawn } = await import('@/services/github-recurrence.service')
+        return runRecurSpawn(
+          job.payload as unknown as RecurPayload,
+          job.installationId,
+          (deps.agentClientFor ?? (id => installationGraphqlClient(id, 'write')))(job.installationId),
+        )
+      }
       case 'agent_label':
         return runAgentLabelSync(
           job.payload as unknown as AgentLabelPayload,
