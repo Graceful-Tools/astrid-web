@@ -437,6 +437,14 @@ Once configured, AI assistants can use these tools:
 ### Comments
 - `add_comment` - Add a comment to a task
 - `get_task_comments` - Get all comments for a task
+- `create_task_attachment_upload` - Attach a screenshot/image (PNG, JPEG, GIF, WebP; max 4 MB) to a task. Returns a 15-minute signed upload ticket and a ready `curl` command; the client PUTs the raw bytes itself (`curl --data-binary @file`) so the image never passes through model context. The image appears on the task as an ATTACHMENT comment. Requires `comments:write` and access to the task; replays are idempotent.
+
+  ```bash
+  # 1. MCP: create_task_attachment_upload { "taskId": "AWTD-1172", "fileName": "01-menu.png", "caption": "Options a-g" }
+  # 2. Shell: run the returned command with the real path
+  curl -sS --fail-with-body -X PUT -H 'X-Upload-Ticket: <ticket>' -H 'Content-Type: image/png' \
+    --data-binary @'./01-menu.png' 'https://www.astrid.cc/api/v1/attachment-uploads'
+  ```
 
 ### Resources
 - `lists://all` - Browse all accessible lists

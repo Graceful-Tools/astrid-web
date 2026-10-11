@@ -434,3 +434,41 @@ describe('GET /api/v1/capabilities (task 97208a72)', () => {
     )
   })
 })
+
+describe('capabilities that depend on each other (AWTD-1121, spec §11.1)', () => {
+  const ORIGINAL_ENV = { ...process.env }
+
+  beforeEach(() => {
+    vi.resetModules()
+    clearCapabilityEnv()
+  })
+
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV }
+  })
+
+  it('refuses GitHub Projects without Project Mode', async () => {
+    // A bound GitHub project IS a board. With Project Mode compiled out the bind
+    // wizard would import items into lists that can never show their columns.
+    process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS = 'true'
+    process.env.NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE = 'false'
+    const { assertCoherentCapabilities } = await import('@/lib/brand/capabilities')
+
+    expect(() => assertCoherentCapabilities()).toThrow(/NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE/)
+  })
+
+  it('accepts GitHub Projects with Project Mode', async () => {
+    process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS = 'true'
+    const { assertCoherentCapabilities } = await import('@/lib/brand/capabilities')
+
+    expect(() => assertCoherentCapabilities()).not.toThrow()
+  })
+
+  it('accepts Project Mode off when GitHub Projects is off too', async () => {
+    // The single-player build: no boards and no GitHub Projects is coherent.
+    process.env.NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE = 'false'
+    const { assertCoherentCapabilities } = await import('@/lib/brand/capabilities')
+
+    expect(() => assertCoherentCapabilities()).not.toThrow()
+  })
+})

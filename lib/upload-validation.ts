@@ -171,3 +171,25 @@ export const SECURE_UPLOAD_MIME_TYPES: readonly string[] = Array.from(
 export function validateSecureUpload(fileName: string, fileType: string): UploadValidation {
   return validateUploadFile({ name: fileName, type: fileType }, SECURE_UPLOAD_FILE_TYPES)
 }
+
+/**
+ * The image type the BYTES say they are, from their leading signature.
+ *
+ * The extension/MIME check above trusts what the client declares. That is all
+ * a multipart upload from the apps has ever had, but a raw-bytes upload (the
+ * task-attachment ticket route) can afford to look: a screenshot that does not
+ * start with an image signature is not a screenshot, whatever it is called.
+ * Covers exactly IMAGE_FILE_TYPES — no SVG, which is markup.
+ */
+export function sniffImageMimeType(bytes: Uint8Array): string | null {
+  const startsWith = (signature: number[], offset = 0) =>
+    bytes.length >= offset + signature.length && signature.every((b, i) => bytes[offset + i] === b)
+
+  if (startsWith([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return 'image/png'
+  if (startsWith([0xff, 0xd8, 0xff])) return 'image/jpeg'
+  if (startsWith([0x47, 0x49, 0x46, 0x38, 0x37, 0x61]) || startsWith([0x47, 0x49, 0x46, 0x38, 0x39, 0x61])) {
+    return 'image/gif'
+  }
+  if (startsWith([0x52, 0x49, 0x46, 0x46]) && startsWith([0x57, 0x45, 0x42, 0x50], 8)) return 'image/webp'
+  return null
+}

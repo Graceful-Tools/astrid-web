@@ -9,7 +9,9 @@
     "seeAllCollaborative": "See all collaborative lists →",
     "seeAllSuggested": "See all suggested lists →",
     "hideSidebar": "Hide sidebar",
-    "showSidebar": "Show sidebar"
+    "showSidebar": "Show sidebar",
+    "hideMessages": "Hide messages",
+    "showMessages": "Show messages"
   },
   "userMenu": {
     "settings": "Settings",
@@ -1018,7 +1020,16 @@
     "keyInvalid": "{min}–{max} letters or digits, starting with a letter",
     "keyRename": "Rename",
     "keyRenameHint": "Tasks become {next}; {old} keeps working",
-    "keyRenameFailed": "Couldn't rename the key"
+    "keyRenameFailed": "Couldn't rename the key",
+    "createBoard": "Create Board",
+    "creatingBoard": "Creating...",
+    "createBoardFailed": "Failed to create board",
+    "disableBoard": "Disable Board",
+    "disablingBoard": "Disabling...",
+    "disableBoardFailed": "Failed to disable board",
+    "disableBoardTitle": "Disable Board View",
+    "disableBoardBody": "Tasks stay in this list, but the Ready/Doing/Waiting columns will be removed.",
+    "disableBoardNote": "Tasks currently in a status column will lose their status. Completed tasks stay completed."
   },
   "listSettings": {
     "color": {

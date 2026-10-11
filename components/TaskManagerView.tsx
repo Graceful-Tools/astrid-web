@@ -4,6 +4,7 @@ import { BRAND } from '@/lib/brand/config'
 import React, { memo } from "react"
 import { TaskManagerHeader } from "./TaskManager/Header/TaskManagerHeader"
 import { LeftSidebar } from "./TaskManager/Sidebar/LeftSidebar"
+import { DesktopChatPane } from "./TaskManager/DesktopChatPane"
 import { MainContent } from "./TaskManager/MainContent/MainContent"
 import { LoadingScreen } from "./loading-screen"
 import { computeTaskPaneLeftOffset } from "./TaskManager/task-pane-position"
@@ -728,7 +729,7 @@ const TaskManagerView = memo(function TaskManagerView({
       {/* Mobile Sidebar - rendered outside content wrapper for iOS drawer effect */}
       {isIOSDrawer && (
         <LeftSidebar
-          isMobile={isMobile || isBoardMode}
+          isMobile={isMobile}
           showHamburgerMenu={isIOSDrawer}
           showMobileSidebar={showMobileSidebar}
           sidebarRef={sidebarRef}
@@ -790,7 +791,7 @@ const TaskManagerView = memo(function TaskManagerView({
           isTaskDragActive={Boolean(activeDragTaskId)}
           onHamburgerDragHover={handleHamburgerDragHover}
           activePanel={activePanel}
-          onToggleActivePanel={isMobile || isBoardMode ? setActivePanel : undefined}
+          onToggleActivePanel={isMobile ? setActivePanel : undefined}
           hasProjectBoard={hasProjectBoard}
           taskViewMode={taskViewMode}
           onTaskViewModeChange={setTaskViewMode}
@@ -871,7 +872,7 @@ const TaskManagerView = memo(function TaskManagerView({
             )}
           </div>
         ) : layout.mainSurface === 'mobileChat' ? (
-          // In mobile and board mode, messages replace the task surface.
+          // On mobile, messages replace the task surface.
           <div className="flex-1 min-h-0" ref={taskManagerRef}>
             <LazyChatPanel
               channelId={chatChannelId}
@@ -973,13 +974,7 @@ const TaskManagerView = memo(function TaskManagerView({
 
         {/* Chat Panel - inline flex column on the right (2-column and 3-column), hidden in settings, dimmed when task detail is open */}
         {layout.showDesktopChatPanel && effectiveSession?.user && (
-          <div className={`flex-1 order-last h-full border-l theme-border min-w-[280px] relative ${(selectedTask || settingsSubPage) ? 'pointer-events-none' : ''}`}>
-            {(selectedTask || settingsSubPage) && (
-              <div
-                className="absolute inset-0 bg-white/50 dark:bg-black/40 z-10 transition-opacity duration-200 pointer-events-auto cursor-pointer"
-                onClick={dismissActiveOverlay}
-              />
-            )}
+          <DesktopChatPane boardMode={isBoardMode} dimmed={Boolean(selectedTask || settingsSubPage)} onDismissOverlay={dismissActiveOverlay}>
             <LazyChatPanel
               channelId={chatChannelId}
               currentUser={effectiveSession.user}
@@ -991,7 +986,7 @@ const TaskManagerView = memo(function TaskManagerView({
               isLoading={chatChannelLoading}
               className="h-full"
             />
-          </div>
+          </DesktopChatPane>
         )}
         </div>
       </div>

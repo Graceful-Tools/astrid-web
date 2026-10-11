@@ -9,7 +9,9 @@
     "seeAllCollaborative": "Все совместные списки →",
     "seeAllSuggested": "Все рекомендуемые списки →",
     "hideSidebar": "Скрыть боковую панель",
-    "showSidebar": "Показать боковую панель"
+    "showSidebar": "Показать боковую панель",
+    "hideMessages": "Скрыть сообщения",
+    "showMessages": "Показать сообщения"
   },
   "userMenu": {
     "settings": "Настройки",
@@ -1018,7 +1020,16 @@
     "keyInvalid": "{min}–{max} букв или цифр, начиная с буквы",
     "keyRename": "Переименовать",
     "keyRenameHint": "Задачи станут {next}; {old} продолжит работать",
-    "keyRenameFailed": "Не удалось переименовать префикс"
+    "keyRenameFailed": "Не удалось переименовать префикс",
+    "createBoard": "Создать доску",
+    "creatingBoard": "Создание...",
+    "createBoardFailed": "Не удалось создать доску",
+    "disableBoard": "Отключить доску",
+    "disablingBoard": "Отключение...",
+    "disableBoardFailed": "Не удалось отключить доску",
+    "disableBoardTitle": "Отключить вид доски",
+    "disableBoardBody": "Задачи останутся в этом списке, но столбцы Ready/Doing/Waiting будут удалены.",
+    "disableBoardNote": "Задачи в столбце статуса потеряют свой статус. Выполненные задачи останутся выполненными."
   },
   "listSettings": {
     "color": {

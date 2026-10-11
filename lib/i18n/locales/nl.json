@@ -9,7 +9,9 @@
     "seeAllCollaborative": "Bekijk alle samenwerkingslijsten →",
     "seeAllSuggested": "Bekijk alle aanbevolen lijsten →",
     "hideSidebar": "Zijbalk verbergen",
-    "showSidebar": "Zijbalk tonen"
+    "showSidebar": "Zijbalk tonen",
+    "hideMessages": "Berichten verbergen",
+    "showMessages": "Berichten tonen"
   },
   "userMenu": {
     "settings": "Instellingen",
@@ -1018,7 +1020,16 @@
     "keyInvalid": "{min}–{max} letters of cijfers, beginnend met een letter",
     "keyRename": "Hernoemen",
     "keyRenameHint": "Taken worden {next}; {old} blijft werken",
-    "keyRenameFailed": "Kon het voorvoegsel niet hernoemen"
+    "keyRenameFailed": "Kon het voorvoegsel niet hernoemen",
+    "createBoard": "Bord maken",
+    "creatingBoard": "Bezig met maken...",
+    "createBoardFailed": "Bord maken mislukt",
+    "disableBoard": "Bord uitschakelen",
+    "disablingBoard": "Bezig met uitschakelen...",
+    "disableBoardFailed": "Bord uitschakelen mislukt",
+    "disableBoardTitle": "Bordweergave uitschakelen",
+    "disableBoardBody": "Taken blijven in deze lijst, maar de kolommen Ready/Doing/Waiting worden verwijderd.",
+    "disableBoardNote": "Taken in een statuskolom verliezen hun status. Voltooide taken blijven voltooid."
   },
   "listSettings": {
     "color": {

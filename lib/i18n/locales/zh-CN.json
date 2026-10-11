@@ -9,7 +9,9 @@
     "seeAllCollaborative": "查看所有协作列表 →",
     "seeAllSuggested": "查看所有推荐列表 →",
     "hideSidebar": "隐藏侧边栏",
-    "showSidebar": "显示侧边栏"
+    "showSidebar": "显示侧边栏",
+    "hideMessages": "隐藏消息",
+    "showMessages": "显示消息"
   },
   "userMenu": {
     "settings": "设置",
@@ -1018,7 +1020,16 @@
     "keyInvalid": "{min}–{max} 个字母或数字，以字母开头",
     "keyRename": "重命名",
     "keyRenameHint": "任务将变为 {next}；{old} 仍然有效",
-    "keyRenameFailed": "无法重命名前缀"
+    "keyRenameFailed": "无法重命名前缀",
+    "createBoard": "创建看板",
+    "creatingBoard": "正在创建...",
+    "createBoardFailed": "无法创建看板",
+    "disableBoard": "停用看板",
+    "disablingBoard": "正在停用...",
+    "disableBoardFailed": "无法停用看板",
+    "disableBoardTitle": "停用看板视图",
+    "disableBoardBody": "任务会保留在此列表中，但 Ready/Doing/Waiting 列将被移除。",
+    "disableBoardNote": "处于状态列中的任务将失去其状态。已完成的任务仍为已完成。"
   },
   "listSettings": {
     "color": {

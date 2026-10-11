@@ -9,7 +9,9 @@
     "seeAllCollaborative": "Ver todas as listas colaborativas →",
     "seeAllSuggested": "Ver todas as listas sugeridas →",
     "hideSidebar": "Ocultar barra lateral",
-    "showSidebar": "Mostrar barra lateral"
+    "showSidebar": "Mostrar barra lateral",
+    "hideMessages": "Ocultar mensagens",
+    "showMessages": "Mostrar mensagens"
   },
   "userMenu": {
     "settings": "Configurações",
@@ -1018,7 +1020,16 @@
     "keyInvalid": "De {min} a {max} letras ou dígitos, começando com uma letra",
     "keyRename": "Renomear",
     "keyRenameHint": "As tarefas passam a {next}; {old} continua a funcionar",
-    "keyRenameFailed": "Não foi possível renomear o prefixo"
+    "keyRenameFailed": "Não foi possível renomear o prefixo",
+    "createBoard": "Criar quadro",
+    "creatingBoard": "Criando...",
+    "createBoardFailed": "Não foi possível criar o quadro",
+    "disableBoard": "Desativar quadro",
+    "disablingBoard": "Desativando...",
+    "disableBoardFailed": "Não foi possível desativar o quadro",
+    "disableBoardTitle": "Desativar a visualização de quadro",
+    "disableBoardBody": "As tarefas permanecem nesta lista, mas as colunas Ready/Doing/Waiting serão removidas.",
+    "disableBoardNote": "As tarefas que estiverem em uma coluna de status perderão o status. As tarefas concluídas continuam concluídas."
   },
   "listSettings": {
     "color": {

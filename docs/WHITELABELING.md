@@ -98,12 +98,20 @@ An unrecognised value counts as enabled — a typo must not silently remove a fe
 | `NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK` | Inbound email-to-task |
 | `NEXT_PUBLIC_BRAND_ENABLE_CALENDAR_FEED` | Public `.ics` feed |
 
-Two switches work the other way: they are **off unless set to `true`**.
+**Opt-in capabilities.** The exceptions to "defaults to enabled": these are **off** unless
+set to `true` / `1` / `on` / `yes`, and an unrecognised value leaves them off.
 
-| Variable | Turns on |
-|---|---|
-| `NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS` | GitHub Projects as a task backend (docs/specs/GITHUB_PROJECTS_WHITELABEL.md §8). Never set for astrid.cc |
-| `NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS` | On a GitHub Projects board, an AI agent's assignment is shown on GitHub as a label `agent:<name>` on the issue, written by your GitHub App (which needs Issues: write). The label is created in the repo if it is missing. Labels under `agent:` then belong to the mirror: one for an agent not assigned in the app is removed, and none becomes a label list. Does nothing without GitHub Projects |
+| Variable | Turns on | Requires |
+|---|---|---|
+| `NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS` | GitHub Projects as a task backend: an organisation's projects bound as boards and mirrored from GitHub (docs/specs/GITHUB_PROJECTS_WHITELABEL.md §8) | `NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE` on — a bound project *is* a board. The server refuses to start otherwise (`assertCoherentCapabilities` in `lib/brand/capabilities.ts`, called from `instrumentation.ts`). Also `github` in `NEXT_PUBLIC_BRAND_AUTH_PROVIDERS` and the brand's own GitHub App (§8) |
+| `NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS` | On a GitHub Projects board, an AI agent's assignment is shown on GitHub as a label `agent:<name>` on the issue. The label is created in the repo if it is missing. Labels under `agent:` then belong to the mirror: one for an agent not assigned in the app is removed, and none becomes a label list | `NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS` on, and your GitHub App needs Issues: write |
+| `github` and `sso` in `NEXT_PUBLIC_BRAND_AUTH_PROVIDERS` | Sign in with GitHub, enterprise SSO | Their credentials — see *Sign-in providers* below |
+
+GitHub Projects is **never on astrid.cc**: `brands/astrid.brand.json` does not set the
+switch, and `tests/rules/astrid-never-enables-github-projects.test.ts` fails the build if it
+ever does. A GitHub-backed brand normally also turns `SYNC_GITHUB_ISSUES`,
+`SYNC_GOOGLE_TASKS` and `TASK_COST` off, since GitHub is its backend —
+`brands/github-projects.brand.json` is the reference profile.
 
 Two of these — `PROJECT_MODE` and `TASK_COST` — existed in
 `lib/brand/capabilities.ts` for some time without appearing here or in
@@ -382,6 +390,47 @@ accepts `evil-<brand>.cc`. Pinned by `tests/lib/brand-security-boundaries.test.t
 Moving an existing deployment to a new agent-email domain also needs
 `scripts/migrate-agent-email-domain.ts` (dry-runs by default). A fresh deployment does
 not: agent rows are created lazily at whatever domain is configured.
+
+### A GitHub Projects partner
+
+Everything above, plus the parts that only a GitHub-backed brand has. Start from
+`brands/github-projects.brand.json` ("Lanes for GitHub Projects") rather than `acme`.
+
+1. **Name it.** "\<Brand\> for GitHub Projects" is the form GitHub's brand guidelines
+   allow. A `NEXT_PUBLIC_BRAND_NAME` that starts with "GitHub" fails `check:brands`.
+2. **Set the profile's switches:** `AUTH_PROVIDERS=github,sso` (or `github` alone),
+   `ENABLE_GITHUB_PROJECTS=true`, `ENABLE_PROJECT_MODE=true`, and
+   `ENABLE_SYNC_GITHUB_ISSUES`, `ENABLE_SYNC_GOOGLE_TASKS`, `ENABLE_TASK_COST` all `false`.
+   `ENABLE_CODING_AGENT` is the partner's choice; off removes two App permissions below.
+3. **Register the brand's own GitHub App** — never Astrid's. Under the partner's GitHub
+   organisation:
+   - Callback URLs: `https://<domain>/api/auth/callback/github` (sign-in) and
+     `https://<domain>/api/github/setup` (installation).
+   - Webhook URL: `https://<domain>/api/github/webhooks`, with a secret.
+   - Permissions: Organization projects read/write · Issues read/write · Pull requests
+     read · Metadata read · Members read · Email addresses read. With the coding agent
+     on, also Pull requests write and Contents write.
+   - Events: `installation`, `projects_v2`, `projects_v2_item`, `issues`,
+     `issue_comment`, `sub_issues`, `label`, `milestone`, `pull_request`, `member`,
+     `membership`, `organization`.
+   - "Request user authorization (OAuth) during installation" on, and user-to-server
+     token expiry on: edits are made with the acting user's own token.
+4. **Give the deployment the App's credentials:** `GITHUB_APP_ID`,
+   `GITHUB_APP_PRIVATE_KEY`, `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` (the App's own
+   `Iv…` OAuth client), `GITHUB_WEBHOOK_SECRET`, and the App's slug in
+   `NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG`. The server refuses to start with `github` listed
+   and no OAuth client.
+5. `npm run check:brands`, then `npx tsx scripts/deploy-brand-preview.ts github-projects`.
+   The preview must carry the App's credentials or it will not boot; add the preview's
+   callback URLs to the App first.
+6. **Verify on the preview:** `GET /api/v1/capabilities` reports
+   `product.githubProjects: true` and `auth.providers` as listed; sign in with GitHub;
+   install the App on a test organisation; bind one project and watch it import.
+7. **Marketplace listing**, if the partner wants one: the copy and the form's answers for
+   Lanes are in [deployment/LANES_GITHUB_MARKETPLACE.md](./deployment/LANES_GITHUB_MARKETPLACE.md).
+   Pricing and plans are the partner's (spec §15 C4).
+8. **Native apps:** astrid-ios's `apply-brand.sh` script (§6), then `BrandAuditTests`
+   under the partner profile.
 
 ---
 

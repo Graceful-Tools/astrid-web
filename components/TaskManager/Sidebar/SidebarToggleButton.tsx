@@ -1,14 +1,15 @@
 "use client"
 
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react"
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useTranslations } from "@/lib/i18n/client"
 
-/** The desktop sidebar's open/close icon, as on Mac (AWTD-1163). */
-export function SidebarToggleButton({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
-  const { t } = useTranslations()
-  const label = collapsed ? t("navigation.showSidebar") : t("navigation.hideSidebar")
-  const Icon = collapsed ? PanelLeftOpen : PanelLeftClose
+interface PaneToggleButtonProps {
+  collapsed: boolean
+  onToggle: () => void
+}
+
+function PaneToggleButton({ collapsed, onToggle, label, Icon }: PaneToggleButtonProps & { label: string; Icon: typeof PanelLeftOpen }) {
   return (
     <Button
       variant="ghost"
@@ -21,5 +22,31 @@ export function SidebarToggleButton({ collapsed, onToggle }: { collapsed: boolea
     >
       <Icon className="w-4 h-4" />
     </Button>
+  )
+}
+
+/** The desktop sidebar's open/close icon, as on Mac (AWTD-1163). */
+export function SidebarToggleButton({ collapsed, onToggle }: PaneToggleButtonProps) {
+  const { t } = useTranslations()
+  return (
+    <PaneToggleButton
+      collapsed={collapsed}
+      onToggle={onToggle}
+      label={collapsed ? t("navigation.showSidebar") : t("navigation.hideSidebar")}
+      Icon={collapsed ? PanelLeftOpen : PanelLeftClose}
+    />
+  )
+}
+
+/** Its mirror image on the right, for the messages pane (AWTD-1178). */
+export function ChatPaneToggleButton({ collapsed, onToggle }: PaneToggleButtonProps) {
+  const { t } = useTranslations()
+  return (
+    <PaneToggleButton
+      collapsed={collapsed}
+      onToggle={onToggle}
+      label={collapsed ? t("navigation.showMessages") : t("navigation.hideMessages")}
+      Icon={collapsed ? PanelRightOpen : PanelRightClose}
+    />
   )
 }

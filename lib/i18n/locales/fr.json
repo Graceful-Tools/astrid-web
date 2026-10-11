@@ -9,7 +9,9 @@
     "seeAllCollaborative": "Voir toutes les listes collaboratives →",
     "seeAllSuggested": "Voir toutes les listes suggérées →",
     "hideSidebar": "Masquer la barre latérale",
-    "showSidebar": "Afficher la barre latérale"
+    "showSidebar": "Afficher la barre latérale",
+    "hideMessages": "Masquer les messages",
+    "showMessages": "Afficher les messages"
   },
   "userMenu": {
     "settings": "Paramètres",
@@ -1018,7 +1020,16 @@
     "keyInvalid": "{min} à {max} lettres ou chiffres, commençant par une lettre",
     "keyRename": "Renommer",
     "keyRenameHint": "Les tâches deviennent {next} ; {old} fonctionne toujours",
-    "keyRenameFailed": "Impossible de renommer le préfixe"
+    "keyRenameFailed": "Impossible de renommer le préfixe",
+    "createBoard": "Créer le tableau",
+    "creatingBoard": "Création...",
+    "createBoardFailed": "Impossible de créer le tableau",
+    "disableBoard": "Désactiver le tableau",
+    "disablingBoard": "Désactivation...",
+    "disableBoardFailed": "Impossible de désactiver le tableau",
+    "disableBoardTitle": "Désactiver la vue tableau",
+    "disableBoardBody": "Les tâches restent dans cette liste, mais les colonnes Ready/Doing/Waiting seront supprimées.",
+    "disableBoardNote": "Les tâches placées dans une colonne de statut perdront leur statut. Les tâches terminées restent terminées."
   },
   "listSettings": {
     "color": {
