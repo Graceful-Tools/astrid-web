@@ -23,6 +23,10 @@ const db = vi.hoisted(() => ({
     upsert: vi.fn((args: unknown) => ({ op: 'item.upsert', args })),
     update: vi.fn((args: unknown) => ({ op: 'item.update', args })),
   },
+  taskDependency: {
+    createMany: vi.fn((args: unknown) => ({ op: 'dependency.createMany', args })),
+    deleteMany: vi.fn((args: unknown) => ({ op: 'dependency.deleteMany', args })),
+  },
   gitHubProjectBinding: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
   project: { create: vi.fn() },
   taskList: { create: vi.fn() },
@@ -54,7 +58,17 @@ const board: BoundBoard = {
 /** The replica row an item would have left behind. */
 function replicaOf(item: RemoteProjectItem, id: string) {
   const n = normaliseItem(item, board.binding)!
-  return { id, remoteNodeId: n.remoteNodeId, ...n.task, identifier: n.identifier, remoteKind: n.remoteKind, remoteVersion: n.remoteVersion }
+  return {
+    id,
+    remoteNodeId: n.remoteNodeId,
+    ...n.task,
+    identifier: n.identifier,
+    remoteKind: n.remoteKind,
+    remoteVersion: n.remoteVersion,
+    parentTaskId: null as string | null,
+    parentTask: null as { remoteNodeId: string | null } | null,
+    blockedBy: [] as Array<{ blockingTaskId: string }>,
+  }
 }
 
 beforeEach(() => {
@@ -142,6 +156,107 @@ describe('applyProjectItems (AWTD-1151)', () => {
     expect(db.gitHubProjectItem.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ create: { itemNodeId: items[0].id, projectId: 'proj-1', taskId: 't0' } }),
     )
+  })
+})
+
+/** `item` as an issue with GitHub relationships (the fragment's P6c fields). */
+function related(item: RemoteProjectItem, parent: string | null, blockedBy: string[] = []): RemoteProjectItem {
+  return {
+    ...item,
+    content: {
+      ...item.content!,
+      parent: parent ? { id: parent } : null,
+      blockedBy: { totalCount: blockedBy.length, nodes: blockedBy.map(id => ({ id })) },
+    },
+  }
+}
+
+/** A replica row as the writer reads it back, relationships included. */
+function mirrored(item: RemoteProjectItem, id: string, relations: { parentTaskId?: string; parentNode?: string; blockers?: string[] } = {}) {
+  return {
+    ...replicaOf(item, id),
+    parentTaskId: relations.parentTaskId ?? null,
+    parentTask: relations.parentTaskId ? { remoteNodeId: relations.parentNode ?? null } : null,
+    blockedBy: (relations.blockers ?? []).map(blockingTaskId => ({ blockingTaskId })),
+  }
+}
+
+describe('applyProjectItems — sub-issues and dependencies (AWTD-1119)', () => {
+  const [parent, child] = items
+  const parentNode = parent.content!.id
+  const childNode = child.content!.id
+  const members = (...of: RemoteProjectItem[]) => of.map(item => ({ itemNodeId: item.id, archived: false }))
+
+  it('a sub-issue imported on the same page as its parent is filed under the task just created for it', async () => {
+    await applyProjectItems(board, [related(child, parentNode), related(parent, null)])
+
+    // Created in page order: the child is new-0, its parent new-1.
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 'new-0' }, data: { parentTaskId: 'new-1' } })
+    expect(db.task.findMany).toHaveBeenCalledTimes(1) // both ends were on the page: no extra read
+  })
+
+  it('a blocker mirrored by another board is found with ONE extra read and becomes a TaskDependency', async () => {
+    db.task.findMany
+      .mockResolvedValueOnce([mirrored(child, 't-child')])
+      .mockResolvedValueOnce([{ id: 't-elsewhere', remoteNodeId: 'I_elsewhere' }])
+    db.gitHubProjectItem.findMany.mockResolvedValue(members(child))
+
+    await applyProjectItems(board, [related(child, null, ['I_elsewhere', 'I_not_mirrored'])])
+
+    expect(db.task.findMany).toHaveBeenCalledTimes(2)
+    expect(db.task.findMany.mock.calls[1][0]).toEqual({
+      where: { remoteNodeId: { in: ['I_elsewhere', 'I_not_mirrored'] } },
+      select: { id: true, remoteNodeId: true },
+    })
+    expect(db.taskDependency.createMany).toHaveBeenCalledWith({
+      data: [{ blockedTaskId: 't-child', blockingTaskId: 't-elsewhere' }],
+      skipDuplicates: true,
+    })
+    expect(db.taskDependency.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it('a cycle from GitHub is written as it stands — no 409, both directions kept', async () => {
+    db.task.findMany.mockResolvedValue([mirrored(parent, 't-a', { blockers: ['t-b'] }), mirrored(child, 't-b')])
+    db.gitHubProjectItem.findMany.mockResolvedValue(members(parent, child))
+
+    await applyProjectItems(board, [related(parent, null, [childNode]), related(child, null, [parentNode])])
+
+    expect(db.taskDependency.createMany).toHaveBeenCalledWith({
+      data: [{ blockedTaskId: 't-b', blockingTaskId: 't-a' }],
+      skipDuplicates: true,
+    })
+    expect(db.taskDependency.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it('a dependency removed on GitHub is removed here; a sub-issue detached there is detached here', async () => {
+    db.task.findMany.mockResolvedValue([mirrored(child, 't-child', { parentTaskId: 't-parent', parentNode, blockers: ['t-old'] })])
+    db.gitHubProjectItem.findMany.mockResolvedValue(members(child))
+
+    await applyProjectItems(board, [related(child, null)])
+
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 't-child' }, data: { parentTaskId: null } })
+    expect(db.taskDependency.deleteMany).toHaveBeenCalledWith({
+      where: { blockedTaskId: 't-child', blockingTaskId: { in: ['t-old'] } },
+    })
+  })
+
+  it('reads only MIRRORED blockers back, so a blocker on a local Astrid task is never GitHub’s to remove', async () => {
+    await applyProjectItems(board, [related(child, null)])
+
+    expect(db.task.findMany.mock.calls[0][0].select.blockedBy).toEqual({
+      where: { blockingTask: { remoteNodeId: { not: null } } },
+      select: { blockingTaskId: true },
+    })
+  })
+
+  it('a page with no relationships costs no extra read and no relationship write', async () => {
+    db.task.findMany.mockResolvedValue(items.map((item, i) => mirrored(item, `t${i}`)))
+    db.gitHubProjectItem.findMany.mockResolvedValue(members(...items))
+
+    await applyProjectItems(board, items.map(item => (item.content?.__typename === 'Issue' ? related(item, null) : item)))
+
+    expect(db.task.findMany).toHaveBeenCalledTimes(1)
+    expect(db.$transaction).not.toHaveBeenCalled()
   })
 })
 

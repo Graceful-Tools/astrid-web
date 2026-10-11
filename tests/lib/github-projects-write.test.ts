@@ -87,13 +87,21 @@ describe('planRemoteUpdate (AWTD-1116 P5a)', () => {
     expect(p).toMatchObject({ versionAliases: ['m0'], editsBody: true })
   })
 
-  it('a draft is edited as a draft; a PR as a PR', () => {
+  it('a draft is edited as a draft', () => {
     expect(mutations(plan({ title: 'x' }, { ...issue, remoteKind: 'draft', remoteNodeId: 'DI_1' }))).toEqual([
       'updateProjectV2DraftIssue',
     ])
-    expect(mutations(plan({ title: 'x' }, { ...issue, remoteKind: 'pull_request', remoteNodeId: 'PR_1' }))).toEqual([
-      'updatePullRequest',
-    ])
+  })
+
+  it('AWTD-1119: a PR’s content is read-only — a title or body edit is refused, not sent', () => {
+    const pr = { ...issue, remoteKind: 'pull_request' as const, remoteNodeId: 'PR_1' }
+    expect(planRemoteUpdate(pr, [membership], { title: 'x' })).toEqual({ refused: 'pull_request_content' })
+    expect(planRemoteUpdate(pr, [membership], { description: 'new body' })).toEqual({ refused: 'pull_request_content' })
+  })
+
+  it('AWTD-1119: a PR’s status stays editable, and an unchanged title riding along is not an edit', () => {
+    const pr = { ...issue, remoteKind: 'pull_request' as const, remoteNodeId: 'PR_1' }
+    expect(mutations(plan({ title: pr.title, statusRole: 'doing' }, pr))).toEqual(['updateProjectV2ItemFieldValue'])
   })
 
   it('a lane change sets the bound Status option; Inbox clears it', () => {

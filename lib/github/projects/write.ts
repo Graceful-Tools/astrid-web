@@ -7,7 +7,8 @@
  * the row data the service is about to write, it decides what GitHub must be
  * told — as ONE GraphQL document of aliased mutations — or why it can't be:
  *
- *   title / description   updateIssue | updatePullRequest | updateProjectV2DraftIssue
+ *   title / description   updateIssue | updateProjectV2DraftIssue; a PR's
+ *                         content is read-only and the edit is refused
  *   statusRole            the bound Status option, per project (clear = Inbox)
  *   completed             the Done option, and close/reopen an issue (§8.7:
  *                         "Done also closes"); closedReason 'not_planned'
@@ -46,6 +47,7 @@ export type WriteRefusal =
   | { refused: 'field_not_bound'; field: string }
   | { refused: 'no_option_for_role'; role: string }
   | { refused: 'pull_request_close' }
+  | { refused: 'pull_request_content' }
 
 export interface MutationPlan {
   /** The whole document, ready to send. Empty when nothing goes to GitHub. */
@@ -138,9 +140,8 @@ class Builder {
   }
 }
 
-const CONTENT_SELECTION: Record<WritableTask['remoteKind'], string> = {
+const CONTENT_SELECTION: Record<Exclude<WritableTask['remoteKind'], 'pull_request'>, string> = {
   issue: 'issue { id updatedAt }',
-  pull_request: 'pullRequest { id updatedAt }',
   draft: 'draftIssue { id updatedAt }',
 }
 
@@ -194,12 +195,10 @@ export function planRemoteUpdate(
   if (typeof data.title === 'string') content.title = ['String', data.title]
   if ('description' in data) content.body = ['String', (data.description as string | null) ?? '']
   if (Object.keys(content).length > 0) {
+    // A PR's title and body are read-only here; its status and fields are not (§8.4, AWTD-1119).
+    if (task.remoteKind === 'pull_request') return { refused: 'pull_request_content' }
     const [mutation, idArg] =
-      task.remoteKind === 'issue'
-        ? ['updateIssue', 'id']
-        : task.remoteKind === 'pull_request'
-          ? ['updatePullRequest', 'pullRequestId']
-          : ['updateProjectV2DraftIssue', 'draftIssueId']
+      task.remoteKind === 'issue' ? ['updateIssue', 'id'] : ['updateProjectV2DraftIssue', 'draftIssueId']
     b.add(mutation, { [idArg]: ['ID!', task.remoteNodeId], ...content }, CONTENT_SELECTION[task.remoteKind], true)
   }
 

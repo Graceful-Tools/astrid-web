@@ -1398,7 +1398,8 @@ installation's. A rule in the tests keeps the App and installation tokens out of
   that actually change, as one document of aliased mutations: title and body by content
   kind, the bound Status option on each project, Done also closes an issue, reopen,
   not-planned closes as NOT_PLANNED, and the bound priority and due fields.
-- **Refusals.** A PR is never closed from here. An unbound field or an unmapped role is
+- **Refusals.** A PR is never closed from here, and since P6c its title and body are
+  read-only too. An unbound field or an unmapped role is
   refused with a 400 naming it, never silently dropped.
 - **Conflicts.** A body edit is checked against the current `updatedAt` first, and a
   stale base is a 409 `conflict`.
@@ -1463,6 +1464,34 @@ How the edge cases behave:
 
 Not yet: GitHub comments flowing **into** Astrid. This is outbound only, so inbound
 mirroring will need to dedupe by GitHub comment id.
+
+### P6c — rich mapping: relationships built, the rest open
+
+**Relationships slice ([AWTD-1119](https://astrid.cc/t/AWTD-1119)), done. Inbound only.**
+- **Sub-issues.** An issue's `parent` becomes the task's `parentTaskId`
+  (`lib/github/projects/relations.ts`). A sub-issue detached on GitHub is detached here.
+- **Dependencies.** An issue's `blockedBy` becomes `TaskDependency` rows, added and removed
+  to match GitHub. A cycle from GitHub is written as it stands: the rows go straight to the
+  table, past the cycle check that guards Astrid's own writes.
+- **Both ends must be mirrored.** A parent or blocker that no bound board mirrors is not a
+  relationship here. A child paged in before its parent is healed the next time it is
+  hydrated or reconciled.
+- **Local relationships are left alone.** A local Astrid parent is kept when GitHub has none,
+  and only blockers that are themselves mirrored tasks are ever removed.
+- **More than 20 blockers** on one issue: the list is added to and never pruned.
+- **Cost.** The relationships ride on the page's existing replica read. One more read per
+  page only when an end is off the page. The page query's GraphQL cost went from 1 to 2.
+- **PR content is read-only.** A title or body edit to a mirrored pull request is refused
+  with `github_pull_request_content`. This reverses P5a, which sent `updatePullRequest`.
+  Status and fields stay editable.
+- **Verified against GitHub.** The grown fragment was run against the test project. The
+  fixture issues have no parent or blocker, so a non-empty answer has not been recorded.
+
+Already true before this slice: Priority maps by option order (P4c), and a PR is never
+closed from here (P5a).
+
+Not yet: writing a parent or a blocker **from** Astrid to GitHub, labels, iterations,
+milestones, `assigneeIds[]`, and the `agent:<name>` label.
 
 ### P6–P8 — fields, recurrence, per-org SSO, brand: not started
 

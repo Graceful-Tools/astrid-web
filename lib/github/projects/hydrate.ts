@@ -17,6 +17,12 @@ import type { GraphqlClient } from '../rate-limiter'
 /** Field values read per item. Status, Priority, a date and a few custom fields fit easily. */
 const FIELD_VALUES_PER_ITEM = 20
 
+/**
+ * Blockers read per issue (AWTD-1119). An issue with more reports a larger
+ * totalCount, and its list is then added to but never pruned (relations.ts).
+ */
+const BLOCKERS_PER_ISSUE = 20
+
 /** GitHub's maximum page size for project items. */
 export const ITEMS_PAGE_SIZE = 100
 
@@ -36,6 +42,8 @@ fragment ProjectItemFields on ProjectV2Item {
     ... on Issue {
       id title body updatedAt number url state stateReason
       repository { nameWithOwner }
+      parent { id }
+      blockedBy(first: ${BLOCKERS_PER_ISSUE}) { totalCount nodes { id } }
     }
     ... on PullRequest {
       id title body updatedAt number url state
