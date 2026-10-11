@@ -1029,6 +1029,11 @@
     "disableBoardBody": "Le attività restano in questa lista, ma le colonne Ready/Doing/Waiting verranno rimosse.",
     "disableBoardNote": "Le attività in una colonna di stato perderanno il loro stato. Le attività completate restano completate."
   },
+  "viewRotator": {
+    "showList": "Mostra elenco",
+    "showMessages": "Mostra messaggi",
+    "showBoard": "Mostra bacheca"
+  },
   "listSettings": {
     "color": {
       "label": "Colore della lista",

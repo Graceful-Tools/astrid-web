@@ -1029,6 +1029,11 @@
     "disableBoardBody": "Les tâches restent dans cette liste, mais les colonnes Ready/Doing/Waiting seront supprimées.",
     "disableBoardNote": "Les tâches placées dans une colonne de statut perdront leur statut. Les tâches terminées restent terminées."
   },
+  "viewRotator": {
+    "showList": "Afficher la liste",
+    "showMessages": "Afficher les messages",
+    "showBoard": "Afficher le tableau"
+  },
   "listSettings": {
     "color": {
       "label": "Couleur de la liste",

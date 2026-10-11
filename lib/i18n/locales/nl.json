@@ -1029,6 +1029,11 @@
     "disableBoardBody": "Taken blijven in deze lijst, maar de kolommen Ready/Doing/Waiting worden verwijderd.",
     "disableBoardNote": "Taken in een statuskolom verliezen hun status. Voltooide taken blijven voltooid."
   },
+  "viewRotator": {
+    "showList": "Lijst tonen",
+    "showMessages": "Berichten tonen",
+    "showBoard": "Bord tonen"
+  },
   "listSettings": {
     "color": {
       "label": "Lijstkleur",

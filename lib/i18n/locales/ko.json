@@ -1029,6 +1029,11 @@
     "disableBoardBody": "작업은 이 목록에 남지만 Ready/Doing/Waiting 열은 제거됩니다.",
     "disableBoardNote": "상태 열에 있는 작업은 상태를 잃습니다. 완료된 작업은 완료된 상태로 유지됩니다."
   },
+  "viewRotator": {
+    "showList": "목록 보기",
+    "showMessages": "메시지 보기",
+    "showBoard": "보드 보기"
+  },
   "listSettings": {
     "color": {
       "label": "목록 색상",

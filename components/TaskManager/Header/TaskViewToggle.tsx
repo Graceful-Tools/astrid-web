@@ -3,7 +3,8 @@
 import React from "react"
 import { Button } from "@/components/ui/button"
 import { KanbanSquare, ListChecks, MessageCircle } from "lucide-react"
-import { getHeaderViewToggle, type HeaderToggleSegment } from "@/lib/header-view-toggle"
+import { getHeaderViewToggle, nextHeaderSegment, type HeaderToggleSegment } from "@/lib/header-view-toggle"
+import { useTranslations } from "@/lib/i18n/client"
 
 interface TaskViewToggleProps {
   isOneColumn: boolean
@@ -26,10 +27,10 @@ interface TaskViewToggleProps {
   compact?: boolean
 }
 
-const segmentMeta: Record<HeaderToggleSegment, { label: string; Icon: typeof ListChecks }> = {
-  list: { label: 'List', Icon: ListChecks },
-  board: { label: 'Board', Icon: KanbanSquare },
-  messages: { label: 'Messages', Icon: MessageCircle },
+const segmentMeta: Record<HeaderToggleSegment, { label: string; showKey: string; Icon: typeof ListChecks }> = {
+  list: { label: 'List', showKey: 'viewRotator.showList', Icon: ListChecks },
+  board: { label: 'Board', showKey: 'viewRotator.showBoard', Icon: KanbanSquare },
+  messages: { label: 'Messages', showKey: 'viewRotator.showMessages', Icon: MessageCircle },
 }
 
 export function TaskViewToggle({
@@ -45,6 +46,7 @@ export function TaskViewToggle({
   labelClassName = 'hidden sm:inline',
   compact = false,
 }: TaskViewToggleProps) {
+  const { t } = useTranslations()
   const headerToggle = getHeaderViewToggle({
     isOneColumn,
     hasProjectBoard,
@@ -71,14 +73,39 @@ export function TaskViewToggle({
   }
 
   if (headerToggle.segments.length === 0) return null
+
+  // One column: the iPhone's view rotator — a single icon showing the view the
+  // next tap opens, stepping list → messages → board (AWTD-1183).
+  if (headerToggle.unified) {
+    const current = headerToggle.segments.find(isSegmentActive) ?? 'list'
+    const next = nextHeaderSegment(headerToggle.segments, current)
+    const { Icon, showKey } = segmentMeta[next]
+    return (
+      <Button
+        type="button"
+        size="sm"
+        variant="ghost"
+        onClick={() => handleSegmentClick(next)}
+        className="p-2 min-w-[44px] min-h-[44px]"
+        aria-label={t(showKey)}
+        title={t(showKey)}
+        data-testid="header-view-rotator"
+        data-current={current}
+        data-next={next}
+      >
+        <Icon className="w-5 h-5" aria-hidden="true" />
+      </Button>
+    )
+  }
+
   // Wider layouts: the legacy 2-button List/Board control. Skip when there
   // is no board (single segment isn't a toggle).
-  if (!headerToggle.unified && headerToggle.segments.length < 2) return null
+  if (headerToggle.segments.length < 2) return null
 
   return (
     <div
       className="flex rounded-md border theme-border theme-bg-secondary p-0.5"
-      data-testid={headerToggle.unified ? 'header-unified-toggle' : 'header-list-board-toggle'}
+      data-testid="header-list-board-toggle"
     >
       {headerToggle.segments.map((segment) => {
         const { label, Icon } = segmentMeta[segment]

@@ -1029,6 +1029,11 @@
     "disableBoardBody": "Tasks stay in this list, but the Ready/Doing/Waiting columns will be removed.",
     "disableBoardNote": "Tasks currently in a status column will lose their status. Completed tasks stay completed."
   },
+  "viewRotator": {
+    "showList": "Show list",
+    "showMessages": "Show messages",
+    "showBoard": "Show board"
+  },
   "listSettings": {
     "color": {
       "label": "List Color",

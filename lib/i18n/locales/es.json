@@ -1029,6 +1029,11 @@
     "disableBoardBody": "Las tareas permanecen en esta lista, pero se eliminarán las columnas Ready/Doing/Waiting.",
     "disableBoardNote": "Las tareas que estén en una columna de estado perderán su estado. Las tareas completadas siguen completadas."
   },
+  "viewRotator": {
+    "showList": "Mostrar lista",
+    "showMessages": "Mostrar mensajes",
+    "showBoard": "Mostrar tablero"
+  },
   "listSettings": {
     "color": {
       "label": "Color de la lista",

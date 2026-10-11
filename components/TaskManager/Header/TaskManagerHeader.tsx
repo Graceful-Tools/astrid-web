@@ -305,8 +305,9 @@ export function TaskManagerHeader({
   const showListHeader = mobileHeaderMode !== 'desktop'
 
   // Build the unified header view-toggle config. In 1-col mode this becomes
-  // a single segmented control (List / Board / Messages); on wider screens
-  // it's the legacy List/Board toggle with a separate ChatToggle icon.
+  // a single icon stepping list → messages → board, as on iPhone (AWTD-1183);
+  // on wider screens it's the legacy List/Board toggle with a separate
+  // ChatToggle icon.
   const headerToggle = getHeaderViewToggle({
     isOneColumn: isMobile,
     hasProjectBoard,
