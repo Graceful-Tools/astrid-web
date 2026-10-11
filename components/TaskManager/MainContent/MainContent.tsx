@@ -574,7 +574,7 @@ export function MainContent({
         }),
       }}>
         <div
-          className="px-4 py-5 theme-border border-b"
+          className="relative px-4 py-5 theme-border border-b"
           style={{ display: is3Column ? 'block' : 'none' }}
         >
           {isSearchActive ? (

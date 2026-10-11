@@ -219,6 +219,33 @@ describe('desktop list header controls (AWTD-1167, AWTD-1168)', () => {
   const header3Col = (props: Record<string, unknown> = {}) =>
     render(<MainContent {...baseProps} is2Column={false} is3Column={true} {...props} />)
 
+  // AWTD-1204: the control hovers ON the line between the add-task box and the
+  // tasks, lined up with the checkbox of the row below. The geometry was
+  // measured rather than eyeballed — `left-[29px]` is 16px (rows wrapper p-4)
+  // + 1px (task card border) + 12px (.task-row px-3), which is the checkbox's
+  // own left edge, and `-bottom-4` centres the 32px control on the border.
+  //
+  // Pinned as classes because jsdom computes no layout: a geometry assertion
+  // here would pass on anything. What this catches is the row being put back
+  // into flow (the `flex justify-end -mb-3` it used to have), or its parent
+  // losing `relative` — which would position it against the viewport.
+  it('sort & filters hovers on the border line, aligned with the task checkbox', () => {
+    header3Col()
+    const filterRow = screen.getByTestId('list-filter-row')
+    expect(filterRow.className).toContain('absolute')
+    expect(filterRow.className).toContain('left-[29px]')
+    expect(filterRow.className).toContain('-bottom-4')
+    // Out of flow: it must not re-acquire the margins that made the border
+    // sit below it rather than through it.
+    expect(filterRow.className).not.toContain('justify-end')
+    expect(filterRow.className).not.toContain('-mb-3')
+    // And it needs a positioned ancestor, or `left`/`bottom` resolve against
+    // the viewport and the control lands in the corner of the page.
+    const positioned = filterRow.closest('.relative')
+    expect(positioned).not.toBeNull()
+    expect(positioned!.className).toContain('border-b')
+  })
+
   it('sort & filters sits on its own row below "Add a task...", not beside the name', () => {
     const { container } = header3Col()
     const input = screen.getByPlaceholderText(/add a task/i)
