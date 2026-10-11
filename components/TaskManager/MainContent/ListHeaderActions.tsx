@@ -16,8 +16,8 @@
  * it was not.
  *
  * **Where they sit (AWTD-1167, AWTD-1168), as on Mac:** the gear and the
- * icon-only List/Board toggle beside the list's name; the funnel on its own
- * slim row below "Add a task...", just above the line over the tasks — on the
+ * icon-only List/Board toggle beside the list's name; the funnel below "Add a task...", floating on the
+ * line over the tasks (AWTD-1204; it had a slim row of its own first) — on the
  * board view too, which used to hide the whole header and with it every way
  * to sort, filter or switch back to the list.
  */
@@ -76,14 +76,21 @@ export function ListSettingsButton({ onOpen, ...visibility }: ListControlsVisibi
 }
 
 /**
- * The slim row under "Add a task...", above the line over the tasks, holding
- * this viewer's Sort & Filters. System lists pass no visibility (always shown).
+ * This viewer's Sort & Filters, floating ON the line over the tasks rather
+ * than in a row of its own above it (AWTD-1204). Its positioned ancestor is the
+ * header block, whose bottom border is that line, so `bottom-0` plus half its
+ * own height centres it there. `left-[29px]` is where the task checkbox starts
+ * in the row below: 16 list padding + 1 card border + 12 row padding.
+ * System lists pass no visibility (always shown).
  */
 export function ListFilterRow({ onOpen, ...visibility }: Partial<ListControlsVisibility> & { onOpen: () => void }) {
   const { t } = useTranslations()
   if (visibility.list !== undefined && !canUseListControls(visibility as ListControlsVisibility)) return null
   return (
-    <div className="flex justify-end -mb-3 mt-2" data-testid="list-filter-row">
+    <div
+      className="absolute bottom-0 left-[29px] z-10 translate-y-1/2 rounded-full theme-bg-primary"
+      data-testid="list-filter-row"
+    >
       <Button
         variant="ghost"
         size="sm"

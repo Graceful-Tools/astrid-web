@@ -231,6 +231,20 @@ describe('desktop list header controls (AWTD-1167, AWTD-1168)', () => {
     expect(titleRow.querySelector('[data-settings-button]')).not.toBeNull()
   })
 
+  it('AWTD-1204: the funnel floats on the line over the tasks, above the row checkbox', () => {
+    header3Col()
+    const filterRow = screen.getByTestId('list-filter-row')
+    // Out of the flow, so it adds no band of its own between the input and the line…
+    expect(filterRow).toHaveClass('absolute')
+    // …pinned to the bottom edge of the header, which is the line, and centred on it.
+    expect(filterRow).toHaveClass('bottom-0', 'translate-y-1/2')
+    const header = filterRow.parentElement!
+    expect(header).toHaveClass('relative', 'border-b')
+    // Left edge where the task checkbox starts: 16 list padding + 1 card border + 12 row padding.
+    expect(filterRow).toHaveClass('left-[29px]')
+    expect(filterRow).not.toHaveClass('justify-end')
+  })
+
   it('the funnel opens this viewer’s Sort & Filters, not the shared list settings', () => {
     const setShowSettingsPopover = vi.fn()
     header3Col({ setShowSettingsPopover })

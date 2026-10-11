@@ -574,7 +574,7 @@ export function MainContent({
         }),
       }}>
         <div
-          className="px-4 py-5 theme-border border-b"
+          className="relative px-4 py-5 theme-border border-b"
           style={{ display: is3Column ? 'block' : 'none' }}
         >
           {isSearchActive ? (
@@ -773,7 +773,7 @@ export function MainContent({
               its own row below; mobile version is fixed at bottom). Gated on
               is3Column so there is no hidden duplicate in the 2-column DOM. */}
           {!isSearchActive && is3Column && !(hasProjectBoard && taskViewMode === 'board') && renderAddTaskInput()}
-          {/* Sort & filters: below "Add a task...", above the line over the tasks — on the board too (AWTD-1167, AWTD-1168) */}
+          {/* Sort & filters: floating on the line over the tasks — on the board too (AWTD-1167, AWTD-1168, AWTD-1204) */}
           {!isSearchActive && is3Column && selectedListId && (isSystemListId(selectedListId)
             ? <ListFilterRow onOpen={() => setShowSettingsPopover(selectedListId)} />
             : <ListFilterRow list={(lists.find(l => l.id === selectedListId) || listMetadata) as never} currentUserId={effectiveSession?.user?.id} isViewingFromFeatured={isViewingFromFeatured} onOpen={() => setShowSortFiltersFor(selectedListId)} />)}
