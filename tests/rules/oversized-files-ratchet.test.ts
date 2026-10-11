@@ -52,7 +52,7 @@ const BUDGETS: Record<string, number> = {
   // next change to this file should still take something out.
   'components/task-detail.tsx': 1591,
   'lib/ai-orchestrator.ts': 1547,
-  'components/TaskManagerView.tsx': 1212,
+  'components/TaskManagerView.tsx': 1207,
   // 1125 → 1115: the list header's two buttons moved to ListHeaderActions
   // when Sort & Filters gained its own control (task aa4e7eb0).
   // 1115 → 1100: the board-row context memos moved to useBoardRowContext (AWTD-1025).
