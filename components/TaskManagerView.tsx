@@ -554,12 +554,10 @@ const TaskManagerView = memo(function TaskManagerView({
         const sidebarRect = sidebarRef.current.getBoundingClientRect()
         const taskManagerRect = taskManagerRef.current.getBoundingClientRect()
 
-        // Layout-aware positioning (pure math extracted to task-pane-position).
-        const leftOffset = computeTaskPaneLeftOffset(
-          sidebarRect.width,
-          taskManagerRect.width,
-          { is2Column, is3Column, showHamburgerMenu },
-        )
+        // Layout-aware positioning (pure math in task-pane-position). The window
+        // width keeps the panel on screen when messages is hidden (AWTD-1205).
+        const leftOffset = computeTaskPaneLeftOffset(sidebarRect.width, taskManagerRect.width,
+          { is2Column, is3Column, showHamburgerMenu }, window.innerWidth)
 
         // Update the task pane position
         setTaskPanePosition({ left: leftOffset })
