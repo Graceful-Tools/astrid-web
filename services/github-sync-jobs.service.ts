@@ -287,7 +287,7 @@ async function runHydrate(job: ClaimedJob, client: GraphqlClient): Promise<void>
   if (!board) return // not (or no longer) bound: nothing to mirror into
 
   const item = await hydrateItem(client, itemNodeId)
-  if (item) await applyProjectItems(board, [item])
+  if (item) await applyProjectItems(board, [item], client)
   else await removeProjectItem(board, itemNodeId) // deleted on GitHub, or no longer visible
 }
 

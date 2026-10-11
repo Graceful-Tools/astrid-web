@@ -1589,7 +1589,48 @@ closed from here (P5a).
 Not yet: writing a parent, a blocker or an ordinary label **from** Astrid to GitHub,
 iterations and milestones.
 
-### P6–P8 — fields, recurrence, per-org SSO, brand: not started
+### P6a — project fields: the replica holds them; nothing serves or edits them yet
+
+**Replica slice ([AWTD-1117](https://astrid.cc/t/AWTD-1117)), built. Inbound only.**
+- **The tables.** `ProjectField` and `TaskFieldValue`, as §9.4.1, in an additive migration
+  (two new tables, no existing row touched). **The migration has not been run against a
+  Postgres:** it was written by hand in Prisma's shape, in a session that could not start one.
+- **Which fields.** Text, number, date, single-select and iteration
+  (`lib/github/projects/fields.ts`). GitHub's built-ins (Title, Assignees, Labels and the
+  rest) are not fields here.
+- **Mapped fields.** Status, Priority and due carry `mappedTo` and never have a stored
+  value. **Estimate is an ordinary field**, not mapped as §9.4.1 lists it: Task has no
+  estimate column (P4a).
+- **Schema refresh** (`services/github-project-fields.service.ts`): at import, on every
+  reconcile, and when a hydrated item carries a field, option or iteration the board has
+  not met, once per page. Written by value, so a refresh that finds nothing new writes
+  nothing. A field deleted on GitHub goes, and its values with it.
+- **Values** are compared, not timestamped. An echo writes nothing. A value cleared on
+  GitHub is deleted here. Every task whose values changed has `updatedAt` bumped, so the
+  change rides `?updatedSince=` (§9.4.3).
+- **More than 20 values** on one item: the read may be cut short, so values are added and
+  changed and never cleared.
+- **Leaving.** An archived or removed item's values for that project are deleted.
+  Unbinding deletes the board's fields: a local board has none.
+- **Cost.** Two more reads per page (fields, held values), one when the board has no
+  fields. New values are one `createMany` per page. The schema query now reads up to 100
+  fields, was 50: built-ins count toward the page, and a cut-short list would delete fields.
+- **The fragment** grew `dataType` on each value's field and
+  `ProjectV2ItemFieldIterationValue`. The schema query grew option colour and description,
+  and iteration configuration.
+- **Not verified against GitHub.** The grown fragment and schema query have not been run
+  against the test project, and no iteration or custom value has been recorded. The tests
+  use the recorded schema and hand-written values.
+- **Not covered.** Changing the binding's due or priority field does not re-run the
+  refresh, so `mappedTo` is corrected by the next hourly reconcile
+  ([AWTD-1209](https://astrid.cc/t/AWTD-1209)).
+
+Open, in order: [AWTD-1208](https://astrid.cc/t/AWTD-1208) the fields route, compact values
+on tasks and the payload measurement · [AWTD-1209](https://astrid.cc/t/AWTD-1209) editing a
+field from Astrid · [AWTD-1210](https://astrid.cc/t/AWTD-1210) web editors and board
+filtering.
+
+### P6b, P7, P8 — recurrence, per-org SSO, brand: not started
 
 These need, in order:
 1. A decision to apply the additive schema in §4/§8.5/§9.4.1 at a deploy.

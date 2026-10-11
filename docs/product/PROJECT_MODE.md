@@ -144,7 +144,11 @@ never strand someone inside a feature they are already using.
 These would cost the product its identity:
 
 - **Arbitrary user-defined custom fields** (GitHub Projects' core idea, and the
-  fastest way to become a spreadsheet).
+  fastest way to become a spreadsheet). **Amended for GitHub-backed boards only**
+  (decision D4): a board bound to a GitHub Project shows that project's own
+  fields, which are defined in GitHub. Astrid still adds no way to create a
+  field, and a local board never has any. See
+  [GITHUB_PROJECTS_WHITELABEL.md §9.4](../specs/GITHUB_PROJECTS_WHITELABEL.md).
 - **Fully custom per-team workflow state machines.** Inbox / Ready / Doing /
   Waiting / Done, plus rename/reorder and custom non-Done statuses, is the
   ceiling.
