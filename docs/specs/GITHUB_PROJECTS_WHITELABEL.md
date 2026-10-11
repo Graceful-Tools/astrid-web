@@ -626,7 +626,7 @@ by construction. Transfers record an alias.
 | A user edits in Astrid | **That user's** user-to-server token | GitHub attributes the edit and enforces the user's own permissions, so Astrid does not re-implement GitHub's permission model |
 | Hydration, reconcile, access refresh | Installation token | No user is involved |
 | An AI agent comments or moves a card | Installation token (App bot), body prefixed "**\<Agent\>** (via \<Brand\>)" | Agents aren't GitHub users |
-| Assigning an agent | No GitHub assignee. Stored in the replica, and mirrored as label `agent:<name>` when the brand enables `NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS` (default off, §15 C3) | github.com users can see who's working it |
+| Assigning an agent | No GitHub assignee. Stored in the replica, and mirrored as label `agent:<name>` when the brand enables `NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS` (default off, §15 C3). The label is written by the App bot | github.com users can see who's working it. The label reports Astrid's assignment, it is not the user's edit |
 
 **User-token refresh failure** makes the user's GitHub lists read-only, with
 `auth_required`. **No fallback to the installation token**, pinned by a rule test.
@@ -1466,7 +1466,7 @@ How the edge cases behave:
 Not yet: GitHub comments flowing **into** Astrid. This is outbound only, so inbound
 mirroring will need to dedupe by GitHub comment id.
 
-### P6c — rich mapping: relationships, labels and multiple assignees built, the rest open
+### P6c — rich mapping: relationships, labels, multiple assignees and the agent label built, the rest open
 
 **Relationships slice ([AWTD-1119](https://astrid.cc/t/AWTD-1119)), done. Inbound only.**
 - **Sub-issues.** An issue's `parent` becomes the task's `parentTaskId`
@@ -1554,8 +1554,38 @@ closed from here (P5a).
 - **Verified against GitHub.** The grown fragment was run against the test project. Nobody
   is assigned to a fixture item, so a non-empty answer has not been recorded.
 
-Not yet: writing a parent, a blocker or a label **from** Astrid to GitHub, iterations,
-milestones, and the `agent:<name>` label.
+**Agent label slice ([AWTD-1191](https://astrid.cc/t/AWTD-1191)), built. Outbound only, off by default.**
+- **The switch.** The capability `githubAgentLabels`
+  (`NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS`, C3). Off, nothing is queued, written or
+  filtered: the behaviour is exactly what it was.
+- **The label** is `agent:<mailbox>`, for example `agent:claude`
+  (`lib/github/projects/agent-labels.ts`).
+- **When.** Assigning, unassigning or reassigning an agent on a mirrored issue or pull
+  request, and creating an issue already assigned to one. The backend queues an
+  `agent_label` job holding every label the issue should carry. There is one job per
+  issue, and a later change replaces one that has not run.
+- **The job** reads the issue's labels, creates a label the repo lacks, adds what is
+  missing and removes an `agent:` label whose agent is no longer assigned. No other label
+  is touched. Running it twice changes nothing.
+- **Credential: the App bot** (installation token), not the acting user. The label reports
+  Astrid's assignment; it is not a person's edit to the issue (§8.6). So an assignment made
+  by an agent or by the system is mirrored too, and someone who may label but not create
+  labels is not refused. The App needs Issues: write.
+- **Never blocks.** The assignment is saved whether or not GitHub takes the label. A
+  failure retries with the queue's backoff.
+- **Inbound.** With the switch on, an `agent:` label is not made into a label list, and it
+  never assigns anyone: Astrid is where an agent is assigned. So an `agent:` label added by
+  hand on github.com is removed the next time that issue's agent assignment changes.
+- **A draft** has no labels. Its agent assignment stays in the replica.
+- **Not covered.** A change that arrives while that issue's job is mid-run can be lost
+  until the next assignment change. A label list made from an `agent:` label before the
+  switch was turned on is emptied by the next sync, not deleted.
+- **Not verified against GitHub.** The three documents (lookup, `createLabel`,
+  `addLabelsToLabelable` / `removeLabelsFromLabelable`) are tested against recorded shapes
+  only. They have not been run against the test project.
+
+Not yet: writing a parent, a blocker or an ordinary label **from** Astrid to GitHub,
+iterations and milestones.
 
 ### P6–P8 — fields, recurrence, per-org SSO, brand: not started
 

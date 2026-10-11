@@ -98,6 +98,13 @@ An unrecognised value counts as enabled — a typo must not silently remove a fe
 | `NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK` | Inbound email-to-task |
 | `NEXT_PUBLIC_BRAND_ENABLE_CALENDAR_FEED` | Public `.ics` feed |
 
+Two switches work the other way: they are **off unless set to `true`**.
+
+| Variable | Turns on |
+|---|---|
+| `NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS` | GitHub Projects as a task backend (docs/specs/GITHUB_PROJECTS_WHITELABEL.md §8). Never set for astrid.cc |
+| `NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS` | On a GitHub Projects board, an AI agent's assignment is shown on GitHub as a label `agent:<name>` on the issue, written by your GitHub App (which needs Issues: write). The label is created in the repo if it is missing. Labels under `agent:` then belong to the mirror: one for an agent not assigned in the app is removed, and none becomes a label list. Does nothing without GitHub Projects |
+
 Two of these — `PROJECT_MODE` and `TASK_COST` — existed in
 `lib/brand/capabilities.ts` for some time without appearing here or in
 `.env.example`, so a partner had no way to learn they were switchable

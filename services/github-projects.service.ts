@@ -19,6 +19,7 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
+import { hasCapability } from '@/lib/brand/capabilities'
 import { RedisCache } from '@/lib/redis'
 import { createLogger } from '@/lib/logger'
 import { GITHUB_PROJECT_BACKEND } from '@/lib/backends/resolve'
@@ -210,7 +211,7 @@ async function applyLabels(
   created: Map<string, string>,
 ): Promise<boolean> {
   const labelled = items.flatMap(item => {
-    const remote = item.isArchived ? null : remoteLabels(item)
+    const remote = item.isArchived ? null : remoteLabels(item, { agentLabels: hasCapability('githubAgentLabels') })
     const row = item.content ? replicas.get(item.content.id) : undefined
     const taskId = row?.id ?? (item.content ? created.get(item.content.id) : undefined)
     return remote && taskId ? [{ remote, taskId, held: row?.lists ?? [] }] : []

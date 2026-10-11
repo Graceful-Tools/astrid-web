@@ -17,6 +17,7 @@
  */
 
 import type { RemoteProjectItem } from './apply'
+import { isAgentLabelName } from './agent-labels'
 
 export interface RemoteLabel {
   nodeId: string
@@ -34,16 +35,18 @@ export interface RemoteLabels {
 }
 
 /** Null when the item has no labels to mirror: a draft, or redacted. */
-export function remoteLabels(item: RemoteProjectItem): RemoteLabels | null {
+export function remoteLabels(item: RemoteProjectItem, options: { agentLabels?: boolean } = {}): RemoteLabels | null {
   const content = item.content
   if (item.type === 'REDACTED' || !content || content.__typename === 'DraftIssue') return null
 
-  const labels = content.labels?.nodes.map(node => ({ nodeId: node.id, name: node.name, color: node.color })) ?? []
+  const read = content.labels?.nodes.map(node => ({ nodeId: node.id, name: node.name, color: node.color })) ?? []
   return {
     repository: content.repository?.nameWithOwner ?? null,
-    labels,
+    // A brand that mirrors agent assignment owns `agent:<name>`: it is the
+    // mirror's mark, not a label to make a list of (AWTD-1191).
+    labels: options.agentLabels ? read.filter(label => !isAgentLabelName(label.name)) : read,
     // An item hydrated without the field says nothing about its labels.
-    complete: Boolean(content.labels) && content.labels!.totalCount <= labels.length,
+    complete: Boolean(content.labels) && content.labels!.totalCount <= read.length,
   }
 }
 
