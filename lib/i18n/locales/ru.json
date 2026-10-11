@@ -9,7 +9,9 @@
     "seeAllCollaborative": "Все совместные списки →",
     "seeAllSuggested": "Все рекомендуемые списки →",
     "hideSidebar": "Скрыть боковую панель",
-    "showSidebar": "Показать боковую панель"
+    "showSidebar": "Показать боковую панель",
+    "hideMessages": "Скрыть сообщения",
+    "showMessages": "Показать сообщения"
   },
   "userMenu": {
     "settings": "Настройки",

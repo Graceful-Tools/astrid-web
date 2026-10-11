@@ -9,7 +9,9 @@
     "seeAllCollaborative": "Voir toutes les listes collaboratives →",
     "seeAllSuggested": "Voir toutes les listes suggérées →",
     "hideSidebar": "Masquer la barre latérale",
-    "showSidebar": "Afficher la barre latérale"
+    "showSidebar": "Afficher la barre latérale",
+    "hideMessages": "Masquer les messages",
+    "showMessages": "Afficher les messages"
   },
   "userMenu": {
     "settings": "Paramètres",

@@ -9,7 +9,9 @@
     "seeAllCollaborative": "Alle kollaborativen Listen anzeigen →",
     "seeAllSuggested": "Alle vorgeschlagenen Listen anzeigen →",
     "hideSidebar": "Seitenleiste ausblenden",
-    "showSidebar": "Seitenleiste einblenden"
+    "showSidebar": "Seitenleiste einblenden",
+    "hideMessages": "Nachrichten ausblenden",
+    "showMessages": "Nachrichten einblenden"
   },
   "userMenu": {
     "settings": "Einstellungen",

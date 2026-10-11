@@ -9,7 +9,9 @@
     "seeAllCollaborative": "Bekijk alle samenwerkingslijsten →",
     "seeAllSuggested": "Bekijk alle aanbevolen lijsten →",
     "hideSidebar": "Zijbalk verbergen",
-    "showSidebar": "Zijbalk tonen"
+    "showSidebar": "Zijbalk tonen",
+    "hideMessages": "Berichten verbergen",
+    "showMessages": "Berichten tonen"
   },
   "userMenu": {
     "settings": "Instellingen",
