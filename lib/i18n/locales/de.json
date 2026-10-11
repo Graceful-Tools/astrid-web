@@ -1029,6 +1029,11 @@
     "disableBoardBody": "Die Aufgaben bleiben in dieser Liste, aber die Spalten Ready/Doing/Waiting werden entfernt.",
     "disableBoardNote": "Aufgaben in einer Statusspalte verlieren ihren Status. Erledigte Aufgaben bleiben erledigt."
   },
+  "viewRotator": {
+    "showList": "Liste anzeigen",
+    "showMessages": "Nachrichten anzeigen",
+    "showBoard": "Board anzeigen"
+  },
   "listSettings": {
     "color": {
       "label": "Listenfarbe",

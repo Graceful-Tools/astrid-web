@@ -1029,6 +1029,11 @@
     "disableBoardBody": "タスクはこのリストに残りますが、Ready/Doing/Waiting の列は削除されます。",
     "disableBoardNote": "ステータス列にあるタスクはステータスを失います。完了したタスクは完了のままです。"
   },
+  "viewRotator": {
+    "showList": "リストを表示",
+    "showMessages": "メッセージを表示",
+    "showBoard": "ボードを表示"
+  },
   "listSettings": {
     "color": {
       "label": "リストの色",

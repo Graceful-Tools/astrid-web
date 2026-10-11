@@ -1029,6 +1029,11 @@
     "disableBoardBody": "任務會保留在此清單中，但 Ready/Doing/Waiting 欄將被移除。",
     "disableBoardNote": "位於狀態欄中的任務將失去其狀態。已完成的任務仍為已完成。"
   },
+  "viewRotator": {
+    "showList": "顯示清單",
+    "showMessages": "顯示訊息",
+    "showBoard": "顯示看板"
+  },
   "listSettings": {
     "color": {
       "label": "清單顏色",

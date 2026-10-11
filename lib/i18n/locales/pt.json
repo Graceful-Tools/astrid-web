@@ -1029,6 +1029,11 @@
     "disableBoardBody": "As tarefas permanecem nesta lista, mas as colunas Ready/Doing/Waiting serão removidas.",
     "disableBoardNote": "As tarefas que estiverem em uma coluna de status perderão o status. As tarefas concluídas continuam concluídas."
   },
+  "viewRotator": {
+    "showList": "Mostrar lista",
+    "showMessages": "Mostrar mensagens",
+    "showBoard": "Mostrar quadro"
+  },
   "listSettings": {
     "color": {
       "label": "Cor da lista",
