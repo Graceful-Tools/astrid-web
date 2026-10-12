@@ -17,7 +17,8 @@ Insights was collecting the numbers — see below.
 | Metric | Critical read budget | Source | Last measured |
 |---|---:|---|---|
 | Server latency | p50 <= 250 ms; p95 <= 750 ms | `scripts/measure-api-latency.ts` | 2026-09-11 |
-| Full task response | <= 500 KiB **on the wire** | `scripts/measure-api-latency.ts` | 2026-10-12 — **551.8 KiB, OVER** |
+| Task payload **regression** | <= 135 bytes/task on the wire, measured with `?omit=description` | `scripts/measure-api-latency.ts` | 2026-10-12 — **112.0**, within |
+| Full task **page** (1,000 tasks) | <= 500 KiB **on the wire** — a client-experience cap, not a regression gate | `scripts/measure-api-latency.ts` | 2026-10-12 — **553.5 KiB, OVER** |
 | Full list response | <= 250 KiB **on the wire** | `scripts/measure-api-latency.ts` | 2026-10-12 — 37.3 KiB |
 | Prisma work | <= 4 queries; p95 aggregate query time <= 300 ms | contract tests pin the query shape and count | pinned continuously |
 | Incremental sync response | <= 100 KiB and <= 1 MiB across all pages | `scripts/measure-api-latency.ts` (route not yet added) | never |
@@ -30,6 +31,47 @@ Insights was collecting the numbers — see below.
 | GitHub Projects apply | <= 4 queries per item event; no N+1 | `tests/services/github-projects-service.test.ts` pins the reads (AWTD-1151); `npm run test:live:github-projects` counts real queries (AWTD-1154) | 2026-10-10: **3** for one changed item; an import page is **25 fixed + 0 per item**, so 0.25 per item at 100-item pages |
 | GitHub Projects initial import | 2,000-item project <= 5 min | `npm run test:live:github-projects` (AWTD-1154) | 2026-10-10: 3 items in ~0.6 s. **2,000 not yet measured**: GitHub's content-creation caps make seeding 2,000 items a multi-hour job |
 | GitHub reconcile share | <= 30% of an installation's hourly GraphQL budget | `admit()` in `lib/github/rate-limiter.ts`, table-tested (AWTD-1150) | pinned continuously |
+
+## One number cannot be both a regression gate and a size cap (AWTD-1238)
+
+The task response used to have a single budget: 500 KiB on the wire, measured
+against **the live account's own data**, which grows every time anyone — human
+or agent — files a well-described task. So the number moved for two completely
+different reasons and could not tell them apart:
+
+- **the code changed** — a field was added, a relation got fatter, something
+  serialized worse. That is what a budget is for.
+- **the content grew** — people wrote more. On 2026-10-12 that was the entire
+  story: the response was 10% over and `description` was 80% of it, while every
+  schema addition of the previous month totalled under 2 KiB.
+
+A breach therefore said nothing on its own, and the reflex it invited — raise
+the number — is how a budget stops meaning anything.
+
+So there are two rows now, with two jobs.
+
+**The regression gate is per-task bytes on the LEAN read.** Both halves matter:
+
+- *per task*, so a thousand more tasks leave it flat. A total cannot be compared
+  across months when the denominator is whatever the account happens to hold.
+- *lean* (`?omit=description`, AWTD-1236), so a thousand **longer** tasks leave
+  it flat too. Per-task bytes alone would still drift upward as people wrote
+  more — the same problem, one division later.
+
+What remains moves only when the code moves. 112.0 bytes/task measured
+2026-10-12 against a budget of 135, about 20% headroom: `assigneeIds`
+(AWTD-1190) cost 1.2 bytes/task, so this absorbs many honest field additions
+and still fails on anything structural.
+
+**The page cap stays, as what it always really was** — a limit on what a
+cacheless client downloads in one request. It is breached at 553.5 KiB and is
+left breached rather than raised, because the answer is for callers to send
+`?omit=description` or ask for a smaller page, not for the number to grow to
+meet the corpus.
+
+It will be breached again, by writing rather than by code. That is no longer a
+flaw, now that it only claims to be a cap: **when it breaches, read the per-task
+row before reaching for the number.**
 
 ## Compressed or decoded: say which, or the budget means nothing
 

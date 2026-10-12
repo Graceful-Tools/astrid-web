@@ -54,9 +54,39 @@ export {}
 
 const BASE = process.env.ASTRID_API_BASE ?? 'https://astrid.cc'
 
-/** The routes docs/PERFORMANCE_BUDGETS.md names as critical reads. */
-const ROUTES: { label: string; path: string; budgetKiB: number }[] = [
-  { label: 'GET /api/v1/tasks (full)', path: '/api/v1/tasks?limit=1000&leanListMembers=1', budgetKiB: 500 },
+/**
+ * The routes docs/PERFORMANCE_BUDGETS.md names as critical reads.
+ *
+ * `perTaskBudgetBytes` is the REGRESSION gate (AWTD-1238); the KiB budget is a
+ * page-size cap for the client. They answer different questions and only one of
+ * them survives the corpus growing — see the lean route's note below.
+ */
+const ROUTES: {
+  label: string
+  path: string
+  budgetKiB: number
+  perTaskBudgetBytes?: number
+}[] = [
+  // A full page, judged as a client experience: this is what a cacheless caller
+  // downloads. It grows with the account's own writing, so a breach here is a
+  // reason to send `omit=description` or ask for a smaller page — not evidence
+  // that the code regressed.
+  { label: 'GET /api/v1/tasks (full page)', path: '/api/v1/tasks?limit=1000&leanListMembers=1', budgetKiB: 500 },
+  // The same read without its free text, divided by the tasks in it. THIS is
+  // the number that catches a regression, because neither term moves with the
+  // corpus: a thousand more tasks leave it flat, and a thousand longer
+  // descriptions leave it flat too. What does move it is a new field, a fatter
+  // relation, or a serialization change — which is what a budget is for.
+  //
+  // 112.0 bytes/task measured 2026-10-12. The budget is 135, ~20% headroom:
+  // AWTD-1190's `assigneeIds` cost 1.2 bytes/task, so this absorbs a decade of
+  // honest field additions and still fails on anything structural.
+  {
+    label: 'GET /api/v1/tasks (lean — the regression gate)',
+    path: '/api/v1/tasks?limit=1000&leanListMembers=1&omit=description',
+    budgetKiB: 500,
+    perTaskBudgetBytes: 135,
+  },
   { label: 'GET /api/v1/lists', path: '/api/v1/lists', budgetKiB: 250 },
 ]
 
@@ -107,9 +137,15 @@ interface RouteResult {
   /** Compressed bytes — what crosses the wire, and what the budget is against. */
   wireKiB: number
   budgetKiB: number
+  /** Wire bytes divided by the tasks in the page — only for routes with a per-task budget. */
+  perTaskBytes?: number
+  perTaskBudgetBytes?: number
+  tasksInPage?: number
   errors: number
   withinLatency: boolean
   withinSize: boolean
+  /** True when no per-task budget applies, so a caller can treat it as a pass. */
+  withinPerTask: boolean
 }
 
 async function measureRoute(
@@ -121,6 +157,7 @@ async function measureRoute(
   let bytes = 0
   let wireBytes = 0
   let errors = 0
+  let tasksInPage = 0
 
   for (let i = 0; i < samples + WARMUP_REQUESTS; i++) {
     const started = performance.now()
@@ -134,6 +171,17 @@ async function measureRoute(
       ok = res.ok
       if (i >= WARMUP_REQUESTS) {
         bytes = body.byteLength
+        if (route.perTaskBudgetBytes !== undefined) {
+          // Counted from the response rather than assumed from `limit`: the
+          // page is short whenever the account has fewer tasks than the cap,
+          // and dividing by 1000 then would flatter the number.
+          try {
+            const parsed = JSON.parse(Buffer.from(body).toString('utf8'))
+            tasksInPage = Array.isArray(parsed?.tasks) ? parsed.tasks.length : 0
+          } catch {
+            tasksInPage = 0
+          }
+        }
         // undici transparently decompresses, and these responses are chunked
         // with no content-length, so the wire size is not readable from the
         // response. Re-compressing locally reproduces it closely: measured
@@ -156,6 +204,12 @@ async function measureRoute(
   const p95 = percentile(sorted, 95)
   const decodedKiB = Math.round((bytes / 1024) * 10) / 10
   const wireKiB = Math.round((wireBytes / 1024) * 10) / 10
+  // An empty page cannot be judged per task, and dividing by zero would report
+  // a budget as met when nothing was measured.
+  const perTaskBytes =
+    route.perTaskBudgetBytes !== undefined && tasksInPage > 0
+      ? Math.round((wireBytes / tasksInPage) * 10) / 10
+      : undefined
 
   return {
     label: route.label,
@@ -168,13 +222,21 @@ async function measureRoute(
     decodedKiB,
     wireKiB,
     budgetKiB: route.budgetKiB,
+    perTaskBytes,
+    perTaskBudgetBytes: route.perTaskBudgetBytes,
+    tasksInPage: route.perTaskBudgetBytes !== undefined ? tasksInPage : undefined,
     errors,
     withinLatency: p50 <= P50_BUDGET_MS && p95 <= P95_BUDGET_MS,
     withinSize: wireKiB <= route.budgetKiB,
+    // A route with no per-task budget passes; one with a budget and no page to
+    // measure does NOT, because silence there would read as success.
+    withinPerTask:
+      route.perTaskBudgetBytes === undefined
+        ? true
+        : perTaskBytes !== undefined && perTaskBytes <= route.perTaskBudgetBytes,
   }
 }
 
-/**
 /**
  * Which KEYS carry the bytes (AWTD-1231).
  *
@@ -359,6 +421,15 @@ async function main() {
       `   ${r.wireKiB} KiB on the wire of ${r.budgetKiB} KiB: ${size}  ` +
         `(${r.decodedKiB} KiB decoded)`,
     )
+    if (r.perTaskBudgetBytes !== undefined) {
+      const verdict = r.withinPerTask ? 'within budget' : 'OVER BUDGET'
+      console.log(
+        r.perTaskBytes === undefined
+          ? `   per task: NOT MEASURED — the page came back empty, so this gate proved nothing`
+          : `   ${r.perTaskBytes} bytes/task of ${r.perTaskBudgetBytes} (${r.tasksInPage} tasks): ${verdict}` +
+              `  ← the regression gate; neither term moves with the corpus`,
+      )
+    }
     if (r.errors > 0) console.log(`   ⚠ ${r.errors} failed request(s) of ${samples}`)
     console.log('')
   }
@@ -380,7 +451,7 @@ async function main() {
     console.log(`   (grown from the ${gate.tasksMeasured} tasks production returned)\n`)
   }
 
-  const breached = results.filter(r => !r.withinLatency || !r.withinSize)
+  const breached = results.filter(r => !r.withinLatency || !r.withinSize || !r.withinPerTask)
   if (breached.length > 0) {
     console.log(`${breached.length} route(s) over budget. Investigate before raising the budget.`)
     process.exitCode = 1
