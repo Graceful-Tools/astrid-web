@@ -19,6 +19,7 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import { listVisibilityWhere } from '@/lib/list-permissions'
 import type { RemoteProjectItem } from '@/lib/github/projects/apply'
 import { fetchProjectSchema } from '@/lib/github/projects/bind'
 import {
@@ -187,4 +188,75 @@ export async function applyFieldValues(
     prisma.task.updateMany({ where: { id: { in: [...touched] } }, data: { updatedAt: new Date() } }),
   ])
   return true
+}
+
+/** A field definition as `GET /api/v1/projects/:id/fields` serves it. */
+export interface ProjectFieldSchemaEntry {
+  id: string
+  remoteId: string
+  name: string
+  dataType: string
+  options: Prisma.JsonValue
+  iterations: Prisma.JsonValue
+  mappedTo: string | null
+  position: number
+}
+
+export type ProjectFieldSchemaResult =
+  | { error: 'not_found' }
+  | { fields: ProjectFieldSchemaEntry[]; etag: string }
+
+/**
+ * A board's field schema for a caller who may or may not be allowed to see it
+ * (AWTD-1208, §9.4.3).
+ *
+ * Lives here rather than in the route because `tests/rules/prisma-in-routes-ratchet.test.ts`
+ * is a one-way ratchet on routes importing Prisma directly, and the fix it asks
+ * for is this one: *"a genuinely new kind of data access → lower the ceiling in
+ * a later slice rather than treating this as the budget."*
+ *
+ * **Visibility, not ownership.** The schema is what makes a task's `fields`
+ * legible, so a member who can load the board's tasks must be able to read it;
+ * `authorizeBoardOwner` would shut all of them out. A board is readable when one
+ * of its lists is, which is the rule the list routes already apply — derived from
+ * `listVisibilityWhere` rather than restated, so the two cannot drift apart.
+ *
+ * **404, never 403**, for a board the caller cannot see: a 403 would confirm it
+ * exists.
+ *
+ * **The ETag covers deletion.** It is built from the newest `updatedAt` AND the
+ * row count, because removing a field moves no surviving row's timestamp — a
+ * timestamp-only tag would serve a 304 holding a field that is gone.
+ */
+export async function readProjectFieldSchema(
+  projectId: string,
+  userId: string,
+): Promise<ProjectFieldSchemaResult> {
+  const visible = await prisma.taskList.findFirst({
+    where: { projectId, ...listVisibilityWhere(userId, { includePublic: true }) },
+    select: { id: true },
+  })
+  if (!visible) return { error: 'not_found' }
+
+  const rows = await prisma.projectField.findMany({
+    where: { projectId },
+    orderBy: { position: 'asc' },
+    select: {
+      id: true,
+      remoteId: true,
+      name: true,
+      dataType: true,
+      options: true,
+      iterations: true,
+      mappedTo: true,
+      position: true,
+      updatedAt: true,
+    },
+  })
+
+  const newest = rows.reduce((max, field) => Math.max(max, field.updatedAt.getTime()), 0)
+  return {
+    fields: rows.map(({ updatedAt, ...field }) => field),
+    etag: `"fields-${projectId}-${rows.length}-${newest}"`,
+  }
 }
