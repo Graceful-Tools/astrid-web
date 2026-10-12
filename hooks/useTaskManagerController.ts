@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
+import type { CreateTaskOptions } from '@/hooks/task-manager/create-task-options'
 import { unwrapTask, unwrapList } from '@/lib/v1-response'
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
@@ -726,7 +727,7 @@ export function useTaskManagerController({
 
   const handleCreateTask = useCallback(async (
     taskTitle: string,
-    options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[]; statusRole?: string }
+    options?: CreateTaskOptions
   ): Promise<string | null> => {
     if (!effectiveSession?.user || !taskTitle.trim() || isCreatingTask) {
       return null
@@ -781,8 +782,8 @@ export function useTaskManagerController({
         repeating: defaults.repeating,
         isPrivate: defaults.isPrivate,
         customRepeatingData: parsedTask.customRepeatingData || null,
-        // Board column at creation — a role, resolved by the board (task eb7fce2f).
         statusRole: options?.statusRole,
+        parentTaskId: options?.parentTaskId ?? undefined,
       }
 
       toast({
@@ -810,10 +811,7 @@ export function useTaskManagerController({
     }
   }, [effectiveSession, navigationState.selectedListId, listState.lists, newTaskOperations, toast, isCreatingTask, myTasksPreferences.filters.priority, myTasksPreferences.filters.dueDate, smartTaskCreationEnabled])
 
-  const handleQuickCreateTask = useCallback(async (
-    title: string,
-    options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[]; statusRole?: string }
-  ): Promise<string | null> => {
+  const handleQuickCreateTask = useCallback(async (title: string, options?: CreateTaskOptions): Promise<string | null> => {
     try {
       await handleCreateTask(title, options)
       return null

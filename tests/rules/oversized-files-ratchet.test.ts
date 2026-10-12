@@ -44,15 +44,30 @@ const THRESHOLD = 800
  */
 const BUDGETS: Record<string, number> = {
   // The seven the task named.
-  'hooks/useTaskManagerController.ts': 1661,
+  // 1661 → 1659: AWTD-1227's add-subtask option did not fit. The options both
+  // create entry points take — declared inline and identically, twice — became
+  // hooks/task-manager/create-task-options.ts, so the next field is added once.
+  'hooks/useTaskManagerController.ts': 1659,
   // 1585 → 1591: AWTD-877 made someone else's task open the options sheet on
   // every surface, and this panel is one of the three that owns a sheet. Six
   // lines — the predicate, the import, and two props — with the rule itself in
   // lib/task-leading-control.ts and the confirmation in its own component. The
   // next change to this file should still take something out.
-  'components/task-detail.tsx': 1591,
+  // 1591 → 1579: AWTD-1227 added the subtasks section, which this budget
+  // refused. Paid for the way this file's neighbours were: what list to CREATE
+  // for a task — the privacy and admins a new list inherits, and the POST —
+  // went to lib/task-detail/create-list-for-task.ts, following the Lists row
+  // that already lives in TaskDetailListsRow.tsx. Smaller than before the
+  // feature, and the inheritance rule is now testable on its own.
+  'components/task-detail.tsx': 1579,
   'lib/ai-orchestrator.ts': 1547,
-  'components/TaskManagerView.tsx': 1205,
+  // 1205 → 1199: AWTD-1227 needed four more props on the task-detail pane, and
+  // this file renders that pane TWICE — desktop and mobile — with a dozen
+  // identical props each. Adding them to one site and not the other is exactly
+  // what happened first, and it looks identical in review. The shared props
+  // became components/TaskManager/task-detail-pane-props.ts, so the next
+  // feature reaches both panes by construction.
+  'components/TaskManagerView.tsx': 1199,
   // 1125 → 1115: the list header's two buttons moved to ListHeaderActions
   // when Sort & Filters gained its own control (task aa4e7eb0).
   // 1115 → 1100: the board-row context memos moved to useBoardRowContext (AWTD-1025).

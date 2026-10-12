@@ -122,6 +122,11 @@
       "label": "任務 ID",
       "copy": "複製任務 ID",
       "copied": "已複製 {id}"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "新增子任務",
+      "addPlaceholder": "新增子任務…"
     }
   },
   "lists": {
