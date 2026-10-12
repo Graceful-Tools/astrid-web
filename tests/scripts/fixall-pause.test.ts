@@ -32,7 +32,22 @@ import {
   shouldYield,
   MAX_PAUSE_MINUTES,
   DEFAULT_PAUSE_MINUTES,
+  type YieldVerdict,
 } from '@/scripts/lib/fixall-pause'
+
+/**
+ * Asserts the loop stands down AND narrows the union so `reason` is readable.
+ *
+ * `expect(verdict.yield).toBe(true)` asserts nothing to the compiler, so
+ * reading `.reason` after it is a type error — which only predeploy's Test
+ * Tree Types gate sees, since vitest does not typecheck. The throw is what
+ * does the narrowing; the expect is what gives a readable failure.
+ */
+function standingDown(verdict: YieldVerdict): Extract<YieldVerdict, { yield: true }> {
+  expect(verdict.yield).toBe(true)
+  if (!verdict.yield) throw new Error('expected the loop to stand down')
+  return verdict
+}
 
 let dir: string
 const alive = (pids: number[]) => (pid: number) => pids.includes(pid)
@@ -115,8 +130,7 @@ describe('what a scheduled tick decides', () => {
 
   it('stands down for a live session in ANOTHER repo', () => {
     registerHolder({ stateDir: dir, pid: 111, harness: 'claude-code', worktree: '/w/ios', now: NOW })
-    const verdict = ask([111])
-    expect(verdict.yield).toBe(true)
+    const verdict = standingDown(ask([111]))
     // The reason reaches the log and the board alert, so it must name who and where.
     expect(verdict.reason).toContain('claude-code')
     expect(verdict.reason).toContain('/w/ios')
@@ -136,8 +150,7 @@ describe('what a scheduled tick decides', () => {
 
   it('stands down for an explicit pause, and names its reason and expiry', () => {
     writePause({ stateDir: dir, minutes: 120, who: 'jon', reason: 'xcode profiling', now: NOW })
-    const verdict = ask([])
-    expect(verdict.yield).toBe(true)
+    const verdict = standingDown(ask([]))
     expect(verdict.reason).toContain('xcode profiling')
     expect(verdict.reason).toMatch(/\d+ minute/)
   })

@@ -35,7 +35,11 @@ function run(): string {
   return execFileSync('bash', ['-c', script], {
     cwd: dir,
     encoding: 'utf8',
-    env: { PATH: `${bin}:/usr/bin:/bin`, HOME: dir, TSX: join(bin, 'tsx') },
+    // NODE_ENV because this project's ProcessEnv declares it required, and
+    // this env literal is deliberately minimal — the same reason 49b0ba2f gave
+    // the three sibling loop tests theirs. Vitest does not typecheck, so only
+    // predeploy's Test Tree Types gate sees it.
+    env: { NODE_ENV: 'test', PATH: `${bin}:/usr/bin:/bin`, HOME: dir, TSX: join(bin, 'tsx') },
   })
 }
 
