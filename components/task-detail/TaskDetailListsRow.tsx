@@ -22,11 +22,12 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { selectableLists } from "@/lib/status-lists"
-import { filterLabelLists, isLabelList } from "@/lib/list-flavors"
+import { filterLabelLists, isLabelList, isMilestoneList } from "@/lib/list-flavors"
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { TaskFieldRow } from "./TaskFieldRow"
 import { TaskDetailIdentifierRow } from "./TaskDetailIdentifierRow"
-import { Globe, Users, X, Check, Hash, List as ListIcon, Tag } from "lucide-react"
+import { TaskDetailOccurrenceRow } from "./TaskDetailOccurrenceRow"
+import { Globe, Users, X, Check, Hash, List as ListIcon, Tag, Milestone } from "lucide-react"
 import { useTranslations } from "@/lib/i18n/client"
 import type { Task, TaskList } from "@/types/task"
 
@@ -96,7 +97,12 @@ export function TaskDetailListsRow({
   }
 
   const getListPrivacyIcon = (list: any, useWhiteColor = false) => {
-    if (isLabelList(list)) {
+    if (isMilestoneList(list)) {
+      // A GitHub milestone (AWTD-1189). Its own glyph, not the label's tag: the
+      // two are both chips but a milestone is a release and a label is a topic,
+      // and they are never offered as destinations for the same reason.
+      return <Milestone className={`w-3 h-3 ${useWhiteColor ? 'text-white' : ''}`} style={useWhiteColor ? undefined : { color: list.color || DEFAULT_LIST_COLOR }} />
+    } else if (isLabelList(list)) {
       return <Tag className={`w-3 h-3 ${useWhiteColor ? 'text-white' : ''}`} style={useWhiteColor ? undefined : { color: list.color || DEFAULT_LIST_COLOR }} />
     } else if (list.privacy === 'PUBLIC') {
       return <Globe className={`w-3 h-3 ${useWhiteColor ? 'text-white' : ''}`} />
@@ -222,6 +228,10 @@ export function TaskDetailListsRow({
     {/* TASK ID follows Lists: it exists because of a project list (AWTD-1017).
         Rendered here so TaskFieldEditors does not grow (size ratchet). */}
     <TaskDetailIdentifierRow task={task} availableLists={availableLists} />
+    {/* The occurrence chain follows the task id, for the same reason the id
+        follows Lists: rendered here so TaskFieldEditors does not grow (size
+        ratchet). Renders nothing unless the task is in a spawn-mode series. */}
+    <TaskDetailOccurrenceRow task={task} />
     </>
   )
 }

@@ -7,6 +7,7 @@
  *   npx tsx scripts/measure-api-latency.ts                 # production, 30 warm
  *   npx tsx scripts/measure-api-latency.ts --samples 50
  *   npx tsx scripts/measure-api-latency.ts --json
+ *   npx tsx scripts/measure-api-latency.ts --breakdown    # what carries the bytes
  *
  * WHY THIS EXISTS. docs/PERFORMANCE_BUDGETS.md has carried a latency budget
  * (p50 <= 250 ms, p95 <= 750 ms) since 2026-08-31 with no recorded measurement
@@ -173,11 +174,156 @@ async function measureRoute(
   }
 }
 
+/**
+/**
+ * Which KEYS carry the bytes (AWTD-1231).
+ *
+ * When the task response went over budget, the natural first guess was "a field
+ * was added" — and it was wrong by two orders of magnitude: every schema
+ * addition since the previous measurement came to under 2 KiB, while
+ * `description` alone was 443 KiB of 552. Guessing costs a wasted afternoon;
+ * this costs one request.
+ *
+ * MARGINAL cost, not share of the decoded bytes: each key is dropped from every
+ * task and the whole response re-gzipped, so what is reported is what removing
+ * it would actually save on the wire. Those two numbers differ a lot for a key
+ * that repeats — `id` is 36 unique characters a thousand times over and
+ * compresses badly; a repeated enum compresses to almost nothing.
+ */
+async function measureKeyBreakdown(token: string, top = 15): Promise<void> {
+  const route = ROUTES[0]
+  const res = await fetch(`${BASE}${route.path}`, { headers: { 'X-OAuth-Token': token } })
+  if (!res.ok) {
+    console.log(`Key breakdown skipped: ${route.label} answered ${res.status}\n`)
+    return
+  }
+  const body = (await res.json()) as { tasks?: Record<string, unknown>[] }
+  const tasks = body.tasks ?? []
+  if (tasks.length === 0) {
+    console.log('Key breakdown skipped: no tasks returned\n')
+    return
+  }
+
+  const full = gzipSync(Buffer.from(JSON.stringify(body))).length
+  const keys = [...new Set(tasks.flatMap(task => Object.keys(task)))]
+  const rows = keys.map(key => {
+    const stripped = tasks.map(task => {
+      const copy = { ...task }
+      delete copy[key]
+      return copy
+    })
+    const size = gzipSync(Buffer.from(JSON.stringify({ ...body, tasks: stripped }))).length
+    return { key, kib: (full - size) / 1024 }
+  })
+  rows.sort((a, b) => b.kib - a.kib)
+
+  console.log(`Marginal wire cost per key — ${route.label}, ${tasks.length} tasks`)
+  console.log(`   total ${(full / 1024).toFixed(1)} KiB\n`)
+  for (const row of rows.slice(0, top)) {
+    console.log(`   ${row.kib.toFixed(1).padStart(7)} KiB  ${row.key}`)
+  }
+  const rest = rows.slice(top).reduce((sum, row) => sum + row.kib, 0)
+  console.log(`   ${rest.toFixed(1).padStart(7)} KiB  — the remaining ${Math.max(rows.length - top, 0)} keys\n`)
+}
+
+/**
+ * The GitHub project-fields payload gate (AWTD-1208, spec §9.4.3).
+ *
+ * `fields` puts one entry per (task, project field) on every task in a list
+ * response. The spec's budget decides whether that can ride on the list route
+ * at all, so it has to be a measurement rather than an intention — the same
+ * argument this whole script exists for.
+ *
+ * WHY SYNTHETIC, AND WHY THAT IS STILL HONEST. There is no GitHub-backed board
+ * in production with a thousand tasks, and this script is a read-only client of
+ * astrid.cc — it seeds nothing. So the fixture is applied to the REAL thousand-
+ * task response: the measured payload, with a realistic `fields` block grafted
+ * onto each task, re-compressed. That is exactly the marginal wire cost the
+ * budget is about, measured against the real payload's own compressibility
+ * rather than against an invented one.
+ *
+ * WHY COMPRESSION DECIDES IT. Uncompressed, 8 entries per task is ~450 bytes a
+ * task — ~440 KB over a thousand, which would blow a 500 KiB budget on its own.
+ * But only 8 distinct field ids repeat across every task, and a single-select
+ * has a handful of option ids, so most of those bytes are repetition that gzip
+ * removes. The free-text fields are what does not compress, which is why the
+ * fixture includes two of them with per-task content.
+ */
+const FIELDS_PER_TASK = 8
+const FIXTURE_TASKS = 1000
+
+/** Eight fields of the shape §9.4.1 describes, with ids the size Postgres mints. */
+function fieldsFixture(taskIndex: number): Record<string, string | number> {
+  const fieldId = (n: number) => `f47ac10b-58cc-4372-a567-0e02b2c3d4${String(n).padStart(2, '0')}`
+  // Single-select and iteration values come from small sets, as GitHub's do.
+  const option = ['f75ad846', '47fc9ee4', 'df73e18b', '98236657', 'bc3f2a91'][taskIndex % 5]
+  const status = ['a1b2c3d4', 'e5f6a7b8', '09c8d7e6'][taskIndex % 3]
+  const iteration = ['PVTI_lADOA1', 'PVTI_lADOA2', 'PVTI_lADOA3', 'PVTI_lADOA4'][taskIndex % 4]
+  const day = String((taskIndex % 28) + 1).padStart(2, '0')
+  return {
+    [fieldId(1)]: option,
+    [fieldId(2)]: status,
+    [fieldId(3)]: iteration,
+    [fieldId(4)]: `2026-${String((taskIndex % 12) + 1).padStart(2, '0')}-${day}`,
+    [fieldId(5)]: `2026-11-${day}`,
+    [fieldId(6)]: (taskIndex % 13) + 0.5,
+    // The two that do not compress away: per-task free text.
+    [fieldId(7)]: `Rollout note ${taskIndex} for the ${['infra', 'billing', 'search', 'mobile'][taskIndex % 4]} track`,
+    [fieldId(8)]: `owner-${taskIndex % 37}@example.com queued ${taskIndex}`,
+  }
+}
+
+interface GateResult {
+  baselineWireKiB: number
+  withFieldsWireKiB: number
+  marginalKiB: number
+  budgetKiB: number
+  headroomKiB: number
+  tasksMeasured: number
+  fits: boolean
+}
+
+async function measureFieldsGate(token: string): Promise<GateResult | null> {
+  const route = ROUTES[0]
+  const res = await fetch(`${BASE}${route.path}`, { headers: { 'X-OAuth-Token': token } })
+  if (!res.ok) return null
+  const body = (await res.json()) as { tasks?: unknown[] }
+  const tasks = body.tasks ?? []
+  if (tasks.length === 0) return null
+
+  // Grow the sample to the fixture's thousand by repeating what production has,
+  // so the measurement is of a thousand-task board rather than of whatever the
+  // test account happens to hold today.
+  const grown = Array.from({ length: FIXTURE_TASKS }, (_, i) => tasks[i % tasks.length])
+  const withFields = {
+    ...body,
+    tasks: grown.map((task, i) => ({ ...(task as object), fields: fieldsFixture(i) })),
+  }
+  const baselineGrown = gzipSync(
+    Buffer.from(JSON.stringify({ ...body, tasks: grown })),
+  ).length
+  const augmented = gzipSync(Buffer.from(JSON.stringify(withFields))).length
+
+  const kib = (bytes: number) => Math.round((bytes / 1024) * 10) / 10
+  return {
+    baselineWireKiB: kib(baselineGrown),
+    withFieldsWireKiB: kib(augmented),
+    marginalKiB: kib(augmented - baselineGrown),
+    budgetKiB: route.budgetKiB,
+    headroomKiB: kib(route.budgetKiB * 1024 - baselineGrown),
+    tasksMeasured: tasks.length,
+    fits: augmented <= route.budgetKiB * 1024,
+  }
+}
+
 async function main() {
   const args = process.argv.slice(2)
   const asJson = args.includes('--json')
   const samplesArg = args.indexOf('--samples')
   const samples = samplesArg >= 0 ? Number(args[samplesArg + 1]) : 30
+  // --breakdown answers "what is actually in there", which is a different
+  // question from "is it too big" and only worth a request when asked.
+  const wantsBreakdown = args.includes('--breakdown')
 
   const token = await getToken()
   const results: RouteResult[] = []
@@ -215,6 +361,23 @@ async function main() {
     )
     if (r.errors > 0) console.log(`   ⚠ ${r.errors} failed request(s) of ${samples}`)
     console.log('')
+  }
+
+  if (wantsBreakdown) await measureKeyBreakdown(token)
+
+  // AWTD-1208: does `fields` fit on the list route, or must it go behind
+  // ?include=fields? Printed with the routes because it is the same budget.
+  const gate = await measureFieldsGate(token)
+  if (gate) {
+    console.log(`GitHub project fields on 1,000 tasks x ${FIELDS_PER_TASK} fields (AWTD-1208)`)
+    console.log(
+      `   baseline ${gate.baselineWireKiB} KiB  →  with fields ${gate.withFieldsWireKiB} KiB  ` +
+        `(+${gate.marginalKiB} KiB)`,
+    )
+    console.log(
+      `   budget ${gate.budgetKiB} KiB: ${gate.fits ? 'FITS — values may ride list responses' : 'OVER BUDGET — values go behind ?include=fields'}`,
+    )
+    console.log(`   (grown from the ${gate.tasksMeasured} tasks production returned)\n`)
   }
 
   const breached = results.filter(r => !r.withinLatency || !r.withinSize)

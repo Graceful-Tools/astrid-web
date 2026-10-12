@@ -17,8 +17,8 @@ Insights was collecting the numbers — see below.
 | Metric | Critical read budget | Source | Last measured |
 |---|---:|---|---|
 | Server latency | p50 <= 250 ms; p95 <= 750 ms | `scripts/measure-api-latency.ts` | 2026-09-11 |
-| Full task response | <= 500 KiB **on the wire** | `scripts/measure-api-latency.ts` | 2026-09-11 |
-| Full list response | <= 250 KiB **on the wire** | `scripts/measure-api-latency.ts` | 2026-09-11 |
+| Full task response | <= 500 KiB **on the wire** | `scripts/measure-api-latency.ts` | 2026-10-12 — **551.8 KiB, OVER** |
+| Full list response | <= 250 KiB **on the wire** | `scripts/measure-api-latency.ts` | 2026-10-12 — 37.3 KiB |
 | Prisma work | <= 4 queries; p95 aggregate query time <= 300 ms | contract tests pin the query shape and count | pinned continuously |
 | Incremental sync response | <= 100 KiB and <= 1 MiB across all pages | `scripts/measure-api-latency.ts` (route not yet added) | never |
 | Server error rate | < 1% | `vercel logs` status codes — sample too small to assert, see below | 2026-09-11, indicative only |
@@ -89,6 +89,113 @@ so the variance is large and network-inclusive — this is a flag to investigate
 not yet a proven server regression. It returns exactly 1000 tasks, the `limit`
 cap, so the payload is at its maximum shape. `GET /api/v1/lists` has margin
 everywhere.
+
+## 2026-10-12 — over budget, `description` is 80% of it, and project fields cannot ride it
+
+Two measurements taken the same day, by AWTD-1231 and AWTD-1208. They share a
+baseline, so they share a section.
+
+Measured with `npx tsx scripts/measure-api-latency.ts`, same recipe as above.
+
+| Route | p50 | p95 | Wire | Decoded | Verdict |
+|---|---:|---:|---:|---:|---|
+| `GET /api/v1/tasks?limit=1000&leanListMembers=1` | 831 ms | 1126 ms | **551.8 KiB** | 2875 KiB | **over the 500 KiB wire budget, and over both latency budgets** |
+| `GET /api/v1/lists` | 187 ms | 188 ms | 37.3 KiB | 81.9 KiB | within budget |
+
+The size budget is breached, not merely approached: 439.5 KiB on 2026-09-11,
+551.8 KiB now — 112 KiB of growth in a month, 10% over. The decoded figure grew
+with it, 2,301.6 → 2,875 KiB.
+
+(Latency: p50 831 ms against 250 ms, but only three samples from a laptop at
+night, network-inclusive. The 2026-09-11 run was also over at 419 ms. Treat this
+as consistent with a known-over budget, not as a new regression.)
+
+### What grew
+
+Measured by dropping each top-level key from all 1,000 tasks and re-gzipping, so
+each figure is that key's **marginal** wire cost rather than its share of the
+decoded bytes:
+
+| Key | Marginal wire cost |
+|---|---:|
+| `description` | **443.3 KiB** |
+| `id` | 30.1 KiB |
+| `title` | 24.6 KiB |
+| `createdAt` | 10.3 KiB |
+| `updatedAt` | 8.4 KiB |
+| everything else (29 keys) | ~35 KiB combined |
+
+`description` is **80% of the entire response**. The fields added since the last
+measurement are nowhere near it — `assigneeIds` (AWTD-1190) costs 1.2 KiB,
+`previousOccurrenceId` and the `remote`/`syncState` keys less. **No schema
+addition caused this**, which is where the search would naturally have started.
+
+The descriptions: 1,534 KiB decoded across 1,000 tasks, median 995 characters,
+p90 3,771, max 20,727. A quarter of tasks have none; **325 tasks with
+descriptions over 2,000 characters hold 1,161 KiB of the 1,534.**
+
+And they are recent. Description bytes by the month the task was created:
+
+| Month | KiB |
+|---|---:|
+| through 2026-06 | ~71 combined |
+| 2026-07 | 96 |
+| 2026-08 | 435 |
+| 2026-09 | 705 |
+| 2026-10 (partial) | 226 |
+
+That is exactly the period in which agents began filing tasks with full
+reproduction steps, evidence and contracts — the practice
+`docs/FIXALL_WORKFLOW.md` asks for, working as intended. **The payload grew
+because the content grew, not because the code regressed.**
+
+### The project-fields gate (AWTD-1208, spec §9.4.3)
+
+The spec required a 1,000-task x 8-field fixture before `fields` could ride task
+payloads. There is no GitHub-backed board in production with a thousand tasks,
+and `measure-api-latency.ts` is a read-only client that seeds nothing — so the
+fixture is grafted onto the **real** thousand-task response and re-compressed,
+which measures the marginal wire cost against that payload's own
+compressibility.
+
+| | Wire (gzipped) |
+|---|---:|
+| Baseline, 1,000 tasks | 551.8 KiB |
+| With 8 project fields on every task | 594.0 KiB |
+| **Marginal cost of `fields`** | **+42.2 KiB** |
+
+**Compression is the whole story.** Uncompressed, eight entries per task is
+roughly 440 KB over a thousand tasks — more than the entire budget. Gzipped it
+costs 42.2 KiB, because the eight field ids repeat on every task and only the
+two free-text fields carry per-task content. A guess in either direction would
+have been wrong by an order of magnitude.
+
+**Verdict: over budget, so values do not ride list responses.** 594.0 KiB
+against 500 KiB. Note that the +42.2 KiB would have fitted the 60.5 KiB of
+headroom the 2026-09-11 figure left; the headroom is what is gone. Either way
+the spec's rule settles it — *"the budget wins over convenience"* — so
+`GET /api/v1/tasks` carries `fields` only on `?include=fields`, and the detail
+route carries them always, where one task's handful of entries is a few hundred
+bytes.
+
+### Two things that follow, and neither is "optimise a field"
+
+- **The budget is measured against a moving fixture.** It is the live account's
+  own data, which grows every time anyone — human or agent — files a
+  well-described task. A fixed byte budget against a growing corpus will be
+  breached again whatever is done to the code, so the number alone cannot tell
+  anyone whether something is wrong.
+- **The route is doing two jobs.** `GET /api/v1/tasks?limit=1000` is both the
+  list view's read and the clients' full sync. A list view needs titles; a sync
+  needs descriptions. Charging the list view for the sync's payload is the real
+  design question, and `?updatedSince=` already exists for the sync half.
+### What was decided
+
+`description` became opt-out on the list route — `GET /api/v1/tasks?omit=description`
+(AWTD-1233 → AWTD-1236). Measured against the same 1,000-task response: **554.4
+→ 109.4 KiB on the wire**, 22% of budget instead of 111%. It is opt-in to use,
+so no client's payload changed on the day it shipped, and the moving-fixture
+problem above is untouched by it and filed separately.
 
 ## Rows without a source, stated plainly
 
