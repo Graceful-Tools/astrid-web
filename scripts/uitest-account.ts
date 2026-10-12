@@ -35,6 +35,7 @@ import {
   UITEST_LIST_NAME,
   UITEST_FIXTURE_TASKS,
   assertUITestAccount,
+  FIXTURE_RESET_TASK_QUERY,
   planFixtureReset,
 } from '../lib/uitest-fixtures'
 
@@ -138,11 +139,10 @@ async function ensureList(userId: string, quiet: boolean): Promise<string> {
 async function seedFixtures(userId: string, email: string | null, listId: string, quiet: boolean) {
   assertUITestAccount(email)
 
-  const existing: any[] = await prisma.$queryRawUnsafe(
-    `SELECT t.id FROM "Task" t
-       JOIN "_TaskToTaskList" m ON m."A" = t.id
-       JOIN "TaskList" l ON l.id = m."B"
-      WHERE l."ownerId" = $1`, userId)
+  // The selection lives in lib/uitest-fixtures.ts so it can be tested; see the
+  // note there for why it matches on creatorId as well as list ownership, and
+  // why it must not match on assigneeId.
+  const existing: any[] = await prisma.$queryRawUnsafe(FIXTURE_RESET_TASK_QUERY, userId)
   const plan = planFixtureReset(existing.map(t => t.id))
 
   for (const id of plan.delete) {
