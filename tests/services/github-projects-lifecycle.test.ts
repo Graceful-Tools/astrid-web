@@ -37,6 +37,9 @@ const boards = vi.hoisted(() => ({
 }))
 vi.mock('@/services/github-projects.service', () => boards)
 
+const fields = vi.hoisted(() => ({ syncProjectFields: vi.fn(async () => false) }))
+vi.mock('@/services/github-project-fields.service', () => fields)
+
 const members = vi.hoisted(() => ({ addListMember: vi.fn(), changeListMemberRole: vi.fn(), removeListMember: vi.fn() }))
 vi.mock('@/services/list-member.service', () => members)
 
@@ -89,9 +92,12 @@ beforeEach(() => {
 describe('reconcileProject (AWTD-1153)', () => {
   it('heals a killed webhook: every listed item is applied, and the pass is stamped', async () => {
     db.gitHubProjectItem.findMany.mockResolvedValue(pageItems.map(i => ({ itemNodeId: i.id })))
-    const summary = await reconcileProject('proj-1', replaying(page))
+    const client = replaying(page)
+    const summary = await reconcileProject('proj-1', client)
 
-    expect(boards.applyProjectItems).toHaveBeenCalledWith(board, pageItems)
+    // AWTD-1117: GitHub sends no event for field definitions, so every pass re-reads them.
+    expect(fields.syncProjectFields).toHaveBeenCalledWith(board, client)
+    expect(boards.applyProjectItems).toHaveBeenCalledWith(board, pageItems, client)
     expect(summary).toMatchObject({ updated: 1, checked: 0, removed: 0 })
     expect(db.gitHubProjectBinding.update).toHaveBeenCalledWith({
       where: { projectId: 'proj-1' },
@@ -114,9 +120,11 @@ describe('reconcileProject (AWTD-1153)', () => {
     await reconcileProject('proj-1', replaying(emptyPage, load('hydrate-item-draft.json')))
 
     expect(boards.removeProjectItem).not.toHaveBeenCalled()
-    expect(boards.applyProjectItems).toHaveBeenLastCalledWith(board, [
-      expect.objectContaining({ id: 'PVTI_lADOFEb-HM4BmXS2zg_2m3Y' }),
-    ])
+    expect(boards.applyProjectItems).toHaveBeenLastCalledWith(
+      board,
+      [expect.objectContaining({ id: 'PVTI_lADOFEb-HM4BmXS2zg_2m3Y' })],
+      expect.anything(),
+    )
   })
 })
 
