@@ -42,23 +42,23 @@ const write = (statusRole: unknown) =>
 
 describe('statusRole is normalised before it is stored (AWTD-1198)', () => {
   it('lowercases the role that actually hid a task', async () => {
-    expect(await write('Waiting')).toEqual({ statusRole: 'waiting' })
+    expect(await write('Waiting')).toEqual({ ok: true, data: { statusRole: 'waiting' } })
   })
 
   it('lowercases and trims any spelling a client sends', async () => {
-    expect(await write('READY')).toEqual({ statusRole: 'ready' })
-    expect(await write('  Doing  ')).toEqual({ statusRole: 'doing' })
+    expect(await write('READY')).toEqual({ ok: true, data: { statusRole: 'ready' } })
+    expect(await write('  Doing  ')).toEqual({ ok: true, data: { statusRole: 'doing' } })
   })
 
   it('keeps a Project Mode custom column, which is not a default role', async () => {
-    expect(await write('custom-blocked')).toEqual({ statusRole: 'custom-blocked' })
-    expect(await write('Custom-Blocked')).toEqual({ statusRole: 'custom-blocked' })
+    expect(await write('custom-blocked')).toEqual({ ok: true, data: { statusRole: 'custom-blocked' } })
+    expect(await write('Custom-Blocked')).toEqual({ ok: true, data: { statusRole: 'custom-blocked' } })
   })
 
   it('still clears the column when asked', async () => {
-    expect(await write(null)).toEqual({ statusRole: null })
-    expect(await write('')).toEqual({ statusRole: null })
-    expect(await write('   ')).toEqual({ statusRole: null })
+    expect(await write(null)).toEqual({ ok: true, data: { statusRole: null } })
+    expect(await write('')).toEqual({ ok: true, data: { statusRole: null } })
+    expect(await write('   ')).toEqual({ ok: true, data: { statusRole: null } })
   })
 
   it('leaves the lane to completion when the same request completes the task', async () => {
@@ -69,6 +69,6 @@ describe('statusRole is normalised before it is stored (AWTD-1198)', () => {
       existingTask: { statusRole: null, lists: [] },
       validatedListIds: undefined,
     })
-    expect(result).toEqual({})
+    expect(result).toEqual({ ok: true, data: {} })
   })
 })
