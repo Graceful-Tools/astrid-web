@@ -62,6 +62,10 @@ const mockTask: Task = buildTask({
 
 const baseProps: any = {
   isMobile: false,
+  // The layout MainContent now reads to decide where Sort & Filters lives
+  // (AWTD-1175). This file's default case is the 2-column one; the 3-column
+  // renders below override it, as they already override the booleans.
+  columnCount: 2,
   mobileView: 'list' as const,
   selectedListId: 'list-1',
   lists: [ownedList],
@@ -164,14 +168,14 @@ describe('Add-task input visibility across desktop layouts', () => {
   })
 
   it('is visible in the 2-column layout', () => {
-    render(<MainContent {...baseProps} is2Column={true} is3Column={false} />)
+    render(<MainContent {...baseProps} />)
 
     const input = screen.getByPlaceholderText(/add a task/i)
     expect(input).toBeVisible()
   })
 
   it('stays visible in the 3-column layout', () => {
-    render(<MainContent {...baseProps} is2Column={false} is3Column={true} />)
+    render(<MainContent {...baseProps} columnCount={3} />)
 
     const input = screen.getByPlaceholderText(/add a task/i)
     expect(input).toBeVisible()
@@ -197,8 +201,7 @@ describe('Add-task input visibility across desktop layouts', () => {
     render(
       <MainContent
         {...baseProps}
-        is2Column={false}
-        is3Column={true}
+        columnCount={3}
         lists={[publicListAdminViaMembers]}
         selectedListId="list-2"
         // The canonical permission helper approves this user (admin via members).
@@ -217,7 +220,7 @@ describe('desktop list header controls (AWTD-1167, AWTD-1168)', () => {
   })
 
   const header3Col = (props: Record<string, unknown> = {}) =>
-    render(<MainContent {...baseProps} is2Column={false} is3Column={true} {...props} />)
+    render(<MainContent {...baseProps} columnCount={3} {...props} />)
 
   // AWTD-1204: the control hovers ON the line between the add-task box and the
   // tasks, lined up with the checkbox of the row below. The geometry was
@@ -247,6 +250,18 @@ describe('desktop list header controls (AWTD-1167, AWTD-1168)', () => {
     const positioned = filterRow.closest('.relative')
     expect(positioned).not.toBeNull()
     expect(positioned!.className).toContain('border-b')
+  })
+
+  // AWTD-1175: the funnel is a 3-column control, and that is the half of the
+  // decision that keeps aa4e7eb0 — sort & filters split out of the shared
+  // modal. Below 3 columns this row is absent BY DESIGN and List Settings
+  // carries the way in instead (see ListSettingsHost's own test). What this
+  // pins is that the two cannot both be false again, which is what left a
+  // narrow layout with no sort or filter control at all.
+  it.each([1, 2])('leaves the funnel out of the %i-column header', columnCount => {
+    render(<MainContent {...baseProps} columnCount={columnCount} />)
+
+    expect(screen.queryByTestId('list-filter-row')).toBeNull()
   })
 
   it('sort & filters sits on its own row below "Add a task...", not beside the name', () => {
