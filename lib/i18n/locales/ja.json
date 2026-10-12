@@ -122,6 +122,11 @@
       "label": "タスクID",
       "copy": "タスクIDをコピー",
       "copied": "{id} をコピーしました"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "サブタスクを追加",
+      "addPlaceholder": "サブタスクを追加…"
     }
   },
   "lists": {

@@ -122,6 +122,11 @@
       "label": "ID de tarea",
       "copy": "Copiar ID de tarea",
       "copied": "{id} copiado"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Añadir una subtarea",
+      "addPlaceholder": "Añadir una subtarea…"
     }
   },
   "lists": {
