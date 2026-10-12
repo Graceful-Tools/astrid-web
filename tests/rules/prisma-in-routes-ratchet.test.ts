@@ -43,7 +43,7 @@ const ROOT = process.cwd()
 // lib/github/installations instead of Prisma.
 // 138 → 137: AWTD-1113 — /api/webhooks/github-issues nudges through
 // lib/github/webhooks/issues, shared with the App webhook.
-const CEILING = 137 // 143 → 139: the four native sign-in routes go through lib/auth/native-sign-in (AWTD-1104)
+const CEILING = 136 // 137 → 136: /api/user/mcp-settings deleted, the census having cleared it (AWTD-839)
 
 function routeFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
