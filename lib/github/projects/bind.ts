@@ -18,6 +18,7 @@ import type { GraphqlClient } from '../rate-limiter'
 import type { BindingFieldMap } from './apply'
 import { DONE_OPTION } from './apply'
 import type { StatusState } from '@/lib/task-status'
+import type { RemoteField } from './fields'
 
 export const PROJECT_SCHEMA_QUERY = /* GraphQL */ `
 query ProjectSchema($id: ID!) {
@@ -25,11 +26,17 @@ query ProjectSchema($id: ID!) {
     ... on ProjectV2 {
       id number title url closed
       owner { __typename ... on Organization { login databaseId } ... on User { login databaseId } }
-      fields(first: 50) {
+      fields(first: 100) {
         nodes {
           __typename
           ... on ProjectV2FieldCommon { id name dataType }
-          ... on ProjectV2SingleSelectField { options { id name } }
+          ... on ProjectV2SingleSelectField { options { id name color description } }
+          ... on ProjectV2IterationField {
+            configuration {
+              iterations { id title startDate duration }
+              completedIterations { id title startDate duration }
+            }
+          }
         }
       }
     }
@@ -47,13 +54,8 @@ query OrgProjects($login: String!) {
   rateLimit { cost remaining resetAt }
 }`
 
-export interface ProjectSchemaField {
-  __typename: string
-  id?: string
-  name?: string
-  dataType?: string
-  options?: Array<{ id: string; name: string }>
-}
+/** A project field as the schema query returns it; fields.ts keeps the ones Astrid shows (AWTD-1117). */
+export type ProjectSchemaField = RemoteField
 
 export interface ProjectSchema {
   id: string
