@@ -80,4 +80,37 @@ export interface FixturePlan {
 export function planFixtureReset(existingTaskIds: readonly string[]): FixturePlan {
   return { delete: [...existingTaskIds], create: UITEST_FIXTURE_TASKS }
 }
+
+/**
+ * Which tasks the reset deletes — the SQL, stated here so it can be tested
+ * (AWTD-1235).
+ *
+ * **The bug this fixes.** It used to be an INNER JOIN through
+ * `_TaskToTaskList` to a list the account owns, so it only ever saw tasks that
+ * were ON a list. The suite — and the monkey, which runs first in the same job
+ * — quick-adds from My Tasks, and a quick-add from there creates a task on NO
+ * LIST. Those have no join row, the reset never saw them, and they accumulated
+ * every run. Measured against production on 2026-10-12, read-only: the old
+ * query selected **5** tasks and the new one selects **773**, 768 of them
+ * list-less tasks the account had created. The three fixtures were still reset
+ * faithfully, and still landed so far down a lazy list that they never entered
+ * the accessibility tree — so iOS CI failed with "no fixture task is visible on
+ * My Tasks", which reads like a missing fixture rather than a reset that was
+ * quietly half-doing its job.
+ *
+ * **Why `creatorId` and not `assigneeId`.** The account creates these tasks, so
+ * `creatorId` is what identifies its own leftovers wherever they ended up —
+ * list-less, or added to a public list someone else owns. `assigneeId` would
+ * also match a task **someone else created and assigned to the account**, which
+ * is not the suite's to delete. A reset that destroys another person's work
+ * because they shared it with a test account is a far worse bug than this one.
+ *
+ * **LEFT JOIN and DISTINCT are both load-bearing.** An inner join cannot return
+ * a row with no join partner, which is precisely the row being hunted; without
+ * DISTINCT a task on two of the account's lists comes back twice.
+ */
+export const FIXTURE_RESET_TASK_QUERY = `SELECT DISTINCT t.id FROM "Task" t
+       LEFT JOIN "_TaskToTaskList" m ON m."A" = t.id
+       LEFT JOIN "TaskList" l ON l.id = m."B"
+      WHERE l."ownerId" = $1 OR t."creatorId" = $1`
 import { BRAND } from '@/lib/brand/config'

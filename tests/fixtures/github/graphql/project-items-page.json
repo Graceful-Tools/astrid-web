@@ -34,6 +34,7 @@
                 "totalCount": 0,
                 "nodes": []
               },
+              "milestone": null,
               "assignees": {
                 "nodes": []
               }
@@ -88,6 +89,7 @@
                 "totalCount": 0,
                 "nodes": []
               },
+              "milestone": null,
               "assignees": {
                 "nodes": []
               }

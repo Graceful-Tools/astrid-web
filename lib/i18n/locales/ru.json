@@ -122,6 +122,16 @@
       "label": "ID задачи",
       "copy": "Копировать ID задачи",
       "copied": "{id} скопирован"
+    },
+    "occurrence": {
+      "label": "Повторение",
+      "previous": "Предыдущее повторение",
+      "next": "Следующее повторение"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Добавить подзадачу",
+      "addPlaceholder": "Добавить подзадачу…"
     }
   },
   "lists": {
@@ -419,7 +429,8 @@
   "search": {
     "placeholder": "Поиск задач и пользователей",
     "noResults": "Ничего не найдено",
-    "searching": "Поиск..."
+    "searching": "Поиск...",
+    "open": "Поиск"
   },
   "listHeaders": {
     "myTasks": "Мои задачи",

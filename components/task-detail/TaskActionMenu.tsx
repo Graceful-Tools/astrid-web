@@ -12,7 +12,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Copy, Share2, Trash2, Bug, MoreVertical, Ban, RotateCcw, Columns3, Maximize2, Minimize2, Hash } from "lucide-react"
+import { Copy, Share2, Trash2, Bug, MoreVertical, Ban, RotateCcw, Columns3, Maximize2, Minimize2, Ticket } from "lucide-react"
 import type { Task, User } from "../../types/task"
 import { canUserManageList } from "@/lib/list-permissions"
 import { isCanceled } from "@/lib/closed-reason"
@@ -170,7 +170,8 @@ export function TaskActionMenu({
         </DropdownMenuItem>
         {copyIdentifier.canCopy && (
           <DropdownMenuItem onClick={copyIdentifier.copy}>
-            <Hash className="w-4 h-4 mr-2" />
+            {/* Ticket, not Hash: `#` means a list (AWTD-1187). */}
+            <Ticket className="w-4 h-4 mr-2" />
             {t("tasks.taskId.copy")}
           </DropdownMenuItem>
         )}
