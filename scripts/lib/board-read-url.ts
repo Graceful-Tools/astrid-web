@@ -21,16 +21,22 @@
  * its own URL and say why.
  */
 
+import { BRAND } from '@/lib/brand/config'
+
 /** Everything a sweep filters on, and nothing it does not read. */
 export interface BoardReadOptions {
   boardId: string
   /** Page cap. The caller compares it against `meta.total` and says so if the page truncated. */
   limit: number
-  /** Overridable for tests and for a non-production brand. */
+  /** Overridable for tests and for a caller that already resolved its origin. */
   origin?: string
 }
 
-export function boardTasksUrl({ boardId, limit, origin = 'https://astrid.cc' }: BoardReadOptions): string {
+export function boardTasksUrl({
+  boardId,
+  limit,
+  origin = `https://${BRAND.domain}`,
+}: BoardReadOptions): string {
   const params = new URLSearchParams({
     listId: boardId,
     completed: 'false',

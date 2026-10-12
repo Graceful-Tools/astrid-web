@@ -9,6 +9,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { boardTasksUrl } from '@/scripts/lib/board-read-url'
+import { BRAND } from '@/lib/brand/config'
 
 const BOARD = 'a623f322-4c3c-49b5-8a94-d2d9f00c82ba'
 
@@ -46,8 +47,8 @@ describe('boardTasksUrl', () => {
     expect(params(got).get('limit')).toBe('10')
   })
 
-  it('points at production unless told otherwise', () => {
-    expect(new URL(boardTasksUrl({ boardId: BOARD, limit: 1 })).origin).toBe('https://astrid.cc')
+  it('points at the brand unless told otherwise', () => {
+    expect(new URL(boardTasksUrl({ boardId: BOARD, limit: 1 })).origin).toBe(`https://${BRAND.domain}`)
     expect(new URL(boardTasksUrl({ boardId: BOARD, limit: 1, origin: 'http://localhost:3000' })).origin)
       .toBe('http://localhost:3000')
   })
