@@ -25,7 +25,7 @@ import { listVisibilityWhere } from '@/lib/list-permissions'
 import { DEFAULT_LIST_SHOW_SUBTASKS } from '@/lib/list-subtask-visibility'
 import { getDeletionsSince } from '@/lib/deletion-log'
 import { serializeListAgentFields } from '@/lib/resolve-default-agent'
-import { listSupports } from '@/lib/backends/supports'
+import { listBackendFields, loadListBackendInfo } from '@/lib/backends/list-wire'
 import {
   createListWithImageOwnership,
   ListImageClaimError,
@@ -102,6 +102,10 @@ export const GET = withAuth(
     // for why the "unassigned" sentinel and the N+1 both matter. (dc143ab2)
     const assigneeMap = await resolveDefaultAssignees(lists)
 
+    // backend, remote and supports (AWTD-1222). No query unless a list here
+    // is GitHub-backed.
+    const backendInfo = await loadListBackendInfo(lists)
+
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)
     if (deprecationWarning) {
@@ -160,8 +164,7 @@ export const GET = withAuth(
           listType: list.listType ?? 'regular',
           recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
           showSubtasks: list.showSubtasks ?? DEFAULT_LIST_SHOW_SUBTASKS,
-          backend: list.backend ?? null,
-          supports: listSupports(list),
+          ...listBackendFields(list, backendInfo),
           createdAt: list.createdAt,
           updatedAt: list.updatedAt
         })),

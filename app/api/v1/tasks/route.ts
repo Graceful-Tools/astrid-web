@@ -19,6 +19,7 @@ import { getDeletionsSince } from '@/lib/deletion-log'
 import { assigneeIdsOf } from '@/lib/task-assignees'
 import { parseOmittedTaskFields } from '@/lib/tasks/v1-task-omit'
 import { taskFieldValuesSelect, v1TaskFieldsPatch } from '@/lib/tasks/v1-task-fields'
+import { withTaskRemote } from '@/lib/backends/task-remote'
 
 const log = createLogger('v1.tasks')
 
@@ -200,6 +201,12 @@ export const GET = withAuth(
           sourceListId: true,
           clientRequestId: true,
           parentTaskId: true,
+          // Read for `remote` and `syncState`; withTaskRemote keeps the raw
+          // columns off the wire (AWTD-1222).
+          remoteNodeId: true,
+          remoteKind: true,
+          remoteVersion: true,
+          syncState: true,
           lists: {
             select: {
               // Required for permission checks: getUserRoleInList resolves
@@ -295,7 +302,9 @@ export const GET = withAuth(
         fieldValues?: Parameters<typeof v1TaskFieldsPatch>[0]
       }
       return {
-        ...rest,
+        // `remote` and `syncState` on a GitHub-backed task only (AWTD-1222);
+        // the raw remote columns go out in the same step.
+        ...withTaskRemote(rest),
         listIds: task.lists?.map(list => list.id) || [],
         // Everyone assigned, `assigneeId` first (AWTD-1190).
         assigneeIds: assigneeIdsOf(task),
@@ -459,7 +468,7 @@ function narrowCreatedTaskForV1(task: CreatedTask) {
   const { lists, assignee, creator, comments, ...scalars } = task as unknown as Record<string, any>
 
   return {
-    ...scalars,
+    ...withTaskRemote(scalars),
     assigneeIds: assigneeIdsOf(scalars),
     lists: (lists ?? []).map((list: any) => ({
       id: list.id,

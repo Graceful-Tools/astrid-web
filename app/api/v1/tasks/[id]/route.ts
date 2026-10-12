@@ -26,6 +26,7 @@ import { validateV1TaskUpdate, type V1TaskUpdateRequest } from '@/lib/api-contra
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
 import { resolveAgentAuthor } from '@/lib/ai-agent-author'
 import { assigneeIdsOf } from '@/lib/task-assignees'
+import { withTaskRemote } from '@/lib/backends/task-remote'
 
 const log = createLogger('v1.tasks.id')
 
@@ -305,7 +306,7 @@ export const PUT = withAuth<RouteContext>(
     return NextResponse.json(
       {
         task: {
-          ...task,
+          ...withTaskRemote(task),
           listIds: task.lists?.map((list: { id: string }) => list.id) || [],
           assigneeIds: assigneeIdsOf(task),
         },

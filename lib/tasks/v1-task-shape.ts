@@ -16,6 +16,7 @@ import { TASK_COMMENTS_RESPONSE_LIMIT } from '@/lib/task-query-utils'
 import { createLogger } from '@/lib/logger'
 import { assigneeIdsOf } from '@/lib/task-assignees'
 import { taskFieldValuesSelect, v1TaskFieldsPatch } from '@/lib/tasks/v1-task-fields'
+import { withTaskRemote } from '@/lib/backends/task-remote'
 
 const log = createLogger('tasks.v1-task-shape')
 
@@ -122,7 +123,9 @@ function shapeV1Task(task: V1TaskRow) {
   void nextOccurrences
   void fieldValues
   return {
-    ...rest,
+    // `remote` and `syncState` on a GitHub-backed task only (AWTD-1222); the
+    // raw remote columns go out in the same step.
+    ...withTaskRemote(rest),
     // Query is newest-first so the cap keeps recent comments; the wire order
     // stays ascending, which is what clients always received (task a86b5bed).
     // Copied, not reversed in place: the row may be shared with the caller.
