@@ -41,6 +41,12 @@
 #   FIXALL_MODEL        model for the unattended run (default: opus)
 #   FIXALL_MAX_MINUTES  watchdog, kills a wedged run (default: 75)
 #   FIXALL_MAX_USD      CLI budget bound for one run (default: 10; empty = none)
+#   FIXALL_CAFFEINATE   caffeinate binary that holds the Mac awake for the run
+#                       (default: caffeinate; empty = do not assert)
+#   FIXALL_SYSCTL       sysctl binary the load guard reads (default: from PATH)
+#   FIXALL_MAX_LOAD     skip the tick if the 5-minute load average is over this
+#                       (default: cores x FIXALL_MAX_LOAD_PER_CPU)
+#   FIXALL_MAX_LOAD_PER_CPU  per-core load budget behind that default (default: 4)
 #   FIXALL_LONG_RUN_WINDOW  local hours a LONG-RUN task may start (default: 22-6; "always")
 #   FIXALL_LONG_MAX_USD budget bound for a LONG-RUN run (default: 50)
 #   CLAUDE_BIN          path to the claude CLI (default: ~/.local/bin/claude)
@@ -79,14 +85,44 @@ if [ ! -x "$TSX" ]; then
   exit 1
 fi
 
+# ── A skip that never ends is an outage ──────────────────────────────────────
+# Skips exit 0 and read as healthy, so a stuck loop looks exactly like an idle
+# one. STUCK_FILE records when the current run of skips began; past
+# FIXALL_STUCK_ALERT_MINUTES the loop posts to the board chat, once, and the
+# marker clears as soon as a tick reaches the queue.
+#
+# ABOVE GUARD 1, NOT BELOW IT (AWTD-1207). This sat under guard 2, so the
+# lock-held skip — which echoed and exited on its own — was the one skip the
+# alert could never fire for, and it is the longest-lived skip there is. On
+# 2026-10-09 a live interactive session held this checkout from 15:25Z and the
+# loop worked ONE task in 48 ticks, saying nothing for 15½ hours; the only
+# reason anyone found out was that the queue felt slow two days later. Every
+# guard that cannot work the tree now reports through here.
+STUCK_DIR="$HOME/Library/Caches/astrid-fixall"
+STUCK_FILE="$STUCK_DIR/stuck-web"
+STUCK_ALERT_MINUTES="${FIXALL_STUCK_ALERT_MINUTES:-120}"
+
+skip_tracked() {
+  local reason="$1" now since
+  mkdir -p "$STUCK_DIR"
+  now=$(date +%s)
+  [ -f "$STUCK_FILE" ] || echo "$now" > "$STUCK_FILE"
+  since=$(head -1 "$STUCK_FILE")
+  if [ $(( (now - since) / 60 )) -ge "$STUCK_ALERT_MINUTES" ] && ! grep -q '^alerted$' "$STUCK_FILE"; then
+    post_to_list "**Scheduled /fixall (web) has been skipping for $(( (now - since) / 60 )) minutes** — $reason. Ready tasks will not be worked until this clears; the checkout is $REPO."
+    echo "alerted" >> "$STUCK_FILE"
+  fi
+  echo "RESULT: SKIPPED — $reason"
+  exit 0
+}
+
 # ── Guard 1: one session per working tree ────────────────────────────────────
 # Cheap by design: no Claude session is started just to discover the tree is
 # busy. Also backs off correctly when Jon is running /fixall interactively.
 "$TSX" scripts/fixall-session.ts acquire --pid $$ --harness claude-code
 LOCK_STATUS=$?
 if [ "$LOCK_STATUS" -eq 2 ]; then
-  echo "RESULT: SKIPPED — another live session holds this checkout"
-  exit 0
+  skip_tracked "another live session holds this checkout"
 elif [ "$LOCK_STATUS" -ne 0 ]; then
   echo "RESULT: FAILED — could not take the working-tree lock (exit $LOCK_STATUS)"
   exit 1
@@ -120,43 +156,20 @@ export ASTRID_FIXALL_MAX_TASKS="${FIXALL_MAX_TASKS:-1}"
 # already contained in origin/main has nothing to lose, so the loop goes back to
 # main itself. Anything else (dirty, or commits origin/main lacks) is still left
 # alone.
-#
-# A SKIP THAT NEVER ENDS IS AN OUTAGE. Skips exit 0 and read as healthy, so a
-# stuck loop looked exactly like an idle one. STUCK_FILE records when the
-# current run of skips began; past FIXALL_STUCK_ALERT_MINUTES the loop posts to
-# the board chat, once, and the marker clears as soon as a tick gets through.
-STUCK_DIR="$HOME/Library/Caches/astrid-fixall"
-STUCK_FILE="$STUCK_DIR/stuck-web"
-STUCK_ALERT_MINUTES="${FIXALL_STUCK_ALERT_MINUTES:-120}"
-
-skip_guard2() {
-  local reason="$1" now since
-  mkdir -p "$STUCK_DIR"
-  now=$(date +%s)
-  [ -f "$STUCK_FILE" ] || echo "$now" > "$STUCK_FILE"
-  since=$(head -1 "$STUCK_FILE")
-  if [ $(( (now - since) / 60 )) -ge "$STUCK_ALERT_MINUTES" ] && ! grep -q '^alerted$' "$STUCK_FILE"; then
-    post_to_list "**Scheduled /fixall (web) has been skipping for $(( (now - since) / 60 )) minutes** — $reason. Ready tasks will not be worked until the checkout at $REPO is clean and on main."
-    echo "alerted" >> "$STUCK_FILE"
-  fi
-  echo "RESULT: SKIPPED — $reason"
-  exit 0
-}
-
 if [ "${FIXALL_FORCE:-0}" != "1" ]; then
   BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
   if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
-    skip_guard2 "working tree is dirty, leaving it alone"
+    skip_tracked "working tree is dirty, leaving it alone"
   fi
   if [ "$BRANCH" != "main" ]; then
     if git fetch -q origin main 2>/dev/null && git merge-base --is-ancestor HEAD origin/main; then
       if git checkout -q main && git merge -q --ff-only origin/main; then
         echo "  returned to main from $BRANCH (already in origin/main)"
       else
-        skip_guard2 "HEAD is on $BRANCH (merged) but could not return to main"
+        skip_tracked "HEAD is on $BRANCH (merged) but could not return to main"
       fi
     else
-      skip_guard2 "HEAD is on $BRANCH, not main, with commits origin/main lacks"
+      skip_tracked "HEAD is on $BRANCH, not main, with commits origin/main lacks"
     fi
   else
     # UNPUSHED COMMITS ON MAIN ARE WORK IN PROGRESS TOO (AWTD-1095). On
@@ -165,10 +178,64 @@ if [ "${FIXALL_FORCE:-0}" != "1" ]; then
     git fetch -q origin main 2>/dev/null
     AHEAD=$(git rev-list --count origin/main..HEAD 2>/dev/null)
     if [ -n "$AHEAD" ] && [ "$AHEAD" -gt 0 ]; then
-      skip_guard2 "main has $AHEAD commit(s) origin/main lacks — someone's work in progress"
+      skip_tracked "main has $AHEAD commit(s) origin/main lacks — someone's work in progress"
     fi
   fi
 fi
+# ── Guard 2b: not while the machine is buried ────────────────────────────────
+# A run cannot finish a task without a green `npm run predeploy`, and predeploy
+# needs the machine. On 2026-10-10 two runs wrote their fix and then could not
+# get a green gate: predeploy went red twice on test timeouts in different,
+# unrelated files — every one of which passes alone — with the load average
+# above 120 on 8 cores. Each red run auto-filed a failure task for nothing
+# (AWTD-1192, closed as exactly that; AWTD-1197), and the two runs burned ~40
+# minutes between them. The iOS loop's simulator suite and two self-hosted
+# Actions runners share this Mac, so the overlap is routine, not freak.
+#
+# THE 5-MINUTE AVERAGE, NOT THE 1-MINUTE ONE. The 1-minute figure spikes on a
+# Spotlight pass or opening Xcode, and a tick lost to a spike costs more than it
+# saves. A run lasts up to MAX_MINUTES, so what matters is a load that has
+# already persisted.
+#
+# A SKIP, NOT A WAIT: the next tick is 30 minutes away and costs nothing, while
+# a run that waits holds the working-tree lock the whole time it waits.
+MAX_LOAD_PER_CPU="${FIXALL_MAX_LOAD_PER_CPU:-4}"
+if [ "${FIXALL_FORCE:-0}" != "1" ]; then
+  # FIXALL_SYSCTL is the seam, not PATH. sysctl lives in /usr/sbin, which a
+  # launchd PATH need not carry, and resolving it by PATH is also what made this
+  # guard's test pass on macOS and fail on Linux CI: there `sysctl` exists but
+  # answers neither vm.loadavg nor hw.ncpu, the reads came back empty, and the
+  # guard fell through SILENTLY. An explicit seam is how FIXALL_TSX and
+  # FIXALL_CAFFEINATE are already testable.
+  SYSCTL="${FIXALL_SYSCTL:-$(command -v sysctl 2>/dev/null || echo /usr/sbin/sysctl)}"
+  LOAD_5M=$("$SYSCTL" -n vm.loadavg 2>/dev/null | awk '{print $3}')
+  NCPU=$("$SYSCTL" -n hw.ncpu 2>/dev/null)
+  MAX_LOAD="${FIXALL_MAX_LOAD:-}"
+  if [ -z "$MAX_LOAD" ] && [ -n "$NCPU" ]; then
+    MAX_LOAD=$(( NCPU * MAX_LOAD_PER_CPU ))
+  fi
+  # No numbers, no opinion: an unreadable load must never stall the loop — but it
+  # must not be silent either, or the guard is indistinguishable from one that
+  # looked and found the machine idle. That silence is what made the first CI
+  # failure unreadable: the whole output was "FELL THROUGH".
+  # SHELL INTEGER COMPARISON, NOT awk. `awk 'BEGIN { exit !(load > max) }'`
+  # decided this on macOS and decided it the other way under mawk on Linux CI,
+  # silently — same inputs, opposite answer, and the only output was the
+  # fall-through. A threshold of "cores x 4" does not need the fraction, so drop
+  # it and compare integers, which every shell does identically.
+  LOAD_INT="${LOAD_5M%%.*}"
+  if [ -z "$LOAD_5M" ] || [ -z "$MAX_LOAD" ] || ! [ "$LOAD_INT" -ge 0 ] 2>/dev/null; then
+    echo "  ⚠️  could not read the load from $SYSCTL (load='$LOAD_5M' cores='$NCPU') — not guarding this tick"
+  elif [ "$LOAD_INT" -gt "$MAX_LOAD" ]; then
+    skip_tracked "machine is buried — 5-minute load $LOAD_5M is over $MAX_LOAD, so predeploy would time out"
+  else
+    # Said out loud, so a tick that ran past this guard is distinguishable in the
+    # log from one where the guard could not look. Being blind here cost two CI
+    # round-trips.
+    echo "  load ok — 5-minute average $LOAD_5M against a budget of $MAX_LOAD"
+  fi
+fi
+
 rm -f "$STUCK_FILE"
 
 # ── Run what is merged, not what someone last pulled by hand ─────────────────
@@ -321,12 +388,42 @@ echo "→ /fixall ($MODEL, watchdog ${MAX_MINUTES}m${MAX_USD:+, cap \$$MAX_USD})
   "${BUDGET_ARGS[@]}" &
 CLAUDE_PID=$!
 
+# A run may last MAX_MINUTES (75 by default) and idle sleep inside that window
+# kills it mid-task, leaving work guard 2 then rightly refuses to touch. On
+# 2026-10-07 only 30 of the day's 48 ticks fired at all and on 2026-10-08 only
+# 38 — whole hours missing while the machine slept (AWTD-1207).
+#
+# `-w "$CLAUDE_PID"`, NOT `caffeinate "$CLAUDE"`. As a wrapper, caffeinate would
+# be the child this script waits on, and the watchdog's kill would land on
+# caffeinate while the real run carried on — the wedged run the watchdog exists
+# to stop, since launchd starts no second copy of a live label. Asserting
+# against the run's pid keeps one process to kill, and the assertion ends with
+# the run on its own. No -d: the display may sleep, nobody is watching.
+#
+# This keeps a run that has STARTED alive. It cannot wake a sleeping Mac for a
+# tick that has not started yet — that needs a wake schedule on the machine
+# itself (docs/CLI_OPERATIONS.md § The scheduled loops).
+# FIXALL_CAFFEINATE is the seam a test reaches it through, like FIXALL_TSX: this
+# script is a login shell, path_helper reorders PATH behind its back, and a stub
+# prepended by the caller loses to /usr/bin. Empty = do not assert.
+CAFFEINATE_BIN="${FIXALL_CAFFEINATE-caffeinate}"
+CAFFEINATE_PID=""
+if [ -n "$CAFFEINATE_BIN" ] && command -v "$CAFFEINATE_BIN" >/dev/null 2>&1; then
+  "$CAFFEINATE_BIN" -i -m -w "$CLAUDE_PID" &
+  CAFFEINATE_PID=$!
+elif [ -n "$CAFFEINATE_BIN" ]; then
+  echo "  ⚠️  no caffeinate at $CAFFEINATE_BIN — idle sleep may kill this run"
+fi
+
 ( sleep $((MAX_MINUTES * 60)); kill -TERM "$CLAUDE_PID" 2>/dev/null ) &
 WATCHDOG_PID=$!
 
 wait "$CLAUDE_PID"
 STATUS=$?
 kill "$WATCHDOG_PID" 2>/dev/null
+if [ -n "$CAFFEINATE_PID" ]; then
+  kill "$CAFFEINATE_PID" 2>/dev/null || true
+fi
 
 # ── Leave the checkout where the next tick can use it ────────────────────────
 # fixall.md works each task on its own branch and merges back at the end. A run

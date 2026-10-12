@@ -22,6 +22,9 @@ import { join } from 'path'
 
 const loop = readFileSync(join(process.cwd(), 'scripts/fixall-loop.sh'), 'utf8')
 const guard2 = loop.slice(loop.indexOf('Guard 2'), loop.indexOf('Guard 3'))
+// The stuck tracker moved above guard 1 in AWTD-1207, so that a lock-held skip
+// — the longest-lived skip there is — can reach the alert too.
+const tracker = loop.slice(loop.indexOf('# ── A skip that never ends'), loop.indexOf('# ── Guard 1'))
 
 describe('the scheduled loop does not stall on a merged branch', () => {
   it('returns to main when HEAD is already contained in origin/main', () => {
@@ -39,8 +42,10 @@ describe('the scheduled loop does not stall on a merged branch', () => {
   })
 
   it('posts to the board chat once a skip has lasted too long', () => {
-    expect(guard2).toMatch(/FIXALL_STUCK_ALERT_MINUTES/)
-    expect(guard2).toMatch(/post_to_list/)
+    expect(tracker).toMatch(/FIXALL_STUCK_ALERT_MINUTES/)
+    expect(tracker).toMatch(/post_to_list/)
+    // Guard 2 still reports through it rather than echoing on its own.
+    expect(guard2).toMatch(/skip_tracked /)
   })
 
   it('after its own run, pushes a leftover task branch and returns to main', () => {
