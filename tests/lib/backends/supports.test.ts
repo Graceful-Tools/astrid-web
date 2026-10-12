@@ -36,3 +36,22 @@ describe('listSupports.repeatMode (AWTD-1118)', () => {
     },
   )
 })
+
+/**
+ * AWTD-1208 (P6a-2): a GitHub board's tasks can carry `fields`, the project's
+ * own field values. The key says the capability exists — it does NOT promise
+ * every payload carries them, because list responses omit them unless asked
+ * (§9.4.3, and the payload measurement in lib/tasks/v1-task-fields.ts).
+ */
+describe('listSupports.fields (AWTD-1208)', () => {
+  it('is true on a GitHub-backed list', () => {
+    expect(listSupports({ backend: GITHUB_PROJECT_BACKEND }).fields).toBe(true)
+  })
+
+  it.each([{ backend: null }, { backend: undefined }, {}, { backend: 'something_else' }])(
+    'a classic list (%o) has no project fields',
+    list => {
+      expect(listSupports(list).fields).toBe(false)
+    },
+  )
+})
