@@ -17,6 +17,7 @@ import { createTaskWithSideEffects, type CreatedTask } from '@/services/task.ser
 import { createLogger } from '@/lib/logger'
 import { getDeletionsSince } from '@/lib/deletion-log'
 import { assigneeIdsOf } from '@/lib/task-assignees'
+import { taskFieldValuesSelect, v1TaskFieldsPatch } from '@/lib/tasks/v1-task-fields'
 
 const log = createLogger('v1.tasks')
 
@@ -61,6 +62,17 @@ export const GET = withAuth(
     // duplicated across every task sharing a list. Backward-compatible: absent
     // param → full members as before.
     const leanListMembers = url.searchParams.get('leanListMembers') === '1'
+    // GitHub project field values, OPT-IN on this route (AWTD-1208, §9.4.3).
+    // Measured 2026-10-12: a thousand tasks carrying eight fields each adds
+    // 42.2 KiB to the gzipped response, and the full task response is already
+    // 551.8 KiB on the wire against a 500 KiB budget. The spec's rule decides
+    // it — "the budget wins over convenience" — so a list view asks for them
+    // only when it will show them, and the detail route carries them always.
+    const includeFields = url.searchParams
+      .get('include')
+      ?.split(',')
+      .map(part => part.trim())
+      .includes('fields') ?? false
     // Delta sync: return only tasks touched since this instant. Optional and
     // purely additive — omitting it leaves the query exactly as it was, which
     // is what keeps this from being a breaking change for existing clients.
@@ -235,6 +247,10 @@ export const GET = withAuth(
               take: 20,
             },
           }),
+          // GitHub project field values, only when asked and only where the
+          // capability is on (AWTD-1208). Spreading `{}` otherwise means the
+          // relation is absent from the query Prisma builds, not merely unread.
+          ...taskFieldValuesSelect(includeFields),
         },
         orderBy: [
           { completed: 'asc' },
@@ -254,12 +270,21 @@ export const GET = withAuth(
     }
 
     // iOS expects a flat listIds array alongside the relation
-    const tasksWithListIds = tasks.map(task => ({
-      ...task,
-      listIds: task.lists?.map(list => list.id) || [],
-      // Everyone assigned, `assigneeId` first (AWTD-1190).
-      assigneeIds: assigneeIdsOf(task),
-    }))
+    const tasksWithListIds = tasks.map(task => {
+      // The storage shape never goes out: `fieldValues` is one row per value
+      // with five nullable columns, and `fields` is the compact map that
+      // replaces it (AWTD-1208).
+      const { fieldValues, ...rest } = task as typeof task & {
+        fieldValues?: Parameters<typeof v1TaskFieldsPatch>[0]
+      }
+      return {
+        ...rest,
+        listIds: task.lists?.map(list => list.id) || [],
+        // Everyone assigned, `assigneeId` first (AWTD-1190).
+        assigneeIds: assigneeIdsOf(task),
+        ...v1TaskFieldsPatch(fieldValues),
+      }
+    })
 
     // Delta responses also carry what disappeared. Tasks are hard-deleted, so
     // without this a client syncing incrementally keeps showing tasks that are
