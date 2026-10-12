@@ -122,6 +122,11 @@
       "label": "ID attività",
       "copy": "Copia ID attività",
       "copied": "{id} copiato"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Aggiungi un sottoattività",
+      "addPlaceholder": "Aggiungi un sottoattività…"
     }
   },
   "lists": {

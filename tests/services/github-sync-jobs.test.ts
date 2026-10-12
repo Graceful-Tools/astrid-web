@@ -102,9 +102,12 @@ describe('drainSyncJobs (AWTD-1152)', () => {
     const summary = await drainSyncJobs(20, { now: () => NOW, clientFor: () => replaying(load('hydrate-item-draft.json')) })
 
     expect(summary).toEqual({ claimed: 1, succeeded: 1, failed: 0 })
-    expect(projects.applyProjectItems).toHaveBeenCalledWith(board, [
-      expect.objectContaining({ id: 'PVTI_lADOFEb-HM4BmXS2zg_2m3Y' }),
-    ])
+    // The client goes too, so a field the board has not met can refresh its schema (AWTD-1117).
+    expect(projects.applyProjectItems).toHaveBeenCalledWith(
+      board,
+      [expect.objectContaining({ id: 'PVTI_lADOFEb-HM4BmXS2zg_2m3Y' })],
+      expect.anything(),
+    )
     expect(db.gitHubSyncJob.update).toHaveBeenCalledWith({
       where: { id: 'j1' },
       data: { doneAt: expect.any(Date), lockedUntil: null, error: null },

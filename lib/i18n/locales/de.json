@@ -122,6 +122,11 @@
       "label": "Aufgaben-ID",
       "copy": "Aufgaben-ID kopieren",
       "copied": "{id} kopiert"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Unteraufgabe hinzufügen",
+      "addPlaceholder": "Unteraufgabe hinzufügen…"
     }
   },
   "lists": {

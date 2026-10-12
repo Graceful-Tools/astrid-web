@@ -122,6 +122,11 @@
       "label": "Task ID",
       "copy": "Copy task id",
       "copied": "Copied {id}"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Add a subtask",
+      "addPlaceholder": "Add a subtask…"
     }
   },
   "lists": {

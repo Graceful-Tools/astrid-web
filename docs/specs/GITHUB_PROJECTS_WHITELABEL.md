@@ -1646,7 +1646,78 @@ closed from here (P5a).
 Not yet: writing a parent, a blocker or an ordinary label **from** Astrid to GitHub,
 iterations and milestones.
 
-### P6–P8 — fields, recurrence, per-org SSO, brand: not started
+### P6a — project fields: the replica holds them and the API serves them; editing is still open
+
+**Replica slice ([AWTD-1117](https://astrid.cc/t/AWTD-1117)), built. Inbound only.**
+- **The tables.** `ProjectField` and `TaskFieldValue`, as §9.4.1, in an additive migration
+  (two new tables, no existing row touched). **The migration has not been run against a
+  Postgres:** it was written by hand in Prisma's shape, in a session that could not start one.
+- **Which fields.** Text, number, date, single-select and iteration
+  (`lib/github/projects/fields.ts`). GitHub's built-ins (Title, Assignees, Labels and the
+  rest) are not fields here.
+- **Mapped fields.** Status, Priority and due carry `mappedTo` and never have a stored
+  value. **Estimate is an ordinary field**, not mapped as §9.4.1 lists it: Task has no
+  estimate column (P4a).
+- **Schema refresh** (`services/github-project-fields.service.ts`): at import, on every
+  reconcile, and when a hydrated item carries a field, option or iteration the board has
+  not met, once per page. Written by value, so a refresh that finds nothing new writes
+  nothing. A field deleted on GitHub goes, and its values with it.
+- **Values** are compared, not timestamped. An echo writes nothing. A value cleared on
+  GitHub is deleted here. Every task whose values changed has `updatedAt` bumped, so the
+  change rides `?updatedSince=` (§9.4.3).
+- **More than 20 values** on one item: the read may be cut short, so values are added and
+  changed and never cleared.
+- **Leaving.** An archived or removed item's values for that project are deleted.
+  Unbinding deletes the board's fields: a local board has none.
+- **Cost.** Two more reads per page (fields, held values), one when the board has no
+  fields. New values are one `createMany` per page. The schema query now reads up to 100
+  fields, was 50: built-ins count toward the page, and a cut-short list would delete fields.
+- **The fragment** grew `dataType` on each value's field and
+  `ProjectV2ItemFieldIterationValue`. The schema query grew option colour and description,
+  and iteration configuration.
+- **Not verified against GitHub.** The grown fragment and schema query have not been run
+  against the test project, and no iteration or custom value has been recorded. The tests
+  use the recorded schema and hand-written values.
+
+**API slice ([AWTD-1208](https://astrid.cc/t/AWTD-1208)), built. Read only — no write route yet.**
+- **Schema once per project.** `GET /api/v1/projects/:id/fields` returns the definitions in
+  `position` order, with `mappedTo` so a client knows Status/Priority/due are native columns.
+  404 when the `githubProjects` capability is off, through `withAuth`'s capability option,
+  which resolves at module load and short-circuits before authentication.
+- **Readable by anyone who can READ the board**, not only its owner: the schema is what makes
+  a task's `fields` legible, and a member who could load the tasks but not the schema would
+  see a map of uuid to uuid. The gate is `listVisibilityWhere` over the board's lists — the
+  same definition the list routes use — and a board the caller cannot see is **404, not 403**.
+- **ETag, from `updatedAt` AND the row count.** A deletion moves no surviving row's timestamp,
+  so a timestamp-only tag would serve a 304 holding a field that is gone.
+- **Values on tasks** are `"fields": { "<ProjectField.id>": <scalar | optionId | iterationId> }`
+  — no names, no types, no nulls, and **no key at all** on a task with no values, so every task
+  outside a GitHub board is byte-identical to before.
+- **The payload gate decided the shape (§9.4.3).** Measured 2026-10-12: eight fields on a
+  thousand tasks costs **+42.2 KiB gzipped** — the eight field ids repeat on every task, so
+  gzip removes most of the ~440 KB uncompressed cost, and only the free-text fields resist.
+  But the full task response is **already 551.8 KiB on the wire against a 500 KiB budget**
+  ([AWTD-1231](https://astrid.cc/t/AWTD-1231)), so there is no headroom to spend. Per the
+  spec's own rule — *"the budget wins over convenience"* — the list route carries values only
+  on `?include=fields`, and the detail route carries them always. Recorded in
+  docs/PERFORMANCE_BUDGETS.md.
+- **No extra query where it is not wanted.** `taskFieldValuesSelect` spreads to `{}` without
+  the capability or without `?include=fields`, so the relation is absent from the query Prisma
+  builds rather than merely unread.
+- **`list.supports.fields`** (§11.2), true only on a GitHub-backed list. It says the capability
+  exists, not that a given payload carries the values.
+- **Still open:** `PUT /api/v1/tasks/:id/fields/:fieldId` (§9.4.2). Nothing writes a field
+  value from Astrid yet.
+- **Not covered.** Changing the binding's due or priority field does not re-run the
+  refresh, so `mappedTo` is corrected by the next hourly reconcile
+  ([AWTD-1209](https://astrid.cc/t/AWTD-1209)).
+
+Open, in order: [AWTD-1208](https://astrid.cc/t/AWTD-1208) the fields route, compact values
+on tasks and the payload measurement · [AWTD-1209](https://astrid.cc/t/AWTD-1209) editing a
+field from Astrid · [AWTD-1210](https://astrid.cc/t/AWTD-1210) web editors and board
+filtering.
+
+### P6b, P7, P8 — recurrence, per-org SSO, brand: not started
 
 These need, in order:
 1. A decision to apply the additive schema in §4/§8.5/§9.4.1 at a deploy.
