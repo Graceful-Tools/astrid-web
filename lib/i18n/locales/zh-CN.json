@@ -122,6 +122,11 @@
       "label": "任务 ID",
       "copy": "复制任务 ID",
       "copied": "已复制 {id}"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "添加子任务",
+      "addPlaceholder": "添加子任务…"
     }
   },
   "lists": {
@@ -419,7 +424,8 @@
   "search": {
     "placeholder": "搜索任务和用户",
     "noResults": "未找到结果",
-    "searching": "搜索中..."
+    "searching": "搜索中...",
+    "open": "搜索"
   },
   "listHeaders": {
     "myTasks": "我的任务",

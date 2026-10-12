@@ -122,6 +122,11 @@
       "label": "タスクID",
       "copy": "タスクIDをコピー",
       "copied": "{id} をコピーしました"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "サブタスクを追加",
+      "addPlaceholder": "サブタスクを追加…"
     }
   },
   "lists": {
@@ -419,7 +424,8 @@
   "search": {
     "placeholder": "タスクとユーザーを検索",
     "noResults": "結果が見つかりません",
-    "searching": "検索中..."
+    "searching": "検索中...",
+    "open": "検索"
   },
   "listHeaders": {
     "myTasks": "マイタスク",
