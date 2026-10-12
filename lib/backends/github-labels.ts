@@ -49,6 +49,14 @@ export function changesGithubLabels(lists: ListsWrite | undefined, labels: reado
 }
 
 /**
+ * Does this list MIRROR a GitHub label? A label list someone converted from
+ * their own regular list has no `remoteNodeId` and is an ordinary list.
+ */
+export function isGithubLabelList(list: { listType?: string | null; remoteNodeId?: string | null }): boolean {
+  return list.listType === LIST_TYPE_LABEL && Boolean(list.remoteNodeId)
+}
+
+/**
  * A GitHub label the task already carries is not being ADDED to it. The
  * task service asks permission to add a task to each list it is sent, and a
  * board member is not a member of the label's list — so without this, moving
@@ -58,7 +66,7 @@ export function isHeldGithubLabel(
   list: { id: string; listType?: string | null; remoteNodeId?: string | null },
   held: ReadonlyArray<{ id: string }> | null | undefined,
 ): boolean {
-  return list.listType === LIST_TYPE_LABEL && Boolean(list.remoteNodeId) && (held ?? []).some(on => on.id === list.id)
+  return isGithubLabelList(list) && (held ?? []).some(on => on.id === list.id)
 }
 
 type LoadLabels = (taskId: string | null, mentionedListIds: string[]) => Promise<GithubLabelMembership[]>
