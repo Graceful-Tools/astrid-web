@@ -122,6 +122,11 @@
       "label": "ID задачи",
       "copy": "Копировать ID задачи",
       "copied": "{id} скопирован"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Добавить подзадачу",
+      "addPlaceholder": "Добавить подзадачу…"
     }
   },
   "lists": {
