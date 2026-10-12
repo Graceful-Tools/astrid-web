@@ -203,7 +203,29 @@ export function LeftSidebar({
             />
             <span className="text-lg font-semibold tracking-tight theme-text-primary">{BRAND.wordmark}</span>
           </div>
-          {!showHamburgerMenu && <SidebarToggleButton collapsed={false} onToggle={toggleCollapsed} />}
+          {/* Search, inline at the far right of the brand header (AWTD-1180).
+           *  Jon: "(a) but add search icon inline on far right. Logo left
+           *  header with Astrid / brand logo on top left." The Search ROW below
+           *  stays — (a) IS that row — so this is an additional way in, for
+           *  reaching search without reading the nav. Same handler, so the two
+           *  cannot drift to different destinations. */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSearchClick}
+              aria-label={t("search.open")}
+              title={t("search.open")}
+              className={`h-7 w-7 p-0 ${
+                activeView === 'search'
+                  ? "theme-text-primary"
+                  : "theme-text-muted hover:theme-text-primary"
+              }`}
+            >
+              <Search className="w-4 h-4" />
+            </Button>
+            {!showHamburgerMenu && <SidebarToggleButton collapsed={false} onToggle={toggleCollapsed} />}
+          </div>
         </div>
 
         <div className="p-3">

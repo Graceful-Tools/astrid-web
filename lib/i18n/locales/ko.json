@@ -424,7 +424,8 @@
   "search": {
     "placeholder": "작업 및 사용자 검색",
     "noResults": "결과를 찾을 수 없습니다",
-    "searching": "검색 중..."
+    "searching": "검색 중...",
+    "open": "검색"
   },
   "listHeaders": {
     "myTasks": "내 작업",

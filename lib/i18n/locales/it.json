@@ -424,7 +424,8 @@
   "search": {
     "placeholder": "Cerca attività e utenti",
     "noResults": "Nessun risultato trovato",
-    "searching": "Ricerca in corso..."
+    "searching": "Ricerca in corso...",
+    "open": "Cerca"
   },
   "listHeaders": {
     "myTasks": "Le Mie Attività",

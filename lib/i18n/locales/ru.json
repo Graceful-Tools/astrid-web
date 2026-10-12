@@ -424,7 +424,8 @@
   "search": {
     "placeholder": "Поиск задач и пользователей",
     "noResults": "Ничего не найдено",
-    "searching": "Поиск..."
+    "searching": "Поиск...",
+    "open": "Поиск"
   },
   "listHeaders": {
     "myTasks": "Мои задачи",

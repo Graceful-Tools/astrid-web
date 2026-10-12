@@ -424,7 +424,8 @@
   "search": {
     "placeholder": "Rechercher des tâches et des utilisateurs",
     "noResults": "Aucun résultat trouvé",
-    "searching": "Recherche en cours..."
+    "searching": "Recherche en cours...",
+    "open": "Rechercher"
   },
   "listHeaders": {
     "myTasks": "Mes Tâches",
