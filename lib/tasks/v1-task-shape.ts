@@ -15,6 +15,7 @@ import type { V1TaskBlockerIds } from '@/lib/api-contracts/v1-ios-shapes'
 import { TASK_COMMENTS_RESPONSE_LIMIT } from '@/lib/task-query-utils'
 import { createLogger } from '@/lib/logger'
 import { assigneeIdsOf } from '@/lib/task-assignees'
+import { taskFieldValuesSelect, v1TaskFieldsPatch } from '@/lib/tasks/v1-task-fields'
 
 const log = createLogger('tasks.v1-task-shape')
 
@@ -88,6 +89,12 @@ export const V1_TASK_READ_INCLUDE = {
   // must not ride the list route. `take: 1` because a completed occurrence has
   // at most one successor.
   nextOccurrences: { select: { id: true }, take: 1 },
+  // A GitHub project's field values (AWTD-1208). Spread, not written inline:
+  // without the `githubProjects` capability this contributes no relation at
+  // all, so the query is byte-for-byte the one it was before fields existed.
+  // The DETAIL shape always carries them — one task's handful of entries is a
+  // few hundred bytes. The list route asks for them only on ?include=fields.
+  ...taskFieldValuesSelect(),
 } as const
 
 /**
@@ -106,10 +113,14 @@ export async function loadV1Task(taskId: string) {
 type V1TaskRow = Prisma.TaskGetPayload<{ include: typeof V1_TASK_READ_INCLUDE }>
 
 function shapeV1Task(task: V1TaskRow) {
-  // The relation is replaced by the flat `nextOccurrenceId` below; shipping the
-  // array as well would put a second spelling of the same fact on the wire.
-  const { nextOccurrences, ...rest } = task
+  // Both of these are storage shapes that a flat field replaces below, and
+  // neither may also go out raw — that would put two spellings of one fact on
+  // the wire. `nextOccurrences` becomes `nextOccurrenceId`; `fieldValues` is
+  // one row per value with five nullable columns and becomes the compact
+  // `fields` map, which is the payload §9.4.3 exists to avoid carrying twice.
+  const { nextOccurrences, fieldValues, ...rest } = task as V1TaskRow & { fieldValues?: unknown }
   void nextOccurrences
+  void fieldValues
   return {
     ...rest,
     // Query is newest-first so the cap keeps recent comments; the wire order
@@ -129,6 +140,9 @@ function shapeV1Task(task: V1TaskRow) {
       blockedBy: task.blockedBy?.map(row => row.blockingTaskId) ?? [],
       blocks: task.blocks?.map(row => row.blockedTaskId) ?? [],
     } satisfies V1TaskBlockerIds),
+    // `fields` when there is something to say, and no key at all otherwise, so
+    // a task outside a GitHub board looks exactly as it did before (AWTD-1208).
+    ...v1TaskFieldsPatch((task as { fieldValues?: Parameters<typeof v1TaskFieldsPatch>[0] }).fieldValues),
   }
 }
 

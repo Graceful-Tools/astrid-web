@@ -127,6 +127,11 @@
       "label": "重複",
       "previous": "上一次重複",
       "next": "下一次重複"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "新增子任務",
+      "addPlaceholder": "新增子任務…"
     }
   },
   "lists": {
@@ -424,7 +429,8 @@
   "search": {
     "placeholder": "搜尋任務和使用者",
     "noResults": "找不到結果",
-    "searching": "搜尋中..."
+    "searching": "搜尋中...",
+    "open": "搜尋"
   },
   "listHeaders": {
     "myTasks": "我的任務",
