@@ -7,6 +7,7 @@
  *   npx tsx scripts/measure-api-latency.ts                 # production, 30 warm
  *   npx tsx scripts/measure-api-latency.ts --samples 50
  *   npx tsx scripts/measure-api-latency.ts --json
+ *   npx tsx scripts/measure-api-latency.ts --breakdown    # what carries the bytes
  *
  * WHY THIS EXISTS. docs/PERFORMANCE_BUDGETS.md has carried a latency budget
  * (p50 <= 250 ms, p95 <= 750 ms) since 2026-08-31 with no recorded measurement
@@ -173,11 +174,65 @@ async function measureRoute(
   }
 }
 
+/**
+ * Which KEYS carry the bytes (AWTD-1231).
+ *
+ * When the task response went over budget, the natural first guess was "a field
+ * was added" — and it was wrong by two orders of magnitude: every schema
+ * addition since the previous measurement came to under 2 KiB, while
+ * `description` alone was 443 KiB of 552. Guessing costs a wasted afternoon;
+ * this costs one request.
+ *
+ * MARGINAL cost, not share of the decoded bytes: each key is dropped from every
+ * task and the whole response re-gzipped, so what is reported is what removing
+ * it would actually save on the wire. Those two numbers differ a lot for a key
+ * that repeats — `id` is 36 unique characters a thousand times over and
+ * compresses badly; a repeated enum compresses to almost nothing.
+ */
+async function measureKeyBreakdown(token: string, top = 15): Promise<void> {
+  const route = ROUTES[0]
+  const res = await fetch(`${BASE}${route.path}`, { headers: { 'X-OAuth-Token': token } })
+  if (!res.ok) {
+    console.log(`Key breakdown skipped: ${route.label} answered ${res.status}\n`)
+    return
+  }
+  const body = (await res.json()) as { tasks?: Record<string, unknown>[] }
+  const tasks = body.tasks ?? []
+  if (tasks.length === 0) {
+    console.log('Key breakdown skipped: no tasks returned\n')
+    return
+  }
+
+  const full = gzipSync(Buffer.from(JSON.stringify(body))).length
+  const keys = [...new Set(tasks.flatMap(task => Object.keys(task)))]
+  const rows = keys.map(key => {
+    const stripped = tasks.map(task => {
+      const copy = { ...task }
+      delete copy[key]
+      return copy
+    })
+    const size = gzipSync(Buffer.from(JSON.stringify({ ...body, tasks: stripped }))).length
+    return { key, kib: (full - size) / 1024 }
+  })
+  rows.sort((a, b) => b.kib - a.kib)
+
+  console.log(`Marginal wire cost per key — ${route.label}, ${tasks.length} tasks`)
+  console.log(`   total ${(full / 1024).toFixed(1)} KiB\n`)
+  for (const row of rows.slice(0, top)) {
+    console.log(`   ${row.kib.toFixed(1).padStart(7)} KiB  ${row.key}`)
+  }
+  const rest = rows.slice(top).reduce((sum, row) => sum + row.kib, 0)
+  console.log(`   ${rest.toFixed(1).padStart(7)} KiB  — the remaining ${Math.max(rows.length - top, 0)} keys\n`)
+}
+
 async function main() {
   const args = process.argv.slice(2)
   const asJson = args.includes('--json')
   const samplesArg = args.indexOf('--samples')
   const samples = samplesArg >= 0 ? Number(args[samplesArg + 1]) : 30
+  // --breakdown answers "what is actually in there", which is a different
+  // question from "is it too big" and only worth a request when asked.
+  const wantsBreakdown = args.includes('--breakdown')
 
   const token = await getToken()
   const results: RouteResult[] = []
@@ -216,6 +271,8 @@ async function main() {
     if (r.errors > 0) console.log(`   ⚠ ${r.errors} failed request(s) of ${samples}`)
     console.log('')
   }
+
+  if (wantsBreakdown) await measureKeyBreakdown(token)
 
   const breached = results.filter(r => !r.withinLatency || !r.withinSize)
   if (breached.length > 0) {
