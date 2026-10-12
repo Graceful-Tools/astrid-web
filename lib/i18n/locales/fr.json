@@ -122,6 +122,11 @@
       "label": "ID de tâche",
       "copy": "Copier l'ID de tâche",
       "copied": "{id} copié"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Ajouter une sous-tâche",
+      "addPlaceholder": "Ajouter une sous-tâche…"
     }
   },
   "lists": {
@@ -419,7 +424,8 @@
   "search": {
     "placeholder": "Rechercher des tâches et des utilisateurs",
     "noResults": "Aucun résultat trouvé",
-    "searching": "Recherche en cours..."
+    "searching": "Recherche en cours...",
+    "open": "Rechercher"
   },
   "listHeaders": {
     "myTasks": "Mes Tâches",

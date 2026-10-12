@@ -122,6 +122,11 @@
       "label": "Taak-ID",
       "copy": "Taak-ID kopiëren",
       "copied": "{id} gekopieerd"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Subtaak toevoegen",
+      "addPlaceholder": "Subtaak toevoegen…"
     }
   },
   "lists": {
@@ -419,7 +424,8 @@
   "search": {
     "placeholder": "Zoek taken en gebruikers",
     "noResults": "Geen resultaten gevonden",
-    "searching": "Zoeken..."
+    "searching": "Zoeken...",
+    "open": "Zoeken"
   },
   "listHeaders": {
     "myTasks": "Mijn Taken",

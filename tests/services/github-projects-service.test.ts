@@ -43,6 +43,10 @@ vi.mock('@/lib/prisma', () => ({ prisma: db }))
 const bulk = vi.hoisted(() => ({ createTasksInBulk: vi.fn() }))
 vi.mock('@/services/task-bulk-create', () => bulk)
 
+// Project fields have their own executor and their own tests (AWTD-1117).
+const fields = vi.hoisted(() => ({ applyFieldValues: vi.fn(async () => false), syncProjectFields: vi.fn(async () => false) }))
+vi.mock('@/services/github-project-fields.service', () => fields)
+
 vi.mock('@/lib/redis', () => ({ RedisCache: { invalidate: { userTasks: vi.fn(async () => {}), userLists: vi.fn(async () => {}) } } }))
 
 import { applyProjectItems, bindGitHubProject, type BoundBoard } from '@/services/github-projects.service'
@@ -164,6 +168,36 @@ describe('applyProjectItems (AWTD-1151)', () => {
     expect(db.gitHubProjectItem.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ create: { itemNodeId: items[0].id, projectId: 'proj-1', taskId: 't0' } }),
     )
+  })
+})
+
+describe('applyProjectItems — project fields (AWTD-1117)', () => {
+  it('hands every mirrored item to the field executor with its task: created, held and archived alike', async () => {
+    const archived = { ...items[1], isArchived: true }
+    db.task.findMany.mockResolvedValue([replicaOf(items[1], 't1')])
+    db.gitHubProjectItem.findMany.mockResolvedValue([{ itemNodeId: items[1].id, archived: false }])
+    const client = { query: vi.fn() }
+
+    await applyProjectItems(board, [items[0], archived], client as never)
+
+    expect(fields.applyFieldValues).toHaveBeenCalledWith(
+      board,
+      [
+        { item: items[0], taskId: 'new-0' },
+        { item: archived, taskId: 't1' },
+      ],
+      client,
+    )
+  })
+
+  it('a field change alone clears the board owner’s task cache', async () => {
+    const { RedisCache } = await import('@/lib/redis')
+    db.task.findMany.mockResolvedValue([replicaOf(items[0], 't0')])
+    db.gitHubProjectItem.findMany.mockResolvedValue([{ itemNodeId: items[0].id, archived: false }])
+    fields.applyFieldValues.mockResolvedValueOnce(true)
+
+    expect(await applyProjectItems(board, [items[0]])).toMatchObject({ unchanged: 1 })
+    expect(RedisCache.invalidate.userTasks).toHaveBeenCalledWith('user-1', ['list-1'])
   })
 })
 

@@ -14,9 +14,7 @@
 import type { RemoteProjectItem } from './apply'
 import type { GraphqlClient } from '../rate-limiter'
 import { ASSIGNEES_PER_ITEM } from './assignees'
-
-/** Field values read per item. Status, Priority, a date and a few custom fields fit easily. */
-const FIELD_VALUES_PER_ITEM = 20
+import { FIELD_VALUES_PER_ITEM } from './fields'
 
 /**
  * Blockers read per issue (AWTD-1119). An issue with more reports a larger
@@ -66,13 +64,16 @@ fragment ProjectItemFields on ProjectV2Item {
   fieldValues(first: ${FIELD_VALUES_PER_ITEM}) {
     nodes {
       __typename
-      ... on ProjectV2ItemFieldSingleSelectValue { optionId name field { ... on ProjectV2FieldCommon { id } } }
-      ... on ProjectV2ItemFieldDateValue { date field { ... on ProjectV2FieldCommon { id } } }
-      ... on ProjectV2ItemFieldNumberValue { number field { ... on ProjectV2FieldCommon { id } } }
-      ... on ProjectV2ItemFieldTextValue { text field { ... on ProjectV2FieldCommon { id } } }
+      ... on ProjectV2ItemFieldSingleSelectValue { optionId name field { ...FieldRef } }
+      ... on ProjectV2ItemFieldDateValue { date field { ...FieldRef } }
+      ... on ProjectV2ItemFieldNumberValue { number field { ...FieldRef } }
+      ... on ProjectV2ItemFieldTextValue { text field { ...FieldRef } }
+      ... on ProjectV2ItemFieldIterationValue { iterationId field { ...FieldRef } }
     }
   }
-}`
+}
+# dataType tells a custom field the board has not met from GitHub's own Title (fields.ts).
+fragment FieldRef on ProjectV2FieldCommon { id dataType }`
 
 const RATE_LIMIT = 'rateLimit { cost remaining resetAt }'
 
