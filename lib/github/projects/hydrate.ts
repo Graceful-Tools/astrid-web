@@ -50,12 +50,14 @@ fragment ProjectItemFields on ProjectV2Item {
       parent { id }
       blockedBy(first: ${BLOCKERS_PER_ISSUE}) { totalCount nodes { id } }
       labels(first: ${LABELS_PER_ITEM}) { totalCount nodes { id name color } }
+      milestone { id title dueOn }
       assignees(first: ${ASSIGNEES_PER_ITEM}) { nodes { id } }
     }
     ... on PullRequest {
       id title body updatedAt number url state
       repository { nameWithOwner }
       labels(first: ${LABELS_PER_ITEM}) { totalCount nodes { id name color } }
+      milestone { id title dueOn }
       assignees(first: ${ASSIGNEES_PER_ITEM}) { nodes { id } }
     }
   }

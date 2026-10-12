@@ -33,10 +33,19 @@ import {
   remoteLabels,
   type RemoteLabel,
 } from '@/lib/github/projects/labels'
+import {
+  isEmptyMilestonePlan,
+  MILESTONE_LIST_COLOR,
+  milestoneListDescription,
+  milestoneListDrift,
+  planMilestone,
+  remoteMilestone,
+  type RemoteMilestone,
+} from '@/lib/github/projects/milestones'
 import { planAssignees, remoteAssignees } from '@/lib/github/projects/assignees'
 import { assigneeIdsOf } from '@/lib/task-assignees'
-import { GITHUB_LABEL_LIST } from '@/lib/backends/github-labels'
-import { LIST_TYPE_LABEL } from '@/lib/list-flavors'
+import { GITHUB_MIRRORED_LIST } from '@/lib/backends/github-labels'
+import { LIST_TYPE_LABEL, LIST_TYPE_MILESTONE } from '@/lib/list-flavors'
 import { projectItemPages } from '@/lib/github/projects/hydrate'
 import type { BindingProposal, ProjectSchema } from '@/lib/github/projects/bind'
 import type { GraphqlClient } from '@/lib/github/rate-limiter'
@@ -82,9 +91,11 @@ const REPLICA_SELECT = {
   parentTaskId: true,
   parentTask: { select: { remoteNodeId: true } },
   blockedBy: { where: { blockingTask: { remoteNodeId: { not: null } } }, select: { blockingTaskId: true } },
-  // Labels (AWTD-1188). Only lists that mirror a GITHUB label are read back:
-  // a label a person gave the task in Astrid is never GitHub's to remove.
-  lists: { where: GITHUB_LABEL_LIST, select: { id: true, remoteNodeId: true } },
+  // Labels (AWTD-1188) and milestones (AWTD-1189). Only lists that MIRROR
+  // GitHub are read back: a label a person gave the task in Astrid is never
+  // GitHub's to remove. One read covers both flavors; each apply pass filters
+  // to its own by `listType`.
+  lists: { where: GITHUB_MIRRORED_LIST, select: { id: true, remoteNodeId: true, listType: true } },
   // Assignees (AWTD-1190). An agent is never GitHub's to unassign.
   assigneeId: true,
   assigneeIds: true,
@@ -217,7 +228,8 @@ async function applyLabels(
     const remote = item.isArchived ? null : remoteLabels(item, { agentLabels: hasCapability('githubAgentLabels') })
     const row = item.content ? replicas.get(item.content.id) : undefined
     const taskId = row?.id ?? (item.content ? created.get(item.content.id) : undefined)
-    return remote && taskId ? [{ remote, taskId, held: row?.lists ?? [] }] : []
+    const held = (row?.lists ?? []).filter(list => list.listType === LIST_TYPE_LABEL)
+    return remote && taskId ? [{ remote, taskId, held }] : []
   })
 
   const seen = new Map<string, RemoteLabel & { repository: string | null }>()
@@ -264,6 +276,95 @@ async function applyLabels(
     const plan = planLabels(remote, held.map(list => list.remoteNodeId as string))
     if (isEmptyLabelPlan(plan)) continue
     const connect = plan.join.flatMap(nodeId => (listIds.has(nodeId) ? [{ id: listIds.get(nodeId)! }] : []))
+    const leaving = new Set(plan.leave)
+    const disconnect = held.filter(list => leaving.has(list.remoteNodeId as string)).map(list => ({ id: list.id }))
+    if (connect.length === 0 && disconnect.length === 0) continue
+    writes.push(
+      prisma.task.update({
+        where: { id: taskId },
+        data: { lists: { ...(connect.length > 0 ? { connect } : {}), ...(disconnect.length > 0 ? { disconnect } : {}) } },
+      }),
+    )
+  }
+
+  if (writes.length > 0) await prisma.$transaction(writes)
+  return writes.length > 0
+}
+
+const MILESTONE_LIST_SELECT = { id: true, remoteNodeId: true, name: true, description: true } as const
+
+/**
+ * Milestones for one page (AWTD-1189): each GitHub milestone is a
+ * milestone-flavor list, one list per milestone node, and a task carries the
+ * milestone by being on it. Shaped like `applyLabels` above, and deliberately so
+ * — the two differ in exactly one way, which is arity.
+ *
+ * **A task has at most one milestone.** `planMilestone` returns the one list to
+ * join and EVERY other milestone list to leave, so an issue moved from v1.2 to
+ * v1.3 stops showing v1.2. Labels, being a set, have no such step.
+ */
+async function applyMilestones(
+  board: BoundBoard,
+  items: RemoteProjectItem[],
+  replicas: Map<string, ReplicaRow>,
+  created: Map<string, string>,
+): Promise<boolean> {
+  const stated = items.flatMap(item => {
+    const remote = item.isArchived ? null : remoteMilestone(item)
+    const row = item.content ? replicas.get(item.content.id) : undefined
+    const taskId = row?.id ?? (item.content ? created.get(item.content.id) : undefined)
+    const held = (row?.lists ?? []).filter(list => list.listType === LIST_TYPE_MILESTONE)
+    return remote && taskId ? [{ remote, taskId, held }] : []
+  })
+
+  const seen = new Map<string, RemoteMilestone & { repository: string | null }>()
+  for (const { remote } of stated) {
+    if (remote.milestone) seen.set(remote.milestone.nodeId, { ...remote.milestone, repository: remote.repository })
+  }
+
+  const writes: Prisma.PrismaPromise<unknown>[] = []
+  const listIds = new Map<string, string>()
+  if (seen.size > 0) {
+    const known = await prisma.taskList.findMany({
+      where: { remoteNodeId: { in: [...seen.keys()] } },
+      select: MILESTONE_LIST_SELECT,
+    })
+    for (const list of known) {
+      listIds.set(list.remoteNodeId as string, list.id)
+      const milestone = seen.get(list.remoteNodeId as string)!
+      const drift = milestoneListDrift(milestone, milestone.repository, list)
+      if (drift) writes.push(prisma.taskList.update({ where: { id: list.id }, data: drift }))
+    }
+
+    const fresh = [...seen.values()].filter(milestone => !listIds.has(milestone.nodeId))
+    if (fresh.length > 0) {
+      await prisma.taskList.createMany({
+        data: fresh.map(milestone => ({
+          name: milestone.title,
+          color: MILESTONE_LIST_COLOR,
+          description: milestoneListDescription(milestone.repository, milestone.dueOn),
+          ownerId: board.ownerId,
+          listType: LIST_TYPE_MILESTONE,
+          remoteNodeId: milestone.nodeId,
+        })),
+        // Another job may have met the same milestone: the node id is unique.
+        skipDuplicates: true,
+      })
+      const made = await prisma.taskList.findMany({
+        where: { remoteNodeId: { in: fresh.map(milestone => milestone.nodeId) } },
+        select: MILESTONE_LIST_SELECT,
+      })
+      for (const list of made) listIds.set(list.remoteNodeId as string, list.id)
+      await RedisCache.invalidate.userLists(board.ownerId).catch(err => {
+        log.warn({ err, projectId: board.projectId }, 'Failed to clear the board owner\u2019s list cache')
+      })
+    }
+  }
+
+  for (const { remote, taskId, held } of stated) {
+    const plan = planMilestone(remote, held.map(list => list.remoteNodeId as string))
+    if (isEmptyMilestonePlan(plan)) continue
+    const connect = plan.join && listIds.has(plan.join) ? [{ id: listIds.get(plan.join)! }] : []
     const leaving = new Set(plan.leave)
     const disconnect = held.filter(list => leaving.has(list.remoteNodeId as string)).map(list => ({ id: list.id }))
     if (connect.length === 0 && disconnect.length === 0) continue
@@ -400,6 +501,7 @@ export async function applyProjectItems(board: BoundBoard, items: RemoteProjectI
 
   const relationsChanged = await applyRelations(items, replicaByNode, createdByNode)
   const labelsChanged = await applyLabels(board, items, replicaByNode, createdByNode)
+  const milestonesChanged = await applyMilestones(board, items, replicaByNode, createdByNode)
   const assigneesChanged = await applyAssignees(items, replicaByNode, createdByNode)
   // Project fields (AWTD-1117). An archived item's values leave with it.
   const fieldsChanged = await applyFieldValues(
@@ -413,8 +515,8 @@ export async function applyProjectItems(board: BoundBoard, items: RemoteProjectI
   )
 
   // createTasksInBulk clears caches for what it created; updates, leaves,
-  // relationship, label, assignee and field changes are ours to clear.
-  if (writes.length > 0 || relationsChanged || labelsChanged || assigneesChanged || fieldsChanged) {
+  // relationship, label, milestone, assignee and field changes are ours to clear.
+  if (writes.length > 0 || relationsChanged || labelsChanged || milestonesChanged || assigneesChanged || fieldsChanged) {
     await RedisCache.invalidate.userTasks(board.ownerId, [board.listId]).catch(err => {
       log.warn({ err, projectId: board.projectId }, 'Failed to clear the board owner’s task cache')
     })
