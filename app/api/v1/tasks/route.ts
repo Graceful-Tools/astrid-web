@@ -17,6 +17,7 @@ import { createTaskWithSideEffects, type CreatedTask } from '@/services/task.ser
 import { createLogger } from '@/lib/logger'
 import { getDeletionsSince } from '@/lib/deletion-log'
 import { assigneeIdsOf } from '@/lib/task-assignees'
+import { parseOmittedTaskFields } from '@/lib/tasks/v1-task-omit'
 import { taskFieldValuesSelect, v1TaskFieldsPatch } from '@/lib/tasks/v1-task-fields'
 
 const log = createLogger('v1.tasks')
@@ -37,6 +38,11 @@ const log = createLogger('v1.tasks')
  * - offset: Pagination offset (default: 0)
  * - includeComments: true/false (default: false)
  * - updatedSince: ISO timestamp; return only tasks updated after it (delta sync)
+ * - omit: comma-separated fields to leave out — `description`, `listMembers`
+ *   (AWTD-1236). Opt-out, so omitting the param returns the full response as
+ *   before; `description` is ~80% of a full page's bytes. Unrecognised names
+ *   are ignored, and `meta.omitted` reports what the server actually dropped.
+ * - leanListMembers: `1` — the older spelling of `omit=listMembers`
  */
 export const GET = withAuth(
   { scopes: ['tasks:read'], tag: 'v1.tasks' },
@@ -57,17 +63,24 @@ export const GET = withAuth(
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 1000)
     const offset = parseInt(url.searchParams.get('offset') || '0')
     const includeComments = url.searchParams.get('includeComments') === 'true'
-    // Lean mode: omit per-task embedded listMembers (clients resolve membership
-    // from the lists endpoint). Big payload win — the same members were
-    // duplicated across every task sharing a list. Backward-compatible: absent
-    // param → full members as before.
-    const leanListMembers = url.searchParams.get('leanListMembers') === '1'
+    // Lean mode: drop fields this caller does not need (AWTD-1236). Opt-out,
+    // so an absent param returns exactly the response every client gets today;
+    // `description` alone is 80% of a full page, and only the sync needs it.
+    const omit = parseOmittedTaskFields(url.searchParams.get('omit'))
+    // `leanListMembers=1` is the older spelling of `omit=listMembers` and still
+    // works — a client may be sending it. New callers should use `omit`.
+    const leanListMembers =
+      url.searchParams.get('leanListMembers') === '1' || omit.has('listMembers')
     // GitHub project field values, OPT-IN on this route (AWTD-1208, §9.4.3).
     // Measured 2026-10-12: a thousand tasks carrying eight fields each adds
     // 42.2 KiB to the gzipped response, and the full task response is already
     // 551.8 KiB on the wire against a 500 KiB budget. The spec's rule decides
     // it — "the budget wins over convenience" — so a list view asks for them
     // only when it will show them, and the detail route carries them always.
+    //
+    // `include` and `omit` are the two halves of the same idea and they do not
+    // overlap: a field is opt-IN when carrying it is expensive for everyone,
+    // opt-OUT when dropping it is what a caller has to choose.
     const includeFields = url.searchParams
       .get('include')
       ?.split(',')
@@ -147,7 +160,11 @@ export const GET = withAuth(
         select: {
           id: true,
           title: true,
-          description: true,
+          // Absent from the select, not `false`: that is what leaves the key
+          // out of the row and so out of the JSON. `description: null` already
+          // means "this task has no description", and a client that cannot
+          // tell "not sent" from "empty" overwrites good text with none.
+          ...(omit.has('description') ? {} : { description: true }),
           assigneeId: true,
           assigneeIds: true,
           creatorId: true,
@@ -304,6 +321,11 @@ export const GET = withAuth(
           offset,
           apiVersion: 'v1',
           authSource: auth.source,
+          // What the server actually dropped. A client caching these rows has
+          // to know the records are partial, and an unrecognised `omit` name is
+          // ignored rather than rejected — so this is how a caller sees whether
+          // its request was understood. Absent on a full response.
+          ...(omit.size > 0 ? { omitted: [...omit] } : {}),
         },
       },
       { headers }

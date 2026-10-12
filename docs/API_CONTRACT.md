@@ -127,6 +127,61 @@ verifier burns the code rather than allowing another attempt.
 
 ## Task Endpoints
 
+### GET `/api/v1/tasks`
+List the tasks the caller can see. Scope: `tasks:read`.
+
+**Query parameters**
+
+| Parameter | Meaning |
+|---|---|
+| `listId` | only this list's tasks; caller must have access to it |
+| `completed` | `true` / `false`. Absent means both |
+| `priority` | `0`–`3` |
+| `assigneeId`, `assigneeEmail` | filter by assignee (email is case-insensitive) |
+| `statusRole` | board column, or `none` for Inbox — the tasks carrying no status |
+| `limit`, `offset` | default 100, capped at 1,000; default offset 0 |
+| `includeComments` | `true` embeds up to 20 comments per task, newest first |
+| `updatedSince` | ISO timestamp — delta sync. The response then also carries `deletedIds`, because tasks are hard-deleted and an incremental client would otherwise keep showing them. An unparseable value is ignored rather than applied |
+| `omit` | comma-separated fields to leave out: `description`, `listMembers` |
+| `leanListMembers` | `1` — the older spelling of `omit=listMembers`, still supported |
+
+**`omit` — the list view should not pay for the sync's payload**
+
+This route does two jobs: it is a list view's read and a client's full sync. A
+list view needs titles; only the sync needs descriptions. Measured 2026-10-12,
+`?limit=1000` was 551.8 KiB on the wire against a 500 KiB budget and
+`description` was **443.3 KiB — 80%** of it.
+
+So `description` is **opt-out, not optional** (AWTD-1233 → AWTD-1236):
+
+```http
+GET /api/v1/tasks?limit=1000&omit=description
+```
+
+- **Omitting the parameter returns exactly the response it always did.** This
+  is additive; no client has to change, and each one drops the bytes when it
+  has somewhere else to read a description from — `GET /api/v1/tasks/{id}` or
+  the task event, both of which carry the full shape.
+- An omitted field is **absent from the task object, not `null`**. `null`
+  already means "this task has no description", and a client that cannot tell
+  "not sent" from "empty" will overwrite good text with none. Apply an omitted
+  field as *unchanged*, never as empty.
+- **Unrecognised names are ignored**, not rejected, so a newer client naming a
+  field this build has never heard of still gets a usable response. The
+  trade-off is that a typo silently returns the full payload — so the response
+  echoes what the server actually dropped:
+
+```json
+{ "tasks": [ … ], "meta": { "total": 1000, "limit": 1000, "offset": 0,
+  "apiVersion": "v1", "authSource": "oauth", "omitted": ["description"] } }
+```
+
+  `meta.omitted` is **absent** on a full response. A caching client should read
+  it before writing rows to disk.
+- Only `description` and `listMembers` may be dropped. Identity, status and the
+  permission fields (`lists[].ownerId`) are not droppable: a response without
+  them is not lean, it is broken.
+
 ### GET `/api/tasks`
 Fetch all tasks accessible to the current user.
 
