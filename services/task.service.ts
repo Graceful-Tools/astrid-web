@@ -82,7 +82,7 @@ import {
 } from '@/lib/analytics-events'
 import { createLogger } from '@/lib/logger'
 import { resolveCompletionFields, resolveCreateCompletionFields, type CreateCompletionInput } from './task-completion'
-import { parseTaskDate } from './task-dates'
+import { parseTaskDate, resolveCreateDateFields } from './task-dates'
 import { resolveStatusRoleWrite } from './task-status-role'
 
 const log = createLogger('services.task')
@@ -525,32 +525,13 @@ export async function createTaskWithSideEffects(args: {
   }
 
   // ── Dates ─────────────────────────────────────────────────────────────────
-  const parsedDue = parseTaskDate(input.dueDateTime)
-  if (parsedDue.invalid) {
-    return { ok: false, status: 400, error: `Invalid dueDateTime format: ${String(input.dueDateTime)}` }
-  }
-  const parsedWhen = parseTaskDate(input.when === 'none' ? null : input.when)
-  if (parsedWhen.invalid) {
-    return { ok: false, status: 400, error: `Invalid date format: ${String(input.when)}` }
-  }
-  const parsedReminder = parseTaskDate(input.reminderTime)
-  if (parsedReminder.invalid) {
-    return { ok: false, status: 400, error: `Invalid reminderTime format: ${String(input.reminderTime)}` }
-  }
+  const dates = resolveCreateDateFields(input)
+  if (!dates.ok) return { ok: false, status: dates.status, error: dates.error }
+  const { dueDateTime, isAllDay } = dates.data
+
   // After the status normalisation above, which may itself decide `completed`.
   const completion = resolveCreateCompletionFields(completed, input)
   if (!completion.ok) return { ok: false, status: 400, error: completion.error }
-
-  let dueDateTime = parsedDue.value ?? parsedWhen.value
-  // `when` has always meant an all-day date; an explicit isAllDay wins over it.
-  const isAllDay = input.isAllDay ?? (parsedWhen.value !== null && parsedDue.value === null)
-  if (isAllDay && dueDateTime) {
-    // v1's normalisation, applied everywhere. An "all day" task carrying a
-    // stray time component renders on different days for two clients in
-    // different zones, which is the one thing all-day is supposed to prevent.
-    dueDateTime = new Date(dueDateTime)
-    dueDateTime.setUTCHours(0, 0, 0, 0)
-  }
 
   const repeatingData = normalizeRepeatingData(input.repeating, input.customRepeatingData)
 
@@ -616,7 +597,7 @@ export async function createTaskWithSideEffects(args: {
     isPrivate: input.isPrivate ?? true,
     dueDateTime,
     isAllDay,
-    reminderTime: parsedReminder.value,
+    reminderTime: dates.data.reminderTime,
     reminderType: input.reminderType || null,
     reminderSent: false,
     completed,
@@ -1136,7 +1117,9 @@ export async function updateTaskWithSideEffects(args: {
     data.closedReason = parsedClosedReason.value
   }
 
-  Object.assign(data, await resolveStatusRoleWrite({ setsRole: has('statusRole'), intent, requestedCompleted, existingTask, validatedListIds }))
+  const roleWrite = await resolveStatusRoleWrite({ setsRole: has('statusRole'), intent, requestedCompleted, existingTask, validatedListIds })
+  if (!roleWrite.ok) return { ok: false, status: roleWrite.status, error: roleWrite.error }
+  Object.assign(data, roleWrite.data)
 
   // Invariant: completed = true => no status memberships (task db7c6670). The
   // listIds branch enforces it through the normalizer, but only when the
