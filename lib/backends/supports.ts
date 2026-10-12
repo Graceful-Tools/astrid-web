@@ -3,7 +3,7 @@
  * that a client would otherwise have to guess from `backend`. Every key is at
  * its classic value on a local list. It grows a key as each capability lands;
  * `multipleAssignees` was the first (AWTD-1190), `repeatMode` the second
- * (AWTD-1118).
+ * (AWTD-1118), `fields` the third (AWTD-1208).
  */
 
 import type { RepeatMode } from '@/lib/github/projects/recur'
@@ -22,6 +22,18 @@ export interface ListSupports {
    * SSE or delta. A classic list rolls forward in place, as it always has.
    */
   repeatMode: RepeatMode
+  /**
+   * Tasks on this list can carry `fields` — the project's own field values,
+   * keyed by `ProjectField.id` (AWTD-1208, §9.4.3). The schema that explains
+   * them is `GET /api/v1/projects/:id/fields`.
+   *
+   * True does NOT mean every payload carries them. List responses omit them
+   * unless asked with `?include=fields`, because a thousand tasks carrying
+   * eight fields adds 42.2 KiB to a response already over its wire budget; the
+   * detail route always includes them. A client reads this key to know whether
+   * asking is worth a round trip at all.
+   */
+  fields: boolean
 }
 
 export function listSupports(list: { backend?: string | null }): ListSupports {
@@ -29,5 +41,6 @@ export function listSupports(list: { backend?: string | null }): ListSupports {
   return {
     multipleAssignees: github,
     repeatMode: github ? 'spawn' : 'roll_forward',
+    fields: github,
   }
 }
