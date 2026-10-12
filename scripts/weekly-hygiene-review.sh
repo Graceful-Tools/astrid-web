@@ -87,8 +87,21 @@ if [ "$SETUP_ONLY" = "1" ]; then
 fi
 
 # 4. Run the review.
+#
+# Under caffeinate, because this is a long unattended run on a laptop and idle
+# sleep in the middle of it loses the whole review (AWTD-1207). The wrapper form
+# is safe HERE, unlike in fixall-loop.sh: there is no watchdog holding the run's
+# pid, and caffeinate exits with the utility's own status (verified), so
+# `$?` still reads the review's. -i: no idle system sleep. -m: no disk idle
+# sleep. No -d — the display may sleep, nobody is watching.
 cd "$WT" || exit 1
-"$CLAUDE" -p "$(cat "$PROMPT")" \
+CAFFEINATE=()
+if command -v caffeinate >/dev/null 2>&1; then
+  CAFFEINATE=(caffeinate -i -m)
+else
+  echo "  ⚠️  no caffeinate on PATH — idle sleep may kill this review"
+fi
+"${CAFFEINATE[@]}" "$CLAUDE" -p "$(cat "$PROMPT")" \
   --model "$REVIEW_MODEL" \
   --permission-mode bypassPermissions
 STATUS=$?
