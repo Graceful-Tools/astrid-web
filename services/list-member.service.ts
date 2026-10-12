@@ -31,6 +31,7 @@ import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { canUserBeAddedAsMember, SAVED_FILTER_MEMBER_ERROR } from '@/lib/list-permissions'
 import { broadcastListEvent } from '@/lib/lists/v1-list-shape'
+import type { SseEventType } from '@/lib/sse-event-types'
 import { getListMemberIds } from '@/lib/list-member-utils'
 import { invalidateMemberCache, invalidateMemberCaches } from '@/lib/list-member-operations'
 
@@ -275,7 +276,7 @@ export async function announceListMemberRemoved(args: {
 
 async function broadcast(
   list: MemberListContext,
-  type: string,
+  type: SseEventType,
   data: Record<string, unknown>,
   extraRecipients: string[] = [],
 ): Promise<void> {
@@ -289,7 +290,7 @@ async function broadcast(
 async function broadcastTo(
   list: MemberListContext,
   recipients: string[],
-  type: string,
+  type: SseEventType,
   data: Record<string, unknown>,
 ): Promise<void> {
   try {

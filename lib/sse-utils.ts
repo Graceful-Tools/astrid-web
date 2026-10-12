@@ -1,6 +1,7 @@
 import { Redis } from '@upstash/redis'
 import { createLogger } from '@/lib/logger'
 import { applyCommentActorRule } from '@/lib/comment-permissions'
+import type { SseOutboundEvent } from '@/lib/sse-event-types'
 
 const log = createLogger('sse-utils')
 
@@ -220,7 +221,7 @@ function sanitizeForSSE(obj: any, depth = 0): any {
 }
 
 // Helper function to broadcast events to specific users
-export async function broadcastToUsers(userIds: string[], event: any) {
+export async function broadcastToUsers(userIds: string[], event: SseOutboundEvent) {
   const encoder = new TextEncoder()
   // Send as unnamed event (like ping) so it's received by onmessage handler
   // Include type and timestamp in the data payload
@@ -292,13 +293,13 @@ export async function broadcastToUsers(userIds: string[], event: any) {
 }
 
 // Helper function to broadcast to all connected users
-export async function broadcastToAll(event: any) {
+export async function broadcastToAll(event: SseOutboundEvent) {
   const userIds = Array.from(connections.keys())
   await broadcastToUsers(userIds, event)
 }
 
 // Helper function to send event to a specific user
-export async function sendEventToUser(userId: string, event: any) {
+export async function sendEventToUser(userId: string, event: SseOutboundEvent) {
   await broadcastToUsers([userId], event)
 }
 

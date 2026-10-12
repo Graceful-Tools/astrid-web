@@ -33,6 +33,7 @@ and stack versions with `npm run check:docs`.
 ### 🎨 Whitelabeling
 - **[Whitelabeling Guide](./WHITELABELING.md)** - ⭐ Deploy under a different brand, with a different set of back-end services, entirely through build-time configuration
 - **[Brand Profiles](../brands/README.md)** - Per-partner profiles and the brand-matrix tests
+- **[Lanes: GitHub App and Marketplace listing](./deployment/LANES_GITHUB_MARKETPLACE.md)** - Draft registration values and listing copy for the GitHub Projects partner brand (not yet registered or published)
 
 ### 🚀 Setup & Deployment
 - **[Auth Setup](./setup/AUTH_SETUP.md)** - Authentication configuration

@@ -38,10 +38,11 @@ import { prisma } from '@/lib/prisma'
 // be a third answer to one question (AWTD-891, ratcheted by
 // tests/rules/assignee-rule-reaches-both-write-paths.test.ts).
 import { PROJECT_ACCESS_INCLUDE, hasExplicitListRole } from '@/lib/list-permissions'
-import { getListMemberIds, hasListAccess } from '@/lib/list-member-utils'
-import { authorizeAssigneeChange, authorizeNewTaskAssignee, resolveAssignee } from '@/services/assignee-authorization'
+import { getListMemberIds } from '@/lib/list-member-utils'
+import { authorizeAssigneeWrite, authorizeNewTaskAssignee, resolveAssignee } from '@/services/assignee-authorization'
 import { audienceForTask, recordDeletion } from '@/lib/deletion-log'
 import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
+import { cancelCodingWorkflowForUpdate } from './coding-workflow-on-update'
 import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { RedisCache, isRedisAvailable } from '@/lib/redis'
@@ -66,7 +67,8 @@ import { loadV1TaskForEvent } from '@/lib/tasks/v1-task-shape'
 import { broadcastTaskCreated } from './task-create-broadcast'
 import { dispatchAgentAssignment } from '@/services/agent-assignment-dispatch'
 import { TASK_CREATE_INCLUDE, TASK_UPDATE_EXISTING_INCLUDE, type CreatedTask } from '@/services/task-includes'
-import { taskBackendFor } from '@/lib/backends/resolve'
+import { taskBackendFor, listsBeforeAndAfter } from '@/lib/backends/resolve'
+import { listRefusingTask } from '@/lib/list-add-permission'
 import {
   computeAutomaticReminders,
   scheduleReminders,
@@ -79,7 +81,8 @@ import {
   type AnalyticsPlatformValue,
 } from '@/lib/analytics-events'
 import { createLogger } from '@/lib/logger'
-import { resolveCompletionFields } from './task-completion'
+import { resolveCompletionFields, resolveCreateCompletionFields, type CreateCompletionInput } from './task-completion'
+import { parseTaskDate, resolveCreateDateFields } from './task-dates'
 import { resolveStatusRoleWrite } from './task-status-role'
 
 const log = createLogger('services.task')
@@ -226,8 +229,9 @@ export async function deleteTaskWithSideEffects(args: {
   actorId: string
   /** Shown in the SSE payload; surfaces that have it can pass it. */
   actorName?: string
+  origin?: 'remote' // the remote backend deleted it, e.g. an issue deleted on GitHub
 }): Promise<{ deleted: boolean; audience: string[]; refused?: { status: number; error: string } }> {
-  const { taskId, actorId, actorName } = args
+  const { taskId, actorId, actorName, origin } = args
 
   // Read the audience while the relations still exist.
   const task = await prisma.task.findUnique({
@@ -254,7 +258,7 @@ export async function deleteTaskWithSideEffects(args: {
 
   // The owning backend first (spec §5.3), before anything is cancelled or
   // re-evaluated: a refusal must leave the task, and its agent, untouched.
-  const removal = await taskBackendFor(previousListIds).deleteTask({ actorId }, taskId)
+  const removal = await (await taskBackendFor(previousListIds)).deleteTask({ actorId, origin }, taskId)
   if (!removal.ok) return { deleted: false, audience: [], refused: { status: removal.status, error: removal.error } }
 
   // Who was waiting on this task — read BEFORE the delete, because the
@@ -273,10 +277,9 @@ export async function deleteTaskWithSideEffects(args: {
   // A deleted blocker is one fewer blocker: its dependents may now be free.
   await deps.reevaluateBlockedTasks({ taskIds: dependentTaskIds, actorId }).catch(() => {})
 
-  // Everything below is best-effort: the row is already gone. try/await rather
-  // than .catch() so a caller that stubs these with a plain function — as a
-  // test reasonably might — does not turn a swallowed failure into a thrown
-  // TypeError on `undefined.catch`.
+  // Everything below is best-effort: the row is already gone. try/await, not .catch(),
+  // so a caller stubbing these with a plain function (as a test might) does not
+  // turn a swallowed failure into a thrown TypeError on `undefined.catch`.
   try {
     await recordDeletion('task', taskId, audience)
   } catch {
@@ -334,7 +337,7 @@ export async function deleteTaskWithSideEffects(args: {
 
 export type { CreatedTask }
 
-export interface CreateTaskInput {
+export interface CreateTaskInput extends CreateCompletionInput {
   title: string
   description?: string | null
   priority?: number
@@ -364,7 +367,7 @@ export interface CreateTaskInput {
 
 export type CreateTaskResult =
   | { ok: true; task: CreatedTask; idempotent: boolean }
-  | { ok: false; status: 400 | 403 | 409; error: string }
+  | { ok: false; status: 400 | 403 | 409 | 429 | 502; error: string }
 
 /**
  * Create a task, with every side effect the create implies.
@@ -462,18 +465,8 @@ export async function createTaskWithSideEffects(args: {
       return { ok: false, status: 400, error: `Invalid list IDs: ${missing.join(', ')}` }
     }
 
-    for (const list of lists) {
-      // A collaborative public list is one anyone may add to, which is exactly
-      // what makes it collaborative — so no role is required there.
-      const isCollaborativePublic =
-        list.privacy === 'PUBLIC' && list.publicListType === 'collaborative'
-      if (!hasListAccess(list as never, actorId) && !isCollaborativePublic) {
-        return {
-          ok: false,
-          status: 403,
-          error: `You don't have permission to create tasks in this list`,
-        }
-      }
+    if (listRefusingTask(lists as never, actorId)) {
+      return { ok: false, status: 403, error: `You don't have permission to create tasks in this list` }
     }
 
     // One copy-only public list in the set is enough: the task becomes
@@ -532,29 +525,13 @@ export async function createTaskWithSideEffects(args: {
   }
 
   // ── Dates ─────────────────────────────────────────────────────────────────
-  const parsedDue = parseTaskDate(input.dueDateTime)
-  if (parsedDue.invalid) {
-    return { ok: false, status: 400, error: `Invalid dueDateTime format: ${String(input.dueDateTime)}` }
-  }
-  const parsedWhen = parseTaskDate(input.when === 'none' ? null : input.when)
-  if (parsedWhen.invalid) {
-    return { ok: false, status: 400, error: `Invalid date format: ${String(input.when)}` }
-  }
-  const parsedReminder = parseTaskDate(input.reminderTime)
-  if (parsedReminder.invalid) {
-    return { ok: false, status: 400, error: `Invalid reminderTime format: ${String(input.reminderTime)}` }
-  }
+  const dates = resolveCreateDateFields(input)
+  if (!dates.ok) return { ok: false, status: dates.status, error: dates.error }
+  const { dueDateTime, isAllDay } = dates.data
 
-  let dueDateTime = parsedDue.value ?? parsedWhen.value
-  // `when` has always meant an all-day date; an explicit isAllDay wins over it.
-  const isAllDay = input.isAllDay ?? (parsedWhen.value !== null && parsedDue.value === null)
-  if (isAllDay && dueDateTime) {
-    // v1's normalisation, applied everywhere. An "all day" task carrying a
-    // stray time component renders on different days for two clients in
-    // different zones, which is the one thing all-day is supposed to prevent.
-    dueDateTime = new Date(dueDateTime)
-    dueDateTime.setUTCHours(0, 0, 0, 0)
-  }
+  // After the status normalisation above, which may itself decide `completed`.
+  const completion = resolveCreateCompletionFields(completed, input)
+  if (!completion.ok) return { ok: false, status: 400, error: completion.error }
 
   const repeatingData = normalizeRepeatingData(input.repeating, input.customRepeatingData)
 
@@ -620,12 +597,14 @@ export async function createTaskWithSideEffects(args: {
     isPrivate: input.isPrivate ?? true,
     dueDateTime,
     isAllDay,
-    reminderTime: parsedReminder.value,
+    reminderTime: dates.data.reminderTime,
     reminderType: input.reminderType || null,
     reminderSent: false,
     completed,
+    ...completion.data,
     creatorId: actorId,
     assigneeId: finalAssigneeId,
+    assigneeIds: finalAssigneeId ? [finalAssigneeId] : [],
     identifier: minted?.identifier ?? null,
     sequence: minted?.sequence ?? null,
     clientRequestId,
@@ -634,7 +613,7 @@ export async function createTaskWithSideEffects(args: {
     lists: { connect: connectListIds.map(id => ({ id })) },
   }
 
-  const accepted = await taskBackendFor(connectListIds).createTask({ actorId }, data)
+  const accepted = await (await taskBackendFor(connectListIds)).createTask({ actorId }, data)
   if (!accepted.ok) return { ok: false, status: accepted.status, error: accepted.error }
   let task: CreatedTask
   try {
@@ -664,19 +643,6 @@ export async function createTaskWithSideEffects(args: {
   await runCreateSideEffects({ task, actorId, actorName, platform, connectListIds })
 
   return { ok: true, task, idempotent: false }
-}
-
-/** Parse a date field that may arrive as a string, a Date, or nothing. */
-function parseTaskDate(value: string | Date | null | undefined): {
-  value: Date | null
-  invalid: boolean
-} {
-  if (!value) return { value: null, invalid: false }
-  if (value instanceof Date) {
-    return isNaN(value.getTime()) ? { value: null, invalid: true } : { value, invalid: false }
-  }
-  const parsed = new Date(value)
-  return isNaN(parsed.getTime()) ? { value: null, invalid: true } : { value: parsed, invalid: false }
 }
 
 /**
@@ -831,6 +797,8 @@ export interface UpdateTaskIntent {
    */
   occurrenceCount?: number
   assigneeId?: string | null
+  /** Everyone assigned, primary first (AWTD-1190). More than one only on a GitHub board. */
+  assigneeIds?: string[]
   timerDuration?: number | null
   lastTimerValue?: number | null
   parentTaskId?: string | null
@@ -850,7 +818,7 @@ export interface UpdateTaskIntent {
  */
 export type UpdateTaskResult =
   | { ok: true; task: any; rolledForward: boolean; stateChangeComment?: any }
-  | { ok: false; status: 400 | 403 | 404 | 409 | 412; error: string; code?: string; conflict?: any }
+  | { ok: false; status: 400 | 403 | 404 | 409 | 412 | 429 | 502; error: string; code?: string; conflict?: any; retryAfter?: number; ssoUrl?: string }
 
 
 /**
@@ -985,6 +953,7 @@ export async function updateTaskWithSideEffects(args: {
           isVirtual: true,
           projectId: true,
           listType: true,
+          remoteNodeId: true,
           listMembers: { select: { userId: true, role: true } },
         },
       })
@@ -995,16 +964,9 @@ export async function updateTaskWithSideEffects(args: {
         return { ok: false, status: 400, error: `Invalid list IDs: ${missing.join(', ')}` }
       }
 
-      for (const list of lists) {
-        const isCollaborativePublic =
-          list.privacy === 'PUBLIC' && list.publicListType === 'collaborative'
-        if (!hasListAccess(list as never, actorId) && !isCollaborativePublic) {
-          return {
-            ok: false,
-            status: 403,
-            error: `You don't have permission to add tasks to list: ${list.name}`,
-          }
-        }
+      const refusing = listRefusingTask(lists, actorId)
+      if (refusing) {
+        return { ok: false, status: 403, error: `You don't have permission to add tasks to list: ${refusing.name}` }
       }
 
       validatedListIds = lists.filter(list => !list.isVirtual).map(list => list.id)
@@ -1032,25 +994,22 @@ export async function updateTaskWithSideEffects(args: {
   const requestedCompleted = completedFromStatus ?? intent.completed
 
   // ── Assignee ──────────────────────────────────────────────────────────────
-  if (has('assigneeId')) {
-    const assigneeId = intent.assigneeId || null
-    // Self-assignment needs no permission: the actor is already the one who can
-    // see the task, and nobody is being handed anything they did not ask for.
-    if (assigneeId && assigneeId !== actorId) {
-      const currentListIds = (existingTask.lists ?? []).map((list: any) => list.id)
-      const authorized = await authorizeAssigneeChange({
-        assigneeId,
-        actorId,
-        task: { id: existingTask.id, creatorId: existingTask.creatorId },
-        targetListIds: validatedListIds ?? currentListIds,
-        requireListMembership: requireAssigneeListMembership === true,
-      })
-      if (!authorized.ok) {
-        return { ok: false, status: authorized.status, error: authorized.error }
-      }
+  if (has('assigneeId') || has('assigneeIds')) {
+    const currentListIds = (existingTask.lists ?? []).map((list: any) => list.id)
+    // One decision for one assignee or several (AWTD-1190).
+    const authorized = await authorizeAssigneeWrite({
+      intent,
+      actorId,
+      task: existingTask,
+      targetListIds: validatedListIds ?? currentListIds,
+      requireListMembership: requireAssigneeListMembership === true,
+    })
+    if (!authorized.ok) {
+      return { ok: false, status: authorized.status, error: authorized.error }
     }
 
-    data.assigneeId = assigneeId
+    data.assigneeId = authorized.assigneeIds[0] ?? null
+    data.assigneeIds = authorized.assigneeIds
   }
 
   // ── Closed reason ─────────────────────────────────────────────────────────
@@ -1158,7 +1117,9 @@ export async function updateTaskWithSideEffects(args: {
     data.closedReason = parsedClosedReason.value
   }
 
-  Object.assign(data, await resolveStatusRoleWrite({ setsRole: has('statusRole'), intent, requestedCompleted, existingTask, validatedListIds }))
+  const roleWrite = await resolveStatusRoleWrite({ setsRole: has('statusRole'), intent, requestedCompleted, existingTask, validatedListIds })
+  if (!roleWrite.ok) return { ok: false, status: roleWrite.status, error: roleWrite.error }
+  Object.assign(data, roleWrite.data)
 
   // Invariant: completed = true => no status memberships (task db7c6670). The
   // listIds branch enforces it through the normalizer, but only when the
@@ -1176,8 +1137,8 @@ export async function updateTaskWithSideEffects(args: {
   }
 
   const lists = validatedListIds ?? (existingTask.lists ?? []).map((list: { id: string }) => list.id)
-  const accepted = await taskBackendFor(lists).updateTask({ actorId }, taskId, data)
-  if (!accepted.ok) return { ok: false, status: accepted.status, error: accepted.error }
+  const accepted = await (await taskBackendFor(listsBeforeAndAfter(existingTask.lists, lists))).updateTask({ actorId }, taskId, data)
+  if (!accepted.ok) return { ok: false, status: accepted.status, error: accepted.error, retryAfter: accepted.retryAfter, ssoUrl: accepted.ssoUrl }
   const task = await prisma.task.update({
     where: { id: taskId },
     data: accepted.value as never,
@@ -1241,14 +1202,11 @@ async function runUpdateSideEffects(args: {
 
   const justCompleted = requestedCompleted === true && !existingTask.completed
 
-  // Stop the agent working on something that is now done.
-  if (justCompleted) {
-    try {
-      await cancelActiveCodingWorkflow({ taskId: task.id, reason: cancelWorkflowReason })
-    } catch (err) {
-      log.error({ err }, 'Failed to cancel coding workflow after task update')
-    }
-  }
+  // Stop the agent working on something that is now done, or no longer its.
+  await cancelCodingWorkflowForUpdate({
+    taskId: task.id, justCompleted, completionReason: cancelWorkflowReason,
+    previousAssigneeId: existingTask.assigneeId ?? null, assigneeId: task.assigneeId ?? null,
+  })
 
   // Reminders must follow the task, or a completed one keeps notifying.
   await rescheduleRemindersForUpdate({ before: existingTask, after: task, actorId })

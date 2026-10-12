@@ -169,7 +169,7 @@ can re-check on every run. Three kinds of condition, three mechanisms:
 | Waiting on… | How it is recorded | Who re-checks it |
 |---|---|---|
 | **a date** | the task's own due date | the script — promotes to Ready when due |
-| **another task** | the task's own **blockers** — `TaskDependency` rows, set in the app (AWTD-1002) — unioned with a comment line `BLOCKED-BY: <task-id>` (repeatable), which stays the way to block a task from a phone or a harness with no API for it | the script — promotes when every blocker is complete |
+| **another task** | the task's own **blockers** — `TaskDependency` rows (AWTD-1002), set in the app, by MCP `add_blocker { taskId, blockingTaskId }` / `remove_blocker`, or by `POST /api/v1/tasks/:id/blockers` (identifiers like `AWTD-1007` accepted, AWTD-1086) — unioned with a comment line `BLOCKED-BY: <task-id>` (repeatable), which stays the fallback for a harness that cannot call either. Prefer the real blocker: it moves Ready → Waiting itself and shows as "Waiting on" in both apps | the script — promotes when every blocker is complete |
 | **an external event** (a dependency release, a vendor fix, a client rollout) | a comment line `BLOCKED-ON: <one-line condition>` **plus a recheck due date** | the agent — the script surfaces it under `RECHECK` when the date arrives |
 
 The **latest marker-bearing comment wins wholesale** — to change the conditions, post a new
@@ -234,7 +234,7 @@ condition* above). Who keeps the task depends on who can lift the block:
   ```
 
 - **Time, another task, or an external event can lift it**: KEEP the assignment, move to
-  `Waiting`, and post the machine-readable condition — `BLOCKED-BY: <task-id>`, or
+  `Waiting`, and record the machine-readable condition — `add_blocker` (or `BLOCKED-BY: <task-id>`), or
   `BLOCKED-ON: <condition>` with a recheck due date, or just the date. The loop now owns the
   recheck; Jon owns nothing he didn't ask for.
 

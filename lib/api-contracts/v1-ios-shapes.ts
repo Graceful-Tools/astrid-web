@@ -133,12 +133,18 @@ export interface V1List {
   // iOS treats the list as a project-domain list (listType "regular") or
   // a status-board column (listType "status").
   //
+  // Two more flavors reach the wire from GitHub-backed boards: "label"
+  // (AWTD-1188) and "milestone" (AWTD-1189). Both are tags a task carries by
+  // membership, never destinations — `isTagList` in lib/list-flavors.ts is the
+  // test. The union said `regular | status` while labels already shipped, so a
+  // cast in lib/lists/v1-list-shape.ts was covering for it.
+  //
   // The four `status*` fields that used to sit here are gone (AWTD-853): a
   // board column stopped being a list in AWTD-562, and the rows that carried
   // them were deleted by `20260821000000_drop_status_lists`. `Task.statusRole`
   // is a different field and is still the live one.
   projectId: string | null
-  listType: 'regular' | 'status'
+  listType: 'regular' | 'status' | 'label' | 'milestone'
   // Per-list "Recently completed" window config. null = legacy 24h default.
   // Shape mirrors lib/recently-completed-window.ts → RecentlyCompletedWindow.
   recentlyCompletedWindow: unknown
@@ -146,6 +152,9 @@ export interface V1List {
   // column is emitted as `true`, because absent must mean SHOW. Combine with
   // the user's subtaskDisplay per lib/list-subtask-visibility.ts.
   showSubtasks: boolean
+  // What this list's backend can do (AWTD-1190, spec §11.2). Optional: a
+  // server older than the field omits it, and absent means classic.
+  supports?: { multipleAssignees: boolean }
   createdAt: string | Date
   updatedAt: string | Date
 }

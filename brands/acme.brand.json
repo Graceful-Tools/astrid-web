@@ -37,6 +37,7 @@
       "claude"
     ],
     "capabilities": {
+      "githubProjects": false,
       "authGoogle": false,
       "authApple": false,
       "authPasskey": true,

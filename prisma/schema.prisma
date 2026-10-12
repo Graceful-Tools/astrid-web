@@ -70,6 +70,11 @@ model User {
   emailToTaskEnabled           Boolean                  @default(true)
   emailToTaskListId            String?
   smartTaskCreationEnabled     Boolean                  @default(true)
+  /// "Show list images" (lib/list-images-visibility.ts). null = follow the
+  /// hide_list_images experiment; true/false = the user's explicit choice,
+  /// which always wins over the flag. Nullable on purpose: a default would
+  /// make every user look like they had chosen.
+  showListImages               Boolean?
   invitedBy                    String?
   isPlaceholder                Boolean                  @default(false)
   statsCompletedTasks          Int                      @default(0)
@@ -81,6 +86,12 @@ model User {
   authenticators               Authenticator[]
   comments                     Comment[]
   githubIntegrations           GitHubIntegration[]
+  githubInstallationAccess     GitHubInstallationAccess[]
+  /// GitHub's numeric user id — the identity link, never the login (AWTD-1149, §8.4).
+  githubUserId                 Int?                     @unique
+  /// The user's GitHub GraphQL node id (U_…), recorded with their App user token: what
+  /// GitHub assigns by (AWTD-1116 P5c). Only users who authorised the App have one.
+  githubNodeId                 String?                  @unique
   receivedInvitations          Invitation[]             @relation("InvitationReceiver")
   sentInvitations              Invitation[]             @relation("InvitationSender")
   createdInvites               ListInvite[]             @relation("ListInviteCreator")
@@ -173,6 +184,11 @@ model TaskList {
   imageUrl                String?
   projectId               String?
   listType                String                   @default("regular")
+  /// The one switch the TaskBackend seam reads: null = Astrid, 'github_project' = a GitHub Project (AWTD-1149).
+  backend                 String?
+  /// A GitHub label's node id, on the label-flavor list that mirrors it (AWTD-1188).
+  /// The node IS (repo, label): one name in two repos is two nodes, and a rename keeps it.
+  remoteNodeId            String?                  @unique
   privacy                 TaskListPrivacy          @default(PRIVATE)
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
@@ -270,6 +286,11 @@ model Project {
   members      ProjectMember[]
   lists        TaskList[]
   keyAliases   ProjectKeyAlias[]
+  /// The GitHub App installation a GitHub-backed board belongs to — its tenant (AWTD-1149, §8.1).
+  githubInstallationId Int?
+  githubBinding GitHubProjectBinding?
+  /// The GitHub project's own fields, on a GitHub-backed board only (AWTD-1117, §9.4).
+  fields        ProjectField[]
 
   @@unique([key])
   @@index([ownerId])
@@ -360,6 +381,9 @@ model Task {
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
   assigneeId             String?
+  /// Every assignee, primary first (AWTD-1190). Read it through assigneeIdsOf:
+  /// assigneeId is the primary whatever this holds.
+  assigneeIds            String[]           @default([])
   creatorId              String?
   originalTaskId         String?
   sourceListId           String?
@@ -380,6 +404,15 @@ model Task {
   parentTaskId           String?
   parentTask             Task?              @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
   subtasks               Task[]             @relation("TaskSubtasks")
+  /// Recurrence on a GitHub board SPAWNS the next occurrence as a new issue
+  /// rather than rolling this row forward (AWTD-1118, spec §10), so a series
+  /// is a chain of tasks: this points at the occurrence that was completed to
+  /// make this one. NULL on every task outside that mode, which is almost all
+  /// of them. SetNull, not Cascade: deleting a predecessor must not destroy
+  /// the occurrence that replaced it — the series lives on the newest one.
+  previousOccurrenceId   String?
+  previousOccurrence     Task?              @relation("TaskOccurrences", fields: [previousOccurrenceId], references: [id], onDelete: SetNull)
+  nextOccurrences        Task[]             @relation("TaskOccurrences")
   externalLinks          ExternalTaskLink[] @relation("TaskExternalLinks")
   attachments            Attachment[]
   /// Expected cost in MICROCENTS at the time work was authorised. Null = never
@@ -396,6 +429,17 @@ model Task {
   /// Tasks this one waits for, and the ones waiting on it (AWTD-1002).
   blockedBy      TaskDependency[]    @relation("TaskBlockedBy")
   blocks         TaskDependency[]    @relation("TaskBlocks")
+  /// GitHub-backed tasks (AWTD-1149, spec §8.5): the content's node id is the
+  /// identity (stable across transfers), the kind, and its updatedAt as the
+  /// body-conflict base. Null for every task not mirrored from GitHub.
+  remoteNodeId   String?             @unique
+  remoteKind     String?
+  remoteVersion  String?
+  /// GitHub-backed tasks: 'pending' while a write-through is half done (content
+  /// created, fields not yet set) and a writeback job is finishing it (AWTD-1116 P5b).
+  syncState      String?
+  githubProjectItems GitHubProjectItem[]
+  fieldValues        TaskFieldValue[]
   events         TaskEvent[]
   notifications  Notification[]
   reminderQueue  ReminderQueue[]
@@ -422,6 +466,7 @@ model Task {
   @@index([repeating])
   @@index([creatorId, createdAt])
   @@index([parentTaskId])
+  @@index([previousOccurrenceId])
   @@index([closedReason])
   @@index([statusRole])
 }
@@ -1013,6 +1058,155 @@ model GitHubIntegration {
   @@index([userId])
 }
 
+/// One row per GitHub App installation (an org or a user account). Replaces
+/// GitHubIntegration, which is still dual-written until P3b moves its readers.
+/// Access is derived from GitHub, never claimed (GITHUB_PROJECTS_WHITELABEL §7.2–7.3).
+model GitHubInstallation {
+  id                  Int                        @id // GitHub installation id
+  accountLogin        String
+  accountType         String? // Organization | User
+  accountNodeId       String?                    @unique // O_… / U_…; filled on the next refresh for backfilled rows
+  repositorySelection String? // all | selected
+  suspendedAt         DateTime?
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+  repos               GitHubInstallationRepo[]
+  access              GitHubInstallationAccess[]
+}
+
+/// A repo an installation reaches. Keyed by GitHub's numeric repo id, which the
+/// cached links already had; a transferred repo moves installation in place.
+model GitHubInstallationRepo {
+  repoId         BigInt             @id
+  installationId Int
+  fullName       String // owner/repo
+  defaultBranch  String             @default("main")
+  private        Boolean            @default(false)
+  nodeId         String?            @unique // R_…, for GraphQL (P4)
+  updatedAt      DateTime           @updatedAt
+  installation   GitHubInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
+  @@index([installationId])
+  @@index([fullName])
+}
+
+/// "This user can act on this installation." Written only where GitHub has just
+/// listed the installation for the user's own token (source 'verified'), or by
+/// the migration from the links in force before this table (source 'legacy').
+model GitHubInstallationAccess {
+  userId         String
+  installationId Int
+  refreshedAt    DateTime           @default(now())
+  source         String             @default("verified") // verified | legacy
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  installation   GitHubInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
+  @@id([userId, installationId])
+  @@index([installationId])
+}
+
+/// A GitHub Project (v2) bound to an Astrid Project, and how its fields map
+/// onto Astrid's (AWTD-1149, spec §8.5). Written by the bind wizard (P4c).
+model GitHubProjectBinding {
+  projectId         String              @id
+  installationId    Int
+  projectNodeId     String              @unique // PVT_…
+  number            Int
+  statusFieldId     String?
+  statusOptionMap   Json // { optionId: statusRole | "done" }
+  priorityFieldId   String?
+  priorityOptionMap Json? // { optionId: 0..3 }
+  dueFieldId        String?
+  estimateFieldId   String?
+  defaultRepoNodeId String? // "New task" creates an issue here; null = a draft
+  lastReconciledAt  DateTime?
+  /// Set when the installation is uninstalled or suspended: the board is read-only,
+  /// and purged 30 days after an uninstall (AWTD-1153, §8.1). Cleared on unsuspend.
+  detachedAt        DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  project           Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  items             GitHubProjectItem[]
+
+  @@index([installationId])
+}
+
+/// A task's membership of a bound project: one ProjectV2Item (AWTD-1149).
+model GitHubProjectItem {
+  itemNodeId String               @id // PVTI_…
+  projectId  String
+  taskId     String
+  archived   Boolean              @default(false)
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+  binding    GitHubProjectBinding @relation(fields: [projectId], references: [projectId], onDelete: Cascade)
+  task       Task                 @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, taskId])
+  @@index([taskId])
+}
+
+/// One field of a board's project, as the remote defines it (AWTD-1117, spec
+/// §9.4.1). Backend-neutral by name, populated only by GitHub bindings: Astrid
+/// has no way to create one, and a local board never has any.
+model ProjectField {
+  id         String           @id @default(dbgenerated("(gen_random_uuid())::text"))
+  projectId  String
+  remoteId   String // PVTF_… / PVTSSF_… / PVTIF_…
+  name       String
+  dataType   String // text | number | date | single_select | iteration
+  options    Json? // single_select: [{ id, name, color, description }]
+  iterations Json? // iteration: [{ id, title, startDate, duration }], completed included
+  /// status | priority | due: the value lives in a native Task column and is
+  /// never stored in TaskFieldValue, so there is one source per value.
+  mappedTo   String?
+  position   Int
+  updatedAt  DateTime         @updatedAt
+  project    Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  values     TaskFieldValue[]
+
+  @@unique([projectId, remoteId])
+}
+
+/// A task's value for one project field (AWTD-1117, §9.4.1). A field belongs to
+/// one project, and an issue in two projects has two items with independent
+/// values. No row means no value.
+model TaskFieldValue {
+  taskId      String
+  fieldId     String
+  projectId   String // denormalised for the page read and the delta query
+  text        String?
+  number      Float?
+  date        DateTime?    @db.Date
+  optionId    String?
+  iterationId String?
+  updatedAt   DateTime     @updatedAt
+  task        Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  field       ProjectField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, fieldId])
+  @@index([projectId, updatedAt])
+}
+
+/// Durable, idempotent GitHub sync work (AWTD-1149, spec §8.5/§8.7). Drained
+/// inline via waitUntil and by the per-minute cron, round-robin by
+/// installation (P4d).
+model GitHubSyncJob {
+  id             String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  dedupeKey      String    @unique // delivery id | item:<node>:<2s bucket> | reconcile:<project>:<window> | …
+  kind           String // webhook | hydrate | reconcile | writeback | recur | access
+  installationId Int
+  payload        Json
+  attempts       Int       @default(0)
+  runAfter       DateTime  @default(now())
+  lockedUntil    DateTime?
+  doneAt         DateTime?
+  error          String?
+  createdAt      DateTime  @default(now())
+
+  @@index([doneAt, runAfter, installationId])
+}
+
 model CodingTaskWorkflow {
   id                String               @id @default(cuid())
   taskId            String               @unique
@@ -1379,6 +1573,9 @@ enum ExternalSyncProvider {
   APPLE_REMINDERS
   GOOGLE_TASKS
   GITHUB_ISSUES
+  /// The GitHub App's user-to-server token (8h access + 6-month refresh) —
+  /// a credential, not a sync provider (AWTD-1112, spec §7.2).
+  GITHUB
 }
 
 enum ExternalSyncDirection {

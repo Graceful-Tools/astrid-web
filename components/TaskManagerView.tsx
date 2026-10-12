@@ -2,8 +2,10 @@
 
 import { BRAND } from '@/lib/brand/config'
 import React, { memo } from "react"
+import { taskDetailPaneProps } from "./TaskManager/task-detail-pane-props"
 import { TaskManagerHeader } from "./TaskManager/Header/TaskManagerHeader"
 import { LeftSidebar } from "./TaskManager/Sidebar/LeftSidebar"
+import { DesktopChatPane } from "./TaskManager/DesktopChatPane"
 import { MainContent } from "./TaskManager/MainContent/MainContent"
 import { LoadingScreen } from "./loading-screen"
 import { computeTaskPaneLeftOffset } from "./TaskManager/task-pane-position"
@@ -177,7 +179,10 @@ export interface TaskManagerViewModel {
   handleToggleTaskComplete: (taskId: string) => Promise<void>
   handleDeleteTask: (taskId: string) => void
   closeTaskDetail: () => void
-  handleCreateTask: (taskTitle: string) => Promise<string | null>
+  handleCreateTask: (
+    taskTitle: string,
+    options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[]; statusRole?: string; parentTaskId?: string | null },
+  ) => Promise<string | null>
   handleQuickCreateTask: (title: string, options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[] }) => Promise<string | null>
   handleCreateNewTask: () => void
   handleCreateList: (listData: { name: string; description: string; memberEmails: string[] }) => Promise<void>
@@ -553,12 +558,10 @@ const TaskManagerView = memo(function TaskManagerView({
         const sidebarRect = sidebarRef.current.getBoundingClientRect()
         const taskManagerRect = taskManagerRef.current.getBoundingClientRect()
 
-        // Layout-aware positioning (pure math extracted to task-pane-position).
-        const leftOffset = computeTaskPaneLeftOffset(
-          sidebarRect.width,
-          taskManagerRect.width,
-          { is2Column, is3Column, showHamburgerMenu },
-        )
+        // Layout-aware positioning (pure math in task-pane-position). The window
+        // width keeps the panel on screen when messages is hidden (AWTD-1205).
+        const leftOffset = computeTaskPaneLeftOffset(sidebarRect.width, taskManagerRect.width,
+          { is2Column, is3Column, showHamburgerMenu }, window.innerWidth)
 
         // Update the task pane position
         setTaskPanePosition({ left: leftOffset })
@@ -728,7 +731,7 @@ const TaskManagerView = memo(function TaskManagerView({
       {/* Mobile Sidebar - rendered outside content wrapper for iOS drawer effect */}
       {isIOSDrawer && (
         <LeftSidebar
-          isMobile={isMobile || isBoardMode}
+          isMobile={isMobile}
           showHamburgerMenu={isIOSDrawer}
           showMobileSidebar={showMobileSidebar}
           sidebarRef={sidebarRef}
@@ -790,7 +793,7 @@ const TaskManagerView = memo(function TaskManagerView({
           isTaskDragActive={Boolean(activeDragTaskId)}
           onHamburgerDragHover={handleHamburgerDragHover}
           activePanel={activePanel}
-          onToggleActivePanel={isMobile || isBoardMode ? setActivePanel : undefined}
+          onToggleActivePanel={isMobile ? setActivePanel : undefined}
           hasProjectBoard={hasProjectBoard}
           taskViewMode={taskViewMode}
           onTaskViewModeChange={setTaskViewMode}
@@ -871,7 +874,7 @@ const TaskManagerView = memo(function TaskManagerView({
             )}
           </div>
         ) : layout.mainSurface === 'mobileChat' ? (
-          // In mobile and board mode, messages replace the task surface.
+          // On mobile, messages replace the task surface.
           <div className="flex-1 min-h-0" ref={taskManagerRef}>
             <LazyChatPanel
               channelId={chatChannelId}
@@ -890,9 +893,7 @@ const TaskManagerView = memo(function TaskManagerView({
             isMobile={isMobile}
             mobileView={mobileView}
             isMobileTaskDetailClosing={isMobileTaskDetailClosing}
-            isOneColumn={is1Column}
-            is2Column={is2Column}
-            is3Column={is3Column}
+            columnCount={columnCount}
             selectedListId={selectedListId}
             lists={lists}
             allTasks={tasks}
@@ -973,13 +974,7 @@ const TaskManagerView = memo(function TaskManagerView({
 
         {/* Chat Panel - inline flex column on the right (2-column and 3-column), hidden in settings, dimmed when task detail is open */}
         {layout.showDesktopChatPanel && effectiveSession?.user && (
-          <div className={`flex-1 order-last h-full border-l theme-border min-w-[280px] relative ${(selectedTask || settingsSubPage) ? 'pointer-events-none' : ''}`}>
-            {(selectedTask || settingsSubPage) && (
-              <div
-                className="absolute inset-0 bg-white/50 dark:bg-black/40 z-10 transition-opacity duration-200 pointer-events-auto cursor-pointer"
-                onClick={dismissActiveOverlay}
-              />
-            )}
+          <DesktopChatPane boardMode={isBoardMode} dimmed={Boolean(selectedTask || settingsSubPage)} onDismissOverlay={dismissActiveOverlay}>
             <LazyChatPanel
               channelId={chatChannelId}
               currentUser={effectiveSession.user}
@@ -991,7 +986,7 @@ const TaskManagerView = memo(function TaskManagerView({
               isLoading={chatChannelLoading}
               className="h-full"
             />
-          </div>
+          </DesktopChatPane>
         )}
         </div>
       </div>
@@ -1040,20 +1035,15 @@ const TaskManagerView = memo(function TaskManagerView({
                 task on a collaborative list can still comment on it — the rule
                 viewonly encoded and the reason it rendered a CommentSection. */}
             <LazyTaskDetail
-              displayMode={taskDisplayMode}
-              task={selectedTask}
-              currentUser={effectiveSession.user}
-              availableLists={lists}
-              availableTasks={finalFilteredTasks}
-              onUpdate={handleUpdateTask}
-              onLocalUpdate={handleLocalUpdateTask as ((updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void)}
-              onDelete={handleDeleteTask}
+              {...taskDetailPaneProps({
+                task: selectedTask, lists, selectedListId, tasks, finalFilteredTasks,
+                user: effectiveSession.user, displayMode: taskDisplayMode,
+                handleUpdateTask, handleLocalUpdateTask, handleDeleteTask, handleCopyTask,
+                handleToggleTaskComplete, handleCreateTask,
+              })}
               onClose={closeTaskDetail}
-              onCopy={handleCopyTask}
               selectedTaskElement={selectedTaskElement}
               allowFullScreen
-              readOnly={!canEdit}
-              canComment={canEdit || isCollaborativePublicTask(selectedTask)}
             />
           </div>
         )
@@ -1093,20 +1083,15 @@ const TaskManagerView = memo(function TaskManagerView({
             } : undefined}
           >
             <LazyTaskDetail
-              displayMode={taskDisplayMode}
-              task={selectedTask}
-              currentUser={effectiveSession.user}
-              availableLists={lists}
-              availableTasks={finalFilteredTasks}
-              onUpdate={handleUpdateTask}
-              onLocalUpdate={handleLocalUpdateTask as ((updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void)}
-              onDelete={handleDeleteTask}
+              {...taskDetailPaneProps({
+                task: selectedTask, lists, selectedListId, tasks, finalFilteredTasks,
+                user: effectiveSession.user, displayMode: taskDisplayMode,
+                handleUpdateTask, handleLocalUpdateTask, handleDeleteTask, handleCopyTask,
+                handleToggleTaskComplete, handleCreateTask,
+              })}
               onClose={handleMobileBack}
-              onCopy={handleCopyTask}
               selectedTaskElement={null}
               swipeToDismiss={taskDetailSwipeToDismiss}
-              readOnly={!canEdit}
-              canComment={canEdit || isCollaborativePublicTask(selectedTask)}
             />
           </div>
         )

@@ -7,7 +7,11 @@
     "publicSharedLists": "Openbare Gedeelde Lijsten",
     "publicLists": "Openbare Lijsten",
     "seeAllCollaborative": "Bekijk alle samenwerkingslijsten →",
-    "seeAllSuggested": "Bekijk alle aanbevolen lijsten →"
+    "seeAllSuggested": "Bekijk alle aanbevolen lijsten →",
+    "hideSidebar": "Zijbalk verbergen",
+    "showSidebar": "Zijbalk tonen",
+    "hideMessages": "Berichten verbergen",
+    "showMessages": "Berichten tonen"
   },
   "userMenu": {
     "settings": "Instellingen",
@@ -93,12 +97,8 @@
       "description": "Beschrijving toevoegen...",
       "comment": "Schrijf een opmerking..."
     },
-    "addTaskPlaceholder": "Taak toevoegen",
-    "addTaskToList": "Taak toevoegen aan {listName}...",
-    "addTaskToCurrentList": "Taak toevoegen aan huidige lijst...",
-    "addTaskShort": "Taak toevoegen...",
+    "addTaskPlaceholder": "Taak toevoegen...",
     "quickAdd": "Snel toevoegen...",
-    "addNewTask": "Nieuwe taak toevoegen...",
     "wontDo": "Won't do",
     "reopen": "Reopen",
     "status": "Status",
@@ -122,6 +122,16 @@
       "label": "Taak-ID",
       "copy": "Taak-ID kopiëren",
       "copied": "{id} gekopieerd"
+    },
+    "occurrence": {
+      "label": "Herhaling",
+      "previous": "Vorige herhaling",
+      "next": "Volgende herhaling"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Subtaak toevoegen",
+      "addPlaceholder": "Subtaak toevoegen…"
     }
   },
   "lists": {
@@ -419,7 +429,8 @@
   "search": {
     "placeholder": "Zoek taken en gebruikers",
     "noResults": "Geen resultaten gevonden",
-    "searching": "Zoeken..."
+    "searching": "Zoeken...",
+    "open": "Zoeken"
   },
   "listHeaders": {
     "myTasks": "Mijn Taken",
@@ -473,6 +484,11 @@
         "sdkNeedsBoth": "Je server heeft beide nodig: deze inloggegevens om de API aan te roepen en het webhook-secret hieronder om leveringen te verifiëren.",
         "manage": "Beheren in Verbindingen",
         "error": "Inloggegevens konden niet worden aangemaakt"
+      },
+      "githubConnection": {
+        "title": "GitHub-verbinding",
+        "description": "Codeeragents die op de server draaien, gebruiken de GitHub-verbinding onder Instellingen → Verbindingen, waar elke verbonden organisatie staat.",
+        "open": "Verbindingen openen"
       }
     },
     "apiAccess": {
@@ -754,6 +770,12 @@
         "listDesc": "Het selectievakje voltooit de taak, en prioriteit en toegewezen persoon krijgen elk een eigen rij.",
         "projectDesc": "Compact. Tikken op het selectievakje opent prioriteit, toegewezen persoon, status en voltooien."
       },
+      "listImages": {
+        "title": "Lijstafbeeldingen",
+        "description": "Toon een afbeelding naast elke lijst in de zijbalk en de lijstkop (gesynchroniseerd tussen apparaten)",
+        "label": "Lijstafbeeldingen tonen",
+        "offDesc": "Uit: elke lijst toont in plaats daarvan zijn kleur."
+      },
       "emailToTask": {
         "title": "E-mail naar Taak",
         "description": "Maak direct taken door e-mails te sturen naar {inboundTaskEmail}",
@@ -954,6 +976,37 @@
         "title": "Ontwikkelaar",
         "description": "Maak OAuth-apps handmatig, test de API en verbind assistenten die OpenAPI spreken.",
         "openTester": "API-tester openen"
+      },
+      "github": {
+        "title": "GitHub",
+        "description": "Verbindt {appName} met je GitHub-accounts en -organisaties. Codeeragents die op de server draaien, maken via deze verbinding branches en pull requests aan.",
+        "empty": "Nog niet verbonden met GitHub.",
+        "connect": "GitHub verbinden",
+        "installAnother": "Nog een organisatie toevoegen",
+        "refresh": "Repositories vernieuwen",
+        "refreshed": "Repositories vernieuwd",
+        "refreshError": "Repositories konden niet worden vernieuwd",
+        "loadError": "Je GitHub-verbinding kon niet worden geladen",
+        "installError": "De GitHub-installatie kon niet worden gestart",
+        "organization": "Organisatie",
+        "personal": "Persoonlijk account",
+        "repoCountOne": "1 repository",
+        "repoCountMany": "{count} repositories",
+        "allRepos": "alle repositories",
+        "suspended": "Opgeschort",
+        "disconnect": "Verbinding verbreken",
+        "disconnectTitle": "Verbinding met {account} verbreken?",
+        "disconnectDescription": "Codeeragents werken niet meer in de repositories van {account}. De GitHub-app blijft daar geïnstalleerd; verwijder hem op GitHub om hem helemaal te verwijderen.",
+        "disconnected": "Verbinding met {account} verbroken",
+        "disconnectError": "Verbinding verbreken mislukt",
+        "outcomes": {
+          "connected": "GitHub verbonden",
+          "updated": "GitHub-verbinding bijgewerkt",
+          "not_authorized": "Volgens GitHub kan je account die installatie niet zien",
+          "already_connected": "Die installatie is al met een ander account verbonden",
+          "verification_unavailable": "Inloggen met GitHub is niet ingesteld op deze server, dus de installatie kon niet worden gecontroleerd",
+          "error": "Er ging iets mis bij het verbinden met GitHub"
+        }
       }
     }
   },
@@ -978,9 +1031,22 @@
     "keyInvalid": "{min}–{max} letters of cijfers, beginnend met een letter",
     "keyRename": "Hernoemen",
     "keyRenameHint": "Taken worden {next}; {old} blijft werken",
-    "keyRenameFailed": "Kon het voorvoegsel niet hernoemen"
+    "keyRenameFailed": "Kon het voorvoegsel niet hernoemen",
+    "createBoard": "Bord maken",
+    "creatingBoard": "Bezig met maken...",
+    "createBoardFailed": "Bord maken mislukt",
+    "disableBoard": "Bord uitschakelen",
+    "disablingBoard": "Bezig met uitschakelen...",
+    "disableBoardFailed": "Bord uitschakelen mislukt",
+    "disableBoardTitle": "Bordweergave uitschakelen",
+    "disableBoardBody": "Taken blijven in deze lijst, maar de kolommen Ready/Doing/Waiting worden verwijderd.",
+    "disableBoardNote": "Taken in een statuskolom verliezen hun status. Voltooide taken blijven voltooid."
   },
   "listSettings": {
+    "color": {
+      "label": "Lijstkleur",
+      "custom": "Aangepaste kleur"
+    },
     "adminSettings": "Beheerdersinstellingen",
     "sortAndFilters": "Sorteren en filters",
     "sortAndFiltersAreYours": "Alleen jij ziet dit — het verandert de lijst voor niemand anders.",

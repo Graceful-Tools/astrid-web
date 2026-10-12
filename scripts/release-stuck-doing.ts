@@ -25,6 +25,7 @@ import { existsSync, readFileSync } from 'fs'
 import { loadScriptEnv } from './lib/load-env'
 import { resolveAgentAuthorId } from './lib/agent-author'
 import { SweepApi } from './lib/sweep-api'
+import { boardTasksUrl } from './lib/board-read-url'
 import {
   DEFAULT_STALE_DOING_MINUTES,
   isAbandonedClaim,
@@ -138,8 +139,10 @@ async function main() {
   // Candidates: what this run claimed, plus (tick start) everything in Doing on the board.
   const candidates: Array<{ id: string; mode: 'claims' | 'stale' }> = claimed.map(id => ({ id, mode: 'claims' }))
   if (listId) {
+    // Without descriptions (AWTD-1237): this reads id, identifier, statusRole
+    // and updatedAt to decide what is stuck, and never the text.
     const response = await fetch(
-      `${API}/api/v1/tasks?listId=${encodeURIComponent(listId)}&completed=false&leanListMembers=1&limit=500`,
+      boardTasksUrl({ boardId: listId, limit: 500, origin: API }),
       { headers: auth },
     )
     if (!response.ok) {

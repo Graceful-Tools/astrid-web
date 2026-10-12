@@ -25,6 +25,7 @@ import { listVisibilityWhere } from '@/lib/list-permissions'
 import { DEFAULT_LIST_SHOW_SUBTASKS } from '@/lib/list-subtask-visibility'
 import { getDeletionsSince } from '@/lib/deletion-log'
 import { serializeListAgentFields } from '@/lib/resolve-default-agent'
+import { listSupports } from '@/lib/backends/supports'
 import {
   createListWithImageOwnership,
   ListImageClaimError,
@@ -159,6 +160,7 @@ export const GET = withAuth(
           listType: list.listType ?? 'regular',
           recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
           showSubtasks: list.showSubtasks ?? DEFAULT_LIST_SHOW_SUBTASKS,
+          supports: listSupports(list),
           createdAt: list.createdAt,
           updatedAt: list.updatedAt
         })),

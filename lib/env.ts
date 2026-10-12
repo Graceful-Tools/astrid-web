@@ -232,11 +232,17 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'AUTH_SSO_CLIENT_SECRET', scope: 'optional', description: 'OIDC client secret for SSO. Required when sso is listed.' },
   { name: 'AUTH_SSO_DOMAINS', scope: 'optional', description: 'Comma-separated email domains the SSO IdP may vouch for. Required when sso is listed.' },
   { name: 'AUTH_SSO_LABEL', scope: 'optional', description: 'Button label for SSO, e.g. "Acme SSO". Default "SSO".' },
+  { name: 'APPLE_SERVICES_ID', scope: 'optional', description: 'Sign in with Apple on web: the Services ID (web client id). One of four; all four show the web Apple button.' },
+  { name: 'APPLE_TEAM_ID', scope: 'optional', description: 'Sign in with Apple on web: the Apple Developer team id that signs the client secret.' },
+  { name: 'APPLE_KEY_ID', scope: 'optional', description: 'Sign in with Apple on web: the id of the Sign in with Apple .p8 key.' },
+  { name: 'APPLE_PRIVATE_KEY', scope: 'optional', description: 'Sign in with Apple on web: the .p8 key PEM (escaped \\n accepted).' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_CODING_AGENT', scope: 'optional', description: 'The GitHub App coding agent, independent of Issues sync (AWTD-1094).' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK', scope: 'optional', description: 'Creating tasks by emailing the inbound address.' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_CALENDAR_FEED', scope: 'optional', description: 'Public .ics calendar feed.' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE', scope: 'optional', description: 'Projects and status boards. Off compiles back to the single-player to-do app.' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_TASK_COST', scope: 'optional', description: 'Per-task cost tracking.' },
+  { name: 'NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS', scope: 'optional', description: 'GitHub Projects as a task backend. OFF unless set to true; never set for astrid.cc (spec D5).' },
+  { name: 'NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS', scope: 'optional', description: 'On GitHub Projects boards, mirror an AI agent assignment as an agent:<name> label on the issue. OFF unless set to true (spec C3).' },
 
   // ── Analytics and observability ───────────────────────────────────────────
   // No third-party analytics client. Product analytics are server-side

@@ -11,7 +11,7 @@ type Cache = { version: number; features: EffectiveFeatures; updatedAt: number; 
 // Every key defaults to false, so a client that has not yet loaded flags draws
 // no gated UI. Record<FeatureKey, boolean> makes adding a key to FEATURE_KEYS a
 // compile error here rather than a silently-missing default.
-const DEFAULTS: EffectiveFeatures = { google_tasks: false, project_mode: false, task_cost: false }
+const DEFAULTS: EffectiveFeatures = { google_tasks: false, project_mode: false, task_cost: false, hide_list_images: false }
 interface FeatureFlagContextValue { isEnabled: (key: FeatureKey) => boolean }
 const FeatureFlagContext = createContext<FeatureFlagContextValue>({ isEnabled: (_key: FeatureKey) => false })
 const FEATURE_FLAG_EVENTS = ['feature_flags_updated'] as const

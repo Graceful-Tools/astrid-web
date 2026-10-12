@@ -7,6 +7,7 @@ import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { capabilityGate } from '@/lib/brand/capabilities'
+import { revokeInstallationAccess } from '@/lib/github/installations'
 
 const log = createLogger('github.integration')
 
@@ -89,6 +90,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete all user's integrations
+    await revokeInstallationAccess(session.user.id)
     await prisma.gitHubIntegration.deleteMany({
       where: { userId: session.user.id }
     })

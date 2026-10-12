@@ -509,6 +509,7 @@ Five crons handle scheduled tasks across the platform:
 8. `add_comment`: Add comment to task
 9. `get_task_comments`: Get all comments
 10. `get_context`: Get user and workspace context
+11. `create_task_attachment_upload`: Mint a signed upload ticket for a task image; the client PUTs the bytes to `/api/v1/attachment-uploads` and it is posted as an ATTACHMENT comment ([services/task-attachment-upload.service.ts](../services/task-attachment-upload.service.ts))
 
 #### **Token Management** ([lib/mcp-token.ts](../lib/mcp-token.ts))
 - `MCPToken` model: User-specific access tokens
@@ -677,6 +678,7 @@ Viewing: `GET /api/secure-files/:fileId` redirects to a signed Vercel Blob URL (
 - User avatars and list images
 - Presigned URLs for secure access
 - API: [app/api/secure-upload/request-upload/route.ts](../app/api/secure-upload/request-upload/route.ts)
+- Ticketed task-image upload for API/MCP clients: `POST /api/v1/tasks/:id/attachment-uploads` → `PUT /api/v1/attachment-uploads` (both persist via [services/secure-upload.service.ts](../services/secure-upload.service.ts))
 
 #### **Upstash Redis**
 - Serverless Redis for SSE state management

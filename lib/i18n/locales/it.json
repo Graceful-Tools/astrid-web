@@ -7,7 +7,11 @@
     "publicSharedLists": "Liste Pubbliche Condivise",
     "publicLists": "Liste Pubbliche",
     "seeAllCollaborative": "Vedi tutte le liste collaborative →",
-    "seeAllSuggested": "Vedi tutte le liste suggerite →"
+    "seeAllSuggested": "Vedi tutte le liste suggerite →",
+    "hideSidebar": "Nascondi barra laterale",
+    "showSidebar": "Mostra barra laterale",
+    "hideMessages": "Nascondi messaggi",
+    "showMessages": "Mostra messaggi"
   },
   "userMenu": {
     "settings": "Impostazioni",
@@ -93,12 +97,8 @@
       "description": "Aggiungi una descrizione...",
       "comment": "Scrivi un commento..."
     },
-    "addTaskPlaceholder": "Aggiungi un'attività",
-    "addTaskToList": "Aggiungi attività a {listName}...",
-    "addTaskToCurrentList": "Aggiungi attività alla lista corrente...",
-    "addTaskShort": "Aggiungi attività...",
+    "addTaskPlaceholder": "Aggiungi un'attività...",
     "quickAdd": "Aggiunta rapida...",
-    "addNewTask": "Aggiungi una nuova attività...",
     "wontDo": "Won't do",
     "reopen": "Reopen",
     "status": "Stato",
@@ -122,6 +122,16 @@
       "label": "ID attività",
       "copy": "Copia ID attività",
       "copied": "{id} copiato"
+    },
+    "occurrence": {
+      "label": "Occorrenza",
+      "previous": "Occorrenza precedente",
+      "next": "Occorrenza successiva"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Aggiungi un sottoattività",
+      "addPlaceholder": "Aggiungi un sottoattività…"
     }
   },
   "lists": {
@@ -419,7 +429,8 @@
   "search": {
     "placeholder": "Cerca attività e utenti",
     "noResults": "Nessun risultato trovato",
-    "searching": "Ricerca in corso..."
+    "searching": "Ricerca in corso...",
+    "open": "Cerca"
   },
   "listHeaders": {
     "myTasks": "Le Mie Attività",
@@ -473,6 +484,11 @@
         "sdkNeedsBoth": "Il tuo server ha bisogno di entrambi: queste credenziali per chiamare l’API e il segreto del webhook qui sotto per verificare le consegne.",
         "manage": "Gestisci in Connessioni",
         "error": "Impossibile creare le credenziali"
+      },
+      "githubConnection": {
+        "title": "Connessione GitHub",
+        "description": "Gli agenti di codice eseguiti sul server usano la connessione GitHub in Impostazioni → Connessioni, dove è elencata ogni organizzazione collegata.",
+        "open": "Apri Connessioni"
       }
     },
     "apiAccess": {
@@ -754,6 +770,12 @@
         "listDesc": "La casella completa l'attività, e priorità e assegnatario hanno ciascuno la propria riga.",
         "projectDesc": "Compatto. Toccando la casella si aprono priorità, assegnatario, stato e completa."
       },
+      "listImages": {
+        "title": "Immagini delle liste",
+        "description": "Mostra un’immagine accanto a ogni lista nella barra laterale e nell’intestazione (sincronizzato tra dispositivi)",
+        "label": "Mostra immagini delle liste",
+        "offDesc": "Se disattivato, ogni lista mostra il suo colore."
+      },
       "emailToTask": {
         "title": "Email a Attività",
         "description": "Crea attività istantaneamente inviando email a {inboundTaskEmail}",
@@ -954,6 +976,37 @@
         "title": "Sviluppatore",
         "description": "Crea app OAuth manualmente, testa l’API e collega assistenti che parlano OpenAPI.",
         "openTester": "Apri tester API"
+      },
+      "github": {
+        "title": "GitHub",
+        "description": "Collega {appName} ai tuoi account e alle tue organizzazioni GitHub. Gli agenti di codice eseguiti sul server creano branch e pull request tramite questa connessione.",
+        "empty": "Non ancora collegato a GitHub.",
+        "connect": "Collega GitHub",
+        "installAnother": "Aggiungi un'altra organizzazione",
+        "refresh": "Aggiorna repository",
+        "refreshed": "Repository aggiornati",
+        "refreshError": "Impossibile aggiornare i repository",
+        "loadError": "Impossibile caricare la connessione GitHub",
+        "installError": "Impossibile avviare l'installazione di GitHub",
+        "organization": "Organizzazione",
+        "personal": "Account personale",
+        "repoCountOne": "1 repository",
+        "repoCountMany": "{count} repository",
+        "allRepos": "tutti i repository",
+        "suspended": "Sospesa",
+        "disconnect": "Scollega",
+        "disconnectTitle": "Scollegare {account}?",
+        "disconnectDescription": "Gli agenti di codice smetteranno di funzionare nei repository di {account}. L'app GitHub resta installata lì; disinstallala su GitHub per rimuoverla del tutto.",
+        "disconnected": "{account} scollegato",
+        "disconnectError": "Impossibile scollegare",
+        "outcomes": {
+          "connected": "GitHub collegato",
+          "updated": "Connessione GitHub aggiornata",
+          "not_authorized": "Secondo GitHub il tuo account non può vedere questa installazione",
+          "already_connected": "Questa installazione è già collegata a un altro account",
+          "verification_unavailable": "L'accesso con GitHub non è configurato su questo server, quindi non è stato possibile verificare l'installazione",
+          "error": "Si è verificato un problema durante il collegamento a GitHub"
+        }
       }
     }
   },
@@ -978,9 +1031,22 @@
     "keyInvalid": "Da {min} a {max} lettere o cifre, iniziando con una lettera",
     "keyRename": "Rinomina",
     "keyRenameHint": "Le attività diventano {next}; {old} continua a funzionare",
-    "keyRenameFailed": "Impossibile rinominare il prefisso"
+    "keyRenameFailed": "Impossibile rinominare il prefisso",
+    "createBoard": "Crea bacheca",
+    "creatingBoard": "Creazione...",
+    "createBoardFailed": "Impossibile creare la bacheca",
+    "disableBoard": "Disattiva bacheca",
+    "disablingBoard": "Disattivazione...",
+    "disableBoardFailed": "Impossibile disattivare la bacheca",
+    "disableBoardTitle": "Disattiva la vista bacheca",
+    "disableBoardBody": "Le attività restano in questa lista, ma le colonne Ready/Doing/Waiting verranno rimosse.",
+    "disableBoardNote": "Le attività in una colonna di stato perderanno il loro stato. Le attività completate restano completate."
   },
   "listSettings": {
+    "color": {
+      "label": "Colore della lista",
+      "custom": "Colore personalizzato"
+    },
     "adminSettings": "Impostazioni amministratore",
     "sortAndFilters": "Ordinamento e filtri",
     "sortAndFiltersAreYours": "Solo tu vedi queste impostazioni: non cambiano la lista per nessun altro.",

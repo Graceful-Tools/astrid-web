@@ -130,3 +130,53 @@ describe('RichTextInput attachments (Task 9f325964)', () => {
     })
   })
 })
+
+describe('pasting an image (AWTD-1166)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ;(global.fetch as any).mockResolvedValue({ ok: true, status: 200, json: async () => ({}) })
+  })
+
+  /** A paste event carrying these files and/or text, as a browser builds one. */
+  const paste = (files: File[], text = '') => ({
+    clipboardData: {
+      files,
+      items: files.map(f => ({ kind: 'file', type: f.type, getAsFile: () => f })),
+      getData: () => text,
+    },
+  })
+
+  it('stages a pasted screenshot as an attachment, as the paperclip would', async () => {
+    ;(global.fetch as any).mockResolvedValueOnce(uploadResponse('id-p', 'pasted.png'))
+    const { onAttachedFilesChange } = renderInput()
+    const textarea = document.querySelector('textarea')!
+
+    fireEvent.paste(textarea, paste([new File(['x'], 'image.png', { type: 'image/png' })]))
+
+    await waitFor(() => expect(onAttachedFilesChange).toHaveBeenCalled())
+    expect(global.fetch).toHaveBeenCalledWith('/api/v1/secure-upload/request-upload', expect.anything())
+    expect(onAttachedFilesChange.mock.calls.at(-1)![0]).toHaveLength(1)
+  })
+
+  it('gives a pasted image a name that says what it is (browsers call them all "image.png")', async () => {
+    ;(global.fetch as any).mockResolvedValueOnce(uploadResponse('id-p', 'x'))
+    renderInput()
+    fireEvent.paste(document.querySelector('textarea')!, paste([new File(['x'], 'image.png', { type: 'image/png' })]))
+
+    await waitFor(() => expect(global.fetch).toHaveBeenCalled())
+    const body = (global.fetch as any).mock.calls[0][1].body as FormData
+    expect((body.get('file') as File).name).toMatch(/^Pasted image .+\.png$/)
+  })
+
+  it('pasting text alone is an ordinary paste: nothing uploaded', () => {
+    renderInput()
+    fireEvent.paste(document.querySelector('textarea')!, paste([], 'hello'))
+    expect(global.fetch).not.toHaveBeenCalled()
+  })
+
+  it('no attachments in this view: a pasted image is not uploaded', () => {
+    renderInput({ enableAttachments: false })
+    fireEvent.paste(document.querySelector('textarea')!, paste([new File(['x'], 'image.png', { type: 'image/png' })]))
+    expect(global.fetch).not.toHaveBeenCalled()
+  })
+})

@@ -16,11 +16,27 @@ const REQUIRED: Record<AuthProviderId, readonly string[]> = {
   github: ['GITHUB_CLIENT_ID', 'GITHUB_CLIENT_SECRET'],
   sso: ['AUTH_SSO_ISSUER', 'AUTH_SSO_CLIENT_ID', 'AUTH_SSO_CLIENT_SECRET', 'AUTH_SSO_DOMAINS'],
   google: ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'],
+  // Nothing required: native Apple sign-in needs no server secret. See APPLE_WEB_CREDENTIALS.
   apple: [],
   passkey: [],
 }
 
 const FATAL_WHEN_MISSING: ReadonlySet<AuthProviderId> = new Set(['github', 'sso'])
+
+/**
+ * Sign in with Apple on web (AWTD-1110). Optional: Apple on iOS/Mac needs no server
+ * secret, so a deployment offering Apple without these is native-only and the web
+ * button is simply absent. Half of them, though, is a mistake — reported, not fatal.
+ */
+export const APPLE_WEB_CREDENTIALS = ['APPLE_SERVICES_ID', 'APPLE_TEAM_ID', 'APPLE_KEY_ID', 'APPLE_PRIVATE_KEY'] as const
+
+function missingFrom(names: readonly string[], env: Record<string, string | undefined>): string[] {
+  return names.filter(name => !env[name]?.trim())
+}
+
+export function hasAppleWebCredentials(env: Record<string, string | undefined> = process.env): boolean {
+  return missingFrom(APPLE_WEB_CREDENTIALS, env).length === 0
+}
 
 export interface ProviderCredentialCheck {
   /** `provider: VAR, VAR` for each opt-in provider that cannot work. */
@@ -35,7 +51,11 @@ export function checkProviderCredentials(
 ): ProviderCredentialCheck {
   const result: ProviderCredentialCheck = { fatal: [], warnings: [] }
   for (const provider of providers) {
-    const missing = REQUIRED[provider].filter(name => !env[name]?.trim())
+    let missing = missingFrom(REQUIRED[provider], env)
+    if (provider === 'apple') {
+      const appleWebMissing = missingFrom(APPLE_WEB_CREDENTIALS, env)
+      if (appleWebMissing.length < APPLE_WEB_CREDENTIALS.length) missing = appleWebMissing
+    }
     if (missing.length === 0) continue
     const line = `${provider}: ${missing.join(', ')}`
     ;(FATAL_WHEN_MISSING.has(provider) ? result.fatal : result.warnings).push(line)

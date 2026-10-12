@@ -26,6 +26,7 @@
  */
 
 import { BRAND } from '@/lib/brand/config'
+import type { AuthProviderId } from '@/lib/brand/auth-providers'
 
 /**
  * How long a code stays redeemable. Short because the gap it covers is a
@@ -49,7 +50,7 @@ const CHALLENGE_MIN_LENGTH = 43
 const CHALLENGE_MAX_LENGTH = 128
 const BASE64URL = /^[A-Za-z0-9\-_]+$/
 
-export type DesktopClientId = 'windows'
+export type DesktopClientId = 'windows' | 'ios' | 'mac'
 
 export interface DesktopClient {
   id: DesktopClientId
@@ -72,6 +73,44 @@ const CLIENTS: Record<DesktopClientId, () => DesktopClient> = {
     name: `${BRAND.appName} for Windows`,
     redirectUri: callbackUri(),
   }),
+  // The Apple apps open this page in ASWebAuthenticationSession bound to the
+  // same scheme, so the callback returns to the session that started it.
+  ios: () => ({
+    id: 'ios',
+    name: `${BRAND.appName} for iOS`,
+    redirectUri: callbackUri(),
+  }),
+  mac: () => ({
+    id: 'mac',
+    name: `${BRAND.appName} for Mac`,
+    redirectUri: callbackUri(),
+  }),
+}
+
+/**
+ * Providers the hand-off page can start without the user clicking a button:
+ * the ones registered as NextAuth redirect providers in lib/auth-config.ts.
+ * Passkey needs a user gesture, and Apple has no web provider — its sign-in is
+ * native-only.
+ */
+const DESKTOP_REDIRECT_PROVIDERS = ['github', 'google', 'sso'] as const satisfies readonly AuthProviderId[]
+export type DesktopRedirectProvider = (typeof DESKTOP_REDIRECT_PROVIDERS)[number]
+
+/**
+ * Which provider `/auth/desktop?provider=` should start directly, if any.
+ *
+ * The app already asked the user which provider they wanted, so a signed-out
+ * user should go straight to it rather than pick again on the generic sign-in
+ * page. Null means "use the generic page": the hint is absent, unknown, not
+ * offered by this deployment, or not one this page can start on load.
+ */
+export function desktopSignInProvider(
+  raw: unknown,
+  offered: readonly AuthProviderId[],
+): DesktopRedirectProvider | null {
+  if (typeof raw !== 'string') return null
+  const match = DESKTOP_REDIRECT_PROVIDERS.find(id => id === raw)
+  return match && offered.includes(match) ? match : null
 }
 
 /**

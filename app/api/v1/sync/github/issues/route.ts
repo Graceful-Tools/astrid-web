@@ -19,7 +19,7 @@ export const GET = withAuth(
     if (!isValidRepoId(link.remoteContainerId)) {
       return NextResponse.json({ error: 'Invalid repo link' }, { status: 400 })
     }
-    const token = await githubTokenFor(auth.userId)
+    const token = await githubTokenFor(auth.userId, link.remoteContainerId)
     if (!token) return NextResponse.json({ error: 'GitHub not connected' }, { status: 401 })
 
     const full = new URL(req.url).searchParams.get('full') === '1'
@@ -74,7 +74,7 @@ export const POST = withAuth(
     if (!linkId) return NextResponse.json({ error: 'linkId required' }, { status: 400 })
     const link = await prisma.externalListLink.findFirst({ where: { id: linkId, userId: auth.userId } })
     if (!link) return NextResponse.json({ error: 'Link not found' }, { status: 404 })
-    const token = await githubTokenFor(auth.userId)
+    const token = await githubTokenFor(auth.userId, link.remoteContainerId)
     if (!token) return NextResponse.json({ error: 'GitHub not connected' }, { status: 401 })
 
     // Astrid assignee → GitHub login (the assignee's own connected account);

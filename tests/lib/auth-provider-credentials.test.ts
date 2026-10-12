@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { checkProviderCredentials } from '@/lib/auth/provider-credentials'
+import { checkProviderCredentials, hasAppleWebCredentials } from '@/lib/auth/provider-credentials'
 
 describe('checkProviderCredentials', () => {
   it('passes a provider with its credentials', () => {
@@ -29,6 +29,24 @@ describe('checkProviderCredentials', () => {
     const result = checkProviderCredentials(['google'], {})
     expect(result.fatal).toEqual([])
     expect(result.warnings).toEqual(['google: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET'])
+  })
+
+  // AWTD-1110: Apple on iOS/Mac needs no server secret, so none of the web set is
+  // required — but half of it is a mistake worth saying out loud.
+  it('accepts Apple with no web credentials at all (native sign-in only)', () => {
+    expect(checkProviderCredentials(['apple'], {})).toEqual({ fatal: [], warnings: [] })
+  })
+
+  it('warns when the web Apple credentials are only partly set', () => {
+    const result = checkProviderCredentials(['apple'], { APPLE_SERVICES_ID: 'cc.astrid.web', APPLE_TEAM_ID: 'T' })
+    expect(result.fatal).toEqual([])
+    expect(result.warnings).toEqual(['apple: APPLE_KEY_ID, APPLE_PRIVATE_KEY'])
+  })
+
+  it('reports whether web Apple sign-in is fully configured', () => {
+    const full = { APPLE_SERVICES_ID: 's', APPLE_TEAM_ID: 't', APPLE_KEY_ID: 'k', APPLE_PRIVATE_KEY: 'p' }
+    expect(hasAppleWebCredentials(full)).toBe(true)
+    expect(hasAppleWebCredentials({ ...full, APPLE_PRIVATE_KEY: ' ' })).toBe(false)
   })
 
   it('treats blank values as missing', () => {

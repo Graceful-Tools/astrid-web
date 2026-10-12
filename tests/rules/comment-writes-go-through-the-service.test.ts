@@ -23,7 +23,6 @@ const SCANNED = ['app', 'lib', 'mcp']
 const ALLOWED: Record<string, string> = {
   'lib/comments/create-comment.ts': "the comment service's own idempotent insert",
   'lib/task-update-handler.ts': 'state-change system comments written inside updateTaskWithSideEffects',
-  'lib/copy-utils.ts': 'copying a task copies its history; re-notifying everyone would be wrong',
 }
 
 const RAW_COMMENT_CREATE =

@@ -1,0 +1,23 @@
+{
+  "id": "PVTI_unmapped",
+  "isArchived": false,
+  "type": "ISSUE",
+  "updatedAt": "2026-10-10T10:00:00Z",
+  "content": {
+    "__typename": "Issue",
+    "id": "I_kwDOAcme008",
+    "number": 48,
+    "title": "Status option added after binding",
+    "body": "",
+    "url": "https://github.com/Graceful-Fools/wordlesolver/issues/48",
+    "state": "OPEN",
+    "stateReason": null,
+    "updatedAt": "2026-10-10T09:59:00Z",
+    "repository": { "nameWithOwner": "Graceful-Fools/wordlesolver" }
+  },
+  "fieldValues": {
+    "nodes": [
+      { "__typename": "ProjectV2ItemFieldSingleSelectValue", "optionId": "opt_new_after_bind", "name": "Triage", "field": { "id": "PVTSSF_status" } }
+    ]
+  }
+}

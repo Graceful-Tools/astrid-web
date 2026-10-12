@@ -28,11 +28,19 @@ import {
   githubAppOAuthCredentials,
   userCanAccessInstallation,
 } from '@/lib/github/installation-access'
+import {
+  grantInstallationAccess,
+  recordInstallation,
+  replaceInstallationRepos,
+  type InstallationAccount,
+} from '@/lib/github/installations'
+import { storeGithubAppUserToken } from '@/lib/github/user-tokens'
 
 const log = createLogger('github.setup')
 
 function settingsRedirect(request: NextRequest, github?: string) {
-  const path = github ? `/settings/agents?github=${github}` : '/settings/agents'
+  // The one GitHub card lives on Connections (AWTD-1114); it reads ?github=.
+  const path = github ? `/settings/connections?github=${github}` : '/settings/connections'
   return NextResponse.redirect(new URL(path, request.url))
 }
 
@@ -40,8 +48,16 @@ function setupRedirectUri(request: NextRequest): string {
   return new URL('/api/github/setup', request.url).toString()
 }
 
-async function fetchInstallationRepositories(installationId: number): Promise<any[]> {
-  if (!process.env.GITHUB_APP_ID || !process.env.GITHUB_APP_PRIVATE_KEY) return []
+interface FetchedInstallation {
+  account: InstallationAccount | null
+  repositorySelection: string | null
+  /** The legacy GitHubIntegration.repositories shape. */
+  repositories: any[]
+}
+
+async function fetchInstallation(installationId: number): Promise<FetchedInstallation> {
+  const empty: FetchedInstallation = { account: null, repositorySelection: null, repositories: [] }
+  if (!process.env.GITHUB_APP_ID || !process.env.GITHUB_APP_PRIVATE_KEY) return empty
   try {
     const app = getGitHubApp()
     const installationOctokit = await app.getInstallationOctokit(installationId)
@@ -50,19 +66,25 @@ async function fetchInstallationRepositories(installationId: number): Promise<an
       installation_id: installationId
     })
     const account = installationDetails.data.account as any
-    return reposResponse.data.repositories.map((repo: any) => ({
-      id: repo.id,
-      name: repo.name,
-      fullName: repo.full_name,
-      defaultBranch: repo.default_branch || 'main',
-      private: repo.private,
-      installationId,
-      owner: account?.login || account?.name || 'unknown'
-    }))
+    const owner = account?.login || account?.name || 'unknown'
+    return {
+      account: { login: owner, type: account?.type ?? null, nodeId: account?.node_id ?? null },
+      repositorySelection: (installationDetails.data as any).repository_selection ?? null,
+      repositories: reposResponse.data.repositories.map((repo: any) => ({
+        id: repo.id,
+        name: repo.name,
+        fullName: repo.full_name,
+        defaultBranch: repo.default_branch || 'main',
+        private: repo.private,
+        nodeId: repo.node_id,
+        installationId,
+        owner
+      }))
+    }
   } catch (error) {
     log.error({ err: error }, 'Error fetching repositories:')
     // Continue without repos - they can be fetched later
-    return []
+    return empty
   }
 }
 
@@ -92,8 +114,8 @@ export async function GET(request: NextRequest) {
         return settingsRedirect(request, 'not_authorized')
       }
       const installationId = Number(verified.subject)
-      const userToken = await exchangeGithubAppCode(credentials, code, setupRedirectUri(request))
-      if (!userToken || !(await userCanAccessInstallation(userToken, installationId))) {
+      const userTokens = await exchangeGithubAppCode(credentials, code, setupRedirectUri(request))
+      if (!userTokens || !(await userCanAccessInstallation(userTokens.access_token, installationId))) {
         log.warn({ installationId }, 'User cannot see the GitHub installation they tried to link')
         return settingsRedirect(request, 'not_authorized')
       }
@@ -107,7 +129,7 @@ export async function GET(request: NextRequest) {
         return settingsRedirect(request, 'already_connected')
       }
 
-      const repositories = await fetchInstallationRepositories(installationId)
+      const { account, repositorySelection, repositories } = await fetchInstallation(installationId)
       const existing = await prisma.gitHubIntegration.findFirst({ where: { userId, installationId } })
       await prisma.gitHubIntegration.upsert({
         where: { userId_installationId: { userId, installationId } },
@@ -124,6 +146,21 @@ export async function GET(request: NextRequest) {
           repositories
         }
       })
+
+      // GitHub has just listed this installation for the user's own token: the
+      // one place access is granted (AWTD-1111, spec §7.3). Best effort while
+      // GitHubIntegration (written above) is still what the agent falls back
+      // to: the link is made either way.
+      try {
+        await recordInstallation({ installationId, account, repositorySelection })
+        if (account) await replaceInstallationRepos(installationId, repositories)
+        await grantInstallationAccess(userId, installationId)
+        // The user's own App token: Issues sync uses it for repos an
+        // installation reaches (AWTD-1112).
+        await storeGithubAppUserToken(userId, userTokens)
+      } catch (err) {
+        log.error({ err, installationId }, 'Failed to record the installation model; the legacy link is saved')
+      }
 
       log.info(`✅ GitHub App linked for user ${userId}, installation ${installationId}, ${repositories.length} repos`)
       return settingsRedirect(request, existing ? 'updated' : 'connected')

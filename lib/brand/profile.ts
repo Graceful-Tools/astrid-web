@@ -22,6 +22,16 @@ export interface BrandProfile {
 export const BRAND_COPY_ENV = 'NEXT_PUBLIC_BRAND_COPY'
 
 /**
+ * GitHub's brand guidelines allow the descriptive "<Brand> for GitHub Projects", never a
+ * product name that starts with GitHub (spec GITHUB_PROJECTS_WHITELABEL.md §11.1).
+ * Returns the problem, or null when the name is fine.
+ */
+export function brandNameTrademarkProblem(name: string): string | null {
+  if (!/^\s*git\s?hub/i.test(name)) return null
+  return `"${name}" starts with GitHub — name the product "<Brand> for GitHub Projects" instead`
+}
+
+/**
  * The complete environment for a profile: its explicit `env`, plus `copy` serialised
  * into one variable so the profile can hold it as readable JSON.
  */

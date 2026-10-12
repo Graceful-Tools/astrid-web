@@ -24,6 +24,10 @@ vi.mock('@/lib/prisma', () => ({
 const { authorizeNewTaskAssignee } = vi.hoisted(() => ({ authorizeNewTaskAssignee: vi.fn() }))
 vi.mock('@/services/assignee-authorization', () => ({ authorizeNewTaskAssignee }))
 
+// The copy is created through the bulk path (AWTD-1124).
+const createTasksInBulk = vi.hoisted(() => vi.fn())
+vi.mock('@/services/task-bulk-create', () => ({ createTasksInBulk }))
+
 import { batchCopyTask } from '@/lib/task-batch-copy'
 import { prisma } from '@/lib/prisma'
 
@@ -60,7 +64,7 @@ beforeEach(() => {
   mockPrisma.taskList.findMany.mockResolvedValue(
     [{ id: 'list-a', name: 'A', ownerId: USER, defaultAssigneeId: null }] as never
   )
-  mockPrisma.task.create.mockResolvedValue({ id: 'copy-1' } as never)
+  createTasksInBulk.mockResolvedValue({ tasks: [{ id: "copy-1" }] })
   authorizeNewTaskAssignee.mockResolvedValue({ ok: true })
 })
 
@@ -70,7 +74,7 @@ describe('batchCopyTask (task e0613ae5)', () => {
       .toMatchObject({ ok: false, status: 400 })
     expect(await batchCopyTask(baseArgs({ targetListIds: [] })))
       .toMatchObject({ ok: false, status: 400 })
-    expect(mockPrisma.task.create).not.toHaveBeenCalled()
+    expect(createTasksInBulk).not.toHaveBeenCalled()
   })
 
   it('404s on a task that does not exist', async () => {
@@ -85,7 +89,7 @@ describe('batchCopyTask (task e0613ae5)', () => {
     )
 
     expect(await batchCopyTask(baseArgs())).toMatchObject({ ok: false, status: 403, error: 'Forbidden' })
-    expect(mockPrisma.task.create).not.toHaveBeenCalled()
+    expect(createTasksInBulk).not.toHaveBeenCalled()
   })
 
   it('allows copying a stranger\'s task when it sits on a PUBLIC list', async () => {
@@ -114,12 +118,12 @@ describe('batchCopyTask (task e0613ae5)', () => {
     const result = await batchCopyTask(baseArgs({ targetListIds: ['list-a', 'list-b'] }))
 
     expect(result).toMatchObject({ ok: false, status: 403 })
-    expect(mockPrisma.task.create).not.toHaveBeenCalled()
+    expect(createTasksInBulk).not.toHaveBeenCalled()
   })
 
   describe('assignee resolution', () => {
     const assigneeOf = () =>
-      (mockPrisma.task.create.mock.calls[0][0] as never as { data: { assigneeId: string | null } }).data.assigneeId
+      createTasksInBulk.mock.calls[0][0].tasks[0].data.assigneeId
 
     it('honours an explicit assigneeId', async () => {
       await batchCopyTask(baseArgs({ assigneeProvided: true, assigneeId: 'someone' }))
@@ -184,13 +188,12 @@ describe('batchCopyTask (task e0613ae5)', () => {
 
     await batchCopyTask(baseArgs({ targetListIds: ['list-a', 'list-b'] }))
 
-    const data = (mockPrisma.task.create.mock.calls[0][0] as never as {
-      data: Record<string, unknown>
-    }).data
-    expect(data.lists).toEqual({ connect: [{ id: 'list-a' }, { id: 'list-b' }] })
-    expect(data.originalTaskId).toBe('task-1')
-    expect(data.sourceListId).toBe('src')
-    expect(data.creatorId).toBe(USER)
+    const { actorId, tasks } = createTasksInBulk.mock.calls[0][0]
+    expect(tasks[0].listIds).toEqual(['list-a', 'list-b'])
+    expect(tasks[0].data.originalTaskId).toBe('task-1')
+    expect(tasks[0].data.sourceListId).toBe('src')
+    // The creator is the actor — the bulk path writes it.
+    expect(actorId).toBe(USER)
   })
 })
 
@@ -265,7 +268,7 @@ describe('batch copy applies the assignee rule (spec §5.2 step 5)', () => {
     const result = await batchCopyTask(baseArgs({ assigneeId: 'agent-1', assigneeProvided: true }))
 
     expect(result).toMatchObject({ ok: false, status: 403 })
-    expect(mockPrisma.task.create).not.toHaveBeenCalled()
+    expect(createTasksInBulk).not.toHaveBeenCalled()
   })
 })
 

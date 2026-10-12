@@ -2,8 +2,9 @@
  * Copying a task into a list — the whole flow, with no route around it.
  *
  * Shared by `POST /api/tasks/:id/copy` and its v1 twin, which were two
- * independent copies of the same five steps: validate the target list, copy,
- * invalidate the original creator's stats, refetch with relations, broadcast.
+ * independent copies of the same steps: validate the target list, copy,
+ * invalidate the original creator's stats, refetch with relations. The live
+ * event comes from the create path itself since AWTD-1124.
  *
  * Verified equivalent before extraction (task e0613ae5) — the audit of all 28
  * duplicated pairs found no behavioural difference in this one, which is what
@@ -14,8 +15,6 @@
 
 import { prisma } from '@/lib/prisma'
 import { copyTask } from '@/lib/copy-utils'
-import { broadcastToUsers } from '@/lib/sse-utils'
-import { getListMemberIds } from '@/lib/list-member-utils'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('task-copy-flow')
@@ -119,55 +118,9 @@ export async function copyTaskForUser(args: {
     }
   }
 
-  if (copiedTaskWithRelations && targetListId) {
-    try {
-      broadcastCopy(copiedTaskWithRelations, targetListId, userId)
-    } catch (sseError) {
-      log.error({ err: sseError }, 'Failed to broadcast task copy')
-    }
-  }
+  // No broadcast here: copyTask creates through services/task-bulk-create,
+  // which sends task_created to the target list's members (AWTD-1124). A send
+  // here as well would deliver every copy twice.
 
   return { ok: true, task: copiedTaskWithRelations ?? {} }
-}
-
-function broadcastCopy(
-  task: Record<string, any>,
-  targetListId: string,
-  actorId: string,
-): void {
-  const userIds = new Set<string>()
-  const list = task.lists?.find((l: { id: string }) => l.id === targetListId)
-  if (list) {
-    getListMemberIds(list).forEach((id: string) => userIds.add(id))
-  }
-
-  // The copier already sees it.
-  userIds.delete(actorId)
-  if (userIds.size === 0) return
-
-  broadcastToUsers(Array.from(userIds), {
-    type: 'task_created',
-    timestamp: new Date().toISOString(),
-    data: {
-      taskId: task.id,
-      taskTitle: task.title,
-      taskPriority: task.priority,
-      taskDueDateTime: task.dueDateTime,
-      taskIsAllDay: task.isAllDay,
-      creatorName: task.creator?.name || task.creator?.email || 'Someone',
-      userId: actorId,
-      listNames: task.lists?.map((l: { name: string }) => l.name) || [],
-      task: {
-        id: task.id,
-        title: task.title,
-        description: task.description,
-        priority: task.priority,
-        completed: task.completed,
-        assigneeId: task.assigneeId,
-        creatorId: task.creatorId,
-        createdAt: task.createdAt,
-        updatedAt: task.updatedAt,
-      },
-    },
-  })
 }

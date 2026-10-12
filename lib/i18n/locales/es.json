@@ -7,7 +7,11 @@
     "publicSharedLists": "Listas Públicas Compartidas",
     "publicLists": "Listas Públicas",
     "seeAllCollaborative": "Ver todas las listas colaborativas →",
-    "seeAllSuggested": "Ver todas las listas sugeridas →"
+    "seeAllSuggested": "Ver todas las listas sugeridas →",
+    "hideSidebar": "Ocultar barra lateral",
+    "showSidebar": "Mostrar barra lateral",
+    "hideMessages": "Ocultar mensajes",
+    "showMessages": "Mostrar mensajes"
   },
   "userMenu": {
     "settings": "Configuración",
@@ -93,12 +97,8 @@
       "description": "Agrega una descripción...",
       "comment": "Escribe un comentario..."
     },
-    "addTaskPlaceholder": "Añadir una tarea",
-    "addTaskToList": "Añadir tarea a {listName}...",
-    "addTaskToCurrentList": "Añadir tarea a la lista actual...",
-    "addTaskShort": "Añadir tarea...",
+    "addTaskPlaceholder": "Añadir una tarea...",
     "quickAdd": "Añadir rápido...",
-    "addNewTask": "Añadir una nueva tarea...",
     "wontDo": "Won't do",
     "reopen": "Reopen",
     "status": "Estado",
@@ -122,6 +122,16 @@
       "label": "ID de tarea",
       "copy": "Copiar ID de tarea",
       "copied": "{id} copiado"
+    },
+    "occurrence": {
+      "label": "Repetición",
+      "previous": "Repetición anterior",
+      "next": "Repetición siguiente"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Añadir una subtarea",
+      "addPlaceholder": "Añadir una subtarea…"
     }
   },
   "lists": {
@@ -419,7 +429,8 @@
   "search": {
     "placeholder": "Buscar tareas y usuarios",
     "noResults": "No se encontraron resultados",
-    "searching": "Buscando..."
+    "searching": "Buscando...",
+    "open": "Buscar"
   },
   "listHeaders": {
     "myTasks": "Mis Tareas",
@@ -473,6 +484,11 @@
         "sdkNeedsBoth": "Tu servidor necesita ambas cosas: estas credenciales para llamar a la API y el secreto del webhook de abajo para verificar las entregas.",
         "manage": "Gestionar en Conexiones",
         "error": "No se pudieron crear las credenciales"
+      },
+      "githubConnection": {
+        "title": "Conexión con GitHub",
+        "description": "Los agentes de código que se ejecutan en el servidor usan la conexión con GitHub de Ajustes → Conexiones, donde aparece cada organización conectada.",
+        "open": "Abrir Conexiones"
       }
     },
     "apiAccess": {
@@ -754,6 +770,12 @@
         "listDesc": "La casilla completa la tarea, y la prioridad y el responsable tienen cada uno su propia fila.",
         "projectDesc": "Compacto. Al tocar la casilla se abren prioridad, responsable, estado y completar."
       },
+      "listImages": {
+        "title": "Imágenes de listas",
+        "description": "Muestra una imagen junto a cada lista en la barra lateral y en el encabezado de la lista (sincronizado entre dispositivos)",
+        "label": "Mostrar imágenes de listas",
+        "offDesc": "Si está desactivado, cada lista muestra su color."
+      },
       "emailToTask": {
         "title": "Correo a Tarea",
         "description": "Crea tareas instantáneamente enviando correos a {inboundTaskEmail}",
@@ -954,6 +976,37 @@
         "title": "Desarrollador",
         "description": "Crea apps OAuth a mano, prueba la API y conecta asistentes que hablen OpenAPI.",
         "openTester": "Abrir probador de API"
+      },
+      "github": {
+        "title": "GitHub",
+        "description": "Conecta {appName} con tus cuentas y organizaciones de GitHub. Los agentes de código que se ejecutan en el servidor crean ramas y pull requests a través de esta conexión.",
+        "empty": "Aún no está conectado a GitHub.",
+        "connect": "Conectar GitHub",
+        "installAnother": "Añadir otra organización",
+        "refresh": "Actualizar repositorios",
+        "refreshed": "Repositorios actualizados",
+        "refreshError": "No se pudieron actualizar los repositorios",
+        "loadError": "No se pudo cargar tu conexión con GitHub",
+        "installError": "No se pudo iniciar la instalación de GitHub",
+        "organization": "Organización",
+        "personal": "Cuenta personal",
+        "repoCountOne": "1 repositorio",
+        "repoCountMany": "{count} repositorios",
+        "allRepos": "todos los repositorios",
+        "suspended": "Suspendida",
+        "disconnect": "Desconectar",
+        "disconnectTitle": "¿Desconectar {account}?",
+        "disconnectDescription": "Los agentes de código dejarán de funcionar en los repositorios de {account}. La app de GitHub sigue instalada allí; desinstálala en GitHub para quitarla por completo.",
+        "disconnected": "{account} desconectada",
+        "disconnectError": "No se pudo desconectar",
+        "outcomes": {
+          "connected": "GitHub conectado",
+          "updated": "Conexión con GitHub actualizada",
+          "not_authorized": "GitHub indica que tu cuenta no puede ver esa instalación",
+          "already_connected": "Esa instalación ya está conectada a otra cuenta",
+          "verification_unavailable": "El inicio de sesión con GitHub no está configurado en este servidor, así que no se pudo verificar la instalación",
+          "error": "Algo salió mal al conectar GitHub"
+        }
       }
     }
   },
@@ -978,9 +1031,22 @@
     "keyInvalid": "De {min} a {max} letras o dígitos, empezando por una letra",
     "keyRename": "Renombrar",
     "keyRenameHint": "Las tareas pasan a {next}; {old} sigue funcionando",
-    "keyRenameFailed": "No se pudo renombrar el prefijo"
+    "keyRenameFailed": "No se pudo renombrar el prefijo",
+    "createBoard": "Crear tablero",
+    "creatingBoard": "Creando...",
+    "createBoardFailed": "No se pudo crear el tablero",
+    "disableBoard": "Desactivar tablero",
+    "disablingBoard": "Desactivando...",
+    "disableBoardFailed": "No se pudo desactivar el tablero",
+    "disableBoardTitle": "Desactivar la vista de tablero",
+    "disableBoardBody": "Las tareas permanecen en esta lista, pero se eliminarán las columnas Ready/Doing/Waiting.",
+    "disableBoardNote": "Las tareas que estén en una columna de estado perderán su estado. Las tareas completadas siguen completadas."
   },
   "listSettings": {
+    "color": {
+      "label": "Color de la lista",
+      "custom": "Color personalizado"
+    },
     "adminSettings": "Ajustes de administrador",
     "sortAndFilters": "Orden y filtros",
     "sortAndFiltersAreYours": "Solo tú ves esto: no cambia la lista para nadie más.",

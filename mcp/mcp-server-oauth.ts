@@ -33,6 +33,8 @@ import { createLogger } from "../lib/logger"
 // Re-exported below rather than moved-and-forgotten, as OAUTH_MCP_TOOLS was.
 import { OAuthAPIClient } from "./oauth-api-client"
 import { fetchListMessages } from "./list-chat"
+import { callBlockerTool, isBlockerTool } from "./blockers"
+import { callAttachmentTool, isAttachmentTool } from "./task-attachments"
 
 const log = createLogger("mcp.server-oauth")
 
@@ -80,9 +82,7 @@ const CreateCommentSchema = z.object({
 })
 
 /**
- * OAuth API Client for Astrid.
- *
- * Exported for tests: the hosted /mcp endpoint builds one of these per
+ * OAuth API Client for Astrid. Exported for tests: the hosted /mcp endpoint builds one of these per
  * request, and the process-level token cache (task 11f578e0) is what keeps
  * that from minting a token per JSON-RPC call.
  */
@@ -219,6 +219,8 @@ export default class AstridMCPServerOAuth {
           case "get_list_messages":
             return await this.getListMessages(args)
           default:
+            if (isBlockerTool(name)) return await callBlockerTool(this.oauthClient, name, args)
+            if (isAttachmentTool(name)) return await callAttachmentTool(this.oauthClient, args, this.agentIdentity.signature())
             throw new Error(`Unknown tool: ${name}`)
         }
       } catch (error) {
@@ -481,7 +483,6 @@ export default class AstridMCPServerOAuth {
     }
   }
 
-
   /** Read a list's chat thread (AWTD-963). The work is in mcp/list-chat.ts. */
   private async getListMessages(args: any) {
     if (!args?.listId) {
@@ -508,21 +509,8 @@ export default class AstridMCPServerOAuth {
       `/api/v1/tasks/${taskId}/comments`
     )
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            {
-              taskId,
-              comments: data.comments,
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    }
+    const body = { taskId, comments: data.comments }
+    return { content: [{ type: "text", text: JSON.stringify(body, null, 2) }] }
   }
 
   private logStartup(transportLabel: string) {

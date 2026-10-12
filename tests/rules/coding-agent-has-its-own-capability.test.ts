@@ -40,7 +40,15 @@ function routeFiles(dir: string, out: string[] = []): string[] {
   return out
 }
 
-const routes = CODING_AGENT_DIRS.flatMap(dir => routeFiles(join(ROOT, dir))).map(f => relative(ROOT, f))
+/**
+ * GitHub Projects boards are their own product surface with their own switch
+ * (githubProjects, AWTD-1151), not the coding agent's.
+ */
+const NOT_THE_CODING_AGENT = 'app/api/v1/github/projects/'
+
+const routes = CODING_AGENT_DIRS.flatMap(dir => routeFiles(join(ROOT, dir)))
+  .map(f => relative(ROOT, f))
+  .filter(f => !f.startsWith(NOT_THE_CODING_AGENT))
 
 describe('the coding agent has its own capability (AWTD-1094)', () => {
   afterEach(() => {

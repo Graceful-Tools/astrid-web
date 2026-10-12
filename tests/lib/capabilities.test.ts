@@ -34,13 +34,15 @@ describe('capability defaults (task 97208a72)', () => {
     process.env = { ...ORIGINAL_ENV }
   })
 
-  it('enables every capability when nothing is configured — except the opt-in sign-in providers', async () => {
+  it('enables every capability when nothing is configured — except the opt-in sign-in providers and GitHub Projects', async () => {
     const { CAPABILITIES } = await import('@/lib/brand/capabilities')
 
     // GitHub and SSO sign-in need credentials, so they are on only when listed
     // in NEXT_PUBLIC_BRAND_AUTH_PROVIDERS (spec §6.2). Defaulting them on would
     // put a failing button on every existing deployment.
-    const OPT_IN = new Set(['authGithub', 'authSso'])
+    // GitHub Projects is off unless a brand sets it: never on Astrid (D5, AWTD-1151).
+    // Mirroring agent assignment as a GitHub label is the partner's call (C3, AWTD-1191).
+    const OPT_IN = new Set(['authGithub', 'authSso', 'githubProjects', 'githubAgentLabels'])
     for (const [key, value] of Object.entries(CAPABILITIES)) {
       expect(value, `${key} default`).toBe(!OPT_IN.has(key))
     }
@@ -430,5 +432,43 @@ describe('GET /api/v1/capabilities (task 97208a72)', () => {
     expect(Object.keys(body.brand).sort()).toEqual(
       ['agentName', 'appName', 'slogan', 'wordmark']
     )
+  })
+})
+
+describe('capabilities that depend on each other (AWTD-1121, spec §11.1)', () => {
+  const ORIGINAL_ENV = { ...process.env }
+
+  beforeEach(() => {
+    vi.resetModules()
+    clearCapabilityEnv()
+  })
+
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV }
+  })
+
+  it('refuses GitHub Projects without Project Mode', async () => {
+    // A bound GitHub project IS a board. With Project Mode compiled out the bind
+    // wizard would import items into lists that can never show their columns.
+    process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS = 'true'
+    process.env.NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE = 'false'
+    const { assertCoherentCapabilities } = await import('@/lib/brand/capabilities')
+
+    expect(() => assertCoherentCapabilities()).toThrow(/NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE/)
+  })
+
+  it('accepts GitHub Projects with Project Mode', async () => {
+    process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS = 'true'
+    const { assertCoherentCapabilities } = await import('@/lib/brand/capabilities')
+
+    expect(() => assertCoherentCapabilities()).not.toThrow()
+  })
+
+  it('accepts Project Mode off when GitHub Projects is off too', async () => {
+    // The single-player build: no boards and no GitHub Projects is coherent.
+    process.env.NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE = 'false'
+    const { assertCoherentCapabilities } = await import('@/lib/brand/capabilities')
+
+    expect(() => assertCoherentCapabilities()).not.toThrow()
   })
 })

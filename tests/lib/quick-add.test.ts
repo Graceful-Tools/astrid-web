@@ -86,24 +86,22 @@ describe('hashtag autocomplete helpers (task f699462a)', () => {
   })
 })
 
-describe('quickAddPlaceholder (task f699462a)', () => {
-  it('keeps naming the list in 3-column, where several lists are on screen', () => {
-    expect(quickAddPlaceholder({ placement: 'inline', layoutType: '3-column', listName: 'Groceries' }))
-      .toEqual({ key: 'tasks.addTaskToList', params: { listName: 'Groceries' } })
+describe('quickAddPlaceholder — one prompt everywhere (AWTD-1164)', () => {
+  // It used to vary by layout — "Add task to Astrid Web To-do..." in 3-column,
+  // "Add task..." in 2-column — which was longer, inconsistent, and logic
+  // nobody else shared. Every placement and layout now says the same thing.
+  it.each([
+    { placement: 'inline', layoutType: '3-column', listName: 'Groceries' },
+    { placement: 'inline', layoutType: '3-column', listName: 'My Tasks' },
+    { placement: 'inline', layoutType: '2-column', listName: 'Groceries' },
+    { placement: 'inline', layoutType: '1-column' },
+    { placement: 'fixed-bottom', listName: 'Groceries' },
+  ] as const)('%j → tasks.addTaskPlaceholder', args => {
+    expect(quickAddPlaceholder(args as never)).toEqual({ key: 'tasks.addTaskPlaceholder' })
   })
 
-  it('falls back to the generic prompt when the 3-column list is My Tasks', () => {
-    expect(quickAddPlaceholder({ placement: 'inline', layoutType: '3-column', listName: 'My Tasks' }))
-      .toEqual({ key: 'tasks.addTaskToCurrentList' })
-  })
-
-  it('uses the short prompt in 2-column, where the column is narrower', () => {
-    expect(quickAddPlaceholder({ placement: 'inline', layoutType: '2-column', listName: 'Groceries' }))
-      .toEqual({ key: 'tasks.addTaskShort' })
-  })
-
-  it('uses the 1-column bar prompt for the fixed-bottom placement', () => {
-    expect(quickAddPlaceholder({ placement: 'fixed-bottom', listName: 'Groceries' }))
-      .toEqual({ key: 'tasks.addTaskPlaceholder' })
+  it('reads "Add a task..." in English', async () => {
+    const en = (await import('@/lib/i18n/locales/en.json')).default as unknown as { tasks: Record<string, string> }
+    expect(en.tasks.addTaskPlaceholder).toBe('Add a task...')
   })
 })

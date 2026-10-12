@@ -13,6 +13,7 @@
  */
 
 import { GITHUB_API_URL as GITHUB_API, GITHUB_WEB_URL as GITHUB_WEB } from '@/lib/github/host'
+import type { GithubAppUserTokenSet } from '@/lib/github/user-tokens'
 
 const PAGE_SIZE = 100
 /** /user/installations is paginated; nobody legitimately sees more than this. */
@@ -42,12 +43,16 @@ export function githubAppAuthorizeUrl(
   return url.toString()
 }
 
-/** Exchange an authorization code for a user-to-server token, or null. */
+/**
+ * Exchange an authorization code for the user's token set, or null. The set
+ * carries a refresh token and expiry when the App has token expiration on;
+ * lib/github/user-tokens.ts stores it (AWTD-1112).
+ */
 export async function exchangeGithubAppCode(
   credentials: GithubAppOAuthCredentials,
   code: string,
   redirectUri: string,
-): Promise<string | null> {
+): Promise<GithubAppUserTokenSet | null> {
   const res = await fetch(`${GITHUB_WEB}/login/oauth/access_token`, {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
@@ -60,8 +65,8 @@ export async function exchangeGithubAppCode(
     signal: AbortSignal.timeout(15_000),
   })
   if (!res.ok) return null
-  const body = (await res.json()) as { access_token?: string }
-  return body.access_token || null
+  const body = (await res.json()) as Partial<GithubAppUserTokenSet>
+  return body.access_token ? (body as GithubAppUserTokenSet) : null
 }
 
 /** Does GitHub list this installation for the token's user? */

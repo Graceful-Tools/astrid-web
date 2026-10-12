@@ -19,7 +19,7 @@
  * otherwise have had access.
  *
  * Every capability defaults to ENABLED, so an existing deployment that sets nothing
- * behaves exactly as before.
+ * behaves exactly as before — except `githubProjects`, which is off unless set.
  *
  * These are `NEXT_PUBLIC_` because the UI must reflect them (there is no point offering
  * a Google sign-in button a disabled server will refuse). They are switches, not
@@ -37,6 +37,14 @@ function enabled(value: string | undefined): boolean {
   const normalized = value?.trim().toLowerCase()
   if (!normalized) return true
   return !['false', '0', 'off', 'no'].includes(normalized)
+}
+
+/**
+ * The exception: a capability that is OFF unless a deployment turns it on.
+ * Only for things astrid.cc must never have by accident (spec D5).
+ */
+function explicitlyEnabled(value: string | undefined): boolean {
+  return ['true', '1', 'on', 'yes'].includes(value?.trim().toLowerCase() ?? '')
 }
 
 const integrationCustomAgents = enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW)
@@ -105,6 +113,20 @@ export const CAPABILITIES = {
    * the capability first (see lib/project-mode.ts, which does both in order).
    */
   projectMode: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE),
+  /**
+   * GitHub Projects as a task backend: org projects bound as boards, mirrored
+   * from GitHub (docs/specs/GITHUB_PROJECTS_WHITELABEL.md §8). OFF unless the
+   * brand sets it — never on astrid.cc (D5), pinned by
+   * tests/rules/astrid-never-enables-github-projects.test.ts (AWTD-1151).
+   */
+  githubProjects: explicitlyEnabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS),
+  /**
+   * On a GitHub Projects board, mirror an AI agent's assignment to GitHub as
+   * a label `agent:<name>` on the issue (spec §8.6, §15 C3; AWTD-1191). OFF
+   * unless the brand sets it: a label written to a partner's customers' repos
+   * is the partner's call. Means nothing without `githubProjects`.
+   */
+  githubAgentLabels: explicitlyEnabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS),
   taskCost: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_TASK_COST),
 
   // --- Other services -----------------------------------------------------
@@ -171,6 +193,24 @@ export function assertUsableAuthConfiguration(): void {
         'List at least one of github, google, apple, passkey or sso in ' +
         'NEXT_PUBLIC_BRAND_AUTH_PROVIDERS (or, with it unset, leave one of ' +
         'NEXT_PUBLIC_BRAND_ENABLE_AUTH_GOOGLE / _APPLE / _PASSKEY on).'
+    )
+  }
+}
+
+/**
+ * A capability that is on without the one it is built on is a deployment that
+ * half works. Guarded at startup beside assertUsableAuthConfiguration().
+ *
+ * GitHub Projects requires Project Mode (spec §11.1, AWTD-1121): a bound GitHub
+ * project IS a board, so with Project Mode compiled out the bind wizard would
+ * import items into lists that can never show their columns.
+ */
+export function assertCoherentCapabilities(): void {
+  if (CAPABILITIES.githubProjects && !CAPABILITIES.projectMode) {
+    throw new Error(
+      'Brand configuration enables GitHub Projects with Project Mode off — GitHub Projects ' +
+        'requires Project Mode, because a bound project is a board. Leave ' +
+        'NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE on, or drop NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS.'
     )
   }
 }

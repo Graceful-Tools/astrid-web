@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ConnectionsList } from "@/components/connections-list"
+import { GitHubConnectionCard } from "@/components/Settings/GitHubConnectionCard"
+import { CAPABILITIES } from "@/lib/brand/capabilities"
 import { OAuthAppManager } from "@/components/oauth-app-manager"
 import { useTranslations } from "@/lib/i18n/client"
 import { Check, ChevronDown, ChevronUp, Code2, Copy, Link2 } from "lucide-react"
@@ -140,6 +142,8 @@ export default function ConnectionsSettings(_props: ConnectionsSettingsProps) {
             <ConnectionsList />
           </CardContent>
         </Card>
+
+        {CAPABILITIES.codingAgent && <GitHubConnectionCard />}
 
         <Card className="theme-bg-secondary theme-border">
           <CardHeader>

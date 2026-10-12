@@ -11,7 +11,8 @@
  *
  *   DUPLICATE IMPORT. A task created without its ExternalTaskLink is
  *   indistinguishable from a new issue next run, so it gets imported again, and
- *   again. Writing both in one transaction is what stops that.
+ *   again. A stable clientRequestId per issue is what stops that: a retry
+ *   gets the same task back and links it (AWTD-1123; it was a transaction).
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -24,6 +25,7 @@ const taskCreate = vi.hoisted(() => vi.fn())
 const linkCreate = vi.hoisted(() => vi.fn())
 const transaction = vi.hoisted(() => vi.fn())
 const updateTaskWithSideEffects = vi.hoisted(() => vi.fn())
+const createTaskWithSideEffects = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -33,8 +35,8 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-// Updates go through the one task write path (AWTD-1093).
-vi.mock('@/services/task.service', () => ({ updateTaskWithSideEffects }))
+// Updates (AWTD-1093) and creates (AWTD-1123) go through the one task write path.
+vi.mock('@/services/task.service', () => ({ updateTaskWithSideEffects, createTaskWithSideEffects }))
 
 import { applyPulledIssues } from '@/lib/sync/github/apply-issues'
 import type { PulledIssue } from '@/lib/sync/github/pull-issues'
@@ -89,6 +91,8 @@ beforeEach(() => {
   findFirst.mockResolvedValue(null)
   findMany.mockResolvedValue([])
   taskCreate.mockResolvedValue({ id: 'task-new' })
+  createTaskWithSideEffects.mockResolvedValue({ ok: true, task: { id: 'task-new' }, idempotent: false })
+  linkCreate.mockResolvedValue({ id: 'etl-new' })
   updateTaskWithSideEffects.mockResolvedValue({ ok: true, task: { id: 'task-1' }, rolledForward: false })
   transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
     fn({ task: { create: taskCreate }, externalTaskLink: { create: linkCreate } }),
@@ -96,18 +100,16 @@ beforeEach(() => {
 })
 
 describe('applyPulledIssues (task d8de37c1)', () => {
-  it('creates a task and its link together for a new issue', async () => {
+  it('creates a task and then its link for a new issue', async () => {
     const result = await applyPulledIssues({ link: LINK, items: [issue()] })
 
     expect(result).toMatchObject({ created: 1, updated: 0 })
-    expect(taskCreate).toHaveBeenCalled()
-    // Both in ONE transaction: a task without its link is re-imported next run.
+    expect(createTaskWithSideEffects).toHaveBeenCalled()
     expect(linkCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ remoteId: 'owner/repo#1', astridTaskId: 'task-new' }),
       }),
     )
-    expect(transaction).toHaveBeenCalled()
   })
 
   it('updates an existing task when the issue is genuinely newer', async () => {
@@ -140,7 +142,7 @@ describe('applyPulledIssues (task d8de37c1)', () => {
     })
 
     expect(result).toMatchObject({ created: 0, updated: 0, skipped: 2 })
-    expect(transaction).not.toHaveBeenCalled()
+    expect(createTaskWithSideEffects).not.toHaveBeenCalled()
   })
 
   it('skips malformed items rather than writing a titleless task', async () => {
@@ -150,13 +152,15 @@ describe('applyPulledIssues (task d8de37c1)', () => {
     })
 
     expect(result.skipped).toBe(2)
-    expect(transaction).not.toHaveBeenCalled()
+    expect(createTaskWithSideEffects).not.toHaveBeenCalled()
   })
 
   it('treats a concurrent create as a skip, not a failure', async () => {
     // Two runs overlapping is the desired end state either way; the unique
-    // index on (provider, remoteId, userId) is what makes this safe.
-    transaction.mockRejectedValue(Object.assign(new Error('unique'), { code: 'P2002' }))
+    // index on (provider, remoteId, userId) is what makes this safe. Both runs
+    // got the SAME task from the create (one clientRequestId per issue), so the
+    // losing link write leaves no orphan behind.
+    linkCreate.mockRejectedValue(Object.assign(new Error('unique'), { code: 'P2002' }))
 
     const result = await applyPulledIssues({ link: LINK, items: [issue()] })
 
@@ -184,7 +188,7 @@ describe('applyPulledIssues (task d8de37c1)', () => {
     // The data-loss path: if this were swallowed as a skip, apply would return
     // cleanly, the caller would advance the `since` watermark, and this issue
     // would never be offered again.
-    transaction.mockRejectedValue(Object.assign(new Error('db is down'), { code: 'P1001' }))
+    linkCreate.mockRejectedValue(Object.assign(new Error('db is down'), { code: 'P1001' }))
 
     await expect(applyPulledIssues({ link: LINK, items: [issue()] })).rejects.toThrow('db is down')
   })
@@ -261,7 +265,7 @@ describe('applyPulledIssues batches its lookups (task f9ba26b3)', () => {
       items: [issue({ remoteId: 'owner/repo#9' }), issue({ remoteId: 'owner/repo#9' })],
     })
 
-    expect(taskCreate).toHaveBeenCalledTimes(1)
+    expect(createTaskWithSideEffects).toHaveBeenCalledTimes(1)
     expect(result.created).toBe(1)
   })
 
@@ -270,14 +274,10 @@ describe('applyPulledIssues batches its lookups (task f9ba26b3)', () => {
     // commits the `since` watermark on a clean return, so a swallowed error
     // here is the silent permanent loss this module exists to prevent.
     findMany.mockResolvedValue([])
-    transaction
-      .mockImplementationOnce(async (fn: (tx: unknown) => Promise<unknown>) =>
-        fn({ task: { create: taskCreate }, externalTaskLink: { create: linkCreate } }),
-      )
+    linkCreate
+      .mockResolvedValueOnce({ id: 'etl-a' })
       .mockRejectedValueOnce(Object.assign(new Error('db is down'), { code: 'P1001' }))
-      .mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) =>
-        fn({ task: { create: taskCreate }, externalTaskLink: { create: linkCreate } }),
-      )
+      .mockResolvedValue({ id: 'etl-c' })
 
     await expect(applyPulledIssues({ link: LINK, items: batch })).rejects.toThrow('db is down')
   })
@@ -355,9 +355,120 @@ describe('applyPulledIssues writes through the task service (AWTD-1093)', () => 
   it('stamps completedSource on an issue imported already closed', async () => {
     await applyPulledIssues({ link: LINK, items: [issue({ completed: true, completedAt: '2026-08-15T08:30:00Z' })] })
 
-    expect(taskCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ completed: true, completedSource: 'github' }) }),
+    expect(createTaskWithSideEffects).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: expect.objectContaining({
+          completed: true,
+          completedSource: 'github',
+          completedAt: '2026-08-15T08:30:00Z',
+        }),
+      }),
     )
+  })
+})
+
+/**
+ * AWTD-1123: an imported issue is CREATED through the task service.
+ *
+ * The raw `tx.task.create` gave an imported task no project identifier, no
+ * reminders, no manual-sort entry and no task_created broadcast. The raw
+ * write existed to keep the task and its ExternalTaskLink in one transaction,
+ * because a task with no link is re-imported as a duplicate on the next run.
+ * The service takes no transaction, so a stable clientRequestId per issue now
+ * does that job: the retry gets the same task back and links it.
+ */
+describe('applyPulledIssues creates through the task service (AWTD-1123)', () => {
+  it('never writes a task row itself', async () => {
+    await applyPulledIssues({ link: LINK, items: [issue(), issue({ remoteId: 'owner/repo#2' })] })
+
+    expect(taskCreate).not.toHaveBeenCalled()
+    expect(transaction).not.toHaveBeenCalled()
+    expect(createTaskWithSideEffects).toHaveBeenCalledTimes(2)
+  })
+
+  it('creates as the link owner, on the linked list, with the issue content', async () => {
+    await applyPulledIssues({
+      link: LINK,
+      items: [issue({ completed: true, completedAt: '2026-08-15T08:30:00Z', closedReason: 'canceled' })],
+    })
+
+    expect(createTaskWithSideEffects).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorId: 'user-1',
+        input: expect.objectContaining({
+          title: 'Fix the thing',
+          description: 'details',
+          listIds: ['list-1'],
+          closedReason: 'canceled',
+        }),
+      }),
+    )
+  })
+
+  it('leaves an issue with no resolved assignee unassigned, not on the list default', async () => {
+    // `undefined` means "use the list's default assignee" to the service. The
+    // raw write left these tasks unassigned, and import should keep doing that.
+    await applyPulledIssues({ link: LINK, items: [issue()] })
+
+    expect(createTaskWithSideEffects.mock.calls[0][0].input.assigneeId).toBeNull()
+  })
+
+  it('passes a resolved assignee through', async () => {
+    await applyPulledIssues({
+      link: LINK,
+      items: [
+        issue({
+          metadata: {
+            number: '1', parent: '', assigneeUserId: 'user-7', commentCount: '0',
+            labels: '', assignees: '', state_reason: '',
+          },
+        }),
+      ],
+    })
+
+    expect(createTaskWithSideEffects.mock.calls[0][0].input.assigneeId).toBe('user-7')
+  })
+
+  it('gives each issue a stable clientRequestId, distinct per issue and per user', async () => {
+    await applyPulledIssues({ link: LINK, items: [issue()] })
+    await applyPulledIssues({ link: LINK, items: [issue()] })
+    await applyPulledIssues({ link: LINK, items: [issue({ remoteId: 'owner/repo#2' })] })
+    await applyPulledIssues({ link: { ...LINK, userId: 'user-2' }, items: [issue()] })
+
+    const ids = createTaskWithSideEffects.mock.calls.map(call => call[0].input.clientRequestId)
+    expect(ids[0]).toBe(ids[1])
+    expect(new Set([ids[0], ids[2], ids[3]]).size).toBe(3)
+    // The service accepts 8 to 128 characters; a repo path can be longer.
+    for (const id of ids) expect(id.length).toBeGreaterThanOrEqual(8)
+    for (const id of ids) expect(id.length).toBeLessThanOrEqual(128)
+  })
+
+  it('still yields a valid clientRequestId for a very long repo path', async () => {
+    const longRemoteId = `${'o'.repeat(39)}/${'r'.repeat(100)}#123456`
+    await applyPulledIssues({ link: LINK, items: [issue({ remoteId: longRemoteId })] })
+
+    expect(createTaskWithSideEffects.mock.calls[0][0].input.clientRequestId.length).toBeLessThanOrEqual(128)
+  })
+
+  it('links the task a previous run created but never linked, rather than importing it twice', async () => {
+    // The previous run created the task and died before the link write. The
+    // cursor did not advance, so the issue comes back. The same clientRequestId
+    // returns the same task, and this run links it.
+    createTaskWithSideEffects.mockResolvedValue({ ok: true, task: { id: 'task-orphan' }, idempotent: true })
+
+    const result = await applyPulledIssues({ link: LINK, items: [issue()] })
+
+    expect(linkCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ astridTaskId: 'task-orphan' }) }),
+    )
+    expect(result).toMatchObject({ created: 1 })
+  })
+
+  it('propagates a refused create, writes no link, and so the cursor is not committed', async () => {
+    createTaskWithSideEffects.mockResolvedValue({ ok: false, status: 403, error: 'No access to list' })
+
+    await expect(applyPulledIssues({ link: LINK, items: [issue()] })).rejects.toThrow('No access to list')
+    expect(linkCreate).not.toHaveBeenCalled()
   })
 })
 

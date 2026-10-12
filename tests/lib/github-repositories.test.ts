@@ -17,6 +17,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     gitHubIntegration: { findFirst: vi.fn(), update: vi.fn() },
+    gitHubInstallation: { upsert: vi.fn() },
+    gitHubInstallationRepo: { upsert: vi.fn(), deleteMany: vi.fn(), findMany: vi.fn() },
   },
 }))
 
@@ -48,6 +50,7 @@ beforeEach(() => {
   mockPrisma.gitHubIntegration.findFirst.mockResolvedValue({ ...INTEGRATION } as never)
   mockPrisma.gitHubIntegration.update.mockResolvedValue({} as never)
   getInstallationRepositories.mockResolvedValue([])
+  mockPrisma.gitHubInstallationRepo.findMany.mockResolvedValue([] as never)
 })
 
 describe('listGitHubRepositories (task e0613ae5)', () => {
@@ -101,6 +104,41 @@ describe('listGitHubRepositories (task e0613ae5)', () => {
       expect.objectContaining({ where: { id: 'gh-1' } }),
     )
     expect(result).toMatchObject({ cached: false })
+    // AWTD-1111: THIS link's installation is asked, and its repos recorded.
+    expect(getInstallationRepositories).toHaveBeenCalledWith(111)
+    expect(mockPrisma.gitHubInstallationRepo.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ repoId: BigInt(9), installationId: 111, fullName: 'o/fresh' }),
+      }),
+    )
+  })
+
+  it('still returns the fresh list when recording it in the installation model fails (AWTD-1111)', async () => {
+    getInstallationRepositories.mockResolvedValue([
+      { id: 9, name: 'fresh', fullName: 'o/fresh', defaultBranch: 'trunk', private: false },
+    ])
+    mockPrisma.gitHubInstallation.upsert.mockRejectedValueOnce(new Error('db hiccup'))
+
+    const result = await listGitHubRepositories({ userId: 'u-1', refresh: true })
+
+    expect(result.repositories.map(r => r.fullName)).toEqual(['o/fresh'])
+    expect(result).toMatchObject({ cached: false })
+  })
+
+  it("lists the row's own installation and records it on every cached entry (AWTD-1107)", async () => {
+    getInstallationRepositories.mockResolvedValue([
+      { id: 9, name: 'fresh', fullName: 'o/fresh', defaultBranch: 'trunk', private: false },
+    ])
+
+    await listGitHubRepositories({ userId: 'u-1', refresh: true })
+
+    // Listing the client's default installation instead could cache another
+    // org's repos on this row, and the client trusts the row for the mapping.
+    expect(getInstallationRepositories).toHaveBeenCalledWith(111)
+    expect(mockPrisma.gitHubIntegration.update).toHaveBeenCalledWith({
+      where: { id: 'gh-1' },
+      data: { repositories: [expect.objectContaining({ fullName: 'o/fresh', installationId: 111 })] },
+    })
   })
 
   it('falls back to the cache when the refresh throws', async () => {
@@ -123,5 +161,25 @@ describe('listGitHubRepositories (task e0613ae5)', () => {
     await listGitHubRepositories({ userId: 'u-1', refresh: true })
 
     expect(getInstallationRepositories).not.toHaveBeenCalled()
+  })
+})
+
+describe('the repo picker lists every connected org (AWTD-1114)', () => {
+  it("includes repos from the user's second installation, not only the first link's", async () => {
+    mockPrisma.gitHubInstallationRepo.findMany.mockResolvedValue([
+      { repoId: BigInt(1), installationId: 111, fullName: 'Graceful-Tools/astrid-web', defaultBranch: 'main', private: true },
+      { repoId: BigInt(2), installationId: 222, fullName: 'jonparis/dotfiles', defaultBranch: 'trunk', private: false },
+    ] as never)
+
+    const result = await listGitHubRepositories({ userId: 'u-1', refresh: false })
+
+    expect(result.repositories.map(r => r.fullName)).toEqual(['Graceful-Tools/astrid-web', 'jonparis/dotfiles'])
+    expect(result.repositories[1]).toEqual({
+      id: 2,
+      name: 'dotfiles',
+      fullName: 'jonparis/dotfiles',
+      defaultBranch: 'trunk',
+      private: false,
+    })
   })
 })

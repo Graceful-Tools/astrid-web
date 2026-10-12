@@ -1,9 +1,10 @@
 /**
  * GET /api/v1/auth/mobile-session
  *
- * Validates the iOS session cookie. Tries the JWT (passkey-issued, NextAuth
- * JWT strategy) path first, then falls back to the database session
- * (Apple/Google mobile sign-in). Mirrors GET /api/auth/mobile-session.
+ * Validates the iOS session cookie. Tries the JWT (NextAuth JWT strategy —
+ * every sign-in path issues one) first, then falls back to the database
+ * session that Apple/Google mobile sign-in minted before AWTD-1104, until
+ * those expire. Mirrors GET /api/auth/mobile-session.
  */
 
 import { NextRequest, NextResponse } from 'next/server'

@@ -21,12 +21,14 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { broadcastToUsers } from '@/lib/sse-utils'
+import type { SseEventType } from '@/lib/sse-event-types'
 import { createLogger } from '@/lib/logger'
 import type { V1List, V1UserSummary } from '@/lib/api-contracts/v1-ios-shapes'
 import { resolveDefaultAssignees, pickDefaultAssignee } from '@/lib/default-assignee'
 import { hasListAccess } from '@/lib/list-member-utils'
 import { DEFAULT_LIST_SHOW_SUBTASKS } from '@/lib/list-subtask-visibility'
 import { serializeListAgentFields } from '@/lib/resolve-default-agent'
+import { listSupports } from '@/lib/backends/supports'
 import { overlayListViewPreferences, type ListViewPreferences } from '@/lib/list-view-preferences'
 
 const log = createLogger('lists.v1-list-shape')
@@ -98,6 +100,7 @@ export function shapeV1List(list: V1ListRow, defaultAssignees: Map<string, unkno
     listType: (list.listType ?? 'regular') as V1List['listType'],
     recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
     showSubtasks: list.showSubtasks ?? DEFAULT_LIST_SHOW_SUBTASKS,
+    supports: listSupports(list),
     createdAt: list.createdAt,
     updatedAt: list.updatedAt,
   }
@@ -163,7 +166,7 @@ export async function loadV1ListsForViewers(
 export async function broadcastListEvent(args: {
   listId: string
   recipients: string[]
-  type: string
+  type: SseEventType
   data: Record<string, unknown>
   timestamp?: string
 }): Promise<void> {

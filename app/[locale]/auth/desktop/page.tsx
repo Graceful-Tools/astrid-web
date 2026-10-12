@@ -7,6 +7,10 @@
  * Google, Apple — so the app never handles a credential and gains no sign-in
  * surface of its own.
  *
+ * An optional `provider` (github | google | sso) says which button the user
+ * already tapped in the app; a signed-out user goes straight to it instead of
+ * choosing again. Clients: windows, ios, mac (lib/auth/desktop-handoff.ts).
+ *
  * Nothing on this page decides who the user is. The grant route reads that from
  * the session cookie; these parameters only say which application is asking.
  */
@@ -14,8 +18,10 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import { getUnifiedSession } from "@/lib/session-utils"
-import { validateGrantRequest } from "@/lib/auth/desktop-handoff"
+import { desktopSignInProvider, validateGrantRequest } from "@/lib/auth/desktop-handoff"
+import { AUTH_PROVIDERS } from "@/lib/brand/capabilities"
 import { DesktopHandoffClient } from "./desktop-handoff-client"
+import { DesktopProviderSignIn } from "./desktop-provider-sign-in"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertTriangle, Laptop, Lock } from "lucide-react"
@@ -84,7 +90,23 @@ export default async function DesktopHandoffPage({ searchParams }: PageProps) {
       code_challenge: codeChallenge,
       code_challenge_method: "S256",
     })
-    redirect(`/auth/signin?callbackUrl=${encodeURIComponent(`/auth/desktop?${query.toString()}`)}`)
+    const callbackUrl = `/auth/desktop?${query.toString()}`
+    const signInUrl = `/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`
+
+    // The app already asked which provider (AWTD-1105) — start it directly
+    // rather than make the user choose again.
+    const provider = desktopSignInProvider(one(params.provider), AUTH_PROVIDERS)
+    if (provider) {
+      return (
+        <DesktopProviderSignIn
+          provider={provider}
+          appName={client.name}
+          callbackUrl={callbackUrl}
+          fallbackUrl={signInUrl}
+        />
+      )
+    }
+    redirect(signInUrl)
   }
 
   return (

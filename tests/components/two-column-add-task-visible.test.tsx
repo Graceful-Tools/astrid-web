@@ -14,7 +14,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { buildTask, buildUser } from '../fixtures/domain'
 import { buildTaskList } from '../fixtures/domain'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { MainContent } from '@/components/TaskManager/MainContent/MainContent'
 import type { Task, TaskList, User } from '@/types/task'
 
@@ -62,6 +62,10 @@ const mockTask: Task = buildTask({
 
 const baseProps: any = {
   isMobile: false,
+  // The layout MainContent now reads to decide where Sort & Filters lives
+  // (AWTD-1175). This file's default case is the 2-column one; the 3-column
+  // renders below override it, as they already override the booleans.
+  columnCount: 2,
   mobileView: 'list' as const,
   selectedListId: 'list-1',
   lists: [ownedList],
@@ -164,16 +168,16 @@ describe('Add-task input visibility across desktop layouts', () => {
   })
 
   it('is visible in the 2-column layout', () => {
-    render(<MainContent {...baseProps} is2Column={true} is3Column={false} />)
+    render(<MainContent {...baseProps} />)
 
-    const input = screen.getByPlaceholderText(/add task/i)
+    const input = screen.getByPlaceholderText(/add a task/i)
     expect(input).toBeVisible()
   })
 
   it('stays visible in the 3-column layout', () => {
-    render(<MainContent {...baseProps} is2Column={false} is3Column={true} />)
+    render(<MainContent {...baseProps} columnCount={3} />)
 
-    const input = screen.getByPlaceholderText(/add task/i)
+    const input = screen.getByPlaceholderText(/add a task/i)
     expect(input).toBeVisible()
   })
 
@@ -197,8 +201,7 @@ describe('Add-task input visibility across desktop layouts', () => {
     render(
       <MainContent
         {...baseProps}
-        is2Column={false}
-        is3Column={true}
+        columnCount={3}
         lists={[publicListAdminViaMembers]}
         selectedListId="list-2"
         // The canonical permission helper approves this user (admin via members).
@@ -206,7 +209,102 @@ describe('Add-task input visibility across desktop layouts', () => {
       />,
     )
 
-    expect(screen.getByPlaceholderText(/add task/i)).toBeVisible()
+    expect(screen.getByPlaceholderText(/add a task/i)).toBeVisible()
     expect(screen.queryByText(/copy list/i)).toBeNull()
+  })
+})
+
+describe('desktop list header controls (AWTD-1167, AWTD-1168)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  const header3Col = (props: Record<string, unknown> = {}) =>
+    render(<MainContent {...baseProps} columnCount={3} {...props} />)
+
+  // AWTD-1204: the control hovers ON the line between the add-task box and the
+  // tasks, lined up with the checkbox of the row below. The geometry was
+  // measured rather than eyeballed — `left-[29px]` is 16px (rows wrapper p-4)
+  // + 1px (task card border) + 12px (.task-row px-3), which is the checkbox's
+  // own left edge, and `-bottom-4` centres the 32px control on the border.
+  //
+  // Pinned as classes because jsdom computes no layout: a geometry assertion
+  // here would pass on anything. What this catches is the row being put back
+  // into flow (the `flex justify-end -mb-3` it used to have), or its parent
+  // losing `relative` — which would position it against the viewport.
+  it('sort & filters hovers on the border line, aligned with the task checkbox', () => {
+    header3Col()
+    const filterRow = screen.getByTestId('list-filter-row')
+    expect(filterRow.className).toContain('absolute')
+    expect(filterRow.className).toContain('left-[29px]')
+    expect(filterRow.className).toContain('-bottom-4')
+    // The border runs the full width behind it, so the control must mask the
+    // line rather than let it draw through the icon.
+    expect(filterRow.className).toContain('theme-bg-primary')
+    // Out of flow: it must not re-acquire the margins that made the border
+    // sit below it rather than through it.
+    expect(filterRow.className).not.toContain('justify-end')
+    expect(filterRow.className).not.toContain('-mb-3')
+    // And it needs a positioned ancestor, or `left`/`bottom` resolve against
+    // the viewport and the control lands in the corner of the page.
+    const positioned = filterRow.closest('.relative')
+    expect(positioned).not.toBeNull()
+    expect(positioned!.className).toContain('border-b')
+  })
+
+  // AWTD-1175: the funnel is a 3-column control, and that is the half of the
+  // decision that keeps aa4e7eb0 — sort & filters split out of the shared
+  // modal. Below 3 columns this row is absent BY DESIGN and List Settings
+  // carries the way in instead (see ListSettingsHost's own test). What this
+  // pins is that the two cannot both be false again, which is what left a
+  // narrow layout with no sort or filter control at all.
+  it.each([1, 2])('leaves the funnel out of the %i-column header', columnCount => {
+    render(<MainContent {...baseProps} columnCount={columnCount} />)
+
+    expect(screen.queryByTestId('list-filter-row')).toBeNull()
+  })
+
+  it('sort & filters sits on its own row below "Add a task...", not beside the name', () => {
+    const { container } = header3Col()
+    const input = screen.getByPlaceholderText(/add a task/i)
+    const filterRow = screen.getByTestId('list-filter-row')
+    // DOM order: the input comes before the filter row.
+    expect(input.compareDocumentPosition(filterRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // And the title row keeps only the settings gear.
+    const titleRow = container.querySelector('h1')!.closest('.flex.items-center')!
+    expect(titleRow.querySelector('[data-sort-filters-button]')).toBeNull()
+    expect(titleRow.querySelector('[data-settings-button]')).not.toBeNull()
+  })
+
+  it('the funnel opens this viewer’s Sort & Filters, not the shared list settings', () => {
+    const setShowSettingsPopover = vi.fn()
+    header3Col({ setShowSettingsPopover })
+    fireEvent.click(screen.getByRole('button', { name: /sort/i }))
+    expect(setShowSettingsPopover).not.toHaveBeenCalled()
+  })
+
+  it('system lists get the same row (it opens their fixed settings)', () => {
+    const setShowSettingsPopover = vi.fn()
+    header3Col({ selectedListId: 'today', setShowSettingsPopover })
+    fireEvent.click(screen.getByRole('button', { name: /sort/i }))
+    expect(setShowSettingsPopover).toHaveBeenCalledWith('today')
+  })
+
+  it('the List / Board toggle shows icons only, at every width', () => {
+    header3Col({ hasProjectBoard: true })
+    const toggle = screen.getByTestId('header-list-board-toggle')
+    for (const label of toggle.querySelectorAll('button span')) {
+      expect(label.className).toBe('sr-only')
+    }
+    // Still named for screen readers.
+    expect(screen.getByRole('button', { name: /board/i })).toBeInTheDocument()
+  })
+
+  it('the board view keeps the header: toggle back to the list, and sort & filters', () => {
+    header3Col({ hasProjectBoard: true, taskViewMode: 'board' })
+    expect(screen.getByTestId('header-list-board-toggle')).toBeVisible()
+    expect(screen.getByTestId('list-filter-row')).toBeVisible()
+    // Columns have their own add, so the header's input is not shown there.
+    expect(screen.queryByPlaceholderText(/add a task/i)).toBeNull()
   })
 })

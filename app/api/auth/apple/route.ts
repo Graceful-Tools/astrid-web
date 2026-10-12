@@ -1,21 +1,13 @@
 import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from "next/server"
-import { randomBytes } from "crypto"
 import { createRemoteJWKSet, jwtVerify, JWTPayload } from "jose"
-import { prisma } from "@/lib/prisma"
-import { adoptUnverifiedAccount } from '@/lib/auth/adopt-unverified-account'
 import { resolveAppleIdentity, appleAllowedAudiences } from "@/lib/auth/apple-identity"
-import { createDefaultListsForUser } from "@/lib/default-lists"
+import { completeNativeSignIn } from '@/lib/auth/native-sign-in'
 import { withRateLimitHandlerAsync, authRateLimiter } from "@/lib/rate-limiter"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('auth.apple')
 
-
-// Generate cryptographically secure token
-function generateSecureToken(prefix: string): string {
-  return `${prefix}-${randomBytes(32).toString('hex')}`
-}
 
 // Apple's JWKS endpoint for public keys
 const APPLE_JWKS_URL = new URL("https://appleid.apple.com/auth/keys")
@@ -77,141 +69,22 @@ async function appleSignInHandler(request: NextRequest) {
       return NextResponse.json({ error: "Invalid identity token" }, { status: 401 })
     }
 
-    const appleUserId = verifiedPayload.sub
     // Identity comes ONLY from the verified token — the body email was
     // previously trusted over the claim (account-takeover vector). See
     // lib/auth/apple-identity.ts for the contract.
-    const { email: tokenEmail, emailVerified } = resolveAppleIdentity(verifiedPayload)
+    const { email, emailVerified } = resolveAppleIdentity(verifiedPayload)
 
-    // Returning user: the Apple account row is the primary key.
-    const linkedAccount = await prisma.account.findFirst({
-      where: { provider: "apple", providerAccountId: appleUserId },
+    // Find-or-link-or-create and the session are shared with the other native
+    // routes (AWTD-1104): lib/auth/native-sign-in.ts. The Apple account row is
+    // looked up first, so a returning user signs in without the email claim.
+    return await completeNativeSignIn({
+      provider: 'apple',
+      providerAccountId: verifiedPayload.sub,
+      idToken: identityToken,
+      email,
+      emailTrust: emailVerified ? 'verified' : 'none',
+      profile: { name: typeof fullName === 'string' && fullName ? fullName : null },
     })
-
-    let existingUser =
-      linkedAccount
-        ? await prisma.user.findUnique({
-            where: { id: linkedAccount.userId },
-            include: { accounts: true },
-          })
-        : null
-
-    if (!existingUser) {
-      if (!tokenEmail) {
-        return NextResponse.json({ error: "Email is required" }, { status: 400 })
-      }
-      existingUser = await prisma.user.findUnique({
-        where: { email: tokenEmail },
-        include: { accounts: true }
-      })
-
-      if (existingUser) {
-        // Linking onto an EXISTING account requires Apple to affirm the
-        // email is verified.
-        if (!emailVerified) {
-          log.error({ appleUserId }, "Apple link refused: email not verified by token")
-          return NextResponse.json({ error: "Account verification failed" }, { status: 401 })
-        }
-
-        // Apple has now affirmed ownership; a row found by email had proved
-        // nothing. Passkey signup creates exactly such unverified rows for any
-        // address, so adopt the account and drop those credentials
-        // (task 1a52195f).
-        await adoptUnverifiedAccount(prisma, existingUser, 'apple')
-
-        const appleAccount = existingUser.accounts.find(acc => acc.provider === "apple")
-        if (!appleAccount) {
-          await prisma.account.create({
-            data: {
-              userId: existingUser.id,
-              type: "oauth",
-              provider: "apple",
-              providerAccountId: appleUserId,
-              id_token: identityToken,
-            }
-          })
-        } else if (appleAccount.providerAccountId !== appleUserId) {
-          log.error({ appleUserId }, "Apple user ID mismatch for email:")
-          return NextResponse.json({ error: "Account verification failed" }, { status: 401 })
-        }
-      } else {
-        // Create new user
-        existingUser = await prisma.user.create({
-          data: {
-            email: tokenEmail,
-            name: fullName || tokenEmail.split('@')[0],
-            emailVerified: new Date(),
-            accounts: {
-              create: {
-                type: "oauth",
-                provider: "apple",
-                providerAccountId: appleUserId,
-                id_token: identityToken,
-              }
-            }
-          },
-          include: { accounts: true }
-        })
-
-        // Create default lists for new user
-        await createDefaultListsForUser(existingUser.id)
-      }
-    }
-
-    // Update user info if provided
-    if (existingUser && fullName && !existingUser.name) {
-      existingUser = await prisma.user.update({
-        where: { id: existingUser.id },
-        data: { name: fullName },
-        include: { accounts: true }
-      })
-    }
-
-    if (!existingUser) {
-      throw new Error("Failed to locate or create user for Apple Sign In")
-    }
-
-    // Create session
-    const session = await prisma.session.create({
-      data: {
-        userId: existingUser.id,
-        sessionToken: generateSecureToken('apple'),
-        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
-      }
-    })
-
-    // Generate CSRF token (required for NextAuth POST requests)
-    const csrfToken = generateSecureToken('csrf')
-
-    // Create response with session cookie
-    const response = NextResponse.json({
-      user: {
-        id: existingUser.id,
-        email: existingUser.email,
-        name: existingUser.name,
-        image: existingUser.image,
-      },
-    })
-
-    // Set session cookie (same as web app and mobile-signin)
-    response.cookies.set("next-auth.session-token", session.sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 30 * 24 * 60 * 60, // 30 days
-      path: "/",
-    })
-
-    // Set CSRF token (required for authenticated POST requests)
-    response.cookies.set("next-auth.csrf-token", csrfToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 30 * 24 * 60 * 60, // 30 days
-      path: "/",
-    })
-
-    return response
 
   } catch (error) {
     log.error({ err: error }, "Apple Sign In error:")

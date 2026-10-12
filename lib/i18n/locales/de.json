@@ -7,7 +7,11 @@
     "publicSharedLists": "Öffentliche geteilte Listen",
     "publicLists": "Öffentliche Listen",
     "seeAllCollaborative": "Alle kollaborativen Listen anzeigen →",
-    "seeAllSuggested": "Alle vorgeschlagenen Listen anzeigen →"
+    "seeAllSuggested": "Alle vorgeschlagenen Listen anzeigen →",
+    "hideSidebar": "Seitenleiste ausblenden",
+    "showSidebar": "Seitenleiste einblenden",
+    "hideMessages": "Nachrichten ausblenden",
+    "showMessages": "Nachrichten einblenden"
   },
   "userMenu": {
     "settings": "Einstellungen",
@@ -93,12 +97,8 @@
       "description": "Beschreibung hinzufügen...",
       "comment": "Kommentar schreiben..."
     },
-    "addTaskPlaceholder": "Aufgabe hinzufügen",
-    "addTaskToList": "Aufgabe zu {listName} hinzufügen...",
-    "addTaskToCurrentList": "Aufgabe zur aktuellen Liste hinzufügen...",
-    "addTaskShort": "Aufgabe hinzufügen...",
+    "addTaskPlaceholder": "Aufgabe hinzufügen...",
     "quickAdd": "Schnell hinzufügen...",
-    "addNewTask": "Neue Aufgabe hinzufügen...",
     "wontDo": "Won't do",
     "reopen": "Reopen",
     "status": "Status",
@@ -122,6 +122,16 @@
       "label": "Aufgaben-ID",
       "copy": "Aufgaben-ID kopieren",
       "copied": "{id} kopiert"
+    },
+    "occurrence": {
+      "label": "Wiederholung",
+      "previous": "Vorherige Wiederholung",
+      "next": "Nächste Wiederholung"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Unteraufgabe hinzufügen",
+      "addPlaceholder": "Unteraufgabe hinzufügen…"
     }
   },
   "lists": {
@@ -419,7 +429,8 @@
   "search": {
     "placeholder": "Nach Aufgaben und Benutzern suchen",
     "noResults": "Keine Ergebnisse gefunden",
-    "searching": "Suche läuft..."
+    "searching": "Suche läuft...",
+    "open": "Suchen"
   },
   "listHeaders": {
     "myTasks": "Meine Aufgaben",
@@ -473,6 +484,11 @@
         "sdkNeedsBoth": "Ihr Server braucht beides: diese Zugangsdaten für API-Aufrufe und das Webhook-Secret unten zur Prüfung der Zustellungen.",
         "manage": "Unter Verbindungen verwalten",
         "error": "Zugangsdaten konnten nicht erstellt werden"
+      },
+      "githubConnection": {
+        "title": "GitHub-Verbindung",
+        "description": "Vom Server ausgeführte Coding-Agenten nutzen die GitHub-Verbindung unter Einstellungen → Verbindungen, wo jede verbundene Organisation aufgeführt ist.",
+        "open": "Verbindungen öffnen"
       }
     },
     "apiAccess": {
@@ -754,6 +770,12 @@
         "listDesc": "Das Kontrollkästchen schließt die Aufgabe ab; Priorität und zugewiesene Person haben je eine eigene Zeile.",
         "projectDesc": "Kompakt. Ein Tippen auf das Kontrollkästchen öffnet Priorität, zugewiesene Person, Status und Abschließen."
       },
+      "listImages": {
+        "title": "Listenbilder",
+        "description": "Ein Bild neben jeder Liste in der Seitenleiste und im Listenkopf anzeigen (geräteübergreifend synchronisiert)",
+        "label": "Listenbilder anzeigen",
+        "offDesc": "Wenn aus, zeigt jede Liste stattdessen ihre Farbe."
+      },
       "emailToTask": {
         "title": "E-Mail zu Aufgabe",
         "description": "Erstellen Sie Aufgaben sofort durch Senden von E-Mails an {inboundTaskEmail}",
@@ -954,6 +976,37 @@
         "title": "Entwickler",
         "description": "OAuth-Apps manuell erstellen, die API testen und Assistenten anbinden, die OpenAPI sprechen.",
         "openTester": "API-Tester öffnen"
+      },
+      "github": {
+        "title": "GitHub",
+        "description": "Verbindet {appName} mit deinen GitHub-Konten und -Organisationen. Vom Server ausgeführte Coding-Agenten erstellen darüber Branches und Pull Requests.",
+        "empty": "Noch nicht mit GitHub verbunden.",
+        "connect": "GitHub verbinden",
+        "installAnother": "Weitere Organisation hinzufügen",
+        "refresh": "Repositories aktualisieren",
+        "refreshed": "Repositories aktualisiert",
+        "refreshError": "Repositories konnten nicht aktualisiert werden",
+        "loadError": "Deine GitHub-Verbindung konnte nicht geladen werden",
+        "installError": "Die GitHub-Installation konnte nicht gestartet werden",
+        "organization": "Organisation",
+        "personal": "Persönliches Konto",
+        "repoCountOne": "1 Repository",
+        "repoCountMany": "{count} Repositories",
+        "allRepos": "alle Repositories",
+        "suspended": "Gesperrt",
+        "disconnect": "Trennen",
+        "disconnectTitle": "{account} trennen?",
+        "disconnectDescription": "Coding-Agenten funktionieren in den Repositories von {account} nicht mehr. Die GitHub-App bleibt dort installiert; deinstalliere sie auf GitHub, um sie vollständig zu entfernen.",
+        "disconnected": "{account} getrennt",
+        "disconnectError": "Trennen fehlgeschlagen",
+        "outcomes": {
+          "connected": "GitHub verbunden",
+          "updated": "GitHub-Verbindung aktualisiert",
+          "not_authorized": "Laut GitHub kann dein Konto diese Installation nicht sehen",
+          "already_connected": "Diese Installation ist bereits mit einem anderen Konto verbunden",
+          "verification_unavailable": "Die GitHub-Anmeldung ist auf diesem Server nicht eingerichtet, daher konnte die Installation nicht überprüft werden",
+          "error": "Beim Verbinden mit GitHub ist etwas schiefgelaufen"
+        }
       }
     }
   },
@@ -978,9 +1031,22 @@
     "keyInvalid": "{min}–{max} Buchstaben oder Ziffern, beginnend mit einem Buchstaben",
     "keyRename": "Umbenennen",
     "keyRenameHint": "Aufgaben werden zu {next}; {old} funktioniert weiter",
-    "keyRenameFailed": "Präfix konnte nicht umbenannt werden"
+    "keyRenameFailed": "Präfix konnte nicht umbenannt werden",
+    "createBoard": "Board erstellen",
+    "creatingBoard": "Wird erstellt...",
+    "createBoardFailed": "Board konnte nicht erstellt werden",
+    "disableBoard": "Board deaktivieren",
+    "disablingBoard": "Wird deaktiviert...",
+    "disableBoardFailed": "Board konnte nicht deaktiviert werden",
+    "disableBoardTitle": "Board-Ansicht deaktivieren",
+    "disableBoardBody": "Die Aufgaben bleiben in dieser Liste, aber die Spalten Ready/Doing/Waiting werden entfernt.",
+    "disableBoardNote": "Aufgaben in einer Statusspalte verlieren ihren Status. Erledigte Aufgaben bleiben erledigt."
   },
   "listSettings": {
+    "color": {
+      "label": "Listenfarbe",
+      "custom": "Eigene Farbe"
+    },
     "adminSettings": "Admin-Einstellungen",
     "sortAndFilters": "Sortierung & Filter",
     "sortAndFiltersAreYours": "Nur du siehst diese Einstellungen – sie ändern die Liste für niemanden sonst.",

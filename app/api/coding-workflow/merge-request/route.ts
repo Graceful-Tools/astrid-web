@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { GitHubClient } from '@/lib/github-client'
 import { createLogger } from '@/lib/logger'
 import { completeTask } from '@/services/complete-task'
-import { getBaseUrl } from '@/lib/base-url'
+import { postCommentAs } from '@/services/post-comment-as'
 import { capabilityGate } from '@/lib/brand/capabilities'
 
 const log = createLogger('coding-workflow.merge-request')
@@ -73,6 +73,17 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
+    // Through the comment service, as the agent on the task (AWTD-1106). These
+    // were an uncredentialed fetch to our own v1 API, which refused every one.
+    const postWorkflowComment = async (content: string) => {
+      const posted = await postCommentAs({
+        taskId,
+        authorId: workflow.task.assigneeId ?? session.user.id,
+        content,
+      })
+      if (!posted.ok) log.error({ taskId, error: posted.error }, 'Posting merge comment failed')
+    }
+
     // Initialize GitHub client and merge the PR
     const githubClient = await GitHubClient.forUser(workflow.task.creatorId)
 
@@ -90,20 +101,13 @@ export async function POST(request: NextRequest) {
       log.error({ err: error }, '❌ [Merge Request] Failed to merge PR:')
 
       // Post error comment
-      await fetch(`${getBaseUrl()}/api/v1/tasks/${taskId}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: `❌ **Merge Failed**
+      await postWorkflowComment(`❌ **Merge Failed**
 
 I encountered an error while trying to merge the pull request:
 
 \`${error instanceof Error ? error.message : 'Unknown error'}\`
 
-Please check the GitHub repository and try again, or merge manually.`,
-          type: 'MARKDOWN'
-        })
-      })
+Please check the GitHub repository and try again, or merge manually.`)
 
       return NextResponse.json({ error: 'Failed to merge pull request' }, { status: 500 })
     }
@@ -133,11 +137,7 @@ Please check the GitHub repository and try again, or merge manually.`,
     }
 
     // Post completion comment
-    await fetch(`${getBaseUrl()}/api/v1/tasks/${taskId}/comments`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        content: `🎉 **Implementation Complete!**
+    await postWorkflowComment(`🎉 **Implementation Complete!**
 
 Your code has been successfully merged to the main branch and is now live!
 
@@ -146,10 +146,7 @@ Your code has been successfully merged to the main branch and is now live!
 - ✅ Changes are now live in production
 - ✅ Task marked as completed
 
-Thank you for using ${BRAND.appName} Agent! 🤖`,
-        type: 'MARKDOWN'
-      })
-    })
+Thank you for using ${BRAND.appName} Agent! 🤖`)
 
     log.info('🎉 [Merge Request] Workflow completed successfully')
 

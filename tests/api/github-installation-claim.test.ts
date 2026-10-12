@@ -93,14 +93,16 @@ describe('GitHub App installations cannot be claimed without proof (AWTD-1087)',
   })
 
   it('never lists installations the user has not linked', async () => {
-    mockPrisma.gitHubIntegration.findMany.mockResolvedValue([])
+    mockPrisma.gitHubInstallationAccess.findMany.mockResolvedValue([])
 
-    const res = await listInstallations(getRequest('http://localhost/api/github/installations'))
+    const res = await listInstallations()
     const body = await res.json()
 
-    expect(body.detectedInstallations).toEqual([])
+    expect(body.installations).toEqual([])
     expect(JSON.stringify(body)).not.toContain('victim-org')
     expect(appRequest).not.toHaveBeenCalledWith('GET /app/installations')
+    // Only the caller's own access rows (AWTD-1114).
+    expect(mockPrisma.gitHubInstallationAccess.findMany.mock.calls[0][0].where).toEqual({ userId: ME })
   })
 
   it('has no route that links an installation by id alone', () => {

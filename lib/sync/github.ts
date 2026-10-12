@@ -3,6 +3,8 @@ import { fetchWithTimeout } from '@/lib/ai/clients/fetch-with-timeout'
 import { prisma } from '@/lib/prisma'
 import { decryptFieldStrict, encryptField } from '@/lib/field-encryption'
 import { GITHUB_API_URL as GITHUB_API, GITHUB_WEB_URL } from '@/lib/github/host'
+import { userInstallationReachesRepo } from '@/lib/github/installations'
+import { githubAppUserTokenFor } from '@/lib/github/user-tokens'
 
 /**
  * GitHub Issues sync — server-side helpers.
@@ -31,7 +33,24 @@ export function isValidRepoId(id: string): boolean {
 
 // ── Token access ─────────────────────────────────────────────────────────────
 
-export async function githubTokenFor(userId: string): Promise<string | null> {
+/**
+ * The token to reach `repo` with, as the user (AWTD-1112).
+ *
+ * The GitHub App's user token when one of the user's installations reaches the
+ * repo — that is where Issues sync is moving — else the legacy `repo`-scoped
+ * OAuth token, which reaches every repo the user can see. An App token cannot
+ * see a repo the App is not installed on, so preferring it blindly would 404
+ * every uncovered link. Without `repo`, the legacy token, as before.
+ */
+export async function githubTokenFor(userId: string, repo?: string): Promise<string | null> {
+  if (repo && (await userInstallationReachesRepo(userId, repo))) {
+    const appToken = await githubAppUserTokenFor(userId)
+    if (appToken) return appToken
+  }
+  return legacyGithubTokenFor(userId)
+}
+
+async function legacyGithubTokenFor(userId: string): Promise<string | null> {
   const integration = await prisma.integration.findUnique({
     where: { userId_provider: { userId, provider: 'GITHUB_ISSUES' } },
   })

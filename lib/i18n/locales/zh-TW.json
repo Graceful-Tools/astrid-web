@@ -7,7 +7,11 @@
     "publicSharedLists": "公開共享列表",
     "publicLists": "公開列表",
     "seeAllCollaborative": "查看所有協作列表 →",
-    "seeAllSuggested": "查看所有推薦列表 →"
+    "seeAllSuggested": "查看所有推薦列表 →",
+    "hideSidebar": "隱藏側邊欄",
+    "showSidebar": "顯示側邊欄",
+    "hideMessages": "隱藏訊息",
+    "showMessages": "顯示訊息"
   },
   "userMenu": {
     "settings": "設定",
@@ -93,12 +97,8 @@
       "description": "新增描述...",
       "comment": "寫留言..."
     },
-    "addTaskPlaceholder": "新增工作",
-    "addTaskToList": "新增工作到 {listName}...",
-    "addTaskToCurrentList": "新增工作到目前清單...",
-    "addTaskShort": "新增工作...",
+    "addTaskPlaceholder": "新增工作...",
     "quickAdd": "快速新增...",
-    "addNewTask": "新增工作...",
     "wontDo": "Won't do",
     "reopen": "Reopen",
     "status": "狀態",
@@ -122,6 +122,16 @@
       "label": "任務 ID",
       "copy": "複製任務 ID",
       "copied": "已複製 {id}"
+    },
+    "occurrence": {
+      "label": "重複",
+      "previous": "上一次重複",
+      "next": "下一次重複"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "新增子任務",
+      "addPlaceholder": "新增子任務…"
     }
   },
   "lists": {
@@ -419,7 +429,8 @@
   "search": {
     "placeholder": "搜尋任務和使用者",
     "noResults": "找不到結果",
-    "searching": "搜尋中..."
+    "searching": "搜尋中...",
+    "open": "搜尋"
   },
   "listHeaders": {
     "myTasks": "我的任務",
@@ -473,6 +484,11 @@
         "sdkNeedsBoth": "您的伺服器兩者都需要：用這些憑證呼叫 API，用下方的 Webhook 密鑰驗證投遞。",
         "manage": "在連線中管理",
         "error": "無法建立憑證"
+      },
+      "githubConnection": {
+        "title": "GitHub 連線",
+        "description": "在伺服器上執行的程式設計代理使用「設定 → 連線」中的 GitHub 連線，所有已連接的組織都列在那裡。",
+        "open": "開啟連線"
       }
     },
     "apiAccess": {
@@ -754,6 +770,12 @@
         "listDesc": "核取方塊用於完成任務，優先順序與負責人各佔一列。",
         "projectDesc": "精簡模式。點按核取方塊會開啟優先順序、負責人、狀態與完成。"
       },
+      "listImages": {
+        "title": "清單圖片",
+        "description": "在側邊欄和清單標題中，於每個清單旁顯示圖片（跨裝置同步）",
+        "label": "顯示清單圖片",
+        "offDesc": "關閉後，每個清單改為顯示其顏色。"
+      },
       "emailToTask": {
         "title": "郵件建立任務",
         "description": "透過傳送郵件到{inboundTaskEmail}即時建立任務",
@@ -954,6 +976,37 @@
         "title": "開發者",
         "description": "手動建立 OAuth 應用程式、測試 API，並連接支援 OpenAPI 的助理。",
         "openTester": "開啟 API 測試器"
+      },
+      "github": {
+        "title": "GitHub",
+        "description": "將 {appName} 連接到你的 GitHub 帳號和組織。在伺服器上執行的程式設計代理會透過此連線建立分支和提取要求。",
+        "empty": "尚未連接 GitHub。",
+        "connect": "連接 GitHub",
+        "installAnother": "新增另一個組織",
+        "refresh": "重新整理存放庫",
+        "refreshed": "存放庫已重新整理",
+        "refreshError": "無法重新整理存放庫",
+        "loadError": "無法載入你的 GitHub 連線",
+        "installError": "無法開始 GitHub 安裝",
+        "organization": "組織",
+        "personal": "個人帳號",
+        "repoCountOne": "1 個存放庫",
+        "repoCountMany": "{count} 個存放庫",
+        "allRepos": "所有存放庫",
+        "suspended": "已暫停",
+        "disconnect": "中斷連線",
+        "disconnectTitle": "要中斷 {account} 的連線嗎？",
+        "disconnectDescription": "程式設計代理將無法在 {account} 的存放庫中運作。GitHub 應用程式仍會保持安裝；如要完全移除，請在 GitHub 上解除安裝。",
+        "disconnected": "已中斷 {account} 的連線",
+        "disconnectError": "無法中斷連線",
+        "outcomes": {
+          "connected": "已連接 GitHub",
+          "updated": "GitHub 連線已更新",
+          "not_authorized": "GitHub 表示你的帳號無法檢視該安裝",
+          "already_connected": "該安裝已連接到另一個帳號",
+          "verification_unavailable": "此伺服器未設定 GitHub 登入，因此無法驗證該安裝",
+          "error": "連接 GitHub 時發生錯誤"
+        }
       }
     }
   },
@@ -978,9 +1031,22 @@
     "keyInvalid": "{min}–{max} 個字母或數字，以字母開頭",
     "keyRename": "重新命名",
     "keyRenameHint": "任務將變為 {next}；{old} 仍然有效",
-    "keyRenameFailed": "無法重新命名前綴"
+    "keyRenameFailed": "無法重新命名前綴",
+    "createBoard": "建立看板",
+    "creatingBoard": "正在建立...",
+    "createBoardFailed": "無法建立看板",
+    "disableBoard": "停用看板",
+    "disablingBoard": "正在停用...",
+    "disableBoardFailed": "無法停用看板",
+    "disableBoardTitle": "停用看板檢視",
+    "disableBoardBody": "任務會保留在此清單中，但 Ready/Doing/Waiting 欄將被移除。",
+    "disableBoardNote": "位於狀態欄中的任務將失去其狀態。已完成的任務仍為已完成。"
   },
   "listSettings": {
+    "color": {
+      "label": "清單顏色",
+      "custom": "自訂顏色"
+    },
     "adminSettings": "管理員設定",
     "sortAndFilters": "排序與篩選",
     "sortAndFiltersAreYours": "僅你可見，不會改變其他成員看到的清單。",

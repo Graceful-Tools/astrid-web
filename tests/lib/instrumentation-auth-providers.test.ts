@@ -35,4 +35,11 @@ describe('instrumentation register() and the provider list', () => {
 
     await expect(boot()).resolves.toBeUndefined()
   })
+
+  it('refuses to start with GitHub Projects on and Project Mode off (AWTD-1121)', async () => {
+    process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS = 'true'
+    process.env.NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE = 'false'
+
+    await expect(boot()).rejects.toThrow(/GitHub Projects .* requires Project Mode/)
+  })
 })
