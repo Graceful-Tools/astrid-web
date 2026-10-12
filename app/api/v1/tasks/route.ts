@@ -17,6 +17,7 @@ import { createTaskWithSideEffects, type CreatedTask } from '@/services/task.ser
 import { createLogger } from '@/lib/logger'
 import { getDeletionsSince } from '@/lib/deletion-log'
 import { assigneeIdsOf } from '@/lib/task-assignees'
+import { parseOmittedTaskFields } from '@/lib/tasks/v1-task-omit'
 
 const log = createLogger('v1.tasks')
 
@@ -36,6 +37,11 @@ const log = createLogger('v1.tasks')
  * - offset: Pagination offset (default: 0)
  * - includeComments: true/false (default: false)
  * - updatedSince: ISO timestamp; return only tasks updated after it (delta sync)
+ * - omit: comma-separated fields to leave out — `description`, `listMembers`
+ *   (AWTD-1236). Opt-out, so omitting the param returns the full response as
+ *   before; `description` is ~80% of a full page's bytes. Unrecognised names
+ *   are ignored, and `meta.omitted` reports what the server actually dropped.
+ * - leanListMembers: `1` — the older spelling of `omit=listMembers`
  */
 export const GET = withAuth(
   { scopes: ['tasks:read'], tag: 'v1.tasks' },
@@ -56,11 +62,14 @@ export const GET = withAuth(
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 1000)
     const offset = parseInt(url.searchParams.get('offset') || '0')
     const includeComments = url.searchParams.get('includeComments') === 'true'
-    // Lean mode: omit per-task embedded listMembers (clients resolve membership
-    // from the lists endpoint). Big payload win — the same members were
-    // duplicated across every task sharing a list. Backward-compatible: absent
-    // param → full members as before.
-    const leanListMembers = url.searchParams.get('leanListMembers') === '1'
+    // Lean mode: drop fields this caller does not need (AWTD-1236). Opt-out,
+    // so an absent param returns exactly the response every client gets today;
+    // `description` alone is 80% of a full page, and only the sync needs it.
+    const omit = parseOmittedTaskFields(url.searchParams.get('omit'))
+    // `leanListMembers=1` is the older spelling of `omit=listMembers` and still
+    // works — a client may be sending it. New callers should use `omit`.
+    const leanListMembers =
+      url.searchParams.get('leanListMembers') === '1' || omit.has('listMembers')
     // Delta sync: return only tasks touched since this instant. Optional and
     // purely additive — omitting it leaves the query exactly as it was, which
     // is what keeps this from being a breaking change for existing clients.
@@ -135,7 +144,11 @@ export const GET = withAuth(
         select: {
           id: true,
           title: true,
-          description: true,
+          // Absent from the select, not `false`: that is what leaves the key
+          // out of the row and so out of the JSON. `description: null` already
+          // means "this task has no description", and a client that cannot
+          // tell "not sent" from "empty" overwrites good text with none.
+          ...(omit.has('description') ? {} : { description: true }),
           assigneeId: true,
           assigneeIds: true,
           creatorId: true,
@@ -279,6 +292,11 @@ export const GET = withAuth(
           offset,
           apiVersion: 'v1',
           authSource: auth.source,
+          // What the server actually dropped. A client caching these rows has
+          // to know the records are partial, and an unrecognised `omit` name is
+          // ignored rather than rejected — so this is how a caller sees whether
+          // its request was understood. Absent on a full response.
+          ...(omit.size > 0 ? { omitted: [...omit] } : {}),
         },
       },
       { headers }
