@@ -122,6 +122,11 @@
       "label": "タスクID",
       "copy": "タスクIDをコピー",
       "copied": "{id} をコピーしました"
+    },
+    "occurrence": {
+      "label": "繰り返し",
+      "previous": "前回の繰り返し",
+      "next": "次回の繰り返し"
     }
   },
   "lists": {

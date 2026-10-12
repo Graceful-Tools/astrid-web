@@ -122,6 +122,11 @@
       "label": "ID de tâche",
       "copy": "Copier l'ID de tâche",
       "copied": "{id} copié"
+    },
+    "occurrence": {
+      "label": "Occurrence",
+      "previous": "Occurrence précédente",
+      "next": "Occurrence suivante"
     }
   },
   "lists": {

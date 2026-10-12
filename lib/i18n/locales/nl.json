@@ -122,6 +122,11 @@
       "label": "Taak-ID",
       "copy": "Taak-ID kopiëren",
       "copied": "{id} gekopieerd"
+    },
+    "occurrence": {
+      "label": "Herhaling",
+      "previous": "Vorige herhaling",
+      "next": "Volgende herhaling"
     }
   },
   "lists": {

@@ -122,6 +122,11 @@
       "label": "작업 ID",
       "copy": "작업 ID 복사",
       "copied": "{id} 복사됨"
+    },
+    "occurrence": {
+      "label": "반복",
+      "previous": "이전 반복",
+      "next": "다음 반복"
     }
   },
   "lists": {

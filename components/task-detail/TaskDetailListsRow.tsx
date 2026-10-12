@@ -26,6 +26,7 @@ import { filterLabelLists, isLabelList } from "@/lib/list-flavors"
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { TaskFieldRow } from "./TaskFieldRow"
 import { TaskDetailIdentifierRow } from "./TaskDetailIdentifierRow"
+import { TaskDetailOccurrenceRow } from "./TaskDetailOccurrenceRow"
 import { Globe, Users, X, Check, Hash, List as ListIcon, Tag } from "lucide-react"
 import { useTranslations } from "@/lib/i18n/client"
 import type { Task, TaskList } from "@/types/task"
@@ -222,6 +223,10 @@ export function TaskDetailListsRow({
     {/* TASK ID follows Lists: it exists because of a project list (AWTD-1017).
         Rendered here so TaskFieldEditors does not grow (size ratchet). */}
     <TaskDetailIdentifierRow task={task} availableLists={availableLists} />
+    {/* The occurrence chain follows the task id, for the same reason the id
+        follows Lists: rendered here so TaskFieldEditors does not grow (size
+        ratchet). Renders nothing unless the task is in a spawn-mode series. */}
+    <TaskDetailOccurrenceRow task={task} />
     </>
   )
 }

@@ -77,6 +77,17 @@ export const V1_TASK_READ_INCLUDE = {
   // fields is unaffected, which is what lets the halves ship apart.
   blockedBy: { select: { blockingTaskId: true } },
   blocks: { select: { blockedTaskId: true } },
+  // The occurrence chain, spawn mode only (AWTD-1219, §10.2). `previousOccurrenceId`
+  // is a scalar and already rides this include; the SUCCESSOR is the reverse
+  // relation, and only the server can answer "which task points back at this
+  // one" — a client searching its loaded tasks would show the link when the
+  // successor happened to be in the page and hide it otherwise.
+  //
+  // DETAIL ONLY, deliberately. The chain renders in the detail pane, and the
+  // full task response is already over its wire budget (AWTD-1231), so this
+  // must not ride the list route. `take: 1` because a completed occurrence has
+  // at most one successor.
+  nextOccurrences: { select: { id: true }, take: 1 },
 } as const
 
 /**
@@ -95,8 +106,12 @@ export async function loadV1Task(taskId: string) {
 type V1TaskRow = Prisma.TaskGetPayload<{ include: typeof V1_TASK_READ_INCLUDE }>
 
 function shapeV1Task(task: V1TaskRow) {
+  // The relation is replaced by the flat `nextOccurrenceId` below; shipping the
+  // array as well would put a second spelling of the same fact on the wire.
+  const { nextOccurrences, ...rest } = task
+  void nextOccurrences
   return {
-    ...task,
+    ...rest,
     // Query is newest-first so the cap keeps recent comments; the wire order
     // stays ascending, which is what clients always received (task a86b5bed).
     // Copied, not reversed in place: the row may be shared with the caller.
@@ -105,6 +120,11 @@ function shapeV1Task(task: V1TaskRow) {
     listIds: task.lists?.map(list => list.id) || [],
     // Everyone assigned, `assigneeId` first (AWTD-1190).
     assigneeIds: assigneeIdsOf(task),
+    // The successor, flattened from the relation (AWTD-1219). Null rather than
+    // absent: a client reading the chain wants "no next occurrence" and "this
+    // payload does not carry the chain" to look the same, because on web they
+    // are — only the detail shape carries it at all.
+    nextOccurrenceId: task.nextOccurrences?.[0]?.id ?? null,
     ...({
       blockedBy: task.blockedBy?.map(row => row.blockingTaskId) ?? [],
       blocks: task.blocks?.map(row => row.blockedTaskId) ?? [],

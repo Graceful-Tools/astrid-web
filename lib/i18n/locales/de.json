@@ -122,6 +122,11 @@
       "label": "Aufgaben-ID",
       "copy": "Aufgaben-ID kopieren",
       "copied": "{id} kopiert"
+    },
+    "occurrence": {
+      "label": "Wiederholung",
+      "previous": "Vorherige Wiederholung",
+      "next": "Nächste Wiederholung"
     }
   },
   "lists": {

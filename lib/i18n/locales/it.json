@@ -122,6 +122,11 @@
       "label": "ID attività",
       "copy": "Copia ID attività",
       "copied": "{id} copiato"
+    },
+    "occurrence": {
+      "label": "Occorrenza",
+      "previous": "Occorrenza precedente",
+      "next": "Occorrenza successiva"
     }
   },
   "lists": {

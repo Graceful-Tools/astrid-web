@@ -122,6 +122,11 @@
       "label": "ID de tarea",
       "copy": "Copiar ID de tarea",
       "copied": "{id} copiado"
+    },
+    "occurrence": {
+      "label": "Repetición",
+      "previous": "Repetición anterior",
+      "next": "Repetición siguiente"
     }
   },
   "lists": {

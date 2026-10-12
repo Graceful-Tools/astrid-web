@@ -122,6 +122,11 @@
       "label": "任務 ID",
       "copy": "複製任務 ID",
       "copied": "已複製 {id}"
+    },
+    "occurrence": {
+      "label": "重複",
+      "previous": "上一次重複",
+      "next": "下一次重複"
     }
   },
   "lists": {

@@ -122,6 +122,11 @@
       "label": "Task ID",
       "copy": "Copy task id",
       "copied": "Copied {id}"
+    },
+    "occurrence": {
+      "label": "Occurrence",
+      "previous": "Previous occurrence",
+      "next": "Next occurrence"
     }
   },
   "lists": {
