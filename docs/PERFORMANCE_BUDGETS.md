@@ -17,8 +17,8 @@ Insights was collecting the numbers — see below.
 | Metric | Critical read budget | Source | Last measured |
 |---|---:|---|---|
 | Server latency | p50 <= 250 ms; p95 <= 750 ms | `scripts/measure-api-latency.ts` | 2026-09-11 |
-| Full task response | <= 500 KiB **on the wire** | `scripts/measure-api-latency.ts` | 2026-09-11 |
-| Full list response | <= 250 KiB **on the wire** | `scripts/measure-api-latency.ts` | 2026-09-11 |
+| Full task response | <= 500 KiB **on the wire** | `scripts/measure-api-latency.ts` | 2026-10-12 — **551.8 KiB, OVER** |
+| Full list response | <= 250 KiB **on the wire** | `scripts/measure-api-latency.ts` | 2026-10-12 — 37.3 KiB |
 | Prisma work | <= 4 queries; p95 aggregate query time <= 300 ms | contract tests pin the query shape and count | pinned continuously |
 | Incremental sync response | <= 100 KiB and <= 1 MiB across all pages | `scripts/measure-api-latency.ts` (route not yet added) | never |
 | Server error rate | < 1% | `vercel logs` status codes — sample too small to assert, see below | 2026-09-11, indicative only |
@@ -89,6 +89,54 @@ so the variance is large and network-inclusive — this is a flag to investigate
 not yet a proven server regression. It returns exactly 1000 tasks, the `limit`
 cap, so the payload is at its maximum shape. `GET /api/v1/lists` has margin
 everywhere.
+
+## 2026-10-12 — the full task response is OVER its wire budget, and project fields cannot ride it
+
+Measured with `npx tsx scripts/measure-api-latency.ts`, same recipe as above.
+
+| Route | p50 | p95 | Wire | Decoded | Verdict |
+|---|---:|---:|---:|---:|---|
+| `GET /api/v1/tasks?limit=1000&leanListMembers=1` | 831 ms | 1126 ms | **551.8 KiB** | 2875 KiB | **over the 500 KiB wire budget, and over both latency budgets** |
+| `GET /api/v1/lists` | 187 ms | 188 ms | 37.3 KiB | 81.9 KiB | within budget |
+
+**The size budget is breached, not merely approached.** On 2026-09-11 the same
+route was 439.5 KiB on the wire — 88% of budget. It is now 551.8 KiB, a 112 KiB
+growth in a month, and 10% over. The decoded figure grew with it, 2,301.6 →
+2,875 KiB. Nothing here diagnoses *what* grew; that needs its own look, and it
+has a task.
+
+Latency: p50 831 ms against a 250 ms budget. Only three samples, taken from a
+laptop at night and network-inclusive, so treat it as consistent with the
+2026-09-11 reading (p50 419 ms, also over) rather than as a new regression.
+
+### The project-fields gate (AWTD-1208, spec §9.4.3)
+
+The spec required a 1,000-task x 8-field fixture before `fields` could ride task
+payloads. There is no GitHub-backed board in production with a thousand tasks,
+and `measure-api-latency.ts` is a read-only client that seeds nothing — so the
+fixture is grafted onto the **real** thousand-task response and re-compressed,
+which measures the marginal wire cost against that payload's own
+compressibility.
+
+| | Wire (gzipped) |
+|---|---:|
+| Baseline, 1,000 tasks | 551.8 KiB |
+| With 8 project fields on every task | 594.0 KiB |
+| **Marginal cost of `fields`** | **+42.2 KiB** |
+
+**Compression is the whole story.** Uncompressed, eight entries per task is
+roughly 440 KB over a thousand tasks — more than the entire budget. Gzipped it
+costs 42.2 KiB, because the eight field ids repeat on every task and only the
+two free-text fields carry per-task content. A guess in either direction would
+have been wrong by an order of magnitude.
+
+**Verdict: over budget, so values do not ride list responses.** 594.0 KiB
+against 500 KiB. Note that the +42.2 KiB would have fitted the 60.5 KiB of
+headroom the 2026-09-11 figure left; the headroom is what is gone. Either way
+the spec's rule settles it — *"the budget wins over convenience"* — so
+`GET /api/v1/tasks` carries `fields` only on `?include=fields`, and the detail
+route carries them always, where one task's handful of entries is a few hundred
+bytes.
 
 ## Rows without a source, stated plainly
 

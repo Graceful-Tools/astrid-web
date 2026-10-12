@@ -41,6 +41,7 @@ import { projectItemPages } from '@/lib/github/projects/hydrate'
 import type { BindingProposal, ProjectSchema } from '@/lib/github/projects/bind'
 import type { GraphqlClient } from '@/lib/github/rate-limiter'
 import { createTasksInBulk } from '@/services/task-bulk-create'
+import { applyFieldValues, syncProjectFields } from '@/services/github-project-fields.service'
 
 const log = createLogger('services.github-projects')
 
@@ -49,6 +50,8 @@ export interface BoundBoard {
   projectId: string
   listId: string
   ownerId: string
+  /** PVT_…; lets a page refresh the board's field schema (AWTD-1117). */
+  projectNodeId?: string
   binding: BindingFieldMap
 }
 
@@ -276,8 +279,11 @@ async function applyLabels(
   return writes.length > 0
 }
 
-/** Apply one hydrated page of a project's items to its board. */
-export async function applyProjectItems(board: BoundBoard, items: RemoteProjectItem[]): Promise<ApplySummary> {
+/**
+ * Apply one hydrated page of a project's items to its board. With a `client`,
+ * a project field the board has not met refreshes its field schema (AWTD-1117).
+ */
+export async function applyProjectItems(board: BoundBoard, items: RemoteProjectItem[], client?: GraphqlClient): Promise<ApplySummary> {
   const summary: ApplySummary = { created: 0, updated: 0, left: 0, unchanged: 0, skipped: 0 }
   const contentIds = items.flatMap(item => (item.content?.id && item.type !== 'REDACTED' ? [item.content.id] : []))
 
@@ -395,10 +401,20 @@ export async function applyProjectItems(board: BoundBoard, items: RemoteProjectI
   const relationsChanged = await applyRelations(items, replicaByNode, createdByNode)
   const labelsChanged = await applyLabels(board, items, replicaByNode, createdByNode)
   const assigneesChanged = await applyAssignees(items, replicaByNode, createdByNode)
+  // Project fields (AWTD-1117). An archived item's values leave with it.
+  const fieldsChanged = await applyFieldValues(
+    board,
+    items.flatMap(item => {
+      const nodeId = item.type !== 'REDACTED' ? item.content?.id : undefined
+      const taskId = nodeId ? replicaByNode.get(nodeId)?.id ?? createdByNode.get(nodeId) : undefined
+      return taskId ? [{ item, taskId }] : []
+    }),
+    client,
+  )
 
   // createTasksInBulk clears caches for what it created; updates, leaves,
-  // relationship, label and assignee changes are ours to clear.
-  if (writes.length > 0 || relationsChanged || labelsChanged || assigneesChanged) {
+  // relationship, label, assignee and field changes are ours to clear.
+  if (writes.length > 0 || relationsChanged || labelsChanged || assigneesChanged || fieldsChanged) {
     await RedisCache.invalidate.userTasks(board.ownerId, [board.listId]).catch(err => {
       log.warn({ err, projectId: board.projectId }, 'Failed to clear the board owner’s task cache')
     })
@@ -516,6 +532,8 @@ export async function removeProjectItem(board: BoundBoard, itemNodeId: string): 
   await prisma.$transaction([
     prisma.gitHubProjectItem.update({ where: { itemNodeId }, data: { archived: true } }),
     prisma.task.update({ where: { id: membership.taskId }, data: { lists: { disconnect: { id: board.listId } } } }),
+    // Its values for this project's fields leave with it (AWTD-1117).
+    prisma.taskFieldValue.deleteMany({ where: { taskId: membership.taskId, projectId: board.projectId } }),
   ])
   await RedisCache.invalidate.userTasks(board.ownerId, [board.listId]).catch(() => {})
   return true
@@ -527,8 +545,9 @@ export async function importGitHubProject(projectId: string, client: GraphqlClie
   if (!board) throw new Error(`Project ${projectId} is not bound to GitHub`)
 
   const total: ApplySummary = { created: 0, updated: 0, left: 0, unchanged: 0, skipped: 0 }
+  await syncProjectFields(board, client)
   for await (const items of projectItemPages(client, board.projectNodeId)) {
-    const page = await applyProjectItems(board, items)
+    const page = await applyProjectItems(board, items, client)
     for (const key of Object.keys(total) as Array<keyof ApplySummary>) total[key] += page[key]
   }
   await prisma.gitHubProjectBinding.update({ where: { projectId }, data: { lastReconciledAt: new Date() } })
@@ -564,6 +583,8 @@ export async function updateBindingMapping(projectId: string, patch: BindingPatc
 export async function unbindGitHubProject(projectId: string): Promise<void> {
   await prisma.$transaction([
     prisma.gitHubProjectBinding.delete({ where: { projectId } }),
+    // Fields are GitHub's: a local board never has any (§9.4). Their values cascade.
+    prisma.projectField.deleteMany({ where: { projectId } }),
     prisma.taskList.updateMany({ where: { projectId, backend: GITHUB_PROJECT_BACKEND }, data: { backend: null } }),
     prisma.project.update({ where: { id: projectId }, data: { githubInstallationId: null } }),
   ])
