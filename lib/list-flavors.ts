@@ -151,3 +151,33 @@ export function reconcileGithubLabels(
 
   return { matchedListIds, missingNames }
 }
+
+/**
+ * How many characters of a tag's name a task row shows (AWTD-1206).
+ *
+ * A list name is a title, not a label, and a long one turns a row's tag strip
+ * into a wall. Twelve is what Jon asked for.
+ */
+export const CHIP_LABEL_MAX = 12
+
+/**
+ * A tag's name as a task row shows it: at most `max` characters, with an
+ * ellipsis when it was cut.
+ *
+ * Cut by CHARACTERS rather than by CSS `truncate`, which ellipsises on
+ * available width — so the same list reads differently in a narrow column than
+ * a wide one, and two tags of the same name can disagree on the same screen.
+ * A character cap is the same everywhere and is what makes the strip uniform.
+ *
+ * The cut is trimmed, so a name whose 13th character is a space does not
+ * render as "Hello world …" with a gap before the ellipsis.
+ *
+ * This is only the TEXT. "Never wrap" is `whitespace-nowrap` on the span, and
+ * the chips reflowing onto the next line is the container's `flex-wrap`;
+ * neither belongs here.
+ */
+export function chipLabelText(name: string | null | undefined, max: number = CHIP_LABEL_MAX): string {
+  const value = name ?? ''
+  if (value.length <= max) return value
+  return `${value.slice(0, max).trimEnd()}…`
+}

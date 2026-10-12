@@ -295,6 +295,8 @@ export async function applyProjectItems(board: BoundBoard, items: RemoteProjectI
 
   const creates: Array<{ itemNodeId: string; data: NonNullable<ReturnType<typeof normaliseItem>> }> = []
   const writes: Prisma.PrismaPromise<unknown>[] = []
+  /** Tasks this batch closes because GitHub closed them (AWTD-1118). */
+  const completedOnGitHub: string[] = []
 
   for (const item of items) {
     const replica = item.content ? replicas.get(item.content.id) ?? null : null
@@ -312,6 +314,10 @@ export async function applyProjectItems(board: BoundBoard, items: RemoteProjectI
         break
       case 'update': {
         const taskId = replica!.id
+        // A close that happened on github.com, on a task that was open here.
+        // This write never passes the completion path, so the recurrence
+        // handoff has to be made from here too (AWTD-1118, §10.1).
+        if (plan.patch.completed === true && !replica!.completed) completedOnGitHub.push(taskId)
         writes.push(
           prisma.task.update({
             where: { id: taskId },
@@ -375,6 +381,15 @@ export async function applyProjectItems(board: BoundBoard, items: RemoteProjectI
     })
     summary.created += tasks.length
     for (const task of tasks) createdByNode.set((task as unknown as { remoteNodeId: string }).remoteNodeId, task.id)
+  }
+
+  // A repeating task closed on github.com spawns its next occurrence, exactly
+  // as completing it from Astrid does. Queued, so a GitHub hiccup retries
+  // rather than losing the series; deduped per occurrence, so a close that
+  // Astrid itself made does not spawn a second issue (§10.1).
+  if (completedOnGitHub.length > 0) {
+    const { enqueueRecurrenceForRemoteCompletions } = await import('@/services/github-recurrence.service')
+    await enqueueRecurrenceForRemoteCompletions(completedOnGitHub)
   }
 
   const relationsChanged = await applyRelations(items, replicaByNode, createdByNode)

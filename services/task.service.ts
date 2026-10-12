@@ -983,7 +983,7 @@ export async function updateTaskWithSideEffects(args: {
         return { ok: false, status: 400, error: `Invalid list IDs: ${missing.join(', ')}` }
       }
 
-      const refusing = listRefusingTask(lists, actorId, existingTask.lists)
+      const refusing = listRefusingTask(lists, actorId)
       if (refusing) {
         return { ok: false, status: 403, error: `You don't have permission to add tasks to list: ${refusing.name}` }
       }
