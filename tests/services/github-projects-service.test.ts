@@ -74,7 +74,7 @@ function replicaOf(item: RemoteProjectItem, id: string) {
     parentTaskId: null as string | null,
     parentTask: null as { remoteNodeId: string | null } | null,
     blockedBy: [] as Array<{ blockingTaskId: string }>,
-    lists: [] as Array<{ id: string; remoteNodeId: string | null }>,
+    lists: [] as Array<{ id: string; remoteNodeId: string | null; listType: string }>,
   }
 }
 
@@ -282,10 +282,17 @@ describe('applyProjectItems — labels become label lists (AWTD-1188)', () => {
   const bugList = { id: 'label-bug', remoteNodeId: 'LA_bug', name: 'bug', color: '#d73a4a' }
   const docsList = { id: 'label-docs', remoteNodeId: 'LA_docs', name: 'documentation', color: '#0075ca' }
   const member = [{ itemNodeId: issue.id, archived: false }]
-  /** The issue as already mirrored, carrying these label lists. */
+  /**
+   * The issue as already mirrored, carrying these label lists.
+   *
+   * `listType` is part of the row because the replica read covers both mirrored
+   * flavors since AWTD-1189 — one query for labels and milestones, each pass
+   * filtering to its own. A row without it is a row `applyLabels` does not count
+   * as held, and the task is re-joined to a label it already carries.
+   */
   const carrying = (...lists: Array<{ id: string; remoteNodeId: string }>) => ({
     ...replicaOf(issue, 't0'),
-    lists: lists.map(({ id, remoteNodeId }) => ({ id, remoteNodeId })),
+    lists: lists.map(({ id, remoteNodeId }) => ({ id, remoteNodeId, listType: 'label' })),
   })
 
   it('a label nobody has seen becomes a label list for its repo, and the new task joins it', async () => {
@@ -389,8 +396,10 @@ describe('applyProjectItems — labels become label lists (AWTD-1188)', () => {
     await applyProjectItems(board, [labelled(issue, [])])
 
     expect(db.task.findMany.mock.calls[0][0].select.lists).toEqual({
-      where: { listType: 'label', remoteNodeId: { not: null } },
-      select: { id: true, remoteNodeId: true },
+      // Both mirrored flavors in one read (AWTD-1189), and `listType` selected
+      // so each apply pass can tell its own memberships from the other's.
+      where: { listType: { in: ['label', 'milestone'] }, remoteNodeId: { not: null } },
+      select: { id: true, remoteNodeId: true, listType: true },
     })
   })
 
@@ -509,5 +518,141 @@ describe('bindGitHubProject (AWTD-1151)', () => {
       await bindGitHubProject({ userId: 'user-1', installationId: 1, schema, proposal: proposeBinding(schema) }),
     ).toEqual({ ok: false, status: 409, error: 'already_bound', projectId: 'existing' })
     expect(db.project.create).not.toHaveBeenCalled()
+  })
+})
+
+type Milestone = { id: string; title: string; dueOn: string | null }
+
+/** `item` with a GitHub milestone (the fragment's AWTD-1189 field). */
+function withMilestone(item: RemoteProjectItem, milestone: Milestone | null): RemoteProjectItem {
+  return { ...item, content: { ...item.content!, milestone } }
+}
+
+describe('applyProjectItems — milestones become milestone lists (AWTD-1189)', () => {
+  const [issue] = items
+  const v12: Milestone = { id: 'MI_v12', title: 'v1.2', dueOn: '2026-11-01T07:00:00Z' }
+  const v13: Milestone = { id: 'MI_v13', title: 'v1.3', dueOn: null }
+  const v12List = { id: 'ms-v12', remoteNodeId: 'MI_v12', name: 'v1.2', description: 'Graceful-Fools/wordlesolver · 2026-11-01' }
+  const v13List = { id: 'ms-v13', remoteNodeId: 'MI_v13', name: 'v1.3', description: 'Graceful-Fools/wordlesolver' }
+
+  /** The issue as already mirrored, carrying these milestone lists. */
+  const carrying = (...lists: Array<{ id: string; remoteNodeId: string }>) => ({
+    ...replicaOf(issue, 't0'),
+    lists: lists.map(({ id, remoteNodeId }) => ({ id, remoteNodeId, listType: 'milestone' })),
+  })
+
+  beforeEach(() => {
+    db.gitHubProjectItem.findMany.mockResolvedValue([{ itemNodeId: issue.id, archived: false }])
+  })
+
+  it('a milestone nobody has seen becomes a milestone list, and the task joins it', async () => {
+    db.task.findMany.mockResolvedValue([replicaOf(issue, 't0')])
+    db.taskList.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([v12List])
+
+    await applyProjectItems(board, [withMilestone(issue, v12)])
+
+    expect(db.taskList.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          name: 'v1.2',
+          color: '#64748b',
+          description: 'Graceful-Fools/wordlesolver · 2026-11-01',
+          ownerId: board.ownerId,
+          listType: 'milestone',
+          remoteNodeId: 'MI_v12',
+        },
+      ],
+      skipDuplicates: true,
+    })
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 't0' }, data: { lists: { connect: [{ id: 'ms-v12' }] } } })
+  })
+
+  it('MOVING between milestones leaves the old list — the one way this is not a label', async () => {
+    // A set-valued label plan would connect v1.3 and leave v1.2 on the task
+    // forever, because nothing else ever removes a milestone.
+    db.task.findMany.mockResolvedValue([carrying(v12List)])
+    db.taskList.findMany.mockResolvedValue([v13List])
+
+    await applyProjectItems(board, [withMilestone(issue, v13)])
+
+    expect(db.task.update).toHaveBeenCalledWith({
+      where: { id: 't0' },
+      data: { lists: { connect: [{ id: 'ms-v13' }], disconnect: [{ id: 'ms-v12' }] } },
+    })
+  })
+
+  it('a milestone CLEARED on GitHub takes the task off its milestone list', async () => {
+    db.task.findMany.mockResolvedValue([carrying(v12List)])
+
+    await applyProjectItems(board, [withMilestone(issue, null)])
+
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 't0' }, data: { lists: { disconnect: [{ id: 'ms-v12' }] } } })
+  })
+
+  it('a milestone that already agrees writes nothing', async () => {
+    db.task.findMany.mockResolvedValue([carrying(v12List)])
+    db.taskList.findMany.mockResolvedValue([v12List])
+
+    expect(await applyProjectItems(board, [withMilestone(issue, v12)])).toMatchObject({ unchanged: 1 })
+    expect(db.task.update).not.toHaveBeenCalled()
+  })
+
+  it('a milestone renamed or re-dated on GitHub updates its list, leaving memberships alone', async () => {
+    db.task.findMany.mockResolvedValue([carrying(v12List)])
+    db.taskList.findMany.mockResolvedValue([v12List])
+
+    await applyProjectItems(board, [withMilestone(issue, { ...v12, title: 'v1.2.1', dueOn: '2026-12-01T07:00:00Z' })])
+
+    expect(db.taskList.update).toHaveBeenCalledWith({
+      where: { id: 'ms-v12' },
+      data: { name: 'v1.2.1', description: 'Graceful-Fools/wordlesolver · 2026-12-01' },
+    })
+    expect(db.task.update).not.toHaveBeenCalled()
+  })
+
+  it('a LABEL membership is never mistaken for a milestone one', async () => {
+    // Both flavors ride the same replica read, so the milestone pass must
+    // filter by listType. Reading a label list as "a milestone the task holds"
+    // would disconnect the label on the next hydration.
+    //
+    // The item KEEPS its label here, so `applyLabels` has nothing to write and
+    // any membership write at all would be the milestone pass overreaching.
+    const bugLabel = { id: 'LA_bug', name: 'bug', color: 'D73A4A' }
+    db.task.findMany.mockResolvedValue([
+      { ...replicaOf(issue, 't0'), lists: [{ id: 'label-bug', remoteNodeId: 'LA_bug', listType: 'label' }] },
+    ])
+    db.taskList.findMany.mockResolvedValue([
+      { id: 'label-bug', remoteNodeId: 'LA_bug', name: 'bug', color: '#d73a4a' },
+    ])
+
+    await applyProjectItems(board, [withMilestone(labelled(issue, [bugLabel]), null)])
+
+    expect(db.task.update).not.toHaveBeenCalled()
+  })
+
+  it('an archived item’s milestone is left as it is', async () => {
+    db.task.findMany.mockResolvedValue([carrying(v12List)])
+
+    await applyProjectItems(board, [{ ...withMilestone(issue, null), isArchived: true }])
+
+    // An archived item still LEAVES THE BOARD — that write is the archive
+    // handling and is not this pass's. What must not happen is its milestone
+    // being taken off, which would make an archive look like a milestone change.
+    const milestoneWrites = db.task.update.mock.calls.filter(call =>
+      JSON.stringify((call as unknown[])[0] ?? {}).includes('ms-v12'),
+    )
+    expect(milestoneWrites).toEqual([])
+    expect(db.taskList.createMany).not.toHaveBeenCalled()
+  })
+
+  it('a draft issue carries no milestone and costs no milestone read', async () => {
+    const draft = items.find(item => item.content?.__typename === 'DraftIssue')!
+    db.gitHubProjectItem.findMany.mockResolvedValue([{ itemNodeId: draft.id, archived: false }])
+    db.task.findMany.mockResolvedValue([replicaOf(draft, 't9')])
+
+    await applyProjectItems(board, [draft])
+
+    expect(db.taskList.createMany).not.toHaveBeenCalled()
+    expect(db.task.update).not.toHaveBeenCalled()
   })
 })

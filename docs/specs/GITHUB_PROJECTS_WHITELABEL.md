@@ -611,7 +611,7 @@ Project fields are in §9.4.
 |---|---|---|
 | `Project` | `githubInstallationId BigInt?` | Tenancy (§8.1) |
 | `TaskList` | `backend String?` | The one switch the seam reads |
-| `TaskList` | `remoteNodeId String? @unique` | The GitHub label a label-flavor list mirrors (AWTD-1188) |
+| `TaskList` | `remoteNodeId String? @unique` | The GitHub label a label-flavor list mirrors (AWTD-1188), or the milestone a milestone-flavor list mirrors (AWTD-1189) |
 | `Task` | `remoteNodeId String? @unique`, `remoteKind String?`, `remoteVersion String?` | Identity and the body-conflict base |
 | `Task` | `assigneeIds String[]` | §9.5 |
 | `Task` | `previousOccurrenceId String?` (indexed) | §10 |
@@ -1579,6 +1579,46 @@ closed from here (P5a).
 - **Verified against GitHub.** The grown fragment was run against the test project. No
   fixture issue has a label and the project has no PR, so a non-empty answer has not been
   recorded.
+
+**Milestones slice ([AWTD-1189](https://astrid.cc/t/AWTD-1189)), done. Inbound only. Iterations still open.**
+- **One list per milestone, a fourth list flavor.** An issue's or PR's milestone becomes
+  membership in a `listType: 'milestone'` list (`lib/github/projects/milestones.ts`), keyed by
+  the milestone's node id in `TaskList.remoteNodeId`. **No schema change** — `listType` is a
+  free string and `remoteNodeId` already existed for labels, so this slice is code only.
+- **Why not `virtualListType`.** The task asked whether the existing virtual-list mechanism
+  could express "tasks whose milestone is X" without a new column. It cannot:
+  `lib/virtual-list-utils.ts` is a client-side filter over loaded tasks keyed on a closed enum
+  (`today`, `not-in-list`, `assigned`), with nowhere to name a milestone. Membership answers it
+  instead, for the reason `lib/list-flavors.ts` already gives for labels — *"multi-list
+  membership already is labels"* — and board filtering comes free through `filterInLists`.
+- **At most ONE, which is the only way a milestone is not a label.** `planMilestone` returns
+  the single list to join and EVERY other milestone list to leave, so an issue moved from v1.2
+  to v1.3 stops showing v1.2. Labels, being a set, have no such step; a copy of `planLabels`
+  would have left the old milestone on the task forever, since nothing else would remove it.
+- **`null` is not *absent*.** A null milestone is GitHub saying the issue has none, and the
+  task leaves whichever milestone list it is on. An absent key is an item hydrated without the
+  field and must change nothing. `remoteMilestone` returns `null` only for the second case,
+  and for a draft or a redacted item, which cannot carry one.
+- **Read-only, with its own error.** A milestone change from Astrid is refused 400
+  `github_milestone_read_only` — **not** the label's code, so a client that special-cases one
+  does not silently treat the other as the same refusal. The guard in
+  `lib/backends/github-labels.ts` now covers both flavors through one `GITHUB_MIRRORED_LIST`
+  query rather than a second round trip, and `mirroredListChanged` returns WHICH list changed
+  so the refusal can name it.
+- **`isTagList`.** Labels and milestones are both tags rather than destinations, so
+  `lib/list-flavors.ts` gained the predicate that every chip-or-destination site had really
+  meant by `isLabelList`. The milestone chip renders through the existing tag path with its
+  own glyph; milestones are not offered in the list picker, since adding one would be refused.
+- **Cost.** A milestone is a plain field on the node, not a connection, so the page query's
+  GraphQL cost stayed at 4. Held milestones ride the same replica read as labels — the `where`
+  widened, no extra query — plus one read per page that has milestones and two more when a
+  milestone is new.
+- **Verified against GitHub.** The grown fragment was run against the test project with an
+  installation token: HTTP 200, `milestone: null` on both issues, no key on the draft. No
+  fixture issue carries a milestone and the project has no PR, so a non-empty answer has not
+  been recorded; the unit tests inject one.
+- **Iterations are NOT in this slice.** An iteration is a project field, so it waits on P6a
+  ([AWTD-1117](https://astrid.cc/t/AWTD-1117)) rather than growing a second field store.
 
 **Multiple assignees slice ([AWTD-1190](https://astrid.cc/t/AWTD-1190)), built. Both directions.**
 - **The field.** `Task.assigneeIds String[]` (additive, default empty, not backfilled) and
