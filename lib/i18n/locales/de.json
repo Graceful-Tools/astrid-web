@@ -419,7 +419,8 @@
   "search": {
     "placeholder": "Nach Aufgaben und Benutzern suchen",
     "noResults": "Keine Ergebnisse gefunden",
-    "searching": "Suche läuft..."
+    "searching": "Suche läuft...",
+    "open": "Suchen"
   },
   "listHeaders": {
     "myTasks": "Meine Aufgaben",

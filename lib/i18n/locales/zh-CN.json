@@ -419,7 +419,8 @@
   "search": {
     "placeholder": "搜索任务和用户",
     "noResults": "未找到结果",
-    "searching": "搜索中..."
+    "searching": "搜索中...",
+    "open": "搜索"
   },
   "listHeaders": {
     "myTasks": "我的任务",

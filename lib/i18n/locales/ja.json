@@ -419,7 +419,8 @@
   "search": {
     "placeholder": "タスクとユーザーを検索",
     "noResults": "結果が見つかりません",
-    "searching": "検索中..."
+    "searching": "検索中...",
+    "open": "検索"
   },
   "listHeaders": {
     "myTasks": "マイタスク",

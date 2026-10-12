@@ -419,7 +419,8 @@
   "search": {
     "placeholder": "Buscar tareas y usuarios",
     "noResults": "No se encontraron resultados",
-    "searching": "Buscando..."
+    "searching": "Buscando...",
+    "open": "Buscar"
   },
   "listHeaders": {
     "myTasks": "Mis Tareas",

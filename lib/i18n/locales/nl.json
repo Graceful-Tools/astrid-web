@@ -419,7 +419,8 @@
   "search": {
     "placeholder": "Zoek taken en gebruikers",
     "noResults": "Geen resultaten gevonden",
-    "searching": "Zoeken..."
+    "searching": "Zoeken...",
+    "open": "Zoeken"
   },
   "listHeaders": {
     "myTasks": "Mijn Taken",

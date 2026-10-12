@@ -419,7 +419,8 @@
   "search": {
     "placeholder": "Search for tasks and users",
     "noResults": "No results found",
-    "searching": "Searching..."
+    "searching": "Searching...",
+    "open": "Search"
   },
   "listHeaders": {
     "myTasks": "My Tasks",
