@@ -123,6 +123,11 @@
       "copy": "Copia ID attività",
       "copied": "{id} copiato"
     },
+    "occurrence": {
+      "label": "Occorrenza",
+      "previous": "Occorrenza precedente",
+      "next": "Occorrenza successiva"
+    },
     "subtaskSection": {
       "count": "{done}/{total}",
       "add": "Aggiungi un sottoattività",

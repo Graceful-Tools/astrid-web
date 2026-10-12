@@ -123,6 +123,11 @@
       "copy": "Copiar ID de tarea",
       "copied": "{id} copiado"
     },
+    "occurrence": {
+      "label": "Repetición",
+      "previous": "Repetición anterior",
+      "next": "Repetición siguiente"
+    },
     "subtaskSection": {
       "count": "{done}/{total}",
       "add": "Añadir una subtarea",

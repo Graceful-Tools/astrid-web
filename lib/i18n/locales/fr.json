@@ -123,6 +123,11 @@
       "copy": "Copier l'ID de tâche",
       "copied": "{id} copié"
     },
+    "occurrence": {
+      "label": "Occurrence",
+      "previous": "Occurrence précédente",
+      "next": "Occurrence suivante"
+    },
     "subtaskSection": {
       "count": "{done}/{total}",
       "add": "Ajouter une sous-tâche",

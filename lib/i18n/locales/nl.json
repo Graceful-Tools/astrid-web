@@ -123,6 +123,11 @@
       "copy": "Taak-ID kopiëren",
       "copied": "{id} gekopieerd"
     },
+    "occurrence": {
+      "label": "Herhaling",
+      "previous": "Vorige herhaling",
+      "next": "Volgende herhaling"
+    },
     "subtaskSection": {
       "count": "{done}/{total}",
       "add": "Subtaak toevoegen",
