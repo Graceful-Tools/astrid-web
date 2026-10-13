@@ -23,7 +23,7 @@ Insights was collecting the numbers — see below.
 | Prisma work | <= 4 queries; p95 aggregate query time <= 300 ms | contract tests pin the query shape and count | pinned continuously |
 | Incremental sync response | <= 100 KiB and <= 1 MiB across all pages | `scripts/measure-api-latency.ts` (route not yet added) | never |
 | Server error rate | < 1% | `vercel logs` status codes — sample too small to assert, see below | 2026-09-11, indicative only |
-| Redis cache hit rate | >= 80% after warm-up | `/admin/analytics` → **Redis Cache**, per day, from the `CacheMetricBucket` table | **not yet sampled — needs the deploy carrying the writer** |
+| Redis cache hit rate | >= 80% after warm-up | `/admin/analytics` → **Redis Cache**, per day, from the `CacheMetricBucket` table | 2026-10-11: **50.3% over the last 7 days — UNDER budget**; 71.5% since recording began 2026-09-25. See below |
 | Initial JavaScript | <= 250 KiB compressed | shared baseline only — see below | 2026-09-11 |
 | Core Web Vitals (p75) | LCP <= 2.5 s; INP <= 200 ms; CLS <= 0.1 | Vercel Speed Insights (history, dashboard only) + `scripts/measure-web-vitals.ts` (scriptable, no history yet) — see below | **not yet transcribed** |
 | GitHub Projects webhook ack | p95 <= 300 ms (delivery check, one indexed read, one insert; work runs after the response) | `vercel logs --query projects_v2_item` route timings; shape pinned by `tests/api/github-projects-webhook.test.ts` (AWTD-1152) | **never — no brand has GitHub Projects on yet** |
@@ -341,7 +341,7 @@ cannot hold a sample from a logged-out visitor) is the open question on
 e586eff1 — it buys scriptability, at the price of a second pipeline beside a
 working one and a new production table.
 
-**Redis cache hit rate — it is on the analytics page now; the sample waits on a deploy.**
+**Redis cache hit rate — sampled 2026-10-11, and it is under budget.**
 
 The problem was never that the outcomes were not recorded. PR #260's
 structured `Cache lookup` / `Cache load` events in `lib/redis.ts` are correct
@@ -395,10 +395,31 @@ Three things about what that page shows:
 Buckets are kept 97 days — wider than the 90-day range the page can ask for, so the oldest end of
 a chart is never quietly truncated — and the nightly analytics cron prunes them.
 
-**Still not sampled, and the row says so.** The table is new, so nothing has written a bucket yet:
-the migration and the writer both arrive with a production deploy, and deploys are manual. What
-changed is that after that deploy the number appears by itself, on a page, instead of needing a
-script run that the log ceiling would defeat.
+**The sample, 2026-10-11** — every production `CacheMetricBucket` row, summed with
+`summarizeCacheMetrics` (the function the page uses), read-only:
+
+| Range | Hit rate | Lookups | Instances | Mean lookup | Mean loader |
+|---|---:|---:|---:|---:|---:|
+| Last 24 h | 60.7% | 754 | 113 | 13.9 ms | 28.8 ms |
+| Last 7 days | 50.3% | 3,098 | 640 | 15.5 ms | 33.2 ms |
+| Since the first bucket (2026-09-25 14:00 UTC) | 71.5% | 11,998 | 1,296 | 19.6 ms | 34.7 ms |
+
+1,888 buckets, 8,112 flushed windows, 0 cache errors. Three things the totals hide:
+
+- **The budget was met for six days and has not been met since.** 2026-09-25 to 09-30 ran 78–86%
+  a day (≈83% overall) on 640–1,832 lookups a day. On 2026-10-01 the day's rate was 4.3% on 141
+  lookups, and it has climbed back only to ≈60%. So 71.5% is two different regimes averaged, and
+  neither of them is 71.5%.
+- **The volume fell with it** — roughly 1,400 lookups a day before, 140–730 after. A rate that
+  drops while lookups drop eightfold reads as a mostly-hit caller leaving the cache, not as the
+  cache getting worse at the same work. The cause has **not** been established: no commit in that
+  window touches `lib/redis.ts` or the six `getOrSet` call sites' caching, and the buckets carry no
+  key, so they cannot say which caller left.
+- **A hit is not much cheaper than a miss.** A lookup averages 14–20 ms and a loader 29–35 ms.
+  These are means and not comparable to the percentile rows above, but the gap is what the cache
+  buys, and it is small.
+
+Re-sample from `/admin/analytics` → **Redis Cache**; nothing needs a script any more.
 
 **Server error rate — sample too small to assert.** The Vercel CLI returns only
 ~50 unique log rows per query and pads beyond that, so walking windows across
