@@ -1,4 +1,8 @@
 import { encode } from 'next-auth/jwt'
+import {
+  SESSION_MAX_AGE_SECONDS,
+  authSessionCookieName,
+} from '../../lib/auth/secure-cookies'
 
 /**
  * A signed-in browser for Playwright, without signing in (AWTD-1039).
@@ -17,8 +21,8 @@ import { encode } from 'next-auth/jwt'
  * could run.
  */
 
-/** Matches `session.maxAge` in lib/auth-config.ts. */
-export const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60
+/** Re-exported for callers that build their own cookie. */
+export { SESSION_MAX_AGE_SECONDS }
 
 export interface SessionUser {
   id: string
@@ -43,11 +47,15 @@ export function mintSessionToken(user: SessionUser, secret: string): Promise<str
   })
 }
 
-/** NextAuth prefixes the cookie with `__Secure-` exactly when the origin is HTTPS. */
+/**
+ * The name the server will look for, asked of the server's own helper rather
+ * than restated here (AWTD-1248). The two had drifted apart once already:
+ * `auth-config` keyed the `__Secure-` prefix on `NODE_ENV`, so a state file
+ * written for `http://localhost:3000` named a cookie the production-mode
+ * `next start` CI runs did not read, and half the API answered 401.
+ */
 export function sessionCookieName(baseURL: string): string {
-  return new URL(baseURL).protocol === 'https:'
-    ? '__Secure-next-auth.session-token'
-    : 'next-auth.session-token'
+  return authSessionCookieName({ NEXTAUTH_URL: baseURL })
 }
 
 /** A Playwright storage state holding just the session cookie for `baseURL`. */
