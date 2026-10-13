@@ -15,7 +15,7 @@
  * Usage:
  *   npx tsx scripts/land-and-deploy.ts [--repo <path>] [--list-id <id>]
  *                                      [--dry-run] [--gate] [--max-land <n>]
- *                                      [--include-hand-opened]
+ *                                      [--include-hand-opened] [--pr <n>]
  *
  * Exit codes — chosen so the caller can tell "did not" from "could not":
  *   0  deployed and verified, or nothing to do
@@ -53,6 +53,7 @@ interface Options {
   gate: boolean
   maxLand: number
   includeHandOpened: boolean
+  only: number[]
 }
 
 function parseArgs(argv: string[]): Options {
@@ -73,6 +74,9 @@ function parseArgs(argv: string[]): Options {
     // landing a PR a human opened and may be holding open on purpose. An
     // interactive run owns its own PR and can say so.
     includeHandOpened: argv.includes('--include-hand-opened'),
+    // `--pr 420 --pr 421` lands exactly those. Without it, every landable PR
+    // up to --max-land goes, which is what an unattended tick wants.
+    only: argv.flatMap((arg, i) => (arg === '--pr' ? [Number(argv[i + 1])] : [])).filter(Boolean),
   }
 }
 
@@ -194,6 +198,7 @@ async function main() {
 
   const { land, skipped } = landablePullRequests(openPullRequests(), {
     requireRunnerMarker: !options.includeHandOpened,
+    only: options.only,
   })
   for (const skip of skipped) log(`  #${skip.number} held back — ${skip.why}`)
 

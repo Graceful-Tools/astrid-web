@@ -155,6 +155,35 @@ describe('a PR has to be actually green', () => {
   })
 })
 
+describe('naming the PRs to land', () => {
+  it('lands exactly the ones named, and says why the others were skipped', () => {
+    // From a real mis-land on 2026-10-13: `--max-land 1`, intending to land
+    // #420, landed #385 instead — the cap takes the first LANDABLE pr, and
+    // #420 had a pending preview build at that moment, so another task's green
+    // PR was chosen and deployed. A cap bounds how much ships, not which.
+    const { land, skipped } = landablePullRequests(
+      [pr({ number: 420 }), pr({ number: 385 })],
+      { only: [420] },
+    )
+    expect(land.map(p => p.number)).toEqual([420])
+    expect(skipped).toEqual([{ number: 385, why: 'not named by --pr' }])
+  })
+
+  it('lands everything landable when none is named — the unattended default', () => {
+    const { land } = landablePullRequests([pr({ number: 420 }), pr({ number: 385 })])
+    expect(land.map(p => p.number)).toEqual([420, 385])
+  })
+
+  it('still applies every other rule to a named PR', () => {
+    // --pr says WHICH, never "ignore the checks".
+    const { land } = landablePullRequests(
+      [pr({ number: 420, checks: [...green, { name: 'e2e', bucket: 'fail' }] })],
+      { only: [420] },
+    )
+    expect(land).toHaveLength(0)
+  })
+})
+
 describe('a merge that GitHub accepted counts as landed', () => {
   it('reads the PR state, not the exit code', () => {
     // This script's own first real run, 2026-10-13: `gh pr merge
