@@ -11,8 +11,14 @@ import { TaskDetailBlockersRow } from '@/components/task-detail/TaskDetailBlocke
 import { badgeVariants } from '@/components/ui/badge'
 import type { Task } from '@/types/task'
 
-const apiGet = vi.hoisted(() => vi.fn())
-vi.mock('@/lib/api', () => ({ apiGet, apiPost: vi.fn(), apiDelete: vi.fn() }))
+const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
+vi.mock('@/lib/api', async importOriginal => ({
+  ApiError: (await importOriginal<typeof import('@/lib/api')>()).ApiError,
+  apiGet,
+  apiPost,
+  apiDelete: vi.fn(),
+}))
+const { ApiError } = await import('@/lib/api')
 
 const json = (body: unknown) => ({ json: async () => body })
 
@@ -76,6 +82,44 @@ describe('TaskDetailBlockersRow (AWTD-1002)', () => {
       .filter(text => ['Neighbour', 'Elsewhere', 'Waits on me', 'Self'].includes(text ?? ''))
 
     expect(offered).toEqual(['Neighbour', 'Elsewhere'])
+  })
+})
+
+describe('TaskDetailBlockersRow without a board or a grant (AWTD-1039)', () => {
+  it('sends no /blockers request for a task that is not on a board', async () => {
+    const plain = { id: 'plain', title: 'Plain', statusRole: null, lists: [{ id: 'inbox' }] } as unknown as Task
+    const { container } = render(
+      <TaskDetailBlockersRow task={plain} availableLists={[{ id: 'inbox', name: 'Inbox' } as never]} readOnly={false} />
+    )
+
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(apiGet).not.toHaveBeenCalled()
+    expect(container.innerHTML).toBe('')
+  })
+
+  it('hides the row, rather than offering an Add that will be refused, when the server says not_granted', async () => {
+    apiGet.mockRejectedValue(
+      new ApiError('refused', 403, '/api/v1/tasks/self/blockers', { reason: 'not_granted' }, null)
+    )
+    const { container } = render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+
+    await waitFor(() => expect(apiGet).toHaveBeenCalledTimes(1))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(container.innerHTML).toBe('')
+  })
+
+  it('says a refused cycle is a cycle — the reason ApiError carries in detail', async () => {
+    apiPost.mockRejectedValue(
+      new ApiError('conflict', 409, '/api/v1/tasks/self/blockers', { reason: 'dependency_cycle' }, null)
+    )
+    render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+    await screen.findByRole('link', { name: 'Visible blocker' })
+
+    fireEvent.click(screen.getByTestId('task-detail-add-blocker'))
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'ta' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Neighbour' }))
+
+    await screen.findByText('Those tasks would end up waiting for each other')
   })
 })
 

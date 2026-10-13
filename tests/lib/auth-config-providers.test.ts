@@ -5,6 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { generateKeyPairSync } from 'crypto'
+import { BRAND } from '@/lib/brand/config'
 
 const { linkFederatedIdentity } = vi.hoisted(() => ({ linkFederatedIdentity: vi.fn() }))
 vi.mock('@/lib/auth/federated-identity-linking', () => ({ linkFederatedIdentity }))
@@ -147,6 +148,11 @@ describe('the NextAuth provider list follows NEXT_PUBLIC_BRAND_AUTH_PROVIDERS', 
 
     it('sends the PKCE and state cookies on Apple’s cross-site form_post callback in production', async () => {
       vi.stubEnv('NODE_ENV', 'production')
+      // The cookie overrides now also require an https origin (AWTD-1248):
+      // over plain http a `__Secure-` cookie cannot be set at all, and
+      // `SameSite=None` demands `Secure`, so the block this guards is only
+      // reachable — and only meaningful — on the real production URL.
+      vi.stubEnv('NEXTAUTH_URL', `https://${BRAND.domain}`)
       try {
         const cookies = (await loadAuthConfig()).cookies!
         for (const name of ['pkceCodeVerifier', 'state'] as const) {

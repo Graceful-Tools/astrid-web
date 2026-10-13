@@ -18,6 +18,7 @@ import { githubVerifiedPrimaryEmail } from '@/lib/auth/github-verified-email'
 import { isEmailVerified as isAppleEmailVerified } from '@/lib/auth/apple-identity'
 import { appleClientSecret } from '@/lib/auth/apple-client-secret'
 import { hasAppleWebCredentials } from '@/lib/auth/provider-credentials'
+import { usesSecureAuthCookies } from '@/lib/auth/secure-cookies'
 
 const log = createLogger('auth-config')
 
@@ -400,8 +401,17 @@ const authConfig: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  // Set cookie domain to work across www and non-www in production
-  cookies: process.env.NODE_ENV === "production" ? {
+  // Set cookie domain to work across www and non-www in production.
+  //
+  // Gated on the scheme as well as the mode (AWTD-1248): `NODE_ENV` alone said
+  // `__Secure-` for a production build served over plain http, where the
+  // browser can never set such a cookie and `getToken()` reads the unprefixed
+  // name. `getServerSession` then found nothing and every route that calls
+  // `getUnifiedSession()` without a request answered 401 while the `withAuth`
+  // routes beside them authenticated. Leaving this undefined hands the
+  // decision to NextAuth's own defaults, which read the same scheme — so the
+  // two halves agree either way.
+  cookies: process.env.NODE_ENV === "production" && usesSecureAuthCookies() ? {
     sessionToken: {
       name: `__Secure-next-auth.session-token`,
       options: {
