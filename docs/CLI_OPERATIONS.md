@@ -37,6 +37,42 @@ For project architecture, code patterns, and the per-task coding workflow, see
 >   checking the workflow *as of that commit*. That claim was true, then false, then
 >   true again — all in one day.
 
+**Who may dispatch it: an agent may, once the gates are green (Jon, 2026-10-13).**
+
+> *"Don't move to done until deployed to prod. You can deploy to prod if all tests are
+> green."* — and, asked whether that covered the unattended runner too: *"Interactive
+> sessions and automatic can deploy with clean tests and monitor to make sure it works.
+> Don't block on me."*
+
+MANUAL above describes the **trigger**, not the hand on it. Nothing auto-deploys; a human
+or an agent dispatches it deliberately. What changed is that an agent no longer waits to be
+told, provided it can show the gates were green *on the commit it is shipping*:
+
+```bash
+npm run predeploy                                    # 16/16 on the MERGED main, not just the branch
+gh workflow run production-deployment.yml --ref main \
+  -f skip_tests=false -f allow_destructive_migrations=false
+gh run watch <run-id> --exit-status                  # to completion — not an early green step
+scripts/verify-deployed-sha.sh "$(git rev-parse origin/main)"
+```
+
+Gate it on the **merged** `main`. Branch-green is weaker evidence: on 2026-10-13 all seven
+of a run's PRs were green individually and the gate on the merge still went red.
+
+**Monitoring is the other half of the permission, and the CLI's own success is not it.**
+On 2026-09-18 the job reported FAILED about a deploy that had gone out; another time this
+rule was rewritten from a check made 2m40s into a ~10-minute pipeline. Ask production what
+it is serving (`commitSha`, below) and watch the run to completion.
+
+**Two things an agent still does not decide:**
+- **A pending migration.** It applies during the deploy, before the new code is live
+  (§ *A destructive migration takes TWO deploys*). Check first —
+  `git diff origin/prod origin/main -- prisma/migrations/`. Code-only is the safe case and
+  needs no one; anything pending gets Jon, and `allow_destructive_migrations` stays
+  `false` so the workflow refuses rather than guesses.
+- **A red gate.** "All tests green" is the whole of the permission. A red gate that you
+  believe is a false alarm is still red until you have shown why, on the record.
+
 **The authoritative check is the workflow, never the deployment list:**
 ```bash
 gh run list --workflow=production-deployment.yml --limit 5   # what actually ran
@@ -158,11 +194,13 @@ Production: `astrid.cc` / `www.astrid.cc`. Token lives in `.env.local` as `VERCE
 
 ## 1. Approvals
 
-**Push when the work is done — ASK before DEPLOYING.** Those are two different acts here,
-and the line between them is whether anyone outside sees it. Pushing `main` ships nothing
-(§0: production deploys are `workflow_dispatch` only), so it is how finished work becomes
-reviewable. A production deploy reaches real users, so it waits for explicit approval
-("ship it" / "yes" / "deploy").
+**Push when the work is done — and deploy it when the gates are green (Jon, 2026-10-13).**
+Pushing `main` ships nothing (§0: production deploys are `workflow_dispatch` only), so it is
+how finished work becomes reviewable. A production deploy reaches real users, which used to
+mean it waited for an explicit "ship it"; it no longer does, because work nobody deploys is
+work nobody can use. The condition replaced the approval: green gates on the merged commit,
+then verify what production serves. **A pending migration is the exception that still asks**
+(§0).
 
 Jon, 2026-09-06: *"I want to look at work when you are done. I don't want to tell you to
 push it so I can look at it and then wait."* Asking to push made him wait twice — once for
@@ -174,8 +212,9 @@ report says what landed rather than offering to land it.
 | Code analysis, local edits, local commits, posting task comments, docs | Autonomous |
 | `git push` to main (ships nothing — see §0) | Autonomous, when the work is done |
 | `git merge` (merging a PR) | Autonomous, when the gates are green |
-| `vercel --prod` / `deploy-preview.sh --production` | **Ask first** — this reaches users |
-| Prisma migrations (they apply during the deploy) | **Ask first** — part of the deploy |
+| Production deploy, code-only (`gh workflow run production-deployment.yml`) | Autonomous, when the gates are green on the merged commit — then verify `commitSha` |
+| Production deploy carrying a **pending migration** | **Ask first** — it applies before the new code is live, and a `DROP` cannot be undone by redeploying |
+| `allow_destructive_migrations=true` | **Ask first, always** — only ever true when the code that stopped using the dropped thing is already live |
 | DB destructive ops, file deletions outside the project | **Ask first** |
 
 **Push once, when the run is done — not per task.** A batched push keeps CI and preview
@@ -189,18 +228,27 @@ only when the user asks.
 
 ## 2. "Ship it"
 
-"Ship it" means **deploy** — the push has already happened (§1). When the user says it
-(in-session or as a comment on an Astrid task):
+"Ship it" means **deploy** — the push has already happened (§1). Since 2026-10-13 a green run
+does not wait to be told (§0); "ship it" is now mostly how a *person* asks for it out of turn,
+or how a deploy that was gated on a migration gets its answer.
 
 ```bash
 git checkout main && git pull origin main
 git merge <feature-branch>            # only if on a branch
 git push origin main
-./scripts/deploy-preview.sh --production
-npm run deploy:canary                 # verify production health
-# If working a task: mark it complete
+npm run predeploy                     # the gate that licenses the deploy — on the MERGED main
+gh workflow run production-deployment.yml --ref main \
+  -f skip_tests=false -f allow_destructive_migrations=false
+gh run watch "$(gh run list --workflow=production-deployment.yml --limit 1 \
+  --json databaseId --jq '.[0].databaseId')" --exit-status
+scripts/verify-deployed-sha.sh "$(git rev-parse HEAD)"   # what production is actually serving
+# If working a task: mark it complete — AFTER the line above passes
 npx tsx scripts/complete-task-with-workflow.ts <taskId>
 ```
+
+Dispatching the workflow is preferred over `./scripts/deploy-preview.sh --production`: the
+workflow runs the migration gate and the health check, and only it advances the `prod` branch
+and tag. The script deploys the **working directory** and moves neither.
 
 When "ship it" arrives as a task comment, first fetch the task + its PR:
 ```bash
