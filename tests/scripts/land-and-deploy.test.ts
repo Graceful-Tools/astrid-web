@@ -11,6 +11,7 @@ import {
   carriesTaskId,
   deployLanded,
   deployVerdict,
+  landedDespiteError,
   landablePullRequests,
   pendingMigrations,
   summary,
@@ -151,6 +152,22 @@ describe('a PR has to be actually green', () => {
 
   it('leaves a draft alone', () => {
     expect(landablePullRequests([pr({ isDraft: true })]).land).toHaveLength(0)
+  })
+})
+
+describe('a merge that GitHub accepted counts as landed', () => {
+  it('reads the PR state, not the exit code', () => {
+    // This script's own first real run, 2026-10-13: `gh pr merge
+    // --delete-branch` merged #419 server-side, then failed doing local git
+    // work on a dirty tree ("Your local changes … would be overwritten by
+    // checkout"). The non-zero exit said failure about an already-merged PR,
+    // so the run reported "could not land #419" and deployed that very merge
+    // moments later. Unattended, a deploy goes out while the chat says nothing
+    // landed — which is why the exit code is no longer trusted.
+    expect(landedDespiteError('MERGED')).toBe(true)
+    expect(landedDespiteError('OPEN')).toBe(false)
+    expect(landedDespiteError('CLOSED')).toBe(false)
+    expect(landedDespiteError(undefined)).toBe(false)
   })
 })
 

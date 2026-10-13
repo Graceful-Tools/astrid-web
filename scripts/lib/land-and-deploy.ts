@@ -163,6 +163,27 @@ export function pendingMigrations(diffOutput: string): string[] {
   return [...dirs].sort()
 }
 
+/**
+ * Did the merge land, despite `gh pr merge` exiting non-zero?
+ *
+ * Learned the hard way on 2026-10-13, on this script's own first real run.
+ * `gh pr merge --delete-branch` merges server-side and THEN does local git
+ * work to tidy the branch up — and the local half failed on a dirty tree:
+ *
+ *   failed to run git: error: Your local changes to the following files would
+ *   be overwritten by checkout: scripts/land-and-deploy.ts
+ *
+ * So the exit code said failure about a PR that was already merged, and the
+ * script reported "could not land #419" while the deploy it then dispatched
+ * shipped exactly that merge. Unattended, that is the worst shape of wrong: a
+ * deploy goes out and the list chat says nothing landed.
+ *
+ * The exit code is therefore not the answer — GitHub is. Ask it.
+ */
+export function landedDespiteError(stateAfterAttempt: string | undefined): boolean {
+  return stateAfterAttempt === 'MERGED'
+}
+
 export type DeployVerdict =
   | { deploy: true }
   | { deploy: false; code: number; reason: string }

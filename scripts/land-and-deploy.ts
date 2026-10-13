@@ -14,7 +14,8 @@
  *
  * Usage:
  *   npx tsx scripts/land-and-deploy.ts [--repo <path>] [--list-id <id>]
- *                                      [--dry-run] [--no-gate]
+ *                                      [--dry-run] [--gate] [--max-land <n>]
+ *                                      [--include-hand-opened]
  *
  * Exit codes — chosen so the caller can tell "did not" from "could not":
  *   0  deployed and verified, or nothing to do
@@ -34,6 +35,7 @@ import {
   RUNNER_PR_MARKER,
   carriesTaskId,
   deployLanded,
+  landedDespiteError,
   deployVerdict,
   landablePullRequests,
   pendingMigrations,
@@ -50,6 +52,7 @@ interface Options {
   dryRun: boolean
   gate: boolean
   maxLand: number
+  includeHandOpened: boolean
 }
 
 function parseArgs(argv: string[]): Options {
@@ -66,6 +69,10 @@ function parseArgs(argv: string[]): Options {
     // a big deploy. Capped so the first tick after this shipped does not land a
     // backlog of green runner PRs at once; the rest go on the next tick.
     maxLand: Number(value('--max-land') ?? 5),
+    // The runner-marker check is the UNATTENDED safeguard: it keeps a tick from
+    // landing a PR a human opened and may be holding open on purpose. An
+    // interactive run owns its own PR and can say so.
+    includeHandOpened: argv.includes('--include-hand-opened'),
   }
 }
 
@@ -98,6 +105,15 @@ function succeeds(command: string, args: string[], timeoutMs = 600_000): boolean
 }
 
 const log = (line: string) => console.log(line)
+
+/** Tidy up the merged branch. Best effort: a leftover branch harms nothing. */
+function deleteRemoteBranch(branch: string): void {
+  try {
+    run('gh', ['api', '-X', 'DELETE', `repos/{owner}/{repo}/git/refs/heads/${branch}`])
+  } catch {
+    // Already gone (the repo may delete on merge), or protected. Either is fine.
+  }
+}
 
 async function servingSha(): Promise<string | null> {
   try {
@@ -133,7 +149,8 @@ function openPullRequests(): PullRequestSummary[] {
   ) as PullRequestSummary[]
 
   const isCandidate = (pr: PullRequestSummary) =>
-    carriesTaskId(pr.headRefName) && (pr.body ?? '').includes(RUNNER_PR_MARKER)
+    carriesTaskId(pr.headRefName) &&
+    (options.includeHandOpened || (pr.body ?? '').includes(RUNNER_PR_MARKER))
 
   return listed.map(pr => {
     if (!isCandidate(pr)) return pr
@@ -175,7 +192,9 @@ function openPullRequests(): PullRequestSummary[] {
 async function main() {
   run('git', ['fetch', 'origin', '--quiet'])
 
-  const { land, skipped } = landablePullRequests(openPullRequests())
+  const { land, skipped } = landablePullRequests(openPullRequests(), {
+    requireRunnerMarker: !options.includeHandOpened,
+  })
   for (const skip of skipped) log(`  #${skip.number} held back — ${skip.why}`)
 
   const take = land.slice(0, Math.max(0, options.maxLand))
@@ -192,11 +211,33 @@ async function main() {
       continue
     }
     try {
-      run('gh', ['pr', 'merge', String(pr.number), '--merge', '--delete-branch'])
+      // No `--delete-branch`: it merges server-side and then does LOCAL git
+      // work, which fails on a dirty tree and makes a successful merge look
+      // like a failure (see landedDespiteError). The remote branch is tidied
+      // separately, where failing costs nothing.
+      run('gh', ['pr', 'merge', String(pr.number), '--merge'])
       log(`  landed #${pr.number} (${pr.headRefName})`)
       landed.push(pr.number)
+      deleteRemoteBranch(pr.headRefName)
     } catch (error) {
-      log(`  ⚠️  could not land #${pr.number}: ${(error as Error).message.split('\n')[0]}`)
+      // The exit code is not the answer; GitHub is.
+      let state: string | undefined
+      try {
+        state = (
+          JSON.parse(run('gh', ['pr', 'view', String(pr.number), '--json', 'state'])) as {
+            state?: string
+          }
+        ).state
+      } catch {
+        state = undefined
+      }
+      if (landedDespiteError(state)) {
+        log(`  landed #${pr.number} (${pr.headRefName}) — gh reported an error after merging`)
+        landed.push(pr.number)
+        deleteRemoteBranch(pr.headRefName)
+      } else {
+        log(`  ⚠️  could not land #${pr.number}: ${(error as Error).message.split('\n')[0]}`)
+      }
     }
   }
 
