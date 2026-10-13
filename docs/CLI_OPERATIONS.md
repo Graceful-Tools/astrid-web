@@ -272,6 +272,12 @@ npx tsx scripts/get-astrid-tasks.ts   # pull tasks (arg: web | ios | all; defaul
 npx tsx scripts/fixall-session.ts acquire --pid $PPID --harness claude-code   # exit 2: use a worktree
 ```
 
+That acquire now also **pauses both scheduled loops**, on every Astrid repo on this Mac,
+for as long as your session lives (AWTD-1212). There is nothing to undo: the pause is
+keyed on your process, so it clears when the session exits, and `release` clears it
+immediately. The loops take the same lock with `--scheduled`, which registers them
+without pausing anything — otherwise each loop would stand down for the other forever.
+
 The scheduled `/fixall` loop (`scripts/fixall-loop.sh`) runs in this checkout every half
 hour, and the lock is the only thing that tells it someone is here. On 2026-10-05 a tick
 started while an unlocked session was between commits on `main`, then saved that
@@ -297,8 +303,32 @@ soon as a tick reaches the queue.
 | Guard | Skips when | Knob |
 |-------|------------|------|
 | 1 — one session per tree | another **live** session holds the lock | take the lock, and release it when you stop |
+| 1b — someone is working | any live interactive lock **on this Mac**, or an explicit pause | `npm run fixall:pause` / `npm run fixall:resume` |
 | 2 — never clobber work | tree dirty, off `main`, or `main` ahead of origin | `FIXALL_FORCE=1` (testing only) |
 | 2b — machine buried | 5-minute load average over cores × 4 | `FIXALL_MAX_LOAD`, `FIXALL_MAX_LOAD_PER_CPU` |
+
+### Pausing the loops while you work
+
+A Claude session that takes the lock needs nothing else — that is guard 1b. For work the
+loops cannot see (plain Xcode, a manual build, a profiling run):
+
+```bash
+npm run fixall:pause                        # 2 hours, the default
+npm run fixall:pause -- 45m "xcode profiling"
+npm run fixall:pause -- status              # who is working, what is paused, how long is left
+npm run fixall:resume
+```
+
+**An explicit pause is always bounded** — capped at 8 hours and always expiring on its
+own. Nothing dies to clear it, unlike a session's registration, and an unbounded silent
+mute is exactly the 2026-10-09 outage: the web loop worked one task in 48 ticks for 15½
+hours without saying so. A pause that outlasts `FIXALL_STUCK_ALERT_MINUTES` posts to
+board chat like any other long skip.
+
+Both forms are honoured by the web loop and by astrid-ios's loop, which reads this
+repo's `scripts/fixall-pause.ts`. A paused tick is **skipped, not deferred** — the loops
+lose those ticks rather than queueing them, which is the price of not having a run and
+your work fight over the same Mac.
 
 Guard 2b exists because a run needs a green `npm run predeploy` to finish a task, and on
 2026-10-10 two runs could not get one: predeploy went red twice on test timeouts in

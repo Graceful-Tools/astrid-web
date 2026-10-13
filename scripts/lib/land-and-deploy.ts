@@ -80,9 +80,15 @@ export function taskIdsInBranch(branch: string): string[] {
  */
 export function landablePullRequests(
   prs: PullRequestSummary[],
-  options: { requireRunnerMarker?: boolean } = {},
+  options: { requireRunnerMarker?: boolean; only?: number[] } = {},
 ): LandDecision {
   const requireMarker = options.requireRunnerMarker ?? true
+  // `only` exists because of a real mis-land. Running with `--max-land 1` to
+  // land one specific PR landed a DIFFERENT one: the cap takes the first
+  // LANDABLE pr, and the intended PR happened to have a pending preview build,
+  // so a green PR from another task was chosen instead and deployed. A cap
+  // bounds how much ships; it does not express which. This does.
+  const only = options.only?.length ? new Set(options.only) : null
   const land: PullRequestSummary[] = []
   const skipped: Array<{ number: number; why: string }> = []
 
@@ -92,7 +98,9 @@ export function landablePullRequests(
     const pending = checks.filter(check => check.bucket === 'pending')
     const passing = checks.filter(check => check.bucket === 'pass')
 
-    if (!carriesTaskId(pr.headRefName)) {
+    if (only && !only.has(pr.number)) {
+      skipped.push({ number: pr.number, why: 'not named by --pr' })
+    } else if (!carriesTaskId(pr.headRefName)) {
       skipped.push({ number: pr.number, why: `not the loop's work (${pr.headRefName})` })
     } else if (requireMarker && !(pr.body ?? '').includes(RUNNER_PR_MARKER)) {
       skipped.push({ number: pr.number, why: 'not opened by the runner — a human merges this one' })

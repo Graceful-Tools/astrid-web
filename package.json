@@ -118,6 +118,8 @@
     "test:caching": "tsx --env-file=.env.local scripts/test-progressive-caching.ts",
     "monitor:cache": "./scripts/monitor-cache-usage.sh",
     "fixall:loop": "./scripts/fixall-loop.sh",
+    "fixall:pause": "tsx scripts/fixall-pause.ts",
+    "fixall:resume": "tsx scripts/fixall-pause.ts resume",
     "work:start": "tsx scripts/worktree-start.ts",
     "work:done": "tsx scripts/worktree-cleanup.ts",
     "work:list": "tsx scripts/worktree-list.ts",
