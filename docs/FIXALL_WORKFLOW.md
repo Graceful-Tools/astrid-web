@@ -324,7 +324,8 @@ create_task { listId: "<target board id>", title: "[web] <what the other side mu
 
 **Then keep the original honest.** Do the half you can and say plainly what remains. Do not
 close a task while users are still affected. A merged branch is not a deployed one: astrid-web
-does not auto-deploy, so `main` having the fix changes nothing until someone deploys.
+does not auto-deploy, so `main` having the fix changes nothing until someone deploys — which,
+since 2026-10-13, is the run's own job on web (*Deploying is part of finishing*, below).
 
 ---
 
@@ -529,9 +530,11 @@ Two things this does NOT change:
   per fix exhausted the Xcode Cloud allotment on 2026-08-18, after which every run was created
   and cancelled before it started. One build carries several tasks, so the completion reports
   have to carry the per-task detail.
-- **Anything that reaches real users still waits for an explicit go-ahead** — an App Store
-  submission on iOS/Mac (or a local `:upload`), a production deploy on web. Pushing is not
-  shipping in either repo, which is exactly why pushing needs no permission and shipping does.
+- **Pushing is not shipping in either repo**, which is exactly why pushing needs no
+  permission. What shipping then requires differs by repo, and since 2026-10-13 it differs a
+  lot: an App Store submission on iOS/Mac (or a local `:upload`) still waits for an explicit
+  go-ahead, because a release there is slow to correct and reaches users through review. A
+  **production deploy on web does not** — see *Deploying is part of finishing*.
 
 **A finished task branch gets a PR, so it is actually asked for review.** On 2026-09-29 four
 completed tasks (AWTD-1007, 1024, 1025, 1035) sat on pushed branches with no PR: the board said
@@ -541,3 +544,66 @@ claimed and completed, every unmerged branch whose name or commits carry the tas
 titled by the task, with its completion report as the body. So **put the task id in the branch
 name or the commit message**, or the runner cannot find the work. An interactive `/fixall` can
 run `gh` and opens its own. A PR the runner could not open is posted to the list chat.
+
+## Deploying is part of finishing — web only (Jon, 2026-10-13)
+
+**On web, a task is not done until production serves it.**
+
+> *"Don't move to done until deployed to prod. You can deploy to prod if all tests are
+> green."* Then, asked whether the unattended runner got the same permission as an
+> interactive session: *"Interactive sessions and automatic can deploy with clean tests and
+> monitor to make sure it works. Don't block on me."*
+
+This replaced "DONE when it is committed on its branch with `npm run predeploy` green", which
+stopped one step short of anyone being able to use the work. Three tasks in two runs were
+called done while no user could reach them: AWTD-839 committed-but-unpushed for seventeen
+days, AWTD-1039 pushed with no PR for four, then with a red check nobody looked at.
+
+**iOS/Mac is unchanged.** A release there goes through App Store review, so it still waits for
+an explicit go-ahead. This section is web's, and the asymmetry is the point: a web deploy is
+fast to correct, a submission is not.
+
+### The sequence
+
+```bash
+npm run predeploy                                    # on the MERGED main — 16/16
+git diff origin/prod origin/main -- prisma/migrations/   # EMPTY, or it is Jon's call
+gh workflow run production-deployment.yml --ref main \
+  -f skip_tests=false -f allow_destructive_migrations=false
+gh run watch <run-id> --exit-status
+scripts/verify-deployed-sha.sh "$(git rev-parse origin/main)"
+```
+
+**Gate the merged `main`, not the branch.** Branch-green is weaker evidence than it looks: on
+2026-10-13 seven PRs were each green and the gate on the merge still went red.
+
+**Monitoring is half the permission, and the CLI's own exit code is not monitoring.** On
+2026-09-18 the deploy job reported FAILED about a deploy that had gone out, and the health
+check — being `needs:` that job — was skipped on the one run where production was actually
+down. Ask production what it is serving. `scripts/verify-deployed-sha.sh` is that question;
+`/api/health` reports `VERCEL_GIT_COMMIT_SHA` as `commitSha`.
+
+### What stays a human's call
+
+- **A pending migration.** It applies in a job that runs *before* the deploy and does not
+  depend on it, so a `DROP` lands while the code that stops reading it is still pending.
+  That took production down on 2026-09-18 and a redeploy cannot undo it. A non-empty
+  migration diff means: do not deploy, say so on the task, leave it **incomplete**.
+- **`allow_destructive_migrations`.** Always `false` from a loop. It exists so a human can
+  state, on the record, that the code is already live.
+- **A red gate.** Red is red. A gate you believe is a false alarm is still red until the
+  reason is written down — a stale `.next/types` artifact produced exactly this on
+  2026-10-13 (AWTD-1245), and the deploy waited for the explanation.
+
+### Scheduled runs: the runner deploys, not the session
+
+`gh` is denied inside a scheduled `claude -p` session, so the session cannot dispatch a
+workflow any more than it can open a PR. The runner does it after the run
+(`scripts/land-and-deploy.ts`, called from `scripts/fixall-loop.sh` next to
+`scripts/open-fixall-prs.ts`): it lands this run's PRs **once their checks are green**, gates
+the merged `main`, dispatches the deploy, waits for production to serve that commit, and posts
+the outcome to the list chat.
+
+The checks on a PR the runner just opened are not green yet — they take about ten minutes — so
+it lands the PRs from **previous** runs and leaves this run's to the next tick. A loop that
+waited would burn its watchdog on CI.
