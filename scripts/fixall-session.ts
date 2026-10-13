@@ -6,6 +6,15 @@
  *   npx tsx scripts/fixall-session.ts status
  *   npx tsx scripts/fixall-session.ts release --pid $PPID
  *
+ * AN INTERACTIVE ACQUIRE ALSO PAUSES THE SCHEDULED LOOPS, on every repo on this
+ * Mac (AWTD-1212). The lock alone could not: it is per working tree, while the
+ * contention is per machine — working astrid-ios buries the Mac for the web
+ * loop's predeploy just as thoroughly as working astrid-web does. The
+ * registration is keyed on process liveness, so it needs no resume step and
+ * cannot outlive the session. `--scheduled` registers WITHOUT pausing anything,
+ * which is what the loops themselves pass: otherwise each loop would read its
+ * own registration and stand down forever.
+ *
  * PASS `$PPID`, NOT THE SCRIPT'S OWN PID. The lock is only useful if it names a
  * process that outlives the command that took it, and this script exits in
  * milliseconds. Inside an agent's shell `$PPID` is the harness session itself
@@ -29,6 +38,11 @@ import {
   readFixallSession,
   isProcessAlive,
 } from './lib/fixall-session-lock'
+import {
+  defaultFixallStateDir,
+  registerHolder,
+  unregisterHolder,
+} from './lib/fixall-pause'
 
 const HELD_EXIT_CODE = 2
 
@@ -44,7 +58,9 @@ function flag(name: string): string | undefined {
 function main(): void {
   const command = process.argv[2]
   if (!command || !['acquire', 'release', 'status'].includes(command)) {
-    console.error('Usage: fixall-session.ts <acquire|release|status> [--pid <pid>] [--harness <name>]')
+    console.error(
+      'Usage: fixall-session.ts <acquire|release|status> [--pid <pid>] [--harness <name>] [--scheduled]',
+    )
     process.exit(1)
   }
 
@@ -74,6 +90,9 @@ function main(): void {
   }
 
   if (command === 'release') {
+    // Before the lock check, and regardless of its outcome: a session that is
+    // going away must never leave the scheduled loops paused behind it.
+    unregisterHolder({ stateDir: defaultFixallStateDir(), pid })
     const outcome = releaseFixallSession({ gitDir, pid })
     if (outcome.status === 'held-by-other') {
       console.error(
@@ -121,11 +140,27 @@ function main(): void {
     return
   }
 
+  // The tree is ours. Publish the pause last, so nothing is paused by a call
+  // that went on to be refused.
+  const scheduled = process.argv.includes('--scheduled')
+  if (!scheduled) {
+    registerHolder({
+      stateDir: defaultFixallStateDir(),
+      pid,
+      harness: flag('harness') ?? 'unknown',
+      worktree,
+      now: new Date(),
+    })
+  }
+
   console.log(
     outcome.status === 'reacquired'
       ? `Still holding ${worktree} (pid ${pid})`
       : `Acquired ${worktree} (pid ${pid})`,
   )
+  if (!scheduled) {
+    console.log('  the scheduled /fixall loops will stand down until this session exits')
+  }
 }
 
 main()
