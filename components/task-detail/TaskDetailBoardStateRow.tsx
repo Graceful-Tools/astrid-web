@@ -18,9 +18,9 @@ import { TaskFieldRow } from "./TaskFieldRow"
 import { useTranslations } from "@/lib/i18n/client"
 import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
 import {
+  applyProjectColumnTo,
   getProjectBoardColumns,
   getTaskProjectColumnId,
-  resolveProjectColumnMove,
 } from "@/lib/project-status"
 import {
   getProjectIdForTask,
@@ -69,19 +69,13 @@ export function TaskDetailBoardStateRow({
   // order between renders as a task's board membership resolves.
   if (!visible) return null
 
-  const moveTo = (columnId: string) => {
-    const column = columns.find(candidate => candidate.id === columnId)
-    if (!column) return
-    // The board's own planner, so a state set here and a card dragged into a
-    // column cannot mean different things — including the stale `listType:
-    // 'status'` membership it strips.
-    const move = resolveProjectColumnMove(task, column, availableLists)
-    const listById = new Map(availableLists.map(entry => [entry.id, entry]))
-    const nextLists = move.listIds
-      .map(listId => listById.get(listId))
-      .filter((entry): entry is TaskList => Boolean(entry))
-    onUpdate({ ...task, completed: move.completed, lists: nextLists, statusRole: move.statusRole } as Task)
-  }
+  // The board's own planner, shared with the task menu, so a state set here,
+  // one set there and a card dragged into a column cannot mean different
+  // things — including the stale `listType: 'status'` membership it strips.
+  // The menu used a second planner that stripped nothing, which is why a
+  // status set there looked like it did nothing at all (AWTD-1253).
+  const moveTo = (columnId: string) =>
+    applyProjectColumnTo(task, columnId, columns, availableLists, onUpdate)
 
   return (
     <TaskFieldRow label={t('tasks.boardState')} icon={<LayoutGrid className="w-4 h-4" />}>
