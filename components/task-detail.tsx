@@ -25,7 +25,9 @@ import { TaskFieldEditors } from "./task-detail/TaskFieldEditors"
 import { PriorityAssigneePicker } from "./priority-assignee-picker"
 import { usesCompactTaskDetail } from "@/lib/task-display-mode"
 import { isSomeoneElsesTask } from "@/lib/task-leading-control"
-import { boardColumnsFor, resolveColumnMove, taskColumnId } from "@/lib/task-status"
+import { boardColumnsFor, taskColumnId } from "@/lib/task-status"
+import { taskMenuDuplicatesPaneControls } from "@/lib/task-detail-project-state"
+import { applyProjectColumnTo } from "@/lib/project-status"
 import { TaskModals } from "./task-detail/TaskModals"
 import { TaskHeader } from "./task-detail/TaskHeader"
 import { TaskActivitySection } from "./task-detail/TaskActivitySection"
@@ -711,6 +713,11 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
   const [optionsOpen, setOptionsOpen] = useState(false)
   const statusColumns = useMemo(() => boardColumnsFor(null), [])
 
+  // AWTD-1252 and AWTD-1253; both rules are stated at their source.
+  const menuDuplicates = taskMenuDuplicatesPaneControls({ task, availableLists, displayMode, readOnly })
+  const applyStatusColumn = (columnId: string) =>
+    applyProjectColumnTo(task, columnId, statusColumns, availableLists, onUpdate)
+
   const handleToggleComplete = async () => {
     const newCompleted = !tempCompleted
 
@@ -1310,14 +1317,8 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         onDelete={handleDeleteClick}
         onTestReminder={handleTestReminder}
         onCancel={handleSetClosedReason}
-        onStatusSelect={columnId => {
-          // Same helper the board and the row use, so a status set from the
-          // menu and a card dragged into a column cannot mean different things
-          // — including that Done means completed rather than a role
-          // (task ba1a4c4c).
-          const move = resolveColumnMove(task, columnId)
-          onUpdate({ ...task, statusRole: move.statusRole, completed: move.completed })
-        }}
+        onStatusSelect={menuDuplicates.status ? undefined : applyStatusColumn}
+        hideCopyIdentifier={menuDuplicates.copyIdentifier}
         compact={inline}
         fullScreen={canFullScreen ? fullScreen : undefined}
         onToggleFullScreen={canFullScreen ? () => setFullScreen(value => !value) : undefined}
@@ -1344,8 +1345,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
           statusColumns={statusColumns}
           selectedColumnId={taskColumnId(task)}
           onStatusSelect={columnId => {
-            const move = resolveColumnMove(task, columnId)
-            onUpdate({ ...task, statusRole: move.statusRole, completed: move.completed })
+            applyStatusColumn(columnId)
             setOptionsOpen(false)
           }}
           completed={Boolean(task.completed)}
