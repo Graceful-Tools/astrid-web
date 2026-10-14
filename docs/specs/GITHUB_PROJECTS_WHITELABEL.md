@@ -1633,6 +1633,10 @@ closed from here (P5a).
   A task that leaves its GitHub board drops to one assignee at its next assignment.
 - **`list.supports`.** v1 lists now carry `supports: { multipleAssignees }`, true only on a
   GitHub-backed list. The other §11.2 keys arrive with their own slices.
+- **`list.backend`** (AWTD-1256). `"github_project"` or an explicit `null`, on both v1 list
+  read paths and the live list events. A client asks `supports` what a list can do and
+  `backend` what it is — gating on a `supports` key to identify a GitHub list holds only
+  while every key happens to derive from `backend`. `remote` / `syncState` are next.
 - **Authorisation.** The update path's gate is `authorizeAssigneeWrite`: every person added
   goes through `authorizeAssigneeChange`, and nobody already assigned is re-checked.
 - **An agent is first or not at all** (400 `agent_must_be_first_assignee`). A run is keyed
