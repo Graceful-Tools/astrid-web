@@ -23,6 +23,7 @@
 import type { Task, TaskList } from '@/types/task'
 import { VIRTUAL_DONE_COLUMN_ID, type ProjectBoardColumn } from '@/lib/project-status'
 import { usesCompactTaskDetail } from '@/lib/task-display-mode'
+import { shouldShowTaskIdentifier } from '@/lib/task-identifier-links'
 
 export interface TaskDetailProjectStateVisibility {
   /** The viewer's Appearance setting: 'list' | 'project'; absent means list. */
@@ -144,4 +145,44 @@ export function isTaskInProject(
  */
 export function projectStateChips(columns: ProjectBoardColumn[]): ProjectBoardColumn[] {
   return columns.filter(column => column.id !== VIRTUAL_DONE_COLUMN_ID)
+}
+
+/**
+ * Which task-menu controls would merely repeat what the pane already shows
+ * (AWTD-1252)?
+ *
+ * Jon asked for status and "copy task id" out of the task-detail menu. They
+ * come out where the pane shows them, and stay where it does not — each is the
+ * only control in a case the detail rows do not cover, so removing either
+ * outright is a silent regression:
+ *
+ * - **Status.** `TaskDetailBoardStateRow` renders only for a task on a project
+ *   list, in a non-`project` mode (`showsTaskDetailProjectState` above). On an
+ *   ordinary list the menu is the only way to reach `statusRole: "ready"` —
+ *   which is exactly what `get_agent_queue` requires, and what task ba1a4c4c
+ *   put the control in the menu for: a user could otherwise assign a dozen
+ *   tasks to an agent and get `empty: true` for ever with nothing saying why.
+ * - **Copy task id.** `TaskDetailIdentifierRow` needs a project list too, and
+ *   lib/task-identifier-links.ts states the menu's rule in as many words:
+ *   "Copy task id is offered whenever an id exists, shown or not."
+ *
+ * Stated here beside the row's own visibility rule rather than at the call
+ * site, for that rule's reason — and because `components/task-detail.tsx` is
+ * budgeted by tests/rules/oversized-files-ratchet.test.ts, which asks for the
+ * next piece to come out rather than for the number to go up.
+ */
+export function taskMenuDuplicatesPaneControls(args: {
+  task: Task
+  availableLists: TaskList[]
+  displayMode?: string | null
+  readOnly: boolean
+}): { status: boolean; copyIdentifier: boolean } {
+  return {
+    status: showsTaskDetailProjectState({
+      displayMode: args.displayMode,
+      isInProject: isTaskInProject(args.task, args.availableLists),
+      isReadOnly: args.readOnly,
+    }),
+    copyIdentifier: shouldShowTaskIdentifier(args.task, 'details', args.availableLists),
+  }
 }

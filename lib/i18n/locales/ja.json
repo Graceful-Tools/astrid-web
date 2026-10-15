@@ -9,7 +9,9 @@
     "seeAllCollaborative": "すべてのコラボリストを見る →",
     "seeAllSuggested": "すべてのおすすめリストを見る →",
     "hideSidebar": "サイドバーを隠す",
-    "showSidebar": "サイドバーを表示"
+    "showSidebar": "サイドバーを表示",
+    "hideMessages": "メッセージを隠す",
+    "showMessages": "メッセージを表示"
   },
   "userMenu": {
     "settings": "設定",
@@ -97,10 +99,10 @@
     },
     "addTaskPlaceholder": "タスクを追加...",
     "quickAdd": "クイック追加...",
-    "wontDo": "Won't do",
-    "reopen": "Reopen",
+    "wontDo": "対応しない",
+    "reopen": "再開",
     "status": "ステータス",
-    "wontDoChip": "Won't do",
+    "wontDoChip": "対応しない",
     "when": "日時",
     "createdBy": "作成者",
     "confirmCompleteTitle": "このタスクを完了しますか？",
@@ -120,6 +122,16 @@
       "label": "タスクID",
       "copy": "タスクIDをコピー",
       "copied": "{id} をコピーしました"
+    },
+    "occurrence": {
+      "label": "繰り返し",
+      "previous": "前回の繰り返し",
+      "next": "次回の繰り返し"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "サブタスクを追加",
+      "addPlaceholder": "サブタスクを追加…"
     }
   },
   "lists": {
@@ -417,7 +429,8 @@
   "search": {
     "placeholder": "タスクとユーザーを検索",
     "noResults": "結果が見つかりません",
-    "searching": "検索中..."
+    "searching": "検索中...",
+    "open": "検索"
   },
   "listHeaders": {
     "myTasks": "マイタスク",

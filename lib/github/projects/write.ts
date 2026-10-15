@@ -151,12 +151,15 @@ const CONTENT_SELECTION: Record<Exclude<WritableTask['remoteKind'], 'pull_reques
  * a GitHub board means remove from project). Joining one adds the content.
  */
 /**
- * An assignee change, as GitHub node ids (resolved by the caller). Agents are
- * never GitHub assignees (§8.6): assigning one arrives here as `to: null`.
+ * An assignee change, as GitHub node ids (resolved by the caller): exactly the
+ * difference (AWTD-1190), so an assignee Astrid cannot name is never removed.
+ * Agents are never GitHub assignees (§8.6) and never appear here. A draft
+ * takes its whole list at once, which is `set`.
  */
 export interface AssigneeChange {
-  from: string | null
-  to: string | null
+  add: string[]
+  remove: string[]
+  set: string[]
 }
 
 export interface MembershipChanges {
@@ -203,26 +206,26 @@ export function planRemoteUpdate(
   }
 
   // ── Assignee ──────────────────────────────────────────────────────────
-  if (assignee && assignee.from !== assignee.to) {
+  if (assignee && (assignee.add.length > 0 || assignee.remove.length > 0)) {
     if (task.remoteKind === 'draft') {
       b.add(
         'updateProjectV2DraftIssue',
-        { draftIssueId: ['ID!', task.remoteNodeId], assigneeIds: ['[ID!]', assignee.to ? [assignee.to] : []] },
+        { draftIssueId: ['ID!', task.remoteNodeId], assigneeIds: ['[ID!]', assignee.set] },
         'draftIssue { id updatedAt }',
         true,
       )
     } else {
-      if (assignee.from) {
+      if (assignee.remove.length > 0) {
         b.add(
           'removeAssigneesFromAssignable',
-          { assignableId: ['ID!', task.remoteNodeId], assigneeIds: ['[ID!]!', [assignee.from]] },
+          { assignableId: ['ID!', task.remoteNodeId], assigneeIds: ['[ID!]!', assignee.remove] },
           'clientMutationId',
         )
       }
-      if (assignee.to) {
+      if (assignee.add.length > 0) {
         b.add(
           'addAssigneesToAssignable',
-          { assignableId: ['ID!', task.remoteNodeId], assigneeIds: ['[ID!]!', [assignee.to]] },
+          { assignableId: ['ID!', task.remoteNodeId], assigneeIds: ['[ID!]!', assignee.add] },
           'clientMutationId',
         )
       }

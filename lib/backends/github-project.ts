@@ -23,15 +23,23 @@
  *
  * GitHub's own news (ctx.origin 'remote') is accepted as is. Delete is still
  * refused here: P5c.
+ *
+ * An agent's assignment is not the user's edit to GitHub: when the brand
+ * mirrors it (AWTD-1191), the `agent:<name>` label is queued for the App bot
+ * and the write never waits on it.
  */
 
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { hasCapability } from '@/lib/brand/capabilities'
+import { agentLabelName, type AgentLabelPayload } from '@/lib/github/projects/agent-labels'
 import type { BindingFieldMap } from '@/lib/github/projects/apply'
+import { assigneeIdsOf, nextAssigneeIds } from '@/lib/task-assignees'
 import {
   planRemoveFromProjects,
   planRemoteUpdate,
   versionFromResult,
+  type AssigneeChange,
   type MembershipChanges,
   type WritableMembership,
   type WritableTask,
@@ -66,6 +74,8 @@ query ContentVersion($id: ID!) {
 export interface GithubBackendDeps {
   /** The acting user's client; null when they have no usable App token. */
   userClient: (userId: string) => Promise<GraphqlClient | null>
+  /** Does this brand mirror agent assignment as a label? Defaults to the capability. */
+  agentLabels?: () => boolean
 }
 
 type BoardMembership = WritableMembership & { listId: string | null; projectId: string }
@@ -76,7 +86,9 @@ async function loadWritable(
   task: WritableTask
   memberships: BoardMembership[]
   detached: boolean
-  assignee: { id: string; githubNodeId: string | null; isAIAgent: boolean } | null
+  installationId: number | null
+  /** Everyone assigned today, primary first (AWTD-1190). */
+  assigneeIds: string[]
 } | null> {
   const row = await prisma.task.findUnique({
     where: { id: taskId },
@@ -91,7 +103,8 @@ async function loadWritable(
       statusRole: true,
       priority: true,
       dueDateTime: true,
-      assignee: { select: { id: true, githubNodeId: true, isAIAgent: true } },
+      assigneeId: true,
+      assigneeIds: true,
       githubProjectItems: {
         where: { archived: false },
         select: {
@@ -100,6 +113,7 @@ async function loadWritable(
             select: {
               projectId: true,
               projectNodeId: true,
+              installationId: true,
               detachedAt: true,
               project: { select: { lists: { where: { backend: 'github_project' }, select: { id: true }, take: 1 } } },
               statusFieldId: true,
@@ -115,9 +129,10 @@ async function loadWritable(
   })
   if (!row?.remoteNodeId || !row.remoteKind) return null
   return {
-    assignee: row.assignee,
+    assigneeIds: assigneeIdsOf(row),
     task: { ...row, remoteNodeId: row.remoteNodeId, remoteKind: row.remoteKind as WritableTask['remoteKind'] },
     detached: row.githubProjectItems.some(m => m.binding.detachedAt !== null),
+    installationId: row.githubProjectItems[0]?.binding.installationId ?? null,
     memberships: row.githubProjectItems.map(m => ({
       projectId: m.binding.projectId,
       listId: m.binding.project.lists[0]?.id ?? null,
@@ -183,22 +198,67 @@ function membershipRows(
 }
 
 /**
- * The assignee change as GitHub node ids, or a refusal. An agent is never a
- * GitHub assignee (§8.6): assigning one only unassigns the previous person.
- * A person who has not authorised the App has no node id yet.
+ * The assignee change as GitHub node ids — exactly who was added and who was
+ * removed (AWTD-1190) — or a refusal. An agent is never a GitHub assignee
+ * (§8.6): assigning one adds nobody there. A person who has not authorised
+ * the App has no node id yet, so cannot be added.
+ *
+ * `agentLabels` is set when an agent came or went: the label of every agent
+ * assigned after the write (AWTD-1191).
  */
 async function assigneeChange(
   data: TaskBackendRow,
-  current: { id: string; githubNodeId: string | null; isAIAgent: boolean } | null,
-): Promise<{ change?: { from: string | null; to: string | null }; refused?: string }> {
-  if (!('assigneeId' in data) || (data.assigneeId ?? null) === (current?.id ?? null)) return {}
-  const from = current && !current.isAIAgent ? current.githubNodeId : null
-  const nextId = data.assigneeId as string | null
-  if (!nextId) return { change: { from, to: null } }
-  const next = await prisma.user.findUnique({ where: { id: nextId }, select: { githubNodeId: true, isAIAgent: true } })
-  if (next?.isAIAgent) return { change: { from, to: null } }
-  if (!next?.githubNodeId) return { refused: 'github_assignee_not_linked' }
-  return { change: { from, to: next.githubNodeId } }
+  current: string[],
+): Promise<{ change?: AssigneeChange; agentLabels?: string[]; refused?: string }> {
+  if (!('assigneeId' in data) && !('assigneeIds' in data)) return {}
+  // The service writes both. A caller that writes assigneeId alone replaces the first entry.
+  const written = Array.isArray(data.assigneeIds)
+    ? ({ ok: true, assigneeIds: data.assigneeIds as string[] } as const)
+    : nextAssigneeIds({ current, intent: { assigneeId: data.assigneeId as string | null }, multiple: true })
+  const next = written.ok ? written.assigneeIds : current
+  const added = next.filter(id => !current.includes(id))
+  const removed = current.filter(id => !next.includes(id))
+  if (added.length === 0 && removed.length === 0) return {}
+
+  const users = await prisma.user.findMany({
+    where: { id: { in: [...next, ...removed] } },
+    select: { id: true, githubNodeId: true, isAIAgent: true, email: true, name: true },
+  })
+  const agents = new Map(users.filter(user => user.isAIAgent).map(user => [user.id, agentLabelName(user)]))
+  const nodeIdOf = new Map(
+    users.filter(user => !user.isAIAgent && user.githubNodeId).map(user => [user.id, user.githubNodeId as string]),
+  )
+  if (added.some(id => !agents.has(id) && !nodeIdOf.has(id))) return { refused: 'github_assignee_not_linked' }
+  const nodeIds = (ids: string[]) => ids.flatMap(id => (nodeIdOf.has(id) ? [nodeIdOf.get(id) as string] : []))
+  const agentLabels = [...added, ...removed].some(id => agents.has(id))
+    ? next.flatMap(id => agents.get(id) ?? [])
+    : undefined
+  return { change: { add: nodeIds(added), remove: nodeIds(removed), set: nodeIds(next) }, agentLabels }
+}
+
+const agentLabelKey = (remoteNodeId: string) => `agent-label:${remoteNodeId}`
+
+/**
+ * Queue the labels an issue should carry for its agents. One job per issue,
+ * holding the latest answer: a second change before the first has run
+ * replaces it, so two can never land out of order.
+ */
+async function queueAgentLabels(installationId: number, remoteNodeId: string, labels: string[]): Promise<void> {
+  const payload = { remoteNodeId, labels } satisfies AgentLabelPayload
+  const pending = { payload, installationId, attempts: 0, runAfter: new Date(), doneAt: null, error: null }
+  await prisma.gitHubSyncJob.upsert({
+    where: { dedupeKey: agentLabelKey(remoteNodeId) },
+    create: { kind: 'agent_label', dedupeKey: agentLabelKey(remoteNodeId), ...pending },
+    update: pending,
+  })
+}
+
+/** The labels of the agents among a new task's assignees. */
+async function agentLabelsOf(data: TaskBackendRow): Promise<string[]> {
+  const ids = Array.isArray(data.assigneeIds) ? (data.assigneeIds as string[]) : data.assigneeId ? [data.assigneeId as string] : []
+  if (ids.length === 0) return []
+  const agents = await prisma.user.findMany({ where: { id: { in: ids }, isAIAgent: true }, select: { email: true, name: true } })
+  return agents.flatMap(agent => agentLabelName(agent) ?? [])
 }
 
 /** A GitHub failure as a backend refusal, in the v1 vocabulary (§11.2). */
@@ -319,6 +379,8 @@ function acceptCreated(data: TaskBackendRow, content: CreatedContent, projectId:
 }
 
 export function createGithubProjectTaskBackend(deps: GithubBackendDeps): TaskBackend {
+  const mirrorsAgents = deps.agentLabels ?? (() => hasCapability('githubAgentLabels'))
+
   return {
     kind: 'github_project',
 
@@ -406,6 +468,12 @@ export function createGithubProjectTaskBackend(deps: GithubBackendDeps): TaskBac
         })
       }
 
+      // A draft has no labels: its agent assignment stays in the replica.
+      if (content.remoteKind !== 'draft' && mirrorsAgents()) {
+        const labels = await agentLabelsOf(data)
+        if (labels.length > 0) await queueAgentLabels(binding.installationId, content.remoteNodeId, labels)
+      }
+
       return { ok: true, value: acceptCreated(data, content, binding.projectId, syncState) }
     },
 
@@ -439,11 +507,20 @@ export function createGithubProjectTaskBackend(deps: GithubBackendDeps): TaskBac
       if (!loaded || loaded.detached) return refusal
 
       const changes = await membershipChanges(data, loaded.memberships)
-      const assignee = await assigneeChange(data, loaded.assignee)
+      const assignee = await assigneeChange(data, loaded.assigneeIds)
       if (assignee.refused) return fail(400, assignee.refused)
       const plan = planRemoteUpdate(loaded.task, loaded.memberships, data, changes, assignee.change)
       if ('refused' in plan) return fail(400, `github_${plan.refused}`)
-      if (!plan.document) return { ok: true, value: data } // nothing GitHub owns changed
+
+      // A draft has no labels: its agent assignment stays in the replica.
+      const mirrorAgents = async () => {
+        if (!assignee.agentLabels || loaded.task.remoteKind === 'draft' || loaded.installationId === null) return
+        if (mirrorsAgents()) await queueAgentLabels(loaded.installationId, loaded.task.remoteNodeId, assignee.agentLabels)
+      }
+      if (!plan.document) {
+        await mirrorAgents()
+        return { ok: true, value: data } // nothing GitHub owns changed
+      }
 
       const client = await deps.userClient(ctx.actorId)
       if (!client) return fail(403, 'auth_required')
@@ -459,6 +536,7 @@ export function createGithubProjectTaskBackend(deps: GithubBackendDeps): TaskBac
         }
         const result = await client.query<Record<string, unknown>>(plan.document, plan.variables, { strict: true })
         const remoteVersion = versionFromResult(result, plan.versionAliases)
+        await mirrorAgents()
         return {
           ok: true,
           value: {

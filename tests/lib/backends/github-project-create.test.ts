@@ -18,7 +18,9 @@ import { Prisma } from '@prisma/client'
 const outbox = vi.hoisted(() => new Map<string, Record<string, unknown>>())
 const db = vi.hoisted(() => ({
   taskList: { findFirst: vi.fn() },
+  user: { findMany: vi.fn() },
   gitHubSyncJob: {
+    upsert: vi.fn(),
     create: vi.fn(),
     findUnique: vi.fn(),
     updateMany: vi.fn(),
@@ -137,6 +139,37 @@ describe('create on a GitHub board (AWTD-1116 P5b)', () => {
     const result = await backend.createTask(ctx, data())
     expect(mutations(sent)).toEqual(['addProjectV2DraftIssue', 'updateProjectV2ItemFieldValue'])
     expect(result).toMatchObject({ ok: true, value: { remoteKind: 'draft', identifier: null, remoteNodeId: 'DI_lADOFEb-HM4BmXS2zgLViGU' } })
+  })
+
+  describe('created already assigned to an agent (AWTD-1191)', () => {
+    const claude = { email: 'claude@agents.example', name: 'Claude Agent' }
+    const assigned = () => data({ assigneeId: 'ai-agent-claude' })
+
+    it('an issue queues its agent:<name> label when the brand mirrors agents', async () => {
+      db.user.findMany.mockResolvedValue([claude])
+      const { client } = userClient(load('create-issue.json'), load('create-add-item.json'), OK_FIELDS)
+      const backend = createGithubProjectTaskBackend({ userClient: async () => client, agentLabels: () => true })
+
+      expect(await backend.createTask(ctx, assigned())).toMatchObject({ ok: true })
+      expect(db.gitHubSyncJob.upsert.mock.calls[0][0].create).toMatchObject({
+        kind: 'agent_label',
+        installationId: 169651419,
+        payload: { remoteNodeId: 'I_kwDOVCns8c8AAAABWUFWOA', labels: ['agent:claude'] },
+      })
+    })
+
+    it('a draft queues nothing, and neither does a brand that does not mirror agents', async () => {
+      db.user.findMany.mockResolvedValue([claude])
+      db.taskList.findFirst.mockResolvedValue(boardWith(null))
+      const draft = userClient(load('create-draft.json'), OK_FIELDS)
+      await createGithubProjectTaskBackend({ userClient: async () => draft.client, agentLabels: () => true }).createTask(ctx, assigned())
+
+      db.taskList.findFirst.mockResolvedValue(boardWith('R_kgDOVCns8Q'))
+      const issue = userClient(load('create-issue.json'), load('create-add-item.json'), OK_FIELDS)
+      await createGithubProjectTaskBackend({ userClient: async () => issue.client }).createTask(ctx, assigned())
+
+      expect(db.gitHubSyncJob.upsert).not.toHaveBeenCalled()
+    })
   })
 
   it('a lane the board cannot hold is refused before anything exists on GitHub', async () => {

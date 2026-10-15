@@ -322,6 +322,7 @@ describe('Tasks API', () => {
           // services/task.service.ts (epic 9dedd8aa) — one data shape for all
           // four surfaces, same row either way.
           assigneeId: null,
+          assigneeIds: [],
           creatorId: 'test-user-id',
           identifier: null,
           sequence: null,
@@ -397,6 +398,7 @@ describe('Tasks API', () => {
           // Unassigned with no list to take a default from. Explicit null, not
           // an absent key — see the note on the create above (epic 9dedd8aa).
           assigneeId: null,
+          assigneeIds: [],
           creatorId: 'test-user-id',
           identifier: null,
           sequence: null,

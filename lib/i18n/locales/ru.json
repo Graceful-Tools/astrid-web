@@ -9,7 +9,9 @@
     "seeAllCollaborative": "Все совместные списки →",
     "seeAllSuggested": "Все рекомендуемые списки →",
     "hideSidebar": "Скрыть боковую панель",
-    "showSidebar": "Показать боковую панель"
+    "showSidebar": "Показать боковую панель",
+    "hideMessages": "Скрыть сообщения",
+    "showMessages": "Показать сообщения"
   },
   "userMenu": {
     "settings": "Настройки",
@@ -97,10 +99,10 @@
     },
     "addTaskPlaceholder": "Добавить задачу...",
     "quickAdd": "Быстрое добавление...",
-    "wontDo": "Won't do",
-    "reopen": "Reopen",
+    "wontDo": "Не будет сделано",
+    "reopen": "Открыть снова",
     "status": "Статус",
-    "wontDoChip": "Won't do",
+    "wontDoChip": "Не будет сделано",
     "when": "Когда",
     "createdBy": "Создал",
     "confirmCompleteTitle": "Завершить эту задачу?",
@@ -120,6 +122,16 @@
       "label": "ID задачи",
       "copy": "Копировать ID задачи",
       "copied": "{id} скопирован"
+    },
+    "occurrence": {
+      "label": "Повторение",
+      "previous": "Предыдущее повторение",
+      "next": "Следующее повторение"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Добавить подзадачу",
+      "addPlaceholder": "Добавить подзадачу…"
     }
   },
   "lists": {
@@ -417,7 +429,8 @@
   "search": {
     "placeholder": "Поиск задач и пользователей",
     "noResults": "Ничего не найдено",
-    "searching": "Поиск..."
+    "searching": "Поиск...",
+    "open": "Поиск"
   },
   "listHeaders": {
     "myTasks": "Мои задачи",

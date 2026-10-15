@@ -9,7 +9,9 @@
     "seeAllCollaborative": "查看所有协作列表 →",
     "seeAllSuggested": "查看所有推荐列表 →",
     "hideSidebar": "隐藏侧边栏",
-    "showSidebar": "显示侧边栏"
+    "showSidebar": "显示侧边栏",
+    "hideMessages": "隐藏消息",
+    "showMessages": "显示消息"
   },
   "userMenu": {
     "settings": "设置",
@@ -97,10 +99,10 @@
     },
     "addTaskPlaceholder": "添加任务...",
     "quickAdd": "快速添加...",
-    "wontDo": "Won't do",
-    "reopen": "Reopen",
+    "wontDo": "不做",
+    "reopen": "重新打开",
     "status": "状态",
-    "wontDoChip": "Won't do",
+    "wontDoChip": "不做",
     "when": "时间",
     "createdBy": "创建者",
     "confirmCompleteTitle": "完成此任务？",
@@ -120,6 +122,16 @@
       "label": "任务 ID",
       "copy": "复制任务 ID",
       "copied": "已复制 {id}"
+    },
+    "occurrence": {
+      "label": "重复",
+      "previous": "上一次重复",
+      "next": "下一次重复"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "添加子任务",
+      "addPlaceholder": "添加子任务…"
     }
   },
   "lists": {
@@ -417,7 +429,8 @@
   "search": {
     "placeholder": "搜索任务和用户",
     "noResults": "未找到结果",
-    "searching": "搜索中..."
+    "searching": "搜索中...",
+    "open": "搜索"
   },
   "listHeaders": {
     "myTasks": "我的任务",

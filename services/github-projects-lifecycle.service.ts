@@ -22,6 +22,7 @@ import { hydrateItem, projectItemPages } from '@/lib/github/projects/hydrate'
 import { fetchViewerRole, type GithubIdentity } from '@/lib/github/projects/roles'
 import type { GraphqlClient } from '@/lib/github/rate-limiter'
 import { applyProjectItems, boundBoard, removeProjectItem, type ApplySummary } from '@/services/github-projects.service'
+import { syncProjectFields } from '@/services/github-project-fields.service'
 import { addListMember, changeListMemberRole, removeListMember } from '@/services/list-member.service'
 import { deleteTaskWithSideEffects } from '@/services/task.service'
 
@@ -44,9 +45,11 @@ export async function reconcileProject(projectId: string, client: GraphqlClient)
 
   const total: ReconcileSummary = { created: 0, updated: 0, left: 0, unchanged: 0, skipped: 0, checked: 0, removed: 0 }
   const seen = new Set<string>()
+  // GitHub sends no event for a field's definition: every reconcile re-reads them (§9.4.2).
+  await syncProjectFields(board, client)
   for await (const items of projectItemPages(client, board.projectNodeId)) {
     items.forEach(item => seen.add(item.id))
-    const page = await applyProjectItems(board, items)
+    const page = await applyProjectItems(board, items, client)
     for (const key of Object.keys(page) as Array<keyof ApplySummary>) total[key] += page[key]
   }
 
@@ -59,7 +62,7 @@ export async function reconcileProject(projectId: string, client: GraphqlClient)
   for (const { itemNodeId } of held.filter(row => !seen.has(row.itemNodeId))) {
     total.checked++
     const item = await hydrateItem(client, itemNodeId)
-    if (item && !item.isArchived) await applyProjectItems(board, [item])
+    if (item && !item.isArchived) await applyProjectItems(board, [item], client)
     else if (await removeProjectItem(board, itemNodeId)) total.removed++
   }
 

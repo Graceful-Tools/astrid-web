@@ -104,6 +104,7 @@ set to `true` / `1` / `on` / `yes`, and an unrecognised value leaves them off.
 | Variable | Turns on | Requires |
 |---|---|---|
 | `NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS` | GitHub Projects as a task backend: an organisation's projects bound as boards and mirrored from GitHub (docs/specs/GITHUB_PROJECTS_WHITELABEL.md §8) | `NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE` on — a bound project *is* a board. The server refuses to start otherwise (`assertCoherentCapabilities` in `lib/brand/capabilities.ts`, called from `instrumentation.ts`). Also `github` in `NEXT_PUBLIC_BRAND_AUTH_PROVIDERS` and the brand's own GitHub App (§8) |
+| `NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS` | On a GitHub Projects board, an AI agent's assignment is shown on GitHub as a label `agent:<name>` on the issue. The label is created in the repo if it is missing. Labels under `agent:` then belong to the mirror: one for an agent not assigned in the app is removed, and none becomes a label list | `NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS` on, and your GitHub App needs Issues: write |
 | `github` and `sso` in `NEXT_PUBLIC_BRAND_AUTH_PROVIDERS` | Sign in with GitHub, enterprise SSO | Their credentials — see *Sign-in providers* below |
 
 GitHub Projects is **never on astrid.cc**: `brands/astrid.brand.json` does not set the

@@ -53,6 +53,15 @@ describe('remoteLabels (AWTD-1188)', () => {
     expect(remoteLabels({ ...issue, type: 'REDACTED' })).toBeNull()
   })
 
+  it('an agent:<name> label is not an ordinary label when the brand mirrors agent assignment (AWTD-1191)', () => {
+    const agent: Label = { id: 'LA_agent', name: 'agent:claude', color: 'ededed' }
+    const item = labelled(issue, [bug, agent])
+
+    expect(remoteLabels(item, { agentLabels: true })).toMatchObject({ labels: [{ nodeId: 'LA_bug' }], complete: true })
+    // Off, the default: it is a label like any other, exactly as before.
+    expect(remoteLabels(item)?.labels.map(label => label.nodeId)).toEqual(['LA_bug', 'LA_agent'])
+  })
+
   it('more labels than were read is incomplete', () => {
     expect(remoteLabels(labelled(issue, [bug], 25))?.complete).toBe(false)
   })

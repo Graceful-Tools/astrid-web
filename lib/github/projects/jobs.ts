@@ -18,7 +18,16 @@ export const MAX_ATTEMPTS = 8
 /** How long a claimed job is ours before another drainer may take it. */
 export const LOCK_MS = 2 * 60_000
 
-export type SyncJobKind = 'hydrate' | 'reconcile' | 'access' | 'writeback' | 'comment' | 'position'
+export type SyncJobKind =
+  | 'hydrate'
+  | 'reconcile'
+  | 'access'
+  | 'writeback'
+  | 'comment'
+  | 'position'
+  | 'agent_label'
+  /** Spawn the next occurrence of a repeating task on a GitHub board (AWTD-1118). */
+  | 'recur'
 
 export interface HydratePayload {
   itemNodeId: string

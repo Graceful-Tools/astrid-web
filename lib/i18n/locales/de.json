@@ -9,7 +9,9 @@
     "seeAllCollaborative": "Alle kollaborativen Listen anzeigen →",
     "seeAllSuggested": "Alle vorgeschlagenen Listen anzeigen →",
     "hideSidebar": "Seitenleiste ausblenden",
-    "showSidebar": "Seitenleiste einblenden"
+    "showSidebar": "Seitenleiste einblenden",
+    "hideMessages": "Nachrichten ausblenden",
+    "showMessages": "Nachrichten einblenden"
   },
   "userMenu": {
     "settings": "Einstellungen",
@@ -97,10 +99,10 @@
     },
     "addTaskPlaceholder": "Aufgabe hinzufügen...",
     "quickAdd": "Schnell hinzufügen...",
-    "wontDo": "Won't do",
-    "reopen": "Reopen",
+    "wontDo": "Wird nicht erledigt",
+    "reopen": "Wieder öffnen",
     "status": "Status",
-    "wontDoChip": "Won't do",
+    "wontDoChip": "Wird nicht erledigt",
     "when": "Wann",
     "createdBy": "Erstellt von",
     "confirmCompleteTitle": "Diese Aufgabe abschließen?",
@@ -120,6 +122,16 @@
       "label": "Aufgaben-ID",
       "copy": "Aufgaben-ID kopieren",
       "copied": "{id} kopiert"
+    },
+    "occurrence": {
+      "label": "Wiederholung",
+      "previous": "Vorherige Wiederholung",
+      "next": "Nächste Wiederholung"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Unteraufgabe hinzufügen",
+      "addPlaceholder": "Unteraufgabe hinzufügen…"
     }
   },
   "lists": {
@@ -417,7 +429,8 @@
   "search": {
     "placeholder": "Nach Aufgaben und Benutzern suchen",
     "noResults": "Keine Ergebnisse gefunden",
-    "searching": "Suche läuft..."
+    "searching": "Suche läuft...",
+    "open": "Suchen"
   },
   "listHeaders": {
     "myTasks": "Meine Aufgaben",

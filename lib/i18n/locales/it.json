@@ -9,7 +9,9 @@
     "seeAllCollaborative": "Vedi tutte le liste collaborative →",
     "seeAllSuggested": "Vedi tutte le liste suggerite →",
     "hideSidebar": "Nascondi barra laterale",
-    "showSidebar": "Mostra barra laterale"
+    "showSidebar": "Mostra barra laterale",
+    "hideMessages": "Nascondi messaggi",
+    "showMessages": "Mostra messaggi"
   },
   "userMenu": {
     "settings": "Impostazioni",
@@ -97,10 +99,10 @@
     },
     "addTaskPlaceholder": "Aggiungi un'attività...",
     "quickAdd": "Aggiunta rapida...",
-    "wontDo": "Won't do",
-    "reopen": "Reopen",
+    "wontDo": "Non verrà fatto",
+    "reopen": "Riapri",
     "status": "Stato",
-    "wontDoChip": "Won't do",
+    "wontDoChip": "Non verrà fatto",
     "when": "Quando",
     "createdBy": "Creato da",
     "confirmCompleteTitle": "Completare questa attività?",
@@ -120,6 +122,16 @@
       "label": "ID attività",
       "copy": "Copia ID attività",
       "copied": "{id} copiato"
+    },
+    "occurrence": {
+      "label": "Occorrenza",
+      "previous": "Occorrenza precedente",
+      "next": "Occorrenza successiva"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Aggiungi un sottoattività",
+      "addPlaceholder": "Aggiungi un sottoattività…"
     }
   },
   "lists": {
@@ -417,7 +429,8 @@
   "search": {
     "placeholder": "Cerca attività e utenti",
     "noResults": "Nessun risultato trovato",
-    "searching": "Ricerca in corso..."
+    "searching": "Ricerca in corso...",
+    "open": "Cerca"
   },
   "listHeaders": {
     "myTasks": "Le Mie Attività",

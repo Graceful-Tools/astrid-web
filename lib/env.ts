@@ -242,6 +242,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE', scope: 'optional', description: 'Projects and status boards. Off compiles back to the single-player to-do app.' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_TASK_COST', scope: 'optional', description: 'Per-task cost tracking.' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS', scope: 'optional', description: 'GitHub Projects as a task backend. OFF unless set to true; never set for astrid.cc (spec D5).' },
+  { name: 'NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS', scope: 'optional', description: 'On GitHub Projects boards, mirror an AI agent assignment as an agent:<name> label on the issue. OFF unless set to true (spec C3).' },
 
   // ── Analytics and observability ───────────────────────────────────────────
   // No third-party analytics client. Product analytics are server-side

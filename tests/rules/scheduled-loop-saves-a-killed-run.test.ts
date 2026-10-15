@@ -112,7 +112,10 @@ describe('the scheduled loop saves a killed run instead of wedging', () => {
 })
 
 describe('guard 2 treats unpushed commits on main as work in progress (AWTD-1095)', () => {
-  const guard2 = loop.slice(loop.indexOf('skip_guard2() {'), loop.indexOf('rm -f "$STUCK_FILE"'))
+  // Two slices since AWTD-1207: the tracker moved above guard 1 (so every guard
+  // can report through it), and slicing from it would drag guard 1's acquire in.
+  const tracker = loop.slice(loop.indexOf('skip_tracked() {'), loop.indexOf('# ── Guard 1'))
+  const guard2 = loop.slice(loop.indexOf('# ── Guard 2:'), loop.indexOf('# ── Guard 2b'))
 
   function runGuard2(): string {
     const script = [
@@ -120,6 +123,7 @@ describe('guard 2 treats unpushed commits on main as work in progress (AWTD-1095
       `STUCK_DIR="${dir}/stuck"`,
       'STUCK_FILE="$STUCK_DIR/stuck-web"',
       'STUCK_ALERT_MINUTES=120',
+      tracker,
       guard2,
       'echo PASSED',
     ].join('\n')

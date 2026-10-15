@@ -120,6 +120,13 @@ export const CAPABILITIES = {
    * tests/rules/astrid-never-enables-github-projects.test.ts (AWTD-1151).
    */
   githubProjects: explicitlyEnabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS),
+  /**
+   * On a GitHub Projects board, mirror an AI agent's assignment to GitHub as
+   * a label `agent:<name>` on the issue (spec §8.6, §15 C3; AWTD-1191). OFF
+   * unless the brand sets it: a label written to a partner's customers' repos
+   * is the partner's call. Means nothing without `githubProjects`.
+   */
+  githubAgentLabels: explicitlyEnabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS),
   taskCost: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_TASK_COST),
 
   // --- Other services -----------------------------------------------------

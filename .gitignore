@@ -44,6 +44,7 @@ playwright/.cache/
 test-results/
 blob-report/
 e2e/.auth/
+/.auth/
 *.trace.zip
 
 # Misc

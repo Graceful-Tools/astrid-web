@@ -63,11 +63,11 @@ vi.mock('@/lib/backends/resolve', async importOriginal => ({
   ...(await importOriginal<typeof import('@/lib/backends/resolve')>()),
   taskBackendFor: async () => fakeBackend,
 }))
-const authorizeAssigneeChange = vi.hoisted(() => vi.fn())
+const authorizeAssigneeWrite = vi.hoisted(() => vi.fn())
 vi.mock('@/services/assignee-authorization', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/services/assignee-authorization')>()
-  authorizeAssigneeChange.mockImplementation(actual.authorizeAssigneeChange)
-  return { ...actual, authorizeAssigneeChange }
+  authorizeAssigneeWrite.mockImplementation(actual.authorizeAssigneeWrite)
+  return { ...actual, authorizeAssigneeWrite }
 })
 
 // Everything else the handlers fire off afterwards wants a real DB/Redis/SSE.
@@ -296,7 +296,7 @@ describe.each(NAMES)('%s task-write surface — completion semantics (task fb94f
     taskUpdate.mockResolvedValue({ ...OPEN_TASK, assigneeId: 'agent-1', assignee: { id: 'agent-1', isAIAgent: true } })
     // Who may be assigned is the assignee rule's business, tested on its own;
     // this case is about what happens once the assignment is allowed.
-    authorizeAssigneeChange.mockResolvedValueOnce({ ok: true })
+    authorizeAssigneeWrite.mockResolvedValueOnce({ ok: true, assigneeIds: ['agent-1'] })
 
     await drive({ assigneeId: 'agent-1' })
 

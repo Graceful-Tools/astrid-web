@@ -14,6 +14,8 @@ import { prisma } from '@/lib/prisma'
 import type { V1TaskBlockerIds } from '@/lib/api-contracts/v1-ios-shapes'
 import { TASK_COMMENTS_RESPONSE_LIMIT } from '@/lib/task-query-utils'
 import { createLogger } from '@/lib/logger'
+import { assigneeIdsOf } from '@/lib/task-assignees'
+import { taskFieldValuesSelect, v1TaskFieldsPatch } from '@/lib/tasks/v1-task-fields'
 
 const log = createLogger('tasks.v1-task-shape')
 
@@ -76,6 +78,23 @@ export const V1_TASK_READ_INCLUDE = {
   // fields is unaffected, which is what lets the halves ship apart.
   blockedBy: { select: { blockingTaskId: true } },
   blocks: { select: { blockedTaskId: true } },
+  // The occurrence chain, spawn mode only (AWTD-1219, §10.2). `previousOccurrenceId`
+  // is a scalar and already rides this include; the SUCCESSOR is the reverse
+  // relation, and only the server can answer "which task points back at this
+  // one" — a client searching its loaded tasks would show the link when the
+  // successor happened to be in the page and hide it otherwise.
+  //
+  // DETAIL ONLY, deliberately. The chain renders in the detail pane, and the
+  // full task response is already over its wire budget (AWTD-1231), so this
+  // must not ride the list route. `take: 1` because a completed occurrence has
+  // at most one successor.
+  nextOccurrences: { select: { id: true }, take: 1 },
+  // A GitHub project's field values (AWTD-1208). Spread, not written inline:
+  // without the `githubProjects` capability this contributes no relation at
+  // all, so the query is byte-for-byte the one it was before fields existed.
+  // The DETAIL shape always carries them — one task's handful of entries is a
+  // few hundred bytes. The list route asks for them only on ?include=fields.
+  ...taskFieldValuesSelect(),
 } as const
 
 /**
@@ -94,18 +113,36 @@ export async function loadV1Task(taskId: string) {
 type V1TaskRow = Prisma.TaskGetPayload<{ include: typeof V1_TASK_READ_INCLUDE }>
 
 function shapeV1Task(task: V1TaskRow) {
+  // Both of these are storage shapes that a flat field replaces below, and
+  // neither may also go out raw — that would put two spellings of one fact on
+  // the wire. `nextOccurrences` becomes `nextOccurrenceId`; `fieldValues` is
+  // one row per value with five nullable columns and becomes the compact
+  // `fields` map, which is the payload §9.4.3 exists to avoid carrying twice.
+  const { nextOccurrences, fieldValues, ...rest } = task as V1TaskRow & { fieldValues?: unknown }
+  void nextOccurrences
+  void fieldValues
   return {
-    ...task,
+    ...rest,
     // Query is newest-first so the cap keeps recent comments; the wire order
     // stays ascending, which is what clients always received (task a86b5bed).
     // Copied, not reversed in place: the row may be shared with the caller.
     comments: task.comments ? [...task.comments].reverse() : task.comments,
     // iOS expects a flat listIds array alongside the relation
     listIds: task.lists?.map(list => list.id) || [],
+    // Everyone assigned, `assigneeId` first (AWTD-1190).
+    assigneeIds: assigneeIdsOf(task),
+    // The successor, flattened from the relation (AWTD-1219). Null rather than
+    // absent: a client reading the chain wants "no next occurrence" and "this
+    // payload does not carry the chain" to look the same, because on web they
+    // are — only the detail shape carries it at all.
+    nextOccurrenceId: task.nextOccurrences?.[0]?.id ?? null,
     ...({
       blockedBy: task.blockedBy?.map(row => row.blockingTaskId) ?? [],
       blocks: task.blocks?.map(row => row.blockedTaskId) ?? [],
     } satisfies V1TaskBlockerIds),
+    // `fields` when there is something to say, and no key at all otherwise, so
+    // a task outside a GitHub board looks exactly as it did before (AWTD-1208).
+    ...v1TaskFieldsPatch((task as { fieldValues?: Parameters<typeof v1TaskFieldsPatch>[0] }).fieldValues),
   }
 }
 

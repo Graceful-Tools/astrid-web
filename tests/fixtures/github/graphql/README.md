@@ -34,5 +34,27 @@ page's `rateLimit.cost` went from 2 to 3. Only that field was added to
 the project holds no pull request, so a non-empty answer and a PR's labels are not yet
 recorded. The fixture issues were left unlabelled, since other tests read them as they are.
 
+**2026-10-10, AWTD-1190.** The fragment grew `assignees(first: 10) { nodes { id } }` on
+issues, pull requests and drafts. It was re-run against the project the same day with the
+App's installation token: GitHub accepted it (HTTP 200, no errors) and answered
+`assignees: { nodes: [] }` for both issues and for the draft. The page's `rateLimit.cost` went
+from 3 to 4. Only that field was added to `project-items-page.json`, for the same reason as
+above. Nobody is assigned to a fixture item and the project holds no pull request, so a
+non-empty answer and a PR's assignees are not yet recorded.
+
+**2026-10-11, AWTD-1189.** The fragment grew `milestone { id title dueOn }` on issues and
+pull requests. It was re-run against the project the same day with an installation token:
+GitHub accepted it (HTTP 200, no errors) and answered `milestone: null` for both issues and no
+`milestone` key for the draft. The page's `rateLimit.cost` stayed at 4 — a milestone is a plain
+field on the node rather than a connection, so it costs nothing extra. Only that field was
+added to `project-items-page.json`, for the same reason as above. No fixture issue carries a
+milestone and the project holds no pull request, so a non-empty answer and a PR's milestone are
+not yet recorded; `tests/lib/github-projects-milestones.test.ts` injects one instead.
+
+Worth knowing for the next re-record: `null` and *absent* mean different things here. A null
+milestone is GitHub saying the issue has none, which makes the task leave whichever milestone
+list it is on; an absent key is an item hydrated without the field, which must change nothing.
+`remoteMilestone` keeps them apart and the fixture now carries both cases.
+
 The items are `Graceful-Fools/wordlesolver#1` and `#2` and one draft, all titled
 "[Astrid sync fixture] …". Leave them there, because the P4f live smoke test reads them.

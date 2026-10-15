@@ -41,7 +41,8 @@ describe('capability defaults (task 97208a72)', () => {
     // in NEXT_PUBLIC_BRAND_AUTH_PROVIDERS (spec §6.2). Defaulting them on would
     // put a failing button on every existing deployment.
     // GitHub Projects is off unless a brand sets it: never on Astrid (D5, AWTD-1151).
-    const OPT_IN = new Set(['authGithub', 'authSso', 'githubProjects'])
+    // Mirroring agent assignment as a GitHub label is the partner's call (C3, AWTD-1191).
+    const OPT_IN = new Set(['authGithub', 'authSso', 'githubProjects', 'githubAgentLabels'])
     for (const [key, value] of Object.entries(CAPABILITIES)) {
       expect(value, `${key} default`).toBe(!OPT_IN.has(key))
     }
