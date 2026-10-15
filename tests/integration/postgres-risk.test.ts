@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process'
 import type { PrismaClient } from '@prisma/client'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
@@ -51,6 +52,28 @@ describe('ephemeral PostgreSQL risk behavior', () => {
       WHERE finished_at IS NOT NULL
     `
     expect(Number(rows[0]?.count)).toBeGreaterThan(0)
+  })
+
+  // AWTD-1199: three schema changes had reached production without a migration,
+  // so a database built from the chain was not the one schema.prisma describes.
+  // This database was just built by `prisma migrate deploy`, which makes it the
+  // one place the two can be compared for real.
+  it('is exactly the database schema.prisma describes (AWTD-1199)', () => {
+    const diff = spawnSync(
+      'npx',
+      [
+        'prisma', 'migrate', 'diff',
+        '--from-url', requireSafeTestDatabaseUrl(),
+        '--to-schema-datamodel', 'prisma/schema.prisma',
+        '--script',
+        '--exit-code',
+      ],
+      { encoding: 'utf8' },
+    )
+
+    // --exit-code: 0 is empty, 2 is a difference, 1 is an error. The SQL is the
+    // message, so a failure names the drift instead of just reporting it.
+    expect(`${diff.stdout}${diff.stderr}`.trim() + `\n(exit ${diff.status})`).toMatch(/\(exit 0\)$/)
   })
 
   it('rolls back a failed transaction and preserves unique constraints', async () => {
