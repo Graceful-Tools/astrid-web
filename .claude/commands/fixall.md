@@ -69,11 +69,42 @@ finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has t
 
 ## What is different here
 
-- **NEVER DEPLOY. Not once, not "just this one".** A production deploy is a manual
-  `workflow_dispatch` of `.github/workflows/production-deployment.yml`, and any pending Prisma
-  migration **runs against production during that build**. So deploying waits for an explicit
-  go-ahead; report what is ready to ship instead of shipping it. (CLAUDE.md rule 1 — stated
-  there because an agent once got this wrong and shipped five migrations.)
+- **DEPLOY WHAT YOU FINISH, once the gates are green.** Jon, 2026-10-13: *"Interactive
+  sessions and automatic can deploy with clean tests and monitor to make sure it works.
+  Don't block on me."* So a green run ends in production, not in a report offering to ship.
+
+  > This bullet said **"NEVER DEPLOY. Not once, not 'just this one'"** until 2026-10-13, and
+  > that was right while nobody had said otherwise — an agent once shipped five migrations by
+  > getting it wrong. It is kept here because the *reason* still holds: the ban was never
+  > about deploying, it was about deploying something unverified.
+
+  A production deploy is a `workflow_dispatch` of
+  `.github/workflows/production-deployment.yml` — nothing auto-deploys, and pushing still
+  ships nothing. Dispatch it yourself when, and only when:
+
+  ```bash
+  npm run predeploy                                    # 16/16 on the MERGED main
+  git diff origin/prod origin/main -- prisma/migrations/   # must be EMPTY, or ask Jon
+  gh workflow run production-deployment.yml --ref main \
+    -f skip_tests=false -f allow_destructive_migrations=false
+  gh run watch <run-id> --exit-status                  # to completion, not an early green step
+  scripts/verify-deployed-sha.sh "$(git rev-parse origin/main)"
+  ```
+
+  **Gate the MERGED `main`, not just the branch.** On 2026-10-13 all seven of a run's PRs
+  were green individually and the gate on the merge still went red.
+
+  **Two things are still not yours to decide.** A **pending migration** applies during the
+  deploy, in a job that runs *before* the new code is live — four dropped columns took
+  production down on 2026-09-18 and a redeploy could not undo it. So a non-empty migration
+  diff goes to Jon, and `allow_destructive_migrations` stays `false`, which makes the
+  workflow refuse rather than guess. And a **red gate** is red: if you believe it is a false
+  alarm, prove it on the record first (a stale `.next/types` artifact did exactly this on
+  2026-10-13 — see [AWTD-1245](https://astrid.cc/t/AWTD-1245)).
+
+  Inside a scheduled `claude -p` session `gh` is denied, so the session cannot dispatch
+  anything: the **runner** deploys after the run, the same arrangement that opens the PRs
+  (`scripts/land-and-deploy.ts`, docs/FIXALL_WORKFLOW.md → *Deploying is part of finishing*).
 - **Pushing is NOT deploying, and needs no permission.** This bullet said the opposite for a
   long time — "`git push origin main` is a production deploy" — and the claim was wrong every
   time it was written (AWTD-879, the fifth). Since #204 that workflow has one trigger,
@@ -83,8 +114,15 @@ finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has t
   the workflow file and `gh run list --workflow=production-deployment.yml`, never the Vercel
   deployment list — an Actions deploy appears there as `source=cli` and reads as a human. The
   ratchet is `tests/rules/pushing-main-does-not-deploy.test.ts`.
-- **A task is DONE when it is committed on its branch with `npm run predeploy` green.** Say in
-  the completion report that it is ready to ship rather than that it shipped.
+- **A task is DONE when production serves it** (Jon, 2026-10-13: *"Don't move to done until
+  deployed to prod"*). Committed, gates green, PR merged, deployed, and
+  `scripts/verify-deployed-sha.sh` agrees — *then* mark it complete, and say in the report
+  what production is serving. The old finish line stopped at "committed with predeploy
+  green", which is how [AWTD-839](https://astrid.cc/t/AWTD-839) sat committed-but-unpushed
+  for seventeen days and [AWTD-1039](https://astrid.cc/t/AWTD-1039) sat PR-less for four,
+  both while the board said done. A task whose deploy is gated on a migration stays
+  **incomplete**, with the reason on it — do not mark it done and mention the gate in
+  passing.
 - **Claim each task atomically before working it**, with this harness's own mailbox:
   `npx tsx scripts/claim-fixall-task.ts <taskId> ready --agent claude`. Exit 2
   (`CLAIM_CONFLICT`) means a peer session took it first — move to the next task silently.

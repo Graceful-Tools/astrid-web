@@ -144,6 +144,12 @@ const EXPORTS: Record<string, () => Record<string, unknown>> = {
   // keyword tables beside the answers so a client reads the same words.
   'smart.json': () => runDriver('smart.mjs', 'smart'),
   'task-identifiers.json': exportTaskIdentifiers,
+  // The three rules the core had ported with no fixture behind them (Phase 0). Each driver runs
+  // web's own functions and routes the cases the clients deliberately disagree on — the follow-iOS
+  // rule — to a `disputed` array naming the astrid-core docs/CONTRACTS.md entry (drivers/disputed.mjs).
+  'manual-order.json': () => runDriver('manual-order.mjs', 'manual-order'),
+  'filters.json': () => runDriver('filters.mjs', 'filters'),
+  'reminders.json': () => runDriver('reminders.mjs', 'reminders'),
   // How a description, comment or chat message reads: web's renderer run in a jsdom window (the
   // browser path, through DOMPurify) and its HTML read back into the core's blocks (AWTD-1064).
   'markdown.json': () => runDriver('markdown.mjs', 'markdown'),

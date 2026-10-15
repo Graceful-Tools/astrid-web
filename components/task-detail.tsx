@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useMemo, useRef, useCallback, memo } from "react"
-import { DEFAULT_LIST_COLOR, randomListColor } from '@/lib/brand/colors'
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
+import { createListForTask } from '@/lib/task-detail/create-list-for-task'
 import { unwrapTask, unwrapList } from '@/lib/v1-response'
 import { useTaskDetailState } from "@/hooks/task-detail/useTaskDetailState"
 import { useTaskShareLink } from "@/hooks/task-detail/useTaskShareLink"
@@ -24,10 +25,13 @@ import { TaskFieldEditors } from "./task-detail/TaskFieldEditors"
 import { PriorityAssigneePicker } from "./priority-assignee-picker"
 import { usesCompactTaskDetail } from "@/lib/task-display-mode"
 import { isSomeoneElsesTask } from "@/lib/task-leading-control"
-import { boardColumnsFor, resolveColumnMove, taskColumnId } from "@/lib/task-status"
+import { boardColumnsFor, taskColumnId } from "@/lib/task-status"
+import { taskMenuDuplicatesPaneControls } from "@/lib/task-detail-project-state"
+import { applyProjectColumnTo } from "@/lib/project-status"
 import { TaskModals } from "./task-detail/TaskModals"
 import { TaskHeader } from "./task-detail/TaskHeader"
 import { TaskActivitySection } from "./task-detail/TaskActivitySection"
+import { TaskDetailSubtasksSection } from "./task-detail/TaskDetailSubtasksSection"
 import type { Task, Comment, User, TaskList } from "../types/task"
 import { Calendar as CalendarIcon, Paperclip, MessageSquare, Lock, Unlock, Check, X, Upload, Image as ImageIcon, FileText, Reply, Send, Copy, Link as LinkIcon } from "lucide-react"
 import { apiPost } from "@/lib/api"
@@ -65,6 +69,17 @@ interface TaskDetailProps {
   currentUser: User
   availableLists?: TaskList[]
   availableTasks?: Task[]
+  /**
+   * This task's children (AWTD-1227). Passed in rather than derived from
+   * `availableTasks`, which deliberately EXCLUDES subtasks — the controller
+   * filters them out so they never render as top-level rows, so deriving them
+   * from it would always find none.
+   */
+  subtasks?: Task[]
+  /** Completing a child. The list row's handler, so there is one completion path. */
+  onToggleSubtaskComplete?: (taskId: string) => void | Promise<void>
+  /** Creating a child under this task. Absent means the add row is not offered. */
+  onAddSubtask?: (parentTaskId: string, title: string) => void | Promise<void>
   onUpdate: (task: Task) => void
   onLocalUpdate?: (updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void  // Update local state only, no API call
   onDelete: (taskId: string) => void
@@ -107,7 +122,7 @@ interface TaskDetailProps {
   }
 }
 
-function TaskDetailComponent({ task, currentUser, availableLists = [], availableTasks = [], onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, displayMode, canComment, inline = false, allowFullScreen = false, swipeToDismiss }: TaskDetailProps) {
+function TaskDetailComponent({ task, currentUser, availableLists = [], availableTasks = [], subtasks = [], onToggleSubtaskComplete, onAddSubtask, onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, displayMode, canComment, inline = false, allowFullScreen = false, swipeToDismiss }: TaskDetailProps) {
   const { theme } = useTheme()
 
   // Editing and commenting are separate permissions — see the canComment prop.
@@ -698,6 +713,11 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
   const [optionsOpen, setOptionsOpen] = useState(false)
   const statusColumns = useMemo(() => boardColumnsFor(null), [])
 
+  // AWTD-1252 and AWTD-1253; both rules are stated at their source.
+  const menuDuplicates = taskMenuDuplicatesPaneControls({ task, availableLists, displayMode, readOnly })
+  const applyStatusColumn = (columnId: string) =>
+    applyProjectColumnTo(task, columnId, statusColumns, availableLists, onUpdate)
+
   const handleToggleComplete = async () => {
     const newCompleted = !tempCompleted
 
@@ -1180,49 +1200,13 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     if (!name.trim()) return
 
     try {
-      // Derive privacy from the task's current lists: PUBLIC > SHARED > PRIVATE
-      const targetPrivacy: TaskList["privacy"] =
-        tempLists.some((l) => l.privacy === "PUBLIC")
-          ? "PUBLIC"
-          : tempLists.some((l) => l.privacy === "SHARED")
-          ? "SHARED"
-          : "PRIVATE"
-
-      // If shared, collect admin ids from existing shared lists (deduped)
-      const adminIds = targetPrivacy === "SHARED"
-        ? Array.from(
-            new Set(
-              tempLists
-                .filter((l) => l.privacy === "SHARED")
-                .flatMap((l) => (l.admins || []).map((a) => a.id))
-            )
-          )
-        : undefined
-
-      // Pick a color
-      const randomColor = randomListColor()
-
-      // Create via API
-      const response = await apiPost('/api/v1/lists', {
-        name: name.trim(),
-        color: randomColor,
-        privacy: targetPrivacy,
-        adminIds,
-      })
-      // v1 wraps the new list in { list, meta }; legacy returned it bare.
-      const createdList = unwrapList<TaskList>(await response.json())
-      if (!createdList) {
-        throw new Error('List creation returned no list')
-      }
-
-      // Add to selected lists and auto-save
+      // What list to make — privacy and admins inherited from the task's
+      // current lists — is lib/task-detail/create-list-for-task.ts.
+      const createdList = await createListForTask(name, tempLists)
       const updatedTempLists = [...tempLists, createdList]
       setTempLists(updatedTempLists)
       setLastLocalListUpdate(Date.now()) // Mark when we made a local change
-      onUpdate({ 
-        ...task, 
-        lists: updatedTempLists
-      })
+      onUpdate({ ...task, lists: updatedTempLists })
     } catch (error) {
       console.error('Failed to create list:', error)
     } finally {
@@ -1333,14 +1317,8 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         onDelete={handleDeleteClick}
         onTestReminder={handleTestReminder}
         onCancel={handleSetClosedReason}
-        onStatusSelect={columnId => {
-          // Same helper the board and the row use, so a status set from the
-          // menu and a card dragged into a column cannot mean different things
-          // — including that Done means completed rather than a role
-          // (task ba1a4c4c).
-          const move = resolveColumnMove(task, columnId)
-          onUpdate({ ...task, statusRole: move.statusRole, completed: move.completed })
-        }}
+        onStatusSelect={menuDuplicates.status ? undefined : applyStatusColumn}
+        hideCopyIdentifier={menuDuplicates.copyIdentifier}
         compact={inline}
         fullScreen={canFullScreen ? fullScreen : undefined}
         onToggleFullScreen={canFullScreen ? () => setFullScreen(value => !value) : undefined}
@@ -1367,8 +1345,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
           statusColumns={statusColumns}
           selectedColumnId={taskColumnId(task)}
           onStatusSelect={columnId => {
-            const move = resolveColumnMove(task, columnId)
-            onUpdate({ ...task, statusRole: move.statusRole, completed: move.completed })
+            applyStatusColumn(columnId)
             setOptionsOpen(false)
           }}
           completed={Boolean(task.completed)}
@@ -1463,6 +1440,17 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
           tempAssignee={tempAssignee}
           setTempAssignee={setTempAssignee}
           onInviteUser={handleInviteUser}
+        />
+
+        {/* Subtasks, between the fields and the activity — where iPhone, iPad
+         *  and Mac put them, and what web's pane was missing entirely
+         *  (AWTD-1227). Renders nothing on a task with no children that cannot
+         *  take one, which is almost every task. */}
+        <TaskDetailSubtasksSection
+          subtasks={subtasks}
+          onToggleComplete={onToggleSubtaskComplete}
+          onAdd={onAddSubtask ? (title: string) => onAddSubtask(task.id, title) : undefined}
+          readOnly={readOnly}
         />
 
         {/* Activity: attachments + timer (Stage 22 sub-view) */}

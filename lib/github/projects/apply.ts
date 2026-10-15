@@ -47,6 +47,12 @@ export interface RemoteProjectItem {
     blockedBy?: { totalCount: number; nodes: Array<{ id: string }> }
     /** Issues and pull requests: the repo's labels on this one (labels.ts). Null when the repo has none readable. */
     labels?: { totalCount: number; nodes: Array<{ id: string; name: string; color: string }> } | null
+    /**
+     * Issues and pull requests: the milestone GitHub has on this one
+     * (milestones.ts). Null means NO milestone, which is a fact to act on;
+     * absent means the item was hydrated without the field and says nothing.
+     */
+    milestone?: { id: string; title: string; dueOn: string | null } | null
     /** Issues, pull requests and drafts: who GitHub has assigned, at most ten (assignees.ts). */
     assignees?: { nodes: Array<{ id: string }> }
   }

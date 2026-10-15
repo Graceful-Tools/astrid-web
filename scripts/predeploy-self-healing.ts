@@ -212,8 +212,20 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
       fixDescription: 'Regenerate Prisma client (schema drifted from generated client)',
     },
     {
+      // `npm run typecheck` is `next typegen && tsc --noEmit`, and the typegen
+      // half is load-bearing here (AWTD-1245). tsconfig.json includes
+      // `.next/types/**` and next-env.d.ts imports `.next/types/routes.d.ts`,
+      // so tsc type-checks GENERATED route types — which used to be whatever
+      // the `Build` gate left behind on its previous run, fifteen places
+      // further down this list. Deleting a route therefore failed this gate
+      // with `TS2307 … route.js` on a tree where tsc was clean, twice filing a
+      // "Predeploy Failed: TypeScript" task; the second held up a deploy.
+      //
+      // Generating costs ~0.4s. Note that CLEANING does the opposite: with no
+      // `.next/types/routes.d.ts` at all, next-env.d.ts's import fails and
+      // this gate goes red for a third reason.
       name: 'TypeScript',
-      command: 'npx tsc --noEmit',
+      command: 'npm run typecheck',
       timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
       autoFixable: false, // Type errors need manual fix
     },

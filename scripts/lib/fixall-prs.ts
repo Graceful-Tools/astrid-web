@@ -63,6 +63,8 @@ export function prBody(input: {
     '',
     '---',
     'Opened by the runner (`scripts/open-fixall-prs.ts`) because a scheduled session cannot run `gh`. ' +
-      'Not deployed: merging to `main` ships nothing until a production deploy.',
+      'Not deployed yet: merging to `main` ships nothing until a production deploy. Once these ' +
+      'checks are green, `scripts/land-and-deploy.ts` lands this and deploys it on a later tick ' +
+      '(AWTD-1250) — a pending migration or a red gate stops that and asks instead.',
   ].join('\n')
 }

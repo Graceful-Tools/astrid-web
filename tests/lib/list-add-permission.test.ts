@@ -5,9 +5,11 @@
  * Pinned:
  *   - the owner and members may; a stranger may not, and is told which list;
  *   - anyone may add to a collaborative public list;
- *   - a GitHub label the task already carries is kept, not added: a board
- *     member who is not on the label's list can still move the task;
- *   - a GitHub label the task does NOT carry gets no such pass.
+ *   - a GitHub label list asks for nothing, carried already or not: it is
+ *     read-only from Astrid for everyone, and the label guard refuses it by
+ *     name afterwards (AWTD-1193). Deciding a role here could only change
+ *     WHICH error a doomed write gets;
+ *   - a label list that mirrors no GitHub label is an ordinary list.
  */
 
 import { describe, it, expect } from 'vitest'
@@ -40,12 +42,24 @@ describe('listRefusingTask (AWTD-1188)', () => {
   it('a GitHub label the task already carries asks for nothing', () => {
     const label = list('label-bug', { listType: 'label', remoteNodeId: 'LA_bug', listMembers: [] })
     const board = list('board')
-    expect(listRefusingTask([board, label], 'member', [{ id: 'board' }, { id: 'label-bug' }])).toBeUndefined()
+    expect(listRefusingTask([board, label], 'member')).toBeUndefined()
   })
 
-  it('a GitHub label the task does not carry is an add like any other', () => {
+  it('nor does one the task does NOT carry — the label guard names that refusal (AWTD-1193)', () => {
+    // This used to be refused here with a bare 403 naming the list, which a
+    // board member could not even open. Adding a GitHub label is impossible
+    // for everyone, owner included, so there is one answer to give and the
+    // guard gives it: 400 github_label_read_only.
     const label = list('label-bug', { listType: 'label', remoteNodeId: 'LA_bug', listMembers: [] })
-    expect(listRefusingTask([label], 'member', [{ id: 'board' }])?.id).toBe('label-bug')
-    expect(listRefusingTask([label], 'member')?.id).toBe('label-bug')
+    expect(listRefusingTask([label], 'member')).toBeUndefined()
+    expect(listRefusingTask([label], 'stranger')).toBeUndefined()
+  })
+
+  it('a label list mirroring no GitHub label is an ordinary list', () => {
+    // Converted from someone's own regular list: it has no remoteNodeId, and a
+    // stranger may not add to it.
+    const mine = list('mine', { listType: 'label', remoteNodeId: null, listMembers: [] })
+    expect(listRefusingTask([mine], 'stranger')?.id).toBe('mine')
+    expect(listRefusingTask([mine], 'owner')).toBeUndefined()
   })
 })

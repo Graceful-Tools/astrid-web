@@ -17,12 +17,13 @@ Insights was collecting the numbers — see below.
 | Metric | Critical read budget | Source | Last measured |
 |---|---:|---|---|
 | Server latency | p50 <= 250 ms; p95 <= 750 ms | `scripts/measure-api-latency.ts` | 2026-09-11 |
-| Full task response | <= 500 KiB **on the wire** | `scripts/measure-api-latency.ts` | 2026-09-11 |
-| Full list response | <= 250 KiB **on the wire** | `scripts/measure-api-latency.ts` | 2026-09-11 |
+| Task payload **regression** | <= 135 bytes/task on the wire, measured with `?omit=description` | `scripts/measure-api-latency.ts` | 2026-10-12 — **112.0**, within |
+| Full task **page** (1,000 tasks) | <= 500 KiB **on the wire** — a client-experience cap, not a regression gate | `scripts/measure-api-latency.ts` | 2026-10-12 — **553.5 KiB, OVER** |
+| Full list response | <= 250 KiB **on the wire** | `scripts/measure-api-latency.ts` | 2026-10-12 — 37.3 KiB |
 | Prisma work | <= 4 queries; p95 aggregate query time <= 300 ms | contract tests pin the query shape and count | pinned continuously |
 | Incremental sync response | <= 100 KiB and <= 1 MiB across all pages | `scripts/measure-api-latency.ts` (route not yet added) | never |
 | Server error rate | < 1% | `vercel logs` status codes — sample too small to assert, see below | 2026-09-11, indicative only |
-| Redis cache hit rate | >= 80% after warm-up | `/admin/analytics` → **Redis Cache**, per day, from the `CacheMetricBucket` table | **not yet sampled — needs the deploy carrying the writer** |
+| Redis cache hit rate | >= 80% after warm-up | `/admin/analytics` → **Redis Cache**, per day, from the `CacheMetricBucket` table | 2026-10-11: **50.3% over the last 7 days — UNDER budget**; 71.5% since recording began 2026-09-25. See below |
 | Initial JavaScript | <= 250 KiB compressed | shared baseline only — see below | 2026-09-11 |
 | Core Web Vitals (p75) | LCP <= 2.5 s; INP <= 200 ms; CLS <= 0.1 | Vercel Speed Insights (history, dashboard only) + `scripts/measure-web-vitals.ts` (scriptable, no history yet) — see below | **not yet transcribed** |
 | GitHub Projects webhook ack | p95 <= 300 ms (delivery check, one indexed read, one insert; work runs after the response) | `vercel logs --query projects_v2_item` route timings; shape pinned by `tests/api/github-projects-webhook.test.ts` (AWTD-1152) | **never — no brand has GitHub Projects on yet** |
@@ -30,6 +31,47 @@ Insights was collecting the numbers — see below.
 | GitHub Projects apply | <= 4 queries per item event; no N+1 | `tests/services/github-projects-service.test.ts` pins the reads (AWTD-1151); `npm run test:live:github-projects` counts real queries (AWTD-1154) | 2026-10-10: **3** for one changed item; an import page is **25 fixed + 0 per item**, so 0.25 per item at 100-item pages |
 | GitHub Projects initial import | 2,000-item project <= 5 min | `npm run test:live:github-projects` (AWTD-1154) | 2026-10-10: 3 items in ~0.6 s. **2,000 not yet measured**: GitHub's content-creation caps make seeding 2,000 items a multi-hour job |
 | GitHub reconcile share | <= 30% of an installation's hourly GraphQL budget | `admit()` in `lib/github/rate-limiter.ts`, table-tested (AWTD-1150) | pinned continuously |
+
+## One number cannot be both a regression gate and a size cap (AWTD-1238)
+
+The task response used to have a single budget: 500 KiB on the wire, measured
+against **the live account's own data**, which grows every time anyone — human
+or agent — files a well-described task. So the number moved for two completely
+different reasons and could not tell them apart:
+
+- **the code changed** — a field was added, a relation got fatter, something
+  serialized worse. That is what a budget is for.
+- **the content grew** — people wrote more. On 2026-10-12 that was the entire
+  story: the response was 10% over and `description` was 80% of it, while every
+  schema addition of the previous month totalled under 2 KiB.
+
+A breach therefore said nothing on its own, and the reflex it invited — raise
+the number — is how a budget stops meaning anything.
+
+So there are two rows now, with two jobs.
+
+**The regression gate is per-task bytes on the LEAN read.** Both halves matter:
+
+- *per task*, so a thousand more tasks leave it flat. A total cannot be compared
+  across months when the denominator is whatever the account happens to hold.
+- *lean* (`?omit=description`, AWTD-1236), so a thousand **longer** tasks leave
+  it flat too. Per-task bytes alone would still drift upward as people wrote
+  more — the same problem, one division later.
+
+What remains moves only when the code moves. 112.0 bytes/task measured
+2026-10-12 against a budget of 135, about 20% headroom: `assigneeIds`
+(AWTD-1190) cost 1.2 bytes/task, so this absorbs many honest field additions
+and still fails on anything structural.
+
+**The page cap stays, as what it always really was** — a limit on what a
+cacheless client downloads in one request. It is breached at 553.5 KiB and is
+left breached rather than raised, because the answer is for callers to send
+`?omit=description` or ask for a smaller page, not for the number to grow to
+meet the corpus.
+
+It will be breached again, by writing rather than by code. That is no longer a
+flaw, now that it only claims to be a cap: **when it breaches, read the per-task
+row before reaching for the number.**
 
 ## Compressed or decoded: say which, or the budget means nothing
 
@@ -89,6 +131,113 @@ so the variance is large and network-inclusive — this is a flag to investigate
 not yet a proven server regression. It returns exactly 1000 tasks, the `limit`
 cap, so the payload is at its maximum shape. `GET /api/v1/lists` has margin
 everywhere.
+
+## 2026-10-12 — over budget, `description` is 80% of it, and project fields cannot ride it
+
+Two measurements taken the same day, by AWTD-1231 and AWTD-1208. They share a
+baseline, so they share a section.
+
+Measured with `npx tsx scripts/measure-api-latency.ts`, same recipe as above.
+
+| Route | p50 | p95 | Wire | Decoded | Verdict |
+|---|---:|---:|---:|---:|---|
+| `GET /api/v1/tasks?limit=1000&leanListMembers=1` | 831 ms | 1126 ms | **551.8 KiB** | 2875 KiB | **over the 500 KiB wire budget, and over both latency budgets** |
+| `GET /api/v1/lists` | 187 ms | 188 ms | 37.3 KiB | 81.9 KiB | within budget |
+
+The size budget is breached, not merely approached: 439.5 KiB on 2026-09-11,
+551.8 KiB now — 112 KiB of growth in a month, 10% over. The decoded figure grew
+with it, 2,301.6 → 2,875 KiB.
+
+(Latency: p50 831 ms against 250 ms, but only three samples from a laptop at
+night, network-inclusive. The 2026-09-11 run was also over at 419 ms. Treat this
+as consistent with a known-over budget, not as a new regression.)
+
+### What grew
+
+Measured by dropping each top-level key from all 1,000 tasks and re-gzipping, so
+each figure is that key's **marginal** wire cost rather than its share of the
+decoded bytes:
+
+| Key | Marginal wire cost |
+|---|---:|
+| `description` | **443.3 KiB** |
+| `id` | 30.1 KiB |
+| `title` | 24.6 KiB |
+| `createdAt` | 10.3 KiB |
+| `updatedAt` | 8.4 KiB |
+| everything else (29 keys) | ~35 KiB combined |
+
+`description` is **80% of the entire response**. The fields added since the last
+measurement are nowhere near it — `assigneeIds` (AWTD-1190) costs 1.2 KiB,
+`previousOccurrenceId` and the `remote`/`syncState` keys less. **No schema
+addition caused this**, which is where the search would naturally have started.
+
+The descriptions: 1,534 KiB decoded across 1,000 tasks, median 995 characters,
+p90 3,771, max 20,727. A quarter of tasks have none; **325 tasks with
+descriptions over 2,000 characters hold 1,161 KiB of the 1,534.**
+
+And they are recent. Description bytes by the month the task was created:
+
+| Month | KiB |
+|---|---:|
+| through 2026-06 | ~71 combined |
+| 2026-07 | 96 |
+| 2026-08 | 435 |
+| 2026-09 | 705 |
+| 2026-10 (partial) | 226 |
+
+That is exactly the period in which agents began filing tasks with full
+reproduction steps, evidence and contracts — the practice
+`docs/FIXALL_WORKFLOW.md` asks for, working as intended. **The payload grew
+because the content grew, not because the code regressed.**
+
+### The project-fields gate (AWTD-1208, spec §9.4.3)
+
+The spec required a 1,000-task x 8-field fixture before `fields` could ride task
+payloads. There is no GitHub-backed board in production with a thousand tasks,
+and `measure-api-latency.ts` is a read-only client that seeds nothing — so the
+fixture is grafted onto the **real** thousand-task response and re-compressed,
+which measures the marginal wire cost against that payload's own
+compressibility.
+
+| | Wire (gzipped) |
+|---|---:|
+| Baseline, 1,000 tasks | 551.8 KiB |
+| With 8 project fields on every task | 594.0 KiB |
+| **Marginal cost of `fields`** | **+42.2 KiB** |
+
+**Compression is the whole story.** Uncompressed, eight entries per task is
+roughly 440 KB over a thousand tasks — more than the entire budget. Gzipped it
+costs 42.2 KiB, because the eight field ids repeat on every task and only the
+two free-text fields carry per-task content. A guess in either direction would
+have been wrong by an order of magnitude.
+
+**Verdict: over budget, so values do not ride list responses.** 594.0 KiB
+against 500 KiB. Note that the +42.2 KiB would have fitted the 60.5 KiB of
+headroom the 2026-09-11 figure left; the headroom is what is gone. Either way
+the spec's rule settles it — *"the budget wins over convenience"* — so
+`GET /api/v1/tasks` carries `fields` only on `?include=fields`, and the detail
+route carries them always, where one task's handful of entries is a few hundred
+bytes.
+
+### Two things that follow, and neither is "optimise a field"
+
+- **The budget is measured against a moving fixture.** It is the live account's
+  own data, which grows every time anyone — human or agent — files a
+  well-described task. A fixed byte budget against a growing corpus will be
+  breached again whatever is done to the code, so the number alone cannot tell
+  anyone whether something is wrong.
+- **The route is doing two jobs.** `GET /api/v1/tasks?limit=1000` is both the
+  list view's read and the clients' full sync. A list view needs titles; a sync
+  needs descriptions. Charging the list view for the sync's payload is the real
+  design question, and `?updatedSince=` already exists for the sync half.
+### What was decided
+
+`description` became opt-out on the list route — `GET /api/v1/tasks?omit=description`
+(AWTD-1233 → AWTD-1236). Measured against the same 1,000-task response: **554.4
+→ 109.4 KiB on the wire**, 22% of budget instead of 111%. It is opt-in to use,
+so no client's payload changed on the day it shipped, and the moving-fixture
+problem above is untouched by it and filed separately.
 
 ## Rows without a source, stated plainly
 
@@ -192,7 +341,7 @@ cannot hold a sample from a logged-out visitor) is the open question on
 e586eff1 — it buys scriptability, at the price of a second pipeline beside a
 working one and a new production table.
 
-**Redis cache hit rate — it is on the analytics page now; the sample waits on a deploy.**
+**Redis cache hit rate — sampled 2026-10-11, and it is under budget.**
 
 The problem was never that the outcomes were not recorded. PR #260's
 structured `Cache lookup` / `Cache load` events in `lib/redis.ts` are correct
@@ -246,10 +395,31 @@ Three things about what that page shows:
 Buckets are kept 97 days — wider than the 90-day range the page can ask for, so the oldest end of
 a chart is never quietly truncated — and the nightly analytics cron prunes them.
 
-**Still not sampled, and the row says so.** The table is new, so nothing has written a bucket yet:
-the migration and the writer both arrive with a production deploy, and deploys are manual. What
-changed is that after that deploy the number appears by itself, on a page, instead of needing a
-script run that the log ceiling would defeat.
+**The sample, 2026-10-11** — every production `CacheMetricBucket` row, summed with
+`summarizeCacheMetrics` (the function the page uses), read-only:
+
+| Range | Hit rate | Lookups | Instances | Mean lookup | Mean loader |
+|---|---:|---:|---:|---:|---:|
+| Last 24 h | 60.7% | 754 | 113 | 13.9 ms | 28.8 ms |
+| Last 7 days | 50.3% | 3,098 | 640 | 15.5 ms | 33.2 ms |
+| Since the first bucket (2026-09-25 14:00 UTC) | 71.5% | 11,998 | 1,296 | 19.6 ms | 34.7 ms |
+
+1,888 buckets, 8,112 flushed windows, 0 cache errors. Three things the totals hide:
+
+- **The budget was met for six days and has not been met since.** 2026-09-25 to 09-30 ran 78–86%
+  a day (≈83% overall) on 640–1,832 lookups a day. On 2026-10-01 the day's rate was 4.3% on 141
+  lookups, and it has climbed back only to ≈60%. So 71.5% is two different regimes averaged, and
+  neither of them is 71.5%.
+- **The volume fell with it** — roughly 1,400 lookups a day before, 140–730 after. A rate that
+  drops while lookups drop eightfold reads as a mostly-hit caller leaving the cache, not as the
+  cache getting worse at the same work. The cause has **not** been established: no commit in that
+  window touches `lib/redis.ts` or the six `getOrSet` call sites' caching, and the buckets carry no
+  key, so they cannot say which caller left.
+- **A hit is not much cheaper than a miss.** A lookup averages 14–20 ms and a loader 29–35 ms.
+  These are means and not comparable to the percentile rows above, but the gap is what the cache
+  buys, and it is small.
+
+Re-sample from `/admin/analytics` → **Redis Cache**; nothing needs a script any more.
 
 **Server error rate — sample too small to assert.** The Vercel CLI returns only
 ~50 unique log rows per query and pads beyond that, so walking windows across

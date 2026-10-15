@@ -160,6 +160,7 @@ export const GET = withAuth(
           listType: list.listType ?? 'regular',
           recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
           showSubtasks: list.showSubtasks ?? DEFAULT_LIST_SHOW_SUBTASKS,
+          backend: list.backend ?? null,
           supports: listSupports(list),
           createdAt: list.createdAt,
           updatedAt: list.updatedAt

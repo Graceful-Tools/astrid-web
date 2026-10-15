@@ -199,6 +199,21 @@ export interface Task {
    * `shouldShowTaskIdentifier` in lib/task-identifier-links.ts, never ad hoc.
    */
   identifier?: string | null
+  /**
+   * The occurrence this one replaced, in SPAWN mode (AWTD-1219, spec §10.2).
+   * Null on every task outside a GitHub board — which is almost all of them —
+   * because a classic list rolls the same row forward instead of spawning a
+   * successor.
+   */
+  previousOccurrenceId?: string | null
+  /**
+   * The occurrence that replaced this one: whichever task points back at it.
+   *
+   * Carried by the DETAIL payload only. Absent on a task that came from a list
+   * response, which is why a reader must treat absent and null alike rather
+   * than concluding there is no successor.
+   */
+  nextOccurrenceId?: string | null
   /** Legacy attachment rows. Only the MCP handlers write these. */
   attachments: Attachment[]
   /**

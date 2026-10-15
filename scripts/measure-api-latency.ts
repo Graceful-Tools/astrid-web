@@ -7,6 +7,7 @@
  *   npx tsx scripts/measure-api-latency.ts                 # production, 30 warm
  *   npx tsx scripts/measure-api-latency.ts --samples 50
  *   npx tsx scripts/measure-api-latency.ts --json
+ *   npx tsx scripts/measure-api-latency.ts --breakdown    # what carries the bytes
  *
  * WHY THIS EXISTS. docs/PERFORMANCE_BUDGETS.md has carried a latency budget
  * (p50 <= 250 ms, p95 <= 750 ms) since 2026-08-31 with no recorded measurement
@@ -53,9 +54,39 @@ export {}
 
 const BASE = process.env.ASTRID_API_BASE ?? 'https://astrid.cc'
 
-/** The routes docs/PERFORMANCE_BUDGETS.md names as critical reads. */
-const ROUTES: { label: string; path: string; budgetKiB: number }[] = [
-  { label: 'GET /api/v1/tasks (full)', path: '/api/v1/tasks?limit=1000&leanListMembers=1', budgetKiB: 500 },
+/**
+ * The routes docs/PERFORMANCE_BUDGETS.md names as critical reads.
+ *
+ * `perTaskBudgetBytes` is the REGRESSION gate (AWTD-1238); the KiB budget is a
+ * page-size cap for the client. They answer different questions and only one of
+ * them survives the corpus growing — see the lean route's note below.
+ */
+const ROUTES: {
+  label: string
+  path: string
+  budgetKiB: number
+  perTaskBudgetBytes?: number
+}[] = [
+  // A full page, judged as a client experience: this is what a cacheless caller
+  // downloads. It grows with the account's own writing, so a breach here is a
+  // reason to send `omit=description` or ask for a smaller page — not evidence
+  // that the code regressed.
+  { label: 'GET /api/v1/tasks (full page)', path: '/api/v1/tasks?limit=1000&leanListMembers=1', budgetKiB: 500 },
+  // The same read without its free text, divided by the tasks in it. THIS is
+  // the number that catches a regression, because neither term moves with the
+  // corpus: a thousand more tasks leave it flat, and a thousand longer
+  // descriptions leave it flat too. What does move it is a new field, a fatter
+  // relation, or a serialization change — which is what a budget is for.
+  //
+  // 112.0 bytes/task measured 2026-10-12. The budget is 135, ~20% headroom:
+  // AWTD-1190's `assigneeIds` cost 1.2 bytes/task, so this absorbs a decade of
+  // honest field additions and still fails on anything structural.
+  {
+    label: 'GET /api/v1/tasks (lean — the regression gate)',
+    path: '/api/v1/tasks?limit=1000&leanListMembers=1&omit=description',
+    budgetKiB: 500,
+    perTaskBudgetBytes: 135,
+  },
   { label: 'GET /api/v1/lists', path: '/api/v1/lists', budgetKiB: 250 },
 ]
 
@@ -106,9 +137,15 @@ interface RouteResult {
   /** Compressed bytes — what crosses the wire, and what the budget is against. */
   wireKiB: number
   budgetKiB: number
+  /** Wire bytes divided by the tasks in the page — only for routes with a per-task budget. */
+  perTaskBytes?: number
+  perTaskBudgetBytes?: number
+  tasksInPage?: number
   errors: number
   withinLatency: boolean
   withinSize: boolean
+  /** True when no per-task budget applies, so a caller can treat it as a pass. */
+  withinPerTask: boolean
 }
 
 async function measureRoute(
@@ -120,6 +157,7 @@ async function measureRoute(
   let bytes = 0
   let wireBytes = 0
   let errors = 0
+  let tasksInPage = 0
 
   for (let i = 0; i < samples + WARMUP_REQUESTS; i++) {
     const started = performance.now()
@@ -133,6 +171,17 @@ async function measureRoute(
       ok = res.ok
       if (i >= WARMUP_REQUESTS) {
         bytes = body.byteLength
+        if (route.perTaskBudgetBytes !== undefined) {
+          // Counted from the response rather than assumed from `limit`: the
+          // page is short whenever the account has fewer tasks than the cap,
+          // and dividing by 1000 then would flatter the number.
+          try {
+            const parsed = JSON.parse(Buffer.from(body).toString('utf8'))
+            tasksInPage = Array.isArray(parsed?.tasks) ? parsed.tasks.length : 0
+          } catch {
+            tasksInPage = 0
+          }
+        }
         // undici transparently decompresses, and these responses are chunked
         // with no content-length, so the wire size is not readable from the
         // response. Re-compressing locally reproduces it closely: measured
@@ -155,6 +204,12 @@ async function measureRoute(
   const p95 = percentile(sorted, 95)
   const decodedKiB = Math.round((bytes / 1024) * 10) / 10
   const wireKiB = Math.round((wireBytes / 1024) * 10) / 10
+  // An empty page cannot be judged per task, and dividing by zero would report
+  // a budget as met when nothing was measured.
+  const perTaskBytes =
+    route.perTaskBudgetBytes !== undefined && tasksInPage > 0
+      ? Math.round((wireBytes / tasksInPage) * 10) / 10
+      : undefined
 
   return {
     label: route.label,
@@ -167,9 +222,159 @@ async function measureRoute(
     decodedKiB,
     wireKiB,
     budgetKiB: route.budgetKiB,
+    perTaskBytes,
+    perTaskBudgetBytes: route.perTaskBudgetBytes,
+    tasksInPage: route.perTaskBudgetBytes !== undefined ? tasksInPage : undefined,
     errors,
     withinLatency: p50 <= P50_BUDGET_MS && p95 <= P95_BUDGET_MS,
     withinSize: wireKiB <= route.budgetKiB,
+    // A route with no per-task budget passes; one with a budget and no page to
+    // measure does NOT, because silence there would read as success.
+    withinPerTask:
+      route.perTaskBudgetBytes === undefined
+        ? true
+        : perTaskBytes !== undefined && perTaskBytes <= route.perTaskBudgetBytes,
+  }
+}
+
+/**
+ * Which KEYS carry the bytes (AWTD-1231).
+ *
+ * When the task response went over budget, the natural first guess was "a field
+ * was added" — and it was wrong by two orders of magnitude: every schema
+ * addition since the previous measurement came to under 2 KiB, while
+ * `description` alone was 443 KiB of 552. Guessing costs a wasted afternoon;
+ * this costs one request.
+ *
+ * MARGINAL cost, not share of the decoded bytes: each key is dropped from every
+ * task and the whole response re-gzipped, so what is reported is what removing
+ * it would actually save on the wire. Those two numbers differ a lot for a key
+ * that repeats — `id` is 36 unique characters a thousand times over and
+ * compresses badly; a repeated enum compresses to almost nothing.
+ */
+async function measureKeyBreakdown(token: string, top = 15): Promise<void> {
+  const route = ROUTES[0]
+  const res = await fetch(`${BASE}${route.path}`, { headers: { 'X-OAuth-Token': token } })
+  if (!res.ok) {
+    console.log(`Key breakdown skipped: ${route.label} answered ${res.status}\n`)
+    return
+  }
+  const body = (await res.json()) as { tasks?: Record<string, unknown>[] }
+  const tasks = body.tasks ?? []
+  if (tasks.length === 0) {
+    console.log('Key breakdown skipped: no tasks returned\n')
+    return
+  }
+
+  const full = gzipSync(Buffer.from(JSON.stringify(body))).length
+  const keys = [...new Set(tasks.flatMap(task => Object.keys(task)))]
+  const rows = keys.map(key => {
+    const stripped = tasks.map(task => {
+      const copy = { ...task }
+      delete copy[key]
+      return copy
+    })
+    const size = gzipSync(Buffer.from(JSON.stringify({ ...body, tasks: stripped }))).length
+    return { key, kib: (full - size) / 1024 }
+  })
+  rows.sort((a, b) => b.kib - a.kib)
+
+  console.log(`Marginal wire cost per key — ${route.label}, ${tasks.length} tasks`)
+  console.log(`   total ${(full / 1024).toFixed(1)} KiB\n`)
+  for (const row of rows.slice(0, top)) {
+    console.log(`   ${row.kib.toFixed(1).padStart(7)} KiB  ${row.key}`)
+  }
+  const rest = rows.slice(top).reduce((sum, row) => sum + row.kib, 0)
+  console.log(`   ${rest.toFixed(1).padStart(7)} KiB  — the remaining ${Math.max(rows.length - top, 0)} keys\n`)
+}
+
+/**
+ * The GitHub project-fields payload gate (AWTD-1208, spec §9.4.3).
+ *
+ * `fields` puts one entry per (task, project field) on every task in a list
+ * response. The spec's budget decides whether that can ride on the list route
+ * at all, so it has to be a measurement rather than an intention — the same
+ * argument this whole script exists for.
+ *
+ * WHY SYNTHETIC, AND WHY THAT IS STILL HONEST. There is no GitHub-backed board
+ * in production with a thousand tasks, and this script is a read-only client of
+ * astrid.cc — it seeds nothing. So the fixture is applied to the REAL thousand-
+ * task response: the measured payload, with a realistic `fields` block grafted
+ * onto each task, re-compressed. That is exactly the marginal wire cost the
+ * budget is about, measured against the real payload's own compressibility
+ * rather than against an invented one.
+ *
+ * WHY COMPRESSION DECIDES IT. Uncompressed, 8 entries per task is ~450 bytes a
+ * task — ~440 KB over a thousand, which would blow a 500 KiB budget on its own.
+ * But only 8 distinct field ids repeat across every task, and a single-select
+ * has a handful of option ids, so most of those bytes are repetition that gzip
+ * removes. The free-text fields are what does not compress, which is why the
+ * fixture includes two of them with per-task content.
+ */
+const FIELDS_PER_TASK = 8
+const FIXTURE_TASKS = 1000
+
+/** Eight fields of the shape §9.4.1 describes, with ids the size Postgres mints. */
+function fieldsFixture(taskIndex: number): Record<string, string | number> {
+  const fieldId = (n: number) => `f47ac10b-58cc-4372-a567-0e02b2c3d4${String(n).padStart(2, '0')}`
+  // Single-select and iteration values come from small sets, as GitHub's do.
+  const option = ['f75ad846', '47fc9ee4', 'df73e18b', '98236657', 'bc3f2a91'][taskIndex % 5]
+  const status = ['a1b2c3d4', 'e5f6a7b8', '09c8d7e6'][taskIndex % 3]
+  const iteration = ['PVTI_lADOA1', 'PVTI_lADOA2', 'PVTI_lADOA3', 'PVTI_lADOA4'][taskIndex % 4]
+  const day = String((taskIndex % 28) + 1).padStart(2, '0')
+  return {
+    [fieldId(1)]: option,
+    [fieldId(2)]: status,
+    [fieldId(3)]: iteration,
+    [fieldId(4)]: `2026-${String((taskIndex % 12) + 1).padStart(2, '0')}-${day}`,
+    [fieldId(5)]: `2026-11-${day}`,
+    [fieldId(6)]: (taskIndex % 13) + 0.5,
+    // The two that do not compress away: per-task free text.
+    [fieldId(7)]: `Rollout note ${taskIndex} for the ${['infra', 'billing', 'search', 'mobile'][taskIndex % 4]} track`,
+    [fieldId(8)]: `owner-${taskIndex % 37}@example.com queued ${taskIndex}`,
+  }
+}
+
+interface GateResult {
+  baselineWireKiB: number
+  withFieldsWireKiB: number
+  marginalKiB: number
+  budgetKiB: number
+  headroomKiB: number
+  tasksMeasured: number
+  fits: boolean
+}
+
+async function measureFieldsGate(token: string): Promise<GateResult | null> {
+  const route = ROUTES[0]
+  const res = await fetch(`${BASE}${route.path}`, { headers: { 'X-OAuth-Token': token } })
+  if (!res.ok) return null
+  const body = (await res.json()) as { tasks?: unknown[] }
+  const tasks = body.tasks ?? []
+  if (tasks.length === 0) return null
+
+  // Grow the sample to the fixture's thousand by repeating what production has,
+  // so the measurement is of a thousand-task board rather than of whatever the
+  // test account happens to hold today.
+  const grown = Array.from({ length: FIXTURE_TASKS }, (_, i) => tasks[i % tasks.length])
+  const withFields = {
+    ...body,
+    tasks: grown.map((task, i) => ({ ...(task as object), fields: fieldsFixture(i) })),
+  }
+  const baselineGrown = gzipSync(
+    Buffer.from(JSON.stringify({ ...body, tasks: grown })),
+  ).length
+  const augmented = gzipSync(Buffer.from(JSON.stringify(withFields))).length
+
+  const kib = (bytes: number) => Math.round((bytes / 1024) * 10) / 10
+  return {
+    baselineWireKiB: kib(baselineGrown),
+    withFieldsWireKiB: kib(augmented),
+    marginalKiB: kib(augmented - baselineGrown),
+    budgetKiB: route.budgetKiB,
+    headroomKiB: kib(route.budgetKiB * 1024 - baselineGrown),
+    tasksMeasured: tasks.length,
+    fits: augmented <= route.budgetKiB * 1024,
   }
 }
 
@@ -178,6 +383,9 @@ async function main() {
   const asJson = args.includes('--json')
   const samplesArg = args.indexOf('--samples')
   const samples = samplesArg >= 0 ? Number(args[samplesArg + 1]) : 30
+  // --breakdown answers "what is actually in there", which is a different
+  // question from "is it too big" and only worth a request when asked.
+  const wantsBreakdown = args.includes('--breakdown')
 
   const token = await getToken()
   const results: RouteResult[] = []
@@ -213,11 +421,37 @@ async function main() {
       `   ${r.wireKiB} KiB on the wire of ${r.budgetKiB} KiB: ${size}  ` +
         `(${r.decodedKiB} KiB decoded)`,
     )
+    if (r.perTaskBudgetBytes !== undefined) {
+      const verdict = r.withinPerTask ? 'within budget' : 'OVER BUDGET'
+      console.log(
+        r.perTaskBytes === undefined
+          ? `   per task: NOT MEASURED — the page came back empty, so this gate proved nothing`
+          : `   ${r.perTaskBytes} bytes/task of ${r.perTaskBudgetBytes} (${r.tasksInPage} tasks): ${verdict}` +
+              `  ← the regression gate; neither term moves with the corpus`,
+      )
+    }
     if (r.errors > 0) console.log(`   ⚠ ${r.errors} failed request(s) of ${samples}`)
     console.log('')
   }
 
-  const breached = results.filter(r => !r.withinLatency || !r.withinSize)
+  if (wantsBreakdown) await measureKeyBreakdown(token)
+
+  // AWTD-1208: does `fields` fit on the list route, or must it go behind
+  // ?include=fields? Printed with the routes because it is the same budget.
+  const gate = await measureFieldsGate(token)
+  if (gate) {
+    console.log(`GitHub project fields on 1,000 tasks x ${FIELDS_PER_TASK} fields (AWTD-1208)`)
+    console.log(
+      `   baseline ${gate.baselineWireKiB} KiB  →  with fields ${gate.withFieldsWireKiB} KiB  ` +
+        `(+${gate.marginalKiB} KiB)`,
+    )
+    console.log(
+      `   budget ${gate.budgetKiB} KiB: ${gate.fits ? 'FITS — values may ride list responses' : 'OVER BUDGET — values go behind ?include=fields'}`,
+    )
+    console.log(`   (grown from the ${gate.tasksMeasured} tasks production returned)\n`)
+  }
+
+  const breached = results.filter(r => !r.withinLatency || !r.withinSize || !r.withinPerTask)
   if (breached.length > 0) {
     console.log(`${breached.length} route(s) over budget. Investigate before raising the budget.`)
     process.exitCode = 1
