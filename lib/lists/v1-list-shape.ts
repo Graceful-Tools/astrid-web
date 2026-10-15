@@ -28,7 +28,7 @@ import { resolveDefaultAssignees, pickDefaultAssignee } from '@/lib/default-assi
 import { hasListAccess } from '@/lib/list-member-utils'
 import { DEFAULT_LIST_SHOW_SUBTASKS } from '@/lib/list-subtask-visibility'
 import { serializeListAgentFields } from '@/lib/resolve-default-agent'
-import { listSupports } from '@/lib/backends/supports'
+import { listBackendFields, loadListBackendInfo, type ListBackendInfo } from '@/lib/backends/list-wire'
 import { overlayListViewPreferences, type ListViewPreferences } from '@/lib/list-view-preferences'
 
 const log = createLogger('lists.v1-list-shape')
@@ -56,7 +56,11 @@ export type V1ListRow = Prisma.TaskListGetPayload<{ include: typeof V1_LIST_READ
  * Shape a row for the wire. The row must already carry the viewer's favorite
  * and view preferences; `defaultAssignees` is from resolveDefaultAssignees.
  */
-export function shapeV1List(list: V1ListRow, defaultAssignees: Map<string, unknown>): V1List {
+export function shapeV1List(
+  list: V1ListRow,
+  defaultAssignees: Map<string, unknown>,
+  backendInfo: ReadonlyMap<string, ListBackendInfo> = new Map(),
+): V1List {
   return {
     id: list.id,
     name: list.name,
@@ -100,8 +104,7 @@ export function shapeV1List(list: V1ListRow, defaultAssignees: Map<string, unkno
     listType: (list.listType ?? 'regular') as V1List['listType'],
     recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
     showSubtasks: list.showSubtasks ?? DEFAULT_LIST_SHOW_SUBTASKS,
-    backend: (list.backend ?? null) as V1List['backend'],
-    supports: listSupports(list),
+    ...listBackendFields(list, backendInfo),
     createdAt: list.createdAt,
     updatedAt: list.updatedAt,
   }
@@ -130,7 +133,7 @@ export async function loadV1ListsForViewers(
     const viewers = [...new Set(userIds)].filter(id => canView(list, id))
     if (viewers.length === 0) return result
 
-    const [favorites, preferences, defaultAssignees] = await Promise.all([
+    const [favorites, preferences, defaultAssignees, backendInfo] = await Promise.all([
       prisma.userListFavorite?.findMany({
         where: { listId, userId: { in: viewers } },
         select: { userId: true, favoriteOrder: true },
@@ -139,6 +142,7 @@ export async function loadV1ListsForViewers(
         where: { listId, userId: { in: viewers } },
       }) ?? [],
       resolveDefaultAssignees([list]),
+      loadListBackendInfo([list]),
     ])
     const favoriteOrderByUser = new Map((favorites ?? []).map(f => [f.userId, f.favoriteOrder]))
     const preferencesByUser = new Map((preferences ?? []).map(p => [p.userId, p as ListViewPreferences]))
@@ -148,7 +152,7 @@ export async function loadV1ListsForViewers(
       row.isFavorite = favoriteOrderByUser.has(userId)
       row.favoriteOrder = favoriteOrderByUser.get(userId) ?? null
       overlayListViewPreferences(row, preferencesByUser.get(userId))
-      result.set(userId, shapeV1List(row, defaultAssignees))
+      result.set(userId, shapeV1List(row, defaultAssignees, backendInfo))
     }
   } catch (err) {
     log.error({ err, listId }, 'Failed to load the v1 list for a list event')

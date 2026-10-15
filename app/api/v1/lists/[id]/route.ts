@@ -25,6 +25,7 @@ import { canUserManageList } from "@/lib/list-permissions"
 import { normalizeShowSubtasks } from "@/lib/list-subtask-visibility"
 import { normalizeAgentEnabledConfig } from "@/lib/resolve-default-agent"
 import { shapeV1List, V1_LIST_READ_INCLUDE } from "@/lib/lists/v1-list-shape"
+import { loadListBackendInfo } from "@/lib/backends/list-wire"
 import { audienceForList, recordDeletion } from "@/lib/deletion-log"
 import { isListColor } from "@/lib/brand/colors"
 import {
@@ -89,7 +90,7 @@ export const GET = withAuth<RouteContext>(
 
     return NextResponse.json(
       {
-        list: shapeV1List(list, defaultAssignees),
+        list: shapeV1List(list, defaultAssignees, await loadListBackendInfo([list])),
         meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
@@ -314,7 +315,7 @@ export const PUT = withAuth<RouteContext>(
 
     return NextResponse.json(
       {
-        list: shapeV1List(list, defaultAssignees),
+        list: shapeV1List(list, defaultAssignees, await loadListBackendInfo([list])),
         meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }

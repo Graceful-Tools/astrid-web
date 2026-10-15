@@ -47,6 +47,9 @@
  * field has to survive the narrowing.
  */
 
+import type { ListSupports } from '@/lib/backends/supports'
+import type { ListRemote } from '@/lib/backends/list-wire'
+
 // ── Shared meta block ─────────────────────────────────────────────────
 
 /**
@@ -154,12 +157,15 @@ export interface V1List {
   showSubtasks: boolean
   // What this list's backend can do (AWTD-1190, spec §11.2). Optional: a
   // server older than the field omits it, and absent means classic.
-  supports?: { multipleAssignees: boolean }
+  supports?: ListSupports
   // Which backend the list lives in (AWTD-1256, spec §11.2); null is a classic
   // list. Ask `supports` what it can do — this is for what it IS, e.g. so a
   // client never runs a second sync engine against a GitHub-backed list.
   // Optional for the same reason as `supports`: an older server omits it.
   backend?: 'github_project' | null
+  // The GitHub Project a GitHub-backed list mirrors (AWTD-1222). Null on a
+  // classic list.
+  remote?: ListRemote | null
   createdAt: string | Date
   updatedAt: string | Date
 }

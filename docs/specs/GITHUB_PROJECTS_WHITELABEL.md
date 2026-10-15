@@ -923,11 +923,19 @@ All additive, as API_CONTRACT permits.
 
 ```jsonc
 "assigneeIds": ["…"],
-"remote": { "kind": "issue", "url": "…", "nodeId": "I_…", "version": "…" } | null,
+"remote": { "kind": "issue", "url": "…", "nodeId": "I_…", "version": "…",
+            "repo": "acme/web", "number": 42 },   // GitHub-backed tasks only; absent otherwise
 "fields": { "<fieldId>": "<value>" },           // GitHub-backed lists only (§9.4.3)
 "previousOccurrenceId": "…" | null,
-"syncState": "synced" | "pending" | "error"
+"syncState": "synced" | "pending" | "error"     // GitHub-backed tasks only; absent otherwise
 ```
+
+As built ([AWTD-1222](https://astrid.cc/t/AWTD-1222)): absent, or null, always means a
+classic local list or task. `supports.priority` and `supports.dueDate` are true on a GitHub
+board only when that field is mapped in the binding (§9.2). `supports.fields` is false
+everywhere until the fields API exists ([AWTD-1208](https://astrid.cc/t/AWTD-1208)). A draft
+has `remote.url`, `repo` and `number` null. `syncState: "error"` is reserved: nothing writes
+it yet.
 
 **`GET /api/v1/capabilities`** adds `auth.providers[]` (§6.5) and `githubProjects`.
 
@@ -1632,11 +1640,14 @@ closed from here (P5a).
 - **Classic lists** refuse a second assignee with 400 `multiple_assignees_not_supported`.
   A task that leaves its GitHub board drops to one assignee at its next assignment.
 - **`list.supports`.** v1 lists now carry `supports: { multipleAssignees }`, true only on a
-  GitHub-backed list. The other §11.2 keys arrive with their own slices.
+  GitHub-backed list. The other §11.2 keys, with `list.remote`, `task.remote` and
+  `task.syncState`, came in [AWTD-1222](https://astrid.cc/t/AWTD-1222)
+  (`lib/backends/list-wire.ts`, `lib/backends/task-remote.ts`). astrid-core still has to
+  name each one before the Apple and Windows apps can read it.
 - **`list.backend`** (AWTD-1256). `"github_project"` or an explicit `null`, on both v1 list
   read paths and the live list events. A client asks `supports` what a list can do and
   `backend` what it is — gating on a `supports` key to identify a GitHub list holds only
-  while every key happens to derive from `backend`. `remote` / `syncState` are next.
+  while every key happens to derive from `backend`.
 - **Authorisation.** The update path's gate is `authorizeAssigneeWrite`: every person added
   goes through `authorizeAssigneeChange`, and nobody already assigned is re-checked.
 - **An agent is first or not at all** (400 `agent_must_be_first_assignee`). A run is keyed
