@@ -99,10 +99,10 @@
     },
     "addTaskPlaceholder": "Taak toevoegen...",
     "quickAdd": "Snel toevoegen...",
-    "wontDo": "Won't do",
-    "reopen": "Reopen",
+    "wontDo": "Doen we niet",
+    "reopen": "Heropenen",
     "status": "Status",
-    "wontDoChip": "Won't do",
+    "wontDoChip": "Doen we niet",
     "when": "Wanneer",
     "createdBy": "Gemaakt door",
     "confirmCompleteTitle": "Deze taak voltooien?",
@@ -122,6 +122,16 @@
       "label": "Taak-ID",
       "copy": "Taak-ID kopiëren",
       "copied": "{id} gekopieerd"
+    },
+    "occurrence": {
+      "label": "Herhaling",
+      "previous": "Vorige herhaling",
+      "next": "Volgende herhaling"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Subtaak toevoegen",
+      "addPlaceholder": "Subtaak toevoegen…"
     }
   },
   "lists": {
@@ -419,7 +429,8 @@
   "search": {
     "placeholder": "Zoek taken en gebruikers",
     "noResults": "Geen resultaten gevonden",
-    "searching": "Zoeken..."
+    "searching": "Zoeken...",
+    "open": "Zoeken"
   },
   "listHeaders": {
     "myTasks": "Mijn Taken",

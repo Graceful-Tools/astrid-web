@@ -18,6 +18,7 @@ import {
   canConvertListFlavor,
   parseGithubLabels,
   reconcileGithubLabels,
+  chipLabelText,
 } from '@/lib/list-flavors'
 
 const list = (id: string, listType?: string | null) => ({ id, listType }) as never
@@ -127,5 +128,39 @@ describe('GitHub label mapping (60f5849d)', () => {
     const result = reconcileGithubLabels(['bug'], [])
     expect(result.matchedListIds).toEqual([])
     expect(result.missingNames).toEqual(['bug'])
+  })
+})
+
+/**
+ * AWTD-1206: a tag on a task row shows at most 12 characters, and its text
+ * never wraps. The chips themselves still wrap to the next line — that part is
+ * the container's `flex-wrap`, not this function's business.
+ */
+describe('chipLabelText (AWTD-1206)', () => {
+  it('leaves a name that already fits alone', () => {
+    expect(chipLabelText('Bugs')).toBe('Bugs')
+    // Exactly at the limit is still a fit — no ellipsis for nothing.
+    expect(chipLabelText('123456789012')).toBe('123456789012')
+  })
+
+  it('cuts a longer name to 12 characters and marks the cut', () => {
+    expect(chipLabelText('1234567890123')).toBe('123456789012…')
+    expect(chipLabelText('Astrid Web To-do')).toBe('Astrid Web T…')
+  })
+
+  it('does not leave a dangling space before the ellipsis', () => {
+    // "Astrid Web " would cut mid-gap and read as a typo.
+    expect(chipLabelText('Astrid Web Todo list')).toBe('Astrid Web T…')
+    expect(chipLabelText('Hello world  xyz')).toBe('Hello world…')
+  })
+
+  it('takes a different limit when asked', () => {
+    expect(chipLabelText('abcdefghij', 4)).toBe('abcd…')
+  })
+
+  it('survives the empty and the missing', () => {
+    expect(chipLabelText('')).toBe('')
+    expect(chipLabelText(null)).toBe('')
+    expect(chipLabelText(undefined)).toBe('')
   })
 })

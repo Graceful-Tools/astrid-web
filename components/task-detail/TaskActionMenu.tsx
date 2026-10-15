@@ -12,7 +12,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Copy, Share2, Trash2, Bug, MoreVertical, Ban, RotateCcw, Columns3, Maximize2, Minimize2, Hash } from "lucide-react"
+import { Copy, Share2, Trash2, Bug, MoreVertical, Ban, RotateCcw, Columns3, Maximize2, Minimize2, Ticket } from "lucide-react"
 import type { Task, User } from "../../types/task"
 import { canUserManageList } from "@/lib/list-permissions"
 import { isCanceled } from "@/lib/closed-reason"
@@ -70,6 +70,14 @@ interface TaskActionMenuProps {
    */
   onStatusSelect?: (columnId: string) => void
   /**
+   * Does the pane already show the id, with its own copy affordance
+   * (TaskDetailIdentifierRow)? Then this menu does not repeat it (AWTD-1252).
+   * Absent — on a task whose list is not a project — the row renders nothing
+   * and this stays the only way to copy an id, which
+   * lib/task-identifier-links.ts asks for explicitly.
+   */
+  hideCopyIdentifier?: boolean
+  /**
    * Expand the panel to full screen, or drop it back (AWTD-872).
    *
    * On a board card this is a MENU ITEM rather than a button. The compact
@@ -103,6 +111,7 @@ export function TaskActionMenu({
   onTestReminder,
   onCancel,
   onStatusSelect,
+  hideCopyIdentifier = false,
   onToggleFullScreen,
   fullScreen = false,
   compact = false,
@@ -168,9 +177,10 @@ export function TaskActionMenu({
           <Share2 className="w-4 h-4 mr-2" />
           Share
         </DropdownMenuItem>
-        {copyIdentifier.canCopy && (
+        {copyIdentifier.canCopy && !hideCopyIdentifier && (
           <DropdownMenuItem onClick={copyIdentifier.copy}>
-            <Hash className="w-4 h-4 mr-2" />
+            {/* Ticket, not Hash: `#` means a list (AWTD-1187). */}
+            <Ticket className="w-4 h-4 mr-2" />
             {t("tasks.taskId.copy")}
           </DropdownMenuItem>
         )}

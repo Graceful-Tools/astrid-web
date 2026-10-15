@@ -37,15 +37,27 @@ import type { Task, TaskList } from "@/types/task"
 import { canUserManageList, isSystemListId } from "@/lib/list-permissions"
 import { useTranslations } from "@/lib/i18n/client"
 import { ListFilterRow, ListSettingsButton, ListViewToggle } from "./ListHeaderActions"
+import { ListDescriptionBlock } from "./ListDescriptionBlock"
+import { type ColumnCount, sortAndFiltersIsItsOwnControl } from "@/lib/list-view-controls"
 
 interface MainContentProps {
   // Layout and responsive props
   isMobile: boolean
   mobileView: 'list' | 'task' | 'chat'
   isMobileTaskDetailClosing?: boolean
-  isOneColumn?: boolean
-  is2Column?: boolean
-  is3Column?: boolean
+  /**
+   * Which layout this is, from useTaskManagerLayout. One number rather than
+   * the three booleans this used to take (isOneColumn / is2Column /
+   * is3Column), which were passed separately and could disagree — and
+   * disagreeing about the layout is exactly the bug AWTD-1175 fixed, where
+   * one place thought a layout had a filter control and another did not.
+   *
+   * NOT useLayoutType(): that hook answers a different question with different
+   * thresholds (1200/768 vs 910/1100 plus device sniffing) and its LayoutType
+   * is a different union that happens to share the name — see the note on
+   * dragCapability below.
+   */
+  columnCount: ColumnCount
 
   // Data props
   selectedListId: string
@@ -176,9 +188,7 @@ export function MainContent({
   isMobile,
   mobileView,
   isMobileTaskDetailClosing,
-  isOneColumn,
-  is2Column,
-  is3Column,
+  columnCount,
   selectedListId,
   lists,
   allTasks,
@@ -255,6 +265,10 @@ export function MainContent({
   onListDelete,
   onFavoriteToggle
 }: MainContentProps) {
+  const isOneColumn = columnCount === 1
+  const is2Column = columnCount === 2
+  const is3Column = columnCount === 3
+
   // Detect current layout type for enhanced task creation
   const layoutType = useLayoutType()
 
@@ -574,7 +588,7 @@ export function MainContent({
         }),
       }}>
         <div
-          className="px-4 py-5 theme-border border-b"
+          className="relative px-4 py-5 theme-border border-b"
           style={{ display: is3Column ? 'block' : 'none' }}
         >
           {isSearchActive ? (
@@ -630,73 +644,20 @@ export function MainContent({
                         </h1>
                       )}
 
-                      {/* Editable Description */}
-                      {editingListDescription ? (
-                        <>
-                          <div className="flex items-start justify-start space-x-2 mt-2">
-                            <textarea
-                              value={tempListDescription}
-                              onChange={(e) => setTempListDescription(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  if (e.shiftKey || e.metaKey || e.ctrlKey) {
-                                    // Shift+Enter, Cmd/Ctrl + Enter: Add line break
-                                    return
-                                  } else {
-                                    // Plain Enter: Save description
-                                    e.preventDefault()
-                                    handleSaveListDescription()
-                                  }
-                                } else if (e.key === "Escape") {
-                                  setEditingListDescription(false)
-                                }
-                              }}
-                              className="theme-comment-bg theme-border border theme-text-primary text-sm text-left max-w-md rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="Add a description..."
-                              rows={2}
-                              autoFocus
-                            />
-                            <div className="flex flex-col space-y-1 mt-1">
-                              <Button size="sm" onClick={handleSaveListDescription} className="bg-blue-600 hover:bg-blue-700">
-                                <Check className="w-4 h-4" />
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={() => setEditingListDescription(false)}
-                                      className="theme-border theme-text-secondary hover:theme-bg-hover">
-                                <X className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="text-xs theme-text-muted mt-1 ml-0">
-                            Press Enter to save • Shift+Enter or Cmd/Ctrl+Enter for line breaks
-                          </div>
-                        </>
-                      ) : newFilterState.filters.search.trim() ? (
-                        <div
-                          className="theme-text-muted text-sm text-left prose prose-sm max-w-none line-clamp-2 overflow-hidden"
-                          dangerouslySetInnerHTML={{
-                            __html: `Showing tasks matching "<strong>${newFilterState.filters.search}</strong>" from all accessible lists`,
-                          }}
-                        />
-                      ) : (
-                        // Inline preview shows the raw description text (not rendered
-                        // markdown). The full formatted view is the dialog on click.
-                        <div
-                          className="theme-text-muted text-sm text-left line-clamp-2 overflow-hidden whitespace-pre-wrap cursor-pointer hover:theme-text-secondary"
-                          onClick={() => {
-                            if (currentList.description) {
-                              // Has description → open viewer dialog
-                              descriptionDialogRef.current?.open(currentList.description)
-                            } else if (canEditListSettingsMemo(currentList) && !isViewingFromFeatured) {
-                              // No description + can edit → go straight to inline edit
-                              handleEditListDescription(currentList)
-                            }
-                          }}
-                        >
-                          {currentList.description
-                            ? currentList.description
-                            : (canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? "Add a description..." : "")}
-                        </div>
-                      )}
+                      {/* The description under the name: inline editor, the
+                          search banner, or the preview that opens the dialog. */}
+                      <ListDescriptionBlock
+                        list={currentList}
+                        editing={editingListDescription}
+                        draft={tempListDescription}
+                        onDraftChange={setTempListDescription}
+                        onSave={handleSaveListDescription}
+                        onCancel={() => setEditingListDescription(false)}
+                        onEdit={handleEditListDescription}
+                        onPreview={description => descriptionDialogRef.current?.open(description)}
+                        canEdit={canEditListSettingsMemo(currentList) && !isViewingFromFeatured}
+                        searchTerm={newFilterState.filters.search.trim()}
+                      />
                     </div>
 
                     {/* View toggle and settings, compact so the name keeps the room (AWTD-1155); filters sit below (AWTD-1167) */}
@@ -726,6 +687,7 @@ export function MainContent({
           {/* List settings — one host picks fixed vs full popover (task ecf56cd3) */}
           {(showSettingsPopover === selectedListId || showSortFiltersFor === selectedListId) && <LazyListSettingsHost
               variant="desktop"
+              columnCount={columnCount}
               selectedListId={selectedListId}
               lists={lists}
               listMetadata={listMetadata}
@@ -773,8 +735,11 @@ export function MainContent({
               its own row below; mobile version is fixed at bottom). Gated on
               is3Column so there is no hidden duplicate in the 2-column DOM. */}
           {!isSearchActive && is3Column && !(hasProjectBoard && taskViewMode === 'board') && renderAddTaskInput()}
-          {/* Sort & filters: below "Add a task...", above the line over the tasks — on the board too (AWTD-1167, AWTD-1168) */}
-          {!isSearchActive && is3Column && selectedListId && (isSystemListId(selectedListId)
+          {/* Sort & filters: below "Add a task...", above the line over the tasks — on the board too (AWTD-1167, AWTD-1168).
+              Gated on the shared rule rather than on is3Column directly: below
+              3 columns this control does not exist and List Settings carries
+              the way in instead, and the two sites must agree (AWTD-1175). */}
+          {!isSearchActive && sortAndFiltersIsItsOwnControl(columnCount) && selectedListId && (isSystemListId(selectedListId)
             ? <ListFilterRow onOpen={() => setShowSettingsPopover(selectedListId)} />
             : <ListFilterRow list={(lists.find(l => l.id === selectedListId) || listMetadata) as never} currentUserId={effectiveSession?.user?.id} isViewingFromFeatured={isViewingFromFeatured} onOpen={() => setShowSortFiltersFor(selectedListId)} />)}
         </div>
@@ -823,7 +788,7 @@ export function MainContent({
               onDeleteTask={handleDeleteTask}
               onCopyTask={handleCopyTask}
               onCreateTask={handleQuickCreateTask}
-              isOneColumn={Boolean(isOneColumn)}
+              isOneColumn={isOneColumn}
             />
           </div>
         ) : finalFilteredTasks.length === 0 && !justReturnedFromTaskDetail ? (
@@ -1004,6 +969,7 @@ export function MainContent({
       {/* List settings — one host picks fixed vs full popover (task ecf56cd3) */}
       {(showSettingsPopover === selectedListId || showSortFiltersFor === selectedListId) && <LazyListSettingsHost
               variant="mobile"
+              columnCount={columnCount}
               selectedListId={selectedListId}
               lists={lists}
               listMetadata={listMetadata}

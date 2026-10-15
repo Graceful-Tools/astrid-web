@@ -24,7 +24,14 @@ vi.mock('@/lib/api-auth-middleware', () => ({
   UnauthorizedError: class extends Error {},
 }))
 vi.mock('@/lib/admin-auth', () => ({ isAdmin }))
-vi.mock('@/lib/brand/capabilities', () => ({ capabilityGate: () => null }))
+vi.mock('@/lib/brand/capabilities', async importOriginal => {
+  // Spread the real module rather than replacing it: a wholesale mock drops
+  // every other export, so the day anything in this route's import graph reads
+  // `hasCapability` the suite fails with "No export is defined on the mock" and
+  // points at a module nobody touched. (AWTD-1208 was that day.)
+  const actual = await importOriginal<typeof import('@/lib/brand/capabilities')>()
+  return { ...actual, capabilityGate: () => null }
+})
 vi.mock('@/lib/rate-limiter', () => ({
   withRateLimitAsync: () => async () => ({ allowed: true, headers: {} }),
   RATE_LIMITS: { MCP_OPERATIONS: {} },

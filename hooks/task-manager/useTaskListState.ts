@@ -7,6 +7,7 @@ import { apiGet } from "@/lib/api"
 import { seedFromCache } from "./load-from-cache"
 import { fetchSyncPayload } from "./sync-fetch"
 import { mergeTasks, mergeLists } from "./merge-tasks"
+import { useTaskDetailHydration } from "./useTaskDetailHydration"
 import { preloadUserAvatars } from "@/lib/image-cache"
 import type { Task, TaskList } from "@/types/task"
 
@@ -103,6 +104,13 @@ export function useTaskListState({
   const [publicTasks, setPublicTasks] = useState<Task[]>([])
   const [publicLists, setPublicLists] = useState<TaskList[]>([])
   const [loading, setLoading] = useState(true)
+
+  // The detail pane renders the LIST row, and the list read carries neither the
+  // attachments and secure files nor the blockers, field values and next
+  // occurrences the single-task route does. Opening a task reads it once and
+  // folds the full shape into this state (AWTD-1242). Here rather than in the
+  // controller because this hook is what owns `tasks`.
+  useTaskDetailHydration({ selectedTaskId, setTasks })
 
   // Current user ID
   const currentUserId = useMemo(() => effectiveSession?.user?.id || null, [effectiveSession?.user?.id])

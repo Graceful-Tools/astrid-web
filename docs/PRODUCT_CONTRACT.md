@@ -106,6 +106,9 @@ Registry of shared strings that already exist on both (extend as consolidated):
 | Task name | `tasks.taskName` | `tasks.task_name` | |
 | Description | `tasks.taskDescription` | `tasks.description` | **name mismatch** — reconcile |
 | Add-task input placeholder | `tasks.addTaskPlaceholder` | `tasks.add_task_placeholder` | |
+| Won't do (task menu item) | `tasks.wontDo` | `tasks.wont_do` | Closes as `closedReason: canceled`; never rolls a repeating task forward (AITD-496 / AWTD-1241) |
+| Reopen (the same item, on a won't-do task) | `tasks.reopen` | `tasks.reopen` | Clears `completed` and `closedReason` together — one without the other leaves a task that is open and still says "Won't do" |
+| Won't do (row chip) | `tasks.wontDoChip` | `tasks.wont_do_chip` | Drawn only when completed AND `closedReason` is a known reason, so an unrecognised reason shows as plain done rather than as a blank chip |
 | My Tasks (nav) | `listHeaders.myTasks` | `navigation.my_tasks` | **group mismatch** — reconcile |
 | Astrid: "set up a model" chat reply | `astridAgent.modelSetup.noModel` | — | **Server-rendered** (AWTD-1054): posted as Astrid's chat message in the request's `Accept-Language`, so iOS shows it as-is. Link stays root-relative `/settings/agents`, which iOS routes in-app (AITD-451). |
 | Astrid: "your model only runs on Apple devices" | `astridAgent.modelSetup.onDeviceUnavailable` | — | Server-rendered, as above. Sent when an on-device model is selected but the client cannot run it. |

@@ -1,7 +1,7 @@
-import { BRAND } from '@/lib/brand/config'
 import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from "next/server"
-import { verifyAuthentication, getChallenge, deleteChallenge, isProduction } from "@/lib/webauthn"
+import { verifyAuthentication, getChallenge, deleteChallenge } from "@/lib/webauthn"
+import { authSessionCookie } from '@/lib/auth/secure-cookies'
 import { encode } from "next-auth/jwt"
 import type { AuthenticationResponseJSON } from "@simplewebauthn/types"
 import { passkeyRateLimiter, withRateLimitHandlerAsync } from "@/lib/rate-limiter"
@@ -90,30 +90,8 @@ async function authenticationVerifyHandler(request: NextRequest) {
     })
 
     // Set session cookie - use robust production detection
-    const cookieName = isProduction
-      ? "__Secure-next-auth.session-token"
-      : "next-auth.session-token"
-
-    const cookieOptions: {
-      httpOnly: boolean
-      secure: boolean
-      sameSite: "lax" | "strict" | "none"
-      path: string
-      maxAge: number
-      domain?: string
-    } = {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 30 * 24 * 60 * 60, // 30 days
-    }
-
-    if (isProduction) {
-      // Scoped to the brand domain and its subdomains (leading dot), so a session
-      // started on the apex is valid on preview subdomains. Task 97208a72.
-      cookieOptions.domain = `.${BRAND.domain}`
-    }
+    // Named and scoped by the same rule the readers use (AWTD-1248).
+    const { name: cookieName, options: cookieOptions } = authSessionCookie()
 
     res.cookies.set(cookieName, token, cookieOptions)
 

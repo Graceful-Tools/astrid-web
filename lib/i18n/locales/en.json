@@ -122,6 +122,16 @@
       "label": "Task ID",
       "copy": "Copy task id",
       "copied": "Copied {id}"
+    },
+    "occurrence": {
+      "label": "Occurrence",
+      "previous": "Previous occurrence",
+      "next": "Next occurrence"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Add a subtask",
+      "addPlaceholder": "Add a subtask…"
     }
   },
   "lists": {
@@ -419,7 +429,8 @@
   "search": {
     "placeholder": "Search for tasks and users",
     "noResults": "No results found",
-    "searching": "Searching..."
+    "searching": "Searching...",
+    "open": "Search"
   },
   "listHeaders": {
     "myTasks": "My Tasks",

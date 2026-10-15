@@ -33,6 +33,14 @@ const STUBS = {
   // Imports its types as values, which Node's type stripping cannot load. Nothing a driver
   // calls reaches it; the stub throws if one ever does.
   '@/lib/virtual-list-utils': join(here, 'stubs', 'virtual-list-utils.mjs'),
+  // Server plumbing imported beside a pure function (lib/list-manual-order.ts). sse-utils starts
+  // timers at import, which would hang the export; see the stub.
+  '@/lib/redis': join(here, 'stubs', 'server-only.mjs'),
+  '@/lib/sse-utils': join(here, 'stubs', 'server-only.mjs'),
+  // A bare package, imported by lib/list-manual-order.ts for a type (`Prisma.JsonArray`) that
+  // type-stripping leaves behind as a value import. Stubbed so the manual-order driver needs no
+  // generated prisma client.
+  '@prisma/client': join(here, 'stubs', 'prisma-client.mjs'),
 }
 
 // The order TypeScript's resolver would try, narrowed to what astrid-web actually contains.
@@ -42,8 +50,12 @@ const EXTENSIONS = ['.ts', '.tsx', '.mjs', '.js', '/index.ts', '/index.tsx', '/i
  * Install the hook. Call once, before importing anything from the web checkout.
  *
  * @param {string} webRoot absolute path to the astrid-web checkout
+ * @param {Record<string, string>} [overrides] specifier → file, replacing a stub for one driver.
+ *   Only the reminders driver uses it, to run lib/reminder-snooze.ts against an in-memory
+ *   reminder queue (stubs/prisma-reminder-queue.mjs) instead of the throwing prisma stub.
  */
-export function registerWebAliases(webRoot) {
+export function registerWebAliases(webRoot, overrides = {}) {
+  const stubs = { ...STUBS, ...overrides }
   registerHooks({
     resolve(specifier, context, nextResolve) {
       // A relative import with no extension — `./date-comparison` from date-utils.ts — is what
@@ -65,10 +77,10 @@ export function registerWebAliases(webRoot) {
         return nextResolve(specifier, context)
       }
 
-      if (!specifier.startsWith('@/')) return nextResolve(specifier, context)
-
-      const stub = STUBS[specifier]
+      const stub = stubs[specifier]
       if (stub) return { url: pathToFileURL(stub).href, shortCircuit: true }
+
+      if (!specifier.startsWith('@/')) return nextResolve(specifier, context)
 
       const base = join(webRoot, specifier.slice(2))
       for (const ext of EXTENSIONS) {

@@ -138,10 +138,9 @@ export const SUCCESSOR_OVERRIDES: Record<string, string | null> = {
   // namespace instead of staying a sub-path of its resource.
   '/api/lists/public': '/api/v1/public/lists',
   '/api/public-tasks': '/api/v1/public/tasks',
-  // Decided, not missing: nothing calls it on any platform, so it gets no twin
-  // (task 641a7615, decision 3A). `null` says "deliberately none" rather than
-  // leaving it to look like an oversight.
-  '/api/user/mcp-settings': null,
+  // `null` records "deliberately no successor" rather than leaving it to look
+  // like an oversight. Its one use, /api/user/mcp-settings (task 641a7615,
+  // decision 3A), was deleted once the census cleared it (AWTD-839).
 }
 
 /** `/api/lists/[id]` → `/api/v1/lists/[id]`, honouring the rename table. */

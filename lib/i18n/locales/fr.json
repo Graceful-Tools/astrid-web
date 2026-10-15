@@ -99,10 +99,10 @@
     },
     "addTaskPlaceholder": "Ajouter une tâche...",
     "quickAdd": "Ajout rapide...",
-    "wontDo": "Won't do",
-    "reopen": "Reopen",
+    "wontDo": "Ne sera pas fait",
+    "reopen": "Rouvrir",
     "status": "Statut",
-    "wontDoChip": "Won't do",
+    "wontDoChip": "Ne sera pas fait",
     "when": "Quand",
     "createdBy": "Créé par",
     "confirmCompleteTitle": "Terminer cette tâche ?",
@@ -122,6 +122,16 @@
       "label": "ID de tâche",
       "copy": "Copier l'ID de tâche",
       "copied": "{id} copié"
+    },
+    "occurrence": {
+      "label": "Occurrence",
+      "previous": "Occurrence précédente",
+      "next": "Occurrence suivante"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Ajouter une sous-tâche",
+      "addPlaceholder": "Ajouter une sous-tâche…"
     }
   },
   "lists": {
@@ -419,7 +429,8 @@
   "search": {
     "placeholder": "Rechercher des tâches et des utilisateurs",
     "noResults": "Aucun résultat trouvé",
-    "searching": "Recherche en cours..."
+    "searching": "Recherche en cours...",
+    "open": "Rechercher"
   },
   "listHeaders": {
     "myTasks": "Mes Tâches",

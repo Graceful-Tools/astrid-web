@@ -4,7 +4,8 @@
  * Covers the integrated behavior shared between task detail panel and settings detail panel,
  * which are being refactored onto shared hooks (usePanelArrowPosition, useSlideCloseAnimation).
  *
- * These tests require authentication; they run in CI where PLAYWRIGHT_TEST_EMAIL is set.
+ * These tests require authentication: a minted session in .auth/user.json
+ * (docs/testing/PLAYWRIGHT_AUTH_GUIDE.md).
  */
 
 import { test, expect } from '@playwright/test'

@@ -33,14 +33,24 @@ import {
   remoteLabels,
   type RemoteLabel,
 } from '@/lib/github/projects/labels'
+import {
+  isEmptyMilestonePlan,
+  MILESTONE_LIST_COLOR,
+  milestoneListDescription,
+  milestoneListDrift,
+  planMilestone,
+  remoteMilestone,
+  type RemoteMilestone,
+} from '@/lib/github/projects/milestones'
 import { planAssignees, remoteAssignees } from '@/lib/github/projects/assignees'
 import { assigneeIdsOf } from '@/lib/task-assignees'
-import { GITHUB_LABEL_LIST } from '@/lib/backends/github-labels'
-import { LIST_TYPE_LABEL } from '@/lib/list-flavors'
+import { GITHUB_MIRRORED_LIST } from '@/lib/backends/github-labels'
+import { LIST_TYPE_LABEL, LIST_TYPE_MILESTONE } from '@/lib/list-flavors'
 import { projectItemPages } from '@/lib/github/projects/hydrate'
 import type { BindingProposal, ProjectSchema } from '@/lib/github/projects/bind'
 import type { GraphqlClient } from '@/lib/github/rate-limiter'
 import { createTasksInBulk } from '@/services/task-bulk-create'
+import { applyFieldValues, syncProjectFields } from '@/services/github-project-fields.service'
 
 const log = createLogger('services.github-projects')
 
@@ -49,6 +59,8 @@ export interface BoundBoard {
   projectId: string
   listId: string
   ownerId: string
+  /** PVT_…; lets a page refresh the board's field schema (AWTD-1117). */
+  projectNodeId?: string
   binding: BindingFieldMap
 }
 
@@ -79,9 +91,11 @@ const REPLICA_SELECT = {
   parentTaskId: true,
   parentTask: { select: { remoteNodeId: true } },
   blockedBy: { where: { blockingTask: { remoteNodeId: { not: null } } }, select: { blockingTaskId: true } },
-  // Labels (AWTD-1188). Only lists that mirror a GITHUB label are read back:
-  // a label a person gave the task in Astrid is never GitHub's to remove.
-  lists: { where: GITHUB_LABEL_LIST, select: { id: true, remoteNodeId: true } },
+  // Labels (AWTD-1188) and milestones (AWTD-1189). Only lists that MIRROR
+  // GitHub are read back: a label a person gave the task in Astrid is never
+  // GitHub's to remove. One read covers both flavors; each apply pass filters
+  // to its own by `listType`.
+  lists: { where: GITHUB_MIRRORED_LIST, select: { id: true, remoteNodeId: true, listType: true } },
   // Assignees (AWTD-1190). An agent is never GitHub's to unassign.
   assigneeId: true,
   assigneeIds: true,
@@ -214,7 +228,8 @@ async function applyLabels(
     const remote = item.isArchived ? null : remoteLabels(item, { agentLabels: hasCapability('githubAgentLabels') })
     const row = item.content ? replicas.get(item.content.id) : undefined
     const taskId = row?.id ?? (item.content ? created.get(item.content.id) : undefined)
-    return remote && taskId ? [{ remote, taskId, held: row?.lists ?? [] }] : []
+    const held = (row?.lists ?? []).filter(list => list.listType === LIST_TYPE_LABEL)
+    return remote && taskId ? [{ remote, taskId, held }] : []
   })
 
   const seen = new Map<string, RemoteLabel & { repository: string | null }>()
@@ -276,8 +291,100 @@ async function applyLabels(
   return writes.length > 0
 }
 
-/** Apply one hydrated page of a project's items to its board. */
-export async function applyProjectItems(board: BoundBoard, items: RemoteProjectItem[]): Promise<ApplySummary> {
+const MILESTONE_LIST_SELECT = { id: true, remoteNodeId: true, name: true, description: true } as const
+
+/**
+ * Milestones for one page (AWTD-1189): each GitHub milestone is a
+ * milestone-flavor list, one list per milestone node, and a task carries the
+ * milestone by being on it. Shaped like `applyLabels` above, and deliberately so
+ * — the two differ in exactly one way, which is arity.
+ *
+ * **A task has at most one milestone.** `planMilestone` returns the one list to
+ * join and EVERY other milestone list to leave, so an issue moved from v1.2 to
+ * v1.3 stops showing v1.2. Labels, being a set, have no such step.
+ */
+async function applyMilestones(
+  board: BoundBoard,
+  items: RemoteProjectItem[],
+  replicas: Map<string, ReplicaRow>,
+  created: Map<string, string>,
+): Promise<boolean> {
+  const stated = items.flatMap(item => {
+    const remote = item.isArchived ? null : remoteMilestone(item)
+    const row = item.content ? replicas.get(item.content.id) : undefined
+    const taskId = row?.id ?? (item.content ? created.get(item.content.id) : undefined)
+    const held = (row?.lists ?? []).filter(list => list.listType === LIST_TYPE_MILESTONE)
+    return remote && taskId ? [{ remote, taskId, held }] : []
+  })
+
+  const seen = new Map<string, RemoteMilestone & { repository: string | null }>()
+  for (const { remote } of stated) {
+    if (remote.milestone) seen.set(remote.milestone.nodeId, { ...remote.milestone, repository: remote.repository })
+  }
+
+  const writes: Prisma.PrismaPromise<unknown>[] = []
+  const listIds = new Map<string, string>()
+  if (seen.size > 0) {
+    const known = await prisma.taskList.findMany({
+      where: { remoteNodeId: { in: [...seen.keys()] } },
+      select: MILESTONE_LIST_SELECT,
+    })
+    for (const list of known) {
+      listIds.set(list.remoteNodeId as string, list.id)
+      const milestone = seen.get(list.remoteNodeId as string)!
+      const drift = milestoneListDrift(milestone, milestone.repository, list)
+      if (drift) writes.push(prisma.taskList.update({ where: { id: list.id }, data: drift }))
+    }
+
+    const fresh = [...seen.values()].filter(milestone => !listIds.has(milestone.nodeId))
+    if (fresh.length > 0) {
+      await prisma.taskList.createMany({
+        data: fresh.map(milestone => ({
+          name: milestone.title,
+          color: MILESTONE_LIST_COLOR,
+          description: milestoneListDescription(milestone.repository, milestone.dueOn),
+          ownerId: board.ownerId,
+          listType: LIST_TYPE_MILESTONE,
+          remoteNodeId: milestone.nodeId,
+        })),
+        // Another job may have met the same milestone: the node id is unique.
+        skipDuplicates: true,
+      })
+      const made = await prisma.taskList.findMany({
+        where: { remoteNodeId: { in: fresh.map(milestone => milestone.nodeId) } },
+        select: MILESTONE_LIST_SELECT,
+      })
+      for (const list of made) listIds.set(list.remoteNodeId as string, list.id)
+      await RedisCache.invalidate.userLists(board.ownerId).catch(err => {
+        log.warn({ err, projectId: board.projectId }, 'Failed to clear the board owner\u2019s list cache')
+      })
+    }
+  }
+
+  for (const { remote, taskId, held } of stated) {
+    const plan = planMilestone(remote, held.map(list => list.remoteNodeId as string))
+    if (isEmptyMilestonePlan(plan)) continue
+    const connect = plan.join && listIds.has(plan.join) ? [{ id: listIds.get(plan.join)! }] : []
+    const leaving = new Set(plan.leave)
+    const disconnect = held.filter(list => leaving.has(list.remoteNodeId as string)).map(list => ({ id: list.id }))
+    if (connect.length === 0 && disconnect.length === 0) continue
+    writes.push(
+      prisma.task.update({
+        where: { id: taskId },
+        data: { lists: { ...(connect.length > 0 ? { connect } : {}), ...(disconnect.length > 0 ? { disconnect } : {}) } },
+      }),
+    )
+  }
+
+  if (writes.length > 0) await prisma.$transaction(writes)
+  return writes.length > 0
+}
+
+/**
+ * Apply one hydrated page of a project's items to its board. With a `client`,
+ * a project field the board has not met refreshes its field schema (AWTD-1117).
+ */
+export async function applyProjectItems(board: BoundBoard, items: RemoteProjectItem[], client?: GraphqlClient): Promise<ApplySummary> {
   const summary: ApplySummary = { created: 0, updated: 0, left: 0, unchanged: 0, skipped: 0 }
   const contentIds = items.flatMap(item => (item.content?.id && item.type !== 'REDACTED' ? [item.content.id] : []))
 
@@ -295,6 +402,8 @@ export async function applyProjectItems(board: BoundBoard, items: RemoteProjectI
 
   const creates: Array<{ itemNodeId: string; data: NonNullable<ReturnType<typeof normaliseItem>> }> = []
   const writes: Prisma.PrismaPromise<unknown>[] = []
+  /** Tasks this batch closes because GitHub closed them (AWTD-1118). */
+  const completedOnGitHub: string[] = []
 
   for (const item of items) {
     const replica = item.content ? replicas.get(item.content.id) ?? null : null
@@ -312,6 +421,10 @@ export async function applyProjectItems(board: BoundBoard, items: RemoteProjectI
         break
       case 'update': {
         const taskId = replica!.id
+        // A close that happened on github.com, on a task that was open here.
+        // This write never passes the completion path, so the recurrence
+        // handoff has to be made from here too (AWTD-1118, §10.1).
+        if (plan.patch.completed === true && !replica!.completed) completedOnGitHub.push(taskId)
         writes.push(
           prisma.task.update({
             where: { id: taskId },
@@ -377,13 +490,33 @@ export async function applyProjectItems(board: BoundBoard, items: RemoteProjectI
     for (const task of tasks) createdByNode.set((task as unknown as { remoteNodeId: string }).remoteNodeId, task.id)
   }
 
+  // A repeating task closed on github.com spawns its next occurrence, exactly
+  // as completing it from Astrid does. Queued, so a GitHub hiccup retries
+  // rather than losing the series; deduped per occurrence, so a close that
+  // Astrid itself made does not spawn a second issue (§10.1).
+  if (completedOnGitHub.length > 0) {
+    const { enqueueRecurrenceForRemoteCompletions } = await import('@/services/github-recurrence.service')
+    await enqueueRecurrenceForRemoteCompletions(completedOnGitHub)
+  }
+
   const relationsChanged = await applyRelations(items, replicaByNode, createdByNode)
   const labelsChanged = await applyLabels(board, items, replicaByNode, createdByNode)
+  const milestonesChanged = await applyMilestones(board, items, replicaByNode, createdByNode)
   const assigneesChanged = await applyAssignees(items, replicaByNode, createdByNode)
+  // Project fields (AWTD-1117). An archived item's values leave with it.
+  const fieldsChanged = await applyFieldValues(
+    board,
+    items.flatMap(item => {
+      const nodeId = item.type !== 'REDACTED' ? item.content?.id : undefined
+      const taskId = nodeId ? replicaByNode.get(nodeId)?.id ?? createdByNode.get(nodeId) : undefined
+      return taskId ? [{ item, taskId }] : []
+    }),
+    client,
+  )
 
   // createTasksInBulk clears caches for what it created; updates, leaves,
-  // relationship, label and assignee changes are ours to clear.
-  if (writes.length > 0 || relationsChanged || labelsChanged || assigneesChanged) {
+  // relationship, label, milestone, assignee and field changes are ours to clear.
+  if (writes.length > 0 || relationsChanged || labelsChanged || milestonesChanged || assigneesChanged || fieldsChanged) {
     await RedisCache.invalidate.userTasks(board.ownerId, [board.listId]).catch(err => {
       log.warn({ err, projectId: board.projectId }, 'Failed to clear the board owner’s task cache')
     })
@@ -501,6 +634,8 @@ export async function removeProjectItem(board: BoundBoard, itemNodeId: string): 
   await prisma.$transaction([
     prisma.gitHubProjectItem.update({ where: { itemNodeId }, data: { archived: true } }),
     prisma.task.update({ where: { id: membership.taskId }, data: { lists: { disconnect: { id: board.listId } } } }),
+    // Its values for this project's fields leave with it (AWTD-1117).
+    prisma.taskFieldValue.deleteMany({ where: { taskId: membership.taskId, projectId: board.projectId } }),
   ])
   await RedisCache.invalidate.userTasks(board.ownerId, [board.listId]).catch(() => {})
   return true
@@ -512,8 +647,9 @@ export async function importGitHubProject(projectId: string, client: GraphqlClie
   if (!board) throw new Error(`Project ${projectId} is not bound to GitHub`)
 
   const total: ApplySummary = { created: 0, updated: 0, left: 0, unchanged: 0, skipped: 0 }
+  await syncProjectFields(board, client)
   for await (const items of projectItemPages(client, board.projectNodeId)) {
-    const page = await applyProjectItems(board, items)
+    const page = await applyProjectItems(board, items, client)
     for (const key of Object.keys(total) as Array<keyof ApplySummary>) total[key] += page[key]
   }
   await prisma.gitHubProjectBinding.update({ where: { projectId }, data: { lastReconciledAt: new Date() } })
@@ -549,6 +685,8 @@ export async function updateBindingMapping(projectId: string, patch: BindingPatc
 export async function unbindGitHubProject(projectId: string): Promise<void> {
   await prisma.$transaction([
     prisma.gitHubProjectBinding.delete({ where: { projectId } }),
+    // Fields are GitHub's: a local board never has any (§9.4). Their values cascade.
+    prisma.projectField.deleteMany({ where: { projectId } }),
     prisma.taskList.updateMany({ where: { projectId, backend: GITHUB_PROJECT_BACKEND }, data: { backend: null } }),
     prisma.project.update({ where: { id: projectId }, data: { githubInstallationId: null } }),
   ])

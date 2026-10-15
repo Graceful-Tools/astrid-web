@@ -18,6 +18,7 @@
  */
 
 import { prisma } from "./prisma"
+import { hasCapability } from "./brand/capabilities"
 import { isClosedReason } from "./closed-reason"
 import { createLogger } from "./logger"
 import {
@@ -87,7 +88,34 @@ export async function resolveRepeatingTaskCompletion(
 
   if (!result?.shouldRollForward && !result?.shouldTerminate) return null
 
+  // On a GitHub board the series SPAWNS rather than rolls forward: the issue
+  // just completed stays closed as history and the next occurrence is a new
+  // issue linked to it (AWTD-1118, spec §10). Returning null hands the task
+  // back to the caller's ordinary completion path — which is exactly right,
+  // because the predecessor really is just completed — and a `recur` job
+  // creates the successor.
+  //
+  // Only a roll-forward is handed over. A terminating series has no successor
+  // to make, so it clears its configuration through the path it always did.
+  if (result.shouldRollForward && (await spawnsInsteadOfRollingForward(taskId))) return null
+
   return result
+}
+
+/**
+ * Whether this task's next occurrence is being spawned on GitHub instead.
+ * Free on a deployment without GitHub Projects: no import, no query.
+ */
+async function spawnsInsteadOfRollingForward(taskId: string): Promise<boolean> {
+  if (!hasCapability('githubProjects')) return false
+  try {
+    const { enqueueRecurrenceSpawn } = await import('@/services/github-recurrence.service')
+    return await enqueueRecurrenceSpawn(taskId)
+  } catch (err) {
+    // Rolling forward is the recoverable answer; a series silently dropped is not.
+    log.error({ err, taskId }, 'Failed to hand the series to GitHub; rolling forward instead')
+    return false
+  }
 }
 
 /**

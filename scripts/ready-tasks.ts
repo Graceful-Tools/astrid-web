@@ -63,6 +63,7 @@ import { READY_STATUS_ROLE, WAITING_STATUS_ROLE, DOING_STATUS_ROLE } from "@/lib
 import { serializeReadyTaskQueue } from "./lib/ready-tasks-output"
 import { resolveAgentAuthorId } from "./lib/agent-author"
 import { SweepApi } from "./lib/sweep-api"
+import { boardTasksUrl } from './lib/board-read-url'
 
 const BOARD_LIST_NAMES = {
   web: "Astrid Web To-do",
@@ -153,8 +154,12 @@ async function main() {
   // Ready AND Waiting both matter now: the sweep below keeps the two lanes
   // honest (dated work parks in Waiting; met conditions promote back), so the
   // one board read fetches every open task and filters locally.
+  //
+  // It also leaves the descriptions on the server (AWTD-1237): this sweep reads
+  // id, title, priority, statusRole, dueDateTime and completed, and nothing
+  // else. The conditions it looks for live in COMMENTS, not descriptions.
   const tasksResponse = await fetch(
-    `https://astrid.cc/api/v1/tasks?listId=${board.id}&completed=false&leanListMembers=1&limit=${PAGE_LIMIT}`,
+    boardTasksUrl({ boardId: board.id, limit: PAGE_LIMIT }),
     { headers: auth },
   )
   const tasksBody = await tasksResponse.json()
