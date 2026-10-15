@@ -7,7 +7,7 @@ import { PublicTaskCopyButton } from "@/components/public-task-copy-button"
 import { isPublicListTask, shouldHideTaskWhen } from "@/lib/public-list-utils"
 import { formatDateForDisplay } from "@/lib/date-utils"
 import { isCanceled } from "@/lib/closed-reason"
-import { listsShownOnRow, splitTaskLists } from "@/lib/list-flavors"
+import { chipLabelText, listsShownOnRow, splitTaskLists } from "@/lib/list-flavors"
 import { useTranslations } from "@/lib/i18n/client"
 import { format } from "date-fns"
 import type { Task } from "@/types/task"
@@ -112,7 +112,7 @@ export function TaskRowContent({
                   className="flex items-center rounded-full px-2 py-0 text-xs"
                   style={{ backgroundColor: `${label.color}25`, color: label.color }}
                 >
-                  <span className="truncate">{label.name}</span>
+                  <span className="whitespace-nowrap">{chipLabelText(label.name)}</span>
                 </div>
               ))}
               {domainLists.length > 0 && (
@@ -124,7 +124,7 @@ export function TaskRowContent({
                       style={{ backgroundColor: `${list.color}15` }}
                     >
                       <ListGlyph list={list} className={`w-3 h-3 ${isMobile ? 'flex-shrink-0' : ''}`} />
-                      <span className={`theme-text-secondary ${isMobile ? 'truncate' : ''}`}>{list.name}</span>
+                      <span className="theme-text-secondary whitespace-nowrap">{chipLabelText(list.name)}</span>
                     </div>
                   ))}
                   {isMobile && domainLists.length > 2 && (

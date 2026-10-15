@@ -22,6 +22,11 @@ import { Label } from "@/components/ui/label"
  * in both. Changing one without the other breaks it. iOS states the same
  * invariant in the same terms, with its own numbers (16 + 34 + 12 = 62pt).
  *
+ * All three terms are pinned by `tests/components/task-detail/
+ * task-detail-icon-alignment.test.ts`, including the container padding — which
+ * lives in TaskHeader.tsx and task-detail.tsx rather than here, so asserting
+ * the constants below is not enough to keep the columns together (AWTD-1177).
+ *
  * An icon replaces the label text rather than joining it: the icon column keeps
  * every row's content starting at the same x — which is what the label was
  * really doing — in 32px rather than 80, and the word is redundant next to a

@@ -5,7 +5,8 @@ Projects (v2). This also covers the three workstreams that make it possible:
 consolidating the write path, a login-provider registry, and one GitHub connection.
 Revision 2, 2026-10-05.*
 
-Status: **In progress — P0–P2 done; P3 partly done; P4 built (2026-10-10); P5–P8 not started.**
+Status: **In progress — P0–P2 done; P3 partly done; P4 built (2026-10-10); P5 done;
+P6b built (2026-10-11), P6c partly built; P7–P8 not started.**
 See §17 for exactly what landed, what did not, and what each remaining phase needs. None
 of it is deployed: production deploys are manual (CLAUDE.md rule 1).
 
@@ -610,7 +611,7 @@ Project fields are in §9.4.
 |---|---|---|
 | `Project` | `githubInstallationId BigInt?` | Tenancy (§8.1) |
 | `TaskList` | `backend String?` | The one switch the seam reads |
-| `TaskList` | `remoteNodeId String? @unique` | The GitHub label a label-flavor list mirrors (AWTD-1188) |
+| `TaskList` | `remoteNodeId String? @unique` | The GitHub label a label-flavor list mirrors (AWTD-1188), or the milestone a milestone-flavor list mirrors (AWTD-1189) |
 | `Task` | `remoteNodeId String? @unique`, `remoteKind String?`, `remoteVersion String?` | Identity and the body-conflict base |
 | `Task` | `assigneeIds String[]` | §9.5 |
 | `Task` | `previousOccurrenceId String?` (indexed) | §10 |
@@ -1468,6 +1469,50 @@ How the edge cases behave:
 Not yet: GitHub comments flowing **into** Astrid. This is outbound only, so inbound
 mirroring will need to dedupe by GitHub comment id.
 
+### P6b — spawn recurrence ([AWTD-1118](https://astrid.cc/t/AWTD-1118)): built, server side
+
+Completing a repeating task on a GitHub board no longer rolls the row forward. The issue
+stays closed as history and the next occurrence is a **new issue linked to it** (§10).
+
+- **Both triggers, one issue.** Completing from Astrid and `issues.closed` on github.com
+  both queue a `recur` job keyed `recur:<taskId>:<occurrenceCount>`, so the completion and
+  the webhook it causes race to the same key. The Astrid side hands over in
+  `resolveRepeatingTaskCompletion`, which is where the repeating rules already live for every
+  write surface; the inbound side hands over from `applyProjectItems`, which writes a remote
+  close straight to the replica and so never passes that path.
+- **Rolling forward is the fallback, never silence.** If the handoff cannot queue, the series
+  rolls forward as it always did: a series running in the old mode is recoverable, one
+  silently dropped is not.
+- **What the successor copies** (`lib/github/projects/recur.ts`, pure): title, body plus a
+  `Previous occurrence: owner/repo#N` footer, labels, assignees and milestone, in the
+  predecessor's own repo. A draft spawns a draft. It is added to **every** project the
+  predecessor was on, with each card's field values copied except Status, which resets to
+  that binding's first non-done option, and the due field, which carries the next date. A
+  field type the mirror does not own (an iteration, a users field) is left as GitHub makes it
+  rather than guessed.
+- **The series moves.** The successor carries the recurrence configuration with
+  `occurrenceCount + 1` and `Task.previousOccurrenceId` pointing back; the predecessor's
+  configuration is cleared. `Next occurrence: #M` is commented on the predecessor, and a
+  failure to comment never fails the spawn.
+- **Ending the series.** Count or until reached clears the configuration and spawns nothing.
+  A close as not planned, cancelled or duplicate ends it too — the same closed-reason rule
+  the local mode already applies.
+- **Every guard is re-checked in the job**, not trusted from the payload: a job may run long
+  after it was queued, and either trigger may have raced it. An occurrence count that has
+  moved on, a task reopened since, or a pull request all spawn nothing.
+- **The wire.** `list.supports.repeatMode` is `'spawn'` on a GitHub board and
+  `'roll_forward'` everywhere else; `previousOccurrenceId` is an additive, nullable column
+  that reaches v1 payloads with the rest of the row. Both halves ship independently of any
+  client.
+- **Not verified against GitHub.** Unlike P5 and P6c, no mutation here has been run live:
+  `createIssue` with `labelIds`/`assigneeIds`/`milestoneId`, and the spawned card's field
+  copies, are built from the schema and the existing P5b create path. Worth one live probe
+  before this is relied on.
+
+Not yet, and client work rather than server: the detail pane's "Previous occurrence" /
+"Next occurrence" links, and iOS/web declining to roll forward locally when
+`supports.repeatMode` is `spawn` ([AWTD-1219](https://astrid.cc/t/AWTD-1219)).
+
 ### P6c — rich mapping: relationships, labels, multiple assignees and the agent label built, the rest open
 
 **Relationships slice ([AWTD-1119](https://astrid.cc/t/AWTD-1119)), done. Inbound only.**
@@ -1502,9 +1547,21 @@ closed from here (P5a).
   paths read `githubRepositoryId` off any list a task is on, so a label list must not carry it.
 - **Owner and project.** A label list is in no project, because a repo can feed several
   boards. Its owner is the owner of the board that met the label first.
-- **Who sees it.** The chip shows to everyone who can see the task. The list itself is in
-  its owner's lists only, until board roles are materialised onto label lists
-  ([AWTD-1193](https://astrid.cc/t/AWTD-1193)).
+- **Who sees it.** The chip shows to everyone who can see the task, and so does the LIST
+  ([AWTD-1193](https://astrid.cc/t/AWTD-1193)): `listVisibilityWhere` gains a clause for
+  label lists reached through a task on a list the viewer can already see. **Derived, not
+  materialised** — board roles are NOT copied onto label lists as `ListMember` rows. A repo
+  can feed several boards, so access is the union over them, and detaching one board must
+  not revoke access another still grants; a stored row would have to get that right on every
+  detach, and a derived clause cannot get it wrong. The clause is limited to lists carrying
+  a `remoteNodeId`, so a label list someone converted from their own regular list is never
+  shared out by it.
+- **Read-only for everyone, with one error.** Adding a GitHub label from Astrid is refused
+  by name — 400 `github_label_read_only` — whoever asks. The add-permission check
+  (`lib/list-add-permission.ts`) steps aside for every GitHub label list rather than only
+  for one the task already carries: nothing can be added to one by anyone, so a role test
+  there could only decide WHICH error a doomed write got, and it gave the owner the named
+  refusal and a board member a bare 403 about a list they could not open.
 - **v1.** A GitHub label list is an ordinary `listType: "label"` list in v1 payloads. v1
   lists have no `supports` block yet (§11.2), so none was added.
 - **Read-only from Astrid.** Adding or removing a GitHub label on a task is refused with 400
@@ -1523,6 +1580,46 @@ closed from here (P5a).
   fixture issue has a label and the project has no PR, so a non-empty answer has not been
   recorded.
 
+**Milestones slice ([AWTD-1189](https://astrid.cc/t/AWTD-1189)), done. Inbound only. Iterations still open.**
+- **One list per milestone, a fourth list flavor.** An issue's or PR's milestone becomes
+  membership in a `listType: 'milestone'` list (`lib/github/projects/milestones.ts`), keyed by
+  the milestone's node id in `TaskList.remoteNodeId`. **No schema change** — `listType` is a
+  free string and `remoteNodeId` already existed for labels, so this slice is code only.
+- **Why not `virtualListType`.** The task asked whether the existing virtual-list mechanism
+  could express "tasks whose milestone is X" without a new column. It cannot:
+  `lib/virtual-list-utils.ts` is a client-side filter over loaded tasks keyed on a closed enum
+  (`today`, `not-in-list`, `assigned`), with nowhere to name a milestone. Membership answers it
+  instead, for the reason `lib/list-flavors.ts` already gives for labels — *"multi-list
+  membership already is labels"* — and board filtering comes free through `filterInLists`.
+- **At most ONE, which is the only way a milestone is not a label.** `planMilestone` returns
+  the single list to join and EVERY other milestone list to leave, so an issue moved from v1.2
+  to v1.3 stops showing v1.2. Labels, being a set, have no such step; a copy of `planLabels`
+  would have left the old milestone on the task forever, since nothing else would remove it.
+- **`null` is not *absent*.** A null milestone is GitHub saying the issue has none, and the
+  task leaves whichever milestone list it is on. An absent key is an item hydrated without the
+  field and must change nothing. `remoteMilestone` returns `null` only for the second case,
+  and for a draft or a redacted item, which cannot carry one.
+- **Read-only, with its own error.** A milestone change from Astrid is refused 400
+  `github_milestone_read_only` — **not** the label's code, so a client that special-cases one
+  does not silently treat the other as the same refusal. The guard in
+  `lib/backends/github-labels.ts` now covers both flavors through one `GITHUB_MIRRORED_LIST`
+  query rather than a second round trip, and `mirroredListChanged` returns WHICH list changed
+  so the refusal can name it.
+- **`isTagList`.** Labels and milestones are both tags rather than destinations, so
+  `lib/list-flavors.ts` gained the predicate that every chip-or-destination site had really
+  meant by `isLabelList`. The milestone chip renders through the existing tag path with its
+  own glyph; milestones are not offered in the list picker, since adding one would be refused.
+- **Cost.** A milestone is a plain field on the node, not a connection, so the page query's
+  GraphQL cost stayed at 4. Held milestones ride the same replica read as labels — the `where`
+  widened, no extra query — plus one read per page that has milestones and two more when a
+  milestone is new.
+- **Verified against GitHub.** The grown fragment was run against the test project with an
+  installation token: HTTP 200, `milestone: null` on both issues, no key on the draft. No
+  fixture issue carries a milestone and the project has no PR, so a non-empty answer has not
+  been recorded; the unit tests inject one.
+- **Iterations are NOT in this slice.** An iteration is a project field, so it waits on P6a
+  ([AWTD-1117](https://astrid.cc/t/AWTD-1117)) rather than growing a second field store.
+
 **Multiple assignees slice ([AWTD-1190](https://astrid.cc/t/AWTD-1190)), built. Both directions.**
 - **The field.** `Task.assigneeIds String[]` (additive, default empty, not backfilled) and
   the v1 task field `assigneeIds`. The list a client sees is derived
@@ -1536,6 +1633,10 @@ closed from here (P5a).
   A task that leaves its GitHub board drops to one assignee at its next assignment.
 - **`list.supports`.** v1 lists now carry `supports: { multipleAssignees }`, true only on a
   GitHub-backed list. The other §11.2 keys arrive with their own slices.
+- **`list.backend`** (AWTD-1256). `"github_project"` or an explicit `null`, on both v1 list
+  read paths and the live list events. A client asks `supports` what a list can do and
+  `backend` what it is — gating on a `supports` key to identify a GitHub list holds only
+  while every key happens to derive from `backend`. `remote` / `syncState` are next.
 - **Authorisation.** The update path's gate is `authorizeAssigneeWrite`: every person added
   goes through `authorizeAssigneeChange`, and nobody already assigned is re-checked.
 - **An agent is first or not at all** (400 `agent_must_be_first_assignee`). A run is keyed
@@ -1589,7 +1690,78 @@ closed from here (P5a).
 Not yet: writing a parent, a blocker or an ordinary label **from** Astrid to GitHub,
 iterations and milestones.
 
-### P6–P8 — fields, recurrence, per-org SSO, brand: not started
+### P6a — project fields: the replica holds them and the API serves them; editing is still open
+
+**Replica slice ([AWTD-1117](https://astrid.cc/t/AWTD-1117)), built. Inbound only.**
+- **The tables.** `ProjectField` and `TaskFieldValue`, as §9.4.1, in an additive migration
+  (two new tables, no existing row touched). **The migration has not been run against a
+  Postgres:** it was written by hand in Prisma's shape, in a session that could not start one.
+- **Which fields.** Text, number, date, single-select and iteration
+  (`lib/github/projects/fields.ts`). GitHub's built-ins (Title, Assignees, Labels and the
+  rest) are not fields here.
+- **Mapped fields.** Status, Priority and due carry `mappedTo` and never have a stored
+  value. **Estimate is an ordinary field**, not mapped as §9.4.1 lists it: Task has no
+  estimate column (P4a).
+- **Schema refresh** (`services/github-project-fields.service.ts`): at import, on every
+  reconcile, and when a hydrated item carries a field, option or iteration the board has
+  not met, once per page. Written by value, so a refresh that finds nothing new writes
+  nothing. A field deleted on GitHub goes, and its values with it.
+- **Values** are compared, not timestamped. An echo writes nothing. A value cleared on
+  GitHub is deleted here. Every task whose values changed has `updatedAt` bumped, so the
+  change rides `?updatedSince=` (§9.4.3).
+- **More than 20 values** on one item: the read may be cut short, so values are added and
+  changed and never cleared.
+- **Leaving.** An archived or removed item's values for that project are deleted.
+  Unbinding deletes the board's fields: a local board has none.
+- **Cost.** Two more reads per page (fields, held values), one when the board has no
+  fields. New values are one `createMany` per page. The schema query now reads up to 100
+  fields, was 50: built-ins count toward the page, and a cut-short list would delete fields.
+- **The fragment** grew `dataType` on each value's field and
+  `ProjectV2ItemFieldIterationValue`. The schema query grew option colour and description,
+  and iteration configuration.
+- **Not verified against GitHub.** The grown fragment and schema query have not been run
+  against the test project, and no iteration or custom value has been recorded. The tests
+  use the recorded schema and hand-written values.
+
+**API slice ([AWTD-1208](https://astrid.cc/t/AWTD-1208)), built. Read only — no write route yet.**
+- **Schema once per project.** `GET /api/v1/projects/:id/fields` returns the definitions in
+  `position` order, with `mappedTo` so a client knows Status/Priority/due are native columns.
+  404 when the `githubProjects` capability is off, through `withAuth`'s capability option,
+  which resolves at module load and short-circuits before authentication.
+- **Readable by anyone who can READ the board**, not only its owner: the schema is what makes
+  a task's `fields` legible, and a member who could load the tasks but not the schema would
+  see a map of uuid to uuid. The gate is `listVisibilityWhere` over the board's lists — the
+  same definition the list routes use — and a board the caller cannot see is **404, not 403**.
+- **ETag, from `updatedAt` AND the row count.** A deletion moves no surviving row's timestamp,
+  so a timestamp-only tag would serve a 304 holding a field that is gone.
+- **Values on tasks** are `"fields": { "<ProjectField.id>": <scalar | optionId | iterationId> }`
+  — no names, no types, no nulls, and **no key at all** on a task with no values, so every task
+  outside a GitHub board is byte-identical to before.
+- **The payload gate decided the shape (§9.4.3).** Measured 2026-10-12: eight fields on a
+  thousand tasks costs **+42.2 KiB gzipped** — the eight field ids repeat on every task, so
+  gzip removes most of the ~440 KB uncompressed cost, and only the free-text fields resist.
+  But the full task response is **already 551.8 KiB on the wire against a 500 KiB budget**
+  ([AWTD-1231](https://astrid.cc/t/AWTD-1231)), so there is no headroom to spend. Per the
+  spec's own rule — *"the budget wins over convenience"* — the list route carries values only
+  on `?include=fields`, and the detail route carries them always. Recorded in
+  docs/PERFORMANCE_BUDGETS.md.
+- **No extra query where it is not wanted.** `taskFieldValuesSelect` spreads to `{}` without
+  the capability or without `?include=fields`, so the relation is absent from the query Prisma
+  builds rather than merely unread.
+- **`list.supports.fields`** (§11.2), true only on a GitHub-backed list. It says the capability
+  exists, not that a given payload carries the values.
+- **Still open:** `PUT /api/v1/tasks/:id/fields/:fieldId` (§9.4.2). Nothing writes a field
+  value from Astrid yet.
+- **Not covered.** Changing the binding's due or priority field does not re-run the
+  refresh, so `mappedTo` is corrected by the next hourly reconcile
+  ([AWTD-1209](https://astrid.cc/t/AWTD-1209)).
+
+Open, in order: [AWTD-1208](https://astrid.cc/t/AWTD-1208) the fields route, compact values
+on tasks and the payload measurement · [AWTD-1209](https://astrid.cc/t/AWTD-1209) editing a
+field from Astrid · [AWTD-1210](https://astrid.cc/t/AWTD-1210) web editors and board
+filtering.
+
+### P6b, P7, P8 — recurrence, per-org SSO, brand: not started
 
 These need, in order:
 1. A decision to apply the additive schema in §4/§8.5/§9.4.1 at a deploy.

@@ -289,6 +289,8 @@ model Project {
   /// The GitHub App installation a GitHub-backed board belongs to — its tenant (AWTD-1149, §8.1).
   githubInstallationId Int?
   githubBinding GitHubProjectBinding?
+  /// The GitHub project's own fields, on a GitHub-backed board only (AWTD-1117, §9.4).
+  fields        ProjectField[]
 
   @@unique([key])
   @@index([ownerId])
@@ -402,6 +404,15 @@ model Task {
   parentTaskId           String?
   parentTask             Task?              @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: SetNull)
   subtasks               Task[]             @relation("TaskSubtasks")
+  /// Recurrence on a GitHub board SPAWNS the next occurrence as a new issue
+  /// rather than rolling this row forward (AWTD-1118, spec §10), so a series
+  /// is a chain of tasks: this points at the occurrence that was completed to
+  /// make this one. NULL on every task outside that mode, which is almost all
+  /// of them. SetNull, not Cascade: deleting a predecessor must not destroy
+  /// the occurrence that replaced it — the series lives on the newest one.
+  previousOccurrenceId   String?
+  previousOccurrence     Task?              @relation("TaskOccurrences", fields: [previousOccurrenceId], references: [id], onDelete: SetNull)
+  nextOccurrences        Task[]             @relation("TaskOccurrences")
   externalLinks          ExternalTaskLink[] @relation("TaskExternalLinks")
   attachments            Attachment[]
   /// Expected cost in MICROCENTS at the time work was authorised. Null = never
@@ -428,6 +439,7 @@ model Task {
   /// created, fields not yet set) and a writeback job is finishing it (AWTD-1116 P5b).
   syncState      String?
   githubProjectItems GitHubProjectItem[]
+  fieldValues        TaskFieldValue[]
   events         TaskEvent[]
   notifications  Notification[]
   reminderQueue  ReminderQueue[]
@@ -454,6 +466,7 @@ model Task {
   @@index([repeating])
   @@index([creatorId, createdAt])
   @@index([parentTaskId])
+  @@index([previousOccurrenceId])
   @@index([closedReason])
   @@index([statusRole])
 }
@@ -1131,6 +1144,48 @@ model GitHubProjectItem {
 
   @@unique([projectId, taskId])
   @@index([taskId])
+}
+
+/// One field of a board's project, as the remote defines it (AWTD-1117, spec
+/// §9.4.1). Backend-neutral by name, populated only by GitHub bindings: Astrid
+/// has no way to create one, and a local board never has any.
+model ProjectField {
+  id         String           @id @default(dbgenerated("(gen_random_uuid())::text"))
+  projectId  String
+  remoteId   String // PVTF_… / PVTSSF_… / PVTIF_…
+  name       String
+  dataType   String // text | number | date | single_select | iteration
+  options    Json? // single_select: [{ id, name, color, description }]
+  iterations Json? // iteration: [{ id, title, startDate, duration }], completed included
+  /// status | priority | due: the value lives in a native Task column and is
+  /// never stored in TaskFieldValue, so there is one source per value.
+  mappedTo   String?
+  position   Int
+  updatedAt  DateTime         @updatedAt
+  project    Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  values     TaskFieldValue[]
+
+  @@unique([projectId, remoteId])
+}
+
+/// A task's value for one project field (AWTD-1117, §9.4.1). A field belongs to
+/// one project, and an issue in two projects has two items with independent
+/// values. No row means no value.
+model TaskFieldValue {
+  taskId      String
+  fieldId     String
+  projectId   String // denormalised for the page read and the delta query
+  text        String?
+  number      Float?
+  date        DateTime?    @db.Date
+  optionId    String?
+  iterationId String?
+  updatedAt   DateTime     @updatedAt
+  task        Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  field       ProjectField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, fieldId])
+  @@index([projectId, updatedAt])
 }
 
 /// Durable, idempotent GitHub sync work (AWTD-1149, spec §8.5/§8.7). Drained

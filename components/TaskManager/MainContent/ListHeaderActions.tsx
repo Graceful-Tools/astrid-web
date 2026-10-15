@@ -76,14 +76,37 @@ export function ListSettingsButton({ onOpen, ...visibility }: ListControlsVisibi
 }
 
 /**
- * The slim row under "Add a task...", above the line over the tasks, holding
- * this viewer's Sort & Filters. System lists pass no visibility (always shown).
+ * This viewer's Sort & Filters, sitting ON the line between "Add a task..." and
+ * the tasks (AWTD-1204): out of flow, straddling the border, and lined up with
+ * the checkbox of the row below.
+ *
+ * **Absolutely positioned, so its parent must be `relative`** — it is placed
+ * against the bordered header block in MainContent, and against the viewport if
+ * it is ever rendered somewhere unpositioned.
+ *
+ * `left-[29px]` is the checkbox's own left edge, and the three terms are worth
+ * writing down because no single class expresses them: 16px from the rows
+ * wrapper's `p-4`, plus 1px for the task card's border, plus 12px from
+ * `.task-row`'s `px-3`. Measured, not guessed; the button and the checkbox are
+ * both 32px wide, so aligning their left edges aligns their centres too.
+ *
+ * `-bottom-4` centres the 32px control on the border: half its height below the
+ * padding box's bottom edge. That is the border's inner edge, so the control
+ * sits half a pixel above the 1px line's true centre — not expressible in
+ * Tailwind's scale, and not visible.
+ *
+ * `theme-bg-primary` is the pane's own background, and it is load-bearing: the
+ * border runs the full width behind this control, so without it the line is
+ * drawn straight through the middle of the icon. It masks exactly the control's
+ * 32px box, which reads as the line making way for the button.
+ *
+ * System lists pass no visibility (always shown).
  */
 export function ListFilterRow({ onOpen, ...visibility }: Partial<ListControlsVisibility> & { onOpen: () => void }) {
   const { t } = useTranslations()
   if (visibility.list !== undefined && !canUseListControls(visibility as ListControlsVisibility)) return null
   return (
-    <div className="flex justify-end -mb-3 mt-2" data-testid="list-filter-row">
+    <div className="absolute left-[29px] -bottom-4 z-10 theme-bg-primary" data-testid="list-filter-row">
       <Button
         variant="ghost"
         size="sm"

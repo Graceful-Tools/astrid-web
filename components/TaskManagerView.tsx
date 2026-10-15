@@ -2,6 +2,7 @@
 
 import { BRAND } from '@/lib/brand/config'
 import React, { memo } from "react"
+import { taskDetailPaneProps } from "./TaskManager/task-detail-pane-props"
 import { TaskManagerHeader } from "./TaskManager/Header/TaskManagerHeader"
 import { LeftSidebar } from "./TaskManager/Sidebar/LeftSidebar"
 import { DesktopChatPane } from "./TaskManager/DesktopChatPane"
@@ -178,7 +179,10 @@ export interface TaskManagerViewModel {
   handleToggleTaskComplete: (taskId: string) => Promise<void>
   handleDeleteTask: (taskId: string) => void
   closeTaskDetail: () => void
-  handleCreateTask: (taskTitle: string) => Promise<string | null>
+  handleCreateTask: (
+    taskTitle: string,
+    options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[]; statusRole?: string; parentTaskId?: string | null },
+  ) => Promise<string | null>
   handleQuickCreateTask: (title: string, options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[] }) => Promise<string | null>
   handleCreateNewTask: () => void
   handleCreateList: (listData: { name: string; description: string; memberEmails: string[] }) => Promise<void>
@@ -554,12 +558,10 @@ const TaskManagerView = memo(function TaskManagerView({
         const sidebarRect = sidebarRef.current.getBoundingClientRect()
         const taskManagerRect = taskManagerRef.current.getBoundingClientRect()
 
-        // Layout-aware positioning (pure math extracted to task-pane-position).
-        const leftOffset = computeTaskPaneLeftOffset(
-          sidebarRect.width,
-          taskManagerRect.width,
-          { is2Column, is3Column, showHamburgerMenu },
-        )
+        // Layout-aware positioning (pure math in task-pane-position). The window
+        // width keeps the panel on screen when messages is hidden (AWTD-1205).
+        const leftOffset = computeTaskPaneLeftOffset(sidebarRect.width, taskManagerRect.width,
+          { is2Column, is3Column, showHamburgerMenu }, window.innerWidth)
 
         // Update the task pane position
         setTaskPanePosition({ left: leftOffset })
@@ -891,9 +893,7 @@ const TaskManagerView = memo(function TaskManagerView({
             isMobile={isMobile}
             mobileView={mobileView}
             isMobileTaskDetailClosing={isMobileTaskDetailClosing}
-            isOneColumn={is1Column}
-            is2Column={is2Column}
-            is3Column={is3Column}
+            columnCount={columnCount}
             selectedListId={selectedListId}
             lists={lists}
             allTasks={tasks}
@@ -1035,20 +1035,15 @@ const TaskManagerView = memo(function TaskManagerView({
                 task on a collaborative list can still comment on it — the rule
                 viewonly encoded and the reason it rendered a CommentSection. */}
             <LazyTaskDetail
-              displayMode={taskDisplayMode}
-              task={selectedTask}
-              currentUser={effectiveSession.user}
-              availableLists={lists}
-              availableTasks={finalFilteredTasks}
-              onUpdate={handleUpdateTask}
-              onLocalUpdate={handleLocalUpdateTask as ((updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void)}
-              onDelete={handleDeleteTask}
+              {...taskDetailPaneProps({
+                task: selectedTask, lists, selectedListId, tasks, finalFilteredTasks,
+                user: effectiveSession.user, displayMode: taskDisplayMode,
+                handleUpdateTask, handleLocalUpdateTask, handleDeleteTask, handleCopyTask,
+                handleToggleTaskComplete, handleCreateTask,
+              })}
               onClose={closeTaskDetail}
-              onCopy={handleCopyTask}
               selectedTaskElement={selectedTaskElement}
               allowFullScreen
-              readOnly={!canEdit}
-              canComment={canEdit || isCollaborativePublicTask(selectedTask)}
             />
           </div>
         )
@@ -1088,20 +1083,15 @@ const TaskManagerView = memo(function TaskManagerView({
             } : undefined}
           >
             <LazyTaskDetail
-              displayMode={taskDisplayMode}
-              task={selectedTask}
-              currentUser={effectiveSession.user}
-              availableLists={lists}
-              availableTasks={finalFilteredTasks}
-              onUpdate={handleUpdateTask}
-              onLocalUpdate={handleLocalUpdateTask as ((updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void)}
-              onDelete={handleDeleteTask}
+              {...taskDetailPaneProps({
+                task: selectedTask, lists, selectedListId, tasks, finalFilteredTasks,
+                user: effectiveSession.user, displayMode: taskDisplayMode,
+                handleUpdateTask, handleLocalUpdateTask, handleDeleteTask, handleCopyTask,
+                handleToggleTaskComplete, handleCreateTask,
+              })}
               onClose={handleMobileBack}
-              onCopy={handleCopyTask}
               selectedTaskElement={null}
               swipeToDismiss={taskDetailSwipeToDismiss}
-              readOnly={!canEdit}
-              canComment={canEdit || isCollaborativePublicTask(selectedTask)}
             />
           </div>
         )

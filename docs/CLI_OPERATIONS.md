@@ -37,6 +37,42 @@ For project architecture, code patterns, and the per-task coding workflow, see
 >   checking the workflow *as of that commit*. That claim was true, then false, then
 >   true again — all in one day.
 
+**Who may dispatch it: an agent may, once the gates are green (Jon, 2026-10-13).**
+
+> *"Don't move to done until deployed to prod. You can deploy to prod if all tests are
+> green."* — and, asked whether that covered the unattended runner too: *"Interactive
+> sessions and automatic can deploy with clean tests and monitor to make sure it works.
+> Don't block on me."*
+
+MANUAL above describes the **trigger**, not the hand on it. Nothing auto-deploys; a human
+or an agent dispatches it deliberately. What changed is that an agent no longer waits to be
+told, provided it can show the gates were green *on the commit it is shipping*:
+
+```bash
+npm run predeploy                                    # 16/16 on the MERGED main, not just the branch
+gh workflow run production-deployment.yml --ref main \
+  -f skip_tests=false -f allow_destructive_migrations=false
+gh run watch <run-id> --exit-status                  # to completion — not an early green step
+scripts/verify-deployed-sha.sh "$(git rev-parse origin/main)"
+```
+
+Gate it on the **merged** `main`. Branch-green is weaker evidence: on 2026-10-13 all seven
+of a run's PRs were green individually and the gate on the merge still went red.
+
+**Monitoring is the other half of the permission, and the CLI's own success is not it.**
+On 2026-09-18 the job reported FAILED about a deploy that had gone out; another time this
+rule was rewritten from a check made 2m40s into a ~10-minute pipeline. Ask production what
+it is serving (`commitSha`, below) and watch the run to completion.
+
+**Two things an agent still does not decide:**
+- **A pending migration.** It applies during the deploy, before the new code is live
+  (§ *A destructive migration takes TWO deploys*). Check first —
+  `git diff origin/prod origin/main -- prisma/migrations/`. Code-only is the safe case and
+  needs no one; anything pending gets Jon, and `allow_destructive_migrations` stays
+  `false` so the workflow refuses rather than guesses.
+- **A red gate.** "All tests green" is the whole of the permission. A red gate that you
+  believe is a false alarm is still red until you have shown why, on the record.
+
 **The authoritative check is the workflow, never the deployment list:**
 ```bash
 gh run list --workflow=production-deployment.yml --limit 5   # what actually ran
@@ -158,11 +194,13 @@ Production: `astrid.cc` / `www.astrid.cc`. Token lives in `.env.local` as `VERCE
 
 ## 1. Approvals
 
-**Push when the work is done — ASK before DEPLOYING.** Those are two different acts here,
-and the line between them is whether anyone outside sees it. Pushing `main` ships nothing
-(§0: production deploys are `workflow_dispatch` only), so it is how finished work becomes
-reviewable. A production deploy reaches real users, so it waits for explicit approval
-("ship it" / "yes" / "deploy").
+**Push when the work is done — and deploy it when the gates are green (Jon, 2026-10-13).**
+Pushing `main` ships nothing (§0: production deploys are `workflow_dispatch` only), so it is
+how finished work becomes reviewable. A production deploy reaches real users, which used to
+mean it waited for an explicit "ship it"; it no longer does, because work nobody deploys is
+work nobody can use. The condition replaced the approval: green gates on the merged commit,
+then verify what production serves. **A pending migration is the exception that still asks**
+(§0).
 
 Jon, 2026-09-06: *"I want to look at work when you are done. I don't want to tell you to
 push it so I can look at it and then wait."* Asking to push made him wait twice — once for
@@ -174,8 +212,9 @@ report says what landed rather than offering to land it.
 | Code analysis, local edits, local commits, posting task comments, docs | Autonomous |
 | `git push` to main (ships nothing — see §0) | Autonomous, when the work is done |
 | `git merge` (merging a PR) | Autonomous, when the gates are green |
-| `vercel --prod` / `deploy-preview.sh --production` | **Ask first** — this reaches users |
-| Prisma migrations (they apply during the deploy) | **Ask first** — part of the deploy |
+| Production deploy, code-only (`gh workflow run production-deployment.yml`) | Autonomous, when the gates are green on the merged commit — then verify `commitSha` |
+| Production deploy carrying a **pending migration** | **Ask first** — it applies before the new code is live, and a `DROP` cannot be undone by redeploying |
+| `allow_destructive_migrations=true` | **Ask first, always** — only ever true when the code that stopped using the dropped thing is already live |
 | DB destructive ops, file deletions outside the project | **Ask first** |
 
 **Push once, when the run is done — not per task.** A batched push keeps CI and preview
@@ -189,18 +228,27 @@ only when the user asks.
 
 ## 2. "Ship it"
 
-"Ship it" means **deploy** — the push has already happened (§1). When the user says it
-(in-session or as a comment on an Astrid task):
+"Ship it" means **deploy** — the push has already happened (§1). Since 2026-10-13 a green run
+does not wait to be told (§0); "ship it" is now mostly how a *person* asks for it out of turn,
+or how a deploy that was gated on a migration gets its answer.
 
 ```bash
 git checkout main && git pull origin main
 git merge <feature-branch>            # only if on a branch
 git push origin main
-./scripts/deploy-preview.sh --production
-npm run deploy:canary                 # verify production health
-# If working a task: mark it complete
+npm run predeploy                     # the gate that licenses the deploy — on the MERGED main
+gh workflow run production-deployment.yml --ref main \
+  -f skip_tests=false -f allow_destructive_migrations=false
+gh run watch "$(gh run list --workflow=production-deployment.yml --limit 1 \
+  --json databaseId --jq '.[0].databaseId')" --exit-status
+scripts/verify-deployed-sha.sh "$(git rev-parse HEAD)"   # what production is actually serving
+# If working a task: mark it complete — AFTER the line above passes
 npx tsx scripts/complete-task-with-workflow.ts <taskId>
 ```
+
+Dispatching the workflow is preferred over `./scripts/deploy-preview.sh --production`: the
+workflow runs the migration gate and the health check, and only it advances the `prod` branch
+and tag. The script deploys the **working directory** and moves neither.
 
 When "ship it" arrives as a task comment, first fetch the task + its PR:
 ```bash
@@ -224,12 +272,96 @@ npx tsx scripts/get-astrid-tasks.ts   # pull tasks (arg: web | ios | all; defaul
 npx tsx scripts/fixall-session.ts acquire --pid $PPID --harness claude-code   # exit 2: use a worktree
 ```
 
+That acquire now also **pauses both scheduled loops**, on every Astrid repo on this Mac,
+for as long as your session lives (AWTD-1212). There is nothing to undo: the pause is
+keyed on your process, so it clears when the session exits, and `release` clears it
+immediately. The loops take the same lock with `--scheduled`, which registers them
+without pausing anything — otherwise each loop would stand down for the other forever.
+
 The scheduled `/fixall` loop (`scripts/fixall-loop.sh`) runs in this checkout every half
 hour, and the lock is the only thing that tells it someone is here. On 2026-10-05 a tick
 started while an unlocked session was between commits on `main`, then saved that
 session's edits as its own WIP and checked out `main` (AWTD-1095). The loop is more
 careful now: it skips when `main` has unpushed commits, and it never moves a dirty `main`.
 But a lock-free session stays invisible to it whenever its tree happens to be clean.
+
+### Why a tick does not run (AWTD-1207)
+
+A skip exits 0 and reads as healthy, so an idle loop and a muted one look identical
+in the log. Count the outcomes before concluding anything:
+
+```bash
+grep -c "fixall loop (web)" ~/Library/Logs/astrid-fixall-web.log   # ticks that fired
+grep "RESULT:" ~/Library/Logs/astrid-fixall-web.log | sort | uniq -c | sort -rn
+```
+
+48 ticks a day is the full count (`:20` and `:50`). Three guards can refuse one, and all
+three now report through the same tracker: after `FIXALL_STUCK_ALERT_MINUTES` (default
+120) of unbroken skips the loop posts to the board chat once, and the marker clears as
+soon as a tick reaches the queue.
+
+| Guard | Skips when | Knob |
+|-------|------------|------|
+| 1 — one session per tree | another **live** session holds the lock | take the lock, and release it when you stop |
+| 1b — someone is working | any live interactive lock **on this Mac**, or an explicit pause | `npm run fixall:pause` / `npm run fixall:resume` |
+| 2 — never clobber work | tree dirty, off `main`, or `main` ahead of origin | `FIXALL_FORCE=1` (testing only) |
+| 2b — machine buried | 5-minute load average over cores × 4 | `FIXALL_MAX_LOAD`, `FIXALL_MAX_LOAD_PER_CPU` |
+
+### Pausing the loops while you work
+
+A Claude session that takes the lock needs nothing else — that is guard 1b. For work the
+loops cannot see (plain Xcode, a manual build, a profiling run):
+
+```bash
+npm run fixall:pause                        # 2 hours, the default
+npm run fixall:pause -- 45m "xcode profiling"
+npm run fixall:pause -- status              # who is working, what is paused, how long is left
+npm run fixall:resume
+```
+
+**An explicit pause is always bounded** — capped at 8 hours and always expiring on its
+own. Nothing dies to clear it, unlike a session's registration, and an unbounded silent
+mute is exactly the 2026-10-09 outage: the web loop worked one task in 48 ticks for 15½
+hours without saying so. A pause that outlasts `FIXALL_STUCK_ALERT_MINUTES` posts to
+board chat like any other long skip.
+
+Both forms are honoured by the web loop and by astrid-ios's loop, which reads this
+repo's `scripts/fixall-pause.ts`. A paused tick is **skipped, not deferred** — the loops
+lose those ticks rather than queueing them, which is the price of not having a run and
+your work fight over the same Mac.
+
+Guard 2b exists because a run needs a green `npm run predeploy` to finish a task, and on
+2026-10-10 two runs could not get one: predeploy went red twice on test timeouts in
+unrelated files with the load average over 120, and each red run auto-filed a failure
+task for nothing. The iOS loop's simulator suite and two self-hosted Actions runners
+share this Mac.
+
+**An age cap on the lock is not the fix for guard 1.** `scripts/lib/fixall-session-lock.ts`
+decides staleness by liveness on purpose — a lock that expires under a session that is
+genuinely working is worse than no lock. The 2026-10-09 holder was live for all 15½ hours
+it held the tree. The alert is the fix; releasing the lock when you stop working is the
+other half.
+
+### Sleep is the other half, and it is a machine setting
+
+A run that has started holds `caffeinate -i -m -w <pid>` for exactly as long as it lives,
+so idle sleep cannot kill it mid-task. Nothing in the repo can wake a Mac for a tick that
+has **not** started: on 2026-10-07 only 30 of 48 ticks fired and on 2026-10-08 only 38,
+whole hours missing while the machine slept. launchd does not backfill a missed
+`StartCalendarInterval`; it fires once on wake and carries on.
+
+Two machine-level steps close that gap — both are Jon's call, neither belongs in a script:
+
+```bash
+sudo pmset repeat wakeorpoweron MTWRFSU 07:15:00   # one daily wake before the morning ticks
+pmset -g sched                                     # confirm it
+```
+
+`pmset repeat` holds exactly one repeating event, so this recovers the morning window
+rather than all 48 ticks. For full coverage the Mac must not idle-sleep at all: on AC,
+System Settings → Battery → Options → "Prevent automatic sleeping on power adapter when
+the display is off". With the lid closed on battery, nothing — `caffeinate` included —
+keeps it awake.
 
 Present tasks, ask which to work on, then implement. Run `npm run predeploy` **after**
 implementation, not before. Follow the per-task coding workflow in
@@ -264,7 +396,7 @@ cloud `openai@` agent.
 | `npm run predeploy:dry` | Analyze only, apply no fixes |
 | `npm run predeploy:ci` | CI mode: create tasks on failure, exit 1 |
 | `npm run test:run` | Vitest once |
-| `npm run test:e2e` | Playwright E2E (auth specs skip without `PLAYWRIGHT_TEST_EMAIL`) |
+| `npm run test:e2e` | Playwright E2E (signed-in specs need a minted session: docs/testing/PLAYWRIGHT_AUTH_GUIDE.md) |
 | `npm run deploy:canary` | Post-deploy production health check |
 | `npm run dev` | Dev server |
 

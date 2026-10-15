@@ -32,10 +32,17 @@ test.describe('Desktop List Settings Gear Icon', () => {
     // Verify the full settings popover appears (not just "Leave List")
     await expect(page.getByRole('heading', { name: /list settings/i })).toBeVisible()
 
-    // Verify all three tabs are present for admin
-    await expect(page.getByRole('tab', { name: /sort & filters/i })).toBeVisible()
+    // Membership and Admin Settings — and NOT Sort & Filters, which has not
+    // been a tab here since task aa4e7eb0 moved it out to its own per-user
+    // control. This spec went on asserting the old tab for a month because it
+    // only runs under PLAYWRIGHT_AUTHENTICATED=1 (AWTD-1175).
     await expect(page.getByRole('tab', { name: /membership/i })).toBeVisible()
     await expect(page.getByRole('tab', { name: /admin settings/i })).toBeVisible()
+    await expect(page.getByRole('tab', { name: /sort & filters/i })).toHaveCount(0)
+
+    // In 3 columns the way to sort & filters is the funnel in the header, so
+    // this modal must not grow a second route to it either (AWTD-1175).
+    await expect(page.getByTestId('sort-filters-entry')).toHaveCount(0)
   })
 
   test('non-admin member should see Membership tab with Leave List option', async ({ page }) => {
@@ -70,6 +77,16 @@ test.describe('Desktop List Settings Gear Icon', () => {
     // For owner/admin, the "Leave List" button should also be available
     // (though it behaves differently - shows succession dialog)
     await expect(page.locator('text=/Leave List/i')).toBeVisible()
+
+    // 1024px is a 2-column layout, where the header has only the gear — so
+    // this modal is the way into Sort & Filters (AWTD-1175). Before that fix
+    // there was no way at all: the funnel renders in 3 columns only.
+    await expect(page.getByTestId('sort-filters-entry')).toBeVisible()
+
+    // And it OPENS the per-user panel rather than being a tab in this one.
+    await page.getByTestId('sort-filters-entry').click()
+    await expect(page.getByRole('heading', { name: /sort & filters/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /list settings/i })).toHaveCount(0)
   })
 
   test('desktop gear icon should match mobile behavior', async ({ page }) => {

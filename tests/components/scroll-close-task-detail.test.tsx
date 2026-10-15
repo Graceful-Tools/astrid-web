@@ -66,8 +66,10 @@ describe('Scroll-to-close task detail behavior', () => {
   const defaultProps = {
     isMobile: false,
     mobileView: 'list' as const,
-    is2Column: false,
-    is3Column: false,
+    // Matches the booleans above, as it must: MainContent reads it to decide
+    // where Sort & Filters lives (AWTD-1175). Each render below that flips a
+    // boolean flips this with it.
+    columnCount: 1 as const,
     selectedListId: 'list-1',
     lists: [mockList],
     finalFilteredTasks: mockTasks,
@@ -167,7 +169,7 @@ describe('Scroll-to-close task detail behavior', () => {
 
   it('should close task detail on scroll in 2-column layout', () => {
     const { container } = render(
-      <MainContent {...defaultProps} is2Column={true} is3Column={false} />
+      <MainContent {...defaultProps} columnCount={2} />
     )
 
     const taskListContainer = container.querySelector('.task-list-container')
@@ -182,7 +184,7 @@ describe('Scroll-to-close task detail behavior', () => {
 
   it('should close task detail on scroll in 3-column layout', () => {
     const { container } = render(
-      <MainContent {...defaultProps} is2Column={false} is3Column={true} />
+      <MainContent {...defaultProps} columnCount={3} />
     )
 
     const taskListContainer = container.querySelector('.task-list-container')
@@ -197,7 +199,7 @@ describe('Scroll-to-close task detail behavior', () => {
 
   it('should NOT close task detail on scroll in 1-column layout', () => {
     const { container } = render(
-      <MainContent {...defaultProps} isMobile={true} is2Column={false} is3Column={false} />
+      <MainContent {...defaultProps} isMobile={true} columnCount={1} />
     )
 
     const taskListContainer = container.querySelector('.task-list-container')
@@ -215,8 +217,7 @@ describe('Scroll-to-close task detail behavior', () => {
     const { container } = render(
       <MainContent
         {...defaultProps}
-        is2Column={true}
-        is3Column={false}
+        columnCount={2}
         isKeyboardScrollingRef={keyboardScrollRef}
       />
     )
@@ -235,8 +236,7 @@ describe('Scroll-to-close task detail behavior', () => {
     const { container } = render(
       <MainContent
         {...defaultProps}
-        is2Column={true}
-        is3Column={false}
+        columnCount={2}
         selectedTaskId=""
       />
     )
@@ -254,7 +254,7 @@ describe('Scroll-to-close task detail behavior', () => {
   it('should handle scroll events in both 2-column and 3-column layouts', () => {
     // Test 2-column layout
     const { container: container2col, rerender } = render(
-      <MainContent {...defaultProps} is2Column={true} is3Column={false} />
+      <MainContent {...defaultProps} columnCount={2} />
     )
 
     const taskListContainer2col = container2col.querySelector('.task-list-container')
@@ -264,7 +264,7 @@ describe('Scroll-to-close task detail behavior', () => {
     mockCloseTaskDetail.mockClear()
 
     // Test 3-column layout
-    rerender(<MainContent {...defaultProps} is2Column={false} is3Column={true} />)
+    rerender(<MainContent {...defaultProps} columnCount={3} />)
 
     const taskListContainer3col = container2col.querySelector('.task-list-container')
     fireEvent.scroll(taskListContainer3col!)
