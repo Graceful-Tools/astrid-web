@@ -5,7 +5,10 @@ import { useChatPaneCollapsed } from "@/hooks/task-manager/useChatPaneCollapsed"
 import { ChatPaneToggleButton } from "./Sidebar/SidebarToggleButton"
 
 interface DesktopChatPaneProps {
-  /** Beside the board the pane is a fixed-width column, so the board's columns get the room. */
+  /**
+   * Beside the board the pane is a fixed-width column, so the board's columns get the room —
+   * and only there can it be hidden.
+   */
   boardMode: boolean
   /** A task or settings detail is open over the pane. */
   dimmed: boolean
@@ -17,9 +20,14 @@ interface DesktopChatPaneProps {
  * The messages column on the right of the 2- and 3-column layouts, with the
  * sidebar's hide/show icon mirrored onto it (AWTD-1178). Hidden, it is a slim
  * rail holding only "Show messages" and the chat is unmounted.
+ *
+ * Hiding is for the board only (AWTD-1213): in the list layout a task's details
+ * open over this column, so a hidden one leaves them nowhere to open. There the
+ * pane is always open, whatever this browser remembered for the board.
  */
 export function DesktopChatPane({ boardMode, dimmed, onDismissOverlay, children }: DesktopChatPaneProps) {
-  const [collapsed, toggleCollapsed] = useChatPaneCollapsed()
+  const [hidden, toggleCollapsed] = useChatPaneCollapsed()
+  const collapsed = boardMode && hidden
 
   if (collapsed) {
     return (
@@ -41,9 +49,11 @@ export function DesktopChatPane({ boardMode, dimmed, onDismissOverlay, children 
           data-testid="chat-pane-dimmer"
         />
       )}
-      <div className="px-3 pt-3 flex items-center flex-shrink-0">
-        <ChatPaneToggleButton collapsed={false} onToggle={toggleCollapsed} />
-      </div>
+      {boardMode && (
+        <div className="px-3 pt-3 flex items-center flex-shrink-0">
+          <ChatPaneToggleButton collapsed={false} onToggle={toggleCollapsed} />
+        </div>
+      )}
       <div className="flex-1 min-h-0">{children}</div>
     </div>
   )
