@@ -1,6 +1,21 @@
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import createNextIntlPlugin from 'next-intl/plugin'
+import { turbopackRoot } from './scripts/lib/turbopack-root.mjs'
 
 const withNextIntl = createNextIntlPlugin('./lib/i18n/request.ts')
+
+// A `/fixall` worktree shares the main checkout's node_modules by symlink, and
+// Turbopack refuses to resolve through it — `Symlink [project]/node_modules is
+// invalid, it points out of the filesystem root` — so the Build gate could not
+// pass in any worktree, for any branch (AWTD-1240). Naming a root that contains
+// both trees is the documented fix. It is `undefined` for every ordinary
+// checkout, CI and Vercel, where node_modules is a real directory: the key is
+// then omitted and Next infers the root as before.
+//
+// From this file's own location rather than process.cwd(), so the answer does
+// not depend on where the build was invoked from.
+const filesystemRoot = turbopackRoot(dirname(fileURLToPath(import.meta.url)))
 
 // NOTE: the Content Security Policy is NOT here.
 //
@@ -15,6 +30,7 @@ const isProduction = process.env.NODE_ENV === 'production'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  ...(filesystemRoot ? { turbopack: { root: filesystemRoot } } : {}),
   // Next 16 removed the `eslint` config key along with `next lint`; linting is its own
   // step (`npm run lint`) and the quality gates run it separately, so nothing is lost by
   // dropping it. Keeping it made the whole config invalid.

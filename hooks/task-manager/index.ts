@@ -9,6 +9,7 @@
  * - useTaskListState: Tasks/lists state management, loading, SSE updates
  * - useTaskNavigation: Mobile/desktop navigation, view state
  * - useTaskPaneState: Task pane positioning, closing animation state
+ * - useTaskDetailHydration: fills the opened task's detail-only fields (AWTD-1242)
  */
 
 export { useTaskSelection } from './useTaskSelection'
@@ -25,3 +26,6 @@ export type { UseTaskNavigationProps, UseTaskNavigationReturn } from './useTaskN
 
 export { useTaskPaneState } from './useTaskPaneState'
 export type { UseTaskPaneStateProps, UseTaskPaneStateReturn } from './useTaskPaneState'
+
+export { useTaskDetailHydration } from './useTaskDetailHydration'
+export type { UseTaskDetailHydrationProps } from './useTaskDetailHydration'

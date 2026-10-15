@@ -20,17 +20,42 @@ import type { TaskList } from '@/types/task'
 export const LIST_TYPE_REGULAR = 'regular'
 export const LIST_TYPE_STATUS = 'status'
 export const LIST_TYPE_LABEL = 'label'
+/**
+ * A GitHub milestone (AWTD-1189). A fourth flavor for the same reason labels
+ * were a third: a milestone is a tag a task carries, and membership already
+ * expresses that. The difference is arity — a task has at most ONE milestone,
+ * which `planMilestone` enforces, not this module.
+ */
+export const LIST_TYPE_MILESTONE = 'milestone'
 
 export type ListFlavor =
   | typeof LIST_TYPE_REGULAR
   | typeof LIST_TYPE_STATUS
   | typeof LIST_TYPE_LABEL
+  | typeof LIST_TYPE_MILESTONE
 
 type ListLike = Pick<TaskList, 'listType'> | { listType?: string | null } | null | undefined
 
 /** A label: renders as a chip, never as a destination. */
 export function isLabelList(list: ListLike): boolean {
   return list?.listType === LIST_TYPE_LABEL
+}
+
+/** A GitHub milestone: renders as a chip, never as a destination (AWTD-1189). */
+export function isMilestoneList(list: ListLike): boolean {
+  return list?.listType === LIST_TYPE_MILESTONE
+}
+
+/**
+ * A tag rather than a place: a label or a milestone.
+ *
+ * The distinction every chip-or-destination decision actually wants. Call this
+ * instead of testing the two flavors at each site — adding the milestone flavor
+ * meant finding every `isLabelList` that had really meant "is a tag", and a
+ * fifth flavor should not mean doing that again.
+ */
+export function isTagList(list: ListLike): boolean {
+  return isLabelList(list) || isMilestoneList(list)
 }
 
 /** A board column. */
@@ -45,7 +70,7 @@ export function isStatusList(list: ListLike): boolean {
  * domain list, and defaulting the other way would hide them all.
  */
 export function isDomainList(list: ListLike): boolean {
-  return !isLabelList(list) && !isStatusList(list)
+  return !isTagList(list) && !isStatusList(list)
 }
 
 /**
@@ -63,6 +88,11 @@ export function filterLabelLists<T extends ListLike>(lists: T[]): T[] {
   return lists.filter(isLabelList)
 }
 
+/** The tag memberships — labels and milestones — a surface renders as chips. */
+export function filterTagLists<T extends ListLike>(lists: T[]): T[] {
+  return lists.filter(isTagList)
+}
+
 /**
  * Split a task's memberships for rendering: the lists it lives in, and the
  * labels it carries. Status memberships belong to neither — the board renders
@@ -75,7 +105,7 @@ export function splitTaskLists<T extends ListLike>(lists: T[] | undefined | null
   const all = lists ?? []
   return {
     lists: all.filter(isDomainList),
-    labels: all.filter(isLabelList),
+    labels: all.filter(isTagList),
   }
 }
 

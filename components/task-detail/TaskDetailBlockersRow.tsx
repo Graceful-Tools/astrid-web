@@ -22,7 +22,7 @@ import { Plus, Triangle, X } from "lucide-react"
 import { TaskFieldRow } from "./TaskFieldRow"
 import { Badge } from "@/components/ui/badge"
 import { useTranslations } from "@/lib/i18n/client"
-import { apiDelete, apiGet, apiPost } from "@/lib/api"
+import { ApiError, apiDelete, apiGet, apiPost } from "@/lib/api"
 import {
   MIN_TASK_SEARCH_LENGTH,
   TASK_SEARCH_DEBOUNCE_MS,
@@ -56,6 +56,10 @@ export function TaskDetailBlockersRow({
   const [query, setQuery] = useState("")
   const [hits, setHits] = useState<SearchHit[]>([])
   const [error, setError] = useState<string | null>(null)
+  // The server refused this user Project Mode (403 `not_granted`): every write
+  // would be refused too, so the row is not drawn at all (AWTD-1039).
+  const [notGranted, setNotGranted] = useState(false)
+  const inProject = isTaskInProject(task, availableLists)
 
   const load = useCallback(async () => {
     try {
@@ -63,17 +67,23 @@ export function TaskDetailBlockersRow({
       const body = (await response.json()) as { blockedBy?: BlockerView[]; dependentIds?: string[] }
       setBlockedBy(body.blockedBy ?? [])
       setDependentIds(body.dependentIds ?? [])
-    } catch {
+    } catch (err) {
       // A read that fails shows an empty row rather than an error banner: the
       // blockers are not the reason the pane was opened.
       setBlockedBy([])
       setDependentIds([])
+      if (err instanceof ApiError && (err.detail as { reason?: string } | null)?.reason === 'not_granted') {
+        setNotGranted(true)
+      }
     }
   }, [task.id])
 
+  // Off a board the row never draws, so asking would only collect a refusal
+  // from the Project Mode gate for every task a non-board user opens (AWTD-1039).
   useEffect(() => {
+    if (!inProject) return
     void load()
-  }, [load])
+  }, [load, inProject])
 
   // The picker is the EXISTING search — server-side, permission-filtered, and
   // already paginated. Filtering loaded tasks client-side is the bug 5df85b9f
@@ -119,7 +129,7 @@ export function TaskDetailBlockersRow({
     } catch (err) {
       // A cycle is refused server-side; saying so is the only way the person
       // learns why nothing happened.
-      const reason = (err as { data?: { reason?: string } })?.data?.reason
+      const reason = err instanceof ApiError ? (err.detail as { reason?: string } | null)?.reason : undefined
       setError(reason === 'dependency_cycle' ? t('tasks.waitingOn.cycleError') : t('tasks.waitingOn.addError'))
     }
   }
@@ -137,8 +147,9 @@ export function TaskDetailBlockersRow({
   // After the hooks: a conditional return above them would change the hook
   // order between renders as the blockers load.
   if (
+    notGranted ||
     !showsTaskBlockers({
-      isInProject: isTaskInProject(task, availableLists),
+      isInProject: inProject,
       isReadOnly: readOnly,
       hasBlockers: blockedBy.length > 0,
     })
