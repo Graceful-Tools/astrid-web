@@ -129,10 +129,8 @@ jobs:
       - name: Run Linting
         run: npm run lint
 
-      - name: Run Tests
-        run: npm test
-        env:
-          NODE_ENV: test
+      # The unit suite is NOT run here: this workflow is path-filtered, and the
+      # suite must run on every PR. It lives in unit-tests.yml (AWTD-1216).
 
       - name: Build Application
         id: build-app
