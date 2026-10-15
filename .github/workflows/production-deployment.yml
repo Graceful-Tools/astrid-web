@@ -45,7 +45,7 @@ jobs:
   # Job 1: Quality Gates (Tests, Linting, Build)
   quality-gates:
     name: 'Quality Gates'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     if: ${{ !inputs.skip_tests }}
     outputs:
@@ -168,7 +168,7 @@ jobs:
   # Job 2: Database Migration (Production)
   database-migration:
     name: 'Database Migration'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     needs: quality-gates
     if: always() && (needs.quality-gates.outputs.quality-passed == 'true' || inputs.skip_tests)
@@ -316,7 +316,7 @@ jobs:
   # Job 3: Deploy to Vercel Production
   deploy-production:
     name: 'Deploy to Production'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # 30, not 20 — but the number matters far less now than it did. Every slow
     # thing inside is separately bounded (600s for the CLI, 300s to verify the
     # SHA), so this is the backstop rather than the thing that decides the
@@ -440,7 +440,7 @@ jobs:
   # Job 4: Post-Deployment Health Check
   health-check:
     name: 'Health Check'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     needs: deploy-production
     # AWTD-959. This was `needs.deploy-production.outputs.deployment-success ==
@@ -494,7 +494,7 @@ jobs:
   # is then "what the next deploy ships". Reasoning in scripts/advance-prod-branch.sh.
   advance-prod-branch:
     name: 'Advance prod Branch'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     needs: [deploy-production, health-check]
     if: always() && needs.health-check.result == 'success'
@@ -532,7 +532,7 @@ jobs:
   # Job 6: Deployment Summary
   deployment-summary:
     name: 'Deployment Summary'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     needs: [quality-gates, database-migration, deploy-production, health-check]
     if: always()
