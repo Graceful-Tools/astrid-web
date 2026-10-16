@@ -16,4 +16,12 @@ export const localTaskBackend: TaskBackend = {
   async deleteTask() {
     return { ok: true, value: undefined }
   },
+  /**
+   * A local task has no project fields. The fields route 404s before it gets
+   * here, so this is the belt to that braces: refuse rather than report a
+   * write that reached nothing (AWTD-1209).
+   */
+  async setFieldValue() {
+    return { ok: false, status: 400, error: 'field_not_supported' }
+  },
 }

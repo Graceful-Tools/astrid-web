@@ -303,6 +303,35 @@ export function planRemoveFromProjects(memberships: WritableMembership[]): Mutat
   }
 }
 
+/**
+ * One project field value on one item (AWTD-1209, P6a-3).
+ *
+ * `value` is GitHub's `ProjectV2FieldValue` input as `planFieldValueWrite`
+ * built it, or null to clear — the same pair `addFieldValue` already draws for
+ * the mapped fields, so a field written from the fields route and one written
+ * as a side effect of a status change go out as the same mutation.
+ *
+ * No `versionAliases`: a field value belongs to the project item, not to the
+ * issue, so writing one does not move the content's `updatedAt` and must not
+ * be read as a new `remoteVersion`.
+ */
+export function planFieldValueMutation(
+  membership: WritableMembership,
+  fieldRemoteId: string,
+  value: Record<string, unknown> | null,
+): MutationPlan {
+  const b = new Builder()
+  b.addFieldValue(membership, fieldRemoteId, value)
+  return {
+    document: b.document(),
+    variables: b.variables,
+    versionAliases: [],
+    addedItems: {},
+    removedItems: [],
+    editsBody: false,
+  }
+}
+
 /** The newest content updatedAt any mutation reported — the replica's new remoteVersion. */
 export function versionFromResult(result: Record<string, unknown>, aliases: string[]): string | null {
   let newest: string | null = null

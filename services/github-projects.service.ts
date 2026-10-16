@@ -49,6 +49,7 @@ import { LIST_TYPE_LABEL, LIST_TYPE_MILESTONE } from '@/lib/list-flavors'
 import { projectItemPages } from '@/lib/github/projects/hydrate'
 import type { BindingProposal, ProjectSchema } from '@/lib/github/projects/bind'
 import type { GraphqlClient } from '@/lib/github/rate-limiter'
+import { installationGraphqlClient } from '@/lib/github/graphql-clients'
 import { createTasksInBulk } from '@/services/task-bulk-create'
 import { applyFieldValues, syncProjectFields } from '@/services/github-project-fields.service'
 
@@ -665,8 +666,41 @@ export interface BindingPatch {
   dueFieldId?: string | null
 }
 
-export async function updateBindingMapping(projectId: string, patch: BindingPatch) {
-  return prisma.gitHubProjectBinding.update({
+/** Injected so the re-sync below can be driven in a test without a network. */
+export interface UpdateBindingDeps {
+  board: typeof boundBoard
+  client: (installationId: number) => GraphqlClient
+}
+
+const updateBindingDefaults: UpdateBindingDeps = {
+  board: boundBoard,
+  // A read, and a person is waiting on it — 'hydrate' rather than
+  // 'reconcile', whose 30% share is sized for background work.
+  client: installationId => installationGraphqlClient(installationId, 'hydrate'),
+}
+
+/**
+ * A field's `mappedTo` is DERIVED from the binding — `mappedTo()` in
+ * lib/github/projects/fields.ts compares each field's remoteId against the
+ * binding's status / priority / due field ids. So remapping due from field A
+ * to field B makes two ProjectField rows wrong at once: A still says `due`,
+ * and B says nothing.
+ *
+ * Nothing re-derived them on PATCH until AWTD-1209, so the replica stayed
+ * wrong until the next hourly reconcile. That window is not cosmetic:
+ * `planFieldValueWrite` refuses an edit to a mapped field, so it would have
+ * refused B and allowed A — backwards, for up to an hour.
+ *
+ * **A failed re-sync does not fail the PATCH.** The mapping itself is already
+ * stored, and the reconcile remains the backstop it always was; turning a
+ * GitHub outage into a failed settings change would be the worse trade.
+ */
+export async function updateBindingMapping(
+  projectId: string,
+  patch: BindingPatch,
+  deps: UpdateBindingDeps = updateBindingDefaults,
+) {
+  const updated = await prisma.gitHubProjectBinding.update({
     where: { projectId },
     data: {
       ...(patch.statusOptionMap !== undefined ? { statusOptionMap: patch.statusOptionMap } : {}),
@@ -675,6 +709,20 @@ export async function updateBindingMapping(projectId: string, patch: BindingPatc
       ...(patch.dueFieldId !== undefined ? { dueFieldId: patch.dueFieldId } : {}),
     },
   })
+
+  // Only the two field ids move a field's mappedTo. An option map names
+  // values inside a field that is already mapped, so it changes nothing here.
+  const remapped = patch.priorityFieldId !== undefined || patch.dueFieldId !== undefined
+  if (remapped) {
+    try {
+      const board = await deps.board(projectId)
+      if (board) await syncProjectFields(board, deps.client(board.installationId))
+    } catch (error) {
+      log.error({ err: error, projectId }, 'Binding changed but the field schema re-sync failed; the reconcile will correct it')
+    }
+  }
+
+  return updated
 }
 
 /**

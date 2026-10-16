@@ -40,4 +40,19 @@ export interface TaskBackend {
   createTask(ctx: TaskBackendContext, data: TaskBackendRow): Promise<TaskBackendResult<TaskBackendRow>>
   updateTask(ctx: TaskBackendContext, taskId: string, data: TaskBackendRow): Promise<TaskBackendResult<TaskBackendRow>>
   deleteTask(ctx: TaskBackendContext, taskId: string): Promise<TaskBackendResult<void>>
+  /**
+   * One project field value, already validated and shaped by
+   * `planFieldValueWrite` (AWTD-1209, §9.4.2). `value` is GitHub's
+   * `ProjectV2FieldValue` input, or null to clear.
+   *
+   * The caller owns validation and the replica write; this only carries the
+   * value to the backend, so a backend with no fields refuses rather than
+   * silently accepting a value nobody will store.
+   */
+  setFieldValue(
+    ctx: TaskBackendContext,
+    taskId: string,
+    fieldRemoteId: string,
+    value: Record<string, unknown> | null,
+  ): Promise<TaskBackendResult<void>>
 }

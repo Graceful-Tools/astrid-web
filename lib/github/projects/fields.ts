@@ -267,3 +267,79 @@ export function scalarOf(row: ValueColumns): FieldScalar | null {
   if (row.date) return row.date.toISOString().slice(0, 10)
   return row.optionId ?? row.iterationId ?? row.number ?? row.text
 }
+
+// ── Writing one value back (AWTD-1209, P6a-3) ───────────────────────────────
+
+/**
+ * Why a value was not written. Each becomes a named 400 on
+ * `PUT /api/v1/tasks/:id/fields/:fieldId`, never a silent drop.
+ */
+export type FieldWriteRefusal =
+  | 'field_is_mapped'
+  | 'field_type_mismatch'
+  | 'field_option_unknown'
+  | 'field_iteration_unknown'
+
+export type FieldWritePlan =
+  | { refused: FieldWriteRefusal }
+  /** `value` is GitHub's `ProjectV2FieldValue` input, null to clear; `scalar` is what the replica stores. */
+  | { value: Record<string, unknown> | null; scalar: FieldScalar | null }
+
+/** GitHub stores a date field as a calendar day, so only that form is accepted. */
+const CALENDAR_DAY = /^\d{4}-\d{2}-\d{2}$/
+function isCalendarDay(value: string): boolean {
+  if (!CALENDAR_DAY.test(value)) return false
+  // Rejects 2026-13-01 and 2026-02-31, which the pattern alone would admit.
+  const parsed = new Date(`${value}T00:00:00Z`)
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
+}
+
+/**
+ * One field value, validated against its definition before anything is sent
+ * (§9.4.2).
+ *
+ * Pure, and checked here rather than at the route for the reason `createTask`
+ * already refuses an impossible lane up front: a value GitHub would reject
+ * should cost a 400, not a failed round trip that leaves the replica unsure
+ * whether the write landed.
+ *
+ * **A mapped field is always refused**, including a clear. Status, priority
+ * and due live in native Task columns — `normaliseFields` deliberately keeps
+ * no `TaskFieldValue` for them — so writing one here would create a second
+ * spelling of a fact that already has one. They are edited through the Task
+ * column instead.
+ */
+export function planFieldValueWrite(field: FieldDefinition, value: unknown): FieldWritePlan {
+  if (field.mappedTo) return { refused: 'field_is_mapped' }
+  if (value === null) return { value: null, scalar: null }
+
+  switch (field.dataType) {
+    case 'text':
+      return typeof value === 'string' ? { value: { text: value }, scalar: value } : { refused: 'field_type_mismatch' }
+
+    case 'number':
+      return typeof value === 'number' && Number.isFinite(value)
+        ? { value: { number: value }, scalar: value }
+        : { refused: 'field_type_mismatch' }
+
+    case 'date':
+      return typeof value === 'string' && isCalendarDay(value)
+        ? { value: { date: value }, scalar: value }
+        : { refused: 'field_type_mismatch' }
+
+    case 'single_select':
+      if (typeof value !== 'string') return { refused: 'field_type_mismatch' }
+      return (field.options ?? []).some(option => option.id === value)
+        ? { value: { singleSelectOptionId: value }, scalar: value }
+        : { refused: 'field_option_unknown' }
+
+    case 'iteration':
+      if (typeof value !== 'string') return { refused: 'field_type_mismatch' }
+      return (field.iterations ?? []).some(iteration => iteration.id === value)
+        ? { value: { iterationId: value }, scalar: value }
+        : { refused: 'field_iteration_unknown' }
+
+    default:
+      return { refused: 'field_type_mismatch' }
+  }
+}
