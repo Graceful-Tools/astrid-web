@@ -132,6 +132,13 @@
       "count": "{done}/{total}",
       "add": "Aggiungi un sottoattività",
       "addPlaceholder": "Aggiungi un sottoattività…"
+    },
+    "projectFields": {
+      "clear": "Nessuno",
+      "empty": "Non impostato",
+      "errorAuthRequired": "Collega il tuo account GitHub per modificare questo campo.",
+      "errorSsoRequired": "La tua organizzazione richiede il single sign-on per questo progetto. Accedi a GitHub e riprova.",
+      "errorSaveFailed": "Non è stato possibile salvare la modifica su GitHub. Riprova."
     }
   },
   "lists": {

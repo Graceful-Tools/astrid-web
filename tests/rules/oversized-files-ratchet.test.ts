@@ -144,7 +144,11 @@ const BUDGETS: Record<string, number> = {
   // row — the largest self-contained block left here, with the four helpers
   // that served only it — followed into TaskDetailListsRow.tsx. Smaller than
   // before the feature again.
-  'components/task-detail/TaskFieldEditors.tsx': 914,
+  // 914 → 897: AWTD-1210 added the project-fields section, and the same answer
+  // worked a third time. The PRIORITY row — self-contained, one picker and the
+  // icon that served only it — went to TaskDetailPriorityRow.tsx, so the file
+  // is smaller than before the feature once more.
+  'components/task-detail/TaskFieldEditors.tsx': 897,
   'components/oauth-api-tester.tsx': 973,
   // 957 → 688: AWTD-871 needed to add a `requireReady` parameter to the
   // get_agent_queue schema, which pushed this over. The 280-line

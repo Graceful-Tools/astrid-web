@@ -132,6 +132,13 @@
       "count": "{done}/{total}",
       "add": "Añadir una subtarea",
       "addPlaceholder": "Añadir una subtarea…"
+    },
+    "projectFields": {
+      "clear": "Ninguno",
+      "empty": "Sin definir",
+      "errorAuthRequired": "Conecta tu cuenta de GitHub para cambiar este campo.",
+      "errorSsoRequired": "Tu organización requiere inicio de sesión único para este proyecto. Inicia sesión en GitHub e inténtalo de nuevo.",
+      "errorSaveFailed": "No se pudo guardar ese cambio en GitHub. Inténtalo de nuevo."
     }
   },
   "lists": {

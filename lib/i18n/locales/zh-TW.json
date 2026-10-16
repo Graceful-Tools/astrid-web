@@ -132,6 +132,13 @@
       "count": "{done}/{total}",
       "add": "新增子任務",
       "addPlaceholder": "新增子任務…"
+    },
+    "projectFields": {
+      "clear": "無",
+      "empty": "未設定",
+      "errorAuthRequired": "請先連接你的 GitHub 帳號，才能修改此欄位。",
+      "errorSsoRequired": "你的組織要求此專案使用單一登入。請先登入 GitHub，然後再試一次。",
+      "errorSaveFailed": "無法將該變更儲存到 GitHub。請再試一次。"
     }
   },
   "lists": {

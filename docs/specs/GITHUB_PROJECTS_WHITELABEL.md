@@ -1787,6 +1787,33 @@ iterations and milestones.
   binding, so remapping made two rows wrong at once — the old field still mapped, the new
   one not — and the write route would then have refused the new field and allowed the old.
   A failed re-sync does not fail the PATCH; the reconcile stays the backstop.
+**Web UI slice ([AWTD-1210](https://astrid.cc/t/AWTD-1210)), detail pane built; the board filter is split out.**
+- **One row per unmapped field in task detail**, in `position` order, reusing `TaskFieldRow`
+  — the shared two-column row AWTD-1177 introduced so these rows cannot drift from the
+  native ones. Typed editors for all five: text, number, date, single-select with its
+  option colours, iteration.
+- **A mapped field never renders.** Status, priority and due have native Task rows already,
+  and AWTD-1209 refuses the write, so a second control could only ever fail. An unknown
+  `dataType` is dropped rather than drawn without an editor, which is what a newer server
+  talking to an older client would otherwise produce.
+- **Iteration choices put current and upcoming first**, with completed ones still listed and
+  muted — GitHub keeps completed iterations in the same array, and a task already pointing
+  at one must still show its title rather than a bare id.
+- **Nothing renders off a GitHub board.** The section returns null unless the task is on a
+  list with `backend: "github_project"`, so every other pane is unchanged and no request is
+  made.
+- **The schema is fetched once per project**, not per task: the route's ETag makes the
+  browser's revalidate cheap, and an in-flight map stops N open panes firing N requests.
+- **Clearing sends `null`**, the one shape the PUT treats as a clear. `auth_required` and
+  `sso_required` surface as what to do next, never as the raw code.
+- **Looked at, not assumed.** Rendered against a dev server and measured: five rows, every
+  control on one left edge (121px), the mapped field absent, and correct in dark mode —
+  which needs the `dark` class on `<html>`, since `darkMode: ["class"]` means the OS setting
+  alone does not flip it.
+- **The board filter is NOT here.** Every existing filter is a named column on
+  `UserListViewPreference`, and a project field is a dynamic id, so it needs a storage
+  decision and probably a migration. Split to P6a-5 rather than folded in.
+
 - **Not recorded against GitHub.** The mutation document is built by the same
   `addFieldValue` that P5a already proved against the test project
   (`write-issue-title-status.json`), so the shape is not new. But no text, number or

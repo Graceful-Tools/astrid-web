@@ -132,6 +132,13 @@
       "count": "{done}/{total}",
       "add": "Subtaak toevoegen",
       "addPlaceholder": "Subtaak toevoegen…"
+    },
+    "projectFields": {
+      "clear": "Geen",
+      "empty": "Niet ingesteld",
+      "errorAuthRequired": "Koppel je GitHub-account om dit veld te wijzigen.",
+      "errorSsoRequired": "Je organisatie vereist eenmalige aanmelding voor dit project. Meld je aan bij GitHub en probeer het opnieuw.",
+      "errorSaveFailed": "Die wijziging kon niet in GitHub worden opgeslagen. Probeer het opnieuw."
     }
   },
   "lists": {
