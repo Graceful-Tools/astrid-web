@@ -132,6 +132,13 @@
       "count": "{done}/{total}",
       "add": "Add a subtask",
       "addPlaceholder": "Add a subtask…"
+    },
+    "projectFields": {
+      "clear": "None",
+      "empty": "Not set",
+      "errorAuthRequired": "Connect your GitHub account to change this field.",
+      "errorSsoRequired": "Your organisation requires single sign-on for this project. Sign in to GitHub, then try again.",
+      "errorSaveFailed": "That change could not be saved to GitHub. Try again."
     }
   },
   "lists": {

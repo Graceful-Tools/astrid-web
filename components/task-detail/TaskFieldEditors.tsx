@@ -17,6 +17,8 @@ import { TaskDetailBoardStateRow } from "./TaskDetailBoardStateRow"
 import { TaskDetailBlockersRow } from "./TaskDetailBlockersRow"
 import { TaskDetailDescriptionRow } from "./TaskDetailDescriptionRow"
 import { TaskDetailListsRow } from "./TaskDetailListsRow"
+import { TaskDetailPriorityRow } from "./TaskDetailPriorityRow"
+import { TaskProjectFieldsSection } from "./TaskProjectFieldsSection"
 import { TimePicker, formatConciseTime } from "@/components/ui/time-picker"
 import { useMobileKeyboard } from "@/hooks/shared/useMobileKeyboard"
 import { Calendar as CalendarIcon, User as UserIcon } from "lucide-react"
@@ -92,22 +94,6 @@ interface TaskFieldEditorsProps {
 
   // Invite handler
   onInviteUser: (email: string, message?: string) => Promise<void>
-}
-
-/**
- * The Priority row's marker: the app's own `!!!`, not a flag icon that only ever
- * said "some field about importance" (task 4dd640d9).
- *
- * CONSTANT BY DESIGN — it names the field while the picker beside it reports the
- * value, so it must not follow the task's own priority. Same rule as
- * `PriorityGlyph.rowIcon` on iOS/Mac.
- */
-function PriorityRowIcon() {
-  return (
-    <span aria-hidden="true" className="w-4 text-center text-xs font-bold leading-none">
-      {PRIORITY_ROW_GLYPH}
-    </span>
-  )
 }
 
 export function TaskFieldEditors({
@@ -834,24 +820,13 @@ export function TaskFieldEditors({
       </TaskFieldRow>
       )}
 
-      {/* Priority — third, after Date. A public-list task has no priority
-       *  picker; its Who slot showed "Created by" above. */}
-      {!shouldHidePriority && !compactTaskDetail && !isPublicListTask && (
-            <TaskFieldRow label={t('tasks.priority')} icon={<PriorityRowIcon />}>
-              <PriorityPicker
-                value={tempPriority}
-                onChange={handleSavePriority}
-                /* No `label` passed: PriorityPicker declares the prop but never
-                   renders it, and the row above already carries the translated
-                   label. Passing an English literal to a prop nobody displays is
-                   dead weight that reads as untranslated copy. */
-                // Every other field here gates its click behind !readOnly; this
-                // one rendered ungated, so priority stayed editable to a viewer
-                // who could edit nothing else. (Task 72cb4a13.)
-                disabled={readOnly}
-              />
-            </TaskFieldRow>
-      )}
+      {/* Priority — third, after Date. Its own component since AWTD-1210. */}
+      <TaskDetailPriorityRow
+        value={tempPriority}
+        onChange={handleSavePriority}
+        readOnly={readOnly}
+        hidden={shouldHidePriority || compactTaskDetail || isPublicListTask}
+      />
 
 
       {/* Lists row — its own component since AWTD-1002; see that file for why. */}
@@ -909,6 +884,14 @@ export function TaskFieldEditors({
         handleSaveDescription={handleSaveDescription}
         handleCancelDescription={handleCancelDescription}
       />
+
+      {/* PROJECT FIELDS — last, after every native row (AWTD-1210, §9.4 D4).
+          They are the board's own columns rather than this app's, and there can
+          be many of them, so they follow the fixed rows instead of pushing
+          Description down the pane. The section renders nothing at all unless
+          the task is on a GitHub-backed board with unmapped fields, so a
+          classic task's pane is unchanged. */}
+      <TaskProjectFieldsSection task={task} onUpdate={onUpdate} readOnly={readOnly} />
     </>
   )
 }

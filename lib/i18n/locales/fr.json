@@ -132,6 +132,13 @@
       "count": "{done}/{total}",
       "add": "Ajouter une sous-tâche",
       "addPlaceholder": "Ajouter une sous-tâche…"
+    },
+    "projectFields": {
+      "clear": "Aucun",
+      "empty": "Non défini",
+      "errorAuthRequired": "Connecte ton compte GitHub pour modifier ce champ.",
+      "errorSsoRequired": "Ton organisation exige l'authentification unique pour ce projet. Connecte-toi à GitHub, puis réessaie.",
+      "errorSaveFailed": "Cette modification n'a pas pu être enregistrée dans GitHub. Réessaie."
     }
   },
   "lists": {

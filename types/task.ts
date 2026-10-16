@@ -37,6 +37,13 @@ export interface TaskList {
   id: string
   name: string
   projectId?: string | null
+  /**
+   * Which backend owns this list's tasks (AWTD-1256, spec §11.2).
+   * Absent or null is a classic local list; "github_project" is a board the
+   * server mirrors from GitHub, which is what makes project fields apply
+   * (AWTD-1210).
+   */
+  backend?: "github_project" | null
   listType?: "regular" | "status" | null
   color?: string
   imageUrl?: string | null
@@ -187,6 +194,16 @@ export interface Task {
    * normally, or still open — so it renders nothing until someone uses it.
    */
   closedReason?: string | null
+  /**
+   * A GitHub project's field VALUES, keyed by `ProjectField.id` (AWTD-1208,
+   * spec §9.4.3). No names and no types — those come once per project from
+   * `GET /api/v1/projects/:id/fields` — and **no key at all** on a task with
+   * no values, so every task outside a GitHub board is unchanged.
+   *
+   * List responses carry it only with `?include=fields`; the detail route
+   * always does.
+   */
+  fields?: Record<string, string | number> | null
   /**
    * Board status as a state on the task (AWTD-562): ready | doing | waiting |
    * a project's custom role. Null/undefined means Inbox; Done is derived from

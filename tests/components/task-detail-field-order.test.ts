@@ -54,7 +54,13 @@ const ROW_KEYS: Record<string, string> = {
  */
 const EXTRACTED_ROWS: Record<string, string> = {
   Lists: '<TaskDetailListsRow',
+  // AWTD-1210 moved Priority out for the same budget reason.
+  Priority: '<TaskDetailPriorityRow',
 }
+
+/** The extracted rows' own source, for assertions about what a row renders. */
+const extractedSrc = (file: string) =>
+  readFileSync(join(process.cwd(), 'components/task-detail', file), 'utf8')
 
 function rowPosition(label: string): number {
   const key = ROW_KEYS[label]
@@ -100,17 +106,19 @@ describe('list-mode task detail field order (task 4dd640d9)', () => {
   })
 
   it('marks the Priority row with !!! rather than a flag', () => {
-    const priorityRow = src.slice(rowPosition('Priority'), rowPosition('Priority') + 260)
+    // The row itself moved to TaskDetailPriorityRow (AWTD-1210), so what it
+    // renders is asserted there; TaskFieldEditors only decides where it sits.
+    const row = extractedSrc('TaskDetailPriorityRow.tsx')
 
-    expect(priorityRow, 'the priority row still uses the flag icon').not.toContain('FlagIcon')
+    expect(row, 'the priority row still uses the flag icon').not.toContain('FlagIcon')
     // The marker is one component so the JSX stays on one line; follow it
     // through rather than asserting only that *something* is passed as an icon.
-    expect(priorityRow).toContain('<PriorityRowIcon />')
-    expect(src).toMatch(/function PriorityRowIcon\(\)[\s\S]*?\{PRIORITY_ROW_GLYPH\}/)
+    expect(row).toContain('<PriorityRowIcon />')
+    expect(row).toMatch(/function PriorityRowIcon\(\)[\s\S]*?\{PRIORITY_ROW_GLYPH\}/)
   })
 
   it('imports the glyph rather than typing "!!!" into the JSX', () => {
-    expect(src).toMatch(/from ['"]@\/lib\/priority-glyph['"]/)
+    expect(extractedSrc('TaskDetailPriorityRow.tsx')).toMatch(/from ['"]@\/lib\/priority-glyph['"]/)
   })
 
   it('no longer imports the flag icon at all', () => {
