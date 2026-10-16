@@ -1812,7 +1812,8 @@ iterations and milestones.
   alone does not flip it.
 - **The board filter is NOT here.** Every existing filter is a named column on
   `UserListViewPreference`, and a project field is a dynamic id, so it needs a storage
-  decision and probably a migration. Split to P6a-5 rather than folded in.
+  decision and probably a migration. Split to P6a-5
+  ([AWTD-1259](https://astrid.cc/t/AWTD-1259)) rather than folded in.
 
 - **Not recorded against GitHub.** The mutation document is built by the same
   `addFieldValue` that P5a already proved against the test project
