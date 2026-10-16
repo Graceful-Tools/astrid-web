@@ -36,6 +36,7 @@ import { agentLabelName, type AgentLabelPayload } from '@/lib/github/projects/ag
 import type { BindingFieldMap } from '@/lib/github/projects/apply'
 import { assigneeIdsOf, nextAssigneeIds } from '@/lib/task-assignees'
 import {
+  planFieldValueMutation,
   planRemoveFromProjects,
   planRemoteUpdate,
   versionFromResult,
@@ -545,6 +546,42 @@ export function createGithubProjectTaskBackend(deps: GithubBackendDeps): TaskBac
             ...membershipRows(result, plan, changes.addedProjects),
           },
         }
+      } catch (err) {
+        return refusalFor(err)
+      }
+    },
+
+    /**
+     * One project field value (AWTD-1209, P6a-3, §9.4.2).
+     *
+     * As the acting user, like every other write here — never the
+     * installation token, so GitHub applies that person's project permission
+     * rather than the App's.
+     *
+     * The value arrives already validated against the field definition
+     * (`planFieldValueWrite`), so anything GitHub refuses now is a genuine
+     * upstream answer and goes through `refusalFor` unchanged.
+     */
+    async setFieldValue(ctx, taskId, fieldRemoteId, value): Promise<TaskBackendResult<void>> {
+      if (ctx.origin === 'remote') return { ok: true, value: undefined }
+
+      const loaded = await loadWritable(taskId)
+      if (!loaded) return refusal
+      if (loaded.detached) return refusal
+
+      // One field per request, so exactly one membership can own it: the board
+      // whose binding defines the field. A task on two GitHub boards writes to
+      // the one the field belongs to, which the caller resolved.
+      const membership = loaded.memberships[0]
+      if (!membership) return refusal
+
+      const client = await deps.userClient(ctx.actorId)
+      if (!client) return fail(403, 'auth_required')
+
+      try {
+        const plan = planFieldValueMutation(membership, fieldRemoteId, value)
+        await client.query(plan.document, plan.variables, { strict: true })
+        return { ok: true, value: undefined }
       } catch (err) {
         return refusalFor(err)
       }

@@ -33,6 +33,9 @@ const inner: TaskBackend = {
   createTask: vi.fn(async () => ({ ok: true as const, value: { id: 't1' } as never })),
   updateTask: vi.fn(async () => ({ ok: true as const, value: { id: 't1' } as never })),
   deleteTask: vi.fn(async () => ({ ok: true as const, value: undefined as never })),
+  // The guard passes a field value straight through (AWTD-1209): it is not
+  // list membership, so there is nothing for it to refuse.
+  setFieldValue: vi.fn(async () => ({ ok: true as const, value: undefined as never })),
 }
 
 const ctx = { origin: 'local' } as never

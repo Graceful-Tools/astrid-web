@@ -159,5 +159,9 @@ export function withGithubLabelGuard(backend: TaskBackend, loadLabels: LoadLabel
       return backend.updateTask(ctx, taskId, data)
     },
     deleteTask: (ctx, taskId) => backend.deleteTask(ctx, taskId),
+    // A field value is not list membership, so this guard has nothing to say
+    // about it — a label or milestone list can only be joined or left, which
+    // is what the refusal above covers (AWTD-1209).
+    setFieldValue: (ctx, taskId, fieldRemoteId, value) => backend.setFieldValue(ctx, taskId, fieldRemoteId, value),
   }
 }

@@ -19,17 +19,19 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
-import { listVisibilityWhere } from '@/lib/list-permissions'
+import { canUserEditTasks, listVisibilityWhere } from '@/lib/list-permissions'
 import type { RemoteProjectItem } from '@/lib/github/projects/apply'
 import { fetchProjectSchema } from '@/lib/github/projects/bind'
 import {
   normaliseFields,
   planFieldSchema,
   planFieldValues,
+  planFieldValueWrite,
   remoteFieldValues,
   scalarOf,
   valueColumns,
   type FieldDefinition,
+  type FieldWriteRefusal,
   type FieldScalar,
   type HeldField,
   type KnownField,
@@ -37,6 +39,8 @@ import {
   type RemoteFieldValues,
 } from '@/lib/github/projects/fields'
 import type { GraphqlClient } from '@/lib/github/rate-limiter'
+import { GITHUB_PROJECT_BACKEND, taskBackendFor } from '@/lib/backends/resolve'
+import type { TaskBackend } from '@/lib/backends/types'
 
 const log = createLogger('services.github-project-fields')
 
@@ -259,4 +263,104 @@ export async function readProjectFieldSchema(
     fields: rows.map(({ updatedAt, ...field }) => field),
     etag: `"fields-${projectId}-${rows.length}-${newest}"`,
   }
+}
+
+// ── Writing one value back (AWTD-1209, P6a-3) ───────────────────────────────
+
+export type SetFieldValueResult =
+  /** The task, the field, or the board is not visible — 404, never 403 (§9.4.2). */
+  | { error: 'not_found' }
+  /** Visible, but the caller may not edit this board's tasks. */
+  | { error: 'forbidden' }
+  /** The value itself is wrong for the field: a named 400. */
+  | { refused: FieldWriteRefusal }
+  /** GitHub refused or was unreachable; the codes are P5a's. */
+  | { backend: { status: 400 | 403 | 409 | 429 | 502; error: string; retryAfter?: number; ssoUrl?: string } }
+  | { ok: true; scalar: FieldScalar | null }
+
+interface SetFieldValueDeps {
+  backendFor: (listIds: readonly string[]) => Promise<TaskBackend>
+}
+
+const setFieldValueDefaults: SetFieldValueDeps = { backendFor: taskBackendFor }
+
+/**
+ * `PUT /api/v1/tasks/:id/fields/:fieldId` (§9.4.2).
+ *
+ * **GitHub first, replica second.** The remote write happens before the
+ * `TaskFieldValue` row is touched, so a refusal leaves the replica agreeing
+ * with GitHub rather than holding a value that never landed. The reverse
+ * order would need a compensating write that itself can fail.
+ *
+ * **404, never 403, for a board the caller cannot see**, the same rule
+ * `readProjectFieldSchema` applies — a 403 would confirm it exists. A caller
+ * who CAN see the board but may not edit its tasks gets 403, which tells them
+ * nothing they did not already know.
+ *
+ * **One field per request**, so two edits to different fields never contend;
+ * `@@unique([taskId, fieldId])` makes the replica write idempotent.
+ *
+ * `Task.updatedAt` is bumped on success so the change rides the existing
+ * `?updatedSince=` delta, exactly as `applyFieldValues` does for inbound ones.
+ */
+export async function setProjectFieldValue(
+  taskId: string,
+  fieldId: string,
+  value: unknown,
+  userId: string,
+  deps: SetFieldValueDeps = setFieldValueDefaults,
+): Promise<SetFieldValueResult> {
+  const task = await prisma.task.findFirst({
+    where: { id: taskId, lists: { some: listVisibilityWhere(userId, { includePublic: false }) } },
+    select: {
+      id: true,
+      lists: { select: { id: true, backend: true, projectId: true, ownerId: true, listMembers: true, privacy: true } },
+    },
+  })
+  if (!task) return { error: 'not_found' }
+
+  const board = task.lists.find(list => list.backend === GITHUB_PROJECT_BACKEND && list.projectId)
+  if (!board) return { error: 'not_found' }
+
+  const field = await prisma.projectField.findFirst({
+    where: { id: fieldId, projectId: board.projectId as string },
+    select: { remoteId: true, name: true, dataType: true, options: true, iterations: true, mappedTo: true, position: true },
+  })
+  if (!field) return { error: 'not_found' }
+
+  if (!canUserEditTasks({ id: userId }, board as never)) return { error: 'forbidden' }
+
+  const definition: FieldDefinition = {
+    remoteId: field.remoteId,
+    name: field.name,
+    dataType: field.dataType as FieldDefinition['dataType'],
+    options: field.options as FieldDefinition['options'],
+    iterations: field.iterations as FieldDefinition['iterations'],
+    mappedTo: field.mappedTo as FieldDefinition['mappedTo'],
+    position: field.position,
+  }
+
+  const plan = planFieldValueWrite(definition, value)
+  if ('refused' in plan) return { refused: plan.refused }
+
+  const backend = await deps.backendFor([board.id])
+  const written = await backend.setFieldValue({ actorId: userId }, taskId, field.remoteId, plan.value)
+  if (!written.ok) {
+    const { status, error, retryAfter, ssoUrl } = written
+    return { backend: { status, error, ...(retryAfter ? { retryAfter } : {}), ...(ssoUrl ? { ssoUrl } : {}) } }
+  }
+
+  await prisma.$transaction([
+    plan.scalar === null
+      ? prisma.taskFieldValue.deleteMany({ where: { taskId, fieldId } })
+      : prisma.taskFieldValue.upsert({
+          where: { taskId_fieldId: { taskId, fieldId } },
+          create: { taskId, fieldId, projectId: board.projectId as string, ...valueColumns(field.dataType, plan.scalar) },
+          update: valueColumns(field.dataType, plan.scalar),
+        }),
+    prisma.task.update({ where: { id: taskId }, data: { updatedAt: new Date() } }),
+  ])
+
+  log.info({ taskId, fieldId, cleared: plan.scalar === null }, 'Wrote a project field value through to GitHub')
+  return { ok: true, scalar: plan.scalar }
 }

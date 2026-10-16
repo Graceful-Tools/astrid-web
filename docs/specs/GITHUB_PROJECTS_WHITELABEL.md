@@ -1701,7 +1701,7 @@ closed from here (P5a).
 Not yet: writing a parent, a blocker or an ordinary label **from** Astrid to GitHub,
 iterations and milestones.
 
-### P6a — project fields: the replica holds them and the API serves them; editing is still open
+### P6a — project fields: the replica holds them, the API serves them, and they can be edited
 
 **Replica slice ([AWTD-1117](https://astrid.cc/t/AWTD-1117)), built. Inbound only.**
 - **The tables.** `ProjectField` and `TaskFieldValue`, as §9.4.1, in an additive migration
@@ -1761,11 +1761,36 @@ iterations and milestones.
   builds rather than merely unread.
 - **`list.supports.fields`** (§11.2), true only on a GitHub-backed list. It says the capability
   exists, not that a given payload carries the values.
-- **Still open:** `PUT /api/v1/tasks/:id/fields/:fieldId` (§9.4.2). Nothing writes a field
-  value from Astrid yet.
-- **Not covered.** Changing the binding's due or priority field does not re-run the
-  refresh, so `mappedTo` is corrected by the next hourly reconcile
-  ([AWTD-1209](https://astrid.cc/t/AWTD-1209)).
+**Write slice ([AWTD-1209](https://astrid.cc/t/AWTD-1209)), built.**
+- **`PUT /api/v1/tasks/:id/fields/:fieldId`** with `{ "value": <typed> | null }` (§9.4.2).
+  One field per request, so edits to different fields never contend and the replica write
+  is idempotent on `@@unique([taskId, fieldId])`. The `value` KEY must be present: an empty
+  body is malformed, while `null` is a clear.
+- **Validated before the round trip** (`planFieldValueWrite`, pure). The type must match,
+  and a select option or iteration the field does not define is refused by name —
+  `field_type_mismatch`, `field_option_unknown`, `field_iteration_unknown`. A date must be
+  a calendar day, since that is what GitHub stores.
+- **A mapped field is refused** (`field_is_mapped`), clears included. Status, priority and
+  due live in native Task columns, so writing one here would put a second spelling of one
+  fact in play; they are edited through the Task column.
+- **As the acting user's own token**, like every other write in `lib/backends/github-project.ts`
+  — never the installation token, so GitHub applies that person's project permission.
+- **GitHub first, replica second.** A refusal leaves no `TaskFieldValue` behind, so the
+  replica never claims a value GitHub did not take. `Task.updatedAt` is bumped on success,
+  so the edit rides `?updatedSince=` like an inbound one.
+- **404, never 403**, for a task or board the caller cannot see; 403 only once they can see
+  it but may not edit its tasks (`canUserEditTasks`). Errors otherwise follow P5a:
+  `auth_required`, `forbidden`, `rate_limited` with `retryAfter`, `sso_required` with
+  `ssoUrl`, `upstream_unavailable`.
+- **The binding PATCH now re-runs the field refresh** when the priority or due field is
+  remapped, which was the gap left by the API slice. `mappedTo` is derived from the
+  binding, so remapping made two rows wrong at once — the old field still mapped, the new
+  one not — and the write route would then have refused the new field and allowed the old.
+  A failed re-sync does not fail the PATCH; the reconcile stays the backstop.
+- **Not recorded against GitHub.** The mutation document is built by the same
+  `addFieldValue` that P5a already proved against the test project
+  (`write-issue-title-status.json`), so the shape is not new. But no text, number or
+  iteration value has been recorded, and the new tests use hand-written values.
 
 Open, in order: [AWTD-1208](https://astrid.cc/t/AWTD-1208) the fields route, compact values
 on tasks and the payload measurement · [AWTD-1209](https://astrid.cc/t/AWTD-1209) editing a
