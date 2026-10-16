@@ -23,7 +23,7 @@ Insights was collecting the numbers — see below.
 | Prisma work | <= 4 queries; p95 aggregate query time <= 300 ms | contract tests pin the query shape and count | pinned continuously |
 | Incremental sync response | <= 100 KiB and <= 1 MiB across all pages | `scripts/measure-api-latency.ts` (route not yet added) | never |
 | Server error rate | < 1% | `vercel logs` status codes — sample too small to assert, see below | 2026-09-11, indicative only |
-| Redis cache hit rate | >= 80% after warm-up | `/admin/analytics` → **Redis Cache**, per day, from the `CacheMetricBucket` table | 2026-10-11: **50.3% over the last 7 days — UNDER budget**; 71.5% since recording began 2026-09-25. See below |
+| Redis cache hit rate | >= 60% after warm-up (re-based 2026-10-16, AWTD-1201 — was >= 80%) | `/admin/analytics` → **Redis Cache**, per day, from the `CacheMetricBucket` table | 2026-10-16: **66.3% over the last 7 days — within budget**; 70.6% since recording began 2026-09-25. See below |
 | Initial JavaScript | <= 250 KiB compressed | shared baseline only — see below | 2026-09-11 |
 | Core Web Vitals (p75) | LCP <= 2.5 s; INP <= 200 ms; CLS <= 0.1 | Vercel Speed Insights (history, dashboard only) + `scripts/measure-web-vitals.ts` (scriptable, no history yet) — see below | **not yet transcribed** |
 | GitHub Projects webhook ack | p95 <= 300 ms (delivery check, one indexed read, one insert; work runs after the response) | `vercel logs --query projects_v2_item` route timings; shape pinned by `tests/api/github-projects-webhook.test.ts` (AWTD-1152) | **never — no brand has GitHub Projects on yet** |
@@ -341,7 +341,7 @@ cannot hold a sample from a logged-out visitor) is the open question on
 e586eff1 — it buys scriptability, at the price of a second pipeline beside a
 working one and a new production table.
 
-**Redis cache hit rate — sampled 2026-10-11, and it is under budget.**
+**Redis cache hit rate — re-based 2026-10-16 to >= 60%, and now within budget.**
 
 The problem was never that the outcomes were not recorded. PR #260's
 structured `Cache lookup` / `Cache load` events in `lib/redis.ts` are correct
@@ -395,29 +395,54 @@ Three things about what that page shows:
 Buckets are kept 97 days — wider than the 90-day range the page can ask for, so the oldest end of
 a chart is never quietly truncated — and the nightly analytics cron prunes them.
 
-**The sample, 2026-10-11** — every production `CacheMetricBucket` row, summed with
+**The sample, 2026-10-16** — every production `CacheMetricBucket` row, summed with
 `summarizeCacheMetrics` (the function the page uses), read-only:
 
 | Range | Hit rate | Lookups | Instances | Mean lookup | Mean loader |
 |---|---:|---:|---:|---:|---:|
-| Last 24 h | 60.7% | 754 | 113 | 13.9 ms | 28.8 ms |
-| Last 7 days | 50.3% | 3,098 | 640 | 15.5 ms | 33.2 ms |
-| Since the first bucket (2026-09-25 14:00 UTC) | 71.5% | 11,998 | 1,296 | 19.6 ms | 34.7 ms |
+| Last 24 h | 67.3% | 954 | 86 | 18.2 ms | 61.7 ms |
+| Last 7 days | 66.3% | 5,985 | 731 | 15.5 ms | 40.7 ms |
+| Since the migration settled (2026-10-07) | 63.7% | 6,899 | 916 | 15.6 ms | 39.9 ms |
+| Since the first bucket (2026-09-25 14:00 UTC) | 70.6% | 16,571 | 1,768 | 18.5 ms | 37.9 ms |
 
-1,888 buckets, 8,112 flushed windows, 0 cache errors. Three things the totals hide:
+2,696 buckets, 11,498 flushed windows, 0 cache errors.
 
-- **The budget was met for six days and has not been met since.** 2026-09-25 to 09-30 ran 78–86%
-  a day (≈83% overall) on 640–1,832 lookups a day. On 2026-10-01 the day's rate was 4.3% on 141
-  lookups, and it has climbed back only to ≈60%. So 71.5% is two different regimes averaged, and
-  neither of them is 71.5%.
-- **The volume fell with it** — roughly 1,400 lookups a day before, 140–730 after. A rate that
-  drops while lookups drop eightfold reads as a mostly-hit caller leaving the cache, not as the
-  cache getting worse at the same work. The cause has **not** been established: no commit in that
-  window touches `lib/redis.ts` or the six `getOrSet` call sites' caching, and the buckets carry no
-  key, so they cannot say which caller left.
-- **A hit is not much cheaper than a miss.** A lookup averages 14–20 ms and a loader 29–35 ms.
-  These are means and not comparable to the percentile rows above, but the gap is what the cache
-  buys, and it is small.
+**Why the budget moved from 80% to 60%, rather than the rate being "restored"** (AWTD-1201).
+The 80% figure was set against a workload that no longer exists, and should not be recreated:
+
+- **The cause is established.** Until 2026-09-30 16:00 UTC the cache served a near-constant
+  ~50 hits and ~10 misses *every hour, around the clock including 03:00* — the signature of a
+  poller, not of people. At 16:00 it stopped: 59 hits in the 15:00 hour, 11 at 16:00, then 0–1
+  an hour. The day's rate fell to 4.3%.
+- **It was not a deploy.** The only production deploy in the window, `92da8a1d`, landed at
+  04:56 UTC — eleven hours earlier — and changes nothing under `lib/redis.ts` or any
+  `getOrSet` call site.
+- **Hits collapsed while misses did not.** 2026-10-01 was 6 hits against 135 misses, with
+  misses inside their normal band throughout. A degrading cache raises misses; this was the
+  hit-producing traffic leaving.
+- **What left was legacy full-sync polling.** Every `getOrSet` site caches only the full-sync
+  path — `app/api/tasks/route.ts:67`, `app/api/lists/route.ts:59` and
+  `app/api/v1/lists/route.ts:84` all skip the cache when the request carries `updatedSince`,
+  because a delta must be fresh. Clients have since moved to v1 and to delta sync: over two
+  days of production logs `/api/tasks` and `/api/lists` drew **zero** requests, while
+  `/api/v1/lists` and the uncached `/api/v1/tasks` both saturated the log query's 50-row cap.
+  That migration is intentional — see AWTD-1246 and AWTD-839.
+
+So the cacheable share of the workload shrank **because the application improved**: repeated
+identical full syncs were replaced by deltas. Meeting 80% again would mean reinstating that
+polling, or caching `GET /api/v1/tasks`, whose delta path has to stay uncached for
+correctness. The rate has recovered on its own as v1 full-sync traffic grew — 4.3% on 10-01 to
+66.3% over the last seven days — and 60% is set as a floor under that regime with room for the
+daily swing (63.7–72.6% since 10-07).
+
+**A hit is worth keeping.** A lookup averages 15.5 ms against a loader at 40.7 ms, so a hit
+saves roughly 25 ms. An earlier reading of this row put the gap at ~15 ms and suggested the
+cache might not earn its keep; on the current workload it does. These are means and are not
+comparable to the percentile rows above.
+
+**Whether `GET /api/v1/tasks` should be cached is deliberately still open** — it now carries
+the task traffic and has no cache at all, but its delta path cannot take one, so it needs its
+own measurement rather than being folded into this row.
 
 Re-sample from `/admin/analytics` → **Redis Cache**; nothing needs a script any more.
 

@@ -2,7 +2,8 @@
  * Task 2b89739c — the Redis cache hit rate has to be readable in production
  * without turning the global log level up.
  *
- * The budget document promises >= 80% after warm-up and had never sampled it,
+ * The budget document promises >= 60% after warm-up (re-based from 80% on
+ * 2026-10-16, AWTD-1201) and had never sampled it when this was written,
  * because the only evidence was `Cache lookup` / `Cache load` at `debug` while
  * production runs at `info`. Those events are deliberately at debug (PR #260)
  * — they are per-lookup and expensive — so the fix cannot be to promote them.
