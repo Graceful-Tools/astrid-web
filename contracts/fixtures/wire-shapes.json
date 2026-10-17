@@ -727,6 +727,7 @@
             "fields": false,
             "deleteTask": "delete"
           },
+          "iteration": null,
           "createdAt": "2026-01-15T09:00:00.000Z",
           "updatedAt": "2026-01-15T09:10:00.000Z"
         },
@@ -847,6 +848,7 @@
             "fields": true,
             "deleteTask": "remove_from_list"
           },
+          "iteration": null,
           "createdAt": "2026-01-15T09:00:00.000Z",
           "updatedAt": "2026-01-15T09:10:00.000Z"
         }

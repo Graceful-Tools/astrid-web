@@ -168,13 +168,13 @@ export interface V1List {
   // The GitHub Project a GitHub-backed list mirrors (AWTD-1222). Null on a
   // classic list.
   remote?: ListRemote | null
-  // An iteration list's dates (AWTD-1230). Present only when listType is
-  // "iteration". `hidden` is true once the iteration has ended: keep the list
+  // An iteration list's dates (AWTD-1230). Null unless listType is
+  // "iteration"; optional because an older server omits it. `hidden` is true once the iteration has ended: keep the list
   // and its tasks, reachable by search or link, but leave it out of list-shaped
   // surfaces (Jon's decision (b)). It is derived when served, so a client
   // syncing by `updatedSince` should compare `endsOn` (YYYY-MM-DD, the last
   // day, inclusive) to today rather than wait for the list to change.
-  iteration?: { startDate: string; endsOn: string; hidden: boolean }
+  iteration?: { startDate: string; endsOn: string; hidden: boolean } | null
   createdAt: string | Date
   updatedAt: string | Date
 }

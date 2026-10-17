@@ -57,8 +57,8 @@ const V1_LIST_KEYS = [
   'defaultPriority', 'defaultRepeating', 'defaultAssigneeId', 'defaultAssignee',
   'aiAgentsEnabled', 'aiAgentConfig', 'publicListType', 'defaultIsPrivate', 'defaultDueDate',
   'defaultDueTime', 'githubRepositoryId', 'preferredAiProvider', 'projectId', 'listType',
-  'recentlyCompletedWindow', 'showSubtasks', 'backend', 'remote', 'supports', 'createdAt',
-  'updatedAt',
+  'recentlyCompletedWindow', 'showSubtasks', 'backend', 'remote', 'supports', 'iteration',
+  'createdAt', 'updatedAt',
 ] as const satisfies ReadonlyArray<keyof V1List>
 const _exhaustive: Exclude<keyof V1List, (typeof V1_LIST_KEYS)[number]> extends never ? true : never = true
 void _exhaustive

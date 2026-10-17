@@ -140,8 +140,8 @@ export interface ListBackendFields {
   backend: typeof GITHUB_PROJECT_BACKEND | null
   remote: ListRemote | null
   supports: ListSupports
-  /** Only on an iteration list (AWTD-1230); absent everywhere else. */
-  iteration?: IterationWindow
+  /** An iteration list's window (AWTD-1230); null on every other list, like `remote`. */
+  iteration: IterationWindow | null
 }
 
 /** The three wire fields for one list, from `loadListBackendInfo`'s map. */
@@ -154,6 +154,6 @@ export function listBackendFields(
     backend: list.backend === GITHUB_PROJECT_BACKEND ? GITHUB_PROJECT_BACKEND : null,
     remote: entry?.remote ?? null,
     supports: listSupports(list, entry?.binding),
-    ...(entry?.iteration ? { iteration: entry.iteration } : {}),
+    iteration: entry?.iteration ?? null,
   }
 }

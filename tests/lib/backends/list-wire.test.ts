@@ -102,6 +102,8 @@ describe('listBackendFields (AWTD-1222)', () => {
       backend: null,
       remote: null,
       supports: CLASSIC,
+      // Not an iteration list (AWTD-1230).
+      iteration: null,
     })
   })
 
@@ -137,11 +139,11 @@ describe('iteration lists on the wire (AWTD-1230)', () => {
     const iterationFields = vi.fn(async () => [field])
     const info = await loadListBackendInfo([{ id: 'l0', backend: null, listType: 'milestone', remoteNodeId: 'MI_1' }], { iterationFields })
     expect(iterationFields).not.toHaveBeenCalled()
-    expect(listBackendFields({ id: 'l0' }, info)).not.toHaveProperty('iteration')
+    expect(listBackendFields({ id: 'l0' }, info).iteration).toBeNull()
   })
 
   it('an iteration GitHub no longer defines carries no window rather than a guessed one', async () => {
     const info = await loadListBackendInfo([sprintList], { iterationFields: async () => [{ ...field, iterations: [] }] })
-    expect(listBackendFields(sprintList, info)).not.toHaveProperty('iteration')
+    expect(listBackendFields(sprintList, info).iteration).toBeNull()
   })
 })
