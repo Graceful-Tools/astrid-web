@@ -20,6 +20,7 @@ import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { useTaskRowController } from "@/hooks/task-manager/useTaskRowController"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
 import { taskAreaPositionClasses } from '@/lib/task-area-position-classes'
+import { listHeaderBottomMarginClass } from '@/lib/list-header-spacing'
 import { useBoardRowContext } from "@/hooks/task-manager/useBoardRowContext"
 import { DescriptionDialog, type DescriptionDialogHandle } from "./DescriptionDialog"
 import {
@@ -600,8 +601,8 @@ export function MainContent({
             </div>
           ) : (
           <>
-          {/* Centered List Header with Image and Editable Name */}
-          <div className="text-center mb-6">
+          {/* Centered List Header with Image and Editable Name — no bottom margin on the board, where no add-task input follows (AWTD-1264) */}
+          <div className={`text-center ${listHeaderBottomMarginClass({ boardMode: Boolean(hasProjectBoard && taskViewMode === 'board') })}`}>
             {selectedListId && !["my-tasks", "today", "not-in-list", "public", "assigned"].includes(selectedListId) && (
               (() => {
                 const currentList = lists.find(list => list.id === selectedListId) || listMetadata
@@ -640,7 +641,6 @@ export function MainContent({
                         <h1 className={`text-2xl font-semibold tracking-tight theme-text-primary mb-1 text-left line-clamp-2 break-words ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
                             onClick={!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleEditListName(currentList) : undefined}>
                           {newFilterState.filters.search.trim() ? 'Search Results' : currentList.name}
-                          {!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured}
                         </h1>
                       )}
 
