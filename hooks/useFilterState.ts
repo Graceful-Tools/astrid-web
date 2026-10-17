@@ -4,6 +4,7 @@ import type { Task, TaskList } from '@/types/task'
 import { hasListAccess } from '@/lib/list-member-utils'
 import { applyDateFilter } from '@/lib/date-filter-utils'
 import { sortTasksForList } from '@/lib/task-sort'
+import { isInMyTasksScope, matchesAssigneeFilter, matchesPriorityFilter } from '@/lib/my-tasks-scope'
 import {
   shouldShowCompletedByFilter,
   type CompletionFilterMode,
@@ -225,11 +226,8 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
       const currentList = lists?.find(l => l.id === selectedListId)
       
       if (selectedListId === "my-tasks") {
-        // All tasks assigned to current user (or created by them if no assignee)
-        filtered = filtered.filter(task => 
-          task.assigneeId === userId || 
-          (task.assigneeId === null && task.creatorId === userId)
-        )
+        // lib/my-tasks-scope.ts — pure so the contract fixtures can run it (AWTD-1262)
+        filtered = filtered.filter(task => isInMyTasksScope(task, userId))
       } else if (selectedListId === "public") {
         // Public tasks the user is following
         filtered = filtered.filter(task =>
@@ -309,18 +307,13 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
     // Priority filter (always apply unless we know the virtual list already handled it)
     if (activeFilters.priority.length > 0) {
       console.log('🔍 Applying priority filter:', activeFilters.priority)
-      filtered = filtered.filter(task =>
-        activeFilters.priority.includes(task.priority || 0)
-      )
+      filtered = filtered.filter(task => matchesPriorityFilter(task, activeFilters.priority))
     }
 
     // Assignee filter (always apply unless we know the virtual list already handled it)
     if (activeFilters.assignee.length > 0) {
       console.log('🔍 Applying assignee filter:', activeFilters.assignee)
-      filtered = filtered.filter(task => {
-        const assigneeId = task.assigneeId || 'unassigned'
-        return activeFilters.assignee.includes(assigneeId)
-      })
+      filtered = filtered.filter(task => matchesAssigneeFilter(task, activeFilters.assignee))
     }
 
     // Due date filter (always apply unless we know the virtual list already handled it)
