@@ -118,3 +118,30 @@ describe('listBackendFields (AWTD-1222)', () => {
     expect(listBackendFields({ id: 'l0', backend: 'something_else' }, new Map()).backend).toBeNull()
   })
 })
+
+describe('iteration lists on the wire (AWTD-1230)', () => {
+  const sprintList = { id: 'l-it', backend: null, listType: 'iteration', remoteNodeId: 'PVTIF_sprint:it-41' }
+  const field = { remoteId: 'PVTIF_sprint', iterations: [{ id: 'it-41', title: 'Sprint 41', startDate: '2026-10-05', duration: 14 }] }
+
+  it('carries the window, hidden once the iteration has ended — decision (b)', async () => {
+    const iterationFields = vi.fn(async () => [field])
+    const running = await loadListBackendInfo([sprintList], { iterationFields, now: () => new Date('2026-10-17T12:00:00Z') })
+    expect(iterationFields).toHaveBeenCalledWith(['PVTIF_sprint'])
+    expect(listBackendFields(sprintList, running).iteration).toEqual({ startDate: '2026-10-05', endsOn: '2026-10-18', hidden: false })
+
+    const ended = await loadListBackendInfo([sprintList], { iterationFields, now: () => new Date('2026-10-19T00:00:00Z') })
+    expect(listBackendFields(sprintList, ended).iteration).toMatchObject({ hidden: true })
+  })
+
+  it('a list with no iteration flavor asks nothing and carries no window', async () => {
+    const iterationFields = vi.fn(async () => [field])
+    const info = await loadListBackendInfo([{ id: 'l0', backend: null, listType: 'milestone', remoteNodeId: 'MI_1' }], { iterationFields })
+    expect(iterationFields).not.toHaveBeenCalled()
+    expect(listBackendFields({ id: 'l0' }, info)).not.toHaveProperty('iteration')
+  })
+
+  it('an iteration GitHub no longer defines carries no window rather than a guessed one', async () => {
+    const info = await loadListBackendInfo([sprintList], { iterationFields: async () => [{ ...field, iterations: [] }] })
+    expect(listBackendFields(sprintList, info)).not.toHaveProperty('iteration')
+  })
+})

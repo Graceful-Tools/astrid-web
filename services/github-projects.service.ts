@@ -45,13 +45,14 @@ import {
 import { planAssignees, remoteAssignees } from '@/lib/github/projects/assignees'
 import { assigneeIdsOf } from '@/lib/task-assignees'
 import { GITHUB_MIRRORED_LIST } from '@/lib/backends/github-labels'
-import { LIST_TYPE_LABEL, LIST_TYPE_MILESTONE } from '@/lib/list-flavors'
+import { LIST_TYPE_ITERATION, LIST_TYPE_LABEL, LIST_TYPE_MILESTONE } from '@/lib/list-flavors'
 import { projectItemPages } from '@/lib/github/projects/hydrate'
 import type { BindingProposal, ProjectSchema } from '@/lib/github/projects/bind'
 import type { GraphqlClient } from '@/lib/github/rate-limiter'
 import { installationGraphqlClient } from '@/lib/github/graphql-clients'
 import { createTasksInBulk } from '@/services/task-bulk-create'
 import { applyFieldValues, syncProjectFields } from '@/services/github-project-fields.service'
+import { applyIterationLists } from '@/services/github-iteration-lists.service'
 
 const log = createLogger('services.github-projects')
 
@@ -92,10 +93,10 @@ const REPLICA_SELECT = {
   parentTaskId: true,
   parentTask: { select: { remoteNodeId: true } },
   blockedBy: { where: { blockingTask: { remoteNodeId: { not: null } } }, select: { blockingTaskId: true } },
-  // Labels (AWTD-1188) and milestones (AWTD-1189). Only lists that MIRROR
-  // GitHub are read back: a label a person gave the task in Astrid is never
-  // GitHub's to remove. One read covers both flavors; each apply pass filters
-  // to its own by `listType`.
+  // Labels (AWTD-1188), milestones (AWTD-1189) and iterations (AWTD-1230).
+  // Only lists that MIRROR GitHub are read back: a label a person gave the
+  // task in Astrid is never GitHub's to remove. One read covers every flavor;
+  // each apply pass filters to its own by `listType`.
   lists: { where: GITHUB_MIRRORED_LIST, select: { id: true, remoteNodeId: true, listType: true } },
   // Assignees (AWTD-1190). An agent is never GitHub's to unassign.
   assigneeId: true,
@@ -505,19 +506,36 @@ export async function applyProjectItems(board: BoundBoard, items: RemoteProjectI
   const milestonesChanged = await applyMilestones(board, items, replicaByNode, createdByNode)
   const assigneesChanged = await applyAssignees(items, replicaByNode, createdByNode)
   // Project fields (AWTD-1117). An archived item's values leave with it.
+  const fieldEntries = items.flatMap(item => {
+    const nodeId = item.type !== 'REDACTED' ? item.content?.id : undefined
+    const taskId = nodeId ? replicaByNode.get(nodeId)?.id ?? createdByNode.get(nodeId) : undefined
+    return taskId && nodeId ? [{ item, taskId, nodeId }] : []
+  })
   const fieldsChanged = await applyFieldValues(
     board,
-    items.flatMap(item => {
-      const nodeId = item.type !== 'REDACTED' ? item.content?.id : undefined
-      const taskId = nodeId ? replicaByNode.get(nodeId)?.id ?? createdByNode.get(nodeId) : undefined
-      return taskId ? [{ item, taskId }] : []
-    }),
+    fieldEntries.map(({ item, taskId }) => ({ item, taskId })),
     client,
+  )
+  // Iterations (AWTD-1230) follow the values just stored, so they come after.
+  const iterationsChanged = await applyIterationLists(
+    board,
+    fieldEntries.map(({ taskId, nodeId }) => ({
+      taskId,
+      held: (replicaByNode.get(nodeId)?.lists ?? []).filter(list => list.listType === LIST_TYPE_ITERATION),
+    })),
   )
 
   // createTasksInBulk clears caches for what it created; updates, leaves,
-  // relationship, label, milestone, assignee and field changes are ours to clear.
-  if (writes.length > 0 || relationsChanged || labelsChanged || milestonesChanged || assigneesChanged || fieldsChanged) {
+  // relationship, label, milestone, assignee, field and iteration changes are ours to clear.
+  if (
+    writes.length > 0 ||
+    relationsChanged ||
+    labelsChanged ||
+    milestonesChanged ||
+    assigneesChanged ||
+    fieldsChanged ||
+    iterationsChanged
+  ) {
     await RedisCache.invalidate.userTasks(board.ownerId, [board.listId]).catch(err => {
       log.warn({ err, projectId: board.projectId }, 'Failed to clear the board owner’s task cache')
     })

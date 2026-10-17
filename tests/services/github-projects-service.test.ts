@@ -47,6 +47,10 @@ vi.mock('@/services/task-bulk-create', () => bulk)
 const fields = vi.hoisted(() => ({ applyFieldValues: vi.fn(async () => false), syncProjectFields: vi.fn(async () => false) }))
 vi.mock('@/services/github-project-fields.service', () => fields)
 
+// Iteration lists too (AWTD-1230): tests/services/github-iteration-lists.test.ts.
+const iterations = vi.hoisted(() => ({ applyIterationLists: vi.fn(async () => false) }))
+vi.mock('@/services/github-iteration-lists.service', () => iterations)
+
 vi.mock('@/lib/redis', () => ({ RedisCache: { invalidate: { userTasks: vi.fn(async () => {}), userLists: vi.fn(async () => {}) } } }))
 
 import { applyProjectItems, bindGitHubProject, type BoundBoard } from '@/services/github-projects.service'
@@ -432,7 +436,8 @@ describe('applyProjectItems — labels become label lists (AWTD-1188)', () => {
     expect(db.task.findMany.mock.calls[0][0].select.lists).toEqual({
       // Both mirrored flavors in one read (AWTD-1189), and `listType` selected
       // so each apply pass can tell its own memberships from the other's.
-      where: { listType: { in: ['label', 'milestone'] }, remoteNodeId: { not: null } },
+      // Iterations joined the same read in AWTD-1230.
+      where: { listType: { in: ['label', 'milestone', 'iteration'] }, remoteNodeId: { not: null } },
       select: { id: true, remoteNodeId: true, listType: true },
     })
   })
@@ -677,6 +682,15 @@ describe('applyProjectItems — milestones become milestone lists (AWTD-1189)', 
     )
     expect(milestoneWrites).toEqual([])
     expect(db.taskList.createMany).not.toHaveBeenCalled()
+  })
+
+  it('hands each task’s held ITERATION lists — and only those — to the iteration pass (AWTD-1230)', async () => {
+    const sprint = { id: 'it-list', remoteNodeId: 'PVTIF_sprint:it-41', listType: 'iteration' }
+    db.task.findMany.mockResolvedValue([{ ...carrying(v12List), lists: [...carrying(v12List).lists, sprint] }])
+
+    await applyProjectItems(board, [withMilestone(issue, v12)])
+
+    expect(iterations.applyIterationLists).toHaveBeenCalledWith(board, [{ taskId: 't0', held: [sprint] }])
   })
 
   it('a draft issue carries no milestone and costs no milestone read', async () => {
