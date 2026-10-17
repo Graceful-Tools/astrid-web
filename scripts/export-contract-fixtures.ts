@@ -150,6 +150,9 @@ const EXPORTS: Record<string, () => Record<string, unknown>> = {
   'manual-order.json': () => runDriver('manual-order.mjs', 'manual-order'),
   'filters.json': () => runDriver('filters.mjs', 'filters'),
   'reminders.json': () => runDriver('reminders.mjs', 'reminders'),
+  // The view every client opens on: whose tasks are in My Tasks, and how its saved priority and
+  // assignee preferences narrow it (AWTD-1262; D25 is the disagreement).
+  'my-tasks.json': () => runDriver('my-tasks.mjs', 'my-tasks'),
   // How a description, comment or chat message reads: web's renderer run in a jsdom window (the
   // browser path, through DOMPurify) and its HTML read back into the core's blocks (AWTD-1064).
   'markdown.json': () => runDriver('markdown.mjs', 'markdown'),
