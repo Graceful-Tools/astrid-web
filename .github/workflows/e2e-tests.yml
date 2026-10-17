@@ -55,7 +55,7 @@ jobs:
         run: npm run playwright:setup:ci-auth
       - name: Run authenticated critical paths
         run: npm run test:e2e:authenticated-critical
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: playwright-report-authenticated-critical
@@ -142,7 +142,7 @@ jobs:
           NEXT_AUTH_PUBLIC_URL: http://localhost:3000
 
       - name: Upload test results
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: playwright-report-${{ matrix.browser }}
@@ -150,7 +150,7 @@ jobs:
           retention-days: 30
 
       - name: Upload test traces
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: failure()
         with:
           name: playwright-traces-${{ matrix.browser }}
@@ -227,7 +227,7 @@ jobs:
           NEXT_AUTH_PUBLIC_URL: http://localhost:3000
 
       - name: Upload mobile test results
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: playwright-report-mobile
