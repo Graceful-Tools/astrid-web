@@ -12,7 +12,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { LIST_TYPE_LABEL, LIST_TYPE_MILESTONE, isTagList } from '@/lib/list-flavors'
+import { LIST_TYPE_ITERATION, LIST_TYPE_LABEL, LIST_TYPE_MILESTONE, isTagList } from '@/lib/list-flavors'
 import type { TaskBackend, TaskBackendRow } from './types'
 
 /** The refusal's error code. Stable: clients match on it. */
@@ -21,6 +21,12 @@ export const GITHUB_LABEL_READ_ONLY = 'github_label_read_only'
 /** The refusal's error code for a milestone (AWTD-1189). Stable: clients match on it. */
 export const GITHUB_MILESTONE_READ_ONLY = 'github_milestone_read_only'
 
+/**
+ * The refusal's error code for an iteration list (AWTD-1230). Stable: clients
+ * match on it. Membership only — the iteration is edited as a field value.
+ */
+export const GITHUB_ITERATION_READ_ONLY = 'github_iteration_read_only'
+
 /** The lists that mirror a GitHub label. */
 export const GITHUB_LABEL_LIST = { listType: LIST_TYPE_LABEL, remoteNodeId: { not: null } } as const
 
@@ -28,7 +34,8 @@ export const GITHUB_LABEL_LIST = { listType: LIST_TYPE_LABEL, remoteNodeId: { no
 export const GITHUB_MILESTONE_LIST = { listType: LIST_TYPE_MILESTONE, remoteNodeId: { not: null } } as const
 
 /**
- * Every list that mirrors something GitHub owns — a label or a milestone.
+ * Every list that mirrors something GitHub owns — a label, a milestone or an
+ * iteration (AWTD-1230).
  *
  * One `where` so the replica read stays a single query as flavors are added,
  * and so a new flavor cannot be mirrored inbound while staying writable
@@ -38,7 +45,7 @@ export const GITHUB_MILESTONE_LIST = { listType: LIST_TYPE_MILESTONE, remoteNode
 export const GITHUB_MIRRORED_LIST = {
   // Not `as const`: Prisma's `in` takes a mutable string[], and a readonly
   // tuple is rejected at every call site rather than here.
-  listType: { in: [LIST_TYPE_LABEL, LIST_TYPE_MILESTONE] as string[] },
+  listType: { in: [LIST_TYPE_LABEL, LIST_TYPE_MILESTONE, LIST_TYPE_ITERATION] as string[] },
   remoteNodeId: { not: null },
 } as const
 
@@ -131,10 +138,15 @@ const loadGithubLabels: LoadLabels = async (taskId, mentionedListIds) => {
   }))
 }
 
+const REFUSAL_BY_FLAVOR: Record<string, string> = {
+  [LIST_TYPE_MILESTONE]: GITHUB_MILESTONE_READ_ONLY,
+  [LIST_TYPE_ITERATION]: GITHUB_ITERATION_READ_ONLY,
+}
+
 const refusalFor = (row: GithubLabelMembership) => ({
   ok: false as const,
   status: 400 as const,
-  error: row.listType === LIST_TYPE_MILESTONE ? GITHUB_MILESTONE_READ_ONLY : GITHUB_LABEL_READ_ONLY,
+  error: REFUSAL_BY_FLAVOR[row.listType ?? ''] ?? GITHUB_LABEL_READ_ONLY,
 })
 
 export function withGithubLabelGuard(backend: TaskBackend, loadLabels: LoadLabels = loadGithubLabels): TaskBackend {

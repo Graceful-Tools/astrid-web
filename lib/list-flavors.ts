@@ -27,12 +27,19 @@ export const LIST_TYPE_LABEL = 'label'
  * which `planMilestone` enforces, not this module.
  */
 export const LIST_TYPE_MILESTONE = 'milestone'
+/**
+ * A GitHub project iteration (AWTD-1230). A fifth flavor, and a tag for the
+ * same reason as a milestone. Unlike one, it has dates: an ended iteration's
+ * list stays but is hidden (lib/github/projects/iterations.ts).
+ */
+export const LIST_TYPE_ITERATION = 'iteration'
 
 export type ListFlavor =
   | typeof LIST_TYPE_REGULAR
   | typeof LIST_TYPE_STATUS
   | typeof LIST_TYPE_LABEL
   | typeof LIST_TYPE_MILESTONE
+  | typeof LIST_TYPE_ITERATION
 
 type ListLike = Pick<TaskList, 'listType'> | { listType?: string | null } | null | undefined
 
@@ -46,8 +53,13 @@ export function isMilestoneList(list: ListLike): boolean {
   return list?.listType === LIST_TYPE_MILESTONE
 }
 
+/** A GitHub project iteration: renders as a chip, never as a destination (AWTD-1230). */
+export function isIterationList(list: ListLike): boolean {
+  return list?.listType === LIST_TYPE_ITERATION
+}
+
 /**
- * A tag rather than a place: a label or a milestone.
+ * A tag rather than a place: a label, a milestone or an iteration.
  *
  * The distinction every chip-or-destination decision actually wants. Call this
  * instead of testing the two flavors at each site — adding the milestone flavor
@@ -55,7 +67,7 @@ export function isMilestoneList(list: ListLike): boolean {
  * fifth flavor should not mean doing that again.
  */
 export function isTagList(list: ListLike): boolean {
-  return isLabelList(list) || isMilestoneList(list)
+  return isLabelList(list) || isMilestoneList(list) || isIterationList(list)
 }
 
 /** A board column. */

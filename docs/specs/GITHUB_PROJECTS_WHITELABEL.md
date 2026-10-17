@@ -1588,7 +1588,7 @@ closed from here (P5a).
   fixture issue has a label and the project has no PR, so a non-empty answer has not been
   recorded.
 
-**Milestones slice ([AWTD-1189](https://astrid.cc/t/AWTD-1189)), done. Inbound only. Iterations still open.**
+**Milestones slice ([AWTD-1189](https://astrid.cc/t/AWTD-1189)), done. Inbound only. Iterations followed in AWTD-1230, below.**
 - **One list per milestone, a fourth list flavor.** An issue's or PR's milestone becomes
   membership in a `listType: 'milestone'` list (`lib/github/projects/milestones.ts`), keyed by
   the milestone's node id in `TaskList.remoteNodeId`. **No schema change** — `listType` is a
@@ -1627,6 +1627,35 @@ closed from here (P5a).
   been recorded; the unit tests inject one.
 - **Iterations are NOT in this slice.** An iteration is a project field, so it waits on P6a
   ([AWTD-1117](https://astrid.cc/t/AWTD-1117)) rather than growing a second field store.
+
+**Iterations slice ([AWTD-1230](https://astrid.cc/t/AWTD-1230)), built. Lists inbound only; the value is a P6a field.**
+- **A fifth list flavor, `listType: 'iteration'`**, one list per (field, iteration), keyed
+  `<PVTIF field node id>:<iteration id>` in `TaskList.remoteNodeId`. An iteration id is
+  only unique within its field, so the field's global node id is part of the key. **No
+  schema change.** It is a tag (`isTagList`), so it is a chip and never a destination.
+- **Read from the P6a replica, not the item.** `services/github-iteration-lists.service.ts`
+  runs after `applyFieldValues` on every page and reads `TaskFieldValue.iterationId`. So it
+  inherits P6a's rules without restating them: a cut-short read clears nothing, an archived
+  item's values are gone and its iteration lists with them. One value per field, so moving
+  a task from Sprint 41 to 42 leaves 41, the way a milestone move does.
+- **Ended iterations stay, hidden — Jon's decision (b), 2026-10-17.** GitHub keeps every
+  completed iteration, so a weekly field gains about 52 a year. An ended iteration's list
+  keeps its tasks and stays reachable by search or link, but is out of the normal list. "Ended"
+  means today (UTC) is past the last day, `startDate + duration − 1`. It is **derived on
+  every read** from `ProjectField.iterations`, not stored, so no job is needed to flip it.
+  The v1 list wire carries `iteration: { startDate, endsOn, hidden }` on iteration lists only
+  (`lib/backends/list-wire.ts`). A client syncing by `updatedSince` compares `endsOn` itself,
+  because the list does not change when its iteration ends.
+- **Membership is read-only, the value is not.** Joining or leaving an iteration list from
+  Astrid is refused 400 `github_iteration_read_only`, its own code, as milestones have
+  theirs. Since P6a-3 ([AWTD-1209](https://astrid.cc/t/AWTD-1209)), changing the iteration
+  itself is `PUT /api/v1/tasks/:id/fields/:fieldId`, which writes through to GitHub. The
+  list follows at the next hydration.
+- **Cost.** One `ProjectField` read per page. If the board has an iteration field, one
+  value read and one list read, plus two more when an iteration is new. On the list wire,
+  one `ProjectField` read per response, and none when the response has no iteration list.
+- **Not verified against GitHub.** The fixture project has no iteration field. The tests
+  use hand-written definitions and values.
 
 **Multiple assignees slice ([AWTD-1190](https://astrid.cc/t/AWTD-1190)), built. Both directions.**
 - **The field.** `Task.assigneeIds String[]` (additive, default empty, not backfilled) and
