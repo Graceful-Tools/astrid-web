@@ -38,8 +38,9 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 
+// The v1 list route's select is `v1TaskListSelect` (AWTD-1263) and is pinned
+// directly below, in both of its list-member modes.
 const routes = [
-  'app/api/v1/tasks/route.ts',
   'app/api/tasks/route.ts',
 ]
 
@@ -90,6 +91,21 @@ describe('task list payloads carry ownerId (task 5208e723)', () => {
         `an owner who is not also a member row resolves to no role, and the ` +
         `task renders read-only:\n${missing.join('\n---\n')}`,
     ).toBe(0)
+  })
+})
+
+describe('GET /api/v1/tasks selects ownerId on its lists (task 5208e723)', () => {
+  it.each([false, true])('with leanListMembers=%s', async leanListMembers => {
+    const { v1TaskListSelect } = await import('@/lib/tasks/v1-task-shape')
+    const select = v1TaskListSelect({ omit: new Set(), leanListMembers, includeComments: false, includeFields: false })
+    // Lean mode drops listMembers, which leaves ownerId as the only way to
+    // resolve an owner at all.
+    expect(select.lists.select.ownerId).toBe(true)
+  })
+
+  it('the route reads its rows through that select', () => {
+    const src = readFileSync(join(process.cwd(), 'app/api/v1/tasks/route.ts'), 'utf8')
+    expect(src).toContain('select: v1TaskListSelect(')
   })
 })
 

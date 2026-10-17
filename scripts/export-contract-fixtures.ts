@@ -153,6 +153,10 @@ const EXPORTS: Record<string, () => Record<string, unknown>> = {
   // How a description, comment or chat message reads: web's renderer run in a jsdom window (the
   // browser path, through DOMPurify) and its HTML read back into the core's blocks (AWTD-1064).
   'markdown.json': () => runDriver('markdown.mjs', 'markdown'),
+  // What /api/v1 actually sends for a task and a list, per surface — fixed rows run through the
+  // routes' own shapers, so the core's model decodes the real wire rather than a description of
+  // it (AWTD-1263; the drift class of D52–D55).
+  'wire-shapes.json': () => runDriver('wire-shapes.mjs', 'wire-shapes'),
 }
 
 let failed = false

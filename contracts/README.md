@@ -27,6 +27,7 @@ the move, apart from the `$comment` line naming the script.
 | `editing.json` | `lib/editing-session.ts` — **executed**: scripted begin/end/cancel/commitAll sequences ([PRODUCT_CONTRACT.md](../docs/PRODUCT_CONTRACT.md) §6) | `astrid_core::editing` |
 | `search.json` | `lib/search-query-parser.ts` — **executed**: every alias, the quoting rule, the identifier shape and the unknown-key fallback | `astrid_core::parse::search` |
 | `smart.json` | `lib/task-manager-utils.ts` (`parseTaskInput`) and `lib/i18n/nlp-keywords.ts` — **executed** under a pinned clock across twelve languages, with the keyword tables alongside | `astrid_core::parse::smart` |
+| `wire-shapes.json` | `/api/v1` itself — **executed**: fixed records read through each route's own Prisma select/include (`v1TaskListSelect`, `V1_TASK_READ_INCLUDE`, `V1_LIST_READ_INCLUDE`) and shaped by its own serializer, per surface: task list page (full and `?omit=`), task read, task event, list read, list event. Keys are exercised in all three states — value, null, absent | `model::Task` / `model::List` (decode → re-encode loses no key and invents none) |
 | `task-identifiers.json` | `tests/fixtures/task-identifiers.json` — **copied**: the server is the only minter, so there is only the case set every client must parse, autolink and show alike | `astrid_core::rows::identifier` |
 
 ## How the executed ones run

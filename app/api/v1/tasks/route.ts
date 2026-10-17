@@ -18,7 +18,7 @@ import { createLogger } from '@/lib/logger'
 import { getDeletionsSince } from '@/lib/deletion-log'
 import { assigneeIdsOf } from '@/lib/task-assignees'
 import { parseOmittedTaskFields } from '@/lib/tasks/v1-task-omit'
-import { taskFieldValuesSelect, v1TaskFieldsPatch } from '@/lib/tasks/v1-task-fields'
+import { shapeV1ListPageTask, v1TaskListSelect, v1TaskPageMeta } from '@/lib/tasks/v1-task-shape'
 import { withTaskRemote } from '@/lib/backends/task-remote'
 
 const log = createLogger('v1.tasks')
@@ -158,124 +158,7 @@ export const GET = withAuth(
     const [tasks, total] = await Promise.all([
       prisma.task.findMany({
         where,
-        select: {
-          id: true,
-          title: true,
-          // Absent from the select, not `false`: that is what leaves the key
-          // out of the row and so out of the JSON. `description: null` already
-          // means "this task has no description", and a client that cannot
-          // tell "not sent" from "empty" overwrites good text with none.
-          ...(omit.has('description') ? {} : { description: true }),
-          assigneeId: true,
-          assigneeIds: true,
-          creatorId: true,
-          dueDateTime: true,
-          isAllDay: true,
-          reminderTime: true,
-          reminderSent: true,
-          reminderType: true,
-          repeating: true,
-          repeatingData: true,
-          repeatFrom: true,
-          occurrenceCount: true,
-          priority: true,
-          isPrivate: true,
-          completed: true,
-          completedAt: true,
-          completedSource: true,
-          // Terminal state other than done (task 11042ae3). Without this a
-          // client cannot tell "done" from "won't do" in a list view — the
-          // whole point of the field.
-          closedReason: true,
-          // Human-readable identifier (task 12f54df4). Minted on create and
-          // resolvable by GET, but omitting it here meant no client could ever
-          // *display* one, which is where its value actually is.
-          identifier: true,
-          sequence: true,
-          // Board status as a state (AWTD-562) — without this no client can
-          // render a board from the field.
-          statusRole: true,
-          createdAt: true,
-          updatedAt: true,
-          originalTaskId: true,
-          sourceListId: true,
-          clientRequestId: true,
-          parentTaskId: true,
-          // Read for `remote` and `syncState`; withTaskRemote keeps the raw
-          // columns off the wire (AWTD-1222).
-          remoteNodeId: true,
-          remoteKind: true,
-          remoteVersion: true,
-          syncState: true,
-          lists: {
-            select: {
-              // Required for permission checks: getUserRoleInList resolves
-              // OWNER from this. Without it an owner who is not also a
-              // listMembers row resolves to NO role, and the task renders
-              // read-only — which is what happened to every task carrying a
-              // status, since lists[0] is the status list. (Task 5208e723.)
-              ownerId: true,
-              id: true,
-              name: true,
-              color: true,
-              githubRepositoryId: true,
-              ...(leanListMembers ? {} : {
-                listMembers: {
-                  select: {
-                    id: true,
-                    listId: true,
-                    userId: true,
-                    role: true,
-                  }
-                },
-              }),
-            },
-          },
-          assignee: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-              isAIAgent: true,
-            },
-          },
-          creator: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-              isAIAgent: true,
-            },
-          },
-          ...(includeComments && {
-            comments: {
-              select: {
-                id: true,
-                content: true,
-                createdAt: true,
-                author: {
-                  select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    image: true,
-                    isAIAgent: true,
-                  },
-                },
-              },
-              orderBy: { createdAt: 'desc' },
-              // Bound the fetch — previously unbounded, so a task with hundreds
-              // of comments bloated the collection payload × every task.
-              take: 20,
-            },
-          }),
-          // GitHub project field values, only when asked and only where the
-          // capability is on (AWTD-1208). Spreading `{}` otherwise means the
-          // relation is absent from the query Prisma builds, not merely unread.
-          ...taskFieldValuesSelect(includeFields),
-        },
+        select: v1TaskListSelect({ omit, leanListMembers, includeComments, includeFields }),
         orderBy: [
           { completed: 'asc' },
           { priority: 'desc' },
@@ -293,24 +176,9 @@ export const GET = withAuth(
       headers['X-Deprecation-Warning'] = deprecationWarning
     }
 
-    // iOS expects a flat listIds array alongside the relation
-    const tasksWithListIds = tasks.map(task => {
-      // The storage shape never goes out: `fieldValues` is one row per value
-      // with five nullable columns, and `fields` is the compact map that
-      // replaces it (AWTD-1208).
-      const { fieldValues, ...rest } = task as typeof task & {
-        fieldValues?: Parameters<typeof v1TaskFieldsPatch>[0]
-      }
-      return {
-        // `remote` and `syncState` on a GitHub-backed task only (AWTD-1222);
-        // the raw remote columns go out in the same step.
-        ...withTaskRemote(rest),
-        listIds: task.lists?.map(list => list.id) || [],
-        // Everyone assigned, `assigneeId` first (AWTD-1190).
-        assigneeIds: assigneeIdsOf(task),
-        ...v1TaskFieldsPatch(fieldValues),
-      }
-    })
+    // A pure shaper, so the wire-shape contract fixture runs this exact code
+    // (AWTD-1263).
+    const tasksWithListIds = tasks.map(shapeV1ListPageTask)
 
     // Delta responses also carry what disappeared. Tasks are hard-deleted, so
     // without this a client syncing incrementally keeps showing tasks that are
@@ -324,18 +192,7 @@ export const GET = withAuth(
       {
         tasks: tasksWithListIds,
         ...(deletedIds ? { deletedIds } : {}),
-        meta: {
-          total,
-          limit,
-          offset,
-          apiVersion: 'v1',
-          authSource: auth.source,
-          // What the server actually dropped. A client caching these rows has
-          // to know the records are partial, and an unrecognised `omit` name is
-          // ignored rather than rejected — so this is how a caller sees whether
-          // its request was understood. Absent on a full response.
-          ...(omit.size > 0 ? { omitted: [...omit] } : {}),
-        },
+        meta: v1TaskPageMeta({ total, limit, offset, authSource: auth.source, omit }),
       },
       { headers }
     )
