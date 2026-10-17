@@ -157,13 +157,97 @@ NEXT_PUBLIC_BRAND_AUTH_PROVIDERS="github,google,apple,passkey,sso"   # also the 
 - **Clients** read `auth.providers` (ordered `{ id, kind }`) from
   `GET /api/v1/capabilities`, alongside the original booleans plus `github` and `sso`.
 
-Per-organisation SSO (a connection per customer domain, SAML via a broker) is the next
-step — docs/specs/GITHUB_PROJECTS_WHITELABEL.md §6.4.
+`sso` is one IdP per deployment. Per-organisation SSO is a partner's build, specified in
+*Per-organisation SSO* below.
 
 **At least one auth method must remain.** A build with none of them is an outage, not a
 degraded feature, so `instrumentation.ts` asserts it at server start and the process
 refuses to boot. Without that check the sign-in page renders a 200 with no buttons —
 indistinguishable from a working page until a user tries to sign in.
+
+### Per-organisation SSO: what a partner builds
+
+The platform ships deployment-level SSO only: the `sso` provider above, one OIDC issuer from
+env. That covers a white label serving one customer. A partner who runs one deployment for
+**many** customer organisations, each with its own IdP, builds per-organisation SSO
+themselves. Astrid does not ship it, and does not choose a broker (spec §15 C1,
+[AWTD-1120](https://astrid.cc/t/AWTD-1120)). This is the contract that build must keep, so
+that it extends the linking rule above rather than working around it.
+
+**SAML reaches Astrid as OIDC.** The app speaks one protocol. A customer on SAML goes behind
+a broker the partner runs: BoxyHQ SAML Jackson (open source, self-hosted), WorkOS (hosted), or
+the IdP's own OIDC endpoint. Signature, audience, replay and clock-skew checks are the
+broker's vetted code. **Never parse SAML in the app.** For a single customer on SAML no code
+is needed at all: point `AUTH_SSO_ISSUER` at the broker's tenant.
+
+For many organisations:
+
+1. **One connection per organisation.** An additive table, in the spirit of spec §6.4 v2:
+
+   | Field | Meaning |
+   |---|---|
+   | `workspaceId?` | The organisation it serves. Null means deployment-wide. |
+   | `issuer`, `clientId`, `clientSecret` | The broker's or IdP's OIDC client: the per-connection form of `AUTH_SSO_*`. The secret is encrypted at rest. |
+   | `domains[]` | Each with a `verifiedAt`. **Only verified domains count**, everywhere below. |
+   | `required` | Whether this connection is the only way in for its domains (step 5). |
+   | `label` | The button text, as `AUTH_SSO_LABEL` is today. |
+
+2. **A domain counts only once DNS proves it.** Issue a random token, have the customer
+   publish it as a TXT record on a brand-named label under their domain, and set
+   `verifiedAt` only once a lookup finds it. Re-check on a schedule, and stop counting a
+   domain whose record has gone. **A domain belongs to at most one connection** (a unique
+   index). Without that, a second organisation that claims your domain can vouch for your
+   users, and that is account takeover.
+
+3. **"Continue with SSO" asks for a work email**, finds the connection that holds its
+   verified domain, and starts that connection's OIDC flow with the same `pkce` and `state`
+   checks the `sso` provider uses (`lib/auth-config.ts`). Answer an unknown domain the same
+   way as a known one, so the page cannot be used to list a deployment's customers.
+
+4. **Link through the one rule, never beside it.** Call `linkFederatedIdentity` or
+   `signInWithVerifiedIdentity` (`lib/auth/federated-identity-linking.ts`) with
+   `emailTrust: 'domain-bound'` and `allowedDomains` set to **this connection's** verified
+   domains, never the union of every connection's. The refusals for AI agents, the agent
+   domain and `INITIAL_ADMIN_EMAIL` then apply unchanged. Two details are easy to miss:
+   - **The provider id must name the connection**, for example `sso:<connectionId>`.
+     `Account` is unique on `(provider, providerAccountId)`, and an OIDC `sub` is unique only
+     within one issuer, so two IdPs can issue the same `sub`. Deployment-level `sso` stores a
+     bare `sub` and gets away with it only because it has a single issuer.
+   - `FEDERATED_PROVIDERS` and `emailTrustFor` in `lib/auth-config.ts` match exact provider
+     ids. A per-connection id must be routed to the domain-bound branch there, or it falls
+     through to `emailTrust: 'none'` and every sign-in is refused.
+
+5. **`required` closes every other door for that domain.** An address at a required
+   connection's verified domain cannot sign in, or link, through Google, GitHub, Apple,
+   passkey or email. That covers the web `signIn` callback, the native token routes
+   (`lib/auth/native-sign-in.ts`) and passkey registration. Enforce it once, in the shared
+   rule, not per provider. **Exempt `INITIAL_ADMIN_EMAIL`:** the rule already refuses to
+   link it through SSO, so without the exemption a broken IdP locks the deployment's admin
+   out.
+
+6. **Deprovisioning ends sessions.** Sessions are JWTs (spec §6.5), so removing a user at
+   the IdP does not sign them out. Add a per-user `sessionEpoch` integer and put it in
+   every token minted: by NextAuth, by the native routes and by the desktop exchange
+   (`app/api/v1/auth/desktop/exchange`). Reject any token whose epoch is behind the user's
+   in the `jwt` callback. Bump the epoch when the IdP or broker reports the user
+   deactivated (SCIM, or the broker's webhook), when their connection is deleted, and when
+   `required` is turned on for their domain.
+
+7. **The native apps need nothing new.** SSO already signs in through the desktop hand-off
+   (`/auth/desktop?provider=sso`, AWTD-1105). A per-organisation flow carries the connection
+   through that same hand-off, and no SAML or IdP SDK ships in the apps.
+
+**Prove it red, then green** (spec §14, P7's exit criteria):
+- An address outside the connection's verified domains is refused.
+- A domain verified on connection A cannot be vouched for by connection B.
+- A Google sign-in for a `required` domain is refused, and `INITIAL_ADMIN_EMAIL` still gets
+  in.
+- Two connections issuing the same `sub` create two users, not one.
+- A token from before an epoch bump is rejected.
+
+Run all of these against a stub OIDC issuer. Replay and audience checks belong to the
+broker, so run the broker's own suite instead of re-implementing it. These are auth
+changes, so run the full suite, not only the predeploy gate.
 
 ### Enforcement is server-side
 
