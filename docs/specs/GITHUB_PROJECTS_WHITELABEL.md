@@ -6,7 +6,8 @@ consolidating the write path, a login-provider registry, and one GitHub connecti
 Revision 2, 2026-10-05.*
 
 Status: **In progress — P0–P2 done; P3 partly done; P4 built (2026-10-10); P5 done;
-P6b built (2026-10-11), P6c partly built; P7–P8 not started.**
+P6b built (2026-10-11), P6c partly built; P7 specified for partners, not built
+(2026-10-17); P8 not started.**
 See §17 for exactly what landed, what did not, and what each remaining phase needs. None
 of it is deployed: production deploys are manual (CLAUDE.md rule 1).
 
@@ -1066,7 +1067,7 @@ from the fixes themselves. Sizes: S = days, M = 1–2 weeks, L = 3+ weeks.
 | **P4 Projects: read-only mirror** | §8.1, §8.3–§8.8; bind wizard, import, webhooks, reconcile, roles, uninstall | L | Hydration and apply are pure-function tests per item kind and webhook action, from recorded fixtures. A killed webhook is healed by reconcile. Fairness across two installations. |
 | **P5 Projects: write-through** | Create, title, body, status with done-closes, assignees, comments, position, remove, idempotency, partial failure | L | Every write attributed to the acting user. Outbox replayed twice → one issue. Refresh failure → read-only, never installation-token writes. |
 | **P6 Fields and recurrence** | §9.4 read/write, §9.5, labels, iterations, milestones, sub-issues, dependencies, PR items, §10 spawn | M–L | Each field type's round trip. Payload fixture inside budget. Webhook + Astrid completion race → exactly one spawned issue. |
-| **P7 Per-org SSO** | §6.4 v2: `SsoConnection`, domain verification, against the OIDC interface; SAML is the partner's broker (§15 C1) | M | Domain-bound linking. `required` enforcement. A stub OIDC issuer stands in for any broker. |
+| **P7 Per-org SSO** | §6.4 v2: `SsoConnection`, domain verification, against the OIDC interface; SAML is the partner's broker (§15 C1). **Specified, not built** (§15): a partner guide in WHITELABELING. | M (if built) | Domain-bound linking. `required` enforcement. A stub OIDC issuer stands in for any broker. The guide lists these for whoever builds it. |
 | **P8 Brand and clients** | §11.3, §12 | M | `check:brands` green. The brand audit finds no Astrid literals. The Astrid profile still pins `githubProjects: false`. |
 
 ### 14.2 Test infrastructure introduced
@@ -1106,11 +1107,16 @@ customer.
 astrid.cc's own pre-flight report, not on the partner default above.
 
 **How this changes the phases:**
-- **P7** no longer embeds a broker. Whether it is built at all (the `SsoConnection`
-  model, domain verification, `required` enforcement and domain-bound linking, against
-  the OIDC interface with a stub issuer) or only specified as a partner implementation
-  guide is open on [AWTD-1120](https://astrid.cc/t/AWTD-1120). Deployment-level OIDC
-  (P2) already ships either way.
+- **P7 is specified, not built** (Jon, 2026-10-17,
+  [AWTD-1120](https://astrid.cc/t/AWTD-1120), following his
+  [AWTD-1102](https://astrid.cc/t/AWTD-1102) answer: *"we don't need to build these
+  capabilities but we should spec out how a white label solution might implement"*). The
+  `SsoConnection` model, DNS domain verification, `required` enforcement, domain-bound
+  linking and `sessionEpoch` revocation are a partner implementation guide:
+  WHITELABELING → *Per-organisation SSO: what a partner builds*. What ships is
+  deployment-level OIDC (P2), which a partner can point at a SAML broker without code.
+  Nothing consumes per-org SSO today. If a partner or astrid.cc needs it run as a service,
+  the guide is the build list.
 - **P6c** reads C3 and does not assume the label.
 - **P8** documents C1–C4 in the GitHub-partner checklist in WHITELABELING §8, so a
   partner sees every choice in one place.
@@ -1209,8 +1215,10 @@ AWTD-1104: the four mobile token routes (`/api/auth/{apple,google}`,
 - Deleting the database-session fallbacks (`lib/auth/session-cookie.ts`, `mobile-session`, and
   the ad-hoc `prisma.session` reads in sse, secure-files, ai-api-keys and signout) once the last
   pre-AWTD-1104 row has expired.
-- The `sessionEpoch` revocation claim (§6.5), which waits on SSO deprovisioning (P7).
-- Per-org SSO and SAML (§6.4 v2, P7).
+- The `sessionEpoch` revocation claim (§6.5). It exists for SSO deprovisioning, so it is
+  part of the P7 partner guide rather than platform work.
+- Per-org SSO and SAML (§6.4 v2, P7): specified for partners, not built (§15,
+  [AWTD-1120](https://astrid.cc/t/AWTD-1120)).
 - Native GitHub/SSO sign-in in astrid-ios, via the desktop hand-off. The web half is done
   ([AWTD-1105](https://astrid.cc/t/AWTD-1105)): `ios` and `mac` hand-off clients, and
   `/auth/desktop?provider=github|google|sso` starts that provider directly for a signed-out user.
