@@ -9,7 +9,7 @@
  *
  * An optional `provider` (github | google | sso) says which button the user
  * already tapped in the app; a signed-out user goes straight to it instead of
- * choosing again. Clients: windows, ios, mac (lib/auth/desktop-handoff.ts).
+ * choosing again. Clients: windows, ios, mac, android (lib/auth/desktop-handoff.ts).
  *
  * Nothing on this page decides who the user is. The grant route reads that from
  * the session cookie; these parameters only say which application is asking.

@@ -68,6 +68,15 @@ describe('desktop client registry', () => {
     expect(desktopClientFor('mac')?.name).toMatch(/ for Mac$/)
   })
 
+  it('knows the Android app, on the same fixed callback (AATD-2)', () => {
+    const android = desktopClientFor('android')
+    expect(android?.id).toBe('android')
+    expect(android?.redirectUri).toBe(desktopClientFor('windows')!.redirectUri)
+    expect(android?.name).toMatch(/ for Android$/)
+    const result = validateGrantRequest(grantInput({ client: 'android' }))
+    expect(result.ok && result.value.client.id).toBe('android')
+  })
+
   it('validates a grant request from the iOS app (AWTD-1105)', () => {
     const result = validateGrantRequest(grantInput({ client: 'ios' }))
     expect(result.ok && result.value.client.id).toBe('ios')
@@ -142,7 +151,7 @@ describe('grant request validation', () => {
   })
 
   it('refuses an unknown client', () => {
-    expect(validateGrantRequest(grantInput({ client: 'android' })).ok).toBe(false)
+    expect(validateGrantRequest(grantInput({ client: 'linux' })).ok).toBe(false)
   })
 
   it('ignores a redirect URI supplied by the caller', () => {

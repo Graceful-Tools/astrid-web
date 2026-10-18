@@ -50,7 +50,7 @@ const CHALLENGE_MIN_LENGTH = 43
 const CHALLENGE_MAX_LENGTH = 128
 const BASE64URL = /^[A-Za-z0-9\-_]+$/
 
-export type DesktopClientId = 'windows' | 'ios' | 'mac'
+export type DesktopClientId = 'windows' | 'ios' | 'mac' | 'android'
 
 export interface DesktopClient {
   id: DesktopClientId
@@ -83,6 +83,13 @@ const CLIENTS: Record<DesktopClientId, () => DesktopClient> = {
   mac: () => ({
     id: 'mac',
     name: `${BRAND.appName} for Mac`,
+    redirectUri: callbackUri(),
+  }),
+  // astrid-android opens this page in a Custom Tab; the app's intent filter for the scheme takes
+  // the callback (AATD-2).
+  android: () => ({
+    id: 'android',
+    name: `${BRAND.appName} for Android`,
     redirectUri: callbackUri(),
   }),
 }
