@@ -26,6 +26,30 @@ export function getLocalDateAsUTCMidnight(date: Date = new Date()): number {
 }
 
 /**
+ * The all-day instant for a local calendar day: UTC midnight of that day.
+ *
+ * The write-side twin of getLocalDateAsUTCMidnight. Flattening with
+ * `setUTCHours(0, 0, 0, 0)` instead reads the UTC day, which is the day
+ * before east of UTC for a local midnight (AWTD-1270).
+ */
+export function allDayInstantForLocalDay(date: Date): Date {
+  return new Date(getLocalDateAsUTCMidnight(date))
+}
+
+/**
+ * A task's calendar day, as local midnight of that day.
+ *
+ * A timed task's day is its local day; an all-day task's day is its UTC day,
+ * because that is how it is stored. Edits that keep "the task's day" (clearing
+ * or picking a time) must start here rather than from the raw instant (AWTD-1270).
+ */
+export function taskCalendarDay(dueDateTime: Date, isAllDay: boolean): Date {
+  return isAllDay
+    ? new Date(dueDateTime.getUTCFullYear(), dueDateTime.getUTCMonth(), dueDateTime.getUTCDate())
+    : new Date(dueDateTime.getFullYear(), dueDateTime.getMonth(), dueDateTime.getDate())
+}
+
+/**
  * Get the UTC calendar date as a UTC midnight timestamp.
  *
  * This extracts the UTC date components from a date stored at UTC midnight.
