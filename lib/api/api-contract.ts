@@ -125,6 +125,7 @@ export const V1_TASKLIST_FIELDS = {
   filterRepeating: { type: 'string', required: false },
   filterPriority: { type: 'string', required: false },
   filterInLists: { type: 'string', required: false },
+  filterProjectField: { type: 'string', required: false },
   isVirtual: { type: 'boolean', required: false },
   virtualListType: { type: 'string', required: false },
   sortBy: { type: 'string', required: false },

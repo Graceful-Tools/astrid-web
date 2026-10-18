@@ -25,6 +25,7 @@ vi.mock('@/lib/prisma', () => ({
       delete: vi.fn(),
     },
     listMember: { findFirst: vi.fn() },
+    userListViewPreference: { findMany: vi.fn(), findUnique: vi.fn() },
   },
 }))
 
@@ -208,5 +209,38 @@ describe('GET /api/v1/lists/:id — board fields', () => {
     expect(json.list.recentlyCompletedWindow).toEqual({
       kind: 'duration', amount: 7, unit: 'day',
     })
+  })
+})
+
+describe('AWTD-1259: filterProjectField rides the v1 list', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockAuth.mockResolvedValue(auth as any)
+  })
+
+  it('is null for a caller who never set one — there is no shared column to fall back to', async () => {
+    ;(mockPrisma.taskList.findMany as any).mockResolvedValue([statusList])
+
+    const res = await listLists(new NextRequest('http://localhost/api/v1/lists'), undefined as any)
+    const list = (await res.json()).lists[0]
+
+    expect(list).toHaveProperty('filterProjectField', null)
+  })
+
+  it("carries the caller's own value on the collection and the single-list routes", async () => {
+    const pref = { listId: statusList.id, userId: 'u1', filterProjectField: 'area:opt-web' }
+    ;(mockPrisma.taskList.findMany as any).mockResolvedValue([statusList])
+    ;(mockPrisma.taskList.findFirst as any).mockResolvedValue(statusList)
+    ;(mockPrisma.userListViewPreference.findMany as any).mockResolvedValue([pref])
+    ;(mockPrisma.userListViewPreference.findUnique as any).mockResolvedValue(pref)
+
+    const many = await listLists(new NextRequest('http://localhost/api/v1/lists'), undefined as any)
+    expect((await many.json()).lists[0].filterProjectField).toBe('area:opt-web')
+
+    const one = await getList(
+      new NextRequest('http://localhost/api/v1/lists/status-ready'),
+      { params: Promise.resolve({ id: 'status-ready' }) } as any,
+    )
+    expect((await one.json()).list.filterProjectField).toBe('area:opt-web')
   })
 })

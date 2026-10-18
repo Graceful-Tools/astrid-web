@@ -138,7 +138,9 @@
       "empty": "Nicht gesetzt",
       "errorAuthRequired": "Verbinde dein GitHub-Konto, um dieses Feld zu ändern.",
       "errorSsoRequired": "Deine Organisation verlangt Single Sign-on für dieses Projekt. Melde dich bei GitHub an und versuche es erneut.",
-      "errorSaveFailed": "Diese Änderung konnte nicht in GitHub gespeichert werden. Versuche es erneut."
+      "errorSaveFailed": "Diese Änderung konnte nicht in GitHub gespeichert werden. Versuche es erneut.",
+      "filterLabel": "Projektfeld",
+      "filterAll": "Alle Aufgaben"
     }
   },
   "lists": {

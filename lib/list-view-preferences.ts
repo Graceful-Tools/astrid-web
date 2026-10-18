@@ -64,6 +64,9 @@ export const LIST_VIEW_PREFERENCE_FIELDS = [
   'filterRepeating',
   'filterAssignedBy',
   'filterInLists',
+  // "<fieldId>:<valueId>" on a GitHub board (AWTD-1259). Per-user only: unlike
+  // the fields above it has no TaskList column, so a user with no row reads null.
+  'filterProjectField',
 ] as const
 
 export type ListViewPreferenceField = (typeof LIST_VIEW_PREFERENCE_FIELDS)[number]

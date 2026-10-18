@@ -138,7 +138,9 @@
       "empty": "未设置",
       "errorAuthRequired": "请先连接你的 GitHub 账号，才能修改此字段。",
       "errorSsoRequired": "你的组织要求对此项目使用单点登录。请先登录 GitHub，然后重试。",
-      "errorSaveFailed": "无法将该更改保存到 GitHub。请重试。"
+      "errorSaveFailed": "无法将该更改保存到 GitHub。请重试。",
+      "filterLabel": "项目字段",
+      "filterAll": "所有任务"
     }
   },
   "lists": {

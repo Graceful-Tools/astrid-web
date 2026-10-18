@@ -138,7 +138,9 @@
       "empty": "未設定",
       "errorAuthRequired": "このフィールドを変更するには GitHub アカウントを接続してください。",
       "errorSsoRequired": "このプロジェクトでは組織がシングルサインオンを必須にしています。GitHub にサインインしてからもう一度お試しください。",
-      "errorSaveFailed": "変更を GitHub に保存できませんでした。もう一度お試しください。"
+      "errorSaveFailed": "変更を GitHub に保存できませんでした。もう一度お試しください。",
+      "filterLabel": "プロジェクトフィールド",
+      "filterAll": "すべてのタスク"
     }
   },
   "lists": {

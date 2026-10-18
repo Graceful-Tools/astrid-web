@@ -54,7 +54,7 @@ const V1_LIST_KEYS = [
   'favoriteOrder', 'owner', 'listMembers', 'invitations', 'taskCount', 'isVirtual',
   'virtualListType', 'sortBy', 'manualSortOrder', 'filterPriority', 'filterAssignee',
   'filterDueDate', 'filterCompletion', 'filterRepeating', 'filterAssignedBy', 'filterInLists',
-  'defaultPriority', 'defaultRepeating', 'defaultAssigneeId', 'defaultAssignee',
+  'filterProjectField', 'defaultPriority', 'defaultRepeating', 'defaultAssigneeId', 'defaultAssignee',
   'aiAgentsEnabled', 'aiAgentConfig', 'publicListType', 'defaultIsPrivate', 'defaultDueDate',
   'defaultDueTime', 'githubRepositoryId', 'preferredAiProvider', 'projectId', 'listType',
   'recentlyCompletedWindow', 'showSubtasks', 'backend', 'remote', 'supports', 'iteration',

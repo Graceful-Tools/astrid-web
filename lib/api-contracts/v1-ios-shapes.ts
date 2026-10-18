@@ -106,6 +106,12 @@ export interface V1List {
   filterRepeating: unknown
   filterAssignedBy: unknown
   filterInLists: unknown
+  /**
+   * "<ProjectField.id>:<option or iteration id>" — the caller's one
+   * project-field filter on a GitHub board, or null (AWTD-1259). Additive:
+   * a client that does not decode it loses nothing.
+   */
+  filterProjectField: string | null
   defaultPriority: number | null
   defaultRepeating: string | null
   defaultAssigneeId: string | null

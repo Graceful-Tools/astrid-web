@@ -800,6 +800,9 @@ model UserListViewPreference {
   filterRepeating  String?
   filterAssignedBy String?
   filterInLists    String?
+  /// "<ProjectField.id>:<option or iteration id>" — one project-field filter
+  /// on a GitHub board (AWTD-1259). No TaskList twin: it has no shared default.
+  filterProjectField String?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
