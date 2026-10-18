@@ -8,7 +8,7 @@
  * filters server-side, so the whole check is one call.
  *
  * Takes a board plus an explicit harness identity:
- * `ready-tasks.ts [web|ios|windows] --harness <selector>`. The board defaults to web;
+ * `ready-tasks.ts [web|ios|windows|android] --harness <selector>`. The board defaults to web;
  * the harness has no default because guessing could claim another agent's work.
  *
  * READY IS A FIELD ON THE TASK, not a list it is attached to. Status used to be
@@ -69,6 +69,7 @@ const BOARD_LIST_NAMES = {
   web: "Astrid Web To-do",
   ios: "Astrid iOS To-do",
   windows: "Astrid Windows To-do",
+  android: "Astrid Android To-do",
 } as const
 
 /** One page is the whole point of this script; say so rather than truncate quietly. */
