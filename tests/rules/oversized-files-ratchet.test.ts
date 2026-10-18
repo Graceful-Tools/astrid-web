@@ -47,7 +47,7 @@ const BUDGETS: Record<string, number> = {
   // 1661 → 1659: AWTD-1227's add-subtask option did not fit. The options both
   // create entry points take — declared inline and identically, twice — became
   // hooks/task-manager/create-task-options.ts, so the next field is added once.
-  'hooks/useTaskManagerController.ts': 1659,
+  'hooks/useTaskManagerController.ts': 1654,
   // 1585 → 1591: AWTD-877 made someone else's task open the options sheet on
   // every surface, and this panel is one of the three that owns a sheet. Six
   // lines — the predicate, the import, and two props — with the rule itself in
