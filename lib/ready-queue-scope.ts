@@ -39,7 +39,7 @@ export const FIXALL_HARNESS_MAILBOXES: Record<string, string> = {
 export type FixallHarness = string
 export type ReadyQueueBoard = 'web' | 'ios' | 'windows' | 'android'
 
-const READY_QUEUE_BOARDS: readonly ReadyQueueBoard[] = ['web', 'ios', 'windows', 'android']
+export const READY_QUEUE_BOARDS: readonly ReadyQueueBoard[] = ['web', 'ios', 'windows', 'android']
 
 type ReadyQueueEnvironment = Record<string, string | undefined>
 

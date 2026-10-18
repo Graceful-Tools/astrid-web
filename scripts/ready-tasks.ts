@@ -64,13 +64,7 @@ import { serializeReadyTaskQueue } from "./lib/ready-tasks-output"
 import { resolveAgentAuthorId } from "./lib/agent-author"
 import { SweepApi } from "./lib/sweep-api"
 import { boardTasksUrl } from './lib/board-read-url'
-
-const BOARD_LIST_NAMES = {
-  web: "Astrid Web To-do",
-  ios: "Astrid iOS To-do",
-  windows: "Astrid Windows To-do",
-  android: "Astrid Android To-do",
-} as const
+import { findBoardList } from './lib/board-by-name'
 
 /** One page is the whole point of this script; say so rather than truncate quietly. */
 const PAGE_LIMIT = 1000
@@ -95,7 +89,6 @@ function loadOptions() {
   }
 }
 const options = loadOptions()
-const BOARD_LIST_NAME = BOARD_LIST_NAMES[options.board]
 const report = options.format === 'json' ? console.error : console.log
 
 type QueueTask = AssignableTask & StatusRoleTask & SchedulableTask & {
@@ -137,16 +130,14 @@ async function main() {
   // reads exactly like "nothing to do".
   const listsResponse = await fetch("https://astrid.cc/api/v1/lists", { headers: auth })
   const listsBody = await listsResponse.json()
-  const lists = listsBody.lists ?? listsBody
-  const board = (Array.isArray(lists) ? lists : []).find(
-    (list: { name?: string }) => list.name === BOARD_LIST_NAME,
-  )
-
   // Fail loudly on a missing board instead of degrading to an empty queue —
   // skipping the filter would silently widen the loop to every board on the
   // account, and returning nothing would look like an idle day.
-  if (!board) {
-    console.error(`❌ No list named "${BOARD_LIST_NAME}" found — refusing to run unscoped.`)
+  let board: { id: string }
+  try {
+    board = findBoardList(listsBody, options.board)
+  } catch (error) {
+    console.error(`❌ ${error instanceof Error ? error.message : error}`)
     process.exit(1)
   }
 
