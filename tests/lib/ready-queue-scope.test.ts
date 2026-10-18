@@ -153,6 +153,12 @@ describe('resolveReadyQueueOptions', () => {
       ['windows', '--harness=github-copilot'],
       {},
     )).toEqual({ board: 'windows', harness: 'github-copilot', dryRun: false, format: 'human' })
+
+    // AATD-22: astrid-android works the Astrid Android To-do through the same queue.
+    expect(resolveReadyQueueOptions(
+      ['android', '--harness=claude-code'],
+      {},
+    )).toEqual({ board: 'android', harness: 'claude-code', dryRun: false, format: 'human' })
   })
 
   it('uses ASTRID_FIXALL_HARNESS when the CLI selector is absent', () => {
@@ -171,7 +177,7 @@ describe('resolveReadyQueueOptions', () => {
 
   it('rejects unknown boards and extra positional arguments rather than widening scope', () => {
     expect(() => resolveReadyQueueOptions(
-      ['android', '--harness', 'claude-code'],
+      ['linux', '--harness', 'claude-code'],
       {},
     )).toThrow(/Unknown board/)
     expect(() => resolveReadyQueueOptions(

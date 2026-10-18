@@ -17,7 +17,7 @@
  *   2. `attention` — comments and list-chat replies nobody has answered
  *                    (AWTD-963). Same call, and the loop skipped past two direct
  *                    questions from Jon because it read only `empty`.
- *   3. the lanes   — `--board <web|ios|windows>` runs the sweep
+ *   3. the lanes   — `--board <web|ios|windows|android>` runs the sweep
  *                    (scripts/ready-tasks.ts) as this agent's harness: dated
  *                    Ready work parks in Waiting, met conditions promote back to
  *                    Ready, and RECHECK/REVIEW items come out as work. Without
@@ -219,7 +219,7 @@ async function main() {
 
   if (!listId) {
     console.error(
-      'Usage: npx tsx scripts/agent-queue-status.ts --agent <mailbox> --list <listId> [--board web|ios|windows] [--seen <file>]',
+      'Usage: npx tsx scripts/agent-queue-status.ts --agent <mailbox> --list <listId> [--board web|ios|windows|android] [--seen <file>]',
     )
     process.exit(1)
   }
