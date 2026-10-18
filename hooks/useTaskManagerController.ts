@@ -36,6 +36,7 @@ import { preloadUserAvatars } from "@/lib/image-cache"
 
 // Import composable hooks
 import { canUserManageList } from "@/lib/list-permissions"
+import { v1TaskUpdateBody } from "@/lib/tasks/v1-task-update-body"
 import {
   useTaskListState,
   useTaskNavigation,
@@ -604,13 +605,7 @@ export function useTaskManagerController({
       })
 
       try {
-        const apiData = {
-          ...updatedTask,
-          listIds: updatedTask.lists?.map(list => list.id) || [],
-          assigneeId: updatedTask.assignee?.id || null
-        }
-        delete (apiData as any).lists
-        delete (apiData as any).assignee
+        const apiData = v1TaskUpdateBody(updatedTask, originalTask)
 
         const response = await apiPut(`/api/v1/tasks/${updatedTask.id}`, apiData)
         const realUpdatedTask = unwrapTask<Task>(await response.json())
