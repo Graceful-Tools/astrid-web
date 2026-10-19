@@ -12,6 +12,7 @@ import { SettingsModalShell } from "./list-settings/SettingsModalShell"
 import {
   COMPLETION_FILTER_OPTIONS,
   DUE_DATE_FILTER_OPTIONS,
+  FILTER_TRIGGER_CLASS,
   FilterSelectItems,
   PRIORITY_FILTER_OPTIONS,
   SORT_BY_OPTIONS,
@@ -118,8 +119,9 @@ export function FixedListSettingsPopover({
         </>
       }
       subtitle={<p className="theme-text-muted text-sm mt-2">{defaults.description}</p>}
+      variant="sheet"
     >
-      <div className="p-4 pb-40 md:pb-4 space-y-4">
+      <div className="p-4 pb-8 md:pb-4 space-y-4">
           {/* Fixed Due Date Display (for Today view) */}
           {defaults.fixedDueDate && (
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
@@ -139,7 +141,7 @@ export function FixedListSettingsPopover({
           <div className="flex items-center justify-between mb-3">
             <Label className="text-sm theme-text-secondary">{t('listSettings.sortBy')}</Label>
             <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-32 theme-input">
+              <SelectTrigger className={FILTER_TRIGGER_CLASS}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="z-[10100]">
@@ -152,7 +154,7 @@ export function FixedListSettingsPopover({
           <div className="flex items-center justify-between mb-3">
             <Label className="text-sm theme-text-secondary">{t('listSettings.showTasks')}</Label>
             <Select value={filterCompletion} onValueChange={setFilterCompletion}>
-              <SelectTrigger className="w-32 theme-input">
+              <SelectTrigger className={FILTER_TRIGGER_CLASS}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="z-[10100]">
@@ -174,7 +176,7 @@ export function FixedListSettingsPopover({
                 }
               }}
             >
-              <SelectTrigger className="w-32 theme-input">
+              <SelectTrigger className={FILTER_TRIGGER_CLASS}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="z-[10100]">
@@ -221,7 +223,7 @@ export function FixedListSettingsPopover({
             <div className="flex items-center justify-between mb-3">
               <Label className="text-sm theme-text-secondary">{t('listSettings.dueDateFilter')}</Label>
               <Select value={filterDueDate} onValueChange={setFilterDueDate}>
-                <SelectTrigger className="w-32 theme-input">
+                <SelectTrigger className={FILTER_TRIGGER_CLASS}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="z-[10100]">

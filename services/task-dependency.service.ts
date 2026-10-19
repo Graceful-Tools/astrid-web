@@ -28,6 +28,7 @@ import {
 } from '@/lib/task-dependencies'
 import { READY_STATUS_ROLE, WAITING_STATUS_ROLE } from '@/lib/task-status'
 import { TASK_FULL_INCLUDE } from '@/lib/task-query-utils'
+import { loadV1TaskForEvent } from '@/lib/tasks/v1-task-shape'
 import { audienceForTask } from '@/lib/deletion-log'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { RedisCache, isRedisAvailable } from '@/lib/redis'
@@ -131,10 +132,12 @@ async function announceTaskChange(args: {
       await Promise.all(audience.map(userId => RedisCache.del(RedisCache.keys.userTasks(userId))))
     }
     // The FULL task, not a patch: the web cache stores the payload as the task.
+    // `v1Task` is the shape the web board merges — the agent shape carries no
+    // statusRole, so without it the moved card stayed put (AWTD-1039).
     broadcastToUsers(audience, {
       type: 'task_updated',
       timestamp: new Date().toISOString(),
-      data: { taskId, task: enrichTaskForAgent(task as never) },
+      data: { taskId, task: enrichTaskForAgent(task as never), v1Task: await loadV1TaskForEvent(taskId) },
     })
   } catch (err) {
     log.error({ err, taskId }, 'Failed to announce a task the blocker gate changed')

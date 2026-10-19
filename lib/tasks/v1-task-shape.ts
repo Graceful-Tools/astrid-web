@@ -23,6 +23,9 @@ const log = createLogger('tasks.v1-task-shape')
 export const V1_TASK_READ_INCLUDE = {
   lists: {
     select: {
+      // Permission checks resolve OWNER from this; without it a client that
+      // merges this shape renders the owner's task read-only (AWTD-1039).
+      ownerId: true,
       id: true,
       name: true,
       color: true,

@@ -1064,6 +1064,7 @@
     "adminSettings": "管理員設定",
     "sortAndFilters": "排序與篩選",
     "sortAndFiltersAreYours": "僅你可見，不會改變其他成員看到的清單。",
+    "listOptions": "清單選項",
     "sortBy": "排序方式",
     "showTasks": "顯示工作",
     "priorityFilter": "優先順序篩選",

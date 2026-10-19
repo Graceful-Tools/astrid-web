@@ -28,6 +28,7 @@ import { isSomeoneElsesTask } from "@/lib/task-leading-control"
 import { boardColumnsFor, taskColumnId } from "@/lib/task-status"
 import { taskMenuDuplicatesPaneControls } from "@/lib/task-detail-project-state"
 import { applyProjectColumnTo } from "@/lib/project-status"
+import { taskDetailPropsEqual } from "./task-detail/task-detail-props-equal"
 import { TaskModals } from "./task-detail/TaskModals"
 import { TaskHeader } from "./task-detail/TaskHeader"
 import { TaskActivitySection } from "./task-detail/TaskActivitySection"
@@ -577,7 +578,10 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       }
 
       case 'task_updated': {
-        const { task: updatedTask, userId } = event.data
+        // The v1 shape when sent: the agent `task` has no statusRole, and
+        // merging it over the pane's copy undid a move the list had applied (AWTD-1039).
+        const { task: agentTask, v1Task, userId } = event.data
+        const updatedTask = v1Task ? { ...v1Task, comments: v1Task.comments ?? agentTask?.comments } : agentTask
 
         // Don't process SSE updates from the same user to avoid overriding local changes
         if (userId === currentUser.id) {
@@ -851,56 +855,6 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
   const handleCancelDescription = () => {
     setTempDescription(task.description || "")
     cancelEditing('description')
-  }
-
-  const handleSaveWhen = (date: Date | undefined) => {
-    // If removing the due date, also remove any repeating settings
-    if (!date) {
-      const updatedTask = { ...task, dueDateTime: undefined, isAllDay: false, repeating: 'never' as const, repeatingData: undefined }
-      onUpdate(updatedTask)
-      setTempWhen(undefined)
-      setTempRepeating('never')
-      setTempRepeatingData(undefined)
-      setEditingWhen(false)
-      return
-    }
-
-    // If there's an existing dueDateTime with a time, preserve the time component
-    if (task.dueDateTime && !task.isAllDay) {
-      const existingDate = new Date(task.dueDateTime)
-      date.setHours(existingDate.getHours(), existingDate.getMinutes(), 0, 0)
-      onUpdate({ ...task, dueDateTime: date, isAllDay: false })
-    } else {
-      // Default to all-day task (midnight)
-      date.setHours(0, 0, 0, 0)
-      onUpdate({ ...task, dueDateTime: date, isAllDay: true })
-    }
-    setTempWhen(date)
-    setEditingWhen(false)
-  }
-
-  const handleSaveTime = (time: Date | string | null) => {
-    if (!task.dueDateTime) return // Can only set time if there's a dueDateTime
-
-    if (time === null) {
-      // Set time to midnight (all day)
-      const updatedDate = new Date(task.dueDateTime)
-      updatedDate.setHours(0, 0, 0, 0)
-      onUpdate({ ...task, dueDateTime: updatedDate, isAllDay: true })
-      setTempWhen(updatedDate)
-    } else if (time instanceof Date) {
-      // Combine the existing date with the new time
-      const updatedDate = new Date(task.dueDateTime)
-      updatedDate.setHours(time.getHours(), time.getMinutes(), 0, 0)
-      onUpdate({ ...task, dueDateTime: updatedDate, isAllDay: false })
-      setTempWhen(updatedDate)
-    } else {
-      // Handle string case - convert to Date first
-      // This is a fallback, typically TimePicker returns Date objects
-      return
-    }
-
-    setEditingTime(false)
   }
 
   const handleSavePriority = async (priority: number) => {
@@ -1538,42 +1492,6 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
 }
 
 // Memoized export to prevent unnecessary re-renders
-const TaskDetailMemo = memo(TaskDetailComponent, (prevProps, nextProps) => {
-  // Check if comments have actually changed (not just length)
-  const prevComments = prevProps.task.comments || []
-  const nextComments = nextProps.task.comments || []
-  
-  const commentsChanged = prevComments.length !== nextComments.length ||
-    prevComments.some((comment, index) => {
-      const nextComment = nextComments[index]
-      return !nextComment || comment.id !== nextComment.id || comment.content !== nextComment.content
-    })
-  
-  // Check if lists have changed
-  const prevLists = prevProps.task.lists || []
-  const nextLists = nextProps.task.lists || []
-  const listsChanged = prevLists.length !== nextLists.length ||
-    prevLists.some((list, index) => {
-      const nextList = nextLists[index]
-      return !nextList || list.id !== nextList.id || list.name !== nextList.name
-    })
-
-  // Only re-render if task ID changes, critical props change, lists changed, or comments changed
-  return (
-    prevProps.task.id === nextProps.task.id &&
-    prevProps.task.title === nextProps.task.title &&
-    prevProps.task.description === nextProps.task.description &&
-    prevProps.task.completed === nextProps.task.completed &&
-    prevProps.task.priority === nextProps.task.priority &&
-    prevProps.task.repeating === nextProps.task.repeating &&
-    prevProps.task.dueDateTime === nextProps.task.dueDateTime &&
-    prevProps.task.isAllDay === nextProps.task.isAllDay &&
-    prevProps.task.assigneeId === nextProps.task.assigneeId &&
-    prevProps.inline === nextProps.inline &&
-    !listsChanged &&
-    !commentsChanged &&
-    prevProps.currentUser?.id === nextProps.currentUser?.id
-  )
-})
+const TaskDetailMemo = memo(TaskDetailComponent, taskDetailPropsEqual)
 
 export { TaskDetailMemo as TaskDetail }

@@ -114,7 +114,14 @@ vi.mock('@/lib/task-events', async importOriginal => ({
   ...(await importOriginal<Record<string, unknown>>()),
   recordTaskEvents,
 }))
-vi.mock('@/lib/agent-protocol', () => ({ enrichTaskForAgent: (task: unknown) => task }))
+// The REAL agent shape, not an identity mock: the identity mock is how this
+// test passed while the event carried no statusRole (AWTD-1039 check 5).
+vi.mock('@/lib/tasks/v1-task-shape', () => ({
+  loadV1TaskForEvent: vi.fn(async (id: string) => {
+    const task = db.tasks.get(id)
+    return task ? { ...task } : undefined
+  }),
+}))
 vi.mock('@/services/task.service', () => ({ getTaskForUser }))
 
 const BOARD = { id: 'board', ownerId: 'u-owner', listMembers: [{ userId: 'u-member' }] }
@@ -181,7 +188,9 @@ describe('AWTD-1002 the board moves while you look at it', () => {
     expect(call, 'no SSE for the promoted card, so no open board moves it').toBeDefined()
     const [recipients, event] = call
     expect(event.type).toBe('task_updated')
-    expect(event.data.task.statusRole).toBe('ready')
+    // The web board merges the v1 shape; the agent shape has no statusRole,
+    // so without v1Task the card stayed in Waiting until a refresh (AWTD-1039).
+    expect(event.data.v1Task?.statusRole).toBe('ready')
     expect(recipients).toEqual(
       expect.arrayContaining(['u-creator', 'u-assignee', 'u-owner', 'u-member']),
     )
@@ -235,7 +244,7 @@ describe('AWTD-1002 the board moves while you look at it', () => {
     const [call] = broadcastsFor('dependent')
     expect(call).toBeDefined()
     expect(call[0]).toContain('u-actor')
-    expect(call[1].data.task.statusRole).toBe('waiting')
+    expect(call[1].data.v1Task?.statusRole).toBe('waiting')
   })
 
   it('reopening a blocker sends a Ready card back to Waiting, and says so', async () => {

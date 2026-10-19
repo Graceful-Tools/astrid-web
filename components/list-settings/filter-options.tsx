@@ -39,6 +39,14 @@ export interface FilterOption {
   className?: string
 }
 
+/**
+ * One width for every sort/filter dropdown, so the column of them lines up
+ * (AWTD-1271). They ranged from w-32 to w-48, and the narrowest cut
+ * "Incomplete + Recently completed" to "Incomplete …". A label that still
+ * overflows clips beside the chevron rather than squeezing it.
+ */
+export const FILTER_TRIGGER_CLASS = "w-48 theme-input gap-2 [&>span]:min-w-0 [&>span]:truncate [&>span]:text-left [&>svg]:shrink-0"
+
 /** How the list is ordered. Mirrors `TaskList.sortBy`. */
 export const SORT_BY_OPTIONS: readonly FilterOption[] = [
   { value: "auto", labelKey: "listSettings.sort.auto", label: "Auto" },

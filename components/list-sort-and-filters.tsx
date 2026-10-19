@@ -1,5 +1,16 @@
 "use client"
 
+/**
+ * The user-list Sort & Filters panel.
+ *
+ * Laid out by how often each control is used (AWTD-1271): Sort first, then
+ * which tasks show (complete/incomplete — the filter most people want), then
+ * the rest of the filters, and the list options (favourite, saved filter,
+ * show subtasks) last. Every filter is the same kind of control at the same
+ * width, so the column of dropdowns lines up; Assignee and Assigned-by used to
+ * be text links that only turned into dropdowns once tapped.
+ */
+
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -8,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   COMPLETION_FILTER_OPTIONS,
   DUE_DATE_FILTER_OPTIONS,
+  FILTER_TRIGGER_CLASS,
   FilterSelectItems,
   PRIORITY_FILTER_OPTIONS,
   SORT_BY_OPTIONS,
@@ -36,6 +48,49 @@ interface ListSortAndFiltersProps {
   canEditSettings?: boolean
 }
 
+/** A label on the left, its dropdown on the right — the one row shape every filter uses. */
+function FilterRow({
+  label,
+  value,
+  onChange,
+  testId,
+  children,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  testId?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3" data-testid={testId}>
+      <Label className="text-sm theme-text-secondary">{label}</Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className={FILTER_TRIGGER_CLASS} aria-label={label}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent className="z-[10100]">{children}</SelectContent>
+      </Select>
+    </div>
+  )
+}
+
+function MemberItem({ member }: { member: User }) {
+  return (
+    <SelectItem value={member.id}>
+      <div className="flex items-center space-x-2 min-w-0">
+        <Avatar className="w-4 h-4 shrink-0">
+          <AvatarImage src={member.image || "/placeholder.svg"} />
+          <AvatarFallback className="text-xs">
+            {member.name?.charAt(0) || member.email.charAt(0)}
+          </AvatarFallback>
+        </Avatar>
+        <span className="truncate">{member.name || member.email}</span>
+      </div>
+    </SelectItem>
+  )
+}
+
 export function ListSortAndFilters({
   list,
   currentUser,
@@ -57,10 +112,6 @@ export function ListSortAndFilters({
   const [sortBy, setSortBy] = useState<string>(list.sortBy || "auto")
   const [isToggleFavorite, setIsToggleFavorite] = useState(false)
 
-  // Editing states for filters (to match default assignee pattern)
-  const [editingFilterAssignee, setEditingFilterAssignee] = useState(false)
-  const [editingFilterAssignedBy, setEditingFilterAssignedBy] = useState(false)
-
   // Update filter states when list changes
   useEffect(() => {
     setFilterCompletion(list.filterCompletion || "all")
@@ -72,10 +123,6 @@ export function ListSortAndFilters({
     setFilterInLists(list.filterInLists || "dont_filter")
     setIsVirtual(list.isVirtual || false)
     setSortBy(list.sortBy || "auto")
-
-    // Reset editing states when list changes
-    setEditingFilterAssignee(false)
-    setEditingFilterAssignedBy(false)
   }, [
     list.id,
     list.filterCompletion,
@@ -159,10 +206,6 @@ export function ListSortAndFilters({
     setFilterInLists("dont_filter")
     setSortBy("auto")
 
-    // Close editing states
-    setEditingFilterAssignee(false)
-    setEditingFilterAssignedBy(false)
-
     onUpdate({ ...list, ...resetFilters })
   }
 
@@ -177,159 +220,129 @@ export function ListSortAndFilters({
     Boolean(list.filterProjectField)
   )
 
-  // Handler for filter assignee change (matches default assignee pattern)
-  const handleFilterAssigneeChange = (value: string) => {
-    setFilterAssignee(value)
-    onUpdate({ ...list, filterAssignee: value })
-    setEditingFilterAssignee(false)
-  }
-
-  // Handler for filter assigned by change (matches default assignee pattern)
-  const handleFilterAssignedByChange = (value: string) => {
-    setFilterAssignedBy(value)
-    onUpdate({ ...list, filterAssignedBy: value })
-    setEditingFilterAssignedBy(false)
-  }
-
-  // Get display content for filter assignee (matches default assignee pattern)
-  const getFilterAssigneeDisplay = () => {
-    if (filterAssignee === "all") {
-      return <span className="text-blue-400">All assignees</span>
-    } else if (filterAssignee === "current_user") {
-      return (
-        <>
-          <Avatar className="w-5 h-5">
-            <AvatarImage src={currentUser.image || "/placeholder.svg"} />
-            <AvatarFallback className="text-xs">{currentUser.name?.charAt(0) || currentUser.email.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <span className="text-blue-400">Me ({currentUser.name || currentUser.email})</span>
-        </>
-      )
-    } else if (filterAssignee === "not_current_user") {
-      return <span className="text-blue-400">Not me (others)</span>
-    } else if (filterAssignee === "unassigned") {
-      return <span className="text-blue-400">Unassigned</span>
-    } else {
-      // Find the user in current members
-      const currentMembers = getDefaultAssigneeOptions()
-      const assignedUser = currentMembers.find(member => member.id === filterAssignee)
-      if (assignedUser) {
-        return (
-          <>
-            <Avatar className="w-5 h-5">
-              <AvatarImage src={assignedUser.image || "/placeholder.svg"} />
-              <AvatarFallback className="text-xs">{assignedUser.name?.charAt(0) || assignedUser.email.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <span className="text-blue-400">{assignedUser.name || assignedUser.email}</span>
-          </>
-        )
-      } else {
-        return <span className="text-red-400">Member not found</span>
-      }
-    }
-  }
-
-  // Get display content for filter assigned by (matches default assignee pattern)
-  const getFilterAssignedByDisplay = () => {
-    if (filterAssignedBy === "all") {
-      return <span className="text-blue-400">All creators</span>
-    } else if (filterAssignedBy === "current_user") {
-      return (
-        <>
-          <Avatar className="w-5 h-5">
-            <AvatarImage src={currentUser.image || "/placeholder.svg"} />
-            <AvatarFallback className="text-xs">{currentUser.name?.charAt(0) || currentUser.email.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <span className="text-blue-400">Me ({currentUser.name || currentUser.email})</span>
-        </>
-      )
-    } else {
-      // Find the user in current members
-      const currentMembers = getDefaultAssigneeOptions()
-      const assignedUser = currentMembers.find(member => member.id === filterAssignedBy)
-      if (assignedUser) {
-        return (
-          <>
-            <Avatar className="w-5 h-5">
-              <AvatarImage src={assignedUser.image || "/placeholder.svg"} />
-              <AvatarFallback className="text-xs">{assignedUser.name?.charAt(0) || assignedUser.email.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <span className="text-blue-400">{assignedUser.name || assignedUser.email}</span>
-          </>
-        )
-      } else {
-        return <span className="text-red-400">Member not found</span>
-      }
-    }
-  }
+  const members = getDefaultAssigneeOptions()
+  const currentUserLabel = `Me (${currentUser.name || currentUser.email})`
 
   return (
     <div className="space-y-4">
-      {/* Favorite Toggle */}
-      <div className="flex items-center justify-between">
-        <Label className="text-sm theme-text-secondary">Favorite</Label>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleToggleFavorite}
-          disabled={isToggleFavorite}
-          className="flex items-center space-x-2 hover:theme-bg-hover"
-        >
-          {list.isFavorite ? (
-            <>
-              <Star className="w-4 h-4 text-yellow-400 fill-current" />
-              <span className="text-yellow-400">Remove from Favorites</span>
-            </>
-          ) : (
-            <>
-              <StarOff className="w-4 h-4 theme-text-muted" />
-              <span className="theme-text-muted">Make Favorite</span>
-            </>
-          )}
-        </Button>
-      </div>
-
-      {/* Saved Filter Toggle */}
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col">
-          <Label className="text-sm theme-text-secondary">Saved Filter</Label>
-          <span className="text-xs theme-text-muted">Show tasks based on filter settings, not list membership</span>
-        </div>
-        <Checkbox
-          checked={isVirtual}
-          onCheckedChange={(checked) => {
-            const virtualValue = checked === true
-            setIsVirtual(virtualValue)
-            onUpdate({ ...list, isVirtual: virtualValue })
+      {/* Most used first: how the list is ordered, and whether completed tasks show. */}
+      <div className="space-y-3">
+        <FilterRow
+          label={t("listSettings.sortBy")}
+          value={sortBy}
+          onChange={(value) => {
+            setSortBy(value)
+            onUpdate({ ...list, sortBy: value })
           }}
-          className="theme-checkbox"
-        />
+          testId="sort-by-row"
+        >
+          <FilterSelectItems options={SORT_BY_OPTIONS} />
+        </FilterRow>
+
+        <FilterRow
+          label={t("listSettings.showTasks")}
+          value={filterCompletion}
+          onChange={(value) => {
+            setFilterCompletion(value)
+            onUpdate({ ...list, filterCompletion: value })
+          }}
+          testId="show-tasks-row"
+        >
+          <FilterSelectItems options={COMPLETION_FILTER_OPTIONS} />
+        </FilterRow>
       </div>
 
-      {/* Show subtasks — per-list, owner/admin only. Lives here rather than in
-          Admin Settings because it decides what the list VIEW renders, which is
-          what everything else on this tab does. */}
-      {canEditSettings && (
-        <div className="flex items-center justify-between" data-testid="show-subtasks-row">
-          <div className="flex flex-col pr-3">
-            <Label className="text-sm theme-text-secondary">{t("lists.showSubtasksLabel")}</Label>
-            <span className="text-xs theme-text-muted">{t("lists.showSubtasksDescription")}</span>
-          </div>
-          <Switch
-            checked={list.showSubtasks ?? DEFAULT_LIST_SHOW_SUBTASKS}
-            onCheckedChange={(value) => onUpdate({ ...list, showSubtasks: value })}
-            aria-label={t("lists.showSubtasksLabel")}
-            data-testid="show-subtasks-toggle"
-            className="shrink-0"
-          />
-        </div>
-      )}
+      {/* The rest of the filters */}
+      <div className="border-t theme-border pt-4 space-y-3">
+        <FilterRow
+          label={t("listSettings.priorityFilter")}
+          value={filterPriority}
+          onChange={(value) => {
+            setFilterPriority(value)
+            onUpdate({ ...list, filterPriority: value })
+          }}
+          testId="priority-filter-row"
+        >
+          <FilterSelectItems options={PRIORITY_FILTER_OPTIONS} />
+        </FilterRow>
 
-      {/* Filter and Sort Controls */}
-      <div className="border-t theme-border pt-4">
-        <div className="flex items-center justify-between mb-4">
-          <Label className="text-sm theme-text-secondary">Filter & Sort Tasks</Label>
-          {hasActiveFilters && (
+        <FilterRow
+          label={t("listSettings.dueDateFilter")}
+          value={filterDueDate}
+          onChange={(value) => {
+            setFilterDueDate(value)
+            onUpdate({ ...list, filterDueDate: value })
+          }}
+        >
+          <FilterSelectItems options={DUE_DATE_FILTER_OPTIONS} />
+        </FilterRow>
+
+        <FilterRow
+          label={t("listSettings.assigneeFilter")}
+          value={filterAssignee}
+          onChange={(value) => {
+            setFilterAssignee(value)
+            onUpdate({ ...list, filterAssignee: value })
+          }}
+        >
+          <SelectItem value="all">All assignees</SelectItem>
+          <SelectItem value="current_user">{currentUserLabel}</SelectItem>
+          <SelectItem value="not_current_user">Not me (others)</SelectItem>
+          <SelectItem value="unassigned">Unassigned</SelectItem>
+          {members.map(member => <MemberItem key={member.id} member={member} />)}
+        </FilterRow>
+
+        <FilterRow
+          label="Assigned by filter"
+          value={filterAssignedBy}
+          onChange={(value) => {
+            setFilterAssignedBy(value)
+            onUpdate({ ...list, filterAssignedBy: value })
+          }}
+        >
+          <SelectItem value="all">All creators</SelectItem>
+          <SelectItem value="current_user">{currentUserLabel}</SelectItem>
+          {members.map(member => <MemberItem key={member.id} member={member} />)}
+        </FilterRow>
+
+        {/* Filter by a GitHub project field — only renders on a GitHub board (AWTD-1259) */}
+        <ProjectFieldFilterSelect
+          list={list}
+          onChange={(value) => onUpdate({ ...list, filterProjectField: value })}
+        />
+
+        <FilterRow
+          label="Repeating filter"
+          value={filterRepeating}
+          onChange={(value) => {
+            setFilterRepeating(value)
+            onUpdate({ ...list, filterRepeating: value })
+          }}
+        >
+          <SelectItem value="all"><span className="text-blue-400">All tasks</span></SelectItem>
+          <SelectItem value="not_repeating"><span className="text-gray-400">Not repeating</span></SelectItem>
+          <SelectItem value="daily"><span className="text-green-500">Daily</span></SelectItem>
+          <SelectItem value="weekly"><span className="text-blue-500">Weekly</span></SelectItem>
+          <SelectItem value="monthly"><span className="text-purple-500">Monthly</span></SelectItem>
+          <SelectItem value="yearly"><span className="text-orange-500">Yearly</span></SelectItem>
+          <SelectItem value="custom"><span className="text-pink-500">Custom</span></SelectItem>
+        </FilterRow>
+
+        <FilterRow
+          label="List filter"
+          value={filterInLists}
+          onChange={(value) => {
+            setFilterInLists(value)
+            onUpdate({ ...list, filterInLists: value })
+          }}
+        >
+          <SelectItem value="dont_filter"><span className="text-blue-400">All tasks</span></SelectItem>
+          <SelectItem value="in_list"><span className="text-green-500">Tasks in any list</span></SelectItem>
+          <SelectItem value="not_in_list"><span className="text-orange-500">Tasks not in any list</span></SelectItem>
+        </FilterRow>
+
+        {hasActiveFilters && (
+          <div className="flex justify-end">
             <Button
               variant="ghost"
               size="sm"
@@ -338,220 +351,73 @@ export function ListSortAndFilters({
             >
               Clear All
             </Button>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
 
-        {/* Sort By */}
-        <div className="flex items-center justify-between mb-3">
-          <Label className="text-sm theme-text-secondary">Sort by</Label>
-          <Select
-            value={sortBy}
-            onValueChange={(value) => {
-              setSortBy(value)
-              onUpdate({ ...list, sortBy: value })
-            }}
+      {/* List options — set once, so they sit below the filters people reach for. */}
+      <div className="border-t theme-border pt-4 space-y-3" data-testid="list-options-section">
+        <Label className="text-xs font-medium uppercase tracking-wide theme-text-muted">
+          {t("listSettings.listOptions")}
+        </Label>
+
+        <div className="flex items-center justify-between" data-testid="favorite-row">
+          <Label className="text-sm theme-text-secondary">Favorite</Label>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleToggleFavorite}
+            disabled={isToggleFavorite}
+            className="flex items-center space-x-2 hover:theme-bg-hover"
           >
-            <SelectTrigger className="w-32 theme-input">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="z-[10100]">
-              <FilterSelectItems options={SORT_BY_OPTIONS} />
-            </SelectContent>
-          </Select>
+            {list.isFavorite ? (
+              <>
+                <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                <span className="text-yellow-400">Remove from Favorites</span>
+              </>
+            ) : (
+              <>
+                <StarOff className="w-4 h-4 theme-text-muted" />
+                <span className="theme-text-muted">Make Favorite</span>
+              </>
+            )}
+          </Button>
         </div>
 
-        {/* Filter by Status */}
-        <div className="flex items-center justify-between mb-3">
-          <Label className="text-sm theme-text-secondary">Show tasks</Label>
-          <Select
-            value={filterCompletion}
-            onValueChange={(value) => {
-              setFilterCompletion(value)
-              onUpdate({ ...list, filterCompletion: value })
+        <div className="flex items-center justify-between" data-testid="saved-filter-row">
+          <div className="flex flex-col">
+            <Label className="text-sm theme-text-secondary">Saved Filter</Label>
+            <span className="text-xs theme-text-muted">Show tasks based on filter settings, not list membership</span>
+          </div>
+          <Checkbox
+            checked={isVirtual}
+            onCheckedChange={(checked) => {
+              const virtualValue = checked === true
+              setIsVirtual(virtualValue)
+              onUpdate({ ...list, isVirtual: virtualValue })
             }}
-          >
-            <SelectTrigger className="w-32 theme-input">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="z-[10100]">
-              <FilterSelectItems options={COMPLETION_FILTER_OPTIONS} />
-            </SelectContent>
-          </Select>
+            className="theme-checkbox"
+          />
         </div>
 
-        {/* Filter by Priority */}
-        <div className="flex items-center justify-between mb-3">
-          <Label className="text-sm theme-text-secondary">Priority filter</Label>
-          <Select
-            value={filterPriority}
-            onValueChange={(value) => {
-              setFilterPriority(value)
-              onUpdate({ ...list, filterPriority: value })
-            }}
-          >
-            <SelectTrigger className="w-32 theme-input">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="z-[10100]">
-              <FilterSelectItems options={PRIORITY_FILTER_OPTIONS} />
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Filter by Assignee */}
-        <div className="flex items-center justify-between mb-3">
-          <Label className="text-sm theme-text-secondary">Assignee filter</Label>
-          {editingFilterAssignee ? (
-            <div className="flex items-center space-x-2">
-              <Select
-                value={filterAssignee}
-                onValueChange={handleFilterAssigneeChange}
-              >
-                <SelectTrigger className="w-48 theme-input">
-                  <SelectValue placeholder="Select assignee filter..." />
-                </SelectTrigger>
-                <SelectContent className="z-[10100]">
-                  <SelectItem value="all">All assignees</SelectItem>
-                  <SelectItem value="current_user">Me ({currentUser.name || currentUser.email})</SelectItem>
-                  <SelectItem value="not_current_user">Not me (others)</SelectItem>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {getDefaultAssigneeOptions().map(member => (
-                    <SelectItem key={member.id} value={member.id}>
-                      <div className="flex items-center space-x-2">
-                        <Avatar className="w-4 h-4">
-                          <AvatarImage src={member.image || "/placeholder.svg"} />
-                          <AvatarFallback className="text-xs">
-                            {member.name?.charAt(0) || member.email.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span>{member.name || member.email}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        {/* Show subtasks — per-list, owner/admin only. Lives here rather than in
+            Admin Settings because it decides what the list VIEW renders, which is
+            what everything else on this panel does. */}
+        {canEditSettings && (
+          <div className="flex items-center justify-between" data-testid="show-subtasks-row">
+            <div className="flex flex-col pr-3">
+              <Label className="text-sm theme-text-secondary">{t("lists.showSubtasksLabel")}</Label>
+              <span className="text-xs theme-text-muted">{t("lists.showSubtasksDescription")}</span>
             </div>
-          ) : (
-            <div
-              className="flex items-center space-x-2 cursor-pointer hover:theme-bg-hover px-2 py-1 rounded"
-              onClick={() => setEditingFilterAssignee(true)}
-            >
-              {getFilterAssigneeDisplay()}
-            </div>
-          )}
-        </div>
-
-        {/* Filter by Due Date */}
-        <div className="flex items-center justify-between mb-3">
-          <Label className="text-sm theme-text-secondary">Due date filter</Label>
-          <Select
-            value={filterDueDate}
-            onValueChange={(value) => {
-              setFilterDueDate(value)
-              onUpdate({ ...list, filterDueDate: value })
-            }}
-          >
-            <SelectTrigger className="w-40 theme-input">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="z-[10100]">
-              <FilterSelectItems options={DUE_DATE_FILTER_OPTIONS} />
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Filter by Assigned By */}
-        <div className="flex items-center justify-between mb-3">
-          <Label className="text-sm theme-text-secondary">Assigned by filter</Label>
-          {editingFilterAssignedBy ? (
-            <div className="flex items-center space-x-2">
-              <Select
-                value={filterAssignedBy}
-                onValueChange={handleFilterAssignedByChange}
-              >
-                <SelectTrigger className="w-48 theme-input">
-                  <SelectValue placeholder="Select creator filter..." />
-                </SelectTrigger>
-                <SelectContent className="z-[10100]">
-                  <SelectItem value="all">All creators</SelectItem>
-                  <SelectItem value="current_user">Me ({currentUser.name || currentUser.email})</SelectItem>
-                  {getDefaultAssigneeOptions().map(member => (
-                    <SelectItem key={member.id} value={member.id}>
-                      <div className="flex items-center space-x-2">
-                        <Avatar className="w-4 h-4">
-                          <AvatarImage src={member.image || "/placeholder.svg"} />
-                          <AvatarFallback className="text-xs">
-                            {member.name?.charAt(0) || member.email.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span>{member.name || member.email}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : (
-            <div
-              className="flex items-center space-x-2 cursor-pointer hover:theme-bg-hover px-2 py-1 rounded"
-              onClick={() => setEditingFilterAssignedBy(true)}
-            >
-              {getFilterAssignedByDisplay()}
-            </div>
-          )}
-        </div>
-
-        {/* Filter by a GitHub project field — only renders on a GitHub board (AWTD-1259) */}
-        <ProjectFieldFilterSelect
-          list={list}
-          onChange={(value) => onUpdate({ ...list, filterProjectField: value })}
-        />
-
-        {/* Filter by Repeating */}
-        <div className="flex items-center justify-between mb-3">
-          <Label className="text-sm theme-text-secondary">Repeating filter</Label>
-          <Select
-            value={filterRepeating}
-            onValueChange={(value) => {
-              setFilterRepeating(value)
-              onUpdate({ ...list, filterRepeating: value })
-            }}
-          >
-            <SelectTrigger className="w-32 theme-input">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="z-[10100]">
-              <SelectItem value="all"><span className="text-blue-400">All tasks</span></SelectItem>
-              <SelectItem value="not_repeating"><span className="text-gray-400">Not repeating</span></SelectItem>
-              <SelectItem value="daily"><span className="text-green-500">Daily</span></SelectItem>
-              <SelectItem value="weekly"><span className="text-blue-500">Weekly</span></SelectItem>
-              <SelectItem value="monthly"><span className="text-purple-500">Monthly</span></SelectItem>
-              <SelectItem value="yearly"><span className="text-orange-500">Yearly</span></SelectItem>
-              <SelectItem value="custom"><span className="text-pink-500">Custom</span></SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Filter in Lists */}
-        <div className="flex items-center justify-between mb-3">
-          <Label className="text-sm theme-text-secondary">List filter</Label>
-          <Select
-            value={filterInLists}
-            onValueChange={(value) => {
-              setFilterInLists(value)
-              onUpdate({ ...list, filterInLists: value })
-            }}
-          >
-            <SelectTrigger className="w-40 theme-input">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="z-[10100]">
-              <SelectItem value="dont_filter"><span className="text-blue-400">All tasks</span></SelectItem>
-              <SelectItem value="in_list"><span className="text-green-500">Tasks in any list</span></SelectItem>
-              <SelectItem value="not_in_list"><span className="text-orange-500">Tasks not in any list</span></SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+            <Switch
+              checked={list.showSubtasks ?? DEFAULT_LIST_SHOW_SUBTASKS}
+              onCheckedChange={(value) => onUpdate({ ...list, showSubtasks: value })}
+              aria-label={t("lists.showSubtasksLabel")}
+              data-testid="show-subtasks-toggle"
+              className="shrink-0"
+            />
+          </div>
+        )}
       </div>
     </div>
   )

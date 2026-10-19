@@ -32,7 +32,28 @@ export interface SettingsModalShellProps {
   subtitle?: React.ReactNode
   /** Body. Owns its own padding, since the tabbed variant pads inside its tabs. */
   children: React.ReactNode
+  /**
+   * `modal` (default) is full-screen on mobile and a wide card on desktop —
+   * right for List Settings, which is a lot of shared configuration.
+   * `sheet` is sized to its content: a bottom sheet on mobile and a narrow
+   * card on desktop, for a quick panel like Sort & Filters that should not
+   * take over the screen (AWTD-1271).
+   */
+  variant?: "modal" | "sheet"
 }
+
+const LAYOUT = {
+  modal: {
+    overlay: "items-center justify-center",
+    card: "w-full h-full md:h-auto md:max-w-2xl md:mx-4 md:rounded-lg rounded-none",
+    body: "flex-1 md:max-h-96 overflow-y-auto",
+  },
+  sheet: {
+    overlay: "items-end justify-center md:items-center",
+    card: "w-full max-h-[85vh] rounded-t-xl rounded-b-none md:max-w-md md:mx-4 md:rounded-lg",
+    body: "flex-1 min-h-0 overflow-y-auto",
+  },
+} as const
 
 export function SettingsModalShell({
   open,
@@ -40,7 +61,9 @@ export function SettingsModalShell({
   header,
   subtitle,
   children,
+  variant = "modal",
 }: SettingsModalShellProps) {
+  const layout = LAYOUT[variant]
   // Portals need a document, and this renders during SSR too.
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
@@ -53,7 +76,7 @@ export function SettingsModalShell({
 
   return createPortal(
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center md:items-center md:justify-center"
+      className={`fixed inset-0 bg-black bg-opacity-50 flex ${layout.overlay}`}
       style={{ zIndex: 9999 }}
       onKeyDown={handleKeyDown}
       onClick={() => onOpenChange(false)}
@@ -62,7 +85,8 @@ export function SettingsModalShell({
       aria-modal="true"
     >
       <Card
-        className="theme-bg-primary theme-border w-full h-full md:h-auto md:max-w-2xl md:mx-4 md:rounded-lg p-0 shadow-lg rounded-none md:shadow-lg flex flex-col"
+        className={`theme-bg-primary theme-border p-0 shadow-lg flex flex-col ${layout.card}`}
+        data-testid="settings-modal-card"
         style={{ position: "relative", zIndex: 10000 }}
         onClick={e => e.stopPropagation()}
       >
@@ -83,7 +107,7 @@ export function SettingsModalShell({
           {subtitle}
         </div>
 
-        <div className="flex-1 md:max-h-96 overflow-y-auto">{children}</div>
+        <div className={layout.body}>{children}</div>
       </Card>
     </div>,
     document.body

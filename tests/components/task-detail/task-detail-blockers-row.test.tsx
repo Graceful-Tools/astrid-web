@@ -5,8 +5,8 @@
  * already waits on this one would close a cycle — 409), should put this
  * board's tasks first, and a blocker you can see is a way through to it.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
 import { TaskDetailBlockersRow } from '@/components/task-detail/TaskDetailBlockersRow'
 import { badgeVariants } from '@/components/ui/badge'
 import type { Task } from '@/types/task'
@@ -28,6 +28,13 @@ const TASK = {
   statusRole: 'waiting',
   lists: [{ id: 'board', name: 'Board' }],
 } as unknown as Task
+
+// Unmount, then let the row's deferred forget run, so an open picker from one
+// test is not taken for a remount by the next (AWTD-1276).
+afterEach(async () => {
+  cleanup()
+  await new Promise(resolve => setTimeout(resolve, 0))
+})
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -149,5 +156,45 @@ describe('TaskDetailBlockersRow design (AWTD-1007)', () => {
     expect(chip.textContent).toContain('AWTD-1')
     // A hidden blocker says nothing about itself — not even its id.
     expect(screen.getByTestId('task-blocker-secret').textContent).not.toContain('secret')
+  })
+})
+
+describe('TaskDetailBlockersRow across a remount (AWTD-1276)', () => {
+  it('AWTD-1276: an open picker and its query survive the card moving to another column', async () => {
+    // Picking a blocker for a Ready card moves it to Waiting live; the board
+    // renders the expanded card inside its column, so the row remounts.
+    const first = render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+    await screen.findByRole('link', { name: 'Visible blocker' })
+    fireEvent.click(screen.getByTestId('task-detail-add-blocker'))
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'nei' } })
+    first.unmount()
+
+    render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+    await screen.findByRole('link', { name: 'Visible blocker' })
+    expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('nei')
+  })
+
+  it('AWTD-1276: closing the pane still closes the picker', async () => {
+    const first = render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+    await screen.findByRole('link', { name: 'Visible blocker' })
+    fireEvent.click(screen.getByTestId('task-detail-add-blocker'))
+    first.unmount()
+    await new Promise(resolve => setTimeout(resolve, 0)) // a real close, not a remount
+
+    render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+    await screen.findByRole('link', { name: 'Visible blocker' })
+    expect(screen.queryByRole('textbox')).toBeNull()
+  })
+
+  it('AWTD-1276: a closed picker stays closed after a remount', async () => {
+    const first = render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+    await screen.findByRole('link', { name: 'Visible blocker' })
+    fireEvent.click(screen.getByTestId('task-detail-add-blocker'))
+    fireEvent.click(screen.getByTestId('task-detail-add-blocker'))
+    first.unmount()
+
+    render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+    await screen.findByRole('link', { name: 'Visible blocker' })
+    expect(screen.queryByRole('textbox')).toBeNull()
   })
 })

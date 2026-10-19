@@ -20,6 +20,7 @@ import {
   resolveProjectFieldFilter,
 } from "@/lib/project-field-filter"
 import type { TaskList } from "@/types/task"
+import { FILTER_TRIGGER_CLASS } from "./filter-options"
 
 const ALL = "all"
 
@@ -47,12 +48,13 @@ export function ProjectFieldFilterSelect({
 
   const resolved = resolveProjectFieldFilter(list.filterProjectField, fields)
   const value = resolved ? formatProjectFieldFilter(resolved.fieldId, resolved.valueId) : ALL
+  const label = t("tasks.projectFields.filterLabel")
 
   return (
-    <div className="flex items-center justify-between mb-3" data-testid="project-field-filter">
-      <Label className="text-sm theme-text-secondary">{t("tasks.projectFields.filterLabel")}</Label>
+    <div className="flex items-center justify-between gap-3" data-testid="project-field-filter">
+      <Label className="text-sm theme-text-secondary">{label}</Label>
       <Select value={value} onValueChange={next => onChange(next === ALL ? null : next)}>
-        <SelectTrigger className="w-40 theme-input">
+        <SelectTrigger className={FILTER_TRIGGER_CLASS} aria-label={label}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent className="z-[10100]">
