@@ -37,6 +37,7 @@ import { preloadUserAvatars } from "@/lib/image-cache"
 // Import composable hooks
 import { canUserManageList } from "@/lib/list-permissions"
 import { v1TaskUpdateBody } from "@/lib/tasks/v1-task-update-body"
+import { shiftTaskDueDate } from "@/lib/date-comparison"
 import {
   useTaskListState,
   useTaskNavigation,
@@ -1359,10 +1360,14 @@ export function useTaskManagerController({
 
   const handlePostponeTask = useCallback(async () => {
     if (!selectedTask) return
-    const newDueDate = new Date()
-    newDueDate.setDate(newDueDate.getDate() + 7)
-    const updatedTask = { ...selectedTask, dueDate: newDueDate }
-    await handleUpdateTask(updatedTask)
+    // A week from today; a timed task keeps its time of day (AWTD-1273).
+    let todayAtItsTime: Date | null = null
+    if (selectedTask.dueDateTime && !selectedTask.isAllDay) {
+      const now = new Date()
+      todayAtItsTime = new Date(selectedTask.dueDateTime)
+      todayAtItsTime.setFullYear(now.getFullYear(), now.getMonth(), now.getDate())
+    }
+    await handleUpdateTask({ ...selectedTask, ...shiftTaskDueDate(todayAtItsTime, false, 7) })
   }, [selectedTask, handleUpdateTask])
 
   const handleRemoveDueDate = useCallback(async () => {
@@ -1379,18 +1384,14 @@ export function useTaskManagerController({
 
   const handleMakeDueDateEarlier = useCallback(async () => {
     if (!selectedTask) return
-    const currentDate = selectedTask.dueDate ? new Date(selectedTask.dueDate) : new Date()
-    currentDate.setDate(currentDate.getDate() - 1)
-    const updatedTask = { ...selectedTask, dueDate: currentDate }
-    await handleUpdateTask(updatedTask)
+    const shifted = shiftTaskDueDate(selectedTask.dueDateTime, !!selectedTask.isAllDay, -1)
+    await handleUpdateTask({ ...selectedTask, ...shifted })
   }, [selectedTask, handleUpdateTask])
 
   const handleMakeDueDateLater = useCallback(async () => {
     if (!selectedTask) return
-    const currentDate = selectedTask.dueDate ? new Date(selectedTask.dueDate) : new Date()
-    currentDate.setDate(currentDate.getDate() + 1)
-    const updatedTask = { ...selectedTask, dueDate: currentDate }
-    await handleUpdateTask(updatedTask)
+    const shifted = shiftTaskDueDate(selectedTask.dueDateTime, !!selectedTask.isAllDay, 1)
+    await handleUpdateTask({ ...selectedTask, ...shifted })
   }, [selectedTask, handleUpdateTask])
 
   const handleEditTaskLists = useCallback(() => {
