@@ -58,9 +58,9 @@
 
 ### Security Patterns
 - **Session Validation**: Always check `getServerSession` before operations (`app/api/lists/route.ts:18`)
-- **Permission Checks**: Verify user access before sensitive operations (`app/api/tasks/[id]/route.ts:58`)
+- **Permission Checks**: Verify user access before sensitive operations (`app/api/v1/tasks/[id]/route.ts:159`)
 - **Input Sanitization**: Trim and validate all user inputs (`app/api/lists/route.ts:50`)
-- **File Upload Limits**: 10MB max file size with type validation (`app/api/upload/route.ts:24`)
+- **File Upload Limits**: 10MB max file size with type validation (`app/api/v1/upload/route.ts:31`)
 
 ## Date & Time Handling
 
