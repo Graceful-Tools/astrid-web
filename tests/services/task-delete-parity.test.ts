@@ -165,7 +165,6 @@ describe('deleteTaskWithSideEffects (epic 9dedd8aa)', () => {
 
 describe('every delete surface goes through the service (epic 9dedd8aa)', () => {
   it.each([
-    'app/api/tasks/[id]/route.ts',
     'app/api/v1/tasks/[id]/route.ts',
     'app/api/mcp/operations/handlers/task-operations.ts',
     'mcp/handlers/tasks.ts',

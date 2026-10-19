@@ -35,8 +35,10 @@ describe('nothing routine is logged at error level (task 2e15b42f)', () => {
 })
 
 describe('request bodies stay out of the logs (task 2e15b42f)', () => {
-  it('PUT /api/tasks/[id] does not dump the update payload', () => {
-    const src = read('app/api/tasks/[id]/route.ts')
+  // The legacy PUT /api/tasks/[id] that leaked bodies was deleted (AWTD-839);
+  // the rule now guards its v1 successor, which carries that traffic.
+  it('PUT /api/v1/tasks/[id] does not dump the update payload', () => {
+    const src = read('app/api/v1/tasks/[id]/route.ts')
 
     // No log call may carry the request body or the built update object.
     expect(src).not.toMatch(/log\.\w+\(\{[^}]*\bupdateData\b[^}]*\}/s)
@@ -46,7 +48,7 @@ describe('request bodies stay out of the logs (task 2e15b42f)', () => {
 
   it('has no [DEBUG] lines left in the task route', () => {
     // Four of them, two mislabelled DELETE inside the PUT handler.
-    expect(read('app/api/tasks/[id]/route.ts')).not.toContain('[DEBUG]')
+    expect(read('app/api/v1/tasks/[id]/route.ts')).not.toContain('[DEBUG]')
   })
 })
 
