@@ -37,6 +37,7 @@ import { preloadUserAvatars } from "@/lib/image-cache"
 // Import composable hooks
 import { canUserManageList } from "@/lib/list-permissions"
 import { v1TaskUpdateBody } from "@/lib/tasks/v1-task-update-body"
+import { postponeTaskDueDate, shiftTaskDueDate } from "@/lib/date-comparison"
 import {
   useTaskListState,
   useTaskNavigation,
@@ -1359,10 +1360,7 @@ export function useTaskManagerController({
 
   const handlePostponeTask = useCallback(async () => {
     if (!selectedTask) return
-    const newDueDate = new Date()
-    newDueDate.setDate(newDueDate.getDate() + 7)
-    const updatedTask = { ...selectedTask, dueDate: newDueDate }
-    await handleUpdateTask(updatedTask)
+    await handleUpdateTask({ ...selectedTask, ...postponeTaskDueDate(selectedTask.dueDateTime, !!selectedTask.isAllDay) })
   }, [selectedTask, handleUpdateTask])
 
   const handleRemoveDueDate = useCallback(async () => {
@@ -1379,18 +1377,12 @@ export function useTaskManagerController({
 
   const handleMakeDueDateEarlier = useCallback(async () => {
     if (!selectedTask) return
-    const currentDate = selectedTask.dueDate ? new Date(selectedTask.dueDate) : new Date()
-    currentDate.setDate(currentDate.getDate() - 1)
-    const updatedTask = { ...selectedTask, dueDate: currentDate }
-    await handleUpdateTask(updatedTask)
+    await handleUpdateTask({ ...selectedTask, ...shiftTaskDueDate(selectedTask.dueDateTime, !!selectedTask.isAllDay, -1) })
   }, [selectedTask, handleUpdateTask])
 
   const handleMakeDueDateLater = useCallback(async () => {
     if (!selectedTask) return
-    const currentDate = selectedTask.dueDate ? new Date(selectedTask.dueDate) : new Date()
-    currentDate.setDate(currentDate.getDate() + 1)
-    const updatedTask = { ...selectedTask, dueDate: currentDate }
-    await handleUpdateTask(updatedTask)
+    await handleUpdateTask({ ...selectedTask, ...shiftTaskDueDate(selectedTask.dueDateTime, !!selectedTask.isAllDay, 1) })
   }, [selectedTask, handleUpdateTask])
 
   const handleEditTaskLists = useCallback(() => {
