@@ -611,9 +611,7 @@ export function TaskFieldEditors({
           {editingTime ? (
             <div className="mt-1">
               <TimePicker
-                // An all-day date is UTC midnight, which reads as 4-5pm in the
-                // Americas; it has no time to show (AWTD-1274).
-                value={task.isAllDay ? null : tempWhen}
+                value={task.isAllDay ? null : tempWhen} // all-day is UTC midnight, "4pm" in LA (AWTD-1274)
                 onChange={handleSaveTime}
               />
             </div>
