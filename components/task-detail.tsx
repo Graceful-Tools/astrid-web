@@ -853,56 +853,6 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     cancelEditing('description')
   }
 
-  const handleSaveWhen = (date: Date | undefined) => {
-    // If removing the due date, also remove any repeating settings
-    if (!date) {
-      const updatedTask = { ...task, dueDateTime: undefined, isAllDay: false, repeating: 'never' as const, repeatingData: undefined }
-      onUpdate(updatedTask)
-      setTempWhen(undefined)
-      setTempRepeating('never')
-      setTempRepeatingData(undefined)
-      setEditingWhen(false)
-      return
-    }
-
-    // If there's an existing dueDateTime with a time, preserve the time component
-    if (task.dueDateTime && !task.isAllDay) {
-      const existingDate = new Date(task.dueDateTime)
-      date.setHours(existingDate.getHours(), existingDate.getMinutes(), 0, 0)
-      onUpdate({ ...task, dueDateTime: date, isAllDay: false })
-    } else {
-      // Default to all-day task (midnight)
-      date.setHours(0, 0, 0, 0)
-      onUpdate({ ...task, dueDateTime: date, isAllDay: true })
-    }
-    setTempWhen(date)
-    setEditingWhen(false)
-  }
-
-  const handleSaveTime = (time: Date | string | null) => {
-    if (!task.dueDateTime) return // Can only set time if there's a dueDateTime
-
-    if (time === null) {
-      // Set time to midnight (all day)
-      const updatedDate = new Date(task.dueDateTime)
-      updatedDate.setHours(0, 0, 0, 0)
-      onUpdate({ ...task, dueDateTime: updatedDate, isAllDay: true })
-      setTempWhen(updatedDate)
-    } else if (time instanceof Date) {
-      // Combine the existing date with the new time
-      const updatedDate = new Date(task.dueDateTime)
-      updatedDate.setHours(time.getHours(), time.getMinutes(), 0, 0)
-      onUpdate({ ...task, dueDateTime: updatedDate, isAllDay: false })
-      setTempWhen(updatedDate)
-    } else {
-      // Handle string case - convert to Date first
-      // This is a fallback, typically TimePicker returns Date objects
-      return
-    }
-
-    setEditingTime(false)
-  }
-
   const handleSavePriority = async (priority: number) => {
     const validPriority = Math.max(0, Math.min(3, priority)) as 0 | 1 | 2 | 3
     

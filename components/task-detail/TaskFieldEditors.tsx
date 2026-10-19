@@ -24,6 +24,7 @@ import { useMobileKeyboard } from "@/hooks/shared/useMobileKeyboard"
 import { Calendar as CalendarIcon, User as UserIcon } from "lucide-react"
 import { format } from "date-fns"
 import { formatDateForDisplay } from "@/lib/date-utils"
+import { allDayInstantForLocalDay, taskCalendarDay } from "@/lib/date-comparison"
 import { useTranslations } from "@/lib/i18n/client"
 import type { Task, TaskList, User } from "@/types/task"
 
@@ -253,8 +254,8 @@ export function TaskFieldEditors({
         // Keep as timed task
         onUpdate({ ...task, dueDateTime: date, isAllDay: false })
       } else {
-        // Default to all-day task (midnight UTC)
-        date.setUTCHours(0, 0, 0, 0)
+        // Default to all-day task: UTC midnight of the picked local day
+        date = allDayInstantForLocalDay(date)
         onUpdate({ ...task, dueDateTime: date, isAllDay: true })
       }
     } else {
@@ -267,17 +268,16 @@ export function TaskFieldEditors({
 
   const handleSaveTime = (time: Date | string | null) => {
     if (!time) {
-      // Clear the time - make it all-day (midnight UTC)
+      // Clear the time - make it all-day on the task's own day
       if (task.dueDateTime) {
-        const dateOnly = new Date(task.dueDateTime)
-        dateOnly.setUTCHours(0, 0, 0, 0)
+        const dateOnly = allDayInstantForLocalDay(taskCalendarDay(new Date(task.dueDateTime), !!task.isAllDay))
         onUpdate({ ...task, dueDateTime: dateOnly, isAllDay: true })
         setTempWhen(dateOnly)
       }
     } else if (time instanceof Date) {
       // Combine the existing date with the new time
       if (!task.dueDateTime) return
-      const updatedDate = new Date(task.dueDateTime)
+      const updatedDate = taskCalendarDay(new Date(task.dueDateTime), !!task.isAllDay)
       updatedDate.setHours(time.getHours(), time.getMinutes(), 0, 0)
       onUpdate({ ...task, dueDateTime: updatedDate, isAllDay: false })
       setTempWhen(updatedDate)

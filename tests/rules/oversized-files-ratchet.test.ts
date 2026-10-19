@@ -59,7 +59,7 @@ const BUDGETS: Record<string, number> = {
   // went to lib/task-detail/create-list-for-task.ts, following the Lists row
   // that already lives in TaskDetailListsRow.tsx. Smaller than before the
   // feature, and the inheritance rule is now testable on its own.
-  'components/task-detail.tsx': 1579,
+  'components/task-detail.tsx': 1529,
   'lib/ai-orchestrator.ts': 1547,
   // 1205 → 1199: AWTD-1227 needed four more props on the task-detail pane, and
   // this file renders that pane TWICE — desktop and mobile — with a dozen
