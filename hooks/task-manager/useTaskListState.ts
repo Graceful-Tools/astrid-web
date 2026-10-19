@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
+import { taskFromUpdateEvent } from "./sse-task-update"
 import { useToast } from "@/hooks/use-toast"
 import { useTaskSSEEvents, useSSESubscription } from "@/hooks/use-sse-subscription"
 import { SSEManager } from "@/lib/sse-manager"
@@ -372,8 +373,8 @@ export function useTaskListState({
   const lastTaskUpdateRef = useRef<Map<string, number>>(new Map())
 
   const handleTaskUpdated = useCallback((event: any) => {
-    const taskData = event.task || event
-    if (!taskData?.id) return
+    const taskData = taskFromUpdateEvent(event)
+    if (!taskData) return
 
     // Dedup: skip if we processed this task update within 500ms
     const now = Date.now()
@@ -386,10 +387,8 @@ export function useTaskListState({
     if (process.env.NODE_ENV === 'development') {
       console.log('[useTaskListState] SSE: Task updated', event)
     }
-    const { comments: _ignoredComments, ...taskDataWithoutComments } = taskData
-
     setTasks(prev => prev.map(task =>
-      task.id === taskData.id ? { ...task, ...taskDataWithoutComments } : task
+      task.id === taskData.id ? { ...task, ...taskData } : task
     ))
   }, [])
 
