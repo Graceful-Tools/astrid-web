@@ -443,6 +443,33 @@ describe('SSE Subscription Hooks', () => {
       expect(callbacks.onTaskUpdated).toHaveBeenCalledWith(testEvent.data)
     })
 
+    it('AWTD-1039: task_completed reaches onTaskUpdated, so a completion by someone else shows live', () => {
+      const callbacks = { onTaskUpdated: vi.fn() }
+      let capturedCallback: Function
+      let subscribedTypes: readonly string[] = []
+
+      vi.mocked(SSEManager.subscribe).mockImplementation((eventTypes, cb) => {
+        subscribedTypes = eventTypes as readonly string[]
+        capturedCallback = cb
+        return vi.fn()
+      })
+
+      renderHook(() => useTaskSSEEvents(callbacks))
+      expect(subscribedTypes).toContain('task_completed')
+
+      const testEvent = {
+        type: 'task_completed',
+        timestamp: new Date().toISOString(),
+        data: { taskId: 'task-123', task: { id: 'task-123', completed: true } }
+      }
+
+      act(() => {
+        capturedCallback(testEvent)
+      })
+
+      expect(callbacks.onTaskUpdated).toHaveBeenCalledWith(testEvent.data)
+    })
+
     it('should handle task_deleted events', () => {
       const callbacks = { onTaskDeleted: vi.fn() }
       let capturedCallback: Function

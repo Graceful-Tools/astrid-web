@@ -200,6 +200,29 @@ describe('inbound SSE does not echo a write back (task da325f65)', () => {
     expect(onLocalUpdate, 'the remote change was dropped entirely').toHaveBeenCalled()
   })
 
+  it('AWTD-1039: a card the server moved keeps its new column when the pane applies the event', () => {
+    // The blocker gate moved this Ready card to Waiting. The agent-shaped
+    // `task` has no statusRole, so `{ ...currentTask, ...task }` re-applied the
+    // pane's stale Ready over the list's correct update — on the very tab
+    // that added the blocker, and only there.
+    const onLocalUpdate = vi.fn()
+    render(<TaskDetail {...mockProps} task={{ ...mockProps.task, statusRole: 'ready' } as any} onUpdate={vi.fn()} onLocalUpdate={onLocalUpdate} />)
+
+    act(() => {
+      sseHandler?.({
+        type: 'task_updated',
+        data: {
+          taskId: 'task-1',
+          task: { id: 'task-1', title: mockProps.task.title, comments: [] },
+          v1Task: { ...mockProps.task, id: 'task-1', statusRole: 'waiting' },
+        },
+      })
+    })
+
+    expect(onLocalUpdate).toHaveBeenCalled()
+    expect(onLocalUpdate.mock.calls.at(-1)?.[0]).toMatchObject({ id: 'task-1', statusRole: 'waiting' })
+  })
+
   it('a remote comment_created does NOT trigger onUpdate', () => {
     const onUpdate = vi.fn()
     const onLocalUpdate = vi.fn()

@@ -578,7 +578,10 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       }
 
       case 'task_updated': {
-        const { task: updatedTask, userId } = event.data
+        // The v1 shape when sent: the agent `task` has no statusRole, and
+        // merging it over the pane's copy undid a move the list had applied (AWTD-1039).
+        const { task: agentTask, v1Task, userId } = event.data
+        const updatedTask = v1Task ? { ...v1Task, comments: v1Task.comments ?? agentTask?.comments } : agentTask
 
         // Don't process SSE updates from the same user to avoid overriding local changes
         if (userId === currentUser.id) {
