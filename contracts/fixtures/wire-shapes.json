@@ -380,6 +380,7 @@
           "costEstimateSource": null,
           "lists": [
             {
+              "ownerId": "user-owner-0001",
               "id": "list-0000-0000-0000-000000000001",
               "name": "Home",
               "color": "#3b82f6",
@@ -537,6 +538,7 @@
           "costEstimateSource": null,
           "lists": [
             {
+              "ownerId": "user-owner-0001",
               "id": "list-0000-0000-0000-000000000002",
               "name": "Acme roadmap",
               "color": "#3b82f6",
