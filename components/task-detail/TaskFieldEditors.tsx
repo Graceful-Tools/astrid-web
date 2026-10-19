@@ -259,8 +259,8 @@ export function TaskFieldEditors({
         onUpdate({ ...task, dueDateTime: date, isAllDay: true })
       }
     } else {
-      // Removing date
-      onUpdate({ ...task, dueDateTime: undefined, isAllDay: false })
+      // Removing date: null, not undefined, so the clear reaches the server (AWTD-1272).
+      onUpdate({ ...task, dueDateTime: null, isAllDay: false })
     }
     setTempWhen(date)
     setEditingWhen(false)

@@ -1367,7 +1367,7 @@ export function useTaskManagerController({
 
   const handleRemoveDueDate = useCallback(async () => {
     if (!selectedTask) return
-    const updatedTask = { ...selectedTask, dueDate: null }
+    const updatedTask = { ...selectedTask, dueDateTime: null, isAllDay: false }
     await handleUpdateTask(updatedTask)
   }, [selectedTask, handleUpdateTask])
 

@@ -7,6 +7,11 @@
  * `assignee_ids_mismatch`. An untouched list is therefore left out, and the
  * server applies plain `assigneeId` semantics: replace the primary, keep the
  * others.
+ *
+ * A due date the edit set to `undefined` is sent as `null` (AWTD-1272).
+ * JSON.stringify drops undefined, the v1 PUT leaves an absent field alone, and
+ * only `isAllDay: false` arrived — turning an all-day date into a timed one at
+ * UTC midnight instead of clearing it.
  */
 
 type EditedTask = {
@@ -28,6 +33,7 @@ export function v1TaskUpdateBody<T extends EditedTask>(
     listIds: lists?.map(list => list.id) ?? [],
     assigneeId: assignee?.id ?? null,
   }
+  if ('dueDateTime' in updated && body.dueDateTime == null) body.dueDateTime = null
   if (assigneeIds !== undefined && !sameIds(assigneeIds, original?.assigneeIds)) {
     body.assigneeIds = assigneeIds
   }
