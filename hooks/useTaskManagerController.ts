@@ -37,7 +37,7 @@ import { preloadUserAvatars } from "@/lib/image-cache"
 // Import composable hooks
 import { canUserManageList } from "@/lib/list-permissions"
 import { v1TaskUpdateBody } from "@/lib/tasks/v1-task-update-body"
-import { shiftTaskDueDate } from "@/lib/date-comparison"
+import { postponeTaskDueDate, shiftTaskDueDate } from "@/lib/date-comparison"
 import {
   useTaskListState,
   useTaskNavigation,
@@ -1360,14 +1360,7 @@ export function useTaskManagerController({
 
   const handlePostponeTask = useCallback(async () => {
     if (!selectedTask) return
-    // A week from today; a timed task keeps its time of day (AWTD-1273).
-    let todayAtItsTime: Date | null = null
-    if (selectedTask.dueDateTime && !selectedTask.isAllDay) {
-      const now = new Date()
-      todayAtItsTime = new Date(selectedTask.dueDateTime)
-      todayAtItsTime.setFullYear(now.getFullYear(), now.getMonth(), now.getDate())
-    }
-    await handleUpdateTask({ ...selectedTask, ...shiftTaskDueDate(todayAtItsTime, false, 7) })
+    await handleUpdateTask({ ...selectedTask, ...postponeTaskDueDate(selectedTask.dueDateTime, !!selectedTask.isAllDay) })
   }, [selectedTask, handleUpdateTask])
 
   const handleRemoveDueDate = useCallback(async () => {
@@ -1384,14 +1377,12 @@ export function useTaskManagerController({
 
   const handleMakeDueDateEarlier = useCallback(async () => {
     if (!selectedTask) return
-    const shifted = shiftTaskDueDate(selectedTask.dueDateTime, !!selectedTask.isAllDay, -1)
-    await handleUpdateTask({ ...selectedTask, ...shifted })
+    await handleUpdateTask({ ...selectedTask, ...shiftTaskDueDate(selectedTask.dueDateTime, !!selectedTask.isAllDay, -1) })
   }, [selectedTask, handleUpdateTask])
 
   const handleMakeDueDateLater = useCallback(async () => {
     if (!selectedTask) return
-    const shifted = shiftTaskDueDate(selectedTask.dueDateTime, !!selectedTask.isAllDay, 1)
-    await handleUpdateTask({ ...selectedTask, ...shifted })
+    await handleUpdateTask({ ...selectedTask, ...shiftTaskDueDate(selectedTask.dueDateTime, !!selectedTask.isAllDay, 1) })
   }, [selectedTask, handleUpdateTask])
 
   const handleEditTaskLists = useCallback(() => {

@@ -7,7 +7,7 @@
  * by its local day at the same local time.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { shiftTaskDueDate } from '@/lib/date-comparison'
+import { postponeTaskDueDate, shiftTaskDueDate } from '@/lib/date-comparison'
 
 describe('AWTD-1273: shiftTaskDueDate', () => {
   let originalTZ: string | undefined
@@ -48,6 +48,30 @@ describe('AWTD-1273: shiftTaskDueDate', () => {
     expect(shiftTaskDueDate(null, false, 1, now)).toEqual({
       dueDateTime: new Date('2026-10-20T00:00:00Z'), isAllDay: true,
     })
+  })
+})
+
+describe('AWTD-1273: postponeTaskDueDate', () => {
+  let originalTZ: string | undefined
+  beforeEach(() => { originalTZ = process.env.TZ; process.env.TZ = 'America/Los_Angeles' })
+  afterEach(() => {
+    if (originalTZ === undefined) delete process.env.TZ
+    else process.env.TZ = originalTZ
+  })
+  // 10:00 PDT on 19 Oct.
+  const now = new Date('2026-10-19T17:00:00Z')
+
+  it('AWTD-1273: a timed task lands a week from today at its own time', () => {
+    // Due 15:00 PDT on 2 Oct (22:00Z); a week from 19 Oct is 26 Oct, 15:00 PDT = 22:00Z.
+    expect(postponeTaskDueDate(new Date('2026-10-02T22:00:00Z'), false, now)).toEqual({
+      dueDateTime: new Date('2026-10-26T22:00:00Z'), isAllDay: false,
+    })
+  })
+
+  it('AWTD-1273: an all-day or undated task lands all-day a week from today', () => {
+    const weekOut = { dueDateTime: new Date('2026-10-26T00:00:00Z'), isAllDay: true }
+    expect(postponeTaskDueDate(new Date('2026-10-02T00:00:00Z'), true, now)).toEqual(weekOut)
+    expect(postponeTaskDueDate(null, false, now)).toEqual(weekOut)
   })
 })
 
