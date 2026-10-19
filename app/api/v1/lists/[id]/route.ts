@@ -41,7 +41,7 @@ type RouteContext = { params: Promise<{ id: string }> }
 const FILTER_FIELDS = [
   'sortBy', 'manualSortOrder', 'filterPriority', 'filterAssignee',
   'filterDueDate', 'filterCompletion', 'filterRepeating',
-  'filterAssignedBy', 'filterInLists', 'isFavorite'
+  'filterAssignedBy', 'filterInLists', 'filterProjectField', 'isFavorite'
 ] as const
 
 /**

@@ -147,6 +147,7 @@ export const GET = withAuth(
           filterRepeating: list.filterRepeating,
           filterAssignedBy: list.filterAssignedBy,
           filterInLists: list.filterInLists,
+          filterProjectField: list.filterProjectField ?? null,
           defaultPriority: list.defaultPriority,
           defaultRepeating: list.defaultRepeating,
           defaultAssigneeId: list.defaultAssigneeId,

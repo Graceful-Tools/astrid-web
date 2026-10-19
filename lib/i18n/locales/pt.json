@@ -138,7 +138,9 @@
       "empty": "Não definido",
       "errorAuthRequired": "Conecte a sua conta do GitHub para alterar este campo.",
       "errorSsoRequired": "A sua organização exige início de sessão único para este projeto. Inicie sessão no GitHub e tente novamente.",
-      "errorSaveFailed": "Não foi possível guardar essa alteração no GitHub. Tente novamente."
+      "errorSaveFailed": "Não foi possível guardar essa alteração no GitHub. Tente novamente.",
+      "filterLabel": "Campo do projeto",
+      "filterAll": "Todas as tarefas"
     }
   },
   "lists": {

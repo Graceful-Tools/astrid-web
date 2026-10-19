@@ -138,7 +138,9 @@
       "empty": "Non impostato",
       "errorAuthRequired": "Collega il tuo account GitHub per modificare questo campo.",
       "errorSsoRequired": "La tua organizzazione richiede il single sign-on per questo progetto. Accedi a GitHub e riprova.",
-      "errorSaveFailed": "Non è stato possibile salvare la modifica su GitHub. Riprova."
+      "errorSaveFailed": "Non è stato possibile salvare la modifica su GitHub. Riprova.",
+      "filterLabel": "Campo del progetto",
+      "filterAll": "Tutte le attività"
     }
   },
   "lists": {

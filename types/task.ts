@@ -94,6 +94,7 @@ export interface TaskList {
   filterRepeating?: string | null // "not_repeating", "daily", "weekly", "monthly", "yearly", "custom", "all"
   filterPriority?: string | null // "all", "0", "1", "2", "3" for priority levels
   filterInLists?: string | null // "dont_filter", "not_in_list", "in_list"
+  filterProjectField?: string | null // "<fieldId>:<valueId>" on a GitHub board — lib/project-field-filter.ts
   isVirtual?: boolean // For virtual lists
   virtualListType?: string | null // "today", "not-in-list", "assigned" for predefined virtual lists
   sortBy?: string | null

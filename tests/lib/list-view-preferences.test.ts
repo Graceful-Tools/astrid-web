@@ -111,6 +111,13 @@ describe('splitListViewPreferences (task aa4e7eb0)', () => {
     expect(Object.keys(viewPreferences).sort()).toEqual([...LIST_VIEW_PREFERENCE_FIELDS].sort())
     expect(rest).toEqual({})
   })
+
+  it('AWTD-1259: routes the project-field filter to the caller, not the shared list', () => {
+    const { viewPreferences, rest } = splitListViewPreferences({ filterProjectField: 'area:opt-web', name: 'Board' })
+
+    expect(viewPreferences).toEqual({ filterProjectField: 'area:opt-web' })
+    expect(rest).toEqual({ name: 'Board' })
+  })
 })
 
 describe('saveListViewPreferences (task aa4e7eb0)', () => {

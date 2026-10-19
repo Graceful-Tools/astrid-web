@@ -32,6 +32,7 @@ import { Switch } from "@/components/ui/switch"
 import { useTranslations } from "@/lib/i18n/client"
 import { DEFAULT_LIST_SHOW_SUBTASKS } from "@/lib/list-subtask-visibility"
 import { apiPatch } from '@/lib/api'
+import { ProjectFieldFilterSelect } from "./list-settings/ProjectFieldFilterSelect"
 
 interface ListSortAndFiltersProps {
   list: TaskList
@@ -192,6 +193,7 @@ export function ListSortAndFilters({
       filterRepeating: "all",
       filterPriority: "all",
       filterInLists: "dont_filter",
+      filterProjectField: null,
       sortBy: "auto"
     }
 
@@ -214,7 +216,8 @@ export function ListSortAndFilters({
     filterAssignedBy !== "all" ||
     filterRepeating !== "all" ||
     filterPriority !== "all" ||
-    filterInLists !== "dont_filter"
+    filterInLists !== "dont_filter" ||
+    Boolean(list.filterProjectField)
   )
 
   const members = getDefaultAssigneeOptions()
@@ -301,6 +304,12 @@ export function ListSortAndFilters({
           <SelectItem value="current_user">{currentUserLabel}</SelectItem>
           {members.map(member => <MemberItem key={member.id} member={member} />)}
         </FilterRow>
+
+        {/* Filter by a GitHub project field — only renders on a GitHub board (AWTD-1259) */}
+        <ProjectFieldFilterSelect
+          list={list}
+          onChange={(value) => onUpdate({ ...list, filterProjectField: value })}
+        />
 
         <FilterRow
           label="Repeating filter"

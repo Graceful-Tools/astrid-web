@@ -50,6 +50,8 @@ export const V1_LIST_READ_INCLUDE = {
 export type V1ListRow = Prisma.TaskListGetPayload<{ include: typeof V1_LIST_READ_INCLUDE }> & {
   isFavorite?: boolean
   favoriteOrder?: number | null
+  /** Overlaid from the caller's UserListViewPreference; TaskList has no such column. */
+  filterProjectField?: string | null
 }
 
 /**
@@ -85,6 +87,9 @@ export function shapeV1List(
     filterRepeating: list.filterRepeating,
     filterAssignedBy: list.filterAssignedBy,
     filterInLists: list.filterInLists,
+    // Per-user only (AWTD-1259): the overlay is the sole source, so a caller
+    // with no preference row reads null rather than a missing key.
+    filterProjectField: list.filterProjectField ?? null,
     defaultPriority: list.defaultPriority,
     defaultRepeating: list.defaultRepeating,
     ownerId: list.ownerId,

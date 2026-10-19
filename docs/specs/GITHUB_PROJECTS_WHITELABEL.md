@@ -1852,6 +1852,27 @@ iterations and milestones.
   decision and probably a migration. Split to P6a-5
   ([AWTD-1259](https://astrid.cc/t/AWTD-1259)) rather than folded in.
 
+**Board filter ([AWTD-1259](https://astrid.cc/t/AWTD-1259), P6a-5) — built; its migration
+needs a deploy.**
+- **Storage (a), Jon's call:** one nullable `UserListViewPreference.filterProjectField`
+  holding `"<fieldId>:<valueId>"`, so one project-field filter at a time. It is in
+  `LIST_VIEW_PREFERENCE_FIELDS`, so it saves and overlays through the existing per-user
+  path. It has no `TaskList` twin: there is no shared default to fall back to. The migration
+  only adds the column.
+- **Wire:** `filterProjectField` on the v1 list, `null` when unset. Additive.
+- **Rules live in `lib/project-field-filter.ts`:** only unmapped single-select and iteration
+  fields can be filtered on. A stored value whose field or option no longer exists
+  **resolves to no filter**, so a saved preference cannot blank the board.
+- **Values:** the bulk sync omits `fields`, so while a filter is active the board fetches
+  its tasks once with `?include=fields&omit=description,listMembers`
+  (`hooks/use-project-field-values.ts`). It shows unfiltered until that fetch lands, or if
+  it fails. A task's own `fields` (from detail or a session edit) wins over the fetched map.
+- **Control:** a "Project field" select in Sort & Filters, grouped by field, with iterations
+  listed current first. It renders nothing off a GitHub board. Looked at against a dev
+  server: the mapped Status and the text field are absent, and the label is centred on
+  the trigger.
+- **Board only.** The list view of the same board does not apply it yet.
+
 - **Not recorded against GitHub.** The mutation document is built by the same
   `addFieldValue` that P5a already proved against the test project
   (`write-issue-title-status.json`), so the shape is not new. But no text, number or

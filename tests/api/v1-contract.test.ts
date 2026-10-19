@@ -284,6 +284,8 @@ describe('v1 contract — V1List shape (lists/[id] + lists[].element)', () => {
     'taskCount', 'isVirtual', 'virtualListType', 'sortBy', 'manualSortOrder',
     'filterPriority', 'filterAssignee', 'filterDueDate', 'filterCompletion',
     'filterRepeating', 'filterAssignedBy', 'filterInLists',
+    // The caller's one project-field filter on a GitHub board (AWTD-1259).
+    'filterProjectField',
     'defaultPriority', 'defaultRepeating', 'defaultAssigneeId',
     'defaultAssignee', 'defaultIsPrivate', 'defaultDueDate', 'defaultDueTime',
     'aiAgentsEnabled', 'aiAgentConfig', 'publicListType', 'showSubtasks',
@@ -317,7 +319,7 @@ describe('v1 contract — V1List shape (lists/[id] + lists[].element)', () => {
       sortBy: null, manualSortOrder: null,
       filterPriority: null, filterAssignee: null, filterDueDate: null,
       filterCompletion: null, filterRepeating: null, filterAssignedBy: null,
-      filterInLists: null,
+      filterInLists: null, filterProjectField: null,
       defaultPriority: null, defaultRepeating: null, defaultAssigneeId: null,
       defaultAssignee: null,
       defaultIsPrivate: null, defaultDueDate: null, defaultDueTime: null,

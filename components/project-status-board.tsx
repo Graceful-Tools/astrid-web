@@ -33,6 +33,14 @@ import { VirtualizedTaskList } from "@/components/TaskManager/MainContent/Virtua
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { useTranslations } from "@/lib/i18n/client"
 import { shouldShowTaskIdentifier } from "@/lib/task-identifier-links"
+import { useProjectFields } from "@/hooks/use-project-fields"
+import { useProjectFieldValues } from "@/hooks/use-project-field-values"
+import {
+  githubBoardListFor,
+  matchesProjectFieldFilter,
+  projectFieldValuesOf,
+  resolveProjectFieldFilter,
+} from "@/lib/project-field-filter"
 
 interface ProjectStatusBoardProps {
   allTasks: Task[]
@@ -122,6 +130,17 @@ export function ProjectStatusBoard({
     [projectId, customStates],
   )
   const selectedList = lists.find(list => list.id === selectedListId)
+
+  // The caller's project-field filter (AWTD-1259). Only a GitHub board has
+  // fields, and a stale value resolves to null, so it can never blank a board.
+  const githubBoard = githubBoardListFor(lists, projectId)
+  const { fields: fieldSchema } = useProjectFields(githubBoard ? projectId : null)
+  const fieldFilter = React.useMemo(
+    () => resolveProjectFieldFilter(selectedList?.filterProjectField, fieldSchema),
+    [selectedList?.filterProjectField, fieldSchema],
+  )
+  const fieldValues = useProjectFieldValues(fieldFilter && githubBoard ? githubBoard.id : null)
+
   const scrollRef = React.useRef<HTMLDivElement | null>(null)
   const longPressTimerRef = React.useRef<number | null>(null)
   const touchDragRef = React.useRef<{ taskId: string; columnIndex: number; active: boolean } | null>(null)
@@ -158,7 +177,9 @@ export function ProjectStatusBoard({
     const window = (selectedList?.recentlyCompletedWindow ?? null) as RecentlyCompletedWindow | null
     const now = new Date()
     const trimmed = scoped.filter(task =>
-      !task.completed || isTaskRecentlyCompleted(task, window, now),
+      (!task.completed || isTaskRecentlyCompleted(task, window, now)) &&
+      // Applied once the values are in; until then the board shows unfiltered.
+      (!fieldValues || matchesProjectFieldFilter(projectFieldValuesOf(task, fieldValues), fieldFilter)),
     )
 
     const sortBy = selectedList?.sortBy || 'auto'
@@ -169,7 +190,7 @@ export function ProjectStatusBoard({
       : undefined
 
     return sortTasksForList(trimmed, sortBy, manualOrder)
-  }, [allTasks, lists, projectId, selectedList])
+  }, [allTasks, lists, projectId, selectedList, fieldFilter, fieldValues])
 
   React.useEffect(() => {
     if (expandedTaskId && !boardTasks.some(task => task.id === expandedTaskId)) {
