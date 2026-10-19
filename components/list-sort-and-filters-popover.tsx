@@ -69,8 +69,11 @@ export function ListSortAndFiltersPopover({
       // person is looking, instead of leaving them to infer it from the tab
       // they happen to be on.
       subtitle={t('listSettings.sortAndFiltersAreYours')}
+      // A quick panel, not a screen of configuration: a bottom sheet on
+      // mobile and a narrow card on desktop (AWTD-1271).
+      variant="sheet"
     >
-      <div className="p-4 pb-40 md:pb-4">
+      <div className="p-4 pb-8 md:pb-4">
         <ListSortAndFilters
           list={list}
           currentUser={currentUser}

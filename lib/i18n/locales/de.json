@@ -1062,6 +1062,7 @@
     "adminSettings": "Admin-Einstellungen",
     "sortAndFilters": "Sortierung & Filter",
     "sortAndFiltersAreYours": "Nur du siehst diese Einstellungen – sie ändern die Liste für niemanden sonst.",
+    "listOptions": "Listenoptionen",
     "sortBy": "Sortieren nach",
     "showTasks": "Aufgaben anzeigen",
     "priorityFilter": "Prioritätsfilter",

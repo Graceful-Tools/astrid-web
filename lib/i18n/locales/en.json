@@ -1062,6 +1062,7 @@
     "adminSettings": "Admin Settings",
     "sortAndFilters": "Sort & Filters",
     "sortAndFiltersAreYours": "Only you see these — they don't change the list for anyone else.",
+    "listOptions": "List options",
     "sortBy": "Sort by",
     "showTasks": "Show tasks",
     "priorityFilter": "Priority filter",
