@@ -28,6 +28,7 @@ import { isSomeoneElsesTask } from "@/lib/task-leading-control"
 import { boardColumnsFor, taskColumnId } from "@/lib/task-status"
 import { taskMenuDuplicatesPaneControls } from "@/lib/task-detail-project-state"
 import { applyProjectColumnTo } from "@/lib/project-status"
+import { taskDetailPropsEqual } from "./task-detail/task-detail-props-equal"
 import { TaskModals } from "./task-detail/TaskModals"
 import { TaskHeader } from "./task-detail/TaskHeader"
 import { TaskActivitySection } from "./task-detail/TaskActivitySection"
@@ -1488,42 +1489,6 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
 }
 
 // Memoized export to prevent unnecessary re-renders
-const TaskDetailMemo = memo(TaskDetailComponent, (prevProps, nextProps) => {
-  // Check if comments have actually changed (not just length)
-  const prevComments = prevProps.task.comments || []
-  const nextComments = nextProps.task.comments || []
-  
-  const commentsChanged = prevComments.length !== nextComments.length ||
-    prevComments.some((comment, index) => {
-      const nextComment = nextComments[index]
-      return !nextComment || comment.id !== nextComment.id || comment.content !== nextComment.content
-    })
-  
-  // Check if lists have changed
-  const prevLists = prevProps.task.lists || []
-  const nextLists = nextProps.task.lists || []
-  const listsChanged = prevLists.length !== nextLists.length ||
-    prevLists.some((list, index) => {
-      const nextList = nextLists[index]
-      return !nextList || list.id !== nextList.id || list.name !== nextList.name
-    })
-
-  // Only re-render if task ID changes, critical props change, lists changed, or comments changed
-  return (
-    prevProps.task.id === nextProps.task.id &&
-    prevProps.task.title === nextProps.task.title &&
-    prevProps.task.description === nextProps.task.description &&
-    prevProps.task.completed === nextProps.task.completed &&
-    prevProps.task.priority === nextProps.task.priority &&
-    prevProps.task.repeating === nextProps.task.repeating &&
-    prevProps.task.dueDateTime === nextProps.task.dueDateTime &&
-    prevProps.task.isAllDay === nextProps.task.isAllDay &&
-    prevProps.task.assigneeId === nextProps.task.assigneeId &&
-    prevProps.inline === nextProps.inline &&
-    !listsChanged &&
-    !commentsChanged &&
-    prevProps.currentUser?.id === nextProps.currentUser?.id
-  )
-})
+const TaskDetailMemo = memo(TaskDetailComponent, taskDetailPropsEqual)
 
 export { TaskDetailMemo as TaskDetail }
