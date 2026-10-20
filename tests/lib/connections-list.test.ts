@@ -8,7 +8,7 @@
  * webhook server. The point of the helper is that a reader sees all five in
  * one place, with the identity each one authors as.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { BRAND } from '@/lib/brand/config'
 
 const tokenFindMany = vi.hoisted(() => vi.fn())
@@ -39,6 +39,17 @@ const EARLIER = new Date('2026-09-01T10:00:00Z')
 const LONG_AGO = new Date('2026-06-01T10:00:00Z')
 
 describe('listConnections', () => {
+  // The fixtures are dated relative to NOW, and listConnections reads the real
+  // clock to decide what has expired. Unpinned, the suite went red at LATER
+  // (2026-10-20T10:00Z), when the access token's expiry passed (AWTD-1290).
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(NOW)
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
     listClients.mockResolvedValue([])
