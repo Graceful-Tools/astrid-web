@@ -5,7 +5,7 @@
  * session cannot run `gh`. These pin which branches count as a task's work.
  */
 import { describe, it, expect } from 'vitest'
-import { branchesForCompletedTask, prBody, prTitle } from '@/scripts/lib/fixall-prs'
+import { branchesForCompletedTask, isFinishedWork, prBody, prTitle } from '@/scripts/lib/fixall-prs'
 
 const branch = (name: string, ...messages: string[]) => ({ name, messages })
 
@@ -54,5 +54,33 @@ describe('the PR it opens', () => {
 
   it('says so when the run left no report', () => {
     expect(prBody({ task: { identifier: 'X-1' }, taskUrl: 'u', report: null })).toMatch(/no completion report/)
+  })
+})
+
+// AWTD-1278: "done means deployed" leaves a finished task INCOMPLETE until
+// production serves it — so `completed` alone would never open its PR, and the
+// work would never land or deploy.
+describe('isFinishedWork', () => {
+  it('AWTD-1278: an incomplete task awaiting its deploy is finished work', () => {
+    expect(
+      isFinishedWork({ completed: false }, [
+        { content: 'strategy', createdAt: '2026-10-19T00:00:00Z' },
+        { content: '## Done\nAWAITING-DEPLOY: 9f3c2a1b7e4d', createdAt: '2026-10-19T01:00:00Z' },
+      ]),
+    ).toBe(true)
+  })
+
+  it('a completed task still is', () => {
+    expect(isFinishedWork({ completed: true }, [])).toBe(true)
+  })
+
+  it('a released or parked task is a resume point, not a review', () => {
+    expect(isFinishedWork({ completed: false }, [{ content: 'Released back to Ready', createdAt: '2026-10-19T00:00:00Z' }])).toBe(false)
+    expect(
+      isFinishedWork({ completed: false }, [
+        { content: 'AWAITING-DEPLOY: 9f3c2a1b7e4d', createdAt: '2026-10-19T00:00:00Z' },
+        { content: 'Reopened: the fix missed.\nBLOCKED-ON: Jon reproduces it', createdAt: '2026-10-20T00:00:00Z' },
+      ]),
+    ).toBe(false)
   })
 })

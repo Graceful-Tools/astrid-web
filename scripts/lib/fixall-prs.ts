@@ -8,11 +8,31 @@
  * "complete"; `main` had none of it. The runner has no such restriction, so it
  * opens the PR after the run (scripts/open-fixall-prs.ts).
  *
- * Only for tasks the run COMPLETED. A released or parked task's branch is a
- * resume point, not something to review.
+ * Only for FINISHED work (isFinishedWork). A released or parked task's branch is
+ * a resume point, not something to review.
  *
  * Kept apart from the script for the usual reason: it calls main() at import.
  */
+
+import { parseBlockedConditions } from '@/lib/ready-queue-scope'
+
+/**
+ * Is this task's branch finished work, up for review?
+ *
+ * Completed, or incomplete with a current `AWAITING-DEPLOY:` marker (AWTD-1278).
+ * Done means deployed (Jon, 2026-10-13), so a scheduled run that obeys that
+ * leaves finished work INCOMPLETE — and a check on `completed` alone never
+ * opened its PR, so it never landed and never deployed: the AWTD-1039 failure,
+ * produced by following the rule. The marker is the run saying "finished,
+ * awaiting deploy"; land-and-deploy.ts completes the task once production
+ * serves the commit.
+ */
+export function isFinishedWork(
+  task: { completed?: boolean | null },
+  comments: Array<{ content?: string | null; createdAt?: string | null }>,
+): boolean {
+  return Boolean(task.completed) || parseBlockedConditions(comments).awaitingDeploy !== null
+}
 
 export interface CandidateBranch {
   /** Branch name without `origin/`. */
@@ -57,7 +77,7 @@ export function prBody(input: {
 }): string {
   const report = (input.report ?? '').trim()
   return [
-    `Completed by the scheduled \`/fixall\` loop: [${input.task.identifier ?? 'task'}](${input.taskUrl}).`,
+    `Finished by the scheduled \`/fixall\` loop: [${input.task.identifier ?? 'task'}](${input.taskUrl}).`,
     '',
     report ? report : '_The run left no completion report on the task._',
     '',
@@ -65,6 +85,7 @@ export function prBody(input: {
     'Opened by the runner (`scripts/open-fixall-prs.ts`) because a scheduled session cannot run `gh`. ' +
       'Not deployed yet: merging to `main` ships nothing until a production deploy. Once these ' +
       'checks are green, `scripts/land-and-deploy.ts` lands this and deploys it on a later tick ' +
-      '(AWTD-1250) — a pending migration or a red gate stops that and asks instead.',
+      '(AWTD-1250) — a pending migration or a red gate stops that and asks instead. The task is ' +
+      'marked complete once production serves it (AWTD-1278).',
   ].join('\n')
 }

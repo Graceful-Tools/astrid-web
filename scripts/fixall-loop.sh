@@ -519,7 +519,8 @@ if [ "$END_BRANCH" != "main" ] && [ -z "$(git status --porcelain 2>/dev/null)" ]
   git checkout -q main && echo "  returned to main from $END_BRANCH"
 fi
 
-# A completed task's branch gets a PR. `gh` is denied inside the session, so on
+# A finished task's branch gets a PR — completed, or left AWAITING-DEPLOY since
+# done means deployed (AWTD-1278). `gh` is denied inside the session, so on
 # 2026-09-29 four finished tasks sat on pushed branches nobody was asked to
 # review — the board said complete, main had none of it. The runner can run gh.
 PR_OUT=$("$TSX" scripts/open-fixall-prs.ts --claims-file "$CLAIMS_FILE" --repo "$REPO" 2>&1)

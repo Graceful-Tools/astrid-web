@@ -303,6 +303,10 @@ export function describeAssignee(task: AssignableTask): string {
  *     ideally with a recheck date. External facts (an upstream release, a
  *     third-party fix) cannot be machine-verified, so when the date arrives
  *     the task SURFACES for the agent to re-verify rather than auto-promoting.
+ *   - its OWN DEPLOY (AWTD-1278): a comment line `AWAITING-DEPLOY: <commit sha>`.
+ *     Done means deployed, so a scheduled run that finished the work leaves it
+ *     incomplete with this marker; the runner opens its PR, lands it, and marks
+ *     it complete once production serves that commit (scripts/land-and-deploy.ts).
  *
  * The latest marker-bearing comment wins wholesale: updating conditions is
  * "post a new comment", and a comment with no markers changes nothing.
@@ -313,16 +317,20 @@ export interface BlockedConditions {
   blockedBy: string[]
   /** External condition to re-verify, or null. */
   blockedOn: string | null
+  /** Commit production must serve before the task is done, or null. */
+  awaitingDeploy: string | null
 }
 
 const BLOCKED_BY_LINE = /^\s*blocked-by:\s*(\S+)\s*$/i
 const BLOCKED_ON_LINE = /^\s*blocked-on:\s*(.+?)\s*$/i
+// A sha, not prose: the runner checks it against what production serves.
+const AWAITING_DEPLOY_LINE = /^\s*awaiting-deploy:\s*([0-9a-f]{7,40})\b/i
 
 /** Parse the CURRENT conditions from a task's comments (latest marker comment wins). */
 export function parseBlockedConditions(
   comments: Array<{ content?: string | null; createdAt?: string | null }>,
 ): BlockedConditions {
-  const empty: BlockedConditions = { blockedBy: [], blockedOn: null }
+  const empty: BlockedConditions = { blockedBy: [], blockedOn: null, awaitingDeploy: null }
 
   const dated = [...comments].sort(
     (a, b) => new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime(),
@@ -332,14 +340,17 @@ export function parseBlockedConditions(
     const lines = (dated[index].content ?? '').split('\n')
     const blockedBy: string[] = []
     let blockedOn: string | null = null
+    let awaitingDeploy: string | null = null
     for (const line of lines) {
       const by = BLOCKED_BY_LINE.exec(line)
       if (by) blockedBy.push(by[1])
       const on = BLOCKED_ON_LINE.exec(line)
       if (on) blockedOn = on[1]
+      const deploy = AWAITING_DEPLOY_LINE.exec(line)
+      if (deploy) awaitingDeploy = deploy[1].toLowerCase()
     }
-    if (blockedBy.length > 0 || blockedOn !== null) {
-      return { blockedBy, blockedOn }
+    if (blockedBy.length > 0 || blockedOn !== null || awaitingDeploy !== null) {
+      return { blockedBy, blockedOn, awaitingDeploy }
     }
   }
 
@@ -455,6 +466,8 @@ export type WaitingDisposition =
   | 'promote'
   /** No date, no blockers, no condition: nothing will ever wake it. Triage it. */
   | 'review'
+  /** Finished, waiting for production to serve it — the runner completes it (AWTD-1278). */
+  | 'awaiting-deploy'
 
 /**
  * What should the loop do with one claimable Waiting task this run?
@@ -469,8 +482,11 @@ export function classifyWaitingTask(input: {
   now: Date
   blockedBy: string[]
   blockedOn: string | null
+  awaitingDeploy?: string | null
 }): WaitingDisposition {
   if (input.blockedBy.length > 0) return 'check-blockers'
+  // Nothing for an agent to do, whatever the date: the runner watches production.
+  if (input.awaitingDeploy) return 'awaiting-deploy'
   const dueToStart = isDueToStart({ dueDateTime: input.dueDateTime }, input.now)
   if (!dueToStart) return 'hold'
   if (input.blockedOn) return 'recheck'
