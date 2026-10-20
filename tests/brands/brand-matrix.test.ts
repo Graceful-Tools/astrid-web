@@ -179,6 +179,36 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     expect(() => assertCoherentCapabilities()).not.toThrow()
   })
 
+  it('boots GitHub Projects only with its GitHub App credentials (AWTD-1282)', async () => {
+    // Spec §7.5's boot assertion. Without the webhook secret every event was refused and
+    // sync silently fell back to the hourly reconcile; the rest failed at runtime.
+    const { assertGithubProjectsCredentials, GITHUB_PROJECTS_REQUIRED_ENV } =
+      await import('@/lib/brand/capabilities')
+    const complete = Object.fromEntries(GITHUB_PROJECTS_REQUIRED_ENV.map((name) => [name, 'set']))
+
+    expect(() => assertGithubProjectsCredentials(complete)).not.toThrow()
+
+    if (!profile.expect.capabilities.githubProjects) {
+      // The check never runs for a brand without GitHub Projects — Astrid included.
+      expect(() => assertGithubProjectsCredentials({})).not.toThrow()
+      return
+    }
+
+    const error = (() => {
+      try {
+        assertGithubProjectsCredentials({ GITHUB_APP_ID: '1' })
+      } catch (e) {
+        return (e as Error).message
+      }
+      return null
+    })()
+    expect(error).not.toBeNull()
+    for (const name of GITHUB_PROJECTS_REQUIRED_ENV.filter((n) => n !== 'GITHUB_APP_ID')) {
+      expect(error, name).toContain(name)
+    }
+    expect(error).not.toContain('GITHUB_APP_ID,')
+  })
+
   it('derives the expected brand values', async () => {
     const { BRAND, brandOrigin } = await import('@/lib/brand/config')
 

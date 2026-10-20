@@ -510,7 +510,8 @@ Everything above, plus the parts that only a GitHub-backed brand has. Start from
    `GITHUB_APP_PRIVATE_KEY`, `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` (the App's own
    `Iv…` OAuth client), `GITHUB_WEBHOOK_SECRET`, and the App's slug in
    `NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG`. The server refuses to start with `github` listed
-   and no OAuth client.
+   and no OAuth client, and with GitHub Projects on and any of these six unset — naming
+   each one missing (`assertGithubProjectsCredentials`, AWTD-1282).
 5. `npm run check:brands`, then `npx tsx scripts/deploy-brand-preview.ts github-projects`.
    The preview must carry the App's credentials or it will not boot; add the preview's
    callback URLs to the App first.

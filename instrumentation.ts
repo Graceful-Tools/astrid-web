@@ -1,5 +1,9 @@
 import { registerOTel } from '@vercel/otel'
-import { assertCoherentCapabilities, assertUsableAuthConfiguration } from '@/lib/brand/capabilities'
+import {
+  assertCoherentCapabilities,
+  assertGithubProjectsCredentials,
+  assertUsableAuthConfiguration,
+} from '@/lib/brand/capabilities'
 
 /**
  * Server-side OpenTelemetry instrumentation.
@@ -27,6 +31,10 @@ export async function register() {
   // Same reasoning for a capability switched on without the one it is built on:
   // GitHub Projects with Project Mode off binds boards nobody can open (AWTD-1121).
   assertCoherentCapabilities()
+
+  // And GitHub Projects without its App credentials, which degraded silently to the
+  // hourly reconcile instead of failing (AWTD-1282).
+  assertGithubProjectsCredentials()
 
   // Every listed provider must have what it needs (spec §6.2). Missing
   // credentials for GitHub or SSO stop the boot; for the legacy providers they
