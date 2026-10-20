@@ -9,6 +9,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import {
+  ASTRID_AGENT_EMAIL_DOMAIN,
   ASTRID_VERCEL_SCOPE,
   ASTRID_VERCEL_TEAM_ID,
   previewPins,
@@ -54,8 +55,8 @@ describe('resolveVercelTarget (AWTD-1280)', () => {
 })
 
 describe('previewPins (AWTD-1280)', () => {
-  it('pins agent identities to astrid.cc on Astrid’s team, whose previews share the production database', () => {
-    expect(previewPins(resolveVercelTarget([], {}))).toEqual({ BRAND_AGENT_EMAIL_DOMAIN: 'astrid.cc' })
+  it('pins agent identities to Astrid’s agent domain on Astrid’s team, whose previews share the production database', () => {
+    expect(previewPins(resolveVercelTarget([], {}))).toEqual({ BRAND_AGENT_EMAIL_DOMAIN: ASTRID_AGENT_EMAIL_DOMAIN })
   })
 
   it('pins nothing on a partner’s own team — their database, their agent domain', () => {

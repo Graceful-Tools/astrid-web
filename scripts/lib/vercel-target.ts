@@ -11,6 +11,8 @@
 
 export const ASTRID_VERCEL_TEAM_ID = 'team_gFxp7fWaX7e8tUPt8Vt3YXl0'
 export const ASTRID_VERCEL_SCOPE = 'gracefultools'
+/** Where Astrid's production agent User rows live; previews on Astrid's team must match it. */
+export const ASTRID_AGENT_EMAIL_DOMAIN = 'astrid.cc'
 
 export interface VercelTarget {
   teamId: string
@@ -49,5 +51,5 @@ export const VERCEL_TARGET_FLAGS = ['--team', '--scope'] as const
  * profile's agent domain is the right one, so nothing is pinned.
  */
 export function previewPins(target: VercelTarget): Record<string, string> {
-  return target.isAstridTeam ? { BRAND_AGENT_EMAIL_DOMAIN: 'astrid.cc' } : {}
+  return target.isAstridTeam ? { BRAND_AGENT_EMAIL_DOMAIN: ASTRID_AGENT_EMAIL_DOMAIN } : {}
 }
