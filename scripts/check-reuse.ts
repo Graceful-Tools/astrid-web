@@ -34,6 +34,11 @@ interface Rule {
   // optional ERE applied to whole grep output lines; matches are dropped
   reject?: string
   /**
+   * Scan every text file, not only *.ts / *.tsx. For public/, which is served
+   * as-is: HTML, JS and extensionless files like apple-app-site-association.
+   */
+  allFiles?: boolean
+  /**
    * Reported but never blocking, even under --strict.
    *
    * For a backlog too large to clear in one change: the rule goes in first so
@@ -127,7 +132,9 @@ const RULES: Rule[] = [
     //   protocol-headers.ts / webhook-signature.ts    — published header names that
     //     subscribers verify by exact string; renaming them breaks live integrations
     //   apple-identity.ts                             — Apple bundle identifiers
+    //   apple-app-site-association.ts                 — Astrid's default Apple app ids
     exclude: [
+      "apple-app-site-association.ts",
       "config.ts",
       "capabilities.ts",
       "agent-emails.ts",
@@ -151,6 +158,23 @@ const RULES: Rule[] = [
     // values (`X-Astrid-*` headers, the `astrid_` token prefix), which
     // subscribers and stored tokens match on by exact string — WHITELABELING §7.
     reject: String.raw`:[0-9]+:[[:space:]]*(//|\*|/\*|\{/\*)|X-Astrid-|astrid_`,
+  },
+  {
+    id: "public-brand-literal",
+    description: "Brand literal or Apple app id in a file public/ serves to every deployment",
+    fix: "Serve it from a route built from lib/brand/config.ts (see app/.well-known/apple-app-site-association/route.ts), or move a dev helper out of public/ into tools/.",
+    // public/ is served verbatim on every domain, so nothing in it can follow the
+    // brand. It was outside every check, and shipped Astrid's app ids and helper
+    // pages to partner deployments (AWTD-1281).
+    //
+    // public/sw.js passes on purpose: `astrid-*` cache names and `AstridOfflineDB`
+    // are storage keys users never see, and renaming them orphans every installed
+    // client's offline cache. The patterns are case- and boundary-sensitive so
+    // those identifiers do not match.
+    pattern: String.raw`\bAstrid\b|astrid\.cc|Graceful-Tools-Inc\.`,
+    globs: ["public"],
+    exclude: [],
+    allFiles: true,
   },
   {
     id: "hardcoded-jsx-copy",
@@ -244,7 +268,9 @@ function search(rule: Rule): string[] {
   // the argument early and silently matched nothing — a rule reporting a
   // confident zero. No pattern here contains a single quote.
   const rejectFilter = rule.reject ? ` | grep -Ev '${rule.reject}'` : ""
-  const cmd = `{ grep -rEn --include='*.ts' --include='*.tsx' --exclude='*.test.*' --exclude='*.spec.*' ${excludeArgs} -e '${rule.pattern}' ${dirs}${rejectFilter} ; } || true`
+  // -I skips binaries, which an all-files scan of public/ is mostly made of.
+  const fileArgs = rule.allFiles ? "-I" : "--include='*.ts' --include='*.tsx'"
+  const cmd = `{ grep -rEn ${fileArgs} --exclude='*.test.*' --exclude='*.spec.*' ${excludeArgs} -e '${rule.pattern}' ${dirs}${rejectFilter} ; } || true`
   try {
     const out = execSync(cmd, { encoding: "utf8", cwd: root })
     return out.split("\n").filter(Boolean)
@@ -287,7 +313,8 @@ if (json) {
 const SUPPORT_ROOTS = ["scripts", "tools"]
 let support = 0
 for (const rule of RULES) {
-  if (rule.warnOnly) continue
+  // An all-files rule is about what public/ serves; scripts/ and tools/ serve nothing.
+  if (rule.warnOnly || rule.allFiles) continue
   // check-reuse.ts contains every pattern by definition; it is not a violation.
   const hits = search({
     ...rule,

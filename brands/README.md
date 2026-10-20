@@ -180,7 +180,8 @@ native apps read the same `auth` capabilities and hide those buttons too.
 - **iOS / Mac:** `./scripts/apply-brand.sh whitelabel-partner` in astrid-ios points the app
   at the partner host and adds `webcredentials:` (and `applinks:` on iOS) for its domain, so
   native passkeys work there. The partner's site serves `apple-app-site-association` for the
-  same app IDs. The build must be signed by Astrid's team, so it comes from Xcode Cloud or
+  same app IDs, which is the default when `BRAND_APPLE_APP_IDS` is unset. A partner that
+  ships its own apps sets that variable to their app IDs instead. The build must be signed by Astrid's team, so it comes from Xcode Cloud or
   from Xcode on a machine with that team. `--reset` reverts, byte for byte.
 - **Windows:** signs in through the browser (`/signin/desktop`), so passkeys on the
   partner's site need nothing native. The app must be pointed at the partner host.

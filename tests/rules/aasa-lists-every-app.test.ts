@@ -3,12 +3,14 @@
  * refuses the passkey before the server is ever asked. The Whitelabel app (bundle
  * Graceful-Tools-Inc.Whitelabel, astrid-ios "Whitelabel" configuration) signs in on its
  * partner's domain, and that domain serves this same file — so it has to be listed here.
+ *
+ * The file is now a route (AWTD-1281); these are its defaults, which a partner's
+ * deployment serves unless it sets BRAND_APPLE_APP_IDS.
  */
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+import { appleAppSiteAssociation } from '@/lib/brand/apple-app-site-association'
 
-const aasa = JSON.parse(readFileSync(join(process.cwd(), 'public/.well-known/apple-app-site-association'), 'utf8'))
+const aasa = JSON.parse(appleAppSiteAssociation(undefined))
 
 describe('apple-app-site-association names every app that uses it', () => {
   it.each([

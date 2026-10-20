@@ -51,13 +51,14 @@ const nextConfig = {
     ],
   },
   serverExternalPackages: ['@prisma/client', 'pino', 'pino-pretty', 'thread-stream'],
-  // /api/downloads reads these out of public/ at request time. Next only ships
-  // files it can statically trace into a serverless function, and public/ is
-  // served by the CDN rather than bundled — without this the read throws and
-  // the route 404s in production while working fine locally.
+  // /api/downloads reads these from disk at request time. Next only ships
+  // files it can statically trace into a serverless function — without this
+  // the read throws and the route 404s in production while working fine
+  // locally. (The script used to be a stale copy in public/, which also
+  // served it statically with Astrid's URL on every brand: AWTD-1281.)
   outputFileTracingIncludes: {
     '/api/downloads/[filename]': [
-      'public/get-project-tasks-oauth.ts',
+      'scripts/get-project-tasks-oauth.ts',
     ],
     // astrid-core's rules as WebAssembly (lib/core-rules/wasm.ts). Loaded through a require
     // resolved at runtime, which tracing cannot follow, by every server function at start —

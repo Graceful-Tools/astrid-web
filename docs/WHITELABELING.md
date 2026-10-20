@@ -65,6 +65,13 @@ All optional. Each falls back to the Astrid value.
 | `NEXT_PUBLIC_BRAND_APP_STORE_URL` | Astrid's listing | **Empty string hides the button** |
 | `NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG` | `astrid-code-assistant` | Your own registered GitHub App |
 | `NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID` | *(derived)* | Only if inference is wrong — see §7 |
+| `BRAND_APPLE_APP_IDS` | Astrid's apps | Server-only. Comma-separated `<TEAM ID>.<bundle id>` values for `/.well-known/apple-app-site-association`: each is listed for passkeys and for universal links (`/s/*`, `/tasks/*`, `/lists/*`). Set it when you ship your own iOS/Mac apps. Leave it unset if you run the Astrid-signed test binaries (`whitelabel-partner`) |
+
+`public/` is served unchanged on every domain, so nothing brand-specific lives there.
+`check:reuse` (`public-brand-literal`) fails if a brand literal or Apple app id appears in
+it. The one exception is `public/sw.js`: its `astrid-*` cache names and `AstridOfflineDB`
+are storage keys that users never see, and renaming them would orphan every installed
+client's offline cache.
 
 ### Artwork
 

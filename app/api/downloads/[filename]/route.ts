@@ -7,7 +7,7 @@ import { queueWorkflowDownload } from '@/lib/agent-skill/astrid-queue-skill'
 // Static files that are allowed to be downloaded
 const ALLOWED_FILES: Record<string, { path: string; contentType: string }> = {
   'get-project-tasks-oauth.ts': {
-    path: 'public/get-project-tasks-oauth.ts',
+    path: 'scripts/get-project-tasks-oauth.ts',
     contentType: 'text/plain',
   },
 }
