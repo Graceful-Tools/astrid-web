@@ -368,8 +368,10 @@ npm run check:brands                            # verify every brand profile
 npx tsx scripts/deploy-brand-preview.ts acme    # deploy one as a preview
 ```
 
-See **[docs/WHITELABELING.md](./docs/WHITELABELING.md)** for the full reference, and
-[brands/README.md](./brands/README.md) for adding a partner.
+Building your own branded instance? Start with the quickstart at the top of
+**[docs/WHITELABELING.md](./docs/WHITELABELING.md)** ("Start here"). It covers clone to
+deploy, then the native apps, with a per-platform status table. The rest of that file is
+the full reference, and [brands/README.md](./brands/README.md) covers adding a partner.
 
 ### Key Features Documentation
 - **[Quick Reference](./docs/context/quick-reference.md)** - Essential commands and patterns

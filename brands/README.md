@@ -70,7 +70,15 @@ These files are **not web-only**. The iOS and Mac apps read the same profile:
 cd ../astrid-ios
 ./scripts/apply-brand.sh acme        # write the profile into both Info.plist files
 ./scripts/check-brands.sh            # apply each profile, audit it, revert
+./scripts/make-brand-variant.sh acme # your own bundle ID, App Group and team (Whitelabel config)
 ```
+
+`make-brand-variant.sh` reads an optional `ios` block in the profile, beside `env`. It holds
+identity that only an Apple build needs (bundle ID, App Group, keychain group, team,
+display name), and the web ignores it.
+docs/WHITELABELING.md §6 has the precedence rules. Windows reads an optional `windows` block
+the same way. Android does not read these files; it has its own `brands/<name>/brand.properties`
+in astrid-android.
 
 `Astrid App/Utilities/BrandProfile.swift` maps the profile's variables onto the
 Info.plist keys `Brand` reads, and `BrandProfileTests` **parses `Brand.swift`** and fails
@@ -184,8 +192,11 @@ native apps read the same `auth` capabilities and hide those buttons too.
   ships its own apps sets that variable to their app IDs instead. The build must be signed by Astrid's team, so it comes from Xcode Cloud or
   from Xcode on a machine with that team. `--reset` reverts, byte for byte.
 - **Windows:** signs in through the browser (`/signin/desktop`), so passkeys on the
-  partner's site need nothing native. The app must be pointed at the partner host.
+  partner's site need nothing native. Point a test build at the partner host with
+  `ASTRID_SERVER_URL`. A branded package comes from `scripts/package.ps1 -Brand <profile>`
+  in astrid-windows, which reads this same file.
 - **The URL scheme stays `astrid`** in this profile. A scheme is part of an app's identity,
-  and the test binaries register only `astrid://`; a partner's own scheme needs a
-  partner-built app (bundle ID, scheme, store listing — frozen for us, see
-  docs/WHITELABELING.md §7).
+  and the test binaries register only `astrid://`. A partner's own scheme needs a
+  partner-built app: iOS/Mac `make-brand-variant.sh`, Windows `package.ps1 -Brand`, or Android
+  `-PastridBrand`. Set `NEXT_PUBLIC_BRAND_APP_URL_SCHEME` to the scheme that app registers.
+  See docs/WHITELABELING.md → *Start here* for the per-platform status.
