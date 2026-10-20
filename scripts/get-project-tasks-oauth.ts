@@ -8,6 +8,7 @@
  */
 
 import { OAuthAPIClient } from '../lib/oauth-api-client'
+import { mcpDefaultBaseUrl } from '../lib/brand/config'
 import { loadScriptEnv } from './lib/load-env'
 
 loadScriptEnv()
@@ -24,7 +25,7 @@ async function getProjectTasks() {
     console.error('  ASTRID_OAUTH_CLIENT_ID=your_client_id')
     console.error('  ASTRID_OAUTH_CLIENT_SECRET=your_client_secret')
     console.error('\nGet your OAuth credentials from:')
-    console.error('  https://astrid.cc/settings/api-access\n')
+    console.error(`  ${mcpDefaultBaseUrl()}/settings/api-access\n`)
     process.exit(1)
   }
 

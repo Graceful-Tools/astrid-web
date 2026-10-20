@@ -97,12 +97,12 @@ const htmlGenerator = `<!DOCTYPE html>
 </body>
 </html>`;
 
-fs.writeFileSync(path.join(__dirname, '..', 'public', 'png-icon-generator.html'), htmlGenerator);
+fs.writeFileSync(path.join(__dirname, '..', 'tools', 'icons', 'png-icon-generator.html'), htmlGenerator);
 
 console.log('PNG Icon Generator created!');
 console.log('');
 console.log('To generate the required PNG icons:');
-console.log('1. Open public/png-icon-generator.html in your browser');
+console.log('1. Open tools/icons/png-icon-generator.html in your browser');
 console.log('2. Click "Download" for each icon size');
 console.log('3. Save all files in the public/icons/ directory');
 console.log('4. The PWA install prompt should then appear in Chrome');

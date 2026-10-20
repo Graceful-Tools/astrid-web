@@ -37,6 +37,11 @@ const VIOLATIONS: Record<string, { path: string; content: string }> = {
     path: 'components/bad-brand.tsx',
     content: 'export const x = <p>Welcome to Astrid</p>\n',
   },
+  // No extension at all: public/ is served as-is, so the scan cannot stop at *.ts (AWTD-1281).
+  'public-brand-literal': {
+    path: 'public/.well-known/apple-app-site-association',
+    content: '{ "webcredentials": { "apps": ["34K3P7PD2W.Graceful-Tools-Inc.Astrid-App"] } }\n',
+  },
   'hardcoded-jsx-copy': {
     path: 'components/bad-jsx.tsx',
     content: 'export const x = <p>Some visible copy</p>\n',
@@ -75,12 +80,21 @@ beforeAll(() => {
     // A file with nothing objectionable in it, so the clean run is not empty
     // for the trivial reason that grep had no files to read.
     writeFileSync(join(root, 'components/fine.tsx'), 'export const x = 1\n')
+    // The service worker's storage keys are not copy: renaming them orphans every
+    // installed client's offline cache, so they must not trip the public/ scan.
+    mkdirSync(join(root, 'public'), { recursive: true })
+    writeFileSync(
+      join(root, 'public/sw.js'),
+      "const CACHE_NAME = 'astrid-v1.0.8';\nconst db = new Dexie('AstridOfflineDB');\n"
+    )
   }
 
   for (const { path, content } of Object.values(VIOLATIONS)) {
     mkdirSync(join(fixtureRoot, path.split('/').slice(0, -1).join('/')), { recursive: true })
     writeFileSync(join(fixtureRoot, path), content)
   }
+  // A served dev helper page, the other shape AWTD-1281 found in public/.
+  writeFileSync(join(fixtureRoot, 'public/icon-generator.html'), '<title>Astrid PWA Icon Generator</title>\n')
 }, 120_000)
 
 afterAll(() => {
@@ -103,6 +117,10 @@ describe('check:reuse rules actually fire (task bc27c00a)', { timeout: 60_000 },
       findings[ruleId].join('\n'),
       `rule "${ruleId}" did not flag ${VIOLATIONS[ruleId].path}`
     ).toContain(VIOLATIONS[ruleId].path.split('/').pop())
+  }, 120_000)
+
+  it('scans every served file type in public/, not just TypeScript (AWTD-1281)', () => {
+    expect(run(fixtureRoot)['public-brand-literal'].join('\n')).toContain('icon-generator.html')
   }, 120_000)
 
   it('reports nothing on a clean tree', () => {

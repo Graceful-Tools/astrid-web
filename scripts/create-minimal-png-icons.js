@@ -40,7 +40,7 @@ console.log('\nMinimal PNG icons created!');
 console.log('These are placeholder icons that will allow PWA installation to work.');
 console.log('You should replace them with proper icons using the HTML generator.');
 console.log('\nTo create proper icons:');
-console.log('1. Open public/png-icon-generator.html in your browser');
+console.log('1. Open tools/icons/png-icon-generator.html in your browser');
 console.log('2. Download all the properly designed icons');
 console.log('3. Replace the placeholder files in public/icons/');
 console.log('\nPWA installation should now work in Chrome!');

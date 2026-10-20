@@ -204,6 +204,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'NEXT_PUBLIC_BRAND_ACCENT_COLOR', scope: 'optional', description: 'Accent colour: default list colour, focus ring, email chrome, theme_color.', validate: isHexColour },
   { name: 'NEXT_PUBLIC_BRAND_AGENT_NAME', scope: 'optional', description: 'Display name of the built-in assistant identity.' },
   { name: 'BRAND_AGENT_EMAIL_DOMAIN', scope: 'optional', description: 'Domain for agent mailboxes. Defaults to the brand domain.', validate: isDomain },
+  { name: 'BRAND_APPLE_APP_IDS', scope: 'optional', description: 'Comma-separated <TEAM ID>.<bundle id> values named in apple-app-site-association for passkeys and universal links. Unset serves the default file.' },
   { name: 'NEXT_PUBLIC_BRAND_LOGO', scope: 'optional', description: 'Path to the mascot/character artwork.' },
   { name: 'NEXT_PUBLIC_BRAND_ICON', scope: 'optional', description: 'Path to the large square app mark.' },
   { name: 'NEXT_PUBLIC_BRAND_ICON_SMALL', scope: 'optional', description: 'Path to the small square app mark.' },
@@ -241,7 +242,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_CALENDAR_FEED', scope: 'optional', description: 'Public .ics calendar feed.' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE', scope: 'optional', description: 'Projects and status boards. Off compiles back to the single-player to-do app.' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_TASK_COST', scope: 'optional', description: 'Per-task cost tracking.' },
-  { name: 'NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS', scope: 'optional', description: 'GitHub Projects as a task backend. OFF unless set to true; never set for astrid.cc (spec D5).' },
+  { name: 'NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS', scope: 'optional', description: 'GitHub Projects as a task backend. OFF unless set to true; never set for the default hosted deployment (spec D5).' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS', scope: 'optional', description: 'On GitHub Projects boards, mirror an AI agent assignment as an agent:<name> label on the issue. OFF unless set to true (spec C3).' },
 
   // ── Analytics and observability ───────────────────────────────────────────
