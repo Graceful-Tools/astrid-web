@@ -31,6 +31,11 @@
  * created on demand, so a preview at a different agent domain would write junk
  * identities into production data.
  *
+ * That pin is Astrid's, and applies only when deploying to Astrid's Vercel team
+ * (AWTD-1280). A partner deploying from their own account (`--team` / `--scope`,
+ * or VERCEL_TEAM_ID / VERCEL_SCOPE — scripts/lib/vercel-target.ts) has their own
+ * database, where the profile's agent domain is the right one.
+ *
  * Pinned, not omitted: BRAND.agentEmailDomain falls back to NEXT_PUBLIC_BRAND_DOMAIN,
  * so merely leaving it out still moves agent identities to the brand's web domain. That
  * was the first attempt here and it did not work — verified against the deployed
@@ -42,17 +47,9 @@ import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { loadScriptEnv } from './lib/load-env'
 import { profileEnv, type BrandProfile } from '../lib/brand/profile'
+import { previewPins, resolveVercelTarget, VERCEL_TARGET_FLAGS, type VercelTarget } from './lib/vercel-target'
 
 loadScriptEnv()
-
-/**
- * Forced to a fixed value on previews regardless of what the profile asks for, because
- * the profile's value would cause writes to the shared production database.
- */
-const PINNED_FOR_PREVIEW: Record<string, string> = {
-  // Keep agent identities exactly where production already has them.
-  BRAND_AGENT_EMAIL_DOMAIN: 'astrid.cc',
-}
 
 const args = process.argv.slice(2)
 const aliasAt = args.indexOf('--alias')
@@ -61,9 +58,26 @@ if (aliasAt !== -1 && (!alias || alias.startsWith('--'))) {
   console.error('--alias requires a hostname, e.g. --alias whitelabel.astrid.cc')
   process.exit(1)
 }
-const profileName = args.filter((arg, i) => arg !== '--alias' && i !== aliasAt + 1)[0]
+
+let target: VercelTarget
+try {
+  target = resolveVercelTarget(args)
+} catch (error) {
+  console.error(`❌ ${error instanceof Error ? error.message : error}`)
+  process.exit(1)
+}
+
+/**
+ * Forced to a fixed value on previews regardless of what the profile asks for, because
+ * on Astrid's team the profile's value would cause writes to the shared production
+ * database. Empty on a partner's own team.
+ */
+const PINNED_FOR_PREVIEW = previewPins(target)
+
+const valueFlags: string[] = ['--alias', ...VERCEL_TARGET_FLAGS]
+const profileName = args.find((arg, i) => !arg.startsWith('--') && !valueFlags.includes(args[i - 1]))
 if (!profileName) {
-  console.error('Usage: npx tsx scripts/deploy-brand-preview.ts <profile> [--alias <hostname>]')
+  console.error('Usage: npx tsx scripts/deploy-brand-preview.ts <profile> [--alias <hostname>] [--team <id>] [--scope <slug>]')
   console.error('   e.g. npx tsx scripts/deploy-brand-preview.ts acme')
   process.exit(1)
 }
@@ -121,7 +135,7 @@ console.log('')
 
 const output = execFileSync(
   'npx',
-  ['vercel', '--yes', '--token', token, '--scope', 'gracefultools', ...buildEnvArgs],
+  ['vercel', '--yes', '--token', token, '--scope', target.scope, ...buildEnvArgs],
   { encoding: 'utf8', stdio: ['inherit', 'pipe', 'inherit'] }
 )
 
@@ -133,7 +147,7 @@ if (url) {
   if (alias) {
     execFileSync(
       'npx',
-      ['vercel', 'alias', url, alias, '--token', token, '--scope', 'gracefultools'],
+      ['vercel', 'alias', url, alias, '--token', token, '--scope', target.scope],
       { encoding: 'utf8', stdio: ['inherit', 'inherit', 'inherit'] }
     )
     console.log(`\n🔗 ${profile.name} is live at https://${alias}`)

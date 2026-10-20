@@ -268,7 +268,8 @@ export const ENV_VARS: EnvVar[] = [
   // ── Deployment tooling ────────────────────────────────────────────────────
   { name: 'VERCEL_TOKEN', scope: 'tooling', description: 'Vercel CLI token for deploy scripts.' },
   { name: 'VERCEL_API_TOKEN', scope: 'tooling', description: 'Vercel REST API token for log and deployment queries.' },
-  { name: 'VERCEL_TEAM_ID', scope: 'tooling', description: 'Vercel team scope for API queries.' },
+  { name: 'VERCEL_TEAM_ID', scope: 'tooling', description: 'Vercel team scope for API queries, and the team the brand deploy scripts target (defaults to the hosted service’s).' },
+  { name: 'VERCEL_SCOPE', scope: 'tooling', description: 'Vercel CLI --scope (team slug) for the brand deploy scripts. Defaults to the hosted service’s; a partner on their own account sets it.' },
   { name: 'VERCEL_PROJECT_ID', scope: 'tooling', description: 'Vercel project scope for API queries.' },
   { name: 'VERCEL_GIT_EMAIL', scope: 'tooling', description: 'Git author email for agent commits; must be a Vercel team member.' },
   { name: 'VERCEL_GIT_NAME', scope: 'tooling', description: 'Git author name for agent commits.' },
