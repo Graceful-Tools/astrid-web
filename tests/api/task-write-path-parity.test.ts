@@ -2,7 +2,7 @@
  * Contract test for task fb94f2ee — the acceptance criterion.
  *
  * The same completion scenario is driven through all three task-write
- * surfaces (legacy PUT, v1 PUT, agent PATCH) and the resulting DB state and
+ * surfaces (v1 PUT, agent PATCH, MCP; the legacy PUT was deleted in AWTD-839) and the resulting DB state and
  * side effects must be identical. Five independent implementations of "update
  * a task" had drifted: v1 never rescheduled reminders, never cancelled an
  * in-flight coding workflow and never synced manual-sort memberships; the
@@ -175,10 +175,6 @@ function jsonReq(url: string, method: string, body: unknown) {
 
 /** Drive `{ completed: true }` through one surface and return the prisma update data. */
 const SURFACES = {
-  async legacy(body: unknown) {
-    const { PUT } = await import('@/app/api/tasks/[id]/route')
-    return await PUT(jsonReq('http://localhost/api/tasks/task-1', 'PUT', { title: 'A task', ...(body as object) }), ctx())
-  },
   async v1(body: unknown) {
     const { PUT } = await import('@/app/api/v1/tasks/[id]/route')
     return await PUT(jsonReq('http://localhost/api/v1/tasks/task-1', 'PUT', body), ctx())
@@ -197,7 +193,9 @@ const SURFACES = {
   },
 }
 
-const NAMES = ['legacy', 'v1', 'agent', 'mcpOperations'] as const
+// The legacy PUT /api/tasks/[id] was a fourth surface until the census cleared
+// it for deletion (AWTD-839).
+const NAMES = ['v1', 'agent', 'mcpOperations'] as const
 
 function updateData() {
   return taskUpdate.mock.calls.at(-1)?.[0]?.data ?? {}
@@ -358,7 +356,6 @@ describe.each(NAMES)('%s task-write surface — completion semantics (task fb94f
 
 describe('every task-write surface goes through the service (epic 9dedd8aa)', () => {
   it.each([
-    'app/api/tasks/[id]/route.ts',
     'app/api/v1/tasks/[id]/route.ts',
     'app/api/v1/agent/tasks/[id]/route.ts',
     'app/api/mcp/operations/handlers/task-operations.ts',

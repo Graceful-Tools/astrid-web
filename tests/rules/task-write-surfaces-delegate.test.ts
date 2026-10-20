@@ -30,7 +30,7 @@ const ROOT = process.cwd()
  */
 const TASK_WRITE_SURFACES = [
   'app/api/tasks/route.ts',
-  'app/api/tasks/[id]/route.ts',
+  // app/api/tasks/[id]/route.ts was deleted once the census cleared it (AWTD-839).
   'app/api/v1/tasks/route.ts',
   'app/api/v1/tasks/[id]/route.ts',
   'app/api/v1/agent/tasks/[id]/route.ts',

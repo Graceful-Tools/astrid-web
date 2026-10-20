@@ -235,7 +235,16 @@ describe('routes the census cleared are gone (AWTD-839)', () => {
   // of durable telemetry, reported exactly one route SAFE: no traffic across
   // the window, no caller on web, iOS or server, and no successor by decision
   // (task 641a7615, 3A). Pinned so it is not restored by a stray merge.
-  it.each(['app/api/user/mcp-settings/route.ts'])('%s is deleted', (file) => {
+  //
+  // 2026-10-19 (51 days of telemetry) cleared two more: `/api/tasks/[id]`
+  // (last hit 2026-09-10; its one caller moved to v1 in AWTD-1246) and
+  // `/api/upload` (last hit 2026-09-21). Both have v1 successors and no caller
+  // on any platform. The `/api/tasks/[id]/*` sub-routes are separate rows and stay.
+  it.each([
+    'app/api/user/mcp-settings/route.ts',
+    'app/api/tasks/[id]/route.ts',
+    'app/api/upload/route.ts',
+  ])('%s is deleted', (file) => {
     expect(existsSync(join(process.cwd(), file))).toBe(false)
   })
 })
