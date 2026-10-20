@@ -214,3 +214,34 @@ export function assertCoherentCapabilities(): void {
     )
   }
 }
+
+/**
+ * What GitHub Projects needs to work (spec §7.5): the brand's GitHub App, its
+ * webhook secret, its OAuth client, and its install slug.
+ */
+export const GITHUB_PROJECTS_REQUIRED_ENV = [
+  'GITHUB_APP_ID',
+  'GITHUB_APP_PRIVATE_KEY',
+  'GITHUB_WEBHOOK_SECRET',
+  'GITHUB_CLIENT_ID',
+  'GITHUB_CLIENT_SECRET',
+  'NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG',
+] as const
+
+/**
+ * GitHub Projects switched on without its credentials half works: with no webhook
+ * secret every event is refused and sync quietly falls back to the hourly reconcile,
+ * and the rest fail at the first request that needs them (AWTD-1282). Guarded at
+ * startup beside assertCoherentCapabilities(); does nothing when the capability is off.
+ */
+export function assertGithubProjectsCredentials(
+  env: Record<string, string | undefined> = process.env,
+): void {
+  if (!CAPABILITIES.githubProjects) return
+  const missing = GITHUB_PROJECTS_REQUIRED_ENV.filter((name) => !env[name]?.trim())
+  if (missing.length === 0) return
+  throw new Error(
+    `Brand configuration enables GitHub Projects without its GitHub App configuration — set ${missing.join(', ')}, ` +
+      'or drop NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS.'
+  )
+}
