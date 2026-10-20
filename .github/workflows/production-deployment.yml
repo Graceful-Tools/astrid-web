@@ -40,6 +40,9 @@ env:
   NODE_VERSION: '22'
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  # The origin every check below asks. A partner running this workflow sets the
+  # PRODUCTION_URL repository variable; unset, it is Astrid's (AWTD-1280).
+  PRODUCTION_URL: ${{ vars.PRODUCTION_URL || 'https://astrid.cc' }}
 
 jobs:
   # Job 1: Quality Gates (Tests, Linting, Build)
@@ -389,7 +392,7 @@ jobs:
           # happened on 2026-09-18. Reporting success in that case is right (the
           # intended code IS live), but it must not be mistaken for proof that
           # this run's CLI worked, so the log says which one it was.
-          sha_before=$(curl -sS --max-time 15 https://astrid.cc/api/health 2>/dev/null \
+          sha_before=$(curl -sS --max-time 15 "$PRODUCTION_URL/api/health" 2>/dev/null \
             | grep -oE '"commitSha"[[:space:]]*:[[:space:]]*"[^"]*"' \
             | sed -E 's/.*"([^"]*)".*/\1/' || true)
           echo "ℹ️  Production is currently serving: ${sha_before:-(no answer)}"
@@ -421,7 +424,7 @@ jobs:
           fi
 
           # THE ONLY THING THAT DECIDES SUCCESS: what production is serving.
-          if bash scripts/verify-deployed-sha.sh "$GITHUB_SHA" --timeout 300; then
+          if bash scripts/verify-deployed-sha.sh "$GITHUB_SHA" --url "$PRODUCTION_URL" --timeout 300; then
             echo "success=true" >> $GITHUB_OUTPUT
             echo "✅ Production is serving $GITHUB_SHA."
             if [ "$sha_before" = "$GITHUB_SHA" ]; then
@@ -463,11 +466,11 @@ jobs:
           # astrid.cc returned 200 while every list read 500'd, because the old
           # build was live against the new schema. A commit SHA is the question
           # worth asking.
-          bash scripts/verify-deployed-sha.sh "$GITHUB_SHA" --timeout 300
+          bash scripts/verify-deployed-sha.sh "$GITHUB_SHA" --url "$PRODUCTION_URL" --timeout 300
 
       - name: Run Health Checks
         run: |
-          PROD_URL="https://astrid.cc"
+          PROD_URL="$PRODUCTION_URL"
           echo "Running health checks against: $PROD_URL"
 
           # Test home page (follows redirects to /auth/signin for unauthenticated users)

@@ -475,6 +475,52 @@ Moving an existing deployment to a new agent-email domain also needs
 `scripts/migrate-agent-email-domain.ts` (dry-runs by default). A fresh deployment does
 not: agent rows are created lazily at whatever domain is configured.
 
+### A partner on their own Vercel account and their own database
+
+The steps above default to Astrid's Vercel team. Astrid's previews share Astrid's
+production database. A partner running their own instance points the same tools at their
+own team (AWTD-1280):
+
+1. **Name the team.** Pass `--team <team id>` and `--scope <team slug>`, or set
+   `VERCEL_TEAM_ID` and `VERCEL_SCOPE`. Flags win over the environment. With neither set,
+   the scripts target Astrid's team.
+
+   ```bash
+   npx tsx scripts/push-brand-env.ts partner --project partner --team team_xxx --scope partner-co --dry-run
+   npx tsx scripts/deploy-brand-preview.ts partner --team team_xxx --scope partner-co
+   ```
+
+   `deploy-brand-preview.ts` pins `BRAND_AGENT_EMAIL_DOMAIN=astrid.cc` **only on Astrid's
+   team**, where a preview writes agent rows into Astrid's production data. On the
+   partner's team it is their database, so the profile's agent domain is used as written.
+2. **Attach a database** (Vercel → Storage → Neon, connected to Production and Preview),
+   then run `push-brand-env.ts` again to map `DATABASE_URL_UNPOOLED` to
+   `DATABASE_URL_DIRECT`.
+3. **Set the minimum environment.** These are the `required` entries in `lib/env.ts`.
+   `push-brand-env.ts` writes all of them except the database URLs, and it generates a
+   secret only when that secret is absent:
+
+   | Variable | What it is |
+   |---|---|
+   | `DATABASE_URL` | pooled Postgres, for runtime queries |
+   | `DATABASE_URL_DIRECT` | unpooled Postgres; migrations run through it at deploy |
+   | `NEXTAUTH_SECRET` | signs sessions; rotating it signs everyone out |
+   | `NEXTAUTH_URL` | `https://<brand domain>`; callbacks and absolute links derive from it |
+   | `CRON_SECRET` | cron routes fail closed without it |
+   | `ENCRYPTION_KEY` | encrypts stored credentials; losing it makes them unrecoverable |
+
+   Everything else is optional: sign-in providers, email, push, storage. `npm run
+   check:env` lists the full registry.
+4. **If they deploy with `production-deployment.yml`:** set the repository secrets
+   `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `DATABASE_URL` and
+   `DATABASE_URL_DIRECT`. Set the **repository variable** `PRODUCTION_URL` to their
+   origin. Unset, the before-deploy probe, the commit-SHA verification and the health
+   check all ask `https://astrid.cc`, which is Astrid's state, not theirs.
+5. **Delete Astrid's own workflows.** These drive Astrid's agent loops and publish
+   Astrid's SDK, and they do nothing useful in a fork:
+   `.github/workflows/fixall.yml`, `fixstuff.yml`, `astrid-coding-agent.yml` and
+   `publish-astrid-sdk.yml`.
+
 ### A GitHub Projects partner
 
 Everything above, plus the parts that only a GitHub-backed brand has. Start from
