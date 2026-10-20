@@ -69,7 +69,10 @@
     "wordmark": "whitelabel",
     "slogan": "Build together.",
     "appStoreUrl": "",
-    "githubAppSlug": "astrid-code-assistant"
+    "githubAppSlug": "astrid-code-assistant",
+    "inheritsAstridIdentity": [
+      "NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG"
+    ]
   },
   "copy": {
     "reminders": {

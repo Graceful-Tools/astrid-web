@@ -67,6 +67,23 @@ All optional. Each falls back to the Astrid value.
 | `NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID` | *(derived)* | Only if inference is wrong — see §7 |
 | `BRAND_APPLE_APP_IDS` | Astrid's apps | Server-only. Comma-separated `<TEAM ID>.<bundle id>` values for `/.well-known/apple-app-site-association`: each is listed for passkeys and for universal links (`/s/*`, `/tasks/*`, `/lists/*`). Set it when you ship your own iOS/Mac apps. Leave it unset if you run the Astrid-signed test binaries (`whitelabel-partner`) |
 
+### A variable you forget ships Astrid's value — so the build says so
+
+Falling back to Astrid is what keeps hosted Astrid unchanged, but it also means a partner
+who sets the name and forgets the support email ships `support@astrid.cc` without being
+told. So once **any** identity variable is set (name, title, tagline, domain, support or
+inbound email, slogan, logo, App Store URL, app URL scheme, GitHub App slug),
+`next.config.mjs` warns at build about each of them still unset
+(`scripts/lib/brand-identity-check.mjs`, AWTD-1285). Astrid sets none, so it never warns.
+
+| Variable | Effect |
+|---|---|
+| `BRAND_INHERIT_ASTRID_IDENTITY` | Comma-separated variables you keep on Astrid's value on purpose, e.g. `NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG` while you run Astrid's GitHub App. They stop warning |
+| `BRAND_STRICT_IDENTITY` | `true` fails the build instead of warning |
+
+Each `brands/*.brand.json` declares what it inherits in `expect.inheritsAstridIdentity`,
+and the brand matrix holds it to exactly that list.
+
 `public/` is served unchanged on every domain, so nothing brand-specific lives there.
 `check:reuse` (`public-brand-literal`) fails if a brand literal or Apple app id appears in
 it. The one exception is `public/sw.js`: its `astrid-*` cache names and `AstridOfflineDB`

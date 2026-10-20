@@ -29,6 +29,7 @@ enabled services.
 | `expect.capabilities` | Capability keys that must be on / off |
 | `expect.forbidLiterals` | Strings that must NOT appear in rendered output for this
   profile (e.g. a rebranded deployment must not leak "Astrid") |
+| `expect.inheritsAstridIdentity` | Identity variables the profile deliberately leaves on Astrid's value — exactly what its build warns about. `[]` for Astrid itself (AWTD-1285) |
 | `copy` | Optional. Brand *voice*: reminder nags and default-list captions |
 
 ## Brand voice (`copy`)
