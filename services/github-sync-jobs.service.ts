@@ -50,6 +50,7 @@ import {
   type AgentLabelPayload,
 } from '@/lib/github/projects/agent-labels'
 import type { RecurPayload } from '@/lib/github/projects/recur'
+import { commentSyncDedupeKey, type IssueCommentPayload } from '@/lib/github/projects/comments'
 
 const log = createLogger('services.github-sync-jobs')
 
@@ -69,6 +70,17 @@ export function enqueueHydrate(args: {
 }): Promise<boolean> {
   const payload: HydratePayload = { itemNodeId: args.itemNodeId, projectNodeId: args.projectNodeId }
   return enqueue('hydrate', args.installationId, hydrateDedupeKey(args.itemNodeId, args.now ?? Date.now()), payload)
+}
+
+/** Re-read a comment made on github.com and mirror it (AWTD-1283): coalesced per comment per 2s. */
+export function enqueueIssueCommentSync(args: { installationId: number; commentNodeId: string; now?: number }): Promise<boolean> {
+  const payload: IssueCommentPayload = { commentNodeId: args.commentNodeId }
+  return enqueue(
+    'issue_comment',
+    args.installationId,
+    commentSyncDedupeKey(args.commentNodeId, args.now ?? Date.now()),
+    payload,
+  )
 }
 
 /** Refresh board roles for everyone in an installation (org membership changed). */
@@ -209,11 +221,23 @@ async function runCommentPush(
   if (!client) throw new Error('auth_required: the comment author has no usable GitHub token')
   const body = asAgent ? `**${comment.author?.name ?? 'Agent'}** (via ${BRAND.appName})\n\n${comment.content}` : comment.content
 
-  await client.query(
+  const posted = await client.query<{ m0?: { commentEdge?: { node?: { id?: string } } } }>(
     'mutation($s: ID!, $b: String!) { m0: addComment(input: { subjectId: $s, body: $b }) { commentEdge { node { id } } } }',
     { s: comment.task.remoteNodeId, b: body },
     { strict: true },
   )
+
+  // Its echo comes back as an `issue_comment` event; the id is how that is
+  // recognised as this comment (AWTD-1283). Posted is done: a failure here
+  // must not retry the job, which would post it twice. The echo's own job
+  // adopts it instead, by author and text.
+  const remoteNodeId = posted.m0?.commentEdge?.node?.id
+  if (!remoteNodeId) return
+  try {
+    await prisma.comment.updateMany({ where: { id: payload.commentId, remoteNodeId: null }, data: { remoteNodeId } })
+  } catch (err) {
+    log.warn({ commentId: payload.commentId, err }, 'Posted to GitHub, but its comment id was not recorded')
+  }
 }
 
 /**
@@ -342,6 +366,11 @@ export async function drainSyncJobs(limit = 20, deps: DrainDeps = {}): Promise<D
           job.installationId,
           (deps.agentClientFor ?? (id => installationGraphqlClient(id, 'write')))(job.installationId),
         )
+      }
+      case 'issue_comment': {
+        const { syncRemoteComment } = await import('@/services/github-comments.service')
+        await syncRemoteComment((job.payload as unknown as IssueCommentPayload).commentNodeId, clientFor(job.installationId))
+        return
       }
       case 'agent_label':
         return runAgentLabelSync(

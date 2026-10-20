@@ -20,7 +20,7 @@ const db = vi.hoisted(() => ({
   gitHubProjectBinding: { findMany: vi.fn() },
   task: { findUnique: vi.fn(), update: vi.fn((a: unknown) => ({ op: 'task.update', a })) },
   gitHubProjectItem: { upsert: vi.fn((a: unknown) => ({ op: 'item.upsert', a })), findFirst: vi.fn() },
-  comment: { findUnique: vi.fn() },
+  comment: { findUnique: vi.fn(), updateMany: vi.fn(async () => ({ count: 1 })) },
   $transaction: vi.fn(async (ops: unknown) => ops),
 }))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
@@ -37,7 +37,16 @@ vi.mock('@/lib/github/graphql-clients', () => ({ installationGraphqlClient: vi.f
 const lifecycle = vi.hoisted(() => ({ reconcileProject: vi.fn(async () => ({})), syncBoardRoles: vi.fn(async () => ({})) }))
 vi.mock('@/services/github-projects-lifecycle.service', () => lifecycle)
 
-import { drainSyncJobs, enqueueCommentPush, enqueueDueReconciles, enqueueHydrate } from '@/services/github-sync-jobs.service'
+const inbound = vi.hoisted(() => ({ syncRemoteComment: vi.fn(async () => 'create') }))
+vi.mock('@/services/github-comments.service', () => inbound)
+
+import {
+  drainSyncJobs,
+  enqueueCommentPush,
+  enqueueDueReconciles,
+  enqueueHydrate,
+  enqueueIssueCommentSync,
+} from '@/services/github-sync-jobs.service'
 
 vi.mock('@/lib/background', () => ({ runAfterResponse: vi.fn() }))
 import { MAX_ATTEMPTS } from '@/lib/github/projects/jobs'
@@ -320,6 +329,26 @@ describe('comments to GitHub (AWTD-1116 P5c)', () => {
     expect(user.sent).toHaveLength(0)
   })
 
+  it('records the node id GitHub answers, so the comment’s echo is recognised (AWTD-1283)', async () => {
+    db.gitHubSyncJob.findMany.mockResolvedValue([job])
+    db.comment.findUnique.mockResolvedValue(comment())
+    const client = { query: vi.fn(async () => load('add-comment.json').data) } as never
+    await drainSyncJobs(20, { now: () => NOW, writeClientFor: async () => client })
+
+    expect(db.comment.updateMany).toHaveBeenCalledWith({
+      where: { id: 'cm1', remoteNodeId: null },
+      data: { remoteNodeId: 'IC_kwDOVCns8c8AAAABa4hrQQ' },
+    })
+  })
+
+  it('a posted comment whose id cannot be recorded is still done — retrying would post it twice (AWTD-1283)', async () => {
+    db.gitHubSyncJob.findMany.mockResolvedValue([job])
+    db.comment.findUnique.mockResolvedValue(comment())
+    db.comment.updateMany.mockRejectedValueOnce(Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }))
+    const client = { query: vi.fn(async () => load('add-comment.json').data) } as never
+    expect(await drainSyncJobs(20, { now: () => NOW, writeClientFor: async () => client })).toMatchObject({ succeeded: 1 })
+  })
+
   it('a person with no usable token: the job retries, never posting as the installation', async () => {
     db.gitHubSyncJob.findMany.mockResolvedValue([job])
     db.comment.findUnique.mockResolvedValue(comment())
@@ -388,5 +417,29 @@ describe('agent labels to GitHub (AWTD-1191 P6c-5)', () => {
     const gone = bot({ node: null })
     expect(await drainSyncJobs(20, { now: () => NOW, agentClientFor: () => gone.client })).toMatchObject({ succeeded: 1 })
     expect(gone.sent).toHaveLength(1)
+  })
+})
+
+describe('comments from GitHub (AWTD-1283)', () => {
+  it('queues one re-read per comment per burst', async () => {
+    db.gitHubSyncJob.createMany.mockResolvedValue({ count: 1 })
+    expect(await enqueueIssueCommentSync({ installationId: 7, commentNodeId: 'IC_x', now: NOW.getTime() })).toBe(true)
+    expect(db.gitHubSyncJob.createMany.mock.calls[0][0].data[0]).toEqual({
+      kind: 'issue_comment',
+      installationId: 7,
+      dedupeKey: `issue_comment:IC_x:${Math.floor(NOW.getTime() / 2000)}`,
+      payload: { commentNodeId: 'IC_x' },
+    })
+  })
+
+  it('the job re-reads the comment on the installation and mirrors it', async () => {
+    db.gitHubSyncJob.findMany.mockResolvedValue([
+      { id: 'ic1', kind: 'issue_comment', installationId: 9, attempts: 0, payload: { commentNodeId: 'IC_x' } },
+    ])
+    const client = { query: vi.fn() }
+    const clientFor = vi.fn(() => client as never)
+    expect(await drainSyncJobs(20, { now: () => NOW, clientFor })).toMatchObject({ succeeded: 1 })
+    expect(clientFor).toHaveBeenCalledWith(9)
+    expect(inbound.syncRemoteComment).toHaveBeenCalledWith('IC_x', client)
   })
 })

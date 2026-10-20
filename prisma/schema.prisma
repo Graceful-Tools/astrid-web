@@ -587,6 +587,13 @@ model Comment {
   attachmentSize  Int?
   parentCommentId String?
   clientRequestId String?      @unique
+  /// A comment mirrored with GitHub (AWTD-1283): the IssueComment's node id. Set
+  /// when GitHub's comment is mirrored here, and when Astrid's is pushed there,
+  /// which is how an echo is recognised. Null for every other comment.
+  remoteNodeId    String?      @unique
+  /// The GitHub login of a mirrored comment's author who has no Astrid identity
+  /// (authorId null). Shown instead of an author; never a system comment.
+  remoteAuthorLogin String?
   author          User?        @relation(fields: [authorId], references: [id])
   parentComment   Comment?     @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
   replies         Comment[]    @relation("CommentReplies")

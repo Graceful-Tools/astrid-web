@@ -136,6 +136,8 @@ export interface CommentForFanOut {
   parentCommentId?: string | null
   secureFiles?: unknown
   author?: { id: string; name: string | null; email: string | null; isAIAgent?: boolean } | null
+  /** A GitHub comment's author with no Astrid identity (AWTD-1283). */
+  remoteAuthorLogin?: string | null
 }
 
 /**
@@ -234,8 +236,12 @@ async function linkFile(
  * exists. Receivers dedupe on comment id. Only an AI-agent author is dropped,
  * to stop an agent answering its own comment. (Task cb1581e0 —
  * `applyCommentActorRule` in lib/comment-permissions.ts.)
+ *
+ * Exported for a comment that arrives from GitHub (AWTD-1283): it is stored
+ * without the create verb's side effects, the push back to GitHub above all,
+ * but clients must still hear of it.
  */
-function broadcastCommentCreated(
+export function broadcastCommentCreated(
   comment: CommentForFanOut,
   task: CommentTaskContext,
   authorId: string,
@@ -257,7 +263,11 @@ function broadcastCommentCreated(
 
     if (userIds.size === 0) return
 
-    const authorName = comment.author?.name || comment.author?.email || 'Someone'
+    const authorName =
+      comment.author?.name ||
+      comment.author?.email ||
+      (comment.remoteAuthorLogin ? `@${comment.remoteAuthorLogin}` : null) ||
+      'Someone'
 
     broadcastToUsers(Array.from(userIds), {
       type: 'comment_created',
@@ -281,6 +291,8 @@ function broadcastCommentCreated(
           createdAt: new Date(comment.createdAt).toISOString(),
           type: comment.type,
           author: comment.author,
+          // Only on a GitHub board, so hosted Astrid's payload is unchanged.
+          ...(comment.remoteAuthorLogin && { remoteAuthorLogin: comment.remoteAuthorLogin }),
           parentCommentId: comment.parentCommentId ?? null,
           secureFiles: comment.secureFiles ?? [],
         },

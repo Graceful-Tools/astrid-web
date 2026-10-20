@@ -28,6 +28,8 @@ export type SyncJobKind =
   | 'agent_label'
   /** Spawn the next occurrence of a repeating task on a GitHub board (AWTD-1118). */
   | 'recur'
+  /** Mirror a comment made on github.com onto its task (AWTD-1283). */
+  | 'issue_comment'
 
 export interface HydratePayload {
   itemNodeId: string

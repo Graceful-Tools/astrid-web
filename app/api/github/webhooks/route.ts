@@ -16,6 +16,7 @@ import {
 } from '@/lib/github/webhooks/installation'
 import { handleIssuesWebhook } from '@/lib/github/webhooks/issues'
 import {
+  handleIssueCommentForProjects,
   handleIssueDeletedForProjects,
   handleOrgAccessWebhook,
   handleProjectsV2ItemWebhook,
@@ -89,6 +90,8 @@ webhooks?.on(['member', 'membership', 'organization'], ({ id, payload }) =>
   handleOrgAccessWebhook(payload as never, id).then(() => undefined)
 )
 webhooks?.on('issues', ({ payload }) => handleIssueDeletedForProjects(payload as never).then(() => undefined))
+// A comment made on github.com reaches the mirrored task (AWTD-1283).
+webhooks?.on('issue_comment', ({ payload }) => handleIssueCommentForProjects(payload as never).then(() => undefined))
 
 /**
  * Handle pull request events

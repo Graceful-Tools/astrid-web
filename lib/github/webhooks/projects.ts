@@ -14,7 +14,13 @@ import { runAfterResponse } from '@/lib/background'
 import { createLogger } from '@/lib/logger'
 import { firstDelivery } from './issues'
 import { boardsForProjectNodes } from '@/services/github-projects.service'
-import { drainSyncJobs, enqueueAccessRefresh, enqueueHydrate } from '@/services/github-sync-jobs.service'
+import {
+  drainSyncJobs,
+  enqueueAccessRefresh,
+  enqueueHydrate,
+  enqueueIssueCommentSync,
+} from '@/services/github-sync-jobs.service'
+import { prisma } from '@/lib/prisma'
 import { deleteRemoteTask } from '@/services/github-projects-lifecycle.service'
 
 const log = createLogger('github.webhooks.projects')
@@ -58,6 +64,43 @@ export async function handleOrgAccessWebhook(payload: { installation?: { id?: nu
   if (!installationId || !(await firstDelivery(deliveryId))) return false
   const enqueued = await enqueueAccessRefresh(installationId)
   runAfterResponse('github-projects-drain', () => drainSyncJobs())
+  return enqueued
+}
+
+/**
+ * `issue_comment` (created, edited, deleted) → a re-read of that comment
+ * (AWTD-1283). A trigger like `projects_v2_item`: only ids are read here, and
+ * the job makes the task's copy match whatever GitHub says now.
+ *
+ * Every installed repo's comments arrive here, so only a mirrored issue's
+ * queue a job — one indexed read. A PR's delivery names the PR only by its
+ * issue-shaped node id, never the PR id its task stores, so a PR comment is
+ * queued whenever the installation has a bound board and the job decides.
+ *
+ * No `firstDelivery` claim: the issues nudge (handleIssuesWebhook) claims this
+ * same delivery id, and whichever claimed second would be dropped. A
+ * redelivery coalesces on the job's key, and the job is idempotent anyway.
+ */
+export async function handleIssueCommentForProjects(payload: {
+  action?: string
+  installation?: { id?: number }
+  issue?: { node_id?: string; pull_request?: unknown }
+  comment?: { node_id?: string }
+}): Promise<boolean> {
+  if (!hasCapability('githubProjects')) return false
+  const installationId = payload.installation?.id
+  const commentNodeId = payload.comment?.node_id
+  const issueNodeId = payload.issue?.node_id
+  if (!installationId || !commentNodeId || !issueNodeId) return false
+
+  const ours = payload.issue?.pull_request
+    ? (await prisma.gitHubProjectBinding.count({ where: { installationId, detachedAt: null } })) > 0
+    : (await prisma.task.count({ where: { remoteNodeId: issueNodeId } })) > 0
+  if (!ours) return false
+
+  const enqueued = await enqueueIssueCommentSync({ installationId, commentNodeId })
+  runAfterResponse('github-projects-drain', () => drainSyncJobs())
+  log.info({ action: payload.action, commentNodeId, enqueued }, 'issue_comment → comment sync')
   return enqueued
 }
 
