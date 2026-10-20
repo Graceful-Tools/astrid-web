@@ -22,10 +22,15 @@
     "NEXT_PUBLIC_BRAND_WORDMARK": "ACME",
     "NEXT_PUBLIC_BRAND_SLOGAN": "Work, handled.",
     "NEXT_PUBLIC_BRAND_APP_STORE_URL": "",
-    "NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG": "acme-code-assistant"
+    "NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG": "acme-code-assistant",
+    "BRAND_APPLE_APP_IDS": "ACME000001.example.acme.Tasks,ACME000001.example.acme.TasksMac"
   },
   "expect": {
     "appName": "Acme",
+    "appleAppIds": [
+      "ACME000001.example.acme.Tasks",
+      "ACME000001.example.acme.TasksMac"
+    ],
     "productTitle": "Acme Tasks",
     "domain": "tasks.acme.example",
     "agentEmailDomain": "agents.acme.example",

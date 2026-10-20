@@ -20,7 +20,7 @@
  * refactor ever changes today's production behaviour, that profile fails.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { profileEnv, brandNameTrademarkProblem } from '@/lib/brand/profile'
 
@@ -49,6 +49,8 @@ interface BrandProfile {
     slogan: string
     appStoreUrl: string
     githubAppSlug: string
+    /** Apps named in apple-app-site-association. Omitted: Astrid's own (AWTD-1281). */
+    appleAppIds?: string[]
     logo: string
     icon: string
     enabledAgents: string[]
@@ -98,6 +100,59 @@ describe('GitHub trademark rule (AWTD-1103, spec §11.1)', () => {
   it('has a GitHub Projects partner profile', () => {
     const partner = PROFILES.find((p) => p.env.NEXT_PUBLIC_BRAND_TITLE?.endsWith(' for GitHub Projects'))
     expect(partner, 'brands/github-projects.brand.json').toBeDefined()
+  })
+})
+
+/** The apps hosted Astrid's apple-app-site-association names for passkeys. */
+const ASTRID_APPLE_APP_IDS = [
+  '34K3P7PD2W.Graceful-Tools-Inc.Astrid-App',
+  '34K3P7PD2W.Graceful-Tools-Inc.Astrid-Mac',
+  '34K3P7PD2W.Graceful-Tools-Inc.Whitelabel',
+]
+
+describe('apple-app-site-association (AWTD-1281)', () => {
+  const ORIGINAL_ENV = { ...process.env }
+
+  beforeEach(() => {
+    vi.resetModules()
+    clearBrandEnv()
+  })
+
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV }
+    vi.resetModules()
+  })
+
+  it('serves hosted Astrid the exact bytes of the static file it replaced', async () => {
+    // The fixture is public/.well-known/apple-app-site-association as production served
+    // it before the file became a route. Apple's CDN caches it for every installed app;
+    // a byte changing for Astrid is a change nobody asked for.
+    const pinned = readFileSync(
+      join(process.cwd(), 'tests/fixtures/brand/astrid-apple-app-site-association.json'),
+      'utf8'
+    )
+    const { GET } = await import('@/app/.well-known/apple-app-site-association/route')
+
+    expect(await GET().text()).toBe(pinned)
+  })
+
+  it('names every BRAND_APPLE_APP_IDS app for passkeys and links', async () => {
+    process.env.BRAND_APPLE_APP_IDS = ' ABCDE12345.com.example.Tasks , ABCDE12345.com.example.TasksMac ,'
+    const { GET } = await import('@/app/.well-known/apple-app-site-association/route')
+    const body = JSON.parse(await GET().text())
+    const ids = ['ABCDE12345.com.example.Tasks', 'ABCDE12345.com.example.TasksMac']
+
+    expect(body.webcredentials.apps).toEqual(ids)
+    expect(body.applinks).toEqual({
+      apps: [],
+      details: ids.map((appID) => ({ appID, paths: ['/s/*', '/tasks/*', '/lists/*'] })),
+    })
+    expect(JSON.stringify(body)).not.toContain('Graceful-Tools')
+  })
+
+  it('is no longer a static file in public/', () => {
+    // A static file would shadow the route and serve Astrid's apps on every domain.
+    expect(existsSync(join(process.cwd(), 'public/.well-known/apple-app-site-association'))).toBe(false)
   })
 })
 
@@ -258,6 +313,22 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     expect(body.short_name).toBe(profile.expect.appName)
     expect(body.theme_color).toBe(profile.expect.accentColor)
     assertClean(rendered, profile, 'manifest')
+  })
+
+  it('serves apple-app-site-association for this profile’s own apps (AWTD-1281)', async () => {
+    // Not assertClean: an app id is a provisioning identity registered with Apple, and a
+    // partner running Astrid-signed test binaries (whitelabel-partner) must name them.
+    // What matters is that a partner who sets BRAND_APPLE_APP_IDS gets exactly those.
+    const { GET } = await import('@/app/.well-known/apple-app-site-association/route')
+    const res = GET()
+    const body = JSON.parse(await res.text())
+    const appIds = profile.expect.appleAppIds ?? ASTRID_APPLE_APP_IDS
+
+    expect(res.headers.get('content-type')).toBe('application/json')
+    expect(body.webcredentials.apps).toEqual(appIds)
+    if (profile.expect.appleAppIds) {
+      expect(body.applinks.details.map((d: { appID: string }) => d.appID)).toEqual(appIds)
+    }
   })
 
   it('renders llms.txt with no unresolved tokens or foreign brands', async () => {

@@ -204,6 +204,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'NEXT_PUBLIC_BRAND_ACCENT_COLOR', scope: 'optional', description: 'Accent colour: default list colour, focus ring, email chrome, theme_color.', validate: isHexColour },
   { name: 'NEXT_PUBLIC_BRAND_AGENT_NAME', scope: 'optional', description: 'Display name of the built-in assistant identity.' },
   { name: 'BRAND_AGENT_EMAIL_DOMAIN', scope: 'optional', description: 'Domain for agent mailboxes. Defaults to the brand domain.', validate: isDomain },
+  { name: 'BRAND_APPLE_APP_IDS', scope: 'optional', description: 'Comma-separated <TEAM ID>.<bundle id> values named in apple-app-site-association for passkeys and universal links. Unset serves the default file.' },
   { name: 'NEXT_PUBLIC_BRAND_LOGO', scope: 'optional', description: 'Path to the mascot/character artwork.' },
   { name: 'NEXT_PUBLIC_BRAND_ICON', scope: 'optional', description: 'Path to the large square app mark.' },
   { name: 'NEXT_PUBLIC_BRAND_ICON_SMALL', scope: 'optional', description: 'Path to the small square app mark.' },

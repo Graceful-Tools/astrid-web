@@ -140,16 +140,16 @@ const iconGeneratorHTML = `<!DOCTYPE html>
 </body>
 </html>`;
 
-fs.writeFileSync(path.join(__dirname, '..', 'public', 'pwa-icon-generator.html'), iconGeneratorHTML);
+fs.writeFileSync(path.join(__dirname, '..', 'tools', 'icons', 'pwa-icon-generator.html'), iconGeneratorHTML);
 
 console.log('PWA Icon setup complete!');
 console.log('');
 console.log('Next steps:');
-console.log('1. Open public/pwa-icon-generator.html in your browser');
+console.log('1. Open tools/icons/pwa-icon-generator.html in your browser');
 console.log('2. Click "Download" for each icon size');
 console.log('3. Save all files in the public/icons/ directory');
 console.log('4. The icons will be automatically used by the PWA manifest');
 console.log('');
 console.log('Generated files:');
 console.log('- public/icons/README.md (instructions)');
-console.log('- public/pwa-icon-generator.html (icon generator)');
+console.log('- tools/icons/pwa-icon-generator.html (icon generator)');
