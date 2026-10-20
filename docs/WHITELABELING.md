@@ -12,6 +12,75 @@ This document is the reference for doing that. Task `97208a72`.
 
 ---
 
+## Start here: building your own branded Astrid
+
+This walks a third party from a fresh clone to their own branded instance, with their own
+native apps. Each step links to the section with the detail.
+
+**First, the one architectural fact.** The web app *is* the server. The iOS, Mac, Windows
+and Android apps speak only the Astrid API (`/api/v1`). So any branded deployment, including
+one whose data lives in **GitHub Projects** rather than Astrid's own database, means running
+astrid-web. There is no native client that talks to GitHub, or any other backend, directly.
+
+1. **Clone and install.**
+
+   ```bash
+   git clone https://github.com/Graceful-Tools/astrid-web && cd astrid-web
+   npm install
+   ```
+
+2. **Write a profile.** `cp brands/acme.brand.json brands/<partner>.brand.json` and edit
+   `env`, plus `copy` if you want your own voice. Start from
+   `brands/github-projects.brand.json` instead for a GitHub-backed brand. Every identity
+   variable you leave out falls back to **Astrid's** value, so set all of §2, not just
+   the name. Add `expect.forbidLiterals: ["Astrid"]` so a leak fails the check.
+
+3. **Check it.**
+
+   ```bash
+   npm run check:brands
+   ```
+
+   This runs the brand matrix (§5) against every profile, yours included.
+
+4. **Set the minimum environment.** There are six required variables: the two database URLs,
+   `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `CRON_SECRET` and `ENCRYPTION_KEY` (table in §8).
+   `scripts/push-brand-env.ts` writes the profile and generates the secrets. Sign-in
+   providers, email, push and storage are optional.
+
+5. **Deploy** to your own Vercel team and database: §8, *A partner on their own Vercel
+   account and their own database*. Preview first with
+   `npx tsx scripts/deploy-brand-preview.ts <partner> --team <id> --scope <slug>`. Then
+   check `GET /api/v1/capabilities` on the preview; it should report your brand and
+   providers.
+
+6. **Point the native apps at it.** Each platform builds a variant from its own repo
+   (*Native apps, per platform* below). For **native sign-in** there are two rules, because
+   the desktop hand-off (`lib/auth/desktop-handoff.ts`) returns the browser to
+   `<scheme>://auth/callback`:
+   - **The scheme must match on both sides.** Set `NEXT_PUBLIC_BRAND_APP_URL_SCHEME` on
+     the server to exactly the scheme your apps register. If they differ, sign-in
+     completes in the browser and then deep-links into a different app, or into none.
+   - **Keep the default hand-off client ids** (`windows`, `ios`, `mac`, `android`).
+     `DesktopClientId` is a closed set on the server, so a custom `handoffClientId` in a
+     native build is refused.
+
+### Native apps, per platform
+
+| Platform | Status | How a partner builds one | Task |
+|---|---|---|---|
+| **Web** | Supported | This document | — |
+| **iOS / Mac** | Supported | astrid-ios: `./scripts/make-brand-variant.sh <profile or path>` writes the **Whitelabel** build configuration; `apply-brand.sh` writes identity (§6) | [AITD-515](https://astrid.cc/t/AITD-515) |
+| **Windows** | Partial | astrid-windows: `scripts/package.ps1 -Brand <profile>`; `ASTRID_SERVER_URL` overrides the server at runtime. A non-`astrid` scheme also needs the core pin bumped past AWTD2-95 | [AWTD2-96](https://astrid.cc/t/AWTD2-96) |
+| **Android** | Partial | astrid-android: `brands/<name>/brand.properties`, then `./gradlew assembleRelease -PastridBrand=<name>` (see its `brands/README.md`). In-app accent colours are still fixed, and verified app links need an `assetlinks.json`, which astrid-web does not serve yet | [AATD-72](https://astrid.cc/t/AATD-72) |
+| **Core** (Windows and Android) | Partial | `urlScheme` and `handoffClientId` in the config JSON a shell passes; blank means Astrid's defaults | [AWTD2-95](https://astrid.cc/t/AWTD2-95) |
+
+The Apple apps read the same `brands/*.brand.json` you wrote in step 2. Windows can too.
+Android uses its own `brand.properties`, because the web profile describes the server's
+environment and has nowhere to put an `applicationId`.
+
+---
+
 ## 1. How it works
 
 Three layers, each with one canonical home:
@@ -340,6 +409,32 @@ cd ../astrid-ios
 ./scripts/check-brand.sh          # the brand-literal lint (mirrors check:reuse)
 ```
 
+### Your own app: the Whitelabel build configuration
+
+`apply-brand.sh` rebrands the app's *contents* under Astrid's own bundle ID and team. A
+partner shipping **their own** app also needs their own bundle ID, App Group, keychain
+group and Apple team. The **Whitelabel** build configuration carries these, and
+`make-brand-variant.sh` writes them (AITD-515):
+
+```bash
+cd ../astrid-ios
+./scripts/make-brand-variant.sh acme                    # a profile name, from ../astrid-web/brands
+./scripts/make-brand-variant.sh ~/acme/acme.brand.json  # or a path: no astrid-web checkout needed
+./scripts/make-brand-variant.sh acme --team ABCDE12345 --bundle-id com.acme.tasks
+```
+
+Each value comes from three places, and later ones win:
+1. the defaults, which are Astrid's own Whitelabel variant;
+2. an optional `ios` block in the profile;
+3. the arguments `--bundle-id`, `--app-group`, `--keychain-group`, `--team` and
+   `--display-name`.
+
+The `ios` block sits beside `env` and is ignored by the web. The script rewrites only the
+Whitelabel configurations in `project.pbxproj` and records what it wrote in a
+`variant.json` beside them, so it can be re-run. With no `ios` block it reproduces the
+committed files byte for byte. The full reference is astrid-ios's
+[BRAND_VARIANT.md](https://github.com/Graceful-Tools/astrid-ios/blob/main/docs/BRAND_VARIANT.md).
+
 `Astrid App/Utilities/Brand.swift` is the native `lib/brand/config.ts`, and
 `BrandProfile.swift` maps profile variables onto the Info.plist keys it reads. See
 [`brands/README.md`](../brands/README.md) for which variables the native apps consume.
@@ -568,7 +663,8 @@ Everything above, plus the parts that only a GitHub-backed brand has. Start from
    Lanes are in [deployment/LANES_GITHUB_MARKETPLACE.md](./deployment/LANES_GITHUB_MARKETPLACE.md).
    Pricing and plans are the partner's (spec §15 C4).
 8. **Native apps:** astrid-ios's `apply-brand.sh` script (§6), then `BrandAuditTests`
-   under the partner profile.
+   under the partner profile. The native apps never talk to GitHub themselves: they
+   sign in to, and sync through, this deployment's Astrid API.
 
 ---
 
