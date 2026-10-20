@@ -26,7 +26,7 @@ vi.mock('@/lib/brand/capabilities', async importOriginal => {
 const projects = vi.hoisted(() => ({ boardsForProjectNodes: vi.fn() }))
 vi.mock('@/services/github-projects.service', () => projects)
 
-const queue = vi.hoisted(() => ({ enqueueAccessRefresh: vi.fn(async () => true), enqueueHydrate: vi.fn(async () => true), drainSyncJobs: vi.fn(async () => ({ claimed: 0, succeeded: 0, failed: 0 })) }))
+const queue = vi.hoisted(() => ({ enqueueAccessRefresh: vi.fn(async () => true), enqueueHydrate: vi.fn(async () => true), enqueueIssueCommentSync: vi.fn(async () => true), drainSyncJobs: vi.fn(async () => ({ claimed: 0, succeeded: 0, failed: 0 })) }))
 vi.mock('@/services/github-sync-jobs.service', () => queue)
 
 const lifecycle = vi.hoisted(() => ({ deleteRemoteTask: vi.fn(async () => true) }))
@@ -38,7 +38,13 @@ vi.mock('@/lib/background', () => ({ runAfterResponse: (_l: string, work: () => 
 const delivery = vi.hoisted(() => ({ first: true }))
 vi.mock('@/lib/github/webhooks/issues', () => ({ firstDelivery: vi.fn(async () => delivery.first) }))
 
+const db = vi.hoisted(() => ({ task: { count: vi.fn() }, gitHubProjectBinding: { count: vi.fn() } }))
+vi.mock('@/lib/prisma', () => ({ prisma: db }))
+
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import {
+  handleIssueCommentForProjects,
   handleIssueDeletedForProjects,
   handleOrgAccessWebhook,
   handleProjectsV2ItemWebhook,
@@ -160,5 +166,61 @@ describe('org access and issue deletion (AWTD-1153)', () => {
   it('issue deletion is ignored on Astrid', async () => {
     caps.githubProjects = false
     expect(await handleIssueDeletedForProjects({ action: 'deleted', issue: { node_id: 'I_kw' } })).toBe(false)
+  })
+})
+
+describe('issue_comment → a re-read of the comment (AWTD-1283)', () => {
+  const created = JSON.parse(
+    readFileSync(join(process.cwd(), 'tests/fixtures/github/webhooks/issue-comment-created.json'), 'utf8'),
+  )
+  const commentQueue = queue
+  beforeEach(() => {
+    db.task.count.mockResolvedValue(1)
+    db.gitHubProjectBinding.count.mockResolvedValue(1)
+  })
+
+  it('a comment on a mirrored issue queues its re-read, from its ids alone, and drains after responding', async () => {
+    expect(await handleIssueCommentForProjects(created)).toBe(true)
+    expect(db.task.count.mock.calls[0][0].where).toEqual({ remoteNodeId: 'I_kwDOVCns8c8AAAABWTcnYA' })
+    expect(commentQueue.enqueueIssueCommentSync).toHaveBeenCalledWith({
+      installationId: 169651419,
+      commentNodeId: 'IC_kwDOVCns8c8AAAABb1Xq2w',
+    })
+    await deferred.jobs[0]()
+    expect(queue.drainSyncJobs).toHaveBeenCalled()
+  })
+
+  it('edited and deleted take the same path: the re-read decides', async () => {
+    expect(await handleIssueCommentForProjects({ ...created, action: 'edited' })).toBe(true)
+    expect(await handleIssueCommentForProjects({ ...created, action: 'deleted' })).toBe(true)
+    expect(commentQueue.enqueueIssueCommentSync).toHaveBeenCalledTimes(2)
+  })
+
+  it('a comment on an issue no board mirrors queues nothing', async () => {
+    db.task.count.mockResolvedValue(0)
+    expect(await handleIssueCommentForProjects(created)).toBe(false)
+    expect(commentQueue.enqueueIssueCommentSync).not.toHaveBeenCalled()
+  })
+
+  it('a PR comment (whose PR node id the delivery lacks) is queued when the installation has a bound board', async () => {
+    const onPr = { ...created, issue: { ...created.issue, pull_request: { url: 'https://api.github.com/x' } } }
+    expect(await handleIssueCommentForProjects(onPr)).toBe(true)
+    expect(db.task.count).not.toHaveBeenCalled()
+    expect(db.gitHubProjectBinding.count.mock.calls[0][0].where).toEqual({ installationId: 169651419, detachedAt: null })
+    db.gitHubProjectBinding.count.mockResolvedValue(0)
+    expect(await handleIssueCommentForProjects(onPr)).toBe(false)
+  })
+
+  it('does not claim the delivery id — the issues nudge on the same delivery needs it', async () => {
+    const { firstDelivery } = await import('@/lib/github/webhooks/issues')
+    await handleIssueCommentForProjects(created)
+    expect(firstDelivery).not.toHaveBeenCalled()
+  })
+
+  it('does nothing on Astrid', async () => {
+    caps.githubProjects = false
+    expect(await handleIssueCommentForProjects(created)).toBe(false)
+    expect(db.task.count).not.toHaveBeenCalled()
+    expect(commentQueue.enqueueIssueCommentSync).not.toHaveBeenCalled()
   })
 })

@@ -113,6 +113,8 @@ export interface Comment {
   type: "TEXT" | "MARKDOWN" | "ATTACHMENT"
   author: User | null
   authorId: string | null
+  /** A GitHub comment's author with no Astrid identity (AWTD-1283); shown as "@login". */
+  remoteAuthorLogin?: string | null
   taskId: string
   createdAt: Date
   updatedAt: Date

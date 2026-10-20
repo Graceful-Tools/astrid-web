@@ -58,3 +58,18 @@ list it is on; an absent key is an item hydrated without the field, which must c
 
 The items are `Graceful-Fools/wordlesolver#1` and `#2` and one draft, all titled
 "[Astrid sync fixture] …". Leave them there, because the P4f live smoke test reads them.
+
+**2026-10-20, AWTD-1283: NOT recorded.** These four files answer `REMOTE_COMMENT_QUERY` from
+`lib/github/projects/comments.ts`:
+
+- `issue-comment-person.json`
+- `issue-comment-app-bot.json`
+- `issue-comment-pull-request.json`
+- `issue-comment-missing.json`
+
+They were written by hand in GitHub's documented `IssueComment` shape. Recording them means
+posting comments in the test org, and the run that wrote them was unattended.
+`issue-comment-missing.json` copies the NOT_FOUND shape recorded in
+`hydrate-item-missing.json`. **Re-record them** the next time someone is working in the test
+org, against two comments on `wordlesolver#1`: one by a person, one by the App bot. Until
+then nothing here proves the query is valid against GitHub's schema.

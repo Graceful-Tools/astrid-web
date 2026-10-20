@@ -1,0 +1,13 @@
+{
+  "data": {
+    "node": {
+      "id": "IC_kwDOVCns8c8AAAABa4hrQQ",
+      "body": "**Claude** (via Astrid)\n\nThe fix is on the branch.",
+      "createdAt": "2026-10-20T15:04:40Z",
+      "viewerDidAuthor": true,
+      "author": { "__typename": "Bot", "login": "astrid-cc" },
+      "issue": { "id": "I_kwDOVCns8c8AAAABWTcnYA" },
+      "pullRequest": null
+    }
+  }
+}

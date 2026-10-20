@@ -37,6 +37,8 @@ export interface StreakComment {
   content: string
   authorId?: string | null
   systemEventType?: string | null
+  /** A GitHub comment's author with no Astrid identity (AWTD-1283): a person, not the system. */
+  remoteAuthorLogin?: string | null
   createdAt: Date | string
 }
 
@@ -46,7 +48,7 @@ export type StreakEntry<T extends StreakComment> =
 
 /** Is this a system-authored comment (as opposed to one a person wrote)? */
 export function isSystemComment(comment: StreakComment): boolean {
-  return comment.authorId === null || comment.authorId === undefined
+  return (comment.authorId === null || comment.authorId === undefined) && !comment.remoteAuthorLogin
 }
 
 /**

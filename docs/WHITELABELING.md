@@ -550,6 +550,12 @@ Everything above, plus the parts that only a GitHub-backed brand has. Start from
    - Events: `installation`, `projects_v2`, `projects_v2_item`, `issues`,
      `issue_comment`, `sub_issues`, `label`, `milestone`, `pull_request`, `member`,
      `membership`, `organization`.
+     `issue_comment` is required: it is how a comment made on github.com reaches the
+     task, and how that comment's later edits and deletion reach it too (AWTD-1283).
+     Without it, comments go one way only, from the app to GitHub.
+     A commenter with no account on the deployment is shown by GitHub login.
+     The App's own comments, which are agents' comments posted from the app, are never
+     mirrored back.
    - "Request user authorization (OAuth) during installation" on, and user-to-server
      token expiry on: edits are made with the acting user's own token.
 4. **Give the deployment the App's credentials:** `GITHUB_APP_ID`,

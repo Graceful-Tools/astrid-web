@@ -1,0 +1,13 @@
+{
+  "data": {
+    "node": {
+      "id": "IC_kwDOVCns8c8AAAABb1Xq2w",
+      "body": "Reproduced on Safari 18 too — the date picker closes on scroll.",
+      "createdAt": "2026-10-20T15:02:11Z",
+      "viewerDidAuthor": false,
+      "author": { "__typename": "User", "login": "octo-tester", "id": "U_kgDOCm9cTQ" },
+      "issue": { "id": "I_kwDOVCns8c8AAAABWTcnYA" },
+      "pullRequest": null
+    }
+  }
+}

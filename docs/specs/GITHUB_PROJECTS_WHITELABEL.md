@@ -682,6 +682,18 @@ GitHub ─webhook─▶ lib/github/webhooks  verify HMAC → dedupe → INSERT G
   differs from the replica are written. TaskEvents and SSE are emitted only for those.
   An echo of Astrid's own write is a no-op by construction. **The replica always
   converges to GitHub.**
+- **Comments both ways (AWTD-1283).** An `issue_comment` event (created, edited or deleted)
+  on a mirrored issue or PR queues `issue_comment:<commentNodeId>:<2s bucket>`. The job
+  re-reads the comment and upserts it on the task, keyed by `Comment.remoteNodeId`. A
+  comment GitHub no longer returns is deleted from the task. The author is matched by
+  `User.githubNodeId`; anyone else is kept as `Comment.remoteAuthorLogin` and shown by
+  login. An echo of Astrid's own push is suppressed three ways:
+  1. The push records the id GitHub answers.
+  2. A comment the App wrote (`viewerDidAuthor`) is skipped.
+  3. A person's push read back before its id was recorded is adopted. That is their
+     unlinked comment on the task with the same text, made in the last 10 minutes.
+
+  `lib/github/projects/comments.ts`.
 - **Body conflicts.** A body edit whose base `remoteVersion` is stale returns `conflict`
   rather than overwriting someone's paragraph. Other fields are last-write-to-GitHub-wins,
   as on github.com.
