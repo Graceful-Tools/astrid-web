@@ -12,6 +12,10 @@
  * It lands PRs from PREVIOUS runs, not the one just opened: a fresh PR's checks
  * take about ten minutes, and a loop that waited would spend its watchdog on CI.
  *
+ * With `--list-id` it also finishes the board's `AWAITING-DEPLOY:` tasks once
+ * production serves their commit (AWTD-1278) — done means deployed, so that is
+ * when they complete.
+ *
  * Usage:
  *   npx tsx scripts/land-and-deploy.ts [--repo <path>] [--list-id <id>]
  *                                      [--dry-run] [--gate] [--max-land <n>]
@@ -31,20 +35,32 @@
  */
 
 import { execFileSync } from 'child_process'
+import { parseBlockedConditions } from '@/lib/ready-queue-scope'
+import { WAITING_STATUS_ROLE } from '@/lib/task-status'
+import { resolveAgentAuthorId } from './lib/agent-author'
+import { boardTasksUrl } from './lib/board-read-url'
+import { loadScriptEnv } from './lib/load-env'
+import { SweepApi } from './lib/sweep-api'
 import {
   RUNNER_PR_MARKER,
   carriesTaskId,
+  deployedCompletionComment,
   deployLanded,
   landedDespiteError,
   deployVerdict,
   landablePullRequests,
   pendingMigrations,
   summary,
+  tasksProductionServes,
+  type AwaitingDeployTask,
   type PullRequestSummary,
 } from './lib/land-and-deploy'
 
+loadScriptEnv()
+
 const WORKFLOW = 'production-deployment.yml'
-const HEALTH_URL = 'https://astrid.cc/api/health'
+const API = 'https://astrid.cc'
+const HEALTH_URL = `${API}/api/health`
 
 interface Options {
   repo: string
@@ -128,6 +144,80 @@ async function servingSha(): Promise<string | null> {
   } catch {
     return null
   }
+}
+
+/**
+ * Complete the board's tasks whose deploy production now serves (AWTD-1278).
+ *
+ * Done means deployed, so a scheduled run leaves finished work incomplete in
+ * Waiting with `AWAITING-DEPLOY: <sha>`. This runs every tick, not only after a
+ * deploy this tick made: a deploy dispatched by hand finishes them too, and one
+ * that failed finishes nothing, because the question is put to production.
+ * Best effort — a failure here leaves the task waiting for the next tick.
+ */
+async function completeDeployedTasks(listId: string): Promise<string[]> {
+  const tokenResponse = await fetch(`${API}/api/v1/oauth/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      grant_type: 'client_credentials',
+      client_id: process.env.ASTRID_OAUTH_CLIENT_ID,
+      client_secret: process.env.ASTRID_OAUTH_CLIENT_SECRET,
+    }),
+  })
+  if (!tokenResponse.ok) {
+    log(`  ⚠️  awaiting-deploy check skipped: OAuth token request failed with HTTP ${tokenResponse.status}`)
+    return []
+  }
+  const { access_token: token } = (await tokenResponse.json()) as { access_token: string }
+  const auth = { 'X-OAuth-Token': token }
+  const authorId = await resolveAgentAuthorId({ mailbox: 'claude', accessToken: token, warn: log })
+  const api = new SweepApi(auth, options.dryRun, (...args) => log(args.join(' ')), authorId)
+
+  const boardResponse = await fetch(boardTasksUrl({ boardId: listId, limit: 500 }), { headers: auth })
+  if (!boardResponse.ok) {
+    log(`  ⚠️  awaiting-deploy check skipped: board read failed with HTTP ${boardResponse.status}`)
+    return []
+  }
+  const boardBody = (await boardResponse.json()) as { tasks?: unknown } | unknown[]
+  const listed = (Array.isArray(boardBody) ? boardBody : (boardBody as { tasks?: unknown }).tasks) ?? []
+  const waiting = (listed as Array<{ id: string; identifier?: string | null; statusRole?: string | null; completed?: boolean }>)
+    .filter(task => !task.completed && (task.statusRole ?? '').trim().toLowerCase() === WAITING_STATUS_ROLE)
+
+  const awaiting: AwaitingDeployTask[] = []
+  for (const task of waiting) {
+    const sha = parseBlockedConditions(await api.comments(task)).awaitingDeploy
+    if (sha) awaiting.push({ id: task.id, identifier: task.identifier, sha })
+  }
+  if (!awaiting.length) return []
+
+  const serving = await servingSha()
+  const done = tasksProductionServes({
+    servingSha: serving,
+    awaiting,
+    // An unknown commit (not fetched, squash-merged away) is "not yet", never "yes".
+    contains: (commit, tip) => succeeds('git', ['merge-base', '--is-ancestor', commit, tip], 30_000),
+  })
+  for (const task of awaiting.filter(t => !done.includes(t))) {
+    log(`  ${task.identifier ?? task.id} awaits its deploy: production does not serve ${task.sha.slice(0, 8)} yet`)
+  }
+
+  const completed: string[] = []
+  for (const task of done) {
+    const name = task.identifier ?? task.id
+    if (options.dryRun) {
+      log(`  would mark ${name} complete — production serves ${task.sha.slice(0, 8)}`)
+      completed.push(name)
+      continue
+    }
+    // Comment first: a completed task with no word on why is the worse failure.
+    await api.comment(task, deployedCompletionComment({ sha: task.sha, servingSha: serving ?? '' }))
+    if (await api.complete(task)) {
+      log(`  marked ${name} complete — production serves ${task.sha.slice(0, 8)}`)
+      completed.push(name)
+    }
+  }
+  return completed
 }
 
 /**
@@ -362,6 +452,15 @@ async function main() {
     log(`  not deploying — ${verdict.reason}`)
   }
 
+  let completedTasks: string[] = []
+  if (options.listId) {
+    try {
+      completedTasks = await completeDeployedTasks(options.listId)
+    } catch (error) {
+      log(`  ⚠️  awaiting-deploy check failed: ${(error as Error).message.split('\n')[0]}`)
+    }
+  }
+
   const news = summary({
     landed,
     skipped,
@@ -372,12 +471,13 @@ async function main() {
     dryRun: options.dryRun,
     deferred,
     runFailed,
+    completedTasks,
   })
   log('')
   log(news)
 
   if (options.listId && !options.dryRun) {
-    const worthPosting = verdict.deploy || verdict.code !== 0
+    const worthPosting = verdict.deploy || verdict.code !== 0 || completedTasks.length > 0
     if (worthPosting) {
       try {
         execFileSync('npx', ['tsx', 'scripts/post-list-message.ts', options.listId, news], {

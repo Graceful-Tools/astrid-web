@@ -44,6 +44,20 @@ export class SweepApi {
     }
   }
 
+  /** Mark a task complete. Returns whether the server accepted it. */
+  async complete(task: { id: string }): Promise<boolean> {
+    if (this.dryRun) return true
+    const response = await this.fetchImpl(`${this.apiBase}/api/v1/tasks/${task.id}`, {
+      method: "PUT",
+      headers: { ...this.auth, "Content-Type": "application/json" },
+      body: JSON.stringify({ completed: true }),
+    })
+    if (!response.ok) {
+      this.report(`  ⚠️ could not complete ${task.id}: HTTP ${response.status}`)
+    }
+    return response.ok
+  }
+
   async comment(task: { id: string }, content: string): Promise<void> {
     if (this.dryRun) return
     const response = await this.fetchImpl(`${this.apiBase}/api/v1/tasks/${task.id}/comments`, {

@@ -9,6 +9,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   carriesTaskId,
+  deployedCompletionComment,
   deployLanded,
   deployVerdict,
   landedDespiteError,
@@ -16,6 +17,7 @@ import {
   pendingMigrations,
   summary,
   taskIdsInBranch,
+  tasksProductionServes,
   type PullRequestSummary,
 } from '@/scripts/lib/land-and-deploy'
 
@@ -304,6 +306,38 @@ describe('the deploy is verified against what production serves', () => {
   })
 })
 
+// AWTD-1278: a scheduled run leaves finished work incomplete with an
+// `AWAITING-DEPLOY: <sha>` marker, because done means deployed. Something has
+// to mark it done once production serves it, and the answer has to come from
+// production, not from "a deploy ran".
+describe('AWTD-1278: tasks awaiting a deploy are completed once production serves them', () => {
+  const serving = 'ae92dd77bd0af6818d377785ecd58ee28f88e756'
+  const awaiting = [
+    { id: 't1', identifier: 'AWTD-839', sha: '1111111aaaa' },
+    { id: 't2', identifier: 'AWTD-1278', sha: '2222222bbbb' },
+  ]
+  // Only t1's commit is in what production serves.
+  const contains = (commit: string, tip: string) => tip === serving && commit === '1111111aaaa'
+
+  it('AWTD-1278: completes exactly the tasks whose commit production serves', () => {
+    expect(tasksProductionServes({ servingSha: serving, awaiting, contains }).map(t => t.identifier)).toEqual([
+      'AWTD-839',
+    ])
+  })
+
+  it('AWTD-1278: completes nothing when production does not say what it serves', () => {
+    expect(tasksProductionServes({ servingSha: null, awaiting, contains: () => true })).toEqual([])
+  })
+
+  it('AWTD-1278: the completion comment names what production serves', () => {
+    const text = deployedCompletionComment({ sha: '1111111aaaa', servingSha: serving })
+    expect(text).toContain('1111111a')
+    expect(text).toContain('ae92dd77')
+    // Not a marker line, so it cannot be mistaken for a new condition.
+    expect(text).not.toMatch(/^\s*AWAITING-DEPLOY:/im)
+  })
+})
+
 describe('the news posted to the list chat', () => {
   it('says what landed and what production serves', () => {
     const text = summary({
@@ -317,6 +351,17 @@ describe('the news posted to the list chat', () => {
     expect(text).toMatch(/deployed to production/)
     expect(text).toContain('#417, #418')
     expect(text).toContain('ae92dd77')
+  })
+
+  it('AWTD-1278: names the tasks it marked complete because production serves them', () => {
+    const text = summary({
+      landed: [],
+      skipped: [],
+      verdict: { deploy: false, code: 0, reason: 'nothing new to deploy' },
+      completedTasks: ['AWTD-839', 'AWTD-1278'],
+    })
+    expect(text).toContain('AWTD-839, AWTD-1278')
+    expect(text).toMatch(/complete/i)
   })
 
   it('does not report an outage when the run failed and nothing deployed', () => {

@@ -266,6 +266,42 @@ export function deployLanded(input: {
   return { ok: true }
 }
 
+/** A task a run finished and left incomplete with `AWAITING-DEPLOY: <sha>`. */
+export interface AwaitingDeployTask {
+  id: string
+  identifier?: string | null
+  /** The commit production has to serve. */
+  sha: string
+}
+
+/**
+ * Which awaiting-deploy tasks production now serves (AWTD-1278).
+ *
+ * Done means deployed, so a scheduled run leaves finished work incomplete and
+ * this is what finishes it. The question goes to PRODUCTION — the sha
+ * `/api/health` reports — not to "a deploy ran this tick": a deploy that failed
+ * completes nothing, and a deploy dispatched by hand still counts. `contains`
+ * is `git merge-base --is-ancestor <commit> <tip>`, so a later deploy carrying
+ * the commit counts too.
+ */
+export function tasksProductionServes(input: {
+  servingSha: string | null
+  awaiting: AwaitingDeployTask[]
+  contains: (commit: string, tip: string) => boolean
+}): AwaitingDeployTask[] {
+  const { servingSha } = input
+  if (!servingSha) return []
+  return input.awaiting.filter(task => input.contains(task.sha, servingSha))
+}
+
+/** The comment that completes one. It must not carry a marker line itself. */
+export function deployedCompletionComment(input: { sha: string; servingSha: string }): string {
+  return (
+    `🚀 Deployed: production is serving \`${input.servingSha.slice(0, 8)}\`, which contains this ` +
+    `task's commit \`${input.sha.slice(0, 8)}\`. Marked complete by the runner (scripts/land-and-deploy.ts).`
+  )
+}
+
 /** The run news, for the list chat. One place, so the wording cannot drift. */
 export function summary(input: {
   landed: number[]
@@ -278,6 +314,8 @@ export function summary(input: {
   deferred?: number[]
   /** Jobs that failed in the dispatched run, if it did not succeed. */
   runFailed?: string[]
+  /** Awaiting-deploy tasks marked complete because production serves them (AWTD-1278). */
+  completedTasks?: string[]
 }): string {
   const lines: string[] = []
   const verb = input.dryRun ? 'Would land' : 'Landed'
@@ -310,6 +348,13 @@ export function summary(input: {
   } else {
     lines.push(`**Scheduled /fixall (web) did NOT deploy.** ${landed}`)
     lines.push(input.verdict.reason)
+  }
+
+  if (input.completedTasks?.length) {
+    lines.push('')
+    lines.push(
+      `${input.dryRun ? 'Would mark' : 'Marked'} complete — production serves their work: ${input.completedTasks.join(', ')}.`,
+    )
   }
 
   if (input.deferred?.length) {

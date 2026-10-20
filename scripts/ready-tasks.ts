@@ -215,6 +215,7 @@ async function main() {
   const recheck: Array<{ task: QueueTask; condition: string; commentWatermark: string | null }> = []
   const review: Array<{ task: QueueTask; commentWatermark: string | null }> = []
   const blocked: Array<{ task: QueueTask; on: string[] }> = []
+  const deploying: Array<{ task: QueueTask; sha: string }> = []
 
   for (const task of waiting.filter(t => isClaimableByAgent(t, options.harness))) {
     const comments = await api.comments(task)
@@ -231,6 +232,7 @@ async function main() {
       now,
       blockedBy,
       blockedOn: conditions.blockedOn,
+      awaitingDeploy: conditions.awaitingDeploy,
     })
 
     if (disposition === 'check-blockers') {
@@ -245,11 +247,15 @@ async function main() {
         now,
         blockedBy: [],
         blockedOn: conditions.blockedOn,
+        awaitingDeploy: conditions.awaitingDeploy,
       })
       if (disposition === 'review') disposition = 'promote'
     }
 
-    if (disposition === 'hold') {
+    if (disposition === 'awaiting-deploy') {
+      // The runner completes it once production serves the commit (AWTD-1278).
+      deploying.push({ task, sha: conditions.awaitingDeploy ?? '' })
+    } else if (disposition === 'hold') {
       held.push({ task, when: describeSchedule(task, now) })
     } else if (disposition === 'recheck') {
       recheck.push({ task, condition: conditions.blockedOn ?? '(no condition recorded)', commentWatermark })
@@ -308,6 +314,13 @@ async function main() {
     console.log(`(${blocked.length} Waiting task(s) still blocked by open tasks:)`)
     for (const { task, on } of blocked) {
       console.log(`  — ${task.title}  [blocked by ${on.join(', ')}]`)
+    }
+  }
+
+  if (deploying.length > 0) {
+    console.log(`(${deploying.length} Waiting task(s) finished and awaiting their deploy — the runner completes them:)`)
+    for (const { task, sha } of deploying) {
+      console.log(`  — ${task.title}  [production must serve ${sha.slice(0, 8)}]`)
     }
   }
 

@@ -171,6 +171,7 @@ can re-check on every run. Three kinds of condition, three mechanisms:
 | **a date** | the task's own due date | the script — promotes to Ready when due |
 | **another task** | the task's own **blockers** — `TaskDependency` rows (AWTD-1002), set in the app, by MCP `add_blocker { taskId, blockingTaskId }` / `remove_blocker`, or by `POST /api/v1/tasks/:id/blockers` (identifiers like `AWTD-1007` accepted, AWTD-1086) — unioned with a comment line `BLOCKED-BY: <task-id>` (repeatable), which stays the fallback for a harness that cannot call either. Prefer the real blocker: it moves Ready → Waiting itself and shows as "Waiting on" in both apps | the script — promotes when every blocker is complete |
 | **an external event** (a dependency release, a vendor fix, a client rollout) | a comment line `BLOCKED-ON: <one-line condition>` **plus a recheck due date** | the agent — the script surfaces it under `RECHECK` when the date arrives |
+| **its own deploy** (web: finished work a scheduled run cannot ship itself) | a comment line `AWAITING-DEPLOY: <commit sha>` (AWTD-1278) | the runner — `land-and-deploy.ts` marks it complete once production serves that commit; the sweep lists it, never as `REVIEW` |
 
 The **latest marker-bearing comment wins wholesale** — to change the conditions, post a new
 comment with the new markers (or none of the blocking kind). Do not edit old comments.
@@ -540,7 +541,7 @@ Two things this does NOT change:
 completed tasks (AWTD-1007, 1024, 1025, 1035) sat on pushed branches with no PR: the board said
 complete and `main` had none of it. Inside a scheduled `claude -p` session `gh` is denied, so
 **the runner opens it** after the run (`scripts/open-fixall-prs.ts`): for each task the run
-claimed and completed, every unmerged branch whose name or commits carry the task's id gets a PR
+claimed and finished — completed, or left with an `AWAITING-DEPLOY:` marker (below) — every unmerged branch whose name or commits carry the task's id gets a PR
 titled by the task, with its completion report as the body. So **put the task id in the branch
 name or the commit message**, or the runner cannot find the work. An interactive `/fixall` can
 run `gh` and opens its own. A PR the runner could not open is posted to the list chat.
@@ -607,3 +608,23 @@ the outcome to the list chat.
 The checks on a PR the runner just opened are not green yet — they take about ten minutes — so
 it lands the PRs from **previous** runs and leaves this run's to the next tick. A loop that
 waited would burn its watchdog on CI.
+
+**So a scheduled session does not complete the task. It hands it over (AWTD-1278).** Done
+means deployed, and the session cannot deploy. Completing anyway breaks the rule, and leaving
+the task incomplete used to mean the runner never opened its PR. Instead, once the gates are
+green and the branch is pushed, the session:
+
+1. Ends its completion report (`add_comment`) with a line of its own:
+   `AWAITING-DEPLOY: <git rev-parse HEAD of the pushed branch>`. Without a commit sha the
+   line is not a marker.
+2. Moves the task to **Waiting**: `npx tsx scripts/set-task-status.ts <taskId> Waiting`.
+   Leave it there and **do not** mark it complete. A task left in `Doing` is released back to
+   Ready at the end of the run and gets worked again.
+
+The runner then opens the PR, lands it once its checks are green, and deploys `main`. On every
+tick `land-and-deploy.ts` asks `/api/health` which commit production serves, and it completes
+each `AWAITING-DEPLOY` task whose sha is an ancestor of that commit, with a comment naming it.
+A deploy dispatched by hand counts too. A failed deploy completes nothing. A pending migration
+on `main` holds every one of these tasks in Waiting until Jon ships the migration: that is the
+rule working, not the loop stuck. A squash merge drops the recorded sha, so such a task never
+matches and stays in Waiting. Land these PRs with a merge commit (the runner always does).
