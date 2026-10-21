@@ -169,8 +169,8 @@ async function main() {
 
   console.log('')
   if (!database) {
-    console.log(`⚠️  No DATABASE_URL yet. Attach a database: Vercel → ${project} → Storage → Create → Neon,`)
-    console.log('   connected to Production and Preview. Then run this again to map the direct URL.')
+    console.log(`⚠️  No DATABASE_URL yet. Provision one: npx tsx scripts/provision-brand-database.ts --project ${project}`)
+    console.log(`   (or Vercel → ${project} → Storage → Create → Neon, then run this again to map the direct URL).`)
   } else if (!direct && !unpooled) {
     console.log('⚠️  DATABASE_URL is set but neither DATABASE_URL_DIRECT nor DATABASE_URL_UNPOOLED is — migrations need one.')
   } else {

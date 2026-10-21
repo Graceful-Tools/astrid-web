@@ -612,9 +612,31 @@ own team (AWTD-1280):
    `deploy-brand-preview.ts` pins `BRAND_AGENT_EMAIL_DOMAIN=astrid.cc` **only on Astrid's
    team**, where a preview writes agent rows into Astrid's production data. On the
    partner's team it is their database, so the profile's agent domain is used as written.
-2. **Attach a database** (Vercel → Storage → Neon, connected to Production and Preview),
-   then run `push-brand-env.ts` again to map `DATABASE_URL_UNPOOLED` to
+2. **Provision a database.** `scripts/provision-brand-database.ts` creates a Neon project
+   named after the Vercel project and writes `DATABASE_URL` (pooled) and
+   `DATABASE_URL_DIRECT` (direct) to Production and Preview. It never prints a connection
+   string, refuses `astrid-web`, and does nothing on a re-run. It needs an org-scoped
+   `NEON_API_KEY` in `.env.local`, and it takes the same `--team` / `--scope` as the other
+   scripts:
+
+   ```bash
+   npx tsx scripts/provision-brand-database.ts --project partner --team team_xxx --scope partner-co --dry-run
+   ```
+
+   You can also do it by hand: Vercel → Storage → Neon, connected to Production and
+   Preview. Then run `push-brand-env.ts` again to map `DATABASE_URL_UNPOOLED` to
    `DATABASE_URL_DIRECT`.
+
+   **A preview on Astrid's team that needs its own database** (the lanes-test preview,
+   AWTD-1284) cannot get it this way, because writing to `astrid-web`'s env would hand it
+   to every preview. Use `--out` instead. It writes both URLs to a gitignored
+   `.env.<name>.local`, with mode 0600, and refuses `.env.local` and the other files that
+   load automatically. Previews do not migrate, so migrate it from that file:
+
+   ```bash
+   npx tsx scripts/provision-brand-database.ts --name lanes-test --out .env.lanes-test.local
+   (set -a; . ./.env.lanes-test.local; npx prisma migrate deploy)
+   ```
 3. **Set the minimum environment.** These are the `required` entries in `lib/env.ts`.
    `push-brand-env.ts` writes all of them except the database URLs, and it generates a
    secret only when that secret is absent:
