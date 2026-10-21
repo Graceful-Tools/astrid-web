@@ -339,7 +339,18 @@ export function ProjectStatusBoard({
         className={`flex-1 min-h-0 overflow-x-auto overflow-y-hidden scrollbar-hide px-4 pb-6 pt-4 ${isOneColumn ? "snap-x snap-mandatory scroll-px-4 overscroll-x-contain" : ""}`}
         data-testid="project-status-board"
       >
-        <div className={`flex h-full gap-3 ${isOneColumn ? "min-w-max" : "w-full"}`}>
+        {/*
+          One-column (mobile) is a snap carousel, and its columns are sized from
+          the SCROLLER, never from the viewport (AWTD-1305). `min-w-max` plus a
+          `calc(100vw - 2rem)` column made the column's width a promise about
+          the viewport that only held while the board happened to span it — and
+          a column wider than the snapport is, per the scroll-snap spec, a snap
+          area the scrollport can sit anywhere inside. The board then rests
+          off-centre, by exactly the overflow. Letting the row stay at the
+          scroller's width and each column fill it makes area and snapport equal
+          whatever the shell does.
+        */}
+        <div className={`flex h-full gap-3 ${isOneColumn ? "" : "w-full"}`}>
         {columns.map((column, columnIndex) => {
           const tasksForColumn = boardTasks.filter(task =>
             getTaskProjectColumnId(task, columns) === column.id
@@ -354,7 +365,7 @@ export function ProjectStatusBoard({
               data-column-index={columnIndex}
               className={`flex h-full snap-start flex-col rounded-lg border theme-border theme-bg-secondary ${
                 isOneColumn
-                  ? "w-[calc(100vw-2rem)] shrink-0"
+                  ? "w-full shrink-0"
                   : "min-w-[18rem] max-w-[28rem] flex-1"
               }`}
               onDragOver={(event) => event.preventDefault()}
