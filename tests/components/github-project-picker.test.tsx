@@ -9,7 +9,7 @@
  * binds one, and lands the user on the new board.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 const caps = vi.hoisted(() => ({ githubProjects: true }))
@@ -45,7 +45,7 @@ const json = (body: unknown, status = 200) =>
 const apiError = (status: number, body: unknown) => Object.assign(new Error(`API call failed: ${status}`), { status, detail: body })
 
 describe('GitHubProjectPickerDialog (AWTD-1302)', () => {
-  let navigate: ReturnType<typeof vi.fn>
+  let navigate: Mock<(path: string) => void>
 
   beforeEach(() => {
     vi.clearAllMocks()
