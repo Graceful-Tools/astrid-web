@@ -26,8 +26,8 @@ Insights was collecting the numbers — see below.
 | Redis cache hit rate | >= 60% after warm-up (re-based 2026-10-16, AWTD-1201 — was >= 80%) | `/admin/analytics` → **Redis Cache**, per day, from the `CacheMetricBucket` table | 2026-10-16: **66.3% over the last 7 days — within budget**; 70.6% since recording began 2026-09-25. See below |
 | Initial JavaScript | <= 250 KiB compressed | shared baseline only — see below | 2026-09-11 |
 | Core Web Vitals (p75) | LCP <= 2.5 s; INP <= 200 ms; CLS <= 0.1 | Vercel Speed Insights (history, dashboard only) + `scripts/measure-web-vitals.ts` (scriptable, no history yet) — see below | **not yet transcribed** |
-| GitHub Projects webhook ack | p95 <= 300 ms (delivery check, one indexed read, one insert; work runs after the response) | `vercel logs --query projects_v2_item` route timings; shape pinned by `tests/api/github-projects-webhook.test.ts` (AWTD-1152) | **never — no brand has GitHub Projects on yet** |
-| GitHub Projects edit → replica | p95 <= 10 s from a github.com edit to the Astrid row | `npm run test:live:github-projects` (AWTD-1154) measures edit → hydrate job → replica; the webhook leg needs a deployed GitHub-Projects brand | 2026-10-10: **~1.0–1.2 s** for edit → hydrate → replica, webhook leg excluded (one run, not a p95) |
+| GitHub Projects webhook ack | p95 <= 300 ms (delivery check, one indexed read, one insert; work runs after the response) | `vercel logs --query projects_v2_item` route timings; shape pinned by `tests/api/github-projects-webhook.test.ts` (AWTD-1152) | 2026-10-21 (AWTD-1159): the lanes-test brand has it on and its App is delivering. GitHub's own delivery log reports **p50 360 ms, p95 1040 ms** over 58 `projects_v2_item` deliveries, all HTTP 200. **Not comparable to this budget**: GitHub's `duration` is its whole round trip — DNS, TLS, network and any cold start — while the budget is route time. Route time still unmeasured; see below |
+| GitHub Projects edit → replica | p95 <= 10 s from a github.com edit to the Astrid row | `npm run test:live:github-projects` (AWTD-1154) measures edit → hydrate job → replica; the webhook leg needs a deployed GitHub-Projects brand | 2026-10-21 (AWTD-1159), on the deployed lanes-test brand: webhook received → replica written is **p50 616 ms, p95 840 ms, max 1.34 s** over 67 first-attempt hydrate jobs. With the ack above that is **~1.9 s at p95**, against a 10 s budget. The one leg still unmeasured is github.com edit → GitHub delivering; see below. (2026-10-10: ~1.0–1.2 s for edit → hydrate → replica locally, webhook leg excluded, one run) |
 | GitHub Projects apply | <= 4 queries per item event; no N+1 | `tests/services/github-projects-apply-query-budget.test.ts` pins the statement count through the real field and iteration passes (AWTD-1297); `tests/services/github-projects-service.test.ts` pins the reads (AWTD-1151); `npm run test:live:github-projects` counts real queries (AWTD-1154) | 2026-10-10: **3** for one changed item; an import page is **25 fixed + 0 per item**, so 0.25 per item at 100-item pages. 2026-10-21: P6a/P6c had pushed one changed item to **10** (live); AWTD-1297 brings it back to **3** (≤ 4 when the task holds field values) in the contract test, live re-run pending. A task holding mirrored labels, milestones or iterations still costs more (AWTD-1315) |
 | GitHub Projects initial import | 2,000-item project <= 5 min | `npm run test:live:github-projects` (AWTD-1154) | 2026-10-10: 3 items in ~0.6 s. **2,000 not yet measured**: GitHub's content-creation caps make seeding 2,000 items a multi-hour job |
 | GitHub reconcile share | <= 30% of an installation's hourly GraphQL budget | `admit()` in `lib/github/rate-limiter.ts`, table-tested (AWTD-1150) | pinned continuously |
@@ -238,6 +238,64 @@ bytes.
 → 109.4 KiB on the wire**, 22% of budget instead of 111%. It is opt-in to use,
 so no client's payload changed on the day it shipped, and the moving-fixture
 problem above is untouched by it and filed separately.
+
+## 2026-10-21 — the GitHub Projects webhook leg, measured on a deployed brand (AWTD-1159)
+
+Two rows above said the webhook leg could not be measured because no brand had
+GitHub Projects turned on. **That stopped being true.** `lanes-test.astrid.cc`
+serves the GitHub Projects brand — `/api/v1/capabilities` answers
+`product.githubProjects: true` — with its own Neon database and its own
+registered GitHub App. Its App has delivered 58 `projects_v2_item` webhooks, and
+its database holds 2 bound projects, 19 project items and 68 completed hydrate
+jobs.
+
+Everything below is a **read-only** measurement of that live deployment: its
+database and GitHub's own delivery log. Nothing was written to either.
+
+### Webhook received → replica written
+
+67 hydrate jobs that succeeded on their first attempt, `createdAt` (the webhook
+handler enqueued it) to `doneAt` (the replica is written):
+
+```
+p50 616 ms    p95 840 ms    max 1,343 ms
+```
+
+First attempts only, on purpose. The 68th job took 33.9 s across two attempts —
+that is a retry's backoff, not the write taking 34 seconds, and averaging it in
+would describe neither.
+
+### The ack, as GitHub measures it
+
+GitHub records a `duration` per delivery. Over the 58 `projects_v2_item`
+deliveries: **p50 360 ms, p95 1,040 ms**, every one HTTP 200.
+
+**This is not the 300 ms ack budget, and must not be read as a breach of it.**
+That budget is route time — a delivery check, one indexed read, one insert.
+GitHub's number is its whole round trip: DNS, TLS, the network to Vercel, any
+cold start, and the response. Route time still needs
+`vercel logs --query projects_v2_item` on the lanes-test deployment, which is
+the remaining work on that row.
+
+### What is still not measured, and why
+
+**github.com edit → GitHub delivering the webhook.** The obvious source is the
+delivery payload's own `updated_at`, but GitHub redacts payloads on historical
+deliveries — `GET /app/hook/deliveries/{id}` answers an empty `request.payload`
+for all of these. Measuring it means making an edit on the lanes-test project
+and timing it live, which is a **write to a real GitHub org** and so is a
+deliberate act, not something to do while passing.
+
+Composing what we do have puts edit → replica at roughly **1.9 s at p95**
+against a 10 s budget, with only that first leg unaccounted for. GitHub
+typically delivers in well under a second, so the row is very likely comfortably
+inside budget — but "very likely" is not a measurement, which is why the row
+says what it says.
+
+**A 2,000-item import.** Unchanged and still genuinely blocked: GitHub's
+content-creation caps make seeding 2,000 items a multi-hour job. Per-page cost
+is measured and flat (25 queries fixed, 0 per item), so the arithmetic is known;
+the wall-clock number is not.
 
 ## Rows without a source, stated plainly
 
