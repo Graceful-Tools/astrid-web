@@ -242,6 +242,17 @@ describe('the first non-done status option (AWTD-1118)', () => {
     expect(firstNonDoneOption({ o_done: 'done', o_ready: 'ready', o_doing: 'doing' })).toBe('o_ready')
   })
 
+  it('is the ready option whatever order the map comes back in (AWTD-1284)', () => {
+    // The map is a jsonb column, and jsonb sorts its keys. Live on the
+    // lanes-test preview it came back as { 47fc9ee4: doing, 98236657: done,
+    // f75ad846: ready }, and the spawned card started in "In progress".
+    expect(firstNonDoneOption({ '47fc9ee4': 'doing', '98236657': 'done', f75ad846: 'ready' })).toBe('f75ad846')
+  })
+
+  it('falls back to any non-done option on a board with no ready one', () => {
+    expect(firstNonDoneOption({ o_done: 'done', o_doing: 'doing' })).toBe('o_doing')
+  })
+
   it('is null on a board whose every option is done', () => {
     expect(firstNonDoneOption({ o_done: 'done' })).toBeNull()
     expect(firstNonDoneOption({})).toBeNull()

@@ -17,6 +17,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { Prisma } from '@prisma/client'
+import { unknownSelectFields } from '../utils/prisma-where'
 
 const db = vi.hoisted(() => ({
   task: { findUnique: vi.fn(), findMany: vi.fn(), update: vi.fn() },
@@ -31,6 +33,7 @@ import {
   enqueueRecurrenceSpawn,
   runRecurSpawn,
 } from '@/services/github-recurrence.service'
+import { createTasksInBulk } from '@/services/task-bulk-create'
 
 const onABoard = () => db.gitHubProjectItem.findFirst.mockResolvedValue({ binding: { installationId: 42 } })
 
@@ -180,6 +183,124 @@ describe('running the spawn job (AWTD-1118)', () => {
       expect.objectContaining({ where: { id: 'task-1' }, data: expect.objectContaining({ repeating: 'never' }) }),
     )
     expect(db.gitHubProjectItem.findMany).not.toHaveBeenCalled()
+  })
+
+  it('reads the predecessor’s boards with fields the schema has (AWTD-1284)', async () => {
+    // Live on the lanes-test preview, every recur job failed on this query:
+    // it selected binding.listId, which GitHubProjectBinding has never had.
+    db.task.findUnique.mockResolvedValue(predecessor())
+    db.gitHubProjectItem.findMany.mockResolvedValue([])
+    await runRecurSpawn({ taskId: 'task-1', occurrenceCount: 3 }, 42, client)
+
+    const { select } = db.gitHubProjectItem.findMany.mock.calls[0][0]
+    expect(unknownSelectFields('GitHubProjectItem', select)).toEqual([])
+  })
+
+  it('keeps a spawned issue when GitHub refuses a field copy, so a retry cannot make another (AWTD-1284)', async () => {
+    // Live on the lanes-test preview: the due field ("Target date") is a GitHub
+    // ISSUE field, which updateProjectV2ItemFieldValue refuses. The job threw
+    // after createIssue had succeeded, and every retry created another issue.
+    db.task.findUnique.mockResolvedValue(predecessor())
+    db.gitHubProjectItem.findMany.mockResolvedValue([
+      {
+        itemNodeId: 'PVTI_1',
+        projectId: 'project-1',
+        binding: {
+          projectNodeId: 'PVT_1',
+          installationId: 42,
+          project: { ownerId: 'user-1' },
+          statusFieldId: 'F_STATUS',
+          statusOptionMap: { todo: 'ready', done: 'done' },
+          priorityFieldId: null,
+          priorityOptionMap: null,
+          dueFieldId: 'F_DUE',
+        },
+      },
+    ])
+    vi.mocked(createTasksInBulk).mockResolvedValueOnce({ tasks: [{ id: 'task-2' }] } as never)
+    const query = vi.fn(async (document: string, variables: Record<string, unknown> = {}) => {
+      if (document.includes('SpawnSource')) {
+        return {
+          node: {
+            __typename: 'Issue', id: 'I_1', title: 'Water the plants', body: null, number: 1,
+            repository: { id: 'R_1', nameWithOwner: 'acme/garden' }, labels: { nodes: [] }, assignees: { nodes: [] },
+          },
+        }
+      }
+      if (document.includes('createIssue')) {
+        return { m0: { issue: { id: 'I_2', number: 2, updatedAt: '2026-10-21T00:00:00Z', repository: { nameWithOwner: 'acme/garden' } } } }
+      }
+      if (document.includes('addProjectV2ItemById')) return { m0: { item: { id: 'PVTI_2' } } }
+      if (variables.id === 'PVTI_1') return { node: { id: 'PVTI_1', fieldValues: { nodes: [] } } }
+      if (document.includes('updateProjectV2ItemFieldValue')) {
+        throw new Error('Issue field values cannot be updated using the updateProjectV2ItemFieldValue mutation')
+      }
+      return {}
+    })
+
+    await expect(runRecurSpawn({ taskId: 'task-1', occurrenceCount: 3 }, 42, { query } as never)).resolves.toBeUndefined()
+
+    expect(query.mock.calls.filter(([document]) => document.includes('createIssue'))).toHaveLength(1)
+    expect(db.gitHubProjectItem.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: [{ itemNodeId: 'PVTI_2', projectId: 'project-1', taskId: 'task-2' }] }),
+    )
+    expect(db.task.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'task-1' }, data: expect.objectContaining({ repeating: 'never' }) }),
+    )
+  })
+
+  it('gives the series to the successor the webhook already mirrored (AWTD-1284)', async () => {
+    // Live on the lanes-test preview: GitHub's webhook for the new issue landed
+    // while the job was still copying fields, so the successor was already a
+    // plain mirrored task and the insert failed on its identifier, after the
+    // issue existed. A retry would have created another issue.
+    db.task.findUnique.mockResolvedValue(predecessor())
+    db.gitHubProjectItem.findMany.mockResolvedValue([
+      {
+        itemNodeId: 'PVTI_1',
+        projectId: 'project-1',
+        binding: {
+          projectNodeId: 'PVT_1', installationId: 42, project: { ownerId: 'user-1' },
+          statusFieldId: 'F_STATUS', statusOptionMap: { todo: 'ready', done: 'done' },
+          priorityFieldId: null, priorityOptionMap: null, dueFieldId: null,
+        },
+      },
+    ])
+    vi.mocked(createTasksInBulk).mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed on the fields: (`identifier`)', {
+        code: 'P2002',
+        clientVersion: 'test',
+      }),
+    )
+    db.task.update.mockResolvedValue({ id: 'task-mirrored' })
+    const query = vi.fn(async (document: string, variables: Record<string, unknown> = {}) => {
+      if (document.includes('SpawnSource')) {
+        return {
+          node: {
+            __typename: 'Issue', id: 'I_1', title: 'Water the plants', body: null, number: 1,
+            repository: { id: 'R_1', nameWithOwner: 'acme/garden' }, labels: { nodes: [] }, assignees: { nodes: [] },
+          },
+        }
+      }
+      if (document.includes('createIssue')) {
+        return { m0: { issue: { id: 'I_2', number: 2, updatedAt: '2026-10-21T00:00:00Z', repository: { nameWithOwner: 'acme/garden' } } } }
+      }
+      if (document.includes('addProjectV2ItemById')) return { m0: { item: { id: 'PVTI_2' } } }
+      if (variables.id === 'PVTI_1') return { node: { id: 'PVTI_1', fieldValues: { nodes: [] } } }
+      return {}
+    })
+
+    await expect(runRecurSpawn({ taskId: 'task-1', occurrenceCount: 3 }, 42, { query } as never)).resolves.toBeUndefined()
+
+    expect(db.task.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { remoteNodeId: 'I_2' },
+        data: expect.objectContaining({ previousOccurrenceId: 'task-1', occurrenceCount: 4, repeating: 'weekly' }),
+      }),
+    )
+    expect(db.gitHubProjectItem.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: [{ itemNodeId: 'PVTI_2', projectId: 'project-1', taskId: 'task-mirrored' }] }),
+    )
   })
 
   it('spawns nothing when the board it was on has been detached', async () => {

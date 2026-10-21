@@ -39,3 +39,32 @@ export function unknownWhereFields(model: Prisma.ModelName, where: Record<string
   visit(where)
   return unknown
 }
+
+/**
+ * Field names in a Prisma `select` that the model does not have, nested
+ * relation selects included (reported as `relation.field`).
+ *
+ * The same blind spot as `where`: tsc accepts an unknown key inside a nested
+ * `select`, and a mock returns whatever it is told. AWTD-1284: the recurrence
+ * job selected `binding.listId`, which GitHubProjectBinding never had, so every
+ * spawn failed on its first query while its tests stayed green.
+ */
+export function unknownSelectFields(model: Prisma.ModelName, select: Record<string, unknown>): string[] {
+  const definition = Prisma.dmmf.datamodel.models.find(m => m.name === model)
+  if (!definition) throw new Error(`No Prisma model named ${model}`)
+
+  const unknown: string[] = []
+  for (const [key, value] of Object.entries(select)) {
+    if (key === '_count') continue
+    const field = definition.fields.find(f => f.name === key)
+    if (!field) {
+      unknown.push(key)
+      continue
+    }
+    const nested = value && typeof value === 'object' ? (value as { select?: Record<string, unknown> }).select : undefined
+    if (nested && field.kind === 'object') {
+      unknown.push(...unknownSelectFields(field.type as Prisma.ModelName, nested).map(name => `${key}.${name}`))
+    }
+  }
+  return unknown
+}

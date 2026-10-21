@@ -96,16 +96,18 @@ export function nextOccurrenceComment(successorIdentifier: string | null): strin
 }
 
 /**
- * The option a spawned card's Status starts on: the board's first non-done
- * state, normally `ready` (§10.1). Object key order is GitHub's own option
- * order, as the binding recorded it. Null when the board bound no such option,
- * in which case the card is left where GitHub puts a new one.
+ * The option a spawned card's Status starts on: the board's `ready` option, or
+ * failing that any non-done one (§10.1). Not "the first" by key order: the map
+ * is stored as jsonb, which sorts its keys, so GitHub's option order does not
+ * survive the round trip (AWTD-1284 — a spawned card started in "In
+ * progress"). Null when the board bound no such option, in which case the card
+ * is left where GitHub puts a new one.
  */
 export function firstNonDoneOption(statusOptionMap: Record<string, string>): string | null {
-  for (const [optionId, role] of Object.entries(statusOptionMap)) {
-    if (role !== DONE_OPTION) return optionId
-  }
-  return null
+  const entries = Object.entries(statusOptionMap)
+  const ready = entries.find(([, role]) => role === 'ready')
+  if (ready) return ready[0]
+  return entries.find(([, role]) => role !== DONE_OPTION)?.[0] ?? null
 }
 
 /** The predecessor, as a spawn needs to see it. */

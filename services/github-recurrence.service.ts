@@ -32,6 +32,7 @@ import type { BindingFieldMap, RemoteFieldValue } from '@/lib/github/projects/ap
 import { ADD_ITEM_DOCUMENT, parseCreatedContent } from '@/lib/github/projects/create'
 import { hydrateItem } from '@/lib/github/projects/hydrate'
 import { createTasksInBulk } from '@/services/task-bulk-create'
+import { isUniqueConstraintError } from '@/lib/secure-file-idempotency'
 import {
   ADD_COMMENT_DOCUMENT,
   SPAWN_SOURCE_QUERY,
@@ -80,7 +81,6 @@ async function predecessorMemberships(taskId: string) {
         select: {
           projectNodeId: true,
           installationId: true,
-          listId: true,
           project: { select: { ownerId: true } },
           statusFieldId: true,
           statusOptionMap: true,
@@ -283,42 +283,71 @@ export async function runRecurSpawn(
 
   const nextDue = answer.nextDueDate === null ? null : new Date(answer.nextDueDate)
   const fieldPlan = planSpawnFields(spawnMemberships, nextDue)
-  if (fieldPlan.document) await client.query(fieldPlan.document, fieldPlan.variables, { strict: true })
+  // The issue already exists, so nothing past this point may fail the job: a
+  // retry starts at step 1 and creates ANOTHER issue. A field GitHub refuses
+  // (an issue field, e.g. "Target date", takes a different mutation — AWTD-1284)
+  // leaves the successor without that value, which a person can fix; a
+  // duplicate issue per retry they cannot stop.
+  if (fieldPlan.document) {
+    try {
+      await client.query(fieldPlan.document, fieldPlan.variables, { strict: true })
+    } catch (err) {
+      log.warn({ err, taskId: task.id, identifier: created.identifier }, 'Spawned the next occurrence but could not copy its field values')
+    }
+  }
 
   // ── 4. The successor in Astrid, carrying the series ────────────────────
-  // A board's tasks are the board's, exactly as applyProjectItems creates
-  // every other mirrored task.
-  const { tasks } = await createTasksInBulk({
-    actorId: memberships[0].binding.project.ownerId,
-    fromRemote: { source: 'GitHub' },
-    tasks: [
-      {
-        listIds: task.lists.map(list => list.id),
-        identifier: created.identifier,
-        data: {
-          title: task.title,
-          description: task.description,
-          priority: task.priority,
-          isPrivate: task.isPrivate,
-          isAllDay: task.isAllDay,
-          dueDateTime: nextDue,
-          assigneeId: task.assigneeId,
-          assigneeIds: task.assigneeIds,
-          // The configuration MOVES to the new occurrence (§10.1).
-          repeating: task.repeating,
-          repeatingData: task.repeatingData ?? undefined,
-          repeatFrom: task.repeatFrom,
-          occurrenceCount: answer.newOccurrenceCount,
-          previousOccurrenceId: task.id,
-          remoteNodeId: created.remoteNodeId,
-          remoteKind: created.remoteKind,
-          remoteVersion: created.remoteVersion,
+  // What only Astrid knows about the occurrence; GitHub cannot tell a mirror.
+  const series = {
+    priority: task.priority,
+    isAllDay: task.isAllDay,
+    dueDateTime: nextDue,
+    assigneeId: task.assigneeId,
+    assigneeIds: task.assigneeIds,
+    // The configuration MOVES to the new occurrence (§10.1).
+    repeating: task.repeating,
+    repeatingData: task.repeatingData ?? undefined,
+    repeatFrom: task.repeatFrom,
+    occurrenceCount: answer.newOccurrenceCount,
+    previousOccurrenceId: task.id,
+  }
+  let successor: { id: string } | undefined
+  try {
+    // A board's tasks are the board's, exactly as applyProjectItems creates
+    // every other mirrored task.
+    const { tasks } = await createTasksInBulk({
+      actorId: memberships[0].binding.project.ownerId,
+      fromRemote: { source: 'GitHub' },
+      tasks: [
+        {
+          listIds: task.lists.map(list => list.id),
+          identifier: created.identifier,
+          data: {
+            ...series,
+            title: task.title,
+            description: task.description,
+            isPrivate: task.isPrivate,
+            remoteNodeId: created.remoteNodeId,
+            remoteKind: created.remoteKind,
+            remoteVersion: created.remoteVersion,
+          },
         },
-      },
-    ],
-  })
+      ],
+    })
+    successor = tasks[0]
+  } catch (err) {
+    // GitHub's webhook for the new issue can mirror it before this insert —
+    // seconds are enough, and steps 2–3 take that long. The row is the
+    // successor; give it the series (AWTD-1284). Throwing here would retry
+    // from step 1 and create another issue.
+    if (!isUniqueConstraintError(err)) throw err
+    successor = await prisma.task.update({
+      where: { remoteNodeId: created.remoteNodeId },
+      data: series,
+      select: { id: true },
+    })
+  }
 
-  const successor = tasks[0]
   if (!successor) {
     throw new Error(
       `Spawned ${created.identifier ?? created.remoteNodeId} on GitHub but could not record it in ${BRAND.appName}`,
