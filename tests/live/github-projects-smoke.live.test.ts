@@ -27,6 +27,7 @@ loadEnv({ path: '.env.local', quiet: true })
 const PROJECT = 'PVT_kwDOFEb-HM4BmXS2'
 const ORG = 'Graceful-Fools'
 const ISSUE_1 = 'I_kwDOVCns8c8AAAABWTcnYA'
+const ISSUE_1_ITEM = 'PVTI_lADOFEb-HM4BmXS2zg_2m1A'
 const DRAFT_ITEM = 'PVTI_lADOFEb-HM4BmXS2zg_2m3Y'
 const STATUS_FIELD = 'PVTSSF_lADOFEb-HM4BmXS2zhlApMc'
 const OPTION = { todo: 'f75ad846', inProgress: '47fc9ee4' }
@@ -106,6 +107,12 @@ describe.skipIf(!enabled)('GitHub Projects live smoke test (AWTD-1154)', () => {
     const { data } = await getGitHubApp().octokit.request('GET /orgs/{org}/installation', { org: ORG })
     installationId = data.id
 
+    // The fixtures as the cases expect them, whatever a person or a killed run
+    // left behind: afterAll alone cannot cover a status moved by hand (AWTD-1297).
+    await setIssueTitle(ISSUE_1_TITLE)
+    await setStatus(ISSUE_1_ITEM, OPTION.todo)
+    await setStatus(DRAFT_ITEM, OPTION.inProgress)
+
     // A clean slate: any board left by an earlier run, then a user to own one.
     const old = await prisma.gitHubProjectBinding.findUnique({ where: { projectNodeId: PROJECT } })
     if (old) await prisma.project.delete({ where: { id: old.projectId } })
@@ -123,6 +130,7 @@ describe.skipIf(!enabled)('GitHub Projects live smoke test (AWTD-1154)', () => {
     // Put the fixtures back the way the next run expects them.
     await setIssueTitle(ISSUE_1_TITLE).catch(() => {})
     await setStatus(DRAFT_ITEM, OPTION.inProgress).catch(() => {})
+    await setStatus(ISSUE_1_ITEM, OPTION.todo).catch(() => {})
     if (projectId) await prisma.project.delete({ where: { id: projectId } }).catch(() => {})
     await prisma.task.deleteMany({ where: { remoteNodeId: { not: null } } }).catch(() => {})
      

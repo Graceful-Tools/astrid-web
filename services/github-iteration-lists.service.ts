@@ -10,7 +10,8 @@
  *
  * Cost per page: one read of the board's iteration fields; when there are any,
  * one read of the page's iteration values and one of their lists, plus two
- * more when an iteration is new.
+ * more when an iteration is new. Given the field pass's result (`known`), the
+ * first two are not read again (AWTD-1297).
  */
 
 import { Prisma } from '@prisma/client'
@@ -44,24 +45,59 @@ export interface IterationTask {
   held: ReadonlyArray<{ id: string; remoteNodeId: string | null }>
 }
 
-/** Answers whether anything was written. */
-export async function applyIterationLists(board: IterationBoard, tasks: readonly IterationTask[]): Promise<boolean> {
-  if (tasks.length === 0) return false
+/**
+ * What the field pass just read and wrote (`applyFieldPage`), so this pass
+ * need not read the schema and the values again (AWTD-1297). `fields` is null
+ * when that pass needed no schema: then no task on the page holds a value.
+ */
+export interface KnownFieldPage {
+  fields: ReadonlyArray<{ id: string; remoteId: string; name: string; dataType: string; mappedTo: string | null; iterations: unknown }> | null
+  values: ReadonlyMap<string, ReadonlyMap<string, string | number>>
+}
+
+type IterationValue = { taskId: string; fieldId: string; iterationId: string | null }
+
+async function readIterationState(
+  board: IterationBoard,
+  tasks: readonly IterationTask[],
+  known?: KnownFieldPage,
+): Promise<{ fields: Map<string, IterationField>; values: IterationValue[] }> {
+  if (known) {
+    const rows = (known.fields ?? []).filter(field => field.dataType === 'iteration' && !field.mappedTo)
+    const fields = new Map(rows.map(row => [row.id, row as unknown as IterationField]))
+    const values = tasks.flatMap(({ taskId }) =>
+      [...(known.values.get(taskId) ?? [])].flatMap(([fieldId, value]) =>
+        fields.has(fieldId) ? [{ taskId, fieldId, iterationId: String(value) }] : [],
+      ),
+    )
+    return { fields, values }
+  }
 
   const fieldRows = await prisma.projectField.findMany({
     where: { projectId: board.projectId, dataType: 'iteration', mappedTo: null },
     select: { id: true, remoteId: true, name: true, iterations: true },
   })
   const fields = new Map(fieldRows.map(row => [row.id, row as unknown as IterationField]))
-  if (fields.size === 0 && tasks.every(task => task.held.length === 0)) return false
+  if (fields.size === 0) return { fields, values: [] }
+  const values = await prisma.taskFieldValue.findMany({
+    where: { taskId: { in: tasks.map(task => task.taskId) }, fieldId: { in: [...fields.keys()] } },
+    select: { taskId: true, fieldId: true, iterationId: true },
+  })
+  return { fields, values }
+}
 
-  const values =
-    fields.size > 0
-      ? await prisma.taskFieldValue.findMany({
-          where: { taskId: { in: tasks.map(task => task.taskId) }, fieldId: { in: [...fields.keys()] } },
-          select: { taskId: true, fieldId: true, iterationId: true },
-        })
-      : []
+/** Answers whether anything was written. */
+export async function applyIterationLists(
+  board: IterationBoard,
+  tasks: readonly IterationTask[],
+  known?: KnownFieldPage,
+): Promise<boolean> {
+  if (tasks.length === 0) return false
+  // Nothing held and nothing a field could ask for: no read at all.
+  if (known && !known.fields && tasks.every(task => task.held.length === 0)) return false
+
+  const { fields, values } = await readIterationState(board, tasks, known)
+  if (fields.size === 0 && tasks.every(task => task.held.length === 0)) return false
 
   const wantedByTask = new Map<string, WantedIteration[]>()
   const seen = new Map<string, WantedIteration>()
