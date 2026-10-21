@@ -72,7 +72,7 @@ astrid-web. There is no native client that talks to GitHub, or any other backend
 | **Web** | Supported | This document | — |
 | **iOS / Mac** | Supported | astrid-ios: `./scripts/make-brand-variant.sh <profile or path>` writes the **Whitelabel** build configuration; `apply-brand.sh` writes identity (§6) | [AITD-515](https://astrid.cc/t/AITD-515) |
 | **Windows** | Partial | astrid-windows: `scripts/package.ps1 -Brand <profile>`; `ASTRID_SERVER_URL` overrides the server at runtime. A non-`astrid` scheme also needs the core pin bumped past AWTD2-95 | [AWTD2-96](https://astrid.cc/t/AWTD2-96) |
-| **Android** | Partial | astrid-android: `brands/<name>/brand.properties`, then `./gradlew assembleRelease -PastridBrand=<name>` (see its `brands/README.md`). In-app accent colours are still fixed, and verified app links need an `assetlinks.json`, which astrid-web does not serve yet | [AATD-72](https://astrid.cc/t/AATD-72) |
+| **Android** | Partial | astrid-android: `brands/<name>/brand.properties`, then `./gradlew assembleRelease -PastridBrand=<name>` (see its `brands/README.md`). In-app accent colours are still fixed. Verified app links (`astridLinkAutoVerify`) need `BRAND_ANDROID_APP_LINKS` set on the server, so it serves `assetlinks.json` (§2) | [AATD-72](https://astrid.cc/t/AATD-72) |
 | **Core** (Windows and Android) | Partial | `urlScheme` and `handoffClientId` in the config JSON a shell passes; blank means Astrid's defaults | [AWTD2-95](https://astrid.cc/t/AWTD2-95) |
 
 The Apple apps read the same `brands/*.brand.json` you wrote in step 2. Windows can too.
@@ -135,6 +135,7 @@ All optional. Each falls back to the Astrid value.
 | `NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG` | `astrid-code-assistant` | Your own registered GitHub App |
 | `NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID` | *(derived)* | Only if inference is wrong — see §7 |
 | `BRAND_APPLE_APP_IDS` | Astrid's apps | Server-only. Comma-separated `<TEAM ID>.<bundle id>` values for `/.well-known/apple-app-site-association`: each is listed for passkeys and for universal links (`/s/*`, `/tasks/*`, `/lists/*`). Set it when you ship your own iOS/Mac apps. Leave it unset if you run the Astrid-signed test binaries (`whitelabel-partner`) |
+| `BRAND_ANDROID_APP_LINKS` | *(none — 404)* | Server-only. Comma-separated `<package>:<sha256 fingerprint>` pairs for `/.well-known/assetlinks.json`, so your Android app can verify its https links. The fingerprint is the Play **app-signing** key (Play Console → App integrity), not the upload key: 32 colon-separated hex bytes. Repeat a package to list several keys. Unset serves no file, and an Android build must keep `astridLinkAutoVerify` off |
 
 ### A variable you forget ships Astrid's value — so the build says so
 

@@ -51,6 +51,8 @@ interface BrandProfile {
     githubAppSlug: string
     /** Apps named in apple-app-site-association. Omitted: Astrid's own (AWTD-1281). */
     appleAppIds?: string[]
+    /** Packages named in assetlinks.json. Omitted: none, the route 404s (AWTD-1303). */
+    androidPackages?: string[]
     logo: string
     icon: string
     enabledAgents: string[]
@@ -198,6 +200,70 @@ describe('apple-app-site-association (AWTD-1281)', () => {
   it('is no longer a static file in public/', () => {
     // A static file would shadow the route and serve Astrid's apps on every domain.
     expect(existsSync(join(process.cwd(), 'public/.well-known/apple-app-site-association'))).toBe(false)
+  })
+})
+
+/** A Play app-signing fingerprint: 32 colon-separated hex bytes. */
+const FINGERPRINT_A = Array.from({ length: 32 }, (_, i) => i.toString(16).padStart(2, '0').toUpperCase()).join(':')
+const FINGERPRINT_B = Array.from({ length: 32 }, () => 'AB').join(':')
+
+describe('assetlinks.json (AWTD-1303)', () => {
+  const ORIGINAL_ENV = { ...process.env }
+
+  beforeEach(() => {
+    vi.resetModules()
+    clearBrandEnv()
+  })
+
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV }
+    vi.resetModules()
+  })
+
+  it('404s when BRAND_ANDROID_APP_LINKS is unset, so no domain claims an app it has no fingerprint for', async () => {
+    const { GET } = await import('@/app/.well-known/assetlinks.json/route')
+    expect(GET().status).toBe(404)
+  })
+
+  it('lists each package once with all of its fingerprints', async () => {
+    process.env.BRAND_ANDROID_APP_LINKS =
+      ` com.example.tasks:${FINGERPRINT_A.toLowerCase()} , com.example.tasks:${FINGERPRINT_B},com.example.beta:${FINGERPRINT_B},`
+    const { GET } = await import('@/app/.well-known/assetlinks.json/route')
+    const res = GET()
+
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toBe('application/json')
+    expect(await res.json()).toEqual([
+      {
+        relation: ['delegate_permission/common.handle_all_urls'],
+        target: {
+          namespace: 'android_app',
+          package_name: 'com.example.tasks',
+          sha256_cert_fingerprints: [FINGERPRINT_A, FINGERPRINT_B],
+        },
+      },
+      {
+        relation: ['delegate_permission/common.handle_all_urls'],
+        target: { namespace: 'android_app', package_name: 'com.example.beta', sha256_cert_fingerprints: [FINGERPRINT_B] },
+      },
+    ])
+  })
+
+  it.each([
+    ['no fingerprint', 'com.example.tasks'],
+    ['a short fingerprint', 'com.example.tasks:AB:CD'],
+    ['a SHA-1 fingerprint', `com.example.tasks:${FINGERPRINT_A.split(':').slice(0, 20).join(':')}`],
+    ['a package with no dot', `tasks:${FINGERPRINT_A}`],
+  ])('refuses %s at env validation', async (_label, value) => {
+    const { ENV_VARS } = await import('@/lib/env')
+    const entry = ENV_VARS.find((v) => v.name === 'BRAND_ANDROID_APP_LINKS')
+    expect(entry?.validate?.(value)).toEqual(expect.any(String))
+    expect(entry?.validate?.(`com.example.tasks:${FINGERPRINT_A}`)).toBeNull()
+  })
+
+  it('is not a static file in public/', () => {
+    // A static file would shadow the route and claim one app on every domain.
+    expect(existsSync(join(process.cwd(), 'public/.well-known/assetlinks.json'))).toBe(false)
   })
 })
 
@@ -446,6 +512,19 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     if (profile.expect.appleAppIds) {
       expect(body.applinks.details.map((d: { appID: string }) => d.appID)).toEqual(appIds)
     }
+  })
+
+  it('serves assetlinks.json only for this profile’s own Android apps (AWTD-1303)', async () => {
+    const { GET } = await import('@/app/.well-known/assetlinks.json/route')
+    const res = GET()
+    const packages = profile.expect.androidPackages ?? []
+
+    if (packages.length === 0) {
+      expect(res.status).toBe(404)
+      return
+    }
+    const body = await res.json()
+    expect(body.map((s: { target: { package_name: string } }) => s.target.package_name)).toEqual(packages)
   })
 
   it('renders llms.txt with no unresolved tokens or foreign brands', async () => {
