@@ -6,6 +6,7 @@ import GithubProvider from "next-auth/providers/github"
 import AppleProvider from "next-auth/providers/apple"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "./prisma"
+import type { Prisma } from "@prisma/client"
 import { getConsistentDefaultImage } from "./default-images"
 import { getDevBaseUrl, isLocalDevelopment } from "./port-detection"
 import { getBaseUrl } from "./base-url"
@@ -53,6 +54,12 @@ if (process.env.NODE_ENV === "development") {
 }
 
 // Note: Default list creation is now handled by shared utility in lib/default-lists.ts
+
+/** The `Account` columns an OAuth provider's token response may fill (AWTD-1300). */
+const ACCOUNT_COLUMNS = [
+  'userId', 'type', 'provider', 'providerAccountId', 'refresh_token', 'access_token',
+  'expires_at', 'token_type', 'scope', 'id_token', 'session_state',
+] as const
 
 // Custom adapter that handles account linking and credentials sessions
 const customAdapter = {
@@ -121,10 +128,14 @@ const customAdapter = {
       return
     }
     
-    // Create new account link
-    await prisma.account.create({
-      data: account
-    })
+    // Create new account link — the schema's columns only. A GitHub App with
+    // expiring user tokens also returns `expires_in` and
+    // `refresh_token_expires_in`; passed through, Prisma rejects the unknown
+    // argument and every GitHub sign-in on that brand fails (AWTD-1300).
+    const data = Object.fromEntries(
+      ACCOUNT_COLUMNS.filter((column) => account[column] !== undefined).map((column) => [column, account[column]])
+    )
+    await prisma.account.create({ data: data as Prisma.AccountUncheckedCreateInput })
   },
   async createSession(session: any) {
     if (process.env.NODE_ENV === "development") {
