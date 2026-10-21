@@ -1888,8 +1888,9 @@ iterations and milestones.
   decision and probably a migration. Split to P6a-5
   ([AWTD-1259](https://astrid.cc/t/AWTD-1259)) rather than folded in.
 
-**Board filter ([AWTD-1259](https://astrid.cc/t/AWTD-1259), P6a-5) — built; its migration
-needs a deploy.**
+**Board filter ([AWTD-1259](https://astrid.cc/t/AWTD-1259), P6a-5) — SHIPPED, 2026-10-21.**
+The migration it was waiting on went out with that day's deploy, and production serves
+`filterProjectField` on `GET /api/v1/lists`.
 - **Storage (a), Jon's call:** one nullable `UserListViewPreference.filterProjectField`
   holding `"<fieldId>:<valueId>"`, so one project-field filter at a time. It is in
   `LIST_VIEW_PREFERENCE_FIELDS`, so it saves and overlays through the existing per-user
