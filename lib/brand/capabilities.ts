@@ -33,7 +33,7 @@
 import { resolveAuthProviders, type AuthProviderId } from './auth-providers'
 
 /** A capability is on unless explicitly set to "false"/"0"/"off". */
-function enabled(value: string | undefined): boolean {
+export function enabled(value: string | undefined): boolean {
   const normalized = value?.trim().toLowerCase()
   if (!normalized) return true
   return !['false', '0', 'off', 'no'].includes(normalized)
@@ -43,7 +43,7 @@ function enabled(value: string | undefined): boolean {
  * The exception: a capability that is OFF unless a deployment turns it on.
  * Only for things astrid.cc must never have by accident (spec D5).
  */
-function explicitlyEnabled(value: string | undefined): boolean {
+export function explicitlyEnabled(value: string | undefined): boolean {
   return ['true', '1', 'on', 'yes'].includes(value?.trim().toLowerCase() ?? '')
 }
 

@@ -48,6 +48,8 @@ import { join } from 'node:path'
 import { loadScriptEnv } from './lib/load-env'
 import { profileEnv, type BrandProfile } from '../lib/brand/profile'
 import { previewPins, resolveVercelTarget, VERCEL_TARGET_FLAGS, type VercelTarget } from './lib/vercel-target'
+import { bootPreflightProblems } from '../lib/brand/boot-preflight'
+import { deploymentEnv, fetchStoredEnvRows, refuseIfBootWouldFail, storedKeysFor } from './lib/brand-boot-preflight'
 
 loadScriptEnv()
 
@@ -124,35 +126,62 @@ for (const [key, value] of Object.entries(PINNED_FOR_PREVIEW)) {
   pushEnv(key, value)
 }
 
-console.log(`\n🎨 Deploying brand profile: ${profile.name}`)
-console.log(`   ${profile.description}\n`)
-console.log(`   ${applied.length} build-env value(s) applied`)
-if (pinned.length > 0) {
-  console.log(`   pinned for previews: ${pinned.join(', ')}`)
-  console.log('     (previews share the production database — see brands/README.md)')
+/**
+ * Refuse a deployment the server would refuse to boot (AWTD-1298). The secrets live on the
+ * linked Vercel project; with no link to this team, `vercel --yes` makes a new project,
+ * which stores nothing, so what is sent is everything the deployment has.
+ */
+async function preflight(vercelToken: string): Promise<void> {
+  const linkPath = join(process.cwd(), '.vercel', 'project.json')
+  const link = existsSync(linkPath)
+    ? (JSON.parse(readFileSync(linkPath, 'utf8')) as { projectId?: string; orgId?: string })
+    : {}
+  const storedKeys = link.projectId && link.orgId === target.teamId
+    ? storedKeysFor(await fetchStoredEnvRows(link.projectId, target.teamId, vercelToken), 'preview')
+    : []
+  const sent = { ...resolvedEnv, ...PINNED_FOR_PREVIEW }
+  refuseIfBootWouldFail(bootPreflightProblems(deploymentEnv(storedKeys, sent)), `The ${profile.name} preview`)
 }
-console.log('')
 
-const output = execFileSync(
-  'npx',
-  ['vercel', '--yes', '--token', token, '--scope', target.scope, ...buildEnvArgs],
-  { encoding: 'utf8', stdio: ['inherit', 'pipe', 'inherit'] }
-)
-
-const url = output.match(/https:\/\/[a-z0-9-]+\.vercel\.app/)?.[0]
-console.log(output.trim())
-if (url) {
-  console.log(`\n✅ ${profile.name} preview: ${url}`)
-  console.log(`   Verify:  curl -s ${url}/api/v1/capabilities | python3 -m json.tool`)
-  if (alias) {
-    execFileSync(
-      'npx',
-      ['vercel', 'alias', url, alias, '--token', token, '--scope', target.scope],
-      { encoding: 'utf8', stdio: ['inherit', 'inherit', 'inherit'] }
-    )
-    console.log(`\n🔗 ${profile.name} is live at https://${alias}`)
+function deploy(vercelToken: string): void {
+  console.log(`\n🎨 Deploying brand profile: ${profile.name}`)
+  console.log(`   ${profile.description}\n`)
+  console.log(`   ${applied.length} build-env value(s) applied`)
+  if (pinned.length > 0) {
+    console.log(`   pinned for previews: ${pinned.join(', ')}`)
+    console.log('     (previews share the production database — see brands/README.md)')
   }
-} else if (alias) {
-  console.error(`❌ Could not find the deployment URL in Vercel's output, so ${alias} was NOT aliased.`)
-  process.exit(1)
+  console.log('')
+
+  const output = execFileSync(
+    'npx',
+    ['vercel', '--yes', '--token', vercelToken, '--scope', target.scope, ...buildEnvArgs],
+    { encoding: 'utf8', stdio: ['inherit', 'pipe', 'inherit'] }
+  )
+
+  const url = output.match(/https:\/\/[a-z0-9-]+\.vercel\.app/)?.[0]
+  console.log(output.trim())
+  if (url) {
+    console.log(`\n✅ ${profile.name} preview: ${url}`)
+    console.log(`   Verify:  curl -s ${url}/api/v1/capabilities | python3 -m json.tool`)
+    if (alias) {
+      execFileSync(
+        'npx',
+        ['vercel', 'alias', url, alias, '--token', vercelToken, '--scope', target.scope],
+        { encoding: 'utf8', stdio: ['inherit', 'inherit', 'inherit'] }
+      )
+      console.log(`\n🔗 ${profile.name} is live at https://${alias}`)
+    }
+  } else if (alias) {
+    console.error(`❌ Could not find the deployment URL in Vercel's output, so ${alias} was NOT aliased.`)
+    process.exit(1)
+  }
 }
+
+preflight(token).then(
+  () => deploy(token),
+  (error) => {
+    console.error(`❌ Preflight: ${error instanceof Error ? error.message : error}`)
+    process.exit(1)
+  },
+)
