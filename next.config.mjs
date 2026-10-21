@@ -2,8 +2,18 @@ import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import createNextIntlPlugin from 'next-intl/plugin'
 import { turbopackRoot } from './scripts/lib/turbopack-root.mjs'
+import { checkBrandIdentity } from './scripts/lib/brand-identity-check.mjs'
 
 const withNextIntl = createNextIntlPlugin('./lib/i18n/request.ts')
+
+// A partner build that sets some brand identity variables but not all of them ships
+// Astrid's value for the rest — support@astrid.cc, astrid://, Astrid's GitHub App. Name
+// each one here, at build, or fail under BRAND_STRICT_IDENTITY=true (AWTD-1285). Hosted
+// Astrid sets none of them, so for it this does nothing.
+checkBrandIdentity(process.env, {
+  strict: process.env.BRAND_STRICT_IDENTITY,
+  acknowledged: process.env.BRAND_INHERIT_ASTRID_IDENTITY,
+})
 
 // A `/fixall` worktree shares the main checkout's node_modules by symlink, and
 // Turbopack refuses to resolve through it — `Symlink [project]/node_modules is

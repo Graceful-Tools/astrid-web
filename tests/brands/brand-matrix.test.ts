@@ -57,6 +57,8 @@ interface BrandProfile {
     capabilities: Record<string, boolean>
     requireLiterals: string[]
     forbidLiterals: string[]
+    /** Identity variables this profile knowingly leaves on Astrid's value (AWTD-1285). */
+    inheritsAstridIdentity: string[]
   }
 }
 
@@ -100,6 +102,49 @@ describe('GitHub trademark rule (AWTD-1103, spec §11.1)', () => {
   it('has a GitHub Projects partner profile', () => {
     const partner = PROFILES.find((p) => p.env.NEXT_PUBLIC_BRAND_TITLE?.endsWith(' for GitHub Projects'))
     expect(partner, 'brands/github-projects.brand.json').toBeDefined()
+  })
+})
+
+describe('Astrid identity left on a partner build (AWTD-1285)', () => {
+  it('checks variables lib/brand/config.ts actually reads', async () => {
+    // A misspelt name here would be a variable the check demands and nothing uses.
+    const { BRAND_IDENTITY_ENV } = await import('@/scripts/lib/brand-identity-check.mjs')
+    const config = readFileSync(join(process.cwd(), 'lib/brand/config.ts'), 'utf8')
+
+    expect(BRAND_IDENTITY_ENV.length).toBeGreaterThan(0)
+    for (const name of BRAND_IDENTITY_ENV) {
+      expect(config, name).toContain(`process.env.${name}`)
+    }
+  })
+
+  it('names everything a partner who set only the name would ship from Astrid', async () => {
+    const { BRAND_IDENTITY_ENV, inheritedAstridIdentity } =
+      await import('@/scripts/lib/brand-identity-check.mjs')
+
+    expect(inheritedAstridIdentity({ NEXT_PUBLIC_BRAND_NAME: 'Acme' })).toEqual(
+      BRAND_IDENTITY_ENV.filter((name: string) => name !== 'NEXT_PUBLIC_BRAND_NAME')
+    )
+  })
+
+  it('treats a blank value as unset, except where blank is itself a choice', async () => {
+    // config.ts's env() ignores whitespace, so a blank domain still ships Astrid's. An empty
+    // App Store URL is different: it hides the download button, which is the partner's call.
+    const { inheritedAstridIdentity } = await import('@/scripts/lib/brand-identity-check.mjs')
+    const inherited = inheritedAstridIdentity({
+      NEXT_PUBLIC_BRAND_NAME: 'Acme',
+      NEXT_PUBLIC_BRAND_DOMAIN: '  ',
+      NEXT_PUBLIC_BRAND_APP_STORE_URL: '',
+    })
+
+    expect(inherited).toContain('NEXT_PUBLIC_BRAND_DOMAIN')
+    expect(inherited).not.toContain('NEXT_PUBLIC_BRAND_APP_STORE_URL')
+  })
+
+  it('is called by the build', () => {
+    const config = readFileSync(join(process.cwd(), 'next.config.mjs'), 'utf8')
+    expect(config).toMatch(/checkBrandIdentity\(process\.env,/)
+    expect(config).toContain('strict: process.env.BRAND_STRICT_IDENTITY')
+    expect(config).toContain('acknowledged: process.env.BRAND_INHERIT_ASTRID_IDENTITY')
   })
 })
 
@@ -207,6 +252,48 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
       expect(error, name).toContain(name)
     }
     expect(error).not.toContain('GITHUB_APP_ID,')
+  })
+
+  it('leaves on Astrid’s identity only what it declares (AWTD-1285)', async () => {
+    // Every identity variable falls back to Astrid's value, so a partner who forgets one
+    // ships support@astrid.cc or astrid:// and nothing said so. The build now names each
+    // one; this pins the list per profile, so a new profile cannot forget one quietly.
+    const { inheritedAstridIdentity } = await import('@/scripts/lib/brand-identity-check.mjs')
+
+    expect(inheritedAstridIdentity(process.env, process.env.BRAND_INHERIT_ASTRID_IDENTITY))
+      .toEqual(profile.expect.inheritsAstridIdentity)
+  })
+
+  it('fails a strict build only on an undeclared Astrid identity (AWTD-1285)', async () => {
+    const { checkBrandIdentity } = await import('@/scripts/lib/brand-identity-check.mjs')
+    const warnings: string[] = []
+    const warn = (message: string) => warnings.push(message)
+    const inherited = profile.expect.inheritsAstridIdentity
+
+    if (inherited.length === 0) {
+      // Hosted Astrid sets nothing, so the check never runs for it, strict or not; a
+      // fully rebranded partner has nothing to report.
+      expect(() => checkBrandIdentity(process.env, { strict: 'true', warn })).not.toThrow()
+      expect(warnings).toEqual([])
+      return
+    }
+
+    // One warning, naming every variable.
+    checkBrandIdentity(process.env, { warn })
+    expect(warnings.length).toBe(1)
+    for (const name of inherited) {
+      expect(warnings[0], name).toContain(name)
+    }
+
+    // Acknowledged: nothing to say, and a strict build passes.
+    warnings.length = 0
+    expect(() => checkBrandIdentity(process.env, { strict: 'true', acknowledged: inherited.join(','), warn }))
+      .not.toThrow()
+    expect(warnings).toEqual([])
+
+    // Unacknowledged under the strict flag: the build stops and says why.
+    expect(() => checkBrandIdentity(process.env, { strict: 'true', warn: () => {} }))
+      .toThrow(inherited[0])
   })
 
   it('derives the expected brand values', async () => {

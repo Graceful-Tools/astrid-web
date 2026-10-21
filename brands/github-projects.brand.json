@@ -76,7 +76,8 @@
     "wordmark": "lanes",
     "slogan": "Move work forward.",
     "appStoreUrl": "",
-    "githubAppSlug": "lanes-for-github-projects"
+    "githubAppSlug": "lanes-for-github-projects",
+    "inheritsAstridIdentity": []
   },
   "copy": {
     "reminders": {
