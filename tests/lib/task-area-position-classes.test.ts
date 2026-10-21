@@ -38,10 +38,22 @@ describe('taskAreaPositionClasses', () => {
     expect(classes).not.toContain('relative')
   })
 
-  it('leaves the mobile list wrapper in flow, exactly as it renders today', () => {
+  it('leaves the mobile list wrapper in flow', () => {
     const classes = classesOf(taskAreaPositionClasses({ isMobile: true, boardMode: false }))
     expect(classes).toContain('relative')
     expect(classes).not.toContain('absolute')
+  })
+
+  it('bounds the mobile list wrapper to the body, so it cannot overflow the screen by the header height (AWTD-1307)', () => {
+    // An auto-height wrapper took its height from the list's `max-height:
+    // 100dvh` cap: a full screen tall, starting BELOW the body's padding for
+    // the floating header. It overhung the screen by exactly the header's
+    // height (73px on a 390x664 iPhone), which turned `.app-container` into a
+    // scroller with a 73px range. Flicking to the end of a list chained into
+    // it and scrolled the fixed header (its containing block is the
+    // transformed drawer) clean off the top: header top -65, bottom 0.
+    const classes = classesOf(taskAreaPositionClasses({ isMobile: true, boardMode: false }))
+    expect(classes).toContain('h-full')
   })
 
   it('keeps the desktop wrapper a flex child', () => {
