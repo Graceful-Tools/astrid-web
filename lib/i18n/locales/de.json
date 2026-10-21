@@ -989,6 +989,7 @@
       "github": {
         "title": "GitHub",
         "description": "Verbindet {appName} mit deinen GitHub-Konten und -Organisationen. Vom Server ausgeführte Coding-Agenten erstellen darüber Branches und Pull Requests.",
+        "descriptionProjects": "Verbindet {appName} mit deinen GitHub-Organisationen, damit deren Projekte hier Boards sein können.",
         "empty": "Noch nicht mit GitHub verbunden.",
         "connect": "GitHub verbinden",
         "installAnother": "Weitere Organisation hinzufügen",
@@ -1006,6 +1007,7 @@
         "disconnect": "Trennen",
         "disconnectTitle": "{account} trennen?",
         "disconnectDescription": "Coding-Agenten funktionieren in den Repositories von {account} nicht mehr. Die GitHub-App bleibt dort installiert; deinstalliere sie auf GitHub, um sie vollständig zu entfernen.",
+        "disconnectDescriptionProjects": "Die Projekte von {account} erscheinen hier erst wieder, wenn du von GitHub aktualisierst. Die GitHub-App bleibt dort installiert; deinstalliere sie auf GitHub, um sie vollständig zu entfernen.",
         "disconnected": "{account} getrennt",
         "disconnectError": "Trennen fehlgeschlagen",
         "outcomes": {
@@ -1014,7 +1016,8 @@
           "not_authorized": "Laut GitHub kann dein Konto diese Installation nicht sehen",
           "already_connected": "Diese Installation ist bereits mit einem anderen Konto verbunden",
           "verification_unavailable": "Die GitHub-Anmeldung ist auf diesem Server nicht eingerichtet, daher konnte die Installation nicht überprüft werden",
-          "error": "Beim Verbinden mit GitHub ist etwas schiefgelaufen"
+          "error": "Beim Verbinden mit GitHub ist etwas schiefgelaufen",
+          "synced": "GitHub-Zugriff aktualisiert"
         }
       }
     }
@@ -1138,5 +1141,27 @@
       "noModel": "Ich helfe gern, aber ich brauche ein KI-Modell, um antworten zu können! Öffne {settingsLink}, um dein bevorzugtes Modell einzurichten.",
       "onDeviceUnavailable": "Dein ausgewähltes Modell läuft nur auf unterstützten Apple-Geräten, deshalb kann ich hier nicht antworten. Öffne {settingsLink}, um ein Modell zu wählen, das überall funktioniert."
     }
+  },
+  "githubProjectPicker": {
+    "entry": "GitHub-Projekt verbinden",
+    "title": "GitHub-Projekt verbinden",
+    "description": "Wähle ein Organisationsprojekt, das in {appName} als Board dienen soll. Seine Einträge werden im Hintergrund importiert.",
+    "connect": "Als Board verwenden",
+    "openBoard": "Board öffnen",
+    "closed": "Geschlossen",
+    "itemCountOne": "1 Eintrag",
+    "itemCountMany": "{count} Einträge",
+    "noProjects": "In dieser Organisation sind keine Projekte für dich sichtbar.",
+    "noOrganizations": "Noch keine GitHub-Organisation verbunden. Installiere die App in einer Organisation oder aktualisiere, falls sie bereits installiert ist.",
+    "installOnOrg": "In einer Organisation installieren",
+    "installAnother": "In weiterer Organisation installieren",
+    "refreshAccess": "Von GitHub aktualisieren",
+    "authRequired": "Verbinde dein GitHub-Konto, um die Projekte deiner Organisationen zu sehen.",
+    "connectGithub": "GitHub verbinden",
+    "loadError": "GitHub-Projekte konnten nicht geladen werden",
+    "retry": "Erneut versuchen",
+    "bound": "{title} verbunden. Einträge werden importiert…",
+    "alreadyBound": "Dieses Projekt ist bereits ein Board",
+    "bindError": "Projekt konnte nicht verbunden werden"
   }
 }

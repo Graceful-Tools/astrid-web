@@ -48,6 +48,8 @@ function explicitlyEnabled(value: string | undefined): boolean {
 }
 
 const integrationCustomAgents = enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW)
+const codingAgent = enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_CODING_AGENT)
+const githubProjects = explicitlyEnabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS)
 
 /**
  * The sign-in providers this deployment offers, in button order (spec §6.2).
@@ -99,7 +101,16 @@ export const CAPABILITIES = {
    * and a merge. Its own switch — it used to ride on `syncGithubIssues`, so
    * turning Issues sync off silently removed it too (AWTD-1094).
    */
-  codingAgent: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_CODING_AGENT),
+  codingAgent,
+  /**
+   * The brand's GitHub App connection itself (spec §7.5): connecting it, the
+   * installations list, "refresh my access", disconnect. Derived, not set:
+   * both the coding agent and GitHub Projects boards ride on it, so it is on
+   * when either is — a GitHub Projects brand with the coding agent off could
+   * not otherwise connect GitHub at all (AWTD-1302). Coding-agent-only routes
+   * stay on `codingAgent`.
+   */
+  githubConnection: codingAgent || githubProjects,
 
   // --- Product surfaces ----------------------------------------------------
   /**
@@ -119,7 +130,7 @@ export const CAPABILITIES = {
    * brand sets it — never on astrid.cc (D5), pinned by
    * tests/rules/astrid-never-enables-github-projects.test.ts (AWTD-1151).
    */
-  githubProjects: explicitlyEnabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS),
+  githubProjects,
   /**
    * On a GitHub Projects board, mirror an AI agent's assignment to GitHub as
    * a label `agent:<name>` on the issue (spec §8.6, §15 C3; AWTD-1191). OFF

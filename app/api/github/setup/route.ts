@@ -13,6 +13,12 @@
  *
  * With no App OAuth credentials configured there is nothing to verify with,
  * and the link is refused rather than trusted.
+ *
+ * `?sync=1` is "refresh my access" (spec §7.3, AWTD-1302): the same authorize
+ * round trip with no installation named, after which every installation GitHub
+ * lists for the user is granted (lib/github/app-access.ts). It is how a user
+ * whose org already has the App — or who signed in some other way — connects.
+ * `&return=/path` brings them back to a same-site page instead of Settings.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -35,6 +41,7 @@ import {
   type InstallationAccount,
 } from '@/lib/github/installations'
 import { storeGithubAppUserToken } from '@/lib/github/user-tokens'
+import { syncGithubAppAccess } from '@/lib/github/app-access'
 
 const log = createLogger('github.setup')
 
@@ -42,6 +49,30 @@ function settingsRedirect(request: NextRequest, github?: string) {
   // The one GitHub card lives on Connections (AWTD-1114); it reads ?github=.
   const path = github ? `/settings/connections?github=${github}` : '/settings/connections'
   return NextResponse.redirect(new URL(path, request.url))
+}
+
+/** The state subject for the sync leg; a return path rides along, encoded. */
+const SYNC_SUBJECT = 'sync'
+
+/** A same-site path to come back to, or null. Never another origin. */
+function safeReturnPath(raw: string | null): string | null {
+  if (!raw || !raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/\\')) return null
+  return raw.length <= 512 ? raw : null
+}
+
+function syncSubject(returnPath: string | null): string {
+  return returnPath ? `${SYNC_SUBJECT}-${Buffer.from(returnPath).toString('base64url')}` : SYNC_SUBJECT
+}
+
+/** The sync leg's subject → its return path (null for Settings); undefined if not a sync subject. */
+function parseSyncSubject(subject: string): string | null | undefined {
+  if (subject === SYNC_SUBJECT) return null
+  if (!subject.startsWith(`${SYNC_SUBJECT}-`)) return undefined
+  try {
+    return safeReturnPath(Buffer.from(subject.slice(SYNC_SUBJECT.length + 1), 'base64url').toString())
+  } catch {
+    return null
+  }
 }
 
 function setupRedirectUri(request: NextRequest): string {
@@ -89,9 +120,10 @@ async function fetchInstallation(installationId: number): Promise<FetchedInstall
 }
 
 export async function GET(request: NextRequest) {
-  // A deployment without the coding agent must refuse
-  // server-side, not merely hide the UI (task 229c175c).
-  const capabilityBlocked = capabilityGate('codingAgent')
+  // The App connection, not the coding agent: a GitHub Projects brand needs it
+  // with the coding agent off (AWTD-1302). Refused, server-side, when neither
+  // is on (task 229c175c).
+  const capabilityBlocked = capabilityGate('githubConnection')
   if (capabilityBlocked) return capabilityBlocked
 
   try {
@@ -113,6 +145,22 @@ export async function GET(request: NextRequest) {
         log.warn('GitHub setup state was minted for a different user')
         return settingsRedirect(request, 'not_authorized')
       }
+
+      // The sync leg: grant whatever GitHub lists for this user's own token.
+      const syncReturn = parseSyncSubject(verified.subject)
+      if (syncReturn !== undefined) {
+        const userTokens = await exchangeGithubAppCode(credentials, code, setupRedirectUri(request))
+        if (!userTokens) return settingsRedirect(request, 'not_authorized')
+        const granted = await syncGithubAppAccess(userId, userTokens)
+        log.info({ userId, installations: granted.length }, 'GitHub App access synced')
+        const back = syncReturn ? new URL(syncReturn, request.url) : null
+        // Belt and braces: the URL parser drops tabs and newlines, so check
+        // where the path actually resolves, not just how it starts.
+        return back && back.origin === new URL(request.url).origin
+          ? NextResponse.redirect(back)
+          : settingsRedirect(request, 'synced')
+      }
+
       const installationId = Number(verified.subject)
       const userTokens = await exchangeGithubAppCode(credentials, code, setupRedirectUri(request))
       if (!userTokens || !(await userCanAccessInstallation(userTokens.access_token, installationId))) {
@@ -175,6 +223,13 @@ export async function GET(request: NextRequest) {
         return settingsRedirect(request, 'verification_unavailable')
       }
       const state = mintOAuthStateWithSubject(userId, 'github-app', installationParam)
+      return NextResponse.redirect(githubAppAuthorizeUrl(credentials, state, setupRedirectUri(request)))
+    }
+
+    if (searchParams.get('sync') === '1') {
+      if (!credentials) return settingsRedirect(request, 'verification_unavailable')
+      const subject = syncSubject(safeReturnPath(searchParams.get('return')))
+      const state = mintOAuthStateWithSubject(userId, 'github-app', subject)
       return NextResponse.redirect(githubAppAuthorizeUrl(credentials, state, setupRedirectUri(request)))
     }
 

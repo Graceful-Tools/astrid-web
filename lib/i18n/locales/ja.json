@@ -989,6 +989,7 @@
       "github": {
         "title": "GitHub",
         "description": "{appName} を GitHub のアカウントや組織に接続します。サーバーで実行されるコーディングエージェントは、この接続を通じてブランチとプルリクエストを作成します。",
+        "descriptionProjects": "{appName} を GitHub の組織に接続し、そのプロジェクトをここでボードとして使えるようにします。",
         "empty": "まだ GitHub に接続されていません。",
         "connect": "GitHub に接続",
         "installAnother": "別の組織を追加",
@@ -1006,6 +1007,7 @@
         "disconnect": "接続を解除",
         "disconnectTitle": "{account} の接続を解除しますか?",
         "disconnectDescription": "{account} のリポジトリではコーディングエージェントが動作しなくなります。GitHub アプリはインストールされたままです。完全に削除するには GitHub でアンインストールしてください。",
+        "disconnectDescriptionProjects": "GitHub から更新するまで、{account} のプロジェクトはここに表示されません。GitHub App はインストールされたままです。完全に削除するには GitHub でアンインストールしてください。",
         "disconnected": "{account} の接続を解除しました",
         "disconnectError": "接続を解除できませんでした",
         "outcomes": {
@@ -1014,7 +1016,8 @@
           "not_authorized": "GitHub によると、あなたのアカウントはそのインストールを参照できません",
           "already_connected": "そのインストールはすでに別のアカウントに接続されています",
           "verification_unavailable": "このサーバーでは GitHub サインインが設定されていないため、インストールを確認できませんでした",
-          "error": "GitHub への接続中に問題が発生しました"
+          "error": "GitHub への接続中に問題が発生しました",
+          "synced": "GitHub へのアクセスを更新しました"
         }
       }
     }
@@ -1138,5 +1141,27 @@
       "noModel": "お手伝いしたいのですが、応答するにはAIモデルが必要です。{settingsLink} でお好みのモデルを設定してください。",
       "onDeviceUnavailable": "選択中のモデルは対応するAppleデバイスでのみ動作するため、ここでは応答できません。{settingsLink} でどこでも使えるモデルを選んでください。"
     }
+  },
+  "githubProjectPicker": {
+    "entry": "GitHub プロジェクトを接続",
+    "title": "GitHub プロジェクトを接続",
+    "description": "{appName} でボードとして使う組織のプロジェクトを選んでください。アイテムはバックグラウンドで取り込まれます。",
+    "connect": "ボードとして使う",
+    "openBoard": "ボードを開く",
+    "closed": "クローズ済み",
+    "itemCountOne": "1 件のアイテム",
+    "itemCountMany": "{count} 件のアイテム",
+    "noProjects": "この組織で表示できるプロジェクトはありません。",
+    "noOrganizations": "まだ GitHub の組織が接続されていません。組織にアプリをインストールするか、インストール済みなら更新してください。",
+    "installOnOrg": "組織にインストール",
+    "installAnother": "別の組織にインストール",
+    "refreshAccess": "GitHub から更新",
+    "authRequired": "組織のプロジェクトを表示するには GitHub アカウントを接続してください。",
+    "connectGithub": "GitHub を接続",
+    "loadError": "GitHub プロジェクトを読み込めませんでした",
+    "retry": "再試行",
+    "bound": "{title} を接続しました。アイテムを取り込んでいます…",
+    "alreadyBound": "そのプロジェクトはすでにボードです",
+    "bindError": "そのプロジェクトを接続できませんでした"
   }
 }

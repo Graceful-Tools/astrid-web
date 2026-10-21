@@ -16,6 +16,7 @@ import { createLogger } from '@/lib/logger'
 import { isGoogleEmailVerified } from '@/lib/auth/google-identity'
 import { linkFederatedIdentity, type FederatedSignIn } from '@/lib/auth/federated-identity-linking'
 import { githubVerifiedPrimaryEmail } from '@/lib/auth/github-verified-email'
+import { connectGithubAppAtSignIn, type SignInAccount } from '@/lib/github/app-access'
 import { isEmailVerified as isAppleEmailVerified } from '@/lib/auth/apple-identity'
 import { appleClientSecret } from '@/lib/auth/apple-client-secret'
 import { hasAppleWebCredentials } from '@/lib/auth/provider-credentials'
@@ -474,6 +475,12 @@ const authConfig: NextAuthOptions = {
     async signIn(message) {
       if (process.env.NODE_ENV === "development") {
         log.info({ email: message.user.email, provider: message.account?.provider }, "[Auth] SignIn event")
+      }
+      // GitHub sign-in is the brand App's own OAuth client: the same consent
+      // gives the user-to-server token and the installations it can see
+      // (spec §7.2–§7.3, AWTD-1302). Best effort; it never fails the sign-in.
+      if (message.account?.provider === "github" && message.user.id) {
+        await connectGithubAppAtSignIn(message.user.id, message.account as SignInAccount)
       }
     },
     async signOut(message) {

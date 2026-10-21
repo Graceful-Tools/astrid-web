@@ -13,7 +13,7 @@ import { installationSummariesForUser } from '@/lib/github/installations'
 import { userGraphqlClient } from '@/lib/github/graphql-clients'
 import { fetchOrgProjects } from '@/lib/github/projects/bind'
 import { githubAuthRequired, githubErrorResponse } from '@/lib/github/projects/http'
-import { boardsForProjectNodes } from '@/services/github-projects.service'
+import { boardListsForProjects, boardsForProjectNodes } from '@/services/github-projects.service'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -34,6 +34,8 @@ export const GET = withAuth(
         orgs.map(async org => ({ org, projects: await fetchOrgProjects(client, org.accountLogin) })),
       )
       const boardFor = await boardsForProjectNodes(perOrg.flatMap(({ projects }) => projects.map(p => p.id)))
+      // The board's list, so a client can open a bound project (AWTD-1302). Additive.
+      const listFor = await boardListsForProjects([...boardFor.values()])
 
       return NextResponse.json({
         installations: perOrg.map(({ org, projects }) => ({
@@ -48,6 +50,7 @@ export const GET = withAuth(
             itemCount: p.items.totalCount,
             updatedAt: p.updatedAt,
             boundProjectId: boardFor.get(p.id) ?? null,
+            boundListId: listFor.get(boardFor.get(p.id) ?? '') ?? null,
           })),
         })),
       })

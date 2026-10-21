@@ -989,6 +989,7 @@
       "github": {
         "title": "GitHub",
         "description": "Connects {appName} to your GitHub accounts and organizations. Server-run coding agents create branches and pull requests through it.",
+        "descriptionProjects": "Connects {appName} to your GitHub organizations, so their projects can be boards here.",
         "empty": "Not connected to GitHub yet.",
         "connect": "Connect GitHub",
         "installAnother": "Add another organization",
@@ -1006,6 +1007,7 @@
         "disconnect": "Disconnect",
         "disconnectTitle": "Disconnect {account}?",
         "disconnectDescription": "Coding agents will stop working in {account}'s repositories. The GitHub App stays installed there; uninstall it on GitHub to remove it completely.",
+        "disconnectDescriptionProjects": "You won't see {account}'s projects here until you refresh from GitHub. The GitHub App stays installed there; uninstall it on GitHub to remove it completely.",
         "disconnected": "Disconnected {account}",
         "disconnectError": "Couldn't disconnect",
         "outcomes": {
@@ -1014,7 +1016,8 @@
           "not_authorized": "GitHub says your account can't see that installation",
           "already_connected": "That installation is already connected to another account",
           "verification_unavailable": "GitHub sign-in isn't configured on this server, so the installation couldn't be verified",
-          "error": "Something went wrong connecting GitHub"
+          "error": "Something went wrong connecting GitHub",
+          "synced": "GitHub access refreshed"
         }
       }
     }
@@ -1138,5 +1141,27 @@
       "noModel": "I'd love to help, but I need an AI model to power my responses! Head to {settingsLink} to set up your preferred model.",
       "onDeviceUnavailable": "Your selected model only runs on supported Apple devices, so I can't answer here. Head to {settingsLink} to choose a model that works everywhere."
     }
+  },
+  "githubProjectPicker": {
+    "entry": "Connect a GitHub project",
+    "title": "Connect a GitHub project",
+    "description": "Pick an organization project to use as a board in {appName}. Its items import in the background.",
+    "connect": "Use as board",
+    "openBoard": "Open board",
+    "closed": "Closed",
+    "itemCountOne": "1 item",
+    "itemCountMany": "{count} items",
+    "noProjects": "No projects you can see in this organization.",
+    "noOrganizations": "No GitHub organization is connected yet. Install the app on an organization, or refresh if it's already installed.",
+    "installOnOrg": "Install on an organization",
+    "installAnother": "Install on another org",
+    "refreshAccess": "Refresh from GitHub",
+    "authRequired": "Connect your GitHub account to see your organizations' projects.",
+    "connectGithub": "Connect GitHub",
+    "loadError": "Couldn't load your GitHub projects",
+    "retry": "Try again",
+    "bound": "Connected {title}. Importing its items…",
+    "alreadyBound": "That project is already a board",
+    "bindError": "Couldn't connect that project"
   }
 }

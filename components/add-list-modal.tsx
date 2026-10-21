@@ -6,7 +6,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
-import { X, Plus, Bot, FileText } from "lucide-react"
+import { X, Plus, Bot, FileText, Github } from "lucide-react"
+import { useTranslations } from "@/lib/i18n/client"
+import { CAPABILITIES } from "@/lib/brand/capabilities"
+import { GitHubProjectPickerDialog } from "@/components/github/GitHubProjectPickerDialog"
 import type { User } from "@/types/task"
 
 interface AddListModalProps {
@@ -20,6 +23,9 @@ interface AddListModalProps {
 }
 
 export function AddListModal({ onClose, onCreateList, currentUser }: AddListModalProps) {
+  const { t } = useTranslations()
+  // GitHub Projects brands: a board can also be an org project (AWTD-1302).
+  const [pickingGithubProject, setPickingGithubProject] = useState(false)
   const [listName, setListName] = useState("")
   const [description, setDescription] = useState("")
   const [memberInput, setMemberInput] = useState("")
@@ -69,6 +75,10 @@ export function AddListModal({ onClose, onCreateList, currentUser }: AddListModa
     }
   }
 
+  if (pickingGithubProject) {
+    return <GitHubProjectPickerDialog open onOpenChange={open => !open && onClose()} />
+  }
+
   return (
     <div 
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -97,6 +107,17 @@ export function AddListModal({ onClose, onCreateList, currentUser }: AddListModa
             <X className="w-4 h-4" />
           </Button>
         </div>
+
+        {CAPABILITIES.githubProjects && (
+          <Button
+            variant="outline"
+            onClick={() => setPickingGithubProject(true)}
+            className="w-full mb-6 theme-border theme-text-primary hover:theme-bg-hover"
+          >
+            <Github className="w-4 h-4 mr-2" />
+            {t('githubProjectPicker.entry')}
+          </Button>
+        )}
 
         {/* Form */}
         <div className="space-y-4">

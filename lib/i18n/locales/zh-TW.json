@@ -989,6 +989,7 @@
       "github": {
         "title": "GitHub",
         "description": "將 {appName} 連接到你的 GitHub 帳號和組織。在伺服器上執行的程式設計代理會透過此連線建立分支和提取要求。",
+        "descriptionProjects": "將 {appName} 連接到你的 GitHub 組織，讓其專案可以在這裡作為看板。",
         "empty": "尚未連接 GitHub。",
         "connect": "連接 GitHub",
         "installAnother": "新增另一個組織",
@@ -1006,6 +1007,7 @@
         "disconnect": "中斷連線",
         "disconnectTitle": "要中斷 {account} 的連線嗎？",
         "disconnectDescription": "程式設計代理將無法在 {account} 的存放庫中運作。GitHub 應用程式仍會保持安裝；如要完全移除，請在 GitHub 上解除安裝。",
+        "disconnectDescriptionProjects": "在從 GitHub 重新整理之前，你將看不到 {account} 的專案。GitHub App 仍安裝在那裡；如需徹底移除，請在 GitHub 上解除安裝。",
         "disconnected": "已中斷 {account} 的連線",
         "disconnectError": "無法中斷連線",
         "outcomes": {
@@ -1014,7 +1016,8 @@
           "not_authorized": "GitHub 表示你的帳號無法檢視該安裝",
           "already_connected": "該安裝已連接到另一個帳號",
           "verification_unavailable": "此伺服器未設定 GitHub 登入，因此無法驗證該安裝",
-          "error": "連接 GitHub 時發生錯誤"
+          "error": "連接 GitHub 時發生錯誤",
+          "synced": "已重新整理 GitHub 存取權限"
         }
       }
     }
@@ -1138,5 +1141,27 @@
       "noModel": "我很樂意幫忙，但需要一個 AI 模型才能回覆！請前往 {settingsLink} 設定你偏好的模型。",
       "onDeviceUnavailable": "你選擇的模型只能在支援的 Apple 裝置上執行，所以我無法在這裡回覆。請前往 {settingsLink} 選擇一個在任何地方都能使用的模型。"
     }
+  },
+  "githubProjectPicker": {
+    "entry": "連接 GitHub 專案",
+    "title": "連接 GitHub 專案",
+    "description": "選擇一個組織專案作為 {appName} 中的看板。其項目會在背景匯入。",
+    "connect": "用作看板",
+    "openBoard": "開啟看板",
+    "closed": "已關閉",
+    "itemCountOne": "1 個項目",
+    "itemCountMany": "{count} 個項目",
+    "noProjects": "此組織中沒有你可見的專案。",
+    "noOrganizations": "尚未連接任何 GitHub 組織。請在組織上安裝應用程式，如已安裝請重新整理。",
+    "installOnOrg": "安裝到組織",
+    "installAnother": "安裝到其他組織",
+    "refreshAccess": "從 GitHub 重新整理",
+    "authRequired": "連接你的 GitHub 帳號以查看組織的專案。",
+    "connectGithub": "連接 GitHub",
+    "loadError": "無法載入你的 GitHub 專案",
+    "retry": "重試",
+    "bound": "已連接 {title}，正在匯入項目…",
+    "alreadyBound": "該專案已經是看板",
+    "bindError": "無法連接該專案"
   }
 }

@@ -989,6 +989,7 @@
       "github": {
         "title": "GitHub",
         "description": "Conecta {appName} con tus cuentas y organizaciones de GitHub. Los agentes de código que se ejecutan en el servidor crean ramas y pull requests a través de esta conexión.",
+        "descriptionProjects": "Conecta {appName} con tus organizaciones de GitHub para que sus proyectos puedan ser tableros aquí.",
         "empty": "Aún no está conectado a GitHub.",
         "connect": "Conectar GitHub",
         "installAnother": "Añadir otra organización",
@@ -1006,6 +1007,7 @@
         "disconnect": "Desconectar",
         "disconnectTitle": "¿Desconectar {account}?",
         "disconnectDescription": "Los agentes de código dejarán de funcionar en los repositorios de {account}. La app de GitHub sigue instalada allí; desinstálala en GitHub para quitarla por completo.",
+        "disconnectDescriptionProjects": "No verás los proyectos de {account} aquí hasta que actualices desde GitHub. La GitHub App sigue instalada allí; desinstálala en GitHub para eliminarla por completo.",
         "disconnected": "{account} desconectada",
         "disconnectError": "No se pudo desconectar",
         "outcomes": {
@@ -1014,7 +1016,8 @@
           "not_authorized": "GitHub indica que tu cuenta no puede ver esa instalación",
           "already_connected": "Esa instalación ya está conectada a otra cuenta",
           "verification_unavailable": "El inicio de sesión con GitHub no está configurado en este servidor, así que no se pudo verificar la instalación",
-          "error": "Algo salió mal al conectar GitHub"
+          "error": "Algo salió mal al conectar GitHub",
+          "synced": "Acceso a GitHub actualizado"
         }
       }
     }
@@ -1138,5 +1141,27 @@
       "noModel": "¡Me encantaría ayudarte, pero necesito un modelo de IA para responder! Ve a {settingsLink} para configurar tu modelo preferido.",
       "onDeviceUnavailable": "El modelo que elegiste solo funciona en dispositivos Apple compatibles, así que no puedo responder aquí. Ve a {settingsLink} para elegir un modelo que funcione en todas partes."
     }
+  },
+  "githubProjectPicker": {
+    "entry": "Conectar un proyecto de GitHub",
+    "title": "Conectar un proyecto de GitHub",
+    "description": "Elige un proyecto de la organización para usarlo como tablero en {appName}. Sus elementos se importan en segundo plano.",
+    "connect": "Usar como tablero",
+    "openBoard": "Abrir tablero",
+    "closed": "Cerrado",
+    "itemCountOne": "1 elemento",
+    "itemCountMany": "{count} elementos",
+    "noProjects": "No hay proyectos que puedas ver en esta organización.",
+    "noOrganizations": "Aún no hay ninguna organización de GitHub conectada. Instala la app en una organización o actualiza si ya está instalada.",
+    "installOnOrg": "Instalar en una organización",
+    "installAnother": "Instalar en otra organización",
+    "refreshAccess": "Actualizar desde GitHub",
+    "authRequired": "Conecta tu cuenta de GitHub para ver los proyectos de tus organizaciones.",
+    "connectGithub": "Conectar GitHub",
+    "loadError": "No se pudieron cargar tus proyectos de GitHub",
+    "retry": "Reintentar",
+    "bound": "{title} conectado. Importando sus elementos…",
+    "alreadyBound": "Ese proyecto ya es un tablero",
+    "bindError": "No se pudo conectar ese proyecto"
   }
 }

@@ -33,6 +33,7 @@ const service = vi.hoisted(() => ({
   updateBindingMapping: vi.fn(),
   unbindGitHubProject: vi.fn(),
   boardsForProjectNodes: vi.fn(async () => new Map()),
+  boardListsForProjects: vi.fn(async () => new Map()),
   readBinding: vi.fn(async () => null),
 }))
 vi.mock('@/services/github-projects.service', () => service)
@@ -111,6 +112,8 @@ describe('GET /api/v1/github/projects (AWTD-1151)', () => {
   it("lists each org's projects as the user sees them, marking bound ones", async () => {
     clients.userGraphqlClient.mockResolvedValue(replaying(load('org-projects.json')))
     service.boardsForProjectNodes.mockResolvedValue(new Map([[PROJECT, 'board-1']]))
+    // The picker opens a bound board by its list (AWTD-1302).
+    service.boardListsForProjects.mockResolvedValue(new Map([['board-1', 'list-1']]))
     const { list } = await routes()
 
     const res = await list.GET(json('GET'), {} as never)
@@ -124,6 +127,7 @@ describe('GET /api/v1/github/projects (AWTD-1151)', () => {
       title: 'Graceful-Tools Test',
       itemCount: 3,
       boundProjectId: 'board-1',
+      boundListId: 'list-1',
     })
   })
 

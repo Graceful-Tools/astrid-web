@@ -989,6 +989,7 @@
       "github": {
         "title": "GitHub",
         "description": "{appName}을(를) GitHub 계정 및 조직에 연결합니다. 서버에서 실행되는 코딩 에이전트는 이 연결을 통해 브랜치와 풀 리퀘스트를 만듭니다.",
+        "descriptionProjects": "{appName}을(를) GitHub 조직에 연결하여 해당 프로젝트를 여기에서 보드로 사용할 수 있게 합니다.",
         "empty": "아직 GitHub에 연결되지 않았습니다.",
         "connect": "GitHub 연결",
         "installAnother": "다른 조직 추가",
@@ -1006,6 +1007,7 @@
         "disconnect": "연결 해제",
         "disconnectTitle": "{account} 연결을 해제할까요?",
         "disconnectDescription": "{account}의 저장소에서 코딩 에이전트가 더 이상 작동하지 않습니다. GitHub 앱은 그대로 설치되어 있으니, 완전히 제거하려면 GitHub에서 제거하세요.",
+        "disconnectDescriptionProjects": "GitHub에서 새로 고칠 때까지 {account}의 프로젝트가 여기에 표시되지 않습니다. GitHub App은 계속 설치되어 있으며, 완전히 제거하려면 GitHub에서 삭제하세요.",
         "disconnected": "{account} 연결을 해제했습니다",
         "disconnectError": "연결을 해제할 수 없습니다",
         "outcomes": {
@@ -1014,7 +1016,8 @@
           "not_authorized": "GitHub에 따르면 회원님의 계정은 해당 설치를 볼 수 없습니다",
           "already_connected": "해당 설치는 이미 다른 계정에 연결되어 있습니다",
           "verification_unavailable": "이 서버에 GitHub 로그인이 구성되지 않아 설치를 확인할 수 없습니다",
-          "error": "GitHub 연결 중 문제가 발생했습니다"
+          "error": "GitHub 연결 중 문제가 발생했습니다",
+          "synced": "GitHub 액세스를 새로 고쳤습니다"
         }
       }
     }
@@ -1138,5 +1141,27 @@
       "noModel": "도와드리고 싶지만, 답변하려면 AI 모델이 필요해요! {settingsLink}에서 원하는 모델을 설정해 주세요.",
       "onDeviceUnavailable": "선택한 모델은 지원되는 Apple 기기에서만 작동해서 여기서는 답변할 수 없어요. {settingsLink}에서 어디서나 작동하는 모델을 선택해 주세요."
     }
+  },
+  "githubProjectPicker": {
+    "entry": "GitHub 프로젝트 연결",
+    "title": "GitHub 프로젝트 연결",
+    "description": "{appName}에서 보드로 사용할 조직 프로젝트를 선택하세요. 항목은 백그라운드에서 가져옵니다.",
+    "connect": "보드로 사용",
+    "openBoard": "보드 열기",
+    "closed": "닫힘",
+    "itemCountOne": "항목 1개",
+    "itemCountMany": "항목 {count}개",
+    "noProjects": "이 조직에서 볼 수 있는 프로젝트가 없습니다.",
+    "noOrganizations": "아직 연결된 GitHub 조직이 없습니다. 조직에 앱을 설치하거나, 이미 설치되어 있다면 새로 고치세요.",
+    "installOnOrg": "조직에 설치",
+    "installAnother": "다른 조직에 설치",
+    "refreshAccess": "GitHub에서 새로 고침",
+    "authRequired": "조직의 프로젝트를 보려면 GitHub 계정을 연결하세요.",
+    "connectGithub": "GitHub 연결",
+    "loadError": "GitHub 프로젝트를 불러오지 못했습니다",
+    "retry": "다시 시도",
+    "bound": "{title} 연결됨. 항목을 가져오는 중…",
+    "alreadyBound": "이미 보드인 프로젝트입니다",
+    "bindError": "프로젝트를 연결하지 못했습니다"
   }
 }

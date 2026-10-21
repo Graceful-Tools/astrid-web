@@ -143,7 +143,7 @@ export default function ConnectionsSettings(_props: ConnectionsSettingsProps) {
           </CardContent>
         </Card>
 
-        {CAPABILITIES.codingAgent && <GitHubConnectionCard />}
+        {CAPABILITIES.githubConnection && <GitHubConnectionCard />}
 
         <Card className="theme-bg-secondary theme-border">
           <CardHeader>

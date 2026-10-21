@@ -69,8 +69,19 @@ export async function exchangeGithubAppCode(
   return body.access_token ? (body as GithubAppUserTokenSet) : null
 }
 
-/** Does GitHub list this installation for the token's user? */
-export async function userCanAccessInstallation(userToken: string, installationId: number): Promise<boolean> {
+/** One installation as `GET /user/installations` lists it. */
+export interface UserVisibleInstallation {
+  id: number
+  account?: { login?: string; name?: string; type?: string; node_id?: string } | null
+  repository_selection?: string | null
+}
+
+/**
+ * Every installation GitHub lists for the token's user, or null when GitHub
+ * would not answer (a bad token is not "no installations").
+ */
+export async function listUserInstallations(userToken: string): Promise<UserVisibleInstallation[] | null> {
+  const all: UserVisibleInstallation[] = []
   for (let page = 1; page <= MAX_PAGES; page++) {
     const res = await fetch(`${GITHUB_API}/user/installations?per_page=${PAGE_SIZE}&page=${page}`, {
       headers: {
@@ -80,11 +91,17 @@ export async function userCanAccessInstallation(userToken: string, installationI
       },
       signal: AbortSignal.timeout(15_000),
     })
-    if (!res.ok) return false
-    const body = (await res.json()) as { installations?: Array<{ id: number }> }
+    if (!res.ok) return null
+    const body = (await res.json()) as { installations?: UserVisibleInstallation[] }
     const installations = body.installations ?? []
-    if (installations.some(inst => inst.id === installationId)) return true
-    if (installations.length < PAGE_SIZE) return false
+    all.push(...installations)
+    if (installations.length < PAGE_SIZE) break
   }
-  return false
+  return all
+}
+
+/** Does GitHub list this installation for the token's user? */
+export async function userCanAccessInstallation(userToken: string, installationId: number): Promise<boolean> {
+  const installations = await listUserInstallations(userToken)
+  return installations?.some(inst => inst.id === installationId) ?? false
 }
