@@ -1542,10 +1542,22 @@ stays closed as history and the next occurrence is a **new issue linked to it** 
   `'roll_forward'` everywhere else; `previousOccurrenceId` is an additive, nullable column
   that reaches v1 payloads with the rest of the row. Both halves ship independently of any
   client.
-- **Not verified against GitHub.** Unlike P5 and P6c, no mutation here has been run live:
-  `createIssue` with `labelIds`/`assigneeIds`/`milestoneId`, and the spawned card's field
-  copies, are built from the schema and the existing P5b create path. Worth one live probe
-  before this is relied on.
+- **Verified against GitHub on 2026-10-21** ([AWTD-1284](https://astrid.cc/t/AWTD-1284)),
+  on the lanes-test preview's database with Graceful-Fools project 2. Both triggers spawned
+  exactly one issue: a close on github.com through the deployed webhook, and an Astrid
+  completion followed by its own close. Copied: the body footer, the label, the assignee, a
+  single-select and a text field. The iteration was not copied, as designed. The
+  `Next occurrence` comment was posted. No milestone exists in the test repo, so that copy
+  is still untested. The first live runs found three bugs, all fixed in that task:
+  - every job failed on a `binding.listId` select (no such column);
+  - the job threw after `createIssue`, so a retry made another issue. That came from a
+    refused field copy, or from the webhook mirroring the new issue before the job's insert;
+  - the card started in "In progress", because the binding's jsonb option map does not
+    keep GitHub's order.
+- **The due date does not carry yet.** The test project's "Target date" is a GitHub
+  *issue field* (`ProjectV2FieldCommon.isIssueField`), and GitHub refuses
+  `updateProjectV2ItemFieldValue` for those. They need `updateIssueFieldValue`. The spawn
+  logs the refusal and keeps the issue. Writeback and create have the same gap.
 
 Not yet, and client work rather than server: the detail pane's "Previous occurrence" /
 "Next occurrence" links, and iOS/web declining to roll forward locally when
@@ -1753,9 +1765,10 @@ closed from here (P5a).
 - **Not covered.** A change that arrives while that issue's job is mid-run can be lost
   until the next assignment change. A label list made from an `agent:` label before the
   switch was turned on is emptied by the next sync, not deleted.
-- **Not verified against GitHub.** The three documents (lookup, `createLabel`,
-  `addLabelsToLabelable` / `removeLabelsFromLabelable`) are tested against recorded shapes
-  only. They have not been run against the test project.
+- **Verified against GitHub on 2026-10-21** ([AWTD-1284](https://astrid.cc/t/AWTD-1284)).
+  The job ran on the App bot against a Graceful-Fools issue. It added `agent:claude`, and an
+  empty set removed it, while the issue's ordinary label stayed. The lanes-test preview has
+  the switch off, so this ran with the switch on in the probe process only.
 
 Not yet: writing a parent, a blocker or an ordinary label **from** Astrid to GitHub,
 iterations and milestones.
