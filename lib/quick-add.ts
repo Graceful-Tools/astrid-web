@@ -12,6 +12,7 @@
  */
 
 import type { TaskList } from '@/types/task'
+import { orderListsForPicker } from '@/lib/status-lists'
 
 export type QuickAddPlacement = 'inline' | 'fixed-bottom'
 export type LayoutType = '1-column' | '2-column' | '3-column'
@@ -63,7 +64,9 @@ export function filterListsForHashtag(
   limit = 5,
 ): TaskList[] {
   const needle = query.toLowerCase()
-  return lists
+  // Ordered here, not trusted from the caller: the client holds lists in heap
+  // order, which puts the busiest list last (AWTD-1308).
+  return orderListsForPicker(lists)
     // A virtual list ("Today", "Assigned") is a view, not somewhere a task lands.
     .filter(list => !list.isVirtual)
     .filter(list => {
