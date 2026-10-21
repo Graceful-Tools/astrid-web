@@ -27,6 +27,8 @@
  * those variables without changing how they are read.
  */
 
+import { androidAppLinksProblem } from './brand/android-asset-links'
+
 /**
  * How a variable is supplied, which decides whether it belongs in
  * .env.example at all.
@@ -205,6 +207,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'NEXT_PUBLIC_BRAND_AGENT_NAME', scope: 'optional', description: 'Display name of the built-in assistant identity.' },
   { name: 'BRAND_AGENT_EMAIL_DOMAIN', scope: 'optional', description: 'Domain for agent mailboxes. Defaults to the brand domain.', validate: isDomain },
   { name: 'BRAND_APPLE_APP_IDS', scope: 'optional', description: 'Comma-separated <TEAM ID>.<bundle id> values named in apple-app-site-association for passkeys and universal links. Unset serves the default file.' },
+  { name: 'BRAND_ANDROID_APP_LINKS', scope: 'optional', description: 'Comma-separated <package>:<sha256 Play app-signing fingerprint> pairs served in assetlinks.json for Android verified links. Unset serves no file (404).', validate: androidAppLinksProblem },
   { name: 'BRAND_INHERIT_ASTRID_IDENTITY', scope: 'optional', description: 'Build-time. Comma-separated brand identity variables a partner build keeps on the default value on purpose; the identity check stops warning about them.' },
   { name: 'BRAND_STRICT_IDENTITY', scope: 'optional', description: 'Build-time. true fails a partner build that leaves an unacknowledged identity variable on the default value, instead of only warning.' },
   { name: 'NEXT_PUBLIC_BRAND_LOGO', scope: 'optional', description: 'Path to the mascot/character artwork.' },

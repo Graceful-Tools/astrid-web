@@ -199,6 +199,9 @@ native apps read the same `auth` capabilities and hide those buttons too.
   same app IDs, which is the default when `BRAND_APPLE_APP_IDS` is unset. A partner that
   ships its own apps sets that variable to their app IDs instead. The build must be signed by Astrid's team, so it comes from Xcode Cloud or
   from Xcode on a machine with that team. `--reset` reverts, byte for byte.
+- **Android:** verified https links need the partner's site to serve `assetlinks.json` for
+  the app's package and Play app-signing fingerprint: set `BRAND_ANDROID_APP_LINKS`. Unset,
+  the route 404s, so leave `astridLinkAutoVerify` off in the Android brand.
 - **Windows:** signs in through the browser (`/signin/desktop`), so passkeys on the
   partner's site need nothing native. Point a test build at the partner host with
   `ASTRID_SERVER_URL`. A branded package comes from `scripts/package.ps1 -Brand <profile>`
