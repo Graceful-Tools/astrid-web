@@ -16,6 +16,7 @@ import {
 } from '@/lib/github/webhooks/installation'
 import { handleIssuesWebhook } from '@/lib/github/webhooks/issues'
 import {
+  handleIssueChangedForProjects,
   handleIssueCommentForProjects,
   handleIssueDeletedForProjects,
   handleOrgAccessWebhook,
@@ -90,6 +91,8 @@ webhooks?.on(['member', 'membership', 'organization'], ({ id, payload }) =>
   handleOrgAccessWebhook(payload as never, id).then(() => undefined)
 )
 webhooks?.on('issues', ({ payload }) => handleIssueDeletedForProjects(payload as never).then(() => undefined))
+// GitHub sends no projects_v2_item event for an issue's own edits (AWTD-1296).
+webhooks?.on('issues', ({ payload }) => handleIssueChangedForProjects(payload as never).then(() => undefined))
 // A comment made on github.com reaches the mirrored task (AWTD-1283).
 webhooks?.on('issue_comment', ({ payload }) => handleIssueCommentForProjects(payload as never).then(() => undefined))
 

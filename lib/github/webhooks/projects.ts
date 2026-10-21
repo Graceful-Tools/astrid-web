@@ -104,6 +104,59 @@ export async function handleIssueCommentForProjects(payload: {
   return enqueued
 }
 
+/**
+ * Issue actions that change what a mirrored task shows. `deleted` is not one:
+ * it deletes the task (below). `opened` cannot be mirrored yet — adding it to
+ * a project fires `projects_v2_item.created`.
+ */
+const ISSUE_CHANGE_ACTIONS = new Set([
+  'edited',
+  'closed',
+  'reopened',
+  'labeled',
+  'unlabeled',
+  'milestoned',
+  'demilestoned',
+  'assigned',
+  'unassigned',
+  'transferred',
+])
+
+/**
+ * `issues` (edited, closed, labeled, …) → a hydrate of every item mirroring
+ * that issue (AWTD-1296). GitHub sends no `projects_v2_item` event for an
+ * issue's own content, so without this a title edited on github.com waited for
+ * the hourly reconcile. One indexed read finds the items; when a
+ * `projects_v2_item` event fires as well, the hydrate's 2s key absorbs it.
+ *
+ * No `firstDelivery` claim, for the same reason as issue_comment above.
+ */
+export async function handleIssueChangedForProjects(payload: {
+  action?: string
+  installation?: { id?: number }
+  issue?: { node_id?: string }
+}): Promise<boolean> {
+  if (!hasCapability('githubProjects') || !ISSUE_CHANGE_ACTIONS.has(payload.action ?? '')) return false
+  const installationId = payload.installation?.id
+  const issueNodeId = payload.issue?.node_id
+  if (!installationId || !issueNodeId) return false
+
+  const items = await prisma.gitHubProjectItem.findMany({
+    where: { task: { remoteNodeId: issueNodeId }, binding: { installationId, detachedAt: null } },
+    select: { itemNodeId: true, binding: { select: { projectNodeId: true } } },
+  })
+  if (items.length === 0) return false
+
+  const enqueued = await Promise.all(
+    items.map(item =>
+      enqueueHydrate({ installationId, itemNodeId: item.itemNodeId, projectNodeId: item.binding.projectNodeId }),
+    ),
+  )
+  runAfterResponse('github-projects-drain', () => drainSyncJobs())
+  log.info({ action: payload.action, issueNodeId, items: items.length }, 'issues → hydrate')
+  return enqueued.some(Boolean)
+}
+
 /** `issues.deleted`: the task mirroring that issue is deleted too (§8.7). */
 export async function handleIssueDeletedForProjects(payload: {
   action?: string

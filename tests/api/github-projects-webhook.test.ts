@@ -38,12 +38,17 @@ vi.mock('@/lib/background', () => ({ runAfterResponse: (_l: string, work: () => 
 const delivery = vi.hoisted(() => ({ first: true }))
 vi.mock('@/lib/github/webhooks/issues', () => ({ firstDelivery: vi.fn(async () => delivery.first) }))
 
-const db = vi.hoisted(() => ({ task: { count: vi.fn() }, gitHubProjectBinding: { count: vi.fn() } }))
+const db = vi.hoisted(() => ({
+  task: { count: vi.fn() },
+  gitHubProjectBinding: { count: vi.fn() },
+  gitHubProjectItem: { findMany: vi.fn() },
+}))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
+  handleIssueChangedForProjects,
   handleIssueCommentForProjects,
   handleIssueDeletedForProjects,
   handleOrgAccessWebhook,
@@ -222,5 +227,74 @@ describe('issue_comment → a re-read of the comment (AWTD-1283)', () => {
     expect(await handleIssueCommentForProjects(created)).toBe(false)
     expect(db.task.count).not.toHaveBeenCalled()
     expect(commentQueue.enqueueIssueCommentSync).not.toHaveBeenCalled()
+  })
+})
+
+describe('issues edited on github.com → a hydrate of each mirroring item (AWTD-1296)', () => {
+  // GitHub sends no projects_v2_item event for a title, body, state or label
+  // change, so without this the task waited for the hourly reconcile.
+  const edited = {
+    action: 'edited',
+    installation: { id: 169651419 },
+    issue: { node_id: 'I_kwDOVCns8c8AAAABWTcnYA', number: 1 },
+    changes: { title: { from: 'Old title' } },
+  }
+  beforeEach(() => {
+    db.gitHubProjectItem.findMany.mockResolvedValue([
+      { itemNodeId: 'PVTI_a', binding: { projectNodeId: 'PVT_one' } },
+      { itemNodeId: 'PVTI_b', binding: { projectNodeId: 'PVT_two' } },
+    ])
+  })
+
+  it('an issues.edited payload for a mirrored issue enqueues a hydrate per item, and drains after responding', async () => {
+    expect(await handleIssueChangedForProjects(edited)).toBe(true)
+    expect(db.gitHubProjectItem.findMany).toHaveBeenCalledTimes(1)
+    expect(db.gitHubProjectItem.findMany.mock.calls[0][0].where).toEqual({
+      task: { remoteNodeId: 'I_kwDOVCns8c8AAAABWTcnYA' },
+      binding: { installationId: 169651419, detachedAt: null },
+    })
+    expect(queue.enqueueHydrate).toHaveBeenCalledWith({ installationId: 169651419, itemNodeId: 'PVTI_a', projectNodeId: 'PVT_one' })
+    expect(queue.enqueueHydrate).toHaveBeenCalledWith({ installationId: 169651419, itemNodeId: 'PVTI_b', projectNodeId: 'PVT_two' })
+    expect(queue.drainSyncJobs).not.toHaveBeenCalled()
+    await deferred.jobs[0]()
+    expect(queue.drainSyncJobs).toHaveBeenCalled()
+  })
+
+  it('an issues.edited payload for an unmirrored issue does nothing', async () => {
+    db.gitHubProjectItem.findMany.mockResolvedValue([])
+    expect(await handleIssueChangedForProjects(edited)).toBe(false)
+    expect(queue.enqueueHydrate).not.toHaveBeenCalled()
+    expect(deferred.jobs).toHaveLength(0)
+  })
+
+  it.each(['closed', 'reopened', 'labeled', 'unlabeled', 'milestoned', 'demilestoned', 'assigned', 'unassigned', 'transferred'])(
+    'issues.%s takes the same path',
+    async action => {
+      expect(await handleIssueChangedForProjects({ ...edited, action })).toBe(true)
+    },
+  )
+
+  it('ignores actions that cannot change the mirror — and deleted, which deletes the task instead', async () => {
+    for (const action of ['opened', 'deleted', 'pinned', 'locked']) {
+      expect(await handleIssueChangedForProjects({ ...edited, action })).toBe(false)
+    }
+    expect(db.gitHubProjectItem.findMany).not.toHaveBeenCalled()
+  })
+
+  it('does not claim the delivery id — the issues nudge on the same delivery needs it', async () => {
+    const { firstDelivery } = await import('@/lib/github/webhooks/issues')
+    await handleIssueChangedForProjects(edited)
+    expect(firstDelivery).not.toHaveBeenCalled()
+  })
+
+  it('does nothing on Astrid', async () => {
+    caps.githubProjects = false
+    expect(await handleIssueChangedForProjects(edited)).toBe(false)
+    expect(db.gitHubProjectItem.findMany).not.toHaveBeenCalled()
+  })
+
+  it('the App webhook route registers it for issues events', () => {
+    const route = readFileSync(join(process.cwd(), 'app/api/github/webhooks/route.ts'), 'utf8')
+    expect(route).toMatch(/webhooks\?\.on\('issues',[^\n]*handleIssueChangedForProjects/)
   })
 })
