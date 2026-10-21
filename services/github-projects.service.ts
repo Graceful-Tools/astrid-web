@@ -62,6 +62,7 @@ import {
   type ProjectFieldRow,
 } from '@/services/github-project-fields.service'
 import { applyIterationLists } from '@/services/github-iteration-lists.service'
+import { resolveHeldLists } from '@/lib/github/projects/held-lists'
 
 const log = createLogger('services.github-projects')
 
@@ -221,8 +222,21 @@ async function applyLabels(
   const writes: Prisma.PrismaPromise<unknown>[] = []
   const listIds = new Map<string, string>()
   if (seen.size > 0) {
-    const known = await prisma.taskList.findMany({ where: { remoteNodeId: { in: [...seen.keys()] } }, select: LABEL_LIST_SELECT })
-    for (const list of known) {
+    // A label the task already holds needs no lookup: the held row IS the
+    // TaskList row, and since AWTD-1315 it carries the name and colour that
+    // `labelListDrift` compares. So this reads only the nodes nobody holds —
+    // usually none, on an edit that did not touch the labels. A drifted label
+    // is still corrected; the check just runs against the row we already have.
+    const { resolved, unresolved } = resolveHeldLists(
+      seen.keys(),
+      labelled.flatMap(({ held }) => held),
+      LIST_TYPE_LABEL,
+    )
+    const known =
+      unresolved.length > 0
+        ? await prisma.taskList.findMany({ where: { remoteNodeId: { in: unresolved } }, select: LABEL_LIST_SELECT })
+        : []
+    for (const list of [...resolved.values(), ...known]) {
       listIds.set(list.remoteNodeId as string, list.id)
       const drift = labelListDrift(seen.get(list.remoteNodeId as string)!, list)
       if (drift) writes.push(prisma.taskList.update({ where: { id: list.id }, data: drift }))
@@ -306,11 +320,22 @@ async function applyMilestones(
   const writes: Prisma.PrismaPromise<unknown>[] = []
   const listIds = new Map<string, string>()
   if (seen.size > 0) {
-    const known = await prisma.taskList.findMany({
-      where: { remoteNodeId: { in: [...seen.keys()] } },
-      select: MILESTONE_LIST_SELECT,
-    })
-    for (const list of known) {
+    // Same saving as applyLabels (AWTD-1315): a milestone the task already
+    // holds is served from the held row, which carries the name and description
+    // `milestoneListDrift` compares. Only unheld nodes are read.
+    const { resolved, unresolved } = resolveHeldLists(
+      seen.keys(),
+      stated.flatMap(({ held }) => held),
+      LIST_TYPE_MILESTONE,
+    )
+    const known =
+      unresolved.length > 0
+        ? await prisma.taskList.findMany({
+            where: { remoteNodeId: { in: unresolved } },
+            select: MILESTONE_LIST_SELECT,
+          })
+        : []
+    for (const list of [...resolved.values(), ...known]) {
       listIds.set(list.remoteNodeId as string, list.id)
       const milestone = seen.get(list.remoteNodeId as string)!
       const drift = milestoneListDrift(milestone, milestone.repository, list)
