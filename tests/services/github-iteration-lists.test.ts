@@ -111,4 +111,27 @@ describe('applyIterationLists (AWTD-1230)', () => {
     expect(await applyIterationLists(board, [{ taskId: 't1', held: [] }])).toBe(false)
     expect(db.taskFieldValue.findMany).not.toHaveBeenCalled()
   })
+
+  it('given the field pass’s result, reads neither the schema nor the values again (AWTD-1297)', async () => {
+    db.taskList.findMany.mockResolvedValue([list42])
+    const known = {
+      fields: [{ ...sprintField, dataType: 'iteration', mappedTo: null }],
+      values: new Map([['t1', new Map([['pf-sprint', 'it-42']])]]),
+    }
+
+    expect(await applyIterationLists(board, [{ taskId: 't1', held: [{ id: 'list-41', remoteNodeId: list41.remoteNodeId }] }], known)).toBe(true)
+
+    expect(db.projectField.findMany).not.toHaveBeenCalled()
+    expect(db.taskFieldValue.findMany).not.toHaveBeenCalled()
+    expect(db.task.update).toHaveBeenCalledWith({
+      where: { id: 't1' },
+      data: { lists: { connect: [{ id: 'list-42' }], disconnect: [{ id: 'list-41' }] } },
+    })
+  })
+
+  it('a field pass that needed no schema means nothing to read when nothing is held', async () => {
+    expect(await applyIterationLists(board, [{ taskId: 't1', held: [] }], { fields: null, values: new Map() })).toBe(false)
+    expect(db.projectField.findMany).not.toHaveBeenCalled()
+    expect(db.taskList.findMany).not.toHaveBeenCalled()
+  })
 })

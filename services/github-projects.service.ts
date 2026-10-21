@@ -13,7 +13,11 @@
  *
  * Per 100-item page: two reads (replicas by content node id, memberships by
  * item id), one bulk create, then one write per changed item — no N+1 reads
- * (§13.3).
+ * (§13.3). What a replica holds (blockers, mirrored lists, field values) is
+ * counted in the replica read and read only where it is held, and the board's
+ * field schema is read once per board: an edited title costs 3 statements, not
+ * the 10 it reached with P6a/P6c (AWTD-1297,
+ * tests/services/github-projects-apply-query-budget.test.ts).
  */
 
 import { Prisma } from '@prisma/client'
@@ -44,14 +48,19 @@ import {
 } from '@/lib/github/projects/milestones'
 import { planAssignees, remoteAssignees } from '@/lib/github/projects/assignees'
 import { assigneeIdsOf } from '@/lib/task-assignees'
-import { GITHUB_MIRRORED_LIST } from '@/lib/backends/github-labels'
+import { readReplicas, type ReplicaRow } from '@/services/github-projects-replica'
 import { LIST_TYPE_ITERATION, LIST_TYPE_LABEL, LIST_TYPE_MILESTONE } from '@/lib/list-flavors'
 import { projectItemPages } from '@/lib/github/projects/hydrate'
 import type { BindingProposal, ProjectSchema } from '@/lib/github/projects/bind'
 import type { GraphqlClient } from '@/lib/github/rate-limiter'
 import { installationGraphqlClient } from '@/lib/github/graphql-clients'
 import { createTasksInBulk } from '@/services/task-bulk-create'
-import { applyFieldValues, syncProjectFields } from '@/services/github-project-fields.service'
+import {
+  applyFieldPage,
+  PROJECT_FIELD_SELECT,
+  syncProjectFields,
+  type ProjectFieldRow,
+} from '@/services/github-project-fields.service'
 import { applyIterationLists } from '@/services/github-iteration-lists.service'
 
 const log = createLogger('services.github-projects')
@@ -64,6 +73,8 @@ export interface BoundBoard {
   /** PVT_…; lets a page refresh the board's field schema (AWTD-1117). */
   projectNodeId?: string
   binding: BindingFieldMap
+  /** The board's field schema, read once per board (AWTD-1297); see FieldBoard. */
+  fields?: ProjectFieldRow[]
 }
 
 export interface ApplySummary {
@@ -73,38 +84,6 @@ export interface ApplySummary {
   unchanged: number
   skipped: number
 }
-
-const REPLICA_SELECT = {
-  id: true,
-  remoteNodeId: true,
-  title: true,
-  description: true,
-  completed: true,
-  closedReason: true,
-  statusRole: true,
-  priority: true,
-  dueDateTime: true,
-  isAllDay: true,
-  identifier: true,
-  remoteKind: true,
-  remoteVersion: true,
-  // Relationships (AWTD-1119). Only MIRRORED blockers are read back: a blocker
-  // on a local Astrid task is never GitHub's to remove.
-  parentTaskId: true,
-  parentTask: { select: { remoteNodeId: true } },
-  blockedBy: { where: { blockingTask: { remoteNodeId: { not: null } } }, select: { blockingTaskId: true } },
-  // Labels (AWTD-1188), milestones (AWTD-1189) and iterations (AWTD-1230).
-  // Only lists that MIRROR GitHub are read back: a label a person gave the
-  // task in Astrid is never GitHub's to remove. One read covers every flavor;
-  // each apply pass filters to its own by `listType`.
-  lists: { where: GITHUB_MIRRORED_LIST, select: { id: true, remoteNodeId: true, listType: true } },
-  // Assignees (AWTD-1190). An agent is never GitHub's to unassign.
-  assigneeId: true,
-  assigneeIds: true,
-  assignee: { select: { isAIAgent: true } },
-} as const
-
-type ReplicaRow = Prisma.TaskGetPayload<{ select: typeof REPLICA_SELECT }>
 
 /** completedAt follows completed: stamped when it turns on, cleared when off. */
 function completionStamp(patch: { completed?: boolean }): { completedAt?: Date | null } {
@@ -391,7 +370,7 @@ export async function applyProjectItems(board: BoundBoard, items: RemoteProjectI
   const contentIds = items.flatMap(item => (item.content?.id && item.type !== 'REDACTED' ? [item.content.id] : []))
 
   const [replicaRows, memberships] = await Promise.all([
-    prisma.task.findMany({ where: { remoteNodeId: { in: contentIds } }, select: REPLICA_SELECT }),
+    readReplicas(board.projectId, contentIds),
     prisma.gitHubProjectItem.findMany({
       where: { itemNodeId: { in: items.map(item => item.id) } },
       select: { itemNodeId: true, archived: true },
@@ -511,18 +490,26 @@ export async function applyProjectItems(board: BoundBoard, items: RemoteProjectI
     const taskId = nodeId ? replicaByNode.get(nodeId)?.id ?? createdByNode.get(nodeId) : undefined
     return taskId && nodeId ? [{ item, taskId, nodeId }] : []
   })
-  const fieldsChanged = await applyFieldValues(
+  const fieldPage = await applyFieldPage(
     board,
-    fieldEntries.map(({ item, taskId }) => ({ item, taskId })),
+    fieldEntries.map(({ item, taskId, nodeId }) => ({
+      item,
+      taskId,
+      // A task created on this page holds nothing yet.
+      holdsValues: replicaByNode.get(nodeId)?.holdsFieldValues ?? false,
+    })),
     client,
   )
-  // Iterations (AWTD-1230) follow the values just stored, so they come after.
+  const fieldsChanged = fieldPage.changed
+  // Iterations (AWTD-1230) follow the values just stored, so they come after,
+  // from what the field pass already holds rather than a second read.
   const iterationsChanged = await applyIterationLists(
     board,
     fieldEntries.map(({ taskId, nodeId }) => ({
       taskId,
       held: (replicaByNode.get(nodeId)?.lists ?? []).filter(list => list.listType === LIST_TYPE_ITERATION),
     })),
+    fieldPage,
   )
 
   // createTasksInBulk clears caches for what it created; updates, leaves,
@@ -609,7 +596,12 @@ export async function boundBoard(projectId: string): Promise<(BoundBoard & { pro
     where: { projectId },
     include: {
       project: {
-        select: { ownerId: true, lists: { where: { backend: GITHUB_PROJECT_BACKEND }, select: { id: true }, take: 1 } },
+        select: {
+          ownerId: true,
+          lists: { where: { backend: GITHUB_PROJECT_BACKEND }, select: { id: true }, take: 1 },
+          // Once per board, not once per page or per item event (AWTD-1297).
+          fields: { select: PROJECT_FIELD_SELECT },
+        },
       },
     },
   })
@@ -619,6 +611,7 @@ export async function boundBoard(projectId: string): Promise<(BoundBoard & { pro
     projectId,
     listId,
     ownerId: binding.project.ownerId,
+    ...(binding.project.fields ? { fields: binding.project.fields } : {}),
     projectNodeId: binding.projectNodeId,
     installationId: binding.installationId,
     binding: {

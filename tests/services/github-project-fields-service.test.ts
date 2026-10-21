@@ -35,7 +35,7 @@ const db = vi.hoisted(() => ({
 }))
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
 
-import { applyFieldValues, syncProjectFields, type FieldBoard } from '@/services/github-project-fields.service'
+import { applyFieldPage, applyFieldValues, syncProjectFields, type FieldBoard } from '@/services/github-project-fields.service'
 import { normaliseFields } from '@/lib/github/projects/fields'
 import type { RemoteProjectItem } from '@/lib/github/projects/apply'
 import type { GraphqlClient } from '@/lib/github/rate-limiter'
@@ -218,5 +218,47 @@ describe('applyFieldValues (AWTD-1117)', () => {
   it('no items, no reads', async () => {
     expect(await applyFieldValues(board, [])).toBe(false)
     expect(db.projectField.findMany).not.toHaveBeenCalled()
+  })
+})
+
+describe('applyFieldPage reads only what can change the plan (AWTD-1297)', () => {
+  const title = { __typename: 'ProjectV2ItemFieldTextValue', text: 'A title', field: { id: 'PVTF_title', dataType: 'TITLE' } }
+  const status = { __typename: 'ProjectV2ItemFieldSingleSelectValue', optionId: 'f75ad846', field: { id: board.binding.statusFieldId, dataType: 'SINGLE_SELECT' } }
+
+  it('built-in and mapped values only, on a task holding none: no schema read, no value read', async () => {
+    const result = await applyFieldPage(board, [{ item: item('i1', [title, status]), taskId: 't1', holdsValues: false }])
+
+    expect(result).toEqual({ changed: false, fields: null, values: new Map() })
+    expect(db.projectField.findMany).not.toHaveBeenCalled()
+    expect(db.taskFieldValue.findMany).not.toHaveBeenCalled()
+  })
+
+  it('a task known to hold none is written without reading its values', async () => {
+    const result = await applyFieldPage(board, [{ item: item('i1', [points(5)]), taskId: 't1', holdsValues: false }])
+
+    expect(result.changed).toBe(true)
+    expect(result.values).toEqual(new Map([['t1', new Map([['f-points', 5]])]]))
+    expect(db.taskFieldValue.findMany).not.toHaveBeenCalled()
+    expect(transacted()[0]).toMatchObject({ op: 'value.createMany' })
+  })
+
+  it('a board carrying its schema is not read again, and the page answers each task’s values', async () => {
+    db.taskFieldValue.findMany.mockResolvedValue([
+      { taskId: 't1', fieldId: 'f-points', text: null, number: 5, date: null, optionId: null, iterationId: null },
+    ])
+    const carried = { ...board, fields: FIELDS as never }
+
+    const result = await applyFieldPage(carried, [{ item: item('i1', [points(5)]), taskId: 't1', holdsValues: true }])
+
+    expect(db.projectField.findMany).not.toHaveBeenCalled()
+    expect(result).toEqual({ changed: false, fields: FIELDS, values: new Map([['t1', new Map([['f-points', 5]])]]) })
+  })
+
+  it('a sync keeps a carried schema current, so later pages see the new field', async () => {
+    const carried = { ...board, fields: [] as never[] }
+    db.projectField.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce(FIELDS)
+
+    expect(await syncProjectFields(carried, clientReturning(schemaResponse))).toBe(true)
+    expect(carried.fields).toEqual(FIELDS)
   })
 })

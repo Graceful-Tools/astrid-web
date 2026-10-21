@@ -231,6 +231,23 @@ export function remoteFieldValues(item: RemoteProjectItem, fields: Map<string, K
   return { values, unknown, complete: nodes.length < FIELD_VALUES_PER_ITEM }
 }
 
+/**
+ * Could this item hold a value the replica stores? Answers without the board's
+ * schema, so an item carrying only GitHub's built-ins (Title, Repository) and
+ * the binding's mapped fields costs no field read at all (AWTD-1297). A value
+ * whose field type was not read is assumed to count, as is a cut-short read.
+ */
+export function carriesFieldValues(item: RemoteProjectItem, binding: MappedFieldIds): boolean {
+  const nodes = item.fieldValues.nodes as ValueNode[]
+  if (nodes.length >= FIELD_VALUES_PER_ITEM) return true
+  const mapped = new Set([binding.statusFieldId, binding.priorityFieldId, binding.dueFieldId])
+  return nodes.some(node => {
+    const remoteId = node.field?.id
+    if (!remoteId || mapped.has(remoteId)) return false
+    return !node.field?.dataType || Boolean(DATA_TYPE[node.field.dataType])
+  })
+}
+
 export interface FieldValuePlan {
   set: Array<[fieldId: string, value: FieldScalar]>
   clear: string[]
