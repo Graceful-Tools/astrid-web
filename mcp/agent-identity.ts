@@ -17,11 +17,70 @@
  * In its own file because mcp/mcp-server-oauth.ts sits on the oversized-files
  * ratchet, and because "which identity signs this write" is worth reading on its
  * own rather than as three fields on a 700-line server.
+ *
+ * ---
+ *
+ * AWTD-1311 added the second way in, because polling-first was an assumption and
+ * not a guarantee. Jon, on AWTD-1305: *"This comment is coming from the current
+ * user. This is a bug. It should come from Claude."* Two agent comments there are
+ * stored with the client owner as author — a harness commented before it ever
+ * polled, `ASTRID_AGENT_ID` is not in `.env.local`, and the write went out
+ * unsigned.
+ *
+ * Config cannot close that. There is no `.mcp.json` here (see
+ * mcp/astrid-mcp-launch.js for why credentials are not copied into a per-client
+ * config) and `.env.local` is shared by every harness on the machine, which is
+ * the cross-signing hazard lib/agent-author.ts is written against. So the
+ * declaration travels in the CALL: `agent: "<mailbox>"` on the write itself.
+ *
+ * THE RULE THAT MAKES IT A FIX RATHER THAN ANOTHER FALLBACK: a write that
+ * declares an agent is signed by that agent or it is REFUSED. It never quietly
+ * becomes a human write. A silent fall-through to the caller is the original bug
+ * wearing a new hat, and it is invisible in the response — the harness is told
+ * `success: true`, the board shows the wrong face, and nobody finds out until
+ * Jon reads his own strategy notes.
+ *
+ * Omission is unchanged and deliberate: a write that declares nothing still
+ * signs as the caller, because a person driving this server from a desktop
+ * client should carry their own name. `agent: "me"` is how they say so on
+ * purpose when they would rather be explicit.
  */
+
+import { agentAuthorIdFromEnv } from '@/lib/agent-author'
+import { agentEmail } from '@/lib/brand/agent-emails'
 
 /** The `agent` block of an /api/v1/agent-queue response, as far as this cares. */
 interface QueueAgentBlock {
   agent?: { id?: string | null } | null
+}
+
+/**
+ * The mailbox a human passes to sign as themselves on purpose.
+ *
+ * Not a real mailbox — no agent is called "me" — so it cannot collide with one,
+ * and it reads correctly at the call site.
+ */
+export const HUMAN_MAILBOX = 'me'
+
+/** Looks an agent's user id up by its identity address. Injected so this file stays offline. */
+export type AgentIdLookup = (mailbox: string) => Promise<string | null>
+
+/** Thrown instead of signing a declared agent write as the authenticated caller. */
+export class UnresolvedAgentIdentityError extends Error {
+  constructor(public readonly mailbox: string) {
+    super(
+      `Cannot write as the "${mailbox}" agent: no ${envVarHint(mailbox)} is set and no user was ` +
+        `found at that mailbox. Refusing rather than signing this as the OAuth client's owner — ` +
+        `that is AWTD-1311. Set ${envVarHint(mailbox)} in .env.local, assign one task to ` +
+        `${mailbox} so the agent's user row exists, or pass agent: "${HUMAN_MAILBOX}" to sign as ` +
+        `yourself on purpose.`,
+    )
+    this.name = 'UnresolvedAgentIdentityError'
+  }
+}
+
+function envVarHint(mailbox: string): string {
+  return `ASTRID_AGENT_ID_${mailbox.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`
 }
 
 export class McpAgentIdentity {
@@ -77,5 +136,84 @@ export class McpAgentIdentity {
   signature(): { aiAgentId?: string } {
     const id = this.authorId()
     return id ? { aiAgentId: id } : {}
+  }
+
+  /**
+   * The identity fields for a write that may DECLARE its mailbox (AWTD-1311).
+   *
+   * Precedence, and the reasoning for each step:
+   *
+   * 1. `agent: "me"` — the caller has said they are a person. Sign as them.
+   * 2. A prior poll. The API checked that claim; a per-call argument has not, so
+   *    a mailbox typo on one write cannot override an identity the server
+   *    already confirmed.
+   * 3. The declared mailbox, resolved through env and then a lookup — the same
+   *    precedence lib/agent-author.ts applies for the scripts, imported rather
+   *    than restated. Unresolvable is a THROW, never the caller.
+   * 4. No declaration at all: whatever `signature()` already said, which for a
+   *    person at a desktop client is "sign as me".
+   */
+  async signatureFor(
+    agent: string | undefined,
+    lookup: AgentIdLookup,
+  ): Promise<{ aiAgentId?: string }> {
+    const mailbox = agent?.trim().toLowerCase()
+    if (!mailbox) return this.signature()
+    if (mailbox === HUMAN_MAILBOX) return {}
+    if (this.declared) return { aiAgentId: this.declared }
+
+    const fromEnv = agentAuthorIdFromEnv(mailbox)
+    if (fromEnv) return { aiAgentId: fromEnv }
+
+    const found = await lookup(mailbox)
+    if (found) return { aiAgentId: found }
+
+    throw new UnresolvedAgentIdentityError(mailbox)
+  }
+}
+
+/** What `agentIdLookupVia` needs of an API client — the OAuth one satisfies it. */
+interface RequestingClient {
+  makeRequest<T = unknown>(endpoint: string, options?: RequestInit): Promise<T>
+}
+
+/**
+ * Look an agent's user id up by its identity address, through an API client.
+ *
+ * Here rather than on the server because mcp/mcp-server-oauth.ts sits on the
+ * oversized-files ratchet, and because this is the same "which identity signs
+ * this write" question the rest of the file answers.
+ *
+ * It goes through the CLIENT rather than a raw fetch so it inherits the base URL
+ * and the credential the server is already authenticated with — passing a token
+ * around is how the scripts ended up with three ways to ask one question.
+ *
+ * AWTD-1020 is why the answer is checked rather than trusted: a route that
+ * ignores `assigneeEmail` returns an arbitrary task, whose assignee is a person
+ * (a 400 on the write) or another harness (a comment signed as the wrong agent).
+ */
+export function agentIdLookupVia(client: RequestingClient): AgentIdLookup {
+  return async mailbox => {
+    const email = agentEmail(mailbox)
+    try {
+      const data = await client.makeRequest<{
+        tasks?: Array<{ assignee?: { id?: string; email?: string; isAIAgent?: boolean } }>
+      }>(`/api/v1/tasks?assigneeEmail=${encodeURIComponent(email)}&limit=1`)
+      const assignee = data?.tasks?.[0]?.assignee
+      if (
+        typeof assignee?.id === 'string' &&
+        assignee.id.length > 0 &&
+        assignee.isAIAgent === true &&
+        String(assignee.email ?? '').toLowerCase() === email.toLowerCase()
+      ) {
+        return assignee.id
+      }
+    } catch {
+      // Swallowed on purpose: the caller turns null into
+      // UnresolvedAgentIdentityError, which says what to do about it. A raw
+      // network error here would read as "the comment failed", not "I do not
+      // know who you are".
+    }
+    return null
   }
 }

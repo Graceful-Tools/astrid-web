@@ -29,6 +29,7 @@
 export {}
 
 import { loadScriptEnv } from './lib/load-env'
+import { agentSignature, positionalArgs } from './lib/agent-author'
 
 loadScriptEnv()
 
@@ -39,10 +40,10 @@ const API = 'https://astrid.cc'
 const STATUS_NAMES = DEFAULT_STATES.map(state => state.name).join('|')
 
 async function main() {
-  const [taskId, statusArg] = process.argv.slice(2)
+  const [taskId, statusArg] = positionalArgs()
 
   if (!taskId || !statusArg) {
-    console.error(`Usage: npx tsx scripts/set-task-status.ts <taskId> <${STATUS_NAMES}>`)
+    console.error(`Usage: npx tsx scripts/set-task-status.ts <taskId> <${STATUS_NAMES}> [--agent <mailbox>]`)
     process.exit(1)
   }
 
@@ -103,14 +104,19 @@ async function main() {
   // Say WHO is moving this (AWTD-974). The status change emits a system
   // activity line, and client-credentials auth resolves to the OAuth client's
   // owner — so without this the board reads "Jon Paris moved this to Waiting"
-  // for a move the loop made. ASTRID_AGENT_ID first: it is the harness-agnostic
-  // one, and this script is run by Copilot and Codex too.
-  const aiAgentId = process.env.ASTRID_AGENT_ID || process.env.CLAUDE_AGENT_ID
+  // for a move the loop made.
+  //
+  // It read `ASTRID_AGENT_ID || CLAUDE_AGENT_ID` until AWTD-1311, which is the
+  // bug one layer along rather than fixed: `.env.local` sets CLAUDE_AGENT_ID on
+  // every machine that runs the Claude loop, and this script is run by Copilot
+  // and Codex too — so a Copilot handback was recorded as CLAUDE moving the
+  // task. `--agent <mailbox>` resolves per mailbox, like every other writer.
+  const signature = await agentSignature(token)
 
   const put = await fetch(`${API}/api/v1/tasks/${taskId}`, {
     method: 'PUT',
     headers: auth,
-    body: JSON.stringify({ statusRole: status.role, ...(aiAgentId ? { aiAgentId } : {}) }),
+    body: JSON.stringify({ statusRole: status.role, ...signature }),
   })
   if (!put.ok) {
     console.error('❌ Status change failed:', put.status, await put.text())

@@ -7,15 +7,18 @@
 
 import path from 'path'
 import { loadScriptEnv } from './lib/load-env'
+// Who is writing the completion report and closing the task (AWTD-1311).
+// Unsigned, both arrive on the board under the OAuth client owner's name.
+import { agentSignature, positionalArgs } from './lib/agent-author'
 
 loadScriptEnv()
 
 async function completeTaskWithWorkflow(taskId?: string) {
-  const args = process.argv.slice(2)
+  const args = positionalArgs()
   const targetTaskId = taskId || args[0]
 
   if (!targetTaskId) {
-    console.error('Usage: npx tsx scripts/complete-task-with-workflow.ts <taskId>')
+    console.error('Usage: npx tsx scripts/complete-task-with-workflow.ts <taskId> [--agent <mailbox>]')
     console.error('Example: npx tsx scripts/complete-task-with-workflow.ts "ab6fdbdc-ddd6-4e6b-ab7c-c1f5c1dd5c0a"')
     process.exit(1)
   }
@@ -63,6 +66,8 @@ Implementation completed following proper development workflow:
 
 Task marked as complete.`
 
+    const signature = await agentSignature(access_token)
+
     console.log('📝 Adding completion comment...')
     const commentResponse = await fetch(`https://astrid.cc/api/v1/tasks/${targetTaskId}/comments`, {
       method: 'POST',
@@ -72,7 +77,8 @@ Task marked as complete.`
       },
       body: JSON.stringify({
         content: completionComment,
-        type: 'TEXT'
+        type: 'TEXT',
+        ...signature
       })
     })
 
@@ -88,7 +94,8 @@ Task marked as complete.`
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          completed: true
+          completed: true,
+          ...signature
         })
       })
 

@@ -67,6 +67,15 @@ The current runtime determines the mailbox: GitHub Copilot CLI / the Copilot app
 passes `copilot`; Claude Code passes `claude`; local Codex passes `codex`. Never
 copy another harness's selector from an example.
 
+**The same mailbox goes on `add_comment` and `update_task` as `agent`** (AWTD-1311). The
+server learns the identity from a poll, so a loop that polls first is already signed — but
+a harness that comments BEFORE it polls has nothing to go on, and that write arrives under
+the OAuth client owner's name. Two comments on
+[AWTD-1305](https://astrid.cc/t/AWTD-1305) did exactly that. Passing `agent` costs nothing
+when the poll has already happened (the polled identity wins) and is the whole difference
+when it hasn't. A mailbox that cannot be resolved is **refused**, never quietly signed as
+the caller, so a typo fails loudly.
+
 Boards: Astrid Web To-do `a623f322-4c3c-49b5-8a94-d2d9f00c82ba`, Astrid iOS To-do
 `aa41c1a3-bd63-4c6d-9b87-42c6e0aafa36`. Answers `empty: true`, or `queue` in the order to work
 it, plus `held.scheduled` for anything waiting on its date. `agent` never defaults — guessing
@@ -221,6 +230,14 @@ its own work to a different harness.
 `set-task-status.ts` remains the right tool for the OTHER transitions below — moving a
 task to `Waiting`, or handing it back. It is only the *claim* that has to be atomic.
 
+**Both of them take `--agent <mailbox>` too** (AWTD-1311). A status change and an
+assignment each emit an activity line naming the actor, and client-credentials auth
+resolves to the OAuth client's OWNER — so without the flag the board reads *"Jon Paris
+reassigned from Unassigned to Jon Paris"* for a handback the loop made. That row is on
+[AWTD-1305](https://astrid.cc/t/AWTD-1305). `set-task-status.ts` used to read
+`CLAUDE_AGENT_ID`, which was the same bug one layer along: `.env.local` sets it on every
+machine that runs the Claude loop, so a *Copilot* handback was recorded as Claude's.
+
 **Blocked → move it to `Waiting`, and record the RIGHT condition** (see *Waiting carries its
 condition* above). Who keeps the task depends on who can lift the block:
 
@@ -230,8 +247,8 @@ condition* above). Who keeps the task depends on who can lift the block:
   say on the task what decision you need.
 
   ```bash
-  npx tsx scripts/assign-task.ts <taskId> jonparis@gmail.com
-  npx tsx scripts/set-task-status.ts <taskId> Waiting
+  npx tsx scripts/assign-task.ts <taskId> jonparis@gmail.com --agent <mailbox>
+  npx tsx scripts/set-task-status.ts <taskId> Waiting --agent <mailbox>
   ```
 
 - **Time, another task, or an external event can lift it**: KEEP the assignment, move to
@@ -617,7 +634,7 @@ green and the branch is pushed, the session:
 1. Ends its completion report (`add_comment`) with a line of its own:
    `AWAITING-DEPLOY: <git rev-parse HEAD of the pushed branch>`. Without a commit sha the
    line is not a marker.
-2. Moves the task to **Waiting**: `npx tsx scripts/set-task-status.ts <taskId> Waiting`.
+2. Moves the task to **Waiting**: `npx tsx scripts/set-task-status.ts <taskId> Waiting --agent <mailbox>`.
    Leave it there and **do not** mark it complete. A task left in `Doing` is released back to
    Ready at the end of the run and gets worked again.
 
