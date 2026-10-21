@@ -21,8 +21,8 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { selectableLists } from "@/lib/status-lists"
-import { filterLabelLists, isIterationList, isLabelList, isMilestoneList } from "@/lib/list-flavors"
+import { listPickerSuggestions } from "@/lib/status-lists"
+import { isIterationList, isLabelList, isMilestoneList } from "@/lib/list-flavors"
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { TaskFieldRow } from "./TaskFieldRow"
 import { TaskDetailIdentifierRow } from "./TaskDetailIdentifierRow"
@@ -81,20 +81,8 @@ export function TaskDetailListsRow({
     setListSearchTerm('')
   }
 
-  // List filtering
-  const getFilteredLists = () => {
-    const selectedListIds = new Set(tempLists.map(l => l.id))
-    // Domain lists remain task destinations; label lists are tags that can also
-    // be applied here. Both exclude virtual/status machinery.
-    const labels = filterLabelLists(availableLists).filter(list => !(list as { isVirtual?: boolean }).isVirtual)
-    return [...selectableLists(availableLists), ...labels]
-      .filter(list => !selectedListIds.has(list.id))
-      .filter(list => {
-        if (!listSearchTerm) return true
-        return list.name.toLowerCase().includes(listSearchTerm.toLowerCase())
-      })
-      .slice(0, 10)
-  }
+  // Ordered and uncapped by the shared picker rule (AWTD-1308).
+  const getFilteredLists = () => listPickerSuggestions(availableLists, tempLists, listSearchTerm)
 
   const getListPrivacyIcon = (list: any, useWhiteColor = false) => {
     if (isMilestoneList(list)) {
