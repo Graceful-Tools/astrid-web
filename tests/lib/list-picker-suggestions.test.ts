@@ -45,7 +45,7 @@ describe('listPickerSuggestions (AWTD-1308)', () => {
 
   it('excludes virtual lists and offers labels after destinations', () => {
     const saved = list('v', 'Today', { isVirtual: true })
-    const label = list('lab', 'bug', { listType: 'label' })
+    const label = list('lab', 'bug', { listType: 'label' as TaskList['listType'] })
     const ids = listPickerSuggestions([label, saved, ...heapOrder], [], '').map(l => l.id)
     expect(ids).not.toContain('v')
     expect(ids[ids.length - 1]).toBe('lab')
