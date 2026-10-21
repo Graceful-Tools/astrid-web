@@ -38,11 +38,10 @@
  */
 
 import { agentEmail } from '@/lib/brand/agent-emails'
-
-/** The env var any harness may set: `ASTRID_AGENT_ID_CLAUDE`, `…_COPILOT`, … */
-export function agentIdEnvVar(mailbox: string): string {
-  return `ASTRID_AGENT_ID_${mailbox.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`
-}
+// The env precedence is a leaf module so mcp/agent-identity.ts can share it —
+// the standalone stdio build cannot follow this file's own imports (AWTD-1311).
+import { agentIdEnvVar, agentAuthorIdFromEnv } from '@/lib/agent-mailbox-env'
+export { agentIdEnvVar, agentAuthorIdFromEnv }
 
 export interface AgentAuthorOptions {
   /** Agent mailbox to sign as — `claude`, `copilot`, `codex`, … */
@@ -59,29 +58,6 @@ export interface AgentAuthorOptions {
 }
 
 const DEFAULT_API_BASE = 'https://astrid.cc'
-
-/**
- * The configured agent id for this mailbox, without touching the network.
- *
- * `CLAUDE_AGENT_ID` is honoured for the claude mailbox ONLY. It predates this
- * helper and is what is actually in `.env.local`, so dropping it would silently
- * send every Claude script back to the lookup path — but widening it to other
- * mailboxes is the cross-signing bug above.
- */
-export function agentAuthorIdFromEnv(
-  mailbox: string,
-  env: Record<string, string | undefined> = process.env,
-): string | null {
-  const explicit = env[agentIdEnvVar(mailbox)]?.trim()
-  if (explicit) return explicit
-
-  if (mailbox === 'claude') {
-    const legacy = env.CLAUDE_AGENT_ID?.trim()
-    if (legacy) return legacy
-  }
-
-  return null
-}
 
 /**
  * The author id to sign a write with, or null to sign as the authenticated

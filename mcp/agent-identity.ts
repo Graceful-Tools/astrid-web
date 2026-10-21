@@ -46,8 +46,13 @@
  * purpose when they would rather be explicit.
  */
 
-import { agentAuthorIdFromEnv } from '@/lib/agent-author'
-import { agentEmail } from '@/lib/brand/agent-emails'
+// RELATIVE, and to a LEAF. mcp/build-mcp-oauth.js compiles this file with
+// `tsc --ignoreConfig`, so `@/` does not exist and every transitive import must
+// resolve too. `lib/agent-author.ts` cannot be used here: it reaches
+// `lib/brand/agent-emails.ts`, which reaches `@/lib/ai/harness-agents`. The env
+// precedence was split into its own importless module for exactly this
+// (AWTD-1311), so both sides share one rule instead of keeping two.
+import { agentAuthorIdFromEnv } from '../lib/agent-mailbox-env'
 
 /** The `agent` block of an /api/v1/agent-queue response, as far as this cares. */
 interface QueueAgentBlock {
@@ -61,9 +66,6 @@ interface QueueAgentBlock {
  * and it reads correctly at the call site.
  */
 export const HUMAN_MAILBOX = 'me'
-
-/** Looks an agent's user id up by its identity address. Injected so this file stays offline. */
-export type AgentIdLookup = (mailbox: string) => Promise<string | null>
 
 /** Thrown instead of signing a declared agent write as the authenticated caller. */
 export class UnresolvedAgentIdentityError extends Error {
@@ -147,16 +149,15 @@ export class McpAgentIdentity {
    * 2. A prior poll. The API checked that claim; a per-call argument has not, so
    *    a mailbox typo on one write cannot override an identity the server
    *    already confirmed.
-   * 3. The declared mailbox, resolved through env and then a lookup — the same
-   *    precedence lib/agent-author.ts applies for the scripts, imported rather
-   *    than restated. Unresolvable is a THROW, never the caller.
+   * 3. The declared mailbox, resolved through the per-mailbox env var — the
+   *    same rule lib/agent-author.ts applies for the scripts, shared rather than
+   *    restated. Unresolvable is a THROW, never the caller: the scripts can fall
+   *    back to a network lookup, but this file must stay importless for the
+   *    standalone build, and signing as the wrong person is the worse outcome.
    * 4. No declaration at all: whatever `signature()` already said, which for a
    *    person at a desktop client is "sign as me".
    */
-  async signatureFor(
-    agent: string | undefined,
-    lookup: AgentIdLookup,
-  ): Promise<{ aiAgentId?: string }> {
+  signatureFor(agent: string | undefined): { aiAgentId?: string } {
     const mailbox = agent?.trim().toLowerCase()
     if (!mailbox) return this.signature()
     if (mailbox === HUMAN_MAILBOX) return {}
@@ -165,55 +166,6 @@ export class McpAgentIdentity {
     const fromEnv = agentAuthorIdFromEnv(mailbox)
     if (fromEnv) return { aiAgentId: fromEnv }
 
-    const found = await lookup(mailbox)
-    if (found) return { aiAgentId: found }
-
     throw new UnresolvedAgentIdentityError(mailbox)
-  }
-}
-
-/** What `agentIdLookupVia` needs of an API client — the OAuth one satisfies it. */
-interface RequestingClient {
-  makeRequest<T = unknown>(endpoint: string, options?: RequestInit): Promise<T>
-}
-
-/**
- * Look an agent's user id up by its identity address, through an API client.
- *
- * Here rather than on the server because mcp/mcp-server-oauth.ts sits on the
- * oversized-files ratchet, and because this is the same "which identity signs
- * this write" question the rest of the file answers.
- *
- * It goes through the CLIENT rather than a raw fetch so it inherits the base URL
- * and the credential the server is already authenticated with — passing a token
- * around is how the scripts ended up with three ways to ask one question.
- *
- * AWTD-1020 is why the answer is checked rather than trusted: a route that
- * ignores `assigneeEmail` returns an arbitrary task, whose assignee is a person
- * (a 400 on the write) or another harness (a comment signed as the wrong agent).
- */
-export function agentIdLookupVia(client: RequestingClient): AgentIdLookup {
-  return async mailbox => {
-    const email = agentEmail(mailbox)
-    try {
-      const data = await client.makeRequest<{
-        tasks?: Array<{ assignee?: { id?: string; email?: string; isAIAgent?: boolean } }>
-      }>(`/api/v1/tasks?assigneeEmail=${encodeURIComponent(email)}&limit=1`)
-      const assignee = data?.tasks?.[0]?.assignee
-      if (
-        typeof assignee?.id === 'string' &&
-        assignee.id.length > 0 &&
-        assignee.isAIAgent === true &&
-        String(assignee.email ?? '').toLowerCase() === email.toLowerCase()
-      ) {
-        return assignee.id
-      }
-    } catch {
-      // Swallowed on purpose: the caller turns null into
-      // UnresolvedAgentIdentityError, which says what to do about it. A raw
-      // network error here would read as "the comment failed", not "I do not
-      // know who you are".
-    }
-    return null
   }
 }

@@ -69,7 +69,7 @@ const CreateCommentSchema = z.object({
  * schema-parity test address this module, and a rename would have been a
  * second, unrelated change riding along with the extraction.
  */
-import { McpAgentIdentity, agentIdLookupVia } from "./agent-identity"
+import { McpAgentIdentity } from "./agent-identity"
 import { OAUTH_MCP_TOOLS } from './tool-definitions'
 export { OAUTH_MCP_TOOLS }
 export { OAuthAPIClient }
@@ -268,11 +268,6 @@ export default class AstridMCPServerOAuth {
     }
   }
 
-  /** The identity fields for one write, honouring a declared `agent` (AWTD-1311). */
-  private signatureFor(agent: string | undefined): Promise<{ aiAgentId?: string }> {
-    return this.agentIdentity.signatureFor(agent, agentIdLookupVia(this.oauthClient))
-  }
-
   private async getTasks(args: any) {
     const listId = args.listId || this.defaultListId
 
@@ -409,7 +404,7 @@ export default class AstridMCPServerOAuth {
     // Signed like a comment (AWTD-974): the activity line this emits —
     // "marked this as complete" — otherwise carries the OAuth client owner's
     // name, because client-credentials auth resolves to the owner.
-    const signature = await this.signatureFor(agent)
+    const signature = this.agentIdentity.signatureFor(agent)
     const data = await this.oauthClient.makeRequest<{ task: Task }>(
       `/api/v1/tasks/${taskId}`,
       {
@@ -439,7 +434,7 @@ export default class AstridMCPServerOAuth {
     // Validate comment data
     const commentData = CreateCommentSchema.parse(args)
 
-    const signature = await this.signatureFor(commentData.agent)
+    const signature = this.agentIdentity.signatureFor(commentData.agent)
     const data = await this.oauthClient.makeRequest<{ comment: Comment }>(
       `/api/v1/tasks/${commentData.taskId}/comments`,
       {

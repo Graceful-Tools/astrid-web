@@ -47,11 +47,6 @@ function bodyOf(fetchMock: Mock, suffix: string) {
   return JSON.parse((call[1] as RequestInit).body as string)
 }
 
-/** A lookup answer for `GET /api/v1/tasks?assigneeEmail=…`, as agent-author reads it. */
-function lookupFor(mailbox: string, id: string) {
-  return { tasks: [{ assignee: { id, email: agentEmail(mailbox), isAIAgent: true } }] }
-}
-
 describe('an MCP write that declares an agent is signed by that agent (AWTD-1311)', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
@@ -83,58 +78,52 @@ describe('an MCP write that declares an agent is signed by that agent (AWTD-1311
     expect(body.aiAgentId).not.toBe(OWNER)
   })
 
-  it('AWTD-1311: resolves the declared mailbox by lookup when nothing is configured', async () => {
-    // The scheduled runs are configured; a harness nobody has configured still
-    // has to write as itself rather than as the account holder.
-    const fetchMock = vi.fn(async (url: string) =>
-      String(url).includes('/api/v1/tasks?assigneeEmail')
-        ? jsonOk(lookupFor('claude', CLAUDE))
-        : jsonOk({ comment: { id: 'c1' } }),
-    )
-    vi.stubGlobal('fetch', fetchMock)
-    const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_token' })
-
-    await (server as any).addComment({ taskId: 'task-1', content: 'strategy', agent: 'claude' })
-
-    expect(bodyOf(fetchMock, '/comments').aiAgentId).toBe(CLAUDE)
-  })
-
   it('AWTD-1311: REFUSES a declared write it cannot resolve, rather than signing as the caller', async () => {
     // The whole point. Falling through to the caller here would reproduce the
-    // bug under a new name, and the response would look like a success.
-    const fetchMock = vi.fn(async (url: string) =>
-      String(url).includes('/api/v1/tasks?assigneeEmail')
-        ? jsonOk({ tasks: [] })
-        : jsonOk({ comment: { id: 'c1' } }),
-    )
+    // bug under a new name, and the response would look like a success. The
+    // error names the env var to set, so the refusal is actionable rather than
+    // just loud.
+    const fetchMock = vi.fn(async () => jsonOk({ comment: { id: 'c1' } }))
     vi.stubGlobal('fetch', fetchMock)
     const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_token' })
 
     await expect(
       (server as any).addComment({ taskId: 'task-1', content: 'strategy', agent: 'claude' }),
-    ).rejects.toThrow(/claude/i)
+    ).rejects.toThrow(/ASTRID_AGENT_ID_CLAUDE/)
 
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/comments'))).toBe(false)
   })
 
-  it('AWTD-1311: never signs one harness as another — CLAUDE_AGENT_ID is claude-only', async () => {
-    // `.env.local` on every machine that runs the Claude loop sets CLAUDE_AGENT_ID.
-    // A Copilot write must not pick it up, which is the same rule AWTD-970 wrote
-    // for the scripts.
-    process.env.CLAUDE_AGENT_ID = CLAUDE
-    const fetchMock = vi.fn(async (url: string) =>
-      String(url).includes('/api/v1/tasks?assigneeEmail')
-        ? jsonOk(lookupFor('copilot', 'ai-agent-copilot'))
-        : jsonOk({ comment: { id: 'c1' } }),
-    )
+  it('AWTD-1311: resolves a mailbox nobody has configured by name, not by guessing', async () => {
+    // A harness this machine has never run still writes as itself as soon as
+    // its one env var is set. The MCP path is env-only on purpose: this module
+    // has to stay importless for the standalone stdio build, so it cannot reach
+    // the network lookup lib/agent-author.ts gives the scripts.
+    process.env.ASTRID_AGENT_ID_COPILOT = 'ai-agent-copilot'
+    const fetchMock = vi.fn(async () => jsonOk({ comment: { id: 'c1' } }))
     vi.stubGlobal('fetch', fetchMock)
     const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_token' })
 
     await (server as any).addComment({ taskId: 'task-1', content: 'progress', agent: 'copilot' })
 
-    const body = bodyOf(fetchMock, '/comments')
-    expect(body.aiAgentId).toBe('ai-agent-copilot')
-    expect(body.aiAgentId).not.toBe(CLAUDE)
+    expect(bodyOf(fetchMock, '/comments').aiAgentId).toBe('ai-agent-copilot')
+  })
+
+  it('AWTD-1311: never signs one harness as another — CLAUDE_AGENT_ID is claude-only', async () => {
+    // `.env.local` on every machine that runs the Claude loop sets CLAUDE_AGENT_ID.
+    // A Copilot write must not pick it up, which is the same rule AWTD-970 wrote
+    // for the scripts. Unconfigured, it refuses — it does NOT fall through to
+    // the claude id, and it does not fall through to Jon.
+    process.env.CLAUDE_AGENT_ID = CLAUDE
+    const fetchMock = vi.fn(async () => jsonOk({ comment: { id: 'c1' } }))
+    vi.stubGlobal('fetch', fetchMock)
+    const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_token' })
+
+    await expect(
+      (server as any).addComment({ taskId: 'task-1', content: 'progress', agent: 'copilot' }),
+    ).rejects.toThrow(/ASTRID_AGENT_ID_COPILOT/)
+
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/comments'))).toBe(false)
   })
 
   it('AWTD-1311: `agent: "me"` is how a person signs deliberately, not by omission', async () => {
