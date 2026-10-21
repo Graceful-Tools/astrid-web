@@ -128,12 +128,14 @@ const ADVISORY_FLOORS: Array<{
   },
   {
     name: 'hono',
-    minVersion: '4.13.5',
+    minVersion: '4.13.11',
     severity: 'moderate',
     advisory:
-      'GHSA-gqvv-2mrq-wpjv (toSSG path traversal), GHSA-g6gw-c38x-mqfc ' +
-      '(parseBody memory exhaustion), GHSA-crvj-82cr-hjcx (query-parser cache-key ' +
-      'differential); <=4.13.4. Reached through @modelcontextprotocol/sdk',
+      'GHSA-5r4p-p66f-jhc7 (serveStatic decodes the path twice, bypassing middleware ' +
+      'on static paths; >=4.12.4 <4.13.11, AWTD-1301), GHSA-gqvv-2mrq-wpjv (toSSG path ' +
+      'traversal), GHSA-g6gw-c38x-mqfc (parseBody memory exhaustion), GHSA-crvj-82cr-hjcx ' +
+      '(query-parser cache-key differential); the last three <=4.13.4. Reached through ' +
+      '@modelcontextprotocol/sdk',
   },
   {
     name: 'undici',
@@ -217,6 +219,16 @@ const NOT_SHIPPED: Array<{ name: string; why: string }> = [
       '@parcel/watcher@2.5.1 → micromatch; @parcel/watcher 2.6.0 uses picomatch instead. ' +
       'The remaining copies are dev-only (tailwindcss 3 via chokidar/fast-glob, ' +
       'eslint-config-next via fast-glob).',
+  },
+  {
+    name: 'vite',
+    why:
+      'A build/test tool: nothing in the app imports it, and only vitest and ' +
+      '@vitejs/plugin-react need it, as a peer. It sat in `dependencies` from the ' +
+      'initial open-source release, so `npm audit --omit=dev` counted its launch-editor ' +
+      'advisories (GHSA-587h-7wmj-h5pm high, GHSA-698v-4r3x-3vcv, GHSA-r825-w8mm-5pxw; ' +
+      'vite >=8.3.0 <=8.3.2) as production and turned CI red — AWTD-1301. It belongs ' +
+      'in devDependencies.',
   },
   {
     name: 'micromatch',

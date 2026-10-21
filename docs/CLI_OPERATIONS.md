@@ -49,7 +49,7 @@ or an agent dispatches it deliberately. What changed is that an agent no longer 
 told, provided it can show the gates were green *on the commit it is shipping*:
 
 ```bash
-npm run predeploy                                    # 16/16 on the MERGED main, not just the branch
+npm run predeploy                                    # 17/17 on the MERGED main, not just the branch
 gh workflow run production-deployment.yml --ref main \
   -f skip_tests=false -f allow_destructive_migrations=false
 gh run watch <run-id> --exit-status                  # to completion — not an early green step
