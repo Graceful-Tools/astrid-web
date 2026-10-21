@@ -37,8 +37,16 @@ html, body {
   --task-list-width: 450px; /* Wider task list for better readability */
   --task-panel-min-width: 350px;
   --task-panel-max-width: 500px;
-  /* Prevent iOS drawer from overshooting left edge */
-  overflow-x: hidden;
+  /* Prevent iOS drawer from overshooting left edge — and never be a scroll
+     container (AWTD-1306/1307). `overflow-x: hidden` alone still scrolls
+     programmatically and computes overflow-y to auto, so a list flick chained
+     into it vertically and, with the list menu open (drawer translated 320px),
+     scrollIntoView/focus scrolled it horizontally. The floating header is fixed
+     INSIDE the transformed drawer, so either scroll carried it out of position.
+     `clip` clips the same way but cannot be scrolled at all; `hidden` is the
+     fallback for browsers without it (Safari < 16). */
+  overflow: hidden;
+  overflow: clip;
 }
 
 .app-header {
@@ -425,6 +433,10 @@ html, body {
   height: 100% !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
+  /* A flick past the end of the list must stop here, not chain into
+     .app-container (a scroller: overflow-x hidden computes overflow-y to auto)
+     and carry the floating header off the screen (AWTD-1307). */
+  overscroll-behavior-y: contain;
   max-height: 100vh;
   max-height: 100dvh;
   min-height: 0;
