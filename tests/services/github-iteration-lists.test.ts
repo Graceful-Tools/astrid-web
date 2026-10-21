@@ -25,6 +25,7 @@ const redis = vi.hoisted(() => ({ userLists: vi.fn(async () => {}) }))
 vi.mock('@/lib/redis', () => ({ RedisCache: { invalidate: redis } }))
 
 import { applyIterationLists } from '@/services/github-iteration-lists.service'
+import { ITERATION_LIST_COLOR } from '@/lib/github/projects/iterations'
 
 const board = { projectId: 'proj-1', ownerId: 'user-1' }
 const sprintField = {
@@ -38,6 +39,23 @@ const sprintField = {
 }
 const list41 = { id: 'list-41', remoteNodeId: 'PVTIF_sprint:it-41', name: 'Sprint 41', description: 'Sprint · 2026-10-05 – 2026-10-18' }
 const list42 = { id: 'list-42', remoteNodeId: 'PVTIF_sprint:it-42', name: 'Sprint 42', description: 'Sprint · 2026-10-19 – 2026-11-01' }
+
+/**
+ * A held iteration list, as the replica read now hands it over (AWTD-1315).
+ *
+ * `listType`, `name`, `color` and `description` are part of the row because the
+ * pass checks drift against what it already holds instead of re-reading the list
+ * by node id. A fixture without them is not what production passes, and the pass
+ * would read it as a list renamed to `undefined`.
+ */
+const heldIteration = (list: { id: string; remoteNodeId: string; name: string; description: string }) => ({
+  id: list.id,
+  remoteNodeId: list.remoteNodeId,
+  listType: 'iteration',
+  name: list.name,
+  color: ITERATION_LIST_COLOR,
+  description: list.description,
+})
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -74,7 +92,7 @@ describe('applyIterationLists (AWTD-1230)', () => {
     db.taskFieldValue.findMany.mockResolvedValue([{ taskId: 't1', fieldId: 'pf-sprint', iterationId: 'it-42' }])
     db.taskList.findMany.mockResolvedValue([list42])
 
-    await applyIterationLists(board, [{ taskId: 't1', held: [{ id: 'list-41', remoteNodeId: list41.remoteNodeId }] }])
+    await applyIterationLists(board, [{ taskId: 't1', held: [heldIteration(list41)] }])
 
     expect(db.taskList.createMany).not.toHaveBeenCalled()
     expect(db.task.update).toHaveBeenCalledWith({
@@ -84,7 +102,7 @@ describe('applyIterationLists (AWTD-1230)', () => {
   })
 
   it('a cleared value (or an archived item, whose values P6a removed) leaves the list', async () => {
-    await applyIterationLists(board, [{ taskId: 't1', held: [{ id: 'list-41', remoteNodeId: list41.remoteNodeId }] }])
+    await applyIterationLists(board, [{ taskId: 't1', held: [heldIteration(list41)] }])
     expect(db.task.update).toHaveBeenCalledWith({ where: { id: 't1' }, data: { lists: { disconnect: [{ id: 'list-41' }] } } })
   })
 
@@ -92,7 +110,7 @@ describe('applyIterationLists (AWTD-1230)', () => {
     db.taskFieldValue.findMany.mockResolvedValue([{ taskId: 't1', fieldId: 'pf-sprint', iterationId: 'it-41' }])
     db.taskList.findMany.mockResolvedValue([list41])
 
-    expect(await applyIterationLists(board, [{ taskId: 't1', held: [{ id: 'list-41', remoteNodeId: list41.remoteNodeId }] }])).toBe(false)
+    expect(await applyIterationLists(board, [{ taskId: 't1', held: [heldIteration(list41)] }])).toBe(false)
     expect(db.$transaction).not.toHaveBeenCalled()
   })
 
@@ -101,7 +119,7 @@ describe('applyIterationLists (AWTD-1230)', () => {
     db.taskFieldValue.findMany.mockResolvedValue([{ taskId: 't1', fieldId: 'pf-sprint', iterationId: 'it-41' }])
     db.taskList.findMany.mockResolvedValue([list41])
 
-    await applyIterationLists(board, [{ taskId: 't1', held: [{ id: 'list-41', remoteNodeId: list41.remoteNodeId }] }])
+    await applyIterationLists(board, [{ taskId: 't1', held: [heldIteration(list41)] }])
 
     expect(db.taskList.update).toHaveBeenCalledWith({ where: { id: 'list-41' }, data: { description: 'Sprint · 2026-10-05 – 2026-10-11' } })
   })
@@ -119,7 +137,7 @@ describe('applyIterationLists (AWTD-1230)', () => {
       values: new Map([['t1', new Map([['pf-sprint', 'it-42']])]]),
     }
 
-    expect(await applyIterationLists(board, [{ taskId: 't1', held: [{ id: 'list-41', remoteNodeId: list41.remoteNodeId }] }], known)).toBe(true)
+    expect(await applyIterationLists(board, [{ taskId: 't1', held: [heldIteration(list41)] }], known)).toBe(true)
 
     expect(db.projectField.findMany).not.toHaveBeenCalled()
     expect(db.taskFieldValue.findMany).not.toHaveBeenCalled()
