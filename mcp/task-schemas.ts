@@ -77,4 +77,10 @@ export const UpdateTaskSchema = z.object({
   completed: z.boolean().optional(),
   statusRole: z.string().nullable().optional(),
   ...RepeatingFields,
+  /**
+   * The mailbox this harness runs as — `claude`, `copilot`, `codex`, … or `me`
+   * to sign as the authenticated user on purpose (AWTD-1311). Peeled off before
+   * the write: it names the AUTHOR, not the task.
+   */
+  agent: z.string().optional(),
 }).strict()

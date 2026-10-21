@@ -194,6 +194,11 @@ export const OAUTH_MCP_TOOLS = [
               type: "string",
               description: "Task id (uuid) or identifier such as AWTD-1007",
             },
+            agent: {
+              type: "string",
+              description:
+                "The agent mailbox writing this — \"claude\", \"copilot\", \"codex\", … Pass it when this server has not yet called get_agent_queue in this session, or the write is signed with the OAuth client owner's name instead of the agent's (AWTD-1311). Pass \"me\" to sign as the authenticated user on purpose. A mailbox that cannot be resolved is refused, never silently signed as the caller.",
+            },
             title: {
               type: "string",
               description: "New task title",
@@ -288,6 +293,11 @@ export const OAUTH_MCP_TOOLS = [
               enum: ["TEXT", "MARKDOWN"],
               description: "Comment type",
               default: "TEXT",
+            },
+            agent: {
+              type: "string",
+              description:
+                "The agent mailbox writing this — \"claude\", \"copilot\", \"codex\", … Pass it when this server has not yet called get_agent_queue in this session, or the write is signed with the OAuth client owner's name instead of the agent's (AWTD-1311). Pass \"me\" to sign as the authenticated user on purpose. A mailbox that cannot be resolved is refused, never silently signed as the caller.",
             },
           },
           required: ["taskId", "content"],

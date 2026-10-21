@@ -38,40 +38,10 @@ import { callAttachmentTool, isAttachmentTool } from "./task-attachments"
 
 const log = createLogger("mcp.server-oauth")
 
-interface Task {
-  id: string
-  title: string
-  description?: string | null
-  priority: number
-  completed: boolean
-  dueDateTime?: string | null
-  createdAt: string
-  updatedAt: string
-  assignee?: { id: string; name: string; email: string } | null
-  creator?: { id: string; name: string; email: string } | null
-  comments?: any[]
-}
-
-interface TaskList {
-  id: string
-  name: string
-  description?: string | null
-  color?: string | null
-  privacy: string
-  owner?: { id: string; name: string; email: string }
-}
-
-interface Comment {
-  id: string
-  content: string
-  type: string
-  createdAt: string
-  author: { id: string; name: string; email: string }
-}
-
 // The Zod schemas that decide what create_task and update_task honour now live
 // in ./task-schemas. Re-exported so importers — including the parity test that
 // pins them against OAUTH_MCP_TOOLS — do not have to move with them.
+import type { Task, TaskList, Comment } from "./api-shapes"
 import { CreateTaskSchema, UpdateTaskSchema } from "./task-schemas"
 export { CreateTaskSchema, UpdateTaskSchema }
 
@@ -79,6 +49,12 @@ const CreateCommentSchema = z.object({
   taskId: z.string(),
   content: z.string().min(1),
   type: z.enum(["TEXT", "MARKDOWN"]).default("TEXT"),
+  /**
+   * The mailbox this harness runs as — `claude`, `copilot`, `codex`, … or `me`
+   * to sign as the authenticated user on purpose (AWTD-1311). Peeled off before
+   * the write: it names the AUTHOR, not the task.
+   */
+  agent: z.string().optional(),
 })
 
 /**
@@ -93,7 +69,7 @@ const CreateCommentSchema = z.object({
  * schema-parity test address this module, and a rename would have been a
  * second, unrelated change riding along with the extraction.
  */
-import { McpAgentIdentity } from './agent-identity'
+import { McpAgentIdentity } from "./agent-identity"
 import { OAUTH_MCP_TOOLS } from './tool-definitions'
 export { OAUTH_MCP_TOOLS }
 export { OAuthAPIClient }
@@ -420,16 +396,20 @@ export default class AstridMCPServerOAuth {
   private async updateTask(args: any) {
     // Validate update data
     const updateData = UpdateTaskSchema.parse(args)
-    const { taskId, ...updates } = updateData
+    // `agent` names the ACTOR, not the task, so it is peeled off here rather
+    // than forwarded — the same reason createTask resolves listId before it
+    // validates. Leaving it in `updates` would PUT it as a task field.
+    const { taskId, agent, ...updates } = updateData
 
     // Signed like a comment (AWTD-974): the activity line this emits —
     // "marked this as complete" — otherwise carries the OAuth client owner's
     // name, because client-credentials auth resolves to the owner.
+    const signature = this.agentIdentity.signatureFor(agent)
     const data = await this.oauthClient.makeRequest<{ task: Task }>(
       `/api/v1/tasks/${taskId}`,
       {
         method: "PUT",
-        body: JSON.stringify({ ...updates, ...this.agentIdentity.signature() }),
+        body: JSON.stringify({ ...updates, ...signature }),
       }
     )
 
@@ -454,6 +434,7 @@ export default class AstridMCPServerOAuth {
     // Validate comment data
     const commentData = CreateCommentSchema.parse(args)
 
+    const signature = this.agentIdentity.signatureFor(commentData.agent)
     const data = await this.oauthClient.makeRequest<{ comment: Comment }>(
       `/api/v1/tasks/${commentData.taskId}/comments`,
       {
@@ -461,7 +442,7 @@ export default class AstridMCPServerOAuth {
         body: JSON.stringify({
           content: commentData.content,
           type: commentData.type,
-          ...this.agentIdentity.signature(),
+          ...signature,
         }),
       }
     )

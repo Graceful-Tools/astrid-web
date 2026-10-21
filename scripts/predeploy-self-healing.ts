@@ -21,6 +21,9 @@ import { execSync, spawnSync, SpawnSyncReturns } from 'child_process'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import path from 'path'
 import { loadScriptEnv } from './lib/load-env'
+// Who files, comments on and resolves these tasks (AWTD-1311). Run from the
+// runner, so unsigned they all arrive under the OAuth client owner's name.
+import { agentSignature } from './lib/agent-author'
 import { classifyVitestFailure, isVitestCheck } from './lib/vitest-starvation'
 import {
   PREDEPLOY_REPORT_TAG,
@@ -927,6 +930,7 @@ ${fixAttempts.length > 0 ? fixAttempts.map((f) => `- ${f.check}: ${f.success ? '
         body: JSON.stringify({
           content: comment,
           type: 'TEXT',
+          ...(await agentSignature(token)),
         }),
       })
       console.log(`   Added comment to existing task`)
@@ -962,6 +966,7 @@ All predeploy checks are now passing.
         body: JSON.stringify({
           content: comment,
           type: 'TEXT',
+          ...(await agentSignature(token)),
         }),
       })
 
@@ -972,7 +977,7 @@ All predeploy checks are now passing.
           'X-OAuth-Token': token,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ completed: true }),
+        body: JSON.stringify({ completed: true, ...(await agentSignature(token)) }),
       })
 
       console.log(`\n✅ Resolved Astrid task: ${taskId}`)

@@ -82,6 +82,12 @@ const UpdateTaskSchema = z.object({
   repeating: z.enum(["never", "daily", "weekly", "monthly", "yearly", "custom"]).optional(),
   repeatingData: RepeatingDataSchema,
   repeatFrom: z.enum(["DUE_DATE", "COMPLETION_DATE"]).optional(),
+  /**
+   * The mailbox this harness runs as — `claude`, `copilot`, `codex`, … or `me`
+   * to sign as the authenticated user on purpose (AWTD-1311). Peeled off before
+   * the write: it names the AUTHOR, not the task.
+   */
+  agent: z.string().optional(),
 }).strict()
 
 const CreateCommentSchema = z.object({

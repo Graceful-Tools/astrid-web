@@ -67,6 +67,15 @@ MAX_USD="${FIXALL_MAX_USD-10}"
 LONG_RUN_WINDOW="${FIXALL_LONG_RUN_WINDOW:-22-6}"
 WEB_LIST_ID="a623f322-4c3c-49b5-8a94-d2d9f00c82ba"
 
+# Which mailbox everything downstream of this runner writes AS (AWTD-1311).
+# The scripts the runner invokes through npm (predeploy-self-healing,
+# monitor-vercel-logs) get no arguments from here, and client-credentials auth
+# resolves to the OAuth client's OWNER — so unsigned, every task they file and
+# every comment they post arrives on the board with Jon's name and face. This is
+# a MAILBOX, not an agent id: a stale id signs as the wrong agent, a stale
+# mailbox resolves to that mailbox's agent or to nothing.
+export ASTRID_AGENT_MAILBOX=claude
+
 echo "──────── fixall loop (web) $(date '+%Y-%m-%d %H:%M:%S') ────────"
 
 cd "$REPO" || { echo "RESULT: FAILED — cannot enter $REPO"; exit 1; }
