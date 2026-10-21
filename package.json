@@ -276,7 +276,7 @@
     "tsx": "^4.23.13",
     "typescript": "^6",
     "vite": "^8.3.5",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.5"
   },
   "overrides": {
     "@humanfs/node": ">=0.16.8",
