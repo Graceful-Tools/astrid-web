@@ -60,6 +60,8 @@ let installationId: number
 let userId: string
 let projectId: string
 const measurements: Record<string, number> = {}
+/** The fixture label's node id, once ensureLabel has run. Cleared in afterAll. */
+let fixtureLabelId = ''
 
 async function mutate(query: string, variables: Record<string, unknown>) {
   return mod.clients.installationGraphqlClient(installationId, 'write').query(query, variables)
@@ -78,6 +80,56 @@ const setIssueTitle = (title: string) =>
     id: ISSUE_1,
     t: title,
   })
+
+/**
+ * Labels on the fixture issue (AWTD-1315).
+ *
+ * The fixtures carried none, so this suite could not see the cost of a task
+ * that is on a mirrored list: the held-lists read and a per-flavor lookup.
+ * A labelled issue with an edited title cost about 7 statements against a
+ * budget of 4, and nothing here measured it.
+ *
+ * The label is CREATED if the repo has not got it, so the suite does not depend
+ * on a human having set one up — and removed again in afterAll, like every
+ * other fixture edit.
+ */
+const LABEL_NAME = 'astrid-sync-fixture'
+
+async function ensureLabel(): Promise<string> {
+  const repo = await mod.clients
+    .installationGraphqlClient(installationId, 'write')
+    .query<{ repository: { id: string; label: { id: string } | null } }>(
+      `query($owner: String!, $name: String!, $label: String!) {
+        repository(owner: $owner, name: $name) { id label(name: $label) { id } }
+      }`,
+      { owner: ORG, name: 'wordlesolver', label: LABEL_NAME },
+    )
+  if (repo.repository.label) return repo.repository.label.id
+
+  const made = await mutate(
+    `mutation($r: ID!, $n: String!) {
+      createLabel(input: { repositoryId: $r, name: $n, color: "d73a4a" }) { label { id } }
+    }`,
+    { r: repo.repository.id, n: LABEL_NAME },
+  )
+  return (made as { createLabel: { label: { id: string } } }).createLabel.label.id
+}
+
+const setLabels = (labelIds: string[]) =>
+  labelIds.length > 0
+    ? mutate(`mutation($id: ID!, $l: [ID!]!) { addLabelsToLabelable(input: { labelableId: $id, labelIds: $l }) { clientMutationId } }`, {
+        id: ISSUE_1,
+        l: labelIds,
+      })
+    : Promise.resolve(null)
+
+const clearLabels = (labelIds: string[]) =>
+  labelIds.length > 0
+    ? mutate(
+        `mutation($id: ID!, $l: [ID!]!) { removeLabelsFromLabelable(input: { labelableId: $id, labelIds: $l }) { clientMutationId } }`,
+        { id: ISSUE_1, l: labelIds },
+      )
+    : Promise.resolve(null)
 
 describe.skipIf(!enabled)('GitHub Projects live smoke test (AWTD-1154)', () => {
   beforeAll(async () => {
@@ -129,6 +181,7 @@ describe.skipIf(!enabled)('GitHub Projects live smoke test (AWTD-1154)', () => {
     if (!mod) return
     // Put the fixtures back the way the next run expects them.
     await setIssueTitle(ISSUE_1_TITLE).catch(() => {})
+    if (fixtureLabelId) await clearLabels([fixtureLabelId]).catch(() => {})
     await setStatus(DRAFT_ITEM, OPTION.inProgress).catch(() => {})
     await setStatus(ISSUE_1_ITEM, OPTION.todo).catch(() => {})
     if (projectId) await prisma.project.delete({ where: { id: projectId } }).catch(() => {})
@@ -227,6 +280,38 @@ describe.skipIf(!enabled)('GitHub Projects live smoke test (AWTD-1154)', () => {
     measurements.applyQueriesForOneChangedItem = queries
     expect(queries).toBeLessThanOrEqual(4)
   }, 60_000)
+
+  it('AWTD-1315: a LABELLED item stays within the budget too', async () => {
+    // The budget above was measured on an unlabelled fixture, so it could not
+    // see the cost of a mirrored list. This labels the issue, lets the mirror
+    // make its label list, and then measures a title-only edit on a task that
+    // now HOLDS that list — the case that cost about 7.
+    fixtureLabelId = await ensureLabel()
+    await setLabels([fixtureLabelId])
+
+    const board = (await mod.projects.boundBoard(projectId))!
+    const { hydrateItem } = await import('@/lib/github/projects/hydrate')
+    const client = mod.clients.installationGraphqlClient(installationId, 'hydrate')
+
+    // First apply: the label becomes a list and the task joins it. This one is
+    // allowed to cost more — it is doing real work.
+    await mod.projects.applyProjectItems(board, [(await hydrateItem(client, ISSUE_1_ITEM))!])
+
+    const task = await prisma.task.findUnique({
+      where: { remoteNodeId: ISSUE_1 },
+      select: { lists: { where: { listType: 'label' }, select: { name: true } } },
+    })
+    expect(task?.lists.map(list => list.name)).toContain(LABEL_NAME)
+
+    // Now the measurement: only the title changes, and the label is unchanged
+    // and already held.
+    await setIssueTitle(`${ISSUE_1_TITLE} (labelled ${Date.now()})`)
+    const hydrated = (await hydrateItem(client, ISSUE_1_ITEM))!
+    queries = 0
+    await mod.projects.applyProjectItems(board, [hydrated])
+    measurements.applyQueriesForOneLabelledItem = queries
+    expect(queries).toBeLessThanOrEqual(4)
+  }, 90_000)
 
   it('reconcile heals an edit no webhook announced', async () => {
     await setStatus(DRAFT_ITEM, OPTION.todo)

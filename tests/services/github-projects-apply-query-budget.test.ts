@@ -65,6 +65,7 @@ vi.mock('@/lib/redis', () => ({ RedisCache: { invalidate: { userTasks: vi.fn(asy
 
 import { applyProjectItems, type BoundBoard } from '@/services/github-projects.service'
 import { normaliseItem, type RemoteProjectItem } from '@/lib/github/projects/apply'
+import { LIST_TYPE_LABEL, LIST_TYPE_MILESTONE } from '@/lib/list-flavors'
 
 const DIR = join(process.cwd(), 'tests/fixtures/github/graphql')
 const load = (name: string) => JSON.parse(readFileSync(join(DIR, name), 'utf8'))
@@ -84,12 +85,37 @@ const SPRINT = {
   position: 16,
 }
 
+/** A label as GitHub answers it, and the label-flavor list the import left behind. */
+const BUG_LABEL = { id: 'LA_bug', name: 'bug', color: 'd73a4a' }
+const BUG_LIST = {
+  id: 'list-label-bug',
+  remoteNodeId: BUG_LABEL.id,
+  listType: LIST_TYPE_LABEL,
+  name: BUG_LABEL.name,
+  color: `#${BUG_LABEL.color}`,
+  description: 'Graceful-Fools/wordlesolver',
+}
+
+/** A milestone as GitHub answers it, and its list. */
+const V12_MILESTONE = { id: 'MI_v12', title: 'v1.2', dueOn: null }
+const V12_LIST = {
+  id: 'list-milestone-v12',
+  remoteNodeId: V12_MILESTONE.id,
+  listType: LIST_TYPE_MILESTONE,
+  name: V12_MILESTONE.title,
+  color: null,
+  description: 'Graceful-Fools/wordlesolver',
+}
+
 /** Issue #1 as hydration returns it LIVE: every field reference carries its dataType. */
-function issueOne(extra: RemoteProjectItem['fieldValues']['nodes'] = []): RemoteProjectItem {
+function issueOne(
+  extra: RemoteProjectItem['fieldValues']['nodes'] = [],
+  content: Partial<NonNullable<RemoteProjectItem['content']>> = {},
+): RemoteProjectItem {
   const item = recorded[0]
   return {
     ...item,
-    content: { ...item.content!, title: `${item.content!.title} (edited)` },
+    content: { ...item.content!, title: `${item.content!.title} (edited)`, ...content } as RemoteProjectItem['content'],
     fieldValues: {
       nodes: [
         { __typename: 'ProjectV2ItemFieldRepositoryValue' },
@@ -170,5 +196,85 @@ describe('applying one changed item costs ≤ 4 statements (AWTD-1297, §13.3)',
     expect(db.projectField.findMany).not.toHaveBeenCalled()
     expect(db.taskFieldValue.findMany).toHaveBeenCalledTimes(1)
     expect(counter.statements, counter.log.join(', ')).toBeLessThanOrEqual(4)
+  })
+})
+
+/**
+ * RED for AWTD-1315: an item that holds labels or a milestone was still over.
+ *
+ * AWTD-1297 brought a title-only edit to 3 statements by COUNTING what a replica
+ * holds and reading only what is held. A task on a mirrored list defeats both
+ * halves of that:
+ *
+ *   - the held read is `task.findMany` with an implicit many-to-many in its
+ *     select, and Prisma reads one of those in two steps — Task, then the join
+ *     table, then TaskList. Three statements for one task's labels.
+ *   - and then each apply pass looks its own flavor up AGAIN by `remoteNodeId`,
+ *     to check for drift and to get list ids, even when every label on the item
+ *     is already held and nothing about it has changed.
+ *
+ * So a labelled issue with an edited title cost about 7. The live smoke fixtures
+ * carry no labels, so `npm run test:live:github-projects` cannot see this at
+ * all — which is why it is pinned here.
+ */
+describe('a held label or milestone does not blow the budget (AWTD-1315)', () => {
+  it('AWTD-1315: a title-only edit on a task that holds a label, unchanged', async () => {
+    const item = issueOne([], { labels: { totalCount: 1, nodes: [BUG_LABEL] } } as never)
+    counter.rows['item.findMany'] = [{ itemNodeId: item.id, archived: false }]
+    counter.rows['task.findMany'] = [replicaOf(item, { values: 0, lists: [BUG_LIST] })]
+    counter.rows['field.findMany'] = [MAGIC, SPRINT]
+    counter.rows['list.findMany'] = [BUG_LIST]
+
+    expect(await applyProjectItems(board([MAGIC, SPRINT]), [item])).toMatchObject({ updated: 1 })
+
+    // The label is already held and has not drifted, so the title is the only write.
+    expect(counter.log.filter(entry => !/findMany/.test(entry))).toEqual(['task.update (1)'])
+    expect(counter.statements, counter.log.join(', ')).toBeLessThanOrEqual(4)
+  })
+
+  it('AWTD-1315: a title-only edit on a task that holds a label AND a milestone', async () => {
+    const item = issueOne([], {
+      labels: { totalCount: 1, nodes: [BUG_LABEL] },
+      milestone: V12_MILESTONE,
+    } as never)
+    counter.rows['item.findMany'] = [{ itemNodeId: item.id, archived: false }]
+    counter.rows['task.findMany'] = [replicaOf(item, { values: 0, lists: [BUG_LIST, V12_LIST] })]
+    counter.rows['field.findMany'] = [MAGIC, SPRINT]
+    counter.rows['list.findMany'] = [BUG_LIST, V12_LIST]
+
+    expect(await applyProjectItems(board([MAGIC, SPRINT]), [item])).toMatchObject({ updated: 1 })
+
+    expect(counter.log.filter(entry => !/findMany/.test(entry))).toEqual(['task.update (1)'])
+    expect(counter.statements, counter.log.join(', ')).toBeLessThanOrEqual(4)
+  })
+
+  it('AWTD-1315: a label whose NAME drifted is still read and corrected', async () => {
+    // The saving must come from skipping a lookup that would have told us
+    // nothing, not from stopping looking. A renamed label still has to land.
+    const renamed = { ...BUG_LABEL, name: 'defect' }
+    const item = issueOne([], { labels: { totalCount: 1, nodes: [renamed] } } as never)
+    counter.rows['item.findMany'] = [{ itemNodeId: item.id, archived: false }]
+    counter.rows['task.findMany'] = [replicaOf(item, { values: 0, lists: [BUG_LIST] })]
+    counter.rows['field.findMany'] = [MAGIC, SPRINT]
+    counter.rows['list.findMany'] = [BUG_LIST]
+
+    await applyProjectItems(board([MAGIC, SPRINT]), [item])
+
+    expect(counter.log.filter(entry => !/findMany/.test(entry))).toContain('list.update (1)')
+  })
+
+  it('AWTD-1315: a label the task does NOT hold is still looked up and joined', async () => {
+    // A new label cannot be served from the held rows, so the lookup has to
+    // happen — and the task has to join the list.
+    const item = issueOne([], { labels: { totalCount: 1, nodes: [BUG_LABEL] } } as never)
+    counter.rows['item.findMany'] = [{ itemNodeId: item.id, archived: false }]
+    counter.rows['task.findMany'] = [replicaOf(item, { values: 0, lists: [] })]
+    counter.rows['field.findMany'] = [MAGIC, SPRINT]
+    counter.rows['list.findMany'] = [BUG_LIST]
+
+    await applyProjectItems(board([MAGIC, SPRINT]), [item])
+
+    expect(db.taskList.findMany).toHaveBeenCalled()
+    expect(counter.log.filter(entry => !/findMany/.test(entry))).toContain('task.update (1)')
   })
 })

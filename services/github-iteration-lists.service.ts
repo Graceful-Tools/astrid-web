@@ -16,6 +16,7 @@
 
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { resolveHeldLists, type HeldMirroredList } from '@/lib/github/projects/held-lists'
 import { RedisCache } from '@/lib/redis'
 import { createLogger } from '@/lib/logger'
 import { LIST_TYPE_ITERATION } from '@/lib/list-flavors'
@@ -41,8 +42,12 @@ export interface IterationBoard {
 
 export interface IterationTask {
   taskId: string
-  /** The iteration lists the task is on now. */
-  held: ReadonlyArray<{ id: string; remoteNodeId: string | null }>
+  /**
+   * The iteration lists the task is on now, as `HELD_LIST_SELECT` reads them.
+   * `name` and `description` are what `iterationListDrift` compares, so a held
+   * iteration needs no lookup of its own (AWTD-1315).
+   */
+  held: ReadonlyArray<HeldMirroredList>
 }
 
 /**
@@ -110,8 +115,19 @@ export async function applyIterationLists(
   const writes: Prisma.PrismaPromise<unknown>[] = []
   const listIds = new Map<string, string>()
   if (seen.size > 0) {
-    const known = await prisma.taskList.findMany({ where: { remoteNodeId: { in: [...seen.keys()] } }, select: ITERATION_LIST_SELECT })
-    for (const list of known) {
+    // Same saving as applyLabels and applyMilestones (AWTD-1315): an iteration
+    // the task already holds is served from the held row. Only unheld keys are
+    // read, so a page whose iterations did not change costs nothing here.
+    const { resolved, unresolved } = resolveHeldLists(
+      seen.keys(),
+      tasks.flatMap(task => task.held),
+      LIST_TYPE_ITERATION,
+    )
+    const known =
+      unresolved.length > 0
+        ? await prisma.taskList.findMany({ where: { remoteNodeId: { in: unresolved } }, select: ITERATION_LIST_SELECT })
+        : []
+    for (const list of [...resolved.values(), ...known]) {
       listIds.set(list.remoteNodeId as string, list.id)
       const { field, iteration } = seen.get(list.remoteNodeId as string)!
       const drift = iterationListDrift(field.name, iteration, list)

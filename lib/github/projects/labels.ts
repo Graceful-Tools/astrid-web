@@ -78,7 +78,10 @@ export function labelListColor(hex: string): string {
 /** What a label's list must change to match it; null when it already does. */
 export function labelListDrift(
   label: RemoteLabel,
-  list: { name: string; color: string },
+  // `color` is nullable because the column is (AWTD-1315). A label list is
+  // always created with one, so null means something else wrote the row — and
+  // then it IS drift, which is what the comparison below already concludes.
+  list: { name: string; color: string | null },
 ): { name?: string; color?: string } | null {
   const color = labelListColor(label.color)
   const patch = {

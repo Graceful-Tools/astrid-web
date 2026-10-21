@@ -55,6 +55,24 @@ const replicaSelect = (projectId: string) =>
   }) as const
 
 /**
+ * What a held mirrored list has to carry (AWTD-1315).
+ *
+ * `name`, `color` and `description` are here so the apply passes can check drift
+ * against the row they ALREADY have. Before this, each pass re-read its own
+ * flavor by `remoteNodeId` purely to compare those three columns — a statement
+ * that could only ever confirm what the held row said. A held list is the same
+ * TaskList row, so the comparison is identical.
+ */
+export const HELD_LIST_SELECT = {
+  id: true,
+  remoteNodeId: true,
+  listType: true,
+  name: true,
+  color: true,
+  description: true,
+} as const
+
+/**
  * What a task holds that GitHub mirrors, for the tasks that hold any.
  * Blockers (AWTD-1119); labels (AWTD-1188), milestones (AWTD-1189) and
  * iterations (AWTD-1230). Only lists that MIRROR GitHub are read back: a label
@@ -63,8 +81,9 @@ const replicaSelect = (projectId: string) =>
  */
 const HELD_SELECT = {
   blockedBy: { where: MIRRORED_BLOCKER, select: { blockingTaskId: true } },
-  lists: { where: GITHUB_MIRRORED_LIST, select: { id: true, remoteNodeId: true, listType: true } },
+  lists: { where: GITHUB_MIRRORED_LIST, select: HELD_LIST_SELECT },
 } as const
+
 
 type Held = Prisma.TaskGetPayload<{ select: typeof HELD_SELECT }>
 
@@ -76,18 +95,33 @@ export async function readReplicas(projectId: string, contentIds: string[]): Pro
   const rows = await prisma.task.findMany({ where: { remoteNodeId: { in: contentIds } }, select: replicaSelect(projectId) })
   const withBlockers = rows.filter(row => row._count.blockedBy > 0).map(row => row.id)
   const withLists = rows.filter(row => row._count.lists > 0).map(row => row.id)
-  const held =
-    withBlockers.length + withLists.length > 0
-      ? await prisma.task.findMany({
-          where: { id: { in: [...new Set([...withBlockers, ...withLists])] } },
-          select: {
-            id: true,
-            ...(withBlockers.length > 0 ? { blockedBy: HELD_SELECT.blockedBy } : {}),
-            ...(withLists.length > 0 ? { lists: HELD_SELECT.lists } : {}),
-          },
-        })
-      : []
-  const heldById = new Map(held.map(row => [row.id, row as Partial<Held>]))
+  const heldById = new Map<string, Partial<Held>>()
+
+  // ONE task holding lists and nothing holding blockers is the common page, and
+  // it is the shape where the generic read is worst (AWTD-1315). Prisma reads an
+  // implicit many-to-many in two steps, so `task.findMany` with a `lists` select
+  // is Task + the join table + TaskList: three statements to learn one task's
+  // labels. Asking TaskList directly, with the task as a filter rather than a
+  // relation to traverse, is one — and no mapping back is needed because there
+  // is only one task it could belong to.
+  if (withBlockers.length === 0 && withLists.length === 1) {
+    heldById.set(withLists[0], {
+      lists: await prisma.taskList.findMany({
+        where: { ...GITHUB_MIRRORED_LIST, tasks: { some: { id: withLists[0] } } },
+        select: HELD_LIST_SELECT,
+      }),
+    })
+  } else if (withBlockers.length + withLists.length > 0) {
+    const held = await prisma.task.findMany({
+      where: { id: { in: [...new Set([...withBlockers, ...withLists])] } },
+      select: {
+        id: true,
+        ...(withBlockers.length > 0 ? { blockedBy: HELD_SELECT.blockedBy } : {}),
+        ...(withLists.length > 0 ? { lists: HELD_SELECT.lists } : {}),
+      },
+    })
+    for (const row of held) heldById.set(row.id, row as Partial<Held>)
+  }
   return rows.map(({ _count, ...row }) => ({
     ...row,
     blockedBy: heldById.get(row.id)?.blockedBy ?? [],
