@@ -413,7 +413,7 @@ describe('applyProjectItems — labels become label lists (AWTD-1188)', () => {
    */
   const nodeLookups = () =>
     db.taskList.findMany.mock.calls.filter(
-      ([args]: [{ where?: { tasks?: unknown } }]) => args?.where?.tasks === undefined,
+      call => (call[0] as { where?: { tasks?: unknown } } | undefined)?.where?.tasks === undefined,
     )
 
   it('a label nobody has seen becomes a label list for its repo, and the new task joins it', async () => {
@@ -530,7 +530,7 @@ describe('applyProjectItems — labels become label lists (AWTD-1188)', () => {
     // mirrored-only filter, plus the task as a filter rather than a relation to
     // traverse, which is one statement instead of three.
     const [heldRead] = db.taskList.findMany.mock.calls.filter(
-      ([args]: [{ where?: { tasks?: unknown } }]) => args?.where?.tasks !== undefined,
+      call => (call[0] as { where?: { tasks?: unknown } } | undefined)?.where?.tasks !== undefined,
     )
     expect(heldRead[0].where).toEqual({ ...mirroredOnly, tasks: { some: { id: 't0' } } })
     expect(heldRead[0].select).toEqual({
@@ -560,11 +560,15 @@ describe('applyProjectItems — labels become label lists (AWTD-1188)', () => {
 
     await applyProjectItems(board, [labelled(issue, []), labelled(items[1], [])])
 
-    const grouped = db.task.findMany.mock.calls.filter(([args]: [{ select?: { lists?: unknown } }]) => args?.select?.lists)
+    const grouped = db.task.findMany.mock.calls.filter(
+      call => (call[0] as { select?: { lists?: unknown } } | undefined)?.select?.lists,
+    )
     expect(grouped).toHaveLength(1)
     expect(grouped[0][0].where).toEqual({ id: { in: ['t0', 't1'] } })
     expect(
-      db.taskList.findMany.mock.calls.filter(([args]: [{ where?: { tasks?: unknown } }]) => args?.where?.tasks !== undefined),
+      db.taskList.findMany.mock.calls.filter(
+        call => (call[0] as { where?: { tasks?: unknown } } | undefined)?.where?.tasks !== undefined,
+      ),
     ).toEqual([])
   })
 

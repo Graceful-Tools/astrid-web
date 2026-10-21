@@ -83,7 +83,7 @@ describe('an MCP write that declares an agent is signed by that agent (AWTD-1311
     // bug under a new name, and the response would look like a success. The
     // error names the env var to set, so the refusal is actionable rather than
     // just loud.
-    const fetchMock = vi.fn(async () => jsonOk({ comment: { id: 'c1' } }))
+    const fetchMock = vi.fn(async (url?: string) => jsonOk({ comment: { id: 'c1' }, url }))
     vi.stubGlobal('fetch', fetchMock)
     const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_token' })
 
@@ -91,7 +91,7 @@ describe('an MCP write that declares an agent is signed by that agent (AWTD-1311
       (server as any).addComment({ taskId: 'task-1', content: 'strategy', agent: 'claude' }),
     ).rejects.toThrow(/ASTRID_AGENT_ID_CLAUDE/)
 
-    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/comments'))).toBe(false)
+    expect(fetchMock.mock.calls.some(call => String(call[0]).includes('/comments'))).toBe(false)
   })
 
   it('AWTD-1311: resolves a mailbox nobody has configured by name, not by guessing', async () => {
@@ -115,7 +115,7 @@ describe('an MCP write that declares an agent is signed by that agent (AWTD-1311
     // for the scripts. Unconfigured, it refuses — it does NOT fall through to
     // the claude id, and it does not fall through to Jon.
     process.env.CLAUDE_AGENT_ID = CLAUDE
-    const fetchMock = vi.fn(async () => jsonOk({ comment: { id: 'c1' } }))
+    const fetchMock = vi.fn(async (url?: string) => jsonOk({ comment: { id: 'c1' }, url }))
     vi.stubGlobal('fetch', fetchMock)
     const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_token' })
 
@@ -123,7 +123,7 @@ describe('an MCP write that declares an agent is signed by that agent (AWTD-1311
       (server as any).addComment({ taskId: 'task-1', content: 'progress', agent: 'copilot' }),
     ).rejects.toThrow(/ASTRID_AGENT_ID_COPILOT/)
 
-    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/comments'))).toBe(false)
+    expect(fetchMock.mock.calls.some(call => String(call[0]).includes('/comments'))).toBe(false)
   })
 
   it('AWTD-1311: `agent: "me"` is how a person signs deliberately, not by omission', async () => {
