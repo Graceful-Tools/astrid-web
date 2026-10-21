@@ -95,8 +95,19 @@ from, so the native apps need them as values.
 
 Variables the native apps consume: `NEXT_PUBLIC_BRAND_NAME`, `_DOMAIN`, `_WORDMARK`,
 `_SLOGAN`, `_SUPPORT_EMAIL`, `_INBOUND_TASK_EMAIL`, `_AGENT_NAME`, `_ACCENT_COLOR`,
-`_ACCENT_HOVER_COLOR`, `_ACCENT_TEXT_COLOR`, and `BRAND_AGENT_EMAIL_DOMAIN`. Everything
-else in `env` is web-only and is skipped, not rejected.
+`_ACCENT_HOVER_COLOR`, `_ACCENT_TEXT_COLOR`, `_LOGO`, and `BRAND_AGENT_EMAIL_DOMAIN`.
+Everything else in `env` is web-only and is skipped, not rejected.
+
+**`NEXT_PUBLIC_BRAND_LOGO` is the odd one, and the odd part matters** (astrid-ios AITD-514).
+It is the character art on sign-in, welcome, the sidebar and empty states, and it reaches
+iOS through the `BrandCharacterImage` Info.plist key. On the web the value is a PATH that
+the deployment serves; on iOS the app uses **the file name as an asset-catalog name**. So
+`/images/whitelabel-logo.png` needs a `whitelabel-logo` imageset in the app's catalog, and
+a partner who sets the variable without adding the imageset gets no character at all.
+
+Unset is a supported answer and shows **no** character rather than Astrid's — which is the
+right default, since shipping Astrid's mascot in a partner's app would be worse than
+shipping none.
 
 The `copy` block reaches the native apps a different way — over the wire, from
 `GET /api/v1/capabilities`, cached locally so reminders scheduled offline still speak in
