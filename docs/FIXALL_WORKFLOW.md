@@ -567,7 +567,7 @@ fast to correct, a submission is not.
 ### The sequence
 
 ```bash
-npm run predeploy                                    # on the MERGED main — 16/16
+npm run predeploy                                    # on the MERGED main — 17/17
 git diff origin/prod origin/main -- prisma/migrations/   # EMPTY, or it is Jon's call
 gh workflow run production-deployment.yml --ref main \
   -f skip_tests=false -f allow_destructive_migrations=false

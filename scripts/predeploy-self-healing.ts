@@ -331,6 +331,18 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
       autoFixable: false,
     },
     {
+      // The same question as CI's `dependency-audit` job — critical/high in the
+      // shipping tree — asked where agents and the deploy runner actually look.
+      // That job went red on a vite advisory and PR #461 merged past it, because
+      // predeploy ran no audit at all (AWTD-1301). Exit 3 is UNKNOWN (the tool
+      // could not prove advisories are visible), and a gate reads that as red.
+      // Not auto-fixed: which version to move to is a decision, not a repair.
+      name: 'Production Advisories',
+      command: 'npm run audit:prod',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
+      autoFixable: false,
+    },
+    {
       // ~2,900 lines of lib/ had no import sites, one of which shadowed the
       // enforcing withAuth without its capability option — a route importing
       // the wrong one silently lost its gate (task 1b381810).
