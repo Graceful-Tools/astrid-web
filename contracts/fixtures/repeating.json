@@ -371,6 +371,174 @@
       "newOccurrenceCount": 1
     },
     {
+      "name": "the last Monday, into a month with four",
+      "pattern": {
+        "type": "custom",
+        "unit": "months",
+        "interval": 1,
+        "endCondition": "never",
+        "monthRepeatType": "same_weekday",
+        "monthWeekday": {
+          "weekday": "monday",
+          "weekOfMonth": -1
+        }
+      },
+      "currentDueDate": "2024-01-29T10:00:00Z",
+      "completionDate": "2024-01-29T10:00:00Z",
+      "repeatFrom": "DUE_DATE",
+      "currentOccurrenceCount": 0,
+      "nextDueDate": "2024-02-26T00:00:00.000Z",
+      "shouldTerminate": false,
+      "newOccurrenceCount": 1
+    },
+    {
+      "name": "the last Monday, into a month with five",
+      "pattern": {
+        "type": "custom",
+        "unit": "months",
+        "interval": 1,
+        "endCondition": "never",
+        "monthRepeatType": "same_weekday",
+        "monthWeekday": {
+          "weekday": "monday",
+          "weekOfMonth": -1
+        }
+      },
+      "currentDueDate": "2024-03-25T10:00:00Z",
+      "completionDate": "2024-03-25T10:00:00Z",
+      "repeatFrom": "DUE_DATE",
+      "currentOccurrenceCount": 0,
+      "nextDueDate": "2024-04-29T00:00:00.000Z",
+      "shouldTerminate": false,
+      "newOccurrenceCount": 1
+    },
+    {
+      "name": "the last Sunday, when the month ends on one",
+      "pattern": {
+        "type": "custom",
+        "unit": "months",
+        "interval": 1,
+        "endCondition": "never",
+        "monthRepeatType": "same_weekday",
+        "monthWeekday": {
+          "weekday": "sunday",
+          "weekOfMonth": -1
+        }
+      },
+      "currentDueDate": "2024-02-25T10:00:00Z",
+      "completionDate": "2024-02-25T10:00:00Z",
+      "repeatFrom": "DUE_DATE",
+      "currentOccurrenceCount": 0,
+      "nextDueDate": "2024-03-31T00:00:00.000Z",
+      "shouldTerminate": false,
+      "newOccurrenceCount": 1
+    },
+    {
+      "name": "the last Friday, across a year boundary",
+      "pattern": {
+        "type": "custom",
+        "unit": "months",
+        "interval": 1,
+        "endCondition": "never",
+        "monthRepeatType": "same_weekday",
+        "monthWeekday": {
+          "weekday": "friday",
+          "weekOfMonth": -1
+        }
+      },
+      "currentDueDate": "2024-12-27T10:00:00Z",
+      "completionDate": "2024-12-27T10:00:00Z",
+      "repeatFrom": "DUE_DATE",
+      "currentOccurrenceCount": 0,
+      "nextDueDate": "2025-01-31T00:00:00.000Z",
+      "shouldTerminate": false,
+      "newOccurrenceCount": 1
+    },
+    {
+      "name": "the last Wednesday, from a 31st into February",
+      "pattern": {
+        "type": "custom",
+        "unit": "months",
+        "interval": 1,
+        "endCondition": "never",
+        "monthRepeatType": "same_weekday",
+        "monthWeekday": {
+          "weekday": "wednesday",
+          "weekOfMonth": -1
+        }
+      },
+      "currentDueDate": "2024-01-31T10:00:00Z",
+      "completionDate": "2024-01-31T10:00:00Z",
+      "repeatFrom": "DUE_DATE",
+      "currentOccurrenceCount": 0,
+      "nextDueDate": "2024-02-28T00:00:00.000Z",
+      "shouldTerminate": false,
+      "newOccurrenceCount": 1
+    },
+    {
+      "name": "the last Thursday, every three months",
+      "pattern": {
+        "type": "custom",
+        "unit": "months",
+        "interval": 3,
+        "endCondition": "never",
+        "monthRepeatType": "same_weekday",
+        "monthWeekday": {
+          "weekday": "thursday",
+          "weekOfMonth": -1
+        }
+      },
+      "currentDueDate": "2024-10-31T10:00:00Z",
+      "completionDate": "2024-10-31T10:00:00Z",
+      "repeatFrom": "DUE_DATE",
+      "currentOccurrenceCount": 0,
+      "nextDueDate": "2025-01-30T00:00:00.000Z",
+      "shouldTerminate": false,
+      "newOccurrenceCount": 1
+    },
+    {
+      "name": "a week of -2 names no week and ends the series",
+      "pattern": {
+        "type": "custom",
+        "unit": "months",
+        "interval": 1,
+        "endCondition": "never",
+        "monthRepeatType": "same_weekday",
+        "monthWeekday": {
+          "weekday": "monday",
+          "weekOfMonth": -2
+        }
+      },
+      "currentDueDate": "2024-01-29T10:00:00Z",
+      "completionDate": "2024-01-29T10:00:00Z",
+      "repeatFrom": "DUE_DATE",
+      "currentOccurrenceCount": 0,
+      "nextDueDate": null,
+      "shouldTerminate": true,
+      "newOccurrenceCount": 1
+    },
+    {
+      "name": "the fifth Monday still walks into the next month",
+      "pattern": {
+        "type": "custom",
+        "unit": "months",
+        "interval": 1,
+        "endCondition": "never",
+        "monthRepeatType": "same_weekday",
+        "monthWeekday": {
+          "weekday": "monday",
+          "weekOfMonth": 5
+        }
+      },
+      "currentDueDate": "2024-01-29T10:00:00Z",
+      "completionDate": "2024-01-29T10:00:00Z",
+      "repeatFrom": "DUE_DATE",
+      "currentOccurrenceCount": 0,
+      "nextDueDate": "2024-03-04T00:00:00.000Z",
+      "shouldTerminate": false,
+      "newOccurrenceCount": 1
+    },
+    {
       "name": "every two years on a set month and day",
       "pattern": {
         "type": "custom",
@@ -579,6 +747,37 @@
         "2024-05-21T00:00:00.000Z",
         "2024-06-18T00:00:00.000Z",
         "2024-07-16T00:00:00.000Z"
+      ]
+    },
+    {
+      "name": "the last Thursday, through a year",
+      "pattern": {
+        "type": "custom",
+        "unit": "months",
+        "interval": 1,
+        "endCondition": "never",
+        "monthRepeatType": "same_weekday",
+        "monthWeekday": {
+          "weekday": "thursday",
+          "weekOfMonth": -1
+        }
+      },
+      "start": "2024-01-25T10:00:00Z",
+      "repeatFrom": "DUE_DATE",
+      "steps": 12,
+      "dates": [
+        "2024-02-29T00:00:00.000Z",
+        "2024-03-28T00:00:00.000Z",
+        "2024-04-25T00:00:00.000Z",
+        "2024-05-30T00:00:00.000Z",
+        "2024-06-27T00:00:00.000Z",
+        "2024-07-25T00:00:00.000Z",
+        "2024-08-29T00:00:00.000Z",
+        "2024-09-26T00:00:00.000Z",
+        "2024-10-31T00:00:00.000Z",
+        "2024-11-28T00:00:00.000Z",
+        "2024-12-26T00:00:00.000Z",
+        "2025-01-30T00:00:00.000Z"
       ]
     },
     {
@@ -1050,6 +1249,85 @@
       },
       "answer": {
         "nextDueDate": "2026-02-17T00:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D3 the last Thursday, Los Angeles",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "months",
+          "interval": 1,
+          "endCondition": "never",
+          "monthRepeatType": "same_weekday",
+          "monthWeekday": {
+            "weekday": "thursday",
+            "weekOfMonth": -1
+          }
+        },
+        "currentDueDate": "2026-01-30T03:00:00Z",
+        "completion": "2026-01-30T03:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles"
+      },
+      "answer": {
+        "nextDueDate": "2026-02-26T08:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D3 the last Thursday, Tokyo",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "months",
+          "interval": 1,
+          "endCondition": "never",
+          "monthRepeatType": "same_weekday",
+          "monthWeekday": {
+            "weekday": "thursday",
+            "weekOfMonth": -1
+          }
+        },
+        "currentDueDate": "2026-01-30T03:00:00Z",
+        "completion": "2026-01-30T03:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "Asia/Tokyo"
+      },
+      "answer": {
+        "nextDueDate": "2026-02-25T15:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "all-day last Thursday stays at UTC midnight, Los Angeles",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "months",
+          "interval": 1,
+          "endCondition": "never",
+          "monthRepeatType": "same_weekday",
+          "monthWeekday": {
+            "weekday": "thursday",
+            "weekOfMonth": -1
+          }
+        },
+        "currentDueDate": "2026-01-29T00:00:00Z",
+        "completion": "2026-01-29T00:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles",
+        "isAllDay": true
+      },
+      "answer": {
+        "nextDueDate": "2026-02-26T00:00:00.000Z",
         "shouldTerminate": false,
         "newOccurrenceCount": 1
       }

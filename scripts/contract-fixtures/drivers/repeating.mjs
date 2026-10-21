@@ -52,6 +52,7 @@ const THIRD_TUESDAY = {
   monthRepeatType: 'same_weekday',
   monthWeekday: { weekday: 'tuesday', weekOfMonth: 3 },
 }
+const LAST_THURSDAY = { ...THIRD_TUESDAY, monthWeekday: { weekday: 'thursday', weekOfMonth: -1 } }
 
 // Simple patterns: the four types, both repeat modes, plus the edges that have bitten before.
 const simpleCases = [
@@ -124,6 +125,16 @@ const customCases = [
   // step can overflow before the weekday is even looked for. Dec 29 2024 is the fifth Sunday.
   ['the fifth Sunday, from a 29th', { type: 'custom', unit: 'months', interval: 1, endCondition: 'never', monthRepeatType: 'same_weekday', monthWeekday: { weekday: 'sunday', weekOfMonth: 5 } }, '2024-12-29T10:00:00Z', 'DUE_DATE', 0],
   ['the first Monday, from a 31st', { type: 'custom', unit: 'months', interval: 1, endCondition: 'never', monthRepeatType: 'same_weekday', monthWeekday: { weekday: 'monday', weekOfMonth: 1 } }, '2024-01-31T10:00:00Z', 'DUE_DATE', 0],
+  // weekOfMonth -1 is "the last" (AWTD-1295). It counts back from the month's last day, and the
+  // month is plain calendar arithmetic: the overflowing step above would turn "Jan 31 + 1" into March.
+  ['the last Monday, into a month with four', { type: 'custom', unit: 'months', interval: 1, endCondition: 'never', monthRepeatType: 'same_weekday', monthWeekday: { weekday: 'monday', weekOfMonth: -1 } }, '2024-01-29T10:00:00Z', 'DUE_DATE', 0],
+  ['the last Monday, into a month with five', { type: 'custom', unit: 'months', interval: 1, endCondition: 'never', monthRepeatType: 'same_weekday', monthWeekday: { weekday: 'monday', weekOfMonth: -1 } }, '2024-03-25T10:00:00Z', 'DUE_DATE', 0],
+  ['the last Sunday, when the month ends on one', { type: 'custom', unit: 'months', interval: 1, endCondition: 'never', monthRepeatType: 'same_weekday', monthWeekday: { weekday: 'sunday', weekOfMonth: -1 } }, '2024-02-25T10:00:00Z', 'DUE_DATE', 0],
+  ['the last Friday, across a year boundary', { type: 'custom', unit: 'months', interval: 1, endCondition: 'never', monthRepeatType: 'same_weekday', monthWeekday: { weekday: 'friday', weekOfMonth: -1 } }, '2024-12-27T10:00:00Z', 'DUE_DATE', 0],
+  ['the last Wednesday, from a 31st into February', { type: 'custom', unit: 'months', interval: 1, endCondition: 'never', monthRepeatType: 'same_weekday', monthWeekday: { weekday: 'wednesday', weekOfMonth: -1 } }, '2024-01-31T10:00:00Z', 'DUE_DATE', 0],
+  ['the last Thursday, every three months', { type: 'custom', unit: 'months', interval: 3, endCondition: 'never', monthRepeatType: 'same_weekday', monthWeekday: { weekday: 'thursday', weekOfMonth: -1 } }, '2024-10-31T10:00:00Z', 'DUE_DATE', 0],
+  ['a week of -2 names no week and ends the series', { type: 'custom', unit: 'months', interval: 1, endCondition: 'never', monthRepeatType: 'same_weekday', monthWeekday: { weekday: 'monday', weekOfMonth: -2 } }, '2024-01-29T10:00:00Z', 'DUE_DATE', 0],
+  ['the fifth Monday still walks into the next month', { type: 'custom', unit: 'months', interval: 1, endCondition: 'never', monthRepeatType: 'same_weekday', monthWeekday: { weekday: 'monday', weekOfMonth: 5 } }, '2024-01-29T10:00:00Z', 'DUE_DATE', 0],
   ['every two years on a set month and day', { type: 'custom', unit: 'years', interval: 2, endCondition: 'never', month: 3, day: 10 }, '2024-06-15T12:00:00Z', 'DUE_DATE', 0],
   ['terminating exactly at the occurrence limit', { ...WEEKLY_MWF, endCondition: 'after_occurrences', endAfterOccurrences: 4 }, '2024-01-15T09:00:00Z', 'DUE_DATE', 3],
   ['one occurrence short of the limit', { ...WEEKLY_MWF, endCondition: 'after_occurrences', endAfterOccurrences: 4 }, '2024-01-15T09:00:00Z', 'DUE_DATE', 2],
@@ -157,6 +168,7 @@ const progressionCases = [
   ['weekly on Mon/Wed/Fri from the completion date', WEEKLY_MWF, '2024-01-15T09:00:00Z', 'COMPLETION_DATE', 6],
   ['monthly on the 15th, through a year', MONTHLY_15TH, '2024-01-15T14:00:00Z', 'DUE_DATE', 12],
   ['the third Tuesday, through six months', THIRD_TUESDAY, '2024-01-16T10:00:00Z', 'DUE_DATE', 6],
+  ['the last Thursday, through a year', LAST_THURSDAY, '2024-01-25T10:00:00Z', 'DUE_DATE', 12],
   ['every three days, through a month boundary', { type: 'custom', unit: 'days', interval: 3, endCondition: 'never' }, '2024-01-25T09:00:00Z', 'DUE_DATE', 5],
 ]
 
@@ -219,6 +231,11 @@ const completionCases = [
   ['D3 the third Tuesday, Los Angeles', { repeating: 'custom', pattern: THIRD_TUESDAY, currentDueDate: '2026-01-20T18:00:00Z', completion: '2026-01-20T18:00:00Z', repeatFrom: 'DUE_DATE', timeZone: LA }],
   ['D3 the third Tuesday, Tokyo', { repeating: 'custom', pattern: THIRD_TUESDAY, currentDueDate: '2026-01-20T01:00:00Z', completion: '2026-01-20T01:00:00Z', repeatFrom: 'DUE_DATE', timeZone: TOKYO }],
   ['D3 the third Tuesday, UTC (the old answer)', { repeating: 'custom', pattern: THIRD_TUESDAY, currentDueDate: '2026-01-20T18:00:00Z', completion: '2026-01-20T18:00:00Z', repeatFrom: 'DUE_DATE', timeZone: 'UTC' }],
+  // The last Thursday is found on the person's calendar too: Jan 30 2026 03:00 UTC is still
+  // Thursday the 29th in Los Angeles, and already Friday the 30th in Tokyo.
+  ['D3 the last Thursday, Los Angeles', { repeating: 'custom', pattern: LAST_THURSDAY, currentDueDate: '2026-01-30T03:00:00Z', completion: '2026-01-30T03:00:00Z', repeatFrom: 'DUE_DATE', timeZone: LA }],
+  ['D3 the last Thursday, Tokyo', { repeating: 'custom', pattern: LAST_THURSDAY, currentDueDate: '2026-01-30T03:00:00Z', completion: '2026-01-30T03:00:00Z', repeatFrom: 'DUE_DATE', timeZone: TOKYO }],
+  ['all-day last Thursday stays at UTC midnight, Los Angeles', { repeating: 'custom', pattern: LAST_THURSDAY, currentDueDate: '2026-01-29T00:00:00Z', completion: '2026-01-29T00:00:00Z', repeatFrom: 'DUE_DATE', timeZone: LA, isAllDay: true }],
   // D4 — a custom pattern answers the same wherever the code runs; the zone is the person's.
   ['D4 Mon/Wed/Fri from Monday 8am, Tokyo', { repeating: 'custom', pattern: WEEKLY_MWF, currentDueDate: '2026-01-04T23:00:00Z', completion: '2026-01-04T23:00:00Z', repeatFrom: 'DUE_DATE', timeZone: TOKYO }],
   ['D4 Mon/Wed/Fri from Friday 6pm, Los Angeles', { repeating: 'custom', pattern: WEEKLY_MWF, currentDueDate: '2026-01-10T02:00:00Z', completion: '2026-01-10T02:00:00Z', repeatFrom: 'DUE_DATE', timeZone: LA }],
