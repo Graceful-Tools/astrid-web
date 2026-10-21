@@ -956,7 +956,7 @@ it yet.
 
 | Route | Purpose |
 |---|---|
-| `GET /api/v1/github/projects` | Bindable projects across the user's installations |
+| `GET /api/v1/github/projects` | Bindable projects across the user's installations; each bound one carries `boundProjectId` and `boundListId` |
 | `POST /api/v1/github/projects/{nodeId}/bind` | Creates the Project, list, binding and fields |
 | `GET/PATCH /api/v1/github/projects/{projectId}/binding` | Edit the field mapping |
 | `DELETE /api/v1/github/projects/{projectId}/binding` | Unbind; keeps a read-only local snapshot |
@@ -1269,6 +1269,16 @@ Done:
   repo, and the legacy OAuth token everywhere else. An App token can't see uninstalled
   repos, so a blanket preference would 404 uncovered links. Production pre-flight
   (2026-10-10, read-only): 2 links, both covered.
+
+- **Connecting and binding from the web UI** ([AWTD-1302](https://astrid.cc/t/AWTD-1302)):
+  the connection itself (setup, install URL, installations, disconnect, the Connections
+  card) answers to a derived `githubConnection` capability, `codingAgent || githubProjects`,
+  so a GitHub Projects brand with the coding agent off can connect. GitHub sign-in stores
+  the App user token and grants every installation `GET /user/installations` lists
+  (`lib/github/app-access.ts`, §7.2–§7.3); `/api/github/setup?sync=1` does the same for
+  anyone else ("Refresh from GitHub"). "Connect a GitHub project" (add-list modal and the
+  Connections card) lists installations → projects, binds one and opens the board;
+  `GET /api/v1/github/projects` gained an additive `boundListId` for "Open board".
 
 Not done, and why:
 - **The Issues-sync cut-over** (its own task): switching the sync "Connect GitHub" flow to

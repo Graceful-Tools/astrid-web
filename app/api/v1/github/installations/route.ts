@@ -11,7 +11,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { installationSummariesForUser } from '@/lib/github/installations'
 
 export const GET = withAuth(
-  { scopes: ['user:read'], tag: 'v1.github.installations', capability: 'codingAgent' },
+  { scopes: ['user:read'], tag: 'v1.github.installations', capability: 'githubConnection' },
   async (_req, auth) => {
     const installations = await installationSummariesForUser(auth.userId)
     return NextResponse.json({ installations })

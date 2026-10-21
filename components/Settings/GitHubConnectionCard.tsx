@@ -16,7 +16,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { Building2, Github, Loader2, Plus, RefreshCw, User } from 'lucide-react'
+import { Building2, FolderKanban, Github, Loader2, Plus, RefreshCw, User } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -31,6 +31,12 @@ import {
 } from '@/components/ui/dialog'
 import { apiGet, apiPost } from '@/lib/api'
 import { BRAND } from '@/lib/brand/config'
+import { CAPABILITIES } from '@/lib/brand/capabilities'
+import {
+  GitHubProjectPickerDialog,
+  githubAccessSyncUrl,
+} from '@/components/github/GitHubProjectPickerDialog'
+import { consumeConnectGithubProjectParam } from '@/lib/github/project-picker-param'
 import { useTranslations } from '@/lib/i18n/client'
 import type { InstallationSummary } from '@/lib/github/installations'
 
@@ -38,6 +44,7 @@ import type { InstallationSummary } from '@/lib/github/installations'
 const SETUP_OUTCOMES = {
   connected: 'success',
   updated: 'success',
+  synced: 'success',
   not_authorized: 'error',
   already_connected: 'error',
   verification_unavailable: 'error',
@@ -56,6 +63,8 @@ interface GitHubConnectionCardViewProps {
   onInstall: () => void
   onRefresh: () => void
   onDisconnect: (installation: InstallationSummary) => void
+  /** Opens the project picker; only offered with GitHub Projects boards (AWTD-1302). */
+  onConnectProject?: () => void
 }
 
 /** Presentation only, so it can be rendered and measured without the API. */
@@ -65,9 +74,15 @@ export function GitHubConnectionCardView({
   onInstall,
   onRefresh,
   onDisconnect,
+  onConnectProject,
 }: GitHubConnectionCardViewProps) {
   const { t } = useTranslations()
   const connected = (installations?.length ?? 0) > 0
+  // The coding agent's parts (its copy, the repo refresh) stay behind its own
+  // capability; a GitHub Projects brand gets the project picker and an access
+  // refresh instead (AWTD-1302).
+  const codingAgent = CAPABILITIES.codingAgent
+  const githubProjects = CAPABILITIES.githubProjects
 
   return (
     <Card className="theme-bg-secondary theme-border" data-testid="github-connection-card">
@@ -77,7 +92,9 @@ export function GitHubConnectionCardView({
           {t('settingsPages.connections.github.title')}
         </CardTitle>
         <CardDescription className="theme-text-muted">
-          {t('settingsPages.connections.github.description', { appName: BRAND.appName })}
+          {codingAgent
+            ? t('settingsPages.connections.github.description', { appName: BRAND.appName })
+            : t('settingsPages.connections.github.descriptionProjects', { appName: BRAND.appName })}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -162,10 +179,24 @@ export function GitHubConnectionCardView({
                 ? t('settingsPages.connections.github.installAnother')
                 : t('settingsPages.connections.github.connect')}
             </Button>
-            {connected && (
+            {codingAgent && connected && (
               <Button variant="outline" size="sm" onClick={onRefresh} disabled={busy !== null}>
                 <RefreshCw className={`w-4 h-4 mr-2 ${busy === 'refresh' ? 'animate-spin' : ''}`} />
                 {t('settingsPages.connections.github.refresh')}
+              </Button>
+            )}
+            {githubProjects && (
+              <Button variant="outline" size="sm" asChild>
+                <a href={githubAccessSyncUrl()}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  {t('githubProjectPicker.refreshAccess')}
+                </a>
+              </Button>
+            )}
+            {githubProjects && onConnectProject && (
+              <Button size="sm" variant={connected ? 'default' : 'outline'} onClick={onConnectProject}>
+                <FolderKanban className="w-4 h-4 mr-2" />
+                {t('githubProjectPicker.entry')}
               </Button>
             )}
           </div>
@@ -181,6 +212,7 @@ export function GitHubConnectionCard() {
   const [busy, setBusy] = useState<'install' | 'refresh' | null>(null)
   const [pending, setPending] = useState<InstallationSummary | null>(null)
   const [disconnecting, setDisconnecting] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   // Resolves to the list, or to [] after saying it could not be loaded.
   const fetchInstallations = useCallback(
@@ -199,6 +231,8 @@ export function GitHubConnectionCard() {
 
   useEffect(() => {
     fetchInstallations().then(setInstallations)
+    // Back from authorizing the App with the picker's return URL.
+    if (CAPABILITIES.githubProjects && consumeConnectGithubProjectParam()) setPickerOpen(true)
 
     // Say what the setup round trip decided, once, then drop the parameter so
     // a reload does not repeat it.
@@ -265,7 +299,11 @@ export function GitHubConnectionCard() {
         onInstall={install}
         onRefresh={refresh}
         onDisconnect={setPending}
+        onConnectProject={() => setPickerOpen(true)}
       />
+      {CAPABILITIES.githubProjects && (
+        <GitHubProjectPickerDialog open={pickerOpen} onOpenChange={setPickerOpen} />
+      )}
       <Dialog open={pending !== null} onOpenChange={open => !open && !disconnecting && setPending(null)}>
         <DialogContent>
           <DialogHeader>
@@ -273,9 +311,12 @@ export function GitHubConnectionCard() {
               {t('settingsPages.connections.github.disconnectTitle', { account: pending?.accountLogin ?? '' })}
             </DialogTitle>
             <DialogDescription>
-              {t('settingsPages.connections.github.disconnectDescription', {
-                account: pending?.accountLogin ?? '',
-              })}
+              {t(
+                CAPABILITIES.codingAgent
+                  ? 'settingsPages.connections.github.disconnectDescription'
+                  : 'settingsPages.connections.github.disconnectDescriptionProjects',
+                { account: pending?.accountLogin ?? '' },
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

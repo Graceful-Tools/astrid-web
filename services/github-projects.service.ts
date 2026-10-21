@@ -784,6 +784,13 @@ export async function boardsForProjectNodes(projectNodeIds: string[]): Promise<M
   return new Map(rows.map(row => [row.projectNodeId, row.projectId]))
 }
 
+/** Each bound board's GitHub-backed list, by board (Project) id — what a client opens (AWTD-1302). */
+export async function boardListsForProjects(projectIds: string[]): Promise<Map<string, string>> {
+  const lists = projectIds.length === 0 ? [] : await prisma.taskList.findMany({
+    where: { projectId: { in: projectIds }, backend: GITHUB_PROJECT_BACKEND }, select: { id: true, projectId: true } })
+  return new Map(lists.flatMap(list => (list.projectId ? [[list.projectId, list.id] as const] : [])))
+}
+
 /** A board's binding as the API shows it; null when the board is not bound. */
 export function readBinding(projectId: string) {
   return prisma.gitHubProjectBinding.findUnique({ where: { projectId }, select: BINDING_SELECT })

@@ -989,6 +989,7 @@
       "github": {
         "title": "GitHub",
         "description": "Collega {appName} ai tuoi account e alle tue organizzazioni GitHub. Gli agenti di codice eseguiti sul server creano branch e pull request tramite questa connessione.",
+        "descriptionProjects": "Collega {appName} alle tue organizzazioni GitHub, così i loro progetti possono diventare bacheche qui.",
         "empty": "Non ancora collegato a GitHub.",
         "connect": "Collega GitHub",
         "installAnother": "Aggiungi un'altra organizzazione",
@@ -1006,6 +1007,7 @@
         "disconnect": "Scollega",
         "disconnectTitle": "Scollegare {account}?",
         "disconnectDescription": "Gli agenti di codice smetteranno di funzionare nei repository di {account}. L'app GitHub resta installata lì; disinstallala su GitHub per rimuoverla del tutto.",
+        "disconnectDescriptionProjects": "Non vedrai qui i progetti di {account} finché non aggiorni da GitHub. La GitHub App resta installata; disinstallala su GitHub per rimuoverla completamente.",
         "disconnected": "{account} scollegato",
         "disconnectError": "Impossibile scollegare",
         "outcomes": {
@@ -1014,7 +1016,8 @@
           "not_authorized": "Secondo GitHub il tuo account non può vedere questa installazione",
           "already_connected": "Questa installazione è già collegata a un altro account",
           "verification_unavailable": "L'accesso con GitHub non è configurato su questo server, quindi non è stato possibile verificare l'installazione",
-          "error": "Si è verificato un problema durante il collegamento a GitHub"
+          "error": "Si è verificato un problema durante il collegamento a GitHub",
+          "synced": "Accesso a GitHub aggiornato"
         }
       }
     }
@@ -1138,5 +1141,27 @@
       "noModel": "Mi piacerebbe aiutarti, ma ho bisogno di un modello di IA per rispondere! Vai su {settingsLink} per configurare il tuo modello preferito.",
       "onDeviceUnavailable": "Il modello selezionato funziona solo sui dispositivi Apple compatibili, quindi qui non posso rispondere. Vai su {settingsLink} per scegliere un modello che funzioni ovunque."
     }
+  },
+  "githubProjectPicker": {
+    "entry": "Collega un progetto GitHub",
+    "title": "Collega un progetto GitHub",
+    "description": "Scegli un progetto dell'organizzazione da usare come bacheca in {appName}. I suoi elementi vengono importati in background.",
+    "connect": "Usa come bacheca",
+    "openBoard": "Apri bacheca",
+    "closed": "Chiuso",
+    "itemCountOne": "1 elemento",
+    "itemCountMany": "{count} elementi",
+    "noProjects": "Nessun progetto visibile per te in questa organizzazione.",
+    "noOrganizations": "Nessuna organizzazione GitHub è ancora collegata. Installa l'app su un'organizzazione, o aggiorna se è già installata.",
+    "installOnOrg": "Installa su un'organizzazione",
+    "installAnother": "Installa su un'altra organizzazione",
+    "refreshAccess": "Aggiorna da GitHub",
+    "authRequired": "Collega il tuo account GitHub per vedere i progetti delle tue organizzazioni.",
+    "connectGithub": "Collega GitHub",
+    "loadError": "Impossibile caricare i tuoi progetti GitHub",
+    "retry": "Riprova",
+    "bound": "{title} collegato. Importazione degli elementi…",
+    "alreadyBound": "Quel progetto è già una bacheca",
+    "bindError": "Impossibile collegare quel progetto"
   }
 }

@@ -15,9 +15,10 @@ const log = createLogger('github.disconnect')
 
 
 export async function POST(request: NextRequest) {
-  // A deployment without the coding agent must refuse
-  // server-side, not merely hide the UI (task 229c175c).
-  const capabilityBlocked = capabilityGate('codingAgent')
+  // The App connection, not the coding agent: a GitHub Projects brand needs it
+  // with the coding agent off (AWTD-1302). Refused, server-side, when neither
+  // is on (task 229c175c).
+  const capabilityBlocked = capabilityGate('githubConnection')
   if (capabilityBlocked) return capabilityBlocked
 
   try {
