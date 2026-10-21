@@ -1,6 +1,6 @@
 {
   "name": "Lanes for GitHub Projects",
-  "description": "The GitHub Projects partner brand (spec docs/specs/GITHUB_PROJECTS_WHITELABEL.md §11.1, AWTD-1103): a generic Graceful Tools brand, \"Lanes for GitHub Projects\" — the descriptive form GitHub's brand guidelines allow. Signs in with GitHub (through the brand's own GitHub App) and SSO; Project Mode on; Issues sync, Google Tasks and task cost off, since GitHub Projects is the backend. Artwork reuses the GitHub-styled whitelabel images until the brand has its own. The GitHub App slug is a placeholder until the App is registered, NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS turns on the Projects backend (P4c, AWTD-1151).",
+  "description": "The GitHub Projects partner brand (spec docs/specs/GITHUB_PROJECTS_WHITELABEL.md §11.1, AWTD-1103): a generic Graceful Tools brand, \"Lanes for GitHub Projects\" — the descriptive form GitHub's brand guidelines allow. Signs in with GitHub (through the brand's own GitHub App); add sso to the providers only together with the four AUTH_SSO_* variables, or the server refuses to boot (AWTD-1298); Project Mode on; Issues sync, Google Tasks and task cost off, since GitHub Projects is the backend. Artwork reuses the GitHub-styled whitelabel images until the brand has its own. The GitHub App slug is a placeholder until the App is registered, NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS turns on the Projects backend (P4c, AWTD-1151).",
   "env": {
     "NEXT_PUBLIC_BRAND_NAME": "Lanes",
     "NEXT_PUBLIC_BRAND_TITLE": "Lanes for GitHub Projects",
@@ -22,7 +22,7 @@
     "NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG": "lanes-for-github-projects",
     "BRAND_ENABLED_AGENTS": "claude",
     "NEXT_PUBLIC_BRAND_APP_URL_SCHEME": "astrid",
-    "NEXT_PUBLIC_BRAND_AUTH_PROVIDERS": "github,sso",
+    "NEXT_PUBLIC_BRAND_AUTH_PROVIDERS": "github",
     "NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE": "true",
     "NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS": "true",
     "NEXT_PUBLIC_BRAND_ENABLE_SYNC_GITHUB_ISSUES": "false",
@@ -49,7 +49,7 @@
     "capabilities": {
       "githubProjects": true,
       "authGithub": true,
-      "authSso": true,
+      "authSso": false,
       "authGoogle": false,
       "authApple": false,
       "authPasskey": false,

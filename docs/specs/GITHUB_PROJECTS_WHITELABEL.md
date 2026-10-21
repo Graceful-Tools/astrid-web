@@ -901,10 +901,11 @@ Tools brand at `projects.gracefultools.com` (AWTD-1103). Its GitHub App slug,
 `lanes-for-github-projects`, is a placeholder until that App is registered
 (docs/deployment/LANES_GITHUB_MARKETPLACE.md). GitHub Projects on requires Project Mode
 on: the server refuses to start otherwise, and the brand matrix runs the same check
-against every profile (AWTD-1121).
+against every profile (AWTD-1121). Sign-in is `github` alone. Add `sso` only together with
+its four `AUTH_SSO_*` variables, or the server refuses to start (AWTD-1298).
 
 ```json
-"NEXT_PUBLIC_BRAND_AUTH_PROVIDERS": "github,sso",
+"NEXT_PUBLIC_BRAND_AUTH_PROVIDERS": "github",
 "NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS": "true",
 "NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE": "true",
 "NEXT_PUBLIC_BRAND_ENABLE_SYNC_GITHUB_ISSUES": "false",

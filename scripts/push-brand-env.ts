@@ -37,6 +37,8 @@ import { join } from 'node:path'
 import { loadScriptEnv } from './lib/load-env'
 import { profileEnv, type BrandProfile } from '../lib/brand/profile'
 import { resolveVercelTarget, VERCEL_TARGET_FLAGS, type VercelTarget } from './lib/vercel-target'
+import { bootPreflightProblems } from '../lib/brand/boot-preflight'
+import { deploymentEnv, refuseIfBootWouldFail, storedKeysFor, type VercelEnvRow } from './lib/brand-boot-preflight'
 
 loadScriptEnv()
 
@@ -84,7 +86,7 @@ if (!domain) {
   process.exit(1)
 }
 
-interface EnvRow { id: string; key: string; target?: string[] }
+interface EnvRow extends VercelEnvRow { id: string }
 
 async function vercel<T>(path: string, init?: RequestInit): Promise<T> {
   const sep = path.includes('?') ? '&' : '?'
@@ -129,6 +131,14 @@ async function main() {
   for (const write of writes) {
     const shown = secrets.includes(write.key) ? '•••' : write.value.length > 60 ? `${write.value.slice(0, 57)}...` : write.value
     console.log(`  ${has(write.key) ? '↻' : '+'} ${write.key} = ${shown}   (${write.why})`)
+  }
+
+  // Refuse before writing anything the server would refuse to boot with (AWTD-1298), in
+  // either environment this writes to. Shown after the plan, so a dry run says both.
+  const sent = Object.fromEntries(writes.map(write => [write.key, write.value]))
+  for (const environment of ['production', 'preview'] as const) {
+    const env = deploymentEnv(storedKeysFor(existing, environment), sent)
+    refuseIfBootWouldFail(bootPreflightProblems(env), `"${project}" (${environment})`)
   }
 
   if (!dryRun) {

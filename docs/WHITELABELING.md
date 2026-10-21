@@ -647,10 +647,13 @@ Everything above, plus the parts that only a GitHub-backed brand has. Start from
 
 1. **Name it.** "\<Brand\> for GitHub Projects" is the form GitHub's brand guidelines
    allow. A `NEXT_PUBLIC_BRAND_NAME` that starts with "GitHub" fails `check:brands`.
-2. **Set the profile's switches:** `AUTH_PROVIDERS=github,sso` (or `github` alone),
+2. **Set the profile's switches:** `AUTH_PROVIDERS=github` (the profile's default),
    `ENABLE_GITHUB_PROJECTS=true`, `ENABLE_PROJECT_MODE=true`, and
    `ENABLE_SYNC_GITHUB_ISSUES`, `ENABLE_SYNC_GOOGLE_TASKS`, `ENABLE_TASK_COST` all `false`.
    `ENABLE_CODING_AGENT` is the partner's choice; off removes two App permissions below.
+   To offer enterprise SSO as well, make it `github,sso` **and** set `AUTH_SSO_ISSUER`,
+   `AUTH_SSO_CLIENT_ID`, `AUTH_SSO_CLIENT_SECRET` and `AUTH_SSO_DOMAINS` (see *Sign-in
+   providers*). Listing `sso` without them stops the server from starting.
 3. **Register the brand's own GitHub App** — never Astrid's. Under the partner's GitHub
    organisation:
    - Callback URLs: `https://<domain>/api/auth/callback/github` (sign-in) and
@@ -675,10 +678,15 @@ Everything above, plus the parts that only a GitHub-backed brand has. Start from
    `Iv…` OAuth client), `GITHUB_WEBHOOK_SECRET`, and the App's slug in
    `NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG`. The server refuses to start with `github` listed
    and no OAuth client, and with GitHub Projects on and any of these six unset — naming
-   each one missing (`assertGithubProjectsCredentials`, AWTD-1282).
+   each one missing (`assertGithubProjectsCredentials`, AWTD-1282). With `sso` listed,
+   the four `AUTH_SSO_*` variables from step 2 are required too.
 5. `npm run check:brands`, then `npx tsx scripts/deploy-brand-preview.ts github-projects`.
    The preview must carry the App's credentials or it will not boot; add the preview's
-   callback URLs to the App first.
+   callback URLs to the App first. Before anything is deployed, the script runs the
+   server's boot checks against the profile plus the variables already stored on the
+   Vercel project, and refuses with the missing names (`push-brand-env.ts` does the
+   same before writing). Without that check, a refused boot shows up only as a 500
+   `MIDDLEWARE_INVOCATION_FAILED` on every route (AWTD-1298).
 6. **Verify on the preview:** `GET /api/v1/capabilities` reports
    `product.githubProjects: true` and `auth.providers` as listed; sign in with GitHub;
    install the App on a test organisation; bind one project and watch it import.
