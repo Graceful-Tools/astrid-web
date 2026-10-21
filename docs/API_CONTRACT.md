@@ -552,6 +552,35 @@ configuration. 400 for an unknown kind, 404 when the row is not the caller's.
   "meta": { "apiVersion": "v1", "authSource": "session" } }
 ```
 
+### POST `/api/v1/users/me/access-tokens`
+Mint a user-level access token. This is the long-lived bearer the GitHub.com Copilot cloud agent
+pastes into its MCP configuration. It's the v1 twin of the web hub's `POST /api/mcp/user-tokens`,
+with the same body and the same token (AWTD-1312). Requires `user:write`, and answers 404 where the
+deployment has MCP disabled.
+
+It's **session-only**: a delegated token gets a 403, as with client registration and revoke. A
+bearer minted from a delegated token would outlive revoking that token. The new token appears in
+`GET /api/v1/users/me/connections` as kind `accessToken`, and is revoked there.
+
+**Request:**
+```json
+{ "permissions": ["read", "write"], "expiresInDays": 90,
+  "description": "GitHub Copilot cloud agent", "agent": "copilot" }
+```
+- `permissions` — one or both of `read`, `write`. Required, and must not be empty.
+- `expiresInDays` — 1–365. If omitted, the token never expires.
+- `agent` — optional. It's an agent mailbox from the consent screen's roster, and comments made
+  with the token are authored as that agent rather than as the user.
+
+**Response:**
+```json
+{ "success": true, "token": "astrid_mcp_…", "permissions": ["read", "write"],
+  "expiresAt": "ISO 8601 | null", "description": "string | null", "createdAt": "ISO 8601",
+  "meta": { "apiVersion": "v1", "authSource": "session" } }
+```
+Errors: 400 for an invalid body, 403 when MCP access is disabled for the account, 409 when the
+requested agent identity cannot be resolved.
+
 ### AI service ids
 `serviceId` in `PUT|DELETE /api/v1/users/me/ai-credentials` and
 `POST /api/v1/users/me/ai-credentials/test`, the keys of
