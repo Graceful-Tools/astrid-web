@@ -621,11 +621,8 @@ export class RedisCache {
     userTasks: (userId: string) => `tasks:user:${userId}`,
     userLists: (userId: string) => `lists:user:${userId}`,
     userListsV1: (userId: string) => `lists:user:${userId}:v1`,
-    listTasks: (listId: string) => `tasks:list:${listId}`,
     listMembers: (listId: string) => `members:list:${listId}`,
-    publicTasks: () => 'tasks:public',
     userSearch: (query: string) => `users:search:${query}`,
-    taskComments: (taskId: string) => `comments:task:${taskId}`,
   }
 
   /**
@@ -654,18 +651,15 @@ export class RedisCache {
 
   // Cache invalidation patterns
   static invalidate = {
-    userTasks: async (userId: string, listIds?: string[]) => {
-      await this.delPattern(`tasks:user:${userId}*`)
-      // Invalidate only the affected per-list caches. The per-list key is global
-      // (shared across users), so the old `tasks:list:*` fallback wiped EVERY
-      // user's list caches on a single edit — a platform-wide cold reload. Pass
-      // listIds; if a caller omits them, warn rather than nuke the namespace.
-      if (listIds && listIds.length > 0) {
-        await Promise.all(listIds.map(id => this.del(this.keys.listTasks(id))))
-      } else {
-        log.warn('[Redis] invalidate.userTasks called without listIds — skipping per-list invalidation to avoid a global cache wipe')
-      }
-      await this.del(this.keys.publicTasks())
+    /**
+     * The only task-cache key ever written is the exact `tasks:user:<id>`
+     * (legacy GET /api/tasks), so this deletes exactly that. It used to
+     * pattern-delete `tasks:user:<id>*`, plus per-list and public task keys
+     * nothing writes; with the keyset empty, delPattern fell through to a full
+     * Upstash keyspace SCAN on every task write, per audience member (AWTD-1320).
+     */
+    userTasks: async (userId: string) => {
+      await this.del(this.keys.userTasks(userId))
     },
     userLists: async (userId: string, listIds?: string[]) => {
       await this.delPattern(`lists:user:${userId}*`)
@@ -707,26 +701,6 @@ export class RedisCache {
         log.error({ err: error }, `Failed to invalidate list caches for user ${userId}`)
       }
     },
-    taskUpdate: async (taskId: string, userId: string, listIds?: string[]) => {
-      await this.delPattern(`tasks:user:${userId}*`)
-      // Same blast-radius guard as userTasks: only clear the affected per-list
-      // caches; never fall back to a global `tasks:list:*` wipe.
-      if (listIds && listIds.length > 0) {
-        await Promise.all(listIds.map(id => this.del(this.keys.listTasks(id))))
-      } else {
-        log.warn('[Redis] invalidate.taskUpdate called without listIds — skipping per-list invalidation to avoid a global cache wipe')
-      }
-      await this.delPattern(`comments:task:${taskId}*`)
-      await this.del(this.keys.publicTasks())
-    },
-    listUpdate: async (listId: string, userIds: string[]) => {
-      for (const userId of userIds) {
-        await this.delPattern(`lists:user:${userId}*`)
-        await this.delPattern(`tasks:user:${userId}*`)
-      }
-      await this.delPattern(`tasks:list:${listId}*`)
-      await this.delPattern(`members:list:${listId}*`)
-    }
   }
 }
 
