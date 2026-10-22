@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
 import { validateUploadFile, IMAGE_FILE_TYPES } from '@/lib/upload-validation'
-import { canUserManageList } from "@/lib/list-permissions"
+import { canUserManageList, PROJECT_ACCESS_INCLUDE } from "@/lib/list-permissions"
 import { updateListWithImageOwnership } from "@/lib/images/update-list-image"
 
 const log = createLogger('lists.[id].upload-image')
@@ -53,6 +53,8 @@ export async function POST(
             user: true
           }
         },
+        // A project owner/admin manages the project's lists too (AWTD-1321).
+        ...PROJECT_ACCESS_INCLUDE,
       },
     })
 

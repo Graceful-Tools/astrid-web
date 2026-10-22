@@ -15,7 +15,7 @@ import { sendListInvitationEmail } from '@/lib/email'
 import { randomBytes } from 'crypto'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
-import { getUserRoleInList, hasExplicitListRole } from "@/lib/list-permissions"
+import { getUserRoleInList, hasExplicitListRole, PROJECT_ACCESS_INCLUDE } from "@/lib/list-permissions"
 
 const log = createLogger('v1.lists.members')
 
@@ -33,6 +33,8 @@ export const GET = withAuth<RouteContext>(
     const list = await prisma.taskList.findUnique({
       where: { id },
       include: {
+        // The project decides project members' role on its lists (AWTD-1321).
+        ...PROJECT_ACCESS_INCLUDE,
         owner: {
           select: { id: true, name: true, email: true, image: true, isAIAgent: true }
         },
@@ -178,6 +180,8 @@ export const POST = withAuth<RouteContext>(
     const list = await prisma.taskList.findUnique({
       where: { id },
       include: {
+        // The project decides project members' role on its lists (AWTD-1321).
+        ...PROJECT_ACCESS_INCLUDE,
         owner: {
           select: { id: true, name: true, email: true, image: true, isAIAgent: true }
         },

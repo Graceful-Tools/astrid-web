@@ -37,6 +37,7 @@ vi.mock('@/lib/list-permissions', () => ({
   // Ordinary lists here; a saved filter would refuse the invite (task aa4e7eb0).
   isSavedFilterList: vi.fn(() => false),
   SAVED_FILTER_MEMBER_ERROR: 'Only AI agents can be added to a saved filter.',
+  PROJECT_ACCESS_INCLUDE: {},
   // The route asks the canonical helper whether the invitee is already the
   // owner (task e2803305). Real implementation: owner is decided by ownerId or
   // the owner relation, so mirror that rather than returning a constant.
