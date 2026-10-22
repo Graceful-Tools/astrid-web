@@ -250,3 +250,25 @@ describe('useMyTasksPreferences', () => {
     })
   })
 })
+
+describe('a rejected save is not silently kept (AWTD-1324)', () => {
+  it('reverts to what the server holds when PATCH fails', async () => {
+    const server = { filterPriority: [], filterAssignee: [], filterDueDate: 'all', filterCompletion: 'default', sortBy: 'auto' }
+    vi.mocked(fetch).mockImplementation(async (_url, init) => {
+      if ((init as RequestInit | undefined)?.method === 'PATCH') {
+        return { ok: false, status: 400, json: async () => ({ error: 'Invalid sortBy value' }) } as Response
+      }
+      return { ok: true, json: async () => server } as Response
+    })
+
+    const { result } = renderHook(() => useMyTasksPreferences())
+    await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+    act(() => {
+      result.current.setters.setSortBy('completedAt')
+    })
+    expect(result.current.filters.sortBy).toBe('completedAt')
+
+    await waitFor(() => expect(result.current.filters.sortBy).toBe('auto'), { timeout: 2000 })
+  })
+})

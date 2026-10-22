@@ -12,6 +12,8 @@ import { SettingsModalShell } from "./list-settings/SettingsModalShell"
 import {
   COMPLETION_FILTER_OPTIONS,
   DUE_DATE_FILTER_OPTIONS,
+  MY_TASKS_DUE_DATE_FILTER_OPTIONS,
+  MY_TASKS_SORT_BY_OPTIONS,
   FILTER_TRIGGER_CLASS,
   FilterSelectItems,
   PRIORITY_FILTER_OPTIONS,
@@ -107,6 +109,11 @@ export function FixedListSettingsPopover({
   }
 
   const defaults = getFixedListSpecificDefaults()
+  // My Tasks' choices are stored by its preferences API, which accepts fewer
+  // values than a list does (AWTD-1324).
+  const isMyTasks = listId === "my-tasks"
+  const sortOptions = isMyTasks ? MY_TASKS_SORT_BY_OPTIONS : SORT_BY_OPTIONS
+  const dueDateOptions = isMyTasks ? MY_TASKS_DUE_DATE_FILTER_OPTIONS : DUE_DATE_FILTER_OPTIONS
 
   return (
     <SettingsModalShell
@@ -145,7 +152,7 @@ export function FixedListSettingsPopover({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="z-[10100]">
-                <FilterSelectItems options={SORT_BY_OPTIONS} />
+                <FilterSelectItems options={sortOptions} />
               </SelectContent>
             </Select>
           </div>
@@ -227,7 +234,7 @@ export function FixedListSettingsPopover({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="z-[10100]">
-                  <FilterSelectItems options={DUE_DATE_FILTER_OPTIONS} />
+                  <FilterSelectItems options={dueDateOptions} />
                 </SelectContent>
               </Select>
             </div>
