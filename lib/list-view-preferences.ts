@@ -42,10 +42,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { RedisCache } from '@/lib/redis'
-import { createLogger } from '@/lib/logger'
 
-const log = createLogger('list-view-preferences')
 
 /**
  * The fields that belong to a viewer rather than to the list.
@@ -128,11 +125,8 @@ export async function saveListViewPreferences(args: {
     update: preferences,
   })
 
-  try {
-    await RedisCache.invalidate.userListsAllVersions(userId)
-  } catch (error) {
-    log.error({ err: error, userId }, 'Failed to invalidate user-lists cache')
-  }
+  // No cache eviction: both list GETs overlay preferences AFTER the cache
+  // read, so the cached rows never carry them (AWTD-1320).
 }
 
 /**

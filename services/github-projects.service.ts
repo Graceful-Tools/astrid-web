@@ -354,7 +354,7 @@ export async function applyProjectItems(board: BoundBoard, items: RemoteProjectI
     fieldsChanged ||
     iterationsChanged
   ) {
-    await RedisCache.invalidate.userTasks(board.ownerId, [board.listId]).catch(err => {
+    await RedisCache.invalidate.userTasks(board.ownerId).catch(err => {
       log.warn({ err, projectId: board.projectId }, 'Failed to clear the board owner’s task cache')
     })
   }
@@ -480,7 +480,7 @@ export async function removeProjectItem(board: BoundBoard, itemNodeId: string): 
     // Its values for this project's fields leave with it (AWTD-1117).
     prisma.taskFieldValue.deleteMany({ where: { taskId: membership.taskId, projectId: board.projectId } }),
   ])
-  await RedisCache.invalidate.userTasks(board.ownerId, [board.listId]).catch(() => {})
+  await RedisCache.invalidate.userTasks(board.ownerId).catch(() => {})
   return true
 }
 

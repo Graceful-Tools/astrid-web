@@ -249,7 +249,7 @@ describe('applyProjectItems — project fields (AWTD-1117)', () => {
     fields.applyFieldPage.mockResolvedValueOnce({ changed: true, fields: null, values: new Map() })
 
     expect(await applyProjectItems(board, [items[0]])).toMatchObject({ unchanged: 1 })
-    expect(RedisCache.invalidate.userTasks).toHaveBeenCalledWith('user-1', ['list-1'])
+    expect(RedisCache.invalidate.userTasks).toHaveBeenCalledWith('user-1')
   })
 })
 

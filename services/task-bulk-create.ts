@@ -303,7 +303,7 @@ async function runBulkCreateSideEffects(args: {
         manualLists.forEach(list => getListMemberIds(list as never).forEach(id => affected.add(id)))
       }
       await Promise.all(
-        Array.from(affected).map(userId => RedisCache.invalidate.userTasks(userId, allListIds))
+        Array.from(affected).map(userId => RedisCache.invalidate.userTasks(userId))
       )
       if (manualLists.length > 0) {
         await Promise.all(

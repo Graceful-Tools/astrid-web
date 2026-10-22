@@ -729,7 +729,7 @@ async function runCreateSideEffects(args: {
       if (task.assigneeId) affected.add(task.assigneeId)
       await Promise.all(
         Array.from(affected).map(userId =>
-          RedisCache.invalidate.userTasks(userId, connectListIds)
+          RedisCache.invalidate.userTasks(userId)
         )
       )
     }
@@ -1379,9 +1379,8 @@ async function runUpdateSideEffects(args: {
   // pre-update rows.
   try {
     if (await isRedisAvailable()) {
-      const listIds = (task.lists ?? []).map((list: any) => list.id)
       await Promise.all(
-        Array.from(audience).map(userId => RedisCache.invalidate.userTasks(userId, listIds))
+        Array.from(audience).map(userId => RedisCache.invalidate.userTasks(userId))
       )
     }
   } catch (err) {
