@@ -11,7 +11,7 @@ import { prisma } from '@/lib/prisma'
 import { isListAdminOrOwner, getListMemberIds } from '@/lib/list-member-utils'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
-import { getUserRoleInList } from "@/lib/list-permissions"
+import { getUserRoleInList, PROJECT_ACCESS_INCLUDE } from "@/lib/list-permissions"
 import {
   changeListMemberRole,
   removeListMember,
@@ -44,6 +44,8 @@ export const PUT = withAuth<RouteContext>(
     const list = await prisma.taskList.findUnique({
       where: { id },
       include: {
+        // The project decides project members' role on its lists (AWTD-1321).
+        ...PROJECT_ACCESS_INCLUDE,
         owner: {
           select: { id: true, name: true, email: true, image: true }
         },
@@ -131,6 +133,8 @@ export const DELETE = withAuth<RouteContext>(
     const list = await prisma.taskList.findUnique({
       where: { id },
       include: {
+        // The project decides project members' role on its lists (AWTD-1321).
+        ...PROJECT_ACCESS_INCLUDE,
         owner: {
           select: { id: true, name: true, email: true, image: true }
         },

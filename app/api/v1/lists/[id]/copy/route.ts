@@ -9,7 +9,7 @@ import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { copyListWithTasks } from '@/lib/copy-utils'
 import { withAuth } from '@/lib/api-auth-wrapper'
-import { hasExplicitListRole } from "@/lib/list-permissions"
+import { hasExplicitListRole, PROJECT_ACCESS_INCLUDE } from "@/lib/list-permissions"
 
 type RouteContext = {
   params: Promise<{ id: string }>
@@ -53,7 +53,9 @@ export const POST = withAuth<RouteContext>(
         },
         // Membership travels with the list so access can be decided from this
         // payload rather than a second query (task e2803305).
-        listMembers: { select: { userId: true, role: true } }
+        listMembers: { select: { userId: true, role: true } },
+        // Project members can see, so copy, a project's lists (AWTD-1321).
+        ...PROJECT_ACCESS_INCLUDE,
       }
     })
 
