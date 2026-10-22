@@ -311,7 +311,7 @@ Agents communicate through **task comments**:
 - Post implementation plans before coding
 - Post progress updates during implementation
 - Post completion summary with commit details
-- Wait for user approval before marking complete
+- Mark complete only once production serves it (docs/CLI_OPERATIONS.md §0–§1)
 
 ### Preview Deployments
 
@@ -325,7 +325,7 @@ Agents deploy feature branches to preview subdomains for review before merging:
 ./scripts/deploy-preview.sh feature-dark-mode
 # → Live at: dark-mode.astrid.cc
 
-# Deploy to production (after user approval)
+# Deploy to production — once predeploy is green on the merged main (docs/CLI_OPERATIONS.md §0–§1)
 ./scripts/deploy-preview.sh --production
 # → Live at: astrid.cc
 ```
@@ -752,12 +752,14 @@ Follow the full **Coding Workflow** above:
 4. Fix any regressions
 5. Add regression tests for the fix
 
-### 3. Ship When Ready
+### 3. Ship When the Gates Are Green
 
 After all fixes pass quality gates:
-- Commit changes
-- Ask user: "Ready to ship it?"
-- Wait for approval before deploying
+- Commit and push (pushing `main` ships nothing)
+- Once `npm run predeploy` is green on the **merged** `main`, dispatch the production
+  workflow and verify `commitSha` on `/api/health` — no need to ask (Jon, 2026-10-13)
+- Two things still go to Jon: a **pending migration** and a **red gate**
+  (docs/CLI_OPERATIONS.md §0–§1)
 
 ---
 
@@ -983,7 +985,7 @@ Each package has its own README with setup and usage instructions.
 - Post implementation plans before coding
 - Include file paths with line numbers
 - Explain decisions and trade-offs
-- Wait for user approval before final completion
+- Mark complete only once production serves the change
 
 ---
 

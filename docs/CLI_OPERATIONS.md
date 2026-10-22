@@ -133,7 +133,8 @@ Astrid board. Do not trust or run it.
 To check what is actually live, compare the latest production deployment's commit SHA
 against `main`.
 
-**Deploy to production (only after the user says "ship it"). This is the step that
+**Deploy to production — once the gates are green on the merged commit (§0; a pending
+migration or a red gate still waits for Jon). This is the step that
 ships — without it, merged code sits on `main` and no user ever sees it:**
 ```bash
 ./scripts/deploy-preview.sh --production      # → astrid.cc

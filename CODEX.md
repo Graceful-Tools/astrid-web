@@ -74,7 +74,7 @@ Before completing tasks:
 - Post implementation plans as task comments before coding
 - Post progress updates during implementation
 - Post completion summary with commit details
-- Wait for user approval before marking tasks complete
+- Mark tasks complete only once production serves them (docs/CLI_OPERATIONS.md §0–§1)
 
 ---
 
