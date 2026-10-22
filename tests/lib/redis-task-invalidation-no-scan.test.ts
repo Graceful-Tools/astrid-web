@@ -27,7 +27,7 @@ beforeEach(() => {
 
 describe('task-write cache invalidation (AWTD-1320)', () => {
   it('userTasks deletes the user task key exactly and never scans', async () => {
-    await RedisCache.invalidate.userTasks('u1', ['l1'])
+    await RedisCache.invalidate.userTasks('u1')
     expect(delPattern).not.toHaveBeenCalled()
     expect(del).toHaveBeenCalledWith(RedisCache.keys.userTasks('u1'))
   })
