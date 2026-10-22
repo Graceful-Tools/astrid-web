@@ -336,6 +336,203 @@
       }
     },
     {
+      "name": "viewer membership is read-only",
+      "list": {
+        "id": "list-1",
+        "ownerId": "user-other",
+        "privacy": "PRIVATE",
+        "publicListType": null,
+        "owner": {
+          "id": "user-other",
+          "name": null,
+          "email": "owner@example.test"
+        },
+        "listMembers": [
+          {
+            "userId": "user-me",
+            "role": "viewer",
+            "user": {
+              "id": "user-me",
+              "name": null,
+              "email": "user-me@example.test"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "role": "viewer",
+        "canViewList": true,
+        "canEditTasks": false,
+        "canEditOwnTask": false,
+        "canEditOthersTask": false,
+        "hasExplicitListRole": false,
+        "canManageList": false,
+        "canManageMembers": false,
+        "canDeleteList": false
+      }
+    },
+    {
+      "name": "viewer membership, UPPERCASE role",
+      "list": {
+        "id": "list-1",
+        "ownerId": "user-other",
+        "privacy": "PRIVATE",
+        "publicListType": null,
+        "owner": {
+          "id": "user-other",
+          "name": null,
+          "email": "owner@example.test"
+        },
+        "listMembers": [
+          {
+            "userId": "user-me",
+            "role": "VIEWER",
+            "user": {
+              "id": "user-me",
+              "name": null,
+              "email": "user-me@example.test"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "role": "viewer",
+        "canViewList": true,
+        "canEditTasks": false,
+        "canEditOwnTask": false,
+        "canEditOthersTask": false,
+        "hasExplicitListRole": false,
+        "canManageList": false,
+        "canManageMembers": false,
+        "canDeleteList": false
+      }
+    },
+    {
+      "name": "viewer membership on a public collaborative list",
+      "list": {
+        "id": "list-1",
+        "ownerId": "user-other",
+        "privacy": "PUBLIC",
+        "publicListType": "collaborative",
+        "owner": {
+          "id": "user-other",
+          "name": null,
+          "email": "owner@example.test"
+        },
+        "listMembers": [
+          {
+            "userId": "user-me",
+            "role": "viewer",
+            "user": {
+              "id": "user-me",
+              "name": null,
+              "email": "user-me@example.test"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "role": "viewer",
+        "canViewList": true,
+        "canEditTasks": true,
+        "canEditOwnTask": true,
+        "canEditOthersTask": false,
+        "hasExplicitListRole": false,
+        "canManageList": false,
+        "canManageMembers": false,
+        "canDeleteList": false
+      }
+    },
+    {
+      "name": "viewer membership raised to member by a project membership",
+      "list": {
+        "id": "list-1",
+        "ownerId": "user-other",
+        "privacy": "PRIVATE",
+        "publicListType": null,
+        "owner": {
+          "id": "user-other",
+          "name": null,
+          "email": "owner@example.test"
+        },
+        "listMembers": [
+          {
+            "userId": "user-me",
+            "role": "viewer",
+            "user": {
+              "id": "user-me",
+              "name": null,
+              "email": "user-me@example.test"
+            }
+          }
+        ],
+        "project": {
+          "id": "project-1",
+          "ownerId": "user-project-owner",
+          "members": [
+            {
+              "userId": "user-me",
+              "role": "member"
+            }
+          ],
+          "lists": []
+        }
+      },
+      "expected": {
+        "role": "member",
+        "canViewList": true,
+        "canEditTasks": true,
+        "canEditOwnTask": true,
+        "canEditOthersTask": true,
+        "hasExplicitListRole": true,
+        "canManageList": false,
+        "canManageMembers": false,
+        "canDeleteList": false
+      }
+    },
+    {
+      "name": "viewer membership raised to admin by owning the project",
+      "list": {
+        "id": "list-1",
+        "ownerId": "user-other",
+        "privacy": "PRIVATE",
+        "publicListType": null,
+        "owner": {
+          "id": "user-other",
+          "name": null,
+          "email": "owner@example.test"
+        },
+        "listMembers": [
+          {
+            "userId": "user-me",
+            "role": "viewer",
+            "user": {
+              "id": "user-me",
+              "name": null,
+              "email": "user-me@example.test"
+            }
+          }
+        ],
+        "project": {
+          "id": "project-1",
+          "ownerId": "user-me",
+          "members": [],
+          "lists": []
+        }
+      },
+      "expected": {
+        "role": "admin",
+        "canViewList": true,
+        "canEditTasks": true,
+        "canEditOwnTask": true,
+        "canEditOthersTask": true,
+        "hasExplicitListRole": true,
+        "canManageList": true,
+        "canManageMembers": true,
+        "canDeleteList": false
+      }
+    },
+    {
       "name": "membership matched through the nested user relation",
       "list": {
         "id": "list-1",

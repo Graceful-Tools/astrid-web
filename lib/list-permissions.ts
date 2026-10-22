@@ -313,6 +313,11 @@ function roleInList(user: UserLike, list: ListLike): "owner" | "admin" | "member
   // denormalized members array counts the same way.
   const isListMember = !!membership || !!list.members?.some((m) => m?.id === user.id)
 
+  // A "viewer" membership is a read-only seat: GitHub Projects materialises a
+  // GitHub read permission as one (spec §8.6), and it used to fall through to
+  // member here and grant editing (AWTD-1318). A project role still raises it.
+  if (membershipRole === "viewer") return projectRole ?? "viewer"
+
   // The HIGHER of the list role and the project role wins (Jon, 2026-10-04):
   // a plain list member who owns or administers the project is an admin of the
   // list. Before that, list membership was consulted first and such a person
