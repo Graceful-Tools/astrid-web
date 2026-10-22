@@ -78,9 +78,11 @@ Refer to tasks by **title** in every report; Jon does not read task ids.
    - Fix any regressions
    - Deploy preview: `./scripts/deploy-preview.sh`
    - Post preview link and fix summary comment to the task
-   - Wait for user approval before merging to main
+   - Push and open a PR; merge once the gates are green
 
-6. **After all fixes**, ask the user if they're ready to ship.
+6. **After all fixes**, deploy once `npm run predeploy` is green on the merged `main`
+   (`/fixall` → *DEPLOY WHAT YOU FINISH*), and verify production serves it. A pending
+   migration or a red gate still goes to Jon.
 
 See [ASTRID.md](./ASTRID.md) > "Coding Workflow" for the full required workflow.
 See [ASTRID.md](./ASTRID.md) > "Let's Fix Stuff Workflow" for task script documentation.
