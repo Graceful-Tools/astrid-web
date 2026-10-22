@@ -16,7 +16,7 @@ Insights was collecting the numbers — see below.
 
 | Metric | Critical read budget | Source | Last measured |
 |---|---:|---|---|
-| Server latency | p50 <= 250 ms; p95 <= 750 ms | `scripts/measure-api-latency.ts` | 2026-09-11 |
+| Server latency | p50 <= 250 ms; p95 <= 750 ms | `scripts/measure-api-latency.ts` | 2026-10-22 — p50 **497**, p95 648: **p50 OVER** (also over on 2026-09-11 and 2026-10-12, below) |
 | Task payload **regression** | <= 135 bytes/task on the wire, measured with `?omit=description` | `scripts/measure-api-latency.ts` | 2026-10-12 — **112.0**, within |
 | Full task **page** (1,000 tasks) | <= 500 KiB **on the wire** — a client-experience cap, not a regression gate | `scripts/measure-api-latency.ts` | 2026-10-12 — **553.5 KiB, OVER** |
 | Full list response | <= 250 KiB **on the wire** | `scripts/measure-api-latency.ts` | 2026-10-12 — 37.3 KiB |

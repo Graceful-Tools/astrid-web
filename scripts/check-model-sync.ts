@@ -188,7 +188,7 @@ async function main() {
     console.log('⏭️  UNVERIFIED: no GitHub token set, so the iOS Task model in');
     console.log(`   ${IOS_REPO} could not be fetched. This check is SKIPPED — not passed.`);
     console.log('   Set ASTRID_IOS_GITHUB_TOKEN (or GITHUB_TOKEN) to enable the real');
-    console.log('   cross-repo check — e.g. in the weekly codebase-health-audit routine.');
+    console.log('   cross-repo check.');
     exitUnverified();
   }
 
