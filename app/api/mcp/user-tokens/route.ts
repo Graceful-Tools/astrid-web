@@ -4,24 +4,13 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { createLogger } from '@/lib/logger'
-import { agentEmail } from '@/lib/brand/agent-emails'
-import { CONSENT_AGENT_MAILBOXES } from '@/lib/oauth/agent-consent'
-import { mcpTokenLookup, mcpTokenStorageFields, resolveMCPPlaintext } from '@/lib/mcp-token'
-import { generateMCPToken } from '@/lib/mcp-token-utils'
-import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
+import { mcpTokenLookup, resolveMCPPlaintext } from '@/lib/mcp-token'
+import { MintAccessTokenSchema, mintAccessToken } from '@/lib/connections/mint-access-token'
 
 const log = createLogger('mcp.user-tokens')
 
-
-// Schema for creating user-level MCP access tokens
-const CreateUserMCPTokenSchema = z.object({
-  permissions: z.array(z.enum(["read", "write"])).min(1, "At least one permission required"),
-  expiresInDays: z.number().min(1).max(365).optional(),
-  description: z.string().optional(),
-  // Same roster the OAuth consent screen offers, so a token minted here and one
-  // minted through the consent flow can carry the same identities.
-  agent: z.enum(CONSENT_AGENT_MAILBOXES).optional(),
-})
+// POST shares its body, agent binding and refusals with
+// POST /api/v1/users/me/access-tokens through mintAccessToken (AWTD-1312).
 
 export async function GET() {
   const blocked = capabilityGate('integrationMcp')
@@ -72,62 +61,20 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json()
-    const validatedData = CreateUserMCPTokenSchema.parse(data)
+    const validatedData = MintAccessTokenSchema.parse(data)
 
-    // Check if user has MCP enabled
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { mcpEnabled: true }
-    })
-
-    if (!user?.mcpEnabled) {
-      return NextResponse.json(
-        { error: "MCP access is disabled for your account" },
-        { status: 403 }
-      )
+    const minted = await mintAccessToken(session.user.id, validatedData)
+    if (!minted.ok) {
+      return NextResponse.json({ error: minted.error }, { status: minted.status })
     }
-
-    let agentUserId: string | null = null
-    if (validatedData.agent) {
-      const agentUser = await ensureAgentUser(agentEmail(validatedData.agent))
-      if (!agentUser) {
-        return NextResponse.json(
-          { error: "The requested AI agent identity is not configured" },
-          { status: 409 }
-        )
-      }
-      agentUserId = agentUser.id
-    }
-
-    const token = generateMCPToken()
-
-    // Calculate expiration date
-    const expiresAt = validatedData.expiresInDays
-      ? new Date(Date.now() + validatedData.expiresInDays * 24 * 60 * 60 * 1000)
-      : null
-
-    // Store token in database (user-level token has no listId)
-    const mcpToken = await prisma.mCPToken.create({
-      data: {
-        ...mcpTokenStorageFields(token),
-        listId: null, // User-level tokens have no specific list
-        userId: session.user.id,
-        agentUserId,
-        agentMailbox: validatedData.agent ?? null,
-        permissions: validatedData.permissions,
-        expiresAt,
-        description: validatedData.description,
-        isActive: true
-      }
-    })
 
     return NextResponse.json({
       success: true,
-      token,
-      permissions: mcpToken.permissions,
-      expiresAt: mcpToken.expiresAt,
-      description: mcpToken.description,
-      createdAt: mcpToken.createdAt,
+      token: minted.token,
+      permissions: minted.permissions,
+      expiresAt: minted.expiresAt,
+      description: minted.description,
+      createdAt: minted.createdAt,
     })
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -627,6 +627,21 @@ export interface V1ConnectionRevokeResponse {
 }
 
 /**
+ * POST /api/v1/users/me/access-tokens — mint a user-level access token
+ * (AWTD-1312). `token` is the only time the plaintext is returned by this
+ * route; the new row appears in the connections list as kind `accessToken`.
+ */
+export interface V1AccessTokenCreateResponse {
+  success: true
+  token: string
+  permissions: string[]
+  expiresAt: string | null
+  description: string | null
+  createdAt: string
+  meta: V1ResponseMeta
+}
+
+/**
  * POST /api/v1/auth/desktop/exchange — a one-time hand-off code plus its PKCE
  * verifier, traded for a session.
  *

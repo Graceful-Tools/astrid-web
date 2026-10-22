@@ -1,10 +1,11 @@
 #!/usr/bin/env npx tsx
 /**
  * Create a task in Astrid via OAuth API
- * Usage: npx tsx scripts/create-task.ts "Task title" "Optional description"
+ * Usage: npx tsx scripts/create-task.ts "Task title" ["Optional description" | --description-file <path>] [-p priority]
  */
 
 import { loadScriptEnv } from './lib/load-env'
+import { parseCreateTaskArgs, type CreateTaskArgs } from './lib/create-task-args'
 
 loadScriptEnv()
 
@@ -93,39 +94,27 @@ async function createTask({ title, listId, description, priority = 1, assigneeEm
   return data.task;
 }
 
-// Parse CLI args
-function parseArgs() {
-  const args = process.argv.slice(2);
-  let priority = 1;
-  let title = '';
-  let description = '';
-
-  // Check for --priority or -p flag
-  for (let i = 0; i < args.length; i++) {
-    if ((args[i] === '--priority' || args[i] === '-p') && args[i + 1]) {
-      priority = parseInt(args[i + 1], 10);
-      args.splice(i, 2);
-      i--;
-    }
-  }
-
-  title = args[0] || '';
-  description = args[1] || '';
-
-  return { title, description, priority };
-}
-
 // Main
+const USAGE =
+  'Usage: npx tsx scripts/create-task.ts "Task title" ["Description" | --description-file <path>] [-p priority]';
+
 const listId = process.env.ASTRID_OAUTH_LIST_ID;
 if (!listId) {
   console.error('❌ Missing ASTRID_OAUTH_LIST_ID environment variable');
   process.exit(1);
 }
 
-const { title, description, priority } = parseArgs();
+let parsed: CreateTaskArgs;
+try {
+  parsed = parseCreateTaskArgs(process.argv.slice(2));
+} catch (error) {
+  console.error(`❌ ${(error as Error).message}\n${USAGE}`);
+  process.exit(1);
+}
+const { title, description, priority } = parsed;
 
 if (!title) {
-  console.error('Usage: npx tsx scripts/create-task.ts "Task title" ["Description"] [-p priority]');
+  console.error(USAGE);
   process.exit(1);
 }
 
