@@ -10,26 +10,19 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import {
+  MY_TASKS_COMPLETION_VALUES,
+  MY_TASKS_DEFAULTS,
+  MY_TASKS_DUE_DATE_VALUES,
+  MY_TASKS_SORT_VALUES,
+  type MyTasksPreferences,
+} from '@/lib/my-tasks-preferences'
 
 const log = createLogger('v1.users.me.my-tasks-preferences')
 
-export interface MyTasksPreferences {
-  filterPriority?: number[]
-  filterAssignee?: string[]
-  filterDueDate?: string
-  filterCompletion?: string
-  sortBy?: string
-  manualSortOrder?: string[]
-}
+export type { MyTasksPreferences }
 
-const DEFAULTS: MyTasksPreferences = {
-  filterPriority: [],
-  filterAssignee: [],
-  filterDueDate: 'all',
-  filterCompletion: 'default',
-  sortBy: 'priority',
-  manualSortOrder: [],
-}
+const DEFAULTS = MY_TASKS_DEFAULTS
 
 export const GET = withAuth(
   { scopes: ['user:read'], tag: 'v1.users.me.my-tasks-preferences' },
@@ -55,9 +48,9 @@ export const GET = withAuth(
   }
 )
 
-const VALID_DUE_DATE = ['all', 'overdue', 'today', 'tomorrow', 'this_week', 'this_month', 'no_date']
-const VALID_COMPLETION = ['default', 'all', 'completed', 'incomplete']
-const VALID_SORT = ['auto', 'priority', 'when', 'assignee', 'completed', 'incomplete', 'manual']
+const VALID_DUE_DATE = MY_TASKS_DUE_DATE_VALUES
+const VALID_COMPLETION = MY_TASKS_COMPLETION_VALUES
+const VALID_SORT = MY_TASKS_SORT_VALUES
 
 export const PATCH = withAuth(
   { scopes: ['user:write'], tag: 'v1.users.me.my-tasks-preferences' },
