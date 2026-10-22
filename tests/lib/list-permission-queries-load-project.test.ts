@@ -17,7 +17,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { PROJECT_ACCESS_INCLUDE } from '@/lib/list-permissions'
 
-const findUnique = vi.hoisted(() => vi.fn(async () => null))
+const findUnique = vi.hoisted(() => vi.fn(async (_args: unknown) => null))
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -54,7 +54,7 @@ const json = (url: string, method: string, body?: unknown) =>
 
 /** The `project` the query asked for, whether via include or select. */
 function requestedProject() {
-  const args = findUnique.mock.calls[0]?.[0] as { include?: { project?: unknown }; select?: { project?: unknown } }
+  const args = findUnique.mock.calls[0]?.[0] as unknown as { include?: { project?: unknown }; select?: { project?: unknown } }
   return args?.include?.project ?? args?.select?.project
 }
 
@@ -113,7 +113,7 @@ describe('permission-bearing list loads include the project (AWTD-1321)', () => 
   it('setListManualOrder also loads listType (status-list inheritance)', async () => {
     const { setListManualOrder } = await import('@/lib/list-manual-order')
     await setListManualOrder({ listId: 'l1', userId: 'caller', order: [] })
-    const args = findUnique.mock.calls[0]?.[0] as { select: Record<string, unknown> }
+    const args = findUnique.mock.calls[0]?.[0] as unknown as { select: Record<string, unknown> }
     expect(args.select.listType).toBe(true)
   })
 })

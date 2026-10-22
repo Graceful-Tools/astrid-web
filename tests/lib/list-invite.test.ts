@@ -34,6 +34,7 @@ vi.mock('@/lib/list-permissions', () => ({
   // (task aa4e7eb0). These fixtures are ordinary lists.
   isSavedFilterList: vi.fn(() => false),
   SAVED_FILTER_MEMBER_ERROR: 'Only AI agents can be added to a saved filter.',
+  PROJECT_ACCESS_INCLUDE: {},
 }))
 
 const sendListInvitationEmail = vi.hoisted(() => vi.fn())
