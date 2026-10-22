@@ -6,12 +6,15 @@ Apple app ([astrid-ios](https://github.com/Graceful-Tools/astrid-ios), which
 ships both iOS and Mac), and the Windows app
 ([astrid-windows](https://github.com/Graceful-Tools/astrid-windows)).*
 
-> Windows reads several of these rules as **generated fixtures** rather than
-> prose: `astrid-windows/contracts/fixtures/*.json` are produced by running this
-> repo's own implementations, and its Rust tests replay them. A behaviour change
-> here therefore lands as a coordinated change — web first with tests, then the
-> fixtures, then the clients. Divergences that cannot be closed in one change are
-> written down in `astrid-windows/docs/CONTRACTS.md`.
+> Several of these rules are enforced as **generated fixtures** rather than
+> prose: `contracts/fixtures/*.json` in this repo are produced by running this
+> repo's own implementations (`npm run export:contract-fixtures`), and
+> astrid-core's tests replay them; iOS/Mac, Windows and Android run those rules
+> through the core they pin. A behaviour change here therefore lands as a
+> coordinated change — web first with tests, then the fixtures, then the core,
+> then the clients' pins (ASTRID.md → *Cross-platform contracts*). Divergences
+> that cannot be closed in one change are written down in astrid-core's
+> [divergence register](https://github.com/Graceful-Tools/astrid-core/blob/main/docs/CONTRACTS.md).
 
 Status: **active**. Companion to
 [docs/CODE_REUSE_AND_CONSISTENCY.md](./CODE_REUSE_AND_CONSISTENCY.md).

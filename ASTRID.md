@@ -8,7 +8,7 @@
 
 ## Project Overview
 
-**Astrid** is a task management system built from four repositories:
+**Astrid** is a task management system built from five repositories:
 - **astrid-web** (this repo): the web app (Next.js + React), the backend (Next.js API routes +
   PostgreSQL) that every client talks to, and the **canonical rules**, the TypeScript that
   every contract fixture is generated from.
@@ -16,18 +16,21 @@
   markdown…) and the sync cache, in Rust. It is checked against this repo's fixtures.
 - **astrid-ios**: the native SwiftUI app for iOS **and** Mac. It pins astrid-core by revision.
 - **astrid-windows**: the native Windows app. It also pins astrid-core by revision.
+- **astrid-android**: the native Android app (Kotlin + Compose over astrid-core's UniFFI
+  bindings). It also pins astrid-core by revision.
 
 ```
                           generates
 astrid-web ──────────────────────────────────▶ contracts/fixtures/*.json
  /api/v1 + PostgreSQL                                    │ replayed by its tests
  canonical TypeScript rules                              ▼
-     ▲  ▲  ◀── wasm, pinned (packages/astrid-rules) ── astrid-core (Rust rules + sync cache)
-     │  │                                                │ pinned rev       │ pinned rev
-     │  │                                                ▼                  ▼
-     │  └──────────────── HTTPS /api/v1 ─────────── astrid-ios        astrid-windows
-     │                                              (iOS + Mac)             │
-     └─────────────────── HTTPS /api/v1 ────────────────────────────────────┘
+     ▲  ◀── wasm, pinned (packages/astrid-rules) ──── astrid-core (Rust rules + sync cache)
+     │                                                   │ pinned rev, each shell
+     │                                    ┌──────────────┼──────────────┐
+     │                                    ▼              ▼              ▼
+     │                               astrid-ios    astrid-windows  astrid-android
+     │                              (iOS + Mac)          │              │
+     └────────── HTTPS /api/v1 ───────────┴──────────────┴──────────────┘
 ```
 
 The server here runs the core too: on the Node runtime, list permissions, search parsing and
@@ -78,6 +81,7 @@ astrid-web/  (this repository)
   cache; its CI checks the fixtures on this repo's `main`)
 - **astrid-ios:** https://github.com/Graceful-Tools/astrid-ios (native SwiftUI app for iOS and Mac)
 - **astrid-windows:** https://github.com/Graceful-Tools/astrid-windows (native Windows app)
+- **astrid-android:** https://github.com/Graceful-Tools/astrid-android (native Android app)
 
 ### Cross-platform contracts
 
@@ -99,7 +103,9 @@ the fixture is regenerated in the same PR:
 | `manual-order.json` | `lib/list-manual-order.ts`, `lib/task-sort.ts` |
 | `filters.json` | `lib/date-filter-utils.ts`, `lib/recently-completed-window.ts`, `lib/task-sort.ts` |
 | `reminders.json` | `lib/reminder-snooze.ts`, `app/api/v1/reminders/[id]/snooze/route.ts` |
+| `my-tasks.json` | `lib/my-tasks-scope.ts` (`myTasksShows`) |
 | `markdown.json` | `lib/markdown.ts` |
+| `wire-shapes.json` | `lib/tasks/v1-task-shape.ts`, `lib/lists/v1-list-shape.ts` |
 
 The registry is `EXPORTS` in `scripts/export-contract-fixtures.ts`. Each fixture's consumer
 is listed in astrid-core's
