@@ -124,6 +124,29 @@ const CASES = [
     list: list({ members: [member(USER.id, '')] }),
   },
   {
+    name: 'viewer membership is read-only',
+    // GitHub Projects stores a GitHub read permission as a viewer seat (spec §8.6, AWTD-1318).
+    // Recognised, unlike 'collaborator' above: it must not fall through to member.
+    list: list({ members: [member(USER.id, 'viewer')] }),
+  },
+  {
+    name: 'viewer membership, UPPERCASE role',
+    list: list({ members: [member(USER.id, 'VIEWER')] }),
+  },
+  {
+    name: 'viewer membership on a public collaborative list',
+    // A viewer may add tasks here, as any viewer of such a list may.
+    list: list({ privacy: 'PUBLIC', publicListType: 'collaborative', members: [member(USER.id, 'viewer')] }),
+  },
+  {
+    name: 'viewer membership raised to member by a project membership',
+    list: list({ members: [member(USER.id, 'viewer')], project: project({ members: [projectMember(USER.id, 'member')] }) }),
+  },
+  {
+    name: 'viewer membership raised to admin by owning the project',
+    list: list({ members: [member(USER.id, 'viewer')], project: project({ ownerId: USER.id }) }),
+  },
+  {
     name: 'membership matched through the nested user relation',
     // Some payloads carry the relation but not a matching userId.
     list: list({ members: [{ userId: 'stale-id', role: 'member', user: { id: USER.id, name: null, email: 'me@example.test' } }] }),
