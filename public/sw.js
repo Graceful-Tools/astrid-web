@@ -610,7 +610,13 @@ async function handleCompleteAction(notificationData) {
 }
 
 // Client-side reminder scheduling
+// Keyed by `${taskId}:${type}`: a task has a due AND an overdue reminder, and
+// keying by taskId alone let the second cancel the first (AWTD-1346).
 let scheduledReminders = new Map(); // Store scheduled reminder timeouts
+
+function reminderKey(taskId, type) {
+  return `${taskId}:${type}`;
+}
 
 // Handle messages from the main app
 self.addEventListener('message', (event) => {
@@ -642,10 +648,11 @@ function scheduleClientReminder(reminderData) {
     }
     
     const delay = scheduledTime.getTime() - now.getTime();
-    
-    // Cancel any existing reminder for this task
-    cancelClientReminder(taskId);
-    
+    const key = reminderKey(taskId, type);
+
+    // Cancel any existing reminder of this kind for this task
+    clearScheduledReminder(key);
+
     // Schedule the new reminder
     const timeoutId = setTimeout(async () => {
       await showClientReminder({
@@ -657,11 +664,11 @@ function scheduleClientReminder(reminderData) {
       });
       
       // Remove from scheduled reminders
-      scheduledReminders.delete(taskId);
+      scheduledReminders.delete(key);
     }, delay);
-    
+
     // Store the timeout ID
-    scheduledReminders.set(taskId, {
+    scheduledReminders.set(key, {
       timeoutId,
       reminderData,
       scheduledFor: scheduledTime
@@ -671,12 +678,20 @@ function scheduleClientReminder(reminderData) {
   }
 }
 
-// Cancel a client-side reminder
-function cancelClientReminder(taskId) {
-  const scheduled = scheduledReminders.get(taskId);
+function clearScheduledReminder(key) {
+  const scheduled = scheduledReminders.get(key);
   if (scheduled) {
     clearTimeout(scheduled.timeoutId);
-    scheduledReminders.delete(taskId);
+    scheduledReminders.delete(key);
+  }
+}
+
+// Cancel every client-side reminder for a task
+function cancelClientReminder(taskId) {
+  for (const [key, scheduled] of scheduledReminders) {
+    if (scheduled.reminderData.taskId === taskId) {
+      clearScheduledReminder(key);
+    }
   }
 }
 
@@ -731,8 +746,8 @@ async function showClientReminder(reminderData) {
 function syncRemindersWithServer(serverReminders) {
   try {
     // Cancel all existing client-side reminders
-    for (const [taskId] of scheduledReminders) {
-      cancelClientReminder(taskId);
+    for (const [key] of scheduledReminders) {
+      clearScheduledReminder(key);
     }
     
     // Schedule new reminders based on server data
@@ -749,9 +764,9 @@ function syncRemindersWithServer(serverReminders) {
 // Clean up expired reminders periodically
 setInterval(() => {
   const now = new Date();
-  for (const [taskId, scheduled] of scheduledReminders) {
+  for (const [key, scheduled] of scheduledReminders) {
     if (scheduled.scheduledFor < now) {
-      cancelClientReminder(taskId);
+      clearScheduledReminder(key);
     }
   }
 }, 5 * 60 * 1000); // Check every 5 minutes
