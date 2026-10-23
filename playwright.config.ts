@@ -3,6 +3,50 @@ import { defineConfig, devices } from '@playwright/test'
 const authenticatedCriticalEnabled = process.env.PLAYWRIGHT_AUTHENTICATED === '1'
 
 /**
+ * Signed-in UI specs (AWTD-1338). Until this list existed every one of them
+ * matched no project's `testMatch`, so none had run since the initial release.
+ * Mobile specs set their own device with `test.use`; this project supplies the
+ * minted session (scripts/create-e2e-auth-state.ts). Every `e2e/*.spec.ts`
+ * must be matched by some project — tests/rules/every-e2e-spec-runs.test.ts.
+ */
+export const AUTHENTICATED_UI_SPECS = [
+  'scroll-close-task-detail',
+  'mobile-header-stays-on-task-tap',
+  'mobile-shell-never-scrolls',
+  'mobile-unified-header-toggle',
+]
+
+/**
+ * Specs that run in NO project yet, each with why (AWTD-1338, measured
+ * 2026-10-22 against a signed-in dev server). This list may only shrink: a spec
+ * leaves it by being fixed into a project above, or rewritten/deleted under
+ * AWTD-1339. tests/rules/every-e2e-spec-runs.test.ts fails on a spec that is in
+ * neither place, and on an entry here that no longer exists or already runs.
+ */
+export const PENDING_E2E_SPECS: Record<string, string> = {
+  // Revive candidates — selectors exist, but the spec no longer passes signed in.
+  'accessibility': '10/15 pass signed in; the signed-out cases need their own project',
+  'desktop-list-settings': 'unscoped "first button with an svg" locators time out',
+  'mobile-board-column-centring': 'getByRole("button", { name: "Board" }) is ambiguous once lists exist',
+  'mobile-board-swipe': 'same ambiguous "Board" locator',
+  'mobile-pull-to-refresh': '2/6 pass; waits for [data-testid="task-list"] that is not rendered',
+  'project-status-board': 'board creation needs a scoped locator; Project Mode now granted in setup',
+  'sidebar-settings': '4/12 pass; hamburger locator falls back to "first button with an svg"',
+  'time-picker': '3/4 pass; "9am" preset matches two buttons (strict mode)',
+  'panel-animations': 'flaky: 5–7/7 pass, a different animate-out / dim-overlay case fails each run',
+  // Rewrites owned by AWTD-1339 — they target UI that no longer exists.
+  'empty-state': 'AWTD-1339 rewrite',
+  'lists': 'AWTD-1339 rewrite',
+  'offline': 'AWTD-1339 rewrite',
+  'shortcodes': 'AWTD-1339 rewrite',
+  'task-completion-deleted-list': 'AWTD-1339 rewrite',
+  'tasks': 'AWTD-1339 rewrite',
+  'tasks-authenticated': 'AWTD-1339 rewrite (merge into tasks)',
+  'user-profile': 'AWTD-1339 rewrite',
+}
+const specPattern = (names: string[]) => new RegExp(`(^|/)(${names.join('|')})\\.spec\\.ts$`)
+
+/**
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
  */
@@ -14,7 +58,10 @@ const authenticatedCriticalEnabled = process.env.PLAYWRIGHT_AUTHENTICATED === '1
 export default defineConfig({
   testDir: './e2e',
   /* Global setup runs once before all tests to warm up the server */
-  globalSetup: require.resolve('./e2e/global-setup'),
+  // A path relative to this file, which Playwright resolves itself — a bare
+  // require.resolve also had to work wherever the config is imported, and the
+  // every-e2e-spec-runs rule imports it under vitest (AWTD-1338).
+  globalSetup: './e2e/global-setup',
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -90,6 +137,13 @@ export default defineConfig({
         storageState: '.auth/user.json',
       },
       testMatch: /authenticated-critical-paths\.spec\.ts/,
+    }, {
+      name: 'authenticated-ui',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: '.auth/user.json',
+      },
+      testMatch: specPattern(AUTHENTICATED_UI_SPECS),
     }] : []),
 
     // Layout-regression matrix: each project below pins a viewport that

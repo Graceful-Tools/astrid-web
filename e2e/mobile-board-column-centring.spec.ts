@@ -27,7 +27,10 @@ import { gotoWithRetry } from './utils/test-helpers'
 // the other mobile specs use. The first investigation measured 390 and found
 // nothing; the width is not the cause, but reproducing at the reported one
 // removes the question.
-test.use({ ...devices['iPhone 12'], viewport: { width: 402, height: 874 } })
+// Without the profile's WebKit override: the signed-in project runs Chromium,
+// the only browser CI installs (AWTD-1338).
+const { defaultBrowserType: _webkit, ...iPhone12 } = devices['iPhone 12']
+test.use({ ...iPhone12, viewport: { width: 402, height: 874 } })
 
 type ApiList = { id: string; name: string; projectId?: string | null }
 
