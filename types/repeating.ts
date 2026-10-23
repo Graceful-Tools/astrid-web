@@ -294,14 +294,22 @@ function readPattern(stored: unknown): ReadPattern {
 
 // ── The calculators ─────────────────────────────────────────────────────────────────────────────
 
-/** The next selected weekday strictly after `ms`, by the zone's calendar. `interval` plays no part (D2). */
-function nextWeekdayOccurrence(ms: number, weekdays: Weekday[], zone: string): number | null {
-  if (weekdays.length === 0) return null
-  for (let offset = 1; offset <= 7; offset++) {
-    const candidate = addingDays(ms, offset, zone)
-    if (weekdays.includes(WEEKDAYS[new Date(local(candidate, zone)).getUTCDay()])) return candidate
+/**
+ * The next occurrence of a weekly pattern, by the zone's calendar (AITD-547, closing D2).
+ *
+ * A later selected weekday in the same week comes next. Past the last one, the series jumps
+ * `interval` weeks and takes the first selected weekday of that week. Weeks start on Sunday, the
+ * order of WEEKDAYS. With an interval of 1 this is "the next selected weekday", the old answer.
+ */
+function nextWeekdayOccurrence(ms: number, weekdays: Weekday[], interval: number, zone: string): number | null {
+  const selected = WEEKDAYS.map((day) => weekdays.includes(day))
+  const first = selected.indexOf(true)
+  if (first === -1) return null
+  const today = new Date(local(ms, zone)).getUTCDay()
+  for (let day = today + 1; day < 7; day++) {
+    if (selected[day]) return addingDays(ms, day - today, zone)
   }
-  return null
+  return addingDays(ms, interval * 7 - today + first, zone)
 }
 
 function nextMonthOccurrence(ms: number, pattern: ReadPattern, interval: number, zone: string): number | null {
@@ -365,7 +373,7 @@ function customNext(
       next = addingDays(anchor, interval, zone)
       break
     case 'weeks':
-      next = pattern.weekdays ? nextWeekdayOccurrence(anchor, pattern.weekdays, zone) : null
+      next = pattern.weekdays ? nextWeekdayOccurrence(anchor, pattern.weekdays, interval, zone) : null
       break
     case 'months':
       next = nextMonthOccurrence(anchor, pattern, interval, zone)

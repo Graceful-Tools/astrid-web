@@ -529,6 +529,55 @@
       ]
     },
     {
+      "name": "AITD-547 every 3 weeks on Tue/Thu from the due date",
+      "pattern": {
+        "type": "custom",
+        "unit": "weeks",
+        "interval": 3,
+        "endCondition": "never",
+        "weekdays": [
+          "tuesday",
+          "thursday"
+        ]
+      },
+      "start": "2026-10-20T09:00:00Z",
+      "repeatFrom": "DUE_DATE",
+      "steps": 6,
+      "dates": [
+        "2026-10-22T09:00:00.000Z",
+        "2026-11-10T09:00:00.000Z",
+        "2026-11-12T09:00:00.000Z",
+        "2026-12-01T09:00:00.000Z",
+        "2026-12-03T09:00:00.000Z",
+        "2026-12-22T09:00:00.000Z"
+      ]
+    },
+    {
+      "name": "AITD-547 every 2 weeks on Mon/Wed/Fri from the completion date",
+      "pattern": {
+        "type": "custom",
+        "unit": "weeks",
+        "interval": 2,
+        "endCondition": "never",
+        "weekdays": [
+          "monday",
+          "wednesday",
+          "friday"
+        ]
+      },
+      "start": "2024-01-15T09:00:00Z",
+      "repeatFrom": "COMPLETION_DATE",
+      "steps": 6,
+      "dates": [
+        "2024-01-17T09:00:00.000Z",
+        "2024-01-19T09:00:00.000Z",
+        "2024-01-29T09:00:00.000Z",
+        "2024-01-31T09:00:00.000Z",
+        "2024-02-02T09:00:00.000Z",
+        "2024-02-12T09:00:00.000Z"
+      ]
+    },
+    {
       "name": "monthly on the 15th, through a year",
       "pattern": {
         "type": "custom",
@@ -1107,7 +1156,7 @@
       }
     },
     {
-      "name": "D2 every two weeks still advances weekly, Los Angeles",
+      "name": "AITD-547 every two weeks on Monday skips a week, Los Angeles",
       "request": {
         "repeating": "custom",
         "pattern": {
@@ -1125,7 +1174,104 @@
         "timeZone": "America/Los_Angeles"
       },
       "answer": {
-        "nextDueDate": "2026-01-12T17:00:00.000Z",
+        "nextDueDate": "2026-01-19T17:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "AITD-547 every four weeks on Friday, across the autumn change, Los Angeles",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "weeks",
+          "interval": 4,
+          "endCondition": "never",
+          "weekdays": [
+            "friday"
+          ]
+        },
+        "currentDueDate": "2026-10-23T16:00:00Z",
+        "completion": "2026-10-23T16:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles"
+      },
+      "answer": {
+        "nextDueDate": "2026-11-20T17:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "AITD-547 every four weeks on Mon/Fri, a later day in the same week first",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "weeks",
+          "interval": 4,
+          "endCondition": "never",
+          "weekdays": [
+            "monday",
+            "friday"
+          ]
+        },
+        "currentDueDate": "2026-10-19T09:00:00Z",
+        "completion": "2026-10-19T09:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "UTC"
+      },
+      "answer": {
+        "nextDueDate": "2026-10-23T09:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "AITD-547 every four weeks on Friday, from a late completion",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "weeks",
+          "interval": 4,
+          "endCondition": "never",
+          "weekdays": [
+            "friday"
+          ]
+        },
+        "currentDueDate": "2026-10-23T09:00:00Z",
+        "completion": "2026-10-24T12:00:00Z",
+        "repeatFrom": "COMPLETION_DATE",
+        "timeZone": "UTC"
+      },
+      "answer": {
+        "nextDueDate": "2026-11-20T09:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "AITD-547 every two weeks on Sunday, Sunday starts the week",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "weeks",
+          "interval": 2,
+          "endCondition": "never",
+          "weekdays": [
+            "sunday"
+          ]
+        },
+        "currentDueDate": "2026-10-18T09:00:00Z",
+        "completion": "2026-10-18T09:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "UTC"
+      },
+      "answer": {
+        "nextDueDate": "2026-11-01T09:00:00.000Z",
         "shouldTerminate": false,
         "newOccurrenceCount": 1
       }
@@ -1453,6 +1599,31 @@
         "2026-11-04T17:00:00.000Z",
         "2026-11-06T17:00:00.000Z",
         "2026-11-09T17:00:00.000Z"
+      ]
+    },
+    {
+      "name": "AITD-547 every 4 weeks on Friday at 9am through the autumn change, Los Angeles",
+      "repeating": "custom",
+      "pattern": {
+        "type": "custom",
+        "unit": "weeks",
+        "interval": 4,
+        "endCondition": "never",
+        "weekdays": [
+          "friday"
+        ]
+      },
+      "start": "2026-10-23T16:00:00Z",
+      "timeZone": "America/Los_Angeles",
+      "isAllDay": false,
+      "steps": 6,
+      "dates": [
+        "2026-11-20T17:00:00.000Z",
+        "2026-12-18T17:00:00.000Z",
+        "2027-01-15T17:00:00.000Z",
+        "2027-02-12T17:00:00.000Z",
+        "2027-03-12T17:00:00.000Z",
+        "2027-04-09T16:00:00.000Z"
       ]
     },
     {

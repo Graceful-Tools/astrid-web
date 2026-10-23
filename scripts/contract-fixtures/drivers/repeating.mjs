@@ -155,6 +155,8 @@ const custom = customCases.map(([name, pattern, due, repeatFrom, count]) => {
 const progressionCases = [
   ['weekly on Mon/Wed/Fri from the due date', WEEKLY_MWF, '2024-01-15T09:00:00Z', 'DUE_DATE', 6],
   ['weekly on Mon/Wed/Fri from the completion date', WEEKLY_MWF, '2024-01-15T09:00:00Z', 'COMPLETION_DATE', 6],
+  ['AITD-547 every 3 weeks on Tue/Thu from the due date', { ...WEEKLY_MWF, interval: 3, weekdays: ['tuesday', 'thursday'] }, '2026-10-20T09:00:00Z', 'DUE_DATE', 6],
+  ['AITD-547 every 2 weeks on Mon/Wed/Fri from the completion date', { ...WEEKLY_MWF, interval: 2 }, '2024-01-15T09:00:00Z', 'COMPLETION_DATE', 6],
   ['monthly on the 15th, through a year', MONTHLY_15TH, '2024-01-15T14:00:00Z', 'DUE_DATE', 12],
   ['the third Tuesday, through six months', THIRD_TUESDAY, '2024-01-16T10:00:00Z', 'DUE_DATE', 6],
   ['every three days, through a month boundary', { type: 'custom', unit: 'days', interval: 3, endCondition: 'never' }, '2024-01-25T09:00:00Z', 'DUE_DATE', 5],
@@ -222,8 +224,12 @@ const completionCases = [
   // D4 — a custom pattern answers the same wherever the code runs; the zone is the person's.
   ['D4 Mon/Wed/Fri from Monday 8am, Tokyo', { repeating: 'custom', pattern: WEEKLY_MWF, currentDueDate: '2026-01-04T23:00:00Z', completion: '2026-01-04T23:00:00Z', repeatFrom: 'DUE_DATE', timeZone: TOKYO }],
   ['D4 Mon/Wed/Fri from Friday 6pm, Los Angeles', { repeating: 'custom', pattern: WEEKLY_MWF, currentDueDate: '2026-01-10T02:00:00Z', completion: '2026-01-10T02:00:00Z', repeatFrom: 'DUE_DATE', timeZone: LA }],
-  // D2 and D5 are unchanged: every client reproduces them.
-  ['D2 every two weeks still advances weekly, Los Angeles', { repeating: 'custom', pattern: { ...WEEKLY_MWF, interval: 2, weekdays: ['monday'] }, currentDueDate: '2026-01-05T17:00:00Z', completion: '2026-01-05T17:00:00Z', repeatFrom: 'DUE_DATE', timeZone: LA }],
+  // D2 closed (AITD-547): a weekly pattern honours its interval. D5 is unchanged.
+  ['AITD-547 every two weeks on Monday skips a week, Los Angeles', { repeating: 'custom', pattern: { ...WEEKLY_MWF, interval: 2, weekdays: ['monday'] }, currentDueDate: '2026-01-05T17:00:00Z', completion: '2026-01-05T17:00:00Z', repeatFrom: 'DUE_DATE', timeZone: LA }],
+  ['AITD-547 every four weeks on Friday, across the autumn change, Los Angeles', { repeating: 'custom', pattern: { ...WEEKLY_MWF, interval: 4, weekdays: ['friday'] }, currentDueDate: '2026-10-23T16:00:00Z', completion: '2026-10-23T16:00:00Z', repeatFrom: 'DUE_DATE', timeZone: LA }],
+  ['AITD-547 every four weeks on Mon/Fri, a later day in the same week first', { repeating: 'custom', pattern: { ...WEEKLY_MWF, interval: 4, weekdays: ['monday', 'friday'] }, currentDueDate: '2026-10-19T09:00:00Z', completion: '2026-10-19T09:00:00Z', repeatFrom: 'DUE_DATE', timeZone: 'UTC' }],
+  ['AITD-547 every four weeks on Friday, from a late completion', { repeating: 'custom', pattern: { ...WEEKLY_MWF, interval: 4, weekdays: ['friday'] }, currentDueDate: '2026-10-23T09:00:00Z', completion: '2026-10-24T12:00:00Z', repeatFrom: 'COMPLETION_DATE', timeZone: 'UTC' }],
+  ['AITD-547 every two weeks on Sunday, Sunday starts the week', { repeating: 'custom', pattern: { ...WEEKLY_MWF, interval: 2, weekdays: ['sunday'] }, currentDueDate: '2026-10-18T09:00:00Z', completion: '2026-10-18T09:00:00Z', repeatFrom: 'DUE_DATE', timeZone: 'UTC' }],
   ['D5 custom monthly on the 31st overflows, Los Angeles', { repeating: 'custom', pattern: { type: 'custom', unit: 'months', interval: 1, endCondition: 'never', monthRepeatType: 'same_date', monthDay: 31 }, currentDueDate: '2026-01-31T17:00:00Z', completion: '2026-01-31T17:00:00Z', repeatFrom: 'DUE_DATE', timeZone: LA }],
   // Clock edges.
   ['a time the spring change skips moves an hour later, Los Angeles', { repeating: 'daily', currentDueDate: '2026-03-07T10:30:00Z', completion: '2026-03-07T10:30:00Z', repeatFrom: 'DUE_DATE', timeZone: LA }],
@@ -262,6 +268,7 @@ const completions = completionCases.map(([name, request]) => ({
 // multi-step shape that catches what one step misses, now on the person's calendar.
 const zonedProgressionCases = [
   ['Mon/Wed/Fri at 9am through the autumn change, Los Angeles', 'custom', WEEKLY_MWF, '2026-10-26T16:00:00Z', LA, false, 6],
+  ['AITD-547 every 4 weeks on Friday at 9am through the autumn change, Los Angeles', 'custom', { ...WEEKLY_MWF, interval: 4, weekdays: ['friday'] }, '2026-10-23T16:00:00Z', LA, false, 6],
   ['the third Tuesday through the spring change, Los Angeles', 'custom', THIRD_TUESDAY, '2026-01-20T18:00:00Z', LA, false, 4],
   ['monthly at 2pm through a year, Paris', 'monthly', null, '2026-01-15T13:00:00Z', PARIS, false, 12],
   ['daily at 1:30am through the autumn change, Los Angeles', 'daily', null, '2026-10-30T08:30:00Z', LA, false, 4],
