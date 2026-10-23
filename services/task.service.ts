@@ -1264,6 +1264,7 @@ async function runUpdateSideEffects(args: {
       assigneeId: existingTask.assigneeId,
       dueDateTime: existingTask.dueDateTime,
       listIds: (existingTask.lists ?? []).map((list: any) => list.id),
+      statusRole: existingTask.statusRole ?? null,
     },
     {
       title: task.title,
@@ -1273,6 +1274,7 @@ async function runUpdateSideEffects(args: {
       assigneeId: task.assigneeId,
       dueDateTime: task.dueDateTime,
       listIds: (task.lists ?? []).map((list: any) => list.id),
+      statusRole: task.statusRole ?? null,
     }
   )
 
@@ -1296,7 +1298,12 @@ async function runUpdateSideEffects(args: {
     await notifyTaskUpdate({
       taskId: task.id,
       actorId,
-      events,
+      // A hand-made board move is history, not news (AWTD-1329): it is
+      // recorded so list insights can time each lane, but notifying on it would
+      // ping a task's creator every time anyone — or any agent — drags or
+      // claims the card. Automatic moves (task-dependency.service.ts) still
+      // notify; nobody dragged those.
+      events: events.filter(event => event.kind !== 'status_changed'),
       audience: {
         assigneeId: task.assigneeId,
         creatorId: task.creatorId,

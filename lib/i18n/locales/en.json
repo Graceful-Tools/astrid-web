@@ -1163,5 +1163,31 @@
     "bound": "Connected {title}. Importing its items…",
     "alreadyBound": "That project is already a board",
     "bindError": "Couldn't connect that project"
+  },
+  "listInsights": {
+    "tab": "Insights",
+    "days7": "7 days",
+    "days30": "30 days",
+    "days90": "90 days",
+    "activity": "Activity",
+    "created": "New",
+    "completed": "Completed",
+    "createdTotal": "{count} new",
+    "completedTotal": "{count} completed",
+    "timeToComplete": "Median time to complete",
+    "timeInLane": "Median time in each column",
+    "sampleSize": "from {count}",
+    "notEnoughHistory": "Not enough history yet",
+    "laneHistoryNote": "Column moves are recorded from now on, so this fills in as cards move.",
+    "contributors": "Top contributors",
+    "contributorCounts": "{created} created · {edited} edits · {commented} comments · {completed} completed",
+    "noActivity": "No activity in this period",
+    "loadFailed": "Couldn't load insights",
+    "loading": "Loading insights…",
+    "duration": {
+      "minutes": "{n} min",
+      "hours": "{n} h",
+      "days": "{n} d"
+    }
   }
 }

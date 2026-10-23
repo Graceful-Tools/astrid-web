@@ -1163,5 +1163,31 @@
     "bound": "{title} 연결됨. 항목을 가져오는 중…",
     "alreadyBound": "이미 보드인 프로젝트입니다",
     "bindError": "프로젝트를 연결하지 못했습니다"
+  },
+  "listInsights": {
+    "tab": "인사이트",
+    "days7": "7일",
+    "days30": "30일",
+    "days90": "90일",
+    "activity": "활동",
+    "created": "새 작업",
+    "completed": "완료",
+    "createdTotal": "새 작업 {count}개",
+    "completedTotal": "완료 {count}개",
+    "timeToComplete": "완료까지 걸린 시간(중앙값)",
+    "timeInLane": "열별 머문 시간(중앙값)",
+    "sampleSize": "{count}개 기준",
+    "notEnoughHistory": "아직 기록이 충분하지 않습니다",
+    "laneHistoryNote": "열 이동은 지금부터 기록됩니다. 카드가 이동하면 채워집니다.",
+    "contributors": "주요 기여자",
+    "contributorCounts": "생성 {created} · 편집 {edited} · 댓글 {commented} · 완료 {completed}",
+    "noActivity": "이 기간에 활동이 없습니다",
+    "loadFailed": "인사이트를 불러오지 못했습니다",
+    "loading": "인사이트 불러오는 중…",
+    "duration": {
+      "minutes": "{n}분",
+      "hours": "{n}시간",
+      "days": "{n}일"
+    }
   }
 }

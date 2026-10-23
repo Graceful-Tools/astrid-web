@@ -1163,5 +1163,31 @@
     "bound": "{title} を接続しました。アイテムを取り込んでいます…",
     "alreadyBound": "そのプロジェクトはすでにボードです",
     "bindError": "そのプロジェクトを接続できませんでした"
+  },
+  "listInsights": {
+    "tab": "インサイト",
+    "days7": "7日間",
+    "days30": "30日間",
+    "days90": "90日間",
+    "activity": "アクティビティ",
+    "created": "新規",
+    "completed": "完了",
+    "createdTotal": "新規 {count} 件",
+    "completedTotal": "完了 {count} 件",
+    "timeToComplete": "完了までの時間（中央値）",
+    "timeInLane": "各列での滞在時間（中央値）",
+    "sampleSize": "{count} 件から",
+    "notEnoughHistory": "まだ十分な履歴がありません",
+    "laneHistoryNote": "列の移動は今後記録されます。カードが移動するにつれて表示されます。",
+    "contributors": "上位の貢献者",
+    "contributorCounts": "作成 {created} · 編集 {edited} · コメント {commented} · 完了 {completed}",
+    "noActivity": "この期間のアクティビティはありません",
+    "loadFailed": "インサイトを読み込めませんでした",
+    "loading": "インサイトを読み込み中…",
+    "duration": {
+      "minutes": "{n} 分",
+      "hours": "{n} 時間",
+      "days": "{n} 日"
+    }
   }
 }

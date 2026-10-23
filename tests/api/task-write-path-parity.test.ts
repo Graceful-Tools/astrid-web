@@ -56,7 +56,10 @@ vi.mock('@/lib/task-state-change-tracker', () => ({
   detectTaskStateChanges: vi.fn(() => []),
   formatStateChangesAsComment: vi.fn(() => ''),
 }))
-vi.mock('@/lib/task-events', () => ({ diffTaskEvents: vi.fn(() => []), recordTaskEvents }))
+// Stubbed to "no events" for every case but the AWTD-1329 one, which runs the
+// real diff to see what the update path hands each consumer.
+const diffTaskEvents = vi.hoisted(() => vi.fn((..._args: unknown[]): unknown[] => []))
+vi.mock('@/lib/task-events', () => ({ diffTaskEvents, recordTaskEvents }))
 vi.mock('@/lib/notification-store', () => ({ notifyTaskUpdate }))
 vi.mock('@/services/agent-assignment-dispatch', () => ({ dispatchAgentAssignment }))
 vi.mock('@/lib/backends/resolve', async importOriginal => ({
@@ -372,5 +375,27 @@ describe('every task-write surface goes through the service (epic 9dedd8aa)', ()
     // One implementation per verb: no surface calls prisma.task.update itself.
     expect(src).not.toMatch(/prisma\.task\.update\(/)
     expect(src).toMatch(/updateTaskWithSideEffects/)
+  })
+})
+
+// AWTD-1329: a board move is recorded (list insights times each lane from it)
+// but is not news — notifying on it would ping a creator whenever anyone, or
+// any agent, drags or claims the card.
+describe.each(NAMES)('%s task-write surface — a lane move is history, not news (AWTD-1329)', (name) => {
+  it('records status_changed and keeps it out of notifications', async () => {
+    const actual = await vi.importActual<typeof import('@/lib/task-events')>('@/lib/task-events')
+    diffTaskEvents.mockImplementation(actual.diffTaskEvents as never)
+    taskFindUnique.mockResolvedValue({ ...OPEN_TASK, statusRole: 'ready' })
+    taskFindFirst.mockResolvedValue({ ...OPEN_TASK, statusRole: 'ready' })
+    taskUpdate.mockResolvedValue({ ...OPEN_TASK, statusRole: 'doing' })
+
+    await SURFACES[name]({ statusRole: 'doing' })
+
+    const recorded = recordTaskEvents.mock.calls.at(-1)?.[0]?.events ?? []
+    expect(recorded).toContainEqual({ kind: 'status_changed', from: 'ready', to: 'doing' })
+    const notified = notifyTaskUpdate.mock.calls.at(-1)?.[0]?.events ?? []
+    expect(notified.map((e: { kind: string }) => e.kind)).not.toContain('status_changed')
+
+    diffTaskEvents.mockImplementation(() => [])
   })
 })

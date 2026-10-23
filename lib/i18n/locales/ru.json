@@ -1163,5 +1163,31 @@
     "bound": "{title} подключён. Импорт элементов…",
     "alreadyBound": "Этот проект уже является доской",
     "bindError": "Не удалось подключить проект"
+  },
+  "listInsights": {
+    "tab": "Статистика",
+    "days7": "7 дней",
+    "days30": "30 дней",
+    "days90": "90 дней",
+    "activity": "Активность",
+    "created": "Новые",
+    "completed": "Выполненные",
+    "createdTotal": "Новых: {count}",
+    "completedTotal": "Выполнено: {count}",
+    "timeToComplete": "Медианное время до выполнения",
+    "timeInLane": "Медианное время в каждой колонке",
+    "sampleSize": "из {count}",
+    "notEnoughHistory": "Пока недостаточно истории",
+    "laneHistoryNote": "Перемещения между колонками записываются с этого момента; данные появятся по мере перемещения карточек.",
+    "contributors": "Самые активные участники",
+    "contributorCounts": "Создано {created} · Правок {edited} · Комментариев {commented} · Выполнено {completed}",
+    "noActivity": "Нет активности за этот период",
+    "loadFailed": "Не удалось загрузить статистику",
+    "loading": "Загрузка статистики…",
+    "duration": {
+      "minutes": "{n} мин",
+      "hours": "{n} ч",
+      "days": "{n} д"
+    }
   }
 }

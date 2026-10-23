@@ -1163,5 +1163,31 @@
     "bound": "已連接 {title}，正在匯入項目…",
     "alreadyBound": "該專案已經是看板",
     "bindError": "無法連接該專案"
+  },
+  "listInsights": {
+    "tab": "洞察",
+    "days7": "7 天",
+    "days30": "30 天",
+    "days90": "90 天",
+    "activity": "活動",
+    "created": "新增",
+    "completed": "已完成",
+    "createdTotal": "新增 {count} 項",
+    "completedTotal": "完成 {count} 項",
+    "timeToComplete": "完成所需時間（中位數）",
+    "timeInLane": "各欄停留時間（中位數）",
+    "sampleSize": "依據 {count} 項",
+    "notEnoughHistory": "歷史紀錄還不夠",
+    "laneHistoryNote": "從現在開始記錄欄位移動，隨著卡片移動這裡會逐漸有資料。",
+    "contributors": "主要貢獻者",
+    "contributorCounts": "建立 {created} · 編輯 {edited} · 留言 {commented} · 完成 {completed}",
+    "noActivity": "此期間沒有活動",
+    "loadFailed": "無法載入洞察",
+    "loading": "正在載入洞察…",
+    "duration": {
+      "minutes": "{n} 分鐘",
+      "hours": "{n} 小時",
+      "days": "{n} 天"
+    }
   }
 }

@@ -151,10 +151,10 @@ describe('ListSettingsPopover Admin Access Control', () => {
       />
     )
 
-    // Membership + Admin Settings. One fewer than before, since Sort &
-    // Filters moved out (task aa4e7eb0).
+    // Membership + Insights + Admin Settings. Sort & Filters moved out (task
+    // aa4e7eb0); Insights is for every viewer (AWTD-1329).
     let tabsList = screen.getByRole('tablist')
-    expect(tabsList).toHaveClass('grid-cols-2')
+    expect(tabsList).toHaveClass('grid-cols-3')
 
     rerender(
       <ListSettingsPopover
@@ -163,7 +163,21 @@ describe('ListSettingsPopover Admin Access Control', () => {
       />
     )
 
-    // Membership alone, rendered full width rather than as a stranded half.
+    // Membership + Insights for someone who cannot edit settings.
+    tabsList = screen.getByRole('tablist')
+    expect(tabsList).toHaveClass('grid-cols-2')
+    expect(screen.getByRole('tab', { name: /Insights|listInsights\.tab/ })).toBeInTheDocument()
+
+    rerender(
+      <ListSettingsPopover
+        {...defaultProps}
+        list={{ ...defaultProps.list, isVirtual: true }}
+        canEditSettings={false}
+      />
+    )
+
+    // A saved filter has no tasks of its own to report on (AWTD-1329):
+    // Membership alone, full width rather than a stranded half.
     tabsList = screen.getByRole('tablist')
     expect(tabsList).toHaveClass('grid-cols-1')
   })
