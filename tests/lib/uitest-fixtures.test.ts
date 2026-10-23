@@ -13,6 +13,10 @@ import {
   assertUITestAccount,
   FIXTURE_RESET_TASK_QUERY,
   planFixtureReset,
+  isValidUITestRunId,
+  parseUITestRunEmail,
+  uitestRunEmail,
+  uitestRunOwnerEmail,
 } from '@/lib/uitest-fixtures'
 import { BRAND } from '@/lib/brand/config'
 
@@ -142,5 +146,50 @@ describe('FIXTURE_RESET_TASK_QUERY (AWTD-1235)', () => {
     // This string is handed to $queryRawUnsafe. A literal id in it would be one
     // edit away from an injected one.
     expect(FIXTURE_RESET_TASK_QUERY).not.toMatch(/\$\{/)
+  })
+})
+
+// AWTD-1328: a run of its own, so two concurrent runs cannot wipe each other's data. The guard
+// widens by exactly one shape, and a typo must still refuse.
+describe('per-run UI-test accounts (AWTD-1328)', () => {
+  it('names a run account and its owner account', () => {
+    expect(uitestRunEmail('ci-42')).toBe(`uitest+ci-42@${BRAND.domain}`)
+    expect(uitestRunOwnerEmail('ci-42')).toBe(`uitest+ci-42-owner@${BRAND.domain}`)
+  })
+
+  it('round-trips both emails to their run', () => {
+    expect(parseUITestRunEmail(uitestRunEmail('ci-42'))).toEqual({ runId: 'ci-42', owner: false })
+    expect(parseUITestRunEmail(uitestRunOwnerEmail('ci-42'))).toEqual({ runId: 'ci-42', owner: true })
+  })
+
+  it('lets the guard through for run accounts', () => {
+    expect(() => assertUITestAccount(uitestRunEmail('ci-42'))).not.toThrow()
+    expect(() => assertUITestAccount(uitestRunOwnerEmail('ci-42'))).not.toThrow()
+  })
+
+  it('still refuses anything that is not exactly a run account', () => {
+    for (const email of [
+      `uitest+@${BRAND.domain}`,
+      `uitest+CI@${BRAND.domain}`,
+      `uitest+ci 42@${BRAND.domain}`,
+      `uitest+-ci@${BRAND.domain}`,
+      `uitest+ci@${BRAND.domain}.evil.com`,
+      `uitest+ci@evil.com`,
+      `xuitest+ci@${BRAND.domain}`,
+      `uitest-ci@${BRAND.domain}`,
+      `uitest+ci@${BRAND.domain} `,
+      'jonparis+uitest@gmail.com',
+    ]) {
+      expect(() => assertUITestAccount(email), email).toThrow(/Refusing to seed/)
+    }
+  })
+
+  it('rejects run ids that would make one email answer to two runs, or no run', () => {
+    expect(isValidUITestRunId('ci-42')).toBe(true)
+    expect(isValidUITestRunId('ci-owner')).toBe(false)
+    expect(isValidUITestRunId('')).toBe(false)
+    expect(isValidUITestRunId('a'.repeat(49))).toBe(false)
+    expect(isValidUITestRunId('../x')).toBe(false)
+    expect(() => uitestRunEmail('CI')).toThrow(/Invalid UI-test run id/)
   })
 })

@@ -201,3 +201,124 @@ describe('ephemeral PostgreSQL risk behavior', () => {
     ])
   })
 })
+
+// AWTD-1328: per-run UI-test accounts. Four runners shared one account and every mint wiped it, so
+// one run deleted another's data mid-test. These pin the isolation against a real database, since
+// the whole risk is in which rows the raw DELETEs reach.
+describe('per-run UI-test accounts (AWTD-1328)', () => {
+  const runA = `pg${process.pid}-a`
+  const runB = `pg${process.pid}-b`
+
+  afterAll(async () => {
+    const { deleteUITestRun } = await import('@/lib/uitest-run-accounts')
+    await deleteUITestRun(prisma, runA)
+    await deleteUITestRun(prisma, runB)
+  })
+
+  /** Every row a run's two accounts hold, counted the way --delete-run must clear them. */
+  async function holdings(userIds: string[]) {
+    const [tasks, lists, projects, comments, members] = await Promise.all([
+      prisma.$queryRawUnsafe<Array<{ n: bigint }>>(
+        `SELECT COUNT(*)::bigint AS n FROM "Task" WHERE "creatorId" = ANY($1::text[])`, userIds),
+      prisma.$queryRawUnsafe<Array<{ n: bigint }>>(
+        `SELECT COUNT(*)::bigint AS n FROM "TaskList" WHERE "ownerId" = ANY($1::text[])`, userIds),
+      prisma.$queryRawUnsafe<Array<{ n: bigint }>>(
+        `SELECT COUNT(*)::bigint AS n FROM "Project" WHERE "ownerId" = ANY($1::text[])`, userIds),
+      prisma.$queryRawUnsafe<Array<{ n: bigint }>>(
+        `SELECT COUNT(*)::bigint AS n FROM "Comment" WHERE "authorId" = ANY($1::text[])`, userIds),
+      prisma.$queryRawUnsafe<Array<{ n: bigint }>>(
+        `SELECT COUNT(*)::bigint AS n FROM "ListMember" WHERE "userId" = ANY($1::text[])`, userIds),
+    ])
+    const n = (rows: Array<{ n: bigint }>) => Number(rows[0].n)
+    return { tasks: n(tasks), lists: n(lists), projects: n(projects), comments: n(comments), members: n(members) }
+  }
+
+  it('mints every fixture the E2E journeys need, readable as the app reads them', async () => {
+    const { mintUITestRun } = await import('@/lib/uitest-run-accounts')
+    const run = await mintUITestRun(prisma, runA, new Date('2026-10-22T15:00:00Z'))
+
+    expect(run.user.email).toMatch(new RegExp(`^uitest\\+${runA}@`))
+    expect(run.tasks.classic).toHaveLength(5)
+    expect(run.tasks.dueToday.dueDateTime).toBe('2026-10-22T09:00:00.000Z')
+
+    const board = await prisma.taskList.findUniqueOrThrow({
+      where: { id: run.lists.board.id }, select: { projectId: true },
+    })
+    expect(board.projectId).toBe(run.lists.board.projectId)
+
+    const doing = await prisma.task.findUniqueOrThrow({
+      where: { id: run.tasks.boardDoing.id }, select: { statusRole: true },
+    })
+    expect(doing.statusRole).toBe('doing')
+
+    const repeating = await prisma.task.findUniqueOrThrow({
+      where: { id: run.tasks.dailyRepeating.id },
+      select: { repeating: true, repeatFrom: true, isAllDay: true },
+    })
+    expect(repeating).toEqual({ repeating: 'daily', repeatFrom: 'DUE_DATE', isAllDay: true })
+
+    const noList = await prisma.task.findUniqueOrThrow({
+      where: { id: run.tasks.noList.id }, select: { lists: { select: { id: true } } },
+    })
+    expect(noList.lists).toEqual([])
+
+    const comments = await prisma.comment.findMany({
+      where: { taskId: run.tasks.withComment.id }, select: { id: true },
+    })
+    expect(comments).toEqual([{ id: run.tasks.withComment.commentId }])
+
+    const seat = await prisma.listMember.findUniqueOrThrow({
+      where: { listId_userId: { listId: run.lists.shared.id, userId: run.user.id } },
+      select: { role: true, list: { select: { ownerId: true } } },
+    })
+    expect(seat).toEqual({ role: 'viewer', list: { ownerId: run.owner.id } })
+  })
+
+  it('is idempotent for the same run id: same accounts, one copy of each fixture', async () => {
+    const { mintUITestRun } = await import('@/lib/uitest-run-accounts')
+    const first = await mintUITestRun(prisma, runA)
+    const before = await holdings([first.user.id, first.owner.id])
+    const second = await mintUITestRun(prisma, runA)
+
+    expect(second.user.id).toBe(first.user.id)
+    expect(second.owner.id).toBe(first.owner.id)
+    expect(await holdings([second.user.id, second.owner.id])).toEqual(before)
+    // 5 classic + 2 board cards + due today + repeating + commented + no list + shared.
+    expect(before).toEqual({ tasks: 12, lists: 3, projects: 1, comments: 1, members: 1 })
+  })
+
+  it('a mint for run A does not touch run B, and deleting A leaves nothing of A and all of B', async () => {
+    const { mintUITestRun, deleteUITestRun } = await import('@/lib/uitest-run-accounts')
+    const b = await mintUITestRun(prisma, runB)
+    const bBefore = await holdings([b.user.id, b.owner.id])
+
+    const a = await mintUITestRun(prisma, runA)
+    expect(await holdings([b.user.id, b.owner.id])).toEqual(bBefore)
+
+    expect(await deleteUITestRun(prisma, runA)).toBe(2)
+    expect(await holdings([a.user.id, a.owner.id])).toEqual({
+      tasks: 0, lists: 0, projects: 0, comments: 0, members: 0,
+    })
+    const users = await prisma.$queryRawUnsafe<Array<{ id: string }>>(
+      `SELECT id FROM "User" WHERE id = ANY($1::text[])`, [a.user.id, a.owner.id])
+    expect(users).toEqual([])
+    expect(await holdings([b.user.id, b.owner.id])).toEqual(bBefore)
+  })
+
+  it('reaps a run only once every one of its accounts has gone quiet', async () => {
+    const { mintUITestRun, findStaleUITestRuns } = await import('@/lib/uitest-run-accounts')
+    const b = await mintUITestRun(prisma, runB)
+    const old = new Date(Date.now() - 48 * 60 * 60 * 1000)
+
+    await prisma.$executeRawUnsafe(`UPDATE "User" SET "updatedAt" = $1 WHERE id = $2`, old, b.owner.id)
+    expect(await findStaleUITestRuns(prisma, 24)).not.toContain(runB)
+
+    await prisma.$executeRawUnsafe(`UPDATE "User" SET "updatedAt" = $1 WHERE id = $2`, old, b.user.id)
+    expect(await findStaleUITestRuns(prisma, 24)).toContain(runB)
+  })
+
+  it('refuses to empty an account that is not a run account, however it is reached', async () => {
+    const { deleteUITestRun } = await import('@/lib/uitest-run-accounts')
+    await expect(deleteUITestRun(prisma, 'not a run id')).rejects.toThrow(/Invalid UI-test run id/)
+  })
+})

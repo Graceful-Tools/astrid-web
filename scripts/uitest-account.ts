@@ -4,6 +4,16 @@
  *   npx tsx scripts/uitest-account.ts          # ensure the account, print a cookie
  *   npx tsx scripts/uitest-account.ts --cookie # print only the cookie (for CI/env)
  *
+ *   npx tsx scripts/uitest-account.ts --run <id>          # a run of its own (AWTD-1328): JSON on
+ *                                                         # stdout — { cookie, fixtures }
+ *   npx tsx scripts/uitest-account.ts --delete-run <id>   # remove that run's users and data
+ *   npx tsx scripts/uitest-account.ts --delete-stale <h>  # remove runs not minted for <h> hours
+ *
+ * The shared account and its --cookie path are unchanged until astrid-ios has moved to --run;
+ * see lib/uitest-run-accounts.ts for why a run needs its own account. Every --run mint also reaps
+ * runs nobody has minted for UITEST_RUN_STALE_HOURS, so a runner that died before its
+ * --delete-run does not leave its account behind for good.
+ *
  * WHY THIS EXISTS. The iOS UI suite asserted almost nothing: every test that needed
  * a signed-in app skipped itself, so ~10 minutes per device produced eight checks of
  * the sign-in screen and a green tick. Jon, 2026-08-16: "Setup a test account on
@@ -38,6 +48,12 @@ import {
   FIXTURE_RESET_TASK_QUERY,
   planFixtureReset,
 } from '../lib/uitest-fixtures'
+import {
+  UITEST_RUN_STALE_HOURS,
+  deleteStaleUITestRuns,
+  deleteUITestRun,
+  mintUITestRun,
+} from '../lib/uitest-run-accounts'
 
 const EMAIL = UITEST_ACCOUNT_EMAIL
 const NAME = 'UI Test'
@@ -185,18 +201,23 @@ async function seedFixtures(userId: string, email: string | null, listId: string
   }
 }
 
-async function main() {
-  const quiet = process.argv.includes('--cookie')
-  const secret = process.env.NEXTAUTH_SECRET
-  if (!secret) {
-    console.error('❌ NEXTAUTH_SECRET missing — cannot mint a session. Check .env.local.')
+/** The value after `flag`, or null when the flag is absent. Exits when the flag has no value. */
+function flagValue(flag: string): string | null {
+  const index = process.argv.indexOf(flag)
+  if (index === -1) return null
+  const value = process.argv[index + 1]
+  if (!value || value.startsWith('--')) {
+    console.error(`❌ ${flag} needs a value`)
     process.exit(1)
   }
+  return value
+}
 
-  const user = await ensureAccount(quiet)
-  const listId = await ensureList(user.id, quiet)
-  await seedFixtures(user.id, user.email, listId, quiet)
-
+/** A session cookie for `user`, with the claim shape `renewSessionToken` produces. */
+async function mintCookie(
+  user: { id: string; email: string | null; name: string | null },
+  secret: string,
+): Promise<{ cookie: string; exp: number }> {
   const now = Math.floor(Date.now() / 1000)
   const exp = now + SESSION_MAX_AGE_SECONDS
 
@@ -215,8 +236,49 @@ async function main() {
     secret,
     maxAge: SESSION_MAX_AGE_SECONDS,
   })
+  return { cookie: `${COOKIE_NAME}=${token}`, exp }
+}
 
-  const cookie = `${COOKIE_NAME}=${token}`
+async function main() {
+  const deleteRunId = flagValue('--delete-run')
+  if (deleteRunId) {
+    const removed = await deleteUITestRun(prisma, deleteRunId)
+    console.error(`✅ Run ${deleteRunId}: removed ${removed} account(s) and everything they held`)
+    return
+  }
+
+  const staleHours = flagValue('--delete-stale')
+  if (staleHours) {
+    const reaped = await deleteStaleUITestRuns(prisma, Number(staleHours))
+    console.error(`✅ Reaped ${reaped.length} stale run(s)${reaped.length ? `: ${reaped.join(', ')}` : ''}`)
+    return
+  }
+
+  const quiet = process.argv.includes('--cookie')
+  const secret = process.env.NEXTAUTH_SECRET
+  if (!secret) {
+    console.error('❌ NEXTAUTH_SECRET missing — cannot mint a session. Check .env.local.')
+    process.exit(1)
+  }
+
+  const runId = flagValue('--run')
+  if (runId) {
+    const reaped = await deleteStaleUITestRuns(prisma, UITEST_RUN_STALE_HOURS)
+    if (reaped.length) console.error(`• Reaped ${reaped.length} stale run(s): ${reaped.join(', ')}`)
+    const fixtures = await mintUITestRun(prisma, runId)
+    const { cookie, exp } = await mintCookie(
+      { id: fixtures.user.id, email: fixtures.user.email, name: `UI Test ${runId}` }, secret)
+    // One JSON document on stdout, so a runner can write the cookie and the fixture ids into the
+    // test bundle from a single read. Progress goes to stderr for the same reason.
+    console.log(JSON.stringify({ cookie, expires: new Date(exp * 1000).toISOString(), fixtures }, null, 2))
+    return
+  }
+
+  const user = await ensureAccount(quiet)
+  const listId = await ensureList(user.id, quiet)
+  await seedFixtures(user.id, user.email, listId, quiet)
+
+  const { cookie, exp } = await mintCookie(user, secret)
 
   if (quiet) {
     // Bare value, so callers can do: TOKEN=$(npx tsx scripts/uitest-account.ts --cookie)
