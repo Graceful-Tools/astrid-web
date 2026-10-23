@@ -89,6 +89,20 @@ describe('MCP SSE Integration - Core Functionality', () => {
     expect(await getListMemberIdsByListId('missing')).toEqual([])
   })
 
+  it('includes the list owner, who has no listMembers row, in the audience (AWTD-1348)', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { getListMemberIdsByListId } = await import('@/app/api/mcp/operations/handlers/shared')
+
+    // The shape the query returns: scalar ownerId, no `owner` relation.
+    vi.mocked(prisma.taskList.findFirst).mockResolvedValueOnce({
+      id: 'list-1',
+      ownerId: 'u-owner',
+      listMembers: [{ userId: 'u-member', role: 'member', user: null }],
+    } as never)
+
+    expect(await getListMemberIdsByListId('list-1')).toEqual(['u-owner', 'u-member'])
+  })
+
   it('should verify all MCP operations have SSE broadcasting', async () => {
     const allContent = getMCPOperationsContent()
 

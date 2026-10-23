@@ -145,9 +145,17 @@ export function isListOwner(list: ListLike, userId: string): boolean {
 
 /**
  * Get all user IDs who have access to a list (for SSE broadcasting)
+ *
+ * The owner comes from `ownerId` too, not only the `owner` relation (AWTD-1348).
+ * Most fanout queries load `ownerId` and `listMembers` but not `owner`, and the
+ * owner of a list they created has no member row — so they were left out of
+ * list_deleted broadcasts, comment notifications and cache invalidation.
  */
 export function getListMemberIds(list: ListLike): string[] {
-  return getAllListMembers(list).map(member => member.id)
+  const ids = new Set<string>()
+  if (list.ownerId) ids.add(list.ownerId)
+  for (const member of getAllListMembers(list)) ids.add(member.id)
+  return [...ids]
 }
 
 /**
