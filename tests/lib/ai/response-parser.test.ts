@@ -7,7 +7,7 @@
  *   - it returns null for an object without "files" or with unbalanced braces;
  *   - countBraceBalance counts only structural braces;
  *   - mapToKnownPath keeps exact and unknown paths, maps the kebab/camel twin,
- *     and (the it.fails below) must not map onto the wrong file.
+ *     and does not map onto the wrong file (AWTD-1347).
  */
 
 import { describe, it, expect } from 'vitest'
@@ -51,17 +51,17 @@ describe('extractBalancedJson (AWTD-1342)', () => {
   })
 
   /**
-   * REAL BUG (AWTD-1342): lib/ai/response-parser.ts:22-69. The scan is anchored
-   * at the FIRST `{` in the response. When that first object is not the payload
-   * (prose such as "use {braces}" or an example object), the depth returns to 0
-   * without "files", the loop keeps going, and the next balance point returns
+   * AWTD-1347 (found by AWTD-1342): the scan was anchored at the FIRST `{` in
+   * the response. When that first object is not the payload (prose such as
+   * "use {braces}" or an example object), the depth returned to 0 without
+   * "files", the loop kept going, and the next balance point returned
    * response.substring(firstBrace, end) — prose and both objects glued together,
-   * which is not JSON. parseGeneratedCode then has to fall through to the
-   * Method 3 regex. The extractor should restart at the next `{` instead.
+   * which is not JSON. The extractor restarts at the next `{` instead.
    */
-  it.fails('finds the payload when an earlier, unrelated object precedes it', () => {
+  it('AWTD-1347: finds the payload when an earlier, unrelated object precedes it', () => {
     const json = '{"files":[{"path":"a.ts","content":"x"}]}'
     expect(extractBalancedJson(`Wrap options in {braces}. Result: ${json}`)).toBe(json)
+    expect(extractBalancedJson(`Example: {"a":{"b":1}} then } and ${json}`)).toBe(json)
   })
 })
 
@@ -116,20 +116,34 @@ describe('mapToKnownPath (AWTD-1342)', () => {
   })
 
   /**
-   * REAL BUG (AWTD-1342): lib/ai/response-parser.ts:184-199. The match is on
-   * base name alone, with the directory ignored, and the FIRST hit wins. In a
-   * Next.js repo base names like page.tsx / route.ts / index.ts repeat in every
-   * directory, so a plan naming a new `app/settings/page.tsx` is rewritten onto
-   * whichever explored page.tsx comes first — and parseImplementationPlan hands
-   * that path to code generation, which then overwrites the wrong file.
+   * AWTD-1347 (found by AWTD-1342): the match was on base name alone, with the
+   * directory ignored, and the FIRST hit won. In a Next.js repo base names like
+   * page.tsx / route.ts / index.ts repeat in every directory, so a plan naming a
+   * new `app/settings/page.tsx` was rewritten onto whichever explored page.tsx
+   * came first — and parseImplementationPlan hands that path to code
+   * generation, which then overwrote the wrong file.
    */
-  it.fails('does not rewrite a new file onto an unrelated explored file with the same base name', () => {
+  it('AWTD-1347: does not rewrite a new file onto an unrelated explored file with the same base name', () => {
     expect(mapToKnownPath('app/settings/page.tsx', ['app/lists/page.tsx'])).toBe('app/settings/page.tsx')
+    expect(mapToKnownPath('components/index.ts', ['lib/index.ts'])).toBe('components/index.ts')
   })
 
-  it.fails('does not pick arbitrarily between several explored files with the same base name', () => {
+  it('AWTD-1347: does not pick arbitrarily between several explored files with the same base name', () => {
     const twins = ['app/api/tasks/route.ts', 'app/api/lists/route.ts']
     expect(mapToKnownPath('app/api/comments/route.ts', twins)).toBe('app/api/comments/route.ts')
+    expect(mapToKnownPath('src/Button.tsx', ['components/Button.tsx', 'ui/button.tsx'])).toBe('src/Button.tsx')
+  })
+
+  it('AWTD-1347: prefers the candidate sharing the longest folder suffix, whatever the order', () => {
+    const known = ['app/lists/page.tsx', 'app/settings/page.tsx', 'app/admin/settings/page.tsx']
+    expect(mapToKnownPath('src/app/settings/page.tsx', known)).toBe('app/settings/page.tsx')
+    expect(mapToKnownPath('admin/settings/page.tsx', known)).toBe('app/admin/settings/page.tsx')
+    expect(mapToKnownPath('src/hooks/use-task-operations.ts', ['lib/useTaskOperations.ts', 'hooks/useTaskOperations.ts']))
+      .toBe('hooks/useTaskOperations.ts')
+  })
+
+  it('AWTD-1347: still maps a distinctive file the AI put in the wrong folder, when it is the only one', () => {
+    expect(mapToKnownPath('src/task-card.tsx', ['components/task-card.tsx'])).toBe('components/task-card.tsx')
   })
 
   it('parseImplementationPlan routes plan paths through it', () => {
