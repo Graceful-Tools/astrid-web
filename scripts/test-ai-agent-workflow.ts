@@ -2,6 +2,8 @@
 
 import { PrismaClient } from '@prisma/client'
 import { DEFAULT_LIST_COLOR } from '../lib/brand/colors'
+import { generateMCPToken } from '../lib/mcp-token-utils'
+import { hashMCPToken, mcpTokenStorageFields } from '../lib/mcp-token'
 
 const prisma = new PrismaClient()
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
@@ -88,16 +90,17 @@ class AIAgentWorkflowTester {
       console.log(`📋 Created test list: ${testList.name}`)
 
       // Create MCP token for Claude agent
-      const token = await prisma.mCPToken.create({
+      const plaintext = generateMCPToken()
+      await prisma.mCPToken.create({
         data: {
-          token: `test-claude-token-${Date.now()}`,
+          ...mcpTokenStorageFields(plaintext),
           userId: this.claudeAgentId,
           permissions: ['read', 'write'],
           description: 'Test token for Claude AI workflow',
           isActive: true
         }
       })
-      this.mcpToken = token.token
+      this.mcpToken = plaintext
       console.log(`🔑 Created MCP token for Claude agent`)
 
       console.log('✅ Setup complete\n')
@@ -423,7 +426,7 @@ class AIAgentWorkflowTester {
 
       // Delete test MCP token
       if (this.mcpToken) {
-        await prisma.mCPToken.deleteMany({ where: { token: this.mcpToken } })
+        await prisma.mCPToken.deleteMany({ where: { token: hashMCPToken(this.mcpToken) } })
         console.log('🗑️ Deleted test MCP token')
       }
 

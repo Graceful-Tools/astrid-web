@@ -516,10 +516,11 @@ Five crons handle scheduled tasks across the platform:
 - Access levels: `READ`, `WRITE`, `ADMIN`
 - Dual storage: the `token` column stores a SHA-256 hash (used for constant-time lookup), and the `tokenEncrypted` column stores the AES-256-GCM ciphertext of the raw token (so it can be re-displayed/reused)
 - Token expiration and revocation support
-- API endpoints:
-  - `GET /api/mcp/tokens`: List user's tokens
-  - `POST /api/mcp/tokens`: Create new token
-  - `DELETE /api/mcp/tokens/:id`: Revoke token
+- API endpoints (`app/api/mcp/user-tokens/route.ts`, user-level tokens):
+  - `GET /api/mcp/user-tokens`: List the caller's own tokens
+  - `POST /api/mcp/user-tokens`: Create a token (stored hashed via `mcpTokenStorageFields`)
+  - `DELETE /api/mcp/user-tokens`: Revoke one of the caller's tokens
+- The list-scoped `/api/mcp/tokens` route was removed in AWTD-1335: it stored tokens in plaintext and listed every member's tokens to any list member. `tests/rules/mcp-tokens-are-hashed-at-rest.test.ts` keeps every create site hashed.
 
 ## Chat Messaging System
 

@@ -201,16 +201,15 @@ node dist/mcp-server-v2.js
 Use the token management API directly:
 
 ```bash
-# Get tokens
-curl -X GET http://localhost:3000/api/mcp/tokens \
+# Get your tokens
+curl -X GET http://localhost:3000/api/mcp/user-tokens \
   -H "Cookie: your-session-cookie"
 
-# Create token
-curl -X POST http://localhost:3000/api/mcp/tokens \
+# Create a token (the plaintext is returned once; only its hash is stored)
+curl -X POST http://localhost:3000/api/mcp/user-tokens \
   -H "Content-Type: application/json" \
   -H "Cookie: your-session-cookie" \
   -d '{
-    "listId": "your-list-id",
     "permissions": ["read", "write"],
     "expiresInDays": 30,
     "description": "Test token"

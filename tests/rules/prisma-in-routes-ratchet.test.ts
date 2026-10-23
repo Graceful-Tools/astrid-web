@@ -43,7 +43,7 @@ const ROOT = process.cwd()
 // lib/github/installations instead of Prisma.
 // 138 → 137: AWTD-1113 — /api/webhooks/github-issues nudges through
 // lib/github/webhooks/issues, shared with the App webhook.
-const CEILING = 134 // 136 → 134: /api/tasks/[id] and /api/upload deleted, the census having cleared them (AWTD-839)
+const CEILING = 133 // 134 → 133: /api/mcp/tokens deleted (AWTD-1335). 136 → 134: /api/tasks/[id] and /api/upload deleted, the census having cleared them (AWTD-839)
 
 function routeFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
