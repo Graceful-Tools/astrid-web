@@ -4650,6 +4650,22 @@
       ]
     },
     {
+      "id": "sort/when",
+      "sortBy": "when",
+      "manualOrder": null,
+      "shown": [
+        "s4",
+        "s3",
+        "s9",
+        "s2",
+        "s5",
+        "s1",
+        "s6",
+        "s8",
+        "s7"
+      ]
+    },
+    {
       "id": "sort/completedAt",
       "sortBy": "completedAt",
       "manualOrder": null,
@@ -5639,23 +5655,6 @@
     },
     {
       "entry": "D33",
-      "id": "sort/when",
-      "sortBy": "when",
-      "manualOrder": null,
-      "shown": [
-        "s1",
-        "s2",
-        "s3",
-        "s4",
-        "s5",
-        "s6",
-        "s7",
-        "s8",
-        "s9"
-      ]
-    },
-    {
-      "entry": "D33",
       "id": "sort/assignee",
       "sortBy": "assignee",
       "manualOrder": null,
@@ -5742,7 +5741,7 @@
     },
     {
       "entry": "D33",
-      "why": "sort orders: iOS sinks completed tasks under priority, sorts \"when\" by dueDateTime, has no assignee/completed/incomplete orders, and puts createdAt newest first"
+      "why": "sort orders: iOS sinks completed tasks under priority, has no assignee/completed/incomplete orders, and puts createdAt newest first (\"when\" agreed in AWTD-1325: dueDateTime, as iOS)"
     }
   ]
 }
