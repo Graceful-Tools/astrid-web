@@ -22,7 +22,7 @@ const INSIGHTS: ListInsights = {
     { role: 'doing', name: 'Doing', medianMs: 2 * HOUR, sampleSize: 2 },
   ],
   contributors: [
-    { userId: 'claude', name: 'Claude', image: null, isAIAgent: true, created: 1, edited: 4, commented: 0, completed: 3, total: 8 },
+    { userId: 'claude', name: 'Claude', image: null, isAIAgent: true, completed: 3, inspired: 1, supported: 2, created: 1, edited: 4, commented: 2, total: 6 },
   ],
 }
 
@@ -38,6 +38,12 @@ describe('ListInsightsView (AWTD-1329)', () => {
     expect(screen.getByText('Doing')).toBeInTheDocument()
     expect(screen.getByText('2 h')).toBeInTheDocument()
     expect(screen.getByText('Claude')).toBeInTheDocument()
+  })
+
+  it('shows the profile metrics for each contributor, then their activity (AWTD-1333)', () => {
+    view()
+    expect(screen.getByText('3 completed · 1 inspired · 2 supported')).toBeInTheDocument()
+    expect(screen.getByText('1 created · 4 edits · 2 comments')).toBeInTheDocument()
   })
 
   it('says a board has no lane history yet rather than showing zeros', () => {

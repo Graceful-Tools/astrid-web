@@ -43,7 +43,7 @@ export async function loadListInsights(
 
   const tasks = await prisma.task.findMany({
     where: { lists: { some: { id: listId } } },
-    select: { id: true, createdAt: true, creatorId: true, completed: true, completedAt: true, repeating: true },
+    select: { id: true, createdAt: true, creatorId: true, assigneeId: true, completed: true, completedAt: true, repeating: true },
   })
   const taskIds = tasks.map(task => task.id)
 
@@ -61,7 +61,7 @@ export async function loadListInsights(
     taskIds.length
       ? prisma.comment.findMany({
           where: { taskId: { in: taskIds }, createdAt: { gte: since }, authorId: { not: null } },
-          select: { authorId: true, createdAt: true },
+          select: { taskId: true, authorId: true, createdAt: true },
         })
       : [],
     list.projectId
