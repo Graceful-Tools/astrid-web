@@ -2,6 +2,8 @@
 
 import { PrismaClient } from '@prisma/client'
 import { DEFAULT_LIST_COLOR } from '../lib/brand/colors'
+import { generateMCPToken } from '../lib/mcp-token-utils'
+import { mcpTokenStorageFields } from '../lib/mcp-token'
 
 const prisma = new PrismaClient()
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
@@ -101,15 +103,18 @@ class CompleteAIWorkflowTester {
       })
 
       // Create MCP token for Claude agent
-      this.mcpToken = await prisma.mCPToken.create({
+      const plaintext = generateMCPToken()
+      const row = await prisma.mCPToken.create({
         data: {
-          token: `workflow-test-token-${Date.now()}`,
+          ...mcpTokenStorageFields(plaintext),
           userId: this.claudeAgent.id,
           permissions: ['read', 'write'],
           description: 'Complete workflow test token',
           isActive: true
         }
       })
+      // The row holds the hash; the run presents the plaintext.
+      this.mcpToken = { ...row, token: plaintext }
 
       console.log(`👤 Test User: ${this.testUser.email}`)
       console.log(`🤖 Claude Agent: ${this.claudeAgent.name}`)
