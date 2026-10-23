@@ -59,6 +59,7 @@ import { normalizeRepeatingData, parseCompletionStamp, parseRepeating } from '@/
 import { statusListIdsToDetachOnCompletion } from '@/lib/project-status'
 import { TASK_FULL_INCLUDE } from '@/lib/task-query-utils'
 import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
+import { notifiableUpdateEvents, taskEventSnapshot } from '@/lib/task-event-snapshot'
 import { notifyTaskUpdate } from '@/lib/notification-store'
 import { invalidateUserStats } from '@/lib/user-stats'
 import { rescheduleRemindersForUpdate } from '@/lib/reminder-scheduling'
@@ -1255,28 +1256,7 @@ async function runUpdateSideEffects(args: {
   // human reads, the events are what can be queried and fanned out. actorType
   // is the point of the distinction: an agent silently reassigning or
   // completing work must leave the same trace a human would.
-  const events = diffTaskEvents(
-    {
-      title: existingTask.title,
-      completed: existingTask.completed,
-      closedReason: existingTask.closedReason,
-      priority: existingTask.priority,
-      assigneeId: existingTask.assigneeId,
-      dueDateTime: existingTask.dueDateTime,
-      listIds: (existingTask.lists ?? []).map((list: any) => list.id),
-      statusRole: existingTask.statusRole ?? null,
-    },
-    {
-      title: task.title,
-      completed: task.completed,
-      closedReason: task.closedReason,
-      priority: task.priority,
-      assigneeId: task.assigneeId,
-      dueDateTime: task.dueDateTime,
-      listIds: (task.lists ?? []).map((list: any) => list.id),
-      statusRole: task.statusRole ?? null,
-    }
-  )
+  const events = diffTaskEvents(taskEventSnapshot(existingTask), taskEventSnapshot(task))
 
   try {
     await recordTaskEvents({ taskId: task.id, actorId, actorType, events })
@@ -1298,12 +1278,7 @@ async function runUpdateSideEffects(args: {
     await notifyTaskUpdate({
       taskId: task.id,
       actorId,
-      // A hand-made board move is history, not news (AWTD-1329): it is
-      // recorded so list insights can time each lane, but notifying on it would
-      // ping a task's creator every time anyone — or any agent — drags or
-      // claims the card. Automatic moves (task-dependency.service.ts) still
-      // notify; nobody dragged those.
-      events: events.filter(event => event.kind !== 'status_changed'),
+      events: notifiableUpdateEvents(events),
       audience: {
         assigneeId: task.assigneeId,
         creatorId: task.creatorId,

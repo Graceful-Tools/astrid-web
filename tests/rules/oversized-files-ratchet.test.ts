@@ -132,7 +132,10 @@ const BUDGETS: Record<string, number> = {
   // for the TaskBackend seam (spec §5.2 step 8) with room to spare.
   // 1507 → 1499: AWTD-1123 let a create carry its completion fields, decided in
   // services/task-completion.ts; parseTaskDate went to services/task-dates.ts.
-  'services/task.service.ts': 1466,
+  // 1466 → 1448: AWTD-1329 moved the update path's event snapshot and its
+  // notify filter into lib/task-event-snapshot.ts (taskEventSnapshot,
+  // notifiableUpdateEvents).
+  'services/task.service.ts': 1448,
   // 1078 → 1039: AWTD-945 added the board-state row, which this budget
   // refused. Rather than raise it, the new row went straight into its own
   // TaskDetailBoardStateRow.tsx and the DESCRIPTION row — the largest
