@@ -180,6 +180,19 @@ function createUpstashAdapter(upstash: UpstashRedis): any {
       return await upstash.expire(key, seconds)
     },
 
+    // The rate limiter's atomic counter (AWTD-1337).
+    async incr(key: string) {
+      return await upstash.incr(key)
+    },
+
+    async pExpire(key: string, ms: number) {
+      return await upstash.pexpire(key, ms)
+    },
+
+    async pTTL(key: string) {
+      return await upstash.pttl(key)
+    },
+
     async quit() {
       // Upstash is HTTP-based, no persistent connection to close
       upstashRedis = null
