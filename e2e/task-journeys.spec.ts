@@ -51,9 +51,7 @@ test.describe('Core task journeys (AWTD-1339)', () => {
     expect(taskId).toBeTruthy()
     await expect.poll(async () => (await readTask(request, taskId!)).title).toBe(title)
 
-    // Rename it in task detail. Reload first: the first click on a row that
-    // quick add just created can be swallowed (AWTD-1351).
-    await gotoWithRetry(page, `/lists/${list.id}`)
+    // Rename it in task detail.
     await row(page, title).click()
     await page.getByTestId('task-detail-title').click()
     const renamed = `${title} (renamed)`
@@ -72,6 +70,25 @@ test.describe('Core task journeys (AWTD-1339)', () => {
       await doneBox.click()
       await expect.poll(async () => (await readTask(request, taskId!)).completed).toBe(false)
     }
+  })
+
+  test('one click opens a task quick add just created (AWTD-1351)', async ({ page, request }) => {
+    const list = await freshList(request, 'First click')
+    await gotoWithRetry(page, `/lists/${list.id}`)
+
+    const title = `First click ${Date.now()}`
+    const quickAdd = page.getByPlaceholder('Add a task...').first()
+    await quickAdd.fill(title)
+    await quickAdd.press('Enter')
+    await expect(row(page, title)).toHaveCount(1)
+    const taskId = await row(page, title).getAttribute('data-task-id')
+
+    // Creating with Enter selected the task behind the scenes, so this click
+    // toggled it closed and did nothing visible.
+    await page.waitForTimeout(1500)
+    await row(page, title).click()
+    await expect(page.getByTestId('task-detail-title')).toBeVisible({ timeout: 3000 })
+    await expect(page).toHaveURL(new RegExp(`[?&]task=${taskId}`))
   })
 
   test('add a comment in task detail and see it after a reload', async ({ page, request }) => {

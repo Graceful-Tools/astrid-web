@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
-import type { CreateTaskOptions } from '@/hooks/task-manager/create-task-options'
+import { shouldOpenCreatedTask, type CreateTaskOptions } from '@/hooks/task-manager/create-task-options'
 import { unwrapTask, unwrapList } from '@/lib/v1-response'
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
@@ -19,7 +19,7 @@ import { useUserSettings } from "@/hooks/useUserSettings"
 import { useOptimisticListInfo } from "@/hooks/use-optimistic-list-info"
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete, refusalReason } from "@/lib/api"
 import { applyVirtualListFilter, getListDisplayInfo } from "@/lib/virtual-list-utils"
-import { getColumnCount, getLayoutType } from "@/lib/layout-detection"
+import { getColumnCount } from "@/lib/layout-detection"
 import {
   parseTaskInput,
   getTaskCountForList,
@@ -398,20 +398,8 @@ export function useTaskManagerController({
   const newTaskOperations = useTaskOperations({
     session: effectiveSession,
     onTaskCreated: (task) => {
+      // Opening it is the caller's choice — see handleCreateTask (AWTD-1351).
       listState.setTasks(prev => [task, ...prev])
-
-      const shouldAutoOpen = getColumnCount() >= 2
-      if (shouldAutoOpen) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[useTaskManagerController] onTaskCreated - auto-opening task detail for multi-column layout:', {
-            taskId: task.id,
-            taskTitle: task.title,
-            columnCount: getColumnCount(),
-            layoutType: getLayoutType()
-          })
-        }
-        setSelectedTaskId(task.id)
-      }
 
       toast({
         title: "Task created",
@@ -789,7 +777,12 @@ export function useTaskManagerController({
       })
 
       const apiTaskData = mapTaskDataForApi(taskDataWithDefaults)
-      await newTaskOperations.createTask(apiTaskData)
+      const created = await newTaskOperations.createTask(apiTaskData)
+
+      // Through the click path, so the selection and `?task=` agree (AWTD-1351).
+      if (created && shouldOpenCreatedTask(options, getColumnCount())) {
+        handleTaskClick(created.id)
+      }
 
       return null
 
@@ -805,7 +798,7 @@ export function useTaskManagerController({
     } finally {
       setIsCreatingTask(false)
     }
-  }, [effectiveSession, navigationState.selectedListId, listState.lists, newTaskOperations, toast, isCreatingTask, myTasksPreferences.filters.priority, myTasksPreferences.filters.dueDate, smartTaskCreationEnabled])
+  }, [effectiveSession, navigationState.selectedListId, listState.lists, newTaskOperations, toast, isCreatingTask, myTasksPreferences.filters.priority, myTasksPreferences.filters.dueDate, smartTaskCreationEnabled, handleTaskClick])
 
   const handleQuickCreateTask = useCallback(async (title: string, options?: CreateTaskOptions): Promise<string | null> => {
     try {
