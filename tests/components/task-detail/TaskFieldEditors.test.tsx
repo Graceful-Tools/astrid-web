@@ -18,6 +18,8 @@ vi.mock('@/components/user-picker', () => ({
 }))
 
 vi.mock('@/components/custom-repeating-editor', () => ({
+  isCustomPatternSavable: (pattern: any) =>
+    !!pattern && (pattern.unit !== 'weeks' || (pattern.weekdays?.length ?? 0) > 0),
   CustomRepeatingEditor: ({ onSave, onCancel }: any) => (
     <div data-testid="custom-repeating-editor">
       <button onClick={onSave}>Save Custom</button>

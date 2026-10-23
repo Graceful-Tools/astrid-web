@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { UserPicker } from "@/components/user-picker"
-import { CustomRepeatingEditor } from "@/components/custom-repeating-editor"
+import { CustomRepeatingEditor, isCustomPatternSavable } from "@/components/custom-repeating-editor"
 import { PriorityPicker } from "@/components/ui/priority-picker"
 import { PRIORITY_ROW_GLYPH } from "@/lib/priority-glyph"
 import { TaskFieldRow } from "./TaskFieldRow"
@@ -763,7 +763,7 @@ export function TaskFieldEditors({
                   <div className="flex justify-end space-x-2 mt-2">
                     <Button
                       variant="default"
-                      size="sm"
+                      size="sm" disabled={!isCustomPatternSavable(tempRepeatingData)}
                       onClick={() => handleSaveRepeating('custom')}
                     >
                       Save Custom Pattern

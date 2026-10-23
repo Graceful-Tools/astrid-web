@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useId } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon, X, Check } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
+import { useTranslations } from '@/lib/i18n/client'
 import type { 
   CustomRepeatingPattern,
   DailyRepeatingPattern,
@@ -54,6 +55,8 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
   })
 
   const [showEndDatePicker, setShowEndDatePicker] = useState(false)
+  const fieldId = useId()
+  const { t } = useTranslations()
 
   useEffect(() => {
     onChange(pattern)
@@ -110,14 +113,14 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
   const handleWeekdayToggle = (weekday: Weekday) => {
     if (pattern.unit !== 'weeks') return
     
+    // An empty set is allowed WHILE editing, so the only day can be swapped
+    // for another; isCustomPatternSavable keeps it from being saved (AWTD-1352).
     const currentWeekdays = pattern.weekdays || []
     const newWeekdays = currentWeekdays.includes(weekday)
       ? currentWeekdays.filter(w => w !== weekday)
       : [...currentWeekdays, weekday]
-    
-    if (newWeekdays.length > 0) {
-      updatePattern({ weekdays: newWeekdays })
-    }
+
+    updatePattern({ weekdays: newWeekdays })
   }
 
   const handleMonthRepeatTypeChange = (type: MonthRepeatType) => {
@@ -144,13 +147,12 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
       {/* Basic Settings */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="theme-text-muted">Repeat every</Label>
+          <Label htmlFor={`${fieldId}-interval`} className="theme-text-muted">Repeat every</Label>
           <div className="flex items-center space-x-2 mt-1">
-            <Input
-              type="number"
-              min="1"
+            <NumberField
+              id={`${fieldId}-interval`}
               value={pattern.interval}
-              onChange={(e) => updatePattern({ interval: parseInt(e.target.value) || 1 })}
+              onCommit={(interval) => updatePattern({ interval })}
               className="w-20 theme-input"
             />
             <Select value={pattern.unit} onValueChange={handleUnitChange}>
@@ -176,17 +178,23 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
             {WEEKDAYS.map(({ value, label, short }) => (
               <div key={value} className="flex items-center space-x-2">
                 <Checkbox
-                  id={value}
+                  id={`${fieldId}-${value}`}
+                  aria-label={label}
                   checked={pattern.weekdays?.includes(value) || false}
                   onCheckedChange={() => handleWeekdayToggle(value)}
                   className="theme-border"
                 />
-                <Label htmlFor={value} className="text-sm theme-text-muted cursor-pointer">
+                <Label htmlFor={`${fieldId}-${value}`} className="text-sm theme-text-muted cursor-pointer">
                   {short}
                 </Label>
               </div>
             ))}
           </div>
+          {(pattern.weekdays?.length ?? 0) === 0 && (
+            <p className="text-xs theme-text-muted mt-1" role="status">
+              {t('repeating.pickAtLeastOneDay')}
+            </p>
+          )}
         </div>
       )}
 
@@ -212,12 +220,10 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
           {pattern.monthRepeatType === 'same_date' && (
             <div>
               <Label className="theme-text-muted">Day of month</Label>
-              <Input
-                type="number"
-                min="1"
-                max="31"
+              <NumberField
+                max={31}
                 value={pattern.monthDay || 1}
-                onChange={(e) => updatePattern({ monthDay: parseInt(e.target.value) || 1 })}
+                onCommit={(monthDay) => updatePattern({ monthDay })}
                 className="w-20 theme-input mt-1"
               />
             </div>
@@ -295,12 +301,10 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
           </div>
           <div>
             <Label className="theme-text-muted">Day</Label>
-            <Input
-              type="number"
-              min="1"
-              max="31"
+            <NumberField
+              max={31}
               value={pattern.day || 1}
-              onChange={(e) => updatePattern({ day: parseInt(e.target.value) || 1 })}
+              onCommit={(day) => updatePattern({ day })}
               className="w-20 theme-input mt-1"
             />
           </div>
@@ -327,11 +331,9 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
         {pattern.endCondition === 'after_occurrences' && (
           <div className="mt-2">
             <Label className="theme-text-muted">Number of occurrences</Label>
-            <Input
-              type="number"
-              min="1"
+            <NumberField
               value={pattern.endAfterOccurrences || 1}
-              onChange={(e) => updatePattern({ endAfterOccurrences: parseInt(e.target.value) || 1 })}
+              onCommit={(endAfterOccurrences) => updatePattern({ endAfterOccurrences })}
               className="w-20 theme-input mt-1"
             />
           </div>
@@ -370,6 +372,71 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
         )}
       </div>
     </div>
+  )
+}
+
+/**
+ * Whether a pattern is complete enough to save. The editor lets a weekly
+ * pattern's days go empty mid-edit (AWTD-1352), so the Save button asks this
+ * rather than the editor refusing the edit.
+ */
+export function isCustomPatternSavable(pattern: CustomRepeatingPattern | undefined | null): boolean {
+  if (!pattern) return false
+  if (pattern.unit === 'weeks') return (pattern.weekdays?.length ?? 0) > 0
+  return true
+}
+
+/**
+ * A positive-integer input that keeps what the user typed — including an empty
+ * field — and only falls back to the last good value when it loses focus.
+ * Clamping on every keystroke turned a cleared "4" into "1", so retyping gave
+ * "14" (AWTD-1352).
+ */
+function NumberField({
+  value,
+  onCommit,
+  max,
+  id,
+  className,
+}: {
+  value: number
+  onCommit: (value: number) => void
+  max?: number
+  id?: string
+  className?: string
+}) {
+  const [draft, setDraft] = useState(String(value))
+
+  useEffect(() => {
+    setDraft(prev => (parseInt(prev, 10) === value ? prev : String(value)))
+  }, [value])
+
+  const parse = (text: string): number | null => {
+    const n = parseInt(text, 10)
+    if (!Number.isFinite(n) || n < 1) return null
+    return max !== undefined ? Math.min(n, max) : n
+  }
+
+  return (
+    <Input
+      id={id}
+      type="number"
+      inputMode="numeric"
+      min="1"
+      max={max}
+      value={draft}
+      onChange={(e) => {
+        setDraft(e.target.value)
+        const n = parse(e.target.value)
+        if (n !== null) onCommit(n)
+      }}
+      onBlur={() => {
+        const n = parse(draft) ?? value
+        setDraft(String(n))
+        if (n !== value) onCommit(n)
+      }}
+      className={className}
+    />
   )
 }
 
