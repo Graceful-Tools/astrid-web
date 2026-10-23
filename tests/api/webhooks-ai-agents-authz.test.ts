@@ -111,7 +111,7 @@ describe('POST /api/webhooks/ai-agents authorization (AWTD-1341)', () => {
   })
 
   /*
-   * REAL BUG (AWTD-1341): app/api/webhooks/ai-agents/route.ts:179-190 looks
+   * FIXED (AWTD-1344/1345), found by AWTD-1341: app/api/webhooks/ai-agents/route.ts:179-190 looks
    * the token up with `token: payload.accessToken` — a verbatim compare
    * against the `token` column, which now holds the SHA-256 hash
    * (lib/mcp-token.ts). Every other MCP-token lookup goes through
@@ -124,13 +124,13 @@ describe('POST /api/webhooks/ai-agents authorization (AWTD-1341)', () => {
    *   3. `expiresAt` is not checked, so an expired token is accepted.
    * Flip these to `it` when the lookup uses mcpTokenLookup + the expiry OR.
    */
-  it.fails('AWTD-1341 BUG: looks the token up by its hash, never by the raw presented value', async () => {
+  it('AWTD-1344/1345 (was AWTD-1341 BUG): looks the token up by its hash, never by the raw presented value', async () => {
     await post(payload())
     const where = tokenFindFirst.mock.calls[0][0].where
     expect(where.token).toEqual({ in: expect.arrayContaining([hashMCPToken(PLAINTEXT)]) })
   })
 
-  it.fails('AWTD-1341 BUG: a stored hash presented as the bearer is not a credential', async () => {
+  it('AWTD-1344/1345 (was AWTD-1341 BUG): a stored hash presented as the bearer is not a credential', async () => {
     const storedHash = hashMCPToken(PLAINTEXT)
     await post(payload({ accessToken: storedHash }))
     const where = tokenFindFirst.mock.calls[0][0].where
@@ -138,7 +138,7 @@ describe('POST /api/webhooks/ai-agents authorization (AWTD-1341)', () => {
     expect(JSON.stringify(where.token)).not.toContain(`"${storedHash}"`)
   })
 
-  it.fails('AWTD-1341 BUG: an expired token is refused', async () => {
+  it('AWTD-1344/1345 (was AWTD-1341 BUG): an expired token is refused', async () => {
     await post(payload())
     const where = tokenFindFirst.mock.calls[0][0].where
     expect(where.OR).toEqual([{ expiresAt: null }, { expiresAt: { gt: expect.any(Date) } }])

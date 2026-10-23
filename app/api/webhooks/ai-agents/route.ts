@@ -1,6 +1,7 @@
 import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { mcpTokenLookup } from "@/lib/mcp-token"
 import { aiAgentWebhookService } from "@/lib/ai-agent-webhook-service"
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { RATE_LIMITS, withRateLimitAsync } from "@/lib/rate-limiter"
@@ -176,10 +177,15 @@ export async function POST(request: NextRequest) {
     const payload = IncomingWebhookSchema.parse(body)
 
     // Validate access token
+    // By hash (mcpTokenLookup), never the raw value: the column stores the
+    // SHA-256, so matching it verbatim made the stored hash itself a
+    // credential and real tokens never matched; and expired tokens are
+    // refused like everywhere else (AWTD-1345).
     const mcpToken = await prisma.mCPToken.findFirst({
       where: {
-        token: payload.accessToken,
+        token: { in: mcpTokenLookup(payload.accessToken) },
         isActive: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
         user: {
           isAIAgent: true,
           id: payload.aiAgent.id

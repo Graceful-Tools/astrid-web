@@ -110,13 +110,13 @@ describe('POST /api/secure-files/:fileId/confirm-upload authorization (AWTD-1341
   })
 
   /*
-   * REAL BUG (AWTD-1341): confirm-upload/route.ts:84-85 deletes
+   * FIXED (AWTD-1344/1345), found by AWTD-1341: confirm-upload/route.ts:84-85 deletes
    * `oldBlobUrl || existingFile.blobUrl`, and `oldBlobUrl` comes straight from
    * the request body. The uploader of ANY file can therefore delete an
    * arbitrary blob — another user's attachment — by naming its URL. Only the
    * file's own stored blobUrl should ever be deleted here.
    */
-  it.fails('AWTD-1341 BUG: the uploader cannot delete a blob that is not this file\'s via oldBlobUrl', async () => {
+  it('AWTD-1344/1345 (was AWTD-1341 BUG): the uploader cannot delete a blob that is not this file\'s via oldBlobUrl', async () => {
     signIn('owner-1')
     const victim = 'https://blob.example/files/victim-1/secret-1.pdf'
     await confirmUpload(req('confirm-upload', { ...body, oldBlobUrl: victim }), ctx)
@@ -124,14 +124,14 @@ describe('POST /api/secure-files/:fileId/confirm-upload authorization (AWTD-1341
   })
 
   /*
-   * REAL BUG (AWTD-1341): confirm-upload/route.ts:72-80 stores the
+   * FIXED (AWTD-1344/1345), found by AWTD-1341: confirm-upload/route.ts:72-80 stores the
    * body's `blobUrl` without checking it is the pathname upload-url minted
    * (`files/<uploader>/<fileId>-…`). The uploader can point their own file
    * row at another user's blob and then read it back through
    * GET /api/secure-files/:fileId, which signs a download for whatever
    * blobUrl the row holds.
    */
-  it.fails('AWTD-1341 BUG: the uploader cannot point their file at another user\'s blob', async () => {
+  it('AWTD-1344/1345 (was AWTD-1341 BUG): the uploader cannot point their file at another user\'s blob', async () => {
     signIn('owner-1')
     const res = await confirmUpload(
       req('confirm-upload', { blobUrl: 'https://blob.example/files/victim-1/secret-1.pdf' }),
