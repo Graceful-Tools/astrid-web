@@ -182,12 +182,19 @@ export function ListInsightsView({ insights: showing, failed, days, onDaysChange
                         <span className="truncate text-sm theme-text-primary">{person.name ?? "—"}</span>
                         {person.isAIAgent && <Bot className="h-3 w-3 shrink-0 theme-text-muted" />}
                       </div>
+                      {/* The profile's metrics, for this list (AWTD-1333), then activity. */}
+                      <div className="text-xs theme-text-secondary">
+                        {t("listInsights.profileCounts", {
+                          completed: String(person.completed),
+                          inspired: String(person.inspired),
+                          supported: String(person.supported),
+                        })}
+                      </div>
                       <div className="text-xs theme-text-muted">
-                        {t("listInsights.contributorCounts", {
+                        {t("listInsights.activityCounts", {
                           created: String(person.created),
                           edited: String(person.edited),
                           commented: String(person.commented),
-                          completed: String(person.completed),
                         })}
                       </div>
                     </div>

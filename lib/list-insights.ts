@@ -41,6 +41,8 @@ export interface InsightTask {
   id: string
   createdAt: Date
   creatorId: string | null
+  /** Who the profile's "completed" credits (lib/user-stats.ts) — AWTD-1333. */
+  assigneeId: string | null
   completed: boolean
   completedAt: Date | null
   repeating: string | null
@@ -56,6 +58,8 @@ export interface InsightEvent {
 }
 
 export interface InsightComment {
+  /** Which task — "supported" is a comment on someone else's task. */
+  taskId: string
   authorId: string | null
   createdAt: Date
 }
@@ -105,10 +109,21 @@ export interface InsightContributor {
   name: string | null
   image: string | null
   isAIAgent: boolean
+  /**
+   * The profile's metrics (lib/user-stats.ts), scoped to this list and window
+   * — what contributors are ranked by (AWTD-1333, Jon: "use the profile
+   * metrics in the list metrics"). Completed credits the task's assignee;
+   * inspired credits its creator when someone else was the assignee;
+   * supported counts comments on tasks someone else created.
+   */
+  completed: number
+  inspired: number
+  supported: number
+  /** Activity, shown under the profile metrics and breaking ties. */
   created: number
   edited: number
   commented: number
-  completed: number
+  /** completed + inspired + supported. */
   total: number
 }
 
@@ -185,14 +200,24 @@ export function computeListInsights(input: ListInsightsInput): ListInsights {
   const counts = new Map(keys.map(key => [key, { created: 0, completed: 0 }]))
 
   const contributors = new Map<string, Omit<InsightContributor, 'name' | 'image' | 'isAIAgent' | 'total'>>()
-  const credit = (userId: string | null, field: 'created' | 'edited' | 'commented' | 'completed') => {
+  type Counted = 'completed' | 'inspired' | 'supported' | 'created' | 'edited' | 'commented'
+  const credit = (userId: string | null, field: Counted) => {
     if (!userId) return
-    const row = contributors.get(userId) ?? { userId, created: 0, edited: 0, commented: 0, completed: 0 }
+    const row = contributors.get(userId) ?? {
+      userId, completed: 0, inspired: 0, supported: 0, created: 0, edited: 0, commented: 0,
+    }
     row[field] += 1
     contributors.set(userId, row)
   }
 
-  const taskIds = new Set(input.tasks.map(task => task.id))
+  const tasksById = new Map(input.tasks.map(task => [task.id, task]))
+  const taskIds = new Set(tasksById.keys())
+  // The profile's credit for one completion: the assignee completed it, and
+  // its creator inspired it when that was someone else.
+  const creditCompletion = (task: InsightTask) => {
+    credit(task.assigneeId, 'completed')
+    if (task.creatorId && task.creatorId !== task.assigneeId) credit(task.creatorId, 'inspired')
+  }
   const events = input.events.filter(event => taskIds.has(event.taskId)).sort(byTime)
 
   for (const task of input.tasks) {
@@ -211,7 +236,7 @@ export function computeListInsights(input: ListInsightsInput): ListInsights {
       if (!inWindow.has(day)) continue
       counts.get(day)!.completed += 1
       completedInWindowByEvent.add(event.taskId)
-      credit(event.actorId, 'completed')
+      creditCompletion(tasksById.get(event.taskId)!)
     } else if (INSIGHT_EDIT_KINDS.has(event.kind) && inWindow.has(dayOf(event.createdAt))) {
       credit(event.actorId, 'edited')
     }
@@ -219,11 +244,16 @@ export function computeListInsights(input: ListInsightsInput): ListInsights {
   for (const task of input.tasks) {
     if (!task.completed || !task.completedAt || completedInWindowByEvent.has(task.id)) continue
     const day = dayOf(task.completedAt)
-    if (inWindow.has(day)) counts.get(day)!.completed += 1
+    if (!inWindow.has(day)) continue
+    counts.get(day)!.completed += 1
+    creditCompletion(task)
   }
 
   for (const comment of input.comments) {
-    if (inWindow.has(dayOf(comment.createdAt))) credit(comment.authorId, 'commented')
+    if (!taskIds.has(comment.taskId) || !inWindow.has(dayOf(comment.createdAt))) continue
+    credit(comment.authorId, 'commented')
+    const creatorId = tasksById.get(comment.taskId)!.creatorId
+    if (comment.authorId && creatorId !== comment.authorId) credit(comment.authorId, 'supported')
   }
 
   // Create → complete, for one-off tasks finished in the window. A repeating task's createdAt is
@@ -254,10 +284,14 @@ export function computeListInsights(input: ListInsightsInput): ListInsights {
           name: user?.name ?? null,
           image: user?.image ?? null,
           isAIAgent: user?.isAIAgent ?? false,
-          total: row.created + row.edited + row.commented + row.completed,
+          total: row.completed + row.inspired + row.supported,
         }
       })
-      .sort((a, b) => b.total - a.total || (a.name ?? '').localeCompare(b.name ?? '') || a.userId.localeCompare(b.userId))
+      .sort((a, b) =>
+        b.total - a.total ||
+        (b.created + b.edited + b.commented) - (a.created + a.edited + a.commented) ||
+        (a.name ?? '').localeCompare(b.name ?? '') ||
+        a.userId.localeCompare(b.userId))
       .slice(0, INSIGHT_TOP_CONTRIBUTORS),
   }
 }

@@ -21,6 +21,7 @@ function task(overrides: Partial<InsightTask> & { id: string }): InsightTask {
   return {
     createdAt: new Date('2026-10-20T12:00:00Z'),
     creatorId: 'jon',
+    assigneeId: null,
     completed: false,
     completedAt: null,
     repeating: 'never',
@@ -203,31 +204,72 @@ describe('time in each lane (boards)', () => {
 })
 
 describe('top contributors', () => {
-  it('credits creates, edits, comments and completions to whoever did them', () => {
+  it('credits creates, edits and comments to whoever did them (AWTD-1329)', () => {
     const day = new Date('2026-10-21T10:00:00Z')
     const result = computeListInsights(input({
       tasks: [task({ id: 'a', creatorId: 'jon', createdAt: day }), task({ id: 'b', creatorId: 'claude', createdAt: day })],
       events: [
         event({ taskId: 'a', kind: 'priority_changed', actorId: 'claude', createdAt: day }),
         event({ taskId: 'a', kind: 'status_changed', actorId: 'claude', createdAt: day }),
-        event({ taskId: 'a', kind: 'completed', actorId: 'claude', createdAt: day }),
         // Not an edit: its birth.
         event({ taskId: 'a', kind: 'created', actorId: 'jon', createdAt: day }),
         // System change, no actor.
         event({ taskId: 'b', kind: 'title_changed', actorId: null, createdAt: day }),
       ],
-      comments: [{ authorId: 'jon', createdAt: day }, { authorId: null, createdAt: day }],
+      comments: [{ taskId: 'a', authorId: 'jon', createdAt: day }, { taskId: 'a', authorId: null, createdAt: day }],
     }))
-    expect(result.contributors).toEqual([
-      { userId: 'claude', name: 'Claude', image: null, isAIAgent: true, created: 1, edited: 2, commented: 0, completed: 1, total: 4 },
-      { userId: 'jon', name: 'Jon', image: null, isAIAgent: false, created: 1, edited: 0, commented: 1, completed: 0, total: 2 },
-    ])
+    const byId = Object.fromEntries(result.contributors.map(c => [c.userId, c]))
+    expect(byId.claude).toMatchObject({ created: 1, edited: 2, commented: 0 })
+    expect(byId.jon).toMatchObject({ created: 1, edited: 0, commented: 1 })
+  })
+
+  // AWTD-1333 (Jon: "You can use the profile metrics in the list metrics"):
+  // completed / inspired / supported, as lib/user-stats.ts defines them,
+  // scoped to the list and the window.
+  it('uses the profile metrics: completed by assignee, inspired by creator, supported on others\' tasks (AWTD-1333)', () => {
+    const day = new Date('2026-10-21T10:00:00Z')
+    const result = computeListInsights(input({
+      tasks: [
+        // Jon's task, done by Claude: Claude completed it, Jon inspired it.
+        task({ id: 'a', creatorId: 'jon', assigneeId: 'claude', createdAt: day }),
+        // Claude's own task, done by Claude: completed, but nobody was inspired.
+        task({ id: 'b', creatorId: 'claude', assigneeId: 'claude', createdAt: day, completed: true, completedAt: day }),
+      ],
+      events: [
+        // Who clicked "complete" no longer decides the credit — the assignee does.
+        event({ taskId: 'a', kind: 'completed', actorId: 'jon', createdAt: day }),
+      ],
+      comments: [
+        // On someone else's task: supported.
+        { taskId: 'a', authorId: 'claude', createdAt: day },
+        // On their own task: a comment, not support.
+        { taskId: 'a', authorId: 'jon', createdAt: day },
+      ],
+    }))
+    const byId = Object.fromEntries(result.contributors.map(c => [c.userId, c]))
+    expect(byId.claude).toMatchObject({ completed: 2, inspired: 0, supported: 1 })
+    expect(byId.jon).toMatchObject({ completed: 0, inspired: 1, supported: 0 })
+  })
+
+  it('ranks contributors by the profile metrics, activity breaking ties (AWTD-1333)', () => {
+    const day = new Date('2026-10-21T10:00:00Z')
+    const result = computeListInsights(input({
+      // Jon created three tasks nobody finished — more activity, no profile
+      // metric. Claude created and finished one: less activity, completed 1.
+      tasks: [
+        task({ id: 'a', creatorId: 'jon', createdAt: day }),
+        task({ id: 'b', creatorId: 'jon', createdAt: day }),
+        task({ id: 'c', creatorId: 'jon', createdAt: day }),
+        task({ id: 'd', creatorId: 'claude', assigneeId: 'claude', createdAt: day, completed: true, completedAt: day }),
+      ],
+    }))
+    expect(result.contributors.map(c => c.userId)).toEqual(['claude', 'jon'])
   })
 
   it('counts only activity inside the window', () => {
     const result = computeListInsights(input({
       tasks: [task({ id: 'a', createdAt: new Date('2026-01-01T00:00:00Z') })],
-      comments: [{ authorId: 'jon', createdAt: new Date('2026-01-02T00:00:00Z') }],
+      comments: [{ taskId: 'a', authorId: 'jon', createdAt: new Date('2026-01-02T00:00:00Z') }],
     }))
     expect(result.contributors).toEqual([])
   })
