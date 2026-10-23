@@ -1,7 +1,12 @@
 import { test, expect, devices } from '@playwright/test'
 
+// The iPhone 13 profile without its WebKit override: the signed-in project
+// runs Chromium (the only browser CI installs), and a browser change cannot be
+// made inside a describe group anyway (AWTD-1338).
+const { defaultBrowserType: _webkit, ...iPhone13 } = devices['iPhone 13']
+test.use(iPhone13)
+
 test.describe('Mobile Pull-to-Refresh', () => {
-  test.use({ ...devices['iPhone 13'] })
 
   test.beforeEach(async ({ page }) => {
     // Navigate to the app and ensure user is logged in

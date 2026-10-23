@@ -55,6 +55,19 @@ async function main() {
     create: { email: 'playwright-outsider@example.test', name: 'Playwright Outsider' },
   })
 
+  // The board specs need Project Mode (AWTD-1338): /api/projects/from-list
+  // answers 403 "not enabled for this account" without it. The flag row exists
+  // after `prisma migrate deploy`; the owner is INCLUDEd rather than rolling it
+  // out to everyone, so the outsider still sees the account default.
+  const projectMode = await prisma.featureFlag.findUnique({ where: { key: 'project_mode' } })
+  if (projectMode) {
+    await prisma.featureFlagTarget.upsert({
+      where: { featureFlagId_userId: { featureFlagId: projectMode.id, userId: owner.id } },
+      update: { treatment: 'INCLUDE' },
+      create: { featureFlagId: projectMode.id, userId: owner.id, treatment: 'INCLUDE' },
+    })
+  }
+
   await Promise.all([
     writeState('user.json', owner),
     writeState('outsider.json', outsider),
