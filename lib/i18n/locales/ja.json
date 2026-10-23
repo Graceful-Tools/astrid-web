@@ -213,7 +213,8 @@
     "weekly": "毎週",
     "monthly": "毎月",
     "yearly": "毎年",
-    "custom": "カスタム"
+    "custom": "カスタム",
+    "pickAtLeastOneDay": "少なくとも1日を選択してください"
   },
   "weekdays": {
     "sunday": "日曜日",

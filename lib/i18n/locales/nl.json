@@ -213,7 +213,8 @@
     "weekly": "Wekelijks",
     "monthly": "Maandelijks",
     "yearly": "Jaarlijks",
-    "custom": "Aangepast"
+    "custom": "Aangepast",
+    "pickAtLeastOneDay": "Kies minstens één dag"
   },
   "weekdays": {
     "sunday": "Zondag",

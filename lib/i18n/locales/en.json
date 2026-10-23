@@ -213,7 +213,8 @@
     "weekly": "Weekly",
     "monthly": "Monthly",
     "yearly": "Yearly",
-    "custom": "Custom"
+    "custom": "Custom",
+    "pickAtLeastOneDay": "Pick at least one day"
   },
   "weekdays": {
     "sunday": "Sunday",
