@@ -37,11 +37,6 @@ vi.mock('@/hooks/useKeyboardShortcuts', () => ({
   KEYBOARD_SHORTCUTS: []
 }))
 
-// Mock UserMenu
-vi.mock('@/components/auth/user-menu', () => ({
-  UserMenu: () => <div data-testid="user-menu">User Menu</div>
-}))
-
 // Mock LoadingScreen
 vi.mock('@/components/loading-screen', () => ({
   LoadingScreen: () => <div data-testid="loading-screen">Loading...</div>

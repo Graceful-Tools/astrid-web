@@ -38,15 +38,6 @@ const mockSession = {
   }
 }
 
-// Mock OpenAI functions
-vi.mock('@/lib/openai', () => ({
-  generateListImage: vi.fn(() => Promise.resolve(null)), // Return null to skip image generation
-}))
-
-vi.mock('@/lib/openai-config', () => ({
-  validateOpenAIConfig: vi.fn(() => false), // Return false to skip image generation
-}))
-
 // Mock NextRequest and NextResponse
 const createMockRequest = (method: string, body?: any) => {
   const request = {

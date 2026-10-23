@@ -67,17 +67,9 @@ npm run test:e2e           # Run all tests (headless)
 - ✅ Sharing & collaboration
 - ✅ Public/private lists
 
-### Responsive (`e2e/responsive.spec.ts`)
-- ✅ Mobile layouts
-- ✅ Tablet layouts
-- ✅ Desktop layouts
-- ✅ Orientation changes
-
-### Performance (`e2e/performance.spec.ts`)
-- ✅ Load times
-- ✅ Core Web Vitals
-- ✅ API performance
-- ✅ Offline handling
+### Layout (`e2e/layout-regression.spec.ts`, `e2e/mobile-*.spec.ts`)
+- ✅ Computer and tablet column layouts
+- ✅ Mobile shell and header
 
 ### Accessibility (`e2e/accessibility.spec.ts`)
 - ✅ Keyboard navigation
@@ -107,7 +99,7 @@ test('my feature works', async ({ page }) => {
 })
 ```
 
-**See `e2e/example.spec.ts` for more patterns!**
+**See `e2e/auth.spec.ts` for patterns, and add your spec to a project's `testMatch` in `playwright.config.ts` — specs outside every project never run.**
 
 ---
 
