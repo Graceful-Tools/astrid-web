@@ -8,7 +8,7 @@
  *   - a completed, past-due or undated task is cancelled and not rescheduled;
  *   - with no active service worker nothing is posted and nothing throws;
  *   - END TO END through the real public/sw.js: a re-update never doubles a
- *     reminder, and (the it.fails) both reminders should survive.
+ *     reminder, and both reminders survive (AWTD-1346).
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -120,17 +120,13 @@ describe('clientReminderSync.updateTaskReminders (AWTD-1342)', () => {
   })
 
   /**
-   * REAL BUG (AWTD-1342): public/sw.js:634-667 keys `scheduledReminders` by
-   * taskId alone and scheduleClientReminder() starts with
-   * cancelClientReminder(taskId) (sw.js:647). The client schedules TWO
-   * reminders per task (lib/client-reminder-sync.ts:~130-160), so the overdue
-   * SCHEDULE_REMINDER cancels the due one that arrived a moment earlier: the
-   * service worker never shows "Task Due", only "Task Overdue".
-   * syncRemindersWithServer (sw.js:731) has the same collapse for a server list
-   * holding both kinds. Fix: key by `${taskId}:${type}` and have
-   * cancelClientReminder(taskId) clear every key for the task.
+   * AWTD-1346 (found by AWTD-1342): public/sw.js kept ONE reminder per task.
+   * `scheduledReminders` was keyed by taskId and scheduleClientReminder()
+   * started with cancelClientReminder(taskId). The client schedules TWO
+   * reminders per task, so the overdue SCHEDULE_REMINDER cancelled the due one
+   * that arrived a moment earlier, and "Task Due" never fired.
    */
-  it.fails('through public/sw.js, both the due and the overdue reminder fire', async () => {
+  it('AWTD-1346: through public/sw.js, both the due and the overdue reminder fire', async () => {
     const sync = await loadSync(true)
     vi.useFakeTimers({ now: NOW, toFake: ['Date', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
     const shown: string[] = []
@@ -141,6 +137,28 @@ describe('clientReminderSync.updateTaskReminders (AWTD-1342)', () => {
     await vi.advanceTimersByTimeAsync(3 * 60 * MIN + 1)
 
     expect(shown).toEqual(['Task Due', 'Task Overdue'])
+  })
+
+  it('AWTD-1346: SYNC_REMINDERS keeps both kinds for one task, and CANCEL_REMINDER clears both', async () => {
+    vi.useFakeTimers({ now: NOW, toFake: ['Date', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
+    const shown: string[] = []
+    const sw = runServiceWorker(title => shown.push(title))
+    const reminder = (type: string, offset: number) => ({
+      taskId: 'task1', title: 'Ship it', type, userId: 'u1', status: 'pending',
+      scheduledFor: new Date(Date.now() + offset).toISOString(),
+    })
+    const sync = (reminders: unknown[]) => sw.onMessage({ data: { type: 'SYNC_REMINDERS', data: { reminders } } })
+
+    sync([reminder('due_reminder', 60 * MIN), reminder('overdue_reminder', 2 * 60 * MIN)])
+    sync([reminder('due_reminder', 60 * MIN), reminder('overdue_reminder', 2 * 60 * MIN)]) // a re-sync must not double up
+    await vi.advanceTimersByTimeAsync(3 * 60 * MIN)
+    expect(shown).toEqual(['Task Due', 'Task Overdue'])
+
+    shown.length = 0
+    sync([reminder('due_reminder', 30 * MIN), reminder('overdue_reminder', 40 * MIN)])
+    sw.onMessage({ data: { type: 'CANCEL_REMINDER', data: { taskId: 'task1' } } })
+    await vi.advanceTimersByTimeAsync(60 * MIN)
+    expect(shown).toEqual([])
   })
 })
 
