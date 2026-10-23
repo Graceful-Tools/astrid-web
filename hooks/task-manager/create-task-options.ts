@@ -23,3 +23,18 @@ export interface CreateTaskOptions {
    */
   parentTaskId?: string | null
 }
+
+/**
+ * Should a just-created task open in the detail pane (AWTD-1351)?
+ *
+ * Only when the caller asked — quick add's button does, Enter does not — and
+ * only where the pane sits beside the list. Creating used to select every new
+ * task on a multi-column layout regardless, without writing `?task=`, so the
+ * row's toggle treated the first click on it as "close".
+ */
+export function shouldOpenCreatedTask(
+  options: CreateTaskOptions | undefined,
+  columnCount: number,
+): boolean {
+  return options?.navigateToDetail === true && columnCount >= 2
+}
