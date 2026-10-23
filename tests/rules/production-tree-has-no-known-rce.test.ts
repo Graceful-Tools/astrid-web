@@ -185,9 +185,12 @@ const ADVISORY_FLOORS: Array<{
   },
   {
     name: 'dompurify',
-    minVersion: '3.4.16',
-    severity: 'low',
+    minVersion: '3.4.17',
+    severity: 'critical',
     advisory:
+      'GHSA-cg2g-xh64-v4q7 (SAFE_FOR_TEMPLATES bypass via shadow root content; >=3.4.4 <=3.4.16), ' +
+      'GHSA-mrv2-3pqr-j5jr (incomplete fix for GHSA-p98j-92pf-mc4p) and GHSA-c6gr-qvv4-5v3f ' +
+      '(SMIL href guard under xhtml); <=3.4.16 — AWTD-1331. ' +
       'GHSA-p98j-92pf-mc4p (IN_PLACE afterSanitize hook leaves detached handlers armed, ' +
       'DOM XSS); >=3.4.13 <=3.4.15 — AWTD-1068. A direct dependency',
   },
