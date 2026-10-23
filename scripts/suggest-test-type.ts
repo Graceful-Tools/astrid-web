@@ -108,22 +108,20 @@ async function analyzeChange(): Promise<TestRecommendation> {
     // Suggest specific E2E file
     console.log('\n6. Which area does this affect?')
     console.log('   a) Authentication/sign-in')
-    console.log('   b) Tasks (create, edit, complete)')
-    console.log('   c) Lists (create, manage, share)')
-    console.log('   d) Mobile/responsive behavior')
-    console.log('   e) Performance')
-    console.log('   f) Accessibility')
-    console.log('   g) Other/new workflow')
-    const area = await ask('   Your answer (a/b/c/d/e/f/g): ')
+    console.log('   b) Tasks or lists (signed-in create, edit, complete, manage)')
+    console.log('   c) Layout / mobile / responsive behavior')
+    console.log('   d) Locale routing / i18n')
+    console.log('   e) Other/new workflow')
+    const area = await ask('   Your answer (a/b/c/d/e): ')
 
+    // Only specs a Playwright project in playwright.config.ts actually runs.
+    // A spec outside every project's testMatch is never executed (AWTD-1340).
     const areaMap: Record<string, string> = {
       a: 'e2e/auth.spec.ts',
-      b: 'e2e/tasks.spec.ts',
-      c: 'e2e/lists.spec.ts',
-      d: 'e2e/responsive.spec.ts',
-      e: 'e2e/performance.spec.ts',
-      f: 'e2e/accessibility.spec.ts',
-      g: 'e2e/[feature-name].spec.ts (create new file)',
+      b: 'e2e/authenticated-critical-paths.spec.ts',
+      c: 'e2e/layout-regression.spec.ts',
+      d: 'e2e/locale-navigation.spec.ts',
+      e: 'e2e/[feature-name].spec.ts (create new file AND add it to a project testMatch in playwright.config.ts, or it never runs)',
     }
 
     recommendation.playwrightLocation = areaMap[area] || 'e2e/'

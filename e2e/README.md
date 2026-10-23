@@ -13,8 +13,8 @@ e2e/
 ├── auth.spec.ts             # Authentication flow tests
 ├── tasks.spec.ts            # Task management tests
 ├── lists.spec.ts            # List management tests
-├── responsive.spec.ts       # Responsive design tests
-├── performance.spec.ts      # Performance and Core Web Vitals tests
+├── layout-regression.spec.ts # Column layouts per viewport project
+├── mobile-*.spec.ts         # Mobile shell/header/keyboard behaviour
 ├── accessibility.spec.ts    # Accessibility (a11y) tests
 └── README.md               # This file
 ```
@@ -99,19 +99,9 @@ npm run test:e2e:report
 - Sharing and collaboration
 - Public/private lists
 
-### Responsive Design Tests (`responsive.spec.ts`)
-- Mobile viewport testing
-- Tablet viewport testing
-- Desktop layout verification
-- Orientation changes
-- Touch interactions
-
-### Performance Tests (`performance.spec.ts`)
-- Page load times
-- Core Web Vitals (LCP, FCP, CLS)
-- API response times
-- Network request optimization
-- Offline handling
+### Layout Tests (`layout-regression.spec.ts`, `mobile-*.spec.ts`)
+- Computer and tablet column layouts (one Playwright project per layout)
+- Mobile shell, header and keyboard behaviour
 
 ### Accessibility Tests (`accessibility.spec.ts`)
 - ARIA labels and roles

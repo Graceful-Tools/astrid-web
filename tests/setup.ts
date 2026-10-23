@@ -401,14 +401,6 @@ vi.mock('openai', () => ({
   }))
 }))
 
-// Mock OpenAI module
-vi.mock('@/lib/openai', () => ({
-  generateListImage: vi.fn().mockResolvedValue('https://example.com/generated-image.png'),
-  validateOpenAIConfig: vi.fn().mockReturnValue(false), // Disable OpenAI in tests to avoid complications
-  getAvailableImageStyles: vi.fn().mockReturnValue([]),
-  getAvailableThemes: vi.fn().mockReturnValue([])
-}))
-
 // Mock SSE Manager and related hooks globally
 vi.mock('@/lib/sse-manager', () => ({
   SSEManager: {

@@ -36,19 +36,9 @@ vi.mock('@/components/keyboard-shortcuts-menu', () => ({
   )
 }))
 
-// Mock UserMenu to avoid ThemeProvider requirement
-vi.mock('@/components/auth/user-menu', () => ({
-  UserMenu: () => <div data-testid="user-menu">User Menu</div>
-}))
-
 // Mock LoadingScreen
 vi.mock('@/components/loading-screen', () => ({
   LoadingScreen: () => <div data-testid="loading-screen">Loading...</div>
-}))
-
-// Mock TaskManagerHeader
-vi.mock('@/components/TaskManagerHeader', () => ({
-  default: () => <div data-testid="task-manager-header">Header</div>
 }))
 
 // Mock hooks
@@ -341,14 +331,14 @@ describe('TaskManagerView', () => {
       expect(screen.getByTestId('loading-screen')).toBeInTheDocument()
     })
 
-    it('should call handlers when user interacts', () => {
+    it('reloads data once when the brand logo is clicked, without changing the list', () => {
       render(<TaskManagerView {...mockProps} />)
+      expect(mockProps.loadData).not.toHaveBeenCalled()
 
-      // Find and click the logo (should call loadData)
-      const logo = screen.getByText('astrid')
-      fireEvent.click(logo)
+      fireEvent.click(screen.getByTitle('Go to Home'))
 
-      expect(mockProps.loadData).toHaveBeenCalled()
+      expect(mockProps.loadData).toHaveBeenCalledTimes(1)
+      expect(mockProps.setSelectedListId).not.toHaveBeenCalled()
     })
   })
 
@@ -406,38 +396,9 @@ describe('TaskManagerView', () => {
 
       expect(screen.queryByPlaceholderText('Add a new task...')).not.toBeInTheDocument()
     })
-
-    it('should pass mobile-specific handlers', () => {
-      render(<TaskManagerView {...mockProps} isMobile={true} mobileView="list" />)
-
-      // Verify that mobile-specific handlers are provided as props
-      expect(typeof mockProps.handleQuickTaskKeyDown).toBe('function')
-      expect(typeof mockProps.handleAddTaskButtonClick).toBe('function')
-    })
   })
 
   describe('React Native Compatibility', () => {
-    it('should receive all data as props', () => {
-      render(<TaskManagerView {...mockProps} />)
-
-      // Should not have any internal data fetching or state management
-      // All data should come from props
-      expect(mockProps.tasks).toBeDefined()
-      expect(mockProps.lists).toBeDefined()
-      expect(mockProps.loading).toBeDefined()
-    })
-
-    it('should receive all handlers as props', () => {
-      render(<TaskManagerView {...mockProps} />)
-
-      // Should not have internal business logic
-      // All handlers should come from props
-      expect(typeof mockProps.handleTaskClick).toBe('function')
-      expect(typeof mockProps.handleCreateTask).toBe('function')
-      expect(typeof mockProps.handleUpdateTask).toBe('function')
-      expect(typeof mockProps.handleDeleteTask).toBe('function')
-    })
-
     it('should not contain platform-specific logic', () => {
       const { container } = render(<TaskManagerView {...mockProps} />)
 
@@ -462,39 +423,18 @@ describe('TaskManagerView', () => {
   })
 
   describe('Component Architecture', () => {
-    it('should be a memo component for performance', () => {
-      // Test that the component is memoized
-      const { rerender } = render(<TaskManagerView {...mockProps} />)
-
-      // Rerender with same props should not cause unnecessary re-renders
-      rerender(<TaskManagerView {...mockProps} />)
-
-      // This is more of a documentation test - the actual memo optimization
-      // would be tested through performance profiling
-      expect(true).toBe(true)
+    it('is wrapped in React.memo', () => {
+      expect((TaskManagerView as unknown as { $$typeof: symbol }).$$typeof).toBe(Symbol.for('react.memo'))
     })
 
-    it('should separate presentation from business logic', () => {
-      render(<TaskManagerView {...mockProps} />)
-
-      // Component should only handle presentation
-      // No API calls, no complex state management, no business rules
-      // Everything should be prop-driven
-      expect(mockProps.loadData).toBeDefined()
-      expect(mockProps.handleCreateTask).toBeDefined()
-      expect(mockProps.tasks).toBeDefined()
-    })
-
-    it('should be framework agnostic in terms of business logic', () => {
-      // The component should work with any data structure passed as props
+    it('renders the tasks it is given as props', () => {
       const customTasks = [
         buildTask({ id: '1', title: 'Custom Task', completed: false }),
       ]
 
-      render(<TaskManagerView {...mockProps} tasks={customTasks} />)
+      render(<TaskManagerView {...mockProps} tasks={customTasks} finalFilteredTasks={customTasks} />)
 
-      // Should render whatever is passed in props without assumptions
-      expect(mockProps.getTaskCountForListMemo).toBeDefined()
+      expect(screen.getByText('Custom Task')).toBeInTheDocument()
     })
   })
 })

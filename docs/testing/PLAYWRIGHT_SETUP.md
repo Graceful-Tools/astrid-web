@@ -36,22 +36,14 @@ Playwright has been successfully integrated into your Astrid Task Manager with c
 - Public/private lists
 - Default list behavior
 
-### 4. **Responsive Design Tests** (`e2e/responsive.spec.ts`)
-- Mobile viewport testing (iPhone 12)
-- Tablet viewport testing (iPad Pro)
-- Desktop layout verification
-- Orientation changes
-- Touch interactions
+### 4. **Layout & Mobile Tests** (`e2e/layout-regression.spec.ts`, `e2e/mobile-*.spec.ts`)
+- 1/2/3-column computer and tablet layouts (one Playwright project per layout)
+- Mobile shell, header and keyboard behaviour
 
-### 5. **Performance Tests** (`e2e/performance.spec.ts`)
-- Page load times
-- Core Web Vitals (LCP, FCP)
-- API response times
-- Network request optimization
-- Offline handling
-- Console error detection
+Performance is measured in production by Vercel Speed Insights, not by an e2e
+spec (dev-server timings say nothing about production).
 
-### 6. **Accessibility Tests** (`e2e/accessibility.spec.ts`)
+### 5. **Accessibility Tests** (`e2e/accessibility.spec.ts`)
 - ARIA labels and roles
 - Keyboard navigation
 - Focus indicators
@@ -61,11 +53,8 @@ Playwright has been successfully integrated into your Astrid Task Manager with c
 - Modal focus trapping
 - Reduced motion support
 
-### 7. **Example Template** (`e2e/example.spec.ts`)
-- Reference implementation
-- Common patterns
-- Best practices
-- Different locator strategies
+> Only specs matched by a project's `testMatch` in `playwright.config.ts` run.
+> A new spec must be added there, or it never executes.
 
 ## 🛠️ Test Utilities
 

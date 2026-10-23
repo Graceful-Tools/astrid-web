@@ -19,11 +19,6 @@ vi.mock('@/lib/placeholder-utils', () => ({
   ])
 }))
 
-// Mock OpenAI config
-vi.mock('@/lib/openai-config', () => ({
-  validateOpenAIConfig: vi.fn(() => false)
-}))
-
 // Mock default images
 vi.mock('@/lib/default-images', () => ({
   DEFAULT_LIST_IMAGES: [
