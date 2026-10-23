@@ -23,13 +23,39 @@ describe('sortTasksForList', () => {
     expect(sortTasksForList(tasks, 'priority').map(t => t.id)).toEqual(['high', 'mid', 'low'])
   })
 
-  it('when: earliest due date first, no-date last', () => {
+  // AWTD-1325: "when" read the dropped `Task.when` and the legacy `dueDate`,
+  // which v1 tasks do not carry — so with real rows every comparison was 0 and
+  // the sort did nothing. It follows iOS (`sortTasksByListSetting`) and the
+  // core (D33): completed last, then due date, undated after, ties by priority.
+  it('when (AWTD-1325): sorts by dueDateTime, the field real tasks carry', () => {
     const tasks = [
-      baseTask({ id: 'b', dueDate: new Date('2026-02-10') }),
-      baseTask({ id: 'a', dueDate: new Date('2026-02-01') }),
+      baseTask({ id: 'b', dueDateTime: new Date('2026-02-10T09:00:00Z') }),
+      baseTask({ id: 'a', dueDateTime: new Date('2026-02-01T09:00:00Z') }),
       baseTask({ id: 'none' }),
     ]
     expect(sortTasksForList(tasks, 'when').map(t => t.id)).toEqual(['a', 'b', 'none'])
+  })
+
+  it('when (AWTD-1325): completed last, undated after dated, ties by priority', () => {
+    const due = new Date('2026-02-01T09:00:00Z')
+    const tasks = [
+      baseTask({ id: 'done-early', completed: true, dueDateTime: new Date('2026-01-01T09:00:00Z') }),
+      baseTask({ id: 'undated-high', priority: 3 }),
+      baseTask({ id: 'tie-low', priority: 1, dueDateTime: due }),
+      baseTask({ id: 'tie-high', priority: 3, dueDateTime: due }),
+      baseTask({ id: 'later', dueDateTime: new Date('2026-03-01T09:00:00Z') }),
+    ]
+    expect(sortTasksForList(tasks, 'when').map(t => t.id)).toEqual([
+      'tie-high', 'tie-low', 'later', 'undated-high', 'done-early',
+    ])
+  })
+
+  it('when (AWTD-1325): ignores the legacy dueDate field', () => {
+    const tasks = [
+      baseTask({ id: 'legacy-only', dueDate: new Date('2026-01-01') }),
+      baseTask({ id: 'dated', dueDateTime: new Date('2026-02-01T09:00:00Z') }),
+    ]
+    expect(sortTasksForList(tasks, 'when').map(t => t.id)).toEqual(['dated', 'legacy-only'])
   })
 
   it('auto: incomplete before completed, then priority desc, then due date asc', () => {

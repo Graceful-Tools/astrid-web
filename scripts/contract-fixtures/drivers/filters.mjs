@@ -254,8 +254,8 @@ const result = partition([...dueDate, ...completion, ...sort], [
   },
   {
     entry: 'D33',
-    why: 'sort orders: iOS sinks completed tasks under priority, sorts "when" by dueDateTime, has no assignee/completed/incomplete orders, and puts createdAt newest first',
-    applies: (c) => c.id.startsWith('sort/') && ['priority', 'when', 'assignee', 'completed', 'incomplete', 'createdAt'].includes(c.sortBy),
+    why: 'sort orders: iOS sinks completed tasks under priority, has no assignee/completed/incomplete orders, and puts createdAt newest first ("when" agreed in AWTD-1325: dueDateTime, as iOS)',
+    applies: (c) => c.id.startsWith('sort/') && ['priority', 'assignee', 'completed', 'incomplete', 'createdAt'].includes(c.sortBy),
   },
 ])
 
