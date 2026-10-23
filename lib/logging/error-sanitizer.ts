@@ -16,13 +16,21 @@ const isProduction = process.env.NODE_ENV === 'production'
 // Max stack trace frames to include in production
 const MAX_STACK_FRAMES = 5
 
-// Patterns that might indicate secrets in error messages
+// Patterns that might indicate secrets in error messages.
+//
+// Provider keys contain hyphens and underscores (`sk-ant-api03-…`,
+// `sk-proj-…`), and a pattern that stops at the first one redacts the prefix
+// and logs the secret (AWTD-1336). `\b` keeps `sk-` from matching inside a word
+// such as "risk-assessment". A labelled value (`key=`, `"api_key": "…"`,
+// `token: …`) is redacted up to the next quote, space or delimiter, whatever
+// its characters.
+const LABELLED_VALUE = String.raw`["']?\s*[=:]\s*["']?[^\s"'&,;}]+`
 const SECRET_PATTERNS = [
-  /Bearer\s+[A-Za-z0-9\-_]+/gi,
-  /sk-[A-Za-z0-9]+/gi,
-  /key[=:]\s*["']?[A-Za-z0-9\-_]+["']?/gi,
-  /password[=:]\s*["']?[^\s"']+["']?/gi,
-  /token[=:]\s*["']?[A-Za-z0-9\-_]+["']?/gi,
+  /\bsk-[A-Za-z0-9_-]+/gi,
+  /Bearer\s+[A-Za-z0-9\-_.~+/=]+/gi,
+  new RegExp(`key${LABELLED_VALUE}`, 'gi'),
+  new RegExp(`password${LABELLED_VALUE}`, 'gi'),
+  new RegExp(`token${LABELLED_VALUE}`, 'gi'),
 ]
 
 /**
