@@ -14,14 +14,21 @@ const log = createLogger('rate-limit-stores.redis-store')
  * - When consistent rate limiting across all servers is needed
  *
  * Features:
- * - Atomic increment operations
- * - Automatic expiry via Redis TTL
+ * - Atomic increment: the counter is a Redis integer moved by INCR, so
+ *   concurrent requests each get their own count. It used to be a JSON entry
+ *   read, incremented in JavaScript and written back, and two requests arriving
+ *   together both wrote n+1 — a burst counted as one (AWTD-1337).
+ * - The window is the key's TTL: set by the request that opens it, read back
+ *   with PTTL, and repaired if a process died between INCR and PEXPIRE, so a
+ *   counter can never be left to block forever.
  * - Shared state across all server instances
  */
 export class RedisRateLimitStore implements RateLimitStore {
   private prefix: string
 
-  constructor(prefix: string = 'ratelimit:') {
+  // `v2:` because the value changed from a JSON entry to an integer; INCR on a
+  // key still holding an old entry would error until it expired.
+  constructor(prefix: string = 'ratelimit:v2:') {
     this.prefix = prefix
   }
 
@@ -33,20 +40,11 @@ export class RedisRateLimitStore implements RateLimitStore {
     try {
       const client = await getRedisClient()
       const redisKey = this.getKey(key)
-      const data = await client.get(redisKey)
-
-      if (!data) {
+      const [value, ttlMs] = await Promise.all([client.get(redisKey), client.pTTL(redisKey)])
+      if (value === null || value === undefined || ttlMs < 0) {
         return null
       }
-
-      const entry = JSON.parse(data) as RateLimitEntry
-
-      // Check if entry has expired (shouldn't happen with Redis TTL, but be safe)
-      if (Date.now() > entry.resetTime) {
-        return null
-      }
-
-      return entry
+      return { count: Number(value), resetTime: Date.now() + ttlMs }
     } catch (error) {
       log.error({ err: error }, '[RateLimitStore] Redis get error:')
       return null
@@ -56,46 +54,24 @@ export class RedisRateLimitStore implements RateLimitStore {
   async increment(key: string, windowMs: number): Promise<RateLimitEntry> {
     const redisKey = this.getKey(key)
     const now = Date.now()
-    const ttlSeconds = Math.ceil(windowMs / 1000)
 
     try {
       const client = await getRedisClient()
 
-      // Get current entry
-      const data = await client.get(redisKey)
-      let entry: RateLimitEntry
-
-      if (!data) {
-        // New entry
-        entry = {
-          count: 1,
-          resetTime: now + windowMs
-        }
-      } else {
-        const existing = JSON.parse(data) as RateLimitEntry
-
-        // Check if window has expired
-        if (now > existing.resetTime) {
-          // Start a new window
-          entry = {
-            count: 1,
-            resetTime: now + windowMs
-          }
-        } else {
-          // Increment existing entry
-          entry = {
-            count: existing.count + 1,
-            resetTime: existing.resetTime
-          }
-        }
+      const count = Number(await client.incr(redisKey))
+      // The request that opened the window sets its length.
+      if (count === 1) {
+        await client.pExpire(redisKey, windowMs)
+      }
+      let ttlMs = Number(await client.pTTL(redisKey))
+      if (ttlMs < 0) {
+        // No expiry: the opener died between INCR and PEXPIRE. Give the window
+        // its length now rather than leave a counter that never resets.
+        await client.pExpire(redisKey, windowMs)
+        ttlMs = windowMs
       }
 
-      // Save with TTL
-      // Calculate remaining TTL based on resetTime
-      const remainingTtl = Math.ceil((entry.resetTime - now) / 1000)
-      await client.setEx(redisKey, Math.max(remainingTtl, 1), JSON.stringify(entry))
-
-      return entry
+      return { count, resetTime: now + ttlMs }
     } catch (error) {
       log.error({ err: error }, '[RateLimitStore] Redis increment error:')
       // Return a default entry on error (fail open to not block requests)
