@@ -1163,5 +1163,31 @@
     "bound": "已连接 {title}，正在导入条目…",
     "alreadyBound": "该项目已经是看板",
     "bindError": "无法连接该项目"
+  },
+  "listInsights": {
+    "tab": "洞察",
+    "days7": "7 天",
+    "days30": "30 天",
+    "days90": "90 天",
+    "activity": "活动",
+    "created": "新建",
+    "completed": "已完成",
+    "createdTotal": "新建 {count} 项",
+    "completedTotal": "完成 {count} 项",
+    "timeToComplete": "完成所需时间（中位数）",
+    "timeInLane": "各列停留时间（中位数）",
+    "sampleSize": "基于 {count} 项",
+    "notEnoughHistory": "历史记录还不够",
+    "laneHistoryNote": "从现在开始记录列的移动，随着卡片移动这里会逐渐有数据。",
+    "contributors": "主要贡献者",
+    "contributorCounts": "创建 {created} · 编辑 {edited} · 评论 {commented} · 完成 {completed}",
+    "noActivity": "此期间没有活动",
+    "loadFailed": "无法加载洞察",
+    "loading": "正在加载洞察…",
+    "duration": {
+      "minutes": "{n} 分钟",
+      "hours": "{n} 小时",
+      "days": "{n} 天"
+    }
   }
 }

@@ -1163,5 +1163,31 @@
     "bound": "{title} conectado. Importando sus elementos…",
     "alreadyBound": "Ese proyecto ya es un tablero",
     "bindError": "No se pudo conectar ese proyecto"
+  },
+  "listInsights": {
+    "tab": "Estadísticas",
+    "days7": "7 días",
+    "days30": "30 días",
+    "days90": "90 días",
+    "activity": "Actividad",
+    "created": "Nuevas",
+    "completed": "Completadas",
+    "createdTotal": "{count} nuevas",
+    "completedTotal": "{count} completadas",
+    "timeToComplete": "Tiempo medio hasta completar",
+    "timeInLane": "Tiempo medio en cada columna",
+    "sampleSize": "de {count}",
+    "notEnoughHistory": "Aún no hay suficiente historial",
+    "laneHistoryNote": "Los movimientos entre columnas se registran desde ahora; esto se irá llenando a medida que se muevan las tarjetas.",
+    "contributors": "Principales colaboradores",
+    "contributorCounts": "{created} creadas · {edited} ediciones · {commented} comentarios · {completed} completadas",
+    "noActivity": "Sin actividad en este periodo",
+    "loadFailed": "No se pudieron cargar las estadísticas",
+    "loading": "Cargando estadísticas…",
+    "duration": {
+      "minutes": "{n} min",
+      "hours": "{n} h",
+      "days": "{n} d"
+    }
   }
 }

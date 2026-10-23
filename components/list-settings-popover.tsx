@@ -10,7 +10,8 @@ import { ListAdminSettings } from "./list-admin-settings"
 import type { ProjectBoardColumn } from "@/lib/project-status"
 import { ManageStatusesPanel } from "./list-admin/ManageStatusesPanel"
 import type { TaskList, User } from "../types/task"
-import { Lock, Unlock, Users, Settings, KanbanSquare } from "lucide-react"
+import { Lock, Unlock, Users, Settings, KanbanSquare, BarChart3 } from "lucide-react"
+import { ListInsightsPanel } from "./list-insights/ListInsightsPanel"
 
 interface ListSettingsPopoverProps {
   list: TaskList
@@ -39,6 +40,14 @@ interface ListSettingsPopoverProps {
   onOpenSortAndFilters?: () => void
   children: React.ReactNode
   // No longer need local filter props as they will be loaded from database
+}
+
+/** Literal class names, so Tailwind's scanner sees every one it may need. */
+const TAB_GRID_COLS: Record<number, string> = {
+  1: 'grid-cols-1',
+  2: 'grid-cols-2',
+  3: 'grid-cols-3',
+  4: 'grid-cols-4',
 }
 
 export function ListSettingsPopover({
@@ -71,6 +80,11 @@ export function ListSettingsPopover({
   // board enabled and the viewer can edit settings.
   const showStatusesTab = canEditSettings && Boolean(list.projectId)
 
+  // Insights (AWTD-1329) are for everyone who can see the list — but a saved
+  // filter has no tasks of its own to report on.
+  const showInsightsTab = !list.isVirtual
+  const tabCount = 1 + Number(showInsightsTab) + Number(showStatusesTab) + Number(canEditSettings)
+
   // Ensure activeTab is valid for non-admin users
   React.useEffect(() => {
     if (!canEditSettings && activeTab === "admin") {
@@ -79,7 +93,10 @@ export function ListSettingsPopover({
     if (!showStatusesTab && activeTab === "statuses") {
       setActiveTab("membership")
     }
-  }, [canEditSettings, showStatusesTab, activeTab])
+    if (!showInsightsTab && activeTab === "insights") {
+      setActiveTab("membership")
+    }
+  }, [canEditSettings, showStatusesTab, showInsightsTab, activeTab])
 
   return (
     <SettingsModalShell
@@ -105,11 +122,17 @@ export function ListSettingsPopover({
                   own popover (task aa4e7eb0). With only Membership left for a
                   viewer who cannot edit settings, the list still renders as a
                   single full-width tab rather than a stranded half. */}
-              <TabsList className={`grid w-full ${showStatusesTab ? 'grid-cols-3' : canEditSettings ? 'grid-cols-2' : 'grid-cols-1'} theme-bg-secondary`}>
+              <TabsList className={`grid w-full ${TAB_GRID_COLS[tabCount]} theme-bg-secondary`}>
                 <TabsTrigger value="membership" className="flex items-center space-x-1 text-xs">
                   <Users className="w-3 h-3" />
                   <span>Membership</span>
                 </TabsTrigger>
+                {showInsightsTab && (
+                  <TabsTrigger value="insights" className="flex items-center space-x-1 text-xs">
+                    <BarChart3 className="w-3 h-3" />
+                    <span>{t('listInsights.tab')}</span>
+                  </TabsTrigger>
+                )}
                 {showStatusesTab && (
                   <TabsTrigger value="statuses" className="flex items-center space-x-1 text-xs">
                     <KanbanSquare className="w-3 h-3" />
@@ -139,6 +162,13 @@ export function ListSettingsPopover({
                     }}
                   />
                 </TabsContent>
+
+                {showInsightsTab && (
+                  <TabsContent value="insights" className="mt-0">
+                    {/* Mounted only while selected, so opening settings costs no query. */}
+                    {activeTab === "insights" && <ListInsightsPanel listId={list.id} />}
+                  </TabsContent>
+                )}
 
                 {showStatusesTab && (
                   <TabsContent value="statuses" className="mt-0">

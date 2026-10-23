@@ -1163,5 +1163,31 @@
     "bound": "{title} gekoppeld. Items worden geïmporteerd…",
     "alreadyBound": "Dat project is al een bord",
     "bindError": "Kan dat project niet koppelen"
+  },
+  "listInsights": {
+    "tab": "Inzichten",
+    "days7": "7 dagen",
+    "days30": "30 dagen",
+    "days90": "90 dagen",
+    "activity": "Activiteit",
+    "created": "Nieuw",
+    "completed": "Voltooid",
+    "createdTotal": "{count} nieuw",
+    "completedTotal": "{count} voltooid",
+    "timeToComplete": "Mediane tijd tot voltooiing",
+    "timeInLane": "Mediane tijd per kolom",
+    "sampleSize": "uit {count}",
+    "notEnoughHistory": "Nog niet genoeg geschiedenis",
+    "laneHistoryNote": "Kolomverplaatsingen worden vanaf nu vastgelegd; dit vult zich naarmate kaarten verschuiven.",
+    "contributors": "Topbijdragers",
+    "contributorCounts": "{created} gemaakt · {edited} bewerkingen · {commented} reacties · {completed} voltooid",
+    "noActivity": "Geen activiteit in deze periode",
+    "loadFailed": "Inzichten konden niet worden geladen",
+    "loading": "Inzichten laden…",
+    "duration": {
+      "minutes": "{n} min",
+      "hours": "{n} u",
+      "days": "{n} d"
+    }
   }
 }

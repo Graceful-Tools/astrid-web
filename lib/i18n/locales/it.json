@@ -1163,5 +1163,31 @@
     "bound": "{title} collegato. Importazione degli elementi…",
     "alreadyBound": "Quel progetto è già una bacheca",
     "bindError": "Impossibile collegare quel progetto"
+  },
+  "listInsights": {
+    "tab": "Statistiche",
+    "days7": "7 giorni",
+    "days30": "30 giorni",
+    "days90": "90 giorni",
+    "activity": "Attività",
+    "created": "Nuove",
+    "completed": "Completate",
+    "createdTotal": "{count} nuove",
+    "completedTotal": "{count} completate",
+    "timeToComplete": "Tempo mediano di completamento",
+    "timeInLane": "Tempo mediano in ogni colonna",
+    "sampleSize": "su {count}",
+    "notEnoughHistory": "Storico non ancora sufficiente",
+    "laneHistoryNote": "Gli spostamenti tra colonne vengono registrati da ora in poi: i dati si riempiranno man mano che le schede si spostano.",
+    "contributors": "Principali collaboratori",
+    "contributorCounts": "{created} create · {edited} modifiche · {commented} commenti · {completed} completate",
+    "noActivity": "Nessuna attività in questo periodo",
+    "loadFailed": "Impossibile caricare le statistiche",
+    "loading": "Caricamento statistiche…",
+    "duration": {
+      "minutes": "{n} min",
+      "hours": "{n} h",
+      "days": "{n} g"
+    }
   }
 }

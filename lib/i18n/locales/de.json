@@ -1163,5 +1163,31 @@
     "bound": "{title} verbunden. Einträge werden importiert…",
     "alreadyBound": "Dieses Projekt ist bereits ein Board",
     "bindError": "Projekt konnte nicht verbunden werden"
+  },
+  "listInsights": {
+    "tab": "Statistiken",
+    "days7": "7 Tage",
+    "days30": "30 Tage",
+    "days90": "90 Tage",
+    "activity": "Aktivität",
+    "created": "Neu",
+    "completed": "Erledigt",
+    "createdTotal": "{count} neu",
+    "completedTotal": "{count} erledigt",
+    "timeToComplete": "Mittlere Zeit bis zur Erledigung",
+    "timeInLane": "Mittlere Zeit pro Spalte",
+    "sampleSize": "aus {count}",
+    "notEnoughHistory": "Noch nicht genug Verlauf",
+    "laneHistoryNote": "Spaltenwechsel werden ab jetzt erfasst; die Werte füllen sich, sobald Karten verschoben werden.",
+    "contributors": "Top-Beitragende",
+    "contributorCounts": "{created} erstellt · {edited} Änderungen · {commented} Kommentare · {completed} erledigt",
+    "noActivity": "Keine Aktivität in diesem Zeitraum",
+    "loadFailed": "Statistiken konnten nicht geladen werden",
+    "loading": "Statistiken werden geladen…",
+    "duration": {
+      "minutes": "{n} Min.",
+      "hours": "{n} Std.",
+      "days": "{n} T."
+    }
   }
 }
