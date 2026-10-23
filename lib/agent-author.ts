@@ -38,6 +38,7 @@
  */
 
 import { agentEmail } from '@/lib/brand/agent-emails'
+import { brandOrigin } from '@/lib/brand/config'
 // The env precedence is a leaf module so mcp/agent-identity.ts can share it —
 // the standalone stdio build cannot follow this file's own imports (AWTD-1311).
 import { agentIdEnvVar, agentAuthorIdFromEnv } from '@/lib/agent-mailbox-env'
@@ -57,7 +58,7 @@ export interface AgentAuthorOptions {
   warn?: (message: string) => void
 }
 
-const DEFAULT_API_BASE = 'https://astrid.cc'
+const DEFAULT_API_BASE = brandOrigin()
 
 /**
  * The author id to sign a write with, or null to sign as the authenticated
