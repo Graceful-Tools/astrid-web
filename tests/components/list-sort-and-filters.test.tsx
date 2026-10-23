@@ -1,10 +1,17 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render } from '@testing-library/react'
+import { render, fireEvent } from '@testing-library/react'
 import { ListSortAndFilters } from '@/components/list-sort-and-filters'
 import { SettingsModalShell } from '@/components/list-settings/SettingsModalShell'
 import type { TaskList, User } from '@/types/task'
 
 /**
+ * ListSortAndFilters — the Sort & Filters panel.
+ *
+ * AWTD-1343 merged list-sort-and-filters-layout.test.tsx and
+ * list-sort-filters-show-subtasks.test.tsx, which rendered the same component
+ * with copies of the same fixtures. (The popover that hosts this panel is
+ * list-sort-and-filters-popover.test.tsx — it mocks the panel out.)
+ *
  * AWTD-1271 — Sort & Filters puts what people use most at the top.
  *
  * Jon, 2026-10-19: sort first, then complete/incomplete, then the other
@@ -34,10 +41,16 @@ function makeList(overrides: Partial<TaskList> = {}): TaskList {
   } as unknown as TaskList
 }
 
-function renderPanel() {
-  return render(
-    <ListSortAndFilters list={makeList()} currentUser={currentUser} onUpdate={vi.fn()} canEditSettings />,
+function renderPanel(list: TaskList = makeList(), onUpdate = vi.fn(), canEditSettings = true) {
+  const utils = render(
+    <ListSortAndFilters
+      list={list}
+      currentUser={currentUser}
+      onUpdate={onUpdate}
+      canEditSettings={canEditSettings}
+    />,
   )
+  return { ...utils, onUpdate }
 }
 
 const isBefore = (a: Element, b: Element) =>
@@ -76,6 +89,45 @@ describe('AWTD-1271 — Sort & Filters layout', () => {
     )
     expect(new Set(widths).size).toBe(1)
     expect(widths[0]).not.toBe('')
+  })
+})
+
+/**
+ * Task dce843a1 — the per-list "Show subtasks" toggle lives in the
+ * Sort & Filters tab of list settings.
+ *
+ * It sits there rather than in Admin Settings because it decides what the
+ * list VIEW renders, which is what everything else on that tab does. It is
+ * still gated on canEditSettings: the API accepts showSubtasks only from an
+ * owner/admin, so offering it to a plain member would be a control whose
+ * save comes back 403.
+ */
+
+describe('ListSortAndFilters — Show subtasks toggle', () => {
+  // Present for an editor: asserted by the layout test above (row inside
+  // list options) and by every toggle lookup below.
+  it('is ON for a list that predates the column', () => {
+    // Absent must read as SHOW, or every existing list looks deliberately
+    // switched off the moment this ships.
+    const { getByTestId } = renderPanel(makeList({ showSubtasks: undefined }))
+    expect(getByTestId('show-subtasks-toggle').getAttribute('data-state')).toBe('checked')
+  })
+
+  it('is OFF for a list that opted out', () => {
+    const { getByTestId } = renderPanel(makeList({ showSubtasks: false }))
+    expect(getByTestId('show-subtasks-toggle').getAttribute('data-state')).toBe('unchecked')
+  })
+
+  it('sends a real boolean up, which is what the API requires to write it', () => {
+    const { getByTestId, onUpdate } = renderPanel(makeList({ showSubtasks: true }))
+    fireEvent.click(getByTestId('show-subtasks-toggle'))
+    expect(onUpdate).toHaveBeenCalledTimes(1)
+    expect(onUpdate.mock.calls[0][0].showSubtasks).toBe(false)
+  })
+
+  it('is hidden from a member who cannot edit list settings', () => {
+    const { queryByTestId } = renderPanel(makeList(), vi.fn(), false)
+    expect(queryByTestId('show-subtasks-row')).toBeNull()
   })
 })
 
