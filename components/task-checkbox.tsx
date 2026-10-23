@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import { useState } from "react"
+import { useTranslations } from "@/lib/i18n/client"
 
 interface TaskCheckboxProps {
   checked: boolean
@@ -13,6 +14,17 @@ interface TaskCheckboxProps {
 
 export function TaskCheckbox({ checked, onToggle, priority, repeating = false, onClick }: TaskCheckboxProps) {
   const [imageError, setImageError] = useState(false)
+  const { t } = useTranslations()
+
+  // A real checkbox to assistive tech and keyboards (AWTD-1339): it was a bare
+  // clickable div with no role or name, so nothing — screen reader, keyboard
+  // or end-to-end test — could find "the checkbox for this task".
+  const toggleOnKey = (e: React.KeyboardEvent) => {
+    if (e.key !== ' ' && e.key !== 'Enter') return
+    e.preventDefault()
+    e.stopPropagation()
+    onToggle()
+  }
   
   // Map priority to checkbox number (0->0, 1->1, 2->2, 3->3) with safety fallback
   const safePriority = typeof priority === 'number' && priority >= 0 && priority <= 3 ? priority : 0
@@ -29,6 +41,11 @@ export function TaskCheckbox({ checked, onToggle, priority, repeating = false, o
   if (imageError) {
     return (
       <div
+        role="checkbox"
+        aria-checked={checked}
+        aria-label={t(checked ? 'tasks.markIncomplete' : 'tasks.markComplete')}
+        tabIndex={0}
+        onKeyDown={toggleOnKey}
         className="relative p-2 -m-2 cursor-pointer flex items-center justify-center self-center"
         onClick={(e) => {
           e.stopPropagation()
@@ -47,6 +64,11 @@ export function TaskCheckbox({ checked, onToggle, priority, repeating = false, o
 
   return (
     <div
+      role="checkbox"
+      aria-checked={checked}
+      aria-label={t(checked ? 'tasks.markIncomplete' : 'tasks.markComplete')}
+      tabIndex={0}
+      onKeyDown={toggleOnKey}
       className="relative p-2 -m-2 cursor-pointer flex items-center justify-center self-center"
       onClick={(e) => {
         e.stopPropagation()

@@ -10,6 +10,7 @@ const authenticatedCriticalEnabled = process.env.PLAYWRIGHT_AUTHENTICATED === '1
  * must be matched by some project — tests/rules/every-e2e-spec-runs.test.ts.
  */
 export const AUTHENTICATED_UI_SPECS = [
+  'task-journeys',
   'scroll-close-task-detail',
   'mobile-header-stays-on-task-tap',
   'mobile-shell-never-scrolls',

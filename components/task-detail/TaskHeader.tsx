@@ -148,6 +148,7 @@ export function TaskHeader({
           )}
           {editingTitle ? (
             <textarea
+              data-testid="task-detail-title-input"
               value={tempTitle}
               onChange={(e) => {
                 setTempTitle(e.target.value)
@@ -178,6 +179,7 @@ export function TaskHeader({
               } ${
                 task.completed ? "line-through theme-text-muted" : "theme-text-primary"
               }`}
+              data-testid="task-detail-title"
               onClick={() => setEditingTitle(true)}
             >
               {task.title}
