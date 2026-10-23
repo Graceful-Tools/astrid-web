@@ -21,7 +21,7 @@ export type { ParseLogger }
  */
 export function extractBalancedJson(response: string): string | null {
   // Find the first opening brace that might start a JSON object
-  const startIndex = response.indexOf('{')
+  let startIndex = response.indexOf('{')
   if (startIndex === -1) return null
 
   let braceCount = 0
@@ -51,8 +51,13 @@ export function extractBalancedJson(response: string): string | null {
     // Only count braces outside of strings
     if (!inString) {
       if (char === '{') {
+        // A new top-level object starts here (AWTD-1347): an earlier one that
+        // closed without "files" must not be glued onto the payload.
+        if (braceCount === 0) startIndex = i
         braceCount++
       } else if (char === '}') {
+        // A stray closing brace between objects is prose, not structure
+        if (braceCount === 0) continue
         braceCount--
 
         // Found matching closing brace
@@ -174,12 +179,31 @@ export function extractFilePaths(response: string): string[] {
 }
 
 /**
+ * Base names that Next.js (and module resolution) give meaning by folder. They
+ * repeat in every route, so a match on one of them alone says nothing about
+ * which file was meant.
+ */
+const CONVENTIONAL_BASE_NAMES = new Set([
+  'page', 'layout', 'route', 'index', 'loading', 'error', 'globalerror',
+  'notfound', 'template', 'default', 'middleware',
+])
+
+/** A path segment compared ignoring case and dashes (use-task-ops ~ useTaskOps). */
+const normalizeSegment = (segment: string) => segment.toLowerCase().replace(/-/g, '')
+
+/**
  * Map a file path to a similar path from a list of known paths.
  * Handles kebab-case vs camelCase differences.
  *
+ * Among explored files with the same base name, the one sharing the most
+ * trailing folders with `path` wins; a tie is ambiguous and keeps `path`.
+ * A match sharing no folder at all (the AI wrote `src/foo.tsx`, `app/foo.tsx`
+ * was explored) is taken only when it is the sole candidate and its base name
+ * is not a conventional one like `page` or `route` (AWTD-1347).
+ *
  * @param path - The path to map
  * @param knownPaths - Array of known/explored paths
- * @returns The matched path, or the original if no match found
+ * @returns The matched path, or the original if no unambiguous match found
  */
 export function mapToKnownPath(path: string, knownPaths: string[]): string {
   // Try exact match first
@@ -187,16 +211,35 @@ export function mapToKnownPath(path: string, knownPaths: string[]): string {
     return path
   }
 
-  // Try to find a similar path (e.g., use-task-operations.ts → useTaskOperations.ts)
-  const baseName = path.split('/').pop()?.replace(/\.(tsx?|jsx?)$/, '') || ''
+  const split = (p: string) => {
+    const segments = p.split('/')
+    const baseName = normalizeSegment(segments.pop()?.replace(/\.(tsx?|jsx?)$/, '') || '')
+    return { baseName, dirs: segments.map(normalizeSegment) }
+  }
+  const planned = split(path)
 
-  const matchedPath = knownPaths.find(explored => {
-    const exploredBaseName = explored.split('/').pop()?.replace(/\.(tsx?|jsx?)$/, '') || ''
-    // Match if base names are similar (ignoring case and dashes)
-    return exploredBaseName.toLowerCase().replace(/-/g, '') === baseName.toLowerCase().replace(/-/g, '')
-  })
+  // Number of trailing folders two paths have in common
+  const sharedSuffix = (dirs: string[]) => {
+    let n = 0
+    while (
+      n < dirs.length && n < planned.dirs.length &&
+      dirs[dirs.length - 1 - n] === planned.dirs[planned.dirs.length - 1 - n]
+    ) n++
+    return n
+  }
 
-  return matchedPath || path
+  const candidates = knownPaths
+    .map(explored => ({ explored, ...split(explored) }))
+    .filter(c => c.baseName === planned.baseName)
+    .map(c => ({ explored: c.explored, score: sharedSuffix(c.dirs) }))
+  if (candidates.length === 0) return path
+
+  const best = Math.max(...candidates.map(c => c.score))
+  const top = candidates.filter(c => c.score === best)
+  if (top.length > 1) return path
+  if (best === 0 && CONVENTIONAL_BASE_NAMES.has(planned.baseName)) return path
+
+  return top[0].explored
 }
 
 /**
