@@ -6,19 +6,40 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { RedisCache } from '@/lib/redis'
 import { getUserRoleInList, PROJECT_ACCESS_INCLUDE } from '@/lib/list-permissions'
 import { getProjectBoardColumns } from '@/lib/project-status'
 import {
   computeListInsights,
+  dayKey,
   INBOX_LANE,
+  LANE_HISTORY_START,
   windowQueryStart,
   type InsightWindowDays,
   type ListInsights,
 } from '@/lib/list-insights'
 
 /**
+ * How long a computed answer is served from Redis. The numbers are daily
+ * trends and medians over 7–90 days, so five minutes of lag is invisible, and
+ * a TTL needs no invalidation hook on every task, event and comment write —
+ * the kind of hook whose blast radius has bitten this codebase (AWTD-1320).
+ */
+export const LIST_INSIGHTS_CACHE_TTL_SECONDS = 300
+
+/**
+ * One entry per list, window and zone — insights do not depend on who asks.
+ * The viewer's day is in the key so a cached answer never outlives its
+ * window's last day.
+ */
+export function listInsightsCacheKey(listId: string, days: InsightWindowDays, timeZone: string, now: Date): string {
+  return `insights:list:${listId}:${days}:${timeZone}:${dayKey(now, timeZone)}`
+}
+
+/**
  * The list's insights for `userId`, or null when the list does not exist or
- * they cannot see it — the two are deliberately indistinguishable.
+ * they cannot see it — the two are deliberately indistinguishable. The access
+ * check runs on every call; only the computed answer is cached.
  */
 export async function loadListInsights(
   listId: string,
@@ -39,11 +60,23 @@ export async function loadListInsights(
   // A list the caller cannot see answers exactly like one that does not exist.
   if (!list || !getUserRoleInList({ id: userId }, list as never)) return null
 
+  return RedisCache.getOrSet(
+    listInsightsCacheKey(listId, days, timeZone, now),
+    () => computeFromHistory(listId, list.projectId, { days, timeZone, now }),
+    LIST_INSIGHTS_CACHE_TTL_SECONDS,
+  )
+}
+
+async function computeFromHistory(
+  listId: string,
+  projectId: string | null,
+  { days, timeZone, now }: { days: InsightWindowDays; timeZone: string; now: Date },
+): Promise<ListInsights> {
   const since = windowQueryStart(now, days, timeZone)
 
   const tasks = await prisma.task.findMany({
     where: { lists: { some: { id: listId } } },
-    select: { id: true, createdAt: true, creatorId: true, assigneeId: true, completed: true, completedAt: true, repeating: true },
+    select: { id: true, createdAt: true, creatorId: true, assigneeId: true, completed: true, completedAt: true, repeating: true, statusRole: true, statusRoleBeforeDone: true },
   })
   const taskIds = tasks.map(task => task.id)
 
@@ -52,8 +85,13 @@ export async function loadListInsights(
       ? prisma.taskEvent.findMany({
           where: {
             taskId: { in: taskIds },
-            // Lane moves from before the window time the stays that end in it.
-            OR: [{ createdAt: { gte: since } }, { kind: 'status_changed' }],
+            // Lane history from before the window times the stays that end in it: a move, or the
+            // completion that tells laneDurations a card born after LANE_HISTORY_START left its birth lane.
+            OR: [
+              { createdAt: { gte: since } },
+              { kind: { in: ['status_changed', 'unblocked'] } },
+              { kind: { in: ['completed', 'closed', 'reopened'] }, createdAt: { gte: LANE_HISTORY_START } },
+            ],
           },
           select: { taskId: true, actorId: true, kind: true, from: true, to: true, createdAt: true },
         })
@@ -64,8 +102,8 @@ export async function loadListInsights(
           select: { taskId: true, authorId: true, createdAt: true },
         })
       : [],
-    list.projectId
-      ? prisma.project.findUnique({ where: { id: list.projectId }, select: { customStates: true } })
+    projectId
+      ? prisma.project.findUnique({ where: { id: projectId }, select: { customStates: true } })
       : null,
   ])
 

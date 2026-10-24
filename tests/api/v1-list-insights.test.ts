@@ -30,6 +30,7 @@ vi.mock('@/lib/api-auth-wrapper', () => ({
 }))
 
 import { GET } from '@/app/api/v1/lists/[id]/insights/route'
+import { RedisCache } from '@/lib/redis'
 
 const ctx = { params: Promise.resolve({ id: 'list-1' }) } as never
 const get = (query = '') => GET(new NextRequest(`http://localhost/api/v1/lists/list-1/insights${query}`) as never, ctx)
@@ -101,5 +102,22 @@ describe('GET /api/v1/lists/:id/insights (AWTD-1329)', () => {
     expect(res.status).toBe(200)
     expect(eventFindMany).not.toHaveBeenCalled()
     expect(commentFindMany).not.toHaveBeenCalled()
+  })
+
+  it('caches the answer per list, window, zone and viewer day for five minutes (AWTD-1358)', async () => {
+    const res = await get('?days=7&tz=America/Los_Angeles')
+    expect(res.status).toBe(200)
+    expect(RedisCache.getOrSet).toHaveBeenCalledWith(
+      expect.stringMatching(/^insights:list:list-1:7:America\/Los_Angeles:\d{4}-\d{2}-\d{2}$/),
+      expect.any(Function),
+      300,
+    )
+  })
+
+  it('checks access before the cache, so a cached answer never reaches someone who cannot see the list', async () => {
+    listFindUnique.mockResolvedValue({ ...LIST, listMembers: [] })
+    const res = await get()
+    expect(res.status).toBe(404)
+    expect(RedisCache.getOrSet).not.toHaveBeenCalled()
   })
 })
