@@ -25,6 +25,8 @@ function task(overrides: Partial<InsightTask> & { id: string }): InsightTask {
     completed: false,
     completedAt: null,
     repeating: 'never',
+    statusRole: null,
+    statusRoleBeforeDone: null,
     ...overrides,
   }
 }
@@ -200,6 +202,68 @@ describe('time in each lane (boards)', () => {
 
   it('is null for a list that is not a board', () => {
     expect(computeListInsights(input()).lanes).toBeNull()
+  })
+})
+
+describe('time in each lane — births and automatic moves (AWTD-1358)', () => {
+  const lanes = [
+    { role: 'inbox', name: 'Inbox' },
+    { role: 'ready', name: 'Ready' },
+    { role: 'doing', name: 'Doing' },
+    { role: 'waiting', name: 'Waiting' },
+  ]
+  // After lane moves began to be recorded, so a card's birth lane is known.
+  const t0 = new Date('2026-10-24T09:00:00Z')
+  const at = (hours: number) => new Date(t0.getTime() + hours * HOUR)
+  const later = (overrides: Partial<ListInsightsInput>) =>
+    input({ now: new Date('2026-10-26T18:00:00Z'), lanes, ...overrides })
+  const lane = (result: ReturnType<typeof computeListInsights>, role: string) =>
+    result.lanes!.find(row => row.role === role)
+
+  it('times Inbox from creation to the first move out — regression for AWTD-1358', () => {
+    const result = computeListInsights(later({
+      tasks: [task({ id: 'a', createdAt: at(0), statusRole: 'ready' })],
+      events: [event({ taskId: 'a', kind: 'status_changed', from: null, to: 'ready', createdAt: at(2) })],
+    }))
+    expect(lane(result, 'inbox')).toMatchObject({ medianMs: 2 * HOUR, sampleSize: 1 })
+  })
+
+  it('times Inbox for a card completed straight from it', () => {
+    const result = computeListInsights(later({
+      tasks: [task({ id: 'a', createdAt: at(0), completed: true, completedAt: at(5) })],
+      events: [event({ taskId: 'a', kind: 'completed', createdAt: at(5) })],
+    }))
+    expect(lane(result, 'inbox')).toMatchObject({ medianMs: 5 * HOUR, sampleSize: 1 })
+  })
+
+  it('times the lane a card was created into, not Inbox', () => {
+    const result = computeListInsights(later({
+      tasks: [task({ id: 'a', createdAt: at(0), completed: true, completedAt: at(3), statusRoleBeforeDone: 'doing' })],
+      events: [event({ taskId: 'a', kind: 'completed', createdAt: at(3) })],
+    }))
+    expect(lane(result, 'doing')).toMatchObject({ medianMs: 3 * HOUR, sampleSize: 1 })
+    expect(lane(result, 'inbox')).toMatchObject({ sampleSize: 0 })
+  })
+
+  it('still invents nothing for a card created before lane moves were recorded', () => {
+    const result = computeListInsights(later({
+      tasks: [task({ id: 'a', createdAt: new Date('2026-10-01T00:00:00Z'), statusRole: 'ready' })],
+      events: [event({ taskId: 'a', kind: 'status_changed', from: null, to: 'ready', createdAt: at(2) })],
+    }))
+    expect(result.lanes!.every(row => row.sampleSize === 0)).toBe(true)
+  })
+
+  it('counts an automatic unblock as a move out of Waiting and into Ready', () => {
+    const result = computeListInsights(later({
+      tasks: [task({ id: 'a', createdAt: new Date('2026-10-01T00:00:00Z'), statusRole: 'doing' })],
+      events: [
+        event({ taskId: 'a', kind: 'status_changed', from: 'ready', to: 'waiting', createdAt: at(0) }),
+        event({ taskId: 'a', kind: 'unblocked', actorId: null, from: 'waiting', to: 'ready', createdAt: at(4) }),
+        event({ taskId: 'a', kind: 'status_changed', from: 'ready', to: 'doing', createdAt: at(6) }),
+      ],
+    }))
+    expect(lane(result, 'waiting')).toMatchObject({ medianMs: 4 * HOUR, sampleSize: 1 })
+    expect(lane(result, 'ready')).toMatchObject({ medianMs: 2 * HOUR, sampleSize: 1 })
   })
 })
 
