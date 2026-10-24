@@ -103,21 +103,37 @@ describe('offline DB schema upgrades (AWTD-1342)', () => {
   })
 })
 
-describe('offline DB task index (AWTD-1342)', () => {
+describe('OfflineTaskOperations.getTasksByList (AWTD-1350)', () => {
   /**
-   * REAL BUG, latent (AWTD-1342): lib/offline-db/database.ts:40 indexes tasks on
-   * `listId`, but a Task (types/task.ts) carries `lists: TaskList[]` — there is
-   * no `listId` field. So OfflineTaskOperations.getTasksByList
-   * (lib/offline-db/tasks.ts:34) always returns [] for a real task. Unreachable
-   * today: its only route in is useCachedTasks({ listId }), which nothing calls.
-   * A fix needs a v4 schema with a multi-entry index (e.g. `*listIds`) and
-   * writers that populate it.
+   * The tasks table is indexed on `listId`, but a Task (types/task.ts) carries
+   * `lists: TaskList[]` and no `listId`, so querying that index found nothing
+   * for a real task. getTasksByList matches on `lists[].id` instead, which
+   * needs no schema version.
    */
-  it.fails('a saved task can be found by a list it is on', async () => {
+  async function load() {
     const db = await loadOfflineDB()
     opened = db
+    const { OfflineTaskOperations } = await import('@/lib/offline-db/tasks')
+    return { db, OfflineTaskOperations }
+  }
+
+  it('AWTD-1350: finds a saved task by a list it is on', async () => {
+    const { db, OfflineTaskOperations } = await load()
     await db.tasks.put({ id: 't1', title: 'On a list', lists: [{ id: 'l1' }] } as never)
-    expect((await db.tasks.where('listId').equals('l1').toArray()).map(t => t.id)).toEqual(['t1'])
+    expect((await OfflineTaskOperations.getTasksByList('l1')).map(t => t.id)).toEqual(['t1'])
+  })
+
+  it('AWTD-1350: finds a task on several lists by any of them, and skips other lists', async () => {
+    const { db, OfflineTaskOperations } = await load()
+    await db.tasks.bulkPut([
+      { id: 't1', lists: [{ id: 'l1' }, { id: 'l2' }] },
+      { id: 't2', lists: [{ id: 'l2' }] },
+      { id: 't3', lists: [{ id: 'l3' }] },
+      { id: 't4' },
+    ] as never)
+    expect((await OfflineTaskOperations.getTasksByList('l1')).map(t => t.id)).toEqual(['t1'])
+    expect((await OfflineTaskOperations.getTasksByList('l2')).map(t => t.id).sort()).toEqual(['t1', 't2'])
+    expect(await OfflineTaskOperations.getTasksByList('missing')).toEqual([])
   })
 })
 
