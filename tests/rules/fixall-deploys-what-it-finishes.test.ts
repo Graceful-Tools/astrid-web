@@ -32,7 +32,7 @@ const ROOT = process.cwd()
 
 /** The documents a `/fixall` run reads before deciding whether to deploy. */
 const LOOP_DOCS = [
-  '.claude/commands/fixall.md',
+  'docs/FIXALL_WEB.md',
   'docs/FIXALL_WORKFLOW.md',
   'docs/CLI_OPERATIONS.md',
   'CLAUDE.md',
@@ -113,7 +113,7 @@ describe('the loop deploys what it finishes (AWTD-1250)', () => {
   })
 
   it('the loop docs state the condition on deploying: the gates, green', () => {
-    for (const doc of ['.claude/commands/fixall.md', 'docs/FIXALL_WORKFLOW.md']) {
+    for (const doc of ['docs/FIXALL_WEB.md', 'docs/FIXALL_WORKFLOW.md']) {
       const source = read(doc)
       expect(source, `${doc} must name the gate that licenses a deploy`).toMatch(
         /predeploy/i,
@@ -129,7 +129,7 @@ describe('the loop deploys what it finishes (AWTD-1250)', () => {
     // it is not satisfied by the CLI saying it succeeded: on 2026-09-18 the job
     // reported FAILED about a deploy that had gone out, and on another run the
     // rule was restated from a check made 2m40s into a ~10-minute pipeline.
-    for (const doc of ['.claude/commands/fixall.md', 'docs/FIXALL_WORKFLOW.md']) {
+    for (const doc of ['docs/FIXALL_WEB.md', 'docs/FIXALL_WORKFLOW.md']) {
       const source = read(doc)
       expect(source, `${doc} must say how to verify the deploy landed`).toMatch(
         /commitSha|verify-deployed-sha/,
@@ -143,7 +143,7 @@ describe('the loop deploys what it finishes (AWTD-1250)', () => {
     // took production down on 2026-09-18 and a redeploy could not undo it.
     // `allow_destructive_migrations` is the workflow's own human gate; the
     // automation must not learn to pass it.
-    const fixall = read('.claude/commands/fixall.md')
+    const fixall = read('docs/FIXALL_WEB.md')
     expect(fixall, 'fixall.md must carve out the irreversible case').toMatch(
       /destructive|allow_destructive_migrations/i,
     )

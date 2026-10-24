@@ -194,3 +194,6 @@ mcp/astrid-mcp-oauth-http
 *.p8
 *.jks
 *.keystore
+
+# Cloud agent credentials (docs/AGENT_FLEET.md). Never commit any form of it.
+.env.cloud*

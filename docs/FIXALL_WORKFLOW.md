@@ -1,8 +1,9 @@
 # The `/fixall` workflow
 
-**One description of the autonomous loop, for both repos.** `astrid-web/.claude/commands/fixall.md`
-and `astrid-ios/.claude/commands/fixall.md` each hold only what is genuinely different about
-their repo — which board, which gates, and what "done" means there — and point here for the rest.
+**One description of the autonomous loop, for both repos and every harness.** The web
+board's specifics live in `astrid-web/docs/FIXALL_WEB.md` and the iOS board's in
+`astrid-ios/.claude/commands/fixall.md`, and each holds only what is genuinely different about
+its repo — which board, which gates, and what "done" means there — and point here for the rest.
 
 They were two ~300-line files describing one workflow, and they had drifted by 440 lines: the
 iOS one knew about the due-date gate and the web one did not, the wording of the assignee
@@ -33,6 +34,22 @@ that expires under a working session is worse than no lock.
 
 Release when the run ends: `npx tsx scripts/fixall-session.ts release --pid $PPID`.
 `status` says who holds the tree and whether they are still alive.
+
+### On an ephemeral runner
+
+`ASTRID_FIXALL_EPHEMERAL=1` means you are a cloud agent run (`agent-run.yml`, or the
+Copilot coding agent) on a fresh checkout that is yours alone (docs/AGENT_FLEET.md). Three
+things change:
+
+- **No lock.** Nobody else can touch this checkout, and the runner exits when you do.
+- **No production access.** The runner holds no production credentials, by design. If a
+  task needs a production fact (a row count, a runtime log, migration impact), write the
+  exact question on the task and hand it back. A session on the Mac answers it. Never
+  guess, and never ask for the credential.
+- **The run ends at the PR.** Push `agent/<harness>/<task-key>`, open one PR with the task
+  link, and comment its URL on the task. You cannot dispatch a deploy (no `actions: write`).
+  The task stays **incomplete** until the ship workflow has deployed it and
+  `verify-deployed-sha.sh` agrees.
 
 ### Why this exists, and why the board lanes do not cover it
 
