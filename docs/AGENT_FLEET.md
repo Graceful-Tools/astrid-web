@@ -1,7 +1,7 @@
 # The agent fleet: machines, harnesses, secrets
 
-*Decided 2026-10-24. This is the target layout; the migration steps at the end say
-how far along it is.*
+*Decided 2026-10-24 by Jon. This is the target layout; the migration steps at the end
+say how far along it is.*
 
 ## Why
 
@@ -16,11 +16,32 @@ contention is per machine.
 
 | Where | Owns |
 |---|---|
-| **This Mac** | iOS **and** the native Mac app (one Xcode project, `Astrid App` + `Astrid Mac`): the iOS loop, the `astrid-ios` runner, the monkey run, interactive Apple work |
-| **GitHub Actions, ubuntu** | Web and server, astrid-core, Android CI (emulator via KVM) |
-| **Windows device** | The Windows app: its `fixall-loop.ps1` task and a self-hosted `astrid-windows` runner for UI tests; `windows-latest` keeps builds and unit tests |
+| **GitHub Actions, ubuntu (cloud)** | **Claude Code owns web and server.** `/fixall` on the web board and on the Android board runs here, together with astrid-core CI and the Android emulator tests (KVM) |
+| **This Mac** | The astrid-ios repo only: iOS **and** the native Mac app (one Xcode project, `Astrid App` + `Astrid Mac`). That covers the iOS loop, the `astrid-ios` runner, the monkey run, and interactive Apple work |
+| **Windows device** | The astrid-windows repo only: its `fixall-loop.ps1` task and a self-hosted `astrid-windows` runner for UI tests. `windows-latest` keeps doing builds and unit tests |
 
 Hardware is the scarce resource, so a device only runs work that needs that device.
+
+## The boards are how machines talk
+
+No machine calls another. Every device and every cloud run reads and writes the same
+Astrid boards, and **task assignment is the message**:
+
+| To get work done by… | Do this |
+|---|---|
+| **Any agent on that platform** | Put the task on that platform's board (Web, iOS, Windows, Android), **unassigned**, in Ready. Whichever loop claims it first owns it (`claim-fixall-task.ts`). |
+| **A specific agent** | Assign it to that agent's mailbox (`claude`, `copilot`, `codex`). Only that harness's queue returns it. |
+| **A human, to review or decide** | Assign it to **Jon (the default human)** with the question written on the task, and park it in `Waiting` (FIXALL_WORKFLOW.md → *Waiting carries its condition*). Agents never wait silently on a person. |
+
+Cross-platform work is split the same way. A web run that needs an iOS change files
+the iOS half on the **iOS board** (unassigned, or for the Mac's agent) and links it with a
+blocker row (`POST /api/v1/tasks/<id>/blockers`). The Mac's loop picks it up, and the web
+task waits on it in `Waiting`. Shared-rules changes for astrid-core go on the Windows board,
+as before.
+
+List membership decides who can see a task. Every agent identity that works a board must be
+a member of that list, and Jon is a member of every board, so each device sees exactly what
+it may act on and Jon sees all of it.
 
 ## Many harnesses, one contract
 
@@ -70,9 +91,10 @@ an agent-run task stays incomplete after its PR, and a Mac session or Jon lands 
 3. ⏳ Harness-neutral `/fixall` (`docs/FIXALL_WEB.md`), with adapters pointing to it.
 4. ☐ Ship workflow.
 5. ☐ Unload `cc.astrid.fixall-web` and the `astrid-web` self-hosted runner; point
-   `predeploy.yml` / `fixstuff.yml` / `fixall.yml` at ubuntu; choose one owner for
-   the web queue (Copilot app or the cloud run).
-6. ☐ Android instrumented tests on ubuntu + KVM; unload `cc.astrid.fixall-android`.
+   `predeploy.yml` / `fixstuff.yml` / `fixall.yml` at ubuntu; retire the Copilot
+   app's web-queue cron (Claude owns web, decided 2026-10-24).
+6. ☐ Android off the Mac: `/fixall` for the Android board from the cloud (an `agent-run.yml` in
+   astrid-android), instrumented tests on ubuntu + KVM, then unload `cc.astrid.fixall-android`.
 7. ☐ Windows device: fixall task and an `astrid-windows` runner.
 
 ## Setup a person has to do
