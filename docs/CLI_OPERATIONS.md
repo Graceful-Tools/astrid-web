@@ -181,6 +181,22 @@ is the one that caused the outage. Additive migrations are unaffected — the ga
 `ALTER INDEX`/`ALTER SEQUENCE` renames, `DROP INDEX` and `DROP CONSTRAINT` are
 deliberately **not** flagged: none can make the old code's queries fail.
 
+### Production database secrets live in the `production` environment (2026-10-24)
+
+`DATABASE_URL` and `DATABASE_URL_DIRECT` for production are **environment secrets** on
+the GitHub `production` environment, which admits only `main`. Only the jobs that
+declare `environment: production` in `production-deployment.yml` receive them
+(`database-migration`; `deploy-production` declares it for the branch policy). Every
+other workflow, the agent workflows included, cannot read them, and builds get a
+placeholder URL because `next build` never connects.
+
+**Do not add them back as repo secrets.** A repo secret is readable by any workflow
+in the repo, including ones running code an agent just wrote.
+`tests/rules/production-secrets-are-environment-scoped.test.ts` enforces this. To
+rotate a credential, run `gh secret set DATABASE_URL --env production`.
+`VERCEL_TOKEN` is still a repo secret, because previews, `fixstuff` and the monitor
+job use it. That is the next one to scope.
+
 ### NEVER pull from Vercel — it destroys `.env.local`
 `vercel pull`, `vercel link`, and `vercel env pull` overwrite your local secrets.
 **Do not run them.** Only ever *push* deployments.

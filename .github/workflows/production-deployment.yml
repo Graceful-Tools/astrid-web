@@ -159,8 +159,9 @@ jobs:
         run: npm run build
         env:
           NODE_ENV: production
-          # Use production database for builds
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # The build never connects; a placeholder keeps production credentials
+          # out of this job (tests/rules/production-secrets-are-environment-scoped).
+          DATABASE_URL: postgresql://build:build@localhost:5432/build
 
       - name: Set Quality Check Status
         id: quality-check
@@ -172,6 +173,9 @@ jobs:
   database-migration:
     name: 'Database Migration'
     runs-on: ubuntu-24.04
+    # The production database secrets are environment secrets: only jobs that
+    # declare this environment receive them, and it admits only `main`.
+    environment: production
     timeout-minutes: 15
     needs: quality-gates
     if: always() && (needs.quality-gates.outputs.quality-passed == 'true' || inputs.skip_tests)
@@ -326,6 +330,7 @@ jobs:
     # outcome. At 20 it WAS the thing that decided the outcome: the CLI hung, the
     # runner cancelled the job, and the log said only "The operation was
     # canceled" about a deploy that had succeeded (AWTD-959).
+    environment: production
     timeout-minutes: 30
     needs: [quality-gates, database-migration]
     if: always() && (needs.quality-gates.outputs.quality-passed == 'true' || inputs.skip_tests) && needs.database-migration.outputs.migration-success == 'true'

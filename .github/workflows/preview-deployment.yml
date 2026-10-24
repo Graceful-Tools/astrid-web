@@ -139,8 +139,9 @@ jobs:
           npm run build
         env:
           NODE_ENV: production
-          # Use preview database for builds if needed
-          DATABASE_URL: ${{ secrets.DATABASE_URL_PREVIEW || secrets.DATABASE_URL }}
+          # The build never connects. This used to fall back to the repo DATABASE_URL secret
+          # — the production URL, handed to every same-repo PR branch's build.
+          DATABASE_URL: postgresql://build:build@localhost:5432/build
 
       - name: Set Build Status
         id: build-status
