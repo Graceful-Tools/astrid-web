@@ -37,6 +37,16 @@ export const INSIGHT_TOP_CONTRIBUTORS = 10
 /** Inbox is the lane a board card sits in with no status (`statusRole` null). */
 export const INBOX_LANE = 'inbox'
 
+/**
+ * When every board move began to be recorded: the AWTD-1329 production deploy finished. A card
+ * created after it has its whole lane history in `TaskEvent`, so the lane it was born into — and
+ * how long it sat there — is known rather than guessed (AWTD-1358).
+ */
+export const LANE_HISTORY_START = new Date('2026-10-23T01:20:01Z')
+
+/** Event kinds that move a card between lanes. `unblocked` is the automatic Waiting → Ready. */
+const LANE_MOVE_KINDS: ReadonlySet<string> = new Set(['status_changed', 'unblocked'])
+
 export interface InsightTask {
   id: string
   createdAt: Date
@@ -46,6 +56,10 @@ export interface InsightTask {
   completed: boolean
   completedAt: Date | null
   repeating: string | null
+  /** The card's lane now; null is Inbox. */
+  statusRole: string | null
+  /** The lane a completed card left; null when it was completed from Inbox. */
+  statusRoleBeforeDone: string | null
 }
 
 export interface InsightEvent {
@@ -275,7 +289,7 @@ export function computeListInsights(input: ListInsightsInput): ListInsights {
       completed: series.reduce((sum, day) => sum + day.completed, 0),
     },
     createToComplete: { medianMs: median(cycles), sampleSize: cycles.length },
-    lanes: input.lanes ? laneDurations(events, input.lanes, inWindow, dayOf) : null,
+    lanes: input.lanes ? laneDurations(input.tasks, events, input.lanes, inWindow, dayOf) : null,
     contributors: [...contributors.values()]
       .map(row => {
         const user = users.get(row.userId)
@@ -297,13 +311,14 @@ export function computeListInsights(input: ListInsightsInput): ListInsights {
 }
 
 /**
- * Median stay in each lane, from recorded moves only. A stay is timed from the `status_changed`
- * that entered the lane to whatever ended it — the next move, a completion, a close — and counts
- * when it ENDS in the window. A stay still in progress is not timed (its length is not known yet),
- * and nothing is inferred from before the first recorded move: lane moves were not recorded until
- * AWTD-1329, and a guessed start would invent history.
+ * Median stay in each lane, from recorded history only. A stay is timed from whatever entered the
+ * lane — the card's creation, or a move into it — to whatever ended it — the next move, a
+ * completion, a close — and counts when it ENDS in the window. A stay still in progress is not
+ * timed (its length is not known yet), and nothing is inferred from before lane moves were
+ * recorded ({@link LANE_HISTORY_START}): a guessed start would invent history.
  */
 function laneDurations(
+  tasks: InsightTask[],
   events: InsightEvent[],
   lanes: InsightLane[],
   inWindow: Set<string>,
@@ -311,17 +326,27 @@ function laneDurations(
 ): Array<InsightLane & InsightDuration> {
   const stays = new Map(lanes.map(lane => [lane.role, [] as number[]]))
   const open = new Map<string, { lane: string; since: Date }>()
+  const eventsByTask = new Map<string, InsightEvent[]>()
+  for (const event of events) {
+    const list = eventsByTask.get(event.taskId)
+    if (list) list.push(event)
+    else eventsByTask.set(event.taskId, [event])
+  }
+  for (const task of tasks) {
+    const lane = birthLane(task, eventsByTask.get(task.id) ?? [])
+    if (lane !== null) open.set(task.id, { lane, since: task.createdAt })
+  }
 
   for (const event of events) {
     const current = open.get(event.taskId)
-    const ends = event.kind === 'status_changed' || event.kind === 'completed' || event.kind === 'closed'
+    const ends = LANE_MOVE_KINDS.has(event.kind) || event.kind === 'completed' || event.kind === 'closed'
     if (current && ends) {
       if (inWindow.has(dayOf(event.createdAt))) {
         stays.get(current.lane)?.push(event.createdAt.getTime() - current.since.getTime())
       }
       open.delete(event.taskId)
     }
-    if (event.kind === 'status_changed') {
+    if (LANE_MOVE_KINDS.has(event.kind)) {
       open.set(event.taskId, { lane: laneOf(event.to), since: event.createdAt })
     }
   }
@@ -330,4 +355,19 @@ function laneDurations(
     const values = stays.get(lane.role) ?? []
     return { ...lane, medianMs: median(values), sampleSize: values.length }
   })
+}
+
+/**
+ * The lane a card was created into, or null when that is not known. Only a card created after
+ * {@link LANE_HISTORY_START} qualifies. Its first move out says where it was (`from`); with no move
+ * before its first completion, the lane that completion stashed does. A card completed and
+ * reopened before ever moving is left untimed — its stash no longer says where it was born.
+ */
+function birthLane(task: InsightTask, taskEvents: InsightEvent[]): string | null {
+  if (task.createdAt < LANE_HISTORY_START) return null
+  const first = taskEvents.find(event =>
+    LANE_MOVE_KINDS.has(event.kind) || ['completed', 'closed', 'reopened'].includes(event.kind))
+  if (first && LANE_MOVE_KINDS.has(first.kind)) return laneOf(first.from)
+  if (taskEvents.some(event => event.kind === 'reopened')) return null
+  return laneOf(task.completed ? task.statusRoleBeforeDone : task.statusRole)
 }
