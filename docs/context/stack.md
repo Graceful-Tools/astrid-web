@@ -32,7 +32,7 @@
 - **Styling**: Tailwind CSS 3.4.17
 - **Components**: Radix UI primitives (Shadcn/ui)
 - **Icons**: Lucide React 0.454.0
-- **Forms**: React Hook Form 7.88.0 + Zod 3.25.76
+- **Forms**: React Hook Form 7.88.0 + Zod 4.6.6
 
 ## Build & Development
 - **Bundler**: Next.js built-in (Turbopack in dev)
