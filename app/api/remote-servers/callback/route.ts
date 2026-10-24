@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     } catch (parseError) {
       if (parseError instanceof z.ZodError) {
         return NextResponse.json(
-          { error: 'Invalid payload', details: parseError.errors },
+          { error: 'Invalid payload', details: parseError.issues },
           { status: 400 }
         )
       }

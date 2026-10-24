@@ -25,7 +25,7 @@ import { MIN_TASK_PRIORITY, MAX_TASK_PRIORITY } from "../lib/task-priority"
 const RepeatingFields = {
   repeating: z.enum(["never", "daily", "weekly", "monthly", "yearly", "custom"]).optional(),
   /** Only meaningful when `repeating` is "custom"; a CustomRepeatingPattern. */
-  repeatingData: z.record(z.any()).nullable().optional(),
+  repeatingData: z.record(z.string(), z.any()).nullable().optional(),
   repeatFrom: z.enum(["DUE_DATE", "COMPLETION_DATE"]).optional(),
 }
 
