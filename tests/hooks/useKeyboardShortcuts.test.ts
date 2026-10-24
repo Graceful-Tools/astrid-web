@@ -336,6 +336,36 @@ describe('useKeyboardShortcuts', () => {
       expect(mockHandlers.onMakeDueDateEarlier).toHaveBeenCalledTimes(1)
     })
 
+    // AWTD-1349: "?" is Shift+/ on a US layout, so a real browser always sends it with
+    // shiftKey set. Dropping every shifted key made the hotkey menu unreachable.
+    it('AWTD-1349: opens the hotkey menu for "?" typed with Shift, as a real browser sends it', () => {
+      press('?', { shiftKey: true })
+
+      expect(mockHandlers.onShowHotkeyMenu).toHaveBeenCalledTimes(1)
+    })
+
+    it('AWTD-1349: still ignores a shifted letter as a real browser sends it ("N", not "n")', () => {
+      press('N', { shiftKey: true })
+      press('X', { shiftKey: true })
+
+      expect(mockHandlers.onNewTask).not.toHaveBeenCalled()
+      expect(mockHandlers.onCompleteTask).not.toHaveBeenCalled()
+    })
+
+    it('AWTD-1349: still ignores Shift+Delete / Shift+Backspace', () => {
+      press('Delete', { shiftKey: true })
+      press('Backspace', { shiftKey: true })
+
+      expect(mockHandlers.onDeleteTask).not.toHaveBeenCalled()
+    })
+
+    it('AWTD-1349: still ignores "?" when Ctrl/Cmd is held too', () => {
+      press('?', { shiftKey: true, ctrlKey: true })
+      press('?', { shiftKey: true, metaKey: true })
+
+      expect(mockHandlers.onShowHotkeyMenu).not.toHaveBeenCalled()
+    })
+
     it('treats Cmd/Ctrl+K as the command palette, not "select previous task"', () => {
       press('k', { metaKey: true })
 
