@@ -12,6 +12,12 @@
   --priority-low: rgb(59, 130, 246);
   --priority-medium: rgb(251, 191, 36);
   --priority-high: rgb(239, 68, 68);
+
+  /* How long the left drawer takes to slide open. The content, the sidebar and
+     the tap guard that waits for them all read it from here (AWTD-1379), so the
+     guard cannot drift out of step with the panel it is waiting for. */
+  --ios-drawer-duration: 0.3s;
+  --ios-drawer-ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 /* Lock document-level scrolling. The app shell (.app-container) and inner
@@ -560,8 +566,8 @@ html, body {
   /* Sidebar starts slightly offset/scaled and animates to full */
   transform: translateY(20px) scale(0.95);
   opacity: 0.8;
-  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
-              opacity 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: transform var(--ios-drawer-duration) var(--ios-drawer-ease),
+              opacity var(--ios-drawer-duration) var(--ios-drawer-ease);
 }
 
 .app-sidebar-mobile-open {
@@ -572,7 +578,7 @@ html, body {
 /* Content wrapper that slides right to reveal sidebar */
 .ios-drawer-content {
   @apply relative z-20;
-  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: transform var(--ios-drawer-duration) var(--ios-drawer-ease);
   /* Solid background to cover sidebar when closed - theme files override this */
   background-color: rgb(255, 255, 255);
   /* Create containing block for fixed-position header so it moves with the drawer */
@@ -595,12 +601,26 @@ html, body {
   /* Start from where sidebar ends - matches ios-drawer-content-open transform */
   left: min(85vw, 320px);
   opacity: 0;
-  transition: opacity 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  /* No delay here, so closing fades the tint out in step with the panel sliding
+     back. The delay belongs only to the opening half, below. */
+  transition: opacity var(--ios-drawer-duration) var(--ios-drawer-ease);
 }
 
+/* AWTD-1379: the guard waits for the panel.
+   It is pinned to the drawer's FINAL left edge and is not itself animated, so
+   while the content is still travelling it has nowhere honest to be — it hung
+   in the air as a grey rectangle over content that had not moved yet. Delaying
+   it by the drawer's own duration means it only ever appears once the panel is
+   completely open, which is what Jon asked for.
+   `transition-behavior: allow-discrete` holds the tap target back with the tint;
+   where a browser does not support it the guard simply becomes tappable as
+   early as it always did, so there is nothing to fall back from. */
 .ios-drawer-overlay-visible {
   opacity: 0.3;
   pointer-events: auto;
+  transition: opacity var(--ios-drawer-duration) var(--ios-drawer-ease) var(--ios-drawer-duration),
+              pointer-events 0s var(--ios-drawer-duration);
+  transition-behavior: allow-discrete;
 }
 
 .task-panel {
