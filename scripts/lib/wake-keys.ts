@@ -24,7 +24,7 @@ export function parseSeenKeys(text: string | undefined): string[] | null {
   if (text === undefined) return null
   try {
     const parsed: unknown = JSON.parse(text)
-    return Array.isArray(parsed) ? parsed.filter((k): k is string => typeof k === 'string') : null
+    return Array.isArray(parsed) ? parsed.filter((key): key is string => typeof key === 'string') : null
   } catch {
     return null
   }

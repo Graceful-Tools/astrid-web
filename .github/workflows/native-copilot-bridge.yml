@@ -1,0 +1,57 @@
+name: Native Copilot bridge
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Read the scoped queue without claiming, commenting or triggering Copilot
+        type: boolean
+        default: true
+  schedule:
+    - cron: '*/15 * * * *'
+
+concurrency:
+  group: native-copilot-web-bridge
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  bridge:
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' || vars.ASTRID_NATIVE_COPILOT_ENABLED == 'true')
+    runs-on: ubuntu-24.04
+    environment: copilot-bridge
+    timeout-minutes: 15
+    env:
+      # A real user-to-server credential is required by native Copilot's API.
+      # Keep this OUT of the coding worker: its scope can include Actions write.
+      GH_TOKEN: ${{ secrets.COPILOT_DISPATCH_TOKEN }}
+      ASTRID_OAUTH_CLIENT_ID: ${{ secrets.ASTRID_OAUTH_CLIENT_ID }}
+      ASTRID_OAUTH_CLIENT_SECRET: ${{ secrets.ASTRID_OAUTH_CLIENT_SECRET }}
+      ASTRID_OAUTH_LIST_ID: ${{ vars.ASTRID_WEB_LIST_ID || 'a623f322-4c3c-49b5-8a94-d2d9f00c82ba' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci --ignore-scripts --quiet
+      - name: Scoped native dispatch and comment return path
+        env:
+          EXECUTE: ${{ github.event_name == 'schedule' || inputs.dry_run == false }}
+        run: |
+          FLAGS=()
+          if [ "${EXECUTE}" = true ]; then FLAGS+=(--execute); fi
+          npx tsx scripts/native-copilot-bridge.ts --list "${ASTRID_OAUTH_LIST_ID}" \
+            --output .agent-output/native-copilot.json "${FLAGS[@]}"
+      - name: Persist exact bridge outcome
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: native-copilot-${{ github.run_id }}
+          path: .agent-output/native-copilot.json
+          if-no-files-found: error
+          retention-days: 30

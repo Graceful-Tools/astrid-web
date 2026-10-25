@@ -16,6 +16,10 @@ on:
   # Do not restore either trigger without deciding that merging should ship.
   workflow_dispatch:
     inputs:
+      expected_sha:
+        description: 'Optional exact main commit inspected by deterministic shipping; refuse if main moved before dispatch'
+        required: false
+        type: string
       skip_tests:
         description: 'Skip tests (emergency deployment)'
         required: false
@@ -54,6 +58,10 @@ jobs:
     outputs:
       quality-passed: ${{ steps.quality-check.outputs.passed }}
     steps:
+      - name: Verify inspected source
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: test -z "${EXPECTED_SHA}" || test "${EXPECTED_SHA}" = "${GITHUB_SHA}"
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
@@ -182,6 +190,10 @@ jobs:
     outputs:
       migration-success: ${{ steps.migration.outputs.success }}
     steps:
+      - name: Verify inspected source before migrations
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: test -z "${EXPECTED_SHA}" || test "${EXPECTED_SHA}" = "${GITHUB_SHA}"
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 

@@ -82,6 +82,32 @@ finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has t
 
 ## What is different here
 
+- **Cloud workers stop at a verified PR handoff.** `agent-run.yml` is
+  dispatch-only, supports Claude Code and Codex, and does not replace
+  an existing Claude server worker. Its preflight reads queue + inbox + lanes,
+  refuses non-polling mode, restores bounded wake history, and records outcomes
+  even when the harness fails. Cache state has an artifact fallback retained for
+  30 days; after retention expires the next run explicitly starts fresh memory.
+  A 75-minute harness timeout leaves time for WIP preservation, claim release and
+  artifact upload within the 90-minute job. Force-cancelled/host-lost runs may
+  still need the next tick's stale-Doing recovery.
+- **The selected Copilot cloud worker is GitHub's built-in agent**, not a CLI
+  replacement. `native-copilot-bridge.yml` has a disabled-by-default schedule,
+  explicit exact-board claims, native issue assignment and task/PR comment relay.
+  It leaves unassigned work to the existing Claude worker. Its default manual
+  dry-run neither claims nor triggers. See [activation and remaining boundaries](./AGENT_FLEET.md#cloud-activation-checklist):
+  setup/MCP configuration and an authorized live smoke test remain required.
+- **Deterministic shipping is separately opt-in.** `agent-ship.yml` runs
+  `land-and-deploy.ts` with at most one eligible PR per tick. It does not run a
+  harness or hold production secrets; the production workflow retains its own
+  merged-source quality and migration gates. Drafts/held handoffs stay held,
+  cloud eligibility is revalidated against Astrid, merge commits preserve
+  `AWAITING-DEPLOY` ancestry, and the merge is pinned to its inspected head.
+  Pending migrations still stop shipping. A commit with an in-flight/successful
+  deploy is not dispatched again; two failed attempts require human investigation.
+  Scheduled shipping remains disabled until `ASTRID_SHIP_ENABLED=true` is
+  deliberately configured after smoke checks.
+
 - **DEPLOY WHAT YOU FINISH, once the gates are green.** Jon, 2026-10-13: *"Interactive
   sessions and automatic can deploy with clean tests and monitor to make sure it works.
   Don't block on me."* So a green run ends in production, not in a report offering to ship.
@@ -138,7 +164,7 @@ finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has t
   **incomplete**, with the reason on it — do not mark it done and mention the gate in
   passing.
 - **Claim each task atomically before working it**, with this harness's own mailbox:
-  `npx tsx scripts/claim-fixall-task.ts <taskId> ready --agent <claude|copilot|codex>`. Exit 2
+  `npx tsx scripts/claim-fixall-task.ts <taskId> ready --agent <claude|copilot|codex> --list <board-id>`. Exit 2
   (`CLAIM_CONFLICT`) means a peer session took it first — move to the next task silently.
   This matters most for unassigned tasks: every loop polling the board sees them, and the
   claim is what makes exactly one of them the owner.
