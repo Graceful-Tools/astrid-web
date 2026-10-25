@@ -46,10 +46,19 @@ things change:
   task needs a production fact (a row count, a runtime log, migration impact), write the
   exact question on the task and hand it back. A session on the Mac answers it. Never
   guess, and never ask for the credential.
-- **The run ends at the PR.** Push `agent/<harness>/<task-key>`, open one PR with the task
+- **The run ends at the PR.** CLI workers push `agent/<harness>/<task-key>` and open one PR with the task
   link, and comment its URL on the task. You cannot dispatch a deploy (no `actions: write`).
   The task stays **incomplete** until the ship workflow has deployed it and
   `verify-deployed-sha.sh` agrees.
+
+  Include the full board identifier in `<task-key>` (for example,
+  `agent/claude-code/AWTD-1410-reply-routing`). GitHub's built-in Copilot controls
+  its own branch name; preserve its native PR mapping rather than renaming it to
+  qualify for shipping. That native ship qualification is not yet automated.
+  A CLI cloud runner registers release
+  eligibility only after validating the task's agent-authored `AWAITING-DEPLOY`
+  report, Waiting state, assignment, board and exact pushed head. An ordinary PR,
+  a draft, a WIP branch and a stale report are not release permission.
 
 ### Why this exists, and why the board lanes do not cover it
 
@@ -169,6 +178,11 @@ watermark before claiming; a stale queue entry is skipped, never reassigned.
 
 ### A task with a date waits for its date — in Waiting
 
+**Explicit list IDs take precedence over board-name lookup.** Pass
+`--list <boardId>` to `ready-tasks.ts` when a launcher knows its board, and use
+that same ID for queue reads, claims, recovery and wake acknowledgement. A
+duplicate board name is an error, never a reason to select the first match.
+
 Jon, 2026-08-19: *"If a task has a date don't start until the date or time of the task.
 Therefore we can have fixall respond to recurring tasks and track them in Astrid."*
 
@@ -230,7 +244,7 @@ OAuth scripts in astrid-web. Not the database.
 wrong is as small as possible:
 
 ```bash
-cd ../astrid-web && npx tsx scripts/claim-fixall-task.ts <taskId> ready --agent <mailbox>
+cd ../astrid-web && npx tsx scripts/claim-fixall-task.ts <taskId> ready --agent <mailbox> --list <board-id>
 ```
 
 The claim is a single conditional update: it requires the task to still be `Ready` and
@@ -293,7 +307,7 @@ write if the task would be stranded, and reads back to prove it.
 1. **Claim it atomically** — this both takes the task and moves it to `Doing`:
 
    ```bash
-   npx tsx scripts/claim-fixall-task.ts <taskId> ready --agent <claude|copilot|codex>
+   npx tsx scripts/claim-fixall-task.ts <taskId> ready --agent <claude|copilot|codex> --list <board-id>
    ```
 
    Exit `0` is yours. **Exit `2` (`CLAIM_CONFLICT`) means another session got there
@@ -433,7 +447,7 @@ while every tick reported "not in Ready".
 
 The scheduled runners release these themselves, via `scripts/release-stuck-doing.ts`:
 
-- **After every run**, exactly: `claim-fixall-task.ts` records each Ready claim in
+- **After every run**, exactly: `claim-fixall-task.ts` records each Ready or resume claim in
   `$ASTRID_FIXALL_CLAIMS_FILE`, and anything the run claimed that is still in `Doing` goes back
   to `Ready`.
 - **At the start of every tick**, as a backstop: this agent's `Doing` claims on the board with
@@ -450,6 +464,66 @@ reads as abandoned. And never finish a turn with a task you claimed still in `Do
 it, park it, or hand it back.
 
 ## After every task, re-check the queue AND the inbox
+
+### A human reply resumes an explicit handback
+
+When asking a person a question, end the **agent-authored question comment**
+with an exact line `AGENT-HANDBACK: <mailbox>` (`claude`, `copilot` or `codex`).
+Then assign the task to the human and move it to Waiting as described above.
+The human can answer on that task without reassigning it.
+
+On a named board, `attention.tasks[].resume` appears only when the **current human
+assignee** has replied after the question, the task is incomplete and still
+Waiting, and the latest agent comment is the marked question from this mailbox.
+System activity does not swallow a reply. Another agent's marker, a quoted
+marker, a bystander's comment and unrelated human tasks do not qualify.
+
+Read the task and its comments first. To resume implementation, use the returned
+metadata verbatim:
+
+```bash
+npx tsx scripts/claim-fixall-task.ts <taskId> resume <resume.commentWatermark> \
+  --agent <mailbox> --list <board-id> --resume-context '<JSON attention.tasks[i].resume>'
+```
+
+PowerShell 5.1 launchers must write that same resume object as UTF-8 JSON and use
+`--resume-context-file <path>` instead of passing native JSON arguments. Both
+forms use the same strict metadata validator; mixed flags, unreadable files and
+malformed metadata fail before claiming. Pin the resolved board ID on **every**
+claim with `--list`; this rejects a task moved to another otherwise-allowed
+platform between discovery and the atomic update. Legacy callers may omit the
+optional field, but new launchers must not.
+
+This claim revalidates board, state, due date, human assignment, marker author,
+reply ID and comment watermark, then atomically moves Waiting → Doing and assigns
+the agent. A stale or concurrent claim returns `CLAIM_CONFLICT` (exit 2); reread
+instead of overriding it. The original Ready claim remains the explicit start
+signal; this is continuation of that handed-back work, not a new queue of human
+tasks. A conversational answer alone needs no claim. **A reply is not approval
+to apply migrations or perform a restricted native release.** Those retain their
+explicit human approval requirements.
+
+### Launcher preflight and acknowledgement
+
+`agent-queue-status.ts --agent <mailbox> --board <platform> --list <boardId>
+--include-unassigned --require-polling --no-write-seen --seen <durable-file>`
+checks activation before mutating lanes. An API/webhook/off mode is an error,
+not an idle queue: otherwise the worker would race the hosted dispatcher.
+Unread list chat is reported explicitly; task replies do not require `chat:read`.
+
+Exit 0 means work; exit 3 means idle; any other exit means an error.
+`KEYS: <JSON string[]>` remains the backward-compatible acknowledgement contract.
+`--output <file>` also writes a version-1 preflight artifact with `listId`,
+`work`, `reason`, `wakeKeys`, `snapshot` and `lanes`; `--json` remains the raw
+endpoint/debug view. Do not parse human task titles as commands.
+
+After success, acknowledge the **original** keys with `--mark-seen`; after failure,
+also pass `--failed`. Use either `--seen-keys '<JSON>'` or
+`--seen-keys-file <UTF-8-file>` (not both). The file form avoids PowerShell 5.1
+native-argument quote loss. Missing, unreadable or malformed input fails without
+acknowledging anything. `--dry-run` cannot acknowledge keys, claim, trigger, or
+mutate tasks. Persist the seen file **and** its `.attempts.json` sibling across
+ephemeral runs; a second failed wake is muted, while a new comment wakes again.
 
 ```
 get_agent_queue { agent: "<current harness mailbox>", listId: "<board id>", includeUnassigned: true }

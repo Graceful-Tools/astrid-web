@@ -99,6 +99,26 @@ describe("buildAtomicFixallClaimWhere", () => {
 })
 
 describe("parseFixallClaimRequest", () => {
+  it('AWTD-1383: pauses only a version-matched Doing task owned by this agent on the exact board', () => {
+    const listId = FIXALL_CLAIM_BOARD_IDS[0]
+    const version = '2026-10-20T01:00:00Z'
+    const claim = parseFixallClaimRequest({
+      action: 'pause', agent: 'copilot', listId, taskVersion: version, commentWatermark: version,
+    })
+    const where = buildAtomicFixallClaimWhere({ taskId: 'task', agentId: 'copilot', claim, now: new Date() })
+    expect(where).toMatchObject({ assigneeId: 'copilot', statusRole: 'doing', updatedAt: new Date(version),
+      lists: { some: { id: { in: [listId] } } }, comments: { none: { updatedAt: { gt: new Date(version) } } } })
+    expect(where).not.toHaveProperty('OR')
+    expect(buildFixallClaimData({ agentId: 'copilot', claim })).toEqual({ assigneeId: 'copilot', statusRole: 'waiting' })
+    expect(() => parseFixallClaimRequest({ action: 'pause' })).toThrow(/explicit board/)
+  })
+  it('pins a selected board so a task moved to another allowed platform cannot be claimed', () => {
+    const listId = FIXALL_CLAIM_BOARD_IDS[0]
+    const claim = parseFixallClaimRequest({ action: 'ready', agent: 'copilot', listId })
+    const where = buildAtomicFixallClaimWhere({ taskId: 'task', agentId: 'agent', claim, now: new Date() })
+    expect(where.lists.some.id.in).toEqual([listId])
+    expect(() => parseFixallClaimRequest({ action: 'ready', listId: 'unapproved' })).toThrow(/allowed board/)
+  })
   it("requires a watermark for waiting actions and none for ready", () => {
     expect(parseFixallClaimRequest({ action: "ready" })).toEqual({
       action: "ready",

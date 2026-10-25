@@ -27,6 +27,7 @@
 
 import { DOING_STATUS_ROLE, READY_STATUS_ROLE, WAITING_STATUS_ROLE } from '@/lib/task-status'
 import { latestCommentWatermark, type TimestampedComment } from '@/lib/ready-queue-scope'
+import { agentMailboxFromEmail } from '@/lib/brand/agent-emails'
 
 /** Every release comment starts with this, and counting them is how "twice" is known. */
 export const RELEASE_MARKER = '🔁 Released from Doing by the scheduled /fixall loop'
@@ -161,13 +162,15 @@ export async function releaseDoingClaim(input: {
 
   if (countReleases(comments) >= 1) {
     const to = handbackTarget(task)
+    const mailbox = agentMailboxFromEmail(task.assignee?.email ?? '')
     if (to) await api.assign(task, to)
     await api.setStatus(task, WAITING_STATUS_ROLE)
     await api.comment(
       task,
       `${RELEASE_MARKER} — for the second time. ${why} A task that fails twice is not retried ` +
         `automatically (docs/FIXALL_WORKFLOW.md), so it is handed back${to ? ' to its creator' : ''} ` +
-        `in Waiting: split it, clarify it, or move it to Ready to try again.${where}`,
+        `in Waiting: split it, clarify it, or move it to Ready to try again.${where}` +
+        (to && mailbox ? `\nAGENT-HANDBACK: ${mailbox}` : ''),
     )
     return { action: 'handback', to }
   }
