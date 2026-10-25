@@ -208,8 +208,23 @@ workflow holding `VERCEL_TOKEN` can read every **Config** production value,
 `DATABASE_URL` included — which is exactly what moving the GitHub secrets to the
 `production` environment was for. **Credentials belong in Secret.**
 
-Two things that are not free:
+Three things that are not free:
 
+- **A Secret breaks the build unless the build stops reading it.** `vercel pull`
+  cannot read a Secret, so it writes the literal string `[SENSITIVE]` — and
+  `vercel build` loads that file, so the build gets `"[SENSITIVE]"` as the value
+  rather than nothing. Being non-empty, it is truthy: presence guards pass and
+  whatever validates the value then throws. This failed two production deploys on
+  2026-10-25 — `P1013` from `prisma migrate deploy`, and "Vapid private key must
+  be a URL safe Base 64" thrown at **module scope** by
+  [lib/push-notification-service.ts](../lib/push-notification-service.ts) while
+  `next build` collected route config, killing the whole build over a key only
+  push notifications need. [scripts/sanitize-pulled-env.ts](../scripts/sanitize-pulled-env.ts)
+  now drops those lines after the pull; Prisma's two datasource vars instead get
+  an unreachable localhost placeholder, because `prisma generate` hard-fails
+  (P1012) on one that is merely undefined. **Before flipping a var, check whether
+  anything reads it at module scope or during the build** — and read the deploy's
+  build log the first time, not just its exit status.
 - **Identifiers and build-time values stay Config.** `NEXT_PUBLIC_*` is inlined
   into the client bundle at build time, so a Secret would bake in `undefined`.
   Client IDs, URLs and `VAPID_PUBLIC_KEY` are public by design; write-only buys
