@@ -123,6 +123,7 @@ export const ENV_VARS: EnvVar[] = [
 
   // ── Encryption ────────────────────────────────────────────────────────────
   { name: 'ENCRYPTION_KEY', scope: 'required', description: 'Encrypts stored user API keys and OAuth credentials at rest. Losing it makes them unrecoverable.', validate: minLength(32) },
+  { name: 'ENCRYPTION_KEY_NEXT', scope: 'optional', description: 'Set ONLY during an ENCRYPTION_KEY rotation: new values are written under it while both keys still decrypt. Unset it once scripts/reencrypt-fields.ts reports nothing left.', validate: minLength(32) },
   { name: 'INTERNAL_API_SECRET', scope: 'optional', description: 'Shared secret for the /api/internal/* routes (legacy-usage census, model preferences), matched against the X-Internal-Secret header. Unset leaves those routes unreachable.' },
 
   // ── AI agents ─────────────────────────────────────────────────────────────
