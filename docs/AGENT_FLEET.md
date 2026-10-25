@@ -72,7 +72,12 @@ back. A Mac session answers it. `tests/rules/production-secrets-are-environment-
 keeps the database secrets out of every other job.
 
 Still open: `VERCEL_TOKEN` is a repo secret, because previews, `fixstuff` and the
-monitor job use it, and a Vercel token cannot be made preview-only.
+monitor job use it. Vercel's narrowest token scope is a whole *project*, so a
+token that may deploy previews of `astrid-web` may also deploy its production
+and read its Config env vars — previews have to move to their own project before
+scoping means anything. Credentials are being moved to Vercel **Secret** in the
+meantime, which is what stops a leaked token reading them
+(docs/CLI_OPERATIONS.md §0).
 
 ## Shipping
 

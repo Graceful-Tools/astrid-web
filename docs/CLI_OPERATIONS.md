@@ -197,6 +197,32 @@ rotate a credential, run `gh secret set DATABASE_URL --env production`.
 `VERCEL_TOKEN` is still a repo secret, because previews, `fixstuff` and the monitor
 job use it. That is the next one to scope.
 
+### Vercel env vars: Config is readable, Secret is not (2026-10-24)
+
+Scoping the GitHub secrets is only half of it. Vercel stores each project env var
+as **Config** (`type: encrypted` or `plain` — readable back through the API,
+`vercel env pull` and the dashboard) or **Secret** (`type: sensitive` —
+write-only, decryptable only during a deployment). `production-deployment.yml`
+demonstrates the read: `vercel pull --yes --environment=production`. So any
+workflow holding `VERCEL_TOKEN` can read every **Config** production value,
+`DATABASE_URL` included — which is exactly what moving the GitHub secrets to the
+`production` environment was for. **Credentials belong in Secret.**
+
+Two things that are not free:
+
+- **Identifiers and build-time values stay Config.** `NEXT_PUBLIC_*` is inlined
+  into the client bundle at build time, so a Secret would bake in `undefined`.
+  Client IDs, URLs and `VAPID_PUBLIC_KEY` are public by design; write-only buys
+  nothing and costs you the ability to read them back.
+- **`BLOB_READ_WRITE_TOKEN` cannot be flipped from the env list.** It is owned by
+  the Blob store connection and targets development, and Vercel refuses Secret
+  for integration connections that include Development. The answer there is
+  Blob's OIDC upgrade (no long-lived token at all), not the
+  disconnect/rotate/reconnect dance — see the OIDC task before touching it.
+
+Flipping a var re-enters the same value; it does not rotate it. Vercel cannot
+convert a Secret back to Config in place.
+
 ### NEVER pull from Vercel — it destroys `.env.local`
 `vercel pull`, `vercel link`, and `vercel env pull` overwrite your local secrets.
 **Do not run them.** Only ever *push* deployments.
