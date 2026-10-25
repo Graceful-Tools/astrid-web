@@ -163,6 +163,19 @@ export const webVitalsRateLimiter = new RateLimiter({
   keyGenerator: (request) => clientIpKey('web-vitals', request),
 })
 
+// List insights (AWTD-1367). A cache miss walks the list's history, and the
+// cache key includes the viewer's zone and day — so a client looping over three
+// windows x N time zones, or over many lists, misses the cache by construction
+// and pays full database time every call. Keyed by USER id (via
+// checkRateLimitByKeyAsync) rather than IP, as inviteRateLimiter is: the cost is
+// the computation that identity triggers, and an office or carrier NAT must not
+// make colleagues share one budget. Generous next to real use — the clients hold
+// a 5-minute cache of their own (iOS AITD-554) and there are only three windows.
+export const insightsRateLimiter = new RateLimiter({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  maxRequests: 30,
+})
+
 // Preset configurations for different endpoints
 export const RATE_LIMITS = {
   // Webhook endpoints - higher limits for legitimate AI service integrations
