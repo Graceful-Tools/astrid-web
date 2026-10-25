@@ -16,7 +16,7 @@ an investigation queue, not proof that deletion is safe.
 
 ## workflow
 
-`advance-prod-branch.sh`, `check-destructive-migrations.ts`, `claim-fixall-task.ts`, `deploy-preview.sh`, `extract-preview-url.sh`, `parse-ready-tasks-output.ts`, `post-session-link.ts`, `ready-tasks.ts`, `verify-deployed-sha.sh`
+`advance-prod-branch.sh`, `check-destructive-migrations.ts`, `claim-fixall-task.ts`, `deploy-preview.sh`, `extract-preview-url.sh`, `parse-ready-tasks-output.ts`, `post-session-link.ts`, `ready-tasks.ts`, `sanitize-pulled-env.ts`, `verify-deployed-sha.sh`
 
 ## documentation
 

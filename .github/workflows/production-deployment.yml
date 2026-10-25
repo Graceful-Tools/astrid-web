@@ -355,20 +355,28 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: vercel pull --yes --environment=production --token=$VERCEL_TOKEN
 
-      # The placeholders are not optional. `npm run build` runs `npx prisma
-      # generate` unconditionally, and Prisma hard-fails (P1012, "Environment
-      # variable not found") on a datasource env var that is merely undefined.
-      # Production's real DATABASE_URL is a Vercel *Secret*, so `vercel pull`
-      # above does not emit it — by design: a readable value is one any workflow
-      # holding VERCEL_TOKEN can pull (task bd1e0daa). Nothing here connects;
-      # `next build` never does, and scripts/lib/build-migration-policy.js
-      # refuses to migrate a localhost URL. The real migration is the
-      # `database-migration` job, which this deploy is already gated on.
+      # `vercel pull` writes the literal string `[SENSITIVE]` for every env var
+      # stored as a Vercel *Secret*, and `vercel build` below loads that file —
+      # so without this the build receives "[SENSITIVE]" as the value
+      # (vercel/vercel#17514). That is not theoretical: it failed run
+      # 40158070370 twice over, with P1013 "the scheme is not recognized" from
+      # `prisma migrate deploy` and "Vapid private key must be a URL safe Base
+      # 64" thrown at module scope during `next build`.
+      #
+      # Credentials live in Secret precisely so a workflow holding VERCEL_TOKEN
+      # cannot read them (task bd1e0daa), and the build has no business reading
+      # a runtime secret — production gets the real values injected at runtime.
+      # So the redacted lines are dropped, which also lets presence guards
+      # work as written; a non-empty placeholder is truthy and defeats them.
+      # Prisma's two datasource vars are the exception and get an
+      # unreachable localhost placeholder, because `prisma generate` hard-fails
+      # on one that is merely undefined. Keys are logged, never values.
+      - name: Keep redacted secrets out of the build
+        run: npx tsx scripts/sanitize-pulled-env.ts .vercel/.env.production.local
+
       - name: Build Project Artifacts
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          DATABASE_URL: "postgresql://x:x@localhost:5432/x"
-          DATABASE_URL_DIRECT: "postgresql://x:x@localhost:5432/x"
         run: vercel build --prod --token=$VERCEL_TOKEN
 
       # AWTD-959. This step used to report FAILED about deploys that succeeded.
