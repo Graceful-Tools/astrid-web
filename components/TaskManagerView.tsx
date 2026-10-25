@@ -6,6 +6,7 @@ import { taskDetailPaneProps } from "./TaskManager/task-detail-pane-props"
 import { TaskManagerHeader } from "./TaskManager/Header/TaskManagerHeader"
 import { LeftSidebar } from "./TaskManager/Sidebar/LeftSidebar"
 import { DesktopChatPane } from "./TaskManager/DesktopChatPane"
+import { DrawerTapGuard } from "./TaskManager/DrawerTapGuard"
 import { MainContent } from "./TaskManager/MainContent/MainContent"
 import { LoadingScreen } from "./loading-screen"
 import { computeTaskPaneLeftOffset } from "./TaskManager/task-pane-position"
@@ -991,12 +992,11 @@ const TaskManagerView = memo(function TaskManagerView({
         </div>
       </div>
 
-      {/* iOS Drawer Overlay - tap to close sidebar */}
-      {isIOSDrawer && showMobileSidebar && (
-        <div
-          className="ios-drawer-overlay ios-drawer-overlay-visible"
-          onClick={() => setShowMobileSidebar(false)}
-        />
+      {/* iOS Drawer Overlay - tap to close sidebar. Mounted whether or not the
+          drawer is open, so opening it is a transition rather than a first paint
+          at full strength (AWTD-1379). */}
+      {isIOSDrawer && (
+        <DrawerTapGuard open={showMobileSidebar} onDismiss={() => setShowMobileSidebar(false)} />
       )}
 
       {/* Desktop Settings Detail Pane - floating panel like task detail, positioned at settings panel right edge */}
