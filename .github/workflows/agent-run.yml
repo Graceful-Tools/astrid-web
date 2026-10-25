@@ -71,12 +71,19 @@ jobs:
       # handbacks), and the run stops at the PR.
       ASTRID_FIXALL_EPHEMERAL: '1'
       ASTRID_FIXALL_MAX_TASKS: ${{ vars.ASTRID_FIXALL_MAX_TASKS || '1' }}
-      GH_TOKEN: ${{ github.token }}
+      # PRs opened with the built-in token do not trigger other workflows (GitHub's
+      # loop guard), so an agent PR would get no CI. AGENT_GH_TOKEN is a
+      # fine-grained token scoped to this repo with contents + pull-requests write
+      # and NO actions write, so it still cannot dispatch a deploy. Smoke test
+      # AWTD-1364 / PR #518 had no checks until a person reopened it.
+      GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN || github.token }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          # git push uses this, so the agent's branch push triggers CI too.
+          token: ${{ secrets.AGENT_GH_TOKEN || github.token }}
 
       - name: Agent setup
         uses: ./.github/actions/agent-setup
@@ -89,6 +96,14 @@ jobs:
       - name: Queue (dry run)
         if: ${{ inputs.dry_run }}
         run: npx tsx scripts/ready-tasks.ts web --harness "${ASTRID_FIXALL_HARNESS}" --dry-run
+
+      # The Claude Code CLI needs Node 22. The repo's own gates stay on Node 20
+      # through the agent setup above; only the agent's runtime moves.
+      - name: Node 22 for the agent CLI
+        if: ${{ !inputs.dry_run }}
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
 
       - name: Run Claude Code
         if: ${{ !inputs.dry_run && inputs.harness == 'claude-code' }}
