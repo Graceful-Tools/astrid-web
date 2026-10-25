@@ -15,8 +15,8 @@ name: 'Agent Run'
 #     a comment on the task. Merging and deploying are the ship workflow's job
 #     (docs/AGENT_FLEET.md → Shipping).
 #
-# Dispatch-only while this is new. A schedule comes once a few runs have
-# landed clean PRs, and then the Mac's launchd web loop is unloaded.
+# Dispatch-only alternatives. The existing Claude web server stays active;
+# this workflow does not replace it or enable a competing Claude schedule.
 on:
   workflow_dispatch:
     inputs:
@@ -41,6 +41,7 @@ concurrency:
 permissions:
   contents: write
   pull-requests: write
+  actions: read
 
 jobs:
   run:
@@ -66,6 +67,8 @@ jobs:
       ASTRID_OAUTH_CLIENT_ID: ${{ secrets.ASTRID_OAUTH_CLIENT_ID }}
       ASTRID_OAUTH_CLIENT_SECRET: ${{ secrets.ASTRID_OAUTH_CLIENT_SECRET }}
       ASTRID_FIXALL_HARNESS: ${{ inputs.harness }}
+      ASTRID_OAUTH_LIST_ID: ${{ vars.ASTRID_WEB_LIST_ID || 'a623f322-4c3c-49b5-8a94-d2d9f00c82ba' }}
+      ASTRID_FIXALL_CLAIMS_FILE: ${{ github.workspace }}/.agent-output/claims.txt
       # docs/FIXALL_WORKFLOW.md → On an ephemeral runner: the checkout is this
       # job's alone (no lock), production is out of reach (prod questions are
       # handbacks), and the run stops at the PR.
@@ -76,7 +79,7 @@ jobs:
       # fine-grained token scoped to this repo with contents + pull-requests write
       # and NO actions write, so it still cannot dispatch a deploy. Smoke test
       # AWTD-1364 / PR #518 had no checks until a person reopened it.
-      GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN || github.token }}
+      GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -90,23 +93,93 @@ jobs:
 
       - name: Identify the run in git
         run: |
+          mkdir -p .agent-output .agent-state
+          touch "${ASTRID_FIXALL_CLAIMS_FILE}"
           git config user.name "Astrid agent (${ASTRID_FIXALL_HARNESS})"
           git config user.email "agent-${ASTRID_FIXALL_HARNESS}@users.noreply.github.com"
 
-      - name: Queue (dry run)
-        if: ${{ inputs.dry_run }}
-        run: npx tsx scripts/ready-tasks.ts web --harness "${ASTRID_FIXALL_HARNESS}" --dry-run
+      - name: Restore durable wake state
+        id: wake-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .agent-state
+          key: agent-wake-v1-${{ inputs.harness }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: agent-wake-v1-${{ inputs.harness }}-${{ github.ref_name }}-
+
+      - name: Restore retained state when the cache was evicted
+        if: ${{ steps.wake-cache.outputs.cache-matched-key == '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: npx tsx scripts/restore-cloud-wake-state.ts
+
+      - name: Queue and inbox preflight
+        id: preflight
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          AGENT=$(node -e 'const m={"claude-code":"claude","codex":"codex"}; const a=m[process.env.ASTRID_FIXALL_HARNESS]; if(!a) process.exit(1); process.stdout.write(a)')
+          echo "agent=${AGENT}" >> "${GITHUB_OUTPUT}"
+          if [ "${DRY_RUN}" != "true" ]; then
+            if [ -z "${GH_TOKEN}" ]; then
+              echo "::error::AGENT_GH_TOKEN is required so branch pushes and PRs receive CI"
+              exit 1
+            fi
+            npx tsx scripts/agent-queue-status.ts --agent "${AGENT}" --list "${ASTRID_OAUTH_LIST_ID}" \
+              --require-polling --dry-run --no-write-seen && STATUS=0 || STATUS=$?
+            if [ "${STATUS}" != 0 ] && [ "${STATUS}" != 3 ]; then exit "${STATUS}"; fi
+            npx tsx scripts/release-stuck-doing.ts --agent "${AGENT}" \
+              --list "${ASTRID_OAUTH_LIST_ID}" --stale-minutes 180
+          fi
+          FLAGS=()
+          if [ "${DRY_RUN}" = "true" ]; then FLAGS+=(--dry-run); fi
+          # Check mode BEFORE either a claim or a lane mutation; a polling worker
+          # must not race the server's api/webhook dispatcher.
+          npx tsx scripts/agent-queue-status.ts --agent "${AGENT}" \
+            --board web --list "${ASTRID_OAUTH_LIST_ID}" --include-unassigned \
+            --require-polling --no-write-seen --seen .agent-state/seen.json \
+            --output .agent-output/preflight.json "${FLAGS[@]}" && STATUS=0 || STATUS=$?
+          if [ "${STATUS}" != 0 ] && [ "${STATUS}" != 3 ]; then exit "${STATUS}"; fi
+          node -e '
+            const fs=require("fs"), p=JSON.parse(fs.readFileSync(".agent-output/preflight.json"));
+            if(p.version!==1 || typeof p.work!=="boolean" || !Array.isArray(p.wakeKeys)) process.exit(1);
+            fs.writeFileSync(".agent-output/wake-keys.json",JSON.stringify(p.wakeKeys));
+            fs.appendFileSync(process.env.GITHUB_OUTPUT,`work=${p.work}\n`);
+          '
+
+      - name: Build and verify Astrid MCP
+        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
+        run: |
+          npm run build:mcp:oauth
+          node --input-type=module -e '
+            import {Client} from "@modelcontextprotocol/sdk/client/index.js";
+            import {StdioClientTransport} from "@modelcontextprotocol/sdk/client/stdio.js";
+            const client=new Client({name:"agent-preflight",version:"1"});
+            const transport=new StdioClientTransport({command:"node",args:["mcp/astrid-mcp-launch.js"],env:process.env});
+            try {
+              await client.connect(transport);
+              const {tools}=await client.listTools();
+              for(const name of ["get_agent_queue","get_task","get_task_comments","add_comment","update_task"])
+                if(!tools.some(t=>t.name===name)) throw new Error(`Missing MCP tool ${name}`);
+            } finally { await client.close(); }
+          '
+          node -e '
+            const fs=require("fs");
+            const server={command:"node",args:[process.cwd()+"/mcp/astrid-mcp-launch.js"]};
+            fs.writeFileSync(process.env.RUNNER_TEMP+"/astrid-mcp.json",JSON.stringify({mcpServers:{astrid:server}}));
+          '
 
       # The Claude Code CLI needs Node 22. The repo's own gates stay on Node 20
       # through the agent setup above; only the agent's runtime moves.
       - name: Node 22 for the agent CLI
-        if: ${{ !inputs.dry_run }}
+        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22'
 
       - name: Run Claude Code
-        if: ${{ !inputs.dry_run && inputs.harness == 'claude-code' }}
+        id: claude
+        timeout-minutes: 75
+        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' && inputs.harness == 'claude-code' }}
         env:
           # Subscription token from `claude setup-token` — never an API key
           # (Jon, 2026-09-19: the loops run on the subscription).
@@ -114,11 +187,14 @@ jobs:
         run: |
           npm install --global @anthropic-ai/claude-code@2.1.306
           claude -p "$(cat .github/agent-run-prompt.md)" \
+            --mcp-config "${RUNNER_TEMP}/astrid-mcp.json" --strict-mcp-config \
             --permission-mode acceptEdits \
-            --allowedTools "Bash(npm run *),Bash(npx tsx scripts/*),Bash(npx vitest *),Bash(git *),Bash(gh pr *),Read,Edit,Write,Grep,Glob"
+            --allowedTools "Bash(npm run *),Bash(npx tsx scripts/*),Bash(npx vitest *),Bash(git *),Bash(gh pr *),mcp__astrid__*,Read,Edit,Write,Grep,Glob"
 
       - name: Run Codex
-        if: ${{ !inputs.dry_run && inputs.harness == 'codex' }}
+        id: codex
+        timeout-minutes: 75
+        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' && inputs.harness == 'codex' }}
         env:
           CODEX_VERSION: ${{ vars.CODEX_VERSION }}
           CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
@@ -131,4 +207,66 @@ jobs:
           fi
           npm install --global "@openai/codex@${CODEX_VERSION}"
           mkdir -p ~/.codex && printf '%s' "${CODEX_AUTH_JSON}" > ~/.codex/auth.json
-          codex exec --full-auto "$(cat .github/agent-run-prompt.md)"
+          codex -c 'mcp_servers.astrid.command="node"' \
+            -c "mcp_servers.astrid.args=[\"${GITHUB_WORKSPACE}/mcp/astrid-mcp-launch.js\"]" \
+            -c sandbox_workspace_write.network_access=true \
+            exec --full-auto "$(cat .github/agent-run-prompt.md)"
+
+      - name: Preserve unfinished work
+        if: ${{ always() && !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            BRANCH=$(git branch --show-current)
+            if [ "${BRANCH}" = main ]; then
+              git switch -c "agent/${ASTRID_FIXALL_HARNESS}/recovery-${GITHUB_RUN_ID}"
+            fi
+            git add --all
+            git commit -m "wip: agent run ${GITHUB_RUN_ID} UNFINISHED, UNVERIFIED"
+            git push --set-upstream origin HEAD
+          fi
+
+      - name: Register finished cloud handoffs
+        if: ${{ always() && !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
+        env:
+          AGENT: ${{ steps.preflight.outputs.agent }}
+        run: |
+          npx tsx scripts/open-fixall-prs.ts --claims-file "${ASTRID_FIXALL_CLAIMS_FILE}" \
+            --repo "${GITHUB_WORKSPACE}" --cloud-agent "${AGENT}" --list "${ASTRID_OAUTH_LIST_ID}"
+
+      - name: Release unfinished claims
+        if: ${{ always() && !inputs.dry_run && steps.preflight.outputs.agent != '' }}
+        env:
+          AGENT: ${{ steps.preflight.outputs.agent }}
+        run: |
+          npx tsx scripts/release-stuck-doing.ts --agent "${AGENT}" \
+            --claims-file "${ASTRID_FIXALL_CLAIMS_FILE}"
+
+      - name: Record wake outcome
+        if: ${{ always() && !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
+        env:
+          AGENT: ${{ steps.preflight.outputs.agent }}
+          RUN_OK: ${{ job.status == 'success' }}
+        run: |
+          FLAGS=()
+          if [ "${RUN_OK}" != true ]; then FLAGS+=(--failed); fi
+          npx tsx scripts/agent-queue-status.ts --agent "${AGENT}" --list "${ASTRID_OAUTH_LIST_ID}" \
+            --seen .agent-state/seen.json --mark-seen --seen-keys-file .agent-output/wake-keys.json "${FLAGS[@]}"
+
+      - name: Persist durable wake state
+        if: ${{ always() && !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .agent-state
+          key: agent-wake-v1-${{ inputs.harness }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Persist run outputs and recovery evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: agent-run-${{ inputs.harness }}-${{ github.run_id }}
+          path: |
+            .agent-output/
+            .agent-state/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 30

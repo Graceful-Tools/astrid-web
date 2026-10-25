@@ -48,8 +48,8 @@
  * after a failed one gives each key a strike, muting it after
  * MAX_FAILED_ATTEMPTS (scripts/lib/wake-keys.ts) so a run that keeps dying
  * on the same item cannot wake a session every tick forever. Callers that do
- * not opt in keep the old write-on-preflight behavior, so the iOS loop (which
- * calls this with no flags) is unchanged.
+ * not opt in keep the old write-on-preflight behavior. Current Apple launchers
+ * also use two-phase acknowledgement; legacy callers remain compatible.
  *
  * Usage:
  *   npx tsx scripts/agent-queue-status.ts --agent claude --list <listId> --board web
@@ -95,6 +95,8 @@ import { adoptLegacySeenFile, defaultSeenFile } from './lib/fixall-seen-file'
 import { decideQueueVerdict, type LaneSnapshot, type QueueSnapshot } from './lib/agent-queue-verdict'
 import { MAX_FAILED_ATTEMPTS, parseSeenKeys, recordFailedRun, recordFinishedRun } from './lib/wake-keys'
 import { DEFAULT_LONG_RUN_WINDOW, parseLongRunWindow, planRun } from './lib/long-run'
+import { parseBoardTarget, resolveBoardListId } from './lib/board-by-name'
+import { readSeenKeysInput } from './lib/seen-keys-input'
 
 loadScriptEnv()
 
@@ -122,7 +124,7 @@ function harnessForMailbox(mailbox: string): string | undefined {
  * not read the lanes any better than this could, and a sweep that is broken
  * every tick must not become a session every tick.
  */
-function readLanes(board: string, mailbox: string): { lanes: LaneSnapshot; notes: string[] } {
+function readLanes(board: string, mailbox: string, listId: string, dryRun: boolean): { lanes: LaneSnapshot; notes: string[] } {
   const harness = harnessForMailbox(mailbox)
   if (!harness) {
     return { lanes: null, notes: [`LANES: not swept — no harness selector maps to mailbox "${mailbox}"`] }
@@ -130,7 +132,8 @@ function readLanes(board: string, mailbox: string): { lanes: LaneSnapshot; notes
 
   const result = spawnSync(
     'npx',
-    ['tsx', 'scripts/ready-tasks.ts', board, '--json', '--harness', harness],
+    ['tsx', 'scripts/ready-tasks.ts', board, '--json', '--harness', harness, '--list', listId,
+      ...(dryRun ? ['--dry-run'] : [])],
     { encoding: 'utf8', env: process.env },
   )
 
@@ -212,11 +215,26 @@ function readAttempts(file: string): Record<string, number> {
 
 async function main() {
   const agent = arg('--agent') || 'claude'
-  const listId = arg('--list')
+  let listId = arg('--list')
   const board = arg('--board')
+  const dryRun = process.argv.includes('--dry-run')
   const asJson = process.argv.includes('--json')
   const includeUnassigned = process.argv.includes('--include-unassigned')
 
+  if (board) parseBoardTarget({ board })
+  if (!listId && board) {
+    const response = await fetch(`${API}/api/v1/oauth/token`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ grant_type: 'client_credentials',
+        client_id: process.env.ASTRID_OAUTH_CLIENT_ID, client_secret: process.env.ASTRID_OAUTH_CLIENT_SECRET }),
+    })
+    if (!response.ok) throw new Error(`Board resolution OAuth failed: HTTP ${response.status}`)
+    const { access_token: token } = await response.json()
+    const target = parseBoardTarget({ board })
+    if (target?.kind === 'board') listId = await resolveBoardListId({
+      board: target.board, auth: { 'X-OAuth-Token': token }, origin: API,
+    })
+  }
   if (!listId) {
     console.error(
       'Usage: npx tsx scripts/agent-queue-status.ts --agent <mailbox> --list <listId> [--board web|ios|windows|android] [--seen <file>]',
@@ -230,7 +248,7 @@ async function main() {
   // OS cache dir — machine-local state that survives `npm ci`
   // (scripts/lib/fixall-seen-file.ts).
   const seenFile = arg('--seen') ?? defaultSeenFile(agent, listId)
-  if (!arg('--seen')) {
+  if (!arg('--seen') && !dryRun) {
     // One-time move of the pre-2026-09-21 default, so a deploy does not
     // re-wake every item the old file had already muted.
     const adopted = adoptLegacySeenFile(agent, listId, seenFile)
@@ -240,13 +258,8 @@ async function main() {
   // Phase two of waking: record the keys the run was woken for, by how the
   // run ended. No network, no verdict — the preflight already decided.
   if (process.argv.includes('--mark-seen')) {
-    const keys = parseSeenKeys(arg('--seen-keys'))
-    if (keys === null) {
-      // Missing or malformed keys mark NOTHING and say so: writing an empty
-      // set here would un-mute every item the file had already muted.
-      console.log('SEEN: --seen-keys missing or not a JSON array — nothing recorded')
-      process.exit(1)
-    }
+    if (dryRun) throw new Error('--dry-run cannot mark seen keys')
+    const keys = readSeenKeysInput(arg('--seen-keys'), arg('--seen-keys-file'))
     const attemptsFile = attemptsFileFor(seenFile)
     const seen = readSeen(seenFile)
     const attempts = readAttempts(attemptsFile)
@@ -275,9 +288,6 @@ async function main() {
   // The sweep goes FIRST: a Waiting task it promotes is Ready by the time the
   // endpoint is asked, so the queue half of the verdict sees it this tick and
   // not the next.
-  const { lanes, notes } = board ? readLanes(board, agent) : { lanes: null, notes: [] }
-  for (const note of notes) console.log(note)
-
   const tokenResponse = await fetch(`${API}/api/v1/oauth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -292,6 +302,16 @@ async function main() {
   const url =
     `${API}/api/v1/agent-queue?agent=${encodeURIComponent(agent)}&listId=${encodeURIComponent(listId)}` +
     (includeUnassigned ? '&includeUnassigned=true' : '')
+  if (process.argv.includes('--require-polling')) {
+    const modeResponse = await fetch(url, { headers: { 'X-OAuth-Token': token } })
+    if (!modeResponse.ok) throw new Error(`Polling activation check failed: HTTP ${modeResponse.status}`)
+    const mode = (await modeResponse.json()).mode
+    if (mode !== 'polling') throw new Error(`Agent ${agent} mode is "${mode}", not polling — refusing duplicate dispatch`)
+  }
+  const { lanes, notes } = board ? readLanes(board, agent, listId, dryRun) : { lanes: null, notes: [] }
+  for (const note of notes) console.log(note)
+  if (board && lanes === null) throw new Error('Lane preflight failed; refusing to report an idle board')
+
   const response = await fetch(url, { headers: { 'X-OAuth-Token': token } })
   if (!response.ok) {
     console.error(`QUEUE: unknown — HTTP ${response.status} from /api/v1/agent-queue`)
@@ -299,6 +319,7 @@ async function main() {
   }
 
   const fetched = (await response.json()) as QueueSnapshot
+  for (const skipped of fetched.attention?.skipped ?? []) console.error(`ATTENTION: ${skipped}`)
 
   // Long runs (AWTD-1041), opt-in so the iOS loop's calls are unchanged. The
   // plan is applied to the queue BEFORE the verdict: a long task deferred to
@@ -330,7 +351,12 @@ async function main() {
   // A board that was not swept has lanes nobody looked at — say so rather than
   // let "not asked" read as "clear".
   const verdict = decideQueueVerdict({ snapshot, lanes: board ? lanes : null, seen: readSeen(seenFile) })
-  const deferSeen = process.argv.includes('--no-write-seen')
+  const deferSeen = process.argv.includes('--no-write-seen') || dryRun
+  const output = arg('--output')
+  if (output && !writeJson(output, {
+    version: 1, listId, work: verdict.work, reason: verdict.reason,
+    wakeKeys: verdict.keys, snapshot, lanes,
+  })) throw new Error('Could not persist preflight output')
 
   if (asJson) {
     // The keys ride inside the document, so a JSON caller can still hand

@@ -70,6 +70,26 @@ beforeEach(() => {
 })
 
 describe('buildAgentQueue attention — task comments (AWTD-963)', () => {
+  it('routes an explicit human handback reply on the named board without widening the Ready queue', async () => {
+    const question = comment({ id: 'q', authorId: AGENT.id, author: AGENT,
+      content: 'Choose behaviour\nAGENT-HANDBACK: claude',
+      createdAt: new Date('2026-09-19T09:00:00Z'), updatedAt: new Date('2026-09-19T09:00:00Z') })
+    mockPrisma.task.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([])
+      .mockResolvedValueOnce([attentionTask({
+        statusRole: 'waiting', assigneeId: JON.id, assignee: JON, lists: [{ id: 'list-9' }],
+        comments: [comment(), question],
+      })])
+    const result = await buildAgentQueue({ agent: 'claude', userId: JON.id, listId: 'list-9' })
+    expect(result.queue).toEqual([])
+    expect(result.attention.tasks[0].resume).toMatchObject({
+      listId: 'list-9', assigneeId: JON.id, handbackCommentId: 'q', replyCommentId: 'c-1',
+    })
+    expect(mockPrisma.task.findMany.mock.calls[2][0].where).toMatchObject({
+      completed: false, statusRole: 'waiting', assignee: { isAIAgent: false },
+      lists: { some: { id: 'list-9' } },
+      comments: { some: { authorId: AGENT.id } },
+    })
+  })
   it('surfaces a task whose newest comment is from a human', async () => {
     mockPrisma.task.findMany
       .mockResolvedValueOnce([])

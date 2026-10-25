@@ -197,3 +197,7 @@ mcp/astrid-mcp-oauth-http
 
 # Cloud agent credentials (docs/AGENT_FLEET.md). Never commit any form of it.
 .env.cloud*
+
+# Ephemeral cloud launcher state and evidence; persisted by Actions, never code.
+.agent-state/
+.agent-output/

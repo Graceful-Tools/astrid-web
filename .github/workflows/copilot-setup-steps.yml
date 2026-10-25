@@ -13,6 +13,14 @@ on:
 
 jobs:
   copilot-setup-steps:
+    environment: copilot
+    env:
+      ASTRID_OAUTH_CLIENT_ID: ${{ secrets.ASTRID_OAUTH_CLIENT_ID }}
+      ASTRID_OAUTH_CLIENT_SECRET: ${{ secrets.ASTRID_OAUTH_CLIENT_SECRET }}
+      ASTRID_OAUTH_LIST_ID: ${{ vars.ASTRID_WEB_LIST_ID || 'a623f322-4c3c-49b5-8a94-d2d9f00c82ba' }}
+      ASTRID_FIXALL_HARNESS: github-copilot
+      ASTRID_FIXALL_EPHEMERAL: '1'
+      ASTRID_FIXALL_MAX_TASKS: '1'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -37,3 +45,13 @@ jobs:
 
       - name: Agent setup
         uses: ./.github/actions/agent-setup
+
+      - name: Build Astrid MCP transport
+        run: npm run build:mcp:oauth
+
+      - name: Verify polling activation without mutating tasks
+        run: |
+          npx tsx scripts/agent-queue-status.ts --agent copilot --board web \
+            --list "${ASTRID_OAUTH_LIST_ID}" --include-unassigned --require-polling \
+            --dry-run --no-write-seen && STATUS=0 || STATUS=$?
+          if [ "${STATUS}" != 0 ] && [ "${STATUS}" != 3 ]; then exit "${STATUS}"; fi

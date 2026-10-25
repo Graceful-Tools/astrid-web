@@ -162,6 +162,9 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'GITHUB_WEBHOOK_SECRET', scope: 'optional', description: 'Verifies GitHub App webhooks.' },
   { name: 'GITHUB_TOKEN', scope: 'tooling', description: 'Personal access token used by maintenance scripts and the gh CLI.' },
   { name: 'GH_TOKEN', scope: 'tooling', description: 'Alternative token name the gh CLI accepts.' },
+  { name: 'GITHUB_REF_NAME', scope: 'tooling', description: 'Actions branch name; isolates retained cloud worker wake state by branch.' },
+  { name: 'GITHUB_RUN_ID', scope: 'tooling', description: 'Actions run id; excludes the current run when restoring retained worker state.' },
+  { name: 'RUNNER_TEMP', scope: 'tooling', description: 'Actions temporary directory for downloading validated cloud wake-state artifacts.' },
   { name: 'GITHUB_SYNC_CLIENT_ID', scope: 'optional', description: 'OAuth app (scope: repo) for two-way GitHub Issues sync — separate from the GitHub App.' },
   { name: 'GITHUB_SYNC_CLIENT_SECRET', scope: 'optional', description: 'Secret for the Issues-sync OAuth app.' },
   { name: 'GITHUB_SYNC_WEBHOOK_SECRET', scope: 'optional', description: 'Verifies Issues-sync webhooks.' },
@@ -195,6 +198,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'ASTRID_WEBHOOK_SECRET', scope: 'optional', description: 'Verifies inbound AI-agent webhooks.' },
   { name: 'MCP_TOKEN', scope: 'tooling', description: 'MCP token used by local validation scripts.' },
   { name: 'ASTRID_FIXALL_CLAIMS_FILE', scope: 'tooling', description: 'Set by the scheduled /fixall runner: where claim-fixall-task.ts records a run’s claims so any left in Doing are released after it.' },
+  { name: 'ASTRID_FIXALL_HARNESS', scope: 'tooling', description: 'Explicit polling harness selector; controls queue identity and retained cloud wake-state scope.' },
   { name: 'FIXALL_CLAIM_BOARD_IDS', scope: 'optional', description: 'Boards an atomic /fixall claim may target. A security allowlist; unset keeps this deployment’s defaults.' },
 
   // ── Brand ─────────────────────────────────────────────────────────────────
