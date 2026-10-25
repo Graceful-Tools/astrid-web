@@ -13,6 +13,8 @@
 #   ASTRID_OAUTH_CLIENT_ID=      secret: the Astrid OAuth client the queue scripts use
 #   ASTRID_OAUTH_CLIENT_SECRET=  secret
 #   CODEX_AUTH_JSON=             secret: Codex only, ~/.codex/auth.json
+#   AGENT_GH_TOKEN=              secret: fine-grained token, this repo only, Contents +
+#                                Pull requests read/write, NOT Actions (so agent PRs get CI)
 #   ASTRID_FIXALL_MAX_TASKS=1    variable: tasks per run
 #   CODEX_VERSION=               variable: Codex only, exact @openai/codex version
 #
@@ -24,7 +26,7 @@ set -euo pipefail
 
 FILE="${1:-.env.cloud}"
 REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
-SECRETS=" CLAUDE_CODE_OAUTH_TOKEN ASTRID_OAUTH_CLIENT_ID ASTRID_OAUTH_CLIENT_SECRET CODEX_AUTH_JSON "
+SECRETS=" CLAUDE_CODE_OAUTH_TOKEN ASTRID_OAUTH_CLIENT_ID ASTRID_OAUTH_CLIENT_SECRET CODEX_AUTH_JSON AGENT_GH_TOKEN "
 VARIABLES=" ASTRID_FIXALL_MAX_TASKS CODEX_VERSION "
 
 [ -f "$FILE" ] || { echo "No $FILE; create it with the keys listed at the top of this script." >&2; exit 1; }

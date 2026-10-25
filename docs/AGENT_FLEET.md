@@ -87,8 +87,9 @@ an agent-run task stays incomplete after its PR, and a Mac session or Jon lands 
 ## Migration steps
 
 1. ✅ Production DB secrets moved to the `production` environment; previews no longer fall back to them (#515).
-2. ⏳ Shared setup action, `copilot-setup-steps.yml`, and `agent-run.yml` (dispatch-only).
-3. ⏳ Harness-neutral `/fixall` (`docs/FIXALL_WEB.md`), with adapters pointing to it.
+2. ✅ Shared setup action, `copilot-setup-steps.yml`, and `agent-run.yml` (#516). The first
+   real run, AWTD-1364, opened PR #518 in about a minute.
+3. ✅ Harness-neutral `/fixall` (`docs/FIXALL_WEB.md`), with adapters pointing to it (#516).
 4. ☐ Ship workflow.
 5. ☐ Unload `cc.astrid.fixall-web` and the `astrid-web` self-hosted runner; point
    `predeploy.yml` / `fixstuff.yml` / `fixall.yml` at ubuntu; retire the Copilot
@@ -110,6 +111,11 @@ scripts/push-agent-env.sh             # → GitHub `agent` environment (secrets 
 
 The script refuses a file that names a production key or value, or a key it doesn't know.
 
+- `AGENT_GH_TOKEN` (in `.env.cloud`): a fine-grained token for Graceful-Tools/astrid-web
+  only, with **Contents** and **Pull requests** read/write and **no Actions** access. Without
+  it the agent's PRs get no CI, because GitHub doesn't run workflows on events made with the
+  built-in token. PRs and pushes then show the token owner as the author. A GitHub App
+  token can replace it later for a separate bot identity.
 - `agent` environment: created 2026-10-24 with the Astrid OAuth client and
   `ASTRID_FIXALL_MAX_TASKS`. It still needs `CLAUDE_CODE_OAUTH_TOKEN`; Codex also needs
   `CODEX_AUTH_JSON` and `CODEX_VERSION`.
