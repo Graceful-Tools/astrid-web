@@ -355,9 +355,20 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: vercel pull --yes --environment=production --token=$VERCEL_TOKEN
 
+      # The placeholders are not optional. `npm run build` runs `npx prisma
+      # generate` unconditionally, and Prisma hard-fails (P1012, "Environment
+      # variable not found") on a datasource env var that is merely undefined.
+      # Production's real DATABASE_URL is a Vercel *Secret*, so `vercel pull`
+      # above does not emit it — by design: a readable value is one any workflow
+      # holding VERCEL_TOKEN can pull (task bd1e0daa). Nothing here connects;
+      # `next build` never does, and scripts/lib/build-migration-policy.js
+      # refuses to migrate a localhost URL. The real migration is the
+      # `database-migration` job, which this deploy is already gated on.
       - name: Build Project Artifacts
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          DATABASE_URL: "postgresql://x:x@localhost:5432/x"
+          DATABASE_URL_DIRECT: "postgresql://x:x@localhost:5432/x"
         run: vercel build --prod --token=$VERCEL_TOKEN
 
       # AWTD-959. This step used to report FAILED about deploys that succeeded.

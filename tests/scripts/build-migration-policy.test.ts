@@ -60,3 +60,48 @@ describe('migrationPlan (task 2b3e7469)', () => {
     }
   })
 })
+
+/**
+ * RED for task bd1e0daa (scope VERCEL_TOKEN out of the PR workflows).
+ *
+ * Making production's DATABASE_URL a Vercel *Secret* stops `vercel pull` from
+ * emitting it, and `npx prisma generate` — which build-with-migrations.js runs
+ * unconditionally — hard-fails on a merely undefined datasource env var
+ * (P1012). So the deploy workflow's build step passes the same placeholder
+ * `postgresql://x:x@localhost:5432/x` it already uses for the drift check.
+ *
+ * That placeholder satisfies Prisma, but it also made `migrationPlan` answer
+ * `migrate: true` on a Vercel production build — so every green deploy ran
+ * `prisma migrate deploy` against localhost, failed, and logged
+ * "⚠️  Database migrations did not complete during build". Harmless (the call
+ * is non-critical and the `database-migration` job has already migrated and
+ * gated the deploy) but it is a warning about production data on a deploy that
+ * is fine, and this repo has a documented history of deploy rules going wrong
+ * by misreading exactly these logs.
+ *
+ * A Vercel production build never legitimately migrates a database on
+ * localhost, so that is the rule.
+ */
+describe('migrationPlan with a placeholder DATABASE_URL (task bd1e0daa)', () => {
+  const PLACEHOLDER = 'postgresql://x:x@localhost:5432/x'
+
+  it('does NOT migrate a production build pointed at the workflow placeholder', () => {
+    const plan = migrationPlan({ VERCEL_ENV: 'production', DATABASE_URL: PLACEHOLDER })
+    expect(plan.migrate).toBe(false)
+    expect(plan.reason).toMatch(/placeholder|localhost/i)
+  })
+
+  it('does NOT migrate a production build pointed at 127.0.0.1', () => {
+    const plan = migrationPlan({
+      VERCEL_ENV: 'production',
+      DATABASE_URL: 'postgresql://x:x@127.0.0.1:5432/x',
+    })
+    expect(plan.migrate).toBe(false)
+  })
+
+  it('still migrates a production build pointed at a real host', () => {
+    expect(migrationPlan({ VERCEL_ENV: 'production', DATABASE_URL: PRODUCTION_DB }).migrate).toBe(
+      true,
+    )
+  })
+})
