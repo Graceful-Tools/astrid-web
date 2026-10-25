@@ -14,6 +14,7 @@ import {
   dayKey,
   INBOX_LANE,
   LANE_HISTORY_START,
+  LANE_MOVE_KINDS,
   windowQueryStart,
   type InsightWindowDays,
   type ListInsights,
@@ -73,9 +74,29 @@ async function computeFromHistory(
   { days, timeZone, now }: { days: InsightWindowDays; timeZone: string; now: Date },
 ): Promise<ListInsights> {
   const since = windowQueryStart(now, days, timeZone)
+  const laneMoveKinds = [...LANE_MOVE_KINDS]
 
   const tasks = await prisma.task.findMany({
-    where: { lists: { some: { id: listId } } },
+    where: {
+      lists: { some: { id: listId } },
+      // Only the tasks this window can say something about (AWTD-1367). Loading the whole
+      // list meant 1,386 task rows to answer a question about 370 of them on the Astrid Web
+      // board, and 132 rows to answer one about none of them on a quiet list — and the id
+      // set goes on to bound the event and comment queries below, so it multiplies.
+      //
+      // Every branch is load-bearing. computeListInsights filters events and comments by
+      // `taskIds.has(...)`, so a task missing from this set loses its edit and comment
+      // credits as well as its own created/completed counts.
+      OR: [
+        { createdAt: { gte: since } },
+        { completedAt: { gte: since } },
+        { events: { some: { createdAt: { gte: since } } } },
+        // A lane stay is timed when it ENDS in the window, from the move that opened it —
+        // and that move can be arbitrarily old, so this branch carries no date bound.
+        { events: { some: { kind: { in: laneMoveKinds } } } },
+        { comments: { some: { createdAt: { gte: since } } } },
+      ],
+    },
     select: { id: true, createdAt: true, creatorId: true, assigneeId: true, completed: true, completedAt: true, repeating: true, statusRole: true, statusRoleBeforeDone: true },
   })
   const taskIds = tasks.map(task => task.id)
@@ -87,9 +108,16 @@ async function computeFromHistory(
             taskId: { in: taskIds },
             // Lane history from before the window times the stays that end in it: a move, or the
             // completion that tells laneDurations a card born after LANE_HISTORY_START left its birth lane.
+            //
+            // The lane branch deliberately has NO date bound, and in particular not
+            // LANE_HISTORY_START (AWTD-1367): production holds 14 `unblocked` events from
+            // 2026-10-11 and `status_changed` events from 2026-10-20, all older than that
+            // constant, so bounding by it would silently stop timing real stays. It is bounded
+            // where it counts instead — by `kind`, against @@index([kind, createdAt]), over 98
+            // rows repo-wide.
             OR: [
               { createdAt: { gte: since } },
-              { kind: { in: ['status_changed', 'unblocked'] } },
+              { kind: { in: laneMoveKinds } },
               { kind: { in: ['completed', 'closed', 'reopened'] }, createdAt: { gte: LANE_HISTORY_START } },
             ],
           },

@@ -44,8 +44,14 @@ export const INBOX_LANE = 'inbox'
  */
 export const LANE_HISTORY_START = new Date('2026-10-23T01:20:01Z')
 
-/** Event kinds that move a card between lanes. `unblocked` is the automatic Waiting → Ready. */
-const LANE_MOVE_KINDS: ReadonlySet<string> = new Set(['status_changed', 'unblocked'])
+/**
+ * Event kinds that move a card between lanes. `unblocked` is the automatic Waiting → Ready.
+ *
+ * Exported so services/list-insights.service.ts queries for exactly these rather than repeating
+ * the two strings — it needs them twice, once to fetch lane history and once to decide which
+ * tasks have any.
+ */
+export const LANE_MOVE_KINDS: ReadonlySet<string> = new Set(['status_changed', 'unblocked'])
 
 export interface InsightTask {
   id: string

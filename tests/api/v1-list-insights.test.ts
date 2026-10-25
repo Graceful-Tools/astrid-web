@@ -12,7 +12,12 @@ const eventFindMany = vi.hoisted(() => vi.fn())
 const commentFindMany = vi.hoisted(() => vi.fn())
 const projectFindUnique = vi.hoisted(() => vi.fn())
 const userFindMany = vi.hoisted(() => vi.fn())
+const checkInsightsRate = vi.hoisted(() => vi.fn())
 
+vi.mock('@/lib/rate-limiter', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/lib/rate-limiter')>()),
+  insightsRateLimiter: { checkRateLimitByKeyAsync: checkInsightsRate },
+}))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     taskList: { findUnique: listFindUnique },
@@ -54,6 +59,7 @@ beforeEach(() => {
   commentFindMany.mockResolvedValue([])
   projectFindUnique.mockResolvedValue(null)
   userFindMany.mockResolvedValue([{ id: 'member-1', name: 'Member', image: null, isAIAgent: false }])
+  checkInsightsRate.mockResolvedValue({ allowed: true, remaining: 29, resetTime: Date.now() + 60_000, total: 30 })
 })
 
 describe('GET /api/v1/lists/:id/insights (AWTD-1329)', () => {
@@ -119,5 +125,69 @@ describe('GET /api/v1/lists/:id/insights (AWTD-1329)', () => {
     const res = await get()
     expect(res.status).toBe(404)
     expect(RedisCache.getOrSet).not.toHaveBeenCalled()
+  })
+})
+
+describe('GET /api/v1/lists/:id/insights — cost bounds (AWTD-1367)', () => {
+  it('asks only for tasks the window can say something about, not the whole list', async () => {
+    await get('?days=7')
+
+    const { where } = taskFindMany.mock.calls[0][0]
+    expect(where.lists).toEqual({ some: { id: 'list-1' } })
+
+    // The same instant the events and comments queries use, so one window bounds all three.
+    const since = eventFindMany.mock.calls[0][0].where.OR[0].createdAt.gte
+
+    // Five ways a task is in scope. Each is load-bearing: computeListInsights filters
+    // events and comments by `taskIds.has(...)`, so a task dropped here silently drops
+    // its edit and comment credits as well as its own counts, and a lane stay that ends
+    // in the window needs the move that opened it however old that move is.
+    expect(where.OR).toEqual(
+      expect.arrayContaining([
+        { createdAt: { gte: since } },
+        { completedAt: { gte: since } },
+        { events: { some: { createdAt: { gte: since } } } },
+        { events: { some: { kind: { in: ['status_changed', 'unblocked'] } } } },
+        { comments: { some: { createdAt: { gte: since } } } },
+      ]),
+    )
+    expect(where.OR).toHaveLength(5)
+  })
+
+  it('keeps timing lane stays recorded before LANE_HISTORY_START', async () => {
+    // Production has 14 `unblocked` events from 2026-10-11 and `status_changed` events
+    // from 2026-10-20, all older than LANE_HISTORY_START (2026-10-23). Bounding the lane
+    // branch by that constant would stop timing real stays, so it stays unbounded in time
+    // and bounded by kind instead.
+    await get('?days=7')
+    const laneBranch = eventFindMany.mock.calls[0][0].where.OR.find(
+      (branch: { kind?: { in: string[] } }) =>
+        branch.kind?.in?.includes('status_changed') && branch.kind.in.includes('unblocked'),
+    )
+    expect(laneBranch).toEqual({ kind: { in: ['status_changed', 'unblocked'] } })
+  })
+
+  it('rate-limits one user looping windows, zones or lists past the cache', async () => {
+    checkInsightsRate.mockResolvedValue({
+      allowed: false, remaining: 0, resetTime: Date.now() + 42_000, total: 30,
+    })
+
+    const res = await get()
+
+    expect(res.status).toBe(429)
+    expect(res.headers.get('Retry-After')).toBe('42')
+    expect(res.headers.get('X-RateLimit-Limit')).toBe('30')
+    // The limit is per user, not per IP: the cost is the computation, and a shared
+    // office IP must not share one budget.
+    expect(checkInsightsRate).toHaveBeenCalledWith('insights:member-1')
+    // Refused before any database work, which is the whole point.
+    expect(listFindUnique).not.toHaveBeenCalled()
+    expect(taskFindMany).not.toHaveBeenCalled()
+  })
+
+  it('lets normal use through and says what is left of the budget', async () => {
+    const res = await get()
+    expect(res.status).toBe(200)
+    expect(res.headers.get('X-RateLimit-Remaining')).toBe('29')
   })
 })
