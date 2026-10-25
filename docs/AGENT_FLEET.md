@@ -127,6 +127,10 @@ or device activation is implied by these repository changes.
    Setup alone does not register MCP. Validate real task reads and signed writes.
    Hosted MCP now resolves declared write identities through the authenticated
    queue even on a fresh request, not merely a previous process-local poll.
+   Pull-request setup CI builds the test environment and MCP transport without
+   checking the live account's activation state. Actual Copilot startup and
+   manual setup dispatches retain the fail-closed polling-mode check; passing
+   PR CI does not mean the worker has been activated.
 5. Run `native-copilot-bridge.yml` with its default `dry_run=true`. Confirm its
    version-1 artifact, exact board, no claims/comments/assignment, and explicit
    unread-channel warnings. Then smoke one **Copilot-assigned Ready** task and

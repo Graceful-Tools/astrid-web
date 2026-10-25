@@ -6,6 +6,16 @@ const yaml = require('js-yaml')
 const read = (path: string) => readFileSync(path, 'utf8')
 
 describe('cloud agent lifecycle wiring', () => {
+  it('AWTD-1383: keeps live Copilot activation checks out of pull-request setup validation', () => {
+    const workflow = yaml.load(read('.github/workflows/copilot-setup-steps.yml'))
+    const steps = workflow.jobs['copilot-setup-steps'].steps
+    const activation = steps.find((step: { name?: string }) => step.name === 'Verify polling activation without mutating tasks')
+    expect(activation.if).toBe("github.event_name != 'pull_request'")
+    expect(activation.run).toContain('--require-polling')
+    expect(activation.run).toContain('--dry-run --no-write-seen')
+    expect(activation['continue-on-error']).toBeUndefined()
+    expect(steps.find((step: { name?: string }) => step.name === 'Build Astrid MCP transport').if).toBeUndefined()
+  })
   it('keeps workers manual and production-free with bounded runs and durable outcomes', () => {
     const source = read('.github/workflows/agent-run.yml')
     const workflow = yaml.load(source)

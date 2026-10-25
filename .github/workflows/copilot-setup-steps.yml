@@ -50,6 +50,7 @@ jobs:
         run: npm run build:mcp:oauth
 
       - name: Verify polling activation without mutating tasks
+        if: github.event_name != 'pull_request'
         run: |
           npx tsx scripts/agent-queue-status.ts --agent copilot --board web \
             --list "${ASTRID_OAUTH_LIST_ID}" --include-unassigned --require-polling \
