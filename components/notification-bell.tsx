@@ -35,7 +35,16 @@ function formatCreatedAt(value: string): string {
   }).format(new Date(value))
 }
 
-export function NotificationBell() {
+type NotificationBellProps = {
+  /** Popover alignment against the bell. "start" opens rightward — use it at the left edge of the screen. */
+  align?: "start" | "center" | "end"
+  /** Trigger button classes, so the bell can match the controls beside it. */
+  className?: string
+  /** Bell icon classes. */
+  iconClassName?: string
+}
+
+export function NotificationBell({ align = "end", className, iconClassName }: NotificationBellProps = {}) {
   const [open, setOpen] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
   const [notifications, setNotifications] = React.useState<NotificationItem[]>([])
@@ -87,8 +96,8 @@ export function NotificationBell() {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative p-2" title="Notifications">
-          <Bell className="h-5 w-5" />
+        <Button variant="ghost" size="sm" className={cn("relative p-2", className)} title="Notifications">
+          <Bell className={cn("h-5 w-5", iconClassName)} />
           {unreadCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
               {unreadCount > 9 ? "9+" : unreadCount}
@@ -96,7 +105,7 @@ export function NotificationBell() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[22rem] p-0">
+      <PopoverContent align={align} className="w-[22rem] p-0">
         <div className="flex items-center justify-between border-b px-3 py-2">
           <div className="text-sm font-medium">Notifications</div>
           <Button
