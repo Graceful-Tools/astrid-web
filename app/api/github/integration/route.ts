@@ -7,14 +7,15 @@ import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { capabilityGate } from '@/lib/brand/capabilities'
+import { revokeInstallationAccess } from '@/lib/github/installations'
 
 const log = createLogger('github.integration')
 
 
 export async function GET(request: NextRequest) {
-  // A deployment with the GitHub integration disabled must refuse
+  // A deployment without the coding agent must refuse
   // server-side, not merely hide the UI (task 229c175c).
-  const capabilityBlocked = capabilityGate('syncGithubIssues')
+  const capabilityBlocked = capabilityGate('codingAgent')
   if (capabilityBlocked) return capabilityBlocked
 
   try {
@@ -77,9 +78,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  // A deployment with the GitHub integration disabled must refuse
+  // A deployment without the coding agent must refuse
   // server-side, not merely hide the UI (task 229c175c).
-  const capabilityBlocked = capabilityGate('syncGithubIssues')
+  const capabilityBlocked = capabilityGate('codingAgent')
   if (capabilityBlocked) return capabilityBlocked
 
   try {
@@ -89,6 +90,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Delete all user's integrations
+    await revokeInstallationAccess(session.user.id)
     await prisma.gitHubIntegration.deleteMany({
       where: { userId: session.user.id }
     })

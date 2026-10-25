@@ -359,3 +359,63 @@ export function getProjectDomainTasks(tasks: Task[], lists: TaskList[], projectI
     task.lists?.some(list => projectRegularListIds.has(list.id)),
   )
 }
+
+/**
+ * Apply a board column to a task, ready to hand to `onUpdate` (AWTD-1253).
+ *
+ * The task-detail board-state ROW and the task-detail MENU both set a status,
+ * and they used to do it differently: the row planned the move with
+ * `resolveProjectColumnMove` above, while the menu used `resolveColumnMove`
+ * from lib/task-status, which returns `{ statusRole, completed }` and touches
+ * no memberships. So a status set from the menu left any stale
+ * `listType: 'status'` membership attached, and — for the reason the comment
+ * above gives — the card kept rendering in its old column. The write
+ * succeeded and the UI did not move, which is what "the status buttons are
+ * unresponsive" describes.
+ *
+ * One planner, so a status set from the menu, a chip clicked in the row and a
+ * card dragged across the board cannot mean three different things. Returns
+ * `null` for an unknown column rather than a half-applied move.
+ */
+export function applyProjectColumn(
+  task: Task,
+  columnId: string,
+  columns: ProjectBoardColumn[],
+  availableLists: TaskList[],
+): Task | null {
+  const column = columns.find(candidate => candidate.id === columnId)
+  if (!column) return null
+
+  const move = resolveProjectColumnMove(task, column, availableLists)
+  const listById = new Map(availableLists.map(entry => [entry.id, entry]))
+  const nextLists = move.listIds
+    .map(listId => listById.get(listId))
+    .filter((entry): entry is TaskList => Boolean(entry))
+
+  return {
+    ...task,
+    completed: move.completed,
+    lists: nextLists,
+    statusRole: move.statusRole,
+  } as Task
+}
+
+/**
+ * `applyProjectColumn`, handed straight to an updater (AWTD-1253).
+ *
+ * Both task-detail menus and the board-state row do the same two things with
+ * the result — use it, or do nothing for a column that does not exist. Keeping
+ * that here means `components/task-detail.tsx` does not carry the glue twice;
+ * it is budgeted by tests/rules/oversized-files-ratchet.test.ts, which asks for
+ * the next piece to come out rather than for the number to go up.
+ */
+export function applyProjectColumnTo(
+  task: Task,
+  columnId: string,
+  columns: ProjectBoardColumn[],
+  availableLists: TaskList[],
+  onUpdate: (task: Task) => void,
+): void {
+  const next = applyProjectColumn(task, columnId, columns, availableLists)
+  if (next) onUpdate(next)
+}

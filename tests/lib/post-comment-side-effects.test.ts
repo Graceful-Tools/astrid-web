@@ -136,6 +136,28 @@ describe('dispatchPostCommentSideEffects', () => {
     )
   })
 
+  // P1 step 4: agent and system comments now go through the comment service,
+  // so these side effects see them. An agent's comment that mentions the
+  // assistant must not wake it — the assistant's own replies would otherwise
+  // trigger themselves.
+  it('does not wake an agent from an AI-agent comment that mentions it (loop guard)', async () => {
+    await dispatchPostCommentSideEffects({
+      comment: { id: 'c-1', content: 'handing to @[Astrid](astrid-uid)' },
+      task: baseTask,
+      commenter: { ...humanCommenter, id: 'agent-claude', isAIAgent: true },
+    })
+    expect(processAstridComment).not.toHaveBeenCalled()
+  })
+
+  it('still pushes a human mentioned in an AI-agent comment', async () => {
+    await dispatchPostCommentSideEffects({
+      comment: { id: 'c-1', content: 'done — @[Bob](human-2) please review' },
+      task: baseTask,
+      commenter: { ...humanCommenter, id: 'agent-claude', isAIAgent: true },
+    })
+    expect(sendCommentNotification).toHaveBeenCalledWith('human-2', expect.anything())
+  })
+
   it('sends a push notification when a human user is @-mentioned', async () => {
     await dispatchPostCommentSideEffects({
       comment: { id: 'c-1', content: 'fyi @[Bob](human-2)' },

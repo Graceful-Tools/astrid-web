@@ -495,8 +495,16 @@ export function useTaskDragDrop({
       // hook is constructed with `newTaskOperations: null as any` and never
       // reconnected, so anything routed through it fails into a catch. Tracked
       // separately; this path must not inherit that.
-      const response = await apiPut(`/api/tasks/${promotion.taskId}`, {
-        ...task,
+      //
+      // v1, and only the field the drag changes (AWTD-1246). This was the last
+      // caller of legacy `/api/tasks/[id]`, which is quiet in production and
+      // waiting to be deleted before the 2026-11-01 sunset. The body shrank
+      // with the path for a reason: the legacy PUT REPLACES a task (an absent
+      // due date is cleared), so it needed the whole object, while v1's PUT is
+      // a PATCH that touches only what it is sent. Spreading `task` in here
+      // would write every field back as this tab last saw it — a drag would
+      // quietly revert an edit made in another one.
+      const response = await apiPut(`/api/v1/tasks/${promotion.taskId}`, {
         parentTaskId: null,
       })
       if (!response.ok) {

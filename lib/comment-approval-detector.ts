@@ -11,6 +11,7 @@ import {
   shouldPostServerWorkflowComments,
 } from '@/lib/ai/agent-execution-mode'
 import { createLogger } from '@/lib/logger'
+import { completeTask } from '@/services/complete-task'
 
 const log = createLogger('comment-approval-detector')
 
@@ -241,7 +242,7 @@ export async function processCommentForWorkflowAction(
     if (action.type === 'approve' && workflow.status === 'AWAITING_APPROVAL') {
       await triggerPlanApproval(workflow.id, commentId, taskId)
     } else if (action.type === 'merge' && workflow.status === 'TESTING') {
-      await triggerMergeRequest(workflow.id, commentId, taskId)
+      await triggerMergeRequest(workflow.id, commentId, taskId, authorId)
     } else if (action.type === 'changes_requested') {
       await triggerChangeRequest(workflow.id, commentId, taskId, action.feedback || content)
     } else {
@@ -316,7 +317,7 @@ export async function processCommentForMergeRequest(
     }, '🔀 [CommentApproval] Detected merge request in comment:')
 
     // Trigger merge request
-    await triggerMergeRequest(workflow.id, commentId, taskId)
+    await triggerMergeRequest(workflow.id, commentId, taskId, authorId)
 
   } catch (error) {
     log.error({ err: error }, '❌ [CommentApproval] Error processing comment for merge:')
@@ -394,7 +395,12 @@ async function triggerPlanApproval(workflowId: string, commentId: string, taskId
 /**
  * Trigger merge request directly
  */
-async function triggerMergeRequest(workflowId: string, commentId: string, taskId: string): Promise<void> {
+async function triggerMergeRequest(
+  workflowId: string,
+  commentId: string,
+  taskId: string,
+  approverId: string,
+): Promise<void> {
   try {
     // Get the task and its AI assignee
     const task = await prisma.task.findUnique({
@@ -432,11 +438,11 @@ async function triggerMergeRequest(workflowId: string, commentId: string, taskId
       }
     })
 
-    // Mark task as complete
-    await prisma.task.update({
-      where: { id: taskId },
-      data: { completed: true }
-    })
+    // Mark task as complete, as the person who approved the merge (AWTD-1093)
+    const completion = await completeTask({ taskId, actorId: approverId })
+    if (!completion.ok) {
+      log.warn({ taskId, error: completion.error }, '[CommentApproval] Completing task after merge was refused')
+    }
 
     log.info('🔀 [CommentApproval] Merge request triggered successfully')
 

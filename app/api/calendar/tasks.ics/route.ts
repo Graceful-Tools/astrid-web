@@ -3,6 +3,7 @@ import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
 import { format } from 'date-fns'
 import { createLogger } from '@/lib/logger'
 
@@ -80,24 +81,17 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Build query based on sync type
-    let whereClause: any = {
-      OR: [
-        { assigneeId: session.user.id },
-        { creatorId: session.user.id }
-      ],
-      completed: false
-    }
-
-    // Filter based on calendar sync type
-    if (reminderSettings.calendarSyncType === 'with_due_times') {
-      whereClause.OR = [
-        { ...whereClause.OR[0], NOT: { dueDateTime: null } },
-        { ...whereClause.OR[0], NOT: { when: null } },
-        { ...whereClause.OR[1], NOT: { dueDateTime: null } },
-        { ...whereClause.OR[1], NOT: { when: null } }
-      ]
-    }
+    // Ownership, narrowed to dated tasks when the user asked for due times only.
+    // Typed, not `any`: an `any` here is how a filter on the dropped `when`
+    // column reached production and 500'd every feed (AWTD-1317).
+    const mine: Prisma.TaskWhereInput[] = [
+      { assigneeId: session.user.id },
+      { creatorId: session.user.id },
+    ]
+    const ownership: Prisma.TaskWhereInput[] =
+      reminderSettings.calendarSyncType === 'with_due_times'
+        ? mine.map(clause => ({ ...clause, NOT: { dueDateTime: null } }))
+        : mine
 
     // Get tasks
     // Bounded in both time and count. This used to be every task the user could
@@ -108,21 +102,18 @@ export async function GET(request: NextRequest) {
     const windowEnd = new Date()
     windowEnd.setUTCDate(windowEnd.getUTCDate() + CALENDAR_WINDOW_DAYS_FUTURE)
 
-    // The ownership OR moves under AND so the window cannot be swallowed by it:
+    // The ownership OR sits under AND so the window cannot be swallowed by it:
     // `{ OR: ownership, OR: window }` is one key, and the second would win.
-    const { OR: ownership, ...otherFilters } = whereClause
-
     const tasks = await prisma.task.findMany({
       where: {
-        ...otherFilters,
+        completed: false,
         AND: [
           { OR: ownership },
           {
             OR: [
               { dueDateTime: { gte: windowStart, lte: windowEnd } },
-              { when: { gte: windowStart, lte: windowEnd } },
               // Undated tasks have no place on the timeline to fall outside it.
-              { dueDateTime: null, when: null },
+              { dueDateTime: null },
             ],
           },
         ],

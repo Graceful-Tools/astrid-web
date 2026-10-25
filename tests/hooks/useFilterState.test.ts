@@ -4,20 +4,34 @@ import { buildTask, buildTaskList, buildUser } from '../fixtures/domain'
 import { renderHook, act } from '@testing-library/react'
 import { useFilterState } from '@/hooks/useFilterState'
 
-// Mock the localStorage hook
-vi.mock('@/hooks/useLocalStorage', () => ({
-  useMyTasksFilters: () => ({
-    filters: {
-      search: '',
-      completed: 'all',
-      priority: [],
-      assignee: [],
-      dueDate: 'all',
-      sortBy: 'auto'
-    },
-    setFilters: vi.fn(),
-    clearFilters: vi.fn()
-  })
+// Isolate from the My Tasks preference store (server-synced via fetch + SSE).
+// `useFilterState` reads My Tasks filters from `useMyTasksPreferences`; regular
+// lists use the hook's own in-memory state. The object is built once so its
+// identity is stable across renders, as the real hook's memoized values are.
+const myTasksPrefs = vi.hoisted(() => ({
+  filters: {
+    priority: [3] as number[],
+    assignee: [] as string[],
+    dueDate: 'all',
+    completion: 'all',
+    sortBy: 'auto',
+    manualSortOrder: [] as string[],
+  },
+  setters: {
+    setFilterPriority: vi.fn(),
+    setFilterAssignee: vi.fn(),
+    setFilterDueDate: vi.fn(),
+    setFilterCompletion: vi.fn(),
+    setSortBy: vi.fn(),
+    setManualSortOrder: vi.fn(),
+  },
+  hasActiveFilters: true,
+  clearAllFilters: vi.fn(),
+  isLoading: false,
+}))
+
+vi.mock('@/hooks/useMyTasksPreferences', () => ({
+  useMyTasksPreferences: () => myTasksPrefs,
 }))
 
 const johnUser = buildUser({ id: 'user-1', name: 'John' })
@@ -64,21 +78,58 @@ describe('useFilterState', () => {
     vi.clearAllMocks()
   })
 
-  it('should provide filter state and operations', () => {
-    const { result } = renderHook(() => useFilterState({
-      selectedListId: 'my-tasks'
-    }))
+  describe('My Tasks reads and writes the synced preference store', () => {
+    it('exposes the stored My Tasks filters, with search kept locally', () => {
+      const { result } = renderHook(() => useFilterState({ selectedListId: 'my-tasks' }))
 
-    expect(result.current.filters).toBeDefined()
-    expect(result.current.hasActiveFilters).toBeDefined()
-    expect(result.current.setSearch).toBeDefined()
-    expect(result.current.setCompleted).toBeDefined()
-    expect(result.current.setPriority).toBeDefined()
-    expect(result.current.setAssignee).toBeDefined()
-    expect(result.current.setDueDate).toBeDefined()
-    expect(result.current.setSortBy).toBeDefined()
-    expect(result.current.clearAllFilters).toBeDefined()
-    expect(result.current.applyFiltersToTasks).toBeDefined()
+      act(() => {
+        result.current.setSearch('report')
+      })
+
+      expect(result.current.isMyTasks).toBe(true)
+      expect(result.current.filters).toEqual({
+        search: 'report',
+        completed: 'all',
+        priority: [3],
+        assignee: [],
+        dueDate: 'all',
+        sortBy: 'auto',
+      })
+      expect(result.current.hasActiveFilters).toBe(true)
+    })
+
+    it('routes filter changes and clear-all to the preference store', () => {
+      const { result } = renderHook(() => useFilterState({ selectedListId: 'my-tasks' }))
+
+      act(() => {
+        result.current.setPriority([2])
+        result.current.setCompleted('completed')
+        result.current.setSortBy('when')
+      })
+      expect(myTasksPrefs.setters.setFilterPriority).toHaveBeenCalledWith([2])
+      expect(myTasksPrefs.setters.setFilterCompletion).toHaveBeenCalledWith('completed')
+      expect(myTasksPrefs.setters.setSortBy).toHaveBeenCalledWith('when')
+
+      act(() => {
+        result.current.clearAllFilters()
+      })
+      expect(myTasksPrefs.clearAllFilters).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps a regular list\'s filters out of the My Tasks store', () => {
+      const { result } = renderHook(() => useFilterState({ selectedListId: 'list-1' }))
+
+      act(() => {
+        result.current.setPriority([2])
+        result.current.clearAllFilters()
+      })
+
+      expect(result.current.isMyTasks).toBe(false)
+      expect(myTasksPrefs.setters.setFilterPriority).not.toHaveBeenCalled()
+      expect(myTasksPrefs.clearAllFilters).not.toHaveBeenCalled()
+      // The stored My Tasks priority [3] does not leak into a regular list.
+      expect(result.current.filters.priority).toEqual([])
+    })
   })
 
   it('should filter tasks by search term', () => {

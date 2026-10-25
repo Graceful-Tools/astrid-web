@@ -1,7 +1,7 @@
 "use client"
 
 import { BRAND } from '@/lib/brand/config'
-import { foldCompletionStreaks } from "@/lib/completion-streak"
+import { foldCompletionStreaks, isSystemComment } from "@/lib/completion-streak"
 import { StreakRow } from "@/components/task-detail/StreakRow"
 import { useState, useRef, useMemo, useCallback, useEffect } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -431,8 +431,8 @@ export function CommentSection({
     })
   }
 
-  const userComments = (task.comments || []).filter(c => c.authorId !== null)
-  const systemComments = (task.comments || []).filter(c => c.authorId === null)
+  const userComments = (task.comments || []).filter(c => !isSystemComment(c))
+  const systemComments = (task.comments || []).filter(c => isSystemComment(c))
   const displayedCommentCount = showSystemComments
     ? (task.comments || []).length
     : userComments.length
@@ -444,7 +444,7 @@ export function CommentSection({
   // would instead orphan a reply whose parent is a hidden system comment.
   // (Task cb1581e0; nestComments sorts oldest-first.)
   const sortedComments = useMemo(
-    () => nestComments(task.comments || []).filter(c => showSystemComments || c.authorId !== null),
+    () => nestComments(task.comments || []).filter(c => showSystemComments || !isSystemComment(c)),
     [task.comments, showSystemComments],
   )
 
@@ -456,7 +456,7 @@ export function CommentSection({
   // Render a comment using the shared MessageBubble component
   const renderChatBubble = (comment: any, isReply: boolean = false, parentCommentId?: string) => {
     const isCurrentUser = comment.authorId === currentUser.id
-    const isSystem = comment.authorId === null
+    const isSystem = isSystemComment(comment)
     const isActionsVisible = showingActionsFor === comment.id
 
     // Build attachments from secureFiles
@@ -510,6 +510,10 @@ export function CommentSection({
           email: comment.author.email,
           image: comment.author.image,
           isAIAgent: comment.author.isAIAgent,
+        } : comment.remoteAuthorLogin ? {
+          // Commented on GitHub by someone with no account here (AWTD-1283).
+          id: `github:${comment.remoteAuthorLogin}`,
+          name: `@${comment.remoteAuthorLogin}`,
         } : null}
         isOwnMessage={isCurrentUser}
         createdAt={comment.createdAt}

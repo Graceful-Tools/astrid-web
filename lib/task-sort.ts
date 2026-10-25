@@ -13,12 +13,17 @@ export function compareTasksBySort(
       return (b.priority || 0) - (a.priority || 0)
 
     case "when": {
-      const aDate = a.when || a.dueDate
-      const bDate = b.when || b.dueDate
-      if (!aDate && !bDate) return 0
-      if (!aDate) return 1
-      if (!bDate) return -1
-      return new Date(aDate).getTime() - new Date(bDate).getTime()
+      // iOS's order and the core's (D33, AWTD-1325): completed last, then due
+      // date with undated after, ties by priority. It read `when || dueDate`
+      // until AWTD-1325 — `when` was dropped and `dueDate` is legacy, so real
+      // tasks compared equal and the sort did nothing.
+      if (a.completed !== b.completed) return a.completed ? 1 : -1
+      const aDue = a.dueDateTime ? new Date(a.dueDateTime).getTime() : null
+      const bDue = b.dueDateTime ? new Date(b.dueDateTime).getTime() : null
+      if (aDue !== null && bDue !== null && aDue !== bDue) return aDue - bDue
+      if (aDue !== null && bDue === null) return -1
+      if (aDue === null && bDue !== null) return 1
+      return (b.priority || 0) - (a.priority || 0)
     }
 
     case "assignee": {

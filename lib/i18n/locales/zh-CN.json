@@ -7,7 +7,11 @@
     "publicSharedLists": "公开共享列表",
     "publicLists": "公开列表",
     "seeAllCollaborative": "查看所有协作列表 →",
-    "seeAllSuggested": "查看所有推荐列表 →"
+    "seeAllSuggested": "查看所有推荐列表 →",
+    "hideSidebar": "隐藏侧边栏",
+    "showSidebar": "显示侧边栏",
+    "hideMessages": "隐藏消息",
+    "showMessages": "显示消息"
   },
   "userMenu": {
     "settings": "设置",
@@ -93,16 +97,12 @@
       "description": "添加描述...",
       "comment": "写评论..."
     },
-    "addTaskPlaceholder": "添加任务",
-    "addTaskToList": "添加任务到 {listName}...",
-    "addTaskToCurrentList": "添加任务到当前列表...",
-    "addTaskShort": "添加任务...",
+    "addTaskPlaceholder": "添加任务...",
     "quickAdd": "快速添加...",
-    "addNewTask": "添加新任务...",
-    "wontDo": "Won't do",
-    "reopen": "Reopen",
+    "wontDo": "不做",
+    "reopen": "重新打开",
     "status": "状态",
-    "wontDoChip": "Won't do",
+    "wontDoChip": "不做",
     "when": "时间",
     "createdBy": "创建者",
     "confirmCompleteTitle": "完成此任务？",
@@ -122,6 +122,25 @@
       "label": "任务 ID",
       "copy": "复制任务 ID",
       "copied": "已复制 {id}"
+    },
+    "occurrence": {
+      "label": "重复",
+      "previous": "上一次重复",
+      "next": "下一次重复"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "添加子任务",
+      "addPlaceholder": "添加子任务…"
+    },
+    "projectFields": {
+      "clear": "无",
+      "empty": "未设置",
+      "errorAuthRequired": "请先连接你的 GitHub 账号，才能修改此字段。",
+      "errorSsoRequired": "你的组织要求对此项目使用单点登录。请先登录 GitHub，然后重试。",
+      "errorSaveFailed": "无法将该更改保存到 GitHub。请重试。",
+      "filterLabel": "项目字段",
+      "filterAll": "所有任务"
     }
   },
   "lists": {
@@ -194,7 +213,8 @@
     "weekly": "每周",
     "monthly": "每月",
     "yearly": "每年",
-    "custom": "自定义"
+    "custom": "自定义",
+    "pickAtLeastOneDay": "请至少选择一天"
   },
   "weekdays": {
     "sunday": "星期日",
@@ -419,7 +439,8 @@
   "search": {
     "placeholder": "搜索任务和用户",
     "noResults": "未找到结果",
-    "searching": "搜索中..."
+    "searching": "搜索中...",
+    "open": "搜索"
   },
   "listHeaders": {
     "myTasks": "我的任务",
@@ -473,6 +494,11 @@
         "sdkNeedsBoth": "您的服务器两者都需要：用这些凭据调用 API，用下方的 Webhook 密钥验证投递。",
         "manage": "在连接中管理",
         "error": "无法创建凭据"
+      },
+      "githubConnection": {
+        "title": "GitHub 连接",
+        "description": "在服务器上运行的编程智能体使用“设置 → 连接”中的 GitHub 连接，所有已连接的组织都列在那里。",
+        "open": "打开连接"
       }
     },
     "apiAccess": {
@@ -754,6 +780,12 @@
         "listDesc": "复选框用于完成任务，优先级和负责人各占一行。",
         "projectDesc": "紧凑模式。点按复选框会打开优先级、负责人、状态和完成。"
       },
+      "listImages": {
+        "title": "列表图片",
+        "description": "在侧边栏和列表标题中，在每个列表旁显示图片（跨设备同步）",
+        "label": "显示列表图片",
+        "offDesc": "关闭后，每个列表改为显示其颜色。"
+      },
       "emailToTask": {
         "title": "邮件创建任务",
         "description": "通过发送邮件到{inboundTaskEmail}即时创建任务",
@@ -954,6 +986,40 @@
         "title": "开发者",
         "description": "手动创建 OAuth 应用、测试 API，并连接支持 OpenAPI 的助手。",
         "openTester": "打开 API 测试器"
+      },
+      "github": {
+        "title": "GitHub",
+        "description": "将 {appName} 连接到你的 GitHub 账号和组织。在服务器上运行的编程智能体通过此连接创建分支和拉取请求。",
+        "descriptionProjects": "将 {appName} 连接到你的 GitHub 组织，使其项目可以在这里作为看板。",
+        "empty": "尚未连接 GitHub。",
+        "connect": "连接 GitHub",
+        "installAnother": "添加另一个组织",
+        "refresh": "刷新仓库",
+        "refreshed": "仓库已刷新",
+        "refreshError": "无法刷新仓库",
+        "loadError": "无法加载你的 GitHub 连接",
+        "installError": "无法开始 GitHub 安装",
+        "organization": "组织",
+        "personal": "个人账号",
+        "repoCountOne": "1 个仓库",
+        "repoCountMany": "{count} 个仓库",
+        "allRepos": "全部仓库",
+        "suspended": "已暂停",
+        "disconnect": "断开连接",
+        "disconnectTitle": "断开 {account} 的连接？",
+        "disconnectDescription": "编程智能体将无法在 {account} 的仓库中工作。GitHub 应用仍会保留安装；如需彻底移除，请在 GitHub 上卸载。",
+        "disconnectDescriptionProjects": "在从 GitHub 刷新之前，你将看不到 {account} 的项目。GitHub App 仍安装在那里；如需彻底移除，请在 GitHub 上卸载。",
+        "disconnected": "已断开 {account}",
+        "disconnectError": "无法断开连接",
+        "outcomes": {
+          "connected": "已连接 GitHub",
+          "updated": "GitHub 连接已更新",
+          "not_authorized": "GitHub 表示你的账号无法查看该安装",
+          "already_connected": "该安装已连接到另一个账号",
+          "verification_unavailable": "此服务器未配置 GitHub 登录，因此无法验证该安装",
+          "error": "连接 GitHub 时出错",
+          "synced": "已刷新 GitHub 访问权限"
+        }
       }
     }
   },
@@ -978,12 +1044,31 @@
     "keyInvalid": "{min}–{max} 个字母或数字，以字母开头",
     "keyRename": "重命名",
     "keyRenameHint": "任务将变为 {next}；{old} 仍然有效",
-    "keyRenameFailed": "无法重命名前缀"
+    "keyRenameFailed": "无法重命名前缀",
+    "createBoard": "创建看板",
+    "creatingBoard": "正在创建...",
+    "createBoardFailed": "无法创建看板",
+    "disableBoard": "停用看板",
+    "disablingBoard": "正在停用...",
+    "disableBoardFailed": "无法停用看板",
+    "disableBoardTitle": "停用看板视图",
+    "disableBoardBody": "任务会保留在此列表中，但 Ready/Doing/Waiting 列将被移除。",
+    "disableBoardNote": "处于状态列中的任务将失去其状态。已完成的任务仍为已完成。"
+  },
+  "viewRotator": {
+    "showList": "显示列表",
+    "showMessages": "显示消息",
+    "showBoard": "显示看板"
   },
   "listSettings": {
+    "color": {
+      "label": "列表颜色",
+      "custom": "自定义颜色"
+    },
     "adminSettings": "管理员设置",
     "sortAndFilters": "排序和筛选",
     "sortAndFiltersAreYours": "仅你可见，不会改变其他成员看到的列表。",
+    "listOptions": "列表选项",
     "sortBy": "排序方式",
     "showTasks": "显示任务",
     "priorityFilter": "优先级筛选",
@@ -1056,6 +1141,55 @@
     "modelSetup": {
       "noModel": "我很乐意帮忙，但需要一个 AI 模型才能回复！请前往 {settingsLink} 设置你偏好的模型。",
       "onDeviceUnavailable": "你选择的模型只能在受支持的 Apple 设备上运行，所以我无法在这里回复。请前往 {settingsLink} 选择一个在任何地方都能使用的模型。"
+    }
+  },
+  "githubProjectPicker": {
+    "entry": "连接 GitHub 项目",
+    "title": "连接 GitHub 项目",
+    "description": "选择一个组织项目作为 {appName} 中的看板。其条目会在后台导入。",
+    "connect": "用作看板",
+    "openBoard": "打开看板",
+    "closed": "已关闭",
+    "itemCountOne": "1 个条目",
+    "itemCountMany": "{count} 个条目",
+    "noProjects": "此组织中没有你可见的项目。",
+    "noOrganizations": "尚未连接任何 GitHub 组织。请在组织上安装应用，如已安装请刷新。",
+    "installOnOrg": "安装到组织",
+    "installAnother": "安装到其他组织",
+    "refreshAccess": "从 GitHub 刷新",
+    "authRequired": "连接你的 GitHub 账号以查看组织的项目。",
+    "connectGithub": "连接 GitHub",
+    "loadError": "无法加载你的 GitHub 项目",
+    "retry": "重试",
+    "bound": "已连接 {title}，正在导入条目…",
+    "alreadyBound": "该项目已经是看板",
+    "bindError": "无法连接该项目"
+  },
+  "listInsights": {
+    "tab": "洞察",
+    "days7": "7 天",
+    "days30": "30 天",
+    "days90": "90 天",
+    "activity": "活动",
+    "created": "新建",
+    "completed": "已完成",
+    "createdTotal": "新建 {count} 项",
+    "completedTotal": "完成 {count} 项",
+    "timeToComplete": "完成所需时间（中位数）",
+    "timeInLane": "各列停留时间（中位数）",
+    "sampleSize": "基于 {count} 项",
+    "notEnoughHistory": "历史记录还不够",
+    "laneHistoryNote": "从现在开始记录列的移动，随着卡片移动这里会逐渐有数据。",
+    "contributors": "主要贡献者",
+    "profileCounts": "完成 {completed} · 启发 {inspired} · 支持 {supported}",
+    "activityCounts": "创建 {created} · 编辑 {edited} · 评论 {commented}",
+    "noActivity": "此期间没有活动",
+    "loadFailed": "无法加载洞察",
+    "loading": "正在加载洞察…",
+    "duration": {
+      "minutes": "{n} 分钟",
+      "hours": "{n} 小时",
+      "days": "{n} 天"
     }
   }
 }

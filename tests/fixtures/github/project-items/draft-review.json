@@ -1,0 +1,19 @@
+{
+  "id": "PVTI_draft",
+  "isArchived": false,
+  "type": "DRAFT_ISSUE",
+  "updatedAt": "2026-10-10T09:30:00Z",
+  "content": {
+    "__typename": "DraftIssue",
+    "id": "DI_lADOAcme004",
+    "title": "Idea: dark mode for the solver",
+    "body": "Just a thought.",
+    "updatedAt": "2026-10-10T09:29:00Z"
+  },
+  "fieldValues": {
+    "nodes": [
+      { "__typename": "ProjectV2ItemFieldSingleSelectValue", "optionId": "opt_review", "name": "In Review", "field": { "id": "PVTSSF_status" } },
+      { "__typename": "ProjectV2ItemFieldSingleSelectValue", "optionId": "opt_p0", "name": "P0", "field": { "id": "PVTSSF_priority" } }
+    ]
+  }
+}

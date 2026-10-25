@@ -1,6 +1,7 @@
 #!/usr/bin/env tsx
 /**
- * Open a pull request for each task a scheduled /fixall run completed.
+ * Open a pull request for each task a scheduled /fixall run finished — completed,
+ * or left awaiting its deploy (AWTD-1278).
  *
  * Why the runner does this rather than the session: scripts/lib/fixall-prs.ts.
  *
@@ -11,7 +12,7 @@
  * `--repo` is the checkout whose origin holds the task branches — `gh` infers
  * the GitHub repository from it.
  *
- * Prints one `PR:` line per branch. Exit 0 when every completed task's branch has
+ * Prints one `PR:` line per branch. Exit 0 when every finished task's branch has
  * a PR (opened now or already there), 3 when opening one failed — the loop posts
  * that to the board, since a finished task nobody is asked to review is the
  * failure this exists to end. 1 on a usage or auth error.
@@ -20,7 +21,7 @@
 import { execFileSync } from 'child_process'
 import { existsSync, readFileSync } from 'fs'
 import { loadScriptEnv } from './lib/load-env'
-import { branchesForCompletedTask, prBody, prTitle, type CandidateBranch } from './lib/fixall-prs'
+import { branchesForCompletedTask, isFinishedWork, prBody, prTitle, type CandidateBranch } from './lib/fixall-prs'
 
 loadScriptEnv()
 
@@ -96,20 +97,23 @@ async function main() {
     if (!taskResponse.ok) continue
     const body = await taskResponse.json()
     const task = body.task ?? body
-    // Only finished work is up for review; a released or parked task's branch
-    // is somewhere to resume from.
-    if (!task?.completed) continue
-
-    branches ??= unmergedBranches(repo)
-    const matches = branchesForCompletedTask(task.identifier, branches)
-    if (matches.length === 0) {
-      console.log(`  PR: ${task.identifier} — completed, but no unmerged branch carries its id (nothing to open)`)
-      continue
-    }
+    if (!task?.id) continue
 
     const commentsResponse = await fetch(`${API}/api/v1/tasks/${task.id}/comments`, { headers: auth })
     const comments: Array<{ authorId?: string | null; content?: string | null; createdAt?: string }> =
       commentsResponse.ok ? ((await commentsResponse.json()).comments ?? []) : []
+
+    // Only finished work is up for review — completed, or awaiting its deploy
+    // (AWTD-1278); a released or parked task's branch is somewhere to resume from.
+    if (!isFinishedWork(task, comments)) continue
+
+    branches ??= unmergedBranches(repo)
+    const matches = branchesForCompletedTask(task.identifier, branches)
+    if (matches.length === 0) {
+      console.log(`  PR: ${task.identifier} — finished, but no unmerged branch carries its id (nothing to open)`)
+      continue
+    }
+
     const report = comments
       .filter(comment => comment.authorId)
       .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)))

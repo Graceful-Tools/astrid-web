@@ -16,7 +16,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { listGitHubRepositories } from '@/lib/github-repositories'
 
 export const GET = withAuth(
-  { scopes: ['user:read'], tag: 'v1.github.repositories' },
+  { scopes: ['user:read'], tag: 'v1.github.repositories', capability: 'codingAgent' },
   async (req, auth) => {
     const { searchParams } = new URL(req.url)
     const refresh = searchParams.get('refresh') === 'true'

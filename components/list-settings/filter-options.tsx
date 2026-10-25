@@ -28,6 +28,7 @@
 
 import { SelectItem } from "@/components/ui/select"
 import { useTranslations } from "@/lib/i18n/client"
+import { MY_TASKS_DUE_DATE_VALUES, MY_TASKS_SORT_VALUES } from "@/lib/my-tasks-preferences"
 
 export interface FilterOption {
   value: string
@@ -38,6 +39,14 @@ export interface FilterOption {
   /** Colour class, applied via a span exactly as both originals did. */
   className?: string
 }
+
+/**
+ * One width for every sort/filter dropdown, so the column of them lines up
+ * (AWTD-1271). They ranged from w-32 to w-48, and the narrowest cut
+ * "Incomplete + Recently completed" to "Incomplete …". A label that still
+ * overflows clips beside the chevron rather than squeezing it.
+ */
+export const FILTER_TRIGGER_CLASS = "w-48 theme-input gap-2 [&>span]:min-w-0 [&>span]:truncate [&>span]:text-left [&>svg]:shrink-0"
 
 /** How the list is ordered. Mirrors `TaskList.sortBy`. */
 export const SORT_BY_OPTIONS: readonly FilterOption[] = [
@@ -90,6 +99,17 @@ export const DUE_DATE_FILTER_OPTIONS: readonly FilterOption[] = [
   { value: "this_calendar_month", labelKey: "listSettings.due.thisCalendarMonth", label: "This calendar month", className: "text-indigo-500" },
   { value: "no_date", labelKey: "listSettings.due.noDate", label: "No date", className: "text-gray-400" },
 ]
+
+/**
+ * The subsets My Tasks offers: exactly what its preferences API stores
+ * (lib/my-tasks-preferences.ts). The full lists offered "Recently completed",
+ * "This calendar week" and "This calendar month" there, which the API
+ * rejected, so the choice vanished on reload (AWTD-1324).
+ */
+export const MY_TASKS_SORT_BY_OPTIONS: readonly FilterOption[] =
+  SORT_BY_OPTIONS.filter(option => MY_TASKS_SORT_VALUES.includes(option.value))
+export const MY_TASKS_DUE_DATE_FILTER_OPTIONS: readonly FilterOption[] =
+  DUE_DATE_FILTER_OPTIONS.filter(option => MY_TASKS_DUE_DATE_VALUES.includes(option.value))
 
 /**
  * Render a set of options as `<SelectItem>`s.

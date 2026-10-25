@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { AIOrchestrator } from '@/lib/ai-orchestrator'
 import { getAgentService } from '@/lib/ai/agent-config'
 import { createLogger } from '@/lib/logger'
+import { postCommentAs } from '@/services/post-comment-as'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { requireTaskAccess } from '@/lib/api-auth-middleware'
 import { FIXALL_CLAIM_AGENT_EMAIL } from '@/lib/fixall-claim'
@@ -30,7 +31,7 @@ interface GitHubTriggerRequest {
  * Called by astrid-code-assistant.yml workflow
  */
 export const POST = withAuth(
-  { scopes: ['tasks:write'], tag: 'api.coding-agent.github-trigger' },
+  { scopes: ['tasks:write'], tag: 'api.coding-agent.github-trigger', capability: 'codingAgent' },
   async (request: NextRequest, auth) => {
     log.info(
       '🤖 [GitHub Trigger] Received AI orchestration request from GitHub Actions',
@@ -195,9 +196,11 @@ export const POST = withAuth(
 
     // Add a comment to the task indicating GitHub Actions triggered the workflow
     try {
-      await prisma.comment.create({
-        data: {
-          content: `🚀 **GitHub Actions Triggered AI Workflow**
+      const posted = await postCommentAs({
+        taskId,
+        authorId: fixallAgent.id,
+        type: 'MARKDOWN',
+        content: `🚀 **GitHub Actions Triggered AI Workflow**
 
 GitHub Actions workflow has started the AI implementation process for this task.
 
@@ -212,11 +215,8 @@ GitHub Actions workflow has started the AI implementation process for this task.
 **GitHub Actions URL:** https://github.com/${githubContext.repository}/actions/runs/${githubContext.runId}
 
 The AI will post the implementation plan here for review once ready! 🤖✨`,
-          type: 'MARKDOWN',
-          taskId,
-          authorId: fixallAgent.id,
-        },
       })
+      if (!posted.ok) throw new Error(posted.error)
 
       log.info('✅ [GitHub Trigger] Added status comment to task')
     } catch (commentError) {

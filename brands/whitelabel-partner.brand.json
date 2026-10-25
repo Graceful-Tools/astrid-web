@@ -25,9 +25,11 @@
     "NEXT_PUBLIC_BRAND_ENABLE_AUTH_APPLE": "false",
     "NEXT_PUBLIC_BRAND_ENABLE_SYNC_GOOGLE_TASKS": "false",
     "NEXT_PUBLIC_BRAND_ENABLE_SYNC_GITHUB_ISSUES": "false",
+    "NEXT_PUBLIC_BRAND_ENABLE_CODING_AGENT": "false",
     "NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW": "false",
     "NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS": "false",
-    "NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK": "false"
+    "NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK": "false",
+    "NEXT_PUBLIC_BRAND_WWW_REDIRECT": "false"
   },
   "expect": {
     "appName": "Whitelabel",
@@ -42,11 +44,13 @@
       "claude"
     ],
     "capabilities": {
+      "githubProjects": false,
       "authGoogle": false,
       "authApple": false,
       "authPasskey": true,
       "syncGoogleTasks": false,
       "syncGithubIssues": false,
+      "codingAgent": false,
       "integrationMcp": true,
       "integrationOpenClaw": false,
       "integrationChatGptActions": false,
@@ -65,7 +69,10 @@
     "wordmark": "whitelabel",
     "slogan": "Build together.",
     "appStoreUrl": "",
-    "githubAppSlug": "astrid-code-assistant"
+    "githubAppSlug": "astrid-code-assistant",
+    "inheritsAstridIdentity": [
+      "NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG"
+    ]
   },
   "copy": {
     "reminders": {

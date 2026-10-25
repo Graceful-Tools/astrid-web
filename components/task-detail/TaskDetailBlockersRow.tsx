@@ -22,7 +22,7 @@ import { Plus, Triangle, X } from "lucide-react"
 import { TaskFieldRow } from "./TaskFieldRow"
 import { Badge } from "@/components/ui/badge"
 import { useTranslations } from "@/lib/i18n/client"
-import { apiDelete, apiGet, apiPost } from "@/lib/api"
+import { ApiError, apiDelete, apiGet, apiPost } from "@/lib/api"
 import {
   MIN_TASK_SEARCH_LENGTH,
   TASK_SEARCH_DEBOUNCE_MS,
@@ -35,6 +35,15 @@ import {
 } from "@/lib/task-detail-project-state"
 import { rankBlockerCandidates, type BlockerView } from "@/lib/task-dependencies"
 import type { Task, TaskList } from "@/types/task"
+
+// Open pickers by task id, with their query. Module state rather than
+// useState: picking a blocker for a Ready card moves it to Waiting, and the
+// board renders the expanded card inside its column, so the row remounts and
+// would otherwise close the picker mid-use (AWTD-1276). An unmount forgets the
+// entry on the next tick unless a remount claims it first, so closing the pane
+// still closes the picker.
+const openPickers = new Map<string, string>()
+const pendingForget = new Map<string, ReturnType<typeof setTimeout>>()
 
 interface TaskDetailBlockersRowProps {
   task: Task
@@ -52,10 +61,31 @@ export function TaskDetailBlockersRow({
   // Tasks that already wait on this one, transitively: choosing any of them
   // would close a cycle the server refuses, so the picker never offers them.
   const [dependentIds, setDependentIds] = useState<string[]>([])
-  const [picking, setPicking] = useState(false)
-  const [query, setQuery] = useState("")
+  const [picking, setPickingState] = useState(() => openPickers.has(task.id))
+  const [query, setQueryState] = useState(() => openPickers.get(task.id) ?? "")
+  useEffect(() => {
+    clearTimeout(pendingForget.get(task.id))
+    pendingForget.delete(task.id)
+    const id = task.id
+    return () => {
+      pendingForget.set(id, setTimeout(() => { openPickers.delete(id); pendingForget.delete(id) }, 0))
+    }
+  }, [task.id])
+  const togglePicking = () => {
+    if (picking) openPickers.delete(task.id)
+    else openPickers.set(task.id, query)
+    setPickingState(!picking)
+  }
+  const setQuery = (value: string) => {
+    if (openPickers.has(task.id)) openPickers.set(task.id, value)
+    setQueryState(value)
+  }
   const [hits, setHits] = useState<SearchHit[]>([])
   const [error, setError] = useState<string | null>(null)
+  // The server refused this user Project Mode (403 `not_granted`): every write
+  // would be refused too, so the row is not drawn at all (AWTD-1039).
+  const [notGranted, setNotGranted] = useState(false)
+  const inProject = isTaskInProject(task, availableLists)
 
   const load = useCallback(async () => {
     try {
@@ -63,17 +93,23 @@ export function TaskDetailBlockersRow({
       const body = (await response.json()) as { blockedBy?: BlockerView[]; dependentIds?: string[] }
       setBlockedBy(body.blockedBy ?? [])
       setDependentIds(body.dependentIds ?? [])
-    } catch {
+    } catch (err) {
       // A read that fails shows an empty row rather than an error banner: the
       // blockers are not the reason the pane was opened.
       setBlockedBy([])
       setDependentIds([])
+      if (err instanceof ApiError && (err.detail as { reason?: string } | null)?.reason === 'not_granted') {
+        setNotGranted(true)
+      }
     }
   }, [task.id])
 
+  // Off a board the row never draws, so asking would only collect a refusal
+  // from the Project Mode gate for every task a non-board user opens (AWTD-1039).
   useEffect(() => {
+    if (!inProject) return
     void load()
-  }, [load])
+  }, [load, inProject])
 
   // The picker is the EXISTING search — server-side, permission-filtered, and
   // already paginated. Filtering loaded tasks client-side is the bug 5df85b9f
@@ -119,7 +155,7 @@ export function TaskDetailBlockersRow({
     } catch (err) {
       // A cycle is refused server-side; saying so is the only way the person
       // learns why nothing happened.
-      const reason = (err as { data?: { reason?: string } })?.data?.reason
+      const reason = err instanceof ApiError ? (err.detail as { reason?: string } | null)?.reason : undefined
       setError(reason === 'dependency_cycle' ? t('tasks.waitingOn.cycleError') : t('tasks.waitingOn.addError'))
     }
   }
@@ -137,8 +173,9 @@ export function TaskDetailBlockersRow({
   // After the hooks: a conditional return above them would change the hook
   // order between renders as the blockers load.
   if (
+    notGranted ||
     !showsTaskBlockers({
-      isInProject: isTaskInProject(task, availableLists),
+      isInProject: inProject,
       isReadOnly: readOnly,
       hasBlockers: blockedBy.length > 0,
     })
@@ -204,7 +241,7 @@ export function TaskDetailBlockersRow({
             <button
               type="button"
               data-testid="task-detail-add-blocker"
-              onClick={() => setPicking(value => !value)}
+              onClick={togglePicking}
               className="inline-flex items-center gap-1 h-8 px-3 rounded-lg text-sm font-medium border-2 border-dashed theme-border theme-text-secondary"
             >
               <Plus className="w-3 h-3" />

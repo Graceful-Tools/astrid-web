@@ -7,6 +7,8 @@
  */
 
 import { prisma } from '../lib/prisma'
+import { generateMCPToken } from '../lib/mcp-token-utils'
+import { mcpTokenStorageFields } from '../lib/mcp-token'
 import { SCOPE_GROUPS } from '../lib/oauth/oauth-scopes'
 import { createOAuthClient } from '../lib/oauth/oauth-client-manager'
 
@@ -148,9 +150,10 @@ async function main() {
 
     // Step 7: Test with legacy MCP token
     console.log('7️⃣  Testing with legacy MCP token...')
-    const mcpToken = await prisma.mCPToken.create({
+    const mcpTokenPlaintext = generateMCPToken()
+    await prisma.mCPToken.create({
       data: {
-        token: `astrid_mcp_test_${Date.now()}`,
+        ...mcpTokenStorageFields(mcpTokenPlaintext),
         userId: testUser.id,
         permissions: ['read', 'write'],
         isActive: true,
@@ -161,7 +164,7 @@ async function main() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-MCP-Access-Token': mcpToken.token,
+        'X-MCP-Access-Token': mcpTokenPlaintext,
       },
       body: JSON.stringify({
         operation: 'get_user_tasks',

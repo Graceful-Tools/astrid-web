@@ -11,12 +11,15 @@
  * `{ task, meta }` — so only the flow moves.
  *
  * Distinct from lib/task-copy-flow.ts, which is the single-target form: that
- * one copies via copy-utils (carrying comments and attachments) and broadcasts
- * over SSE; this one builds the row directly and does not notify.
+ * one copies via copy-utils (carrying comments). Both create through
+ * services/task-bulk-create (AWTD-1124), so both get the identifier,
+ * reminders, manual sort and live event a create implies.
  */
 
 import { prisma } from '@/lib/prisma'
 import { userCanAccessTask } from '@/services/task.service'
+import { authorizeNewTaskAssignee } from '@/services/assignee-authorization'
+import { createTasksInBulk } from '@/services/task-bulk-create'
 
 export type BatchCopyResult =
   | { ok: true; task: Record<string, unknown> }
@@ -93,30 +96,45 @@ export async function batchCopyTask(args: {
     firstList: targetLists[0],
   })
 
-  const copiedTask = await prisma.task.create({
-    data: {
-      title: originalTask.title,
-      description: originalTask.description,
-      priority: originalTask.priority,
-      repeating: originalTask.repeating,
-      isPrivate: originalTask.isPrivate,
-      dueDateTime: originalTask.dueDateTime,
-      isAllDay: originalTask.isAllDay,
-      assigneeId: finalAssigneeId,
-      creatorId: userId,
-      originalTaskId: originalTask.id,
-      sourceListId: originalTask.lists[0]?.id,
-      lists: { connect: targetListIds.map(id => ({ id })) },
-    },
-    include: {
-      assignee: true,
-      creator: true,
-      lists: { include: { owner: true } },
-      comments: { include: { author: true } },
-    },
+  // The create path's assignee gate (AWTD-891). This accepted a caller-supplied
+  // assignee unchecked — AI agents included, billed to the list's configured
+  // user. A list's own default is the owner's consent and is not re-asked.
+  const assigneeAllowed = await authorizeNewTaskAssignee({
+    requested: assigneeProvided ? assigneeId ?? null : undefined,
+    resolved: finalAssigneeId,
+    actorId: userId,
+    targetListIds,
+    requireListMembership: false,
   })
+  if (!assigneeAllowed.ok) {
+    return { ok: false, status: assigneeAllowed.status, error: assigneeAllowed.error }
+  }
 
-  return { ok: true, task: copiedTask as unknown as Record<string, unknown> }
+  // Through the bulk create path (AWTD-1124): identifier, reminders, manual
+  // sort and the live event to the target lists' members, which this skipped.
+  const { tasks, rejected } = await createTasksInBulk({
+    actorId: userId,
+    tasks: [{
+      data: {
+        title: originalTask.title,
+        description: originalTask.description,
+        priority: originalTask.priority,
+        repeating: originalTask.repeating,
+        isPrivate: originalTask.isPrivate,
+        dueDateTime: originalTask.dueDateTime,
+        isAllDay: originalTask.isAllDay,
+        assigneeId: finalAssigneeId,
+        originalTaskId: originalTask.id,
+        sourceListId: originalTask.lists[0]?.id,
+      },
+      listIds: targetListIds,
+    }],
+  })
+  if (!tasks[0]) {
+    return { ok: false, status: 403, error: rejected?.[0]?.error ?? 'Task could not be copied' }
+  }
+
+  return { ok: true, task: tasks[0] as unknown as Record<string, unknown> }
 }
 
 /**

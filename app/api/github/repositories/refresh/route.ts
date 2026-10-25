@@ -6,17 +6,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUnifiedSession } from '@/lib/session-utils'
 import { prisma } from '@/lib/prisma'
-import { App } from '@octokit/app'
+import { getGitHubApp } from '@/lib/github/app'
 import { createLogger } from '@/lib/logger'
 import { capabilityGate } from '@/lib/brand/capabilities'
+import { recordInstallation, replaceInstallationRepos } from '@/lib/github/installations'
 
 const log = createLogger('github.repositories.refresh')
 
 
 export async function POST(request: NextRequest) {
-  // A deployment with the GitHub integration disabled must refuse
+  // A deployment without the coding agent must refuse
   // server-side, not merely hide the UI (task 229c175c).
-  const capabilityBlocked = capabilityGate('syncGithubIssues')
+  const capabilityBlocked = capabilityGate('codingAgent')
   if (capabilityBlocked) return capabilityBlocked
 
   try {
@@ -45,10 +46,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const app = new App({
-      appId: parseInt(process.env.GITHUB_APP_ID),
-      privateKey: process.env.GITHUB_APP_PRIVATE_KEY
-    })
+    const app = getGitHubApp()
 
     const allRepositories: any[] = []
     const errors: string[] = []
@@ -89,6 +87,27 @@ export async function POST(request: NextRequest) {
           where: { id: integration.id },
           data: { repositories }
         })
+        // …and in the installation model the coding agent resolves repos from
+        // (AWTD-1111). Best effort: the fresh list is already in hand.
+        try {
+          await recordInstallation({
+            installationId: integration.installationId,
+            account: { login: owner, type: account?.type ?? null, nodeId: account?.node_id ?? null },
+            repositorySelection: (installationDetails.data as any).repository_selection ?? null,
+          })
+          await replaceInstallationRepos(
+            integration.installationId,
+            reposResponse.data.repositories.map((repo: any) => ({
+              id: repo.id,
+              fullName: repo.full_name,
+              defaultBranch: repo.default_branch,
+              private: repo.private,
+              nodeId: repo.node_id,
+            }))
+          )
+        } catch (err) {
+          log.error({ err, installationId: integration.installationId }, 'Failed to record refreshed repos in the installation model')
+        }
 
         log.info(`✅ Found ${repositories.length} repositories for installation ${integration.installationId} (${owner})`)
 

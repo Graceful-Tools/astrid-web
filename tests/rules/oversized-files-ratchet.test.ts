@@ -44,21 +44,45 @@ const THRESHOLD = 800
  */
 const BUDGETS: Record<string, number> = {
   // The seven the task named.
-  'hooks/useTaskManagerController.ts': 1661,
+  // 1661 → 1659: AWTD-1227's add-subtask option did not fit. The options both
+  // create entry points take — declared inline and identically, twice — became
+  // hooks/task-manager/create-task-options.ts, so the next field is added once.
+  'hooks/useTaskManagerController.ts': 1639,
   // 1585 → 1591: AWTD-877 made someone else's task open the options sheet on
   // every surface, and this panel is one of the three that owns a sheet. Six
   // lines — the predicate, the import, and two props — with the rule itself in
   // lib/task-leading-control.ts and the confirmation in its own component. The
   // next change to this file should still take something out.
-  'components/task-detail.tsx': 1591,
+  // 1591 → 1579: AWTD-1227 added the subtasks section, which this budget
+  // refused. Paid for the way this file's neighbours were: what list to CREATE
+  // for a task — the privacy and admins a new list inherits, and the POST —
+  // went to lib/task-detail/create-list-for-task.ts, following the Lists row
+  // that already lives in TaskDetailListsRow.tsx. Smaller than before the
+  // feature, and the inheritance rule is now testable on its own.
+  'components/task-detail.tsx': 1497,
   'lib/ai-orchestrator.ts': 1547,
-  'components/TaskManagerView.tsx': 1212,
+  // 1205 → 1199: AWTD-1227 needed four more props on the task-detail pane, and
+  // this file renders that pane TWICE — desktop and mobile — with a dozen
+  // identical props each. Adding them to one site and not the other is exactly
+  // what happened first, and it looks identical in review. The shared props
+  // became components/TaskManager/task-detail-pane-props.ts, so the next
+  // feature reaches both panes by construction.
+  // 1199 → 1197: MainContent takes one `columnCount` instead of three separate
+  // layout booleans that had to agree (AWTD-1175).
+  'components/TaskManagerView.tsx': 1197,
   // 1125 → 1115: the list header's two buttons moved to ListHeaderActions
   // when Sort & Filters gained its own control (task aa4e7eb0).
   // 1115 → 1100: the board-row context memos moved to useBoardRowContext (AWTD-1025).
-  'components/TaskManager/MainContent/MainContent.tsx': 1100,
+  // 1088 → 1043: the duplicated view toggles and the system-list filter button
+  // became ListViewToggle / ListFilterRow in ListHeaderActions (AWTD-1167).
+  // 1043 → 1009: the list description — inline editor, search banner and the
+  // preview that opens the dialog — became ListDescriptionBlock, the sibling
+  // of the DescriptionDialog it opens (AWTD-1175).
+  'components/TaskManager/MainContent/MainContent.tsx': 1009,
   'lib/cache-manager.ts': 935,
-  'lib/astrid-agent-runtime.ts': 819,
+  // 819 → 797: its two hand-rolled comment inserts and SSE fan-outs went
+  // through the comment service (spec §5.2 step 4).
+  'lib/astrid-agent-runtime.ts': 797,
 
   // Six more the threshold found that the filing did not list. Recording them
   // is not endorsing them — it is the difference between seven watched files
@@ -104,7 +128,14 @@ const BUDGETS: Record<string, number> = {
   // moving the twice-copied custom repeatingData parse to lib/task-enums.ts.
   // 1588 → 1587: AWTD-1007 clears the column when a task leaves its last board;
   // the whole statusRole write went to services/task-status-role.ts.
-  'services/task.service.ts': 1536,
+  // 1536 → 1509: the include shapes moved to services/task-includes.ts, paying
+  // for the TaskBackend seam (spec §5.2 step 8) with room to spare.
+  // 1507 → 1499: AWTD-1123 let a create carry its completion fields, decided in
+  // services/task-completion.ts; parseTaskDate went to services/task-dates.ts.
+  // 1466 → 1448: AWTD-1329 moved the update path's event snapshot and its
+  // notify filter into lib/task-event-snapshot.ts (taskEventSnapshot,
+  // notifiableUpdateEvents).
+  'services/task.service.ts': 1448,
   // 1078 → 1039: AWTD-945 added the board-state row, which this budget
   // refused. Rather than raise it, the new row went straight into its own
   // TaskDetailBoardStateRow.tsx and the DESCRIPTION row — the largest
@@ -116,7 +147,11 @@ const BUDGETS: Record<string, number> = {
   // row — the largest self-contained block left here, with the four helpers
   // that served only it — followed into TaskDetailListsRow.tsx. Smaller than
   // before the feature again.
-  'components/task-detail/TaskFieldEditors.tsx': 914,
+  // 914 → 897: AWTD-1210 added the project-fields section, and the same answer
+  // worked a third time. The PRIORITY row — self-contained, one picker and the
+  // icon that served only it — went to TaskDetailPriorityRow.tsx, so the file
+  // is smaller than before the feature once more.
+  'components/task-detail/TaskFieldEditors.tsx': 897,
   'components/oauth-api-tester.tsx': 973,
   // 957 → 688: AWTD-871 needed to add a `requireReady` parameter to the
   // get_agent_queue schema, which pushed this over. The 280-line
@@ -136,7 +171,13 @@ const BUDGETS: Record<string, number> = {
   // new code went into mcp/list-chat.ts, and the Zod task schemas — which this
   // file's own comment had flagged as belonging elsewhere for some time —
   // followed into mcp/task-schemas.ts. Smaller than before the feature again.
-  'mcp/mcp-server-oauth.ts': 564,
+  // 564 → 553: AWTD-1086's blocker tools live in mcp/blockers.ts behind one
+  // dispatch line, and getTaskComments lost its hand-rolled JSON wrapper.
+  // Lowered from 552 to 538 to 533 by AWTD-1311: the v1 response shapes moved to
+  // mcp/api-shapes.ts when the `agent` field pushed this past its budget, and the
+  // mailbox lookup then moved to mcp/agent-identity.ts so the standalone stdio
+  // build could still compile it. Taking pieces out, not raising the number.
+  'mcp/mcp-server-oauth.ts': 533,
   // 919 → 901: task 10f26dc6 added a card explaining when a manual client is
   // needed at all. Both that card and GRANT_TYPE_OPTIONS — the same question,
   // asked as a form field — moved to components/oauth-client-guide.tsx.
@@ -149,7 +190,9 @@ const BUDGETS: Record<string, number> = {
   'components/oauth-app-manager.tsx': 859,
   // 801 → 791: AWTD-808 moved this off its own Resend client onto the shared
   // transport. Locking the gain in, which is what the slack check is for.
-  'lib/email-reminder-service.ts': 791,
+  // 791 → 790: AWTD-1073 escaped the HTML templates and dropped a duplicate
+  // branch in formatDueDate.
+  'lib/email-reminder-service.ts': 790,
 }
 
 /** Product code. Tests and scripts are long for their own reasons. */

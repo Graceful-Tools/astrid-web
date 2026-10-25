@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
+import { taskFromUpdateEvent } from "./sse-task-update"
 import { useToast } from "@/hooks/use-toast"
 import { useTaskSSEEvents, useSSESubscription } from "@/hooks/use-sse-subscription"
 import { SSEManager } from "@/lib/sse-manager"
@@ -7,6 +8,7 @@ import { apiGet } from "@/lib/api"
 import { seedFromCache } from "./load-from-cache"
 import { fetchSyncPayload } from "./sync-fetch"
 import { mergeTasks, mergeLists } from "./merge-tasks"
+import { useTaskDetailHydration } from "./useTaskDetailHydration"
 import { preloadUserAvatars } from "@/lib/image-cache"
 import type { Task, TaskList } from "@/types/task"
 
@@ -103,6 +105,13 @@ export function useTaskListState({
   const [publicTasks, setPublicTasks] = useState<Task[]>([])
   const [publicLists, setPublicLists] = useState<TaskList[]>([])
   const [loading, setLoading] = useState(true)
+
+  // The detail pane renders the LIST row, and the list read carries neither the
+  // attachments and secure files nor the blockers, field values and next
+  // occurrences the single-task route does. Opening a task reads it once and
+  // folds the full shape into this state (AWTD-1242). Here rather than in the
+  // controller because this hook is what owns `tasks`.
+  useTaskDetailHydration({ selectedTaskId, setTasks })
 
   // Current user ID
   const currentUserId = useMemo(() => effectiveSession?.user?.id || null, [effectiveSession?.user?.id])
@@ -364,8 +373,8 @@ export function useTaskListState({
   const lastTaskUpdateRef = useRef<Map<string, number>>(new Map())
 
   const handleTaskUpdated = useCallback((event: any) => {
-    const taskData = event.task || event
-    if (!taskData?.id) return
+    const taskData = taskFromUpdateEvent(event)
+    if (!taskData) return
 
     // Dedup: skip if we processed this task update within 500ms
     const now = Date.now()
@@ -378,10 +387,8 @@ export function useTaskListState({
     if (process.env.NODE_ENV === 'development') {
       console.log('[useTaskListState] SSE: Task updated', event)
     }
-    const { comments: _ignoredComments, ...taskDataWithoutComments } = taskData
-
     setTasks(prev => prev.map(task =>
-      task.id === taskData.id ? { ...task, ...taskDataWithoutComments } : task
+      task.id === taskData.id ? { ...task, ...taskData } : task
     ))
   }, [])
 

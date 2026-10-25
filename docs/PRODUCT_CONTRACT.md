@@ -6,12 +6,15 @@ Apple app ([astrid-ios](https://github.com/Graceful-Tools/astrid-ios), which
 ships both iOS and Mac), and the Windows app
 ([astrid-windows](https://github.com/Graceful-Tools/astrid-windows)).*
 
-> Windows reads several of these rules as **generated fixtures** rather than
-> prose: `astrid-windows/contracts/fixtures/*.json` are produced by running this
-> repo's own implementations, and its Rust tests replay them. A behaviour change
-> here therefore lands as a coordinated change — web first with tests, then the
-> fixtures, then the clients. Divergences that cannot be closed in one change are
-> written down in `astrid-windows/docs/CONTRACTS.md`.
+> Several of these rules are enforced as **generated fixtures** rather than
+> prose: `contracts/fixtures/*.json` in this repo are produced by running this
+> repo's own implementations (`npm run export:contract-fixtures`), and
+> astrid-core's tests replay them; iOS/Mac, Windows and Android run those rules
+> through the core they pin. A behaviour change here therefore lands as a
+> coordinated change — web first with tests, then the fixtures, then the core,
+> then the clients' pins (ASTRID.md → *Cross-platform contracts*). Divergences
+> that cannot be closed in one change are written down in astrid-core's
+> [divergence register](https://github.com/Graceful-Tools/astrid-core/blob/main/docs/CONTRACTS.md).
 
 Status: **active**. Companion to
 [docs/CODE_REUSE_AND_CONSISTENCY.md](./CODE_REUSE_AND_CONSISTENCY.md).
@@ -40,7 +43,11 @@ Role resolution (`getUserRoleInList`): **owner** (list owner, by `ownerId`, the
 status lists. Three rules iOS must mirror exactly:
 
 1. **The higher role wins.** A list admin who is only a project member stays an
-   admin — project membership can never *demote* someone.
+   admin — project membership can never *demote* someone. And the other way
+   (Jon, 2026-10-04): a plain list member who owns or administers the project
+   is an **admin** of the list — a plain list membership can never demote a
+   project owner or admin either. Before that date list membership was
+   consulted first and such a person was only a member.
 2. **The project owner resolves to `admin`, not `owner`.** `owner` is the only
    role that can delete a list; owning the project must not grant the power to
    delete a list somebody else owns and merely attached to it.
@@ -102,6 +109,9 @@ Registry of shared strings that already exist on both (extend as consolidated):
 | Task name | `tasks.taskName` | `tasks.task_name` | |
 | Description | `tasks.taskDescription` | `tasks.description` | **name mismatch** — reconcile |
 | Add-task input placeholder | `tasks.addTaskPlaceholder` | `tasks.add_task_placeholder` | |
+| Won't do (task menu item) | `tasks.wontDo` | `tasks.wont_do` | Closes as `closedReason: canceled`; never rolls a repeating task forward (AITD-496 / AWTD-1241) |
+| Reopen (the same item, on a won't-do task) | `tasks.reopen` | `tasks.reopen` | Clears `completed` and `closedReason` together — one without the other leaves a task that is open and still says "Won't do" |
+| Won't do (row chip) | `tasks.wontDoChip` | `tasks.wont_do_chip` | Drawn only when completed AND `closedReason` is a known reason, so an unrecognised reason shows as plain done rather than as a blank chip |
 | My Tasks (nav) | `listHeaders.myTasks` | `navigation.my_tasks` | **group mismatch** — reconcile |
 | Astrid: "set up a model" chat reply | `astridAgent.modelSetup.noModel` | — | **Server-rendered** (AWTD-1054): posted as Astrid's chat message in the request's `Accept-Language`, so iOS shows it as-is. Link stays root-relative `/settings/agents`, which iOS routes in-app (AITD-451). |
 | Astrid: "your model only runs on Apple devices" | `astridAgent.modelSetup.onDeviceUnavailable` | — | Server-rendered, as above. Sent when an on-device model is selected but the client cannot run it. |

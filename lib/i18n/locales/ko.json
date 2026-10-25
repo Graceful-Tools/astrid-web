@@ -7,7 +7,11 @@
     "publicSharedLists": "공개 공유 목록",
     "publicLists": "공개 목록",
     "seeAllCollaborative": "모든 협업 목록 보기 →",
-    "seeAllSuggested": "모든 추천 목록 보기 →"
+    "seeAllSuggested": "모든 추천 목록 보기 →",
+    "hideSidebar": "사이드바 숨기기",
+    "showSidebar": "사이드바 표시",
+    "hideMessages": "메시지 숨기기",
+    "showMessages": "메시지 표시"
   },
   "userMenu": {
     "settings": "설정",
@@ -93,16 +97,12 @@
       "description": "설명 추가...",
       "comment": "댓글 작성..."
     },
-    "addTaskPlaceholder": "작업 추가",
-    "addTaskToList": "{listName}에 작업 추가...",
-    "addTaskToCurrentList": "현재 목록에 작업 추가...",
-    "addTaskShort": "작업 추가...",
+    "addTaskPlaceholder": "작업 추가...",
     "quickAdd": "빠른 추가...",
-    "addNewTask": "새 작업 추가...",
-    "wontDo": "Won't do",
-    "reopen": "Reopen",
+    "wontDo": "하지 않음",
+    "reopen": "다시 열기",
     "status": "상태",
-    "wontDoChip": "Won't do",
+    "wontDoChip": "하지 않음",
     "when": "일시",
     "createdBy": "작성자",
     "confirmCompleteTitle": "이 작업을 완료할까요?",
@@ -122,6 +122,25 @@
       "label": "작업 ID",
       "copy": "작업 ID 복사",
       "copied": "{id} 복사됨"
+    },
+    "occurrence": {
+      "label": "반복",
+      "previous": "이전 반복",
+      "next": "다음 반복"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "하위 작업 추가",
+      "addPlaceholder": "하위 작업 추가…"
+    },
+    "projectFields": {
+      "clear": "없음",
+      "empty": "설정되지 않음",
+      "errorAuthRequired": "이 필드를 변경하려면 GitHub 계정을 연결하세요.",
+      "errorSsoRequired": "조직에서 이 프로젝트에 싱글 사인온을 요구합니다. GitHub에 로그인한 후 다시 시도하세요.",
+      "errorSaveFailed": "변경 사항을 GitHub에 저장하지 못했습니다. 다시 시도하세요.",
+      "filterLabel": "프로젝트 필드",
+      "filterAll": "모든 작업"
     }
   },
   "lists": {
@@ -194,7 +213,8 @@
     "weekly": "매주",
     "monthly": "매월",
     "yearly": "매년",
-    "custom": "사용자 지정"
+    "custom": "사용자 지정",
+    "pickAtLeastOneDay": "하루 이상 선택하세요"
   },
   "weekdays": {
     "sunday": "일요일",
@@ -419,7 +439,8 @@
   "search": {
     "placeholder": "작업 및 사용자 검색",
     "noResults": "결과를 찾을 수 없습니다",
-    "searching": "검색 중..."
+    "searching": "검색 중...",
+    "open": "검색"
   },
   "listHeaders": {
     "myTasks": "내 작업",
@@ -473,6 +494,11 @@
         "sdkNeedsBoth": "서버에는 둘 다 필요합니다. API를 호출하기 위한 이 자격 증명과 전달을 검증하기 위한 아래의 웹훅 시크릿입니다.",
         "manage": "연결에서 관리",
         "error": "자격 증명을 만들 수 없습니다"
+      },
+      "githubConnection": {
+        "title": "GitHub 연결",
+        "description": "서버에서 실행되는 코딩 에이전트는 설정 → 연결의 GitHub 연결을 사용하며, 연결된 모든 조직이 그곳에 표시됩니다.",
+        "open": "연결 열기"
       }
     },
     "apiAccess": {
@@ -754,6 +780,12 @@
         "listDesc": "체크박스로 작업을 완료하며, 우선순위와 담당자는 각각 별도의 행을 가집니다.",
         "projectDesc": "간결하게 표시. 체크박스를 누르면 우선순위, 담당자, 상태, 완료가 열립니다."
       },
+      "listImages": {
+        "title": "목록 이미지",
+        "description": "사이드바와 목록 헤더에서 각 목록 옆에 이미지를 표시합니다 (기기 간 동기화)",
+        "label": "목록 이미지 표시",
+        "offDesc": "끄면 각 목록에 이미지 대신 색상이 표시됩니다."
+      },
       "emailToTask": {
         "title": "이메일에서 작업",
         "description": "{inboundTaskEmail}로 이메일을 보내 즉시 작업 생성",
@@ -954,6 +986,40 @@
         "title": "개발자",
         "description": "OAuth 앱을 직접 만들고, API를 테스트하고, OpenAPI를 지원하는 어시스턴트를 연결합니다.",
         "openTester": "API 테스터 열기"
+      },
+      "github": {
+        "title": "GitHub",
+        "description": "{appName}을(를) GitHub 계정 및 조직에 연결합니다. 서버에서 실행되는 코딩 에이전트는 이 연결을 통해 브랜치와 풀 리퀘스트를 만듭니다.",
+        "descriptionProjects": "{appName}을(를) GitHub 조직에 연결하여 해당 프로젝트를 여기에서 보드로 사용할 수 있게 합니다.",
+        "empty": "아직 GitHub에 연결되지 않았습니다.",
+        "connect": "GitHub 연결",
+        "installAnother": "다른 조직 추가",
+        "refresh": "저장소 새로고침",
+        "refreshed": "저장소를 새로고침했습니다",
+        "refreshError": "저장소를 새로고침할 수 없습니다",
+        "loadError": "GitHub 연결을 불러올 수 없습니다",
+        "installError": "GitHub 설치를 시작할 수 없습니다",
+        "organization": "조직",
+        "personal": "개인 계정",
+        "repoCountOne": "저장소 1개",
+        "repoCountMany": "저장소 {count}개",
+        "allRepos": "모든 저장소",
+        "suspended": "일시 중지됨",
+        "disconnect": "연결 해제",
+        "disconnectTitle": "{account} 연결을 해제할까요?",
+        "disconnectDescription": "{account}의 저장소에서 코딩 에이전트가 더 이상 작동하지 않습니다. GitHub 앱은 그대로 설치되어 있으니, 완전히 제거하려면 GitHub에서 제거하세요.",
+        "disconnectDescriptionProjects": "GitHub에서 새로 고칠 때까지 {account}의 프로젝트가 여기에 표시되지 않습니다. GitHub App은 계속 설치되어 있으며, 완전히 제거하려면 GitHub에서 삭제하세요.",
+        "disconnected": "{account} 연결을 해제했습니다",
+        "disconnectError": "연결을 해제할 수 없습니다",
+        "outcomes": {
+          "connected": "GitHub에 연결했습니다",
+          "updated": "GitHub 연결을 업데이트했습니다",
+          "not_authorized": "GitHub에 따르면 회원님의 계정은 해당 설치를 볼 수 없습니다",
+          "already_connected": "해당 설치는 이미 다른 계정에 연결되어 있습니다",
+          "verification_unavailable": "이 서버에 GitHub 로그인이 구성되지 않아 설치를 확인할 수 없습니다",
+          "error": "GitHub 연결 중 문제가 발생했습니다",
+          "synced": "GitHub 액세스를 새로 고쳤습니다"
+        }
       }
     }
   },
@@ -978,12 +1044,31 @@
     "keyInvalid": "{min}~{max}자의 문자 또는 숫자, 문자로 시작",
     "keyRename": "이름 변경",
     "keyRenameHint": "작업이 {next}(으)로 바뀝니다. {old}도 계속 작동합니다",
-    "keyRenameFailed": "접두사를 변경하지 못했습니다"
+    "keyRenameFailed": "접두사를 변경하지 못했습니다",
+    "createBoard": "보드 만들기",
+    "creatingBoard": "만드는 중...",
+    "createBoardFailed": "보드를 만들지 못했습니다",
+    "disableBoard": "보드 비활성화",
+    "disablingBoard": "비활성화하는 중...",
+    "disableBoardFailed": "보드를 비활성화하지 못했습니다",
+    "disableBoardTitle": "보드 보기 비활성화",
+    "disableBoardBody": "작업은 이 목록에 남지만 Ready/Doing/Waiting 열은 제거됩니다.",
+    "disableBoardNote": "상태 열에 있는 작업은 상태를 잃습니다. 완료된 작업은 완료된 상태로 유지됩니다."
+  },
+  "viewRotator": {
+    "showList": "목록 보기",
+    "showMessages": "메시지 보기",
+    "showBoard": "보드 보기"
   },
   "listSettings": {
+    "color": {
+      "label": "목록 색상",
+      "custom": "사용자 지정 색상"
+    },
     "adminSettings": "관리자 설정",
     "sortAndFilters": "정렬 및 필터",
     "sortAndFiltersAreYours": "나에게만 적용됩니다. 다른 구성원의 목록은 바뀌지 않습니다.",
+    "listOptions": "목록 옵션",
     "sortBy": "정렬 기준",
     "showTasks": "작업 표시",
     "priorityFilter": "우선순위 필터",
@@ -1056,6 +1141,55 @@
     "modelSetup": {
       "noModel": "도와드리고 싶지만, 답변하려면 AI 모델이 필요해요! {settingsLink}에서 원하는 모델을 설정해 주세요.",
       "onDeviceUnavailable": "선택한 모델은 지원되는 Apple 기기에서만 작동해서 여기서는 답변할 수 없어요. {settingsLink}에서 어디서나 작동하는 모델을 선택해 주세요."
+    }
+  },
+  "githubProjectPicker": {
+    "entry": "GitHub 프로젝트 연결",
+    "title": "GitHub 프로젝트 연결",
+    "description": "{appName}에서 보드로 사용할 조직 프로젝트를 선택하세요. 항목은 백그라운드에서 가져옵니다.",
+    "connect": "보드로 사용",
+    "openBoard": "보드 열기",
+    "closed": "닫힘",
+    "itemCountOne": "항목 1개",
+    "itemCountMany": "항목 {count}개",
+    "noProjects": "이 조직에서 볼 수 있는 프로젝트가 없습니다.",
+    "noOrganizations": "아직 연결된 GitHub 조직이 없습니다. 조직에 앱을 설치하거나, 이미 설치되어 있다면 새로 고치세요.",
+    "installOnOrg": "조직에 설치",
+    "installAnother": "다른 조직에 설치",
+    "refreshAccess": "GitHub에서 새로 고침",
+    "authRequired": "조직의 프로젝트를 보려면 GitHub 계정을 연결하세요.",
+    "connectGithub": "GitHub 연결",
+    "loadError": "GitHub 프로젝트를 불러오지 못했습니다",
+    "retry": "다시 시도",
+    "bound": "{title} 연결됨. 항목을 가져오는 중…",
+    "alreadyBound": "이미 보드인 프로젝트입니다",
+    "bindError": "프로젝트를 연결하지 못했습니다"
+  },
+  "listInsights": {
+    "tab": "인사이트",
+    "days7": "7일",
+    "days30": "30일",
+    "days90": "90일",
+    "activity": "활동",
+    "created": "새 작업",
+    "completed": "완료",
+    "createdTotal": "새 작업 {count}개",
+    "completedTotal": "완료 {count}개",
+    "timeToComplete": "완료까지 걸린 시간(중앙값)",
+    "timeInLane": "열별 머문 시간(중앙값)",
+    "sampleSize": "{count}개 기준",
+    "notEnoughHistory": "아직 기록이 충분하지 않습니다",
+    "laneHistoryNote": "열 이동은 지금부터 기록됩니다. 카드가 이동하면 채워집니다.",
+    "contributors": "주요 기여자",
+    "profileCounts": "완료 {completed} · 영감 {inspired} · 지원 {supported}",
+    "activityCounts": "생성 {created} · 편집 {edited} · 댓글 {commented}",
+    "noActivity": "이 기간에 활동이 없습니다",
+    "loadFailed": "인사이트를 불러오지 못했습니다",
+    "loading": "인사이트 불러오는 중…",
+    "duration": {
+      "minutes": "{n}분",
+      "hours": "{n}시간",
+      "days": "{n}일"
     }
   }
 }

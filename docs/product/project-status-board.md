@@ -306,8 +306,9 @@ boards — unscalable. Status is now a single per-user concept:
 1. **Project picker / first-class Project entity in the UI** — `GET /api/projects` exists but no UI lists or opens projects directly. Today a "board" is just a list that has `projectId` set.
 2. **Attach an existing project to additional regular lists** — current "Create Board" always creates a fresh project of one list.
 3. ~~**Project-level membership**~~ — **DONE** (task 6c20d125, 2026-08-01).
-   `getUserRoleInList` resolves through `ProjectMember` after list membership,
-   higher role wins, and `listVisibilityWhere` carries the matching clause so
+   `getUserRoleInList` resolves through `ProjectMember` alongside list
+   membership, higher role wins (since 2026-10-04 in both directions: a plain
+   list member who owns or administers the project is a list admin), and `listVisibilityWhere` carries the matching clause so
    visibility and role agree. The project owner resolves to `admin`, not
    `owner`, so owning a project does not grant deleting a list somebody else
    owns.

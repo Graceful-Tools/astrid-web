@@ -2,7 +2,7 @@
 
 ## Runtime & Framework
 - **Runtime**: Node.js (LTS)
-- **Framework**: Next.js 16.3.6 (App Router)
+- **Framework**: Next.js 16.4.2 (App Router)
 - **Language**: TypeScript 6
 - **Package Manager**: npm
 - **React**: React 19.3.0
@@ -32,7 +32,7 @@
 - **Styling**: Tailwind CSS 3.4.17
 - **Components**: Radix UI primitives (Shadcn/ui)
 - **Icons**: Lucide React 0.454.0
-- **Forms**: React Hook Form 7.88.0 + Zod 3.25.76
+- **Forms**: React Hook Form 7.88.0 + Zod 4.6.6
 
 ## Build & Development
 - **Bundler**: Next.js built-in (Turbopack in dev)

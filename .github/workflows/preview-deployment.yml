@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
@@ -28,7 +28,7 @@ jobs:
   # Job 1: Build and Test PR
   build-test:
     name: 'Build & Test PR'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     outputs:
       build-success: ${{ steps.build-status.outputs.success }}
@@ -37,7 +37,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -129,10 +129,8 @@ jobs:
       - name: Run Linting
         run: npm run lint
 
-      - name: Run Tests
-        run: npm test
-        env:
-          NODE_ENV: test
+      # The unit suite is NOT run here: this workflow is path-filtered, and the
+      # suite must run on every PR. It lives in unit-tests.yml (AWTD-1216).
 
       - name: Build Application
         id: build-app
@@ -141,8 +139,9 @@ jobs:
           npm run build
         env:
           NODE_ENV: production
-          # Use preview database for builds if needed
-          DATABASE_URL: ${{ secrets.DATABASE_URL_PREVIEW || secrets.DATABASE_URL }}
+          # The build never connects. This used to fall back to the repo DATABASE_URL secret
+          # — the production URL, handed to every same-repo PR branch's build.
+          DATABASE_URL: postgresql://build:build@localhost:5432/build
 
       - name: Set Build Status
         id: build-status
@@ -153,7 +152,7 @@ jobs:
   # Job 2: Deploy to Vercel Preview
   deploy-preview:
     name: 'Deploy Vercel Preview'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pull-requests: write
@@ -168,7 +167,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -255,7 +254,7 @@ jobs:
   # Job 3: Run E2E Tests on Preview (Optional)
   e2e-tests:
     name: 'E2E Tests on Preview'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     needs: deploy-preview
     if: needs.deploy-preview.outputs.preview-url != ''
@@ -265,7 +264,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -326,7 +325,7 @@ jobs:
   # Job 4: Security Scan (Optional)
   security-scan:
     name: 'Security Scan'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     needs: build-test
     if: needs.build-test.outputs.build-success == 'true'
@@ -372,7 +371,7 @@ jobs:
   # caller-chosen path that route deliberately refuses for an MCP credential.
   notify-astrid-task:
     name: 'Post Preview Link to Task'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     needs: [deploy-preview]
     # Runs for ANY PR that names a task, not only the coding agent's. The job
@@ -458,7 +457,7 @@ jobs:
   # Job 6: Summary
   summary:
     name: 'Deployment Summary'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     needs: [build-test, deploy-preview, e2e-tests]
     if: always()

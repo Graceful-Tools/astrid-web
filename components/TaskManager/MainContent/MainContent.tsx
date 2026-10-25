@@ -15,12 +15,12 @@ import { taskDragCapability } from "@/lib/touch-drag-sort"
 import { PROMOTE_DROP_TARGET_ID } from "@/lib/subtask-promotion"
 import { useMobileDragSort } from "@/hooks/use-mobile-drag-sort"
 import { TaskRow } from "./TaskRow"
-import { TaskViewToggle } from "../Header/TaskViewToggle"
 import { VirtualizedTaskList } from "./VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { useTaskRowController } from "@/hooks/task-manager/useTaskRowController"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
 import { taskAreaPositionClasses } from '@/lib/task-area-position-classes'
+import { listHeaderBottomMarginClass } from '@/lib/list-header-spacing'
 import { useBoardRowContext } from "@/hooks/task-manager/useBoardRowContext"
 import { DescriptionDialog, type DescriptionDialogHandle } from "./DescriptionDialog"
 import {
@@ -32,21 +32,33 @@ import {
   Copy,
   Search
 } from "lucide-react"
-import { getListImageUrl, getConsistentDefaultImage } from "@/lib/default-images"
 import { getAllListMembers } from "@/lib/list-member-utils"
+import { ListHeaderImage } from "./ListHeaderImage"
 import type { Task, TaskList } from "@/types/task"
-import { canUserManageList } from "@/lib/list-permissions"
+import { canUserManageList, isSystemListId } from "@/lib/list-permissions"
 import { useTranslations } from "@/lib/i18n/client"
-import { ListHeaderActions } from "./ListHeaderActions"
+import { ListFilterRow, ListSettingsButton, ListViewToggle } from "./ListHeaderActions"
+import { ListDescriptionBlock } from "./ListDescriptionBlock"
+import { type ColumnCount, sortAndFiltersIsItsOwnControl } from "@/lib/list-view-controls"
 
 interface MainContentProps {
   // Layout and responsive props
   isMobile: boolean
   mobileView: 'list' | 'task' | 'chat'
   isMobileTaskDetailClosing?: boolean
-  isOneColumn?: boolean
-  is2Column?: boolean
-  is3Column?: boolean
+  /**
+   * Which layout this is, from useTaskManagerLayout. One number rather than
+   * the three booleans this used to take (isOneColumn / is2Column /
+   * is3Column), which were passed separately and could disagree — and
+   * disagreeing about the layout is exactly the bug AWTD-1175 fixed, where
+   * one place thought a layout had a filter control and another did not.
+   *
+   * NOT useLayoutType(): that hook answers a different question with different
+   * thresholds (1200/768 vs 910/1100 plus device sniffing) and its LayoutType
+   * is a different union that happens to share the name — see the note on
+   * dragCapability below.
+   */
+  columnCount: ColumnCount
 
   // Data props
   selectedListId: string
@@ -177,9 +189,7 @@ export function MainContent({
   isMobile,
   mobileView,
   isMobileTaskDetailClosing,
-  isOneColumn,
-  is2Column,
-  is3Column,
+  columnCount,
   selectedListId,
   lists,
   allTasks,
@@ -256,6 +266,10 @@ export function MainContent({
   onListDelete,
   onFavoriteToggle
 }: MainContentProps) {
+  const isOneColumn = columnCount === 1
+  const is2Column = columnCount === 2
+  const is3Column = columnCount === 3
+
   // Detect current layout type for enhanced task creation
   const layoutType = useLayoutType()
 
@@ -575,8 +589,8 @@ export function MainContent({
         }),
       }}>
         <div
-          className="px-4 py-5 theme-border border-b"
-          style={{ display: is3Column && !(hasProjectBoard && taskViewMode === 'board') ? 'block' : 'none' }}
+          className="relative px-4 py-5 theme-border border-b"
+          style={{ display: is3Column ? 'block' : 'none' }}
         >
           {isSearchActive ? (
             <div className="flex items-center justify-start space-x-4 mb-4">
@@ -587,30 +601,18 @@ export function MainContent({
             </div>
           ) : (
           <>
-          {/* Centered List Header with Image and Editable Name */}
-          <div className="text-center mb-6">
+          {/* Centered List Header with Image and Editable Name — no bottom margin on the board, where no add-task input follows (AWTD-1264) */}
+          <div className={`text-center ${listHeaderBottomMarginClass({ boardMode: Boolean(hasProjectBoard && taskViewMode === 'board') })}`}>
             {selectedListId && !["my-tasks", "today", "not-in-list", "public", "assigned"].includes(selectedListId) && (
               (() => {
                 const currentList = lists.find(list => list.id === selectedListId) || listMetadata
                 if (!currentList) return null
 
                 return (
-                  <div className="flex items-center justify-start space-x-4 mb-4">
-                    {/* List Image */}
-                    <img
-                      src={getListImageUrl(currentList)}
-                      alt={currentList.name}
-                      className={`w-16 h-16 rounded-xl object-cover flex-shrink-0 ${canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
-                      onClick={canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleListImageClick(currentList.id) : undefined}
-                      title={canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? "Click to change image" : currentList.name}
-                      onError={(e) => {
-                        // Fallback to consistent default image on error
-                        const target = e.currentTarget as HTMLImageElement
-                        const fallbackImage = getConsistentDefaultImage(currentList.id).filename
-                        if (target.src !== fallbackImage) {
-                          target.src = fallbackImage
-                        }
-                      }}
+                  <div className="flex items-center justify-start gap-4 mb-4">
+                    <ListHeaderImage
+                      list={currentList}
+                      onPick={canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleListImageClick(currentList.id) : undefined}
                     />
 
                     {/* Editable List Name and Description */}
@@ -636,106 +638,32 @@ export function MainContent({
                           </Button>
                         </div>
                       ) : (
-                        <h1 className={`text-2xl font-semibold tracking-tight theme-text-primary mb-1 text-left truncate ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
+                        <h1 className={`text-2xl font-semibold tracking-tight theme-text-primary mb-1 text-left line-clamp-2 break-words ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
                             onClick={!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleEditListName(currentList) : undefined}>
                           {newFilterState.filters.search.trim() ? 'Search Results' : currentList.name}
-                          {!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured}
                         </h1>
                       )}
 
-                      {/* Editable Description */}
-                      {editingListDescription ? (
-                        <>
-                          <div className="flex items-start justify-start space-x-2 mt-2">
-                            <textarea
-                              value={tempListDescription}
-                              onChange={(e) => setTempListDescription(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  if (e.shiftKey || e.metaKey || e.ctrlKey) {
-                                    // Shift+Enter, Cmd/Ctrl + Enter: Add line break
-                                    return
-                                  } else {
-                                    // Plain Enter: Save description
-                                    e.preventDefault()
-                                    handleSaveListDescription()
-                                  }
-                                } else if (e.key === "Escape") {
-                                  setEditingListDescription(false)
-                                }
-                              }}
-                              className="theme-comment-bg theme-border border theme-text-primary text-sm text-left max-w-md rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="Add a description..."
-                              rows={2}
-                              autoFocus
-                            />
-                            <div className="flex flex-col space-y-1 mt-1">
-                              <Button size="sm" onClick={handleSaveListDescription} className="bg-blue-600 hover:bg-blue-700">
-                                <Check className="w-4 h-4" />
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={() => setEditingListDescription(false)}
-                                      className="theme-border theme-text-secondary hover:theme-bg-hover">
-                                <X className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="text-xs theme-text-muted mt-1 ml-0">
-                            Press Enter to save • Shift+Enter or Cmd/Ctrl+Enter for line breaks
-                          </div>
-                        </>
-                      ) : newFilterState.filters.search.trim() ? (
-                        <div
-                          className="theme-text-muted text-sm text-left prose prose-sm max-w-none line-clamp-2 overflow-hidden"
-                          dangerouslySetInnerHTML={{
-                            __html: `Showing tasks matching "<strong>${newFilterState.filters.search}</strong>" from all accessible lists`,
-                          }}
-                        />
-                      ) : (
-                        // Inline preview shows the raw description text (not rendered
-                        // markdown). The full formatted view is the dialog on click.
-                        <div
-                          className="theme-text-muted text-sm text-left line-clamp-2 overflow-hidden whitespace-pre-wrap cursor-pointer hover:theme-text-secondary"
-                          onClick={() => {
-                            if (currentList.description) {
-                              // Has description → open viewer dialog
-                              descriptionDialogRef.current?.open(currentList.description)
-                            } else if (canEditListSettingsMemo(currentList) && !isViewingFromFeatured) {
-                              // No description + can edit → go straight to inline edit
-                              handleEditListDescription(currentList)
-                            }
-                          }}
-                        >
-                          {currentList.description
-                            ? currentList.description
-                            : (canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? "Add a description..." : "")}
-                        </div>
-                      )}
+                      {/* The description under the name: inline editor, the
+                          search banner, or the preview that opens the dialog. */}
+                      <ListDescriptionBlock
+                        list={currentList}
+                        editing={editingListDescription}
+                        draft={tempListDescription}
+                        onDraftChange={setTempListDescription}
+                        onSave={handleSaveListDescription}
+                        onCancel={() => setEditingListDescription(false)}
+                        onEdit={handleEditListDescription}
+                        onPreview={description => descriptionDialogRef.current?.open(description)}
+                        canEdit={canEditListSettingsMemo(currentList) && !isViewingFromFeatured}
+                        searchTerm={newFilterState.filters.search.trim()}
+                      />
                     </div>
 
-                    {/* Share and Settings Buttons */}
-                    <div className="flex items-center space-x-2 flex-shrink-0">
-                      {is3Column && hasProjectBoard && (
-                        <TaskViewToggle
-                          labelClassName="hidden min-[1300px]:inline"
-                          isOneColumn={false}
-                          hasProjectBoard={hasProjectBoard}
-                          chatAvailable={false}
-                          activeView="list"
-                          isSearching={Boolean(newFilterState.filters.search.trim())}
-                          activePanel="tasks"
-                          taskViewMode={taskViewMode}
-                          onTaskViewModeChange={onTaskViewModeChange}
-                          onToggleActivePanel={undefined}
-                        />
-                      )}
-                      <ListHeaderActions
-                        listId={selectedListId}
-                        list={currentList as never}
-                        currentUserId={effectiveSession?.user?.id}
-                        isViewingFromFeatured={isViewingFromFeatured}
-                        onOpenSortFilters={setShowSortFiltersFor}
-                        onOpenSettings={setShowSettingsPopover}
-                      />
+                    {/* View toggle and settings, compact so the name keeps the room (AWTD-1155); filters sit below (AWTD-1167) */}
+                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                      <ListViewToggle hasProjectBoard={Boolean(is3Column && hasProjectBoard)} taskViewMode={taskViewMode} onTaskViewModeChange={onTaskViewModeChange} isSearching={Boolean(newFilterState.filters.search.trim())} />
+                      <ListSettingsButton list={currentList as never} currentUserId={effectiveSession?.user?.id} isViewingFromFeatured={isViewingFromFeatured} onOpen={() => setShowSettingsPopover(selectedListId)} />
                     </div>
                   </div>
                 )
@@ -749,36 +677,8 @@ export function MainContent({
                   <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1 truncate">{getSelectedListInfo().name}</h1>
                   <p className="theme-text-muted text-sm truncate">{getSelectedListInfo().description}</p>
                 </div>
-                <div className="flex items-center space-x-2 flex-shrink-0">
-                  {is3Column && hasProjectBoard && (
-                    <TaskViewToggle
-                      labelClassName="hidden min-[1300px]:inline"
-                      isOneColumn={false}
-                      hasProjectBoard={hasProjectBoard}
-                      chatAvailable={false}
-                      activeView="list"
-                      isSearching={Boolean(newFilterState.filters.search.trim())}
-                      activePanel="tasks"
-                      taskViewMode={taskViewMode}
-                      onTaskViewModeChange={onTaskViewModeChange}
-                      onToggleActivePanel={undefined}
-                    />
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setShowSettingsPopover(selectedListId)
-                    }}
-                    onMouseDown={(e) => {
-                      e.stopPropagation()
-                    }}
-                    className="theme-text-muted hover:theme-text-primary p-2"
-                    data-settings-button="true"
-                  >
-                    <Filter className="w-5 h-5" />
-                  </Button>
+                <div className="flex items-center gap-0.5 flex-shrink-0">
+                  <ListViewToggle hasProjectBoard={Boolean(is3Column && hasProjectBoard)} taskViewMode={taskViewMode} onTaskViewModeChange={onTaskViewModeChange} isSearching={Boolean(newFilterState.filters.search.trim())} />
                 </div>
               </div>
             )}
@@ -787,6 +687,7 @@ export function MainContent({
           {/* List settings — one host picks fixed vs full popover (task ecf56cd3) */}
           {(showSettingsPopover === selectedListId || showSortFiltersFor === selectedListId) && <LazyListSettingsHost
               variant="desktop"
+              columnCount={columnCount}
               selectedListId={selectedListId}
               lists={lists}
               listMetadata={listMetadata}
@@ -834,6 +735,13 @@ export function MainContent({
               its own row below; mobile version is fixed at bottom). Gated on
               is3Column so there is no hidden duplicate in the 2-column DOM. */}
           {!isSearchActive && is3Column && !(hasProjectBoard && taskViewMode === 'board') && renderAddTaskInput()}
+          {/* Sort & filters: below "Add a task...", above the line over the tasks — on the board too (AWTD-1167, AWTD-1168).
+              Gated on the shared rule rather than on is3Column directly: below
+              3 columns this control does not exist and List Settings carries
+              the way in instead, and the two sites must agree (AWTD-1175). */}
+          {!isSearchActive && sortAndFiltersIsItsOwnControl(columnCount) && selectedListId && (isSystemListId(selectedListId)
+            ? <ListFilterRow onOpen={() => setShowSettingsPopover(selectedListId)} />
+            : <ListFilterRow list={(lists.find(l => l.id === selectedListId) || listMetadata) as never} currentUserId={effectiveSession?.user?.id} isViewingFromFeatured={isViewingFromFeatured} onOpen={() => setShowSortFiltersFor(selectedListId)} />)}
         </div>
 
         {/* 2-column add-task row. The header block above is display:none in
@@ -880,7 +788,7 @@ export function MainContent({
               onDeleteTask={handleDeleteTask}
               onCopyTask={handleCopyTask}
               onCreateTask={handleQuickCreateTask}
-              isOneColumn={Boolean(isOneColumn)}
+              isOneColumn={isOneColumn}
             />
           </div>
         ) : finalFilteredTasks.length === 0 && !justReturnedFromTaskDetail ? (
@@ -1061,6 +969,7 @@ export function MainContent({
       {/* List settings — one host picks fixed vs full popover (task ecf56cd3) */}
       {(showSettingsPopover === selectedListId || showSortFiltersFor === selectedListId) && <LazyListSettingsHost
               variant="mobile"
+              columnCount={columnCount}
               selectedListId={selectedListId}
               lists={lists}
               listMetadata={listMetadata}

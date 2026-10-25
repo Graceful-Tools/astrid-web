@@ -21,10 +21,21 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'fs'
 import { join } from 'path'
 
-const src = readFileSync(
-  join(process.cwd(), 'components/task-detail/TaskFieldEditors.tsx'),
-  'utf8',
-)
+/**
+ * Every task-detail source, not just TaskFieldEditors.
+ *
+ * The rows keep being extracted into their own files for the oversized-file
+ * budget — Lists and Blockers in AWTD-1002, Priority in AWTD-1210 — and each
+ * time, a check that read only TaskFieldEditors would quietly stop seeing the
+ * row it was meant to guard. Reading the directory means an extraction cannot
+ * take a label out of this test's sight, and a NEW row in a new file is covered
+ * the day it lands.
+ */
+const TASK_DETAIL_DIR = join(process.cwd(), 'components/task-detail')
+const src = readdirSync(TASK_DETAIL_DIR)
+  .filter(file => file.endsWith('.tsx'))
+  .map(file => readFileSync(join(TASK_DETAIL_DIR, file), 'utf8'))
+  .join('\n')
 
 const LOCALES_DIR = join(process.cwd(), 'lib/i18n/locales')
 const localeFiles = readdirSync(LOCALES_DIR).filter(f => f.endsWith('.json'))
@@ -46,11 +57,25 @@ describe('task-detail field labels are translated (task bf57678e)', () => {
     })
   }
 
-  it('routes every TaskFieldRow label through t()', () => {
+  /**
+   * A label that is DATA, not copy.
+   *
+   * A GitHub project field is named in GitHub — "Size", "Sprint" — so its row
+   * label is the user's own word for it and must NOT be translated: running it
+   * through t() would look up a key that cannot exist and render the name back
+   * as a missing key (AWTD-1210).
+   *
+   * Listed one by one rather than matched by a pattern, so a genuinely
+   * untranslated English literal cannot slip in by looking dynamic.
+   */
+  const DATA_LABELS = ['field.name}']
+
+  it('routes every TaskFieldRow label through t(), unless it is data', () => {
     // Catches a seventh label added later without a translation.
     const labels = [...src.matchAll(/<TaskFieldRow[\s\S]{0,80}?label=\{?([^\s>]+)/g)].map(m => m[1])
     expect(labels.length, 'no TaskFieldRow labels found — did the markup change?').toBeGreaterThan(3)
     for (const label of labels) {
+      if (DATA_LABELS.includes(label)) continue
       expect(label, `TaskFieldRow label ${label} is not a t() call`).toContain('t(')
     }
   })

@@ -145,6 +145,9 @@ export function useSSEConnectionStatus() {
 const TASK_EVENT_TYPES = [
   'task_created',
   'task_updated',
+  // Sent INSTEAD of task_updated when the change completed the task; unheard,
+  // a completion by anyone else never showed until a refresh (AWTD-1039).
+  'task_completed',
   'task_deleted',
   'comment_created',
   'comment_updated',
@@ -203,6 +206,7 @@ export function useTaskSSEEvents(callbacks: {
         }
         break
       case 'task_updated':
+      case 'task_completed':
         if (currentCallbacks.onTaskUpdated) {
           if (event.data) {
             currentCallbacks.onTaskUpdated(event.data)

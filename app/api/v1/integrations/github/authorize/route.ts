@@ -3,6 +3,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { isAppSchemeRedirect, appCompletedState } from '@/lib/sync/app-completed-link'
 import { githubSyncConfigured } from '@/lib/sync/github'
 import { mintOAuthState } from '@/lib/sync/oauth-state'
+import { GITHUB_WEB_URL } from '@/lib/github/host'
 
 /**
  * GET /api/v1/integrations/github/authorize[?redirectUri=astrid://…]
@@ -34,6 +35,6 @@ export const GET = withAuth(
     })
     if (requested) params.set('redirect_uri', requested)
 
-    return NextResponse.json({ url: `https://github.com/login/oauth/authorize?${params}` })
+    return NextResponse.json({ url: `${GITHUB_WEB_URL}/login/oauth/authorize?${params}` })
   }
 )

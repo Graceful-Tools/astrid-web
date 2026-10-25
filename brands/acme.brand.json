@@ -22,10 +22,20 @@
     "NEXT_PUBLIC_BRAND_WORDMARK": "ACME",
     "NEXT_PUBLIC_BRAND_SLOGAN": "Work, handled.",
     "NEXT_PUBLIC_BRAND_APP_STORE_URL": "",
-    "NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG": "acme-code-assistant"
+    "NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG": "acme-code-assistant",
+    "BRAND_APPLE_APP_IDS": "ACME000001.example.acme.Tasks,ACME000001.example.acme.TasksMac",
+    "BRAND_ANDROID_APP_LINKS": "example.acme.tasks:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC",
+    "NEXT_PUBLIC_BRAND_APP_URL_SCHEME": "acmetasks"
   },
   "expect": {
     "appName": "Acme",
+    "appleAppIds": [
+      "ACME000001.example.acme.Tasks",
+      "ACME000001.example.acme.TasksMac"
+    ],
+    "androidPackages": [
+      "example.acme.tasks"
+    ],
     "productTitle": "Acme Tasks",
     "domain": "tasks.acme.example",
     "agentEmailDomain": "agents.acme.example",
@@ -37,11 +47,13 @@
       "claude"
     ],
     "capabilities": {
+      "githubProjects": false,
       "authGoogle": false,
       "authApple": false,
       "authPasskey": true,
       "syncGoogleTasks": false,
       "syncGithubIssues": true,
+      "codingAgent": true,
       "integrationMcp": false,
       "integrationOpenClaw": true,
       "integrationChatGptActions": false,
@@ -60,7 +72,8 @@
     "wordmark": "ACME",
     "slogan": "Work, handled.",
     "appStoreUrl": "",
-    "githubAppSlug": "acme-code-assistant"
+    "githubAppSlug": "acme-code-assistant",
+    "inheritsAstridIdentity": []
   },
   "copy": {
     "reminders": {

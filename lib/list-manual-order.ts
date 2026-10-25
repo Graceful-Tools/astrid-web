@@ -28,8 +28,9 @@ import { Prisma } from '@prisma/client'
 import { RedisCache } from '@/lib/redis'
 import { broadcastListEvent } from '@/lib/lists/v1-list-shape'
 import { getListMemberIds } from '@/lib/list-member-utils'
-import { canUserEditTasks } from '@/lib/list-permissions'
+import { canUserEditTasks, PROJECT_ACCESS_INCLUDE } from '@/lib/list-permissions'
 import { createLogger } from '@/lib/logger'
+import { hasCapability } from '@/lib/brand/capabilities'
 
 const log = createLogger('list-manual-order')
 
@@ -73,7 +74,13 @@ export async function setListManualOrder(args: {
       isVirtual: true,
       privacy: true,
       publicListType: true,
+      backend: true,
+      manualSortOrder: true,
       listMembers: { select: { userId: true, role: true } },
+      // canUserEditTasks needs the project (members/admins cascade) and the
+      // list type (status lists inherit sibling access) — AWTD-1321.
+      listType: true,
+      ...PROJECT_ACCESS_INCLUDE,
     },
   })
 
@@ -119,6 +126,18 @@ export async function setListManualOrder(args: {
       listMembers: { select: { userId: true, role: true } },
     },
   })
+
+  // A GitHub board's order lives on GitHub too (AWTD-1116 P5c): queue the
+  // moves, as this user. Free without GitHub Projects — no import, no query.
+  if (list.backend === 'github_project' && hasCapability('githubProjects')) {
+    const previous = Array.isArray(list.manualSortOrder) ? (list.manualSortOrder as string[]) : []
+    try {
+      const { enqueuePositionSync } = await import('@/services/github-sync-jobs.service')
+      await enqueuePositionSync({ listId, actorId: userId, previous, next: sanitizedOrder })
+    } catch (err) {
+      log.error({ err, listId }, 'Failed to queue the GitHub reorder')
+    }
+  }
 
   const memberIds = getListMemberIds(updatedList)
 

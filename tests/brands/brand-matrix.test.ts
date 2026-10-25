@@ -20,9 +20,9 @@
  * refactor ever changes today's production behaviour, that profile fails.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { readdirSync, readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { profileEnv } from '@/lib/brand/profile'
+import { profileEnv, brandNameTrademarkProblem } from '@/lib/brand/profile'
 
 // next-intl's middleware cannot load under vitest. The plumbing assertions
 // below (apex redirect, CORS) run before it, so stub it out — the same
@@ -49,12 +49,18 @@ interface BrandProfile {
     slogan: string
     appStoreUrl: string
     githubAppSlug: string
+    /** Apps named in apple-app-site-association. Omitted: Astrid's own (AWTD-1281). */
+    appleAppIds?: string[]
+    /** Packages named in assetlinks.json. Omitted: none, the route 404s (AWTD-1303). */
+    androidPackages?: string[]
     logo: string
     icon: string
     enabledAgents: string[]
     capabilities: Record<string, boolean>
     requireLiterals: string[]
     forbidLiterals: string[]
+    /** Identity variables this profile knowingly leaves on Astrid's value (AWTD-1285). */
+    inheritsAstridIdentity: string[]
   }
 }
 
@@ -77,6 +83,190 @@ it('finds the brand profiles', () => {
   expect(PROFILES.map((p) => p.name)).toEqual(expect.arrayContaining(['Astrid', 'Acme']))
 })
 
+describe('GitHub trademark rule (AWTD-1103, spec §11.1)', () => {
+  // GitHub's brand guidelines allow "<Brand> for GitHub Projects", never a product name
+  // that starts with GitHub.
+  it.each(['GitHub Tasks', 'github', 'Git Hub Boards', 'GITHUB'])('rejects "%s"', (name) => {
+    expect(brandNameTrademarkProblem(name)).toMatch(/for GitHub Projects/)
+  })
+
+  it.each(['Lanes', 'Astrid', 'Boards for GitHub Projects'])('accepts "%s"', (name) => {
+    expect(brandNameTrademarkProblem(name)).toBeNull()
+  })
+
+  it('holds for every profile', () => {
+    for (const profile of PROFILES) {
+      const name = profile.env.NEXT_PUBLIC_BRAND_NAME ?? profile.expect.appName
+      expect(brandNameTrademarkProblem(name), profile.name).toBeNull()
+    }
+  })
+
+  it('has a GitHub Projects partner profile', () => {
+    const partner = PROFILES.find((p) => p.env.NEXT_PUBLIC_BRAND_TITLE?.endsWith(' for GitHub Projects'))
+    expect(partner, 'brands/github-projects.brand.json').toBeDefined()
+  })
+})
+
+describe('Astrid identity left on a partner build (AWTD-1285)', () => {
+  it('checks variables lib/brand/config.ts actually reads', async () => {
+    // A misspelt name here would be a variable the check demands and nothing uses.
+    const { BRAND_IDENTITY_ENV } = await import('@/scripts/lib/brand-identity-check.mjs')
+    const config = readFileSync(join(process.cwd(), 'lib/brand/config.ts'), 'utf8')
+
+    expect(BRAND_IDENTITY_ENV.length).toBeGreaterThan(0)
+    for (const name of BRAND_IDENTITY_ENV) {
+      expect(config, name).toContain(`process.env.${name}`)
+    }
+  })
+
+  it('names everything a partner who set only the name would ship from Astrid', async () => {
+    const { BRAND_IDENTITY_ENV, inheritedAstridIdentity } =
+      await import('@/scripts/lib/brand-identity-check.mjs')
+
+    expect(inheritedAstridIdentity({ NEXT_PUBLIC_BRAND_NAME: 'Acme' })).toEqual(
+      BRAND_IDENTITY_ENV.filter((name: string) => name !== 'NEXT_PUBLIC_BRAND_NAME')
+    )
+  })
+
+  it('treats a blank value as unset, except where blank is itself a choice', async () => {
+    // config.ts's env() ignores whitespace, so a blank domain still ships Astrid's. An empty
+    // App Store URL is different: it hides the download button, which is the partner's call.
+    const { inheritedAstridIdentity } = await import('@/scripts/lib/brand-identity-check.mjs')
+    const inherited = inheritedAstridIdentity({
+      NEXT_PUBLIC_BRAND_NAME: 'Acme',
+      NEXT_PUBLIC_BRAND_DOMAIN: '  ',
+      NEXT_PUBLIC_BRAND_APP_STORE_URL: '',
+    })
+
+    expect(inherited).toContain('NEXT_PUBLIC_BRAND_DOMAIN')
+    expect(inherited).not.toContain('NEXT_PUBLIC_BRAND_APP_STORE_URL')
+  })
+
+  it('is called by the build', () => {
+    const config = readFileSync(join(process.cwd(), 'next.config.mjs'), 'utf8')
+    expect(config).toMatch(/checkBrandIdentity\(process\.env,/)
+    expect(config).toContain('strict: process.env.BRAND_STRICT_IDENTITY')
+    expect(config).toContain('acknowledged: process.env.BRAND_INHERIT_ASTRID_IDENTITY')
+  })
+})
+
+/** The apps hosted Astrid's apple-app-site-association names for passkeys. */
+const ASTRID_APPLE_APP_IDS = [
+  '34K3P7PD2W.Graceful-Tools-Inc.Astrid-App',
+  '34K3P7PD2W.Graceful-Tools-Inc.Astrid-Mac',
+  '34K3P7PD2W.Graceful-Tools-Inc.Whitelabel',
+]
+
+describe('apple-app-site-association (AWTD-1281)', () => {
+  const ORIGINAL_ENV = { ...process.env }
+
+  beforeEach(() => {
+    vi.resetModules()
+    clearBrandEnv()
+  })
+
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV }
+    vi.resetModules()
+  })
+
+  it('serves hosted Astrid the exact bytes of the static file it replaced', async () => {
+    // The fixture is public/.well-known/apple-app-site-association as production served
+    // it before the file became a route. Apple's CDN caches it for every installed app;
+    // a byte changing for Astrid is a change nobody asked for.
+    const pinned = readFileSync(
+      join(process.cwd(), 'tests/fixtures/brand/astrid-apple-app-site-association.json'),
+      'utf8'
+    )
+    const { GET } = await import('@/app/.well-known/apple-app-site-association/route')
+
+    expect(await GET().text()).toBe(pinned)
+  })
+
+  it('names every BRAND_APPLE_APP_IDS app for passkeys and links', async () => {
+    process.env.BRAND_APPLE_APP_IDS = ' ABCDE12345.com.example.Tasks , ABCDE12345.com.example.TasksMac ,'
+    const { GET } = await import('@/app/.well-known/apple-app-site-association/route')
+    const body = JSON.parse(await GET().text())
+    const ids = ['ABCDE12345.com.example.Tasks', 'ABCDE12345.com.example.TasksMac']
+
+    expect(body.webcredentials.apps).toEqual(ids)
+    expect(body.applinks).toEqual({
+      apps: [],
+      details: ids.map((appID) => ({ appID, paths: ['/s/*', '/tasks/*', '/lists/*'] })),
+    })
+    expect(JSON.stringify(body)).not.toContain('Graceful-Tools')
+  })
+
+  it('is no longer a static file in public/', () => {
+    // A static file would shadow the route and serve Astrid's apps on every domain.
+    expect(existsSync(join(process.cwd(), 'public/.well-known/apple-app-site-association'))).toBe(false)
+  })
+})
+
+/** A Play app-signing fingerprint: 32 colon-separated hex bytes. */
+const FINGERPRINT_A = Array.from({ length: 32 }, (_, i) => i.toString(16).padStart(2, '0').toUpperCase()).join(':')
+const FINGERPRINT_B = Array.from({ length: 32 }, () => 'AB').join(':')
+
+describe('assetlinks.json (AWTD-1303)', () => {
+  const ORIGINAL_ENV = { ...process.env }
+
+  beforeEach(() => {
+    vi.resetModules()
+    clearBrandEnv()
+  })
+
+  afterEach(() => {
+    process.env = { ...ORIGINAL_ENV }
+    vi.resetModules()
+  })
+
+  it('404s when BRAND_ANDROID_APP_LINKS is unset, so no domain claims an app it has no fingerprint for', async () => {
+    const { GET } = await import('@/app/.well-known/assetlinks.json/route')
+    expect(GET().status).toBe(404)
+  })
+
+  it('lists each package once with all of its fingerprints', async () => {
+    process.env.BRAND_ANDROID_APP_LINKS =
+      ` com.example.tasks:${FINGERPRINT_A.toLowerCase()} , com.example.tasks:${FINGERPRINT_B},com.example.beta:${FINGERPRINT_B},`
+    const { GET } = await import('@/app/.well-known/assetlinks.json/route')
+    const res = GET()
+
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toBe('application/json')
+    expect(await res.json()).toEqual([
+      {
+        relation: ['delegate_permission/common.handle_all_urls'],
+        target: {
+          namespace: 'android_app',
+          package_name: 'com.example.tasks',
+          sha256_cert_fingerprints: [FINGERPRINT_A, FINGERPRINT_B],
+        },
+      },
+      {
+        relation: ['delegate_permission/common.handle_all_urls'],
+        target: { namespace: 'android_app', package_name: 'com.example.beta', sha256_cert_fingerprints: [FINGERPRINT_B] },
+      },
+    ])
+  })
+
+  it.each([
+    ['no fingerprint', 'com.example.tasks'],
+    ['a short fingerprint', 'com.example.tasks:AB:CD'],
+    ['a SHA-1 fingerprint', `com.example.tasks:${FINGERPRINT_A.split(':').slice(0, 20).join(':')}`],
+    ['a package with no dot', `tasks:${FINGERPRINT_A}`],
+  ])('refuses %s at env validation', async (_label, value) => {
+    const { ENV_VARS } = await import('@/lib/env')
+    const entry = ENV_VARS.find((v) => v.name === 'BRAND_ANDROID_APP_LINKS')
+    expect(entry?.validate?.(value)).toEqual(expect.any(String))
+    expect(entry?.validate?.(`com.example.tasks:${FINGERPRINT_A}`)).toBeNull()
+  })
+
+  it('is not a static file in public/', () => {
+    // A static file would shadow the route and claim one app on every domain.
+    expect(existsSync(join(process.cwd(), 'public/.well-known/assetlinks.json'))).toBe(false)
+  })
+})
+
 describe.each(PROFILES)('brand profile: $name', (profile) => {
   const ORIGINAL_ENV = { ...process.env }
 
@@ -91,6 +281,85 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
   afterEach(() => {
     process.env = { ...ORIGINAL_ENV }
     vi.resetModules()
+  })
+
+  it('enables no capability without the one it depends on (AWTD-1121)', async () => {
+    // The check instrumentation.ts makes at server start: a profile that fails it
+    // here would be a deployment that refuses to boot.
+    const { assertCoherentCapabilities } = await import('@/lib/brand/capabilities')
+    expect(() => assertCoherentCapabilities()).not.toThrow()
+  })
+
+  it('boots GitHub Projects only with its GitHub App credentials (AWTD-1282)', async () => {
+    // Spec §7.5's boot assertion. Without the webhook secret every event was refused and
+    // sync silently fell back to the hourly reconcile; the rest failed at runtime.
+    const { assertGithubProjectsCredentials, GITHUB_PROJECTS_REQUIRED_ENV } =
+      await import('@/lib/brand/capabilities')
+    const complete = Object.fromEntries(GITHUB_PROJECTS_REQUIRED_ENV.map((name) => [name, 'set']))
+
+    expect(() => assertGithubProjectsCredentials(complete)).not.toThrow()
+
+    if (!profile.expect.capabilities.githubProjects) {
+      // The check never runs for a brand without GitHub Projects — Astrid included.
+      expect(() => assertGithubProjectsCredentials({})).not.toThrow()
+      return
+    }
+
+    const error = (() => {
+      try {
+        assertGithubProjectsCredentials({ GITHUB_APP_ID: '1' })
+      } catch (e) {
+        return (e as Error).message
+      }
+      return null
+    })()
+    expect(error).not.toBeNull()
+    for (const name of GITHUB_PROJECTS_REQUIRED_ENV.filter((n) => n !== 'GITHUB_APP_ID')) {
+      expect(error, name).toContain(name)
+    }
+    expect(error).not.toContain('GITHUB_APP_ID,')
+  })
+
+  it('leaves on Astrid’s identity only what it declares (AWTD-1285)', async () => {
+    // Every identity variable falls back to Astrid's value, so a partner who forgets one
+    // ships support@astrid.cc or astrid:// and nothing said so. The build now names each
+    // one; this pins the list per profile, so a new profile cannot forget one quietly.
+    const { inheritedAstridIdentity } = await import('@/scripts/lib/brand-identity-check.mjs')
+
+    expect(inheritedAstridIdentity(process.env, process.env.BRAND_INHERIT_ASTRID_IDENTITY))
+      .toEqual(profile.expect.inheritsAstridIdentity)
+  })
+
+  it('fails a strict build only on an undeclared Astrid identity (AWTD-1285)', async () => {
+    const { checkBrandIdentity } = await import('@/scripts/lib/brand-identity-check.mjs')
+    const warnings: string[] = []
+    const warn = (message: string) => warnings.push(message)
+    const inherited = profile.expect.inheritsAstridIdentity
+
+    if (inherited.length === 0) {
+      // Hosted Astrid sets nothing, so the check never runs for it, strict or not; a
+      // fully rebranded partner has nothing to report.
+      expect(() => checkBrandIdentity(process.env, { strict: 'true', warn })).not.toThrow()
+      expect(warnings).toEqual([])
+      return
+    }
+
+    // One warning, naming every variable.
+    checkBrandIdentity(process.env, { warn })
+    expect(warnings.length).toBe(1)
+    for (const name of inherited) {
+      expect(warnings[0], name).toContain(name)
+    }
+
+    // Acknowledged: nothing to say, and a strict build passes.
+    warnings.length = 0
+    expect(() => checkBrandIdentity(process.env, { strict: 'true', acknowledged: inherited.join(','), warn }))
+      .not.toThrow()
+    expect(warnings).toEqual([])
+
+    // Unacknowledged under the strict flag: the build stops and says why.
+    expect(() => checkBrandIdentity(process.env, { strict: 'true', warn: () => {} }))
+      .toThrow(inherited[0])
   })
 
   it('derives the expected brand values', async () => {
@@ -198,15 +467,23 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     const body = await (await GET()).json()
 
     const caps = profile.expect.capabilities
-    expect(body.auth).toEqual({
+    expect(body.auth).toMatchObject({
       google: caps.authGoogle,
       apple: caps.authApple,
       passkey: caps.authPasskey,
     })
+    // The ordered list carries the same set the booleans do (spec §6.5).
+    const offered = (body.auth.providers as Array<{ id: string }>).map(p => p.id)
+    for (const [id, on] of Object.entries(body.auth).filter(([k]) => k !== 'providers')) {
+      expect(offered.includes(id), `auth.providers vs auth.${id}`).toBe(on)
+    }
     expect(body.sync).toEqual({
       googleTasks: caps.syncGoogleTasks,
       githubIssues: caps.syncGithubIssues,
     })
+    expect(body.integrations.codingAgent).toBe(caps.codingAgent)
+    // Additive (spec §11.2); off unless the brand turns it on (D5).
+    expect(body.product.githubProjects).toBe(caps.githubProjects)
     expect(body.brand.appName).toBe(profile.expect.appName)
   })
 
@@ -219,6 +496,35 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     expect(body.short_name).toBe(profile.expect.appName)
     expect(body.theme_color).toBe(profile.expect.accentColor)
     assertClean(rendered, profile, 'manifest')
+  })
+
+  it('serves apple-app-site-association for this profile’s own apps (AWTD-1281)', async () => {
+    // Not assertClean: an app id is a provisioning identity registered with Apple, and a
+    // partner running Astrid-signed test binaries (whitelabel-partner) must name them.
+    // What matters is that a partner who sets BRAND_APPLE_APP_IDS gets exactly those.
+    const { GET } = await import('@/app/.well-known/apple-app-site-association/route')
+    const res = GET()
+    const body = JSON.parse(await res.text())
+    const appIds = profile.expect.appleAppIds ?? ASTRID_APPLE_APP_IDS
+
+    expect(res.headers.get('content-type')).toBe('application/json')
+    expect(body.webcredentials.apps).toEqual(appIds)
+    if (profile.expect.appleAppIds) {
+      expect(body.applinks.details.map((d: { appID: string }) => d.appID)).toEqual(appIds)
+    }
+  })
+
+  it('serves assetlinks.json only for this profile’s own Android apps (AWTD-1303)', async () => {
+    const { GET } = await import('@/app/.well-known/assetlinks.json/route')
+    const res = GET()
+    const packages = profile.expect.androidPackages ?? []
+
+    if (packages.length === 0) {
+      expect(res.status).toBe(404)
+      return
+    }
+    const body = await res.json()
+    expect(body.map((s: { target: { package_name: string } }) => s.target.package_name)).toEqual(packages)
   })
 
   it('renders llms.txt with no unresolved tokens or foreign brands', async () => {
@@ -326,6 +632,12 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
       new NextRequest(`https://${domain}/dashboard`, { headers: { host: domain } })
     )
 
+    // A brand served on its own subdomain has no www host: it must not redirect at all, or
+    // the site never opens (tasks.gracefultools.com, 2026-10-04).
+    if (profile.env.NEXT_PUBLIC_BRAND_WWW_REDIRECT === 'false') {
+      expect(res.headers.get('location') ?? '').not.toContain(`www.${domain}`)
+      return
+    }
     // A partner deployment redirecting to www.astrid.cc would hand its traffic
     // to someone else's domain.
     expect(res.status).toBe(308)

@@ -77,6 +77,26 @@ describe('diffTaskEvents (51a4b8ff)', () => {
     ])
   })
 
+  // AWTD-1329: a board move recorded nothing, so "how long do cards sit in
+  // Doing?" had no history to answer from. Only blocker auto-promotions wrote
+  // status_changed (services/task-dependency.service.ts moveLane).
+  it('reports a board lane move as status_changed, Inbox as null (AWTD-1329)', () => {
+    expect(diffTaskEvents({ statusRole: null }, { statusRole: 'doing' }))
+      .toEqual([{ kind: 'status_changed', from: null, to: 'doing' }])
+    expect(diffTaskEvents({ statusRole: 'doing' }, { statusRole: 'waiting' }))
+      .toEqual([{ kind: 'status_changed', from: 'doing', to: 'waiting' }])
+    expect(diffTaskEvents({ statusRole: 'doing' }, { statusRole: 'doing' })).toEqual([])
+  })
+
+  it('does not report the lane a completion clears as a separate move (AWTD-1329)', () => {
+    // Completing takes a card off the board — `completed` already says so, and a
+    // second "moved to Inbox" would read as a move nobody made.
+    expect(diffTaskEvents(
+      { completed: false, statusRole: 'doing' },
+      { completed: true, statusRole: null },
+    )).toEqual([{ kind: 'completed', from: false, to: true }])
+  })
+
   it('ignores fields absent from the "after" snapshot', () => {
     // A partial update must not report every unmentioned field as cleared.
     expect(diffTaskEvents({ title: 'A', priority: 3, assigneeId: 'u1' }, { title: 'B' }))

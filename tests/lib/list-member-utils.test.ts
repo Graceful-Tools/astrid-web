@@ -213,6 +213,42 @@ describe('List Member Utils - getAllListMembers', () => {
   })
 })
 
+describe('List Member Utils - getListMemberIds', () => {
+  // AWTD-1348: an owner with no ListMember row (the normal case for a list you
+  // created) was left out of every SSE / cache fanout whose query loaded
+  // `ownerId` but not the `owner` relation.
+  it('includes the owner from ownerId when the owner relation is not loaded (AWTD-1348)', () => {
+    const ids = getListMemberIds({
+      ownerId: 'owner-1',
+      listMembers: [{ userId: 'member-1', role: 'member' }],
+    })
+
+    expect(ids).toEqual(['owner-1', 'member-1'])
+  })
+
+  it('lists an owner who also has a member row once (AWTD-1348)', () => {
+    const ids = getListMemberIds({
+      ownerId: 'owner-1',
+      listMembers: [
+        { userId: 'owner-1', role: 'admin' },
+        { userId: 'member-1', role: 'member' },
+      ],
+    })
+
+    expect(ids).toEqual(['owner-1', 'member-1'])
+  })
+
+  it('does not add the owner twice when both owner and ownerId are present', () => {
+    const ids = getListMemberIds({
+      ownerId: 'owner-1',
+      owner: { id: 'owner-1', email: 'owner@example.com' },
+      listMembers: [],
+    })
+
+    expect(ids).toEqual(['owner-1'])
+  })
+})
+
 describe('List Member Utils - Permission Checks', () => {
   const mockOwner: User = buildUser({
     id: 'owner-1',

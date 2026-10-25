@@ -30,6 +30,9 @@ import {
   selectResolvableTasks,
 } from './lib/deployment-monitor-tasks'
 import { loadScriptEnv } from './lib/load-env'
+// Who files and closes these tasks (AWTD-1311). This runs from the runner, so
+// unsigned its comments arrive on the board under the OAuth client owner's name.
+import { agentSignature } from './lib/agent-author'
 
 loadScriptEnv()
 
@@ -169,7 +172,7 @@ class VercelLogMonitor {
           'X-OAuth-Token': token,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(updates)
+        body: JSON.stringify({ ...updates, ...(await agentSignature(token)) })
       })
 
       if (!response.ok) {
@@ -207,7 +210,8 @@ class VercelLogMonitor {
         },
         body: JSON.stringify({
           content: comment,
-          type: 'TEXT'
+          type: 'TEXT',
+          ...(await agentSignature(token))
         })
       })
 

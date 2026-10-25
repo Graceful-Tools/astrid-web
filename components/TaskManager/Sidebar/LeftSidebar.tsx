@@ -6,6 +6,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Plus, ExternalLink, Settings, Search } from "lucide-react"
 import Image from "next/image"
+import { useSidebarCollapsed } from "@/hooks/task-manager/useSidebarCollapsed"
+import { SidebarToggleButton } from "./SidebarToggleButton"
+import { NotificationBell } from "@/components/notification-bell"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "@/lib/i18n/client"
 import { ListItem } from "./ListItem"
@@ -152,6 +155,16 @@ export function LeftSidebar({
     }
   }
 
+  // Desktop only: the mobile / 2-column drawer has its own hamburger (AWTD-1163).
+  const [collapsed, toggleCollapsed] = useSidebarCollapsed()
+  if (!showHamburgerMenu && collapsed) {
+    return (
+      <div className="theme-sidebar theme-border border-r flex flex-col items-center pt-3 w-12 flex-shrink-0" data-testid="sidebar-rail">
+        <SidebarToggleButton collapsed onToggle={toggleCollapsed} />
+      </div>
+    )
+  }
+
   const canDropOnList = (list: TaskList) => {
     if (!isTaskDragActive) return false
     if (!currentUser) return false
@@ -176,9 +189,9 @@ export function LeftSidebar({
       {/* Scrollable Navigation */}
       <div ref={navigationRef} className="flex-1 min-h-0 overflow-y-auto scrollbar-hide sidebar-navigation">
         {/* Astrid brand header */}
-        <div className="px-3 pt-3">
+        <div className="px-3 pt-3 flex items-center justify-between gap-2">
           <div
-            className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
+            className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity min-w-0"
             title="Go to Home"
             onClick={onLogoClick}
           >
@@ -190,6 +203,37 @@ export function LeftSidebar({
               className="rounded-sm"
             />
             <span className="text-lg font-semibold tracking-tight theme-text-primary">{BRAND.wordmark}</span>
+          </div>
+          {/* Search, inline at the far right of the brand header (AWTD-1180).
+           *  Jon: "(a) but add search icon inline on far right. Logo left
+           *  header with Astrid / brand logo on top left." The Search ROW below
+           *  stays — (a) IS that row — so this is an additional way in, for
+           *  reaching search without reading the nav. Same handler, so the two
+           *  cannot drift to different destinations. */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Notifications beside search (AWTD-1357). The list header that
+             *  used to hold the bell renders nothing on desktop, so there was
+             *  no bell there at all; this header renders in every layout. */}
+            <NotificationBell
+              align="start"
+              className="h-7 w-7 p-0 theme-text-muted hover:theme-text-primary"
+              iconClassName="w-4 h-4"
+            />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSearchClick}
+              aria-label={t("search.open")}
+              title={t("search.open")}
+              className={`h-7 w-7 p-0 ${
+                activeView === 'search'
+                  ? "theme-text-primary"
+                  : "theme-text-muted hover:theme-text-primary"
+              }`}
+            >
+              <Search className="w-4 h-4" />
+            </Button>
+            {!showHamburgerMenu && <SidebarToggleButton collapsed={false} onToggle={toggleCollapsed} />}
           </div>
         </div>
 

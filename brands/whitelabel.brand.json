@@ -38,11 +38,13 @@
       "openclaw"
     ],
     "capabilities": {
+      "githubProjects": false,
       "authGoogle": true,
       "authApple": true,
       "authPasskey": true,
       "syncGoogleTasks": true,
       "syncGithubIssues": true,
+      "codingAgent": true,
       "integrationMcp": true,
       "integrationOpenClaw": true,
       "integrationChatGptActions": true,
@@ -60,7 +62,11 @@
     "wordmark": "whitelabel",
     "slogan": "Build together.",
     "appStoreUrl": "",
-    "githubAppSlug": "astrid-code-assistant"
+    "githubAppSlug": "astrid-code-assistant",
+    "inheritsAstridIdentity": [
+      "NEXT_PUBLIC_BRAND_APP_URL_SCHEME",
+      "NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG"
+    ]
   },
   "copy": {
     "reminders": {

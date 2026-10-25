@@ -1,0 +1,1952 @@
+# Spec: Astrid as a white-label client for GitHub Projects
+
+*Spec of record for running Astrid's apps as a multi-org service on top of GitHub
+Projects (v2). This also covers the three workstreams that make it possible:
+consolidating the write path, a login-provider registry, and one GitHub connection.
+Revision 2, 2026-10-05.*
+
+Status: **In progress — P0–P2 done; P3 partly done; P4 built (2026-10-10); P5 done;
+P6b built (2026-10-11), P6c partly built; P7 specified for partners, not built
+(2026-10-17); P8 not started.**
+See §17 for exactly what landed, what did not, and what each remaining phase needs. None
+of it is deployed: production deploys are manual (CLAUDE.md rule 1).
+
+Companions:
+- [WHITELABELING.md](../WHITELABELING.md) covers brand identity and capabilities. This
+  spec adds to that system and builds nothing parallel to it.
+- [PROJECT_MODE.md](../product/PROJECT_MODE.md) covers boards and statuses. §9.4 amends
+  it for GitHub fields.
+- [TASK_IDENTIFIERS.md](./TASK_IDENTIFIERS.md) and
+  [TASK_BLOCKING_DEPENDENCIES.md](./TASK_BLOCKING_DEPENDENCIES.md) are the models GitHub
+  numbers, sub-issues and dependencies map onto.
+- [PERFORMANCE_BUDGETS.md](../PERFORMANCE_BUDGETS.md) holds the budgets that §13 holds
+  this work to.
+
+---
+
+## 0. The ask and the decisions
+
+### 0.1 The ask
+
+> *"Do a full architecture review between the current Astrid project and GitHub
+> projects. What would we need to do to make Astrid white label the app for GitHub
+> projects? Define the spec to support."*
+
+### 0.2 Decisions (Jon, 2026-10-05)
+
+| # | Decision | Where it lands |
+|---|---|---|
+| D1 | **A service for many orgs**, not one deployment per org | §8.1 tenancy = GitHub App installation |
+| D2 | **Personal Astrid lists are allowed** alongside GitHub boards | §8.2 |
+| D3 | **A recurring task creates a new issue, linked to the last completed one** | §10 |
+| D4 | **Project Mode shows GitHub custom fields, ideally read and write** | §9.4, read and write, no new UI concepts |
+| D5 | **astrid.cc must NOT offer GitHub Project boards** | §8.3. The capability defaults off and is pinned off for the Astrid brand. |
+| D6 | **Login providers are a standard part of white-label setup**: GitHub, Google, Apple, passkey, SSO | §6 |
+| D7 | **Consolidate the GitHub connection** | §7 |
+| D8 | **Write-path consolidation is the most important change.** Build red-green TDD, clean and performant. | §5, §13, §14 |
+
+### 0.3 The answer in one paragraph
+
+The design has six parts:
+
+1. **GitHub owns the shared data.** For lists bound to a GitHub Project, GitHub is
+   authoritative.
+2. **Postgres is a replica.** Postgres keeps a write-through replica, so every read path
+   is unchanged: v1 API, delta sync, SSE, offline, and the permission joins.
+3. **Writes go to GitHub first,** under the acting user's own GitHub identity.
+4. **Inbound changes arrive by webhook,** plus a budgeted reconciliation pass.
+5. **The brand chooses.** The backend exists only in a brand that enables it, and never
+   in Astrid's own build.
+6. **The prerequisites are cleanups the codebase needs anyway:**
+   - one write path, closing about 45 bypass sites (§5)
+   - one sign-in helper behind a provider registry (§6)
+   - one GitHub App connection replacing three credentials (§7)
+
+---
+
+## 1. Is the write model controlled? (correcting revision 1)
+
+Revision 1 said "most code queries the database directly". **That overstated it.** The
+measured picture is better, and more specific:
+
+| Measure | Count | Meaning |
+|---|---:|---|
+| Client-facing task write surfaces through `services/task.service.ts` | **7 of 7** | Legacy `/api/tasks`, v1, v1 agent, MCP HTTP, stdio MCP. Locked by `tests/rules/task-write-surfaces-delegate.test.ts`. |
+| Comment routes through `createCommentWithSideEffects` | all user-facing | Task comments (legacy, v1, agent), MCP comment operations |
+| Task list-membership changes on existing tasks outside services | **0** | Clean |
+| Raw `task.create/update/updateMany` sites outside `services/` | **~23** | The long tail: agents, webhooks, cron, copy, email-to-task, sync |
+| Raw `comment.create` sites outside `comment.service` | **14** | Mostly agent and coding-workflow comments |
+| Raw `listMember.*` writes outside `list-member.service` | **~9** | Legacy list routes, invitations, custom-agent register |
+| Prisma **read** sites (`find*`/`count`) on task, list, comment, member, project | 271 | **Irrelevant to this design.** The replica is still Postgres, so reads stay. |
+
+**Verdict.** The *front door* is controlled. The service layer and its rule test do their
+job for every surface a user or client calls. The *side doors* are not controlled:
+agents completing tasks, GitHub webhooks, the coding workflow, invitations, email-to-task
+and copy. That is where the verified bugs in §2 live. The same doors would let a
+GitHub-backed task change without GitHub hearing about it.
+
+`lib/prisma.ts` also has a `$extends` hook on `task.update` that starts AI-agent runs
+whenever `assigneeId` changes. This **second, hidden implementation** of "an agent was
+assigned" duplicates `lib/webhooks/task-assignment-notifier.ts`, and no test covers it.
+It turns any raw assignee write into a billable agent run (§2, S3).
+
+So you were right to rank the write path first. The work is smaller and better defined
+than revision 1 implied: about 45 named sites, not "everything" (§5).
+
+---
+
+## 2. Defects found during this review: fix first, independent of GitHub
+
+Each was read in the code and confirmed. Each gets a RED regression test before its fix,
+per ASTRID.md's coding workflow. **These should be filed and fixed now.** None of them
+waits on the GitHub work.
+
+### Security
+
+| # | Defect | Evidence | Fix |
+|---|---|---|---|
+| **S1** | **Any signed-in user can claim any unclaimed GitHub App installation.** They then drive the coding agent with that org's installation token, which has contents-write access. | `app/api/github/installations/route.ts:99–114` lists every installation of the App not yet claimed. `connect-installation/route.ts:45–56` checks only that no *other* user claimed it. `manual-setup` has the same shape, gated only client-side (`components/github-integration-settings.tsx:78`). `setup` doesn't verify its unsigned `state`. | Prove access with the user's own token: `GET /user/installations` must include the id. Until user tokens exist (§7), only accept an `installation_id` arriving on the `setup` callback with a signed `state` bound to the session. Remove the "detected installations" listing. |
+| **S2** | **Web Google sign-in links to an existing account by email** without checking `email_verified` and without `adoptUnverifiedAccount`, then marks the email verified. This is the passkey pre-hijack that task 1a52195f closed on mobile, still open on web. | `lib/auth-config.ts:181–242`. Also `customAdapter.linkAccount` (`:98–108`) silently moves an existing provider identity to another user. | Route the web Google path through the shared verified-identity helper (§6.3). `linkAccount` refuses to re-home an identity. |
+| **S3** | **`POST /api/invitations` assigns a task to any existing user by email**, AI agents included. This skips `authorizeAssigneeChange`. The raw write then trips the `$extends` hook and starts an agent run billed to the list's configured user, which is the attack AWTD-891 closed in the service. | `app/api/invitations/route.ts:86` | Route through `updateTaskWithSideEffects`, which applies the assignee rule. |
+
+### Correctness
+
+| # | Defect | Evidence | Fix |
+|---|---|---|---|
+| **B1** | **Deleting a custom board status fails every time.** The query filters `task.updateMany({ where: { listId: … } })`, but `Task` has no `listId`. Prisma throws "Unknown argument", the transaction aborts, and the route returns 500. tsc misses it because Prisma's generic `SelectSubset` skips excess-property checks. The unit test mocks Prisma and **asserts the broken shape**. | `lib/projects-service.ts:498`; `tests/api/v1-project-statuses.test.ts:235` | `where: { lists: { some: { id: { in: listIds } } }, statusRole: role }`. Also clear `statusRoleBeforeDone === role`. Replace the mock-shape assertion with a behavioural test against the contract-test database. |
+| **B2** | **v1 member removal never broadcasts or invalidates.** The route deletes the row, *then* calls `removeListMember`, whose `deleteMany` finds 0 rows and returns early. This is task e27642cc ("removed agent keeps showing back up"), regressed. The test mocks `deleteMany → {count: 1}`, which hides it. | `app/api/v1/lists/[id]/members/[userId]/route.ts:176–195`; `services/list-member.service.ts:225–228` | Delete the raw `listMember.delete`. |
+| **B3** | **The final occurrence of a terminating recurring series never completes.** The terminate branch writes `repeating: 'never'` but never `completed: true`. The service then returns early as "rolled forward", so the user has to complete it twice. | `lib/repeating-task-handler.ts:139–150`; `services/task.service.ts:1124–1147`; `lib/task-update-handler.ts:88` | Set `completed`, `completedAt` and `completedSource` in the terminate branch via `resolveCompletionFields`. The parity tests only mock `shouldTerminate: false`; add the true case. |
+| **B4** | **Five raw `completed: true` writes** skip the completion stamp, statusRole clearing, dependency promotion (blocked tasks stay blocked), repeating roll-forward (series die), reminders, TaskEvent and SSE. GitHub Issues apply does the same, without `completedSource: 'github'`. | `app/api/webhooks/ai-agents/route.ts:215`, `app/api/github/webhooks/route.ts:225`, `app/api/coding-workflow/merge-request/route.ts:120`, `lib/comment-approval-detector.ts:436`, `lib/system-tasks.ts:136`, `lib/sync/github/apply-issues.ts:156,182` | One completion path (§5, step 2). |
+| **B5** | **The coding agent is gated on the Issues-sync capability.** Turning off Issues sync silently turns off the coding agent. | `app/api/github/webhooks/route.ts:399,460` and every `app/api/github/*` route | Split the capabilities (§7.5). |
+
+---
+
+## 3. Architecture review: Astrid against GitHub Projects
+
+### 3.1 What already helps
+
+| Asset | Where | Why it matters |
+|---|---|---|
+| Brand and capability system with server-side 404 gating and a brand matrix | `lib/brand/*`, `brands/*.brand.json`, `tests/brands/brand-matrix.test.ts` | A GitHub brand is a profile, not a fork. "astrid.cc never offers it" (D5) is one assertion. |
+| A front door to the service layer, plus rule tests | `services/task.service.ts`, `tests/rules/*` | The seam for a remote-first backend already exists for the main surfaces. |
+| External-link tables, cursor discipline, echo watermarks | `Integration`, `ExternalListLink`, `ExternalTaskLink`, `lib/sync/github/*` | Patterns to reuse; the timestamp conflict rule itself is replaced (§8.7). |
+| GitHub App with HMAC-verified webhook and installation tokens | `lib/github-client.ts`, `app/api/github/webhooks` | The base for the single connection (§7). |
+| Status is a task field; custom states exist | `Task.statusRole`, `Project.customStates` (AWTD-562) | One-to-one with a Projects Status single-select. |
+| Subtasks, dependencies, closed reason | `parentTaskId`, `TaskDependency`, `closedReason` | GitHub sub-issues, issue dependencies, `state_reason`. |
+| Nullable `Project.key` | `prisma/schema.prisma:255` | GitHub-backed projects mint no Astrid keys, so there is no cross-org key collision. |
+| Provider-agnostic desktop hand-off | `DesktopAuthGrant`, `/api/v1/auth/desktop/exchange` | The native-app path for every browser-based login (GitHub, SSO) without per-provider native SDKs (§6.5). |
+| astrid-core recurrence arithmetic | `lib/repeating-rollover.ts` (AWTD-1063) | "Spawn next issue" reuses the same date arithmetic (§10). |
+
+### 3.2 Gaps
+
+| # | Gap |
+|---|---|
+| G1 | No Projects v2 code: no ProjectV2, item, field or option ids anywhere. GraphQL is used for one lookup. |
+| G2 | Three GitHub credentials (OAuth app with `repo` scope, GitHub App, Copilot OAuth), three token stores, two client libraries, two webhook endpoints, and five inline `new App(...)` (§7.1). |
+| G3 | No GitHub sign-in and no SSO. The sign-in logic is copied across five places that have drifted (§6.1). |
+| G4 | The sync container is a repo (`"owner/repo"`). PRs are filtered out. |
+| G5 | Conflicts are last-writer-wins by timestamp, and Astrid wins within a pass. That is the wrong polarity when GitHub is authoritative. |
+| G6 | Webhooks only nudge and need manual setup per repo. There are no `projects_v2*` events, which GitHub delivers **only** to org webhooks and Apps. |
+| G7 | No rate-limit handling or GraphQL point budgeting; `githubGraphQL` has no timeout. |
+| G8 | No durable job queue. |
+| G9 | Two sync engines (iOS Swift, server subset) and no provider interface. |
+| G10 | Side-door writes (§1) and the hidden `$extends` dispatch. |
+| G11 | Single assignee; GitHub allows up to 10. |
+| G12 | No tenancy boundary (needed for D1). |
+| G13 | Custom fields are excluded by PROJECT_MODE.md:146 (amended in §9.4). |
+| G14 | Recurrence rolls the same row forward, and iOS runs the rule on the device. D3 needs a second, server-owned mode (§10). |
+| G15 | **The full task response is already at 88% of its 500 KiB on-the-wire budget** (PERFORMANCE_BUDGETS, measured 2026-09-11). Custom-field values cannot simply be added to every task (§9.4.3). |
+
+### 3.3 The shape: remote-authoritative replica
+
+| | Shape | Verdict |
+|---|---|---|
+| A | GitHub *is* the database; rewrite every read | **Rejected.** It breaks permission joins, delta sync and `DeletionLog`, the SSE audience, offline idempotency, client-side filtering over a full fetch, transactional side effects, agents-as-users and MCP. Every client launch would also hit GraphQL limits. |
+| **B** | **GitHub authoritative; Postgres is a write-through replica plus a home for Astrid-only fields** | **Chosen.** Reads and clients are unchanged. The new code sits behind one write seam (§5.3) and one sync engine (§8.5). |
+| C | Postgres authoritative; two-way sync | **Rejected.** Two writers with timestamp last-writer-wins silently overwrites people's edits, and users *will* edit on github.com too. |
+
+---
+
+## 4. Workstream map and dependencies
+
+```
+W1 Write-path consolidation (§5) ────────────────┐
+W2 Login-provider registry  (§6) ──┐             │
+W3 One GitHub connection    (§7) ──┴──▶ W4 GitHub Projects backend (§8–§11)
+                                                 ▲
+§2 defects (S1–S3, B1–B5): fixed inside W1/W2/W3 ─┘   W5 Brand + clients (§12)
+```
+
+- **W1, W2 and W3 have value with or without W4.** W1 fixes live bugs. W2 is the
+  white-label login story every partner needs. W3 closes S1 and B5 and simplifies GitHub
+  for astrid.cc's Issues sync and coding agent.
+- **W1 and W2 can run in parallel.** W3 depends on W2 for GitHub sign-in. W4 depends on
+  all three.
+
+---
+
+## 5. W1: one write path
+
+### 5.1 Target rule
+
+> **Every write to `Task`, `Comment` or `ListMember` goes through `services/`.** The
+> exceptions are a short, named allow-list of Astrid-only bookkeeping fields, for example
+> `reminderSent`, and the atomic fixall claim.
+
+Enforced by a ratchet rule test,
+`tests/rules/entity-writes-go-through-services.test.ts`, built from:
+- **The tree walk and failure message** of `blob-storage-goes-through-secure-storage.test.ts`.
+- **An `ALLOWED: Record<file, reason>` map.** It starts with the reminder files and the
+  service-internal helpers.
+- **The slack check** of `prisma-in-routes-ratchet.test.ts`, so allow-list entries must
+  be removed as sites migrate.
+
+Regex, scanned over `app lib mcp`:
+
+```
+/\b(?:prisma|tx|client|this\.prisma)\.(task|comment|listMember)\.(create|createMany|update|updateMany|upsert|delete|deleteMany)\(/
+```
+
+The existing `task-write-surfaces-delegate` test only scans seven files, and its regex
+misses `tx.`, `updateMany` and `createMany`. The new test supersedes it.
+
+**Companion rule:** no `completed: true` literal in a task write outside `services/`.
+
+### 5.2 Steps, each strictly red then green
+
+Each step is its own PR. Each starts with a failing test that names the task id. Each
+ends with `npm run predeploy`, and with the full suite when auth is touched.
+
+| Step | Change | RED test first | Sites |
+|---|---|---|---|
+| 1 | **Fix S3, B1, B2, B3** | S3: assigning an agent through `POST /api/invitations` is refused 403 and starts no run. B1: deleting a status against the contract-test DB (not a Prisma mock) clears the role and returns 200. B2: v1 member DELETE broadcasts `list_member_removed` and invalidates, with a real `deleteMany` count. B3: completing the last occurrence leaves `completed = true` and `completedAt` set. | 4 |
+| 2 | **One completion path.** The five raw completions and GitHub Issues apply call `updateTaskWithSideEffects({ completed: true, actorType: 'agent' \| 'system' \| 'integration', completedSource })`. | Per site: completing via that entry point clears `statusRole`, promotes dependents, rolls a repeating task forward, emits `task_updated`. One test, parameterised over the entry points. | 6 |
+| 3 | **Delete the `$extends` hook.** Assignee-change agent dispatch moves into the service update path using the one implementation in `task-assignment-notifier.ts`. | Assigning an agent via the service update dispatches **exactly once**. A raw `prisma.task.update({assigneeId})` dispatches **nothing**. The rule test forbids raw `assigneeId` writes. | 1 + 2 duplicate implementations removed |
+| 4 | **Agent and system comments go through the service.** `createCommentWithSideEffects` gains `author: { kind: 'user' \| 'agent' \| 'system' }` with a loop guard: an agent-authored comment never re-dispatches to agents. | Each migrated site emits `comment_created` to the list audience. An agent comment does not trigger `processAstridComment`. | 12 |
+| 5 | **Creates go through the service:** email-to-task, system tasks, task copy, batch copy (which also gets the missing assignee rule). Delete dead `lib/database-utils.ts:198`. | Each created task gets an identifier on a project list, reminders and a broadcast. Batch copy refuses a caller-supplied agent assignee. | 5 |
+| 6 | **Membership through `list-member.service`:** legacy list PUT member replace, the legacy `leave` action (a third leave implementation), invitation accept, custom-agent register. | Each emits `list_member_*` and invalidates. Leave has one implementation, asserted via `bodyOf()`. | ~7 |
+| 7 | **Turn on the ratchet** (§5.1) with the allow-list at its final size. | The rule test itself, with a planted violation proving it fires. | — |
+| 8 | **Add the `TaskBackend` seam** (§5.3) with only the `local` implementation. This is a pure refactor. | The full suite is unchanged. A fake remote backend runs the `*WithSideEffects` suite (§14.2). | — |
+
+**Size.** About 45 sites over 8 PRs. Steps 1–2 are days. Steps 3–6 are the bulk, about
+two weeks. Steps 7–8 are small. **This is the critical path for everything else.**
+
+### 5.3 The seam
+
+```ts
+// lib/backends/types.ts
+export interface TaskBackend {
+  readonly kind: 'local' | 'github_project'
+  createTask(ctx: ActorCtx, input: CreateTaskInput): Promise<RemoteResult<TaskPatch>>
+  updateTask(ctx: ActorCtx, taskId: string, patch: TaskPatch): Promise<RemoteResult<TaskPatch>>
+  deleteTask(ctx: ActorCtx, taskId: string, mode: 'remove_from_list' | 'delete'): Promise<RemoteResult<void>>
+  setFieldValue(ctx: ActorCtx, taskId: string, projectId: string, fieldId: string, value: FieldValue | null): Promise<RemoteResult<FieldValue | null>>
+  addComment(ctx: ActorCtx, taskId: string, body: string): Promise<RemoteResult<CommentPatch>>
+  editComment(ctx: ActorCtx, commentId: string, body: string): Promise<RemoteResult<CommentPatch>>
+  deleteComment(ctx: ActorCtx, commentId: string): Promise<RemoteResult<void>>
+  moveTask(ctx: ActorCtx, listId: string, taskId: string, afterTaskId: string | null): Promise<RemoteResult<void>>
+  completeRecurring(ctx: ActorCtx, taskId: string): Promise<RemoteResult<RecurrenceOutcome>>  // §10
+  supports(listId: string): ListSupports                                                       // §11.2
+}
+```
+
+- **`local`** passes the patch straight through (identity).
+- **`github_project`** performs the mutations and returns the patch **as GitHub accepted
+  it**. The service then writes that patch and runs the unchanged side effects:
+
+```
+resolve backend from the task's lists → backend.<op>() → prisma txn (patch + TaskEvent) → SSE/webhooks
+```
+
+**Which backend?** A task's backend is `github_project` if **any** of its lists is
+GitHub-backed. GitHub-owned fields then route remotely. Astrid-only fields (§9.1) and
+personal-list membership stay local. This is how D2 coexists with D1.
+
+---
+
+## 6. W2: login providers as standard white-label configuration
+
+### 6.1 Today
+
+| Fact | Evidence |
+|---|---|
+| Three boolean flags: `authGoogle`, `authApple`, `authPasskey`, each **default on** | `lib/brand/capabilities.ts` |
+| NextAuth registers **only Google**. Apple exists only as mobile routes; web has no Apple button. | `lib/auth-config.ts:148–161` |
+| Five copies of "find user → link → adopt → create → mint session": the web `signIn` callback, `/api/auth/{apple,google}`, `/api/v1/auth/{apple,google}`. They have drifted: Google never looks up by Google user id first, Apple does. | as cited |
+| Two session formats: JWT for web, passkey and desktop; DB rows with a host-only, non-`__Secure-` cookie for mobile Apple and Google | `app/api/auth/apple/route.ts:175–212` |
+| The boot check counts flags, not credentials | `instrumentation.ts:25`, `lib/env.ts:90` |
+| Clients learn providers from `GET /api/v1/capabilities` `auth: {google, apple, passkey}`. iOS treats a missing key as "offered". | `app/api/v1/capabilities/route.ts:34–38`; `ServerCapabilities.swift:29–31` |
+| Hard-coded Astrid identities: Google client id, Apple bundle ids, astrid.cc preview bounce | `lib/auth/google-identity.ts:21`, `lib/auth/apple-identity.ts:37`, `lib/auth-host.ts:41` |
+| No SSO of any kind | — |
+
+### 6.2 Configuration
+
+```bash
+# Ordered: this is also the button order. Unset = derived from the legacy flags,
+# so Astrid's build is byte-for-byte unchanged.
+NEXT_PUBLIC_BRAND_AUTH_PROVIDERS="github,google,apple,passkey,sso"
+```
+
+| Provider | Kind | Required env (boot fails if missing) | Email trust |
+|---|---|---|---|
+| `google` | OAuth/OIDC (web) + native id token (iOS) | `GOOGLE_CLIENT_ID/SECRET`, `GOOGLE_ALLOWED_AUDIENCES` | `email_verified` claim |
+| `apple` | **Web provider (new)** + native id token | `APPLE_CLIENT_IDS`, `APPLE_TEAM_ID`, `APPLE_KEY_ID`, `APPLE_PRIVATE_KEY` (web) | `email_verified` claim |
+| `github` | OAuth via the **GitHub App's** client (§7) | `GITHUB_APP_CLIENT_ID/SECRET` | Verified **primary** email from `GET /user/emails`. Never the profile email. |
+| `passkey` | WebAuthn | — (RP ID per WHITELABELING §7) | None. Verified by email loop, as today. |
+| `sso` | OIDC, per connection (§6.4) | v1: `AUTH_SSO_ISSUER`, `AUTH_SSO_CLIENT_ID/SECRET`, `AUTH_SSO_DOMAINS`, `AUTH_SSO_LABEL` | **Domain-bound:** trusted only for the connection's verified domains |
+
+Rules:
+- **Every new provider defaults off.** Listing it is the only way to enable it. The
+  existing "on unless set" convention must not apply to a provider that needs
+  credentials, or every existing deployment sprouts broken buttons. iOS's decoder changes
+  to default-off for unknown providers in the same release.
+- **The legacy `NEXT_PUBLIC_BRAND_ENABLE_AUTH_*` flags keep working** as removals from
+  the derived list. `check:brands` warns when both forms are set. They are deprecated in
+  WHITELABELING §3, never silently ignored.
+- **At least one provider must remain,** as today. The check moves to the registry.
+
+### 6.3 One sign-in helper (also fixes S2)
+
+```ts
+// lib/auth/sign-in-with-verified-identity.ts
+signInWithVerifiedIdentity({
+  provider, providerAccountId,          // stable subject: Google sub, Apple sub, GitHub numeric id, OIDC iss+sub
+  email, emailTrust,                    // 'verified' | 'domain-bound' | 'none'
+  ssoConnectionId?,
+  profile: { name?, image? },
+}): Promise<{ userId, created, linked }>
+```
+
+1. **Look up by `(provider, providerAccountId)` first.** If found, that user. Done.
+2. **Otherwise, link by email only when `emailTrust` allows it.** For `domain-bound`, the
+   email's domain must be one of the connection's verified domains. Linking always calls
+   `adoptUnverifiedAccount`, which closes the passkey pre-hijack.
+3. **Never link an SSO identity to** an `isAIAgent` user, any address at
+   `BRAND.agentEmailDomain`, or `INITIAL_ADMIN_EMAIL`.
+4. **`linkAccount` refuses to move an identity to a different user.** It throws a
+   distinct error the UI renders as "already linked to another account".
+5. **The same helper backs every path:** the NextAuth `signIn` callback and adapter, all
+   four mobile routes and SSO. The five copies are deleted.
+
+### 6.4 SSO
+
+- **v1, deployment-level OIDC.** One IdP per deployment, from env: Okta, Entra ID,
+  Google Workspace, any OIDC issuer. This covers a single-customer white label.
+- **v2, per-org SSO for the multi-org service (D1).**
+  - **Data:** an `SsoConnection` table holding `{ workspaceId?, protocol: oidc|saml,
+    domains[] (DNS TXT-verified), required: boolean, brokerRef }`.
+  - **Sign-in flow:** the sign-in page offers "Continue with SSO", asks for a work
+    email, looks up the domain, and redirects to that connection.
+  - **Enforcement:** `required` blocks other providers for that domain.
+  - **SAML via a broker, never hand-rolled, and the partner's broker.** Signature,
+    audience, replay and clock skew are vetted code. Astrid speaks only OIDC; a SAML IdP
+    reaches it through whatever broker the partner runs (BoxyHQ SAML Jackson, WorkOS,
+    or the IdP's own OIDC endpoint), in the spirit of WHITELABELING's service-provider
+    section. We do not choose or embed one (§15 C1).
+- **GitHub-org SAML interplay (GitHub brand).** When an org enforces SAML, a GitHub user
+  token works only while the user has an active SAML session for that org. GitHub answers
+  `403` with `X-GitHub-SSO: required; url=…`. The client maps that onto a typed error that
+  renders "Authorize \<org\> SSO" with that URL. It is never shown as a generic forbidden.
+
+### 6.5 Native apps and sessions
+
+- **Native-token providers** (Apple, Google on iOS) keep their routes. The routes
+  delegate to §6.3.
+- **Browser-based providers** (GitHub, SSO, and Google on Mac) use the existing desktop
+  hand-off: `ASWebAuthenticationSession` → `/auth/desktop?provider=github` → PKCE grant
+  → `/api/v1/auth/desktop/exchange`. Windows already uses it. **No GitHub or SAML SDK
+  ships in the native apps.**
+- **One session format.** The mobile DB-session routes move to the JWT format that
+  passkey and desktop already use. `mobile-session` keeps accepting old DB sessions until
+  they expire (30 days), then the fallback is deleted. Sessions SSO deprovisioning must
+  revoke can be killed via a per-user `sessionEpoch` claim, checked in the `jwt`
+  callback.
+- **`GET /api/v1/capabilities`** adds
+  `auth.providers: [{ id, kind, label, iconKey }]` in configured order. It keeps the
+  legacy booleans for old clients.
+- **The web sign-in page** renders from that list with the existing
+  `auth.continueWith {provider}` i18n key. The hard-coded English and the unused
+  `getProviders()` call go away.
+- **Hard-coded identities** (Google client id, Apple bundle ids, the astrid.cc preview
+  bounce) move to the brand profile.
+
+---
+
+## 7. W3: one GitHub connection
+
+### 7.1 Today: three stacks
+
+| | Stack 1: Issues sync | Stack 2: coding agent | Stack 3: Copilot |
+|---|---|---|---|
+| Credential | OAuth App, scope `repo`, token never expires | GitHub App, installation tokens only (no client id, so no user tokens) | OAuth / App user token, refreshing |
+| Store | `Integration[GITHUB_ISSUES]` | `GitHubIntegration` (per user and installation; `repositories` JSON; dead `appId`/`privateKey`/`webhookSecret`) | `CopilotCredential` |
+| Client | raw `fetch` in `lib/sync/github.ts` | Octokit `App` in `lib/github-client.ts`, plus 4 more inline `new App` | `lib/copilot/oauth.ts` |
+| Webhook | `/api/webhooks/github-issues`, manual per repo, nudge only | `/api/github/webhooks` | — |
+| UI | List settings → Admin → External sync | Settings → Agents → GitHub connection, `agents/github-setup`, list AI-agent repo picker | Agent hub row |
+| Gate | `syncGithubIssues` | **`syncGithubIssues`** (B5) | `copilotIntegrationGate` |
+
+Further defects in stack 2:
+- `forUser` reads only the user's first installation.
+- Repos added by refresh or webhook don't record their installation.
+- `getInstallationIdForRepo` falls back to the default installation, which may be the
+  wrong org.
+
+### 7.2 Target
+
+**One GitHub App per brand.** It provides sign-in (when `github` is in the provider
+list), Issues sync, Projects sync (GitHub brand only) and the coding agent. **Copilot
+stays separate:** it authorises a different product, and folding it in would put Copilot
+consent and org policy on every sign-in.
+
+```prisma
+/// One row per App installation (org or user). Replaces GitHubIntegration.
+/// Access is never "claimed": it is derived from GitHub (§7.3).
+model GitHubInstallation {
+  id                  BigInt   @id              // GitHub installation id
+  accountNodeId       String   @unique          // O_… / U_…, stable across renames
+  accountLogin        String
+  accountType         String                    // Organization | User
+  repositorySelection String                    // all | selected
+  suspendedAt         DateTime?
+  repos               GitHubInstallationRepo[]
+  access              GitHubInstallationAccess[]
+}
+
+model GitHubInstallationRepo {
+  repoNodeId     String @id
+  installationId BigInt
+  fullName       String                         // owner/repo, display + legacy lookups
+  @@index([installationId])
+  @@index([fullName])
+}
+
+/// "This user can see this installation", refreshed from GET /user/installations.
+model GitHubInstallationAccess {
+  userId         String
+  installationId BigInt
+  refreshedAt    DateTime
+  @@id([userId, installationId])
+}
+```
+
+**As built ([AWTD-1111](https://astrid.cc/t/AWTD-1111)), three deliberate differences from
+the sketch above:**
+- Installation ids are `Int`, matching `GitHubIntegration.installationId`. Widen both
+  together if GitHub's ids ever approach 2³¹.
+- `GitHubInstallationRepo` is keyed by GitHub's **numeric** repo id (`repoId BigInt`).
+  `nodeId` is optional and unique: the links being migrated never stored node ids.
+  `accountNodeId` is nullable for the same reason, and is filled on the next refresh.
+- Access rows carry `source`: `verified` (the setup route, after GitHub listed the
+  installation for the user's own token) or `legacy` (the migration's backfill from the
+  links in force before it, which grants nothing new).
+
+The one writer is `lib/github/installations.ts`. The installation webhooks live in
+`lib/github/webhooks/installation.ts` and never grant access.
+
+- **User-to-server tokens** live in the existing encrypted `Integration` store under a
+  new provider value, `GITHUB`: access token (8h), refresh token (6 months), expiries and
+  `externalAccountId = numeric GitHub id`. Sign-in creates the NextAuth `Account`
+  (identity only, tokens stripped) **and** upserts this row, so there is **one** GitHub
+  token store.
+- **One client module, `lib/github/`:**
+
+  | File | Role |
+  |---|---|
+  | `host.ts` | `GITHUB_API_URL` / `GITHUB_WEB_URL`, for GHE.com and later GHES |
+  | `app.ts` | The single `App` instance |
+  | `client.ts` | `forUser(userId)` refreshes on expiry and **never** falls back to an installation token; `forInstallation(id)` |
+  | `rate-limiter.ts` | §8.8 |
+  | `webhooks/` | One endpoint, one router per event, dedupe on `X-GitHub-Delivery` |
+
+  Rule tests ban `new App(` and literal `api.github.com` outside `lib/github/`.
+
+### 7.3 Access is derived, never claimed (fixes S1 by construction)
+
+A user may act on an installation only if `GitHubInstallationAccess` has the row. That
+row is written only from that user's own `GET /user/installations`:
+- at sign-in or connect
+- on the `installation` webhook
+- every 6h
+
+The installation picker, `connect-installation` and `manual-setup` disappear. The
+`setup` callback becomes "refresh my access" and needs no trust in its query string.
+
+### 7.4 Migration (astrid.cc and existing brands)
+
+| Step | Detail |
+|---|---|
+| Dual-read | `githubTokenFor` tries `Integration[GITHUB]` first, then `[GITHUB_ISSUES]`. The cron and proxy keep working for users who haven't reconnected. |
+| Pre-flight report | A script lists each `ExternalListLink.remoteContainerId` not covered by any installation the owner can see. Those links will 404 after migration. **This is the one real convenience cost:** a `repo`-scoped OAuth token reaches every repo, while an App reaches only repos where it is installed. The UI shows an "Install on \<owner\>" call to action per uncovered repo. |
+| Re-point links | `ExternalListLink.integrationId` / `ExternalTaskLink` move to the new row in a transaction. **Never delete the old row:** delete cascades to every link and watermark. Revoke it (null the token), then call GitHub's delete-grant API. |
+| Webhooks | The App webhook gains `issues` and `issue_comment`, keeping the SSE payload `{provider:'GITHUB_ISSUES', container}` iOS consumes. Retire `/api/webhooks/github-issues` only after that ships. |
+| Existing installations | Copy `GitHubIntegration` → `GitHubInstallation` and populate `GitHubInstallationRepo` from the API. A user's access is re-derived on their next sign-in or connect. Nobody keeps an installation they cannot prove. |
+| iOS | Unchanged if the `/api/v1/sync/github/*` paths and shapes stay and `GITHUB_ISSUES` stays as a response alias. One addition: render the install call to action from a new `installUrl` field on repo-not-installed errors. |
+| UI | One **Settings → Connections → GitHub** card: account, installations with repo counts, "Install on another org", disconnect. List-admin sync and the agent repo picker both read the installation's repos, so the iOS "use the sync repo" bridge becomes unnecessary. |
+
+### 7.5 Capabilities after the split
+
+| Capability | Gates | Default |
+|---|---|---|
+| `githubConnection` | The App exists: the connection card, `lib/github/*` routes, the webhook endpoint | on (Astrid has an App) |
+| `syncGithubIssues` | Repo-level Issues sync | on |
+| `codingAgent` (new) | The coding workflow and its webhook events (fixes B5) | on |
+| `githubProjects` (new) | Everything in §8–§11 | **off, and pinned off for Astrid (D5)** |
+| `authGithub` | Via the provider registry (§6.2) | off |
+
+Boot assertions:
+- Any GitHub capability on → `GITHUB_APP_ID`/`PRIVATE_KEY`/`WEBHOOK_SECRET` present.
+- `authGithub` or `githubProjects` on → the App client id and secret present.
+- `githubProjects` on → `projectMode` on.
+
+---
+
+## 8. W4: the GitHub Projects backend
+
+### 8.1 Tenancy: a service for many orgs (D1)
+
+- **Workspace = `GitHubInstallation`** of type Organization. Every GitHub-backed
+  `Project` carries `githubInstallationId`. User-owned projects are out of v1, because
+  GitHub sends them no Projects webhooks.
+- **One Astrid user can belong to many workspaces.** Visibility comes from
+  `GitHubInstallationAccess` plus GitHub project permissions (§8.6).
+- **Isolation, enforced in code:**
+  - Every GitHub-backed query filters through the user's materialised `ListMember` rows,
+    the existing permission joins, so no new tenancy predicate is threaded through reads.
+  - Every *background* operation is keyed by installation: jobs, rate buckets, tokens.
+  - **Fairness:** the job drainer runs round-robin by installation, with per-installation
+    concurrency 2, so one large org cannot starve others.
+- **Uninstall.** `installation.deleted` makes the workspace's lists read-only at once,
+  then purges replica rows after a 30-day grace (a scheduled job). Personal lists and
+  Astrid-only data stay with the user. `installation.suspend` → read-only.
+- **No cross-org identifiers.** GitHub-backed projects mint no `Project.key`, so the
+  global unique key index is untouched.
+
+### 8.2 Personal lists (D2)
+
+Personal Astrid lists keep working on the GitHub brand: My Day, reminders, private to-dos.
+A GitHub issue may also be added to a personal list. That membership is local, invisible
+on GitHub, and survives the issue leaving its project. Personal lists are on by default.
+`BRAND_ALLOW_LOCAL_LISTS=false` removes them for a brand that wants a pure GitHub client.
+
+### 8.3 Never on astrid.cc (D5)
+
+- `githubProjects` defaults **off**, and `brands/astrid.brand.json` sets nothing.
+- The brand matrix asserts the Astrid profile has `githubProjects: false`, and that every
+  §11 route answers 404 under it.
+- A rule test asserts `brands/astrid.brand.json` never enables
+  `NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS`. That makes D5 a failing build, not a
+  convention.
+- Astrid keeps the repo-level **Issues sync**, now on the single App (§7).
+
+### 8.4 Concept map
+
+| GitHub | Astrid |
+|---|---|
+| `ProjectV2` (org) | `Project` (board, `key = null`) plus its primary `TaskList` (`backend = 'github_project'`) |
+| `ProjectV2Item` | Membership of a `Task` in that list (`GitHubProjectItem`) |
+| Issue / DraftIssue / PullRequest content | `Task`, keyed by **content node id**, which is stable across transfers, unlike `owner/repo#N` |
+| One issue in N projects | One `Task` in N lists (the existing many-to-many) |
+| **Status** single-select | `statusRole` + `customStates` (§9.2) |
+| Done option, or `state: closed` | `completed` + `closedReason` |
+| Priority single-select / designated Date / "Estimate" number | `priority` 0–3 / `dueDateTime` (all-day) / `estimate` |
+| Every other field: text, number, date, single-select, iteration | **Project fields, read/write** (§9.4) |
+| Iteration | A project field, plus a virtual list per iteration (PROJECT_MODE's "cycle") |
+| Labels (repo-scoped) | Label-flavor lists (`listType: 'label'`), one per `(repo, label)` |
+| Milestone | A read-only chip plus a virtual list |
+| Assignees (≤10) | `assigneeId` (primary) + `assigneeIds[]` (§9.5) |
+| Sub-issues / issue dependencies | `parentTaskId` / `TaskDependency` (inbound cycles accepted; Astrid's 409 applies to Astrid writes only) |
+| Issue comments | `Comment`. Drafts have none, so the composer is disabled with a reason. |
+| Item position | `manualSortOrder` ↔ `updateProjectV2ItemPosition` |
+| Project and org permissions | Materialised `ListMember` roles (§8.6) |
+| GitHub user | `User.githubUserId` (numeric), never the login |
+| App bot | The author for AI-agent writes (§8.6) |
+
+### 8.5 Data model additions (all additive and nullable)
+
+```prisma
+model GitHubProjectBinding {
+  projectId          String  @id                // Astrid Project
+  installationId     BigInt
+  projectNodeId      String  @unique            // PVT_…
+  number             Int
+  statusFieldId      String?
+  statusOptionMap    Json                       // { optionId: statusRole | "done" }
+  priorityFieldId    String?
+  priorityOptionMap  Json?                      // { optionId: 0..3 }
+  dueFieldId         String?
+  estimateFieldId    String?
+  defaultRepoNodeId  String?                    // "New task" creates an issue here; null = draft
+  lastReconciledAt   DateTime?
+  @@index([installationId])
+}
+
+model GitHubProjectItem {
+  itemNodeId String  @id                        // PVTI_…
+  projectId  String
+  taskId     String
+  archived   Boolean @default(false)
+  @@unique([projectId, taskId])
+  @@index([taskId])
+}
+
+/// Durable, idempotent sync work (G8). Drained inline via waitUntil and by the
+/// per-minute cron; round-robin by installation (§8.1).
+model GitHubSyncJob {
+  id             String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  dedupeKey      String    @unique              // delivery id | item:<node>:<2s bucket> | recur:<task>:<n> | reconcile:<project>:<window>
+  kind           String                         // webhook | hydrate | reconcile | writeback | recur | access
+  installationId BigInt
+  payload        Json
+  attempts       Int       @default(0)
+  runAfter       DateTime  @default(now())
+  lockedUntil    DateTime?
+  doneAt         DateTime?
+  error          String?
+  @@index([doneAt, runAfter, installationId])
+}
+```
+
+Project fields are in §9.4.
+
+| Table | New column | Purpose |
+|---|---|---|
+| `Project` | `githubInstallationId BigInt?` | Tenancy (§8.1) |
+| `TaskList` | `backend String?` | The one switch the seam reads |
+| `TaskList` | `remoteNodeId String? @unique` | The GitHub label a label-flavor list mirrors (AWTD-1188), or the milestone a milestone-flavor list mirrors (AWTD-1189) |
+| `Task` | `remoteNodeId String? @unique`, `remoteKind String?`, `remoteVersion String?` | Identity and the body-conflict base |
+| `Task` | `assigneeIds String[]` | §9.5 |
+| `Task` | `previousOccurrenceId String?` (indexed) | §10 |
+| `User` | `githubUserId BigInt? @unique` | Identity link |
+
+`Task.identifier` holds `owner/repo#N` for issues and PRs. That value is globally unique
+by construction. Transfers record an alias.
+
+### 8.6 Credentials and permissions
+
+| Action | Credential | Why |
+|---|---|---|
+| A user edits in Astrid | **That user's** user-to-server token | GitHub attributes the edit and enforces the user's own permissions, so Astrid does not re-implement GitHub's permission model |
+| Hydration, reconcile, access refresh | Installation token | No user is involved |
+| An AI agent comments or moves a card | Installation token (App bot), body prefixed "**\<Agent\>** (via \<Brand\>)" | Agents aren't GitHub users |
+| Assigning an agent | No GitHub assignee. Stored in the replica, and mirrored as label `agent:<name>` when the brand enables `NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS` (default off, §15 C3). The label is written by the App bot | github.com users can see who's working it. The label reports Astrid's assignment, it is not the user's edit |
+
+**User-token refresh failure** makes the user's GitHub lists read-only, with
+`auth_required`. **No fallback to the installation token**, pinned by a rule test.
+
+**Roles.** These are materialised from GitHub at sign-in and every 6h, using the user's
+token to list visible org projects:
+- project admin or org owner → **admin**
+- write → **member**
+- read → **viewer**
+
+A GitHub 403/404 on write triggers an immediate refresh for that user and project.
+Invite, leave, transfer and change-role are hidden and return 404 on GitHub-backed lists.
+PRODUCT_CONTRACT's matrix still applies, unchanged, over the derived roles.
+
+**GitHub App permissions:**
+- Organization projects: read/write
+- Issues: read/write
+- Pull requests: read (write for `codingAgent`)
+- Contents: write (`codingAgent` only)
+- Metadata: read
+- Members: read
+- Email addresses: read
+
+**Webhook events:**
+- `installation*`
+- `projects_v2`, `projects_v2_item`
+- `issues`, `issue_comment`, `sub_issues`
+- `label`, `milestone`, `pull_request`
+- `member`, `membership`, `organization`
+- Issue dependencies are covered by reconcile where no event exists.
+
+### 8.7 Sync engine
+
+```
+GitHub ─webhook─▶ lib/github/webhooks  verify HMAC → dedupe → INSERT GitHubSyncJob → 202
+                                                     │
+                     per-minute cron + waitUntil ────┤ round-robin by installation
+                                                     ▼
+                      hydrate (one GraphQL query, fixed fragment, installation token)
+                                                     ▼
+                      apply(normalised remote) → prisma txn → TaskEvent / SSE / DeletionLog
+                                                     ▲
+                      reconcile (per project, budgeted) ┘    redeliver failed deliveries (hourly)
+```
+
+- **The payload is a trigger, never data.** `projects_v2_item` carries ids, not values,
+  so every event hydrates current state. Out-of-order delivery is therefore harmless.
+- **Coalescing.** The dedupe key `item:<nodeId>:<2s bucket>` collapses a burst of field
+  edits on one item into one hydration.
+- **Apply compares values, not timestamps.** Only fields whose normalised remote value
+  differs from the replica are written. TaskEvents and SSE are emitted only for those.
+  An echo of Astrid's own write is a no-op by construction. **The replica always
+  converges to GitHub.**
+- **Comments both ways (AWTD-1283).** An `issue_comment` event (created, edited or deleted)
+  on a mirrored issue or PR queues `issue_comment:<commentNodeId>:<2s bucket>`. The job
+  re-reads the comment and upserts it on the task, keyed by `Comment.remoteNodeId`. A
+  comment GitHub no longer returns is deleted from the task. The author is matched by
+  `User.githubNodeId`; anyone else is kept as `Comment.remoteAuthorLogin` and shown by
+  login. An echo of Astrid's own push is suppressed three ways:
+  1. The push records the id GitHub answers.
+  2. A comment the App wrote (`viewerDidAuthor`) is skipped.
+  3. A person's push read back before its id was recorded is adopted. That is their
+     unlinked comment on the task with the same text, made in the last 10 minutes.
+
+  `lib/github/projects/comments.ts`.
+- **Body conflicts.** A body edit whose base `remoteVersion` is stale returns `conflict`
+  rather than overwriting someone's paragraph. Other fields are last-write-to-GitHub-wins,
+  as on github.com.
+- **Deletions.**
+
+  | Event | Effect |
+  |---|---|
+  | `projects_v2_item.deleted` or `.archived` | Leaves that list (`DeletionLog` for the membership) |
+  | `issues.deleted` | Task deleted |
+  | Item missing from two consecutive full reconciles | Removed |
+
+  An Astrid "delete" on a GitHub board means **remove from project**. Deleting the issue
+  needs explicit confirmation and repo admin rights.
+- **Partial failure.** A create is `createIssue` (or `addProjectV2DraftIssue`), then
+  `addProjectV2ItemById`, then field updates, sent as one GraphQL document with aliased
+  mutations. If the content exists but a later step fails, the task lands with
+  `syncState: 'pending'`, and the remainder is enqueued as `writeback` jobs.
+- **Offline idempotency.** The `Task` row with its `clientRequestId` (existing unique
+  index) is inserted *before* the GitHub call. A replay finds it and either returns the
+  existing `remoteNodeId` or finishes the create.
+- **Status ↔ closed.**
+  - Moving to the Done option **also closes** an open issue (`completed`).
+  - Closing on github.com renders the task completed. Astrid **does not** write Status
+    back, and leaves GitHub's built-in project workflow to move the card. **Astrid never
+    fights a GitHub workflow.**
+
+### 8.8 Rate limits and GitHub hosts
+
+`lib/github/rate-limiter.ts` is the only HTTP path. It wraps Octokit's throttling and
+retry plugins with a Redis token bucket.
+
+- **Buckets:** per user token, and per installation.
+- **Limits honoured:**
+  - `x-ratelimit-remaining` / `-reset`
+  - GraphQL `rateLimit { cost remaining }`, requested on every query
+  - secondary-limit `retry-after` and the content-creation caps
+- **Priority:** user-facing writes go first, then hydrations, then reconcile.
+  **Reconcile may use at most 30% of an installation's hourly budget**, and its interval
+  adapts to fit.
+- **Timeouts:** 15s on every call.
+- **Hosts:** `GITHUB_API_URL` and `GITHUB_WEB_URL` (§7.2) keep GHE.com data-residency
+  tenants a configuration change.
+
+---
+
+## 9. Field semantics
+
+### 9.1 Ownership
+
+| Owned by GitHub (write-through) | Owned by Astrid (replica only, never sent) |
+|---|---|
+| Title, body, open/closed and reason, Status, Priority, due, estimate, assignees, labels, milestone, parent, dependencies, comments, position, project membership, **all project field values** | Reminders, recurrence configuration (§10), favourites, per-user view preferences, personal-list membership, cost, timers, agent-assignment metadata. `isPrivate` is disabled on GitHub boards. |
+
+### 9.2 Status and Priority
+
+- **Status.** The bind wizard proposes a mapping, which the user confirms:
+
+  | GitHub option | Astrid |
+  |---|---|
+  | `Todo` | `ready` |
+  | `In Progress` | `doing` |
+  | `Done` | completed |
+  | `Blocked` / `Waiting` | `waiting` |
+  | anything else | a custom state `gh:<optionId>` |
+
+  No new board code is needed.
+- **Priority** options map in order onto 3, 2, 1, 0. With no Priority field,
+  `supports.priority = false`.
+
+### 9.3 Identifiers
+
+- `owner/repo#N`, shown as `repo#N`. Transfers keep resolving through an alias.
+- **Drafts** have none until converted. The node id persists, so the task id is
+  unchanged.
+- Astrid task links resolve by task id. `remote.url` links to GitHub.
+
+### 9.4 Project fields, read and write (D4, amends PROJECT_MODE.md:146)
+
+PROJECT_MODE excludes "arbitrary user-defined custom fields". The amendment is scoped:
+
+> **On a GitHub-backed board, every project field is shown and editable in the task
+> detail pane, and filterable on the board.** Fields are defined in GitHub. Astrid adds
+> no way to *create* fields, and local boards never grow them. Nothing renders on any
+> other list.
+
+#### 9.4.1 Model
+
+Backend-neutral by name, populated only by GitHub bindings:
+
+```prisma
+model ProjectField {
+  id          String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  projectId   String
+  remoteId    String                    // PVTF_… / PVTSSF_… / PVTIF_…
+  name        String
+  dataType    String                    // text | number | date | single_select | iteration
+  options     Json?                     // single_select: [{id,name,color,description}]
+  iterations  Json?                     // iteration: [{id,title,startDate,duration}], completed included
+  mappedTo    String?                   // status | priority | due | estimate → native column, not stored below
+  position    Int
+  updatedAt   DateTime @updatedAt
+  @@unique([projectId, remoteId])
+}
+
+/// Values live per (task, field). A field belongs to one project, and an issue in
+/// two projects has two items with independent values.
+model TaskFieldValue {
+  taskId      String
+  fieldId     String                    // ProjectField.id
+  projectId   String                    // denormalised for the delta query
+  text        String?
+  number      Float?
+  date        DateTime? @db.Date
+  optionId    String?
+  iterationId String?
+  updatedAt   DateTime  @updatedAt
+  @@id([taskId, fieldId])
+  @@index([projectId, updatedAt])
+}
+```
+
+Mapped fields (Status, Priority, due, estimate) stay in native `Task` columns and are
+never duplicated here, so there is one source per value.
+
+#### 9.4.2 Writes
+
+`PUT /api/v1/tasks/{id}/fields/{fieldId}` with body `{ "value": <typed> | null }` →
+`TaskBackend.setFieldValue` → `updateProjectV2ItemFieldValue` or
+`clearProjectV2ItemFieldValue` → apply.
+
+- **Validated against the schema:** the option or iteration exists, and the type
+  matches.
+- **Permission:** list write role.
+- **One field per request,** so concurrent edits of different fields never conflict.
+- **Schema drift.** GitHub sends no event for field definitions. An unknown field or
+  option id seen during hydration, plus every reconcile, refreshes the project's
+  `ProjectField` rows.
+
+#### 9.4.3 Payload budget (G15)
+
+The full task response is at 88% of 500 KiB on the wire, so values **must not** ride on
+every task in the obvious shape. The design:
+
+- **Schema once per project.** `GET /api/v1/projects/{id}/fields` returns it, cached by
+  ETag.
+- **Compact values.** On tasks the shape is `"fields": { "<fieldId>": <scalar | optionId
+  | iterationId> }`. No names, no types, no nulls, and present only on tasks in
+  GitHub-backed lists.
+- **Delta sync.** A value change bumps `Task.updatedAt`, so values ride the existing
+  `?updatedSince=` delta with no new sync channel.
+- **Gate.** `scripts/measure-api-latency.ts` gains a GitHub-board fixture: 1,000 tasks,
+  8 fields. If the full response exceeds 500 KiB on the wire, values move behind
+  `?include=fields` for list views and load per task in detail. **The budget wins over
+  convenience.**
+
+### 9.5 Multiple assignees
+
+- **New field:** `assigneeIds: string[]` (additive). `assigneeId` is always
+  `assigneeIds[0]`.
+- **Old clients** setting `assigneeId` replace only the first entry and never silently
+  unassign others.
+- **Classic lists** keep at most one assignee.
+
+---
+
+## 10. Recurrence on GitHub boards: spawn the next issue (D3)
+
+### 10.1 Today vs the new mode
+
+**Today**, completing a repeating task **rolls the same row forward**: `completed:
+false`, next due date, `occurrenceCount + 1` (`lib/repeating-task-handler.ts:154`). iOS
+and Mac run the same astrid-core rule on the device. That is right for personal lists,
+and it stays.
+
+**On GitHub-backed lists** the mode is **spawn**. The completed issue stays closed as
+history, and the next occurrence is a **new issue linked to it**:
+
+| Step | Detail |
+|---|---|
+| Trigger | The task completes, from Astrid **or** `issues.closed` (reason `completed`) on github.com, and `repeating ≠ never` and the series has not terminated. A close as "not planned" ends the series (closed reason → no spawn), matching today's closed-reason rule. |
+| Arithmetic | astrid-core `nextOccurrence`, unchanged (both `DUE_DATE` and `COMPLETION_DATE` modes, time-zone rules as today) |
+| Create | A new issue in the **same repo**. Drafts spawn drafts. Copies: title, body, labels, assignees, milestone. Body footer: `Previous occurrence: owner/repo#N`. |
+| Projects | Added to **every project** the predecessor was in. Copies all project field values except Status, which resets to the binding's first non-done state (normally `ready`). The due field is set to the next date. |
+| Link | New `Task.previousOccurrenceId = predecessor.id`, and the recurrence configuration moves to the new task with `occurrenceCount + 1`. A comment on the predecessor, `Next occurrence: #M`, gives a GitHub timeline cross-reference both ways. |
+| Predecessor | Stays completed. Its recurrence configuration is cleared: it is history. |
+| Exactly once | Spawning is a `recur` job with dedupe key `recur:<taskId>:<occurrenceCount>`. An Astrid completion and the resulting webhook race to the same key, so one issue is created. |
+| Reopen | Reopening a predecessor does not delete the spawned issue. The series lives on the newest occurrence. |
+| Termination | Count or until reached → no spawn. The predecessor completes, which needs B3 fixed for the local mode too. |
+
+### 10.2 Clients
+
+`list.supports.repeatMode: 'roll_forward' | 'spawn'`. In `spawn` mode, iOS and web send
+the completion and **do not** roll forward locally. The spawned task arrives by SSE or
+delta. The detail pane shows "Previous occurrence" and "Next occurrence" links from
+`previousOccurrenceId`.
+
+---
+
+## 11. API and client contract
+
+### 11.1 Brand profile (GitHub brand)
+
+`brands/github-projects.brand.json` is **Lanes for GitHub Projects**, a generic Graceful
+Tools brand at `projects.gracefultools.com` (AWTD-1103). Its GitHub App slug,
+`lanes-for-github-projects`, is a placeholder until that App is registered
+(docs/deployment/LANES_GITHUB_MARKETPLACE.md). GitHub Projects on requires Project Mode
+on: the server refuses to start otherwise, and the brand matrix runs the same check
+against every profile (AWTD-1121). Sign-in is `github` alone. Add `sso` only together with
+its four `AUTH_SSO_*` variables, or the server refuses to start (AWTD-1298).
+
+```json
+"NEXT_PUBLIC_BRAND_AUTH_PROVIDERS": "github",
+"NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS": "true",
+"NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE": "true",
+"NEXT_PUBLIC_BRAND_ENABLE_SYNC_GITHUB_ISSUES": "false",
+"NEXT_PUBLIC_BRAND_ENABLE_SYNC_GOOGLE_TASKS": "false",
+"NEXT_PUBLIC_BRAND_ENABLE_TASK_COST": "false"
+```
+
+**Trademark.** "\<Brand\> for GitHub Projects" is the descriptive form GitHub's brand
+guidelines allow. `check:brands` rejects a `NEXT_PUBLIC_BRAND_NAME` matching
+`/^git ?hub/i`.
+
+### 11.2 Additive v1 fields
+
+All additive, as API_CONTRACT permits.
+
+**List**
+
+```jsonc
+"backend": "github_project" | null,
+"remote": { "url": "…", "owner": "acme", "number": 12 } | null,
+"supports": {                                   // every key at its classic value on local lists
+  "repeatMode": "spawn", "privateTasks": false, "membership": false,
+  "priority": true, "dueDate": true, "comments": true, "multipleAssignees": true,
+  "fields": true, "deleteTask": "remove_from_list"
+}
+```
+
+**Task**
+
+```jsonc
+"assigneeIds": ["…"],
+"remote": { "kind": "issue", "url": "…", "nodeId": "I_…", "version": "…",
+            "repo": "acme/web", "number": 42 },   // GitHub-backed tasks only; absent otherwise
+"fields": { "<fieldId>": "<value>" },           // GitHub-backed lists only (§9.4.3)
+"previousOccurrenceId": "…" | null,
+"syncState": "synced" | "pending" | "error"     // GitHub-backed tasks only; absent otherwise
+```
+
+As built ([AWTD-1222](https://astrid.cc/t/AWTD-1222)): absent, or null, always means a
+classic local list or task. `supports.priority` and `supports.dueDate` are true on a GitHub
+board only when that field is mapped in the binding (§9.2). `supports.fields` is false
+everywhere until the fields API exists ([AWTD-1208](https://astrid.cc/t/AWTD-1208)). A draft
+has `remote.url`, `repo` and `number` null. `syncState: "error"` is reserved: nothing writes
+it yet.
+
+**`GET /api/v1/capabilities`** adds `auth.providers[]` (§6.5) and `githubProjects`.
+
+**New routes**, all `withAuth({ capability: 'githubProjects' })`:
+
+| Route | Purpose |
+|---|---|
+| `GET /api/v1/github/projects` | Bindable projects across the user's installations; each bound one carries `boundProjectId` and `boundListId` |
+| `POST /api/v1/github/projects/{nodeId}/bind` | Creates the Project, list, binding and fields |
+| `GET/PATCH /api/v1/github/projects/{projectId}/binding` | Edit the field mapping |
+| `DELETE /api/v1/github/projects/{projectId}/binding` | Unbind; keeps a read-only local snapshot |
+| `GET /api/v1/projects/{id}/fields` | Field schema, cached by ETag |
+| `PUT /api/v1/tasks/{id}/fields/{fieldId}` | Set or clear a field value |
+
+**Errors map onto existing v1 codes:**
+
+| GitHub | v1 error |
+|---|---|
+| 401 or refresh failure | `auth_required` |
+| 403 or 404 (after a membership refresh) | `forbidden` |
+| 403 with `X-GitHub-SSO` | `sso_required` (new, additive, carries the URL) |
+| 409 or a stale body base | `conflict` |
+| Secondary limit | `rate_limited` + `retryAfter` |
+| 5xx | `upstream_unavailable` (new, additive) |
+
+### 11.3 Clients
+
+- **Web.** `supports.*` gating, a fields section with typed editors (text, number, date,
+  single-select, iteration), a `repo#N` chip, a pending-sync indicator, multiple
+  assignees, occurrence links, provider-driven sign-in. **No change** to the data layer,
+  cache, offline queue or SSE.
+- **iOS/Mac.**
+  - The provider list from capabilities, with default-off decoding (§6.2).
+  - GitHub and SSO via the desktop hand-off.
+  - `supports` gating, field editors, `repeatMode: 'spawn'`.
+  - **Disable the on-device Issues engine on GitHub-backed lists.**
+- **Windows.** Replays PRODUCT_CONTRACT fixtures, which gain a GitHub-backed list.
+- **MCP and agents.** No new tools. Everything routes through the seam (§5.3).
+
+---
+
+## 12. W5: brand and partner delivery
+
+1. Add `brands/github-projects.brand.json` and artwork, run `check:brands`, deploy a
+   preview with `scripts/deploy-brand-preview.ts`.
+2. Register the GitHub App (permissions and events in §8.6) and publish its Marketplace
+   listing.
+3. Run a copy pass for "board/project" wording through i18n. No literals: `check:reuse`
+   enforces this.
+4. Add a WHITELABELING §3 table for the provider registry and the new capabilities, and a
+   §8 checklist for a GitHub partner.
+5. Native apps: apply the profile via `scripts/apply-brand.sh`, and pass the
+   `BrandAuditTests` under the partner profile.
+
+---
+
+## 13. Engineering standards for this work
+
+### 13.1 Red-green TDD, always
+
+- **Every behavioural change starts with a failing test that names the task id.** The
+  PR description shows the red run. Bug fixes follow ASTRID.md exactly: RED regression →
+  green → `npm run predeploy`. Auth changes (W2, and S2 in W3) run the full suite before
+  committing.
+- **Prefer behavioural tests against the contract-test database over Prisma mocks for
+  any query shape.** B1 shipped *because* a mock asserted the broken `where`. Mocks are
+  fine for orchestration. They are not evidence that a query works.
+- **Every new rule test plants a violation** and proves it fires before it lands, per
+  WHITELABELING §9's warning about malformed greps that stay green.
+
+### 13.2 Clean code
+
+| Concern | One home | Enforced by |
+|---|---|---|
+| Entity writes | `services/` | `entity-writes-go-through-services` ratchet (§5.1) |
+| Completion | `resolveCompletionFields` via the update service | `no completed:true outside services` rule |
+| Agent dispatch on assign | `task-assignment-notifier.ts` | `$extends` deleted; rule forbids raw `assigneeId` writes |
+| Sign-in | `lib/auth/sign-in-with-verified-identity.ts` | Rule: no `prisma.account.create` / `user.create` outside it |
+| Login providers | `lib/auth/providers/` registry | Brand matrix asserts every listed provider has its env |
+| GitHub HTTP | `lib/github/` | Rules: no `new App(`, no raw `api.github.com`, no `fetch('https://api.github` outside it |
+| Remote-first writes | `TaskBackend` | Fake-backend run of the service suite |
+| Brand literals | `lib/brand/*` | `check:reuse` |
+
+Further rules:
+- **Delete what is replaced, in the same PR:** the five sign-in copies, five `new App`
+  instances, `GitHubIntegration`'s dead columns, `/api/webhooks/github-issues` (after
+  cut-over), `lib/database-utils.ts:198`, and the third leave implementation. A
+  consolidation that leaves the old path alive has not consolidated anything.
+- **Apply is a pure function**, `normalise(remote) → diff(replica) → patch`. That makes
+  it testable without network access or a database, and keeps GitHub's shapes out of
+  Astrid's core.
+
+### 13.3 Performance budgets
+
+New rows go into PERFORMANCE_BUDGETS.md, each with its source, per that document's rule.
+
+| Metric | Budget | Source |
+|---|---|---|
+| Webhook ack | p95 ≤ 300 ms (verify + insert job only) | Route timing test plus `vercel logs` |
+| Webhook → replica (edit on github.com visible in Astrid) | p95 ≤ 10 s | Synthetic probe job in the test org |
+| GitHub-backed write (Astrid → GitHub → replica) | p95 ≤ 1.5 s server-side. The UI stays optimistic, so perceived latency is unchanged. | `scripts/measure-api-latency.ts` GitHub fixture |
+| Full task response with fields | ≤ 500 KiB on the wire (existing budget, not raised) | Same, 1,000 tasks × 8 fields fixture |
+| Reconcile share | ≤ 30% of installation GraphQL budget per hour | Rate-limiter metrics |
+| Apply DB work | ≤ 4 queries per item event | Contract test pins the query count, like the existing Prisma row |
+| Initial import | 2,000-item project ≤ 5 min | Live smoke test |
+
+Implementation rules that keep these budgets:
+- Batch upserts per 100-item page.
+- No N+1 in apply.
+- Hydration uses one fixed GraphQL fragment.
+- Coalesce bursts (§8.7).
+- Serve the field schema with an ETag.
+
+---
+
+## 14. Delivery plan
+
+Every phase ships behind capabilities that are off by default. astrid.cc changes only
+through W1 and W3's bug fixes and simplifications, which are behaviour-preserving apart
+from the fixes themselves. Sizes: S = days, M = 1–2 weeks, L = 3+ weeks.
+
+| Phase | Scope | Size | Exit: tests that went red, then green |
+|---|---|---|---|
+| **P0 Defects** | S1, S2, S3, B1–B5 (§2) | S–M | One regression test each, listed in §2. B1's test runs against the contract DB. |
+| **P1 Write path** (W1) | §5.2 steps 2–8 | M–L | The ratchet at its final allow-list. The fake-backend suite passes. Zero behaviour change beyond P0's fixes. |
+| **P2 Login registry** (W2) | §6. Can run in parallel with P1. | M | Brand matrix: each provider combination boots with its env and refuses without it. Linking rules (verified-only, domain-bound, never re-home, never agent or admin). Legacy flags still produce Astrid's exact provider set. |
+| **P3 One GitHub connection** (W3) | §7 plus the migration | M | Access derived only from `/user/installations`. Dual-read cron. iOS contract unchanged (fixtures). Pre-flight report run against prod read-only. Capability split asserted in the matrix. |
+| **P4 Projects: read-only mirror** | §8.1, §8.3–§8.8; bind wizard, import, webhooks, reconcile, roles, uninstall | L | Hydration and apply are pure-function tests per item kind and webhook action, from recorded fixtures. A killed webhook is healed by reconcile. Fairness across two installations. |
+| **P5 Projects: write-through** | Create, title, body, status with done-closes, assignees, comments, position, remove, idempotency, partial failure | L | Every write attributed to the acting user. Outbox replayed twice → one issue. Refresh failure → read-only, never installation-token writes. |
+| **P6 Fields and recurrence** | §9.4 read/write, §9.5, labels, iterations, milestones, sub-issues, dependencies, PR items, §10 spawn | M–L | Each field type's round trip. Payload fixture inside budget. Webhook + Astrid completion race → exactly one spawned issue. |
+| **P7 Per-org SSO** | §6.4 v2: `SsoConnection`, domain verification, against the OIDC interface; SAML is the partner's broker (§15 C1). **Specified, not built** (§15): a partner guide in WHITELABELING. | M (if built) | Domain-bound linking. `required` enforcement. A stub OIDC issuer stands in for any broker. The guide lists these for whoever builds it. |
+| **P8 Brand and clients** | §11.3, §12 | M | `check:brands` green. The brand audit finds no Astrid literals. The Astrid profile still pins `githubProjects: false`. |
+
+### 14.2 Test infrastructure introduced
+
+- **`tests/fixtures/github/`:** recorded GraphQL and REST responses and webhook payloads
+  for each item kind, field type and action. Octokit gets an injected `fetch` that
+  replays them. No live network in unit tests.
+- **`FakeTaskBackend`:** configurable to fail at any step, used to run the whole
+  `*WithSideEffects` suite remote-first.
+- **Live smoke test** against a dedicated test org, gated on a secret, outside
+  predeploy.
+
+---
+
+## 15. Partner choices: what the white label leaves configurable
+
+**These are not open questions for us.** Revision 2 asked Jon to choose a SAML broker, a
+pricing model and two defaults, as if we were building this for one customer. We are not
+(Jon, 2026-10-09, [AWTD-1102](https://astrid.cc/t/AWTD-1102)): *"We are enabling a
+third party to build Astrid, or to use a white-labelled version of Astrid in their
+infrastructure."*
+
+So each question below becomes a **choice the partner makes**. The platform's job is to
+define the extension point, the configuration that selects it, and the default. It does
+not ship the partner's implementation. Nothing in this section is built for a specific
+customer.
+
+| # | Partner choice | What the platform provides | Default |
+|---|---|---|---|
+| C1 | **Which SAML broker, if any** (was Q1) | An SSO extension point: SAML IdPs reach Astrid as **OIDC**, so the app keeps speaking one protocol (§6.4). The partner points `AUTH_SSO_*` (v1) or an `SsoConnection.brokerRef` (v2) at whichever broker they run: BoxyHQ SAML Jackson (OSS, self-hosted), WorkOS (hosted), their IdP's own OIDC endpoint, or none. | None. Deployment-level OIDC only. |
+| C2 | **Whether Issues sync uses the App-only credential** (was Q2) | The brand flag `NEXT_PUBLIC_BRAND_ENABLE_SYNC_GITHUB_ISSUES`, plus the pre-flight report (§7.4). The report lists the repos a partner's users would lose, because an App reaches only the repos it is installed on, unlike a `repo`-scoped OAuth token. | Off on the GitHub brand (§11.1), where Projects is the backend. |
+| C3 | **Whether agent assignment is mirrored to GitHub as an `agent:<name>` label** (was Q3) | A brand capability, `NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS`, read by the P6c mapping (§8.6). | **Off.** A partner opts in. A label written to their customers' repos is their call, not ours. |
+| C4 | **Pricing and GitHub Marketplace** (was Q4) | Out of scope for the platform. The hook a partner would use is named only: a `marketplace_purchase` webhook handler and a plan column on `GitHubInstallation`. Billing, plans and the listing are the partner's. | No listing, no plans. |
+
+**What stays our decision:** astrid.cc's own configuration. astrid.cc never enables
+`githubProjects` (D5). Moving astrid.cc's Issues sync onto the App (P3b) is judged on
+astrid.cc's own pre-flight report, not on the partner default above.
+
+**How this changes the phases:**
+- **P7 is specified, not built** (Jon, 2026-10-17,
+  [AWTD-1120](https://astrid.cc/t/AWTD-1120), following his
+  [AWTD-1102](https://astrid.cc/t/AWTD-1102) answer: *"we don't need to build these
+  capabilities but we should spec out how a white label solution might implement"*). The
+  `SsoConnection` model, DNS domain verification, `required` enforcement, domain-bound
+  linking and `sessionEpoch` revocation are a partner implementation guide:
+  WHITELABELING → *Per-organisation SSO: what a partner builds*. What ships is
+  deployment-level OIDC (P2), which a partner can point at a SAML broker without code.
+  Nothing consumes per-org SSO today. If a partner or astrid.cc needs it run as a service,
+  the guide is the build list.
+- **P6c** reads C3 and does not assume the label.
+- **P8** documents C1–C4 in the GitHub-partner checklist in WHITELABELING §8, so a
+  partner sees every choice in one place.
+
+---
+
+## 16. Risks
+
+| Risk | Mitigation |
+|---|---|
+| GitHub rate limits on large orgs | Write priority, the 30% reconcile cap, coalescing, adaptive intervals. Measured in P4 on a large real project before committing to P5. |
+| GitHub API drift (Projects REST is newer, Sept 2025) | GraphQL first; recorded fixtures catch shape changes in CI. |
+| Edits look like "\<Brand\> did it" | User tokens only for user actions, pinned by a rule test. |
+| Two engines editing one issue | Issues sync off on the GitHub brand; iOS's engine disabled per list. |
+| Account takeover through new providers | §6.3 linking rules, written test-first, before any provider is added. |
+| P1 touches many files | 8 small PRs, each red-green. The ratchet only tightens. The existing suite (~3,000 tests) guards behaviour. |
+| Trademark | Descriptive naming only, linted. |
+
+---
+
+*Sources for GitHub platform facts (checked 2026-10-04):*
+- [REST API for GitHub Projects (2025-09-11)](https://github.blog/changelog/2025-09-11-a-rest-api-for-github-projects-sub-issues-improvements-and-more/)
+- [Projects v2 webhooks: org webhooks and GitHub Apps only](https://github.com/orgs/community/discussions/17405)
+- [Sub-issues REST API](https://docs.github.com/en/rest/issues/sub-issues)
+- [Issue dependencies REST API](https://docs.github.com/en/enterprise-cloud@latest/rest/issues/issue-dependencies)
+- [Issues and Projects GA: sub-issues, issue types](https://github.com/orgs/community/discussions/154148)
+
+---
+
+## 17. Implementation status (2026-10-05)
+
+All on `main`; nothing deployed. Each item was built red-green, with the regression or
+rule test named.
+
+### P0 — defects (§2): done
+
+| # | Task | Commit | Test |
+|---|---|---|---|
+| S1 | [AWTD-1087](https://astrid.cc/t/AWTD-1087) | `be1ab035` | `tests/api/github-installation-claim.test.ts` |
+| S2 | [AWTD-1088](https://astrid.cc/t/AWTD-1088) | `26d1ea4a` | `tests/lib/auth-google-web-linking.test.ts` |
+| S3 | [AWTD-1089](https://astrid.cc/t/AWTD-1089) | `3075744c` | `tests/api/invitations-assignee-rule.test.ts` |
+| B1 | [AWTD-1090](https://astrid.cc/t/AWTD-1090) | `fd990c65` | `tests/api/v1-project-statuses.test.ts`, Postgres tier |
+| B2 | [AWTD-1091](https://astrid.cc/t/AWTD-1091) | `3aba1e1b` | `tests/api/v1-lists-members-userId.test.ts` |
+| B3 | [AWTD-1092](https://astrid.cc/t/AWTD-1092) | `7493e7c9` | `tests/api/task-write-path-parity.test.ts` |
+| B4 | [AWTD-1093](https://astrid.cc/t/AWTD-1093) | `b8fe5064` | `tests/rules/task-completion-goes-through-the-service.test.ts` |
+| B5 | [AWTD-1094](https://astrid.cc/t/AWTD-1094) | `26a1a9d7` | `tests/rules/coding-agent-has-its-own-capability.test.ts` |
+
+**Before the deploy that carries S1:**
+- The GitHub App's Callback URL list must include `https://<domain>/api/github/setup`.
+- `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` (the App's `Iv…` client) must be set in
+  production. Without them, new installation links fail closed; existing links keep
+  working.
+
+**For the whitelabel-partner deployment:** set
+`NEXT_PUBLIC_BRAND_ENABLE_CODING_AGENT=false` (B5), or its coding agent turns on.
+
+### P1 — one write path (§5): done
+
+| Step | Commit | What |
+|---|---|---|
+| 2 | `b8fe5064` | `services/complete-task.ts`; every completion goes through the service |
+| 3 | `75ca42c5` | `services/agent-assignment-dispatch.ts`; the `$extends` hook is deleted from `lib/prisma.ts` |
+| 4 | `9fb2a460` | `services/post-comment-as.ts`; agent/system comments go through the comment service; agent→agent loop guard |
+| 5 | `0042441d` | email-to-task creates through the service; batch copy applies the assignee rule |
+| 6 | `0bfdf842` | membership changes announce themselves (`announceListMember*`, `announceRosterChanges`); legacy leave delegates |
+| 7 | `0bfdf842` | `tests/rules/entity-writes-go-through-services.test.ts`, with a reasoned allow-list and a slack check |
+| 8 | `87b659ef` | `lib/backends/` `TaskBackend` seam (local only) in front of create/update/delete; fake-remote runs of the parity suites |
+
+Behaviour changes worth knowing:
+- The "🤖 starting" acknowledgement comment, previously posted only by the deleted hook on
+  update, is gone.
+- Assigning the default assistant to an existing task now notifies it. It used to notify
+  nobody.
+
+### P2 — login providers (§6): done for web
+
+Commit `6cf7c53e`:
+- `NEXT_PUBLIC_BRAND_AUTH_PROVIDERS`
+- GitHub and deployment-level OIDC SSO
+- `lib/auth/federated-identity-linking.ts`, one linking rule for Google, GitHub and SSO
+- boot credential checks
+- `auth.providers` on `/api/v1/capabilities`
+- sign-in buttons
+- WHITELABELING.md "Sign-in providers"
+
+AWTD-1104: the four mobile token routes (`/api/auth/{apple,google}`,
+`/api/v1/auth/{apple,google}`) now verify the provider token and hand off to
+`lib/auth/native-sign-in.ts`:
+- `signInWithVerifiedIdentity` applies the same linking rule.
+- Each route issues the NextAuth JWT that passkey and desktop use, set as
+  `next-auth.session-token`, and in production also as the `__Secure-` name.
+- They no longer write `Session` rows. The cookie fallback
+  (`lib/auth/session-cookie.ts`) still accepts old rows until they expire.
+
+**Not done:**
+- Deleting the database-session fallbacks (`lib/auth/session-cookie.ts`, `mobile-session`, and
+  the ad-hoc `prisma.session` reads in sse, secure-files, ai-api-keys and signout) once the last
+  pre-AWTD-1104 row has expired.
+- The `sessionEpoch` revocation claim (§6.5). It exists for SSO deprovisioning, so it is
+  part of the P7 partner guide rather than platform work.
+- Per-org SSO and SAML (§6.4 v2, P7): specified for partners, not built (§15,
+  [AWTD-1120](https://astrid.cc/t/AWTD-1120)).
+- Native GitHub/SSO sign-in in astrid-ios, via the desktop hand-off. The web half is done
+  ([AWTD-1105](https://astrid.cc/t/AWTD-1105)): `ios` and `mac` hand-off clients, and
+  `/auth/desktop?provider=github|google|sso` starts that provider directly for a signed-out user.
+
+### P3 — one GitHub connection (§7): partly done
+
+Done:
+- The capability split (`codingAgent`, B5).
+- Installation access proven by `GET /user/installations` (S1).
+- One App instance and one host module (`1c971f62`).
+- `githubGraphQL` timed.
+
+- **The installation model** ([AWTD-1111](https://astrid.cc/t/AWTD-1111)): the
+  `GitHubInstallation` / `GitHubInstallationRepo` / `GitHubInstallationAccess` tables,
+  backfilled from `GitHubIntegration` by their migration. The setup, refresh, webhook and
+  disconnect paths dual-write them. The coding agent resolves a repo's installation
+  across **all** the user's installations, so the first-installation-only bug is gone.
+  The migration applies at the next approved deploy.
+
+- **The Connections → GitHub card** ([AWTD-1114](https://astrid.cc/t/AWTD-1114)): one card
+  listing every installation the user can act on (`GET /api/v1/github/installations`),
+  with repo counts, "Add another organization", refresh and disconnect, and the setup
+  route's outcome shown as a toast. The Agents page points to it, and its two old GitHub
+  components are deleted. The coding agent's repo picker lists every connected org.
+
+- **One webhook for Issues sync** ([AWTD-1113](https://astrid.cc/t/AWTD-1113)): the App's
+  webhook handles `issues` / `issue_comment` and sends the same SSE nudge iOS consumes,
+  de-duplicated on `X-GitHub-Delivery`. Both entry points share
+  `lib/github/webhooks/issues.ts`.
+
+- **App user-to-server tokens** ([AWTD-1112](https://astrid.cc/t/AWTD-1112)): an
+  `Integration[GITHUB]` slot (additive enum migration), written by the setup route and
+  refreshed on use by `lib/github/user-tokens.ts`. That module never falls back to an
+  installation token, and a rule test pins it. `githubTokenFor(userId, repo)` dual-reads
+  **per repo**: it uses the App token where one of the user's installations reaches the
+  repo, and the legacy OAuth token everywhere else. An App token can't see uninstalled
+  repos, so a blanket preference would 404 uncovered links. Production pre-flight
+  (2026-10-10, read-only): 2 links, both covered.
+
+- **Connecting and binding from the web UI** ([AWTD-1302](https://astrid.cc/t/AWTD-1302)):
+  the connection itself (setup, install URL, installations, disconnect, the Connections
+  card) answers to a derived `githubConnection` capability, `codingAgent || githubProjects`,
+  so a GitHub Projects brand with the coding agent off can connect. GitHub sign-in stores
+  the App user token and grants every installation `GET /user/installations` lists
+  (`lib/github/app-access.ts`, §7.2–§7.3); `/api/github/setup?sync=1` does the same for
+  anyone else ("Refresh from GitHub"). "Connect a GitHub project" (add-list modal and the
+  Connections card) lists installations → projects, binds one and opens the board;
+  `GET /api/v1/github/projects` gained an additive `boundListId` for "Open board".
+
+Not done, and why:
+- **The Issues-sync cut-over** (its own task): switching the sync "Connect GitHub" flow to
+  the App client, re-pointing `ExternalListLink`/`ExternalTaskLink.integrationId` in a
+  transaction, revoking the legacy token and calling GitHub's delete-grant API, and adding
+  `installUrl` to repo-not-installed errors. These change behaviour and write production
+  data, so they ship as a deliberate step.
+- **Retiring `/api/webhooks/github-issues` and `GITHUB_SYNC_WEBHOOK_SECRET`.** This waits
+  until the App path has shipped, **and** every org's installation has accepted the new
+  `issues` event subscription (2026-10-10: Graceful-Tools had not), **and** the hand-made
+  per-repo hooks are removed. Until then a repo may nudge twice, which costs one extra pull.
+- **The App webhook is still gated on `codingAgent`.** The spec's `githubConnection`
+  capability (§7.5) doesn't exist yet, so a brand with the coding agent off gets no App
+  webhooks. It must exist before the per-repo hook is retired for such a brand.
+- **Retiring `GitHubIntegration`.** Status, the legacy installations list and the
+  integration route still read it. List-admin Issues sync reading installation repos
+  waits for P3b's user tokens. Dropping the table, and
+  its dead `appId`/`privateKey`/`webhookSecret` columns, is a destructive migration, so it
+  takes two deploys (docs/CLI_OPERATIONS.md, AWTD-959).
+- **User-to-server tokens in `Integration[GITHUB]` and the Issues-sync migration with
+  dual-read.** These need the App's permissions extended (Issues, Email addresses) on
+  GitHub, and the pre-flight report run against production.
+- **One webhook endpoint for `issues`/`issue_comment`.** This needs the App subscribed to
+  those events on GitHub.
+- **The Connections → GitHub settings card.**
+
+### P4 — the Projects backend: built (P4a–P4f); two measurements wait on a brand deployment
+
+**P4a ([AWTD-1149](https://astrid.cc/t/AWTD-1149)), done.** The §8.5 tables and columns,
+in an additive migration, and `lib/github/projects/apply.ts`: pure
+`normaliseItem → diffTask → planItemApply`, tested from `tests/fixtures/github/project-items/`.
+As built:
+- Ids are `Int`, as in §7.2.
+- `Estimate` stays a project field (P6a), because Task has no estimate column.
+- An unmapped Status option lands in Inbox until the binding learns it.
+- A PR closed unmerged is `completed` with `closedReason: 'canceled'`.
+- Every plan costs at most 2 queries.
+
+The fixtures are hand-written against GitHub's schema. P4b checked them against real
+recordings.
+
+**P4b ([AWTD-1150](https://astrid.cc/t/AWTD-1150)), done.** What was built:
+- `lib/github/projects/hydrate.ts` has the single item fragment, used by both the
+  one-item query and the 100-item page query, and each asks for `rateLimit`.
+- `lib/github/rate-limiter.ts`:
+  - `admit()` gives each priority a share of the hourly budget: a person's write 100%,
+    hydration 90%, reconcile 30%. Reconcile's share counts only its own spend.
+  - Usage is counted per bucket per hour in Redis. GitHub's reported `remaining`
+    overrides that count.
+  - A secondary limit is waited out twice, then reported. Every call has a 15s timeout.
+- No new dependency. Octokit's throttling plugin isn't installed, so the limiter reads
+  GitHub's headers itself.
+- The tests replay **real responses** recorded from the Graceful-Fools test project into
+  `tests/fixtures/github/graphql/`, so the fragment is proven against GitHub's schema. A
+  recorded page goes through P4a's `normaliseItem` to the expected tasks.
+- The items stay in the test project for P4f: `wordlesolver#1` and `#2`, plus one draft.
+
+**P4c ([AWTD-1151](https://astrid.cc/t/AWTD-1151)), done.** What was built:
+- **The switch.** `githubProjects` is the one capability that is **off unless set**
+  (`NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS`). The GitHub brand sets it. Astrid's profile
+  never does, which `tests/rules/astrid-never-enables-github-projects.test.ts` enforces
+  (D5). `GET /api/v1/capabilities` reports it as `product.githubProjects`.
+- **The routes** from §11.2: list, bind, and binding GET/PATCH/DELETE. Each returns 404
+  when the switch is off. Listing and binding read with the **user's own** App token,
+  so GitHub decides which projects they can see. The import uses the installation token.
+  A user's GitHub token that can't be used gives `auth_required` as a 403, because a
+  401 would sign the client out.
+- **The proposal** (`lib/github/projects/bind.ts`) is made by field name and was tested
+  against the real test project. That project has a Priority field with no options;
+  it's left unbound.
+- **The read-only seam.** `taskBackendFor` is now async. On a deployment without the
+  switch it never queries, so astrid.cc pays nothing. On a GitHub-bound list it refuses
+  every Astrid-side edit with `403 github_project_read_only` until write-through (P5).
+- **The replica writer** is `services/github-projects.service.ts`, sitting beside the
+  seam rather than going through it. New tasks go through `createTasksInBulk` in
+  `fromRemote` mode: GitHub's identifiers are used, no project key is minted, and
+  they're marked shared. Each page costs two reads.
+- **The import** runs after the bind response, within a 300s function budget. P4d
+  moves it onto the job queue.
+- Unbinding keeps the board as an ordinary Astrid board. The tasks keep their remote
+  identity, so binding again finds them instead of duplicating them.
+
+**P4d ([AWTD-1152](https://astrid.cc/t/AWTD-1152)), done.** What was built:
+- **Webhook.** `projects_v2_item` on the App webhook only enqueues a hydrate job. The
+  payload is a trigger, not data. The job's dedupe key `item:<node>:<2s bucket>`
+  coalesces a burst of edits, `X-GitHub-Delivery` deduplicates redeliveries, and edits
+  to unbound projects are ignored.
+- **The App webhook route** now answers a deployment with GitHub Projects even when the
+  coding agent is off. Before this, the GitHub brand would never have received
+  installation or project events.
+- **Queue rules** are in `lib/github/projects/jobs.ts`: round-robin by installation, at
+  most 2 jobs per installation per drain, and backoff from 30s to 1h. A job is dead
+  after 8 attempts, with its error kept.
+- **Draining** is in `services/github-sync-jobs.service.ts`. It claims each job with a
+  conditional update and waits out a rate limit rather than backing off. It runs after
+  the webhook response and from `/api/cron/github-projects-sync` every minute, which
+  answers 404 on Astrid.
+- An item GitHub no longer has leaves the board, and the task is kept.
+- New rows in PERFORMANCE_BUDGETS: webhook ack, edit to replica (measured in P4f),
+  apply read count, and reconcile share.
+- **Not handled yet:** `projects_v2` events (project closed or deleted, fields edited)
+  are ignored until P4e's reconcile.
+
+**P4e ([AWTD-1153](https://astrid.cc/t/AWTD-1153)), done.** What was built, in
+`services/github-projects-lifecycle.service.ts`:
+- **Reconcile** pages the whole project on the `reconcile` priority, so it stays under
+  the 30% cap. An item Astrid holds that GitHub didn't list is checked by id, and
+  leaves only if GitHub confirms it's gone. That replaces "missing from two
+  reconciles": one direct question is stronger, and it needs no counter column.
+  A killed webhook is healed by the next pass (tested).
+- **Scheduling.** The per-minute cron enqueues a reconcile for every attached board
+  not reconciled in the last hour, one job per project per hour.
+- **Redelivery.** Failed webhook deliveries from the last two hours are redelivered
+  hourly, once each (`lib/github/redeliver.ts`).
+- **Roles** come from each user's own token: `viewerCanClose` maps to admin,
+  `viewerCanUpdate` to member, visible to viewer, and not visible to removed.
+  - They go through `list-member.service`, so the usual events and caches follow.
+  - The board owner is never touched.
+  - A user whose GitHub token can't be used keeps their membership as it is.
+  - Roles are refreshed after each reconcile and on `member`, `membership` and
+    `organization` events, coalesced to one refresh per installation per 10 min.
+  - Not yet refreshed at sign-in. The hourly reconcile covers that gap.
+- **Deletion.** `issues.deleted` deletes the mirrored task through
+  `deleteTaskWithSideEffects`. It passes `origin: 'remote'`, which the GitHub
+  backend accepts as GitHub's own news, so the tombstone, SSE and caches all follow.
+- **Uninstall and suspend.** Both set `GitHubProjectBinding.detachedAt`, an additive
+  migration, and unsuspend clears it.
+  - 30 days after an **uninstall** (installation row gone), the hourly cron purges the
+    board: its list, its project, and the mirrored tasks on no other list.
+  - A suspended board is never purged.
+  - A task someone also put on a personal list is kept.
+
+**P4f ([AWTD-1154](https://astrid.cc/t/AWTD-1154)), done except for the measurements
+that need a deployment.** `npm run test:live:github-projects` (`tests/live/`, its own
+vitest config, excluded from predeploy) runs against the real Graceful-Fools project and a
+throwaway localhost Postgres. It's gated on `GITHUB_PROJECTS_LIVE=1` and a safe
+`TEST_DATABASE_URL`. It covers:
+- bind and import into the right lanes;
+- an edit on GitHub reaching the replica through a hydrate job;
+- reconcile healing an edit no webhook announced;
+- real query counts.
+
+Measured on 2026-10-10:
+- One changed item costs 3 queries.
+- An import page costs 25 queries plus 0 per item.
+- Edit → hydrate → replica took about 1.2 s.
+
+The test puts the fixture items back afterwards. Still open, because they need a deployed
+GitHub-Projects brand and real seeding: the webhook leg of the ≤10s p95, and a
+2,000-item import.
+
+### P5 — write-through: built (P5a–P5c)
+
+**P5a ([AWTD-1116](https://astrid.cc/t/AWTD-1116), first slice), done.** Edits to a mirrored
+task go through to GitHub **as the acting user**: their App user token, never the
+installation's. A rule in the tests keeps the App and installation tokens out of
+`lib/backends/github-project.ts`.
+- **What gets sent.** `lib/github/projects/write.ts` plans only the GitHub-owned fields
+  that actually change, as one document of aliased mutations: title and body by content
+  kind, the bound Status option on each project, Done also closes an issue, reopen,
+  not-planned closes as NOT_PLANNED, and the bound priority and due fields.
+- **Refusals.** A PR is never closed from here, and since P6c its title and body are
+  read-only too. An unbound field or an unmapped role is
+  refused with a 400 naming it, never silently dropped.
+- **Conflicts.** A body edit is checked against the current `updatedAt` first, and a
+  stale base is a 409 `conflict`.
+- **Writes are strict.** Any GraphQL error fails the whole write. Reads still accept
+  partial data.
+- **Errors.** `auth_required` (no usable token: nothing is written),
+  `forbidden`, `rate_limited` with `retryAfter`, `sso_required` with `ssoUrl` (from
+  `X-GitHub-SSO`), and `upstream_unavailable`. v1 `PUT /tasks/{id}` passes `retryAfter`
+  and `ssoUrl` through.
+- **Verified against GitHub.** All mutation shapes were recorded against the real test
+  project (`write-*.json`).
+
+**P5b, done.** Creating a task on a GitHub board takes three requests on the user's
+token (`lib/github/projects/create.ts`):
+1. Create the content: an issue in `defaultRepoNodeId`, or a draft when there is none.
+2. For an issue, add it to the project with `addProjectV2ItemById`. This deliberately
+   doesn't use `createIssue`'s `projectV2Ids`. In the recording from 2026-10-10, GitHub
+   added the item asynchronously and the response listed none, so there was nothing to
+   set fields on. `addProjectV2ItemById` is idempotent and returns the item GitHub
+   already made.
+3. Set the fields, planned as an edit from a blank card.
+
+How the edge cases behave:
+- **Impossible lanes** are refused before anything exists on GitHub.
+- **Offline idempotency.** With a `clientRequestId`, an outbox row (a done
+  `GitHubSyncJob` keyed `create:<id>`) is written **before** GitHub is called. A replay
+  after GitHub answered returns the same issue, so replaying twice makes one issue
+  (tested). A replay while the first is in flight gets 409 `create_in_progress`. An
+  abandoned attempt, with its 2-minute lock expired and no answer recorded, may be
+  retried.
+  - Residual risk: a crash after GitHub created the issue but before its answer was
+    recorded can make a second issue on retry. GitHub's create has no idempotency key.
+- **Partial failure.** If the content exists but the item or fields failed, the task is
+  kept with `syncState 'pending'` (an additive column) and a `writeback` job, which
+  finishes it as the same user and clears it.
+- The inserted row carries GitHub's identity: `remoteNodeId`, `owner/repo#N` as its
+  identifier, shared visibility, and its `GitHubProjectItem`. The shape was checked
+  against a real Postgres.
+
+**P5c, done. P5 is complete.**
+- **Board membership.**
+  - Moving a task off a GitHub list removes the item from that project; the issue stays.
+  - Putting a mirrored task on another GitHub board adds it there.
+  - An Astrid delete on a GitHub board removes the item from every project, as the user.
+    Deleting the issue itself isn't offered.
+- **Assignees** are swapped on GitHub as the user. A draft sets its own assignee list.
+  An agent is never a GitHub assignee (§8.6): assigning one only unassigns the person.
+  Someone with no GitHub identity yet is refused with `github_assignee_not_linked`.
+  - Identities (`User.githubNodeId`, an additive column with a unique index) are recorded
+    during the role sync, in the same request as each member's own permission check. So
+    the people who can be assigned are exactly the people who have them.
+- **Comments** on a mirrored issue or PR are queued and posted to GitHub (`comment` jobs):
+  - a person's comment is posted as them;
+  - an agent's goes out as the App bot, prefixed "**<Agent>** (via <Brand>)";
+  - system lines and drafts are never posted;
+  - nothing at all happens on a deployment without GitHub Projects.
+- **Position.** A manual reorder on a GitHub board becomes `updateProjectV2ItemPosition`
+  for the items whose predecessor changed, at most three per drag (`position` jobs), as
+  the user.
+- **Verified against GitHub.** Every mutation shape was checked live, and the probes were
+  cleaned up.
+
+Not yet: GitHub comments flowing **into** Astrid. This is outbound only, so inbound
+mirroring will need to dedupe by GitHub comment id.
+
+### P6b — spawn recurrence ([AWTD-1118](https://astrid.cc/t/AWTD-1118)): built, server side
+
+Completing a repeating task on a GitHub board no longer rolls the row forward. The issue
+stays closed as history and the next occurrence is a **new issue linked to it** (§10).
+
+- **Both triggers, one issue.** Completing from Astrid and `issues.closed` on github.com
+  both queue a `recur` job keyed `recur:<taskId>:<occurrenceCount>`, so the completion and
+  the webhook it causes race to the same key. The Astrid side hands over in
+  `resolveRepeatingTaskCompletion`, which is where the repeating rules already live for every
+  write surface; the inbound side hands over from `applyProjectItems`, which writes a remote
+  close straight to the replica and so never passes that path.
+- **Rolling forward is the fallback, never silence.** If the handoff cannot queue, the series
+  rolls forward as it always did: a series running in the old mode is recoverable, one
+  silently dropped is not.
+- **What the successor copies** (`lib/github/projects/recur.ts`, pure): title, body plus a
+  `Previous occurrence: owner/repo#N` footer, labels, assignees and milestone, in the
+  predecessor's own repo. A draft spawns a draft. It is added to **every** project the
+  predecessor was on, with each card's field values copied except Status, which resets to
+  that binding's first non-done option, and the due field, which carries the next date. A
+  field type the mirror does not own (an iteration, a users field) is left as GitHub makes it
+  rather than guessed.
+- **The series moves.** The successor carries the recurrence configuration with
+  `occurrenceCount + 1` and `Task.previousOccurrenceId` pointing back; the predecessor's
+  configuration is cleared. `Next occurrence: #M` is commented on the predecessor, and a
+  failure to comment never fails the spawn.
+- **Ending the series.** Count or until reached clears the configuration and spawns nothing.
+  A close as not planned, cancelled or duplicate ends it too — the same closed-reason rule
+  the local mode already applies.
+- **Every guard is re-checked in the job**, not trusted from the payload: a job may run long
+  after it was queued, and either trigger may have raced it. An occurrence count that has
+  moved on, a task reopened since, or a pull request all spawn nothing.
+- **The wire.** `list.supports.repeatMode` is `'spawn'` on a GitHub board and
+  `'roll_forward'` everywhere else; `previousOccurrenceId` is an additive, nullable column
+  that reaches v1 payloads with the rest of the row. Both halves ship independently of any
+  client.
+- **Verified against GitHub on 2026-10-21** ([AWTD-1284](https://astrid.cc/t/AWTD-1284)),
+  on the lanes-test preview's database with Graceful-Fools project 2. Both triggers spawned
+  exactly one issue: a close on github.com through the deployed webhook, and an Astrid
+  completion followed by its own close. Copied: the body footer, the label, the assignee, a
+  single-select and a text field. The iteration was not copied, as designed. The
+  `Next occurrence` comment was posted. No milestone exists in the test repo, so that copy
+  is still untested. The first live runs found three bugs, all fixed in that task:
+  - every job failed on a `binding.listId` select (no such column);
+  - the job threw after `createIssue`, so a retry made another issue. That came from a
+    refused field copy, or from the webhook mirroring the new issue before the job's insert;
+  - the card started in "In progress", because the binding's jsonb option map does not
+    keep GitHub's order.
+- **The due date does not carry yet.** The test project's "Target date" is a GitHub
+  *issue field* (`ProjectV2FieldCommon.isIssueField`), and GitHub refuses
+  `updateProjectV2ItemFieldValue` for those. They need `updateIssueFieldValue`. The spawn
+  logs the refusal and keeps the issue. Writeback and create have the same gap.
+
+Not yet, and client work rather than server: the detail pane's "Previous occurrence" /
+"Next occurrence" links, and iOS/web declining to roll forward locally when
+`supports.repeatMode` is `spawn` ([AWTD-1219](https://astrid.cc/t/AWTD-1219)).
+
+### P6c — rich mapping: relationships, labels, multiple assignees and the agent label built, the rest open
+
+**Relationships slice ([AWTD-1119](https://astrid.cc/t/AWTD-1119)), done. Inbound only.**
+- **Sub-issues.** An issue's `parent` becomes the task's `parentTaskId`
+  (`lib/github/projects/relations.ts`). A sub-issue detached on GitHub is detached here.
+- **Dependencies.** An issue's `blockedBy` becomes `TaskDependency` rows, added and removed
+  to match GitHub. A cycle from GitHub is written as it stands: the rows go straight to the
+  table, past the cycle check that guards Astrid's own writes.
+- **Both ends must be mirrored.** A parent or blocker that no bound board mirrors is not a
+  relationship here. A child paged in before its parent is healed the next time it is
+  hydrated or reconciled.
+- **Local relationships are left alone.** A local Astrid parent is kept when GitHub has none,
+  and only blockers that are themselves mirrored tasks are ever removed.
+- **More than 20 blockers** on one issue: the list is added to and never pruned.
+- **Cost.** The relationships ride on the page's existing replica read. One more read per
+  page only when an end is off the page. The page query's GraphQL cost went from 1 to 2.
+- **PR content is read-only.** A title or body edit to a mirrored pull request is refused
+  with `github_pull_request_content`. This reverses P5a, which sent `updatePullRequest`.
+  Status and fields stay editable.
+- **Verified against GitHub.** The grown fragment was run against the test project. The
+  fixture issues have no parent or blocker, so a non-empty answer has not been recorded.
+
+Already true before this slice: Priority maps by option order (P4c), and a PR is never
+closed from here (P5a).
+
+**Labels slice ([AWTD-1188](https://astrid.cc/t/AWTD-1188)), done. Inbound only.**
+- **One list per label.** An issue's or PR's labels become membership in label-flavor lists
+  (`lib/github/projects/labels.ts`). A list is keyed by the label's node id in the new
+  `TaskList.remoteNodeId` (unique, additive). One name in two repos is two lists. A label
+  renamed or recoloured on GitHub renames or recolours its list. A draft has no labels.
+- **Not `githubRepositoryId`.** The repo is in the list's description. The coding-agent
+  paths read `githubRepositoryId` off any list a task is on, so a label list must not carry it.
+- **Owner and project.** A label list is in no project, because a repo can feed several
+  boards. Its owner is the owner of the board that met the label first.
+- **Who sees it.** The chip shows to everyone who can see the task, and so does the LIST
+  ([AWTD-1193](https://astrid.cc/t/AWTD-1193)): `listVisibilityWhere` gains a clause for
+  label lists reached through a task on a list the viewer can already see. **Derived, not
+  materialised** — board roles are NOT copied onto label lists as `ListMember` rows. A repo
+  can feed several boards, so access is the union over them, and detaching one board must
+  not revoke access another still grants; a stored row would have to get that right on every
+  detach, and a derived clause cannot get it wrong. The clause is limited to lists carrying
+  a `remoteNodeId`, so a label list someone converted from their own regular list is never
+  shared out by it.
+- **Read-only for everyone, with one error.** Adding a GitHub label from Astrid is refused
+  by name — 400 `github_label_read_only` — whoever asks. The add-permission check
+  (`lib/list-add-permission.ts`) steps aside for every GitHub label list rather than only
+  for one the task already carries: nothing can be added to one by anyone, so a role test
+  there could only decide WHICH error a doomed write got, and it gave the owner the named
+  refusal and a board member a bare 403 about a list they could not open.
+- **v1.** A GitHub label list is an ordinary `listType: "label"` list in v1 payloads. v1
+  lists have no `supports` block yet (§11.2), so none was added.
+- **Read-only from Astrid.** Adding or removing a GitHub label on a task is refused with 400
+  `github_label_read_only`, on create and on update, whichever backend owns the task
+  (`lib/backends/github-labels.ts`). Nothing is written through to GitHub in this slice.
+  A list edit that keeps the task's GitHub labels passes, and needs no permission on the
+  label lists it keeps.
+- **More than 20 labels** on one item: its labels are added to and never pruned.
+- **Astrid's own labels are left alone.** Only lists that mirror a GitHub label are read
+  back, so a label a person gave a mirrored task in Astrid stays.
+- **Cost.** Held labels ride on the page's replica read. One more read per page that has
+  labels, two more queries when a label is new. The page query's GraphQL cost went from 2 to 3.
+- **Purge.** A detached board's purge counts GitHub label lists as part of the replica, so a
+  labelled task is still deleted with its board, and label lists left empty go too.
+- **Verified against GitHub.** The grown fragment was run against the test project. No
+  fixture issue has a label and the project has no PR, so a non-empty answer has not been
+  recorded.
+
+**Milestones slice ([AWTD-1189](https://astrid.cc/t/AWTD-1189)), done. Inbound only. Iterations followed in AWTD-1230, below.**
+- **One list per milestone, a fourth list flavor.** An issue's or PR's milestone becomes
+  membership in a `listType: 'milestone'` list (`lib/github/projects/milestones.ts`), keyed by
+  the milestone's node id in `TaskList.remoteNodeId`. **No schema change** — `listType` is a
+  free string and `remoteNodeId` already existed for labels, so this slice is code only.
+- **Why not `virtualListType`.** The task asked whether the existing virtual-list mechanism
+  could express "tasks whose milestone is X" without a new column. It cannot:
+  `lib/virtual-list-utils.ts` is a client-side filter over loaded tasks keyed on a closed enum
+  (`today`, `not-in-list`, `assigned`), with nowhere to name a milestone. Membership answers it
+  instead, for the reason `lib/list-flavors.ts` already gives for labels — *"multi-list
+  membership already is labels"* — and board filtering comes free through `filterInLists`.
+- **At most ONE, which is the only way a milestone is not a label.** `planMilestone` returns
+  the single list to join and EVERY other milestone list to leave, so an issue moved from v1.2
+  to v1.3 stops showing v1.2. Labels, being a set, have no such step; a copy of `planLabels`
+  would have left the old milestone on the task forever, since nothing else would remove it.
+- **`null` is not *absent*.** A null milestone is GitHub saying the issue has none, and the
+  task leaves whichever milestone list it is on. An absent key is an item hydrated without the
+  field and must change nothing. `remoteMilestone` returns `null` only for the second case,
+  and for a draft or a redacted item, which cannot carry one.
+- **Read-only, with its own error.** A milestone change from Astrid is refused 400
+  `github_milestone_read_only` — **not** the label's code, so a client that special-cases one
+  does not silently treat the other as the same refusal. The guard in
+  `lib/backends/github-labels.ts` now covers both flavors through one `GITHUB_MIRRORED_LIST`
+  query rather than a second round trip, and `mirroredListChanged` returns WHICH list changed
+  so the refusal can name it.
+- **`isTagList`.** Labels and milestones are both tags rather than destinations, so
+  `lib/list-flavors.ts` gained the predicate that every chip-or-destination site had really
+  meant by `isLabelList`. The milestone chip renders through the existing tag path with its
+  own glyph; milestones are not offered in the list picker, since adding one would be refused.
+- **Cost.** A milestone is a plain field on the node, not a connection, so the page query's
+  GraphQL cost stayed at 4. Held milestones ride the same replica read as labels — the `where`
+  widened, no extra query — plus one read per page that has milestones and two more when a
+  milestone is new.
+- **Verified against GitHub.** The grown fragment was run against the test project with an
+  installation token: HTTP 200, `milestone: null` on both issues, no key on the draft. No
+  fixture issue carries a milestone and the project has no PR, so a non-empty answer has not
+  been recorded; the unit tests inject one.
+- **Iterations are NOT in this slice.** An iteration is a project field, so it waits on P6a
+  ([AWTD-1117](https://astrid.cc/t/AWTD-1117)) rather than growing a second field store.
+
+**Iterations slice ([AWTD-1230](https://astrid.cc/t/AWTD-1230)), built. Lists inbound only; the value is a P6a field.**
+- **A fifth list flavor, `listType: 'iteration'`**, one list per (field, iteration), keyed
+  `<PVTIF field node id>:<iteration id>` in `TaskList.remoteNodeId`. An iteration id is
+  only unique within its field, so the field's global node id is part of the key. **No
+  schema change.** It is a tag (`isTagList`), so it is a chip and never a destination.
+- **Read from the P6a replica, not the item.** `services/github-iteration-lists.service.ts`
+  runs after `applyFieldValues` on every page and reads `TaskFieldValue.iterationId`. So it
+  inherits P6a's rules without restating them: a cut-short read clears nothing, an archived
+  item's values are gone and its iteration lists with them. One value per field, so moving
+  a task from Sprint 41 to 42 leaves 41, the way a milestone move does.
+- **Ended iterations stay, hidden — Jon's decision (b), 2026-10-17.** GitHub keeps every
+  completed iteration, so a weekly field gains about 52 a year. An ended iteration's list
+  keeps its tasks and stays reachable by search or link, but is out of the normal list. "Ended"
+  means today (UTC) is past the last day, `startDate + duration − 1`. It is **derived on
+  every read** from `ProjectField.iterations`, not stored, so no job is needed to flip it.
+  The v1 list wire carries `iteration: { startDate, endsOn, hidden }` on iteration lists only
+  (`lib/backends/list-wire.ts`). A client syncing by `updatedSince` compares `endsOn` itself,
+  because the list does not change when its iteration ends.
+- **Membership is read-only, the value is not.** Joining or leaving an iteration list from
+  Astrid is refused 400 `github_iteration_read_only`, its own code, as milestones have
+  theirs. Since P6a-3 ([AWTD-1209](https://astrid.cc/t/AWTD-1209)), changing the iteration
+  itself is `PUT /api/v1/tasks/:id/fields/:fieldId`, which writes through to GitHub. The
+  list follows at the next hydration.
+- **Cost.** One `ProjectField` read per page. If the board has an iteration field, one
+  value read and one list read, plus two more when an iteration is new. On the list wire,
+  one `ProjectField` read per response, and none when the response has no iteration list.
+- **Not verified against GitHub.** The fixture project has no iteration field. The tests
+  use hand-written definitions and values.
+
+**Multiple assignees slice ([AWTD-1190](https://astrid.cc/t/AWTD-1190)), built. Both directions.**
+- **The field.** `Task.assigneeIds String[]` (additive, default empty, not backfilled) and
+  the v1 task field `assigneeIds`. The list a client sees is derived
+  (`lib/task-assignees.ts`): `assigneeId` first, then the stored others. So a task that has
+  only ever had `assigneeId` reads as `[assigneeId]`, and code that still writes `assigneeId`
+  directly cannot break `assigneeId === assigneeIds[0]`.
+- **Writes.** `assigneeIds` replaces the whole list. `assigneeId` alone replaces only the
+  first entry; clearing it removes the first and promotes the next. Both together must agree
+  on who is first (400 `assignee_ids_mismatch`). More than ten is 400 `too_many_assignees`.
+- **Classic lists** refuse a second assignee with 400 `multiple_assignees_not_supported`.
+  A task that leaves its GitHub board drops to one assignee at its next assignment.
+- **`list.supports`.** v1 lists now carry `supports: { multipleAssignees }`, true only on a
+  GitHub-backed list. The other §11.2 keys, with `list.remote`, `task.remote` and
+  `task.syncState`, came in [AWTD-1222](https://astrid.cc/t/AWTD-1222)
+  (`lib/backends/list-wire.ts`, `lib/backends/task-remote.ts`). astrid-core still has to
+  name each one before the Apple and Windows apps can read it.
+- **`list.backend`** (AWTD-1256). `"github_project"` or an explicit `null`, on both v1 list
+  read paths and the live list events. A client asks `supports` what a list can do and
+  `backend` what it is — gating on a `supports` key to identify a GitHub list holds only
+  while every key happens to derive from `backend`.
+- **Authorisation.** The update path's gate is `authorizeAssigneeWrite`: every person added
+  goes through `authorizeAssigneeChange`, and nobody already assigned is re-checked.
+- **An agent is first or not at all** (400 `agent_must_be_first_assignee`). A run is keyed
+  on `assigneeId`, so an agent further down would be assigned and never run.
+- **Inbound.** The fragment reads `assignees(first: 10) { nodes { id } }` on issues, pull
+  requests and drafts. People are matched by `User.githubNodeId`; someone with no Astrid
+  identity is skipped. People already assigned keep Astrid's order and newcomers follow, so
+  a sync never changes who is primary. An agent assigned in Astrid stays: GitHub never names one.
+- **Outbound.** Exactly the difference: one `removeAssigneesFromAssignable` and one
+  `addAssigneesToAssignable`. A reorder sends nothing. Someone Astrid cannot name is never
+  removed from an issue. A **draft** takes its whole list at once, so an assignment made in
+  Astrid does drop a draft's unmatched GitHub assignees.
+- **Create** still takes one assignee. Several are set by an update.
+- **Not notified.** Additional assignees get no "assigned to you" notification yet; those
+  are keyed on `assigneeId`.
+- **Cost.** One more read per page that has assignees. The page query's GraphQL cost went
+  from 3 to 4.
+- **Verified against GitHub.** The grown fragment was run against the test project. Nobody
+  is assigned to a fixture item, so a non-empty answer has not been recorded.
+
+**Agent label slice ([AWTD-1191](https://astrid.cc/t/AWTD-1191)), built. Outbound only, off by default.**
+- **The switch.** The capability `githubAgentLabels`
+  (`NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS`, C3). Off, nothing is queued, written or
+  filtered: the behaviour is exactly what it was.
+- **The label** is `agent:<mailbox>`, for example `agent:claude`
+  (`lib/github/projects/agent-labels.ts`).
+- **When.** Assigning, unassigning or reassigning an agent on a mirrored issue or pull
+  request, and creating an issue already assigned to one. The backend queues an
+  `agent_label` job holding every label the issue should carry. There is one job per
+  issue, and a later change replaces one that has not run.
+- **The job** reads the issue's labels, creates a label the repo lacks, adds what is
+  missing and removes an `agent:` label whose agent is no longer assigned. No other label
+  is touched. Running it twice changes nothing.
+- **Credential: the App bot** (installation token), not the acting user. The label reports
+  Astrid's assignment; it is not a person's edit to the issue (§8.6). So an assignment made
+  by an agent or by the system is mirrored too, and someone who may label but not create
+  labels is not refused. The App needs Issues: write.
+- **Never blocks.** The assignment is saved whether or not GitHub takes the label. A
+  failure retries with the queue's backoff.
+- **Inbound.** With the switch on, an `agent:` label is not made into a label list, and it
+  never assigns anyone: Astrid is where an agent is assigned. So an `agent:` label added by
+  hand on github.com is removed the next time that issue's agent assignment changes.
+- **A draft** has no labels. Its agent assignment stays in the replica.
+- **Not covered.** A change that arrives while that issue's job is mid-run can be lost
+  until the next assignment change. A label list made from an `agent:` label before the
+  switch was turned on is emptied by the next sync, not deleted.
+- **Verified against GitHub on 2026-10-21** ([AWTD-1284](https://astrid.cc/t/AWTD-1284)).
+  The job ran on the App bot against a Graceful-Fools issue. It added `agent:claude`, and an
+  empty set removed it, while the issue's ordinary label stayed. The lanes-test preview has
+  the switch off, so this ran with the switch on in the probe process only.
+
+Not yet: writing a parent, a blocker or an ordinary label **from** Astrid to GitHub,
+iterations and milestones.
+
+### P6a — project fields: the replica holds them, the API serves them, and they can be edited
+
+**Replica slice ([AWTD-1117](https://astrid.cc/t/AWTD-1117)), built. Inbound only.**
+- **The tables.** `ProjectField` and `TaskFieldValue`, as §9.4.1, in an additive migration
+  (two new tables, no existing row touched). **The migration has not been run against a
+  Postgres:** it was written by hand in Prisma's shape, in a session that could not start one.
+- **Which fields.** Text, number, date, single-select and iteration
+  (`lib/github/projects/fields.ts`). GitHub's built-ins (Title, Assignees, Labels and the
+  rest) are not fields here.
+- **Mapped fields.** Status, Priority and due carry `mappedTo` and never have a stored
+  value. **Estimate is an ordinary field**, not mapped as §9.4.1 lists it: Task has no
+  estimate column (P4a).
+- **Schema refresh** (`services/github-project-fields.service.ts`): at import, on every
+  reconcile, and when a hydrated item carries a field, option or iteration the board has
+  not met, once per page. Written by value, so a refresh that finds nothing new writes
+  nothing. A field deleted on GitHub goes, and its values with it.
+- **Values** are compared, not timestamped. An echo writes nothing. A value cleared on
+  GitHub is deleted here. Every task whose values changed has `updatedAt` bumped, so the
+  change rides `?updatedSince=` (§9.4.3).
+- **More than 20 values** on one item: the read may be cut short, so values are added and
+  changed and never cleared.
+- **Leaving.** An archived or removed item's values for that project are deleted.
+  Unbinding deletes the board's fields: a local board has none.
+- **Cost.** Two more reads per page (fields, held values), one when the board has no
+  fields. New values are one `createMany` per page. The schema query now reads up to 100
+  fields, was 50: built-ins count toward the page, and a cut-short list would delete fields.
+- **The fragment** grew `dataType` on each value's field and
+  `ProjectV2ItemFieldIterationValue`. The schema query grew option colour and description,
+  and iteration configuration.
+- **Not verified against GitHub.** The grown fragment and schema query have not been run
+  against the test project, and no iteration or custom value has been recorded. The tests
+  use the recorded schema and hand-written values.
+
+**API slice ([AWTD-1208](https://astrid.cc/t/AWTD-1208)), built. Read only — no write route yet.**
+- **Schema once per project.** `GET /api/v1/projects/:id/fields` returns the definitions in
+  `position` order, with `mappedTo` so a client knows Status/Priority/due are native columns.
+  404 when the `githubProjects` capability is off, through `withAuth`'s capability option,
+  which resolves at module load and short-circuits before authentication.
+- **Readable by anyone who can READ the board**, not only its owner: the schema is what makes
+  a task's `fields` legible, and a member who could load the tasks but not the schema would
+  see a map of uuid to uuid. The gate is `listVisibilityWhere` over the board's lists — the
+  same definition the list routes use — and a board the caller cannot see is **404, not 403**.
+- **ETag, from `updatedAt` AND the row count.** A deletion moves no surviving row's timestamp,
+  so a timestamp-only tag would serve a 304 holding a field that is gone.
+- **Values on tasks** are `"fields": { "<ProjectField.id>": <scalar | optionId | iterationId> }`
+  — no names, no types, no nulls, and **no key at all** on a task with no values, so every task
+  outside a GitHub board is byte-identical to before.
+- **The payload gate decided the shape (§9.4.3).** Measured 2026-10-12: eight fields on a
+  thousand tasks costs **+42.2 KiB gzipped** — the eight field ids repeat on every task, so
+  gzip removes most of the ~440 KB uncompressed cost, and only the free-text fields resist.
+  But the full task response is **already 551.8 KiB on the wire against a 500 KiB budget**
+  ([AWTD-1231](https://astrid.cc/t/AWTD-1231)), so there is no headroom to spend. Per the
+  spec's own rule — *"the budget wins over convenience"* — the list route carries values only
+  on `?include=fields`, and the detail route carries them always. Recorded in
+  docs/PERFORMANCE_BUDGETS.md.
+- **No extra query where it is not wanted.** `taskFieldValuesSelect` spreads to `{}` without
+  the capability or without `?include=fields`, so the relation is absent from the query Prisma
+  builds rather than merely unread.
+- **`list.supports.fields`** (§11.2), true only on a GitHub-backed list. It says the capability
+  exists, not that a given payload carries the values.
+**Write slice ([AWTD-1209](https://astrid.cc/t/AWTD-1209)), built.**
+- **`PUT /api/v1/tasks/:id/fields/:fieldId`** with `{ "value": <typed> | null }` (§9.4.2).
+  One field per request, so edits to different fields never contend and the replica write
+  is idempotent on `@@unique([taskId, fieldId])`. The `value` KEY must be present: an empty
+  body is malformed, while `null` is a clear.
+- **Validated before the round trip** (`planFieldValueWrite`, pure). The type must match,
+  and a select option or iteration the field does not define is refused by name —
+  `field_type_mismatch`, `field_option_unknown`, `field_iteration_unknown`. A date must be
+  a calendar day, since that is what GitHub stores.
+- **A mapped field is refused** (`field_is_mapped`), clears included. Status, priority and
+  due live in native Task columns, so writing one here would put a second spelling of one
+  fact in play; they are edited through the Task column.
+- **As the acting user's own token**, like every other write in `lib/backends/github-project.ts`
+  — never the installation token, so GitHub applies that person's project permission.
+- **GitHub first, replica second.** A refusal leaves no `TaskFieldValue` behind, so the
+  replica never claims a value GitHub did not take. `Task.updatedAt` is bumped on success,
+  so the edit rides `?updatedSince=` like an inbound one.
+- **404, never 403**, for a task or board the caller cannot see; 403 only once they can see
+  it but may not edit its tasks (`canUserEditTasks`). Errors otherwise follow P5a:
+  `auth_required`, `forbidden`, `rate_limited` with `retryAfter`, `sso_required` with
+  `ssoUrl`, `upstream_unavailable`.
+- **The binding PATCH now re-runs the field refresh** when the priority or due field is
+  remapped, which was the gap left by the API slice. `mappedTo` is derived from the
+  binding, so remapping made two rows wrong at once — the old field still mapped, the new
+  one not — and the write route would then have refused the new field and allowed the old.
+  A failed re-sync does not fail the PATCH; the reconcile stays the backstop.
+**Web UI slice ([AWTD-1210](https://astrid.cc/t/AWTD-1210)), detail pane built; the board filter is split out.**
+- **One row per unmapped field in task detail**, in `position` order, reusing `TaskFieldRow`
+  — the shared two-column row AWTD-1177 introduced so these rows cannot drift from the
+  native ones. Typed editors for all five: text, number, date, single-select with its
+  option colours, iteration.
+- **A mapped field never renders.** Status, priority and due have native Task rows already,
+  and AWTD-1209 refuses the write, so a second control could only ever fail. An unknown
+  `dataType` is dropped rather than drawn without an editor, which is what a newer server
+  talking to an older client would otherwise produce.
+- **Iteration choices put current and upcoming first**, with completed ones still listed and
+  muted — GitHub keeps completed iterations in the same array, and a task already pointing
+  at one must still show its title rather than a bare id.
+- **Nothing renders off a GitHub board.** The section returns null unless the task is on a
+  list with `backend: "github_project"`, so every other pane is unchanged and no request is
+  made.
+- **The schema is fetched once per project**, not per task: the route's ETag makes the
+  browser's revalidate cheap, and an in-flight map stops N open panes firing N requests.
+- **Clearing sends `null`**, the one shape the PUT treats as a clear. `auth_required` and
+  `sso_required` surface as what to do next, never as the raw code.
+- **Looked at, not assumed.** Rendered against a dev server and measured: five rows, every
+  control on one left edge (121px), the mapped field absent, and correct in dark mode —
+  which needs the `dark` class on `<html>`, since `darkMode: ["class"]` means the OS setting
+  alone does not flip it.
+- **The board filter is NOT here.** Every existing filter is a named column on
+  `UserListViewPreference`, and a project field is a dynamic id, so it needs a storage
+  decision and probably a migration. Split to P6a-5
+  ([AWTD-1259](https://astrid.cc/t/AWTD-1259)) rather than folded in.
+
+**Board filter ([AWTD-1259](https://astrid.cc/t/AWTD-1259), P6a-5) — SHIPPED, 2026-10-21.**
+The migration it was waiting on went out with that day's deploy, and production serves
+`filterProjectField` on `GET /api/v1/lists`.
+- **Storage (a), Jon's call:** one nullable `UserListViewPreference.filterProjectField`
+  holding `"<fieldId>:<valueId>"`, so one project-field filter at a time. It is in
+  `LIST_VIEW_PREFERENCE_FIELDS`, so it saves and overlays through the existing per-user
+  path. It has no `TaskList` twin: there is no shared default to fall back to. The migration
+  only adds the column.
+- **Wire:** `filterProjectField` on the v1 list, `null` when unset. Additive.
+- **Rules live in `lib/project-field-filter.ts`:** only unmapped single-select and iteration
+  fields can be filtered on. A stored value whose field or option no longer exists
+  **resolves to no filter**, so a saved preference cannot blank the board.
+- **Values:** the bulk sync omits `fields`, so while a filter is active the board fetches
+  its tasks once with `?include=fields&omit=description,listMembers`
+  (`hooks/use-project-field-values.ts`). It shows unfiltered until that fetch lands, or if
+  it fails. A task's own `fields` (from detail or a session edit) wins over the fetched map.
+- **Control:** a "Project field" select in Sort & Filters, grouped by field, with iterations
+  listed current first. It renders nothing off a GitHub board. Looked at against a dev
+  server: the mapped Status and the text field are absent, and the label is centred on
+  the trigger.
+- **Board only.** The list view of the same board does not apply it yet.
+
+- **Not recorded against GitHub.** The mutation document is built by the same
+  `addFieldValue` that P5a already proved against the test project
+  (`write-issue-title-status.json`), so the shape is not new. But no text, number or
+  iteration value has been recorded, and the new tests use hand-written values.
+
+Open, in order: [AWTD-1208](https://astrid.cc/t/AWTD-1208) the fields route, compact values
+on tasks and the payload measurement · [AWTD-1209](https://astrid.cc/t/AWTD-1209) editing a
+field from Astrid · [AWTD-1210](https://astrid.cc/t/AWTD-1210) web editors and board
+filtering.
+
+### P6b, P7, P8 — recurrence, per-org SSO, brand: not started
+
+These need, in order:
+1. A decision to apply the additive schema in §4/§8.5/§9.4.1 at a deploy.
+2. The brand's GitHub App given Organization Projects read/write and the `projects_v2*`
+   events.
+3. A test org for the live smoke test (§14.2).
+4. The astrid-ios work in §11.3.
+
+The seam they plug into, `TaskBackend` (§5.3), is in place.
+
+**P8 — brand: built in the repo, not delivered** (AWTD-1121). Done: the profile, the
+trademark lint, the boot assertion (§11.1), the D5 rule test (§8.3), the board copy in
+`BoardViewSection` moved into i18n, WHITELABELING §3 and §8, and draft listing copy. Not
+done, and not doable from the repo: registering the App, the brand preview (it will not
+boot without that App's OAuth client), and publishing the listing.
+
+### Where the remaining work is tracked
+
+Every remaining item is a task, written to stand on its own.
+
+| Owner | Tasks |
+|---|---|
+| **Jon: before the next deploy** | [AWTD-1096](https://astrid.cc/t/AWTD-1096) GitHub App callback URLs + OAuth client in prod · [AWTD-1097](https://astrid.cc/t/AWTD-1097) whitelabel-partner `CODING_AGENT=false` · [AWTD-1098](https://astrid.cc/t/AWTD-1098) ship P0–P2 |
+| **Jon: unblockers** | [AWTD-1099](https://astrid.cc/t/AWTD-1099) schema decision · [AWTD-1100](https://astrid.cc/t/AWTD-1100) App permissions/events · [AWTD-1101](https://astrid.cc/t/AWTD-1101) test org · [AWTD-1102](https://astrid.cc/t/AWTD-1102) §15, answered: partner choices, not ours · [AWTD-1103](https://astrid.cc/t/AWTD-1103) partner brand |
+| P2 remainder | [AWTD-1104](https://astrid.cc/t/AWTD-1104) mobile routes onto the shared rule · [AWTD-1110](https://astrid.cc/t/AWTD-1110) Apple on web · [AITD-465](https://astrid.cc/t/AITD-465) iOS/Mac GitHub + SSO sign-in |
+| P3 remainder | [AWTD-1111](https://astrid.cc/t/AWTD-1111) installation model · [AWTD-1112](https://astrid.cc/t/AWTD-1112) user tokens + Issues sync migration · [AWTD-1113](https://astrid.cc/t/AWTD-1113) one webhook · [AWTD-1114](https://astrid.cc/t/AWTD-1114) Connections card |
+| P4–P8 | [AWTD-1115](https://astrid.cc/t/AWTD-1115) P4 mirror · [AWTD-1116](https://astrid.cc/t/AWTD-1116) P5 write-through · [AWTD-1117](https://astrid.cc/t/AWTD-1117) P6a fields · [AWTD-1118](https://astrid.cc/t/AWTD-1118) P6b spawn recurrence · [AWTD-1119](https://astrid.cc/t/AWTD-1119) P6c rich mapping · [AWTD-1120](https://astrid.cc/t/AWTD-1120) P7 per-org SSO · [AWTD-1121](https://astrid.cc/t/AWTD-1121) P8 brand · [AITD-466](https://astrid.cc/t/AITD-466) iOS/Mac boards · [AWTD2-66](https://astrid.cc/t/AWTD2-66) Windows fixtures |
+| Found in review | [AWTD-1095](https://astrid.cc/t/AWTD-1095) /fixall loop clobbers an interactive session · [AWTD-1106](https://astrid.cc/t/AWTD-1106) merge route's unauthenticated comment fetch · [AWTD-1107](https://astrid.cc/t/AWTD-1107) coding agent uses only the first installation · [AWTD-1108](https://astrid.cc/t/AWTD-1108) SSE event names in API_CONTRACT · [AWTD-1109](https://astrid.cc/t/AWTD-1109) shrink the entity-writes allow-list |
+

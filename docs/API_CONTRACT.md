@@ -127,6 +127,61 @@ verifier burns the code rather than allowing another attempt.
 
 ## Task Endpoints
 
+### GET `/api/v1/tasks`
+List the tasks the caller can see. Scope: `tasks:read`.
+
+**Query parameters**
+
+| Parameter | Meaning |
+|---|---|
+| `listId` | only this list's tasks; caller must have access to it |
+| `completed` | `true` / `false`. Absent means both |
+| `priority` | `0`–`3` |
+| `assigneeId`, `assigneeEmail` | filter by assignee (email is case-insensitive) |
+| `statusRole` | board column, or `none` for Inbox — the tasks carrying no status |
+| `limit`, `offset` | default 100, capped at 1,000; default offset 0 |
+| `includeComments` | `true` embeds up to 20 comments per task, newest first |
+| `updatedSince` | ISO timestamp — delta sync. The response then also carries `deletedIds`, because tasks are hard-deleted and an incremental client would otherwise keep showing them. An unparseable value is ignored rather than applied |
+| `omit` | comma-separated fields to leave out: `description`, `listMembers` |
+| `leanListMembers` | `1` — the older spelling of `omit=listMembers`, still supported |
+
+**`omit` — the list view should not pay for the sync's payload**
+
+This route does two jobs: it is a list view's read and a client's full sync. A
+list view needs titles; only the sync needs descriptions. Measured 2026-10-12,
+`?limit=1000` was 551.8 KiB on the wire against a 500 KiB budget and
+`description` was **443.3 KiB — 80%** of it.
+
+So `description` is **opt-out, not optional** (AWTD-1233 → AWTD-1236):
+
+```http
+GET /api/v1/tasks?limit=1000&omit=description
+```
+
+- **Omitting the parameter returns exactly the response it always did.** This
+  is additive; no client has to change, and each one drops the bytes when it
+  has somewhere else to read a description from — `GET /api/v1/tasks/{id}` or
+  the task event, both of which carry the full shape.
+- An omitted field is **absent from the task object, not `null`**. `null`
+  already means "this task has no description", and a client that cannot tell
+  "not sent" from "empty" will overwrite good text with none. Apply an omitted
+  field as *unchanged*, never as empty.
+- **Unrecognised names are ignored**, not rejected, so a newer client naming a
+  field this build has never heard of still gets a usable response. The
+  trade-off is that a typo silently returns the full payload — so the response
+  echoes what the server actually dropped:
+
+```json
+{ "tasks": [ … ], "meta": { "total": 1000, "limit": 1000, "offset": 0,
+  "apiVersion": "v1", "authSource": "oauth", "omitted": ["description"] } }
+```
+
+  `meta.omitted` is **absent** on a full response. A caching client should read
+  it before writing rows to disk.
+- Only `description` and `listMembers` may be dropped. Identity, status and the
+  permission fields (`lists[].ownerId`) are not droppable: a response without
+  them is not lean, it is broken.
+
 ### GET `/api/tasks`
 Fetch all tasks accessible to the current user.
 
@@ -255,6 +310,11 @@ Create a new list.
 ### PUT `/api/lists/{id}`
 Update an existing list.
 
+`color`, when sent, must be a six-digit hex string (`#rrggbb`); anything else
+is rejected with 400 `Invalid color (must be #rrggbb)`. The same rule applies
+to `PUT /api/v1/lists/{id}`. Only the fields sent are changed on v1, so
+`{ "color": "#22c55e" }` alone is a valid recolour.
+
 ### DELETE `/api/lists/{id}`
 Delete a list.
 
@@ -324,6 +384,41 @@ Create a comment on a task. Supports file attachments via `fileId`.
 - `fileId` links an existing SecureFile to the comment
 - Files can be from the user's uploads or from chat channels the user has access to
 
+### POST `/api/v1/tasks/{taskId}/attachment-uploads`
+Mint a ticket to upload one image to a task (OAuth/API clients and MCP `create_task_attachment_upload`). Scope `comments:write`; caller must have task access. `taskId` may be an identifier such as `AWTD-1172`.
+
+**Request:**
+```json
+{
+  "fileName": "shot.png",
+  "mimeType": "image/png (optional; png | jpeg | gif | webp, derived from extension)",
+  "caption": "string (optional, max 1000; default 'Attached: <fileName>')",
+  "clientRequestId": "string (optional idempotency key)",
+  "aiAgentId": "string (optional; agent author, as on comments)"
+}
+```
+
+**Response (201):**
+```json
+{
+  "taskId": "uuid", "fileName": "shot.png", "mimeType": "image/png", "clientRequestId": "string",
+  "upload": {
+    "method": "PUT",
+    "url": "https://<host>/api/v1/attachment-uploads",
+    "headers": { "X-Upload-Ticket": "<signed ticket>", "Content-Type": "image/png" },
+    "expiresAt": "ISO-8601 (15 min)",
+    "maxBytes": 4194304
+  }
+}
+```
+Errors: 400 (unsupported type incl. SVG, extension/type mismatch, path in name, caption too long, bad `aiAgentId`), 404 (no task access).
+
+### PUT `/api/v1/attachment-uploads`
+Upload the raw image bytes with the `upload.headers` above. The ticket is the credential (no OAuth header). Bytes are magic-number checked against the ticket's type; task access is re-checked. Stores a SecureFile and posts an `ATTACHMENT` comment on the task.
+
+- **201** `{ comment, fileId, taskId }`; **200** same payload on a replay of the same ticket/`clientRequestId`
+- **401** missing/tampered/expired ticket; **400** empty or non-image body; **404** access revoked; **413** over 4 MB
+
 ### PUT `/api/comments/{id}`
 Update a comment.
 
@@ -389,6 +484,21 @@ Get a user's public profile. The `email` field is returned only when the request
 
 ---
 
+### GET|PATCH `/api/v1/users/me/smart-tasks`
+Task-creation and display preferences. GET requires `user:read`, PATCH requires
+`user:write`. PATCH accepts any subset of the fields and returns the updated set;
+it also emits `user_settings_updated` to the user's other sessions.
+
+| Field | Type | Notes |
+|---|---|---|
+| `showListImages` | `boolean \| null` | "Show list images". `null` = follow the `hide_list_images` experiment flag (`GET /api/v1/features`); `true`/`false` = the user's explicit choice, which always wins. Draw list images when `showListImages ?? !features.hide_list_images`. PATCH `null` to return to the experiment. Any other type → 400. |
+
+The response includes `emailToTaskEnabled`, `defaultTaskDueOffset`,
+`defaultDueTime`, `smartTaskCreationEnabled`, `subtaskDisplay` and
+`taskDisplayMode`, which follow the same PATCH rules.
+
+---
+
 ### GET `/api/v1/users/me/connections`
 Everything that can act as the account, from every source, as one list.
 Requires `user:read`.
@@ -441,6 +551,35 @@ configuration. 400 for an unknown kind, 404 when the row is not the caller's.
 { "success": true, "kind": "authorizedApp", "id": "string", "revokedTokens": 2,
   "meta": { "apiVersion": "v1", "authSource": "session" } }
 ```
+
+### POST `/api/v1/users/me/access-tokens`
+Mint a user-level access token. This is the long-lived bearer the GitHub.com Copilot cloud agent
+pastes into its MCP configuration. It's the v1 twin of the web hub's `POST /api/mcp/user-tokens`,
+with the same body and the same token (AWTD-1312). Requires `user:write`, and answers 404 where the
+deployment has MCP disabled.
+
+It's **session-only**: a delegated token gets a 403, as with client registration and revoke. A
+bearer minted from a delegated token would outlive revoking that token. The new token appears in
+`GET /api/v1/users/me/connections` as kind `accessToken`, and is revoked there.
+
+**Request:**
+```json
+{ "permissions": ["read", "write"], "expiresInDays": 90,
+  "description": "GitHub Copilot cloud agent", "agent": "copilot" }
+```
+- `permissions` — one or both of `read`, `write`. Required, and must not be empty.
+- `expiresInDays` — 1–365. If omitted, the token never expires.
+- `agent` — optional. It's an agent mailbox from the consent screen's roster, and comments made
+  with the token are authored as that agent rather than as the user.
+
+**Response:**
+```json
+{ "success": true, "token": "astrid_mcp_…", "permissions": ["read", "write"],
+  "expiresAt": "ISO 8601 | null", "description": "string | null", "createdAt": "ISO 8601",
+  "meta": { "apiVersion": "v1", "authSource": "session" } }
+```
+Errors: 400 for an invalid body, 403 when MCP access is disabled for the account, 409 when the
+requested agent identity cannot be resolved.
 
 ### AI service ids
 `serviceId` in `PUT|DELETE /api/v1/users/me/ai-credentials` and
@@ -598,19 +737,60 @@ Send a message. Body: `{ content, type?, fileId?, replyToId?, clientRequestId? }
 ### GET `/api/sse`
 Server-Sent Events endpoint for real-time updates.
 
-**Events:**
-- `task:created` - New task created
-- `task:updated` - Task modified
-- `task:deleted` - Task removed
-- `list:created` - New list created
-- `list:updated` - List modified
-- `list:deleted` - List removed
-- `comment:created` - New comment added
+Every event is an unnamed SSE message (read it in `onmessage`, not `addEventListener`) whose
+body is `{ "type": "<event>", "timestamp": "<ISO 8601>", "data": { … } }` (`connected` and
+`ping` carry no `data`). Switch on `type`.
+
+**Events** — names are snake_case, exactly as below. The canonical list is
+`lib/sse-event-types.ts`; the server cannot send a type missing from it, and
+`tests/rules/sse-event-names-match-the-contract.test.ts` fails if this list drifts from it.
+(This list once read `task:created`, `comment:created`, … — names the server never sent.)
+
+Connection:
+- `connected` - Stream opened
+- `ping` - Keep-alive heartbeat
+- `reconnect` - Server is closing the stream; reconnect with `since` to recover missed events
+
+Tasks:
+- `task_created` - New task created
+- `task_updated` - Task modified
+- `task_completed` - Task modified, and the change completed it (sent instead of `task_updated`)
+- `task_deleted` - Task removed
+- `task_assigned` - Task assigned to the recipient
+
+Comments:
+- `comment_created` - New comment added
+- `comment_updated` - Comment edited
+- `comment_deleted` - Comment removed
+
+Lists and membership:
+- `list_created` - New list created
+- `list_updated` - List modified
+- `list_deleted` - List removed
+- `list_member_added` - Member added to a list
+- `list_member_removed` - Member removed from a list
+- `list_member_role_changed` - Member role changed (to anything but admin)
+- `list_admin_role_granted` - Member promoted to admin
+
+Chat:
 - `chat_message_created` - New chat message
 - `chat_message_updated` - Chat message edited
 - `chat_message_deleted` - Chat message removed
+- `chat_mention` - Recipient was @-mentioned in a chat message
+
+AI agents:
 - `agent_typing_start` - AI agent began processing (show typing indicator)
 - `agent_typing_stop` - AI agent finished processing (hide typing indicator)
+- `agent_task_start` - A scheduled agent task has started
+- `agent_task_comment` - A comment on a task assigned to an agent
+- `ai_agent_assigned` - An AI agent was assigned a task
+- `ai_agent_activity` - Activity reported by an external AI agent webhook
+
+User and app state:
+- `my_tasks_preferences_updated` - My Tasks filter/sort preferences changed
+- `user_settings_updated` - User settings changed
+- `feature_flags_updated` - Feature flags changed; refetch them
+- `external_sync_refresh` - An external source (e.g. GitHub issues) changed; refetch the affected list
 
 ---
 

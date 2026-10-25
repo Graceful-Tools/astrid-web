@@ -7,7 +7,11 @@
     "publicSharedLists": "Public Shared Lists",
     "publicLists": "Public Lists",
     "seeAllCollaborative": "See all collaborative lists →",
-    "seeAllSuggested": "See all suggested lists →"
+    "seeAllSuggested": "See all suggested lists →",
+    "hideSidebar": "Hide sidebar",
+    "showSidebar": "Show sidebar",
+    "hideMessages": "Hide messages",
+    "showMessages": "Show messages"
   },
   "userMenu": {
     "settings": "Settings",
@@ -93,12 +97,8 @@
       "description": "Add a description...",
       "comment": "Write a comment..."
     },
-    "addTaskPlaceholder": "Add a task",
-    "addTaskToList": "Add task to {listName}...",
-    "addTaskToCurrentList": "Add task to current list...",
-    "addTaskShort": "Add task...",
+    "addTaskPlaceholder": "Add a task...",
     "quickAdd": "Quick add...",
-    "addNewTask": "Add a new task...",
     "wontDo": "Won't do",
     "reopen": "Reopen",
     "status": "Status",
@@ -122,6 +122,25 @@
       "label": "Task ID",
       "copy": "Copy task id",
       "copied": "Copied {id}"
+    },
+    "occurrence": {
+      "label": "Occurrence",
+      "previous": "Previous occurrence",
+      "next": "Next occurrence"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Add a subtask",
+      "addPlaceholder": "Add a subtask…"
+    },
+    "projectFields": {
+      "clear": "None",
+      "empty": "Not set",
+      "errorAuthRequired": "Connect your GitHub account to change this field.",
+      "errorSsoRequired": "Your organisation requires single sign-on for this project. Sign in to GitHub, then try again.",
+      "errorSaveFailed": "That change could not be saved to GitHub. Try again.",
+      "filterLabel": "Project field",
+      "filterAll": "All tasks"
     }
   },
   "lists": {
@@ -194,7 +213,8 @@
     "weekly": "Weekly",
     "monthly": "Monthly",
     "yearly": "Yearly",
-    "custom": "Custom"
+    "custom": "Custom",
+    "pickAtLeastOneDay": "Pick at least one day"
   },
   "weekdays": {
     "sunday": "Sunday",
@@ -419,7 +439,8 @@
   "search": {
     "placeholder": "Search for tasks and users",
     "noResults": "No results found",
-    "searching": "Searching..."
+    "searching": "Searching...",
+    "open": "Search"
   },
   "listHeaders": {
     "myTasks": "My Tasks",
@@ -473,6 +494,11 @@
         "sdkNeedsBoth": "Your server needs both: these client credentials to call the API, and the webhook secret below to verify deliveries.",
         "manage": "Manage in Connections",
         "error": "Could not create credentials"
+      },
+      "githubConnection": {
+        "title": "GitHub connection",
+        "description": "Server-run coding agents use the GitHub connection on Settings → Connections, where every connected organization is listed.",
+        "open": "Open Connections"
       }
     },
     "apiAccess": {
@@ -754,6 +780,12 @@
         "listDesc": "The checkbox completes the task, and priority and assignee each get their own row.",
         "projectDesc": "Compact. Tapping the checkbox opens priority, assignee, state and complete."
       },
+      "listImages": {
+        "title": "List images",
+        "description": "Show a picture beside each list in the sidebar and list header (synced across devices)",
+        "label": "Show list images",
+        "offDesc": "When off, each list shows its color instead."
+      },
       "emailToTask": {
         "title": "Email-to-Task",
         "description": "Create tasks instantly by sending emails to {inboundTaskEmail}",
@@ -954,6 +986,40 @@
         "title": "Developer",
         "description": "Create OAuth apps by hand, test the API, and connect assistants that speak OpenAPI.",
         "openTester": "Open API tester"
+      },
+      "github": {
+        "title": "GitHub",
+        "description": "Connects {appName} to your GitHub accounts and organizations. Server-run coding agents create branches and pull requests through it.",
+        "descriptionProjects": "Connects {appName} to your GitHub organizations, so their projects can be boards here.",
+        "empty": "Not connected to GitHub yet.",
+        "connect": "Connect GitHub",
+        "installAnother": "Add another organization",
+        "refresh": "Refresh repositories",
+        "refreshed": "Repositories refreshed",
+        "refreshError": "Couldn't refresh repositories",
+        "loadError": "Couldn't load your GitHub connection",
+        "installError": "Couldn't start the GitHub installation",
+        "organization": "Organization",
+        "personal": "Personal account",
+        "repoCountOne": "1 repository",
+        "repoCountMany": "{count} repositories",
+        "allRepos": "all repositories",
+        "suspended": "Suspended",
+        "disconnect": "Disconnect",
+        "disconnectTitle": "Disconnect {account}?",
+        "disconnectDescription": "Coding agents will stop working in {account}'s repositories. The GitHub App stays installed there; uninstall it on GitHub to remove it completely.",
+        "disconnectDescriptionProjects": "You won't see {account}'s projects here until you refresh from GitHub. The GitHub App stays installed there; uninstall it on GitHub to remove it completely.",
+        "disconnected": "Disconnected {account}",
+        "disconnectError": "Couldn't disconnect",
+        "outcomes": {
+          "connected": "GitHub connected",
+          "updated": "GitHub connection updated",
+          "not_authorized": "GitHub says your account can't see that installation",
+          "already_connected": "That installation is already connected to another account",
+          "verification_unavailable": "GitHub sign-in isn't configured on this server, so the installation couldn't be verified",
+          "error": "Something went wrong connecting GitHub",
+          "synced": "GitHub access refreshed"
+        }
       }
     }
   },
@@ -978,12 +1044,31 @@
     "keyInvalid": "{min}–{max} letters or digits, starting with a letter",
     "keyRename": "Rename",
     "keyRenameHint": "Tasks become {next}; {old} keeps working",
-    "keyRenameFailed": "Couldn't rename the key"
+    "keyRenameFailed": "Couldn't rename the key",
+    "createBoard": "Create Board",
+    "creatingBoard": "Creating...",
+    "createBoardFailed": "Failed to create board",
+    "disableBoard": "Disable Board",
+    "disablingBoard": "Disabling...",
+    "disableBoardFailed": "Failed to disable board",
+    "disableBoardTitle": "Disable Board View",
+    "disableBoardBody": "Tasks stay in this list, but the Ready/Doing/Waiting columns will be removed.",
+    "disableBoardNote": "Tasks currently in a status column will lose their status. Completed tasks stay completed."
+  },
+  "viewRotator": {
+    "showList": "Show list",
+    "showMessages": "Show messages",
+    "showBoard": "Show board"
   },
   "listSettings": {
+    "color": {
+      "label": "List Color",
+      "custom": "Custom color"
+    },
     "adminSettings": "Admin Settings",
     "sortAndFilters": "Sort & Filters",
     "sortAndFiltersAreYours": "Only you see these — they don't change the list for anyone else.",
+    "listOptions": "List options",
     "sortBy": "Sort by",
     "showTasks": "Show tasks",
     "priorityFilter": "Priority filter",
@@ -1056,6 +1141,55 @@
     "modelSetup": {
       "noModel": "I'd love to help, but I need an AI model to power my responses! Head to {settingsLink} to set up your preferred model.",
       "onDeviceUnavailable": "Your selected model only runs on supported Apple devices, so I can't answer here. Head to {settingsLink} to choose a model that works everywhere."
+    }
+  },
+  "githubProjectPicker": {
+    "entry": "Connect a GitHub project",
+    "title": "Connect a GitHub project",
+    "description": "Pick an organization project to use as a board in {appName}. Its items import in the background.",
+    "connect": "Use as board",
+    "openBoard": "Open board",
+    "closed": "Closed",
+    "itemCountOne": "1 item",
+    "itemCountMany": "{count} items",
+    "noProjects": "No projects you can see in this organization.",
+    "noOrganizations": "No GitHub organization is connected yet. Install the app on an organization, or refresh if it's already installed.",
+    "installOnOrg": "Install on an organization",
+    "installAnother": "Install on another org",
+    "refreshAccess": "Refresh from GitHub",
+    "authRequired": "Connect your GitHub account to see your organizations' projects.",
+    "connectGithub": "Connect GitHub",
+    "loadError": "Couldn't load your GitHub projects",
+    "retry": "Try again",
+    "bound": "Connected {title}. Importing its items…",
+    "alreadyBound": "That project is already a board",
+    "bindError": "Couldn't connect that project"
+  },
+  "listInsights": {
+    "tab": "Insights",
+    "days7": "7 days",
+    "days30": "30 days",
+    "days90": "90 days",
+    "activity": "Activity",
+    "created": "New",
+    "completed": "Completed",
+    "createdTotal": "{count} new",
+    "completedTotal": "{count} completed",
+    "timeToComplete": "Median time to complete",
+    "timeInLane": "Median time in each column",
+    "sampleSize": "from {count}",
+    "notEnoughHistory": "Not enough history yet",
+    "laneHistoryNote": "Column moves are recorded from now on, so this fills in as cards move.",
+    "contributors": "Top contributors",
+    "profileCounts": "{completed} completed · {inspired} inspired · {supported} supported",
+    "activityCounts": "{created} created · {edited} edits · {commented} comments",
+    "noActivity": "No activity in this period",
+    "loadFailed": "Couldn't load insights",
+    "loading": "Loading insights…",
+    "duration": {
+      "minutes": "{n} min",
+      "hours": "{n} h",
+      "days": "{n} d"
     }
   }
 }

@@ -41,6 +41,12 @@ interface CreateTaskData {
   customRepeatingData?: CustomRepeatingPattern | null
   /** Board column at creation — a role, resolved by the board (task f58ece7c). */
   statusRole?: ApiCreateTaskData['statusRole']
+  /**
+   * The task this one is a subtask of (AWTD-1227). The server has accepted it
+   * on create since subtasks existed; the client chain simply never carried it,
+   * so a subtask could only be made by creating a task and re-parenting it.
+   */
+  parentTaskId?: string | null
 }
 
 interface UpdateTaskData extends Partial<CreateTaskData> {
@@ -90,7 +96,8 @@ export const useTaskOperations = ({
         customRepeatingData: taskData.customRepeatingData,
         // Dropping this here is how "add to Ready" landed tasks in Inbox —
         // the board sends it and POST /api/v1/tasks persists it (task f58ece7c).
-        statusRole: taskData.statusRole
+        statusRole: taskData.statusRole,
+        ...(taskData.parentTaskId ? { parentTaskId: taskData.parentTaskId } : {}),
       }
 
       // Check if offline
@@ -286,10 +293,18 @@ export const useTaskOperations = ({
       // The server uses this to correctly calculate the next occurrence
       // without timezone confusion (e.g., 9pm PST = 5am UTC next day)
       let localCompletionDate: string | undefined
+      // And the browser's zone, so a TIMED repeating task steps on the person's calendar, as on
+      // iOS: 9am stays 9am across a daylight-saving change (AWTD-1063).
+      let timeZone: string | undefined
       if (updates.completed === true) {
         const now = new Date()
         // Format as YYYY-MM-DD in local timezone
         localCompletionDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+        try {
+          timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || undefined
+        } catch {
+          timeZone = undefined
+        }
       }
 
       const apiData: Partial<ApiUpdateTaskData> = {
@@ -304,7 +319,8 @@ export const useTaskOperations = ({
           : updates.assigneeId || undefined,
         listIds: updates.listIds,
         repeating: (updates.repeating ?? existingTask?.repeating ?? currentTaskContext?.repeating) as any,
-        ...(localCompletionDate && { localCompletionDate })
+        ...(localCompletionDate && { localCompletionDate }),
+        ...(timeZone && { timeZone }),
       }
 
       // Check if offline

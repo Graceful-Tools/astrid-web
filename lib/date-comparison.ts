@@ -26,6 +26,68 @@ export function getLocalDateAsUTCMidnight(date: Date = new Date()): number {
 }
 
 /**
+ * The all-day instant for a local calendar day: UTC midnight of that day.
+ *
+ * The write-side twin of getLocalDateAsUTCMidnight. Flattening with
+ * `setUTCHours(0, 0, 0, 0)` instead reads the UTC day, which is the day
+ * before east of UTC for a local midnight (AWTD-1270).
+ */
+export function allDayInstantForLocalDay(date: Date): Date {
+  return new Date(getLocalDateAsUTCMidnight(date))
+}
+
+/**
+ * A task's calendar day, as local midnight of that day.
+ *
+ * A timed task's day is its local day; an all-day task's day is its UTC day,
+ * because that is how it is stored. Edits that keep "the task's day" (clearing
+ * or picking a time) must start here rather than from the raw instant (AWTD-1270).
+ */
+export function taskCalendarDay(dueDateTime: Date, isAllDay: boolean): Date {
+  return isAllDay
+    ? new Date(dueDateTime.getUTCFullYear(), dueDateTime.getUTCMonth(), dueDateTime.getUTCDate())
+    : new Date(dueDateTime.getFullYear(), dueDateTime.getMonth(), dueDateTime.getDate())
+}
+
+/**
+ * Move a task's due date by whole days, keeping its kind (AWTD-1273).
+ *
+ * An all-day task moves by its own calendar day and stays at UTC midnight; a
+ * timed task moves by its local day and keeps its local time, across DST too.
+ * A task with no date starts from today's local day, as an all-day task.
+ */
+export function shiftTaskDueDate(
+  dueDateTime: Date | string | null | undefined,
+  isAllDay: boolean,
+  days: number,
+  now: Date = new Date(),
+): { dueDateTime: Date; isAllDay: boolean } {
+  if (!dueDateTime || isAllDay) {
+    const day = dueDateTime ? taskCalendarDay(new Date(dueDateTime), true) : new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    day.setDate(day.getDate() + days)
+    return { dueDateTime: allDayInstantForLocalDay(day), isAllDay: true }
+  }
+  const moved = new Date(dueDateTime)
+  moved.setDate(moved.getDate() + days)
+  return { dueDateTime: moved, isAllDay: false }
+}
+
+/**
+ * "Postpone": a week from today (AWTD-1273). A timed task keeps its time of
+ * day; an all-day task, or one with no date, lands all-day.
+ */
+export function postponeTaskDueDate(
+  dueDateTime: Date | string | null | undefined,
+  isAllDay: boolean,
+  now: Date = new Date(),
+): { dueDateTime: Date; isAllDay: boolean } {
+  if (!dueDateTime || isAllDay) return shiftTaskDueDate(null, false, 7, now)
+  const todayAtItsTime = new Date(dueDateTime)
+  todayAtItsTime.setFullYear(now.getFullYear(), now.getMonth(), now.getDate())
+  return shiftTaskDueDate(todayAtItsTime, false, 7)
+}
+
+/**
  * Get the UTC calendar date as a UTC midnight timestamp.
  *
  * This extracts the UTC date components from a date stored at UTC midnight.

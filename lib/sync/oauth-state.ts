@@ -67,3 +67,50 @@ export function verifyOAuthState(state: string, provider: OAuthStateProvider): s
     return null
   }
 }
+
+/** Flows whose state carries a subject. Separate from OAuthStateProvider on purpose. */
+export type SubjectStateProvider = 'github-app'
+
+/**
+ * A state that also carries a `subject` — the thing the flow is about, e.g. the
+ * GitHub App installation a user is proving access to (AWTD-1087). The subject
+ * is inside the signed payload, so the callback can trust it came from this
+ * server; it still proves nothing about the GitHub side, which the caller must
+ * check with the user's own token.
+ *
+ * Tagged with its own provider type so a subject flow is never confused with
+ * an integration-link flow, and five dot-separated parts, so `verifyOAuthState`
+ * never accepts one of these (its signature check covers four) and vice versa.
+ */
+export function mintOAuthStateWithSubject(
+  userId: string,
+  provider: SubjectStateProvider,
+  subject: string,
+): string {
+  const secret = process.env.NEXTAUTH_SECRET
+  if (!secret) throw new Error('NEXTAUTH_SECRET is required to mint OAuth state')
+  if (!/^[A-Za-z0-9_-]+$/.test(subject)) throw new Error('OAuth state subject must be URL-safe')
+  const expires = Date.now() + STATE_TTL_MS
+  const payload = `${provider}.${userId}.${expires}.${subject}`
+  return Buffer.from(`${payload}.${sign(secret, payload)}`).toString('base64url')
+}
+
+export function verifyOAuthStateWithSubject(
+  state: string,
+  provider: SubjectStateProvider,
+): { userId: string; subject: string } | null {
+  try {
+    const secret = process.env.NEXTAUTH_SECRET
+    if (!secret) return null
+    const parts = Buffer.from(state, 'base64url').toString().split('.')
+    if (parts.length !== 5) return null
+    const [tag, userId, expiresStr, subject, sig] = parts
+    if (tag !== provider || !userId || !expiresStr || !subject || !sig) return null
+    if (Date.now() > Number(expiresStr)) return null
+    const expected = sign(secret, `${provider}.${userId}.${expiresStr}.${subject}`)
+    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null
+    return { userId, subject }
+  } catch {
+    return null
+  }
+}

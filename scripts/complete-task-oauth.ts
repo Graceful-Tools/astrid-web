@@ -6,14 +6,17 @@
  */
 
 import { loadScriptEnv } from './lib/load-env'
+// Who is writing the completion report and closing the task (AWTD-1311).
+// Unsigned, both arrive on the board under the OAuth client owner's name.
+import { agentSignature, positionalArgs } from './lib/agent-author'
 
 loadScriptEnv()
 
 async function completeTask() {
-  const args = process.argv.slice(2)
+  const args = positionalArgs()
 
   if (args.length < 2) {
-    console.error('Usage: npx tsx scripts/complete-task-oauth.ts <taskId> "<summary>"')
+    console.error('Usage: npx tsx scripts/complete-task-oauth.ts <taskId> "<summary>" [--agent <mailbox>]')
     process.exit(1)
   }
 
@@ -49,6 +52,8 @@ async function completeTask() {
     const { access_token } = await tokenResponse.json()
     console.log('✅ Access token obtained\n')
 
+    const signature = await agentSignature(access_token)
+
     // Step 2: Add completion comment
     console.log(`📝 Adding completion comment to task ${taskId}...`)
     const commentResponse = await fetch(`https://astrid.cc/api/v1/tasks/${taskId}/comments`, {
@@ -59,7 +64,8 @@ async function completeTask() {
       },
       body: JSON.stringify({
         content: summary,
-        type: 'TEXT'
+        type: 'TEXT',
+        ...signature
       })
     })
 
@@ -80,7 +86,8 @@ async function completeTask() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        completed: true
+        completed: true,
+        ...signature
       })
     })
 

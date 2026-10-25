@@ -2,7 +2,7 @@
  * Contract test for task fb94f2ee — the acceptance criterion.
  *
  * The same completion scenario is driven through all three task-write
- * surfaces (legacy PUT, v1 PUT, agent PATCH) and the resulting DB state and
+ * surfaces (v1 PUT, agent PATCH, MCP; the legacy PUT was deleted in AWTD-839) and the resulting DB state and
  * side effects must be identical. Five independent implementations of "update
  * a task" had drifted: v1 never rescheduled reminders, never cancelled an
  * in-flight coding workflow and never synced manual-sort memberships; the
@@ -25,6 +25,15 @@ const handleRepeatingTaskCompletion = vi.hoisted(() => vi.fn())
 const applyRepeatingTaskRollForward = vi.hoisted(() => vi.fn())
 const recordTaskEvents = vi.hoisted(() => vi.fn())
 const notifyTaskUpdate = vi.hoisted(() => vi.fn())
+const dispatchAgentAssignment = vi.hoisted(() => vi.fn())
+// The TaskBackend seam (spec §5.2 step 8). Defaults to the local passthrough;
+// cases below swap in a fake remote that reshapes or refuses.
+const fakeBackend = vi.hoisted(() => ({
+  kind: 'github_project' as const,
+  createTask: vi.fn(async (_ctx: unknown, data: Record<string, unknown>) => ({ ok: true as const, value: data })),
+  updateTask: vi.fn(async (_ctx: unknown, _id: string, data: Record<string, unknown>) => ({ ok: true as const, value: data })),
+  deleteTask: vi.fn(async () => ({ ok: true as const, value: undefined })),
+}))
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -47,8 +56,22 @@ vi.mock('@/lib/task-state-change-tracker', () => ({
   detectTaskStateChanges: vi.fn(() => []),
   formatStateChangesAsComment: vi.fn(() => ''),
 }))
-vi.mock('@/lib/task-events', () => ({ diffTaskEvents: vi.fn(() => []), recordTaskEvents }))
+// Stubbed to "no events" for every case but the AWTD-1329 one, which runs the
+// real diff to see what the update path hands each consumer.
+const diffTaskEvents = vi.hoisted(() => vi.fn((..._args: unknown[]): unknown[] => []))
+vi.mock('@/lib/task-events', () => ({ diffTaskEvents, recordTaskEvents }))
 vi.mock('@/lib/notification-store', () => ({ notifyTaskUpdate }))
+vi.mock('@/services/agent-assignment-dispatch', () => ({ dispatchAgentAssignment }))
+vi.mock('@/lib/backends/resolve', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/lib/backends/resolve')>()),
+  taskBackendFor: async () => fakeBackend,
+}))
+const authorizeAssigneeWrite = vi.hoisted(() => vi.fn())
+vi.mock('@/services/assignee-authorization', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/services/assignee-authorization')>()
+  authorizeAssigneeWrite.mockImplementation(actual.authorizeAssigneeWrite)
+  return { ...actual, authorizeAssigneeWrite }
+})
 
 // Everything else the handlers fire off afterwards wants a real DB/Redis/SSE.
 vi.mock('@/lib/sse-utils', () => ({ broadcastToUsers: vi.fn() }))
@@ -155,10 +178,6 @@ function jsonReq(url: string, method: string, body: unknown) {
 
 /** Drive `{ completed: true }` through one surface and return the prisma update data. */
 const SURFACES = {
-  async legacy(body: unknown) {
-    const { PUT } = await import('@/app/api/tasks/[id]/route')
-    return await PUT(jsonReq('http://localhost/api/tasks/task-1', 'PUT', { title: 'A task', ...(body as object) }), ctx())
-  },
   async v1(body: unknown) {
     const { PUT } = await import('@/app/api/v1/tasks/[id]/route')
     return await PUT(jsonReq('http://localhost/api/v1/tasks/task-1', 'PUT', body), ctx())
@@ -177,7 +196,9 @@ const SURFACES = {
   },
 }
 
-const NAMES = ['legacy', 'v1', 'agent', 'mcpOperations'] as const
+// The legacy PUT /api/tasks/[id] was a fourth surface until the census cleared
+// it for deletion (AWTD-839).
+const NAMES = ['v1', 'agent', 'mcpOperations'] as const
 
 function updateData() {
   return taskUpdate.mock.calls.at(-1)?.[0]?.data ?? {}
@@ -190,6 +211,7 @@ beforeEach(() => {
   taskUpdate.mockResolvedValue({ ...OPEN_TASK, completed: true })
   handleRepeatingTaskCompletion.mockResolvedValue(null)
   cancelActiveCodingWorkflow.mockResolvedValue({ cancelled: false })
+  fakeBackend.updateTask.mockImplementation(async (_ctx, _id, data) => ({ ok: true as const, value: data }))
 })
 
 describe.each(NAMES)('%s task-write surface — completion semantics (task fb94f2ee)', (name) => {
@@ -236,6 +258,26 @@ describe.each(NAMES)('%s task-write surface — completion semantics (task fb94f
     expect(applyRepeatingTaskRollForward).toHaveBeenCalledWith('task-1', expect.anything())
   })
 
+  // AWTD-1092: the last occurrence of a series (count or until reached) used to
+  // stay OPEN. The terminate branch cleared the recurrence but never completed
+  // the task, and the surface returned early as if it had rolled forward — so
+  // the user had to complete it a second time. The parity cases above only
+  // ever mocked shouldTerminate: false.
+  it('completes the final occurrence when the series terminates', async () => {
+    handleRepeatingTaskCompletion.mockResolvedValue({
+      shouldRollForward: false, shouldTerminate: true,
+      nextDueDate: null, newOccurrenceCount: 3,
+    })
+
+    await drive({ completed: true })
+
+    expect(applyRepeatingTaskRollForward).toHaveBeenCalledWith('task-1', expect.objectContaining({ shouldTerminate: true }))
+    const data = updateData()
+    expect(data.completed).toBe(true)
+    expect(data.completedAt).toBeInstanceOf(Date)
+    expect(data.statusRole).toBeNull()
+  })
+
   it('does NOT roll a repeating series forward when the occurrence is CANCELED', async () => {
     // "we're not doing this one" and "this one is done, schedule the next" are
     // opposite intents (task 11042ae3). v1 skipped this guard entirely.
@@ -247,6 +289,60 @@ describe.each(NAMES)('%s task-write surface — completion semantics (task fb94f
     await drive({ completed: true, closedReason: 'canceled' })
 
     expect(applyRepeatingTaskRollForward).not.toHaveBeenCalled()
+  })
+
+  // P1 step 3: the update path dispatches through the same helper as create.
+  // It used to depend on a $extends hook in lib/prisma.ts instead.
+  it('dispatches an assignee change through the one agent-assignment helper', async () => {
+    taskUpdate.mockResolvedValue({ ...OPEN_TASK, assigneeId: 'agent-1', assignee: { id: 'agent-1', isAIAgent: true } })
+    // Who may be assigned is the assignee rule's business, tested on its own;
+    // this case is about what happens once the assignment is allowed.
+    authorizeAssigneeWrite.mockResolvedValueOnce({ ok: true, assigneeIds: ['agent-1'] })
+
+    await drive({ assigneeId: 'agent-1' })
+
+    expect(dispatchAgentAssignment).toHaveBeenCalledTimes(1)
+    expect(dispatchAgentAssignment).toHaveBeenCalledWith(
+      expect.objectContaining({ taskId: 'task-1', assigneeId: 'agent-1', previousAssigneeId: 'user-1', deferred: true }),
+    )
+  })
+
+  it('does not dispatch when the assignee is unchanged', async () => {
+    await drive({ completed: true })
+
+    expect(dispatchAgentAssignment).not.toHaveBeenCalled()
+  })
+
+  // ── The TaskBackend seam (spec §5.2 step 8) ──────────────────────────────
+  it('asks the owning backend AFTER the service rules, with the computed row', async () => {
+    await drive({ completed: true })
+
+    expect(fakeBackend.updateTask).toHaveBeenCalledWith(
+      { actorId: 'user-1' },
+      'task-1',
+      expect.objectContaining({ completed: true, completedAt: expect.any(Date), statusRole: null }),
+    )
+  })
+
+  it('writes what the backend accepted, not what it was asked', async () => {
+    fakeBackend.updateTask.mockImplementation(async (_ctx, _id, data) => ({
+      ok: true as const, value: { ...data, title: 'Normalised by the remote' },
+    }))
+
+    await drive({ completed: true })
+
+    expect(updateData().title).toBe('Normalised by the remote')
+  })
+
+  it('writes nothing and fires no side effects when the backend refuses', async () => {
+    fakeBackend.updateTask.mockResolvedValue({ ok: false, status: 403, error: 'Remote refused' } as never)
+
+    // The MCP surface reports a refusal by throwing; the HTTP ones by status.
+    await drive({ completed: true }).catch(() => undefined)
+
+    expect(taskUpdate).not.toHaveBeenCalled()
+    expect(recordTaskEvents).not.toHaveBeenCalled()
+    expect(notifyTaskUpdate).not.toHaveBeenCalled()
   })
 
   it('clears the completion stamp when the task is reopened', async () => {
@@ -263,7 +359,6 @@ describe.each(NAMES)('%s task-write surface — completion semantics (task fb94f
 
 describe('every task-write surface goes through the service (epic 9dedd8aa)', () => {
   it.each([
-    'app/api/tasks/[id]/route.ts',
     'app/api/v1/tasks/[id]/route.ts',
     'app/api/v1/agent/tasks/[id]/route.ts',
     'app/api/mcp/operations/handlers/task-operations.ts',
@@ -280,5 +375,27 @@ describe('every task-write surface goes through the service (epic 9dedd8aa)', ()
     // One implementation per verb: no surface calls prisma.task.update itself.
     expect(src).not.toMatch(/prisma\.task\.update\(/)
     expect(src).toMatch(/updateTaskWithSideEffects/)
+  })
+})
+
+// AWTD-1329: a board move is recorded (list insights times each lane from it)
+// but is not news — notifying on it would ping a creator whenever anyone, or
+// any agent, drags or claims the card.
+describe.each(NAMES)('%s task-write surface — a lane move is history, not news (AWTD-1329)', (name) => {
+  it('records status_changed and keeps it out of notifications', async () => {
+    const actual = await vi.importActual<typeof import('@/lib/task-events')>('@/lib/task-events')
+    diffTaskEvents.mockImplementation(actual.diffTaskEvents as never)
+    taskFindUnique.mockResolvedValue({ ...OPEN_TASK, statusRole: 'ready' })
+    taskFindFirst.mockResolvedValue({ ...OPEN_TASK, statusRole: 'ready' })
+    taskUpdate.mockResolvedValue({ ...OPEN_TASK, statusRole: 'doing' })
+
+    await SURFACES[name]({ statusRole: 'doing' })
+
+    const recorded = recordTaskEvents.mock.calls.at(-1)?.[0]?.events ?? []
+    expect(recorded).toContainEqual({ kind: 'status_changed', from: 'ready', to: 'doing' })
+    const notified = notifyTaskUpdate.mock.calls.at(-1)?.[0]?.events ?? []
+    expect(notified.map((e: { kind: string }) => e.kind)).not.toContain('status_changed')
+
+    diffTaskEvents.mockImplementation(() => [])
   })
 })

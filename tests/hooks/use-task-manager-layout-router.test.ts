@@ -32,6 +32,14 @@ const BASE: TaskManagerLayoutRouterInput = {
   isMobileTaskDetailClosing: false,
 }
 
+// The 1-column phone layout, which AWTD-1178 must leave exactly as it was.
+const PHONE: Partial<TaskManagerLayoutRouterInput> = {
+  isMobile: true,
+  is1Column: true,
+  is3Column: false,
+  showHamburgerMenu: true,
+}
+
 function decide(overrides: Partial<TaskManagerLayoutRouterInput> = {}) {
   const { result } = renderHook(() =>
     useTaskManagerLayoutRouter({ ...BASE, ...overrides })
@@ -44,8 +52,12 @@ describe('useTaskManagerLayoutRouter (Stage 19 / task b8a5ba21)', () => {
     it('is true when the hamburger menu is shown', () => {
       expect(decide({ showHamburgerMenu: true }).isIOSDrawer).toBe(true)
     })
-    it('is true in board mode regardless of hamburger', () => {
-      expect(decide({ isBoardMode: true }).isIOSDrawer).toBe(true)
+    it('AWTD-1178: the desktop board keeps the docked sidebar, as on Mac', () => {
+      expect(decide({ isBoardMode: true, taskViewMode: 'board' }).isIOSDrawer).toBe(false)
+    })
+    it('AWTD-1178: the phone board is unchanged — still a drawer', () => {
+      expect(decide({ ...PHONE, isBoardMode: true, taskViewMode: 'board', showHamburgerMenu: false }).isIOSDrawer)
+        .toBe(true)
     })
     it('is false on a docked desktop layout', () => {
       expect(decide().isIOSDrawer).toBe(false)
@@ -60,8 +72,13 @@ describe('useTaskManagerLayoutRouter (Stage 19 / task b8a5ba21)', () => {
     it('is mobileChat when chat panel is active on mobile and not searching', () => {
       expect(decide({ isMobile: true, activePanel: 'chat' }).mainSurface).toBe('mobileChat')
     })
-    it('is mobileChat when chat panel is active in board mode', () => {
-      expect(decide({ isBoardMode: true, activePanel: 'chat' }).mainSurface).toBe('mobileChat')
+    it('AWTD-1178: messages never replace the desktop board — they have their own pane', () => {
+      expect(decide({ isBoardMode: true, taskViewMode: 'board', activePanel: 'chat' }).mainSurface)
+        .toBe('content')
+    })
+    it('AWTD-1178: the phone board is unchanged — messages still replace it', () => {
+      expect(decide({ ...PHONE, isBoardMode: true, taskViewMode: 'board', activePanel: 'chat' }).mainSurface)
+        .toBe('mobileChat')
     })
     it('is content (not mobileChat) while searching, even with chat active', () => {
       expect(decide({ isMobile: true, activePanel: 'chat', isSearchActive: true }).mainSurface)
@@ -92,8 +109,13 @@ describe('useTaskManagerLayoutRouter (Stage 19 / task b8a5ba21)', () => {
     it('shows on wide layout, signed in, not settings, not board', () => {
       expect(decide().showDesktopChatPanel).toBe(true)
     })
-    it('hides in board mode (taskViewMode board)', () => {
-      expect(decide({ taskViewMode: 'board' }).showDesktopChatPanel).toBe(false)
+    it('AWTD-1178: stays beside the board on 3-column and 2-column, as on Mac', () => {
+      expect(decide({ isBoardMode: true, taskViewMode: 'board' }).showDesktopChatPanel).toBe(true)
+      expect(decide({ isBoardMode: true, taskViewMode: 'board', is3Column: false, is2Column: true, showHamburgerMenu: true }).showDesktopChatPanel)
+        .toBe(true)
+    })
+    it('AWTD-1178: the phone board is unchanged — no messages column', () => {
+      expect(decide({ ...PHONE, isBoardMode: true, taskViewMode: 'board' }).showDesktopChatPanel).toBe(false)
     })
     it('hides during settings', () => {
       expect(decide({ isSettingsActive: true }).showDesktopChatPanel).toBe(false)

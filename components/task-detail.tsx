@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useMemo, useRef, useCallback, memo } from "react"
-import { DEFAULT_LIST_COLOR, randomListColor } from '@/lib/brand/colors'
+import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
+import { createListForTask } from '@/lib/task-detail/create-list-for-task'
 import { unwrapTask, unwrapList } from '@/lib/v1-response'
 import { useTaskDetailState } from "@/hooks/task-detail/useTaskDetailState"
 import { useTaskShareLink } from "@/hooks/task-detail/useTaskShareLink"
@@ -24,10 +25,14 @@ import { TaskFieldEditors } from "./task-detail/TaskFieldEditors"
 import { PriorityAssigneePicker } from "./priority-assignee-picker"
 import { usesCompactTaskDetail } from "@/lib/task-display-mode"
 import { isSomeoneElsesTask } from "@/lib/task-leading-control"
-import { boardColumnsFor, resolveColumnMove, taskColumnId } from "@/lib/task-status"
+import { boardColumnsFor, taskColumnId } from "@/lib/task-status"
+import { taskMenuDuplicatesPaneControls } from "@/lib/task-detail-project-state"
+import { applyProjectColumnTo } from "@/lib/project-status"
+import { taskDetailPropsEqual } from "./task-detail/task-detail-props-equal"
 import { TaskModals } from "./task-detail/TaskModals"
 import { TaskHeader } from "./task-detail/TaskHeader"
 import { TaskActivitySection } from "./task-detail/TaskActivitySection"
+import { TaskDetailSubtasksSection } from "./task-detail/TaskDetailSubtasksSection"
 import type { Task, Comment, User, TaskList } from "../types/task"
 import { Calendar as CalendarIcon, Paperclip, MessageSquare, Lock, Unlock, Check, X, Upload, Image as ImageIcon, FileText, Reply, Send, Copy, Link as LinkIcon } from "lucide-react"
 import { apiPost } from "@/lib/api"
@@ -65,6 +70,17 @@ interface TaskDetailProps {
   currentUser: User
   availableLists?: TaskList[]
   availableTasks?: Task[]
+  /**
+   * This task's children (AWTD-1227). Passed in rather than derived from
+   * `availableTasks`, which deliberately EXCLUDES subtasks — the controller
+   * filters them out so they never render as top-level rows, so deriving them
+   * from it would always find none.
+   */
+  subtasks?: Task[]
+  /** Completing a child. The list row's handler, so there is one completion path. */
+  onToggleSubtaskComplete?: (taskId: string) => void | Promise<void>
+  /** Creating a child under this task. Absent means the add row is not offered. */
+  onAddSubtask?: (parentTaskId: string, title: string) => void | Promise<void>
   onUpdate: (task: Task) => void
   onLocalUpdate?: (updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void  // Update local state only, no API call
   onDelete: (taskId: string) => void
@@ -107,7 +123,7 @@ interface TaskDetailProps {
   }
 }
 
-function TaskDetailComponent({ task, currentUser, availableLists = [], availableTasks = [], onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, displayMode, canComment, inline = false, allowFullScreen = false, swipeToDismiss }: TaskDetailProps) {
+function TaskDetailComponent({ task, currentUser, availableLists = [], availableTasks = [], subtasks = [], onToggleSubtaskComplete, onAddSubtask, onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, displayMode, canComment, inline = false, allowFullScreen = false, swipeToDismiss }: TaskDetailProps) {
   const { theme } = useTheme()
 
   // Editing and commenting are separate permissions — see the canComment prop.
@@ -562,7 +578,10 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       }
 
       case 'task_updated': {
-        const { task: updatedTask, userId } = event.data
+        // The v1 shape when sent: the agent `task` has no statusRole, and
+        // merging it over the pane's copy undid a move the list had applied (AWTD-1039).
+        const { task: agentTask, v1Task, userId } = event.data
+        const updatedTask = v1Task ? { ...v1Task, comments: v1Task.comments ?? agentTask?.comments } : agentTask
 
         // Don't process SSE updates from the same user to avoid overriding local changes
         if (userId === currentUser.id) {
@@ -698,6 +717,11 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
   const [optionsOpen, setOptionsOpen] = useState(false)
   const statusColumns = useMemo(() => boardColumnsFor(null), [])
 
+  // AWTD-1252 and AWTD-1253; both rules are stated at their source.
+  const menuDuplicates = taskMenuDuplicatesPaneControls({ task, availableLists, displayMode, readOnly })
+  const applyStatusColumn = (columnId: string) =>
+    applyProjectColumnTo(task, columnId, statusColumns, availableLists, onUpdate)
+
   const handleToggleComplete = async () => {
     const newCompleted = !tempCompleted
 
@@ -831,56 +855,6 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
   const handleCancelDescription = () => {
     setTempDescription(task.description || "")
     cancelEditing('description')
-  }
-
-  const handleSaveWhen = (date: Date | undefined) => {
-    // If removing the due date, also remove any repeating settings
-    if (!date) {
-      const updatedTask = { ...task, dueDateTime: undefined, isAllDay: false, repeating: 'never' as const, repeatingData: undefined }
-      onUpdate(updatedTask)
-      setTempWhen(undefined)
-      setTempRepeating('never')
-      setTempRepeatingData(undefined)
-      setEditingWhen(false)
-      return
-    }
-
-    // If there's an existing dueDateTime with a time, preserve the time component
-    if (task.dueDateTime && !task.isAllDay) {
-      const existingDate = new Date(task.dueDateTime)
-      date.setHours(existingDate.getHours(), existingDate.getMinutes(), 0, 0)
-      onUpdate({ ...task, dueDateTime: date, isAllDay: false })
-    } else {
-      // Default to all-day task (midnight)
-      date.setHours(0, 0, 0, 0)
-      onUpdate({ ...task, dueDateTime: date, isAllDay: true })
-    }
-    setTempWhen(date)
-    setEditingWhen(false)
-  }
-
-  const handleSaveTime = (time: Date | string | null) => {
-    if (!task.dueDateTime) return // Can only set time if there's a dueDateTime
-
-    if (time === null) {
-      // Set time to midnight (all day)
-      const updatedDate = new Date(task.dueDateTime)
-      updatedDate.setHours(0, 0, 0, 0)
-      onUpdate({ ...task, dueDateTime: updatedDate, isAllDay: true })
-      setTempWhen(updatedDate)
-    } else if (time instanceof Date) {
-      // Combine the existing date with the new time
-      const updatedDate = new Date(task.dueDateTime)
-      updatedDate.setHours(time.getHours(), time.getMinutes(), 0, 0)
-      onUpdate({ ...task, dueDateTime: updatedDate, isAllDay: false })
-      setTempWhen(updatedDate)
-    } else {
-      // Handle string case - convert to Date first
-      // This is a fallback, typically TimePicker returns Date objects
-      return
-    }
-
-    setEditingTime(false)
   }
 
   const handleSavePriority = async (priority: number) => {
@@ -1180,49 +1154,13 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     if (!name.trim()) return
 
     try {
-      // Derive privacy from the task's current lists: PUBLIC > SHARED > PRIVATE
-      const targetPrivacy: TaskList["privacy"] =
-        tempLists.some((l) => l.privacy === "PUBLIC")
-          ? "PUBLIC"
-          : tempLists.some((l) => l.privacy === "SHARED")
-          ? "SHARED"
-          : "PRIVATE"
-
-      // If shared, collect admin ids from existing shared lists (deduped)
-      const adminIds = targetPrivacy === "SHARED"
-        ? Array.from(
-            new Set(
-              tempLists
-                .filter((l) => l.privacy === "SHARED")
-                .flatMap((l) => (l.admins || []).map((a) => a.id))
-            )
-          )
-        : undefined
-
-      // Pick a color
-      const randomColor = randomListColor()
-
-      // Create via API
-      const response = await apiPost('/api/v1/lists', {
-        name: name.trim(),
-        color: randomColor,
-        privacy: targetPrivacy,
-        adminIds,
-      })
-      // v1 wraps the new list in { list, meta }; legacy returned it bare.
-      const createdList = unwrapList<TaskList>(await response.json())
-      if (!createdList) {
-        throw new Error('List creation returned no list')
-      }
-
-      // Add to selected lists and auto-save
+      // What list to make — privacy and admins inherited from the task's
+      // current lists — is lib/task-detail/create-list-for-task.ts.
+      const createdList = await createListForTask(name, tempLists)
       const updatedTempLists = [...tempLists, createdList]
       setTempLists(updatedTempLists)
       setLastLocalListUpdate(Date.now()) // Mark when we made a local change
-      onUpdate({ 
-        ...task, 
-        lists: updatedTempLists
-      })
+      onUpdate({ ...task, lists: updatedTempLists })
     } catch (error) {
       console.error('Failed to create list:', error)
     } finally {
@@ -1333,14 +1271,8 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         onDelete={handleDeleteClick}
         onTestReminder={handleTestReminder}
         onCancel={handleSetClosedReason}
-        onStatusSelect={columnId => {
-          // Same helper the board and the row use, so a status set from the
-          // menu and a card dragged into a column cannot mean different things
-          // — including that Done means completed rather than a role
-          // (task ba1a4c4c).
-          const move = resolveColumnMove(task, columnId)
-          onUpdate({ ...task, statusRole: move.statusRole, completed: move.completed })
-        }}
+        onStatusSelect={menuDuplicates.status ? undefined : applyStatusColumn}
+        hideCopyIdentifier={menuDuplicates.copyIdentifier}
         compact={inline}
         fullScreen={canFullScreen ? fullScreen : undefined}
         onToggleFullScreen={canFullScreen ? () => setFullScreen(value => !value) : undefined}
@@ -1367,8 +1299,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
           statusColumns={statusColumns}
           selectedColumnId={taskColumnId(task)}
           onStatusSelect={columnId => {
-            const move = resolveColumnMove(task, columnId)
-            onUpdate({ ...task, statusRole: move.statusRole, completed: move.completed })
+            applyStatusColumn(columnId)
             setOptionsOpen(false)
           }}
           completed={Boolean(task.completed)}
@@ -1465,6 +1396,17 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
           onInviteUser={handleInviteUser}
         />
 
+        {/* Subtasks, between the fields and the activity — where iPhone, iPad
+         *  and Mac put them, and what web's pane was missing entirely
+         *  (AWTD-1227). Renders nothing on a task with no children that cannot
+         *  take one, which is almost every task. */}
+        <TaskDetailSubtasksSection
+          subtasks={subtasks}
+          onToggleComplete={onToggleSubtaskComplete}
+          onAdd={onAddSubtask ? (title: string) => onAddSubtask(task.id, title) : undefined}
+          readOnly={readOnly}
+        />
+
         {/* Activity: attachments + timer (Stage 22 sub-view) */}
         <TaskActivitySection
           task={task}
@@ -1550,42 +1492,6 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
 }
 
 // Memoized export to prevent unnecessary re-renders
-const TaskDetailMemo = memo(TaskDetailComponent, (prevProps, nextProps) => {
-  // Check if comments have actually changed (not just length)
-  const prevComments = prevProps.task.comments || []
-  const nextComments = nextProps.task.comments || []
-  
-  const commentsChanged = prevComments.length !== nextComments.length ||
-    prevComments.some((comment, index) => {
-      const nextComment = nextComments[index]
-      return !nextComment || comment.id !== nextComment.id || comment.content !== nextComment.content
-    })
-  
-  // Check if lists have changed
-  const prevLists = prevProps.task.lists || []
-  const nextLists = nextProps.task.lists || []
-  const listsChanged = prevLists.length !== nextLists.length ||
-    prevLists.some((list, index) => {
-      const nextList = nextLists[index]
-      return !nextList || list.id !== nextList.id || list.name !== nextList.name
-    })
-
-  // Only re-render if task ID changes, critical props change, lists changed, or comments changed
-  return (
-    prevProps.task.id === nextProps.task.id &&
-    prevProps.task.title === nextProps.task.title &&
-    prevProps.task.description === nextProps.task.description &&
-    prevProps.task.completed === nextProps.task.completed &&
-    prevProps.task.priority === nextProps.task.priority &&
-    prevProps.task.repeating === nextProps.task.repeating &&
-    prevProps.task.dueDateTime === nextProps.task.dueDateTime &&
-    prevProps.task.isAllDay === nextProps.task.isAllDay &&
-    prevProps.task.assigneeId === nextProps.task.assigneeId &&
-    prevProps.inline === nextProps.inline &&
-    !listsChanged &&
-    !commentsChanged &&
-    prevProps.currentUser?.id === nextProps.currentUser?.id
-  )
-})
+const TaskDetailMemo = memo(TaskDetailComponent, taskDetailPropsEqual)
 
 export { TaskDetailMemo as TaskDetail }

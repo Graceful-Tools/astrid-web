@@ -195,3 +195,33 @@ describe('DELETE /api/v1/lists/:id/members/:userId', () => {
     expect(res.status).toBe(200)
   })
 })
+
+// AWTD-1091 (regresses e27642cc): the route deleted the ListMember row itself
+// and THEN called removeListMember, whose deleteMany found nothing and returned
+// early — no cache invalidation, no list_member_removed SSE. The tests above
+// stub deleteMany to {count: 1} regardless of what ran before, which is what
+// hid it. Here the membership is a row that a delete actually removes.
+describe('DELETE /api/v1/lists/:id/members/:userId — the removal is announced (AWTD-1091)', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('broadcasts list_member_removed when a member is removed', async () => {
+    const memberships = new Set(['list-1:member-1'])
+    const removeRow = async ({ where }: any) => {
+      const key = `${where.listId ?? where.listId_userId?.listId}:${where.userId ?? where.listId_userId?.userId}`
+      const existed = memberships.delete(key)
+      return { count: existed ? 1 : 0 }
+    }
+    ;(mockPrisma.listMember.delete as any).mockImplementation(removeRow)
+    ;(mockPrisma.listMember.deleteMany as any).mockImplementation(removeRow)
+    mockAuth.mockResolvedValue(adminAuth as any)
+    mockPrisma.taskList.findUnique.mockResolvedValue(listWithAdminAndMember as any)
+
+    const res = await DELETE(makeReq('DELETE'), { params } as any)
+
+    expect(res.status).toBe(200)
+    const { broadcastToUsers } = await import('@/lib/sse-utils')
+    const events = vi.mocked(broadcastToUsers).mock.calls.map(call => (call[1] as { type?: string })?.type)
+    expect(events).toContain('list_member_removed')
+  })
+})
+

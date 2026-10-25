@@ -25,6 +25,8 @@ import { TASK_COMMENTS_RESPONSE_LIMIT } from '@/lib/task-query-utils'
 import { validateV1TaskUpdate, type V1TaskUpdateRequest } from '@/lib/api-contracts/v1-request-shapes'
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
 import { resolveAgentAuthor } from '@/lib/ai-agent-author'
+import { assigneeIdsOf } from '@/lib/task-assignees'
+import { withTaskRemote } from '@/lib/backends/task-remote'
 
 const log = createLogger('v1.tasks.id')
 
@@ -201,6 +203,7 @@ export const PUT = withAuth<RouteContext>(
     if (body.localCompletionDate !== undefined) {
       intent.localCompletionDate = body.localCompletionDate
     }
+    if (body.timeZone !== undefined) intent.timeZone = body.timeZone
     if (body.statusRole !== undefined) intent.statusRole = body.statusRole
     if (body.isPrivate !== undefined) intent.isPrivate = body.isPrivate
     if (body.repeating !== undefined) intent.repeating = body.repeating
@@ -208,6 +211,7 @@ export const PUT = withAuth<RouteContext>(
     if (body.repeatFrom !== undefined) intent.repeatFrom = body.repeatFrom
     if (body.occurrenceCount !== undefined) intent.occurrenceCount = body.occurrenceCount
     if (body.assigneeId !== undefined) intent.assigneeId = body.assigneeId || null
+    if (body.assigneeIds !== undefined) intent.assigneeIds = body.assigneeIds
     if (body.timerDuration !== undefined) intent.timerDuration = body.timerDuration
     if (body.lastTimerValue !== undefined) intent.lastTimerValue = body.lastTimerValue
     if (body.listIds !== undefined && Array.isArray(body.listIds)) intent.listIds = body.listIds
@@ -275,7 +279,12 @@ export const PUT = withAuth<RouteContext>(
           { status: 412 }
         )
       }
-      return NextResponse.json({ error: result.error }, { status: result.status })
+      // retryAfter (rate_limited) and ssoUrl (sso_required) come from a
+      // GitHub-backed list's write-through (AWTD-1116); absent otherwise.
+      return NextResponse.json(
+        { error: result.error, retryAfter: result.retryAfter, ssoUrl: result.ssoUrl },
+        { status: result.status }
+      )
     }
 
     const task = result.task
@@ -296,7 +305,11 @@ export const PUT = withAuth<RouteContext>(
 
     return NextResponse.json(
       {
-        task: { ...task, listIds: task.lists?.map((list: { id: string }) => list.id) || [] },
+        task: {
+          ...withTaskRemote(task),
+          listIds: task.lists?.map((list: { id: string }) => list.id) || [],
+          assigneeIds: assigneeIdsOf(task),
+        },
         meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }

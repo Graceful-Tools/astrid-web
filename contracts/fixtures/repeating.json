@@ -529,6 +529,55 @@
       ]
     },
     {
+      "name": "AITD-547 every 3 weeks on Tue/Thu from the due date",
+      "pattern": {
+        "type": "custom",
+        "unit": "weeks",
+        "interval": 3,
+        "endCondition": "never",
+        "weekdays": [
+          "tuesday",
+          "thursday"
+        ]
+      },
+      "start": "2026-10-20T09:00:00Z",
+      "repeatFrom": "DUE_DATE",
+      "steps": 6,
+      "dates": [
+        "2026-10-22T09:00:00.000Z",
+        "2026-11-10T09:00:00.000Z",
+        "2026-11-12T09:00:00.000Z",
+        "2026-12-01T09:00:00.000Z",
+        "2026-12-03T09:00:00.000Z",
+        "2026-12-22T09:00:00.000Z"
+      ]
+    },
+    {
+      "name": "AITD-547 every 2 weeks on Mon/Wed/Fri from the completion date",
+      "pattern": {
+        "type": "custom",
+        "unit": "weeks",
+        "interval": 2,
+        "endCondition": "never",
+        "weekdays": [
+          "monday",
+          "wednesday",
+          "friday"
+        ]
+      },
+      "start": "2024-01-15T09:00:00Z",
+      "repeatFrom": "COMPLETION_DATE",
+      "steps": 6,
+      "dates": [
+        "2024-01-17T09:00:00.000Z",
+        "2024-01-19T09:00:00.000Z",
+        "2024-01-29T09:00:00.000Z",
+        "2024-01-31T09:00:00.000Z",
+        "2024-02-02T09:00:00.000Z",
+        "2024-02-12T09:00:00.000Z"
+      ]
+    },
+    {
       "name": "monthly on the 15th, through a year",
       "pattern": {
         "type": "custom",
@@ -598,6 +647,1046 @@
         "2024-02-03T09:00:00.000Z",
         "2024-02-06T09:00:00.000Z",
         "2024-02-09T09:00:00.000Z"
+      ]
+    }
+  ],
+  "completions": [
+    {
+      "name": "D1 daily at 9am across the spring change, Los Angeles",
+      "request": {
+        "repeating": "daily",
+        "currentDueDate": "2026-03-07T17:00:00Z",
+        "completion": "2026-03-07T18:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles"
+      },
+      "answer": {
+        "nextDueDate": "2026-03-08T16:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D1 daily at 9am across the spring change, UTC (the old answer)",
+      "request": {
+        "repeating": "daily",
+        "currentDueDate": "2026-03-07T17:00:00Z",
+        "completion": "2026-03-07T18:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "UTC"
+      },
+      "answer": {
+        "nextDueDate": "2026-03-08T17:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D1 weekly across the autumn change, Los Angeles",
+      "request": {
+        "repeating": "weekly",
+        "currentDueDate": "2026-10-31T16:00:00Z",
+        "completion": "2026-10-31T16:30:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles"
+      },
+      "answer": {
+        "nextDueDate": "2026-11-07T17:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D1 monthly at 2pm across the spring change, Los Angeles",
+      "request": {
+        "repeating": "monthly",
+        "currentDueDate": "2026-02-15T22:00:00Z",
+        "completion": "2026-02-15T22:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles"
+      },
+      "answer": {
+        "nextDueDate": "2026-03-15T21:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D1 monthly clamps on the person's calendar, Tokyo",
+      "request": {
+        "repeating": "monthly",
+        "currentDueDate": "2026-01-30T16:00:00Z",
+        "completion": "2026-01-30T16:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "Asia/Tokyo"
+      },
+      "answer": {
+        "nextDueDate": "2026-02-27T16:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D1 yearly on the person's calendar, Tokyo",
+      "request": {
+        "repeating": "yearly",
+        "currentDueDate": "2026-02-28T16:00:00Z",
+        "completion": "2026-02-28T16:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "Asia/Tokyo"
+      },
+      "answer": {
+        "nextDueDate": "2027-02-28T16:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D1 evening completion anchors on the person's day, Los Angeles",
+      "request": {
+        "repeating": "daily",
+        "currentDueDate": "2026-01-05T17:00:00Z",
+        "completion": "2026-01-06T02:00:00Z",
+        "repeatFrom": "COMPLETION_DATE",
+        "timeZone": "America/Los_Angeles"
+      },
+      "answer": {
+        "nextDueDate": "2026-01-06T17:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D1 evening completion, UTC (the old answer)",
+      "request": {
+        "repeating": "daily",
+        "currentDueDate": "2026-01-05T17:00:00Z",
+        "completion": "2026-01-06T02:00:00Z",
+        "repeatFrom": "COMPLETION_DATE",
+        "timeZone": "UTC"
+      },
+      "answer": {
+        "nextDueDate": "2026-01-07T17:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D1 morning completion a day early, Tokyo",
+      "request": {
+        "repeating": "weekly",
+        "currentDueDate": "2026-01-07T00:00:00Z",
+        "completion": "2026-01-05T23:30:00Z",
+        "repeatFrom": "COMPLETION_DATE",
+        "timeZone": "Asia/Tokyo"
+      },
+      "answer": {
+        "nextDueDate": "2026-01-13T00:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D1 until is the person's date, Paris",
+      "request": {
+        "repeating": "daily",
+        "pattern": {
+          "endCondition": "until_date",
+          "endUntilDate": "2026-12-14T23:00:00.000Z"
+        },
+        "currentDueDate": "2026-12-14T09:00:00Z",
+        "completion": "2026-12-14T09:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "Europe/Paris"
+      },
+      "answer": {
+        "nextDueDate": "2026-12-15T09:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D1 until is the person's date, a day past it, Paris",
+      "request": {
+        "repeating": "daily",
+        "pattern": {
+          "endCondition": "until_date",
+          "endUntilDate": "2026-12-14T23:00:00.000Z"
+        },
+        "currentDueDate": "2026-12-15T09:00:00Z",
+        "completion": "2026-12-15T09:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "Europe/Paris"
+      },
+      "answer": {
+        "nextDueDate": null,
+        "shouldTerminate": true,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D1 custom until is the person's date, Los Angeles",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "weeks",
+          "interval": 1,
+          "endCondition": "until_date",
+          "weekdays": [
+            "monday",
+            "wednesday",
+            "friday"
+          ],
+          "endUntilDate": "2026-01-16T08:00:00.000Z"
+        },
+        "currentDueDate": "2026-01-14T17:00:00Z",
+        "completion": "2026-01-14T17:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles"
+      },
+      "answer": {
+        "nextDueDate": "2026-01-16T17:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D1 every two days across the spring change, Los Angeles",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "days",
+          "interval": 2,
+          "endCondition": "never"
+        },
+        "currentDueDate": "2026-03-07T17:00:00Z",
+        "completion": "2026-03-07T17:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles"
+      },
+      "answer": {
+        "nextDueDate": "2026-03-09T16:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D1 custom monthly on the 10th across the change, Paris",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "months",
+          "interval": 1,
+          "endCondition": "never",
+          "monthRepeatType": "same_date",
+          "monthDay": 10
+        },
+        "currentDueDate": "2026-03-10T08:00:00Z",
+        "completion": "2026-03-10T08:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "Europe/Paris"
+      },
+      "answer": {
+        "nextDueDate": "2026-04-10T07:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D1 custom yearly on a set day, Los Angeles",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "years",
+          "interval": 1,
+          "endCondition": "never",
+          "month": 7,
+          "day": 4
+        },
+        "currentDueDate": "2026-01-15T17:00:00Z",
+        "completion": "2026-01-15T17:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles"
+      },
+      "answer": {
+        "nextDueDate": "2027-07-04T16:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "all-day daily stays at UTC midnight, Los Angeles",
+      "request": {
+        "repeating": "daily",
+        "currentDueDate": "2026-03-07T00:00:00Z",
+        "completion": "2026-03-07T05:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles",
+        "isAllDay": true
+      },
+      "answer": {
+        "nextDueDate": "2026-03-08T00:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "all-day monthly stays at UTC midnight, Tokyo",
+      "request": {
+        "repeating": "monthly",
+        "currentDueDate": "2026-01-31T00:00:00Z",
+        "completion": "2026-01-31T00:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "Asia/Tokyo",
+        "isAllDay": true
+      },
+      "answer": {
+        "nextDueDate": "2026-02-28T00:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "all-day third Tuesday stays at UTC midnight, Los Angeles",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "months",
+          "interval": 1,
+          "endCondition": "never",
+          "monthRepeatType": "same_weekday",
+          "monthWeekday": {
+            "weekday": "tuesday",
+            "weekOfMonth": 3
+          }
+        },
+        "currentDueDate": "2026-01-20T00:00:00Z",
+        "completion": "2026-01-20T00:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles",
+        "isAllDay": true
+      },
+      "answer": {
+        "nextDueDate": "2026-02-17T00:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "all-day from completion anchors on the person's day, Los Angeles",
+      "request": {
+        "repeating": "weekly",
+        "currentDueDate": "2026-01-05T00:00:00Z",
+        "completion": "2026-01-06T05:00:00Z",
+        "repeatFrom": "COMPLETION_DATE",
+        "timeZone": "America/Los_Angeles",
+        "isAllDay": true
+      },
+      "answer": {
+        "nextDueDate": "2026-01-12T00:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "all-day from completion with the day sent as UTC midnight",
+      "request": {
+        "repeating": "weekly",
+        "currentDueDate": "2026-01-05T00:00:00Z",
+        "completion": "2026-01-05T00:00:00Z",
+        "repeatFrom": "COMPLETION_DATE",
+        "timeZone": "UTC",
+        "isAllDay": true
+      },
+      "answer": {
+        "nextDueDate": "2026-01-12T00:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "all-day from completion, Tokyo morning",
+      "request": {
+        "repeating": "daily",
+        "currentDueDate": "2026-01-05T00:00:00Z",
+        "completion": "2026-01-06T22:30:00Z",
+        "repeatFrom": "COMPLETION_DATE",
+        "timeZone": "Asia/Tokyo",
+        "isAllDay": true
+      },
+      "answer": {
+        "nextDueDate": "2026-01-08T00:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D3 the third Tuesday, Los Angeles",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "months",
+          "interval": 1,
+          "endCondition": "never",
+          "monthRepeatType": "same_weekday",
+          "monthWeekday": {
+            "weekday": "tuesday",
+            "weekOfMonth": 3
+          }
+        },
+        "currentDueDate": "2026-01-20T18:00:00Z",
+        "completion": "2026-01-20T18:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles"
+      },
+      "answer": {
+        "nextDueDate": "2026-02-17T08:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D3 the third Tuesday, Tokyo",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "months",
+          "interval": 1,
+          "endCondition": "never",
+          "monthRepeatType": "same_weekday",
+          "monthWeekday": {
+            "weekday": "tuesday",
+            "weekOfMonth": 3
+          }
+        },
+        "currentDueDate": "2026-01-20T01:00:00Z",
+        "completion": "2026-01-20T01:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "Asia/Tokyo"
+      },
+      "answer": {
+        "nextDueDate": "2026-02-16T15:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D3 the third Tuesday, UTC (the old answer)",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "months",
+          "interval": 1,
+          "endCondition": "never",
+          "monthRepeatType": "same_weekday",
+          "monthWeekday": {
+            "weekday": "tuesday",
+            "weekOfMonth": 3
+          }
+        },
+        "currentDueDate": "2026-01-20T18:00:00Z",
+        "completion": "2026-01-20T18:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "UTC"
+      },
+      "answer": {
+        "nextDueDate": "2026-02-17T00:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D4 Mon/Wed/Fri from Monday 8am, Tokyo",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "weeks",
+          "interval": 1,
+          "endCondition": "never",
+          "weekdays": [
+            "monday",
+            "wednesday",
+            "friday"
+          ]
+        },
+        "currentDueDate": "2026-01-04T23:00:00Z",
+        "completion": "2026-01-04T23:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "Asia/Tokyo"
+      },
+      "answer": {
+        "nextDueDate": "2026-01-06T23:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D4 Mon/Wed/Fri from Friday 6pm, Los Angeles",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "weeks",
+          "interval": 1,
+          "endCondition": "never",
+          "weekdays": [
+            "monday",
+            "wednesday",
+            "friday"
+          ]
+        },
+        "currentDueDate": "2026-01-10T02:00:00Z",
+        "completion": "2026-01-10T02:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles"
+      },
+      "answer": {
+        "nextDueDate": "2026-01-13T02:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "AITD-547 every two weeks on Monday skips a week, Los Angeles",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "weeks",
+          "interval": 2,
+          "endCondition": "never",
+          "weekdays": [
+            "monday"
+          ]
+        },
+        "currentDueDate": "2026-01-05T17:00:00Z",
+        "completion": "2026-01-05T17:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles"
+      },
+      "answer": {
+        "nextDueDate": "2026-01-19T17:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "AITD-547 every four weeks on Friday, across the autumn change, Los Angeles",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "weeks",
+          "interval": 4,
+          "endCondition": "never",
+          "weekdays": [
+            "friday"
+          ]
+        },
+        "currentDueDate": "2026-10-23T16:00:00Z",
+        "completion": "2026-10-23T16:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles"
+      },
+      "answer": {
+        "nextDueDate": "2026-11-20T17:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "AITD-547 every four weeks on Mon/Fri, a later day in the same week first",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "weeks",
+          "interval": 4,
+          "endCondition": "never",
+          "weekdays": [
+            "monday",
+            "friday"
+          ]
+        },
+        "currentDueDate": "2026-10-19T09:00:00Z",
+        "completion": "2026-10-19T09:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "UTC"
+      },
+      "answer": {
+        "nextDueDate": "2026-10-23T09:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "AITD-547 every four weeks on Friday, from a late completion",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "weeks",
+          "interval": 4,
+          "endCondition": "never",
+          "weekdays": [
+            "friday"
+          ]
+        },
+        "currentDueDate": "2026-10-23T09:00:00Z",
+        "completion": "2026-10-24T12:00:00Z",
+        "repeatFrom": "COMPLETION_DATE",
+        "timeZone": "UTC"
+      },
+      "answer": {
+        "nextDueDate": "2026-11-20T09:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "AITD-547 every two weeks on Sunday, Sunday starts the week",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "weeks",
+          "interval": 2,
+          "endCondition": "never",
+          "weekdays": [
+            "sunday"
+          ]
+        },
+        "currentDueDate": "2026-10-18T09:00:00Z",
+        "completion": "2026-10-18T09:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "UTC"
+      },
+      "answer": {
+        "nextDueDate": "2026-11-01T09:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "D5 custom monthly on the 31st overflows, Los Angeles",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "months",
+          "interval": 1,
+          "endCondition": "never",
+          "monthRepeatType": "same_date",
+          "monthDay": 31
+        },
+        "currentDueDate": "2026-01-31T17:00:00Z",
+        "completion": "2026-01-31T17:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles"
+      },
+      "answer": {
+        "nextDueDate": "2026-03-03T17:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "a time the spring change skips moves an hour later, Los Angeles",
+      "request": {
+        "repeating": "daily",
+        "currentDueDate": "2026-03-07T10:30:00Z",
+        "completion": "2026-03-07T10:30:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles"
+      },
+      "answer": {
+        "nextDueDate": "2026-03-08T10:30:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "a time the autumn change repeats takes the first, Los Angeles",
+      "request": {
+        "repeating": "daily",
+        "currentDueDate": "2026-10-31T08:30:00Z",
+        "completion": "2026-10-31T08:30:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles"
+      },
+      "answer": {
+        "nextDueDate": "2026-11-01T08:30:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "a half-hour daylight-saving shift, Lord Howe",
+      "request": {
+        "repeating": "monthly",
+        "currentDueDate": "2026-03-10T00:00:00Z",
+        "completion": "2026-03-10T00:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "Australia/Lord_Howe"
+      },
+      "answer": {
+        "nextDueDate": "2026-04-10T00:30:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "a simple series ends at its occurrence limit",
+      "request": {
+        "repeating": "weekly",
+        "pattern": {
+          "endCondition": "after_occurrences",
+          "endAfterOccurrences": 3
+        },
+        "currentDueDate": "2026-01-05T09:00:00Z",
+        "completion": "2026-01-05T09:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "occurrenceCount": 2,
+        "timeZone": "Europe/Paris"
+      },
+      "answer": {
+        "nextDueDate": null,
+        "shouldTerminate": true,
+        "newOccurrenceCount": 3
+      }
+    },
+    {
+      "name": "a simple series one short of its limit",
+      "request": {
+        "repeating": "weekly",
+        "pattern": {
+          "endCondition": "after_occurrences",
+          "endAfterOccurrences": 3
+        },
+        "currentDueDate": "2026-01-05T09:00:00Z",
+        "completion": "2026-01-05T09:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "occurrenceCount": 1,
+        "timeZone": "Europe/Paris"
+      },
+      "answer": {
+        "nextDueDate": "2026-01-12T09:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 2
+      }
+    },
+    {
+      "name": "never outranks a stale limit",
+      "request": {
+        "repeating": "daily",
+        "pattern": {
+          "endCondition": "never",
+          "endAfterOccurrences": 1
+        },
+        "currentDueDate": "2026-01-05T09:00:00Z",
+        "completion": "2026-01-05T09:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "occurrenceCount": 5
+      },
+      "answer": {
+        "nextDueDate": "2026-01-06T09:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 6
+      }
+    },
+    {
+      "name": "with no due date the completion is the anchor, Los Angeles",
+      "request": {
+        "repeating": "daily",
+        "currentDueDate": null,
+        "completion": "2026-03-07T20:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "timeZone": "America/Los_Angeles"
+      },
+      "answer": {
+        "nextDueDate": "2026-03-08T19:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "repeat-from defaults to the completion date",
+      "request": {
+        "repeating": "daily",
+        "currentDueDate": "2026-01-05T09:00:00Z",
+        "completion": "2026-01-08T12:00:00Z"
+      },
+      "answer": {
+        "nextDueDate": "2026-01-09T09:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "a limit of 0 occurrences ends the series",
+      "request": {
+        "repeating": "daily",
+        "pattern": {
+          "endCondition": "after_occurrences",
+          "endAfterOccurrences": 0
+        },
+        "currentDueDate": "2026-01-05T09:00:00Z",
+        "completion": "2026-01-05T09:00:00Z",
+        "repeatFrom": "DUE_DATE"
+      },
+      "answer": {
+        "nextDueDate": null,
+        "shouldTerminate": true,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "a yearly month and day from a 31st",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "years",
+          "interval": 1,
+          "endCondition": "never",
+          "month": 2,
+          "day": 10
+        },
+        "currentDueDate": "2026-01-31T09:00:00Z",
+        "completion": "2026-01-31T09:00:00Z",
+        "repeatFrom": "DUE_DATE"
+      },
+      "answer": {
+        "nextDueDate": "2027-02-10T09:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "a same-date monthly pattern with no stored day",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "months",
+          "interval": 1,
+          "endCondition": "never",
+          "monthRepeatType": "same_date"
+        },
+        "currentDueDate": "2026-01-15T09:00:00Z",
+        "completion": "2026-01-15T09:00:00Z",
+        "repeatFrom": "DUE_DATE"
+      },
+      "answer": {
+        "nextDueDate": "2026-02-15T09:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "a custom pattern with no interval ends the series",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "days",
+          "endCondition": "never"
+        },
+        "currentDueDate": "2026-01-05T09:00:00Z",
+        "completion": "2026-01-05T09:00:00Z",
+        "repeatFrom": "DUE_DATE"
+      },
+      "answer": {
+        "nextDueDate": null,
+        "shouldTerminate": true,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "an interval of 0 days steps one day (AWTD-1080)",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "days",
+          "interval": 0,
+          "endCondition": "never"
+        },
+        "currentDueDate": "2026-01-05T09:00:00Z",
+        "completion": "2026-01-05T09:00:00Z",
+        "repeatFrom": "DUE_DATE"
+      },
+      "answer": {
+        "nextDueDate": "2026-01-06T09:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "a monthly pattern with no monthRepeatType repeats on the same date (AWTD-1077)",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "months",
+          "interval": 6,
+          "endCondition": "never"
+        },
+        "currentDueDate": "2026-01-15T00:00:00Z",
+        "completion": "2026-01-15T00:00:00Z",
+        "repeatFrom": "DUE_DATE",
+        "isAllDay": true
+      },
+      "answer": {
+        "nextDueDate": "2026-07-15T00:00:00.000Z",
+        "shouldTerminate": false,
+        "newOccurrenceCount": 1
+      }
+    },
+    {
+      "name": "an unknown unit ends the series",
+      "request": {
+        "repeating": "custom",
+        "pattern": {
+          "type": "custom",
+          "unit": "fortnights",
+          "interval": 1,
+          "endCondition": "never"
+        },
+        "currentDueDate": "2026-01-05T09:00:00Z",
+        "completion": "2026-01-05T09:00:00Z",
+        "repeatFrom": "DUE_DATE"
+      },
+      "answer": {
+        "nextDueDate": null,
+        "shouldTerminate": true,
+        "newOccurrenceCount": 1
+      }
+    }
+  ],
+  "zonedProgressions": [
+    {
+      "name": "Mon/Wed/Fri at 9am through the autumn change, Los Angeles",
+      "repeating": "custom",
+      "pattern": {
+        "type": "custom",
+        "unit": "weeks",
+        "interval": 1,
+        "endCondition": "never",
+        "weekdays": [
+          "monday",
+          "wednesday",
+          "friday"
+        ]
+      },
+      "start": "2026-10-26T16:00:00Z",
+      "timeZone": "America/Los_Angeles",
+      "isAllDay": false,
+      "steps": 6,
+      "dates": [
+        "2026-10-28T16:00:00.000Z",
+        "2026-10-30T16:00:00.000Z",
+        "2026-11-02T17:00:00.000Z",
+        "2026-11-04T17:00:00.000Z",
+        "2026-11-06T17:00:00.000Z",
+        "2026-11-09T17:00:00.000Z"
+      ]
+    },
+    {
+      "name": "AITD-547 every 4 weeks on Friday at 9am through the autumn change, Los Angeles",
+      "repeating": "custom",
+      "pattern": {
+        "type": "custom",
+        "unit": "weeks",
+        "interval": 4,
+        "endCondition": "never",
+        "weekdays": [
+          "friday"
+        ]
+      },
+      "start": "2026-10-23T16:00:00Z",
+      "timeZone": "America/Los_Angeles",
+      "isAllDay": false,
+      "steps": 6,
+      "dates": [
+        "2026-11-20T17:00:00.000Z",
+        "2026-12-18T17:00:00.000Z",
+        "2027-01-15T17:00:00.000Z",
+        "2027-02-12T17:00:00.000Z",
+        "2027-03-12T17:00:00.000Z",
+        "2027-04-09T16:00:00.000Z"
+      ]
+    },
+    {
+      "name": "the third Tuesday through the spring change, Los Angeles",
+      "repeating": "custom",
+      "pattern": {
+        "type": "custom",
+        "unit": "months",
+        "interval": 1,
+        "endCondition": "never",
+        "monthRepeatType": "same_weekday",
+        "monthWeekday": {
+          "weekday": "tuesday",
+          "weekOfMonth": 3
+        }
+      },
+      "start": "2026-01-20T18:00:00Z",
+      "timeZone": "America/Los_Angeles",
+      "isAllDay": false,
+      "steps": 4,
+      "dates": [
+        "2026-02-17T08:00:00.000Z",
+        "2026-03-17T07:00:00.000Z",
+        "2026-04-21T07:00:00.000Z",
+        "2026-05-19T07:00:00.000Z"
+      ]
+    },
+    {
+      "name": "monthly at 2pm through a year, Paris",
+      "repeating": "monthly",
+      "pattern": null,
+      "start": "2026-01-15T13:00:00Z",
+      "timeZone": "Europe/Paris",
+      "isAllDay": false,
+      "steps": 12,
+      "dates": [
+        "2026-02-15T13:00:00.000Z",
+        "2026-03-15T13:00:00.000Z",
+        "2026-04-15T12:00:00.000Z",
+        "2026-05-15T12:00:00.000Z",
+        "2026-06-15T12:00:00.000Z",
+        "2026-07-15T12:00:00.000Z",
+        "2026-08-15T12:00:00.000Z",
+        "2026-09-15T12:00:00.000Z",
+        "2026-10-15T12:00:00.000Z",
+        "2026-11-15T13:00:00.000Z",
+        "2026-12-15T13:00:00.000Z",
+        "2027-01-15T13:00:00.000Z"
+      ]
+    },
+    {
+      "name": "daily at 1:30am through the autumn change, Los Angeles",
+      "repeating": "daily",
+      "pattern": null,
+      "start": "2026-10-30T08:30:00Z",
+      "timeZone": "America/Los_Angeles",
+      "isAllDay": false,
+      "steps": 4,
+      "dates": [
+        "2026-10-31T08:30:00.000Z",
+        "2026-11-01T08:30:00.000Z",
+        "2026-11-02T09:30:00.000Z",
+        "2026-11-03T09:30:00.000Z"
       ]
     }
   ]

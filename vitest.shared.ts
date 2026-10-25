@@ -67,6 +67,9 @@ export const TEST_TIMEOUT_MS = 15_000
  */
 export const POSTGRES_ONLY_TEST = 'tests/integration/postgres-risk.test.ts'
 
+/** Tests that talk to real external services (spec §14.2). */
+export const LIVE_TESTS = 'tests/live/**'
+
 /** Paths that are never test files, whichever config is running. */
 export const SHARED_EXCLUDE = [
   '**/node_modules/**',
@@ -82,6 +85,9 @@ export const SHARED_EXCLUDE = [
   'packages/openclaw-astrid-channel/tests/**',
   // Needs a real Postgres; vitest.postgres.config.ts runs it on its own.
   POSTGRES_ONLY_TEST,
+  // Live tests against real external services, gated on secrets and run on
+  // their own (vitest.live.config.ts) — never in predeploy (AWTD-1154).
+  LIVE_TESTS,
 ]
 
 /** The `@/…` alias every config resolves identically. */

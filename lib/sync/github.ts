@@ -2,6 +2,9 @@ import crypto from 'crypto'
 import { fetchWithTimeout } from '@/lib/ai/clients/fetch-with-timeout'
 import { prisma } from '@/lib/prisma'
 import { decryptFieldStrict, encryptField } from '@/lib/field-encryption'
+import { GITHUB_API_URL as GITHUB_API, GITHUB_WEB_URL } from '@/lib/github/host'
+import { userInstallationReachesRepo } from '@/lib/github/installations'
+import { githubAppUserTokenFor } from '@/lib/github/user-tokens'
 
 /**
  * GitHub Issues sync — server-side helpers.
@@ -13,7 +16,6 @@ import { decryptFieldStrict, encryptField } from '@/lib/field-encryption'
  *   GITHUB_SYNC_WEBHOOK_SECRET                          (issues webhook nudge)
  */
 
-const GITHUB_API = 'https://api.github.com'
 
 export function githubSyncConfigured(): boolean {
   return !!(process.env.GITHUB_SYNC_CLIENT_ID && process.env.GITHUB_SYNC_CLIENT_SECRET)
@@ -31,7 +33,24 @@ export function isValidRepoId(id: string): boolean {
 
 // ── Token access ─────────────────────────────────────────────────────────────
 
-export async function githubTokenFor(userId: string): Promise<string | null> {
+/**
+ * The token to reach `repo` with, as the user (AWTD-1112).
+ *
+ * The GitHub App's user token when one of the user's installations reaches the
+ * repo — that is where Issues sync is moving — else the legacy `repo`-scoped
+ * OAuth token, which reaches every repo the user can see. An App token cannot
+ * see a repo the App is not installed on, so preferring it blindly would 404
+ * every uncovered link. Without `repo`, the legacy token, as before.
+ */
+export async function githubTokenFor(userId: string, repo?: string): Promise<string | null> {
+  if (repo && (await userInstallationReachesRepo(userId, repo))) {
+    const appToken = await githubAppUserTokenFor(userId)
+    if (appToken) return appToken
+  }
+  return legacyGithubTokenFor(userId)
+}
+
+async function legacyGithubTokenFor(userId: string): Promise<string | null> {
   const integration = await prisma.integration.findUnique({
     where: { userId_provider: { userId, provider: 'GITHUB_ISSUES' } },
   })
@@ -79,7 +98,7 @@ export async function exchangeGithubCode(
   code: string,
   redirectUri?: string
 ): Promise<{ accessToken: string; scopes: string[] } | null> {
-  const res = await fetch('https://github.com/login/oauth/access_token', {
+  const res = await fetch(`${GITHUB_WEB_URL}/login/oauth/access_token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({
@@ -148,13 +167,20 @@ export function verifyWebhookSignature(rawBody: string, signature: string | null
 
 /** GraphQL call (sub-issue parent lookups — REST doesn't expose an issue's parent). */
 export async function githubGraphQL(token: string, query: string): Promise<any> {
-  const res = await fetch('https://api.github.com/graphql', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
+  // Timed like every other GitHub call here: an untimed GraphQL request could
+  // hold a sync pass until the function was killed (spec §3.2 G7).
+  const res = await fetchWithTimeout(
+    `${GITHUB_API}/graphql`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query }),
     },
-    body: JSON.stringify({ query }),
-  })
+    GITHUB_REQUEST_TIMEOUT_MS,
+    'GitHub',
+  )
   return res.json().catch(() => null)
 }

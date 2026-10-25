@@ -1,0 +1,13 @@
+{
+  "statusFieldId": "PVTSSF_status",
+  "statusOptionMap": {
+    "opt_todo": "ready",
+    "opt_progress": "doing",
+    "opt_blocked": "waiting",
+    "opt_review": "gh:opt_review",
+    "opt_done": "done"
+  },
+  "priorityFieldId": "PVTSSF_priority",
+  "priorityOptionMap": { "opt_p0": 3, "opt_p1": 2, "opt_p2": 1, "opt_p3": 0 },
+  "dueFieldId": "PVTF_due"
+}

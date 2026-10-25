@@ -38,6 +38,26 @@ async function getSession(request: NextRequest) {
  * Confirm that a direct upload to Vercel Blob completed
  * Updates the database with the new blob URL
  */
+/** Whether `candidate` is a blob upload-url issued for this file (AWTD-1344). */
+function isBlobIssuedFor(candidate: unknown, currentBlobUrl: string | null, uploaderId: string, fileId: string): boolean {
+  if (typeof candidate !== 'string') return false
+  let url: URL
+  try {
+    url = new URL(candidate)
+  } catch {
+    return false
+  }
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') return false
+  if (currentBlobUrl) {
+    try {
+      if (new URL(currentBlobUrl).host !== url.host) return false
+    } catch {
+      return false
+    }
+  }
+  return url.pathname.startsWith(`/files/${uploaderId}/${fileId}-`)
+}
+
 export async function POST(request: NextRequest, context: RouteContextParams<{ fileId: string }>) {
   try {
     const session = await getSession(request)
@@ -68,6 +88,15 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ f
       return NextResponse.json({ error: "Only the file uploader can update this file" }, { status: 403 })
     }
 
+    // The blob must be the one upload-url minted for THIS file: same store as
+    // the file's current blob, pathname `files/<uploader>/<fileId>-…`
+    // (upload-url/route.ts). Accepting any URL let an uploader point their
+    // file at another user's blob and read it back through the signed
+    // download (AWTD-1344).
+    if (!isBlobIssuedFor(blobUrl, existingFile.blobUrl, session.user.id, fileId)) {
+      return NextResponse.json({ error: "blobUrl is not the upload issued for this file" }, { status: 400 })
+    }
+
     // Update database record with new blob URL
     const updatedFile = await prisma.secureFile.update({
       where: { id: fileId },
@@ -79,8 +108,11 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ f
       }
     })
 
-    // Delete old blob (best effort, don't fail if this fails)
-    const urlToDelete = oldBlobUrl || existingFile.blobUrl
+    // Delete the file's OWN previous blob (best effort). Never a URL from the
+    // request: `oldBlobUrl` let the uploader of any file delete any blob
+    // (AWTD-1344). It is still accepted from older clients, and ignored.
+    void oldBlobUrl
+    const urlToDelete = existingFile.blobUrl
     if (urlToDelete && urlToDelete !== blobUrl) {
       try {
         await deleteFile(urlToDelete)

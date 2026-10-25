@@ -47,6 +47,9 @@
  * field has to survive the narrowing.
  */
 
+import type { ListSupports } from '@/lib/backends/supports'
+import type { ListRemote } from '@/lib/backends/list-wire'
+
 // ── Shared meta block ─────────────────────────────────────────────────
 
 /**
@@ -103,6 +106,12 @@ export interface V1List {
   filterRepeating: unknown
   filterAssignedBy: unknown
   filterInLists: unknown
+  /**
+   * "<ProjectField.id>:<option or iteration id>" — the caller's one
+   * project-field filter on a GitHub board, or null (AWTD-1259). Additive:
+   * a client that does not decode it loses nothing.
+   */
+  filterProjectField: string | null
   defaultPriority: number | null
   defaultRepeating: string | null
   defaultAssigneeId: string | null
@@ -133,12 +142,20 @@ export interface V1List {
   // iOS treats the list as a project-domain list (listType "regular") or
   // a status-board column (listType "status").
   //
+  // Two more flavors reach the wire from GitHub-backed boards: "label"
+  // (AWTD-1188) and "milestone" (AWTD-1189). Both are tags a task carries by
+  // membership, never destinations — `isTagList` in lib/list-flavors.ts is the
+  // test. The union said `regular | status` while labels already shipped, so a
+  // cast in lib/lists/v1-list-shape.ts was covering for it.
+  //
   // The four `status*` fields that used to sit here are gone (AWTD-853): a
   // board column stopped being a list in AWTD-562, and the rows that carried
   // them were deleted by `20260821000000_drop_status_lists`. `Task.statusRole`
   // is a different field and is still the live one.
   projectId: string | null
-  listType: 'regular' | 'status'
+  //
+  // A fifth, "iteration" (AWTD-1230): a GitHub project iteration, also a tag.
+  listType: 'regular' | 'status' | 'label' | 'milestone' | 'iteration'
   // Per-list "Recently completed" window config. null = legacy 24h default.
   // Shape mirrors lib/recently-completed-window.ts → RecentlyCompletedWindow.
   recentlyCompletedWindow: unknown
@@ -146,6 +163,24 @@ export interface V1List {
   // column is emitted as `true`, because absent must mean SHOW. Combine with
   // the user's subtaskDisplay per lib/list-subtask-visibility.ts.
   showSubtasks: boolean
+  // What this list's backend can do (AWTD-1190, spec §11.2). Optional: a
+  // server older than the field omits it, and absent means classic.
+  supports?: ListSupports
+  // Which backend the list lives in (AWTD-1256, spec §11.2); null is a classic
+  // list. Ask `supports` what it can do — this is for what it IS, e.g. so a
+  // client never runs a second sync engine against a GitHub-backed list.
+  // Optional for the same reason as `supports`: an older server omits it.
+  backend?: 'github_project' | null
+  // The GitHub Project a GitHub-backed list mirrors (AWTD-1222). Null on a
+  // classic list.
+  remote?: ListRemote | null
+  // An iteration list's dates (AWTD-1230). Null unless listType is
+  // "iteration"; optional because an older server omits it. `hidden` is true once the iteration has ended: keep the list
+  // and its tasks, reachable by search or link, but leave it out of list-shaped
+  // surfaces (Jon's decision (b)). It is derived when served, so a client
+  // syncing by `updatedSince` should compare `endsOn` (YYYY-MM-DD, the last
+  // day, inclusive) to today rather than wait for the list to change.
+  iteration?: { startDate: string; endsOn: string; hidden: boolean } | null
   createdAt: string | Date
   updatedAt: string | Date
 }
@@ -588,6 +623,21 @@ export interface V1ConnectionRevokeResponse {
   kind: V1ConnectionKind
   id: string
   revokedTokens?: number
+  meta: V1ResponseMeta
+}
+
+/**
+ * POST /api/v1/users/me/access-tokens — mint a user-level access token
+ * (AWTD-1312). `token` is the only time the plaintext is returned by this
+ * route; the new row appears in the connections list as kind `accessToken`.
+ */
+export interface V1AccessTokenCreateResponse {
+  success: true
+  token: string
+  permissions: string[]
+  expiresAt: string | null
+  description: string | null
+  createdAt: string
   meta: V1ResponseMeta
 }
 

@@ -42,6 +42,11 @@ export const AnalyticsPlatform = {
    * receive a platform the moment a build starts sending it.
    */
   WINDOWS_APP: 'windows-app',
+  /**
+   * The Android app (astrid-android). Value matches the `x-platform: android-app` header it sends on
+   * every Astrid-bound request through astrid-core. Not WEB_ANDROID, which is a browser. (AATD-2.)
+   */
+  ANDROID_APP: 'android-app',
   API_OTHER: 'API-other',
   UNKNOWN: 'unknown',
 } as const
@@ -74,6 +79,12 @@ export function detectPlatform(request: NextRequest): AnalyticsPlatformValue {
   // browser agents it would have to be told apart from all say Mozilla.
   if (xPlatform === 'windows-app') {
     return AnalyticsPlatform.WINDOWS_APP
+  }
+
+  // Android native app. Header only, and it must come before the user-agent branches: the app's
+  // agent is astrid-core's HTTP stack, and a guess from "Android" in an agent is the mobile web.
+  if (xPlatform === 'android-app') {
+    return AnalyticsPlatform.ANDROID_APP
   }
 
   // iOS native app - custom header first, then user agent.
@@ -380,6 +391,7 @@ export const ANALYTICS_PLATFORM_ORDER: AnalyticsPlatformValue[] = [
   AnalyticsPlatform.IOS_APP,
   AnalyticsPlatform.MAC_APP,
   AnalyticsPlatform.WINDOWS_APP,
+  AnalyticsPlatform.ANDROID_APP,
   AnalyticsPlatform.API_OTHER,
   AnalyticsPlatform.UNKNOWN,
 ]

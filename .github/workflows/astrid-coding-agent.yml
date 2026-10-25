@@ -23,7 +23,7 @@ jobs:
   # Job 1: Validate and setup
   setup:
     name: 'Setup & Validation'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       task_id: ${{ steps.get-task.outputs.task_id }}
       should_proceed: ${{ steps.validate.outputs.should_proceed }}
@@ -65,7 +65,7 @@ jobs:
   # Job 2: Trigger AI Implementation
   ai-implementation:
     name: 'AI Code Generation'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: setup
     if: needs.setup.outputs.should_proceed == 'true'
     steps:
@@ -73,7 +73,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -133,7 +133,7 @@ jobs:
   # Job 3: Build and Test (in parallel with AI work)
   build-and-test:
     name: 'Build & Test'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: setup
     if: needs.setup.outputs.should_proceed == 'true'
     steps:
@@ -141,7 +141,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -177,7 +177,7 @@ jobs:
   # Job 4: Monitor AI Progress & Deploy Preview
   monitor-and-preview:
     name: 'Monitor AI & Deploy Preview'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [setup, ai-implementation, build-and-test]
     if: always() && needs.setup.outputs.should_proceed == 'true' && needs.ai-implementation.result == 'success'
     timeout-minutes: 65  # ✅ Increased to 65 to accommodate 60-minute workflow monitoring
@@ -336,7 +336,7 @@ jobs:
   # Job 5: Notification & Cleanup
   notify-completion:
     name: 'Notify Completion'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [setup, ai-implementation, build-and-test, monitor-and-preview]
     if: always() && needs.setup.outputs.should_proceed == 'true'
     steps:

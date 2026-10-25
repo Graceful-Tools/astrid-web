@@ -28,10 +28,16 @@
  * every failure mode.
  */
 
+import { createHash } from 'node:crypto'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { mapWithConcurrency } from '@/lib/concurrency'
 import type { PulledIssue } from '@/lib/sync/github/pull-issues'
+import {
+  createTaskWithSideEffects,
+  updateTaskWithSideEffects,
+  type UpdateTaskIntent,
+} from '@/services/task.service'
 
 const log = createLogger('sync.github.apply')
 
@@ -66,6 +72,54 @@ function isStale(item: PulledIssue, existingRemoteUpdatedAt: Date | null): boole
   if (!item.remoteUpdatedAt) return false
   if (!existingRemoteUpdatedAt) return false
   return new Date(item.remoteUpdatedAt) <= existingRemoteUpdatedAt
+}
+
+type LinkedTaskContent = {
+  title: string
+  description: string | null
+  completed: boolean
+  closedReason: string | null
+} | null
+
+/**
+ * The update intent for an issue against its task as it stands: only fields
+ * that differ. `completed` is sent only when it flips, because the service
+ * stamps completedAt on every `completed: true` it is given.
+ */
+function changedFields(task: LinkedTaskContent, item: PulledIssue): UpdateTaskIntent {
+  const description = item.notes ?? ''
+  const closedReason = item.closedReason ?? null
+  const intent: UpdateTaskIntent = {}
+
+  if (!task || task.title !== item.title) intent.title = item.title
+  if (!task || (task.description ?? '') !== description) intent.description = description
+  if (!task || (task.closedReason ?? null) !== closedReason) intent.closedReason = closedReason
+  if (!task || task.completed !== item.completed) {
+    intent.completed = item.completed
+    if (item.completed) {
+      intent.completedSource = 'github'
+      if (item.completedAt) intent.completedAt = item.completedAt
+    }
+  }
+  return intent
+}
+
+/**
+ * One clientRequestId per (user, issue), the same on every run (AWTD-1123).
+ *
+ * This is what keeps a task and its link together now that the task is
+ * created through the service, which takes no transaction. If the link write
+ * fails after the task exists, the error propagates and the cursor stays put.
+ * The next run offers the issue again, and this id makes the create return the
+ * task already made instead of a second one, so the link is written then.
+ *
+ * It also keeps the service's title-based dedup out of the way. That dedup
+ * would merge two different issues with the same title imported within a
+ * minute. Hashed because a repo path can exceed the service's 128 characters.
+ */
+function importRequestId(userId: string, remoteId: string): string {
+  const digest = createHash('sha256').update(`${userId}\n${remoteId}`).digest('hex')
+  return `github-issue:${digest}`
 }
 
 export async function applyPulledIssues(args: {
@@ -131,7 +185,15 @@ export async function applyPulledIssues(args: {
       userId: link.userId,
       remoteId: { in: applicable.map(item => item.remoteId) },
     },
-    select: { id: true, astridTaskId: true, remoteUpdatedAt: true, remoteId: true },
+    select: {
+      id: true,
+      astridTaskId: true,
+      remoteUpdatedAt: true,
+      remoteId: true,
+      // Still one query: the linked task's current content, so an issue that
+      // changed nothing writes nothing (AWTD-1093).
+      task: { select: { title: true, description: true, completed: true, closedReason: true } },
+    },
   })
 
   const existingByRemoteId = new Map(existingRows.map(row => [row.remoteId, row]))
@@ -147,69 +209,77 @@ export async function applyPulledIssues(args: {
       if (existing) {
         if (isStale(item, existing.remoteUpdatedAt)) return 'skipped'
 
-        // Independent rows, so one round trip rather than two. Not a
-        // transaction: if the link write is the one that fails, the watermark
-        // simply does not advance and the next run reapplies — which is the
-        // recoverable direction. A half-applied CREATE is the one that is not,
-        // and that is still transactional below.
-        await Promise.all([
-          prisma.task.update({
-            where: { id: existing.astridTaskId },
-            data: {
-              title: item.title,
-              description: item.notes ?? '',
-              completed: item.completed,
-              completedAt: item.completedAt ? new Date(item.completedAt) : null,
-              closedReason: item.closedReason ?? null,
-            },
-          }),
-          prisma.externalTaskLink.update({
-            where: { id: existing.id },
-            data: {
-              remoteUpdatedAt: item.remoteUpdatedAt ? new Date(item.remoteUpdatedAt) : undefined,
-              lastSyncedAt: new Date(),
-            },
-          }),
-        ])
+        // Through the task service, and only for what actually changed. A raw
+        // write completed tasks with no completedSource, left the board lane on
+        // a done task, never promoted the tasks it was blocking and broadcast
+        // nothing; and writing unchanged content bumped updatedAt, which push
+        // then read as a local edit (AWTD-1093).
+        const intent = changedFields(existing.task, item)
+        if (Object.keys(intent).length > 0) {
+          const outcome = await updateTaskWithSideEffects({
+            taskId: existing.astridTaskId,
+            actorId: link.userId,
+            intent,
+          })
+          // Propagate, like every other failure here: the caller must not
+          // commit the cursor past an issue that was not applied.
+          if (!outcome.ok) throw new Error(`Applying ${item.remoteId} failed: ${outcome.error}`)
+        }
+
+        // After the task, not alongside it: if the task write fails, the
+        // watermark must not advance.
+        await prisma.externalTaskLink.update({
+          where: { id: existing.id },
+          data: {
+            remoteUpdatedAt: item.remoteUpdatedAt ? new Date(item.remoteUpdatedAt) : undefined,
+            lastSyncedAt: new Date(),
+          },
+        })
         return 'updated'
       }
 
-      // New issue. The task and its link are written together: a task with no
-      // link would be re-imported as a duplicate on the very next run, which is
-      // the failure mode that makes naive importers unusable.
+      // New issue. Through the task service, so it gets its identifier,
+      // reminders, manual-sort entry and broadcast like any other create
+      // (AWTD-1123). A task with no link would be re-imported as a duplicate on
+      // the next run; importRequestId says how that is prevented without a
+      // transaction.
+      const created = await createTaskWithSideEffects({
+        actorId: link.userId,
+        input: {
+          title: item.title,
+          description: item.notes ?? '',
+          listIds: [link.astridListId],
+          // '' means no assignee resolved to an Astrid user. null, not
+          // undefined: undefined would hand the task to the list's default.
+          assigneeId: item.metadata.assigneeUserId || null,
+          completed: item.completed,
+          completedAt: item.completedAt ?? null,
+          completedSource: item.completed ? 'github' : null,
+          closedReason: item.closedReason ?? null,
+          clientRequestId: importRequestId(link.userId, item.remoteId),
+        },
+      })
+      // Propagate: the caller must not commit the cursor past this issue.
+      if (!created.ok) throw new Error(`Importing ${item.remoteId} failed: ${created.error}`)
+
       try {
-        await prisma.$transaction(async tx => {
-          const task = await tx.task.create({
-            data: {
-              title: item.title,
-              description: item.notes ?? '',
-              completed: item.completed,
-              completedAt: item.completedAt ? new Date(item.completedAt) : null,
-              closedReason: item.closedReason ?? null,
-              creatorId: link.userId,
-              // '' means no assignee resolved to an Astrid user — leave it unset
-              // rather than writing an empty string into a relation.
-              assigneeId: item.metadata.assigneeUserId || undefined,
-              lists: { connect: { id: link.astridListId } },
-            },
-          })
-          await tx.externalTaskLink.create({
-            data: {
-              integrationId: link.integrationId,
-              userId: link.userId,
-              astridTaskId: task.id,
-              provider: 'GITHUB_ISSUES',
-              remoteId: item.remoteId,
-              remoteContainerId: link.remoteContainerId,
-              remoteUpdatedAt: item.remoteUpdatedAt ? new Date(item.remoteUpdatedAt) : null,
-              lastSyncedAt: new Date(),
-            },
-          })
+        await prisma.externalTaskLink.create({
+          data: {
+            integrationId: link.integrationId,
+            userId: link.userId,
+            astridTaskId: created.task.id,
+            provider: 'GITHUB_ISSUES',
+            remoteId: item.remoteId,
+            remoteContainerId: link.remoteContainerId,
+            remoteUpdatedAt: item.remoteUpdatedAt ? new Date(item.remoteUpdatedAt) : null,
+            lastSyncedAt: new Date(),
+          },
         })
         return 'created'
       } catch (error) {
-        // ONLY a unique violation is safe to absorb: it means another run created
-        // the same issue concurrently, so the desired end state already holds.
+        // ONLY a unique violation is safe to absorb: it means another run linked
+        // the same issue concurrently. That run got the same task from the
+        // create above, so the desired end state already holds.
         //
         // Everything else MUST propagate. The caller commits the cursor when this
         // returns without throwing, so swallowing a real failure here (DB down,

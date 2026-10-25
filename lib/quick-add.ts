@@ -12,6 +12,7 @@
  */
 
 import type { TaskList } from '@/types/task'
+import { orderListsForPicker } from '@/lib/status-lists'
 
 export type QuickAddPlacement = 'inline' | 'fixed-bottom'
 export type LayoutType = '1-column' | '2-column' | '3-column'
@@ -63,7 +64,9 @@ export function filterListsForHashtag(
   limit = 5,
 ): TaskList[] {
   const needle = query.toLowerCase()
-  return lists
+  // Ordered here, not trusted from the caller: the client holds lists in heap
+  // order, which puts the busiest list last (AWTD-1308).
+  return orderListsForPicker(lists)
     // A virtual list ("Today", "Assigned") is a view, not somewhere a task lands.
     .filter(list => !list.isVirtual)
     .filter(list => {
@@ -90,29 +93,15 @@ export interface QuickAddPlaceholder {
 }
 
 /**
- * Placement and layout pick the prompt; the caller resolves the key so this
- * stays free of the i18n runtime. 3-column names the list because several
- * lists are on screen at once and the input alone would be ambiguous.
+ * The quick-add prompt: "Add a task..." — the same in every placement and
+ * layout, as on Mac and iOS (AWTD-1164). It used to vary by layout ("Add task
+ * to <list>..." in 3-column), which was longer, inconsistent, and logic no
+ * other surface shared. The arguments stay so callers need not change.
  */
-export function quickAddPlaceholder({
-  placement,
-  layoutType,
-  listName,
-}: {
+export function quickAddPlaceholder(_where: {
   placement: QuickAddPlacement
   layoutType?: LayoutType
   listName?: string
 }): QuickAddPlaceholder {
-  if (placement === 'fixed-bottom') return { key: 'tasks.addTaskPlaceholder' }
-
-  switch (layoutType) {
-    case '3-column':
-      return listName && listName !== 'My Tasks'
-        ? { key: 'tasks.addTaskToList', params: { listName } }
-        : { key: 'tasks.addTaskToCurrentList' }
-    case '2-column':
-      return { key: 'tasks.addTaskShort' }
-    default:
-      return { key: 'tasks.addNewTask' }
-  }
+  return { key: 'tasks.addTaskPlaceholder' }
 }

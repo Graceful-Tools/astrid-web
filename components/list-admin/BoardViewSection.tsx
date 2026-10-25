@@ -31,7 +31,7 @@ interface BoardViewSectionProps {
 
 /**
  * Project Status Board controls for a list's admin settings: the
- * "Create Board" / "Disable Board" toggle and the disable-confirmation
+ * create / disable toggle and the disable-confirmation
  * modal. Extracted from list-admin-settings.tsx (Stage 13 of the
  * god-file refactor) — owns its own state and the two server mutations.
  */
@@ -102,7 +102,7 @@ export function BoardViewSection({
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
-        throw new Error(data.error || 'Failed to create board')
+        throw new Error(data.error || t("projectMode.createBoardFailed"))
       }
 
       const { project, list: updatedList } = await response.json()
@@ -115,11 +115,11 @@ export function BoardViewSection({
       }
     } catch (error) {
       console.error('Error creating project status board:', error)
-      setProjectBoardError(error instanceof Error ? error.message : 'Failed to create board')
+      setProjectBoardError(error instanceof Error ? error.message : t("projectMode.createBoardFailed"))
     } finally {
       setIsCreatingProjectBoard(false)
     }
-  }, [isCreatingProjectBoard, keyEdited, keyInvalid, list, onProjectBoardCreated, onUpdate, requestedKey])
+  }, [isCreatingProjectBoard, keyEdited, keyInvalid, list, onProjectBoardCreated, onUpdate, requestedKey, t])
 
   // Once the board exists the key can still change (AWTD-1024): its tasks
   // become NEW-N and every OLD-N already written down keeps resolving.
@@ -184,11 +184,11 @@ export function BoardViewSection({
       setShowDisableBoardConfirmation(false)
     } catch (error) {
       console.error('Error removing project status board:', error)
-      setProjectBoardError(error instanceof Error ? error.message : 'Failed to disable board')
+      setProjectBoardError(error instanceof Error ? error.message : t("projectMode.disableBoardFailed"))
     } finally {
       setIsRemovingProjectBoard(false)
     }
-  }, [isRemovingProjectBoard, list, onProjectBoardRemoved, onUpdate])
+  }, [isRemovingProjectBoard, list, onProjectBoardRemoved, onUpdate, t])
 
   if (!canEditSettings) return null
 
@@ -242,7 +242,7 @@ export function BoardViewSection({
               className="shrink-0"
             >
               <KanbanSquare className="w-4 h-4 mr-1" />
-              {isRemovingProjectBoard ? "Disabling..." : "Disable Board"}
+              {isRemovingProjectBoard ? t("projectMode.disablingBoard") : t("projectMode.disableBoard")}
             </Button>
           ) : (
             <Button
@@ -254,7 +254,7 @@ export function BoardViewSection({
               className="shrink-0"
             >
               <KanbanSquare className="w-4 h-4 mr-1" />
-              {isCreatingProjectBoard ? "Creating..." : "Create Board"}
+              {isCreatingProjectBoard ? t("projectMode.creatingBoard") : t("projectMode.createBoard")}
             </Button>
           )}
         </div>
@@ -328,12 +328,12 @@ export function BoardViewSection({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => !isRemovingProjectBoard && setShowDisableBoardConfirmation(false)}>
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4">
-              <h3 className="text-lg font-semibold theme-text-primary mb-2">Disable Board View</h3>
+              <h3 className="text-lg font-semibold theme-text-primary mb-2">{t("projectMode.disableBoardTitle")}</h3>
               <p className="theme-text-secondary mb-2">
-                Tasks stay in this list, but the Ready/Doing/Waiting columns will be removed.
+                {t("projectMode.disableBoardBody")}
               </p>
               <p className="text-sm theme-text-muted">
-                Tasks currently in a status column will lose their status. Completed tasks stay completed.
+                {t("projectMode.disableBoardNote")}
               </p>
             </div>
             <div className="flex space-x-3 justify-end">
@@ -344,7 +344,7 @@ export function BoardViewSection({
                 onClick={() => setShowDisableBoardConfirmation(false)}
                 className="theme-border theme-text-secondary hover:theme-bg-hover"
               >
-                Cancel
+                {t("actions.cancel")}
               </Button>
               <Button
                 variant="destructive"
@@ -353,7 +353,7 @@ export function BoardViewSection({
                 onClick={handleRemoveProjectBoard}
                 className="bg-red-600 hover:bg-red-700 text-white"
               >
-                {isRemovingProjectBoard ? "Disabling..." : "Disable Board"}
+                {isRemovingProjectBoard ? t("projectMode.disablingBoard") : t("projectMode.disableBoard")}
               </Button>
             </div>
           </div>

@@ -1,0 +1,56 @@
+name: 'Unit Tests'
+
+# Every pull request, whatever it changes — NO `paths:` and NO `branches:` here.
+#
+# The suite used to run only inside preview-deployment.yml, which is filtered
+# to the app's own directories. A PR touching only scripts/, tests/ or .github/
+# therefore showed every check green without running one unit test: PR #386
+# carried a rule test that failed on Linux that way (AWTD-1216).
+#
+# "Do the tests pass" is not a question about which directories changed.
+# tests/rules/unit-tests-run-on-every-pr.test.ts fails if a filter comes back.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unit-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  unit-tests:
+    name: 'Typecheck, Lint & Unit Tests'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      # Typecheck and lint cover tests/ and scripts/ too, so they belong with
+      # the suite rather than behind the preview's path filter.
+      - name: Run TypeScript Check
+        run: npm run typecheck
+
+      - name: Run Linting
+        run: npm run lint
+
+      - name: Run Tests
+        run: npm run test:run
+        env:
+          NODE_ENV: test

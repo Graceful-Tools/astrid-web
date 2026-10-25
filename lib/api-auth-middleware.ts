@@ -13,6 +13,7 @@ import { mcpTokenLookup } from "@/lib/mcp-token"
 import { getServerSession } from 'next-auth'
 import { authConfig } from '@/lib/auth-config'
 import { prisma } from '@/lib/prisma'
+import { sessionFromCookieValue } from '@/lib/auth/session-cookie'
 import { validateAccessToken } from './oauth/oauth-token-manager'
 import { hasRequiredScopes, SCOPE_GROUPS } from './oauth/oauth-scopes'
 import { createLogger } from '@/lib/logger'
@@ -270,19 +271,13 @@ export async function authenticateAPI(
     const sessionCookie = cookies.get('next-auth.session-token') || cookies.get('__Secure-next-auth.session-token')
 
     if (sessionCookie) {
-      const dbSession = await prisma.session.findUnique({
-        where: { sessionToken: sessionCookie.value },
-        include: { user: true },
-      })
-
-      if (dbSession && dbSession.expires > new Date()) {
+      // A JWT under the native routes' cookie name, or a pre-AWTD-1104
+      // database session.
+      const cookieSession = await sessionFromCookieValue(sessionCookie.value)
+      if (cookieSession) {
         session = {
-          user: {
-            id: dbSession.user.id,
-            email: dbSession.user.email,
-            name: dbSession.user.name,
-          },
-          expires: dbSession.expires.toISOString(),
+          user: { id: cookieSession.user.id, email: cookieSession.user.email, name: cookieSession.user.name },
+          expires: cookieSession.expires,
         }
       }
     }

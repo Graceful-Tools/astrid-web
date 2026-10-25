@@ -1,0 +1,37 @@
+{
+  "data": {
+    "organization": {
+      "projectsV2": {
+        "nodes": [
+          {
+            "id": "PVT_kwDOFEb-HM4BmXS2",
+            "number": 2,
+            "title": "Graceful-Tools Test",
+            "url": "https://github.com/orgs/Graceful-Fools/projects/2",
+            "closed": false,
+            "updatedAt": "2026-10-10T13:41:52Z",
+            "items": {
+              "totalCount": 3
+            }
+          },
+          {
+            "id": "PVT_kwDOFEb-HM4BmXRD",
+            "number": 1,
+            "title": "@jonparis's untitled project",
+            "url": "https://github.com/orgs/Graceful-Fools/projects/1",
+            "closed": false,
+            "updatedAt": "2026-10-09T15:02:10Z",
+            "items": {
+              "totalCount": 0
+            }
+          }
+        ]
+      }
+    },
+    "rateLimit": {
+      "cost": 1,
+      "remaining": 4989,
+      "resetAt": "2026-10-10T14:41:11Z"
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach , type Mock } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest'
 
 // Mock Prisma before importing the handler
 vi.mock('@/lib/prisma', () => ({
@@ -291,6 +291,66 @@ describe('Repeating Task Handler', () => {
       // DUE_DATE mode: Jan 5 + 1 = Jan 6
       const nextDate = result?.nextDueDate!
       expect(nextDate.getUTCDate()).toBe(6)
+    })
+  })
+
+  // AWTD-1063: the server steps a TIMED task on the person's calendar when the client says which
+  // zone it is in (follow iOS, astrid-core CONTRACTS.md D1).
+  describe('the person\'s zone (AWTD-1063)', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    const timedDaily = {
+      id: 'test-task',
+      repeating: 'daily',
+      repeatingData: null,
+      repeatFrom: 'COMPLETION_DATE',
+      occurrenceCount: 0,
+      // 9am PST on Monday 5 January
+      dueDateTime: new Date('2026-01-05T17:00:00.000Z'),
+      isAllDay: false,
+    }
+
+    it('anchors an evening completion on the person\'s day when the zone is sent', async () => {
+      // 6pm on 5 January in Los Angeles is 02:00 UTC on the 6th.
+      vi.useFakeTimers({ now: new Date('2026-01-06T02:00:00.000Z'), toFake: ['Date'] })
+      mockPrisma.task.findUnique.mockResolvedValue(timedDaily)
+
+      const zoned = await handleRepeatingTaskCompletion('test-task', false, true, '2026-01-05', 'America/Los_Angeles')
+      expect(zoned?.nextDueDate?.toISOString()).toBe('2026-01-06T17:00:00.000Z')
+
+      // Without a zone (API clients, MCP), UTC's calendar: the server's old answer.
+      const utc = await handleRepeatingTaskCompletion('test-task', false, true, '2026-01-05')
+      expect(utc?.nextDueDate?.toISOString()).toBe('2026-01-07T17:00:00.000Z')
+    })
+
+    it('reads a zone it does not know as no zone, rather than failing the completion', async () => {
+      vi.useFakeTimers({ now: new Date('2026-01-06T02:00:00.000Z'), toFake: ['Date'] })
+      mockPrisma.task.findUnique.mockResolvedValue(timedDaily)
+      const result = await handleRepeatingTaskCompletion('test-task', false, true, undefined, 'Mars/Olympus_Mons')
+      expect(result?.nextDueDate?.toISOString()).toBe('2026-01-07T17:00:00.000Z')
+    })
+
+    it('keeps the client\'s calendar day for an all-day task, even when it syncs a day later', async () => {
+      // Completed offline on 5 January in Los Angeles; the request reaches the server on the 7th.
+      vi.useFakeTimers({ now: new Date('2026-01-07T20:00:00.000Z'), toFake: ['Date'] })
+      mockPrisma.task.findUnique.mockResolvedValue({ ...timedDaily, isAllDay: true, dueDateTime: new Date('2026-01-05T00:00:00.000Z') })
+      const result = await handleRepeatingTaskCompletion('test-task', false, true, '2026-01-05', 'America/Los_Angeles')
+      expect(result?.nextDueDate?.toISOString()).toBe('2026-01-06T00:00:00.000Z')
+    })
+
+    it('reads an all-day task\'s day in the person\'s zone when no day is sent', async () => {
+      // 9pm on 5 January in Los Angeles: UTC is already on the 6th.
+      vi.useFakeTimers({ now: new Date('2026-01-06T05:00:00.000Z'), toFake: ['Date'] })
+      mockPrisma.task.findUnique.mockResolvedValue({ ...timedDaily, isAllDay: true, dueDateTime: new Date('2026-01-05T00:00:00.000Z') })
+      const result = await handleRepeatingTaskCompletion('test-task', false, true, undefined, 'America/Los_Angeles')
+      expect(result?.nextDueDate?.toISOString()).toBe('2026-01-06T00:00:00.000Z')
+    })
+
+    it('does not roll a custom task with no stored pattern', async () => {
+      mockPrisma.task.findUnique.mockResolvedValue({ ...timedDaily, repeating: 'custom', repeatingData: null })
+      expect(await handleRepeatingTaskCompletion('test-task', false, true, undefined, 'America/Los_Angeles')).toBeNull()
     })
   })
 })

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server"
 import { getServerSession } from "next-auth"
 import { getToken } from "next-auth/jwt"
 import { authConfig } from "./auth-config"
-import { prisma } from "./prisma"
+import { sessionFromCookieValue } from "./auth/session-cookie"
 
 /**
  * Unified session validation that supports both:
@@ -41,27 +41,15 @@ export async function getUnifiedSession(request?: NextRequest) {
     }
   }
 
-  // Try database session (mobile app)
+  // The native routes' cookie: a JWT under its plain name, or a pre-AWTD-1104
+  // database session (mobile app).
   if (request?.cookies) {
     const cookies = request.cookies
     const sessionCookie = cookies.get("next-auth.session-token") || cookies.get("__Secure-next-auth.session-token")
 
     if (sessionCookie) {
-      const session = await prisma.session.findUnique({
-        where: { sessionToken: sessionCookie.value },
-        include: { user: true },
-      })
-
-      if (session && session.expires > new Date()) {
-        return {
-          user: {
-            id: session.user.id,
-            email: session.user.email!,
-            name: session.user.name,
-            image: session.user.image,
-          }
-        }
-      }
+      const session = await sessionFromCookieValue(sessionCookie.value)
+      if (session) return { user: session.user }
     }
   }
 

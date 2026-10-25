@@ -15,6 +15,7 @@ import { trackEventFromRequest, AnalyticsEventType } from "@/lib/analytics-event
 import { createLogger } from '@/lib/logger'
 import { canUserManageList } from "@/lib/list-permissions"
 import { canConvertListFlavor } from "@/lib/list-flavors"
+import { isListColor } from "@/lib/brand/colors"
 import { normalizeShowSubtasks } from "@/lib/list-subtask-visibility"
 import { recordDeletion } from "@/lib/deletion-log"
 import { broadcastListEvent } from "@/lib/lists/v1-list-shape"
@@ -23,6 +24,8 @@ import {
   ListImageClaimError,
   updateListWithImageOwnership,
 } from "@/lib/images/update-list-image"
+import { announceRosterChanges } from '@/services/list-member.service'
+import { unassignTasksOnListGoingPublic } from '@/services/list-public-unassign'
 
 const log = createLogger('api.lists.id')
 
@@ -183,6 +186,12 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
       manualSortOrderUpdate = tasksInList.map(task => task.id)
     }
 
+    // Same rule as PUT /api/v1/lists/[id]: the colour is painted into inline
+    // styles everywhere the list appears, so only #rrggbb is stored.
+    if (data.color !== undefined && !isListColor(data.color)) {
+      return NextResponse.json({ error: "Invalid color (must be #rrggbb)" }, { status: 400 })
+    }
+
     // Flavor changes are limited to regular ⇄ label (task 60f5849d). listType
     // was previously writable unguarded, which let a caller turn any list into
     // a board column and silently violate the board's invariants (a task may
@@ -289,15 +298,6 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
           }
         }
 
-        if (data.privacy === 'PUBLIC' && existingList.privacy !== 'PUBLIC') {
-          log.info(`🔓 List ${listId} becoming public - unassigning all tasks`)
-          await client.task.updateMany({
-            where: { lists: { some: { id: listId } } },
-            data: { assigneeId: null },
-          })
-          log.info(`✅ Unassigned all tasks in list ${listId}`)
-        }
-
         return client.taskList.update({
           where: { id: listId },
           data: updateData,
@@ -317,6 +317,28 @@ export async function PUT(request: NextRequest, context: RouteContextParams<{ id
         })
       },
     })
+
+    // A roster replace (adminIds / memberIds) is written above in one go; who
+    // joined and who left is announced here the member service's way, so open
+    // clients see it (spec §5.2 step 6). It used to send only list_updated.
+    if (data.adminIds !== undefined || data.memberIds !== undefined) {
+      await announceRosterChanges({
+        before: existingList,
+        after: updatedList,
+        actor: { id: session.user.id, name: session.user.name, email: session.user.email },
+      })
+    }
+
+    // A public list has no assignees. Each task is unassigned through the task
+    // service, after the list change has committed (AWTD-1109).
+    if (data.privacy === 'PUBLIC' && existingList.privacy !== 'PUBLIC') {
+      const { unassigned, failed } = await unassignTasksOnListGoingPublic({
+        listId,
+        actorId: session.user.id,
+        actorName: session.user.name ?? undefined,
+      })
+      log.info({ listId, unassigned, failed }, 'List became public; unassigned its tasks')
+    }
 
     // Manually fetch defaultAssignee if it's a valid user ID (not "unassigned")
     let defaultAssignee = null

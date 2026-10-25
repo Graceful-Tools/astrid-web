@@ -20,13 +20,22 @@
  *   column     scrollHeight === clientHeight (1808) — never scrolled
  *              → clientHeight 433 against scrollHeight 1808 — scrolls
  *
- * MOBILE LIST VIEW IS LEFT ON `relative` DELIBERATELY. It renders correctly
- * today precisely because it lands there, with `.mobile-task-list-container`
- * capping itself at `max-height: 100dvh` (styles/components.css). Flipping it
- * to `absolute` as well would be a rewrite of a layout nobody reported as
- * broken. The list branch drops only `inset-x-0 bottom-0`, which are inert on a
- * relatively-positioned element (`left`/`right`/`bottom` of 0 shift it by 0),
- * so the rendered result is byte-for-byte today's.
+ * MOBILE LIST VIEW STAYS ON `relative` (in flow), but it must be BOUNDED
+ * (`h-full`, AWTD-1307). Auto height let it take its height from
+ * `.mobile-task-list-container`'s `max-height: 100dvh` cap — a full screen
+ * tall, starting below the body's padding for the floating header
+ * (`.app-body-with-floating-header`, task 8c090700). So it overhung the screen
+ * by exactly the header's height, and `.app-container` (`overflow-x: hidden`,
+ * which computes overflow-y to `auto`) became a scroller with that range.
+ * Flicking past the end of a list chained into it and carried the fixed header
+ * off the top of the screen, where it stayed. Measured on a 390x664 iPhone:
+ *
+ *              before          after
+ *   wrapper    top 73, h 664   top 73, h 591
+ *   shell      scroll range 73 scroll range 0
+ *   header     top -65 after   top 8, always
+ *              a flick to the
+ *              list's end
  */
 export function taskAreaPositionClasses({
   isMobile,
@@ -44,8 +53,9 @@ export function taskAreaPositionClasses({
   // gives the columns a definite height to scroll inside.
   if (boardMode) return 'absolute inset-x-0 bottom-0'
 
-  // Mobile list: unchanged.
-  return 'relative'
+  // Mobile list: in flow, but as tall as the body's content box and no taller
+  // (AWTD-1307). See the header comment.
+  return 'relative h-full'
 }
 
 /**

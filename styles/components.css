@@ -37,8 +37,16 @@ html, body {
   --task-list-width: 450px; /* Wider task list for better readability */
   --task-panel-min-width: 350px;
   --task-panel-max-width: 500px;
-  /* Prevent iOS drawer from overshooting left edge */
-  overflow-x: hidden;
+  /* Prevent iOS drawer from overshooting left edge — and never be a scroll
+     container (AWTD-1306/1307). `overflow-x: hidden` alone still scrolls
+     programmatically and computes overflow-y to auto, so a list flick chained
+     into it vertically and, with the list menu open (drawer translated 320px),
+     scrollIntoView/focus scrolled it horizontally. The floating header is fixed
+     INSIDE the transformed drawer, so either scroll carried it out of position.
+     `clip` clips the same way but cannot be scrolled at all; `hidden` is the
+     fallback for browsers without it (Safari < 16). */
+  overflow: hidden;
+  overflow: clip;
 }
 
 .app-header {
@@ -106,6 +114,10 @@ html, body {
   @apply rounded-xl border;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   min-height: 64px;
+  /* The selection border, switched off. .task-row-selected only turns its
+     style on — see there for why (AWTD-1085). */
+  outline: 2px none rgb(var(--theme-accent));
+  outline-offset: -2px;
   /* iOS-style spring physics: fast press, bouncy release */
   transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, box-shadow 0.2s ease;
   /* Optimize for animations */
@@ -129,9 +141,15 @@ html, body {
 }
 
 .task-row-selected {
-  /* Selection reads via the tinted background (theme-bg-selected). Keep the
-     same thin border + subtle shadow as incomplete rows — no blue glow ring,
-     no heavier shadow (task 37464d1f). */
+  /* A crisp accent-blue border, as the Mac app draws it (AWTD-1084). An inset
+     outline rather than a wider border, so selecting a row does not shift it;
+     outline follows the rounded corners. Still no glow ring and no heavier
+     shadow than other rows (task 37464d1f).
+     Colour, width and offset live on .task-card; only the style changes here.
+     Rows carry transition-all, so setting the colour here animated the border
+     in from currentColor and it flashed black before turning blue. Style is
+     discrete and never animates (AWTD-1085). */
+  outline-style: solid;
 }
 
 .task-row-completed {
@@ -170,10 +188,11 @@ html, body {
   border-top: none;
 }
 
-/* Desktop arrow: match the panel border */
-.task-panel-desktop > .task-panel-arrow {
-  border-left-color: rgb(var(--theme-border));
-  border-bottom-color: rgb(var(--theme-border));
+/* Desktop arrow: match the panel's accent-blue selection ring (AWTD-1084).
+   .theme-panel-arrow in the selector outranks each theme's border-color. */
+.task-panel-desktop > .task-panel-arrow.theme-panel-arrow {
+  border-left: 2px solid rgb(var(--theme-accent));
+  border-bottom: 2px solid rgb(var(--theme-accent));
 }
 
 .panel-header {
@@ -414,6 +433,10 @@ html, body {
   height: 100% !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
+  /* A flick past the end of the list must stop here, not chain into
+     .app-container (a scroller: overflow-x hidden computes overflow-y to auto)
+     and carry the floating header off the screen (AWTD-1307). */
+  overscroll-behavior-y: contain;
   max-height: 100vh;
   max-height: 100dvh;
   min-height: 0;
@@ -586,8 +609,9 @@ html, body {
 
 .task-panel-desktop {
   @apply fixed top-32 bottom-10 bg-white dark:bg-gray-800 flex flex-col z-30 rounded-xl;
-  /* Subtle border + shadow for floating panel look */
-  box-shadow: 0 0 0 1px rgb(var(--theme-border)), 0 8px 24px -4px rgba(0, 0, 0, 0.08);
+  /* Accent-blue selection ring, matching the selected row (AWTD-1084), plus
+     a soft shadow for the floating panel look */
+  box-shadow: 0 0 0 2px rgb(var(--theme-accent)), 0 8px 24px -4px rgba(0, 0, 0, 0.08);
   /* Responsive width that adapts to available space and layout configuration */
   width: clamp(
     var(--task-panel-min-width),

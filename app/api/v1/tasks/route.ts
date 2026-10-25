@@ -16,6 +16,10 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { createTaskWithSideEffects, type CreatedTask } from '@/services/task.service'
 import { createLogger } from '@/lib/logger'
 import { getDeletionsSince } from '@/lib/deletion-log'
+import { assigneeIdsOf } from '@/lib/task-assignees'
+import { parseOmittedTaskFields } from '@/lib/tasks/v1-task-omit'
+import { shapeV1ListPageTask, v1TaskListSelect, v1TaskPageMeta } from '@/lib/tasks/v1-task-shape'
+import { withTaskRemote } from '@/lib/backends/task-remote'
 
 const log = createLogger('v1.tasks')
 
@@ -35,6 +39,11 @@ const log = createLogger('v1.tasks')
  * - offset: Pagination offset (default: 0)
  * - includeComments: true/false (default: false)
  * - updatedSince: ISO timestamp; return only tasks updated after it (delta sync)
+ * - omit: comma-separated fields to leave out — `description`, `listMembers`
+ *   (AWTD-1236). Opt-out, so omitting the param returns the full response as
+ *   before; `description` is ~80% of a full page's bytes. Unrecognised names
+ *   are ignored, and `meta.omitted` reports what the server actually dropped.
+ * - leanListMembers: `1` — the older spelling of `omit=listMembers`
  */
 export const GET = withAuth(
   { scopes: ['tasks:read'], tag: 'v1.tasks' },
@@ -55,11 +64,29 @@ export const GET = withAuth(
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '100'), 1000)
     const offset = parseInt(url.searchParams.get('offset') || '0')
     const includeComments = url.searchParams.get('includeComments') === 'true'
-    // Lean mode: omit per-task embedded listMembers (clients resolve membership
-    // from the lists endpoint). Big payload win — the same members were
-    // duplicated across every task sharing a list. Backward-compatible: absent
-    // param → full members as before.
-    const leanListMembers = url.searchParams.get('leanListMembers') === '1'
+    // Lean mode: drop fields this caller does not need (AWTD-1236). Opt-out,
+    // so an absent param returns exactly the response every client gets today;
+    // `description` alone is 80% of a full page, and only the sync needs it.
+    const omit = parseOmittedTaskFields(url.searchParams.get('omit'))
+    // `leanListMembers=1` is the older spelling of `omit=listMembers` and still
+    // works — a client may be sending it. New callers should use `omit`.
+    const leanListMembers =
+      url.searchParams.get('leanListMembers') === '1' || omit.has('listMembers')
+    // GitHub project field values, OPT-IN on this route (AWTD-1208, §9.4.3).
+    // Measured 2026-10-12: a thousand tasks carrying eight fields each adds
+    // 42.2 KiB to the gzipped response, and the full task response is already
+    // 551.8 KiB on the wire against a 500 KiB budget. The spec's rule decides
+    // it — "the budget wins over convenience" — so a list view asks for them
+    // only when it will show them, and the detail route carries them always.
+    //
+    // `include` and `omit` are the two halves of the same idea and they do not
+    // overlap: a field is opt-IN when carrying it is expensive for everyone,
+    // opt-OUT when dropping it is what a caller has to choose.
+    const includeFields = url.searchParams
+      .get('include')
+      ?.split(',')
+      .map(part => part.trim())
+      .includes('fields') ?? false
     // Delta sync: return only tasks touched since this instant. Optional and
     // purely additive — omitting it leaves the query exactly as it was, which
     // is what keeps this from being a breaking change for existing clients.
@@ -131,109 +158,7 @@ export const GET = withAuth(
     const [tasks, total] = await Promise.all([
       prisma.task.findMany({
         where,
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          assigneeId: true,
-          creatorId: true,
-          dueDateTime: true,
-          isAllDay: true,
-          reminderTime: true,
-          reminderSent: true,
-          reminderType: true,
-          repeating: true,
-          repeatingData: true,
-          repeatFrom: true,
-          occurrenceCount: true,
-          priority: true,
-          isPrivate: true,
-          completed: true,
-          completedAt: true,
-          completedSource: true,
-          // Terminal state other than done (task 11042ae3). Without this a
-          // client cannot tell "done" from "won't do" in a list view — the
-          // whole point of the field.
-          closedReason: true,
-          // Human-readable identifier (task 12f54df4). Minted on create and
-          // resolvable by GET, but omitting it here meant no client could ever
-          // *display* one, which is where its value actually is.
-          identifier: true,
-          sequence: true,
-          // Board status as a state (AWTD-562) — without this no client can
-          // render a board from the field.
-          statusRole: true,
-          createdAt: true,
-          updatedAt: true,
-          originalTaskId: true,
-          sourceListId: true,
-          clientRequestId: true,
-          parentTaskId: true,
-          lists: {
-            select: {
-              // Required for permission checks: getUserRoleInList resolves
-              // OWNER from this. Without it an owner who is not also a
-              // listMembers row resolves to NO role, and the task renders
-              // read-only — which is what happened to every task carrying a
-              // status, since lists[0] is the status list. (Task 5208e723.)
-              ownerId: true,
-              id: true,
-              name: true,
-              color: true,
-              githubRepositoryId: true,
-              ...(leanListMembers ? {} : {
-                listMembers: {
-                  select: {
-                    id: true,
-                    listId: true,
-                    userId: true,
-                    role: true,
-                  }
-                },
-              }),
-            },
-          },
-          assignee: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-              isAIAgent: true,
-            },
-          },
-          creator: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-              isAIAgent: true,
-            },
-          },
-          ...(includeComments && {
-            comments: {
-              select: {
-                id: true,
-                content: true,
-                createdAt: true,
-                author: {
-                  select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    image: true,
-                    isAIAgent: true,
-                  },
-                },
-              },
-              orderBy: { createdAt: 'desc' },
-              // Bound the fetch — previously unbounded, so a task with hundreds
-              // of comments bloated the collection payload × every task.
-              take: 20,
-            },
-          }),
-        },
+        select: v1TaskListSelect({ omit, leanListMembers, includeComments, includeFields }),
         orderBy: [
           { completed: 'asc' },
           { priority: 'desc' },
@@ -251,11 +176,9 @@ export const GET = withAuth(
       headers['X-Deprecation-Warning'] = deprecationWarning
     }
 
-    // iOS expects a flat listIds array alongside the relation
-    const tasksWithListIds = tasks.map(task => ({
-      ...task,
-      listIds: task.lists?.map(list => list.id) || []
-    }))
+    // A pure shaper, so the wire-shape contract fixture runs this exact code
+    // (AWTD-1263).
+    const tasksWithListIds = tasks.map(shapeV1ListPageTask)
 
     // Delta responses also carry what disappeared. Tasks are hard-deleted, so
     // without this a client syncing incrementally keeps showing tasks that are
@@ -269,13 +192,7 @@ export const GET = withAuth(
       {
         tasks: tasksWithListIds,
         ...(deletedIds ? { deletedIds } : {}),
-        meta: {
-          total,
-          limit,
-          offset,
-          apiVersion: 'v1',
-          authSource: auth.source,
-        },
+        meta: v1TaskPageMeta({ total, limit, offset, authSource: auth.source, omit }),
       },
       { headers }
     )
@@ -408,7 +325,8 @@ function narrowCreatedTaskForV1(task: CreatedTask) {
   const { lists, assignee, creator, comments, ...scalars } = task as unknown as Record<string, any>
 
   return {
-    ...scalars,
+    ...withTaskRemote(scalars),
+    assigneeIds: assigneeIdsOf(scalars),
     lists: (lists ?? []).map((list: any) => ({
       id: list.id,
       name: list.name,

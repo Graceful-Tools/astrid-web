@@ -17,6 +17,7 @@ import { placeholderUserService } from '@/lib/placeholder-user-service'
 import type { User, Task, TaskList } from '@prisma/client'
 import TurndownService from 'turndown'
 import { createLogger } from '@/lib/logger'
+import { createTaskWithSideEffects } from '@/services/task.service'
 
 const log = createLogger('email-to-task-service')
 
@@ -290,7 +291,14 @@ export class EmailToTaskService {
   }
 
   /**
-   * Create a task in the database
+   * Create the task through the task service, so an emailed task gets what any
+   * other new task gets: an identifier on a project list, reminders, the list
+   * broadcast, agent dispatch, and the assignee rules (spec §5.2 step 5). It
+   * used to be a raw insert that did none of it.
+   *
+   * Assigning by email reaches people who are on no list yet — a placeholder
+   * user invited by this very email — so list membership is not required, the
+   * same as legacy's assign-by-email path.
    */
   private async createTask(data: {
     title: string
@@ -300,30 +308,21 @@ export class EmailToTaskService {
     dueDateTime: Date | null
     listId: string | null
   }): Promise<Task> {
-    const task = await prisma.task.create({
-      data: {
+    const result = await createTaskWithSideEffects({
+      actorId: data.creatorId,
+      requireAssigneeListMembership: false,
+      input: {
         title: data.title,
         description: data.description,
-        creatorId: data.creatorId,
         assigneeId: data.assigneeId,
         dueDateTime: data.dueDateTime,
         priority: 0,
-        completed: false,
         isPrivate: data.listId ? false : true,
-        lists: data.listId
-          ? {
-              connect: [{ id: data.listId }]
-            }
-          : undefined,
+        listIds: data.listId ? [data.listId] : [],
       },
-      include: {
-        assignee: true,
-        creator: true,
-        lists: true,
-      }
     })
-
-    return task
+    if (!result.ok) throw new Error(result.error)
+    return result.task as unknown as Task
   }
 
   /**

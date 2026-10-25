@@ -18,6 +18,7 @@
  */
 
 import { prisma } from "./prisma"
+import { hasCapability } from "./brand/capabilities"
 import { isClosedReason } from "./closed-reason"
 import { createLogger } from "./logger"
 import {
@@ -45,6 +46,11 @@ export interface RepeatingCompletionArgs {
   /** YYYY-MM-DD from client; only used for all-day repeating tasks in COMPLETION_DATE mode. */
   localCompletionDate?: string
   /**
+   * The client's IANA zone (AWTD-1063). A timed series steps on this calendar, as on iOS; without
+   * it, on UTC's. Unknown names read as absent.
+   */
+  timeZone?: string | null
+  /**
    * Set when the task is being closed as canceled / duplicate / not-planned
    * rather than done (task 11042ae3).
    */
@@ -62,7 +68,7 @@ export interface RepeatingCompletionArgs {
 export async function resolveRepeatingTaskCompletion(
   args: RepeatingCompletionArgs,
 ): Promise<RepeatingTaskResult | null> {
-  const { taskId, existingCompleted, dataCompleted, localCompletionDate, closedReason } = args
+  const { taskId, existingCompleted, dataCompleted, localCompletionDate, timeZone, closedReason } = args
 
   if (dataCompleted === undefined) return null
 
@@ -77,11 +83,39 @@ export async function resolveRepeatingTaskCompletion(
     existingCompleted,
     dataCompleted,
     localCompletionDate,
+    timeZone,
   )
 
   if (!result?.shouldRollForward && !result?.shouldTerminate) return null
 
+  // On a GitHub board the series SPAWNS rather than rolls forward: the issue
+  // just completed stays closed as history and the next occurrence is a new
+  // issue linked to it (AWTD-1118, spec §10). Returning null hands the task
+  // back to the caller's ordinary completion path — which is exactly right,
+  // because the predecessor really is just completed — and a `recur` job
+  // creates the successor.
+  //
+  // Only a roll-forward is handed over. A terminating series has no successor
+  // to make, so it clears its configuration through the path it always did.
+  if (result.shouldRollForward && (await spawnsInsteadOfRollingForward(taskId))) return null
+
   return result
+}
+
+/**
+ * Whether this task's next occurrence is being spawned on GitHub instead.
+ * Free on a deployment without GitHub Projects: no import, no query.
+ */
+async function spawnsInsteadOfRollingForward(taskId: string): Promise<boolean> {
+  if (!hasCapability('githubProjects')) return false
+  try {
+    const { enqueueRecurrenceSpawn } = await import('@/services/github-recurrence.service')
+    return await enqueueRecurrenceSpawn(taskId)
+  } catch (err) {
+    // Rolling forward is the recoverable answer; a series silently dropped is not.
+    log.error({ err, taskId }, 'Failed to hand the series to GitHub; rolling forward instead')
+    return false
+  }
 }
 
 /**
@@ -105,6 +139,10 @@ export async function applyRepeatingTaskCompletion(
   if (!result) return { rolledForward: false }
 
   await applyRepeatingTaskRollForward(taskId, result)
+
+  // A terminated series has nothing to roll to: the caller completes the final
+  // occurrence through its normal path (AWTD-1092).
+  if (result.shouldTerminate) return { rolledForward: false }
 
   const updatedTask = await prisma.task.findUnique({
     where: { id: taskId },

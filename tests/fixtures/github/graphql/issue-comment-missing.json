@@ -1,0 +1,13 @@
+{
+  "data": {
+    "node": null
+  },
+  "errors": [
+    {
+      "type": "NOT_FOUND",
+      "path": ["node"],
+      "locations": [{ "line": 2, "column": 3 }],
+      "message": "Could not resolve to a node with the global id of 'IC_kwDOVCns8c8AAAABb1Xq2w'"
+    }
+  ]
+}

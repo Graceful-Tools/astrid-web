@@ -1,8 +1,9 @@
 # The `/fixall` workflow
 
-**One description of the autonomous loop, for both repos.** `astrid-web/.claude/commands/fixall.md`
-and `astrid-ios/.claude/commands/fixall.md` each hold only what is genuinely different about
-their repo — which board, which gates, and what "done" means there — and point here for the rest.
+**One description of the autonomous loop, for both repos and every harness.** The web
+board's specifics live in `astrid-web/docs/FIXALL_WEB.md` and the iOS board's in
+`astrid-ios/.claude/commands/fixall.md`, and each holds only what is genuinely different about
+its repo — which board, which gates, and what "done" means there — and point here for the rest.
 
 They were two ~300-line files describing one workflow, and they had drifted by 440 lines: the
 iOS one knew about the due-date gate and the web one did not, the wording of the assignee
@@ -33,6 +34,22 @@ that expires under a working session is worse than no lock.
 
 Release when the run ends: `npx tsx scripts/fixall-session.ts release --pid $PPID`.
 `status` says who holds the tree and whether they are still alive.
+
+### On an ephemeral runner
+
+`ASTRID_FIXALL_EPHEMERAL=1` means you are a cloud agent run (`agent-run.yml`, or the
+Copilot coding agent) on a fresh checkout that is yours alone (docs/AGENT_FLEET.md). Three
+things change:
+
+- **No lock.** Nobody else can touch this checkout, and the runner exits when you do.
+- **No production access.** The runner holds no production credentials, by design. If a
+  task needs a production fact (a row count, a runtime log, migration impact), write the
+  exact question on the task and hand it back. A session on the Mac answers it. Never
+  guess, and never ask for the credential.
+- **The run ends at the PR.** Push `agent/<harness>/<task-key>`, open one PR with the task
+  link, and comment its URL on the task. You cannot dispatch a deploy (no `actions: write`).
+  The task stays **incomplete** until the ship workflow has deployed it and
+  `verify-deployed-sha.sh` agrees.
 
 ### Why this exists, and why the board lanes do not cover it
 
@@ -66,6 +83,15 @@ get_agent_queue { agent: "<current harness mailbox>", listId: "<board id>", incl
 The current runtime determines the mailbox: GitHub Copilot CLI / the Copilot app
 passes `copilot`; Claude Code passes `claude`; local Codex passes `codex`. Never
 copy another harness's selector from an example.
+
+**The same mailbox goes on `add_comment` and `update_task` as `agent`** (AWTD-1311). The
+server learns the identity from a poll, so a loop that polls first is already signed — but
+a harness that comments BEFORE it polls has nothing to go on, and that write arrives under
+the OAuth client owner's name. Two comments on
+[AWTD-1305](https://astrid.cc/t/AWTD-1305) did exactly that. Passing `agent` costs nothing
+when the poll has already happened (the polled identity wins) and is the whole difference
+when it hasn't. A mailbox that cannot be resolved is **refused**, never quietly signed as
+the caller, so a typo fails loudly.
 
 Boards: Astrid Web To-do `a623f322-4c3c-49b5-8a94-d2d9f00c82ba`, Astrid iOS To-do
 `aa41c1a3-bd63-4c6d-9b87-42c6e0aafa36`. Answers `empty: true`, or `queue` in the order to work
@@ -169,8 +195,9 @@ can re-check on every run. Three kinds of condition, three mechanisms:
 | Waiting on… | How it is recorded | Who re-checks it |
 |---|---|---|
 | **a date** | the task's own due date | the script — promotes to Ready when due |
-| **another task** | the task's own **blockers** — `TaskDependency` rows, set in the app (AWTD-1002) — unioned with a comment line `BLOCKED-BY: <task-id>` (repeatable), which stays the way to block a task from a phone or a harness with no API for it | the script — promotes when every blocker is complete |
+| **another task** | the task's own **blockers** — `TaskDependency` rows (AWTD-1002), set in the app, by MCP `add_blocker { taskId, blockingTaskId }` / `remove_blocker`, or by `POST /api/v1/tasks/:id/blockers` (identifiers like `AWTD-1007` accepted, AWTD-1086) — unioned with a comment line `BLOCKED-BY: <task-id>` (repeatable), which stays the fallback for a harness that cannot call either. Prefer the real blocker: it moves Ready → Waiting itself and shows as "Waiting on" in both apps | the script — promotes when every blocker is complete |
 | **an external event** (a dependency release, a vendor fix, a client rollout) | a comment line `BLOCKED-ON: <one-line condition>` **plus a recheck due date** | the agent — the script surfaces it under `RECHECK` when the date arrives |
+| **its own deploy** (web: finished work a scheduled run cannot ship itself) | a comment line `AWAITING-DEPLOY: <commit sha>` (AWTD-1278) | the runner — `land-and-deploy.ts` marks it complete once production serves that commit; the sweep lists it, never as `REVIEW` |
 
 The **latest marker-bearing comment wins wholesale** — to change the conditions, post a new
 comment with the new markers (or none of the blocking kind). Do not edit old comments.
@@ -220,6 +247,14 @@ its own work to a different harness.
 `set-task-status.ts` remains the right tool for the OTHER transitions below — moving a
 task to `Waiting`, or handing it back. It is only the *claim* that has to be atomic.
 
+**Both of them take `--agent <mailbox>` too** (AWTD-1311). A status change and an
+assignment each emit an activity line naming the actor, and client-credentials auth
+resolves to the OAuth client's OWNER — so without the flag the board reads *"Jon Paris
+reassigned from Unassigned to Jon Paris"* for a handback the loop made. That row is on
+[AWTD-1305](https://astrid.cc/t/AWTD-1305). `set-task-status.ts` used to read
+`CLAUDE_AGENT_ID`, which was the same bug one layer along: `.env.local` sets it on every
+machine that runs the Claude loop, so a *Copilot* handback was recorded as Claude's.
+
 **Blocked → move it to `Waiting`, and record the RIGHT condition** (see *Waiting carries its
 condition* above). Who keeps the task depends on who can lift the block:
 
@@ -229,12 +264,12 @@ condition* above). Who keeps the task depends on who can lift the block:
   say on the task what decision you need.
 
   ```bash
-  npx tsx scripts/assign-task.ts <taskId> jonparis@gmail.com
-  npx tsx scripts/set-task-status.ts <taskId> Waiting
+  npx tsx scripts/assign-task.ts <taskId> jonparis@gmail.com --agent <mailbox>
+  npx tsx scripts/set-task-status.ts <taskId> Waiting --agent <mailbox>
   ```
 
 - **Time, another task, or an external event can lift it**: KEEP the assignment, move to
-  `Waiting`, and post the machine-readable condition — `BLOCKED-BY: <task-id>`, or
+  `Waiting`, and record the machine-readable condition — `add_blocker` (or `BLOCKED-BY: <task-id>`), or
   `BLOCKED-ON: <condition>` with a recheck due date, or just the date. The loop now owns the
   recheck; Jon owns nothing he didn't ask for.
 
@@ -324,7 +359,8 @@ create_task { listId: "<target board id>", title: "[web] <what the other side mu
 
 **Then keep the original honest.** Do the half you can and say plainly what remains. Do not
 close a task while users are still affected. A merged branch is not a deployed one: astrid-web
-does not auto-deploy, so `main` having the fix changes nothing until someone deploys.
+does not auto-deploy, so `main` having the fix changes nothing until someone deploys — which,
+since 2026-10-13, is the run's own job on web (*Deploying is part of finishing*, below).
 
 ---
 
@@ -529,15 +565,100 @@ Two things this does NOT change:
   per fix exhausted the Xcode Cloud allotment on 2026-08-18, after which every run was created
   and cancelled before it started. One build carries several tasks, so the completion reports
   have to carry the per-task detail.
-- **Anything that reaches real users still waits for an explicit go-ahead** — an App Store
-  submission on iOS/Mac (or a local `:upload`), a production deploy on web. Pushing is not
-  shipping in either repo, which is exactly why pushing needs no permission and shipping does.
+- **Pushing is not shipping in either repo**, which is exactly why pushing needs no
+  permission. What shipping then requires differs by repo, and since 2026-10-13 it differs a
+  lot: an App Store submission on iOS/Mac (or a local `:upload`) still waits for an explicit
+  go-ahead, because a release there is slow to correct and reaches users through review. A
+  **production deploy on web does not** — see *Deploying is part of finishing*.
 
 **A finished task branch gets a PR, so it is actually asked for review.** On 2026-09-29 four
 completed tasks (AWTD-1007, 1024, 1025, 1035) sat on pushed branches with no PR: the board said
 complete and `main` had none of it. Inside a scheduled `claude -p` session `gh` is denied, so
 **the runner opens it** after the run (`scripts/open-fixall-prs.ts`): for each task the run
-claimed and completed, every unmerged branch whose name or commits carry the task's id gets a PR
+claimed and finished — completed, or left with an `AWAITING-DEPLOY:` marker (below) — every unmerged branch whose name or commits carry the task's id gets a PR
 titled by the task, with its completion report as the body. So **put the task id in the branch
 name or the commit message**, or the runner cannot find the work. An interactive `/fixall` can
 run `gh` and opens its own. A PR the runner could not open is posted to the list chat.
+
+## Deploying is part of finishing — web only (Jon, 2026-10-13)
+
+**On web, a task is not done until production serves it.**
+
+> *"Don't move to done until deployed to prod. You can deploy to prod if all tests are
+> green."* Then, asked whether the unattended runner got the same permission as an
+> interactive session: *"Interactive sessions and automatic can deploy with clean tests and
+> monitor to make sure it works. Don't block on me."*
+
+This replaced "DONE when it is committed on its branch with `npm run predeploy` green", which
+stopped one step short of anyone being able to use the work. Three tasks in two runs were
+called done while no user could reach them: AWTD-839 committed-but-unpushed for seventeen
+days, AWTD-1039 pushed with no PR for four, then with a red check nobody looked at.
+
+**iOS/Mac is unchanged.** A release there goes through App Store review, so it still waits for
+an explicit go-ahead. This section is web's, and the asymmetry is the point: a web deploy is
+fast to correct, a submission is not.
+
+### The sequence
+
+```bash
+npm run predeploy                                    # on the MERGED main — 17/17
+git diff origin/prod origin/main -- prisma/migrations/   # EMPTY, or it is Jon's call
+gh workflow run production-deployment.yml --ref main \
+  -f skip_tests=false -f allow_destructive_migrations=false
+gh run watch <run-id> --exit-status
+scripts/verify-deployed-sha.sh "$(git rev-parse origin/main)"
+```
+
+**Gate the merged `main`, not the branch.** Branch-green is weaker evidence than it looks: on
+2026-10-13 seven PRs were each green and the gate on the merge still went red.
+
+**Monitoring is half the permission, and the CLI's own exit code is not monitoring.** On
+2026-09-18 the deploy job reported FAILED about a deploy that had gone out, and the health
+check — being `needs:` that job — was skipped on the one run where production was actually
+down. Ask production what it is serving. `scripts/verify-deployed-sha.sh` is that question;
+`/api/health` reports `VERCEL_GIT_COMMIT_SHA` as `commitSha`.
+
+### What stays a human's call
+
+- **A pending migration.** It applies in a job that runs *before* the deploy and does not
+  depend on it, so a `DROP` lands while the code that stops reading it is still pending.
+  That took production down on 2026-09-18 and a redeploy cannot undo it. A non-empty
+  migration diff means: do not deploy, say so on the task, leave it **incomplete**.
+- **`allow_destructive_migrations`.** Always `false` from a loop. It exists so a human can
+  state, on the record, that the code is already live.
+- **A red gate.** Red is red. A gate you believe is a false alarm is still red until the
+  reason is written down — a stale `.next/types` artifact produced exactly this on
+  2026-10-13 (AWTD-1245), and the deploy waited for the explanation.
+
+### Scheduled runs: the runner deploys, not the session
+
+`gh` is denied inside a scheduled `claude -p` session, so the session cannot dispatch a
+workflow any more than it can open a PR. The runner does it after the run
+(`scripts/land-and-deploy.ts`, called from `scripts/fixall-loop.sh` next to
+`scripts/open-fixall-prs.ts`): it lands this run's PRs **once their checks are green**, gates
+the merged `main`, dispatches the deploy, waits for production to serve that commit, and posts
+the outcome to the list chat.
+
+The checks on a PR the runner just opened are not green yet — they take about ten minutes — so
+it lands the PRs from **previous** runs and leaves this run's to the next tick. A loop that
+waited would burn its watchdog on CI.
+
+**So a scheduled session does not complete the task. It hands it over (AWTD-1278).** Done
+means deployed, and the session cannot deploy. Completing anyway breaks the rule, and leaving
+the task incomplete used to mean the runner never opened its PR. Instead, once the gates are
+green and the branch is pushed, the session:
+
+1. Ends its completion report (`add_comment`) with a line of its own:
+   `AWAITING-DEPLOY: <git rev-parse HEAD of the pushed branch>`. Without a commit sha the
+   line is not a marker.
+2. Moves the task to **Waiting**: `npx tsx scripts/set-task-status.ts <taskId> Waiting --agent <mailbox>`.
+   Leave it there and **do not** mark it complete. A task left in `Doing` is released back to
+   Ready at the end of the run and gets worked again.
+
+The runner then opens the PR, lands it once its checks are green, and deploys `main`. On every
+tick `land-and-deploy.ts` asks `/api/health` which commit production serves, and it completes
+each `AWAITING-DEPLOY` task whose sha is an ancestor of that commit, with a comment naming it.
+A deploy dispatched by hand counts too. A failed deploy completes nothing. A pending migration
+on `main` holds every one of these tasks in Waiting until Jon ships the migration: that is the
+rule working, not the loop stuck. A squash merge drops the recorded sha, so such a task never
+matches and stays in Waiting. Land these PRs with a merge commit (the runner always does).

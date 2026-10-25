@@ -37,6 +37,13 @@ export interface TaskList {
   id: string
   name: string
   projectId?: string | null
+  /**
+   * Which backend owns this list's tasks (AWTD-1256, spec §11.2).
+   * Absent or null is a classic local list; "github_project" is a board the
+   * server mirrors from GitHub, which is what makes project fields apply
+   * (AWTD-1210).
+   */
+  backend?: "github_project" | null
   listType?: "regular" | "status" | null
   color?: string
   imageUrl?: string | null
@@ -87,6 +94,7 @@ export interface TaskList {
   filterRepeating?: string | null // "not_repeating", "daily", "weekly", "monthly", "yearly", "custom", "all"
   filterPriority?: string | null // "all", "0", "1", "2", "3" for priority levels
   filterInLists?: string | null // "dont_filter", "not_in_list", "in_list"
+  filterProjectField?: string | null // "<fieldId>:<valueId>" on a GitHub board — lib/project-field-filter.ts
   isVirtual?: boolean // For virtual lists
   virtualListType?: string | null // "today", "not-in-list", "assigned" for predefined virtual lists
   sortBy?: string | null
@@ -105,6 +113,8 @@ export interface Comment {
   type: "TEXT" | "MARKDOWN" | "ATTACHMENT"
   author: User | null
   authorId: string | null
+  /** A GitHub comment's author with no Astrid identity (AWTD-1283); shown as "@login". */
+  remoteAuthorLogin?: string | null
   taskId: string
   createdAt: Date
   updatedAt: Date
@@ -188,6 +198,16 @@ export interface Task {
    */
   closedReason?: string | null
   /**
+   * A GitHub project's field VALUES, keyed by `ProjectField.id` (AWTD-1208,
+   * spec §9.4.3). No names and no types — those come once per project from
+   * `GET /api/v1/projects/:id/fields` — and **no key at all** on a task with
+   * no values, so every task outside a GitHub board is unchanged.
+   *
+   * List responses carry it only with `?include=fields`; the detail route
+   * always does.
+   */
+  fields?: Record<string, string | number> | null
+  /**
    * Board status as a state on the task (AWTD-562): ready | doing | waiting |
    * a project's custom role. Null/undefined means Inbox; Done is derived from
    * `completed`. Replaces membership in a status list.
@@ -199,6 +219,21 @@ export interface Task {
    * `shouldShowTaskIdentifier` in lib/task-identifier-links.ts, never ad hoc.
    */
   identifier?: string | null
+  /**
+   * The occurrence this one replaced, in SPAWN mode (AWTD-1219, spec §10.2).
+   * Null on every task outside a GitHub board — which is almost all of them —
+   * because a classic list rolls the same row forward instead of spawning a
+   * successor.
+   */
+  previousOccurrenceId?: string | null
+  /**
+   * The occurrence that replaced this one: whichever task points back at it.
+   *
+   * Carried by the DETAIL payload only. Absent on a task that came from a list
+   * response, which is why a reader must treat absent and null alike rather
+   * than concluding there is no successor.
+   */
+  nextOccurrenceId?: string | null
   /** Legacy attachment rows. Only the MCP handlers write these. */
   attachments: Attachment[]
   /**

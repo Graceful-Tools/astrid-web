@@ -33,6 +33,14 @@ import { VirtualizedTaskList } from "@/components/TaskManager/MainContent/Virtua
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { useTranslations } from "@/lib/i18n/client"
 import { shouldShowTaskIdentifier } from "@/lib/task-identifier-links"
+import { useProjectFields } from "@/hooks/use-project-fields"
+import { useProjectFieldValues } from "@/hooks/use-project-field-values"
+import {
+  githubBoardListFor,
+  matchesProjectFieldFilter,
+  projectFieldValuesOf,
+  resolveProjectFieldFilter,
+} from "@/lib/project-field-filter"
 
 interface ProjectStatusBoardProps {
   allTasks: Task[]
@@ -122,6 +130,17 @@ export function ProjectStatusBoard({
     [projectId, customStates],
   )
   const selectedList = lists.find(list => list.id === selectedListId)
+
+  // The caller's project-field filter (AWTD-1259). Only a GitHub board has
+  // fields, and a stale value resolves to null, so it can never blank a board.
+  const githubBoard = githubBoardListFor(lists, projectId)
+  const { fields: fieldSchema } = useProjectFields(githubBoard ? projectId : null)
+  const fieldFilter = React.useMemo(
+    () => resolveProjectFieldFilter(selectedList?.filterProjectField, fieldSchema),
+    [selectedList?.filterProjectField, fieldSchema],
+  )
+  const fieldValues = useProjectFieldValues(fieldFilter && githubBoard ? githubBoard.id : null)
+
   const scrollRef = React.useRef<HTMLDivElement | null>(null)
   const longPressTimerRef = React.useRef<number | null>(null)
   const touchDragRef = React.useRef<{ taskId: string; columnIndex: number; active: boolean } | null>(null)
@@ -158,7 +177,9 @@ export function ProjectStatusBoard({
     const window = (selectedList?.recentlyCompletedWindow ?? null) as RecentlyCompletedWindow | null
     const now = new Date()
     const trimmed = scoped.filter(task =>
-      !task.completed || isTaskRecentlyCompleted(task, window, now),
+      (!task.completed || isTaskRecentlyCompleted(task, window, now)) &&
+      // Applied once the values are in; until then the board shows unfiltered.
+      (!fieldValues || matchesProjectFieldFilter(projectFieldValuesOf(task, fieldValues), fieldFilter)),
     )
 
     const sortBy = selectedList?.sortBy || 'auto'
@@ -169,7 +190,7 @@ export function ProjectStatusBoard({
       : undefined
 
     return sortTasksForList(trimmed, sortBy, manualOrder)
-  }, [allTasks, lists, projectId, selectedList])
+  }, [allTasks, lists, projectId, selectedList, fieldFilter, fieldValues])
 
   React.useEffect(() => {
     if (expandedTaskId && !boardTasks.some(task => task.id === expandedTaskId)) {
@@ -318,7 +339,18 @@ export function ProjectStatusBoard({
         className={`flex-1 min-h-0 overflow-x-auto overflow-y-hidden scrollbar-hide px-4 pb-6 pt-4 ${isOneColumn ? "snap-x snap-mandatory scroll-px-4 overscroll-x-contain" : ""}`}
         data-testid="project-status-board"
       >
-        <div className={`flex h-full gap-3 ${isOneColumn ? "min-w-max" : "w-full"}`}>
+        {/*
+          One-column (mobile) is a snap carousel, and its columns are sized from
+          the SCROLLER, never from the viewport (AWTD-1305). `min-w-max` plus a
+          `calc(100vw - 2rem)` column made the column's width a promise about
+          the viewport that only held while the board happened to span it — and
+          a column wider than the snapport is, per the scroll-snap spec, a snap
+          area the scrollport can sit anywhere inside. The board then rests
+          off-centre, by exactly the overflow. Letting the row stay at the
+          scroller's width and each column fill it makes area and snapport equal
+          whatever the shell does.
+        */}
+        <div className={`flex h-full gap-3 ${isOneColumn ? "" : "w-full"}`}>
         {columns.map((column, columnIndex) => {
           const tasksForColumn = boardTasks.filter(task =>
             getTaskProjectColumnId(task, columns) === column.id
@@ -333,7 +365,7 @@ export function ProjectStatusBoard({
               data-column-index={columnIndex}
               className={`flex h-full snap-start flex-col rounded-lg border theme-border theme-bg-secondary ${
                 isOneColumn
-                  ? "w-[calc(100vw-2rem)] shrink-0"
+                  ? "w-full shrink-0"
                   : "min-w-[18rem] max-w-[28rem] flex-1"
               }`}
               onDragOver={(event) => event.preventDefault()}

@@ -109,7 +109,7 @@ export async function syncAllGithubLinks(): Promise<SyncRunSummary> {
       }
 
       // The link's OWNER supplies the token — this runs with no session.
-      const token = await githubTokenFor(link.userId)
+      const token = await githubTokenFor(link.userId, link.remoteContainerId)
       if (!token) {
         // Not worth alerting on: the user disconnected GitHub. Leave the cursor
         // untouched so nothing is lost if they reconnect. The link still gets a

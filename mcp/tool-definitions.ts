@@ -17,6 +17,10 @@
  */
 
 import { MIN_TASK_PRIORITY, MAX_TASK_PRIORITY } from "../lib/task-priority"
+// Declared beside their handler (AWTD-1086); listed here so this stays the one
+// array every surface advertises.
+import { BLOCKER_TOOLS } from "./blockers"
+import { ATTACHMENT_TOOLS } from "./task-attachments"
 
 export const OAUTH_MCP_TOOLS = [
       {
@@ -190,6 +194,11 @@ export const OAUTH_MCP_TOOLS = [
               type: "string",
               description: "Task id (uuid) or identifier such as AWTD-1007",
             },
+            agent: {
+              type: "string",
+              description:
+                "The agent mailbox writing this — \"claude\", \"copilot\", \"codex\", … Pass it when this server has not yet called get_agent_queue in this session, or the write is signed with the OAuth client owner's name instead of the agent's (AWTD-1311). Pass \"me\" to sign as the authenticated user on purpose. A mailbox that cannot be resolved is refused, never silently signed as the caller.",
+            },
             title: {
               type: "string",
               description: "New task title",
@@ -285,6 +294,11 @@ export const OAUTH_MCP_TOOLS = [
               description: "Comment type",
               default: "TEXT",
             },
+            agent: {
+              type: "string",
+              description:
+                "The agent mailbox writing this — \"claude\", \"copilot\", \"codex\", … Pass it when this server has not yet called get_agent_queue in this session, or the write is signed with the OAuth client owner's name instead of the agent's (AWTD-1311). Pass \"me\" to sign as the authenticated user on purpose. A mailbox that cannot be resolved is refused, never silently signed as the caller.",
+            },
           },
           required: ["taskId", "content"],
         },
@@ -329,4 +343,6 @@ export const OAUTH_MCP_TOOLS = [
           required: ["taskId"],
         },
       },
+      ...BLOCKER_TOOLS,
+      ...ATTACHMENT_TOOLS,
 ] as const

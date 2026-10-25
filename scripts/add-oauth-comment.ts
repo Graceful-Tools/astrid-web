@@ -6,6 +6,10 @@
  */
 
 import { loadScriptEnv } from './lib/load-env'
+// Who is writing this (AWTD-1311). This script was add-task-comment.ts with
+// exactly this step missing, so every comment it ever posted arrived on the
+// board under the OAuth client owner's name.
+import { agentSignature } from './lib/agent-author'
 
 loadScriptEnv()
 
@@ -64,6 +68,7 @@ async function addTaskComment() {
       body: JSON.stringify({
         content: commentContent,
         type: 'TEXT',
+        ...(await agentSignature(accessToken)),
       }),
     })
 

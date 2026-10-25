@@ -1,11 +1,14 @@
 import { BRAND } from '@/lib/brand/config'
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { mcpTokenLookup } from "@/lib/mcp-token"
 import { aiAgentWebhookService } from "@/lib/ai-agent-webhook-service"
 import { broadcastToUsers } from "@/lib/sse-utils"
 import { RATE_LIMITS, withRateLimitAsync } from "@/lib/rate-limiter"
 import { z } from "zod"
 import { createLogger } from '@/lib/logger'
+import { completeTask } from '@/services/complete-task'
+import { postCommentAs } from '@/services/post-comment-as'
 
 const log = createLogger('api.webhooks.ai-agents')
 
@@ -174,10 +177,15 @@ export async function POST(request: NextRequest) {
     const payload = IncomingWebhookSchema.parse(body)
 
     // Validate access token
+    // By hash (mcpTokenLookup), never the raw value: the column stores the
+    // SHA-256, so matching it verbatim made the stored hash itself a
+    // credential and real tokens never matched; and expired tokens are
+    // refused like everywhere else (AWTD-1345).
     const mcpToken = await prisma.mCPToken.findFirst({
       where: {
-        token: payload.accessToken,
+        token: { in: mcpTokenLookup(payload.accessToken) },
         isActive: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
         user: {
           isAIAgent: true,
           id: payload.aiAgent.id
@@ -212,10 +220,18 @@ export async function POST(request: NextRequest) {
     switch (payload.event) {
       case 'task.completed':
         if (payload.task.completed) {
-          await prisma.task.update({
-            where: { id: task.id },
-            data: { completed: true }
+          // Through the service: a raw write skipped the stamp, the lane,
+          // blocked dependents and repeating roll-forward (AWTD-1093).
+          const completion = await completeTask({
+            taskId: task.id,
+            actorId: payload.aiAgent.id,
+            actorName: mcpToken.user.name ?? undefined,
+            actorType: 'agent',
           })
+          if (!completion.ok) {
+            log.warn({ taskId: task.id, error: completion.error }, 'Agent completion refused')
+            return NextResponse.json({ error: completion.error }, { status: completion.status })
+          }
           log.info(`✅ Task marked as completed: ${task.title}`)
         }
         break
@@ -229,14 +245,10 @@ export async function POST(request: NextRequest) {
 
           const validAuthorId = await ensureAIAgentExists(payload.aiAgent)
 
-          await prisma.comment.create({
-            data: {
-              content: commentContent,
-              type: 'TEXT',
-              authorId: validAuthorId,
-              taskId: task.id
-            }
-          })
+          // Through the comment service: list broadcast and notifications, like
+          // any other comment (P1 step 4).
+          const posted = await postCommentAs({ taskId: task.id, authorId: validAuthorId, content: commentContent, type: 'TEXT' })
+          if (!posted.ok) return NextResponse.json({ error: posted.error }, { status: 400 })
           log.info(`💬 Comment added to task: ${task.title}`)
         }
         break
@@ -245,14 +257,13 @@ export async function POST(request: NextRequest) {
         if (payload.task.error) {
           const validAuthorId = await ensureAIAgentExists(payload.aiAgent)
 
-          await prisma.comment.create({
-            data: {
-              content: `❌ Error: ${payload.task.error}`,
-              type: 'TEXT',
-              authorId: validAuthorId,
-              taskId: task.id
-            }
+          const posted = await postCommentAs({
+            taskId: task.id,
+            authorId: validAuthorId,
+            content: `❌ Error: ${payload.task.error}`,
+            type: 'TEXT',
           })
+          if (!posted.ok) return NextResponse.json({ error: posted.error }, { status: 400 })
           log.info(`⚠️ Error logged for task: ${task.title}`)
         }
         break
@@ -268,10 +279,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     if (error instanceof z.ZodError) {
-      log.info(error.errors, '❌ Invalid webhook payload:')
+      log.info(error.issues, '❌ Invalid webhook payload:')
       return NextResponse.json({
         error: 'Invalid payload',
-        details: error.errors
+        details: error.issues
       }, { status: 400 })
     }
 

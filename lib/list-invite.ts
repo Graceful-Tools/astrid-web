@@ -24,6 +24,7 @@ import {
   prismaToTaskList,
   isSavedFilterList,
   SAVED_FILTER_MEMBER_ERROR,
+  PROJECT_ACCESS_INCLUDE,
 } from '@/lib/list-permissions'
 import { sendListInvitationEmail } from '@/lib/email'
 import { createLogger } from '@/lib/logger'
@@ -109,6 +110,8 @@ export async function inviteToList(args: {
     include: {
       owner: true,
       listMembers: { include: { user: true } },
+      // A project owner/admin manages the project's lists' members (AWTD-1321).
+      ...PROJECT_ACCESS_INCLUDE,
     },
   })
 

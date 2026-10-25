@@ -19,7 +19,7 @@
  * otherwise have had access.
  *
  * Every capability defaults to ENABLED, so an existing deployment that sets nothing
- * behaves exactly as before.
+ * behaves exactly as before — except `githubProjects`, which is off unless set.
  *
  * These are `NEXT_PUBLIC_` because the UI must reflect them (there is no point offering
  * a Google sign-in button a disabled server will refuse). They are switches, not
@@ -30,23 +30,56 @@
  * it into the client bundle — do not refactor these into a loop or a computed key.
  */
 
+import { resolveAuthProviders, type AuthProviderId } from './auth-providers'
+
 /** A capability is on unless explicitly set to "false"/"0"/"off". */
-function enabled(value: string | undefined): boolean {
+export function enabled(value: string | undefined): boolean {
   const normalized = value?.trim().toLowerCase()
   if (!normalized) return true
   return !['false', '0', 'off', 'no'].includes(normalized)
 }
 
+/**
+ * The exception: a capability that is OFF unless a deployment turns it on.
+ * Only for things astrid.cc must never have by accident (spec D5).
+ */
+export function explicitlyEnabled(value: string | undefined): boolean {
+  return ['true', '1', 'on', 'yes'].includes(value?.trim().toLowerCase() ?? '')
+}
+
 const integrationCustomAgents = enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW)
+const codingAgent = enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_CODING_AGENT)
+const githubProjects = explicitlyEnabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS)
+
+/**
+ * The sign-in providers this deployment offers, in button order (spec §6.2).
+ * Unset, NEXT_PUBLIC_BRAND_AUTH_PROVIDERS falls back to the three legacy
+ * switches, so a deployment that sets nothing is unchanged. GitHub and SSO are
+ * on only when listed. See lib/brand/auth-providers.ts for the rules.
+ */
+export const AUTH_PROVIDERS: readonly AuthProviderId[] = resolveAuthProviders(
+  process.env.NEXT_PUBLIC_BRAND_AUTH_PROVIDERS,
+  {
+    google: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_GOOGLE),
+    apple: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_APPLE),
+    passkey: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_PASSKEY),
+  },
+)
 
 export const CAPABILITIES = {
   // --- Authentication -----------------------------------------------------
+  // Each is "is it in AUTH_PROVIDERS", so every existing gate on these keys
+  // follows the provider list without change.
   /** Google OAuth sign-in. */
-  authGoogle: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_GOOGLE),
+  authGoogle: AUTH_PROVIDERS.includes('google'),
   /** Sign in with Apple. */
-  authApple: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_APPLE),
+  authApple: AUTH_PROVIDERS.includes('apple'),
   /** WebAuthn passkeys. */
-  authPasskey: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_PASSKEY),
+  authPasskey: AUTH_PROVIDERS.includes('passkey'),
+  /** Sign in with GitHub, through the brand's GitHub App. Off unless listed. */
+  authGithub: AUTH_PROVIDERS.includes('github'),
+  /** Enterprise single sign-on (OIDC). Off unless listed. */
+  authSso: AUTH_PROVIDERS.includes('sso'),
 
   // --- External sync ------------------------------------------------------
   /** Two-way sync with Google Tasks. */
@@ -63,6 +96,21 @@ export const CAPABILITIES = {
   integrationOpenClaw: integrationCustomAgents,
   /** OpenAPI + ai-plugin discovery documents for ChatGPT actions. */
   integrationChatGptActions: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS),
+  /**
+   * The AI coding agent: the GitHub App that turns a task into a branch, a PR
+   * and a merge. Its own switch — it used to ride on `syncGithubIssues`, so
+   * turning Issues sync off silently removed it too (AWTD-1094).
+   */
+  codingAgent,
+  /**
+   * The brand's GitHub App connection itself (spec §7.5): connecting it, the
+   * installations list, "refresh my access", disconnect. Derived, not set:
+   * both the coding agent and GitHub Projects boards ride on it, so it is on
+   * when either is — a GitHub Projects brand with the coding agent off could
+   * not otherwise connect GitHub at all (AWTD-1302). Coding-agent-only routes
+   * stay on `codingAgent`.
+   */
+  githubConnection: codingAgent || githubProjects,
 
   // --- Product surfaces ----------------------------------------------------
   /**
@@ -76,6 +124,20 @@ export const CAPABILITIES = {
    * the capability first (see lib/project-mode.ts, which does both in order).
    */
   projectMode: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE),
+  /**
+   * GitHub Projects as a task backend: org projects bound as boards, mirrored
+   * from GitHub (docs/specs/GITHUB_PROJECTS_WHITELABEL.md §8). OFF unless the
+   * brand sets it — never on astrid.cc (D5), pinned by
+   * tests/rules/astrid-never-enables-github-projects.test.ts (AWTD-1151).
+   */
+  githubProjects,
+  /**
+   * On a GitHub Projects board, mirror an AI agent's assignment to GitHub as
+   * a label `agent:<name>` on the issue (spec §8.6, §15 C3; AWTD-1191). OFF
+   * unless the brand sets it: a label written to a partner's customers' repos
+   * is the partner's call. Means nothing without `githubProjects`.
+   */
+  githubAgentLabels: explicitlyEnabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS),
   taskCost: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_TASK_COST),
 
   // --- Other services -----------------------------------------------------
@@ -117,9 +179,11 @@ export function capabilityGate(key: CapabilityKey): Response | null {
  * user is locked out. Guarded at startup by assertUsableAuthConfiguration().
  */
 export const AUTH_CAPABILITIES: readonly CapabilityKey[] = [
+  'authGithub',
   'authGoogle',
   'authApple',
   'authPasskey',
+  'authSso',
 ]
 
 export function enabledAuthMethods(): CapabilityKey[] {
@@ -137,8 +201,58 @@ export function assertUsableAuthConfiguration(): void {
   if (enabledAuthMethods().length === 0) {
     throw new Error(
       'Brand configuration disables every authentication method — no one could sign in. ' +
-        'Enable at least one of NEXT_PUBLIC_BRAND_ENABLE_AUTH_GOOGLE, ' +
-        'NEXT_PUBLIC_BRAND_ENABLE_AUTH_APPLE or NEXT_PUBLIC_BRAND_ENABLE_AUTH_PASSKEY.'
+        'List at least one of github, google, apple, passkey or sso in ' +
+        'NEXT_PUBLIC_BRAND_AUTH_PROVIDERS (or, with it unset, leave one of ' +
+        'NEXT_PUBLIC_BRAND_ENABLE_AUTH_GOOGLE / _APPLE / _PASSKEY on).'
     )
   }
+}
+
+/**
+ * A capability that is on without the one it is built on is a deployment that
+ * half works. Guarded at startup beside assertUsableAuthConfiguration().
+ *
+ * GitHub Projects requires Project Mode (spec §11.1, AWTD-1121): a bound GitHub
+ * project IS a board, so with Project Mode compiled out the bind wizard would
+ * import items into lists that can never show their columns.
+ */
+export function assertCoherentCapabilities(): void {
+  if (CAPABILITIES.githubProjects && !CAPABILITIES.projectMode) {
+    throw new Error(
+      'Brand configuration enables GitHub Projects with Project Mode off — GitHub Projects ' +
+        'requires Project Mode, because a bound project is a board. Leave ' +
+        'NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE on, or drop NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS.'
+    )
+  }
+}
+
+/**
+ * What GitHub Projects needs to work (spec §7.5): the brand's GitHub App, its
+ * webhook secret, its OAuth client, and its install slug.
+ */
+export const GITHUB_PROJECTS_REQUIRED_ENV = [
+  'GITHUB_APP_ID',
+  'GITHUB_APP_PRIVATE_KEY',
+  'GITHUB_WEBHOOK_SECRET',
+  'GITHUB_CLIENT_ID',
+  'GITHUB_CLIENT_SECRET',
+  'NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG',
+] as const
+
+/**
+ * GitHub Projects switched on without its credentials half works: with no webhook
+ * secret every event is refused and sync quietly falls back to the hourly reconcile,
+ * and the rest fail at the first request that needs them (AWTD-1282). Guarded at
+ * startup beside assertCoherentCapabilities(); does nothing when the capability is off.
+ */
+export function assertGithubProjectsCredentials(
+  env: Record<string, string | undefined> = process.env,
+): void {
+  if (!CAPABILITIES.githubProjects) return
+  const missing = GITHUB_PROJECTS_REQUIRED_ENV.filter((name) => !env[name]?.trim())
+  if (missing.length === 0) return
+  throw new Error(
+    `Brand configuration enables GitHub Projects without its GitHub App configuration — set ${missing.join(', ')}, ` +
+      'or drop NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS.'
+  )
 }

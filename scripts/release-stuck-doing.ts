@@ -9,6 +9,8 @@
  *   npx tsx scripts/release-stuck-doing.ts --agent claude --claims-file <file> [--repo <path>]
  *   # Tick start: release claims idle for N minutes that no runner holds.
  *   npx tsx scripts/release-stuck-doing.ts --agent claude --list <listId> --stale-minutes 180 [--repo <path>]
+ *   # ...or name the board instead of carrying its id (AWTD-1267; astrid-windows keeps no ids):
+ *   npx tsx scripts/release-stuck-doing.ts --agent claude --board windows --stale-minutes 180 [--repo <path>]
  *   # Either, printing what would move and writing nothing:
  *   ... --dry-run
  *
@@ -25,6 +27,8 @@ import { existsSync, readFileSync } from 'fs'
 import { loadScriptEnv } from './lib/load-env'
 import { resolveAgentAuthorId } from './lib/agent-author'
 import { SweepApi } from './lib/sweep-api'
+import { boardTasksUrl } from './lib/board-read-url'
+import { parseBoardTarget, resolveBoardListId, type BoardTarget } from './lib/board-by-name'
 import {
   DEFAULT_STALE_DOING_MINUTES,
   isAbandonedClaim,
@@ -65,15 +69,21 @@ function remoteBranches(repo: string): string[] {
 async function main() {
   const mailbox = arg('--agent')
   const claimsFile = arg('--claims-file')
-  const listId = arg('--list')
   const staleMinutes = Number(arg('--stale-minutes') ?? DEFAULT_STALE_DOING_MINUTES)
   const repo = arg('--repo') ?? process.cwd()
   const dryRun = process.argv.includes('--dry-run')
 
-  if (!mailbox || !FIXALL_CLAIM_MAILBOXES.includes(mailbox) || (!claimsFile && !listId)) {
-    console.error(
-      'Usage: release-stuck-doing.ts --agent <mailbox> (--claims-file <file> | --list <listId> [--stale-minutes N]) [--repo <path>] [--dry-run]',
-    )
+  const usage =
+    'Usage: release-stuck-doing.ts --agent <mailbox> (--claims-file <file> | (--list <listId> | --board <web|ios|windows|android>) [--stale-minutes N]) [--repo <path>] [--dry-run]'
+  let target: BoardTarget | null
+  try {
+    target = parseBoardTarget({ list: arg('--list'), board: arg('--board') })
+  } catch (error) {
+    console.error(`${error instanceof Error ? error.message : error}\n${usage}`)
+    process.exit(1)
+  }
+  if (!mailbox || !FIXALL_CLAIM_MAILBOXES.includes(mailbox) || (!claimsFile && !target)) {
+    console.error(usage)
     process.exit(1)
   }
   if (!Number.isFinite(staleMinutes) || staleMinutes <= 0) {
@@ -86,7 +96,7 @@ async function main() {
   const claimed = claimsFile && existsSync(claimsFile)
     ? Array.from(new Set(readFileSync(claimsFile, 'utf8').split('\n').map(s => s.trim()).filter(Boolean)))
     : []
-  if (claimsFile && !listId && claimed.length === 0) return
+  if (claimsFile && !target && claimed.length === 0) return
 
   const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
   const clientSecret = process.env.ASTRID_OAUTH_CLIENT_SECRET
@@ -105,6 +115,20 @@ async function main() {
   }
   const { access_token: token } = await tokenResponse.json()
   const auth = { 'X-OAuth-Token': token }
+
+  // A board named but not found is an error, never an empty board: an empty
+  // board reads exactly like "no stuck claims", the silent failure that naming
+  // the board instead of carrying its id exists to avoid.
+  let listId: string | undefined
+  if (target?.kind === 'list') listId = target.listId
+  if (target?.kind === 'board') {
+    try {
+      listId = await resolveBoardListId({ board: target.board, auth, origin: API })
+    } catch (error) {
+      console.error(`RELEASE: ${error instanceof Error ? error.message : error}`)
+      process.exit(1)
+    }
+  }
 
   const report = (...args: unknown[]) => console.log(...args)
   const authorId = await resolveAgentAuthorId({ mailbox, accessToken: token, warn: report })
@@ -138,8 +162,10 @@ async function main() {
   // Candidates: what this run claimed, plus (tick start) everything in Doing on the board.
   const candidates: Array<{ id: string; mode: 'claims' | 'stale' }> = claimed.map(id => ({ id, mode: 'claims' }))
   if (listId) {
+    // Without descriptions (AWTD-1237): this reads id, identifier, statusRole
+    // and updatedAt to decide what is stuck, and never the text.
     const response = await fetch(
-      `${API}/api/v1/tasks?listId=${encodeURIComponent(listId)}&completed=false&leanListMembers=1&limit=500`,
+      boardTasksUrl({ boardId: listId, limit: 500, origin: API }),
       { headers: auth },
     )
     if (!response.ok) {

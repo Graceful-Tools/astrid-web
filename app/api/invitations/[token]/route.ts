@@ -3,6 +3,8 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
+import { announceListMemberAdded } from '@/services/list-member.service'
+import { updateTaskWithSideEffects } from '@/services/task.service'
 
 const log = createLogger('invitations.[token]')
 
@@ -122,17 +124,7 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ t
       // Perform the invitation-specific action
       switch (invitation.type) {
         case "TASK_ASSIGNMENT":
-          if (invitation.taskId) {
-            actionResult = await tx.task.update({
-              where: { id: invitation.taskId },
-              data: { assigneeId: session.user!.id },
-              include: {
-                assignee: true,
-                creator: true,
-                lists: true
-              }
-            })
-          }
+          // Assigned after the transaction, through the task service (below).
           break
 
         case "LIST_SHARING":
@@ -183,10 +175,46 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ t
       return actionResult
     })
 
+    // Accepting a task assignment assigns through the task service, so the
+    // task's audience hears about it and the change is in its history — it was
+    // a raw write inside the transaction (spec §5.2 step 6). Self-assignment
+    // needs no permission.
+    let assignedTask: unknown = null
+    if (invitation.type === "TASK_ASSIGNMENT" && invitation.taskId) {
+      const assignment = await updateTaskWithSideEffects({
+        taskId: invitation.taskId,
+        actorId: session.user.id,
+        actorName: session.user.name || session.user.email || 'Someone',
+        actorType: 'user',
+        intent: { assigneeId: session.user.id },
+      })
+      if (!assignment.ok) {
+        return NextResponse.json({ error: assignment.error }, { status: assignment.status })
+      }
+      assignedTask = assignment.task
+    }
+
+    // The membership is committed: tell the list, the member service's way
+    // (caches and list_member_added). Accepting used to be silent, so the list
+    // showed the new member only after everyone refreshed (spec §5.2 step 6).
+    // The write itself stays in the transaction that marks the invitation used.
+    if (invitation.type === "LIST_SHARING" && result && typeof result === "object" && "listMembers" in result) {
+      try {
+        await announceListMemberAdded({
+          list: result as never,
+          member: { id: session.user.id, name: session.user.name, email: session.user.email },
+          role: invitation.role === "admin" ? "admin" : "member",
+          actor: { id: invitation.senderId ?? session.user.id, name: invitation.sender?.name, email: invitation.sender?.email },
+        })
+      } catch (err) {
+        log.error({ err }, "Failed to announce an accepted list invitation")
+      }
+    }
+
     return NextResponse.json({
       success: true,
       message: "Invitation accepted successfully",
-      result
+      result: assignedTask ?? result
     })
 
   } catch (error) {

@@ -15,8 +15,9 @@ describe("buildAtomicFixallClaimWhere", () => {
   const webBoardId = "a623f322-4c3c-49b5-8a94-d2d9f00c82ba"
   const iosBoardId = "aa41c1a3-bd63-4c6d-9b87-42c6e0aafa36"
   const windowsBoardId = "abb4f961-55ee-499e-9c51-d4a2e31ee439"
+  const androidBoardId = "85eef4ce-3d4d-4072-9ca7-bd631ca815b1"
 
-  it("allows the web, iOS and Windows boards while preserving the other atomic guards", () => {
+  it("allows the web, iOS, Windows and Android boards while preserving the other atomic guards", () => {
     expect(buildAtomicFixallClaimWhere({
       taskId: "task-1",
       agentId: "copilot-1",
@@ -25,13 +26,24 @@ describe("buildAtomicFixallClaimWhere", () => {
     })).toEqual(expect.objectContaining({
       id: "task-1",
       completed: false,
-      lists: { some: { id: { in: [webBoardId, iosBoardId, windowsBoardId] } } },
+      lists: { some: { id: { in: [webBoardId, iosBoardId, windowsBoardId, androidBoardId] } } },
       OR: [{ assigneeId: null }, { assigneeId: "copilot-1" }],
       statusRole: "ready",
       AND: [{ OR: [{ dueDateTime: null }, { dueDateTime: { lte: now } }] }],
     }))
 
-    expect(FIXALL_CLAIM_BOARD_IDS).toEqual([webBoardId, iosBoardId, windowsBoardId])
+    expect(FIXALL_CLAIM_BOARD_IDS).toEqual([webBoardId, iosBoardId, windowsBoardId, androidBoardId])
+  })
+
+  it("lets the Android loop claim its own board's tasks (AATD-22)", () => {
+    // The Windows lesson (AWTD-1008): a board missing here 409s every claim, silently.
+    const where = buildAtomicFixallClaimWhere({
+      taskId: "c32645ec-6985-4271-8e2c-e93611be8440",
+      agentId: "ai-agent-claude",
+      claim: { action: "ready", commentWatermark: null, agent: "claude" },
+      now,
+    })
+    expect(where.lists.some.id.in).toContain(androidBoardId)
   })
 
   it("lets the Windows loop claim its own board's tasks (AWTD-1008)", () => {

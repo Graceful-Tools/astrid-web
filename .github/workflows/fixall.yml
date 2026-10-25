@@ -33,7 +33,7 @@ jobs:
     name: 'List Ready Tasks'
     # The default manual path uses the dedicated organization runner. A queued
     # self-hosted job cannot automatically fail over to cloud.
-    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-latest"]' || '["self-hosted","astrid-web"]') }}
+    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-24.04"]' || '["self-hosted","astrid-web"]') }}
     outputs:
       has_tasks: ${{ steps.list.outputs.has_tasks }}
       task_count: ${{ steps.list.outputs.task_count }}
@@ -43,7 +43,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -95,7 +95,7 @@ jobs:
 
   dry-run-report:
     name: 'Dry Run — Task Report'
-    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-latest"]' || '["self-hosted","astrid-web"]') }}
+    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-24.04"]' || '["self-hosted","astrid-web"]') }}
     needs: list-ready-tasks
     if: ${{ inputs.dry_run == true }}
     steps:
@@ -109,7 +109,7 @@ jobs:
 
   work-tasks:
     name: 'Work Ready Tasks'
-    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-latest"]' || '["self-hosted","astrid-web"]') }}
+    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-24.04"]' || '["self-hosted","astrid-web"]') }}
     needs: list-ready-tasks
     if: ${{ inputs.dry_run != true && needs.list-ready-tasks.outputs.has_tasks == 'true' }}
     steps:
@@ -117,7 +117,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -247,7 +247,7 @@ jobs:
 
   no-tasks:
     name: 'Nothing to do'
-    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-latest"]' || '["self-hosted","astrid-web"]') }}
+    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-24.04"]' || '["self-hosted","astrid-web"]') }}
     needs: list-ready-tasks
     if: ${{ needs.list-ready-tasks.outputs.has_tasks == 'false' }}
     steps:

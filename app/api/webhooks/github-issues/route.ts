@@ -1,16 +1,15 @@
 import { type NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { sendEventToUser } from '@/lib/sse-utils'
+import { nudgeIssuesSubscribers } from '@/lib/github/webhooks/issues'
 import { verifyWebhookSignature } from '@/lib/sync/github'
 import { capabilityGate } from '@/lib/brand/capabilities'
-import { createLogger } from '@/lib/logger'
-
-const log = createLogger('webhooks.github-issues')
 
 /**
- * POST /api/webhooks/github-issues — GitHub issues webhook.
- * NOT a sync engine: verifies the signature, finds users linked to the repo,
- * and nudges their clients over SSE (external_sync_refresh) to pull.
+ * POST /api/webhooks/github-issues — the per-repo GitHub issues webhook.
+ * NOT a sync engine: verifies the signature and nudges the clients of users
+ * linked to the repo (lib/github/webhooks/issues.ts — the same nudge the
+ * GitHub App's webhook now sends, AWTD-1113). Retire this route, and
+ * GITHUB_SYNC_WEBHOOK_SECRET, once the App path has shipped and the repos'
+ * hand-made hooks are removed.
  */
 export async function POST(request: NextRequest) {
   // A deployment with the integration disabled must not keep syncing on the
@@ -38,17 +37,6 @@ export async function POST(request: NextRequest) {
   const repo = payload?.repository?.full_name as string | undefined
   if (!repo) return NextResponse.json({ ok: true })
 
-  const links = await prisma.externalListLink.findMany({
-    where: { provider: 'GITHUB_ISSUES', remoteContainerId: repo },
-    select: { userId: true, id: true },
-  })
-  const userIds = [...new Set(links.map(l => l.userId))]
-  for (const userId of userIds) {
-    sendEventToUser(userId, {
-      type: 'external_sync_refresh',
-      data: { provider: 'GITHUB_ISSUES', container: repo },
-    } as any)
-  }
-  log.info({ repo, users: userIds.length, event }, 'GitHub issues webhook → SSE nudge')
-  return NextResponse.json({ ok: true, nudged: userIds.length })
+  const nudged = await nudgeIssuesSubscribers(repo, event)
+  return NextResponse.json({ ok: true, nudged })
 }

@@ -21,6 +21,9 @@ import { execSync, spawnSync, SpawnSyncReturns } from 'child_process'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
 import path from 'path'
 import { loadScriptEnv } from './lib/load-env'
+// Who files, comments on and resolves these tasks (AWTD-1311). Run from the
+// runner, so unsigned they all arrive under the OAuth client owner's name.
+import { agentSignature } from './lib/agent-author'
 import { classifyVitestFailure, isVitestCheck } from './lib/vitest-starvation'
 import {
   PREDEPLOY_REPORT_TAG,
@@ -212,8 +215,20 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
       fixDescription: 'Regenerate Prisma client (schema drifted from generated client)',
     },
     {
+      // `npm run typecheck` is `next typegen && tsc --noEmit`, and the typegen
+      // half is load-bearing here (AWTD-1245). tsconfig.json includes
+      // `.next/types/**` and next-env.d.ts imports `.next/types/routes.d.ts`,
+      // so tsc type-checks GENERATED route types — which used to be whatever
+      // the `Build` gate left behind on its previous run, fifteen places
+      // further down this list. Deleting a route therefore failed this gate
+      // with `TS2307 … route.js` on a tree where tsc was clean, twice filing a
+      // "Predeploy Failed: TypeScript" task; the second held up a deploy.
+      //
+      // Generating costs ~0.4s. Note that CLEANING does the opposite: with no
+      // `.next/types/routes.d.ts` at all, next-env.d.ts's import fails and
+      // this gate goes red for a third reason.
       name: 'TypeScript',
-      command: 'npx tsc --noEmit',
+      command: 'npm run typecheck',
       timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
       autoFixable: false, // Type errors need manual fix
     },
@@ -315,6 +330,18 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
       // (task 0c387855).
       name: 'Environment Registry',
       command: 'npm run check:env',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
+      autoFixable: false,
+    },
+    {
+      // The same question as CI's `dependency-audit` job — critical/high in the
+      // shipping tree — asked where agents and the deploy runner actually look.
+      // That job went red on a vite advisory and PR #461 merged past it, because
+      // predeploy ran no audit at all (AWTD-1301). Exit 3 is UNKNOWN (the tool
+      // could not prove advisories are visible), and a gate reads that as red.
+      // Not auto-fixed: which version to move to is a decision, not a repair.
+      name: 'Production Advisories',
+      command: 'npm run audit:prod',
       timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
       autoFixable: false,
     },
@@ -903,6 +930,7 @@ ${fixAttempts.length > 0 ? fixAttempts.map((f) => `- ${f.check}: ${f.success ? '
         body: JSON.stringify({
           content: comment,
           type: 'TEXT',
+          ...(await agentSignature(token)),
         }),
       })
       console.log(`   Added comment to existing task`)
@@ -938,6 +966,7 @@ All predeploy checks are now passing.
         body: JSON.stringify({
           content: comment,
           type: 'TEXT',
+          ...(await agentSignature(token)),
         }),
       })
 
@@ -948,7 +977,7 @@ All predeploy checks are now passing.
           'X-OAuth-Token': token,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ completed: true }),
+        body: JSON.stringify({ completed: true, ...(await agentSignature(token)) }),
       })
 
       console.log(`\n✅ Resolved Astrid task: ${taskId}`)

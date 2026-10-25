@@ -6,6 +6,7 @@ import { isEmailTransportLive, sendTransportEmail } from '@/lib/email-transport'
 import { getRandomReminderString } from '@/lib/reminder-constants'
 import { getBaseUrl, getUnsubscribeUrl, buildTaskUrlWithContext } from '@/lib/base-url'
 import { createLogger } from '@/lib/logger'
+import { escapeEmailHtml } from '@/lib/email-html'
 
 const log = createLogger('email-reminder-service')
 
@@ -110,7 +111,7 @@ export class EmailReminderService {
   private getTaskReminderHtml(data: TaskReminderData): string {
     const isOverdue = data.dueDateTime && new Date(data.dueDateTime) < new Date()
     const dueText = this.formatDueDate(data.dueDateTime, isOverdue)
-    const listText = data.listNames.length > 0 ? ` in ${data.listNames.join(', ')}` : ''
+    const listText = data.listNames.length > 0 ? ` in ${escapeEmailHtml(data.listNames.join(', '))}` : ''
     const quote = isOverdue
       ? getRandomReminderString('reminders_due')
       : getRandomReminderString('reminder_responses')
@@ -338,7 +339,7 @@ export class EmailReminderService {
           <!-- Header with task title -->
           <div class="header ${isOverdue ? '' : 'normal'}">
             ${isOverdue ? '<span class="overdue-badge">⚠️ OVERDUE</span>' : ''}
-            <h1 class="task-title">${data.title}</h1>
+            <h1 class="task-title">${escapeEmailHtml(data.title)}</h1>
             <p class="due-info">Due: ${dueText}</p>
           </div>
 
@@ -359,13 +360,13 @@ export class EmailReminderService {
             ${data.listNames.length > 0 ? `
             <div class="detail-row">
               <div class="detail-label">Lists</div>
-              <div class="detail-value">${data.listNames.join(', ')}</div>
+              <div class="detail-value">${escapeEmailHtml(data.listNames.join(', '))}</div>
             </div>
             ` : ''}
             ${data.assigneeName ? `
             <div class="detail-row">
               <div class="detail-label">Assigned To</div>
-              <div class="detail-value">${data.assigneeName}</div>
+              <div class="detail-value">${escapeEmailHtml(data.assigneeName)}</div>
             </div>
             ` : ''}
           </div>
@@ -377,7 +378,7 @@ export class EmailReminderService {
             <div class="collaborators-avatars">
               ${(data.collaborators || []).slice(0, 5).map(collab => {
                 const initials = collab.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'
-                return `<div class="avatar">${initials}</div>`
+                return `<div class="avatar">${escapeEmailHtml(initials)}</div>`
               }).join('')}
               ${(data.collaborators?.length || 0) > 5 ? `<div class="avatar">+${(data.collaborators?.length || 0) - 5}</div>` : ''}
             </div>
@@ -562,8 +563,8 @@ You can modify your reminder preferences in your account settings.
                 <a href="${taskUrl}" class="task-row">
                   <span class="task-checkbox" style="border-color: ${priorityColor};"></span>
                   <div class="task-content">
-                    <div class="task-title">${task.title}</div>
-                    ${task.listNames.length > 0 ? `<div class="task-meta">${task.listNames.join(', ')}</div>` : ''}
+                    <div class="task-title">${escapeEmailHtml(task.title)}</div>
+                    ${task.listNames.length > 0 ? `<div class="task-meta">${escapeEmailHtml(task.listNames.join(', '))}</div>` : ''}
                   </div>
                 </a>
               `
@@ -642,17 +643,17 @@ You can modify your reminder preferences in your account settings.
         <div class="container">
           <div class="header">
             <h1>📅 Weekly Task Outlook</h1>
-            <p>Hello${data.userName ? ` ${data.userName}` : ''}! Here are your upcoming tasks for ${weekRange}</p>
+            <p>Hello${data.userName ? ` ${escapeEmailHtml(data.userName)}` : ''}! Here are your upcoming tasks for ${weekRange}</p>
           </div>
 
           <div class="task-list">
             <h2>🗓️ Upcoming Tasks (${data.upcomingTasks.length})</h2>
             ${data.upcomingTasks.map(task => `
               <div class="task-item">
-                <div class="task-title">${task.title}</div>
+                <div class="task-title">${escapeEmailHtml(task.title)}</div>
                 <div class="task-meta">
-                  Due: ${this.formatDueDate(task.dueDateTime)} • 
-                  Lists: ${task.listNames.join(', ')}
+                  Due: ${this.formatDueDate(task.dueDateTime)} •
+                  Lists: ${escapeEmailHtml(task.listNames.join(', '))}
                 </div>
               </div>
             `).join('')}
@@ -730,8 +731,6 @@ You can modify your reminder preferences in your account settings.
       return `Tomorrow at ${timeString}`
     } else if (diffDays === -1) {
       return `Yesterday at ${timeString}`
-    } else if (diffDays < 7) {
-      return `${dateString} at ${timeString}`
     } else {
       return `${dateString} at ${timeString}`
     }

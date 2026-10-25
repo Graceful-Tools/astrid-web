@@ -13,8 +13,8 @@ e2e/
 ├── auth.spec.ts             # Authentication flow tests
 ├── tasks.spec.ts            # Task management tests
 ├── lists.spec.ts            # List management tests
-├── responsive.spec.ts       # Responsive design tests
-├── performance.spec.ts      # Performance and Core Web Vitals tests
+├── layout-regression.spec.ts # Column layouts per viewport project
+├── mobile-*.spec.ts         # Mobile shell/header/keyboard behaviour
 ├── accessibility.spec.ts    # Accessibility (a11y) tests
 └── README.md               # This file
 ```
@@ -99,19 +99,9 @@ npm run test:e2e:report
 - Sharing and collaboration
 - Public/private lists
 
-### Responsive Design Tests (`responsive.spec.ts`)
-- Mobile viewport testing
-- Tablet viewport testing
-- Desktop layout verification
-- Orientation changes
-- Touch interactions
-
-### Performance Tests (`performance.spec.ts`)
-- Page load times
-- Core Web Vitals (LCP, FCP, CLS)
-- API response times
-- Network request optimization
-- Offline handling
+### Layout Tests (`layout-regression.spec.ts`, `mobile-*.spec.ts`)
+- Computer and tablet column layouts (one Playwright project per layout)
+- Mobile shell, header and keyboard behaviour
 
 ### Accessibility Tests (`accessibility.spec.ts`)
 - ARIA labels and roles
@@ -214,35 +204,24 @@ The Playwright configuration is defined in [`playwright.config.ts`](../playwrigh
 
 ## 🔐 Authentication Setup
 
-**⚠️ Important**: The authentication fixtures need to be properly configured before running tests that require logged-in users.
+Signed-in specs use a **minted NextAuth session**, not a sign-in flow. `npm run playwright:setup:ci-auth` (`scripts/create-e2e-auth-state.ts`) upserts `playwright-owner@example.test` and `playwright-outsider@example.test` in the database named by `TEST_DATABASE_URL` (localhost, name containing `test`), grants the owner Project Mode, and writes `.auth/user.json` and `.auth/outsider.json`.
 
-### Environment Variables
-
-Set these environment variables to enable authenticated tests:
+The signed-in projects (`authenticated-critical`, `authenticated-ui`) exist only when `PLAYWRIGHT_AUTHENTICATED=1`:
 
 ```bash
-PLAYWRIGHT_TEST_EMAIL=your-test-user@example.com
-PLAYWRIGHT_TEST_PASSWORD=your-test-password
+TEST_DATABASE_URL=postgresql://…/astrid_e2e_test DATABASE_URL=$TEST_DATABASE_URL \
+  NEXTAUTH_SECRET=<32+ chars> NEXTAUTH_URL=http://localhost:3000 npm run playwright:setup:ci-auth
+# run the app with the same DATABASE_URL / NEXTAUTH_SECRET, then:
+PLAYWRIGHT_AUTHENTICATED=1 npm run test:e2e:authenticated-critical   # both signed-in projects
 ```
 
-The auth setup (`auth.setup.ts`) uses the **legacy email/password** flow for test automation:
-1. Navigates to sign-in page
-2. Clicks "Legacy email/password? Sign in" link
-3. Fills in credentials and signs in
-4. Saves session for reuse across tests
+### Every spec must run somewhere
 
-### Creating a Test User
-
-To run authenticated tests, you need a test user with email/password credentials:
-
-1. **Create a test account** with email/password (legacy auth)
-2. **Set environment variables** with the test credentials
-3. **Run authenticated tests**: `PLAYWRIGHT_TEST_EMAIL=... PLAYWRIGHT_TEST_PASSWORD=... npm run test:e2e`
+Each project has a `testMatch` allow-list, and a spec no project matches simply never runs (24 of 31 didn't, until AWTD-1338). `tests/rules/every-e2e-spec-runs.test.ts` fails on any `e2e/*.spec.ts` that is neither matched by a project nor listed in `PENDING_E2E_SPECS` (playwright.config.ts) with a reason. **Adding a spec means adding it to a project.** The pending list may only shrink.
 
 ### Unauthenticated Tests
 
-Tests in `auth.spec.ts` run without authentication and test the sign-in UI directly.
-Other tests will gracefully handle the absence of authentication when env vars are not set.
+`auth.spec.ts`, `locale-navigation`, `layout-regression`, `document-pages-scroll`, `hover-theme-variants` and `mobile-keyboard-no-list-shift` run signed out in the browser projects.
 
 ## 📊 CI/CD Integration
 

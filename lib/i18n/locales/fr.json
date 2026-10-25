@@ -7,7 +7,11 @@
     "publicSharedLists": "Listes Publiques Partagées",
     "publicLists": "Listes Publiques",
     "seeAllCollaborative": "Voir toutes les listes collaboratives →",
-    "seeAllSuggested": "Voir toutes les listes suggérées →"
+    "seeAllSuggested": "Voir toutes les listes suggérées →",
+    "hideSidebar": "Masquer la barre latérale",
+    "showSidebar": "Afficher la barre latérale",
+    "hideMessages": "Masquer les messages",
+    "showMessages": "Afficher les messages"
   },
   "userMenu": {
     "settings": "Paramètres",
@@ -93,16 +97,12 @@
       "description": "Ajouter une description...",
       "comment": "Écrire un commentaire..."
     },
-    "addTaskPlaceholder": "Ajouter une tâche",
-    "addTaskToList": "Ajouter une tâche à {listName}...",
-    "addTaskToCurrentList": "Ajouter une tâche à la liste actuelle...",
-    "addTaskShort": "Ajouter une tâche...",
+    "addTaskPlaceholder": "Ajouter une tâche...",
     "quickAdd": "Ajout rapide...",
-    "addNewTask": "Ajouter une nouvelle tâche...",
-    "wontDo": "Won't do",
-    "reopen": "Reopen",
+    "wontDo": "Ne sera pas fait",
+    "reopen": "Rouvrir",
     "status": "Statut",
-    "wontDoChip": "Won't do",
+    "wontDoChip": "Ne sera pas fait",
     "when": "Quand",
     "createdBy": "Créé par",
     "confirmCompleteTitle": "Terminer cette tâche ?",
@@ -122,6 +122,25 @@
       "label": "ID de tâche",
       "copy": "Copier l'ID de tâche",
       "copied": "{id} copié"
+    },
+    "occurrence": {
+      "label": "Occurrence",
+      "previous": "Occurrence précédente",
+      "next": "Occurrence suivante"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Ajouter une sous-tâche",
+      "addPlaceholder": "Ajouter une sous-tâche…"
+    },
+    "projectFields": {
+      "clear": "Aucun",
+      "empty": "Non défini",
+      "errorAuthRequired": "Connecte ton compte GitHub pour modifier ce champ.",
+      "errorSsoRequired": "Ton organisation exige l'authentification unique pour ce projet. Connecte-toi à GitHub, puis réessaie.",
+      "errorSaveFailed": "Cette modification n'a pas pu être enregistrée dans GitHub. Réessaie.",
+      "filterLabel": "Champ du projet",
+      "filterAll": "Toutes les tâches"
     }
   },
   "lists": {
@@ -194,7 +213,8 @@
     "weekly": "Hebdomadaire",
     "monthly": "Mensuel",
     "yearly": "Annuel",
-    "custom": "Personnalisé"
+    "custom": "Personnalisé",
+    "pickAtLeastOneDay": "Choisissez au moins un jour"
   },
   "weekdays": {
     "sunday": "Dimanche",
@@ -419,7 +439,8 @@
   "search": {
     "placeholder": "Rechercher des tâches et des utilisateurs",
     "noResults": "Aucun résultat trouvé",
-    "searching": "Recherche en cours..."
+    "searching": "Recherche en cours...",
+    "open": "Rechercher"
   },
   "listHeaders": {
     "myTasks": "Mes Tâches",
@@ -473,6 +494,11 @@
         "sdkNeedsBoth": "Votre serveur a besoin des deux : ces identifiants pour appeler l’API et le secret du webhook ci-dessous pour vérifier les livraisons.",
         "manage": "Gérer dans Connexions",
         "error": "Impossible de créer les identifiants"
+      },
+      "githubConnection": {
+        "title": "Connexion GitHub",
+        "description": "Les agents de code exécutés sur le serveur utilisent la connexion GitHub de Réglages → Connexions, où chaque organisation connectée est listée.",
+        "open": "Ouvrir Connexions"
       }
     },
     "apiAccess": {
@@ -754,6 +780,12 @@
         "listDesc": "La case à cocher termine la tâche, et la priorité et l'assigné ont chacun leur propre ligne.",
         "projectDesc": "Compact. Toucher la case ouvre priorité, assigné, état et terminer."
       },
+      "listImages": {
+        "title": "Images des listes",
+        "description": "Afficher une image à côté de chaque liste dans la barre latérale et l’en-tête de liste (synchronisé sur tous les appareils)",
+        "label": "Afficher les images des listes",
+        "offDesc": "Désactivé : chaque liste affiche sa couleur à la place."
+      },
       "emailToTask": {
         "title": "E-mail vers tâche",
         "description": "Créez des tâches instantanément en envoyant des e-mails à {inboundTaskEmail}",
@@ -954,6 +986,40 @@
         "title": "Développeur",
         "description": "Créez des apps OAuth à la main, testez l’API et connectez des assistants qui parlent OpenAPI.",
         "openTester": "Ouvrir le testeur d’API"
+      },
+      "github": {
+        "title": "GitHub",
+        "description": "Connecte {appName} à vos comptes et organisations GitHub. Les agents de code exécutés sur le serveur créent des branches et des pull requests grâce à cette connexion.",
+        "descriptionProjects": "Connecte {appName} à vos organisations GitHub pour que leurs projets puissent devenir des tableaux ici.",
+        "empty": "Pas encore connecté à GitHub.",
+        "connect": "Connecter GitHub",
+        "installAnother": "Ajouter une autre organisation",
+        "refresh": "Actualiser les dépôts",
+        "refreshed": "Dépôts actualisés",
+        "refreshError": "Impossible d'actualiser les dépôts",
+        "loadError": "Impossible de charger votre connexion GitHub",
+        "installError": "Impossible de lancer l'installation GitHub",
+        "organization": "Organisation",
+        "personal": "Compte personnel",
+        "repoCountOne": "1 dépôt",
+        "repoCountMany": "{count} dépôts",
+        "allRepos": "tous les dépôts",
+        "suspended": "Suspendue",
+        "disconnect": "Déconnecter",
+        "disconnectTitle": "Déconnecter {account} ?",
+        "disconnectDescription": "Les agents de code cesseront de fonctionner dans les dépôts de {account}. L'app GitHub y reste installée ; désinstallez-la sur GitHub pour la supprimer complètement.",
+        "disconnectDescriptionProjects": "Les projets de {account} n'apparaîtront plus ici tant que vous n'aurez pas actualisé depuis GitHub. La GitHub App reste installée ; désinstallez-la sur GitHub pour la supprimer complètement.",
+        "disconnected": "{account} déconnecté",
+        "disconnectError": "Impossible de déconnecter",
+        "outcomes": {
+          "connected": "GitHub connecté",
+          "updated": "Connexion GitHub mise à jour",
+          "not_authorized": "Selon GitHub, votre compte ne peut pas voir cette installation",
+          "already_connected": "Cette installation est déjà connectée à un autre compte",
+          "verification_unavailable": "La connexion GitHub n'est pas configurée sur ce serveur, l'installation n'a donc pas pu être vérifiée",
+          "error": "Un problème est survenu lors de la connexion à GitHub",
+          "synced": "Accès GitHub actualisé"
+        }
       }
     }
   },
@@ -978,12 +1044,31 @@
     "keyInvalid": "{min} à {max} lettres ou chiffres, commençant par une lettre",
     "keyRename": "Renommer",
     "keyRenameHint": "Les tâches deviennent {next} ; {old} fonctionne toujours",
-    "keyRenameFailed": "Impossible de renommer le préfixe"
+    "keyRenameFailed": "Impossible de renommer le préfixe",
+    "createBoard": "Créer le tableau",
+    "creatingBoard": "Création...",
+    "createBoardFailed": "Impossible de créer le tableau",
+    "disableBoard": "Désactiver le tableau",
+    "disablingBoard": "Désactivation...",
+    "disableBoardFailed": "Impossible de désactiver le tableau",
+    "disableBoardTitle": "Désactiver la vue tableau",
+    "disableBoardBody": "Les tâches restent dans cette liste, mais les colonnes Ready/Doing/Waiting seront supprimées.",
+    "disableBoardNote": "Les tâches placées dans une colonne de statut perdront leur statut. Les tâches terminées restent terminées."
+  },
+  "viewRotator": {
+    "showList": "Afficher la liste",
+    "showMessages": "Afficher les messages",
+    "showBoard": "Afficher le tableau"
   },
   "listSettings": {
+    "color": {
+      "label": "Couleur de la liste",
+      "custom": "Couleur personnalisée"
+    },
     "adminSettings": "Paramètres d’administration",
     "sortAndFilters": "Tri et filtres",
     "sortAndFiltersAreYours": "Vous seul voyez ces réglages : ils ne modifient la liste pour personne d'autre.",
+    "listOptions": "Options de la liste",
     "sortBy": "Trier par",
     "showTasks": "Afficher les tâches",
     "priorityFilter": "Filtre de priorité",
@@ -1056,6 +1141,55 @@
     "modelSetup": {
       "noModel": "J'aimerais beaucoup vous aider, mais j'ai besoin d'un modèle d'IA pour répondre ! Rendez-vous dans {settingsLink} pour configurer votre modèle préféré.",
       "onDeviceUnavailable": "Le modèle sélectionné ne fonctionne que sur les appareils Apple compatibles, je ne peux donc pas répondre ici. Rendez-vous dans {settingsLink} pour choisir un modèle qui fonctionne partout."
+    }
+  },
+  "githubProjectPicker": {
+    "entry": "Connecter un projet GitHub",
+    "title": "Connecter un projet GitHub",
+    "description": "Choisissez un projet d'organisation à utiliser comme tableau dans {appName}. Ses éléments sont importés en arrière-plan.",
+    "connect": "Utiliser comme tableau",
+    "openBoard": "Ouvrir le tableau",
+    "closed": "Fermé",
+    "itemCountOne": "1 élément",
+    "itemCountMany": "{count} éléments",
+    "noProjects": "Aucun projet visible pour vous dans cette organisation.",
+    "noOrganizations": "Aucune organisation GitHub n'est encore connectée. Installez l'app sur une organisation, ou actualisez si elle est déjà installée.",
+    "installOnOrg": "Installer sur une organisation",
+    "installAnother": "Installer sur une autre organisation",
+    "refreshAccess": "Actualiser depuis GitHub",
+    "authRequired": "Connectez votre compte GitHub pour voir les projets de vos organisations.",
+    "connectGithub": "Connecter GitHub",
+    "loadError": "Impossible de charger vos projets GitHub",
+    "retry": "Réessayer",
+    "bound": "{title} connecté. Import de ses éléments…",
+    "alreadyBound": "Ce projet est déjà un tableau",
+    "bindError": "Impossible de connecter ce projet"
+  },
+  "listInsights": {
+    "tab": "Statistiques",
+    "days7": "7 jours",
+    "days30": "30 jours",
+    "days90": "90 jours",
+    "activity": "Activité",
+    "created": "Nouvelles",
+    "completed": "Terminées",
+    "createdTotal": "{count} nouvelles",
+    "completedTotal": "{count} terminées",
+    "timeToComplete": "Délai médian de réalisation",
+    "timeInLane": "Temps médian par colonne",
+    "sampleSize": "sur {count}",
+    "notEnoughHistory": "Pas encore assez d'historique",
+    "laneHistoryNote": "Les déplacements entre colonnes sont enregistrés à partir de maintenant ; ces valeurs se rempliront au fil des déplacements.",
+    "contributors": "Principaux contributeurs",
+    "profileCounts": "{completed} terminées · {inspired} inspirées · {supported} soutenues",
+    "activityCounts": "{created} créées · {edited} modifications · {commented} commentaires",
+    "noActivity": "Aucune activité sur cette période",
+    "loadFailed": "Impossible de charger les statistiques",
+    "loading": "Chargement des statistiques…",
+    "duration": {
+      "minutes": "{n} min",
+      "hours": "{n} h",
+      "days": "{n} j"
     }
   }
 }

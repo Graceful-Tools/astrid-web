@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getHeaderViewToggle } from '@/lib/header-view-toggle'
+import { getHeaderViewToggle, nextHeaderSegment, type HeaderToggleSegment } from '@/lib/header-view-toggle'
 
 const base = {
   isOneColumn: true,
@@ -10,9 +10,11 @@ const base = {
 }
 
 describe('getHeaderViewToggle (task a1e5c0ff: unified 3-way toggle in 1-col)', () => {
-  it('1-col + board + chat → unified List / Board / Messages', () => {
+  // AWTD-1183: the one-column control is the iPhone's view rotator, so the
+  // segments are in the order it steps through them — list, messages, board.
+  it('1-col + board + chat → unified List / Messages / Board, in rotation order', () => {
     expect(getHeaderViewToggle(base)).toEqual({
-      segments: ['list', 'board', 'messages'],
+      segments: ['list', 'messages', 'board'],
       unified: true,
     })
   })
@@ -62,5 +64,24 @@ describe('getHeaderViewToggle (task a1e5c0ff: unified 3-way toggle in 1-col)', (
       segments: [],
       unified: false,
     })
+  })
+})
+
+describe('nextHeaderSegment (AWTD-1183: one tap steps to the next view)', () => {
+  const all: HeaderToggleSegment[] = ['list', 'messages', 'board']
+
+  it('steps list → messages → board → list', () => {
+    expect(nextHeaderSegment(all, 'list')).toBe('messages')
+    expect(nextHeaderSegment(all, 'messages')).toBe('board')
+    expect(nextHeaderSegment(all, 'board')).toBe('list')
+  })
+
+  it('flips between two views when there are only two', () => {
+    expect(nextHeaderSegment(['list', 'messages'], 'list')).toBe('messages')
+    expect(nextHeaderSegment(['list', 'messages'], 'messages')).toBe('list')
+  })
+
+  it('starts over from the first view when the current one is not offered', () => {
+    expect(nextHeaderSegment(['list', 'messages'], 'board')).toBe('list')
   })
 })

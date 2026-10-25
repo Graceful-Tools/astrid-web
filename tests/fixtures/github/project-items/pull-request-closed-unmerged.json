@@ -1,0 +1,18 @@
+{
+  "id": "PVTI_pr_closed",
+  "isArchived": false,
+  "type": "PULL_REQUEST",
+  "updatedAt": "2026-10-10T09:45:00Z",
+  "content": {
+    "__typename": "PullRequest",
+    "id": "PR_kwDOAcme006",
+    "number": 46,
+    "title": "Experiment: rewrite in Rust",
+    "body": "",
+    "url": "https://github.com/Graceful-Fools/wordlesolver/pull/46",
+    "state": "CLOSED",
+    "updatedAt": "2026-10-10T09:44:00Z",
+    "repository": { "nameWithOwner": "Graceful-Fools/wordlesolver" }
+  },
+  "fieldValues": { "nodes": [] }
+}

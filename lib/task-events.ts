@@ -75,6 +75,8 @@ export interface TaskEventSnapshot {
   assigneeId?: string | null
   dueDateTime?: Date | string | null
   listIds?: string[]
+  /** Board lane; null is Inbox (AWTD-1329). */
+  statusRole?: string | null
 }
 
 function sameTime(a: Date | string | null | undefined, b: Date | string | null | undefined): boolean {
@@ -121,6 +123,17 @@ export function diffTaskEvents(
     // Reason changed without the completed flag moving — e.g. "done" reclassified
     // as "won't do".
     events.push({ kind: 'closed', from: before.closedReason ?? null, to: after.closedReason })
+  }
+
+  // A board move (AWTD-1329) — the history list insights reads "time in each
+  // state" from. Not when the task was completed in the same update: done
+  // clears the lane, and `completed` already says the card left the board.
+  if (
+    after.statusRole !== undefined &&
+    (before.statusRole ?? null) !== (after.statusRole ?? null) &&
+    !(after.completed && !before.completed)
+  ) {
+    events.push({ kind: 'status_changed', from: before.statusRole ?? null, to: after.statusRole ?? null })
   }
 
   if (after.priority !== undefined && before.priority !== after.priority) {

@@ -13,8 +13,9 @@
  */
 
 import { PrismaClient } from '@prisma/client'
-import crypto from 'crypto'
 import { loadScriptEnv } from './lib/load-env'
+import { generateMCPToken } from '../lib/mcp-token-utils'
+import { mcpTokenStorageFields } from '../lib/mcp-token'
 import { ENABLED_AGENT_MAILBOXES, AI_AGENT_CONFIG } from '../lib/ai/agent-config'
 import { agentEmail, LOCAL_HARNESS_AGENT_MAILBOXES } from '../lib/brand/agent-emails'
 import { harnessAgentByMailbox } from '../lib/ai/harness-agents'
@@ -93,10 +94,9 @@ async function createSpecificAIAgents() {
       })
 
       if (!existingToken) {
-        const token = crypto.randomBytes(32).toString('hex')
         await prisma.mCPToken.create({
           data: {
-            token,
+            ...mcpTokenStorageFields(generateMCPToken()),
             userId: agent.id,
             description: `${agent.name} MCP Token`,
             permissions: ['read', 'write'],

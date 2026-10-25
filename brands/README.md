@@ -29,6 +29,7 @@ enabled services.
 | `expect.capabilities` | Capability keys that must be on / off |
 | `expect.forbidLiterals` | Strings that must NOT appear in rendered output for this
   profile (e.g. a rebranded deployment must not leak "Astrid") |
+| `expect.inheritsAstridIdentity` | Identity variables the profile deliberately leaves on Astrid's value — exactly what its build warns about. `[]` for Astrid itself (AWTD-1285) |
 | `copy` | Optional. Brand *voice*: reminder nags and default-list captions |
 
 ## Brand voice (`copy`)
@@ -70,7 +71,15 @@ These files are **not web-only**. The iOS and Mac apps read the same profile:
 cd ../astrid-ios
 ./scripts/apply-brand.sh acme        # write the profile into both Info.plist files
 ./scripts/check-brands.sh            # apply each profile, audit it, revert
+./scripts/make-brand-variant.sh acme # your own bundle ID, App Group and team (Whitelabel config)
 ```
+
+`make-brand-variant.sh` reads an optional `ios` block in the profile, beside `env`. It holds
+identity that only an Apple build needs (bundle ID, App Group, keychain group, team,
+display name), and the web ignores it.
+docs/WHITELABELING.md §6 has the precedence rules. Windows reads an optional `windows` block
+the same way. Android does not read these files; it has its own `brands/<name>/brand.properties`
+in astrid-android.
 
 `Astrid App/Utilities/BrandProfile.swift` maps the profile's variables onto the
 Info.plist keys `Brand` reads, and `BrandProfileTests` **parses `Brand.swift`** and fails
@@ -86,8 +95,19 @@ from, so the native apps need them as values.
 
 Variables the native apps consume: `NEXT_PUBLIC_BRAND_NAME`, `_DOMAIN`, `_WORDMARK`,
 `_SLOGAN`, `_SUPPORT_EMAIL`, `_INBOUND_TASK_EMAIL`, `_AGENT_NAME`, `_ACCENT_COLOR`,
-`_ACCENT_HOVER_COLOR`, `_ACCENT_TEXT_COLOR`, and `BRAND_AGENT_EMAIL_DOMAIN`. Everything
-else in `env` is web-only and is skipped, not rejected.
+`_ACCENT_HOVER_COLOR`, `_ACCENT_TEXT_COLOR`, `_LOGO`, and `BRAND_AGENT_EMAIL_DOMAIN`.
+Everything else in `env` is web-only and is skipped, not rejected.
+
+**`NEXT_PUBLIC_BRAND_LOGO` is the odd one, and the odd part matters** (astrid-ios AITD-514).
+It is the character art on sign-in, welcome, the sidebar and empty states, and it reaches
+iOS through the `BrandCharacterImage` Info.plist key. On the web the value is a PATH that
+the deployment serves; on iOS the app uses **the file name as an asset-catalog name**. So
+`/images/whitelabel-logo.png` needs a `whitelabel-logo` imageset in the app's catalog, and
+a partner who sets the variable without adding the imageset gets no character at all.
+
+Unset is a supported answer and shows **no** character rather than Astrid's — which is the
+right default, since shipping Astrid's mascot in a partner's app would be worse than
+shipping none.
 
 The `copy` block reaches the native apps a different way — over the wire, from
 `GET /api/v1/capabilities`, cached locally so reminders scheduled offline still speak in
@@ -161,8 +181,15 @@ To stand one up:
 1. **Project.** `vercel project add <name>`, then set its framework to Next.js (the CLI
    creates it as "Other").
 2. **Domain.** Add it to the project; point DNS at the CNAME Vercel recommends.
-3. **Database.** Vercel → the project → Storage → Create → Neon, connected to Production and
-   Preview. The first production build migrates it from empty.
+3. **Database.** `npx tsx scripts/provision-brand-database.ts --project <name>` creates a
+   Neon project of the same name in the Graceful Tools org (`NEON_API_KEY` in `.env.local`)
+   and writes `DATABASE_URL` (pooled) and `DATABASE_URL_DIRECT` to Production and Preview,
+   printing no connection string. It refuses `astrid-web`, and a re-run is a no-op. For
+   another team, `--team` / `--scope` work the same way as on the other scripts. For a
+   preview on Astrid's team, `--out` writes the URLs to a local file instead
+   (docs/WHITELABELING.md §8). (By hand:
+   Vercel → the project → Storage → Create → Neon.) The first production build migrates it
+   from empty.
 4. **Environment.** `npx tsx scripts/push-brand-env.ts <profile> --project <name>` writes the
    profile, derives `NEXTAUTH_URL` from the brand domain, and generates `NEXTAUTH_SECRET`,
    `ENCRYPTION_KEY`, `CRON_SECRET` and `INTERNAL_API_SECRET` — only when absent, because
@@ -180,11 +207,18 @@ native apps read the same `auth` capabilities and hide those buttons too.
 - **iOS / Mac:** `./scripts/apply-brand.sh whitelabel-partner` in astrid-ios points the app
   at the partner host and adds `webcredentials:` (and `applinks:` on iOS) for its domain, so
   native passkeys work there. The partner's site serves `apple-app-site-association` for the
-  same app IDs. The build must be signed by Astrid's team, so it comes from Xcode Cloud or
+  same app IDs, which is the default when `BRAND_APPLE_APP_IDS` is unset. A partner that
+  ships its own apps sets that variable to their app IDs instead. The build must be signed by Astrid's team, so it comes from Xcode Cloud or
   from Xcode on a machine with that team. `--reset` reverts, byte for byte.
+- **Android:** verified https links need the partner's site to serve `assetlinks.json` for
+  the app's package and Play app-signing fingerprint: set `BRAND_ANDROID_APP_LINKS`. Unset,
+  the route 404s, so leave `astridLinkAutoVerify` off in the Android brand.
 - **Windows:** signs in through the browser (`/signin/desktop`), so passkeys on the
-  partner's site need nothing native. The app must be pointed at the partner host.
+  partner's site need nothing native. Point a test build at the partner host with
+  `ASTRID_SERVER_URL`. A branded package comes from `scripts/package.ps1 -Brand <profile>`
+  in astrid-windows, which reads this same file.
 - **The URL scheme stays `astrid`** in this profile. A scheme is part of an app's identity,
-  and the test binaries register only `astrid://`; a partner's own scheme needs a
-  partner-built app (bundle ID, scheme, store listing — frozen for us, see
-  docs/WHITELABELING.md §7).
+  and the test binaries register only `astrid://`. A partner's own scheme needs a
+  partner-built app: iOS/Mac `make-brand-variant.sh`, Windows `package.ps1 -Brand`, or Android
+  `-PastridBrand`. Set `NEXT_PUBLIC_BRAND_APP_URL_SCHEME` to the scheme that app registers.
+  See docs/WHITELABELING.md → *Start here* for the per-platform status.

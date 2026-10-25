@@ -1,6 +1,31 @@
+import { dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import createNextIntlPlugin from 'next-intl/plugin'
+import { turbopackRoot } from './scripts/lib/turbopack-root.mjs'
+import { checkBrandIdentity } from './scripts/lib/brand-identity-check.mjs'
 
 const withNextIntl = createNextIntlPlugin('./lib/i18n/request.ts')
+
+// A partner build that sets some brand identity variables but not all of them ships
+// Astrid's value for the rest — support@astrid.cc, astrid://, Astrid's GitHub App. Name
+// each one here, at build, or fail under BRAND_STRICT_IDENTITY=true (AWTD-1285). Hosted
+// Astrid sets none of them, so for it this does nothing.
+checkBrandIdentity(process.env, {
+  strict: process.env.BRAND_STRICT_IDENTITY,
+  acknowledged: process.env.BRAND_INHERIT_ASTRID_IDENTITY,
+})
+
+// A `/fixall` worktree shares the main checkout's node_modules by symlink, and
+// Turbopack refuses to resolve through it — `Symlink [project]/node_modules is
+// invalid, it points out of the filesystem root` — so the Build gate could not
+// pass in any worktree, for any branch (AWTD-1240). Naming a root that contains
+// both trees is the documented fix. It is `undefined` for every ordinary
+// checkout, CI and Vercel, where node_modules is a real directory: the key is
+// then omitted and Next infers the root as before.
+//
+// From this file's own location rather than process.cwd(), so the answer does
+// not depend on where the build was invoked from.
+const filesystemRoot = turbopackRoot(dirname(fileURLToPath(import.meta.url)))
 
 // NOTE: the Content Security Policy is NOT here.
 //
@@ -15,6 +40,7 @@ const isProduction = process.env.NODE_ENV === 'production'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  ...(filesystemRoot ? { turbopack: { root: filesystemRoot } } : {}),
   // Next 16 removed the `eslint` config key along with `next lint`; linting is its own
   // step (`npm run lint`) and the quality gates run it separately, so nothing is lost by
   // dropping it. Keeping it made the whole config invalid.
@@ -35,13 +61,23 @@ const nextConfig = {
     ],
   },
   serverExternalPackages: ['@prisma/client', 'pino', 'pino-pretty', 'thread-stream'],
-  // /api/downloads reads these out of public/ at request time. Next only ships
-  // files it can statically trace into a serverless function, and public/ is
-  // served by the CDN rather than bundled — without this the read throws and
-  // the route 404s in production while working fine locally.
+  // /api/downloads reads these from disk at request time. Next only ships
+  // files it can statically trace into a serverless function — without this
+  // the read throws and the route 404s in production while working fine
+  // locally. (The script used to be a stale copy in public/, which also
+  // served it statically with Astrid's URL on every brand: AWTD-1281.)
   outputFileTracingIncludes: {
     '/api/downloads/[filename]': [
-      'public/get-project-tasks-oauth.ts',
+      'scripts/get-project-tasks-oauth.ts',
+    ],
+    // astrid-core's rules as WebAssembly (lib/core-rules/wasm.ts). Loaded through a require
+    // resolved at runtime, which tracing cannot follow, by every server function at start —
+    // list permissions are decided by it everywhere (AWTD-1061) — so every function carries it
+    // (~1.7 MB). Missing files are not an outage: the TypeScript rules decide, and /api/health
+    // reports coreRules.loaded=false.
+    '/**': [
+      'packages/astrid-rules/REVISION',
+      'packages/astrid-rules/node/**',
     ],
   },
   async redirects() {

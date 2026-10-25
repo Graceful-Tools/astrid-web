@@ -12,8 +12,8 @@ async function createJson<T>(request: APIRequestContext, url: string, data: unkn
   return response.json() as Promise<T>
 }
 
-test.describe('Mobile 1-column unified header toggle (task a1e5c0ff)', () => {
-  test('renders a single 3-way List / Board / Messages segmented control when a board is enabled', async ({ page, request }) => {
+test.describe('Mobile 1-column header view rotator (task a1e5c0ff, AWTD-1183)', () => {
+  test('one header icon steps list → messages → board when a board is enabled', async ({ page, request }) => {
     const suffix = Date.now()
 
     // Create a plain list, then turn it into a board via the Create-Board flow.
@@ -30,30 +30,22 @@ test.describe('Mobile 1-column unified header toggle (task a1e5c0ff)', () => {
 
     await gotoWithRetry(page, `/lists/${list.id}`)
 
-    // The unified toggle replaces the old List/Board control + separate
-    // ChatToggle icon on 1-col.
-    const toggle = page.getByTestId('header-unified-toggle')
-    await expect(toggle).toBeVisible()
-    await expect(toggle.locator('[data-segment="list"]')).toBeVisible()
-    await expect(toggle.locator('[data-segment="board"]')).toBeVisible()
-    await expect(toggle.locator('[data-segment="messages"]')).toBeVisible()
+    // One icon, as on iPhone, in place of the old 3-way segmented strip.
+    const rotator = page.getByTestId('header-view-rotator')
+    await expect(rotator).toBeVisible()
+    await expect(page.getByTestId('header-unified-toggle')).toHaveCount(0)
 
-    // List is the default active segment on a freshly-opened list.
-    await expect(toggle.locator('[data-segment="list"]')).toHaveAttribute('aria-pressed', 'true')
+    // List is the default view on a freshly-opened list.
+    await expect(rotator).toHaveAttribute('data-current', 'list')
 
-    // Tapping Board flips the press state.
-    await toggle.locator('[data-segment="board"]').tap()
-    await expect(toggle.locator('[data-segment="board"]')).toHaveAttribute('aria-pressed', 'true')
-    await expect(toggle.locator('[data-segment="list"]')).toHaveAttribute('aria-pressed', 'false')
+    await rotator.tap()
+    await expect(rotator).toHaveAttribute('data-current', 'messages')
 
-    // Tapping Messages flips to the chat panel.
-    await toggle.locator('[data-segment="messages"]').tap()
-    await expect(toggle.locator('[data-segment="messages"]')).toHaveAttribute('aria-pressed', 'true')
-    await expect(toggle.locator('[data-segment="board"]')).toHaveAttribute('aria-pressed', 'false')
+    await rotator.tap()
+    await expect(rotator).toHaveAttribute('data-current', 'board')
 
-    // Tapping List returns to the tasks panel + list view.
-    await toggle.locator('[data-segment="list"]').tap()
-    await expect(toggle.locator('[data-segment="list"]')).toHaveAttribute('aria-pressed', 'true')
-    await expect(toggle.locator('[data-segment="messages"]')).toHaveAttribute('aria-pressed', 'false')
+    // And back around to the list.
+    await rotator.tap()
+    await expect(rotator).toHaveAttribute('data-current', 'list')
   })
 })

@@ -3,7 +3,6 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { RedisCache } from '@/lib/redis'
 
 /**
  * Toggle a list as favorite for a specific user.
@@ -34,12 +33,8 @@ export async function toggleFavorite(
     })
   }
 
-  // Invalidate cached lists for this user
-  try {
-    await RedisCache.invalidate.userLists(userId)
-  } catch {
-    // Redis may not be available in dev
-  }
+  // No cache eviction: both list GETs hydrate favourites AFTER the cache read,
+  // so the cached rows never carry them (AWTD-1320).
 }
 
 /**

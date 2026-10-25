@@ -37,7 +37,13 @@ const ROOT = process.cwd()
  * import out of that route. The slack check is what noticed — a ceiling left
  * above the real number stops ratcheting.
  */
-const CEILING = 144 // 145 → 144: v1 task GET reads through lib/tasks/v1-task-shape (AWTD-1040)
+// 144 → 143: AWTD-1087 deleted app/api/github/connect-installation, which let any
+// signed-in user claim any org's GitHub App installation.
+// 139 → 138: AWTD-1114 — GET /api/github/installations reads through
+// lib/github/installations instead of Prisma.
+// 138 → 137: AWTD-1113 — /api/webhooks/github-issues nudges through
+// lib/github/webhooks/issues, shared with the App webhook.
+const CEILING = 133 // 134 → 133: /api/mcp/tokens deleted (AWTD-1335). 136 → 134: /api/tasks/[id] and /api/upload deleted, the census having cleared them (AWTD-839)
 
 function routeFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {

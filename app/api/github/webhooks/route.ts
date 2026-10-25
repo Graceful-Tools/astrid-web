@@ -8,7 +8,20 @@ import { Webhooks, createNodeMiddleware } from '@octokit/webhooks'
 import { prisma } from '@/lib/prisma'
 import crypto from 'crypto'
 import { createLogger } from '@/lib/logger'
-import { capabilityGate } from '@/lib/brand/capabilities'
+import { completeTask } from '@/services/complete-task'
+import { capabilityGate, hasCapability } from '@/lib/brand/capabilities'
+import {
+  handleInstallationEvent,
+  handleInstallationRepositoriesEvent,
+} from '@/lib/github/webhooks/installation'
+import { handleIssuesWebhook } from '@/lib/github/webhooks/issues'
+import {
+  handleIssueChangedForProjects,
+  handleIssueCommentForProjects,
+  handleIssueDeletedForProjects,
+  handleOrgAccessWebhook,
+  handleProjectsV2ItemWebhook,
+} from '@/lib/github/webhooks/projects'
 
 const log = createLogger('api.github.webhooks')
 
@@ -53,87 +66,35 @@ async function sendSSENotification(userId: string, event: any) {
 }
 
 /**
- * Handle GitHub App installation events
+ * Installation lifecycle and repository access — kept current in the
+ * installation model (lib/github/webhooks/installation.ts, AWTD-1111).
  */
-webhooks?.on('installation', async ({ payload }) => {
-  log.info({ action: payload.action }, '🔧 GitHub App installation event:')
-
-  if (payload.action === 'created') {
-    const account = payload.installation.account
-    log.info({
-      installationId: payload.installation.id,
-      account: account && 'login' in account ? account.login : 'unknown',
-      repositories: payload.repositories?.length || 0
-    }, '📦 New installation:')
-
-    // Store installation info (we'll need to associate with user later)
-    // For now, just log it
-    log.info('ℹ️ Installation will be associated when user connects their GitHub')
-  }
-
-  if (payload.action === 'deleted') {
-    log.info(payload.installation.id, '🗑️ Installation removed:')
-
-    // Clean up any GitHub integrations using this installation
-    await prisma.gitHubIntegration.deleteMany({
-      where: { installationId: payload.installation.id }
-    })
-  }
-})
+webhooks?.on('installation', ({ payload }) => handleInstallationEvent(payload))
+webhooks?.on('installation_repositories', ({ payload }) => handleInstallationRepositoriesEvent(payload))
 
 /**
- * Handle repository access changes
+ * Issues sync: nudge the clients of lists linked to the repo (AWTD-1113). This
+ * runs alongside the coding agent's own issue_comment handler below.
  */
-webhooks?.on('installation_repositories', async ({ payload }) => {
-  log.info({ action: payload.action }, '📚 Repository access changed:')
+webhooks?.on(['issues', 'issue_comment'], ({ id, name, payload }) =>
+  handleIssuesWebhook(name, payload, id)
+)
 
-  // Update repository lists for affected integrations
-  const integrations = await prisma.gitHubIntegration.findMany({
-    where: { installationId: payload.installation.id }
-  })
-
-  for (const integration of integrations) {
-    if (payload.action === 'added') {
-      const currentRepos = Array.isArray(integration.repositories)
-        ? integration.repositories as any[]
-        : []
-
-      const newRepos = payload.repositories_added?.map(repo => ({
-        id: repo.id,
-        name: repo.name,
-        fullName: repo.full_name,
-        defaultBranch: ('default_branch' in repo ? repo.default_branch : null) || 'main'
-      })) || []
-
-      await prisma.gitHubIntegration.update({
-        where: { id: integration.id },
-        data: {
-          repositories: [...currentRepos, ...newRepos]
-        }
-      })
-
-      log.info(`✅ Added ${newRepos.length} repositories to integration ${integration.id}`)
-    }
-
-    if (payload.action === 'removed') {
-      const currentRepos = Array.isArray(integration.repositories)
-        ? integration.repositories as any[]
-        : []
-
-      const removedRepoIds = payload.repositories_removed?.map(repo => repo.id) || []
-      const updatedRepos = currentRepos.filter(repo => !removedRepoIds.includes(repo.id))
-
-      await prisma.gitHubIntegration.update({
-        where: { id: integration.id },
-        data: {
-          repositories: updatedRepos
-        }
-      })
-
-      log.info(`🗑️ Removed ${removedRepoIds.length} repositories from integration ${integration.id}`)
-    }
-  }
-})
+/**
+ * GitHub Projects boards: an item changed, so read it again (AWTD-1152).
+ */
+webhooks?.on('projects_v2_item', ({ id, payload }) =>
+  handleProjectsV2ItemWebhook(payload as never, id).then(() => undefined)
+)
+// Roles follow org membership; a deleted issue takes its task (AWTD-1153).
+webhooks?.on(['member', 'membership', 'organization'], ({ id, payload }) =>
+  handleOrgAccessWebhook(payload as never, id).then(() => undefined)
+)
+webhooks?.on('issues', ({ payload }) => handleIssueDeletedForProjects(payload as never).then(() => undefined))
+// GitHub sends no projects_v2_item event for an issue's own edits (AWTD-1296).
+webhooks?.on('issues', ({ payload }) => handleIssueChangedForProjects(payload as never).then(() => undefined))
+// A comment made on github.com reaches the mirrored task (AWTD-1283).
+webhooks?.on('issue_comment', ({ payload }) => handleIssueCommentForProjects(payload as never).then(() => undefined))
 
 /**
  * Handle pull request events
@@ -221,11 +182,19 @@ webhooks?.on('pull_request', async ({ payload }) => {
         }
       })
 
-      // Mark the task as completed
-      await prisma.task.update({
-        where: { id: workflow.taskId },
-        data: { completed: true }
-      })
+      // Mark the task as completed — through the service, so the merge
+      // completes it the way a person would (AWTD-1093). Attributed to the
+      // task's creator: the PR merge happened on GitHub, on their behalf.
+      if (workflow.task.creatorId) {
+        const completion = await completeTask({
+          taskId: workflow.taskId,
+          actorId: workflow.task.creatorId,
+          completedSource: 'github',
+        })
+        if (!completion.ok) {
+          log.warn({ taskId: workflow.taskId, error: completion.error }, 'Completing task after PR merge was refused')
+        }
+      }
 
       // Notify the task creator
       if (workflow.task.creatorId) {
@@ -394,9 +363,12 @@ webhooks?.onError((error) => {
  * POST handler for GitHub webhooks
  */
 export async function POST(request: NextRequest) {
-  // A deployment with the GitHub integration disabled must refuse
-  // server-side, not merely hide the UI (task 229c175c).
-  const capabilityBlocked = capabilityGate('syncGithubIssues')
+  // A deployment without the coding agent must refuse
+  // server-side, not merely hide the UI (task 229c175c) — unless it has
+  // GitHub Projects boards, which need this App's installation and
+  // projects_v2_item events (AWTD-1152). The coding agent's own handlers act
+  // only on its workflows, which such a deployment never creates.
+  const capabilityBlocked = hasCapability('githubProjects') ? null : capabilityGate('codingAgent')
   if (capabilityBlocked) return capabilityBlocked
 
   try {
@@ -455,9 +427,12 @@ export async function POST(request: NextRequest) {
  * GET handler for webhook health check
  */
 export async function GET() {
-  // A deployment with the GitHub integration disabled must refuse
-  // server-side, not merely hide the UI (task 229c175c).
-  const capabilityBlocked = capabilityGate('syncGithubIssues')
+  // A deployment without the coding agent must refuse
+  // server-side, not merely hide the UI (task 229c175c) — unless it has
+  // GitHub Projects boards, which need this App's installation and
+  // projects_v2_item events (AWTD-1152). The coding agent's own handlers act
+  // only on its workflows, which such a deployment never creates.
+  const capabilityBlocked = hasCapability('githubProjects') ? null : capabilityGate('codingAgent')
   if (capabilityBlocked) return capabilityBlocked
 
   return NextResponse.json({

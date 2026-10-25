@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
-import { uploadFileToBlob } from "@/lib/secure-storage"
 import { prisma } from "@/lib/prisma"
 import { createLogger } from '@/lib/logger'
 import { validateSecureUpload } from '@/lib/upload-validation'
-import {
-  clientRequestIdFromContext,
-  findSecureFileByClientRequestId,
-  isUniqueConstraintError,
-} from "@/lib/secure-file-idempotency"
+import { clientRequestIdFromContext } from "@/lib/secure-file-idempotency"
+import { storeSecureUpload } from "@/services/secure-upload.service"
 
 const log = createLogger('secure-upload.request-upload')
 
@@ -238,59 +234,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Idempotency: if the iOS Outbox already uploaded this file (same
-    // clientRequestId), return it instead of re-uploading a duplicate blob.
-    const clientRequestId = clientRequestIdFromContext(context)
-    const alreadyUploaded = await findSecureFileByClientRequestId(session.user.id, clientRequestId)
-    if (alreadyUploaded) {
-      return NextResponse.json({
-        fileId: alreadyUploaded.id,
-        fileName: alreadyUploaded.originalName,
-        fileSize: alreadyUploaded.fileSize,
-        mimeType: alreadyUploaded.mimeType,
-        success: true
-      })
-    }
-
-    // Upload file directly to Vercel Blob
-    const uploadRequest = {
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
-      uploadContext: {
-        ...context,
-        userId: session.user.id
-      }
-    }
-
-    const { blobUrl, fileId } = await uploadFileToBlob(file, uploadRequest)
-
-    // Store metadata in database
-    let secureFile
-    try {
-      secureFile = await prisma.secureFile.create({
-        data: {
-          id: fileId,
-          blobUrl,
-          originalName: file.name,
-          mimeType: file.type,
-          fileSize: file.size,
-          uploadedBy: session.user.id,
-          taskId: context.taskId || null,
-          listId: context.listId || null,
-          commentId: context.commentId || null,
-          attachTarget,
-          clientRequestId,
-        }
-      })
-    } catch (createError) {
-      // A concurrent retry won the race — return the file it created.
-      const winner = isUniqueConstraintError(createError)
-        ? await findSecureFileByClientRequestId(session.user.id, clientRequestId)
-        : null
-      if (!winner) throw createError
-      secureFile = winner
-    }
+    // Idempotent on clientRequestId: an iOS Outbox retry of the same file gets
+    // the already-created SecureFile back instead of a duplicate blob.
+    const { file: secureFile } = await storeSecureUpload({
+      userId: session.user.id,
+      file,
+      context,
+      attachTarget,
+      clientRequestId: clientRequestIdFromContext(context),
+    })
 
     return NextResponse.json({
       fileId: secureFile.id,

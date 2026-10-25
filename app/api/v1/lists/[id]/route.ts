@@ -25,7 +25,9 @@ import { canUserManageList } from "@/lib/list-permissions"
 import { normalizeShowSubtasks } from "@/lib/list-subtask-visibility"
 import { normalizeAgentEnabledConfig } from "@/lib/resolve-default-agent"
 import { shapeV1List, V1_LIST_READ_INCLUDE } from "@/lib/lists/v1-list-shape"
+import { loadListBackendInfo } from "@/lib/backends/list-wire"
 import { audienceForList, recordDeletion } from "@/lib/deletion-log"
+import { isListColor } from "@/lib/brand/colors"
 import {
   deleteListWithImageRelease,
   ListImageClaimError,
@@ -39,7 +41,7 @@ type RouteContext = { params: Promise<{ id: string }> }
 const FILTER_FIELDS = [
   'sortBy', 'manualSortOrder', 'filterPriority', 'filterAssignee',
   'filterDueDate', 'filterCompletion', 'filterRepeating',
-  'filterAssignedBy', 'filterInLists', 'isFavorite'
+  'filterAssignedBy', 'filterInLists', 'filterProjectField', 'isFavorite'
 ] as const
 
 /**
@@ -88,7 +90,7 @@ export const GET = withAuth<RouteContext>(
 
     return NextResponse.json(
       {
-        list: shapeV1List(list, defaultAssignees),
+        list: shapeV1List(list, defaultAssignees, await loadListBackendInfo([list])),
         meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
@@ -171,7 +173,12 @@ export const PUT = withAuth<RouteContext>(
     if (isOwnerOrAdmin) {
       if (body.name !== undefined) updateData.name = body.name
       if (body.description !== undefined) updateData.description = body.description
-      if (body.color !== undefined) updateData.color = body.color
+      if (body.color !== undefined) {
+        if (!isListColor(body.color)) {
+          return NextResponse.json({ error: 'Invalid color (must be #rrggbb)' }, { status: 400 })
+        }
+        updateData.color = body.color
+      }
       if (body.imageUrl !== undefined) updateData.imageUrl = body.imageUrl
       if (body.privacy !== undefined) updateData.privacy = body.privacy
       if (body.defaultAssigneeId !== undefined) updateData.defaultAssigneeId = body.defaultAssigneeId
@@ -275,26 +282,10 @@ export const PUT = withAuth<RouteContext>(
     await hydrateSingleListFavorite(list, auth.userId)
     await hydrateSingleListViewPreferences(list, auth.userId)
 
-    // If this PUT attached/detached the list to a project (board sub-task #3),
-    // project members gain or lose access to it — evict their cached list sets
-    // (both the previous and new project) so the change is visible immediately.
-    if (updateData.projectId !== undefined && updateData.projectId !== existingList.projectId) {
-      try {
-        const affectedUserIds = await collectProjectMemberUserIds([
-          existingList.projectId,
-          updateData.projectId,
-        ])
-        await Promise.all(
-          affectedUserIds.map((userId) =>
-            RedisCache.del(RedisCache.keys.userLists(userId)).catch((error) =>
-              log.error({ err: error }, `Failed to invalidate cache for user ${userId}:`),
-            ),
-          ),
-        )
-      } catch (error) {
-        log.error({ err: error }, 'Failed to invalidate project-member caches after projectId change:')
-      }
-    }
+    // Everyone who sees this list — its members, and the members of its project
+    // before and after a move (board sub-task #3) — must stop reading a cached
+    // list set that predates the write (AWTD-1319).
+    await invalidateListAudience(audienceForList(existingList), [existingList.projectId, updateData.projectId])
 
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.LIST_EDITED, { listId: id })
 
@@ -308,7 +299,7 @@ export const PUT = withAuth<RouteContext>(
 
     return NextResponse.json(
       {
-        list: shapeV1List(list, defaultAssignees),
+        list: shapeV1List(list, defaultAssignees, await loadListBackendInfo([list])),
         meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
@@ -341,12 +332,14 @@ export const DELETE = withAuth<RouteContext>(
     // Capture who could see the list before the relations disappear. Wrapped
     // because tombstoning must never be the reason a delete fails.
     let listAudience: string[] = []
+    let projectMembers: string[] = []
     try {
       const listForAudience = await prisma.taskList.findUnique({
         where: { id },
-        select: { ownerId: true, listMembers: { select: { userId: true } } },
+        select: { ownerId: true, projectId: true, listMembers: { select: { userId: true } } },
       })
       if (listForAudience) listAudience = audienceForList(listForAudience)
+      projectMembers = await collectProjectMemberUserIds([listForAudience?.projectId])
     } catch { /* best effort */ }
 
     await deleteListWithImageRelease(
@@ -354,6 +347,7 @@ export const DELETE = withAuth<RouteContext>(
       client => client.taskList.delete({ where: { id } }),
     )
     await recordDeletion('list', id, listAudience)
+    await invalidateListAudience([...listAudience, ...projectMembers], [])
 
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.LIST_DELETED, { listId: id })
 
@@ -372,6 +366,21 @@ export const DELETE = withAuth<RouteContext>(
     )
   }
 )
+
+/**
+ * Clear every cached list set — legacy and v1 — for a list's audience plus the
+ * members of the given projects. GET /api/v1/lists caches for five minutes, so
+ * a write that skips this stays invisible to iOS/Android/Windows that long
+ * (AWTD-1319). Best effort: a Redis outage must not fail the write.
+ */
+async function invalidateListAudience(audience: string[], projectIds: Array<string | null | undefined>) {
+  try {
+    const userIds = new Set([...audience, ...(await collectProjectMemberUserIds(projectIds))])
+    await Promise.all(Array.from(userIds, userId => RedisCache.invalidate.userListsAllVersions(userId)))
+  } catch (error) {
+    log.error({ err: error }, 'Failed to invalidate list caches after a list write')
+  }
+}
 
 /**
  * A deleted list may mirror a Google tasklist that survives the delete — a

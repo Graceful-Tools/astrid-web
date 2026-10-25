@@ -43,7 +43,8 @@ Code Push → GitHub → GitHub Actions → Vercel CLI → Vercel Deployment
 
 1. **GitHub Actions Workflows** (`.github/workflows/`)
    - `production-deployment.yml` - Deploys to production
-   - `preview-deployment.yml` - Creates preview deployments for PRs (with custom `*.astrid.cc` aliases)
+   - `preview-deployment.yml` - Creates preview deployments for PRs (with custom `*.astrid.cc` aliases). Path-filtered to app code, so it does not run the unit suite
+   - `unit-tests.yml` - Typecheck, lint and the unit suite on every PR, with no path filter (AWTD-1216)
 
 2. **Vercel CLI** - Used by workflows to deploy via service token
 3. **Vercel Service Token** - Stored in GitHub secrets as `VERCEL_TOKEN`

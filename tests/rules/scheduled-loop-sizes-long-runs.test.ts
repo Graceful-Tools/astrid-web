@@ -84,7 +84,7 @@ describe('the scheduled loop sizes a LONG-RUN task (AWTD-1041)', () => {
   })
 
   it('passes the plan to /fixall, whose shared workflow must honour it', () => {
-    // .claude/commands/fixall.md sends every run to this file for the workflow.
+    // docs/FIXALL_WEB.md and every harness adapter send each run to this file for the workflow.
     const workflow = readFileSync(join(process.cwd(), 'docs/FIXALL_WORKFLOW.md'), 'utf8')
     expect(workflow).toMatch(/take that task first[\s\S]*ASTRID_FIXALL_NEXT_TASK|ASTRID_FIXALL_NEXT_TASK[\s\S]*take that task first/)
     expect(workflow).toMatch(/Never take a task listed in `ASTRID_FIXALL_DEFER_TASKS`/)

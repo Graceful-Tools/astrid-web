@@ -1,0 +1,75 @@
+# Recorded GitHub GraphQL responses
+
+Real responses from the **Graceful-Fools** test org's project "Graceful-Tools Test"
+(`PVT_kwDOFEb-HM4BmXS2`), recorded 2026-10-10 with the App's installation token for
+AWTD-1150 (P4b). The queries are `HYDRATE_ITEM_QUERY` and `PROJECT_ITEMS_PAGE_QUERY`
+from `lib/github/projects/hydrate.ts`. **Re-record them whenever that fragment changes**,
+since a recording is what proves the fragment is valid against GitHub's schema.
+
+| File | Query | What it shows |
+|---|---|---|
+| `project-items-page.json` | items page | Open issue in Todo, issue closed as not planned (Done), draft in progress. Includes the fieldless `ProjectV2ItemFieldRepositoryValue`. |
+| `hydrate-item-draft.json` | one item | The draft by item id |
+| `hydrate-item-missing.json` | one item | An unknown id returns `node: null` with a NOT_FOUND error beside partial data |
+| `org-projects.json` | org projects | The org's projects, for the bind wizard's list |
+| `project-schema.json` | project fields | Status, an option-less Priority, Size, Estimate, dates, and more |
+| `viewer-permissions.json` | viewer role | `viewerCanUpdate` / `viewerCanClose` (recorded as the App, so admin) |
+| `binding-graceful-fools.json` | none | The binding a bind wizard would store for that project's Status field |
+
+**2026-10-10, AWTD-1119.** The fragment grew `parent { id }` and
+`blockedBy(first: 20) { totalCount nodes { id } }` on issues. It was re-run against the
+project the same day: GitHub accepted it and answered `parent: null` and an empty `blockedBy`
+for both issues, and the page's `rateLimit.cost` went from 1 to 2. Only those two fields were
+added to `project-items-page.json`. The rest of the recording was kept because the live
+project had drifted by then (#1 sat in Done, reopened), and other tests pin the lanes as
+first recorded. No fixture issue has a parent or a blocker, so a non-empty answer is not yet
+recorded.
+
+**2026-10-10, AWTD-1188.** The fragment grew
+`labels(first: 20) { totalCount nodes { id name color } }` on issues and pull requests. It was
+re-run against the project the same day: GitHub accepted it (HTTP 200, no errors) and answered
+`labels: { totalCount: 0, nodes: [] }` for both issues and no `labels` key for the draft. The
+page's `rateLimit.cost` went from 2 to 3. Only that field was added to
+`project-items-page.json`, for the same reason as above. No fixture issue carries a label and
+the project holds no pull request, so a non-empty answer and a PR's labels are not yet
+recorded. The fixture issues were left unlabelled, since other tests read them as they are.
+
+**2026-10-10, AWTD-1190.** The fragment grew `assignees(first: 10) { nodes { id } }` on
+issues, pull requests and drafts. It was re-run against the project the same day with the
+App's installation token: GitHub accepted it (HTTP 200, no errors) and answered
+`assignees: { nodes: [] }` for both issues and for the draft. The page's `rateLimit.cost` went
+from 3 to 4. Only that field was added to `project-items-page.json`, for the same reason as
+above. Nobody is assigned to a fixture item and the project holds no pull request, so a
+non-empty answer and a PR's assignees are not yet recorded.
+
+**2026-10-11, AWTD-1189.** The fragment grew `milestone { id title dueOn }` on issues and
+pull requests. It was re-run against the project the same day with an installation token:
+GitHub accepted it (HTTP 200, no errors) and answered `milestone: null` for both issues and no
+`milestone` key for the draft. The page's `rateLimit.cost` stayed at 4 — a milestone is a plain
+field on the node rather than a connection, so it costs nothing extra. Only that field was
+added to `project-items-page.json`, for the same reason as above. No fixture issue carries a
+milestone and the project holds no pull request, so a non-empty answer and a PR's milestone are
+not yet recorded; `tests/lib/github-projects-milestones.test.ts` injects one instead.
+
+Worth knowing for the next re-record: `null` and *absent* mean different things here. A null
+milestone is GitHub saying the issue has none, which makes the task leave whichever milestone
+list it is on; an absent key is an item hydrated without the field, which must change nothing.
+`remoteMilestone` keeps them apart and the fixture now carries both cases.
+
+The items are `Graceful-Fools/wordlesolver#1` and `#2` and one draft, all titled
+"[Astrid sync fixture] …". Leave them there, because the P4f live smoke test reads them.
+
+**2026-10-20, AWTD-1283: NOT recorded.** These four files answer `REMOTE_COMMENT_QUERY` from
+`lib/github/projects/comments.ts`:
+
+- `issue-comment-person.json`
+- `issue-comment-app-bot.json`
+- `issue-comment-pull-request.json`
+- `issue-comment-missing.json`
+
+They were written by hand in GitHub's documented `IssueComment` shape. Recording them means
+posting comments in the test org, and the run that wrote them was unattended.
+`issue-comment-missing.json` copies the NOT_FOUND shape recorded in
+`hydrate-item-missing.json`. **Re-record them** the next time someone is working in the test
+org, against two comments on `wordlesolver#1`: one by a person, one by the App bot. Until
+then nothing here proves the query is valid against GitHub's schema.

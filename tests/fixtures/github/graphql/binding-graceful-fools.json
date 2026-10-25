@@ -1,0 +1,11 @@
+{
+  "statusFieldId": "PVTSSF_lADOFEb-HM4BmXS2zhlApMc",
+  "statusOptionMap": {
+    "f75ad846": "ready",
+    "47fc9ee4": "doing",
+    "98236657": "done"
+  },
+  "priorityFieldId": null,
+  "priorityOptionMap": null,
+  "dueFieldId": null
+}

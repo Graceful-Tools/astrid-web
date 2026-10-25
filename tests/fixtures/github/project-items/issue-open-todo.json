@@ -1,0 +1,27 @@
+{
+  "id": "PVTI_issue_open",
+  "isArchived": false,
+  "type": "ISSUE",
+  "updatedAt": "2026-10-10T09:00:00Z",
+  "content": {
+    "__typename": "Issue",
+    "id": "I_kwDOAcme001",
+    "number": 42,
+    "title": "Fix the login redirect",
+    "body": "Steps to reproduce:\n1. Sign in\n2. Watch it loop",
+    "url": "https://github.com/Graceful-Fools/wordlesolver/issues/42",
+    "state": "OPEN",
+    "stateReason": null,
+    "updatedAt": "2026-10-10T08:59:00Z",
+    "repository": { "nameWithOwner": "Graceful-Fools/wordlesolver" }
+  },
+  "fieldValues": {
+    "nodes": [
+      { "__typename": "ProjectV2ItemFieldTextValue", "text": "Fix the login redirect", "field": { "id": "PVTF_title" } },
+      { "__typename": "ProjectV2ItemFieldSingleSelectValue", "optionId": "opt_todo", "name": "Todo", "field": { "id": "PVTSSF_status" } },
+      { "__typename": "ProjectV2ItemFieldSingleSelectValue", "optionId": "opt_p1", "name": "P1", "field": { "id": "PVTSSF_priority" } },
+      { "__typename": "ProjectV2ItemFieldDateValue", "date": "2026-10-20", "field": { "id": "PVTF_due" } },
+      { "__typename": "ProjectV2ItemFieldIterationValue", "iterationId": "it_1", "title": "Sprint 1", "startDate": "2026-10-06", "duration": 14, "field": { "id": "PVTIF_sprint" } }
+    ]
+  }
+}

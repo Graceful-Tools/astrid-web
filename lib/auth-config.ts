@@ -2,14 +2,25 @@ import { BRAND } from '@/lib/brand/config'
 import { hasCapability, assertUsableAuthConfiguration } from '@/lib/brand/capabilities'
 import type { NextAuthOptions } from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
+import GithubProvider from "next-auth/providers/github"
+import AppleProvider from "next-auth/providers/apple"
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "./prisma"
+import type { Prisma } from "@prisma/client"
 import { getConsistentDefaultImage } from "./default-images"
 import { getDevBaseUrl, isLocalDevelopment } from "./port-detection"
 import { getBaseUrl } from "./base-url"
 import { isAstridSubdomainUrl, sameOrigin } from "./auth-host"
 import { createDefaultListsForUser } from "./default-lists"
 import { createLogger } from '@/lib/logger'
+import { isGoogleEmailVerified } from '@/lib/auth/google-identity'
+import { linkFederatedIdentity, type FederatedSignIn } from '@/lib/auth/federated-identity-linking'
+import { githubVerifiedPrimaryEmail } from '@/lib/auth/github-verified-email'
+import { connectGithubAppAtSignIn, type SignInAccount } from '@/lib/github/app-access'
+import { isEmailVerified as isAppleEmailVerified } from '@/lib/auth/apple-identity'
+import { appleClientSecret } from '@/lib/auth/apple-client-secret'
+import { hasAppleWebCredentials } from '@/lib/auth/provider-credentials'
+import { usesSecureAuthCookies } from '@/lib/auth/secure-cookies'
 
 const log = createLogger('auth-config')
 
@@ -45,6 +56,12 @@ if (process.env.NODE_ENV === "development") {
 
 // Note: Default list creation is now handled by shared utility in lib/default-lists.ts
 
+/** The `Account` columns an OAuth provider's token response may fill (AWTD-1300). */
+const ACCOUNT_COLUMNS = [
+  'userId', 'type', 'provider', 'providerAccountId', 'refresh_token', 'access_token',
+  'expires_at', 'token_type', 'scope', 'id_token', 'session_state',
+] as const
+
 // Custom adapter that handles account linking and credentials sessions
 const customAdapter = {
   ...PrismaAdapter(prisma),
@@ -69,10 +86,16 @@ const customAdapter = {
     if (process.env.NODE_ENV === "development") {
       log.info(user.email, "[Auth] Creating new user:")
     }
+    // Only the OAuth flow reaches this adapter (passkeys and the mobile routes
+    // create users themselves), and signIn has already refused any email the
+    // provider does not vouch for (linkFederatedIdentity). So the row starts
+    // verified — left null, the user's next sign-in would "adopt" their own
+    // account and revoke passkeys they had added in between (AWTD-1088).
     return await prisma.user.create({
       data: {
         ...user,
-        email: user.email.toLowerCase()
+        email: user.email.toLowerCase(),
+        emailVerified: user.emailVerified ?? new Date()
       }
     })
   },
@@ -96,23 +119,24 @@ const customAdapter = {
     })
     
     if (existingAccount) {
-      if (process.env.NODE_ENV === "development") {
-        log.info("[Auth] Account already exists, updating userId if needed")
-      }
-      // Update the userId in case it changed
+      // An identity belongs to exactly one user. This used to "update the
+      // userId in case it changed" — silently moving a Google (or any) login
+      // from one account to another (AWTD-1088).
       if (existingAccount.userId !== account.userId) {
-        await prisma.account.update({
-          where: { id: existingAccount.id },
-          data: { userId: account.userId }
-        })
+        log.warn({ provider: account.provider }, "[Auth] Refusing to move a provider identity to a different user")
+        throw new Error("This sign-in is already linked to another account")
       }
       return
     }
     
-    // Create new account link
-    await prisma.account.create({
-      data: account
-    })
+    // Create new account link — the schema's columns only. A GitHub App with
+    // expiring user tokens also returns `expires_in` and
+    // `refresh_token_expires_in`; passed through, Prisma rejects the unknown
+    // argument and every GitHub sign-in on that brand fails (AWTD-1300).
+    const data = Object.fromEntries(
+      ACCOUNT_COLUMNS.filter((column) => account[column] !== undefined).map((column) => [column, account[column]])
+    )
+    await prisma.account.create({ data: data as Prisma.AccountUncheckedCreateInput })
   },
   async createSession(session: any) {
     if (process.env.NODE_ENV === "development") {
@@ -145,6 +169,42 @@ function buildProviders() {
 
   const providers: NextAuthOptions["providers"] = []
 
+  if (hasCapability('authGithub')) {
+    // The brand's GitHub App's own OAuth client — one consent gives the session
+    // and, later, the user-to-server token (spec §7). Its Callback URL must
+    // include /api/auth/callback/github.
+    providers.push(GithubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    }))
+  }
+
+  if (hasCapability('authSso')) {
+    // Deployment-level OIDC SSO (spec §6.4 v1): one IdP from env. Identities
+    // are trusted only for AUTH_SSO_DOMAINS — see emailTrustFor. A missing issuer
+    // must not throw here: this module is imported by every authed route, and
+    // instrumentation.ts already fails the boot naming the missing variables.
+    providers.push({
+      id: 'sso',
+      name: process.env.AUTH_SSO_LABEL?.trim() || 'SSO',
+      type: 'oauth',
+      wellKnown: `${(process.env.AUTH_SSO_ISSUER ?? '').replace(/\/+$/, '')}/.well-known/openid-configuration`,
+      clientId: process.env.AUTH_SSO_CLIENT_ID!,
+      clientSecret: process.env.AUTH_SSO_CLIENT_SECRET!,
+      authorization: { params: { scope: 'openid email profile' } },
+      idToken: true,
+      checks: ['pkce', 'state'],
+      profile(claims: Record<string, string | undefined>) {
+        return {
+          id: claims.sub!,
+          email: claims.email ?? null,
+          name: claims.name ?? claims.preferred_username ?? claims.email ?? null,
+          image: claims.picture ?? null,
+        }
+      },
+    })
+  }
+
   if (hasCapability('authGoogle')) {
     providers.push(GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -160,7 +220,64 @@ function buildProviders() {
     }))
   }
 
+  // Apple is a legacy default-on provider, and its native sign-in (iOS/Mac) needs
+  // no server secret — so the switch alone must not put a web button on every
+  // deployment. The web provider exists only once its credentials do (AWTD-1110).
+  // Its Services ID's Return URL must be /api/auth/callback/apple.
+  if (hasCapability('authApple') && hasAppleWebCredentials()) {
+    // Minted at module load, so a bad key must cost the Apple button only — not
+    // every sign-in method on the page.
+    try {
+      providers.push(AppleProvider({
+        clientId: process.env.APPLE_SERVICES_ID!,
+        clientSecret: appleClientSecret({
+          teamId: process.env.APPLE_TEAM_ID!,
+          keyId: process.env.APPLE_KEY_ID!,
+          clientId: process.env.APPLE_SERVICES_ID!,
+          privateKey: process.env.APPLE_PRIVATE_KEY!,
+        }),
+      }))
+    } catch (error) {
+      log.error({ err: error }, 'APPLE_PRIVATE_KEY is not a usable .p8 PEM — web Apple sign-in disabled')
+    }
+  }
+
   return providers
+}
+
+/** Providers whose sign-in goes through linkFederatedIdentity. */
+const FEDERATED_PROVIDERS = new Set(['google', 'github', 'sso', 'apple'])
+
+/**
+ * How far a provider vouches for the email it handed over (spec §6.3).
+ * Google and Apple: their email_verified claim. GitHub: the primary address it reports as
+ * verified in /user/emails — the profile email can be unverified, and NextAuth's
+ * own fallback picks the primary without checking. SSO: domain-bound.
+ */
+async function emailTrustFor(
+  provider: string,
+  email: string,
+  account: { access_token?: string | null },
+  profile: unknown,
+): Promise<Pick<FederatedSignIn, 'emailTrust' | 'allowedDomains'>> {
+  if (provider === 'google') {
+    const claim = (profile as { email_verified?: string | boolean } | undefined)?.email_verified
+    return { emailTrust: isGoogleEmailVerified(claim) ? 'verified' : 'none' }
+  }
+  if (provider === 'github') {
+    const verified = account.access_token ? await githubVerifiedPrimaryEmail(account.access_token) : null
+    return { emailTrust: verified && verified.toLowerCase() === email.toLowerCase() ? 'verified' : 'none' }
+  }
+  if (provider === 'apple') {
+    // The id token's claim, as the native routes read it (lib/auth/apple-identity.ts).
+    const claim = (profile as { email_verified?: string | boolean } | undefined)?.email_verified
+    return { emailTrust: isAppleEmailVerified(claim) ? 'verified' : 'none' }
+  }
+  if (provider === 'sso') {
+    const allowedDomains = (process.env.AUTH_SSO_DOMAINS ?? '').split(',').map(d => d.trim().toLowerCase()).filter(Boolean)
+    return { emailTrust: 'domain-bound', allowedDomains }
+  }
+  return { emailTrust: 'none' }
 }
 
 const authConfig: NextAuthOptions = {
@@ -177,87 +294,30 @@ const authConfig: NextAuthOptions = {
         }, "[Auth] SignIn callback triggered:")
       }
       
-      // Handle Google OAuth sign-in/sign-up
-      if (account?.provider === "google" && user?.email) {
+      // Federated providers sign in only through the shared linking rule
+      // (lib/auth/federated-identity-linking.ts, spec §6.3): an identity
+      // already linked signs in; otherwise the email must be one the provider
+      // vouches for, and linking adopts the account first. Google used to have
+      // its own copy here, which linked on any email at all (AWTD-1088).
+      if (account && FEDERATED_PROVIDERS.has(account.provider)) {
+        if (!user?.email) return false
         try {
-          // Check if user already exists with this email
-          const existingUser = await prisma.user.findUnique({
-            where: { email: user.email.toLowerCase() },
-            include: { accounts: true }
+          return await linkFederatedIdentity({
+            provider: account.provider,
+            account: account as never,
+            email: user.email,
+            ...(await emailTrustFor(account.provider, user.email, account, profile)),
+            profile: {
+              name: profile?.name ?? user.name,
+              image: (profile as { picture?: string } | undefined)?.picture ?? user.image ?? null,
+            },
           })
-
-          if (existingUser) {
-            // Check if Google account is already linked
-            const existingGoogleAccount = existingUser.accounts.find(
-              acc => acc.provider === "google"
-            )
-
-            if (!existingGoogleAccount) {
-              if (process.env.NODE_ENV === "development") {
-                log.info({ email: existingUser.email }, "[Auth] Linking Google account to existing user")
-              }
-
-              // Link Google account to existing user
-              await prisma.account.create({
-                data: {
-                  userId: existingUser.id,
-                  type: account.type,
-                  provider: account.provider,
-                  providerAccountId: account.providerAccountId,
-                  refresh_token: account.refresh_token,
-                  access_token: account.access_token,
-                  expires_at: account.expires_at,
-                  token_type: account.token_type,
-                  scope: account.scope,
-                  id_token: account.id_token,
-                  session_state: account.session_state
-                }
-              })
-            }
-
-            // Always update user info with Google profile data on sign-in
-            // This ensures profile pictures are refreshed from Google
-            const googlePicture = (profile as any)?.picture
-            if (googlePicture || profile?.name) {
-              const updateData: { name?: string; image?: string; emailVerified?: Date } = {
-                emailVerified: new Date() // Mark email as verified since it's from Google
-              }
-
-              // Update name if provided and user doesn't have one
-              if (profile?.name && !existingUser.name) {
-                updateData.name = profile.name
-              }
-
-              // Always update image from Google (refresh it)
-              if (googlePicture) {
-                updateData.image = googlePicture
-                if (process.env.NODE_ENV === "development") {
-                  log.info({ pictureSnippet: googlePicture.substring(0, 50) + "..." }, "[Auth] Updating user image from Google")
-                }
-              }
-
-              await prisma.user.update({
-                where: { id: existingUser.id },
-                data: updateData
-              })
-            }
-
-            if (process.env.NODE_ENV === "development") {
-              log.info({ email: existingUser.email }, "[Auth] Google OAuth successful for existing user")
-            }
-          } else {
-            if (process.env.NODE_ENV === "development") {
-              log.info({ email: user.email }, "[Auth] Google OAuth sign up for new user")
-            }
-          }
-
-          return true
         } catch (error) {
-          log.error({ err: error }, "[Auth] Error during Google OAuth sign-in:")
+          log.error({ err: error, provider: account.provider }, "[Auth] Error during federated sign-in")
           return false
         }
       }
-      
+
       // Handle credentials sign-in
       if (account?.provider === "credentials") {
         if (process.env.NODE_ENV === "development") {
@@ -353,8 +413,17 @@ const authConfig: NextAuthOptions = {
     strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  // Set cookie domain to work across www and non-www in production
-  cookies: process.env.NODE_ENV === "production" ? {
+  // Set cookie domain to work across www and non-www in production.
+  //
+  // Gated on the scheme as well as the mode (AWTD-1248): `NODE_ENV` alone said
+  // `__Secure-` for a production build served over plain http, where the
+  // browser can never set such a cookie and `getToken()` reads the unprefixed
+  // name. `getServerSession` then found nothing and every route that calls
+  // `getUnifiedSession()` without a request answered 401 while the `withAuth`
+  // routes beside them authenticated. Leaving this undefined hands the
+  // decision to NextAuth's own defaults, which read the same scheme — so the
+  // two halves agree either way.
+  cookies: process.env.NODE_ENV === "production" && usesSecureAuthCookies() ? {
     sessionToken: {
       name: `__Secure-next-auth.session-token`,
       options: {
@@ -373,6 +442,17 @@ const authConfig: NextAuthOptions = {
         secure: true,
         domain: `.${BRAND.domain}`,
       },
+    },
+    // Apple returns with a cross-site form_post, on which a SameSite=Lax cookie is
+    // not sent — the callback would find no PKCE verifier or state and fail. None
+    // (Secure) lets them through; both are single-use and httpOnly (AWTD-1110).
+    pkceCodeVerifier: {
+      name: `__Secure-next-auth.pkce.code_verifier`,
+      options: { httpOnly: true, sameSite: "none", path: "/", secure: true, maxAge: 60 * 15 },
+    },
+    state: {
+      name: `__Secure-next-auth.state`,
+      options: { httpOnly: true, sameSite: "none", path: "/", secure: true, maxAge: 60 * 15 },
     },
     csrfToken: {
       name: `__Host-next-auth.csrf-token`,
@@ -395,6 +475,12 @@ const authConfig: NextAuthOptions = {
     async signIn(message) {
       if (process.env.NODE_ENV === "development") {
         log.info({ email: message.user.email, provider: message.account?.provider }, "[Auth] SignIn event")
+      }
+      // GitHub sign-in is the brand App's own OAuth client: the same consent
+      // gives the user-to-server token and the installations it can see
+      // (spec §7.2–§7.3, AWTD-1302). Best effort; it never fails the sign-in.
+      if (message.account?.provider === "github" && message.user.id) {
+        await connectGithubAppAtSignIn(message.user.id, message.account as SignInAccount)
       }
     },
     async signOut(message) {

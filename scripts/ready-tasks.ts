@@ -8,7 +8,7 @@
  * filters server-side, so the whole check is one call.
  *
  * Takes a board plus an explicit harness identity:
- * `ready-tasks.ts [web|ios|windows] --harness <selector>`. The board defaults to web;
+ * `ready-tasks.ts [web|ios|windows|android] --harness <selector>`. The board defaults to web;
  * the harness has no default because guessing could claim another agent's work.
  *
  * READY IS A FIELD ON THE TASK, not a list it is attached to. Status used to be
@@ -63,12 +63,8 @@ import { READY_STATUS_ROLE, WAITING_STATUS_ROLE, DOING_STATUS_ROLE } from "@/lib
 import { serializeReadyTaskQueue } from "./lib/ready-tasks-output"
 import { resolveAgentAuthorId } from "./lib/agent-author"
 import { SweepApi } from "./lib/sweep-api"
-
-const BOARD_LIST_NAMES = {
-  web: "Astrid Web To-do",
-  ios: "Astrid iOS To-do",
-  windows: "Astrid Windows To-do",
-} as const
+import { boardTasksUrl } from './lib/board-read-url'
+import { findBoardList } from './lib/board-by-name'
 
 /** One page is the whole point of this script; say so rather than truncate quietly. */
 const PAGE_LIMIT = 1000
@@ -93,7 +89,6 @@ function loadOptions() {
   }
 }
 const options = loadOptions()
-const BOARD_LIST_NAME = BOARD_LIST_NAMES[options.board]
 const report = options.format === 'json' ? console.error : console.log
 
 type QueueTask = AssignableTask & StatusRoleTask & SchedulableTask & {
@@ -135,16 +130,14 @@ async function main() {
   // reads exactly like "nothing to do".
   const listsResponse = await fetch("https://astrid.cc/api/v1/lists", { headers: auth })
   const listsBody = await listsResponse.json()
-  const lists = listsBody.lists ?? listsBody
-  const board = (Array.isArray(lists) ? lists : []).find(
-    (list: { name?: string }) => list.name === BOARD_LIST_NAME,
-  )
-
   // Fail loudly on a missing board instead of degrading to an empty queue —
   // skipping the filter would silently widen the loop to every board on the
   // account, and returning nothing would look like an idle day.
-  if (!board) {
-    console.error(`❌ No list named "${BOARD_LIST_NAME}" found — refusing to run unscoped.`)
+  let board: { id: string }
+  try {
+    board = findBoardList(listsBody, options.board)
+  } catch (error) {
+    console.error(`❌ ${error instanceof Error ? error.message : error}`)
     process.exit(1)
   }
 
@@ -153,8 +146,12 @@ async function main() {
   // Ready AND Waiting both matter now: the sweep below keeps the two lanes
   // honest (dated work parks in Waiting; met conditions promote back), so the
   // one board read fetches every open task and filters locally.
+  //
+  // It also leaves the descriptions on the server (AWTD-1237): this sweep reads
+  // id, title, priority, statusRole, dueDateTime and completed, and nothing
+  // else. The conditions it looks for live in COMMENTS, not descriptions.
   const tasksResponse = await fetch(
-    `https://astrid.cc/api/v1/tasks?listId=${board.id}&completed=false&leanListMembers=1&limit=${PAGE_LIMIT}`,
+    boardTasksUrl({ boardId: board.id, limit: PAGE_LIMIT }),
     { headers: auth },
   )
   const tasksBody = await tasksResponse.json()
@@ -218,6 +215,7 @@ async function main() {
   const recheck: Array<{ task: QueueTask; condition: string; commentWatermark: string | null }> = []
   const review: Array<{ task: QueueTask; commentWatermark: string | null }> = []
   const blocked: Array<{ task: QueueTask; on: string[] }> = []
+  const deploying: Array<{ task: QueueTask; sha: string }> = []
 
   for (const task of waiting.filter(t => isClaimableByAgent(t, options.harness))) {
     const comments = await api.comments(task)
@@ -234,6 +232,7 @@ async function main() {
       now,
       blockedBy,
       blockedOn: conditions.blockedOn,
+      awaitingDeploy: conditions.awaitingDeploy,
     })
 
     if (disposition === 'check-blockers') {
@@ -248,11 +247,15 @@ async function main() {
         now,
         blockedBy: [],
         blockedOn: conditions.blockedOn,
+        awaitingDeploy: conditions.awaitingDeploy,
       })
       if (disposition === 'review') disposition = 'promote'
     }
 
-    if (disposition === 'hold') {
+    if (disposition === 'awaiting-deploy') {
+      // The runner completes it once production serves the commit (AWTD-1278).
+      deploying.push({ task, sha: conditions.awaitingDeploy ?? '' })
+    } else if (disposition === 'hold') {
       held.push({ task, when: describeSchedule(task, now) })
     } else if (disposition === 'recheck') {
       recheck.push({ task, condition: conditions.blockedOn ?? '(no condition recorded)', commentWatermark })
@@ -311,6 +314,13 @@ async function main() {
     console.log(`(${blocked.length} Waiting task(s) still blocked by open tasks:)`)
     for (const { task, on } of blocked) {
       console.log(`  — ${task.title}  [blocked by ${on.join(', ')}]`)
+    }
+  }
+
+  if (deploying.length > 0) {
+    console.log(`(${deploying.length} Waiting task(s) finished and awaiting their deploy — the runner completes them:)`)
+    for (const { task, sha } of deploying) {
+      console.log(`  — ${task.title}  [production must serve ${sha.slice(0, 8)}]`)
     }
   }
 

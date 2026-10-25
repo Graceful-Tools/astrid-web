@@ -173,6 +173,19 @@ describe('POST /api/v1/auth/desktop/exchange', () => {
     expect(await badCode.json()).toEqual(await badVerifier.json())
   })
 
+  it('redeems a code for the iOS and Mac apps, with the same response shape (AWTD-1105)', async () => {
+    for (const client of ['ios', 'mac']) {
+      const res = await exchange(post(url, exchangeBody({ client })))
+      expect(res.status).toBe(200)
+      expect(Object.keys(await res.json())).toEqual(
+        expect.arrayContaining(['sessionToken', 'expiresAt', 'sessionCookieName', 'user']),
+      )
+      expect(redeemDesktopGrant).toHaveBeenLastCalledWith(
+        expect.objectContaining({ client: expect.objectContaining({ id: client }) }),
+      )
+    }
+  })
+
   it('refuses an unknown client, a missing code and a missing verifier', async () => {
     for (const bad of [{ client: 'toaster' }, { code: undefined }, { codeVerifier: undefined }]) {
       const res = await exchange(post(url, exchangeBody(bad)))

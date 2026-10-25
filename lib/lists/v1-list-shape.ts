@@ -21,12 +21,14 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { broadcastToUsers } from '@/lib/sse-utils'
+import type { SseEventType } from '@/lib/sse-event-types'
 import { createLogger } from '@/lib/logger'
 import type { V1List, V1UserSummary } from '@/lib/api-contracts/v1-ios-shapes'
 import { resolveDefaultAssignees, pickDefaultAssignee } from '@/lib/default-assignee'
 import { hasListAccess } from '@/lib/list-member-utils'
 import { DEFAULT_LIST_SHOW_SUBTASKS } from '@/lib/list-subtask-visibility'
 import { serializeListAgentFields } from '@/lib/resolve-default-agent'
+import { listBackendFields, loadListBackendInfo, type ListBackendInfo } from '@/lib/backends/list-wire'
 import { overlayListViewPreferences, type ListViewPreferences } from '@/lib/list-view-preferences'
 
 const log = createLogger('lists.v1-list-shape')
@@ -48,13 +50,19 @@ export const V1_LIST_READ_INCLUDE = {
 export type V1ListRow = Prisma.TaskListGetPayload<{ include: typeof V1_LIST_READ_INCLUDE }> & {
   isFavorite?: boolean
   favoriteOrder?: number | null
+  /** Overlaid from the caller's UserListViewPreference; TaskList has no such column. */
+  filterProjectField?: string | null
 }
 
 /**
  * Shape a row for the wire. The row must already carry the viewer's favorite
  * and view preferences; `defaultAssignees` is from resolveDefaultAssignees.
  */
-export function shapeV1List(list: V1ListRow, defaultAssignees: Map<string, unknown>): V1List {
+export function shapeV1List(
+  list: V1ListRow,
+  defaultAssignees: Map<string, unknown>,
+  backendInfo: ReadonlyMap<string, ListBackendInfo> = new Map(),
+): V1List {
   return {
     id: list.id,
     name: list.name,
@@ -79,6 +87,9 @@ export function shapeV1List(list: V1ListRow, defaultAssignees: Map<string, unkno
     filterRepeating: list.filterRepeating,
     filterAssignedBy: list.filterAssignedBy,
     filterInLists: list.filterInLists,
+    // Per-user only (AWTD-1259): the overlay is the sole source, so a caller
+    // with no preference row reads null rather than a missing key.
+    filterProjectField: list.filterProjectField ?? null,
     defaultPriority: list.defaultPriority,
     defaultRepeating: list.defaultRepeating,
     ownerId: list.ownerId,
@@ -98,6 +109,7 @@ export function shapeV1List(list: V1ListRow, defaultAssignees: Map<string, unkno
     listType: (list.listType ?? 'regular') as V1List['listType'],
     recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
     showSubtasks: list.showSubtasks ?? DEFAULT_LIST_SHOW_SUBTASKS,
+    ...listBackendFields(list, backendInfo),
     createdAt: list.createdAt,
     updatedAt: list.updatedAt,
   }
@@ -126,7 +138,7 @@ export async function loadV1ListsForViewers(
     const viewers = [...new Set(userIds)].filter(id => canView(list, id))
     if (viewers.length === 0) return result
 
-    const [favorites, preferences, defaultAssignees] = await Promise.all([
+    const [favorites, preferences, defaultAssignees, backendInfo] = await Promise.all([
       prisma.userListFavorite?.findMany({
         where: { listId, userId: { in: viewers } },
         select: { userId: true, favoriteOrder: true },
@@ -135,6 +147,7 @@ export async function loadV1ListsForViewers(
         where: { listId, userId: { in: viewers } },
       }) ?? [],
       resolveDefaultAssignees([list]),
+      loadListBackendInfo([list]),
     ])
     const favoriteOrderByUser = new Map((favorites ?? []).map(f => [f.userId, f.favoriteOrder]))
     const preferencesByUser = new Map((preferences ?? []).map(p => [p.userId, p as ListViewPreferences]))
@@ -144,7 +157,7 @@ export async function loadV1ListsForViewers(
       row.isFavorite = favoriteOrderByUser.has(userId)
       row.favoriteOrder = favoriteOrderByUser.get(userId) ?? null
       overlayListViewPreferences(row, preferencesByUser.get(userId))
-      result.set(userId, shapeV1List(row, defaultAssignees))
+      result.set(userId, shapeV1List(row, defaultAssignees, backendInfo))
     }
   } catch (err) {
     log.error({ err, listId }, 'Failed to load the v1 list for a list event')
@@ -163,7 +176,7 @@ export async function loadV1ListsForViewers(
 export async function broadcastListEvent(args: {
   listId: string
   recipients: string[]
-  type: string
+  type: SseEventType
   data: Record<string, unknown>
   timestamp?: string
 }): Promise<void> {

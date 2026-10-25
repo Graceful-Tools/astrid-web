@@ -188,11 +188,12 @@ describe('ensureProjectKey / allocateTaskIdentifier across owners (AWTD-1016)', 
         findFirst: async ({ where }: { where: { id: { in: string[] } } }) =>
           lists.find(list => where.id.in.includes(list.id)) ?? null,
       },
-      // allocateSequence's UPDATE ... RETURNING, for the one project the list names.
+      // allocateSequenceRange's UPDATE ... RETURNING — values are [count, projectId, count].
       $queryRaw: async (query: { values: unknown[] }) => {
-        const project = projects.find(candidate => candidate.id === query.values[0])!
-        project.nextSequence += 1
-        return [{ nextSequence: project.nextSequence - 1, key: project.key }]
+        const [count, projectId] = query.values as [number, string]
+        const project = projects.find(candidate => candidate.id === projectId)!
+        project.nextSequence += count
+        return [{ nextSequence: project.nextSequence - count, key: project.key }]
       },
     }
   }

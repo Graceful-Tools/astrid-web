@@ -22,6 +22,7 @@ const {
   buildDesktopCallbackUrl,
   grantExpiry,
   isGrantRedeemable,
+  desktopSignInProvider,
 } = await import('@/lib/auth/desktop-handoff')
 
 /** A syntactically valid S256 challenge: sha256 → base64url is always 43 chars. */
@@ -53,6 +54,61 @@ describe('desktop client registry', () => {
     const client = desktopClientFor('windows')!
     expect(client.redirectUri.endsWith('://auth/callback')).toBe(true)
     expect(client.redirectUri.startsWith('http')).toBe(false)
+  })
+
+  // AWTD-1105: the iOS and Mac apps use the same hand-off for GitHub and SSO.
+  it('knows the iOS and Mac apps, on the same fixed callback as Windows (AWTD-1105)', () => {
+    const windows = desktopClientFor('windows')!
+    for (const id of ['ios', 'mac'] as const) {
+      const client = desktopClientFor(id)
+      expect(client?.id).toBe(id)
+      expect(client?.redirectUri).toBe(windows.redirectUri)
+    }
+    expect(desktopClientFor('ios')?.name).toMatch(/ for iOS$/)
+    expect(desktopClientFor('mac')?.name).toMatch(/ for Mac$/)
+  })
+
+  it('knows the Android app, on the same fixed callback (AATD-2)', () => {
+    const android = desktopClientFor('android')
+    expect(android?.id).toBe('android')
+    expect(android?.redirectUri).toBe(desktopClientFor('windows')!.redirectUri)
+    expect(android?.name).toMatch(/ for Android$/)
+    const result = validateGrantRequest(grantInput({ client: 'android' }))
+    expect(result.ok && result.value.client.id).toBe('android')
+  })
+
+  it('validates a grant request from the iOS app (AWTD-1105)', () => {
+    const result = validateGrantRequest(grantInput({ client: 'ios' }))
+    expect(result.ok && result.value.client.id).toBe('ios')
+  })
+})
+
+describe('provider hint on /auth/desktop (AWTD-1105)', () => {
+  const OFFERED = ['github', 'google', 'apple', 'passkey', 'sso'] as const
+
+  it('starts an offered redirect provider directly', () => {
+    expect(desktopSignInProvider('github', OFFERED)).toBe('github')
+    expect(desktopSignInProvider('sso', OFFERED)).toBe('sso')
+    expect(desktopSignInProvider('google', OFFERED)).toBe('google')
+  })
+
+  it('ignores a provider this deployment does not offer', () => {
+    expect(desktopSignInProvider('github', ['google', 'apple', 'passkey'])).toBeNull()
+  })
+
+  it('ignores an absent, unknown or malformed provider', () => {
+    expect(desktopSignInProvider(undefined, OFFERED)).toBeNull()
+    expect(desktopSignInProvider('', OFFERED)).toBeNull()
+    expect(desktopSignInProvider('facebook', OFFERED)).toBeNull()
+    expect(desktopSignInProvider(['github'], OFFERED)).toBeNull()
+  })
+
+  it('leaves passkey to the sign-in page, which needs a click to start it', () => {
+    expect(desktopSignInProvider('passkey', OFFERED)).toBeNull()
+  })
+
+  it('leaves Apple to the sign-in page, since the web has no Apple redirect provider', () => {
+    expect(desktopSignInProvider('apple', OFFERED)).toBeNull()
   })
 })
 
@@ -95,7 +151,7 @@ describe('grant request validation', () => {
   })
 
   it('refuses an unknown client', () => {
-    expect(validateGrantRequest(grantInput({ client: 'android' })).ok).toBe(false)
+    expect(validateGrantRequest(grantInput({ client: 'linux' })).ok).toBe(false)
   })
 
   it('ignores a redirect URI supplied by the caller', () => {

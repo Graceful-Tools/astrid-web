@@ -224,8 +224,14 @@ describe('useKeyboardShortcuts', () => {
       // Mock activeElement
       Object.defineProperty(document, 'activeElement', {
         writable: true,
+        configurable: true,
         value: null
       })
+    })
+
+    afterEach(() => {
+      // Drop the own-property override so later suites see the real focused element.
+      delete (document as { activeElement?: Element | null }).activeElement
     })
 
     it('should not execute shortcuts when input is focused', () => {
@@ -248,7 +254,8 @@ describe('useKeyboardShortcuts', () => {
       const mockInput = { tagName: 'INPUT' }
       Object.defineProperty(document, 'activeElement', {
         value: mockInput,
-        writable: true
+        writable: true,
+        configurable: true
       })
 
       renderHook(() => useKeyboardShortcuts({
@@ -269,7 +276,8 @@ describe('useKeyboardShortcuts', () => {
       const mockTextarea = { tagName: 'TEXTAREA' }
       Object.defineProperty(document, 'activeElement', {
         value: mockTextarea,
-        writable: true
+        writable: true,
+        configurable: true
       })
 
       renderHook(() => useKeyboardShortcuts({
@@ -288,22 +296,82 @@ describe('useKeyboardShortcuts', () => {
   })
 
   describe('Modifier Key Prevention', () => {
-    // TODO: Re-add these tests when we get user reports about modifier key issues
-    // Temporarily removed due to event simulation issues in test environment
+    const press = (key: string, options: KeyboardEventInit = {}) => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...options }))
+    }
 
-    it('placeholder test - modifier key prevention works in production', () => {
-      // This is a placeholder to keep the test suite structure
-      // The actual modifier key prevention is tested manually and works in production
-      expect(true).toBe(true)
+    beforeEach(() => {
+      renderHook(() => useKeyboardShortcuts({
+        handlers: mockHandlers,
+        selectedTask: buildTask({ id: 'task-1', title: 'Test Task' }),
+        isEnabled: true,
+        isInputFocused: false
+      }))
     })
 
-    // it('should ignore shortcuts with Ctrl modifier (except arrows)', () => {
-    //   ...
-    // })
+    it.each([
+      ['Ctrl', { ctrlKey: true }],
+      ['Cmd', { metaKey: true }],
+      ['Shift', { shiftKey: true }],
+    ])('ignores letter shortcuts held with %s (browser/OS combos pass through)', (_name, modifier) => {
+      press('n', modifier)
+      press('x', modifier)
+      press('d', modifier)
 
-    // it('should ignore shortcuts with Shift modifier (except arrows)', () => {
-    //   ...
-    // })
+      expect(mockHandlers.onNewTask).not.toHaveBeenCalled()
+      expect(mockHandlers.onCompleteTask).not.toHaveBeenCalled()
+      expect(mockHandlers.onJumpToDate).not.toHaveBeenCalled()
+    })
+
+    it('still fires the same letters without a modifier', () => {
+      press('n')
+      expect(mockHandlers.onNewTask).toHaveBeenCalledTimes(1)
+    })
+
+    it('lets arrow keys through with a modifier held', () => {
+      press('ArrowRight', { shiftKey: true })
+      press('ArrowLeft', { ctrlKey: true })
+
+      expect(mockHandlers.onMakeDueDateLater).toHaveBeenCalledTimes(1)
+      expect(mockHandlers.onMakeDueDateEarlier).toHaveBeenCalledTimes(1)
+    })
+
+    // AWTD-1349: "?" is Shift+/ on a US layout, so a real browser always sends it with
+    // shiftKey set. Dropping every shifted key made the hotkey menu unreachable.
+    it('AWTD-1349: opens the hotkey menu for "?" typed with Shift, as a real browser sends it', () => {
+      press('?', { shiftKey: true })
+
+      expect(mockHandlers.onShowHotkeyMenu).toHaveBeenCalledTimes(1)
+    })
+
+    it('AWTD-1349: still ignores a shifted letter as a real browser sends it ("N", not "n")', () => {
+      press('N', { shiftKey: true })
+      press('X', { shiftKey: true })
+
+      expect(mockHandlers.onNewTask).not.toHaveBeenCalled()
+      expect(mockHandlers.onCompleteTask).not.toHaveBeenCalled()
+    })
+
+    it('AWTD-1349: still ignores Shift+Delete / Shift+Backspace', () => {
+      press('Delete', { shiftKey: true })
+      press('Backspace', { shiftKey: true })
+
+      expect(mockHandlers.onDeleteTask).not.toHaveBeenCalled()
+    })
+
+    it('AWTD-1349: still ignores "?" when Ctrl/Cmd is held too', () => {
+      press('?', { shiftKey: true, ctrlKey: true })
+      press('?', { shiftKey: true, metaKey: true })
+
+      expect(mockHandlers.onShowHotkeyMenu).not.toHaveBeenCalled()
+    })
+
+    it('treats Cmd/Ctrl+K as the command palette, not "select previous task"', () => {
+      press('k', { metaKey: true })
+
+      expect(mockHandlers.onShowCommandPalette).toHaveBeenCalledTimes(1)
+      expect(mockHandlers.onSelectPreviousTask).not.toHaveBeenCalled()
+    })
   })
 
   describe('Return Values', () => {

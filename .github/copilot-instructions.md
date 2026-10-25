@@ -5,7 +5,12 @@ Before changing code, read [ASTRID.md](../ASTRID.md).
 - For local CLI, deployment, quality-gate, and OAuth operations, read
   [docs/CLI_OPERATIONS.md](../docs/CLI_OPERATIONS.md).
 - For `/fixall`, queue, or Astrid task automation, read
-  [docs/FIXALL_WORKFLOW.md](../docs/FIXALL_WORKFLOW.md).
+  [docs/FIXALL_WORKFLOW.md](../docs/FIXALL_WORKFLOW.md), then
+  [docs/FIXALL_WEB.md](../docs/FIXALL_WEB.md). Your mailbox is `copilot`.
+- For which machine and harness runs what, and where secrets live, read
+  [docs/AGENT_FLEET.md](../docs/AGENT_FLEET.md). You run with
+  `ASTRID_FIXALL_EPHEMERAL=1` semantics: no lock, no production access, and you
+  stop at the PR.
 
 These files are canonical. Do not copy their contents into this file or an
 agent-specific adapter. Verify executable behavior against `package.json`

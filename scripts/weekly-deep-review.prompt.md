@@ -1,4 +1,4 @@
-# Weekly deep review — Astrid, both repos
+# Weekly deep review — Astrid, across repos
 
 You are running **unattended**. Nobody will answer a question, so never stop to ask one:
 make the call, state the assumption in your summary, and keep going.
@@ -6,6 +6,10 @@ make the call, state the assumption in your summary, and keep going.
 This review spans **both** repos in one run: `astrid-ios` (Swift, iOS + Mac) and
 `astrid-web` (Next.js/TypeScript), checked out as siblings. It is driven by a repeating
 Astrid task; see `astrid-web/docs/WEEKLY_DEEP_REVIEW.md` for how it is triggered.
+
+Three more repos sit beside them and the contract lens (3) reads them too: `astrid-core`
+(the shared Rust rules, checked against web's fixtures) and the shells that pin it by
+revision, `astrid-windows` and `astrid-android` (ASTRID.md → *Project Overview*).
 
 Read `CLAUDE.md` and `ASTRID.md` in whichever repo you start from before anything else.
 `ASTRID.md` is the architecture source of truth and supplies two of the lenses below.
@@ -125,9 +129,11 @@ grep -rn 'path: "/api/' --include="*.swift" "Astrid App" "Astrid Mac" "Astrid" \
 #   /api/mcp/* is excluded deliberately: the MCP server genuinely lives outside /api/v1.
 #   The dead paths rule 6 is about are /api/user/* and /api/chat/*.
 
-grep -rln "APIEndpoint" "Astrid App" --include="*.swift" | wc -l            # rule 9 — baseline 3, cap 5 (task 2023c90f)
+grep -rn "APIEndpoint" "Astrid App" --include="*.swift" | grep -vE '^[^:]*:[0-9]+:\s*//' | wc -l
+#   rule 9 — baseline 0 (2026-10-22). The legacy client is gone (AITD-504); the files that
+#   still say "APIEndpoint" say it in comments, which a file count used to report as 5.
 npm run check:localizations
-npm run check:brands
+npm run check:brand      # NOT check:brands — that one is an xcodebuild matrix
 npm run audit:dependencies
 ```
 
@@ -180,21 +186,22 @@ reader notices that no linter flags.
    (rule 9). Web: `check:api-boundaries`, permission checks inlined instead of
    `lib/list-permissions.ts`. Report god-file line counts **as a delta against last week**;
    growing is a finding, standing large is not.
-3. **Cross-platform contract drift** — walk all six rows of `ASTRID.md` §8, reading the web
-   canonical and the iOS mirror in the same pass. This is the entire reason the run spans both
-   repos. For each row say whether they still agree and whether the named test exists and
-   references both sides. Row 3 (list role/permissions, `lib/list-permissions.ts` ↔
-   `TaskList.role(for:)`) has **no test** — that is known, do not re-file it, but *do* check
-   whether iOS has started branching on the legacy `admins[]`/`members[]` arrays again, which
-   is the regression that row exists to catch.
+3. **Cross-platform contract drift** — walk every row of `ASTRID.md` §8 (one per fixture in
+   `EXPORTS`), reading the web canonical and what consumes it — astrid-core, and the shells
+   that pin it — in the same pass. This is the entire reason the run spans repos. For each row
+   say whether they still agree and whether the named test exists and references both sides.
+   For the permissions row, also check whether iOS has started branching on the legacy
+   `admins[]`/`members[]` arrays again (`ListPermissionsContractTests.swift` covers the rule
+   itself).
 4. **Caching and cache hit rate** — see "The cache hit rate" below.
 5. **Production traffic** — the measured numbers from Step 2 against
    `docs/PERFORMANCE_BUDGETS.md`. Which legacy routes still carry traffic. Week-over-week
    movement in DAU and error-event counters. Numbers only, per the anti-fabrication rule.
 6. **Performance (static)** — Web: N+1 Prisma queries, missing indexes, unbounded `findMany`,
    oversized client bundles. iOS: main-thread work in `TaskService`/`SyncManager`, `@Published`
-   fan-out on the 1600-line views, filtering in `TaskListView.applyDateFilter`, Core Data
-   fetches without batch limits.
+   fan-out on the 1600-line views. (Filtering and sync now live in astrid-core:
+   `SyncManager` delegates to it and Core Data holds only reminder mappings, chat and the
+   upgrade path, so look for cost in the core's sync cache rather than in Core Data.)
 7. **Hygiene** — dead code and unreferenced scripts, stale feature flags, TODO rot, files that
    outgrew their home, drift between `CLAUDE.md` / `AGENTS.md` / `ASTRID.md`. Duplication: the
    same logic in two places, permission checks inlined, user-facing copy hardcoded instead of
@@ -216,7 +223,7 @@ SLOT=$(( $(date +%V | sed 's/^0//') % 6 ))   # ISO week, six-week cycle
 | Slot | Extra-depth area |
 |---|---|
 | 0 | Caching and invalidation — every `RedisCache.getOrSet` key and TTL vs its `delPattern`; the twelve iOS caches in `docs/LOCAL_FIRST_PATTERN.md` |
-| 1 | Data and query paths — Prisma N+1 and indexes; Core Data batch limits, `SyncManager` full-pull cost |
+| 1 | Data and query paths — Prisma N+1 and indexes; astrid-core sync-cache pull cost |
 | 2 | Auth, permissions and API surface — `lib/list-permissions.ts` bypasses, route authz, `TaskList.role(for:)` call sites |
 | 3 | The god files — a named extraction with a test, not "split this file" |
 | 4 | Sync, Outbox and offline — the 8 Outbox kinds; Lists/ListMembers/chat-deletes that sit *outside* it; `GoogleTasksSyncService` coverage |
@@ -240,8 +247,8 @@ still says what the finding claims, and confirm it is not a deliberate past deci
 - `/api/v1/*` and `/api/*` are **not** duplicates — iOS uses both.
 - `main` ahead of production is expected.
 - The six iOS 1000+ line god files are known. File only on **growth**.
-- The five legacy `APIClient` call sites are task `2023c90f`. File only if the count **goes up**.
-- `ASTRID.md` §8 row 3 having no test is known.
+- The legacy `APIClient`/`APIEndpoint` is gone from iOS (AITD-504). Any non-comment use of
+  either name is a regression — file it.
 - `ImageCache.clearMemoryCache()` being dead code and the missing task-side `SyncOrphanPrune`
   are documented in `docs/LOCAL_FIRST_PATTERN.md`. File the *fix*, once, or not at all.
 

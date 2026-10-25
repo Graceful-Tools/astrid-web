@@ -7,7 +7,11 @@
     "publicSharedLists": "Openbare Gedeelde Lijsten",
     "publicLists": "Openbare Lijsten",
     "seeAllCollaborative": "Bekijk alle samenwerkingslijsten →",
-    "seeAllSuggested": "Bekijk alle aanbevolen lijsten →"
+    "seeAllSuggested": "Bekijk alle aanbevolen lijsten →",
+    "hideSidebar": "Zijbalk verbergen",
+    "showSidebar": "Zijbalk tonen",
+    "hideMessages": "Berichten verbergen",
+    "showMessages": "Berichten tonen"
   },
   "userMenu": {
     "settings": "Instellingen",
@@ -93,16 +97,12 @@
       "description": "Beschrijving toevoegen...",
       "comment": "Schrijf een opmerking..."
     },
-    "addTaskPlaceholder": "Taak toevoegen",
-    "addTaskToList": "Taak toevoegen aan {listName}...",
-    "addTaskToCurrentList": "Taak toevoegen aan huidige lijst...",
-    "addTaskShort": "Taak toevoegen...",
+    "addTaskPlaceholder": "Taak toevoegen...",
     "quickAdd": "Snel toevoegen...",
-    "addNewTask": "Nieuwe taak toevoegen...",
-    "wontDo": "Won't do",
-    "reopen": "Reopen",
+    "wontDo": "Doen we niet",
+    "reopen": "Heropenen",
     "status": "Status",
-    "wontDoChip": "Won't do",
+    "wontDoChip": "Doen we niet",
     "when": "Wanneer",
     "createdBy": "Gemaakt door",
     "confirmCompleteTitle": "Deze taak voltooien?",
@@ -122,6 +122,25 @@
       "label": "Taak-ID",
       "copy": "Taak-ID kopiëren",
       "copied": "{id} gekopieerd"
+    },
+    "occurrence": {
+      "label": "Herhaling",
+      "previous": "Vorige herhaling",
+      "next": "Volgende herhaling"
+    },
+    "subtaskSection": {
+      "count": "{done}/{total}",
+      "add": "Subtaak toevoegen",
+      "addPlaceholder": "Subtaak toevoegen…"
+    },
+    "projectFields": {
+      "clear": "Geen",
+      "empty": "Niet ingesteld",
+      "errorAuthRequired": "Koppel je GitHub-account om dit veld te wijzigen.",
+      "errorSsoRequired": "Je organisatie vereist eenmalige aanmelding voor dit project. Meld je aan bij GitHub en probeer het opnieuw.",
+      "errorSaveFailed": "Die wijziging kon niet in GitHub worden opgeslagen. Probeer het opnieuw.",
+      "filterLabel": "Projectveld",
+      "filterAll": "Alle taken"
     }
   },
   "lists": {
@@ -194,7 +213,8 @@
     "weekly": "Wekelijks",
     "monthly": "Maandelijks",
     "yearly": "Jaarlijks",
-    "custom": "Aangepast"
+    "custom": "Aangepast",
+    "pickAtLeastOneDay": "Kies minstens één dag"
   },
   "weekdays": {
     "sunday": "Zondag",
@@ -419,7 +439,8 @@
   "search": {
     "placeholder": "Zoek taken en gebruikers",
     "noResults": "Geen resultaten gevonden",
-    "searching": "Zoeken..."
+    "searching": "Zoeken...",
+    "open": "Zoeken"
   },
   "listHeaders": {
     "myTasks": "Mijn Taken",
@@ -473,6 +494,11 @@
         "sdkNeedsBoth": "Je server heeft beide nodig: deze inloggegevens om de API aan te roepen en het webhook-secret hieronder om leveringen te verifiëren.",
         "manage": "Beheren in Verbindingen",
         "error": "Inloggegevens konden niet worden aangemaakt"
+      },
+      "githubConnection": {
+        "title": "GitHub-verbinding",
+        "description": "Codeeragents die op de server draaien, gebruiken de GitHub-verbinding onder Instellingen → Verbindingen, waar elke verbonden organisatie staat.",
+        "open": "Verbindingen openen"
       }
     },
     "apiAccess": {
@@ -754,6 +780,12 @@
         "listDesc": "Het selectievakje voltooit de taak, en prioriteit en toegewezen persoon krijgen elk een eigen rij.",
         "projectDesc": "Compact. Tikken op het selectievakje opent prioriteit, toegewezen persoon, status en voltooien."
       },
+      "listImages": {
+        "title": "Lijstafbeeldingen",
+        "description": "Toon een afbeelding naast elke lijst in de zijbalk en de lijstkop (gesynchroniseerd tussen apparaten)",
+        "label": "Lijstafbeeldingen tonen",
+        "offDesc": "Uit: elke lijst toont in plaats daarvan zijn kleur."
+      },
       "emailToTask": {
         "title": "E-mail naar Taak",
         "description": "Maak direct taken door e-mails te sturen naar {inboundTaskEmail}",
@@ -954,6 +986,40 @@
         "title": "Ontwikkelaar",
         "description": "Maak OAuth-apps handmatig, test de API en verbind assistenten die OpenAPI spreken.",
         "openTester": "API-tester openen"
+      },
+      "github": {
+        "title": "GitHub",
+        "description": "Verbindt {appName} met je GitHub-accounts en -organisaties. Codeeragents die op de server draaien, maken via deze verbinding branches en pull requests aan.",
+        "descriptionProjects": "Koppelt {appName} aan je GitHub-organisaties, zodat hun projecten hier borden kunnen zijn.",
+        "empty": "Nog niet verbonden met GitHub.",
+        "connect": "GitHub verbinden",
+        "installAnother": "Nog een organisatie toevoegen",
+        "refresh": "Repositories vernieuwen",
+        "refreshed": "Repositories vernieuwd",
+        "refreshError": "Repositories konden niet worden vernieuwd",
+        "loadError": "Je GitHub-verbinding kon niet worden geladen",
+        "installError": "De GitHub-installatie kon niet worden gestart",
+        "organization": "Organisatie",
+        "personal": "Persoonlijk account",
+        "repoCountOne": "1 repository",
+        "repoCountMany": "{count} repositories",
+        "allRepos": "alle repositories",
+        "suspended": "Opgeschort",
+        "disconnect": "Verbinding verbreken",
+        "disconnectTitle": "Verbinding met {account} verbreken?",
+        "disconnectDescription": "Codeeragents werken niet meer in de repositories van {account}. De GitHub-app blijft daar geïnstalleerd; verwijder hem op GitHub om hem helemaal te verwijderen.",
+        "disconnectDescriptionProjects": "Je ziet de projecten van {account} hier pas weer na vernieuwen vanuit GitHub. De GitHub App blijft daar geïnstalleerd; verwijder hem op GitHub om hem volledig te verwijderen.",
+        "disconnected": "Verbinding met {account} verbroken",
+        "disconnectError": "Verbinding verbreken mislukt",
+        "outcomes": {
+          "connected": "GitHub verbonden",
+          "updated": "GitHub-verbinding bijgewerkt",
+          "not_authorized": "Volgens GitHub kan je account die installatie niet zien",
+          "already_connected": "Die installatie is al met een ander account verbonden",
+          "verification_unavailable": "Inloggen met GitHub is niet ingesteld op deze server, dus de installatie kon niet worden gecontroleerd",
+          "error": "Er ging iets mis bij het verbinden met GitHub",
+          "synced": "GitHub-toegang vernieuwd"
+        }
       }
     }
   },
@@ -978,12 +1044,31 @@
     "keyInvalid": "{min}–{max} letters of cijfers, beginnend met een letter",
     "keyRename": "Hernoemen",
     "keyRenameHint": "Taken worden {next}; {old} blijft werken",
-    "keyRenameFailed": "Kon het voorvoegsel niet hernoemen"
+    "keyRenameFailed": "Kon het voorvoegsel niet hernoemen",
+    "createBoard": "Bord maken",
+    "creatingBoard": "Bezig met maken...",
+    "createBoardFailed": "Bord maken mislukt",
+    "disableBoard": "Bord uitschakelen",
+    "disablingBoard": "Bezig met uitschakelen...",
+    "disableBoardFailed": "Bord uitschakelen mislukt",
+    "disableBoardTitle": "Bordweergave uitschakelen",
+    "disableBoardBody": "Taken blijven in deze lijst, maar de kolommen Ready/Doing/Waiting worden verwijderd.",
+    "disableBoardNote": "Taken in een statuskolom verliezen hun status. Voltooide taken blijven voltooid."
+  },
+  "viewRotator": {
+    "showList": "Lijst tonen",
+    "showMessages": "Berichten tonen",
+    "showBoard": "Bord tonen"
   },
   "listSettings": {
+    "color": {
+      "label": "Lijstkleur",
+      "custom": "Aangepaste kleur"
+    },
     "adminSettings": "Beheerdersinstellingen",
     "sortAndFilters": "Sorteren en filters",
     "sortAndFiltersAreYours": "Alleen jij ziet dit — het verandert de lijst voor niemand anders.",
+    "listOptions": "Lijstopties",
     "sortBy": "Sorteren op",
     "showTasks": "Taken tonen",
     "priorityFilter": "Prioriteitsfilter",
@@ -1056,6 +1141,55 @@
     "modelSetup": {
       "noModel": "Ik help je graag, maar ik heb een AI-model nodig om te kunnen antwoorden! Ga naar {settingsLink} om je voorkeursmodel in te stellen.",
       "onDeviceUnavailable": "Het gekozen model werkt alleen op ondersteunde Apple-apparaten, dus hier kan ik niet antwoorden. Ga naar {settingsLink} om een model te kiezen dat overal werkt."
+    }
+  },
+  "githubProjectPicker": {
+    "entry": "GitHub-project koppelen",
+    "title": "GitHub-project koppelen",
+    "description": "Kies een organisatieproject om als bord in {appName} te gebruiken. De items worden op de achtergrond geïmporteerd.",
+    "connect": "Als bord gebruiken",
+    "openBoard": "Bord openen",
+    "closed": "Gesloten",
+    "itemCountOne": "1 item",
+    "itemCountMany": "{count} items",
+    "noProjects": "Geen projecten die je in deze organisatie kunt zien.",
+    "noOrganizations": "Er is nog geen GitHub-organisatie gekoppeld. Installeer de app op een organisatie, of vernieuw als hij al geïnstalleerd is.",
+    "installOnOrg": "Installeren op een organisatie",
+    "installAnother": "Installeren op een andere organisatie",
+    "refreshAccess": "Vernieuwen vanuit GitHub",
+    "authRequired": "Koppel je GitHub-account om de projecten van je organisaties te zien.",
+    "connectGithub": "GitHub koppelen",
+    "loadError": "Kan je GitHub-projecten niet laden",
+    "retry": "Opnieuw proberen",
+    "bound": "{title} gekoppeld. Items worden geïmporteerd…",
+    "alreadyBound": "Dat project is al een bord",
+    "bindError": "Kan dat project niet koppelen"
+  },
+  "listInsights": {
+    "tab": "Inzichten",
+    "days7": "7 dagen",
+    "days30": "30 dagen",
+    "days90": "90 dagen",
+    "activity": "Activiteit",
+    "created": "Nieuw",
+    "completed": "Voltooid",
+    "createdTotal": "{count} nieuw",
+    "completedTotal": "{count} voltooid",
+    "timeToComplete": "Mediane tijd tot voltooiing",
+    "timeInLane": "Mediane tijd per kolom",
+    "sampleSize": "uit {count}",
+    "notEnoughHistory": "Nog niet genoeg geschiedenis",
+    "laneHistoryNote": "Kolomverplaatsingen worden vanaf nu vastgelegd; dit vult zich naarmate kaarten verschuiven.",
+    "contributors": "Topbijdragers",
+    "profileCounts": "{completed} voltooid · {inspired} geïnspireerd · {supported} ondersteund",
+    "activityCounts": "{created} gemaakt · {edited} bewerkingen · {commented} reacties",
+    "noActivity": "Geen activiteit in deze periode",
+    "loadFailed": "Inzichten konden niet worden geladen",
+    "loading": "Inzichten laden…",
+    "duration": {
+      "minutes": "{n} min",
+      "hours": "{n} u",
+      "days": "{n} d"
     }
   }
 }

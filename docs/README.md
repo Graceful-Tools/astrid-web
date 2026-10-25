@@ -33,6 +33,7 @@ and stack versions with `npm run check:docs`.
 ### 🎨 Whitelabeling
 - **[Whitelabeling Guide](./WHITELABELING.md)** - ⭐ Deploy under a different brand, with a different set of back-end services, entirely through build-time configuration
 - **[Brand Profiles](../brands/README.md)** - Per-partner profiles and the brand-matrix tests
+- **[Lanes: GitHub App and Marketplace listing](./deployment/LANES_GITHUB_MARKETPLACE.md)** - Draft registration values and listing copy for the GitHub Projects partner brand (not yet registered or published)
 
 ### 🚀 Setup & Deployment
 - **[Auth Setup](./setup/AUTH_SETUP.md)** - Authentication configuration
@@ -52,6 +53,8 @@ and stack versions with `npm run check:docs`.
 - **[CODEX.md](../CODEX.md)** - OpenAI Codex operational context (root)
 - **[ASTRID.md Template](./templates/ASTRID.md)** - ⭐ **Essential**: Configure AI agent behavior for your project
 - **[Fixall Queue Workflow](./FIXALL_WORKFLOW.md)** - the canonical autonomous agent queue loop; the user-facing connect flow is `/docs/loops` in the app
+- **[Fixall on the Web Board](./FIXALL_WEB.md)** - the web board's specifics (deploy rule, done, claim, gates), read by every harness
+- **[Agent Fleet](./AGENT_FLEET.md)** - which machine and harness runs what, and why agents never hold production keys
 - **[Legacy AI agent setup (archived)](./archive/ai-agents/README.md)** - superseded GitHub-App walkthrough, kept for history
 - **[Weekly Hygiene Review](./WEEKLY_HYGIENE_REVIEW.md)** - Scheduled review that files hygiene/security/perf tasks to the Astrid board
 
@@ -76,6 +79,7 @@ and stack versions with `npm run check:docs`.
 - **[Project Status Board](./product/project-status-board.md)** - Board behavior (columns, drag, statuses)
 - **[Spec: Task Blocking Dependencies](./specs/TASK_BLOCKING_DEPENDENCIES.md)** - Implemented (AWTD-1002): "waiting on tasks", and why the Waiting→Ready rule has exactly one implementation
 - **[Spec: prod Pointers for Dependency Repos](./specs/PROD_POINTERS_FOR_DEPENDENCIES.md)** - Decided (AWTD-1015): astrid-core and other non-deploying repos get `<app>-prod` branches and `<app>-v<version>` tags, moved by the consuming app's release
+- **[Spec: GitHub Projects White Label](./specs/GITHUB_PROJECTS_WHITELABEL.md)** - Proposal, decisions made (not implemented): Astrid as a multi-org white-label client for GitHub Projects v2 — write-path consolidation, login-provider registry, one GitHub App, GitHub-authoritative replica; lists five verified defects to fix first
 - **[Spec: Task Identifiers](./specs/TASK_IDENTIFIERS.md)** - Decided (AWTD-1010): short ids like `AWTD-1007` / `#1007` — uniqueness across astrid.cc, typing, visibility, where each client shows them
 
 ### 🎨 UI & Design

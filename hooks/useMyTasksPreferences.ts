@@ -7,16 +7,9 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useSSESubscription } from './use-sse-subscription'
-import type { MyTasksPreferences } from '@/app/api/v1/users/me/my-tasks-preferences/route'
+import { MY_TASKS_DEFAULTS, type MyTasksPreferences } from '@/lib/my-tasks-preferences'
 
-const DEFAULT_PREFERENCES: MyTasksPreferences = {
-  filterPriority: [],
-  filterAssignee: [],
-  filterDueDate: 'all',
-  filterCompletion: 'default',
-  sortBy: 'auto',
-  manualSortOrder: [],
-}
+const DEFAULT_PREFERENCES: MyTasksPreferences = MY_TASKS_DEFAULTS
 
 export function useMyTasksPreferences() {
   const [preferences, setPreferences] = useState<MyTasksPreferences>(DEFAULT_PREFERENCES)
@@ -41,6 +34,17 @@ export function useMyTasksPreferences() {
     }
 
     fetchPreferences()
+  }, [])
+
+  // How a rejected save is undone: the optimistic value is replaced by the
+  // stored one rather than kept until reload (AWTD-1324).
+  const reloadPreferences = useCallback(async () => {
+    try {
+      const response = await fetch('/api/v1/users/me/my-tasks-preferences')
+      if (response.ok) setPreferences(await response.json())
+    } catch (error) {
+      console.error('Failed to reload My Tasks preferences:', error)
+    }
   }, [])
 
   // Listen for SSE updates from other devices/sessions
@@ -73,13 +77,15 @@ export function useMyTasksPreferences() {
         })
 
         if (!response.ok) {
+          // A rejected save must not look kept (AWTD-1324): show what is stored.
           console.error('[MyTasksPrefs] Failed to update preferences:', response.status)
+          await reloadPreferences()
         }
       } catch (error) {
         console.error('[MyTasksPrefs] Error updating preferences:', error)
       }
     }, 300)
-  }, [])
+  }, [reloadPreferences])
 
   // Individual setters
   const setFilterPriority = useCallback((value: number[]) => {

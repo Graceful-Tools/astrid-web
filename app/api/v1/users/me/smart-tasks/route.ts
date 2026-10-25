@@ -2,7 +2,8 @@
  * GET/PATCH /api/v1/users/me/smart-tasks
  *
  * Smart-task creation defaults: emailToTaskEnabled, defaultTaskDueOffset,
- * defaultDueTime, smartTaskCreationEnabled, emailToTaskListId.
+ * defaultDueTime, smartTaskCreationEnabled, emailToTaskListId — plus the
+ * display preferences subtaskDisplay, taskDisplayMode and showListImages.
  * Mirrors GET/PATCH /api/v1/users/me/smart-tasks.
  */
 
@@ -21,6 +22,7 @@ const SELECT = {
   smartTaskCreationEnabled: true,
   subtaskDisplay: true,
   taskDisplayMode: true,
+  showListImages: true,
 } as const
 
 export const GET = withAuth(
@@ -51,6 +53,7 @@ const ALLOWED = [
   'smartTaskCreationEnabled',
   'subtaskDisplay',
   'taskDisplayMode',
+  'showListImages',
 ] as const
 const VALID_OFFSETS = ['none', '1_day', '3_days', '1_week']
 /** The two layouts the task list can actually render. */
@@ -77,6 +80,18 @@ export const PATCH = withAuth(
       ) {
         return NextResponse.json(
           { error: 'Invalid taskDisplayMode value' },
+          { status: 400 }
+        )
+      }
+      // Tri-state: null hands the decision back to the hide_list_images
+      // experiment (lib/list-images-visibility.ts), so it is a valid write.
+      if (
+        'showListImages' in updateData &&
+        updateData.showListImages !== null &&
+        typeof updateData.showListImages !== 'boolean'
+      ) {
+        return NextResponse.json(
+          { error: 'Invalid showListImages value' },
           { status: 400 }
         )
       }

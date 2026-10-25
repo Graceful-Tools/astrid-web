@@ -29,7 +29,8 @@ export const GET = withAuth(
   { scopes: ['tasks:read'], tag: 'v1.integrations' },
   async (_req, auth) => {
     const integrations = await prisma.integration.findMany({
-      where: { userId: auth.userId, revokedAt: null },
+      // GITHUB is the App's user-token credential, not a sync provider (AWTD-1112).
+      where: { userId: auth.userId, revokedAt: null, provider: { not: 'GITHUB' } },
       select: { provider: true, externalAccountId: true, createdAt: true, metadata: true },
     })
     return NextResponse.json({ integrations })

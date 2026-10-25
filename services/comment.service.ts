@@ -28,6 +28,7 @@
  */
 import type { CommentType, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { hasCapability } from '@/lib/brand/capabilities'
 import { createLogger } from '@/lib/logger'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { applyCommentActorRule, commentAudience } from '@/lib/comment-permissions'
@@ -135,6 +136,8 @@ export interface CommentForFanOut {
   parentCommentId?: string | null
   secureFiles?: unknown
   author?: { id: string; name: string | null; email: string | null; isAIAgent?: boolean } | null
+  /** A GitHub comment's author with no Astrid identity (AWTD-1283). */
+  remoteAuthorLogin?: string | null
 }
 
 /**
@@ -180,8 +183,24 @@ export async function createCommentWithSideEffects<TComment = CreatedComment>(
   broadcastCommentCreated(comment, task, authorId, args.additionalAudience)
   pingOpenClawAssignee(comment, task, authorId)
   await runSideEffects(comment, task, authorId)
+  await pushToGitHub(comment.id, task.id)
 
   return { kind: 'created', comment } as CreateCommentOutcome<TComment>
+}
+
+/**
+ * A comment on a GitHub-backed issue or PR goes to GitHub too (AWTD-1116 P5c)
+ * — queued, so a GitHub hiccup retries instead of failing the comment.
+ * Free on a deployment without GitHub Projects: no import, no query.
+ */
+async function pushToGitHub(commentId: string, taskId: string): Promise<void> {
+  if (!hasCapability('githubProjects')) return
+  try {
+    const { enqueueCommentPush } = await import('@/services/github-sync-jobs.service')
+    await enqueueCommentPush(commentId, taskId)
+  } catch (err) {
+    log.error({ err, commentId }, 'Failed to queue the comment for GitHub')
+  }
 }
 
 async function linkFile(
@@ -217,8 +236,12 @@ async function linkFile(
  * exists. Receivers dedupe on comment id. Only an AI-agent author is dropped,
  * to stop an agent answering its own comment. (Task cb1581e0 —
  * `applyCommentActorRule` in lib/comment-permissions.ts.)
+ *
+ * Exported for a comment that arrives from GitHub (AWTD-1283): it is stored
+ * without the create verb's side effects, the push back to GitHub above all,
+ * but clients must still hear of it.
  */
-function broadcastCommentCreated(
+export function broadcastCommentCreated(
   comment: CommentForFanOut,
   task: CommentTaskContext,
   authorId: string,
@@ -240,7 +263,11 @@ function broadcastCommentCreated(
 
     if (userIds.size === 0) return
 
-    const authorName = comment.author?.name || comment.author?.email || 'Someone'
+    const authorName =
+      comment.author?.name ||
+      comment.author?.email ||
+      (comment.remoteAuthorLogin ? `@${comment.remoteAuthorLogin}` : null) ||
+      'Someone'
 
     broadcastToUsers(Array.from(userIds), {
       type: 'comment_created',
@@ -264,6 +291,8 @@ function broadcastCommentCreated(
           createdAt: new Date(comment.createdAt).toISOString(),
           type: comment.type,
           author: comment.author,
+          // Only on a GitHub board, so hosted Astrid's payload is unchanged.
+          ...(comment.remoteAuthorLogin && { remoteAuthorLogin: comment.remoteAuthorLogin }),
           parentCommentId: comment.parentCommentId ?? null,
           secureFiles: comment.secureFiles ?? [],
         },

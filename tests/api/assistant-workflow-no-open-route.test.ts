@@ -69,7 +69,6 @@ describe('no unauthenticated assistant-workflow route (task 12b3478d)', () => {
       src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '')
 
     const callers = [
-      'lib/prisma.ts',
       'lib/webhooks/comment-notifier.ts',
       'lib/webhooks/task-assignment-notifier.ts',
     ]
@@ -77,8 +76,9 @@ describe('no unauthenticated assistant-workflow route (task 12b3478d)', () => {
     expect(offenders, `still fetching a deleted route: ${offenders.join(', ')}`).toEqual([])
   })
 
+  // lib/prisma.ts used to be a third caller, through a $extends hook. The hook
+  // is gone (spec §5.2 step 3): assignment dispatch goes through the notifier.
   it.each([
-    'lib/prisma.ts',
     'lib/webhooks/comment-notifier.ts',
     'lib/webhooks/task-assignment-notifier.ts',
   ])('%s calls runAssistantWorkflow directly', file => {

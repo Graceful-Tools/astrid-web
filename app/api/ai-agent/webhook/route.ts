@@ -122,10 +122,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     if (error instanceof z.ZodError) {
-      log.info(error.errors, '[AI Agent] Invalid payload:')
+      log.info(error.issues, '[AI Agent] Invalid payload:')
       return NextResponse.json({
         error: 'Invalid payload format',
-        details: error.errors
+        details: error.issues
       }, { status: 400 })
     }
 

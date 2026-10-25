@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { UserPicker } from "@/components/user-picker"
-import { CustomRepeatingEditor } from "@/components/custom-repeating-editor"
+import { CustomRepeatingEditor, isCustomPatternSavable } from "@/components/custom-repeating-editor"
 import { PriorityPicker } from "@/components/ui/priority-picker"
 import { PRIORITY_ROW_GLYPH } from "@/lib/priority-glyph"
 import { TaskFieldRow } from "./TaskFieldRow"
@@ -17,11 +17,14 @@ import { TaskDetailBoardStateRow } from "./TaskDetailBoardStateRow"
 import { TaskDetailBlockersRow } from "./TaskDetailBlockersRow"
 import { TaskDetailDescriptionRow } from "./TaskDetailDescriptionRow"
 import { TaskDetailListsRow } from "./TaskDetailListsRow"
+import { TaskDetailPriorityRow } from "./TaskDetailPriorityRow"
+import { TaskProjectFieldsSection } from "./TaskProjectFieldsSection"
 import { TimePicker, formatConciseTime } from "@/components/ui/time-picker"
 import { useMobileKeyboard } from "@/hooks/shared/useMobileKeyboard"
 import { Calendar as CalendarIcon, User as UserIcon } from "lucide-react"
 import { format } from "date-fns"
 import { formatDateForDisplay } from "@/lib/date-utils"
+import { allDayInstantForLocalDay, taskCalendarDay } from "@/lib/date-comparison"
 import { useTranslations } from "@/lib/i18n/client"
 import type { Task, TaskList, User } from "@/types/task"
 
@@ -92,22 +95,6 @@ interface TaskFieldEditorsProps {
 
   // Invite handler
   onInviteUser: (email: string, message?: string) => Promise<void>
-}
-
-/**
- * The Priority row's marker: the app's own `!!!`, not a flag icon that only ever
- * said "some field about importance" (task 4dd640d9).
- *
- * CONSTANT BY DESIGN — it names the field while the picker beside it reports the
- * value, so it must not follow the task's own priority. Same rule as
- * `PriorityGlyph.rowIcon` on iOS/Mac.
- */
-function PriorityRowIcon() {
-  return (
-    <span aria-hidden="true" className="w-4 text-center text-xs font-bold leading-none">
-      {PRIORITY_ROW_GLYPH}
-    </span>
-  )
 }
 
 export function TaskFieldEditors({
@@ -267,13 +254,13 @@ export function TaskFieldEditors({
         // Keep as timed task
         onUpdate({ ...task, dueDateTime: date, isAllDay: false })
       } else {
-        // Default to all-day task (midnight UTC)
-        date.setUTCHours(0, 0, 0, 0)
+        // Default to all-day task: UTC midnight of the picked local day
+        date = allDayInstantForLocalDay(date)
         onUpdate({ ...task, dueDateTime: date, isAllDay: true })
       }
     } else {
-      // Removing date
-      onUpdate({ ...task, dueDateTime: undefined, isAllDay: false })
+      // Removing date: null, not undefined, so the clear reaches the server (AWTD-1272).
+      onUpdate({ ...task, dueDateTime: null, isAllDay: false })
     }
     setTempWhen(date)
     setEditingWhen(false)
@@ -281,17 +268,16 @@ export function TaskFieldEditors({
 
   const handleSaveTime = (time: Date | string | null) => {
     if (!time) {
-      // Clear the time - make it all-day (midnight UTC)
+      // Clear the time - make it all-day on the task's own day
       if (task.dueDateTime) {
-        const dateOnly = new Date(task.dueDateTime)
-        dateOnly.setUTCHours(0, 0, 0, 0)
+        const dateOnly = allDayInstantForLocalDay(taskCalendarDay(new Date(task.dueDateTime), !!task.isAllDay))
         onUpdate({ ...task, dueDateTime: dateOnly, isAllDay: true })
         setTempWhen(dateOnly)
       }
     } else if (time instanceof Date) {
       // Combine the existing date with the new time
       if (!task.dueDateTime) return
-      const updatedDate = new Date(task.dueDateTime)
+      const updatedDate = taskCalendarDay(new Date(task.dueDateTime), !!task.isAllDay)
       updatedDate.setHours(time.getHours(), time.getMinutes(), 0, 0)
       onUpdate({ ...task, dueDateTime: updatedDate, isAllDay: false })
       setTempWhen(updatedDate)
@@ -625,7 +611,7 @@ export function TaskFieldEditors({
           {editingTime ? (
             <div className="mt-1">
               <TimePicker
-                value={tempWhen}
+                value={task.isAllDay ? null : tempWhen} // all-day is UTC midnight, "4pm" in LA (AWTD-1274)
                 onChange={handleSaveTime}
               />
             </div>
@@ -777,7 +763,7 @@ export function TaskFieldEditors({
                   <div className="flex justify-end space-x-2 mt-2">
                     <Button
                       variant="default"
-                      size="sm"
+                      size="sm" disabled={!isCustomPatternSavable(tempRepeatingData)}
                       onClick={() => handleSaveRepeating('custom')}
                     >
                       Save Custom Pattern
@@ -834,24 +820,13 @@ export function TaskFieldEditors({
       </TaskFieldRow>
       )}
 
-      {/* Priority — third, after Date. A public-list task has no priority
-       *  picker; its Who slot showed "Created by" above. */}
-      {!shouldHidePriority && !compactTaskDetail && !isPublicListTask && (
-            <TaskFieldRow label={t('tasks.priority')} icon={<PriorityRowIcon />}>
-              <PriorityPicker
-                value={tempPriority}
-                onChange={handleSavePriority}
-                /* No `label` passed: PriorityPicker declares the prop but never
-                   renders it, and the row above already carries the translated
-                   label. Passing an English literal to a prop nobody displays is
-                   dead weight that reads as untranslated copy. */
-                // Every other field here gates its click behind !readOnly; this
-                // one rendered ungated, so priority stayed editable to a viewer
-                // who could edit nothing else. (Task 72cb4a13.)
-                disabled={readOnly}
-              />
-            </TaskFieldRow>
-      )}
+      {/* Priority — third, after Date. Its own component since AWTD-1210. */}
+      <TaskDetailPriorityRow
+        value={tempPriority}
+        onChange={handleSavePriority}
+        readOnly={readOnly}
+        hidden={shouldHidePriority || compactTaskDetail || isPublicListTask}
+      />
 
 
       {/* Lists row — its own component since AWTD-1002; see that file for why. */}
@@ -909,6 +884,14 @@ export function TaskFieldEditors({
         handleSaveDescription={handleSaveDescription}
         handleCancelDescription={handleCancelDescription}
       />
+
+      {/* PROJECT FIELDS — last, after every native row (AWTD-1210, §9.4 D4).
+          They are the board's own columns rather than this app's, and there can
+          be many of them, so they follow the fixed rows instead of pushing
+          Description down the pane. The section renders nothing at all unless
+          the task is on a GitHub-backed board with unmapped fields, so a
+          classic task's pane is unchanged. */}
+      <TaskProjectFieldsSection task={task} onUpdate={onUpdate} readOnly={readOnly} />
     </>
   )
 }

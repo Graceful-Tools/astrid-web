@@ -27,12 +27,10 @@ function fixApiRoutes() {
     'app/api/invitations/[token]/route.ts',
     'app/api/public-tasks/route.ts',
     'app/api/tasks/route.ts',
-    'app/api/tasks/[id]/route.ts',
     'app/api/tasks/[id]/comments/route.ts',
     'app/api/tasks/copy/route.ts',
     'app/api/lists/route.ts',
-    'app/api/lists/[id]/route.ts',
-    'app/api/upload/route.ts'
+    'app/api/lists/[id]/route.ts'
   ]
 
   let fixed = 0

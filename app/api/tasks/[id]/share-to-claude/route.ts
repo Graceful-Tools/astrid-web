@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import type { RouteContextParams } from '@/types/next'
 import { createLogger } from '@/lib/logger'
 import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
+import { postCommentAs } from '@/services/post-comment-as'
 
 const log = createLogger('tasks.[id].share-to-claude')
 
@@ -181,18 +182,15 @@ export async function POST(
 
     // Add a comment to local task indicating it was shared
     try {
-      await prisma.task.update({
-        where: { id: taskId },
-        data: {
-          comments: {
-            create: {
-              content: `🤖 Task shared to Claude for assistance via ASTRID.cc\n\n${shareReason ? `**Reason**: ${shareReason}\n` : ''}${additionalNotes ? `**Notes**: ${additionalNotes}\n` : ''}**ASTRID.cc Task**: ${taskUrl}`,
-              type: 'TEXT',
-              authorId: session.user.id
-            }
-          }
-        }
+      // A comment, not a task update with a nested create: through the comment
+      // service so the list sees it (P1 step 4).
+      const posted = await postCommentAs({
+        taskId,
+        authorId: session.user.id,
+        type: 'TEXT',
+        content: `🤖 Task shared to Claude for assistance via ASTRID.cc\n\n${shareReason ? `**Reason**: ${shareReason}\n` : ''}${additionalNotes ? `**Notes**: ${additionalNotes}\n` : ''}**ASTRID.cc Task**: ${taskUrl}`,
       })
+      if (!posted.ok) throw new Error(posted.error)
     } catch (commentError) {
       log.warn({ commentError }, '⚠️ Failed to add share comment to local task:')
       // Don't fail the request if comment creation fails

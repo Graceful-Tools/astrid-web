@@ -243,10 +243,9 @@ export const RichTextInput = React.memo(function RichTextInput({
     }
   }, [])
 
-  // File upload — every picked file is uploaded and staged; picking a second file
-  // must never discard the first (Task 9f325964).
-  const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const picked = Array.from(event.target.files ?? [])
+  // File upload — every picked (or pasted) file is uploaded and staged; adding
+  // a second file must never discard the first (Task 9f325964).
+  const stageFiles = useCallback(async (picked: File[]) => {
     const resetInput = () => {
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
@@ -294,6 +293,28 @@ export const RichTextInput = React.memo(function RichTextInput({
     setUploading(false)
     resetInput()
   }, [uploadContext, attachedFiles, onAttachedFilesChange, onUploadErrorChange])
+
+  const handleFileSelect = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => stageFiles(Array.from(event.target.files ?? [])),
+    [stageFiles],
+  )
+
+  // A pasted image is attached like a picked one, as on Mac (AWTD-1166). Text
+  // pastes are left to the browser. Browsers name every clipboard image
+  // "image.png", so it is renamed to say what it is.
+  const handlePaste = useCallback((event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    if (!enableAttachments) return
+    const images = Array.from(event.clipboardData?.files ?? []).filter(file => file.type.startsWith('image/'))
+    if (images.length === 0) return
+    event.preventDefault()
+    const stamp = new Date().toISOString().slice(0, 19).replace('T', ' ').replace(/:/g, '.')
+    void stageFiles(
+      images.map((file, i) => {
+        const ext = file.type.split('/')[1]?.replace('jpeg', 'jpg') || 'png'
+        return new File([file], `Pasted image ${stamp}${images.length > 1 ? ` (${i + 1})` : ''}.${ext}`, { type: file.type })
+      }),
+    )
+  }, [enableAttachments, stageFiles])
 
   const removeAttachedFile = useCallback((url: string) => {
     const id = fileIdFromUrl(url)
@@ -430,6 +451,7 @@ export const RichTextInput = React.memo(function RichTextInput({
             value={value}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             onInput={handleInput}
             onScroll={syncScroll}
             placeholder={placeholder}

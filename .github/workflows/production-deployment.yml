@@ -40,12 +40,15 @@ env:
   NODE_VERSION: '22'
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  # The origin every check below asks. A partner running this workflow sets the
+  # PRODUCTION_URL repository variable; unset, it is Astrid's (AWTD-1280).
+  PRODUCTION_URL: ${{ vars.PRODUCTION_URL || 'https://astrid.cc' }}
 
 jobs:
   # Job 1: Quality Gates (Tests, Linting, Build)
   quality-gates:
     name: 'Quality Gates'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     if: ${{ !inputs.skip_tests }}
     outputs:
@@ -55,7 +58,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -156,8 +159,9 @@ jobs:
         run: npm run build
         env:
           NODE_ENV: production
-          # Use production database for builds
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # The build never connects; a placeholder keeps production credentials
+          # out of this job (tests/rules/production-secrets-are-environment-scoped).
+          DATABASE_URL: postgresql://build:build@localhost:5432/build
 
       - name: Set Quality Check Status
         id: quality-check
@@ -168,7 +172,10 @@ jobs:
   # Job 2: Database Migration (Production)
   database-migration:
     name: 'Database Migration'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    # The production database secrets are environment secrets: only jobs that
+    # declare this environment receive them, and it admits only `main`.
+    environment: production
     timeout-minutes: 15
     needs: quality-gates
     if: always() && (needs.quality-gates.outputs.quality-passed == 'true' || inputs.skip_tests)
@@ -179,7 +186,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -316,13 +323,14 @@ jobs:
   # Job 3: Deploy to Vercel Production
   deploy-production:
     name: 'Deploy to Production'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # 30, not 20 — but the number matters far less now than it did. Every slow
     # thing inside is separately bounded (600s for the CLI, 300s to verify the
     # SHA), so this is the backstop rather than the thing that decides the
     # outcome. At 20 it WAS the thing that decided the outcome: the CLI hung, the
     # runner cancelled the job, and the log said only "The operation was
     # canceled" about a deploy that had succeeded (AWTD-959).
+    environment: production
     timeout-minutes: 30
     needs: [quality-gates, database-migration]
     if: always() && (needs.quality-gates.outputs.quality-passed == 'true' || inputs.skip_tests) && needs.database-migration.outputs.migration-success == 'true'
@@ -334,7 +342,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
@@ -346,6 +354,25 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+
+      # `vercel pull` writes the literal string `[SENSITIVE]` for every env var
+      # stored as a Vercel *Secret*, and `vercel build` below loads that file —
+      # so without this the build receives "[SENSITIVE]" as the value
+      # (vercel/vercel#17514). That is not theoretical: it failed run
+      # 40158070370 twice over, with P1013 "the scheme is not recognized" from
+      # `prisma migrate deploy` and "Vapid private key must be a URL safe Base
+      # 64" thrown at module scope during `next build`.
+      #
+      # Credentials live in Secret precisely so a workflow holding VERCEL_TOKEN
+      # cannot read them (task bd1e0daa), and the build has no business reading
+      # a runtime secret — production gets the real values injected at runtime.
+      # So the redacted lines are dropped, which also lets presence guards
+      # work as written; a non-empty placeholder is truthy and defeats them.
+      # Prisma's two datasource vars are the exception and get an
+      # unreachable localhost placeholder, because `prisma generate` hard-fails
+      # on one that is merely undefined. Keys are logged, never values.
+      - name: Keep redacted secrets out of the build
+        run: npx tsx scripts/sanitize-pulled-env.ts .vercel/.env.production.local
 
       - name: Build Project Artifacts
         env:
@@ -389,7 +416,7 @@ jobs:
           # happened on 2026-09-18. Reporting success in that case is right (the
           # intended code IS live), but it must not be mistaken for proof that
           # this run's CLI worked, so the log says which one it was.
-          sha_before=$(curl -sS --max-time 15 https://astrid.cc/api/health 2>/dev/null \
+          sha_before=$(curl -sS --max-time 15 "$PRODUCTION_URL/api/health" 2>/dev/null \
             | grep -oE '"commitSha"[[:space:]]*:[[:space:]]*"[^"]*"' \
             | sed -E 's/.*"([^"]*)".*/\1/' || true)
           echo "ℹ️  Production is currently serving: ${sha_before:-(no answer)}"
@@ -421,7 +448,7 @@ jobs:
           fi
 
           # THE ONLY THING THAT DECIDES SUCCESS: what production is serving.
-          if bash scripts/verify-deployed-sha.sh "$GITHUB_SHA" --timeout 300; then
+          if bash scripts/verify-deployed-sha.sh "$GITHUB_SHA" --url "$PRODUCTION_URL" --timeout 300; then
             echo "success=true" >> $GITHUB_OUTPUT
             echo "✅ Production is serving $GITHUB_SHA."
             if [ "$sha_before" = "$GITHUB_SHA" ]; then
@@ -440,7 +467,7 @@ jobs:
   # Job 4: Post-Deployment Health Check
   health-check:
     name: 'Health Check'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     needs: deploy-production
     # AWTD-959. This was `needs.deploy-production.outputs.deployment-success ==
@@ -463,11 +490,11 @@ jobs:
           # astrid.cc returned 200 while every list read 500'd, because the old
           # build was live against the new schema. A commit SHA is the question
           # worth asking.
-          bash scripts/verify-deployed-sha.sh "$GITHUB_SHA" --timeout 300
+          bash scripts/verify-deployed-sha.sh "$GITHUB_SHA" --url "$PRODUCTION_URL" --timeout 300
 
       - name: Run Health Checks
         run: |
-          PROD_URL="https://astrid.cc"
+          PROD_URL="$PRODUCTION_URL"
           echo "Running health checks against: $PROD_URL"
 
           # Test home page (follows redirects to /auth/signin for unauthenticated users)
@@ -494,7 +521,7 @@ jobs:
   # is then "what the next deploy ships". Reasoning in scripts/advance-prod-branch.sh.
   advance-prod-branch:
     name: 'Advance prod Branch'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     needs: [deploy-production, health-check]
     if: always() && needs.health-check.result == 'success'
@@ -532,7 +559,7 @@ jobs:
   # Job 6: Deployment Summary
   deployment-summary:
     name: 'Deployment Summary'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     needs: [quality-gates, database-migration, deploy-production, health-check]
     if: always()

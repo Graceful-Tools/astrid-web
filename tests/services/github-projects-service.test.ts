@@ -1,0 +1,839 @@
+/**
+ * AWTD-1151 (P4c): the replica writer — a hydrated page of GitHub items
+ * becomes tasks on the bound board (spec §8.7, §13.3).
+ *
+ * Driven by the REAL recorded page (tests/fixtures/github/graphql). Pinned:
+ *   - new items are created through createTasksInBulk in fromRemote mode, with
+ *     GitHub's identifiers, shared (not private), keyed by content node id;
+ *   - each page costs two reads, however many items it holds (no N+1);
+ *   - an item already mirrored and unchanged writes nothing;
+ *   - a changed one is patched by value; an archived one leaves the list;
+ *   - binding twice is a 409, not a second board.
+ */
+
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+const db = vi.hoisted(() => ({
+  task: { findMany: vi.fn(), update: vi.fn((args: unknown) => ({ op: 'task.update', args })) },
+  gitHubProjectItem: {
+    findMany: vi.fn(),
+    createMany: vi.fn(),
+    upsert: vi.fn((args: unknown) => ({ op: 'item.upsert', args })),
+    update: vi.fn((args: unknown) => ({ op: 'item.update', args })),
+  },
+  taskDependency: {
+    createMany: vi.fn((args: unknown) => ({ op: 'dependency.createMany', args })),
+    deleteMany: vi.fn((args: unknown) => ({ op: 'dependency.deleteMany', args })),
+  },
+  gitHubProjectBinding: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
+  project: { create: vi.fn() },
+  user: { findMany: vi.fn() },
+  taskList: {
+    create: vi.fn(),
+    findMany: vi.fn(),
+    createMany: vi.fn(),
+    update: vi.fn((args: unknown) => ({ op: 'list.update', args })),
+  },
+  $transaction: vi.fn(),
+}))
+vi.mock('@/lib/prisma', () => ({ prisma: db }))
+
+const bulk = vi.hoisted(() => ({ createTasksInBulk: vi.fn() }))
+vi.mock('@/services/task-bulk-create', () => bulk)
+
+// Project fields have their own executor and their own tests (AWTD-1117).
+const fields = vi.hoisted(() => ({
+  applyFieldPage: vi.fn(async () => ({ changed: false, fields: null, values: new Map() })),
+  syncProjectFields: vi.fn(async () => false),
+  PROJECT_FIELD_SELECT: {},
+}))
+vi.mock('@/services/github-project-fields.service', () => fields)
+
+// Iteration lists too (AWTD-1230): tests/services/github-iteration-lists.test.ts.
+const iterations = vi.hoisted(() => ({ applyIterationLists: vi.fn(async () => false) }))
+vi.mock('@/services/github-iteration-lists.service', () => iterations)
+
+vi.mock('@/lib/redis', () => ({ RedisCache: { invalidate: { userTasks: vi.fn(async () => {}), userLists: vi.fn(async () => {}) } } }))
+
+import { applyProjectItems, bindGitHubProject, type BoundBoard } from '@/services/github-projects.service'
+import { normaliseItem, type RemoteProjectItem } from '@/lib/github/projects/apply'
+import { proposeBinding, type ProjectSchema } from '@/lib/github/projects/bind'
+
+const DIR = join(process.cwd(), 'tests/fixtures/github/graphql')
+const load = (name: string) => JSON.parse(readFileSync(join(DIR, name), 'utf8'))
+const items = load('project-items-page.json').data.node.items.nodes as RemoteProjectItem[]
+const schema = load('project-schema.json').data.node as ProjectSchema
+
+const board: BoundBoard = {
+  projectId: 'proj-1',
+  listId: 'list-1',
+  ownerId: 'user-1',
+  binding: load('binding-graceful-fools.json'),
+}
+
+/** The replica row an item would have left behind. */
+function replicaOf(item: RemoteProjectItem, id: string) {
+  const n = normaliseItem(item, board.binding)!
+  return {
+    id,
+    remoteNodeId: n.remoteNodeId,
+    ...n.task,
+    identifier: n.identifier,
+    remoteKind: n.remoteKind,
+    remoteVersion: n.remoteVersion,
+    parentTaskId: null as string | null,
+    parentTask: null as { remoteNodeId: string | null } | null,
+    blockedBy: [] as Array<{ blockingTaskId: string }>,
+    lists: [] as Array<{ id: string; remoteNodeId: string | null; listType: string }>,
+  }
+}
+
+type Replica = ReturnType<typeof replicaOf>
+
+/**
+ * `taskList.findMany` answers TWO different reads now (AWTD-1315), and a mock
+ * keyed only on the model cannot tell them apart:
+ *
+ *   - the HELD read, `where: { tasks: { some: { id } } }`, which asks what one
+ *     task is on. Routed to the page's own rows, since that is what it means.
+ *   - the LOOKUP, `where: { remoteNodeId: { in: [...] } }`, which asks what
+ *     lists exist for the nodes GitHub named. That is what a test is setting
+ *     when it calls `lookup(...)` below.
+ *
+ * Before AWTD-1315 the held read was `task.findMany` with a `lists` select, so
+ * the two never collided — and Prisma read that implicit many-to-many in three
+ * statements, which is the cost that task removed.
+ */
+let lookupAnswers: unknown[][] = []
+
+/** The by-node answers, in order. One array = that answer for every call. */
+function lookup(...answers: unknown[][]) {
+  lookupAnswers = answers
+}
+
+/**
+ * Answer the replica read, as Prisma would: the page's rows with what they
+ * hold COUNTED, then (for the tasks that hold something) the held rows
+ * themselves (AWTD-1297).
+ */
+function replicas(rows: Replica[]) {
+  const counted = rows.map(row => ({ ...row, _count: { blockedBy: row.blockedBy.length, lists: row.lists.length, fieldValues: 0 } }))
+  db.task.findMany.mockImplementation(async (args: { where: { id?: unknown } }) => (args.where.id ? rows : counted))
+
+  let call = 0
+  return db.taskList.findMany.mockImplementation(async (args: { where?: Record<string, unknown> }) => {
+    const heldFor = (args.where?.tasks as { some?: { id?: string } } | undefined)?.some?.id
+    if (heldFor) return rows.find(row => row.id === heldFor)?.lists ?? []
+    const answer = lookupAnswers[Math.min(call, lookupAnswers.length - 1)] ?? []
+    call++
+    return answer
+  })
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  lookup([])
+  replicas([])
+  db.gitHubProjectItem.findMany.mockResolvedValue([])
+  db.$transaction.mockImplementation(async (arg: unknown) => (typeof arg === 'function' ? (arg as (tx: typeof db) => unknown)(db) : arg))
+  bulk.createTasksInBulk.mockImplementation(async ({ tasks }: { tasks: Array<{ data: { remoteNodeId: string } }> }) => ({
+    tasks: tasks.map((t, i) => ({ id: `new-${i}`, remoteNodeId: t.data.remoteNodeId })),
+  }))
+})
+
+describe('applyProjectItems (AWTD-1151)', () => {
+  it('imports a fresh page: three tasks created from GitHub, each with its membership', async () => {
+    const summary = await applyProjectItems(board, items)
+
+    expect(summary).toEqual({ created: 3, updated: 0, left: 0, unchanged: 0, skipped: 0 })
+    const call = bulk.createTasksInBulk.mock.calls[0][0]
+    expect(call).toMatchObject({ actorId: 'user-1', fromRemote: { source: 'GitHub' } })
+    expect(call.tasks[0]).toMatchObject({
+      listIds: ['list-1'],
+      identifier: 'Graceful-Fools/wordlesolver#1',
+      data: {
+        title: '[Astrid sync fixture] Open issue in Todo',
+        statusRole: 'ready',
+        completed: false,
+        isPrivate: false,
+        remoteNodeId: items[0].content!.id,
+        remoteKind: 'issue',
+      },
+    })
+    // The closed-not-planned issue arrives completed, stamped.
+    expect(call.tasks[1].data).toMatchObject({ completed: true, closedReason: 'not_planned', completedAt: expect.any(Date) })
+    // The draft has no identifier.
+    expect(call.tasks[2].identifier).toBeNull()
+
+    expect(db.gitHubProjectItem.createMany).toHaveBeenCalledWith({
+      data: items.map((item, i) => ({ itemNodeId: item.id, projectId: 'proj-1', taskId: `new-${i}` })),
+      skipDuplicates: true,
+    })
+  })
+
+  it('reads twice per page, whatever its size (no N+1)', async () => {
+    await applyProjectItems(board, items)
+    expect(db.task.findMany).toHaveBeenCalledTimes(1)
+    expect(db.gitHubProjectItem.findMany).toHaveBeenCalledTimes(1)
+  })
+
+  it('an unchanged, already-mirrored page writes nothing', async () => {
+    replicas(items.map((item, i) => replicaOf(item, `t${i}`)))
+    db.gitHubProjectItem.findMany.mockResolvedValue(items.map(item => ({ itemNodeId: item.id, archived: false })))
+
+    expect(await applyProjectItems(board, items)).toMatchObject({ unchanged: 3, created: 0, updated: 0 })
+    expect(db.$transaction).not.toHaveBeenCalled()
+    expect(bulk.createTasksInBulk).not.toHaveBeenCalled()
+  })
+
+  it('a changed item is patched by value — reopening clears completion and its stamp', async () => {
+    const replica = { ...replicaOf(items[0], 't0'), completed: true, closedReason: 'not_planned', statusRole: null }
+    replicas([replica])
+    db.gitHubProjectItem.findMany.mockResolvedValue([{ itemNodeId: items[0].id, archived: false }])
+
+    expect(await applyProjectItems(board, [items[0]])).toMatchObject({ updated: 1 })
+    expect(db.task.update).toHaveBeenCalledWith({
+      where: { id: 't0' },
+      data: { completed: false, closedReason: null, statusRole: 'ready', completedAt: null },
+    })
+  })
+
+  it('an archived item leaves the list and keeps the task', async () => {
+    const archived = { ...items[0], isArchived: true }
+    replicas([replicaOf(items[0], 't0')])
+    db.gitHubProjectItem.findMany.mockResolvedValue([{ itemNodeId: items[0].id, archived: false }])
+
+    expect(await applyProjectItems(board, [archived])).toMatchObject({ left: 1 })
+    expect(db.gitHubProjectItem.update).toHaveBeenCalledWith({ where: { itemNodeId: items[0].id }, data: { archived: true } })
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 't0' }, data: { lists: { disconnect: { id: 'list-1' } } } })
+  })
+
+  it('a task already mirrored by ANOTHER board joins this one rather than being duplicated', async () => {
+    replicas([replicaOf(items[0], 't0')])
+
+    expect(await applyProjectItems(board, [items[0]])).toMatchObject({ updated: 1, created: 0 })
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 't0' }, data: { lists: { connect: { id: 'list-1' } } } })
+    expect(db.gitHubProjectItem.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ create: { itemNodeId: items[0].id, projectId: 'proj-1', taskId: 't0' } }),
+    )
+  })
+})
+
+describe('applyProjectItems — project fields (AWTD-1117)', () => {
+  it('hands every mirrored item to the field executor with its task: created, held and archived alike', async () => {
+    const archived = { ...items[1], isArchived: true }
+    replicas([replicaOf(items[1], 't1')])
+    db.gitHubProjectItem.findMany.mockResolvedValue([{ itemNodeId: items[1].id, archived: false }])
+    const client = { query: vi.fn() }
+
+    await applyProjectItems(board, [items[0], archived], client as never)
+
+    // Neither task holds a value yet (AWTD-1297): the new one cannot, and the
+    // held one's count was zero, so the field pass reads no values for them.
+    expect(fields.applyFieldPage).toHaveBeenCalledWith(
+      board,
+      [
+        { item: items[0], taskId: 'new-0', holdsValues: false },
+        { item: archived, taskId: 't1', holdsValues: false },
+      ],
+      client,
+    )
+  })
+
+  it('a field change alone clears the board owner’s task cache', async () => {
+    const { RedisCache } = await import('@/lib/redis')
+    replicas([replicaOf(items[0], 't0')])
+    db.gitHubProjectItem.findMany.mockResolvedValue([{ itemNodeId: items[0].id, archived: false }])
+    fields.applyFieldPage.mockResolvedValueOnce({ changed: true, fields: null, values: new Map() })
+
+    expect(await applyProjectItems(board, [items[0]])).toMatchObject({ unchanged: 1 })
+    expect(RedisCache.invalidate.userTasks).toHaveBeenCalledWith('user-1')
+  })
+})
+
+/** `item` as an issue with GitHub relationships (the fragment's P6c fields). */
+function related(item: RemoteProjectItem, parent: string | null, blockedBy: string[] = []): RemoteProjectItem {
+  return {
+    ...item,
+    content: {
+      ...item.content!,
+      parent: parent ? { id: parent } : null,
+      blockedBy: { totalCount: blockedBy.length, nodes: blockedBy.map(id => ({ id })) },
+    },
+  }
+}
+
+/** A replica row as the writer reads it back, relationships included. */
+function mirrored(item: RemoteProjectItem, id: string, relations: { parentTaskId?: string; parentNode?: string; blockers?: string[] } = {}) {
+  return {
+    ...replicaOf(item, id),
+    parentTaskId: relations.parentTaskId ?? null,
+    parentTask: relations.parentTaskId ? { remoteNodeId: relations.parentNode ?? null } : null,
+    blockedBy: (relations.blockers ?? []).map(blockingTaskId => ({ blockingTaskId })),
+  }
+}
+
+describe('applyProjectItems — sub-issues and dependencies (AWTD-1119)', () => {
+  const [parent, child] = items
+  const parentNode = parent.content!.id
+  const childNode = child.content!.id
+  const members = (...of: RemoteProjectItem[]) => of.map(item => ({ itemNodeId: item.id, archived: false }))
+
+  it('a sub-issue imported on the same page as its parent is filed under the task just created for it', async () => {
+    await applyProjectItems(board, [related(child, parentNode), related(parent, null)])
+
+    // Created in page order: the child is new-0, its parent new-1.
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 'new-0' }, data: { parentTaskId: 'new-1' } })
+    expect(db.task.findMany).toHaveBeenCalledTimes(1) // both ends were on the page: no extra read
+  })
+
+  it('a blocker mirrored by another board is found with ONE extra read and becomes a TaskDependency', async () => {
+    db.task.findMany
+      .mockResolvedValueOnce([{ ...mirrored(child, 't-child'), _count: { blockedBy: 0, lists: 0, fieldValues: 0 } }])
+      .mockResolvedValueOnce([{ id: 't-elsewhere', remoteNodeId: 'I_elsewhere' }])
+    db.gitHubProjectItem.findMany.mockResolvedValue(members(child))
+
+    await applyProjectItems(board, [related(child, null, ['I_elsewhere', 'I_not_mirrored'])])
+
+    expect(db.task.findMany).toHaveBeenCalledTimes(2)
+    expect(db.task.findMany.mock.calls[1][0]).toEqual({
+      where: { remoteNodeId: { in: ['I_elsewhere', 'I_not_mirrored'] } },
+      select: { id: true, remoteNodeId: true },
+    })
+    expect(db.taskDependency.createMany).toHaveBeenCalledWith({
+      data: [{ blockedTaskId: 't-child', blockingTaskId: 't-elsewhere' }],
+      skipDuplicates: true,
+    })
+    expect(db.taskDependency.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it('a cycle from GitHub is written as it stands — no 409, both directions kept', async () => {
+    replicas([mirrored(parent, 't-a', { blockers: ['t-b'] }), mirrored(child, 't-b')])
+    db.gitHubProjectItem.findMany.mockResolvedValue(members(parent, child))
+
+    await applyProjectItems(board, [related(parent, null, [childNode]), related(child, null, [parentNode])])
+
+    expect(db.taskDependency.createMany).toHaveBeenCalledWith({
+      data: [{ blockedTaskId: 't-b', blockingTaskId: 't-a' }],
+      skipDuplicates: true,
+    })
+    expect(db.taskDependency.deleteMany).not.toHaveBeenCalled()
+  })
+
+  it('a dependency removed on GitHub is removed here; a sub-issue detached there is detached here', async () => {
+    replicas([mirrored(child, 't-child', { parentTaskId: 't-parent', parentNode, blockers: ['t-old'] })])
+    db.gitHubProjectItem.findMany.mockResolvedValue(members(child))
+
+    await applyProjectItems(board, [related(child, null)])
+
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 't-child' }, data: { parentTaskId: null } })
+    expect(db.taskDependency.deleteMany).toHaveBeenCalledWith({
+      where: { blockedTaskId: 't-child', blockingTaskId: { in: ['t-old'] } },
+    })
+  })
+
+  it('reads only MIRRORED blockers back, so a blocker on a local Astrid task is never GitHub’s to remove', async () => {
+    replicas([mirrored(child, 't-child', { blockers: ['t-old'] })])
+    db.gitHubProjectItem.findMany.mockResolvedValue(members(child))
+
+    await applyProjectItems(board, [related(child, null)])
+
+    const mirroredOnly = { blockingTask: { remoteNodeId: { not: null } } }
+    // Counted in the replica read, read only for a task that holds some (AWTD-1297).
+    expect(db.task.findMany.mock.calls[0][0].select._count.select.blockedBy).toEqual({ where: mirroredOnly })
+    expect(db.task.findMany.mock.calls[1][0]).toMatchObject({
+      where: { id: { in: ['t-child'] } },
+      select: { blockedBy: { where: mirroredOnly, select: { blockingTaskId: true } } },
+    })
+  })
+
+  it('a task holding no blockers and no mirrored lists costs no second read (AWTD-1297)', async () => {
+    replicas([mirrored(child, 't-child')])
+    db.gitHubProjectItem.findMany.mockResolvedValue(members(child))
+
+    await applyProjectItems(board, [related(child, null)])
+
+    expect(db.task.findMany).toHaveBeenCalledTimes(1)
+    expect(db.task.findMany.mock.calls[0][0].select).not.toHaveProperty('blockedBy')
+    expect(db.task.findMany.mock.calls[0][0].select).not.toHaveProperty('lists')
+  })
+
+  it('a page with no relationships costs no extra read and no relationship write', async () => {
+    replicas(items.map((item, i) => mirrored(item, `t${i}`)))
+    db.gitHubProjectItem.findMany.mockResolvedValue(members(...items))
+
+    await applyProjectItems(board, items.map(item => (item.content?.__typename === 'Issue' ? related(item, null) : item)))
+
+    expect(db.task.findMany).toHaveBeenCalledTimes(1)
+    expect(db.$transaction).not.toHaveBeenCalled()
+  })
+})
+
+type Label = { id: string; name: string; color: string }
+
+/** `item` with GitHub labels (the fragment's AWTD-1188 field). */
+function labelled(item: RemoteProjectItem, labels: Label[], totalCount = labels.length): RemoteProjectItem {
+  return { ...item, content: { ...item.content!, labels: { totalCount, nodes: labels } } }
+}
+
+describe('applyProjectItems — labels become label lists (AWTD-1188)', () => {
+  const [issue] = items
+  const bug: Label = { id: 'LA_bug', name: 'bug', color: 'D73A4A' }
+  const docs: Label = { id: 'LA_docs', name: 'documentation', color: '0075CA' }
+  const bugList = { id: 'label-bug', remoteNodeId: 'LA_bug', name: 'bug', color: '#d73a4a' }
+  const docsList = { id: 'label-docs', remoteNodeId: 'LA_docs', name: 'documentation', color: '#0075ca' }
+  const member = [{ itemNodeId: issue.id, archived: false }]
+  /**
+   * The issue as already mirrored, carrying these label lists.
+   *
+   * `listType` is part of the row because the replica read covers both mirrored
+   * flavors since AWTD-1189 — one query for labels and milestones, each pass
+   * filtering to its own. A row without it is a row `applyLabels` does not count
+   * as held, and the task is re-joined to a label it already carries.
+   *
+   * `name` and `color` are part of it since AWTD-1315, because `applyLabels`
+   * now checks drift against the held row instead of re-reading it. A held row
+   * without them looks like a list whose name has changed to `undefined`, and
+   * the pass dutifully "corrects" it.
+   */
+  const carrying = (...lists: Array<{ id: string; remoteNodeId: string; name?: string; color?: string }>) => ({
+    ...replicaOf(issue, 't0'),
+    lists: lists.map(list => ({ listType: 'label', description: null, ...list })),
+  })
+
+  /**
+   * The by-NODE lookups only — `where: { remoteNodeId: { in: [...] } }`.
+   *
+   * Since AWTD-1315 the HELD read is a `taskList.findMany` too (filtered by
+   * `tasks`, one statement instead of the three an implicit many-to-many cost),
+   * so "no list read" has to be stated as "no lookup" or it just asserts that
+   * the optimisation was not made.
+   */
+  const nodeLookups = () =>
+    db.taskList.findMany.mock.calls.filter(
+      call => (call[0] as { where?: { tasks?: unknown } } | undefined)?.where?.tasks === undefined,
+    )
+
+  it('a label nobody has seen becomes a label list for its repo, and the new task joins it', async () => {
+    lookup([], [bugList])
+
+    await applyProjectItems(board, [labelled(issue, [bug])])
+
+    expect(db.taskList.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          name: 'bug',
+          color: '#d73a4a',
+          description: 'Graceful-Fools/wordlesolver',
+          ownerId: 'user-1',
+          listType: 'label',
+          remoteNodeId: 'LA_bug',
+        },
+      ],
+      // Two jobs meeting the same new label make one list: the node id is unique.
+      skipDuplicates: true,
+    })
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 'new-0' }, data: { lists: { connect: [{ id: 'label-bug' }] } } })
+  })
+
+  it('a known label costs ONE read for the page: no create, the task joins the list that exists', async () => {
+    replicas([carrying()])
+    db.gitHubProjectItem.findMany.mockResolvedValue(member)
+    lookup([bugList])
+
+    await applyProjectItems(board, [labelled(issue, [bug])])
+
+    expect(db.taskList.findMany).toHaveBeenCalledTimes(1)
+    expect(db.taskList.findMany.mock.calls[0][0].where).toEqual({ remoteNodeId: { in: ['LA_bug'] } })
+    expect(db.taskList.createMany).not.toHaveBeenCalled()
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 't0' }, data: { lists: { connect: [{ id: 'label-bug' }] } } })
+  })
+
+  it('a label removed on GitHub is left here, in the same write that joins the one added', async () => {
+    replicas([carrying(bugList)])
+    db.gitHubProjectItem.findMany.mockResolvedValue(member)
+    lookup([docsList])
+
+    await applyProjectItems(board, [labelled(issue, [docs])])
+
+    expect(db.task.update).toHaveBeenCalledWith({
+      where: { id: 't0' },
+      data: { lists: { connect: [{ id: 'label-docs' }], disconnect: [{ id: 'label-bug' }] } },
+    })
+  })
+
+  it('the last label removed on GitHub needs no list LOOKUP at all', async () => {
+    replicas([carrying(bugList)])
+    db.gitHubProjectItem.findMany.mockResolvedValue(member)
+
+    await applyProjectItems(board, [labelled(issue, [])])
+
+    // Nothing is `seen`, so there is nothing to look up by node id. Since
+    // AWTD-1315 the HELD read is itself a taskList.findMany — one statement
+    // instead of the three an implicit many-to-many cost — so the assertion is
+    // on the lookup's shape, not on the model being untouched.
+    expect(nodeLookups()).toEqual([])
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 't0' }, data: { lists: { disconnect: [{ id: 'label-bug' }] } } })
+  })
+
+  it('more labels than were read: the task joins what it was shown and leaves nothing', async () => {
+    replicas([carrying(docsList)])
+    db.gitHubProjectItem.findMany.mockResolvedValue(member)
+    lookup([bugList])
+
+    await applyProjectItems(board, [labelled(issue, [bug], 25)])
+
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 't0' }, data: { lists: { connect: [{ id: 'label-bug' }] } } })
+  })
+
+  it('a label renamed on GitHub renames its list; the memberships are untouched', async () => {
+    replicas([carrying(bugList)])
+    db.gitHubProjectItem.findMany.mockResolvedValue(member)
+    lookup([bugList])
+
+    await applyProjectItems(board, [labelled(issue, [{ ...bug, name: 'defect' }])])
+
+    expect(db.taskList.update).toHaveBeenCalledWith({ where: { id: 'label-bug' }, data: { name: 'defect' } })
+    expect(db.task.update).not.toHaveBeenCalled()
+  })
+
+  it('labels that already agree write nothing', async () => {
+    replicas([carrying(bugList)])
+    db.gitHubProjectItem.findMany.mockResolvedValue(member)
+    lookup([bugList])
+
+    expect(await applyProjectItems(board, [labelled(issue, [bug])])).toMatchObject({ unchanged: 1 })
+    expect(db.$transaction).not.toHaveBeenCalled()
+  })
+
+  it('an archived item’s labels are left as they are', async () => {
+    replicas([carrying(bugList)])
+
+    await applyProjectItems(board, [{ ...labelled(issue, []), isArchived: true }])
+
+    expect(nodeLookups()).toEqual([])
+    expect(db.task.update).not.toHaveBeenCalled()
+  })
+
+  it('reads back only GITHUB label lists, so an Astrid label on a mirrored task is never GitHub’s to remove', async () => {
+    replicas([carrying(bugList)])
+
+    await applyProjectItems(board, [labelled(issue, [])])
+
+    const mirroredOnly = { listType: { in: ['label', 'milestone', 'iteration'] }, remoteNodeId: { not: null } }
+    // Counted in the replica read, read only for a task that holds some (AWTD-1297).
+    expect(db.task.findMany.mock.calls[0][0].select._count.select.lists).toEqual({ where: mirroredOnly })
+
+    // ONE task holding lists reads TaskList directly (AWTD-1315): the same
+    // mirrored-only filter, plus the task as a filter rather than a relation to
+    // traverse, which is one statement instead of three.
+    const [heldRead] = db.taskList.findMany.mock.calls.filter(
+      call => (call[0] as { where?: { tasks?: unknown } } | undefined)?.where?.tasks !== undefined,
+    )
+    expect(heldRead[0].where).toEqual({ ...mirroredOnly, tasks: { some: { id: 't0' } } })
+    expect(heldRead[0].select).toEqual({
+      // Every mirrored flavor in one read (AWTD-1189, AWTD-1230), with
+      // `listType` so each pass tells its own memberships from the other's, and
+      // name/colour/description so it can check drift without re-reading
+      // (AWTD-1315).
+      id: true,
+      remoteNodeId: true,
+      listType: true,
+      name: true,
+      color: true,
+      description: true,
+    })
+  })
+
+  it('AWTD-1315: TWO tasks holding lists keep the one grouped read, not one read each', async () => {
+    // The single-task shortcut must not become a per-task query — that would
+    // trade three statements for N. The grouped read via Task is still right
+    // when there is more than one task, or when blockers are held too.
+    const second = { ...replicaOf(items[1], 't1'), lists: [{ id: 'label-docs', remoteNodeId: 'LA_docs', listType: 'label', name: 'documentation', color: '#0075ca', description: null }] }
+    replicas([carrying(bugList), second])
+    db.gitHubProjectItem.findMany.mockResolvedValue([
+      { itemNodeId: issue.id, archived: false },
+      { itemNodeId: items[1].id, archived: false },
+    ])
+
+    await applyProjectItems(board, [labelled(issue, []), labelled(items[1], [])])
+
+    const grouped = db.task.findMany.mock.calls.filter(
+      call => (call[0] as { select?: { lists?: unknown } } | undefined)?.select?.lists,
+    )
+    expect(grouped).toHaveLength(1)
+    expect(grouped[0][0].where).toEqual({ id: { in: ['t0', 't1'] } })
+    expect(
+      db.taskList.findMany.mock.calls.filter(
+        call => (call[0] as { where?: { tasks?: unknown } } | undefined)?.where?.tasks !== undefined,
+      ),
+    ).toEqual([])
+  })
+
+  it('a page with no labels costs no label read and no label write', async () => {
+    replicas(items.map((item, i) => replicaOf(item, `t${i}`)))
+    db.gitHubProjectItem.findMany.mockResolvedValue(items.map(item => ({ itemNodeId: item.id, archived: false })))
+
+    await applyProjectItems(board, items.map(item => (item.content?.__typename === 'Issue' ? labelled(item, []) : item)))
+
+    expect(db.taskList.findMany).not.toHaveBeenCalled()
+    expect(db.$transaction).not.toHaveBeenCalled()
+  })
+})
+
+/** `item` with GitHub assignees (the fragment's AWTD-1190 field). */
+function assignedTo(item: RemoteProjectItem, nodeIds: string[]): RemoteProjectItem {
+  return { ...item, content: { ...item.content!, assignees: { nodes: nodeIds.map(id => ({ id })) } } }
+}
+
+describe('applyProjectItems — GitHub’s assignees become assigneeIds (AWTD-1190)', () => {
+  const [issue] = items
+  const member = [{ itemNodeId: issue.id, archived: false }]
+  const ada = { id: 'user-ada', githubNodeId: 'U_ada' }
+  const bob = { id: 'user-bob', githubNodeId: 'U_bob' }
+  /** The issue as already mirrored, assigned to these people. */
+  const heldBy = (assigneeIds: string[], isAIAgent = false) => ({
+    ...replicaOf(issue, 't0'),
+    assigneeId: assigneeIds[0] ?? null,
+    assigneeIds,
+    assignee: assigneeIds.length > 0 ? { isAIAgent } : null,
+  })
+  const assigneeWrites = () =>
+    db.task.update.mock.calls.map(([args]) => args as { data: Record<string, unknown> }).filter(args => 'assigneeIds' in args.data)
+
+  beforeEach(() => {
+    db.gitHubProjectItem.findMany.mockResolvedValue(member)
+  })
+
+  it('everyone GitHub names who has an Astrid identity is assigned, the first as primary', async () => {
+    replicas([heldBy([])])
+    db.user.findMany.mockResolvedValue([ada, bob])
+
+    await applyProjectItems(board, [assignedTo(issue, ['U_bob', 'U_stranger', 'U_ada'])])
+
+    expect(db.user.findMany).toHaveBeenCalledWith({
+      where: { githubNodeId: { in: ['U_bob', 'U_stranger', 'U_ada'] } },
+      select: { id: true, githubNodeId: true },
+    })
+    expect(assigneeWrites()).toEqual([
+      { where: { id: 't0' }, data: { assigneeId: 'user-bob', assigneeIds: ['user-bob', 'user-ada'] } },
+    ])
+  })
+
+  it('someone unassigned on GitHub is unassigned here, and the next person becomes primary', async () => {
+    replicas([heldBy(['user-ada', 'user-bob'])])
+    db.user.findMany.mockResolvedValue([bob])
+
+    await applyProjectItems(board, [assignedTo(issue, ['U_bob'])])
+
+    expect(assigneeWrites()).toEqual([{ where: { id: 't0' }, data: { assigneeId: 'user-bob', assigneeIds: ['user-bob'] } }])
+  })
+
+  it('assignees that already agree write nothing, whatever order GitHub lists them in', async () => {
+    replicas([heldBy(['user-ada', 'user-bob'])])
+    db.user.findMany.mockResolvedValue([ada, bob])
+
+    await applyProjectItems(board, [assignedTo(issue, ['U_bob', 'U_ada'])])
+
+    expect(db.$transaction).not.toHaveBeenCalled()
+  })
+
+  it('an agent assigned in Astrid stays assigned: GitHub never names one', async () => {
+    replicas([heldBy(['ai-agent-claude'], true)])
+
+    await applyProjectItems(board, [assignedTo(issue, [])])
+
+    expect(db.user.findMany).not.toHaveBeenCalled()
+    expect(db.$transaction).not.toHaveBeenCalled()
+  })
+
+  it('an item hydrated without the field leaves its assignees alone', async () => {
+    replicas([heldBy(['user-ada'])])
+
+    const { assignees: _assignees, ...content } = issue.content!
+    await applyProjectItems(board, [{ ...issue, content }])
+
+    expect(db.$transaction).not.toHaveBeenCalled()
+  })
+})
+
+describe('bindGitHubProject (AWTD-1151)', () => {
+  it('creates a keyless project in the installation, its github_project list, and the binding', async () => {
+    db.gitHubProjectBinding.findUnique.mockResolvedValue(null)
+    db.project.create.mockResolvedValue({ id: 'proj-1' })
+    db.taskList.create.mockResolvedValue({ id: 'list-1' })
+
+    const result = await bindGitHubProject({ userId: 'user-1', installationId: 169651419, schema, proposal: proposeBinding(schema) })
+
+    expect(result).toEqual({ ok: true, projectId: 'proj-1', listId: 'list-1' })
+    const project = db.project.create.mock.calls[0][0].data
+    expect(project).toMatchObject({ name: 'Graceful-Tools Test', ownerId: 'user-1', githubInstallationId: 169651419 })
+    expect(project).not.toHaveProperty('key')
+    expect(db.taskList.create.mock.calls[0][0].data).toMatchObject({ projectId: 'proj-1', backend: 'github_project', ownerId: 'user-1' })
+    expect(db.gitHubProjectBinding.create.mock.calls[0][0].data).toMatchObject({
+      projectId: 'proj-1',
+      projectNodeId: 'PVT_kwDOFEb-HM4BmXS2',
+      number: 2,
+      statusFieldId: 'PVTSSF_lADOFEb-HM4BmXS2zhlApMc',
+    })
+  })
+
+  it('a project already bound is a 409 pointing at its board, not a second board', async () => {
+    db.gitHubProjectBinding.findUnique.mockResolvedValue({ projectId: 'existing' })
+
+    expect(
+      await bindGitHubProject({ userId: 'user-1', installationId: 1, schema, proposal: proposeBinding(schema) }),
+    ).toEqual({ ok: false, status: 409, error: 'already_bound', projectId: 'existing' })
+    expect(db.project.create).not.toHaveBeenCalled()
+  })
+})
+
+type Milestone = { id: string; title: string; dueOn: string | null }
+
+/** `item` with a GitHub milestone (the fragment's AWTD-1189 field). */
+function withMilestone(item: RemoteProjectItem, milestone: Milestone | null): RemoteProjectItem {
+  return { ...item, content: { ...item.content!, milestone } }
+}
+
+describe('applyProjectItems — milestones become milestone lists (AWTD-1189)', () => {
+  const [issue] = items
+  const v12: Milestone = { id: 'MI_v12', title: 'v1.2', dueOn: '2026-11-01T07:00:00Z' }
+  const v13: Milestone = { id: 'MI_v13', title: 'v1.3', dueOn: null }
+  const v12List = { id: 'ms-v12', remoteNodeId: 'MI_v12', name: 'v1.2', description: 'Graceful-Fools/wordlesolver · 2026-11-01' }
+  const v13List = { id: 'ms-v13', remoteNodeId: 'MI_v13', name: 'v1.3', description: 'Graceful-Fools/wordlesolver' }
+
+  /** The issue as already mirrored, carrying these milestone lists. */
+  const carrying = (...lists: Array<{ id: string; remoteNodeId: string }>) => ({
+    ...replicaOf(issue, 't0'),
+    lists: lists.map(({ id, remoteNodeId }) => ({ id, remoteNodeId, listType: 'milestone' })),
+  })
+
+  beforeEach(() => {
+    db.gitHubProjectItem.findMany.mockResolvedValue([{ itemNodeId: issue.id, archived: false }])
+  })
+
+  it('a milestone nobody has seen becomes a milestone list, and the task joins it', async () => {
+    replicas([replicaOf(issue, 't0')])
+    lookup([], [v12List])
+
+    await applyProjectItems(board, [withMilestone(issue, v12)])
+
+    expect(db.taskList.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          name: 'v1.2',
+          color: '#64748b',
+          description: 'Graceful-Fools/wordlesolver · 2026-11-01',
+          ownerId: board.ownerId,
+          listType: 'milestone',
+          remoteNodeId: 'MI_v12',
+        },
+      ],
+      skipDuplicates: true,
+    })
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 't0' }, data: { lists: { connect: [{ id: 'ms-v12' }] } } })
+  })
+
+  it('MOVING between milestones leaves the old list — the one way this is not a label', async () => {
+    // A set-valued label plan would connect v1.3 and leave v1.2 on the task
+    // forever, because nothing else ever removes a milestone.
+    replicas([carrying(v12List)])
+    lookup([v13List])
+
+    await applyProjectItems(board, [withMilestone(issue, v13)])
+
+    expect(db.task.update).toHaveBeenCalledWith({
+      where: { id: 't0' },
+      data: { lists: { connect: [{ id: 'ms-v13' }], disconnect: [{ id: 'ms-v12' }] } },
+    })
+  })
+
+  it('a milestone CLEARED on GitHub takes the task off its milestone list', async () => {
+    replicas([carrying(v12List)])
+
+    await applyProjectItems(board, [withMilestone(issue, null)])
+
+    expect(db.task.update).toHaveBeenCalledWith({ where: { id: 't0' }, data: { lists: { disconnect: [{ id: 'ms-v12' }] } } })
+  })
+
+  it('a milestone that already agrees writes nothing', async () => {
+    replicas([carrying(v12List)])
+    lookup([v12List])
+
+    expect(await applyProjectItems(board, [withMilestone(issue, v12)])).toMatchObject({ unchanged: 1 })
+    expect(db.task.update).not.toHaveBeenCalled()
+  })
+
+  it('a milestone renamed or re-dated on GitHub updates its list, leaving memberships alone', async () => {
+    replicas([carrying(v12List)])
+    lookup([v12List])
+
+    await applyProjectItems(board, [withMilestone(issue, { ...v12, title: 'v1.2.1', dueOn: '2026-12-01T07:00:00Z' })])
+
+    expect(db.taskList.update).toHaveBeenCalledWith({
+      where: { id: 'ms-v12' },
+      data: { name: 'v1.2.1', description: 'Graceful-Fools/wordlesolver · 2026-12-01' },
+    })
+    expect(db.task.update).not.toHaveBeenCalled()
+  })
+
+  it('a LABEL membership is never mistaken for a milestone one', async () => {
+    // Both flavors ride the same replica read, so the milestone pass must
+    // filter by listType. Reading a label list as "a milestone the task holds"
+    // would disconnect the label on the next hydration.
+    //
+    // The item KEEPS its label here, so `applyLabels` has nothing to write and
+    // any membership write at all would be the milestone pass overreaching.
+    const bugLabel = { id: 'LA_bug', name: 'bug', color: 'D73A4A' }
+    replicas([
+      { ...replicaOf(issue, 't0'), lists: [{ id: 'label-bug', remoteNodeId: 'LA_bug', listType: 'label' }] },
+    ])
+    lookup([{ id: 'label-bug', remoteNodeId: 'LA_bug', name: 'bug', color: '#d73a4a' }])
+
+    await applyProjectItems(board, [withMilestone(labelled(issue, [bugLabel]), null)])
+
+    expect(db.task.update).not.toHaveBeenCalled()
+  })
+
+  it('an archived item’s milestone is left as it is', async () => {
+    replicas([carrying(v12List)])
+
+    await applyProjectItems(board, [{ ...withMilestone(issue, null), isArchived: true }])
+
+    // An archived item still LEAVES THE BOARD — that write is the archive
+    // handling and is not this pass's. What must not happen is its milestone
+    // being taken off, which would make an archive look like a milestone change.
+    const milestoneWrites = db.task.update.mock.calls.filter(call =>
+      JSON.stringify((call as unknown[])[0] ?? {}).includes('ms-v12'),
+    )
+    expect(milestoneWrites).toEqual([])
+    expect(db.taskList.createMany).not.toHaveBeenCalled()
+  })
+
+  it('hands each task’s held ITERATION lists — and only those — to the iteration pass (AWTD-1230)', async () => {
+    const sprint = { id: 'it-list', remoteNodeId: 'PVTIF_sprint:it-41', listType: 'iteration' }
+    replicas([{ ...carrying(v12List), lists: [...carrying(v12List).lists, sprint] }])
+
+    await applyProjectItems(board, [withMilestone(issue, v12)])
+
+    // With the field pass's result, so it reads neither schema nor values again (AWTD-1297).
+    expect(iterations.applyIterationLists).toHaveBeenCalledWith(board, [{ taskId: 't0', held: [sprint] }], {
+      changed: false,
+      fields: null,
+      values: new Map(),
+    })
+  })
+
+  it('a draft issue carries no milestone and costs no milestone read', async () => {
+    const draft = items.find(item => item.content?.__typename === 'DraftIssue')!
+    db.gitHubProjectItem.findMany.mockResolvedValue([{ itemNodeId: draft.id, archived: false }])
+    replicas([replicaOf(draft, 't9')])
+
+    await applyProjectItems(board, [draft])
+
+    expect(db.taskList.createMany).not.toHaveBeenCalled()
+    expect(db.task.update).not.toHaveBeenCalled()
+  })
+})

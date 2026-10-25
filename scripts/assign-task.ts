@@ -18,6 +18,10 @@
 export {}
 
 import { loadScriptEnv } from './lib/load-env'
+// Who is MAKING the assignment (AWTD-1311). The PUT emits an activity line —
+// "<name> reassigned from Unassigned to Jon Paris" — and the unsigned version
+// of it is the row on AWTD-1305 that put Jon's name on the loop's handback.
+import { agentSignature, positionalArgs } from './lib/agent-author'
 
 loadScriptEnv()
 
@@ -37,9 +41,9 @@ function peopleOn(list: Record<string, unknown>): Person[] {
 }
 
 async function main() {
-  const [taskId, emailArg] = process.argv.slice(2)
+  const [taskId, emailArg] = positionalArgs()
   if (!taskId || !emailArg) {
-    console.error('Usage: npx tsx scripts/assign-task.ts <taskId> <email>')
+    console.error('Usage: npx tsx scripts/assign-task.ts <taskId> <email> [--agent <mailbox>]')
     process.exit(1)
   }
   const email = emailArg.toLowerCase()
@@ -103,7 +107,7 @@ async function main() {
   const put = await fetch(`${API}/api/v1/tasks/${taskId}`, {
     method: 'PUT',
     headers: auth,
-    body: JSON.stringify({ assigneeId: match.id }),
+    body: JSON.stringify({ assigneeId: match.id, ...(await agentSignature(token)) }),
   })
   if (!put.ok) {
     console.error('❌ Assignment failed:', put.status, await put.text())

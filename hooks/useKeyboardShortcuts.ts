@@ -113,10 +113,19 @@ export function useKeyboardShortcuts({
       return
     }
 
-    const isShiftPressed = event.shiftKey
+    const isArrowKey = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(key)
 
-    // Ignore if modifier keys are pressed (except for arrow keys and specific combinations)
-    if ((isCtrlPressed || isShiftPressed) && !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(key)) {
+    // Ignore Ctrl/Cmd combos (except arrows) so browser/OS shortcuts pass through.
+    if (isCtrlPressed && !isArrowKey) {
+      return
+    }
+
+    // Shift blocks letters (Shift+N etc. pass through) and named keys like Delete. A shifted
+    // printable symbol is matched on event.key, the character actually typed — "?" is
+    // Shift+/ on a US layout, so blocking every shifted key made the hotkey menu
+    // unreachable (AWTD-1349).
+    const isShiftedPrintableSymbol = key.length === 1 && !/^[a-z]$/i.test(key)
+    if (event.shiftKey && !isArrowKey && !isShiftedPrintableSymbol) {
       return
     }
 

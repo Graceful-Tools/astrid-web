@@ -115,8 +115,11 @@
     "ask": [
       // Operations that require user confirmation
       "Bash(npm publish *)",                 // Package publishing
-      "Bash(git push origin main)",          // Main branch pushes
-      "Bash(git push origin master)",        // Master branch pushes
+      // Pushing `main` is NOT a production deploy and must never be gated here:
+      // production-deployment.yml is workflow_dispatch-only (#204), so a push
+      // ships nothing, and CLAUDE.md rule 3 requires pushing without asking.
+      // An `ask` entry beats the `Bash(git *)` allow and silently strands every
+      // scheduled run's work on local main (AWTD-978).
       "Bash(npx prisma migrate reset *)",    // Destructive database operations
       "Bash(npx prisma db push --force-reset *)" // Destructive database operations
     ]

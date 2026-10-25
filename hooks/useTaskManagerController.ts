@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
+import { shouldOpenCreatedTask, type CreateTaskOptions } from '@/hooks/task-manager/create-task-options'
 import { unwrapTask, unwrapList } from '@/lib/v1-response'
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
@@ -18,7 +19,7 @@ import { useUserSettings } from "@/hooks/useUserSettings"
 import { useOptimisticListInfo } from "@/hooks/use-optimistic-list-info"
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete, refusalReason } from "@/lib/api"
 import { applyVirtualListFilter, getListDisplayInfo } from "@/lib/virtual-list-utils"
-import { getColumnCount, getLayoutType } from "@/lib/layout-detection"
+import { getColumnCount } from "@/lib/layout-detection"
 import {
   parseTaskInput,
   getTaskCountForList,
@@ -35,6 +36,8 @@ import { preloadUserAvatars } from "@/lib/image-cache"
 
 // Import composable hooks
 import { canUserManageList } from "@/lib/list-permissions"
+import { v1TaskUpdateBody } from "@/lib/tasks/v1-task-update-body"
+import { postponeTaskDueDate, shiftTaskDueDate } from "@/lib/date-comparison"
 import {
   useTaskListState,
   useTaskNavigation,
@@ -395,20 +398,8 @@ export function useTaskManagerController({
   const newTaskOperations = useTaskOperations({
     session: effectiveSession,
     onTaskCreated: (task) => {
+      // Opening it is the caller's choice — see handleCreateTask (AWTD-1351).
       listState.setTasks(prev => [task, ...prev])
-
-      const shouldAutoOpen = getColumnCount() >= 2
-      if (shouldAutoOpen) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[useTaskManagerController] onTaskCreated - auto-opening task detail for multi-column layout:', {
-            taskId: task.id,
-            taskTitle: task.title,
-            columnCount: getColumnCount(),
-            layoutType: getLayoutType()
-          })
-        }
-        setSelectedTaskId(task.id)
-      }
 
       toast({
         title: "Task created",
@@ -603,13 +594,7 @@ export function useTaskManagerController({
       })
 
       try {
-        const apiData = {
-          ...updatedTask,
-          listIds: updatedTask.lists?.map(list => list.id) || [],
-          assigneeId: updatedTask.assignee?.id || null
-        }
-        delete (apiData as any).lists
-        delete (apiData as any).assignee
+        const apiData = v1TaskUpdateBody(updatedTask, originalTask)
 
         const response = await apiPut(`/api/v1/tasks/${updatedTask.id}`, apiData)
         const realUpdatedTask = unwrapTask<Task>(await response.json())
@@ -726,7 +711,7 @@ export function useTaskManagerController({
 
   const handleCreateTask = useCallback(async (
     taskTitle: string,
-    options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[]; statusRole?: string }
+    options?: CreateTaskOptions
   ): Promise<string | null> => {
     if (!effectiveSession?.user || !taskTitle.trim() || isCreatingTask) {
       return null
@@ -781,8 +766,8 @@ export function useTaskManagerController({
         repeating: defaults.repeating,
         isPrivate: defaults.isPrivate,
         customRepeatingData: parsedTask.customRepeatingData || null,
-        // Board column at creation — a role, resolved by the board (task eb7fce2f).
         statusRole: options?.statusRole,
+        parentTaskId: options?.parentTaskId ?? undefined,
       }
 
       toast({
@@ -792,7 +777,12 @@ export function useTaskManagerController({
       })
 
       const apiTaskData = mapTaskDataForApi(taskDataWithDefaults)
-      await newTaskOperations.createTask(apiTaskData)
+      const created = await newTaskOperations.createTask(apiTaskData)
+
+      // Through the click path, so the selection and `?task=` agree (AWTD-1351).
+      if (created && shouldOpenCreatedTask(options, getColumnCount())) {
+        handleTaskClick(created.id)
+      }
 
       return null
 
@@ -808,12 +798,9 @@ export function useTaskManagerController({
     } finally {
       setIsCreatingTask(false)
     }
-  }, [effectiveSession, navigationState.selectedListId, listState.lists, newTaskOperations, toast, isCreatingTask, myTasksPreferences.filters.priority, myTasksPreferences.filters.dueDate, smartTaskCreationEnabled])
+  }, [effectiveSession, navigationState.selectedListId, listState.lists, newTaskOperations, toast, isCreatingTask, myTasksPreferences.filters.priority, myTasksPreferences.filters.dueDate, smartTaskCreationEnabled, handleTaskClick])
 
-  const handleQuickCreateTask = useCallback(async (
-    title: string,
-    options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[]; statusRole?: string }
-  ): Promise<string | null> => {
+  const handleQuickCreateTask = useCallback(async (title: string, options?: CreateTaskOptions): Promise<string | null> => {
     try {
       await handleCreateTask(title, options)
       return null
@@ -1366,15 +1353,12 @@ export function useTaskManagerController({
 
   const handlePostponeTask = useCallback(async () => {
     if (!selectedTask) return
-    const newDueDate = new Date()
-    newDueDate.setDate(newDueDate.getDate() + 7)
-    const updatedTask = { ...selectedTask, dueDate: newDueDate }
-    await handleUpdateTask(updatedTask)
+    await handleUpdateTask({ ...selectedTask, ...postponeTaskDueDate(selectedTask.dueDateTime, !!selectedTask.isAllDay) })
   }, [selectedTask, handleUpdateTask])
 
   const handleRemoveDueDate = useCallback(async () => {
     if (!selectedTask) return
-    const updatedTask = { ...selectedTask, dueDate: null }
+    const updatedTask = { ...selectedTask, dueDateTime: null, isAllDay: false }
     await handleUpdateTask(updatedTask)
   }, [selectedTask, handleUpdateTask])
 
@@ -1386,18 +1370,12 @@ export function useTaskManagerController({
 
   const handleMakeDueDateEarlier = useCallback(async () => {
     if (!selectedTask) return
-    const currentDate = selectedTask.dueDate ? new Date(selectedTask.dueDate) : new Date()
-    currentDate.setDate(currentDate.getDate() - 1)
-    const updatedTask = { ...selectedTask, dueDate: currentDate }
-    await handleUpdateTask(updatedTask)
+    await handleUpdateTask({ ...selectedTask, ...shiftTaskDueDate(selectedTask.dueDateTime, !!selectedTask.isAllDay, -1) })
   }, [selectedTask, handleUpdateTask])
 
   const handleMakeDueDateLater = useCallback(async () => {
     if (!selectedTask) return
-    const currentDate = selectedTask.dueDate ? new Date(selectedTask.dueDate) : new Date()
-    currentDate.setDate(currentDate.getDate() + 1)
-    const updatedTask = { ...selectedTask, dueDate: currentDate }
-    await handleUpdateTask(updatedTask)
+    await handleUpdateTask({ ...selectedTask, ...shiftTaskDueDate(selectedTask.dueDateTime, !!selectedTask.isAllDay, 1) })
   }, [selectedTask, handleUpdateTask])
 
   const handleEditTaskLists = useCallback(() => {

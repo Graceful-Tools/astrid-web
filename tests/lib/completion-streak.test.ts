@@ -10,9 +10,25 @@ import { describe, it, expect } from 'vitest'
 import {
   foldCompletionStreaks,
   isCompletionComment,
+  isSystemComment,
   describeStreak,
   MIN_STREAK_LENGTH,
 } from '@/lib/completion-streak'
+
+describe('isSystemComment — a GitHub comment by someone with no Astrid identity (AWTD-1283)', () => {
+  const at = '2026-10-20T15:02:11Z'
+  it('is a person’s comment, not a system line, so it is not hidden with them', () => {
+    expect(isSystemComment({ id: 'g', content: 'Reproduced', authorId: null, remoteAuthorLogin: 'octo', createdAt: at })).toBe(false)
+  })
+  it('a comment with no author and no login is still a system line', () => {
+    expect(isSystemComment({ id: 's', content: 'Jon marked this as complete', authorId: null, createdAt: at })).toBe(true)
+  })
+  it('and never folds into a completion streak, whatever it says', () => {
+    expect(
+      isCompletionComment({ id: 'g', content: 'octo marked this as complete', authorId: null, remoteAuthorLogin: 'octo', createdAt: at }),
+    ).toBe(false)
+  })
+})
 
 let seq = 0
 const completion = (overrides: Record<string, unknown> = {}) => ({

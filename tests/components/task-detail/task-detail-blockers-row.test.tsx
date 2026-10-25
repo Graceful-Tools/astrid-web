@@ -5,14 +5,20 @@
  * already waits on this one would close a cycle — 409), should put this
  * board's tasks first, and a blocker you can see is a way through to it.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
 import { TaskDetailBlockersRow } from '@/components/task-detail/TaskDetailBlockersRow'
 import { badgeVariants } from '@/components/ui/badge'
 import type { Task } from '@/types/task'
 
-const apiGet = vi.hoisted(() => vi.fn())
-vi.mock('@/lib/api', () => ({ apiGet, apiPost: vi.fn(), apiDelete: vi.fn() }))
+const { apiGet, apiPost } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn() }))
+vi.mock('@/lib/api', async importOriginal => ({
+  ApiError: (await importOriginal<typeof import('@/lib/api')>()).ApiError,
+  apiGet,
+  apiPost,
+  apiDelete: vi.fn(),
+}))
+const { ApiError } = await import('@/lib/api')
 
 const json = (body: unknown) => ({ json: async () => body })
 
@@ -22,6 +28,13 @@ const TASK = {
   statusRole: 'waiting',
   lists: [{ id: 'board', name: 'Board' }],
 } as unknown as Task
+
+// Unmount, then let the row's deferred forget run, so an open picker from one
+// test is not taken for a remount by the next (AWTD-1276).
+afterEach(async () => {
+  cleanup()
+  await new Promise(resolve => setTimeout(resolve, 0))
+})
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -79,6 +92,44 @@ describe('TaskDetailBlockersRow (AWTD-1002)', () => {
   })
 })
 
+describe('TaskDetailBlockersRow without a board or a grant (AWTD-1039)', () => {
+  it('sends no /blockers request for a task that is not on a board', async () => {
+    const plain = { id: 'plain', title: 'Plain', statusRole: null, lists: [{ id: 'inbox' }] } as unknown as Task
+    const { container } = render(
+      <TaskDetailBlockersRow task={plain} availableLists={[{ id: 'inbox', name: 'Inbox' } as never]} readOnly={false} />
+    )
+
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(apiGet).not.toHaveBeenCalled()
+    expect(container.innerHTML).toBe('')
+  })
+
+  it('hides the row, rather than offering an Add that will be refused, when the server says not_granted', async () => {
+    apiGet.mockRejectedValue(
+      new ApiError('refused', 403, '/api/v1/tasks/self/blockers', { reason: 'not_granted' }, null)
+    )
+    const { container } = render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+
+    await waitFor(() => expect(apiGet).toHaveBeenCalledTimes(1))
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(container.innerHTML).toBe('')
+  })
+
+  it('says a refused cycle is a cycle — the reason ApiError carries in detail', async () => {
+    apiPost.mockRejectedValue(
+      new ApiError('conflict', 409, '/api/v1/tasks/self/blockers', { reason: 'dependency_cycle' }, null)
+    )
+    render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+    await screen.findByRole('link', { name: 'Visible blocker' })
+
+    fireEvent.click(screen.getByTestId('task-detail-add-blocker'))
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'ta' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Neighbour' }))
+
+    await screen.findByText('Those tasks would end up waiting for each other')
+  })
+})
+
 describe('TaskDetailBlockersRow design (AWTD-1007)', () => {
   it('marks the row with an inverted triangle — a yield sign — in the muted icon column', async () => {
     render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
@@ -105,5 +156,45 @@ describe('TaskDetailBlockersRow design (AWTD-1007)', () => {
     expect(chip.textContent).toContain('AWTD-1')
     // A hidden blocker says nothing about itself — not even its id.
     expect(screen.getByTestId('task-blocker-secret').textContent).not.toContain('secret')
+  })
+})
+
+describe('TaskDetailBlockersRow across a remount (AWTD-1276)', () => {
+  it('AWTD-1276: an open picker and its query survive the card moving to another column', async () => {
+    // Picking a blocker for a Ready card moves it to Waiting live; the board
+    // renders the expanded card inside its column, so the row remounts.
+    const first = render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+    await screen.findByRole('link', { name: 'Visible blocker' })
+    fireEvent.click(screen.getByTestId('task-detail-add-blocker'))
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'nei' } })
+    first.unmount()
+
+    render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+    await screen.findByRole('link', { name: 'Visible blocker' })
+    expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('nei')
+  })
+
+  it('AWTD-1276: closing the pane still closes the picker', async () => {
+    const first = render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+    await screen.findByRole('link', { name: 'Visible blocker' })
+    fireEvent.click(screen.getByTestId('task-detail-add-blocker'))
+    first.unmount()
+    await new Promise(resolve => setTimeout(resolve, 0)) // a real close, not a remount
+
+    render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+    await screen.findByRole('link', { name: 'Visible blocker' })
+    expect(screen.queryByRole('textbox')).toBeNull()
+  })
+
+  it('AWTD-1276: a closed picker stays closed after a remount', async () => {
+    const first = render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+    await screen.findByRole('link', { name: 'Visible blocker' })
+    fireEvent.click(screen.getByTestId('task-detail-add-blocker'))
+    fireEvent.click(screen.getByTestId('task-detail-add-blocker'))
+    first.unmount()
+
+    render(<TaskDetailBlockersRow task={TASK} availableLists={[]} readOnly={false} />)
+    await screen.findByRole('link', { name: 'Visible blocker' })
+    expect(screen.queryByRole('textbox')).toBeNull()
   })
 })

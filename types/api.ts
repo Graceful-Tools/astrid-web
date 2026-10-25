@@ -43,6 +43,7 @@ export interface UpdateTaskData {
   assigneeId?: string
   assigneeEmail?: string // For assigning to non-registered users
   localCompletionDate?: string // YYYY-MM-DD format, used for all-day repeating tasks with COMPLETION_DATE mode
+  timeZone?: string // IANA zone at completion: a timed repeating task steps on this calendar (AWTD-1063)
 }
 
 export interface CreateListData {

@@ -60,6 +60,37 @@ describe('parseBlockedConditions', () => {
     const conditions = parseBlockedConditions([{ content: 'just words', createdAt: '2026-08-01T00:00:00Z' }])
     expect(conditions.blockedBy).toEqual([])
     expect(conditions.blockedOn).toBeNull()
+    expect(conditions.awaitingDeploy).toBeNull()
+  })
+
+  // AWTD-1278: a scheduled run finishes work it cannot deploy, and records the
+  // commit production has to serve before the task is done.
+  it('AWTD-1278: reads AWAITING-DEPLOY as the commit sha to wait for', () => {
+    const conditions = parseBlockedConditions([
+      {
+        content: 'Finished; predeploy 16/16.\nAWAITING-DEPLOY: 9f3c2a1b7e4d (fix/awtd-1278-awaiting-deploy)',
+        createdAt: '2026-10-19T00:00:00Z',
+      },
+    ])
+    expect(conditions.awaitingDeploy).toBe('9f3c2a1b7e4d')
+    expect(conditions.blockedBy).toEqual([])
+    expect(conditions.blockedOn).toBeNull()
+  })
+
+  it('AWTD-1278: an AWAITING-DEPLOY line without a commit sha is not a marker', () => {
+    const conditions = parseBlockedConditions([
+      { content: 'AWAITING-DEPLOY: soon', createdAt: '2026-10-19T00:00:00Z' },
+    ])
+    expect(conditions.awaitingDeploy).toBeNull()
+  })
+
+  it('AWTD-1278: a later marker comment replaces AWAITING-DEPLOY wholesale', () => {
+    const conditions = parseBlockedConditions([
+      { content: 'AWAITING-DEPLOY: 9f3c2a1b7e4d', createdAt: '2026-10-19T00:00:00Z' },
+      { content: 'Deploy refused.\nBLOCKED-ON: Jon decides the migration', createdAt: '2026-10-20T00:00:00Z' },
+    ])
+    expect(conditions.awaitingDeploy).toBeNull()
+    expect(conditions.blockedOn).toBe('Jon decides the migration')
   })
 })
 
@@ -88,6 +119,14 @@ describe('classifyWaitingTask', () => {
 
   it('waiting with no condition at all needs triage', () => {
     expect(classify({})).toBe('review')
+  })
+
+  // AWTD-1278: the runner finishes these (land-and-deploy.ts), so they are not
+  // REVIEW work: a REVIEW item would wake a session every tick for nothing.
+  it('AWTD-1278: finished work awaiting its deploy is the runner\'s, not a triage item', () => {
+    expect(classify({ awaitingDeploy: '9f3c2a1b7e4d' })).toBe('awaiting-deploy')
+    expect(classify({ awaitingDeploy: '9f3c2a1b7e4d', dueDateTime: PAST })).toBe('awaiting-deploy')
+    expect(classify({ awaitingDeploy: '9f3c2a1b7e4d', blockedBy: ['t1'] })).toBe('check-blockers')
   })
 })
 

@@ -27,6 +27,8 @@ import {
   SAVED_FILTER_MEMBER_ERROR,
 } from "@/lib/list-permissions"
 import { deleteListWithImageRelease } from "@/lib/images/update-list-image"
+import { leaveList } from '@/lib/list-leave'
+import { transferListOwnership } from '@/lib/list-ownership-transfer'
 
 const log = createLogger('api.lists.members')
 
@@ -491,161 +493,9 @@ export async function PATCH(
     const { id: listId } = await context.params
     const { memberId, role, email, isInvitation, action } = await request.json()
 
-    // Handle leave action
+    // Handle leave action — on the shared rules (spec §5.2 step 6).
     if (action === 'leave') {
-      // Get the list to check ownership
-      const existingList = await prisma.taskList.findUnique({
-        where: { id: listId },
-        select: { 
-          ownerId: true,
-          id: true 
-        }
-      })
-
-      if (!existingList) {
-        return NextResponse.json({ error: "List not found" }, { status: 404 })
-      }
-
-      const isOwner = getUserRoleInList({ id: session.user.id }, existingList as never) === 'owner'
-
-      if (isOwner) {
-        // Owner is leaving - need to transfer ownership or prevent leaving
-        
-        // Find admins (excluding the owner)
-        const adminMembers = await prisma.listMember.findMany({
-          where: {
-            listId,
-            role: 'admin',
-            userId: { not: session.user.id }
-          },
-          include: { user: true }
-        })
-        
-        // Find regular members (excluding the owner)
-        const regularMembers = await prisma.listMember.findMany({
-          where: {
-            listId,
-            role: 'member',
-            userId: { not: session.user.id }
-          }
-        })
-        
-        // Check if there are any admins to transfer ownership to
-        if (adminMembers.length === 0 && regularMembers.length === 0) {
-          // No one else in the list - delete the list entirely
-          await deleteListWithImageRelease(
-            listId,
-            client => client.taskList.delete({ where: { id: listId } }),
-          )
-
-          await invalidateMemberCache(session.user.id)
-          return NextResponse.json({ message: "Successfully left the list", deleted: true })
-        } else if (adminMembers.length === 0 && regularMembers.length > 0) {
-          // No admins but has regular members - cannot leave as owner
-          return NextResponse.json({ 
-            error: "Cannot leave as owner when no admins exist. Please promote a member to admin first or delete the list." 
-          }, { status: 400 })
-        } else {
-          // Transfer ownership to the first admin
-          const newOwner = adminMembers[0]
-          
-          // First, add the leaving owner as a regular member (so we can remove them properly)
-          // This ensures they're in the listMember table before we transfer ownership
-          const existingOwnerMembership = await prisma.listMember.findFirst({
-            where: {
-              listId,
-              userId: session.user.id
-            }
-          })
-          
-          if (!existingOwnerMembership) {
-            // Owner was not in listMember table, add them temporarily so we can remove them
-            await prisma.listMember.create({
-              data: {
-                listId,
-                userId: session.user.id,
-                role: 'admin' // Temporarily add as admin
-              }
-            })
-          }
-          
-          // Transfer ownership to the new owner
-          await prisma.taskList.update({
-            where: { id: listId },
-            data: {
-              ownerId: newOwner.userId
-            }
-          })
-          
-          // Remove the new owner from admin members since they're now the owner
-          await prisma.listMember.delete({
-            where: { id: newOwner.id }
-          })
-          
-          // Remove the old owner from members (this is the key fix)
-          if (existingOwnerMembership) {
-            await prisma.listMember.delete({
-              where: { id: existingOwnerMembership.id }
-            })
-          } else {
-            // Remove the temporarily added membership
-            const tempMembership = await prisma.listMember.findFirst({
-              where: {
-                listId,
-                userId: session.user.id
-              }
-            })
-            if (tempMembership) {
-              await prisma.listMember.delete({
-                where: { id: tempMembership.id }
-              })
-            }
-          }
-          
-          await invalidateMemberCaches([session.user.id, newOwner.userId])
-        }
-      } else {
-        // Regular member/admin leaving - check if user is actually a member
-        const memberToRemove = await prisma.listMember.findFirst({
-          where: {
-            listId,
-            userId: session.user.id
-          }
-        })
-
-        if (!memberToRemove) {
-          return NextResponse.json({ error: "You are not a member of this list" }, { status: 404 })
-        }
-
-        if (await isLastAdminInList({ listId, removingAdmin: memberToRemove.role === 'admin' })) {
-          return NextResponse.json({ error: "Cannot leave as the last admin" }, { status: 400 })
-        }
-
-        // Remove the member
-        await prisma.listMember.delete({
-          where: {
-            id: memberToRemove.id
-          }
-        })
-      }
-
-      // Also delete any pending invitations for the same email
-      const user = await prisma.user.findUnique({
-        where: { id: session.user.id },
-        select: { email: true }
-      })
-
-      if (user?.email) {
-        await prisma.listInvite.deleteMany({
-          where: {
-            listId,
-            email: user.email
-          }
-        })
-      }
-
-      await invalidateMemberCache(session.user.id)
-      return NextResponse.json({ message: "Successfully left the list" })
+      return await leaveWithSharedRules(listId, session.user)
     }
 
     if ((!memberId && !email) || !role) {
@@ -720,3 +570,57 @@ export async function PATCH(
     return NextResponse.json({ error: "Failed to update member role" }, { status: 500 })
   }
 }
+
+/**
+ * The legacy PATCH leave action, on the shared rules.
+ *
+ * This was a third implementation of leaving a list, beside lib/list-leave.ts
+ * and lib/list-ownership-transfer.ts, and the only one that announced nothing:
+ * open clients kept showing a member who had gone (spec §5.2 step 6). An owner
+ * hands the list to the first admin, or deletes it when nobody else is in it;
+ * anyone else leaves through leaveList, which owns the last-admin rule.
+ */
+async function leaveWithSharedRules(
+  listId: string,
+  user: { id: string; email?: string | null },
+): Promise<NextResponse> {
+  const list = await prisma.taskList.findUnique({ where: { id: listId }, select: { id: true, ownerId: true } })
+  if (!list) {
+    return NextResponse.json({ error: "List not found" }, { status: 404 })
+  }
+
+  if (getUserRoleInList({ id: user.id }, list as never) !== 'owner') {
+    const result = await leaveList({ listId, userId: user.id, userEmail: user.email })
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: result.status })
+    return NextResponse.json({ message: "Successfully left the list" })
+  }
+
+  const others = await prisma.listMember.findMany({
+    where: { listId, userId: { not: user.id } },
+    select: { userId: true, role: true },
+  })
+
+  if (others.length === 0) {
+    // Nobody else is in it: leaving means the list goes.
+    await deleteListWithImageRelease(listId, client => client.taskList.delete({ where: { id: listId } }))
+    await invalidateMemberCache(user.id)
+    return NextResponse.json({ message: "Successfully left the list", deleted: true })
+  }
+
+  const successor = others.find(member => member.role === 'admin')
+  if (!successor) {
+    return NextResponse.json({
+      error: "Cannot leave as owner when no admins exist. Please promote a member to admin first or delete the list."
+    }, { status: 400 })
+  }
+
+  const transfer = await transferListOwnership({ listId, currentUserId: user.id, newOwnerId: successor.userId })
+  if (!transfer.ok) return NextResponse.json({ error: transfer.error }, { status: transfer.status })
+
+  // Leaving drops a pending invitation, or rejoining is offered to someone who just left.
+  if (user.email) {
+    await prisma.listInvite.deleteMany({ where: { listId, email: user.email } })
+  }
+  return NextResponse.json({ message: "Successfully left the list" })
+}
+

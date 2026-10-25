@@ -104,18 +104,23 @@ const ADVISORY_FLOORS: Array<{
 }> = [
   {
     name: 'next',
-    minVersion: '16.3.6',
+    minVersion: '16.4.1',
     severity: 'critical',
     advisory:
+      'GHSA-2464-fhr4-w9xw (unauthenticated RCE), GHSA-673q-mjm6-r5xr (unauthenticated RCE in ' +
+      '`use cache` functions returning typed arrays) and GHSA-p3m5-59mp-jv5r (Server Actions ' +
+      'DoS); >=16.0.0 <=16.4.0 — AWTD-1330. ' +
       'GHSA-vcvr-r3jv-pc5j (RCE in next/og ImageResponse; >=16.2.0 <16.3.6, AWTD-1048), ' +
       'GHSA-2xp9-vwfh-vxw4 (unauthenticated RCE in the Image Optimization API with AVIF) ' +
       'and GHSA-p293-qw3h-jr36 (unauthenticated RCE on Windows hosts); the last two <16.3.3',
   },
   {
     name: 'sharp',
-    minVersion: '0.35.4',
+    minVersion: '0.35.5',
     severity: 'high',
-    advisory: 'GHSA-rgj7-g3m4-5g8c (libheif); <0.35.4. Reached through `next`',
+    advisory:
+      'GHSA-wq5f-xc86-pv6w (librsvg; <0.35.5, AWTD-1131) and ' +
+      'GHSA-rgj7-g3m4-5g8c (libheif; <0.35.4). Reached through `next`',
   },
   {
     name: 'js-yaml',
@@ -126,12 +131,14 @@ const ADVISORY_FLOORS: Array<{
   },
   {
     name: 'hono',
-    minVersion: '4.13.5',
+    minVersion: '4.13.11',
     severity: 'moderate',
     advisory:
-      'GHSA-gqvv-2mrq-wpjv (toSSG path traversal), GHSA-g6gw-c38x-mqfc ' +
-      '(parseBody memory exhaustion), GHSA-crvj-82cr-hjcx (query-parser cache-key ' +
-      'differential); <=4.13.4. Reached through @modelcontextprotocol/sdk',
+      'GHSA-5r4p-p66f-jhc7 (serveStatic decodes the path twice, bypassing middleware ' +
+      'on static paths; >=4.12.4 <4.13.11, AWTD-1301), GHSA-gqvv-2mrq-wpjv (toSSG path ' +
+      'traversal), GHSA-g6gw-c38x-mqfc (parseBody memory exhaustion), GHSA-crvj-82cr-hjcx ' +
+      '(query-parser cache-key differential); the last three <=4.13.4. Reached through ' +
+      '@modelcontextprotocol/sdk',
   },
   {
     name: 'undici',
@@ -172,10 +179,21 @@ const ADVISORY_FLOORS: Array<{
       'GHSA-2vr4-cq9g-pvrc (link-local / NAT64 SSRF classifier gaps); <=10.7.0 — AWTD-1068',
   },
   {
-    name: 'dompurify',
-    minVersion: '3.4.16',
-    severity: 'low',
+    name: 'proxy-addr',
+    minVersion: '2.0.8',
+    severity: 'critical',
     advisory:
+      'GHSA-jqcg-44mw-7w3h (IP spoofing via an IPv4-mapped IPv6 trust subnet); ' +
+      '>=1.1.0 <2.0.8 — AWTD-1130. Reached through @modelcontextprotocol/sdk → express',
+  },
+  {
+    name: 'dompurify',
+    minVersion: '3.4.17',
+    severity: 'critical',
+    advisory:
+      'GHSA-cg2g-xh64-v4q7 (SAFE_FOR_TEMPLATES bypass via shadow root content; >=3.4.4 <=3.4.16), ' +
+      'GHSA-mrv2-3pqr-j5jr (incomplete fix for GHSA-p98j-92pf-mc4p) and GHSA-c6gr-qvv4-5v3f ' +
+      '(SMIL href guard under xhtml); <=3.4.16 — AWTD-1331. ' +
       'GHSA-p98j-92pf-mc4p (IN_PLACE afterSanitize hook leaves detached handlers armed, ' +
       'DOM XSS); >=3.4.13 <=3.4.15 — AWTD-1068. A direct dependency',
   },
@@ -207,6 +225,16 @@ const NOT_SHIPPED: Array<{ name: string; why: string }> = [
       '@parcel/watcher@2.5.1 → micromatch; @parcel/watcher 2.6.0 uses picomatch instead. ' +
       'The remaining copies are dev-only (tailwindcss 3 via chokidar/fast-glob, ' +
       'eslint-config-next via fast-glob).',
+  },
+  {
+    name: 'vite',
+    why:
+      'A build/test tool: nothing in the app imports it, and only vitest and ' +
+      '@vitejs/plugin-react need it, as a peer. It sat in `dependencies` from the ' +
+      'initial open-source release, so `npm audit --omit=dev` counted its launch-editor ' +
+      'advisories (GHSA-587h-7wmj-h5pm high, GHSA-698v-4r3x-3vcv, GHSA-r825-w8mm-5pxw; ' +
+      'vite >=8.3.0 <=8.3.2) as production and turned CI red — AWTD-1301. It belongs ' +
+      'in devDependencies.',
   },
   {
     name: 'micromatch',

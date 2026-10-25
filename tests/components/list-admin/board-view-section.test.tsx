@@ -15,6 +15,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import type { TaskList } from '@/types/task'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 // Project Mode is request-gated (task dd7172d8): the board controls only render
 // for a user who has been granted the feature. Default to granted so the
@@ -256,5 +258,29 @@ describe('BoardViewSection', () => {
 
       expect(await screen.findByText('The key AITD is already taken')).toBeInTheDocument()
     })
+  })
+})
+
+describe('BoardViewSection copy goes through i18n (AWTD-1121, spec §12.3)', () => {
+  // A partner brand calls these things by its own names, and eleven other locales
+  // read them. A literal in the component is copy neither can reach.
+  const source = readFileSync(join(process.cwd(), 'components/list-admin/BoardViewSection.tsx'), 'utf8')
+
+  it.each([
+    'Create Board',
+    'Creating...',
+    'Disable Board',
+    'Disabling...',
+    'Disable Board View',
+    'Tasks stay in this list',
+    'Tasks currently in a status column',
+    'Failed to create board',
+    'Failed to disable board',
+  ])('has no hardcoded "%s"', (literal) => {
+    expect(source).not.toContain(literal)
+  })
+
+  it('has no hardcoded Cancel button', () => {
+    expect(source).not.toMatch(/>\s*Cancel\s*</)
   })
 })

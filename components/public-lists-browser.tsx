@@ -20,6 +20,7 @@ import {
   X
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useListImagesVisibility } from "@/contexts/list-images-context"
 
 interface PublicList {
   id: string
@@ -59,6 +60,7 @@ interface PublicListsBrowserProps {
 
 export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicListsBrowserProps) {
   const [publicLists, setPublicLists] = useState<PublicList[]>([])
+  const { showListImages } = useListImagesVisibility()
   const [searchQuery, setSearchQuery] = useState("")
   const [loading, setLoading] = useState(false)
   const [selectedList, setSelectedList] = useState<PublicListPreview | null>(null)
@@ -380,7 +382,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            {list.imageUrl && (
+                            {showListImages && list.imageUrl && (
                               <img
                                 src={list.imageUrl}
                                 alt=""
@@ -449,7 +451,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                 <div className="theme-bg-secondary rounded-lg theme-border border p-4 m-4 mb-2">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      {selectedList.imageUrl && (
+                      {showListImages && selectedList.imageUrl && (
                         <img
                           src={selectedList.imageUrl}
                           alt=""

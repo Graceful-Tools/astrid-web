@@ -13,6 +13,8 @@
  */
 
 import { describe, it, expect } from 'vitest'
+import { existsSync } from 'fs'
+import { join } from 'path'
 import {
   routeFileToApiPath,
   v1PathFor,
@@ -223,11 +225,27 @@ describe('v1PathFor overrides (task 641a7615)', () => {
     expect(v1PathFor('/api/reminders/status')).toBe('/api/v1/reminders')
   })
 
-  it('distinguishes "deliberately no successor" from "not mapped"', () => {
-    // null is a decision (3A: nothing calls mcp-settings on any platform).
-    // A route absent from the table falls through to the mechanical rule.
-    expect(v1PathFor('/api/user/mcp-settings')).toBeNull()
+  it('maps a route absent from the table by the mechanical rule', () => {
     expect(v1PathFor('/api/user/unmapped-thing')).toBe('/api/v1/user/unmapped-thing')
+  })
+})
+
+describe('routes the census cleared are gone (AWTD-839)', () => {
+  // `legacy-usage-census.ts --prod` on 2026-09-26, the first day with 28 days
+  // of durable telemetry, reported exactly one route SAFE: no traffic across
+  // the window, no caller on web, iOS or server, and no successor by decision
+  // (task 641a7615, 3A). Pinned so it is not restored by a stray merge.
+  //
+  // 2026-10-19 (51 days of telemetry) cleared two more: `/api/tasks/[id]`
+  // (last hit 2026-09-10; its one caller moved to v1 in AWTD-1246) and
+  // `/api/upload` (last hit 2026-09-21). Both have v1 successors and no caller
+  // on any platform. The `/api/tasks/[id]/*` sub-routes are separate rows and stay.
+  it.each([
+    'app/api/user/mcp-settings/route.ts',
+    'app/api/tasks/[id]/route.ts',
+    'app/api/upload/route.ts',
+  ])('%s is deleted', (file) => {
+    expect(existsSync(join(process.cwd(), file))).toBe(false)
   })
 })
 

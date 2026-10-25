@@ -111,6 +111,13 @@ describe('splitListViewPreferences (task aa4e7eb0)', () => {
     expect(Object.keys(viewPreferences).sort()).toEqual([...LIST_VIEW_PREFERENCE_FIELDS].sort())
     expect(rest).toEqual({})
   })
+
+  it('AWTD-1259: routes the project-field filter to the caller, not the shared list', () => {
+    const { viewPreferences, rest } = splitListViewPreferences({ filterProjectField: 'area:opt-web', name: 'Board' })
+
+    expect(viewPreferences).toEqual({ filterProjectField: 'area:opt-web' })
+    expect(rest).toEqual({ name: 'Board' })
+  })
 })
 
 describe('saveListViewPreferences (task aa4e7eb0)', () => {
@@ -128,31 +135,23 @@ describe('saveListViewPreferences (task aa4e7eb0)', () => {
     })
   })
 
-  it('invalidates only this user’s cache, not every member’s', async () => {
-    // The shared columns forced a fan-out: your filter change had to invalidate
-    // everyone, because it changed what everyone saw. It no longer does.
+  it('evicts no cached list set — preferences are hydrated after the cache read (AWTD-1320)', async () => {
+    // Both GET /api/lists and GET /api/v1/lists overlay the viewer's
+    // preferences AFTER reading the shared cached rows, so the cached payload
+    // never holds them. Evicting it only forced a cold reload.
     await saveListViewPreferences({
       userId: HUMAN,
       listId: 'list-1',
       preferences: { sortBy: 'priority' },
     })
 
-    expect(mockRedis.invalidate.userListsAllVersions).toHaveBeenCalledTimes(1)
-    expect(mockRedis.invalidate.userListsAllVersions).toHaveBeenCalledWith(HUMAN)
+    expect(mockRedis.invalidate.userListsAllVersions).not.toHaveBeenCalled()
   })
 
   it('writes nothing when there is nothing to write', async () => {
     await saveListViewPreferences({ userId: HUMAN, listId: 'list-1', preferences: {} })
 
     expect(mockPrisma.userListViewPreference.upsert).not.toHaveBeenCalled()
-  })
-
-  it('still succeeds when cache invalidation fails', async () => {
-    mockRedis.invalidate.userListsAllVersions.mockRejectedValue(new Error('redis down') as never)
-
-    await expect(
-      saveListViewPreferences({ userId: HUMAN, listId: 'list-1', preferences: { sortBy: 'a' } })
-    ).resolves.toBeUndefined()
   })
 
   it('treats an AI agent as an ordinary principal', async () => {

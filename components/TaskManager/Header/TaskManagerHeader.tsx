@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Menu, Settings, Filter } from "lucide-react"
 import { ChatToggle } from "@/components/chat/ChatToggle"
-import { NotificationBell } from "@/components/notification-bell"
 import { useTranslations } from "@/lib/i18n/client"
 import { useMyTasksPreferences } from "@/hooks/useMyTasksPreferences"
 import { getMyTasksFilterText, getPriorityColorClass } from "@/lib/task-manager-utils"
@@ -305,8 +304,9 @@ export function TaskManagerHeader({
   const showListHeader = mobileHeaderMode !== 'desktop'
 
   // Build the unified header view-toggle config. In 1-col mode this becomes
-  // a single segmented control (List / Board / Messages); on wider screens
-  // it's the legacy List/Board toggle with a separate ChatToggle icon.
+  // a single icon stepping list → messages → board, as on iPhone (AWTD-1183);
+  // on wider screens it's the legacy List/Board toggle with a separate
+  // ChatToggle icon.
   const headerToggle = getHeaderViewToggle({
     isOneColumn: isMobile,
     hasProjectBoard,
@@ -409,8 +409,6 @@ export function TaskManagerHeader({
               render a duplicate ChatToggle icon. */}
           <div className="flex items-center gap-1 flex-shrink-0">
             <TaskViewToggle {...taskViewToggleProps} />
-
-            <NotificationBell />
 
             {!headerToggle.unified && onToggleActivePanel && activeView === 'list' && !(mobileSearchMode || searchValue.trim()) && (
               <ChatToggle

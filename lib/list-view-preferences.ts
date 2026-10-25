@@ -42,10 +42,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { RedisCache } from '@/lib/redis'
-import { createLogger } from '@/lib/logger'
 
-const log = createLogger('list-view-preferences')
 
 /**
  * The fields that belong to a viewer rather than to the list.
@@ -64,6 +61,9 @@ export const LIST_VIEW_PREFERENCE_FIELDS = [
   'filterRepeating',
   'filterAssignedBy',
   'filterInLists',
+  // "<fieldId>:<valueId>" on a GitHub board (AWTD-1259). Per-user only: unlike
+  // the fields above it has no TaskList column, so a user with no row reads null.
+  'filterProjectField',
 ] as const
 
 export type ListViewPreferenceField = (typeof LIST_VIEW_PREFERENCE_FIELDS)[number]
@@ -125,11 +125,8 @@ export async function saveListViewPreferences(args: {
     update: preferences,
   })
 
-  try {
-    await RedisCache.invalidate.userListsAllVersions(userId)
-  } catch (error) {
-    log.error({ err: error, userId }, 'Failed to invalidate user-lists cache')
-  }
+  // No cache eviction: both list GETs overlay preferences AFTER the cache
+  // read, so the cached rows never carry them (AWTD-1320).
 }
 
 /**

@@ -1,0 +1,13 @@
+{
+  "data": {
+    "node": {
+      "id": "IC_kwDOVCns8c8AAAABb1Yz9A",
+      "body": "LGTM once CI is green.",
+      "createdAt": "2026-10-20T15:10:05Z",
+      "viewerDidAuthor": false,
+      "author": { "__typename": "User", "login": "octo-tester", "id": "U_kgDOCm9cTQ" },
+      "issue": { "id": "I_kwDOVCns8c8AAAABWdQq1Q" },
+      "pullRequest": { "id": "PR_kwDOVCns8c6Ah3Zq" }
+    }
+  }
+}

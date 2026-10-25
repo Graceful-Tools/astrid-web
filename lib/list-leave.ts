@@ -14,7 +14,7 @@
  */
 
 import { prisma } from '@/lib/prisma'
-import { RedisCache } from '@/lib/redis'
+import { announceListMemberRemoved } from '@/services/list-member.service'
 import { canUserManageList } from '@/lib/list-permissions'
 import { createLogger } from '@/lib/logger'
 
@@ -33,7 +33,9 @@ export async function leaveList(args: {
 
   const list = await prisma.taskList.findUnique({
     where: { id: listId },
-    select: { id: true, name: true, ownerId: true },
+    // The roster too: the departure is announced to everyone who could see the
+    // list, the leaver included.
+    select: { id: true, name: true, color: true, ownerId: true, isVirtual: true, listMembers: { select: { userId: true } } },
   })
   if (!list) {
     return { ok: false, status: 404, error: 'List not found' }
@@ -80,11 +82,14 @@ export async function leaveList(args: {
     await prisma.listInvite.deleteMany({ where: { listId, email: userEmail } })
   }
 
-  // Best-effort: the user has already left, so a cold cache is not a failure.
+  // Caches and the list_member_removed event, the member service's way: this
+  // used to clear only the leaver's own cache and tell nobody, so the rest of
+  // the list kept showing them (spec §5.2 step 6). Best-effort — the user has
+  // already left, and failing now would tell them they had not.
   try {
-    await RedisCache.del(RedisCache.keys.userLists(userId))
+    await announceListMemberRemoved({ list, member: { id: userId }, actor: { id: userId } })
   } catch (error) {
-    log.error({ err: error, userId }, 'Failed to invalidate user-lists cache')
+    log.error({ err: error, userId }, 'Failed to announce leaving the list')
   }
 
   return { ok: true }

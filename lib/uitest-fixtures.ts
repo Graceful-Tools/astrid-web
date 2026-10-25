@@ -50,16 +50,69 @@ export const UITEST_FIXTURE_TASKS: readonly UITestFixtureTask[] = [
 ]
 
 /**
- * Throws unless the account is the dedicated test one.
+ * A per-run UI-test account (AWTD-1328): `uitest+<runId>@<domain>`, and the second user that owns
+ * the list the run's user can only view, `uitest+<runId>-owner@<domain>`.
+ *
+ * Four runners used to share the one account, and every mint wiped it — so one run's mint deleted
+ * another run's data mid-test. A run of its own is what makes two concurrent runs disjoint.
+ *
+ * A run id is lowercase letters, digits and hyphens, 1–48 characters, starting with a letter or
+ * digit, and never ending in `-owner` (that suffix names the owner account, so allowing it would
+ * make one email answer to two runs).
+ */
+const RUN_ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,47}$/
+const OWNER_SUFFIX = '-owner'
+
+export function isValidUITestRunId(runId: string | null | undefined): runId is string {
+  return typeof runId === 'string' && RUN_ID_PATTERN.test(runId) && !runId.endsWith(OWNER_SUFFIX)
+}
+
+export function assertValidUITestRunId(runId: string | null | undefined): asserts runId is string {
+  if (!isValidUITestRunId(runId)) {
+    throw new Error(
+      `Invalid UI-test run id "${runId ?? '(none)'}": use 1–48 lowercase letters, digits and ` +
+        `hyphens, starting with a letter or digit and not ending in "${OWNER_SUFFIX}".`
+    )
+  }
+}
+
+export function uitestRunEmail(runId: string): string {
+  assertValidUITestRunId(runId)
+  return `uitest+${runId}@${BRAND.domain}`
+}
+
+export function uitestRunOwnerEmail(runId: string): string {
+  assertValidUITestRunId(runId)
+  return `uitest+${runId}${OWNER_SUFFIX}@${BRAND.domain}`
+}
+
+/** The run an email belongs to, or null when it is not exactly a run account's. */
+export function parseUITestRunEmail(
+  email: string | null | undefined
+): { runId: string; owner: boolean } | null {
+  if (typeof email !== 'string') return null
+  const suffix = `@${BRAND.domain}`
+  if (!email.startsWith('uitest+') || !email.endsWith(suffix)) return null
+  const local = email.slice('uitest+'.length, email.length - suffix.length)
+  const owner = local.endsWith(OWNER_SUFFIX)
+  const runId = owner ? local.slice(0, -OWNER_SUFFIX.length) : local
+  return isValidUITestRunId(runId) ? { runId, owner } : null
+}
+
+/**
+ * Throws unless the account is a UI-test one: the shared `uitest@` account, or exactly a per-run
+ * `uitest+<runId>@` / `uitest+<runId>-owner@` account (AWTD-1328).
  *
  * Deliberately strict: no domain matching, no "starts with uitest", no override flag. A seeder
- * that empties an account should be impossible to aim, not merely discouraged.
+ * that empties an account should be impossible to aim, not merely discouraged. The run pattern
+ * widens the literal by exactly one shape, checked in full, so a typo still refuses.
  */
 export function assertUITestAccount(email: string | null | undefined): void {
-  if (email !== UITEST_ACCOUNT_EMAIL) {
+  if (email !== UITEST_ACCOUNT_EMAIL && !parseUITestRunEmail(email)) {
     throw new Error(
       `Refusing to seed fixtures into "${email ?? '(none)'}". ` +
-        `This wipes every task on the account and may only ever run against ${UITEST_ACCOUNT_EMAIL}.`
+        `This wipes every task on the account and may only ever run against ${UITEST_ACCOUNT_EMAIL} ` +
+        `or a per-run uitest+<run-id>@${BRAND.domain} account.`
     )
   }
 }
@@ -80,4 +133,37 @@ export interface FixturePlan {
 export function planFixtureReset(existingTaskIds: readonly string[]): FixturePlan {
   return { delete: [...existingTaskIds], create: UITEST_FIXTURE_TASKS }
 }
+
+/**
+ * Which tasks the reset deletes — the SQL, stated here so it can be tested
+ * (AWTD-1235).
+ *
+ * **The bug this fixes.** It used to be an INNER JOIN through
+ * `_TaskToTaskList` to a list the account owns, so it only ever saw tasks that
+ * were ON a list. The suite — and the monkey, which runs first in the same job
+ * — quick-adds from My Tasks, and a quick-add from there creates a task on NO
+ * LIST. Those have no join row, the reset never saw them, and they accumulated
+ * every run. Measured against production on 2026-10-12, read-only: the old
+ * query selected **5** tasks and the new one selects **773**, 768 of them
+ * list-less tasks the account had created. The three fixtures were still reset
+ * faithfully, and still landed so far down a lazy list that they never entered
+ * the accessibility tree — so iOS CI failed with "no fixture task is visible on
+ * My Tasks", which reads like a missing fixture rather than a reset that was
+ * quietly half-doing its job.
+ *
+ * **Why `creatorId` and not `assigneeId`.** The account creates these tasks, so
+ * `creatorId` is what identifies its own leftovers wherever they ended up —
+ * list-less, or added to a public list someone else owns. `assigneeId` would
+ * also match a task **someone else created and assigned to the account**, which
+ * is not the suite's to delete. A reset that destroys another person's work
+ * because they shared it with a test account is a far worse bug than this one.
+ *
+ * **LEFT JOIN and DISTINCT are both load-bearing.** An inner join cannot return
+ * a row with no join partner, which is precisely the row being hunted; without
+ * DISTINCT a task on two of the account's lists comes back twice.
+ */
+export const FIXTURE_RESET_TASK_QUERY = `SELECT DISTINCT t.id FROM "Task" t
+       LEFT JOIN "_TaskToTaskList" m ON m."A" = t.id
+       LEFT JOIN "TaskList" l ON l.id = m."B"
+      WHERE l."ownerId" = $1 OR t."creatorId" = $1`
 import { BRAND } from '@/lib/brand/config'

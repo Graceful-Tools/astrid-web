@@ -54,7 +54,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ success: true, defaultDueTime })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Invalid data", details: error.errors }, { status: 400 })
+      return NextResponse.json({ error: "Invalid data", details: error.issues }, { status: 400 })
     }
     
     log.error({ err: error }, "Error updating user default due time:")

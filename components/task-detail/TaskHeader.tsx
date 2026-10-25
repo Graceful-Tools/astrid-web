@@ -50,6 +50,8 @@ interface TaskHeaderProps {
   onCancel?: (closedReason: string | null) => void
   /** Move the task to a board column, by column id (task ba1a4c4c). */
   onStatusSelect?: (columnId: string) => void
+  /** Passed through to TaskActionMenu (AWTD-1252). */
+  hideCopyIdentifier?: boolean
   /** Full-screen task details (task dcbbb0fa). Undefined for the inline/board
    *  panel, which is deliberately a peek and never offers it. */
   fullScreen?: boolean
@@ -82,6 +84,7 @@ export function TaskHeader({
   onTestReminder,
   onCancel,
   onStatusSelect,
+  hideCopyIdentifier,
   fullScreen,
   onToggleFullScreen,
   compact = false,
@@ -145,6 +148,7 @@ export function TaskHeader({
           )}
           {editingTitle ? (
             <textarea
+              data-testid="task-detail-title-input"
               value={tempTitle}
               onChange={(e) => {
                 setTempTitle(e.target.value)
@@ -175,6 +179,7 @@ export function TaskHeader({
               } ${
                 task.completed ? "line-through theme-text-muted" : "theme-text-primary"
               }`}
+              data-testid="task-detail-title"
               onClick={() => setEditingTitle(true)}
             >
               {task.title}
@@ -228,6 +233,7 @@ export function TaskHeader({
                 onTestReminder={onTestReminder}
                 onCancel={onCancel}
                 onStatusSelect={onStatusSelect}
+                hideCopyIdentifier={hideCopyIdentifier}
                 onToggleFullScreen={onToggleFullScreen}
                 fullScreen={fullScreen}
               />
@@ -262,6 +268,7 @@ export function TaskHeader({
                 onTestReminder={onTestReminder}
                 onCancel={onCancel}
                 onStatusSelect={onStatusSelect}
+                hideCopyIdentifier={hideCopyIdentifier}
               />
             </div>
           )}

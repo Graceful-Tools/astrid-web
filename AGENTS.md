@@ -32,10 +32,14 @@ exactly one place:
    as `source=cli`. Read the workflow file and `gh run list`.)
 2. **NEVER** run `vercel pull` / `vercel link` / `vercel env pull` — they overwrite
    `.env.local`. Only *push* deployments.
-3. **Push finished work without asking; ask before DEPLOYING.** Pushing `main` ships
-   nothing (rule 1), so it is how work becomes reviewable — one push at the end of a run.
-   "Ready to ship it?" belongs to the production deploy, which reaches real users.
-   (Jon, 2026-09-06; docs/CLI_OPERATIONS.md §1)
+3. **Push finished work without asking — and deploy it when the gates are green.** Pushing
+   `main` ships nothing (rule 1), so it is how work becomes reviewable — one push at the end
+   of a run. Shipping used to wait for "ready to ship it?"; since 2026-10-13 it waits for
+   evidence instead: `npm run predeploy` green on the **merged** commit, then dispatch the
+   workflow and verify `commitSha` on `/api/health`. **A task is not done until production
+   serves it.** Two exceptions keep asking: a **pending migration** (it applies during the
+   deploy, before the new code is live) and a **red gate**.
+   (Jon, 2026-09-06 and 2026-10-13; docs/CLI_OPERATIONS.md §0–§1)
 4. **Bug fixes are TDD:** RED regression test (name the task id) → green → `npm run predeploy`.
    Auth changes → run the full suite before committing. (ASTRID.md → Coding Workflow)
 5. **Tasks use the `listIds` array field** (not `listId`); the API uses the `X-OAuth-Token`
@@ -55,6 +59,7 @@ exactly one place:
 - Local Codex claims only tasks assigned to the distinct brand-derived
   `codex@<agent-domain>` polling identity. It is not the cloud OpenAI agent
   (`openai@<agent-domain>`) and must never claim that agent's assignments.
+- Codex's queue mailbox is `codex`: `--harness codex` for the queue, `--agent codex` to claim.
 - Response style: lead with the outcome, reference files as `path:line`, keep turns short.
 
 ---
@@ -65,6 +70,8 @@ exactly one place:
 |------|-------|
 | Architecture, code patterns, coding workflow | [ASTRID.md](./ASTRID.md) |
 | Deploy / ship it / fix stuff / quality gates / OAuth | [docs/CLI_OPERATIONS.md](./docs/CLI_OPERATIONS.md) |
+| `/fixall` and the task queue | [docs/FIXALL_WORKFLOW.md](./docs/FIXALL_WORKFLOW.md), then [docs/FIXALL_WEB.md](./docs/FIXALL_WEB.md) |
+| Which machine and harness runs what, and where secrets live | [docs/AGENT_FLEET.md](./docs/AGENT_FLEET.md) |
 | Full docs index | [docs/README.md](./docs/README.md) |
 
 ---
