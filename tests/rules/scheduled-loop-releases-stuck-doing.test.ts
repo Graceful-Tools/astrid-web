@@ -29,6 +29,7 @@ describe('the scheduled loop releases stuck Doing claims', () => {
 
   it('the claim script records Ready claims into the runner-provided file', () => {
     expect(claim).toMatch(/process\.env\.ASTRID_FIXALL_CLAIMS_FILE/)
-    expect(claim).toMatch(/action === "ready"\) appendFileSync\(claimsFile/)
+    expect(claim).toMatch(/action === "ready" \|\| action === 'resume'/)
+    expect(claim).toMatch(/appendFileSync\(claimsFile/)
   })
 })

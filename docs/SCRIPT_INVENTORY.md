@@ -16,11 +16,11 @@ an investigation queue, not proof that deletion is safe.
 
 ## workflow
 
-`advance-prod-branch.sh`, `check-destructive-migrations.ts`, `claim-fixall-task.ts`, `deploy-preview.sh`, `extract-preview-url.sh`, `parse-ready-tasks-output.ts`, `post-session-link.ts`, `ready-tasks.ts`, `sanitize-pulled-env.ts`, `verify-deployed-sha.sh`
+`advance-prod-branch.sh`, `agent-queue-status.ts`, `check-destructive-migrations.ts`, `claim-fixall-task.ts`, `deploy-preview.sh`, `extract-preview-url.sh`, `land-and-deploy.ts`, `native-copilot-bridge.ts`, `open-fixall-prs.ts`, `parse-ready-tasks-output.ts`, `post-session-link.ts`, `ready-tasks.ts`, `release-stuck-doing.ts`, `restore-cloud-wake-state.ts`, `sanitize-pulled-env.ts`, `verify-deployed-sha.sh`
 
 ## documentation
 
-`add-task-comment.ts`, `agent-queue-status.ts`, `analyze-task.ts`, `assign-task.ts`, `build-astrid-rules.sh`, `complete-task-with-workflow.ts`, `create-task.ts`, `debug-production-oauth.ts`, `deploy-brand-preview.ts`, `file-ios-task.ts`, `fixall-session.ts`, `get-astrid-tasks.ts`, `get-project-tasks-oauth.ts`, `index-drop-evidence.ts`, `land-and-deploy.ts`, `measure-api-latency.ts`, `measure-cache-hit-rate.ts`, `measure-web-vitals.ts`, `migrate-agent-email-domain.ts`, `move-task-to-list.ts`, `open-fixall-prs.ts`, `post-list-message.ts`, `provision-brand-database.ts`, `push-agent-env.sh`, `push-brand-env.ts`, `release-stuck-doing.ts`, `run-fixall-loop.mjs`, `run-weekly-hygiene-review.mjs`, `set-task-status.ts`, `setup.sh`, `test-cloud-workflow-improvements.ts`, `test-resend-outbound.ts`, `verify-github-agent-fix.ts`, `weekly-deep-review.prompt.md`, `weekly-hygiene-review.prompt.md`
+`add-task-comment.ts`, `analyze-task.ts`, `assign-task.ts`, `build-astrid-rules.sh`, `complete-task-with-workflow.ts`, `create-task.ts`, `debug-production-oauth.ts`, `deploy-brand-preview.ts`, `file-ios-task.ts`, `fixall-session.ts`, `get-astrid-tasks.ts`, `get-project-tasks-oauth.ts`, `index-drop-evidence.ts`, `measure-api-latency.ts`, `measure-cache-hit-rate.ts`, `measure-web-vitals.ts`, `migrate-agent-email-domain.ts`, `move-task-to-list.ts`, `post-list-message.ts`, `provision-brand-database.ts`, `push-agent-env.sh`, `push-brand-env.ts`, `run-fixall-loop.mjs`, `run-weekly-hygiene-review.mjs`, `set-task-status.ts`, `setup.sh`, `test-cloud-workflow-improvements.ts`, `test-resend-outbound.ts`, `verify-github-agent-fix.ts`, `weekly-deep-review.prompt.md`, `weekly-hygiene-review.prompt.md`
 
 ## caller
 
