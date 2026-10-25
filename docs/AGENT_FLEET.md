@@ -166,6 +166,8 @@ A lost
 assignment response is reconciled from the existing assignment before retrying;
 three unconfirmed attempts stop and atomically park a still-owned, version-matched
 Doing task in Waiting. An agent-signed Astrid notice exposes that blocker.
+Exhausted tasks remain held without blocking other candidates or replies; the
+tick reports their failures after processing the remaining candidates.
 An assigned issue with no linked open PR and no issue activity for three hours
 is likewise parked with an Astrid notice. This watchdog never cancels or starts
 another native execution; it does not mistake assignment acceptance for progress.
@@ -192,7 +194,13 @@ concurrency, and saved after success **or failure**. Actions cache is backed by
 30-day run artifacts; corrupt retained state fails loudly rather than resetting
 retry limits. After all retained history expires, the first new run explicitly
 starts fresh wake memory. Worker and ship outputs remain available as artifacts
-on failures. A runner lost before finalizers is recovered by a later stale-Doing
+on failures. The unfinished-work finalizer preserves clean-but-unpushed commits
+as well as dirty WIP, moving main/detached work to a recovery branch rather than
+pushing main. It writes `.agent-output/recovery.bundle` and `recovery-head.txt`
+before attempting the push, so a rejected push still leaves the local commits
+in the retained run artifact. The bundle is incremental against origin's fetched
+history; restore it in a checkout containing that history.
+A runner lost before finalizers is recovered by a later stale-Doing
 sweep; unpushed work on a destroyed host cannot be recovered.
 
 ## Migration steps

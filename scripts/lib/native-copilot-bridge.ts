@@ -117,6 +117,7 @@ export async function runNativeCopilotBridge(options: {
     linked.set(match[2], issue)
   }
   const candidates = new Set([...linked.keys(), ...queue.queue.map(task => task.id)])
+  const exhaustedDispatches: string[] = []
   let newStarts = 0
   for (const taskId of candidates) {
     const { task } = await api.astrid<{ task: BridgeTask }>(`/api/v1/tasks/${taskId}`)
@@ -200,7 +201,10 @@ export async function runNativeCopilotBridge(options: {
         if (!comments.some(row => row.authorId === agentId && row.content.includes(exhausted))) {
           await comment(`Native Copilot could not start after three attempts. Human setup/recovery is required; this task is not finished.\n${issue.html_url}\n${exhausted}`)
         }
-        throw new Error(`Native Copilot dispatch for ${taskId} exhausted three persisted attempts; inspect issue ${issue.html_url}`)
+        const failure = `Native Copilot dispatch for ${taskId} exhausted three persisted attempts; inspect issue ${issue.html_url}`
+        report(`ERROR: ${failure}`)
+        exhaustedDispatches.push(failure)
+        continue
       }
       await api.github(`/repos/${repo}/issues/${issue.number}/comments`, { body: `${attemptMarker}\nNative dispatch attempt ${count + 1}.` })
       try {
@@ -280,4 +284,5 @@ export async function runNativeCopilotBridge(options: {
       }
     }
   }
+  if (exhaustedDispatches.length > 0) throw new Error(exhaustedDispatches.join('\n'))
 }

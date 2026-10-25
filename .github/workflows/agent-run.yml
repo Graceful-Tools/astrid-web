@@ -215,13 +215,20 @@ jobs:
       - name: Preserve unfinished work
         if: ${{ always() && !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
         run: |
-          if [ -n "$(git status --porcelain)" ]; then
+          DIRTY=$(git status --porcelain)
+          UNPUSHED=$(git rev-list --count HEAD --not --remotes=origin)
+          if [ -n "${DIRTY}" ] || [ "${UNPUSHED}" != 0 ]; then
             BRANCH=$(git branch --show-current)
-            if [ "${BRANCH}" = main ]; then
+            if [ "${BRANCH}" = main ] || [ -z "${BRANCH}" ]; then
               git switch -c "agent/${ASTRID_FIXALL_HARNESS}/recovery-${GITHUB_RUN_ID}"
             fi
-            git add --all
-            git commit -m "wip: agent run ${GITHUB_RUN_ID} UNFINISHED, UNVERIFIED"
+            if [ -n "${DIRTY}" ]; then
+              git add --all
+              git commit -m "wip: agent run ${GITHUB_RUN_ID} UNFINISHED, UNVERIFIED"
+            fi
+            mkdir -p .agent-output
+            git bundle create .agent-output/recovery.bundle HEAD --not --remotes=origin
+            git rev-parse HEAD > .agent-output/recovery-head.txt
             git push --set-upstream origin HEAD
           fi
 

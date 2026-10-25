@@ -3,12 +3,12 @@ import { runNativeCopilotBridge, type BridgeTransport } from '@/scripts/lib/nati
 import { nativeCopilotClaimMarker, type NativeCopilotDispatch } from '@/lib/fixall-claim'
 
 const listId = 'a623f322-4c3c-49b5-8a94-d2d9f00c82ba'
-const marker = `<!-- astrid-native:v1:${listId}:task-1 -->`
 
-function fixture() {
+function fixture(taskId = 'task-1', issueNumber = 1) {
+  const marker = `<!-- astrid-native:v1:${listId}:${taskId} -->`
   const writes: Array<{ path: string; body: unknown }> = []
   const reports: string[] = []
-  const task = { id: 'task-1', title: 'AWTD-1383 lifecycle', identifier: 'AWTD-1383', completed: false,
+  const task = { id: taskId, title: 'AWTD-1383 lifecycle', identifier: 'AWTD-1383', completed: false,
     description: 'Implement scoped native dispatch', assigneeId: 'copilot', statusRole: 'ready',
     updatedAt: '2026-10-20T00:00:00Z', lists: [{ id: listId }] }
   const comments = [{ id: 'human-1', content: 'Original request', updatedAt: '2026-10-20T00:00:00Z',
@@ -64,25 +64,25 @@ function fixture() {
           if (state.uncertainReceipt) throw new Error('uncertain assignment response')
           data = state.issue
         } else if (path.endsWith('/comments')) {
-          const rows = path.includes('/issues/2/') ? prComments : issueComments
+          const rows = path.includes(`/issues/${issueNumber + 1}/`) ? prComments : issueComments
           const row = { id: rows.length + 1, body: (body as { body: string }).body,
             html_url: 'https://github.com/comment', updated_at: 'now', user: { login: 'owner' } }
           rows.push(row)
           if (rows === prComments && state.uncertainReply) throw new Error('uncertain continuation response')
           data = row
         } else {
-          state.issue = { number: 1, body: (body as { body: string }).body,
-            html_url: 'https://github.com/Graceful-Tools/astrid-web/issues/1', state: 'open',
+          state.issue = { number: issueNumber, body: (body as { body: string }).body,
+            html_url: `https://github.com/Graceful-Tools/astrid-web/issues/${issueNumber}`, state: 'open',
             updated_at: new Date().toISOString(), user: { login: 'owner' }, assignees: [] }
           data = state.issue
         }
       } else if (path.includes('/timeline')) data = state.hasPull ? [{
-        event: 'cross-referenced', source: { issue: { number: 2, pull_request: {} } },
+        event: 'cross-referenced', source: { issue: { number: issueNumber + 1, pull_request: {} } },
       }] : []
-      else if (path.includes('/pulls/2')) data = { number: 2, body: marker, state: 'open',
+      else if (path.includes(`/pulls/${issueNumber + 1}`)) data = { number: issueNumber + 1, body: marker, state: 'open',
         user: { login: 'Copilot' }, head: { sha: (++state.pullReads > 1 && state.changeHeadBeforeContinuation ? 'b' : 'a').repeat(40) },
         base: { repo: { full_name: 'Graceful-Tools/astrid-web' } }, html_url: 'https://github.com/Graceful-Tools/astrid-web/pull/2' }
-      else if (path.includes('/comments')) data = path.includes('/issues/2/') ? prComments : issueComments
+      else if (path.includes('/comments')) data = path.includes(`/issues/${issueNumber + 1}/`) ? prComments : issueComments
       else data = state.issue ? [state.issue] : []
       return data as T
     },
@@ -91,7 +91,7 @@ function fixture() {
     transport, repo: 'Graceful-Tools/astrid-web', listId, dryRun,
     issueTemplate: '## Problem\nSee Astrid.', report: message => reports.push(message),
   })
-  return { state, task, comments, writes, issueComments, prComments, reports, run }
+  return { state, task, comments, writes, issueComments, prComments, reports, run, transport }
 }
 
 describe('native GitHub Copilot bridge (AWTD-1383)', () => {
@@ -176,6 +176,41 @@ describe('native GitHub Copilot bridge (AWTD-1383)', () => {
     expect(f.writes.filter(row => row.path.endsWith('/assignees'))).toHaveLength(3)
     expect(f.issueComments).toHaveLength(3)
     expect(f.task.statusRole).toBe('waiting')
+  })
+
+  it('AWTD-1383: exhausted dispatch does not starve Ready work or PR replies on consecutive ticks', async () => {
+    const exhausted = fixture()
+    exhausted.state.assignmentWorks = false
+    for (let attempt = 0; attempt < 3; attempt++) await expect(exhausted.run()).rejects.toThrow(/did not assign/)
+    const healthy = fixture('task-2', 3)
+    const reports: string[] = []
+    const transport: BridgeTransport = {
+      async astrid<T>(path: string, body?: unknown): Promise<T> {
+        return (path.includes('/tasks/task-1') ? exhausted : healthy).transport.astrid<T>(path, body)
+      },
+      async github<T>(path: string, body?: unknown): Promise<T> {
+        if (path.includes('/issues?state=all')) {
+          return [exhausted.state.issue, healthy.state.issue].filter(Boolean) as T
+        }
+        return (path.includes('/issues/1/') ? exhausted : healthy).transport.github<T>(path, body)
+      },
+    }
+    const run = () => runNativeCopilotBridge({
+      transport, repo: 'Graceful-Tools/astrid-web', listId, dryRun: false,
+      issueTemplate: '## Problem\nSee Astrid.', report: message => reports.push(message),
+    })
+
+    await expect(run()).rejects.toThrow(/exhausted three persisted attempts/)
+    expect(exhausted.task.statusRole).toBe('waiting')
+    expect(healthy.writes.filter(row => row.path.endsWith('/assignees'))).toHaveLength(1)
+
+    healthy.state.hasPull = true
+    healthy.comments.push({ ...healthy.comments[0], id: 'reply', content: 'Continue with blue.' })
+    await expect(run()).rejects.toThrow(/exhausted three persisted attempts/)
+    expect(healthy.prComments.filter(row => row.body.includes('Continue with blue.'))).toHaveLength(1)
+    expect(exhausted.comments.filter(row => row.content.includes('native-dispatch-exhausted:'))).toHaveLength(1)
+    expect(exhausted.writes.filter(row => row.path.endsWith('/assignees'))).toHaveLength(3)
+    expect(reports.filter(row => row.includes('exhausted three persisted attempts'))).toHaveLength(2)
   })
 
   it('recovers the owned inert issue after failure between claim and native assignment', async () => {
