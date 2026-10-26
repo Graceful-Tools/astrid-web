@@ -24,7 +24,6 @@
 import { ListSettingsPopover } from "../../list-settings-popover"
 import { FixedListSettingsPopover } from "../../fixed-list-settings-popover"
 import { ListSortAndFiltersPopover } from "../../list-sort-and-filters-popover"
-import { type ColumnCount, sortAndFiltersLivesInListSettings } from "@/lib/list-view-controls"
 
 // Lists Astrid provides itself get the fixed (filter-only) popover. The id set
 // is owned by lib/list-permissions (task e2803305) — do not re-spell it here.
@@ -56,13 +55,6 @@ interface FilterState {
 export interface ListSettingsHostProps {
   /** Distinguishes the desktop and mobile mount points' React keys. */
   variant: "desktop" | "mobile"
-  /**
-   * Which layout this is, because it decides whether List Settings offers a
-   * way into Sort & Filters (AWTD-1175). Below 3 columns the list header has
-   * one button, so without this a user list had no sort or filter control at
-   * all. The rule itself is lib/list-view-controls.ts.
-   */
-  columnCount: ColumnCount
   selectedListId: string
   lists: Array<{ id: string }>
   listMetadata?: { id: string } | null
@@ -99,7 +91,7 @@ export interface ListSettingsHostProps {
 
 export function ListSettingsHost(props: ListSettingsHostProps) {
   const {
-    variant, columnCount, selectedListId, lists, listMetadata, currentUser, availableUsers,
+    variant, selectedListId, lists, listMetadata, currentUser, availableUsers,
     showSettingsPopover, setShowSettingsPopover,
     showSortFiltersPopover, setShowSortFiltersPopover, canEditListSettings,
     isViewingFromFeatured, selectedListInfo, filterState, statuses,
@@ -141,17 +133,6 @@ export function ListSettingsHost(props: ListSettingsHostProps) {
   const currentList = lists.find(list => list.id === selectedListId) || listMetadata
   if (!currentList) return null
 
-  // On a narrow layout the gear is the only button, so this modal carries the
-  // way into Sort & Filters — as a row that OPENS the per-user panel below,
-  // never as a tab inside the shared one (AWTD-1175).
-  const openSortAndFilters =
-    sortAndFiltersLivesInListSettings(columnCount) && setShowSortFiltersPopover
-      ? () => {
-          setShowSettingsPopover(null)
-          setShowSortFiltersPopover(currentList.id)
-        }
-      : undefined
-
   const settingsOpen = showSettingsPopover === currentList.id
   const sortFiltersOpen = showSortFiltersPopover === currentList.id
   if (!settingsOpen && !sortFiltersOpen) return null
@@ -180,7 +161,6 @@ export function ListSettingsHost(props: ListSettingsHostProps) {
           canEditSettings={canEditListSettings(currentList as never) && !isViewingFromFeatured}
           open={showSettingsPopover === selectedListId}
           onOpenChange={(open: boolean) => setShowSettingsPopover(open ? selectedListId : null)}
-          onOpenSortAndFilters={openSortAndFilters}
           onEditImage={() => onEditImage(currentList.id)}
           onLeave={onLeave as never}
           onUpdate={onListUpdate as never}
