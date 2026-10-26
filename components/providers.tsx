@@ -13,7 +13,6 @@ import { PWAStatus } from "@/components/pwa-status"
 import { CodingWorkflowProvider } from "@/components/coding-workflow-provider"
 import { OfflineProvider } from "@/components/offline-provider"
 import { FeatureFlagProvider } from "@/contexts/feature-flag-context"
-import { ListImagesProvider } from "@/contexts/list-images-context"
 import { EditingSessionProvider } from "@/hooks/use-editing-session"
 import { WebVitalsReporter } from "@/components/web-vitals-reporter"
 
@@ -28,21 +27,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <FeatureFlagProvider>
         <ThemeProvider defaultTheme={BRAND.defaultTheme}>
           <SettingsProvider>
-            <ListImagesProvider>
-              <OfflineProvider>
-                <CodingWorkflowProvider>
-                  {/* One editing session for the whole app (task 7b60c7c5): opening
-                      any editor commits and closes the active one, wherever it lives. */}
-                  <EditingSessionProvider>
-                    <PWARegistration />
-                    <PWAStatus />
-                    {children}
-                    <Toaster />
-                    <PWAInstallPrompt />
-                  </EditingSessionProvider>
-                </CodingWorkflowProvider>
-              </OfflineProvider>
-            </ListImagesProvider>
+            <OfflineProvider>
+              <CodingWorkflowProvider>
+                {/* One editing session for the whole app (task 7b60c7c5): opening
+                    any editor commits and closes the active one, wherever it lives. */}
+                <EditingSessionProvider>
+                  <PWARegistration />
+                  <PWAStatus />
+                  {children}
+                  <Toaster />
+                  <PWAInstallPrompt />
+                </EditingSessionProvider>
+              </CodingWorkflowProvider>
+            </OfflineProvider>
           </SettingsProvider>
         </ThemeProvider>
       </FeatureFlagProvider>
