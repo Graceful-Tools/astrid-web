@@ -234,6 +234,12 @@ Three things that are not free:
   for integration connections that include Development. The answer there is
   Blob's OIDC upgrade (no long-lived token at all), not the
   disconnect/rotate/reconnect dance — see the OIDC task before touching it.
+  Since [AWTD-1368](https://astrid.cc/t/AWTD-1368) the server is ready for the
+  upgrade: the `BLOB_WEBHOOK_PUBLIC_KEY` it provisions switches direct uploads to
+  presigned URLs, and callbacks verify with Ed25519, with no code change at the
+  click. **The click is still a decision**: it removes the token, and iOS/Mac
+  builds older than 1253 (the first with AITD-558) can only upload with a client
+  token derived from it.
 
 Flipping a var re-enters the same value; it does not rotate it. Vercel cannot
 convert a Secret back to Config in place.
