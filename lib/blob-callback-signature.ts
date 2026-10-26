@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'crypto'
+import { createHmac, createPublicKey, timingSafeEqual, verify } from 'crypto'
 
 /**
  * Verify a Vercel Blob `onUploadCompleted` callback signature.
@@ -31,4 +31,50 @@ export function verifyBlobCallbackSignature(
   } catch {
     return false
   }
+}
+
+/** An Ed25519 signature is 64 bytes, sent as 128 hex characters. */
+const ED25519_SIGNATURE_HEX = /^[0-9a-fA-F]{128}$/
+
+/**
+ * Verify a PRESIGNED upload's callback: Ed25519 over the raw body, checked
+ * against the store's `BLOB_WEBHOOK_PUBLIC_KEY` (PEM, SPKI). The same check
+ * `handleUploadPresigned` makes in `@vercel/blob` — kept here so the route can
+ * verify both schemes from one raw body (AWTD-1368).
+ */
+export function verifyPresignedBlobCallbackSignature(
+  rawBody: string,
+  signature: string | null | undefined,
+  webhookPublicKey: string | undefined
+): boolean {
+  if (!webhookPublicKey || !signature || !ED25519_SIGNATURE_HEX.test(signature)) return false
+  try {
+    const key = createPublicKey(webhookPublicKey.trim())
+    return verify(null, Buffer.from(rawBody, 'utf8'), key, Buffer.from(signature, 'hex'))
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Verify an upload-completed callback under whichever scheme signed it
+ * (AWTD-1368).
+ *
+ * Presigned uploads are signed with Ed25519 and client-token uploads with an
+ * HMAC keyed by the read/write token. Both are accepted while both
+ * credentials exist, because builds that predate presigned uploads keep
+ * producing HMAC callbacks until they drain. After the Blob store's OIDC
+ * upgrade the token is gone and only Ed25519 remains, with no code change.
+ * Each scheme needs its own credential, so a forger holding neither
+ * satisfies neither.
+ */
+export function verifyBlobCallback(
+  rawBody: string,
+  signature: string | null | undefined,
+  credentials: { webhookPublicKey?: string; readWriteToken?: string }
+): boolean {
+  return (
+    verifyPresignedBlobCallbackSignature(rawBody, signature, credentials.webhookPublicKey) ||
+    verifyBlobCallbackSignature(rawBody, signature, credentials.readWriteToken)
+  )
 }

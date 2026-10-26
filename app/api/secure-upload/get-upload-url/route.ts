@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import { randomUUID } from "crypto"
-import { issueClientUploadToken } from "@/lib/secure-storage"
+import { issueClientUploadToken, issuePresignedUpload, presignedUploadsEnabled } from "@/lib/secure-storage"
 import { createLogger } from '@/lib/logger'
 import { findSecureFileByClientRequestId } from "@/lib/secure-file-idempotency"
 import { validateSecureUpload, SECURE_UPLOAD_MIME_TYPES } from '@/lib/upload-validation'
@@ -205,8 +205,7 @@ export async function POST(request: NextRequest) {
       : process.env.NEXTAUTH_URL || `https://${BRAND.domain}`
     const callbackUrl = `${baseUrl}/api/secure-upload/upload-complete`
 
-    // Client token for a direct upload to the object store.
-    const { token: clientToken, uploadUrl } = await issueClientUploadToken({
+    const uploadRequest = {
       pathname,
       onUploadCompleted: {
         callbackUrl,
@@ -226,15 +225,28 @@ export async function POST(request: NextRequest) {
       },
       maximumSizeInBytes: MAX_FILE_SIZE,
       allowedContentTypes: SECURE_UPLOAD_MIME_TYPES as string[],
-    })
+    }
+
+    // Presigned request, once the store can verify its callback (AWTD-1368).
+    // iOS/Mac (AITD-558) prefer it: PUT presigned.uploadUrl with
+    // presigned.headers plus Content-Type, and no Authorization.
+    const presigned = presignedUploadsEnabled()
+      ? await issuePresignedUpload({ ...uploadRequest, contentType: fileType })
+      : null
+
+    // Legacy client token, kept for builds that predate presigned uploads and
+    // only while the read/write token it is derived from still exists.
+    // For those builds: PUT to uploadUrl with header
+    // "x-vercel-blob-client-token: {uploadToken}".
+    const legacy = !presigned || process.env.BLOB_READ_WRITE_TOKEN
+      ? await issueClientUploadToken(uploadRequest)
+      : null
 
     return NextResponse.json({
-      uploadToken: clientToken,
       pathname,
       fileId,
-      // For iOS: PUT to this uploadUrl with header
-      // "x-vercel-blob-client-token: {uploadToken}".
-      uploadUrl,
+      ...(presigned ? { presigned } : {}),
+      ...(legacy ? { uploadToken: legacy.token, uploadUrl: legacy.uploadUrl } : {}),
     })
 
   } catch (error) {
