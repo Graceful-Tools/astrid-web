@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { issueClientUploadToken } from "@/lib/secure-storage"
+import { issueClientUploadToken, issuePresignedUpload, presignedUploadsEnabled } from "@/lib/secure-storage"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import type { RouteContextParams } from "@/types/next"
@@ -77,6 +77,28 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ f
     const fileExtension = existingFile.originalName.split('.').pop() || 'bin'
     const timestamp = Date.now()
     const pathname = `files/${session.user.id}/${fileId}-${timestamp}.${fileExtension}`
+
+    // Presigned once the store can verify presigned callbacks (AWTD-1368).
+    // Clients send `headers` as given, so no client change is needed, and
+    // this path does not need BLOB_READ_WRITE_TOKEN — the credential the
+    // Blob store's OIDC upgrade removes.
+    if (presignedUploadsEnabled()) {
+      const presigned = await issuePresignedUpload({
+        pathname,
+        contentType: mimeType,
+        maximumSizeInBytes: 100 * 1024 * 1024,
+        allowedContentTypes: [mimeType],
+      })
+
+      return NextResponse.json({
+        uploadUrl: presigned.uploadUrl,
+        pathname,
+        headers: { ...presigned.headers, "Content-Type": mimeType },
+        method: "PUT",
+        fileId,
+        oldBlobUrl: existingFile.blobUrl,
+      })
+    }
 
     if (!process.env.BLOB_READ_WRITE_TOKEN) {
       log.error("BLOB_READ_WRITE_TOKEN not configured")
