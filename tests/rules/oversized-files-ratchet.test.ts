@@ -69,7 +69,13 @@ const BUDGETS: Record<string, number> = {
   // feature reaches both panes by construction.
   // 1199 → 1197: MainContent takes one `columnCount` instead of three separate
   // layout booleans that had to agree (AWTD-1175).
-  'components/TaskManagerView.tsx': 1197,
+  // 1197 → 1198: AWTD-1356 moved Sort & Filters into the list header, so its
+  // open-state had to come up out of MainContent (the header is a sibling, not
+  // a child) and back down to both — seven lines of threading. Six were paid
+  // for: the desktop settings pane became DesktopSettingsDetailPane, which also
+  // took its visibility condition with it. The seventh is this. Next change to
+  // this file takes something out.
+  'components/TaskManagerView.tsx': 1198,
   // 1125 → 1115: the list header's two buttons moved to ListHeaderActions
   // when Sort & Filters gained its own control (task aa4e7eb0).
   // 1115 → 1100: the board-row context memos moved to useBoardRowContext (AWTD-1025).
@@ -78,7 +84,10 @@ const BUDGETS: Record<string, number> = {
   // 1043 → 1009: the list description — inline editor, search banner and the
   // preview that opens the dialog — became ListDescriptionBlock, the sibling
   // of the DescriptionDialog it opens (AWTD-1175).
-  'components/TaskManager/MainContent/MainContent.tsx': 1009,
+  // 1009 → 1008: AWTD-1356 deleted the divider-line funnel block and the
+  // layout gate around it, which more than paid for the header button and the
+  // threaded state. Locking the line in.
+  'components/TaskManager/MainContent/MainContent.tsx': 1008,
   'lib/cache-manager.ts': 935,
   // 819 → 797: its two hand-rolled comment inserts and SSE fan-outs went
   // through the comment service (spec §5.2 step 4).

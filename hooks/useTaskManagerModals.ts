@@ -17,6 +17,10 @@ export function useTaskManagerModals() {
   const [editingListDescription, setEditingListDescription] = useState(false)
   const [tempListDescription, setTempListDescription] = useState("")
   const [showSettingsPopover, setShowSettingsPopover] = useState<string | null>(null)
+  // Sort & Filters opens from the list header, beside the gear, at every width
+  // (AWTD-1356). It lives here rather than in MainContent because the header
+  // that opens it is a SIBLING of MainContent, not a child.
+  const [showSortFiltersFor, setShowSortFiltersFor] = useState<string | null>(null)
   const [showLeaveListMenu, setShowLeaveListMenu] = useState<string | null>(null)
 
   // Task input state
@@ -82,6 +86,7 @@ export function useTaskManagerModals() {
     editingListDescription,
     tempListDescription,
     showSettingsPopover,
+    showSortFiltersFor,
     showLeaveListMenu,
 
     // Task input state
@@ -92,6 +97,7 @@ export function useTaskManagerModals() {
     setShowPublicBrowser,
     setQuickTaskInput,
     setShowSettingsPopover,
+    setShowSortFiltersFor,
     setShowLeaveListMenu,
     setTempListName,
     setTempListDescription,

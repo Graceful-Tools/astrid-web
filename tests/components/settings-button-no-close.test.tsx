@@ -215,6 +215,8 @@ describe('TaskManagerView - Settings Button Behavior', () => {
     setEditingListDescription: vi.fn(),
     setTempListDescription: vi.fn(),
     setShowSettingsPopover: vi.fn(),
+    showSortFiltersFor: null,
+    setShowSortFiltersFor: vi.fn(),
     setShowLeaveListMenu: vi.fn(),
 
     // Business logic
