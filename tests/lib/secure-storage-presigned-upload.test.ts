@@ -55,7 +55,7 @@ describe('issuePresignedUpload (AWTD-1368)', () => {
     contentType: 'application/pdf',
     allowedContentTypes: ['application/pdf'],
     maximumSizeInBytes: 100,
-    onUploadCompleted: { callbackUrl: 'https://astrid.cc/api/secure-upload/upload-complete', tokenPayload: '{"a":1}' },
+    onUploadCompleted: { callbackUrl: 'https://app.example/api/secure-upload/upload-complete', tokenPayload: '{"a":1}' },
   }
 
   it('AWTD-1368: scopes the delegation to this one pathname, put only, with the limits', async () => {
