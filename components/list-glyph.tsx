@@ -8,8 +8,7 @@ type GlyphList = Pick<TaskList, "color" | "privacy"> & Parameters<typeof getAllL
 
 /**
  * The list's kind at a glance: Globe for a public list, Users for a shared
- * one, otherwise a Hash in the list's colour. Used on task-row list chips, and
- * in place of the list image where hide_list_images hides it.
+ * one, otherwise a Hash in the list's colour. Used on task-row list chips.
  */
 export function ListGlyph({ list, className = "w-3 h-3" }: { list: GlyphList; className?: string }) {
   if (list?.privacy === "PUBLIC") {

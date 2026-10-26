@@ -538,7 +538,7 @@ it also emits `user_settings_updated` to the user's other sessions.
 
 | Field | Type | Notes |
 |---|---|---|
-| `showListImages` | `boolean \| null` | "Show list images". `null` = follow the `hide_list_images` experiment flag (`GET /api/v1/features`); `true`/`false` = the user's explicit choice, which always wins. Draw list images when `showListImages ?? !features.hide_list_images`. PATCH `null` to return to the experiment. Any other type → 400. |
+| `showListImages` | `boolean \| null` | **Deprecated (AWTD-1387).** The `hide_list_images` experiment is gone and the web app always draws list images. The field is still read and written for shipped iOS/Mac builds: `null` (the value for every user in production) means "no explicit choice", `true`/`false` is one. New clients should ignore it and always draw list images. Any other type → 400. |
 
 The response includes `emailToTaskEnabled`, `defaultTaskDueOffset`,
 `defaultDueTime`, `smartTaskCreationEnabled`, `subtaskDisplay` and

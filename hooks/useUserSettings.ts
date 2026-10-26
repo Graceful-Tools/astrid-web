@@ -25,8 +25,9 @@ export interface UserSettings {
   /** "list" | "project" — which task-detail design this user sees. */
   taskDisplayMode: string
   /**
-   * "Show list images": null = follow the hide_list_images experiment,
-   * true/false = the user chose. Read it through useListImagesVisibility(),
+   * "Show list images". DEPRECATED (AWTD-1387): web always draws list images
+   * now and ignores this. Still read and written by shipped iOS/Mac builds via
+   * GET/PATCH /api/v1/users/me/smart-tasks, so the field stays until they drop it.
    * which resolves it against the flag — not directly.
    */
   showListImages: boolean | null
