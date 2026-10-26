@@ -222,71 +222,56 @@ describe('desktop list header controls (AWTD-1167, AWTD-1168)', () => {
   const header3Col = (props: Record<string, unknown> = {}) =>
     render(<MainContent {...baseProps} columnCount={3} {...props} />)
 
-  // AWTD-1204: the control hovers ON the line between the add-task box and the
-  // tasks, lined up with the checkbox of the row below. The geometry was
-  // measured rather than eyeballed — `left-[29px]` is 16px (rows wrapper p-4)
-  // + 1px (task card border) + 12px (.task-row px-3), which is the checkbox's
-  // own left edge, and `-bottom-4` centres the 32px control on the border.
-  //
-  // Pinned as classes because jsdom computes no layout: a geometry assertion
-  // here would pass on anything. What this catches is the row being put back
-  // into flow (the `flex justify-end -mb-3` it used to have), or its parent
-  // losing `relative` — which would position it against the viewport.
-  it('sort & filters hovers on the border line, aligned with the task checkbox', () => {
-    header3Col()
-    const filterRow = screen.getByTestId('list-filter-row')
-    expect(filterRow.className).toContain('absolute')
-    expect(filterRow.className).toContain('left-[29px]')
-    expect(filterRow.className).toContain('-bottom-4')
-    // The border runs the full width behind it, so the control must mask the
-    // line rather than let it draw through the icon.
-    expect(filterRow.className).toContain('theme-bg-primary')
-    // Out of flow: it must not re-acquire the margins that made the border
-    // sit below it rather than through it.
-    expect(filterRow.className).not.toContain('justify-end')
-    expect(filterRow.className).not.toContain('-mb-3')
-    // And it needs a positioned ancestor, or `left`/`bottom` resolve against
-    // the viewport and the control lands in the corner of the page.
-    const positioned = filterRow.closest('.relative')
-    expect(positioned).not.toBeNull()
-    expect(positioned!.className).toContain('border-b')
-  })
-
-  // AWTD-1175: the funnel is a 3-column control, and that is the half of the
-  // decision that keeps aa4e7eb0 — sort & filters split out of the shared
-  // modal. Below 3 columns this row is absent BY DESIGN and List Settings
-  // carries the way in instead (see ListSettingsHost's own test). What this
-  // pins is that the two cannot both be false again, which is what left a
-  // narrow layout with no sort or filter control at all.
-  it.each([1, 2])('leaves the funnel out of the %i-column header', columnCount => {
-    render(<MainContent {...baseProps} columnCount={columnCount} />)
-
-    expect(screen.queryByTestId('list-filter-row')).toBeNull()
-  })
-
-  it('sort & filters sits on its own row below "Add a task...", not beside the name', () => {
+  // AWTD-1356, Jon: "We are moving it to the header." The funnel used to hover
+  // ON the divider line between the add-task box and the tasks, absolutely
+  // positioned and aligned to the task checkbox (AWTD-1204), and below 3
+  // columns it did not exist at all — List Settings carried the way in
+  // (AWTD-1175). Both are gone: it is an ordinary header button beside the
+  // gear, at every width, so there is no placement rule left to keep in step.
+  it('sort & filters sits in the header beside the gear, not on the divider line', () => {
     const { container } = header3Col()
-    const input = screen.getByPlaceholderText(/add a task/i)
-    const filterRow = screen.getByTestId('list-filter-row')
-    // DOM order: the input comes before the filter row.
-    expect(input.compareDocumentPosition(filterRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    // And the title row keeps only the settings gear.
+
     const titleRow = container.querySelector('h1')!.closest('.flex.items-center')!
-    expect(titleRow.querySelector('[data-sort-filters-button]')).toBeNull()
+    const funnel = titleRow.querySelector('[data-sort-filters-button]')
+    expect(funnel).not.toBeNull()
     expect(titleRow.querySelector('[data-settings-button]')).not.toBeNull()
+
+    // The old placement is gone, not merely moved: nothing absolutely
+    // positioned against the divider remains.
+    expect(screen.queryByTestId('list-filter-row')).toBeNull()
+    expect(funnel!.className).not.toContain('absolute')
+    expect(funnel!.className).not.toContain('-bottom-4')
+  })
+
+  it('the funnel comes before the gear, so the gear stays the rightmost control', () => {
+    const { container } = header3Col()
+    const titleRow = container.querySelector('h1')!.closest('.flex.items-center')!
+    const funnel = titleRow.querySelector('[data-sort-filters-button]')!
+    const gear = titleRow.querySelector('[data-settings-button]')!
+    expect(funnel.compareDocumentPosition(gear) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('the funnel opens this viewer’s Sort & Filters, not the shared list settings', () => {
     const setShowSettingsPopover = vi.fn()
-    header3Col({ setShowSettingsPopover })
+    const setShowSortFiltersFor = vi.fn()
+    header3Col({ setShowSettingsPopover, setShowSortFiltersFor })
+
     fireEvent.click(screen.getByRole('button', { name: /sort/i }))
+
+    // The seam task aa4e7eb0 drew still holds: sort & filters is per-user, the
+    // gear is the list as everyone sees it.
+    expect(setShowSortFiltersFor).toHaveBeenCalledWith('list-1')
     expect(setShowSettingsPopover).not.toHaveBeenCalled()
   })
 
-  it('system lists get the same row (it opens their fixed settings)', () => {
+  it('a system list gets the same button, opening its fixed settings', () => {
     const setShowSettingsPopover = vi.fn()
     header3Col({ selectedListId: 'today', setShowSettingsPopover })
+
     fireEvent.click(screen.getByRole('button', { name: /sort/i }))
+
+    // A system list has no shared settings to separate from, so its funnel IS
+    // the way into its filter panel.
     expect(setShowSettingsPopover).toHaveBeenCalledWith('today')
   })
 
@@ -303,7 +288,7 @@ describe('desktop list header controls (AWTD-1167, AWTD-1168)', () => {
   it('the board view keeps the header: toggle back to the list, and sort & filters', () => {
     header3Col({ hasProjectBoard: true, taskViewMode: 'board' })
     expect(screen.getByTestId('header-list-board-toggle')).toBeVisible()
-    expect(screen.getByTestId('list-filter-row')).toBeVisible()
+    expect(screen.getByRole('button', { name: /sort/i })).toBeVisible()
     // Columns have their own add, so the header's input is not shown there.
     expect(screen.queryByPlaceholderText(/add a task/i)).toBeNull()
   })

@@ -96,6 +96,8 @@ describe('Scroll-to-close task detail behavior', () => {
     selectedTaskId: 'task-1',
     showSettingsPopover: null,
     setShowSettingsPopover: vi.fn(),
+    showSortFiltersFor: null,
+    setShowSortFiltersFor: vi.fn(),
     showLeaveListMenu: null,
     setShowLeaveListMenu: vi.fn(),
     editingListName: false,
