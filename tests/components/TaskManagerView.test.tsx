@@ -156,6 +156,8 @@ describe('TaskManagerView', () => {
     setEditingListDescription: vi.fn(),
     setTempListDescription: vi.fn(),
     setShowSettingsPopover: vi.fn(),
+    showSortFiltersFor: null,
+    setShowSortFiltersFor: vi.fn(),
     setShowLeaveListMenu: vi.fn(),
     setShowMobileSidebar: vi.fn(),
 
