@@ -83,8 +83,9 @@ export const PATCH = withAuth(
           { status: 400 }
         )
       }
-      // Tri-state: null hands the decision back to the hide_list_images
-      // experiment (lib/list-images-visibility.ts), so it is a valid write.
+      // Tri-state, and null is a valid write. DEPRECATED (AWTD-1387): web
+      // ignores this and always draws list images. Kept because shipped
+      // iOS/Mac builds still read and write it.
       if (
         'showListImages' in updateData &&
         updateData.showListImages !== null &&
