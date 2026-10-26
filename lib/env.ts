@@ -109,7 +109,8 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'ALLOW_UNAUTHENTICATED_CRON', scope: 'tooling', description: 'Local-only escape hatch for hitting cron routes without a secret. Ignored when NODE_ENV=production, by design.' },
 
   // ── Storage, cache, push ──────────────────────────────────────────────────
-  { name: 'BLOB_READ_WRITE_TOKEN', scope: 'optional', description: 'Vercel Blob storage for attachments and uploads.' },
+  { name: 'BLOB_READ_WRITE_TOKEN', scope: 'optional', description: 'Vercel Blob storage for attachments and uploads. Static token; the Blob store\'s OIDC upgrade replaces it with VERCEL_OIDC_TOKEN + BLOB_STORE_ID, which the SDK reads itself (AWTD-1368).' },
+  { name: 'BLOB_WEBHOOK_PUBLIC_KEY', scope: 'optional', description: 'Ed25519 key verifying presigned-upload callbacks. Its presence switches direct uploads to presigned URLs (lib/secure-storage.ts presignedUploadsEnabled, AWTD-1368). Provisioned by the Blob store\'s OIDC upgrade.' },
   { name: 'REMOTE_IMAGE_ALLOWED_HOSTS', scope: 'optional', description: 'Comma-separated HTTPS hosts the remote-image import route accepts. Empty disables remote imports.' },
   { name: 'REDIS_URL', scope: 'optional', description: 'Local Redis for development.' },
   { name: 'UPSTASH_REDIS_REST_URL', scope: 'optional', description: 'Serverless Redis. Without it rate limits fall back to a per-instance memory store.', validate: isUrl },
