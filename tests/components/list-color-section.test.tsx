@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  *
- * List settings can change a list's colour. With hide_list_images the colour
+ * List settings can change a list's colour. The colour
  * is what marks a list, and there was no way to set it after creation.
  */
 
