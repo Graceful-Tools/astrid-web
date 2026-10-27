@@ -48,6 +48,20 @@ function bodyOf(fetchMock: Mock, suffix: string) {
 }
 
 describe('an MCP write that declares an agent is signed by that agent (AWTD-1311)', () => {
+  it('AWTD-1383: resolves an existing Copilot identity on a fresh stateless request', async () => {
+    const fetchMock = vi.fn(async (url: string) =>
+      String(url).includes('/agent-queue')
+        ? jsonOk({ agent: { mailbox: 'copilot', id: 'existing-copilot' }, queue: [] })
+        : jsonOk({ comment: { id: 'c1' } }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_token' })
+
+    await (server as any).addComment({ taskId: 'task-1', content: 'strategy', agent: 'copilot' })
+
+    expect(bodyOf(fetchMock, '/comments').aiAgentId).toBe('existing-copilot')
+    expect(fetchMock.mock.calls[0][0]).toContain('agent=copilot')
+  })
   beforeEach(() => {
     vi.restoreAllMocks()
     delete process.env.ASTRID_AGENT_ID
@@ -149,6 +163,17 @@ describe('an MCP write that declares an agent is signed by that agent (AWTD-1311
     await (server as any).updateTask({ taskId: 'task-1', statusRole: 'waiting', agent: 'claude' })
 
     expect(bodyOf(fetchMock, '/api/v1/tasks/task-1').aiAgentId).toBe(CLAUDE)
+  })
+
+  it('AWTD-1383: preserves explicit null assignment instead of relying on creation defaults', async () => {
+    const fetchMock = vi.fn(async () => jsonOk({ task: { id: 'task-1' } }))
+    vi.stubGlobal('fetch', fetchMock)
+    const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_token' })
+    await (server as any).updateTask({ taskId: 'task-1', assigneeId: null, agent: 'me' })
+    expect(bodyOf(fetchMock, '/api/v1/tasks/task-1').assigneeId).toBeNull()
+    fetchMock.mockClear()
+    await (server as any).createTask({ title: 'Unassigned Ready work', listId: 'board', assigneeId: null, statusRole: 'ready' })
+    expect(bodyOf(fetchMock, '/api/v1/tasks').assigneeId).toBeNull()
   })
 
   it('AWTD-1311: a poll still wins over a declaration, so a mailbox typo cannot mis-sign', async () => {

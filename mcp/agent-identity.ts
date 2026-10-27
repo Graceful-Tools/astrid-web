@@ -56,7 +56,7 @@ import { agentAuthorIdFromEnv } from '../lib/agent-mailbox-env'
 
 /** The `agent` block of an /api/v1/agent-queue response, as far as this cares. */
 interface QueueAgentBlock {
-  agent?: { id?: string | null } | null
+  agent?: { id?: string | null; mailbox?: string } | null
 }
 
 /**
@@ -167,5 +167,24 @@ export class McpAgentIdentity {
     if (fromEnv) return { aiAgentId: fromEnv }
 
     throw new UnresolvedAgentIdentityError(mailbox)
+  }
+
+  async resolveSignatureFor(
+    agent: string | undefined,
+    client: { makeRequest<T>(path: string): Promise<T> },
+  ): Promise<{ aiAgentId?: string }> {
+    try {
+      return this.signatureFor(agent)
+    } catch (error) {
+      if (!(error instanceof UnresolvedAgentIdentityError)) throw error
+      // Hosted MCP is stateless between calls; learn from the authenticated
+      // queue instead of assuming a previous request's poll survived.
+      const response = await client.makeRequest<QueueAgentBlock>(
+        `/api/v1/agent-queue?agent=${encodeURIComponent(error.mailbox)}`,
+      )
+      if (response.agent?.mailbox !== error.mailbox || !response.agent.id) throw error
+      this.observe(response)
+      return this.signatureFor(agent)
+    }
   }
 }

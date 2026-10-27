@@ -21,7 +21,7 @@ This file covers contributing to the **web repository**. For iOS contributions, 
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 24 — the version in `.nvmrc` (`nvm use`), which CI and production also run
 - PostgreSQL 14+ (or SQLite for local development)
 - Redis (optional, for caching)
 

@@ -44,6 +44,7 @@ export const READY_QUEUE_BOARDS: readonly ReadyQueueBoard[] = ['web', 'ios', 'wi
 type ReadyQueueEnvironment = Record<string, string | undefined>
 
 export interface ReadyQueueOptions {
+  listId?: string
   board: ReadyQueueBoard
   harness: FixallHarness
   /** Print the sweep's would-be moves without writing anything. */
@@ -81,12 +82,19 @@ export function resolveReadyQueueOptions(
 ): ReadyQueueOptions {
   let board: ReadyQueueBoard = 'web'
   let boardSeen = false
+  let listId: string | undefined
   let cliHarness: string | undefined
   let dryRun = false
   let format: ReadyQueueOptions['format'] = 'human'
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
+    if (arg === '--list') {
+      const value = argv[++index]
+      if (!value || value.startsWith('--')) throw new Error('--list requires a value')
+      listId = value
+      continue
+    }
     if (arg === '--dry-run') {
       dryRun = true
       continue
@@ -128,6 +136,7 @@ export function resolveReadyQueueOptions(
     harness: parseHarness(cliHarness ?? env.ASTRID_FIXALL_HARNESS),
     dryRun,
     format,
+    ...(listId ? { listId } : {}),
   }
 }
 

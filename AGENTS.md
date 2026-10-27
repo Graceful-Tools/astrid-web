@@ -59,6 +59,7 @@ exactly one place:
 - Local Codex claims only tasks assigned to the distinct brand-derived
   `codex@<agent-domain>` polling identity. It is not the cloud OpenAI agent
   (`openai@<agent-domain>`) and must never claim that agent's assignments.
+- Codex's queue mailbox is `codex`: `--harness codex` for the queue, `--agent codex` to claim.
 - Response style: lead with the outcome, reference files as `path:line`, keep turns short.
 
 ---
@@ -69,6 +70,8 @@ exactly one place:
 |------|-------|
 | Architecture, code patterns, coding workflow | [ASTRID.md](./ASTRID.md) |
 | Deploy / ship it / fix stuff / quality gates / OAuth | [docs/CLI_OPERATIONS.md](./docs/CLI_OPERATIONS.md) |
+| `/fixall` and the task queue | [docs/FIXALL_WORKFLOW.md](./docs/FIXALL_WORKFLOW.md), then [docs/FIXALL_WEB.md](./docs/FIXALL_WEB.md) |
+| Which machine and harness runs what, and where secrets live | [docs/AGENT_FLEET.md](./docs/AGENT_FLEET.md) |
 | Full docs index | [docs/README.md](./docs/README.md) |
 
 ---

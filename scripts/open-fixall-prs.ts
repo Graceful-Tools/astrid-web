@@ -22,6 +22,9 @@ import { execFileSync } from 'child_process'
 import { existsSync, readFileSync } from 'fs'
 import { loadScriptEnv } from './lib/load-env'
 import { branchesForCompletedTask, isFinishedWork, prBody, prTitle, type CandidateBranch } from './lib/fixall-prs'
+import { parseBlockedConditions } from '@/lib/ready-queue-scope'
+import { RUNNER_PR_MARKER } from './lib/land-and-deploy'
+import { cloudHandoffEligible } from './lib/cloud-handoff'
 
 loadScriptEnv()
 
@@ -63,6 +66,11 @@ async function main() {
   const claimsFile = arg('--claims-file')
   const repo = arg('--repo')
   const dryRun = process.argv.includes('--dry-run')
+  const cloudAgent = arg('--cloud-agent')
+  const listId = arg('--list')
+  if (cloudAgent && (!['claude', 'copilot', 'codex'].includes(cloudAgent) || !listId)) {
+    throw new Error('--cloud-agent requires a harness mailbox and an explicit --list')
+  }
   if (!claimsFile || !repo) {
     console.error('Usage: open-fixall-prs.ts --claims-file <file> --repo <path> [--dry-run]')
     process.exit(1)
@@ -94,22 +102,28 @@ async function main() {
 
   for (const id of claimed) {
     const taskResponse = await fetch(`${API}/api/v1/tasks/${encodeURIComponent(id)}`, { headers: auth })
-    if (!taskResponse.ok) continue
+    if (!taskResponse.ok) throw new Error(`Could not read claimed task ${id}: HTTP ${taskResponse.status}`)
     const body = await taskResponse.json()
     const task = body.task ?? body
     if (!task?.id) continue
 
     const commentsResponse = await fetch(`${API}/api/v1/tasks/${task.id}/comments`, { headers: auth })
+    if (!commentsResponse.ok) throw new Error(`Could not read claimed task comments: HTTP ${commentsResponse.status}`)
     const comments: Array<{ authorId?: string | null; content?: string | null; createdAt?: string }> =
       commentsResponse.ok ? ((await commentsResponse.json()).comments ?? []) : []
 
     // Only finished work is up for review — completed, or awaiting its deploy
     // (AWTD-1278); a released or parked task's branch is somewhere to resume from.
     if (!isFinishedWork(task, comments)) continue
-
+    const awaitingSha = parseBlockedConditions(comments).awaitingDeploy
     branches ??= unmergedBranches(repo)
-    const matches = branchesForCompletedTask(task.identifier, branches)
+    const matches = branchesForCompletedTask(task.identifier, branches).filter(branch =>
+      !cloudAgent || (listId && cloudHandoffEligible({
+        branch, headSha: git(repo, 'rev-parse', `origin/${branch}`).trim(), listId, task, comments,
+      })),
+    )
     if (matches.length === 0) {
+      if (cloudAgent) failed = true
       console.log(`  PR: ${task.identifier} — finished, but no unmerged branch carries its id (nothing to open)`)
       continue
     }
@@ -122,12 +136,28 @@ async function main() {
     for (const branch of matches) {
       try {
         const existing = JSON.parse(
-          run('gh', ['pr', 'list', '--head', branch, '--state', 'all', '--json', 'number,state,url'], repo),
-        ) as Array<{ number: number; state: string; url: string }>
+          run('gh', ['pr', 'list', '--head', branch, '--state', 'all', '--json', 'number,state,url,body,headRefOid,baseRefName'], repo),
+        ) as Array<{ number: number; state: string; url: string; body: string; headRefOid: string; baseRefName: string }>
         if (existing.length > 0) {
+          const pr = existing[0]
+          if (cloudAgent && (pr.state !== 'OPEN' || pr.baseRefName !== 'main' || pr.headRefOid !== awaitingSha)) {
+            throw new Error(`Cloud PR #${pr.number} is not an open main-targeted handoff at the recorded SHA`)
+          }
+          if (cloudAgent && pr.state === 'OPEN' && pr.baseRefName === 'main' && pr.headRefOid === awaitingSha &&
+              !pr.body.includes(RUNNER_PR_MARKER)) {
+            if (dryRun) {
+              console.log(`  PR: ${task.identifier} — would register verified cloud handoff #${pr.number}`)
+            } else {
+              // Preserve the human/agent PR body and its template. Only the runner
+              // registers release eligibility, after checking the board handoff.
+              run('gh', ['api', '-X', 'PATCH', `repos/{owner}/{repo}/pulls/${pr.number}`,
+                '-f', `body=${pr.body}\n\nCloud handoff verified by \`${RUNNER_PR_MARKER}\`: ${awaitingSha}.`], repo)
+            }
+          }
           console.log(`  PR: ${task.identifier} — ${branch} already has #${existing[0].number} (${existing[0].state.toLowerCase()})`)
           continue
         }
+        if (cloudAgent) throw new Error('Cloud worker did not open its required PR; refusing template-free recovery PR')
         if (dryRun) {
           console.log(`  PR: ${task.identifier} — would open one for ${branch} [dry run]`)
           continue

@@ -18,7 +18,7 @@ interface ListColorSectionProps {
 /**
  * The list's colour: the palette swatches plus a custom picker.
  *
- * The colour is what identifies a list once hide_list_images removes its image
+ * The colour identifies a list wherever its image is not drawn
  * (the sidebar #, the header glyph, the task-row chips), so this is the setting
  * that replaces the image picker rather than an extra.
  *

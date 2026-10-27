@@ -1,11 +1,11 @@
 # Technology Stack
 
 ## Runtime & Framework
-- **Runtime**: Node.js (LTS)
-- **Framework**: Next.js 16.4.2 (App Router)
+- **Runtime**: Node.js 24 — declared once in `.nvmrc` and `engines.node`; CI and Vercel both read it
+- **Framework**: Next.js 16.4.3 (App Router)
 - **Language**: TypeScript 6
 - **Package Manager**: npm
-- **React**: React 19.3.0
+- **React**: React 19.3.1
 
 ## Database & Storage
 - **Database**: PostgreSQL (Neon serverless)
@@ -13,7 +13,7 @@
 - **Client**: @prisma/client 6.19.2
 - **Caching**: Redis (Upstash) - serverless REST API
 - **File Storage**: Vercel Blob
-- **Offline Storage**: IndexedDB via Dexie 4.4.6
+- **Offline Storage**: IndexedDB via Dexie 4.4.7
 
 ## Authentication & Security
 - **Provider**: NextAuth.js
@@ -24,7 +24,7 @@
 
 ## Testing Stack
 - **Unit Tests**: Vitest 4.1.11
-- **E2E Tests**: Playwright 1.63.0
+- **E2E Tests**: Playwright 1.64.1
 - **Test Environment**: jsdom 29.1.1
 - **Test Utilities**: React Testing Library 16.3.3
 
@@ -32,7 +32,7 @@
 - **Styling**: Tailwind CSS 3.4.17
 - **Components**: Radix UI primitives (Shadcn/ui)
 - **Icons**: Lucide React 0.454.0
-- **Forms**: React Hook Form 7.88.0 + Zod 3.25.76
+- **Forms**: React Hook Form 7.90.0 + Zod 4.6.6
 
 ## Build & Development
 - **Bundler**: Next.js built-in (Turbopack in dev)
@@ -49,7 +49,7 @@
 - **GitHub Integration**: Octokit for repository access
 
 ## Email & Notifications
-- **Outbound Email**: Resend 6.28.1
+- **Outbound Email**: Resend 6.34.1
 - **Inbound Email**: Cloudflare Email Workers / Mailgun / Resend webhooks
 - **Email Parsing**: TurndownService (HTML to Markdown)
 - **Push Notifications**: web-push 3.6.7 (VAPID-based)

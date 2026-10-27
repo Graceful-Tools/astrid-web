@@ -1,0 +1,60 @@
+name: 'Agent ship'
+
+# Deliberately inert until smoke-proven and explicitly enabled. This deterministic
+# job can dispatch production; coding-agent jobs cannot.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Inspect eligibility without merging, deploying, or updating Astrid'
+        type: boolean
+        default: true
+  schedule:
+    - cron: '17,47 * * * *'
+
+concurrency:
+  group: astrid-web-ship
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  ship:
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.ASTRID_SHIP_ENABLED == 'true') }}
+    runs-on: ubuntu-24.04
+    environment: release
+    timeout-minutes: 55
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ASTRID_OAUTH_CLIENT_ID: ${{ secrets.ASTRID_OAUTH_CLIENT_ID }}
+      ASTRID_OAUTH_CLIENT_SECRET: ${{ secrets.ASTRID_OAUTH_CLIENT_SECRET }}
+      ASTRID_WEB_LIST_ID: ${{ vars.ASTRID_WEB_LIST_ID || 'a623f322-4c3c-49b5-8a94-d2d9f00c82ba' }}
+      DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Land eligible handoffs and reconcile production
+        run: |
+          mkdir -p .agent-output
+          FLAGS=()
+          if [ "${DRY_RUN}" = true ]; then FLAGS+=(--dry-run); fi
+          set -o pipefail
+          npx tsx scripts/land-and-deploy.ts --list-id "${ASTRID_WEB_LIST_ID}" \
+            --max-land 1 "${FLAGS[@]}" 2>&1 | tee .agent-output/ship.log
+      - name: Persist shipping evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: agent-ship-${{ github.run_id }}
+          path: .agent-output/
+          include-hidden-files: true
+          retention-days: 30

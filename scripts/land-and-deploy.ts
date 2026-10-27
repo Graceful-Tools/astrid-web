@@ -38,6 +38,8 @@ import { execFileSync } from 'child_process'
 import { parseBlockedConditions } from '@/lib/ready-queue-scope'
 import { WAITING_STATUS_ROLE } from '@/lib/task-status'
 import { resolveAgentAuthorId } from './lib/agent-author'
+import { agentMailboxFromEmail } from '@/lib/brand/agent-emails'
+import { cloudHandoffEligible } from './lib/cloud-handoff'
 import { boardTasksUrl } from './lib/board-read-url'
 import { loadScriptEnv } from './lib/load-env'
 import { SweepApi } from './lib/sweep-api'
@@ -52,6 +54,8 @@ import {
   pendingMigrations,
   summary,
   tasksProductionServes,
+  taskIdsInBranch,
+  automaticDeployHold,
   type AwaitingDeployTask,
   type PullRequestSummary,
 } from './lib/land-and-deploy'
@@ -171,8 +175,7 @@ async function completeDeployedTasks(listId: string): Promise<string[]> {
   }
   const { access_token: token } = (await tokenResponse.json()) as { access_token: string }
   const auth = { 'X-OAuth-Token': token }
-  const authorId = await resolveAgentAuthorId({ mailbox: 'claude', accessToken: token, warn: log })
-  const api = new SweepApi(auth, options.dryRun, (...args) => log(args.join(' ')), authorId)
+  const api = new SweepApi(auth, options.dryRun, (...args) => log(args.join(' ')))
 
   const boardResponse = await fetch(boardTasksUrl({ boardId: listId, limit: 500 }), { headers: auth })
   if (!boardResponse.ok) {
@@ -181,7 +184,8 @@ async function completeDeployedTasks(listId: string): Promise<string[]> {
   }
   const boardBody = (await boardResponse.json()) as { tasks?: unknown } | unknown[]
   const listed = (Array.isArray(boardBody) ? boardBody : (boardBody as { tasks?: unknown }).tasks) ?? []
-  const waiting = (listed as Array<{ id: string; identifier?: string | null; statusRole?: string | null; completed?: boolean }>)
+  const waiting = (listed as Array<{ id: string; identifier?: string | null; statusRole?: string | null; completed?: boolean;
+    assignee?: { email?: string | null } | null }>)
     .filter(task => !task.completed && (task.statusRole ?? '').trim().toLowerCase() === WAITING_STATUS_ROLE)
 
   const awaiting: AwaitingDeployTask[] = []
@@ -211,8 +215,13 @@ async function completeDeployedTasks(listId: string): Promise<string[]> {
       continue
     }
     // Comment first: a completed task with no word on why is the worse failure.
-    await api.comment(task, deployedCompletionComment({ sha: task.sha, servingSha: serving ?? '' }))
-    if (await api.complete(task)) {
+    const original = waiting.find(row => row.id === task.id)
+    const mailbox = agentMailboxFromEmail(original?.assignee?.email ?? '')
+    if (!mailbox) throw new Error(`Awaiting-deploy task ${name} has no agent assignee; refusing incorrect attribution`)
+    const authorId = await resolveAgentAuthorId({ mailbox, accessToken: token, warn: log })
+    const attributed = new SweepApi(auth, options.dryRun, (...args) => log(args.join(' ')), authorId)
+    await attributed.comment(task, deployedCompletionComment({ sha: task.sha, servingSha: serving ?? '' }))
+    if (await attributed.complete(task)) {
       log(`  marked ${name} complete — production serves ${task.sha.slice(0, 8)}`)
       completed.push(name)
     }
@@ -228,7 +237,7 @@ async function completeDeployedTasks(listId: string): Promise<string[]> {
  * returned as listed; `landablePullRequests` rejects them on the branch name or
  * the missing runner marker, before any check matters.
  */
-function openPullRequests(): PullRequestSummary[] {
+async function openPullRequests(): Promise<PullRequestSummary[]> {
   const listed = JSON.parse(
     run('gh', [
       'pr',
@@ -238,13 +247,41 @@ function openPullRequests(): PullRequestSummary[] {
       '--limit',
       '60',
       '--json',
-      'number,headRefName,title,body,isDraft,mergeable,mergeStateStatus',
+      'number,headRefName,headRefOid,title,body,isDraft,mergeable,mergeStateStatus',
     ]),
   ) as PullRequestSummary[]
 
   const isCandidate = (pr: PullRequestSummary) =>
     carriesTaskId(pr.headRefName) &&
     (options.includeHandOpened || (pr.body ?? '').includes(RUNNER_PR_MARKER))
+
+  let token: string | undefined
+  for (const pr of listed.filter(pr => isCandidate(pr) && pr.headRefName.startsWith('agent/'))) {
+    if (!options.listId || !pr.headRefOid) continue
+    if (!token) {
+      const response = await fetch(`${API}/api/v1/oauth/token`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ grant_type: 'client_credentials',
+          client_id: process.env.ASTRID_OAUTH_CLIENT_ID, client_secret: process.env.ASTRID_OAUTH_CLIENT_SECRET }),
+      })
+      if (!response.ok) throw new Error(`Cloud handoff authentication failed: HTTP ${response.status}`)
+      token = ((await response.json()) as { access_token: string }).access_token
+    }
+    const identifier = taskIdsInBranch(pr.headRefName)[0]
+    if (!identifier) continue
+    const auth = { 'X-OAuth-Token': token }
+    const response = await fetch(`${API}/api/v1/tasks/${encodeURIComponent(identifier)}`, { headers: auth })
+    if (!response.ok) throw new Error(`Cloud handoff task read failed: HTTP ${response.status}`)
+    const body = await response.json()
+    const task = body.task ?? body
+    const commentsResponse = await fetch(`${API}/api/v1/tasks/${task.id}/comments`, { headers: auth })
+    if (!commentsResponse.ok) throw new Error(`Cloud handoff comments failed: HTTP ${commentsResponse.status}`)
+    const commentsBody = await commentsResponse.json()
+    pr.cloudHandoffValid = cloudHandoffEligible({
+      branch: pr.headRefName, headSha: pr.headRefOid, task,
+      listId: options.listId, comments: commentsBody.comments ?? [],
+    })
+  }
 
   return listed.map(pr => {
     if (!isCandidate(pr)) return pr
@@ -286,7 +323,7 @@ function openPullRequests(): PullRequestSummary[] {
 async function main() {
   run('git', ['fetch', 'origin', '--quiet'])
 
-  const { land, skipped } = landablePullRequests(openPullRequests(), {
+  const { land, skipped } = landablePullRequests(await openPullRequests(), {
     requireRunnerMarker: !options.includeHandOpened,
     only: options.only,
   })
@@ -310,7 +347,8 @@ async function main() {
       // work, which fails on a dirty tree and makes a successful merge look
       // like a failure (see landedDespiteError). The remote branch is tidied
       // separately, where failing costs nothing.
-      run('gh', ['pr', 'merge', String(pr.number), '--merge'])
+      if (!pr.headRefOid) throw new Error('PR head SHA was not captured with its checks')
+      run('gh', ['pr', 'merge', String(pr.number), '--merge', '--match-head-commit', pr.headRefOid])
       log(`  landed #${pr.number} (${pr.headRefName})`)
       landed.push(pr.number)
       deleteRemoteBranch(pr.headRefName)
@@ -377,7 +415,7 @@ async function main() {
     log("  gate: the workflow's own quality-gates job (skip_tests=false)")
   }
 
-  const verdict = deployVerdict({
+  let verdict = deployVerdict({
     landedOrAlreadyOnMain: hasSomethingToShip,
     pending,
     predeployGreen,
@@ -386,6 +424,13 @@ async function main() {
   let verified = false
   let runUrl: string | undefined
   let runFailed: string[] = []
+
+  if (verdict.deploy && !options.dryRun) {
+    const previous = JSON.parse(run('gh', ['run', 'list', `--workflow=${WORKFLOW}`, '--commit', sha,
+      '--limit', '20', '--json', 'status,conclusion'])) as Array<{ status: string; conclusion: string | null }>
+    const hold = automaticDeployHold(previous)
+    if (hold) verdict = { deploy: false, code: 4, reason: hold }
+  }
 
   if (verdict.deploy && !options.dryRun) {
     run('gh', [
@@ -398,6 +443,8 @@ async function main() {
       'skip_tests=false',
       '-f',
       'allow_destructive_migrations=false',
+      '-f',
+      `expected_sha=${sha}`,
     ])
     // The dispatch returns no id, so the run is looked up after it registers.
     await new Promise(resolve => setTimeout(resolve, 12_000))
@@ -406,8 +453,10 @@ async function main() {
         'run',
         'list',
         `--workflow=${WORKFLOW}`,
+        '--commit',
+        sha,
         '--limit',
-        '1',
+        '5',
         '--json',
         'databaseId,url,headSha',
       ]),

@@ -25,7 +25,7 @@ import { MIN_TASK_PRIORITY, MAX_TASK_PRIORITY } from "../lib/task-priority"
 const RepeatingFields = {
   repeating: z.enum(["never", "daily", "weekly", "monthly", "yearly", "custom"]).optional(),
   /** Only meaningful when `repeating` is "custom"; a CustomRepeatingPattern. */
-  repeatingData: z.record(z.any()).nullable().optional(),
+  repeatingData: z.record(z.string(), z.any()).nullable().optional(),
   repeatFrom: z.enum(["DUE_DATE", "COMPLETION_DATE"]).optional(),
 }
 
@@ -53,7 +53,7 @@ export const CreateTaskSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   priority: z.number().int().min(MIN_TASK_PRIORITY).max(MAX_TASK_PRIORITY).default(0),
-  assigneeId: z.string().optional(),
+  assigneeId: z.string().nullable().optional(),
   dueDateTime: z.string().datetime().optional(),
   isAllDay: z.boolean().optional(),
   reminderTime: z.string().datetime().optional(),
@@ -68,7 +68,7 @@ export const UpdateTaskSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().optional(),
   priority: z.number().int().min(MIN_TASK_PRIORITY).max(MAX_TASK_PRIORITY).optional(),
-  assigneeId: z.string().optional(),
+  assigneeId: z.string().nullable().optional(),
   dueDateTime: z.string().datetime().optional(),
   isAllDay: z.boolean().optional(),
   reminderTime: z.string().datetime().optional(),

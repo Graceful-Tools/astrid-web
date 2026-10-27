@@ -1,6 +1,7 @@
 import { AGENT_MAILBOXES, agentEmail } from "@/lib/brand/agent-emails"
 import { harnessAgentMailboxes } from "@/lib/ai/harness-agents"
 import { DOING_STATUS_ROLE, READY_STATUS_ROLE, WAITING_STATUS_ROLE } from "@/lib/task-status"
+import { parseAgentResumeContext, type AgentResumeContext } from '@/lib/agent-handback'
 
 /**
  * The Copilot cloud identity — the DEFAULT claimant, not the only one.
@@ -76,11 +77,25 @@ const DEFAULT_FIXALL_CLAIM_BOARD_IDS = [
 ] as const
 
 export const FIXALL_CLAIM_BOARD_IDS: readonly string[] = resolveBoardIds()
-export const FIXALL_CLAIM_ACTIONS = ["ready", "recheck", "review"] as const
+export const FIXALL_CLAIM_ACTIONS = ["ready", "recheck", "review", "resume", "pause"] as const
 
 export type FixallClaimAction = typeof FIXALL_CLAIM_ACTIONS[number]
 
+export interface NativeCopilotDispatch {
+  repository: string
+  issueNumber: number
+}
+
+export function nativeCopilotClaimMarker(listId: string, taskId: string, dispatch: NativeCopilotDispatch): string {
+  return `NATIVE-COPILOT-CLAIM: ${JSON.stringify({ listId, taskId, ...dispatch })}`
+}
+
 export interface FixallClaimRequest {
+  /** Optional for legacy callers; new launchers pin the exact selected board. */
+  listId?: string
+  taskVersion?: string
+  nativeDispatch?: NativeCopilotDispatch
+  resume?: AgentResumeContext
   action: FixallClaimAction
   commentWatermark: string | null
   /** The harness claiming the task. Copilot when the caller does not say. */
@@ -94,17 +109,48 @@ export function parseFixallClaimRequest(body: unknown): FixallClaimRequest {
     typeof candidate.action !== "string" ||
     !FIXALL_CLAIM_ACTIONS.includes(candidate.action as FixallClaimAction)
   ) {
-    throw new Error("Claim action must be ready, recheck, or review")
+    throw new Error("Claim action must be ready, recheck, review, resume, or pause")
   }
 
   const action = candidate.action as FixallClaimAction
   const agent = parseClaimMailbox(candidate.agent)
+  const listId = candidate.listId
+  if (listId !== undefined && (typeof listId !== 'string' || !FIXALL_CLAIM_BOARD_IDS.includes(listId))) {
+    throw new Error('Claim listId must be an allowed board')
+  }
+  const scope = typeof listId === 'string' ? { listId } : {}
+  let nativeDispatch: NativeCopilotDispatch | undefined
+  if (candidate.nativeDispatch !== undefined) {
+    const dispatch = candidate.nativeDispatch as Partial<NativeCopilotDispatch> | null
+    if (action !== 'ready' || agent !== 'copilot' || !listId || !dispatch ||
+        typeof dispatch.repository !== 'string' || !/^[\w.-]+\/[\w.-]+$/.test(dispatch.repository) ||
+        typeof dispatch.issueNumber !== 'number' || !Number.isSafeInteger(dispatch.issueNumber) || dispatch.issueNumber < 1) {
+      throw new Error('Native dispatch requires a Copilot Ready claim, explicit board, repository and positive issue number')
+    }
+    nativeDispatch = { repository: dispatch.repository, issueNumber: dispatch.issueNumber }
+  }
   const commentWatermark = candidate.commentWatermark
+  if (action === 'pause') {
+    if (!listId || typeof candidate.taskVersion !== 'string' || !Number.isFinite(Date.parse(candidate.taskVersion))) {
+      throw new Error('Pause requires an explicit board and ISO taskVersion')
+    }
+    if (typeof commentWatermark !== 'string' || !Number.isFinite(Date.parse(commentWatermark))) {
+      throw new Error('Pause requires an ISO comment watermark')
+    }
+    return { action, agent, commentWatermark, taskVersion: candidate.taskVersion, ...scope }
+  }
+  if (action === 'resume') {
+    const resume = parseAgentResumeContext(candidate.resume)
+    if (commentWatermark !== resume.commentWatermark) throw new Error('Resume watermark must match context')
+    if (!FIXALL_CLAIM_BOARD_IDS.includes(resume.listId)) throw new Error('Resume board is not allowed')
+    if (listId !== undefined && listId !== resume.listId) throw new Error('Claim board must match resume board')
+    return { action, agent, commentWatermark: resume.commentWatermark, resume, ...scope }
+  }
   if (action === "ready") {
     if (commentWatermark !== undefined && commentWatermark !== null) {
       throw new Error("Ready claims must not include a comment watermark")
     }
-    return { action, commentWatermark: null, agent }
+    return { action, commentWatermark: null, agent, ...scope, ...(nativeDispatch ? { nativeDispatch } : {}) }
   }
 
   if (
@@ -114,7 +160,7 @@ export function parseFixallClaimRequest(body: unknown): FixallClaimRequest {
     throw new Error("Waiting claims require a null or ISO comment watermark")
   }
 
-  return { action, commentWatermark: commentWatermark as string | null, agent }
+  return { action, commentWatermark: commentWatermark as string | null, agent, ...scope }
 }
 
 export function buildAtomicFixallClaimWhere(input: {
@@ -124,10 +170,19 @@ export function buildAtomicFixallClaimWhere(input: {
   now: Date
 }) {
   const { taskId, agentId, claim, now } = input
+  if (claim.action === 'pause') {
+    if (!claim.taskVersion || !claim.commentWatermark || !claim.listId) throw new Error('Pause metadata is required')
+    return {
+      id: taskId, completed: false, assigneeId: agentId, statusRole: DOING_STATUS_ROLE,
+      updatedAt: new Date(claim.taskVersion),
+      lists: { some: { id: { in: [claim.listId] } } },
+      comments: { none: { updatedAt: { gt: new Date(claim.commentWatermark) } } },
+    }
+  }
   const where = {
     id: taskId,
     completed: false,
-    lists: { some: { id: { in: [...FIXALL_CLAIM_BOARD_IDS] } } },
+    lists: { some: { id: { in: claim.listId ? [claim.listId] : [...FIXALL_CLAIM_BOARD_IDS] } } },
     OR: [{ assigneeId: null }, { assigneeId: agentId }],
     statusRole: claim.action === "ready" ? READY_STATUS_ROLE : WAITING_STATUS_ROLE,
     ...(claim.action === "ready"
@@ -194,6 +249,7 @@ export function buildFixallClaimData(input: {
   claim: FixallClaimRequest
 }): { assigneeId: string; statusRole?: string } {
   const { agentId, claim } = input
-  if (claim.action !== "ready") return { assigneeId: agentId }
+  if (claim.action === 'pause') return { assigneeId: agentId, statusRole: WAITING_STATUS_ROLE }
+  if (claim.action !== "ready" && claim.action !== 'resume') return { assigneeId: agentId }
   return { assigneeId: agentId, statusRole: DOING_STATUS_ROLE }
 }

@@ -37,9 +37,9 @@ import { ListHeaderImage } from "./ListHeaderImage"
 import type { Task, TaskList } from "@/types/task"
 import { canUserManageList, isSystemListId } from "@/lib/list-permissions"
 import { useTranslations } from "@/lib/i18n/client"
-import { ListFilterRow, ListSettingsButton, ListViewToggle } from "./ListHeaderActions"
+import { ListSettingsButton, ListSortFiltersButton, ListViewToggle } from "./ListHeaderActions"
 import { ListDescriptionBlock } from "./ListDescriptionBlock"
-import { type ColumnCount, sortAndFiltersIsItsOwnControl } from "@/lib/list-view-controls"
+import type { ColumnCount } from "@/lib/layout-detection"
 
 interface MainContentProps {
   // Layout and responsive props
@@ -100,6 +100,9 @@ interface MainContentProps {
   selectedTaskId: string
   showSettingsPopover: string | null
   setShowSettingsPopover: (value: string | null) => void
+  /** Sort & Filters (AWTD-1356). Threaded, not local: the header opens it too. */
+  showSortFiltersFor: string | null
+  setShowSortFiltersFor: (value: string | null) => void
   showLeaveListMenu: string | null
   setShowLeaveListMenu: (value: string | null) => void
   editingListName: boolean
@@ -205,6 +208,8 @@ export function MainContent({
   selectedTaskId,
   showSettingsPopover,
   setShowSettingsPopover,
+  showSortFiltersFor,
+  setShowSortFiltersFor,
   showLeaveListMenu,
   setShowLeaveListMenu,
   editingListName,
@@ -279,10 +284,6 @@ export function MainContent({
   const { t } = useTranslations()
   const [draggingTaskMetrics, setDraggingTaskMetrics] = React.useState<{ taskId: string; height: number } | null>(null)
 
-  // Sort & Filters is its own control now, not a tab in List Settings
-  // (task aa4e7eb0). Local state rather than threaded from TaskManager like
-  // showSettingsPopover, because nothing outside this file opens it.
-  const [showSortFiltersFor, setShowSortFiltersFor] = React.useState<string | null>(null)
   const taskMeasurementsRef = React.useRef<Map<string, number>>(new Map())
   const taskListContainerRef = React.useRef<HTMLDivElement | null>(null)
   const scrollContainerRef = React.useRef<HTMLDivElement | null>(null)
@@ -660,9 +661,12 @@ export function MainContent({
                       />
                     </div>
 
-                    {/* View toggle and settings, compact so the name keeps the room (AWTD-1155); filters sit below (AWTD-1167) */}
+                    {/* View toggle, sort & filters, settings — compact so the name keeps
+                        the room (AWTD-1155). The funnel sits beside the gear at every
+                        width now (AWTD-1356); it used to straddle the divider line below. */}
                     <div className="flex items-center gap-0.5 flex-shrink-0">
                       <ListViewToggle hasProjectBoard={Boolean(is3Column && hasProjectBoard)} taskViewMode={taskViewMode} onTaskViewModeChange={onTaskViewModeChange} isSearching={Boolean(newFilterState.filters.search.trim())} />
+                      <ListSortFiltersButton list={currentList as never} currentUserId={effectiveSession?.user?.id} isViewingFromFeatured={isViewingFromFeatured} onOpen={() => setShowSortFiltersFor(selectedListId)} />
                       <ListSettingsButton list={currentList as never} currentUserId={effectiveSession?.user?.id} isViewingFromFeatured={isViewingFromFeatured} onOpen={() => setShowSettingsPopover(selectedListId)} />
                     </div>
                   </div>
@@ -671,7 +675,7 @@ export function MainContent({
             )}
 
             {/* Default view titles for system lists */}
-            {(selectedListId === "my-tasks" || selectedListId === "today" || selectedListId === "not-in-list" || selectedListId === "public" || selectedListId === "assigned") && (
+            {isSystemListId(selectedListId) && (
               <div className="flex items-center justify-start space-x-4 mb-4">
                 <div className="text-left flex-1 min-w-0">
                   <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1 truncate">{getSelectedListInfo().name}</h1>
@@ -679,6 +683,10 @@ export function MainContent({
                 </div>
                 <div className="flex items-center gap-0.5 flex-shrink-0">
                   <ListViewToggle hasProjectBoard={Boolean(is3Column && hasProjectBoard)} taskViewMode={taskViewMode} onTaskViewModeChange={onTaskViewModeChange} isSearching={Boolean(newFilterState.filters.search.trim())} />
+                  {/* A system list has no shared settings to separate from, so its
+                      funnel opens the fixed settings popover — which IS its filter
+                      panel. Same button, same place as a user list's (AWTD-1356). */}
+                  <ListSortFiltersButton onOpen={() => setShowSettingsPopover(selectedListId)} />
                 </div>
               </div>
             )}
@@ -687,7 +695,6 @@ export function MainContent({
           {/* List settings — one host picks fixed vs full popover (task ecf56cd3) */}
           {(showSettingsPopover === selectedListId || showSortFiltersFor === selectedListId) && <LazyListSettingsHost
               variant="desktop"
-              columnCount={columnCount}
               selectedListId={selectedListId}
               lists={lists}
               listMetadata={listMetadata}
@@ -735,13 +742,6 @@ export function MainContent({
               its own row below; mobile version is fixed at bottom). Gated on
               is3Column so there is no hidden duplicate in the 2-column DOM. */}
           {!isSearchActive && is3Column && !(hasProjectBoard && taskViewMode === 'board') && renderAddTaskInput()}
-          {/* Sort & filters: below "Add a task...", above the line over the tasks — on the board too (AWTD-1167, AWTD-1168).
-              Gated on the shared rule rather than on is3Column directly: below
-              3 columns this control does not exist and List Settings carries
-              the way in instead, and the two sites must agree (AWTD-1175). */}
-          {!isSearchActive && sortAndFiltersIsItsOwnControl(columnCount) && selectedListId && (isSystemListId(selectedListId)
-            ? <ListFilterRow onOpen={() => setShowSettingsPopover(selectedListId)} />
-            : <ListFilterRow list={(lists.find(l => l.id === selectedListId) || listMetadata) as never} currentUserId={effectiveSession?.user?.id} isViewingFromFeatured={isViewingFromFeatured} onOpen={() => setShowSortFiltersFor(selectedListId)} />)}
         </div>
 
         {/* 2-column add-task row. The header block above is display:none in
@@ -969,7 +969,6 @@ export function MainContent({
       {/* List settings — one host picks fixed vs full popover (task ecf56cd3) */}
       {(showSettingsPopover === selectedListId || showSortFiltersFor === selectedListId) && <LazyListSettingsHost
               variant="mobile"
-              columnCount={columnCount}
               selectedListId={selectedListId}
               lists={lists}
               listMetadata={listMetadata}

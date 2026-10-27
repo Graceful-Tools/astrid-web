@@ -16,6 +16,10 @@ on:
   # Do not restore either trigger without deciding that merging should ship.
   workflow_dispatch:
     inputs:
+      expected_sha:
+        description: 'Optional exact main commit inspected by deterministic shipping; refuse if main moved before dispatch'
+        required: false
+        type: string
       skip_tests:
         description: 'Skip tests (emergency deployment)'
         required: false
@@ -37,7 +41,6 @@ on:
         type: boolean
 
 env:
-  NODE_VERSION: '22'
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
   # The origin every check below asks. A partner running this workflow sets the
@@ -54,13 +57,17 @@ jobs:
     outputs:
       quality-passed: ${{ steps.quality-check.outputs.passed }}
     steps:
+      - name: Verify inspected source
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: test -z "${EXPECTED_SHA}" || test "${EXPECTED_SHA}" = "${GITHUB_SHA}"
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: .nvmrc
           cache: 'npm'
 
       - name: Install Dependencies
@@ -159,8 +166,9 @@ jobs:
         run: npm run build
         env:
           NODE_ENV: production
-          # Use production database for builds
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # The build never connects; a placeholder keeps production credentials
+          # out of this job (tests/rules/production-secrets-are-environment-scoped).
+          DATABASE_URL: postgresql://build:build@localhost:5432/build
 
       - name: Set Quality Check Status
         id: quality-check
@@ -172,19 +180,26 @@ jobs:
   database-migration:
     name: 'Database Migration'
     runs-on: ubuntu-24.04
+    # The production database secrets are environment secrets: only jobs that
+    # declare this environment receive them, and it admits only `main`.
+    environment: production
     timeout-minutes: 15
     needs: quality-gates
     if: always() && (needs.quality-gates.outputs.quality-passed == 'true' || inputs.skip_tests)
     outputs:
       migration-success: ${{ steps.migration.outputs.success }}
     steps:
+      - name: Verify inspected source before migrations
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: test -z "${EXPECTED_SHA}" || test "${EXPECTED_SHA}" = "${GITHUB_SHA}"
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: .nvmrc
           cache: 'npm'
 
       - name: Install Dependencies
@@ -326,6 +341,7 @@ jobs:
     # outcome. At 20 it WAS the thing that decided the outcome: the CLI hung, the
     # runner cancelled the job, and the log said only "The operation was
     # canceled" about a deploy that had succeeded (AWTD-959).
+    environment: production
     timeout-minutes: 30
     needs: [quality-gates, database-migration]
     if: always() && (needs.quality-gates.outputs.quality-passed == 'true' || inputs.skip_tests) && needs.database-migration.outputs.migration-success == 'true'
@@ -339,7 +355,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: .nvmrc
           cache: 'npm'
 
       - name: Install Vercel CLI
@@ -349,6 +365,25 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+
+      # `vercel pull` writes the literal string `[SENSITIVE]` for every env var
+      # stored as a Vercel *Secret*, and `vercel build` below loads that file —
+      # so without this the build receives "[SENSITIVE]" as the value
+      # (vercel/vercel#17514). That is not theoretical: it failed run
+      # 40158070370 twice over, with P1013 "the scheme is not recognized" from
+      # `prisma migrate deploy` and "Vapid private key must be a URL safe Base
+      # 64" thrown at module scope during `next build`.
+      #
+      # Credentials live in Secret precisely so a workflow holding VERCEL_TOKEN
+      # cannot read them (task bd1e0daa), and the build has no business reading
+      # a runtime secret — production gets the real values injected at runtime.
+      # So the redacted lines are dropped, which also lets presence guards
+      # work as written; a non-empty placeholder is truthy and defeats them.
+      # Prisma's two datasource vars are the exception and get an
+      # unreachable localhost placeholder, because `prisma generate` hard-fails
+      # on one that is merely undefined. Keys are logged, never values.
+      - name: Keep redacted secrets out of the build
+        run: npx tsx scripts/sanitize-pulled-env.ts .vercel/.env.production.local
 
       - name: Build Project Artifacts
         env:

@@ -15,6 +15,28 @@
  */
 
 /**
+ * Is this URL a stand-in rather than a database we may migrate?
+ *
+ * The deploy workflow's build step passes `postgresql://x:x@localhost:5432/x`
+ * because `npx prisma generate` hard-fails (P1012) on a datasource env var that
+ * is merely undefined — which is what production's DATABASE_URL becomes once it
+ * is a Vercel Secret and `vercel pull` stops emitting it (task bd1e0daa). A
+ * Vercel production build never legitimately migrates a database on localhost.
+ *
+ * An unparseable URL is left alone: Prisma will reject it with a clearer error
+ * than this function could, and guessing here would change behaviour for values
+ * nobody has characterised.
+ */
+function isPlaceholderUrl(url) {
+  try {
+    const host = new URL(url).hostname
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]'
+  } catch {
+    return false
+  }
+}
+
+/**
  * @param {{ VERCEL_ENV?: string, DATABASE_URL?: string }} env
  * @returns {{ migrate: boolean, reason: string }}
  */
@@ -39,6 +61,15 @@ function migrationPlan(env) {
 
   if (!env.DATABASE_URL) {
     return { migrate: false, reason: 'DATABASE_URL is not set during this build.' }
+  }
+
+  if (isPlaceholderUrl(env.DATABASE_URL)) {
+    return {
+      migrate: false,
+      reason:
+        'DATABASE_URL points at localhost, so it is the build placeholder rather ' +
+        'than a real database. The deploy workflow migrates separately and gates on it.',
+    }
   }
 
   return { migrate: true, reason: 'Vercel production build with DATABASE_URL set.' }

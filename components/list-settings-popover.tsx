@@ -4,7 +4,6 @@ import React, { useState } from "react"
 import { useTranslations } from "@/lib/i18n/client"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { SettingsModalShell } from "./list-settings/SettingsModalShell"
-import { SortAndFiltersEntry } from "./list-settings/SortAndFiltersEntry"
 import { ListMembership } from "./list-membership"
 import { ListAdminSettings } from "./list-admin-settings"
 import type { ProjectBoardColumn } from "@/lib/project-status"
@@ -31,13 +30,6 @@ interface ListSettingsPopoverProps {
   onStatusesChanged?: () => void
   open?: boolean
   onOpenChange?: (open: boolean) => void
-  /**
-   * Opens this viewer's Sort & Filters panel, on layouts where the list header
-   * has no funnel of its own (AWTD-1175). Absent in 3-column, where the funnel
-   * is the entry point and a second route would only be clutter — the rule is
-   * lib/list-view-controls.ts, not a width spelled again here.
-   */
-  onOpenSortAndFilters?: () => void
   children: React.ReactNode
   // No longer need local filter props as they will be loaded from database
 }
@@ -66,7 +58,6 @@ export function ListSettingsPopover({
   onStatusesChanged,
   open = false,
   onOpenChange = () => {},
-  onOpenSortAndFilters,
   children,
   // No longer need local filter props
 }: ListSettingsPopoverProps) {
@@ -113,10 +104,6 @@ export function ListSettingsPopover({
         </>
       }
     >
-            {/* Above the tabs, not among them: it leaves this modal rather
-                than being part of it (AWTD-1175). */}
-            {onOpenSortAndFilters && <SortAndFiltersEntry onOpen={onOpenSortAndFilters} />}
-
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               {/* One fewer column than before: Sort & Filters moved out to its
                   own popover (task aa4e7eb0). With only Membership left for a

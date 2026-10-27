@@ -70,10 +70,10 @@ model User {
   emailToTaskEnabled           Boolean                  @default(true)
   emailToTaskListId            String?
   smartTaskCreationEnabled     Boolean                  @default(true)
-  /// "Show list images" (lib/list-images-visibility.ts). null = follow the
-  /// hide_list_images experiment; true/false = the user's explicit choice,
-  /// which always wins over the flag. Nullable on purpose: a default would
-  /// make every user look like they had chosen.
+  /// "Show list images". DEPRECATED (AWTD-1387): web always draws list images
+  /// and ignores this. Kept only because shipped iOS/Mac builds still read and
+  /// write it through /api/v1/users/me/smart-tasks; drop the column once they
+  /// no longer do. Null for every user in production as of 2026-10-26.
   showListImages               Boolean?
   invitedBy                    String?
   isPlaceholder                Boolean                  @default(false)

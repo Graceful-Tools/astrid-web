@@ -17,10 +17,15 @@
  * pass rather than two independent scans of the same array.
  */
 
+import { readFileSync } from 'node:fs'
+import { parseAgentResumeContext } from '@/lib/agent-handback'
+
 /** Flags that take a value, so the value is consumed with the flag. */
-const VALUED_FLAGS = new Set(['--agent'])
+const VALUED_FLAGS = new Set(['--agent', '--resume-context', '--resume-context-file', '--list'])
 
 export interface ClaimArgs {
+  listId?: string
+  resume?: unknown
   taskId: string
   action: string
   /** Null for a ready claim, and for CI's unconditionally-interpolated "". */
@@ -29,7 +34,7 @@ export interface ClaimArgs {
   agent: string | undefined
 }
 
-export function parseClaimArgs(argv: string[]): ClaimArgs {
+export function parseClaimArgs(argv: string[], readText: (path: string) => string = path => readFileSync(path, 'utf8')): ClaimArgs {
   const positional: string[] = []
   const flags: Record<string, string> = {}
 
@@ -52,9 +57,16 @@ export function parseClaimArgs(argv: string[]): ClaimArgs {
   }
 
   const [taskId, action, commentWatermark = ''] = positional
+  if (flags['--resume-context'] !== undefined && flags['--resume-context-file'] !== undefined) {
+    throw new Error('Use --resume-context or --resume-context-file, not both')
+  }
+  const resumeText = flags['--resume-context-file'] !== undefined
+    ? readText(flags['--resume-context-file']) : flags['--resume-context']
+  const resume = resumeText === undefined ? undefined
+    : parseAgentResumeContext(JSON.parse(resumeText.replace(/^\uFEFF/, '')))
   if (!taskId || !action) {
     throw new Error(
-      'Usage: claim-fixall-task.ts <task-id> <ready|recheck|review> [comment-watermark] [--agent <mailbox>]',
+      'Usage: claim-fixall-task.ts <task-id> <ready|recheck|review|resume> [comment-watermark] [--agent <mailbox>] [--list <board-id>] [--resume-context <JSON>|--resume-context-file <path>]',
     )
   }
 
@@ -63,5 +75,7 @@ export function parseClaimArgs(argv: string[]): ClaimArgs {
     action,
     commentWatermark: commentWatermark || null,
     agent: flags['--agent'],
+    ...(resume ? { resume } : {}),
+    ...(flags['--list'] ? { listId: flags['--list'] } : {}),
   }
 }

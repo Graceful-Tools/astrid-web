@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { createLogger } from '@/lib/logger'
-import { verifyBlobCallbackSignature } from "@/lib/blob-callback-signature"
+import { verifyBlobCallback } from "@/lib/blob-callback-signature"
 import {
   findSecureFileByClientRequestId,
   isUniqueConstraintError,
@@ -30,7 +30,11 @@ export async function POST(request: NextRequest) {
     // get-upload-url validated the caller's access to the target at mint time.
     const rawBody = await request.text()
     const signature = request.headers.get('x-vercel-signature')
-    if (!verifyBlobCallbackSignature(rawBody, signature, process.env.BLOB_READ_WRITE_TOKEN)) {
+    // Ed25519 for presigned uploads, HMAC for client-token ones (AWTD-1368).
+    if (!verifyBlobCallback(rawBody, signature, {
+      webhookPublicKey: process.env.BLOB_WEBHOOK_PUBLIC_KEY,
+      readWriteToken: process.env.BLOB_READ_WRITE_TOKEN,
+    })) {
       log.error('❌ [UploadComplete] Invalid or missing callback signature')
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }

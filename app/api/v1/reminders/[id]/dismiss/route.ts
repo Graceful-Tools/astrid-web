@@ -51,7 +51,7 @@ export const POST = withAuth<RouteContext>(
     } catch (error) {
       if (error instanceof z.ZodError) {
         return NextResponse.json(
-          { error: 'Invalid request data', details: error.errors },
+          { error: 'Invalid request data', details: error.issues },
           { status: 400 }
         )
       }

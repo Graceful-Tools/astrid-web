@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Menu, Settings, Filter } from "lucide-react"
 import { ChatToggle } from "@/components/chat/ChatToggle"
-import { NotificationBell } from "@/components/notification-bell"
 import { useTranslations } from "@/lib/i18n/client"
+import { isSystemListId } from "@/lib/list-permissions"
 import { useMyTasksPreferences } from "@/hooks/useMyTasksPreferences"
 import { getMyTasksFilterText, getPriorityColorClass } from "@/lib/task-manager-utils"
 import { getMobileHeaderMode } from "@/lib/mobile-header-mode"
@@ -46,6 +46,8 @@ interface TaskManagerHeaderProps {
   handleMobileSearchKeyDown: (e: React.KeyboardEvent) => void
   onSearchChange: (value: string) => void
   setShowSettingsPopover: (listId: string) => void
+  /** Opens this viewer's Sort & Filters, from the funnel beside the gear (AWTD-1356). */
+  setShowSortFiltersFor?: (listId: string) => void
   onShowKeyboardShortcuts: () => void
   isTaskDragActive?: boolean
   onHamburgerDragHover?: () => void
@@ -88,6 +90,7 @@ export function TaskManagerHeader({
   handleMobileSearchKeyDown,
   onSearchChange,
   setShowSettingsPopover,
+  setShowSortFiltersFor,
   onShowKeyboardShortcuts,
   isTaskDragActive = false,
   onHamburgerDragHover,
@@ -411,13 +414,33 @@ export function TaskManagerHeader({
           <div className="flex items-center gap-1 flex-shrink-0">
             <TaskViewToggle {...taskViewToggleProps} />
 
-            <NotificationBell />
-
             {!headerToggle.unified && onToggleActivePanel && activeView === 'list' && !(mobileSearchMode || searchValue.trim()) && (
               <ChatToggle
                 activePanel={activePanel}
                 onToggle={onToggleActivePanel}
               />
+            )}
+
+            {/* Sort & Filters, beside the gear (AWTD-1356). A system list's single
+                button IS the funnel — its settings popover is a filter panel — so
+                this second one would be a duplicate there. */}
+            {activeView === 'list' && selectedListId && canAccessSettings && setShowSortFiltersFor
+              && !isSystemListId(selectedListId) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setShowSortFiltersFor(selectedListId)
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                className="p-2"
+                data-sort-filters-button="true"
+                aria-label={t('listSettings.sortAndFilters')}
+                title={t('listSettings.sortAndFilters')}
+              >
+                <Filter className="w-5 h-5" />
+              </Button>
             )}
 
             {activeView === 'list' && selectedListId && canAccessSettings && (
@@ -435,7 +458,7 @@ export function TaskManagerHeader({
                 className="p-2"
                 data-settings-button="true"
               >
-                {["my-tasks", "today", "not-in-list", "public", "assigned"].includes(selectedListId) ? (
+                {isSystemListId(selectedListId) ? (
                   <Filter className="w-5 h-5" />
                 ) : (
                   <Settings className="w-5 h-5" />

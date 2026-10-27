@@ -6,6 +6,8 @@ import { taskDetailPaneProps } from "./TaskManager/task-detail-pane-props"
 import { TaskManagerHeader } from "./TaskManager/Header/TaskManagerHeader"
 import { LeftSidebar } from "./TaskManager/Sidebar/LeftSidebar"
 import { DesktopChatPane } from "./TaskManager/DesktopChatPane"
+import { DrawerTapGuard } from "./TaskManager/DrawerTapGuard"
+import { DesktopSettingsDetailPane } from "./TaskManager/DesktopSettingsDetailPane"
 import { MainContent } from "./TaskManager/MainContent/MainContent"
 import { LoadingScreen } from "./loading-screen"
 import { computeTaskPaneLeftOffset } from "./TaskManager/task-pane-position"
@@ -153,6 +155,7 @@ export interface TaskManagerViewModel {
   editingListDescription: boolean
   tempListDescription: string
   showSettingsPopover: string | null
+  showSortFiltersFor: string | null
   showLeaveListMenu: string | null
 
   // State setters
@@ -166,6 +169,7 @@ export interface TaskManagerViewModel {
   setEditingListDescription: (value: boolean) => void
   setTempListDescription: (value: string) => void
   setShowSettingsPopover: (value: string | null) => void
+  setShowSortFiltersFor: (value: string | null) => void
   setShowLeaveListMenu: (value: string | null) => void
   setShowMobileSidebar: (value: boolean) => void
 
@@ -342,6 +346,7 @@ const TaskManagerView = memo(function TaskManagerView({
   editingListDescription,
   tempListDescription,
   showSettingsPopover,
+  showSortFiltersFor,
   showLeaveListMenu,
   setQuickTaskInput,
   setSearchValue,
@@ -353,6 +358,7 @@ const TaskManagerView = memo(function TaskManagerView({
   setEditingListDescription,
   setTempListDescription,
   setShowSettingsPopover,
+  setShowSortFiltersFor,
   setShowLeaveListMenu,
   setShowMobileSidebar,
   loadData,
@@ -789,6 +795,7 @@ const TaskManagerView = memo(function TaskManagerView({
           handleMobileSearchKeyDown={handleMobileSearchKeyDown}
           onSearchChange={setSearchValue}
           setShowSettingsPopover={setShowSettingsPopover}
+          setShowSortFiltersFor={setShowSortFiltersFor}
           onShowKeyboardShortcuts={handleShowHotkeyMenu}
           isTaskDragActive={Boolean(activeDragTaskId)}
           onHamburgerDragHover={handleHamburgerDragHover}
@@ -908,6 +915,8 @@ const TaskManagerView = memo(function TaskManagerView({
             selectedTaskId={selectedTaskId}
             isViewingFromFeatured={isViewingFromFeatured}
             showSettingsPopover={showSettingsPopover}
+            showSortFiltersFor={showSortFiltersFor}
+            setShowSortFiltersFor={setShowSortFiltersFor}
             setShowSettingsPopover={setShowSettingsPopover}
             showLeaveListMenu={showLeaveListMenu}
             setShowLeaveListMenu={setShowLeaveListMenu}
@@ -991,29 +1000,21 @@ const TaskManagerView = memo(function TaskManagerView({
         </div>
       </div>
 
-      {/* iOS Drawer Overlay - tap to close sidebar */}
-      {isIOSDrawer && showMobileSidebar && (
-        <div
-          className="ios-drawer-overlay ios-drawer-overlay-visible"
-          onClick={() => setShowMobileSidebar(false)}
-        />
+      {/* iOS Drawer Overlay - tap to close sidebar. Mounted whether or not the
+          drawer is open, so opening it is a transition rather than a first paint
+          at full strength (AWTD-1379). */}
+      {isIOSDrawer && (
+        <DrawerTapGuard open={showMobileSidebar} onDismiss={() => setShowMobileSidebar(false)} />
       )}
 
-      {/* Desktop Settings Detail Pane - floating panel like task detail, positioned at settings panel right edge */}
-      {layout.showDesktopSettingsDetailPane && (
-        <div
-          className={`task-panel-desktop scrollbar-hide ${isSettingsPaneClosing ? 'task-panel-animate-out' : 'task-panel-animate'}`}
-          style={{ left: taskPanePosition.left - 18, right: 10, width: 'auto' }}
-        >
-          {settingsSubPage && (
-            <LazySettingsDetailPanel
-              page={settingsSubPage}
-              onNavigate={onNavigateSettings}
-              onClose={closeSettingsSubPageAnimated}
-            />
-          )}
-        </div>
-      )}
+      <DesktopSettingsDetailPane
+        shown={layout.showDesktopSettingsDetailPane}
+        page={settingsSubPage}
+        closing={isSettingsPaneClosing}
+        taskPaneLeft={taskPanePosition.left}
+        onNavigate={onNavigateSettings}
+        onClose={closeSettingsSubPageAnimated}
+      />
 
       {/* Desktop Task Pane - positioned absolutely, slide-out from right.
           Kept mounted during close animation even when settings activates,

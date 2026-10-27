@@ -84,6 +84,8 @@ Pre-approved vs approval-required commands are listed in
 |------|-------|
 | Architecture, code patterns, coding workflow | [ASTRID.md](./ASTRID.md) |
 | Deploy / ship it / fix stuff / quality gates / OAuth | [docs/CLI_OPERATIONS.md](./docs/CLI_OPERATIONS.md) |
+| /fixall and the task queue | [docs/FIXALL_WORKFLOW.md](./docs/FIXALL_WORKFLOW.md), then [docs/FIXALL_WEB.md](./docs/FIXALL_WEB.md) |
+| Which machine and harness runs what, and where secrets live | [docs/AGENT_FLEET.md](./docs/AGENT_FLEET.md) |
 | Full docs index | [docs/README.md](./docs/README.md) |
 | Permissions config | [.claude/README.md](./.claude/README.md) |
 

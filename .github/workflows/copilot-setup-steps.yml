@@ -1,0 +1,58 @@
+name: 'Copilot Setup Steps'
+
+# The GitHub Copilot coding agent runs this job before it starts work. The job
+# name `copilot-setup-steps` is required by GitHub. Secrets come only from the
+# `copilot` environment, which holds no production credentials
+# (docs/AGENT_FLEET.md → Secrets).
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+      - .github/actions/agent-setup/**
+
+jobs:
+  copilot-setup-steps:
+    environment: copilot
+    env:
+      ASTRID_OAUTH_CLIENT_ID: ${{ secrets.ASTRID_OAUTH_CLIENT_ID }}
+      ASTRID_OAUTH_CLIENT_SECRET: ${{ secrets.ASTRID_OAUTH_CLIENT_SECRET }}
+      ASTRID_OAUTH_LIST_ID: ${{ vars.ASTRID_WEB_LIST_ID || 'a623f322-4c3c-49b5-8a94-d2d9f00c82ba' }}
+      ASTRID_FIXALL_HARNESS: github-copilot
+      ASTRID_FIXALL_EPHEMERAL: '1'
+      ASTRID_FIXALL_MAX_TASKS: '1'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: astrid_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Agent setup
+        uses: ./.github/actions/agent-setup
+
+      - name: Build Astrid MCP transport
+        run: npm run build:mcp:oauth
+
+      - name: Verify polling activation without mutating tasks
+        if: github.event_name != 'pull_request'
+        run: |
+          npx tsx scripts/agent-queue-status.ts --agent copilot --board web \
+            --list "${ASTRID_OAUTH_LIST_ID}" --include-unassigned --require-polling \
+            --dry-run --no-write-seen && STATUS=0 || STATUS=$?
+          if [ "${STATUS}" != 0 ] && [ "${STATUS}" != 3 ]; then exit "${STATUS}"; fi
