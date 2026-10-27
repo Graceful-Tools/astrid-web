@@ -8,13 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AgentHub } from "@/components/agent-hub"
 import { agentServiceLabel } from "@/lib/ai/agent-config"
 import { useTranslations } from "@/lib/i18n/client"
-import {
-  Brain,
-  FileText,
-  Bot,
-  Check,
-  Github
-} from "lucide-react"
+import { Brain, FileText, Bot, Check } from "lucide-react"
+import { Github } from "@/components/ui/brand-icons"
 import Link from "next/link"
 import Image from "next/image"
 
