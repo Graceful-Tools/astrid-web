@@ -235,7 +235,7 @@
     "pino": "^10.4.0",
     "pino-pretty": "^13.2.0",
     "react": "^19.3.1",
-    "react-day-picker": "9.11.0",
+    "react-day-picker": "10.0.2",
     "react-dom": "^19.3.1",
     "react-hook-form": "^7.90.0",
     "recharts": "^3.10.1",
