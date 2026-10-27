@@ -16,7 +16,6 @@ on:
         default: 'astrid-res/www'
 
 env:
-  NODE_VERSION: '20'
   ASTRID_WEBHOOK_URL: ${{ secrets.ASTRID_WEBHOOK_URL || 'https://astrid.cc' }}
 
 jobs:
@@ -75,7 +74,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: .nvmrc
           cache: 'npm'
 
       - name: Install Dependencies
@@ -143,7 +142,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: .nvmrc
           cache: 'npm'
 
       - name: Install Dependencies
