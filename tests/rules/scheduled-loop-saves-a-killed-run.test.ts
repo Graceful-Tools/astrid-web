@@ -151,7 +151,7 @@ describe('guard 2 treats unpushed commits on main as work in progress (AWTD-1095
 describe('the scheduled loop takes one task per run', () => {
   it('caps the run so it fits inside the watchdog', () => {
     expect(loop).toMatch(/export ASTRID_FIXALL_MAX_TASKS="\$\{FIXALL_MAX_TASKS:-1\}"/)
-    const fixall = readFileSync(join(process.cwd(), '.claude/commands/fixall.md'), 'utf8')
+    const fixall = readFileSync(join(process.cwd(), 'docs/FIXALL_WEB.md'), 'utf8')
     expect(fixall).toMatch(/ASTRID_FIXALL_MAX_TASKS/)
   })
 

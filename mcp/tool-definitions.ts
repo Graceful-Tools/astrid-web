@@ -150,9 +150,9 @@ export const OAUTH_MCP_TOOLS = [
                 "Whether the next occurrence is measured from the due date or the completion date. Defaults to COMPLETION_DATE, which pushes the slot later every time a run is late; scheduled work usually wants DUE_DATE.",
             },
             assigneeId: {
-              type: "string",
+              type: ["string", "null"],
               description:
-                "Who owns the task. Takes a user id, or an agent identity such as \"ai-agent-claude\". Assigning to an agent mailbox ACTIVATES the hosted agent runtime, which will comment on the task — it is a trigger, not a passive queue.",
+                "Who owns the task. Takes a user id, an agent identity such as \"ai-agent-claude\", or null for explicitly unassigned. Assigning to an agent mailbox may activate the hosted runtime unless that mailbox is polling-only.",
             },
             statusRole: {
               type: ["string", "null"],
@@ -240,9 +240,9 @@ export const OAUTH_MCP_TOOLS = [
                 "Whether the next occurrence is measured from the due date or the completion date. Defaults to COMPLETION_DATE, which pushes the slot later every time a run is late; scheduled work usually wants DUE_DATE.",
             },
             assigneeId: {
-              type: "string",
+              type: ["string", "null"],
               description:
-                "Who owns the task. Takes a user id, or an agent identity such as \"ai-agent-claude\". Assigning to an agent mailbox ACTIVATES the hosted agent runtime, which will comment on the task — it is a trigger, not a passive queue.",
+                "Who owns the task. Takes a user id, an agent identity such as \"ai-agent-claude\", or null to unassign without activating any agent. Assigning to an agent mailbox may activate the hosted runtime unless that mailbox is polling-only.",
             },
             statusRole: {
               type: ["string", "null"],

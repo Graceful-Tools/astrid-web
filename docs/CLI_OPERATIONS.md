@@ -181,6 +181,69 @@ is the one that caused the outage. Additive migrations are unaffected — the ga
 `ALTER INDEX`/`ALTER SEQUENCE` renames, `DROP INDEX` and `DROP CONSTRAINT` are
 deliberately **not** flagged: none can make the old code's queries fail.
 
+### Production database secrets live in the `production` environment (2026-10-24)
+
+`DATABASE_URL` and `DATABASE_URL_DIRECT` for production are **environment secrets** on
+the GitHub `production` environment, which admits only `main`. Only the jobs that
+declare `environment: production` in `production-deployment.yml` receive them
+(`database-migration`; `deploy-production` declares it for the branch policy). Every
+other workflow, the agent workflows included, cannot read them, and builds get a
+placeholder URL because `next build` never connects.
+
+**Do not add them back as repo secrets.** A repo secret is readable by any workflow
+in the repo, including ones running code an agent just wrote.
+`tests/rules/production-secrets-are-environment-scoped.test.ts` enforces this. To
+rotate a credential, run `gh secret set DATABASE_URL --env production`.
+`VERCEL_TOKEN` is still a repo secret, because previews, `fixstuff` and the monitor
+job use it. That is the next one to scope.
+
+### Vercel env vars: Config is readable, Secret is not (2026-10-24)
+
+Scoping the GitHub secrets is only half of it. Vercel stores each project env var
+as **Config** (`type: encrypted` or `plain` — readable back through the API,
+`vercel env pull` and the dashboard) or **Secret** (`type: sensitive` —
+write-only, decryptable only during a deployment). `production-deployment.yml`
+demonstrates the read: `vercel pull --yes --environment=production`. So any
+workflow holding `VERCEL_TOKEN` can read every **Config** production value,
+`DATABASE_URL` included — which is exactly what moving the GitHub secrets to the
+`production` environment was for. **Credentials belong in Secret.**
+
+Three things that are not free:
+
+- **A Secret breaks the build unless the build stops reading it.** `vercel pull`
+  cannot read a Secret, so it writes the literal string `[SENSITIVE]` — and
+  `vercel build` loads that file, so the build gets `"[SENSITIVE]"` as the value
+  rather than nothing. Being non-empty, it is truthy: presence guards pass and
+  whatever validates the value then throws. This failed two production deploys on
+  2026-10-25 — `P1013` from `prisma migrate deploy`, and "Vapid private key must
+  be a URL safe Base 64" thrown at **module scope** by
+  [lib/push-notification-service.ts](../lib/push-notification-service.ts) while
+  `next build` collected route config, killing the whole build over a key only
+  push notifications need. [scripts/sanitize-pulled-env.ts](../scripts/sanitize-pulled-env.ts)
+  now drops those lines after the pull; Prisma's two datasource vars instead get
+  an unreachable localhost placeholder, because `prisma generate` hard-fails
+  (P1012) on one that is merely undefined. **Before flipping a var, check whether
+  anything reads it at module scope or during the build** — and read the deploy's
+  build log the first time, not just its exit status.
+- **Identifiers and build-time values stay Config.** `NEXT_PUBLIC_*` is inlined
+  into the client bundle at build time, so a Secret would bake in `undefined`.
+  Client IDs, URLs and `VAPID_PUBLIC_KEY` are public by design; write-only buys
+  nothing and costs you the ability to read them back.
+- **`BLOB_READ_WRITE_TOKEN` cannot be flipped from the env list.** It is owned by
+  the Blob store connection and targets development, and Vercel refuses Secret
+  for integration connections that include Development. The answer there is
+  Blob's OIDC upgrade (no long-lived token at all), not the
+  disconnect/rotate/reconnect dance — see the OIDC task before touching it.
+  Since [AWTD-1368](https://astrid.cc/t/AWTD-1368) the server is ready for the
+  upgrade: the `BLOB_WEBHOOK_PUBLIC_KEY` it provisions switches direct uploads to
+  presigned URLs, and callbacks verify with Ed25519, with no code change at the
+  click. **The click is still a decision**: it removes the token, and iOS/Mac
+  builds older than 1253 (the first with AITD-558) can only upload with a client
+  token derived from it.
+
+Flipping a var re-enters the same value; it does not rotate it. Vercel cannot
+convert a Secret back to Config in place.
+
 ### NEVER pull from Vercel — it destroys `.env.local`
 `vercel pull`, `vercel link`, and `vercel env pull` overwrite your local secrets.
 **Do not run them.** Only ever *push* deployments.

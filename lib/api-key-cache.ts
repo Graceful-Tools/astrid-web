@@ -4,6 +4,7 @@
  */
 
 import CryptoJS from 'crypto-js'
+import { tryEachKey } from '@/lib/encryption-keys'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
@@ -138,21 +139,22 @@ function getKeyFromSettings(settings: any, service: string): string | null {
  * Decrypt API key using the same method as the existing system
  */
 function decryptApiKey(encryptedKey: string): string {
-  const encryptionKey = process.env.ENCRYPTION_KEY
-
-  if (!encryptionKey) {
-    throw new Error('ENCRYPTION_KEY not found in environment variables')
-  }
-
+  // Mid-rotation a stored key may be under either key (AWTD-1369). Note this
+  // path passes the hex string as a CryptoJS *passphrase*, not as 32 raw bytes
+  // — a different derivation from every other cipher here. It is read-only
+  // legacy, so it is wired to the keyring rather than corrected.
   try {
-    const bytes = CryptoJS.AES.decrypt(encryptedKey, encryptionKey)
-    const decrypted = bytes.toString(CryptoJS.enc.Utf8)
-
-    if (!decrypted) {
-      throw new Error('Failed to decrypt API key')
-    }
-
-    return decrypted
+    return tryEachKey(process.env, keyHex => {
+      const bytes = CryptoJS.AES.decrypt(encryptedKey, keyHex)
+      const decrypted = bytes.toString(CryptoJS.enc.Utf8)
+      // CryptoJS returns empty rather than throwing on the wrong key, so an
+      // empty result has to become a throw or tryEachKey cannot tell the keys
+      // apart and the first one always "wins".
+      if (!decrypted) {
+        throw new Error('Failed to decrypt API key')
+      }
+      return decrypted
+    })
   } catch (error) {
     throw new Error(`API key decryption failed: ${error}`)
   }
@@ -162,19 +164,20 @@ function decryptApiKey(encryptedKey: string): string {
  * Decrypt API key using the new Node.js crypto format
  */
 function decryptApiKeyNew(encryptedData: { encrypted: string; iv: string }): string {
-  const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY
-  if (!ENCRYPTION_KEY) {
-    throw new Error('ENCRYPTION_KEY environment variable is required for decryption')
-  }
-
   try {
-    const algorithm = 'aes-256-cbc'
-    const key = Buffer.from(ENCRYPTION_KEY, 'hex')
-    const iv = Buffer.from(encryptedData.iv, 'hex')
-    const decipher = crypto.createDecipheriv(algorithm, key, iv)
-    let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8')
-    decrypted += decipher.final('utf8')
-    return decrypted
+    // Mid-rotation a stored key may be under either key (AWTD-1369). CBC is
+    // unauthenticated, so a wrong key usually raises a padding error but can
+    // return mojibake; callers treat a failure as "no credential", so the worst
+    // case is a key reading as absent rather than as wrong.
+    return tryEachKey(process.env, keyHex => {
+      const algorithm = 'aes-256-cbc'
+      const key = Buffer.from(keyHex, 'hex')
+      const iv = Buffer.from(encryptedData.iv, 'hex')
+      const decipher = crypto.createDecipheriv(algorithm, key, iv)
+      let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8')
+      decrypted += decipher.final('utf8')
+      return decrypted
+    })
   } catch (error) {
     throw new Error(`API key decryption failed: ${error}`)
   }

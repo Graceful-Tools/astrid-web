@@ -14,6 +14,9 @@
 
 /** A pull request as `gh pr list --json` reports it, plus its checks. */
 export interface PullRequestSummary {
+  headRefOid?: string
+  /** Revalidated against the current Astrid handoff, not merely a PR body. */
+  cloudHandoffValid?: boolean
   number: number
   headRefName: string
   title?: string
@@ -104,6 +107,8 @@ export function landablePullRequests(
       skipped.push({ number: pr.number, why: `not the loop's work (${pr.headRefName})` })
     } else if (requireMarker && !(pr.body ?? '').includes(RUNNER_PR_MARKER)) {
       skipped.push({ number: pr.number, why: 'not opened by the runner — a human merges this one' })
+    } else if (pr.headRefName.startsWith('agent/') && pr.cloudHandoffValid !== true) {
+      skipped.push({ number: pr.number, why: 'cloud handoff is absent, stale, or no longer eligible on the Astrid board' })
     } else if (pr.isDraft) {
       skipped.push({ number: pr.number, why: 'draft' })
     } else if (pr.mergeable === 'UNKNOWN') {
@@ -195,6 +200,15 @@ export function landedDespiteError(stateAfterAttempt: string | undefined): boole
 export type DeployVerdict =
   | { deploy: true }
   | { deploy: false; code: number; reason: string }
+
+export function automaticDeployHold(runs: Array<{ status: string; conclusion: string | null }>): string | null {
+  if (runs.some(run => run.status !== 'completed')) return 'a deploy of this commit is already in progress'
+  if (runs.some(run => run.conclusion === 'success')) return 'this commit already had a successful deploy; reconcile health rather than redeploying'
+  if (runs.filter(run => ['failure', 'cancelled', 'timed_out'].includes(run.conclusion ?? '')).length >= 2) {
+    return 'two deploy attempts failed for this commit; a human must investigate before another attempt'
+  }
+  return null
+}
 
 /**
  * The last gate before production changes.

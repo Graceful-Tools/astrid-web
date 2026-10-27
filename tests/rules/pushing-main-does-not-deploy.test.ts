@@ -61,6 +61,9 @@ function agentFacingDocs(): string[] {
     'GEMINI.md',
     'ASTRID.md',
     'docs/FIXALL_WORKFLOW.md',
+    'docs/FIXALL_WEB.md',
+    'docs/AGENT_FLEET.md',
+    '.github/copilot-instructions.md',
     'docs/CLI_OPERATIONS.md',
   ].filter(path => existsSync(join(ROOT, path)))
 

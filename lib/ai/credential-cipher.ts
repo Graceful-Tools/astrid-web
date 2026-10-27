@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { currentEncryptionKeyHex, tryEachKey } from '@/lib/encryption-keys'
 
 /**
  * Authenticated encryption for AI service credentials stored inside the
@@ -21,10 +22,9 @@ export interface EncryptedCredential {
   authTag?: string
 }
 
+/** The key new credentials are written under (AWTD-1369). */
 function key(): Buffer {
-  const k = process.env.ENCRYPTION_KEY
-  if (!k) throw new Error('ENCRYPTION_KEY environment variable is required')
-  return Buffer.from(k, 'hex')
+  return Buffer.from(currentEncryptionKeyHex(), 'hex')
 }
 
 /** Encrypt with AES-256-GCM. Always emits an authTag. */
@@ -46,15 +46,24 @@ export function encryptCredential(text: string): EncryptedCredential {
  */
 export function decryptCredential(data: EncryptedCredential): string {
   const iv = Buffer.from(data.iv, 'hex')
-  if (data.authTag) {
-    const decipher = crypto.createDecipheriv('aes-256-gcm', key(), iv)
-    decipher.setAuthTag(Buffer.from(data.authTag, 'hex'))
+
+  // Mid-rotation a credential may be under either key (AWTD-1369). GCM
+  // verifies, so a wrong key throws. Legacy CBC does NOT, so a wrong key there
+  // yields a padding error or mojibake rather than a clean failure — these are
+  // read-only legacy rows and callers treat a failure as "no credential", so
+  // the worst case is a credential reading as absent, not as wrong.
+  return tryEachKey(process.env, keyHex => {
+    const k = Buffer.from(keyHex, 'hex')
+    if (data.authTag) {
+      const decipher = crypto.createDecipheriv('aes-256-gcm', k, iv)
+      decipher.setAuthTag(Buffer.from(data.authTag, 'hex'))
+      let decrypted = decipher.update(data.encrypted, 'hex', 'utf8')
+      decrypted += decipher.final('utf8')
+      return decrypted
+    }
+    const decipher = crypto.createDecipheriv('aes-256-cbc', k, iv)
     let decrypted = decipher.update(data.encrypted, 'hex', 'utf8')
     decrypted += decipher.final('utf8')
     return decrypted
-  }
-  const decipher = crypto.createDecipheriv('aes-256-cbc', key(), iv)
-  let decrypted = decipher.update(data.encrypted, 'hex', 'utf8')
-  decrypted += decipher.final('utf8')
-  return decrypted
+  })
 }

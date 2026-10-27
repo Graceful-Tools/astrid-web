@@ -22,7 +22,11 @@ vi.mock('@/lib/prisma', () => ({
     session: { findUnique: vi.fn().mockResolvedValue(null) },
   },
 }))
-vi.mock('@/lib/secure-storage', () => ({ issueClientUploadToken, deleteFile }))
+vi.mock('@/lib/secure-storage', () => ({
+  issueClientUploadToken,
+  deleteFile,
+  presignedUploadsEnabled: () => false,
+}))
 
 import { POST as uploadUrl } from '@/app/api/secure-files/[fileId]/upload-url/route'
 import { POST as confirmUpload } from '@/app/api/secure-files/[fileId]/confirm-upload/route'

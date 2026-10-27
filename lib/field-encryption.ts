@@ -3,6 +3,7 @@
  * Uses AES-256-GCM for authenticated encryption
  */
 import crypto from 'crypto'
+import { currentEncryptionKeyHex, tryEachKey } from '@/lib/encryption-keys'
 
 const ALGORITHM = 'aes-256-gcm'
 const IV_LENGTH = 16
@@ -10,15 +11,12 @@ const AUTH_TAG_LENGTH = 16
 const ENCRYPTED_PREFIX = 'enc:v1:'
 
 /**
- * Get the encryption key from environment
- * Throws if not set to prevent silent failures
+ * The key new values are written under — ENCRYPTION_KEY_NEXT once a rotation is
+ * in flight, otherwise ENCRYPTION_KEY. Reads go through the whole keyring
+ * instead; see lib/encryption-keys.ts (task AWTD-1369).
  */
 function getEncryptionKey(): Buffer {
-  const key = process.env.ENCRYPTION_KEY
-  if (!key) {
-    throw new Error('ENCRYPTION_KEY environment variable is required for field encryption')
-  }
-  return Buffer.from(key, 'hex')
+  return Buffer.from(currentEncryptionKeyHex(), 'hex')
 }
 
 /**
@@ -59,8 +57,6 @@ export function decryptField(value: string | null | undefined): string | null {
     return value
   }
 
-  const key = getEncryptionKey()
-
   // Parse the encrypted format: enc:v1:<iv>:<authTag>:<ciphertext>
   const parts = value.slice(ENCRYPTED_PREFIX.length).split(':')
   if (parts.length !== 3) {
@@ -71,13 +67,16 @@ export function decryptField(value: string | null | undefined): string | null {
   const iv = Buffer.from(ivHex, 'hex')
   const authTag = Buffer.from(authTagHex, 'hex')
 
-  const decipher = crypto.createDecipheriv(ALGORITHM, key, iv)
-  decipher.setAuthTag(authTag)
-
-  let decrypted = decipher.update(ciphertext, 'hex', 'utf8')
-  decrypted += decipher.final('utf8')
-
-  return decrypted
+  // Mid-rotation a stored value may be under either key, so try each. GCM's
+  // auth tag makes this unambiguous: the wrong key throws rather than
+  // returning plausible garbage.
+  return tryEachKey(process.env, keyHex => {
+    const decipher = crypto.createDecipheriv(ALGORITHM, Buffer.from(keyHex, 'hex'), iv)
+    decipher.setAuthTag(authTag)
+    let decrypted = decipher.update(ciphertext, 'hex', 'utf8')
+    decrypted += decipher.final('utf8')
+    return decrypted
+  })
 }
 
 /**

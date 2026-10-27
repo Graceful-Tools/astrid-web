@@ -411,6 +411,8 @@ export function TaskManager({
       editingListDescription={modals.editingListDescription}
       tempListDescription={modals.tempListDescription}
       showSettingsPopover={modals.showSettingsPopover}
+      showSortFiltersFor={modals.showSortFiltersFor}
+      setShowSortFiltersFor={modals.setShowSortFiltersFor}
       showLeaveListMenu={modals.showLeaveListMenu}
 
       // State setters

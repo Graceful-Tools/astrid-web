@@ -22,6 +22,7 @@ import {
   type InsightWindowDays,
 } from '@/lib/list-insights'
 import { loadListInsights } from '@/services/list-insights.service'
+import { createRateLimitHeaders, insightsRateLimiter } from '@/lib/rate-limiter'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -36,6 +37,21 @@ export const GET = withAuth<RouteContext>(
   async (req, auth, { params }) => {
     const { id } = await params
     const url = new URL(req.url)
+
+    // Per-user budget, checked before any database work (AWTD-1367). A cold answer
+    // walks the list's history, and the cache key includes the viewer's zone and day,
+    // so looping windows, zones or lists bypasses the cache by design.
+    const rate = await insightsRateLimiter.checkRateLimitByKeyAsync(`insights:${auth.userId}`)
+    const rateHeaders = createRateLimitHeaders(rate)
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: 'Too many insight requests. Please try again shortly.' },
+        {
+          status: 429,
+          headers: { ...rateHeaders, 'Retry-After': rateHeaders['X-RateLimit-Reset-After'] },
+        },
+      )
+    }
 
     const days = parseDays(url.searchParams.get('days'))
     if (days === null) {
@@ -55,6 +71,6 @@ export const GET = withAuth<RouteContext>(
       return NextResponse.json({ error: 'List not found' }, { status: 404 })
     }
 
-    return NextResponse.json({ insights })
+    return NextResponse.json({ insights }, { headers: rateHeaders })
   },
 )

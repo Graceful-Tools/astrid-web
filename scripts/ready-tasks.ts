@@ -129,13 +129,21 @@ async function main() {
   // data, and a hardcoded one fails silently by returning an empty list, which
   // reads exactly like "nothing to do".
   const listsResponse = await fetch("https://astrid.cc/api/v1/lists", { headers: auth })
+  if (!listsResponse.ok) throw new Error(`Board lookup failed: HTTP ${listsResponse.status}`)
   const listsBody = await listsResponse.json()
   // Fail loudly on a missing board instead of degrading to an empty queue —
   // skipping the filter would silently widen the loop to every board on the
   // account, and returning nothing would look like an idle day.
   let board: { id: string }
   try {
-    board = findBoardList(listsBody, options.board)
+    if (options.listId) {
+      const lists = Array.isArray(listsBody) ? listsBody : listsBody.lists
+      const match = lists?.find((list: { id: string }) => list.id === options.listId)
+      if (!match) throw new Error('Explicit board list is not accessible')
+      board = match
+    } else {
+      board = findBoardList(listsBody, options.board)
+    }
   } catch (error) {
     console.error(`❌ ${error instanceof Error ? error.message : error}`)
     process.exit(1)
@@ -155,6 +163,7 @@ async function main() {
     { headers: auth },
   )
   const tasksBody = await tasksResponse.json()
+  if (!tasksResponse.ok) throw new Error(`Board read failed: HTTP ${tasksResponse.status}`)
   const tasks = tasksBody.tasks ?? tasksBody
   const all: QueueTask[] = Array.isArray(tasks) ? tasks : []
 

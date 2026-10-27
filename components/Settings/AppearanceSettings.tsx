@@ -11,7 +11,6 @@ import { useTheme } from "@/contexts/theme-context"
 import { KeyboardShortcutsMenu } from "@/components/keyboard-shortcuts-menu"
 import { useTranslations } from "@/lib/i18n/client"
 import { useUserSettings } from "@/hooks/useUserSettings"
-import { useListImagesVisibility } from "@/contexts/list-images-context"
 import {
   Palette,
   Sun,
@@ -21,8 +20,7 @@ import {
   Mail,
   Sparkles,
   ListTree,
-  LayoutList,
-  Image as ImageIcon
+  LayoutList
 } from "lucide-react"
 
 interface AppearanceSettingsProps {
@@ -50,10 +48,6 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
     subtaskDisplay,
     taskDisplayMode,
   } = useUserSettings()
-  // Effective value, not the raw column: a user nobody has asked yet sees
-  // the state the hide_list_images experiment put them in. Flipping it stores
-  // an explicit choice that wins over the experiment from then on.
-  const { showListImages, setShowListImages } = useListImagesVisibility()
   const { t } = useTranslations()
 
   const handleSubtaskDisplayChange = (value: string) => updateSettings({ subtaskDisplay: value })
@@ -304,36 +298,6 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
                     </SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* List images (hide_list_images A/B test opt-in/out) */}
-          <Card className="theme-bg-secondary theme-border">
-            <CardHeader>
-              <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <ImageIcon className="w-5 h-5 text-purple-500" />
-                <span>{t("settingsPages.appearancePage.listImages.title")}</span>
-              </CardTitle>
-              <CardDescription className="theme-text-muted">
-                {t("settingsPages.appearancePage.listImages.description")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
-                <div className="flex-1">
-                  <Label htmlFor="show-list-images" className="font-medium theme-text-primary">
-                    {t("settingsPages.appearancePage.listImages.label")}
-                  </Label>
-                  <p className="text-sm theme-text-muted">
-                    {t("settingsPages.appearancePage.listImages.offDesc")}
-                  </p>
-                </div>
-                <Switch
-                  id="show-list-images"
-                  checked={showListImages}
-                  onCheckedChange={setShowListImages}
-                />
               </div>
             </CardContent>
           </Card>

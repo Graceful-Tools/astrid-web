@@ -1,11 +1,13 @@
 /**
- * v1 smart-tasks carries `showListImages` — the "Show list images" opt-in/out
- * for the hide_list_images A/B test (lib/list-images-visibility.ts).
+ * v1 smart-tasks carries `showListImages`.
  *
- * Tri-state on purpose: null = follow the experiment, true/false = the user
- * chose. iOS reads and writes it through this route, so null must round-trip
- * (it is how a user returns to "follow the experiment") and a non-boolean must
- * be rejected rather than stored.
+ * DEPRECATED since AWTD-1387: the hide_list_images experiment is gone and web
+ * always draws list images. The FIELD is not gone, because shipped iOS/Mac
+ * builds still read and write it through this route — removing it would break
+ * them. So this suite stays: the tri-state must keep round-tripping (null is
+ * the value every production user has) and a non-boolean must still be
+ * rejected rather than stored. Delete this once iOS no longer sends it, along
+ * with the column.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'

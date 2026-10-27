@@ -1,0 +1,47 @@
+name: 'Agent setup'
+description: >-
+  The one environment every coding agent gets on an ephemeral runner, whatever the
+  harness: Node, dependencies, a generated Prisma client, and a throwaway database.
+  copilot-setup-steps.yml and agent-run.yml both call this, so a gate that is green
+  for one harness is green for the others (docs/AGENT_FLEET.md).
+
+  Expects a `postgres` service on localhost:5432 (composite actions cannot declare
+  services, so the calling job does). Production credentials never reach this
+  environment: the test database is the only one there is.
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        # .nvmrc is the one declared version (AWTD-1382); the agent CLIs need >= 22.
+        node-version-file: .nvmrc
+        cache: 'npm'
+
+    - name: Install dependencies
+      shell: bash
+      run: npm ci
+
+    - name: Write test environment
+      shell: bash
+      run: |
+        # Same values e2e-tests.yml uses. Scripts load .env.local via dotenvx.
+        cat > .env.local << 'ENVEOF'
+        DATABASE_URL=postgresql://postgres:postgres@localhost:5432/astrid_test
+        DATABASE_URL_DIRECT=postgresql://postgres:postgres@localhost:5432/astrid_test
+        TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/astrid_test
+        NEXTAUTH_SECRET=test-secret-at-least-32-characters-long-for-ci
+        NEXTAUTH_URL=http://localhost:3000
+        NEXT_AUTH_PUBLIC_URL=http://localhost:3000
+        NEXT_PUBLIC_BASE_URL=http://localhost:3000
+        ENVEOF
+
+    - name: Generate Prisma client and push schema
+      shell: bash
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/astrid_test
+        DATABASE_URL_DIRECT: postgresql://postgres:postgres@localhost:5432/astrid_test
+      run: |
+        npm run db:generate
+        npx prisma db push --skip-generate

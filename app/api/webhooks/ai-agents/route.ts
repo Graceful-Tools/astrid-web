@@ -279,10 +279,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     if (error instanceof z.ZodError) {
-      log.info(error.errors, '❌ Invalid webhook payload:')
+      log.info(error.issues, '❌ Invalid webhook payload:')
       return NextResponse.json({
         error: 'Invalid payload',
-        details: error.errors
+        details: error.issues
       }, { status: 400 })
     }
 

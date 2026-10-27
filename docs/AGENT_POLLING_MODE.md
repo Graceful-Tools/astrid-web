@@ -156,3 +156,7 @@ non-retryable status codes should abort, not back off.
 - `/docs/loops` — the public "run your agent on a loop" page
 - `docs/FIXALL_WORKFLOW.md` — the loop this feature productizes
 - `lib/ready-queue-scope.ts` — the queue predicates, shared with `scripts/ready-tasks.ts`
+
+The web board's loop runs in the cloud on GitHub Actions under Claude Code, and the iOS board's
+loop runs on the Mac. [docs/AGENT_FLEET.md](./AGENT_FLEET.md) says which machine and harness owns
+each board.

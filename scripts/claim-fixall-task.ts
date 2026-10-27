@@ -19,7 +19,7 @@ try {
   process.exit(1)
 }
 
-const { taskId, action, commentWatermark, agent } = args
+const { taskId, action, commentWatermark, agent, resume, listId } = args
 
 const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
 const clientSecret = process.env.ASTRID_OAUTH_CLIENT_SECRET
@@ -53,6 +53,8 @@ async function main() {
       action,
       commentWatermark,
       ...(agent ? { agent } : {}),
+      ...(resume ? { resume } : {}),
+      ...(listId ? { listId } : {}),
     }),
   })
 
@@ -82,9 +84,9 @@ async function main() {
   // A scheduled runner passes a file to collect this run's claims. After the run
   // it releases any of them still in Doing — the run died or stopped mid-task —
   // so they do not sit there forever (scripts/release-stuck-doing.ts). Only a
-  // Ready claim moves a task to Doing; RECHECK and REVIEW leave it in Waiting.
+  // Ready or resume claim moves a task to Doing; RECHECK and REVIEW leave it in Waiting.
   const claimsFile = process.env.ASTRID_FIXALL_CLAIMS_FILE
-  if (claimsFile && action === "ready") appendFileSync(claimsFile, `${taskId}\n`)
+  if (claimsFile && (action === "ready" || action === 'resume')) appendFileSync(claimsFile, `${taskId}\n`)
 }
 
 main().catch(error => {

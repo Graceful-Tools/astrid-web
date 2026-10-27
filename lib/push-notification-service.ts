@@ -9,14 +9,49 @@ import { createLogger } from '@/lib/logger'
 const log = createLogger('push-notification-service')
 
 
-// Configure web-push with VAPID keys
-if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT || 'mailto:noreply@astrid.app',
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
-  )
+/**
+ * Configure web-push from the environment, without ever throwing.
+ *
+ * This runs at module scope, and `next build` imports this module to collect
+ * route config — so anything thrown here fails the whole build, not just push.
+ * On 2026-10-25 that is exactly what happened: production's VAPID_PRIVATE_KEY
+ * had been moved to a Vercel *Secret*, `vercel pull` wrote the literal string
+ * `[SENSITIVE]` for it, and `setVapidDetails` rejected it with "Vapid private
+ * key must be a URL safe Base 64" — taking down the production deploy over a
+ * key that push notifications alone need (run 40158070370).
+ *
+ * The presence check could not catch it: `[SENSITIVE]` is a non-empty string,
+ * so it is truthy. scripts/sanitize-pulled-env.ts now drops redacted values
+ * before the build, and this is the second line of defence — a bad VAPID key
+ * disables push and says so, and nothing else.
+ */
+export function configureWebPush(
+  env: Record<string, string | undefined>
+): 'configured' | 'skipped' | 'rejected' {
+  if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) return 'skipped'
+
+  try {
+    webpush.setVapidDetails(
+      env.VAPID_SUBJECT || 'mailto:noreply@astrid.app',
+      env.VAPID_PUBLIC_KEY,
+      env.VAPID_PRIVATE_KEY
+    )
+    return 'configured'
+  } catch (error) {
+    // Never the key itself, and never rethrown.
+    log.warn(
+      { reason: error instanceof Error ? error.message : String(error) },
+      'VAPID keys rejected — push notifications are disabled'
+    )
+    return 'rejected'
+  }
 }
+
+configureWebPush({
+  VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY,
+  VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
+  VAPID_SUBJECT: process.env.VAPID_SUBJECT,
+})
 
 export class PushNotificationService {
   private prisma: PrismaClient

@@ -20,6 +20,7 @@ import { READY_STATUS_ROLE } from '@/lib/task-status'
 import { agentEmail, agentMailboxFromEmail, isBrandAgentEmail } from '@/lib/brand/agent-emails'
 import { awaitsAgentReply, describeSchedule, isDueToStart } from '@/lib/ready-queue-scope'
 import { getAgentExecutionMode, pollableMailboxes } from '@/lib/ai/agent-execution-mode'
+import { pendingAgentHandback, type AgentResumeContext } from '@/lib/agent-handback'
 
 /** One page is the point: a truncated queue looks exactly like a short one. */
 const PAGE_LIMIT = 500
@@ -57,6 +58,8 @@ export interface AgentQueueTask {
 
 /** A task with something said on it that the agent has not answered. */
 export interface AgentAttentionTask {
+  /** Present only for a human reply to this agent's explicit handback. */
+  resume?: AgentResumeContext
   id: string
   identifier: string | null
   title: string
@@ -405,6 +408,7 @@ export async function buildAgentQueue({
 
   const attention = await buildAttention({
     agentId: agentUser.id,
+    mailbox,
     listScope,
     listId,
     includeChat,
@@ -456,11 +460,13 @@ export async function buildAgentQueue({
  */
 async function buildAttention({
   agentId,
+  mailbox,
   listScope,
   listId,
   includeChat,
 }: {
   agentId: string
+  mailbox: string
   listScope: object
   listId: string | null
   includeChat: boolean
@@ -541,12 +547,46 @@ async function buildAttention({
 
   const messages = await unansweredChatMessages({ agentId, listId, includeChat, skipped })
 
+  // A handback remains assigned to the human until an atomic resume claim.
+  // Only a named board is read; public visibility alone does not widen this inbox.
+  const handbacks = listId ? await prisma.task.findMany({
+    where: {
+      completed: false,
+      statusRole: 'waiting',
+      assignee: { isAIAgent: false },
+      lists: listScope,
+      comments: { some: { authorId: agentId, content: { contains: `AGENT-HANDBACK: ${mailbox}` } } },
+    },
+    select: {
+      id: true, identifier: true, title: true, statusRole: true, completed: true,
+      assigneeId: true, assignee: { select: { isAIAgent: true } },
+      lists: { select: { id: true } },
+      comments: {
+        orderBy: { createdAt: 'desc' }, take: 100,
+        select: { id: true, authorId: true, content: true, createdAt: true, updatedAt: true,
+          author: { select: { name: true, isAIAgent: true } } },
+      },
+    },
+    orderBy: { updatedAt: 'desc' }, take: ATTENTION_LIMIT,
+  }) : []
+  for (const task of handbacks) {
+    const resume = pendingAgentHandback({ task, agentId, mailbox, listId: listId! })
+    if (!resume) continue
+    const last = task.comments.find(comment => comment.id === resume.replyCommentId)!
+    tasks.push({
+      id: task.id, identifier: task.identifier, title: task.title,
+      statusRole: task.statusRole, completed: task.completed, url: getTaskUrl(task.id), resume,
+      lastComment: { id: last.id, authorId: last.authorId, authorName: last.author?.name ?? null,
+        createdAt: last.createdAt.toISOString(), excerpt: excerpt(last.content) },
+    })
+  }
+
   return {
     tasks,
     messages,
     // `>=`, not `===`: the page is what came back, and a row count at or over
     // the limit means there is more behind it either way.
-    truncated: candidates.length >= ATTENTION_LIMIT,
+    truncated: candidates.length >= ATTENTION_LIMIT || handbacks.length >= ATTENTION_LIMIT,
     skipped,
   }
 }

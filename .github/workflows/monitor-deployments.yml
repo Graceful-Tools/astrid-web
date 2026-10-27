@@ -25,6 +25,15 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     name: Monitor and Fix Deployment Issues
+    # Declared so VERCEL_TOKEN can live in the `production` environment instead
+    # of being a repo secret that every workflow in the repo can read, agent
+    # branches included (task bd1e0daa). Safe for this job: it runs on
+    # `push: main` and on schedule, both of which are `main`, and the
+    # environment's branch policy admits only `main` — so a dispatch from any
+    # other ref now fails instead of quietly holding a production token. The
+    # environment carries no required reviewers, so nothing here waits for an
+    # approval.
+    environment: production
 
     steps:
       - name: Checkout code
@@ -35,7 +44,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: '20'
+          node-version-file: .nvmrc
           cache: 'npm'
 
       - name: Install dependencies
@@ -69,23 +78,22 @@ jobs:
           fi
 
       - name: Upload deployment reports
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: deployment-reports-${{ github.run_number }}
           path: logs/vercel/
           retention-days: 30
 
-      - name: Auto-commit fixes
-        if: success() && github.event.inputs.apply_fixes != 'false'
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          if [[ -n $(git status --porcelain) ]]; then
-            git add .
-            git commit -m "fix: auto-apply deployment issue fixes"
-            git push
-            echo "Applied and committed fixes"
-          else
-            echo "No fixes needed"
-          fi
+      # There was an "Auto-commit fixes" step here that ran `git add .`, committed
+      # and pushed to `main` unreviewed, on every push to main and on an hourly
+      # cron. `git add .` commits whatever is in the tree, not a reviewed diff,
+      # straight onto the branch production deploys from — the one path by which
+      # unread content could reach `main`.
+      #
+      # It never once fired: `git log --author="GitHub Action"` on main is empty,
+      # as is a search for its commit message. So this removes a standing risk
+      # and no capability. If auto-fixes are wanted later, they open a PR and go
+      # through the gates like anything else.
+      #
+      # tests/rules/monitor-job-holds-no-write-privileges.test.ts keeps it gone.

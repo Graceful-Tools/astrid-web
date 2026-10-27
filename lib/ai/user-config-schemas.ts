@@ -32,14 +32,14 @@ export type AIAssistantSettings = z.infer<typeof AIAssistantSettingsSchema>
 // concrete shape — that lives in the encryption util.
 export const MCPSettingsSchema = z
   .object({
-    apiKeys: z.record(z.record(z.unknown())).optional(),
-    modelPreferences: z.record(z.string()).optional(),
+    apiKeys: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
+    modelPreferences: z.record(z.string(), z.string()).optional(),
     // Per-agent runtime choice — `{ claude: 'polling' }` means the user's own
     // harness works that agent's queue and this server never calls a provider
     // for it. Keyed by agent mailbox; see lib/ai/agent-execution-mode.ts.
     // Kept loose here for the same reason apiKeys is: the resolver owns the
     // vocabulary, and an unrecognised value must not blank the whole blob.
-    agentModes: z.record(z.string()).optional(),
+    agentModes: z.record(z.string(), z.string()).optional(),
   })
   .passthrough()
 

@@ -55,7 +55,7 @@ export async function POST(
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid snooze duration', details: error.errors },
+        { error: 'Invalid snooze duration', details: error.issues },
         { status: 400 }
       )
     }

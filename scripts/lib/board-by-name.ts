@@ -25,9 +25,11 @@ type BoardList = { id: string; name?: string }
 export function findBoardList(listsBody: unknown, board: ReadyQueueBoard): BoardList {
   const name = BOARD_LIST_NAMES[board]
   const lists = (listsBody as { lists?: unknown })?.lists ?? listsBody
-  const found = (Array.isArray(lists) ? lists : []).find(
+  const matches = (Array.isArray(lists) ? lists : []).filter(
     (list: { name?: string }) => list?.name === name,
-  ) as BoardList | undefined
+  ) as BoardList[]
+  if (matches.length > 1) throw new Error(`Multiple lists named "${name}" found — pass an explicit --list id.`)
+  const found = matches[0]
   if (!found) throw new Error(`No list named "${name}" found — refusing to run unscoped.`)
   return found
 }

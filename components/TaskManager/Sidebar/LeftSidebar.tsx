@@ -8,6 +8,7 @@ import { Plus, ExternalLink, Settings, Search } from "lucide-react"
 import Image from "next/image"
 import { useSidebarCollapsed } from "@/hooks/task-manager/useSidebarCollapsed"
 import { SidebarToggleButton } from "./SidebarToggleButton"
+import { NotificationBell } from "@/components/notification-bell"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "@/lib/i18n/client"
 import { ListItem } from "./ListItem"
@@ -210,6 +211,14 @@ export function LeftSidebar({
            *  reaching search without reading the nav. Same handler, so the two
            *  cannot drift to different destinations. */}
           <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Notifications beside search (AWTD-1357). The list header that
+             *  used to hold the bell renders nothing on desktop, so there was
+             *  no bell there at all; this header renders in every layout. */}
+            <NotificationBell
+              align="start"
+              className="h-7 w-7 p-0 theme-text-muted hover:theme-text-primary"
+              iconClassName="w-4 h-4"
+            />
             <Button
               variant="ghost"
               size="sm"

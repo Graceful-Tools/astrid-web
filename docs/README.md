@@ -53,6 +53,8 @@ and stack versions with `npm run check:docs`.
 - **[CODEX.md](../CODEX.md)** - OpenAI Codex operational context (root)
 - **[ASTRID.md Template](./templates/ASTRID.md)** - ⭐ **Essential**: Configure AI agent behavior for your project
 - **[Fixall Queue Workflow](./FIXALL_WORKFLOW.md)** - the canonical autonomous agent queue loop; the user-facing connect flow is `/docs/loops` in the app
+- **[Fixall on the Web Board](./FIXALL_WEB.md)** - the web board's specifics (deploy rule, done, claim, gates), read by every harness
+- **[Agent Fleet](./AGENT_FLEET.md)** - which machine and harness runs what, and why agents never hold production keys
 - **[Legacy AI agent setup (archived)](./archive/ai-agents/README.md)** - superseded GitHub-App walkthrough, kept for history
 - **[Weekly Hygiene Review](./WEEKLY_HYGIENE_REVIEW.md)** - Scheduled review that files hygiene/security/perf tasks to the Astrid board
 

@@ -12,7 +12,14 @@
  * Documents (PDF, TXT, Office docs), and Archives (ZIP files)
  */
 
-import { put, del, getDownloadUrl } from "@vercel/blob"
+import {
+  put,
+  del,
+  getDownloadUrl,
+  issueSignedToken,
+  presignUrl,
+  parseStoreIdFromDelegationToken,
+} from "@vercel/blob"
 import { generateClientTokenFromReadWriteToken } from "@vercel/blob/client"
 import { randomUUID } from "crypto"
 import { createLogger } from '@/lib/logger'
@@ -108,6 +115,78 @@ export async function issueClientUploadToken(
 
 /** Host clients PUT to with an issued token. Moves with the provider. */
 const CLIENT_UPLOAD_BASE_URL = 'https://blob.vercel-storage.com'
+
+/** What a client needs to upload with a presigned URL instead of a bearer token. */
+export interface PresignedUploadRequest extends ClientUploadTokenRequest {
+  /** Sent as the store's content-type header, since the client adds only Content-Type. */
+  contentType: string
+}
+
+/** A complete direct-upload request: PUT `uploadUrl` with `headers`, plus Content-Type. */
+export interface PresignedUpload {
+  uploadUrl: string
+  headers: Record<string, string>
+}
+
+/**
+ * The Blob API version the presigned PUT speaks. `@vercel/blob` 2.8.0 sends
+ * `BLOB_API_VERSION = 12` from its own `requestApi`, which a native client
+ * cannot call. Bump it with the SDK.
+ */
+const BLOB_API_VERSION = '12'
+
+/**
+ * Whether to hand out presigned uploads (AWTD-1368).
+ *
+ * Keyed on the webhook public key, not on OIDC: a presigned upload's
+ * completion callback is signed with Ed25519 against that key, so serving
+ * one before the key exists would land the bytes and then reject the
+ * callback — no SecureFile row, an attachment lost without an error. The
+ * key appears when the Blob store is upgraded to OIDC, which is also when
+ * `BLOB_READ_WRITE_TOKEN` disappears, so the switch needs no deploy.
+ */
+export function presignedUploadsEnabled(): boolean {
+  return Boolean(process.env.BLOB_WEBHOOK_PUBLIC_KEY)
+}
+
+/**
+ * Compose a presigned direct upload — the replacement for
+ * {@link issueClientUploadToken} that needs no static read/write token.
+ *
+ * The SDK resolves its credential itself: OIDC + `BLOB_STORE_ID` once the
+ * store is upgraded, `BLOB_READ_WRITE_TOKEN` until then. The server composes
+ * the whole request (URL and headers) so that SDK internals — the API
+ * version, the store id inside the delegation token, the control-plane host —
+ * move with this server rather than being frozen into App Store builds
+ * (astrid-ios AITD-558).
+ */
+export async function issuePresignedUpload(request: PresignedUploadRequest): Promise<PresignedUpload> {
+  const signedToken = await issueSignedToken({
+    pathname: request.pathname,
+    operations: ['put'],
+    allowedContentTypes: request.allowedContentTypes,
+    maximumSizeInBytes: request.maximumSizeInBytes,
+  })
+
+  const { presignedUrl } = await presignUrl(signedToken, {
+    operation: 'put',
+    pathname: request.pathname,
+    access: 'public',
+    allowedContentTypes: request.allowedContentTypes,
+    maximumSizeInBytes: request.maximumSizeInBytes,
+    ...(request.onUploadCompleted ? { onUploadCompleted: request.onUploadCompleted } : {}),
+  })
+
+  return {
+    uploadUrl: presignedUrl,
+    headers: {
+      'x-api-version': BLOB_API_VERSION,
+      'x-vercel-blob-store-id': parseStoreIdFromDelegationToken(signedToken.delegationToken),
+      'x-vercel-blob-access': 'public',
+      'x-content-type': request.contentType,
+    },
+  }
+}
 
 
 export interface FileUploadRequest {

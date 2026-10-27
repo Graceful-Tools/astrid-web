@@ -50,6 +50,53 @@ When building mobile or external integrations, always use `/api/v1/` routes. The
 
 ---
 
+## Polling agent lifecycle
+
+`GET /api/v1/agent-queue?agent=<mailbox>&listId=<board>` keeps Ready work in
+`queue` and conversations in `attention`. An optional `attention.tasks[].resume`
+object identifies a reply to an explicit, agent-authored human handback:
+
+```json
+{
+  "listId": "board UUID",
+  "assigneeId": "current human assignee",
+  "handbackCommentId": "agent question comment",
+  "replyCommentId": "human reply comment",
+  "commentWatermark": "2026-10-25T10:00:00.000Z"
+}
+```
+
+`POST /api/v1/tasks/:id/claim-fixall` (`tasks:write`, existing task access)
+accepts the additive `resume` action. Send `{ action: "resume", agent,
+commentWatermark: resume.commentWatermark, resume, listId: resume.listId }`. The server independently
+revalidates the mailbox-authored `AGENT-HANDBACK` question, current assignee's
+subsequent reply, named allowed board, incomplete Waiting state, due date, task
+version and comments before an exclusive conditional update to Doing + agent
+assignment. Stale, edited, reassigned, cross-board and concurrent claims return
+409 without overwriting state. Malformed metadata returns 400. Existing
+`ready`, `recheck` and `review` requests and responses are unchanged.
+
+All actions accept optional `listId` to pin membership to one allowed board;
+new launchers should supply it. The additive recovery action `pause` requires
+that explicit board, `taskVersion` and an ISO `commentWatermark`; one conditional
+update parks only a still-owned Doing task with unchanged task/comment versions
+in Waiting. It cannot claim an unassigned or human-owned task.
+The native bridge's Copilot `ready` claim additionally sends `nativeDispatch:
+{ repository, issueNumber }`. The exclusive claim and agent-authored
+`NATIVE-COPILOT-CLAIM` binding are committed in one database transaction.
+Recovery requires that exact board/task/repository/issue binding; an inert
+GitHub mirror alone never proves ownership after a lost or uncertain claim.
+
+The MCP task create/update tools also accept `assigneeId: null` for explicit
+unassignment. Omission preserves the API's existing defaults and is not a reliable
+way to create unassigned work. Declared MCP agent writes resolve through the
+authenticated queue on fresh stateless requests and never fall back to a human
+when identity lookup fails.
+
+This resumes a task; it grants no deployment, migration or native release
+privileges. The full operational contract is
+[FIXALL_WORKFLOW.md](./FIXALL_WORKFLOW.md#a-human-reply-resumes-an-explicit-handback).
+
 ## Authentication Endpoints
 
 ### POST `/api/auth/apple`
@@ -491,7 +538,7 @@ it also emits `user_settings_updated` to the user's other sessions.
 
 | Field | Type | Notes |
 |---|---|---|
-| `showListImages` | `boolean \| null` | "Show list images". `null` = follow the `hide_list_images` experiment flag (`GET /api/v1/features`); `true`/`false` = the user's explicit choice, which always wins. Draw list images when `showListImages ?? !features.hide_list_images`. PATCH `null` to return to the experiment. Any other type → 400. |
+| `showListImages` | `boolean \| null` | **Deprecated (AWTD-1387).** The `hide_list_images` experiment is gone and the web app always draws list images. The field is still read and written for shipped iOS/Mac builds: `null` (the value for every user in production) means "no explicit choice", `true`/`false` is one. New clients should ignore it and always draw list images. Any other type → 400. |
 
 The response includes `emailToTaskEnabled`, `defaultTaskDueOffset`,
 `defaultDueTime`, `smartTaskCreationEnabled`, `subtaskDisplay` and

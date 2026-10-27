@@ -83,7 +83,7 @@ export const PUT = withAuth({ scopes: ['user:write'], tag: TAG }, async (req, au
     data = UpdateModelSchema.parse(await req.json().catch(() => ({})))
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Validation failed', details: error.errors }, { status: 400 })
+      return NextResponse.json({ error: 'Validation failed', details: error.issues }, { status: 400 })
     }
     throw error
   }
@@ -113,7 +113,7 @@ export const DELETE = withAuth({ scopes: ['user:write'], tag: TAG }, async (req,
     data = ResetModelSchema.parse(await req.json().catch(() => ({})))
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Validation failed', details: error.errors }, { status: 400 })
+      return NextResponse.json({ error: 'Validation failed', details: error.issues }, { status: 400 })
     }
     throw error
   }

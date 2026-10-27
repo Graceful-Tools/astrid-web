@@ -109,7 +109,8 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'ALLOW_UNAUTHENTICATED_CRON', scope: 'tooling', description: 'Local-only escape hatch for hitting cron routes without a secret. Ignored when NODE_ENV=production, by design.' },
 
   // ── Storage, cache, push ──────────────────────────────────────────────────
-  { name: 'BLOB_READ_WRITE_TOKEN', scope: 'optional', description: 'Vercel Blob storage for attachments and uploads.' },
+  { name: 'BLOB_READ_WRITE_TOKEN', scope: 'optional', description: 'Vercel Blob storage for attachments and uploads. Static token; the Blob store\'s OIDC upgrade replaces it with VERCEL_OIDC_TOKEN + BLOB_STORE_ID, which the SDK reads itself (AWTD-1368).' },
+  { name: 'BLOB_WEBHOOK_PUBLIC_KEY', scope: 'optional', description: 'Ed25519 key verifying presigned-upload callbacks. Its presence switches direct uploads to presigned URLs (lib/secure-storage.ts presignedUploadsEnabled, AWTD-1368). Provisioned by the Blob store\'s OIDC upgrade.' },
   { name: 'REMOTE_IMAGE_ALLOWED_HOSTS', scope: 'optional', description: 'Comma-separated HTTPS hosts the remote-image import route accepts. Empty disables remote imports.' },
   { name: 'REDIS_URL', scope: 'optional', description: 'Local Redis for development.' },
   { name: 'UPSTASH_REDIS_REST_URL', scope: 'optional', description: 'Serverless Redis. Without it rate limits fall back to a per-instance memory store.', validate: isUrl },
@@ -123,6 +124,7 @@ export const ENV_VARS: EnvVar[] = [
 
   // ── Encryption ────────────────────────────────────────────────────────────
   { name: 'ENCRYPTION_KEY', scope: 'required', description: 'Encrypts stored user API keys and OAuth credentials at rest. Losing it makes them unrecoverable.', validate: minLength(32) },
+  { name: 'ENCRYPTION_KEY_NEXT', scope: 'optional', description: 'Set ONLY during an ENCRYPTION_KEY rotation: new values are written under it while both keys still decrypt. Unset it once scripts/reencrypt-fields.ts reports nothing left.', validate: minLength(32) },
   { name: 'INTERNAL_API_SECRET', scope: 'optional', description: 'Shared secret for the /api/internal/* routes (legacy-usage census, model preferences), matched against the X-Internal-Secret header. Unset leaves those routes unreachable.' },
 
   // ── AI agents ─────────────────────────────────────────────────────────────
@@ -161,6 +163,9 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'GITHUB_WEBHOOK_SECRET', scope: 'optional', description: 'Verifies GitHub App webhooks.' },
   { name: 'GITHUB_TOKEN', scope: 'tooling', description: 'Personal access token used by maintenance scripts and the gh CLI.' },
   { name: 'GH_TOKEN', scope: 'tooling', description: 'Alternative token name the gh CLI accepts.' },
+  { name: 'GITHUB_REF_NAME', scope: 'tooling', description: 'Actions branch name; isolates retained cloud worker wake state by branch.' },
+  { name: 'GITHUB_RUN_ID', scope: 'tooling', description: 'Actions run id; excludes the current run when restoring retained worker state.' },
+  { name: 'RUNNER_TEMP', scope: 'tooling', description: 'Actions temporary directory for downloading validated cloud wake-state artifacts.' },
   { name: 'GITHUB_SYNC_CLIENT_ID', scope: 'optional', description: 'OAuth app (scope: repo) for two-way GitHub Issues sync — separate from the GitHub App.' },
   { name: 'GITHUB_SYNC_CLIENT_SECRET', scope: 'optional', description: 'Secret for the Issues-sync OAuth app.' },
   { name: 'GITHUB_SYNC_WEBHOOK_SECRET', scope: 'optional', description: 'Verifies Issues-sync webhooks.' },
@@ -194,6 +199,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'ASTRID_WEBHOOK_SECRET', scope: 'optional', description: 'Verifies inbound AI-agent webhooks.' },
   { name: 'MCP_TOKEN', scope: 'tooling', description: 'MCP token used by local validation scripts.' },
   { name: 'ASTRID_FIXALL_CLAIMS_FILE', scope: 'tooling', description: 'Set by the scheduled /fixall runner: where claim-fixall-task.ts records a run’s claims so any left in Doing are released after it.' },
+  { name: 'ASTRID_FIXALL_HARNESS', scope: 'tooling', description: 'Explicit polling harness selector; controls queue identity and retained cloud wake-state scope.' },
   { name: 'FIXALL_CLAIM_BOARD_IDS', scope: 'optional', description: 'Boards an atomic /fixall claim may target. A security allowlist; unset keeps this deployment’s defaults.' },
 
   // ── Brand ─────────────────────────────────────────────────────────────────
