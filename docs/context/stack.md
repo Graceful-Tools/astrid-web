@@ -25,7 +25,7 @@
 ## Testing Stack
 - **Unit Tests**: Vitest 5.0.5
 - **E2E Tests**: Playwright 1.64.1
-- **Test Environment**: jsdom 29.1.1
+- **Test Environment**: jsdom 30.1.1
 - **Test Utilities**: React Testing Library 16.3.3
 
 ## UI & Styling
