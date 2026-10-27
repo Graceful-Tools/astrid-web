@@ -41,6 +41,9 @@ const isProduction = process.env.NODE_ENV === 'production'
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   ...(filesystemRoot ? { turbopack: { root: filesystemRoot } } : {}),
+  // A self-contained `node server.js` for the Docker image (Dockerfile, AWTD-1286).
+  // Opt-in, so a Vercel build is untouched: Vercel bundles its own way.
+  ...(process.env.NEXT_OUTPUT === 'standalone' ? { output: 'standalone' } : {}),
   // Next 16 removed the `eslint` config key along with `next lint`; linting is its own
   // step (`npm run lint`) and the quality gates run it separately, so nothing is lost by
   // dropping it. Keeping it made the whole config invalid.

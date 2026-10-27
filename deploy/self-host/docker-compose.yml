@@ -1,0 +1,120 @@
+# Self-hosted stack: no Vercel, Neon or Upstash account (AWTD-1286).
+# Guide: docs/deployment/SELF_HOSTING.md.
+#
+#   cp deploy/self-host/.env.example deploy/self-host/.env   # then fill it in
+#   docker compose -f deploy/self-host/docker-compose.yml up -d --build
+#   docker compose -f deploy/self-host/docker-compose.yml --profile tls up -d   # with automatic HTTPS
+#
+# Services: postgres, redis, migrate (one-shot, runs before app), app, cron,
+# and caddy (TLS, only with --profile tls).
+
+name: ${COMPOSE_PROJECT_NAME:-tasks}
+
+x-app-env: &app-env
+  DATABASE_URL: postgresql://${POSTGRES_USER:-tasks}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-tasks}
+  DATABASE_URL_DIRECT: postgresql://${POSTGRES_USER:-tasks}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-tasks}
+  REDIS_URL: redis://redis:6379
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tasks}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-tasks}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis:/data
+
+  migrate:
+    build:
+      context: ../..
+      target: migrator
+    environment: *app-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    image: ${IMAGE:-tasks-selfhost}:${IMAGE_TAG:-latest}
+    build:
+      context: ../..
+      args:
+        BRAND: ${BRAND:-}
+        GIT_COMMIT_SHA: ${GIT_COMMIT_SHA:-unknown}
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
+    restart: unless-stopped
+    env_file: .env
+    environment: *app-env
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    volumes:
+      - uploads:/app/data/uploads
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_started
+
+  cron:
+    # The same image, running the scheduler instead of the server. Exactly one.
+    # Never pulled: the `app` service builds it. Without this, `up --build` on a
+    # fresh machine looks for it on Docker Hub first and fails.
+    image: ${IMAGE:-tasks-selfhost}:${IMAGE_TAG:-latest}
+    pull_policy: never
+    restart: unless-stopped
+    command: ["node", "scripts/cron-runner.mjs"]
+    # Not the image's HTTP probe (this container runs no server): the runner's
+    # own heartbeat, stale after three missed ticks.
+    healthcheck:
+      test: ["CMD", "node", "scripts/cron-runner.mjs", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 2
+    environment:
+      CRON_SECRET: ${CRON_SECRET:?set CRON_SECRET in .env}
+      CRON_BASE_URL: http://app:3000
+    depends_on:
+      app:
+        condition: service_healthy
+
+  caddy:
+    profiles: ["tls"]
+    image: caddy:2
+    restart: unless-stopped
+    # Checked here, not by compose interpolation, which would fail the stack
+    # without --profile tls too.
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:-}
+    command:
+      - sh
+      - -c
+      - >-
+        test -n "$$SITE_DOMAIN" || { echo 'set SITE_DOMAIN in .env for --profile tls' >&2; exit 1; };
+        exec caddy reverse-proxy --from "$$SITE_DOMAIN" --to app:3000
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy:/data
+    depends_on:
+      - app
+
+volumes:
+  postgres:
+  redis:
+  uploads:
+  caddy:

@@ -36,6 +36,15 @@ export async function register() {
   // hourly reconcile instead of failing (AWTD-1282).
   assertGithubProjectsCredentials()
 
+  // Self-hosted storage with half its settings would accept the upload request
+  // and lose the file (AWTD-1286). Vercel Blob, the default, needs nothing here.
+  // Node only: storage is never touched from the edge, and importing the drivers
+  // there would pull node:fs into the edge bundle.
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    const { assertStorageConfiguration } = await import('@/lib/storage/object-store')
+    assertStorageConfiguration()
+  }
+
   // Every listed provider must have what it needs (spec §6.2). Missing
   // credentials for GitHub or SSO stop the boot; for the legacy providers they
   // are logged, since a wrong guess about an existing deployment would be an

@@ -16,7 +16,7 @@ an investigation queue, not proof that deletion is safe.
 
 ## workflow
 
-`advance-prod-branch.sh`, `agent-queue-status.ts`, `check-destructive-migrations.ts`, `claim-fixall-task.ts`, `deploy-preview.sh`, `extract-preview-url.sh`, `land-and-deploy.ts`, `native-copilot-bridge.ts`, `open-fixall-prs.ts`, `parse-ready-tasks-output.ts`, `post-session-link.ts`, `ready-tasks.ts`, `release-stuck-doing.ts`, `restore-cloud-wake-state.ts`, `sanitize-pulled-env.ts`, `verify-deployed-sha.sh`
+`advance-prod-branch.sh`, `agent-queue-status.ts`, `brand-env-file.ts`, `check-destructive-migrations.ts`, `claim-fixall-task.ts`, `cron-runner.mjs`, `deploy-preview.sh`, `extract-preview-url.sh`, `land-and-deploy.ts`, `native-copilot-bridge.ts`, `open-fixall-prs.ts`, `parse-ready-tasks-output.ts`, `post-session-link.ts`, `ready-tasks.ts`, `release-stuck-doing.ts`, `restore-cloud-wake-state.ts`, `sanitize-pulled-env.ts`, `self-host-smoke.ts`, `verify-deployed-sha.sh`
 
 ## documentation
 

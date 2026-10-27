@@ -130,8 +130,9 @@ export default async function LocaleLayout({ children, params }: Props) {
         <NextIntlClientProvider messages={messages}>
           <Providers>{children}</Providers>
         </NextIntlClientProvider>
-        <Analytics />
-        <SpeedInsights />
+        {/* Vercel-hosted only: elsewhere both load /_vercel/insights/*, which 404s (AWTD-1286). */}
+        {process.env.VERCEL && <Analytics />}
+        {process.env.VERCEL && <SpeedInsights />}
       </body>
     </html>
   )

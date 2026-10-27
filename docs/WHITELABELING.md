@@ -48,11 +48,15 @@ astrid-web. There is no native client that talks to GitHub, or any other backend
    `scripts/push-brand-env.ts` writes the profile and generates the secrets. Sign-in
    providers, email, push and storage are optional.
 
-5. **Deploy** to your own Vercel team and database: §8, *A partner on their own Vercel
-   account and their own database*. Preview first with
-   `npx tsx scripts/deploy-brand-preview.ts <partner> --team <id> --scope <slug>`. Then
-   check `GET /api/v1/capabilities` on the preview; it should report your brand and
-   providers.
+5. **Deploy**, one of two ways. Either way, check that `GET /api/v1/capabilities` reports
+   your brand and providers.
+   - **On your own infrastructure, with no Vercel account:** the Docker image and compose
+     stack in [deployment/SELF_HOSTING.md](./deployment/SELF_HOSTING.md). Build with
+     `--build-arg BRAND=<partner>`. It runs Postgres, the app, the scheduled jobs and file
+     storage (a volume or any S3-compatible bucket) on your own machines.
+   - **On your own Vercel team and database:** §8, *A partner on their own Vercel account
+     and their own database*. Preview first with
+     `npx tsx scripts/deploy-brand-preview.ts <partner> --team <id> --scope <slug>`.
 
 6. **Point the native apps at it.** Each platform builds a variant from its own repo
    (*Native apps, per platform* below). For **native sign-in** there are two rules, because
@@ -530,6 +534,8 @@ read as oversights. Some were. Here is where each one actually stands.
 (`putObject`, `deleteObject`, `issueClientUploadToken`). Eight other files used
 to import `@vercel/blob` directly; `tests/rules/blob-storage-goes-through-secure-storage.test.ts`
 now fails if a ninth appears, subpath imports included.
+`STORAGE_DRIVER=s3|local` points that seam at any S3-compatible bucket or a mounted
+directory, served by the app itself (AWTD-1286, [deployment/SELF_HOSTING.md](./deployment/SELF_HOSTING.md)).
 
 **Email — one transport, swappable.** `lib/email-transport.ts` holds the single
 Resend client and the one rule deciding whether a message actually sends.
@@ -544,7 +550,7 @@ configures it, they do not fork it.
 
 | Thing | Why it is frozen |
 |---|---|
-| Upstash REST for SSE cross-instance events (`lib/sse-utils.ts`) | The only one of the Redis call sites that is Upstash-only, and deliberately: SSE fan-out runs in serverless functions that hold no connection pool, so it needs a client that works over plain HTTP per invocation. A standard Redis socket client there would open a connection per request. Unlike `lib/redis.ts`, this path has no local fallback because it does nothing in development — events are kept in memory. |
+| Upstash REST for SSE cross-instance events (`lib/sse-utils.ts`) | The only one of the Redis call sites that is Upstash-only, and deliberately: SSE fan-out runs in serverless functions that hold no connection pool, so it needs a client that works over plain HTTP per invocation. A standard Redis socket client there would open a connection per request. Without Upstash, events are kept in memory, which is complete on a single self-hosted server and partial across several replicas (SELF_HOSTING.md, *More than one app replica*). |
 | `web-push` (`lib/push-notification-service.ts`) | Not a vendor. Web Push is the **browser standard** (RFC 8030 / VAPID), and `web-push` is the library that speaks it. The push service is chosen by the user's browser, not by us, so there is nothing here for a partner to swap — only their own `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` to set. |
 
 ### The MCP server name is NOT frozen (task 979e1325)

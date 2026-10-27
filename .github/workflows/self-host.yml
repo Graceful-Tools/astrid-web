@@ -1,0 +1,96 @@
+name: 'Self-Hosted Image'
+
+# The self-hosted path off Vercel (AWTD-1286, docs/deployment/SELF_HOSTING.md):
+# build the Docker image, run the compose stack, and smoke-test it. Unit tests
+# cover the storage drivers and cron matcher; only this shows the image boots,
+# migrates, serves, runs its crons and stores an upload.
+#
+# On the files the image is made of, weekly (dependency drift breaks images
+# without touching them), and on demand.
+on:
+  pull_request:
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'deploy/self-host/**'
+      - 'lib/storage/**'
+      - 'lib/secure-storage.ts'
+      - 'app/**/storage/**'
+      - 'scripts/cron-runner.mjs'
+      - 'scripts/lib/cron-schedule.mjs'
+      - 'scripts/brand-env-file.ts'
+      - 'scripts/self-host-smoke.ts'
+      - 'scripts/build-with-migrations.js'
+      - 'next.config.mjs'
+      - 'instrumentation.ts'
+      - 'vercel.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'prisma/**'
+      - '.github/workflows/self-host.yml'
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: self-host-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    name: 'Build, boot and smoke-test'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      # Only for the smoke script, which mints an upload grant with lib/storage.
+      - name: Install dependencies
+        run: npm ci
+
+      # Throwaway secrets for a throwaway stack. acme is the fully rebranded
+      # profile (passkey-only), so the build also proves a brand reaches the image.
+      - name: Write the stack's settings
+        run: |
+          {
+            echo "BRAND=acme"
+            echo "GIT_COMMIT_SHA=${GITHUB_SHA}"
+            echo "NEXTAUTH_URL=http://localhost:3000"
+            echo "NEXTAUTH_SECRET=$(openssl rand -base64 48)"
+            echo "ENCRYPTION_KEY=$(openssl rand -hex 32)"
+            echo "CRON_SECRET=$(openssl rand -hex 32)"
+            echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)"
+            echo "STORAGE_DRIVER=local"
+          } > deploy/self-host/.env
+
+      - name: Build and start
+        run: docker compose -f deploy/self-host/docker-compose.yml up -d --build --wait --wait-timeout 300
+
+      - name: Smoke test
+        run: |
+          set -a; . deploy/self-host/.env; set +a
+          SMOKE_BASE_URL=http://localhost:3000 npx tsx scripts/self-host-smoke.ts
+
+      - name: The cron service is calling the app
+        run: |
+          sleep 75
+          docker compose -f deploy/self-host/docker-compose.yml logs cron | tee cron.log
+          grep -q 'cron/reminders","status":200' cron.log
+
+      - name: Logs
+        if: failure()
+        run: docker compose -f deploy/self-host/docker-compose.yml logs --no-color --tail 300
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f deploy/self-host/docker-compose.yml down -v
