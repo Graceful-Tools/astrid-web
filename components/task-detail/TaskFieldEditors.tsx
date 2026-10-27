@@ -577,7 +577,7 @@ export function TaskFieldEditors({
                 mode="single"
                 selected={tempWhen}
                 onSelect={handleSaveWhen}
-                initialFocus
+                autoFocus
               />
               <div className="p-3 border-t border-gray-200 flex justify-between">
                 <Button

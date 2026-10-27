@@ -363,7 +363,7 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
                     updatePattern({ endUntilDate: date })
                     setShowEndDatePicker(false)
                   }}
-                  initialFocus
+                  autoFocus
                   className="theme-surface theme-text"
                 />
               </PopoverContent>
