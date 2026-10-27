@@ -762,6 +762,23 @@ Upload a file (multipart/form-data).
 }
 ```
 
+### POST `/api/v1/secure-upload/get-upload-url`: direct upload of a large file
+Body: `{ fileName, fileType, fileSize, context: { taskId? | listId? | commentId?, clientRequestId? } }`.
+
+**Response:** `{ fileId, pathname, presigned?: { uploadUrl, headers }, uploadToken?, uploadUrl? }`.
+
+PUT the bytes to `presigned.uploadUrl` with `presigned.headers` as given, plus
+`Content-Type`, and no `Authorization` header. Do not assume where that URL points:
+- On Vercel Blob it is Blob's host, and Blob calls the server back once the upload lands.
+- On a self-hosted deployment (`STORAGE_DRIVER=s3|local`) it is the server's own
+  `/api/v1/storage/uploads/<grant>`, `headers` is `{}`, and the file is recorded before
+  the PUT returns.
+
+Either way the PUT answers `{ url, pathname, contentType }`, and `fileId` is the
+attachment. `uploadToken`/`uploadUrl` is the legacy Vercel Blob pair, present only while
+the server holds a Blob read/write token. The self-hosted path is in
+[deployment/SELF_HOSTING.md](./deployment/SELF_HOSTING.md), *How uploads work off Vercel*.
+
 ---
 
 ## Chat Endpoints

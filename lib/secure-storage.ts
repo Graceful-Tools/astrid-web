@@ -1,5 +1,6 @@
 /**
- * Secure File Storage System using Vercel Blob
+ * Secure File Storage System using Vercel Blob, or a self-hosted store
+ * (`STORAGE_DRIVER=s3|local`, lib/storage/object-store.ts)
  *
  * This module implements a secure file upload and access system with:
  * - Private Vercel Blob storage
@@ -24,6 +25,14 @@ import { generateClientTokenFromReadWriteToken } from "@vercel/blob/client"
 import { randomUUID } from "crypto"
 import { createLogger } from '@/lib/logger'
 import { validateSecureUpload } from '@/lib/upload-validation'
+import {
+  isSelfHostedStorage,
+  objectPathnameFromUrl,
+  selfHostedObjectStore,
+  selfHostedObjectUrl,
+  selfHostedUploadUrl,
+} from '@/lib/storage/object-store'
+import { createUploadToken } from '@/lib/storage/upload-token'
 
 const log = createLogger('secure-storage')
 
@@ -44,6 +53,10 @@ const log = createLogger('secure-storage')
 //
 // `tests/rules/blob-storage-goes-through-secure-storage.test.ts` keeps it that
 // way, subpath imports included.
+//
+// Off Vercel, `STORAGE_DRIVER=s3|local` sends each primitive to a self-hosted
+// store instead (lib/storage/object-store.ts, AWTD-1286). The default is Blob,
+// so a deployment that sets nothing behaves exactly as before.
 
 /** An object written to storage. */
 export interface StoredObject {
@@ -64,6 +77,20 @@ export async function putObject(
   body: File | Buffer | string,
   options: { contentType?: string } = {},
 ): Promise<StoredObject> {
+  if (isSelfHostedStorage()) {
+    // isView, not instanceof: a Buffer from another realm is still bytes.
+    const bytes = typeof body === 'string'
+      ? new Uint8Array(Buffer.from(body, 'utf-8'))
+      : ArrayBuffer.isView(body)
+        ? new Uint8Array(body.buffer, body.byteOffset, body.byteLength)
+        : new Uint8Array(await body.arrayBuffer())
+    const contentType = options.contentType
+      || (!ArrayBuffer.isView(body) && typeof body !== 'string' && body.type)
+      || 'application/octet-stream'
+    await (await selfHostedObjectStore()).put(pathname, bytes, contentType)
+    return { url: selfHostedObjectUrl(pathname), pathname }
+  }
+
   const blob = await put(pathname, body, {
     access: 'public',
     ...(options.contentType ? { contentType: options.contentType } : {}),
@@ -80,6 +107,12 @@ export async function putObject(
  * as a clean sweep and leave orphaned blobs invisible.
  */
 export async function deleteObject(url: string): Promise<void> {
+  if (isSelfHostedStorage()) {
+    const pathname = extractBlobPathname(url)
+    if (!pathname) throw new Error('Not an object URL')
+    await (await selfHostedObjectStore()).delete(pathname)
+    return
+  }
   await del(url)
 }
 
@@ -102,6 +135,9 @@ export interface ClientUploadTokenRequest {
 export async function issueClientUploadToken(
   request: ClientUploadTokenRequest,
 ): Promise<{ token: string; uploadUrl: string }> {
+  // A Blob client token is derived from Blob's read/write token. Self-hosted
+  // storage hands out presigned uploads only (presignedUploadsEnabled).
+  if (isSelfHostedStorage()) throw new Error('Client upload tokens are a Vercel Blob feature')
   const token = await generateClientTokenFromReadWriteToken({
     token: process.env.BLOB_READ_WRITE_TOKEN,
     pathname: request.pathname,
@@ -146,6 +182,9 @@ const BLOB_API_VERSION = '12'
  * `BLOB_READ_WRITE_TOKEN` disappears, so the switch needs no deploy.
  */
 export function presignedUploadsEnabled(): boolean {
+  // Self-hosted storage has no callback to wait for: the upload route records
+  // the file itself (lib/storage/upload-token.ts).
+  if (isSelfHostedStorage()) return true
   return Boolean(process.env.BLOB_WEBHOOK_PUBLIC_KEY)
 }
 
@@ -161,6 +200,16 @@ export function presignedUploadsEnabled(): boolean {
  * (astrid-ios AITD-558).
  */
 export async function issuePresignedUpload(request: PresignedUploadRequest): Promise<PresignedUpload> {
+  if (isSelfHostedStorage()) {
+    const token = createUploadToken({
+      pathname: request.pathname,
+      allowedContentTypes: request.allowedContentTypes,
+      maximumSizeInBytes: request.maximumSizeInBytes,
+      ...(request.onUploadCompleted ? { tokenPayload: request.onUploadCompleted.tokenPayload } : {}),
+    })
+    return { uploadUrl: selfHostedUploadUrl(token), headers: {} }
+  }
+
   const signedToken = await issueSignedToken({
     pathname: request.pathname,
     operations: ['put'],
@@ -319,12 +368,7 @@ export async function uploadTextContent(
  * Extract blob pathname from URL for identification
  */
 export function extractBlobPathname(blobUrl: string): string | null {
-  try {
-    const url = new URL(blobUrl)
-    return url.pathname.startsWith('/') ? url.pathname.slice(1) : url.pathname
-  } catch {
-    return null
-  }
+  return objectPathnameFromUrl(blobUrl)
 }
 
 /**

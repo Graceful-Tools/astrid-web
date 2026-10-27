@@ -58,6 +58,12 @@ describe('Node version is declared once (AWTD-1382)', () => {
     expect(offenders).toEqual([])
   })
 
+  it('builds the self-hosted image on the same major (AWTD-1286)', () => {
+    // A Dockerfile ARG cannot read .nvmrc, so it names the version; this keeps it honest.
+    const dockerfile = readFileSync(join(root, 'Dockerfile'), 'utf8')
+    expect(dockerfile.match(/^ARG NODE_VERSION=(\S+)$/m)?.[1]).toBe(nvmrc)
+  })
+
   it('points every setup-node step at .nvmrc', () => {
     for (const path of ciFiles) {
       const text = readFileSync(path, 'utf8')

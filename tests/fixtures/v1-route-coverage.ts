@@ -52,6 +52,7 @@ export const V1_ROUTE_FAMILY_COVERAGE = {
     tests: ['tests/lib/secure-upload-extension-parity.test.ts'],
   },
   shortcodes: { mode: 'direct', tests: ['tests/api/v1-shortcodes.test.ts'] },
+  storage: { mode: 'direct', tests: ['tests/api/self-hosted-storage-flow.test.ts'] },
   sse: { mode: 'parity', tests: ['tests/api/mcp-sse-integration.test.ts'] },
   sync: { mode: 'direct', tests: ['tests/api/v1-sync-github-task-links.test.ts'] },
   tasks: { mode: 'direct', tests: ['tests/api/v1-tasks.test.ts'] },

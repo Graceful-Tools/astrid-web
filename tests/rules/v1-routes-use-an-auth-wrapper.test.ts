@@ -64,6 +64,10 @@ const PUBLIC: Record<string, string> = {
   'app/api/v1/integrations/copilot/callback/route.ts': 'OAuth callback — the provider calls it, not a signed-in client',
   'app/api/v1/attachment-uploads/route.ts':
     'the credential is the signed, 15-minute, single-task upload ticket minted by withAuth-wrapped POST /tasks/:id/attachment-uploads (comments:write); the PUT re-checks task access before storing',
+  'app/api/v1/storage/uploads/[token]/route.ts':
+    'self-hosted storage only (AWTD-1286): the credential is the signed, hour-long, single-pathname upload grant that withAuth-wrapped get-upload-url issued after checking access to the target; 404 on Vercel Blob',
+  'app/api/v1/storage/objects/[...path]/route.ts':
+    'self-hosted storage only (AWTD-1286): stands in for Vercel Blob public URLs — unguessable paths, permission checked at /api/secure-files/:id before it redirects here; 404 on Vercel Blob',
   'app/api/v1/integrations/resume/route.ts':
     'where a signed-out OAuth callback finishes (task 842601f2): it checks the session itself so it can redirect a signed-out browser INTO sign-in, which is the whole point — a 401 from withAuth would strand it',
 }
