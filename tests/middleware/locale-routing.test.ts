@@ -7,41 +7,42 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest, NextResponse } from 'next/server'
 import { BRAND } from '@/lib/brand/config'
 
+// Hoisted by vitest regardless of where they are written, so they are written
+// where they actually run (vitest 5 makes this an error, AWTD-1391).
+vi.mock('next-intl/middleware', () => ({
+  default: vi.fn((config) => {
+    return (request: NextRequest) => {
+      // Simulate next-intl behavior with 'as-needed' strategy
+      const pathname = request.nextUrl.pathname
+      const locales = config.locales || []
+      const defaultLocale = config.defaultLocale
+
+      // Check if path starts with a locale
+      const pathnameLocale = locales.find((locale: string) =>
+        pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
+      )
+
+      // With 'as-needed' strategy, both /locale and / paths should work
+      if (pathnameLocale || !pathname.startsWith('/api') && !pathname.startsWith('/.well-known')) {
+        // Return a mock response indicating success
+        return NextResponse.next()
+      }
+
+      return NextResponse.next()
+    }
+  })
+}))
+
+vi.mock('@/lib/i18n/config', () => ({
+  locales: ['en', 'es', 'fr', 'de'],
+  defaultLocale: 'en'
+}))
+
 describe('Locale Routing Middleware', () => {
   let mockCreateMiddleware: any
   let middleware: any
 
   beforeEach(async () => {
-    // Mock next-intl's createMiddleware
-    vi.mock('next-intl/middleware', () => ({
-      default: vi.fn((config) => {
-        return (request: NextRequest) => {
-          // Simulate next-intl behavior with 'as-needed' strategy
-          const pathname = request.nextUrl.pathname
-          const locales = config.locales || []
-          const defaultLocale = config.defaultLocale
-
-          // Check if path starts with a locale
-          const pathnameLocale = locales.find((locale: string) =>
-            pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
-          )
-
-          // With 'as-needed' strategy, both /locale and / paths should work
-          if (pathnameLocale || !pathname.startsWith('/api') && !pathname.startsWith('/.well-known')) {
-            // Return a mock response indicating success
-            return NextResponse.next()
-          }
-
-          return NextResponse.next()
-        }
-      })
-    }))
-
-    vi.mock('@/lib/i18n/config', () => ({
-      locales: ['en', 'es', 'fr', 'de'],
-      defaultLocale: 'en'
-    }))
-
     // Clear module cache to get fresh middleware
     vi.resetModules()
   })

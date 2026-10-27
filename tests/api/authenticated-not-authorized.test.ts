@@ -52,10 +52,13 @@ describe('oauth discovery documents', () => {
   })
 })
 
+// Hoisted by vitest regardless of where they are written, so they are written
+// where they actually run (vitest 5 makes this an error, AWTD-1391).
+const headers = vi.hoisted(() => vi.fn())
+vi.mock('next/headers', () => ({ headers }))
+vi.mock('@/lib/base-url', () => ({ getBaseUrl: () => `https://${BRAND.domain}/` }))
+
 describe('resolveDiscoveryBaseUrl', () => {
-  const headers = vi.hoisted(() => vi.fn())
-  vi.mock('next/headers', () => ({ headers }))
-  vi.mock('@/lib/base-url', () => ({ getBaseUrl: () => `https://${BRAND.domain}/` }))
 
   beforeEach(() => vi.clearAllMocks())
 
