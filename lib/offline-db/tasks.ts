@@ -28,10 +28,15 @@ export class OfflineTaskOperations {
 
   /**
    * Get tasks by list ID
+   *
+   * Matches on `lists[].id`. The table's `listId` index is never populated —
+   * a Task has no `listId` field — so querying it always found nothing (AWTD-1350).
    */
   static async getTasksByList(listId: string): Promise<Task[]> {
     return await offlineDB.safeOperation(
-      () => offlineDB.tasks.where('listId').equals(listId).toArray(),
+      () => offlineDB.tasks
+        .filter(task => task.lists?.some(list => list.id === listId) ?? false)
+        .toArray(),
       []
     )
   }
