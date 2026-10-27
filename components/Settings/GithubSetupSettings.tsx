@@ -7,7 +7,8 @@ import { useSession } from "next-auth/react"
 import { LoadingScreen } from "@/components/loading-screen"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { CheckCircle, AlertCircle, Github, ArrowRight } from "lucide-react"
+import { CheckCircle, AlertCircle, ArrowRight } from "lucide-react"
+import { Github } from "@/components/ui/brand-icons"
 
 interface GithubSetupSettingsProps {
   onNavigate: (page: string) => void
