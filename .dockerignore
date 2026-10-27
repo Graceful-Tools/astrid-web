@@ -1,0 +1,23 @@
+# The self-hosted image (Dockerfile, AWTD-1286). Secrets and machine state stay out:
+# an image is a file anyone with registry access can unpack.
+.env*
+!.env.example
+.vercel
+.claude
+# Typechecked by `next build` (scripts/check-board-permissions.ts imports it).
+!.claude/validate-settings.ts
+.git
+.github
+.husky
+.next
+.tmp
+node_modules
+coverage
+dist
+logs
+playwright-report
+test-results
+data
+*.tsbuildinfo
+.eslintcache
+.DS_Store

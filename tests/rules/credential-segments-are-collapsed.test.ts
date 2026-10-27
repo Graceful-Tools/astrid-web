@@ -56,6 +56,8 @@ const DYNAMIC_SEGMENT_PARENTS: Record<string, Classification> = {
   // Credentials — collapsed by position, whatever shape the token has.
   invitations: 'credential', // app/api/invitations/[token]
   invite: 'credential', //      app/[locale]/invite/[token]
+  uploads: 'credential', //     app/api/v1/storage/uploads/[token] — the upload grant (AWTD-1286)
+  objects: 'credential', //     app/api/v1/storage/objects/[...path] — a capability URL (AWTD-1286)
 
   // Share links — 8-char nanoid, collapsed by shape only under these parents.
   s: 'shortcode', //          app/[locale]/s/[code]

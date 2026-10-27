@@ -75,8 +75,12 @@ export const SHORTCODE_PARENTS = new Set(['s', 'shortcodes'])
  * Position is the durable fact: whatever sits under `/invitations` or `/invite`
  * is the thing that redeems the invitation. `INVITE_TOKEN_PATTERN` stays as a
  * second net for tokens seen anywhere else.
+ *
+ * The same holds for self-hosted storage (AWTD-1286): the segment under
+ * `/storage/uploads` IS the upload grant, and the path under `/storage/objects`
+ * is a capability URL — knowing it is what lets you read the file.
  */
-export const CREDENTIAL_PARENTS = new Set(['invitations', 'invite'])
+export const CREDENTIAL_PARENTS = new Set(['invitations', 'invite', 'uploads', 'objects'])
 
 /**
  * One in N legacy hits is beaconed (task f9ba26b3).
