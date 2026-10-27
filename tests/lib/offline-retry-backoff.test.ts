@@ -41,7 +41,7 @@ function succeed() {
   })
 }
 
-describe.sequential('offline replay backoff (task b8b21855)', () => {
+describe('offline replay backoff (task b8b21855)', { concurrent: false }, () => {
   beforeEach(async () => {
     await new Promise((r) => setTimeout(r, 20))
     await offlineDB.clearAll()

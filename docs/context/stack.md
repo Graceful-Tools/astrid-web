@@ -23,7 +23,7 @@
 - **Rate Limiting**: Custom implementation with IP/user tracking
 
 ## Testing Stack
-- **Unit Tests**: Vitest 4.1.11
+- **Unit Tests**: Vitest 5.0.5
 - **E2E Tests**: Playwright 1.64.1
 - **Test Environment**: jsdom 29.1.1
 - **Test Utilities**: React Testing Library 16.3.3

@@ -25,13 +25,17 @@ const safeUserSelect = {
 
 let GET: any, POST: any;
 
+// Hoisted once, before anything in this file, so it cannot be "re-applied"
+// inside beforeEach — it was never doing that (vitest 5 makes it an error,
+// AWTD-1391). vi.resetModules() below still gives each test a fresh route
+// module, which is what that block was actually relying on.
+vi.mock('@/lib/prisma', () => ({
+  prisma: mockPrisma,
+}))
+
 describe('Tasks API', () => {
   beforeEach(async () => {
     vi.resetModules()
-    // Re-apply the mock for prisma after resetting modules
-    vi.mock('@/lib/prisma', () => ({
-      prisma: mockPrisma,
-    }))
     // Dynamically import the API routes
     const tasksRoute = await import('@/app/api/tasks/route');
     GET = tasksRoute.GET;
