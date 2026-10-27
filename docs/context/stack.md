@@ -31,7 +31,7 @@
 ## UI & Styling
 - **Styling**: Tailwind CSS 3.4.17
 - **Components**: Radix UI primitives (Shadcn/ui)
-- **Icons**: Lucide React 0.454.0
+- **Icons**: Lucide React 1.61.0 (brand glyphs in `components/ui/brand-icons.tsx` — v1 dropped them)
 - **Forms**: React Hook Form 7.90.0 + Zod 4.6.6
 
 ## Build & Development

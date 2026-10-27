@@ -5,23 +5,8 @@ import { Link } from "@/lib/i18n/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import {
-  Heart,
-  Bot,
-  Code,
-  GitBranch,
-  Globe,
-  MessageSquare,
-  CheckCircle,
-  ExternalLink,
-  Github,
-  Zap,
-  Shield,
-  Users,
-  ArrowRight,
-  Star,
-  Play
-} from "lucide-react"
+import { Heart, Bot, Code, GitBranch, Globe, MessageSquare, CheckCircle, ExternalLink, Zap, Shield, Users, ArrowRight, Star, Play } from "lucide-react"
+import { Github } from "@/components/ui/brand-icons"
 import { scrollShellClassName } from "@/components/scroll-shell"
 import { GITHUB_WEB_URL } from '@/lib/github/host'
 
