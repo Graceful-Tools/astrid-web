@@ -17,7 +17,8 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { Building2, ExternalLink, Github, Loader2, RefreshCw } from 'lucide-react'
+import { Building2, ExternalLink, Loader2, RefreshCw } from "lucide-react"
+import { Github } from "@/components/ui/brand-icons"
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {

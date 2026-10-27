@@ -16,7 +16,8 @@
  */
 
 import { useCallback, useEffect, useState } from 'react'
-import { Building2, FolderKanban, Github, Loader2, Plus, RefreshCw, User } from 'lucide-react'
+import { Building2, FolderKanban, Loader2, Plus, RefreshCw, User } from "lucide-react"
+import { Github } from "@/components/ui/brand-icons"
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
