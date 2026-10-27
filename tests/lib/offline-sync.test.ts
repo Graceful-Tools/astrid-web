@@ -24,7 +24,7 @@ const mockNavigator = (online: boolean) => {
 }
 
 // Run tests sequentially to avoid race conditions with shared OfflineSyncManager state
-describe.sequential('OfflineSyncManager', () => {
+describe('OfflineSyncManager', { concurrent: false }, () => {
   beforeEach(async () => {
     // Wait first to ensure previous test's async operations are complete
     await new Promise(resolve => setTimeout(resolve, 20))

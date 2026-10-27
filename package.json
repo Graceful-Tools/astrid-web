@@ -20,7 +20,7 @@
     "db:backup": "tsx scripts/backup-database.ts",
     "db:studio": "prisma studio",
     "db:seed": "tsx scripts/seed.ts",
-    "db:test": "node -e \"const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); prisma.$connect().then(() => console.log('\u2705 Database connected')).catch(e => console.error('\u274c Database failed:', e)).finally(() => prisma.$disconnect())\"",
+    "db:test": "node -e \"const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); prisma.$connect().then(() => console.log('✅ Database connected')).catch(e => console.error('❌ Database failed:', e)).finally(() => prisma.$disconnect())\"",
     "db:setup-production": "tsx scripts/setup-production-db.ts",
     "db:deploy-production": "tsx scripts/deploy-production-migration.js",
     "db:push-production": "tsx scripts/deploy-production-migration.js",
@@ -280,7 +280,7 @@
     "tsx": "^4.23.15",
     "typescript": "^6",
     "vite": "^8.3.5",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.5"
   },
   "overrides": {
     "@humanfs/node": ">=0.16.8",
