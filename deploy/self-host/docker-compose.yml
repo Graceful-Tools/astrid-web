@@ -76,9 +76,14 @@ services:
     pull_policy: never
     restart: unless-stopped
     command: ["node", "scripts/cron-runner.mjs"]
-    # The image's health check probes the HTTP server, which this container does not run.
+    # Not the image's HTTP probe (this container runs no server): the runner's
+    # own heartbeat, stale after three missed ticks.
     healthcheck:
-      disable: true
+      test: ["CMD", "node", "scripts/cron-runner.mjs", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 2
     environment:
       CRON_SECRET: ${CRON_SECRET:?set CRON_SECRET in .env}
       CRON_BASE_URL: http://app:3000
