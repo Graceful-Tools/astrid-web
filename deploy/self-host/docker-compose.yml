@@ -70,7 +70,10 @@ services:
 
   cron:
     # The same image, running the scheduler instead of the server. Exactly one.
+    # Never pulled: the `app` service builds it. Without this, `up --build` on a
+    # fresh machine looks for it on Docker Hub first and fails.
     image: ${IMAGE:-tasks-selfhost}:${IMAGE_TAG:-latest}
+    pull_policy: never
     restart: unless-stopped
     command: ["node", "scripts/cron-runner.mjs"]
     # The image's health check probes the HTTP server, which this container does not run.
