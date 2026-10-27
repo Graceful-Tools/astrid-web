@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import { deleteFile } from "@/lib/secure-storage"
+import { objectPathnameFromUrl } from "@/lib/storage/object-store"
 import type { RouteContextParams } from "@/types/next"
 import { createLogger } from '@/lib/logger'
 
@@ -55,7 +56,9 @@ function isBlobIssuedFor(candidate: unknown, currentBlobUrl: string | null, uplo
       return false
     }
   }
-  return url.pathname.startsWith(`/files/${uploaderId}/${fileId}-`)
+  // The store pathname, not the URL path: a self-hosted object is served under
+  // a route prefix (AWTD-1286).
+  return Boolean(objectPathnameFromUrl(candidate)?.startsWith(`files/${uploaderId}/${fileId}-`))
 }
 
 export async function POST(request: NextRequest, context: RouteContextParams<{ fileId: string }>) {

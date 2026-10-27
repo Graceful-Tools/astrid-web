@@ -22,7 +22,10 @@ function runCommand(command, description, critical = true) {
     return { success: true, output };
   } catch (error) {
     const errorOutput = (error.stderr || '') + (error.stdout || '') + (error.message || '');
-    console.error(`❌ ${description} failed:`, errorOutput.substring(0, 500));
+    // A critical failure prints everything: the cause of a failed `next build`
+    // (the type error itself) comes AFTER its summary line, so the first 500
+    // characters showed "Failed to type check." and nothing else (AWTD-1286).
+    console.error(`❌ ${description} failed:`, critical ? errorOutput : errorOutput.substring(0, 500));
     if (critical) {
       process.exit(1);
     }

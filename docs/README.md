@@ -33,6 +33,7 @@ and stack versions with `npm run check:docs`.
 ### 🎨 Whitelabeling
 - **[Whitelabeling Guide](./WHITELABELING.md)** - ⭐ Deploy under a different brand, with a different set of back-end services, entirely through build-time configuration
 - **[Brand Profiles](../brands/README.md)** - Per-partner profiles and the brand-matrix tests
+- **[Self-hosting](./deployment/SELF_HOSTING.md)** - Run it on your own infrastructure with no Vercel, Neon or Upstash account: Docker image, compose stack, storage drivers, cron runner
 - **[Lanes: GitHub App and Marketplace listing](./deployment/LANES_GITHUB_MARKETPLACE.md)** - Draft registration values and listing copy for the GitHub Projects partner brand (not yet registered or published)
 
 ### 🚀 Setup & Deployment

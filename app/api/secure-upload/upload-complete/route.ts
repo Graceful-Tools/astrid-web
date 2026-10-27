@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
 import { createLogger } from '@/lib/logger'
 import { verifyBlobCallback } from "@/lib/blob-callback-signature"
-import {
-  findSecureFileByClientRequestId,
-  isUniqueConstraintError,
-} from "@/lib/secure-file-idempotency"
+import { recordDirectUpload } from "@/lib/direct-upload-completion"
 
 const log = createLogger('secure-upload.upload-complete')
 
@@ -57,51 +53,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required data' }, { status: 400 })
     }
 
-    // Parse the token payload we sent when generating the upload URL
-    const payload = JSON.parse(tokenPayload)
-    const { userId, fileId, fileName, fileType, fileSize, taskId, listId, commentId, clientRequestId } = payload
-
-    log.info({
-      fileId,
-      fileName,
-      userId,
-      blobUrl: blob.url,
-    }, '📦 [UploadComplete] Storing file metadata:')
-
-    // Idempotency: an Outbox retry of a large upload re-runs this callback with
-    // the same clientRequestId — don't create a second SecureFile record.
-    const existing = await findSecureFileByClientRequestId(
-      userId,
-      typeof clientRequestId === 'string' ? clientRequestId : null
-    )
-    if (existing) {
-      log.info({ fileId: existing.id }, '📦 [UploadComplete] Idempotent hit — file already stored')
-      return NextResponse.json({ success: true })
-    }
-
-    // Store metadata in database
-    try {
-      await prisma.secureFile.create({
-        data: {
-          id: fileId,
-          blobUrl: blob.url,
-          originalName: fileName,
-          mimeType: fileType || blob.contentType || 'application/octet-stream',
-          fileSize: fileSize || blob.size || 0,
-          uploadedBy: userId,
-          taskId: taskId || null,
-          listId: listId || null,
-          commentId: commentId || null,
-          clientRequestId: (typeof clientRequestId === 'string' ? clientRequestId : null),
-        }
-      })
-    } catch (createError) {
-      // Concurrent retry race — fine if the other one already stored it.
-      if (!isUniqueConstraintError(createError)) throw createError
-      log.info({ fileId }, '📦 [UploadComplete] Idempotent race — file already stored')
-    }
-
-    log.info({ fileId }, '✅ [UploadComplete] File metadata stored successfully:')
+    // Shared with the self-hosted upload route (AWTD-1286).
+    await recordDirectUpload({ url: blob.url, contentType: blob.contentType, size: blob.size }, tokenPayload)
 
     return NextResponse.json({ success: true })
   } catch (error) {
