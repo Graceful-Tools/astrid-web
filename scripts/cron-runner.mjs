@@ -16,11 +16,28 @@
  *
  * Run exactly one runner per deployment: two would call every job twice.
  * A job still running when it comes due again is skipped, not stacked.
+ *
+ * Each tick touches a heartbeat file; `--healthcheck` exits non-zero when it
+ * is stale, so a hung runner shows as unhealthy instead of silently stopping
+ * every scheduled job (the compose `cron` service's health check).
  */
 
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { cronJobs, cronMatches, crontabLines } from './lib/cron-schedule.mjs'
+
+const HEARTBEAT = join(tmpdir(), 'cron-runner.heartbeat')
+
+if (process.argv.includes('--healthcheck')) {
+  // Ticks are a minute apart; three missed ones is a hung runner.
+  try {
+    const age = Date.now() - Number(readFileSync(HEARTBEAT, 'utf8'))
+    process.exit(age < 3 * 60_000 ? 0 : 1)
+  } catch {
+    process.exit(1)
+  }
+}
 
 const configPath = resolve(process.env.CRON_CONFIG ?? 'vercel.json')
 const jobs = cronJobs(JSON.parse(readFileSync(configPath, 'utf8')))
@@ -84,7 +101,12 @@ async function run(job) {
   }
 }
 
+function beat() {
+  writeFileSync(HEARTBEAT, String(Date.now()))
+}
+
 function tick() {
+  beat()
   const now = new Date()
   for (const job of jobs) {
     if (cronMatches(job.cron, now)) void run(job)
@@ -94,6 +116,7 @@ function tick() {
 }
 
 log({ started: true, baseUrl, jobs: jobs.map(job => `${job.schedule} ${job.path}`) })
+beat()
 setTimeout(tick, 60_000 - (Date.now() % 60_000) + 1_000)
 
 for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => process.exit(0))
