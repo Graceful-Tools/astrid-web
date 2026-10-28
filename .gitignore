@@ -204,3 +204,6 @@ mcp/astrid-mcp-oauth-http
 
 # STORAGE_DRIVER=local default directory (lib/storage/local-object-store.ts, AWTD-1286)
 /data/
+
+# Claude Code agent worktrees: full nested checkouts, never source (AWTD-865)
+.claude/worktrees/
