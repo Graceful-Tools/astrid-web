@@ -132,3 +132,31 @@ export function tryEachKey<T>(env: EncryptionEnv, attempt: (keyHex: string) => T
   }
   throw lastError
 }
+
+export type EncryptionKeyName = 'ENCRYPTION_KEY_NEXT' | 'ENCRYPTION_KEY'
+
+/**
+ * The ring with each key labelled by the variable it came from — for the
+ * encryption census, which has to say WHICH key decrypts a value without ever
+ * saying what the key is (task AWTD-1369).
+ *
+ * Unlike encryptionKeyHexes this never throws on a bad configuration: the
+ * census exists to diagnose one. Identical keys are reported as `identical`,
+ * and a malformed key by name and length, never by value.
+ */
+export function namedEncryptionKeys(env: EncryptionEnv = fromProcessEnv()): {
+  keys: { name: EncryptionKeyName; hex: string }[]
+  invalid: { name: EncryptionKeyName; length: number }[]
+  identical: boolean
+} {
+  const keys: { name: EncryptionKeyName; hex: string }[] = []
+  const invalid: { name: EncryptionKeyName; length: number }[] = []
+  for (const name of ['ENCRYPTION_KEY_NEXT', 'ENCRYPTION_KEY'] as const) {
+    const value = clean(env[name])
+    if (!value) continue
+    if (value.length === KEY_HEX_LENGTH && HEX.test(value)) keys.push({ name, hex: value })
+    else invalid.push({ name, length: value.length })
+  }
+  const identical = keys.length === 2 && keys[0].hex === keys[1].hex
+  return { keys, invalid, identical }
+}
