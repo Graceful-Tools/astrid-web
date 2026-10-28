@@ -5,7 +5,7 @@
 import { config } from 'dotenv'
 config({ path: '.env.local' })
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
 async function main() {
   const prodDbUrl = process.env.DATABASE_URL_DIRECT_PROD
@@ -15,8 +15,7 @@ async function main() {
     process.exit(1)
   }
 
-  const prisma = new PrismaClient({
-  })
+  const prisma = createScriptPrisma()
 
   try {
     // Check if constraint exists

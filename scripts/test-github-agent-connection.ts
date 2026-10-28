@@ -6,12 +6,12 @@
 
 import { config } from 'dotenv'
 import { DEFAULT_LIST_COLOR } from '../lib/brand/colors'
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
 // Load environment variables
 config({ path: '.env.local' })
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function testGitHubAgentConnection() {
   console.log('🧪 Testing GitHub Agent Connection for Cloud Workflow...\n')

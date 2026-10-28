@@ -5,9 +5,9 @@
  * Usage: DATABASE_URL="<prod-url>" npx tsx scripts/update-list-owner.ts
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function updateListOwner() {
   try {

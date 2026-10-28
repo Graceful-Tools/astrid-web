@@ -5,10 +5,10 @@
  * Simple test to verify AI agent responds to task assignments
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { aiAgentWebhookService } from '@/lib/ai-agent-webhook-service'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function quickTest() {
   console.log('🚀 Quick AI Agent Response Test\n')

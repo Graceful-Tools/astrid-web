@@ -22,7 +22,7 @@
  * `--to` defaults to BRAND_AGENT_EMAIL_DOMAIN from the environment.
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { loadScriptEnv } from './lib/load-env'
 
 loadScriptEnv()
@@ -47,7 +47,7 @@ if (FROM === TO) {
   process.exit(0)
 }
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function main() {
   const agents = await prisma.user.findMany({

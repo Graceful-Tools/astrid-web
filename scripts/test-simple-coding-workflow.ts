@@ -1,7 +1,7 @@
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { GitHubClient } from '../lib/github-client'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function testSimpleCodingWorkflow() {
   console.log('\n🧪 Testing Simple Coding Workflow Locally\n')

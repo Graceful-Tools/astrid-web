@@ -36,8 +36,8 @@
 
 export {}
 
-import { PrismaClient } from '@prisma/client'
 import { loadScriptEnv } from './lib/load-env'
+import { createScriptPrisma } from './lib/script-prisma'
 import { encode } from 'next-auth/jwt'
 import { randomUUID } from 'crypto'
 import {
@@ -88,9 +88,7 @@ const DATASOURCE_URL = process.env.UITEST_DATABASE_URL
   ?? process.env.DATABASE_URL_PROD
   ?? process.env.DATABASE_URL
 
-const prisma = new PrismaClient({
-  datasources: DATASOURCE_URL ? { db: { url: DATASOURCE_URL } } : undefined,
-})
+const prisma = createScriptPrisma({ url: DATASOURCE_URL || undefined })
 
 /**
  * Every query here names its columns instead of going through a Prisma model.

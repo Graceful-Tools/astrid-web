@@ -1,9 +1,9 @@
 import { config } from 'dotenv'
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
 config({ path: '.env.local' })
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function main() {
   const userId = 'cmeje966q0000k1045si7zrz3'

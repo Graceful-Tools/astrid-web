@@ -7,9 +7,9 @@
  * to ensure OAuth users are properly marked as verified.
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function testVerificationLogic() {
   console.log('🧪 Testing Email Verification Logic\n')

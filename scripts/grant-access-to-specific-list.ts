@@ -4,7 +4,7 @@
  * Grant AI agent access to a specific list
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { loadScriptEnv } from './lib/load-env'
 
 loadScriptEnv()
@@ -13,8 +13,7 @@ async function grantAccessToList(listId: string, listName: string) {
   console.log(`🔧 Granting AI agent access to "${listName}"...\n`)
 
   const databaseUrl = process.env.DATABASE_URL_PROD
-  const prisma = new PrismaClient({
-  })
+  const prisma = createScriptPrisma()
 
   try {
     await prisma.$connect()

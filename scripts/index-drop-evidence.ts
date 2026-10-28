@@ -77,8 +77,8 @@ async function main() {
     process.exit(1)
   }
 
-  const { PrismaClient } = await import('@prisma/client')
-  const prisma = new PrismaClient()
+  const { createScriptPrisma } = await import('./lib/script-prisma')
+  const prisma = createScriptPrisma()
 
   try {
     const targets = findPrefixRedundantIndexes()

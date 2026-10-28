@@ -4,10 +4,10 @@
  * Tests the complete task assignment to coding agent workflow
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { DEFAULT_LIST_COLOR } from '../lib/brand/colors'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function testPhase2Workflow() {
   console.log('🧪 Testing Phase 2: Task Assignment Workflow...')
