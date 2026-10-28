@@ -17,10 +17,11 @@
 # ONLY THE DEPLOY MOVES IT. production-deployment.yml calls this after the
 # health check has confirmed production serves <sha>. Nobody commits to prod.
 #
-# It follows production, including backwards. A rollback, or a deploy
-# dispatched from another branch, is not a fast-forward — the branch still
-# moves, because a `prod` that disagrees with production is worse than none,
-# and the run gets a ::warning:: so the non-linear move is on the record.
+# It follows production forwards. The `production` environment admits only
+# `main`, so every advance is a fast-forward, and the `protect_prod` ruleset
+# (AWTD-1221) refuses anything else. The `+` below stays harmless: a forced
+# push of a fast-forward passes that rule. The non-fast-forward branch below is
+# kept so that a refused push says why, rather than failing bare.
 
 set -euo pipefail
 

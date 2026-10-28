@@ -96,11 +96,20 @@ The Vercel API answers the same question if you need it from outside the app:
 
 Once a deploy's health check passes, the workflow moves the **`prod` branch** to that commit
 and tags it `prod-<YYYYMMDD-HHMMSS>-<sha7>` (`scripts/advance-prod-branch.sh`). Only the deploy
-moves it, rollbacks included. So what is waiting to ship is a git question:
+moves it. So what is waiting to ship is a git question:
 ```bash
 git fetch origin && git log --oneline origin/prod..origin/main    # the next deploy's commits
 git diff origin/prod origin/main -- prisma/migrations/            # and its migrations
 ```
+**`prod` only moves forward, and a ruleset enforces it** (`protect_prod`, AWTD-1221: no deletion,
+no non-fast-forward push). That is safe because the workflow can no longer deploy anything but
+`main`. The `production` environment admits only `main`, so dispatching from an older tag or
+another branch never reaches the deploy job. **Rolling back means one of two things:** a revert
+commit on `main` that is then deployed (a fast-forward, so `prod` follows), or Vercel's instant
+rollback for an emergency, which leaves `prod` ahead of production until the next deploy. GitHub
+refuses the Actions integration as a bypass actor on a repo ruleset, so if a non-fast-forward
+advance is ever genuinely needed, an admin disables `protect_prod` for that run.
+
 `/api/health` is still the ground truth; `prod` lags it only if a deploy bypassed the workflow
 (`./scripts/deploy-preview.sh --production` does not move it).
 
