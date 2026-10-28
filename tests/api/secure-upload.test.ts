@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { row, rowWith } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
-import { POST } from '@/app/api/secure-upload/request-upload/route'
+import { POST } from '@/app/api/v1/secure-upload/request-upload/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
 
 // Mock Vercel Blob

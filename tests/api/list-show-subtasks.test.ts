@@ -1,28 +1,39 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
-import { PUT } from '@/app/api/lists/[id]/route'
-import { getServerSession } from 'next-auth'
+import { PUT } from '@/app/api/v1/lists/[id]/route'
+import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 
 /**
- * Task dce843a1 — per-list `showSubtasks` on the LEGACY list route.
+ * Task dce843a1 — per-list `showSubtasks` on PUT /api/v1/lists/:id.
  *
- * This route matters as much as v1 here: the web client's own
- * `handleUpdateList` PUTs the entire TaskList object to
- * `/api/lists/:id`. Without a boolean guard the web app is exactly the
- * "older client sending a whole list object" the field has to survive —
- * every unrelated settings save would rewrite the toggle.
+ * These cases were written against the legacy `/api/lists/:id`, which the web
+ * client's `handleUpdateList` PUT the entire TaskList object to; AWTD-839
+ * retired that route and they now run against v1. The guard matters just as
+ * much here: a client sending a whole list object is exactly the "older client"
+ * the field has to survive — every unrelated settings save would otherwise
+ * rewrite the toggle.
  */
 
-vi.mock('next-auth', () => ({
-  getServerSession: vi.fn(),
-}))
+vi.mock('@/lib/api-auth-middleware', () => {
+  class UnauthorizedError extends Error {
+    constructor(msg = 'Unauthorized') { super(msg); this.name = 'UnauthorizedError' }
+  }
+  class ForbiddenError extends Error {
+    constructor(msg = 'Forbidden') { super(msg); this.name = 'ForbiddenError' }
+  }
+  return {
+    authenticateAPI: vi.fn(), requireScopes: vi.fn(),
+    UnauthorizedError, ForbiddenError, getDeprecationWarning: vi.fn(() => null),
+  }
+})
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     taskList: {
       update: vi.fn(),
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
     listMember: {
       deleteMany: vi.fn(),
@@ -34,6 +45,7 @@ vi.mock('@/lib/prisma', () => ({
     },
     user: {
       findUnique: vi.fn(),
+      findMany: vi.fn(async () => []),
     },
     $transaction: vi.fn(),
   },
@@ -54,7 +66,7 @@ const existingList = {
 }
 
 function makePut(body: unknown) {
-  return new NextRequest('http://localhost/api/lists/list-123', {
+  return new NextRequest('http://localhost/api/v1/lists/list-123', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -65,12 +77,18 @@ function updateData() {
   return (vi.mocked(prisma.taskList.update) as any).mock.calls[0][0].data
 }
 
-describe('PUT /api/lists/[id] — showSubtasks', () => {
+describe('PUT /api/v1/lists/[id] — showSubtasks', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(getServerSession).mockResolvedValue({ user: mockUser } as any)
+    vi.mocked(authenticateAPI).mockResolvedValue({
+      userId: mockUser.id,
+      source: 'session',
+      scopes: ['*'],
+      isAIAgent: false,
+      user: { ...mockUser, isAIAgent: false },
+    })
     ;(prisma.$transaction as any).mockImplementation((operation: any) => operation(prisma))
-    vi.mocked(prisma.taskList.findUnique).mockResolvedValue(existingList as any)
+    vi.mocked(prisma.taskList.findFirst).mockResolvedValue(existingList as any)
     vi.mocked(prisma.taskList.update).mockResolvedValue({
       ...existingList,
       owner: mockUser,
@@ -81,16 +99,16 @@ describe('PUT /api/lists/[id] — showSubtasks', () => {
 
   it('persists an explicit false', async () => {
     const res = await PUT(makePut({ name: 'Test List', showSubtasks: false }), {
-      params: { id: 'list-123' },
-    } as any)
+      params: Promise.resolve({ id: 'list-123' }),
+    })
     expect(res.status).toBe(200)
     expect(updateData().showSubtasks).toBe(false)
   })
 
   it('persists an explicit true', async () => {
     await PUT(makePut({ name: 'Test List', showSubtasks: true }), {
-      params: { id: 'list-123' },
-    } as any)
+      params: Promise.resolve({ id: 'list-123' }),
+    })
     expect(updateData().showSubtasks).toBe(true)
   })
 
@@ -99,15 +117,15 @@ describe('PUT /api/lists/[id] — showSubtasks', () => {
     // object on every settings save, so an omitted key must mean "unchanged",
     // never "reset to default".
     await PUT(makePut({ name: 'Renamed', color: '#ff0000' }), {
-      params: { id: 'list-123' },
-    } as any)
+      params: Promise.resolve({ id: 'list-123' }),
+    })
     expect(updateData()).not.toHaveProperty('showSubtasks')
   })
 
   it('ignores a non-boolean rather than coercing it', async () => {
     await PUT(makePut({ name: 'Test List', showSubtasks: 'false' }), {
-      params: { id: 'list-123' },
-    } as any)
+      params: Promise.resolve({ id: 'list-123' }),
+    })
     expect(updateData()).not.toHaveProperty('showSubtasks')
   })
 })

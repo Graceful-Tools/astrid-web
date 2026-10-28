@@ -49,7 +49,7 @@ test.describe('Mobile board — columns rest where snap-start puts them (AWTD-13
       privacy: 'SHARED',
       listType: 'regular',
     })
-    await createJson(request, '/api/projects/from-list', { listId: domainList.id })
+    await createJson(request, '/api/v1/projects/from-list', { listId: domainList.id })
     await createJson(request, '/api/tasks', {
       title: `Centring sample ${suffix}`,
       description: '',

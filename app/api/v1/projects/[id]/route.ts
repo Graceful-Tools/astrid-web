@@ -4,7 +4,7 @@
  * DELETE /api/v1/projects/:id - Tear down a project (owner only):
  *   detach domain lists, cascade-delete project + status lists.
  *
- * Mirrors /api/projects/[id] but via OAuth + projects:delete scope.
+ * The legacy /api/projects/[id] it once mirrored was deleted (AWTD-839).
  *
  * PATCH /api/v1/projects/:id { key } - Rename the task-id key (owner only,
  *   AWTD-1024). Tasks become NEW-N; OLD-N keeps resolving as an alias.

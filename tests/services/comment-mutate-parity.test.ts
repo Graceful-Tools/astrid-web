@@ -23,6 +23,9 @@
  * handler re-derives the same four clauses by hand. It happens to agree today.
  * "Happens to agree today" is the thing this epic exists to stop.
  *
+ * The legacy `/api/comments/:id` route described above was deleted for having
+ * no traffic (AWTD-839), so v1 and MCP are the surfaces left to agree.
+ *
  * As with create, these assert the GUARANTEE rather than the mechanism: an
  * edit or a delete means the same thing whichever surface performs it.
  */
@@ -155,15 +158,6 @@ beforeEach(() => {
 
 const updateSurfaces = [
   {
-    name: 'legacy PUT /api/comments/:id',
-    run: async () => {
-      const { PUT } = await import('@/app/api/comments/[id]/route')
-      return PUT(jsonRequest('http://localhost/api/comments/comment-1', 'PUT', { content: 'edited' }), {
-        params: Promise.resolve({ id: 'comment-1' }),
-      } as never)
-    },
-  },
-  {
     name: 'v1 PUT /api/v1/comments/:id',
     run: async () => {
       const { PUT } = await import('@/app/api/v1/comments/[id]/route')
@@ -175,15 +169,6 @@ const updateSurfaces = [
 ]
 
 const deleteSurfaces = [
-  {
-    name: 'legacy DELETE /api/comments/:id',
-    run: async () => {
-      const { DELETE } = await import('@/app/api/comments/[id]/route')
-      return DELETE(jsonRequest('http://localhost/api/comments/comment-1', 'DELETE'), {
-        params: Promise.resolve({ id: 'comment-1' }),
-      } as never)
-    },
-  },
   {
     name: 'v1 DELETE /api/v1/comments/:id',
     run: async () => {

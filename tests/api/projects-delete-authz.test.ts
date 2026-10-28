@@ -1,5 +1,5 @@
 /**
- * DELETE /api/projects/:id — authorization (AWTD-1341).
+ * DELETE /api/v1/projects/:id — authorization (AWTD-1341).
  *
  * Only the project's owner may delete it; an admin member or a plain member
  * is refused before anything is touched. When the owner deletes, the domain
@@ -9,14 +9,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
-const getUnifiedSession = vi.hoisted(() => vi.fn())
+const authenticateAPI = vi.hoisted(() => vi.fn())
 const projectFindUnique = vi.hoisted(() => vi.fn())
 const tx = vi.hoisted(() => ({
   taskList: { updateMany: vi.fn(), deleteMany: vi.fn(), delete: vi.fn() },
   project: { delete: vi.fn() },
 }))
 
-vi.mock('@/lib/session-utils', () => ({ getUnifiedSession }))
+vi.mock('@/lib/api-auth-middleware', () => {
+  class UnauthorizedError extends Error {
+    constructor(msg = 'Unauthorized') { super(msg); this.name = 'UnauthorizedError' }
+  }
+  class ForbiddenError extends Error {
+    constructor(msg = 'Forbidden') { super(msg); this.name = 'ForbiddenError' }
+  }
+  return {
+    authenticateAPI, requireScopes: vi.fn(),
+    UnauthorizedError, ForbiddenError, getDeprecationWarning: vi.fn(() => null),
+  }
+})
 vi.mock('@/lib/redis', () => ({
   RedisCache: { invalidate: { userListsAllVersions: vi.fn().mockResolvedValue(undefined) } },
 }))
@@ -34,7 +45,8 @@ vi.mock('@/lib/projects-service', async importOriginal => {
   return { ...actual, deleteProjectAndDetachLists: detachSpy.fn }
 })
 
-import { DELETE } from '@/app/api/projects/[id]/route'
+import { DELETE } from '@/app/api/v1/projects/[id]/route'
+import { UnauthorizedError } from '@/lib/api-auth-middleware'
 
 const PROJECT = {
   id: 'project-1',
@@ -51,9 +63,17 @@ const PROJECT = {
 }
 
 const ctx = { params: Promise.resolve({ id: 'project-1' }) } as never
-const del = () => DELETE(new NextRequest('http://localhost/api/projects/project-1', { method: 'DELETE' }), ctx)
+const del = () => DELETE(new NextRequest('http://localhost/api/v1/projects/project-1', { method: 'DELETE' }), ctx)
 const signIn = (id: string | null) =>
-  getUnifiedSession.mockResolvedValue(id ? { user: { id } } : null)
+  id
+    ? authenticateAPI.mockResolvedValue({
+        userId: id,
+        source: 'session',
+        scopes: ['*'],
+        isAIAgent: false,
+        user: { id, email: `${id}@example.com`, name: null, isAIAgent: false },
+      })
+    : authenticateAPI.mockRejectedValue(new UnauthorizedError())
 
 function expectUntouched() {
   expect(detachSpy.fn).not.toHaveBeenCalled()
@@ -66,7 +86,7 @@ beforeEach(() => {
   projectFindUnique.mockResolvedValue(PROJECT)
 })
 
-describe('DELETE /api/projects/:id authorization (AWTD-1341)', () => {
+describe('DELETE /api/v1/projects/:id authorization (AWTD-1341)', () => {
   it('AWTD-1341: refuses a signed-out caller with 401', async () => {
     signIn(null)
     expect((await del()).status).toBe(401)
@@ -103,6 +123,10 @@ describe('DELETE /api/projects/:id authorization (AWTD-1341)', () => {
     expect(tx.taskList.deleteMany).not.toHaveBeenCalled()
     expect(tx.taskList.delete).not.toHaveBeenCalled()
     expect(tx.project.delete).toHaveBeenCalledWith({ where: { id: 'project-1' } })
-    expect(await res.json()).toEqual({ success: true, detachedListIds: ['list-a', 'list-b'] })
+    expect(await res.json()).toEqual({
+      success: true,
+      detachedListIds: ['list-a', 'list-b'],
+      meta: { apiVersion: 'v1', authSource: 'session' },
+    })
   })
 })

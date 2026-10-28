@@ -273,7 +273,7 @@ personal-list membership stay local. This is how D2 coexists with D1.
 | Three boolean flags: `authGoogle`, `authApple`, `authPasskey`, each **default on** | `lib/brand/capabilities.ts` |
 | NextAuth registers **only Google**. Apple exists only as mobile routes; web has no Apple button. | `lib/auth-config.ts:148–161` |
 | Five copies of "find user → link → adopt → create → mint session": the web `signIn` callback, `/api/auth/{apple,google}`, `/api/v1/auth/{apple,google}`. They have drifted: Google never looks up by Google user id first, Apple does. | as cited |
-| Two session formats: JWT for web, passkey and desktop; DB rows with a host-only, non-`__Secure-` cookie for mobile Apple and Google | `app/api/auth/apple/route.ts:175–212` |
+| Two session formats: JWT for web, passkey and desktop; DB rows with a host-only, non-`__Secure-` cookie for mobile Apple and Google | `app/api/v1/auth/apple/route.ts` (the legacy `app/api/auth/apple` was deleted, AWTD-839) |
 | The boot check counts flags, not credentials | `instrumentation.ts:25`, `lib/env.ts:90` |
 | Clients learn providers from `GET /api/v1/capabilities` `auth: {google, apple, passkey}`. iOS treats a missing key as "offered". | `app/api/v1/capabilities/route.ts:34–38`; `ServerCapabilities.swift:29–31` |
 | Hard-coded Astrid identities: Google client id, Apple bundle ids, astrid.cc preview bounce | `lib/auth/google-identity.ts:21`, `lib/auth/apple-identity.ts:37`, `lib/auth-host.ts:41` |

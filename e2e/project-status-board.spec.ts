@@ -41,7 +41,7 @@ test.describe('Project status board', () => {
       listType: 'regular',
     })
 
-    await createJson<{ project: { id: string }; list: ApiList }>(request, '/api/projects/from-list', {
+    await createJson<{ project: { id: string }; list: ApiList }>(request, '/api/v1/projects/from-list', {
       listId: domainList.id,
     })
 

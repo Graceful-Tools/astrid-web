@@ -1,11 +1,25 @@
 import { describe, it, expect, beforeEach, vi } from "vitest"
 import { NextRequest } from "next/server"
-import { POST } from "@/app/api/account/delete/route"
-import { getServerSession } from "next-auth"
+import { POST } from "@/app/api/v1/users/me/delete/route"
+import { authenticateAPI, UnauthorizedError } from "@/lib/api-auth-middleware"
 import { prisma } from "@/lib/prisma"
 import { del } from "@vercel/blob"
 
-vi.mock("next-auth")
+vi.mock("@/lib/api-auth-middleware", () => {
+  class UnauthorizedError extends Error {
+    constructor(msg = "Unauthorized") { super(msg); this.name = "UnauthorizedError" }
+  }
+  class ForbiddenError extends Error {
+    constructor(msg = "Forbidden") { super(msg); this.name = "ForbiddenError" }
+  }
+  return {
+    authenticateAPI: vi.fn(),
+    requireScopes: vi.fn(),
+    UnauthorizedError,
+    ForbiddenError,
+    getDeprecationWarning: vi.fn(() => null),
+  }
+})
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: {
@@ -23,10 +37,11 @@ vi.mock("@vercel/blob", () => ({
 
 describe("Account Delete API", () => {
   const mockSession = {
-    user: {
-      id: "user-123",
-      email: "test@example.com"
-    }
+    userId: "user-123",
+    source: "session" as const,
+    scopes: ["*"],
+    isAIAgent: false,
+    user: { id: "user-123", email: "test@example.com", name: null, isAIAgent: false }
   }
 
   const mockOAuthUser = {
@@ -63,9 +78,9 @@ describe("Account Delete API", () => {
 
   describe("Authentication", () => {
     it("should require authentication", async () => {
-      vi.mocked(getServerSession).mockResolvedValue(null)
+      vi.mocked(authenticateAPI).mockRejectedValue(new UnauthorizedError())
 
-      const request = new NextRequest("http://localhost:3000/api/account/delete", {
+      const request = new NextRequest("http://localhost:3000/api/v1/users/me/delete", {
         method: "POST",
         body: JSON.stringify({
           confirmationText: "DELETE MY ACCOUNT"
@@ -75,16 +90,16 @@ describe("Account Delete API", () => {
       const response = await POST(request)
 
       expect(response.status).toBe(401)
-      expect(await response.text()).toBe("Unauthorized")
+      expect((await response.json()).error).toBe("Unauthorized")
     })
   })
 
   describe("Confirmation Validation", () => {
     it("should reject invalid confirmation text", async () => {
-      vi.mocked(getServerSession).mockResolvedValue(mockSession as any)
+      vi.mocked(authenticateAPI).mockResolvedValue(mockSession as any)
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockOAuthUser as any)
 
-      const request = new NextRequest("http://localhost:3000/api/account/delete", {
+      const request = new NextRequest("http://localhost:3000/api/v1/users/me/delete", {
         method: "POST",
         body: JSON.stringify({
           confirmationText: "delete my account"
@@ -99,11 +114,11 @@ describe("Account Delete API", () => {
     })
 
     it("should accept exact confirmation text for OAuth users", async () => {
-      vi.mocked(getServerSession).mockResolvedValue(mockSession as any)
+      vi.mocked(authenticateAPI).mockResolvedValue(mockSession as any)
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockOAuthUser as any)
       vi.mocked(prisma.user.delete).mockResolvedValue({} as any)
 
-      const request = new NextRequest("http://localhost:3000/api/account/delete", {
+      const request = new NextRequest("http://localhost:3000/api/v1/users/me/delete", {
         method: "POST",
         body: JSON.stringify({
           confirmationText: "DELETE MY ACCOUNT"
@@ -120,11 +135,11 @@ describe("Account Delete API", () => {
 
   describe("Auth method requirement", () => {
     it("should allow deletion for OAuth users", async () => {
-      vi.mocked(getServerSession).mockResolvedValue(mockSession as any)
+      vi.mocked(authenticateAPI).mockResolvedValue(mockSession as any)
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockOAuthUser as any)
       vi.mocked(prisma.user.delete).mockResolvedValue({} as any)
 
-      const request = new NextRequest("http://localhost:3000/api/account/delete", {
+      const request = new NextRequest("http://localhost:3000/api/v1/users/me/delete", {
         method: "POST",
         body: JSON.stringify({
           confirmationText: "DELETE MY ACCOUNT"
@@ -137,11 +152,11 @@ describe("Account Delete API", () => {
     })
 
     it("should allow deletion for passkey-only users", async () => {
-      vi.mocked(getServerSession).mockResolvedValue(mockSession as any)
+      vi.mocked(authenticateAPI).mockResolvedValue(mockSession as any)
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockPasskeyUser as any)
       vi.mocked(prisma.user.delete).mockResolvedValue({} as any)
 
-      const request = new NextRequest("http://localhost:3000/api/account/delete", {
+      const request = new NextRequest("http://localhost:3000/api/v1/users/me/delete", {
         method: "POST",
         body: JSON.stringify({
           confirmationText: "DELETE MY ACCOUNT"
@@ -154,14 +169,14 @@ describe("Account Delete API", () => {
     })
 
     it("should reject users with no auth method", async () => {
-      vi.mocked(getServerSession).mockResolvedValue(mockSession as any)
+      vi.mocked(authenticateAPI).mockResolvedValue(mockSession as any)
       vi.mocked(prisma.user.findUnique).mockResolvedValue({
         ...mockOAuthUser,
         accounts: [],
         authenticators: []
       } as any)
 
-      const request = new NextRequest("http://localhost:3000/api/account/delete", {
+      const request = new NextRequest("http://localhost:3000/api/v1/users/me/delete", {
         method: "POST",
         body: JSON.stringify({
           confirmationText: "DELETE MY ACCOUNT"
@@ -178,12 +193,12 @@ describe("Account Delete API", () => {
 
   describe("File Cleanup", () => {
     it("should delete user files from blob storage", async () => {
-      vi.mocked(getServerSession).mockResolvedValue(mockSession as any)
+      vi.mocked(authenticateAPI).mockResolvedValue(mockSession as any)
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUserWithFiles as any)
       vi.mocked(prisma.user.delete).mockResolvedValue({} as any)
       vi.mocked(del).mockResolvedValue(undefined as never)
 
-      const request = new NextRequest("http://localhost:3000/api/account/delete", {
+      const request = new NextRequest("http://localhost:3000/api/v1/users/me/delete", {
         method: "POST",
         body: JSON.stringify({
           confirmationText: "DELETE MY ACCOUNT"
@@ -198,12 +213,12 @@ describe("Account Delete API", () => {
     })
 
     it("should continue deletion even if file cleanup fails", async () => {
-      vi.mocked(getServerSession).mockResolvedValue(mockSession as any)
+      vi.mocked(authenticateAPI).mockResolvedValue(mockSession as any)
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockUserWithFiles as any)
       vi.mocked(del).mockRejectedValue(new Error("File deletion failed") as never)
       vi.mocked(prisma.user.delete).mockResolvedValue({} as any)
 
-      const request = new NextRequest("http://localhost:3000/api/account/delete", {
+      const request = new NextRequest("http://localhost:3000/api/v1/users/me/delete", {
         method: "POST",
         body: JSON.stringify({
           confirmationText: "DELETE MY ACCOUNT"
@@ -219,11 +234,11 @@ describe("Account Delete API", () => {
 
   describe("Account Deletion", () => {
     it("should delete user from database", async () => {
-      vi.mocked(getServerSession).mockResolvedValue(mockSession as any)
+      vi.mocked(authenticateAPI).mockResolvedValue(mockSession as any)
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockOAuthUser as any)
       vi.mocked(prisma.user.delete).mockResolvedValue({} as any)
 
-      const request = new NextRequest("http://localhost:3000/api/account/delete", {
+      const request = new NextRequest("http://localhost:3000/api/v1/users/me/delete", {
         method: "POST",
         body: JSON.stringify({
           confirmationText: "DELETE MY ACCOUNT"
@@ -240,11 +255,11 @@ describe("Account Delete API", () => {
 
   describe("Error Handling", () => {
     it("should handle database errors", async () => {
-      vi.mocked(getServerSession).mockResolvedValue(mockSession as any)
+      vi.mocked(authenticateAPI).mockResolvedValue(mockSession as any)
       vi.mocked(prisma.user.findUnique).mockResolvedValue(mockOAuthUser as any)
       vi.mocked(prisma.user.delete).mockRejectedValue(new Error("Database error"))
 
-      const request = new NextRequest("http://localhost:3000/api/account/delete", {
+      const request = new NextRequest("http://localhost:3000/api/v1/users/me/delete", {
         method: "POST",
         body: JSON.stringify({
           confirmationText: "DELETE MY ACCOUNT"

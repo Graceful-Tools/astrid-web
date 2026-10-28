@@ -94,8 +94,8 @@ describe('no secure surface keeps its own private allowlist (task c09f3eb1)', ()
   // Source-level, because the point is that these four files agree — which is
   // a property of the codebase rather than of any single call.
   const SURFACES = [
-    'app/api/secure-upload/get-upload-url/route.ts',
-    'app/api/secure-upload/request-upload/route.ts',
+    'app/api/v1/secure-upload/get-upload-url/route.ts',
+    'app/api/v1/secure-upload/request-upload/route.ts',
     'lib/secure-storage.ts',
   ]
 
