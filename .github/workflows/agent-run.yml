@@ -73,6 +73,16 @@ jobs:
       ASTRID_OAUTH_CLIENT_SECRET: ${{ secrets.ASTRID_OAUTH_CLIENT_SECRET }}
       ASTRID_FIXALL_HARNESS: ${{ (inputs.harness || 'claude-code') }}
       ASTRID_OAUTH_LIST_ID: ${{ vars.ASTRID_WEB_LIST_ID || 'a623f322-4c3c-49b5-8a94-d2d9f00c82ba' }}
+      # The job's own disposable Postgres (services.postgres), the same wiring as
+      # e2e-tests.yml's authenticated-critical job. Agents reach it through npm
+      # scripts; the run never holds a production or staging database URL.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/astrid_test
+      DATABASE_URL_DIRECT: postgresql://postgres:postgres@localhost:5432/astrid_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/astrid_test
+      NEXTAUTH_SECRET: test-secret-at-least-32-characters-long-for-ci
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_AUTH_PUBLIC_URL: http://localhost:3000
+      NEXT_PUBLIC_BASE_URL: http://localhost:3000
       ASTRID_FIXALL_CLAIMS_FILE: ${{ github.workspace }}/.agent-output/claims.txt
       # docs/FIXALL_WORKFLOW.md → On an ephemeral runner: the checkout is this
       # job's alone (no lock), production is out of reach (prod questions are
@@ -172,6 +182,16 @@ jobs:
             const server={command:"node",args:[process.cwd()+"/mcp/astrid-mcp-launch.js"]};
             fs.writeFileSync(process.env.RUNNER_TEMP+"/astrid-mcp.json",JSON.stringify({mcpServers:{astrid:server}}));
           '
+
+      # Signed-in e2e work needs a migrated database and a browser before the agent
+      # starts: the agent's sandbox allows npm scripts, not pg_isready or
+      # `npx playwright install` (AWTD-1405 was handed back for exactly that).
+      - name: Prepare the local stack (migrated Postgres, Chromium)
+        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
+        run: |
+          npm run db:generate
+          npx prisma migrate deploy
+          npx playwright install --with-deps chromium
 
       - name: Run Claude Code
         id: claude
