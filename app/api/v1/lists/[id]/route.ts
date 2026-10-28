@@ -33,6 +33,7 @@ import {
   ListImageClaimError,
   updateListWithImageOwnership,
 } from "@/lib/images/update-list-image"
+import { afterListUpdated, validateListUpdate } from "@/services/list-update.service"
 
 const log = createLogger('api.v1.lists.id')
 
@@ -168,6 +169,11 @@ export const PUT = withAuth<RouteContext>(
 
     const isOwnerOrAdmin = canUserManageList({ id: auth.userId }, existingList as never)
 
+    const invalid = isOwnerOrAdmin ? validateListUpdate(existingList, body) : null
+    if (invalid) {
+      return NextResponse.json({ error: invalid }, { status: 400 })
+    }
+
     const updateData: any = {}
 
     if (isOwnerOrAdmin) {
@@ -286,6 +292,14 @@ export const PUT = withAuth<RouteContext>(
     // before and after a move (board sub-task #3) — must stop reading a cached
     // list set that predates the write (AWTD-1319).
     await invalidateListAudience(audienceForList(existingList), [existingList.projectId, updateData.projectId])
+
+    // Going public unassigns the list's tasks; members hear list_updated (AWTD-1401).
+    await afterListUpdated({
+      before: existingList,
+      list,
+      sharedFieldsChanged: Object.keys(updateData).length > 0,
+      actor: { id: auth.userId, name: auth.user?.name },
+    })
 
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.LIST_EDITED, { listId: id })
 
