@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     // Authorize against the board the status is being added to, not merely
     // against being signed in: projectId arrives from the client. Mirrors the
-    // owner check in app/api/projects/[id]/route.ts.
+    // owner check in app/api/v1/projects/[id]/route.ts.
     const project = await prisma.project.findUnique({
       where: { id: projectId },
       select: { ownerId: true },

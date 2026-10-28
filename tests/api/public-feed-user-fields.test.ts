@@ -16,7 +16,6 @@ import { describe, it, expect } from 'vitest'
 import fs from 'fs'
 
 const ROUTES = [
-  'app/api/public-tasks/route.ts',
   'app/api/v1/public/tasks/route.ts',
 ]
 

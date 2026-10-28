@@ -5,7 +5,7 @@
  * implementations)" — is this file. Five surfaces created comments and they did
  * not agree about what creating a comment MEANS:
  *
- *   legacy app/api/tasks/[id]/comments        idempotency ✅  side effects ✅
+ *   legacy app/api/tasks/[id]/comments        idempotency ✅  side effects ✅  (deleted, AWTD-839)
  *   v1     app/api/v1/tasks/[id]/comments     idempotency ✅  side effects ✅
  *   MCP    mcp/handlers/comments.ts (stdio)   idempotency ❌  side effects ✅
  *   agent  app/api/v1/agent/tasks/[id]/...    idempotency ❌  side effects ❌
@@ -183,15 +183,6 @@ beforeEach(() => {
  * same for all of them, which is the entire point of a parity test.
  */
 const surfaces: Array<{ name: string; post: () => Promise<unknown> }> = [
-  {
-    name: 'legacy app/api/tasks/[id]/comments',
-    post: async () => {
-      const { POST } = await import('@/app/api/tasks/[id]/comments/route')
-      return POST(request('http://localhost:3000/api/tasks/task-1/comments'), {
-        params: Promise.resolve({ id: 'task-1' }),
-      } as never)
-    },
-  },
   {
     name: 'v1 app/api/v1/tasks/[id]/comments',
     post: async () => {

@@ -35,7 +35,7 @@ vi.mock('@/lib/secure-file-idempotency', () => ({
   isUniqueConstraintError: () => false,
 }))
 
-import { POST as getUploadUrl } from '@/app/api/secure-upload/get-upload-url/route'
+import { POST as getUploadUrl } from '@/app/api/v1/secure-upload/get-upload-url/route'
 import { POST as replaceUploadUrl } from '@/app/api/secure-files/[fileId]/upload-url/route'
 import { POST as confirmUpload } from '@/app/api/secure-files/[fileId]/confirm-upload/route'
 import { PUT as putUpload } from '@/app/api/v1/storage/uploads/[token]/route'

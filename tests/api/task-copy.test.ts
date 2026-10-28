@@ -1,8 +1,24 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { row, rowWith } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
-import { POST } from '@/app/api/tasks/[id]/copy/route'
-import { mockPrisma, mockGetServerSession } from '../setup'
+import { POST } from '@/app/api/v1/tasks/[id]/copy/route'
+import { authenticateAPI, UnauthorizedError } from '@/lib/api-auth-middleware'
+import { mockPrisma } from '../setup'
+
+vi.mock('@/lib/api-auth-middleware', () => {
+  class UnauthorizedError extends Error {
+    constructor(msg = 'Unauthorized') { super(msg); this.name = 'UnauthorizedError' }
+  }
+  class ForbiddenError extends Error {
+    constructor(msg = 'Forbidden') { super(msg); this.name = 'ForbiddenError' }
+  }
+  return {
+    authenticateAPI: vi.fn(), requireScopes: vi.fn(),
+    UnauthorizedError, ForbiddenError, getDeprecationWarning: vi.fn(() => null),
+  }
+})
+
+const mockAuth = vi.mocked(authenticateAPI)
 
 // The copy is created through the bulk path (AWTD-1124), whose own side
 // effects are tests/services/task-bulk-create.test.ts.
@@ -11,7 +27,7 @@ vi.mock('@/services/task-bulk-create', () => ({ createTasksInBulk }))
 
 // Mock NextRequest
 const createMockRequest = (data?: unknown) => {
-  const request = new NextRequest('http://localhost:3000/api/tasks/test-task-id/copy', {
+  const request = new NextRequest('http://localhost:3000/api/v1/tasks/test-task-id/copy', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data ?? {}),
@@ -27,6 +43,13 @@ const createMockContext = (id: string) => ({
 describe('Task Copy API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockAuth.mockResolvedValue({
+      userId: 'test-user-id',
+      source: 'session',
+      scopes: ['*'],
+      isAIAgent: false,
+      user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com', isAIAgent: false },
+    })
     // Mock user exists in database
     mockPrisma.user.findUnique.mockResolvedValue(row({
       id: 'test-user-id',
@@ -47,7 +70,7 @@ describe('Task Copy API', () => {
     }))
   })
 
-  describe('POST /api/tasks/[id]/copy', () => {
+  describe('POST /api/v1/tasks/[id]/copy', () => {
     it('should copy task with complete relations', async () => {
       const originalTask = {
         id: 'original-task-id',
@@ -130,7 +153,7 @@ describe('Task Copy API', () => {
     })
 
     it('should return 401 for unauthenticated user', async () => {
-      mockGetServerSession.mockResolvedValueOnce(null)
+      mockAuth.mockRejectedValueOnce(new UnauthorizedError())
 
       const request = createMockRequest({})
       const context = createMockContext('original-task-id')
@@ -138,7 +161,7 @@ describe('Task Copy API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(401)
-      expect(data.error).toBe('Authentication required')
+      expect(data.error).toBe('Unauthorized')
     })
 
     it('should return 403 when user does not have access to target list', async () => {

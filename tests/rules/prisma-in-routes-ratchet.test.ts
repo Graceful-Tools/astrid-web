@@ -43,7 +43,7 @@ const ROOT = process.cwd()
 // lib/github/installations instead of Prisma.
 // 138 → 137: AWTD-1113 — /api/webhooks/github-issues nudges through
 // lib/github/webhooks/issues, shared with the App webhook.
-const CEILING = 132 // 133 → 132: upload-complete records through lib/direct-upload-completion.ts (AWTD-1286). 134 → 133: /api/mcp/tokens deleted (AWTD-1335). 136 → 134: /api/tasks/[id] and /api/upload deleted, the census having cleared them (AWTD-839)
+const CEILING = 111 // 132 → 111: 38 quiet legacy routes deleted on 60 days of census silence; four more moved into their v1 mount (AWTD-839). 133 → 132: upload-complete records through lib/direct-upload-completion.ts (AWTD-1286). 134 → 133: /api/mcp/tokens deleted (AWTD-1335). 136 → 134: /api/tasks/[id] and /api/upload deleted, the census having cleared them (AWTD-839)
 
 function routeFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {

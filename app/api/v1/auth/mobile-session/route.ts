@@ -4,13 +4,19 @@
  * Validates the iOS session cookie. Tries the JWT (NextAuth JWT strategy —
  * every sign-in path issues one) first, then falls back to the database
  * session that Apple/Google mobile sign-in minted before AWTD-1104, until
- * those expire. Mirrors GET /api/auth/mobile-session.
+ * those expire.
+ *
+ * Rate limited per IP like every unauthenticated auth route (task c2fbe8e4).
+ * The legacy GET /api/auth/mobile-session carried the limiter and this route,
+ * the one iOS actually calls, did not; the gap surfaced when the legacy route
+ * was deleted (AWTD-839).
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { decode } from 'next-auth/jwt'
 import { createLogger } from '@/lib/logger'
+import { sessionRateLimiter, withRateLimitHandlerAsync } from '@/lib/rate-limiter'
 import {
   shouldRenewSession,
   renewSessionToken,
@@ -21,7 +27,7 @@ const log = createLogger('v1.auth.mobile-session')
 
 const META = { apiVersion: 'v1' as const, authSource: 'cookie' }
 
-export async function GET(request: NextRequest) {
+async function mobileSessionHandler(request: NextRequest) {
   try {
     const cookies = request.cookies
     const sessionCookie =
@@ -134,3 +140,5 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Session validation failed' }, { status: 500 })
   }
 }
+
+export const GET = withRateLimitHandlerAsync(mobileSessionHandler, sessionRateLimiter)

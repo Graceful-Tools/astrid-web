@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import { DELETE } from '@/app/api/comments/[id]/route'
-import { mockPrisma, mockGetServerSession } from '../setup'
+import { DELETE } from '@/app/api/v1/comments/[id]/route'
+import { authenticateAPI, UnauthorizedError } from '@/lib/api-auth-middleware'
+import { mockPrisma } from '../setup'
 
 // Mock NextRequest for DELETE requests
 const createMockDeleteRequest = () => {
-  const request = new NextRequest('http://localhost:3000/api/comments/test-comment-id', {
+  const request = new NextRequest('http://localhost:3000/api/v1/comments/test-comment-id', {
     method: 'DELETE',
   })
   return request
@@ -16,15 +17,24 @@ vi.mock('@/lib/sse-utils', () => ({
   broadcastToUsers: vi.fn(),
 }))
 
-// Mock next-auth
-vi.mock('next-auth', () => ({
-  getServerSession: vi.fn(),
-}))
+// Mock v1 authentication
+vi.mock('@/lib/api-auth-middleware', () => {
+  class UnauthorizedError extends Error {
+    constructor(msg = 'Unauthorized') { super(msg); this.name = 'UnauthorizedError' }
+  }
+  class ForbiddenError extends Error {
+    constructor(msg = 'Forbidden') { super(msg); this.name = 'ForbiddenError' }
+  }
+  return {
+    authenticateAPI: vi.fn(),
+    requireScopes: vi.fn(),
+    UnauthorizedError,
+    ForbiddenError,
+    getDeprecationWarning: vi.fn(() => null),
+  }
+})
 
-// Mock auth config
-vi.mock('@/lib/auth-config', () => ({
-  authConfig: {},
-}))
+const mockAuth = vi.mocked(authenticateAPI)
 
 describe('Comment Deletion API', () => {
   const mockComment = {
@@ -91,16 +101,13 @@ describe('Comment Deletion API', () => {
     vi.clearAllMocks()
 
     // Mock authenticated session by default
-    const { getServerSession } = await import('next-auth')
-    const mockGetServerSession = vi.mocked(getServerSession)
-    mockGetServerSession.mockResolvedValue({
-      user: {
-        id: 'test-user-id',
-        name: 'Test User',
-        email: 'test@example.com',
-        image: 'test-image-url',
-      }
-    } as any)
+    mockAuth.mockResolvedValue({
+      userId: 'test-user-id',
+      source: 'session',
+      scopes: ['*'],
+      isAIAgent: false,
+      user: { id: 'test-user-id', name: 'Test User', email: 'test@example.com', isAIAgent: false },
+    })
 
     // Mock user exists in database
     mockPrisma.user.findUnique.mockResolvedValue({
@@ -114,7 +121,7 @@ describe('Comment Deletion API', () => {
     })
   })
 
-  describe('DELETE /api/comments/[id]', () => {
+  describe('DELETE /api/v1/comments/[id]', () => {
     it('should successfully delete comment when user is the author', async () => {
       // Setup
       mockPrisma.comment.findUnique.mockResolvedValue(mockComment)
@@ -130,22 +137,12 @@ describe('Comment Deletion API', () => {
       // Verify
       expect(response.status).toBe(200)
       expect(result.success).toBe(true)
-      expect(mockPrisma.comment.findUnique).toHaveBeenCalledWith({
+      // v1 selects narrower author/list fields than the legacy route's `include`;
+      // what matters is that the comment is looked up by its id with its task.
+      expect(mockPrisma.comment.findUnique).toHaveBeenCalledWith(expect.objectContaining({
         where: { id: 'test-comment-id' },
-        include: {
-          author: true,
-          task: {
-            include: {
-              lists: {
-                include: {
-                  owner: true,
-                  listMembers: true,
-                },
-              },
-            },
-          },
-        },
-      })
+        include: expect.objectContaining({ task: expect.anything() }),
+      }))
       expect(mockPrisma.comment.delete).toHaveBeenCalledWith({
         where: { id: 'test-comment-id' }
       })
@@ -236,10 +233,8 @@ describe('Comment Deletion API', () => {
     })
 
     it('should return 401 when user is not authenticated', async () => {
-      // Setup - mock getServerSession to return null (no session)
-      const { getServerSession } = await import('next-auth')
-      const mockGetServerSession = vi.mocked(getServerSession)
-      mockGetServerSession.mockResolvedValueOnce(null)
+      // Setup - no credential authenticates
+      mockAuth.mockRejectedValueOnce(new UnauthorizedError())
 
       const request = createMockDeleteRequest()
       const params = Promise.resolve({ id: 'test-comment-id' })

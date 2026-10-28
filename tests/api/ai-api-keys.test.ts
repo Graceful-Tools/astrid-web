@@ -1,8 +1,35 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { row, rowWith } from '../fixtures/prisma-rows'
-import { GET, PUT, DELETE } from '@/app/api/user/ai-api-keys/route'
-import { POST } from '@/app/api/user/ai-api-keys/test/route'
-import { mockPrisma, mockGetServerSession } from '../setup'
+import { GET, PUT, DELETE } from '@/app/api/v1/users/me/ai-credentials/route'
+import { POST } from '@/app/api/v1/users/me/ai-credentials/test/route'
+import { authenticateAPI, UnauthorizedError } from '@/lib/api-auth-middleware'
+import { mockPrisma } from '../setup'
+
+vi.mock('@/lib/api-auth-middleware', () => {
+  class UnauthorizedError extends Error {
+    constructor(msg = 'Unauthorized') { super(msg); this.name = 'UnauthorizedError' }
+  }
+  class ForbiddenError extends Error {
+    constructor(msg = 'Forbidden') { super(msg); this.name = 'ForbiddenError' }
+  }
+  return {
+    authenticateAPI: vi.fn(),
+    requireScopes: vi.fn(),
+    UnauthorizedError,
+    ForbiddenError,
+    getDeprecationWarning: vi.fn(() => null),
+  }
+})
+
+const mockAuth = vi.mocked(authenticateAPI)
+
+const authedUser = {
+  userId: 'test-user-id',
+  source: 'session' as const,
+  scopes: ['*'],
+  isAIAgent: false,
+  user: { id: 'test-user-id', email: 'test@example.com', name: 'Test User', isAIAgent: false },
+}
 
 // Mock rate limiter
 vi.mock('@/lib/rate-limiter', () => ({
@@ -49,14 +76,12 @@ describe('AI API Keys API', () => {
     Object.values(mockPrisma.user).forEach((mock: any) => mock.mockReset())
 
     // Mock authenticated session
-    mockGetServerSession.mockResolvedValue(row({
-      user: { id: 'test-user-id', email: 'test@example.com' }
-    }))
+    mockAuth.mockResolvedValue(authedUser)
   })
 
-  describe('GET /api/user/ai-api-keys', () => {
+  describe('GET /api/v1/users/me/ai-credentials', () => {
     it('should return 401 for unauthenticated user', async () => {
-      mockGetServerSession.mockResolvedValueOnce(null)
+      mockAuth.mockRejectedValueOnce(new UnauthorizedError())
 
       const response = await GET(createMockRequest())
       const data = await response.json()
@@ -102,9 +127,9 @@ describe('AI API Keys API', () => {
     })
   })
 
-  describe('PUT /api/user/ai-api-keys', () => {
+  describe('PUT /api/v1/users/me/ai-credentials', () => {
     it('should return 401 for unauthenticated user', async () => {
-      mockGetServerSession.mockResolvedValueOnce(null)
+      mockAuth.mockRejectedValueOnce(new UnauthorizedError())
 
       const request = createMockRequest({ serviceId: 'claude', apiKey: 'sk-ant-test' })
       const response = await PUT(request)
@@ -222,9 +247,9 @@ describe('AI API Keys API', () => {
     })
   })
 
-  describe('DELETE /api/user/ai-api-keys', () => {
+  describe('DELETE /api/v1/users/me/ai-credentials', () => {
     it('should return 401 for unauthenticated user', async () => {
-      mockGetServerSession.mockResolvedValueOnce(null)
+      mockAuth.mockRejectedValueOnce(new UnauthorizedError())
 
       const request = createMockRequest({ serviceId: 'claude' })
       const response = await DELETE(request)
@@ -295,9 +320,9 @@ describe('AI API Keys API', () => {
     })
   })
 
-  describe('POST /api/user/ai-api-keys/test', () => {
+  describe('POST /api/v1/users/me/ai-credentials/test', () => {
     it('should return 401 for unauthenticated user', async () => {
-      mockGetServerSession.mockResolvedValueOnce(null)
+      mockAuth.mockRejectedValueOnce(new UnauthorizedError())
 
       const request = createMockRequest({ serviceId: 'claude' })
       const response = await POST(request)
@@ -336,9 +361,7 @@ describe('AI API Keys API', () => {
 describe('AI API Keys - All Three Services', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockGetServerSession.mockResolvedValue(row({
-      user: { id: 'test-user-id', email: 'test@example.com' }
-    }))
+    mockAuth.mockResolvedValue(authedUser)
   })
 
   it('should support all three AI services: claude, openai, gemini', async () => {

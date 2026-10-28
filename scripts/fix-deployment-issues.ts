@@ -21,16 +21,11 @@ function fixApiRoutes() {
   
   const apiRoutes = [
     'app/api/account/route.ts',
-    'app/api/account/verify-email/route.ts',
     'app/api/users/search/route.ts',
     'app/api/invitations/route.ts',
     'app/api/invitations/[token]/route.ts',
-    'app/api/public-tasks/route.ts',
     'app/api/tasks/route.ts',
-    'app/api/tasks/[id]/comments/route.ts',
-    'app/api/tasks/copy/route.ts',
-    'app/api/lists/route.ts',
-    'app/api/lists/[id]/route.ts'
+    'app/api/lists/route.ts'
   ]
 
   let fixed = 0

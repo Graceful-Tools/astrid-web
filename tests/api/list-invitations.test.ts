@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import { POST } from '@/app/api/lists/[id]/invite/route'
+import { POST } from '@/app/api/v1/lists/[id]/invite/route'
 import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
+import { authenticateAPI, UnauthorizedError } from '@/lib/api-auth-middleware'
 import { sendListInvitationEmail } from '@/lib/email'
 import { canUserManageMembers, canAssignRole, prismaToTaskList } from '@/lib/list-permissions'
 
@@ -22,9 +22,18 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-vi.mock('next-auth', () => ({
-  getServerSession: vi.fn(),
-}))
+vi.mock('@/lib/api-auth-middleware', () => {
+  class UnauthorizedError extends Error {
+    constructor(msg = 'Unauthorized') { super(msg); this.name = 'UnauthorizedError' }
+  }
+  class ForbiddenError extends Error {
+    constructor(msg = 'Forbidden') { super(msg); this.name = 'ForbiddenError' }
+  }
+  return {
+    authenticateAPI: vi.fn(), requireScopes: vi.fn(),
+    UnauthorizedError, ForbiddenError, getDeprecationWarning: vi.fn(() => null),
+  }
+})
 
 vi.mock('@/lib/email', () => ({
   sendListInvitationEmail: vi.fn(),
@@ -69,12 +78,16 @@ const mockTaskList = {
   members: [],
 }
 
-describe('/api/lists/[id]/invite', () => {
+describe('/api/v1/lists/[id]/invite', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(getServerSession).mockResolvedValue({
-      user: mockUser,
-    } as any)
+    vi.mocked(authenticateAPI).mockResolvedValue({
+      userId: mockUser.id,
+      source: 'session',
+      scopes: ['*'],
+      isAIAgent: false,
+      user: { ...mockUser, isAIAgent: false },
+    })
     vi.mocked(prismaToTaskList).mockReturnValue(mockTaskList as any)
     vi.mocked(canUserManageMembers).mockReturnValue(true)
     vi.mocked(canAssignRole).mockReturnValue(true)
@@ -102,7 +115,7 @@ describe('/api/lists/[id]/invite', () => {
       vi.mocked(prisma.invitation.create).mockResolvedValue(mockInvitation as any)
       vi.mocked(sendListInvitationEmail).mockResolvedValue(undefined)
 
-      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/v1/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -172,7 +185,7 @@ describe('/api/lists/[id]/invite', () => {
       vi.mocked(prisma.invitation.create).mockResolvedValue(mockInvitation as any)
       vi.mocked(sendListInvitationEmail).mockResolvedValue(undefined)
 
-      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/v1/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -227,7 +240,7 @@ describe('/api/lists/[id]/invite', () => {
       vi.mocked(prisma.taskList.findUnique).mockResolvedValue(listWithMembers as any)
       vi.mocked(prisma.user.findUnique).mockResolvedValue(existingMember as any)
 
-      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/v1/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -256,7 +269,7 @@ describe('/api/lists/[id]/invite', () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
       vi.mocked(prisma.invitation.findFirst).mockResolvedValue(existingInvitation as any)
 
-      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/v1/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -275,7 +288,7 @@ describe('/api/lists/[id]/invite', () => {
     it('should require valid email format', async () => {
       vi.mocked(prisma.taskList.findUnique).mockResolvedValue(mockList as any)
 
-      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/v1/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -294,7 +307,7 @@ describe('/api/lists/[id]/invite', () => {
     it('should require valid role', async () => {
       vi.mocked(prisma.taskList.findUnique).mockResolvedValue(mockList as any)
 
-      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/v1/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -313,7 +326,7 @@ describe('/api/lists/[id]/invite', () => {
     it('should return 404 for non-existent list', async () => {
       vi.mocked(prisma.taskList.findUnique).mockResolvedValue(null)
 
-      const request = new NextRequest('http://localhost:3000/api/lists/nonexistent/invite', {
+      const request = new NextRequest('http://localhost:3000/api/v1/lists/nonexistent/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -330,9 +343,9 @@ describe('/api/lists/[id]/invite', () => {
     })
 
     it('should require authentication', async () => {
-      vi.mocked(getServerSession).mockResolvedValue(null)
+      vi.mocked(authenticateAPI).mockRejectedValue(new UnauthorizedError())
 
-      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/v1/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -352,7 +365,7 @@ describe('/api/lists/[id]/invite', () => {
       vi.mocked(prisma.taskList.findUnique).mockResolvedValue(mockList as any)
       vi.mocked(canUserManageMembers).mockReturnValue(false)
 
-      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/v1/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -373,7 +386,7 @@ describe('/api/lists/[id]/invite', () => {
       vi.mocked(canUserManageMembers).mockReturnValue(true)
       vi.mocked(canAssignRole).mockReturnValue(false)
 
-      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/v1/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -409,7 +422,7 @@ describe('/api/lists/[id]/invite', () => {
       vi.mocked(prisma.invitation.findFirst).mockResolvedValue(null)
       vi.mocked(prisma.invitation.create).mockResolvedValue(mockInvitation as any)
       vi.mocked(sendListInvitationEmail).mockRejectedValue(new Error('Email service down'))
-      const request = new NextRequest('http://localhost:3000/api/lists/list-123/invite', {
+      const request = new NextRequest('http://localhost:3000/api/v1/lists/list-123/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
