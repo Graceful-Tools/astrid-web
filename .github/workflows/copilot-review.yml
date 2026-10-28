@@ -1,0 +1,30 @@
+name: Copilot Review of Claude PRs
+
+# Asks GitHub Copilot code review to review every pull request Claude opens.
+# Claude's PRs are authored by Jon's account, so they are recognised by the
+# footer Claude Code writes into every PR body, or by an agent/claude-code/
+# branch. Copilot's review is advisory: it comments and never blocks a merge.
+#
+# Runs once per PR (opened, reopened, or marked ready for review), not on every
+# push: each review is billed as a premium request.
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  request-review:
+    runs-on: ubuntu-24.04
+    if: >-
+      !github.event.pull_request.draft &&
+      (contains(github.event.pull_request.body, 'Generated with [Claude Code]') ||
+       startsWith(github.event.pull_request.head.ref, 'agent/claude-code/'))
+    steps:
+      - name: Request Copilot code review
+        run: gh pr edit "$PR_URL" --add-reviewer @copilot
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
