@@ -82,9 +82,9 @@ finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has t
 
 ## What is different here
 
-- **Cloud workers stop at a verified PR handoff.** `agent-run.yml` is
-  dispatch-only, supports Claude Code and Codex, and does not replace
-  an existing Claude server worker. Its preflight reads queue + inbox + lanes,
+- **Cloud workers stop at a verified PR handoff.** `agent-run.yml` runs
+  on a schedule (:05/:35, claude-code) and on dispatch (Claude Code or Codex). It is how
+  Claude works this board; the Mac loop is being retired (AWTD-1363). Its preflight reads queue + inbox + lanes,
   refuses non-polling mode, restores bounded wake history, and records outcomes
   even when the harness fails. Cache state has an artifact fallback retained for
   30 days; after retention expires the next run explicitly starts fresh memory.

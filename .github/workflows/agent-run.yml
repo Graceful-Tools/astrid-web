@@ -15,9 +15,14 @@ name: 'Agent Run'
 #     a comment on the task. Merging and deploying are the ship workflow's job
 #     (docs/AGENT_FLEET.md → Shipping).
 #
-# Dispatch-only alternatives. The existing Claude web server stays active;
-# this workflow does not replace it or enable a competing Claude schedule.
+# Scheduled since 2026-10-28 (AWTD-1363 step 1): Claude works the web board from
+# here, per Jon's 2026-10-24 decision (AWTD-1361), after smoke test 3 (AWTD-1403)
+# opened its own PR and got CI unaided. :05/:35 stays clear of the Mac loop's
+# :20/:50 until that loop is retired; claims are atomic either way. A scheduled
+# run has no inputs, so the harness defaults to claude-code below.
 on:
+  schedule:
+    - cron: '5,35 * * * *'
   workflow_dispatch:
     inputs:
       harness:
@@ -35,7 +40,7 @@ on:
         type: boolean
 
 concurrency:
-  group: agent-run-${{ inputs.harness }}
+  group: agent-run-${{ (inputs.harness || 'claude-code') }}
   cancel-in-progress: false
 
 permissions:
@@ -45,7 +50,7 @@ permissions:
 
 jobs:
   run:
-    name: 'Agent run (${{ inputs.harness }})'
+    name: "Agent run (${{ (inputs.harness || 'claude-code') }})"
     runs-on: ubuntu-24.04
     environment: agent
     timeout-minutes: 90
@@ -66,7 +71,7 @@ jobs:
     env:
       ASTRID_OAUTH_CLIENT_ID: ${{ secrets.ASTRID_OAUTH_CLIENT_ID }}
       ASTRID_OAUTH_CLIENT_SECRET: ${{ secrets.ASTRID_OAUTH_CLIENT_SECRET }}
-      ASTRID_FIXALL_HARNESS: ${{ inputs.harness }}
+      ASTRID_FIXALL_HARNESS: ${{ (inputs.harness || 'claude-code') }}
       ASTRID_OAUTH_LIST_ID: ${{ vars.ASTRID_WEB_LIST_ID || 'a623f322-4c3c-49b5-8a94-d2d9f00c82ba' }}
       ASTRID_FIXALL_CLAIMS_FILE: ${{ github.workspace }}/.agent-output/claims.txt
       # docs/FIXALL_WORKFLOW.md → On an ephemeral runner: the checkout is this
@@ -103,8 +108,8 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .agent-state
-          key: agent-wake-v1-${{ inputs.harness }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: agent-wake-v1-${{ inputs.harness }}-${{ github.ref_name }}-
+          key: agent-wake-v1-${{ (inputs.harness || 'claude-code') }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: agent-wake-v1-${{ (inputs.harness || 'claude-code') }}-${{ github.ref_name }}-
 
       - name: Restore retained state when the cache was evicted
         if: ${{ steps.wake-cache.outputs.cache-matched-key == '' }}
@@ -171,7 +176,7 @@ jobs:
       - name: Run Claude Code
         id: claude
         timeout-minutes: 75
-        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' && inputs.harness == 'claude-code' }}
+        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' && (inputs.harness || 'claude-code') == 'claude-code' }}
         env:
           # Subscription token from `claude setup-token` — never an API key
           # (Jon, 2026-09-19: the loops run on the subscription).
@@ -188,7 +193,7 @@ jobs:
       - name: Run Codex
         id: codex
         timeout-minutes: 75
-        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' && inputs.harness == 'codex' }}
+        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' && (inputs.harness || 'claude-code') == 'codex' }}
         env:
           CODEX_VERSION: ${{ vars.CODEX_VERSION }}
           CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
@@ -273,13 +278,13 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .agent-state
-          key: agent-wake-v1-${{ inputs.harness }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: agent-wake-v1-${{ (inputs.harness || 'claude-code') }}-${{ github.ref_name }}-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Persist run outputs and recovery evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: agent-run-${{ inputs.harness }}-${{ github.run_id }}
+          name: agent-run-${{ (inputs.harness || 'claude-code') }}-${{ github.run_id }}
           path: |
             .agent-output/
             .agent-state/
