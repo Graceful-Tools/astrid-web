@@ -16,12 +16,19 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+const authenticateAPI = vi.hoisted(() => vi.fn())
 const getUnifiedSession = vi.hoisted(() => vi.fn())
 const taskFindFirst = vi.hoisted(() => vi.fn())
 const fileCreate = vi.hoisted(() => vi.fn())
 const fileFindUnique = vi.hoisted(() => vi.fn())
 const fileUpdate = vi.hoisted(() => vi.fn())
 
+// get-upload-url authenticates through withAuth (AWTD-1402); the secure-files
+// routes still read the session themselves.
+vi.mock('@/lib/api-auth-middleware', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/lib/api-auth-middleware')>()),
+  authenticateAPI,
+}))
 vi.mock('@/lib/session-utils', () => ({ getUnifiedSession }))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -55,6 +62,7 @@ beforeEach(() => {
   process.env.NEXTAUTH_SECRET = 's'.repeat(40)
   delete process.env.VERCEL_URL
   delete process.env.BLOB_READ_WRITE_TOKEN
+  authenticateAPI.mockResolvedValue({ userId: 'owner-1', source: 'session', scopes: ['*'] })
   getUnifiedSession.mockResolvedValue({ user: { id: 'owner-1' } })
   taskFindFirst.mockResolvedValue({ id: 'task-1' })
   fileCreate.mockResolvedValue({})
