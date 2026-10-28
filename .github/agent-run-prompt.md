@@ -31,3 +31,12 @@ For review-only tasks, read the linked PR diff, report concrete findings on the
 Astrid task, and do not merge, modify the reviewed branch, or treat a review as
 implementation/deployment. A review task is completed once its report is on the
 task; the implementation task remains incomplete until deployed.
+
+End your output with exactly one line of its own, starting at column 0:
+
+RESULT: OK | SKIPPED | PARTIAL | FAILED — <one sentence why>
+
+OK means the work you took is done and handed off as above. SKIPPED means there
+was nothing for you to do. PARTIAL and FAILED fail this workflow run, and so does
+a missing line. Say PARTIAL when anything you took is left undone, including a
+pushed branch with no PR.
