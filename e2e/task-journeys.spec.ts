@@ -14,7 +14,9 @@ import { gotoWithRetry } from './utils/test-helpers'
 type ApiList = { id: string; name: string }
 type ApiTask = { id: string; title: string; completed: boolean }
 
-async function createJson<T>(request: APIRequestContext, url: string, data: unknown): Promise<T> {
+// Seeding goes through v1 only. The legacy /api/lists and /api/tasks routes
+// are awaiting removal (AWTD-839), and a fixture that calls them keeps them alive.
+async function postJson<T>(request: APIRequestContext, url: string, data: unknown): Promise<T> {
   const response = await request.post(url, { data })
   expect(response.ok(), `${url} returned ${response.status()}: ${await response.text()}`).toBeTruthy()
   return response.json() as Promise<T>
@@ -27,11 +29,16 @@ async function readTask(request: APIRequestContext, id: string): Promise<ApiTask
 }
 
 async function freshList(request: APIRequestContext, label: string): Promise<ApiList> {
-  return createJson<ApiList>(request, '/api/lists', {
+  const body = await postJson<{ list: ApiList }>(request, '/api/v1/lists', {
     name: `${label} ${Date.now()}`,
-    description: '',
     privacy: 'PRIVATE',
   })
+  return body.list
+}
+
+async function seedTask(request: APIRequestContext, listId: string, title: string): Promise<ApiTask> {
+  const body = await postJson<{ task: ApiTask }>(request, '/api/v1/tasks', { title, listIds: [listId] })
+  return body.task
 }
 
 const row = (page: Page, title: string) => page.locator('[data-task-id]').filter({ hasText: title })
@@ -64,12 +71,14 @@ test.describe('Core task journeys (AWTD-1339)', () => {
     // Complete it from its row, then reopen it.
     await row(page, renamed).getByRole('checkbox', { name: 'Mark complete' }).click()
     await expect.poll(async () => (await readTask(request, taskId!)).completed).toBe(true)
+    // A new list uses the default completion filter, which keeps tasks completed in
+    // the last 24 hours on screen, so the completed row must be there after a reload.
     await gotoWithRetry(page, `/lists/${list.id}`)
     const doneBox = row(page, renamed).getByRole('checkbox', { name: 'Mark incomplete' })
-    if (await doneBox.count()) {
-      await doneBox.click()
-      await expect.poll(async () => (await readTask(request, taskId!)).completed).toBe(false)
-    }
+    await expect(doneBox).toBeVisible()
+    await doneBox.click()
+    await expect.poll(async () => (await readTask(request, taskId!)).completed).toBe(false)
+    await expect(row(page, renamed).getByRole('checkbox', { name: 'Mark complete' })).toBeVisible()
   })
 
   test('one click opens a task quick add just created (AWTD-1351)', async ({ page, request }) => {
@@ -93,9 +102,7 @@ test.describe('Core task journeys (AWTD-1339)', () => {
 
   test('add a comment in task detail and see it after a reload', async ({ page, request }) => {
     const list = await freshList(request, 'Comments')
-    const task = await createJson<ApiTask>(request, '/api/tasks', {
-      title: `Commented ${Date.now()}`, description: '', listIds: [list.id], priority: 0, repeating: 'never',
-    })
+    const task = await seedTask(request, list.id, `Commented ${Date.now()}`)
     await gotoWithRetry(page, `/lists/${list.id}`)
     await row(page, task.title).click()
 
@@ -118,9 +125,7 @@ test.describe('Core task journeys (AWTD-1339)', () => {
   test('search finds a task by its title', async ({ page, request }) => {
     const list = await freshList(request, 'Search')
     const needle = `Findable ${Date.now()}`
-    await createJson<ApiTask>(request, '/api/tasks', {
-      title: needle, description: '', listIds: [list.id], priority: 0, repeating: 'never',
-    })
+    await seedTask(request, list.id, needle)
     await gotoWithRetry(page, '/')
     // The sidebar entry opens the search field.
     await page.getByText('Search for tasks and users').first().click()
