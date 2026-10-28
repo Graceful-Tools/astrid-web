@@ -130,8 +130,8 @@ async function main() {
 
   try {
     // Find user by email
-    const { PrismaClient } = await import('@prisma/client')
-    const prisma = new PrismaClient()
+    const { createScriptPrisma } = await import('./lib/script-prisma')
+    const prisma = createScriptPrisma()
 
     const user = await prisma.user.findUnique({
       where: { email: userEmail }

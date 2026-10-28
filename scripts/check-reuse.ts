@@ -233,7 +233,8 @@ const RULES: Rule[] = [
     fix: "Import { prisma } from '@/lib/prisma'. A second client opens its own connection pool and bypasses the middleware registered there — including the AI-agent workflow hooks.",
     pattern: String.raw`new PrismaClient\(`,
     globs: ALL_ROOTS,
-    exclude: ["prisma.ts"],
+    // script-prisma.ts is the one constructor scripts/ uses (AWTD-1393).
+    exclude: ["prisma.ts", "script-prisma.ts"],
     reject: String.raw`:[0-9]+:[[:space:]]*(//|\*|/\*|\{/\*)`,
   },
 ]

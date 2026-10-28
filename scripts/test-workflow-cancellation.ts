@@ -3,9 +3,9 @@
  * Test script to verify workflow cancellation on task deletion/completion
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function main() {
   console.log('🧪 Testing Workflow Cancellation Logic\n')

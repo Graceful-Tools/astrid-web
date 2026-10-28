@@ -14,14 +14,12 @@
 import { execSync } from 'child_process'
 import { writeFileSync, readFileSync, existsSync, mkdirSync, readdirSync } from 'fs'
 import path from 'path'
-import { PrismaClient } from '@prisma/client'
 import { loadScriptEnv } from './lib/load-env'
+import { createScriptPrisma } from './lib/script-prisma'
 
 loadScriptEnv()
 
-const prisma = new PrismaClient({
-  log: ['error'],
-})
+const prisma = createScriptPrisma({ log: ['error'] })
 
 const NOW = new Date()
 const SEVEN_DAYS_AGO = new Date(NOW)

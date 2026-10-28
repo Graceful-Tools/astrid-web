@@ -1,10 +1,10 @@
 import { config } from 'dotenv'
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
 // Load .env.local
 config({ path: '.env.local' })
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function getTaskByShortId(shortId: string) {
   try {

@@ -1,9 +1,9 @@
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { loadScriptEnv } from './lib/load-env'
 
 loadScriptEnv()
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function check() {
   const taskIds = [

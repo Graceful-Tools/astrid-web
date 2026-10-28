@@ -1,6 +1,6 @@
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function main() {
   // Token comes from the env/CLI, never hardcoded (this file is committed).

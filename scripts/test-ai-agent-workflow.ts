@@ -1,11 +1,11 @@
 #!/usr/bin/env npx tsx
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { DEFAULT_LIST_COLOR } from '../lib/brand/colors'
 import { generateMCPToken } from '../lib/mcp-token-utils'
 import { hashMCPToken, mcpTokenStorageFields } from '../lib/mcp-token'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000'
 
 interface TestResults {

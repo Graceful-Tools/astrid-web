@@ -5,14 +5,14 @@
  */
 
 import { config } from 'dotenv'
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import * as fs from 'fs'
 import * as path from 'path'
 
 // Load environment variables
 config({ path: '.env.local' })
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function verifyGitHubAgentFix() {
   console.log('🔍 Verifying GitHub Agent Fix...\n')

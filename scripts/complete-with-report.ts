@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client'
-const prisma = new PrismaClient()
+import { createScriptPrisma } from './lib/script-prisma'
+const prisma = createScriptPrisma()
 async function main() {
   const raw = process.argv.slice(2).join(' ')
   const blocks = raw.split('|||').map(b => b.trim()).filter(Boolean)

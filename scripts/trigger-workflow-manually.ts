@@ -3,10 +3,10 @@
  * Test the AI workflow for the existing task
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
 async function triggerWorkflowManually() {
-  const prisma = new PrismaClient()
+  const prisma = createScriptPrisma()
 
   try {
     console.log('🚀 Manually Triggering Coding Workflow\n')

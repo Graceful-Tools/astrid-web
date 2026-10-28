@@ -1,10 +1,10 @@
 // Post a completion report + mark complete, matching a task by id PREFIX (the create script
 // prints 8-char prefixes). Usage: DATABASE_URL=<prod> npx tsx scripts/complete-by-prefix.ts <file.json>
 // file.json: [{ "idPrefix": "9a60b697", "report": "<markdown>" }, ...]
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { readFileSync } from 'fs'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 const AUTHOR_ID = process.env.COMMENT_AUTHOR_ID || 'cmeje966q0000k1045si7zrz3'
 
 async function main() {

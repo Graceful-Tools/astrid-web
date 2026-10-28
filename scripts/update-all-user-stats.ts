@@ -4,10 +4,10 @@
  * This script recalculates and updates cached statistics for all active users
  */
 
-import { PrismaClient } from "@prisma/client"
+import { createScriptPrisma } from "./lib/script-prisma"
 import { updateUserStats } from "../lib/user-stats"
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function updateAllUserStats() {
   try {

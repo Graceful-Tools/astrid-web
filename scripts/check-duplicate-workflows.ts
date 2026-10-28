@@ -7,9 +7,9 @@
 import { config } from 'dotenv'
 config({ path: '.env.local' })
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function checkDuplicateWorkflows() {
   try {

@@ -87,8 +87,8 @@ function updateEnvLocal(config: DevConfig) {
 function updateAIAgentWebhookUrls(config: DevConfig) {
   console.log(`\n🤖 To update AI agent webhook URLs, run:`)
   console.log(`\nDATABASE_URL="your_database_url" npx tsx -e "
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import { createScriptPrisma } from './lib/script-prisma';
+const prisma = createScriptPrisma();
 
 async function updateWebhookUrls() {
   try {

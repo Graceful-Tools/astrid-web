@@ -3,7 +3,7 @@
  * Check if the coding agent detection logic works correctly
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
 // Helper function to check if a user is a coding agent
 function isCodingAgent(user: any): boolean {
@@ -11,7 +11,7 @@ function isCodingAgent(user: any): boolean {
 }
 
 async function testCodingAgentDetection() {
-  const prisma = new PrismaClient()
+  const prisma = createScriptPrisma()
 
   try {
     console.log('🔍 Testing Coding Agent Detection\n')

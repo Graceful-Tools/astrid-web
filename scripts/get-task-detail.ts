@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client'
-const prisma = new PrismaClient()
+import { createScriptPrisma } from './lib/script-prisma'
+const prisma = createScriptPrisma()
 async function main() {
   for (const id of process.argv.slice(2)) {
     const t = await prisma.task.findUnique({ where: { id },

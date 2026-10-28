@@ -1,11 +1,11 @@
 #!/usr/bin/env tsx
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { loadScriptEnv } from './lib/load-env'
 
 loadScriptEnv()
 
-const prisma = new PrismaClient({ log: ['error'] })
+const prisma = createScriptPrisma({ log: ['error'] })
 
 async function main() {
   const apply = process.argv.includes('--apply')

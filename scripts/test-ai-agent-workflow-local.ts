@@ -5,11 +5,11 @@
  * Tests the complete AI agent workflow locally without GitHub dependencies
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { DEFAULT_LIST_COLOR } from '../lib/brand/colors'
 import { aiAgentWebhookService } from '@/lib/ai-agent-webhook-service'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
 
 interface TestResults {

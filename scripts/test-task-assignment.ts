@@ -3,10 +3,10 @@
  * Check if we can detect when a task is assigned to the coding agent
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
 async function testTaskAssignment() {
-  const prisma = new PrismaClient()
+  const prisma = createScriptPrisma()
 
   try {
     console.log('🔍 Testing Task Assignment Detection\n')

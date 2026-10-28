@@ -1,6 +1,6 @@
 // Print attachment/secure-file info for a task's comments (id prefix).
-import { PrismaClient } from '@prisma/client'
-const prisma = new PrismaClient()
+import { createScriptPrisma } from './lib/script-prisma'
+const prisma = createScriptPrisma()
 async function main() {
   const t = await prisma.task.findFirst({ where: { id: { startsWith: process.argv[2] } }, select: { id: true } })
   if (!t) { console.log('task not found'); return }

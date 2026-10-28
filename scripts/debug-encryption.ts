@@ -3,10 +3,10 @@
  * Check what's stored in the database vs what we're trying to decrypt
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
 async function debugEncryption() {
-  const prisma = new PrismaClient()
+  const prisma = createScriptPrisma()
 
   try {
     console.log('🔍 Debug Encryption Issues\n')

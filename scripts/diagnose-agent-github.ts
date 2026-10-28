@@ -1,10 +1,10 @@
 import { config } from 'dotenv'
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { isCodingAgent } from '../lib/ai-agent-utils'
 
 config({ path: '.env.local' })
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function main() {
   const userEmail = 'jonparis@gmail.com'
