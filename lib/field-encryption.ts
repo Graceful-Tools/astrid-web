@@ -63,20 +63,30 @@ export function decryptField(value: string | null | undefined): string | null {
     throw new Error('Invalid encrypted field format')
   }
 
-  const [ivHex, authTagHex, ciphertext] = parts
-  const iv = Buffer.from(ivHex, 'hex')
-  const authTag = Buffer.from(authTagHex, 'hex')
-
   // Mid-rotation a stored value may be under either key, so try each. GCM's
   // auth tag makes this unambiguous: the wrong key throws rather than
   // returning plausible garbage.
-  return tryEachKey(process.env, keyHex => {
-    const decipher = crypto.createDecipheriv(ALGORITHM, Buffer.from(keyHex, 'hex'), iv)
-    decipher.setAuthTag(authTag)
-    let decrypted = decipher.update(ciphertext, 'hex', 'utf8')
-    decrypted += decipher.final('utf8')
-    return decrypted
-  })
+  return tryEachKey(process.env, keyHex => decryptFieldWithKey(value, keyHex))
+}
+
+/**
+ * Decrypt an `enc:v1:` value under one specific key. Throws when that key did
+ * not encrypt it (the GCM auth tag fails). decryptField tries the whole ring;
+ * this exists for the encryption census, which needs to know WHICH key works
+ * (task AWTD-1369).
+ */
+export function decryptFieldWithKey(value: string, keyHex: string): string {
+  const parts = value.slice(ENCRYPTED_PREFIX.length).split(':')
+  if (!value.startsWith(ENCRYPTED_PREFIX) || parts.length !== 3) {
+    throw new Error('Invalid encrypted field format')
+  }
+
+  const [ivHex, authTagHex, ciphertext] = parts
+  const decipher = crypto.createDecipheriv(ALGORITHM, Buffer.from(keyHex, 'hex'), Buffer.from(ivHex, 'hex'))
+  decipher.setAuthTag(Buffer.from(authTagHex, 'hex'))
+  let decrypted = decipher.update(ciphertext, 'hex', 'utf8')
+  decrypted += decipher.final('utf8')
+  return decrypted
 }
 
 /**
