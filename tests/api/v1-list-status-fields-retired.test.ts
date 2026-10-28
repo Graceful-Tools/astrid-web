@@ -69,7 +69,6 @@ vi.mock('@/lib/api-auth-middleware', () => {
 })
 
 import { GET as v1GetList, PUT as v1PutList } from '@/app/api/v1/lists/[id]/route'
-import { PUT as legacyPutList } from '@/app/api/lists/[id]/route'
 import { prisma } from '@/lib/prisma'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { getServerSession } from 'next-auth'
@@ -197,27 +196,6 @@ describe('PUT /api/v1/lists/:id no longer accepts the list status fields (AWTD-8
     )
 
     expect(updateData().listType).toBe('regular')
-  })
-})
-
-describe('PUT /api/lists/:id (legacy) no longer accepts them either (AWTD-853)', () => {
-  it('ignores them rather than persisting them', async () => {
-    // The legacy route is the one the web client itself PUTs whole list objects
-    // to, so leaving it accepting them would keep writing the columns this
-    // change exists to stop writing.
-    const response = await legacyPutList(
-      new NextRequest(`http://localhost/api/lists/${LIST_ID}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: 'A list', ...LEGACY_PAYLOAD }),
-      }) as never,
-      { params: Promise.resolve({ id: LIST_ID }) } as never,
-    )
-
-    expect(response.status).toBe(200)
-    for (const field of STATUS_FIELDS) {
-      expect(Object.keys(updateData())).not.toContain(field)
-    }
   })
 })
 

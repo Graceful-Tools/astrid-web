@@ -1,14 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
-import { PUT } from '@/app/api/lists/[id]/route'
+import { PUT } from '@/app/api/v1/lists/[id]/route'
 import { POST } from '@/app/api/lists/route'
 import { getServerSession } from 'next-auth'
+import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 
 // Mock NextAuth
 vi.mock('next-auth', () => ({
   getServerSession: vi.fn(),
 }))
+
+// PUT is v1 and authenticates through authenticateAPI; POST /api/lists still
+// reads the session.
+vi.mock('@/lib/api-auth-middleware', () => {
+  class UnauthorizedError extends Error {
+    constructor(msg = 'Unauthorized') { super(msg); this.name = 'UnauthorizedError' }
+  }
+  class ForbiddenError extends Error {
+    constructor(msg = 'Forbidden') { super(msg); this.name = 'ForbiddenError' }
+  }
+  return {
+    authenticateAPI: vi.fn(), requireScopes: vi.fn(),
+    UnauthorizedError, ForbiddenError, getDeprecationWarning: vi.fn(() => null),
+  }
+})
 
 // Mock Prisma
 vi.mock('@/lib/prisma', () => ({
@@ -17,13 +33,28 @@ vi.mock('@/lib/prisma', () => ({
       create: vi.fn(),
       update: vi.fn(),
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
     listMember: {
       createMany: vi.fn(),
     },
+    user: {
+      findMany: vi.fn(async () => []),
+    },
     $transaction: vi.fn(),
   },
 }))
+
+// v1 PUT puts its owner/admin gate in the findFirst query; answer it from the fixture.
+function findFirstFrom(list: { ownerId: string; listMembers?: { userId: string; role: string }[] }) {
+  return async ({ where }: any) =>
+    where.OR.some((clause: any) =>
+      clause.ownerId === list.ownerId ||
+      (clause.listMembers && (list.listMembers ?? []).some(m =>
+        m.userId === clause.listMembers.some.userId &&
+        (!clause.listMembers.some.role || m.role === clause.listMembers.some.role)))
+    ) ? list : null
+}
 
 describe('List Default Due Date API', () => {
   const mockUser = {
@@ -39,6 +70,13 @@ describe('List Default Due Date API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(getServerSession).mockResolvedValue(mockSession)
+    vi.mocked(authenticateAPI).mockResolvedValue({
+      userId: mockUser.id,
+      source: 'session',
+      scopes: ['*'],
+      isAIAgent: false,
+      user: { ...mockUser, isAIAgent: false },
+    })
     ;(prisma.$transaction as any).mockImplementation((operation: any) => operation(prisma))
     vi.mocked(prisma.listMember.createMany).mockResolvedValue({ count: 1 })
   })
@@ -149,7 +187,7 @@ describe('List Default Due Date API', () => {
     })
   })
 
-  describe('PUT /api/lists/[id]', () => {
+  describe('PUT /api/v1/lists/[id]', () => {
     it('should update list default due date', async () => {
       const existingList = {
         id: 'list-123',
@@ -168,10 +206,10 @@ describe('List Default Due Date API', () => {
         _count: { tasks: 0 }
       }
 
-      vi.mocked(prisma.taskList.findUnique).mockResolvedValue(existingList as any)
+      vi.mocked(prisma.taskList.findFirst).mockImplementation(findFirstFrom(existingList) as any)
       vi.mocked(prisma.taskList.update).mockResolvedValue(updatedList as any)
 
-      const request = new NextRequest('http://localhost/api/lists/list-123', {
+      const request = new NextRequest('http://localhost/api/v1/lists/list-123', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -184,7 +222,7 @@ describe('List Default Due Date API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data.defaultDueDate).toBe('next_week')
+      expect(data.list.defaultDueDate).toBe('next_week')
       
       // Verify Prisma was called with correct update data
       expect(vi.mocked(prisma.taskList.update)).toHaveBeenCalledWith({
@@ -205,9 +243,9 @@ describe('List Default Due Date API', () => {
         members: [],
       }
 
-      vi.mocked(prisma.taskList.findUnique).mockResolvedValue(existingList as any)
+      vi.mocked(prisma.taskList.findFirst).mockImplementation(findFirstFrom(existingList) as any)
 
-      const request = new NextRequest('http://localhost/api/lists/list-123', {
+      const request = new NextRequest('http://localhost/api/v1/lists/list-123', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -218,7 +256,9 @@ describe('List Default Due Date API', () => {
 
       const response = await PUT(request, { params: Promise.resolve({ id: 'list-123' }) })
 
-      expect(response.status).toBe(403)
+      // Legacy answered 403; v1 refuses a non-manager as "not found or insufficient permissions".
+      expect(response.status).toBe(404)
+      expect(prisma.taskList.update).not.toHaveBeenCalled()
     })
   })
 

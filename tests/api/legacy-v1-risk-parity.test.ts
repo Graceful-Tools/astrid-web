@@ -31,10 +31,7 @@ vi.mock('@/lib/api-auth-middleware', async () => {
   }
 })
 
-import { POST as legacyInvite } from '@/app/api/lists/[id]/invite/route'
 import { POST as v1Invite } from '@/app/api/v1/lists/[id]/invite/route'
-import { POST as legacyUpload } from '@/app/api/secure-upload/request-upload/route'
-import { POST as v1Upload } from '@/app/api/v1/secure-upload/request-upload/route'
 import {
   GET as legacyFileGet,
   PUT as legacyFilePut,
@@ -62,7 +59,6 @@ describe('legacy/v1 critical adapter behavior table', () => {
   })
 
   it.each([
-    ['secure upload POST', legacyUpload, v1Upload],
     ['secure file GET', legacyFileGet, v1FileGet],
     ['secure file PUT', legacyFilePut, v1FilePut],
     ['secure file DELETE', legacyFileDelete, v1FileDelete],
@@ -70,27 +66,22 @@ describe('legacy/v1 critical adapter behavior table', () => {
     expect(v1).toBe(legacy)
   })
 
-  it('keeps invite behavior equal while asserting the intentional v1 envelope', async () => {
+  // The legacy invite route was deleted (AWTD-839), so there is no second
+  // response to compare against; what remains is v1's own contract.
+  it('returns the service invitation inside the intentional v1 envelope', async () => {
     const request = () =>
-      new NextRequest('http://localhost/api/lists/list-1/invite', {
+      new NextRequest('http://localhost/api/v1/lists/list-1/invite', {
         method: 'POST',
         body: JSON.stringify({ email: 'new@example.test', role: 'member' }),
         headers: { 'content-type': 'application/json' },
       })
     const context = { params: Promise.resolve({ id: 'list-1' }) }
 
-    const [legacyResponse, v1Response] = await Promise.all([
-      legacyInvite(request(), context),
-      v1Invite(request(), context),
-    ])
-    const [legacyBody, v1Body] = await Promise.all([
-      legacyResponse.json(),
-      v1Response.json(),
-    ])
+    const v1Response = await v1Invite(request(), context)
+    const v1Body = await v1Response.json()
 
-    expect(v1Response.status).toBe(legacyResponse.status)
-    expect(v1Body.invitation).toEqual(legacyBody.invitation)
-    expect(legacyBody.meta).toBeUndefined()
+    expect(v1Response.status).toBe(200)
+    expect(v1Body.invitation).toMatchObject({ id: 'invite-1', email: 'new@example.test', role: 'member' })
     expect(v1Body.meta).toEqual({ apiVersion: 'v1', authSource: 'session' })
   })
 })

@@ -1,5 +1,5 @@
 /**
- * Route tests for POST /api/projects/from-list — the atomic create-board
+ * Route tests for POST /api/v1/projects/from-list — the atomic create-board
  * endpoint (create project + attach list in one transaction). Service is
  * mocked; these cover auth, validation, error mapping, and cache eviction.
  */
@@ -9,9 +9,18 @@ import { NextRequest } from 'next/server'
 vi.mock('@/lib/projects-service', () => ({
   createProjectFromList: vi.fn(),
 }))
-vi.mock('@/lib/session-utils', () => ({
-  getUnifiedSession: vi.fn(),
-}))
+vi.mock('@/lib/api-auth-middleware', () => {
+  class UnauthorizedError extends Error {
+    constructor(msg = 'Unauthorized') { super(msg); this.name = 'UnauthorizedError' }
+  }
+  class ForbiddenError extends Error {
+    constructor(msg = 'Forbidden') { super(msg); this.name = 'ForbiddenError' }
+  }
+  return {
+    authenticateAPI: vi.fn(), requireScopes: vi.fn(),
+    UnauthorizedError, ForbiddenError, getDeprecationWarning: vi.fn(() => null),
+  }
+})
 vi.mock('@/lib/redis', () => ({
   RedisCache: {
     del: vi.fn().mockResolvedValue(undefined),
@@ -20,6 +29,7 @@ vi.mock('@/lib/redis', () => ({
       userListsV1: (id: string) => `lists:user:${id}:v1`,
     },
     invalidate: {
+      userLists: vi.fn().mockResolvedValue(undefined),
       userListsAllVersions: vi.fn().mockResolvedValue(undefined),
     },
   },
@@ -32,26 +42,32 @@ vi.mock('@/lib/project-mode', () => ({
 }))
 
 import { NextResponse } from 'next/server'
-import { POST } from '@/app/api/projects/from-list/route'
+import { POST } from '@/app/api/v1/projects/from-list/route'
 import { createProjectFromList } from '@/lib/projects-service'
-import { getUnifiedSession } from '@/lib/session-utils'
+import { authenticateAPI, UnauthorizedError } from '@/lib/api-auth-middleware'
 import { RedisCache } from '@/lib/redis'
 import { projectModeGate } from '@/lib/project-mode'
 
 const mockCreate = vi.mocked(createProjectFromList)
-const mockSession = vi.mocked(getUnifiedSession)
-const mockInvalidate = vi.mocked(RedisCache.invalidate.userListsAllVersions)
+const mockSession = vi.mocked(authenticateAPI)
+const mockInvalidate = vi.mocked(RedisCache.invalidate.userLists)
 const mockGate = vi.mocked(projectModeGate)
 
 const req = (body?: unknown) =>
-  new NextRequest('http://localhost/api/projects/from-list', {
+  new NextRequest('http://localhost/api/v1/projects/from-list', {
     method: 'POST',
     body: body === undefined ? undefined : JSON.stringify(body),
   })
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockSession.mockResolvedValue({ user: { id: 'u1' } } as never)
+  mockSession.mockResolvedValue({
+    userId: 'u1',
+    source: 'session',
+    scopes: ['*'],
+    isAIAgent: false,
+    user: { id: 'u1', email: 'u1@example.com', name: null, isAIAgent: false },
+  })
   mockInvalidate.mockResolvedValue(undefined as never)
   mockGate.mockResolvedValue(null)
 })
@@ -84,7 +100,7 @@ describe('Project Mode gate (dd7172d8)', () => {
 })
 
 it('401 when unauthenticated', async () => {
-  mockSession.mockResolvedValue(null as never)
+  mockSession.mockRejectedValue(new UnauthorizedError())
   expect((await POST(req({ listId: 'l1' }))).status).toBe(401)
 })
 
@@ -101,9 +117,11 @@ it('201 with project + list and evicts cache', async () => {
   expect(body.list.projectId).toBe('p1')
   // Both cached list sets — the legacy key and the v1 key iOS reads — must go.
   // This used to assert a bare del('lists:user:u1'), which left iOS stale for
-  // the rest of the 5-minute TTL (task 070bddf8).
+  // the rest of the 5-minute TTL (task 070bddf8). v1 evicts through
+  // invalidate.userLists, whose `lists:user:u1*` pattern covers both keys.
   expect(mockInvalidate).toHaveBeenCalledWith('u1')
-  expect(mockCreate).toHaveBeenCalledWith('u1', 'l1')
+  // v1 also passes the owner's requested project key (AWTD-1018); none here.
+  expect(mockCreate).toHaveBeenCalledWith('u1', 'l1', { key: null })
 })
 
 it('maps service errors: list_not_found→404, forbidden→403, invalid→400', async () => {

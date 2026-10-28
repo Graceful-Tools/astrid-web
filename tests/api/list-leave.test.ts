@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import { POST } from '@/app/api/lists/[id]/leave/route'
+import { POST } from '@/app/api/v1/lists/[id]/leave/route'
 import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
+import { authenticateAPI, UnauthorizedError } from '@/lib/api-auth-middleware'
 
 // Mock dependencies
 vi.mock('@/lib/prisma', () => ({
@@ -21,12 +21,35 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-vi.mock('next-auth', () => ({
-  getServerSession: vi.fn(),
-}))
+vi.mock('@/lib/api-auth-middleware', () => {
+  class UnauthorizedError extends Error {
+    constructor(msg = 'Unauthorized') { super(msg); this.name = 'UnauthorizedError' }
+  }
+  class ForbiddenError extends Error {
+    constructor(msg = 'Forbidden') { super(msg); this.name = 'ForbiddenError' }
+  }
+  return {
+    authenticateAPI: vi.fn(), requireScopes: vi.fn(),
+    UnauthorizedError, ForbiddenError, getDeprecationWarning: vi.fn(() => null),
+  }
+})
 
 const mockPrisma = prisma as any
-const mockGetServerSession = getServerSession as any
+
+// v1 authenticates through authenticateAPI; null means no credential.
+function signIn(session: { user: { id: string; email: string; name: string } } | null) {
+  if (!session) {
+    vi.mocked(authenticateAPI).mockRejectedValue(new UnauthorizedError())
+    return
+  }
+  vi.mocked(authenticateAPI).mockResolvedValue({
+    userId: session.user.id,
+    source: 'session',
+    scopes: ['*'],
+    isAIAgent: false,
+    user: { ...session.user, isAIAgent: false },
+  })
+}
 
 const mockSession = {
   user: {
@@ -44,10 +67,10 @@ const mockList = {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockGetServerSession.mockResolvedValue(mockSession)
+  signIn(mockSession)
 })
 
-describe('POST /api/lists/[id]/leave', () => {
+describe('POST /api/v1/lists/[id]/leave', () => {
   it('allows regular member to leave list', async () => {
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
     mockPrisma.listMember.findFirst.mockResolvedValue({
@@ -59,7 +82,7 @@ describe('POST /api/lists/[id]/leave', () => {
     mockPrisma.listMember.deleteMany.mockResolvedValue({ count: 1 })
     mockPrisma.listInvite.deleteMany.mockResolvedValue({})
 
-    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/v1/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
@@ -98,7 +121,7 @@ describe('POST /api/lists/[id]/leave', () => {
     mockPrisma.listMember.deleteMany.mockResolvedValue({ count: 1 })
     mockPrisma.listInvite.deleteMany.mockResolvedValue({})
 
-    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/v1/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
@@ -120,7 +143,7 @@ describe('POST /api/lists/[id]/leave', () => {
         name: 'Owner User',
       },
     }
-    mockGetServerSession.mockResolvedValue(ownerAdminSession)
+    signIn(ownerAdminSession)
 
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
     mockPrisma.listMember.findFirst
@@ -139,7 +162,7 @@ describe('POST /api/lists/[id]/leave', () => {
     
     // totalAdmins = 1 (admin count) + 0 (owner already counted) = 1
 
-    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/v1/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
@@ -163,7 +186,7 @@ describe('POST /api/lists/[id]/leave', () => {
         name: 'Owner User',
       },
     }
-    mockGetServerSession.mockResolvedValue(ownerSession)
+    signIn(ownerSession)
 
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
     mockPrisma.listMember.findFirst
@@ -181,7 +204,7 @@ describe('POST /api/lists/[id]/leave', () => {
     mockPrisma.listMember.deleteMany.mockResolvedValue({ count: 1 })
     mockPrisma.listInvite.deleteMany.mockResolvedValue({})
 
-    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/v1/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
@@ -202,7 +225,7 @@ describe('POST /api/lists/[id]/leave', () => {
         name: 'Owner User',
       },
     }
-    mockGetServerSession.mockResolvedValue(ownerSession)
+    signIn(ownerSession)
 
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
     mockPrisma.listMember.findFirst
@@ -218,7 +241,7 @@ describe('POST /api/lists/[id]/leave', () => {
       }) // ownerIsAdmin check
     mockPrisma.listMember.count.mockResolvedValue(1) // only 1 admin total
 
-    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/v1/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
@@ -237,7 +260,7 @@ describe('POST /api/lists/[id]/leave', () => {
     mockPrisma.taskList.findUnique.mockResolvedValue(mockList)
     mockPrisma.listMember.findFirst.mockResolvedValue(null)
 
-    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/v1/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
@@ -253,7 +276,7 @@ describe('POST /api/lists/[id]/leave', () => {
   it('returns 404 if list does not exist', async () => {
     mockPrisma.taskList.findUnique.mockResolvedValue(null)
 
-    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/v1/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
@@ -276,7 +299,7 @@ describe('POST /api/lists/[id]/leave', () => {
     })
     mockPrisma.listMember.deleteMany.mockResolvedValue({ count: 0 }) // No records deleted
 
-    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/v1/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
@@ -290,9 +313,9 @@ describe('POST /api/lists/[id]/leave', () => {
   })
 
   it('returns 401 for unauthenticated users', async () => {
-    mockGetServerSession.mockResolvedValue(null)
+    signIn(null)
 
-    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/v1/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
@@ -318,7 +341,7 @@ describe('POST /api/lists/[id]/leave', () => {
     mockPrisma.listMember.deleteMany.mockResolvedValue({ count: 1 })
     mockPrisma.listInvite.deleteMany.mockResolvedValue({})
 
-    const request = new NextRequest('http://localhost/api/lists/list-1/leave', {
+    const request = new NextRequest('http://localhost/api/v1/lists/list-1/leave', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })

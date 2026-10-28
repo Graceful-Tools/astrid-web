@@ -1,14 +1,28 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { row, rowWith, rows } from '../fixtures/prisma-rows'
-import { GET } from '@/app/api/users/[userId]/profile/route'
-import { mockPrisma, mockGetServerSession } from '../setup'
+import { GET } from '@/app/api/v1/users/[userId]/profile/route'
+import { NextRequest } from 'next/server'
+import { authenticateAPI, UnauthorizedError } from '@/lib/api-auth-middleware'
+import { mockPrisma } from '../setup'
+
+vi.mock('@/lib/api-auth-middleware', () => {
+  class UnauthorizedError extends Error {
+    constructor(msg = 'Unauthorized') { super(msg); this.name = 'UnauthorizedError' }
+  }
+  class ForbiddenError extends Error {
+    constructor(msg = 'Forbidden') { super(msg); this.name = 'ForbiddenError' }
+  }
+  return {
+    authenticateAPI: vi.fn(), requireScopes: vi.fn(),
+    UnauthorizedError, ForbiddenError, getDeprecationWarning: vi.fn(() => null),
+  }
+})
+
+const mockAuth = vi.mocked(authenticateAPI)
 
 // Helper to create mock NextRequest
 function createMockRequest() {
-  return {
-    headers: new Headers(),
-    cookies: { get: () => undefined },
-  } as any
+  return new NextRequest('http://localhost/api/v1/users/profile-user-id/profile')
 }
 
 describe('User Profile API', () => {
@@ -40,11 +54,14 @@ describe('User Profile API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
 
-    // Mock authenticated session (with id for authenticateAPI)
-    mockGetServerSession.mockResolvedValue(row({
-      user: { id: 'current-user-id', email: 'current@example.com', name: 'Current User' },
-      expires: new Date(Date.now() + 86400000).toISOString(),
-    }))
+    // Mock authenticated caller
+    mockAuth.mockResolvedValue({
+      userId: 'current-user-id',
+      source: 'session',
+      scopes: ['*'],
+      isAIAgent: false,
+      user: { id: 'current-user-id', email: 'current@example.com', name: 'Current User', isAIAgent: false },
+    })
 
     // Mock current user lookup
     mockPrisma.user.findUnique.mockImplementation(({ where }: any) => {
@@ -68,7 +85,7 @@ describe('User Profile API', () => {
 
   describe('Authentication', () => {
     it('should return 401 for unauthenticated user', async () => {
-      mockGetServerSession.mockResolvedValueOnce(null)
+      mockAuth.mockRejectedValueOnce(new UnauthorizedError())
 
       const response = await GET(
         createMockRequest(),
@@ -485,43 +502,9 @@ describe('User Profile API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(500)
-      expect(data.error).toBe('Failed to fetch user profile')
+      expect(data.error).toBe('Internal server error')
     })
 
-    it('should handle current user not found', async () => {
-      // Mock session to pass auth
-      mockGetServerSession.mockResolvedValue(row({
-        user: { id: 'current-user-id', email: 'current@example.com', name: 'Current User' },
-        expires: new Date(Date.now() + 86400000).toISOString(),
-      }))
-
-      // Sequence of user lookups:
-      // 1st call: authenticateAPI looks up session user - return it
-      // 2nd call: profile user lookup - return it
-      // 3rd call: current user verification - return null to trigger 404
-      let callCount = 0
-      mockPrisma.user.findUnique.mockImplementation(({ where }: any) => {
-        callCount++
-        if (callCount === 1 && where.id === 'current-user-id') {
-          return Promise.resolve({ ...mockCurrentUser, isAIAgent: false })
-        }
-        if (where.id === 'profile-user-id') {
-          return Promise.resolve(mockProfileUser)
-        }
-        if (callCount >= 3 && where.id === 'current-user-id') {
-          return Promise.resolve(null) // Current user no longer exists
-        }
-        return Promise.resolve(null)
-      })
-
-      const response = await GET(
-        createMockRequest(),
-        { params: Promise.resolve({ userId: 'profile-user-id' }) }
-      )
-      const data = await response.json()
-
-      expect(response.status).toBe(404)
-      expect(data.error).toBe('Current user not found')
-    })
+    // Legacy re-read the caller's user row after auth and answered 404 "Current user not found"; v1 relies on authenticateAPI having resolved the user, so that test was removed.
   })
 })

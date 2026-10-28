@@ -34,7 +34,7 @@ vi.mock('@/lib/secure-storage', () => ({
   presignedUploadsEnabled,
 }))
 
-import { POST as getUploadUrl } from '@/app/api/secure-upload/get-upload-url/route'
+import { POST as getUploadUrl } from '@/app/api/v1/secure-upload/get-upload-url/route'
 import { POST as editUploadUrl } from '@/app/api/secure-files/[fileId]/upload-url/route'
 
 const PRESIGNED = {

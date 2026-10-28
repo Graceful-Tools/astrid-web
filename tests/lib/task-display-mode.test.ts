@@ -78,7 +78,7 @@ describe('what each mode means for the UI (task ffa5bbb5)', () => {
   })
 })
 
-describe('the column and both settings surfaces carry it (task ffa5bbb5)', () => {
+describe('the column and the settings surface carry it (task ffa5bbb5)', () => {
   it('User.taskDisplayMode exists and defaults to list in the schema', () => {
     const schema = read('prisma/schema.prisma')
     expect(schema).toMatch(/taskDisplayMode\s+String\?\s+@default\("list"\)/)
@@ -86,7 +86,6 @@ describe('the column and both settings surfaces carry it (task ffa5bbb5)', () =>
 
   it.each([
     'app/api/v1/users/me/smart-tasks/route.ts',
-    'app/api/user/settings/route.ts',
   ])('%s reads and writes taskDisplayMode', file => {
     const src = read(file)
     expect(src, 'not selected, so the client never learns the stored value').toMatch(
@@ -99,7 +98,6 @@ describe('the column and both settings surfaces carry it (task ffa5bbb5)', () =>
 
   it.each([
     'app/api/v1/users/me/smart-tasks/route.ts',
-    'app/api/user/settings/route.ts',
   ])('%s validates the value through the shared helper', file => {
     // Not an inline ['list','project'] check: two surfaces spelling the
     // allowed set separately is how they drift apart.

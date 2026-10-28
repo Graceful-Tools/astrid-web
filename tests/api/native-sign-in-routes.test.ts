@@ -44,9 +44,7 @@ const prisma = vi.hoisted(() => ({
 }))
 vi.mock('@/lib/prisma', () => ({ prisma }))
 
-import { POST as legacyGoogle } from '@/app/api/auth/google/route'
 import { POST as v1Google } from '@/app/api/v1/auth/google/route'
-import { POST as legacyApple } from '@/app/api/auth/apple/route'
 import { POST as v1Apple } from '@/app/api/v1/auth/apple/route'
 import { googleAllowedAudiences } from '@/lib/auth/google-identity'
 
@@ -56,9 +54,7 @@ const linkedUser = { id: 'u1', email: 'dev@example.com', name: 'Dev', image: nul
 const emailOwner = { ...linkedUser, id: 'someone-else', accounts: [] }
 
 const routes: Array<{ name: string; provider: 'google' | 'apple'; path: string; handler: Handler; body: object }> = [
-  { name: 'POST /api/auth/google', provider: 'google', path: '/api/auth/google', handler: legacyGoogle as Handler, body: { idToken: 'g-id-token' } },
   { name: 'POST /api/v1/auth/google', provider: 'google', path: '/api/v1/auth/google', handler: v1Google as Handler, body: { idToken: 'g-id-token' } },
-  { name: 'POST /api/auth/apple', provider: 'apple', path: '/api/auth/apple', handler: legacyApple as Handler, body: { identityToken: 'a-id-token' } },
   { name: 'POST /api/v1/auth/apple', provider: 'apple', path: '/api/v1/auth/apple', handler: v1Apple as Handler, body: { identityToken: 'a-id-token' } },
 ]
 

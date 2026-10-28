@@ -8,7 +8,7 @@
  *   app/api/v1/tasks/[id]/comments        type: body.type || 'TEXT'   ← fixed earlier
  *   app/api/v1/chat/.../messages          type: type || 'TEXT'
  *   app/api/v1/agent/chat/.../messages    type: type || 'MARKDOWN'
- *   app/api/chat/.../messages  (legacy)   type: type || 'TEXT'
+ *   app/api/chat/.../messages  (legacy)   type: type || 'TEXT'   ← deleted, AWTD-839
  *
  * None of the three chat routes validates it. The only mention of the allowed
  * values anywhere in them is a DOC COMMENT — `type?: 'TEXT' | 'MARKDOWN' |
@@ -71,35 +71,6 @@ describe('chat message type shares the CommentType enum (task 87e19910)', () => 
     expect(V1_COMMENT_TYPE_VALUES).toEqual(['TEXT', 'MARKDOWN', 'ATTACHMENT'])
     expect(isV1CommentType('BANANA')).toBe(false)
     expect(isV1CommentType('text')).toBe(false)
-  })
-})
-
-describe('POST /api/chat/channels/:id/messages validates type (task 87e19910)', () => {
-  function post(body: unknown) {
-    return new NextRequest('http://localhost/api/chat/channels/channel-1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-  }
-
-  const ctx = { params: Promise.resolve({ channelId: 'channel-1' }) } as never
-
-  it('400s an unknown type instead of letting Prisma 500', async () => {
-    const { POST } = await import('@/app/api/chat/channels/[channelId]/messages/route')
-
-    const response = await POST(post({ content: 'hi', type: 'BANANA' }), ctx)
-
-    expect(response.status).toBe(400)
-    expect((await response.json()).error).toContain('TEXT')
-    expect(chatMessageCreate).not.toHaveBeenCalled()
-  })
-
-  it('400s the lower-case spelling of a real type', async () => {
-    const { POST } = await import('@/app/api/chat/channels/[channelId]/messages/route')
-
-    expect((await POST(post({ content: 'hi', type: 'text' }), ctx)).status).toBe(400)
-    expect(chatMessageCreate).not.toHaveBeenCalled()
   })
 })
 

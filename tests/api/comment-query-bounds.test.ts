@@ -12,7 +12,6 @@ import { describe, it, expect } from 'vitest'
 import fs from 'fs'
 
 const ROUTES = [
-  'app/api/tasks/[id]/comments/route.ts',
   'app/api/lists/[id]/tasks/route.ts',
   'app/api/events/poll/route.ts',
 ]
@@ -31,16 +30,19 @@ describe.each(ROUTES)('%s', route => {
   })
 })
 
+// The legacy /api/tasks/:id/comments this block used to read was deleted
+// (AWTD-839). Its v1 successor bounds the list its own way: the newest
+// TASK_COMMENTS_LIST_LIMIT, with total/truncated in meta, and no nested replies.
 describe('comment list is bounded', () => {
-  const source = fs.readFileSync('app/api/tasks/[id]/comments/route.ts', 'utf8')
+  const source = fs.readFileSync('app/api/v1/tasks/[id]/comments/route.ts', 'utf8')
 
   it('caps how many comments one response can carry', () => {
-    expect(source).toContain('parseLimit(')
-    expect(source).toMatch(/take,/)
+    expect(source).toMatch(/take: TASK_COMMENTS_LIST_LIMIT/)
+    expect(source).toMatch(/truncated/)
   })
 
-  it('caps replies per comment', () => {
-    expect(source).toContain('MAX_REPLIES_PER_COMMENT')
+  it('never embeds a whole User row', () => {
+    expect(source).not.toMatch(/\bauthor: true\b/)
   })
 })
 
