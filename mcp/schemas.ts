@@ -15,6 +15,7 @@ const { z } = require("zod")
 // tsc emits a require for it in the CommonJS MCP build, and a bare require of
 // a sibling .ts is not resolvable when vitest loads this file directly.
 import { MIN_TASK_PRIORITY, MAX_TASK_PRIORITY } from "../lib/task-priority"
+import { isValidWeekOfMonth } from "../types/repeating"
 
 const RepeatingDataSchema = z.object({
   type: z.literal("custom"),
@@ -28,7 +29,7 @@ const RepeatingDataSchema = z.object({
   monthDay: z.number().min(1).max(31).optional(),
   monthWeekday: z.object({
     weekday: z.enum(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]),
-    weekOfMonth: z.number().min(1).max(5),
+    weekOfMonth: z.number().refine(isValidWeekOfMonth, "weekOfMonth is 1-5, or -1 for the last"),
   }).optional(),
   month: z.number().min(1).max(12).optional(),
   day: z.number().min(1).max(31).optional(),
