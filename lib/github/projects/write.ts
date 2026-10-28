@@ -138,8 +138,13 @@ class Builder {
   private n = 0
   /** issue:issueField pairs already written: an issue on two projects has one value. */
   private issueFieldsWritten = new Set<string>()
+  // A plain field, not a parameter property: the contract exporter runs this file under
+  // Node's strip-only TypeScript, which rejects parameter properties.
+  private readonly content?: FieldContent
 
-  constructor(private readonly content?: FieldContent) {}
+  constructor(content?: FieldContent) {
+    this.content = content
+  }
 
   add(mutation: string, args: Record<string, [type: string, value: unknown]>, selection: string, carriesVersion = false): string {
     const alias = `m${this.n++}`
