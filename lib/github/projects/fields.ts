@@ -55,6 +55,9 @@ export interface RemoteField {
   dataType?: string
   options?: FieldOption[]
   configuration?: { iterations?: FieldIteration[]; completedIterations?: FieldIteration[] }
+  isIssueField?: boolean
+  /** The issue field behind it (AWTD-1313). Null when there is none, or the App may not read it. */
+  issueField?: { id?: string } | null
 }
 
 export type MappedTo = 'status' | 'priority' | 'due'
@@ -68,6 +71,8 @@ export interface FieldDefinition {
   iterations: FieldIteration[] | null
   mappedTo: MappedTo | null
   position: number
+  /** The GitHub issue field behind this project field, written with updateIssueFieldValue (AWTD-1313). */
+  issueFieldId?: string | null
 }
 
 /** The part of the binding that says which fields are mapped to Task columns. */
@@ -108,6 +113,7 @@ export function normaliseFields(fields: RemoteField[], binding: MappedFieldIds):
           : null,
       mappedTo: mappedTo(field.id, binding),
       position: kept.length,
+      issueFieldId: field.issueField?.id ?? null,
     })
   }
   return kept
@@ -134,6 +140,7 @@ function sameDefinition(remote: FieldDefinition, held: HeldField): boolean {
     remote.dataType === held.dataType &&
     remote.mappedTo === held.mappedTo &&
     remote.position === held.position &&
+    (remote.issueFieldId ?? null) === (held.issueFieldId ?? null) &&
     JSON.stringify(remote.options) === JSON.stringify(held.options ?? null) &&
     JSON.stringify(remote.iterations) === JSON.stringify(held.iterations ?? null)
   )
@@ -150,6 +157,31 @@ export function planFieldSchema(remote: FieldDefinition[], held: HeldField[]): F
   const live = new Set(remote.map(field => field.remoteId))
   plan.remove = held.filter(field => !live.has(field.remoteId)).map(field => field.id)
   return plan
+}
+
+// ── Issue fields (AWTD-1313) ────────────────────────────────────────────────
+
+/**
+ * Project field id → the issue field behind it, for the fields a write sends
+ * with updateIssueFieldValue. Date, text and number only: a single-select
+ * issue field's project options are not the issue field's options (GitHub
+ * lists none on the project field — Priority on the test project), so it has
+ * nothing Astrid could send and stays on the project path.
+ */
+/** The ProjectField rows `issueFieldsOf` reads, as a Prisma relation select. */
+export const ISSUE_FIELD_ROWS = {
+  where: { issueFieldId: { not: null } },
+  select: { remoteId: true, dataType: true, issueFieldId: true },
+} as const
+
+export function issueFieldsOf(
+  rows: ReadonlyArray<{ remoteId: string; dataType: string; issueFieldId: string | null }>,
+): Record<string, string> {
+  const map: Record<string, string> = {}
+  for (const row of rows) {
+    if (row.issueFieldId && ['date', 'text', 'number'].includes(row.dataType)) map[row.remoteId] = row.issueFieldId
+  }
+  return map
 }
 
 // ── Values ──────────────────────────────────────────────────────────────────
