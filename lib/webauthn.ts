@@ -9,8 +9,8 @@ import { isoUint8Array } from "@simplewebauthn/server/helpers"
 import type {
   RegistrationResponseJSON,
   AuthenticationResponseJSON,
-  AuthenticatorTransportFuture,
-} from "@simplewebauthn/types"
+  AuthenticatorTransport,
+} from "@simplewebauthn/server"
 import { prisma } from "./prisma"
 import { createLogger } from '@/lib/logger'
 
@@ -238,7 +238,7 @@ export async function getRegistrationOptions(userId: string, email: string, requ
         // column already holds — the old Buffer round-trip was decoding it only for the
         // library to re-encode it. Stored bytes are unchanged, so existing passkeys still match.
         id: auth.credentialID,
-        transports: auth.transports?.split(",") as AuthenticatorTransportFuture[] | undefined,
+        transports: auth.transports?.split(",") as AuthenticatorTransport[] | undefined,
       }))
     : undefined
 
@@ -346,7 +346,7 @@ export async function verifyRegistration(
 }
 
 export async function getAuthenticationOptions(email?: string, requestOrigin?: string) {
-  let allowCredentials: { id: string; transports?: AuthenticatorTransportFuture[] }[] | undefined
+  let allowCredentials: { id: string; transports?: AuthenticatorTransport[] }[] | undefined
 
   if (email) {
     // If email is provided, only allow credentials for that user
@@ -358,7 +358,7 @@ export async function getAuthenticationOptions(email?: string, requestOrigin?: s
     if (user && user.authenticators.length > 0) {
       allowCredentials = user.authenticators.map((auth) => ({
         id: auth.credentialID,
-        transports: auth.transports?.split(",") as AuthenticatorTransportFuture[] | undefined,
+        transports: auth.transports?.split(",") as AuthenticatorTransport[] | undefined,
       }))
     }
   }
@@ -402,7 +402,7 @@ export async function verifyAuthentication(
         id: authenticator.credentialID,
         publicKey: new Uint8Array(Buffer.from(authenticator.credentialPublicKey, "base64")),
         counter: Number(authenticator.counter),
-        transports: authenticator.transports?.split(",") as AuthenticatorTransportFuture[] | undefined,
+        transports: authenticator.transports?.split(",") as AuthenticatorTransport[] | undefined,
       },
     })
 
