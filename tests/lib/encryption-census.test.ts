@@ -12,6 +12,7 @@ import { describe, it, expect } from 'vitest'
 import crypto from 'crypto'
 import { namedEncryptionKeys } from '@/lib/encryption-keys'
 import { runEncryptionCensus } from '@/lib/encryption-census'
+import { ENCRYPTED_COLUMNS } from '@/lib/reencrypt-plan'
 
 const OLD = 'a1'.repeat(32)
 const NEW = 'b2'.repeat(32)
@@ -55,10 +56,11 @@ describe('runEncryptionCensus (AWTD-1369)', () => {
     { id: '2', name: encryptUnder(NEW, 'Grace Hopper'), phoneNumber: null },
     { id: '3', name: encryptUnder(STRAY, 'Alan Turing'), phoneNumber: 'plain 555' },
   ]
+  // Every table the plan names, empty unless seeded — so covering a new store
+  // (AWTD-1380 added four) does not need this fake rebuilt by hand.
   const db = {
+    ...Object.fromEntries(ENCRYPTED_COLUMNS.map(t => [t.model, fakeModel([])])),
     addressBookContact: fakeModel(contacts),
-    userWebhookConfig: fakeModel([]),
-    pushSubscription: fakeModel([]),
   }
 
   it('counts, per column, which named key decrypts each value and how many no key does', async () => {
