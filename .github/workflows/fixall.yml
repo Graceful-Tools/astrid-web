@@ -6,8 +6,9 @@ concurrency:
   group: fixall-github-copilot
   cancel-in-progress: false
 
-# Autonomous queue work is scheduled by the Copilot app workflow
-# "Work Astrid Web queue" on the local host (cron: 7,37 * * * *).
+# Manual diagnostic/fallback only. Autonomous web queue work runs in the cloud
+# on agent-run.yml's schedule; the Mac's web loop and its astrid-web runner
+# were retired (AWTD-1363).
 on:
   workflow_dispatch:
     inputs:
@@ -16,21 +17,11 @@ on:
         required: false
         default: false
         type: boolean
-      runner:
-        description: 'Runner target (cloud is a manual backup, not automatic failover)'
-        required: false
-        default: 'local'
-        type: choice
-        options:
-          - local
-          - cloud
 
 jobs:
   list-ready-tasks:
     name: 'List Ready Tasks'
-    # The default manual path uses the dedicated organization runner. A queued
-    # self-hosted job cannot automatically fail over to cloud.
-    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-24.04"]' || '["self-hosted","astrid-web"]') }}
+    runs-on: ubuntu-24.04
     outputs:
       has_tasks: ${{ steps.list.outputs.has_tasks }}
       task_count: ${{ steps.list.outputs.task_count }}
@@ -92,7 +83,7 @@ jobs:
 
   dry-run-report:
     name: 'Dry Run — Task Report'
-    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-24.04"]' || '["self-hosted","astrid-web"]') }}
+    runs-on: ubuntu-24.04
     needs: list-ready-tasks
     if: ${{ inputs.dry_run == true }}
     steps:
@@ -106,7 +97,7 @@ jobs:
 
   work-tasks:
     name: 'Work Ready Tasks'
-    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-24.04"]' || '["self-hosted","astrid-web"]') }}
+    runs-on: ubuntu-24.04
     needs: list-ready-tasks
     if: ${{ inputs.dry_run != true && needs.list-ready-tasks.outputs.has_tasks == 'true' }}
     steps:
@@ -244,7 +235,7 @@ jobs:
 
   no-tasks:
     name: 'Nothing to do'
-    runs-on: ${{ fromJSON(inputs.runner == 'cloud' && '["ubuntu-24.04"]' || '["self-hosted","astrid-web"]') }}
+    runs-on: ubuntu-24.04
     needs: list-ready-tasks
     if: ${{ needs.list-ready-tasks.outputs.has_tasks == 'false' }}
     steps:

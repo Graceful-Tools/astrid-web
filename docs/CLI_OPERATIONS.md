@@ -480,7 +480,7 @@ explicitly requires it. Do not stack every gate by default, and do not report a
 targeted pass as the final gate.
 
 The manually dispatched `predeploy.yml` workflow defaults to `predeploy:full` and runs
-on the web-only `[self-hosted, astrid-web]` runner label.
+on GitHub-hosted `ubuntu-24.04` (the Mac's `astrid-web` runner was retired, AWTD-1363).
 
 **Test locations:** Vitest unit → `tests/`; Playwright E2E → `e2e/*.spec.ts`.
 iOS tests live in the separate [astrid-ios](https://github.com/Graceful-Tools/astrid-ios) repo.
