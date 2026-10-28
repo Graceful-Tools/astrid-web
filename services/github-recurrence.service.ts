@@ -31,6 +31,7 @@ import type { GraphqlClient } from '@/lib/github/rate-limiter'
 import type { BindingFieldMap, RemoteFieldValue } from '@/lib/github/projects/apply'
 import { ADD_ITEM_DOCUMENT, parseCreatedContent } from '@/lib/github/projects/create'
 import { hydrateItem } from '@/lib/github/projects/hydrate'
+import { ISSUE_FIELD_ROWS, issueFieldsOf } from '@/lib/github/projects/fields'
 import { createTasksInBulk } from '@/services/task-bulk-create'
 import { isUniqueConstraintError } from '@/lib/secure-file-idempotency'
 import {
@@ -81,7 +82,13 @@ async function predecessorMemberships(taskId: string) {
         select: {
           projectNodeId: true,
           installationId: true,
-          project: { select: { ownerId: true } },
+          project: {
+            select: {
+              ownerId: true,
+              // Issue-backed fields take updateIssueFieldValue (AWTD-1313).
+              fields: ISSUE_FIELD_ROWS,
+            },
+          },
           statusFieldId: true,
           statusOptionMap: true,
           priorityFieldId: true,
@@ -277,17 +284,18 @@ export async function runRecurSpawn(
       projectNodeId: m.binding.projectNodeId,
       itemNodeId,
       binding: fieldMap(m.binding),
+      issueFields: issueFieldsOf(m.binding.project.fields ?? []),
       fieldValues: (predecessorItem?.fieldValues?.nodes ?? []) as RemoteFieldValue[],
     })
   }
 
   const nextDue = answer.nextDueDate === null ? null : new Date(answer.nextDueDate)
-  const fieldPlan = planSpawnFields(spawnMemberships, nextDue)
+  const fieldPlan = planSpawnFields(spawnMemberships, nextDue, created)
   // The issue already exists, so nothing past this point may fail the job: a
   // retry starts at step 1 and creates ANOTHER issue. A field GitHub refuses
-  // (an issue field, e.g. "Target date", takes a different mutation — AWTD-1284)
   // leaves the successor without that value, which a person can fix; a
-  // duplicate issue per retry they cannot stop.
+  // duplicate issue per retry they cannot stop. (An issue field such as
+  // "Target date" goes through updateIssueFieldValue — AWTD-1284, AWTD-1313.)
   if (fieldPlan.document) {
     try {
       await client.query(fieldPlan.document, fieldPlan.variables, { strict: true })

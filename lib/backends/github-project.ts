@@ -34,6 +34,7 @@ import { prisma } from '@/lib/prisma'
 import { hasCapability } from '@/lib/brand/capabilities'
 import { agentLabelName, type AgentLabelPayload } from '@/lib/github/projects/agent-labels'
 import type { BindingFieldMap } from '@/lib/github/projects/apply'
+import { ISSUE_FIELD_ROWS, issueFieldsOf } from '@/lib/github/projects/fields'
 import { assigneeIdsOf, nextAssigneeIds } from '@/lib/task-assignees'
 import {
   planFieldValueMutation,
@@ -116,7 +117,13 @@ async function loadWritable(
               projectNodeId: true,
               installationId: true,
               detachedAt: true,
-              project: { select: { lists: { where: { backend: 'github_project' }, select: { id: true }, take: 1 } } },
+              project: {
+                select: {
+                  lists: { where: { backend: 'github_project' }, select: { id: true }, take: 1 },
+                  // Issue-backed fields take updateIssueFieldValue (AWTD-1313).
+                  fields: ISSUE_FIELD_ROWS,
+                },
+              },
               statusFieldId: true,
               statusOptionMap: true,
               priorityFieldId: true,
@@ -146,6 +153,7 @@ async function loadWritable(
         priorityOptionMap: (m.binding.priorityOptionMap ?? null) as Record<string, number> | null,
         dueFieldId: m.binding.dueFieldId,
       } satisfies BindingFieldMap,
+      issueFields: issueFieldsOf(m.binding.project.fields ?? []),
     })),
   }
 }
@@ -347,6 +355,8 @@ async function loadBoardForCreate(data: TaskBackendRow) {
               installationId: true,
               detachedAt: true,
               defaultRepoNodeId: true,
+              // Issue-backed fields take updateIssueFieldValue (AWTD-1313).
+              project: { select: { fields: ISSUE_FIELD_ROWS } },
               statusFieldId: true,
               statusOptionMap: true,
               priorityFieldId: true,
@@ -401,6 +411,7 @@ export function createGithubProjectTaskBackend(deps: GithubBackendDeps): TaskBac
           priorityOptionMap: (binding.priorityOptionMap ?? null) as Record<string, number> | null,
           dueFieldId: binding.dueFieldId,
         },
+        issueFields: issueFieldsOf(binding.project?.fields ?? []),
       })
       // Refuse an impossible lane or field BEFORE anything exists on GitHub.
       const kind = binding.defaultRepoNodeId ? 'issue' : 'draft'
@@ -579,7 +590,7 @@ export function createGithubProjectTaskBackend(deps: GithubBackendDeps): TaskBac
       if (!client) return fail(403, 'auth_required')
 
       try {
-        const plan = planFieldValueMutation(membership, fieldRemoteId, value)
+        const plan = planFieldValueMutation(membership, fieldRemoteId, value, loaded.task)
         await client.query(plan.document, plan.variables, { strict: true })
         return { ok: true, value: undefined }
       } catch (err) {

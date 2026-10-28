@@ -56,6 +56,7 @@ export const PROJECT_FIELD_SELECT = {
   iterations: true,
   mappedTo: true,
   position: true,
+  issueFieldId: true,
 } as const
 const FIELD_SELECT = PROJECT_FIELD_SELECT
 
@@ -86,6 +87,7 @@ function fieldRow(field: FieldDefinition) {
     iterations: (field.iterations as Prisma.InputJsonValue | null) ?? Prisma.DbNull,
     mappedTo: field.mappedTo,
     position: field.position,
+    issueFieldId: field.issueFieldId ?? null,
   }
 }
 

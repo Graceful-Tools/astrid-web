@@ -73,3 +73,16 @@ posting comments in the test org, and the run that wrote them was unattended.
 `hydrate-item-missing.json`. **Re-record them** the next time someone is working in the test
 org, against two comments on `wordlesolver#1`: one by a person, one by the App bot. Until
 then nothing here proves the query is valid against GitHub's schema.
+
+**2026-10-28, AWTD-1313.** The fragment grew `... on ProjectV2ItemIssueFieldValue { field
+issueFieldValue { ... on IssueFieldDateValue { date: value } ... } }`, and `PROJECT_SCHEMA_QUERY`
+grew `isIssueField` and `issueField { ... on IssueFieldDate { id } ... }`. Both were re-run against
+the project the same day with an installation token. GitHub accepted the items page and the
+hydrate query (HTTP 200, no errors; page `rateLimit.cost` stayed at 4). No fixture item holds an
+issue-field value, so no `ProjectV2ItemIssueFieldValue` came back and nothing was re-recorded. The
+schema query answered `isIssueField: true` for Priority, Start date, Target date and Effort, but
+`issueField: null` with a FORBIDDEN "Resource not accessible by integration" error beside the
+data for each of them: the App (permissions issues, contents, pull_requests, statuses, members,
+metadata, organization_projects) has no issue-fields permission, and `organization.issueFields`
+is FORBIDDEN too. Until it does, `ProjectField.issueFieldId` stays null and an issue-field write
+is still refused by GitHub.
