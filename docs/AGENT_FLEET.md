@@ -67,6 +67,8 @@ CLI logins; GitHub starts its built-in Copilot worker through native assignment.
 
 `tests/rules/fixall-harness-parity.test.ts` holds the adapters to this.
 
+An `agent-run.yml` run fails unless the agent's last line is `RESULT: OK` or `RESULT: SKIPPED` (see `.github/agent-run-prompt.md`).
+
 ## Secrets: agents never hold production keys
 
 | Tier | Holds | Can |
