@@ -77,6 +77,14 @@ const PUBLIC: Record<string, string> = {
  * the number is one that someone chose rather than one nobody measured.
  */
 const INLINE_AUTH_ALLOWED: Record<string, string> = {
+  // Moved verbatim from the deleted legacy routes they used to re-export
+  // (AWTD-839), so their auth is exactly what v1 already served. Wrapping them
+  // adds a scope check and the capability gate to endpoints iOS calls, which is
+  // a behaviour change with its own task, not a side effect of a deletion.
+  'app/api/v1/chat/channels/route.ts': 'moved from legacy in AWTD-839; wrapping is its own task',
+  'app/api/v1/chat/channels/[channelId]/agent-response/route.ts': 'moved from legacy in AWTD-839; wrapping is its own task',
+  'app/api/v1/secure-upload/get-upload-url/route.ts': 'moved from legacy in AWTD-839; wrapping is its own task',
+  'app/api/v1/secure-upload/request-upload/route.ts': 'moved from legacy in AWTD-839; wrapping is its own task',
   'app/api/v1/agent/events/route.ts':
     'SSE: the stream is constructed from the auth result and the rate limiter needs the clientId before the response begins, so the wrapper’s request/response shape does not fit as-is',
 }

@@ -72,7 +72,7 @@ describe('the GitHub App connection answers to codingAgent || githubProjects (AW
 
   it('keeps the coding agent’s own routes on codingAgent alone', async () => {
     stubCapabilities({ codingAgent: false, githubProjects: true })
-    const { GET } = await import('@/app/api/github/repositories/route')
+    const { GET } = await import('@/app/api/v1/github/repositories/route')
     const res = await GET(getRequest('http://localhost/api/github/repositories'))
     expect(res.status).toBe(404)
   })

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import { POST as snoozeHandler } from '@/app/api/reminders/[id]/snooze/route'
-import { POST as dismissHandler } from '@/app/api/reminders/[id]/dismiss/route'
+import { POST as snoozeHandler } from '@/app/api/v1/reminders/[id]/snooze/route'
+import { POST as dismissHandler } from '@/app/api/v1/reminders/[id]/dismiss/route'
 import { GET as statusHandler } from '@/app/api/reminders/status/route'
 
 // Mock dependencies
@@ -12,6 +12,21 @@ vi.mock('next-auth', () => ({
 vi.mock('@/lib/auth-config', () => ({
   authConfig: {},
 }))
+
+// Snooze and dismiss are v1 and authenticate through authenticateAPI;
+// /api/reminders/status still reads the session.
+vi.mock('@/lib/api-auth-middleware', () => {
+  class UnauthorizedError extends Error {
+    constructor(msg = 'Unauthorized') { super(msg); this.name = 'UnauthorizedError' }
+  }
+  class ForbiddenError extends Error {
+    constructor(msg = 'Forbidden') { super(msg); this.name = 'ForbiddenError' }
+  }
+  return {
+    authenticateAPI: vi.fn(), requireScopes: vi.fn(),
+    UnauthorizedError, ForbiddenError, getDeprecationWarning: vi.fn(() => null),
+  }
+})
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -32,6 +47,7 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 import { getServerSession } from 'next-auth'
+import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 
 const mockGetServerSession = getServerSession as any
@@ -43,9 +59,16 @@ describe('Reminder API Endpoints', () => {
     mockGetServerSession.mockResolvedValue({
       user: { id: 'user1', email: 'test@example.com' },
     })
+    vi.mocked(authenticateAPI).mockResolvedValue({
+      userId: 'user1',
+      source: 'session',
+      scopes: ['*'],
+      isAIAgent: false,
+      user: { id: 'user1', email: 'test@example.com', name: null, isAIAgent: false },
+    })
   })
 
-  describe('POST /api/reminders/[id]/snooze', () => {
+  describe('POST /api/v1/reminders/[id]/snooze', () => {
     it('should snooze reminder for 15 minutes', async () => {
       const mockReminder = {
         id: 'reminder1',
@@ -61,7 +84,7 @@ describe('Reminder API Endpoints', () => {
         scheduledFor: new Date('2024-01-15T10:15:00Z'),
       })
 
-      const request = new NextRequest('http://localhost/api/reminders/reminder1/snooze', {
+      const request = new NextRequest('http://localhost/api/v1/reminders/reminder1/snooze', {
         method: 'POST',
         body: JSON.stringify({ minutes: 15 }),
         headers: { 'Content-Type': 'application/json' },
@@ -96,7 +119,7 @@ describe('Reminder API Endpoints', () => {
 
       mockPrisma.reminderQueue.findUnique.mockResolvedValue(mockReminder)
 
-      const request = new NextRequest('http://localhost/api/reminders/reminder1/snooze', {
+      const request = new NextRequest('http://localhost/api/v1/reminders/reminder1/snooze', {
         method: 'POST',
         body: JSON.stringify({ minutes: 15 }),
         headers: { 'Content-Type': 'application/json' },
@@ -118,7 +141,7 @@ describe('Reminder API Endpoints', () => {
 
       mockPrisma.reminderQueue.findUnique.mockResolvedValue(mockReminder)
 
-      const request = new NextRequest('http://localhost/api/reminders/reminder1/snooze', {
+      const request = new NextRequest('http://localhost/api/v1/reminders/reminder1/snooze', {
         method: 'POST',
         body: JSON.stringify({ minutes: 30 }),
         headers: { 'Content-Type': 'application/json' },
@@ -146,7 +169,7 @@ describe('Reminder API Endpoints', () => {
       const invalidDurations = [-5, 0, 10081] // negative, zero, too long (> 1 week)
 
       for (const minutes of invalidDurations) {
-        const request = new NextRequest('http://localhost/api/reminders/reminder1/snooze', {
+        const request = new NextRequest('http://localhost/api/v1/reminders/reminder1/snooze', {
           method: 'POST',
           body: JSON.stringify({ minutes }),
           headers: { 'Content-Type': 'application/json' },
@@ -158,7 +181,7 @@ describe('Reminder API Endpoints', () => {
     })
   })
 
-  describe('POST /api/reminders/[id]/dismiss', () => {
+  describe('POST /api/v1/reminders/[id]/dismiss', () => {
     it('should dismiss reminder permanently', async () => {
       const mockReminder = {
         id: 'reminder1',
@@ -171,7 +194,7 @@ describe('Reminder API Endpoints', () => {
       mockPrisma.reminderQueue.count.mockResolvedValue(0)
       mockPrisma.task.update.mockResolvedValue({ id: 'task1' })
 
-      const request = new NextRequest('http://localhost/api/reminders/reminder1/dismiss', {
+      const request = new NextRequest('http://localhost/api/v1/reminders/reminder1/dismiss', {
         method: 'POST',
       })
 
@@ -202,7 +225,7 @@ describe('Reminder API Endpoints', () => {
       mockPrisma.reminderQueue.deleteMany.mockResolvedValue({ count: 2 })
       mockPrisma.task.update.mockResolvedValue({ id: 'task1' })
 
-      const request = new NextRequest('http://localhost/api/reminders/reminder1/dismiss', {
+      const request = new NextRequest('http://localhost/api/v1/reminders/reminder1/dismiss', {
         method: 'POST',
         body: JSON.stringify({ dismissAll: true }),
         headers: { 'Content-Type': 'application/json' },

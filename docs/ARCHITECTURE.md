@@ -537,9 +537,9 @@ ChatChannel (1:1 with TaskList or virtualKey)
 ```
 
 **API Routes:**
-- `POST /api/chat/channels` — get-or-create channel ([app/api/chat/channels/route.ts](../app/api/chat/channels/route.ts))
-- `GET /api/chat/channels/:id/messages` — paginated messages
-- `POST /api/chat/channels/:id/messages` — send message (supports `fileId` for attachments)
+- `POST /api/v1/chat/channels` — get-or-create channel ([app/api/v1/chat/channels/route.ts](../app/api/v1/chat/channels/route.ts))
+- `GET /api/v1/chat/channels/:id/messages` — paginated messages
+- `POST /api/v1/chat/channels/:id/messages` — send message (supports `fileId` for attachments)
 
 **Client Hooks:**
 - `useChatChannel` ([hooks/use-chat-channel.ts](../hooks/use-chat-channel.ts)) — message loading, sending, optimistic updates
@@ -554,7 +554,7 @@ ChatChannel (1:1 with TaskList or virtualKey)
 | Shared/public list | No | Only when @mentioned |
 | Task comments | No | Only when @mentioned |
 
-Logic: [app/api/chat/channels/[channelId]/messages/route.ts](../app/api/chat/channels/[channelId]/messages/route.ts) (line ~276)
+Logic: [app/api/v1/chat/channels/[channelId]/messages/route.ts](../app/api/v1/chat/channels/[channelId]/messages/route.ts)
 
 ### Astrid Agent Runtime ([lib/astrid-agent-runtime.ts](../lib/astrid-agent-runtime.ts))
 
@@ -678,7 +678,7 @@ Viewing: `GET /api/secure-files/:fileId` redirects to a signed Vercel Blob URL (
 - Comment file attachments
 - User avatars and list images
 - Presigned URLs for secure access
-- API: [app/api/secure-upload/request-upload/route.ts](../app/api/secure-upload/request-upload/route.ts)
+- API: [app/api/v1/secure-upload/request-upload/route.ts](../app/api/v1/secure-upload/request-upload/route.ts)
 - Ticketed task-image upload for API/MCP clients: `POST /api/v1/tasks/:id/attachment-uploads` → `PUT /api/v1/attachment-uploads` (both persist via [services/secure-upload.service.ts](../services/secure-upload.service.ts))
 
 #### **Upstash Redis**

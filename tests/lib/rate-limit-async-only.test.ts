@@ -56,7 +56,7 @@ describe('previously unlimited auth routes carry a limiter (task c2fbe8e4)', () 
     'app/api/auth/webauthn/register/verify/route.ts',
     'app/api/auth/webauthn/authenticate/options/route.ts',
     'app/api/auth/webauthn/authenticate/verify/route.ts',
-    'app/api/auth/mobile-session/route.ts',
+    'app/api/v1/auth/mobile-session/route.ts',
     'app/api/v1/auth/signout/route.ts',
   ]
 

@@ -26,7 +26,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-import { POST } from '@/app/api/chat/channels/[channelId]/agent-response/route'
+import { POST } from '@/app/api/v1/chat/channels/[channelId]/agent-response/route'
 
 const CHANNEL = {
   id: 'channel-1',

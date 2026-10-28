@@ -76,8 +76,8 @@ async function testWithRealPR() {
   ]
 
   const recentWebFiles = [
-    'app/api/auth/apple/route.ts',
-    'app/api/auth/google/route.ts',
+    'app/api/v1/auth/apple/route.ts',
+    'app/api/v1/auth/google/route.ts',
     'components/ui/error-boundary.tsx',
   ]
 

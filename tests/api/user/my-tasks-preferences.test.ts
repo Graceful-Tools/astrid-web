@@ -6,14 +6,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { row } from '../../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
-import { GET, PATCH } from '@/app/api/user/my-tasks-preferences/route'
+import { GET, PATCH } from '@/app/api/v1/users/me/my-tasks-preferences/route'
 import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
+import { authenticateAPI, UnauthorizedError } from '@/lib/api-auth-middleware'
 
 // Mock dependencies
-vi.mock('next-auth', () => ({
-  getServerSession: vi.fn(),
-}))
+vi.mock('@/lib/api-auth-middleware', () => {
+  class UnauthorizedError extends Error {
+    constructor(msg = 'Unauthorized') { super(msg); this.name = 'UnauthorizedError' }
+  }
+  class ForbiddenError extends Error {
+    constructor(msg = 'Forbidden') { super(msg); this.name = 'ForbiddenError' }
+  }
+  return {
+    authenticateAPI: vi.fn(), requireScopes: vi.fn(),
+    UnauthorizedError, ForbiddenError, getDeprecationWarning: vi.fn(() => null),
+  }
+})
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -34,25 +43,28 @@ vi.mock('@/lib/sse-utils', () => ({
 describe('My Tasks Preferences API', () => {
   const mockUserId = 'user-123'
   const mockSession = {
-    user: {
-      id: mockUserId,
-      email: 'test@example.com',
-    },
+    userId: mockUserId,
+    source: 'session' as const,
+    scopes: ['*'],
+    isAIAgent: false,
+    user: { id: mockUserId, email: 'test@example.com', name: null, isAIAgent: false },
   }
+  // Every v1 response carries this envelope.
+  const meta = { apiVersion: 'v1', authSource: 'session' }
 
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(getServerSession).mockResolvedValue(mockSession as any)
+    vi.mocked(authenticateAPI).mockResolvedValue(mockSession)
   })
 
-  describe('GET /api/user/my-tasks-preferences', () => {
+  describe('GET /api/v1/users/me/my-tasks-preferences', () => {
     it('should return default preferences when none are set', async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(row({
         id: mockUserId,
         myTasksPreferences: null,
       }))
 
-      const response = await GET(new NextRequest('http://localhost/api/user/my-tasks-preferences'))
+      const response = await GET(new NextRequest('http://localhost/api/v1/users/me/my-tasks-preferences'))
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -62,8 +74,10 @@ describe('My Tasks Preferences API', () => {
         filterAssignee: [],
         filterDueDate: 'all',
         filterCompletion: 'default',
-        sortBy: 'priority',
+        // Legacy defaulted to 'priority'; v1 serves the shared MY_TASKS_DEFAULTS, which match iOS (AWTD-1324).
+        sortBy: 'auto',
         manualSortOrder: [],
+        meta,
       })
     })
 
@@ -81,21 +95,19 @@ describe('My Tasks Preferences API', () => {
         myTasksPreferences: JSON.stringify(savedPrefs),
       }))
 
-      const response = await GET(new NextRequest('http://localhost/api/user/my-tasks-preferences'))
+      const response = await GET(new NextRequest('http://localhost/api/v1/users/me/my-tasks-preferences'))
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data).toEqual(savedPrefs)
+      expect(data).toEqual({ ...savedPrefs, meta })
     })
 
     it('should return 401 when not authenticated', async () => {
-      vi.mocked(getServerSession).mockResolvedValue(null)
-
-      // Mock prisma.session.findUnique to return null (no database session fallback)
-      vi.mocked(prisma.session.findUnique).mockResolvedValue(null)
+      // No credential authenticates — including the invalid cookie below
+      vi.mocked(authenticateAPI).mockRejectedValue(new UnauthorizedError())
 
       // Create a proper Request object with headers
-      const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
+      const request = new NextRequest('http://localhost:3000/api/v1/users/me/my-tasks-preferences', {
         method: 'GET',
         headers: {
           'cookie': 'next-auth.session-token=invalid-token'
@@ -112,7 +124,7 @@ describe('My Tasks Preferences API', () => {
     it('should return 404 when user not found', async () => {
       vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
 
-      const response = await GET(new NextRequest('http://localhost/api/user/my-tasks-preferences'))
+      const response = await GET(new NextRequest('http://localhost/api/v1/users/me/my-tasks-preferences'))
       const data = await response.json()
 
       expect(response.status).toBe(404)
@@ -120,7 +132,7 @@ describe('My Tasks Preferences API', () => {
     })
   })
 
-  describe('PATCH /api/user/my-tasks-preferences', () => {
+  describe('PATCH /api/v1/users/me/my-tasks-preferences', () => {
     it('should update preferences and broadcast SSE event', async () => {
       const newPrefs = {
         filterPriority: [3],
@@ -147,7 +159,7 @@ describe('My Tasks Preferences API', () => {
         myTasksPreferences: JSON.stringify(updatedPrefs),
       }))
 
-      const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
+      const request = new NextRequest('http://localhost:3000/api/v1/users/me/my-tasks-preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newPrefs),
@@ -157,7 +169,7 @@ describe('My Tasks Preferences API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data).toEqual(updatedPrefs)
+      expect(data).toEqual({ ...updatedPrefs, meta })
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: mockUserId },
         data: {
@@ -170,7 +182,7 @@ describe('My Tasks Preferences API', () => {
     })
 
     it('should validate filterPriority is an array', async () => {
-      const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
+      const request = new NextRequest('http://localhost:3000/api/v1/users/me/my-tasks-preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filterPriority: 'invalid' }),
@@ -184,7 +196,7 @@ describe('My Tasks Preferences API', () => {
     })
 
     it('should validate filterAssignee is an array', async () => {
-      const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
+      const request = new NextRequest('http://localhost:3000/api/v1/users/me/my-tasks-preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filterAssignee: 'invalid' }),
@@ -198,7 +210,7 @@ describe('My Tasks Preferences API', () => {
     })
 
     it('should validate filterDueDate values', async () => {
-      const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
+      const request = new NextRequest('http://localhost:3000/api/v1/users/me/my-tasks-preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filterDueDate: 'invalid_value' }),
@@ -212,7 +224,7 @@ describe('My Tasks Preferences API', () => {
     })
 
     it('should validate filterCompletion values', async () => {
-      const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
+      const request = new NextRequest('http://localhost:3000/api/v1/users/me/my-tasks-preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filterCompletion: 'invalid_value' }),
@@ -226,7 +238,7 @@ describe('My Tasks Preferences API', () => {
     })
 
     it('should validate sortBy values', async () => {
-      const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
+      const request = new NextRequest('http://localhost:3000/api/v1/users/me/my-tasks-preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sortBy: 'invalid_value' }),
@@ -267,7 +279,7 @@ describe('My Tasks Preferences API', () => {
         myTasksPreferences: JSON.stringify(expectedMerged),
       }))
 
-      const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
+      const request = new NextRequest('http://localhost:3000/api/v1/users/me/my-tasks-preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(partialUpdate),
@@ -277,13 +289,13 @@ describe('My Tasks Preferences API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(200)
-      expect(data).toEqual(expectedMerged)
+      expect(data).toEqual({ ...expectedMerged, meta })
     })
 
     it('should return 401 when not authenticated', async () => {
-      vi.mocked(getServerSession).mockResolvedValue(null)
+      vi.mocked(authenticateAPI).mockRejectedValue(new UnauthorizedError())
 
-      const request = new NextRequest('http://localhost:3000/api/user/my-tasks-preferences', {
+      const request = new NextRequest('http://localhost:3000/api/v1/users/me/my-tasks-preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filterDueDate: 'today' }),

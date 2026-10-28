@@ -55,7 +55,7 @@ function form(name: string, type: string) {
 }
 
 async function statusFor(name: string, type: string) {
-  const { POST } = await import('@/app/api/secure-upload/request-upload/route')
+  const { POST } = await import('@/app/api/v1/secure-upload/request-upload/route')
   const res = await POST(form(name, type) as never)
   return res.status
 }
