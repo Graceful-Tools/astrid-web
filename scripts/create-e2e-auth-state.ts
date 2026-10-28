@@ -55,7 +55,7 @@ async function main() {
     create: { email: 'playwright-outsider@example.test', name: 'Playwright Outsider' },
   })
 
-  // The board specs need Project Mode (AWTD-1338): /api/projects/from-list
+  // The board specs need Project Mode (AWTD-1338): /api/v1/projects/from-list
   // answers 403 "not enabled for this account" without it. The flag row exists
   // after `prisma migrate deploy`; the owner is INCLUDEd rather than rolling it
   // out to everyone, so the outsider still sees the account default.

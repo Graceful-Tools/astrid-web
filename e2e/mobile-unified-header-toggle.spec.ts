@@ -24,7 +24,7 @@ test.describe('Mobile 1-column header view rotator (task a1e5c0ff, AWTD-1183)', 
       listType: 'regular',
     })
 
-    await createJson(request, '/api/projects/from-list', {
+    await createJson(request, '/api/v1/projects/from-list', {
       listId: list.id,
     })
 

@@ -8,7 +8,7 @@ async function testAPISave() {
 
   // Test the PUT endpoint directly
   try {
-    const response = await fetch('http://localhost:3000/api/user/ai-api-keys', {
+    const response = await fetch('http://localhost:3000/api/v1/users/me/ai-credentials', {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
