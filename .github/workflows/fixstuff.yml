@@ -39,7 +39,8 @@ jobs:
 
   fix-task:
     name: 'Fix Task'
-    runs-on: [self-hosted, astrid-web]
+    # The Mac's astrid-web runner was retired with the Mac web loop (AWTD-1363).
+    runs-on: ubuntu-24.04
     needs: validate
     steps:
       - name: Checkout
