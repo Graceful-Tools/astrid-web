@@ -108,3 +108,16 @@ npm run credentials:rotate-fixall-mcp -- \
 exported in the invoking shell. Do not put either value on the command line.
 The caller's `gh` session must be allowed to manage Actions secrets in both
 repositories.
+
+## Copilot code review
+
+Every pull request into `main` gets a GitHub Copilot code review, Claude's,
+Dependabot's and hand-written ones alike. This is not a workflow file: it is
+the repository ruleset `copilot_review` (Settings → Rules → Rulesets), rule
+**Automatically request Copilot code review**.
+
+Copilot reviews once, when the PR is opened; drafts wait until they are marked
+ready. **Review new pushes** is off because each review costs a premium request.
+To have Copilot look again after new commits, re-request it from the PR's
+Reviewers menu. The review is advisory: Copilot leaves comments and never
+blocks a merge.
