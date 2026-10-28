@@ -177,11 +177,13 @@ jobs:
           # (Jon, 2026-09-19: the loops run on the subscription).
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
+          set -o pipefail
           npm install --global @anthropic-ai/claude-code@2.1.306
           claude -p "$(cat .github/agent-run-prompt.md)" \
             --mcp-config "${RUNNER_TEMP}/astrid-mcp.json" --strict-mcp-config \
             --permission-mode acceptEdits \
-            --allowedTools "Bash(npm run *),Bash(npx tsx scripts/*),Bash(npx vitest *),Bash(git *),Bash(gh pr *),mcp__astrid__*,Read,Edit,Write,Grep,Glob"
+            --allowedTools "Bash(npm run *),Bash(npx tsx scripts/*),Bash(npx vitest *),Bash(git *),Bash(gh pr *),mcp__astrid__*,Read,Edit,Write,Grep,Glob" \
+            | tee .agent-output/agent-transcript.txt
 
       - name: Run Codex
         id: codex
@@ -197,12 +199,27 @@ jobs:
             echo "::error::codex harness is not configured (CODEX_VERSION / CODEX_AUTH_JSON)"
             exit 1
           fi
+          set -o pipefail
           npm install --global "@openai/codex@${CODEX_VERSION}"
           mkdir -p ~/.codex && printf '%s' "${CODEX_AUTH_JSON}" > ~/.codex/auth.json
           codex -c 'mcp_servers.astrid.command="node"' \
             -c "mcp_servers.astrid.args=[\"${GITHUB_WORKSPACE}/mcp/astrid-mcp-launch.js\"]" \
             -c sandbox_workspace_write.network_access=true \
-            exec --full-auto "$(cat .github/agent-run-prompt.md)"
+            exec --full-auto "$(cat .github/agent-run-prompt.md)" | tee .agent-output/agent-transcript.txt
+
+      # The harness exits 0 whether or not the agent finished. Smoke test 2
+      # (AWTD-1366) could not open its PR, said RESULT: PARTIAL, and went green,
+      # so a broken loop looked like a working one. The agent's own last RESULT
+      # line is the verdict; cleanup steps below still run on always().
+      - name: Fail the run unless the agent reports OK or SKIPPED
+        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
+        run: |
+          RESULT=$(grep -E '^RESULT: ' .agent-output/agent-transcript.txt 2>/dev/null | tail -1 || true)
+          echo "${RESULT:-no RESULT line}"
+          case "${RESULT}" in
+            "RESULT: OK"*|"RESULT: SKIPPED"*) ;;
+            *) echo "::error::The agent did not finish: ${RESULT:-it printed no RESULT line}"; exit 1 ;;
+          esac
 
       - name: Preserve unfinished work
         if: ${{ always() && !inputs.dry_run && steps.preflight.outputs.work == 'true' }}

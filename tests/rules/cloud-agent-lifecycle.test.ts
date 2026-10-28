@@ -34,6 +34,24 @@ describe('cloud agent lifecycle wiring', () => {
     expect(source).not.toContain('land-and-deploy.ts')
     expect(source).toContain('mcp__astrid__*')
   })
+  it('fails the run when the agent itself reports it did not finish', () => {
+    // Smoke test 2 (AWTD-1366) pushed its branch, could not open the PR
+    // ("Resource not accessible by personal access token"), said RESULT: PARTIAL,
+    // and the job still went green, so the Actions list showed a working loop.
+    const source = read('.github/workflows/agent-run.yml')
+    const steps = yaml.load(source).jobs.run.steps
+    for (const name of ['Run Claude Code', 'Run Codex']) {
+      const step = steps.find((s: { name?: string }) => s.name === name)
+      expect(step.run, name).toContain('tee .agent-output/agent-transcript.txt')
+      expect(step.run, name).toContain('set -o pipefail')
+    }
+    const verdict = steps.find((s: { name?: string }) => s.name === "Fail the run unless the agent reports OK or SKIPPED")
+    expect(verdict).toBeDefined()
+    expect(verdict.run).toContain('RESULT: OK')
+    expect(verdict.run).toContain('RESULT: SKIPPED')
+    expect(verdict.run).toContain('exit 1')
+    expect(read('.github/agent-run-prompt.md')).toMatch(/^RESULT: OK \| SKIPPED \| PARTIAL \| FAILED/m)
+  })
   it('gives deterministic shipping separate authority and an opt-in schedule', () => {
     const source = read('.github/workflows/agent-ship.yml')
     const workflow = yaml.load(source)
