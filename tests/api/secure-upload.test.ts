@@ -2,7 +2,15 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { row, rowWith } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/v1/secure-upload/request-upload/route'
-import { mockPrisma, mockGetServerSession } from '../setup'
+import { UnauthorizedError } from '@/lib/api-auth-middleware'
+import { mockPrisma } from '../setup'
+
+// The route authenticates through withAuth (AWTD-1402).
+const authenticateAPI = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/api-auth-middleware', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/lib/api-auth-middleware')>()),
+  authenticateAPI,
+}))
 
 // Mock Vercel Blob
 vi.mock('@vercel/blob', () => ({
@@ -58,9 +66,7 @@ describe('Secure Upload API', () => {
     vi.clearAllMocks()
 
     // Mock authenticated session
-    mockGetServerSession.mockResolvedValue(row({
-      user: { id: 'test-user-id', email: 'test@example.com' }
-    }))
+    authenticateAPI.mockResolvedValue({ userId: 'test-user-id', source: 'session', scopes: ['*'] })
   })
 
   describe('POST /api/secure-upload/request-upload', () => {
@@ -176,14 +182,14 @@ describe('Secure Upload API', () => {
 
     it('should reject unauthorized upload', async () => {
       // Mock no session
-      mockGetServerSession.mockResolvedValue(null)
+      authenticateAPI.mockRejectedValue(new UnauthorizedError('Authentication required'))
 
       const request = createMockRequestWithFile({ taskId: 'test-task-id' })
       const response = await POST(request)
       const data = await response.json()
 
       expect(response.status).toBe(401)
-      expect(data).toEqual({ error: "Unauthorized" })
+      expect(data).toMatchObject({ error: "Unauthorized" })
     })
 
     it('should reject upload without context', async () => {
