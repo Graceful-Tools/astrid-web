@@ -6,6 +6,10 @@
  * unusual because production's key is a Vercel Secret whose value cannot be
  * read back, so it cannot be copied into a "previous key" variable:
  *
+ *   0. GET /api/admin/encryption-census on production: noKey must be 0, and it
+ *      shows which key decrypts what. The Mac may not hold production's key
+ *      (on 2026-10-27 it held none), in which case this script cannot decrypt
+ *      production's rows from here: every value reports as failed;
  *   1. generate a new key, record it, set it as ENCRYPTION_KEY_NEXT in Vercel;
  *   2. deploy — reads now try both keys, writes use NEXT (lib/encryption-keys.ts);
  *   3. run this, until `--verify` reports 0 failures;
