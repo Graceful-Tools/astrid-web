@@ -108,3 +108,17 @@ npm run credentials:rotate-fixall-mcp -- \
 exported in the invoking shell. Do not put either value on the command line.
 The caller's `gh` session must be allowed to manage Actions secrets in both
 repositories.
+
+## Copilot review of Claude PRs
+
+`copilot-review.yml` requests a GitHub Copilot code review on every pull
+request Claude opens. Claude's PRs are authored by Jon's account, so the
+workflow recognises them by the `Generated with [Claude Code]` footer in the
+PR body, or an `agent/claude-code/` head branch. Dependabot and hand-written
+PRs are skipped.
+
+It runs when a PR is opened, reopened or marked ready for review, not on every
+push, because each review costs a premium request. To have Copilot look again
+after new commits, re-request it from the PR's Reviewers menu. The review is
+advisory: Copilot leaves comments and never blocks a merge. The request uses
+the workflow's `GITHUB_TOKEN`; no extra secret is needed.
