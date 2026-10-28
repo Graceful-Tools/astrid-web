@@ -29,7 +29,7 @@ test.describe('Mobile board view — body swipe does not change the header', () 
       listType: 'regular',
     })
 
-    await createJson(request, '/api/projects/from-list', {
+    await createJson(request, '/api/v1/projects/from-list', {
       listId: domainList.id,
     })
 

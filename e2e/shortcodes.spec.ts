@@ -34,7 +34,7 @@ test.describe('Shortcode Navigation', () => {
 
       // Create a shortcode for this task via API
       const response = await page.evaluate(async (tid) => {
-        const res = await fetch('/api/shortcodes', {
+        const res = await fetch('/api/v1/shortcodes', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -120,7 +120,7 @@ test.describe('Shortcode Navigation', () => {
 
       // Create shortcode with past expiration date
       const response = await page.evaluate(async (tid) => {
-        const res = await fetch('/api/shortcodes', {
+        const res = await fetch('/api/v1/shortcodes', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -167,7 +167,7 @@ test.describe('Shortcode Navigation', () => {
 
       // Create shortcode
       const response = await page.evaluate(async (tid) => {
-        const res = await fetch('/api/shortcodes', {
+        const res = await fetch('/api/v1/shortcodes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -230,7 +230,7 @@ test.describe('Shortcode Navigation', () => {
 
       // Create shortcode
       const response = await page.evaluate(async (tid) => {
-        const res = await fetch('/api/shortcodes', {
+        const res = await fetch('/api/v1/shortcodes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -277,7 +277,7 @@ test.describe('Shortcode Navigation', () => {
 
       // Create shortcode
       const createResponse = await page.evaluate(async (tid) => {
-        const res = await fetch('/api/shortcodes', {
+        const res = await fetch('/api/v1/shortcodes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -299,7 +299,7 @@ test.describe('Shortcode Navigation', () => {
       await page.waitForTimeout(1000) // Give time for async click increment
 
       const analyticsResponse = await page.evaluate(async (code) => {
-        const res = await fetch(`/api/shortcodes/${code}`)
+        const res = await fetch(`/api/v1/shortcodes/${code}`)
         return res.json()
       }, shortcode)
 
