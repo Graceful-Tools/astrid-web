@@ -14,7 +14,7 @@ import { createDefaultListsForUser } from "@/lib/default-lists"
 import { sendEmailVerification } from "@/lib/email-verification"
 import { createVerifyEmailTask } from "@/lib/system-tasks"
 import { encode } from "next-auth/jwt"
-import type { RegistrationResponseJSON } from "@simplewebauthn/types"
+import type { RegistrationResponseJSON } from "@simplewebauthn/server"
 import { passkeyRateLimiter, withRateLimitHandlerAsync } from "@/lib/rate-limiter"
 import { createLogger } from '@/lib/logger'
 

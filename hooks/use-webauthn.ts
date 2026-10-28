@@ -48,7 +48,7 @@ export function useWebAuthn() {
       const { options, sessionId } = optionsData
 
       // Start WebAuthn registration ceremony
-      const credential = await startRegistration(options)
+      const credential = await startRegistration({ optionsJSON: options })
 
       // Verify with server
       const verifyRes = await fetch("/api/auth/webauthn/register/verify", {
@@ -100,7 +100,7 @@ export function useWebAuthn() {
         const { options: authOptions, sessionId: authSessionId } = authData
 
         // Start WebAuthn authentication ceremony
-        const authCredential = await startAuthentication(authOptions)
+        const authCredential = await startAuthentication({ optionsJSON: authOptions })
 
         // Verify with server
         const authVerifyRes = await fetch("/api/auth/webauthn/authenticate/verify", {
@@ -189,7 +189,7 @@ export function useWebAuthn() {
       const { options, sessionId } = optionsData
 
       // Start WebAuthn authentication ceremony
-      const credential = await startAuthentication(options)
+      const credential = await startAuthentication({ optionsJSON: options })
 
       // Verify with server
       const verifyRes = await fetch("/api/auth/webauthn/authenticate/verify", {

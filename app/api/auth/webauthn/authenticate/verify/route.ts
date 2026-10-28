@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { verifyAuthentication, getChallenge, deleteChallenge } from "@/lib/webauthn"
 import { authSessionCookie } from '@/lib/auth/secure-cookies'
 import { encode } from "next-auth/jwt"
-import type { AuthenticationResponseJSON } from "@simplewebauthn/types"
+import type { AuthenticationResponseJSON } from "@simplewebauthn/server"
 import { passkeyRateLimiter, withRateLimitHandlerAsync } from "@/lib/rate-limiter"
 import { createLogger } from '@/lib/logger'
 
