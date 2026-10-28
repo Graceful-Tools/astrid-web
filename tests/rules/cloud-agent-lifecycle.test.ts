@@ -16,10 +16,9 @@ describe('cloud agent lifecycle wiring', () => {
     expect(activation['continue-on-error']).toBeUndefined()
     expect(steps.find((step: { name?: string }) => step.name === 'Build Astrid MCP transport').if).toBeUndefined()
   })
-  it('keeps workers manual and production-free with bounded runs and durable outcomes', () => {
+  it('keeps workers production-free with bounded runs and durable outcomes', () => {
     const source = read('.github/workflows/agent-run.yml')
     const workflow = yaml.load(source)
-    expect(workflow.on.schedule).toBeUndefined()
     expect(workflow.permissions.actions).toBe('read')
     expect(workflow.jobs.run.environment).toBe('agent')
     expect(workflow.jobs.run['timeout-minutes']).toBe(90)
@@ -33,6 +32,15 @@ describe('cloud agent lifecycle wiring', () => {
     expect(source).toContain('--cloud-agent "${AGENT}"')
     expect(source).not.toContain('land-and-deploy.ts')
     expect(source).toContain('mcp__astrid__*')
+  })
+  it('AWTD-1363: runs on a schedule, and a scheduled run (no inputs) is a claude-code run', () => {
+    const source = read('.github/workflows/agent-run.yml')
+    const workflow = yaml.load(source)
+    expect(workflow.on.schedule).toEqual([{ cron: '5,35 * * * *' }])
+    // A schedule event carries no inputs: every read of the harness must default,
+    // or the run names no harness and neither Run step's `if` matches.
+    expect(source).not.toMatch(/inputs\.harness(?! \|\| 'claude-code')/)
+    expect(workflow.jobs.run.env.ASTRID_FIXALL_HARNESS).toBe("${{ (inputs.harness || 'claude-code') }}")
   })
   it('fails the run when the agent itself reports it did not finish', () => {
     // Smoke test 2 (AWTD-1366) pushed its branch, could not open the PR

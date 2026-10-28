@@ -115,7 +115,7 @@ or device activation is implied by these repository changes.
 3. For optional Claude/Codex dispatches, the `agent` environment holds Astrid
    OAuth and `AGENT_GH_TOKEN` (repo-only Contents + Pull requests write,
    **no Actions write**). Subscription login configuration is unchanged.
-   `agent-run.yml` remains dispatch-only; it does not run Copilot CLI.
+   `agent-run.yml` runs on a schedule (:05/:35, claude-code) since 2026-10-28 and can still be dispatched; it does not run Copilot CLI.
 4. For the selected **GitHub issue-assigned coding agent**, provision
    `COPILOT_DISPATCH_TOKEN` only in `copilot-bridge`. GitHub requires a real
    user-to-server token; its fine-grained permission requirements include
