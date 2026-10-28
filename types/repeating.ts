@@ -55,9 +55,19 @@ export interface MonthlyRepeatingPattern extends BaseRepeatingPattern {
   monthDay?: number // 1-31 for same_date
   monthWeekday?: {
     weekday: Weekday
-    weekOfMonth: number // 1-5 (1st, 2nd, 3rd, 4th, 5th week of month)
+    weekOfMonth: number // 1-5 (1st…5th weekday of the month), or -1 for the last (AWTD-1295)
   }
 }
+
+/**
+ * `weekOfMonth` for "the last <weekday> of the month", after iCalendar's BYDAY=-1MO (AWTD-1295).
+ * `5` is NOT the same thing: a month with four Mondays has no 5th, and `5` walks into the next one.
+ */
+export const LAST_WEEK_OF_MONTH = -1
+
+/** A `weekOfMonth` a pattern may be saved with: 1-5, or LAST_WEEK_OF_MONTH. */
+export const isValidWeekOfMonth = (week: number): boolean =>
+  week === LAST_WEEK_OF_MONTH || (Number.isInteger(week) && week >= 1 && week <= 5)
 
 export interface YearlyRepeatingPattern extends BaseRepeatingPattern {
   unit: 'years'
@@ -277,7 +287,10 @@ function readPattern(stored: unknown): ReadPattern {
   const p = stored && typeof stored === 'object' ? (stored as Record<string, unknown>) : {}
   const monthWeekday = p.monthWeekday && typeof p.monthWeekday === 'object' ? (p.monthWeekday as Record<string, unknown>) : null
   const mwWeekday = monthWeekday ? weekdayOf(monthWeekday.weekday) : null
-  const mwWeek = monthWeekday ? nonNegative(monthWeekday.weekOfMonth) : null
+  // -1 is "last" (AWTD-1295). Any other negative names no week, which ends the series.
+  const mwWeek = monthWeekday
+    ? integer(monthWeekday.weekOfMonth) === LAST_WEEK_OF_MONTH ? LAST_WEEK_OF_MONTH : nonNegative(monthWeekday.weekOfMonth)
+    : null
   return {
     unit: typeof p.unit === 'string' ? p.unit : null,
     interval: integer(p.interval),
@@ -321,6 +334,14 @@ function nextMonthOccurrence(ms: number, pattern: ReadPattern, interval: number,
   if (monthRepeatType === 'same_date') return addingMonthsOverflowing(ms, interval, zone)
   if (monthRepeatType !== 'same_weekday' || !pattern.monthWeekday) return null
   const { weekday, weekOfMonth } = pattern.monthWeekday
+  if (weekOfMonth === LAST_WEEK_OF_MONTH) {
+    // Plain calendar months, not the overflowing step below: last-weekday dates sit on the 22nd–31st,
+    // so "the 31st, a month on" would routinely roll past the month it means (AWTD-1295).
+    const reading = new Date(local(ms, zone))
+    const lastDay = Date.UTC(reading.getUTCFullYear(), reading.getUTCMonth() + interval + 1, 0)
+    const back = (new Date(lastDay).getUTCDay() - WEEKDAYS.indexOf(weekday) + 7) % 7
+    return instant(lastDay - back * DAY, zone)
+  }
   // The intermediate step only decides WHICH month to search, and it overflows too (D5).
   const target = new Date(local(addingMonthsOverflowing(ms, interval, zone), zone))
   const first = Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), 1)
@@ -563,7 +584,7 @@ export function isValidRepeatingPattern(pattern: CustomRepeatingPattern): boolea
       if (monthPattern.monthRepeatType === 'same_date') {
         return !!(monthPattern.monthDay && monthPattern.monthDay >= 1 && monthPattern.monthDay <= 31)
       }
-      return !!(monthPattern.monthWeekday && monthPattern.monthWeekday.weekOfMonth >= 1 && monthPattern.monthWeekday.weekOfMonth <= 5)
+      return !!monthPattern.monthWeekday && isValidWeekOfMonth(monthPattern.monthWeekday.weekOfMonth)
     }
 
     case 'years': {

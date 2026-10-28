@@ -10,6 +10,7 @@ import { CalendarIcon, X, Check } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/lib/i18n/client'
+import { LAST_WEEK_OF_MONTH } from '@/types/repeating'
 import type { 
   CustomRepeatingPattern,
   DailyRepeatingPattern,
@@ -272,6 +273,7 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
                     <SelectItem value="3">3rd</SelectItem>
                     <SelectItem value="4">4th</SelectItem>
                     <SelectItem value="5">5th</SelectItem>
+                    <SelectItem value={String(LAST_WEEK_OF_MONTH)}>Last</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -457,7 +459,8 @@ function getPatternSummary(pattern: CustomRepeatingPattern): string {
         summary += ` on the ${pattern.monthDay}${getOrdinalSuffix(pattern.monthDay)}`
       } else if (pattern.monthRepeatType === 'same_weekday' && pattern.monthWeekday) {
         const { weekday, weekOfMonth } = pattern.monthWeekday
-        summary += ` on the ${weekOfMonth}${getOrdinalSuffix(weekOfMonth)} ${weekday.charAt(0).toUpperCase() + weekday.slice(1)}`
+        const week = weekOfMonth === LAST_WEEK_OF_MONTH ? 'last' : `${weekOfMonth}${getOrdinalSuffix(weekOfMonth)}`
+        summary += ` on the ${week} ${weekday.charAt(0).toUpperCase() + weekday.slice(1)}`
       }
       break
       
