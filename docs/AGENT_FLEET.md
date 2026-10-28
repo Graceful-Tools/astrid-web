@@ -17,7 +17,7 @@ contention is per machine.
 
 | Where | Owns |
 |---|---|
-| **Existing web server** | Keep its existing Claude Code web worker; it shares the Web board's atomic claims with other web harnesses |
+| **Cloud (`agent-run.yml`)** | The Claude Code web worker, scheduled :05/:35; it shares the Web board's atomic claims with other web harnesses. The Mac's web loop, the Copilot app's web-queue cron and the `astrid-web` self-hosted runner were retired 2026-10-28 (AWTD-1363) |
 | **GitHub's built-in Copilot coding agent** | Additional web changes and independent reviews of Claude changes, scoped to the Web board and `copilot` mailbox. `native-copilot-bridge.yml` bridges Astrid to GitHub's issue-assigned agent; `copilot-setup-steps.yml` prepares its worker. This is not Copilot CLI in Actions |
 | **Dedicated Apple device** | Keep the existing Claude Code iOS/Mac loop, Xcode and TestFlight work in astrid-ios |
 | **Windows device** | Keep its existing Claude Code worker and `fixall-loop.ps1`; `windows-latest` continues builds/unit tests |
@@ -105,8 +105,8 @@ or device activation is implied by these repository changes.
 
 ## Cloud activation checklist
 
-1. Keep the existing Claude web/Apple/Windows workers running. Do not enable a
-   competing Claude cloud schedule or unload another host from this change.
+1. The cloud schedule replaced the Mac's web loop on 2026-10-28 (AWTD-1363). Keep the
+   Apple/Windows workers running, and do not unload another host from a web change.
 2. Set the specific worker mailbox to **polling** in Astrid's AI Agents settings.
    `api`, `webhook` and `off` are refused by cloud preflight before claims or lane
    mutations. Confirm membership on the exact platform list. The Android board
@@ -216,8 +216,8 @@ sweep; unpushed work on a destroyed host cannot be recovered.
    real run, AWTD-1364, opened PR #518 in about a minute.
 3. ✅ Harness-neutral `/fixall` (`docs/FIXALL_WEB.md`), with adapters pointing to it (#516).
 4. ☐ Smoke/activate `agent-ship.yml` and the shared reply/resume API after deployment.
-5. ☐ Smoke/activate additional Copilot web work and reviews while preserving the
-   existing Claude web server worker.
+5. ☐ Smoke/activate additional Copilot web work and reviews alongside the cloud
+   Claude worker.
 6. ☐ Verify Android's launcher on its chosen host/VM with the explicit board ID.
 7. ☐ Update and verify the existing Apple/Windows launchers on their actual devices.
 
