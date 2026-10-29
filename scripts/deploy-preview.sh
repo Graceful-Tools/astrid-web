@@ -145,9 +145,18 @@ else
   PREVIEW_DOMAIN="${SUBDOMAIN}.astrid.cc"
 
   echo -e "${BOLD}Aliasing to ${PREVIEW_DOMAIN}...${NC}"
-  npx vercel alias "$DEPLOY_URL" "$PREVIEW_DOMAIN" --token="$VERCEL_TOKEN" --scope gracefultools 2>&1
+  # Best effort. A token scoped to the astrid-web-preview project cannot alias
+  # the *.astrid.cc wildcard, which stays on the production project, and the
+  # deploy above has already succeeded (AWTD-1373).
+  ALIAS_STATUS=0
+  ALIAS_OUTPUT=$(npx vercel alias "$DEPLOY_URL" "$PREVIEW_DOMAIN" --token="$VERCEL_TOKEN" --scope gracefultools 2>&1) || ALIAS_STATUS=$?
 
   echo ""
   info "Preview deployed: $DEPLOY_URL"
-  info "Live at: https://${PREVIEW_DOMAIN}"
+  if [[ "$ALIAS_STATUS" -eq 0 ]]; then
+    info "Live at: https://${PREVIEW_DOMAIN}"
+  else
+    echo "$ALIAS_OUTPUT" | redact
+    warn "Could not alias ${PREVIEW_DOMAIN} (exit $ALIAS_STATUS). Use the vercel.app URL above."
+  fi
 fi
