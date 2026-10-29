@@ -139,3 +139,46 @@ describe('deploy-preview.sh --production', () => {
     expect(output).toContain('https://astrid-abc123-gracefultools.vercel.app')
   })
 })
+
+/**
+ * AWTD-1373: previews deploy with a token scoped to the astrid-web-preview
+ * project, and the `*.astrid.cc` wildcard stays on the production project. So
+ * the `<branch>.astrid.cc` alias can be refused while the deploy itself
+ * succeeded. Under `set -e` that refusal failed the run and hid a working
+ * preview.
+ */
+describe('deploy-preview.sh (preview) when the alias is refused (AWTD-1373)', () => {
+  function namedBranchRepo(): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'named-branch-'))
+    const git = (...args: string[]) => execFileSync('git', args, { cwd: dir, stdio: 'ignore' })
+    git('init', '-q', '-b', 'fix/some-thing')
+    git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-q', '--allow-empty', '-m', 'root')
+    return dir
+  }
+
+  it('still succeeds and reports the vercel.app URL', () => {
+    stubVercel(`if [ "$2" = "alias" ]; then echo "Error: You don't have access to the domain" >&2; exit 1; fi
+echo "Preview: https://astrid-web-preview-abc123.vercel.app"`)
+    const cwd = namedBranchRepo()
+    let status = 0
+    let output = ''
+    try {
+      output = execFileSync('bash', [SCRIPT], {
+        encoding: 'utf8',
+        cwd,
+        env: { ...process.env, PATH: `${binDir}:${process.env.PATH}`, VERCEL_TOKEN: 'test-token' },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      })
+    } catch (error) {
+      const e = error as { status: number; stdout?: string; stderr?: string }
+      status = e.status ?? 1
+      output = `${e.stdout ?? ''}${e.stderr ?? ''}`
+    } finally {
+      fs.rmSync(cwd, { recursive: true, force: true })
+    }
+    expect(status, output).toBe(0)
+    expect(output).toContain('https://astrid-web-preview-abc123.vercel.app')
+    expect(output).toMatch(/could not alias some-thing\./i)
+    expect(output).not.toContain('Live at: https://some-thing.')
+  })
+})
