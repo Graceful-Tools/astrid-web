@@ -183,15 +183,13 @@ jobs:
             fs.writeFileSync(process.env.RUNNER_TEMP+"/astrid-mcp.json",JSON.stringify({mcpServers:{astrid:server}}));
           '
 
-      # Signed-in e2e work needs a migrated database and a browser before the agent
-      # starts: the agent's sandbox allows npm scripts, not pg_isready or
-      # `npx playwright install` (AWTD-1405 was handed back for exactly that).
-      - name: Prepare the local stack (migrated Postgres, Chromium)
+      # Signed-in e2e work needs a browser before the agent starts: the agent's
+      # sandbox allows npm scripts, not `npx playwright install` (AWTD-1405 was
+      # handed back for exactly that). Agent setup has already migrated the
+      # database; migrating it again here failed with P3005 (AWTD-1410).
+      - name: Install Chromium for e2e
         if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
-        run: |
-          npm run db:generate
-          npx prisma migrate deploy
-          npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium
 
       - name: Run Claude Code
         id: claude
