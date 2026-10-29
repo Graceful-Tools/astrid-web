@@ -21,10 +21,17 @@ describe('previews deploy to their own project (AWTD-1373)', () => {
     })
   }
 
-  it('migrates the preview database from main, inside the preview environment', () => {
+  it('builds on Vercel, where the preview database Secret is readable, opting in to migrate', () => {
     const source = read('preview-deployment.yml')
-    expect(source).toMatch(/^ {4}environment:\s*preview\s*$/m)
-    expect(source).toContain('secrets.PREVIEW_DATABASE_URL_DIRECT')
-    expect(source).toMatch(/prisma migrate deploy --schema "\$RUNNER_TEMP\/main\/prisma\/schema\.prisma"/)
+    // The URL is a Vercel Secret on astrid-web-preview: `vercel pull` redacts
+    // it, so a build on the runner cannot migrate and a GitHub copy is not kept.
+    expect(source).not.toContain('PREVIEW_DATABASE_URL_DIRECT')
+    expect(source).not.toMatch(/vercel deploy[^\n]*--prebuilt/)
+    expect(source).toMatch(/--build-env ASTRID_MIGRATE_PREVIEW_DB=1/)
+  })
+
+  it('opts in only when the PR changes no migrations', () => {
+    const source = read('preview-deployment.yml')
+    expect(source).toMatch(/git diff --quiet "\$MERGE_BASE" HEAD -- prisma\/migrations/)
   })
 })

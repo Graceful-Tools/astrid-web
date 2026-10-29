@@ -105,3 +105,49 @@ describe('migrationPlan with a placeholder DATABASE_URL (task bd1e0daa)', () => 
     )
   })
 })
+
+/**
+ * AWTD-1373: the preview database's URL lives only in the astrid-web-preview
+ * Vercel project, as a Secret `vercel pull` redacts, so only a build running on
+ * Vercel can migrate it. The workflow opts in when the PR changes no
+ * migrations, and the URL itself must name the preview database, which keeps a
+ * preview build on the production project, with production's URL, refused.
+ */
+describe('migrationPlan for the preview database (AWTD-1373)', () => {
+  const PREVIEW_DB = 'postgresql://u:pw@ep-staging.aws.neon.tech/astrid_preview?sslmode=require'
+  const preview = (extra: Record<string, string | undefined> = {}) => ({
+    VERCEL_ENV: 'preview',
+    ASTRID_MIGRATE_PREVIEW_DB: '1',
+    DATABASE_URL: PREVIEW_DB,
+    DATABASE_URL_DIRECT: PREVIEW_DB,
+    ...extra,
+  })
+
+  it('migrates a preview build that opted in and points at astrid_preview', () => {
+    const plan = migrationPlan(preview())
+    expect(plan.migrate).toBe(true)
+    expect(plan.reason).toMatch(/astrid_preview/)
+  })
+
+  it('does NOT migrate a preview build that did not opt in', () => {
+    expect(migrationPlan(preview({ ASTRID_MIGRATE_PREVIEW_DB: undefined })).migrate).toBe(false)
+  })
+
+  it('does NOT migrate an opted-in preview build holding the production URL', () => {
+    const plan = migrationPlan(preview({ DATABASE_URL: PRODUCTION_DB, DATABASE_URL_DIRECT: PRODUCTION_DB }))
+    expect(plan.migrate).toBe(false)
+    expect(plan.reason).toMatch(/astrid_preview/)
+  })
+
+  it('does NOT migrate when only the direct URL names some other database', () => {
+    expect(migrationPlan(preview({ DATABASE_URL_DIRECT: PRODUCTION_DB })).migrate).toBe(false)
+  })
+
+  it('does NOT migrate when the direct URL is missing', () => {
+    expect(migrationPlan(preview({ DATABASE_URL_DIRECT: undefined })).migrate).toBe(false)
+  })
+
+  it('ignores the opt-in on a development build', () => {
+    expect(migrationPlan(preview({ VERCEL_ENV: 'development' })).migrate).toBe(false)
+  })
+})
