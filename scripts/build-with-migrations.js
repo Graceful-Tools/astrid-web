@@ -5,8 +5,9 @@
  *
  * This is the Vercel build command for EVERY environment, so what it may touch
  * is decided by ./lib/build-migration-policy: Vercel production builds migrate,
- * previews and local builds do not (task 2b3e7469). Failed migrations are
- * auto-resolved before new ones are applied.
+ * local builds do not, and previews migrate only the shared astrid_preview
+ * database when the preview workflow opts in (task 2b3e7469, AWTD-1373).
+ * Failed migrations are auto-resolved before new ones are applied.
  */
 
 const { execSync } = require('child_process');
