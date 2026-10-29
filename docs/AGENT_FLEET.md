@@ -82,11 +82,14 @@ An agent that needs a production fact writes the question on the task and hands 
 back. A Mac session answers it. `tests/rules/production-secrets-are-environment-scoped.test.ts`
 keeps the database secrets out of every other job.
 
-Still open: `VERCEL_TOKEN` is a repo secret, because previews, `fixstuff` and the
-monitor job use it. Vercel's narrowest token scope is a whole *project*, so a
-token that may deploy previews of `astrid-web` may also deploy its production
-and read its Config env vars — previews have to move to their own project before
-scoping means anything. Credentials are being moved to Vercel **Secret** in the
+Previews and `fixstuff` deploy to their own Vercel project, `astrid-web-preview`,
+with `VERCEL_TOKEN_PREVIEW`, a token scoped to that project (AWTD-1373). Vercel's
+narrowest token scope is a whole *project*, so this is what keeps a preview token
+from deploying production. The preview runtime has its own database
+(`astrid_preview` on the staging server, migrated from main by the
+`preview`-environment secret `PREVIEW_DATABASE_URL_DIRECT`) and none of
+production's keys. Still open: the repo-level `VERCEL_TOKEN`, which only the
+monitor and production jobs now use ([AWTD-1372](https://astrid.cc/t/AWTD-1372)). Credentials are being moved to Vercel **Secret** in the
 meantime, which is what stops a leaked token reading them
 (docs/CLI_OPERATIONS.md §0).
 
