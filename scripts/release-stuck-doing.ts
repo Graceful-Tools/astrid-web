@@ -33,6 +33,7 @@ import {
   DEFAULT_STALE_DOING_MINUTES,
   isAbandonedClaim,
   isAwaitingBuild,
+  isOrphanedDoing,
   isReleasableClaim,
   releaseDoingClaim,
   type DoingTask,
@@ -182,7 +183,10 @@ async function main() {
   let released = 0
   for (const { id, mode } of candidates) {
     const task = await getTask(id)
-    if (!task || !isReleasableClaim(task, email)) continue
+    // An unassigned Doing task on the board is nobody's claim, so the idle backstop
+    // takes it too (AWTD-1409); a run's own claims are always assigned.
+    const releasable = task && (isReleasableClaim(task, email) || (mode === 'stale' && isOrphanedDoing(task)))
+    if (!task || !releasable) continue
     const comments = await sweep.comments(task)
     // Done and pushed: it waits for its build in Doing, and close-built-tasks closes it.
     if (isAwaitingBuild(comments)) continue
