@@ -162,52 +162,39 @@ jobs:
     timeout-minutes: 20
     needs: build-test
     if: needs.build-test.outputs.build-success == 'true'
-    # Holds PREVIEW_DATABASE_URL_DIRECT, the astrid_preview database on the
-    # staging server. Fork PRs get no secrets, so they skip the migration.
-    environment: preview
     outputs:
       preview-url: ${{ steps.deploy.outputs.preview-url }}
       deployment-id: ${{ steps.deploy.outputs.deployment-id }}
     steps:
+      # Depth 2 keeps main's side of the PR merge commit, for the migration check.
       - name: Checkout PR
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 2
 
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .nvmrc
-          cache: 'npm'
-
-      - name: Install Dependencies
-        run: npm ci
-
-      # Every preview shares one database, so it runs MAIN's migrations only. A
-      # PR's own migration would otherwise land in the shared database before
-      # review, and stay there if the PR is abandoned (AWTD-1373).
-      - name: Migrate the preview database to main's schema
-        env:
-          PREVIEW_DATABASE_URL_DIRECT: ${{ secrets.PREVIEW_DATABASE_URL_DIRECT }}
-        run: |
-          if [ -z "$PREVIEW_DATABASE_URL_DIRECT" ]; then
-            echo "::warning::PREVIEW_DATABASE_URL_DIRECT is not set in the preview environment, so the preview database was not migrated."
-            exit 0
-          fi
-          git fetch --no-tags --depth=1 origin main
-          git worktree add --detach "$RUNNER_TEMP/main" FETCH_HEAD
-          if ! git diff --quiet FETCH_HEAD HEAD -- prisma/migrations; then
-            echo "::warning::This PR changes prisma/migrations. The preview database runs main's schema, so this preview does not have those changes."
-          fi
-          DATABASE_URL="$PREVIEW_DATABASE_URL_DIRECT" DATABASE_URL_DIRECT="$PREVIEW_DATABASE_URL_DIRECT" \
-            npx prisma migrate deploy --schema "$RUNNER_TEMP/main/prisma/schema.prisma"
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
-      - name: Pull Vercel Environment Information
-        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN_PREVIEW }}
-
-      - name: Build Project Artifacts
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN_PREVIEW }}
+      # Every preview shares one database, astrid_preview, whose URL is a Vercel
+      # Secret on astrid-web-preview. `vercel pull` redacts it, so the build runs
+      # on Vercel, and scripts/lib/build-migration-policy.js migrates there. It
+      # opts in only when the PR changes no migrations: a PR's own migration
+      # would land in the shared database before review, and stay there if the
+      # PR is abandoned (AWTD-1373).
+      - name: Decide whether the build migrates the preview database
+        id: migrate
+        run: |
+          MERGE_BASE=$(git rev-parse HEAD^1)
+          if git diff --quiet "$MERGE_BASE" HEAD -- prisma/migrations; then
+            echo "build-env=--build-env ASTRID_MIGRATE_PREVIEW_DB=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::This PR changes prisma/migrations. The preview database keeps main's schema, so this preview does not have those changes."
+          fi
 
       - name: Deploy to Vercel
         id: deploy
@@ -221,7 +208,7 @@ jobs:
           #   \x1b[2K\x1b[1A\x1b[2K\x1b[GPreviewhttps://astrid-xxx.vercel.app
           # on PR #206 — a URL no curl could resolve, which the E2E-on-preview
           # job then spent five minutes failing to reach.
-          DEPLOYMENT_STDOUT=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN_PREVIEW }} 2>/tmp/vercel-deploy.err)
+          DEPLOYMENT_STDOUT=$(vercel deploy --token=${{ secrets.VERCEL_TOKEN_PREVIEW }} ${{ steps.migrate.outputs.build-env }} 2>/tmp/vercel-deploy.err)
           echo "Deployment stdout:"
           echo "$DEPLOYMENT_STDOUT"
           echo "Deployment stderr:"

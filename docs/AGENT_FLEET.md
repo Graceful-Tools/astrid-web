@@ -86,9 +86,11 @@ Previews and `fixstuff` deploy to their own Vercel project, `astrid-web-preview`
 with `VERCEL_TOKEN_PREVIEW`, a token scoped to that project (AWTD-1373). Vercel's
 narrowest token scope is a whole *project*, so this is what keeps a preview token
 from deploying production. The preview runtime has its own database
-(`astrid_preview` on the staging server, migrated from main by the
-`preview`-environment secret `PREVIEW_DATABASE_URL_DIRECT`) and none of
-production's keys. Still open: the repo-level `VERCEL_TOKEN`, which only the
+(`astrid_preview` on the staging server) and none of
+production's keys. The database URL is a Vercel Secret on that project, which
+`vercel pull` redacts, so previews build on Vercel and migrate there, only when the
+PR changes no migrations and only a database named `astrid_preview`
+(`scripts/lib/build-migration-policy.js`). Still open: the repo-level `VERCEL_TOKEN`, which only the
 monitor and production jobs now use ([AWTD-1372](https://astrid.cc/t/AWTD-1372)). Credentials are being moved to Vercel **Secret** in the
 meantime, which is what stops a leaked token reading them
 (docs/CLI_OPERATIONS.md §0).
