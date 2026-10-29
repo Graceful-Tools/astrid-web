@@ -248,9 +248,9 @@ describe('legacy contract — SecureUpload chain', () => {
   })
 
   it('SecureUploadGetUrlResponse keys match', () => {
-    const EXPECTED = ['uploadToken', 'pathname', 'fileId'] as const satisfies ReadonlyArray<keyof LegacySecureUploadGetUrlResponse>
+    const EXPECTED = ['presigned', 'pathname', 'fileId'] as const satisfies ReadonlyArray<keyof LegacySecureUploadGetUrlResponse>
     const sample: LegacySecureUploadGetUrlResponse = {
-      uploadToken: 'tok', pathname: '/p', fileId: 'f1',
+      presigned: { uploadUrl: 'https://x', headers: {} }, pathname: '/p', fileId: 'f1',
     }
     expect(new Set(Object.keys(sample))).toEqual(new Set(EXPECTED))
   })
