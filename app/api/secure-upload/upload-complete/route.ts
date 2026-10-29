@@ -26,10 +26,9 @@ export async function POST(request: NextRequest) {
     // get-upload-url validated the caller's access to the target at mint time.
     const rawBody = await request.text()
     const signature = request.headers.get('x-vercel-signature')
-    // Ed25519 for presigned uploads, HMAC for client-token ones (AWTD-1368).
+    // Ed25519 only: client-token (HMAC) callbacks ended with AWTD-1386.
     if (!verifyBlobCallback(rawBody, signature, {
       webhookPublicKey: process.env.BLOB_WEBHOOK_PUBLIC_KEY,
-      readWriteToken: process.env.BLOB_READ_WRITE_TOKEN,
     })) {
       log.error('❌ [UploadComplete] Invalid or missing callback signature')
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })

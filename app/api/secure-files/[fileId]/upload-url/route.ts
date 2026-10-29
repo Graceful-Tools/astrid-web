@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { issueClientUploadToken, issuePresignedUpload, presignedUploadsEnabled } from "@/lib/secure-storage"
+import { issuePresignedUpload, presignedUploadsEnabled } from "@/lib/secure-storage"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { prisma } from "@/lib/prisma"
 import type { RouteContextParams } from "@/types/next"
@@ -78,52 +78,24 @@ export async function POST(request: NextRequest, context: RouteContextParams<{ f
     const timestamp = Date.now()
     const pathname = `files/${session.user.id}/${fileId}-${timestamp}.${fileExtension}`
 
-    // Presigned once the store can verify presigned callbacks (AWTD-1368).
-    // Clients send `headers` as given, so no client change is needed, and
-    // this path does not need BLOB_READ_WRITE_TOKEN — the credential the
-    // Blob store's OIDC upgrade removes.
-    if (presignedUploadsEnabled()) {
-      const presigned = await issuePresignedUpload({
-        pathname,
-        contentType: mimeType,
-        maximumSizeInBytes: 100 * 1024 * 1024,
-        allowedContentTypes: [mimeType],
-      })
-
-      return NextResponse.json({
-        uploadUrl: presigned.uploadUrl,
-        pathname,
-        headers: { ...presigned.headers, "Content-Type": mimeType },
-        method: "PUT",
-        fileId,
-        oldBlobUrl: existingFile.blobUrl,
-      })
-    }
-
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      log.error("BLOB_READ_WRITE_TOKEN not configured")
+    // Presigned only (AWTD-1368). The bearer client token went with the
+    // Blob store's OIDC upgrade (AWTD-1386). Clients send `headers` as given.
+    if (!presignedUploadsEnabled()) {
+      log.error("Direct uploads need BLOB_WEBHOOK_PUBLIC_KEY (the Blob store's OIDC upgrade) or STORAGE_DRIVER")
       return NextResponse.json({ error: "Storage not configured" }, { status: 500 })
     }
 
-    // SECURITY: never hand out the store-wide read/write token — mint a
-    // client token scoped to this single pathname with size/type limits.
-    // The previous implementation returned BLOB_READ_WRITE_TOKEN verbatim,
-    // giving any authenticated user read/write/delete over every blob.
-    const { token: clientToken, uploadUrl } = await issueClientUploadToken({
+    const presigned = await issuePresignedUpload({
       pathname,
+      contentType: mimeType,
       maximumSizeInBytes: 100 * 1024 * 1024,
       allowedContentTypes: [mimeType],
     })
 
     return NextResponse.json({
-      uploadUrl,
+      uploadUrl: presigned.uploadUrl,
       pathname,
-      headers: {
-        "Authorization": `Bearer ${clientToken}`,
-        "x-api-version": "7",
-        "Content-Type": mimeType,
-        "x-content-type": mimeType,
-      },
+      headers: { ...presigned.headers, "Content-Type": mimeType },
       method: "PUT",
       // Store these for the confirm step
       fileId,
