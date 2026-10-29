@@ -74,6 +74,18 @@ export function isReleasableClaim(task: DoingTask, agentEmail: string): boolean 
 }
 
 /**
+ * An open Doing task nobody is assigned to (AWTD-1409). A person working a task
+ * assigns it to themselves and a claim assigns in the same statement, so this is
+ * what `set-task-status.ts Doing` or a killed run leaves behind. The queue never
+ * takes Doing, so nothing else would ever move it.
+ */
+export function isOrphanedDoing(task: DoingTask): boolean {
+  if (task.completed) return false
+  if ((task.statusRole ?? '').trim().toLowerCase() !== DOING_STATUS_ROLE) return false
+  return !(task.assignee?.email ?? '').trim()
+}
+
+/**
  * Idle long enough that no session can still be on it?
  *
  * Activity is the later of the task's own update and its newest comment: a

@@ -13,6 +13,7 @@ import {
   countReleases,
   isAbandonedClaim,
   isAwaitingBuild,
+  isOrphanedDoing,
   isReleasableClaim,
   releaseDoingClaim,
   type DoingTask,
@@ -49,6 +50,28 @@ describe('isReleasableClaim', () => {
     expect(isReleasableClaim(task({ statusRole: 'ready' }), CLAUDE)).toBe(false)
     expect(isReleasableClaim(task({ statusRole: 'waiting' }), CLAUDE)).toBe(false)
     expect(isReleasableClaim(task({ completed: true }), CLAUDE)).toBe(false)
+  })
+})
+
+// AWTD-1409: an unassigned task in Doing was released by nothing and queued by nothing.
+describe('isOrphanedDoing', () => {
+  it('AWTD-1409: an open, unassigned Doing task is orphaned', () => {
+    expect(isOrphanedDoing(task({ assignee: null }))).toBe(true)
+    expect(isOrphanedDoing(task({ assignee: { email: '' } }))).toBe(true)
+  })
+
+  it('AWTD-1409: assigned, finished or non-Doing tasks are not', () => {
+    expect(isOrphanedDoing(task())).toBe(false)
+    expect(isOrphanedDoing(task({ assignee: null, completed: true }))).toBe(false)
+    expect(isOrphanedDoing(task({ assignee: null, statusRole: 'ready' }))).toBe(false)
+    expect(isOrphanedDoing(task({ assignee: null, statusRole: 'waiting' }))).toBe(false)
+  })
+
+  it('AWTD-1409: an orphan is released to Ready without being assigned', async () => {
+    const api = fakeApi()
+    const outcome = await releaseDoingClaim({ task: task({ assignee: null }), comments: [], branches: [], why: 'x', api })
+    expect(outcome).toEqual({ action: 'ready' })
+    expect(api.assign).not.toHaveBeenCalled()
   })
 })
 
