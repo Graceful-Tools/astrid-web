@@ -60,6 +60,16 @@ describe('cloud agent lifecycle wiring', () => {
     expect(verdict.run).toContain('exit 1')
     expect(read('.github/agent-run-prompt.md')).toMatch(/^RESULT: OK \| SKIPPED \| PARTIAL \| FAILED/m)
   })
+  it('AWTD-1410: prepares the database once, with the real migrations', () => {
+    // agent-setup pushed the schema and agent-run then ran `migrate deploy` on
+    // the same database, which refuses a schema with no migration history
+    // (P3005). Every scheduled run with work failed before the agent started.
+    const setup = read('.github/actions/agent-setup/action.yml')
+    expect(setup).toContain('prisma migrate deploy')
+    expect(setup).not.toMatch(/^\s*npx prisma db push/m)
+    const agentRun = read('.github/workflows/agent-run.yml')
+    expect(agentRun).not.toMatch(/^\s*npx prisma (migrate deploy|db push)/m)
+  })
   it('gives deterministic shipping separate authority and an opt-in schedule', () => {
     const source = read('.github/workflows/agent-ship.yml')
     const workflow = yaml.load(source)
