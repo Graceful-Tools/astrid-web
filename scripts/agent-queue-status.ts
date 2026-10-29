@@ -97,6 +97,7 @@ import { MAX_FAILED_ATTEMPTS, parseSeenKeys, recordFailedRun, recordFinishedRun 
 import { DEFAULT_LONG_RUN_WINDOW, parseLongRunWindow, planRun } from './lib/long-run'
 import { parseBoardTarget, resolveBoardListId } from './lib/board-by-name'
 import { readSeenKeysInput } from './lib/seen-keys-input'
+import { spawnFailureReason, tsxInvocation } from './lib/spawn-tsx'
 
 loadScriptEnv()
 
@@ -130,12 +131,10 @@ function readLanes(board: string, mailbox: string, listId: string, dryRun: boole
     return { lanes: null, notes: [`LANES: not swept — no harness selector maps to mailbox "${mailbox}"`] }
   }
 
-  const result = spawnSync(
-    'npx',
-    ['tsx', 'scripts/ready-tasks.ts', board, '--json', '--harness', harness, '--list', listId,
-      ...(dryRun ? ['--dry-run'] : [])],
-    { encoding: 'utf8', env: process.env },
-  )
+  const sweep = tsxInvocation('scripts/ready-tasks.ts', [
+    board, '--json', '--harness', harness, '--list', listId, ...(dryRun ? ['--dry-run'] : []),
+  ])
+  const result = spawnSync(sweep.command, sweep.args, { encoding: 'utf8', env: process.env })
 
   // The sweep reports its moves on stderr in JSON mode ("→ parked …").
   const notes = (result.stderr ?? '')
@@ -144,8 +143,7 @@ function readLanes(board: string, mailbox: string, listId: string, dryRun: boole
     .map(line => `LANES: ${line.slice(1).trim()}`)
 
   if (result.status !== 0) {
-    const why = (result.stderr ?? '').trim().split('\n').pop() ?? `exit ${result.status}`
-    return { lanes: null, notes: [...notes, `LANES: not read — ${why}`] }
+    return { lanes: null, notes: [...notes, `LANES: not read — ${spawnFailureReason(result)}`] }
   }
 
   // The envelope is one JSON line. Take that line rather than the whole
