@@ -7,7 +7,7 @@ import { useTaskManagerController } from "@/hooks/useTaskManagerController"
 import { useTaskManagerLayout } from "@/hooks/useTaskManagerLayout"
 import { useTaskManagerModals } from "@/hooks/useTaskManagerModals"
 import { ReminderProvider } from "@/components/reminder-provider"
-import { LazyImagePicker, LazyOwnerLeaveDialog } from "@/components/TaskManager/lazy-panels"
+import { LazyImagePicker, LazyOwnerLeaveDialog, usePreloadTaskDetail } from "@/components/TaskManager/lazy-panels"
 import { TaskManagerView } from "./TaskManagerView"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { useToast } from "@/hooks/use-toast"
@@ -67,6 +67,7 @@ export function TaskManager({
   })
 
   // Business logic and data management
+  usePreloadTaskDetail()
   const controller = useTaskManagerController({
     initialSelectedListId,
     initialSelectedTaskId,

@@ -19,8 +19,9 @@ function PanelLoadingFallback({ modal = false }: { modal?: boolean }) {
   )
 }
 
+const loadTaskDetail = () => import("../task-detail")
 const TaskDetailPanel = dynamic(
-  () => import("../task-detail").then(module => module.TaskDetail),
+  () => loadTaskDetail().then(module => module.TaskDetail),
   { ssr: false, loading: () => <PanelLoadingFallback /> },
 )
 const SettingsPanel = dynamic(
@@ -67,6 +68,24 @@ const ListSettingsHost = dynamic(
   () => import("./MainContent/ListSettingsHost").then(module => module.ListSettingsHost),
   { ssr: false, loading: () => null },
 )
+
+/**
+ * Load task detail once the app is idle, not on the first tap. Otherwise a user
+ * who goes offline before opening any task cannot open one at all: the chunk is
+ * fetched on demand and the service worker only caches what was fetched
+ * (AWTD-1405).
+ */
+export function usePreloadTaskDetail() {
+  React.useEffect(() => {
+    const preload = () => void loadTaskDetail().catch(() => {})
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(preload)
+      return () => window.cancelIdleCallback(id)
+    }
+    const id = window.setTimeout(preload, 2000)
+    return () => window.clearTimeout(id)
+  }, [])
+}
 
 export function LazyTaskDetail(props: React.ComponentProps<typeof TaskDetailPanel>) {
   return <TaskDetailPanel {...props} />
