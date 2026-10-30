@@ -174,13 +174,15 @@ export function TaskHeader({
             />
           ) : (
             <span
-              className={`text-base cursor-pointer hover:theme-bg-hover py-1 rounded flex-1 min-w-0 break-words [overflow-wrap:anywhere] ${
+              className={`text-base ${readOnly ? '' : 'cursor-pointer hover:theme-bg-hover'} py-1 rounded flex-1 min-w-0 break-words [overflow-wrap:anywhere] ${
                 compact ? 'font-medium leading-tight px-0' : 'px-2'
               } ${
                 task.completed ? "line-through theme-text-muted" : "theme-text-primary"
               }`}
               data-testid="task-detail-title"
-              onClick={() => setEditingTitle(true)}
+              // A read-only seat (a viewer of a public list) sees the title
+              // but cannot open it for editing (AWTD-1405).
+              onClick={readOnly ? undefined : () => setEditingTitle(true)}
             >
               {task.title}
             </span>
