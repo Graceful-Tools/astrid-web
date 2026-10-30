@@ -5,12 +5,12 @@
  */
 
 import { config } from 'dotenv'
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
 // Load environment variables
 config({ path: '.env.local' })
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function testPhase3GitHub() {
   console.log('🧪 Testing Phase 3: GitHub Integration...')

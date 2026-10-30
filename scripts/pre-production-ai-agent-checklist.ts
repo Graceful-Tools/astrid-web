@@ -5,9 +5,9 @@
  * Comprehensive checks before deploying AI agent workflow to production
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 const PROD_BASE_URL = 'https://astrid.cc'
 
 interface CheckResult {

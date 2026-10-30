@@ -4,11 +4,11 @@
  */
 
 import { putObject } from "@/lib/secure-storage"
-import { PrismaClient } from "@prisma/client"
+import { createScriptPrisma } from "./lib/script-prisma"
 import * as fs from "fs"
 import * as path from "path"
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 const AI_AGENTS = [
   { email: "claude@astrid.cc", filename: "claude.png", contentType: "image/png" },

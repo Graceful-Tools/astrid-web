@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client'
-const prisma = new PrismaClient()
+import { createScriptPrisma } from './lib/script-prisma'
+const prisma = createScriptPrisma()
 async function main() {
   const lists = await prisma.taskList.findMany({
     where: { name: { startsWith: 'UITest List' } },

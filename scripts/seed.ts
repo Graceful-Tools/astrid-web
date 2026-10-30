@@ -1,7 +1,7 @@
-import { PrismaClient } from "@prisma/client"
+import { createScriptPrisma } from "./lib/script-prisma"
 import { checkDatabaseSafety } from "./db-safety-check"
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function main() {
   console.log("🌱 Seeding database...")

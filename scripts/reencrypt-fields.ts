@@ -227,7 +227,7 @@ async function main(): Promise<void> {
   loadScriptEnv()
 
   // Imported after loadScriptEnv so the keyring and Prisma see the env.
-  const { PrismaClient } = await import('@prisma/client')
+  const { createScriptPrisma } = await import('./lib/script-prisma')
   const { encryptionKeyHexes, currentEncryptionKeyHex } = await import('../lib/encryption-keys')
 
   const keyCount = encryptionKeyHexes().length
@@ -247,7 +247,7 @@ async function main(): Promise<void> {
     throw new Error(`${options.databaseUrlEnv} is not set`)
   }
   console.log(`🗄️  target: ${options.databaseUrlEnv}`)
-  const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl } } })
+  const prisma = createScriptPrisma({ url: databaseUrl })
   let total: RowOutcome
 
   try {

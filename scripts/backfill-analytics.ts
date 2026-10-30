@@ -23,9 +23,9 @@
  *   npx tsx scripts/backfill-analytics.ts --yes-fabricate-events
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 const PLATFORM_UNKNOWN = 'unknown'
 

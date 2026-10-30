@@ -47,7 +47,7 @@ import { loadScriptEnv } from './lib/load-env'
 
 loadScriptEnv()
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { SCOPE_GROUPS, isScopeGroup, type ScopeGroup } from '../lib/oauth/oauth-scopes'
 
 interface Options {
@@ -99,7 +99,7 @@ async function main() {
     )
   }
 
-  const prisma = new PrismaClient({ datasources: { db: { url } } })
+  const prisma = createScriptPrisma({ url })
 
   try {
     // Explicitly named clients are taken as given — someone decided. Otherwise

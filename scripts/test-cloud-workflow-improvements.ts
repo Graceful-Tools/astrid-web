@@ -14,7 +14,7 @@
  * - Dev server should NOT be running (uses same database connection)
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { AIOrchestrator } from '../lib/ai-orchestrator'
 
 // Check for DATABASE_URL
@@ -28,7 +28,7 @@ if (!process.env.DATABASE_URL) {
   process.exit(1)
 }
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 // Color codes for terminal output
 const colors = {

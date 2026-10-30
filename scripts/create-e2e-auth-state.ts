@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { mintSessionToken, sessionStorageState } from '../e2e/utils/minted-session'
 
 function requireEnvironment(name: 'TEST_DATABASE_URL' | 'NEXTAUTH_SECRET'): string {
@@ -28,7 +28,7 @@ if (
 process.env.DATABASE_URL = databaseUrl
 process.env.DATABASE_URL_DIRECT = databaseUrl
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 const authDirectory = path.resolve('.auth')
 
 // A NextAuth JWT, not a database Session row: the web UI only reads the JWT,

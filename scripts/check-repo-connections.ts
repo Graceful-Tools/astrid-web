@@ -1,8 +1,8 @@
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { config } from 'dotenv'
 
 config({ path: '.env.local' })
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function checkRepositoryConnections() {
   console.log('🔍 Checking repository connections in lists...\n')

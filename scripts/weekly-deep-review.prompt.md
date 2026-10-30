@@ -25,7 +25,7 @@ Never run any of these:
 
 | Command | Why |
 |---|---|
-| `npm run weekly-review` | **It does not fail — it lies.** `scripts/weekly-review.ts:22` builds a bare `new PrismaClient()`, which reads `DATABASE_URL`; `.env.local` sets that to `localhost:5432/astrid_dev` and `scripts/lib/load-env.ts` loads it with `override: true`. It prints **local dev** counts under headings that say "Server Health" and "real users". |
+| `npm run weekly-review` | **It does not fail — it lies.** `scripts/weekly-review.ts` builds its client with `createScriptPrisma()` and no URL, so it reads `DATABASE_URL`; `.env.local` sets that to `localhost:5432/astrid_dev` and `scripts/lib/load-env.ts` loads it with `override: true`. It prints **local dev** counts under headings that say "Server Health" and "real users". |
 | `npm run monitor:vercel*` | It writes comments to real Astrid tasks. Even `:no-fix` posts "Deployment Issues Resolved" onto live tasks, and its auto-resolve substring-matches `build`/`vercel` against task titles. On 2026-08-18 it wrote three misleading comments before it could be stopped, the earliest four days earlier. |
 | `vercel pull`, `vercel link`, `vercel env pull` | Destroys `.env.local`. |
 | `npm run predeploy` | Files its own Astrid tasks and would pollute the board. |

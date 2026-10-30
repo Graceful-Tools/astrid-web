@@ -1,9 +1,9 @@
 // Complete an Astrid task and post a report read from a FILE (preserves newlines,
 // unlike complete-with-report.ts which joins argv with spaces).
 // Usage: npx tsx scripts/complete-from-file.ts <task-id-prefix> <report-file> [--comment-only]
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { readFileSync } from 'fs'
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 async function main() {
   const [prefix, file, mode] = process.argv.slice(2)
   const report = readFileSync(file, 'utf8').trim()

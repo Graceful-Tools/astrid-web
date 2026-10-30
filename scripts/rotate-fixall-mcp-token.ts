@@ -46,8 +46,8 @@ async function main() {
   }
 
   process.env.DATABASE_URL = databaseUrl
-  const { PrismaClient } = await import("@prisma/client")
-  const prisma = new PrismaClient()
+  const { createScriptPrisma } = await import("./lib/script-prisma")
+  const prisma = createScriptPrisma({ url: databaseUrl })
 
   try {
     const agent = await prisma.user.findUnique({
