@@ -228,7 +228,7 @@ private func saveDueTime() async {
   - `formatDateReadOnly()` - Lines 606-617
 
 ### Web Tests (Validation)
-- `tests/lib/timezone-task-creation.test.ts` - All tests pass
+- `tests/components/task-detail/due-date-edits-across-zones.test.tsx` - All tests pass (replaced `tests/lib/timezone-task-creation.test.ts`, which tested an in-file copy; AWTD-1422)
 - `tests/api/date-sync-ios-web.test.ts` - All tests pass
 - `tests/lib/date-timezone-handling.test.ts` - All tests pass
 
