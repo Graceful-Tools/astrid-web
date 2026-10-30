@@ -27,7 +27,6 @@ import {
   LazySettingsPanel,
   LazyTaskDetail,
 } from "./TaskManager/lazy-panels"
-import { getProjectIdForBoard } from "@/lib/project-status"
 import { didEnterBoardMode } from "@/lib/board-mode-transition"
 import type { Task, TaskList, User } from "@/types/task"
 import type { LayoutType } from "@/lib/layout-detection"
@@ -52,8 +51,8 @@ export interface TaskManagerViewModel {
   loading: boolean
   selectedTaskId: string
   selectedListId: string
-  /** The list the page fetched itself, before the list sync lands (AWTD-1426). */
-  selectedListMetadata?: Pick<TaskList, 'id' | 'projectId'> | null
+  /** The selected list is on a project board — computed by TaskManager (AWTD-1426). */
+  hasProjectBoard: boolean
   selectedTask: Task | null
   finalFilteredTasks: Task[]
   availableUsers: User[]
@@ -444,13 +443,9 @@ const TaskManagerView = memo(function TaskManagerView({
   chatListMembers,
   chatListId,
   setLayoutBoardMode,
-  selectedListMetadata,
+  hasProjectBoard,
 }: TaskManagerViewModel) {
   const [taskViewMode, setTaskViewMode] = React.useState<'list' | 'board'>('list')
-  const hasProjectBoard = React.useMemo(
-    () => Boolean(getProjectIdForBoard(lists, selectedListId, selectedListMetadata)),
-    [lists, selectedListId, selectedListMetadata]
-  )
   const isBoardMode = hasProjectBoard && taskViewMode === 'board'
 
   const handleProjectBoardCreated = React.useCallback((projectLists: TaskList[]) => {
