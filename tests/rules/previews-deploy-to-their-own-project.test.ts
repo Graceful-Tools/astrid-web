@@ -34,4 +34,13 @@ describe('previews deploy to their own project (AWTD-1373)', () => {
     const source = read('preview-deployment.yml')
     expect(source).toMatch(/git diff --quiet "\$MERGE_BASE" HEAD -- prisma\/migrations/)
   })
+
+  it('smoke-tests through Vercel Authentication with the automation bypass secret', () => {
+    const source = read('preview-deployment.yml')
+    const e2e = source.slice(source.indexOf('  e2e-tests:'), source.indexOf('  security-scan:'))
+    expect(e2e).toContain('secrets.VERCEL_AUTOMATION_BYPASS_SECRET')
+    const curls = e2e.match(/curl [^\n]*/g) ?? []
+    expect(curls.length).toBeGreaterThan(0)
+    for (const curl of curls) expect(curl).toContain('"${BYPASS[@]}"')
+  })
 })
