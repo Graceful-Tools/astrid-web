@@ -334,6 +334,7 @@ describe('TaskManagerView - Settings Button Behavior', () => {
     setActivePanel: vi.fn(),
     chatChannelId: null,
     chatListMembers: [],
+    hasProjectBoard: false,
   })
 
   it('should NOT close task panel when clicking settings button in header with task open (2-column)', async () => {

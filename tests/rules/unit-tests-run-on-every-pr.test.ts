@@ -119,10 +119,12 @@ describe('unit tests run on every pull request (AWTD-1216)', () => {
  * to a deleted spec), each costing a follow-up PR and a second gate run.
  */
 describe('the doc-link check runs on every pull request (AWTD-1428)', () => {
-  it('unit-tests.yml runs npm run check:docs', () => {
+  // Same gap, same fix: the test-tree typecheck was predeploy-only too, and a
+  // fixture missing a new required prop got past CI that way (AWTD-1426).
+  it.each(['check:docs', 'typecheck:tests'])('unit-tests.yml runs npm run %s', script => {
     const steps = readFileSync(join(WORKFLOWS, 'unit-tests.yml'), 'utf8')
       .split('\n')
       .filter(line => /^\s*(?:- )?run:/.test(line))
-    expect(steps.some(line => /\bnpm run check:docs\b/.test(line))).toBe(true)
+    expect(steps.some(line => new RegExp(`\\bnpm run ${script}\\b`).test(line))).toBe(true)
   })
 })

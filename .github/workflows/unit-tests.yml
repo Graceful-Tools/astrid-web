@@ -52,6 +52,12 @@ jobs:
       - name: Check Documentation Links
         run: npm run check:docs
 
+      # tests/ is outside the app's tsconfig, so `typecheck` never sees it.
+      # Predeploy ran this alone, so a fixture missing a new required prop
+      # passed CI and failed the gate on the merged main (AWTD-1426).
+      - name: Typecheck the Test Tree
+        run: npm run typecheck:tests
+
       - name: Run Tests
         run: npm run test:run
         env:
