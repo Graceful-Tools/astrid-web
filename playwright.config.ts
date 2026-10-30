@@ -22,6 +22,10 @@ export const AUTHENTICATED_UI_SPECS = [
   'time-picker',
   'desktop-list-settings',
   'panel-animations',
+  'mobile-board-column-centring',
+  'mobile-board-swipe',
+  'mobile-pull-to-refresh',
+  'sidebar-settings',
 ]
 
 /**
@@ -33,11 +37,7 @@ export const AUTHENTICATED_UI_SPECS = [
  */
 export const PENDING_E2E_SPECS: Record<string, string> = {
   // Revive candidates — selectors exist, but the spec no longer passes signed in.
-  'accessibility': '10/15 pass signed in; the signed-out cases need their own project',
-  'mobile-board-column-centring': 'getByRole("button", { name: "Board" }) is ambiguous once lists exist',
-  'mobile-board-swipe': 'same ambiguous "Board" locator',
-  'mobile-pull-to-refresh': '2/6 pass; waits for [data-testid="task-list"] that is not rendered',
-  'sidebar-settings': '4/12 pass; hamburger locator falls back to "first button with an svg"',
+  'accessibility': 'real gaps, not locators (AWTD-1435): no <main> landmark, no skip link, the logo is a div the keyboard cannot reach; the sign-in cases need a signed-out project',
   // Rewrites owned by AWTD-1339 — they target UI that no longer exists.
   'empty-state': 'AWTD-1339 rewrite',
   'lists': 'AWTD-1339 rewrite',
