@@ -52,6 +52,8 @@ export interface TaskManagerViewModel {
   loading: boolean
   selectedTaskId: string
   selectedListId: string
+  /** The list the page fetched itself, before the list sync lands (AWTD-1426). */
+  selectedListMetadata?: Pick<TaskList, 'id' | 'projectId'> | null
   selectedTask: Task | null
   finalFilteredTasks: Task[]
   availableUsers: User[]
@@ -442,11 +444,12 @@ const TaskManagerView = memo(function TaskManagerView({
   chatListMembers,
   chatListId,
   setLayoutBoardMode,
+  selectedListMetadata,
 }: TaskManagerViewModel) {
   const [taskViewMode, setTaskViewMode] = React.useState<'list' | 'board'>('list')
   const hasProjectBoard = React.useMemo(
-    () => Boolean(getProjectIdForBoard(lists, selectedListId)),
-    [lists, selectedListId]
+    () => Boolean(getProjectIdForBoard(lists, selectedListId, selectedListMetadata)),
+    [lists, selectedListId, selectedListMetadata]
   )
   const isBoardMode = hasProjectBoard && taskViewMode === 'board'
 

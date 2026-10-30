@@ -88,13 +88,20 @@ test.describe('Core task journeys (AWTD-1339)', () => {
     const title = `First click ${Date.now()}`
     const quickAdd = page.getByPlaceholder('Add a task...').first()
     await quickAdd.fill(title)
+    const created = page.waitForResponse(
+      r => new URL(r.url()).pathname === '/api/v1/tasks' && r.request().method() === 'POST'
+    )
     await quickAdd.press('Enter')
-    await expect(row(page, title)).toHaveCount(1)
-    const taskId = await row(page, title).getAttribute('data-task-id')
+    const response = await created
+    expect(response.ok()).toBeTruthy()
+    const body = await response.json()
+    const taskId: string = (body.task ?? body).id
 
-    // Creating with Enter selected the task behind the scenes, so this click
-    // toggled it closed and did nothing visible.
-    await page.waitForTimeout(1500)
+    // Creating with Enter selected the task behind the scenes once the create
+    // resolved, so this click toggled it closed and did nothing visible. Wait
+    // for exactly that point — the row carrying the server's id — rather than
+    // a fixed sleep, which a slower regression could outlast (AWTD-1426).
+    await expect(page.locator(`[data-task-id="${taskId}"]`)).toHaveCount(1)
     await row(page, title).click()
     await expect(page.getByTestId('task-detail-title')).toBeVisible({ timeout: 3000 })
     await expect(page).toHaveURL(new RegExp(`[?&]task=${taskId}`))
