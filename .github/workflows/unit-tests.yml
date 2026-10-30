@@ -47,6 +47,11 @@ jobs:
       - name: Run Linting
         run: npm run lint
 
+      # Predeploy runs this too; running it here fails the PR instead of the
+      # merged main (AWTD-1428).
+      - name: Check Documentation Links
+        run: npm run check:docs
+
       - name: Run Tests
         run: npm run test:run
         env:
