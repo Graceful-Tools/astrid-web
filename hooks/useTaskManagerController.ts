@@ -998,10 +998,24 @@ export function useTaskManagerController({
         if (navigationState.selectedListId === listId) {
           const nextListId = updatedLists.length > 0 ? updatedLists[0].id : "my-tasks"
           navigationState.setSelectedListId(nextListId)
+          // Move the URL off the deleted list too, as the sidebar does when a
+          // list is picked. It used to stay on /lists/<deleted id>, so a reload
+          // or a shared link landed on "List Not Available" (AWTD-1419).
+          window.history.replaceState(null, '', nextListId === "my-tasks" ? '/' : `/lists/${nextListId}`)
         }
 
         return updatedLists
       })
+
+      // Its tasks survive the delete; drop the list from them here too. They
+      // kept it, so the next edit of one — completing it, say — sent the gone
+      // list back and the server refused the whole update with "Invalid list
+      // IDs" (AWTD-1419).
+      listState.setTasks(prev => prev.map(task =>
+        task.lists?.some(l => l.id === listId)
+          ? { ...task, lists: task.lists.filter(l => l.id !== listId) }
+          : task
+      ))
 
       toast({
         title: "Success",
@@ -1018,7 +1032,7 @@ export function useTaskManagerController({
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listState.lists, listState.setLists, navigationState.selectedListId, navigationState.setSelectedListId, toast])
+  }, [listState.lists, listState.setLists, listState.setTasks, navigationState.selectedListId, navigationState.setSelectedListId, toast])
 
   const handleUpdateList = useCallback(async (updatedList: TaskList) => {
     if (!effectiveSession?.user) return
