@@ -61,7 +61,7 @@ async function main() {
 
     // 4. Apply the new performance indexes using db push
     console.log('⚡ Applying performance optimizations (indexes)...')
-    execSync('npx prisma db push --skip-generate', { 
+    execSync('npx prisma db push', { 
       stdio: 'inherit',
       env: { ...process.env, DATABASE_URL: prodDbUrl }
     })
