@@ -1,68 +1,35 @@
 /**
+ * @vitest-environment node
+ *
  * SSE Dedup Comprehensive Tests
  *
- * Tests the server-side dedup logic in the agent events endpoint.
- * Validates fingerprinting, TTL expiry, and pruning behavior.
+ * Tests the dedup logic the agent events endpoint (app/api/v1/agent/events/route.ts)
+ * uses: fingerprinting, TTL expiry, and pruning. These are the real functions
+ * from lib/agent-protocol — this file used to test an in-file copy whose
+ * mapEventType had already drifted from the app's (AWTD-1422).
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 
-// ── Extracted dedup logic for testing ──────────────────────────────────
-// These are pure functions extracted from app/api/v1/agent/events/route.ts
-// to test the dedup algorithm without needing an SSE stream.
+// agent-protocol pulls in prisma and the auth middleware; dedup needs neither.
+vi.mock('@/lib/prisma', () => ({ prisma: {} }))
+vi.mock('@/lib/api-auth-middleware', () => ({
+  authenticateAPI: vi.fn(),
+  UnauthorizedError: class extends Error {},
+  ForbiddenError: class extends Error {},
+}))
+vi.mock('@/lib/oauth/oauth-scopes', () => ({
+  hasRequiredScopes: vi.fn().mockReturnValue(true),
+}))
 
-function mapEventType(type: string): string {
-  switch (type) {
-    case 'task_assigned':
-    case 'task_created':
-      return 'task.assigned'
-    case 'task_updated':
-      return 'task.updated'
-    case 'task_completed':
-      return 'task.completed'
-    case 'task_deleted':
-      return 'task.deleted'
-    case 'comment_created':
-    case 'comment_added':
-    case 'agent_task_comment':
-      return 'task.commented'
-    default:
-      return type
-  }
-}
+import {
+  AGENT_EVENT_DEDUP_TTL_MS,
+  agentEventFingerprint,
+  createAgentEventDedup,
+} from '@/lib/agent-protocol'
 
-function eventFingerprint(event: { type?: string; data?: { taskId?: string; commentId?: string; comment?: { id?: string } } }) {
-  const agentType = mapEventType(event.type || '') || event.type || ''
-  const taskId = event.data?.taskId || ''
-  const commentId = event.data?.comment?.id || event.data?.commentId || ''
-  return `${agentType}:${taskId}:${commentId}`
-}
-
-function createDedupChecker(ttlMs: number) {
-  const deliveredEvents = new Map<string, number>()
-
-  return {
-    isDuplicate(fp: string, now = Date.now()): boolean {
-      if (deliveredEvents.size > 100) {
-        for (const [key, ts] of deliveredEvents) {
-          if (now - ts > ttlMs) deliveredEvents.delete(key)
-        }
-      }
-      if (deliveredEvents.has(fp)) {
-        const age = now - deliveredEvents.get(fp)!
-        if (age < ttlMs) return true
-      }
-      deliveredEvents.set(fp, now)
-      return false
-    },
-    get size() { return deliveredEvents.size },
-  }
-}
-
-// ── Tests ──────────────────────────────────────────────────────────────
-
-describe('SSE Dedup — eventFingerprint', () => {
+describe('SSE Dedup — agentEventFingerprint', () => {
   it('should produce correct fingerprint for task.assigned', () => {
-    const fp = eventFingerprint({
+    const fp = agentEventFingerprint({
       type: 'task_assigned',
       data: { taskId: 'task-1' },
     })
@@ -70,91 +37,130 @@ describe('SSE Dedup — eventFingerprint', () => {
   })
 
   it('should produce same fingerprint for task_assigned and task_created with same taskId', () => {
-    const fp1 = eventFingerprint({
-      type: 'task_assigned',
-      data: { taskId: 'task-1' },
-    })
-    const fp2 = eventFingerprint({
-      type: 'task_created',
-      data: { taskId: 'task-1' },
-    })
+    const fp1 = agentEventFingerprint({ type: 'task_assigned', data: { taskId: 'task-1' } })
+    const fp2 = agentEventFingerprint({ type: 'task_created', data: { taskId: 'task-1' } })
     expect(fp1).toBe(fp2)
   })
 
   it('should produce different fingerprints for different taskIds', () => {
-    const fp1 = eventFingerprint({
-      type: 'task_assigned',
-      data: { taskId: 'task-1' },
-    })
-    const fp2 = eventFingerprint({
-      type: 'task_assigned',
-      data: { taskId: 'task-2' },
-    })
+    const fp1 = agentEventFingerprint({ type: 'task_assigned', data: { taskId: 'task-1' } })
+    const fp2 = agentEventFingerprint({ type: 'task_assigned', data: { taskId: 'task-2' } })
     expect(fp1).not.toBe(fp2)
   })
 
   it('should include commentId in fingerprint for comment events', () => {
-    const fp = eventFingerprint({
+    const fp = agentEventFingerprint({
       type: 'comment_created',
       data: { taskId: 'task-1', comment: { id: 'comment-1' } },
     })
     expect(fp).toBe('task.commented:task-1:comment-1')
   })
 
+  it('should fall back to data.commentId when there is no comment object', () => {
+    const fp = agentEventFingerprint({
+      type: 'agent_task_comment',
+      data: { taskId: 'task-1', commentId: 'c-9' },
+    })
+    expect(fp).toBe('task.commented:task-1:c-9')
+  })
+
   it('should handle missing data gracefully', () => {
-    const fp = eventFingerprint({ type: 'task_assigned' })
-    expect(fp).toBe('task.assigned::')
+    expect(agentEventFingerprint({ type: 'task_assigned' })).toBe('task.assigned::')
   })
 
   it('should map comment_added to task.commented', () => {
-    const fp = eventFingerprint({
+    const fp = agentEventFingerprint({
       type: 'comment_added',
       data: { taskId: 'task-1', comment: { id: 'c-1' } },
     })
     expect(fp).toBe('task.commented:task-1:c-1')
   })
+
+  it('should keep the raw type for internal events with no agent mapping', () => {
+    // mapEventType returns null for these; the fingerprint must not collapse
+    // every unmapped type onto one key.
+    expect(agentEventFingerprint({ type: 'list_updated', data: { taskId: 't' } })).toBe('list_updated:t:')
+    expect(agentEventFingerprint({})).toBe('::')
+  })
 })
 
-describe('SSE Dedup — isDuplicate', () => {
+describe('SSE Dedup — createAgentEventDedup', () => {
+  it('defaults to a 5-minute window', () => {
+    expect(AGENT_EVENT_DEDUP_TTL_MS).toBe(5 * 60_000)
+    const dedup = createAgentEventDedup()
+    const now = 1_000_000
+    dedup.isDuplicate('fp', now)
+    expect(dedup.isDuplicate('fp', now + AGENT_EVENT_DEDUP_TTL_MS - 1)).toBe(true)
+    expect(dedup.isDuplicate('fp', now + 2 * AGENT_EVENT_DEDUP_TTL_MS)).toBe(false)
+  })
+
   it('should return false for first occurrence', () => {
-    const dedup = createDedupChecker(5 * 60_000)
+    const dedup = createAgentEventDedup()
     expect(dedup.isDuplicate('task.assigned:task-1:')).toBe(false)
   })
 
   it('should return true for same fingerprint within TTL', () => {
-    const dedup = createDedupChecker(5 * 60_000)
+    const dedup = createAgentEventDedup()
     const now = Date.now()
     dedup.isDuplicate('task.assigned:task-1:', now)
     expect(dedup.isDuplicate('task.assigned:task-1:', now + 1000)).toBe(true)
   })
 
+  it('should use the real clock when no time is passed', () => {
+    vi.useFakeTimers()
+    try {
+      const dedup = createAgentEventDedup(5_000)
+      expect(dedup.isDuplicate('fp')).toBe(false)
+      vi.advanceTimersByTime(1_000)
+      expect(dedup.isDuplicate('fp')).toBe(true)
+      vi.advanceTimersByTime(10_000)
+      expect(dedup.isDuplicate('fp')).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('should return false after TTL expiry', () => {
-    const dedup = createDedupChecker(5_000) // 5 second TTL for test
+    const dedup = createAgentEventDedup(5_000)
     const now = Date.now()
     dedup.isDuplicate('task.assigned:task-1:', now)
-    // After TTL expiry
     expect(dedup.isDuplicate('task.assigned:task-1:', now + 6_000)).toBe(false)
   })
 
   it('should not dedup different fingerprints', () => {
-    const dedup = createDedupChecker(5 * 60_000)
+    const dedup = createAgentEventDedup()
     dedup.isDuplicate('task.assigned:task-1:')
     expect(dedup.isDuplicate('task.assigned:task-2:')).toBe(false)
   })
 
+  it('should keep separate state per checker (one per SSE connection)', () => {
+    const a = createAgentEventDedup()
+    const b = createAgentEventDedup()
+    a.isDuplicate('fp')
+    expect(b.isDuplicate('fp')).toBe(false)
+  })
+
   it('should prune expired entries when map exceeds 100', () => {
-    const dedup = createDedupChecker(100) // 100ms TTL
+    const dedup = createAgentEventDedup(100) // 100ms TTL
     const baseTime = Date.now()
 
-    // Add 101 entries at baseTime
     for (let i = 0; i < 101; i++) {
       dedup.isDuplicate(`fp:${i}:`, baseTime)
     }
     expect(dedup.size).toBe(101)
 
-    // Check one more after TTL — should trigger pruning
+    // One more after TTL triggers pruning: every old entry goes, the new one stays
     dedup.isDuplicate('fp:new:', baseTime + 200)
-    // Pruning happened — old entries removed, new one added
-    expect(dedup.size).toBeLessThanOrEqual(2) // only the new entry (and maybe 101th)
+    expect(dedup.size).toBe(1)
+  })
+
+  it('should not prune at or below 100 entries', () => {
+    const dedup = createAgentEventDedup(100)
+    const baseTime = Date.now()
+    for (let i = 0; i < 100; i++) {
+      dedup.isDuplicate(`fp:${i}:`, baseTime)
+    }
+    dedup.isDuplicate('fp:new:', baseTime + 200)
+    expect(dedup.size).toBe(101)
   })
 })

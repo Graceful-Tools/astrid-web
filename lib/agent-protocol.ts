@@ -183,6 +183,65 @@ export function mapEventType(type: string): AgentEventType | null {
   }
 }
 
+// ── SSE Event Dedup ───────────────────────────────────────────────────
+//
+// Time-windowed dedup for the agent SSE stream (/api/v1/agent/events).
+// Prevents duplicates from two sources:
+// 1. TOCTOU race: proxy controller (direct push) vs safety-net poll
+//    delivering the same cached event twice.
+// 2. Multiple broadcasts: task_assigned + task_created both map to
+//    agent type task.assigned, so one operation fires two internal
+//    events that transform to the same agent event.
+// The fingerprint uses the AGENT protocol type (post-mapping) so that
+// different internal types mapping to the same agent type dedup.
+
+/** How long a delivered fingerprint suppresses repeats (matches connection refresh). */
+export const AGENT_EVENT_DEDUP_TTL_MS = 5 * 60_000 // 5 minutes
+
+/** Internal SSE event shape the dedup fingerprint reads. */
+export interface AgentDedupEvent {
+  type?: string
+  data?: { taskId?: string; commentId?: string; comment?: { id?: string } }
+}
+
+/** `<agent type>:<taskId>:<commentId>` — unmapped internal types keep their raw name. */
+export function agentEventFingerprint(event: AgentDedupEvent): string {
+  const agentType = mapEventType(event.type || '') || event.type || ''
+  const taskId = event.data?.taskId || ''
+  const commentId = event.data?.comment?.id || event.data?.commentId || ''
+  return `${agentType}:${taskId}:${commentId}`
+}
+
+/**
+ * Per-connection dedup checker. Uses a Map<fingerprint, timestamp> instead of
+ * a Set to support TTL-based expiry (no abrupt clear() at size limits).
+ */
+export function createAgentEventDedup(ttlMs: number = AGENT_EVENT_DEDUP_TTL_MS) {
+  const deliveredEvents = new Map<string, number>()
+  return {
+    /** True when `fp` was delivered within the TTL; otherwise records it and returns false. */
+    isDuplicate(fp: string, now: number = Date.now()): boolean {
+      // Prune expired entries periodically
+      if (deliveredEvents.size > 100) {
+        for (const [key, ts] of deliveredEvents) {
+          if (now - ts > ttlMs) deliveredEvents.delete(key)
+        }
+      }
+      if (deliveredEvents.has(fp)) {
+        const age = now - deliveredEvents.get(fp)!
+        if (age < ttlMs) return true // still within window
+        // Expired — treat as new
+      }
+      deliveredEvents.set(fp, now)
+      return false
+    },
+    /** Number of fingerprints currently tracked. */
+    get size() {
+      return deliveredEvents.size
+    },
+  }
+}
+
 // ── Prisma Includes ────────────────────────────────────────────────────
 
 /** Standard Prisma include for agent task queries */
