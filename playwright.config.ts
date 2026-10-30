@@ -19,6 +19,7 @@ export const AUTHENTICATED_UI_SPECS = [
   'mobile-shell-never-scrolls',
   'mobile-unified-header-toggle',
   'project-status-board',
+  'time-picker',
 ]
 
 /**
@@ -36,7 +37,6 @@ export const PENDING_E2E_SPECS: Record<string, string> = {
   'mobile-board-swipe': 'same ambiguous "Board" locator',
   'mobile-pull-to-refresh': '2/6 pass; waits for [data-testid="task-list"] that is not rendered',
   'sidebar-settings': '4/12 pass; hamburger locator falls back to "first button with an svg"',
-  'time-picker': '3/4 pass; "9am" preset matches two buttons (strict mode)',
   'panel-animations': 'flaky: 5–7/7 pass, a different animate-out / dim-overlay case fails each run',
   // Rewrites owned by AWTD-1339 — they target UI that no longer exists.
   'empty-state': 'AWTD-1339 rewrite',
