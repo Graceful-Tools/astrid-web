@@ -44,7 +44,7 @@ export interface StepResult {
  */
 export function runWorkflowStep(step: WorkflowStep, opts: { cwd: string; env?: Record<string, string> }): StepResult {
   if (!step.run) throw new Error(`step "${step.name}" has no run: block`)
-  const env: Record<string, string | undefined> = { ...process.env, ...opts.env }
+  const env: NodeJS.ProcessEnv = { ...process.env, ...opts.env }
   for (const [key, value] of Object.entries(step.env ?? {})) {
     if (String(value).includes('${{')) {
       if (opts.env?.[key] === undefined) throw new Error(`step "${step.name}" needs ${key} (${value})`)

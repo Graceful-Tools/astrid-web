@@ -306,6 +306,7 @@ describe('TaskManagerView', () => {
     setActivePanel: vi.fn(),
     chatChannelId: null,
     chatListMembers: [],
+    hasProjectBoard: false,
   }
 
   beforeEach(() => {
