@@ -100,4 +100,34 @@ test.describe('List sharing (AWTD-1405)', () => {
       await viewer.close()
     }
   })
+
+  test("a public list shows a non-member only that list's tasks (AWTD-1419)", async ({ request, browser }) => {
+    // A non-member can read every public list's tasks, so they are all in the
+    // viewer's task set. The list view filtered by list only when the list was
+    // one of the viewer's own, so every public task they could read rendered
+    // under this list's heading — and, once there were enough to scroll, the
+    // scroll to reach a row closed the detail it opened.
+    const name = `Public alone ${Date.now()}`
+    const { list } = await postJson<{ list: ApiList }>(request, '/api/v1/lists', { name, privacy: 'PUBLIC' })
+    const { list: other } = await postJson<{ list: ApiList }>(request, '/api/v1/lists', {
+      name: `Public other ${Date.now()}`,
+      privacy: 'PUBLIC',
+    })
+    const mine = `In this list ${Date.now()}`
+    const elsewhere = `In the other list ${Date.now()}`
+    await postJson(request, '/api/v1/tasks', { title: mine, listIds: [list.id] })
+    await postJson(request, '/api/v1/tasks', { title: elsewhere, listIds: [other.id] })
+
+    const viewer = await seat(browser, 'viewer.json')
+    try {
+      const page = await viewer.newPage()
+      await gotoWithRetry(page, `/lists/${list.id}`)
+      await expect(page.getByRole('heading', { name })).toBeVisible()
+      await expect(page.locator('[data-task-id]').filter({ hasText: mine })).toHaveCount(1)
+      await expect(page.locator('[data-task-id]').filter({ hasText: elsewhere })).toHaveCount(0)
+      await expect(page.locator('[data-task-id]')).toHaveCount(1)
+    } finally {
+      await viewer.close()
+    }
+  })
 })

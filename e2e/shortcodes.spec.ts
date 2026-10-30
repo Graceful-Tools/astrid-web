@@ -1,311 +1,119 @@
 import { test, expect } from '@playwright/test'
-import { TaskHelpers, waitForApiCall } from './utils/test-helpers'
+import type { APIRequestContext } from '@playwright/test'
+import { gotoWithRetry } from './utils/test-helpers'
+import { detail, freshList, postJson, row, seat, seedTask } from './utils/v1-seed'
 
-test.describe('Shortcode Navigation', () => {
-  let taskHelpers: TaskHelpers
+/**
+ * Share links: /s/<code> opens what it points at (AWTD-1419).
+ *
+ * Rewrites the pre-AWTD-1338 shortcodes spec, which had never run. The link
+ * is made in the UI (task detail → Task actions → Share) and its click count
+ * is read back from the API. Every other case seeds a code through the API.
+ */
 
-  test.beforeEach(async ({ page }) => {
-    taskHelpers = new TaskHelpers(page)
+type ApiShortcode = { code: string; clicks: number }
 
-    // Navigate to home page (will be redirected to auth if needed)
-    await page.goto('/')
+async function shortcodesFor(request: APIRequestContext, taskId: string): Promise<ApiShortcode[]> {
+  const response = await request.get(`/api/v1/shortcodes?targetType=task&targetId=${taskId}`)
+  expect(response.ok()).toBeTruthy()
+  return ((await response.json()) as { shortcodes: ApiShortcode[] }).shortcodes
+}
+
+async function makeShortcode(
+  request: APIRequestContext,
+  targetType: 'task' | 'list',
+  targetId: string,
+  expiresAt?: string,
+): Promise<string> {
+  const body = await postJson<{ shortcode: ApiShortcode }>(request, '/api/v1/shortcodes', {
+    targetType,
+    targetId,
+    expiresAt,
+  })
+  return body.shortcode.code
+}
+
+test.describe('Share links (AWTD-1419)', () => {
+  test('share a task from its menu; the link opens it in its list and counts the click', async ({
+    page,
+    request,
+  }) => {
+    const list = await freshList(request, 'Shared link')
+    const task = await seedTask(request, [list.id], `Linked ${Date.now()}`)
+    await gotoWithRetry(page, `/lists/${list.id}`)
+    await row(page, task.title).click()
+    await detail(page).getByRole('button', { name: 'Task actions' }).click()
+    await page.getByRole('menuitem', { name: 'Share', exact: true }).click()
+
+    const share = page.getByTestId('task-share-dialog')
+    const link = share.getByText(/\/s\/[A-Za-z0-9]+$/)
+    await expect(link).toBeVisible()
+    const url = (await link.textContent())!.trim()
+    const code = url.split('/s/')[1]
+    // The code the dialog shows is the one the server stored for this task.
+    await expect.poll(async () => (await shortcodesFor(request, task.id)).map((s) => s.code)).toContain(code)
+    await share.getByRole('button', { name: 'Close' }).click()
+
+    await gotoWithRetry(page, `/s/${code}`)
+    await expect(page).toHaveURL(new RegExp(`/lists/${list.id}\\?task=${task.id}$`))
+    await expect(page.getByTestId('task-detail-title')).toHaveText(task.title)
+    await expect
+      .poll(async () => (await shortcodesFor(request, task.id)).find((s) => s.code === code)?.clicks)
+      .toBe(1)
   })
 
-  test.describe('Shortcode Resolution', () => {
-    test('should resolve shortcode and open task detail', async ({ page }) => {
-      // First, create a task to get a real task ID
-      const taskTitle = `Shortcode Test Task ${Date.now()}`
-      const addTaskInput = page.getByPlaceholder(/add.*task/i).first()
-      await expect(addTaskInput).toBeVisible({ timeout: 10000 })
-
-      await addTaskInput.fill(taskTitle)
-      await addTaskInput.press('Enter')
-
-      // Wait for task creation
-      await waitForApiCall(page, /\/api\/tasks/)
-
-      // Find the created task and get its ID
-      const createdTask = taskHelpers.getTaskByTitle(taskTitle)
-      await expect(createdTask).toBeVisible()
-
-      // Get task ID from data attribute or URL
-      const taskId = await createdTask.getAttribute('data-task-id')
-      expect(taskId).toBeTruthy()
-
-      // Create a shortcode for this task via API
-      const response = await page.evaluate(async (tid) => {
-        const res = await fetch('/api/v1/shortcodes', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            targetType: 'task',
-            targetId: tid,
-          }),
-        })
-        return res.json()
-      }, taskId!)
-
-      expect(response.shortcode).toBeTruthy()
-      expect(response.shortcode.code).toBeTruthy()
-      const shortcode = response.shortcode.code
-
-      // Navigate away from task detail if open
-      await page.goto('/')
-      await page.waitForLoadState('networkidle')
-
-      // Now navigate to the shortcode URL
-      await page.goto(`/s/${shortcode}`)
-
-      // Should redirect to /?task={taskId}
-      await page.waitForURL(/\?task=/, { timeout: 5000 })
-
-      // Task detail should be automatically opened
-      const taskDetailPane = page.locator('[data-testid="task-detail-pane"], [data-testid="task-detail"], .task-detail')
-      await expect(taskDetailPane).toBeVisible({ timeout: 5000 })
-
-      // Task title should be visible in the detail pane
-      await expect(page.locator(`text="${taskTitle}"`).first()).toBeVisible()
-    })
-
-    test('should handle unauthenticated shortcode access', async ({ page, context }) => {
-      // Clear authentication
-      await context.clearCookies()
-
-      // Try to access a shortcode URL (using a dummy code)
-      await page.goto('/s/TEST1234')
-
-      // Should redirect to sign in page
-      await expect(page).toHaveURL(/\/auth\/signin/, { timeout: 5000 })
-
-      // Should have callback URL parameter
-      const url = page.url()
-      expect(url).toContain('callbackUrl')
-      expect(url).toContain('%2Fs%2FTEST1234')
-    })
-
-    test('should show error for invalid shortcode', async ({ page }) => {
-      // Navigate to home to ensure we're authenticated
-      await page.goto('/')
-      await page.waitForLoadState('networkidle')
-
-      // Navigate to an invalid shortcode
-      await page.goto('/s/INVALIDCODE123456')
-      await page.waitForLoadState('networkidle')
-
-      // Should show error message
-      const errorMessage = page.locator('text=/Link.*not found.*expired/i')
-      await expect(errorMessage).toBeVisible({ timeout: 5000 })
-
-      // Should have a button to go to dashboard
-      const dashboardButton = page.locator('button:has-text("Dashboard"), a:has-text("Dashboard")')
-      await expect(dashboardButton).toBeVisible()
-    })
-
-    test('should show error for expired shortcode', async ({ page }) => {
-      // Create a task
-      const taskTitle = `Expired Shortcode Task ${Date.now()}`
-      const addTaskInput = page.getByPlaceholder(/add.*task/i).first()
-      await expect(addTaskInput).toBeVisible({ timeout: 10000 })
-
-      await addTaskInput.fill(taskTitle)
-      await addTaskInput.press('Enter')
-      await waitForApiCall(page, /\/api\/tasks/)
-
-      const createdTask = taskHelpers.getTaskByTitle(taskTitle)
-      await expect(createdTask).toBeVisible()
-
-      const taskId = await createdTask.getAttribute('data-task-id')
-
-      // Create shortcode with past expiration date
-      const response = await page.evaluate(async (tid) => {
-        const res = await fetch('/api/v1/shortcodes', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            targetType: 'task',
-            targetId: tid,
-            expiresAt: new Date(Date.now() - 86400000).toISOString(), // Expired yesterday
-          }),
-        })
-        return res.json()
-      }, taskId!)
-
-      const shortcode = response.shortcode.code
-
-      // Try to access the expired shortcode
-      await page.goto(`/s/${shortcode}`)
-      await page.waitForLoadState('networkidle')
-
-      // Should show error
-      const errorMessage = page.locator('text=/Link.*not found.*expired/i')
-      await expect(errorMessage).toBeVisible({ timeout: 5000 })
-    })
+  test('a list link opens the list', async ({ page, request }) => {
+    const list = await freshList(request, 'Linked list')
+    const code = await makeShortcode(request, 'list', list.id)
+    await gotoWithRetry(page, `/s/${code}`)
+    await expect(page).toHaveURL(new RegExp(`/lists/${list.id}$`))
+    await expect(page.getByRole('heading', { level: 1, name: list.name })).toBeVisible()
   })
 
-  test.describe('Mobile Shortcode Navigation', () => {
-    test('should open task in mobile view', async ({ page }) => {
-      // Set mobile viewport
-      await page.setViewportSize({ width: 375, height: 667 })
+  test('an unknown code and an expired code both say the link is gone', async ({ page, request }) => {
+    await gotoWithRetry(page, '/s/NOSUCHCODE123')
+    await expect(page.getByText('Link not found or expired')).toBeVisible()
 
-      // Create a task
-      await page.goto('/')
-      const taskTitle = `Mobile Shortcode Task ${Date.now()}`
-      const addTaskInput = page.getByPlaceholder(/add.*task/i).first()
-      await expect(addTaskInput).toBeVisible({ timeout: 10000 })
+    const list = await freshList(request, 'Expired link')
+    const task = await seedTask(request, [list.id], `Expired ${Date.now()}`)
+    const code = await makeShortcode(request, 'task', task.id, new Date(Date.now() - 86_400_000).toISOString())
+    await gotoWithRetry(page, `/s/${code}`)
+    await expect(page.getByText('Link not found or expired')).toBeVisible()
 
-      await addTaskInput.fill(taskTitle)
-      await addTaskInput.press('Enter')
-      await waitForApiCall(page, /\/api\/tasks/)
-
-      const createdTask = taskHelpers.getTaskByTitle(taskTitle)
-      await expect(createdTask).toBeVisible()
-      const taskId = await createdTask.getAttribute('data-task-id')
-
-      // Create shortcode
-      const response = await page.evaluate(async (tid) => {
-        const res = await fetch('/api/v1/shortcodes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            targetType: 'task',
-            targetId: tid,
-          }),
-        })
-        return res.json()
-      }, taskId!)
-
-      const shortcode = response.shortcode.code
-
-      // Navigate to shortcode
-      await page.goto(`/s/${shortcode}`)
-      await page.waitForURL(/\?task=/, { timeout: 5000 })
-
-      // On mobile, should switch to task view
-      // Task detail should be visible and take up full screen
-      const taskDetailPane = page.locator('[data-testid="task-detail-pane"], [data-testid="task-detail"], .task-detail')
-      await expect(taskDetailPane).toBeVisible({ timeout: 5000 })
-
-      // Task title should be visible
-      await expect(page.locator(`text="${taskTitle}"`).first()).toBeVisible()
-    })
+    await page.getByRole('button', { name: 'Go to Dashboard' }).click()
+    await expect(page).toHaveURL(/\/$/)
+    await expect(page.getByRole('heading', { level: 1, name: 'My Tasks' })).toBeVisible()
   })
 
-  test.describe('Task in List Context', () => {
-    test('should redirect to /lists/<listId>?task=<taskId> for tasks in lists', async ({ page }) => {
-      // Create a list first
-      await page.goto('/')
-      await page.waitForLoadState('networkidle')
+  test("someone outside the list gets no further than the link", async ({ browser, request }) => {
+    const list = await freshList(request, 'Private link')
+    const task = await seedTask(request, [list.id], `Not yours ${Date.now()}`)
+    const code = await makeShortcode(request, 'task', task.id)
 
-      // Create a new list
-      const createListButton = page.locator('button:has-text("New List"), button:has-text("Add List")').first()
-      if (await createListButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await createListButton.click()
-
-        const listNameInput = page.locator('input[name="name"], input[placeholder*="name" i]').first()
-        const listName = `Test List ${Date.now()}`
-        await listNameInput.fill(listName)
-
-        const submitButton = page.locator('button:has-text("Create"), button[type="submit"]').first()
-        await submitButton.click()
-
-        await page.waitForTimeout(1000)
-      }
-
-      // Create a task in the current list
-      const taskTitle = `List Context Task ${Date.now()}`
-      const addTaskInput = page.getByPlaceholder(/add.*task/i).first()
-      await expect(addTaskInput).toBeVisible({ timeout: 10000 })
-
-      await addTaskInput.fill(taskTitle)
-      await addTaskInput.press('Enter')
-      await waitForApiCall(page, /\/api\/tasks/)
-
-      const createdTask = taskHelpers.getTaskByTitle(taskTitle)
-      await expect(createdTask).toBeVisible()
-      const taskId = await createdTask.getAttribute('data-task-id')
-
-      // Create shortcode
-      const response = await page.evaluate(async (tid) => {
-        const res = await fetch('/api/v1/shortcodes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            targetType: 'task',
-            targetId: tid,
-          }),
-        })
-        return res.json()
-      }, taskId!)
-
-      const shortcode = response.shortcode.code
-
-      // Navigate to shortcode
-      await page.goto(`/s/${shortcode}`)
-
-      // Should redirect to /lists/<listId>?task=<taskId> (preserving list context)
-      await page.waitForURL(/\/lists\/.*\?task=/, { timeout: 5000 })
-
-      // Verify URL has both list and task
-      const url = page.url()
-      expect(url).toMatch(/\/lists\/.+/)
-      expect(url).toContain(`?task=${taskId}`)
-
-      // Task detail should be visible
-      const taskDetailPane = page.locator('[data-testid="task-detail-pane"], [data-testid="task-detail"], .task-detail')
-      await expect(taskDetailPane).toBeVisible({ timeout: 5000 })
-    })
-
+    const outsider = await seat(browser, 'outsider.json')
+    try {
+      const page = await outsider.newPage()
+      await gotoWithRetry(page, `/s/${code}`)
+      await expect(page.getByText("You don't have permission to view this task")).toBeVisible()
+      await expect(page).toHaveURL(new RegExp(`/s/${code}$`))
+      await expect(page.getByText(task.title)).toHaveCount(0)
+    } finally {
+      await outsider.close()
+    }
   })
 
-  test.describe('Shortcode Analytics', () => {
-    test('should increment click counter when shortcode is accessed', async ({ page }) => {
-      // Create a task
-      const taskTitle = `Analytics Task ${Date.now()}`
-      const addTaskInput = page.getByPlaceholder(/add.*task/i).first()
-      await expect(addTaskInput).toBeVisible({ timeout: 10000 })
+  test('signed out, the link goes to sign-in and comes back after', async ({ browser, request }) => {
+    const list = await freshList(request, 'Signed out link')
+    const code = await makeShortcode(request, 'list', list.id)
 
-      await addTaskInput.fill(taskTitle)
-      await addTaskInput.press('Enter')
-      await waitForApiCall(page, /\/api\/tasks/)
-
-      const createdTask = taskHelpers.getTaskByTitle(taskTitle)
-      const taskId = await createdTask.getAttribute('data-task-id')
-
-      // Create shortcode
-      const createResponse = await page.evaluate(async (tid) => {
-        const res = await fetch('/api/v1/shortcodes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            targetType: 'task',
-            targetId: tid,
-          }),
-        })
-        return res.json()
-      }, taskId!)
-
-      const shortcode = createResponse.shortcode.code
-      const initialClicks = createResponse.shortcode.clicks || 0
-
-      // Access the shortcode
-      await page.goto(`/s/${shortcode}`)
-      await page.waitForURL(/\?task=/, { timeout: 5000 })
-
-      // Check that click counter was incremented
-      await page.waitForTimeout(1000) // Give time for async click increment
-
-      const analyticsResponse = await page.evaluate(async (code) => {
-        const res = await fetch(`/api/v1/shortcodes/${code}`)
-        return res.json()
-      }, shortcode)
-
-      // Note: This might not work in the E2E test environment depending on API design
-      // The test verifies the click increment happens asynchronously
-      expect(analyticsResponse).toBeTruthy()
-    })
+    const signedOut = await browser.newContext({ storageState: { cookies: [], origins: [] } })
+    try {
+      const page = await signedOut.newPage()
+      await gotoWithRetry(page, `/s/${code}`)
+      await expect(page).toHaveURL(/\/auth\/signin\?/)
+      expect(new URL(page.url()).searchParams.get('callbackUrl')).toBe(`/s/${code}`)
+    } finally {
+      await signedOut.close()
+    }
   })
 })

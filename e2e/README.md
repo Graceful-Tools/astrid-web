@@ -9,10 +9,13 @@ e2e/
 ├── fixtures/
 │   └── auth.ts              # Authentication fixtures and helpers
 ├── utils/
-│   └── test-helpers.ts      # Shared test utilities and helper classes
+│   ├── v1-seed.ts           # Seed through /api/v1 and read the result back (signed-in specs)
+│   └── test-helpers.ts      # gotoWithRetry, plus legacy helper classes
 ├── auth.spec.ts             # Authentication flow tests
-├── tasks.spec.ts            # Task management tests
-├── lists.spec.ts            # List management tests
+├── task-journeys.spec.ts    # Create, rename, complete, comment, search (signed in)
+├── tasks.spec.ts            # Task detail: priority, date, assignee, delete, copy (signed in)
+├── lists.spec.ts            # Create, rename, delete a list (signed in)
+├── list-sharing.spec.ts     # Members, public lists, viewer read-only (signed in)
 ├── layout-regression.spec.ts # Column layouts per viewport project
 ├── mobile-*.spec.ts         # Mobile shell/header/keyboard behaviour
 ├── accessibility.spec.ts    # Accessibility (a11y) tests
@@ -84,20 +87,15 @@ npm run test:e2e:report
 - Session management
 - Error handling
 
-### Task Management Tests (`tasks.spec.ts`)
-- Task creation and editing
-- Task completion toggle
-- Task deletion
-- Comments and attachments
-- Due dates and priorities
-- Keyboard shortcuts
-
-### List Management Tests (`lists.spec.ts`)
-- List creation and deletion
-- List navigation
-- List settings and customization
-- Sharing and collaboration
-- Public/private lists
+### Signed-in journeys (`authenticated-ui` project)
+Each step is driven through the UI and then read back from `/api/v1`, so a pass
+means the change was saved, not just drawn.
+- `task-journeys.spec.ts` — create, rename, complete, reopen, comment, search
+- `tasks.spec.ts` — priority, due date, assign/unassign, delete (with its confirmation), copy, the `o` shortcut
+- `lists.spec.ts` — create, rename/recolour, delete (cancel and confirm); My Tasks cannot be deleted
+- `list-sharing.spec.ts` — invite a member, make a list public, a viewer is read-only
+- `task-completion-deleted-list.spec.ts` — a task outlives its deleted list
+- `empty-state.spec.ts`, `shortcodes.spec.ts`, `user-profile.spec.ts`, `reminder-snooze.spec.ts`
 
 ### Layout Tests (`layout-regression.spec.ts`, `mobile-*.spec.ts`)
 - Computer and tablet column layouts (one Playwright project per layout)
@@ -112,6 +110,23 @@ npm run test:e2e:report
 - Semantic HTML
 
 ## 🛠️ Helper Utilities
+
+### v1-seed (signed-in specs)
+
+```typescript
+import { freshList, seedTask, readTask, row, detail, seat } from './utils/v1-seed'
+
+const list = await freshList(request, 'Label')            // POST /api/v1/lists
+const task = await seedTask(request, [list.id], 'Title')  // POST /api/v1/tasks
+await row(page, task.title).click()                        // the task's row
+await detail(page).getByRole('button', { name: '!!!', exact: true }).click()
+await expect.poll(async () => (await readTask(request, task.id))?.priority).toBe(3)
+const outsider = await seat(browser, 'outsider.json')     // a second signed-in user
+```
+
+Seed through v1 only: the legacy `/api/lists` and `/api/tasks` routes are
+awaiting removal (AWTD-839). The helper classes below predate the signed-in
+projects; only pending specs still use them.
 
 ### TaskHelpers
 
@@ -251,28 +266,24 @@ Test results and traces are uploaded as artifacts and retained for 30 days.
 ### Adding New Tests
 
 1. Create a new spec file in `e2e/` directory
-2. Import test utilities from `./utils/test-helpers`
-3. Use descriptive test names
-4. Follow existing test patterns
-5. Add appropriate waits for API calls and animations
+2. Add it to a project in `playwright.config.ts` (signed in: `AUTHENTICATED_UI_SPECS`)
+3. Seed with `./utils/v1-seed`, navigate with `gotoWithRetry`
+4. After each UI action, assert the server state with `expect.poll` on `/api/v1/...`
+5. No `waitForTimeout`, no `networkidle` (SSE never idles), no `if (await x.isVisible())` early returns
 
 Example:
 
 ```typescript
 import { test, expect } from '@playwright/test'
-import { TaskHelpers, waitForApiCall } from './utils/test-helpers'
+import { gotoWithRetry } from './utils/test-helpers'
+import { freshList, readTask, row, seedTask } from './utils/v1-seed'
 
-test.describe('My New Feature', () => {
-  let taskHelpers: TaskHelpers
-
-  test.beforeEach(async ({ page }) => {
-    taskHelpers = new TaskHelpers(page)
-    await page.goto('/')
-  })
-
-  test('should do something', async ({ page }) => {
-    // Your test code here
-  })
+test('completing a task is saved', async ({ page, request }) => {
+  const list = await freshList(request, 'My feature')
+  const task = await seedTask(request, [list.id], `Task ${Date.now()}`)
+  await gotoWithRetry(page, `/lists/${list.id}`)
+  await row(page, task.title).getByRole('checkbox', { name: 'Mark complete' }).click()
+  await expect.poll(async () => (await readTask(request, task.id))?.completed).toBe(true)
 })
 ```
 
@@ -309,7 +320,7 @@ Install the [Playwright VS Code extension](https://marketplace.visualstudio.com/
 ## 📚 Best Practices
 
 1. **Use Role Selectors**: Prefer `getByRole()` over CSS selectors
-2. **Wait for Network**: Use `waitForApiCall()` after mutations
+2. **Read it back**: after a mutation, `expect.poll` the API rather than waiting on the network
 3. **Isolation**: Each test should be independent
 4. **Clean State**: Use `beforeEach` to reset state
 5. **Descriptive Names**: Use clear, descriptive test names

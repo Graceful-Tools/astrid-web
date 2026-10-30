@@ -1,648 +1,196 @@
 import { test, expect } from '@playwright/test'
-import { TaskHelpers, waitForApiCall } from './utils/test-helpers'
+import type { APIRequestContext, Page, Response } from '@playwright/test'
+import { gotoWithRetry } from './utils/test-helpers'
+import {
+  OUTSIDER_EMAIL,
+  addMember,
+  detail,
+  freshList,
+  listTasks,
+  postJson,
+  readTask,
+  row,
+  seedTask,
+  sidebarList,
+} from './utils/v1-seed'
 
-test.describe('Task Management', () => {
-  let taskHelpers: TaskHelpers
+/**
+ * Editing a task in task detail, through the UI (AWTD-1419).
+ *
+ * Rewrites the pre-AWTD-1338 tasks and tasks-authenticated specs, which had
+ * never run. Create, rename, complete, reopen, comment and search are
+ * task-journeys.spec.ts. Every change here is read back from the API.
+ */
 
-  test.beforeEach(async ({ page }) => {
-    taskHelpers = new TaskHelpers(page)
+async function openTask(page: Page, listId: string, title: string) {
+  await gotoWithRetry(page, `/lists/${listId}`)
+  await row(page, title).click()
+  await expect(page.getByTestId('task-detail-title')).toHaveText(title)
+}
 
-    // Note: These tests will need authentication to be set up
-    // For now, we'll navigate to the home page
-    await page.goto('/')
+async function taskAction(page: Page, item: string) {
+  await detail(page).getByRole('button', { name: 'Task actions' }).click()
+  await page.getByRole('menuitem', { name: item, exact: true }).click()
+}
+
+async function copiedTaskId(response: Promise<Response>): Promise<string> {
+  const copied = await response
+  expect(copied.ok(), `copy returned ${copied.status()}`).toBeTruthy()
+  return ((await copied.json()) as { task: { id: string } }).task.id
+}
+
+const copyResponse = (page: Page) =>
+  page.waitForResponse((r) => /\/api\/v1\/tasks\/[^/]+\/copy$/.test(new URL(r.url()).pathname) && r.request().method() === 'POST')
+
+async function commentsOf(request: APIRequestContext, taskId: string): Promise<string[]> {
+  const body = (await (await request.get(`/api/v1/tasks/${taskId}/comments`)).json()) as {
+    comments: Array<{ content: string }>
+  }
+  return body.comments.map((c) => c.content)
+}
+
+/** YYYY-MM-DD of a local date: an all-day due date is stored as that day at 00:00 UTC. */
+function isoDay(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+test.describe('Task detail edits (AWTD-1419)', () => {
+  test('set the priority', async ({ page, request }) => {
+    const list = await freshList(request, 'Priority')
+    const task = await seedTask(request, [list.id], `Prioritise ${Date.now()}`)
+    await openTask(page, list.id, task.title)
+
+    await detail(page).getByRole('button', { name: '!!!', exact: true }).click()
+    await expect.poll(async () => (await readTask(request, task.id))?.priority).toBe(3)
+    await expect(row(page, task.title).getByRole('img', { name: 'Unchecked priority 3 checkbox' })).toBeVisible()
+
+    await detail(page).getByRole('button', { name: '!', exact: true }).click()
+    await expect.poll(async () => (await readTask(request, task.id))?.priority).toBe(1)
   })
 
-  test.describe('Task Creation', () => {
-    test('should create a new task with Enter key', async ({ page }) => {
-      const taskTitle = `Test Task ${Date.now()}`
+  test('set a due date, then clear it', async ({ page, request }) => {
+    const list = await freshList(request, 'Due')
+    const task = await seedTask(request, [list.id], `Schedule ${Date.now()}`)
+    await openTask(page, list.id, task.title)
 
-      // Find add task input
-      const addTaskInput = page.getByPlaceholder(/add.*task/i).first()
-      await expect(addTaskInput).toBeVisible()
+    const when = detail(page).getByTestId('when-date')
+    await expect(when).toHaveText('No date')
+    await when.getByText('No date').click()
+    await page.getByRole('button', { name: 'Tomorrow', exact: true }).click()
 
-      // Type task title and press Enter
-      await addTaskInput.fill(taskTitle)
-      await addTaskInput.press('Enter')
+    const tomorrow = new Date()
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    await expect.poll(async () => (await readTask(request, task.id))?.dueDateTime).toBe(`${isoDay(tomorrow)}T00:00:00.000Z`)
+    expect((await readTask(request, task.id))?.isAllDay).toBe(true)
+    await expect(when).toHaveText('Tomorrow')
 
-      // Wait for task creation API call
-      await waitForApiCall(page, /\/api\/tasks/)
-
-      // Task should appear in the list
-      const createdTask = taskHelpers.getTaskByTitle(taskTitle)
-      await expect(createdTask).toBeVisible()
-    })
-
-    test('should clear input after task creation', async ({ page }) => {
-      const addTaskInput = page.getByPlaceholder(/add.*task/i).first()
-
-      await addTaskInput.fill('Test Task')
-      await addTaskInput.press('Enter')
-
-      // Input should be cleared
-      await expect(addTaskInput).toHaveValue('')
-    })
-
-    test('should not create task with empty title', async ({ page }) => {
-      const addTaskInput = page.getByPlaceholder(/add.*task/i).first()
-
-      // Try to create task with empty title
-      await addTaskInput.press('Enter')
-
-      // Should not create a task (input should still be empty and focused)
-      await expect(addTaskInput).toBeFocused()
-    })
-
-    test('should create task with description', async ({ page }) => {
-      const taskTitle = `Task with Description ${Date.now()}`
-
-      // Create task
-      await taskHelpers.createTask(taskTitle)
-
-      // Open task details
-      await taskHelpers.openTaskDetails(taskTitle)
-
-      // Add description
-      const descriptionInput = page.getByLabel(/description/i).or(
-        page.getByPlaceholder(/description/i)
-      )
-      await descriptionInput.fill('This is a test description')
-      await descriptionInput.blur()
-
-      // Wait for save
-      await waitForApiCall(page, /\/api\/tasks/)
-
-      // Reopen task and verify description
-      await page.reload()
-      await taskHelpers.openTaskDetails(taskTitle)
-
-      await expect(descriptionInput).toHaveValue('This is a test description')
-    })
+    await when.click()
+    await page.getByRole('button', { name: 'No date', exact: true }).click()
+    await expect.poll(async () => (await readTask(request, task.id))?.dueDateTime).toBeNull()
+    await expect(when).toHaveText('No date')
   })
 
-  test.describe('Task Completion', () => {
-    test('should mark task as complete', async ({ page }) => {
-      const taskTitle = `Complete Me ${Date.now()}`
+  test('assign to a list member, then unassign', async ({ page, request }) => {
+    const list = await freshList(request, 'Assign')
+    const member = await addMember(request, list.id, OUTSIDER_EMAIL)
+    const task = await seedTask(request, [list.id], `Hand over ${Date.now()}`)
+    await openTask(page, list.id, task.title)
 
-      // Create task
-      await taskHelpers.createTask(taskTitle)
+    const who = detail(page).getByTestId('task-detail-assignee')
+    await expect(who).toHaveText('Playwright Owner')
+    await who.getByText('Playwright Owner').click()
+    await detail(page).getByText(OUTSIDER_EMAIL).click()
+    await expect.poll(async () => (await readTask(request, task.id))?.assigneeId).toBe(member.id)
+    await expect(who).toHaveText('Playwright Outsider')
 
-      // Find task checkbox
-      const task = taskHelpers.getTaskByTitle(taskTitle)
-      const checkbox = task.getByRole('checkbox')
-
-      // Complete task
-      await checkbox.check()
-
-      // Wait for API call
-      await waitForApiCall(page, /\/api\/tasks/)
-
-      // Checkbox should be checked
-      await expect(checkbox).toBeChecked()
-
-      // Task might have strikethrough or different styling
-      await expect(task).toHaveClass(/completed|done|checked/)
-    })
-
-    test('should uncheck completed task', async ({ page }) => {
-      const taskTitle = `Toggle Complete ${Date.now()}`
-
-      // Create and complete task
-      await taskHelpers.createTask(taskTitle)
-      await taskHelpers.completeTask(taskTitle)
-
-      // Uncheck task
-      const task = taskHelpers.getTaskByTitle(taskTitle)
-      const checkbox = task.getByRole('checkbox')
-      await checkbox.uncheck()
-
-      // Wait for API call
-      await waitForApiCall(page, /\/api\/tasks/)
-
-      // Should be unchecked
-      await expect(checkbox).not.toBeChecked()
-    })
-
-    test('should filter completed tasks', async ({ page }) => {
-      const task1 = `Active Task ${Date.now()}`
-      const task2 = `Completed Task ${Date.now()}`
-
-      // Create two tasks
-      await taskHelpers.createTask(task1)
-      await taskHelpers.createTask(task2)
-
-      // Complete second task
-      await taskHelpers.completeTask(task2)
-
-      // Find filter button/menu
-      const filterButton = page.getByRole('button', { name: /filter/i }).or(
-        page.getByRole('button', { name: /view/i })
-      )
-
-      if (await filterButton.isVisible()) {
-        await filterButton.click()
-
-        // Select "Active" or "Hide completed"
-        const activeFilter = page.getByRole('menuitem', { name: /active|hide.*completed/i })
-        if (await activeFilter.isVisible()) {
-          await activeFilter.click()
-
-          // Only active task should be visible
-          await expect(taskHelpers.getTaskByTitle(task1)).toBeVisible()
-          await expect(taskHelpers.getTaskByTitle(task2)).not.toBeVisible()
-        }
-      }
-    })
+    await who.getByText('Playwright Outsider').click()
+    await detail(page).getByText('Unassigned', { exact: true }).click()
+    await expect.poll(async () => (await readTask(request, task.id))?.assigneeId).toBeNull()
+    await expect(who).toHaveText('Unassigned')
   })
 
-  test.describe('Task Editing', () => {
-    test('should edit task title', async ({ page }) => {
-      const originalTitle = `Original ${Date.now()}`
-      const newTitle = `Updated ${Date.now()}`
+  test('delete asks first: "Don\'t Delete" keeps the task, "Delete" removes it', async ({ page, request }) => {
+    const list = await freshList(request, 'Delete task')
+    const task = await seedTask(request, [list.id], `Doomed ${Date.now()}`)
+    await openTask(page, list.id, task.title)
 
-      // Create task
-      await taskHelpers.createTask(originalTitle)
+    await taskAction(page, 'Delete')
+    const confirm = page.getByTestId('task-delete-confirm')
+    await expect(confirm).toContainText(`Are you sure you want to delete "${task.title}"?`)
+    await confirm.getByRole('button', { name: "Don't Delete" }).click()
+    await expect(confirm).toHaveCount(0)
+    expect(await readTask(request, task.id)).not.toBeNull()
+    await expect(row(page, task.title)).toHaveCount(1)
 
-      // Open task details
-      await taskHelpers.openTaskDetails(originalTitle)
-
-      // Edit title
-      const titleInput = page.getByRole('textbox', { name: /title/i })
-      await titleInput.fill(newTitle)
-      await titleInput.blur()
-
-      // Wait for save
-      await waitForApiCall(page, /\/api\/tasks/)
-
-      // Close and verify
-      await page.keyboard.press('Escape')
-      await expect(taskHelpers.getTaskByTitle(newTitle)).toBeVisible()
-      await expect(taskHelpers.getTaskByTitle(originalTitle)).not.toBeVisible()
-    })
-
-    test('should assign user to task', async ({ page }) => {
-      const taskTitle = `Assignee Test ${Date.now()}`
-
-      // Create task
-      await taskHelpers.createTask(taskTitle)
-
-      // Open task details
-      await taskHelpers.openTaskDetails(taskTitle)
-
-      // Find and click assignee field
-      const assigneeField = page.getByText('Unassigned').or(
-        page.locator('[data-testid="assignee-field"]')
-      ).first()
-      await assigneeField.click()
-
-      // Wait for user picker to appear (search input)
-      const userSearchInput = page.getByPlaceholder(/search users or enter email/i)
-      await expect(userSearchInput).toBeVisible()
-
-      // Type to search for a user
-      await userSearchInput.fill('test')
-
-      // Wait for search results
-      await page.waitForTimeout(500)
-
-      // Select first user from dropdown
-      const firstUser = page.locator('.bg-gray-800 [class*="cursor-pointer"]').first()
-      if (await firstUser.isVisible()) {
-        await firstUser.click()
-
-        // Wait for assignment to save
-        await waitForApiCall(page, /\/api\/tasks/)
-
-        // User picker should close and assignee should be displayed
-        await expect(userSearchInput).not.toBeVisible()
-      }
-    })
-
-    test('should unassign user from task', async ({ page }) => {
-      const taskTitle = `Unassign Test ${Date.now()}`
-
-      // Create task
-      await taskHelpers.createTask(taskTitle)
-
-      // Open task details
-      await taskHelpers.openTaskDetails(taskTitle)
-
-      // First assign a user
-      const assigneeField = page.getByText('Unassigned').first()
-      await assigneeField.click()
-
-      const userSearchInput = page.getByPlaceholder(/search users or enter email/i)
-      await expect(userSearchInput).toBeVisible()
-
-      // Select "Unassigned" option (should be available when input is empty/focused)
-      const unassignedOption = page.getByText('Unassigned').filter({ hasText: /^Unassigned$/ })
-      if (await unassignedOption.count() > 1) {
-        // Click the one in the dropdown (not the field label)
-        await unassignedOption.nth(1).click()
-
-        // Wait for update
-        await waitForApiCall(page, /\/api\/tasks/)
-
-        // Should show "Unassigned" in the field
-        await expect(page.getByText('Unassigned').first()).toBeVisible()
-      }
-    })
-
-    test('should show consolidated assignee UI (no duplicate display)', async ({ page }) => {
-      const taskTitle = `Consolidated UI Test ${Date.now()}`
-
-      // Create task
-      await taskHelpers.createTask(taskTitle)
-
-      // Open task details
-      await taskHelpers.openTaskDetails(taskTitle)
-
-      // Click assignee field to edit
-      const assigneeField = page.getByText('Unassigned').first()
-      await assigneeField.click()
-
-      // When editing, should see search input
-      const userSearchInput = page.getByPlaceholder(/search users or enter email/i)
-      await expect(userSearchInput).toBeVisible()
-
-      // Should NOT see duplicate selected user display above the search input
-      // (inline mode hides the .bg-gray-700.rounded-lg.border user card)
-      const userDisplayCards = page.locator('.bg-gray-700.rounded-lg.border')
-      const cardCount = await userDisplayCards.count()
-
-      // There should be 0 user display cards when in editing mode (inline=true)
-      // or at most 1 if there are other similar styled elements
-      expect(cardCount).toBeLessThanOrEqual(1)
-    })
-
-    test('should set task due date', async ({ page }) => {
-      const taskTitle = `Task with Due Date ${Date.now()}`
-
-      // Create task
-      await taskHelpers.createTask(taskTitle)
-
-      // Open task details
-      await taskHelpers.openTaskDetails(taskTitle)
-
-      // Click due date picker
-      const dueDateButton = page.getByRole('button', { name: /due.*date|date/i })
-      await dueDateButton.click()
-
-      // Select tomorrow's date (calendar should be visible)
-      const tomorrow = new Date()
-      tomorrow.setDate(tomorrow.getDate() + 1)
-
-      const dateButton = page.getByRole('button', {
-        name: new RegExp(tomorrow.getDate().toString())
-      })
-      await dateButton.click()
-
-      // Wait for save
-      await waitForApiCall(page, /\/api\/tasks/)
-
-      // Due date should be displayed
-      await expect(dueDateButton).toContainText(new RegExp(tomorrow.getDate().toString()))
-    })
-
-    test('should set task priority', async ({ page }) => {
-      const taskTitle = `Priority Task ${Date.now()}`
-
-      // Create task
-      await taskHelpers.createTask(taskTitle)
-
-      // Open task details
-      await taskHelpers.openTaskDetails(taskTitle)
-
-      // Click priority selector
-      const priorityButton = page.getByRole('button', { name: /priority/i })
-      await priorityButton.click()
-
-      // Select high priority
-      const highPriority = page.getByRole('menuitem', { name: /high/i })
-      await highPriority.click()
-
-      // Wait for save
-      await waitForApiCall(page, /\/api\/tasks/)
-
-      // Priority should be reflected
-      await expect(priorityButton).toContainText(/high/i)
-    })
-
-    test('should assign task to user', async ({ page }) => {
-      const taskTitle = `Assigned Task ${Date.now()}`
-
-      // Create task
-      await taskHelpers.createTask(taskTitle)
-
-      // Open task details
-      await taskHelpers.openTaskDetails(taskTitle)
-
-      // Click assignee picker
-      const assigneeButton = page.getByRole('button', { name: /assign/i })
-      if (await assigneeButton.isVisible()) {
-        await assigneeButton.click()
-
-        // Select first available user (if any)
-        const userOption = page.getByRole('option').first()
-        if (await userOption.isVisible()) {
-          await userOption.click()
-
-          // Wait for save
-          await waitForApiCall(page, /\/api\/tasks/)
-        }
-      }
-    })
+    await taskAction(page, 'Delete')
+    await confirm.getByRole('button', { name: 'Delete', exact: true }).click()
+    await expect.poll(async () => readTask(request, task.id)).toBeNull()
+    expect((await listTasks(request, list.id)).map((t) => t.id)).not.toContain(task.id)
+    await expect(row(page, task.title)).toHaveCount(0)
   })
 
-  test.describe('Task Deletion', () => {
-    test('should delete task', async ({ page }) => {
-      const taskTitle = `Delete Me ${Date.now()}`
+  test('a copy into the same list shows at once, without a reload', async ({ page, request }) => {
+    const list = await freshList(request, 'Copy here')
+    const task = await seedTask(request, [list.id], `Duplicate ${Date.now()}`)
+    await openTask(page, list.id, task.title)
 
-      // Create task
-      await taskHelpers.createTask(taskTitle)
+    await taskAction(page, 'Copy')
+    const dialog = page.getByTestId('task-copy-dialog')
+    // The current list is the default target.
+    await expect(dialog.getByRole('combobox')).toHaveValue(list.id)
+    const copied = copyResponse(page)
+    await dialog.getByRole('button', { name: 'Copy', exact: true }).click()
+    const copyId = await copiedTaskId(copied)
 
-      // Verify task exists
-      await expect(taskHelpers.getTaskByTitle(taskTitle)).toBeVisible()
-
-      // Delete task
-      await taskHelpers.deleteTask(taskTitle)
-
-      // Wait for deletion API call
-      await waitForApiCall(page, /\/api\/tasks/)
-
-      // Task should no longer be visible
-      await expect(taskHelpers.getTaskByTitle(taskTitle)).not.toBeVisible()
-    })
-
-    test('should show delete confirmation', async ({ page }) => {
-      const taskTitle = `Confirm Delete ${Date.now()}`
-
-      // Create task
-      await taskHelpers.createTask(taskTitle)
-
-      const task = taskHelpers.getTaskByTitle(taskTitle)
-      await task.click({ button: 'right' })
-
-      // Click delete
-      await page.getByRole('menuitem', { name: /delete/i }).click()
-
-      // Should show confirmation dialog
-      const dialog = page.getByRole('dialog').or(
-        page.getByRole('alertdialog')
-      )
-      await expect(dialog).toBeVisible()
-
-      // Should have cancel and confirm buttons
-      const cancelButton = dialog.getByRole('button', { name: /cancel/i })
-      await expect(cancelButton).toBeVisible()
-
-      const confirmButton = dialog.getByRole('button', { name: /delete|confirm/i })
-      await expect(confirmButton).toBeVisible()
-    })
+    // The copy keeps the title, so the list now shows it twice.
+    await expect(row(page, task.title)).toHaveCount(2)
+    await expect(page.locator(`[data-task-id="${copyId}"]`)).toHaveCount(1)
+    const copy = await readTask(request, copyId)
+    expect(copy?.title).toBe(task.title)
+    expect(copy?.lists.map((l) => l.id)).toEqual([list.id])
   })
 
-  test.describe('Task Comments', () => {
-    test('should add comment to task', async ({ page }) => {
-      const taskTitle = `Task with Comment ${Date.now()}`
-      const commentText = 'This is a test comment'
+  test('copy with its comments into another list', async ({ page, request }) => {
+    const source = await freshList(request, 'Copy from')
+    const target = await freshList(request, 'Copy to')
+    const task = await seedTask(request, [source.id], `Carry over ${Date.now()}`)
+    const note = `Keep this note ${Date.now()}`
+    await postJson(request, `/api/v1/tasks/${task.id}/comments`, { content: note })
+    await openTask(page, source.id, task.title)
 
-      // Create task
-      await taskHelpers.createTask(taskTitle)
+    await taskAction(page, 'Copy')
+    const dialog = page.getByTestId('task-copy-dialog')
+    await dialog.getByRole('combobox').selectOption(target.id)
+    await dialog.getByRole('checkbox', { name: /Include comments/ }).check()
+    const copied = copyResponse(page)
+    await dialog.getByRole('button', { name: 'Copy', exact: true }).click()
+    const copyId = await copiedTaskId(copied)
 
-      // Open task details
-      await taskHelpers.openTaskDetails(taskTitle)
+    await expect.poll(async () => (await readTask(request, copyId))?.lists.map((l) => l.id)).toEqual([target.id])
+    await expect.poll(async () => commentsOf(request, copyId)).toContain(note)
+    // The original stays where it was.
+    expect((await readTask(request, task.id))?.lists.map((l) => l.id)).toEqual([source.id])
 
-      // Add comment
-      const commentInput = page.getByPlaceholder(/comment/i).or(
-        page.getByRole('textbox', { name: /comment/i })
-      )
-      await commentInput.fill(commentText)
-
-      const submitButton = page.getByRole('button', { name: /add.*comment|submit/i })
-      await submitButton.click()
-
-      // Wait for comment creation
-      await waitForApiCall(page, /\/api\/.*\/comments/)
-
-      // Comment should appear
-      await expect(page.getByText(commentText)).toBeVisible()
-    })
+    // Switching lists in the app, without a reload, shows the copy there.
+    await sidebarList(page, target.name).click()
+    await expect(page.getByRole('heading', { level: 1, name: target.name })).toBeVisible()
+    await expect(page.locator(`[data-task-id="${copyId}"]`)).toHaveCount(1)
   })
 
-  test.describe('Keyboard Shortcuts', () => {
-    test('should close task detail with Escape', async ({ page }) => {
-      const taskTitle = `Escape Test ${Date.now()}`
+  test('the o shortcut closes task detail', async ({ page, request }) => {
+    const list = await freshList(request, 'Shortcut')
+    const task = await seedTask(request, [list.id], `Toggle ${Date.now()}`)
+    await openTask(page, list.id, task.title)
+    await expect(page).toHaveURL(new RegExp(`[?&]task=${task.id}`))
 
-      // Create and open task
-      await taskHelpers.createTask(taskTitle)
-      await taskHelpers.openTaskDetails(taskTitle)
-
-      // Press Escape
-      await page.keyboard.press('Escape')
-
-      // Task detail should close
-      const taskDetail = page.getByRole('dialog').or(
-        page.locator('[data-task-detail]')
-      )
-      await expect(taskDetail).not.toBeVisible()
-    })
-  })
-
-  test.describe('Task Copy', () => {
-    test('should copy task and show it immediately in list', async ({ page }) => {
-      const originalTitle = `Original Task ${Date.now()}`
-
-      // Create task
-      await taskHelpers.createTask(originalTitle)
-
-      // Verify task exists
-      await expect(taskHelpers.getTaskByTitle(originalTitle)).toBeVisible()
-
-      // Open task details
-      await taskHelpers.openTaskDetails(originalTitle)
-
-      // Find and click copy button (might be in more menu or toolbar)
-      const copyButton = page.getByRole('button', { name: /copy/i }).or(
-        page.locator('[title*="Copy"]')
-      ).first()
-
-      if (await copyButton.isVisible()) {
-        await copyButton.click()
-
-        // Wait for copy modal if it appears
-        const copyModal = page.getByRole('dialog').filter({ hasText: /copy.*task/i })
-        if (await copyModal.isVisible({ timeout: 1000 }).catch(() => false)) {
-          // Select target list if prompted
-          const listSelect = copyModal.getByRole('combobox')
-          if (await listSelect.isVisible()) {
-            // Select first list option
-            await listSelect.click()
-            const firstOption = page.getByRole('option').first()
-            if (await firstOption.isVisible()) {
-              await firstOption.click()
-            }
-          }
-
-          // Confirm copy
-          const confirmButton = copyModal.getByRole('button', { name: /copy/i })
-          await confirmButton.click()
-        }
-
-        // Wait for copy API call to complete
-        await waitForApiCall(page, /\/api\/tasks\/.*\/copy/)
-
-        // Wait a moment for UI to update
-        await page.waitForTimeout(500)
-
-        // Copied task should appear immediately in the list with [copy] suffix
-        const copiedTaskTitle = `${originalTitle} [copy]`
-        const copiedTask = taskHelpers.getTaskByTitle(copiedTaskTitle)
-
-        // This is the critical assertion - copied task must be visible immediately
-        await expect(copiedTask).toBeVisible({ timeout: 3000 })
-
-        // Verify we now have 2 tasks (original + copy)
-        const taskCount = await page.locator('[data-task-id]').count()
-        expect(taskCount).toBeGreaterThanOrEqual(2)
-      }
-    })
-
-    test('should copy task with comments when requested', async ({ page }) => {
-      const originalTitle = `Task with Comments ${Date.now()}`
-      const commentText = 'Important comment'
-
-      // Create task
-      await taskHelpers.createTask(originalTitle)
-
-      // Add a comment
-      await taskHelpers.openTaskDetails(originalTitle)
-      const commentInput = page.getByPlaceholder(/comment/i).first()
-      await commentInput.fill(commentText)
-      const submitButton = page.getByRole('button', { name: /add.*comment/i })
-      await submitButton.click()
-      await waitForApiCall(page, /\/api\/.*\/comments/)
-
-      // Close and reopen to ensure comment persisted
-      await page.keyboard.press('Escape')
-      await page.waitForTimeout(300)
-      await taskHelpers.openTaskDetails(originalTitle)
-
-      // Click copy button
-      const copyButton = page.getByRole('button', { name: /copy/i }).first()
-      await copyButton.click()
-
-      // Look for "Include comments" checkbox in copy modal
-      const copyModal = page.getByRole('dialog').filter({ hasText: /copy/i })
-      if (await copyModal.isVisible({ timeout: 1000 }).catch(() => false)) {
-        const includeCommentsCheckbox = copyModal.getByRole('checkbox', {
-          name: /include.*comment/i
-        })
-
-        if (await includeCommentsCheckbox.isVisible()) {
-          // Check the box to include comments
-          await includeCommentsCheckbox.check()
-        }
-
-        // Confirm copy
-        const confirmButton = copyModal.getByRole('button', { name: /copy/i })
-        await confirmButton.click()
-      }
-
-      // Wait for copy to complete
-      await waitForApiCall(page, /\/api\/tasks\/.*\/copy/)
-      await page.waitForTimeout(500)
-
-      // Open copied task
-      const copiedTaskTitle = `${originalTitle} [copy]`
-      await page.keyboard.press('Escape') // Close current task if open
-      await page.waitForTimeout(300)
-      await taskHelpers.openTaskDetails(copiedTaskTitle)
-
-      // Verify comment was copied
-      await expect(page.getByText(commentText)).toBeVisible()
-    })
-
-    test('should copy task to different list', async ({ page }) => {
-      const taskTitle = `Cross-List Task ${Date.now()}`
-
-      // Create task in current list
-      await taskHelpers.createTask(taskTitle)
-
-      // Open task details
-      await taskHelpers.openTaskDetails(taskTitle)
-
-      // Click copy button
-      const copyButton = page.getByRole('button', { name: /copy/i }).first()
-      if (await copyButton.isVisible()) {
-        await copyButton.click()
-
-        // Select a different target list
-        const copyModal = page.getByRole('dialog').filter({ hasText: /copy/i })
-        if (await copyModal.isVisible({ timeout: 1000 }).catch(() => false)) {
-          const listSelect = copyModal.locator('select').first()
-          if (await listSelect.isVisible()) {
-            // Get list options
-            const options = await listSelect.locator('option').all()
-            if (options.length > 1) {
-              // Select second list (different from current)
-              await listSelect.selectOption({ index: 1 })
-            }
-          }
-
-          // Confirm copy
-          const confirmButton = copyModal.getByRole('button', { name: /copy/i })
-          await confirmButton.click()
-
-          // Wait for copy operation
-          await waitForApiCall(page, /\/api\/tasks\/.*\/copy/)
-          await page.waitForTimeout(500)
-
-          // Copied task should be visible
-          const copiedTaskTitle = `${taskTitle} [copy]`
-          await expect(taskHelpers.getTaskByTitle(copiedTaskTitle)).toBeVisible()
-        }
-      }
-    })
-
-    test('should not require refresh to see copied task', async ({ page }) => {
-      const taskTitle = `No Refresh Needed ${Date.now()}`
-
-      // Create task
-      await taskHelpers.createTask(taskTitle)
-
-      // Get initial task count
-      const initialCount = await page.locator('[data-task-id]').count()
-
-      // Open and copy task
-      await taskHelpers.openTaskDetails(taskTitle)
-      const copyButton = page.getByRole('button', { name: /copy/i }).first()
-
-      if (await copyButton.isVisible()) {
-        await copyButton.click()
-
-        // Handle copy modal if present
-        const copyModal = page.getByRole('dialog').filter({ hasText: /copy/i })
-        if (await copyModal.isVisible({ timeout: 1000 }).catch(() => false)) {
-          const confirmButton = copyModal.getByRole('button', { name: /copy/i })
-          await confirmButton.click()
-        }
-
-        // Wait for copy operation
-        await waitForApiCall(page, /\/api\/tasks\/.*\/copy/)
-
-        // DO NOT refresh the page - this is the key test
-        // The copied task should appear without any page refresh
-
-        // Wait for UI to update
-        await page.waitForTimeout(1000)
-
-        // Verify task count increased
-        const newCount = await page.locator('[data-task-id]').count()
-        expect(newCount).toBeGreaterThan(initialCount)
-
-        // Verify copied task is visible without refresh
-        const copiedTaskTitle = `${taskTitle} [copy]`
-        await expect(taskHelpers.getTaskByTitle(copiedTaskTitle)).toBeVisible()
-      }
-    })
+    // Escape is not bound to task detail and never was; "o" is the documented
+    // open/close key (hooks/useKeyboardShortcuts.ts, the "?" hotkey listing).
+    await page.keyboard.press('o')
+    await expect(page.getByTestId('task-detail-title')).toHaveCount(0)
+    await expect(page).not.toHaveURL(/[?&]task=/)
+    // Closing is not deleting or completing.
+    expect((await readTask(request, task.id))?.completed).toBe(false)
+    await expect(row(page, task.title)).toHaveCount(1)
   })
 })

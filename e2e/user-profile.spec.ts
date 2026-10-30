@@ -1,262 +1,94 @@
-import { test, expect } from "@playwright/test"
+import { test, expect } from '@playwright/test'
+import { gotoWithRetry } from './utils/test-helpers'
+import { OUTSIDER_EMAIL, OWNER_EMAIL, addMember, freshList, seat, seedTask } from './utils/v1-seed'
 
-test.describe("User Profile", () => {
-  // NOTE: These tests work best when run with authentication setup.
-  // Set PLAYWRIGHT_TEST_EMAIL and PLAYWRIGHT_TEST_PASSWORD env vars to enable auth.
-  // Without auth, tests will gracefully skip user-specific features.
+/**
+ * User profiles at /u/<id> (AWTD-1419).
+ *
+ * Rewrites the pre-AWTD-1338 user-profile spec, which had never run and
+ * skipped itself whenever a link was missing. Dropped from it: the "comment
+ * author" and "stop propagation" cases — comment authors are not links any
+ * more (UserLink is used only in list membership), so there is nothing to
+ * click. A profile lists only tasks on PUBLIC lists, and shows the email only
+ * on your own profile; both are checked with a private task beside a public one.
+ */
 
-  test.beforeEach(async ({ page }) => {
-    // Navigate to the app
-    await page.goto("/")
+/**
+ * A task is private unless made otherwise, even on a public list (the
+ * schema's default, and a list's defaultIsPrivate) — and a profile shows only
+ * tasks that are not.
+ */
+const SHOWN = { isPrivate: false }
 
-    // Wait for page to load
-    await page.waitForLoadState("networkidle")
-  })
+type ApiProfile = { stats: { completed: number; inspired: number; supported: number } }
 
-  test("should navigate to user profile from list members", async ({ page }) => {
-    // Navigate to a shared list
-    await page.goto("/")
-    await page.waitForLoadState("networkidle")
-
-    // Find and click on a list (assuming there's at least one list)
-    const listItem = page.locator('[data-testid="list-item"]').first()
-    if (await listItem.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await listItem.click()
-      await page.waitForTimeout(500)
-
-      // Look for list settings or members section
-      const settingsButton = page.locator('button:has-text("Settings"), button:has-text("Members")')
-      if (await settingsButton.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await settingsButton.first().click()
-        await page.waitForTimeout(500)
-
-        // Click on a member name (if any members exist)
-        const memberLink = page.locator('a[href^="/u/"]').first()
-        if (await memberLink.isVisible({ timeout: 2000 }).catch(() => false)) {
-          await memberLink.click()
-
-          // Verify we're on the user profile page
-          await expect(page).toHaveURL(/\/u\/[a-zA-Z0-9-]+/)
-
-          // Verify profile page elements are visible
-          await expect(page.locator("text=Completed")).toBeVisible()
-          await expect(page.locator("text=Inspired")).toBeVisible()
-          await expect(page.locator("text=Supported")).toBeVisible()
-        }
-      }
-    }
-  })
-
-  test("should navigate to user profile from task comment author", async ({ page }) => {
-    // Navigate to task manager
-    await page.goto("/")
-    await page.waitForLoadState("networkidle")
-
-    // Click on a task to open details
-    const taskItem = page.locator('[data-testid="task-item"]').first()
-    if (await taskItem.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await taskItem.click()
-      await page.waitForTimeout(500)
-
-      // Look for comment section
-      const commentAuthorLink = page.locator('a[href^="/u/"]').first()
-      if (await commentAuthorLink.isVisible({ timeout: 2000 }).catch(() => false)) {
-        const authorName = await commentAuthorLink.textContent()
-        await commentAuthorLink.click()
-
-        // Verify we're on the user profile page
-        await expect(page).toHaveURL(/\/u\/[a-zA-Z0-9-]+/)
-
-        // Verify the user name appears on the profile
-        if (authorName) {
-          await expect(page.locator(`text=${authorName}`)).toBeVisible()
-        }
-      }
-    }
-  })
-
-  test("should display user statistics on profile page", async ({ page }) => {
-    // Create a test by navigating directly to a known user profile
-    // (In production, you'd use a fixture or test data)
-    await page.goto("/")
-    await page.waitForLoadState("networkidle")
-
-    // Find any user link on the page
-    const userLink = page.locator('a[href^="/u/"]').first()
-    if (await userLink.isVisible({ timeout: 2000 }).catch(() => false)) {
-      const userId = await userLink.getAttribute("href")
-      if (userId) {
-        await page.goto(userId)
-
-        // Verify statistics cards are visible
-        await expect(page.locator("text=Completed")).toBeVisible()
-        await expect(page.locator("text=Inspired")).toBeVisible()
-        await expect(page.locator("text=Supported")).toBeVisible()
-
-        // Verify statistic numbers are present (should be non-negative numbers)
-        const completedStat = page.locator('text=/^\\d+$/').first()
-        await expect(completedStat).toBeVisible()
-      }
-    }
-  })
-
-  test("should display user avatar and name on profile page", async ({ page }) => {
-    await page.goto("/")
-    await page.waitForLoadState("networkidle")
-
-    // Find any user link
-    const userLink = page.locator('a[href^="/u/"]').first()
-    if (await userLink.isVisible({ timeout: 2000 }).catch(() => false)) {
-      const userId = await userLink.getAttribute("href")
-      if (userId) {
-        await page.goto(userId)
-
-        // Verify avatar is present
-        const avatar = page.locator('img[alt], [role="img"]').first()
-        await expect(avatar).toBeVisible()
-
-        // Verify user name or email is visible
-        await expect(page.locator("h1")).toBeVisible()
-      }
-    }
-  })
-
-  test("should show back button on profile page", async ({ page }) => {
-    await page.goto("/")
-    await page.waitForLoadState("networkidle")
-
-    const userLink = page.locator('a[href^="/u/"]').first()
-    if (await userLink.isVisible({ timeout: 2000 }).catch(() => false)) {
-      const userId = await userLink.getAttribute("href")
-      if (userId) {
-        const previousUrl = page.url()
-        await page.goto(userId)
-
-        // Verify back button exists
-        const backButton = page.locator('button:has-text("Back")')
-        await expect(backButton).toBeVisible()
-
-        // Click back button
-        await backButton.click()
-
-        // Should navigate back
-        await page.waitForTimeout(500)
-        // URL might not exactly match, but shouldn't be on the profile page anymore
-        await expect(page).not.toHaveURL(/\/u\/[a-zA-Z0-9-]+/)
-      }
-    }
-  })
-
-  test("should display shared tasks section if tasks exist", async ({ page }) => {
-    await page.goto("/")
-    await page.waitForLoadState("networkidle")
-
-    const userLink = page.locator('a[href^="/u/"]').first()
-    if (await userLink.isVisible({ timeout: 2000 }).catch(() => false)) {
-      const userId = await userLink.getAttribute("href")
-      if (userId) {
-        await page.goto(userId)
-
-        // Check if shared tasks section exists
-        const sharedTasksHeading = page.locator('text="Shared Tasks"')
-        const yourTasksHeading = page.locator('text="Your Tasks"')
-        const noTasksMessage = page.locator('text="No tasks shared"')
-
-        // One of these should be visible
-        const hasSharedTasks = await sharedTasksHeading
-          .or(yourTasksHeading)
-          .or(noTasksMessage)
-          .isVisible({ timeout: 2000 })
-          .catch(() => false)
-
-        expect(hasSharedTasks).toBeTruthy()
-      }
-    }
-  })
-
-  test("should handle non-existent user gracefully", async ({ page }) => {
-    // Try to navigate to a non-existent user profile
-    await page.goto("/u/nonexistent-user-id-12345")
-    await page.waitForLoadState("networkidle")
-
-    // Should show error message
-    await expect(
-      page.locator('text="User not found", text="Profile not found"')
-    ).toBeVisible({ timeout: 5000 })
-
-    // Should show a back button or way to navigate away
-    const backButton = page.locator('button:has-text("Back"), button:has-text("Go Back")')
-    await expect(backButton).toBeVisible()
-  })
-
-  test("should stop propagation when clicking user link (not trigger parent handlers)", async ({
+test.describe('User profiles (AWTD-1419)', () => {
+  test("a list member's name opens their profile: public tasks only, no email", async ({
     page,
+    request,
+    browser,
   }) => {
-    await page.goto("/")
-    await page.waitForLoadState("networkidle")
-
-    // Click on a task to open details
-    const taskItem = page.locator('[data-testid="task-item"]').first()
-    if (await taskItem.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await taskItem.click()
-      await page.waitForTimeout(500)
-
-      // Get current URL
-      const beforeUrl = page.url()
-
-      // Click on a user link in comments
-      const userLink = page.locator('a[href^="/u/"]').first()
-      if (await userLink.isVisible({ timeout: 2000 }).catch(() => false)) {
-        await userLink.click()
-
-        // Should navigate to profile, not stay on task detail
-        await page.waitForTimeout(500)
-        const afterUrl = page.url()
-
-        expect(afterUrl).not.toBe(beforeUrl)
-        await expect(page).toHaveURL(/\/u\/[a-zA-Z0-9-]+/)
-      }
+    // The outsider owns one public and one private task of their own.
+    const outsider = await seat(browser, 'outsider.json')
+    let publicTitle = ''
+    let privateTitle = ''
+    try {
+      const open = await freshList(outsider.request, 'Outsider public', 'PUBLIC')
+      const closed = await freshList(outsider.request, 'Outsider private')
+      publicTitle = (await seedTask(outsider.request, [open.id], `On show ${Date.now()}`, SHOWN)).title
+      privateTitle = (await seedTask(outsider.request, [closed.id], `Kept back ${Date.now()}`)).title
+    } finally {
+      await outsider.close()
     }
+
+    const list = await freshList(request, 'Members')
+    const member = await addMember(request, list.id, OUTSIDER_EMAIL)
+    await gotoWithRetry(page, `/lists/${list.id}`)
+    await page.getByRole('button', { name: 'Admin Settings' }).click()
+    await page.getByRole('dialog').getByRole('link', { name: /Playwright Outsider/ }).click()
+
+    await expect(page).toHaveURL(new RegExp(`/u/${member.id}$`))
+    await expect(page.getByRole('heading', { level: 1, name: 'Playwright Outsider' })).toBeVisible()
+    await expect(page.getByText(OUTSIDER_EMAIL)).toHaveCount(0)
+
+    // The stats are the API's.
+    const profile = (await (await request.get(`/api/v1/users/${member.id}/profile`)).json()) as ApiProfile
+    for (const [label, value] of [
+      ['Completed', profile.stats.completed],
+      ['Inspired', profile.stats.inspired],
+      ['Supported', profile.stats.supported],
+    ] as const) {
+      await expect(page.getByText(label, { exact: true }).locator('xpath=..')).toContainText(String(value))
+    }
+
+    await expect(page.getByRole('heading', { name: 'Shared Tasks with Playwright Outsider' })).toBeVisible()
+    await expect(page.getByText(publicTitle)).toBeVisible()
+    await expect(page.getByText(privateTitle)).toHaveCount(0)
+
+    // Back returns to the list.
+    await page.getByRole('button', { name: 'Back' }).click()
+    await expect(page).toHaveURL(new RegExp(`/lists/${list.id}$`))
   })
 
-  test("should only show tasks from PUBLIC lists on user profile", async ({ page }) => {
-    // Note: This test verifies the UI behavior. The actual filtering logic
-    // is tested in the API unit tests (tests/api/user-profile.test.ts)
-    await page.goto("/")
-    await page.waitForLoadState("networkidle")
+  test('your own profile, from Settings, shows your email and your public tasks', async ({ page, request }) => {
+    const open = await freshList(request, 'My public', 'PUBLIC')
+    const closed = await freshList(request, 'My private')
+    const shown = await seedTask(request, [open.id], `Mine to show ${Date.now()}`, SHOWN)
+    const hidden = await seedTask(request, [closed.id], `Mine to keep ${Date.now()}`)
 
-    // Navigate to any user profile
-    const userLink = page.locator('a[href^="/u/"]').first()
-    if (await userLink.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await userLink.click()
+    await gotoWithRetry(page, '/settings/account')
+    await page.getByRole('button', { name: 'View Public Profile' }).click()
+    await expect(page).toHaveURL(/\/u\/[^/]+$/)
+    await expect(page.getByRole('heading', { level: 1, name: 'Playwright Owner' })).toBeVisible()
+    await expect(page.getByText(OWNER_EMAIL)).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Your Tasks' })).toBeVisible()
+    await expect(page.getByText(shown.title)).toBeVisible()
+    await expect(page.getByText(hidden.title)).toHaveCount(0)
+  })
 
-      // Wait for profile to load
-      await expect(page).toHaveURL(/\/u\/[a-zA-Z0-9-]+/)
-      await page.waitForLoadState("networkidle")
-
-      // Check for shared tasks section
-      const sharedTasksSection = page.locator('text="Shared Tasks", text="Your Tasks"')
-      const hasTasksSection = await sharedTasksSection.isVisible({ timeout: 2000 }).catch(() => false)
-
-      if (hasTasksSection) {
-        // If tasks are shown, they should all be from PUBLIC lists
-        // This is verified by the API - UI just displays what API returns
-
-        // Verify at least the tasks section exists
-        await expect(
-          page.locator('text="Shared Tasks", text="Your Tasks"')
-        ).toBeVisible()
-
-        // Tasks with PUBLIC list indicator (Globe icon) should be present
-        const publicListIcon = page.locator('svg.lucide-globe')
-        const hasPublicIcon = await publicListIcon.isVisible({ timeout: 1000 }).catch(() => false)
-
-        // If we have tasks AND public icons, verify they're displayed correctly
-        if (hasPublicIcon) {
-          const publicIconCount = await publicListIcon.count()
-          expect(publicIconCount).toBeGreaterThan(0)
-        }
-      }
-    }
+  test('an unknown user says so, with a way back', async ({ page }) => {
+    await gotoWithRetry(page, '/u/no-such-user-awtd-1419')
+    await expect(page.getByRole('heading', { name: 'User not found' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Go Back' })).toBeVisible()
   })
 })
