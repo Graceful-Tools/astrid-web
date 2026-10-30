@@ -450,6 +450,8 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
         {isAdmin && (
           <Button
             onClick={() => setShowInviteForm(!showInviteForm)}
+            data-testid="list-members-invite"
+            aria-label="Invite member"
             size="sm"
             variant="ghost"
             className="theme-text-muted hover:theme-text-primary p-1"

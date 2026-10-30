@@ -1,6 +1,6 @@
-const CACHE_NAME = 'astrid-v1.0.8';
-const STATIC_CACHE_NAME = 'astrid-static-v1.0.8';
-const DYNAMIC_CACHE_NAME = 'astrid-dynamic-v1.0.8';
+const CACHE_NAME = 'astrid-v1.0.9';
+const STATIC_CACHE_NAME = 'astrid-static-v1.0.9';
+const DYNAMIC_CACHE_NAME = 'astrid-dynamic-v1.0.9';
 
 // Import Dexie for IndexedDB access in the service worker.
 //
@@ -542,12 +542,16 @@ async function handleSnoozeAction(notificationData, minutes) {
       return;
     }
     
-    const response = await fetch(`/api/reminders/${notificationData.taskId}/snooze`, {
-      method: 'POST',
+    // A new reminderTime re-arms the server's reminder, which is how the native
+    // apps snooze (AWTD-1038). This used to POST /api/reminders/:taskId/snooze,
+    // a route AWTD-839 deleted, so every snooze 404'd (AWTD-1405).
+    const response = await fetch(`/api/v1/tasks/${notificationData.taskId}`, {
+      method: 'PUT',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ minutes })
+      body: JSON.stringify({ reminderTime: new Date(Date.now() + minutes * 60 * 1000).toISOString() })
     });
     
     if (response.ok) {
@@ -579,8 +583,10 @@ async function handleCompleteAction(notificationData) {
       return;
     }
     
-    const response = await fetch(`/api/tasks/${notificationData.taskId}`, {
-      method: 'PATCH',
+    // PATCH /api/tasks/:id went with AWTD-839, so Complete 404'd too (AWTD-1405).
+    const response = await fetch(`/api/v1/tasks/${notificationData.taskId}`, {
+      method: 'PUT',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },

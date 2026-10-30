@@ -11,6 +11,8 @@ const authenticatedCriticalEnabled = process.env.PLAYWRIGHT_AUTHENTICATED === '1
  */
 export const AUTHENTICATED_UI_SPECS = [
   'task-journeys',
+  'list-sharing',
+  'reminder-snooze',
   'scroll-close-task-detail',
   'mobile-header-stays-on-task-tap',
   'mobile-shell-never-scrolls',
