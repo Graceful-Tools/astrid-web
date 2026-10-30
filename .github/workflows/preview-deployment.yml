@@ -274,6 +274,10 @@ jobs:
     needs: deploy-preview
     if: needs.deploy-preview.outputs.preview-url != ''
     continue-on-error: true  # Don't fail the workflow if E2E tests fail
+    # Per-PR URLs sit behind Vercel Authentication; this secret lets CI through.
+    # Without it every request answers 302 to Vercel's login.
+    env:
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -292,6 +296,11 @@ jobs:
           echo "Waiting for deployment to be ready..."
           PREVIEW_URL="${{ needs.deploy-preview.outputs.preview-url }}"
 
+          BYPASS=(-H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET")
+          if [ -z "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            echo "::warning::VERCEL_AUTOMATION_BYPASS_SECRET is not set, so Vercel Authentication will answer 302."
+          fi
+
           # Wait up to 5 minutes for deployment to be ready
           MAX_ATTEMPTS=60
           ATTEMPT=0
@@ -300,7 +309,7 @@ jobs:
             ATTEMPT=$((ATTEMPT + 1))
             echo "Attempt $ATTEMPT/$MAX_ATTEMPTS - Checking if deployment is ready..."
 
-            if curl -s --head --fail --max-time 10 "$PREVIEW_URL" > /dev/null 2>&1; then
+            if curl -s --head --fail --max-time 10 "${BYPASS[@]}" "$PREVIEW_URL" > /dev/null 2>&1; then
               echo "✅ Deployment is ready!"
               break
             fi
@@ -317,9 +326,10 @@ jobs:
         run: |
           PREVIEW_URL="${{ needs.deploy-preview.outputs.preview-url }}"
           echo "Running smoke tests against: $PREVIEW_URL"
+          BYPASS=(-H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET")
 
           # Test home page
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$PREVIEW_URL")
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${BYPASS[@]}" "$PREVIEW_URL")
           if [ "$HTTP_STATUS" = "200" ]; then
             echo "✅ Home page loads successfully"
           else
@@ -328,7 +338,7 @@ jobs:
           fi
 
           # Test API health endpoint (if it exists)
-          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$PREVIEW_URL/api/health" || echo "404")
+          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${BYPASS[@]}" "$PREVIEW_URL/api/health" || echo "404")
           if [ "$HEALTH_STATUS" = "200" ]; then
             echo "✅ API health check passed"
           else
