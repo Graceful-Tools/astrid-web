@@ -20,6 +20,7 @@ export const AUTHENTICATED_UI_SPECS = [
   'mobile-unified-header-toggle',
   'project-status-board',
   'time-picker',
+  'desktop-list-settings',
 ]
 
 /**
@@ -32,7 +33,6 @@ export const AUTHENTICATED_UI_SPECS = [
 export const PENDING_E2E_SPECS: Record<string, string> = {
   // Revive candidates — selectors exist, but the spec no longer passes signed in.
   'accessibility': '10/15 pass signed in; the signed-out cases need their own project',
-  'desktop-list-settings': 'unscoped "first button with an svg" locators time out',
   'mobile-board-column-centring': 'getByRole("button", { name: "Board" }) is ambiguous once lists exist',
   'mobile-board-swipe': 'same ambiguous "Board" locator',
   'mobile-pull-to-refresh': '2/6 pass; waits for [data-testid="task-list"] that is not rendered',
