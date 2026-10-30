@@ -1,9 +1,16 @@
-import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { execFileSync } from 'node:child_process'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { runWorkflowStep, workflowStep } from '../utils/workflow-step'
 const require = createRequire(import.meta.url)
 const yaml = require('js-yaml')
 const read = (path: string) => readFileSync(path, 'utf8')
+const AGENT_RUN = '.github/workflows/agent-run.yml'
+const VERDICT = 'Fail the run unless the agent reports OK or SKIPPED'
+const PRESERVE = 'Preserve unfinished work'
 
 describe('cloud agent lifecycle wiring', () => {
   it('AWTD-1383: keeps live Copilot activation checks out of pull-request setup validation', () => {
@@ -53,11 +60,12 @@ describe('cloud agent lifecycle wiring', () => {
       expect(step.run, name).toContain('tee .agent-output/agent-transcript.txt')
       expect(step.run, name).toContain('set -o pipefail')
     }
-    const verdict = steps.find((s: { name?: string }) => s.name === "Fail the run unless the agent reports OK or SKIPPED")
-    expect(verdict).toBeDefined()
-    expect(verdict.run).toContain('RESULT: OK')
-    expect(verdict.run).toContain('RESULT: SKIPPED')
-    expect(verdict.run).toContain('exit 1')
+    // What the verdict and preserve steps DO is executed below; here, only
+    // when they run, which executing the script cannot show.
+    const verdict = steps.find((s: { name?: string }) => s.name === VERDICT)
+    expect(verdict.if).toBe("${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' }}")
+    const preserve = steps.find((s: { name?: string }) => s.name === PRESERVE)
+    expect(preserve.if).toBe("${{ always() && !inputs.dry_run && steps.preflight.outputs.work == 'true' }}")
     expect(read('.github/agent-run-prompt.md')).toMatch(/^RESULT: OK \| SKIPPED \| PARTIAL \| FAILED/m)
   })
   it('AWTD-1410: prepares the database once, with the real migrations', () => {
@@ -98,5 +106,127 @@ describe('cloud agent lifecycle wiring', () => {
     expect(source.match(/test "\$\{EXPECTED_SHA\}" = "\$\{GITHUB_SHA\}"/g)).toHaveLength(2)
     expect(read('scripts/land-and-deploy.ts')).toContain('`expected_sha=${sha}`')
     expect(read('scripts/land-and-deploy.ts')).toContain("'--match-head-commit', pr.headRefOid")
+  })
+})
+
+/**
+ * AWTD-1424: the verdict and preserve-work steps, executed. Their job env
+ * (ASTRID_FIXALL_HARNESS, GITHUB_RUN_ID) is supplied as the workflow would.
+ */
+describe('agent-run verdict step, executed', () => {
+  let dir: string
+  beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'agent-run-verdict-')) })
+  afterEach(() => rmSync(dir, { recursive: true, force: true }))
+
+  const verdictFor = (transcript: string | null) => {
+    if (transcript !== null) {
+      mkdirSync(join(dir, '.agent-output'))
+      writeFileSync(join(dir, '.agent-output', 'agent-transcript.txt'), transcript)
+    }
+    return runWorkflowStep(workflowStep(AGENT_RUN, 'run', VERDICT), { cwd: dir })
+  }
+
+  it.each([
+    ['RESULT: OK — AWTD-1 merged-ready, PR #9\n'],
+    ['RESULT: SKIPPED — nothing Ready\n'],
+  ])('passes when the agent reports %s', transcript => {
+    expect(verdictFor(`working...\n${transcript}`).status).toBe(0)
+  })
+
+  it.each([
+    ['PARTIAL', 'RESULT: PARTIAL — pushed, PR not opened\n'],
+    ['FAILED', 'RESULT: FAILED — tests red\n'],
+    ['no RESULT line', 'did some work and stopped\n'],
+    ['RESULT only mid-line', 'I will print RESULT: OK at the end\n'],
+    ['an empty transcript', ''],
+  ])('fails on %s', (_label, transcript) => {
+    const result = verdictFor(transcript)
+    expect(result.status).toBe(1)
+    expect(result.stdout).toContain('::error::The agent did not finish')
+  })
+
+  it('fails when there is no transcript at all', () => {
+    expect(verdictFor(null).status).toBe(1)
+  })
+
+  it('lets the LAST RESULT line decide', () => {
+    expect(verdictFor('RESULT: OK\nmore work\nRESULT: PARTIAL — ran out of time\n').status).toBe(1)
+    rmSync(join(dir, '.agent-output'), { recursive: true })
+    expect(verdictFor('RESULT: FAILED\nretried\nRESULT: OK\n').status).toBe(0)
+  })
+})
+
+describe('agent-run preserve-work step, executed', () => {
+  let root: string
+  let work: string
+  let origin: string
+  const env = { GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null',
+    ASTRID_FIXALL_HARNESS: 'claude-code', GITHUB_RUN_ID: '4242' }
+  const git = (...args: string[]) =>
+    execFileSync('git', args, { cwd: work, env: { ...process.env, ...env }, encoding: 'utf8' }).trim()
+  const remoteHeads = () =>
+    execFileSync('git', ['--git-dir', origin, 'for-each-ref', '--format=%(refname) %(objectname)', 'refs/heads'],
+      { env: { ...process.env, ...env }, encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+  const preserve = () => runWorkflowStep(workflowStep(AGENT_RUN, 'run', PRESERVE), { cwd: work, env })
+  let base: string
+
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'agent-run-preserve-'))
+    work = join(root, 'work')
+    origin = join(root, 'origin.git')
+    mkdirSync(work)
+    execFileSync('git', ['init', '-q', '--bare', '-b', 'main', origin], { env: { ...process.env, ...env } })
+    git('init', '-q', '-b', 'main')
+    git('config', 'user.name', 'Preserve test')
+    git('config', 'user.email', 'preserve@example.test')
+    git('config', 'commit.gpgsign', 'false')
+    git('remote', 'add', 'origin', origin)
+    // As in the repo: the run's own outputs are ignored, so the transcript
+    // written by every run never reads as unfinished work.
+    writeFileSync(join(work, '.gitignore'), '.agent-output/\n')
+    writeFileSync(join(work, 'task.txt'), 'initial\n')
+    git('add', '.')
+    git('commit', '-qm', 'initial')
+    git('push', '-q', '-u', 'origin', 'main')
+    base = git('rev-parse', 'HEAD')
+    mkdirSync(join(work, '.agent-output'))
+    writeFileSync(join(work, '.agent-output', 'agent-transcript.txt'), 'RESULT: PARTIAL\n')
+  })
+
+  afterEach(() => rmSync(root, { recursive: true, force: true }))
+
+  it('moves a dirty tree on main to agent/<harness>/recovery-<run id>, bundles it, and pushes it', () => {
+    writeFileSync(join(work, 'task.txt'), 'unfinished work\n')
+    writeFileSync(join(work, 'new.ts'), 'export {}\n')
+
+    const result = preserve()
+    expect(result.status, result.stderr).toBe(0)
+
+    const branch = 'agent/claude-code/recovery-4242'
+    const head = git('rev-parse', 'HEAD')
+    expect(git('branch', '--show-current')).toBe(branch)
+    expect(git('status', '--porcelain')).toBe('')
+    expect(git('log', '-1', '--format=%s')).toBe('wip: agent run 4242 UNFINISHED, UNVERIFIED')
+    expect(git('rev-parse', 'HEAD^')).toBe(base)
+    expect(git('show', 'HEAD:new.ts')).toBe('export {}')
+    // The bundle is the evidence the artifact upload keeps if the push fails.
+    const bundle = join(work, '.agent-output', 'recovery.bundle')
+    git('bundle', 'verify', '-q', bundle) // throws if the bundle is unusable
+    expect(git('bundle', 'list-heads', bundle)).toContain(head)
+    expect(readFileSync(join(work, '.agent-output', 'recovery-head.txt'), 'utf8').trim()).toBe(head)
+    // Pushed to the recovery branch; main untouched.
+    expect(remoteHeads().sort()).toEqual([`refs/heads/${branch} ${head}`, `refs/heads/main ${base}`].sort())
+  })
+
+  it('does nothing with a clean, fully pushed tree', () => {
+    const result = preserve()
+    expect(result.status, result.stderr).toBe(0)
+
+    expect(git('branch', '--show-current')).toBe('main')
+    expect(git('rev-parse', 'HEAD')).toBe(base)
+    expect(git('branch', '--list')).toBe('* main')
+    expect(existsSync(join(work, '.agent-output', 'recovery.bundle'))).toBe(false)
+    expect(existsSync(join(work, '.agent-output', 'recovery-head.txt'))).toBe(false)
+    expect(remoteHeads()).toEqual([`refs/heads/main ${base}`])
   })
 })
