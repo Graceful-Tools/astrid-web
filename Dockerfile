@@ -25,7 +25,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # ── Dependencies ────────────────────────────────────────────────────────────
 FROM base AS deps
 COPY package.json package-lock.json .npmrc ./
+# prisma.config.ts holds the migrate connection since Prisma 7 (AWTD-1408).
 COPY prisma ./prisma
+COPY prisma.config.ts ./
 RUN HUSKY=0 npm ci --no-audit --no-fund
 
 # ── Migrations: `docker compose run migrate`, before each new version starts ──
