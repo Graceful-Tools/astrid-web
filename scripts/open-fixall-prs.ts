@@ -24,7 +24,7 @@ import { loadScriptEnv } from './lib/load-env'
 import { branchesForCompletedTask, isFinishedWork, prBody, prTitle, type CandidateBranch } from './lib/fixall-prs'
 import { parseBlockedConditions } from '@/lib/ready-queue-scope'
 import { RUNNER_PR_MARKER } from './lib/land-and-deploy'
-import { cloudHandoffEligible } from './lib/cloud-handoff'
+import { claimsCloudHandoff, cloudHandoffEligible } from './lib/cloud-handoff'
 
 loadScriptEnv()
 
@@ -123,7 +123,7 @@ async function main() {
       })),
     )
     if (matches.length === 0) {
-      if (cloudAgent) failed = true
+      if (cloudAgent && claimsCloudHandoff(comments)) failed = true
       console.log(`  PR: ${task.identifier} — finished, but no unmerged branch carries its id (nothing to open)`)
       continue
     }
