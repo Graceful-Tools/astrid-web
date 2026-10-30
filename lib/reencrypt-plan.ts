@@ -161,8 +161,10 @@ export interface CredentialTriple {
 }
 
 export interface McpSettingsDeps {
+  /** `path` names where the triple sits (`apiKeys.openclaw.authToken`), never its value. */
   decrypt: (
     triple: CredentialTriple,
+    path: string,
   ) => { plaintext: string; legacy: boolean } | { failure: 'undecryptable' | 'ambiguous' }
   encrypt: (plaintext: string) => CredentialTriple
   /**
@@ -223,7 +225,7 @@ export function planMcpSettings(value: unknown, deps: McpSettingsDeps): McpSetti
   const rewrite = (holder: Record<string, unknown>, key: string, path: string) => {
     const triple = holder[key]
     if (!isTriple(triple)) return
-    const result = deps.decrypt({ encrypted: triple.encrypted, iv: triple.iv, authTag: triple.authTag })
+    const result = deps.decrypt({ encrypted: triple.encrypted, iv: triple.iv, authTag: triple.authTag }, path)
     if ('failure' in result) {
       outcome.failed++
       problems.push(`${path}: ${result.failure}`)
