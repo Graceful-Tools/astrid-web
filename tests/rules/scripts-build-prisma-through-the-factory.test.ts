@@ -33,12 +33,8 @@ const NOT_A_CONSTRUCTOR = new Set([FACTORY, 'scripts/check-reuse.ts'])
  * unreferenced in docs/SCRIPT_INVENTORY.md. The Prisma 7 follow-up archives or
  * converts them. Shrink-only: never add a file here.
  */
-const LEGACY_JS = new Set([
-  'scripts/assign-default-images.js',
-  'scripts/debug-members.js',
-  'scripts/fix-missing-creators.js',
-  'scripts/migrate-assign-default-images.js',
-  'scripts/test-role-update.js',
+const LEGACY_JS = new Set<string>([
+  // Empty since AWTD-1408 archived the last five. Shrink-only: never add to it.
 ])
 
 function constructorSites(): string[] {

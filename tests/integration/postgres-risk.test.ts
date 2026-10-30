@@ -33,8 +33,8 @@ beforeAll(async () => {
   process.env.DATABASE_URL = databaseUrl
   process.env.DATABASE_URL_DIRECT = databaseUrl
 
-  const { PrismaClient } = await import('@prisma/client')
-  prisma = new PrismaClient()
+  const { createScriptPrisma } = await import('@/scripts/lib/script-prisma')
+  prisma = createScriptPrisma({ url: databaseUrl })
   await prisma.$connect()
 })
 
@@ -64,8 +64,10 @@ describe('ephemeral PostgreSQL risk behavior', () => {
       'npx',
       [
         'prisma', 'migrate', 'diff',
-        '--from-url', requireSafeTestDatabaseUrl(),
-        '--to-schema-datamodel', 'prisma/schema.prisma',
+        // Prisma 7: the database is prisma.config.ts's datasource, which reads
+        // the DATABASE_URL_DIRECT this suite set in beforeAll (AWTD-1408).
+        '--from-config-datasource',
+        '--to-schema', 'prisma/schema.prisma',
         '--script',
         '--exit-code',
       ],
