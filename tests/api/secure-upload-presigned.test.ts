@@ -13,12 +13,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
+const authenticateAPI = vi.hoisted(() => vi.fn())
 const getUnifiedSession = vi.hoisted(() => vi.fn())
 const taskFindFirst = vi.hoisted(() => vi.fn())
 const fileFindUnique = vi.hoisted(() => vi.fn())
 const issuePresignedUpload = vi.hoisted(() => vi.fn())
 const presignedUploadsEnabled = vi.hoisted(() => vi.fn())
 
+// get-upload-url authenticates through withAuth (AWTD-1402); the secure-files
+// edit route still reads the session itself.
+vi.mock('@/lib/api-auth-middleware', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/lib/api-auth-middleware')>()),
+  authenticateAPI,
+}))
 vi.mock('@/lib/session-utils', () => ({ getUnifiedSession }))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -71,6 +78,7 @@ const editUpload = () =>
 
 beforeEach(() => {
   vi.clearAllMocks()
+  authenticateAPI.mockResolvedValue({ userId: 'owner-1', source: 'session', scopes: ['*'] })
   getUnifiedSession.mockResolvedValue({ user: { id: 'owner-1' } })
   taskFindFirst.mockResolvedValue({ id: 'task-1' })
   fileFindUnique.mockResolvedValue({

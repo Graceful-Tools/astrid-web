@@ -66,10 +66,29 @@ describe('production secrets are environment-scoped', () => {
     }
   })
 
+  // AWTD-1372: VERCEL_TOKEN can deploy production, so it is held to the same rule as the
+  // database URLs. Previews use VERCEL_TOKEN_PREVIEW (the \b stops at `_`, so match exactly).
+  it('only environment-declaring production jobs name VERCEL_TOKEN (AWTD-1372)', () => {
+    const TOKEN = /secrets\.VERCEL_TOKEN(?![A-Za-z0-9_])/
+    const allowed = new Set(['production-deployment.yml:deploy-production', 'monitor-deployments.yml:monitor'])
+    const offenders: string[] = []
+    const missingEnvironment: string[] = []
+    for (const file of workflows) {
+      for (const [id, body] of jobsOf(readFileSync(join(WORKFLOWS, file), 'utf8'))) {
+        if (!TOKEN.test(body)) continue
+        const key = `${file}:${id}`
+        if (!allowed.has(key)) offenders.push(key)
+        else if (!/^ {4}environment:\s*production\s*$/m.test(body)) missingEnvironment.push(key)
+      }
+    }
+    expect(offenders).toEqual([])
+    expect(missingEnvironment).toEqual([])
+  })
+
   it('no workflow falls back to a production secret', () => {
     for (const file of workflows) {
       const source = readFileSync(join(WORKFLOWS, file), 'utf8')
-      expect(source, `${file} falls back to a production secret`).not.toMatch(/\|\|\s*secrets\.DATABASE_URL(_DIRECT)?\b/)
+      expect(source, `${file} falls back to a production secret`).not.toMatch(/\|\|\s*secrets\.(DATABASE_URL(_DIRECT)?\b|VERCEL_TOKEN(?![A-Za-z0-9_]))/)
     }
   })
 })

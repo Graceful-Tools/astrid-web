@@ -4,23 +4,19 @@
  * POST /api/v1/chat/channels — get-or-create a channel for a listId or virtualKey
  *
  * Moved here from the legacy /api/chat/channels, which this route used to
- * re-export, when that path was deleted (AWTD-839).
+ * re-export, when that path was deleted (AWTD-839). Authenticated through
+ * withAuth with chat:write, like the other chat writes (AWTD-1402).
  */
 
-import { NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
+import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
 import { parseVirtualChatKey } from '@/lib/chat-channel-eligibility'
-import { createLogger } from '@/lib/logger'
 import { getUserRoleInList } from "@/lib/list-permissions"
 
-const log = createLogger('chat.channels')
-
-
-export async function POST(req: NextRequest) {
-  try {
-    const auth = await authenticateAPI(req)
-
+export const POST = withAuth(
+  { scopes: ['chat:write'], tag: 'v1.chat.channels' },
+  async (req, auth) => {
     const body = await req.json()
     const { listId, virtualKey } = body
 
@@ -78,11 +74,5 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
-  } catch (error: any) {
-    if (error.name === 'UnauthorizedError') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    log.error({ err: error }, '[Chat API] POST /chat/channels error:')
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)

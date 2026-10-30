@@ -7,27 +7,24 @@
  * Allows iOS clients with on-device AI models (e.g. Apple Foundation Models)
  * to post responses as Astrid after processing locally. The message is
  * attributed to Astrid and broadcast to channel recipients via SSE.
+ * Authenticated through withAuth with chat:write, like the sibling
+ * astrid-response route (AWTD-1402).
  */
 
 import { BRAND } from '@/lib/brand/config'
-import { NextRequest, NextResponse } from 'next/server'
-import { authenticateAPI } from '@/lib/api-auth-middleware'
+import { NextResponse } from 'next/server'
+import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { ASTRID_EMAIL } from '@/lib/astrid-agent'
 import { AIAssistantSettingsSchema, parseUserAIConfig } from '@/lib/ai/user-config-schemas'
 import { ON_DEVICE_MODEL_IDS } from '@/lib/ai/agent-config'
-import { createLogger } from '@/lib/logger'
 
-const log = createLogger('chat.channels.[channelId].agent-response')
+type RouteContext = { params: Promise<{ channelId: string }> }
 
-
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ channelId: string }> }
-) {
-  try {
-    const auth = await authenticateAPI(req)
+export const POST = withAuth<RouteContext>(
+  { scopes: ['chat:write'], tag: 'v1.chat.channels.agent-response' },
+  async (req, auth, { params }) => {
     const { channelId } = await params
     const { content } = await req.json()
 
@@ -100,11 +97,5 @@ export async function POST(
         updatedAt: message.updatedAt.toISOString(),
       },
     }, { status: 201 })
-  } catch (error: any) {
-    if (error.name === 'UnauthorizedError') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    log.error({ err: error }, '[Agent Response] POST error:')
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
+)

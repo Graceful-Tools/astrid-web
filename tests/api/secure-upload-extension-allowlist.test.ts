@@ -32,8 +32,9 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('@/lib/session-utils', () => ({
-  getUnifiedSession: vi.fn().mockResolvedValue({ user: { id: 'user-1' } }),
+vi.mock('@/lib/api-auth-middleware', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/lib/api-auth-middleware')>()),
+  authenticateAPI: vi.fn().mockResolvedValue({ userId: 'user-1', source: 'session', scopes: ['*'] }),
 }))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
