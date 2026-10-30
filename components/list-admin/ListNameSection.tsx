@@ -91,6 +91,7 @@ export function ListNameSection({ list, canEditSettings, onUpdate }: ListNameSec
               if (e.key === "Escape") handleCancel()
             }}
             className="theme-input theme-text-primary flex-1"
+            data-testid="list-name-input"
             autoFocus={!shouldPreventAutoFocus()}
           />
           <Button size="sm" onClick={handleSaveListName} className="bg-blue-600 hover:bg-blue-700">

@@ -26,6 +26,7 @@ export const AUTHENTICATED_UI_SPECS = [
   'mobile-board-swipe',
   'mobile-pull-to-refresh',
   'sidebar-settings',
+  'tasks',
 ]
 
 /**
@@ -43,8 +44,6 @@ export const PENDING_E2E_SPECS: Record<string, string> = {
   'lists': 'AWTD-1339 rewrite',
   'shortcodes': 'AWTD-1339 rewrite',
   'task-completion-deleted-list': 'AWTD-1339 rewrite',
-  'tasks': 'AWTD-1339 rewrite',
-  'tasks-authenticated': 'AWTD-1339 rewrite (merge into tasks)',
   'user-profile': 'AWTD-1339 rewrite',
 }
 const specPattern = (names: string[]) => new RegExp(`(^|/)(${names.join('|')})\\.spec\\.ts$`)
