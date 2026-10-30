@@ -13,7 +13,9 @@
  *   completed             the Done option, and close/reopen an issue (§8.7:
  *                         "Done also closes"); closedReason 'not_planned'
  *                         closes as NOT_PLANNED
- *   priority / due        the bound Priority option / Date field, per project
+ *   priority / due        the bound Priority option / Date field, per project;
+ *                         on an issue, an ISSUE field (Target date) takes
+ *                         updateIssueFieldValue instead (AWTD-1313)
  *
  * Fields GitHub does not own (reminders, timers, personal lists) are not in
  * the plan; the service writes them locally as for any task.
@@ -41,6 +43,42 @@ export interface WritableMembership {
   projectNodeId: string
   itemNodeId: string
   binding: BindingFieldMap
+  /** Project field id → the issue field behind it (`issueFieldsOf`, AWTD-1313). */
+  issueFields?: Record<string, string>
+}
+
+/** The content a field value is written to: an issue's issue fields are its own. */
+export type FieldContent = Pick<WritableTask, 'remoteKind' | 'remoteNodeId'>
+
+/**
+ * A `ProjectV2FieldValue` input (or null to clear) as an issue field's
+ * `IssueFieldCreateOrUpdateInput`, less its fieldId. Undefined for a value an
+ * issue field write cannot carry, which then keeps the project path.
+ */
+export function issueFieldInput(value: Record<string, unknown> | null): Record<string, unknown> | undefined {
+  if (value === null) return { delete: true }
+  if ('date' in value) return { dateValue: value.date }
+  if ('text' in value) return { textValue: value.text }
+  if ('number' in value) return { numberValue: value.number }
+  return undefined
+}
+
+/**
+ * The issue field a value goes to instead of the project field, or null for
+ * the project path. GitHub refuses updateProjectV2ItemFieldValue on an issue
+ * field ("they must be updated using the updateIssueFieldValue mutation"); a
+ * draft has no issue fields, so it always takes the project path.
+ */
+export function issueFieldWrite(
+  issueFields: Record<string, string> | undefined,
+  content: FieldContent | undefined,
+  fieldId: string,
+  value: Record<string, unknown> | null,
+): { issueId: string; issueField: Record<string, unknown> } | null {
+  const issueFieldId = issueFields?.[fieldId]
+  if (!issueFieldId || content?.remoteKind !== 'issue') return null
+  const input = issueFieldInput(value)
+  return input ? { issueId: content.remoteNodeId, issueField: { fieldId: issueFieldId, ...input } } : null
 }
 
 export type WriteRefusal =
@@ -98,6 +136,15 @@ class Builder {
   readonly variables: Record<string, unknown> = {}
   readonly versionAliases: string[] = []
   private n = 0
+  /** issue:issueField pairs already written: an issue on two projects has one value. */
+  private issueFieldsWritten = new Set<string>()
+  // A plain field, not a parameter property: the contract exporter runs this file under
+  // Node's strip-only TypeScript, which rejects parameter properties.
+  private readonly content?: FieldContent
+
+  constructor(content?: FieldContent) {
+    this.content = content
+  }
 
   add(mutation: string, args: Record<string, [type: string, value: unknown]>, selection: string, carriesVersion = false): string {
     const alias = `m${this.n++}`
@@ -115,7 +162,19 @@ class Builder {
 
   /** A field value: the variable is the whole `value` input object. */
   addFieldValue(m: WritableMembership, fieldId: string, value: Record<string, unknown> | null) {
-    if (value === null) {
+    const viaIssue = issueFieldWrite(m.issueFields, this.content, fieldId, value)
+    if (viaIssue) {
+      const key = `${viaIssue.issueId}:${viaIssue.issueField.fieldId}`
+      if (this.issueFieldsWritten.has(key)) return
+      this.issueFieldsWritten.add(key)
+      // An issue field is the issue's own: its write may move updatedAt.
+      this.add(
+        'updateIssueFieldValue',
+        { issueId: ['ID!', viaIssue.issueId], issueField: ['IssueFieldCreateOrUpdateInput!', viaIssue.issueField] },
+        'issue { id updatedAt }',
+        true,
+      )
+    } else if (value === null) {
       this.add(
         'clearProjectV2ItemFieldValue',
         { projectId: ['ID!', m.projectNodeId], itemId: ['ID!', m.itemNodeId], fieldId: ['ID!', fieldId] },
@@ -176,7 +235,7 @@ export function planRemoteUpdate(
   assignee?: AssigneeChange,
 ): MutationPlan | WriteRefusal {
   const data = changedMirroredFields(task, rowData)
-  const b = new Builder()
+  const b = new Builder(task)
   const addedItems: Record<string, string> = {}
 
   for (const m of changes.remove) {
@@ -311,21 +370,23 @@ export function planRemoveFromProjects(memberships: WritableMembership[]): Mutat
  * the mapped fields, so a field written from the fields route and one written
  * as a side effect of a status change go out as the same mutation.
  *
- * No `versionAliases`: a field value belongs to the project item, not to the
- * issue, so writing one does not move the content's `updatedAt` and must not
- * be read as a new `remoteVersion`.
+ * A project field value belongs to the project item, not to the issue, so
+ * writing one does not move the content's `updatedAt` and carries no
+ * `versionAliases`. An issue field (AWTD-1313) is the issue's own, and its
+ * alias reports the issue's `updatedAt`.
  */
 export function planFieldValueMutation(
   membership: WritableMembership,
   fieldRemoteId: string,
   value: Record<string, unknown> | null,
+  content?: FieldContent,
 ): MutationPlan {
-  const b = new Builder()
+  const b = new Builder(content)
   b.addFieldValue(membership, fieldRemoteId, value)
   return {
     document: b.document(),
     variables: b.variables,
-    versionAliases: [],
+    versionAliases: b.versionAliases,
     addedItems: {},
     removedItems: [],
     editsBody: false,

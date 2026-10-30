@@ -2,12 +2,10 @@
 
 ## `/fixall`
 
-Autonomous queue work is scheduled by the Copilot app workflow
-`Work Astrid Web queue` on the local host at cron `7,37 * * * *`. `fixall.yml`
-is manual-only for diagnostics and fallback runs. Its default `local` target
-uses `[self-hosted, astrid-web]`; manual dispatches may explicitly choose the
-GitHub-hosted `cloud` backup, and queued self-hosted jobs do not fail over
-automatically.
+Autonomous queue work runs in the cloud on `agent-run.yml`'s schedule
+(`5,35 * * * *`). `fixall.yml` is manual-only for diagnostics and fallback runs,
+on GitHub-hosted `ubuntu-24.04`. The Mac's web loop, the Copilot app's web-queue
+cron and the `[self-hosted, astrid-web]` runner were retired (AWTD-1363).
 
 The queue sweep and trigger require repository secrets
 `ASTRID_OAUTH_CLIENT_ID` and `ASTRID_OAUTH_CLIENT_SECRET`. The workflow uses the

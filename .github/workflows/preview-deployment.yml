@@ -15,13 +15,17 @@ on:
       - 'tsconfig.json'
       - 'tailwind.config.js'
       - 'next.config.js'
+      - '.github/workflows/preview-deployment.yml'
 
 permissions:
   contents: read
 
+# Previews deploy to their own Vercel project, astrid-web-preview, with a token
+# scoped to it: the repo-level VERCEL_TOKEN can deploy production too (AWTD-1373).
+# The project's runtime has its own database and keys, never production's.
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  VERCEL_PROJECT_ID: prj_1sApcqoHQIU6T26XvNlJLYFcnK79
 
 jobs:
   # Job 1: Build and Test PR
@@ -162,23 +166,35 @@ jobs:
       preview-url: ${{ steps.deploy.outputs.preview-url }}
       deployment-id: ${{ steps.deploy.outputs.deployment-id }}
     steps:
+      # Depth 2 keeps main's side of the PR merge commit, for the migration check.
       - name: Checkout PR
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 2
 
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .nvmrc
-          cache: 'npm'
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
-      - name: Pull Vercel Environment Information
-        run: vercel pull --yes --environment=preview --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Build Project Artifacts
-        run: vercel build --token=${{ secrets.VERCEL_TOKEN }}
+      # Every preview shares one database, astrid_preview, whose URL is a Vercel
+      # Secret on astrid-web-preview. `vercel pull` redacts it, so the build runs
+      # on Vercel, and scripts/lib/build-migration-policy.js migrates there. It
+      # opts in only when the PR changes no migrations: a PR's own migration
+      # would land in the shared database before review, and stay there if the
+      # PR is abandoned (AWTD-1373).
+      - name: Decide whether the build migrates the preview database
+        id: migrate
+        run: |
+          MERGE_BASE=$(git rev-parse HEAD^1)
+          if git diff --quiet "$MERGE_BASE" HEAD -- prisma/migrations; then
+            echo "build-env=--build-env ASTRID_MIGRATE_PREVIEW_DB=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::This PR changes prisma/migrations. The preview database keeps main's schema, so this preview does not have those changes."
+          fi
 
       - name: Deploy to Vercel
         id: deploy
@@ -192,7 +208,7 @@ jobs:
           #   \x1b[2K\x1b[1A\x1b[2K\x1b[GPreviewhttps://astrid-xxx.vercel.app
           # on PR #206 — a URL no curl could resolve, which the E2E-on-preview
           # job then spent five minutes failing to reach.
-          DEPLOYMENT_STDOUT=$(vercel deploy --prebuilt --token=${{ secrets.VERCEL_TOKEN }} 2>/tmp/vercel-deploy.err)
+          DEPLOYMENT_STDOUT=$(vercel deploy --token=${{ secrets.VERCEL_TOKEN_PREVIEW }} ${{ steps.migrate.outputs.build-env }} 2>/tmp/vercel-deploy.err)
           echo "Deployment stdout:"
           echo "$DEPLOYMENT_STDOUT"
           echo "Deployment stderr:"
@@ -258,6 +274,10 @@ jobs:
     needs: deploy-preview
     if: needs.deploy-preview.outputs.preview-url != ''
     continue-on-error: true  # Don't fail the workflow if E2E tests fail
+    # Per-PR URLs sit behind Vercel Authentication; this secret lets CI through.
+    # Without it every request answers 302 to Vercel's login.
+    env:
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -276,6 +296,11 @@ jobs:
           echo "Waiting for deployment to be ready..."
           PREVIEW_URL="${{ needs.deploy-preview.outputs.preview-url }}"
 
+          BYPASS=(-H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET")
+          if [ -z "$VERCEL_AUTOMATION_BYPASS_SECRET" ]; then
+            echo "::warning::VERCEL_AUTOMATION_BYPASS_SECRET is not set, so Vercel Authentication will answer 302."
+          fi
+
           # Wait up to 5 minutes for deployment to be ready
           MAX_ATTEMPTS=60
           ATTEMPT=0
@@ -284,7 +309,7 @@ jobs:
             ATTEMPT=$((ATTEMPT + 1))
             echo "Attempt $ATTEMPT/$MAX_ATTEMPTS - Checking if deployment is ready..."
 
-            if curl -s --head --fail --max-time 10 "$PREVIEW_URL" > /dev/null 2>&1; then
+            if curl -s --head --fail --max-time 10 "${BYPASS[@]}" "$PREVIEW_URL" > /dev/null 2>&1; then
               echo "✅ Deployment is ready!"
               break
             fi
@@ -301,9 +326,10 @@ jobs:
         run: |
           PREVIEW_URL="${{ needs.deploy-preview.outputs.preview-url }}"
           echo "Running smoke tests against: $PREVIEW_URL"
+          BYPASS=(-H "x-vercel-protection-bypass: $VERCEL_AUTOMATION_BYPASS_SECRET")
 
           # Test home page
-          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$PREVIEW_URL")
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${BYPASS[@]}" "$PREVIEW_URL")
           if [ "$HTTP_STATUS" = "200" ]; then
             echo "✅ Home page loads successfully"
           else
@@ -312,7 +338,7 @@ jobs:
           fi
 
           # Test API health endpoint (if it exists)
-          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$PREVIEW_URL/api/health" || echo "404")
+          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${BYPASS[@]}" "$PREVIEW_URL/api/health" || echo "404")
           if [ "$HEALTH_STATUS" = "200" ]; then
             echo "✅ API health check passed"
           else

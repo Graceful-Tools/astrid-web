@@ -39,6 +39,7 @@ import { applyProjectItems, boardForProjectNode, removeProjectItem } from '@/ser
 import { reconcileProject, syncBoardRoles } from '@/services/github-projects-lifecycle.service'
 import { boundBoard } from '@/services/github-projects.service'
 import { ADD_ITEM_DOCUMENT, planInitialFields, type CreatedContent } from '@/lib/github/projects/create'
+import { issueFieldsOf } from '@/lib/github/projects/fields'
 import { itemMoves, planItemMoves } from '@/lib/github/projects/position'
 import {
   createdAgentLabelIds,
@@ -288,7 +289,7 @@ async function runWriteback(payload: WritebackPayload, client: GraphqlClient | n
   }
   const plan = planInitialFields(
     { ...payload.content, itemNodeId },
-    { projectNodeId: board.projectNodeId, itemNodeId, binding: board.binding },
+    { projectNodeId: board.projectNodeId, itemNodeId, binding: board.binding, issueFields: issueFieldsOf(board.fields ?? []) },
     payload.fields,
   )
   if (!('refused' in plan) && plan.document) await client.query(plan.document, plan.variables, { strict: true })

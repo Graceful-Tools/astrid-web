@@ -765,7 +765,8 @@ Upload a file (multipart/form-data).
 ### POST `/api/v1/secure-upload/get-upload-url`: direct upload of a large file
 Body: `{ fileName, fileType, fileSize, context: { taskId? | listId? | commentId?, clientRequestId? } }`.
 
-**Response:** `{ fileId, pathname, presigned?: { uploadUrl, headers }, uploadToken?, uploadUrl? }`.
+**Response:** `{ fileId, pathname, presigned: { uploadUrl, headers } }`. A server whose storage
+cannot take direct uploads answers `500 { error: "Storage not configured" }`.
 
 PUT the bytes to `presigned.uploadUrl` with `presigned.headers` as given, plus
 `Content-Type`, and no `Authorization` header. Do not assume where that URL points:
@@ -775,8 +776,9 @@ PUT the bytes to `presigned.uploadUrl` with `presigned.headers` as given, plus
   the PUT returns.
 
 Either way the PUT answers `{ url, pathname, contentType }`, and `fileId` is the
-attachment. `uploadToken`/`uploadUrl` is the legacy Vercel Blob pair, present only while
-the server holds a Blob read/write token. The self-hosted path is in
+attachment. The legacy Vercel Blob pair (`uploadToken`/`uploadUrl`) was removed with the
+Blob store's OIDC upgrade (AWTD-1386), so iOS builds before 1253 and Mac builds before
+1254 can no longer upload. The self-hosted path is in
 [deployment/SELF_HOSTING.md](./deployment/SELF_HOSTING.md), *How uploads work off Vercel*.
 
 ---

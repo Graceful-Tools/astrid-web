@@ -12,7 +12,7 @@ import { NextRequest } from 'next/server'
 const getUnifiedSession = vi.hoisted(() => vi.fn())
 const fileFindUnique = vi.hoisted(() => vi.fn())
 const fileUpdate = vi.hoisted(() => vi.fn())
-const issueClientUploadToken = vi.hoisted(() => vi.fn())
+const issuePresignedUpload = vi.hoisted(() => vi.fn())
 const deleteFile = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/session-utils', () => ({ getUnifiedSession }))
@@ -23,9 +23,9 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 vi.mock('@/lib/secure-storage', () => ({
-  issueClientUploadToken,
+  issuePresignedUpload,
   deleteFile,
-  presignedUploadsEnabled: () => false,
+  presignedUploadsEnabled: () => true,
 }))
 
 import { POST as uploadUrl } from '@/app/api/secure-files/[fileId]/upload-url/route'
@@ -55,10 +55,9 @@ const signIn = (id: string | null) =>
 
 beforeEach(() => {
   vi.clearAllMocks()
-  process.env.BLOB_READ_WRITE_TOKEN = 'test-token'
   fileFindUnique.mockResolvedValue(FILE)
   fileUpdate.mockImplementation(async ({ data }) => ({ ...FILE, ...data }))
-  issueClientUploadToken.mockResolvedValue({ token: 'client-token', uploadUrl: 'https://blob.example/up' })
+  issuePresignedUpload.mockResolvedValue({ uploadUrl: 'https://blob.example/up', headers: {} })
   deleteFile.mockResolvedValue(undefined)
 })
 
@@ -68,14 +67,14 @@ describe('POST /api/secure-files/:fileId/upload-url authorization (AWTD-1341)', 
   it('AWTD-1341: refuses a signed-out caller with 401', async () => {
     signIn(null)
     expect((await uploadUrl(req('upload-url', body), ctx)).status).toBe(401)
-    expect(issueClientUploadToken).not.toHaveBeenCalled()
+    expect(issuePresignedUpload).not.toHaveBeenCalled()
   })
 
   it('AWTD-1341: refuses another user (not uploadedBy) with 403 and mints no upload token', async () => {
     signIn('intruder-1')
     const res = await uploadUrl(req('upload-url', body), ctx)
     expect(res.status).toBe(403)
-    expect(issueClientUploadToken).not.toHaveBeenCalled()
+    expect(issuePresignedUpload).not.toHaveBeenCalled()
     expect(JSON.stringify(await res.json())).not.toContain(FILE.blobUrl)
   })
 
@@ -83,7 +82,7 @@ describe('POST /api/secure-files/:fileId/upload-url authorization (AWTD-1341)', 
     signIn('owner-1')
     const res = await uploadUrl(req('upload-url', body), ctx)
     expect(res.status).toBe(200)
-    expect(issueClientUploadToken).toHaveBeenCalledWith(
+    expect(issuePresignedUpload).toHaveBeenCalledWith(
       expect.objectContaining({ pathname: expect.stringMatching(/^files\/owner-1\/file-1-/) }),
     )
   })
