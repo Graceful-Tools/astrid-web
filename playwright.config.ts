@@ -18,6 +18,7 @@ export const AUTHENTICATED_UI_SPECS = [
   'mobile-header-stays-on-task-tap',
   'mobile-shell-never-scrolls',
   'mobile-unified-header-toggle',
+  'project-status-board',
 ]
 
 /**
@@ -34,7 +35,6 @@ export const PENDING_E2E_SPECS: Record<string, string> = {
   'mobile-board-column-centring': 'getByRole("button", { name: "Board" }) is ambiguous once lists exist',
   'mobile-board-swipe': 'same ambiguous "Board" locator',
   'mobile-pull-to-refresh': '2/6 pass; waits for [data-testid="task-list"] that is not rendered',
-  'project-status-board': 'board creation needs a scoped locator; Project Mode now granted in setup',
   'sidebar-settings': '4/12 pass; hamburger locator falls back to "first button with an svg"',
   'time-picker': '3/4 pass; "9am" preset matches two buttons (strict mode)',
   'panel-animations': 'flaky: 5–7/7 pass, a different animate-out / dim-overlay case fails each run',
