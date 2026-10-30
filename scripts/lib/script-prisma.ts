@@ -9,12 +9,13 @@
  * THE CALLER CHOOSES THE DATABASE. Operational scripts point at production,
  * staging or a throwaway cluster on purpose (scripts/lib/database-target.ts), so
  * this never imports the lib/prisma app singleton and never picks a URL of its
- * own. Omit `url` and the client reads DATABASE_URL when it connects, exactly as
- * a bare `new PrismaClient()` did.
+ * own. Omit `url` and the client uses DATABASE_URL as it is when the factory
+ * is called, as a bare `new PrismaClient()` did.
  *
  * The caller owns the lifetime: `await prisma.$disconnect()` when done.
  */
 import { PrismaClient, type Prisma } from '@prisma/client'
+import { createPgAdapter } from '../../lib/prisma-adapter'
 
 export interface ScriptPrismaOptions {
   /** Connection string. Undefined means DATABASE_URL from the environment. */
@@ -24,7 +25,8 @@ export interface ScriptPrismaOptions {
 
 export function createScriptPrisma({ url, log }: ScriptPrismaOptions = {}): PrismaClient {
   return new PrismaClient({
-    ...(url !== undefined ? { datasources: { db: { url } } } : {}),
+    // Read at construction, not import: scripts load .env.local first.
+    adapter: createPgAdapter(url ?? process.env.DATABASE_URL),
     ...(log ? { log } : {}),
   })
 }

@@ -141,7 +141,11 @@ describe.skipIf(!enabled)('GitHub Projects live smoke test (AWTD-1154)', () => {
     // An instrumented client, installed where lib/prisma looks first, so every
     // query the services run is counted.
     const { PrismaClient } = await import('@prisma/client')
-    prisma = new PrismaClient({ log: [{ emit: 'event', level: 'query' }] })
+    const { PrismaPg } = await import('@prisma/adapter-pg')
+    prisma = new PrismaClient({
+      adapter: new PrismaPg({ connectionString: url }),
+      log: [{ emit: 'event', level: 'query' }],
+    })
     ;(prisma as unknown as { $on: (e: 'query', cb: () => void) => void }).$on('query', () => {
       queries++
     })
