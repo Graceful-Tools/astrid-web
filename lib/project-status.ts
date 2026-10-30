@@ -139,8 +139,20 @@ export function getProjectBoardColumns(customStates?: unknown): ProjectBoardColu
  * LIST view a second reason to ask the question, and moved here so both callers
  * import it from one place.
  */
-export function getProjectIdForBoard(lists: TaskList[], selectedListId: string): string | null {
-  const selectedList = lists.find(list => list.id === selectedListId)
+export function getProjectIdForBoard(
+  lists: TaskList[],
+  selectedListId: string,
+  /**
+   * The page's own copy of the list (/lists/[id] fetches it before the app
+   * renders), used only until the synced `lists` include it. Without it a
+   * freshly opened board offered no board view until the sync landed
+   * (AWTD-1426). Once synced, `lists` wins, so a removed board stays removed.
+   */
+  fallbackList?: Pick<TaskList, 'id' | 'projectId'> | null
+): string | null {
+  const selectedList =
+    lists.find(list => list.id === selectedListId) ??
+    (fallbackList?.id === selectedListId ? fallbackList : undefined)
   return selectedList?.projectId || null
 }
 
