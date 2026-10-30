@@ -1,11 +1,73 @@
 # Astrid Task Manager
 
 A modern, production-ready task management application built with Next.js, NextAuth.js, and Prisma.
+This repository is the web app **and the backend every Astrid client talks to**, and it is where the
+shared rules are defined. The rules themselves run everywhere through
+[astrid-core](https://github.com/Graceful-Tools/astrid-core). See [How the repositories fit](#how-the-repositories-fit).
+
+## How the repositories fit
+
+Astrid is five repositories:
+
+| Repository | What it is | How it uses astrid-core |
+|---|---|---|
+| **astrid-web** (this one) | Next.js web app, the `/api/v1` backend and PostgreSQL | **Defines** the shared rules in TypeScript and generates the contract fixtures core is tested against. The server also runs core's pure rules as WebAssembly. |
+| [astrid-core](https://github.com/Graceful-Tools/astrid-core) | Rust: models, the API client, the offline SQLite cache, the Outbox write journal, sync, and every shared rule (permissions, repeating rollover, board, search and quick-add parsing, keyboard, markdown…) | **Is** the core |
+| [astrid-ios](https://github.com/Graceful-Tools/astrid-ios) | SwiftUI apps for iPhone, iPad and Mac | Embeds the core via UniFFI, pinned by revision |
+| [astrid-windows](https://github.com/Graceful-Tools/astrid-windows) | WinUI 3 app in C# | Embeds the core via a C ABI, pinned by revision |
+| [astrid-android](https://github.com/Graceful-Tools/astrid-android) | Kotlin and Jetpack Compose app | Embeds the core via UniFFI, pinned by revision |
+
+```
+                          generates
+astrid-web ──────────────────────────────────▶ contracts/fixtures/*.json
+ /api/v1 + PostgreSQL                                    │ replayed by its tests
+ canonical TypeScript rules                              ▼
+     ▲  ◀── wasm, pinned (packages/astrid-rules) ──── astrid-core (Rust rules + sync cache)
+     │                                                   │ pinned rev, each shell
+     │                                    ┌──────────────┼──────────────┐
+     │                                    ▼              ▼              ▼
+     │                               astrid-ios    astrid-windows  astrid-android
+     │                              (iOS + Mac)          │              │
+     └────────── HTTPS /api/v1 ───────────┴──────────────┴──────────────┘
+```
+
+**Native apps decide nothing themselves.** Each one is a shell that renders and dispatches. The
+cache, offline writes, sync and every rule come from astrid-core, so a rule is written once in Rust
+rather than once per platform. Each app pins a core revision, so a core change reaches an app only
+when that app bumps its pin.
+
+**This repo uses only the core's rules, not its client half.** astrid-web *is* the backend, so it
+has no use for the core's API client, cache or Outbox. It uses the pure rules crate
+(`astrid-rules`), built to WebAssembly and committed under
+[`packages/astrid-rules/`](./packages/astrid-rules/), because Vercel has no Rust toolchain.
+`packages/astrid-rules/REVISION` names the core commit it was built from. On the Node server, the
+core decides list permissions, search parsing and repeating rollover. The TypeScript versions are
+the fallback, and `ASTRID_CORE_RULES` (`shadow` or `off`) is the rollback switch. The browser runs
+the TypeScript.
+
+**Shared rules change here first.** The TypeScript in this repo is canonical:
+`npm run export:contract-fixtures` runs it over a case matrix and writes `contracts/fixtures/`.
+astrid-core copies those fixtures and its tests replay them. A rule change therefore goes:
+
+1. Change the rule here, with tests, and regenerate the fixtures in the same PR (predeploy fails on
+   a stale fixture).
+2. Merge web, then astrid-core's matching PR (core's CI stays red until web's `main` has the new
+   fixture).
+3. Each app bumps its core pin; this repo rebuilds `packages/astrid-rules`.
+
+There is one exception. Where web and iOS disagree, the core follows iOS and web adopts that
+behaviour later. Those cases are recorded as `disputed` in the fixtures.
+
+Two kinds of change in this repo cross repositories without looking like it:
+- **Editing a file listed under *Cross-platform contracts* in [ASTRID.md](./ASTRID.md)** changes
+  behaviour on every platform.
+- **Changing a `/api/v1` response shape** means astrid-core's model must change to match, because
+  every native app decodes the API through the core.
 
 ## Features
 
-- **Real Authentication**: Google OAuth + WebAuthn passkeys with NextAuth.js (JWT sessions); Apple Sign-In on iOS
-- **Database Integration**: PostgreSQL/SQLite with Prisma ORM
+- **Real Authentication**: Google OAuth + WebAuthn passkeys with NextAuth.js (JWT sessions); GitHub and Apple sign-in where the brand enables them
+- **Database Integration**: PostgreSQL with Prisma ORM
 - **Task Management**: Create, edit, delete, and organize tasks
 - **List Organization**: Group tasks into customizable lists
 - **User Collaboration**: Share lists and tasks with other users
@@ -14,7 +76,7 @@ A modern, production-ready task management application built with Next.js, NextA
 ## Tech Stack
 
 - **Frontend**: Next.js, React, and TypeScript (see the [verified stack reference](docs/context/stack.md))
-- **Authentication**: NextAuth.js with Google OAuth + Credentials
+- **Authentication**: NextAuth.js (Google, GitHub and Apple OAuth, per brand) + WebAuthn passkeys
 - **Database**: Prisma with PostgreSQL (Neon serverless)
 - **Styling**: Tailwind CSS + Shadcn/ui components (Radix UI)
 - **Testing**: Vitest (unit/integration) + Playwright (E2E)
@@ -396,7 +458,10 @@ npm run predeploy        # Full test suite
 
 ## Related Projects
 
-- **iOS App**: [astrid-ios](https://github.com/Graceful-Tools/astrid-ios) - Native iOS client
+- **Shared core**: [astrid-core](https://github.com/Graceful-Tools/astrid-core) - Rust rules, cache and sync for every native app; its rules also run on this server as WebAssembly
+- **iOS and Mac apps**: [astrid-ios](https://github.com/Graceful-Tools/astrid-ios) - SwiftUI, on astrid-core
+- **Windows app**: [astrid-windows](https://github.com/Graceful-Tools/astrid-windows) - WinUI 3, on astrid-core
+- **Android app**: [astrid-android](https://github.com/Graceful-Tools/astrid-android) - Kotlin and Compose, on astrid-core
 - **SDK**: [@gracefultools/astrid-sdk](https://www.npmjs.com/package/@gracefultools/astrid-sdk) - AI agent SDK
 
 ## License
