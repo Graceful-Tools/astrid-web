@@ -32,8 +32,12 @@ test.describe('Tasks of a deleted list (AWTD-1419)', () => {
     await expect.poll(async () => readList(request, list.id)).toBeNull()
     await expect.poll(async () => (await readTask(request, task.id))?.lists).toEqual([])
 
+    // Find it from My Tasks by search: the owner seat's My Tasks grows with
+    // every run of the suite, and past 150 rows the list is virtualized.
     await gotoWithRetry(page, '/')
     await expect(page.getByRole('heading', { level: 1, name: 'My Tasks' })).toBeVisible()
+    await page.getByText('Search for tasks and users').first().click()
+    await page.getByPlaceholder('Search tasks and users...').first().fill(task.title)
     await row(page, task.title).getByRole('checkbox', { name: 'Mark complete' }).click()
     await expect.poll(async () => (await readTask(request, task.id))?.completed).toBe(true)
 
