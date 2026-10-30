@@ -3,10 +3,10 @@ generator client {
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
+// Connection URLs live in prisma.config.ts (CLI) and lib/prisma.ts /
+// scripts/lib/script-prisma.ts (runtime adapter) since Prisma 7 (AWTD-1408).
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL_DIRECT")
+  provider = "postgresql"
 }
 
 model Account {

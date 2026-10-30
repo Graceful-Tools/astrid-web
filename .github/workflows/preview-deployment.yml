@@ -68,8 +68,18 @@ jobs:
           # This doesn't require a database connection
           DIFF=$(npx prisma migrate diff \
             --from-empty \
-            --to-schema-datamodel ./prisma/schema.prisma \
+            --to-schema ./prisma/schema.prisma \
             --script 2>&1) || true
+
+          # The `|| true` above swallows a diff that errored, which leaves no
+          # tables to compare and the check passing without checking anything.
+          # Prisma 7 renamed --to-schema-datamodel, which would have done exactly
+          # that (AWTD-1408). A schema from empty always creates tables.
+          if ! printf '%s' "$DIFF" | grep -q 'CREATE TABLE'; then
+            echo "❌ prisma migrate diff produced no schema to compare:"
+            echo "$DIFF"
+            exit 1
+          fi
 
           # Get what the migrations folder would produce
           MIGRATION_SQL=""

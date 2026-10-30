@@ -102,7 +102,9 @@ async function main() {
           async operation => {
             // A session lock, held by this pinned transaction connection,
             // serializes durable activation, both GitHub writes, and retirement.
-            await lockConnection.$queryRaw`SELECT pg_advisory_lock(730251, 1)`
+            // $executeRaw: pg_advisory_lock returns void, which Prisma 7's
+            // adapter refuses to deserialize through $queryRaw (AWTD-1408).
+            await lockConnection.$executeRaw`SELECT pg_advisory_lock(730251, 1)`
             try {
               return await operation()
             } finally {

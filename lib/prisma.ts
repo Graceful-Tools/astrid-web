@@ -1,4 +1,5 @@
 import { Prisma, PrismaClient } from "@prisma/client"
+import { createPgAdapter } from "@/lib/prisma-adapter"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('prisma')
@@ -15,11 +16,9 @@ const createPrismaClient = () => {
     const client = new PrismaClient({
       log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
       errorFormat: "pretty",
-      datasources: {
-        db: {
-          url: process.env.DATABASE_URL
-        }
-      },
+      // Prisma 7 connects through a driver adapter (AWTD-1408), pooled per
+      // instance as the Rust engine was. Production's URL is the Neon pooler.
+      adapter: createPgAdapter(process.env.DATABASE_URL),
       transactionOptions: {
         timeout: 10000,
         maxWait: 5000,
