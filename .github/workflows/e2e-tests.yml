@@ -120,7 +120,7 @@ jobs:
 
           # Generate Prisma client and push schema to test database
           npm run db:generate
-          npx prisma db push --skip-generate
+          npx prisma db push
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/astrid_test
           DATABASE_URL_DIRECT: postgresql://postgres:postgres@localhost:5432/astrid_test
@@ -205,7 +205,7 @@ jobs:
 
           # Generate Prisma client and push schema to test database
           npm run db:generate
-          npx prisma db push --skip-generate
+          npx prisma db push
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/astrid_test
           DATABASE_URL_DIRECT: postgresql://postgres:postgres@localhost:5432/astrid_test

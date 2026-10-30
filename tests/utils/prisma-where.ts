@@ -12,17 +12,33 @@
  * schema. Relation filters (`lists: { some: … }`) are checked by name only.
  */
 
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import { Prisma } from '@prisma/client'
 
 const COMBINATORS = new Set(['AND', 'OR', 'NOT'])
+
+/**
+ * The `where` names of a model's compound `@@unique` / `@@id` keys
+ * (`userId_installationId`). Prisma 7's runtime DMMF no longer carries
+ * uniqueIndexes or primaryKey (AWTD-1408), so they are read from the schema.
+ */
+function compoundKeyNames(model: string): string[] {
+  const schema = readFileSync(join(process.cwd(), 'prisma/schema.prisma'), 'utf8')
+  const block = new RegExp(`^model ${model} \\{([\\s\\S]*?)^\\}`, 'm').exec(schema)?.[1] ?? ''
+  const names: string[] = []
+  for (const match of block.matchAll(/@@(?:unique|id)\(\[([^\]]+)\](?:[^)]*?name:\s*"([^"]+)")?/g)) {
+    names.push(match[2] ?? match[1].split(',').map(field => field.trim().split('(')[0]).join('_'))
+  }
+  return names
+}
 
 export function unknownWhereFields(model: Prisma.ModelName, where: Record<string, unknown>): string[] {
   const definition = Prisma.dmmf.datamodel.models.find(m => m.name === model)
   if (!definition) throw new Error(`No Prisma model named ${model}`)
 
   const known = new Set<string>(definition.fields.map(f => f.name))
-  for (const index of definition.uniqueIndexes) known.add(index.name ?? index.fields.join('_'))
-  if (definition.primaryKey) known.add(definition.primaryKey.name ?? definition.primaryKey.fields.join('_'))
+  for (const name of compoundKeyNames(model)) known.add(name)
 
   const unknown: string[] = []
   const visit = (clause: Record<string, unknown>) => {
