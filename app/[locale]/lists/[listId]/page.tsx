@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
+import { unwrapList } from "@/lib/v1-response"
 import { useSession } from "next-auth/react"
 import { AuthenticatedApp } from "@/components/authenticated-app"
 import { LoadingScreen } from "@/components/loading-screen"
@@ -66,8 +67,9 @@ export default function ListsPage() {
           return
         }
 
-        const data = await response.json()
-        setListData(data)
+        // GET /api/v1/lists/:id returns { list, meta }. TaskManager compares
+        // listMetadata.id, so the envelope matched nothing (AWTD-1426).
+        setListData(unwrapList(await response.json()))
       } catch (err) {
         if (!navigator.onLine) {
           log.info('Offline: list not refreshed, using cached data')
