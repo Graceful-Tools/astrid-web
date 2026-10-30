@@ -167,6 +167,20 @@ describe('offlineDB.clearAll (AWTD-1342)', () => {
     expect(await db.tasks.count()).toBe(1)
   })
 
+  it('AWTD-1417: forceRefresh drops cached server data but keeps unsynced writes', async () => {
+    const db = await seeded()
+
+    await db.forceRefresh()
+
+    // AuthenticatedApp calls this on every page load. Clearing the mutation
+    // queue there threw away any edit made offline as soon as the page reloaded.
+    expect(await db.mutations.count()).toBe(1)
+    expect(await db.idMappings.count()).toBe(1)
+    for (const name of ['tasks', 'lists', 'users', 'publicTasks', 'comments', 'listMembers', 'attachments', 'syncCursors']) {
+      expect(await (db as unknown as Record<string, { count(): Promise<number> }>)[name].count()).toBe(0)
+    }
+  })
+
   it('a corruption-class failure disables IndexedDB for the session and deletes the database', async () => {
     const db = await seeded()
     // The class is not exported; its static availability flag is read off the instance.
@@ -191,5 +205,37 @@ describe('offlineDB.clearAll (AWTD-1342)', () => {
     await db.clearAll()
 
     expect(clear).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * AWTD-1417: an edit made offline before the initial sync had written the task
+ * to IndexedDB was only queued, and the sync then stored the server's (older)
+ * copy. An offline reload read that copy and showed the edit as lost, though it
+ * was still queued. Reads now apply queued task updates on top.
+ */
+describe('OfflineTaskOperations reads include queued edits (AWTD-1417)', () => {
+  async function withQueuedRename() {
+    vi.resetModules()
+    const { offlineDB } = await import('@/lib/offline-db/database')
+    const { OfflineTaskOperations } = await import('@/lib/offline-db/tasks')
+    opened = offlineDB
+    await offlineDB.tasks.put({ id: 't1', title: 'Before', lists: [{ id: 'l1' }] } as never)
+    await offlineDB.tasks.put({ id: 't2', title: 'Untouched', lists: [{ id: 'l1' }] } as never)
+    await offlineDB.mutations.put({ id: 'm1', type: 'update', entity: 'task', entityId: 't1', data: { title: 'First' }, timestamp: 1, status: 'pending' } as never)
+    await offlineDB.mutations.put({ id: 'm2', type: 'update', entity: 'task', entityId: 't1', data: { title: 'After' }, timestamp: 2, status: 'pending' } as never)
+    return OfflineTaskOperations
+  }
+
+  it('getTask returns the task as last edited offline', async () => {
+    const ops = await withQueuedRename()
+    expect((await ops.getTask('t1'))?.title).toBe('After')
+  })
+
+  it('getTasks and getTasksByList apply the queue too, and leave other tasks alone', async () => {
+    const ops = await withQueuedRename()
+    const titles = (tasks: { id: string; title: string }[]) => Object.fromEntries(tasks.map((t) => [t.id, t.title]))
+    expect(titles(await ops.getTasks())).toEqual({ t1: 'After', t2: 'Untouched' })
+    expect(titles(await ops.getTasksByList('l1'))).toEqual({ t1: 'After', t2: 'Untouched' })
   })
 })

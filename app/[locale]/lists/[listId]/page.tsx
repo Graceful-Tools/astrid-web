@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useParams, useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useSession } from "next-auth/react"
 import { AuthenticatedApp } from "@/components/authenticated-app"
 import { LoadingScreen } from "@/components/loading-screen"
@@ -23,10 +23,18 @@ export default function ListsPage() {
   const [listData, setListData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Read by the 404/403 fallback, not a dependency: opening a task must not
+  // fetch the list again. Offline, that refetch failed and replaced the whole
+  // app with the error screen (AWTD-1417).
+  const taskIdRef = useRef(taskId)
+  taskIdRef.current = taskId
+
+  const userId = session?.user?.id
 
   useEffect(() => {
     const fetchList = async () => {
-      if (!session?.user || !listId) return
+      if (!userId || !listId) return
+      const taskId = taskIdRef.current
 
       try {
         const response = await fetch(`/api/v1/lists/${listId}`)
@@ -48,6 +56,10 @@ export default function ListsPage() {
               return
             }
             setError("Access denied. You don't have permission to view this list.")
+          } else if (!navigator.onLine) {
+            // The service worker's offline answer. The app runs from its
+            // cache, so keep it rather than the error screen (AWTD-1417).
+            log.info({ status: response.status }, 'Offline: list not refreshed, using cached data')
           } else {
             setError("Failed to load list")
           }
@@ -57,6 +69,10 @@ export default function ListsPage() {
         const data = await response.json()
         setListData(data)
       } catch (err) {
+        if (!navigator.onLine) {
+          log.info('Offline: list not refreshed, using cached data')
+          return
+        }
         setError("Failed to load list")
         log.error({ err: err }, "Error fetching list:")
       } finally {
@@ -71,7 +87,7 @@ export default function ListsPage() {
       sessionStorage.setItem('returnTo', window.location.href)
       router.replace('/auth/signin')
     }
-  }, [session, listId, taskId, status, router])
+  }, [userId, listId, status, router])
 
   if (status === "loading" || loading) {
     return <LoadingScreen />
