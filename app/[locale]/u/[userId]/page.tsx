@@ -11,6 +11,7 @@ import { TaskCheckbox } from "@/components/task-checkbox"
 import { CheckCircle2, Lightbulb, Heart, ArrowLeft, Calendar, ListTodo, Globe, Users, Hash } from "lucide-react"
 import { format } from "date-fns"
 import { getAllListMembers } from "@/lib/list-member-utils"
+import { getUserDisplay, getUserInitial } from "@/lib/user-display"
 import { shouldHideTaskWhen } from "@/lib/public-list-utils"
 import type { Task } from "@/types/task"
 import { createLogger } from '@/lib/logger'
@@ -23,7 +24,8 @@ interface UserProfile {
   user: {
     id: string
     name: string | null
-    email: string
+    /** Only on your own profile: the API withholds it from everyone else. */
+    email?: string
     image: string | null
     createdAt: Date
     isAIAgent?: boolean
@@ -110,8 +112,10 @@ export default function UserProfilePage() {
   }
 
   const { user, stats, sharedTasks, isOwnProfile } = profile
-  const displayName = user.name || user.email.split("@")[0]
-  const userInitial = displayName.charAt(0).toUpperCase()
+  // Not `user.email.split(...)`: someone else's profile has no email, so a
+  // user with no name set crashed the page (AWTD-1419).
+  const displayName = getUserDisplay(user)
+  const userInitial = getUserInitial(user)
 
   const getPriorityColor = (priority: number) => {
     switch (priority) {
@@ -142,6 +146,7 @@ export default function UserProfilePage() {
             variant="ghost"
             onClick={() => router.back()}
             className="p-2 hover:bg-opacity-20"
+            aria-label="Back"
           >
             <ArrowLeft className="w-5 h-5 theme-text-primary" />
           </Button>
@@ -189,7 +194,7 @@ export default function UserProfilePage() {
                   </Badge>
                 )}
               </div>
-              <p className="theme-text-muted text-sm mb-3">{user.email}</p>
+              {user.email && <p className="theme-text-muted text-sm mb-3">{user.email}</p>}
               <div className="flex items-center justify-center sm:justify-start gap-2 theme-text-muted text-sm">
                 <Calendar className="w-4 h-4" />
                 <span>Joined {format(new Date(user.createdAt), "MMMM yyyy")}</span>
