@@ -53,12 +53,7 @@ function navigateToTask(
 export interface UseTaskSelectionProps {
   initialSelectedTaskId?: string
   finalFilteredTasks: Task[]
-  isMobile: boolean
-  selectedListId: string
   finalTasks: Task[]
-  closeTaskPaneAnimated: () => void
-  setMobileView?: (view: 'list' | 'task' | 'chat') => void
-  setShowMobileSidebar?: (show: boolean) => void
 }
 
 export interface UseTaskSelectionReturn {
@@ -75,7 +70,6 @@ export interface UseTaskSelectionReturn {
   setSelectedTaskRect: (rect: DOMRect | null) => void
 
   // Handlers
-  handleTaskClick: (taskId: string, taskElement?: HTMLElement) => void
   handleSelectNextTask: () => void
   handleSelectPreviousTask: () => void
 }
@@ -83,13 +77,8 @@ export interface UseTaskSelectionReturn {
 export function useTaskSelection({
   initialSelectedTaskId,
   finalFilteredTasks,
-  isMobile,
-  selectedListId,
-  finalTasks,
-  closeTaskPaneAnimated,
-  setMobileView,
-  setShowMobileSidebar
-}: UseTaskSelectionProps): UseTaskSelectionReturn {
+  finalTasks
+}:UseTaskSelectionProps): UseTaskSelectionReturn {
   // Selection state
   const [selectedTaskIdState, setSelectedTaskIdState] = useState<string>(initialSelectedTaskId || "")
   const [selectedTaskElement, setSelectedTaskElement] = useState<HTMLElement | null>(null)
@@ -99,13 +88,6 @@ export function useTaskSelection({
   // Stable setter reference
   const setSelectedTaskId = setSelectedTaskIdState
   const selectedTaskId = selectedTaskIdState
-
-  // Safe mobile view setter
-  const setMobileViewSafe = useCallback((view: 'list' | 'task' | 'chat') => {
-    if (setMobileView) {
-      setMobileView(view)
-    }
-  }, [setMobileView])
 
   // Get selected task from finalTasks
   const selectedTask = useMemo(() => {
@@ -119,67 +101,6 @@ export function useTaskSelection({
     }
     return task
   }, [finalTasks, selectedTaskId])
-
-  // Task click handler
-  const handleTaskClick = useCallback((taskId: string, taskElement?: HTMLElement) => {
-    // Close mobile sidebar when task is clicked
-    setShowMobileSidebar?.(false)
-
-    // Find the task to determine its primary list for URL construction
-    const task = finalTasks.find(t => t.id === taskId)
-
-    // Toggle task selection: if same task is clicked, close it
-    if (selectedTaskId === taskId) {
-      closeTaskPaneAnimated()
-      if (isMobile) {
-        setMobileViewSafe('list')
-      }
-      // Update URL without navigation (remove task query param)
-      if (task && task.lists && task.lists.length > 0) {
-        const primaryListId = task.lists[0].id
-        window.history.replaceState(null, '', `/lists/${primaryListId}`)
-      } else if (selectedListId !== "my-tasks") {
-        window.history.replaceState(null, '', `/lists/${selectedListId}`)
-      } else {
-        window.history.replaceState(null, '', '/')
-      }
-      return
-    }
-
-    // Always update state immediately for smooth UX
-    setSelectedTaskId(taskId)
-
-    // Store the task element for positioning
-    if (taskElement) {
-      setSelectedTaskElement(taskElement)
-      setSelectedTaskRect(taskElement.getBoundingClientRect())
-    }
-
-    // Update URL based on current list context, don't change lists
-    if (selectedListId !== "my-tasks") {
-      // Stay in current list, just add task parameter
-      window.history.replaceState(null, '', `/lists/${selectedListId}?task=${taskId}`)
-    } else {
-      // For my-tasks, use home URL with task parameter
-      window.history.replaceState(null, '', `/?task=${taskId}`)
-    }
-
-    // On mobile, switch to task view
-    if (isMobile) {
-      setMobileViewSafe('task')
-    }
-  }, [
-    selectedTaskId,
-    isMobile,
-    setMobileViewSafe,
-    closeTaskPaneAnimated,
-    finalTasks,
-    selectedListId,
-    setSelectedTaskId,
-    setSelectedTaskElement,
-    setSelectedTaskRect,
-    setShowMobileSidebar
-  ])
 
   // Keyboard navigation handlers
   const handleSelectNextTask = useCallback(() => {
@@ -216,7 +137,6 @@ export function useTaskSelection({
     setSelectedTaskRect,
 
     // Handlers
-    handleTaskClick,
     handleSelectNextTask,
     handleSelectPreviousTask
   }

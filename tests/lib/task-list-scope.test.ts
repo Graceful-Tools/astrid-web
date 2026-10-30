@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { Task, TaskList } from '@/types/task'
-import { scopeTasksToList, withoutList, listPath } from '@/lib/task-list-scope'
+import { scopeTasksToList, withoutList, listPath, taskDetailPath } from '@/lib/task-list-scope'
 
 /** AWTD-1419 — what a list view starts from, and what deleting a list leaves. */
 
@@ -39,5 +39,22 @@ describe('listPath', () => {
   it('is / for My Tasks and /lists/<id> otherwise', () => {
     expect(listPath('my-tasks')).toBe('/')
     expect(listPath('abc')).toBe('/lists/abc')
+  })
+})
+
+/** AWTD-1432 — the URL follows the view you are in, not the task's first list. */
+describe('taskDetailPath', () => {
+  it('AWTD-1432: opening a task keeps the current view in the URL', () => {
+    expect(taskDetailPath('my-tasks', 't1')).toBe('/?task=t1')
+    expect(taskDetailPath('abc', 't1')).toBe('/lists/abc?task=t1')
+    expect(taskDetailPath('today', 't1')).toBe('/lists/today?task=t1')
+    expect(taskDetailPath('assigned', 't1')).toBe('/lists/assigned?task=t1')
+  })
+
+  it('AWTD-1432: closing a task returns to the current view, so a reload does not land on the first list', () => {
+    expect(taskDetailPath('my-tasks')).toBe('/')
+    expect(taskDetailPath('abc')).toBe('/lists/abc')
+    expect(taskDetailPath('today')).toBe('/lists/today')
+    expect(taskDetailPath('assigned')).toBe('/lists/assigned')
   })
 })
