@@ -1,8 +1,8 @@
 #!/usr/bin/env npx tsx
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 interface AIAgentConfig {
   name: string

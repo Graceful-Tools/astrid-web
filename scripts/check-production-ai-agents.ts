@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import * as dotenv from 'dotenv'
 import * as path from 'path'
 import { loadScriptEnv } from './lib/load-env'
@@ -16,7 +16,7 @@ if (!productionDbUrl) {
   process.exit(1)
 }
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function checkProductionAIAgents() {
   try {

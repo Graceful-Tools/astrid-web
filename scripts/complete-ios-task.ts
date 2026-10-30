@@ -1,10 +1,10 @@
 // Post a completion report comment on an Astrid task and mark it complete.
 // Usage: DATABASE_URL=<prod> npx tsx scripts/complete-ios-task.ts <completions.json>
 // completions.json: [{ "id": "<taskId>", "report": "<markdown completion report>" }, ...]
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { readFileSync } from 'fs'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 const AUTHOR_ID = process.env.COMMENT_AUTHOR_ID || 'cmeje966q0000k1045si7zrz3' // jonparis@gmail.com
 
 async function main() {

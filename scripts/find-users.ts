@@ -3,10 +3,10 @@
  * List all users in the database
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
 async function main() {
-  const prisma = new PrismaClient()
+  const prisma = createScriptPrisma()
 
   try {
     console.log('👥 Finding all users in database...\n')

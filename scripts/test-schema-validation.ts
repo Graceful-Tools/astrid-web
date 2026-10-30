@@ -4,9 +4,9 @@
  * Tests the new GitHub coding agent models
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function testSchemaValidation() {
   console.log('🧪 Testing GitHub Coding Agent Schema...')

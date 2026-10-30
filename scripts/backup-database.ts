@@ -67,8 +67,8 @@ try {
       const tables = ['User', 'TaskList', 'Task', 'Comment', 'Attachment']
       const backupData: any = {}
 
-      const { PrismaClient } = require('@prisma/client')
-      const prisma = new PrismaClient()
+      const { createScriptPrisma } = require('./lib/script-prisma')
+      const prisma = createScriptPrisma()
 
       for (const table of tables) {
         const data = await (prisma as any)[table.toLowerCase()].findMany()

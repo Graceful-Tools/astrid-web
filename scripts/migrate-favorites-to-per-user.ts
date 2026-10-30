@@ -9,9 +9,9 @@
  */
 
 import 'dotenv/config'
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function main() {
   console.log('🔄 Migrating favorites from TaskList to per-user UserListFavorite...')

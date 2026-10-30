@@ -12,7 +12,7 @@
  * running it up front also issues each agent its MCP token.
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { loadScriptEnv } from './lib/load-env'
 import { generateMCPToken } from '../lib/mcp-token-utils'
 import { mcpTokenStorageFields } from '../lib/mcp-token'
@@ -23,7 +23,7 @@ import { harnessAgentByMailbox } from '../lib/ai/harness-agents'
 // Load .env.local for database URL
 loadScriptEnv()
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 // AI agent profile images, uploaded via scripts/upload-ai-agent-images.ts
 const BLOB_BASE = 'https://uvq3rbgqrtvvavdq.public.blob.vercel-storage.com/ai-agents'

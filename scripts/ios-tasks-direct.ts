@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client'
-const prisma = new PrismaClient()
+import { createScriptPrisma } from './lib/script-prisma'
+const prisma = createScriptPrisma()
 const listId = process.env.ASTRID_IOS_LIST_ID || 'aa41c1a3-bd63-4c6d-9b87-42c6e0aafa36'
 
 async function main() {

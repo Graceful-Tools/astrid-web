@@ -7,9 +7,9 @@
  * Run this after configuring your PostgreSQL database.
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function main() {
   console.log('🚀 Setting up production database...\n')

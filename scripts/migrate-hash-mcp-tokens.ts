@@ -14,16 +14,14 @@
  *   DATABASE_URL_PROD=... npx tsx scripts/migrate-hash-mcp-tokens.ts          # dry run
  *   DATABASE_URL_PROD=... npx tsx scripts/migrate-hash-mcp-tokens.ts --apply
  */
-import { PrismaClient } from '@prisma/client'
 import { hashMCPToken } from '../lib/mcp-token'
 import { encryptField, decryptField } from '../lib/field-encryption'
 import { loadScriptEnv } from './lib/load-env'
+import { createScriptPrisma } from './lib/script-prisma'
 
 loadScriptEnv()
 const APPLY = process.argv.includes('--apply')
-const prisma = new PrismaClient({
-  datasources: { db: { url: process.env.DATABASE_URL_PROD || process.env.DATABASE_URL } },
-})
+const prisma = createScriptPrisma({ url: process.env.DATABASE_URL_PROD || process.env.DATABASE_URL })
 
 async function main() {
   if (decryptField(encryptField('probe')) !== 'probe') throw new Error('ENCRYPTION_KEY round-trip failed')

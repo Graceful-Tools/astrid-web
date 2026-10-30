@@ -5,7 +5,7 @@
  * This script helps make lists accessible to the AI agent
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { loadScriptEnv } from './lib/load-env'
 
 loadScriptEnv()
@@ -19,7 +19,7 @@ async function grantAIAgentAccess() {
     return
   }
 
-  const prisma = new PrismaClient()
+  const prisma = createScriptPrisma()
 
   try {
     await prisma.$connect()
@@ -91,7 +91,7 @@ async function addAIAgentToAllLists() {
   console.log('🔧 Adding AI agent as member to all lists...\n')
 
   const databaseUrl = process.env.DATABASE_URL_PROD
-  const prisma = new PrismaClient()
+  const prisma = createScriptPrisma()
 
   try {
     await prisma.$connect()

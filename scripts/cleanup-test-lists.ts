@@ -7,9 +7,9 @@
  * Example: npx tsx scripts/cleanup-test-lists.ts wonk1@kuoparis.com
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function cleanupTestLists(userEmail: string) {
   console.log(`🧹 Cleaning up test lists for ${userEmail}...`)

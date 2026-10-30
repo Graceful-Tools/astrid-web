@@ -6,7 +6,7 @@
 import { config } from 'dotenv'
 config({ path: '.env.local' })
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 
 async function main() {
   // Connect to production database
@@ -19,7 +19,7 @@ async function main() {
 
   console.log('Connecting to production database...')
 
-  const prisma = new PrismaClient()
+  const prisma = createScriptPrisma()
 
   try {
     // Check if table already exists

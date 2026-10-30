@@ -8,6 +8,7 @@
 import { execSync } from 'child_process'
 import * as fs from 'fs'
 import * as path from 'path'
+import { createScriptPrisma } from './lib/script-prisma'
 
 async function main() {
   console.log('🚀 Starting production database migration...')
@@ -41,10 +42,15 @@ async function main() {
 
     // 2. Check if we can connect to the database
     console.log('🔗 Testing database connection...')
-    execSync(`node -e "const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); prisma.\\$connect().then(() => { console.log('✅ Connected to production database'); return prisma.\\$disconnect(); }).catch(e => { console.error('❌ Connection failed:', e.message); process.exit(1); })"`, {
-      stdio: 'inherit',
-      env: { ...process.env, DATABASE_URL: prodDbUrl }
-    })
+    const probe = createScriptPrisma({ url: prodDbUrl })
+    try {
+      await probe.$connect()
+      console.log('✅ Connected to production database')
+    } catch (e) {
+      throw new Error(`Connection failed: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      await probe.$disconnect()
+    }
 
     // 3. Deploy migrations to production
     console.log('📊 Deploying database migrations to production...')

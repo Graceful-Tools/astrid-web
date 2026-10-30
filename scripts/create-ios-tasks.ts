@@ -1,10 +1,10 @@
 // Batch-create tasks in the Astrid iOS to-do list (direct Prisma — OAuth path is flaky).
 // Usage: DATABASE_URL=<prod> npx tsx scripts/create-ios-tasks.ts <tasks.json>
 // tasks.json: [{ "title": "...", "description": "...", "priority": 0-3 }, ...]
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { readFileSync } from 'fs'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 const CREATOR_ID = process.env.COMMENT_AUTHOR_ID || 'cmeje966q0000k1045si7zrz3' // jonparis@gmail.com
 const IOS_LIST_ID = process.env.ASTRID_IOS_LIST_ID || 'aa41c1a3-bd63-4c6d-9b87-42c6e0aafa36'
 

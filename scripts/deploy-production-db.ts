@@ -7,10 +7,10 @@
  * Run this after setting up your PostgreSQL database in production.
  */
 
-import { PrismaClient } from '@prisma/client'
+import { createScriptPrisma } from './lib/script-prisma'
 import { execSync } from 'child_process'
 
-const prisma = new PrismaClient()
+const prisma = createScriptPrisma()
 
 async function main() {
   console.log('🚀 Production Database Deployment Script\n')

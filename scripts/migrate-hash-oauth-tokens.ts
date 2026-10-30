@@ -11,15 +11,13 @@
  *   DATABASE_URL_PROD=... npx tsx scripts/migrate-hash-oauth-tokens.ts --apply
  */
 import crypto from 'crypto'
-import { PrismaClient } from '@prisma/client'
 import { loadScriptEnv } from './lib/load-env'
+import { createScriptPrisma } from './lib/script-prisma'
 
 loadScriptEnv()
 
 const APPLY = process.argv.includes('--apply')
-const prisma = new PrismaClient({
-  datasources: { db: { url: process.env.DATABASE_URL_PROD || process.env.DATABASE_URL } },
-})
+const prisma = createScriptPrisma({ url: process.env.DATABASE_URL_PROD || process.env.DATABASE_URL })
 const hash = (t: string) => crypto.createHash('sha256').update(t).digest('hex')
 const isPlaintext = (v: string | null) => !!v && v.startsWith('astrid_')
 
