@@ -47,6 +47,10 @@ jobs:
         run: npm run db:generate && npx prisma migrate deploy
       - name: Run PostgreSQL integration tier
         run: npm run test:integration:postgres
+        env:
+          # Not UTC, so a driver that shifts timestamps by the process's offset
+          # fails the DateTime round trip (AWTD-1423).
+          TZ: America/Los_Angeles
       - name: Enforce staged risk coverage
         run: npm run test:risk-coverage
       - name: Build application
