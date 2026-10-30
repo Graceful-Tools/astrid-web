@@ -111,3 +111,18 @@ describe('unit tests run on every pull request (AWTD-1216)', () => {
     }
   })
 })
+
+/**
+ * AWTD-1428: the doc-link check runs on every PR too. It ran only in predeploy,
+ * so on 2026-10-30 two PRs were green in CI and then failed the gate on the
+ * merged main (AWTD-1420: a stale version in the stack doc; AWTD-1427: a link
+ * to a deleted spec), each costing a follow-up PR and a second gate run.
+ */
+describe('the doc-link check runs on every pull request (AWTD-1428)', () => {
+  it('unit-tests.yml runs npm run check:docs', () => {
+    const steps = readFileSync(join(WORKFLOWS, 'unit-tests.yml'), 'utf8')
+      .split('\n')
+      .filter(line => /^\s*(?:- )?run:/.test(line))
+    expect(steps.some(line => /\bnpm run check:docs\b/.test(line))).toBe(true)
+  })
+})
