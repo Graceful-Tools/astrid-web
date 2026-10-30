@@ -1,144 +1,77 @@
 import { test, expect } from '@playwright/test'
+import type { Page } from '@playwright/test'
+import { gotoWithRetry } from './utils/test-helpers'
+
+/**
+ * The sidebar at each layout: reachable, laid out as a column, its list area
+ * scrollable, and its settings footer on screen (AWTD-1425).
+ *
+ * Revived signed in. It used to wait for `networkidle` — which the app's live
+ * SSE connection never reaches — open the drawer through "the first button
+ * with an svg", and wrap each assertion in an `if (visible)` that let a run
+ * pass having checked nothing.
+ */
 
 const VIEWPORTS = {
-  mobile: { width: 390, height: 844 },    // iPhone - 1 column
-  tablet: { width: 820, height: 1180 },   // iPad - 2 column
-  ipadAir: { width: 1024, height: 768 },  // iPad Air landscape - 2 column
-  desktop: { width: 1440, height: 900 },  // Desktop - 3 column
+  mobile: { width: 390, height: 844 }, // iPhone - 1 column
+  tablet: { width: 820, height: 1180 }, // iPad - 2 column
+  ipadAir: { width: 1024, height: 768 }, // iPad Air landscape - 2 column
+  desktop: { width: 1440, height: 900 }, // Desktop - 3 column
 }
 
-test.describe('Sidebar Settings Footer', () => {
+/** The sidebar, opened through the hamburger wherever the layout has one. */
+async function openSidebar(page: Page, viewport: { width: number; height: number }) {
+  await page.setViewportSize(viewport)
+  await gotoWithRetry(page, '/')
+  const hamburger = page.locator('[data-hamburger-button]')
+  // Narrow layouts put the sidebar in a drawer; desktop shows it in place.
+  if (viewport.width < 1100) {
+    await expect(hamburger).toBeVisible()
+    await hamburger.click()
+    const drawer = page.locator('.app-sidebar-mobile.app-sidebar-mobile-open')
+    await expect(drawer).toBeVisible()
+    return drawer
+  }
+  await expect(hamburger).toHaveCount(0)
+  const sidebar = page.locator('.app-sidebar')
+  await expect(sidebar).toBeVisible()
+  return sidebar
+}
+
+test.describe('Sidebar at every layout', () => {
   for (const [name, viewport] of Object.entries(VIEWPORTS)) {
-    test(`settings footer is visible and not clipped on ${name} (${viewport.width}x${viewport.height})`, async ({ page }) => {
-      await page.setViewportSize(viewport)
-      await page.goto('/')
-      await page.waitForLoadState('networkidle')
+    test(`${name} (${viewport.width}x${viewport.height}): a flex column with a scrollable list area and the settings footer on screen`, async ({ page }) => {
+      const sidebar = await openSidebar(page, viewport)
 
-      if (viewport.width < 1100) {
-        // Mobile/tablet: open the sidebar drawer first
-        const hamburger = page.locator('[data-hamburger-button], button:has(svg)').first()
-        if (await hamburger.isVisible()) {
-          await hamburger.click()
-          await page.waitForTimeout(400) // wait for drawer animation
-        }
-      }
+      expect(await sidebar.evaluate(el => getComputedStyle(el).display)).toBe('flex')
+      expect(await sidebar.evaluate(el => getComputedStyle(el).flexDirection)).toBe('column')
+      const box = (await sidebar.boundingBox())!
+      expect(box.height).toBeLessThanOrEqual(viewport.height + 1)
 
-      // Settings footer should be visible (contains user avatar and settings icon)
-      const settingsFooter = page.locator('button:has(svg[class*="lucide-settings"])')
-      if (await settingsFooter.count() > 0) {
-        const footer = settingsFooter.last()
-        const box = await footer.boundingBox()
-        if (box) {
-          // Footer should be within the viewport
-          expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 5)
-          expect(box.y).toBeGreaterThanOrEqual(0)
-        }
-      }
+      const nav = sidebar.locator('.sidebar-navigation')
+      expect(['auto', 'scroll']).toContain(await nav.evaluate(el => getComputedStyle(el).overflowY))
+
+      // The footer is the signed-in user's settings button, and must not be
+      // pushed below the fold by a long list of lists.
+      const footer = sidebar.getByRole('button', { name: /Playwright Owner/ })
+      await expect(footer).toBeVisible()
+      const footerBox = (await footer.boundingBox())!
+      expect(footerBox.y).toBeGreaterThanOrEqual(0)
+      expect(footerBox.y + footerBox.height).toBeLessThanOrEqual(viewport.height + 1)
     })
   }
 })
 
-test.describe('Sidebar Scrolling', () => {
-  test('sidebar navigation area should be scrollable on desktop', async ({ page }) => {
-    await page.setViewportSize(VIEWPORTS.desktop)
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
-
-    // Find the scrollable navigation area
-    const scrollableNav = page.locator('.sidebar-navigation')
-    if (await scrollableNav.count() > 0) {
-      const nav = scrollableNav.first()
-      const overflowY = await nav.evaluate(el => getComputedStyle(el).overflowY)
-      expect(['auto', 'scroll']).toContain(overflowY)
-    }
+test.describe('Sidebar navigation', () => {
+  test('the settings footer opens Settings', async ({ page }) => {
+    const sidebar = await openSidebar(page, VIEWPORTS.desktop)
+    await sidebar.getByRole('button', { name: /Playwright Owner/ }).click()
+    await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
   })
 
-  test('sidebar navigation area should be scrollable on tablet', async ({ page }) => {
-    await page.setViewportSize(VIEWPORTS.tablet)
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
-
-    // Open sidebar drawer
-    const hamburger = page.locator('button').filter({ has: page.locator('svg') }).first()
-    if (await hamburger.isVisible()) {
-      await hamburger.click()
-      await page.waitForTimeout(400)
-    }
-
-    const scrollableNav = page.locator('.sidebar-navigation')
-    if (await scrollableNav.count() > 0) {
-      const nav = scrollableNav.first()
-      const overflowY = await nav.evaluate(el => getComputedStyle(el).overflowY)
-      expect(['auto', 'scroll']).toContain(overflowY)
-    }
-  })
-})
-
-test.describe('Sidebar Layout Integrity', () => {
-  for (const [name, viewport] of Object.entries(VIEWPORTS)) {
-    test(`sidebar has proper flex layout on ${name}`, async ({ page }) => {
-      await page.setViewportSize(viewport)
-      await page.goto('/')
-      await page.waitForLoadState('networkidle')
-
-      if (viewport.width < 1100) {
-        const hamburger = page.locator('button').filter({ has: page.locator('svg') }).first()
-        if (await hamburger.isVisible()) {
-          await hamburger.click()
-          await page.waitForTimeout(400)
-        }
-      }
-
-      // Check the sidebar container has flex-col layout
-      const sidebar = page.locator('.app-sidebar, .app-sidebar-mobile').first()
-      if (await sidebar.isVisible()) {
-        const display = await sidebar.evaluate(el => getComputedStyle(el).display)
-        const flexDirection = await sidebar.evaluate(el => getComputedStyle(el).flexDirection)
-        expect(display).toBe('flex')
-        expect(flexDirection).toBe('column')
-      }
-    })
-  }
-
-  test('sidebar footer stays at bottom, not pushed off screen on iPad', async ({ page }) => {
-    await page.setViewportSize({ width: 1024, height: 768 })
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
-
-    // Open sidebar
-    const hamburger = page.locator('button').filter({ has: page.locator('svg') }).first()
-    if (await hamburger.isVisible()) {
-      await hamburger.click()
-      await page.waitForTimeout(400)
-    }
-
-    // The sidebar should not exceed viewport height
-    const sidebar = page.locator('.app-sidebar-mobile').first()
-    if (await sidebar.isVisible()) {
-      const sidebarBox = await sidebar.boundingBox()
-      if (sidebarBox) {
-        // Sidebar height should not exceed viewport
-        expect(sidebarBox.height).toBeLessThanOrEqual(768 + 5)
-      }
-    }
-  })
-})
-
-test.describe('Settings Navigation', () => {
-  test('clicking search in sidebar shows search view on desktop', async ({ page }) => {
-    await page.setViewportSize(VIEWPORTS.desktop)
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
-
-    // Click the Search button in sidebar
-    const searchButton = page.locator('.sidebar-navigation button', { hasText: /search/i }).first()
-    if (await searchButton.isVisible()) {
-      await searchButton.click()
-      await page.waitForTimeout(300)
-
-      // Search input should appear in the main content
-      const searchInput = page.getByPlaceholder(/search tasks/i)
-      await expect(searchInput).toBeVisible()
-    }
+  test('the search button opens search', async ({ page }) => {
+    const sidebar = await openSidebar(page, VIEWPORTS.desktop)
+    await sidebar.getByRole('button', { name: 'Search', exact: true }).click()
+    await expect(page.getByPlaceholder(/search tasks/i).first()).toBeVisible()
   })
 })
