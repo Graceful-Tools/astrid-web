@@ -112,7 +112,13 @@ test.describe('Dim-overlay dismiss handler', () => {
     await expect(page.locator('.task-panel-desktop')).toBeVisible()
     const dimmer = page.getByTestId('chat-pane-dimmer')
     await expect(dimmer).toBeVisible()
-    await dimmer.click()
+    // The task panel can overlap the dimmed pane (it covered its middle on
+    // CI's runner), so click the middle of the part left uncovered, as a user would.
+    const dim = (await dimmer.boundingBox())!
+    const panel = (await page.locator('.task-panel-desktop').boundingBox())!
+    const clearFrom = Math.max(dim.x, panel.x + panel.width)
+    expect(clearFrom, 'the task panel covers the whole dimmed pane').toBeLessThan(dim.x + dim.width - 8)
+    await page.mouse.click((clearFrom + dim.x + dim.width) / 2, dim.y + dim.height / 2)
     await expect(page.locator('.task-panel-desktop')).toHaveCount(0)
   })
   // No settings counterpart: the settings view has no chat pane to dim.
