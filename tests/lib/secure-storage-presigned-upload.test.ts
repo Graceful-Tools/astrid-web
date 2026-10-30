@@ -20,7 +20,6 @@ vi.mock('@vercel/blob', () => ({
   presignUrl,
   parseStoreIdFromDelegationToken,
 }))
-vi.mock('@vercel/blob/client', () => ({ generateClientTokenFromReadWriteToken: vi.fn() }))
 
 import { issuePresignedUpload, presignedUploadsEnabled } from '@/lib/secure-storage'
 

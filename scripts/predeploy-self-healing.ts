@@ -19,6 +19,7 @@
 
 import { execSync, spawnSync, SpawnSyncReturns } from 'child_process'
 import { existsSync, readFileSync, writeFileSync } from 'fs'
+import { hostname } from 'os'
 import path from 'path'
 import { loadScriptEnv } from './lib/load-env'
 // Who files, comments on and resolves these tasks (AWTD-1311). Run from the
@@ -84,6 +85,48 @@ export function formatFailureOutput(raw: string): string {
   const TAIL = 3000
   if (stripped.length <= HEAD + TAIL) return stripped
   return `${stripped.slice(0, HEAD)}\n... (middle truncated) ...\n${stripped.slice(-TAIL)}`
+}
+
+/**
+ * What to report for a check that failed without printing anything (AWTD-1404).
+ *
+ * execSync's own message is then just `Command failed: <cmd>`, which says
+ * nothing about why. How the process ended is the one fact left: an exit
+ * status means the command gave up on its own, a signal means something
+ * killed it.
+ */
+export function describeSilentFailure(
+  command: string,
+  error: { status?: number | null; signal?: string | null },
+): string {
+  const ending = error.signal
+    ? `was killed by ${error.signal}`
+    : typeof error.status === 'number'
+      ? `exited with status ${error.status}`
+      : 'ended without an exit status or a signal'
+  return `\`${command}\` printed nothing and ${ending}.`
+}
+
+/**
+ * Where a report was produced (AWTD-1404). Without it, a report nobody expected
+ * cannot be traced back to the machine, checkout or commit that filed it.
+ */
+export function reportProvenance(where: {
+  host: string
+  cwd: string
+  commit: string | null
+}): string {
+  return `**Ran on**: ${where.host} in \`${where.cwd}\` at ${where.commit ? `\`${where.commit}\`` : 'an unknown commit'}`
+}
+
+function currentProvenance(): string {
+  let commit: string | null = null
+  try {
+    commit = execSync('git rev-parse --short HEAD', { encoding: 'utf-8', stdio: 'pipe' }).trim() || null
+  } catch {
+    // Not a git checkout, or git is missing; the line says so.
+  }
+  return reportProvenance({ host: hostname(), cwd: process.cwd(), commit })
 }
 
 interface CheckResult {
@@ -592,7 +635,14 @@ class SelfHealingPredeploy {
       // are both captured in the report.
       const stdout = error.stdout || ''
       const stderr = error.stderr || ''
-      const output = [stdout, stderr].filter(Boolean).join('\n').trim() || error.message || ''
+      // A spawn error (ENOENT, EAGAIN) names its cause in the message; a plain
+      // non-zero exit only repeats the command, so describe how it ended instead.
+      const message: string = error.message || ''
+      const output =
+        [stdout, stderr].filter(Boolean).join('\n').trim() ||
+        (message && !message.startsWith('Command failed')
+          ? message
+          : describeSilentFailure(check.command, error))
       const outcome = describeCheckOutcome(check.name, error, check.timeoutMs)
 
       // A killed command prints no summary, so any stats parsed out of its
@@ -815,6 +865,7 @@ class SelfHealingPredeploy {
 
 **Generated**: ${new Date().toISOString()}
 **Duration**: ${((Date.now() - this.startTime) / 1000).toFixed(1)}s
+${currentProvenance()}
 
 ### Failed Checks
 

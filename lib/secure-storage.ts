@@ -21,7 +21,6 @@ import {
   presignUrl,
   parseStoreIdFromDelegationToken,
 } from "@vercel/blob"
-import { generateClientTokenFromReadWriteToken } from "@vercel/blob/client"
 import { randomUUID } from "crypto"
 import { createLogger } from '@/lib/logger'
 import { validateSecureUpload } from '@/lib/upload-validation'
@@ -117,7 +116,7 @@ export async function deleteObject(url: string): Promise<void> {
 }
 
 /** What a client needs to upload straight to the store, bypassing our functions. */
-export interface ClientUploadTokenRequest {
+export interface DirectUploadRequest {
   pathname: string
   allowedContentTypes: string[]
   maximumSizeInBytes: number
@@ -125,35 +124,8 @@ export interface ClientUploadTokenRequest {
   onUploadCompleted?: { callbackUrl: string; tokenPayload: string }
 }
 
-/**
- * Mint a short-lived token letting a client PUT directly to the store.
- *
- * This is what keeps large uploads off the serverless request path, where the
- * body limit is 4.5MB. Returned with the base URL so the caller does not have
- * to know the vendor's host either.
- */
-export async function issueClientUploadToken(
-  request: ClientUploadTokenRequest,
-): Promise<{ token: string; uploadUrl: string }> {
-  // A Blob client token is derived from Blob's read/write token. Self-hosted
-  // storage hands out presigned uploads only (presignedUploadsEnabled).
-  if (isSelfHostedStorage()) throw new Error('Client upload tokens are a Vercel Blob feature')
-  const token = await generateClientTokenFromReadWriteToken({
-    token: process.env.BLOB_READ_WRITE_TOKEN,
-    pathname: request.pathname,
-    maximumSizeInBytes: request.maximumSizeInBytes,
-    allowedContentTypes: request.allowedContentTypes,
-    ...(request.onUploadCompleted ? { onUploadCompleted: request.onUploadCompleted } : {}),
-  })
-
-  return { token, uploadUrl: `${CLIENT_UPLOAD_BASE_URL}/${request.pathname}` }
-}
-
-/** Host clients PUT to with an issued token. Moves with the provider. */
-const CLIENT_UPLOAD_BASE_URL = 'https://blob.vercel-storage.com'
-
 /** What a client needs to upload with a presigned URL instead of a bearer token. */
-export interface PresignedUploadRequest extends ClientUploadTokenRequest {
+export interface PresignedUploadRequest extends DirectUploadRequest {
   /** Sent as the store's content-type header, since the client adds only Content-Type. */
   contentType: string
 }
@@ -178,8 +150,9 @@ const BLOB_API_VERSION = '12'
  * completion callback is signed with Ed25519 against that key, so serving
  * one before the key exists would land the bytes and then reject the
  * callback — no SecureFile row, an attachment lost without an error. The
- * key appears when the Blob store is upgraded to OIDC, which is also when
- * `BLOB_READ_WRITE_TOKEN` disappears, so the switch needs no deploy.
+ * key appears when the Blob store is upgraded to OIDC, so the switch needs no
+ * deploy. Without it (a Blob store not yet upgraded) direct uploads are
+ * refused: the client-token fallback was removed in AWTD-1386.
  */
 export function presignedUploadsEnabled(): boolean {
   // Self-hosted storage has no callback to wait for: the upload route records
@@ -189,8 +162,8 @@ export function presignedUploadsEnabled(): boolean {
 }
 
 /**
- * Compose a presigned direct upload — the replacement for
- * {@link issueClientUploadToken} that needs no static read/write token.
+ * Compose a presigned direct upload, which needs no static read/write token.
+ * It replaced the client upload token (AWTD-1368, removed in AWTD-1386).
  *
  * The SDK resolves its credential itself: OIDC + `BLOB_STORE_ID` once the
  * store is upgraded, `BLOB_READ_WRITE_TOKEN` until then. The server composes

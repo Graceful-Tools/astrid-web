@@ -29,6 +29,10 @@
  * operator believed otherwise. Pointing it at production is therefore a visible
  * act: `--database-url-env DATABASE_URL_PROD`.
  *
+ * It covers every column in lib/reencrypt-plan.ts's ENCRYPTED_COLUMNS and the
+ * AI credentials inside `User.mcpSettings` (AWTD-1380), so one `--verify`
+ * proves the whole rotation rather than only the column part.
+ *
  * It never prints a plaintext, a key, or any stored value: counts only.
  *
  * Idempotent and resumable. Re-running rewrites already-migrated values with a
@@ -36,12 +40,14 @@
  * safe to repeat.
  */
 
+import type { PrismaClient } from '@prisma/client'
 import { loadScriptEnv } from './lib/load-env'
 import {
   ENCRYPTED_COLUMNS,
   addOutcome,
   emptyOutcome,
   planColumn,
+  planMcpSettings,
   type RowOutcome,
 } from '../lib/reencrypt-plan'
 
@@ -73,13 +79,155 @@ export function parseArgs(argv: string[]): Options {
   }
 }
 
+function report(table: string, outcome: RowOutcome): void {
+  console.log(
+    `   ${table.padEnd(22)} rewritten=${outcome.rewritten} skipped=${outcome.skipped} failed=${outcome.failed} conflicts=${outcome.conflicts}`,
+  )
+}
+
+/**
+ * AI credentials inside `User.mcpSettings` (AWTD-1380) — a JSON blob, so not
+ * reachable by the column walker. Same paging, same compare-and-swap, same
+ * counts-only output.
+ */
+async function walkMcpSettings(
+  prisma: PrismaClient,
+  options: Options,
+): Promise<RowOutcome> {
+  const { decryptCredentialStrict, encryptCredential } = await import('../lib/ai/credential-cipher')
+  const { encryptionKeyHexes } = await import('../lib/encryption-keys')
+  const keyHexes = encryptionKeyHexes()
+
+  let outcome = emptyOutcome()
+  let cursor: string | undefined
+  for (;;) {
+    const rows = await prisma.user.findMany({
+      where: { mcpSettings: { not: null } },
+      select: { id: true, mcpSettings: true },
+      orderBy: { id: 'asc' },
+      take: options.batchSize,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    })
+    if (rows.length === 0) break
+
+    for (const row of rows) {
+      const plan = planMcpSettings(row.mcpSettings, {
+        decrypt: triple => decryptCredentialStrict(triple, keyHexes),
+        encrypt: encryptCredential,
+        requireAuthenticated: options.verify,
+      })
+      for (const problem of plan.problems) {
+        console.error(`   ❌ User.mcpSettings id=${row.id} ${problem}`)
+      }
+      if (plan.next !== undefined && !options.dryRun && !options.verify) {
+        const { count } = await prisma.user.updateMany({
+          where: { id: row.id, mcpSettings: row.mcpSettings },
+          data: { mcpSettings: plan.next },
+        })
+        if (count === 0) {
+          plan.outcome.conflicts += plan.outcome.rewritten
+          plan.outcome.rewritten = 0
+        }
+      }
+      outcome = addOutcome(outcome, plan.outcome)
+    }
+    cursor = rows[rows.length - 1].id
+  }
+
+  report('User.mcpSettings', outcome)
+  return outcome
+}
+
+/** Every column in ENCRYPTED_COLUMNS, paged by cursor. */
+async function walkColumns(prisma: PrismaClient, options: Options): Promise<RowOutcome> {
+  const fe = await import('../lib/field-encryption')
+  let total = emptyOutcome()
+
+  for (const table of ENCRYPTED_COLUMNS) {
+    const model = (prisma as unknown as Record<string, any>)[table.model]
+    if (!model) throw new Error(`No Prisma model named ${table.model}`)
+
+    let outcome = emptyOutcome()
+    let cursor: string | undefined
+
+    for (;;) {
+      const rows: Record<string, unknown>[] = await model.findMany({
+        select: Object.fromEntries(
+          [table.cursor, ...table.columns].map(column => [column, true]),
+        ),
+        orderBy: { [table.cursor]: 'asc' },
+        take: options.batchSize,
+        ...(cursor ? { cursor: { [table.cursor]: cursor }, skip: 1 } : {}),
+      })
+      if (rows.length === 0) break
+
+      for (const row of rows) {
+        const updates: Record<string, string> = {}
+        const rowOutcome: RowOutcome = emptyOutcome()
+
+        for (const column of table.columns) {
+          const plan = planColumn(row[column], {
+            isEncrypted: fe.isEncrypted,
+            decrypt: fe.decryptField,
+            encrypt: fe.encryptField,
+          })
+          if ('next' in plan) {
+            updates[column] = plan.next
+            rowOutcome.rewritten++
+          } else if ('failed' in plan) {
+            rowOutcome.failed++
+            // The id, never the value — knowing which row to look at is the
+            // whole point, and the value is a user's secret.
+            console.error(`   ❌ ${table.table}.${column} id=${row[table.cursor]} no key decrypts it`)
+          } else {
+            rowOutcome.skipped++
+          }
+        }
+
+        if (!options.dryRun && !options.verify && Object.keys(updates).length > 0) {
+          // Compare-and-swap: write only if every column still holds what was
+          // read. A token the app refreshed meanwhile is already under the
+          // current key; overwriting it would roll it back (AWTD-1380).
+          const { count } = await model.updateMany({
+            where: {
+              [table.cursor]: row[table.cursor] as string,
+              ...Object.fromEntries(Object.keys(updates).map(column => [column, row[column]])),
+            },
+            data: updates,
+          })
+          if (count === 0) {
+            rowOutcome.conflicts += rowOutcome.rewritten
+            rowOutcome.rewritten = 0
+          }
+        }
+        outcome = addOutcome(outcome, rowOutcome)
+      }
+
+      cursor = rows[rows.length - 1][table.cursor] as string
+    }
+
+    report(table.table, outcome)
+    total = addOutcome(total, outcome)
+  }
+  return total
+}
+
+/**
+ * The whole pass against one database: every column, then every mcpSettings
+ * blob. The keyring is whatever the environment holds when it runs — main()
+ * narrows it to the current key for --verify. Exported so
+ * tests/integration/postgres-risk.test.ts can prove it on a real database.
+ */
+export async function reencrypt(prisma: PrismaClient, options: Options): Promise<RowOutcome> {
+  return addOutcome(await walkColumns(prisma, options), await walkMcpSettings(prisma, options))
+}
+
 async function main(): Promise<void> {
   const options = parseArgs(process.argv.slice(2))
   loadScriptEnv()
 
   // Imported after loadScriptEnv so the keyring and Prisma see the env.
   const { createScriptPrisma } = await import('./lib/script-prisma')
-  const fe = await import('../lib/field-encryption')
   const { encryptionKeyHexes, currentEncryptionKeyHex } = await import('../lib/encryption-keys')
 
   const keyCount = encryptionKeyHexes().length
@@ -100,81 +248,33 @@ async function main(): Promise<void> {
   }
   console.log(`🗄️  target: ${options.databaseUrlEnv}`)
   const prisma = createScriptPrisma({ url: databaseUrl })
-  let total = emptyOutcome()
+  let total: RowOutcome
 
   try {
-    for (const table of ENCRYPTED_COLUMNS) {
-      const model = (prisma as unknown as Record<string, any>)[table.model]
-      if (!model) throw new Error(`No Prisma model named ${table.model}`)
-
-      let outcome = emptyOutcome()
-      let cursor: string | undefined
-
-      for (;;) {
-        const rows: Record<string, unknown>[] = await model.findMany({
-          select: Object.fromEntries(
-            [table.cursor, ...table.columns].map(column => [column, true]),
-          ),
-          orderBy: { [table.cursor]: 'asc' },
-          take: options.batchSize,
-          ...(cursor ? { cursor: { [table.cursor]: cursor }, skip: 1 } : {}),
-        })
-        if (rows.length === 0) break
-
-        for (const row of rows) {
-          const updates: Record<string, string> = {}
-          const rowOutcome: RowOutcome = emptyOutcome()
-
-          for (const column of table.columns) {
-            const plan = planColumn(row[column], {
-              isEncrypted: fe.isEncrypted,
-              decrypt: fe.decryptField,
-              encrypt: fe.encryptField,
-            })
-            if ('next' in plan) {
-              updates[column] = plan.next
-              rowOutcome.rewritten++
-            } else if ('failed' in plan) {
-              rowOutcome.failed++
-              // The id, never the value — knowing which row to look at is the
-              // whole point, and the value is a user's secret.
-              console.error(`   ❌ ${table.table}.${column} id=${row[table.cursor]} no key decrypts it`)
-            } else {
-              rowOutcome.skipped++
-            }
-          }
-
-          if (!options.dryRun && !options.verify && Object.keys(updates).length > 0) {
-            await model.update({
-              where: { [table.cursor]: row[table.cursor] as string },
-              data: updates,
-            })
-          }
-          outcome = addOutcome(outcome, rowOutcome)
-        }
-
-        cursor = rows[rows.length - 1][table.cursor] as string
-      }
-
-      console.log(
-        `   ${table.table.padEnd(22)} rewritten=${outcome.rewritten} skipped=${outcome.skipped} failed=${outcome.failed}`,
-      )
-      total = addOutcome(total, outcome)
-    }
+    total = await reencrypt(prisma, options)
   } finally {
     await prisma.$disconnect()
   }
 
   const mode = options.verify ? 'verify' : options.dryRun ? 'dry run' : 'rewrite'
   console.log(
-    `\n${mode}: rewritten=${total.rewritten} skipped=${total.skipped} failed=${total.failed}`,
+    `\n${mode}: rewritten=${total.rewritten} skipped=${total.skipped} failed=${total.failed} conflicts=${total.conflicts}`,
   )
+  if (total.conflicts > 0) {
+    console.log(
+      '\n⚠️  Some rows changed while this ran and were left as the app wrote them.\n' +
+        '   Re-run, then --verify.',
+    )
+  }
 
   if (total.failed > 0) {
     console.error(
       '\n❌ Some values decrypt under NO key on the ring. Do NOT drop a key.\n' +
         '   Either a key is missing from the environment, or those rows were written\n' +
-        '   under a key nobody holds. Resolve them before finishing the rotation.',
+        '   under a key nobody holds. Resolve them before finishing the rotation.\n' +
+        '   An `ambiguous` AI credential is legacy CBC that more than one key decrypts:\n' +
+        '   the user re-entering it in Settings → AI Agents is the only safe fix.\n' +
+        '   Under --verify, `legacy CBC` means the rewrite has not run (or hit a conflict).',
     )
     process.exit(1)
   }

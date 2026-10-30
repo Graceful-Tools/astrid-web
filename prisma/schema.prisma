@@ -1171,6 +1171,10 @@ model ProjectField {
   /// never stored in TaskFieldValue, so there is one source per value.
   mappedTo   String?
   position   Int
+  /// The GitHub issue field behind this project field (AWTD-1313); null = an
+  /// ordinary project field. An issue field is written with
+  /// updateIssueFieldValue, never updateProjectV2ItemFieldValue.
+  issueFieldId String?
   updatedAt  DateTime         @updatedAt
   project    Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   values     TaskFieldValue[]

@@ -36,8 +36,47 @@ function isPlaceholderUrl(url) {
   }
 }
 
+/** The database on the staging server that every preview shares (AWTD-1373). */
+const PREVIEW_DATABASE = 'astrid_preview'
+
+function databaseName(url) {
+  try {
+    return decodeURIComponent(new URL(url).pathname.replace(/^\//, ''))
+  } catch {
+    return undefined
+  }
+}
+
 /**
- * @param {{ VERCEL_ENV?: string, DATABASE_URL?: string }} env
+ * A preview build migrates only the preview database. Its URL is a Vercel
+ * Secret on astrid-web-preview, so only a build on Vercel can read it; the
+ * preview workflow opts in when the PR changes no migrations. The database
+ * name is checked too, because a preview build on the production project holds
+ * production's URL.
+ */
+function previewMigrationPlan(env) {
+  if (env.ASTRID_MIGRATE_PREVIEW_DB !== '1') {
+    return {
+      migrate: false,
+      reason:
+        `VERCEL_ENV is "${env.VERCEL_ENV}", not "production", and the preview workflow did not ` +
+        'opt in with ASTRID_MIGRATE_PREVIEW_DB=1.',
+    }
+  }
+  const names = [env.DATABASE_URL, env.DATABASE_URL_DIRECT].map(databaseName)
+  if (names.some((name) => name !== PREVIEW_DATABASE)) {
+    return {
+      migrate: false,
+      reason:
+        `This preview build opted in, but DATABASE_URL and DATABASE_URL_DIRECT must both name ` +
+        `${PREVIEW_DATABASE}, so it will not migrate them.`,
+    }
+  }
+  return { migrate: true, reason: `Preview build opted in, on the ${PREVIEW_DATABASE} database.` }
+}
+
+/**
+ * @param {{ VERCEL_ENV?: string, DATABASE_URL?: string, DATABASE_URL_DIRECT?: string, ASTRID_MIGRATE_PREVIEW_DB?: string }} env
  * @returns {{ migrate: boolean, reason: string }}
  */
 function migrationPlan(env) {
@@ -48,6 +87,10 @@ function migrationPlan(env) {
         'VERCEL_ENV is unset, so this is not a Vercel production build. ' +
         'Use `npm run db:migrate` locally.',
     }
+  }
+
+  if (env.VERCEL_ENV === 'preview') {
+    return previewMigrationPlan(env)
   }
 
   if (env.VERCEL_ENV !== 'production') {

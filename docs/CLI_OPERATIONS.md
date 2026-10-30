@@ -203,8 +203,9 @@ placeholder URL because `next build` never connects.
 in the repo, including ones running code an agent just wrote.
 `tests/rules/production-secrets-are-environment-scoped.test.ts` enforces this. To
 rotate a credential, run `gh secret set DATABASE_URL --env production`.
-`VERCEL_TOKEN` is still a repo secret, because previews, `fixstuff` and the monitor
-job use it. That is the next one to scope.
+Previews and `fixstuff` deploy with `VERCEL_TOKEN_PREVIEW`, scoped to the
+`astrid-web-preview` project (AWTD-1373). The repo-level `VERCEL_TOKEN` is still
+used by the monitor and production jobs, and scoping it is next (AWTD-1372).
 
 ### Vercel env vars: Config is readable, Secret is not (2026-10-24)
 
@@ -480,7 +481,7 @@ explicitly requires it. Do not stack every gate by default, and do not report a
 targeted pass as the final gate.
 
 The manually dispatched `predeploy.yml` workflow defaults to `predeploy:full` and runs
-on the web-only `[self-hosted, astrid-web]` runner label.
+on GitHub-hosted `ubuntu-24.04` (the Mac's `astrid-web` runner was retired, AWTD-1363).
 
 **Test locations:** Vitest unit → `tests/`; Playwright E2E → `e2e/*.spec.ts`.
 iOS tests live in the separate [astrid-ios](https://github.com/Graceful-Tools/astrid-ios) repo.
