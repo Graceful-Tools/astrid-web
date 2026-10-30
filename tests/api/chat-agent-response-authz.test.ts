@@ -16,7 +16,10 @@ const channelFindUnique = vi.hoisted(() => vi.fn())
 const messageCreate = vi.hoisted(() => vi.fn())
 const broadcastToUsers = vi.hoisted(() => vi.fn())
 
-vi.mock('@/lib/api-auth-middleware', () => ({ authenticateAPI }))
+vi.mock('@/lib/api-auth-middleware', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/lib/api-auth-middleware')>()),
+  authenticateAPI,
+}))
 vi.mock('@/lib/sse-utils', () => ({ broadcastToUsers }))
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -26,6 +29,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
+import { UnauthorizedError } from '@/lib/api-auth-middleware'
 import { POST } from '@/app/api/v1/chat/channels/[channelId]/agent-response/route'
 
 const CHANNEL = {
@@ -43,7 +47,7 @@ const post = (channelId = 'channel-1') =>
     }),
     { params: Promise.resolve({ channelId }) },
   )
-const signIn = (userId: string) => authenticateAPI.mockResolvedValue({ userId, source: 'session', scopes: [] })
+const signIn = (userId: string) => authenticateAPI.mockResolvedValue({ userId, source: 'session', scopes: ['*'] })
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -60,7 +64,7 @@ function expectNothingPosted() {
 
 describe('POST /api/chat/channels/:channelId/agent-response authorization (AWTD-1341)', () => {
   it('AWTD-1341: refuses an unauthenticated caller with 401', async () => {
-    authenticateAPI.mockRejectedValue(Object.assign(new Error('no'), { name: 'UnauthorizedError' }))
+    authenticateAPI.mockRejectedValue(new UnauthorizedError('no'))
     expect((await post()).status).toBe(401)
     expectNothingPosted()
   })
