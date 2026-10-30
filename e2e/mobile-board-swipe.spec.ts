@@ -42,7 +42,13 @@ test.describe('Mobile board view — body swipe does not change the header', () 
     })
 
     await gotoWithRetry(page, `/lists/${domainList.id}`)
-    await page.getByRole('button', { name: 'Board' }).click()
+    // On a phone the board is a step of the header's view rotator, list →
+    // messages → board (AWTD-1183); an unscoped "Board" button matched lists.
+    const rotator = page.getByTestId('header-view-rotator')
+    await rotator.tap()
+    await expect(rotator).toHaveAttribute('data-next', 'board')
+    await rotator.tap()
+    await expect(rotator).toHaveAttribute('data-current', 'board')
 
     const board = page.getByTestId('project-status-board')
     await expect(board).toBeVisible()
