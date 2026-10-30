@@ -118,7 +118,7 @@ export function TaskModals({
       {/* Delete Confirmation Modal */}
       {showDeleteConfirmation && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50" onClick={handleCancelDelete}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm mx-4 shadow-xl" data-testid="task-delete-confirm" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4">
               <h3 className="text-lg font-semibold theme-text-primary mb-2">Delete Task</h3>
               <p className="theme-text-secondary">
@@ -151,7 +151,7 @@ export function TaskModals({
       {/* Copy Confirmation Modal - centered on task pane */}
       {showCopyConfirmation && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50" onClick={handleCancelCopy}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4 shadow-xl" data-testid="task-copy-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4">
               <h3 className="text-lg font-semibold theme-text-primary mb-2">Copy Task</h3>
               <p className="theme-text-secondary mb-4">
@@ -226,7 +226,7 @@ export function TaskModals({
       {/* Share Modal - centered on task pane */}
       {showShareModal && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onCloseShareModal}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4 shadow-xl" data-testid="task-share-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4">
               <h3 className="text-lg font-semibold theme-text-primary mb-2 flex items-center">
                 <Share2 className="w-5 h-5 mr-2" />

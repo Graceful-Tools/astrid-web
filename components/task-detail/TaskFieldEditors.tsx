@@ -455,7 +455,7 @@ export function TaskFieldEditors({
           </TaskFieldRow>
         ) : (
             <TaskFieldRow label={t('tasks.assignee')} icon={<UserIcon className="w-4 h-4" />}>
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3" data-testid="task-detail-assignee">
           {/* An IIFE, lifted verbatim from the combined row so the editor's
               behaviour is unchanged by the split. */}
           {(() => {
