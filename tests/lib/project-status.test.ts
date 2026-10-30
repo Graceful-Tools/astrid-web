@@ -6,6 +6,7 @@ import {
   VIRTUAL_INBOX_COLUMN_ID,
   getProjectBoardColumns,
   getProjectDomainTasks,
+  getProjectIdForBoard,
   getTaskProjectColumnId,
   normalizeProjectStatusListIds,
   resolveProjectColumnMove,
@@ -338,5 +339,24 @@ describe('resolveProjectColumnCreate (task eb7fce2f)', () => {
       listIds: undefined,
       statusRole: 'doing',
     })
+  })
+})
+
+describe('getProjectIdForBoard before the list sync lands (AWTD-1426)', () => {
+  const board = list({ id: 'list-board', name: 'Board host', projectId: 'project-1' })
+
+  it('answers from the page\'s own copy of the list while the synced lists lack it', () => {
+    // /lists/[id] fetches the list before the app renders; the full list sync
+    // lands later. Until it did, a freshly opened board offered no board view.
+    expect(getProjectIdForBoard([], 'list-board', board)).toBe('project-1')
+  })
+
+  it('lets the synced list win once it is there, so removing a board is not undone', () => {
+    const detached = { ...board, projectId: null }
+    expect(getProjectIdForBoard([detached], 'list-board', board)).toBeNull()
+  })
+
+  it('ignores a fallback for a different list', () => {
+    expect(getProjectIdForBoard([], 'other-list', board)).toBeNull()
   })
 })

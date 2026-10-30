@@ -125,7 +125,21 @@ function readsOnlyError(window: string): boolean {
   })
 }
 
-const WINDOW_LINES = 25
+const WINDOW_LINES = 60
+
+/**
+ * The lines that belong to the call at `start`: up to the next fetch of an API
+ * path, or WINDOW_LINES. A fixed 25-line window missed /lists/[listId], whose
+ * 404/403/offline handling put the `.json()` read 29 lines down — so it handed
+ * TaskManager the envelope for a year with this rule green (AWTD-1426).
+ */
+function callWindow(lines: string[], start: number): string {
+  const end = Math.min(lines.length, start + WINDOW_LINES)
+  for (let j = start + 1; j < end; j++) {
+    if (/['"`]\/api\//.test(lines[j])) return lines.slice(start, j).join('\n')
+  }
+  return lines.slice(start, end).join('\n')
+}
 
 const UNWRAP_HELPERS = /unwrap(Task|List|Comment|Envelope)\s*(<[^>]*>)?\s*\(/
 
@@ -174,7 +188,7 @@ describe('v1 envelope call sites (task 72717eff)', () => {
           // read `.json()` somewhere unrelated while only checking
           // `response.ok` on the v1 fetch itself — six of the seven hits on the
           // first honest run were that.
-          const window = lines.slice(i, i + WINDOW_LINES).join('\n')
+          const window = callWindow(lines, i)
 
           // Not read at all: a fetch that only inspects status cannot
           // mishandle a shape it never looks at.
