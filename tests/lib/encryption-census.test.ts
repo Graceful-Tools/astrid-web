@@ -61,6 +61,7 @@ describe('runEncryptionCensus (AWTD-1369)', () => {
   const db = {
     ...Object.fromEntries(ENCRYPTED_COLUMNS.map(t => [t.model, fakeModel([])])),
     addressBookContact: fakeModel(contacts),
+    user: fakeModel([]),
   }
 
   it('counts, per column, which named key decrypts each value and how many no key does', async () => {
@@ -89,5 +90,81 @@ describe('runEncryptionCensus (AWTD-1369)', () => {
     const report = await runEncryptionCensus(db, { ENCRYPTION_KEY: OLD, ENCRYPTION_KEY_NEXT: OLD }, 2)
     expect(report.ring.identical).toBe(true)
     expect(report.totals.noKey).toBe(2)
+  })
+})
+
+/**
+ * AWTD-1407: the census also counts the AI credentials inside User.mcpSettings
+ * — each `apiKeys[service]` triple and the nested openclaw `authToken` — so an
+ * operator can see none is left under the old key before dropping it.
+ */
+describe('runEncryptionCensus over User.mcpSettings (AWTD-1407)', () => {
+  function gcm(keyHex: string, plaintext: string) {
+    const iv = crypto.randomBytes(16)
+    const cipher = crypto.createCipheriv('aes-256-gcm', Buffer.from(keyHex, 'hex'), iv)
+    const encrypted = cipher.update(plaintext, 'utf8', 'hex') + cipher.final('hex')
+    return { encrypted, iv: iv.toString('hex'), authTag: cipher.getAuthTag().toString('hex') }
+  }
+  function cbc(keyHex: string, plaintext: string) {
+    const iv = crypto.randomBytes(16)
+    const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(keyHex, 'hex'), iv)
+    return { encrypted: cipher.update(plaintext, 'utf8', 'hex') + cipher.final('hex'), iv: iv.toString('hex') }
+  }
+
+  const users = [
+    {
+      id: 'u1',
+      mcpSettings: JSON.stringify({
+        apiKeys: {
+          claude: { ...gcm(OLD, 'sk-claude-secret'), isValid: true },
+          openai: gcm(NEW, 'sk-openai-secret'),
+          openclaw: { ...gcm(NEW, 'wss://gateway.example'), authToken: gcm(OLD, 'gateway-token-secret') },
+        },
+        theme: 'dark',
+      }),
+    },
+    { id: 'u2', mcpSettings: JSON.stringify({ apiKeys: { gemini: cbc(OLD, 'gemini-legacy-secret') } }) },
+    { id: 'u3', mcpSettings: JSON.stringify({ apiKeys: { claude: gcm(STRAY, 'orphaned-secret') } }) },
+    { id: 'u4', mcpSettings: 'not json' },
+    { id: 'u5', mcpSettings: null },
+  ]
+  const db = {
+    ...Object.fromEntries(ENCRYPTED_COLUMNS.map(t => [t.model, fakeModel([])])),
+    user: fakeModel(users),
+  }
+
+  it('counts top-level keys and gateway auth tokens by the named key that decrypts them', async () => {
+    const report = await runEncryptionCensus(db, { ENCRYPTION_KEY: OLD, ENCRYPTION_KEY_NEXT: NEW }, 2)
+    expect(report.mcpSettings).toEqual({
+      users: 4,
+      invalidJson: 1,
+      apiKeys: {
+        credentials: 5,
+        byKey: { ENCRYPTION_KEY: 2, ENCRYPTION_KEY_NEXT: 2 },
+        noKey: 1,
+        ambiguous: 0,
+        legacyCbc: 1,
+      },
+      authTokens: {
+        credentials: 1,
+        byKey: { ENCRYPTION_KEY: 1, ENCRYPTION_KEY_NEXT: 0 },
+        noKey: 0,
+        ambiguous: 0,
+        legacyCbc: 0,
+      },
+    })
+  })
+
+  it('reports legacy CBC that more than one key decrypts as ambiguous, not as either key', async () => {
+    const report = await runEncryptionCensus(db, { ENCRYPTION_KEY: OLD, ENCRYPTION_KEY_NEXT: OLD }, 2)
+    expect(report.mcpSettings.apiKeys.ambiguous).toBe(1)
+    expect(report.mcpSettings.apiKeys.legacyCbc).toBe(0)
+  })
+
+  it('never puts a key, a ciphertext or a credential in its output', async () => {
+    const out = JSON.stringify(await runEncryptionCensus(db, { ENCRYPTION_KEY: OLD, ENCRYPTION_KEY_NEXT: NEW }, 2))
+    for (const secret of [OLD, NEW, 'secret', 'gateway.example', 'u1', 'claude', 'openclaw']) {
+      expect(out).not.toContain(secret)
+    }
   })
 })
