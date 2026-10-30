@@ -337,7 +337,13 @@ export function summary(input: {
     ? `${verb} ${input.landed.map(n => `#${n}`).join(', ')}.`
     : 'Nothing was landable this tick.'
 
-  if (input.verdict.deploy && !input.verified && input.runFailed?.length) {
+  if (input.verdict.deploy && input.dryRun) {
+    // A dry run dispatches nothing, so production still serves what it did
+    // (AWTD-1429). `verified` is set for a dry run only to keep it clean.
+    lines.push(
+      `**Scheduled /fixall (web) dry run: would deploy \`${(input.sha ?? '').slice(0, 8)}\`.** ${landed}`,
+    )
+  } else if (input.verdict.deploy && !input.verified && input.runFailed?.length) {
     // Nothing reached production: `deploy-production` needs quality-gates to
     // have passed, so a red gate means the deploy job never ran. Saying
     // "deployed and could not verify" here would describe an outage that is
