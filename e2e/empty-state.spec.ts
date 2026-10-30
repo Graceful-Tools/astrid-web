@@ -1,182 +1,87 @@
 import { test, expect } from '@playwright/test'
+import type { Page } from '@playwright/test'
+import { gotoWithRetry } from './utils/test-helpers'
+import { OUTSIDER_EMAIL, addMember, detail, freshList, listTasks, row, seat } from './utils/v1-seed'
 
-test.describe('Empty List State', () => {
-  test.beforeEach(async ({ page }) => {
-    // Navigate to the app (adjust URL based on your setup)
-    await page.goto('http://localhost:3000')
+/**
+ * The empty-list state: Astrid with a message that fits the list (AWTD-1419).
+ *
+ * Rewrites the pre-AWTD-1338 empty-state spec, which had never run. Dropped
+ * from it: the animation-class and dark-mode cases (CSS, not behaviour), and
+ * the "featured list" case, which was a placeholder that asserted nothing — a
+ * featured list is one of at most two suggested public lists in the sidebar,
+ * which a test cannot pin. The copy is the en locale's emptyState.* keys.
+ */
 
-    // Wait for authentication or use test account
-    // This assumes you have a way to authenticate in tests
-    await page.waitForSelector('[data-testid="task-manager"]', { timeout: 10000 })
+const emptyState = (page: Page) => page.getByTestId('empty-state')
+
+const PERSONAL = 'Ready to capture your thoughts? Tap add a task to create your first task!'
+
+test.describe('Empty list state (AWTD-1419)', () => {
+  test('an empty list shows Astrid; the first task replaces it, deleting the last brings it back', async ({
+    page,
+    request,
+  }) => {
+    const list = await freshList(request, 'Empty')
+    await gotoWithRetry(page, `/lists/${list.id}`)
+    await expect(emptyState(page)).toContainText(PERSONAL)
+
+    const title = `First task ${Date.now()}`
+    const quickAdd = page.getByPlaceholder('Add a task...').first()
+    await quickAdd.fill(title)
+    await quickAdd.press('Enter')
+    await expect(row(page, title)).toHaveCount(1)
+    await expect(emptyState(page)).toHaveCount(0)
+    await expect.poll(async () => (await listTasks(request, list.id)).map((t) => t.title)).toEqual([title])
+
+    await row(page, title).click()
+    await detail(page).getByRole('button', { name: 'Task actions' }).click()
+    await page.getByRole('menuitem', { name: 'Delete', exact: true }).click()
+    await page.getByTestId('task-delete-confirm').getByRole('button', { name: 'Delete', exact: true }).click()
+    await expect.poll(async () => (await listTasks(request, list.id)).length).toBe(0)
+    await expect(emptyState(page)).toContainText(PERSONAL)
   })
 
-  test('should display Astrid empty state for empty personal list', async ({ page }) => {
-    // Create a new empty list
-    await page.click('button:has-text("New List")')
-    await page.fill('input[placeholder*="List name"]', 'Test Empty List')
-    await page.click('button:has-text("Create List")')
+  test('a shared list and a public list each say so', async ({ page, request }) => {
+    const shared = await freshList(request, 'Empty shared')
+    await addMember(request, shared.id, OUTSIDER_EMAIL)
+    await gotoWithRetry(page, `/lists/${shared.id}`)
+    await expect(emptyState(page)).toContainText('Start collaborating! Add a task to get this shared list going.')
 
-    // Wait for new list to be selected and empty state to appear
-    await page.waitForSelector('text=/Ready to capture your thoughts/i', { timeout: 5000 })
-
-    // Verify empty state content
-    await expect(page.locator('text=/Ready to capture your thoughts/i')).toBeVisible()
-    await expect(page.locator('text=/Tap below to create your first task/i')).toBeVisible()
-
-    // Verify Astrid character (gradient circle) is visible
-    const astridCharacter = page.locator('.bg-gradient-to-br.from-blue-500.to-purple-500')
-    await expect(astridCharacter).toBeVisible()
-
-    // Verify speech bubble is visible
-    const speechBubble = page.locator('.rounded-2xl').first()
-    await expect(speechBubble).toBeVisible()
+    const open = await freshList(request, 'Empty public', 'PUBLIC')
+    await gotoWithRetry(page, `/lists/${open.id}`)
+    await expect(emptyState(page)).toContainText(
+      'Share your ideas with the world! Add tasks - anyone can see this public list.',
+    )
   })
 
-  test('should display "all caught up" message for empty My Tasks', async ({ page }) => {
-    // Navigate to My Tasks
-    await page.click('text=/My Tasks/i')
+  test('nothing assigned and nothing due: My Tasks and the Today view say so', async ({ browser }) => {
+    // The viewer seat is never given a task by any spec, so its My Tasks is
+    // empty by construction; the owner's never is, in a shared test database.
+    const viewer = await seat(browser, 'viewer.json')
+    try {
+      const page = await viewer.newPage()
+      await gotoWithRetry(page, '/')
+      await expect(page.getByRole('heading', { level: 1, name: 'My Tasks' })).toBeVisible()
+      await expect(emptyState(page)).toContainText("You're all caught up! No tasks assigned to you right now. Time to relax!")
 
-    // If there are tasks, complete or delete them first
-    // This test assumes My Tasks can be empty
-
-    // Wait for empty state
-    await page.waitForSelector('text=/You\'re all caught up/i', { timeout: 5000 })
-
-    // Verify content
-    await expect(page.locator('text=/You\'re all caught up/i')).toBeVisible()
-    await expect(page.locator('text=/No tasks assigned to you right now/i')).toBeVisible()
+      // "d" jumps to the Today view (the "?" hotkey listing).
+      await page.keyboard.press('d')
+      await expect(emptyState(page)).toContainText('Nothing scheduled for today! Enjoy the free time, or add something new.')
+    } finally {
+      await viewer.close()
+    }
   })
 
-  test('should display contextual message for Today view when empty', async ({ page }) => {
-    // Navigate to Today
-    await page.click('text=/Today/i')
-
-    // Wait for empty state (assumes Today is empty)
-    await page.waitForSelector('text=/Nothing scheduled for today/i', { timeout: 5000 })
-
-    // Verify content
-    await expect(page.locator('text=/Nothing scheduled for today/i')).toBeVisible()
-    await expect(page.locator('text=/Enjoy the free time/i')).toBeVisible()
-  })
-
-  test('should show featured list message when viewing public list from featured', async ({ page }) => {
-    // This test requires a featured/public list feature
-    // Navigate to public lists browser
-    await page.click('button:has-text("Browse Public Lists")')
-
-    // Select an empty public list (this may require setup)
-    // For now, this is a placeholder test structure
-    // await page.click('text=/Some Empty Public List/i')
-
-    // Wait for empty state
-    // await page.waitForSelector('text=/This list is empty right now/i', { timeout: 5000 })
-
-    // Verify featured list empty state
-    // await expect(page.locator('text=/Copy it to make it your own/i')).toBeVisible()
-  })
-
-  test('should display empty state with animations', async ({ page }) => {
-    // Create empty list
-    await page.click('button:has-text("New List")')
-    await page.fill('input[placeholder*="List name"]', 'Animation Test List')
-    await page.click('button:has-text("Create List")')
-
-    // Check for animation classes
-    const animatedIcon = page.locator('.animate-in.fade-in.slide-in-from-bottom-4')
-    await expect(animatedIcon).toBeVisible()
-
-    const animatedBubble = page.locator('.animate-in.fade-in.slide-in-from-bottom-2')
-    await expect(animatedBubble).toBeVisible()
-  })
-
-  test('should allow task creation from empty state', async ({ page }) => {
-    // Create empty list
-    await page.click('button:has-text("New List")')
-    await page.fill('input[placeholder*="List name"]', 'Task Creation Test')
-    await page.click('button:has-text("Create List")')
-
-    // Wait for empty state
-    await page.waitForSelector('text=/Ready to capture your thoughts/i', { timeout: 5000 })
-
-    // Find and use task input (location varies by desktop/mobile)
-    const taskInput = page.locator('input[placeholder*="Add a task"]').first()
-    await taskInput.fill('My first task in empty list')
-    await taskInput.press('Enter')
-
-    // Verify task was created and empty state is gone
-    await expect(page.locator('text=/My first task in empty list/i')).toBeVisible()
-    await expect(page.locator('text=/Ready to capture your thoughts/i')).not.toBeVisible()
-  })
-
-  test('should show empty state again after deleting last task', async ({ page }) => {
-    // Create list with one task
-    await page.click('button:has-text("New List")')
-    await page.fill('input[placeholder*="List name"]', 'Delete Test List')
-    await page.click('button:has-text("Create List")')
-
-    // Add a task
-    const taskInput = page.locator('input[placeholder*="Add a task"]').first()
-    await taskInput.fill('Temporary task')
-    await taskInput.press('Enter')
-
-    // Wait for task to appear
-    await page.waitForSelector('text=/Temporary task/i')
-
-    // Click on task to open detail panel
-    await page.click('text=/Temporary task/i')
-
-    // Delete the task (adjust selector based on your UI)
-    await page.click('button[aria-label="Delete task"]', { timeout: 5000 })
-    // Confirm deletion if there's a confirmation dialog
-    await page.click('button:has-text("Delete")', { timeout: 2000 }).catch(() => {})
-
-    // Verify empty state returns
-    await page.waitForSelector('text=/Ready to capture your thoughts/i', { timeout: 5000 })
-    await expect(page.locator('text=/Ready to capture your thoughts/i')).toBeVisible()
-  })
-
-  test.describe('Mobile View', () => {
+  test.describe('on a phone', () => {
     test.use({ viewport: { width: 375, height: 667 } })
 
-    test('should show mobile hint arrow on empty state', async ({ page }) => {
-      // Create empty list
-      await page.click('button:has-text("New List")')
-      await page.fill('input[placeholder*="List name"]', 'Mobile Test List')
-      await page.click('button:has-text("Create List")')
-
-      // Wait for empty state
-      await page.waitForSelector('text=/Ready to capture your thoughts/i', { timeout: 5000 })
-
-      // Verify mobile hint arrow is visible
-      const hintArrow = page.locator('text=/Add task below/i')
-      await expect(hintArrow).toBeVisible()
-
-      // Verify arrow has animation
-      const animatedArrow = page.locator('.animate-bounce')
-      await expect(animatedArrow).toBeVisible()
-    })
-  })
-
-  test.describe('Theme Support', () => {
-    test('should render correctly in dark mode', async ({ page }) => {
-      // Enable dark mode (adjust based on your theme implementation)
-      await page.evaluate(() => {
-        document.documentElement.classList.add('dark')
-      })
-
-      // Create empty list
-      await page.click('button:has-text("New List")')
-      await page.fill('input[placeholder*="List name"]', 'Dark Mode Test')
-      await page.click('button:has-text("Create List")')
-
-      // Verify empty state renders in dark mode
-      await page.waitForSelector('text=/Ready to capture your thoughts/i', { timeout: 5000 })
-
-      // Take screenshot for visual verification (optional)
-      // await page.screenshot({ path: 'empty-state-dark-mode.png' })
-
-      // Verify empty state is visible
-      await expect(page.locator('text=/Ready to capture your thoughts/i')).toBeVisible()
+    test('the empty state points down to the add-task bar', async ({ page, request }) => {
+      const list = await freshList(request, 'Empty phone')
+      await gotoWithRetry(page, `/lists/${list.id}`)
+      await expect(emptyState(page)).toContainText(PERSONAL)
+      // The hint is md:hidden — phones only.
+      await expect(emptyState(page).getByText('Add task', { exact: true })).toBeVisible()
     })
   })
 })

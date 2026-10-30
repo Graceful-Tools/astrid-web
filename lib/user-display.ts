@@ -4,12 +4,16 @@ import type { User } from "@/types/task"
  * Helper functions for displaying user information with fallbacks for deleted users
  */
 
-export function getUserDisplay(user: User | null | undefined): string {
+/** Only what a display name is made of. Email is optional: the API withholds
+ *  it on other people's profiles (AWTD-1419). */
+type Displayable = Pick<User, "name"> & { email?: string | null }
+
+export function getUserDisplay(user: Displayable | null | undefined): string {
   if (!user) return "Deleted User"
   return user.name || user.email || "Unknown User"
 }
 
-export function getUserInitial(user: User | null | undefined): string {
+export function getUserInitial(user: Displayable | null | undefined): string {
   if (!user) return "?"
   const display = user.name || user.email || "?"
   return display.charAt(0).toUpperCase()

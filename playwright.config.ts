@@ -26,6 +26,12 @@ export const AUTHENTICATED_UI_SPECS = [
   'mobile-board-swipe',
   'mobile-pull-to-refresh',
   'sidebar-settings',
+  'lists',
+  'tasks',
+  'empty-state',
+  'shortcodes',
+  'task-completion-deleted-list',
+  'user-profile',
 ]
 
 /**
@@ -38,14 +44,6 @@ export const AUTHENTICATED_UI_SPECS = [
 export const PENDING_E2E_SPECS: Record<string, string> = {
   // Revive candidates — selectors exist, but the spec no longer passes signed in.
   'accessibility': 'real gaps, not locators (AWTD-1435): no <main> landmark, no skip link, the logo is a div the keyboard cannot reach; the sign-in cases need a signed-out project',
-  // Rewrites owned by AWTD-1339 — they target UI that no longer exists.
-  'empty-state': 'AWTD-1339 rewrite',
-  'lists': 'AWTD-1339 rewrite',
-  'shortcodes': 'AWTD-1339 rewrite',
-  'task-completion-deleted-list': 'AWTD-1339 rewrite',
-  'tasks': 'AWTD-1339 rewrite',
-  'tasks-authenticated': 'AWTD-1339 rewrite (merge into tasks)',
-  'user-profile': 'AWTD-1339 rewrite',
 }
 const specPattern = (names: string[]) => new RegExp(`(^|/)(${names.join('|')})\\.spec\\.ts$`)
 

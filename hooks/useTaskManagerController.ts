@@ -18,7 +18,7 @@ import { useMyTasksPreferences } from "@/hooks/useMyTasksPreferences"
 import { useUserSettings } from "@/hooks/useUserSettings"
 import { useOptimisticListInfo } from "@/hooks/use-optimistic-list-info"
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete, refusalReason } from "@/lib/api"
-import { applyVirtualListFilter, getListDisplayInfo } from "@/lib/virtual-list-utils"
+import { getListDisplayInfo } from "@/lib/virtual-list-utils"
 import { getColumnCount } from "@/lib/layout-detection"
 import {
   parseTaskInput,
@@ -36,6 +36,7 @@ import { preloadUserAvatars } from "@/lib/image-cache"
 
 // Import composable hooks
 import { canUserManageList } from "@/lib/list-permissions"
+import { scopeTasksToList, withoutList, listPath } from "@/lib/task-list-scope"
 import { v1TaskUpdateBody } from "@/lib/tasks/v1-task-update-body"
 import { postponeTaskDueDate, shiftTaskDueDate } from "@/lib/date-comparison"
 import {
@@ -312,29 +313,7 @@ export function useTaskManagerController({
 
       // Skip list pre-filtering if in universal search mode
       if (!isUniversalSearch) {
-        if (navigationState.selectedListId === "my-tasks") {
-          const myTasksList = {
-            id: "my-tasks",
-            name: "My Tasks",
-            isVirtual: true,
-            virtualListType: "my-tasks" as const,
-            filterAssignee: undefined,
-            filterDueDate: undefined,
-            filterCompletion: undefined,
-            filterAssignedBy: undefined,
-            filterPriority: undefined,
-            filterInLists: undefined
-          }
-          filtered = applyVirtualListFilter(filtered, myTasksList as any, effectiveSession?.user?.id || '')
-        } else if (currentList) {
-          if (currentList.isVirtual) {
-            filtered = applyVirtualListFilter(filtered, currentList, effectiveSession?.user?.id || '')
-          } else {
-            filtered = filtered.filter(task =>
-              task.lists && task.lists.some(taskList => taskList.id === navigationState.selectedListId)
-            )
-          }
-        }
+        filtered = scopeTasksToList(filtered, navigationState.selectedListId, currentList, effectiveSession?.user?.id || '')
       }
 
       filtered = newFilterState.applyFiltersToTasks(
@@ -998,10 +977,15 @@ export function useTaskManagerController({
         if (navigationState.selectedListId === listId) {
           const nextListId = updatedLists.length > 0 ? updatedLists[0].id : "my-tasks"
           navigationState.setSelectedListId(nextListId)
+          // The URL moves too, or a reload lands on "List Not Available" (AWTD-1419).
+          window.history.replaceState(null, '', listPath(nextListId))
         }
 
         return updatedLists
       })
+
+      // Its tasks survive the delete, without the list (AWTD-1419).
+      listState.setTasks(prev => withoutList(prev, listId))
 
       toast({
         title: "Success",
@@ -1018,7 +1002,7 @@ export function useTaskManagerController({
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listState.lists, listState.setLists, navigationState.selectedListId, navigationState.setSelectedListId, toast])
+  }, [listState.lists, listState.setLists, listState.setTasks, navigationState.selectedListId, navigationState.setSelectedListId, toast])
 
   const handleUpdateList = useCallback(async (updatedList: TaskList) => {
     if (!effectiveSession?.user) return

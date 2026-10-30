@@ -77,7 +77,12 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
       }
       
       const data = await response.json()
-      setMembers(data.members || [])
+      // v1 names a member's user by `id`; this component was written against
+      // the legacy row's `user_id`, so without this no member linked to their
+      // profile and role changes went to /members/undefined (AWTD-1419). A
+      // pending invite's id is `invite_<id>`, not a user — it gets none.
+      const rows: Array<Member & { id: string }> = data.members || []
+      setMembers(rows.map(m => ({ ...m, user_id: m.user_id ?? (m.type === 'member' ? m.id : undefined) })))
     } catch (error) {
       console.error("Error loading members:", error)
       toast({

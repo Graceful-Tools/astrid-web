@@ -64,7 +64,7 @@ export const AstridEmptyState = memo<AstridEmptyStateProps>(({
   const message = getMessage()
 
   return (
-    <div className={cn(
+    <div data-testid="empty-state" className={cn(
       'flex flex-col items-center justify-center py-12 px-4',
       className
     )}>
