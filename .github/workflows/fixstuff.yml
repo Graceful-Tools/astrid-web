@@ -39,7 +39,8 @@ jobs:
 
   fix-task:
     name: 'Fix Task'
-    runs-on: [self-hosted, astrid-web]
+    # The Mac's astrid-web runner was retired with the Mac web loop (AWTD-1363).
+    runs-on: ubuntu-24.04
     needs: validate
     steps:
       - name: Checkout
@@ -149,9 +150,10 @@ jobs:
 
       - name: Deploy preview
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          # The preview project and its scoped token, never production's (AWTD-1373).
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN_PREVIEW }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_PROJECT_ID: prj_1sApcqoHQIU6T26XvNlJLYFcnK79
         run: |
           if [ -f "./scripts/deploy-preview.sh" ]; then
             bash ./scripts/deploy-preview.sh

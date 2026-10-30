@@ -24,6 +24,7 @@
  */
 
 import { DONE_OPTION, type BindingFieldMap, type RemoteFieldValue } from './apply'
+import { issueFieldWrite, type FieldContent } from './write'
 
 /**
  * How a list's repeating tasks advance (spec §11.2, `list.supports.repeatMode`).
@@ -272,6 +273,8 @@ export interface SpawnMembership {
   /** The successor's item, from step 2. */
   itemNodeId: string
   binding: BindingFieldMap
+  /** Project field id → the issue field behind it (`issueFieldsOf`, AWTD-1313). */
+  issueFields?: Record<string, string>
   /** The PREDECESSOR's field values on this project. */
   fieldValues: RemoteFieldValue[]
 }
@@ -301,14 +304,34 @@ function asFieldInput(value: RemoteFieldValue): Record<string, unknown> | null {
  *
  * A due date the series no longer has clears the field, so a spawned card never
  * inherits a date that has passed.
+ *
+ * An issue field (Target date) on a successor ISSUE is written to the issue
+ * with updateIssueFieldValue — GitHub refuses the project mutation for it —
+ * once, however many projects the issue is on (AWTD-1313).
  */
-export function planSpawnFields(memberships: readonly SpawnMembership[], nextDue: Date | null): SpawnPlan {
+export function planSpawnFields(
+  memberships: readonly SpawnMembership[],
+  nextDue: Date | null,
+  successor?: FieldContent,
+): SpawnPlan {
   const params: string[] = []
   const fields: string[] = []
   const variables: Record<string, unknown> = {}
+  const issueFieldsWritten = new Set<string>()
   let n = 0
 
   const write = (m: SpawnMembership, fieldId: string, value: Record<string, unknown> | null) => {
+    const viaIssue = issueFieldWrite(m.issueFields, successor, fieldId, value)
+    if (viaIssue) {
+      if (issueFieldsWritten.has(String(viaIssue.issueField.fieldId))) return
+      issueFieldsWritten.add(String(viaIssue.issueField.fieldId))
+      const alias = `m${n++}`
+      variables[`${alias}_i`] = viaIssue.issueId
+      variables[`${alias}_f`] = viaIssue.issueField
+      params.push(`$${alias}_i: ID!`, `$${alias}_f: IssueFieldCreateOrUpdateInput!`)
+      fields.push(`${alias}: updateIssueFieldValue(input: { issueId: $${alias}_i, issueField: $${alias}_f }) { issue { id } }`)
+      return
+    }
     const alias = `m${n++}`
     const p = `${alias}_p`
     const i = `${alias}_i`

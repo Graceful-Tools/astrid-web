@@ -1,37 +1,4 @@
-import { createHmac, createPublicKey, timingSafeEqual, verify } from 'crypto'
-
-/**
- * Verify a Vercel Blob `onUploadCompleted` callback signature.
- *
- * Vercel signs the callback as HMAC-SHA256(rawBody) keyed by the blob
- * read/write token and sends it in `x-vercel-signature`. The upload-complete
- * route previously trusted the callback body with NO verification, so anyone
- * could POST a forged `tokenPayload` and attach an arbitrary blob URL onto
- * any victim's task/comment/list. This makes the route reject unsigned or
- * mis-signed callbacks.
- *
- * Pure + synchronous so it's unit-testable (tests/lib/blob-callback-signature.test.ts).
- */
-export function computeBlobCallbackSignature(rawBody: string, token: string): string {
-  return createHmac('sha256', token).update(rawBody).digest('hex')
-}
-
-export function verifyBlobCallbackSignature(
-  rawBody: string,
-  signature: string | null | undefined,
-  token: string | undefined
-): boolean {
-  if (!token || !signature) return false
-  const expected = computeBlobCallbackSignature(rawBody, token)
-  // Hex strings of equal length → constant-time compare. Length guard first
-  // (timingSafeEqual throws on length mismatch).
-  if (signature.length !== expected.length) return false
-  try {
-    return timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expected, 'hex'))
-  } catch {
-    return false
-  }
-}
+import { createPublicKey, verify } from 'crypto'
 
 /** An Ed25519 signature is 64 bytes, sent as 128 hex characters. */
 const ED25519_SIGNATURE_HEX = /^[0-9a-fA-F]{128}$/
@@ -39,8 +6,8 @@ const ED25519_SIGNATURE_HEX = /^[0-9a-fA-F]{128}$/
 /**
  * Verify a PRESIGNED upload's callback: Ed25519 over the raw body, checked
  * against the store's `BLOB_WEBHOOK_PUBLIC_KEY` (PEM, SPKI). The same check
- * `handleUploadPresigned` makes in `@vercel/blob` — kept here so the route can
- * verify both schemes from one raw body (AWTD-1368).
+ * `handleUploadPresigned` makes in `@vercel/blob`, kept here so the route can
+ * verify the raw body it already read (AWTD-1368).
  */
 export function verifyPresignedBlobCallbackSignature(
   rawBody: string,
@@ -57,24 +24,21 @@ export function verifyPresignedBlobCallbackSignature(
 }
 
 /**
- * Verify an upload-completed callback under whichever scheme signed it
- * (AWTD-1368).
+ * Verify an upload-completed callback.
  *
- * Presigned uploads are signed with Ed25519 and client-token uploads with an
- * HMAC keyed by the read/write token. Both are accepted while both
- * credentials exist, because builds that predate presigned uploads keep
- * producing HMAC callbacks until they drain. After the Blob store's OIDC
- * upgrade the token is gone and only Ed25519 remains, with no code change.
- * Each scheme needs its own credential, so a forger holding neither
- * satisfies neither.
+ * Without this the route would trust the callback body, so anyone could POST a
+ * forged `tokenPayload` and attach an arbitrary blob URL to any victim's
+ * task, comment or list.
+ *
+ * Ed25519 only. Client-token uploads, whose callbacks were an HMAC keyed by
+ * `BLOB_READ_WRITE_TOKEN`, ended with the Blob store's OIDC upgrade
+ * (AWTD-1386). The read/write token may still exist for server-side writes,
+ * and it must not reopen that path.
  */
 export function verifyBlobCallback(
   rawBody: string,
   signature: string | null | undefined,
-  credentials: { webhookPublicKey?: string; readWriteToken?: string }
+  credentials: { webhookPublicKey?: string }
 ): boolean {
-  return (
-    verifyPresignedBlobCallbackSignature(rawBody, signature, credentials.webhookPublicKey) ||
-    verifyBlobCallbackSignature(rawBody, signature, credentials.readWriteToken)
-  )
+  return verifyPresignedBlobCallbackSignature(rawBody, signature, credentials.webhookPublicKey)
 }

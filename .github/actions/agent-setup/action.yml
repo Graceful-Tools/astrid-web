@@ -37,11 +37,14 @@ runs:
         NEXT_PUBLIC_BASE_URL=http://localhost:3000
         ENVEOF
 
-    - name: Generate Prisma client and push schema
+    # Migrations, not `db push`: an agent that writes a migration needs the
+    # history, and agent-run.yml's own `migrate deploy` on a pushed schema
+    # failed every scheduled run with P3005 (AWTD-1410).
+    - name: Generate Prisma client and apply migrations
       shell: bash
       env:
         DATABASE_URL: postgresql://postgres:postgres@localhost:5432/astrid_test
         DATABASE_URL_DIRECT: postgresql://postgres:postgres@localhost:5432/astrid_test
       run: |
         npm run db:generate
-        npx prisma db push --skip-generate
+        npx prisma migrate deploy

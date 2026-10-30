@@ -58,8 +58,9 @@ describe('CI runners are pinned, not latest (AWTD-1202)', () => {
     }
   })
 
-  it('leaves the self-hosted jobs alone — they never resolved latest', () => {
-    const selfHosted = runsOnLines.filter(l => l.text.includes('self-hosted'))
-    expect(selfHosted.length).toBeGreaterThan(0)
+  it('targets no astrid-web self-hosted runner — it was retired (AWTD-1363)', () => {
+    // A job aimed at a runner that no longer exists queues forever instead of failing.
+    const retired = runsOnLines.filter(l => l.text.includes('astrid-web'))
+    expect(retired).toEqual([])
   })
 })

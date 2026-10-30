@@ -69,6 +69,15 @@ fragment ProjectItemFields on ProjectV2Item {
       ... on ProjectV2ItemFieldNumberValue { number field { ...FieldRef } }
       ... on ProjectV2ItemFieldTextValue { text field { ...FieldRef } }
       ... on ProjectV2ItemFieldIterationValue { iterationId field { ...FieldRef } }
+      ... on ProjectV2ItemIssueFieldValue {
+        field { ...FieldRef }
+        issueFieldValue {
+          __typename
+          ... on IssueFieldDateValue { date: value }
+          ... on IssueFieldTextValue { text: value }
+          ... on IssueFieldNumberValue { number: value }
+        }
+      }
     }
   }
 }
@@ -76,6 +85,33 @@ fragment ProjectItemFields on ProjectV2Item {
 fragment FieldRef on ProjectV2FieldCommon { id dataType }`
 
 const RATE_LIMIT = 'rateLimit { cost remaining resetAt }'
+
+const LIFTED: Record<string, string> = {
+  IssueFieldDateValue: 'ProjectV2ItemFieldDateValue',
+  IssueFieldTextValue: 'ProjectV2ItemFieldTextValue',
+  IssueFieldNumberValue: 'ProjectV2ItemFieldNumberValue',
+}
+
+/**
+ * An issue field's value (Target date) may come back as a
+ * ProjectV2ItemIssueFieldValue wrapping the issue's own value (AWTD-1313).
+ * Lifted to the plain value shape, so the due date and the field values read
+ * it as they read any project field. A single-select issue value is left
+ * as it is: its option ids are the issue field's, not the project's.
+ */
+function liftIssueFieldValues(item: RemoteProjectItem): RemoteProjectItem {
+  if (!item.fieldValues?.nodes) return item
+  const nodes = item.fieldValues.nodes.map(node => {
+    if (node.__typename !== 'ProjectV2ItemIssueFieldValue') return node
+    const { issueFieldValue, ...rest } = node as typeof node & { issueFieldValue?: { __typename: string } | null }
+    const lifted = issueFieldValue && LIFTED[issueFieldValue.__typename]
+    if (!lifted) return node
+    const { __typename: _wrapped, ...value } = issueFieldValue
+    void _wrapped
+    return { ...rest, ...value, __typename: lifted }
+  })
+  return { ...item, fieldValues: { ...item.fieldValues, nodes } }
+}
 
 export const HYDRATE_ITEM_QUERY = /* GraphQL */ `
 query HydrateProjectItem($id: ID!) {
@@ -105,7 +141,7 @@ ${PROJECT_ITEM_FRAGMENT}`
 export async function hydrateItem(client: GraphqlClient, itemNodeId: string): Promise<RemoteProjectItem | null> {
   const data = await client.query<{ node: RemoteProjectItem | null }>(HYDRATE_ITEM_QUERY, { id: itemNodeId })
   // node(id:) on an id of another type resolves to {} — not an item.
-  return data.node && 'fieldValues' in data.node ? data.node : null
+  return data.node && 'fieldValues' in data.node ? liftIssueFieldValues(data.node) : null
 }
 
 export interface ProjectItemsPage {
@@ -125,7 +161,7 @@ export async function fetchProjectItemsPage(
   const items = data.node?.items
   if (!items) throw new Error(`GitHub project ${projectNodeId} not found or not readable by this installation`)
   return {
-    items: items.nodes,
+    items: items.nodes.map(liftIssueFieldValues),
     nextCursor: items.pageInfo.hasNextPage ? items.pageInfo.endCursor : null,
   }
 }
