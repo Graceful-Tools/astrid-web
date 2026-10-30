@@ -54,6 +54,13 @@ async function main() {
     update: { name: 'Playwright Outsider', isActive: true },
     create: { email: 'playwright-outsider@example.test', name: 'Playwright Outsider' },
   })
+  // A third seat, so a sharing journey can hold an editor and a read-only
+  // viewer at once (AWTD-1405).
+  const viewer = await prisma.user.upsert({
+    where: { email: 'playwright-viewer@example.test' },
+    update: { name: 'Playwright Viewer', isActive: true },
+    create: { email: 'playwright-viewer@example.test', name: 'Playwright Viewer' },
+  })
 
   // The board specs need Project Mode (AWTD-1338): /api/v1/projects/from-list
   // answers 403 "not enabled for this account" without it. The flag row exists
@@ -71,6 +78,7 @@ async function main() {
   await Promise.all([
     writeState('user.json', owner),
     writeState('outsider.json', outsider),
+    writeState('viewer.json', viewer),
   ])
 }
 

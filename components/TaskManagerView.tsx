@@ -905,7 +905,7 @@ const TaskManagerView = memo(function TaskManagerView({
             lists={lists}
             allTasks={tasks}
             finalFilteredTasks={finalFilteredTasks}
-            listMetadata={{}}
+            listMetadata={publicLists.find(list => list.id === selectedListId) ?? {}}
             effectiveSession={effectiveSession}
             availableUsers={availableUsers}
             newFilterState={newFilterState}

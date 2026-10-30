@@ -204,7 +204,7 @@ The Playwright configuration is defined in [`playwright.config.ts`](../playwrigh
 
 ## 🔐 Authentication Setup
 
-Signed-in specs use a **minted NextAuth session**, not a sign-in flow. `npm run playwright:setup:ci-auth` (`scripts/create-e2e-auth-state.ts`) upserts `playwright-owner@example.test` and `playwright-outsider@example.test` in the database named by `TEST_DATABASE_URL` (localhost, name containing `test`), grants the owner Project Mode, and writes `.auth/user.json` and `.auth/outsider.json`.
+Signed-in specs use a **minted NextAuth session**, not a sign-in flow. `npm run playwright:setup:ci-auth` (`scripts/create-e2e-auth-state.ts`) upserts `playwright-owner@example.test`, `playwright-outsider@example.test` and `playwright-viewer@example.test` in the database named by `TEST_DATABASE_URL` (localhost, name containing `test`), grants the owner Project Mode, and writes `.auth/user.json`, `.auth/outsider.json` and `.auth/viewer.json`. The third seat lets a sharing journey hold an editor and a read-only viewer at once (AWTD-1405).
 
 The signed-in projects (`authenticated-critical`, `authenticated-ui`) exist only when `PLAYWRIGHT_AUTHENTICATED=1`:
 

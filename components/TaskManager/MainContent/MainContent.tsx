@@ -484,12 +484,12 @@ export function MainContent({
     boardRowContext,
   ])
 
-  // Add-task input (or Copy-List button for read-only public/featured lists).
+  // Add-task input (or Copy-List button for read-only public/featured lists; a followed public list is listMetadata, AWTD-1405).
   // Shared by the 3-column header block and the dedicated 2-column row so both
   // desktop layouts get task creation. Commit bdb5f40 hid the whole 3-col header
   // block in 2-column to de-dupe the list title, which also removed this input.
   const renderAddTaskInput = () => {
-    const selectedList = lists.find(list => list.id === selectedListId)
+    const selectedList = lists.find(list => list.id === selectedListId) ?? (listMetadata?.id === selectedListId ? listMetadata : undefined)
     const isPublicList = selectedList?.privacy === 'PUBLIC'
     const isCollaborative = selectedList?.publicListType === 'collaborative'
     // Trust the single permission source instead of re-deriving owner/admin from
@@ -692,8 +692,8 @@ export function MainContent({
             )}
           </div>
 
-          {/* List settings — one host picks fixed vs full popover (task ecf56cd3) */}
-          {(showSettingsPopover === selectedListId || showSortFiltersFor === selectedListId) && <LazyListSettingsHost
+          {/* List settings (task ecf56cd3), one host per layout: the dialog portals out of this display:none block, so two opened (AWTD-1405) */}
+          {is3Column && (showSettingsPopover === selectedListId || showSortFiltersFor === selectedListId) && <LazyListSettingsHost
               variant="desktop"
               selectedListId={selectedListId}
               lists={lists}
@@ -966,8 +966,8 @@ export function MainContent({
         )}
       </div>
 
-      {/* List settings — one host picks fixed vs full popover (task ecf56cd3) */}
-      {(showSettingsPopover === selectedListId || showSortFiltersFor === selectedListId) && <LazyListSettingsHost
+      {/* List settings — the host for every layout but 3-column (see above). */}
+      {!is3Column && (showSettingsPopover === selectedListId || showSortFiltersFor === selectedListId) && <LazyListSettingsHost
               variant="mobile"
               selectedListId={selectedListId}
               lists={lists}
