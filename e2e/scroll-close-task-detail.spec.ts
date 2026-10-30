@@ -8,9 +8,18 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Scroll-to-close task detail in multi-column layouts', () => {
-  test.beforeEach(async ({ page }) => {
-    // Navigate to the app and wait for authentication
-    await page.goto('/')
+  test.beforeEach(async ({ page, request }) => {
+    // Its own list, long enough to scroll. This used to open '/' and take
+    // whatever tasks earlier specs had left, so adding a spec that sorts
+    // first changed what it scrolled, and whether it could (AWTD-1405).
+    const created = await request.post('/api/v1/lists', { data: { name: `Scroll ${Date.now()}`, privacy: 'PRIVATE' } })
+    expect(created.ok()).toBeTruthy()
+    const { list } = (await created.json()) as { list: { id: string } }
+    for (let i = 1; i <= 30; i++) {
+      const task = await request.post('/api/v1/tasks', { data: { title: `Scroll task ${i}`, listIds: [list.id] } })
+      expect(task.ok()).toBeTruthy()
+    }
+    await page.goto(`/lists/${list.id}`)
 
     // Wait for the app to load (adjust selector based on your app)
     await page.waitForSelector('[data-testid="task-list"], .task-list-container', { timeout: 10000 })
