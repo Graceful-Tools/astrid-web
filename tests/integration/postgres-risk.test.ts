@@ -485,3 +485,89 @@ describe('re-encryption pass against a real database (AWTD-1380)', () => {
     await prisma.user.delete({ where: { id: user.id } })
   })
 })
+
+// AWTD-1423: Prisma 7 (AWTD-1408) swapped the driver under every query for
+// node-postgres through @prisma/adapter-pg. These are the places a driver
+// change shows up that a mocked client cannot: what type a raw value comes
+// back as, how a timestamp crosses a non-UTC process, and whether a timed-out
+// interactive transaction is really rolled back.
+describe('the Prisma 7 driver adapter against a real database (AWTD-1423)', () => {
+  it('allocates task sequence numbers as JS numbers, never BigInt', async () => {
+    // lib/task-identifier.ts's UPDATE … RETURNING once came back as BigInt,
+    // which task.create rejects for the Int column: every task create on a
+    // project board 500'd in production (2026-10-09).
+    const { allocateSequence, allocateSequenceRange } = await import('@/lib/task-identifier')
+    const owner = await prisma.user.create({
+      data: buildUserCreate({ email: `${runPrefix}-sequence@example.test` }),
+    })
+    const project = await prisma.project.create({
+      data: { name: `${runPrefix}-sequence`, color: '#000000', ownerId: owner.id },
+    })
+
+    const first = await allocateSequence(project.id, prisma)
+    const range = await allocateSequenceRange(project.id, 3, prisma)
+    const next = await allocateSequence(project.id, prisma)
+
+    expect(typeof first?.sequence).toBe('number')
+    expect(typeof range?.firstSequence).toBe('number')
+    expect([first?.sequence, range?.firstSequence, next?.sequence]).toEqual([1, 2, 5])
+  })
+
+  it('types raw values the way the code relies on: bigint stays BigInt, int4 arithmetic stays a number', async () => {
+    // The driver's contract, pinned. Under Prisma 7 a bound parameter reaches
+    // Postgres untyped, so `int4 - $1` stays int4 and comes back a number;
+    // before, Prisma typed it int8, which is how the BigInt above reached
+    // production. A raw bigint or COUNT(*) is still a BigInt, so any caller of
+    // one must coerce it. If this changes, re-read every $queryRaw.
+    const offset = 3
+    const rows = await prisma.$queryRaw<Array<{ big: unknown; counted: unknown; arithmetic: unknown }>>`
+      SELECT 1::bigint AS big, (SELECT COUNT(*) FROM (VALUES (1)) v) AS counted, (5 - ${offset}) AS arithmetic
+    `
+    expect(typeof rows[0]?.big).toBe('bigint')
+    expect(typeof rows[0]?.counted).toBe('bigint')
+    expect(rows[0]?.arithmetic).toBe(2)
+  })
+
+  it('round-trips a DateTime unchanged in a non-UTC process', async () => {
+    // e2e-tests.yml runs this tier with TZ=America/Los_Angeles, so a driver
+    // that wrote or read local time would shift the instant by hours.
+    if (process.env.CI) {
+      // Without the TZ the round trip below proves nothing; keep it honest.
+      expect(new Date('2026-03-08T09:30:00Z').getTimezoneOffset()).not.toBe(0)
+    }
+    const owner = await prisma.user.create({
+      data: buildUserCreate({ email: `${runPrefix}-timezone@example.test` }),
+    })
+    const list = await prisma.taskList.create({ data: buildListCreate(owner.id) })
+    const due = new Date('2026-03-08T09:30:00.000Z') // the day US clocks change
+    const task = await prisma.task.create({
+      data: buildTaskCreate(owner.id, list.id, { title: `${runPrefix}-timezone-task`, dueDateTime: due }),
+    })
+
+    const read = await prisma.task.findUniqueOrThrow({ where: { id: task.id } })
+    expect(read.dueDateTime?.toISOString()).toBe(due.toISOString())
+
+    // And the database holds the same instant, not one shifted by the offset.
+    const rows = await prisma.$queryRaw<Array<{ utc: string }>>`
+      SELECT to_char("dueDateTime", 'YYYY-MM-DD"T"HH24:MI:SS') AS utc FROM "Task" WHERE id = ${task.id}
+    `
+    expect(rows[0]?.utc).toBe('2026-03-08T09:30:00')
+  })
+
+  it('rolls back an interactive transaction that runs past its timeout (P2028)', async () => {
+    const email = `${runPrefix}-tx-timeout@example.test`
+
+    await expect(
+      prisma.$transaction(
+        async (tx) => {
+          await tx.user.create({ data: buildUserCreate({ email }) })
+          await new Promise(resolve => setTimeout(resolve, 400))
+          await tx.user.count()
+        },
+        { timeout: 100 },
+      ),
+    ).rejects.toMatchObject({ code: 'P2028' })
+
+    await expect(prisma.user.count({ where: { email } })).resolves.toBe(0)
+  })
+})
