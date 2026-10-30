@@ -14,7 +14,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { authenticateAgentRequest, transformEventForAgent, mapEventType } from '@/lib/agent-protocol'
+import {
+  authenticateAgentRequest,
+  transformEventForAgent,
+  agentEventFingerprint,
+  createAgentEventDedup,
+} from '@/lib/agent-protocol'
 import { registerConnection, removeConnection, getMissedEvents } from '@/lib/sse-utils'
 import { AGENT_RATE_LIMITS } from '@/lib/agent-rate-limiter'
 import { createRateLimitHeaders } from '@/lib/rate-limiter'
@@ -71,41 +76,8 @@ export async function GET(request: NextRequest) {
     start(controller) {
       let lastCheckTime = Date.now()
 
-      // ── Time-windowed dedup map ─────────────────────────────────────
-      // Prevents duplicates from two sources:
-      // 1. TOCTOU race: proxy controller (direct push) vs safety-net poll
-      //    delivering the same cached event twice.
-      // 2. Multiple broadcasts: task_assigned + task_created both map to
-      //    agent type task.assigned, so one operation fires two internal
-      //    events that transform to the same agent event.
-      // Fingerprint uses the AGENT protocol type (post-mapping) so that
-      // different internal types mapping to the same agent type dedup.
-      // Uses a Map<fingerprint, timestamp> instead of Set to support
-      // TTL-based expiry (no abrupt clear() at size limits).
-      const DEDUP_TTL_MS = 5 * 60_000 // 5 minutes (matches connection refresh)
-      const deliveredEvents = new Map<string, number>()
-      const eventFingerprint = (event: { type?: string; data?: { taskId?: string; commentId?: string; comment?: { id?: string } } }) => {
-        const agentType = mapEventType(event.type || '') || event.type || ''
-        const taskId = event.data?.taskId || ''
-        const commentId = event.data?.comment?.id || event.data?.commentId || ''
-        return `${agentType}:${taskId}:${commentId}`
-      }
-      function isDuplicate(fp: string): boolean {
-        const now = Date.now()
-        // Prune expired entries periodically
-        if (deliveredEvents.size > 100) {
-          for (const [key, ts] of deliveredEvents) {
-            if (now - ts > DEDUP_TTL_MS) deliveredEvents.delete(key)
-          }
-        }
-        if (deliveredEvents.has(fp)) {
-          const age = now - deliveredEvents.get(fp)!
-          if (age < DEDUP_TTL_MS) return true // still within window
-          // Expired — treat as new
-        }
-        deliveredEvents.set(fp, now)
-        return false
-      }
+      // Time-windowed dedup (see createAgentEventDedup in lib/agent-protocol).
+      const dedup = createAgentEventDedup()
 
       // Send connected event
       controller.enqueue(encoder.encode(`event: connected\ndata: ${JSON.stringify({ timestamp: new Date().toISOString() })}\n\n`))
@@ -120,8 +92,8 @@ export async function GET(request: NextRequest) {
           if (!match) return // skip non-data messages (keepalive, etc.)
           try {
             const parsed = JSON.parse(match[1])
-            const fp = eventFingerprint(parsed)
-            if (isDuplicate(fp)) return // already delivered
+            const fp = agentEventFingerprint(parsed)
+            if (dedup.isDuplicate(fp)) return // already delivered
             // Advance the poll cursor so we don't re-deliver this event
             lastCheckTime = Date.now()
             transformEventForAgent(parsed).then(transformed => {
@@ -152,8 +124,8 @@ export async function GET(request: NextRequest) {
           .then(async (events) => {
             for (const event of events) {
               try {
-                const fp = eventFingerprint(event)
-                if (isDuplicate(fp)) continue
+                const fp = agentEventFingerprint(event)
+                if (dedup.isDuplicate(fp)) continue
                 const transformed = await transformEventForAgent(event)
                 if (transformed) {
                   const eventId = `${transformed.type}:${transformed.data?.taskId || ''}:${transformed.data?.comment?.id || ''}:${Date.now()}`
@@ -181,8 +153,8 @@ export async function GET(request: NextRequest) {
 
           for (const event of events) {
             try {
-              const fp = eventFingerprint(event)
-              if (isDuplicate(fp)) continue // already delivered
+              const fp = agentEventFingerprint(event)
+              if (dedup.isDuplicate(fp)) continue // already delivered
               const transformed = await transformEventForAgent(event)
               if (transformed) {
                 const eventId = `${transformed.type}:${transformed.data?.taskId || ''}:${transformed.data?.comment?.id || ''}:${Date.now()}`
