@@ -44,19 +44,6 @@ export const AUTHENTICATED_UI_SPECS = [
 export const PENDING_E2E_SPECS: Record<string, string> = {
   // Revive candidates — selectors exist, but the spec no longer passes signed in.
   'accessibility': 'real gaps, not locators (AWTD-1435): no <main> landmark, no skip link, the logo is a div the keyboard cannot reach; the sign-in cases need a signed-out project',
-  // Rewrites owned by AWTD-1339 — they target UI that no longer exists.
-  'empty-state': 'AWTD-1339 rewrite',
-  'shortcodes': 'AWTD-1339 rewrite',
-  'user-profile': 'AWTD-1339 rewrite',
-  'accessibility': '10/15 pass signed in; the signed-out cases need their own project',
-  'desktop-list-settings': 'unscoped "first button with an svg" locators time out',
-  'mobile-board-column-centring': 'getByRole("button", { name: "Board" }) is ambiguous once lists exist',
-  'mobile-board-swipe': 'same ambiguous "Board" locator',
-  'mobile-pull-to-refresh': '2/6 pass; waits for [data-testid="task-list"] that is not rendered',
-  'project-status-board': 'board creation needs a scoped locator; Project Mode now granted in setup',
-  'sidebar-settings': '4/12 pass; hamburger locator falls back to "first button with an svg"',
-  'time-picker': '3/4 pass; "9am" preset matches two buttons (strict mode)',
-  'panel-animations': 'flaky: 5–7/7 pass, a different animate-out / dim-overlay case fails each run',
 }
 const specPattern = (names: string[]) => new RegExp(`(^|/)(${names.join('|')})\\.spec\\.ts$`)
 
