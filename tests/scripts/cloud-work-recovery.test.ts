@@ -1,24 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { execFileSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { runWorkflowStep, workflowStep } from '../utils/workflow-step'
 
-const require = createRequire(import.meta.url)
-const yaml = require('js-yaml')
-const workflow = yaml.load(readFileSync('.github/workflows/agent-run.yml', 'utf8'))
-const recovery = workflow.jobs.run.steps.find((step: { name: string }) => step.name === 'Preserve unfinished work').run
+const recovery = workflowStep('.github/workflows/agent-run.yml', 'run', 'Preserve unfinished work')
 
 describe('cloud work recovery (AWTD-1383)', () => {
   let root: string
   let work: string
   let origin: string
-  const env = { ...process.env, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null',
+  const stepEnv = { GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null',
     ASTRID_FIXALL_HARNESS: 'codex', GITHUB_RUN_ID: '123', GITHUB_RUN_ATTEMPT: '1' }
+  const env = { ...process.env, ...stepEnv }
   const git = (...args: string[]) => execFileSync('git', args, { cwd: work, env, encoding: 'utf8' }).trim()
   const remote = (ref: string) => execFileSync('git', ['--git-dir', origin, 'rev-parse', ref], { env, encoding: 'utf8' }).trim()
-  const recover = () => spawnSync('bash', ['-e', '-o', 'pipefail', '-c', recovery], { cwd: work, env, encoding: 'utf8' })
+  const recover = () => runWorkflowStep(recovery, { cwd: work, env: stepEnv })
   let base: string
 
   beforeEach(() => {

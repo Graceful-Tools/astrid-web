@@ -239,10 +239,13 @@ jobs:
         run: |
           RESULT=$(grep -E '^RESULT: ' .agent-output/agent-transcript.txt 2>/dev/null | tail -1 || true)
           echo "${RESULT:-no RESULT line}"
-          case "${RESULT}" in
-            "RESULT: OK"*|"RESULT: SKIPPED"*) ;;
-            *) echo "::error::The agent did not finish: ${RESULT:-it printed no RESULT line}"; exit 1 ;;
-          esac
+          # OK or SKIPPED as a whole word, alone or followed by a note. Not
+          # "RESULT: OKAY", and not the prompt's own format line
+          # "RESULT: OK | SKIPPED | …" echoed back (AWTD-1424).
+          if ! printf '%s\n' "${RESULT}" | grep -qE '^RESULT: (OK|SKIPPED)($| +[^| ])'; then
+            echo "::error::The agent did not finish: ${RESULT:-it printed no RESULT line}"
+            exit 1
+          fi
 
       - name: Preserve unfinished work
         if: ${{ always() && !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
@@ -252,7 +255,7 @@ jobs:
           if [ -n "${DIRTY}" ] || [ "${UNPUSHED}" != 0 ]; then
             BRANCH=$(git branch --show-current)
             if [ "${BRANCH}" = main ] || [ -z "${BRANCH}" ]; then
-              git switch -c "agent/${ASTRID_FIXALL_HARNESS}/recovery-${GITHUB_RUN_ID}"
+              git switch -c "agent/${ASTRID_FIXALL_HARNESS}/recovery-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
             fi
             if [ -n "${DIRTY}" ]; then
               git add --all
