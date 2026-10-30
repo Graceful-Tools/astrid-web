@@ -24,9 +24,11 @@ export function AuthenticatedApp({
   const { data: session, status } = useSession()
   const router = useRouter()
 
-  // Clear IndexedDB on page load to force fresh data fetch
+  // Clear cached server data on page load to force a fresh fetch. Not while
+  // offline: the cache is all the app has then (AWTD-1417).
   useEffect(() => {
     const clearIndexedDBOnLoad = async () => {
+      if (!navigator.onLine) return
       try {
         await offlineDB.forceRefresh()
         if (process.env.NODE_ENV === "development") {
