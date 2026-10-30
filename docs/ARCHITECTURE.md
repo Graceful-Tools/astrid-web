@@ -301,7 +301,7 @@ Astrid implements a comprehensive offline-first strategy for seamless operation 
 7. **Conflict Resolution**: Server has newer version → Merge or manual resolution
 
 #### **Testing**
-- E2E tests: [e2e/offline.spec.ts](../e2e/offline.spec.ts)
+- E2E tests: [e2e/offline-round-trip.spec.ts](../e2e/offline-round-trip.spec.ts)
 - Unit tests: [tests/lib/offline-sync.test.ts](../tests/lib/offline-sync.test.ts)
 - Script: [scripts/check-offline-mutations.ts](../scripts/check-offline-mutations.ts)
 
