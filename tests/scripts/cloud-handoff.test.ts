@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cloudHandoffEligible } from '@/scripts/lib/cloud-handoff'
+import { cloudHandoffEligible, claimsCloudHandoff } from '@/scripts/lib/cloud-handoff'
 import { automaticDeployHold, landablePullRequests, RUNNER_PR_MARKER } from '@/scripts/lib/land-and-deploy'
 import { agentEmail } from '@/lib/brand/agent-emails'
 
@@ -42,5 +42,16 @@ describe('cloud lifecycle release handoff', () => {
     expect(automaticDeployHold([{ status: 'completed', conclusion: 'success' }])).toMatch(/successful/)
     expect(automaticDeployHold(Array.from({ length: 2 }, () => ({ status: 'completed', conclusion: 'failure' }))))
       .toMatch(/two deploy attempts/)
+  })
+  it('AWTD-1416: accepts a branch named for the mailbox as well as the harness', () => {
+    // Run 40973959090 pushed agent/claude/AWTD-1372-… and its handoff went unregistered.
+    expect(cloudHandoffEligible({ ...input, branch: 'agent/claude/AWTD-1410-lifecycle' })).toBe(true)
+    expect(cloudHandoffEligible({ ...input, branch: 'agent/copilot/AWTD-1410-lifecycle' })).toBe(false)
+    expect(cloudHandoffEligible({ ...input, branch: 'agent/nobody/AWTD-1410-lifecycle' })).toBe(false)
+  })
+  it('AWTD-1416: only a task that claims a deploy handoff needs a branch', () => {
+    // Run 40883891182 closed AWTD-1412 as already fixed, with no code, and went red.
+    expect(claimsCloudHandoff(comments)).toBe(true)
+    expect(claimsCloudHandoff([{ authorId: 'claude-id', content: 'Already fixed on main, closing.' }])).toBe(false)
   })
 })
