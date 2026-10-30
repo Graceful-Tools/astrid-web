@@ -135,6 +135,7 @@
     "predeploy:ci": "tsx scripts/predeploy-self-healing.ts --ci",
     "deploy:canary": "tsx scripts/deploy-canary.ts",
     "prepare": "husky || true",
+    "postinstall": "prisma generate",
     "check:reuse:warn": "tsx scripts/check-reuse.ts",
     "hygiene:review": "zsh scripts/weekly-hygiene-review.sh",
     "check:i18n": "tsx scripts/check-i18n.ts",
