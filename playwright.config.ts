@@ -13,6 +13,7 @@ export const AUTHENTICATED_UI_SPECS = [
   'task-journeys',
   'list-sharing',
   'reminder-snooze',
+  'offline-round-trip',
   'scroll-close-task-detail',
   'mobile-header-stays-on-task-tap',
   'mobile-shell-never-scrolls',
@@ -40,7 +41,6 @@ export const PENDING_E2E_SPECS: Record<string, string> = {
   // Rewrites owned by AWTD-1339 — they target UI that no longer exists.
   'empty-state': 'AWTD-1339 rewrite',
   'lists': 'AWTD-1339 rewrite',
-  'offline': 'AWTD-1339 rewrite',
   'shortcodes': 'AWTD-1339 rewrite',
   'task-completion-deleted-list': 'AWTD-1339 rewrite',
   'tasks': 'AWTD-1339 rewrite',

@@ -34,6 +34,10 @@ export default function ListPage() {
             setError("List not found")
           } else if (response.status === 403) {
             setError("Access denied. You don't have permission to view this list.")
+          } else if (!navigator.onLine) {
+            // The service worker's offline answer: keep the app on its cached
+            // data rather than the error screen (AWTD-1417).
+            log.info({ status: response.status }, 'Offline: list not refreshed, using cached data')
           } else {
             setError("Failed to load list")
           }
@@ -49,6 +53,10 @@ export default function ListPage() {
         const data = await response.json()
         setListData(unwrapList(data))
       } catch (err) {
+        if (!navigator.onLine) {
+          log.info('Offline: list not refreshed, using cached data')
+          return
+        }
         setError("Failed to load list")
         log.error({ err: err }, "Error fetching list:")
       } finally {

@@ -1,6 +1,6 @@
-const CACHE_NAME = 'astrid-v1.0.9';
-const STATIC_CACHE_NAME = 'astrid-static-v1.0.9';
-const DYNAMIC_CACHE_NAME = 'astrid-dynamic-v1.0.9';
+const CACHE_NAME = 'astrid-v1.0.10';
+const STATIC_CACHE_NAME = 'astrid-static-v1.0.10';
+const DYNAMIC_CACHE_NAME = 'astrid-dynamic-v1.0.10';
 
 // Import Dexie for IndexedDB access in the service worker.
 //
@@ -74,8 +74,39 @@ self.addEventListener('activate', (event) => {
         );
       })
       .then(() => self.clients.claim())
+      .then(() => cacheOpenAppPages())
   );
 });
+
+// App pages served network-first with a cached fallback. Lists live at
+// /lists/:id; only /list/ was here, so reloading a list offline fell through
+// to the network-only branch (AWTD-1417).
+function isAppPage(pathname) {
+  return pathname === '/' || pathname.startsWith('/list/') || pathname.startsWith('/lists/') || pathname.startsWith('/settings')
+}
+
+// The page a person first opens loads before this worker controls it, so
+// neither it nor the session it fetched was cached. A reload offline then had
+// no page, or a page that found no session and sent the user to sign-in
+// (AWTD-1417). Cache what the tabs just claimed are showing, without their
+// ?task= query, and the session they run on.
+async function cacheOpenAppPages() {
+  try {
+    const windows = await self.clients.matchAll({ type: 'window' })
+    const cache = await caches.open(DYNAMIC_CACHE_NAME)
+    const pages = windows
+      .map((client) => new URL(client.url))
+      .filter((url) => url.origin === self.location.origin && isAppPage(url.pathname))
+      .map((url) => url.origin + url.pathname)
+    if (pages.length === 0) return
+    await Promise.all([...pages, self.location.origin + '/api/auth/session'].map(async (target) => {
+      const response = await fetch(target, { credentials: 'include' })
+      if (response.ok) await cache.put(target, response)
+    }))
+  } catch (error) {
+    // Best effort: a failure here only means the first offline reload has no page.
+  }
+}
 
 // Fetch event - serve from cache or network
 self.addEventListener('fetch', (event) => {
@@ -105,7 +136,7 @@ self.addEventListener('fetch', (event) => {
   } else if (url.pathname.startsWith('/_next/static/')) {
     // Static assets - cache first
     event.respondWith(handleStaticRequest(request));
-  } else if (url.pathname === '/' || url.pathname.startsWith('/list/') || url.pathname.startsWith('/settings')) {
+  } else if (isAppPage(url.pathname)) {
     // App pages - network first with cache fallback
     event.respondWith(handlePageRequest(request));
   } else {
@@ -198,8 +229,9 @@ async function handlePageRequest(request) {
   } catch (error) {
     // Network failed, trying cache
     
-    // Fallback to cache
-    const cachedResponse = await caches.match(request);
+    // Fallback to cache. A navigation ignores the query: /lists/X?task=Y is
+    // the same page as /lists/X with a task open (AWTD-1417).
+    const cachedResponse = await caches.match(request, { ignoreSearch: request.mode === 'navigate' });
     if (cachedResponse) {
       return cachedResponse;
     }

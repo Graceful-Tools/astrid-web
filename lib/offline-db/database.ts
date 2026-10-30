@@ -185,11 +185,28 @@ class OfflineDatabase extends Dexie {
   }
 
   /**
-   * Force refresh - clear all data and mark for immediate re-fetch
-   * This should be called on page refresh or when user explicitly requests fresh data
+   * Force refresh - clear cached server data and mark for immediate re-fetch.
+   * Called on every page load. It keeps the mutation queue and its temp-id
+   * mappings: those are the user's unsynced writes, and clearing them here
+   * threw away every edit made offline as soon as the page reloaded
+   * (AWTD-1417). clearAll, for sign-out, still drops everything.
    */
   async forceRefresh() {
-    await this.clearAll()
+    if (!indexedDBAvailable) return
+    try {
+      await Promise.all([
+        this.tasks.clear(),
+        this.lists.clear(),
+        this.users.clear(),
+        this.publicTasks.clear(),
+        this.comments.clear(),
+        this.listMembers.clear(),
+        this.attachments.clear(),
+        this.syncCursors.clear()
+      ])
+    } catch (error) {
+      log.error({ err: error }, '❌ IndexedDB: Error clearing cached data')
+    }
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('indexeddb_force_refresh', Date.now().toString())
     }
