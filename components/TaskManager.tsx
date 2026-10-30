@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useListChatChannel } from "@/hooks/use-list-chat-channel"
 import { userCanRequestListChatChannel } from "@/lib/chat-channel-eligibility"
 import type { TaskList, User } from "@/types/task"
+import { getProjectIdForBoard } from "@/lib/project-status"
 
 interface TaskManagerProps {
   initialSelectedListId?: string
@@ -97,6 +98,13 @@ export function TaskManager({
       (listMetadata && (listMetadata as { id?: string }).id === id ? (listMetadata as TaskList) : null)
     )
   }, [controller.selectedListId, controller.lists, controller.publicLists, listMetadata, isVirtualList])
+
+  // The page's own copy of the list stands in until the list sync lands, so a
+  // freshly opened board offers its board view from first paint (AWTD-1426).
+  const hasProjectBoard = React.useMemo(
+    () => Boolean(getProjectIdForBoard(controller.lists, controller.selectedListId, listMetadata as TaskList | undefined)),
+    [controller.lists, controller.selectedListId, listMetadata]
+  )
 
   const uid = controller.effectiveSession?.user?.id
   const chatChannelEnabled =
@@ -334,7 +342,7 @@ export function TaskManager({
       loading={controller.loading}
       selectedTaskId={controller.selectedTaskId}
       selectedListId={controller.selectedListId}
-      selectedListMetadata={listMetadata as TaskList | undefined}
+      hasProjectBoard={hasProjectBoard}
       selectedTask={controller.selectedTask || null}
       finalFilteredTasks={controller.finalFilteredTasks}
       availableUsers={controller.availableUsers}
