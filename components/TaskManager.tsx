@@ -334,6 +334,7 @@ export function TaskManager({
       loading={controller.loading}
       selectedTaskId={controller.selectedTaskId}
       selectedListId={controller.selectedListId}
+      selectedListMetadata={listMetadata as TaskList | undefined}
       selectedTask={controller.selectedTask || null}
       finalFilteredTasks={controller.finalFilteredTasks}
       availableUsers={controller.availableUsers}
