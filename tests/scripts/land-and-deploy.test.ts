@@ -353,6 +353,23 @@ describe('the news posted to the list chat', () => {
     expect(text).toContain('ae92dd77')
   })
 
+  it('AWTD-1429: a dry run says what it would deploy, never that it deployed', () => {
+    // A dry run sets verified so the run reads as clean, but nothing went out.
+    // Saying "deployed … Production is serving" here reported a deploy that
+    // never happened while production still served the previous commit.
+    const text = summary({
+      landed: [],
+      skipped: [],
+      verdict: { deploy: true },
+      sha: '54329b51fc67d5e3',
+      verified: true,
+      dryRun: true,
+    })
+    expect(text).toMatch(/would deploy `54329b51`/i)
+    expect(text).not.toMatch(/\bdeployed\b/i)
+    expect(text).not.toMatch(/Production is serving/i)
+  })
+
   it('AWTD-1278: names the tasks it marked complete because production serves them', () => {
     const text = summary({
       landed: [],
