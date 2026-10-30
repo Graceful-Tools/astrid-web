@@ -18,7 +18,7 @@ import { useMyTasksPreferences } from "@/hooks/useMyTasksPreferences"
 import { useUserSettings } from "@/hooks/useUserSettings"
 import { useOptimisticListInfo } from "@/hooks/use-optimistic-list-info"
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete, refusalReason } from "@/lib/api"
-import { applyVirtualListFilter, getListDisplayInfo } from "@/lib/virtual-list-utils"
+import { getListDisplayInfo } from "@/lib/virtual-list-utils"
 import { getColumnCount } from "@/lib/layout-detection"
 import {
   parseTaskInput,
@@ -36,6 +36,7 @@ import { preloadUserAvatars } from "@/lib/image-cache"
 
 // Import composable hooks
 import { canUserManageList } from "@/lib/list-permissions"
+import { scopeTasksToList, withoutList, listPath } from "@/lib/task-list-scope"
 import { v1TaskUpdateBody } from "@/lib/tasks/v1-task-update-body"
 import { postponeTaskDueDate, shiftTaskDueDate } from "@/lib/date-comparison"
 import {
@@ -312,29 +313,7 @@ export function useTaskManagerController({
 
       // Skip list pre-filtering if in universal search mode
       if (!isUniversalSearch) {
-        if (navigationState.selectedListId === "my-tasks") {
-          const myTasksList = {
-            id: "my-tasks",
-            name: "My Tasks",
-            isVirtual: true,
-            virtualListType: "my-tasks" as const,
-            filterAssignee: undefined,
-            filterDueDate: undefined,
-            filterCompletion: undefined,
-            filterAssignedBy: undefined,
-            filterPriority: undefined,
-            filterInLists: undefined
-          }
-          filtered = applyVirtualListFilter(filtered, myTasksList as any, effectiveSession?.user?.id || '')
-        } else if (currentList) {
-          if (currentList.isVirtual) {
-            filtered = applyVirtualListFilter(filtered, currentList, effectiveSession?.user?.id || '')
-          } else {
-            filtered = filtered.filter(task =>
-              task.lists && task.lists.some(taskList => taskList.id === navigationState.selectedListId)
-            )
-          }
-        }
+        filtered = scopeTasksToList(filtered, navigationState.selectedListId, currentList, effectiveSession?.user?.id || '')
       }
 
       filtered = newFilterState.applyFiltersToTasks(
@@ -998,24 +977,15 @@ export function useTaskManagerController({
         if (navigationState.selectedListId === listId) {
           const nextListId = updatedLists.length > 0 ? updatedLists[0].id : "my-tasks"
           navigationState.setSelectedListId(nextListId)
-          // Move the URL off the deleted list too, as the sidebar does when a
-          // list is picked. It used to stay on /lists/<deleted id>, so a reload
-          // or a shared link landed on "List Not Available" (AWTD-1419).
-          window.history.replaceState(null, '', nextListId === "my-tasks" ? '/' : `/lists/${nextListId}`)
+          // The URL moves too, or a reload lands on "List Not Available" (AWTD-1419).
+          window.history.replaceState(null, '', listPath(nextListId))
         }
 
         return updatedLists
       })
 
-      // Its tasks survive the delete; drop the list from them here too. They
-      // kept it, so the next edit of one — completing it, say — sent the gone
-      // list back and the server refused the whole update with "Invalid list
-      // IDs" (AWTD-1419).
-      listState.setTasks(prev => prev.map(task =>
-        task.lists?.some(l => l.id === listId)
-          ? { ...task, lists: task.lists.filter(l => l.id !== listId) }
-          : task
-      ))
+      // Its tasks survive the delete, without the list (AWTD-1419).
+      listState.setTasks(prev => withoutList(prev, listId))
 
       toast({
         title: "Success",
