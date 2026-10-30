@@ -129,6 +129,7 @@ describe('agent-run verdict step, executed', () => {
   it.each([
     ['RESULT: OK — AWTD-1 merged-ready, PR #9\n'],
     ['RESULT: SKIPPED — nothing Ready\n'],
+    ['RESULT: OK\n'],
   ])('passes when the agent reports %s', transcript => {
     expect(verdictFor(`working...\n${transcript}`).status).toBe(0)
   })
@@ -139,6 +140,9 @@ describe('agent-run verdict step, executed', () => {
     ['no RESULT line', 'did some work and stopped\n'],
     ['RESULT only mid-line', 'I will print RESULT: OK at the end\n'],
     ['an empty transcript', ''],
+    // AWTD-1424: the prompt's own format line once passed as a green run.
+    ['the prompt template echoed back', 'RESULT: OK | SKIPPED | PARTIAL | FAILED\n'],
+    ['a word that merely starts with OK', 'RESULT: OKAY\n'],
   ])('fails on %s', (_label, transcript) => {
     const result = verdictFor(transcript)
     expect(result.status).toBe(1)
@@ -161,7 +165,7 @@ describe('agent-run preserve-work step, executed', () => {
   let work: string
   let origin: string
   const env = { GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null',
-    ASTRID_FIXALL_HARNESS: 'claude-code', GITHUB_RUN_ID: '4242' }
+    ASTRID_FIXALL_HARNESS: 'claude-code', GITHUB_RUN_ID: '4242', GITHUB_RUN_ATTEMPT: '1' }
   const git = (...args: string[]) =>
     execFileSync('git', args, { cwd: work, env: { ...process.env, ...env }, encoding: 'utf8' }).trim()
   const remoteHeads = () =>
@@ -195,14 +199,14 @@ describe('agent-run preserve-work step, executed', () => {
 
   afterEach(() => rmSync(root, { recursive: true, force: true }))
 
-  it('moves a dirty tree on main to agent/<harness>/recovery-<run id>, bundles it, and pushes it', () => {
+  it('moves a dirty tree on main to agent/<harness>/recovery-<run id>-<attempt>, bundles it, and pushes it', () => {
     writeFileSync(join(work, 'task.txt'), 'unfinished work\n')
     writeFileSync(join(work, 'new.ts'), 'export {}\n')
 
     const result = preserve()
     expect(result.status, result.stderr).toBe(0)
 
-    const branch = 'agent/claude-code/recovery-4242'
+    const branch = 'agent/claude-code/recovery-4242-1'
     const head = git('rev-parse', 'HEAD')
     expect(git('branch', '--show-current')).toBe(branch)
     expect(git('status', '--porcelain')).toBe('')
@@ -216,6 +220,27 @@ describe('agent-run preserve-work step, executed', () => {
     expect(readFileSync(join(work, '.agent-output', 'recovery-head.txt'), 'utf8').trim()).toBe(head)
     // Pushed to the recovery branch; main untouched.
     expect(remoteHeads().sort()).toEqual([`refs/heads/${branch} ${head}`, `refs/heads/main ${base}`].sort())
+  })
+
+  it('a re-run attempt preserves its own work instead of failing to push over attempt 1', () => {
+    // Re-running a job keeps GITHUB_RUN_ID, so a branch named by run id alone
+    // was already on the remote, and attempt 2's push was rejected.
+    writeFileSync(join(work, 'task.txt'), 'attempt 1\n')
+    expect(preserve().status).toBe(0)
+    const first = git('rev-parse', 'HEAD')
+    git('switch', '-q', 'main')
+    git('reset', '-q', '--hard', base)
+    writeFileSync(join(work, 'task.txt'), 'attempt 2\n')
+
+    const result = runWorkflowStep(workflowStep(AGENT_RUN, 'run', PRESERVE), {
+      cwd: work, env: { ...env, GITHUB_RUN_ATTEMPT: '2' },
+    })
+    expect(result.status, result.stderr).toBe(0)
+    expect(remoteHeads().sort()).toEqual([
+      `refs/heads/agent/claude-code/recovery-4242-1 ${first}`,
+      `refs/heads/agent/claude-code/recovery-4242-2 ${git('rev-parse', 'HEAD')}`,
+      `refs/heads/main ${base}`,
+    ].sort())
   })
 
   it('does nothing with a clean, fully pushed tree', () => {
