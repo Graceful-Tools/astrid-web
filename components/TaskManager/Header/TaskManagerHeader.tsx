@@ -457,6 +457,9 @@ export function TaskManagerHeader({
                 }}
                 className="p-2"
                 data-settings-button="true"
+                // Icon-only, so it needs a name — the desktop gear's (AWTD-1425).
+                aria-label={isSystemListId(selectedListId) ? t('listSettings.sortAndFilters') : t('listSettings.adminSettings')}
+                title={isSystemListId(selectedListId) ? t('listSettings.sortAndFilters') : t('listSettings.adminSettings')}
               >
                 {isSystemListId(selectedListId) ? (
                   <Filter className="w-5 h-5" />
