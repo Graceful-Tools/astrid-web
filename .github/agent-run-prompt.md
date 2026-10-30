@@ -17,6 +17,12 @@ read it, then use the atomic `resume` claim from docs/FIXALL_WORKFLOW.md before
 implementing anything. Do not claim another harness's assignments.
 Every claim must pass `--list "$ASTRID_OAUTH_LIST_ID"` to pin the selected board.
 
+A disposable Postgres is already running and migrated at `$DATABASE_URL`, and
+Chromium is installed. Do not probe it with `pg_isready` or `psql`; use the npm
+scripts. For signed-in e2e work: `npm run build:next`, then
+`npm run playwright:setup:ci-auth`, then `npm run test:e2e:authenticated-critical`
+(Playwright starts the server itself). The database is this run's alone.
+
 Use the configured `astrid` MCP server. Every comment/update names your own
 mailbox as `agent`. If MCP is unavailable, fail explicitly rather than silently
 running without task communication.

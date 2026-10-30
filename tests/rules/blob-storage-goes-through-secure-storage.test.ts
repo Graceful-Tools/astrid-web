@@ -60,7 +60,7 @@ describe('blob storage access goes through lib/secure-storage.ts (task 1e772f0c)
       offenders,
       `These import @vercel/blob directly instead of going through ${STORAGE_MODULE}:\n` +
         offenders.map(f => `  ${f}`).join('\n') +
-        `\n\nUse putObject / deleteObject / issueClientUploadToken from ${STORAGE_MODULE}. ` +
+        `\n\nUse putObject / deleteObject / issuePresignedUpload from ${STORAGE_MODULE}. ` +
         `If you genuinely need a capability it does not expose, add it there rather than here.`
     ).toEqual([])
   })

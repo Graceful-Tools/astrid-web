@@ -13,11 +13,9 @@ describe('fixall workflow OAuth authentication', () => {
     expect(workflow).toContain('X-OAuth-Token')
   })
 
-  it('keeps GitHub Actions manual-only with local and cloud runner choices', () => {
+  it('keeps GitHub Actions manual-only on GitHub-hosted runners (AWTD-1363)', () => {
     expect(workflow).not.toMatch(/^\s+schedule:/m)
     expect(workflow).toMatch(/^\s+workflow_dispatch:/m)
-    expect(workflow).toMatch(
-      /runner:[\s\S]*?type: choice[\s\S]*?options:\s*\n\s+- local\s*\n\s+- cloud/,
-    )
+    expect(workflow).not.toMatch(/self-hosted/)
   })
 })

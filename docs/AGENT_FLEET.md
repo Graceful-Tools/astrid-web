@@ -17,7 +17,7 @@ contention is per machine.
 
 | Where | Owns |
 |---|---|
-| **Existing web server** | Keep its existing Claude Code web worker; it shares the Web board's atomic claims with other web harnesses |
+| **Cloud (`agent-run.yml`)** | The Claude Code web worker, scheduled :05/:35; it shares the Web board's atomic claims with other web harnesses. The Mac's web loop, the Copilot app's web-queue cron and the `astrid-web` self-hosted runner were retired 2026-10-28 (AWTD-1363) |
 | **GitHub's built-in Copilot coding agent** | Additional web changes and independent reviews of Claude changes, scoped to the Web board and `copilot` mailbox. `native-copilot-bridge.yml` bridges Astrid to GitHub's issue-assigned agent; `copilot-setup-steps.yml` prepares its worker. This is not Copilot CLI in Actions |
 | **Dedicated Apple device** | Keep the existing Claude Code iOS/Mac loop, Xcode and TestFlight work in astrid-ios |
 | **Windows device** | Keep its existing Claude Code worker and `fixall-loop.ps1`; `windows-latest` continues builds/unit tests |
@@ -82,11 +82,16 @@ An agent that needs a production fact writes the question on the task and hands 
 back. A Mac session answers it. `tests/rules/production-secrets-are-environment-scoped.test.ts`
 keeps the database secrets out of every other job.
 
-Still open: `VERCEL_TOKEN` is a repo secret, because previews, `fixstuff` and the
-monitor job use it. Vercel's narrowest token scope is a whole *project*, so a
-token that may deploy previews of `astrid-web` may also deploy its production
-and read its Config env vars — previews have to move to their own project before
-scoping means anything. Credentials are being moved to Vercel **Secret** in the
+Previews and `fixstuff` deploy to their own Vercel project, `astrid-web-preview`,
+with `VERCEL_TOKEN_PREVIEW`, a token scoped to that project (AWTD-1373). Vercel's
+narrowest token scope is a whole *project*, so this is what keeps a preview token
+from deploying production. The preview runtime has its own database
+(`astrid_preview` on the staging server) and none of
+production's keys. The database URL is a Vercel Secret on that project, which
+`vercel pull` redacts, so previews build on Vercel and migrate there, only when the
+PR changes no migrations and only a database named `astrid_preview`
+(`scripts/lib/build-migration-policy.js`). Still open: the repo-level `VERCEL_TOKEN`, which only the
+monitor and production jobs now use ([AWTD-1372](https://astrid.cc/t/AWTD-1372)). Credentials are being moved to Vercel **Secret** in the
 meantime, which is what stops a leaked token reading them
 (docs/CLI_OPERATIONS.md §0).
 
@@ -105,8 +110,8 @@ or device activation is implied by these repository changes.
 
 ## Cloud activation checklist
 
-1. Keep the existing Claude web/Apple/Windows workers running. Do not enable a
-   competing Claude cloud schedule or unload another host from this change.
+1. The cloud schedule replaced the Mac's web loop on 2026-10-28 (AWTD-1363). Keep the
+   Apple/Windows workers running, and do not unload another host from a web change.
 2. Set the specific worker mailbox to **polling** in Astrid's AI Agents settings.
    `api`, `webhook` and `off` are refused by cloud preflight before claims or lane
    mutations. Confirm membership on the exact platform list. The Android board
@@ -216,8 +221,8 @@ sweep; unpushed work on a destroyed host cannot be recovered.
    real run, AWTD-1364, opened PR #518 in about a minute.
 3. ✅ Harness-neutral `/fixall` (`docs/FIXALL_WEB.md`), with adapters pointing to it (#516).
 4. ☐ Smoke/activate `agent-ship.yml` and the shared reply/resume API after deployment.
-5. ☐ Smoke/activate additional Copilot web work and reviews while preserving the
-   existing Claude web server worker.
+5. ☐ Smoke/activate additional Copilot web work and reviews alongside the cloud
+   Claude worker.
 6. ☐ Verify Android's launcher on its chosen host/VM with the explicit board ID.
 7. ☐ Update and verify the existing Apple/Windows launchers on their actual devices.
 

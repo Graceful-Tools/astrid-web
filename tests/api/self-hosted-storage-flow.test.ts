@@ -191,12 +191,9 @@ describe('self-hosted object serving (AWTD-1286)', () => {
 })
 
 describe('secure-storage on self-hosted storage (AWTD-1286)', () => {
-  it('always offers presigned uploads and never a Blob client token', async () => {
-    const { presignedUploadsEnabled, issueClientUploadToken } = await import('@/lib/secure-storage')
+  it('always offers presigned uploads', async () => {
+    const { presignedUploadsEnabled } = await import('@/lib/secure-storage')
     expect(presignedUploadsEnabled()).toBe(true)
-    await expect(issueClientUploadToken({
-      pathname: 'files/u/x.pdf', allowedContentTypes: ['application/pdf'], maximumSizeInBytes: 1,
-    })).rejects.toThrow(/Vercel Blob/)
   })
 
   it('deleteObject removes what putObject wrote', async () => {

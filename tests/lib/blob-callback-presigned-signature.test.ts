@@ -5,8 +5,9 @@
  * no longer exists, so a verifier that only knows HMAC rejects every callback
  * and no SecureFile row is ever written — the upload lands and is lost.
  *
- * Both schemes are accepted while both credentials exist, because builds that
- * still upload with a client token keep producing HMAC-signed callbacks.
+ * AWTD-1386: the store is on OIDC and the legacy client token is no longer
+ * issued, so an HMAC-signed callback is rejected even while the read/write
+ * token still exists. Ed25519 is the only scheme.
  */
 import { describe, it, expect } from 'vitest'
 import { createHmac, generateKeyPairSync, sign } from 'crypto'
@@ -27,7 +28,7 @@ describe('verifyBlobCallback (AWTD-1368)', () => {
 
   it('AWTD-1368: accepts it with no read/write token at all (the post-OIDC state)', () => {
     expect(
-      verifyBlobCallback(BODY, ed25519Sig(BODY), { webhookPublicKey: PUBLIC_PEM, readWriteToken: undefined }),
+      verifyBlobCallback(BODY, ed25519Sig(BODY), { webhookPublicKey: PUBLIC_PEM }),
     ).toBe(true)
   })
 
@@ -42,21 +43,19 @@ describe('verifyBlobCallback (AWTD-1368)', () => {
   })
 
   it('AWTD-1368: rejects an Ed25519 signature when no webhook key is configured', () => {
-    expect(verifyBlobCallback(BODY, ed25519Sig(BODY), { readWriteToken: TOKEN })).toBe(false)
-  })
-
-  it('AWTD-1368: still accepts a legacy HMAC callback while the token exists, key or not', () => {
-    expect(verifyBlobCallback(BODY, hmacSig(BODY), { readWriteToken: TOKEN })).toBe(true)
-    expect(verifyBlobCallback(BODY, hmacSig(BODY), { readWriteToken: TOKEN, webhookPublicKey: PUBLIC_PEM })).toBe(true)
-  })
-
-  it('AWTD-1368: rejects everything when neither credential is configured', () => {
     expect(verifyBlobCallback(BODY, ed25519Sig(BODY), {})).toBe(false)
+  })
+
+  it('AWTD-1386: rejects a legacy HMAC callback, even one signed with the real read/write token', () => {
+    // The route used to pass the token as a second credential. Passing it
+    // here proves a stray argument cannot reopen the HMAC path.
+    const withToken = { webhookPublicKey: PUBLIC_PEM, readWriteToken: TOKEN } as { webhookPublicKey: string }
+    expect(verifyBlobCallback(BODY, hmacSig(BODY), withToken)).toBe(false)
     expect(verifyBlobCallback(BODY, hmacSig(BODY), {})).toBe(false)
   })
 
   it('AWTD-1368: rejects a missing or garbage signature without throwing', () => {
-    const creds = { webhookPublicKey: PUBLIC_PEM, readWriteToken: TOKEN }
+    const creds = { webhookPublicKey: PUBLIC_PEM }
     expect(verifyBlobCallback(BODY, null, creds)).toBe(false)
     expect(verifyBlobCallback(BODY, '', creds)).toBe(false)
     expect(verifyBlobCallback(BODY, 'zz'.repeat(64), creds)).toBe(false)

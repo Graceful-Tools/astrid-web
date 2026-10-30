@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process'
+import { createCipheriv, randomBytes } from 'node:crypto'
 import type { PrismaClient } from '@prisma/client'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
@@ -320,5 +321,165 @@ describe('per-run UI-test accounts (AWTD-1328)', () => {
   it('refuses to empty an account that is not a run account, however it is reached', async () => {
     const { deleteUITestRun } = await import('@/lib/uitest-run-accounts')
     await expect(deleteUITestRun(prisma, 'not a run id')).rejects.toThrow(/Invalid UI-test run id/)
+  })
+})
+
+// AWTD-1380: the ENCRYPTION_KEY rotation pass, proved the way #524 asked for —
+// rows seeded under an old key, then verify-before / dry run / rewrite /
+// verify-after / read-back through the app's own readers. Unit tests stub the
+// database, and the database is where a missed store or a lost write shows up.
+describe('re-encryption pass against a real database (AWTD-1380)', () => {
+  const OLD = randomBytes(32).toString('hex')
+  const NEW = randomBytes(32).toString('hex')
+  const saved = { key: process.env.ENCRYPTION_KEY, next: process.env.ENCRYPTION_KEY_NEXT }
+
+  function ring(primary: string, next?: string) {
+    process.env.ENCRYPTION_KEY = primary
+    if (next) process.env.ENCRYPTION_KEY_NEXT = next
+    else delete process.env.ENCRYPTION_KEY_NEXT
+  }
+
+  const options = (o: { dryRun?: boolean; verify?: boolean } = {}) => ({
+    dryRun: false,
+    verify: false,
+    batchSize: 2, // small, so paging across batches is exercised too
+    databaseUrlEnv: 'DATABASE_URL',
+    ...o,
+  })
+
+  function legacyCbc(plaintext: string, keyHex: string) {
+    const iv = randomBytes(16)
+    const cipher = createCipheriv('aes-256-cbc', Buffer.from(keyHex, 'hex'), iv)
+    return { encrypted: cipher.update(plaintext, 'utf8', 'hex') + cipher.final('hex'), iv: iv.toString('hex') }
+  }
+
+  afterAll(() => {
+    if (saved.key === undefined) delete process.env.ENCRYPTION_KEY
+    else process.env.ENCRYPTION_KEY = saved.key
+    if (saved.next === undefined) delete process.env.ENCRYPTION_KEY_NEXT
+    else process.env.ENCRYPTION_KEY_NEXT = saved.next
+  })
+
+  it('moves columns AND mcpSettings credentials from the old key to the new one', async () => {
+    const fe = await import('@/lib/field-encryption')
+    const cc = await import('@/lib/ai/credential-cipher')
+    const { reencrypt } = await import('@/scripts/reencrypt-fields')
+
+    ring(OLD)
+    const mcpSettings = JSON.stringify({
+      apiKeys: {
+        claude: { ...cc.encryptCredential('sk-ant-db'), isValid: true },
+        openai: legacyCbc('sk-openai-db', OLD),
+        openclaw: {
+          ...cc.encryptCredential('wss://gateway.example'),
+          isGateway: true,
+          authToken: cc.encryptCredential('gw-db-token'),
+        },
+      },
+      modelPreferences: { claude: 'kept-as-is' },
+    })
+    const user = await prisma.user.create({
+      data: buildUserCreate({ email: `${runPrefix}-reencrypt@example.test`, mcpSettings }),
+    })
+    const contact = await prisma.addressBookContact.create({
+      data: {
+        userId: user.id,
+        email: `${runPrefix}-contact@example.test`,
+        name: fe.encryptField('Ada Lovelace'),
+        phoneNumber: fe.encryptField('0771 123 4567'),
+      },
+    })
+    // 2 contact columns + claude + openai + openclaw URL + openclaw authToken
+    const seeded = 6
+
+    // verify-before: the new key alone cannot read what the old key wrote.
+    ring(NEW)
+    expect((await reencrypt(prisma, options({ verify: true }))).failed).toBeGreaterThanOrEqual(seeded)
+
+    // Mid-rotation: ENCRYPTION_KEY is still the old key, NEXT the new one.
+    ring(OLD, NEW)
+    const dry = await reencrypt(prisma, options({ dryRun: true }))
+    expect(dry.failed).toBe(0)
+    expect(dry.rewritten).toBeGreaterThanOrEqual(seeded)
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).mcpSettings).toBe(mcpSettings)
+
+    const rewrite = await reencrypt(prisma, options())
+    expect(rewrite).toMatchObject({ failed: 0, conflicts: 0 })
+
+    // verify-after, the finish line: the new key alone reads everything.
+    ring(NEW)
+    expect((await reencrypt(prisma, options({ verify: true }))).failed).toBe(0)
+
+    // Read back through the app's own readers, under the new key only.
+    const stored = JSON.parse((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).mcpSettings!)
+    expect(cc.decryptCredential(stored.apiKeys.claude)).toBe('sk-ant-db')
+    expect(cc.decryptCredential(stored.apiKeys.openai)).toBe('sk-openai-db')
+    expect(cc.decryptCredential(stored.apiKeys.openclaw)).toBe('wss://gateway.example')
+    expect(cc.decryptCredential(stored.apiKeys.openclaw.authToken)).toBe('gw-db-token')
+    expect(stored.apiKeys.claude.isValid).toBe(true)
+    expect(stored.apiKeys.openclaw.isGateway).toBe(true)
+    expect(stored.modelPreferences).toEqual({ claude: 'kept-as-is' })
+
+    const row = await prisma.addressBookContact.findUniqueOrThrow({ where: { id: contact.id } })
+    expect(fe.decryptField(row.name)).toBe('Ada Lovelace')
+    expect(fe.decryptField(row.phoneNumber)).toBe('0771 123 4567')
+  })
+
+  it('never overwrites a credential the app refreshed mid-pass — it is counted as a conflict', async () => {
+    const cc = await import('@/lib/ai/credential-cipher')
+    const { reencrypt } = await import('@/scripts/reencrypt-fields')
+
+    ring(OLD)
+    const user = await prisma.user.create({
+      data: buildUserCreate({
+        email: `${runPrefix}-reencrypt-race@example.test`,
+        mcpSettings: JSON.stringify({ apiKeys: { claude: cc.encryptCredential('sk-stale') } }),
+      }),
+    })
+
+    ring(OLD, NEW)
+    // What the credentials route writes when the user saves a new key: under
+    // the current key, between the pass's read and its write.
+    const refreshed = JSON.stringify({ apiKeys: { claude: cc.encryptCredential('sk-fresh') } })
+    let raced = false
+    const racingUser = {
+      findMany: async (args: Parameters<typeof prisma.user.findMany>[0]) => {
+        const rows = await prisma.user.findMany(args)
+        if (!raced && rows.some(r => r.id === user.id)) {
+          raced = true
+          await prisma.user.update({ where: { id: user.id }, data: { mcpSettings: refreshed } })
+        }
+        return rows
+      },
+      updateMany: (args: Parameters<typeof prisma.user.updateMany>[0]) => prisma.user.updateMany(args),
+    }
+    const racing = new Proxy(prisma, {
+      get: (target, prop) => (prop === 'user' ? racingUser : Reflect.get(target, prop)),
+    })
+
+    const outcome = await reencrypt(racing, options())
+    expect(raced).toBe(true)
+    expect(outcome.conflicts).toBeGreaterThanOrEqual(1)
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).mcpSettings).toBe(refreshed)
+
+    await prisma.user.delete({ where: { id: user.id } })
+  })
+
+  it('reports a credential no key decrypts, leaves it exactly as stored, and the pass reads failed', async () => {
+    const cc = await import('@/lib/ai/credential-cipher')
+    const { reencrypt } = await import('@/scripts/reencrypt-fields')
+
+    ring(randomBytes(32).toString('hex')) // a key nobody holds any more
+    const mcpSettings = JSON.stringify({ apiKeys: { gemini: cc.encryptCredential('sk-orphan') } })
+    const user = await prisma.user.create({
+      data: buildUserCreate({ email: `${runPrefix}-reencrypt-orphan@example.test`, mcpSettings }),
+    })
+
+    ring(OLD, NEW)
+    const outcome = await reencrypt(prisma, options())
+    expect(outcome.failed).toBeGreaterThanOrEqual(1)
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).mcpSettings).toBe(mcpSettings)
+
+    await prisma.user.delete({ where: { id: user.id } })
   })
 })

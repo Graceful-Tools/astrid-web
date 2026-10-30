@@ -531,11 +531,15 @@ read as oversights. Some were. Here is where each one actually stands.
 
 **Object storage — swappable.** Every read and write goes through
 `lib/secure-storage.ts`, which is the only module allowed to name the vendor
-(`putObject`, `deleteObject`, `issueClientUploadToken`). Eight other files used
+(`putObject`, `deleteObject`, `issuePresignedUpload`). Eight other files used
 to import `@vercel/blob` directly; `tests/rules/blob-storage-goes-through-secure-storage.test.ts`
 now fails if a ninth appears, subpath imports included.
 `STORAGE_DRIVER=s3|local` points that seam at any S3-compatible bucket or a mounted
 directory, served by the app itself (AWTD-1286, [deployment/SELF_HOSTING.md](./deployment/SELF_HOSTING.md)).
+On Vercel Blob, direct uploads need the store's **OIDC upgrade**, which provisions
+`BLOB_WEBHOOK_PUBLIC_KEY` and `BLOB_STORE_ID`. A store still on a static
+`BLOB_READ_WRITE_TOKEN` refuses direct uploads: the client-token fallback was removed in
+AWTD-1386.
 
 **Email — one transport, swappable.** `lib/email-transport.ts` holds the single
 Resend client and the one rule deciding whether a message actually sends.

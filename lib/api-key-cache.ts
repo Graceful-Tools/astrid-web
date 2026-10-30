@@ -3,9 +3,7 @@
  * Securely retrieves and caches API keys for AI orchestration
  */
 
-import CryptoJS from 'crypto-js'
-import { tryEachKey } from '@/lib/encryption-keys'
-import crypto from 'crypto'
+import { decryptCredential, type EncryptedCredential } from '@/lib/ai/credential-cipher'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { BRAND_ASSISTANT_SERVICE, type AIService } from '@/lib/ai/agent-config'
@@ -62,9 +60,11 @@ export async function getCachedApiKey(
       return null
     }
 
-    // Decrypt the API key (new format)
+    // The same cipher that wrote it (AWTD-1380): GCM since 2026-07-05, legacy
+    // CBC before. A private CBC-only decrypt here used to fail every GCM key,
+    // so any credential saved since then read as absent.
     try {
-      const decryptedKey = decryptApiKeyNew(encryptedKey)
+      const decryptedKey = decryptCredential(encryptedKey as EncryptedCredential)
 
       // Cache the decrypted key
       apiKeyCache.set(cacheKey, {
@@ -119,68 +119,6 @@ export function clearApiKeyCache(userId: string): void {
   services.forEach(service => {
     apiKeyCache.delete(`${userId}-${service}`)
   })
-}
-
-/**
- * Get the appropriate key field from settings
- */
-function getKeyFromSettings(settings: any, service: string): string | null {
-  switch (service) {
-    case 'claude':
-      return settings.claudeApiKey || null
-    case 'openai':
-      return settings.openaiApiKey || null
-    default:
-      return null
-  }
-}
-
-/**
- * Decrypt API key using the same method as the existing system
- */
-function decryptApiKey(encryptedKey: string): string {
-  // Mid-rotation a stored key may be under either key (AWTD-1369). Note this
-  // path passes the hex string as a CryptoJS *passphrase*, not as 32 raw bytes
-  // — a different derivation from every other cipher here. It is read-only
-  // legacy, so it is wired to the keyring rather than corrected.
-  try {
-    return tryEachKey(process.env, keyHex => {
-      const bytes = CryptoJS.AES.decrypt(encryptedKey, keyHex)
-      const decrypted = bytes.toString(CryptoJS.enc.Utf8)
-      // CryptoJS returns empty rather than throwing on the wrong key, so an
-      // empty result has to become a throw or tryEachKey cannot tell the keys
-      // apart and the first one always "wins".
-      if (!decrypted) {
-        throw new Error('Failed to decrypt API key')
-      }
-      return decrypted
-    })
-  } catch (error) {
-    throw new Error(`API key decryption failed: ${error}`)
-  }
-}
-
-/**
- * Decrypt API key using the new Node.js crypto format
- */
-function decryptApiKeyNew(encryptedData: { encrypted: string; iv: string }): string {
-  try {
-    // Mid-rotation a stored key may be under either key (AWTD-1369). CBC is
-    // unauthenticated, so a wrong key usually raises a padding error but can
-    // return mojibake; callers treat a failure as "no credential", so the worst
-    // case is a key reading as absent rather than as wrong.
-    return tryEachKey(process.env, keyHex => {
-      const algorithm = 'aes-256-cbc'
-      const key = Buffer.from(keyHex, 'hex')
-      const iv = Buffer.from(encryptedData.iv, 'hex')
-      const decipher = crypto.createDecipheriv(algorithm, key, iv)
-      let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8')
-      decrypted += decipher.final('utf8')
-      return decrypted
-    })
-  } catch (error) {
-    throw new Error(`API key decryption failed: ${error}`)
-  }
 }
 
 /**

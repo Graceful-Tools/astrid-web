@@ -226,11 +226,13 @@ export interface LegacySecureUploadRequestResponse {
 }
 
 /**
- * POST /api/secure-upload/get-upload-url — Vercel Blob direct-upload
- * coordinates. iOS streams the file body to `uploadToken` + `pathname`.
+ * POST /api/secure-upload/get-upload-url — direct-upload coordinates. iOS/Mac
+ * PUT the file body to `presigned.uploadUrl` with `presigned.headers`
+ * (AITD-558). The `uploadToken` that builds before 1253/1254 read was removed
+ * with the Blob store's OIDC upgrade (AWTD-1386).
  */
 export interface LegacySecureUploadGetUrlResponse {
-  uploadToken: string
+  presigned: { uploadUrl: string; headers: Record<string, string> }
   pathname: string
   fileId: string
 }

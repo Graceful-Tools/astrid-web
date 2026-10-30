@@ -21,12 +21,13 @@
  *
  * Trying more than one key is safe because every format written here is
  * authenticated (AES-256-GCM): a wrong key fails the auth tag rather than
- * returning plausible garbage. Legacy AES-256-CBC values in
- * lib/api-key-cache.ts and lib/ai/credential-cipher.ts are NOT authenticated,
- * so a wrong key there yields either a padding error or mojibake. Those are
- * read-only legacy paths and their callers already treat a failure as "no
- * credential", so the risk is a credential that reads as absent, not one that
- * reads as wrong.
+ * returning plausible garbage. Legacy AES-256-CBC AI credentials (read by
+ * lib/ai/credential-cipher.ts, which lib/api-key-cache.ts now goes through) are
+ * NOT authenticated, so a wrong key there yields a padding error or, rarely,
+ * output that strict UTF-8 decoding usually rejects. Callers treat a failure
+ * as "no credential". The re-encryption pass is stricter still: it rewrites a
+ * CBC value only when exactly one key decrypts it, upgrading it to GCM
+ * (AWTD-1380).
  */
 
 /** aes-256 needs 32 bytes, which is 64 hex characters. */

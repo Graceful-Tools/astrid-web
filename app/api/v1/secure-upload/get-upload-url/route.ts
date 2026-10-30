@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api-auth-wrapper"
 import { prisma } from "@/lib/prisma"
 import { randomUUID } from "crypto"
-import { issueClientUploadToken, issuePresignedUpload, presignedUploadsEnabled } from "@/lib/secure-storage"
+import { issuePresignedUpload, presignedUploadsEnabled } from "@/lib/secure-storage"
 import { createLogger } from '@/lib/logger'
 import { findSecureFileByClientRequestId } from "@/lib/secure-file-idempotency"
 import { validateSecureUpload, SECURE_UPLOAD_MIME_TYPES } from '@/lib/upload-validation'
@@ -84,7 +84,7 @@ export const POST = withAuth(
                   some: {
                     OR: [
                       { ownerId: userId },
-                      { listMembers: { some: { userId } } }
+                      { listMembers: { some: { userId: userId } } }
                     ]
                   }
                 }
@@ -106,7 +106,7 @@ export const POST = withAuth(
             id: context.listId,
             OR: [
               { ownerId: userId },
-              { listMembers: { some: { userId } } }
+              { listMembers: { some: { userId: userId } } }
             ]
           }
         })
@@ -134,7 +134,7 @@ export const POST = withAuth(
                         some: {
                           OR: [
                             { ownerId: userId },
-                            { listMembers: { some: { userId } } }
+                            { listMembers: { some: { userId: userId } } }
                           ]
                         }
                       }
@@ -184,7 +184,7 @@ export const POST = withAuth(
         onUploadCompleted: {
           callbackUrl,
           tokenPayload: JSON.stringify({
-            userId,
+            userId: userId,
             fileId,
             fileName,
             fileType,
@@ -201,27 +201,18 @@ export const POST = withAuth(
         allowedContentTypes: SECURE_UPLOAD_MIME_TYPES as string[],
       }
 
-      // Presigned request, once the store can verify its callback (AWTD-1368).
-      // iOS/Mac (AITD-558) prefer it: PUT presigned.uploadUrl with
-      // presigned.headers plus Content-Type, and no Authorization.
-      const presigned = presignedUploadsEnabled()
-        ? await issuePresignedUpload({ ...uploadRequest, contentType: fileType })
-        : null
+      // Presigned only (AWTD-1368): PUT presigned.uploadUrl with
+      // presigned.headers plus Content-Type, and no Authorization. The legacy
+      // `uploadToken` went with the Blob store's OIDC upgrade (AWTD-1386), so
+      // iOS/Mac builds before 1253/1254 can no longer upload.
+      if (!presignedUploadsEnabled()) {
+        log.error("Direct uploads need BLOB_WEBHOOK_PUBLIC_KEY (the Blob store's OIDC upgrade) or STORAGE_DRIVER")
+        return NextResponse.json({ error: "Storage not configured" }, { status: 500 })
+      }
 
-      // Legacy client token, kept for builds that predate presigned uploads and
-      // only while the read/write token it is derived from still exists.
-      // For those builds: PUT to uploadUrl with header
-      // "x-vercel-blob-client-token: {uploadToken}".
-      const legacy = !presigned || process.env.BLOB_READ_WRITE_TOKEN
-        ? await issueClientUploadToken(uploadRequest)
-        : null
+      const presigned = await issuePresignedUpload({ ...uploadRequest, contentType: fileType })
 
-      return NextResponse.json({
-        pathname,
-        fileId,
-        ...(presigned ? { presigned } : {}),
-        ...(legacy ? { uploadToken: legacy.token, uploadUrl: legacy.uploadUrl } : {}),
-      })
+      return NextResponse.json({ pathname, fileId, presigned })
 
     } catch (error) {
       log.error({ err: error }, "Error generating upload URL:")

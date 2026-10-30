@@ -29,8 +29,9 @@ query ProjectSchema($id: ID!) {
       fields(first: 100) {
         nodes {
           __typename
-          ... on ProjectV2FieldCommon { id name dataType }
-          ... on ProjectV2SingleSelectField { options { id name color description } }
+          ... on ProjectV2FieldCommon { id name dataType isIssueField }
+          ... on ProjectV2Field { issueField { ...IssueFieldRef } }
+          ... on ProjectV2SingleSelectField { options { id name color description } issueField { ...IssueFieldRef } }
           ... on ProjectV2IterationField {
             configuration {
               iterations { id title startDate duration }
@@ -42,6 +43,15 @@ query ProjectSchema($id: ID!) {
     }
   }
   rateLimit { cost remaining resetAt }
+}
+# The issue field behind a project field (AWTD-1313): written with updateIssueFieldValue.
+# GitHub answers FORBIDDEN (null, beside partial data) to an App without issue-field access.
+fragment IssueFieldRef on IssueFields {
+  ... on IssueFieldDate { id }
+  ... on IssueFieldText { id }
+  ... on IssueFieldNumber { id }
+  ... on IssueFieldSingleSelect { id }
+  ... on IssueFieldMultiSelect { id }
 }`
 
 export const ORG_PROJECTS_QUERY = /* GraphQL */ `
