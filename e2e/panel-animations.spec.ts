@@ -1,180 +1,119 @@
 /**
- * Regression tests for panel slide animations, arrow positioning, and dim-overlay dismiss.
+ * Panel slide animations, arrow positioning, and the dim-overlay dismiss, for
+ * the task detail panel and the settings detail panel (which share
+ * usePanelArrowPosition and useSlideCloseAnimation).
  *
- * Covers the integrated behavior shared between task detail panel and settings detail panel,
- * which are being refactored onto shared hooks (usePanelArrowPosition, useSlideCloseAnimation).
- *
- * These tests require authentication: a minted session in .auth/user.json
- * (docs/testing/PLAYWRIGHT_AUTH_GUIDE.md).
+ * Revived signed in (AWTD-1425). It used to read whatever tasks the account
+ * had, sleep, check the closing class once, and return early — passing — when
+ * a selector found nothing, so a green run could have tested nothing. Each
+ * test now seeds its own list, and the closing animation is recorded by a
+ * MutationObserver installed before the close, so a 300ms class is not a race.
  */
 
 import { test, expect } from '@playwright/test'
+import type { APIRequestContext, Page } from '@playwright/test'
+import { gotoWithRetry } from './utils/test-helpers'
 
-const DESKTOP_VIEWPORT = { width: 1440, height: 900 }    // 3-column
-const TABLET_VIEWPORT = { width: 1024, height: 768 }     // 2-column
-const MOBILE_VIEWPORT = { width: 390, height: 844 }      // 1-column
+const DESKTOP_VIEWPORT = { width: 1440, height: 900 } // 3-column
+const MOBILE_VIEWPORT = { width: 390, height: 844 } // 1-column
+
+async function seededList(request: APIRequestContext): Promise<{ listId: string; title: string }> {
+  const listResponse = await request.post('/api/v1/lists', { data: { name: `Panels ${Date.now()}`, privacy: 'PRIVATE' } })
+  expect(listResponse.ok(), await listResponse.text()).toBeTruthy()
+  const listId = ((await listResponse.json()) as { list: { id: string } }).list.id
+  const title = `Panel task ${Date.now()}`
+  const taskResponse = await request.post('/api/v1/tasks', { data: { title, listIds: [listId] } })
+  expect(taskResponse.ok(), await taskResponse.text()).toBeTruthy()
+  return { listId, title }
+}
+
+const row = (page: Page, title: string) => page.locator('[data-task-id]').filter({ hasText: title })
+
+/** Start recording whether any desktop panel gets the closing class. */
+async function watchForAnimateOut(page: Page) {
+  await page.evaluate(`
+    window.__sawAnimateOut = false;
+    new MutationObserver(() => {
+      if (document.querySelector('.task-panel-desktop.task-panel-animate-out')) window.__sawAnimateOut = true;
+    }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'], childList: true });
+  `)
+}
+const sawAnimateOut = (page: Page) => page.evaluate('window.__sawAnimateOut') as Promise<boolean>
 
 test.describe('Task detail panel arrow + slide animation', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/')
-    await page.waitForSelector('[data-testid="task-list"], .task-list-container', { timeout: 10000 })
-  })
-
-  test('desktop: arrow renders and points at the selected task row', async ({ page }) => {
+  test('desktop: the arrow points at the selected row', async ({ page, request }) => {
     await page.setViewportSize(DESKTOP_VIEWPORT)
-    await page.waitForTimeout(300)
+    const { listId, title } = await seededList(request)
+    await gotoWithRetry(page, `/lists/${listId}`)
 
-    const firstTask = page.locator('.task-row').first()
-    await firstTask.waitFor({ state: 'visible' })
-    await firstTask.click()
-
-    await page.waitForSelector('.task-panel-desktop', { timeout: 5000 })
-
-    const arrow = page.locator('.task-panel-arrow').first()
+    await row(page, title).click()
+    await expect(page.locator('.task-panel-desktop')).toBeVisible()
+    const arrow = page.locator('.task-panel-arrow:visible').first()
     await expect(arrow).toBeVisible()
 
-    const arrowTop = await arrow.evaluate(el => parseFloat(el.style.top || '0'))
-    expect(arrowTop).toBeGreaterThan(0)
+    // The arrow's middle sits within the row it points at.
+    const rowBox = (await row(page, title).boundingBox())!
+    const arrowBox = (await arrow.boundingBox())!
+    const arrowMiddle = arrowBox.y + arrowBox.height / 2
+    expect(arrowMiddle).toBeGreaterThanOrEqual(rowBox.y - 4)
+    expect(arrowMiddle).toBeLessThanOrEqual(rowBox.y + rowBox.height + 4)
   })
 
-  test('desktop: close triggers animate-out class then removes panel', async ({ page }) => {
+  test('desktop: closing animates out, then removes the panel', async ({ page, request }) => {
     await page.setViewportSize(DESKTOP_VIEWPORT)
-    await page.waitForTimeout(300)
+    const { listId, title } = await seededList(request)
+    await gotoWithRetry(page, `/lists/${listId}`)
 
-    const firstTask = page.locator('.task-row').first()
-    await firstTask.waitFor({ state: 'visible' })
-    await firstTask.click()
+    await row(page, title).click()
+    await expect(page.locator('.task-panel-desktop')).toBeVisible()
 
-    await page.waitForSelector('.task-panel-desktop', { timeout: 5000 })
-
-    // Re-click the same task to trigger animated close (toggles off)
-    await firstTask.click()
-
-    // Expect animate-out class to appear briefly
-    const panelHasClosing = await page.evaluate(() => {
-      const panel = document.querySelector('.task-panel-desktop')
-      return panel?.classList.contains('task-panel-animate-out') ?? false
-    })
-    expect(panelHasClosing).toBe(true)
-
-    // After ~300ms the panel should be removed
-    await page.waitForTimeout(400)
+    await watchForAnimateOut(page)
+    await row(page, title).click() // the same row again closes it
     await expect(page.locator('.task-panel-desktop')).toHaveCount(0)
+    expect(await sawAnimateOut(page)).toBe(true)
   })
 
-  test('mobile: click task opens full-screen panel without arrow', async ({ page }) => {
+  test('mobile: a task opens full screen, without an arrow', async ({ page, request }) => {
     await page.setViewportSize(MOBILE_VIEWPORT)
-    await page.waitForTimeout(300)
+    const { listId, title } = await seededList(request)
+    await gotoWithRetry(page, `/lists/${listId}`)
 
-    const firstTask = page.locator('.task-row, .mobile-task-item').first()
-    await firstTask.waitFor({ state: 'visible' })
-    await firstTask.click()
-
-    await page.waitForSelector('.task-panel-mobile', { timeout: 5000 })
+    await row(page, title).click()
     await expect(page.locator('.task-panel-mobile')).toBeVisible()
+    await expect(page.locator('.task-panel-arrow:visible')).toHaveCount(0)
   })
 })
 
 test.describe('Settings detail panel arrow + slide animation', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
-  })
-
-  test('desktop: opening a settings subpage renders arrow at source card position', async ({ page }) => {
+  test('desktop: a settings page opens with its arrow, and closing it again animates out', async ({ page }) => {
     await page.setViewportSize(DESKTOP_VIEWPORT)
-    await page.waitForTimeout(300)
+    await gotoWithRetry(page, '/settings')
 
-    // Open settings hub
-    const settingsNavButton = page.locator('button[data-settings-button], .sidebar-navigation button').filter({ hasText: /settings/i }).first()
-    if (await settingsNavButton.count() === 0) return // No settings entry in UI, skip
-    await settingsNavButton.click()
-    await page.waitForTimeout(300)
+    const card = page.locator('[data-settings-page]').first()
+    await expect(card).toBeVisible()
+    await card.click()
+    await expect(page.locator('[data-task-detail-panel]')).toBeVisible()
+    await expect(page.locator('.task-panel-arrow:visible').first()).toBeVisible()
 
-    const firstSettingsCard = page.locator('[data-settings-page]').first()
-    if (await firstSettingsCard.count() === 0) return
-    await firstSettingsCard.click()
-
-    await page.waitForSelector('[data-task-detail-panel]', { timeout: 5000 })
-
-    const arrow = page.locator('.task-panel-arrow').first()
-    await expect(arrow).toBeVisible()
-
-    const arrowTop = await arrow.evaluate(el => parseFloat(el.style.top || '0'))
-    expect(arrowTop).toBeGreaterThanOrEqual(20)
-  })
-
-  test('desktop: toggling a settings subpage off triggers animate-out class', async ({ page }) => {
-    await page.setViewportSize(DESKTOP_VIEWPORT)
-    await page.waitForTimeout(300)
-
-    const settingsNavButton = page.locator('button[data-settings-button], .sidebar-navigation button').filter({ hasText: /settings/i }).first()
-    if (await settingsNavButton.count() === 0) return
-    await settingsNavButton.click()
-    await page.waitForTimeout(300)
-
-    const firstCard = page.locator('[data-settings-page]').first()
-    if (await firstCard.count() === 0) return
-    await firstCard.click()
-    await page.waitForSelector('[data-task-detail-panel]', { timeout: 5000 })
-
-    // Click the same card again → animated close
-    await firstCard.click()
-
-    const hasClosing = await page.evaluate(() => {
-      const panel = document.querySelector('.task-panel-desktop')
-      return panel?.classList.contains('task-panel-animate-out') ?? false
-    })
-    expect(hasClosing).toBe(true)
-
-    await page.waitForTimeout(400)
+    await watchForAnimateOut(page)
+    await card.click()
     await expect(page.locator('[data-task-detail-panel]')).toHaveCount(0)
+    expect(await sawAnimateOut(page)).toBe(true)
   })
 })
 
 test.describe('Dim-overlay dismiss handler', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
-  })
-
-  test('desktop: clicking the chat dim overlay while a task is open closes the task', async ({ page }) => {
+  test('desktop: clicking the dimmed chat pane while a task is open closes the task', async ({ page, request }) => {
     await page.setViewportSize(DESKTOP_VIEWPORT)
-    await page.waitForTimeout(300)
+    const { listId, title } = await seededList(request)
+    await gotoWithRetry(page, `/lists/${listId}`)
 
-    const firstTask = page.locator('.task-row').first()
-    await firstTask.waitFor({ state: 'visible' })
-    await firstTask.click()
-    await page.waitForSelector('.task-panel-desktop', { timeout: 5000 })
-
-    // The dim overlay is inside the chat panel column — find it by its classes
-    const dimOverlay = page.locator('div.bg-white\\/50, div.bg-black\\/40').first()
-    if (await dimOverlay.count() === 0) return // 2-col might not always show chat panel
-    await dimOverlay.click({ force: true })
-
-    await page.waitForTimeout(400)
+    await row(page, title).click()
+    await expect(page.locator('.task-panel-desktop')).toBeVisible()
+    const dimmer = page.getByTestId('chat-pane-dimmer')
+    await expect(dimmer).toBeVisible()
+    await dimmer.click()
     await expect(page.locator('.task-panel-desktop')).toHaveCount(0)
   })
-
-  test('desktop: clicking the chat dim overlay while a settings subpage is open closes it', async ({ page }) => {
-    await page.setViewportSize(DESKTOP_VIEWPORT)
-    await page.waitForTimeout(300)
-
-    const settingsNavButton = page.locator('button[data-settings-button], .sidebar-navigation button').filter({ hasText: /settings/i }).first()
-    if (await settingsNavButton.count() === 0) return
-    await settingsNavButton.click()
-    await page.waitForTimeout(300)
-
-    const firstCard = page.locator('[data-settings-page]').first()
-    if (await firstCard.count() === 0) return
-    await firstCard.click()
-    await page.waitForSelector('[data-task-detail-panel]', { timeout: 5000 })
-
-    const dimOverlay = page.locator('div.bg-white\\/50, div.bg-black\\/40').first()
-    if (await dimOverlay.count() === 0) return
-    await dimOverlay.click({ force: true })
-
-    await page.waitForTimeout(400)
-    await expect(page.locator('[data-task-detail-panel]')).toHaveCount(0)
-  })
+  // No settings counterpart: the settings view has no chat pane to dim.
 })
