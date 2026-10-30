@@ -9,8 +9,8 @@
 
 ## Database & Storage
 - **Database**: PostgreSQL (Neon serverless)
-- **ORM**: Prisma 6.19.2
-- **Client**: @prisma/client 6.19.2
+- **ORM**: Prisma 7.10.1 (CLI connection in `prisma.config.ts`)
+- **Client**: @prisma/client 7.10.1, through `@prisma/adapter-pg` (`lib/prisma-adapter.ts`)
 - **Caching**: Redis (Upstash) - serverless REST API
 - **File Storage**: Vercel Blob
 - **Offline Storage**: IndexedDB via Dexie 4.4.7
