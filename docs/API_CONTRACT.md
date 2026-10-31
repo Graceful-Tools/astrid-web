@@ -942,6 +942,26 @@ All errors follow this format:
 | 429 | Too Many Requests - Rate limited |
 | 500 | Internal Server Error |
 
+### Hosted MCP authentication challenges
+
+`/mcp` validates bearer credentials before initialization, tool discovery, or
+dispatch; `/mcp/messages` revalidates them before an SSE message is dispatched.
+OAuth and legacy MCP bearer tokens remain supported, as do Basic client
+credentials and the existing `X-Astrid-*` headers. Browser sessions cannot
+substitute for an invalid hosted bearer.
+
+Rejected bearer credentials return HTTP 401 with:
+
+```http
+WWW-Authenticate: Bearer resource_metadata="https://www.astrid.cc/.well-known/oauth-protected-resource/mcp", error="invalid_token"
+```
+
+The metadata URL follows the requested host. Missing credentials receive the same
+discovery challenge without `error="invalid_token"`. `/api/mcp/operations` also
+includes discovery in its existing HTTP 401 challenge. Backend authentication
+failures remain HTTP 500, not invalid-token challenges; authenticated task/scope
+denials remain authorization failures, not requests to sign in again.
+
 ---
 
 ## Rate Limiting
