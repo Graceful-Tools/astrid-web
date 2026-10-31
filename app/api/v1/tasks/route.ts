@@ -212,6 +212,8 @@ export const GET = withAuth(
  *   assigneeId?: string
  *   dueDateTime?: ISO datetime string
  *   isAllDay?: boolean
+ *   reminderTime?: ISO datetime string
+ *   reminderType?: 'push' | 'email' | 'both'
  *   isPrivate?: boolean
  *   repeating?: string
  *   repeatingData?: object (custom pattern; only read when repeating is "custom")
@@ -265,6 +267,10 @@ export const POST = withAuth(
         dueDateTime: body.dueDateTime,
         when: body.when,
         isAllDay: body.isAllDay,
+        // Named here or dropped: the service honours both, but this input is
+        // built field by field (AWTD-1446).
+        reminderTime: body.reminderTime,
+        reminderType: body.reminderType,
         isPrivate: body.isPrivate,
         repeating: body.repeating,
         // The update route has accepted both since it shipped; create ignored
