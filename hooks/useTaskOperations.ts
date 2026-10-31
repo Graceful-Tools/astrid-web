@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { useToast } from '@/hooks/use-toast'
 import { apiPost, apiPut, apiDelete } from '@/lib/api'
@@ -35,6 +35,8 @@ interface CreateTaskData {
   priority?: number
   dueDate?: Date | string | null
   dueDateTime?: Date | string | null  // New field - preferred over dueDate
+  /** Whether dueDateTime is a day rather than a moment. The caller knows; the date cannot say (AWTD-1433). */
+  isAllDay?: boolean
   assigneeId?: string | null
   listIds?: string[]
   repeating?: string
@@ -62,13 +64,7 @@ export const useTaskOperations = ({
 }: UseTaskOperationsProps = {}) => {
   const { toast } = useToast()
 
-  // Loading states
-  const [isCreating, setIsCreating] = useState(false)
-  const [isUpdating, setIsUpdating] = useState<Record<string, boolean>>({})
-  const [isDeleting, setIsDeleting] = useState<Record<string, boolean>>({})
-
   const createTask = useCallback(async (taskData: CreateTaskData): Promise<Task | null> => {
-    setIsCreating(true)
     try {
       // Play creation sound immediately (optimistic)
       playTaskCreateSound()
@@ -76,20 +72,16 @@ export const useTaskOperations = ({
       // Prefer dueDateTime over dueDate (dueDateTime is the new standard with time support)
       const dateValue = taskData.dueDateTime || taskData.dueDate
 
-      // Determine if this is an all-day task
-      // If date is at midnight (00:00:00), treat as all-day task
-      let isAllDay = false
-      if (dateValue) {
-        const date = new Date(dateValue)
-        isAllDay = date.getHours() === 0 && date.getMinutes() === 0 && date.getSeconds() === 0
-      }
+      // All-day dates are stored at UTC midnight, so the date alone cannot say
+      // whether a task is all-day in a non-UTC zone. Trust the caller (AWTD-1433).
+      const isAllDay = taskData.isAllDay ?? false
 
       const apiData: ApiCreateTaskData = {
         title: taskData.title,
         description: taskData.description || '',
         priority: (taskData.priority || 0) as 0 | 1 | 2 | 3,
         dueDateTime: dateValue ? new Date(dateValue) : undefined,
-        isAllDay,  // Explicitly set isAllDay based on time component
+        isAllDay,
         assigneeId: taskData.assigneeId || undefined,
         listIds: taskData.listIds || [],
         repeating: taskData.repeating as any || 'never',
@@ -234,13 +226,10 @@ export const useTaskOperations = ({
         variant: "destructive"
       })
       return null
-    } finally {
-      setIsCreating(false)
     }
   }, [onTaskCreated, onError, toast, session])
 
   const updateTask = useCallback(async (taskId: string, updates: UpdateTaskData, currentTaskContext?: Task): Promise<Task | null> => {
-    setIsUpdating(prev => ({ ...prev, [taskId]: true }))
     try {
       // Get existing task first to check if completion status is changing
       // Try IndexedDB first (works for both offline and online due to caching)
@@ -517,13 +506,10 @@ export const useTaskOperations = ({
         variant: "destructive"
       })
       return null
-    } finally {
-      setIsUpdating(prev => ({ ...prev, [taskId]: false }))
     }
   }, [onTaskUpdated, onError, toast, session])
 
   const deleteTask = useCallback(async (taskId: string): Promise<boolean> => {
-    setIsDeleting(prev => ({ ...prev, [taskId]: true }))
     try {
       // Check if offline
       if (isOfflineMode()) {
@@ -572,8 +558,6 @@ export const useTaskOperations = ({
         variant: "destructive"
       })
       return false
-    } finally {
-      setIsDeleting(prev => ({ ...prev, [taskId]: false }))
     }
   }, [onTaskDeleted, onError, toast])
 
@@ -605,12 +589,6 @@ export const useTaskOperations = ({
     updateTaskPriority,
     updateTaskAssignee,
     updateTaskDueDate,
-    updateTaskLists,
-    // Loading states
-    isCreating,
-    isUpdating,
-    isDeleting,
-    // Check if any operation is in progress
-    isAnyOperationPending: isCreating || Object.values(isUpdating).some(Boolean) || Object.values(isDeleting).some(Boolean)
+    updateTaskLists
   }
 }

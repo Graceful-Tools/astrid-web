@@ -1,234 +1,126 @@
 /**
+ * @vitest-environment node
+ *
  * Channel Adapter Session-Aware Dedup Tests
  *
- * Tests that the Astrid channel adapter's task.assigned handler
- * skips duplicate dispatches when a session already exists.
+ * Drives the real astridChannel adapter (packages/astrid-sdk/src/channel/channel.ts)
+ * over scripted SSE streams, with only fetch faked, and checks that its
+ * task.assigned handler skips duplicate dispatches while a session exists.
+ * This file used to re-implement the handler inside the test (AWTD-1433).
+ *
+ * The SSE client dedups identical events for five minutes before the adapter
+ * sees them, so a repeat the adapter itself must absorb arrives on a later
+ * connection, past that window.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { SessionMapper } from '../../packages/astrid-sdk/src/channel/session-mapper'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { createSdkSseHarness, frame } from '../fixtures/sdk-sse'
+import { astridChannel } from '../../packages/astrid-sdk/src/channel/channel'
+import type { InboundMessage } from '../../packages/astrid-sdk/src/channel/types'
 
-// ── Mock types ────────────────────────────────────────────────────────
+const PAST_SSE_DEDUP_WINDOW_MS = 6 * 60_000
+const RECONNECT_WAIT_MS = 10_000
 
-interface MockEvent {
-  type: string
-  data: {
-    taskId: string
-    task?: { id: string; title: string }
-    comment?: { id: string; content: string }
+let harness: ReturnType<typeof createSdkSseHarness>
+let adapter: ReturnType<typeof astridChannel.createAdapter>
+let onMessage: ReturnType<typeof vi.fn<(msg: InboundMessage) => void>>
+
+beforeEach(() => {
+  vi.useFakeTimers()
+  harness = createSdkSseHarness()
+  adapter = astridChannel.createAdapter({
+    enabled: true,
+    clientId: 'client-id',
+    clientSecret: 'client-secret',
+    apiBase: 'https://sdk-test.example/api/v1',
+  })
+  onMessage = vi.fn<(msg: InboundMessage) => void>()
+})
+
+afterEach(async () => {
+  await adapter.disconnect()
+  vi.clearAllTimers()
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+})
+
+const assigned = (id: string, title: string) =>
+  frame({ taskId: id, task: { id, title, priority: 0, comments: [] } }, { event: 'task.assigned' })
+const completed = (id: string) => frame({ taskId: id }, { event: 'task.completed' })
+const deleted = (id: string) => frame({ taskId: id }, { event: 'task.deleted' })
+const commented = (id: string, commentId: string, content: string) =>
+  frame({ taskId: id, comment: { id: commentId, content } }, { event: 'task.commented' })
+
+/** Stream each batch on its own connection, a dedup window apart. */
+async function run(...streams: string[][]) {
+  for (const chunks of streams) harness.enqueue(...chunks)
+  await adapter.connect(onMessage)
+  for (let i = 1; i < streams.length; i++) {
+    vi.setSystemTime(Date.now() + PAST_SSE_DEDUP_WINDOW_MS)
+    await vi.advanceTimersByTimeAsync(RECONNECT_WAIT_MS)
   }
 }
-
-// ── Simulate the channel adapter's task.assigned handler logic ────────
-// Extracted from packages/astrid-sdk/src/channel/channel.ts
-
-function createMockAdapter() {
-  const sessions = new SessionMapper()
-  const onMessage = vi.fn()
-  const dispatched: string[] = []
-
-  const handleTaskAssigned = (event: MockEvent) => {
-    if (!event.data.task) return
-    const taskId = event.data.taskId
-    if (sessions.get(taskId)) return // Already has active session — skip duplicate
-    sessions.getOrCreate(taskId)
-    onMessage({ content: event.data.task.title, sessionKey: `astrid:task:${taskId}` })
-    dispatched.push(taskId)
-  }
-
-  const handleTaskCompleted = (event: MockEvent) => {
-    sessions.end(event.data.taskId)
-  }
-
-  const handleTaskDeleted = (event: MockEvent) => {
-    sessions.end(event.data.taskId)
-  }
-
-  const handleTaskCommented = (event: MockEvent) => {
-    const sessionKey = sessions.get(event.data.taskId)
-    if (!sessionKey || !event.data.comment) return
-    onMessage({
-      content: event.data.comment.content,
-      sessionKey,
-    })
-  }
-
-  return {
-    sessions,
-    onMessage,
-    dispatched,
-    handleTaskAssigned,
-    handleTaskCompleted,
-    handleTaskDeleted,
-    handleTaskCommented,
-  }
-}
-
-// ── Tests ──────────────────────────────────────────────────────────────
 
 describe('Channel Adapter — Session-Aware Dedup', () => {
-  let adapter: ReturnType<typeof createMockAdapter>
+  it('should dispatch onMessage on first task.assigned', async () => {
+    await run([assigned('task-1', 'Fix bug')])
 
-  beforeEach(() => {
-    adapter = createMockAdapter()
-  })
-
-  it('should dispatch onMessage on first task.assigned', () => {
-    adapter.handleTaskAssigned({
-      type: 'task.assigned',
-      data: {
-        taskId: 'task-1',
-        task: { id: 'task-1', title: 'Fix bug' },
-      },
-    })
-
-    expect(adapter.onMessage).toHaveBeenCalledTimes(1)
-    expect(adapter.onMessage).toHaveBeenCalledWith(
+    expect(onMessage).toHaveBeenCalledTimes(1)
+    expect(onMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        content: 'Fix bug',
+        content: expect.stringContaining('Fix bug'),
         sessionKey: 'astrid:task:task-1',
       })
     )
   })
 
-  it('should NOT dispatch onMessage on second task.assigned for same taskId', () => {
-    // First assignment
-    adapter.handleTaskAssigned({
-      type: 'task.assigned',
-      data: {
-        taskId: 'task-1',
-        task: { id: 'task-1', title: 'Fix bug' },
-      },
-    })
+  it('should NOT dispatch onMessage on second task.assigned for same taskId', async () => {
+    await run([assigned('task-1', 'Fix bug')], [assigned('task-1', 'Fix bug')])
 
-    // Second assignment (duplicate)
-    adapter.handleTaskAssigned({
-      type: 'task.assigned',
-      data: {
-        taskId: 'task-1',
-        task: { id: 'task-1', title: 'Fix bug' },
-      },
-    })
-
-    expect(adapter.onMessage).toHaveBeenCalledTimes(1)
+    expect(onMessage).toHaveBeenCalledTimes(1)
   })
 
-  it('should dispatch onMessage for different taskIds', () => {
-    adapter.handleTaskAssigned({
-      type: 'task.assigned',
-      data: {
-        taskId: 'task-1',
-        task: { id: 'task-1', title: 'Fix bug' },
-      },
-    })
+  it('should dispatch onMessage for different taskIds', async () => {
+    await run([assigned('task-1', 'Fix bug'), assigned('task-2', 'Add feature')])
 
-    adapter.handleTaskAssigned({
-      type: 'task.assigned',
-      data: {
-        taskId: 'task-2',
-        task: { id: 'task-2', title: 'Add feature' },
-      },
-    })
-
-    expect(adapter.onMessage).toHaveBeenCalledTimes(2)
+    expect(onMessage).toHaveBeenCalledTimes(2)
   })
 
-  it('should dispatch onMessage again after task.completed ends session', () => {
-    // First assignment
-    adapter.handleTaskAssigned({
-      type: 'task.assigned',
-      data: {
-        taskId: 'task-1',
-        task: { id: 'task-1', title: 'Fix bug' },
-      },
-    })
+  it('should dispatch onMessage again after task.completed ends session', async () => {
+    await run(
+      [assigned('task-1', 'Fix bug'), completed('task-1')],
+      [assigned('task-1', 'Fix bug (reopened)')]
+    )
 
-    // Task completed — session ends
-    adapter.handleTaskCompleted({
-      type: 'task.completed',
-      data: { taskId: 'task-1' },
-    })
-
-    // Re-assignment of same task — should dispatch again
-    adapter.handleTaskAssigned({
-      type: 'task.assigned',
-      data: {
-        taskId: 'task-1',
-        task: { id: 'task-1', title: 'Fix bug (reopened)' },
-      },
-    })
-
-    expect(adapter.onMessage).toHaveBeenCalledTimes(2)
+    expect(onMessage).toHaveBeenCalledTimes(2)
+    expect(onMessage.mock.calls[1][0].content).toContain('Fix bug (reopened)')
   })
 
-  it('should dispatch onMessage again after task.deleted ends session', () => {
-    adapter.handleTaskAssigned({
-      type: 'task.assigned',
-      data: {
-        taskId: 'task-1',
-        task: { id: 'task-1', title: 'Fix bug' },
-      },
-    })
+  it('should dispatch onMessage again after task.deleted ends session', async () => {
+    await run(
+      [assigned('task-1', 'Fix bug'), deleted('task-1')],
+      [assigned('task-1', 'Fix bug (recreated)')]
+    )
 
-    adapter.handleTaskDeleted({
-      type: 'task.deleted',
-      data: { taskId: 'task-1' },
-    })
-
-    adapter.handleTaskAssigned({
-      type: 'task.assigned',
-      data: {
-        taskId: 'task-1',
-        task: { id: 'task-1', title: 'Fix bug (recreated)' },
-      },
-    })
-
-    expect(adapter.onMessage).toHaveBeenCalledTimes(2)
+    expect(onMessage).toHaveBeenCalledTimes(2)
+    expect(onMessage.mock.calls[1][0].content).toContain('Fix bug (recreated)')
   })
 
-  it('should skip task.assigned when task data is missing', () => {
-    adapter.handleTaskAssigned({
-      type: 'task.assigned',
-      data: {
-        taskId: 'task-1',
-        // no task object
-      },
-    })
+  it('should skip task.assigned when task data is missing', async () => {
+    await run([frame({ taskId: 'task-1' }, { event: 'task.assigned' })])
 
-    expect(adapter.onMessage).not.toHaveBeenCalled()
+    expect(onMessage).not.toHaveBeenCalled()
   })
 
-  it('should skip task.commented when no session exists', () => {
-    // Comment for a task we never received task.assigned for
-    adapter.handleTaskCommented({
-      type: 'task.commented',
-      data: {
-        taskId: 'task-unknown',
-        comment: { id: 'c-1', content: 'hello' },
-      },
-    })
+  it('should skip task.commented when no session exists', async () => {
+    await run([commented('task-unknown', 'c-1', 'hello')])
 
-    expect(adapter.onMessage).not.toHaveBeenCalled()
+    expect(onMessage).not.toHaveBeenCalled()
   })
 
-  it('should deliver task.commented when session exists', () => {
-    // Create session first
-    adapter.handleTaskAssigned({
-      type: 'task.assigned',
-      data: {
-        taskId: 'task-1',
-        task: { id: 'task-1', title: 'Fix bug' },
-      },
-    })
+  it('should deliver task.commented when session exists', async () => {
+    await run([assigned('task-1', 'Fix bug'), commented('task-1', 'c-1', 'Working on it')])
 
-    // Comment should be dispatched
-    adapter.handleTaskCommented({
-      type: 'task.commented',
-      data: {
-        taskId: 'task-1',
-        comment: { id: 'c-1', content: 'Working on it' },
-      },
-    })
-
-    expect(adapter.onMessage).toHaveBeenCalledTimes(2) // assigned + comment
+    expect(onMessage).toHaveBeenCalledTimes(2) // assigned + comment
+    expect(onMessage.mock.calls[1][0].content).toContain('Working on it')
   })
 })
