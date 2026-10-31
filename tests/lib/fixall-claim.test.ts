@@ -7,6 +7,7 @@ import {
   fixallClaimAgentEmail,
   parseFixallClaimRequest,
   DEFAULT_FIXALL_CLAIM_MAILBOX,
+  pendingDeployHandoff,
 } from "@/lib/fixall-claim"
 import { BRAND } from "@/lib/brand/config"
 
@@ -211,5 +212,26 @@ describe("the claim names its harness (AWTD-865 follow-up)", () => {
   it("builds the agent identity from the brand domain, not a literal", () => {
     expect(fixallClaimAgentEmail("claude")).toBe(`claude@${BRAND.agentEmailDomain}`)
     expect(fixallClaimAgentEmail("copilot")).toBe(FIXALL_CLAIM_AGENT_EMAIL)
+  })
+})
+
+describe("pendingDeployHandoff (AWTD-1432)", () => {
+  const sha = "3d0392a40187c84be7d91e77048de22c429c09ea"
+  const at = (iso: string) => new Date(iso)
+
+  it("names the commit when the newest comment is the handoff", () => {
+    expect(pendingDeployHandoff([
+      { content: `PR: #601\n\nAWAITING-DEPLOY: ${sha}`, createdAt: at("2026-10-30T21:51:17Z") },
+      { content: "Picked it up.", createdAt: at("2026-10-30T21:30:00Z") },
+    ])).toBe(sha)
+  })
+
+  it("is null once anyone has commented since, and for a task never handed off", () => {
+    expect(pendingDeployHandoff([
+      { content: `AWAITING-DEPLOY: ${sha}`, createdAt: at("2026-10-30T21:51:17Z") },
+      { content: "Redo it.", createdAt: at("2026-10-31T08:00:00Z") },
+    ])).toBeNull()
+    expect(pendingDeployHandoff([{ content: "Picked it up.", createdAt: at("2026-10-30T21:30:00Z") }])).toBeNull()
+    expect(pendingDeployHandoff([])).toBeNull()
   })
 })

@@ -17,7 +17,7 @@ contention is per machine.
 
 | Where | Owns |
 |---|---|
-| **Cloud (`agent-run.yml`)** | The Claude Code web worker, scheduled :05/:35; it shares the Web board's atomic claims with other web harnesses. The Mac's web loop, the Copilot app's web-queue cron and the `astrid-web` self-hosted runner were retired 2026-10-28 (AWTD-1363) |
+| **Cloud (`agent-run.yml`)** | The Claude Code web worker. A run that finishes a task starts the next one (up to `ASTRID_AGENT_MAX_CHAIN`, default 8), and the :05/:35 schedule restarts an ended chain; it shares the Web board's atomic claims with other web harnesses. The Mac's web loop, the Copilot app's web-queue cron and the `astrid-web` self-hosted runner were retired 2026-10-28 (AWTD-1363) |
 | **GitHub's built-in Copilot coding agent** | Additional web changes and independent reviews of Claude changes, scoped to the Web board and `copilot` mailbox. `native-copilot-bridge.yml` bridges Astrid to GitHub's issue-assigned agent; `copilot-setup-steps.yml` prepares its worker. This is not Copilot CLI in Actions |
 | **Dedicated Apple device** | Keep the existing Claude Code iOS/Mac loop, Xcode and TestFlight work in astrid-ios |
 | **Windows device** | Keep its existing Claude Code worker and `fixall-loop.ps1`; `windows-latest` continues builds/unit tests |
@@ -102,10 +102,11 @@ Agents stop at the PR. A deterministic ship workflow, not an agent, does the res
 - dispatch `production-deployment.yml`;
 - check `commitSha` on `/api/health`.
 
-A pending migration still goes to Jon (CLAUDE.md rule 3). `agent-ship.yml` now
-provides the deterministic wrapper, but its schedule is **inert by default**.
-Until it is activated and smoke-verified, an agent-run task stays incomplete
-after its PR and an authorized release operator lands it. No production deployment
+A pending migration still goes to Jon (CLAUDE.md rule 3). `agent-ship.yml` is
+that wrapper, live since `ASTRID_SHIP_ENABLED=true` (2026-10-31). It runs when an
+agent PR's CI finishes (`workflow_run`, always from main's copy of the file) and
+on its :17/:47 schedule. With the variable unset, an agent-run task stays
+incomplete after its PR and an authorized release operator lands it. No production deployment
 or device activation is implied by these repository changes.
 
 ## Cloud activation checklist
@@ -120,7 +121,7 @@ or device activation is implied by these repository changes.
 3. For optional Claude/Codex dispatches, the `agent` environment holds Astrid
    OAuth and `AGENT_GH_TOKEN` (repo-only Contents + Pull requests write,
    **no Actions write**). Subscription login configuration is unchanged.
-   `agent-run.yml` runs on a schedule (:05/:35, claude-code) since 2026-10-28 and can still be dispatched; it does not run Copilot CLI.
+   `agent-run.yml` runs on a schedule (:05/:35, claude-code) since 2026-10-28, chains itself through a `repository_dispatch` that this same token sends, and can still be dispatched; it does not run Copilot CLI.
 4. For the selected **GitHub issue-assigned coding agent**, provision
    `COPILOT_DISPATCH_TOKEN` only in `copilot-bridge`. GitHub requires a real
    user-to-server token; its fine-grained permission requirements include

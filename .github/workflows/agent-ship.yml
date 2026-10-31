@@ -11,6 +11,12 @@ on:
         default: true
   schedule:
     - cron: '17,47 * * * *'
+  # An agent PR becomes landable when its CI finishes, so that is when to look.
+  # The schedule alone landed one PR every few hours (agent-run.yml, chain job).
+  # workflow_run always runs THIS file from main, never the PR's copy.
+  workflow_run:
+    workflows: ['Unit Tests', 'E2E Tests', 'Preview Deployment', 'Security Gates']
+    types: [completed]
 
 concurrency:
   group: astrid-web-ship
@@ -23,7 +29,12 @@ permissions:
 
 jobs:
   ship:
-    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'workflow_dispatch' || vars.ASTRID_SHIP_ENABLED == 'true') }}
+    if: >-
+      ${{ github.ref == 'refs/heads/main'
+      && (github.event_name == 'workflow_dispatch' || vars.ASTRID_SHIP_ENABLED == 'true')
+      && (github.event_name != 'workflow_run'
+          || (github.event.workflow_run.conclusion == 'success'
+              && startsWith(github.event.workflow_run.head_branch, 'agent/'))) }}
     runs-on: ubuntu-24.04
     environment: release
     timeout-minutes: 55
