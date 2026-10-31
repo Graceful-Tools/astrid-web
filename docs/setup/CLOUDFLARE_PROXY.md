@@ -59,6 +59,13 @@ refresh it if limits start keying on `104.x`/`172.x` addresses again.
   certificate warning. Vercel still cannot issue a `*.astrid.cc` wildcard cert
   (it needs DNS-01, and DNS is on Cloudflare), so a `<alias>.astrid.cc` host
   only works once that alias has been deployed. Deploy before you share a URL.
+  For the same reason Vercel lists `*.astrid.cc` as **misconfigured** and
+  periodically emails "1 domain needs configuration on team Graceful Tools".
+  That email is expected and needs no action: deployed aliases each get their
+  own HTTP-01 cert and serve normally (checked 2026-10-31,
+  [AWTD-1447](https://astrid.cc/t/AWTD-1447)). The only ways to clear it are
+  moving DNS to Vercel or removing the wildcard, and removing it ends
+  `<alias>.astrid.cc` previews.
 - **Cloudflare cache.** Vercel sends `cache-control: public, max-age=0,
   must-revalidate` to clients, so Cloudflare does not cache HTML. Do not add
   Cache Rules that override this for `/api/*` or app pages.
