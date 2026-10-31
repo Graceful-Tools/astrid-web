@@ -46,15 +46,17 @@ concurrency:
   group: agent-run-${{ (inputs.harness || 'claude-code') }}
   cancel-in-progress: false
 
-permissions:
-  contents: write
-  pull-requests: write
-  actions: read
+# Per job: the run job's writes must not reach the chain job (zizmor).
+permissions: {}
 
 jobs:
   run:
     name: "Agent run (${{ (inputs.harness || 'claude-code') }})"
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
     outputs:
       result: ${{ steps.verdict.outputs.result }}
     environment: agent

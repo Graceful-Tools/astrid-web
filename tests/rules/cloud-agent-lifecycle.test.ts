@@ -26,7 +26,8 @@ describe('cloud agent lifecycle wiring', () => {
   it('keeps workers production-free with bounded runs and durable outcomes', () => {
     const source = read('.github/workflows/agent-run.yml')
     const workflow = yaml.load(source)
-    expect(workflow.permissions.actions).toBe('read')
+    expect(workflow.permissions).toEqual({})
+    expect(workflow.jobs.run.permissions.actions).toBe('read')
     expect(workflow.jobs.run.environment).toBe('agent')
     expect(workflow.jobs.run['timeout-minutes']).toBe(90)
     expect(source).toContain('--require-polling')
@@ -279,7 +280,8 @@ describe('the loop keeps itself going without the scheduler', () => {
 
   it('chains without actions: write, so no job here can dispatch a deploy', () => {
     const workflow = agentRun()
-    expect(workflow.permissions.actions).toBe('read')
+    expect(workflow.permissions).toEqual({})
+    expect(workflow.jobs.run.permissions).toEqual({ contents: 'write', 'pull-requests': 'write', actions: 'read' })
     expect(workflow.jobs.chain.permissions).toEqual({})
     expect(workflow.jobs.chain.needs).toBe('run')
     // The agent's own token: Contents write is all a repository_dispatch needs,
