@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Upload, Image as ImageIcon, Palette, Check } from "lucide-react"
 import { getPlaceholderOptions, type PlaceholderOption } from "@/lib/placeholder-utils"
 import { DEFAULT_LIST_IMAGES } from "@/lib/default-images"
+import { uploadCommentFile } from "@/lib/comment-file-upload"
 
 interface ImagePickerProps {
   currentImageUrl?: string
@@ -71,31 +72,15 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
 
     try {
       // Upload file using secure upload system
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('context', JSON.stringify({
-        listId: listId
-      }))
-
-      const response = await fetch('/api/v1/secure-upload/request-upload', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to upload file')
+      // Shared helper: sends large files straight to storage (AWTD-1442).
+      const result = await uploadCommentFile(file, { listId })
+      if (!result.success) {
+        console.error('Upload failed:', result)
+        throw new Error(result.error)
       }
 
-      const data = await response.json()
-
-      if (data.fileId) {
-        const imageUrl = `/api/v1/secure-files/${data.fileId}`
-        setCustomImageUrl(imageUrl)
-        onSelectImage(imageUrl, 'custom')
-      } else {
-        console.error('Upload failed:', data)
-        throw new Error('Upload response missing fileId')
-      }
+      setCustomImageUrl(result.attachment.url)
+      onSelectImage(result.attachment.url, 'custom')
     } catch (error) {
       console.error('Upload error:', error)
       // Fallback to data URL for offline/dev use

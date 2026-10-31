@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api-auth-wrapper"
 import { prisma } from "@/lib/prisma"
 import { createLogger } from '@/lib/logger'
-import { validateSecureUpload } from '@/lib/upload-validation'
+import { validateSecureUpload, ATTACH_TARGETS } from '@/lib/upload-validation'
 import { clientRequestIdFromContext } from "@/lib/secure-file-idempotency"
 import { storeSecureUpload } from "@/services/secure-upload.service"
 
@@ -16,9 +16,6 @@ const log = createLogger('secure-upload.request-upload')
 // the other. (Task c09f3eb1.)
 
 // Maximum file size: 100MB
-/** Recognized values for the upload-intent discriminator (task ded31696). */
-const ATTACH_TARGETS = ['message', 'task']
-
 const MAX_FILE_SIZE = 100 * 1024 * 1024
 
 // The extension/MIME policy is shared — see lib/upload-validation.ts. This

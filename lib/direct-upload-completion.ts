@@ -25,7 +25,7 @@ export interface LandedObject {
 
 export async function recordDirectUpload(object: LandedObject, tokenPayload: string): Promise<void> {
   const payload = JSON.parse(tokenPayload)
-  const { userId, fileId, fileName, fileType, fileSize, taskId, listId, commentId, clientRequestId } = payload
+  const { userId, fileId, fileName, fileType, fileSize, taskId, listId, commentId, attachTarget, clientRequestId } = payload
 
   log.info({ fileId, fileName, userId, blobUrl: object.url }, '📦 [UploadComplete] Storing file metadata:')
 
@@ -52,6 +52,7 @@ export async function recordDirectUpload(object: LandedObject, tokenPayload: str
         taskId: taskId || null,
         listId: listId || null,
         commentId: commentId || null,
+        attachTarget: attachTarget || null,
         clientRequestId: (typeof clientRequestId === 'string' ? clientRequestId : null),
       }
     })
