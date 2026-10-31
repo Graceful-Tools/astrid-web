@@ -90,7 +90,7 @@ describe('Header Home Text Removal', () => {
     // The logo (with its "Go to Home" affordance) moved to the left sidebar.
     const sidebarFilePath = path.join(process.cwd(), 'components/TaskManager/Sidebar/LeftSidebar.tsx')
     const sidebarContent = fs.readFileSync(sidebarFilePath, 'utf-8')
-    expect(sidebarContent).toContain('title="Go to Home"')
+    expect(sidebarContent).toContain('title={t("navigation.goHome")}')
   })
 
   it('renders the hamburger header (not the desktop bar) when the hamburger menu is shown', () => {

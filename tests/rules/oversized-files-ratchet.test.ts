@@ -75,7 +75,7 @@ const BUDGETS: Record<string, number> = {
   // for: the desktop settings pane became DesktopSettingsDetailPane, which also
   // took its visibility condition with it. The seventh is this. Next change to
   // this file takes something out.
-  'components/TaskManagerView.tsx': 1196,
+  'components/TaskManagerView.tsx': 1179,
   // 1125 → 1115: the list header's two buttons moved to ListHeaderActions
   // when Sort & Filters gained its own control (task aa4e7eb0).
   // 1115 → 1100: the board-row context memos moved to useBoardRowContext (AWTD-1025).
