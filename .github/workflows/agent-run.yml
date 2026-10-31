@@ -23,6 +23,9 @@ name: 'Agent Run'
 on:
   schedule:
     - cron: '5,35 * * * *'
+  # The chain job's "start the next run" (below). Its payload carries the depth.
+  repository_dispatch:
+    types: [agent-run-next]
   workflow_dispatch:
     inputs:
       harness:
@@ -43,15 +46,19 @@ concurrency:
   group: agent-run-${{ (inputs.harness || 'claude-code') }}
   cancel-in-progress: false
 
-permissions:
-  contents: write
-  pull-requests: write
-  actions: read
+# Per job: the run job's writes must not reach the chain job (zizmor).
+permissions: {}
 
 jobs:
   run:
     name: "Agent run (${{ (inputs.harness || 'claude-code') }})"
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: read
+    outputs:
+      result: ${{ steps.verdict.outputs.result }}
     environment: agent
     timeout-minutes: 90
     services:
@@ -235,6 +242,7 @@ jobs:
       # so a broken loop looked like a working one. The agent's own last RESULT
       # line is the verdict; cleanup steps below still run on always().
       - name: Fail the run unless the agent reports OK or SKIPPED
+        id: verdict
         if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
         run: |
           RESULT=$(grep -E '^RESULT: ' .agent-output/agent-transcript.txt 2>/dev/null | tail -1 || true)
@@ -246,6 +254,7 @@ jobs:
             echo "::error::The agent did not finish: ${RESULT:-it printed no RESULT line}"
             exit 1
           fi
+          echo "result=$(printf '%s\n' "${RESULT}" | sed -E 's/^RESULT: (OK|SKIPPED).*/\1/')" >> "${GITHUB_OUTPUT}"
 
       - name: Preserve unfinished work
         if: ${{ always() && !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
@@ -312,3 +321,36 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
+
+  # GitHub creates scheduled runs when it can, not when asked: from 10-29 to
+  # 10-31 it created 10 of the ~100 runs ':05,35' asks for, so the queue drained
+  # one task every four or five hours. A run that finished a task starts the
+  # next one; a run that finds nothing (SKIPPED), fails, or reaches the depth cap
+  # ends the chain, and the schedule stays as the fallback. Shipping is started
+  # by the agent PR's CI finishing (agent-ship.yml).
+  #
+  # It starts the next run with a repository_dispatch, which needs only the
+  # Contents write AGENT_GH_TOKEN already has. A workflow_dispatch would need
+  # actions: write, and with that the job could dispatch a production deploy.
+  # Only the default harness chains: a repository_dispatch carries no inputs.
+  chain:
+    name: Start the next run
+    needs: run
+    if: ${{ !inputs.dry_run && (inputs.harness || 'claude-code') == 'claude-code' && needs.run.result == 'success' && needs.run.outputs.result == 'OK' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    env:
+      GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      DEPTH: ${{ github.event.client_payload.chain_depth || '0' }}
+      MAX_CHAIN: ${{ vars.ASTRID_AGENT_MAX_CHAIN || '8' }}
+    steps:
+      - name: Start the next run unless the chain is at its cap
+        run: |
+          if [ "${DEPTH}" -ge "${MAX_CHAIN}" ]; then
+            echo "Chain depth ${DEPTH} reached ASTRID_AGENT_MAX_CHAIN=${MAX_CHAIN}; the schedule takes over"
+            exit 0
+          fi
+          gh api "repos/${GH_REPO}/dispatches" -f event_type=agent-run-next -F "client_payload[chain_depth]=$((DEPTH + 1))"
+          echo "Started run $((DEPTH + 1)) of at most ${MAX_CHAIN}"

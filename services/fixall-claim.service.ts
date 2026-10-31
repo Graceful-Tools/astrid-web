@@ -3,15 +3,19 @@ import {
   buildAtomicFixallClaimWhere,
   buildFixallClaimData,
   fixallClaimAgentEmail,
+  handedOffParkComment,
   nativeCopilotClaimMarker,
+  pendingDeployHandoff,
 } from "@/lib/fixall-claim"
 import { prisma } from "@/lib/prisma"
 import { pendingAgentHandback } from '@/lib/agent-handback'
+import { READY_STATUS_ROLE, WAITING_STATUS_ROLE } from '@/lib/task-status'
 
 export type FixallClaimResult =
   | { status: "claimed"; assigneeEmail: string }
   | { status: "agent-unavailable" }
   | { status: "conflict" }
+  | { status: "handed-off"; sha: string }
 
 /**
  * Take a task for the harness that asked, in ONE conditional update.
@@ -94,6 +98,28 @@ export async function claimFixallTask(
       } })
       return { status: 'claimed', assigneeEmail: agent.email }
     })
+  }
+
+  if (claim.action === 'ready') {
+    const task = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { comments: { orderBy: { createdAt: 'desc' }, take: 1, select: { content: true, createdAt: true } } },
+    })
+    const sha = task ? pendingDeployHandoff(task.comments) : null
+    if (sha) {
+      // Park it rather than only refusing: left in Ready, every run would wake
+      // for it and be refused again.
+      return prisma.$transaction(async (tx): Promise<FixallClaimResult> => {
+        const parked = await tx.task.updateMany({
+          where: { id: taskId, completed: false, statusRole: READY_STATUS_ROLE },
+          data: { statusRole: WAITING_STATUS_ROLE },
+        })
+        if (parked.count === 1) {
+          await tx.comment.create({ data: { taskId, authorId: agent.id, content: handedOffParkComment(sha) } })
+        }
+        return { status: 'handed-off', sha }
+      })
+    }
   }
 
   const result = await prisma.task.updateMany({

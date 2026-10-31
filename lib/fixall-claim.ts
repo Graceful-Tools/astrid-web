@@ -2,6 +2,7 @@ import { AGENT_MAILBOXES, agentEmail } from "@/lib/brand/agent-emails"
 import { harnessAgentMailboxes } from "@/lib/ai/harness-agents"
 import { DOING_STATUS_ROLE, READY_STATUS_ROLE, WAITING_STATUS_ROLE } from "@/lib/task-status"
 import { parseAgentResumeContext, type AgentResumeContext } from '@/lib/agent-handback'
+import { parseBlockedConditions } from '@/lib/ready-queue-scope'
 
 /**
  * The Copilot cloud identity — the DEFAULT claimant, not the only one.
@@ -252,4 +253,37 @@ export function buildFixallClaimData(input: {
   if (claim.action === 'pause') return { assigneeId: agentId, statusRole: WAITING_STATUS_ROLE }
   if (claim.action !== "ready" && claim.action !== 'resume') return { assigneeId: agentId }
   return { assigneeId: agentId, statusRole: DOING_STATUS_ROLE }
+}
+
+/**
+ * The commit a task is already waiting to see deployed, when its NEWEST comment
+ * is the handoff that says so (`AWAITING-DEPLOY: <sha>`); otherwise null.
+ *
+ * A Ready claim on such a task is a second fix of finished work. AWTD-1432 was
+ * fixed in #601 and handed off to Waiting, came back to Ready with no comment
+ * saying why, and the next run fixed it again in #603. Whatever moves a card,
+ * the claim is the one gate every harness passes, so the check lives here.
+ *
+ * Only the newest comment counts. Anyone who wants the work redone says so on
+ * the task, and that comment is newer than the marker.
+ */
+export function pendingDeployHandoff(
+  comments: Array<{ content?: string | null; createdAt?: string | Date | null }>,
+): string | null {
+  const newest = comments.reduce<(typeof comments)[number] | null>((latest, comment) =>
+    !latest || new Date(comment.createdAt ?? 0) > new Date(latest.createdAt ?? 0) ? comment : latest, null)
+  if (!newest) return null
+  const createdAt = newest.createdAt instanceof Date ? newest.createdAt.toISOString() : newest.createdAt
+  return parseBlockedConditions([{ content: newest.content, createdAt }]).awaitingDeploy
+}
+
+/** The note a refused claim leaves. It repeats the marker so it stays the newest one. */
+export function handedOffParkComment(sha: string): string {
+  return [
+    'This task came back to Ready, but its fix is already handed off and waiting for its deploy, ' +
+      'so the claim was refused and the task is back in Waiting. The runner completes it once ' +
+      'production serves the commit. To have it redone, say so in a comment and move it to Ready.',
+    '',
+    `AWAITING-DEPLOY: ${sha}`,
+  ].join('\n')
 }
