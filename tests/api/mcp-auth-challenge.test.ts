@@ -22,6 +22,10 @@ import { BRAND } from '@/lib/brand/config'
 import { buildAuthSignature } from '@/lib/server/mcp-http-utils'
 
 vi.mock('@/lib/prisma', () => ({ prisma: {} }))
+vi.mock('undici', async importOriginal => ({
+  ...await importOriginal<typeof import('undici')>(),
+  fetch: (...args: Parameters<typeof fetch>) => globalThis.fetch(...args),
+}))
 vi.mock('@/lib/api-auth-middleware', () => ({
   authenticateAPI: vi.fn(),
   UnauthorizedError: class extends Error {},
