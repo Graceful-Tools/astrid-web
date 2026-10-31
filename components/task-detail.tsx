@@ -1410,9 +1410,9 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         {/* Activity: attachments + timer (Stage 22 sub-view) */}
         <TaskActivitySection
           task={task}
-          showTimer={showTimer}
-          setShowTimer={setShowTimer}
+          showTimer={showTimer} setShowTimer={setShowTimer}
           onUpdate={onUpdate}
+          readOnly={readOnly}
         />
 
         {/* Comments Section (chat bubbles only - input bar is outside scroll area) */}

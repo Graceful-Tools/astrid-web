@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label"
 import type { Task } from "@/types/task"
 import { SecureAttachmentViewer } from "../secure-attachment-viewer"
 import { TaskTimer } from "../task-timer"
+import { TaskDetailReminderRow } from "./TaskDetailReminderRow"
 import { collectTaskAttachments } from "@/lib/task-attachments"
 
 interface TaskActivitySectionProps {
@@ -11,6 +12,7 @@ interface TaskActivitySectionProps {
   showTimer: boolean
   setShowTimer: (value: boolean) => void
   onUpdate: (task: Task) => void
+  readOnly?: boolean
 }
 
 /**
@@ -25,6 +27,7 @@ export function TaskActivitySection({
   showTimer,
   setShowTimer,
   onUpdate,
+  readOnly = false,
 }: TaskActivitySectionProps) {
   // Files attached to the task itself, then the ones its comments carry.
   // Task-level files used to be dropped here entirely (task b4a362f1), and
@@ -33,6 +36,14 @@ export function TaskActivitySection({
 
   return (
     <>
+      {/* The task's own reminder (AWTD-1418). Kept here rather than in
+       *  TaskFieldEditors, which is at its size budget. */}
+      <TaskDetailReminderRow
+        value={task.reminderTime}
+        onChange={reminderTime => onUpdate({ ...task, reminderTime })}
+        readOnly={readOnly}
+      />
+
       {/* All Attachments Section */}
       {allAttachments.length > 0 && (
         <div>

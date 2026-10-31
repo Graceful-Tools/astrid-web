@@ -18,7 +18,6 @@ import { TaskDetailBlockersRow } from "./TaskDetailBlockersRow"
 import { TaskDetailDescriptionRow } from "./TaskDetailDescriptionRow"
 import { TaskDetailListsRow } from "./TaskDetailListsRow"
 import { TaskDetailPriorityRow } from "./TaskDetailPriorityRow"
-import { TaskDetailReminderRow } from "./TaskDetailReminderRow"
 import { TaskProjectFieldsSection } from "./TaskProjectFieldsSection"
 import { TimePicker, formatConciseTime } from "@/components/ui/time-picker"
 import { useMobileKeyboard } from "@/hooks/shared/useMobileKeyboard"
@@ -819,15 +818,6 @@ export function TaskFieldEditors({
       )}
         </div>
       </TaskFieldRow>
-      )}
-
-      {/* Reminder — a task's own reminderTime (AWTD-1418). */}
-      {!shouldHideWhen && !compactTaskDetail && !isPublicListTask && (
-        <TaskDetailReminderRow
-          value={task.reminderTime}
-          onChange={reminderTime => onUpdate({ ...task, reminderTime })}
-          readOnly={readOnly}
-        />
       )}
 
       {/* Priority — third, after Date. Its own component since AWTD-1210. */}
