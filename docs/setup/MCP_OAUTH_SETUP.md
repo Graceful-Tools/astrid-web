@@ -299,6 +299,10 @@ Notes:
   with `WWW-Authenticate: Bearer`, `error="invalid_token"`, and
   `resource_metadata` pointing to OAuth discovery. OAuth clients can then refresh
   or request sign-in again; an HTTP 200 tool error is not a sign-in challenge.
+- Cross-deployment hosted proxies validate against their selected API backend.
+  Both proxy and backend need the token-only `/api/v1/oauth/validate` endpoint;
+  older backends fail explicitly rather than being mistaken for expired tokens.
+  SSE messages stay bound to the stream's original credential and API backend.
 - Board/task access is checked separately against the **consenting account** and
   the current token's scopes. Approving agent authorship (for example,
   `copilot@astrid.cc`) does not grant that agent's board membership to the account.

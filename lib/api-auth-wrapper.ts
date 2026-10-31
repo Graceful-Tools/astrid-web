@@ -43,6 +43,8 @@ import { createLogger } from './logger'
  */
 
 interface WithAuthOptions {
+  /** Require an API token without falling back to a browser session. */
+  tokenOnly?: boolean
   /** Required OAuth scopes. Empty array (default) allows any authenticated caller. */
   scopes?: string[]
   /** Tag for the logger; defaults to "api". */
@@ -119,7 +121,9 @@ export function withAuth<TContext = unknown>(
 
     let auth: AuthContext
     try {
-      auth = await authenticateAPI(req)
+      auth = options.tokenOnly
+        ? await authenticateAPI(req, undefined, { tokenOnly: true })
+        : await authenticateAPI(req)
     } catch (err) {
       if (err instanceof UnauthorizedError) {
         return NextResponse.json({ error: 'Unauthorized', message: err.message }, { status: 401 })

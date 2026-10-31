@@ -962,6 +962,15 @@ includes discovery in its existing HTTP 401 challenge. Backend authentication
 failures remain HTTP 500, not invalid-token challenges; authenticated task/scope
 denials remain authorization failures, not requests to sign in again.
 
+The proxy validates against the same effective backend selected by
+`X-Astrid-API-Base-URL` or `ASTRID_API_BASE_URL`, not a different deployment's
+database. Remote backends must support `GET /api/v1/oauth/validate`: token-only,
+no scope requirement, no cookie fallback, HTTP 204 with an empty body for a valid
+OAuth/legacy bearer, HTTP 401 for rejection, HTTP 500 for backend failure.
+Validation never follows redirects or returns token/account metadata.
+SSE messages must match the retained stream's effective credential and backend;
+the retained options, not an independently selected POST credential, are revalidated.
+
 ---
 
 ## Rate Limiting

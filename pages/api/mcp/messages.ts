@@ -64,7 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       res.status(401).json({ error: "Missing MCP credentials" })
       return
     }
-    await validateMCPAuthContext(authContext.options)
+    await validateMCPAuthContext(session.authOptions, session.authOrigin)
 
     const rawBody = await readRequestBody(req)
     let parsedBody: any = undefined

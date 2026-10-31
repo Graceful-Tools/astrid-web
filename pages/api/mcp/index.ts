@@ -137,7 +137,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    await validateMCPAuthContext(authContext.options)
+    await validateMCPAuthContext(authContext.options, mcpRequestBaseUrl(req))
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       sendAuthChallenge(req, res, true)
@@ -204,6 +204,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       transport,
       server: serverInstance,
       authSignature: authContext.authSignature,
+      authOptions: { ...authContext.options },
+      authOrigin: mcpRequestBaseUrl(req),
       createdAt: Date.now(),
     })
 
