@@ -308,6 +308,11 @@ Notes:
   checked DNS addresses. Private/HTTP self-hosted backends require the exact
   server-side `ASTRID_API_BASE_URL`; an inbound Host or Origin is not an exception.
   Local stdio retains its operator-configured transport.
+- Keep NextAuth's declared UUID dependency: its CommonJS JWT module requires the
+  CommonJS-compatible UUID 11 line. Overriding it to the application's ESM-only
+  UUID 14 breaks hosted MCP at module startup on runtimes without require(ESM).
+  `tests/lib/next-auth-commonjs-runtime.test.ts` exercises the real dependency
+  without that experimental runtime feature or authentication mocks.
 - Board/task access is checked separately against the **consenting account** and
   the current token's scopes. Approving agent authorship (for example,
   `copilot@astrid.cc`) does not grant that agent's board membership to the account.
