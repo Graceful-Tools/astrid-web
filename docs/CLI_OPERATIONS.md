@@ -239,7 +239,9 @@ Three things that are not free:
   into the client bundle at build time, so a Secret would bake in `undefined`.
   Client IDs, URLs and `VAPID_PUBLIC_KEY` are public by design; write-only buys
   nothing and costs you the ability to read them back.
-- **`BLOB_READ_WRITE_TOKEN` cannot be flipped from the env list.** It is owned by
+- **`BLOB_READ_WRITE_TOKEN` is gone from production (2026-10-31, [AWTD-1413](https://astrid.cc/t/AWTD-1413)).**
+  Blob writes there authenticate with OIDC + `BLOB_STORE_ID`; the token survives only in
+  `.env.local`, where there is no OIDC token. History: it could not be flipped from the env list. It is owned by
   the Blob store connection and targets development, and Vercel refuses Secret
   for integration connections that include Development. The answer there is
   Blob's OIDC upgrade (no long-lived token at all), not the
