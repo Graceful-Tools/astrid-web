@@ -942,42 +942,6 @@ All errors follow this format:
 | 429 | Too Many Requests - Rate limited |
 | 500 | Internal Server Error |
 
-### Hosted MCP authentication challenges
-
-`/mcp` validates bearer credentials before initialization, tool discovery, or
-dispatch; `/mcp/messages` revalidates them before an SSE message is dispatched.
-OAuth and legacy MCP bearer tokens remain supported, as do Basic client
-credentials and the existing `X-Astrid-*` headers. Browser sessions cannot
-substitute for an invalid hosted bearer.
-
-Rejected bearer credentials return HTTP 401 with:
-
-```http
-WWW-Authenticate: Bearer resource_metadata="https://www.astrid.cc/.well-known/oauth-protected-resource/mcp", error="invalid_token"
-```
-
-The metadata URL follows the requested host. Missing credentials receive the same
-discovery challenge without `error="invalid_token"`. `/api/mcp/operations` also
-includes discovery in its existing HTTP 401 challenge. Backend authentication
-failures remain HTTP 500, not invalid-token challenges; authenticated task/scope
-denials remain authorization failures, not requests to sign in again.
-
-The proxy validates against the same effective backend selected by
-`X-Astrid-API-Base-URL` or `ASTRID_API_BASE_URL`, not a different deployment's
-database. Remote backends must support `GET /api/v1/oauth/validate`: token-only,
-no scope requirement, no cookie fallback, HTTP 204 with an empty body for a valid
-OAuth/legacy bearer, HTTP 401 for rejection, HTTP 500 for backend failure.
-Validation never follows redirects or returns token/account metadata.
-SSE messages must match the retained stream's effective credential and backend;
-the retained options, not an independently selected POST credential, are revalidated.
-
-Hosted backend overrides require public HTTPS without URL credentials, query,
-or fragment. Every outbound validation, token exchange, and API request rejects
-redirects and pins its checked DNS address. Only an exact operator-configured
-`ASTRID_API_BASE_URL` may use private addresses or HTTP; request Host/Origin does
-not grant an exception. Unsafe overrides return HTTP 400, not `invalid_token`.
-Hosted backend responses are limited to 16 MiB and requests time out after 30 seconds.
-
 ---
 
 ## Rate Limiting

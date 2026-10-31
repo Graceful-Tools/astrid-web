@@ -1,12 +1,10 @@
 import type { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js"
-import AstridMCPServerOAuth, { type AstridMCPServerOptions } from "../../mcp/mcp-server-oauth"
+import AstridMCPServerOAuth from "../../mcp/mcp-server-oauth"
 
 export interface SessionEntry {
   transport: SSEServerTransport
   server: AstridMCPServerOAuth
   authSignature: string | null
-  authOptions: AstridMCPServerOptions
-  authOrigin: string
   createdAt: number
 }
 

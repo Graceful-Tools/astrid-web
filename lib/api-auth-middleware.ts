@@ -242,8 +242,7 @@ async function validateMCPToken(token: string): Promise<{
  */
 export async function authenticateAPI(
   req: NextRequest,
-  legacyTokenFromBody?: string,
-  options: { tokenOnly?: boolean } = {},
+  legacyTokenFromBody?: string
 ): Promise<AuthContext> {
   // Priority 1: OAuth token (new standard)
   const oauthToken = extractOAuthToken(req)
@@ -264,10 +263,10 @@ export async function authenticateAPI(
 
   // Priority 2: Session cookie (web users + iOS)
   // First try getServerSession (works for web)
-  let session = options.tokenOnly ? null : await getServerSession(authConfig)
+  let session = await getServerSession(authConfig)
 
   // If no session found via getServerSession, check cookies directly (for iOS/mobile)
-  if (!options.tokenOnly && !session?.user?.id && req.cookies) {
+  if (!session?.user?.id && req.cookies) {
     const cookies = req.cookies
     const sessionCookie = cookies.get('next-auth.session-token') || cookies.get('__Secure-next-auth.session-token')
 

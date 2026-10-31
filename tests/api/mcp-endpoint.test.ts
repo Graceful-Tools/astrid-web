@@ -19,10 +19,6 @@ import { Readable } from 'stream'
 import handler from '@/pages/api/mcp/index'
 
 vi.mock('@/lib/prisma', () => ({ prisma: {} }))
-vi.mock('@/lib/api-auth-middleware', () => ({
-  authenticateAPI: vi.fn().mockResolvedValue({ source: 'oauth' }),
-  UnauthorizedError: class extends Error {},
-}))
 
 beforeEach(() => {
   // initialize/tools/list need no upstream call; stub fetch so nothing escapes.

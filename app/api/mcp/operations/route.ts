@@ -14,7 +14,6 @@ import { isAdmin } from '@/lib/admin-auth'
 import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import { createLogger } from '@/lib/logger'
 import { ListImageClaimError } from '@/lib/images/update-list-image'
-import { mcpAuthChallenge } from '@/lib/server/mcp-http-utils'
 
 /** Raised when an operation is real but this caller may not run it. */
 class ForbiddenOperationError extends Error {
@@ -133,7 +132,7 @@ async function processMCPRequest(request: NextRequest, operation: unknown, incom
         {
           status: 401,
           headers: {
-            "WWW-Authenticate": mcpAuthChallenge(new URL(request.url).origin, true)
+            "WWW-Authenticate": 'Bearer realm="astrid-api", error="invalid_token"'
           }
         }
       )
