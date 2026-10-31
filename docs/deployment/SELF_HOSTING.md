@@ -101,7 +101,7 @@ The full registry, with a description of every variable: `npm run check:env`, or
 |---|---|---|
 | `local` | A persistent volume at `STORAGE_LOCAL_DIR` (compose mounts `uploads`) | One server |
 | `s3` | `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, and `S3_REGION` or `S3_ENDPOINT` | Anything with more than one server, or managed durability |
-| `vercel-blob` | `BLOB_READ_WRITE_TOKEN` | The default. Hosted Astrid only |
+| `vercel-blob` | `BLOB_STORE_ID` with OIDC on Vercel; `BLOB_READ_WRITE_TOKEN` anywhere else | The default. Hosted Astrid only |
 
 With `s3` and any of its settings missing, the server logs their names at start
 (`STORAGE_DRIVER=s3 is missing: …`) and answers every request with a 500. Its health check
