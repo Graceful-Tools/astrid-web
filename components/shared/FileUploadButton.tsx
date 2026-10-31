@@ -3,6 +3,7 @@
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Paperclip, Loader2, X } from "lucide-react"
+import { uploadCommentFile } from "@/lib/comment-file-upload"
 
 export interface FileAttachment {
   url: string
@@ -125,40 +126,11 @@ export function FileUploadButton({
     setUploading(true)
 
     try {
-      const formData = new FormData()
-      formData.append('file', file)
+      // Shared helper: sends large files straight to storage (AWTD-1442).
+      const result = await uploadCommentFile(file, uploadContext ?? {})
+      if (!result.success) throw new Error(result.error)
 
-      if (uploadContext) {
-        formData.append('context', JSON.stringify(uploadContext))
-      }
-
-      const response = await fetch('/api/v1/secure-upload/request-upload', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        let errorMessage = errorData.error || 'Failed to upload file'
-
-        // Check if error is about file size and enhance the message
-        if (errorMessage.includes('100MB') || (errorMessage.toLowerCase().includes('size') && errorMessage.toLowerCase().includes('exceed'))) {
-          errorMessage = 'File size exceeds 100MB limit. Please upload large files to a file service (Google Drive, Dropbox, etc.) and share a link instead.'
-        }
-
-        throw new Error(errorMessage)
-      }
-
-      const result = await response.json()
-
-      const uploadedFile: FileAttachment = {
-        url: `/api/v1/secure-files/${result.fileId}`,
-        name: result.fileName,
-        type: result.mimeType,
-        size: result.fileSize
-      }
-
-      onFileUploaded(uploadedFile)
+      onFileUploaded(result.attachment)
 
       // Reset input for next upload
       if (fileInputRef.current) {

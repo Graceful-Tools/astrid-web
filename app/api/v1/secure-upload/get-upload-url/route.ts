@@ -6,7 +6,7 @@ import { randomUUID } from "crypto"
 import { issuePresignedUpload, presignedUploadsEnabled } from "@/lib/secure-storage"
 import { createLogger } from '@/lib/logger'
 import { findSecureFileByClientRequestId } from "@/lib/secure-file-idempotency"
-import { validateSecureUpload, SECURE_UPLOAD_MIME_TYPES } from '@/lib/upload-validation'
+import { validateSecureUpload, SECURE_UPLOAD_MIME_TYPES, ATTACH_TARGETS } from '@/lib/upload-validation'
 
 const log = createLogger('secure-upload.get-upload-url')
 
@@ -192,6 +192,8 @@ export const POST = withAuth(
             taskId: context.taskId || null,
             listId: context.listId || null,
             commentId: context.commentId || null,
+            // Upload intent (task ded31696): a composer's file belongs to the message, not the task.
+            attachTarget: ATTACH_TARGETS.includes(context.attachTarget) ? context.attachTarget : null,
             // Carry the idempotency key through to upload-complete so an Outbox
             // retry of a large upload doesn't create a duplicate SecureFile.
             clientRequestId: (typeof context.clientRequestId === 'string' ? context.clientRequestId : null),
