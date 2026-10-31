@@ -287,6 +287,9 @@ describe('the loop keeps itself going without the scheduler', () => {
     // The agent's own token: Contents write is all a repository_dispatch needs,
     // and production-deployment.yml does not listen for one.
     expect(workflow.jobs.chain.env.GH_TOKEN).toBe('${{ secrets.AGENT_GH_TOKEN }}')
+    // The token is an `agent` environment secret: the first chained run's gh
+    // call failed with an empty GH_TOKEN because this job named no environment.
+    expect(workflow.jobs.chain.environment).toBe(workflow.jobs.run.environment)
     expect(Object.keys(yaml.load(read('.github/workflows/production-deployment.yml')).on)).toEqual(['workflow_dispatch'])
     // No checkout: nothing the agent wrote runs here.
     expect(JSON.stringify(workflow.jobs.chain)).not.toContain('actions/checkout')
