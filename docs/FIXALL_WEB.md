@@ -83,7 +83,10 @@ finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has t
 ## What is different here
 
 - **Cloud workers stop at a verified PR handoff.** `agent-run.yml` runs
-  on a schedule (:05/:35, claude-code) and on dispatch (Claude Code or Codex). It is how
+  on a schedule (:05/:35, claude-code) and on dispatch (Claude Code or Codex). A
+  claude-code run that reports `RESULT: OK` starts the next run itself, up to
+  `ASTRID_AGENT_MAX_CHAIN` (default 8) in a row, because GitHub creates only a
+  fraction of the scheduled runs. It is how
   Claude works this board; the Mac loop was retired on 2026-10-28 (AWTD-1363). Its preflight reads queue + inbox + lanes,
   refuses non-polling mode, restores bounded wake history, and records outcomes
   even when the harness fails. Cache state has an artifact fallback retained for
@@ -105,8 +108,8 @@ finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has t
   `AWAITING-DEPLOY` ancestry, and the merge is pinned to its inspected head.
   Pending migrations still stop shipping. A commit with an in-flight/successful
   deploy is not dispatched again; two failed attempts require human investigation.
-  Scheduled shipping remains disabled until `ASTRID_SHIP_ENABLED=true` is
-  deliberately configured after smoke checks.
+  It runs on its schedule and whenever an agent PR's CI finishes, and only while
+  `ASTRID_SHIP_ENABLED=true` (set 2026-10-31).
 
 - **DEPLOY WHAT YOU FINISH, once the gates are green.** Jon, 2026-10-13: *"Interactive
   sessions and automatic can deploy with clean tests and monitor to make sure it works.

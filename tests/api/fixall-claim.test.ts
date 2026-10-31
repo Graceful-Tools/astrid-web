@@ -144,6 +144,53 @@ describe("POST /api/v1/tasks/:id/claim-fixall", () => {
     expect(prisma.comment.create).not.toHaveBeenCalled()
   })
 
+  it('AWTD-1432: parks a Ready task that is already handed off instead of claiming it again', async () => {
+    // Fixed in #601, handed off to Waiting with this marker, then found back in
+    // Ready by the next run, which fixed it a second time in #603.
+    vi.mocked(prisma.task.findUnique).mockResolvedValue({
+      comments: [
+        { content: 'Picked it up.', createdAt: new Date('2026-10-30T21:30:00Z') },
+        { content: 'PR: #601\n\nAWAITING-DEPLOY: 3d0392a40187c84be7d91e77048de22c429c09ea', createdAt: new Date('2026-10-30T21:51:17Z') },
+      ],
+    } as never)
+    vi.mocked(prisma.task.updateMany).mockResolvedValue({ count: 1 })
+
+    const response = await POST(request({ action: 'ready', commentWatermark: null }), { params })
+
+    expect(response.status).toBe(409)
+    expect((await response.json()).error).toContain('3d0392a40187c84be7d91e77048de22c429c09ea')
+    expect(prisma.task.updateMany).toHaveBeenCalledTimes(1)
+    expect(prisma.task.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({ id: TASK_ID, completed: false, statusRole: 'ready' }),
+      data: { statusRole: 'waiting' },
+    }))
+    // The note repeats the marker, so it stays the newest one: land-and-deploy
+    // still finds the commit, and a second claim is refused the same way.
+    expect(prisma.comment.create).toHaveBeenCalledWith({ data: expect.objectContaining({
+      taskId: TASK_ID,
+      authorId: 'copilot-1',
+      content: expect.stringMatching(/^AWAITING-DEPLOY: 3d0392a40187c84be7d91e77048de22c429c09ea$/m),
+    }) })
+  })
+
+  it('AWTD-1432: claims a handed-off task once someone has commented since the handoff', async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue({
+      comments: [
+        { content: 'AWAITING-DEPLOY: 3d0392a40187c84be7d91e77048de22c429c09ea', createdAt: new Date('2026-10-30T21:51:17Z') },
+        { content: 'That fix is wrong, the reload still lands on the list. Redo it.', createdAt: new Date('2026-10-31T08:00:00Z') },
+      ],
+    } as never)
+    vi.mocked(prisma.task.updateMany).mockResolvedValue({ count: 1 })
+
+    const response = await POST(request({ action: 'ready', commentWatermark: null }), { params })
+
+    expect(response.status).toBe(200)
+    expect(prisma.task.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+      data: { assigneeId: 'copilot-1', statusRole: 'doing' },
+    }))
+    expect(prisma.comment.create).not.toHaveBeenCalled()
+  })
+
   it("rejects a mailbox that is not a fixall harness", async () => {
     const response = await POST(request({ action: "ready", agent: "jonparis" }), { params })
 
