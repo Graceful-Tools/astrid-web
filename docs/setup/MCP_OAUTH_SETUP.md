@@ -303,6 +303,11 @@ Notes:
   Both proxy and backend need the token-only `/api/v1/oauth/validate` endpoint;
   older backends fail explicitly rather than being mistaken for expired tokens.
   SSE messages stay bound to the stream's original credential and API backend.
+  Hosted backend overrides must use public HTTPS, with no URL credentials, query,
+  or fragment. Validation, token exchange, and API calls reject redirects and pin
+  checked DNS addresses. Private/HTTP self-hosted backends require the exact
+  server-side `ASTRID_API_BASE_URL`; an inbound Host or Origin is not an exception.
+  Local stdio retains its operator-configured transport.
 - Board/task access is checked separately against the **consenting account** and
   the current token's scopes. Approving agent authorship (for example,
   `copilot@astrid.cc`) does not grant that agent's board membership to the account.
@@ -361,7 +366,7 @@ Supported headers:
 | `X-Astrid-Access-Token` | Optional | Same as Bearer but useful if you don’t want to use the standard Authorization header. |
 | `X-Astrid-Client-Id` + `X-Astrid-Client-Secret` | Optional | Same as Basic auth. |
 | `X-Astrid-List-Id` | Optional | Overrides your default list for this connection. |
-| `X-Astrid-API-Base-URL` | Optional | Point the MCP server at another Astrid deployment (e.g., `http://localhost:3000`). |
+| `X-Astrid-API-Base-URL` | Optional | Point the MCP server at another public HTTPS Astrid deployment. A private/HTTP backend must exactly match the server's `ASTRID_API_BASE_URL`. No URL credentials, query, fragment, or redirects. |
 
 Usage flow:
 
