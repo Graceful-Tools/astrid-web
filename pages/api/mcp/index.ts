@@ -1,9 +1,17 @@
 import { hasCapability } from '@/lib/brand/capabilities'
-import { BRAND, brandOrigin } from "@/lib/brand/config"
+import { brandOrigin } from "@/lib/brand/config"
 import type { NextApiRequest, NextApiResponse } from "next"
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js"
 import AstridMCPServerOAuth from "../../../mcp/mcp-server-oauth"
-import { extractAuthContext } from "../../../lib/server/mcp-http-utils"
+import {
+  extractAuthContext,
+  mcpAuthChallenge,
+  mcpRequestBaseUrl,
+  validateMCPAuthContext,
+} from "../../../lib/server/mcp-http-utils"
+import { UnauthorizedError } from "@/lib/api-auth-middleware"
+import { OutboundUrlError } from "@/lib/security/outbound-url"
+import { createLogger } from "@/lib/logger"
 import { deleteSession, storeSession } from "../../../lib/server/mcp-session-store"
 
 export const config = {
@@ -12,6 +20,7 @@ export const config = {
   },
 }
 
+const log = createLogger("mcp.http")
 const ENABLE_DNS_PROTECTION = process.env.ASTRID_MCP_ENABLE_DNS_PROTECTION === "true"
 const ALLOWED_HOSTS = (process.env.ASTRID_MCP_ALLOWED_HOSTS || "")
   .split(",")
@@ -87,11 +96,8 @@ async function readJsonBody(req: NextApiRequest): Promise<unknown> {
  * it and run the OAuth flow themselves. Without this header a client gets a
  * bare 401 with nowhere to go, and connecting becomes a manual credential hunt.
  */
-function sendAuthChallenge(req: NextApiRequest, res: NextApiResponse) {
-  const host = req.headers.host || BRAND.domain
-  const proto = host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https"
-  const metadata = `${proto}://${host}/.well-known/oauth-protected-resource/mcp`
-  res.setHeader("WWW-Authenticate", `Bearer resource_metadata="${metadata}"`)
+function sendAuthChallenge(req: NextApiRequest, res: NextApiResponse, invalidToken = false) {
+  res.setHeader("WWW-Authenticate", mcpAuthChallenge(mcpRequestBaseUrl(req), invalidToken))
   res.status(401).json({
     error:
       "Provide Authorization: Bearer <astrid_access_token> or Basic <base64(clientId:secret)> (or X-Astrid-* headers)",
@@ -119,14 +125,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return
   }
 
+  if (req.method !== "GET" && req.method !== "POST") {
+    res.setHeader("Allow", "GET,POST,OPTIONS")
+    res.status(405).json({ error: "Method Not Allowed" })
+    return
+  }
+
+  const authContext = extractAuthContext(req)
+  if (!authContext) {
+    sendAuthChallenge(req, res)
+    return
+  }
+
+  try {
+    await validateMCPAuthContext(authContext.options, mcpRequestBaseUrl(req))
+  } catch (error) {
+    if (error instanceof UnauthorizedError) {
+      sendAuthChallenge(req, res, true)
+    } else if (error instanceof OutboundUrlError) {
+      log.warn({ err: error }, "Rejected MCP backend")
+      res.status(400).json({ error: "Invalid MCP backend" })
+    } else {
+      log.error({ err: error }, "MCP authentication failed")
+      res.status(500).json({ error: "Authentication error" })
+    }
+    return
+  }
+
   // Streamable HTTP: one JSON-RPC request in, one response out, same URL.
   if (req.method === "POST") {
-    const postAuth = extractAuthContext(req)
-    if (!postAuth) {
-      sendAuthChallenge(req, res)
-      return
-    }
-
     let message: { id?: unknown }
     try {
       message = (await readJsonBody(req)) as { id?: unknown }
@@ -137,7 +164,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
       const transport = new SingleRequestTransport()
-      const serverInstance = new AstridMCPServerOAuth(postAuth.options)
+      const serverInstance = new AstridMCPServerOAuth(authContext.options)
       await serverInstance.startWithTransport(transport, "streamable-http")
 
       transport.onmessage?.(message)
@@ -168,18 +195,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return
   }
 
-  if (req.method !== "GET") {
-    res.setHeader("Allow", "GET,POST,OPTIONS")
-    res.status(405).json({ error: "Method Not Allowed" })
-    return
-  }
-
-  const authContext = extractAuthContext(req)
-  if (!authContext) {
-    sendAuthChallenge(req, res)
-    return
-  }
-
   try {
     const transport = new SSEServerTransport(
       process.env.ASTRID_MCP_POST_PATH || "/mcp/messages",
@@ -193,6 +208,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       transport,
       server: serverInstance,
       authSignature: authContext.authSignature,
+      authOptions: { ...authContext.options },
+      authOrigin: mcpRequestBaseUrl(req),
       createdAt: Date.now(),
     })
 

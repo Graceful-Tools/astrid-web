@@ -31,7 +31,7 @@ import { MIN_TASK_PRIORITY, MAX_TASK_PRIORITY } from "../lib/task-priority"
 import { createLogger } from "../lib/logger"
 // The API client this server talks through — now in mcp/oauth-api-client.ts.
 // Re-exported below rather than moved-and-forgotten, as OAUTH_MCP_TOOLS was.
-import { OAuthAPIClient } from "./oauth-api-client"
+import { OAuthAPIClient, type OAuthAPIClientOptions } from "./oauth-api-client"
 import { fetchListMessages } from "./list-chat"
 import { callBlockerTool, isBlockerTool } from "./blockers"
 import { callAttachmentTool, isAttachmentTool } from "./task-attachments"
@@ -77,11 +77,7 @@ export { OAuthAPIClient }
 /**
  * MCP Server V3 - OAuth-Enabled
  */
-export interface AstridMCPServerOptions {
-  baseUrl?: string
-  clientId?: string
-  clientSecret?: string
-  accessToken?: string
+export interface AstridMCPServerOptions extends OAuthAPIClientOptions {
   defaultListId?: string | null
 }
 
@@ -104,7 +100,8 @@ export default class AstridMCPServerOAuth {
       baseUrl,
       options.clientId,
       options.clientSecret,
-      options.accessToken || null
+      options.accessToken || null,
+      options.hosted,
     )
     this.defaultListId =
       options.defaultListId ??
