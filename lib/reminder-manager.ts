@@ -7,7 +7,9 @@ export interface ReminderConfig {
   taskId: string
   userId: string
   scheduledFor: Date
-  type: "due_reminder" | "random_reminder" | "overdue_reminder"
+  type: "due_reminder" | "random_reminder" | "overdue_reminder" | "task_reminder"
+  /** Snapshot of the task, so a due reminder can be shown without a store lookup (AWTD-1418). */
+  task?: Task
   isActive: boolean
   snoozedUntil?: Date
 }
@@ -18,6 +20,8 @@ export interface ActiveReminder {
   config: ReminderConfig
   showTime: Date
 }
+
+const EXPLICIT_REMINDER_GRACE_MS = 10 * 60 * 1000
 
 class ReminderManager {
   private reminders: Map<string, ReminderConfig> = new Map()
@@ -59,6 +63,7 @@ class ReminderManager {
       userId,
       scheduledFor,
       type,
+      task,
       isActive: true
     }
 
@@ -68,7 +73,8 @@ class ReminderManager {
 
   // Schedule reminders based on task due date
   scheduleTaskReminders(task: Task, userId: string) {
-    if (!task.dueDateTime) return // No due date, no reminders
+    this.scheduleExplicitReminder(task, userId)
+    if (!task.dueDateTime) return // No due date, no due-date reminders
 
     const dueDate = new Date(task.dueDateTime)
     const now = new Date()
@@ -90,6 +96,16 @@ class ReminderManager {
     this.scheduleReminder(task, "overdue_reminder", overdueTime, userId)
 
     // Don't schedule random reminders - they're not needed and cause spam
+  }
+
+  // Schedule the reminder the person set on the task itself (AWTD-1418). One that
+  // is long past is not resurrected on page load; the notification already covered it.
+  private scheduleExplicitReminder(task: Task, userId: string) {
+    if (!task.reminderTime) return
+    const when = new Date(task.reminderTime)
+    if (Number.isNaN(when.getTime())) return
+    if (when.getTime() < Date.now() - EXPLICIT_REMINDER_GRACE_MS) return
+    this.scheduleReminder(task, "task_reminder", when, userId)
   }
 
   // Remove all reminders for a task
@@ -148,6 +164,10 @@ class ReminderManager {
   }
 
   // Check for reminders that should be shown
+  checkNow() {
+    this.checkReminders()
+  }
+
   private checkReminders = () => {
     const now = new Date()
     let hasChanges = false
@@ -160,11 +180,10 @@ class ReminderManager {
 
       // Check if it's time to show this reminder
       if (config.scheduledFor <= now && !this.activeReminders.has(reminderId)) {
-        // We need the full task object to create an active reminder
-        // In a real implementation, you'd fetch this from your task store/database
-        // For now, we'll skip creating the active reminder since we don't have the full task
-        // This will be handled by the triggerManualReminder function instead
-        log.info(`🔔 Triggered ${config.type} reminder for task ${config.taskId} (task data needed)`)
+        if (!config.task) continue
+        this.activeReminders.set(reminderId, { id: reminderId, task: config.task, config, showTime: now })
+        hasChanges = true
+        log.info(`🔔 Triggered ${config.type} reminder for task ${config.taskId}`)
       }
     }
 
