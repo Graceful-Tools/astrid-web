@@ -165,8 +165,8 @@ export function presignedUploadsEnabled(): boolean {
  * Compose a presigned direct upload, which needs no static read/write token.
  * It replaced the client upload token (AWTD-1368, removed in AWTD-1386).
  *
- * The SDK resolves its credential itself: OIDC + `BLOB_STORE_ID` once the
- * store is upgraded, `BLOB_READ_WRITE_TOKEN` until then. The server composes
+ * The SDK resolves its credential itself: OIDC + `BLOB_STORE_ID` on Vercel,
+ * `BLOB_READ_WRITE_TOKEN` off it (local dev; production has none, AWTD-1413). The server composes
  * the whole request (URL and headers) so that SDK internals — the API
  * version, the store id inside the delegation token, the control-plane host —
  * move with this server rather than being frozen into App Store builds
