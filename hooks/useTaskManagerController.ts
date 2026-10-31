@@ -36,7 +36,7 @@ import { preloadUserAvatars } from "@/lib/image-cache"
 
 // Import composable hooks
 import { canUserManageList } from "@/lib/list-permissions"
-import { scopeTasksToList, withoutList, listPath } from "@/lib/task-list-scope"
+import { scopeTasksToList, withoutList, listPath, taskDetailPath } from "@/lib/task-list-scope"
 import { v1TaskUpdateBody } from "@/lib/tasks/v1-task-update-body"
 import { postponeTaskDueDate, shiftTaskDueDate } from "@/lib/date-comparison"
 import {
@@ -182,12 +182,7 @@ export function useTaskManagerController({
   const selectionState = useTaskSelection({
     initialSelectedTaskId,
     finalFilteredTasks: [], // Will be updated with filtered tasks below
-    isMobile,
-    selectedListId: navigationState.selectedListId,
-    finalTasks: listState.finalTasks,
-    closeTaskPaneAnimated: taskPaneState.closeTaskPaneAnimated,
-    setMobileView: externalSetMobileView,
-    setShowMobileSidebar
+    finalTasks: listState.finalTasks
   })
 
   // Sync selection state with temp state (since we had to bootstrap them)
@@ -484,37 +479,20 @@ export function useTaskManagerController({
     taskPaneState.closeTaskPaneAnimated()
 
     if (selectedTaskId) {
-      const task = listState.finalTasks.find(t => t.id === selectedTaskId)
-      if (task && task.lists && task.lists.length > 0) {
-        const primaryListId = task.lists[0].id
-        window.history.replaceState(null, '', `/lists/${primaryListId}`)
-      } else if (navigationState.selectedListId !== "my-tasks") {
-        window.history.replaceState(null, '', `/lists/${navigationState.selectedListId}`)
-      } else {
-        window.history.replaceState(null, '', '/')
-      }
+      window.history.replaceState(null, '', taskDetailPath(navigationState.selectedListId))
     }
-  }, [taskPaneState, selectedTaskId, listState.finalTasks, navigationState.selectedListId])
+  }, [taskPaneState, selectedTaskId, navigationState.selectedListId])
 
   // Task click handler
   const handleTaskClick = useCallback((taskId: string, taskElement?: HTMLElement) => {
     setShowMobileSidebar?.(false)
-
-    const task = listState.finalTasks.find(t => t.id === taskId)
 
     if (selectedTaskId === taskId) {
       taskPaneState.closeTaskPaneAnimated()
       if (isMobile) {
         navigationState.setMobileViewSafe('list')
       }
-      if (task && task.lists && task.lists.length > 0) {
-        const primaryListId = task.lists[0].id
-        window.history.replaceState(null, '', `/lists/${primaryListId}`)
-      } else if (navigationState.selectedListId !== "my-tasks") {
-        window.history.replaceState(null, '', `/lists/${navigationState.selectedListId}`)
-      } else {
-        window.history.replaceState(null, '', '/')
-      }
+      window.history.replaceState(null, '', taskDetailPath(navigationState.selectedListId))
       return
     }
 
@@ -525,11 +503,7 @@ export function useTaskManagerController({
       setSelectedTaskRect(taskElement.getBoundingClientRect())
     }
 
-    if (navigationState.selectedListId !== "my-tasks") {
-      window.history.replaceState(null, '', `/lists/${navigationState.selectedListId}?task=${taskId}`)
-    } else {
-      window.history.replaceState(null, '', `/?task=${taskId}`)
-    }
+    window.history.replaceState(null, '', taskDetailPath(navigationState.selectedListId, taskId))
 
     if (isMobile) {
       navigationState.setMobileViewSafe('task')
@@ -539,7 +513,6 @@ export function useTaskManagerController({
     isMobile,
     navigationState,
     taskPaneState,
-    listState.finalTasks,
     setSelectedTaskId,
     setSelectedTaskElement,
     setSelectedTaskRect,

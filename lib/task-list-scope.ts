@@ -64,3 +64,12 @@ export function withoutList(tasks: Task[], listId: string): Task[] {
 export function listPath(listId: string): string {
   return listId === "my-tasks" ? "/" : `/lists/${listId}`
 }
+
+/**
+ * The URL while a task is open in a view, or the view's own URL once it closes.
+ * It follows the view, not the task's first list: closing a task in My Tasks
+ * used to land on /lists/<first list>, so a reload opened the wrong view (AWTD-1432).
+ */
+export function taskDetailPath(listId: string, taskId?: string): string {
+  return taskId ? `${listPath(listId)}?task=${taskId}` : listPath(listId)
+}

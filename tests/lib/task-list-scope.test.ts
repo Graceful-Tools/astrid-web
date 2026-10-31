@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { Task, TaskList } from '@/types/task'
-import { scopeTasksToList, withoutList, listPath } from '@/lib/task-list-scope'
+import { scopeTasksToList, withoutList, listPath, taskDetailPath } from '@/lib/task-list-scope'
 
 /** AWTD-1419 — what a list view starts from, and what deleting a list leaves. */
 
@@ -39,5 +39,18 @@ describe('listPath', () => {
   it('is / for My Tasks and /lists/<id> otherwise', () => {
     expect(listPath('my-tasks')).toBe('/')
     expect(listPath('abc')).toBe('/lists/abc')
+  })
+})
+
+describe('taskDetailPath (AWTD-1432)', () => {
+  it('opening a task keeps the view you are in: ?task= on / for My Tasks, on the list otherwise', () => {
+    expect(taskDetailPath('my-tasks', 't1')).toBe('/?task=t1')
+    expect(taskDetailPath('abc', 't1')).toBe('/lists/abc?task=t1')
+    expect(taskDetailPath('today', 't1')).toBe('/lists/today?task=t1')
+  })
+
+  it('closing goes back to the view, never to whichever list the task happens to be on first', () => {
+    expect(taskDetailPath('my-tasks')).toBe('/')
+    expect(taskDetailPath('assigned')).toBe('/lists/assigned')
   })
 })
