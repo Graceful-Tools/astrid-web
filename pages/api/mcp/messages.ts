@@ -1,7 +1,15 @@
 import { hasCapability } from '@/lib/brand/capabilities'
 import type { NextApiRequest, NextApiResponse } from "next"
-import { buildAuthSignature, readRequestBody } from "../../../lib/server/mcp-http-utils"
+import {
+  buildAuthSignature,
+  extractAuthContext,
+  mcpAuthChallenge,
+  mcpRequestBaseUrl,
+  readRequestBody,
+  validateMCPAuthContext,
+} from "../../../lib/server/mcp-http-utils"
 import { getSession } from "../../../lib/server/mcp-session-store"
+import { UnauthorizedError } from "@/lib/api-auth-middleware"
 
 export const config = {
   api: {
@@ -44,11 +52,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const signature = buildAuthSignature(req)
   if (session.authSignature && signature !== session.authSignature) {
+    res.setHeader("WWW-Authenticate", mcpAuthChallenge(mcpRequestBaseUrl(req), true))
     res.status(401).json({ error: "Authorization header does not match the session that initiated the stream" })
     return
   }
 
   try {
+    const authContext = extractAuthContext(req)
+    if (!authContext) {
+      res.setHeader("WWW-Authenticate", mcpAuthChallenge(mcpRequestBaseUrl(req)))
+      res.status(401).json({ error: "Missing MCP credentials" })
+      return
+    }
+    await validateMCPAuthContext(authContext.options)
+
     const rawBody = await readRequestBody(req)
     let parsedBody: any = undefined
 
@@ -63,6 +80,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     await session.transport.handlePostMessage(req as any, res as any, parsedBody)
   } catch (error) {
+    if (error instanceof UnauthorizedError && !res.headersSent) {
+      res.setHeader("WWW-Authenticate", mcpAuthChallenge(mcpRequestBaseUrl(req), true))
+      res.status(401).json({ error: "Invalid or expired access token" })
+      return
+    }
     console.error(`[MCP] Error handling POST for session ${sessionId}:`, error)
     if (!res.headersSent) {
       res.status(500).json({ error: "Failed to process MCP message" })

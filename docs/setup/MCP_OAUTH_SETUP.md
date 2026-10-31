@@ -294,6 +294,17 @@ via the *MCP: Open User Configuration* command:
 scopes. The Astrid tools then appear in Copilot agent mode's tool picker.
 
 Notes:
+- Hosted bearer credentials are checked before a Streamable HTTP request or SSE
+  message is dispatched. Invalid, expired, or revoked credentials receive HTTP 401
+  with `WWW-Authenticate: Bearer`, `error="invalid_token"`, and
+  `resource_metadata` pointing to OAuth discovery. OAuth clients can then refresh
+  or request sign-in again; an HTTP 200 tool error is not a sign-in challenge.
+- Board/task access is checked separately against the **consenting account** and
+  the current token's scopes. Approving agent authorship (for example,
+  `copilot@astrid.cc`) does not grant that agent's board membership to the account.
+  A Forbidden tool error can mean missing scopes or task access; do not change
+  accounts or grants based on list owner fields alone. Settings Connections
+  aggregates live grants, so its scopes are not necessarily this token's scopes.
 - For Copilot CLI, the complete setup is:
   `copilot mcp add --transport http astrid https://www.astrid.cc/mcp`.
   Leave HTTP headers empty. Copilot dynamically registers its callback and opens

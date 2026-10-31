@@ -1,9 +1,33 @@
 import type { NextApiRequest } from "next"
+import { NextRequest } from "next/server"
+import { BRAND } from "@/lib/brand/config"
+import { authenticateAPI } from "@/lib/api-auth-middleware"
 import type { AstridMCPServerOptions } from "../../mcp/mcp-server-oauth"
 
 interface AuthExtractionResult {
   options: AstridMCPServerOptions
   authSignature: string | null
+}
+
+export function mcpAuthChallenge(baseUrl: string, invalidToken = false): string {
+  const metadata = `${baseUrl}/.well-known/oauth-protected-resource/mcp`
+  return `Bearer resource_metadata="${metadata}"${invalidToken ? ', error="invalid_token"' : ''}`
+}
+
+export function mcpRequestBaseUrl(req: NextApiRequest): string {
+  const host = req.headers.host || BRAND.domain
+  const proto = host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https"
+  return `${proto}://${host}`
+}
+
+export async function validateMCPAuthContext(options: AstridMCPServerOptions): Promise<void> {
+  if (!options.accessToken) return // Basic credentials use the client-credentials flow.
+
+  // Only validate the credential MCP forwards, never an unrelated browser cookie.
+  // The shared API validator supports both OAuth and legacy MCP bearer tokens.
+  await authenticateAPI(new NextRequest(`https://${BRAND.domain}/mcp`, {
+    headers: { Authorization: `Bearer ${options.accessToken}` },
+  }), undefined, { tokenOnly: true })
 }
 
 const HEADER_BASE_URL = "x-astrid-api-base-url"
