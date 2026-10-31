@@ -29,6 +29,12 @@ export const POST = withAuth<RouteContext>(
         { status: 409 },
       )
     }
+    if (result.status === "handed-off") {
+      return NextResponse.json(
+        { error: `Already handed off: waiting for production to serve ${result.sha}. Moved back to Waiting.` },
+        { status: 409 },
+      )
+    }
     if (result.status === "conflict") {
       return NextResponse.json(
         { error: "Task changed after queue selection and was not claimed" },

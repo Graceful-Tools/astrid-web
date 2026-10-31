@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -26,7 +26,8 @@ describe('cloud agent lifecycle wiring', () => {
   it('keeps workers production-free with bounded runs and durable outcomes', () => {
     const source = read('.github/workflows/agent-run.yml')
     const workflow = yaml.load(source)
-    expect(workflow.permissions.actions).toBe('read')
+    expect(workflow.permissions).toEqual({})
+    expect(workflow.jobs.run.permissions.actions).toBe('read')
     expect(workflow.jobs.run.environment).toBe('agent')
     expect(workflow.jobs.run['timeout-minutes']).toBe(90)
     expect(source).toContain('--require-polling')
@@ -123,8 +124,11 @@ describe('agent-run verdict step, executed', () => {
       mkdirSync(join(dir, '.agent-output'))
       writeFileSync(join(dir, '.agent-output', 'agent-transcript.txt'), transcript)
     }
-    return runWorkflowStep(workflowStep(AGENT_RUN, 'run', VERDICT), { cwd: dir })
+    const output = join(dir, 'github-output')
+    writeFileSync(output, '')
+    return runWorkflowStep(workflowStep(AGENT_RUN, 'run', VERDICT), { cwd: dir, env: { GITHUB_OUTPUT: output } })
   }
+  const verdictOutput = () => read(join(dir, 'github-output'))
 
   it.each([
     ['RESULT: OK — AWTD-1 merged-ready, PR #9\n'],
@@ -147,6 +151,15 @@ describe('agent-run verdict step, executed', () => {
     const result = verdictFor(transcript)
     expect(result.status).toBe(1)
     expect(result.stdout).toContain('::error::The agent did not finish')
+  })
+
+  it.each([
+    ['RESULT: OK — AWTD-1 merged-ready, PR #9\n', 'OK'],
+    ['RESULT: SKIPPED — nothing Ready\n', 'SKIPPED'],
+    ['RESULT: OK\n', 'OK'],
+  ])('tells the chain job the verdict word for %s', (transcript, word) => {
+    expect(verdictFor(transcript).status).toBe(0)
+    expect(verdictOutput()).toBe(`result=${word}\n`)
   })
 
   it('fails when there is no transcript at all', () => {
@@ -253,5 +266,90 @@ describe('agent-run preserve-work step, executed', () => {
     expect(existsSync(join(work, '.agent-output', 'recovery.bundle'))).toBe(false)
     expect(existsSync(join(work, '.agent-output', 'recovery-head.txt'))).toBe(false)
     expect(remoteHeads()).toEqual([`refs/heads/main ${base}`])
+  })
+})
+
+/**
+ * GitHub created 10 of the ~100 scheduled agent runs from 10-29 to 10-31, so
+ * the queue drained one task every four or five hours. A finished run starts
+ * the next; an agent PR's CI finishing starts the ship.
+ */
+describe('the loop keeps itself going without the scheduler', () => {
+  const CHAIN_STEP = 'Start the next run unless the chain is at its cap'
+  const agentRun = () => yaml.load(read(AGENT_RUN))
+
+  it('chains without actions: write, so no job here can dispatch a deploy', () => {
+    const workflow = agentRun()
+    expect(workflow.permissions).toEqual({})
+    expect(workflow.jobs.run.permissions).toEqual({ contents: 'write', 'pull-requests': 'write', actions: 'read' })
+    expect(workflow.jobs.chain.permissions).toEqual({})
+    expect(workflow.jobs.chain.needs).toBe('run')
+    // The agent's own token: Contents write is all a repository_dispatch needs,
+    // and production-deployment.yml does not listen for one.
+    expect(workflow.jobs.chain.env.GH_TOKEN).toBe('${{ secrets.AGENT_GH_TOKEN }}')
+    expect(Object.keys(yaml.load(read('.github/workflows/production-deployment.yml')).on)).toEqual(['workflow_dispatch'])
+    // No checkout: nothing the agent wrote runs here.
+    expect(JSON.stringify(workflow.jobs.chain)).not.toContain('actions/checkout')
+    expect(workflow.on.repository_dispatch.types).toEqual(['agent-run-next'])
+  })
+
+  it('chains only after a run that finished a task', () => {
+    const workflow = agentRun()
+    expect(workflow.jobs.chain.if).toBe(
+      "${{ !inputs.dry_run && (inputs.harness || 'claude-code') == 'claude-code' && needs.run.result == 'success' && needs.run.outputs.result == 'OK' }}")
+    expect(workflow.jobs.run.outputs.result).toBe('${{ steps.verdict.outputs.result }}')
+    expect(workflow.jobs.run.steps.find((s: { name?: string }) => s.name === VERDICT).id).toBe('verdict')
+    expect(workflow.jobs.chain.env.DEPTH).toBe("${{ github.event.client_payload.chain_depth || '0' }}")
+    // The schedule stays as the fallback that restarts an ended chain.
+    expect(workflow.on.schedule).toEqual([{ cron: '5,35 * * * *' }])
+  })
+
+  describe('the chain step, executed', () => {
+    let dir: string
+    beforeEach(() => {
+      dir = mkdtempSync(join(tmpdir(), 'agent-run-chain-'))
+      writeFileSync(join(dir, 'gh'), '#!/bin/sh\necho "$@" >> "$(dirname "$0")/gh-calls"\n', { mode: 0o755 })
+    })
+    afterEach(() => rmSync(dir, { recursive: true, force: true }))
+    const chain = (depth: string, max: string) => {
+      const result = runWorkflowStep(workflowStep(AGENT_RUN, 'chain', CHAIN_STEP), {
+        cwd: dir,
+        env: { PATH: `${dir}:${process.env.PATH}`, GH_REPO: 'Graceful-Tools/astrid-web', DEPTH: depth, MAX_CHAIN: max },
+      })
+      const calls = existsSync(join(dir, 'gh-calls')) ? read(join(dir, 'gh-calls')).trim() : ''
+      return { ...result, calls }
+    }
+
+    it('starts the next run one deeper', () => {
+      const { status, calls } = chain('2', '8')
+      expect(status).toBe(0)
+      expect(calls).toBe('api repos/Graceful-Tools/astrid-web/dispatches -f event_type=agent-run-next -F client_payload[chain_depth]=3')
+    })
+
+    it('stops at the cap and leaves the rest to the schedule', () => {
+      const { status, calls, stdout } = chain('8', '8')
+      expect(status).toBe(0)
+      expect(calls).toBe('')
+      expect(stdout).toContain('the schedule takes over')
+    })
+  })
+
+  it('ships when an agent PR finishes CI, from main, for green runs only', () => {
+    const workflow = yaml.load(read('.github/workflows/agent-ship.yml'))
+    expect(workflow.on.workflow_run.types).toEqual(['completed'])
+    expect(workflow.jobs.ship.if).toContain("github.event.workflow_run.conclusion == 'success'")
+    expect(workflow.jobs.ship.if).toContain("startsWith(github.event.workflow_run.head_branch, 'agent/')")
+    expect(workflow.jobs.ship.if).toContain("vars.ASTRID_SHIP_ENABLED == 'true'")
+    // A dispatch defaults to a dry run; a workflow_run is a real one, like the schedule.
+    expect(workflow.jobs.ship.env.DRY_RUN).toBe("${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}")
+  })
+
+  it('listens for workflows that exist, so a rename cannot silently stop shipping', () => {
+    const names = readdirSync('.github/workflows')
+      .filter(file => /\.ya?ml$/.test(file))
+      .map(file => yaml.load(read(join('.github/workflows', file)))?.name)
+    for (const name of yaml.load(read('.github/workflows/agent-ship.yml')).on.workflow_run.workflows) {
+      expect(names, name).toContain(name)
+    }
   })
 })
