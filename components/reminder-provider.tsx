@@ -43,11 +43,11 @@ export function ReminderProvider({
 
   // Update task reminders when tasks change - but avoid infinite loops
   useEffect(() => {
-    const tasksWithDueDates = tasks.filter(task => !task.completed && task.dueDateTime)
-    
+    const tasksWithDueDates = tasks.filter(task => !task.completed && (task.dueDateTime || task.reminderTime))
+
     // Only process tasks that haven't been processed recently or have changed
     const tasksToProcess = tasksWithDueDates.filter(task => {
-      const taskKey = `${task.id}-${task.dueDateTime}-${task.completed}`
+      const taskKey = `${task.id}-${task.dueDateTime}-${task.reminderTime}-${task.completed}`
       const alreadyProcessed = processedTasksRef.current.has(taskKey)
       
       if (!alreadyProcessed) {
@@ -98,6 +98,12 @@ export function ReminderProvider({
     if (reminder) {
       snoozeReminder(reminder.id, minutes)
       setDisplayedReminders(prev => prev.filter(r => r.task.id !== taskId))
+      // Persist the snooze as the task's reminderTime, as the native apps and the
+      // notification do, so it survives a reload and shows on other devices (AWTD-1418).
+      const fullTask = getTaskForReminder(reminder)
+      if (fullTask) {
+        onTaskUpdate({ ...fullTask, reminderTime: new Date(Date.now() + minutes * 60 * 1000) })
+      }
     }
   }
 
