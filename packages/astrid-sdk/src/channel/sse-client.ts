@@ -17,6 +17,17 @@ export class SSEClient {
   private keepaliveTimer: ReturnType<typeof setTimeout> | null = null
   private stopped = false
 
+  // Fields of the event being read. They live on the instance, not in
+  // parseBuffer, because a frame can be split across reads anywhere: the
+  // `event:`/`id:` lines may arrive before a chunk boundary and the blank
+  // line that ends the event after it (AWTD-1431).
+  private pendingType = 'message'
+  private pendingId: string | undefined
+  private pendingData: string[] = []
+
+  private static readonly MAX_AUTH_RETRIES = 3
+  private static readonly AUTH_RETRY_BASE_MS = 1000
+
   // Instance-level dedup map — survives disconnect/reconnect cycles
   private deliveredEvents = new Map<string, number>()
   private static readonly DEDUP_TTL_MS = 5 * 60_000
@@ -37,7 +48,12 @@ export class SSEClient {
   }
 
   async connect(): Promise<void> {
+    return this.connectWithAuthRetry(0)
+  }
+
+  private async connectWithAuthRetry(authRetries: number): Promise<void> {
     this.stopped = false
+    this.resetPending()
     const token = await this.oauth.ensureToken()
     const base = this.config.sseEndpoint
       || `${resolveApiBase(this.config.apiBase)}/agent/events`
@@ -56,8 +72,15 @@ export class SSEClient {
     })
 
     if (res.status === 401) {
+      if (authRetries >= SSEClient.MAX_AUTH_RETRIES) {
+        throw new Error(`SSE connection failed: ${res.status} after ${authRetries} token refreshes`)
+      }
       await this.oauth.refreshToken()
-      return this.connect()
+      await new Promise(resolve =>
+        setTimeout(resolve, SSEClient.AUTH_RETRY_BASE_MS * 2 ** authRetries)
+      )
+      if (this.stopped) return
+      return this.connectWithAuthRetry(authRetries + 1)
     }
 
     if (!res.ok || !res.body) {
@@ -142,34 +165,29 @@ export class SSEClient {
     }, Math.round(delay + jitter))
   }
 
+  private resetPending(): void {
+    this.pendingType = 'message'
+    this.pendingId = undefined
+    this.pendingData = []
+  }
+
   private parseBuffer(buffer: string): { events: AgentSSEEvent[]; remaining: string } {
     const events: AgentSSEEvent[] = []
     const lines = buffer.split('\n')
-    let eventType = 'message'
-    let eventId: string | undefined
-    let dataLines: string[] = []
-    let remaining = ''
+    // The last element is an unfinished line, or '' when the buffer ends in \n.
+    const remaining = lines.pop() ?? ''
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]
-
-      if (i === lines.length - 1 && !buffer.endsWith('\n')) {
-        remaining = line
-        break
-      }
-
+    for (const line of lines) {
       if (line === '') {
-        if (dataLines.length > 0) {
+        if (this.pendingData.length > 0) {
           try {
-            const data = JSON.parse(dataLines.join('\n'))
-            const event: AgentSSEEvent = { type: eventType, data }
-            if (eventId) event.id = eventId
+            const data = JSON.parse(this.pendingData.join('\n'))
+            const event: AgentSSEEvent = { type: this.pendingType, data }
+            if (this.pendingId) event.id = this.pendingId
             events.push(event)
           } catch { /* skip malformed */ }
         }
-        eventType = 'message'
-        eventId = undefined
-        dataLines = []
+        this.resetPending()
         continue
       }
 
@@ -180,9 +198,9 @@ export class SSEClient {
       const field = line.slice(0, colon)
       const value = line.slice(colon + 1).trimStart()
 
-      if (field === 'event') eventType = value
-      else if (field === 'data') dataLines.push(value)
-      else if (field === 'id') eventId = value
+      if (field === 'event') this.pendingType = value
+      else if (field === 'data') this.pendingData.push(value)
+      else if (field === 'id') this.pendingId = value
     }
 
     return { events, remaining }
