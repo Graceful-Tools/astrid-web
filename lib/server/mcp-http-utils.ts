@@ -1,7 +1,9 @@
 import type { NextApiRequest } from "next"
 import { NextRequest } from "next/server"
-import { BRAND } from "@/lib/brand/config"
-import { authenticateAPI } from "@/lib/api-auth-middleware"
+import { BRAND, brandOrigin, mcpDefaultBaseUrl } from "@/lib/brand/config"
+import { authenticateAPI, UnauthorizedError } from "@/lib/api-auth-middleware"
+import { sameOrigin } from "@/lib/auth-host"
+import { createHash } from "crypto"
 import type { AstridMCPServerOptions } from "../../mcp/mcp-server-oauth"
 
 interface AuthExtractionResult {
@@ -20,8 +22,30 @@ export function mcpRequestBaseUrl(req: NextApiRequest): string {
   return `${proto}://${host}`
 }
 
-export async function validateMCPAuthContext(options: AstridMCPServerOptions): Promise<void> {
+export async function validateMCPAuthContext(
+  options: AstridMCPServerOptions,
+  localOrigin = brandOrigin(),
+): Promise<void> {
   if (!options.accessToken) return // Basic credentials use the client-credentials flow.
+
+  const baseUrl = options.baseUrl || mcpDefaultBaseUrl()
+  const canonicalOrigins = [brandOrigin(), `https://www.${BRAND.domain}`]
+  const isLocal = sameOrigin(baseUrl, localOrigin) ||
+    (canonicalOrigins.includes(baseUrl) && canonicalOrigins.includes(localOrigin))
+  if (!isLocal) {
+    // Use the same explicitly selected backend as the API client. Never follow a
+    // redirect with a credential or let a backend browser session replace it.
+    const response = await fetch(`${baseUrl.replace(/\/$/, '')}/api/v1/oauth/validate`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${options.accessToken}` },
+      redirect: "error",
+    })
+    if (response.status === 401) throw new UnauthorizedError()
+    if (response.status !== 204) {
+      throw new Error(`MCP backend token validation failed: HTTP ${response.status}`)
+    }
+    return
+  }
 
   // Only validate the credential MCP forwards, never an unrelated browser cookie.
   // The shared API validator supports both OAuth and legacy MCP bearer tokens.
@@ -42,25 +66,20 @@ export function extractAuthContext(req: NextApiRequest): AuthExtractionResult | 
   let clientSecret: string | undefined
 
   const authHeader = req.headers.authorization
-  let authSignature: string | null = null
-
   if (authHeader?.startsWith("Bearer ")) {
     accessToken = authHeader.slice(7).trim()
-    authSignature = authHeader.trim()
   } else if (authHeader?.startsWith("Basic ")) {
     const decoded = Buffer.from(authHeader.slice(6).trim(), "base64").toString("utf8")
     const separatorIndex = decoded.indexOf(":")
     if (separatorIndex !== -1) {
       clientId = decoded.slice(0, separatorIndex)
       clientSecret = decoded.slice(separatorIndex + 1)
-      authSignature = authHeader.trim()
     }
   }
 
   const headerAccessToken = headerValue(req, HEADER_ACCESS_TOKEN)
   if (headerAccessToken) {
     accessToken = headerAccessToken
-    authSignature = `token ${headerAccessToken}`
   }
 
   const headerClientId = headerValue(req, HEADER_CLIENT_ID)
@@ -68,18 +87,20 @@ export function extractAuthContext(req: NextApiRequest): AuthExtractionResult | 
   if (headerClientId && headerClientSecret) {
     clientId = headerClientId
     clientSecret = headerClientSecret
-    authSignature = `client ${headerClientId}:${headerClientSecret}`
   }
 
   const defaultListId = headerValue(req, HEADER_LIST_ID) || null
-  const baseUrl = headerValue(req, HEADER_BASE_URL)
+  const baseUrl = headerValue(req, HEADER_BASE_URL) || mcpDefaultBaseUrl()
 
   if (!accessToken && (!clientId || !clientSecret)) {
     return null
   }
 
   return {
-    authSignature,
+    authSignature: createHash("sha256").update(JSON.stringify([
+      baseUrl,
+      accessToken ? ["token", accessToken] : ["client", clientId, clientSecret],
+    ])).digest("hex"),
     options: {
       baseUrl: baseUrl || undefined,
       clientId,
@@ -91,23 +112,7 @@ export function extractAuthContext(req: NextApiRequest): AuthExtractionResult | 
 }
 
 export function buildAuthSignature(req: NextApiRequest): string | null {
-  const authHeader = req.headers.authorization
-  if (authHeader) {
-    return authHeader.trim()
-  }
-
-  const headerAccessToken = headerValue(req, HEADER_ACCESS_TOKEN)
-  if (headerAccessToken) {
-    return `token ${headerAccessToken}`
-  }
-
-  const headerClientId = headerValue(req, HEADER_CLIENT_ID)
-  const headerClientSecret = headerValue(req, HEADER_CLIENT_SECRET)
-  if (headerClientId && headerClientSecret) {
-    return `client ${headerClientId}:${headerClientSecret}`
-  }
-
-  return null
+  return extractAuthContext(req)?.authSignature ?? null
 }
 
 export async function readRequestBody(req: NextApiRequest): Promise<string> {
