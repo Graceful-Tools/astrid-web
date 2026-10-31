@@ -79,6 +79,10 @@ export function createSdkSseHarness() {
   return {
     client,
     received,
+    /** Script the next SSE connection without opening it, for code that owns its own SSEClient. */
+    enqueue(...chunks: string[]) {
+      connections.push(chunks)
+    },
     sseRequests,
     fetchMock,
     /** Open one SSE connection that streams `chunks` and then ends. */
