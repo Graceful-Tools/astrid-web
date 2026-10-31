@@ -72,6 +72,62 @@ describe('uploadCommentFile', () => {
     )
   })
 
+  // AWTD-1442: Vercel rejects function bodies over 4.5MB before our route runs.
+  it('AWTD-1442: sends a >4.5MB file straight to storage, never as multipart to a function', async () => {
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/v1/secure-upload/get-upload-url') {
+        return okResponse({
+          fileId: 'big-1',
+          pathname: 'files/u/big-1.png',
+          presigned: { uploadUrl: 'https://blob.example/put', headers: { 'x-api-version': '12' } },
+        })
+      }
+      if (url === 'https://blob.example/put') return okResponse({})
+      if (init?.method === 'HEAD') return okResponse({})
+      throw new Error(`unexpected ${url}`)
+    })
+
+    const result = await uploadCommentFile(
+      makeFile(6 * 1024 * 1024),
+      { taskId, attachTarget: 'message' },
+      fetchMock as unknown as typeof fetch,
+    )
+
+    expect(result.success).toBe(true)
+    expect(result.success === true && result.attachment).toEqual({
+      url: '/api/v1/secure-files/big-1',
+      name: 'test.png',
+      type: 'image/png',
+      size: 6 * 1024 * 1024,
+    })
+    for (const [, init] of fetchMock.mock.calls) {
+      expect(init?.body).not.toBeInstanceOf(FormData)
+    }
+    const urls = fetchMock.mock.calls.map(c => c[0])
+    expect(urls).not.toContain('/api/v1/secure-upload/request-upload')
+    const meta = JSON.parse(fetchMock.mock.calls[0][1]!.body as string)
+    expect(meta.context).toEqual({ taskId, attachTarget: 'message' })
+    const put = fetchMock.mock.calls.find(c => c[0] === 'https://blob.example/put')![1]!
+    expect(put.method).toBe('PUT')
+    expect((put.headers as Record<string, string>)['Content-Type']).toBe('image/png')
+    expect((put.headers as Record<string, string>)['x-api-version']).toBe('12')
+  })
+
+  it('AWTD-1442: reports a clear size message when the platform answers 413', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 413,
+      json: async () => {
+        throw new Error('not json')
+      },
+    } as unknown as Response)
+
+    const result = await uploadCommentFile(makeFile(1000), taskId, fetchMock as unknown as typeof fetch)
+
+    expect(result.success).toBe(false)
+    expect(result.success === false && result.error).toMatch(/too large/i)
+  })
+
   it('translates server-side size errors to the friendly message', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       errResponse(413, { error: 'Payload exceeds 100MB limit' }),

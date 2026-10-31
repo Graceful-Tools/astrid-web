@@ -52,6 +52,9 @@ export const IMAGE_FILE_TYPES: FileTypeAllowlist = {
   webp: ['image/webp'],
 }
 
+/** Recognized values for the upload-intent discriminator (task ded31696). */
+export const ATTACH_TARGETS: readonly string[] = ['message', 'task']
+
 export const MAX_DIRECT_UPLOAD_BYTES = 10 * 1024 * 1024
 
 export type UploadValidation =

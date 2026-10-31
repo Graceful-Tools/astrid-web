@@ -93,8 +93,21 @@ describe('POST /api/secure-upload/upload-complete (AWTD-1421)', () => {
       taskId: 'task-1',
       listId: 'list-1',
       commentId: 'comment-1',
+      attachTarget: null,
       clientRequestId: 'req-1',
     })
+  })
+
+  it('AWTD-1442: a direct upload keeps the composer attachTarget so it stays on its message', async () => {
+    const body = callback({
+      payload: {
+        blob: { url: 'https://blob.example/files/user-1/file-1.pdf', contentType: 'application/pdf', size: 123 },
+        tokenPayload: JSON.stringify({ ...TOKEN_PAYLOAD, attachTarget: 'message' }),
+      },
+    })
+    const res = await post(body, sig(body))
+    expect(res.status).toBe(200)
+    expect(secureFileCreate.mock.calls[0][0].data).toMatchObject({ attachTarget: 'message' })
   })
 
   it.each([
