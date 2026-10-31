@@ -212,6 +212,10 @@ export interface V1TaskCreateRequest {
    */
   when?: string | null
   isAllDay?: boolean
+  /** ISO datetime of an explicit reminder. */
+  reminderTime?: string | null
+  /** `'push'`, `'email'` or `'both'`. */
+  reminderType?: string | null
   isPrivate?: boolean
   repeating?: string | null
   /** Custom pattern; read only when `repeating` is `'custom'`, dropped otherwise. */
