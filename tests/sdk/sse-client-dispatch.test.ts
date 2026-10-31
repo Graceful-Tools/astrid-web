@@ -172,16 +172,22 @@ describe('SDK SSE Client — stream framing', () => {
     expect(harness.received[0]).toMatchObject({ type: 'task.updated', data: { taskId: 'task-1' } })
   })
 
-  // KNOWN BUG (found writing AWTD-1422, not fixed here): parseBuffer only
-  // carries the trailing partial LINE between reads, not the pending
-  // `event:` / `id:` fields, so a named event whose `event:` line and `data:`
-  // line arrive in different reads is dispatched as 'message' and never
-  // reaches its task.* handler. it.fails flips red once the parser is fixed —
-  // turn it into a plain `it` then.
-  it.fails('should keep the event name when the frame is split after the event: line', async () => {
+  it('should keep the event name when the frame is split after the event: line (AWTD-1431)', async () => {
     await harness.connect('event: task.updated\n', 'data: {"taskId":"task-1"}\n\n')
 
     expect(harness.received[0]).toMatchObject({ type: 'task.updated', data: { taskId: 'task-1' } })
+  })
+
+  it('should keep id and event when split across several reads (AWTD-1431)', async () => {
+    await harness.connect('id: evt-9\nevent: task.assigned\n', 'data: {"taskId":"task-1"}\n', '\n')
+
+    expect(harness.received[0]).toMatchObject({ type: 'task.assigned', id: 'evt-9' })
+  })
+
+  it("should not leak one frame's event name into the next (AWTD-1431)", async () => {
+    await harness.connect('event: task.updated\n', 'data: {"taskId":"a"}\n\n', frame({ taskId: 'b' }))
+
+    expect(harness.received.map(e => e.type)).toEqual(['task.updated', 'message'])
   })
 
   it('should skip comment lines and malformed JSON', async () => {
@@ -226,6 +232,23 @@ describe('SDK SSE Client — connection request', () => {
     harness.fetchMock.mockImplementationOnce(async () => new Response('nope', { status: 500 }))
 
     await expect(harness.client.connect()).rejects.toThrow('SSE connection failed: 500')
+  })
+})
+
+describe('SDK SSE Client — 401 handling', () => {
+  it('should stop retrying and throw when the server keeps answering 401 (AWTD-1431)', async () => {
+    harness.fetchMock.mockImplementation(async (input: string | URL | Request) =>
+      String(input).endsWith('/oauth/token')
+        ? new Response(JSON.stringify({ access_token: 't', expires_in: 3600 }), { status: 200 })
+        : new Response('no', { status: 401 })
+    )
+
+    const result = harness.client.connect().then(() => null, (err: Error) => err)
+    await vi.runAllTimersAsync()
+
+    expect((await result)?.message).toMatch(/SSE connection failed: 401/)
+    const sseCalls = harness.fetchMock.mock.calls.filter(([u]) => !String(u).endsWith('/oauth/token'))
+    expect(sseCalls).toHaveLength(4)
   })
 })
 
