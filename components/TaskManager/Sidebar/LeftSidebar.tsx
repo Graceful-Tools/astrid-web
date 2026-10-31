@@ -190,9 +190,11 @@ export function LeftSidebar({
       <div ref={navigationRef} className="flex-1 min-h-0 overflow-y-auto scrollbar-hide sidebar-navigation">
         {/* Astrid brand header */}
         <div className="px-3 pt-3 flex items-center justify-between gap-2">
-          <div
+          <button
+            type="button"
             className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity min-w-0"
-            title="Go to Home"
+            title={t("navigation.goHome")}
+            aria-label={t("navigation.goHome")}
             onClick={onLogoClick}
           >
             <Image
@@ -203,7 +205,7 @@ export function LeftSidebar({
               className="rounded-sm"
             />
             <span className="text-lg font-semibold tracking-tight theme-text-primary">{BRAND.wordmark}</span>
-          </div>
+          </button>
           {/* Search, inline at the far right of the brand header (AWTD-1180).
            *  Jon: "(a) but add search icon inline on far right. Logo left
            *  header with Astrid / brand logo on top left." The Search ROW below

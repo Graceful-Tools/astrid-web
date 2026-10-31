@@ -43,7 +43,7 @@ export const AUTHENTICATED_UI_SPECS = [
  */
 export const PENDING_E2E_SPECS: Record<string, string> = {
   // Revive candidates — selectors exist, but the spec no longer passes signed in.
-  'accessibility': 'real gaps, not locators (AWTD-1435): no <main> landmark, no skip link, the logo is a div the keyboard cannot reach; the sign-in cases need a signed-out project',
+  'accessibility': 'AWTD-1435 fixed the product gaps and rewrote the spec for signed-in use; it moves to AUTHENTICATED_UI_SPECS after three green CI runs in a row (run it locally first: PLAYWRIGHT_AUTHENTICATED=1)',
 }
 const specPattern = (names: string[]) => new RegExp(`(^|/)(${names.join('|')})\\.spec\\.ts$`)
 
