@@ -338,6 +338,8 @@ jobs:
     needs: run
     if: ${{ !inputs.dry_run && (inputs.harness || 'claude-code') == 'claude-code' && needs.run.result == 'success' && needs.run.outputs.result == 'OK' }}
     runs-on: ubuntu-24.04
+    # AGENT_GH_TOKEN is an `agent` environment secret; without this it reads empty.
+    environment: agent
     timeout-minutes: 5
     permissions: {}
     env:
