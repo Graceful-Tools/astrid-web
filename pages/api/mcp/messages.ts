@@ -10,6 +10,7 @@ import {
 } from "../../../lib/server/mcp-http-utils"
 import { getSession } from "../../../lib/server/mcp-session-store"
 import { UnauthorizedError } from "@/lib/api-auth-middleware"
+import { OutboundUrlError } from "@/lib/security/outbound-url"
 
 export const config = {
   api: {
@@ -87,7 +88,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     console.error(`[MCP] Error handling POST for session ${sessionId}:`, error)
     if (!res.headersSent) {
-      res.status(500).json({ error: "Failed to process MCP message" })
+      res.status(error instanceof OutboundUrlError ? 400 : 500).json({
+        error: error instanceof OutboundUrlError ? "Invalid MCP backend" : "Failed to process MCP message",
+      })
     } else {
       try {
         res.end()

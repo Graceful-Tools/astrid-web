@@ -10,6 +10,7 @@
 
 import { BRAND, mcpDefaultBaseUrl } from "../lib/brand/config"
 import { createLogger } from "../lib/logger"
+import { fetchMCPBackend } from "../lib/security/mcp-backend"
 // Process-level token cache for the hosted /mcp path (task 11f578e0).
 import {
   hostedTokenCacheKey,
@@ -26,6 +27,14 @@ interface OAuthTokenResponse {
   scope: string
 }
 
+export interface OAuthAPIClientOptions {
+  baseUrl?: string
+  clientId?: string
+  clientSecret?: string
+  accessToken?: string
+  hosted?: boolean
+}
+
 export class OAuthAPIClient {
   private readonly baseUrl: string
   private readonly clientId: string
@@ -38,7 +47,8 @@ export class OAuthAPIClient {
     baseUrl: string = mcpDefaultBaseUrl(),
     clientId?: string,
     clientSecret?: string,
-    staticAccessToken?: string | null
+    staticAccessToken?: string | null,
+    private readonly hosted = false,
   ) {
     this.baseUrl = baseUrl
     this.clientId = clientId || process.env.ASTRID_OAUTH_CLIENT_ID || ""
@@ -83,7 +93,7 @@ export class OAuthAPIClient {
   private async mintAccessToken(): Promise<HostedTokenEntry> {
     log.debug("Obtaining OAuth access token")
 
-    const response = await fetch(`${this.baseUrl}/api/v1/oauth/token`, {
+    const response = await this.fetchBackend("/api/v1/oauth/token", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -116,7 +126,7 @@ export class OAuthAPIClient {
   async makeRequest<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const token = await this.obtainAccessToken()
 
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+    const response = await this.fetchBackend(endpoint, {
       ...options,
       headers: {
         ...options.headers,
@@ -131,5 +141,11 @@ export class OAuthAPIClient {
     }
 
     return response.json()
+  }
+
+  private fetchBackend(endpoint: string, options: RequestInit): Promise<Response> {
+    return this.hosted
+      ? fetchMCPBackend(this.baseUrl, endpoint, options)
+      : fetch(`${this.baseUrl}${endpoint}`, options)
   }
 }

@@ -48,12 +48,17 @@ export function isBlockedIp(address: string): boolean {
   if (version === 4) return isBlockedIpv4(address)
   if (version !== 6) return true
 
-  const normalized = address.toLowerCase()
+  const normalized = new URL(`https://[${address}]/`).hostname.slice(1, -1)
   if (normalized.startsWith('::ffff:')) {
     return isBlockedIpv4(normalized.slice('::ffff:'.length))
   }
 
   return (
+    // Only global unicast, excluding transition/special-use and documentation ranges.
+    !/^[23]/.test(normalized) ||
+    normalized.startsWith('2002:') ||
+    (normalized.startsWith('2001:') && parseInt(normalized.split(':')[1] || '0', 16) < 0x200) ||
+    (normalized.startsWith('3fff:') && parseInt(normalized.split(':')[1] || '0', 16) < 0x1000) ||
     normalized === '::' ||
     normalized === '::1' ||
     normalized.startsWith('fc') ||
@@ -92,11 +97,16 @@ export function assertOutboundUrlShape(raw: string): URL {
  * a name that resolved publicly yesterday can resolve to 127.0.0.1 today, so
  * validating only on save is a rebinding hole rather than a defence.
  */
-export async function assertPublicOutboundUrl(raw: string): Promise<URL> {
+export async function resolvePublicOutboundUrl(raw: string): Promise<{
+  url: URL
+  address: string
+  family: 4 | 6
+}> {
   const url = assertOutboundUrlShape(raw)
 
   const literal = url.hostname.replace(/^\[|\]$/g, '')
-  if (isIP(literal)) return url
+  const family = isIP(literal)
+  if (family === 4 || family === 6) return { url, address: literal, family }
 
   let addresses
   try {
@@ -107,5 +117,13 @@ export async function assertPublicOutboundUrl(raw: string): Promise<URL> {
   if (addresses.length === 0 || addresses.some(result => isBlockedIp(result.address))) {
     throw new OutboundUrlError('Host resolves to a private or reserved address')
   }
-  return url
+  const resolved = addresses[0]
+  if (resolved.family !== 4 && resolved.family !== 6) {
+    throw new OutboundUrlError('Host resolved to an unsupported address family')
+  }
+  return { url, address: resolved.address, family: resolved.family }
+}
+
+export async function assertPublicOutboundUrl(raw: string): Promise<URL> {
+  return (await resolvePublicOutboundUrl(raw)).url
 }

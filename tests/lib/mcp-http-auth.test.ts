@@ -16,6 +16,9 @@ import { UnauthorizedError } from '@/lib/api-auth-middleware'
 import { row, rowWith } from '../fixtures/prisma-rows'
 
 vi.mock('next-auth', () => ({ getServerSession: vi.fn() }))
+vi.mock('node:dns/promises', () => ({
+  lookup: vi.fn().mockResolvedValue([{ address: '93.184.216.34', family: 4 }]),
+}))
 vi.mock('@/lib/auth-config', () => ({ authConfig: {} }))
 vi.mock('@/lib/oauth/oauth-token-manager', () => ({ validateAccessToken: vi.fn() }))
 vi.mock('@/lib/prisma', () => ({

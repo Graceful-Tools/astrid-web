@@ -10,6 +10,7 @@ import {
   validateMCPAuthContext,
 } from "../../../lib/server/mcp-http-utils"
 import { UnauthorizedError } from "@/lib/api-auth-middleware"
+import { OutboundUrlError } from "@/lib/security/outbound-url"
 import { createLogger } from "@/lib/logger"
 import { deleteSession, storeSession } from "../../../lib/server/mcp-session-store"
 
@@ -141,6 +142,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     if (error instanceof UnauthorizedError) {
       sendAuthChallenge(req, res, true)
+    } else if (error instanceof OutboundUrlError) {
+      log.warn({ err: error }, "Rejected MCP backend")
+      res.status(400).json({ error: "Invalid MCP backend" })
     } else {
       log.error({ err: error }, "MCP authentication failed")
       res.status(500).json({ error: "Authentication error" })

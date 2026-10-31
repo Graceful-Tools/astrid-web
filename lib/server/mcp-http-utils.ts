@@ -5,6 +5,7 @@ import { authenticateAPI, UnauthorizedError } from "@/lib/api-auth-middleware"
 import { sameOrigin } from "@/lib/auth-host"
 import { createHash } from "crypto"
 import type { AstridMCPServerOptions } from "../../mcp/mcp-server-oauth"
+import { fetchMCPBackend, mcpBackendUrl } from "@/lib/security/mcp-backend"
 
 interface AuthExtractionResult {
   options: AstridMCPServerOptions
@@ -26,16 +27,16 @@ export async function validateMCPAuthContext(
   options: AstridMCPServerOptions,
   localOrigin = brandOrigin(),
 ): Promise<void> {
-  if (!options.accessToken) return // Basic credentials use the client-credentials flow.
-
   const baseUrl = options.baseUrl || mcpDefaultBaseUrl()
+  mcpBackendUrl(baseUrl)
+  if (!options.accessToken) return // Basic credentials use the protected client-credentials flow.
   const canonicalOrigins = [brandOrigin(), `https://www.${BRAND.domain}`]
   const isLocal = sameOrigin(baseUrl, localOrigin) ||
     (canonicalOrigins.includes(baseUrl) && canonicalOrigins.includes(localOrigin))
   if (!isLocal) {
     // Use the same explicitly selected backend as the API client. Never follow a
     // redirect with a credential or let a backend browser session replace it.
-    const response = await fetch(`${baseUrl.replace(/\/$/, '')}/api/v1/oauth/validate`, {
+    const response = await fetchMCPBackend(baseUrl, "/api/v1/oauth/validate", {
       method: "GET",
       headers: { Authorization: `Bearer ${options.accessToken}` },
       redirect: "error",
@@ -102,6 +103,7 @@ export function extractAuthContext(req: NextApiRequest): AuthExtractionResult | 
       accessToken ? ["token", accessToken] : ["client", clientId, clientSecret],
     ])).digest("hex"),
     options: {
+      hosted: true,
       baseUrl: baseUrl || undefined,
       clientId,
       clientSecret,

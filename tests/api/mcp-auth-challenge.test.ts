@@ -71,6 +71,22 @@ function request(method: string, authorization?: string, rpcMethod = 'tools/list
 }
 
 describe('/mcp unauthenticated challenge', () => {
+  it.each(['GET', 'POST'])('AITD-447 rejects private overrides on %s before protocol dispatch', async method => {
+    for (const authorization of [
+      'Bearer fixture-not-real',
+      `Basic ${Buffer.from('fixture-client:fixture-secret').toString('base64')}`,
+    ]) {
+      const req = request(method, authorization, 'initialize')
+      Object.assign(req.headers, { 'x-astrid-api-base-url': 'https://127.0.0.1/private-info#' })
+      const r = res()
+      await handler(req as never, r as never)
+      expect(r.statusCode).toBe(400)
+      expect(r.headers['WWW-Authenticate']).toBeUndefined()
+    }
+    expect(fetch).not.toHaveBeenCalled()
+    expect(authenticateAPI).not.toHaveBeenCalled()
+  })
+
   it('tells a POST client where to discover OAuth', async () => {
     const req = Object.assign(Readable.from([Buffer.from('{}')]), {
       method: 'POST', headers: { 'content-type': 'application/json' }, query: {},

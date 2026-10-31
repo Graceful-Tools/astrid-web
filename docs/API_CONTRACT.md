@@ -971,6 +971,13 @@ Validation never follows redirects or returns token/account metadata.
 SSE messages must match the retained stream's effective credential and backend;
 the retained options, not an independently selected POST credential, are revalidated.
 
+Hosted backend overrides require public HTTPS without URL credentials, query,
+or fragment. Every outbound validation, token exchange, and API request rejects
+redirects and pins its checked DNS address. Only an exact operator-configured
+`ASTRID_API_BASE_URL` may use private addresses or HTTP; request Host/Origin does
+not grant an exception. Unsafe overrides return HTTP 400, not `invalid_token`.
+Hosted backend responses are limited to 16 MiB and requests time out after 30 seconds.
+
 ---
 
 ## Rate Limiting
