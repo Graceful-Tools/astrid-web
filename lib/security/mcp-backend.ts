@@ -1,4 +1,4 @@
-import { Agent } from 'undici'
+import { Agent, fetch as undiciFetch } from 'undici'
 import { assertOutboundUrlShape, OutboundUrlError, resolvePublicOutboundUrl } from './outbound-url'
 
 const MAX_RESPONSE_BYTES = 16 * 1024 * 1024
@@ -47,21 +47,30 @@ export async function fetchMCPBackend(
     throw new OutboundUrlError('MCP endpoint escapes the configured backend')
   }
   const trusted = isConfiguredBackend(backend)
+  if (init.body != null && typeof init.body !== 'string') {
+    throw new TypeError('MCP backend requests require a serialized JSON body')
+  }
   const resolved = trusted ? null : await resolvePublicOutboundUrl(target.href)
   const dispatcher = new Agent(resolved ? {
     connect: {
-      lookup: (_hostname, _options, callback) => {
-        callback(null, resolved.address, resolved.family)
+      lookup: (_hostname, options, callback) => {
+        if (options.all) {
+          callback(null, [{ address: resolved.address, family: resolved.family }])
+        } else {
+          callback(null, resolved.address, resolved.family)
+        }
       },
     },
   } : {})
   try {
-    const response = await fetch(target.href, {
-      ...init,
+    const response = await undiciFetch(target.href, {
+      method: init.method,
+      headers: init.headers ? Object.fromEntries(new Headers(init.headers)) : undefined,
+      body: init.body,
       redirect: 'error',
       signal: init.signal ?? AbortSignal.timeout(30_000),
       dispatcher,
-    } as RequestInit & { dispatcher: Agent })
+    })
     // Consume before closing the per-request pinned connection.
     let body: Uint8Array<ArrayBuffer> | null = null
     if (response.body) {
@@ -92,7 +101,7 @@ export async function fetchMCPBackend(
     return new Response(body, {
       status: response.status,
       statusText: response.statusText,
-      headers: response.headers,
+      headers: Object.fromEntries(response.headers),
     })
   } finally {
     await dispatcher.close()
