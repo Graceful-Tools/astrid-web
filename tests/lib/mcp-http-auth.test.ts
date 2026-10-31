@@ -19,6 +19,10 @@ vi.mock('next-auth', () => ({ getServerSession: vi.fn() }))
 vi.mock('node:dns/promises', () => ({
   lookup: vi.fn().mockResolvedValue([{ address: '93.184.216.34', family: 4 }]),
 }))
+vi.mock('undici', async importOriginal => ({
+  ...await importOriginal<typeof import('undici')>(),
+  fetch: (...args: Parameters<typeof fetch>) => globalThis.fetch(...args),
+}))
 vi.mock('@/lib/auth-config', () => ({ authConfig: {} }))
 vi.mock('@/lib/oauth/oauth-token-manager', () => ({ validateAccessToken: vi.fn() }))
 vi.mock('@/lib/prisma', () => ({
@@ -45,7 +49,7 @@ describe('AITD-447 hosted credential validation', () => {
     }, brandOrigin())).resolves.toBeUndefined()
     expect(fetch).toHaveBeenCalledWith(`${baseUrl}/api/v1/oauth/validate`, expect.objectContaining({
       redirect: 'error',
-      headers: { Authorization: 'Bearer astrid_fixture_remote' },
+      headers: { authorization: 'Bearer astrid_fixture_remote' },
     }))
     expect(validateAccessToken).not.toHaveBeenCalled()
   })

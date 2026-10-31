@@ -13,6 +13,7 @@ const lookup = vi.hoisted(() => vi.fn<() => Promise<LookupAddress[]>>())
 vi.mock('node:dns/promises', () => ({ lookup }))
 vi.mock('undici', () => ({
   Agent: vi.fn(function () { return { close: vi.fn().mockResolvedValue(undefined) } }),
+  fetch: (...args: Parameters<typeof fetch>) => globalThis.fetch(...args),
 }))
 vi.mock('@/lib/api-auth-middleware', () => ({
   authenticateAPI: vi.fn(),
@@ -69,6 +70,9 @@ describe('AITD-447 hosted MCP outbound backend safety', () => {
     const callback = vi.fn()
     if (typeof connect === 'object' && 'lookup' in connect && typeof connect.lookup === 'function') {
       connect.lookup('public.example', {}, callback)
+      const allCallback = vi.fn()
+      connect.lookup('public.example', { all: true }, allCallback)
+      expect(allCallback).toHaveBeenCalledWith(null, [{ address: '93.184.216.34', family: 4 }])
     }
     expect(callback).toHaveBeenCalledWith(null, '93.184.216.34', 4)
     expect(lookup).toHaveBeenCalledOnce()

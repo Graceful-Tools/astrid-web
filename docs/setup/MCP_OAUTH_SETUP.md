@@ -313,6 +313,12 @@ Notes:
   UUID 14 breaks hosted MCP at module startup on runtimes without require(ESM).
   `tests/lib/next-auth-commonjs-runtime.test.ts` exercises the real dependency
   without that experimental runtime feature or authentication mocks.
+- Hosted pinned requests use `fetch` and `Agent` from the same installed Undici
+  package. Node's global fetch can bundle a different dispatcher interface;
+  mixing versions can fail before connecting. The unmocked loopback regression
+  in `tests/lib/mcp-fetch-runtime.test.ts` covers that runtime boundary.
+  Its pinned DNS callback also supports Node's `all: true` address-array contract
+  while returning only the checked address, never doing another DNS lookup.
 - Board/task access is checked separately against the **consenting account** and
   the current token's scopes. Approving agent authorship (for example,
   `copilot@astrid.cc`) does not grant that agent's board membership to the account.
