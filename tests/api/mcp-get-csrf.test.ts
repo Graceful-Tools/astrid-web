@@ -50,6 +50,18 @@ beforeEach(() => {
 })
 
 describe('GET /api/mcp/operations (task 06e176be)', () => {
+  it('AITD-447 includes OAuth resource discovery when authentication is rejected', async () => {
+    const { UnauthorizedError } = await import('@/lib/api-auth-middleware')
+    authenticateAPI.mockRejectedValue(new UnauthorizedError())
+    const { GET } = await import('@/app/api/mcp/operations/route')
+
+    const response = await GET(get('operation=get_shared_lists'))
+
+    expect(response.status).toBe(401)
+    expect(response.headers.get('WWW-Authenticate')).toContain('error="invalid_token"')
+    expect(response.headers.get('WWW-Authenticate')).toContain('resource_metadata=')
+  })
+
   it.each([
     'delete_list',
     'delete_task',
