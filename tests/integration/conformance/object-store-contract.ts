@@ -7,6 +7,14 @@
  * and gets every assertion below, with no test body copied per driver — so a
  * driver that behaves differently from the others fails here rather than in a
  * partner's deployment.
+ *
+ * The conformance harness (AWTD-1463, PLATFORM_ASSESSMENT_2026-11 §5), one
+ * assertion set per seam, every implementation:
+ * - object store: this contract — local, s3 (SeaweedFS), azure-blob (Azurite).
+ * - email: tests/integration/email-transport-conformance.test.ts — Resend
+ *   (mocked at the SDK) and SMTP (a real socket to ./smtp-sink.ts).
+ * - realtime: the RealtimeBus (lib/realtime/) registers here when it lands —
+ *   an Upstash mock and a real Redis, the same way.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
