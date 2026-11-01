@@ -15,6 +15,7 @@ on:
       - 'deploy/self-host/**'
       - 'lib/storage/**'
       - 'lib/secure-storage.ts'
+      - 'lib/email-transport.ts'
       - 'app/**/storage/**'
       - 'scripts/cron-runner.mjs'
       - 'scripts/lib/cron-schedule.mjs'
@@ -71,15 +72,21 @@ jobs:
             echo "CRON_SECRET=$(openssl rand -hex 32)"
             echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)"
             echo "STORAGE_DRIVER=local"
+            echo "EMAIL_TRANSPORT=smtp"
+            echo "SMTP_URL=smtp://mailpit:1025"
           } > deploy/self-host/.env
 
+      # --profile mail: the app boots with EMAIL_TRANSPORT=smtp against the sink.
       - name: Build and start
-        run: docker compose -f deploy/self-host/docker-compose.yml up -d --build --wait --wait-timeout 300
+        run: docker compose -f deploy/self-host/docker-compose.yml --profile mail up -d --build --wait --wait-timeout 300
 
       - name: Smoke test
         run: |
           set -a; . deploy/self-host/.env; set +a
-          SMOKE_BASE_URL=http://localhost:3000 npx tsx scripts/self-host-smoke.ts
+          SMOKE_BASE_URL=http://localhost:3000 \
+          SMOKE_SMTP_URL=smtp://localhost:1025 \
+          SMOKE_MAILPIT_URL=http://localhost:8025 \
+            npx tsx scripts/self-host-smoke.ts
 
       - name: The cron service is calling the app
         run: |
@@ -89,8 +96,8 @@ jobs:
 
       - name: Logs
         if: failure()
-        run: docker compose -f deploy/self-host/docker-compose.yml logs --no-color --tail 300
+        run: docker compose -f deploy/self-host/docker-compose.yml --profile mail logs --no-color --tail 300
 
       - name: Tear down
         if: always()
-        run: docker compose -f deploy/self-host/docker-compose.yml down -v
+        run: docker compose -f deploy/self-host/docker-compose.yml --profile mail down -v

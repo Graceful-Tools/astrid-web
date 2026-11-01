@@ -97,7 +97,14 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID', scope: 'optional', description: 'Overrides the WebAuthn RP ID. Changing it on a live deployment invalidates every registered passkey.' },
 
   // ── Email ─────────────────────────────────────────────────────────────────
+  { name: 'EMAIL_TRANSPORT', scope: 'optional', description: 'Outbound email backend: resend (default), smtp (any relay, via nodemailer) or log (never send). An unknown value stops the boot (lib/email-transport.ts, AWTD-1466).' },
   { name: 'RESEND_API_KEY', scope: 'optional', description: 'Outbound email. Without it nothing is sent and sends are logged instead.' },
+  { name: 'SMTP_URL', scope: 'optional', description: 'EMAIL_TRANSPORT=smtp: the relay, e.g. smtp://user:pass@smtp.example.com:587 or smtps://…:465. With smtp and neither this nor SMTP_HOST, the boot refuses.' },
+  { name: 'SMTP_HOST', scope: 'optional', description: 'EMAIL_TRANSPORT=smtp: relay host, when SMTP_URL is not used.', validate: isDomain },
+  { name: 'SMTP_PORT', scope: 'optional', description: 'EMAIL_TRANSPORT=smtp with SMTP_HOST: port. Default 587, or 465 with SMTP_SECURE=true.' },
+  { name: 'SMTP_USER', scope: 'optional', description: 'EMAIL_TRANSPORT=smtp with SMTP_HOST: username. Unset sends without authenticating.' },
+  { name: 'SMTP_PASS', scope: 'optional', description: 'EMAIL_TRANSPORT=smtp with SMTP_HOST: password.' },
+  { name: 'SMTP_SECURE', scope: 'optional', description: 'EMAIL_TRANSPORT=smtp with SMTP_HOST: "true" for implicit TLS (port 465). Otherwise STARTTLS is used when the relay offers it.' },
   { name: 'FROM_EMAIL', scope: 'optional', description: 'From address for outbound mail. Defaults to noreply@<brand domain>.', validate: isEmail },
   { name: 'RESEND_WEBHOOK_SECRET', scope: 'optional', description: 'Svix signing secret (whsec_…) verifying inbound Resend email-to-task webhooks. Without it the route rejects everything.' },
   { name: 'MAILGUN_WEBHOOK_SIGNING_KEY', scope: 'optional', description: 'Verifies inbound Mailgun email-to-task webhooks. Without it the route rejects everything.' },
@@ -296,6 +303,8 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'NEXT_OUTPUT', scope: 'tooling', description: 'standalone builds the self-contained server the Dockerfile ships (next.config.mjs). Unset on Vercel, which bundles its own way.' },
   { name: 'CRON_CONFIG', scope: 'tooling', description: 'Self-hosted cron runner: the vercel.json it reads the job list from. Default ./vercel.json.' },
   { name: 'SMOKE_BASE_URL', scope: 'tooling', description: 'scripts/self-host-smoke.ts: the origin of the stack to check. Default http://localhost:3000.' },
+  { name: 'SMOKE_SMTP_URL', scope: 'tooling', description: 'scripts/self-host-smoke.ts: the compose mail sink as this machine reaches it (smtp://localhost:1025). With SMOKE_MAILPIT_URL, one email is sent through the SMTP transport and read back (AWTD-1466).' },
+  { name: 'SMOKE_MAILPIT_URL', scope: 'tooling', description: 'scripts/self-host-smoke.ts: the mail sink\'s HTTP API (http://localhost:8025), where the smoke email is read back.' },
   { name: 'CRON_BASE_URL', scope: 'tooling', description: 'Self-hosted cron runner (scripts/cron-runner.mjs): the origin it calls the cron routes on. Defaults to NEXTAUTH_URL.' },
   { name: 'NEXT_DEV_PORT', scope: 'tooling', description: 'Preferred port for the dev server.' },
   { name: 'CHECK_REUSE_STRICT', scope: 'tooling', description: 'Forces check:reuse into strict mode.' },

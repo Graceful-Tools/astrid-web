@@ -22,12 +22,13 @@ self-hosting the product means self-hosting this one image.
 | Migrations | Applied by the production deploy | The `migrate` service, before every start of a new version |
 | Scheduled jobs | Vercel Cron, from `vercel.json` | The `cron` service (`scripts/cron-runner.mjs`) reads the same `vercel.json` |
 | Uploads | Vercel Blob | `STORAGE_DRIVER=local` (a volume) or `s3` (AWS S3, MinIO, R2, Ceph) |
+| Outbound email | Resend | `EMAIL_TRANSPORT=smtp`: any SMTP relay (Azure Communication Services, SendGrid, Exchange Online, your own); or Resend |
 | Cache and rate limits | Upstash Redis | `REDIS_URL` (compose runs `redis:7`); optional |
 | Real-time updates (SSE) | Upstash, shared across instances | In memory, inside the one app process |
 | TLS | Vercel | Your proxy, or `--profile tls` (Caddy, automatic certificates) |
 | Web analytics | Vercel Analytics | Off: the components render only on Vercel |
 
-Nothing else is required. Email (Resend), web push (VAPID), Google, Apple and GitHub
+Nothing else is required. Email (SMTP or Resend), web push (VAPID), Google, Apple and GitHub
 sign-in, the GitHub integrations and AI providers are all optional, each configured the
 same way as on hosted Astrid.
 
@@ -110,6 +111,22 @@ Nothing gets stored in the wrong place in the meantime.
 The bucket stays private. The app reads objects with its own credentials and serves them
 at `/api/v1/storage/objects/…`, so you need no bucket policy, public access or CORS rule.
 
+**Email:**
+
+| `EMAIL_TRANSPORT` | Needs | Use |
+|---|---|---|
+| `resend` | `RESEND_API_KEY` (without it, messages are logged instead of sent) | The default. Hosted Astrid |
+| `smtp` | `SMTP_URL` (`smtp://user:pass@host:587`, or `smtps://…:465`), or `SMTP_HOST` with optional `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE=true` | Any SMTP relay |
+| `log` | Nothing | Never send; log what would have been sent |
+
+`FROM_EMAIL` is the sender for all of them, and your relay must be allowed to send as it.
+With `smtp` and no relay configured, the server refuses to start (`EMAIL_TRANSPORT=smtp is
+missing: SMTP_URL (or SMTP_HOST)`), in the same way as half-configured storage. To try it
+locally, `--profile mail` runs [mailpit](https://mailpit.axllent.org), a sink that keeps
+everything it receives: set `EMAIL_TRANSPORT=smtp` and `SMTP_URL=smtp://mailpit:1025`, then
+read the inbox at `http://localhost:8025`. Inbound email-to-task still uses webhooks, as
+on hosted Astrid.
+
 **Behind a proxy:** set `TRUSTED_PROXY_DEPTH` to the number of proxies in front of the app
 (1 with `--profile tls`). Rate limits are keyed on the client address the proxy forwards.
 With the wrong depth, a caller chooses their own key.
@@ -188,9 +205,6 @@ universal links are in [WHITELABELING.md](../WHITELABELING.md), *Native apps, pe
 
 ## Known limits
 
-- **Email is sent through Resend or not at all.** Without `RESEND_API_KEY`, messages are
-  logged instead of sent. There is no SMTP transport yet. `lib/email-transport.ts` is the
-  one place one would go.
 - **Only one SSO provider (OIDC) per deployment.** Per-organisation SSO is a partner build:
   WHITELABELING §3.
 - **The image builds on linux/amd64 and linux/arm64.** CI exercises amd64.
