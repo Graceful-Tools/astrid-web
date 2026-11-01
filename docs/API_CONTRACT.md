@@ -187,6 +187,7 @@ List the tasks the caller can see. Scope: `tasks:read`.
 | `assigneeId`, `assigneeEmail` | filter by assignee (email is case-insensitive) |
 | `statusRole` | board column, or `none` for Inbox — the tasks carrying no status |
 | `limit`, `offset` | default 100, capped at 1,000; default offset 0 |
+| `cursor` | keyset paging instead of `offset` — empty (`?cursor=`) starts a walk, then send each page's `nextCursor`. A malformed value is a `400`. See *Sync cursor* below |
 | `includeComments` | `true` embeds up to 20 comments per task, newest first |
 | `updatedSince` | ISO timestamp — delta sync. The response then also carries `deletedIds`, because tasks are hard-deleted and an incremental client would otherwise keep showing them. An unparseable value is ignored rather than applied |
 | `omit` | comma-separated fields to leave out: `description`, `listMembers` |
@@ -228,6 +229,35 @@ GET /api/v1/tasks?limit=1000&omit=description
 - Only `description` and `listMembers` may be dropped. Identity, status and the
   permission fields (`lists[].ownerId`) are not droppable: a response without
   them is not lean, it is broken.
+
+**Sync cursor — `serverTime` and `nextCursor` (AWTD-1470)**
+
+Additive; an existing client sees one new top-level key and nothing else.
+
+- **`serverTime`** (ISO) is on every `GET /api/v1/tasks` and `GET /api/v1/lists`
+  response. It is the server's clock read **before** the query, so a write that
+  lands while the query runs is newer than it. Send it back as the next
+  `updatedSince` instead of the device clock — no more `stamp − 5 min` skew
+  margin.
+- **`?cursor=`** walks the tasks in `(updatedAt, id)` order. Each page that has
+  more rows carries **`nextCursor`** (opaque — do not parse it); the last page
+  has none. Unlike `offset` over the default order, a task edited mid-walk
+  cannot shift another row off a page: an edit moves its row to the tail, so a
+  row not yet returned comes once, and one already returned comes again with
+  its new state (upsert by id). `updatedSince`, `listId` and the other filters
+  compose with it; `deletedIds` still accompanies a delta.
+- `offset` paging is unchanged and still the default; an offset page never
+  carries `nextCursor`. `/api/v1/lists` is not paged, so it never carries one
+  either.
+
+```http
+GET /api/v1/tasks?limit=1000&cursor=
+→ { "tasks": [ … ], "serverTime": "2026-11-01T15:00:00.000Z",
+    "nextCursor": "eyJ1Ijoi…", "meta": { "total": 2500, "limit": 1000, "offset": 0, … } }
+GET /api/v1/tasks?limit=1000&cursor=eyJ1Ijoi…
+```
+
+The wire fixture is `task.listPage.cursor` in `contracts/fixtures/wire-shapes.json`.
 
 ### GET `/api/tasks`
 Fetch all tasks accessible to the current user.
@@ -1002,3 +1032,5 @@ X-RateLimit-Reset: 1640000000
 - All endpoints documented above
 - Added `GET /api/v1/app-version` for the iOS/Mac Update card (AWTD-920)
 - Added the `muse` AI service id (Meta Model API). `muse@` can now be server-run (AWTD-1053)
+- Added `serverTime` to `GET /api/v1/tasks` and `GET /api/v1/lists`, and keyset paging
+  (`?cursor=` → `nextCursor`) to `GET /api/v1/tasks`. Additive (AWTD-1470)
