@@ -144,16 +144,67 @@ its entries from the same file:
 CRON_BASE_URL=https://tasks.example.com node scripts/cron-runner.mjs --print-crontab
 ```
 
-## Upgrades
+## Published images
+
+Releases are published to GHCR by `.github/workflows/release-image.yml` (AWTD-1464). Each
+release is a pair of images:
+
+| Image | What it is |
+|---|---|
+| `ghcr.io/graceful-tools/astrid-web:<version>` | The app (also runs the cron runner) |
+| `ghcr.io/graceful-tools/astrid-web:<version>-migrator` | `prisma migrate deploy`, run before the app |
+
+`<version>` is a semver release such as `1.4.0`. Each image carries an SBOM and a
+provenance attestation (`docker buildx imagetools inspect <image> --format '{{json .SBOM}}'`).
+`:edge` is the latest build of `main`, published only when someone runs the workflow by
+hand. Do not run it in production.
+
+The published images are built with **Astrid's default brand**. A partner with its own
+brand still builds its own image ([Your brand goes in at build time](#your-brand-goes-in-at-build-time)),
+because one image is one brand. A brand that gets published images too is tagged
+`<version>-<brand>`.
+
+To run a published release instead of building, set the image in `deploy/self-host/.env`:
 
 ```bash
-git pull
-docker compose -f deploy/self-host/docker-compose.yml up -d --build
+IMAGE=ghcr.io/graceful-tools/astrid-web
+IMAGE_TAG=1.4.0
 ```
 
-`migrate` runs `prisma migrate deploy` and must succeed before the new app container starts.
-**Back up the database first.** A migration that removes something is written to take two
-releases, but a backup is the only undo.
+Then pull and start without `--build`:
+
+```bash
+docker compose -f deploy/self-host/docker-compose.yml pull migrate app
+docker compose -f deploy/self-host/docker-compose.yml up -d --no-build
+```
+
+### Releases
+
+Releases are semver tags (`v1.4.0`) cut by hand from `main`, with `CHANGELOG.md` as the
+release notes. A tag triggers the workflow. The workflow then pulls the pair it just
+published and runs the smoke test against it, with nothing built locally. A major version
+means the upgrade needs something beyond the steps below, and the changelog says what.
+
+## Upgrades
+
+**Back up the database first.** Then:
+
+1. **Pull the new tag.** Set `IMAGE_TAG` to the new version and run
+   `docker compose -f deploy/self-host/docker-compose.yml pull migrate app`.
+   If you build from source instead, `git pull` (or check out the tag).
+2. **Run the migrator.** `migrate` runs `prisma migrate deploy` and must succeed before
+   the new app container starts. Compose does this for you on `up`. On Kubernetes, run
+   the `-migrator` image as a Job before the rollout.
+3. **Roll the app.** `docker compose -f deploy/self-host/docker-compose.yml up -d --no-build`
+   (or `up -d --build` from source).
+
+A migration that removes something is written to take two releases, so the previous
+release keeps working against the migrated database while you roll.
+
+**Downgrades: migrations are forward-only.** There are no down migrations. Going back a
+release with the migrated database is safe only when the release notes say the migration
+was additive. Otherwise the only undo is restoring the backup taken in step 1, together
+with the older tag.
 
 Back up three things: the Postgres volume (or your database), the uploads volume or
 bucket, and `ENCRYPTION_KEY`.
