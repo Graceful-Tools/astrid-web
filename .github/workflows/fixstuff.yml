@@ -111,7 +111,8 @@ jobs:
           fi
 
       - name: Run reuse check
-        run: npm run check:reuse || echo "⚠️  check:reuse found issues — review before merging"
+        # A gate, not a note (AWTD-1458): `|| echo` let it sit red on main unnoticed.
+        run: npm run check:reuse
 
       - name: Summary
         if: always()
