@@ -17,6 +17,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { createLogger } from '@/lib/logger'
+import { digestScheduleReset } from '@/lib/digest-schedule'
 
 const log = createLogger('v1.users.me.reminder-settings')
 
@@ -81,7 +82,8 @@ export const PUT = withAuth(
 
       const settings = await prisma.reminderSettings.upsert({
         where: { userId: auth.userId },
-        update: { ...data, updatedAt: new Date() },
+        // A digest time / zone / switch change reschedules the digests (AWTD-1454).
+        update: { ...data, ...digestScheduleReset(data), updatedAt: new Date() },
         create: { userId: auth.userId, ...data },
       })
 
