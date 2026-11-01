@@ -59,7 +59,7 @@ export const POST = withAuth<RouteContext>(
     }
 
     // 202, not 201: the reply has not been written yet. Generation is
-    // fire-and-forget and arrives over SSE like any other chat message, so a
+    // a queued job (AWTD-1460) and arrives over SSE like any other chat message, so a
     // client must not wait on this response for the answer.
     return NextResponse.json(
       {

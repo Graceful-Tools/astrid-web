@@ -17,6 +17,8 @@ on:
       - 'lib/secure-storage.ts'
       - 'app/**/storage/**'
       - 'scripts/cron-runner.mjs'
+      - 'scripts/job-worker.mjs'
+      - 'lib/jobs/**'
       - 'scripts/lib/cron-schedule.mjs'
       - 'scripts/brand-env-file.ts'
       - 'scripts/self-host-smoke.ts'

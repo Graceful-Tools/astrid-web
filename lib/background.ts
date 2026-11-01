@@ -17,7 +17,7 @@
  * work can never surface as a failed request — the response has already gone.
  *
  * It is NOT a queue. Work that must survive a crash, retry, or take longer than
- * the function's limit belongs in lib/workflow-queue.ts instead.
+ * the function's limit belongs in the durable job queue (lib/jobs/) instead.
  */
 
 import { after } from 'next/server'

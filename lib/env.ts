@@ -297,6 +297,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'CRON_CONFIG', scope: 'tooling', description: 'Self-hosted cron runner: the vercel.json it reads the job list from. Default ./vercel.json.' },
   { name: 'SMOKE_BASE_URL', scope: 'tooling', description: 'scripts/self-host-smoke.ts: the origin of the stack to check. Default http://localhost:3000.' },
   { name: 'CRON_BASE_URL', scope: 'tooling', description: 'Self-hosted cron runner (scripts/cron-runner.mjs): the origin it calls the cron routes on. Defaults to NEXTAUTH_URL.' },
+  { name: 'JOB_WORKER_INTERVAL_MS', scope: 'tooling', description: 'Self-hosted job worker (scripts/job-worker.mjs): how long it waits between drains of the job queue when idle. Default 10000.' },
   { name: 'NEXT_DEV_PORT', scope: 'tooling', description: 'Preferred port for the dev server.' },
   { name: 'CHECK_REUSE_STRICT', scope: 'tooling', description: 'Forces check:reuse into strict mode.' },
   { name: 'API_BOUNDARY_BASE', scope: 'tooling', description: 'Git ref the API-boundary guard diffs against.' },
