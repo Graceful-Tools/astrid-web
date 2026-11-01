@@ -88,6 +88,9 @@ export async function GET() {
         wordmark: BRAND.wordmark,
         slogan: BRAND.slogan,
         agentName: BRAND.agentIdentityName,
+        // Absent means this deployment has no in-app feedback list: clients open the
+        // web instead. Never an empty string on the wire (AWTD-1443).
+        ...(BRAND.feedbackListId ? { feedbackListId: BRAND.feedbackListId } : {}),
       },
       // The brand's VOICE — reminder nags and default-list captions. Native clients
       // shipped their own copy of Astrid's set, so a partner had to replace it once per
