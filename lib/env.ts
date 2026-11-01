@@ -144,6 +144,12 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'OPENAI_API_KEY', scope: 'tooling', description: 'OpenAI key for scripts. The app uses per-user keys.' },
   { name: 'GEMINI_API_KEY', scope: 'tooling', description: 'Gemini key for scripts. The app uses per-user keys.' },
   { name: 'CLAUDE_API_KEY', scope: 'tooling', description: 'Legacy alias for ANTHROPIC_API_KEY, read by older scripts.' },
+  // Where server-run inference reaches each provider (AWTD-1467). Unset keeps
+  // the public endpoints. Read once in lib/ai/config/provider-endpoints.ts.
+  { name: 'OPENAI_BASE_URL', scope: 'optional', description: 'OpenAI-compatible base URL that /chat/completions is appended to. An *.openai.azure.com URL switches to Azure auth (api-key header). Unset means https://api.openai.com/v1.', validate: isUrl },
+  { name: 'OPENAI_API_VERSION', scope: 'optional', description: 'Sent as ?api-version= on OpenAI requests; required by most Azure OpenAI endpoints. Unset sends none.' },
+  { name: 'ANTHROPIC_BASE_URL', scope: 'optional', description: 'Anthropic base URL that /v1/messages is appended to, e.g. a Microsoft Foundry endpoint. Unset means https://api.anthropic.com.', validate: isUrl },
+  { name: 'GEMINI_BASE_URL', scope: 'optional', description: 'Gemini base URL that /v1beta/models/... is appended to. Unset means https://generativelanguage.googleapis.com.', validate: isUrl },
   { name: 'BRAND_ENABLED_AGENTS', scope: 'optional', description: 'Comma-separated agent mailboxes this deployment offers. Unset means all of them.' },
   { name: 'BRAND_ASSISTANT_SERVICE', scope: 'optional', description: 'Provider behind the default assistant for users who have not picked one (claude, openai, gemini, copilot). Unset means claude.' },
   { name: 'CLAUDE_AGENT_EMAIL', scope: 'tooling', description: 'Agent mailbox used by local agent scripts.' },

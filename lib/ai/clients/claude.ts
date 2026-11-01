@@ -7,6 +7,7 @@
 
 import type { workflowQueue as WorkflowQueueType } from '../../workflow-queue'
 import { fetchWithTimeout, AI_REQUEST_TIMEOUT_MS } from './fetch-with-timeout'
+import { anthropicMessagesUrl } from '@/lib/ai/config/provider-endpoints'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('ai.clients.claude')
@@ -143,7 +144,7 @@ export async function callClaude(options: ClaudeClientOptions): Promise<ClaudeRe
     let response
     try {
       response = await fetchWithTimeout(
-        'https://api.anthropic.com/v1/messages',
+        anthropicMessagesUrl(),
         {
           method: 'POST',
           headers: {
@@ -377,7 +378,7 @@ async function requestFinalResponse(
   })
 
   const finalResponse = await fetchWithTimeout(
-    'https://api.anthropic.com/v1/messages',
+    anthropicMessagesUrl(),
     {
       method: 'POST',
       headers: {
