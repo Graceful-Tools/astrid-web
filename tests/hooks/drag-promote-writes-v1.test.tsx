@@ -8,7 +8,7 @@
  * one hit ever, none inside the 28-day window), but it could not be deleted
  * while this call site existed — `legacy-api-coverage.ts` put it in
  * `callers-remain`, with exactly one caller: the drag-promotion write in
- * `useTaskDragDrop`. The legacy `/api` sunset is 2026-11-01 (epic 9dedd8aa).
+ * `useTaskDragDrop`. The legacy `/api` sunset is 2027-02-01 (epic 9dedd8aa).
  *
  * Two things change with the path, and the second one matters more:
  *
