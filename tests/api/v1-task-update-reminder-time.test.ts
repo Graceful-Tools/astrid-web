@@ -14,6 +14,11 @@
 
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest'
 import { NextRequest } from 'next/server'
+// AWTD-1462: reminders, notifications, stats and dependents run after the
+// response (a task-updated job); held here and flushed before asserting.
+vi.mock('@/lib/background', async () => (await import('../utils/after-response')).backgroundMock)
+import { flushAfterResponse, discardAfterResponse } from '../utils/after-response'
+beforeEach(() => discardAfterResponse())
 
 vi.mock('@/lib/api-auth-wrapper', () => ({
   withAuth: (_opts: unknown, handler: (...args: unknown[]) => unknown) =>
@@ -144,6 +149,7 @@ describe('PUT /api/v1/tasks/:id — reminderTime (AWTD-1038)', () => {
 
   it('re-queues the explicit reminder at the new time', async () => {
     await send({ reminderTime: SNOOZED })
+    await flushAfterResponse()
 
     // The old reminder is cancelled...
     expect(reminderQueue.updateMany).toHaveBeenCalledWith({
@@ -163,6 +169,7 @@ describe('PUT /api/v1/tasks/:id — reminderTime (AWTD-1038)', () => {
 
   it('falls back to the automatic reminders when the explicit one is cleared', async () => {
     await send({ reminderTime: null })
+    await flushAfterResponse()
 
     const sources = reminderQueue.create.mock.calls.map(([{ data }]) => data.data.source)
     expect(sources).toEqual(['automatic_update', 'automatic_update'])

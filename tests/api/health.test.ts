@@ -67,4 +67,49 @@ describe('GET /api/health', () => {
     body = await (await GET(new Request('http://localhost/api/health') as any)).json()
     expect(body.cronSecretConfigured).toBe(false)
   })
+
+  // AWTD-1456: /api/health is unauthenticated. It used to return the first 30
+  // characters of CLAUDE_REMOTE_WEBHOOK_URL, a secret-bearing URL. Only a
+  // boolean may say whether it is configured.
+  it('AWTD-1456: exposes nothing derived from CLAUDE_REMOTE_WEBHOOK_URL beyond a boolean', async () => {
+    safeHealthCheck.mockResolvedValue({ healthy: true, responseTime: 12, error: null })
+    ensureMigrations.mockResolvedValue(undefined)
+
+    const secretUrl = 'https://hooks.example.com/claude/s3cr3t-token-abcdef0123456789'
+    process.env.CLAUDE_REMOTE_WEBHOOK_URL = secretUrl
+    try {
+      const response = await GET(new Request('http://localhost/api/health') as any)
+      const raw = await response.text()
+      const body = JSON.parse(raw)
+
+      expect(body.webhookConfigured).toBe(true)
+      expect(body).not.toHaveProperty('webhookUrl')
+      // No prefix of the URL (scheme aside) appears anywhere in the body.
+      expect(raw).not.toContain('hooks.example.com')
+      expect(raw).not.toContain(secretUrl.slice(0, 12))
+      // The deploy verifier still gets its sha.
+      expect(body.commitSha).toBe('abc123')
+    } finally {
+      delete process.env.CLAUDE_REMOTE_WEBHOOK_URL
+    }
+  })
+
+  // AWTD-1456 audit: a Prisma connection error names the database host
+  // ("Can't reach database server at `host:5432`"). The public body says only
+  // that the database is unhealthy; the detail stays in the server log.
+  it('AWTD-1456: does not echo the raw database error to the public body', async () => {
+    safeHealthCheck.mockResolvedValue({
+      healthy: false,
+      responseTime: 0,
+      error: "Can't reach database server at `db.internal.example:5432`",
+    })
+    ensureMigrations.mockResolvedValue(undefined)
+
+    const response = await GET(new Request('http://localhost/api/health') as any)
+    const raw = await response.text()
+
+    expect(response.status).toBe(503)
+    expect(JSON.parse(raw).database.healthy).toBe(false)
+    expect(raw).not.toContain('db.internal.example')
+  })
 })

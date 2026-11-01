@@ -28,6 +28,7 @@ const DEFAULTS = {
   slogan: 'Get it done!',
   appStoreUrl: 'https://apps.apple.com/app/astrid-tasks/id6755752694',
   appUrlScheme: 'astrid',
+  feedbackListId: '6afe098f-e163-46f7-ac4b-4f879a9314eb',
   logo: '/images/astrid-character.png',
   icon: '/icons/icon-512x512.png',
   iconSmall: '/icons/icon-96x96.png',
@@ -129,6 +130,17 @@ export const BRAND = {
    * or the hand-off would deep-link into someone else's application.
    */
   appUrlScheme: env(process.env.NEXT_PUBLIC_BRAND_APP_URL_SCHEME, DEFAULTS.appUrlScheme),
+
+  /**
+   * The public list this deployment's Report an Issue opens in-app (AWTD-1443).
+   *
+   * A row in THIS deployment's database, so it is served at runtime on
+   * /api/v1/capabilities rather than baked into a client. Empty string means the
+   * deployment has no in-app feedback list (clients open the web instead), so blank is a
+   * partner's answer here, like the App Store URL. A partner that leaves it unset
+   * inherits Astrid's list, which is the bug this setting exists to prevent.
+   */
+  feedbackListId: process.env.NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID?.trim() ?? DEFAULTS.feedbackListId,
 
   /**
    * Character / mascot artwork — the sign-in page, empty states and reminder popovers.

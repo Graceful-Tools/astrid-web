@@ -99,6 +99,20 @@ describe('PUT /api/v1/users/me/reminder-settings (task 641a7615)', () => {
     )
   })
 
+  it('AWTD-1454: a digest time change clears both digest slots so the cron reschedules them', async () => {
+    await PUT(req('PUT', { dailyDigestTime: '07:15' }))
+
+    const { update } = mockPrisma.reminderSettings.upsert.mock.calls[0][0] as { update: Record<string, unknown> }
+    expect(update).toMatchObject({ dailyDigestTime: '07:15', nextDailyDigestAt: null, nextWeeklyDigestAt: null })
+  })
+
+  it('AWTD-1454: a change to anything else keeps the digest slots', async () => {
+    await PUT(req('PUT', { enablePushReminders: false }))
+
+    const { update } = mockPrisma.reminderSettings.upsert.mock.calls[0][0] as { update: Record<string, unknown> }
+    expect(update).not.toHaveProperty('nextDailyDigestAt')
+  })
+
   it('rejects a reminder lead time beyond the 7-day ceiling', async () => {
     // 10080 minutes is the legacy cap. Losing it would let a client schedule a
     // reminder arbitrarily far ahead of the task.

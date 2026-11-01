@@ -5,6 +5,7 @@
 
 import { fetchWithTimeout, AI_REQUEST_TIMEOUT_MS } from './fetch-with-timeout'
 import { createLogger } from '@/lib/logger'
+import { openAIChatCompletionsUrl, openAIAuthHeaders } from '@/lib/ai/config/provider-endpoints'
 
 const log = createLogger('ai.clients.openai')
 
@@ -85,7 +86,7 @@ export async function callOpenAI(options: OpenAIClientOptions): Promise<OpenAIRe
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
+      ...openAIAuthHeaders(apiKey)
     },
     body: JSON.stringify({
       model,
@@ -115,7 +116,7 @@ export async function callOpenAI(options: OpenAIClientOptions): Promise<OpenAIRe
   let lastStatus: number = 0
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     const response = await fetchWithTimeout(
-      'https://api.openai.com/v1/chat/completions',
+      openAIChatCompletionsUrl(),
       requestInit,
       AI_REQUEST_TIMEOUT_MS,
       'OpenAI'

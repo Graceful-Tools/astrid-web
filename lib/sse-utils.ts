@@ -1,64 +1,37 @@
-import { Redis } from '@upstash/redis'
 import { createLogger } from '@/lib/logger'
 import { applyCommentActorRule } from '@/lib/comment-permissions'
 import type { SseOutboundEvent } from '@/lib/sse-event-types'
+import { getRealtimeBus, type SubscribeOptions } from '@/lib/realtime/bus'
 
 const log = createLogger('sse-utils')
 
-
-// Global SSE connection registry to ensure state is shared across all API routes
-declare global {
-  var __sseConnections: Map<string, Map<string, {
-    controller: ReadableStreamDefaultController
-    lastPing: number
-    isAlive: boolean
-    connectionId: string
-    connectedAt: number
-    lastEventCheck: number
-  }>> | undefined
-  var __sseConnectionIdCounter: number | undefined
-  var __sseRecentEvents: Map<string, Array<{
-    event: any
-    timestamp: number
-  }>> | undefined
-}
-
-// Recent events cache - stores last 15 minutes of events per user for reconnection recovery
-const RECENT_EVENTS_TTL_MS = 15 * 60 * 1000 // 15 minutes
-const MAX_EVENTS_PER_USER = 50 // Maximum events to cache per user
-const REDIS_EVENT_TTL_SECONDS = 15 * 60 // 15 minutes in Redis
-
-// In-memory fallback for development
-const recentEvents = globalThis.__sseRecentEvents ?? new Map<string, Array<{
-  event: any
-  timestamp: number
-}>>()
-globalThis.__sseRecentEvents = recentEvents
-
-// Redis client for cross-instance event sharing (production only)
-let redisClient: Redis | null = null
-function getRedisForSSE(): Redis | null {
-  if (redisClient) return redisClient
-
-  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-    redisClient = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    })
-    return redisClient
-  }
-  return null
-}
-
-// Use global state to ensure connections are shared across all API route contexts
-const connections = globalThis.__sseConnections ?? new Map<string, Map<string, {
+/**
+ * This module is the connection registry; transport is the realtime bus
+ * (lib/realtime/bus.ts, AWTD-1459). It used to talk to Upstash itself and poll
+ * per connection from a `lastEventCheck` that a local delivery moved forward —
+ * which lost any event another instance had written just before.
+ */
+type SseConnection = {
   controller: ReadableStreamDefaultController
   lastPing: number
   isAlive: boolean
   connectionId: string
   connectedAt: number
-  lastEventCheck: number
-}>>()
+  /** Detaches this connection from the bus. */
+  unsubscribe: () => void
+}
+
+// Global SSE connection registry to ensure state is shared across all API routes
+declare global {
+  var __sseConnections: Map<string, Map<string, SseConnection>> | undefined
+  var __sseConnectionIdCounter: number | undefined
+}
+
+/** Delivered live, never written to the replay store. */
+const EPHEMERAL_EVENT_TYPES = new Set(['ping', 'pong', 'connected', 'reconnect', 'agent_typing_start', 'agent_typing_stop'])
+
+// Use global state to ensure connections are shared across all API route contexts
+const connections = globalThis.__sseConnections ?? new Map<string, Map<string, SseConnection>>()
 
 // Store the connections in global state
 globalThis.__sseConnections = connections
@@ -76,6 +49,7 @@ setInterval(() => {
     userConnections.forEach((conn, connectionId) => {
       if (now - conn.lastPing > 90000) { // 90 seconds
         // Debug: Cleaning up stale connection
+        conn.unsubscribe()
         try {
           conn.controller.close()
         } catch (e) {
@@ -98,7 +72,17 @@ setInterval(() => {
 }, 60000)
 
 // Helper function to register a new connection
-export function registerConnection(userId: string, controller: ReadableStreamDefaultController) {
+/**
+ * Register a stream and attach it to the realtime bus. Every event for
+ * `userId` — published here or on any other instance — is written to
+ * `controller` once, as `data: <json>\n\n`. With `options.since`, persisted
+ * events newer than it are replayed first (reconnect recovery).
+ */
+export function registerConnection(
+  userId: string,
+  controller: ReadableStreamDefaultController,
+  options: SubscribeOptions = {}
+) {
   // Increment global counter and store it back
   connectionIdCounter = ++connectionIdCounter
   globalThis.__sseConnectionIdCounter = connectionIdCounter
@@ -113,18 +97,41 @@ export function registerConnection(userId: string, controller: ReadableStreamDef
     connections.set(userId, userConnections)
   }
 
-  // Add this new connection to the user's connections
-  // Debug: Storing new connection for user
-  userConnections.set(connectionId, {
+  const encoder = new TextEncoder()
+  const connection: SseConnection = {
     controller,
     lastPing: now,
     isAlive: true,
     connectionId,
     connectedAt: now,
-    lastEventCheck: now
-  })
+    unsubscribe: () => {},
+  }
+  userConnections.set(connectionId, connection)
+
+  connection.unsubscribe = getRealtimeBus().subscribe(userId, envelope => {
+    if (!connection.isAlive) return
+    try {
+      connection.controller.enqueue(encoder.encode(`data: ${JSON.stringify(envelope.event)}\n\n`))
+      connection.lastPing = Date.now()
+      log.debug(`[SSE] ✅ Sent ${envelope.event.type} to connection ${connectionId}`)
+    } catch (error) {
+      log.error({ err: error }, `[SSE] ❌ Failed to send SSE to user ${userId} connection ${connectionId}:`)
+      dropDeadConnection(userId, connectionId)
+    }
+  }, options)
 
   return connectionId
+}
+
+/** A connection whose controller threw: detach it without closing (it is already gone). */
+function dropDeadConnection(userId: string, connectionId: string) {
+  const userConnections = connections.get(userId)
+  const connection = userConnections?.get(connectionId)
+  if (!userConnections || !connection) return
+  connection.isAlive = false
+  connection.unsubscribe()
+  userConnections.delete(connectionId)
+  if (userConnections.size === 0) connections.delete(userId)
 }
 
 // Helper function to remove a specific connection
@@ -140,8 +147,9 @@ export function removeConnection(userId: string, connectionId?: string) {
     const connection = userConnections.get(connectionId)
     if (connection) {
       // Debug: Removing specific connection
+      connection.isAlive = false
+      connection.unsubscribe()
       try {
-        connection.isAlive = false
         connection.controller.close()
       } catch (e) {
         // Debug: Error closing connection during removal
@@ -157,8 +165,9 @@ export function removeConnection(userId: string, connectionId?: string) {
     // Remove all connections for user
     // Debug: Removing all connections for user
     userConnections.forEach((connection, connId) => {
+      connection.isAlive = false
+      connection.unsubscribe()
       try {
-        connection.isAlive = false
         connection.controller.close()
       } catch (e) {
         // Debug: Error closing connection during removal
@@ -222,7 +231,6 @@ function sanitizeForSSE(obj: any, depth = 0): any {
 
 // Helper function to broadcast events to specific users
 export async function broadcastToUsers(userIds: string[], event: SseOutboundEvent) {
-  const encoder = new TextEncoder()
   // Send as unnamed event (like ping) so it's received by onmessage handler
   // Include type and timestamp in the data payload
   const fullEvent = {
@@ -230,66 +238,11 @@ export async function broadcastToUsers(userIds: string[], event: SseOutboundEven
     timestamp: event.timestamp || new Date().toISOString(),
     data: sanitizeForSSE(event.data)
   }
-  const eventData = JSON.stringify(fullEvent)
-  const sseMessage = `data: ${eventData}\n\n`
 
-  const deadConnectionIds: Array<{userId: string, connectionId: string}> = []
-  const cachePromises: Promise<void>[] = []
-
-  userIds.forEach(userId => {
-    // ALWAYS cache event for user (even if not connected) for reconnection recovery
-    // Skip caching for ping/pong/connected events
-    if (!['ping', 'pong', 'connected', 'reconnect', 'agent_typing_start', 'agent_typing_stop'].includes(event.type)) {
-      cachePromises.push(cacheEventForUser(userId, fullEvent))
-    }
-
-    const userConnections = connections.get(userId)
-    log.debug(`[SSE] User ${userId} has ${userConnections?.size || 0} connections`)
-    if (userConnections && userConnections.size > 0) {
-      log.debug(`[SSE] Broadcasting ${event.type} to ${userConnections.size} connections for user ${userId}`)
-
-      userConnections.forEach((connection, connectionId) => {
-        if (connection.isAlive) {
-          try {
-            connection.controller.enqueue(encoder.encode(sseMessage))
-            connection.lastPing = Date.now()
-            connection.lastEventCheck = Date.now()
-            log.debug(`[SSE] ✅ Sent ${event.type} to connection ${connectionId}`)
-          } catch (error) {
-            log.error({ err: error }, `[SSE] ❌ Failed to send SSE to user ${userId} connection ${connectionId}:`)
-            // Mark connection as dead for cleanup
-            connection.isAlive = false
-            deadConnectionIds.push({userId, connectionId})
-          }
-        } else {
-          log.debug(`[SSE] ⚠️  Connection ${connectionId} is not alive, skipping`)
-          deadConnectionIds.push({userId, connectionId})
-        }
-      })
-    } else {
-      log.debug(`[SSE] ⚠️  No active connections for user ${userId} (event cached for reconnection)`)
-    }
-  })
-
-  // Clean up dead connections
-  deadConnectionIds.forEach(({userId, connectionId}) => {
-    const userConnections = connections.get(userId)
-    if (userConnections) {
-      userConnections.delete(connectionId)
-      // Debug: Removed dead connection
-
-      // If no connections left, remove user entry
-      if (userConnections.size === 0) {
-        connections.delete(userId)
-      }
-    }
-  })
-
-  // Ensure all cache writes complete before returning so that
-  // poll-based consumers (getMissedEvents) see the events.
-  if (cachePromises.length > 0) {
-    await Promise.allSettled(cachePromises)
-  }
+  // Local connections are written synchronously inside publish; the shared
+  // write is awaited so poll-based consumers on other instances see the event
+  // once this resolves. Ephemeral events are never replayed.
+  await getRealtimeBus().publish(userIds, fullEvent, { persist: !EPHEMERAL_EVENT_TYPES.has(event.type) })
 }
 
 // Helper function to broadcast to all connected users
@@ -349,160 +302,14 @@ export function getConnectionsStatus() {
   }
 }
 
-// ============================================
-// RECENT EVENTS CACHE - For reconnection recovery
-// Uses Redis in production for cross-instance sharing
-// ============================================
-
 /**
- * Store an event in Redis (production) or memory (development)
- * Called automatically by broadcastToUsers
- */
-async function cacheEventForUser(userId: string, event: any) {
-  const timestamp = Date.now()
-  const redis = getRedisForSSE()
-
-  if (redis) {
-    // Production: one sorted set per user (score = timestamp). Replaces the
-    // former one-key-per-event scheme, whose retrieval SCANned the ENTIRE
-    // Redis keyspace per connection every 15s (hundreds of REST round trips).
-    // Now: one ZADD + a bounded ZREMRANGEBYSCORE prune per event.
-    try {
-      const key = `sse:events:${userId}`
-      // Unique member so two same-ms events don't collide/dedup in the set.
-      const member = JSON.stringify({ event, timestamp, n: globalThis.crypto.randomUUID() })
-      await redis.zadd(key, { score: timestamp, member })
-      // Prune events older than the TTL window + set a whole-key expiry backstop.
-      await redis.zremrangebyscore(key, 0, timestamp - REDIS_EVENT_TTL_SECONDS * 1000)
-      await redis.expire(key, REDIS_EVENT_TTL_SECONDS)
-    } catch (error) {
-      log.error({ err: error }, '[SSE] Failed to cache event in Redis:')
-      // Fall back to in-memory
-      cacheEventInMemory(userId, event, timestamp)
-    }
-  } else {
-    // Development: Use in-memory cache
-    cacheEventInMemory(userId, event, timestamp)
-  }
-}
-
-function cacheEventInMemory(userId: string, event: any, timestamp: number) {
-  let userEvents = recentEvents.get(userId)
-  if (!userEvents) {
-    userEvents = []
-    recentEvents.set(userId, userEvents)
-  }
-
-  userEvents.push({ event, timestamp })
-
-  if (userEvents.length > MAX_EVENTS_PER_USER) {
-    userEvents.shift()
-  }
-}
-
-/**
- * Get missed events for a user since a specific timestamp
- * Checks Redis in production, memory in development
+ * Persisted events for a user newer than `sinceTimestamp`, oldest first —
+ * the realtime bus's replay store.
  */
 export async function getMissedEvents(userId: string, sinceTimestamp: number): Promise<any[]> {
-  const redis = getRedisForSSE()
-
-  if (redis) {
-    try {
-      // One O(log n) range read from the user's sorted set — no keyspace scan.
-      const key = `sse:events:${userId}`
-      const members = await redis.zrange<string[]>(
-        key, `(${sinceTimestamp}`, '+inf', { byScore: true }
-      )
-      const events = members
-        .map(m => (typeof m === 'string' ? JSON.parse(m) : m))
-        .filter((p: any) => p.timestamp > sinceTimestamp)
-        .map((p: any) => p.event)
-      // debug: fires on EVERY SSE connect and reports nothing actionable —
-      // it was the second most common line in production (task 2e15b42f).
-      log.debug(`[SSE] getMissedEvents from Redis for user ${userId}: ${events.length} events`)
-      return events
-    } catch (error) {
-      log.error({ err: error }, '[SSE] Failed to get events from Redis:')
-      // Fall back to in-memory
-    }
-  }
-
-  // Development or Redis fallback: Use in-memory cache
-  const userEvents = recentEvents.get(userId)
-  if (!userEvents) {
-    return []
-  }
-
-  const missedEvents = userEvents
-    .filter(e => e.timestamp > sinceTimestamp)
-    .map(e => e.event)
-
-  log.info(`[SSE] getMissedEvents from memory for user ${userId}: ${missedEvents.length} events`)
-  return missedEvents
+  const envelopes = await getRealtimeBus().replaySince(userId, sinceTimestamp)
+  // debug: fires on EVERY SSE connect and reports nothing actionable —
+  // it was the second most common line in production (task 2e15b42f).
+  log.debug(`[SSE] getMissedEvents for user ${userId}: ${envelopes.length} events`)
+  return envelopes.map(e => e.event)
 }
-
-/**
- * Check Redis for new events and send to connected user
- * Called periodically for each connection
- */
-export async function checkAndDeliverNewEvents(userId: string, connectionId: string): Promise<number> {
-  const userConnections = connections.get(userId)
-  if (!userConnections) return 0
-
-  const connection = userConnections.get(connectionId)
-  if (!connection || !connection.isAlive) return 0
-
-  const redis = getRedisForSSE()
-  if (!redis) return 0
-
-  try {
-    const lastCheck = connection.lastEventCheck
-    const events = await getMissedEvents(userId, lastCheck)
-
-    if (events.length > 0) {
-      const encoder = new TextEncoder()
-
-      for (const event of events) {
-        const sseMessage = `data: ${JSON.stringify(event)}\n\n`
-        try {
-          connection.controller.enqueue(encoder.encode(sseMessage))
-        } catch (error) {
-          log.error({ err: error }, `[SSE] Failed to deliver event to ${connectionId}:`)
-          connection.isAlive = false
-          return events.length
-        }
-      }
-
-      log.info(`[SSE] Delivered ${events.length} events from Redis to ${connectionId}`)
-    }
-
-    // Update last check time
-    connection.lastEventCheck = Date.now()
-    return events.length
-  } catch (error) {
-    log.error({ err: error }, '[SSE] Error checking for new events:')
-    return 0
-  }
-}
-
-/**
- * Clean up old events from the cache
- */
-function cleanupOldEvents() {
-  const cutoff = Date.now() - RECENT_EVENTS_TTL_MS
-
-  recentEvents.forEach((userEvents, userId) => {
-    // Filter out events older than TTL
-    const filteredEvents = userEvents.filter(e => e.timestamp > cutoff)
-
-    if (filteredEvents.length === 0) {
-      recentEvents.delete(userId)
-    } else if (filteredEvents.length !== userEvents.length) {
-      recentEvents.set(userId, filteredEvents)
-    }
-  })
-}
-
-// Cleanup old events every 5 minutes
-setInterval(cleanupOldEvents, 5 * 60 * 1000)

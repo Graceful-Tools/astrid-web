@@ -6,7 +6,7 @@
  *
  * Usage (both scheduled loops call it; astrid-ios runs it from ../astrid-web):
  *   # After a run: release exactly what that run claimed and left in Doing.
- *   npx tsx scripts/release-stuck-doing.ts --agent claude --claims-file <file> [--repo <path>]
+ *   npx tsx scripts/release-stuck-doing.ts --agent claude --claims-file <file> [--saved-branch <name>] [--repo <path>]
  *   # Tick start: release claims idle for N minutes that no runner holds.
  *   npx tsx scripts/release-stuck-doing.ts --agent claude --list <listId> --stale-minutes 180 [--repo <path>]
  *   # ...or name the board instead of carrying its id (AWTD-1267; astrid-windows keeps no ids):
@@ -16,6 +16,9 @@
  *
  * `--repo` is where the task branches live (git ls-remote origin), so a release
  * can name the branch that carries the work. Defaults to the current directory.
+ * Branches already merged into origin/main there are never named (AWTD-1471).
+ * `--saved-branch` names the branch the loop saved the run's unfinished work on
+ * (a `wip/…` snapshot carries no task id); it is named first, for the run's claims.
  *
  * Exit 0 on success, including "nothing to release"; 1 on a usage or auth error.
  * Never fatal to the loop that calls it — a release that fails leaves a task in
@@ -67,15 +70,39 @@ function remoteBranches(repo: string): string[] {
   }
 }
 
+/**
+ * Remote branches already merged into origin/main, as `ls-remote` names them
+ * (`fix/x`, not `origin/fix/x`). Read from --repo's remote-tracking refs, so a
+ * branch it has never fetched is simply not excluded. Empty on any git error.
+ */
+function mergedRemoteBranches(repo: string): string[] {
+  try {
+    return execFileSync('git', ['-c', 'core.fsmonitor=false', 'branch', '-r', '--merged', 'origin/main', '--format=%(refname:short)'], {
+      cwd: repo,
+      encoding: 'utf8',
+      timeout: 30_000,
+    })
+      .split('\n')
+      .map(line => line.trim())
+      .filter(name => name.startsWith('origin/') && name !== 'origin/main' && name !== 'origin/HEAD')
+      .map(name => name.slice('origin/'.length))
+  } catch {
+    return []
+  }
+}
+
 async function main() {
   const mailbox = arg('--agent')
   const claimsFile = arg('--claims-file')
   const staleMinutes = Number(arg('--stale-minutes') ?? DEFAULT_STALE_DOING_MINUTES)
   const repo = arg('--repo') ?? process.cwd()
   const dryRun = process.argv.includes('--dry-run')
+  // Where the loop saved this run's unfinished work (AWTD-1471). Only the run's own
+  // claims get it; the idle backstop has no way to know which run a branch came from.
+  const savedBranch = arg('--saved-branch')
 
   const usage =
-    'Usage: release-stuck-doing.ts --agent <mailbox> (--claims-file <file> | (--list <listId> | --board <web|ios|windows|android>) [--stale-minutes N]) [--repo <path>] [--dry-run]'
+    'Usage: release-stuck-doing.ts --agent <mailbox> (--claims-file <file> [--saved-branch <name>] | (--list <listId> | --board <web|ios|windows|android>) [--stale-minutes N]) [--repo <path>] [--dry-run]'
   let target: BoardTarget | null
   try {
     target = parseBoardTarget({ list: arg('--list'), board: arg('--board') })
@@ -159,6 +186,8 @@ async function main() {
   const now = new Date()
   let branches: string[] | null = null
   const branchesOnce = () => (branches ??= remoteBranches(repo))
+  let merged: string[] | null = null
+  const mergedOnce = () => (merged ??= mergedRemoteBranches(repo))
 
   // Candidates: what this run claimed, plus (tick start) everything in Doing on the board.
   const candidates: Array<{ id: string; mode: 'claims' | 'stale' }> = claimed.map(id => ({ id, mode: 'claims' }))
@@ -195,7 +224,15 @@ async function main() {
     const why = mode === 'claims'
       ? 'The scheduled run that claimed it ended before finishing it.'
       : `It sat in Doing with no activity for over ${Math.round(staleMinutes / 60 * 10) / 10}h, so the session that claimed it is gone.`
-    const outcome = await releaseDoingClaim({ task, comments, branches: branchesOnce(), why, api })
+    const outcome = await releaseDoingClaim({
+      task,
+      comments,
+      branches: branchesOnce(),
+      merged: mergedOnce(),
+      savedBranch: mode === 'claims' ? savedBranch : null,
+      why,
+      api,
+    })
     released += 1
     const label = task.identifier ?? task.id
     console.log(

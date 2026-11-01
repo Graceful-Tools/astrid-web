@@ -12,7 +12,6 @@
  * All side effects are best-effort: failures are logged and swallowed so they
  * never fail the request that already created the comment.
  */
-import { BRAND } from '@/lib/brand/config'
 import { prisma } from '@/lib/prisma'
 import { invalidateUserStats } from '@/lib/user-stats'
 import { getAgentService } from '@/lib/ai/agent-config'
@@ -149,17 +148,22 @@ async function notifyMentionsAndTriggerAgents(
         if (commenter.isAIAgent) continue
         const { ASTRID_EMAIL } = await import('@/lib/astrid-agent')
         if (mentionedUser.email === ASTRID_EMAIL) {
-          const { processAstridComment } = await import('@/lib/astrid-agent-runtime')
-          const listId = task.lists?.[0]?.id || null
-          processAstridComment({
-            commentContent: comment.content,
-            userId: commenter.id,
-            userName: commenterName,
-            taskId: task.id,
-            taskTitle: task.title,
-            listId,
-          }).catch(err =>
-            log.error({ err: err }, `[comments] ${BRAND.appName} @mention processing error:`)
+          // A durable job (AWTD-1460): the reply is a model call that outlives
+          // this request, so it runs after the response and is retried if the
+          // function is frozen first. One reply per comment, however many
+          // times this comment's side effects run.
+          const { enqueueJob } = await import('@/lib/jobs/queue')
+          await enqueueJob(
+            'astrid-comment-reply',
+            {
+              commentContent: comment.content,
+              userId: commenter.id,
+              userName: commenterName,
+              taskId: task.id,
+              taskTitle: task.title,
+              listId: task.lists?.[0]?.id || null,
+            },
+            { dedupeKey: `astrid-comment-reply:${comment.id}` },
           )
         }
       } else {

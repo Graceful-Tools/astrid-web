@@ -13,6 +13,7 @@
 
 import { prisma } from "./prisma"
 import { createLogger } from "./logger"
+import { remindersNeedRescheduling, type ReminderTaskFields } from "./reminder-reschedule-rule"
 
 const log = createLogger("reminder-scheduling")
 
@@ -145,20 +146,6 @@ export async function scheduleReminders(args: ScheduleArgs): Promise<void> {
   }
 }
 
-/** The task columns a reminder decision reads. */
-interface ReminderTaskFields {
-  id: string
-  title: string
-  completed: boolean
-  assigneeId: string | null
-  creatorId: string | null
-  dueDateTime: Date | null
-  reminderTime?: Date | null
-  reminderType?: string | null
-}
-
-const sameTime = (a?: Date | null, b?: Date | null) => a?.getTime() === b?.getTime()
-
 /**
  * The update path: when a change touches what reminders depend on — due date,
  * completion, assignee or the reminder itself — cancel the task's pending
@@ -176,14 +163,7 @@ export async function rescheduleRemindersForUpdate(args: {
   actorId: string
 }): Promise<void> {
   const { before, after: task, actorId } = args
-  if (
-    sameTime(before.dueDateTime, task.dueDateTime) &&
-    sameTime(before.reminderTime, task.reminderTime) &&
-    before.completed === task.completed &&
-    before.assigneeId === task.assigneeId
-  ) {
-    return
-  }
+  if (!remindersNeedRescheduling(before, task)) return
 
   try {
     await cancelPendingReminders(task.id)

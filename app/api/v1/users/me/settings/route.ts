@@ -10,6 +10,7 @@ import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { withAuth } from '@/lib/api-auth-wrapper'
+import { digestScheduleReset } from '@/lib/digest-schedule'
 
 const DEFAULT_REMINDER_SETTINGS = {
   enablePushReminders: false,
@@ -135,7 +136,8 @@ export const PUT = withAuth(
     await prisma.reminderSettings.upsert({
       where: { userId: auth.userId },
       create: { userId: auth.userId, ...updateData },
-      update: updateData,
+      // A digest time / zone / switch change reschedules the digests (AWTD-1454).
+      update: { ...updateData, ...digestScheduleReset(updateData) },
     })
 
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.SETTINGS_UPDATED, {

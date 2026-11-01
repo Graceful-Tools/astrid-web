@@ -190,3 +190,50 @@ describe('isAwaitingBuild', () => {
     ])).toBe(false)
   })
 })
+
+/**
+ * AWTD-1471 — name the WIP the loop saved, and never a merged branch.
+ *
+ * An interrupted run saves its work on `wip/fixall-…`, which carries no task id, so
+ * the release comment never named it. Worse, it named whatever old branch did carry
+ * the id: on 2026-11-01 it told the next run to "continue from" fix/aitd-559-pr-exit3,
+ * already merged into main.
+ */
+describe('AWTD-1471: saved branch and merged branches', () => {
+  const release = async (input: { branches: string[]; savedBranch?: string | null; merged?: string[] }) => {
+    const api = fakeApi()
+    await releaseDoingClaim({ task: task(), comments: [], why: 'The run died.', api, ...input })
+    return api.comment.mock.calls[0][1] as string
+  }
+
+  it('names the saved branch first', async () => {
+    const text = await release({
+      branches: ['fix/awtd-1025-hide-current-list-chip', 'wip/fixall-web-20261101-0820'],
+      savedBranch: 'wip/fixall-web-20261101-0820',
+    })
+    expect(text).toContain('`wip/fixall-web-20261101-0820`, `fix/awtd-1025-hide-current-list-chip`')
+  })
+
+  it('names the saved branch once when it also carries the id', async () => {
+    const text = await release({
+      branches: ['fix/awtd-1025-hide-current-list-chip'],
+      savedBranch: 'fix/awtd-1025-hide-current-list-chip',
+    })
+    expect(text.split('fix/awtd-1025-hide-current-list-chip').length - 1).toBe(1)
+  })
+
+  it('does not name an id branch already merged into main', async () => {
+    const text = await release({
+      branches: ['fix/awtd-1025-old-merged', 'fix/awtd-1025-still-open'],
+      merged: ['fix/awtd-1025-old-merged'],
+    })
+    expect(text).not.toContain('fix/awtd-1025-old-merged')
+    expect(text).toContain('`fix/awtd-1025-still-open`')
+  })
+
+  it('no saved branch and only a merged id branch: starts fresh', async () => {
+    const text = await release({ branches: ['fix/awtd-1025-old-merged'], merged: ['fix/awtd-1025-old-merged'] })
+    expect(text).toContain('starts fresh')
+    expect(text).not.toContain('fix/awtd-1025-old-merged')
+  })
+})

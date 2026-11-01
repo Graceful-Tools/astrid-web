@@ -68,6 +68,12 @@ astrid-web. There is no native client that talks to GitHub, or any other backend
    - **Keep the default hand-off client ids** (`windows`, `ios`, `mac`, `android`).
      `DesktopClientId` is a closed set on the server, so a custom `handoffClientId` in a
      native build is refused.
+   - **Name your own feedback list.** Report an Issue opens the list in
+     `NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID`, served to clients at runtime as
+     `brand.feedbackListId` on `/api/v1/capabilities` (a list id is a row in your
+     database, so it is not baked into a build). Set it to your own public list, or to the
+     empty string for none — clients then open the web. **Unset inherits Astrid's list**,
+     which sends your users to file bugs on someone else's board.
 
 ### Native apps, per platform
 
@@ -257,6 +263,19 @@ NEXT_PUBLIC_BRAND_AUTH_PROVIDERS="github,google,apple,passkey,sso"   # also the 
 
 `sso` is one IdP per deployment. Per-organisation SSO is a partner's build, specified in
 *Per-organisation SSO* below.
+
+**Google sign-in on a preview bounces through the brand domain; production never does**
+(`lib/auth-host.ts`, AWTD-1469). Google's redirect URIs are fixed, so a preview — a
+`*.vercel.app` deployment, or a subdomain of `NEXT_PUBLIC_BRAND_DOMAIN` on a build whose
+`VERCEL_ENV` is `preview` (`feature-x.astrid.cc`, `whitelabel.astrid.cc`) — starts Google
+sign-in on the brand domain and comes back signed in through the `.<brand domain>` session
+cookie. In production (`VERCEL_ENV` `production`, or unset off Vercel: Azure, Docker) every
+host signs in on itself, for every provider, whatever the brand domain says — your own
+domain, or an apex such as `partner.example` while you serve `tasks.partner.example`. So a
+partner registers `https://<its host>/api/auth/callback/google` with its own Google client.
+astrid.cc and www.astrid.cc are the canonical hosts and sign in directly everywhere. The
+client reads the environment as `NEXT_PUBLIC_VERCEL_ENV`, inlined from `VERCEL_ENV` at build
+(`next.config.mjs`). Pinned by `tests/lib/auth-host.test.ts`.
 
 **At least one auth method must remain.** A build with none of them is an outage, not a
 degraded feature, so `instrumentation.ts` asserts it at server start and the process
@@ -530,12 +549,14 @@ This section used to be silent about the vendors the product runs on, so they
 read as oversights. Some were. Here is where each one actually stands.
 
 **Object storage — swappable.** Every read and write goes through
-`lib/secure-storage.ts`, which is the only module allowed to name the vendor
-(`putObject`, `deleteObject`, `issuePresignedUpload`). Eight other files used
-to import `@vercel/blob` directly; `tests/rules/blob-storage-goes-through-secure-storage.test.ts`
-now fails if a ninth appears, subpath imports included.
-`STORAGE_DRIVER=s3|local` points that seam at any S3-compatible bucket or a mounted
-directory, served by the app itself (AWTD-1286, [deployment/SELF_HOSTING.md](./deployment/SELF_HOSTING.md)).
+`lib/secure-storage.ts` and the drivers under `lib/storage/`, the only modules allowed to
+name a storage vendor (`putObject`, `deleteObject`, `issuePresignedUpload`). Eight other
+files used to import `@vercel/blob` directly; `npm run lint` and
+`tests/rules/vendor-sdks-stay-in-their-drivers.test.ts` now fail if a ninth appears,
+subpath imports included. The same rule confines every vendor SDK (Upstash, Azure,
+aws4fetch, Resend, nodemailer) to its driver files (scripts/lib/vendor-sdk-boundaries.mjs, AWTD-1463).
+`STORAGE_DRIVER=s3|local|azure-blob` points that seam at any S3-compatible bucket, a mounted
+directory or an Azure Blob container, served by the app itself (AWTD-1286, [deployment/SELF_HOSTING.md](./deployment/SELF_HOSTING.md)).
 On Vercel Blob, direct uploads need the store's **OIDC upgrade**, which provisions
 `BLOB_WEBHOOK_PUBLIC_KEY` and `BLOB_STORE_ID`. A store still on a static
 `BLOB_READ_WRITE_TOKEN` refuses direct uploads: the client-token fallback was removed in

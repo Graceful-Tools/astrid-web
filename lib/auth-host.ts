@@ -27,16 +27,44 @@ export function isCanonicalAuthHost(host: string): boolean {
   )
 }
 
+/**
+ * Hosts the bounce is FOR — preview deployments only (AWTD-1469):
+ *   - a raw Vercel deployment URL (`*.vercel.app`), never a registered redirect URI;
+ *   - a subdomain of the brand domain (`feature-x.astrid.cc`, `whitelabel.astrid.cc`)
+ *     on a PREVIEW build. The bounce works there because the session cookie is
+ *     `.${BRAND.domain}`-scoped, so the user is signed in when they come back.
+ *
+ * In production (`NEXT_PUBLIC_VERCEL_ENV` unset, i.e. off Vercel, or `production`) a
+ * host signs in on itself. That is what keeps a partner safe whatever its brand domain
+ * says — its own domain, or an apex (`partner.example`) while it serves
+ * `tasks.partner.example` — since it registers its own redirect URI with its own Google
+ * client. astrid.cc and www.astrid.cc are canonical and sign in directly everywhere.
+ *
+ * `NEXT_PUBLIC_VERCEL_ENV` is inlined at build from VERCEL_ENV (next.config.mjs): this
+ * runs in the browser. Unknown reads as production — a preview that fails to bounce
+ * shows Google's redirect_uri_mismatch; a partner that bounces loses its users.
+ */
+export function isPreviewAuthHost(
+  host: string,
+  deployEnv: string | undefined = process.env.NEXT_PUBLIC_VERCEL_ENV,
+): boolean {
+  const hostname = host.toLowerCase().split(':')[0]
+  if (isCanonicalAuthHost(hostname)) return false
+  if (hostname.endsWith('.vercel.app')) return true
+  return deployEnv === 'preview' && hostname.endsWith(`.${BRAND.domain}`)
+}
+
 export type GoogleSignInPlan =
   | { mode: 'direct' }
   | { mode: 'redirect'; url: string }
 
 /**
  * Decide how to start Google sign-in given the origin the user is on.
- * - Canonical host  → `direct`: run `signIn('google')` here.
- * - Anything else   → `redirect`: send the browser to the canonical
- *   sign-in page, carrying this origin as `callbackUrl` so the user is
- *   returned here after authenticating.
+ * - Preview host (isPreviewAuthHost) → `redirect`: send the browser to the
+ *   canonical sign-in page, carrying this origin as `callbackUrl` so the
+ *   user is returned here after authenticating.
+ * - Anything else — the canonical host, localhost, a partner's own domain
+ *   → `direct`: run `signIn('google')` here.
  */
 export function planGoogleSignIn(currentOrigin: string): GoogleSignInPlan {
   let url: URL
@@ -46,7 +74,7 @@ export function planGoogleSignIn(currentOrigin: string): GoogleSignInPlan {
     return { mode: 'direct' }
   }
 
-  if (isCanonicalAuthHost(url.host)) {
+  if (!isPreviewAuthHost(url.host)) {
     return { mode: 'direct' }
   }
 

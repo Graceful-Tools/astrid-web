@@ -4,9 +4,16 @@
 #   cp deploy/self-host/.env.example deploy/self-host/.env   # then fill it in
 #   docker compose -f deploy/self-host/docker-compose.yml up -d --build
 #   docker compose -f deploy/self-host/docker-compose.yml --profile tls up -d   # with automatic HTTPS
+#   docker compose -f deploy/self-host/docker-compose.yml --profile mail up -d  # with a local mail sink
+#   docker compose -f deploy/self-host/docker-compose.yml --profile azure up -d # with Azurite, for STORAGE_DRIVER=azure-blob
 #
 # Services: postgres, redis, migrate (one-shot, runs before app), app, cron,
-# and caddy (TLS, only with --profile tls).
+# worker (drains the durable job queue),
+# caddy (TLS, only with --profile tls), mailpit (an SMTP sink that keeps
+# everything it is sent, only with --profile mail — for trying
+# EMAIL_TRANSPORT=smtp with SMTP_URL=smtp://mailpit:1025, never for real mail)
+# and azurite (Azure Blob Storage's emulator, only with --profile azure — for
+# trying STORAGE_DRIVER=azure-blob, never for real data).
 
 name: ${COMPOSE_PROJECT_NAME:-tasks}
 
@@ -14,6 +21,8 @@ x-app-env: &app-env
   DATABASE_URL: postgresql://${POSTGRES_USER:-tasks}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-tasks}
   DATABASE_URL_DIRECT: postgresql://${POSTGRES_USER:-tasks}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-tasks}
   REDIS_URL: redis://redis:6379
+  # Realtime over Redis pub/sub, so live updates reach every replica (lib/realtime/bus.ts).
+  REALTIME_BUS: ${REALTIME_BUS:-redis}
 
 services:
   postgres:
@@ -38,6 +47,9 @@ services:
       - redis:/data
 
   migrate:
+    # Built locally with --build, or pulled as the published `<tag>-migrator`
+    # (IMAGE=ghcr.io/graceful-tools/astrid-web, IMAGE_TAG=<version>; AWTD-1464).
+    image: ${IMAGE:-tasks-selfhost}:${IMAGE_TAG:-latest}-migrator
     build:
       context: ../..
       target: migrator
@@ -91,6 +103,27 @@ services:
       app:
         condition: service_healthy
 
+  worker:
+    # The same image again, draining the durable job queue (AWTD-1460):
+    # Astrid's chat and comment replies, and their retries. Safe to scale —
+    # each job is claimed once — but one is enough.
+    image: ${IMAGE:-tasks-selfhost}:${IMAGE_TAG:-latest}
+    pull_policy: never
+    restart: unless-stopped
+    command: ["node", "scripts/job-worker.mjs"]
+    healthcheck:
+      test: ["CMD", "node", "scripts/job-worker.mjs", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 2
+    environment:
+      CRON_SECRET: ${CRON_SECRET:?set CRON_SECRET in .env}
+      CRON_BASE_URL: http://app:3000
+    depends_on:
+      app:
+        condition: service_healthy
+
   caddy:
     profiles: ["tls"]
     image: caddy:2
@@ -113,8 +146,33 @@ services:
     depends_on:
       - app
 
+  mailpit:
+    # A sink, not a relay: nothing it receives leaves the machine. Inbox at
+    # http://localhost:8025; the smoke test reads it back through the API.
+    profiles: ["mail"]
+    image: axllent/mailpit:v1
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+
+  azurite:
+    # The Blob service only. Its development account is published, so point the
+    # app at it with the well-known connection string (deploy/self-host/.env.example).
+    profiles: ["azure"]
+    image: mcr.microsoft.com/azure-storage/azurite:3.37.0
+    restart: unless-stopped
+    # --skipApiVersionCheck: the SDK speaks a newer API version than Azurite
+    # releases have caught up with.
+    command: ["azurite-blob", "--blobHost", "0.0.0.0", "--skipApiVersionCheck", "--location", "/data"]
+    ports:
+      - "${AZURITE_BLOB_PORT:-10000}:10000"
+    volumes:
+      - azurite:/data
+
 volumes:
   postgres:
   redis:
   uploads:
   caddy:
+  azurite:

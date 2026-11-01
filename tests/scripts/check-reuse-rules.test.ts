@@ -123,6 +123,24 @@ describe('check:reuse rules actually fire (task bc27c00a)', { timeout: 60_000 },
     expect(run(fixtureRoot)['public-brand-literal'].join('\n')).toContain('icon-generator.html')
   }, 120_000)
 
+  // AWTD-1458: lib/brand/config.ts holds Astrid's defaults, each an env override, so its
+  // feedbackListId is not a leak. Exempt by PATH: a config.ts anywhere else still trips.
+  it('AWTD-1458: hardcoded-identity skips lib/brand/config.ts, not other config.ts files', () => {
+    const uuid = "export const DEFAULTS = { feedbackListId: '6afe098f-e163-46f7-ac4b-4f879a9314eb' }\n"
+    mkdirSync(join(fixtureRoot, 'lib/brand'), { recursive: true })
+    mkdirSync(join(fixtureRoot, 'lib/i18n'), { recursive: true })
+    writeFileSync(join(fixtureRoot, 'lib/brand/config.ts'), uuid)
+    writeFileSync(join(fixtureRoot, 'lib/i18n/config.ts'), uuid)
+    try {
+      const hits = run(fixtureRoot)['hardcoded-identity'].join('\n')
+      expect(hits).not.toContain('lib/brand/config.ts')
+      expect(hits).toContain('lib/i18n/config.ts')
+    } finally {
+      rmSync(join(fixtureRoot, 'lib/brand'), { recursive: true, force: true })
+      rmSync(join(fixtureRoot, 'lib/i18n'), { recursive: true, force: true })
+    }
+  }, 120_000)
+
   it('reports nothing on a clean tree', () => {
     const findings = run(cleanRoot)
 

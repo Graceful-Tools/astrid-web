@@ -4,6 +4,7 @@
  */
 
 import { fetchWithTimeout, AI_REQUEST_TIMEOUT_MS } from './fetch-with-timeout'
+import { geminiGenerateContentUrl } from '@/lib/ai/config/provider-endpoints'
 
 export interface GeminiClientOptions {
   apiKey: string
@@ -83,7 +84,7 @@ export async function callGemini(
     : 'You are an expert software developer analyzing tasks for implementation in Next.js/React/TypeScript applications.'
 
   const response = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+    geminiGenerateContentUrl(model, apiKey),
     {
       method: 'POST',
       headers: {

@@ -59,10 +59,8 @@ import { normalizeRepeatingData, parseCompletionStamp, parseRepeating } from '@/
 import { statusListIdsToDetachOnCompletion } from '@/lib/project-status'
 import { TASK_FULL_INCLUDE } from '@/lib/task-query-utils'
 import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
-import { notifiableUpdateEvents, taskEventSnapshot } from '@/lib/task-event-snapshot'
-import { notifyTaskUpdate } from '@/lib/notification-store'
-import { invalidateUserStats } from '@/lib/user-stats'
-import { rescheduleRemindersForUpdate } from '@/lib/reminder-scheduling'
+import { taskEventSnapshot } from '@/lib/task-event-snapshot'
+import { enqueueTaskUpdatedEffects } from './task-update-deferred-effects'
 import { enrichTaskForAgent } from '@/lib/agent-protocol'
 import { loadV1TaskForEvent } from '@/lib/tasks/v1-task-shape'
 import { broadcastTaskCreated } from './task-create-broadcast'
@@ -82,6 +80,7 @@ import {
   type AnalyticsPlatformValue,
 } from '@/lib/analytics-events'
 import { createLogger } from '@/lib/logger'
+import { runAfterResponse } from '@/lib/background'
 import { resolveCompletionFields, resolveCreateCompletionFields, type CreateCompletionInput } from './task-completion'
 import { parseTaskDate, resolveCreateDateFields } from './task-dates'
 import { resolveStatusRoleWrite } from './task-status-role'
@@ -1165,7 +1164,9 @@ export async function updateTaskWithSideEffects(args: {
 }
 
 /**
- * Everything that happens after the row is written.
+ * Everything that happens after the row is written. Reminders, the dependents
+ * re-check, notifications and the stats reset are queued here and run after
+ * the response (services/task-update-deferred-effects.ts, AWTD-1462).
  *
  * Individually guarded: the update is committed and the caller was told so, and
  * no single downstream failure may turn that into an error. The one exception
@@ -1209,9 +1210,6 @@ async function runUpdateSideEffects(args: {
     previousAssigneeId: existingTask.assigneeId ?? null, assigneeId: task.assigneeId ?? null,
   })
 
-  // Reminders must follow the task, or a completed one keeps notifying.
-  await rescheduleRemindersForUpdate({ before: existingTask, after: task, actorId })
-
   // A newly assigned agent is told here, explicitly — not by a hook inside the
   // Prisma client that fired on any raw assignee write (spec §5.2 step 3).
   if (task.assigneeId && task.assigneeId !== existingTask.assigneeId) {
@@ -1222,21 +1220,6 @@ async function runUpdateSideEffects(args: {
       assignee: task.assignee,
       deferred: true,
     })
-  }
-
-  // A blocker's completion decides other tasks' lanes, in BOTH directions:
-  // completing unblocks its dependents, reopening re-blocks the ones still in
-  // Ready (AWTD-1002). Dynamically imported for the reason the delete path
-  // above gives.
-  if (existingTask.completed !== task.completed) {
-    await import('@/services/task-dependency.service')
-      .then(deps => deps.promoteUnblockedDependents({
-        blockingTaskId: task.id,
-        actorId,
-        actorType: actorType === 'agent' ? 'agent' : 'user',
-        blockerCompleted: !!task.completed,
-      }))
-      .catch(err => log.error({ err }, 'Failed to re-evaluate tasks blocked by this one'))
   }
 
   try {
@@ -1264,30 +1247,10 @@ async function runUpdateSideEffects(args: {
     log.error({ err }, 'Failed to record task events')
   }
 
-  try {
-    const commenterIds = Array.from(
-      new Set(
-        (task.comments ?? [])
-          .map((comment: any) => comment?.authorId)
-          .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0)
-      )
-    ) as string[]
-
-    // One persist for the whole update — per-event persists defeat the
-    // row-level dedupe and wrote duplicate rows (task ceaff1c5).
-    await notifyTaskUpdate({
-      taskId: task.id,
-      actorId,
-      events: notifiableUpdateEvents(events),
-      audience: {
-        assigneeId: task.assigneeId,
-        creatorId: task.creatorId,
-        commenterIds,
-      },
-    })
-  } catch (err) {
-    log.error({ err }, 'Failed to notify about task update')
-  }
+  // Reminders, the dependents re-check, notifications and the stats reset run
+  // after the response, as one durable job per edit (AWTD-1462, Jon's decision
+  // (b)). Same inputs, same guards; services/task-update-deferred-effects.ts.
+  await enqueueTaskUpdatedEffects({ existingTask, task, actorId, actorType, events })
 
   // System comment for state changes. Uses legacy's helper rather than a copy:
   // a hand-rolled version in v1 dropped `systemEventType`, the typed
@@ -1334,26 +1297,6 @@ async function runUpdateSideEffects(args: {
     // committed must not be reported as a failure because working out who to
     // tell about it went wrong.
     log.error({ err }, 'Failed to resolve the audience for a task update')
-  }
-
-  try {
-    const completionChanged = existingTask.completed !== task.completed
-    const assignmentChanged = existingTask.assigneeId !== task.assigneeId
-
-    if (completionChanged || assignmentChanged) {
-      const statsUserIds = new Set<string>()
-      if (task.assigneeId && completionChanged) statsUserIds.add(task.assigneeId)
-      if (existingTask.assigneeId && assignmentChanged && existingTask.assigneeId !== task.assigneeId) {
-        statsUserIds.add(existingTask.assigneeId)
-      }
-      if (task.creatorId && completionChanged) statsUserIds.add(task.creatorId)
-
-      if (statsUserIds.size > 0) {
-        await invalidateUserStats(Array.from(statsUserIds))
-      }
-    }
-  } catch (err) {
-    log.error({ err }, 'Failed to invalidate user stats')
   }
 
   // Cached task lists go stale the moment the row changes. Invalidated BEFORE
@@ -1430,19 +1373,17 @@ async function runUpdateSideEffects(args: {
 
   // Analytics lives here so the MCP surfaces are counted too — they were
   // invisible in TASK_EDITED and TASK_COMPLETED before.
-  try {
-    const resolvedPlatform = platform ?? AnalyticsPlatform.API_OTHER
-    if (rolledForward || (requestedCompleted === true && !existingTask.completed)) {
-      await trackAnalyticsEvent(actorId, AnalyticsEventType.TASK_COMPLETED, resolvedPlatform, {
-        taskId: task.id,
-      })
+  // After the response (AWTD-1462): one or two inserts nobody reads on the
+  // request's clock. Best-effort as always, so after() rather than a durable
+  // job, which would cost the very insert it saves.
+  const resolvedPlatform = platform ?? AnalyticsPlatform.API_OTHER
+  const countsAsCompletion = rolledForward || (requestedCompleted === true && !existingTask.completed)
+  runAfterResponse('task-update-analytics', async () => {
+    if (countsAsCompletion) {
+      await trackAnalyticsEvent(actorId, AnalyticsEventType.TASK_COMPLETED, resolvedPlatform, { taskId: task.id })
     }
-    await trackAnalyticsEvent(actorId, AnalyticsEventType.TASK_EDITED, resolvedPlatform, {
-      taskId: task.id,
-    })
-  } catch (err) {
-    log.error({ err }, 'Failed to track task update analytics')
-  }
+    await trackAnalyticsEvent(actorId, AnalyticsEventType.TASK_EDITED, resolvedPlatform, { taskId: task.id })
+  })
 
   return stateChangeComment
 }

@@ -11,6 +11,11 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
+// AWTD-1462: reminders, notifications, stats and dependents run after the
+// response (a task-updated job); held here and flushed before asserting.
+vi.mock('@/lib/background', async () => (await import('../utils/after-response')).backgroundMock)
+import { flushAfterResponse, discardAfterResponse } from '../utils/after-response'
+beforeEach(() => discardAfterResponse())
 
 vi.mock('@/lib/api-auth-wrapper', () => ({
   withAuth: (_opts: unknown, handler: (...args: unknown[]) => unknown) =>
@@ -80,6 +85,7 @@ describe('PUT /api/v1/tasks/[id] notification dedupe (task ceaff1c5)', () => {
       ctx
     )
     expect(response.status).toBe(200)
+    await flushAfterResponse()
 
     // ONE persist for the whole update, so the row-level dedupe can see every
     // event's targets at once.

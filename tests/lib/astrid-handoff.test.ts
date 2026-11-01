@@ -20,6 +20,18 @@ vi.mock('@/lib/astrid-agent/model-setup-prompt', () => ({ postAstridModelSetupPr
 const processAstridMessage = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/astrid-agent-runtime', () => ({ processAstridMessage }))
 
+// The reply is a durable job now (AWTD-1460). Run it inline through the real
+// handler, so these assertions still pin what reaches the Astrid runtime.
+const enqueueJob = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/jobs/queue', async () => {
+  const { JOB_HANDLERS } = await import('@/lib/jobs/handlers')
+  enqueueJob.mockImplementation(async (kind: keyof typeof JOB_HANDLERS, payload: never) => {
+    await JOB_HANDLERS[kind](payload)
+    return 'queued'
+  })
+  return { enqueueJob }
+})
+
 const broadcastToUsers = vi.hoisted(() => vi.fn())
 vi.mock('@/lib/sse-utils', () => ({ broadcastToUsers }))
 
@@ -91,6 +103,8 @@ describe('handOffAstridReply (task f0700542)', () => {
     // caller cannot collide with someone else's key.
     const passed = processAstridMessage.mock.calls[0][0].replyClientRequestId
     expect(passed).toBe('astrid-reply:msg-1')
+    // …and the job itself is keyed on the message: a second enqueue is a no-op.
+    expect(enqueueJob).toHaveBeenCalledWith('astrid-handoff', expect.anything(), { dedupeKey: 'astrid-handoff:msg-1' })
   })
 
   it('refuses a repeat handoff for the same message without spending a model call', async () => {

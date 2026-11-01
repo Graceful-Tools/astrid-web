@@ -43,6 +43,14 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { assertStorageConfiguration } = await import('@/lib/storage/object-store')
     assertStorageConfiguration()
+
+    // Same for email: EMAIL_TRANSPORT=smtp with no relay would accept every
+    // invitation and deliver none (AWTD-1466). Unset means Resend, unchanged.
+    const { assertEmailConfiguration } = await import('@/lib/email-transport')
+    assertEmailConfiguration()
+
+    const { assertRealtimeConfiguration } = await import('@/lib/realtime/bus')
+    assertRealtimeConfiguration()
   }
 
   // Every listed provider must have what it needs (spec §6.2). Missing

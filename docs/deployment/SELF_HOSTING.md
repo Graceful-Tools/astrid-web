@@ -21,13 +21,15 @@ self-hosting the product means self-hosting this one image.
 | Database | Neon Postgres | Any PostgreSQL. The compose file runs `postgres:17` |
 | Migrations | Applied by the production deploy | The `migrate` service, before every start of a new version |
 | Scheduled jobs | Vercel Cron, from `vercel.json` | The `cron` service (`scripts/cron-runner.mjs`) reads the same `vercel.json` |
-| Uploads | Vercel Blob | `STORAGE_DRIVER=local` (a volume) or `s3` (AWS S3, MinIO, R2, Ceph) |
+| Background jobs (Astrid replies, retries) | `after()` and the minute cron drain the `Job` table | The same, plus the `worker` service (`scripts/job-worker.mjs`) draining every 10 s |
+| Uploads | Vercel Blob | `STORAGE_DRIVER=local` (a volume), `s3` (AWS S3, MinIO, R2, Ceph) or `azure-blob` |
+| Outbound email | Resend | `EMAIL_TRANSPORT=smtp`: any SMTP relay (Azure Communication Services, SendGrid, Exchange Online, your own); or Resend |
 | Cache and rate limits | Upstash Redis | `REDIS_URL` (compose runs `redis:7`); optional |
-| Real-time updates (SSE) | Upstash, shared across instances | In memory, inside the one app process |
+| Real-time updates (SSE) | Upstash, shared across instances (`REALTIME_BUS=upstash`, the default) | Redis pub/sub over `REDIS_URL` (`REALTIME_BUS=redis`, set by compose), shared across replicas |
 | TLS | Vercel | Your proxy, or `--profile tls` (Caddy, automatic certificates) |
 | Web analytics | Vercel Analytics | Off: the components render only on Vercel |
 
-Nothing else is required. Email (Resend), web push (VAPID), Google, Apple and GitHub
+Nothing else is required. Email (SMTP or Resend), web push (VAPID), Google, Apple and GitHub
 sign-in, the GitHub integrations and AI providers are all optional, each configured the
 same way as on hosted Astrid.
 
@@ -101,6 +103,7 @@ The full registry, with a description of every variable: `npm run check:env`, or
 |---|---|---|
 | `local` | A persistent volume at `STORAGE_LOCAL_DIR` (compose mounts `uploads`) | One server |
 | `s3` | `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, and `S3_REGION` or `S3_ENDPOINT` | Anything with more than one server, or managed durability |
+| `azure-blob` | `AZURE_STORAGE_CONTAINER`, and `AZURE_STORAGE_CONNECTION_STRING` or `AZURE_STORAGE_ACCOUNT` (Managed Identity) | Azure. Blob does not speak S3 |
 | `vercel-blob` | `BLOB_STORE_ID` with OIDC on Vercel; `BLOB_READ_WRITE_TOKEN` anywhere else | The default. Hosted Astrid only |
 
 With `s3` and any of its settings missing, the server logs their names at start
@@ -109,6 +112,31 @@ fails, so `docker compose up --wait` and an orchestrator's readiness probe repor
 Nothing gets stored in the wrong place in the meantime.
 The bucket stays private. The app reads objects with its own credentials and serves them
 at `/api/v1/storage/objects/…`, so you need no bucket policy, public access or CORS rule.
+
+With `azure-blob`, create the container first; it stays private as well. With a connection
+string the app signs with the account key. With only `AZURE_STORAGE_ACCOUNT` it signs in
+with `DefaultAzureCredential`, which on Container Apps or App Service is the managed
+identity. Give that identity **Storage Blob Data Contributor** on the container and
+**Storage Blob Delegator** on the account. After `/api/secure-files/:id` has checked access,
+it redirects to a five-minute, read-only SAS URL (a user-delegation SAS under managed
+identity), so file bytes come from Azure instead of passing through the app. To try it
+locally, `--profile azure` runs [Azurite](https://learn.microsoft.com/azure/storage/common/storage-use-azurite).
+
+**Email:**
+
+| `EMAIL_TRANSPORT` | Needs | Use |
+|---|---|---|
+| `resend` | `RESEND_API_KEY` (without it, messages are logged instead of sent) | The default. Hosted Astrid |
+| `smtp` | `SMTP_URL` (`smtp://user:pass@host:587`, or `smtps://…:465`), or `SMTP_HOST` with optional `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_SECURE=true` | Any SMTP relay |
+| `log` | Nothing | Never send; log what would have been sent |
+
+`FROM_EMAIL` is the sender for all of them, and your relay must be allowed to send as it.
+With `smtp` and no relay configured, the server refuses to start (`EMAIL_TRANSPORT=smtp is
+missing: SMTP_URL (or SMTP_HOST)`), in the same way as half-configured storage. To try it
+locally, `--profile mail` runs [mailpit](https://mailpit.axllent.org), a sink that keeps
+everything it receives: set `EMAIL_TRANSPORT=smtp` and `SMTP_URL=smtp://mailpit:1025`, then
+read the inbox at `http://localhost:8025`. Inbound email-to-task still uses webhooks, as
+on hosted Astrid.
 
 **Behind a proxy:** set `TRUSTED_PROXY_DEPTH` to the number of proxies in front of the app
 (1 with `--profile tls`). Rate limits are keyed on the client address the proxy forwards.
@@ -144,16 +172,75 @@ its entries from the same file:
 CRON_BASE_URL=https://tasks.example.com node scripts/cron-runner.mjs --print-crontab
 ```
 
-## Upgrades
+The image has no curl, so a scheduler that starts the image itself for each run (a
+Kubernetes CronJob, an Azure Container Apps Job) uses `--run` instead. It calls one route
+once and exits non-zero if the route failed:
 
 ```bash
-git pull
-docker compose -f deploy/self-host/docker-compose.yml up -d --build
+node scripts/cron-runner.mjs --run /api/cron/reminders
 ```
 
-`migrate` runs `prisma migrate deploy` and must succeed before the new app container starts.
-**Back up the database first.** A migration that removes something is written to take two
-releases, but a backup is the only undo.
+## Published images
+
+Releases are published to GHCR by `.github/workflows/release-image.yml` (AWTD-1464). Each
+release is a pair of images:
+
+| Image | What it is |
+|---|---|
+| `ghcr.io/graceful-tools/astrid-web:<version>` | The app (also runs the cron runner) |
+| `ghcr.io/graceful-tools/astrid-web:<version>-migrator` | `prisma migrate deploy`, run before the app |
+
+`<version>` is a semver release such as `1.4.0`. Each image carries an SBOM and a
+provenance attestation (`docker buildx imagetools inspect <image> --format '{{json .SBOM}}'`).
+`:edge` is the latest build of `main`, published only when someone runs the workflow by
+hand. Do not run it in production.
+
+The published images are built with **Astrid's default brand**. A partner with its own
+brand still builds its own image ([Your brand goes in at build time](#your-brand-goes-in-at-build-time)),
+because one image is one brand. A brand that gets published images too is tagged
+`<version>-<brand>`.
+
+To run a published release instead of building, set the image in `deploy/self-host/.env`:
+
+```bash
+IMAGE=ghcr.io/graceful-tools/astrid-web
+IMAGE_TAG=1.4.0
+```
+
+Then pull and start without `--build`:
+
+```bash
+docker compose -f deploy/self-host/docker-compose.yml pull migrate app
+docker compose -f deploy/self-host/docker-compose.yml up -d --no-build
+```
+
+### Releases
+
+Releases are semver tags (`v1.4.0`) cut by hand from `main`, with `CHANGELOG.md` as the
+release notes. A tag triggers the workflow. The workflow then pulls the pair it just
+published and runs the smoke test against it, with nothing built locally. A major version
+means the upgrade needs something beyond the steps below, and the changelog says what.
+
+## Upgrades
+
+**Back up the database first.** Then:
+
+1. **Pull the new tag.** Set `IMAGE_TAG` to the new version and run
+   `docker compose -f deploy/self-host/docker-compose.yml pull migrate app`.
+   If you build from source instead, `git pull` (or check out the tag).
+2. **Run the migrator.** `migrate` runs `prisma migrate deploy` and must succeed before
+   the new app container starts. Compose does this for you on `up`. On Kubernetes, run
+   the `-migrator` image as a Job before the rollout.
+3. **Roll the app.** `docker compose -f deploy/self-host/docker-compose.yml up -d --no-build`
+   (or `up -d --build` from source).
+
+A migration that removes something is written to take two releases, so the previous
+release keeps working against the migrated database while you roll.
+
+**Downgrades: migrations are forward-only.** There are no down migrations. Going back a
+release with the migrated database is safe only when the release notes say the migration
+was additive. Otherwise the only undo is restoring the backup taken in step 1, together
+with the older tag.
 
 Back up three things: the Postgres volume (or your database), the uploads volume or
 bucket, and `ENCRYPTION_KEY`.
@@ -169,14 +256,23 @@ The image is an ordinary OCI image, and compose is one way to run it.
   - Run the app as a Deployment with a readiness probe on `/api/health`.
   - Run the runner as a one-replica Deployment with `command: node scripts/cron-runner.mjs`,
     or generate CronJobs from `--print-crontab`.
+  - Run the job worker as a Deployment with `command: node scripts/job-worker.mjs`. Any
+    number of replicas is safe (each job is claimed once); one is enough.
 - **More than one app replica** needs three things:
   - `STORAGE_DRIVER=s3`, because a local volume is per pod.
   - Exactly one cron runner.
-  - Upstash Redis (`UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`) for real-time
-    updates across replicas. Without it, a user connected to one replica does not see a
-    change made through another until their next sync. Live updates fan out over Upstash's
-    HTTP API only, so a plain `REDIS_URL` does not cover it. A single replica needs none
+  - `REALTIME_BUS=redis` and a `REDIS_URL` every replica can reach, for real-time updates
+    across replicas (compose sets both). Events go out over Redis pub/sub, one channel per
+    user, and a per-user sorted set keeps the last 15 minutes for clients that reconnect.
+    `REALTIME_BUS=upstash` with `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` also
+    works, but it polls every 15 s. See `lib/realtime/bus.ts`. A single replica needs none
     of this.
+
+## Azure
+
+`deploy/azure/main.bicep` runs this image on Azure Container Apps with Postgres Flexible
+Server, Azure Cache for Redis, Blob Storage and Key Vault, from one parameters file per
+brand. Guide: [AZURE.md](./AZURE.md).
 
 ## Pointing the native apps at it
 
@@ -188,9 +284,6 @@ universal links are in [WHITELABELING.md](../WHITELABELING.md), *Native apps, pe
 
 ## Known limits
 
-- **Email is sent through Resend or not at all.** Without `RESEND_API_KEY`, messages are
-  logged instead of sent. There is no SMTP transport yet. `lib/email-transport.ts` is the
-  one place one would go.
 - **Only one SSO provider (OIDC) per deployment.** Per-organisation SSO is a partner build:
   WHITELABELING §3.
 - **The image builds on linux/amd64 and linux/arm64.** CI exercises amd64.

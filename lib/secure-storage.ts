@@ -1,6 +1,6 @@
 /**
  * Secure File Storage System using Vercel Blob, or a self-hosted store
- * (`STORAGE_DRIVER=s3|local`, lib/storage/object-store.ts)
+ * (`STORAGE_DRIVER=s3|local|azure-blob`, lib/storage/object-store.ts)
  *
  * This module implements a secure file upload and access system with:
  * - Private Vercel Blob storage
@@ -27,6 +27,7 @@ import { validateSecureUpload } from '@/lib/upload-validation'
 import {
   isSelfHostedStorage,
   objectPathnameFromUrl,
+  selfHostedObjectPathname,
   selfHostedObjectStore,
   selfHostedObjectUrl,
   selfHostedUploadUrl,
@@ -50,10 +51,10 @@ const log = createLogger('secure-storage')
 // helper would have relocated every future upload and changed which files are
 // accepted, so the seam is deliberately lower than that.
 //
-// `tests/rules/blob-storage-goes-through-secure-storage.test.ts` keeps it that
+// `tests/rules/vendor-sdks-stay-in-their-drivers.test.ts` (and `npm run lint`) keeps it that
 // way, subpath imports included.
 //
-// Off Vercel, `STORAGE_DRIVER=s3|local` sends each primitive to a self-hosted
+// Off Vercel, `STORAGE_DRIVER=s3|local|azure-blob` sends each primitive to a self-hosted
 // store instead (lib/storage/object-store.ts, AWTD-1286). The default is Blob,
 // so a deployment that sets nothing behaves exactly as before.
 
@@ -282,15 +283,25 @@ export async function uploadFileToBlob(
 }
 
 /**
- * Generate a signed download URL for a private Vercel Blob
+ * The URL `/api/secure-files/:id` redirects to once it has checked access.
+ *
+ * Vercel Blob, S3 and local: the stored URL itself, unchanged — access is
+ * checked at the route, and the URL is unguessable. A store with its own public
+ * endpoint (Azure Blob, AWTD-1465) instead returns a read-only signed URL that
+ * expires after `expiresIn` seconds, so the bytes come from the store rather
+ * than through the app.
  */
 export async function generateSignedDownloadUrl(
   blobUrl: string,
-  expiresIn: number = 300 // 5 minutes default
+  expiresIn: number = 300, // 5 minutes default
+  contentType?: string,
 ): Promise<string> {
   try {
-    // For public blobs, we can use the URL directly or create a signed URL
-    // If using public access, we control security via our API endpoint
+    if (isSelfHostedStorage()) {
+      const store = await selfHostedObjectStore()
+      const pathname = selfHostedObjectPathname(blobUrl)
+      if (store.signedReadUrl && pathname) return await store.signedReadUrl(pathname, expiresIn, contentType)
+    }
     return blobUrl
   } catch (error) {
     log.error({ err: error }, 'Failed to generate signed download URL:')

@@ -333,6 +333,99 @@
       }
     },
     {
+      "name": "task.listPage.cursor",
+      "route": "GET /api/v1/tasks?cursor=&limit=1",
+      "shaper": "v1TaskListSelect → shapeV1ListPageTask, v1TaskPageMeta (lib/tasks/v1-task-shape.ts); encodeTaskCursor (lib/tasks/v1-sync-cursor.ts)",
+      "note": "A keyset walk page (AWTD-1470): ordered by (updatedAt, id). nextCursor is opaque — send it back as ?cursor= — and is ABSENT on the last page. serverTime (every v1 tasks/lists response) is the server clock read before the query: send it back as the next updatedSince instead of the device clock. An offset page carries serverTime but never nextCursor.",
+      "body": {
+        "tasks": [
+          {
+            "id": "task-0000-0000-0000-000000000001",
+            "title": "Water the plants",
+            "description": "Front **and** back garden.",
+            "assigneeId": "user-member-0002",
+            "assigneeIds": [
+              "user-member-0002"
+            ],
+            "creatorId": "user-owner-0001",
+            "dueDateTime": "2026-01-20T00:00:00.000Z",
+            "isAllDay": true,
+            "reminderTime": null,
+            "reminderSent": false,
+            "reminderType": null,
+            "repeating": "weekly",
+            "repeatingData": null,
+            "repeatFrom": "DUE_DATE",
+            "occurrenceCount": 3,
+            "priority": 2,
+            "isPrivate": false,
+            "completed": false,
+            "completedAt": null,
+            "completedSource": null,
+            "closedReason": null,
+            "identifier": "HOME-12",
+            "sequence": 12,
+            "statusRole": "doing",
+            "createdAt": "2026-01-15T09:00:00.000Z",
+            "updatedAt": "2026-01-15T09:30:00.000Z",
+            "originalTaskId": null,
+            "sourceListId": null,
+            "clientRequestId": null,
+            "parentTaskId": null,
+            "lists": [
+              {
+                "ownerId": "user-owner-0001",
+                "id": "list-0000-0000-0000-000000000001",
+                "name": "Home",
+                "color": "#3b82f6",
+                "githubRepositoryId": null,
+                "listMembers": [
+                  {
+                    "id": "member-list-0000-0000-0000-000000000001-user-owner-0001",
+                    "listId": "list-0000-0000-0000-000000000001",
+                    "userId": "user-owner-0001",
+                    "role": "admin"
+                  },
+                  {
+                    "id": "member-list-0000-0000-0000-000000000001-user-member-0002",
+                    "listId": "list-0000-0000-0000-000000000001",
+                    "userId": "user-member-0002",
+                    "role": "member"
+                  }
+                ]
+              }
+            ],
+            "assignee": {
+              "id": "user-member-0002",
+              "name": "Member",
+              "email": "member@example.com",
+              "image": "https://example.com/m.png",
+              "isAIAgent": false
+            },
+            "creator": {
+              "id": "user-owner-0001",
+              "name": "Owner",
+              "email": "owner@example.com",
+              "image": null,
+              "isAIAgent": false
+            },
+            "listIds": [
+              "list-0000-0000-0000-000000000001"
+            ]
+          }
+        ],
+        "serverTime": "2026-01-01T12:00:00.000Z",
+        "nextCursor": "eyJ1IjoiMjAyNi0wMS0xNVQwOTozMDowMC4wMDBaIiwiaSI6InRhc2stMDAwMC0wMDAwLTAwMDAtMDAwMDAwMDAwMDAxIn0",
+        "meta": {
+          "total": 2,
+          "limit": 1,
+          "offset": 0,
+          "apiVersion": "v1",
+          "authSource": "oauth"
+        }
+      }
+    },
+    {
       "name": "task.read",
       "route": "GET /api/v1/tasks/:id",
       "shaper": "V1_TASK_READ_INCLUDE → shapeV1Task (lib/tasks/v1-task-shape.ts)",

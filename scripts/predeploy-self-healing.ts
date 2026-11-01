@@ -315,6 +315,17 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
       fixDescription: 'Auto-fix lint errors',
     },
     {
+      // The reuse-first rollup (CLAUDE.md rule 6, docs/CODE_REUSE_AND_CONSISTENCY.md):
+      // inline owner/admin checks, brand literals, personal addresses. `check:reuse` is
+      // --strict, but nothing that could fail ran it, so it sat red on main (AWTD-1458).
+      // After ESLint, which enforces the per-file subset; a second or so, so it costs
+      // nothing ahead of Vitest. Not auto-fixed: each hit wants the right helper.
+      name: 'Reuse First',
+      command: 'npm run check:reuse',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
+      autoFixable: false,
+    },
+    {
       name: 'Model Sync',
       command: 'npm run check:model-sync',
       timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,

@@ -34,6 +34,7 @@ export const BRAND_IDENTITY_ENV = [
   'NEXT_PUBLIC_BRAND_LOGO',
   'NEXT_PUBLIC_BRAND_APP_STORE_URL',
   'NEXT_PUBLIC_BRAND_APP_URL_SCHEME',
+  'NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID',
   'NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG',
 ]
 
@@ -41,7 +42,11 @@ export const BRAND_IDENTITY_ENV = [
  * An empty App Store URL hides the download button (config.ts reads it with `??`), so
  * blank is a partner's answer there. Everywhere else blank falls back, like unset.
  */
-const BLANK_IS_A_VALUE = new Set(['NEXT_PUBLIC_BRAND_APP_STORE_URL'])
+const BLANK_IS_A_VALUE = new Set([
+  'NEXT_PUBLIC_BRAND_APP_STORE_URL',
+  // Blank means "no in-app feedback list" (AWTD-1443).
+  'NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID',
+])
 
 function isSet(env, name) {
   const value = env[name]

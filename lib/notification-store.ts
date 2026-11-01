@@ -1,20 +1,34 @@
+import { createHash } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
-import { buildNotificationRows, fanOutEvent, type NotificationRecordContext, type NotificationTarget, type TaskAudience } from '@/lib/notifications'
+import { buildNotificationRows, taskUpdateNotificationTargets, type NotificationRecordContext, type NotificationTarget, type TaskAudience } from '@/lib/notifications'
 import type { TaskEventInput } from '@/lib/task-events'
 
 const log = createLogger('notifications')
+
+/**
+ * A row id derived from the work that produced it, so writing the same
+ * notification twice is a no-op (AWTD-1462: a re-run task-updated job must not
+ * notify twice). cuid-shaped — 'c' and 24 characters — like the default ids.
+ */
+function notificationIdFor(dedupeKey: string, row: { userId: string; kind: string }): string {
+  return 'c' + createHash('sha256').update(`${dedupeKey}:${row.userId}:${row.kind}`).digest('hex').slice(0, 24)
+}
 
 export async function persistNotifications(args: {
   targets: NotificationTarget[]
   context: NotificationRecordContext
   client?: typeof prisma
+  /** Names the work these rows come from; writing it again inserts nothing. */
+  dedupeKey?: string
 }): Promise<number> {
-  const rows = buildNotificationRows(args.targets, args.context)
-  if (rows.length === 0) return 0
+  const { dedupeKey } = args
+  const built = buildNotificationRows(args.targets, args.context)
+  if (built.length === 0) return 0
+  const rows = dedupeKey ? built.map(row => ({ ...row, id: notificationIdFor(dedupeKey, row) })) : built
 
   try {
-    await (args.client ?? prisma).notification.createMany({ data: rows })
+    await (args.client ?? prisma).notification.createMany({ data: rows, ...(dedupeKey ? { skipDuplicates: true } : {}) })
     return rows.length
   } catch (error) {
     log.error({ err: error, count: rows.length }, 'Failed to persist notifications')
@@ -39,12 +53,12 @@ export async function notifyTaskUpdate(args: {
   events: TaskEventInput[]
   audience: TaskAudience
   client?: typeof prisma
+  dedupeKey?: string
 }): Promise<number> {
   return persistNotifications({
-    targets: args.events.flatMap(event =>
-      fanOutEvent({ kind: event.kind, actorId: args.actorId, audience: args.audience })
-    ),
+    targets: taskUpdateNotificationTargets(args),
     context: { taskId: args.taskId, actorId: args.actorId },
     client: args.client,
+    dedupeKey: args.dedupeKey,
   })
 }
