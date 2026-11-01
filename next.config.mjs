@@ -40,6 +40,13 @@ const isProduction = process.env.NODE_ENV === 'production'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // The deploy environment, for the browser: lib/auth-host.ts bounces Google sign-in
+  // through the brand domain only on a preview build (AWTD-1469). VERCEL_ENV is set at
+  // build on Vercel (scripts/lib/build-migration-policy.js relies on it); off Vercel it
+  // is empty, which reads as production.
+  env: {
+    NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV || process.env.VERCEL_ENV || '',
+  },
   ...(filesystemRoot ? { turbopack: { root: filesystemRoot } } : {}),
   // A self-contained `node server.js` for the Docker image (Dockerfile, AWTD-1286).
   // Opt-in, so a Vercel build is untouched: Vercel bundles its own way.
