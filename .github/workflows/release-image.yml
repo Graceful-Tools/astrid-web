@@ -1,0 +1,191 @@
+name: 'Release Image'
+
+# Publishes the self-hosted image to GHCR (AWTD-1464, docs/deployment/SELF_HOSTING.md
+# "Upgrades"). self-host.yml proves the image boots on every change to it; this
+# is the only workflow that pushes one anywhere, so a partner has something to pull.
+#
+#   ghcr.io/graceful-tools/astrid-web:<version>            the app (target runner)
+#   ghcr.io/graceful-tools/astrid-web:<version>-migrator   `prisma migrate deploy`, run first
+#
+# <version> is the git tag without its `v` (v1.4.0 → 1.4.0). Each image carries
+# an SBOM and a provenance attestation in the registry.
+#
+# Triggers, on purpose:
+# - A `v*` tag. Tags are cut from main by hand, with CHANGELOG.md as the notes
+#   (SELF_HOSTING.md, "Releases"). Cutting one is a release decision.
+# - Run workflow from main publishes `:edge`. Deliberately NOT on every push to
+#   main: each run builds a Next.js image per brand (~15 min of runner time),
+#   and nobody should run `:edge` in production. Dispatched from any other ref,
+#   it refuses rather than publishing a branch as edge.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+# Least privilege at the top; only the publish job may write packages.
+permissions:
+  contents: read
+
+concurrency:
+  group: release-image-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/graceful-tools/astrid-web
+
+jobs:
+  publish:
+    name: 'Build and push (${{ matrix.brand }})'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        # The published brands. `astrid` is the built-in default (BRAND unset) and
+        # gets the bare tag; any other profile from brands/ is published as
+        # `<version>-<brand>`. One image is one brand: NEXT_PUBLIC_* is compiled in.
+        brand: [astrid]
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Work out the version
+        id: version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          BRAND: ${{ matrix.brand }}
+        run: |
+          if [ "$REF_TYPE" = tag ]; then
+            version="${REF_NAME#v}"
+          elif [ "$REF_NAME" = main ]; then
+            version=edge
+          else
+            echo "::error::Run this from main (publishes :edge) or push a v* tag. Not publishing '$REF_NAME'."
+            exit 1
+          fi
+          suffix=""
+          build_brand=""
+          if [ "$BRAND" != astrid ]; then suffix="-$BRAND"; build_brand="$BRAND"; fi
+          {
+            echo "version=$version"
+            echo "app=${IMAGE}:${version}${suffix}"
+            echo "migrator=${IMAGE}:${version}${suffix}-migrator"
+            echo "build_brand=$build_brand"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The migrator is the deps stage plus prisma: brand-independent, but
+      # published beside each app tag so an upgrade pulls one matching pair.
+      - name: Migrator image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          target: migrator
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.version.outputs.migrator }}
+          sbom: true
+          provenance: mode=max
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+          cache-from: type=gha,scope=release-${{ matrix.brand }}
+          cache-to: type=gha,mode=max,scope=release-${{ matrix.brand }}
+
+      - name: App image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.version.outputs.app }}
+          build-args: |
+            BRAND=${{ steps.version.outputs.build_brand }}
+            GIT_COMMIT_SHA=${{ github.sha }}
+          sbom: true
+          provenance: mode=max
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+          cache-from: type=gha,scope=release-${{ matrix.brand }}
+          cache-to: type=gha,mode=max,scope=release-${{ matrix.brand }}
+
+  # The acceptance test for a release: the compose stack runs the PUBLISHED pair,
+  # pulled from GHCR, with nothing built locally — what a partner does.
+  smoke:
+    name: 'Pull and smoke-test the published image'
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Log in to GHCR
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Write the stack's settings
+        env:
+          VERSION: ${{ needs.publish.outputs.version }}
+        run: |
+          {
+            echo "IMAGE=${IMAGE}"
+            echo "IMAGE_TAG=${VERSION}"
+            echo "NEXTAUTH_URL=http://localhost:3000"
+            echo "NEXTAUTH_SECRET=$(openssl rand -base64 48)"
+            echo "ENCRYPTION_KEY=$(openssl rand -hex 32)"
+            echo "CRON_SECRET=$(openssl rand -hex 32)"
+            echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)"
+            echo "STORAGE_DRIVER=local"
+          } > deploy/self-host/.env
+
+      - name: Pull and start (no build)
+        run: |
+          docker compose -f deploy/self-host/docker-compose.yml --env-file deploy/self-host/.env pull migrate app
+          docker compose -f deploy/self-host/docker-compose.yml --env-file deploy/self-host/.env up -d --no-build --wait --wait-timeout 300
+
+      - name: Smoke test
+        run: |
+          set -a; . deploy/self-host/.env; set +a
+          SMOKE_BASE_URL=http://localhost:3000 npx tsx scripts/self-host-smoke.ts
+
+      - name: Logs
+        if: failure()
+        run: docker compose -f deploy/self-host/docker-compose.yml --env-file deploy/self-host/.env logs --no-color --tail 300
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f deploy/self-host/docker-compose.yml --env-file deploy/self-host/.env down -v

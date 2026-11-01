@@ -361,6 +361,7 @@ describe('GET /api/v1/capabilities (task 97208a72)', () => {
       wordmark: 'astrid',
       slogan: 'Get it done!',
       agentName: 'Astrid',
+      feedbackListId: '6afe098f-e163-46f7-ac4b-4f879a9314eb',
     })
   })
 
@@ -369,6 +370,7 @@ describe('GET /api/v1/capabilities (task 97208a72)', () => {
     process.env.NEXT_PUBLIC_BRAND_WORDMARK = 'ACME'
     process.env.NEXT_PUBLIC_BRAND_SLOGAN = 'Ship it.'
     process.env.NEXT_PUBLIC_BRAND_AGENT_NAME = 'Ada'
+    process.env.NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID = ''
 
     const { GET } = await import('@/app/api/v1/capabilities/route')
     const body = await (await GET()).json()
@@ -430,8 +432,34 @@ describe('GET /api/v1/capabilities (task 97208a72)', () => {
     const body = await (await GET()).json()
 
     expect(Object.keys(body.brand).sort()).toEqual(
-      ['agentName', 'appName', 'slogan', 'wordmark']
+      ['agentName', 'appName', 'feedbackListId', 'slogan', 'wordmark']
     )
+  })
+
+  // AWTD-1443: the Report an Issue list is a row in THIS deployment's database, so the
+  // deployment names it. Absent means "no in-app feedback list; open the web".
+
+  it("serves the feedback list id, defaulting to Astrid's own list (AWTD-1443)", async () => {
+    const { GET } = await import('@/app/api/v1/capabilities/route')
+    const body = await (await GET()).json()
+
+    expect(body.brand.feedbackListId).toBe('6afe098f-e163-46f7-ac4b-4f879a9314eb')
+  })
+
+  it('serves a deployment its own feedback list id (AWTD-1443)', async () => {
+    process.env.NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID = '11111111-2222-4333-8444-555555555555'
+    const { GET } = await import('@/app/api/v1/capabilities/route')
+    const body = await (await GET()).json()
+
+    expect(body.brand.feedbackListId).toBe('11111111-2222-4333-8444-555555555555')
+  })
+
+  it('omits feedbackListId when the deployment has no in-app list (AWTD-1443)', async () => {
+    process.env.NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID = ''
+    const { GET } = await import('@/app/api/v1/capabilities/route')
+    const body = await (await GET()).json()
+
+    expect('feedbackListId' in body.brand).toBe(false)
   })
 })
 

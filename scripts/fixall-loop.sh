@@ -563,7 +563,9 @@ esac
 # A finished task is completed, a blocked one is in Waiting: anything this run
 # claimed that is STILL in Doing was abandoned mid-task. Release it now, after
 # the branch above is pushed, so its comment can point at the work.
-"$TSX" scripts/release-stuck-doing.ts --agent claude --claims-file "$CLAIMS_FILE" --repo "$REPO" 2>&1 | sed 's/^/ /'
+# --saved-branch: a wip/ snapshot carries no task id, so name it outright (AWTD-1471).
+"$TSX" scripts/release-stuck-doing.ts --agent claude --claims-file "$CLAIMS_FILE" --repo "$REPO" \
+  ${SAVED_BRANCH:+--saved-branch "$SAVED_BRANCH"} 2>&1 | sed 's/^/ /'
 rm -f "$CLAIMS_FILE"
 
 # Phase two of waking, before the RESULT line so that line stays last (the

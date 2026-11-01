@@ -41,7 +41,7 @@
 - **PostCSS**: autoprefixer 10.6.1
 
 ## AI & Automation
-- **OpenAI SDK**: OpenAI 5.15.0
+- **OpenAI**: Chat Completions API, called with fetch (no SDK)
 - **Anthropic**: Claude API (Sonnet, Opus)
 - **Google**: Gemini API
 - **GitHub Copilot**: Official `@github/copilot-sdk` with per-user GitHub OAuth

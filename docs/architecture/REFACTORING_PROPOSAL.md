@@ -20,6 +20,11 @@ The route-pair classification is a coarse structural signal, not proof that two
 handlers behave differently. Manually compare contracts and tests before
 consolidating a pair.
 
+The November 2026 platform assessment —
+[`PLATFORM_ASSESSMENT_2026-11.md`](./PLATFORM_ASSESSMENT_2026-11.md) — records the
+measured scale blockers and the tasks filed against them; the priorities below are
+the standing rules that work should follow.
+
 ## Current priorities
 
 1. **Keep legacy and v1 behavior behind shared implementations.** A v1 route may

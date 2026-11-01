@@ -64,6 +64,18 @@ vi.mock('@/lib/push-notification-service', () => ({
 
 vi.mock('@/lib/astrid-agent', () => ({ ASTRID_EMAIL: `astrid@${BRAND.agentEmailDomain}` }))
 vi.mock('@/lib/astrid-agent-runtime', () => ({ processAstridComment }))
+
+// The reply is a durable job now (AWTD-1460). Run it inline through the real
+// handler, so these assertions still pin what reaches the Astrid runtime.
+const enqueueJob = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/jobs/queue', async () => {
+  const { JOB_HANDLERS } = await import('@/lib/jobs/handlers')
+  enqueueJob.mockImplementation(async (kind: keyof typeof JOB_HANDLERS, payload: never) => {
+    await JOB_HANDLERS[kind](payload)
+    return 'queued'
+  })
+  return { enqueueJob }
+})
 vi.mock('@/lib/comment-approval-detector', () => ({ processCommentForWorkflowAction }))
 vi.mock('@/lib/ai-agent-webhook-service', () => ({
   aiAgentWebhookService: { notifyCommentOnAssignedTask },
@@ -134,6 +146,7 @@ describe('dispatchPostCommentSideEffects', () => {
         commentContent: 'hey @[Astrid](astrid-uid) help',
       })
     )
+    expect(enqueueJob).toHaveBeenCalledWith('astrid-comment-reply', expect.anything(), { dedupeKey: 'astrid-comment-reply:c-1' })
   })
 
   // P1 step 4: agent and system comments now go through the comment service,

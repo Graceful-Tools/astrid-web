@@ -167,9 +167,14 @@ describe('MCP SSE Integration - Core Functionality', () => {
     const { join } = await import('node:path')
     const service = readFileSync(join(process.cwd(), 'services/task.service.ts'), 'utf8')
 
+    // Reminders are rescheduled after the response by the task-updated job the
+    // service queues (AWTD-1462).
+    const deferred = readFileSync(join(process.cwd(), 'services/task-update-deferred-effects.ts'), 'utf8')
+
     expect(service).toContain('task_updated')
     expect(service).toContain('resolveRepeatingTaskCompletion')
-    expect(service).toContain('rescheduleRemindersForUpdate')
+    expect(service).toContain('enqueueTaskUpdatedEffects')
+    expect(deferred).toContain('rescheduleRemindersForUpdate')
   })
 
   it('broadcasts task_deleted from the shared delete service', async () => {

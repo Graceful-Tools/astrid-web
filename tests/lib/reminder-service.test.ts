@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { PrismaClient } from '@prisma/client'
 import { ReminderService } from '@/lib/reminder-service'
 import type { ReminderSettings, Task, User } from '@/types'
+import { digestSettings, fakeDigestPrisma, type FakeTask } from '../utils/fake-digest-prisma'
 
 // Mock Prisma
 const mockPrisma = {
@@ -273,72 +274,32 @@ describe('ReminderService', () => {
     })
   })
 
+  // The digest passes read ReminderSettings by their next-due slot (AWTD-1454), so they run
+  // against the stateful fake rather than the canned mocks above.
+  function digestService(settings: Record<string, unknown>, tasks: FakeTask[]) {
+    const { prisma } = fakeDigestPrisma(
+      [{ id: 'user1', email: 'user@example.com', name: 'Test User', settings: digestSettings('user1', settings) }],
+      tasks
+    )
+    return new ReminderService(prisma as unknown as PrismaClient, mockEmailService, mockPushService)
+  }
+
   describe('Daily Digest', () => {
     it('should send daily digest at user specified time in their timezone', async () => {
-      const userSettings: ReminderSettings = {
-        id: 'settings1',
-        userId: 'user1',
-        enablePushReminders: true,
-        enableEmailReminders: true,
-        defaultReminderTime: 60,
-        enableDailyDigest: true,
-        dailyDigestTime: '09:00', // 9 AM
-        dailyDigestTimezone: 'America/Los_Angeles', // PST/PDT
-        enableCalendarSync: false,
-        calendarSyncType: 'all',
-        quietHoursStart: null,
-        quietHoursEnd: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }
+      const task = (id: string, title: string, dueDateTime: string, list: string): FakeTask => ({
+        id, title, dueDateTime: new Date(dueDateTime), isAllDay: false, assigneeId: 'user1', completed: false, lists: [{ name: list }],
+      })
+      // 9 AM PST is 17:00 UTC during standard time; schedule from just before it.
+      vi.setSystemTime(new Date('2024-01-15T16:59:00Z'))
+      const service = digestService({ dailyDigestTime: '09:00', dailyDigestTimezone: 'America/Los_Angeles' }, [
+        task('task1', 'Morning Task', '2024-01-15T17:00:00Z', 'Work'), // Today
+        task('task2', 'Tomorrow Task', '2024-01-16T17:00:00Z', 'Personal'), // Tomorrow
+        task('task3', 'Overdue Task', '2024-01-14T17:00:00Z', 'Important'), // Yesterday
+      ])
+      await service.processDailyDigests() // schedules the slot
 
-      const tasksToday = [
-        {
-          id: 'task1',
-          title: 'Morning Task',
-          dueDateTime: new Date('2024-01-15T17:00:00Z'), // Today
-          assigneeId: 'user1',
-          lists: [{ name: 'Work' }],
-        },
-      ]
-
-      const tasksTomorrow = [
-        {
-          id: 'task2',
-          title: 'Tomorrow Task',
-          dueDateTime: new Date('2024-01-16T17:00:00Z'), // Tomorrow
-          assigneeId: 'user1',
-          lists: [{ name: 'Personal' }],
-        },
-      ]
-
-      const overdueTasks = [
-        {
-          id: 'task3',
-          title: 'Overdue Task',
-          dueDateTime: new Date('2024-01-14T17:00:00Z'), // Yesterday
-          assigneeId: 'user1',
-          lists: [{ name: 'Important' }],
-        },
-      ]
-
-      mockPrisma.user.findMany.mockResolvedValue([{
-        id: 'user1',
-        email: 'user@example.com',
-        name: 'Test User',
-        reminderSettings: userSettings,
-      }])
-
-      // Mock task queries for digest
-      mockPrisma.task.findMany
-        .mockResolvedValueOnce(tasksToday) // Due today
-        .mockResolvedValueOnce(tasksTomorrow) // Due tomorrow
-        .mockResolvedValueOnce(overdueTasks) // Overdue
-
-      // Set time to 9:00 AM PST (17:00 UTC during standard time)
       vi.setSystemTime(new Date('2024-01-15T17:00:00Z'))
-
-      await reminderService.processDailyDigests()
+      await service.processDailyDigests()
 
       expect(mockEmailService.sendDailyDigest).toHaveBeenCalledWith({
         userId: 'user1',
@@ -358,31 +319,13 @@ describe('ReminderService', () => {
     })
 
     it('should not send digest if user has disabled it', async () => {
-      const userSettings: ReminderSettings = {
-        id: 'settings1',
-        userId: 'user1',
-        enablePushReminders: true,
-        enableEmailReminders: true,
-        defaultReminderTime: 60,
-        enableDailyDigest: false, // Disabled
-        dailyDigestTime: '09:00',
-        dailyDigestTimezone: 'UTC',
-        enableCalendarSync: false,
-        calendarSyncType: 'all',
-        quietHoursStart: null,
-        quietHoursEnd: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }
+      const service = digestService(
+        { enableDailyDigest: false, dailyDigestTime: '09:00', nextDailyDigestAt: new Date('2024-01-15T09:00:00Z') },
+        [{ id: 'task1', title: 'Task', dueDateTime: new Date('2024-01-15T12:00:00Z'), isAllDay: false, assigneeId: 'user1', completed: false, lists: [] }]
+      )
+      vi.setSystemTime(new Date('2024-01-15T09:00:00Z'))
 
-      mockPrisma.user.findMany.mockResolvedValue([{
-        id: 'user1',
-        email: 'user@example.com',
-        name: 'Test User',
-        reminderSettings: userSettings,
-      }])
-
-      await reminderService.processDailyDigests()
+      await service.processDailyDigests()
 
       expect(mockEmailService.sendDailyDigest).not.toHaveBeenCalled()
     })
@@ -390,53 +333,20 @@ describe('ReminderService', () => {
 
   describe('Weekly Digest', () => {
     it('should send weekly digest with upcoming tasks due this week', async () => {
-      const userSettings: ReminderSettings = {
-        id: 'settings1',
-        userId: 'user1',
-        enablePushReminders: true,
-        enableEmailReminders: true,
-        defaultReminderTime: 60,
-        enableDailyDigest: true,
-        dailyDigestTime: '09:00',
-        dailyDigestTimezone: 'UTC',
-        enableCalendarSync: false,
-        calendarSyncType: 'all',
-        quietHoursStart: null,
-        quietHoursEnd: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }
-
-      const thisWeekTasks = [
-        {
-          id: 'task1',
-          title: 'Wednesday Task',
-          dueDateTime: new Date('2024-01-17T12:00:00Z'), // This Wednesday
-          assigneeId: 'user1',
-          lists: [{ name: 'Work' }],
-        },
-        {
-          id: 'task2',
-          title: 'Friday Task',
-          dueDateTime: new Date('2024-01-19T15:00:00Z'), // This Friday
-          assigneeId: 'user1',
-          lists: [{ name: 'Projects' }],
-        },
-      ]
-
-      mockPrisma.user.findMany.mockResolvedValue([{
-        id: 'user1',
-        email: 'user@example.com',
-        name: 'Test User',
-        reminderSettings: userSettings,
-      }])
-
-      mockPrisma.task.findMany.mockResolvedValue(thisWeekTasks)
-
-      // Set to Monday (start of week) at digest time
+      const task = (id: string, title: string, dueDateTime: string, list: string): FakeTask => ({
+        id, title, dueDateTime: new Date(dueDateTime), isAllDay: false, assigneeId: 'user1', completed: false, lists: [{ name: list }],
+      })
+      // Monday (start of week) at digest time.
+      const service = digestService(
+        { dailyDigestTime: '09:00', dailyDigestTimezone: 'UTC', nextWeeklyDigestAt: new Date('2024-01-15T09:00:00Z') },
+        [
+          task('task1', 'Wednesday Task', '2024-01-17T12:00:00Z', 'Work'), // This Wednesday
+          task('task2', 'Friday Task', '2024-01-19T15:00:00Z', 'Projects'), // This Friday
+        ]
+      )
       vi.setSystemTime(new Date('2024-01-15T09:00:00Z'))
 
-      await reminderService.processWeeklyDigests()
+      await service.processWeeklyDigests()
 
       expect(mockEmailService.sendWeeklyDigest).toHaveBeenCalledWith({
         userId: 'user1',

@@ -8,6 +8,8 @@ import { apiGet } from "@/lib/api"
 import { seedFromCache } from "./load-from-cache"
 import { fetchSyncPayload } from "./sync-fetch"
 import { mergeTasks, mergeLists } from "./merge-tasks"
+import { fetchListTasks, mergeListTasks } from "./list-scoped-fetch"
+import { foreignListIdFor, keepListRows } from "@/lib/task-list-scope"
 import { useTaskDetailHydration } from "./useTaskDetailHydration"
 import { preloadUserAvatars } from "@/lib/image-cache"
 import type { Task, TaskList } from "@/types/task"
@@ -105,6 +107,10 @@ export function useTaskListState({
   const [publicTasks, setPublicTasks] = useState<Task[]>([])
   const [publicLists, setPublicLists] = useState<TaskList[]>([])
   const [loading, setLoading] = useState(true)
+  // Bumped when a loadData finishes. The viewed foreign list is re-read after
+  // every reconcile, and not before the first: until then `lists` cannot say
+  // whether the selected list is one of the user's own (AWTD-1451).
+  const [syncGeneration, setSyncGeneration] = useState(0)
 
   // The detail pane renders the LIST row, and the list read carries neither the
   // attachments and secure files nor the blockers, field values and next
@@ -130,6 +136,17 @@ export function useTaskListState({
   const finalTasks = useMemo(() => {
     return [...tasks]
   }, [tasks])
+
+  // A public/featured list the user does not belong to: its tasks come from
+  // `?listId=`, not the global read (AWTD-1451 step 1).
+  const foreignListId = useMemo(
+    () => (syncGeneration > 0 ? foreignListIdFor(selectedListId, lists) : null),
+    [syncGeneration, selectedListId, lists],
+  )
+  const foreignListIdRef = useRef<string | null>(foreignListId)
+  useEffect(() => {
+    foreignListIdRef.current = foreignListId
+  }, [foreignListId])
 
   // Refs for stable access in SSE callbacks
   const selectedListIdRef = useRef(selectedListId)
@@ -214,10 +231,15 @@ export function useTaskListState({
       const deletedTaskIds: string[] = syncPayload.deletedTaskIds
       const deletedListIds: string[] = syncPayload.deletedListIds
 
-      setTasks(prev => mergeTasks(prev, tasksArray, {
-        isDelta: tasksIsDelta,
-        deletedIds: deletedTaskIds,
-      }))
+      setTasks(prev => {
+        const merged = mergeTasks(prev, tasksArray, {
+          isDelta: tasksIsDelta,
+          deletedIds: deletedTaskIds,
+        })
+        // A full response is the truth for the user's OWN tasks; the viewed
+        // foreign list's rows come from its own read (AWTD-1451).
+        return tasksIsDelta ? merged : keepListRows(prev, merged, foreignListIdRef.current)
+      })
 
       setLists(prev => mergeLists(prev, listsArray, {
         isDelta: listsIsDelta,
@@ -251,12 +273,32 @@ export function useTaskListState({
       })
     } finally {
       setLoading(false)
+      setSyncGeneration(generation => generation + 1)
       // Mount and manual refresh call loadData directly. Measuring the minimum
       // intervals from every load, not only the scheduled ones, is what stops
       // an alt-tab seconds after the page loads from paying for a second one.
       refreshSchedulerRef.current?.notifyRan()
     }
   }, [toast])
+
+  // Read the viewed foreign list by `?listId=` on open and after every
+  // reconcile (AWTD-1451). A response for a list no longer selected is dropped.
+  useEffect(() => {
+    if (!foreignListId) return
+    let cancelled = false
+    fetchListTasks(foreignListId, {
+      fetchImpl: ((url: string) => apiGet(String(url))) as unknown as typeof fetch,
+    })
+      .then(fetched => {
+        if (!cancelled) setTasks(prev => mergeListTasks(prev, foreignListId, fetched))
+      })
+      .catch(error => {
+        // Nothing fetched and nothing cached: the view keeps whatever the
+        // global read gave it, which is what it showed before.
+        console.error("[useTaskListState] Error loading list tasks:", error)
+      })
+    return () => { cancelled = true }
+  }, [foreignListId, syncGeneration])
 
   // Update loadDataRef when loadData changes
   useEffect(() => {

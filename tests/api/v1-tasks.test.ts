@@ -69,11 +69,12 @@ describe('GET /api/v1/tasks — iOS list contract', () => {
     ;(mockPrisma.task.count as never as Mock).mockResolvedValue(2 as never)
   })
 
-  it('returns the pinned envelope: { tasks, meta:{ total, limit, offset, apiVersion, authSource } }', async () => {
+  it('returns the pinned envelope: { tasks, serverTime, meta:{ total, limit, offset, apiVersion, authSource } }', async () => {
     const res = await GET(makeReq(), {} as never)
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(Object.keys(body).sort()).toEqual(['meta', 'tasks'])
+    // serverTime is additive (AWTD-1470); offset paging never carries nextCursor.
+    expect(Object.keys(body).sort()).toEqual(['meta', 'serverTime', 'tasks'])
     expect(body.meta).toEqual({
       total: 2,
       limit: 100,

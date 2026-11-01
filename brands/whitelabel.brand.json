@@ -18,7 +18,8 @@
     "NEXT_PUBLIC_BRAND_SLOGAN": "Build together.",
     "NEXT_PUBLIC_BRAND_APP_STORE_URL": "",
     "NEXT_PUBLIC_BRAND_ICON": "/icons/whitelabel-512.png",
-    "NEXT_PUBLIC_BRAND_ICON_SMALL": "/icons/whitelabel-96.png"
+    "NEXT_PUBLIC_BRAND_ICON_SMALL": "/icons/whitelabel-96.png",
+    "NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID": ""
   },
   "expect": {
     "appName": "Whitelabel",

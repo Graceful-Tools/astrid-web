@@ -165,6 +165,14 @@ export const mockPrisma = {
     delete: vi.fn().mockResolvedValue({}),
     count: vi.fn().mockResolvedValue(0),
   },
+  // The durable job queue (AWTD-1460): enqueues succeed, drains find nothing.
+  job: {
+    createMany: vi.fn().mockResolvedValue({ count: 1 }),
+    findMany: vi.fn().mockResolvedValue([]),
+    updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    update: vi.fn().mockResolvedValue({}),
+    deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+  },
   oAuthClient: {
     findUnique: vi.fn().mockResolvedValue(null),
     findFirst: vi.fn().mockResolvedValue(null),

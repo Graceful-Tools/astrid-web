@@ -466,7 +466,8 @@ cloud `openai@` agent.
 | Command | What it runs |
 |---------|--------------|
 | `npm run predeploy:quick` | `check:model-sync` + `check:api-breaking` + `tsc --noEmit` + lint |
-| `npm run predeploy` | Self-healing loop (model-sync + api-breaking + Vitest + tsc + lint, auto-fix + retry) |
+| `npm run predeploy` | Self-healing loop (model-sync + api-breaking + Vitest + tsc + lint + `check:reuse`, auto-fix + retry) |
+| `npm run check:reuse` | Reuse-first gate, `--strict`: inline owner/admin checks, brand literals, personal addresses (docs/CODE_REUSE_AND_CONSISTENCY.md). Runs in `predeploy` after ESLint (AWTD-1458) |
 | `npm run predeploy:simple` | Same checks, **no** auto-fix |
 | `npm run predeploy:full` | `predeploy` checks + Playwright E2E |
 | `npm run predeploy:dry` | Analyze only, apply no fixes |

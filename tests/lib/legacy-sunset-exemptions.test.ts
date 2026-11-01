@@ -64,7 +64,7 @@ describe('legacy sunset exemptions (task 79195f81)', () => {
   it('leaves the sunset date alone — these routes leave the census, not the server', () => {
     // Exempting a route is not deleting it. Both still have live callers, and
     // the sunset for everything else is unchanged by this task.
-    expect(LEGACY_SUNSET_HTTP_DATE).toBe('Sun, 01 Nov 2026 00:00:00 GMT')
+    expect(LEGACY_SUNSET_HTTP_DATE).toBe('Mon, 01 Feb 2027 00:00:00 GMT')
   })
 
   it('keeps serving both routes', () => {

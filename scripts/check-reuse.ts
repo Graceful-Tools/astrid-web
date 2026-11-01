@@ -224,8 +224,11 @@ const RULES: Rule[] = [
     // var would silently stop every agent claiming work.
     exclude: ["fixall-claim.ts"],
     // Comments (including the ones documenting why an id is what it is), and
-    // the UUID-shaped strings in type/format documentation.
-    reject: String.raw`:[0-9]+:[[:space:]]*(//|\*|/\*|\{/\*)`,
+    // the UUID-shaped strings in type/format documentation. Also lib/brand/config.ts
+    // itself: its DEFAULTS are Astrid's own values that every one is an env override
+    // of (feedbackListId ← NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID), which is the home this
+    // rule's fix sends people to. By path, so lib/i18n/config.ts is still scanned (AWTD-1458).
+    reject: String.raw`^lib/brand/config\.ts:|:[0-9]+:[[:space:]]*(//|\*|/\*|\{/\*)`,
   },
   {
     id: "direct-prisma-client",

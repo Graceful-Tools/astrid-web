@@ -13,6 +13,7 @@ import { aggregateDailyStats } from '@/lib/analytics-events'
 import { pruneDeletionLog } from '@/lib/deletion-log'
 import { pruneWebVitalSamples } from '@/lib/web-vitals-service'
 import { pruneCacheMetricBuckets } from '@/lib/cache-metrics-service'
+import { pruneHistoryTables } from '@/lib/history-retention-service'
 import { ensureInitialAdmin } from '@/lib/admin-auth'
 import { createLogger } from '@/lib/logger'
 import { requireCronSecret } from '@/lib/cron-auth'
@@ -58,11 +59,23 @@ export async function GET(request: NextRequest) {
     // deliberately wider than that window — see CACHE_METRICS_RETENTION_DAYS.
     const cacheMetricBucketsPruned = await pruneCacheMetricBuckets()
 
+    // TaskEvent, AnalyticsEvent and Notification were append-only with no
+    // expiry (AWTD-1455). After the aggregation, which reads the raw
+    // AnalyticsEvents. DRY-RUN (count only) unless HISTORY_RETENTION_PRUNE is
+    // `delete` — see lib/history-retention.ts for the windows and why.
+    const historyRetention = await pruneHistoryTables()
+
     return {
       date: yesterday.toISOString().split('T')[0],
       deletionTombstonesPruned,
       webVitalSamplesPruned,
       cacheMetricBucketsPruned,
+      // Flat, because a cron summary is primitives only. In dry-run these are
+      // the rows that WOULD go.
+      historyRetentionMode: historyRetention.mode,
+      taskEventsPruned: historyRetention.taskEvents,
+      analyticsEventsPruned: historyRetention.analyticsEvents,
+      notificationsPruned: historyRetention.notifications,
     }
   })
 }
