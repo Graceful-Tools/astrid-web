@@ -5,8 +5,11 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-vi.mock('@/lib/workflow-queue', () => ({
-  workflowQueue: { getTokensUsedInWindow: () => 0, recordTokens: () => undefined },
+// Token pacing moved out of the deleted WorkflowQueue into lib/ai/token-window (AWTD-1460).
+vi.mock('@/lib/ai/token-window', () => ({
+  tokensUsedInWindow: () => 0,
+  recordTokens: () => undefined,
+  resetTokenWindows: () => undefined,
 }))
 
 import { callOpenAI } from '@/lib/ai/clients/openai'
