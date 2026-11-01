@@ -68,6 +68,12 @@ astrid-web. There is no native client that talks to GitHub, or any other backend
    - **Keep the default hand-off client ids** (`windows`, `ios`, `mac`, `android`).
      `DesktopClientId` is a closed set on the server, so a custom `handoffClientId` in a
      native build is refused.
+   - **Name your own feedback list.** Report an Issue opens the list in
+     `NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID`, served to clients at runtime as
+     `brand.feedbackListId` on `/api/v1/capabilities` (a list id is a row in your
+     database, so it is not baked into a build). Set it to your own public list, or to the
+     empty string for none — clients then open the web. **Unset inherits Astrid's list**,
+     which sends your users to file bugs on someone else's board.
 
 ### Native apps, per platform
 

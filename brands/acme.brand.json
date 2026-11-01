@@ -25,7 +25,8 @@
     "NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG": "acme-code-assistant",
     "BRAND_APPLE_APP_IDS": "ACME000001.example.acme.Tasks,ACME000001.example.acme.TasksMac",
     "BRAND_ANDROID_APP_LINKS": "example.acme.tasks:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC",
-    "NEXT_PUBLIC_BRAND_APP_URL_SCHEME": "acmetasks"
+    "NEXT_PUBLIC_BRAND_APP_URL_SCHEME": "acmetasks",
+    "NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d"
   },
   "expect": {
     "appName": "Acme",
