@@ -171,6 +171,14 @@ its entries from the same file:
 CRON_BASE_URL=https://tasks.example.com node scripts/cron-runner.mjs --print-crontab
 ```
 
+The image has no curl, so a scheduler that starts the image itself for each run (a
+Kubernetes CronJob, an Azure Container Apps Job) uses `--run` instead. It calls one route
+once and exits non-zero if the route failed:
+
+```bash
+node scripts/cron-runner.mjs --run /api/cron/reminders
+```
+
 ## Published images
 
 Releases are published to GHCR by `.github/workflows/release-image.yml` (AWTD-1464). Each
@@ -256,6 +264,12 @@ The image is an ordinary OCI image, and compose is one way to run it.
     `REALTIME_BUS=upstash` with `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` also
     works, but it polls every 15 s. See `lib/realtime/bus.ts`. A single replica needs none
     of this.
+
+## Azure
+
+`deploy/azure/main.bicep` runs this image on Azure Container Apps with Postgres Flexible
+Server, Azure Cache for Redis, Blob Storage and Key Vault, from one parameters file per
+brand. Guide: [AZURE.md](./AZURE.md).
 
 ## Pointing the native apps at it
 

@@ -10,9 +10,16 @@
  *
  *   node scripts/cron-runner.mjs                  # run forever (the compose `cron` service)
  *   node scripts/cron-runner.mjs --print-crontab  # emit crontab(5) lines instead
+ *   node scripts/cron-runner.mjs --run /api/cron/reminders  # call one job once, then exit
  *
  * Environment: CRON_SECRET (required), CRON_BASE_URL (default NEXTAUTH_URL),
  * the origin the app answers on — in compose, http://app:3000.
+ *
+ * `--run` is for a scheduler that starts a container per run (Azure Container
+ * Apps Jobs in deploy/azure, a Kubernetes CronJob): the image has no curl, so
+ * the crontab lines are not runnable inside it. The exit code is the result:
+ * 0 for a 2xx (or a 404, a capability this brand turned off), 1 otherwise,
+ * 2 for a path that is not in vercel.json (AWTD-1468).
  *
  * Run exactly one runner per deployment: two would call every job twice.
  * A job still running when it comes due again is skipped, not stacked.
@@ -62,6 +69,33 @@ if (!secret) {
 
 /** Vercel's longest function limit is 800 s; nothing scheduled should outlive it. */
 const JOB_TIMEOUT_MS = 15 * 60 * 1000
+
+const runIndex = process.argv.indexOf('--run')
+if (runIndex !== -1) {
+  const path = process.argv[runIndex + 1]
+  if (!jobs.some(job => job.path === path)) {
+    console.error(`cron-runner: --run ${path ?? '(no path)'} is not in ${configPath} crons`)
+    process.exit(2)
+  }
+  const started = Date.now()
+  const line = fields => console.log(JSON.stringify({ at: new Date().toISOString(), source: 'cron-runner', path, ...fields, ms: Date.now() - started }))
+  try {
+    const response = await fetch(`${baseUrl}${path}`, {
+      headers: { authorization: `Bearer ${secret}`, 'user-agent': 'astrid-cron-runner' },
+      signal: AbortSignal.timeout(JOB_TIMEOUT_MS),
+    })
+    await response.arrayBuffer()
+    if (response.status === 404) {
+      line({ status: 404, note: 'not on this deployment (a capability is off)' })
+      process.exit(0)
+    }
+    line({ status: response.status })
+    process.exit(response.ok ? 0 : 1)
+  } catch (error) {
+    line({ error: String(error?.message ?? error) })
+    process.exit(1)
+  }
+}
 const running = new Set()
 /** Paths that answered 404: a capability this brand turned off (lib/brand/capabilities.ts). */
 const absent = new Set()
