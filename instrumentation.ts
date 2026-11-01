@@ -48,6 +48,9 @@ export async function register() {
     // invitation and deliver none (AWTD-1466). Unset means Resend, unchanged.
     const { assertEmailConfiguration } = await import('@/lib/email-transport')
     assertEmailConfiguration()
+
+    const { assertRealtimeConfiguration } = await import('@/lib/realtime/bus')
+    assertRealtimeConfiguration()
   }
 
   // Every listed provider must have what it needs (spec §6.2). Missing

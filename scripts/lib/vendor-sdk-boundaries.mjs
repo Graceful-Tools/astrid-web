@@ -23,9 +23,8 @@ export const VENDOR_SDK_BOUNDARIES = [
   {
     vendor: 'Upstash Redis',
     packages: ['@upstash/*'],
-    // lib/sse-utils.ts reads the event stream until the RealtimeBus seam
-    // (lib/realtime/, PLATFORM_ASSESSMENT A2/W2) replaces it.
-    files: ['lib/redis.ts', 'lib/realtime/**', 'lib/sse-utils.ts'],
+    // Only the RealtimeBus's Upstash transport and the shared client (AWTD-1459).
+    files: ['lib/redis.ts', 'lib/realtime/upstash-bus.ts'],
   },
   {
     vendor: 'Vercel Blob',
