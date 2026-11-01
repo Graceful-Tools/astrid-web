@@ -5,11 +5,14 @@
 #   docker compose -f deploy/self-host/docker-compose.yml up -d --build
 #   docker compose -f deploy/self-host/docker-compose.yml --profile tls up -d   # with automatic HTTPS
 #   docker compose -f deploy/self-host/docker-compose.yml --profile mail up -d  # with a local mail sink
+#   docker compose -f deploy/self-host/docker-compose.yml --profile azure up -d # with Azurite, for STORAGE_DRIVER=azure-blob
 #
 # Services: postgres, redis, migrate (one-shot, runs before app), app, cron,
-# caddy (TLS, only with --profile tls) and mailpit (an SMTP sink that keeps
+# caddy (TLS, only with --profile tls), mailpit (an SMTP sink that keeps
 # everything it is sent, only with --profile mail — for trying
-# EMAIL_TRANSPORT=smtp with SMTP_URL=smtp://mailpit:1025, never for real mail).
+# EMAIL_TRANSPORT=smtp with SMTP_URL=smtp://mailpit:1025, never for real mail)
+# and azurite (Azure Blob Storage's emulator, only with --profile azure — for
+# trying STORAGE_DRIVER=azure-blob, never for real data).
 
 name: ${COMPOSE_PROJECT_NAME:-tasks}
 
@@ -126,8 +129,23 @@ services:
       - "${MAILPIT_SMTP_PORT:-1025}:1025"
       - "${MAILPIT_UI_PORT:-8025}:8025"
 
+  azurite:
+    # The Blob service only. Its development account is published, so point the
+    # app at it with the well-known connection string (deploy/self-host/.env.example).
+    profiles: ["azure"]
+    image: mcr.microsoft.com/azure-storage/azurite:3.37.0
+    restart: unless-stopped
+    # --skipApiVersionCheck: the SDK speaks a newer API version than Azurite
+    # releases have caught up with.
+    command: ["azurite-blob", "--blobHost", "0.0.0.0", "--skipApiVersionCheck", "--location", "/data"]
+    ports:
+      - "${AZURITE_BLOB_PORT:-10000}:10000"
+    volumes:
+      - azurite:/data
+
 volumes:
   postgres:
   redis:
   uploads:
   caddy:
+  azurite:
