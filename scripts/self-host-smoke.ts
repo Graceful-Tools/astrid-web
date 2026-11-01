@@ -10,7 +10,9 @@
  * Checks what only a real deployment can show: the image boots and migrates,
  * pages and the API answer, cron routes accept the secret and refuse without
  * it, and an upload lands in storage and is served back — the path the
- * Vercel-only build had no way to take.
+ * Vercel-only build had no way to take. With SMOKE_SMTP_URL and
+ * SMOKE_MAILPIT_URL (the compose's `--profile mail` sink), one email goes
+ * through the SMTP transport and is read back.
  */
 
 import { randomUUID } from 'node:crypto'
@@ -84,6 +86,40 @@ async function main() {
     expectStatus(ranged, 206)
     return url
   })
+
+  // With the compose's mail sink up (--profile mail), one email through the SMTP
+  // transport, read back from the sink (AWTD-1466). SMOKE_SMTP_URL is the sink as
+  // this machine reaches it, which is not the in-stack smtp://mailpit:1025.
+  const smtpUrl = process.env.SMOKE_SMTP_URL
+  const mailpitUrl = process.env.SMOKE_MAILPIT_URL?.replace(/\/+$/, '')
+  if (smtpUrl && mailpitUrl) {
+    await check('an email sent over SMTP reaches the sink', async () => {
+      process.env.EMAIL_TRANSPORT = 'smtp'
+      process.env.SMTP_URL = smtpUrl
+      const { sendTransportEmail } = await import('../lib/email-transport')
+      const subject = `self-host smoke ${randomUUID()}`
+      await sendTransportEmail({
+        from: 'smoke@example.com',
+        to: 'operator@example.com',
+        subject,
+        html: `<p>${subject}</p>`,
+        text: subject,
+      })
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const response = await fetch(`${mailpitUrl}/api/v1/messages`)
+        expectStatus(response, 200)
+        const { messages } = (await response.json()) as { messages: Array<{ ID: string; Subject: string }> }
+        const found = messages.find(m => m.Subject === subject)
+        if (found) {
+          const message = (await (await fetch(`${mailpitUrl}/api/v1/message/${found.ID}`)).json()) as { Text: string }
+          if (message.Text.trim() !== subject) throw new Error('the sink received a different body')
+          return found.ID
+        }
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
+      throw new Error('the sink never received it')
+    })
+  }
 
   if (failures.length > 0) {
     console.log(`\n${failures.length} check(s) failed: ${failures.join(', ')}`)

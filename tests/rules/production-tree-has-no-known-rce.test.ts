@@ -187,6 +187,19 @@ const ADVISORY_FLOORS: Array<{
       '>=1.1.0 <2.0.8 — AWTD-1130. Reached through @modelcontextprotocol/sdk → express',
   },
   {
+    name: 'nodemailer',
+    minVersion: '9.1.1',
+    severity: 'high',
+    advisory:
+      'GHSA-2x7j-588g-ccc2 (quadratic-time DoS in addressparser), GHSA-wmmp-3585-3rmp and ' +
+      'GHSA-cc9r-2j5m-2m83 (recipient-domain validation bypasses), GHSA-8m3c-c648-2xjj ' +
+      '(disableFileAccess bypass); <=9.1.0. Banned outright by AWTD-909 while nothing sent ' +
+      'mail through it; back as a direct dependency for EMAIL_TRANSPORT=smtp (AWTD-1466), ' +
+      'loaded only by lib/email-transport.ts. next-auth and @auth/core list it as an ' +
+      'OPTIONAL peer (^7 / ^8) for their Email provider, which this app does not use, so ' +
+      'that range is not ours to satisfy',
+  },
+  {
     name: 'dompurify',
     minVersion: '3.4.17',
     severity: 'critical',
@@ -204,18 +217,6 @@ const ADVISORY_FLOORS: Array<{
  * them and every version carries an open advisory.
  */
 const NOT_SHIPPED: Array<{ name: string; why: string }> = [
-  {
-    name: 'nodemailer',
-    why:
-      'Unused: no import anywhere in the repo, and auth is Google OAuth + passkeys, not ' +
-      'the next-auth Email provider. It is an OPTIONAL peer of both next-auth and ' +
-      '@auth/core (peerDependenciesMeta.nodemailer.optional), so nothing needs it ' +
-      'installed. Every version <=9.1.0 carries four advisories (GHSA-2x7j-588g-ccc2 ' +
-      'quadratic-time DoS in addressparser, GHSA-wmmp-3585-3rmp and GHSA-cc9r-2j5m-2m83 ' +
-      'recipient-domain validation bypasses, GHSA-8m3c-c648-2xjj disableFileAccess ' +
-      'bypass), and 9.0.5 also violated its own peer range. Re-add it only alongside ' +
-      'code that actually sends mail.',
-  },
   {
     name: 'braces',
     why:

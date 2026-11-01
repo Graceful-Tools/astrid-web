@@ -22,6 +22,11 @@ describe('storageDriver (AWTD-1286)', () => {
     expect(isSelfHostedStorage({ STORAGE_DRIVER: 'local' })).toBe(true)
   })
 
+  it('reads azure-blob (AWTD-1465)', () => {
+    expect(storageDriver({ STORAGE_DRIVER: 'Azure-Blob' })).toBe('azure-blob')
+    expect(isSelfHostedStorage({ STORAGE_DRIVER: 'azure-blob' })).toBe(true)
+  })
+
   it('refuses an unknown driver rather than falling back to Blob', () => {
     expect(() => storageDriver({ STORAGE_DRIVER: 'gcs' })).toThrow(/not one of/)
   })
@@ -37,6 +42,21 @@ describe('missingStorageSettings (AWTD-1286)', () => {
     expect(missingStorageSettings({ STORAGE_DRIVER: 's3' })).toEqual([
       'S3_BUCKET', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY', 'S3_REGION or S3_ENDPOINT',
     ])
+  })
+
+  it('names every missing Azure Blob setting (AWTD-1465)', () => {
+    expect(missingStorageSettings({ STORAGE_DRIVER: 'azure-blob' })).toEqual([
+      'AZURE_STORAGE_CONTAINER', 'AZURE_STORAGE_CONNECTION_STRING or AZURE_STORAGE_ACCOUNT',
+    ])
+  })
+
+  it('accepts Azure Blob by connection string or by account (Managed Identity) (AWTD-1465)', () => {
+    expect(missingStorageSettings({
+      STORAGE_DRIVER: 'azure-blob', AZURE_STORAGE_CONTAINER: 'attachments', AZURE_STORAGE_CONNECTION_STRING: 'x',
+    })).toEqual([])
+    expect(missingStorageSettings({
+      STORAGE_DRIVER: 'azure-blob', AZURE_STORAGE_CONTAINER: 'attachments', AZURE_STORAGE_ACCOUNT: 'acct',
+    })).toEqual([])
   })
 
   it('accepts an endpoint in place of a region', () => {
