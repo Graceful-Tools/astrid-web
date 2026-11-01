@@ -28,20 +28,30 @@ export function isCanonicalAuthHost(host: string): boolean {
 }
 
 /**
- * Hosts the bounce is FOR: a preview of the brand domain (`feature-x.astrid.cc`,
- * `whitelabel.astrid.cc`) or a raw Vercel deployment (`*.vercel.app`).
+ * Hosts the bounce is FOR — preview deployments only (AWTD-1469):
+ *   - a raw Vercel deployment URL (`*.vercel.app`), never a registered redirect URI;
+ *   - a subdomain of the brand domain (`feature-x.astrid.cc`, `whitelabel.astrid.cc`)
+ *     on a PREVIEW build. The bounce works there because the session cookie is
+ *     `.${BRAND.domain}`-scoped, so the user is signed in when they come back.
  *
- * Preview-only by construction (AWTD-1469). The bounce works only because the session
- * cookie is `.${BRAND.domain}`-scoped, so the user is signed in when they come back to
- * a subdomain. Any other host — a partner on its own domain, its own Vercel or Azure —
- * registers its own redirect URI with its own Google client and signs in where it is.
- * Bouncing it would send its users to another deployment's sign-in page. The rule is
- * the host alone: no environment variable can turn a partner's host into a preview.
+ * In production (`NEXT_PUBLIC_VERCEL_ENV` unset, i.e. off Vercel, or `production`) a
+ * host signs in on itself. That is what keeps a partner safe whatever its brand domain
+ * says — its own domain, or an apex (`partner.example`) while it serves
+ * `tasks.partner.example` — since it registers its own redirect URI with its own Google
+ * client. astrid.cc and www.astrid.cc are canonical and sign in directly everywhere.
+ *
+ * `NEXT_PUBLIC_VERCEL_ENV` is inlined at build from VERCEL_ENV (next.config.mjs): this
+ * runs in the browser. Unknown reads as production — a preview that fails to bounce
+ * shows Google's redirect_uri_mismatch; a partner that bounces loses its users.
  */
-export function isPreviewAuthHost(host: string): boolean {
+export function isPreviewAuthHost(
+  host: string,
+  deployEnv: string | undefined = process.env.NEXT_PUBLIC_VERCEL_ENV,
+): boolean {
   const hostname = host.toLowerCase().split(':')[0]
   if (isCanonicalAuthHost(hostname)) return false
-  return hostname.endsWith(`.${BRAND.domain}`) || hostname.endsWith('.vercel.app')
+  if (hostname.endsWith('.vercel.app')) return true
+  return deployEnv === 'preview' && hostname.endsWith(`.${BRAND.domain}`)
 }
 
 export type GoogleSignInPlan =
