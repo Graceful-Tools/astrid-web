@@ -38,6 +38,9 @@ services:
       - redis:/data
 
   migrate:
+    # Built locally with --build, or pulled as the published `<tag>-migrator`
+    # (IMAGE=ghcr.io/graceful-tools/astrid-web, IMAGE_TAG=<version>; AWTD-1464).
+    image: ${IMAGE:-tasks-selfhost}:${IMAGE_TAG:-latest}-migrator
     build:
       context: ../..
       target: migrator
