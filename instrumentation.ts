@@ -43,6 +43,8 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { assertStorageConfiguration } = await import('@/lib/storage/object-store')
     assertStorageConfiguration()
+    const { assertRealtimeConfiguration } = await import('@/lib/realtime/bus')
+    assertRealtimeConfiguration()
   }
 
   // Every listed provider must have what it needs (spec §6.2). Missing

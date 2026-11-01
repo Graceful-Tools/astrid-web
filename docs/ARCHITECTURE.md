@@ -319,7 +319,7 @@ Astrid implements a comprehensive offline-first strategy for seamless operation 
 
 #### **SSE Server** ([app/api/sse/route.ts](../app/api/sse/route.ts))
 - Per-user event streams
-- Multi-instance delivery is **not pub/sub**: `broadcastToUsers()` appends each event to a per-user Redis sorted set (`sse:events:<userId>`, 15-minute TTL) and every open connection polls that set on its 15 s heartbeat (`checkAndDeliverNewEvents`). Events from another instance therefore arrive up to 15 s late. See `docs/architecture/PLATFORM_ASSESSMENT_2026-11.md` (W2) for the planned `RealtimeBus` replacement
+- Multi-instance delivery goes through the realtime bus ([lib/realtime/bus.ts](../lib/realtime/bus.ts), AWTD-1459), chosen by `REALTIME_BUS`. **`upstash`** (default, astrid.cc): each event goes into a per-user sorted set (`sse:events:<userId>`, 15-minute TTL) in one pipelined call, and each instance polls once per user every 15 s (5 s for agent streams). The cursor only moves to the highest score the server returned, so a local delivery can no longer hide another instance's event. **`redis`** (self-host): `PUBLISH`/`SUBSCRIBE` per user over `REDIS_URL`, with the same sorted set for replay. Either way each connection gets each event once (dedupe by event id). Conformance: `tests/integration/realtime-bus-conformance.test.ts`
 - Event types: `task_updated`, `task_created`, `task_deleted`, `list_updated`, etc.
 - Heartbeat every 15 seconds to keep connection alive
 - Automatic cleanup on client disconnect
