@@ -7,7 +7,7 @@
  * These pin the host-routing helper that bounces preview sign-in to the
  * canonical host and lets a signed-in user return to the preview.
  */
-import { afterEach, describe, it, expect, vi } from 'vitest'
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest'
 import {
   isCanonicalAuthHost,
   planGoogleSignIn,
@@ -42,6 +42,10 @@ describe('isCanonicalAuthHost', () => {
 })
 
 describe('planGoogleSignIn', () => {
+  // These are preview deployments: the bounce is preview-only (AWTD-1469).
+  beforeEach(() => vi.stubEnv('NEXT_PUBLIC_VERCEL_ENV', 'preview'))
+  afterEach(() => vi.unstubAllEnvs())
+
   it('signs in directly on a canonical host', () => {
     expect(planGoogleSignIn(`https://${BRAND.domain}/auth/signin`)).toEqual({ mode: 'direct' })
     expect(planGoogleSignIn('http://localhost:3000/auth/signin')).toEqual({ mode: 'direct' })
@@ -134,7 +138,52 @@ describe('AWTD-1469: a partner domain never bounces', () => {
   })
 
   it('still bounces a preview of the brand domain and a raw Vercel deployment', () => {
+    vi.stubEnv('NEXT_PUBLIC_VERCEL_ENV', 'preview')
     expect(planGoogleSignIn(`https://whitelabel.${BRAND.domain}/auth/signin`).mode).toBe('redirect')
     expect(planGoogleSignIn('https://astrid-abc123-gracefultools.vercel.app/').mode).toBe('redirect')
+  })
+
+  // Jon, 2026-11-01: a partner whose brand domain is its APEX while it serves a
+  // subdomain must not be bounced to the apex either. Only a preview build bounces a
+  // subdomain; in production the auth host is the request's own host.
+  for (const deployEnv of ['', 'production']) {
+    it(`apex brand domain, served on a subdomain, NEXT_PUBLIC_VERCEL_ENV="${deployEnv}": no bounce`, async () => {
+      productionPartnerEnv()
+      vi.stubEnv('NEXT_PUBLIC_VERCEL_ENV', deployEnv)
+      vi.stubEnv('NEXT_PUBLIC_BRAND_DOMAIN', 'partner.example')
+      vi.resetModules()
+      const fresh = await import('@/lib/auth-host')
+      expect(fresh.planGoogleSignIn(`${PARTNER}/auth/signin`)).toEqual({ mode: 'direct' })
+    })
+  }
+
+  it('the same apex brand on a PREVIEW build still bounces (the cookie spans the apex)', async () => {
+    vi.stubEnv('NEXT_PUBLIC_VERCEL_ENV', 'preview')
+    vi.stubEnv('NEXT_PUBLIC_BRAND_DOMAIN', 'partner.example')
+    vi.resetModules()
+    const fresh = await import('@/lib/auth-host')
+    expect(fresh.planGoogleSignIn(`${PARTNER}/auth/signin`).mode).toBe('redirect')
+  })
+})
+
+/**
+ * AWTD-1469 — astrid.cc production is unchanged by the preview-only rule: the apex
+ * and www are the hosts Google's redirect URI is registered for, so they sign in
+ * directly in every environment, and a production build never bounces a subdomain.
+ */
+describe(`AWTD-1469: ${BRAND.domain} and www.${BRAND.domain} are unchanged`, () => {
+  afterEach(() => vi.unstubAllEnvs())
+
+  for (const deployEnv of ['production', 'preview', '']) {
+    it(`${BRAND.domain} and www sign in directly (NEXT_PUBLIC_VERCEL_ENV="${deployEnv}")`, () => {
+      vi.stubEnv('NEXT_PUBLIC_VERCEL_ENV', deployEnv)
+      expect(planGoogleSignIn(`https://${BRAND.domain}/auth/signin`)).toEqual({ mode: 'direct' })
+      expect(planGoogleSignIn(`https://www.${BRAND.domain}/auth/signin`)).toEqual({ mode: 'direct' })
+    })
+  }
+
+  it('a production build does not bounce a brand subdomain', () => {
+    vi.stubEnv('NEXT_PUBLIC_VERCEL_ENV', 'production')
+    expect(planGoogleSignIn(`https://feature-x.${BRAND.domain}/`)).toEqual({ mode: 'direct' })
   })
 })
