@@ -48,7 +48,7 @@ Astrid Task Manager now supports comprehensive offline functionality, allowing u
 
 ## Core Components
 
-### 1. IndexedDB Layer (`lib/offline-db.ts`)
+### 1. IndexedDB Layer (`lib/offline-db/index.ts`)
 
 **Purpose:** Persistent offline data storage using Dexie.js wrapper for IndexedDB.
 
