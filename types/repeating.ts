@@ -185,6 +185,20 @@ function instant(reading: number, zone: string): number {
   return later !== undefined ? later : reading
 }
 
+/**
+ * `at`'s wall clock in `zone`, as a Date whose UTC getters read that clock (getUTCHours is the
+ * zone's hour, getUTCDay its weekday). For server code that must answer "what time is it for this
+ * person" (AWTD-1453).
+ */
+export function wallClockIn(at: Date, zone: string): Date {
+  return new Date(local(at.getTime(), zone))
+}
+
+/** The instant a wall clock reading (from `wallClockIn`, or built with Date.UTC) names in `zone`. */
+export function instantOfWallClock(reading: Date, zone: string): Date {
+  return new Date(instant(reading.getTime(), zone))
+}
+
 const dateOf = (reading: number) => Math.floor(reading / DAY) * DAY
 const timeOf = (reading: number) => reading - dateOf(reading)
 const daysInMonth = (year: number, month0: number) => new Date(Date.UTC(year, month0 + 1, 0)).getUTCDate()

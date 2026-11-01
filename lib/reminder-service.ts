@@ -1,6 +1,17 @@
-import { PrismaClient } from '@prisma/client'
+import { Prisma, PrismaClient } from '@prisma/client'
 import type { ReminderSettings, TaskReminderData, DailyDigestData } from '@/types/reminder'
 import { createLogger } from '@/lib/logger'
+import { digestDay, dueBefore, dueBetween, dueOn, nextDigestAt, WEEKLY_DIGEST_WEEKDAY } from '@/lib/digest-schedule'
+
+/** The columns a digest send reads (AWTD-1454): no full User row. */
+interface DigestRow {
+  id: string
+  dailyDigestTime: string
+  dailyDigestTimezone: string
+  nextDailyDigestAt: Date | null
+  nextWeeklyDigestAt: Date | null
+  user: { id: string; email: string; name: string | null }
+}
 
 const log = createLogger('reminder-service')
 
@@ -70,15 +81,10 @@ export class ReminderService {
       include: {
         task: {
           include: {
-            lists: {
-              include: {
-                listMembers: {
-                  include: {
-                    user: true
-                  }
-                }
-              }
-            },
+            // Only what the send reads: the email names the lists and links the first, and
+            // fetches the members itself with a narrow select. This used to load every member's
+            // full User row too, and nothing read it (AWTD-1454).
+            lists: { select: { id: true, name: true } },
           },
         },
         user: { select: { email: true, name: true } },
@@ -438,81 +444,115 @@ export class ReminderService {
     }
   }
 
+  /** Rows each digest pass schedules, and sends, per run (AWTD-1454). */
+  private static readonly DIGEST_BATCH_SIZE = 200
+  /**
+   * A digest slot missed by more than this (the cron was down) is moved on without sending: an
+   * 08:30 digest arriving in the afternoon is noise, and the next one is due tomorrow anyway.
+   */
+  private static readonly DIGEST_LATE_LIMIT_MS = 60 * 60 * 1000
+
+  /**
+   * Daily digests that are due. Runs every minute (the reminders cron) and reads only the rows
+   * whose `nextDailyDigestAt` has come, by index, rather than every user (AWTD-1454); each goes
+   * out at the user's own `dailyDigestTime` (AWTD-1453).
+   */
   async processDailyDigests(): Promise<void> {
-    const users = await this.prisma.user.findMany({
-      include: {
-        reminderSettings: true,
+    await this.processDigests('nextDailyDigestAt', undefined, (row, now) => this.sendDailyDigestForUser(row, now))
+  }
+
+  /** Weekly digests: Mondays on the user's clock, at their digest time. */
+  async processWeeklyDigests(): Promise<void> {
+    await this.processDigests('nextWeeklyDigestAt', WEEKLY_DIGEST_WEEKDAY, (row, now) =>
+      this.sendWeeklyDigestForUser(row, now)
+    )
+  }
+
+  private async processDigests(
+    field: 'nextDailyDigestAt' | 'nextWeeklyDigestAt',
+    weekday: number | undefined,
+    send: (row: DigestRow, now: Date) => Promise<void>
+  ): Promise<void> {
+    const now = new Date()
+    const nextSlot = (row: { dailyDigestTime: string; dailyDigestTimezone: string }) =>
+      nextDigestAt(row.dailyDigestTime, row.dailyDigestTimezone, now, weekday)
+
+    // Schedule the rows that have no slot yet: every row once after the column was added, and any
+    // whose digest settings changed since (digestScheduleReset clears the slot). Conditional on
+    // still being null, so a concurrent run cannot move a slot this one just set.
+    const unscheduled = await this.prisma.reminderSettings.findMany({
+      where: { enableDailyDigest: true, [field]: null } as Prisma.ReminderSettingsWhereInput,
+      select: { id: true, dailyDigestTime: true, dailyDigestTimezone: true },
+      take: ReminderService.DIGEST_BATCH_SIZE,
+    })
+    for (const row of unscheduled) {
+      await this.prisma.reminderSettings.updateMany({
+        where: { id: row.id, [field]: null } as Prisma.ReminderSettingsWhereInput,
+        data: { [field]: nextSlot(row) },
+      })
+    }
+
+    const due = await this.prisma.reminderSettings.findMany({
+      where: { enableDailyDigest: true, [field]: { lte: now } } as Prisma.ReminderSettingsWhereInput,
+      orderBy: { [field]: 'asc' },
+      take: ReminderService.DIGEST_BATCH_SIZE,
+      select: {
+        id: true,
+        dailyDigestTime: true,
+        dailyDigestTimezone: true,
+        nextDailyDigestAt: true,
+        nextWeeklyDigestAt: true,
+        user: { select: { id: true, email: true, name: true } },
       },
     })
 
-    for (const user of users) {
-      if (!user.reminderSettings?.enableDailyDigest) {
-        continue
-      }
+    for (const row of due) {
+      const slot = row[field]
+      if (!slot) continue
+      // Claim FIRST, by moving the slot on, conditionally on it being unchanged: a concurrent or
+      // re-run tick sees a different slot and skips it, so one slot is one send (as
+      // processDueReminders claims before sending, task 134bf288).
+      const claimed = await this.prisma.reminderSettings.updateMany({
+        where: { id: row.id, [field]: slot } as Prisma.ReminderSettingsWhereInput,
+        data: { [field]: nextSlot(row) },
+      })
+      if (claimed.count === 0) continue
+      if (now.getTime() - slot.getTime() > ReminderService.DIGEST_LATE_LIMIT_MS) continue
 
       try {
-        await this.sendDailyDigestForUser(user)
+        await send(row, now)
       } catch (error) {
-        log.error({ err: error }, `Failed to send daily digest for user ${user.id}:`)
+        log.error({ err: error }, `Failed to send ${field === 'nextDailyDigestAt' ? 'daily' : 'weekly'} digest for user ${row.user.id}:`)
       }
     }
   }
 
-  private async sendDailyDigestForUser(user: any): Promise<void> {
-    const settings = user.reminderSettings
-    const now = new Date()
-    
-    // Check if it's the right time for this user's daily digest
-    if (!this.isTimeForDailyDigest(settings, now)) {
-      return
-    }
+  private async sendDailyDigestForUser(row: DigestRow, now: Date): Promise<void> {
+    const { user, dailyDigestTimezone: zone } = row
 
-    // Get tasks for the digest
-    const today = new Date()
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-    const startOfTomorrow = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate())
-    const endOfTomorrow = new Date(startOfTomorrow.getTime() + 24 * 60 * 60 * 1000)
+    // Today and tomorrow are the user's calendar days, not the server's (AWTD-1453).
+    const today = digestDay(now, zone, 0)
+    const tomorrow = digestDay(now, zone, 1)
+    const openTasksFor = { assigneeId: user.id, completed: false }
 
     const [dueTodayTasks, dueTomorrowTasks, overdueTasks] = await Promise.all([
       // Due today
       this.prisma.task.findMany({
-        where: {
-          assigneeId: user.id,
-          completed: false,
-          dueDateTime: {
-            gte: startOfToday,
-            lt: startOfTomorrow,
-          },
-        },
+        where: { ...openTasksFor, ...dueOn(today) },
         include: {
           lists: { select: { name: true } },
         },
       }),
       // Due tomorrow
       this.prisma.task.findMany({
-        where: {
-          assigneeId: user.id,
-          completed: false,
-          dueDateTime: {
-            gte: startOfTomorrow,
-            lt: endOfTomorrow,
-          },
-        },
+        where: { ...openTasksFor, ...dueOn(tomorrow) },
         include: {
           lists: { select: { name: true } },
         },
       }),
       // Overdue
       this.prisma.task.findMany({
-        where: {
-          assigneeId: user.id,
-          completed: false,
-          dueDateTime: {
-            lt: startOfToday,
-          },
-        },
+        where: { ...openTasksFor, ...dueBefore(today) },
         include: {
           lists: { select: { name: true } },
         },
@@ -527,7 +567,7 @@ export class ReminderService {
     const digestData: DailyDigestData = {
       userId: user.id,
       userEmail: user.email,
-      userName: user.name,
+      userName: user.name ?? '',
       dueTodayTasks: dueTodayTasks.map(this.taskToReminderData),
       dueTomorrowTasks: dueTomorrowTasks.map(this.taskToReminderData),
       overdueTasks: overdueTasks.map(this.taskToReminderData),
@@ -537,75 +577,18 @@ export class ReminderService {
     await this.emailService.sendDailyDigest(digestData)
   }
 
-  private isTimeForDailyDigest(settings: ReminderSettings, now: Date): boolean {
-    const [targetHour, targetMinute] = settings.dailyDigestTime.split(':').map(Number)
-    const timezone = settings.dailyDigestTimezone
-    
-    try {
-      // Get current time in user's timezone
-      const userTime = new Date(now.toLocaleString('en-US', { timeZone: timezone }))
-      const currentHour = userTime.getHours()
-      const currentMinute = userTime.getMinutes()
-      
-      // Allow 5-minute window for digest delivery
-      const currentTimeInMinutes = currentHour * 60 + currentMinute
-      const targetTimeInMinutes = targetHour * 60 + targetMinute
-      
-      return Math.abs(currentTimeInMinutes - targetTimeInMinutes) <= 5
-    } catch (error) {
-      log.error({ err: error }, 'Error checking digest time:')
-      return false
-    }
-  }
+  private async sendWeeklyDigestForUser(row: DigestRow, now: Date): Promise<void> {
+    const { user, dailyDigestTimezone: zone } = row
 
-  async processWeeklyDigests(): Promise<void> {
-    const users = await this.prisma.user.findMany({
-      include: {
-        reminderSettings: true,
-      },
-    })
-
-    // Process weekly digests on Mondays
-    const now = new Date()
-    if (now.getDay() !== 1) { // 1 = Monday
-      return
-    }
-
-    for (const user of users) {
-      if (!user.reminderSettings?.enableDailyDigest) {
-        continue // Use same setting for weekly digest
-      }
-
-      try {
-        await this.sendWeeklyDigestForUser(user)
-      } catch (error) {
-        log.error({ err: error }, `Failed to send weekly digest for user ${user.id}:`)
-      }
-    }
-  }
-
-  private async sendWeeklyDigestForUser(user: any): Promise<void> {
-    const settings = user.reminderSettings
-    
-    // Check if it's the right time (same as daily digest time)
-    if (!this.isTimeForDailyDigest(settings, new Date())) {
-      return
-    }
-
-    // Get tasks due this week
-    const now = new Date()
-    const endOfWeek = new Date(now)
-    endOfWeek.setDate(now.getDate() + (7 - now.getDay())) // End of current week (Saturday)
-    endOfWeek.setHours(23, 59, 59, 999)
+    // From now to the end of the user's Sunday (the start of next Monday).
+    const today = digestDay(now, zone, 0)
+    const endOfWeek = digestDay(now, zone, 7)
 
     const upcomingTasks = await this.prisma.task.findMany({
       where: {
         assigneeId: user.id,
         completed: false,
-        dueDateTime: {
-          gte: now,
-          lte: endOfWeek,
-        },
+        ...dueBetween(today, endOfWeek, now),
       },
       include: {
         lists: { select: { name: true } },
@@ -622,7 +605,7 @@ export class ReminderService {
     await this.emailService.sendWeeklyDigest({
       userId: user.id,
       userEmail: user.email,
-      userName: user.name,
+      userName: user.name ?? '',
       upcomingTasks: upcomingTasks.map(this.taskToReminderData),
     })
   }

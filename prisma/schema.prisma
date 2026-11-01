@@ -853,7 +853,14 @@ model ReminderSettings {
   updatedAt            DateTime @updatedAt
   calendarSyncType     String   @default("all")
   enableCalendarSync   Boolean  @default(false)
+  // The next instant each digest is due (AWTD-1454), on the user's clock. Null = not yet
+  // scheduled: the reminders cron computes it, so a settings change resets it to null.
+  nextDailyDigestAt    DateTime?
+  nextWeeklyDigestAt   DateTime?
   user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([nextDailyDigestAt])
+  @@index([nextWeeklyDigestAt])
 }
 
 model UserWebhookConfig {
