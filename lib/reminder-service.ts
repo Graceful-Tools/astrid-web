@@ -283,7 +283,7 @@ export class ReminderService {
       const listMembers = await this.prisma.listMember.findMany({
         where: {
           listId: { in: listIds },
-          userId: { not: user.id } // Exclude the assignee
+          userId: { not: reminder.userId } // Exclude the assignee (the query loads no user.id, AWTD-1475)
         },
         include: {
           user: {
