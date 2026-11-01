@@ -53,6 +53,7 @@ const load = (rel) => import(pathToFileURL(join(webRoot, rel)).href)
 const { shapeV1Task, shapeV1ListPageTask, v1TaskListSelect, v1TaskPageMeta, V1_TASK_READ_INCLUDE } =
   await load('lib/tasks/v1-task-shape.ts')
 const { parseOmittedTaskFields } = await load('lib/tasks/v1-task-omit.ts')
+const { encodeTaskCursor } = await load('lib/tasks/v1-sync-cursor.ts')
 const { shapeV1List, V1_LIST_READ_INCLUDE } = await load('lib/lists/v1-list-shape.ts')
 
 // ── Reading a record the way Prisma does ──────────────────────────────
@@ -385,6 +386,25 @@ function listPage({ omit: omitParam = null, leanListMembers = false, includeFiel
   })
 }
 
+// GET /api/v1/tasks?cursor=&limit=1 — the first page of a keyset walk (AWTD-1470). The walk is
+// ordered by (updatedAt, id); the route reads limit+1 rows and issues nextCursor from the last
+// row it RETURNS. serverTime is the server clock, pinned here so the fixture is reproducible.
+const FIXTURE_SERVER_TIME = '2026-01-01T12:00:00.000Z'
+function cursorPage() {
+  const omit = parseOmittedTaskFields(null)
+  const select = v1TaskListSelect({ omit, leanListMembers: false, includeComments: false, includeFields: false })
+  const rows = read([classicTask, githubTask], { select }).sort(
+    (a, b) => a.updatedAt - b.updatedAt || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+  )
+  const page = rows.slice(0, 1)
+  return wire({
+    tasks: page.map(shapeV1ListPageTask),
+    serverTime: FIXTURE_SERVER_TIME,
+    nextCursor: encodeTaskCursor(page[0]),
+    meta: v1TaskPageMeta({ total: rows.length, limit: 1, offset: 0, authSource: META.authSource, omit }),
+  })
+}
+
 const readTask = (rec) => shapeV1Task(read(rec, { include: V1_TASK_READ_INCLUDE }))
 
 // The route hydrates the viewer's favorite and view preferences onto the row before shaping.
@@ -410,6 +430,13 @@ const surfaces = [
     shaper: 'v1TaskListSelect → shapeV1ListPageTask, v1TaskPageMeta (lib/tasks/v1-task-shape.ts)',
     note: 'description and lists[].listMembers are ABSENT, not null or "": a client must keep what it cached. meta.omitted echoes what was actually dropped; the unknown name is ignored. No include=fields, so no fields key either.',
     body: listPage({ omit: 'description,listMembers,bogus' }),
+  },
+  {
+    name: 'task.listPage.cursor',
+    route: 'GET /api/v1/tasks?cursor=&limit=1',
+    shaper: 'v1TaskListSelect → shapeV1ListPageTask, v1TaskPageMeta (lib/tasks/v1-task-shape.ts); encodeTaskCursor (lib/tasks/v1-sync-cursor.ts)',
+    note: 'A keyset walk page (AWTD-1470): ordered by (updatedAt, id). nextCursor is opaque — send it back as ?cursor= — and is ABSENT on the last page. serverTime (every v1 tasks/lists response) is the server clock read before the query: send it back as the next updatedSince instead of the device clock. An offset page carries serverTime but never nextCursor.',
+    body: cursorPage(),
   },
   {
     name: 'task.read',
