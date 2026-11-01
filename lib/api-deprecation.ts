@@ -31,7 +31,7 @@
  * a Sunset header. Move this date forward only as a deliberate planning
  * decision, in a separate PR.
  *
- * Current target: 2026-11-01.
+ * Current target: 2027-02-01.
  *
  * History:
  * - 2026-08-01 (original): Phase 1 (build v1 parity) ~2 weeks, Phase 2
@@ -39,6 +39,10 @@
  *   weeks → sunset 3 months out from when this landed.
  * - Moved to 2026-11-01 on 2026-08-01, with the plan re-aimed. Same
  *   3-month cadence; different blockers than the original assumed.
+ * - Moved to 2027-02-01 on 2026-11-01, when this tripwire blocked a
+ *   production deploy. The web client still calls legacy routes (a
+ *   `/api/github/repositories/refresh` hit from a browser that day), so
+ *   deleting them was not an option. Same 3-month cadence.
  *
  * What the evidence actually shows (measured 2026-08-01):
  *
@@ -76,7 +80,7 @@
  * weaken the test to make it pass — move the date, or actually delete the
  * legacy routes.
  */
-export const LEGACY_SUNSET_HTTP_DATE = 'Sun, 01 Nov 2026 00:00:00 GMT'
+export const LEGACY_SUNSET_HTTP_DATE = 'Mon, 01 Feb 2027 00:00:00 GMT'
 
 /** Path under which the v1 successor surface lives. */
 const V1_PREFIX = '/api/v1/'
