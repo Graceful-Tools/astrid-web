@@ -21,6 +21,7 @@ self-hosting the product means self-hosting this one image.
 | Database | Neon Postgres | Any PostgreSQL. The compose file runs `postgres:17` |
 | Migrations | Applied by the production deploy | The `migrate` service, before every start of a new version |
 | Scheduled jobs | Vercel Cron, from `vercel.json` | The `cron` service (`scripts/cron-runner.mjs`) reads the same `vercel.json` |
+| Background jobs (Astrid replies, retries) | `after()` and the minute cron drain the `Job` table | The same, plus the `worker` service (`scripts/job-worker.mjs`) draining every 10 s |
 | Uploads | Vercel Blob | `STORAGE_DRIVER=local` (a volume), `s3` (AWS S3, MinIO, R2, Ceph) or `azure-blob` |
 | Outbound email | Resend | `EMAIL_TRANSPORT=smtp`: any SMTP relay (Azure Communication Services, SendGrid, Exchange Online, your own); or Resend |
 | Cache and rate limits | Upstash Redis | `REDIS_URL` (compose runs `redis:7`); optional |
@@ -247,6 +248,8 @@ The image is an ordinary OCI image, and compose is one way to run it.
   - Run the app as a Deployment with a readiness probe on `/api/health`.
   - Run the runner as a one-replica Deployment with `command: node scripts/cron-runner.mjs`,
     or generate CronJobs from `--print-crontab`.
+  - Run the job worker as a Deployment with `command: node scripts/job-worker.mjs`. Any
+    number of replicas is safe (each job is claimed once); one is enough.
 - **More than one app replica** needs three things:
   - `STORAGE_DRIVER=s3`, because a local volume is per pod.
   - Exactly one cron runner.

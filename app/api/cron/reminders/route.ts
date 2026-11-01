@@ -4,6 +4,7 @@ import { EmailReminderService } from '@/lib/email-reminder-service'
 import { PushNotificationService } from '@/lib/push-notification-service'
 import { processAgentTasksDueSoon } from '@/lib/agent-task-scheduler'
 import { promoteDueUnblockedTasks } from '@/services/task-dependency.service'
+import { drainJobs, purgeFinishedJobs } from '@/lib/jobs/queue'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { requireCronSecret } from '@/lib/cron-auth'
@@ -11,6 +12,10 @@ import { runCronJob } from '@/lib/cron-observability'
 import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
 
 const log = createLogger('cron.reminders')
+
+// A drained job can be a model call (AWTD-1460): give the minute tick the same
+// headroom as the GitHub Projects cron rather than the 30s API default.
+export const maxDuration = 60
 
 
 // Initialize services
@@ -33,7 +38,7 @@ export async function GET(request: NextRequest) {
     // allSettled by design: one failing sub-job must not stop the others. But
     // it also swallows the rejection, so the outcomes are counted rather than
     // discarded.
-    const [due, retry, agents, unblocked] = await Promise.allSettled([
+    const [due, retry, agents, unblocked, jobs] = await Promise.allSettled([
       reminderService.processDueReminders(),
       reminderService.retryFailedReminders(),
       processAgentTasksDueSoon(),
@@ -43,6 +48,11 @@ export async function GET(request: NextRequest) {
       // come, so a second cron for one query would be a second schedule to keep
       // in step with this one.
       promoteDueUnblockedTasks(),
+      // The durable job queue (AWTD-1460). after() drains each job as it is
+      // enqueued; this is the backstop for a job whose function was frozen
+      // first, or whose retry has come due. Same cron, for the same reason
+      // as the line above.
+      drainJobs({ limit: 5 }),
     ])
 
     // Digests run every minute: each user's digest goes out in the minute their own clock shows
@@ -52,6 +62,11 @@ export async function GET(request: NextRequest) {
       reminderService.processWeeklyDigests(),
     ])
 
+    // Finished jobs are purged once an hour (AWTD-1460).
+    if (new Date().getMinutes() === 0) {
+      await purgeFinishedJobs(new Date()).catch(() => undefined)
+    }
+
     return {
       remindersDue: due.status === 'fulfilled' ? due.value.due : -1,
       remindersSent: due.status === 'fulfilled' ? due.value.sent : -1,
@@ -60,9 +75,11 @@ export async function GET(request: NextRequest) {
       retriesRescheduled: retry.status === 'fulfilled' ? retry.value.rescheduled : -1,
       agentTasksDispatched: agents.status === 'fulfilled' ? agents.value : -1,
       tasksUnblocked: unblocked.status === 'fulfilled' ? unblocked.value.length : -1,
+      jobsSucceeded: jobs.status === 'fulfilled' ? jobs.value.succeeded : -1,
+      jobsFailed: jobs.status === 'fulfilled' ? jobs.value.failed : -1,
       // -1 means the sub-job threw. A count of 0 and "we never found out" are
       // different answers and the summary has to be able to tell them apart.
-      subJobsFailed: [due, retry, agents, unblocked].filter((r) => r.status === 'rejected')
+      subJobsFailed: [due, retry, agents, unblocked, jobs].filter((r) => r.status === 'rejected')
         .length,
       digestsFailed: digests.filter((r) => r.status === 'rejected').length,
     }

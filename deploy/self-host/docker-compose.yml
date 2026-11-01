@@ -8,6 +8,7 @@
 #   docker compose -f deploy/self-host/docker-compose.yml --profile azure up -d # with Azurite, for STORAGE_DRIVER=azure-blob
 #
 # Services: postgres, redis, migrate (one-shot, runs before app), app, cron,
+# worker (drains the durable job queue),
 # caddy (TLS, only with --profile tls), mailpit (an SMTP sink that keeps
 # everything it is sent, only with --profile mail — for trying
 # EMAIL_TRANSPORT=smtp with SMTP_URL=smtp://mailpit:1025, never for real mail)
@@ -91,6 +92,27 @@ services:
     # own heartbeat, stale after three missed ticks.
     healthcheck:
       test: ["CMD", "node", "scripts/cron-runner.mjs", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 2
+    environment:
+      CRON_SECRET: ${CRON_SECRET:?set CRON_SECRET in .env}
+      CRON_BASE_URL: http://app:3000
+    depends_on:
+      app:
+        condition: service_healthy
+
+  worker:
+    # The same image again, draining the durable job queue (AWTD-1460):
+    # Astrid's chat and comment replies, and their retries. Safe to scale —
+    # each job is claimed once — but one is enough.
+    image: ${IMAGE:-tasks-selfhost}:${IMAGE_TAG:-latest}
+    pull_policy: never
+    restart: unless-stopped
+    command: ["node", "scripts/job-worker.mjs"]
+    healthcheck:
+      test: ["CMD", "node", "scripts/job-worker.mjs", "--healthcheck"]
       interval: 30s
       timeout: 5s
       start_period: 10s
