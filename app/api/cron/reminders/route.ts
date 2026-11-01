@@ -59,6 +59,9 @@ export async function GET(request: NextRequest) {
     return {
       remindersDue: due.status === 'fulfilled' ? due.value.due : -1,
       remindersSent: due.status === 'fulfilled' ? due.value.sent : -1,
+      // Released or rescheduled (quiet hours, too far ahead): not delivered, not failed.
+      remindersDeferred: due.status === 'fulfilled' ? due.value.deferred : -1,
+      remindersExpired: due.status === 'fulfilled' ? due.value.expired : -1,
       remindersFailed: due.status === 'fulfilled' ? due.value.failed : -1,
       staleClaimsReleased: due.status === 'fulfilled' ? due.value.staleReleased : -1,
       retriesRescheduled: retry.status === 'fulfilled' ? retry.value.rescheduled : -1,
