@@ -188,3 +188,16 @@ export async function reencrypt(
     await walkMcpSettings(prisma, options, reporter),
   )
 }
+
+/**
+ * The pass against the app's own database, for /api/admin/encryption-rotation.
+ * The client is imported lazily so the script, which builds its own client
+ * after loading its env, never opens this one.
+ */
+export async function reencryptAppDatabase(
+  options: ReencryptOptions,
+  reporter: ReencryptReporter = silent,
+): Promise<RowOutcome> {
+  const { prisma } = await import('@/lib/prisma')
+  return reencrypt(prisma, options, reporter)
+}

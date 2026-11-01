@@ -12,7 +12,7 @@ import { NextRequest } from 'next/server'
 
 const authenticateAPI = vi.hoisted(() => vi.fn())
 const adminFindUnique = vi.hoisted(() => vi.fn())
-const reencrypt = vi.hoisted(() => vi.fn())
+const reencryptAppDatabase = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/api-auth-middleware', async () => {
   const { UnauthorizedError } = await vi.importActual<typeof import('@/lib/api-auth-middleware')>(
@@ -21,7 +21,7 @@ vi.mock('@/lib/api-auth-middleware', async () => {
   return { authenticateAPI, UnauthorizedError }
 })
 vi.mock('@/lib/prisma', () => ({ prisma: { adminUser: { findUnique: adminFindUnique } } }))
-vi.mock('@/lib/reencrypt-runner', () => ({ reencrypt }))
+vi.mock('@/lib/reencrypt-runner', () => ({ reencryptAppDatabase }))
 
 import { GET, POST } from '@/app/api/admin/encryption-rotation/route'
 import { UnauthorizedError } from '@/lib/api-auth-middleware'
@@ -41,7 +41,7 @@ beforeEach(() => {
   adminFindUnique.mockImplementation(async ({ where }) =>
     where.userId === 'admin-1' ? { id: 'row', userId: 'admin-1' } : null,
   )
-  reencrypt.mockImplementation(async (_db, _options, reporter) => {
+  reencryptAppDatabase.mockImplementation(async (_options, reporter) => {
     reporter.table('AddressBookContact', { rewritten: 2, skipped: 0, failed: 1, conflicts: 0 })
     reporter.problem('AddressBookContact.name id=c1 no key decrypts it')
     return { rewritten: 2, skipped: 0, failed: 1, conflicts: 0 }
@@ -59,14 +59,14 @@ describe('/api/admin/encryption-rotation (AWTD-1369)', () => {
     authenticateAPI.mockRejectedValue(new UnauthorizedError('No valid authentication found'))
     expect((await get()).status).toBe(401)
     expect((await post()).status).toBe(401)
-    expect(reencrypt).not.toHaveBeenCalled()
+    expect(reencryptAppDatabase).not.toHaveBeenCalled()
   })
 
   it('AWTD-1369: refuses a non-admin with 403 on GET and POST, touching nothing', async () => {
     authenticateAPI.mockResolvedValue({ userId: 'user-1' })
     expect((await get()).status).toBe(403)
     expect((await post()).status).toBe(403)
-    expect(reencrypt).not.toHaveBeenCalled()
+    expect(reencryptAppDatabase).not.toHaveBeenCalled()
   })
 
   it('AWTD-1369: GET is a dry run — counts, problems by location, uncached', async () => {
@@ -74,8 +74,8 @@ describe('/api/admin/encryption-rotation (AWTD-1369)', () => {
     const res = await get()
     expect(res.status).toBe(200)
     expect(res.headers.get('cache-control')).toBe('no-store')
-    expect(reencrypt).toHaveBeenCalledTimes(1)
-    expect(reencrypt.mock.calls[0][1]).toMatchObject({ dryRun: true, verify: false })
+    expect(reencryptAppDatabase).toHaveBeenCalledTimes(1)
+    expect(reencryptAppDatabase.mock.calls[0][0]).toMatchObject({ dryRun: true, verify: false })
     const body = await res.json()
     expect(body.mode).toBe('dry-run')
     expect(body.ring).toEqual({ keys: 2, rotationInProgress: true })
@@ -90,7 +90,7 @@ describe('/api/admin/encryption-rotation (AWTD-1369)', () => {
     authenticateAPI.mockResolvedValue({ userId: 'admin-1' })
     const res = await post()
     expect(res.status).toBe(200)
-    expect(reencrypt.mock.calls[0][1]).toMatchObject({ dryRun: false, verify: false })
+    expect(reencryptAppDatabase.mock.calls[0][0]).toMatchObject({ dryRun: false, verify: false })
     expect((await res.json()).mode).toBe('rewrite')
   })
 
@@ -99,7 +99,7 @@ describe('/api/admin/encryption-rotation (AWTD-1369)', () => {
     delete process.env.ENCRYPTION_KEY_NEXT
     const res = await post()
     expect(res.status).toBe(409)
-    expect(reencrypt).not.toHaveBeenCalled()
+    expect(reencryptAppDatabase).not.toHaveBeenCalled()
   })
 
   it('AWTD-1369: refuses with 409 when NEXT equals the current key, without echoing either', async () => {
@@ -109,12 +109,12 @@ describe('/api/admin/encryption-rotation (AWTD-1369)', () => {
       expect(res.status).toBe(409)
       expect(await res.text()).not.toContain(OLD)
     }
-    expect(reencrypt).not.toHaveBeenCalled()
+    expect(reencryptAppDatabase).not.toHaveBeenCalled()
   })
 
   it('AWTD-1369: caps the problem list so a wholly unreadable table cannot flood the response', async () => {
     authenticateAPI.mockResolvedValue({ userId: 'admin-1' })
-    reencrypt.mockImplementation(async (_db, _options, reporter) => {
+    reencryptAppDatabase.mockImplementation(async (_options, reporter) => {
       for (let i = 0; i < 500; i++) reporter.problem(`AddressBookContact.name id=c${i} no key decrypts it`)
       return { rewritten: 0, skipped: 0, failed: 500, conflicts: 0 }
     })
