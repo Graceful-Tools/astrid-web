@@ -7,7 +7,7 @@
  * These pin the host-routing helper that bounces preview sign-in to the
  * canonical host and lets a signed-in user return to the preview.
  */
-import { describe, it, expect } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 import {
   isCanonicalAuthHost,
   planGoogleSignIn,
@@ -92,5 +92,49 @@ describe('isAstridSubdomainUrl', () => {
   it('rejects garbage input', () => {
     expect(isAstridSubdomainUrl('')).toBe(false)
     expect(isAstridSubdomainUrl('/relative/path')).toBe(false)
+  })
+})
+
+/**
+ * AWTD-1469 — the astrid.cc bounce is for PREVIEWS only.
+ *
+ * It exists because Google's redirect URIs are fixed to the brand domain, and it
+ * only works because the session cookie is `.${BRAND.domain}`-scoped, so the user
+ * is signed in when they come back. A partner on their own domain (their own Vercel,
+ * Azure, anywhere) shares neither: bouncing sends their users to someone else's
+ * sign-in page and they never come back signed in. A partner's host signs in on
+ * itself, whatever the brand domain is left at, and whatever the environment says.
+ */
+describe('AWTD-1469: a partner domain never bounces', () => {
+  const PARTNER = 'https://tasks.partner.example'
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.resetModules()
+  })
+
+  function productionPartnerEnv() {
+    vi.stubEnv('VERCEL_ENV', '')
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('NEXTAUTH_URL', PARTNER)
+  }
+
+  it('signs in on the partner host when the brand domain is left at the default', () => {
+    productionPartnerEnv()
+    expect(planGoogleSignIn(`${PARTNER}/auth/signin`)).toEqual({ mode: 'direct' })
+    expect(planGoogleSignIn(`${PARTNER}/lists/abc?task=1`)).toEqual({ mode: 'direct' })
+  })
+
+  it('signs in on the partner host when the brand domain is the partner host', async () => {
+    productionPartnerEnv()
+    vi.stubEnv('NEXT_PUBLIC_BRAND_DOMAIN', 'tasks.partner.example')
+    vi.resetModules()
+    const fresh = await import('@/lib/auth-host')
+    expect(fresh.planGoogleSignIn(`${PARTNER}/auth/signin`)).toEqual({ mode: 'direct' })
+  })
+
+  it('still bounces a preview of the brand domain and a raw Vercel deployment', () => {
+    expect(planGoogleSignIn(`https://whitelabel.${BRAND.domain}/auth/signin`).mode).toBe('redirect')
+    expect(planGoogleSignIn('https://astrid-abc123-gracefultools.vercel.app/').mode).toBe('redirect')
   })
 })
