@@ -195,7 +195,7 @@ W3 One GitHub connection    (§7) ──┴──▶ W4 GitHub Projects backend 
 
 Enforced by a ratchet rule test,
 `tests/rules/entity-writes-go-through-services.test.ts`, built from:
-- **The tree walk and failure message** of `blob-storage-goes-through-secure-storage.test.ts`.
+- **The tree walk and failure message** of `blob-storage-goes-through-secure-storage.test.ts` (since widened into `vendor-sdks-stay-in-their-drivers.test.ts`, AWTD-1463).
 - **An `ALLOWED: Record<file, reason>` map.** It starts with the reminder files and the
   service-internal helpers.
 - **The slack check** of `prisma-in-routes-ratchet.test.ts`, so allow-list entries must

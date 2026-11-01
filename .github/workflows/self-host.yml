@@ -12,12 +12,19 @@ on:
     paths:
       - 'Dockerfile'
       - '.dockerignore'
-      - 'deploy/self-host/**'
+      - 'deploy/**'
+      # The seams (AWTD-1463): one code path, backend chosen by env, so a
+      # change to any of them is smoked here — lib/realtime/ and lib/jobs/
+      # from their first PR. tests/rules/self-host-smoke-runs-on-seam-paths.test.ts.
       - 'lib/storage/**'
       - 'lib/secure-storage.ts'
       - 'lib/email-transport.ts'
+      - 'lib/realtime/**'
+      - 'lib/jobs/**'
+      - 'lib/redis.ts'
       - 'app/**/storage/**'
       - 'scripts/cron-runner.mjs'
+      - 'scripts/job-worker.mjs'
       - 'scripts/lib/cron-schedule.mjs'
       - 'scripts/brand-env-file.ts'
       - 'scripts/self-host-smoke.ts'

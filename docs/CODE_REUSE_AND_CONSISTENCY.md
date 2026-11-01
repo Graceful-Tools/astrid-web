@@ -34,6 +34,12 @@ the hand-rolled-visibility rule.
   hardcoded add-task copy, and brand literals outside their canonical homes.
 - ESLint's `no-restricted-syntax` rules are the machine-enforced source; the
   script is the human-readable rollup.
+- ESLint's `no-restricted-imports` keeps each vendor SDK (Upstash, Vercel Blob,
+  Azure, aws4fetch, Resend, nodemailer) in its driver files, so every deployment
+  runs one code path with the backend chosen by env. The list is
+  `scripts/lib/vendor-sdk-boundaries.mjs`, and
+  `tests/rules/vendor-sdks-stay-in-their-drivers.test.ts` also catches dynamic
+  `import()` and `require()` (AWTD-1463).
 - `ASTRID.md` requires a reuse search before new helpers, keys, or components are
   introduced.
 - `npm run check:docs` prevents competing canonical documentation headings and

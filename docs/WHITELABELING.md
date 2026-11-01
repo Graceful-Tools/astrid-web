@@ -536,12 +536,14 @@ This section used to be silent about the vendors the product runs on, so they
 read as oversights. Some were. Here is where each one actually stands.
 
 **Object storage — swappable.** Every read and write goes through
-`lib/secure-storage.ts`, which is the only module allowed to name the vendor
-(`putObject`, `deleteObject`, `issuePresignedUpload`). Eight other files used
-to import `@vercel/blob` directly; `tests/rules/blob-storage-goes-through-secure-storage.test.ts`
-now fails if a ninth appears, subpath imports included.
-`STORAGE_DRIVER=s3|local` points that seam at any S3-compatible bucket or a mounted
-directory, served by the app itself (AWTD-1286, [deployment/SELF_HOSTING.md](./deployment/SELF_HOSTING.md)).
+`lib/secure-storage.ts` and the drivers under `lib/storage/`, the only modules allowed to
+name a storage vendor (`putObject`, `deleteObject`, `issuePresignedUpload`). Eight other
+files used to import `@vercel/blob` directly; `npm run lint` and
+`tests/rules/vendor-sdks-stay-in-their-drivers.test.ts` now fail if a ninth appears,
+subpath imports included. The same rule confines every vendor SDK (Upstash, Azure,
+aws4fetch, Resend, nodemailer) to its driver files (scripts/lib/vendor-sdk-boundaries.mjs, AWTD-1463).
+`STORAGE_DRIVER=s3|local|azure-blob` points that seam at any S3-compatible bucket, a mounted
+directory or an Azure Blob container, served by the app itself (AWTD-1286, [deployment/SELF_HOSTING.md](./deployment/SELF_HOSTING.md)).
 On Vercel Blob, direct uploads need the store's **OIDC upgrade**, which provisions
 `BLOB_WEBHOOK_PUBLIC_KEY` and `BLOB_STORE_ID`. A store still on a static
 `BLOB_READ_WRITE_TOKEN` refuses direct uploads: the client-token fallback was removed in

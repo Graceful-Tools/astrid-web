@@ -51,7 +51,7 @@ const log = createLogger('secure-storage')
 // helper would have relocated every future upload and changed which files are
 // accepted, so the seam is deliberately lower than that.
 //
-// `tests/rules/blob-storage-goes-through-secure-storage.test.ts` keeps it that
+// `tests/rules/vendor-sdks-stay-in-their-drivers.test.ts` (and `npm run lint`) keeps it that
 // way, subpath imports included.
 //
 // Off Vercel, `STORAGE_DRIVER=s3|local|azure-blob` sends each primitive to a self-hosted
