@@ -9,6 +9,7 @@ import {
   validateMCPAuthContext,
 } from "../../../lib/server/mcp-http-utils"
 import { getSession } from "../../../lib/server/mcp-session-store"
+import { recordMcpLegacySseUsage, SESSION_NOT_FOUND_ERROR } from "../../../lib/server/mcp-legacy-sse-usage"
 import { UnauthorizedError } from "@/lib/api-auth-middleware"
 import { OutboundUrlError } from "@/lib/security/outbound-url"
 
@@ -47,7 +48,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const session = getSession(sessionId)
   if (!session) {
-    res.status(404).json({ error: "Session not found" })
+    // AWTD-1461: sessions live in a per-instance Map, so this is what a POST
+    // landing on a different instance than its stream looks like.
+    recordMcpLegacySseUsage(req, "session-miss")
+    res.status(404).json({ error: SESSION_NOT_FOUND_ERROR })
     return
   }
 
@@ -79,6 +83,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
+    recordMcpLegacySseUsage(req, "message")
     await session.transport.handlePostMessage(req as any, res as any, parsedBody)
   } catch (error) {
     if (error instanceof UnauthorizedError && !res.headersSent) {
