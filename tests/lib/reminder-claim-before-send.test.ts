@@ -21,6 +21,7 @@ const prisma = {
   reminderQueue: { findMany, updateMany, update },
   reminderSettings: { findUnique: settingsFindUnique },
   task: { update: vi.fn() },
+  shortcode: { findFirst: vi.fn().mockResolvedValue(null) },
 } as never
 
 const emailService = { sendTaskReminder: vi.fn() } as never
@@ -95,5 +96,59 @@ describe('processDueReminders', () => {
     )
     expect(release).toBeDefined()
     expect((release![0] as { data: unknown }).data).toEqual({ status: 'pending' })
+  })
+})
+
+/**
+ * RED for AWTD-1448. A user with no ReminderSettings row (69 of 133 in prod)
+ * had every due reminder released back to pending, and the caller still
+ * counted it as sent — the cron logged remindersSent:4 every minute for a year.
+ */
+describe('AWTD-1448: users without a ReminderSettings row', () => {
+  function claimSucceeds() {
+    updateMany.mockImplementation(async (args: never) => {
+      const a = args as unknown as { where: { status?: string } }
+      return { count: a.where.status === 'pending' ? 1 : 0 }
+    })
+  }
+
+  it('delivers using the schema defaults instead of skipping, and counts it sent', async () => {
+    findMany.mockResolvedValue([reminder('r1')])
+    claimSucceeds()
+    const email = { sendTaskReminder: vi.fn().mockResolvedValue(undefined) }
+    const push = { sendNotification: vi.fn().mockResolvedValue(undefined) }
+    const service = new ReminderService(prisma, email as never, push as never)
+
+    const result = await service.processDueReminders()
+
+    expect(email.sendTaskReminder).toHaveBeenCalled()
+    expect(push.sendNotification).toHaveBeenCalled()
+    expect(result.sent).toBe(1)
+    expect(result.deferred).toBe(0)
+  })
+
+  it('does not count a released (rescheduled) reminder as sent', async () => {
+    const r = reminder('r1')
+    ;(r.task as { dueDateTime: Date | null }).dueDateTime = new Date(Date.now() + 30 * 24 * 3600 * 1000)
+    findMany.mockResolvedValue([r])
+    claimSucceeds()
+    const service = new ReminderService(prisma, emailService, pushService)
+
+    const result = await service.processDueReminders()
+
+    expect(result.sent).toBe(0)
+    expect(result.deferred).toBe(1)
+  })
+
+  it('expires reminders overdue by more than a week instead of delivering them late', async () => {
+    const service = new ReminderService(prisma, emailService, pushService)
+
+    await service.processDueReminders()
+
+    const expire = updateMany.mock.calls.find(
+      c => (c[0] as { data?: { status?: string } }).data?.status === 'expired',
+    )
+    expect(expire).toBeDefined()
+    expect((expire![0] as { where: { status: string } }).where.status).toBe('pending')
   })
 })

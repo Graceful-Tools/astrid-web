@@ -49,11 +49,13 @@ export class ReminderService {
    * perfect log line could only say "done" — never whether it processed 500
    * reminders or zero (task f74c9370).
    */
-  async processDueReminders(): Promise<{ due: number; sent: number; failed: number; staleReleased: number }> {
+  async processDueReminders(): Promise<{ due: number; sent: number; deferred: number; failed: number; staleReleased: number; expired: number }> {
     const now = new Date()
 
     const staleReleased = await this.releaseStaleClaims(now)
+    const expired = await this.expireAbandonedReminders(now)
     let sent = 0
+    let deferred = 0
     let failed = 0
 
     // Get pending reminders that are due, bounded and oldest-first.
@@ -99,8 +101,9 @@ export class ReminderService {
       if (claimed.count === 0) continue
 
       try {
-        await this.processSingleReminder(reminder)
-        sent++
+        const outcome = await this.processSingleReminder(reminder)
+        if (outcome === 'sent') sent++
+        else deferred++
       } catch (error) {
         failed++
         log.error({ err: error }, `Failed to process reminder ${reminder.id}:`)
@@ -108,7 +111,7 @@ export class ReminderService {
       }
     }
 
-    return { due: dueReminders.length, sent, failed, staleReleased }
+    return { due: dueReminders.length, sent, deferred, failed, staleReleased, expired }
   }
 
   /**
@@ -135,24 +138,41 @@ export class ReminderService {
     return released.count
   }
 
-  private async processSingleReminder(reminder: any): Promise<void> {
-    const userSettings = await this.getUserReminderSettings(reminder.userId)
+  /**
+   * A reminder due this long ago is dropped rather than delivered. Rows that sat
+   * undeliverable for a year (AWTD-1448) must not all fire the moment the cause
+   * is fixed.
+   */
+  private static readonly EXPIRE_AFTER_MS = 7 * 24 * 60 * 60 * 1000
 
-    if (!userSettings) {
-      // Nothing to send and nothing to wait for. Releasing the claim rather
-      // than returning silently keeps this out of the stale-claim sweep every
-      // ten minutes forever (task 134bf288).
-      await this.prisma.reminderQueue.update({
-        where: { id: reminder.id },
-        data: { status: 'pending' },
-      })
-      return
+  /** @returns how many reminders were too stale to deliver and were expired. */
+  private async expireAbandonedReminders(now: Date): Promise<number> {
+    const cutoff = new Date(now.getTime() - ReminderService.EXPIRE_AFTER_MS)
+    const result = await this.prisma.reminderQueue.updateMany({
+      where: { status: 'pending', type: 'due_reminder', scheduledFor: { lt: cutoff } },
+      data: { status: 'expired' },
+    })
+    if (result.count > 0) {
+      log.warn(`Expired ${result.count} reminder(s) overdue by more than 7 days`)
     }
+    return result.count
+  }
+
+  /**
+   * 'sent' means notifications went out. 'deferred' means the claim was
+   * released or rescheduled (quiet hours, too far ahead) and nothing was
+   * delivered, so the cron stats must not count it as sent.
+   */
+  private async processSingleReminder(reminder: any): Promise<'sent' | 'deferred'> {
+    // No row means the schema defaults (AWTD-1448): push and email on, no quiet
+    // hours, UTC. Skipping them left 69 of 133 users with no reminders at all.
+    const userSettings =
+      (await this.getUserReminderSettings(reminder.userId)) ?? this.defaultReminderSettings(reminder.userId)
 
     // Check quiet hours
     if (this.isInQuietHours(userSettings)) {
       await this.rescheduleForEndOfQuietHours(reminder, userSettings)
-      return
+      return 'deferred'
     }
 
     // Validate reminder timing (don't send reminders too far in advance)
@@ -170,7 +190,7 @@ export class ReminderService {
           // Postponed, not delivered — release the claim (task 134bf288).
           data: { scheduledFor: newScheduledFor, status: 'pending' }
         })
-        return
+        return 'deferred'
       }
     }
 
@@ -202,6 +222,7 @@ export class ReminderService {
       where: { id: reminder.taskId },
       data: { reminderSent: true },
     })
+    return 'sent'
   }
 
   private async sendPushReminder(reminder: any, userSettings: ReminderSettings): Promise<void> {
@@ -745,6 +766,27 @@ export class ReminderService {
         },
       },
     })
+  }
+
+  /** Mirrors the `ReminderSettings` column defaults in schema.prisma. */
+  private defaultReminderSettings(userId: string): ReminderSettings {
+    const now = new Date()
+    return {
+      id: `default-${userId}`,
+      userId,
+      enablePushReminders: true,
+      enableEmailReminders: true,
+      defaultReminderTime: 60,
+      enableDailyDigest: true,
+      dailyDigestTime: '09:00',
+      dailyDigestTimezone: 'UTC',
+      quietHoursStart: null,
+      quietHoursEnd: null,
+      createdAt: now,
+      updatedAt: now,
+      calendarSyncType: 'all',
+      enableCalendarSync: false,
+    }
   }
 
   private async getUserReminderSettings(userId: string): Promise<ReminderSettings | null> {
