@@ -5,7 +5,7 @@
  * Extracted from ai-orchestrator.ts for maintainability.
  */
 
-import type { workflowQueue as WorkflowQueueType } from '../../workflow-queue'
+import { recordTokens, tokensUsedInWindow } from '@/lib/ai/token-window'
 import { fetchWithTimeout, AI_REQUEST_TIMEOUT_MS } from './fetch-with-timeout'
 import { anthropicMessagesUrl } from '@/lib/ai/config/provider-endpoints'
 import { createLogger } from '@/lib/logger'
@@ -93,7 +93,7 @@ function buildDefaultSystemBlocks(jsonOnly: boolean): ClaudeSystemBlock[] {
  *
  * Features:
  * - Tool use loop (up to 12 iterations for exploration, 1 for JSON-only)
- * - Rate limiting via WorkflowQueue integration
+ * - Rate limiting via the per-key token window (lib/ai/token-window.ts)
  * - Context pruning to stay within token limits
  * - Prompt caching support
  */
@@ -110,9 +110,6 @@ export async function callClaude(options: ClaudeClientOptions): Promise<ClaudeRe
     logger = defaultLogger,
     model = 'claude-sonnet-4-6'
   } = options
-
-  // Import WorkflowQueue for global token tracking
-  const { workflowQueue } = await import('../../workflow-queue')
 
   // Use provided system blocks or fall back to defaults
   const systemBlocks = systemBlocksOverride || buildDefaultSystemBlocks(jsonOnly)
@@ -135,7 +132,7 @@ export async function callClaude(options: ClaudeClientOptions): Promise<ClaudeRe
     iteration++
 
     // Rate limit protection with global rolling window
-    await handleRateLimiting(workflowQueue, userId, tokenBudget, iteration, logger)
+    await handleRateLimiting(userId, tokenBudget, iteration, logger)
 
     // Prune context if too large (keep tool_use/tool_result pairs together)
     messages = pruneContextIfNeeded(messages, logger)
@@ -198,9 +195,9 @@ export async function callClaude(options: ClaudeClientOptions): Promise<ClaudeRe
     const usage = data.usage
     if (usage) {
       const totalInput = usage.input_tokens + (usage.cache_creation_input_tokens || 0)
-      workflowQueue.recordTokens(userId, totalInput)
+      recordTokens(userId, totalInput)
 
-      const tokensInGlobalWindow = workflowQueue.getTokensUsedInWindow(userId)
+      const tokensInGlobalWindow = tokensUsedInWindow(userId)
 
       logger('info', 'Token usage recorded (global)', {
         iteration,
@@ -291,13 +288,12 @@ export async function callClaude(options: ClaudeClientOptions): Promise<ClaudeRe
  * Handle rate limiting by checking global token window and waiting if needed
  */
 async function handleRateLimiting(
-  workflowQueue: typeof WorkflowQueueType,
   userId: string,
   tokenBudget: number,
   iteration: number,
   logger: (level: 'info' | 'warn' | 'error', message: string, meta?: any) => void
 ): Promise<void> {
-  const tokensInWindow = workflowQueue.getTokensUsedInWindow(userId)
+  const tokensInWindow = tokensUsedInWindow(userId)
 
   // If approaching limit (25k threshold with 5k buffer), wait for window to clear
   if (tokensInWindow > 25000) {
@@ -316,7 +312,7 @@ async function handleRateLimiting(
 
     logger('info', 'Rate limit window cleared (global)', {
       previousTokens: tokensInWindow,
-      currentTokens: workflowQueue.getTokensUsedInWindow(userId)
+      currentTokens: tokensUsedInWindow(userId)
     })
   }
 }

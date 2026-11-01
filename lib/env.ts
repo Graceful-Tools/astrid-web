@@ -316,6 +316,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'SMOKE_SMTP_URL', scope: 'tooling', description: 'scripts/self-host-smoke.ts: the compose mail sink as this machine reaches it (smtp://localhost:1025). With SMOKE_MAILPIT_URL, one email is sent through the SMTP transport and read back (AWTD-1466).' },
   { name: 'SMOKE_MAILPIT_URL', scope: 'tooling', description: 'scripts/self-host-smoke.ts: the mail sink\'s HTTP API (http://localhost:8025), where the smoke email is read back.' },
   { name: 'CRON_BASE_URL', scope: 'tooling', description: 'Self-hosted cron runner (scripts/cron-runner.mjs): the origin it calls the cron routes on. Defaults to NEXTAUTH_URL.' },
+  { name: 'JOB_WORKER_INTERVAL_MS', scope: 'tooling', description: 'Self-hosted job worker (scripts/job-worker.mjs): how long it waits between drains of the job queue when idle. Default 10000.' },
   { name: 'NEXT_DEV_PORT', scope: 'tooling', description: 'Preferred port for the dev server.' },
   { name: 'CHECK_REUSE_STRICT', scope: 'tooling', description: 'Forces check:reuse into strict mode.' },
   { name: 'API_BOUNDARY_BASE', scope: 'tooling', description: 'Git ref the API-boundary guard diffs against.' },
