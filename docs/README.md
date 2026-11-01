@@ -11,6 +11,7 @@ instead of restating values, commands, or policy.
 | Domain | Authoritative owner | Scope |
 |---|---|---|
 | Architecture | [Architecture](./ARCHITECTURE.md) | Current system boundaries and runtime design |
+| Platform assessment (2026-11) | [PLATFORM_ASSESSMENT_2026-11](./architecture/PLATFORM_ASSESSMENT_2026-11.md) | Performance, maintainability and scale findings for web and astrid-core; what a partner needs to self-host on Azure |
 | Local operations | [CLI operations](./CLI_OPERATIONS.md) | Deploy, quality-gate, OAuth, and task-management commands |
 | API contracts | [API contract](./API_CONTRACT.md) | Stable external and mobile wire contract |
 | Testing | [Testing strategy](./context/testing.md) | Test policy, locations, and selection |
@@ -25,6 +26,7 @@ and stack versions with `npm run check:docs`.
 
 ### 🏗️ Core Architecture
 - **[Architecture Overview](./ARCHITECTURE.md)** - System architecture and design patterns
+- **[Platform Assessment, November 2026](./architecture/PLATFORM_ASSESSMENT_2026-11.md)** - Scale blockers, core hot spots, and the Azure white-label gap list, with the tasks filed from it
 - **[Authentication System](./AUTHENTICATION.md)** - Authentication implementation and security
 - **[Offline Mode](./OFFLINE_MODE.md)** - Offline-first architecture with IndexedDB and background sync
 - **[Agent Architecture Simplification](./AGENT_ARCHITECTURE_SIMPLIFICATION.md)** - Simplified AI agent system (tools-based, multi-provider)

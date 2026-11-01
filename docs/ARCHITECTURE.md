@@ -195,7 +195,7 @@ tests/                # Vitest suites, mirroring the source tree
 ### Authentication Flow
 1. **Login** → NextAuth.js providers (Google OAuth, WebAuthn passkeys, or — on iOS — Apple Sign-In via `/api/auth/apple`)
 2. **Session** → JWT stored in secure cookies
-3. **API Protection** → Middleware validates sessions
+3. **API Protection** → each API route validates the session itself via `lib/api-auth-middleware.ts` (OAuth bearer, NextAuth session, or mobile cookie); `middleware.ts` does CORS, CSP, redirects and i18n, not authentication
 4. **User Context** → Available throughout application
 
 ## Testing Strategy
@@ -230,7 +230,7 @@ tests/
    - Cache-first strategy for static resources (CSS, JS, images)
    - Network-first with cache fallback for API requests
    - Progressive Web App (PWA) support with offline capability
-   - Cache versioning: `astrid-static-v1.0.8`, `astrid-dynamic-v1.0.8` (the version lives at the top of `public/sw.js`)
+   - Cache versioning: `astrid-static-v<version>`, `astrid-dynamic-v<version>` (the version lives at the top of `public/sw.js`; do not copy it here)
 
 2. **API Key Cache** ([lib/api-key-cache.ts](../lib/api-key-cache.ts))
    - In-memory cache for decrypted AI service API keys (Claude, OpenAI, Gemini, GitHub Copilot)
@@ -319,7 +319,7 @@ Astrid implements a comprehensive offline-first strategy for seamless operation 
 
 #### **SSE Server** ([app/api/sse/route.ts](../app/api/sse/route.ts))
 - Per-user event streams
-- Redis-backed pub/sub for multi-instance support
+- Multi-instance delivery is **not pub/sub**: `broadcastToUsers()` appends each event to a per-user Redis sorted set (`sse:events:<userId>`, 15-minute TTL) and every open connection polls that set on its 15 s heartbeat (`checkAndDeliverNewEvents`). Events from another instance therefore arrive up to 15 s late. See `docs/architecture/PLATFORM_ASSESSMENT_2026-11.md` (W2) for the planned `RealtimeBus` replacement
 - Event types: `task_updated`, `task_created`, `task_deleted`, `list_updated`, etc.
 - Heartbeat every 15 seconds to keep connection alive
 - Automatic cleanup on client disconnect
@@ -419,11 +419,12 @@ Astrid implements a comprehensive offline-first strategy for seamless operation 
 
 ### **Vercel Cron Configuration** ([vercel.json](../vercel.json))
 
-Five crons handle scheduled tasks across the platform:
+Six crons handle scheduled tasks across the platform:
 
 ```json
 "crons": [
   { "path": "/api/cron/reminders", "schedule": "* * * * *" },           // Every minute
+  { "path": "/api/cron/github-projects-sync", "schedule": "* * * * *" }, // Every minute
   { "path": "/api/cron/github-sync", "schedule": "*/15 * * * *" },      // Every 15 minutes
   { "path": "/api/cron/abandoned-uploads", "schedule": "0 4 * * *" },   // Daily at 4 AM UTC
   { "path": "/api/cron/analytics", "schedule": "0 8 * * *" },            // Daily at 8 AM UTC
@@ -634,7 +635,7 @@ Viewing: `GET /api/secure-files/:fileId` redirects to a signed Vercel Blob URL (
 
 #### **Vercel** (Primary Platform)
 - Next.js hosting; preview and production deployments are explicit workflows
-- Edge Functions for API routes (30s timeout, 60s for migrations)
+- Node.js serverless functions for API routes (30 s default `maxDuration`; 300 s for SSE, 60 s for the GitHub crons). No route runs on the edge runtime; only `middleware.ts` does
 - Preview deployments for every PR
 - Automatic HTTPS and global CDN
 - Environment variable management
@@ -655,21 +656,22 @@ Viewing: `GET /api/secure-files/:fileId` redirects to a signed Vercel Blob URL (
     { "path": "/api/cron/system-tasks", "schedule": "0 0 * * 0" },
     { "path": "/api/cron/analytics", "schedule": "0 8 * * *" },
     { "path": "/api/cron/abandoned-uploads", "schedule": "0 4 * * *" },
-    { "path": "/api/cron/github-sync", "schedule": "*/15 * * * *" }
+    { "path": "/api/cron/github-sync", "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/github-projects-sync", "schedule": "* * * * *" }
   ]
 }
 ```
 
 > Abridged (`devCommand` and `installCommand` omitted); `vercel.json` is the
 > source of truth. The snippet here previously invented a function entry for an
-> admin-migrate route that does not exist, and showed one cron of five.
+> admin-migrate route that does not exist, and showed one cron of six.
 
 ### **Database & Storage**
 
 #### **Neon (PostgreSQL)**
 - Serverless PostgreSQL with automatic scaling
 - Branching for preview environments
-- Connection pooling via Prisma
+- Connection pooling via the Neon pooler URL (PgBouncer) plus an in-process node-postgres pool in `lib/prisma-adapter.ts`; Prisma itself does no pooling
 - Database migrations via Prisma Migrate
 - Point-in-time recovery
 
@@ -684,7 +686,7 @@ Viewing: `GET /api/secure-files/:fileId` redirects to a signed Vercel Blob URL (
 #### **Upstash Redis**
 - Serverless Redis for SSE state management
 - REST API for serverless compatibility
-- Used for pub/sub in multi-instance deployments
+- Per-user sorted-set event log for multi-instance SSE delivery (polled, not pub/sub — see Real-Time Updates)
 - Automatic connection management
 
 ### **Authentication & Security**
@@ -822,7 +824,7 @@ npm run predeploy:quick  # TypeScript + ESLint only
 
 ### Performance Benefits
 - **Optimized Rendering**: Proper memoization and state management
-- **Real-time Updates**: Efficient SSE implementation with Redis pub/sub
+- **Real-time Updates**: SSE with a Redis event log polled per connection for cross-instance events
 - **Responsive Design**: Optimized for all device types
 - **Multi-Layer Caching**: Browser cache, Redis, API key cache, IndexedDB
 - **Offline-First**: Full functionality without internet connectivity
@@ -839,7 +841,7 @@ npm run predeploy:quick  # TypeScript + ESLint only
 
 ### Scalability Benefits
 - **Serverless Architecture**: Automatic scaling on Vercel
-- **Connection Pooling**: Efficient database connections via Prisma
+- **Connection Pooling**: Neon pooler plus an in-process pg pool (`lib/prisma-adapter.ts`)
 - **Redis Caching**: Fast state management for SSE and sessions
 - **CDN Distribution**: Global edge network for static assets
 - **Offline Sync**: Client-side queue prevents data loss during network issues
