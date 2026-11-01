@@ -469,6 +469,9 @@ model Task {
   @@index([previousOccurrenceId])
   @@index([closedReason])
   @@index([statusRole])
+  /// Trigram indexes for search's ILIKE '%term%' (AWTD-1452).
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([description(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 /// A task waits for another task to be completed (AWTD-1002).
@@ -606,6 +609,8 @@ model Comment {
   @@index([taskId, createdAt])
   @@index([parentCommentId, createdAt])
   @@index([taskId, systemEventType])
+  /// Trigram index for search's ILIKE '%term%' (AWTD-1452).
+  @@index([content(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 /// An EXTERNAL LINK attached to a task — not a file we hold. (AWTD-857)
