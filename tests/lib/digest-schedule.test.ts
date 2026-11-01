@@ -10,30 +10,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import type { PrismaClient } from '@prisma/client'
 import { ReminderService } from '@/lib/reminder-service'
 import type { DailyDigestData } from '@/types/reminder'
-
-type FakeTask = { id: string; title: string; dueDateTime: Date; isAllDay: boolean; assigneeId: string; completed: boolean; lists: { name: string }[] }
-type Range = { gte?: Date; gt?: Date; lt?: Date; lte?: Date }
-
-/** Just enough of Prisma's where-clause semantics for the digest queries. */
-function matches(task: FakeTask, where: Record<string, any>): boolean {
-  for (const [key, value] of Object.entries(where)) {
-    if (key === 'OR') {
-      if (!(value as Record<string, any>[]).some((clause) => matches(task, clause))) return false
-    } else if (key === 'AND') {
-      if (!(value as Record<string, any>[]).every((clause) => matches(task, clause))) return false
-    } else if (key === 'dueDateTime') {
-      const range = value as Range
-      const at = task.dueDateTime.getTime()
-      if (range.gte && at < range.gte.getTime()) return false
-      if (range.gt && at <= range.gt.getTime()) return false
-      if (range.lt && at >= range.lt.getTime()) return false
-      if (range.lte && at > range.lte.getTime()) return false
-    } else if ((task as any)[key] !== value) {
-      return false
-    }
-  }
-  return true
-}
+import { digestSettings, fakeDigestPrisma, type FakeTask } from '../utils/fake-digest-prisma'
+import { nextDigestAt } from '@/lib/digest-schedule'
 
 const TASKS: FakeTask[] = [
   // 23:30 on Jul 14 in Los Angeles: overdue on the 15th, although it is the 15th in UTC.
@@ -45,34 +23,13 @@ const TASKS: FakeTask[] = [
   { id: 'all-day-16th', title: 'All day on the 16th', dueDateTime: new Date('2026-07-16T00:00:00Z'), isAllDay: true, assigneeId: 'user1', completed: false, lists: [] },
 ]
 
-function settings(dailyDigestTime: string, dailyDigestTimezone: string) {
-  return {
-    id: 'settings1',
-    userId: 'user1',
-    enablePushReminders: true,
-    enableEmailReminders: true,
-    defaultReminderTime: 60,
-    enableDailyDigest: true,
-    dailyDigestTime,
-    dailyDigestTimezone,
-    enableCalendarSync: false,
-    calendarSyncType: 'all',
-    quietHoursStart: null,
-    quietHoursEnd: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }
+function settings(dailyDigestTime: string, dailyDigestTimezone: string, overrides: Record<string, unknown> = {}) {
+  return digestSettings('user1', { dailyDigestTime, dailyDigestTimezone, ...overrides })
 }
 
 function serviceFor(reminderSettings: ReturnType<typeof settings>) {
-  const prisma = {
-    user: {
-      findMany: vi.fn(async () => [{ id: 'user1', email: 'user@example.com', name: 'Test User', reminderSettings }]),
-    },
-    task: {
-      findMany: vi.fn(async ({ where }: { where: Record<string, any> }) => TASKS.filter((t) => matches(t, where))),
-    },
-  }
+  // Stateful: the slot the service schedules and claims persists from one tick to the next.
+  const { prisma } = fakeDigestPrisma([{ id: 'user1', email: 'user@example.com', name: 'Test User', settings: reminderSettings }], TASKS)
   const sentAt: string[] = []
   const email = {
     sendTaskReminder: vi.fn(),
@@ -129,9 +86,10 @@ describe('daily digest schedule (AWTD-1453)', () => {
   it("AWTD-1453: the digest's today / tomorrow / overdue are the user's calendar days, not the server's", async () => {
     // Send at 17:30 in Los Angeles, which is 00:30 UTC on the 16th: the server's "today" is the
     // wrong day entirely.
-    const { service, email } = serviceFor(settings('17:30', 'America/Los_Angeles'))
+    const sendAt = new Date('2026-07-16T00:30:00Z')
+    const { service, email } = serviceFor(settings('17:30', 'America/Los_Angeles', { nextDailyDigestAt: sendAt }))
 
-    vi.setSystemTime(new Date('2026-07-16T00:30:00Z'))
+    vi.setSystemTime(sendAt)
     await service.processDailyDigests()
 
     expect(email.sendDailyDigest).toHaveBeenCalledTimes(1)
@@ -185,5 +143,65 @@ describe('the cron runs the digest pass every minute (AWTD-1453)', () => {
 
     expect(processDailyDigests).toHaveBeenCalledTimes(1)
     expect(processWeeklyDigests).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('digest slots (AWTD-1454)', () => {
+  beforeEach(() => {
+    process.env.TZ = 'UTC'
+    vi.useFakeTimers()
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+    process.env.TZ = ORIGINAL_TZ
+  })
+
+  it('AWTD-1454: a missed cron minute sends on the next tick instead of skipping the day', async () => {
+    const { service, sentAt } = serviceFor(settings('08:30', 'America/Los_Angeles'))
+    vi.setSystemTime(new Date('2026-07-15T07:00:00Z'))
+    await service.processDailyDigests() // schedules 08:30 PDT
+
+    // The 08:30 tick never ran; the next one is 08:32.
+    vi.setSystemTime(new Date('2026-07-15T15:32:00Z'))
+    await service.processDailyDigests()
+    vi.setSystemTime(new Date('2026-07-15T15:33:00Z'))
+    await service.processDailyDigests()
+
+    expect(sentAt).toEqual(['2026-07-15T15:32:00.000Z'])
+  })
+
+  it('AWTD-1454: two overlapping runs at the same minute send one digest', async () => {
+    const { service, sentAt } = serviceFor(settings('08:30', 'America/Los_Angeles', { nextDailyDigestAt: new Date('2026-07-15T15:30:00Z') }))
+    vi.setSystemTime(new Date('2026-07-15T15:30:00Z'))
+
+    await Promise.all([service.processDailyDigests(), service.processDailyDigests()])
+
+    expect(sentAt).toHaveLength(1)
+  })
+
+  it('AWTD-1454: a slot missed by hours (cron down) moves on without a stale send', async () => {
+    const { service, sentAt } = serviceFor(settings('08:30', 'America/Los_Angeles', { nextDailyDigestAt: new Date('2026-07-15T15:30:00Z') }))
+    vi.setSystemTime(new Date('2026-07-15T22:00:00Z'))
+
+    await service.processDailyDigests()
+
+    expect(sentAt).toEqual([])
+  })
+})
+
+describe('nextDigestAt (AWTD-1454)', () => {
+  it('is the next local occurrence, across a DST change', () => {
+    // US fall-back is 2026-11-01: 08:30 PDT on Oct 31 is 15:30Z, 08:30 PST on Nov 1 is 16:30Z.
+    expect(nextDigestAt('08:30', 'America/Los_Angeles', new Date('2026-10-31T15:30:00Z')).toISOString()).toBe('2026-11-01T16:30:00.000Z')
+  })
+
+  it('lands an hour later for a time the spring-forward skips', () => {
+    // 2026-03-08 02:30 does not exist in Los Angeles; 03:30 PDT is 10:30Z.
+    expect(nextDigestAt('02:30', 'America/Los_Angeles', new Date('2026-03-08T08:00:00Z')).toISOString()).toBe('2026-03-08T10:30:00.000Z')
+  })
+
+  it("picks the zone's Monday for the weekly slot", () => {
+    // Wednesday 15 July → Monday 20 July, 09:00 Auckland (UTC+12) = 21:00Z on Sunday the 19th.
+    expect(nextDigestAt('09:00', 'Pacific/Auckland', new Date('2026-07-15T00:00:00Z'), 1).toISOString()).toBe('2026-07-19T21:00:00.000Z')
   })
 })

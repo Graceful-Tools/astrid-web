@@ -4,6 +4,7 @@
 
 import { prisma } from "@/lib/prisma"
 import { resolveMCPActor } from "./shared"
+import { digestScheduleReset } from '@/lib/digest-schedule'
 
 export async function getUserSettings(accessToken: string, userId: string) {
   const mcpToken = await resolveMCPActor(accessToken, userId)
@@ -89,6 +90,8 @@ export async function updateUserSettings(accessToken: string, settings: any, use
         ...(settings.reminderSettings.calendarSyncType !== undefined && {
           calendarSyncType: settings.reminderSettings.calendarSyncType
         }),
+        // A digest time / zone / switch change reschedules the digests (AWTD-1454).
+        ...digestScheduleReset(settings.reminderSettings),
         updatedAt: new Date(),
       },
       create: {
