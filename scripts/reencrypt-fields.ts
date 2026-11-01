@@ -12,7 +12,10 @@
  *      production's rows from here: every value reports as failed;
  *   1. generate a new key, record it, set it as ENCRYPTION_KEY_NEXT in Vercel;
  *   2. deploy — reads now try both keys, writes use NEXT (lib/encryption-keys.ts);
- *   3. run this, until `--verify` reports 0 failures;
+ *   3. run this, until `--verify` reports 0 failures — or, when this machine
+ *      does not hold production's keys, run the same pass inside production:
+ *      GET /api/admin/encryption-rotation (dry run), then POST (rewrite), then
+ *      the census until it reports byKey.ENCRYPTION_KEY: 0 and noKey: 0;
  *   4. set ENCRYPTION_KEY to the new value and delete ENCRYPTION_KEY_NEXT.
  *
  * The old key is never read by a human at any point.
@@ -40,21 +43,14 @@
  * safe to repeat.
  */
 
-import type { PrismaClient } from '@prisma/client'
 import { loadScriptEnv } from './lib/load-env'
-import {
-  ENCRYPTED_COLUMNS,
-  addOutcome,
-  emptyOutcome,
-  planColumn,
-  planMcpSettings,
-  type RowOutcome,
-} from '../lib/reencrypt-plan'
+import type { RowOutcome } from '../lib/reencrypt-plan'
+import { reencrypt, type ReencryptOptions, type ReencryptReporter } from '../lib/reencrypt-runner'
 
-export interface Options {
-  dryRun: boolean
-  verify: boolean
-  batchSize: number
+// tests/integration/postgres-risk.test.ts imports the pass from here.
+export { reencrypt }
+
+export interface Options extends ReencryptOptions {
   /** Name of the env var holding the connection string. */
   databaseUrlEnv: string
 }
@@ -79,147 +75,15 @@ export function parseArgs(argv: string[]): Options {
   }
 }
 
-function report(table: string, outcome: RowOutcome): void {
-  console.log(
-    `   ${table.padEnd(22)} rewritten=${outcome.rewritten} skipped=${outcome.skipped} failed=${outcome.failed} conflicts=${outcome.conflicts}`,
-  )
-}
-
-/**
- * AI credentials inside `User.mcpSettings` (AWTD-1380) — a JSON blob, so not
- * reachable by the column walker. Same paging, same compare-and-swap, same
- * counts-only output.
- */
-async function walkMcpSettings(
-  prisma: PrismaClient,
-  options: Options,
-): Promise<RowOutcome> {
-  const { decryptCredentialStrict, encryptCredential } = await import('../lib/ai/credential-cipher')
-  const { encryptionKeyHexes } = await import('../lib/encryption-keys')
-  const keyHexes = encryptionKeyHexes()
-
-  let outcome = emptyOutcome()
-  let cursor: string | undefined
-  for (;;) {
-    const rows = await prisma.user.findMany({
-      where: { mcpSettings: { not: null } },
-      select: { id: true, mcpSettings: true },
-      orderBy: { id: 'asc' },
-      take: options.batchSize,
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    })
-    if (rows.length === 0) break
-
-    for (const row of rows) {
-      const plan = planMcpSettings(row.mcpSettings, {
-        decrypt: triple => decryptCredentialStrict(triple, keyHexes),
-        encrypt: encryptCredential,
-        requireAuthenticated: options.verify,
-      })
-      for (const problem of plan.problems) {
-        console.error(`   ❌ User.mcpSettings id=${row.id} ${problem}`)
-      }
-      if (plan.next !== undefined && !options.dryRun && !options.verify) {
-        const { count } = await prisma.user.updateMany({
-          where: { id: row.id, mcpSettings: row.mcpSettings },
-          data: { mcpSettings: plan.next },
-        })
-        if (count === 0) {
-          plan.outcome.conflicts += plan.outcome.rewritten
-          plan.outcome.rewritten = 0
-        }
-      }
-      outcome = addOutcome(outcome, plan.outcome)
-    }
-    cursor = rows[rows.length - 1].id
-  }
-
-  report('User.mcpSettings', outcome)
-  return outcome
-}
-
-/** Every column in ENCRYPTED_COLUMNS, paged by cursor. */
-async function walkColumns(prisma: PrismaClient, options: Options): Promise<RowOutcome> {
-  const fe = await import('../lib/field-encryption')
-  let total = emptyOutcome()
-
-  for (const table of ENCRYPTED_COLUMNS) {
-    const model = (prisma as unknown as Record<string, any>)[table.model]
-    if (!model) throw new Error(`No Prisma model named ${table.model}`)
-
-    let outcome = emptyOutcome()
-    let cursor: string | undefined
-
-    for (;;) {
-      const rows: Record<string, unknown>[] = await model.findMany({
-        select: Object.fromEntries(
-          [table.cursor, ...table.columns].map(column => [column, true]),
-        ),
-        orderBy: { [table.cursor]: 'asc' },
-        take: options.batchSize,
-        ...(cursor ? { cursor: { [table.cursor]: cursor }, skip: 1 } : {}),
-      })
-      if (rows.length === 0) break
-
-      for (const row of rows) {
-        const updates: Record<string, string> = {}
-        const rowOutcome: RowOutcome = emptyOutcome()
-
-        for (const column of table.columns) {
-          const plan = planColumn(row[column], {
-            isEncrypted: fe.isEncrypted,
-            decrypt: fe.decryptField,
-            encrypt: fe.encryptField,
-          })
-          if ('next' in plan) {
-            updates[column] = plan.next
-            rowOutcome.rewritten++
-          } else if ('failed' in plan) {
-            rowOutcome.failed++
-            // The id, never the value — knowing which row to look at is the
-            // whole point, and the value is a user's secret.
-            console.error(`   ❌ ${table.table}.${column} id=${row[table.cursor]} no key decrypts it`)
-          } else {
-            rowOutcome.skipped++
-          }
-        }
-
-        if (!options.dryRun && !options.verify && Object.keys(updates).length > 0) {
-          // Compare-and-swap: write only if every column still holds what was
-          // read. A token the app refreshed meanwhile is already under the
-          // current key; overwriting it would roll it back (AWTD-1380).
-          const { count } = await model.updateMany({
-            where: {
-              [table.cursor]: row[table.cursor] as string,
-              ...Object.fromEntries(Object.keys(updates).map(column => [column, row[column]])),
-            },
-            data: updates,
-          })
-          if (count === 0) {
-            rowOutcome.conflicts += rowOutcome.rewritten
-            rowOutcome.rewritten = 0
-          }
-        }
-        outcome = addOutcome(outcome, rowOutcome)
-      }
-
-      cursor = rows[rows.length - 1][table.cursor] as string
-    }
-
-    report(table.table, outcome)
-    total = addOutcome(total, outcome)
-  }
-  return total
-}
-
-/**
- * The whole pass against one database: every column, then every mcpSettings
- * blob. The keyring is whatever the environment holds when it runs — main()
- * narrows it to the current key for --verify. Exported so
- * tests/integration/postgres-risk.test.ts can prove it on a real database.
- */
-export async function reencrypt(prisma: PrismaClient, options: Options): Promise<RowOutcome> {
-  return addOutcome(await walkColumns(prisma, options), await walkMcpSettings(prisma, options))
+const consoleReporter: ReencryptReporter = {
+  table(table: string, outcome: RowOutcome) {
+    console.log(
+      `   ${table.padEnd(22)} rewritten=${outcome.rewritten} skipped=${outcome.skipped} failed=${outcome.failed} conflicts=${outcome.conflicts}`,
+    )
+  },
+  problem(location: string) {
+    console.error(`   ❌ ${location}`)
+  },
 }
 
 async function main(): Promise<void> {
@@ -251,7 +115,7 @@ async function main(): Promise<void> {
   let total: RowOutcome
 
   try {
-    total = await reencrypt(prisma, options)
+    total = await reencrypt(prisma, options, consoleReporter)
   } finally {
     await prisma.$disconnect()
   }
