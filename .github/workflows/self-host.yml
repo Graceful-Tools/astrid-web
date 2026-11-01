@@ -42,9 +42,27 @@ concurrency:
 
 jobs:
   image:
-    name: 'Build, boot and smoke-test'
+    name: 'Build, boot and smoke-test (${{ matrix.storage }})'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
+    # One code path, backend chosen by env: the same image, smoke-tested on each
+    # self-hosted storage driver it can reach without a cloud account.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - storage: local
+            profiles: mail
+          - storage: azure-blob
+            profiles: mail,azure
+    env:
+      # mail: the app boots with EMAIL_TRANSPORT=smtp against the mailpit sink.
+      # azure: Azurite, for the azure-blob entry.
+      COMPOSE_PROFILES: ${{ matrix.profiles }}
+      # Azurite's published development account (not a secret), as the app
+      # reaches it inside the stack and as this runner reaches it.
+      AZURITE_IN_STACK: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+      AZURITE_FROM_RUNNER: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://localhost:10000/devstoreaccount1;
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -71,14 +89,24 @@ jobs:
             echo "ENCRYPTION_KEY=$(openssl rand -hex 32)"
             echo "CRON_SECRET=$(openssl rand -hex 32)"
             echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)"
-            echo "STORAGE_DRIVER=local"
+            echo "STORAGE_DRIVER=${{ matrix.storage }}"
+            if [ "${{ matrix.storage }}" = azure-blob ]; then
+              echo "AZURE_STORAGE_CONTAINER=attachments"
+              # Quoted: the value has semicolons, and the smoke step sources this file.
+              echo "AZURE_STORAGE_CONNECTION_STRING='${AZURITE_IN_STACK}'"
+            fi
             echo "EMAIL_TRANSPORT=smtp"
             echo "SMTP_URL=smtp://mailpit:1025"
           } > deploy/self-host/.env
 
-      # --profile mail: the app boots with EMAIL_TRANSPORT=smtp against the sink.
       - name: Build and start
-        run: docker compose -f deploy/self-host/docker-compose.yml --profile mail up -d --build --wait --wait-timeout 300
+        run: docker compose -f deploy/self-host/docker-compose.yml up -d --build --wait --wait-timeout 300
+
+      # The container is the operator's to create, as on real Azure.
+      - name: Create the Azure Blob container
+        if: matrix.storage == 'azure-blob'
+        run: |
+          node -e "require('@azure/storage-blob').BlobServiceClient.fromConnectionString(process.env.AZURITE_FROM_RUNNER).getContainerClient('attachments').createIfNotExists().then(() => console.log('container ready'))"
 
       - name: Smoke test
         run: |
@@ -96,8 +124,8 @@ jobs:
 
       - name: Logs
         if: failure()
-        run: docker compose -f deploy/self-host/docker-compose.yml --profile mail logs --no-color --tail 300
+        run: docker compose -f deploy/self-host/docker-compose.yml logs --no-color --tail 300
 
       - name: Tear down
         if: always()
-        run: docker compose -f deploy/self-host/docker-compose.yml --profile mail down -v
+        run: docker compose -f deploy/self-host/docker-compose.yml down -v

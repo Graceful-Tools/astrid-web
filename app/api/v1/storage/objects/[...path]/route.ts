@@ -1,7 +1,7 @@
 /**
  * GET /api/v1/storage/objects/:pathname
  *
- * Serves an object on self-hosted storage (`STORAGE_DRIVER=s3|local`,
+ * Serves an object on self-hosted storage (`STORAGE_DRIVER=s3|local|azure-blob`,
  * AWTD-1286), standing in for Vercel Blob's public URLs. Access is the same
  * as there: anyone holding the URL can read it, and the URL is unguessable
  * (`files/<userId>/<uuid>.<ext>`). Permission checks stay where they are, at

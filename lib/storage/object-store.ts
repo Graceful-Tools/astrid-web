@@ -8,8 +8,10 @@
  *   in `lib/secure-storage.ts`, the one module allowed to name that vendor.
  * - `s3`: any S3-compatible store (AWS S3, MinIO, Cloudflare R2, Ceph).
  * - `local`: a directory on a mounted volume, for a single server.
+ * - `azure-blob`: an Azure Blob Storage container (AWTD-1465), which does not
+ *   speak S3.
  *
- * With `s3` or `local` the app serves the objects itself, at
+ * With any of the last three the app serves the objects itself, at
  * `/api/v1/storage/objects/<pathname>`, and accepts direct uploads at
  * `/api/v1/storage/uploads/<token>` (lib/storage/upload-token.ts). That keeps
  * the clients unchanged: they already PUT to whatever URL the server hands
@@ -24,7 +26,7 @@ const log = createLogger('object-store')
 /** The variables storage reads. `process.env` is one; tests pass a plain object. */
 export type StorageEnv = Record<string, string | undefined>
 
-export const STORAGE_DRIVERS = ['vercel-blob', 's3', 'local'] as const
+export const STORAGE_DRIVERS = ['vercel-blob', 's3', 'local', 'azure-blob'] as const
 export type StorageDriver = (typeof STORAGE_DRIVERS)[number]
 
 /** The path prefix self-hosted objects are served under. */
@@ -55,6 +57,7 @@ const REQUIRED_SETTINGS: Record<StorageDriver, string[]> = {
   'vercel-blob': [],
   s3: ['S3_BUCKET', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY'],
   local: [],
+  'azure-blob': ['AZURE_STORAGE_CONTAINER'],
 }
 
 /**
@@ -67,6 +70,9 @@ export function missingStorageSettings(env: StorageEnv = process.env): string[] 
   const missing = REQUIRED_SETTINGS[driver].filter(name => !env[name]?.trim())
   if (driver === 's3' && !env.S3_REGION?.trim() && !env.S3_ENDPOINT?.trim()) {
     missing.push('S3_REGION or S3_ENDPOINT')
+  }
+  if (driver === 'azure-blob' && !env.AZURE_STORAGE_CONNECTION_STRING?.trim() && !env.AZURE_STORAGE_ACCOUNT?.trim()) {
+    missing.push('AZURE_STORAGE_CONNECTION_STRING or AZURE_STORAGE_ACCOUNT')
   }
   return missing
 }
@@ -98,6 +104,13 @@ export interface ObjectStore {
   get(pathname: string, range?: string | null): Promise<StoredBytes | null>
   /** Succeeds when the object is already gone. */
   delete(pathname: string): Promise<void>
+  /**
+   * A short-lived, read-only URL straight to the store, for a store that has
+   * its own public endpoint (Azure Blob's SAS, AWTD-1465). Optional: without
+   * it the app serves the object itself at OBJECT_ROUTE_PREFIX.
+   * `contentType` decides whether the store serves it inline or as a download.
+   */
+  signedReadUrl?(pathname: string, expiresInSeconds: number, contentType?: string): Promise<string>
 }
 
 /**
@@ -129,6 +142,21 @@ export function objectPathnameFromUrl(objectUrl: string): string | null {
     const { pathname } = new URL(objectUrl)
     if (pathname.startsWith(OBJECT_ROUTE_PREFIX)) return pathname.slice(OBJECT_ROUTE_PREFIX.length)
     return pathname.startsWith('/') ? pathname.slice(1) : pathname
+  } catch {
+    return null
+  }
+}
+
+/**
+ * The store pathname of a URL this app serves an object from, or null for any
+ * other URL (a Vercel Blob URL left from before a migration, say).
+ */
+export function selfHostedObjectPathname(objectUrl: string): string | null {
+  try {
+    const { pathname } = new URL(objectUrl)
+    if (!pathname.startsWith(OBJECT_ROUTE_PREFIX)) return null
+    const objectPath = pathname.slice(OBJECT_ROUTE_PREFIX.length)
+    return isSafeObjectPathname(objectPath) ? objectPath : null
   } catch {
     return null
   }
@@ -170,12 +198,16 @@ let cached: { key: string; store: ObjectStore } | null = null
 export async function selfHostedObjectStore(): Promise<ObjectStore> {
   const driver = storageDriver()
   const key = [process.env.STORAGE_DRIVER, process.env.STORAGE_LOCAL_DIR, process.env.S3_BUCKET, process.env.S3_REGION,
-    process.env.S3_ENDPOINT, process.env.S3_ACCESS_KEY_ID, process.env.S3_SECRET_ACCESS_KEY].join('|')
+    process.env.S3_ENDPOINT, process.env.S3_ACCESS_KEY_ID, process.env.S3_SECRET_ACCESS_KEY,
+    process.env.AZURE_STORAGE_CONTAINER, process.env.AZURE_STORAGE_ACCOUNT, process.env.AZURE_STORAGE_CONNECTION_STRING].join('|')
   if (cached?.key === key) return cached.store
   let store: ObjectStore
   if (driver === 's3') {
     const { createS3ObjectStore } = await import('./s3-object-store')
     store = createS3ObjectStore(process.env)
+  } else if (driver === 'azure-blob') {
+    const { createAzureBlobObjectStore } = await import('./azure-blob-object-store')
+    store = await createAzureBlobObjectStore(process.env)
   } else if (driver === 'local') {
     const { createLocalObjectStore } = await import('./local-object-store')
     store = createLocalObjectStore(process.env)
