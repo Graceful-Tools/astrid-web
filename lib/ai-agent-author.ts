@@ -21,6 +21,7 @@
 
 import { isBrandAgentEmail } from '@/lib/brand/agent-emails'
 import { prisma } from '@/lib/prisma'
+import type { AuthContext } from '@/lib/api-auth-middleware'
 
 export interface AgentAuthorContext {
   userId: string
@@ -41,6 +42,21 @@ export interface AgentAuthorContext {
 export type ResolveAgentAuthorResult =
   | { ok: true; authorId: string; agentEmail?: string; agentName?: string }
   | { ok: false; error: string }
+
+/** An MCP access token can repeat its bound identity, but cannot select another. */
+export function validateMcpAgentSelection(
+  auth: Pick<AuthContext, 'source' | 'agentUser'>,
+  aiAgentId: unknown,
+): string | null {
+  if (auth.source !== 'legacy_mcp' || aiAgentId === undefined) return null
+  if (!auth.agentUser) {
+    return 'aiAgentId cannot be selected by the caller; use an agent-bound credential'
+  }
+  if (aiAgentId !== auth.agentUser.id) {
+    return 'aiAgentId does not match the agent-bound credential'
+  }
+  return null
+}
 
 /**
  * Resolve the author id for agent-authored content.

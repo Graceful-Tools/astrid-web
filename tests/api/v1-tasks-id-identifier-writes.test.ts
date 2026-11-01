@@ -44,7 +44,8 @@ vi.mock('@/services/task.service', () => ({
   })),
   deleteTaskWithSideEffects: vi.fn(async () => undefined),
 }))
-vi.mock('@/lib/ai-agent-author', () => ({
+vi.mock('@/lib/ai-agent-author', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/ai-agent-author')>()),
   resolveAgentAuthor: vi.fn(async () => ({ ok: true, authorId: 'user-1' })),
 }))
 vi.mock('@/lib/analytics-events', () => ({

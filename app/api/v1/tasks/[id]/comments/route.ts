@@ -16,7 +16,7 @@ import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { withAuth } from '@/lib/api-auth-wrapper'
-import { resolveAgentAuthor } from '@/lib/ai-agent-author'
+import { resolveAgentAuthor, validateMcpAgentSelection } from '@/lib/ai-agent-author'
 import { createLogger } from '@/lib/logger'
 import { userCanAccessTask } from "@/services/task.service"
 import { createCommentWithSideEffects } from "@/services/comment.service"
@@ -214,12 +214,8 @@ export const POST = withAuth<RouteContext>(
       )
     }
 
-    if (body.aiAgentId !== undefined && auth.source === 'legacy_mcp') {
-      return NextResponse.json(
-        { error: 'aiAgentId cannot be selected by the caller; use an agent-bound credential' },
-        { status: 400 }
-      )
-    }
+    const agentSelectionError = validateMcpAgentSelection(auth, body.aiAgentId)
+    if (agentSelectionError) return NextResponse.json({ error: agentSelectionError }, { status: 400 })
 
     // `type` lands in a Postgres enum column. Unvalidated, an unknown label
     // reached the Prisma driver and surfaced as a 500 — the caller deserves a
