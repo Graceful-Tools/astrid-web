@@ -13,6 +13,7 @@ import { UnauthorizedError } from "@/lib/api-auth-middleware"
 import { OutboundUrlError } from "@/lib/security/outbound-url"
 import { createLogger } from "@/lib/logger"
 import { deleteSession, storeSession } from "../../../lib/server/mcp-session-store"
+import { recordMcpLegacySseUsage } from "../../../lib/server/mcp-legacy-sse-usage"
 
 export const config = {
   api: {
@@ -194,6 +195,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     return
   }
+
+  // AWTD-1461: count legacy SSE streams so dropping the transport can be
+  // decided on durable evidence rather than Vercel's minutes-long log window.
+  recordMcpLegacySseUsage(req, "stream")
 
   try {
     const transport = new SSEServerTransport(
