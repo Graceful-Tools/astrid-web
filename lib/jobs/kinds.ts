@@ -33,11 +33,46 @@ export interface AstridCommentReplyPayload {
   listId: string | null
 }
 
+/** A task's reminder-relevant columns, as JSON (dates are ISO strings after a round trip). */
+export interface TaskUpdatedReminderFields {
+  id: string
+  title: string
+  completed: boolean
+  assigneeId: string | null
+  creatorId: string | null
+  dueDateTime: string | Date | null
+  reminderTime?: string | Date | null
+  reminderType?: string | null
+}
+
+/**
+ * What one task edit still has to do after its response (AWTD-1462). Each
+ * section is present only when the edit has that work; services/
+ * task-update-deferred-effects.ts builds and runs it.
+ */
+export interface TaskUpdatedPayload {
+  taskId: string
+  actorId: string
+  actorType: 'user' | 'agent'
+  /** Names this edit. Notification ids derive from it, so a re-run cannot notify twice. */
+  editKey: string
+  reminders?: { before: TaskUpdatedReminderFields; after: TaskUpdatedReminderFields }
+  /** The blocker's completion after the edit; its dependents' lanes follow it. */
+  dependents?: { blockerCompleted: boolean }
+  notifications?: {
+    kinds: string[]
+    audience: { assigneeId: string | null; creatorId: string | null; commenterIds: string[] }
+  }
+  statsUserIds?: string[]
+}
+
 export interface JobPayloads {
   /** Astrid's server-side chat reply, handed off by a client (lib/astrid-handoff.ts). */
   'astrid-handoff': AstridHandoffPayload
   /** Astrid's reply to a comment that @-mentions her (lib/comments/post-comment-side-effects.ts). */
   'astrid-comment-reply': AstridCommentReplyPayload
+  /** A task edit's notifications, reminders, stats and dependents (services/task.service.ts). */
+  'task-updated': TaskUpdatedPayload
 }
 
 export type JobKind = keyof JobPayloads
@@ -61,6 +96,9 @@ export interface JobPolicy {
 export const JOB_POLICIES: Record<JobKind, JobPolicy> = {
   'astrid-handoff': { maxAttempts: 3, baseBackoffMs: 30_000, lockMs: 10 * 60_000 },
   'astrid-comment-reply': { maxAttempts: 3, baseBackoffMs: 30_000, lockMs: 10 * 60_000 },
+  // A handful of short statements. Each step guards itself, so a retry is for
+  // a run that was killed, and a short lock lets the next drain take it soon.
+  'task-updated': { maxAttempts: 5, baseBackoffMs: 30_000, lockMs: 2 * 60_000 },
 }
 
 /** An unknown kind (a row from a newer deploy, a typo) still has to back off and die. */
