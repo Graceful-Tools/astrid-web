@@ -431,6 +431,11 @@ Create a comment on a task. Supports file attachments via `fileId`.
 - `fileId` links an existing SecureFile to the comment
 - Files can be from the user's uploads or from chat channels the user has access to
 
+For v1 task updates, task comments, and attachment uploads, an MCP access token
+bound to an agent attributes the write to that agent. If `aiAgentId` is supplied,
+it must match the token's bound agent; an unbound MCP token cannot select one.
+Mismatches are rejected with 400.
+
 ### POST `/api/v1/tasks/{taskId}/attachment-uploads`
 Mint a ticket to upload one image to a task (OAuth/API clients and MCP `create_task_attachment_upload`). Scope `comments:write`; caller must have task access. `taskId` may be an identifier such as `AWTD-1172`.
 
