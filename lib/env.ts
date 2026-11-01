@@ -230,6 +230,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'NEXT_PUBLIC_BRAND_SLOGAN', scope: 'optional', description: 'Short slogan beside the wordmark.' },
   { name: 'NEXT_PUBLIC_BRAND_APP_STORE_URL', scope: 'optional', description: 'App Store listing. Empty string hides the download button entirely.' },
   { name: 'NEXT_PUBLIC_BRAND_APP_URL_SCHEME', scope: 'optional', description: 'Custom URL scheme the native apps register, without "://". The desktop sign-in hand-off returns the browser to <scheme>://auth/callback, so a fork shipping its own apps must set it or the hand-off deep-links into someone else\'s application.' },
+  { name: 'NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID', scope: 'optional', description: "The public list this deployment's Report an Issue opens, served on /api/v1/capabilities as brand.feedbackListId. Empty string means no in-app feedback list (clients open the web); unset inherits Astrid's own list.", validate: (v) => (v === '' || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v) ? null : 'Must be a list id (UUID), or empty for none') },
   { name: 'NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG', scope: 'optional', description: 'Slug of the GitHub App users install.' },
   { name: 'NEXT_PUBLIC_BRAND_DEFAULT_THEME', scope: 'optional', description: 'Theme a visitor starts on before choosing: light, dark or ocean. A stored choice still wins.' },
   { name: 'NEXT_PUBLIC_BRAND_WWW_REDIRECT', scope: 'optional', description: 'Set to false when the brand domain is itself a subdomain (no www host): stops the apex→www redirect.' },
