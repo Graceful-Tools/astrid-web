@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { Task, TaskList } from '@/types/task'
-import { scopeTasksToList, withoutList, listPath, taskDetailPath } from '@/lib/task-list-scope'
+import { scopeTasksToList, withoutList, listPath, taskDetailPath, foreignListIdFor, keepListRows } from '@/lib/task-list-scope'
 
 /** AWTD-1419 — what a list view starts from, and what deleting a list leaves. */
 
@@ -52,5 +52,33 @@ describe('taskDetailPath (AWTD-1432)', () => {
   it('closing goes back to the view, never to whichever list the task happens to be on first', () => {
     expect(taskDetailPath('my-tasks')).toBe('/')
     expect(taskDetailPath('assigned')).toBe('/lists/assigned')
+  })
+})
+
+/** AWTD-1451 step 1 — which list is read by ?listId=, and what a full reload keeps. */
+describe('foreignListIdFor (AWTD-1451)', () => {
+  const own = [{ id: 'mine' }] as unknown as TaskList[]
+
+  it('is the selected list when it is not one of the user\'s own', () => {
+    expect(foreignListIdFor('public-1', own)).toBe('public-1')
+  })
+
+  it('is null for an owned or member list, a system view, or nothing selected', () => {
+    expect(foreignListIdFor('mine', own)).toBeNull()
+    expect(foreignListIdFor('my-tasks', own)).toBeNull()
+    expect(foreignListIdFor('today', own)).toBeNull()
+    expect(foreignListIdFor('', own)).toBeNull()
+  })
+})
+
+describe('keepListRows (AWTD-1451)', () => {
+  it('puts back the viewed foreign list\'s rows a full reload left out', () => {
+    const merged = [task('a', ['mine'])]
+    expect(keepListRows(tasks, merged, 'public-1').map(t => t.id)).toEqual(['a', 'b', 'd'])
+  })
+
+  it('leaves the merge alone when no foreign list is viewed', () => {
+    const merged = [task('a', ['mine'])]
+    expect(keepListRows(tasks, merged, null)).toBe(merged)
   })
 })
