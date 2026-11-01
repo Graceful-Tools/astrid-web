@@ -21,7 +21,7 @@ self-hosting the product means self-hosting this one image.
 | Database | Neon Postgres | Any PostgreSQL. The compose file runs `postgres:17` |
 | Migrations | Applied by the production deploy | The `migrate` service, before every start of a new version |
 | Scheduled jobs | Vercel Cron, from `vercel.json` | The `cron` service (`scripts/cron-runner.mjs`) reads the same `vercel.json` |
-| Uploads | Vercel Blob | `STORAGE_DRIVER=local` (a volume) or `s3` (AWS S3, MinIO, R2, Ceph) |
+| Uploads | Vercel Blob | `STORAGE_DRIVER=local` (a volume), `s3` (AWS S3, MinIO, R2, Ceph) or `azure-blob` |
 | Cache and rate limits | Upstash Redis | `REDIS_URL` (compose runs `redis:7`); optional |
 | Real-time updates (SSE) | Upstash, shared across instances | In memory, inside the one app process |
 | TLS | Vercel | Your proxy, or `--profile tls` (Caddy, automatic certificates) |
@@ -101,6 +101,7 @@ The full registry, with a description of every variable: `npm run check:env`, or
 |---|---|---|
 | `local` | A persistent volume at `STORAGE_LOCAL_DIR` (compose mounts `uploads`) | One server |
 | `s3` | `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, and `S3_REGION` or `S3_ENDPOINT` | Anything with more than one server, or managed durability |
+| `azure-blob` | `AZURE_STORAGE_CONTAINER`, and `AZURE_STORAGE_CONNECTION_STRING` or `AZURE_STORAGE_ACCOUNT` (Managed Identity) | Azure. Blob does not speak S3 |
 | `vercel-blob` | `BLOB_STORE_ID` with OIDC on Vercel; `BLOB_READ_WRITE_TOKEN` anywhere else | The default. Hosted Astrid only |
 
 With `s3` and any of its settings missing, the server logs their names at start
@@ -109,6 +110,15 @@ fails, so `docker compose up --wait` and an orchestrator's readiness probe repor
 Nothing gets stored in the wrong place in the meantime.
 The bucket stays private. The app reads objects with its own credentials and serves them
 at `/api/v1/storage/objects/…`, so you need no bucket policy, public access or CORS rule.
+
+With `azure-blob`, create the container first; it stays private as well. With a connection
+string the app signs with the account key. With only `AZURE_STORAGE_ACCOUNT` it signs in
+with `DefaultAzureCredential`, which on Container Apps or App Service is the managed
+identity. Give that identity **Storage Blob Data Contributor** on the container and
+**Storage Blob Delegator** on the account. After `/api/secure-files/:id` has checked access,
+it redirects to a five-minute, read-only SAS URL (a user-delegation SAS under managed
+identity), so file bytes come from Azure instead of passing through the app. To try it
+locally, `--profile azure` runs [Azurite](https://learn.microsoft.com/azure/storage/common/storage-use-azurite).
 
 **Behind a proxy:** set `TRUSTED_PROXY_DEPTH` to the number of proxies in front of the app
 (1 with `--profile tls`). Rate limits are keyed on the client address the proxy forwards.
