@@ -264,6 +264,18 @@ NEXT_PUBLIC_BRAND_AUTH_PROVIDERS="github,google,apple,passkey,sso"   # also the 
 `sso` is one IdP per deployment. Per-organisation SSO is a partner's build, specified in
 *Per-organisation SSO* below.
 
+**Google sign-in on a preview bounces through the brand domain; a partner's domain never
+does** (`lib/auth-host.ts`, AWTD-1469). Google's redirect URIs are fixed, so a preview
+(`feature-x.astrid.cc`, `whitelabel.astrid.cc`, a `*.vercel.app` deployment) starts Google
+sign-in on the brand domain and comes back signed in through the `.<brand domain>` session
+cookie. That is the only case: a host that is not a subdomain of `NEXT_PUBLIC_BRAND_DOMAIN`
+or a `vercel.app` deployment signs in on itself, for every provider, whatever
+`VERCEL_ENV` or `NODE_ENV` say. So a partner on its own domain (its own Vercel, Azure)
+registers `https://<its host>/api/auth/callback/google` with its own Google client and sets
+`NEXT_PUBLIC_BRAND_DOMAIN` to the host it serves — set to an apex such as `partner.example`
+while serving `tasks.partner.example`, its users would be bounced to the apex. Pinned by
+`tests/lib/auth-host.test.ts`.
+
 **At least one auth method must remain.** A build with none of them is an outage, not a
 degraded feature, so `instrumentation.ts` asserts it at server start and the process
 refuses to boot. Without that check the sign-in page renders a 200 with no buttons —

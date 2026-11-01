@@ -27,16 +27,34 @@ export function isCanonicalAuthHost(host: string): boolean {
   )
 }
 
+/**
+ * Hosts the bounce is FOR: a preview of the brand domain (`feature-x.astrid.cc`,
+ * `whitelabel.astrid.cc`) or a raw Vercel deployment (`*.vercel.app`).
+ *
+ * Preview-only by construction (AWTD-1469). The bounce works only because the session
+ * cookie is `.${BRAND.domain}`-scoped, so the user is signed in when they come back to
+ * a subdomain. Any other host — a partner on its own domain, its own Vercel or Azure —
+ * registers its own redirect URI with its own Google client and signs in where it is.
+ * Bouncing it would send its users to another deployment's sign-in page. The rule is
+ * the host alone: no environment variable can turn a partner's host into a preview.
+ */
+export function isPreviewAuthHost(host: string): boolean {
+  const hostname = host.toLowerCase().split(':')[0]
+  if (isCanonicalAuthHost(hostname)) return false
+  return hostname.endsWith(`.${BRAND.domain}`) || hostname.endsWith('.vercel.app')
+}
+
 export type GoogleSignInPlan =
   | { mode: 'direct' }
   | { mode: 'redirect'; url: string }
 
 /**
  * Decide how to start Google sign-in given the origin the user is on.
- * - Canonical host  → `direct`: run `signIn('google')` here.
- * - Anything else   → `redirect`: send the browser to the canonical
- *   sign-in page, carrying this origin as `callbackUrl` so the user is
- *   returned here after authenticating.
+ * - Preview host (isPreviewAuthHost) → `redirect`: send the browser to the
+ *   canonical sign-in page, carrying this origin as `callbackUrl` so the
+ *   user is returned here after authenticating.
+ * - Anything else — the canonical host, localhost, a partner's own domain
+ *   → `direct`: run `signIn('google')` here.
  */
 export function planGoogleSignIn(currentOrigin: string): GoogleSignInPlan {
   let url: URL
@@ -46,7 +64,7 @@ export function planGoogleSignIn(currentOrigin: string): GoogleSignInPlan {
     return { mode: 'direct' }
   }
 
-  if (isCanonicalAuthHost(url.host)) {
+  if (!isPreviewAuthHost(url.host)) {
     return { mode: 'direct' }
   }
 
