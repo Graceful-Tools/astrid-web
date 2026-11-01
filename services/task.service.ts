@@ -82,6 +82,7 @@ import {
   type AnalyticsPlatformValue,
 } from '@/lib/analytics-events'
 import { createLogger } from '@/lib/logger'
+import { runAfterResponse } from '@/lib/background'
 import { resolveCompletionFields, resolveCreateCompletionFields, type CreateCompletionInput } from './task-completion'
 import { parseTaskDate, resolveCreateDateFields } from './task-dates'
 import { resolveStatusRoleWrite } from './task-status-role'
@@ -1430,19 +1431,17 @@ async function runUpdateSideEffects(args: {
 
   // Analytics lives here so the MCP surfaces are counted too — they were
   // invisible in TASK_EDITED and TASK_COMPLETED before.
-  try {
-    const resolvedPlatform = platform ?? AnalyticsPlatform.API_OTHER
-    if (rolledForward || (requestedCompleted === true && !existingTask.completed)) {
-      await trackAnalyticsEvent(actorId, AnalyticsEventType.TASK_COMPLETED, resolvedPlatform, {
-        taskId: task.id,
-      })
+  // After the response (AWTD-1462): one or two inserts nobody reads on the
+  // request's clock. Best-effort as always, so after() rather than a durable
+  // job, which would cost the very insert it saves.
+  const resolvedPlatform = platform ?? AnalyticsPlatform.API_OTHER
+  const countsAsCompletion = rolledForward || (requestedCompleted === true && !existingTask.completed)
+  runAfterResponse('task-update-analytics', async () => {
+    if (countsAsCompletion) {
+      await trackAnalyticsEvent(actorId, AnalyticsEventType.TASK_COMPLETED, resolvedPlatform, { taskId: task.id })
     }
-    await trackAnalyticsEvent(actorId, AnalyticsEventType.TASK_EDITED, resolvedPlatform, {
-      taskId: task.id,
-    })
-  } catch (err) {
-    log.error({ err }, 'Failed to track task update analytics')
-  }
+    await trackAnalyticsEvent(actorId, AnalyticsEventType.TASK_EDITED, resolvedPlatform, { taskId: task.id })
+  })
 
   return stateChangeComment
 }
