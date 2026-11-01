@@ -108,6 +108,21 @@ const eslintConfig = [
         }
       ]
     }
+  },
+  // Vendor confinement (AWTD-1459, PLATFORM_ASSESSMENT_2026-11 §5): Upstash is
+  // one RealtimeBus transport, not something shared code talks to. Everything
+  // else goes through lib/realtime/bus.ts or lib/redis.ts.
+  {
+    files: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.mjs"],
+    ignores: ["lib/realtime/upstash-bus.ts", "lib/redis.ts", "tests/**"],
+    rules: {
+      "no-restricted-imports": ["error", {
+        paths: [{
+          name: "@upstash/redis",
+          message: "@upstash/redis is confined to lib/realtime/upstash-bus.ts and lib/redis.ts. Use the realtime bus (lib/realtime/bus.ts) or getRedisClient() (lib/redis.ts)."
+        }]
+      }]
+    }
   }
 ];
 
