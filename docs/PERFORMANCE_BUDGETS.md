@@ -527,6 +527,30 @@ duration field to filter for. Application logs do carry `durationMs`, but only
 where the code logs it itself, which today is the cron jobs and not the request
 path.
 
+## Table retention
+
+Every append-only table and the window it is kept for. All are pruned nightly by
+`/api/cron/analytics`, after the daily aggregation. A window is set by its
+widest reader and pinned in a test against it. If retention is shorter than a
+window someone reads, nothing errors: the oldest days just come back empty.
+
+| Table | Kept for | Source |
+|---|---|---|
+| `WebVitalSample` | 35 days | `WEB_VITALS_RETENTION_DAYS`, `lib/web-vitals.ts` (AWTD-990) |
+| `DeletionLog` | 30 days | `DELETION_LOG_RETENTION_DAYS`, `lib/deletion-log.ts` (AWTD-993) |
+| `CacheMetricBucket` | 97 days | `CACHE_METRICS_RETENTION_DAYS`, `lib/cache-metrics.ts` (AWTD-905) |
+| `TaskEvent` | 365 days; lane-history kinds (`status_changed`, `unblocked`, `completed`, `closed`, `reopened`) **never** | `TASK_EVENT_RETENTION_DAYS` / `TASK_EVENT_KEPT_KINDS`, `lib/history-retention.ts` (AWTD-1455) |
+| `AnalyticsEvent` | 120 days (`/admin/analytics`' 90-day max + 30) | `ANALYTICS_EVENT_RETENTION_DAYS`, `lib/history-retention.ts` (AWTD-1455) |
+| `Notification` | 90 days after it is read; 180 days after it is created, read or not | `NOTIFICATION_READ_RETENTION_DAYS` / `NOTIFICATION_RETENTION_DAYS`, `lib/history-retention.ts` (AWTD-1455) |
+
+**The AWTD-1455 rows are DRY-RUN until switched on.** Unless the production env var
+`HISTORY_RETENTION_PRUNE=delete` is set, the cron only counts what each window
+would remove. It logs the counts (`History retention DRY RUN`) and returns them
+as `taskEventsPruned` / `analyticsEventsPruned` / `notificationsPruned` with
+`historyRetentionMode: "dry-run"`. Read a night's counts first, then flip the
+switch. Deletes run in batches of 5,000 ids, at most 20 batches per table per
+night, so a backlog drains over several nights.
+
 ## 2026-08-31 structural baseline
 
 Established by contract tests rather than observation, which is what makes a
