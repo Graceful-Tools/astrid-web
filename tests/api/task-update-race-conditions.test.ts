@@ -6,6 +6,11 @@
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
+// AWTD-1462: reminders, notifications, stats and dependents run after the
+// response (a task-updated job); held here and flushed before asserting.
+vi.mock('@/lib/background', async () => (await import('../utils/after-response')).backgroundMock)
+import { flushAfterResponse, discardAfterResponse } from '../utils/after-response'
+beforeEach(() => discardAfterResponse())
 
 // ── Mocks ──────────────────────────────────────────────────────────────
 
@@ -273,6 +278,7 @@ describe('v1 PUT — Redis cache invalidation', () => {
     const response = await PUT(req, { params: Promise.resolve({ id: 'task-1' }) })
     expect(response.status).toBe(200)
 
+    await flushAfterResponse()
     const { invalidateUserStats } = await import('@/lib/user-stats')
     expect(invalidateUserStats).toHaveBeenCalled()
   })

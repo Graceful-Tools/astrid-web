@@ -21,4 +21,8 @@ export const JOB_HANDLERS: JobHandlers = {
     const { processAstridComment } = await import('@/lib/astrid-agent-runtime')
     await processAstridComment(payload)
   },
+  'task-updated': async payload => {
+    const { runTaskUpdatedJob } = await import('@/services/task-update-deferred-effects')
+    await runTaskUpdatedJob(payload)
+  },
 }

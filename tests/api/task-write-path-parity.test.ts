@@ -15,6 +15,11 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
+// AWTD-1462: reminders, notifications, stats and dependents run after the
+// response (a task-updated job); held here and flushed before asserting.
+vi.mock('@/lib/background', async () => (await import('../utils/after-response')).backgroundMock)
+import { flushAfterResponse, discardAfterResponse } from '../utils/after-response'
+beforeEach(() => discardAfterResponse())
 
 const taskFindUnique = vi.hoisted(() => vi.fn())
 const taskFindFirst = vi.hoisted(() => vi.fn())
@@ -238,11 +243,13 @@ describe.each(NAMES)('%s task-write surface — completion semantics (task fb94f
 
   it('reschedules reminders', async () => {
     await drive({ completed: true })
+    await flushAfterResponse()
     expect(rescheduleRemindersForUpdate).toHaveBeenCalled()
   })
 
   it('records task events and notifies', async () => {
     await drive({ completed: true })
+    await flushAfterResponse()
     expect(recordTaskEvents).toHaveBeenCalled()
     expect(notifyTaskUpdate).toHaveBeenCalled()
   })

@@ -223,3 +223,17 @@ export function hasNotificationSurface(input: {
 }): boolean {
   return input.sharedListCount > 0 || input.projectCount > 0
 }
+
+/**
+ * Who a task update notifies, and of what: every event fanned out, for ONE
+ * persist (see notifyTaskUpdate in lib/notification-store.ts). Pure; empty
+ * means nobody. The update path also reads it to decide whether an edit has
+ * notifications to defer (AWTD-1462).
+ */
+export function taskUpdateNotificationTargets(args: {
+  actorId: string
+  events: Array<{ kind: TaskEventKind }>
+  audience: TaskAudience
+}): NotificationTarget[] {
+  return args.events.flatMap(event => fanOutEvent({ kind: event.kind, actorId: args.actorId, audience: args.audience }))
+}
