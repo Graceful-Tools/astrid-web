@@ -82,7 +82,6 @@ const canonicalVersionReferences = [
   ['zod', 'Zod'],
   ['eslint', 'ESLint'],
   ['autoprefixer', 'autoprefixer'],
-  ['openai', 'OpenAI'],
   ['resend', 'Resend'],
   ['web-push', 'web-push'],
 ] as const
