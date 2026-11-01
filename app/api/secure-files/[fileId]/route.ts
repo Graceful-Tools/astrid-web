@@ -263,7 +263,7 @@ export async function GET(request: NextRequest, context: RouteContextParams<{ fi
     }
 
     // Generate signed download URL (5 minute expiry)
-    const downloadUrl = await generateSignedDownloadUrl(secureFile.blobUrl, 300)
+    const downloadUrl = await generateSignedDownloadUrl(secureFile.blobUrl, 300, secureFile.mimeType)
 
     // If info=true, return JSON metadata instead of redirecting
     if (info) {

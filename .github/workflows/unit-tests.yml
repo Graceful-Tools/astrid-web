@@ -58,7 +58,30 @@ jobs:
       - name: Typecheck the Test Tree
         run: npm run typecheck:tests
 
+      # Azure Blob's emulator, so the object-store conformance suite holds the
+      # azure-blob driver to the same contract as local (AWTD-1465); without it
+      # those cases report skipped, never passed. A step rather than a service
+      # container because it needs arguments: @azure/storage-blob speaks a newer
+      # API version than Azurite releases have caught up with.
+      - name: Start Azurite
+        run: |
+          docker run -d --name azurite -p 10000:10000 mcr.microsoft.com/azure-storage/azurite:3.37.0 \
+            azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck
+          for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:10000/ && break; sleep 1; done
+
+      # SeaweedFS's S3 gateway, for the s3 driver in the same suite (AWTD-1463).
+      # With no identities configured it accepts any SigV4 key pair.
+      - name: Start SeaweedFS
+        run: |
+          docker run -d --name seaweedfs -p 8333:8333 chrislusf/seaweedfs:4.51 server -s3 -s3.port=8333
+          # Ready before the suite starts, so a slow boot is not a failed contract.
+          for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:8333/ && break; sleep 1; done
+          curl -sf -o /dev/null http://127.0.0.1:8333/ || { docker logs seaweedfs; exit 1; }
+
       - name: Run Tests
         run: npm run test:run
         env:
           NODE_ENV: test
+          S3_CONFORMANCE_ENDPOINT: http://127.0.0.1:8333
+          # Azurite's published development account; not a secret.
+          AZURITE_BLOB_CONNECTION_STRING: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;

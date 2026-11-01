@@ -4,6 +4,7 @@
 import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
 import tsParser from "@typescript-eslint/parser";
+import { vendorSdkEslintBlocks } from "./scripts/lib/vendor-sdk-boundaries.mjs";
 
 const eslintConfig = [
   {
@@ -108,7 +109,12 @@ const eslintConfig = [
         }
       ]
     }
-  }
+  },
+  // Vendor SDKs only in their driver files (AWTD-1463): one code path, backend
+  // chosen by env. The list, and why, is scripts/lib/vendor-sdk-boundaries.mjs;
+  // tests/rules/vendor-sdks-stay-in-their-drivers.test.ts also catches the
+  // dynamic import() and require() this rule cannot see.
+  ...vendorSdkEslintBlocks()
 ];
 
 export default eslintConfig;

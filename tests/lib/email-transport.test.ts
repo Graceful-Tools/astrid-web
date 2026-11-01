@@ -21,6 +21,11 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
 const send = vi.hoisted(() => vi.fn())
+const sendMail = vi.hoisted(() => vi.fn())
+const createTransport = vi.hoisted(() => vi.fn(() => ({ sendMail })))
+
+vi.mock('@vercel/otel', () => ({ registerOTel: vi.fn() }))
+vi.mock('nodemailer', () => ({ default: { createTransport }, createTransport }))
 
 vi.mock('resend', () => ({
   Resend: class {
@@ -29,7 +34,10 @@ vi.mock('resend', () => ({
 }))
 
 import {
+  assertEmailConfiguration,
+  emailTransportKind,
   isEmailTransportLive,
+  missingEmailSettings,
   sendTransportEmail,
   resetEmailTransportForTests,
 } from '@/lib/email-transport'
@@ -116,6 +124,128 @@ describe('sendTransportEmail', () => {
       sendTransportEmail({ from: 'a@b.com', to: 'c@d.com', subject: 's', html: 'h', text: 't' })
     ).rejects.toThrow(/not configured/)
     expect(send).not.toHaveBeenCalled()
+  })
+})
+
+describe('EMAIL_TRANSPORT selects the backend (AWTD-1466)', () => {
+  const email = { from: 'a@b.com', to: 'c@d.com', subject: 's', html: 'h', text: 't' }
+
+  it('defaults to resend when unset, so production keeps its behaviour', () => {
+    expect(emailTransportKind({})).toBe('resend')
+    expect(emailTransportKind({ EMAIL_TRANSPORT: '' })).toBe('resend')
+    // Today's production config: a Resend key and nothing new.
+    expect(missingEmailSettings({ RESEND_API_KEY: 're_live' })).toEqual([])
+    expect(missingEmailSettings({})).toEqual([])
+  })
+
+  it('accepts resend, smtp and log, case-insensitively', () => {
+    expect(emailTransportKind({ EMAIL_TRANSPORT: 'SMTP' })).toBe('smtp')
+    expect(emailTransportKind({ EMAIL_TRANSPORT: 'log' })).toBe('log')
+    expect(emailTransportKind({ EMAIL_TRANSPORT: ' resend ' })).toBe('resend')
+  })
+
+  it('refuses an unknown transport rather than guessing', () => {
+    expect(() => emailTransportKind({ EMAIL_TRANSPORT: 'sendgrid' })).toThrow(/EMAIL_TRANSPORT="sendgrid"/)
+    expect(() => assertEmailConfiguration({ EMAIL_TRANSPORT: 'sendgrid' })).toThrow(/sendgrid/)
+  })
+
+  it('smtp with no SMTP_URL or SMTP_HOST refuses to boot', () => {
+    expect(missingEmailSettings({ EMAIL_TRANSPORT: 'smtp' })).toEqual(['SMTP_URL (or SMTP_HOST)'])
+    expect(() => assertEmailConfiguration({ EMAIL_TRANSPORT: 'smtp' })).toThrow(/EMAIL_TRANSPORT=smtp is missing: SMTP_URL/)
+    expect(() => assertEmailConfiguration({ EMAIL_TRANSPORT: 'smtp', SMTP_URL: 'smtp://relay:25' })).not.toThrow()
+    expect(() => assertEmailConfiguration({ EMAIL_TRANSPORT: 'smtp', SMTP_HOST: 'relay' })).not.toThrow()
+  })
+
+  it('smtp is live in production once a relay is configured, with no Resend key', () => {
+    setNodeEnv('production')
+    delete process.env.RESEND_API_KEY
+    process.env.EMAIL_TRANSPORT = 'smtp'
+    process.env.SMTP_URL = 'smtp://relay:25'
+
+    expect(isEmailTransportLive()).toBe(true)
+  })
+
+  it('smtp is still not live in development', () => {
+    setNodeEnv('development')
+    process.env.EMAIL_TRANSPORT = 'smtp'
+    process.env.SMTP_URL = 'smtp://relay:25'
+
+    expect(isEmailTransportLive()).toBe(false)
+  })
+
+  it('log never sends, even with a Resend key in production', async () => {
+    setNodeEnv('production')
+    process.env.EMAIL_TRANSPORT = 'log'
+    process.env.RESEND_API_KEY = 'key'
+
+    expect(isEmailTransportLive()).toBe(false)
+    await expect(sendTransportEmail(email)).rejects.toThrow(/not configured/)
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  it('smtp sends through nodemailer with the same message and returns its id', async () => {
+    setNodeEnv('production')
+    process.env.EMAIL_TRANSPORT = 'smtp'
+    process.env.SMTP_URL = 'smtp://relay:25'
+    sendMail.mockResolvedValue({ messageId: '<m1@relay>' })
+
+    await expect(sendTransportEmail(email)).resolves.toEqual({ id: '<m1@relay>' })
+    expect(createTransport).toHaveBeenCalledWith('smtp://relay:25')
+    expect(sendMail).toHaveBeenCalledWith({ from: 'a@b.com', to: ['c@d.com'], subject: 's', html: 'h', text: 't' })
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  it('smtp builds its connection from host/port/user/pass/secure when there is no URL', async () => {
+    setNodeEnv('production')
+    process.env.EMAIL_TRANSPORT = 'smtp'
+    process.env.SMTP_HOST = 'smtp.example.com'
+    process.env.SMTP_PORT = '465'
+    process.env.SMTP_USER = 'u'
+    process.env.SMTP_PASS = 'p'
+    process.env.SMTP_SECURE = 'true'
+    sendMail.mockResolvedValue({ messageId: 'x' })
+
+    await sendTransportEmail(email)
+    expect(createTransport).toHaveBeenCalledWith({
+      host: 'smtp.example.com',
+      port: 465,
+      secure: true,
+      auth: { user: 'u', pass: 'p' },
+    })
+  })
+
+  it('smtp raises a relay failure', async () => {
+    setNodeEnv('production')
+    process.env.EMAIL_TRANSPORT = 'smtp'
+    process.env.SMTP_URL = 'smtp://relay:25'
+    sendMail.mockRejectedValue(new Error('550 relay denied'))
+
+    await expect(sendTransportEmail(email)).rejects.toThrow('Email sending failed: 550 relay denied')
+  })
+})
+
+describe('instrumentation refuses a half-configured email transport (AWTD-1466)', () => {
+  async function boot() {
+    vi.resetModules()
+    const { register } = await import('@/instrumentation')
+    return register()
+  }
+
+  it('register() refuses EMAIL_TRANSPORT=smtp with no SMTP_URL', async () => {
+    ;(process.env as Record<string, string | undefined>).NEXT_RUNTIME = 'nodejs'
+    process.env.EMAIL_TRANSPORT = 'smtp'
+    delete process.env.SMTP_URL
+    delete process.env.SMTP_HOST
+
+    await expect(boot()).rejects.toThrow(/EMAIL_TRANSPORT=smtp is missing: SMTP_URL/)
+  })
+
+  it('register() accepts today\'s production email config (Resend key, no EMAIL_TRANSPORT)', async () => {
+    ;(process.env as Record<string, string | undefined>).NEXT_RUNTIME = 'nodejs'
+    delete process.env.EMAIL_TRANSPORT
+    process.env.RESEND_API_KEY = 're_live'
+
+    await expect(boot()).resolves.toBeUndefined()
   })
 })
 
