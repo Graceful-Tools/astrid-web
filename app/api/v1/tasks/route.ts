@@ -20,6 +20,14 @@ import { assigneeIdsOf } from '@/lib/task-assignees'
 import { parseOmittedTaskFields } from '@/lib/tasks/v1-task-omit'
 import { shapeV1ListPageTask, v1TaskListSelect, v1TaskPageMeta } from '@/lib/tasks/v1-task-shape'
 import { withTaskRemote } from '@/lib/backends/task-remote'
+import {
+  decodeTaskCursor,
+  encodeTaskCursor,
+  InvalidTaskCursorError,
+  TASK_CURSOR_ORDER_BY,
+  taskCursorWhere,
+  type TaskSyncCursor,
+} from '@/lib/tasks/v1-sync-cursor'
 
 const log = createLogger('v1.tasks')
 
@@ -44,12 +52,36 @@ const log = createLogger('v1.tasks')
  *   before; `description` is ~80% of a full page's bytes. Unrecognised names
  *   are ignored, and `meta.omitted` reports what the server actually dropped.
  * - leanListMembers: `1` — the older spelling of `omit=listMembers`
+ * - cursor: keyset paging on (updatedAt, id) instead of `offset` (AWTD-1470).
+ *   Empty to start a walk, then the previous page's `nextCursor`. Stable under
+ *   concurrent edits, which offset paging is not. Malformed → 400.
+ *
+ * Every response carries `serverTime` — the server's clock, read BEFORE the
+ * query — for the client to send back as the next `updatedSince` instead of
+ * its own (skewed) clock.
  */
 export const GET = withAuth(
   { scopes: ['tasks:read'], tag: 'v1.tasks' },
   async (req, auth) => {
+    // Before the read, so a write that lands while the query runs is newer
+    // than this stamp and the client's next delta picks it up.
+    const serverTime = new Date().toISOString()
     const url = new URL(req.url)
     const listId = url.searchParams.get('listId')
+    // Keyset paging (AWTD-1470). `null` param → offset mode, exactly as before.
+    const cursorParam = url.searchParams.get('cursor')
+    let cursor: TaskSyncCursor | null = null
+    if (cursorParam !== null) {
+      try {
+        cursor = decodeTaskCursor(cursorParam)
+      } catch (error) {
+        if (error instanceof InvalidTaskCursorError) {
+          return NextResponse.json({ error: error.message }, { status: 400 })
+        }
+        throw error
+      }
+    }
+    const isCursorWalk = cursorParam !== null
     // Only apply completed filter if explicitly provided
     const completedParam = url.searchParams.get('completed')
     const completed = completedParam !== null ? completedParam === 'true' : undefined
@@ -155,20 +187,31 @@ export const GET = withAuth(
       where.statusRole = statusRole === 'none' ? null : statusRole
     }
 
-    const [tasks, total] = await Promise.all([
+    // The keyset is ANDed on, never merged into `where.OR` — that is the
+    // visibility clause, and widening it would leak other people's tasks.
+    const pageWhere = cursor ? { ...where, AND: [taskCursorWhere(cursor)] } : where
+
+    const [pageRows, total] = await Promise.all([
       prisma.task.findMany({
-        where,
+        where: pageWhere,
         select: v1TaskListSelect({ omit, leanListMembers, includeComments, includeFields }),
-        orderBy: [
-          { completed: 'asc' },
-          { priority: 'desc' },
-          { createdAt: 'desc' },
-        ],
-        take: limit,
-        skip: offset,
+        orderBy: isCursorWalk
+          ? TASK_CURSOR_ORDER_BY
+          : [
+              { completed: 'asc' },
+              { priority: 'desc' },
+              { createdAt: 'desc' },
+            ],
+        // One extra row in a walk says whether there is a next page without
+        // a second query.
+        take: isCursorWalk ? limit + 1 : limit,
+        skip: isCursorWalk ? 0 : offset,
       }),
       prisma.task.count({ where }),
     ])
+    const hasMore = isCursorWalk && pageRows.length > limit
+    const tasks = hasMore ? pageRows.slice(0, limit) : pageRows
+    const nextCursor = hasMore ? encodeTaskCursor(tasks[tasks.length - 1]) : undefined
 
     const headers: Record<string, string> = {}
     const deprecationWarning = getDeprecationWarning(auth)
@@ -192,7 +235,9 @@ export const GET = withAuth(
       {
         tasks: tasksWithListIds,
         ...(deletedIds ? { deletedIds } : {}),
-        meta: v1TaskPageMeta({ total, limit, offset, authSource: auth.source, omit }),
+        serverTime,
+        ...(nextCursor ? { nextCursor } : {}),
+        meta: v1TaskPageMeta({ total, limit, offset: isCursorWalk ? 0 : offset, authSource: auth.source, omit }),
       },
       { headers }
     )

@@ -49,6 +49,9 @@ const LISTS_CACHE_TTL_SECONDS = 300 // matches the legacy /api/lists cache
 export const GET = withAuth(
   { scopes: ['lists:read'], tag: 'v1.lists' },
   async (req, auth) => {
+    // Before the read (AWTD-1470): a client sends it back as `updatedSince`
+    // instead of its own clock. Never cached — the payload below may be.
+    const serverTime = new Date().toISOString()
     const { searchParams } = new URL(req.url)
     const updatedSince = searchParams.get('updatedSince')
 
@@ -173,6 +176,8 @@ export const GET = withAuth(
         // hard-deleted, so without this an incremental sync leaves them on
         // screen. Absent on a full fetch, keeping that response unchanged.
         ...(deletedListIds ? { deletedIds: deletedListIds } : {}),
+        // Lists are not paged, so there is never a `nextCursor` here.
+        serverTime,
         meta: {
           total: lists.length,
           apiVersion: 'v1',
