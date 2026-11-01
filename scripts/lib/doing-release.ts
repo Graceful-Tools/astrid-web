@@ -163,11 +163,21 @@ export async function releaseDoingClaim(input: {
   task: DoingTask
   comments: ReleaseComment[]
   branches: string[]
+  /**
+   * The branch the loop saved this run's unfinished work on (`--saved-branch`), named
+   * first. A `wip/fixall-…` snapshot carries no task id, so matching alone misses it (AWTD-1471).
+   */
+  savedBranch?: string | null
+  /** Branches already merged into origin/main: finished work, never "continue from here" (AWTD-1471). */
+  merged?: string[]
   why: string
   api: DoingReleaseApi
 }): Promise<ReleaseOutcome> {
   const { task, comments, why, api } = input
-  const branches = branchesForTask(task.identifier, input.branches)
+  const merged = new Set(input.merged ?? [])
+  const saved = input.savedBranch?.trim()
+  const byId = branchesForTask(task.identifier, input.branches).filter(b => !merged.has(b) && b !== saved)
+  const branches = saved ? [saved, ...byId] : byId
   const where = branches.length > 0
     ? ` Its work so far is on ${branches.map(b => `\`${b}\``).join(', ')} — continue from there rather than starting over; it has not passed the gates.`
     : ' No branch carrying its id was found, so it starts fresh.'
