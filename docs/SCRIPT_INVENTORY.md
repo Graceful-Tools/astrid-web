@@ -6,7 +6,7 @@
 
 ## workflow
 
-`advance-prod-branch.sh`, `agent-queue-status.ts`, `brand-env-file.ts`, `check-destructive-migrations.ts`, `claim-fixall-task.ts`, `cron-runner.mjs`, `deploy-preview.sh`, `extract-preview-url.sh`, `land-and-deploy.ts`, `native-copilot-bridge.ts`, `open-fixall-prs.ts`, `parse-ready-tasks-output.ts`, `post-session-link.ts`, `ready-tasks.ts`, `release-stuck-doing.ts`, `restore-cloud-wake-state.ts`, `sanitize-pulled-env.ts`, `self-host-smoke.ts`, `verify-deployed-sha.sh`
+`advance-prod-branch.sh`, `agent-queue-status.ts`, `brand-env-file.ts`, `check-destructive-migrations.ts`, `claim-fixall-task.ts`, `cron-runner.mjs`, `deploy-preview.sh`, `extract-preview-url.sh`, `job-worker.mjs`, `land-and-deploy.ts`, `native-copilot-bridge.ts`, `open-fixall-prs.ts`, `parse-ready-tasks-output.ts`, `post-session-link.ts`, `ready-tasks.ts`, `release-stuck-doing.ts`, `restore-cloud-wake-state.ts`, `sanitize-pulled-env.ts`, `self-host-smoke.ts`, `verify-deployed-sha.sh`
 
 ## documentation
 
