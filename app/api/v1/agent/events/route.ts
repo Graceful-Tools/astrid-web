@@ -7,10 +7,13 @@
  * Sends: task.assigned, task.commented, task.updated, task.completed, task.deleted
  * Supports ?since=ISO8601 for replaying missed events.
  *
- * This endpoint registers in the shared SSE connection pool so that
- * broadcastToUsers() delivers events directly (real-time push). A proxy
- * controller transforms internal events into agent protocol format.
- * A 5-second poll remains as a safety net for edge cases.
+ * This endpoint registers on the realtime bus (lib/realtime/bus.ts) through
+ * the shared SSE connection pool, so events published on any instance are
+ * pushed to it. A proxy controller transforms internal events into agent
+ * protocol format. The bus used to be backed up here by a 5-second
+ * getMissedEvents poll whose cursor a direct push moved forward — the same
+ * lost-event race as /api/sse (AWTD-1459). The bus now owns cross-instance
+ * delivery; it is asked for <= 5 s latency to keep the old ceiling.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -37,6 +40,9 @@ export const runtime = 'nodejs'
  * actually reads (task 0f544a13).
  */
 export const maxDuration = 300
+
+/** The cross-instance ceiling the old 5 s safety-net poll gave agents. */
+const AGENT_EVENTS_MAX_LATENCY_MS = 5_000
 
 export async function GET(request: NextRequest) {
   let auth
@@ -74,8 +80,6 @@ export async function GET(request: NextRequest) {
 
   const stream = new ReadableStream({
     start(controller) {
-      let lastCheckTime = Date.now()
-
       // Time-windowed dedup (see createAgentEventDedup in lib/agent-protocol).
       const dedup = createAgentEventDedup()
 
@@ -94,8 +98,6 @@ export async function GET(request: NextRequest) {
             const parsed = JSON.parse(match[1])
             const fp = agentEventFingerprint(parsed)
             if (dedup.isDuplicate(fp)) return // already delivered
-            // Advance the poll cursor so we don't re-deliver this event
-            lastCheckTime = Date.now()
             transformEventForAgent(parsed).then(transformed => {
               if (transformed) {
                 try {
@@ -115,11 +117,11 @@ export async function GET(request: NextRequest) {
         },
       } as unknown as ReadableStreamDefaultController
 
-      const connectionId = registerConnection(userId, proxyController)
+      const connectionId = registerConnection(userId, proxyController, { maxLatencyMs: AGENT_EVENTS_MAX_LATENCY_MS })
 
       // ── Replay missed events ─────────────────────────────────────────
+      // Sequential, awaiting each transform, so a replay arrives in order.
       if (sinceTimestamp && !isNaN(sinceTimestamp)) {
-        lastCheckTime = sinceTimestamp
         getMissedEvents(userId, sinceTimestamp)
           .then(async (events) => {
             for (const event of events) {
@@ -137,36 +139,13 @@ export async function GET(request: NextRequest) {
                 log.error({ err }, 'Transform error during replay')
               }
             }
-            lastCheckTime = Date.now()
           })
           .catch(err => log.error({ err }, 'Replay error'))
       }
 
-      // ── Safety-net poll (5s) ─────────────────────────────────────────
-      // Catches events that might slip through if the proxy registration
-      // races with a concurrent broadcastToUsers call.
-      const pollInterval = setInterval(async () => {
+      // ── Keepalive (5s) ───────────────────────────────────────────────
+      const pollInterval = setInterval(() => {
         try {
-          const checkTime = lastCheckTime
-          const events = await getMissedEvents(userId, checkTime)
-          lastCheckTime = Date.now()
-
-          for (const event of events) {
-            try {
-              const fp = agentEventFingerprint(event)
-              if (dedup.isDuplicate(fp)) continue // already delivered
-              const transformed = await transformEventForAgent(event)
-              if (transformed) {
-                const eventId = `${transformed.type}:${transformed.data?.taskId || ''}:${transformed.data?.comment?.id || ''}:${Date.now()}`
-                controller.enqueue(
-                  encoder.encode(`id: ${eventId}\nevent: ${transformed.type}\ndata: ${JSON.stringify(transformed.data)}\n\n`)
-                )
-              }
-            } catch (err) {
-              log.error({ err }, 'Transform error during poll')
-            }
-          }
-
           controller.enqueue(encoder.encode(`event: keepalive\ndata: ${JSON.stringify({ serverTime: new Date().toISOString() })}\n\n`))
         } catch {
           clearInterval(pollInterval)

@@ -24,7 +24,7 @@ self-hosting the product means self-hosting this one image.
 | Uploads | Vercel Blob | `STORAGE_DRIVER=local` (a volume), `s3` (AWS S3, MinIO, R2, Ceph) or `azure-blob` |
 | Outbound email | Resend | `EMAIL_TRANSPORT=smtp`: any SMTP relay (Azure Communication Services, SendGrid, Exchange Online, your own); or Resend |
 | Cache and rate limits | Upstash Redis | `REDIS_URL` (compose runs `redis:7`); optional |
-| Real-time updates (SSE) | Upstash, shared across instances | In memory, inside the one app process |
+| Real-time updates (SSE) | Upstash, shared across instances (`REALTIME_BUS=upstash`, the default) | Redis pub/sub over `REDIS_URL` (`REALTIME_BUS=redis`, set by compose), shared across replicas |
 | TLS | Vercel | Your proxy, or `--profile tls` (Caddy, automatic certificates) |
 | Web analytics | Vercel Analytics | Off: the components render only on Vercel |
 
@@ -250,10 +250,11 @@ The image is an ordinary OCI image, and compose is one way to run it.
 - **More than one app replica** needs three things:
   - `STORAGE_DRIVER=s3`, because a local volume is per pod.
   - Exactly one cron runner.
-  - Upstash Redis (`UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`) for real-time
-    updates across replicas. Without it, a user connected to one replica does not see a
-    change made through another until their next sync. Live updates fan out over Upstash's
-    HTTP API only, so a plain `REDIS_URL` does not cover it. A single replica needs none
+  - `REALTIME_BUS=redis` and a `REDIS_URL` every replica can reach, for real-time updates
+    across replicas (compose sets both). Events go out over Redis pub/sub, one channel per
+    user, and a per-user sorted set keeps the last 15 minutes for clients that reconnect.
+    `REALTIME_BUS=upstash` with `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` also
+    works, but it polls every 15 s. See `lib/realtime/bus.ts`. A single replica needs none
     of this.
 
 ## Pointing the native apps at it

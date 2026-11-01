@@ -3,7 +3,7 @@ import { getUnifiedSession } from "@/lib/session-utils"
 import { NextRequest, NextResponse } from "next/server"
 import { authenticateAPI, type AuthContext } from "@/lib/api-auth-middleware"
 import { hasRequiredScopes } from "@/lib/oauth/oauth-scopes"
-import { registerConnection, removeConnection, updateConnectionPing, getMissedEvents, checkAndDeliverNewEvents } from "@/lib/sse-utils"
+import { registerConnection, removeConnection, updateConnectionPing } from "@/lib/sse-utils"
 import { createLogger } from "@/lib/logger"
 
 const log = createLogger('SSE')
@@ -139,45 +139,27 @@ export async function GET(request: NextRequest) {
     start(controller) {
       const userId = session.user.id
 
-      // Register this connection and get the connection ID
-      const connectionId = registerConnection(userId, controller)
-      // Debug: SSE connection registered
+      const hasSince = sinceTimestamp !== null && !isNaN(sinceTimestamp) && sinceTimestamp > 0
+      if (hasSince) {
+        log.debug({ since: new Date(sinceTimestamp).toISOString() }, 'Client reconnecting')
+      }
 
-      // Debug: Check connections after registration
+      // Register this connection on the realtime bus (lib/realtime/bus.ts). It
+      // delivers every event for this user — from this instance or any other —
+      // and, with `since`, first replays what the client missed. Each event is
+      // written once even when it arrives by more than one path (AWTD-1459).
+      // The replay is asynchronous, so the `connected` frame below goes first.
+      const connectionId = registerConnection(userId, controller, hasSince ? { since: sinceTimestamp } : {})
 
       // Send initial connection event
       const data = JSON.stringify({
         type: 'connected',
         timestamp: new Date().toISOString()
       })
-      // Debug: Sending initial connection event
       controller.enqueue(encoder.encode(`data: ${data}\n\n`))
 
-      // If client provided a 'since' timestamp, send any missed events
-      if (sinceTimestamp && !isNaN(sinceTimestamp)) {
-        log.debug({ since: new Date(sinceTimestamp).toISOString() }, 'Client reconnecting')
-        // getMissedEvents is now async (checks Redis in production)
-        getMissedEvents(userId, sinceTimestamp).then(missedEvents => {
-          if (missedEvents.length > 0) {
-            log.info({ userId, count: missedEvents.length }, 'Sending missed events')
-            missedEvents.forEach((event, index) => {
-              try {
-                const eventData = JSON.stringify(event)
-                controller.enqueue(encoder.encode(`data: ${eventData}\n\n`))
-                log.debug({ index: index + 1, total: missedEvents.length, type: event.type }, 'Sent missed event')
-              } catch (error) {
-                log.error({ err: error }, 'Failed to send missed event')
-              }
-            })
-          } else {
-            log.debug({ userId }, 'No missed events')
-          }
-        }).catch(err => {
-          log.error({ err }, 'Error fetching missed events')
-        })
-      }
-
-      // Send keep-alive ping every 15 seconds and check Redis for new events
+      // Send keep-alive ping every 15 seconds. Cross-instance events arrive
+      // through the bus on their own; this only keeps the stream open.
       // Single source of truth for whether this connection has been torn down.
       // Without this, the ping interval and the abort handler could each call
       // removeConnection() once, and an in-flight ping that started before
@@ -194,13 +176,6 @@ export async function GET(request: NextRequest) {
       const pingInterval = setInterval(async () => {
         if (cleanedUp) return
         try {
-          // First, check Redis for any new events from other instances
-          await checkAndDeliverNewEvents(userId, connectionId)
-
-          // Re-check after the await — the connection could have been torn
-          // down while we were waiting on Redis.
-          if (cleanedUp) return
-
           const pingData = JSON.stringify({
             type: 'ping',
             timestamp: new Date().toISOString()

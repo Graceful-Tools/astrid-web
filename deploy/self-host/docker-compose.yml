@@ -20,6 +20,8 @@ x-app-env: &app-env
   DATABASE_URL: postgresql://${POSTGRES_USER:-tasks}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-tasks}
   DATABASE_URL_DIRECT: postgresql://${POSTGRES_USER:-tasks}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-tasks}
   REDIS_URL: redis://redis:6379
+  # Realtime over Redis pub/sub, so live updates reach every replica (lib/realtime/bus.ts).
+  REALTIME_BUS: ${REALTIME_BUS:-redis}
 
 services:
   postgres:

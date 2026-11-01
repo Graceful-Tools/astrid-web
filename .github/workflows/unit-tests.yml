@@ -26,6 +26,19 @@ jobs:
     name: 'Typecheck, Lint & Unit Tests'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    # A real Redis for the RealtimeBus conformance suite's node-redis half
+    # (tests/integration/realtime-bus-conformance.test.ts, AWTD-1459). Without
+    # REALTIME_TEST_REDIS_URL that half is skipped by name, never faked.
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -85,3 +98,4 @@ jobs:
           S3_CONFORMANCE_ENDPOINT: http://127.0.0.1:8333
           # Azurite's published development account; not a secret.
           AZURITE_BLOB_CONNECTION_STRING: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;
+          REALTIME_TEST_REDIS_URL: redis://localhost:6379
