@@ -45,16 +45,12 @@ export async function GET(request: NextRequest) {
       promoteDueUnblockedTasks(),
     ])
 
-    // Digests run at the top of every hour; the services filter by user time.
-    const now = new Date()
-    let digestsAttempted = false
-    if (now.getMinutes() === 0) {
-      digestsAttempted = true
-      await Promise.allSettled([
-        reminderService.processDailyDigests(),
-        reminderService.processWeeklyDigests(),
-      ])
-    }
+    // Digests run every minute: each user's digest goes out in the minute their own clock shows
+    // their chosen time. An hourly gate meant 08:30 could never send (AWTD-1453).
+    const digests = await Promise.allSettled([
+      reminderService.processDailyDigests(),
+      reminderService.processWeeklyDigests(),
+    ])
 
     return {
       remindersDue: due.status === 'fulfilled' ? due.value.due : -1,
@@ -68,7 +64,7 @@ export async function GET(request: NextRequest) {
       // different answers and the summary has to be able to tell them apart.
       subJobsFailed: [due, retry, agents, unblocked].filter((r) => r.status === 'rejected')
         .length,
-      digestsAttempted,
+      digestsFailed: digests.filter((r) => r.status === 'rejected').length,
     }
   })
 }
