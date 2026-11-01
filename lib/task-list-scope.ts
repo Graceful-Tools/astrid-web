@@ -48,6 +48,33 @@ export function scopeTasksToList(
 }
 
 /**
+ * The list being viewed when its tasks must be fetched by `?listId=` rather
+ * than read from the global sync, or null (AWTD-1451 step 1).
+ *
+ * That is a real list — not My Tasks, Today or another system view — that is
+ * not among the user's own lists (`/api/v1/lists` returns only lists they own
+ * or belong to): a public or featured list opened from the sidebar. Owned and
+ * member lists return null, so their view is exactly what it was.
+ */
+export function foreignListIdFor(selectedListId: string, lists: TaskList[]): string | null {
+  if (!selectedListId || isSystemListId(selectedListId)) return null
+  return lists.some(list => list.id === selectedListId) ? null : selectedListId
+}
+
+/**
+ * After a FULL reconcile, put back the viewed foreign list's rows the response
+ * left out. The global read is not where they come from (AWTD-1451), so its
+ * omitting them is not a deletion; the per-list refetch that follows is what
+ * removes any that are really gone.
+ */
+export function keepListRows(prev: Task[], merged: Task[], listId: string | null): Task[] {
+  if (!listId) return merged
+  const present = new Set(merged.map(task => task.id))
+  const kept = prev.filter(task => inList(listId)(task) && !present.has(task.id))
+  return kept.length > 0 ? [...merged, ...kept] : merged
+}
+
+/**
  * The tasks with a deleted list taken off them. Deleting a list keeps its
  * tasks; if they kept the list too, the next edit of one sent it back and the
  * server refused the whole update with "Invalid list IDs" (AWTD-1419).
