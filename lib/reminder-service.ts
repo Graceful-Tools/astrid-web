@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import type { ReminderSettings, TaskReminderData, DailyDigestData } from '@/types/reminder'
 import { createLogger } from '@/lib/logger'
+import { digestDay, dueBefore, dueBetween, dueOn, isDigestMinute, weekdayIn } from '@/lib/digest-schedule'
 
 const log = createLogger('reminder-service')
 
@@ -438,8 +439,13 @@ export class ReminderService {
     }
   }
 
+  /**
+   * Runs every minute (the reminders cron); each user is sent their digest in the one minute their
+   * own clock shows `dailyDigestTime` (AWTD-1453).
+   */
   async processDailyDigests(): Promise<void> {
     const users = await this.prisma.user.findMany({
+      where: { reminderSettings: { is: { enableDailyDigest: true } } },
       include: {
         reminderSettings: true,
       },
@@ -459,60 +465,36 @@ export class ReminderService {
   }
 
   private async sendDailyDigestForUser(user: any): Promise<void> {
-    const settings = user.reminderSettings
+    const settings: ReminderSettings = user.reminderSettings
     const now = new Date()
-    
-    // Check if it's the right time for this user's daily digest
-    if (!this.isTimeForDailyDigest(settings, now)) {
+
+    if (!isDigestMinute(settings.dailyDigestTime, settings.dailyDigestTimezone, now)) {
       return
     }
 
-    // Get tasks for the digest
-    const today = new Date()
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-    const startOfTomorrow = new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate())
-    const endOfTomorrow = new Date(startOfTomorrow.getTime() + 24 * 60 * 60 * 1000)
+    // Today and tomorrow are the user's calendar days, not the server's (AWTD-1453).
+    const today = digestDay(now, settings.dailyDigestTimezone, 0)
+    const tomorrow = digestDay(now, settings.dailyDigestTimezone, 1)
+    const openTasksFor = { assigneeId: user.id, completed: false }
 
     const [dueTodayTasks, dueTomorrowTasks, overdueTasks] = await Promise.all([
       // Due today
       this.prisma.task.findMany({
-        where: {
-          assigneeId: user.id,
-          completed: false,
-          dueDateTime: {
-            gte: startOfToday,
-            lt: startOfTomorrow,
-          },
-        },
+        where: { ...openTasksFor, ...dueOn(today) },
         include: {
           lists: { select: { name: true } },
         },
       }),
       // Due tomorrow
       this.prisma.task.findMany({
-        where: {
-          assigneeId: user.id,
-          completed: false,
-          dueDateTime: {
-            gte: startOfTomorrow,
-            lt: endOfTomorrow,
-          },
-        },
+        where: { ...openTasksFor, ...dueOn(tomorrow) },
         include: {
           lists: { select: { name: true } },
         },
       }),
       // Overdue
       this.prisma.task.findMany({
-        where: {
-          assigneeId: user.id,
-          completed: false,
-          dueDateTime: {
-            lt: startOfToday,
-          },
-        },
+        where: { ...openTasksFor, ...dueBefore(today) },
         include: {
           lists: { select: { name: true } },
         },
@@ -537,39 +519,14 @@ export class ReminderService {
     await this.emailService.sendDailyDigest(digestData)
   }
 
-  private isTimeForDailyDigest(settings: ReminderSettings, now: Date): boolean {
-    const [targetHour, targetMinute] = settings.dailyDigestTime.split(':').map(Number)
-    const timezone = settings.dailyDigestTimezone
-    
-    try {
-      // Get current time in user's timezone
-      const userTime = new Date(now.toLocaleString('en-US', { timeZone: timezone }))
-      const currentHour = userTime.getHours()
-      const currentMinute = userTime.getMinutes()
-      
-      // Allow 5-minute window for digest delivery
-      const currentTimeInMinutes = currentHour * 60 + currentMinute
-      const targetTimeInMinutes = targetHour * 60 + targetMinute
-      
-      return Math.abs(currentTimeInMinutes - targetTimeInMinutes) <= 5
-    } catch (error) {
-      log.error({ err: error }, 'Error checking digest time:')
-      return false
-    }
-  }
-
+  /** Mondays on the user's clock, at their digest time (AWTD-1453). Runs every minute. */
   async processWeeklyDigests(): Promise<void> {
     const users = await this.prisma.user.findMany({
+      where: { reminderSettings: { is: { enableDailyDigest: true } } },
       include: {
         reminderSettings: true,
       },
     })
-
-    // Process weekly digests on Mondays
-    const now = new Date()
-    if (now.getDay() !== 1) { // 1 = Monday
-      return
-    }
 
     for (const user of users) {
       if (!user.reminderSettings?.enableDailyDigest) {
@@ -585,27 +542,24 @@ export class ReminderService {
   }
 
   private async sendWeeklyDigestForUser(user: any): Promise<void> {
-    const settings = user.reminderSettings
-    
-    // Check if it's the right time (same as daily digest time)
-    if (!this.isTimeForDailyDigest(settings, new Date())) {
+    const settings: ReminderSettings = user.reminderSettings
+    const now = new Date()
+    const zone = settings.dailyDigestTimezone
+
+    // Monday (1) at the daily digest time, both on the user's clock.
+    if (weekdayIn(now, zone) !== 1 || !isDigestMinute(settings.dailyDigestTime, zone, now)) {
       return
     }
 
-    // Get tasks due this week
-    const now = new Date()
-    const endOfWeek = new Date(now)
-    endOfWeek.setDate(now.getDate() + (7 - now.getDay())) // End of current week (Saturday)
-    endOfWeek.setHours(23, 59, 59, 999)
+    // From now to the end of the user's Sunday (the start of next Monday).
+    const today = digestDay(now, zone, 0)
+    const endOfWeek = digestDay(now, zone, 7)
 
     const upcomingTasks = await this.prisma.task.findMany({
       where: {
         assigneeId: user.id,
         completed: false,
-        dueDateTime: {
-          gte: now,
-          lte: endOfWeek,
-        },
+        ...dueBetween(today, endOfWeek, now),
       },
       include: {
         lists: { select: { name: true } },
