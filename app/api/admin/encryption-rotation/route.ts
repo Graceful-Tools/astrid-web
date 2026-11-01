@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { authenticateAPI, UnauthorizedError } from '@/lib/api-auth-middleware'
 import { requireAdmin, AdminAuthError } from '@/lib/admin-auth'
 import { encryptionKeyHexes } from '@/lib/encryption-keys'
-import { prisma } from '@/lib/prisma'
-import { reencrypt } from '@/lib/reencrypt-runner'
+import { reencryptAppDatabase } from '@/lib/reencrypt-runner'
 import type { RowOutcome } from '@/lib/reencrypt-plan'
 import { createLogger } from '@/lib/logger'
 
@@ -70,8 +69,7 @@ async function run(request: NextRequest, mode: 'dry-run' | 'rewrite') {
   const tables: ({ table: string } & RowOutcome)[] = []
   const problems: string[] = []
   let problemsTruncated = 0
-  const totals = await reencrypt(
-    prisma,
+  const totals = await reencryptAppDatabase(
     { dryRun: mode === 'dry-run', verify: false, batchSize: 500 },
     {
       table: (table, outcome) => tables.push({ table, ...outcome }),
