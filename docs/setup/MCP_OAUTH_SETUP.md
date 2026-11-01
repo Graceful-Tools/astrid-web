@@ -350,7 +350,13 @@ Notes:
 - Astrid serves **both transports**. Streamable HTTP (`"type": "http"`) posts
   JSON-RPC to the single `/mcp` URL and is what current clients prefer. The older
   **SSE** transport (`"type": "sse"`, a GET stream plus a separate
-  `/mcp/messages` POST URL) still works for clients that need it.
+  `/mcp/messages` POST URL) still works for clients that need it, but its
+  sessions live on the one server instance that opened the stream: a message
+  that lands elsewhere (scale-out, redeploy) gets a 404 telling the client to
+  reconnect or switch to Streamable HTTP. Prefer Streamable HTTP. Legacy SSE use
+  is counted in the legacy-traffic census (`npx tsx scripts/legacy-usage-census.ts
+  --prod`, routes `/mcp`, `/mcp/messages`) so the transport can be retired once
+  `/mcp/messages` has been quiet for 28 days (AWTD-1461).
 - Prefer **workspace `.vscode/mcp.json`** over a repo-root `.mcp.json` — VS Code
   has a known bug where custom `headers` in `.mcp.json` are silently dropped. You
   don't need `headers` here anyway (OAuth is automatic), but keep to
