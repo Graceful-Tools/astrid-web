@@ -6,7 +6,7 @@
 #   docker compose -f deploy/self-host/docker-compose.yml --profile tls up -d   # with automatic HTTPS
 #
 # Services: postgres, redis, migrate (one-shot, runs before app), app, cron,
-# and caddy (TLS, only with --profile tls).
+# worker (drains the durable job queue), and caddy (TLS, only with --profile tls).
 
 name: ${COMPOSE_PROJECT_NAME:-tasks}
 
@@ -80,6 +80,27 @@ services:
     # own heartbeat, stale after three missed ticks.
     healthcheck:
       test: ["CMD", "node", "scripts/cron-runner.mjs", "--healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 2
+    environment:
+      CRON_SECRET: ${CRON_SECRET:?set CRON_SECRET in .env}
+      CRON_BASE_URL: http://app:3000
+    depends_on:
+      app:
+        condition: service_healthy
+
+  worker:
+    # The same image again, draining the durable job queue (AWTD-1460):
+    # Astrid's chat and comment replies, and their retries. Safe to scale —
+    # each job is claimed once — but one is enough.
+    image: ${IMAGE:-tasks-selfhost}:${IMAGE_TAG:-latest}
+    pull_policy: never
+    restart: unless-stopped
+    command: ["node", "scripts/job-worker.mjs"]
+    healthcheck:
+      test: ["CMD", "node", "scripts/job-worker.mjs", "--healthcheck"]
       interval: 30s
       timeout: 5s
       start_period: 10s

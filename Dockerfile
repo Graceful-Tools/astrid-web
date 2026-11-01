@@ -69,6 +69,7 @@ COPY --chown=node:node deploy/self-host/load-env.mjs ./load-env.mjs
 # The cron runner reads the job list from vercel.json, the one place it is written.
 COPY --chown=node:node vercel.json ./vercel.json
 COPY --chown=node:node scripts/cron-runner.mjs ./scripts/cron-runner.mjs
+COPY --chown=node:node scripts/job-worker.mjs ./scripts/job-worker.mjs
 COPY --chown=node:node scripts/lib/cron-schedule.mjs ./scripts/lib/cron-schedule.mjs
 RUN mkdir -p /app/data/uploads && chown -R node:node /app/data
 

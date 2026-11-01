@@ -37,7 +37,7 @@
 
 import { canAccessChatChannel } from '@/lib/chat-access'
 import { resolveDefaultAgentWithReason } from '@/lib/resolve-default-agent'
-import { processAstridMessage } from '@/lib/astrid-agent-runtime'
+import { enqueueJob } from '@/lib/jobs/queue'
 import { postAstridModelSetupPrompt } from '@/lib/astrid-agent/model-setup-prompt'
 import { ASTRID_EMAIL } from '@/lib/astrid-agent'
 import { broadcastToUsers } from '@/lib/sse-utils'
@@ -148,18 +148,24 @@ export async function handOffAstridReply(args: {
   })
 
   if (agent?.email === ASTRID_EMAIL) {
-    // Fire-and-forget, matching the legacy path: generation takes seconds and
-    // the client is not waiting on the reply, it is waiting on the handoff
-    // being accepted.
-    processAstridMessage({
-      userMessage: content,
-      userId,
-      userName,
-      channelId,
-      listId: channel?.listId || null,
-      locale: args.locale,
-      replyClientRequestId: replyRequestId(messageId),
-    }).catch(err => log.error({ err }, `${BRAND.appName} handoff generation failed`))
+    // A durable job (AWTD-1460), not a floating promise: generation takes
+    // seconds and the client is waiting only on the handoff being accepted,
+    // so the reply starts in after() and, if this function is frozen first,
+    // the minute cron finishes it. The dedupe key is a third idempotency
+    // layer; the reply's clientRequestId still makes a re-run harmless.
+    await enqueueJob(
+      'astrid-handoff',
+      {
+        userMessage: content,
+        userId,
+        userName,
+        channelId,
+        listId: channel?.listId || null,
+        locale: args.locale,
+        replyClientRequestId: replyRequestId(messageId),
+      },
+      { dedupeKey: `astrid-handoff:${messageId}` },
+    )
 
     return { ok: true, dispatched: 'astrid' }
   }
