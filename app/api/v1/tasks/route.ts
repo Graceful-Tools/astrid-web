@@ -142,7 +142,9 @@ export const GET = withAuth(
         },
       }
     } else {
-      // No listId: surface every task the caller can see
+      // No listId: the caller's own tasks. Public lists are deliberately NOT
+      // OR-ed in (AWTD-1451): that made this read, and its count, scan every
+      // public list in the deployment. They stay reachable by `?listId=`.
       where.OR = [
         { creatorId: auth.userId },
         { assigneeId: auth.userId },
@@ -152,7 +154,6 @@ export const GET = withAuth(
               OR: [
                 { ownerId: auth.userId },
                 { listMembers: { some: { userId: auth.userId } } },
-                { privacy: 'PUBLIC' },
               ],
             },
           },

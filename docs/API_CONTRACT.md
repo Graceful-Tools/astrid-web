@@ -181,7 +181,7 @@ List the tasks the caller can see. Scope: `tasks:read`.
 
 | Parameter | Meaning |
 |---|---|
-| `listId` | only this list's tasks; caller must have access to it |
+| `listId` | only this list's tasks; caller must have access to it. Without it, the read is the caller's own tasks (created, assigned, or on a list they own or belong to) — tasks in public lists they have no tie to are NOT included; read those by `listId` |
 | `completed` | `true` / `false`. Absent means both |
 | `priority` | `0`–`3` |
 | `assigneeId`, `assigneeEmail` | filter by assignee (email is case-insensitive) |
