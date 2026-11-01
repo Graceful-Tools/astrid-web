@@ -31,7 +31,9 @@ export async function GET(request: NextRequest) {
       database: {
         healthy: healthCheck.healthy,
         responseTime: `${healthCheck.responseTime}ms`,
-        ...(healthCheck.error && { error: healthCheck.error })
+        // The raw Prisma message can name the database host (AWTD-1456); it is
+        // already in the server log via safeHealthCheck. Say only that it failed.
+        ...(healthCheck.error && { error: 'Database health check failed' })
       },
       environment: process.env.NODE_ENV,
       version: commitSha,
@@ -58,8 +60,9 @@ export async function GET(request: NextRequest) {
       // And for repeating-task rollover on completion (AWTD-1063).
       coreRulesRepeating: repeatingCoreStatus(),
       webhookConfigured: !!process.env.CLAUDE_REMOTE_WEBHOOK_URL,
+      // Booleans only: this endpoint is unauthenticated, and it once returned the first 30
+      // characters of the secret-bearing CLAUDE_REMOTE_WEBHOOK_URL (AWTD-1456).
       webhookSecretConfigured: !!process.env.CLAUDE_REMOTE_WEBHOOK_SECRET,
-      webhookUrl: process.env.CLAUDE_REMOTE_WEBHOOK_URL ? `${process.env.CLAUDE_REMOTE_WEBHOOK_URL.slice(0, 30)}...` : null
     }
 
     return NextResponse.json(response, { 
