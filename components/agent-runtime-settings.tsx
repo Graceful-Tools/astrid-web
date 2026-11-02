@@ -18,6 +18,15 @@ import {
   queueSkillAdapter,
   type QueueSkillHarness,
 } from '@/lib/agent-skill/astrid-queue-skill'
+import {
+  actionsQueueGateWorkflow,
+  claudeCodeLoopCommand,
+  loopConnectCommand,
+  loopScheduleCommand,
+  mcpServerName,
+  mcpUrlFor,
+  type LoopHarness,
+} from '@/lib/agent-skill/loop-recipes'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -100,7 +109,7 @@ const MAILBOX_TABS: Record<string, readonly string[]> = {
   gemini: ['gemini'],
 }
 
-function CopyBlock({
+export function CopyBlock({
   code,
   label,
   testId,
@@ -194,10 +203,15 @@ export function AgentLoopRecipes({
   listId?: string | null
 }) {
   const { t } = useTranslations()
-  const mcpUrl = `${origin}/mcp`
+  const mcpUrl = mcpUrlFor(origin)
   // Same name /docs/mcp tells people to register, so one harness ends up with one
   // server entry rather than two half-configured ones.
-  const serverName = BRAND.wordmark.toLowerCase()
+  const serverName = mcpServerName()
+  // Connect and schedule lines come from lib/agent-skill/loop-recipes so the
+  // plain-markdown /starthere.md serves the identical commands.
+  const connectCmd = (harness: LoopHarness) => loopConnectCommand(harness, origin)
+  const scheduleCmd = (harness: LoopHarness, tab: string) =>
+    loopScheduleCommand(harness, { mailbox: agentFor(tab), origin, listId })
   const listClause = listId ? ` and listId "${listId}"` : ''
   const agentFor = (tab: string) => mailbox ?? TAB_MAILBOX[tab] ?? 'claude'
   const queueLine = (tab: string) => queueContractLine({ mailbox: agentFor(tab), listId })
@@ -238,18 +252,10 @@ Treat empty:true as a successful connection. If a field cannot be verified, say 
       />
     </RecipeStep>
   )
+  const gate = actionsQueueGateWorkflow({ mailbox: agentFor('github'), origin, listId })
   const cloudSecretName =
     `COPILOT_MCP_${BRAND.wordmark.replace(/[^a-z0-9]/gi, '_').toUpperCase()}_TOKEN`
   const tokenSetupUrl = `${origin}/settings/agents`
-  // The Actions gate never stores a long-lived credential: client credentials
-  // from API Access exchange for a one-hour token, scoped to exactly what a
-  // queue read plus task/comment writes need — never the wildcard an MCP setup
-  // token maps to.
-  const actionsScopes =
-    'tasks:read tasks:write lists:read comments:read comments:write user:read'
-  const actionsClientIdReference = '${{ secrets.ASTRID_CLIENT_ID }}'
-  const actionsClientSecretReference = '${{ secrets.ASTRID_CLIENT_SECRET }}'
-  const actionsTokenReference = '${{ steps.token.outputs.access-token }}'
 
   const visibleTabs = (mailbox && MAILBOX_TABS[mailbox]) || ALL_TABS
   const preferredTab = (mailbox && DEFAULT_HARNESS[mailbox]) || 'claude-code'
@@ -273,7 +279,7 @@ Treat empty:true as a successful connection. If a field cannot be verified, say 
         <RecipeStep number={1} title="Connect">
           <CopyBlock
             label="Add the remote MCP server"
-            code={`claude mcp add --transport http ${serverName} ${mcpUrl}`}
+            code={connectCmd('claude-code')}
           />
           <p className="text-xs theme-text-muted">
             Open <code className="font-mono">/mcp</code> in Claude Code and choose Authenticate.
@@ -299,10 +305,10 @@ Treat empty:true as a successful connection. If a field cannot be verified, say 
           />
         </RecipeStep>
         <RecipeStep number={3} title="Schedule or run">
-          <CopyBlock label="Run every 30 minutes in this session" code={`/loop 30m /${serverName}-queue`} />
+          <CopyBlock label="Run every 30 minutes in this session" code={claudeCodeLoopCommand()} />
           <CopyBlock
             label="Unattended cron fallback"
-            code={`*/30 * * * * cd ~/code/your-project && claude -p "/${serverName}-queue" >> ~/${serverName}-loop.log 2>&1`}
+            code={scheduleCmd('claude-code', 'claude-code')}
           />
         </RecipeStep>
         {connectionTest('claude-code', 'Claude Code /loop every 30 minutes, or the cron fallback')}
@@ -312,7 +318,7 @@ Treat empty:true as a successful connection. If a field cannot be verified, say 
         <RecipeStep number={1} title="Connect">
           <CopyBlock
             label="Copilot CLI: add the remote MCP server"
-            code={`copilot mcp add --transport http ${serverName} ${mcpUrl}`}
+            code={connectCmd('copilot')}
           />
           <CopyBlock
             label="VS Code fallback: .vscode/mcp.json"
@@ -351,7 +357,7 @@ Treat empty:true as a successful connection. If a field cannot be verified, say 
         <RecipeStep number={3} title="Schedule or run">
           <CopyBlock
             label="Run Copilot CLI every 30 minutes"
-            code={`*/30 * * * * cd ~/code/your-project && copilot -p "${queueLine('copilot')}" --allow-all-tools >> ~/${serverName}-loop.log 2>&1`}
+            code={scheduleCmd('copilot', 'copilot')}
           />
           <p className="text-xs theme-text-muted">
             For an interactive run, select the {BRAND.appName} Queue custom agent in the
@@ -368,8 +374,7 @@ Treat empty:true as a successful connection. If a field cannot be verified, say 
         <RecipeStep number={1} title="Connect">
           <CopyBlock
             label="Add the remote server and authorize it"
-            code={`codex mcp add ${serverName} --url ${mcpUrl}
-codex mcp login ${serverName}`}
+            code={connectCmd('codex')}
           />
           <CopyBlock
             label="Manual MCP fallback: ~/.codex/config.toml"
@@ -386,7 +391,7 @@ url = "${mcpUrl}"`}
         <RecipeStep number={3} title="Schedule or run">
           <CopyBlock
             label="Run Codex every 30 minutes"
-            code={`*/30 * * * * cd ~/code/your-project && codex exec --sandbox workspace-write "${queueLine('codex')}" >> ~/${serverName}-loop.log 2>&1`}
+            code={scheduleCmd('codex', 'codex')}
           />
         </RecipeStep>
         {connectionTest('codex', 'Codex cron every 30 minutes, or a manual codex exec run')}
@@ -396,8 +401,7 @@ url = "${mcpUrl}"`}
         <RecipeStep number={1} title="Connect">
           <CopyBlock
             label="Add the remote server and authorize it"
-            code={`muse mcp add ${serverName} --url ${mcpUrl}
-muse mcp login ${serverName}`}
+            code={connectCmd('muse')}
           />
           <CopyBlock
             label="Manual MCP fallback: ~/.muse/config.toml"
@@ -412,15 +416,9 @@ url = "${mcpUrl}"`}
           />
         </RecipeStep>
         <RecipeStep number={3} title="Schedule or run">
-          {/*
-            Muse parses options on the SUBCOMMAND, not the root, so the flags
-            follow `exec` and its prompt. --disable-approval is what makes an
-            unattended run possible while keeping the CLI's own sandbox; --yolo
-            would drop the sandbox too and is not appropriate on a laptop.
-          */}
           <CopyBlock
             label="Run Muse every 30 minutes"
-            code={`*/30 * * * * cd ~/code/your-project && muse exec "${queueLine('muse')}" --disable-approval >> ~/${serverName}-loop.log 2>&1`}
+            code={scheduleCmd('muse', 'muse')}
           />
         </RecipeStep>
         {connectionTest('muse', 'Muse cron every 30 minutes, or a manual muse exec run')}
@@ -446,45 +444,8 @@ url = "${mcpUrl}"`}
           <CopyBlock
             label="Add the queue gate workflow"
             testId="actions-queue-gate"
-            code={`# .github/workflows/${serverName}-queue.yml
-name: ${BRAND.appName} queue gate
-on:
-  schedule:
-    - cron: "*/30 * * * *"
-  workflow_dispatch:
-
-jobs:
-  queue-gate:
-    runs-on: ubuntu-latest
-    outputs:
-      has-work: \${{ steps.queue.outputs.has-work }}
-    steps:
-      - name: Exchange client credentials for a one-hour token
-        id: token
-        run: |
-          ACCESS_TOKEN=$(curl -fsS -X POST "${origin}/api/v1/oauth/token" \\
-            -d grant_type=client_credentials \\
-            -d client_id="${actionsClientIdReference}" \\
-            -d client_secret="${actionsClientSecretReference}" \\
-            -d "scope=${actionsScopes}" | jq -r .access_token)
-          echo "::add-mask::$ACCESS_TOKEN"
-          echo "access-token=$ACCESS_TOKEN" >> "$GITHUB_OUTPUT"
-      - name: Read the queue
-        id: queue
-        run: |
-          curl -fsS "${origin}/api/v1/agent-queue?agent=${agentFor('github')}${listId ? `&listId=${listId}` : ''}" \\
-            -H "X-OAuth-Token: ${actionsTokenReference}" > queue.json
-          echo "has-work=$(jq -r 'if .empty then "false" else "true" end' queue.json)" >> "$GITHUB_OUTPUT"
-
-  run-your-agent:
-    needs: queue-gate
-    if: needs.queue-gate.outputs.has-work == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      # Replace this step with your existing supported agent job — the gate
-      # only decides whether that job starts.
-      - run: echo "Queue has assigned Ready tasks - start your agent job"`}
+            code={`# ${gate.path}
+${gate.content}`}
           />
         </RecipeStep>
         <RecipeStep number={3} title="Schedule or run">
