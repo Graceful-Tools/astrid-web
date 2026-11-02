@@ -106,6 +106,7 @@ the fixture is regenerated in the same PR:
 | `my-tasks.json` | `lib/my-tasks-scope.ts` (`myTasksShows`) |
 | `markdown.json` | `lib/markdown.ts` |
 | `wire-shapes.json` | `lib/tasks/v1-task-shape.ts`, `lib/lists/v1-list-shape.ts` |
+| `sync-existence.json` | `lib/sync/v1-existence.ts`, `app/api/v1/sync/existence/route.ts` |
 
 The registry is `EXPORTS` in `scripts/export-contract-fixtures.ts`. Each fixture's consumer
 is listed in astrid-core's

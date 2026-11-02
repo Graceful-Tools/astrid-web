@@ -259,6 +259,35 @@ GET /api/v1/tasks?limit=1000&cursor=eyJ1Ijoi…
 
 The wire fixture is `task.listPage.cursor` in `contracts/fixtures/wire-shapes.json`.
 
+### POST `/api/v1/sync/existence`
+Which of a client's cached ids it can no longer read (AWTD-1515). `deletedIds`
+only covers hard deletes; a list the caller was removed from, or a task that
+moved somewhere private, never shows up in a delta. This replaces one
+`GET /api/v1/tasks/{id}` per cached row.
+
+```http
+POST /api/v1/sync/existence
+{ "taskIds": ["…", "…"], "listIds": ["…"] }
+→ { "missingTaskIds": ["…"], "missingListIds": [], "maxIds": 200,
+    "meta": { "apiVersion": "v1", "authSource": "oauth" } }
+```
+
+- **Missing means exactly what the per-row GET means**: an id is listed when
+  `GET /api/v1/tasks/{id}` / `GET /api/v1/lists/{id}` would answer 403, 404 or
+  410 — deleted, never existed, or no longer visible to the caller. The route
+  reads with the same access clause those GETs use. Drop missing rows from the
+  cache.
+- Either kind may be omitted; both arrays always come back. Order is the
+  request's, duplicates once. Ids only — a human identifier (`AST-142`) is not
+  resolved and comes back missing.
+- At most **`maxIds` (200) per kind** per request; more is a `400` whose
+  `error` names the limit. A malformed body is a `400`.
+- Scopes: `tasks:read` to ask about tasks, `lists:read` to ask about lists
+  (either one admits the request; asking about a kind without its scope is a
+  `403`).
+
+The fixture is `contracts/fixtures/sync-existence.json`.
+
 ### GET `/api/tasks`
 Fetch all tasks accessible to the current user.
 
