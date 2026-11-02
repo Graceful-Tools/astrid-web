@@ -130,9 +130,13 @@ or device activation is implied by these repository changes.
    An installation token or Actions `GITHUB_TOKEN` is not a substitute. Do not
    collect credentials in task comments or give this dispatcher token to coding
    workers. The bridge checks native Copilot's assignability before mutation.
-   The `copilot` worker environment needs Astrid OAuth; repository coding-agent
-   MCP settings must register `node mcp/astrid-mcp-launch.js` with those credentials.
-   Setup alone does not register MCP. Validate real task reads and signed writes.
+   The `copilot` worker environment needs Astrid OAuth for setup and preflight.
+   Repository coding-agent MCP settings need a separate connection: the GitHub
+   Copilot setup card in Astrid generates hosted HTTP configuration and a
+   Copilot-bound token to save as an Agents secret. Alternatively, register
+   `node mcp/astrid-mcp-launch.js` with OAuth credentials available to the agent
+   and build the MCP transport. Setup alone does not register MCP. Validate real
+   task reads and signed writes.
    Hosted MCP now resolves declared write identities through the authenticated
    queue even on a fresh request, not merely a previous process-local poll.
    Pull-request setup CI builds the test environment and MCP transport without
