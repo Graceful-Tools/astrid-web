@@ -43,6 +43,7 @@ import { GET, POST } from '@/app/api/v1/tasks/[id]/comments/route'
 import { prisma } from '@/lib/prisma'
 import { authenticateAPI } from '@/lib/api-auth-middleware'
 import { BRAND } from '@/lib/brand/config'
+import { rowWith } from '../fixtures/prisma-rows'
 
 const mockPrisma = vi.mocked(prisma, true)
 const mockAuth = vi.mocked(authenticateAPI)
@@ -181,9 +182,51 @@ describe('POST /api/v1/tasks/:id/comments — access', () => {
 })
 
 describe('POST /api/v1/tasks/:id/comments — agent-bound authentication', () => {
+  const copilot = {
+    id: 'copilot-agent',
+    email: `copilot@${BRAND.agentEmailDomain}`,
+    name: 'GitHub Copilot Agent',
+    isAIAgent: true,
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
     ;(mockPrisma.task.findUnique as any).mockResolvedValue(ownTask)
+  })
+
+  it('AWTD-1383 accepts the bound MCP agent when its identity is explicitly supplied', async () => {
+    mockAuth.mockResolvedValue({ ...authedUser, source: 'legacy_mcp', agentUser: copilot })
+    mockPrisma.comment.create.mockResolvedValue(rowWith({
+      id: 'c-1',
+      content: 'as agent',
+      authorId: copilot.id,
+      createdAt: new Date(),
+      author: copilot,
+      secureFiles: [],
+    }))
+
+    const res = await POST(
+      makeReq('POST', { content: 'as agent', aiAgentId: copilot.id }),
+      { params },
+    )
+
+    expect(res.status).toBe(201)
+    expect(mockPrisma.comment.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ authorId: copilot.id }) }),
+    )
+  })
+
+  it('AWTD-1383 refuses a different identity on an agent-bound MCP token', async () => {
+    mockAuth.mockResolvedValue({ ...authedUser, source: 'legacy_mcp', agentUser: copilot })
+
+    const res = await POST(
+      makeReq('POST', { content: 'as agent', aiAgentId: 'different-agent' }),
+      { params },
+    )
+
+    expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({ error: 'aiAgentId does not match the agent-bound credential' })
+    expect(mockPrisma.comment.create).not.toHaveBeenCalled()
   })
 
   it('regression for d9e4aae0 derives the author from the authenticated MCP token', async () => {
