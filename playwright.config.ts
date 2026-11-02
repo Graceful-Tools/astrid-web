@@ -103,7 +103,7 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testMatch: /(auth|locale-navigation|layout-regression|document-pages-scroll|hover-theme-variants)\.spec\.ts/,
+      testMatch: /(auth|locale-navigation|layout-regression|document-pages-scroll|hover-theme-variants|start-here)\.spec\.ts/,
     },
 
     {
@@ -137,7 +137,7 @@ export default defineConfig({
         ...devices['Desktop Chrome'],
         storageState: '.auth/user.json',
       },
-      testMatch: /authenticated-critical-paths\.spec\.ts/,
+      testMatch: /(authenticated-critical-paths|start-here-authenticated)\.spec\.ts/,
     }, {
       name: 'authenticated-ui',
       use: {
