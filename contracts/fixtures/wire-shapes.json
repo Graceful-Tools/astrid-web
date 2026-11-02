@@ -798,7 +798,8 @@
             "enabledTypes": [
               "claude"
             ],
-            "defaultAgentId": null
+            "defaultAgentId": null,
+            "allowMemberAssignment": false
           },
           "publicListType": null,
           "defaultIsPrivate": true,
@@ -913,7 +914,8 @@
           "aiAgentsEnabled": [],
           "aiAgentConfig": {
             "enabledTypes": [],
-            "defaultAgentId": null
+            "defaultAgentId": null,
+            "allowMemberAssignment": false
           },
           "publicListType": null,
           "defaultIsPrivate": true,

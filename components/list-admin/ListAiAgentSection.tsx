@@ -5,6 +5,8 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { useTranslations } from "@/lib/i18n/client"
 import { agentServiceLabel } from "@/lib/ai/agent-config"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Bot, ChevronDown, ChevronUp, RefreshCw, Repeat } from "lucide-react"
@@ -32,10 +34,15 @@ interface ListAiAgentSectionProps {
  * be chosen — polling-mode agents need no provider here at all.
  */
 export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAgentSectionProps) {
+  const { t } = useTranslations()
   // --- assistant model (aiAgentConfig.defaultAgentId) ---
   const [availableAgents, setAvailableAgents] = useState<Array<{ id: string; name: string | null; email: string; image: string | null; service: string }>>([])
   const [listDefaultAgentId, setListDefaultAgentId] = useState<string | null>(
     () => list.aiAgentConfig?.defaultAgentId ?? null
+  )
+  // --- may plain members hand ANY task to an agent (AWTD-1493) ---
+  const [allowMemberAssignment, setAllowMemberAssignment] = useState<boolean>(
+    () => list.aiAgentConfig?.allowMemberAssignment === true
   )
 
   // --- coding-agent repository (githubRepositoryId) ---
@@ -85,6 +92,35 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
       <div className="flex items-center space-x-2">
         <Bot className="w-4 h-4 text-blue-600" />
         <Label className="text-sm font-medium theme-text-primary">AI Agent</Label>
+      </div>
+
+      {/* Members handing any task to an agent (AWTD-1493). Sent as an explicit
+          boolean, which is the only write that changes it — a write that omits
+          the key keeps whatever was there. */}
+      <div className="flex items-start justify-between gap-3" data-testid="member-agent-assignment">
+        <div className="space-y-1">
+          <Label htmlFor="member-agent-assignment" className="text-sm theme-text-primary">
+            {t('listSettings.memberAgentAssignment.label')}
+          </Label>
+          <p className="text-xs theme-text-muted">{t('listSettings.memberAgentAssignment.help')}</p>
+        </div>
+        <Switch
+          id="member-agent-assignment"
+          checked={allowMemberAssignment}
+          onCheckedChange={(checked) => {
+            setAllowMemberAssignment(checked)
+            const currentTypes = list.aiAgentConfig?.enabledTypes ?? list.aiAgentsEnabled ?? []
+            onUpdate({
+              ...list,
+              aiAgentsEnabled: currentTypes,
+              aiAgentConfig: {
+                enabledTypes: currentTypes,
+                defaultAgentId: list.aiAgentConfig?.defaultAgentId ?? listDefaultAgentId,
+                allowMemberAssignment: checked,
+              },
+            })
+          }}
+        />
       </div>
 
       {/* Assistant model for this list. Server-run, so it needs a keyed agent —

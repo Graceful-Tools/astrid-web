@@ -116,7 +116,13 @@ function storedAgentConfig(
 ): { enabledTypes: string[]; defaultAgentId: string | null; allowMemberAssignment?: true } {
   const config = normalizeAgentEnabledConfig(value)
   const carried = normalizeAgentEnabledConfig(previous)
-  const allowMemberAssignment = config.allowMemberAssignment || carried.allowMemberAssignment
+  // A write that NAMES the key decides it — the list settings switch sends
+  // true or false (AWTD-1493). Only a write that omits it carries the old
+  // value, so an old client still cannot revoke it by accident.
+  const named =
+    typeof value === 'object' && value !== null && !Array.isArray(value) &&
+    typeof (value as Record<string, unknown>).allowMemberAssignment === 'boolean'
+  const allowMemberAssignment = named ? config.allowMemberAssignment : carried.allowMemberAssignment
   return {
     enabledTypes: config.enabledTypes,
     defaultAgentId: config.defaultAgentId ?? null,
