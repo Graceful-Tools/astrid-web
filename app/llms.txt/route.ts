@@ -38,6 +38,10 @@ export async function GET() {
 
 > ${ASTRID_DESCRIPTION}
 
+## Start here
+
+- [Start here](${baseUrl}/starthere.md): Run a small software business with Muse, Claude, Codex, Copilot and GitHub Actions working from shared lists — step-by-step setup an agent can follow
+
 ## Docs
 
 ${integrationLinks}

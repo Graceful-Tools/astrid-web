@@ -262,6 +262,9 @@ function search(rule: Rule): string[] {
   if (present.length === 0) return []
   const dirs = present.map((g) => `'${g}'`).join(" ")
   const excludeArgs = [
+    // Installed dependencies are not our code and git ignores them; a nested
+    // packages/*/node_modules once turned this gate red (AWTD-1495).
+    "--exclude-dir='node_modules'",
     ...rule.exclude.map((e) => `--exclude='${e}'`),
     ...(rule.excludeDirs ?? []).map((d) => `--exclude-dir='${d}'`),
   ].join(" ")
