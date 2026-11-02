@@ -335,6 +335,14 @@ export default function APIDocsPage() {
               <Button
                 variant="outline"
                 className="w-full justify-between border-blue-500/30"
+                onClick={() => router.push('/starthere')}
+              >
+                <span>Start Here: Run Your Business with Agents</span>
+                <ExternalLink className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full justify-between border-blue-500/30"
                 onClick={() => router.push('/docs/integrate')}
               >
                 <span>Integration Guide</span>
