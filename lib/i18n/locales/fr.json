@@ -1016,6 +1016,34 @@
           "error": "Un problème est survenu lors de la connexion à GitHub",
           "synced": "Accès GitHub actualisé"
         }
+      },
+      "permissions": {
+        "edit": "Modifier les autorisations",
+        "title": "Autorisations",
+        "description": "Choisissez exactement ce que cette connexion peut faire. Une connexion qui suit un groupe de portées est complétée avec ce groupe à chaque demande de jeton : une portée ajoutée plus tard lui parvient automatiquement.",
+        "application": "Application",
+        "follow": "Suivre un groupe de portées",
+        "noGroup": "Aucun — conserver exactement les portées cochées ci-dessous",
+        "current": "actuel",
+        "groupAdds": "Ajoute {scopes}",
+        "groupAddsNothing": "N'ajoute rien — cette connexion possède déjà toutes les portées de ce groupe",
+        "leavesGroup": "Cette connexion ne suivra plus {group} : les portées ajoutées plus tard à ce groupe ne lui parviendront pas.",
+        "inGroup": "Dans {group}",
+        "otherScopes": "Autres portées",
+        "scopes": "Portées",
+        "notGranted": "Pas encore accordée",
+        "tokensNote": "Les jetons déjà émis conservent leurs portées. Demandez-en un nouveau pour appliquer le changement.",
+        "save": "Enregistrer les autorisations",
+        "saving": "Enregistrement...",
+        "savedAdded": "{scopes} ajouté.",
+        "savedRemoved": "{scopes} retiré.",
+        "savedGroup": "Suit désormais {group}.",
+        "savedNoGroup": "Ne suit plus aucun groupe de portées.",
+        "unchanged": "Rien n'a changé — cette connexion a déjà ces autorisations.",
+        "saveError": "Impossible de mettre à jour les autorisations",
+        "loadError": "Impossible de charger les autorisations de cette connexion",
+        "selectAtLeastOne": "Sélectionnez au moins une portée",
+        "selectApp": "Sélectionnez une application."
       }
     }
   },

@@ -403,6 +403,8 @@ export async function updateOAuthClient(
     description?: string
     redirectUris?: string[]
     scopes?: string[]
+    /** `null` stops the client following its scope group (AWTD-1513). */
+    scopeGroup?: null
     isActive?: boolean
   }
 ) {
@@ -421,7 +423,18 @@ export async function updateOAuthClient(
   if (updates.redirectUris !== undefined) data.redirectUris = updates.redirectUris
   if (updates.scopes !== undefined) {
     data.scopes = validateRegisterableScopes(updates.scopes)
+    // A client that follows a group is topped back up to it on every token
+    // request, so a scope the owner removed from that group would silently
+    // return. An explicit narrowing wins: the client stops following the group
+    // (AWTD-1513). Adopting a group again is one click in the same editor.
+    if (isScopeGroup(client.scopeGroup)) {
+      const kept = new Set<string>(data.scopes)
+      if (!SCOPE_GROUPS[client.scopeGroup].every(scope => kept.has(scope))) {
+        data.scopeGroup = null
+      }
+    }
   }
+  if (updates.scopeGroup === null) data.scopeGroup = null
   if (updates.isActive !== undefined) data.isActive = updates.isActive
 
   return await prisma.oAuthClient.update({

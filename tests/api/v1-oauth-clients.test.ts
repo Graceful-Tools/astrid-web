@@ -336,6 +336,113 @@ describe('PUT /api/v1/oauth/clients/:clientId — scope group adoption (AWTD-962
   })
 })
 
+/**
+ * Granular scope editing from Settings → Connections (AWTD-1513). The editor
+ * sends the exact scope set the owner ticked; the server is the only judge of
+ * what is a real, registerable scope — never the browser.
+ */
+describe('PUT /api/v1/oauth/clients/:clientId — granular scopes (AWTD-1513)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockAuth.mockResolvedValue(authedUser as any)
+    mockUpdate.mockResolvedValue({ clientId: 'client-1', scopes: ['tasks:read'], scopeGroup: null } as any)
+  })
+
+  it('AWTD-1513: rejects an unknown scope with 400 and writes nothing', async () => {
+    const res = await PUT(
+      makeReq('PUT', 'http://localhost/x', { scopes: ['tasks:read', 'tasks:teleport'] }),
+      { params } as any
+    )
+
+    expect(res.status).toBe(400)
+    const json = await res.json()
+    expect(json.error).toContain('tasks:teleport')
+    expect(mockUpdate).not.toHaveBeenCalled()
+  })
+
+  it('AWTD-1513: rejects the wildcard — it is never registerable', async () => {
+    const res = await PUT(
+      makeReq('PUT', 'http://localhost/x', { scopes: ['*'] }),
+      { params } as any
+    )
+
+    expect(res.status).toBe(400)
+    expect(mockUpdate).not.toHaveBeenCalled()
+  })
+
+  it('AWTD-1513: rejects an empty or malformed scope list', async () => {
+    for (const scopes of [[], 'tasks:read', [42]]) {
+      const res = await PUT(makeReq('PUT', 'http://localhost/x', { scopes }), { params } as any)
+      expect(res.status).toBe(400)
+    }
+    expect(mockUpdate).not.toHaveBeenCalled()
+  })
+
+  it('AWTD-1513: rejects names inherited from Object.prototype', async () => {
+    for (const bad of ['toString', '__proto__', 'constructor']) {
+      const res = await PUT(makeReq('PUT', 'http://localhost/x', { scopes: ['tasks:read', bad] }), { params } as any)
+      expect(res.status).toBe(400)
+    }
+    expect(mockUpdate).not.toHaveBeenCalled()
+  })
+
+  it('AWTD-1513: a non-string entry that cannot be stringified is still a 400, not a 500', async () => {
+    const res = await PUT(
+      makeReq('PUT', 'http://localhost/x', { scopes: [{ toString: null }] }),
+      { params } as any
+    )
+    expect(res.status).toBe(400)
+  })
+
+  it('AWTD-1513: persists exactly the granular set it was sent', async () => {
+    const scopes = ['tasks:read', 'lists:read', 'lists:configure']
+    const res = await PUT(makeReq('PUT', 'http://localhost/x', { scopes }), { params } as any)
+
+    expect(res.status).toBe(200)
+    expect(mockUpdate).toHaveBeenCalledWith('client-1', 'user-1', expect.objectContaining({ scopes }))
+  })
+
+  it('AWTD-1513: changing scopes needs an interactive session, like adoption', async () => {
+    mockAuth.mockResolvedValue({ ...authedUser, source: 'oauth', scopes: ['tasks:read'] } as any)
+
+    const res = await PUT(
+      makeReq('PUT', 'http://localhost/x', { scopes: ['tasks:read', 'tasks:delete'] }),
+      { params } as any
+    )
+
+    expect(res.status).toBe(403)
+    expect(mockUpdate).not.toHaveBeenCalled()
+  })
+
+  it('AWTD-1513: scopeGroup null stops following a group', async () => {
+    const res = await PUT(
+      makeReq('PUT', 'http://localhost/x', { scopes: ['tasks:read'], scopeGroup: null }),
+      { params } as any
+    )
+
+    expect(res.status).toBe(200)
+    expect(mockAdopt).not.toHaveBeenCalled()
+    expect(mockUpdate).toHaveBeenCalledWith(
+      'client-1',
+      'user-1',
+      expect.objectContaining({ scopes: ['tasks:read'], scopeGroup: null })
+    )
+  })
+
+  it('AWTD-1513: scopes plus a group writes the set, then adopts the group', async () => {
+    mockAdopt.mockResolvedValue({ changed: false, added: [], client: { clientId: 'client-1' } } as any)
+
+    const res = await PUT(
+      makeReq('PUT', 'http://localhost/x', { scopes: ['tasks:read'], scopeGroup: 'ai_agent' }),
+      { params } as any
+    )
+
+    expect(res.status).toBe(200)
+    expect(mockUpdate).toHaveBeenCalledWith('client-1', 'user-1', expect.objectContaining({ scopes: ['tasks:read'] }))
+    expect(mockAdopt).toHaveBeenCalledWith('client-1', 'user-1', 'ai_agent')
+  })
+})
+
 describe('DELETE /api/v1/oauth/clients/:clientId', () => {
   beforeEach(() => {
     vi.clearAllMocks()
