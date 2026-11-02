@@ -19,3 +19,16 @@ export function taskFromUpdateEvent(data: unknown): TaskUpdate | null {
   const { comments: _comments, ...rest } = task
   return rest as TaskUpdate
 }
+
+/**
+ * The created task from a `task_created` event, in the shape the board renders
+ * (AWTD-1497): `v1Task` first, as for updates. The agent-shaped `task` lacks
+ * the web's list fields, so a task stored from it was filtered out of the list
+ * it was created in.
+ */
+export function taskFromCreatedEvent(data: unknown): Task | null {
+  if (!data || typeof data !== 'object') return null
+  const event = data as { v1Task?: Task; task?: Task }
+  const task = event.v1Task ?? event.task ?? (data as Task)
+  return task?.id ? task : null
+}

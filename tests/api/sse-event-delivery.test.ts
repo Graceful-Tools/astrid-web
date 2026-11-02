@@ -209,7 +209,9 @@ describe('SSE Event Delivery — DELETE /api/v1/tasks/:id', () => {
     )
   })
 
-  it('should not broadcast to the deleting user', async () => {
+  // AWTD-1497: the deleter's OTHER devices must hear it — the tab that deleted
+  // already dropped the row, and an echo of a delete it applied is a no-op.
+  it('AWTD-1497 reaches the deleting user\'s other devices', async () => {
     const { prisma } = await import('@/lib/prisma')
 
     vi.mocked(prisma.task.findUnique).mockResolvedValue({
@@ -226,11 +228,9 @@ describe('SSE Event Delivery — DELETE /api/v1/tasks/:id', () => {
 
     await DELETE(req, { params: Promise.resolve({ id: 'task-1' }) })
 
-    // user-1 is the authenticated user, should not be in recipients
-    if (vi.mocked(broadcastToUsers).mock.calls.length > 0) {
-      const recipients = vi.mocked(broadcastToUsers).mock.calls[0][0]
-      expect(recipients).not.toContain('user-1')
-    }
+    // user-1 is the authenticated user (a person, not an agent).
+    const deleted = vi.mocked(broadcastToUsers).mock.calls.find(([, e]) => (e as { type: string }).type === 'task_deleted')
+    expect(deleted?.[0]).toContain('user-1')
   })
 })
 

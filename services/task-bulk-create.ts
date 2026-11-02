@@ -35,6 +35,7 @@ import { allocateSequenceRange, ensureProjectKey, formatIdentifier } from '@/lib
 import { computeAutomaticReminders, type ReminderScheduleEntry } from '@/lib/reminder-scheduling'
 import { taskBackendFor } from '@/lib/backends/resolve'
 import { broadcastToUsers } from '@/lib/sse-utils'
+import { actorHearsOwnChange } from '@/services/task-event-audience'
 import { getListMemberIds } from '@/lib/list-member-utils'
 import { broadcastListEvent } from '@/lib/lists/v1-list-shape'
 import { enrichTaskForAgent } from '@/lib/agent-protocol'
@@ -330,7 +331,7 @@ function remindersFor(task: CreatedTask): ReminderScheduleEntry[] {
  * shapes read in one query. Clients apply events per task, so one event per
  * task it is; a copy into a list nobody else can see sends none.
  */
-async function broadcastBulkCreated(args: {
+export async function broadcastBulkCreated(args: {
   tasks: CreatedTask[]
   actorId: string
   creatorName: string
@@ -339,6 +340,9 @@ async function broadcastBulkCreated(args: {
 }): Promise<void> {
   const { tasks, actorId, creatorName, memberIds } = args
 
+  // The creator's other devices hear it too (AWTD-1497); an agent never hears
+  // its own write. Same rule as services/task-create-broadcast.ts.
+  const actorHears = await actorHearsOwnChange(actorId)
   const audiences = new Map<string, string[]>()
   for (const task of tasks) {
     const anyTask = task as unknown as Record<string, any>
@@ -349,12 +353,14 @@ async function broadcastBulkCreated(args: {
         memberIds.add(id)
       })
     }
-    audiences.set(task.id, Array.from(members).filter(id => id !== actorId && id !== task.assigneeId))
+    if (actorHears) members.add(actorId)
+    else members.delete(actorId)
+    audiences.set(task.id, Array.from(members).filter(id => id !== task.assigneeId))
   }
 
-  const needsEvent = tasks.filter(
-    task => audiences.get(task.id)!.length > 0 || (task.assigneeId && task.assigneeId !== actorId)
-  )
+  const notifiesAssignee = (task: { assigneeId?: string | null }) =>
+    Boolean(task.assigneeId && (task.assigneeId !== actorId || actorHears))
+  const needsEvent = tasks.filter(task => audiences.get(task.id)!.length > 0 || notifiesAssignee(task))
   if (needsEvent.length === 0) return
   const v1Tasks = await loadV1TasksForEvent(needsEvent.map(task => task.id))
 
@@ -379,7 +385,7 @@ async function broadcastBulkCreated(args: {
         data: { ...common, creatorName },
       })
     }
-    if (task.assigneeId && task.assigneeId !== actorId) {
+    if (notifiesAssignee(task) && task.assigneeId) {
       await broadcastToUsers([task.assigneeId], {
         type: 'task_assigned',
         timestamp: new Date().toISOString(),
