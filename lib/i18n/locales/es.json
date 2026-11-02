@@ -1103,6 +1103,10 @@
       "tomorrow": "Mañana",
       "next7Days": "Próximos 7 días",
       "next30Days": "Próximos 30 días"
+    },
+    "memberAgentAssignment": {
+      "label": "Los miembros pueden pasar cualquier tarea a un agente",
+      "help": "Permite a cualquier miembro de esta lista asignar un agente a cualquier tarea, no solo a las que creó. Los agentes usan los planes del propietario de la lista."
     }
   },
   "reminderSettings": {

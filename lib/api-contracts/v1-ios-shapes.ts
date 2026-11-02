@@ -128,7 +128,7 @@ export interface V1List {
    * Both are built by lib/resolve-default-agent.ts → serializeListAgentFields.
    */
   aiAgentsEnabled: string[]
-  aiAgentConfig: { enabledTypes: string[]; defaultAgentId: string | null }
+  aiAgentConfig: { enabledTypes: string[]; defaultAgentId: string | null; allowMemberAssignment?: boolean }
   publicListType: string | null
   defaultIsPrivate: boolean | null
   defaultDueDate: string | null

@@ -321,7 +321,7 @@ export function startHereMarkdown(origin: string): string {
     '',
     '## Step 4 — Add teammates (optional, 2–10 people)',
     '',
-    `Share each list (list settings → Members → invite by email). Everyone sees the same tasks, comments and agent reports. List owners and admins can hand any task to an agent; members can hand over tasks they created.`,
+    `Share each list (list settings → Members → invite by email). Everyone sees the same tasks, comments and agent reports. List owners and admins can hand any task to an agent; members can hand over tasks they created. To let members hand over any task, turn on **Members can hand any task to an agent** in the list's settings → AI Agent (the agents run on the owner's plans).`,
     '',
     '## Reference',
     '',

@@ -15,7 +15,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { ListAiAgentSection } from '@/components/list-admin/ListAiAgentSection'
 import type { TaskList } from '@/types/task'
 import { BRAND } from '@/lib/brand/config'
@@ -119,5 +119,44 @@ describe('ListAiAgentSection', () => {
     render(<ListAiAgentSection list={makeList()} canEditSettings={true} onUpdate={vi.fn()} />)
 
     expect(await screen.findByText(/No repositories found/)).toBeInTheDocument()
+  })
+
+  // AWTD-1493: the opt-in that lets plain members hand ANY task to an agent
+  // existed only in the API. A team of 2-10 sharing agent lists needs a switch.
+  describe('members handing any task to an agent (AWTD-1493)', () => {
+    it('shows the stored value', () => {
+      render(
+        <ListAiAgentSection
+          list={makeList({ aiAgentConfig: { enabledTypes: [], defaultAgentId: null, allowMemberAssignment: true } })}
+          canEditSettings
+          onUpdate={vi.fn()}
+        />,
+      )
+      expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true')
+    })
+
+    it('saves an explicit boolean, keeping the default agent', () => {
+      const onUpdate = vi.fn()
+      render(
+        <ListAiAgentSection
+          list={makeList({ aiAgentConfig: { enabledTypes: ['claude'], defaultAgentId: 'agent-1' } })}
+          canEditSettings
+          onUpdate={onUpdate}
+        />,
+      )
+      const toggle = screen.getByRole('switch')
+      expect(toggle).toHaveAttribute('aria-checked', 'false')
+
+      fireEvent.click(toggle)
+
+      expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({
+        aiAgentConfig: { enabledTypes: ['claude'], defaultAgentId: 'agent-1', allowMemberAssignment: true },
+      }))
+    })
+
+    it('is not shown to someone who cannot edit the list', () => {
+      render(<ListAiAgentSection list={makeList()} canEditSettings={false} onUpdate={vi.fn()} />)
+      expect(screen.queryByRole('switch')).toBeNull()
+    })
   })
 })

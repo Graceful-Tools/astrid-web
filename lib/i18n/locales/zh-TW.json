@@ -1103,6 +1103,10 @@
       "tomorrow": "明天",
       "next7Days": "未來 7 天",
       "next30Days": "未來 30 天"
+    },
+    "memberAgentAssignment": {
+      "label": "成員可以把任何任務交給代理",
+      "help": "允許此清單的每位成員為這裡的任何任務指派代理，而不只是自己建立的任務。代理使用清單擁有者的方案執行。"
     }
   },
   "reminderSettings": {
