@@ -84,7 +84,7 @@ describe('Copilot CLI in GitHub Actions (AWTD-1502)', () => {
 
   it('writes an MCP config in the shape `copilot mcp add --header` writes (AWTD-1502)', () => {
     const connect = agentJob().steps.find(s => s.name?.startsWith('Connect Copilot CLI'))!
-    expect(connect.env!.TOKEN).toBe(`\${{ secrets.${mcpTokenSecretName()} }}`)
+    expect(connect.env!.TOKEN).toBe(`\${{ secrets.${mcpTokenSecretName('copilot')} }}`)
     const config = execFileSync('bash', ['-e', '-c', connect.run!.replace(/> "\$RUNNER_TEMP\/[^"]+"/, '')], {
       env: { ...process.env, TOKEN: 'astrid_mcp_test', RUNNER_TEMP: tmp },
     }).toString()
@@ -122,11 +122,21 @@ describe('Copilot CLI in GitHub Actions (AWTD-1502)', () => {
     const copilot = STARTER_AGENTS.find(a => a.key === 'copilot')!
     const hosted = starterAgentSetup(copilot, ORIGIN, 'x').hosted!
     expect(hosted.workflow.path).toBe(workflow.path)
-    expect(hosted.secrets.map(s => s.name)).toEqual([COPILOT_TOKEN_SECRET, mcpTokenSecretName()])
+    expect(hosted.secrets.map(s => s.name)).toEqual([COPILOT_TOKEN_SECRET, mcpTokenSecretName('copilot')])
     expect(hosted.secrets[0].how).toMatch(/fine-grained/)
     expect(hosted.secrets[0].how).toMatch(/Copilot Requests/)
     const md = startHereMarkdown(ORIGIN)
     expect(md).toContain('No machine to leave on? Run GitHub Copilot in GitHub Actions instead.')
+  })
+
+  it('gives each agent its own token secret, so Claude and Copilot can share a repository (AWTD-1502)', () => {
+    expect(mcpTokenSecretName('copilot')).not.toBe(mcpTokenSecretName('claude'))
+    expect(workflow.content).toContain(`secrets.${mcpTokenSecretName('copilot')}`)
+    expect(workflow.content).not.toContain(`secrets.${mcpTokenSecretName('claude')}`)
+  })
+
+  it('lets a review task finish with findings instead of a new pull request (AWTD-1502)', () => {
+    expect(runStep().env!.PROMPT).toMatch(/review task, post your findings on the existing pull request/)
   })
 
   it('says why Codex and Muse have no Actions workflow yet, instead of offering a broken one (AWTD-1502)', () => {

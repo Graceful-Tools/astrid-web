@@ -228,7 +228,7 @@ const HOSTED_UNAVAILABLE: Partial<Record<LoopHarness, string>> = {
 /** Which harnesses have a verified CI path on the user's own plan. */
 function hostedSetup(agent: StarterAgent, origin: string, listId?: string | null): StarterAgentSetup['hosted'] {
   const agentToken = {
-    name: mcpTokenSecretName(),
+    name: mcpTokenSecretName(agent.mailbox),
     how: `An ${BRAND.appName} access token bound to the "${agent.mailbox}" agent: press **Create a GitHub Actions token** on ${origin}${START_HERE_PATH}. It reads the queue and signs the agent's comments.`,
   }
   const prCaveat =
