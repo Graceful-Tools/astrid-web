@@ -85,6 +85,19 @@ npx prisma migrate deploy
 ## 🔄 **Migration Commands**
 
 ### Development
+
+Prisma's CLI reads only `.env`, never `.env.local`, so use `db:local` for the
+local database. It loads `.env.local` and refuses to run unless every database
+URL is localhost — it cannot reach Neon or production:
+
+```bash
+npm run db:local -- migrate deploy   # apply migrations to your local Postgres
+npm run db:local -- migrate status   # check it is up to date
+```
+
+Build a local database from migrations, not `db push`: a pushed database has no
+migration history and drifts behind silently.
+
 ```bash
 # Reset database (careful - deletes all data)
 npx prisma db push --force-reset
