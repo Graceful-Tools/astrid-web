@@ -144,7 +144,9 @@ export type ScopeGroup = keyof typeof SCOPE_GROUPS
  * Check if a scope string is valid
  */
 export function isValidScope(scope: string): scope is OAuthScope {
-  return scope in OAUTH_SCOPES
+  // Own properties only: `in` would also accept `toString`, `__proto__` and
+  // the rest of Object.prototype as scope names (AWTD-1513 review).
+  return typeof scope === 'string' && Object.prototype.hasOwnProperty.call(OAUTH_SCOPES, scope)
 }
 
 /**
@@ -187,7 +189,9 @@ export function validateRegisterableScopes(scopes: string[]): OAuthScope[] {
 export function unregisterableScopes(scopes: readonly unknown[]): string[] {
   return scopes
     .filter(scope => typeof scope !== 'string' || !isRegisterableScope(scope))
-    .map(scope => String(scope))
+    // Never String() an arbitrary entry: `{"toString":null}` is valid JSON and
+    // String() on it throws, turning a 400 into a 500.
+    .map(scope => (typeof scope === 'string' ? scope : `<${scope === null ? 'null' : typeof scope}>`))
 }
 
 /**

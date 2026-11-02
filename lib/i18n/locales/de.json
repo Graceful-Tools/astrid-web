@@ -1037,6 +1037,8 @@
         "saving": "Wird gespeichert...",
         "savedAdded": "{scopes} hinzugefügt.",
         "savedRemoved": "{scopes} entfernt.",
+        "savedGroup": "Folgt jetzt {group}.",
+        "savedNoGroup": "Folgt keiner Bereichsgruppe mehr.",
         "unchanged": "Nichts geändert – diese Verbindung hat bereits diese Berechtigungen.",
         "saveError": "Berechtigungen konnten nicht aktualisiert werden",
         "loadError": "Berechtigungen dieser Verbindung konnten nicht geladen werden",

@@ -30,7 +30,8 @@ vi.mock('@/lib/api', () => ({
   refusalReason: () => null,
 }))
 
-vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
+const toastSuccess = vi.fn()
+vi.mock('sonner', () => ({ toast: { success: (...a: unknown[]) => toastSuccess(...a), error: vi.fn() } }))
 
 // Keys echo back with their variables, so the assertions read the key that
 // was chosen rather than a copy of the English.
@@ -61,6 +62,7 @@ const jsonResponse = (body: unknown) => ({ ok: true, json: async () => body })
 
 beforeEach(() => {
   apiCallMock.mockReset()
+  toastSuccess.mockReset()
   getMock.mockReset()
   apiCallMock.mockResolvedValue(jsonResponse({ client: {}, added: [] }))
 })
@@ -193,5 +195,36 @@ describe('the permissions editor is granular (AWTD-1513)', () => {
     await waitFor(() => expect(apiCallMock).toHaveBeenCalledTimes(1))
     const body = JSON.parse(apiCallMock.mock.calls[0][1].body)
     expect(body.scopeGroup).toBe('ai_agent')
+  })
+
+  it('AWTD-1513: a group-only change is reported, not called "nothing changed"', async () => {
+    const full = client({ scopes: [...SCOPE_GROUPS.ai_agent], scopeGroup: 'ai_agent' })
+    apiCallMock.mockResolvedValue(jsonResponse({ client: { scopes: full.scopes, scopeGroup: null } }))
+    render(<OAuthScopeGroupDialog client={full} open onOpenChange={() => {}} onUpdated={() => {}} />)
+
+    await userEvent.click(screen.getByRole('radio', { name: 'settingsPages.connections.permissions.noGroup' }))
+    await userEvent.click(
+      screen.getByRole('button', { name: 'settingsPages.connections.permissions.save' }),
+    )
+
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalled())
+    expect(toastSuccess.mock.calls[0][0]).toContain('settingsPages.connections.permissions.savedNoGroup')
+  })
+
+  it('AWTD-1513: unticking a group scope keeps keyboard focus on that checkbox', async () => {
+    render(
+      <OAuthScopeGroupDialog
+        client={client({ scopes: [...SCOPE_GROUPS.ai_agent], scopeGroup: 'ai_agent' })}
+        open
+        onOpenChange={() => {}}
+        onUpdated={() => {}}
+      />,
+    )
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /chat:write/ }))
+
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('checkbox', { name: /chat:write/ })),
+    )
   })
 })
