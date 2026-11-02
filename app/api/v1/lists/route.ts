@@ -17,6 +17,7 @@ import { hydrateListFavorites } from '@/lib/favorites'
 import { hydrateListViewPreferences } from '@/lib/list-view-preferences'
 import { RedisCache } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
+import { conditionalJson } from '@/lib/conditional-get'
 import { createLogger } from '@/lib/logger'
 import type { V1List, V1UserSummary } from '@/lib/api-contracts/v1-ios-shapes'
 import type { V1ListCreateRequest } from '@/lib/api-contracts/v1-request-shapes'
@@ -122,8 +123,9 @@ export const GET = withAuth(
       ? await getDeletionsSince('list', auth.userId, new Date(updatedSince))
       : undefined
 
-    return NextResponse.json(
-      {
+    // Everything that describes state, and nothing that moves per request: the
+    // ETag is a hash of exactly this (AWTD-1509).
+    const state = {
         // Bound to the iOS contract: if a future edit drops or renames a key
         // iOS decodes, tsc fails here rather than the app breaking at runtime.
         lists: lists.map((list: any): V1List => ({
@@ -177,6 +179,15 @@ export const GET = withAuth(
         // hard-deleted, so without this an incremental sync leaves them on
         // screen. Absent on a full fetch, keeping that response unchanged.
         ...(deletedListIds ? { deletedIds: deletedListIds } : {}),
+    }
+
+    // A client quoting the last ETag gets 304 and no body when nothing it can
+    // see has changed, membership included (AWTD-1509).
+    return conditionalJson(
+      req,
+      'lists',
+      {
+        ...state,
         // Lists are not paged, so there is never a `nextCursor` here.
         serverTime,
         meta: {
@@ -189,8 +200,8 @@ export const GET = withAuth(
           isIncremental: !!updatedSince,
         },
       },
-      { headers }
-    )
+      { tagged: state, headers }
+    ) as never
   }
 )
 
