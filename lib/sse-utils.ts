@@ -114,9 +114,13 @@ export function registerConnection(
   connection.unsubscribe = getRealtimeBus().subscribe(userId, envelope => {
     if (!connection.isAlive) return
     // This client's own change coming back (AWTD-1497, lib/realtime/client-id.ts).
-    if (clientId && envelope.event.originClientId === clientId) return
+    // Bound to the user as well as the client id: a client id alone is not a
+    // secret, so another user naming it must not silence this connection.
+    const { originClientId, originUserId, ...event } = envelope.event
+    if (clientId && originClientId === clientId && originUserId === userId) return
     try {
-      connection.controller.enqueue(encoder.encode(`data: ${JSON.stringify(envelope.event)}\n\n`))
+      // The tag is routing, not payload: it never reaches a client.
+      connection.controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`))
       connection.lastPing = Date.now()
       log.debug(`[SSE] ✅ Sent ${envelope.event.type} to connection ${connectionId}`)
     } catch (error) {
@@ -238,7 +242,7 @@ function sanitizeForSSE(obj: any, depth = 0): any {
 export async function broadcastToUsers(
   userIds: string[],
   event: SseOutboundEvent,
-  { originClientId }: { originClientId?: string | null } = {}
+  { originClientId, originUserId }: { originClientId?: string | null; originUserId?: string | null } = {}
 ) {
   // Send as unnamed event (like ping) so it's received by onmessage handler
   // Include type and timestamp in the data payload
@@ -247,7 +251,8 @@ export async function broadcastToUsers(
     timestamp: event.timestamp || new Date().toISOString(),
     data: sanitizeForSSE(event.data),
     // The client that made the change: its own stream skips the event.
-    ...(originClientId ? { originClientId } : {}),
+    // Which user's client made the change: that client's own stream skips it.
+    ...(originClientId && originUserId ? { originClientId, originUserId } : {}),
   }
 
   // Local connections are written synchronously inside publish; the shared
