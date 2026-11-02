@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
               OR: [
                 { ownerId: session.user.id },
                 { listMembers: { some: { userId: session.user.id } } },
-                { privacy: 'PUBLIC' } // Include tasks from public lists
+                // Public lists are not "mine" (AWTD-1451); read them by listId.
               ],
             },
           },

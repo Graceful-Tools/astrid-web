@@ -98,7 +98,6 @@ describe('Tasks API', () => {
                   OR: [
                     { ownerId: 'test-user-id' },
                     { listMembers: { some: { userId: 'test-user-id' } } },
-                    { privacy: 'PUBLIC' }
                   ],
                 },
               },
