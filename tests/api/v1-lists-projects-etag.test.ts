@@ -85,7 +85,8 @@ describe('GET /api/v1/lists — conditional read (AWTD-1509)', () => {
   it('tags a 200 and marks it private (AWTD-1509)', async () => {
     const res = await GET_LISTS(get('/api/v1/lists'))
     expect(res.status).toBe(200)
-    expect(res.headers.get('ETag')).toMatch(/^"lists-[A-Za-z0-9_-]+"$/)
+    // Weak: the tag names the state, and the body still carries serverTime.
+    expect(res.headers.get('ETag')).toMatch(/^W\/"lists-[A-Za-z0-9_-]+"$/)
     expect(res.headers.get('Cache-Control')).toBe('private, no-cache')
   })
 
@@ -127,7 +128,15 @@ describe('GET /api/v1/lists — conditional read (AWTD-1509)', () => {
   it('accepts the tag inside a comma-separated or weak If-None-Match (AWTD-1509)', async () => {
     const etag = (await GET_LISTS(get('/api/v1/lists'))).headers.get('ETag')!
     expect((await GET_LISTS(get('/api/v1/lists', `"other", ${etag}`))).status).toBe(304)
-    expect((await GET_LISTS(get('/api/v1/lists', `W/${etag}`))).status).toBe(304)
+    // A client that drops the W/ still revalidates: comparison is weak.
+    expect((await GET_LISTS(get('/api/v1/lists', etag.replace(/^W\//, '')))).status).toBe(304)
+  })
+
+  it('never reads a comma or * inside a quoted tag as a separator or wildcard (AWTD-1509)', async () => {
+    const etag = (await GET_LISTS(get('/api/v1/lists'))).headers.get('ETag')!
+    expect((await GET_LISTS(get('/api/v1/lists', '"unrelated,*,validator"'))).status).toBe(200)
+    expect((await GET_LISTS(get('/api/v1/lists', `"a,b", ${etag}`))).status).toBe(304)
+    expect((await GET_LISTS(get('/api/v1/lists', '*'))).status).toBe(304)
   })
 })
 
@@ -137,7 +146,7 @@ describe('GET /api/v1/projects — conditional read (AWTD-1514)', () => {
     expect(first.status).toBe(200)
     expect(first.headers.get('Cache-Control')).toBe('private, no-cache')
     const etag = first.headers.get('ETag')!
-    expect(etag).toMatch(/^"projects-[A-Za-z0-9_-]+"$/)
+    expect(etag).toMatch(/^W\/"projects-[A-Za-z0-9_-]+"$/)
 
     const second = await GET_PROJECTS(get('/api/v1/projects', etag))
     expect(second.status).toBe(304)

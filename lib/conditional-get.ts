@@ -13,19 +13,33 @@
 import { createHash } from 'crypto'
 import { NextResponse } from 'next/server'
 
+/**
+ * Weak (`W/`), because the tag describes the STATE, not the bytes: a body can
+ * differ in `serverTime` and still carry the same tag, which a strong
+ * validator would promise it does not (RFC 9110 §8.8.1).
+ */
 export function payloadEtag(prefix: string, tagged: unknown): string {
   const digest = createHash('sha256').update(JSON.stringify(tagged)).digest('base64url').slice(0, 27)
-  return `"${prefix}-${digest}"`
+  return `W/"${prefix}-${digest}"`
 }
 
-/** RFC 9110 §13.1.2: a list of tags, `*`, and weak comparison. */
+/** One entity-tag: optional `W/`, then a quoted opaque value that may hold commas. */
+const ENTITY_TAG = /(?:W\/)?"([^"]*)"/g
+
+/**
+ * RFC 9110 §13.1.2: `*` (only as the whole field), or a list of tags compared
+ * weakly. Tags are read whole, quotes and all, so a comma or a `*` INSIDE a
+ * quoted value is never mistaken for a separator or a wildcard.
+ */
 export function ifNoneMatchHits(header: string | null, etag: string): boolean {
   if (!header) return false
-  const opaque = etag.replace(/^W\//, '')
-  return header
-    .split(',')
-    .map(candidate => candidate.trim())
-    .some(candidate => candidate === '*' || candidate.replace(/^W\//, '') === opaque)
+  if (header.trim() === '*') return true
+  const opaque = /"([^"]*)"/.exec(etag)?.[1]
+  if (opaque === undefined) return false
+  for (const match of header.matchAll(ENTITY_TAG)) {
+    if (match[1] === opaque) return true
+  }
+  return false
 }
 
 /**
