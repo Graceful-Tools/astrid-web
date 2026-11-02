@@ -152,6 +152,26 @@ describe('PUT /api/v1/lists/[id] aiAgentsEnabled', () => {
       expect(data?.aiAgentsEnabled).toMatchObject({ allowMemberAssignment: true })
     })
 
+    // AWTD-1493: the setting now has a switch, so it has to be able to go OFF.
+    // "Carry it unless the write names it" — an explicit false is the owner
+    // revoking it, not a client that did not know the key.
+    it('AWTD-1493 turns off when the write explicitly says false', async () => {
+      const data = await put({
+        aiAgentConfig: { enabledTypes: ['claude'], defaultAgentId: 'agent-1', allowMemberAssignment: false },
+      })
+
+      expect(data?.aiAgentsEnabled).not.toHaveProperty('allowMemberAssignment')
+    })
+
+    it('AWTD-1493 turns on when the write explicitly says true', async () => {
+      mockPrisma.taskList.findFirst.mockResolvedValue(listRow as never)
+      mockPrisma.taskList.findUnique.mockResolvedValue(listRow as never)
+
+      const data = await put({ aiAgentConfig: { enabledTypes: [], allowMemberAssignment: true } })
+
+      expect(data?.aiAgentsEnabled).toMatchObject({ allowMemberAssignment: true })
+    })
+
     it('is absent, not false, on a list that never opted in', async () => {
       mockPrisma.taskList.findFirst.mockResolvedValue(listRow as never)
       mockPrisma.taskList.findUnique.mockResolvedValue(listRow as never)

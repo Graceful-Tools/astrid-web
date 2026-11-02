@@ -1103,6 +1103,10 @@
       "tomorrow": "Domani",
       "next7Days": "Prossimi 7 giorni",
       "next30Days": "Prossimi 30 giorni"
+    },
+    "memberAgentAssignment": {
+      "label": "I membri possono affidare qualsiasi attività a un agente",
+      "help": "Consente a ogni membro di questa lista di assegnare un agente a qualsiasi attività, non solo a quelle create da lui. Gli agenti usano i piani del proprietario della lista."
     }
   },
   "reminderSettings": {

@@ -70,7 +70,7 @@ export interface TaskList {
   fallbackAiProvider?: string | null // backup AI provider
   githubRepositoryId?: string | null // target GitHub repository full name (e.g., 'user/repo')
   aiAgentsEnabled?: string[] | null // enabled agent types — always an array on the v1 wire (iOS/Mac decode it as [String])
-  aiAgentConfig?: { enabledTypes: string[]; defaultAgentId: string | null } | null // full config; carries the per-list default agent
+  aiAgentConfig?: { enabledTypes: string[]; defaultAgentId: string | null; allowMemberAssignment?: boolean } | null // full config; carries the per-list default agent
   createdAt: Date
   updatedAt: Date
   description?: string
