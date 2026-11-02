@@ -21,7 +21,7 @@ import { collectProjectMemberUserIds } from '@/lib/projects-service'
 import { RedisCache } from '@/lib/redis'
 import { createLogger } from '@/lib/logger'
 import { resolveDefaultAssignees } from '@/lib/default-assignee'
-import { canUserManageList } from "@/lib/list-permissions"
+import { canUserManageList, listReadByIdWhere } from "@/lib/list-permissions"
 import { normalizeShowSubtasks } from "@/lib/list-subtask-visibility"
 import { normalizeAgentEnabledConfig } from "@/lib/resolve-default-agent"
 import { shapeV1List, V1_LIST_READ_INCLUDE } from "@/lib/lists/v1-list-shape"
@@ -56,22 +56,7 @@ export const GET = withAuth<RouteContext>(
     const { id } = await params
 
     const list = await prisma.taskList.findFirst({
-      where: {
-        id,
-        OR: [
-          { ownerId: auth.userId },
-          { listMembers: { some: { userId: auth.userId } } },
-          // Legacy has always allowed this (`hasListAccess(...) || privacy ===
-          // 'PUBLIC'`). Without it a signed-in non-member opening a public list
-          // gets 404, which the list page renders as "List not found" — to
-          // precisely the audience a public list exists for.
-          //
-          // READ only. PUT and DELETE below keep their owner/admin gates: being
-          // able to see a public list must not imply being able to rename or
-          // delete it. Same shape as the task-level fix in 92e582c6.
-          { privacy: 'PUBLIC' },
-        ]
-      },
+      where: { id, ...listReadByIdWhere(auth.userId) },
       include: V1_LIST_READ_INCLUDE,
     })
 
