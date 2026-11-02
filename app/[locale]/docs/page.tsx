@@ -17,6 +17,7 @@ import {
   MessageSquare
 } from "lucide-react"
 import { scrollShellClassName } from "@/components/scroll-shell"
+import { START_HERE_PATH } from "@/lib/start-here/business-blueprint"
 
 export default function APIDocsPage() {
   const router = useRouter()
@@ -335,7 +336,7 @@ export default function APIDocsPage() {
               <Button
                 variant="outline"
                 className="w-full justify-between border-blue-500/30"
-                onClick={() => router.push('/starthere')}
+                onClick={() => router.push(START_HERE_PATH)}
               >
                 <span>Start Here: Run Your Business with Agents</span>
                 <ExternalLink className="w-4 h-4" />

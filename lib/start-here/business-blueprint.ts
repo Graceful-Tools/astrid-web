@@ -29,9 +29,9 @@ import {
 } from '@/lib/agent-skill/loop-recipes'
 
 /** The public path of the guide. */
-export const START_HERE_PATH = '/starthere'
+export const START_HERE_PATH = '/start'
 /** The plain-markdown copy for agents. */
-export const START_HERE_MARKDOWN_PATH = '/starthere.md'
+export const START_HERE_MARKDOWN_PATH = '/start.md'
 
 export type StarterAgentKey = 'muse' | 'claude' | 'codex' | 'copilot' | 'github-actions'
 

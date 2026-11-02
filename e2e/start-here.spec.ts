@@ -35,7 +35,7 @@ function sectionFor(markdown: string, agentName: string): string {
 }
 
 async function guide(request: APIRequestContext): Promise<string> {
-  const res = await request.get('/starthere.md')
+  const res = await request.get('/start.md')
   expect(res.status()).toBe(200)
   expect(res.headers()['content-type']).toContain('text/markdown')
   return res.text()
@@ -74,9 +74,9 @@ async function walkMcpDiscovery(request: APIRequestContext, mcpPath: string) {
   expect((await register.json()).error).toBe('invalid_client_metadata')
 }
 
-test.describe('/starthere page', () => {
+test.describe('/start page', () => {
   test('shows the shape, every step and every agent with its own commands', async ({ page }) => {
-    await page.goto('/starthere')
+    await page.goto('/start')
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Run your software business with agents')
     await expect(page.getByTestId('starthere-shape')).toContainText('Plan')
     for (const n of [1, 2, 3, 4]) await expect(page.getByTestId(`starthere-step-${n}`)).toBeVisible()
@@ -98,22 +98,30 @@ test.describe('/starthere page', () => {
     // AWTD-1494: Claude can also run in GitHub Actions on the user's plan.
     await expect(page.getByTestId('starthere-hosted-claude')).toBeVisible()
     await expect(page.getByTestId('starthere-hosted-workflow-claude')).toContainText('anthropics/claude-code-action@v1')
-    await expect(page.getByTestId('starthere-markdown-link')).toHaveAttribute('href', '/starthere.md')
+    await expect(page.getByTestId('starthere-markdown-link')).toHaveAttribute('href', '/start.md')
   })
 
   test('asks a signed-out reader to sign in before creating lists', async ({ page }) => {
-    await page.goto('/starthere')
+    await page.goto('/start')
     await expect(page.getByRole('button', { name: /sign in to create them/i })).toBeVisible()
     await expect(page.getByTestId('starthere-create-lists')).toHaveCount(0)
   })
 
+  test('the old /starthere links still land on the guide (AWTD-1502)', async ({ request }) => {
+    for (const [from, to] of [['/starthere', '/start'], ['/starthere.md', '/start.md']]) {
+      const res = await request.get(from, { maxRedirects: 0 })
+      expect(res.status(), from).toBe(308)
+      expect(new URL(res.headers()['location'], 'http://x').pathname).toBe(to)
+    }
+  })
+
   test('is discoverable from llms.txt', async ({ request }) => {
     const res = await request.get('/llms.txt')
-    expect(await res.text()).toContain('/starthere.md')
+    expect(await res.text()).toContain('/start.md')
   })
 })
 
-test.describe('/starthere.md followed by each agent', () => {
+test.describe('/start.md followed by each agent', () => {
   for (const agent of AGENTS) {
     test(`${agent.name}: connect command reaches a working MCP OAuth flow`, async ({ request, baseURL }) => {
       const section = sectionFor(await guide(request), agent.name)

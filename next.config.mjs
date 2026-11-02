@@ -102,6 +102,11 @@ const nextConfig = {
         destination: '/settings/mcp-testing',
         permanent: true,
       },
+      // The guide moved from /starthere to /start (AWTD-1502). Links already
+      // pasted into agents and chats keep working.
+      { source: '/starthere', destination: '/start', permanent: true },
+      { source: '/starthere.md', destination: '/start.md', permanent: true },
+      { source: '/:locale/starthere', destination: '/:locale/start', permanent: true },
     ]
   },
   async rewrites() {

@@ -13,6 +13,7 @@
  */
 
 import { BRAND } from '@/lib/brand/config'
+import { START_HERE_PATH } from '@/lib/start-here/business-blueprint'
 import {
   queueContractLine,
   queueSkillAdapter,
@@ -261,7 +262,7 @@ Treat empty:true as a successful connection. If a field cannot be verified, say 
     <div className="space-y-2">
       <p className="text-xs theme-text-muted">
         No machine to leave on? Commit this workflow instead. It needs two repository
-        secrets; <a className="underline" href={`${origin}/starthere`}>Start here</a> says how
+        secrets; <a className="underline" href={`${origin}${START_HERE_PATH}`}>Start here</a> says how
         to make each one.
       </p>
       <CopyBlock
