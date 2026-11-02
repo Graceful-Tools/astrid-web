@@ -15,6 +15,7 @@ import {
   handleInstallationRepositoriesEvent,
 } from '@/lib/github/webhooks/installation'
 import { handleIssuesWebhook } from '@/lib/github/webhooks/issues'
+import { handlePullRequestTaskWebhook } from '@/services/github-pull-requests.service'
 import {
   handleIssueChangedForProjects,
   handleIssueCommentForProjects,
@@ -78,6 +79,15 @@ webhooks?.on('installation_repositories', ({ payload }) => handleInstallationRep
  */
 webhooks?.on(['issues', 'issue_comment'], ({ id, name, payload }) =>
   handleIssuesWebhook(name, payload, id)
+)
+
+/**
+ * A PR that names a task comments on it when opened, reviewed, merged or
+ * closed (AWTD-1492). Runs alongside the coding workflow's own pull_request
+ * handler below, which only tracks its own rows.
+ */
+webhooks?.on(['pull_request', 'pull_request_review'], ({ name, payload }) =>
+  handlePullRequestTaskWebhook(name, payload as never).then(() => undefined)
 )
 
 /**
