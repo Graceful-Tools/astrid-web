@@ -14,6 +14,7 @@ import { enrichTaskForAgent } from '@/lib/agent-protocol'
 import { loadV1TaskForEvent } from '@/lib/tasks/v1-task-shape'
 import { createLogger } from '@/lib/logger'
 import type { CreatedTask } from '@/services/task.service'
+import { actorHearsOwnChange } from '@/services/task-event-audience'
 
 const log = createLogger('services.task')
 
@@ -27,16 +28,20 @@ export async function broadcastTaskCreated(args: {
   const anyTask = task as unknown as Record<string, any>
   const listNames = (anyTask.lists ?? []).map((list: any) => list.name)
 
-  // Everyone else who can see the list: not the creator (they are looking at
-  // it) and not the assignee (they get task_assigned below).
+  // Everyone who can see the list, the creator included — their OTHER devices
+  // are separate connections and are exactly who needs this live (AWTD-1497).
+  // Not the assignee: they get task_assigned below. An AI-agent creator hears
+  // nothing of its own write (services/task-event-audience.ts).
+  const actorHears = await actorHearsOwnChange(actorId)
   const memberIds = new Set<string>()
   for (const list of anyTask.lists ?? []) {
     getListMemberIds(list as never).forEach(id => memberIds.add(id))
   }
-  const createdRecipients = Array.from(memberIds).filter(
-    id => id !== actorId && id !== task.assigneeId
-  )
-  const notifyAssignee = Boolean(task.assigneeId && task.assigneeId !== actorId)
+  const audience = new Set(memberIds)
+  if (actorHears) audience.add(actorId)
+  else audience.delete(actorId)
+  const createdRecipients = Array.from(audience).filter(id => id !== task.assigneeId)
+  const notifyAssignee = Boolean(task.assigneeId && (task.assigneeId !== actorId || actorHears))
 
   const v1Task =
     notifyAssignee || createdRecipients.length > 0 ? await loadV1TaskForEvent(task.id) : undefined

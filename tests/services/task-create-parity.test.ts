@@ -349,7 +349,8 @@ describe('createTaskWithSideEffects (epic 9dedd8aa)', () => {
     )
   })
 
-  it('tells the other list members, and not the creator', async () => {
+  // AWTD-1497: the creator's other devices are separate connections that need it.
+  it('tells the list members, the creator\'s own devices included', async () => {
     const { createTaskWithSideEffects } = await service()
 
     await createTaskWithSideEffects({
@@ -359,7 +360,7 @@ describe('createTaskWithSideEffects (epic 9dedd8aa)', () => {
 
     expect(broadcastToUsers).toHaveBeenCalled()
     const recipients = broadcastToUsers.mock.calls.flatMap(call => call[0] as string[])
-    expect(recipients).not.toContain('creator-1')
+    expect(recipients).toContain('creator-1')
     expect(recipients).toContain('member-1')
   })
 

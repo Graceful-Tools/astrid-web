@@ -78,3 +78,16 @@ export function mergeLists<T extends { id: string }>(
   for (const id of deletedIds) byId.delete(id)
   return Array.from(byId.values())
 }
+
+/**
+ * Put a just-created task on screen exactly once (AWTD-1497).
+ *
+ * The creator's tab hears its own task_created now, and that SSE echo can
+ * arrive before the POST returns. Whichever lands second must replace, not
+ * add — the response wins, since it is the fuller row.
+ */
+export function upsertCreatedTask(prev: Task[], task: Task): Task[] {
+  return prev.some(existing => existing.id === task.id)
+    ? prev.map(existing => (existing.id === task.id ? task : existing))
+    : [task, ...prev]
+}

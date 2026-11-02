@@ -45,6 +45,7 @@ import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-wor
 import { cancelCodingWorkflowForUpdate } from './coding-workflow-on-update'
 import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
 import { broadcastToUsers } from '@/lib/sse-utils'
+import { broadcastTaskDeleted } from '@/services/task-delete-broadcast'
 import { RedisCache, isRedisAvailable } from '@/lib/redis'
 import { mintTaskIdentifierBestEffort } from '@/services/task-identifier-mint'
 import { normalizeProjectStatusListIds } from '@/lib/project-status'
@@ -308,25 +309,7 @@ export async function deleteTaskWithSideEffects(args: {
     // A stale cache entry expires on its own; the delete is already done.
   }
 
-  try {
-    const recipients = audience.filter(id => id !== actorId)
-    if (recipients.length > 0) {
-      broadcastToUsers(recipients, {
-        type: 'task_deleted',
-        timestamp: new Date().toISOString(),
-        data: {
-          taskId,
-          taskTitle: task.title,
-          deleterName: actorName ?? null,
-          userId: actorId,
-          listNames,
-        },
-      })
-    }
-  } catch {
-    // A missed SSE nudge costs a refresh, not correctness — the tombstone above
-    // is what makes the deletion durable for delta sync.
-  }
+  await broadcastTaskDeleted({ taskId, taskTitle: task.title, audience, actorId, actorName, listNames })
 
   return { deleted: true, audience }
 }

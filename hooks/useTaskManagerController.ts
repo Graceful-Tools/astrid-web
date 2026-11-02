@@ -44,7 +44,7 @@ import {
   useTaskNavigation,
   useTaskPaneState,
   useTaskSelection,
-  useTaskDragDrop
+  useTaskDragDrop, upsertCreatedTask
 } from "@/hooks/task-manager"
 
 interface UseTaskManagerControllerProps {
@@ -373,7 +373,7 @@ export function useTaskManagerController({
     session: effectiveSession,
     onTaskCreated: (task) => {
       // Opening it is the caller's choice — see handleCreateTask (AWTD-1351).
-      listState.setTasks(prev => [task, ...prev])
+      listState.setTasks(prev => upsertCreatedTask(prev, task))
 
       toast({
         title: "Task created",
@@ -903,12 +903,8 @@ export function useTaskManagerController({
           lists: result.task.lists || (targetListId ? [{ id: targetListId }] : [])
         }
 
-        listState.setTasks(prev => {
-          if (prev.some(t => t.id === taskWithLists.id)) {
-            return prev
-          }
-          return [taskWithLists, ...prev]
-        })
+        // The response wins over this tab's own task_created echo (AWTD-1497).
+        listState.setTasks(prev => upsertCreatedTask(prev, taskWithLists))
 
         const shouldAutoOpen = getColumnCount() >= 2
         if (shouldAutoOpen) {

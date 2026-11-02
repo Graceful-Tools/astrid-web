@@ -153,7 +153,8 @@ describe('createTasksInBulk (AWTD-1124)', () => {
     expect(tx.$transaction).not.toHaveBeenCalled()
   })
 
-  it("sends task_created to the list's other members, never the actor", async () => {
+  // AWTD-1497: the actor's OTHER devices are on the audience too.
+  it("sends task_created to the list's members, the actor's own devices included", async () => {
     tx.task.findMany.mockImplementation(async () =>
       tx.task.createMany.mock.calls[0]?.[0]
         ? tx.task.createMany.mock.calls[0][0].data.map((data: Record<string, unknown>) => ({
@@ -176,11 +177,14 @@ describe('createTasksInBulk (AWTD-1124)', () => {
     const [recipients, event] = broadcastToUsers.mock.calls[0]
     expect(event.type).toBe('task_created')
     expect(recipients).toContain('owner-2')
-    expect(recipients).not.toContain(ACTOR)
+    expect(recipients).toContain(ACTOR)
   })
 
-  it('sends no event for a copy into a list only the actor can see', async () => {
+  // AWTD-1497: before, nobody else could see it, so nothing was sent and the
+  // actor's other devices waited for the 60-second sync. Now they hear it.
+  it('sends a copy into a list only the actor can see to the actor\'s own devices', async () => {
     await createTasksInBulk({ actorId: ACTOR, tasks: [row('a'), row('b')] })
-    expect(broadcastToUsers).not.toHaveBeenCalled()
+    const recipients = broadcastToUsers.mock.calls.flatMap(call => call[0] as string[])
+    expect(new Set(recipients)).toEqual(new Set([ACTOR]))
   })
 })
