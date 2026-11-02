@@ -14,7 +14,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
-import { resolveAgentAuthor } from '@/lib/ai-agent-author'
+import { resolveAgentAuthor, validateMcpAgentSelection } from '@/lib/ai-agent-author'
 import { ATTACHMENT_UPLOAD_TICKET_HEADER } from '@/lib/attachment-upload-ticket'
 import {
   mintTaskAttachmentUpload,
@@ -35,12 +35,8 @@ export const POST = withAuth<RouteContext>(
       return NextResponse.json({ error: 'Body must be a JSON object' }, { status: 400 })
     }
 
-    if (body.aiAgentId !== undefined && auth.source === 'legacy_mcp') {
-      return NextResponse.json(
-        { error: 'aiAgentId cannot be selected by the caller; use an agent-bound credential' },
-        { status: 400 }
-      )
-    }
+    const agentSelectionError = validateMcpAgentSelection(auth, body.aiAgentId)
+    if (agentSelectionError) return NextResponse.json({ error: agentSelectionError }, { status: 400 })
     const author = await resolveAgentAuthor(auth, body.aiAgentId)
     if (!author.ok) return NextResponse.json({ error: author.error }, { status: 400 })
 

@@ -211,6 +211,33 @@ describe('PUT /api/v1/tasks/[id] — who the system line names (AWTD-974)', () =
     name: 'Claude Agent',
     isAIAgent: true,
   }
+  const COPILOT = {
+    id: 'ai-agent-copilot',
+    email: `copilot@${BRAND.agentEmailDomain}`,
+    name: 'GitHub Copilot Agent',
+    isAIAgent: true,
+  }
+
+  it('AWTD-1383 accepts the bound MCP identity on a task update', async () => {
+    mockAuth.mockResolvedValue({ ...auth, source: 'legacy_mcp', agentUser: COPILOT })
+
+    const response = await PUT(putReq({ statusRole: 'waiting', aiAgentId: COPILOT.id }), ctx)
+
+    expect(response.status).toBe(200)
+    expect(mockRecordComment).toHaveBeenCalledTimes(1)
+    expect(mockRecordComment.mock.calls[0][0].updaterName).toBe('GitHub Copilot Agent')
+  })
+
+  it('AWTD-1383 refuses a different identity on a bound MCP task update', async () => {
+    mockAuth.mockResolvedValue({ ...auth, source: 'legacy_mcp', agentUser: COPILOT })
+
+    const response = await PUT(putReq({ completed: true, aiAgentId: CLAUDE.id }), ctx)
+
+    expect(response.status).toBe(400)
+    expect(await response.json()).toMatchObject({ error: 'aiAgentId does not match the agent-bound credential' })
+    expect(mockRecordComment).not.toHaveBeenCalled()
+    expect(mockPrisma.task.update).not.toHaveBeenCalled()
+  })
 
   it('names the agent when the token is bound to an agent mailbox', async () => {
     // The stronger claim: the credential itself says who is acting, so no
