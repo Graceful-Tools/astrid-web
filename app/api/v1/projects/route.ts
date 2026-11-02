@@ -13,6 +13,7 @@ import { NextResponse } from 'next/server'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
 import { RedisCache } from '@/lib/redis'
 import { withAuth } from '@/lib/api-auth-wrapper'
+import { conditionalJson } from '@/lib/conditional-get'
 import { createLogger } from '@/lib/logger'
 import { createProjectForUser, listProjectsForUser } from '@/lib/projects-service'
 import { checkRequestedProjectKey } from '@/lib/task-identifier'
@@ -22,7 +23,7 @@ const log = createLogger('v1.projects')
 
 export const GET = withAuth(
   { scopes: ['projects:read'], tag: 'v1.projects' },
-  async (_req, auth) => {
+  async (req, auth) => {
     const projects = await listProjectsForUser(auth.userId)
 
     const headers: Record<string, string> = {}
@@ -31,13 +32,17 @@ export const GET = withAuth(
       headers['X-Deprecation-Warning'] = deprecationWarning
     }
 
-    return NextResponse.json(
+    // Clients re-read the boards on every sync pass; a quoted ETag that still
+    // matches gets 304 and no body (AWTD-1514).
+    return conditionalJson(
+      req,
+      'projects',
       {
         projects,
         meta: { apiVersion: 'v1', authSource: auth.source },
       },
-      { headers },
-    )
+      { tagged: projects, headers },
+    ) as never
   },
 )
 
