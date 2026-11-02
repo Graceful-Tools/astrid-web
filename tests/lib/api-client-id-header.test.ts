@@ -39,4 +39,9 @@ describe('apiCall sends the tab\'s client id', () => {
     await apiCall('/api/v1/tasks/t1', { method: 'PUT', body: '{}', headers: new Headers({ 'x-extra': '1' }) })
     expect(sentHeaders()).toEqual({ 'x-extra': '1', [CLIENT_ID_HEADER]: browserClientId() })
   })
+
+  it('from tuples, keeping a repeated header\'s values (review on #638)', async () => {
+    await apiCall('/api/x', { headers: [['Accept', 'application/json'], ['Accept', 'text/plain']] })
+    expect(sentHeaders()).toEqual({ accept: 'application/json, text/plain', [CLIENT_ID_HEADER]: browserClientId() })
+  })
 })
