@@ -21,11 +21,10 @@ import { apiPost } from '@/lib/api'
 import { useTranslations } from '@/lib/i18n/client'
 import type { OAuthClientPreset } from '@/lib/oauth/oauth-client-presets'
 
-/** The repository secrets the GitHub Actions recipe reads. */
-export const ACTIONS_SECRET_NAMES = {
-  clientId: 'ASTRID_CLIENT_ID',
-  clientSecret: 'ASTRID_CLIENT_SECRET',
-} as const
+// The repository secrets the GitHub Actions recipe reads — defined with the
+// recipe strings themselves so /starthere.md and this card cannot disagree.
+import { ACTIONS_SECRET_NAMES } from '@/lib/agent-skill/loop-recipes'
+export { ACTIONS_SECRET_NAMES }
 
 interface MintedCredentials {
   clientId: string

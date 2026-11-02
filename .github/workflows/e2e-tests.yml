@@ -122,9 +122,12 @@ jobs:
           NEXT_PUBLIC_BASE_URL=http://localhost:3000
           ENVEOF
 
-          # Generate Prisma client and push schema to test database
+          # Generate Prisma client and build the test database from the
+          # migrations, like the authenticated job. `db push` skips the
+          # migrations' own SQL, so it never ran CREATE EXTENSION pg_trgm and
+          # every job failed on gin_trgm_ops after the search trigram indexes.
           npm run db:generate
-          npx prisma db push
+          npx prisma migrate deploy
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/astrid_test
           DATABASE_URL_DIRECT: postgresql://postgres:postgres@localhost:5432/astrid_test
@@ -207,9 +210,12 @@ jobs:
           NEXT_PUBLIC_BASE_URL=http://localhost:3000
           ENVEOF
 
-          # Generate Prisma client and push schema to test database
+          # Generate Prisma client and build the test database from the
+          # migrations, like the authenticated job. `db push` skips the
+          # migrations' own SQL, so it never ran CREATE EXTENSION pg_trgm and
+          # every job failed on gin_trgm_ops after the search trigram indexes.
           npm run db:generate
-          npx prisma db push
+          npx prisma migrate deploy
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/astrid_test
           DATABASE_URL_DIRECT: postgresql://postgres:postgres@localhost:5432/astrid_test
