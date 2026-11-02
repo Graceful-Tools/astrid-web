@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
-import { taskFromUpdateEvent } from "./sse-task-update"
+import { taskFromCreatedEvent, taskFromUpdateEvent } from "./sse-task-update"
 import { useToast } from "@/hooks/use-toast"
 import { useTaskSSEEvents, useSSESubscription } from "@/hooks/use-sse-subscription"
 import { SSEManager } from "@/lib/sse-manager"
@@ -402,7 +402,8 @@ export function useTaskListState({
     if (process.env.NODE_ENV === 'development') {
       console.log('[useTaskListState] SSE: Task created', event)
     }
-    const task = event.task || event
+    const task = taskFromCreatedEvent(event)
+    if (!task) return
     setTasks(prev => {
       if (prev.some(t => t.id === task.id)) {
         return prev
