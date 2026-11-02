@@ -75,6 +75,26 @@ export function refusalReason(error: unknown): string | null {
   return typeof message === 'string' && message.trim() ? message : null
 }
 
+/**
+ * The headers a request is sent with. Callers that pass their own headers get
+ * exactly those (a multipart upload passes `{}` so the browser sets the
+ * boundary); everyone else gets JSON. Either way the tab's client id is added,
+ * so its own live stream skips the echo of this write (AWTD-1497). Same-origin
+ * only: cross-origin, a custom header needs a CORS preflight the API does not
+ * answer.
+ */
+function requestHeaders(supplied: HeadersInit | undefined): Record<string, string> {
+  const base: Record<string, string> =
+    supplied === undefined
+      ? { "Content-Type": "application/json" }
+      : supplied instanceof Headers || Array.isArray(supplied)
+        // Through Headers, so a name given twice keeps both values joined.
+        ? Object.fromEntries(new Headers(supplied).entries())
+        : { ...supplied }
+  if (API_BASE_URL || typeof window === "undefined") return base
+  return { ...base, [CLIENT_ID_HEADER]: browserClientId() }
+}
+
 export const apiCall = async <TError = unknown>(
   endpoint: string,
   options: RequestInit = {},
@@ -82,22 +102,11 @@ export const apiCall = async <TError = unknown>(
 ) => {
   const url = API_BASE_URL ? `${API_BASE_URL}${endpoint}` : endpoint
 
-  const defaultOptions: RequestInit = {
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      // Which tab made this write, so its own live stream skips the echo
-      // (AWTD-1497). Same-origin only: a custom header cross-origin would
-      // need a CORS preflight the API does not answer.
-      ...(API_BASE_URL || typeof window === "undefined" ? {} : { [CLIENT_ID_HEADER]: browserClientId() }),
-      ...options.headers,
-    },
-  }
-
   try {
     const response = await fetch(url, {
-      ...defaultOptions,
+      credentials: "include",
       ...options,
+      headers: requestHeaders(options.headers),
     })
 
     if (!response.ok) {

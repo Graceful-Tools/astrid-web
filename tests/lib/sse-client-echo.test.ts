@@ -66,7 +66,7 @@ describe('a client never hears its own edit back (AWTD-1497)', () => {
     sse.registerConnection(USER, origin.controller, { clientId: TAB })
     sse.registerConnection(USER, other.controller, { clientId: OTHER })
 
-    await sse.broadcastToUsers([USER], completed, { originClientId: TAB })
+    await sse.broadcastToUsers([USER], completed, { originClientId: TAB, originUserId: USER })
 
     expect(origin.frames.map(f => f.type)).not.toContain('task_completed')
     expect(other.frames.map(f => f.data?.taskId)).toEqual(['t1'])
@@ -75,7 +75,7 @@ describe('a client never hears its own edit back (AWTD-1497)', () => {
   it('a connection that sent no client id (older iOS) still gets the event', async () => {
     const legacy = captureController()
     sse.registerConnection(USER, legacy.controller)
-    await sse.broadcastToUsers([USER], completed, { originClientId: TAB })
+    await sse.broadcastToUsers([USER], completed, { originClientId: TAB, originUserId: USER })
     expect(legacy.frames.map(f => f.data?.taskId)).toEqual(['t1'])
   })
 
@@ -87,13 +87,30 @@ describe('a client never hears its own edit back (AWTD-1497)', () => {
   })
 
   it('a reconnect replay also skips the client\'s own event', async () => {
-    await sse.broadcastToUsers([USER], completed, { originClientId: TAB })
-    await sse.broadcastToUsers([USER], { type: 'task_updated', data: { taskId: 't2' } }, { originClientId: OTHER })
+    await sse.broadcastToUsers([USER], completed, { originClientId: TAB, originUserId: USER })
+    await sse.broadcastToUsers([USER], { type: 'task_updated', data: { taskId: 't2' } }, { originClientId: OTHER, originUserId: USER })
 
     const reconnected = captureController()
     sse.registerConnection(USER, reconnected.controller, { clientId: TAB, since: 1 })
     await vi.advanceTimersByTimeAsync(100)
 
     expect(reconnected.frames.map(f => f.data?.taskId)).toEqual(['t2'])
+  })
+
+  it('another user naming this client id does not silence it (review on #637)', async () => {
+    const mine = captureController()
+    sse.registerConnection(USER, mine.controller, { clientId: TAB })
+    // A collaborator replays the id they saw, on a write of their own.
+    await sse.broadcastToUsers([USER], completed, { originClientId: TAB, originUserId: 'user-collaborator' })
+    expect(mine.frames.map(f => f.data?.taskId)).toEqual(['t1'])
+  })
+
+  it('the tag is never sent to a client', async () => {
+    const other = captureController()
+    sse.registerConnection(USER, other.controller, { clientId: OTHER })
+    await sse.broadcastToUsers([USER], completed, { originClientId: TAB, originUserId: USER })
+    expect(other.frames).toHaveLength(1)
+    expect(other.frames[0]).not.toHaveProperty('originClientId')
+    expect(other.frames[0]).not.toHaveProperty('originUserId')
   })
 })
