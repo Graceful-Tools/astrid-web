@@ -112,11 +112,11 @@ describe('Claude Code in GitHub Actions (AWTD-1494)', () => {
     expect(doc.jobs.claude.permissions).toEqual({ contents: 'write', 'pull-requests': 'write', 'id-token': 'write' })
   })
 
-  it('appears in the /starthere guide for Claude only — the other harnesses have no verified plan-billed CI path yet', () => {
+  it('appears in the /starthere guide for Claude (Copilot has its own since AWTD-1502)', () => {
     for (const agent of STARTER_AGENTS) {
       const hosted = starterAgentSetup(agent, ORIGIN, 'x').hosted
       if (agent.key === 'claude') expect(hosted?.workflow.path).toBe(workflow.path)
-      else expect(hosted).toBeNull()
+      else if (agent.key !== 'copilot') expect(hosted).toBeNull()
     }
     const md = startHereMarkdown(ORIGIN)
     expect(md).toContain('No machine to leave on? Run Claude in GitHub Actions instead.')
