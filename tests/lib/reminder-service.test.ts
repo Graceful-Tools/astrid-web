@@ -152,6 +152,50 @@ describe('ReminderService', () => {
       })
     })
 
+    it('AWTD-1475: excludes the assignee from the email collaborators query', async () => {
+      const task = {
+        id: 'task1',
+        title: 'Important Task',
+        dueDateTime: new Date('2024-01-15T16:00:00Z'),
+        reminderTime: new Date('2024-01-15T15:00:00Z'),
+        reminderType: 'email' as const,
+        reminderSent: false,
+        assigneeId: 'user1',
+        creatorId: 'user1',
+        lists: [{ id: 'list1', name: 'Work' }],
+      }
+      // The reminder query selects the user's email and name — shaped as the real query returns it.
+      mockPrisma.reminderQueue.findMany.mockResolvedValue([{
+        id: 'reminder1',
+        taskId: 'task1',
+        userId: 'user1',
+        scheduledFor: new Date('2024-01-15T15:00:00Z'),
+        type: 'due_reminder',
+        status: 'pending',
+        task,
+        user: { email: 'user@example.com', name: 'Test User' },
+      }])
+      mockPrisma.reminderSettings.findUnique.mockResolvedValue({
+        id: 'settings1',
+        userId: 'user1',
+        enablePushReminders: false,
+        enableEmailReminders: true,
+        quietHoursStart: null,
+        quietHoursEnd: null,
+        dailyDigestTimezone: 'UTC',
+      })
+      mockPrisma.listMember.findMany.mockResolvedValue([])
+      vi.setSystemTime(new Date('2024-01-15T15:00:00Z'))
+
+      await reminderService.processDueReminders()
+
+      expect(mockPrisma.listMember.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { listId: { in: ['list1'] }, userId: { not: 'user1' } },
+        })
+      )
+    })
+
     it('should respect quiet hours and reschedule reminder', async () => {
       const userSettings: ReminderSettings = {
         id: 'settings1',
