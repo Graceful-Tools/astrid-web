@@ -171,3 +171,35 @@ describe('withAuth', () => {
     expect(handler).toHaveBeenCalledWith(expect.anything(), FAKE_AUTH, ctx)
   })
 })
+
+/** AWTD-1504: a route can accept a narrow scope in place of a broad one. */
+describe('withAuth — anyOfScopes', () => {
+  async function outcome(scopes: string[]) {
+    vi.mocked(authenticateAPI).mockResolvedValue(
+      buildAuthContext({
+        userId: 'u1',
+        source: 'oauth',
+        scopes,
+        isAIAgent: false,
+        user: { id: 'u1', email: 'u@example.com', name: 'U', isAIAgent: false },
+      }),
+    )
+    const handler = vi.fn().mockResolvedValue(NextResponse.json({ ok: true }))
+    const route = withAuth({ anyOfScopes: ['lists:write', 'lists:configure'] }, handler)
+    const res = await route(fakeReq())
+    return { code: res.status, called: handler.mock.calls.length }
+  }
+
+  it('serves a caller holding only the narrow scope', async () => {
+    expect(await outcome(['lists:configure'])).toEqual({ code: 200, called: 1 })
+  })
+
+  it('serves a caller holding only the broad scope, and the wildcard', async () => {
+    expect(await outcome(['lists:write'])).toEqual({ code: 200, called: 1 })
+    expect(await outcome(['*'])).toEqual({ code: 200, called: 1 })
+  })
+
+  it('refuses a caller holding neither, without running the handler', async () => {
+    expect(await outcome(['lists:read'])).toEqual({ code: 403, called: 0 })
+  })
+})

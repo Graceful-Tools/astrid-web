@@ -14,6 +14,7 @@ export const OAUTH_SCOPES = {
   // List scopes
   'lists:read': 'Read lists',
   'lists:write': 'Create and update lists',
+  'lists:configure': 'Create lists and edit their name, instructions, default assignee and colour',
   'lists:delete': 'Delete lists',
   'lists:manage_members': 'Manage list members',
 
@@ -111,6 +112,7 @@ export const SCOPE_GROUPS = {
     'tasks:read',
     'tasks:write',
     'lists:read',
+    'lists:configure',
     'comments:read',
     'comments:write',
     'chat:read',
