@@ -1037,6 +1037,8 @@
         "saving": "正在保存...",
         "savedAdded": "已添加 {scopes}。",
         "savedRemoved": "已移除 {scopes}。",
+        "savedGroup": "现在跟随 {group}。",
+        "savedNoGroup": "不再跟随任何作用域组。",
         "unchanged": "没有变化 — 此连接已拥有这些权限。",
         "saveError": "无法更新权限",
         "loadError": "无法加载此连接的权限",

@@ -1037,6 +1037,8 @@
         "saving": "Opslaan...",
         "savedAdded": "{scopes} toegevoegd.",
         "savedRemoved": "{scopes} verwijderd.",
+        "savedGroup": "Volgt nu {group}.",
+        "savedNoGroup": "Volgt geen scopegroep meer.",
         "unchanged": "Niets gewijzigd — deze verbinding heeft deze rechten al.",
         "saveError": "Rechten konden niet worden bijgewerkt",
         "loadError": "Rechten van deze verbinding konden niet worden geladen",

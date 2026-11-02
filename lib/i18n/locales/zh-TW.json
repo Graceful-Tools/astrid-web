@@ -1037,6 +1037,8 @@
         "saving": "儲存中...",
         "savedAdded": "已新增 {scopes}。",
         "savedRemoved": "已移除 {scopes}。",
+        "savedGroup": "現在跟隨 {group}。",
+        "savedNoGroup": "不再跟隨任何範圍群組。",
         "unchanged": "沒有變更 — 此連線已擁有這些權限。",
         "saveError": "無法更新權限",
         "loadError": "無法載入此連線的權限",

@@ -1037,6 +1037,8 @@
         "saving": "Salvataggio...",
         "savedAdded": "Aggiunto {scopes}.",
         "savedRemoved": "Rimosso {scopes}.",
+        "savedGroup": "Ora segue {group}.",
+        "savedNoGroup": "Non segue più alcun gruppo di ambiti.",
         "unchanged": "Nessuna modifica: questa connessione ha già queste autorizzazioni.",
         "saveError": "Impossibile aggiornare le autorizzazioni",
         "loadError": "Impossibile caricare le autorizzazioni di questa connessione",

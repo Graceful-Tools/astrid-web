@@ -378,6 +378,22 @@ describe('PUT /api/v1/oauth/clients/:clientId — granular scopes (AWTD-1513)', 
     expect(mockUpdate).not.toHaveBeenCalled()
   })
 
+  it('AWTD-1513: rejects names inherited from Object.prototype', async () => {
+    for (const bad of ['toString', '__proto__', 'constructor']) {
+      const res = await PUT(makeReq('PUT', 'http://localhost/x', { scopes: ['tasks:read', bad] }), { params } as any)
+      expect(res.status).toBe(400)
+    }
+    expect(mockUpdate).not.toHaveBeenCalled()
+  })
+
+  it('AWTD-1513: a non-string entry that cannot be stringified is still a 400, not a 500', async () => {
+    const res = await PUT(
+      makeReq('PUT', 'http://localhost/x', { scopes: [{ toString: null }] }),
+      { params } as any
+    )
+    expect(res.status).toBe(400)
+  })
+
   it('AWTD-1513: persists exactly the granular set it was sent', async () => {
     const scopes = ['tasks:read', 'lists:read', 'lists:configure']
     const res = await PUT(makeReq('PUT', 'http://localhost/x', { scopes }), { params } as any)

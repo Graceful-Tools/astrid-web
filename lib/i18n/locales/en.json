@@ -1037,6 +1037,8 @@
         "saving": "Saving...",
         "savedAdded": "Added {scopes}.",
         "savedRemoved": "Removed {scopes}.",
+        "savedGroup": "Now following {group}.",
+        "savedNoGroup": "No longer following a scope group.",
         "unchanged": "Nothing changed — this connection already has these permissions.",
         "saveError": "Could not update permissions",
         "loadError": "Could not load this connection's permissions",

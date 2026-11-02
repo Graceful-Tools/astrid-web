@@ -1037,6 +1037,8 @@
         "saving": "Enregistrement...",
         "savedAdded": "{scopes} ajouté.",
         "savedRemoved": "{scopes} retiré.",
+        "savedGroup": "Suit désormais {group}.",
+        "savedNoGroup": "Ne suit plus aucun groupe de portées.",
         "unchanged": "Rien n'a changé — cette connexion a déjà ces autorisations.",
         "saveError": "Impossible de mettre à jour les autorisations",
         "loadError": "Impossible de charger les autorisations de cette connexion",

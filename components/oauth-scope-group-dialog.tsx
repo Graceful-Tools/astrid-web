@@ -29,7 +29,7 @@
  * oversized-files ratchet (task 9377bc2c).
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -84,6 +84,15 @@ export function OAuthScopeGroupDialog({
   const [chosen, setChosen] = useState<ScopeGroup | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [saving, setSaving] = useState(false)
+  // Leaving the group regroups the list, which remounts every checkbox; this
+  // puts keyboard focus back on the one that was just unticked.
+  const refocus = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!refocus.current) return
+    document.getElementById(`scope-edit-${refocus.current}`)?.focus()
+    refocus.current = null
+  }, [chosen])
 
   // Start from what the connection holds and the group it already follows —
   // never a proposed group, which would pre-tick scopes nobody asked for. A
@@ -114,6 +123,7 @@ export function OAuthScopeGroupDialog({
     })
     // Reconciliation would put an unticked group scope straight back.
     if (chosen && selected.has(scope) && (SCOPE_GROUPS[chosen] as readonly string[]).includes(scope)) {
+      refocus.current = scope
       setChosen(null)
     }
   }
@@ -141,9 +151,19 @@ export function OAuthScopeGroupDialog({
       const after = new Set(saved)
       const added = saved.filter(scope => !before.has(scope))
       const removed = client.scopes.filter(scope => !after.has(scope))
+      // The group is a change too: following one, or stopping, can leave
+      // today's scopes untouched and still alter what the connection gets later.
+      const savedGroup: string | null =
+        data.client && 'scopeGroup' in data.client ? data.client.scopeGroup : chosen
+      const groupChanged = (savedGroup ?? null) !== (client.scopeGroup ?? null)
       const parts = [
         added.length ? t(`${PREFIX}.savedAdded`, { scopes: added.join(', ') }) : null,
         removed.length ? t(`${PREFIX}.savedRemoved`, { scopes: removed.join(', ') }) : null,
+        groupChanged
+          ? savedGroup
+            ? t(`${PREFIX}.savedGroup`, { group: savedGroup })
+            : t(`${PREFIX}.savedNoGroup`)
+          : null,
       ].filter(Boolean)
       toast.success(
         parts.length ? `${parts.join(' ')} ${t(`${PREFIX}.tokensNote`)}` : t(`${PREFIX}.unchanged`),

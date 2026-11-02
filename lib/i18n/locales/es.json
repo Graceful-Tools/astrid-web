@@ -1037,6 +1037,8 @@
         "saving": "Guardando...",
         "savedAdded": "Se añadió {scopes}.",
         "savedRemoved": "Se quitó {scopes}.",
+        "savedGroup": "Ahora sigue {group}.",
+        "savedNoGroup": "Ya no sigue ningún grupo de alcances.",
         "unchanged": "Nada cambió: esta conexión ya tiene estos permisos.",
         "saveError": "No se pudieron actualizar los permisos",
         "loadError": "No se pudieron cargar los permisos de esta conexión",

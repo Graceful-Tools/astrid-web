@@ -1037,6 +1037,8 @@
         "saving": "Salvando...",
         "savedAdded": "{scopes} adicionado.",
         "savedRemoved": "{scopes} removido.",
+        "savedGroup": "Agora segue {group}.",
+        "savedNoGroup": "Não segue mais nenhum grupo de escopos.",
         "unchanged": "Nada mudou — esta conexão já tem essas permissões.",
         "saveError": "Não foi possível atualizar as permissões",
         "loadError": "Não foi possível carregar as permissões desta conexão",

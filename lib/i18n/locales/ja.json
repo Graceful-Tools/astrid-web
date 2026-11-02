@@ -1037,6 +1037,8 @@
         "saving": "保存中...",
         "savedAdded": "{scopes} を追加しました。",
         "savedRemoved": "{scopes} を削除しました。",
+        "savedGroup": "{group} に従うようになりました。",
+        "savedNoGroup": "スコープグループに従わなくなりました。",
         "unchanged": "変更はありません — この接続はすでにこれらの権限を持っています。",
         "saveError": "権限を更新できませんでした",
         "loadError": "この接続の権限を読み込めませんでした",
