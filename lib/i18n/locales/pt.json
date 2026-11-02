@@ -1016,6 +1016,32 @@
           "error": "Algo deu errado ao conectar o GitHub",
           "synced": "Acesso ao GitHub atualizado"
         }
+      },
+      "permissions": {
+        "edit": "Editar permissões",
+        "title": "Permissões",
+        "description": "Escolha exatamente o que esta conexão pode fazer. Uma conexão que segue um grupo de escopos é completada com esse grupo sempre que solicita um token, então um escopo adicionado depois chega a ela automaticamente.",
+        "application": "Aplicativo",
+        "follow": "Seguir um grupo de escopos",
+        "noGroup": "Nenhum — manter exatamente os escopos marcados abaixo",
+        "current": "atual",
+        "groupAdds": "Adiciona {scopes}",
+        "groupAddsNothing": "Não adiciona nada — esta conexão já tem todos os escopos deste grupo",
+        "leavesGroup": "Esta conexão deixará de seguir {group}, então escopos adicionados depois a esse grupo não chegarão a ela.",
+        "inGroup": "Em {group}",
+        "otherScopes": "Outros escopos",
+        "scopes": "Escopos",
+        "notGranted": "Ainda não concedido",
+        "tokensNote": "Tokens já emitidos mantêm seus escopos. Solicite um novo para aplicar a mudança.",
+        "save": "Salvar permissões",
+        "saving": "Salvando...",
+        "savedAdded": "{scopes} adicionado.",
+        "savedRemoved": "{scopes} removido.",
+        "unchanged": "Nada mudou — esta conexão já tem essas permissões.",
+        "saveError": "Não foi possível atualizar as permissões",
+        "loadError": "Não foi possível carregar as permissões desta conexão",
+        "selectAtLeastOne": "Selecione pelo menos um escopo",
+        "selectApp": "Selecione um aplicativo."
       }
     }
   },

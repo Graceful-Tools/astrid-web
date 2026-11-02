@@ -175,6 +175,22 @@ export function validateRegisterableScopes(scopes: string[]): OAuthScope[] {
 }
 
 /**
+ * The entries of a request-supplied scope list that are NOT registerable —
+ * unknown names, the wildcard, anything that is not a string. Empty means the
+ * whole list is acceptable.
+ *
+ * `validateRegisterableScopes` strips bad entries silently, which suits
+ * provisioning code that owns its own list. An owner editing a connection's
+ * scopes by hand (AWTD-1513) should instead be told which entry was refused,
+ * so the route rejects the request rather than saving a set nobody asked for.
+ */
+export function unregisterableScopes(scopes: readonly unknown[]): string[] {
+  return scopes
+    .filter(scope => typeof scope !== 'string' || !isRegisterableScope(scope))
+    .map(scope => String(scope))
+}
+
+/**
  * Check if requested scopes are satisfied by granted scopes
  * Handles wildcard scope ('*') which grants all permissions
  */

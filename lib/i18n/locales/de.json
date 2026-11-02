@@ -1016,6 +1016,32 @@
           "error": "Beim Verbinden mit GitHub ist etwas schiefgelaufen",
           "synced": "GitHub-Zugriff aktualisiert"
         }
+      },
+      "permissions": {
+        "edit": "Berechtigungen bearbeiten",
+        "title": "Berechtigungen",
+        "description": "Lege genau fest, was diese Verbindung darf. Eine Verbindung, die einer Bereichsgruppe folgt, wird bei jeder Token-Anforderung auf diese Gruppe ergänzt – später hinzugefügte Bereiche erreichen sie automatisch.",
+        "application": "Anwendung",
+        "follow": "Einer Bereichsgruppe folgen",
+        "noGroup": "Keine – genau die unten markierten Bereiche behalten",
+        "current": "aktuell",
+        "groupAdds": "Fügt {scopes} hinzu",
+        "groupAddsNothing": "Fügt nichts hinzu – diese Verbindung hat bereits alle Bereiche dieser Gruppe",
+        "leavesGroup": "Diese Verbindung folgt {group} dann nicht mehr; später zu dieser Gruppe hinzugefügte Bereiche erreichen sie nicht.",
+        "inGroup": "In {group}",
+        "otherScopes": "Weitere Bereiche",
+        "scopes": "Bereiche",
+        "notGranted": "Noch nicht gewährt",
+        "tokensNote": "Bereits ausgestellte Tokens behalten ihre bisherigen Bereiche. Fordere ein neues an, um die Änderung zu übernehmen.",
+        "save": "Berechtigungen speichern",
+        "saving": "Wird gespeichert...",
+        "savedAdded": "{scopes} hinzugefügt.",
+        "savedRemoved": "{scopes} entfernt.",
+        "unchanged": "Nichts geändert – diese Verbindung hat bereits diese Berechtigungen.",
+        "saveError": "Berechtigungen konnten nicht aktualisiert werden",
+        "loadError": "Berechtigungen dieser Verbindung konnten nicht geladen werden",
+        "selectAtLeastOne": "Wähle mindestens einen Bereich aus",
+        "selectApp": "Wähle eine App aus."
       }
     }
   },

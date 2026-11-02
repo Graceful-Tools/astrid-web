@@ -14,6 +14,7 @@ import {
   adoptClientScopeGroup,
   UnknownScopeGroupError,
 } from '@/lib/oauth/oauth-client-manager'
+import { unregisterableScopes } from '@/lib/oauth/oauth-scopes'
 import { withAuth } from '@/lib/api-auth-wrapper'
 
 type RouteContext = { params: Promise<{ clientId: string }> }
@@ -50,6 +51,11 @@ export const GET = withAuth<RouteContext>(
  * to that group there and then (AWTD-962). It is how an existing connection
  * gains `chat:read`/`chat:write` without a hand-written UPDATE against the
  * production row — the manual grant Jon rejected on 2026-09-16.
+ *
+ * `scopes` replaces the client's scope set with exactly the one sent — the
+ * granular editor in Settings → Connections (AWTD-1513). Every entry must be a
+ * real, registerable scope or the whole request is refused; `scopeGroup: null`
+ * stops the client following its group.
  */
 export const PUT = withAuth<RouteContext>(
   { tag: 'v1.oauth.clients.id' },
@@ -57,22 +63,43 @@ export const PUT = withAuth<RouteContext>(
     const { clientId } = await params
     const body = await req.json()
 
+    // Never trust the editor's idea of what a scope is: a malformed list, an
+    // unknown name or the wildcard refuses the whole write rather than saving
+    // a quietly different set from the one the owner ticked (AWTD-1513).
+    if (body.scopes !== undefined) {
+      if (!Array.isArray(body.scopes) || body.scopes.length === 0) {
+        return NextResponse.json(
+          { error: 'scopes must be a non-empty array of scope names' },
+          { status: 400 }
+        )
+      }
+      const refused = unregisterableScopes(body.scopes)
+      if (refused.length > 0) {
+        return NextResponse.json(
+          { error: `Unknown or unavailable scopes: ${refused.join(', ')}` },
+          { status: 400 }
+        )
+      }
+    }
+
     const fieldUpdates = {
       name: body.name,
       description: body.description,
       redirectUris: body.redirectUris,
       scopes: body.scopes,
+      scopeGroup: body.scopeGroup === null ? null : undefined,
       isActive: body.isActive,
     }
     const adoptGroup = typeof body.scopeGroup === 'string' ? body.scopeGroup : null
 
-    // Adoption WIDENS what a client may be granted, so it needs the same guard
-    // as client registration: an interactive session, never a delegated
-    // OAuth/MCP token. Otherwise a leaked narrow-scope token could adopt its
-    // own client into a broader group and self-escalate.
-    if (adoptGroup !== null && auth.source !== 'session') {
+    // Adoption and an explicit scope set both WIDEN what a client may be
+    // granted, so they need the same guard as client registration: an
+    // interactive session, never a delegated OAuth/MCP token. Otherwise a
+    // leaked narrow-scope token could widen its own client and self-escalate.
+    const changesScopes = adoptGroup !== null || body.scopes !== undefined || body.scopeGroup === null
+    if (changesScopes && auth.source !== 'session') {
       return NextResponse.json(
-        { error: 'Changing a client scope group requires an interactive session' },
+        { error: 'Changing a client\'s scopes requires an interactive session' },
         { status: 403 }
       )
     }

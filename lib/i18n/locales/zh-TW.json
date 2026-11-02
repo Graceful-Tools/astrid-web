@@ -1016,6 +1016,32 @@
           "error": "連接 GitHub 時發生錯誤",
           "synced": "已重新整理 GitHub 存取權限"
         }
+      },
+      "permissions": {
+        "edit": "編輯權限",
+        "title": "權限",
+        "description": "精確選擇此連線可以執行的操作。跟隨範圍群組的連線在每次請求權杖時都會補齊到該群組，因此之後加入群組的範圍會自動生效。",
+        "application": "應用程式",
+        "follow": "跟隨範圍群組",
+        "noGroup": "無 — 僅保留下方勾選的範圍",
+        "current": "目前",
+        "groupAdds": "新增 {scopes}",
+        "groupAddsNothing": "不新增任何內容 — 此連線已擁有該群組的所有範圍",
+        "leavesGroup": "此連線將不再跟隨 {group}，之後加入該群組的範圍不會生效。",
+        "inGroup": "屬於 {group}",
+        "otherScopes": "其他範圍",
+        "scopes": "範圍",
+        "notGranted": "尚未授予",
+        "tokensNote": "已簽發的權杖保留原有範圍。請重新請求權杖以套用變更。",
+        "save": "儲存權限",
+        "saving": "儲存中...",
+        "savedAdded": "已新增 {scopes}。",
+        "savedRemoved": "已移除 {scopes}。",
+        "unchanged": "沒有變更 — 此連線已擁有這些權限。",
+        "saveError": "無法更新權限",
+        "loadError": "無法載入此連線的權限",
+        "selectAtLeastOne": "請至少選擇一個範圍",
+        "selectApp": "請選擇一個應用程式。"
       }
     }
   },
