@@ -17,6 +17,8 @@ type SseConnection = {
   isAlive: boolean
   connectionId: string
   connectedAt: number
+  /** The client that opened this stream; events tagged with it are its own echo. */
+  clientId: string | null
   /** Detaches this connection from the bus. */
   unsubscribe: () => void
 }
@@ -81,7 +83,7 @@ setInterval(() => {
 export function registerConnection(
   userId: string,
   controller: ReadableStreamDefaultController,
-  options: SubscribeOptions = {}
+  { clientId = null, ...options }: SubscribeOptions & { clientId?: string | null } = {}
 ) {
   // Increment global counter and store it back
   connectionIdCounter = ++connectionIdCounter
@@ -104,12 +106,15 @@ export function registerConnection(
     isAlive: true,
     connectionId,
     connectedAt: now,
+    clientId,
     unsubscribe: () => {},
   }
   userConnections.set(connectionId, connection)
 
   connection.unsubscribe = getRealtimeBus().subscribe(userId, envelope => {
     if (!connection.isAlive) return
+    // This client's own change coming back (AWTD-1497, lib/realtime/client-id.ts).
+    if (clientId && envelope.event.originClientId === clientId) return
     try {
       connection.controller.enqueue(encoder.encode(`data: ${JSON.stringify(envelope.event)}\n\n`))
       connection.lastPing = Date.now()
@@ -230,13 +235,19 @@ function sanitizeForSSE(obj: any, depth = 0): any {
 }
 
 // Helper function to broadcast events to specific users
-export async function broadcastToUsers(userIds: string[], event: SseOutboundEvent) {
+export async function broadcastToUsers(
+  userIds: string[],
+  event: SseOutboundEvent,
+  { originClientId }: { originClientId?: string | null } = {}
+) {
   // Send as unnamed event (like ping) so it's received by onmessage handler
   // Include type and timestamp in the data payload
   const fullEvent = {
     type: event.type,
     timestamp: event.timestamp || new Date().toISOString(),
-    data: sanitizeForSSE(event.data)
+    data: sanitizeForSSE(event.data),
+    // The client that made the change: its own stream skips the event.
+    ...(originClientId ? { originClientId } : {}),
   }
 
   // Local connections are written synchronously inside publish; the shared

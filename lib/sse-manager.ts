@@ -1,6 +1,7 @@
 "use client"
 
 import { getSession } from "next-auth/react"
+import { CLIENT_ID_QUERY_PARAM, browserClientId } from '@/lib/realtime/client-id'
 import { safeEventParse } from "./safe-parse"
 import { createLogger } from '@/lib/logger'
 
@@ -164,9 +165,11 @@ class SSEManagerClass {
 
     try {
       // If reconnecting after disconnect, include 'since' param to recover missed events
-      let sseUrl = '/api/sse'
+      // clientId: this tab's own edits are not echoed back to it (AWTD-1497).
+      const clientParam = `${CLIENT_ID_QUERY_PARAM}=${browserClientId()}`
+      let sseUrl = `/api/sse?${clientParam}`
       if (this.wasDisconnected && this.lastEventTime > 0) {
-        sseUrl = `/api/sse?since=${this.lastEventTime}`
+        sseUrl = `/api/sse?since=${this.lastEventTime}&${clientParam}`
         log.info({ since: new Date(this.lastEventTime).toISOString() }, '🔗 [SSEManager] Reconnecting')
       }
 

@@ -15,6 +15,7 @@ import { trackEventFromRequest, AnalyticsEventType, detectPlatform } from '@/lib
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { mirrorExternalDeletesForTask } from '@/lib/sync/mirror-deletes'
 import { createLogger } from '@/lib/logger'
+import { clientIdFromRequest } from '@/lib/realtime/client-id'
 import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import {
   deleteTaskWithSideEffects,
@@ -263,6 +264,9 @@ export const PUT = withAuth<RouteContext>(
       ifUnmodifiedSince:
         ifUnmodifiedSince && !isNaN(ifUnmodifiedSince.getTime()) ? ifUnmodifiedSince : null,
       cancelWorkflowReason: 'Task marked as completed by user',
+      // The tab or app that made this edit: its own stream skips the echo,
+      // the actor's other devices get it live (AWTD-1497).
+      originClientId: clientIdFromRequest(req),
     })
 
     if (!result.ok) {

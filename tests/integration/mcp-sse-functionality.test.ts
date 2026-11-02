@@ -171,7 +171,11 @@ describe('MCP SSE Integration - Core Functionality', () => {
     // service queues (AWTD-1462).
     const deferred = readFileSync(join(process.cwd(), 'services/task-update-deferred-effects.ts'), 'utf8')
 
-    expect(service).toContain('task_updated')
+    // The event itself moved to its own module (AWTD-1497, size ratchet).
+    const broadcast = readFileSync(join(process.cwd(), 'services/task-update-broadcast.ts'), 'utf8')
+
+    expect(service).toContain('broadcastTaskUpdated')
+    expect(broadcast).toContain('task_updated')
     expect(service).toContain('resolveRepeatingTaskCompletion')
     expect(service).toContain('enqueueTaskUpdatedEffects')
     expect(deferred).toContain('rescheduleRemindersForUpdate')

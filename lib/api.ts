@@ -1,4 +1,5 @@
 import { isOfflineMode, OfflineSyncManager } from './offline-sync'
+import { CLIENT_ID_HEADER, browserClientId } from "@/lib/realtime/client-id"
 import { OfflineTaskOperations } from './offline-db'
 import { createLogger } from '@/lib/logger'
 import { z } from 'zod'
@@ -85,6 +86,10 @@ export const apiCall = async <TError = unknown>(
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      // Which tab made this write, so its own live stream skips the echo
+      // (AWTD-1497). Same-origin only: a custom header cross-origin would
+      // need a CORS preflight the API does not answer.
+      ...(API_BASE_URL || typeof window === "undefined" ? {} : { [CLIENT_ID_HEADER]: browserClientId() }),
       ...options.headers,
     },
   }
