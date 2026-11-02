@@ -39,7 +39,7 @@ const ACTOR = 'user-actor'
 const MATE = 'user-mate'
 const TAB = 'web_tab_that_toggled'
 
-function completion(originClientId?: string) {
+function completion(originClientId?: string, actorType?: 'user' | 'agent') {
   const task = { id: 't1', title: 'T', assigneeId: null, creatorId: ACTOR, completed: true, lists: [] }
   return broadcastTaskUpdated({
     task,
@@ -50,6 +50,7 @@ function completion(originClientId?: string) {
     viewers: new Set([ACTOR, MATE]),
     actorId: ACTOR,
     legacySsePayload: false,
+    actorType,
     originClientId,
   })
 }
@@ -74,18 +75,27 @@ describe('a task update never echoes to the client that made it (8ef93fb9, AWTD-
     const [ids, event, opts] = sse.broadcastToUsers.mock.calls[0]
     expect(event.type).toBe('task_completed')
     expect([...ids].sort()).toEqual([ACTOR, MATE].sort())
-    expect(opts).toEqual({ originClientId: TAB })
+    expect(opts).toEqual({ originClientId: TAB, originUserId: ACTOR })
   })
 
   it('every event the update sends carries the tag', async () => {
     await completion(TAB)
     for (const call of sse.broadcastToUsers.mock.calls) {
-      expect(call[2]).toEqual({ originClientId: TAB })
+      expect(call[2]).toEqual({ originClientId: TAB, originUserId: ACTOR })
     }
   })
 
   it('an AI-agent actor never hears its own update, client id or not', async () => {
     db.user.findUnique.mockResolvedValue({ isAIAgent: true })
     expect(await updateEventRecipients({ audience: [ACTOR, MATE], actorId: ACTOR, originClientId: TAB })).toEqual([MATE])
+  })
+
+  it('an agent the route resolved as one is left out even when its row is not flagged (review on #637)', async () => {
+    // resolveAgentAuthor accepts agent mailboxes whose isAIAgent flag is false.
+    db.user.findUnique.mockResolvedValue({ isAIAgent: false })
+    await completion(TAB, 'agent')
+    const [ids, , opts] = sse.broadcastToUsers.mock.calls[0]
+    expect(ids).toEqual([MATE])
+    expect(opts).toBeUndefined()
   })
 })
