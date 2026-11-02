@@ -19,6 +19,29 @@ export const BOARD_LIST_NAMES: Record<ReadyQueueBoard, string> = {
   android: 'Astrid Android To-do',
 }
 
+/**
+ * The checkouts each board's workflow can touch, its own repo first (AWTD-1510).
+ *
+ * A Windows [core] task — a rule, a service, the Outbox, sync — is fixed in the
+ * astrid-core checkout beside astrid-windows (astrid-windows CLAUDE.md), so its
+ * branch lives there. A Doing release that searched only the board's own repo told
+ * the next run such a task "starts fresh". Names are repo names (origin's last path
+ * segment); the others are looked for as siblings of the loop's own checkout, which
+ * is where astrid-windows' fixall-loop.ps1 looks for `$CoreRepo`.
+ */
+export const BOARD_CHECKOUTS: Record<ReadyQueueBoard, readonly string[]> = {
+  web: ['astrid-web'],
+  ios: ['astrid-ios'],
+  windows: ['astrid-windows', 'astrid-core'],
+  android: ['astrid-android'],
+}
+
+/** The board whose own repo this is, e.g. `astrid-windows` → `windows`. */
+export function boardForRepo(repoName: string): ReadyQueueBoard | null {
+  const board = READY_QUEUE_BOARDS.find(b => BOARD_CHECKOUTS[b][0] === repoName)
+  return board ?? null
+}
+
 type BoardList = { id: string; name?: string }
 
 /** Pick the board out of a `GET /api/v1/lists` body, or throw. */

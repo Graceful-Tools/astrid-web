@@ -231,9 +231,87 @@ describe('AWTD-1471: saved branch and merged branches', () => {
     expect(text).toContain('`fix/awtd-1025-still-open`')
   })
 
-  it('no saved branch and only a merged id branch: starts fresh', async () => {
+  it('no saved branch and only a merged id branch: nothing to continue from', async () => {
     const text = await release({ branches: ['fix/awtd-1025-old-merged'], merged: ['fix/awtd-1025-old-merged'] })
-    expect(text).toContain('starts fresh')
+    expect(text).toContain('No branch carrying its id was found')
     expect(text).not.toContain('fix/awtd-1025-old-merged')
+  })
+})
+
+/**
+ * AWTD-1510 — search every checkout the board's workflow can touch.
+ *
+ * The Windows board's [core] work is done in the sibling astrid-core checkout, but the
+ * release searched only astrid-windows and then said the task "starts fresh" — a claim
+ * about work it never looked for. A branch found anywhere is named with its repo; when
+ * none is found the comment says where it looked, and asserts nothing about a fresh start.
+ */
+describe('AWTD-1510: branches in every checkout the board can touch', () => {
+  const release = async (input: Partial<Parameters<typeof releaseDoingClaim>[0]>) => {
+    const api = fakeApi()
+    await releaseDoingClaim({
+      task: task({ identifier: 'AWTD-1510' }),
+      comments: [],
+      branches: [],
+      why: 'The run died.',
+      api,
+      ...input,
+    })
+    return api.comment.mock.calls[0][1] as string
+  }
+
+  it('AWTD-1510: names a branch that lives only in the sibling astrid-core checkout, with its repo', async () => {
+    const text = await release({
+      checkouts: [
+        { name: 'astrid-windows', branches: ['main', 'fix/awtd-15100-other'] },
+        { name: 'astrid-core', branches: ['main', 'fix/awtd-1510-core-rule'] },
+      ],
+    })
+    expect(text).toContain('`fix/awtd-1510-core-rule` in astrid-core')
+    expect(text).toContain('continue from there')
+    expect(text).not.toContain('No branch carrying its id')
+  })
+
+  it('AWTD-1510: the saved branch is named in the first checkout, alongside a core branch', async () => {
+    const text = await release({
+      savedBranch: 'wip/fixall-windows-1',
+      checkouts: [
+        { name: 'astrid-windows', branches: ['wip/fixall-windows-1'] },
+        { name: 'astrid-core', branches: ['fix/awtd-1510-core-rule'], merged: [] },
+      ],
+    })
+    expect(text).toContain('`wip/fixall-windows-1` in astrid-windows, `fix/awtd-1510-core-rule` in astrid-core')
+  })
+
+  it('AWTD-1510: a merged branch in the core checkout is not named', async () => {
+    const text = await release({
+      checkouts: [
+        { name: 'astrid-windows', branches: [] },
+        { name: 'astrid-core', branches: ['fix/awtd-1510-done'], merged: ['fix/awtd-1510-done'] },
+      ],
+    })
+    expect(text).not.toContain('fix/awtd-1510-done')
+  })
+
+  it('AWTD-1510: nothing found names the checkouts searched and never asserts a fresh start', async () => {
+    const text = await release({
+      checkouts: [
+        { name: 'astrid-windows', branches: ['main'] },
+        { name: 'astrid-core', branches: ['main'] },
+      ],
+    })
+    expect(text).toContain(
+      'No branch carrying its id was found in the checkouts this loop can see (astrid-windows, astrid-core).',
+    )
+    expect(text).not.toMatch(/starts? fresh/)
+  })
+
+  it('AWTD-1510: the second-release handback carries the same conditional wording', async () => {
+    const text = await release({
+      comments: [{ content: `${RELEASE_MARKER}. earlier`, createdAt: '2026-09-28T00:00:00Z' }],
+      checkouts: [{ name: 'astrid-windows', branches: [] }],
+    })
+    expect(text).toContain('in the checkouts this loop can see (astrid-windows)')
+    expect(text).not.toMatch(/starts? fresh/)
   })
 })

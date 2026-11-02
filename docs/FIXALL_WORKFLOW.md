@@ -455,7 +455,10 @@ The scheduled runners release these themselves, via `scripts/release-stuck-doing
   the watchdog) — an interactive session that died, or anything older than this rule.
 
 A release **keeps the agent assignment** and comments with the branch that carries the task's
-id, so the next run resumes from that work instead of starting over. **The second release
+id, so the next run resumes from that work instead of starting over. It searches **every
+checkout the board's workflow can touch** — for the Windows board, astrid-windows and the
+astrid-core checkout beside it — and names a found branch with its repo; when it finds none it
+says which checkouts it looked in, not that the task starts fresh (AWTD-1510). **The second release
 hands the task back** to its human creator in `Waiting` rather than retrying it again — the same
 "fails twice, stop" rule as below.
 

@@ -15,7 +15,11 @@
  *   ... --dry-run
  *
  * `--repo` is where the task branches live (git ls-remote origin), so a release
- * can name the branch that carries the work. Defaults to the current directory.
+ * can name the branch that carries the work. Defaults to the current directory, and
+ * may be repeated. The board's other checkouts are searched too, found beside the
+ * first --repo (AWTD-1510: the Windows board's [core] branches are in astrid-core;
+ * scripts/lib/board-by-name.ts BOARD_CHECKOUTS). The board comes from --board, else
+ * from the first --repo's origin. A found branch is named with its repo.
  * Branches already merged into origin/main there are never named (AWTD-1471).
  * `--saved-branch` names the branch the loop saved the run's unfinished work on
  * (a `wip/…` snapshot carries no task id); it is named first, for the run's claims.
@@ -25,12 +29,12 @@
  * Doing, which is the state it was already in.
  */
 
-import { execFileSync } from 'child_process'
 import { existsSync, readFileSync } from 'fs'
 import { loadScriptEnv } from './lib/load-env'
 import { resolveAgentAuthorId } from './lib/agent-author'
 import { SweepApi } from './lib/sweep-api'
 import { boardTasksUrl } from './lib/board-read-url'
+import { readCheckout, releaseCheckouts } from './lib/release-checkouts'
 import { parseBoardTarget, resolveBoardListId, type BoardTarget } from './lib/board-by-name'
 import {
   DEFAULT_STALE_DOING_MINUTES,
@@ -39,6 +43,7 @@ import {
   isOrphanedDoing,
   isReleasableClaim,
   releaseDoingClaim,
+  type CheckoutBranches,
   type DoingTask,
 } from './lib/doing-release'
 import { agentEmail } from '@/lib/brand/agent-emails'
@@ -54,55 +59,28 @@ function arg(name: string): string | undefined {
   return i === -1 ? undefined : process.argv[i + 1]
 }
 
-function remoteBranches(repo: string): string[] {
-  try {
-    return execFileSync('git', ['-c', 'core.fsmonitor=false', 'ls-remote', '--heads', 'origin'], {
-      cwd: repo,
-      encoding: 'utf8',
-      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
-      timeout: 30_000,
-    })
-      .split('\n')
-      .map(line => line.split('refs/heads/')[1]?.trim())
-      .filter((name): name is string => Boolean(name))
-  } catch {
-    return []
-  }
-}
-
-/**
- * Remote branches already merged into origin/main, as `ls-remote` names them
- * (`fix/x`, not `origin/fix/x`). Read from --repo's remote-tracking refs, so a
- * branch it has never fetched is simply not excluded. Empty on any git error.
- */
-function mergedRemoteBranches(repo: string): string[] {
-  try {
-    return execFileSync('git', ['-c', 'core.fsmonitor=false', 'branch', '-r', '--merged', 'origin/main', '--format=%(refname:short)'], {
-      cwd: repo,
-      encoding: 'utf8',
-      timeout: 30_000,
-    })
-      .split('\n')
-      .map(line => line.trim())
-      .filter(name => name.startsWith('origin/') && name !== 'origin/main' && name !== 'origin/HEAD')
-      .map(name => name.slice('origin/'.length))
-  } catch {
-    return []
-  }
+/** Every value of a repeatable flag, e.g. `--repo a --repo b`. */
+function args(name: string): string[] {
+  const values: string[] = []
+  process.argv.forEach((value, i) => {
+    if (value === name && process.argv[i + 1]) values.push(process.argv[i + 1])
+  })
+  return values
 }
 
 async function main() {
   const mailbox = arg('--agent')
   const claimsFile = arg('--claims-file')
   const staleMinutes = Number(arg('--stale-minutes') ?? DEFAULT_STALE_DOING_MINUTES)
-  const repo = arg('--repo') ?? process.cwd()
+  const repos = args('--repo')
+  if (repos.length === 0) repos.push(process.cwd())
   const dryRun = process.argv.includes('--dry-run')
   // Where the loop saved this run's unfinished work (AWTD-1471). Only the run's own
   // claims get it; the idle backstop has no way to know which run a branch came from.
   const savedBranch = arg('--saved-branch')
 
   const usage =
-    'Usage: release-stuck-doing.ts --agent <mailbox> (--claims-file <file> [--saved-branch <name>] | (--list <listId> | --board <web|ios|windows|android>) [--stale-minutes N]) [--repo <path>] [--dry-run]'
+    'Usage: release-stuck-doing.ts --agent <mailbox> (--claims-file <file> [--saved-branch <name>] | (--list <listId> | --board <web|ios|windows|android>) [--stale-minutes N]) [--repo <path>]... [--dry-run]'
   let target: BoardTarget | null
   try {
     target = parseBoardTarget({ list: arg('--list'), board: arg('--board') })
@@ -184,10 +162,10 @@ async function main() {
 
   const email = agentEmail(mailbox)
   const now = new Date()
-  let branches: string[] | null = null
-  const branchesOnce = () => (branches ??= remoteBranches(repo))
-  let merged: string[] | null = null
-  const mergedOnce = () => (merged ??= mergedRemoteBranches(repo))
+  // Every checkout the board's workflow can touch (AWTD-1510), read once and only if needed.
+  let checkouts: CheckoutBranches[] | null = null
+  const checkoutsOnce = () =>
+    (checkouts ??= releaseCheckouts({ repos, board: target?.kind === 'board' ? target.board : null }).map(readCheckout))
 
   // Candidates: what this run claimed, plus (tick start) everything in Doing on the board.
   const candidates: Array<{ id: string; mode: 'claims' | 'stale' }> = claimed.map(id => ({ id, mode: 'claims' }))
@@ -227,8 +205,8 @@ async function main() {
     const outcome = await releaseDoingClaim({
       task,
       comments,
-      branches: branchesOnce(),
-      merged: mergedOnce(),
+      branches: [],
+      checkouts: checkoutsOnce(),
       savedBranch: mode === 'claims' ? savedBranch : null,
       why,
       api,
