@@ -191,10 +191,21 @@ describe('/starthere.md, followed literally by each agent', () => {
     }
   })
 
-  it('serves itself at the paths the page advertises', () => {
-    expect(START_HERE_PATH).toBe('/starthere')
-    expect(START_HERE_MARKDOWN_PATH).toBe('/starthere.md')
+  it('serves itself at the paths the page advertises — /start since AWTD-1502', () => {
+    expect(START_HERE_PATH).toBe('/start')
+    expect(START_HERE_MARKDOWN_PATH).toBe('/start.md')
     expect(markdown).toContain(`${ORIGIN}${START_HERE_PATH}`)
+  })
+
+  it('keeps every link to the old /starthere working with a permanent redirect (AWTD-1502)', async () => {
+    const config = (await import('../../next.config.mjs')).default as {
+      redirects: () => Promise<Array<{ source: string; destination: string; permanent: boolean }>>
+    }
+    const redirects = await config.redirects()
+    const to = (source: string) => redirects.find(r => r.source === source)
+    expect(to('/starthere')).toMatchObject({ destination: '/start', permanent: true })
+    expect(to('/starthere.md')).toMatchObject({ destination: '/start.md', permanent: true })
+    expect(to('/:locale/starthere')).toMatchObject({ destination: '/:locale/start', permanent: true })
   })
 })
 

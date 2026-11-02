@@ -23,6 +23,7 @@ import { AgentCredentialsCard } from "@/components/agent-credentials-card"
 import { apiGet, apiPost } from "@/lib/api"
 import {
   START_HERE_MARKDOWN_PATH,
+  START_HERE_PATH,
   STARTER_AGENTS,
   STARTER_LISTS,
   starterAgentForList,
@@ -337,7 +338,7 @@ export default function StartHerePage() {
               )}
             </Button>
           ) : (
-            <Button onClick={() => router.push(`/auth/signin?callbackUrl=${encodeURIComponent('/starthere')}`)}>
+            <Button onClick={() => router.push(`/auth/signin?callbackUrl=${encodeURIComponent(START_HERE_PATH)}`)}>
               Sign in to create them
             </Button>
           )}

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { getBaseUrl } from '@/lib/base-url'
 import { ASTRID_DESCRIPTION, enabledIntegrationMethods, WELL_KNOWN_ENDPOINTS } from '@/lib/integration-registry'
 import { BRAND } from '@/lib/brand/config'
+import { START_HERE_MARKDOWN_PATH } from '@/lib/start-here/business-blueprint'
 
 export async function GET() {
   const baseUrl = getBaseUrl()
@@ -40,7 +41,7 @@ export async function GET() {
 
 ## Start here
 
-- [Start here](${baseUrl}/starthere.md): Run a small software business with Muse, Claude, Codex, Copilot and GitHub Actions working from shared lists — step-by-step setup an agent can follow
+- [Start here](${baseUrl}${START_HERE_MARKDOWN_PATH}): Run a small software business with Muse, Claude, Codex, Copilot and GitHub Actions working from shared lists — step-by-step setup an agent can follow
 
 ## Docs
 
