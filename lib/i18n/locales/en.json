@@ -1103,6 +1103,10 @@
       "tomorrow": "Tomorrow",
       "next7Days": "Next 7 days",
       "next30Days": "Next 30 days"
+    },
+    "memberAgentAssignment": {
+      "label": "Members can hand any task to an agent",
+      "help": "Lets every member of this list assign an agent to any task here, not only tasks they created. The agents run on the list owner's plans."
     }
   },
   "reminderSettings": {

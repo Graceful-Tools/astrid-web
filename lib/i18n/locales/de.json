@@ -1103,6 +1103,10 @@
       "tomorrow": "Morgen",
       "next7Days": "Nächste 7 Tage",
       "next30Days": "Nächste 30 Tage"
+    },
+    "memberAgentAssignment": {
+      "label": "Mitglieder können jede Aufgabe an einen Agenten übergeben",
+      "help": "Erlaubt jedem Mitglied dieser Liste, jeder Aufgabe hier einen Agenten zuzuweisen, nicht nur eigenen Aufgaben. Die Agenten laufen über die Pläne des Listeninhabers."
     }
   },
   "reminderSettings": {

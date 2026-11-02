@@ -81,7 +81,12 @@ export interface ListAgentWireFields {
   /** Enabled agent types. ALWAYS an array on the wire — see serializeListAgentFields. */
   aiAgentsEnabled: string[]
   /** The full config, for clients that know about the per-list default agent. */
-  aiAgentConfig: { enabledTypes: string[]; defaultAgentId: string | null }
+  aiAgentConfig: {
+    enabledTypes: string[]
+    defaultAgentId: string | null
+    /** May plain members hand ANY task to an agent (AWTD-1493)? false when never opted in. */
+    allowMemberAssignment: boolean
+  }
 }
 
 /**
@@ -99,7 +104,11 @@ export function serializeListAgentFields(stored: unknown): ListAgentWireFields {
   const config = normalizeAgentEnabledConfig(stored)
   return {
     aiAgentsEnabled: config.enabledTypes,
-    aiAgentConfig: { enabledTypes: config.enabledTypes, defaultAgentId: config.defaultAgentId ?? null },
+    aiAgentConfig: {
+      enabledTypes: config.enabledTypes,
+      defaultAgentId: config.defaultAgentId ?? null,
+      allowMemberAssignment: config.allowMemberAssignment === true,
+    },
   }
 }
 

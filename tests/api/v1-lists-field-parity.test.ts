@@ -135,7 +135,7 @@ describe('GET /api/v1/lists field parity (task dc143ab2)', () => {
     const list = await firstList()
 
     expect(list.aiAgentsEnabled).toEqual(['claude'])
-    expect(list.aiAgentConfig).toEqual({ enabledTypes: ['claude'], defaultAgentId: 'agent-1' })
+    expect(list.aiAgentConfig).toEqual({ enabledTypes: ['claude'], defaultAgentId: 'agent-1', allowMemberAssignment: false })
   })
 
   it('carries publicListType', async () => {
