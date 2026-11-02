@@ -21,6 +21,7 @@ import { MIN_TASK_PRIORITY, MAX_TASK_PRIORITY } from "../lib/task-priority"
 // array every surface advertises.
 import { BLOCKER_TOOLS } from "./blockers"
 import { ATTACHMENT_TOOLS } from "./task-attachments"
+import { LIST_TOOLS } from "./list-tools"
 
 export const OAUTH_MCP_TOOLS = [
       {
@@ -345,4 +346,5 @@ export const OAUTH_MCP_TOOLS = [
       },
       ...BLOCKER_TOOLS,
       ...ATTACHMENT_TOOLS,
+      ...LIST_TOOLS,
 ] as const

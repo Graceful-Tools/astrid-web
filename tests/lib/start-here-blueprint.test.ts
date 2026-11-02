@@ -17,6 +17,7 @@ import { describe, expect, it } from 'vitest'
 import { BRAND } from '@/lib/brand/config'
 import { agentEmail } from '@/lib/brand/agent-emails'
 import { pollableMailboxes } from '@/lib/ai/agent-execution-mode'
+import { OAUTH_MCP_TOOLS } from '@/mcp/tool-definitions'
 import { queueContractLine, queueSkillAdapter } from '@/lib/agent-skill/astrid-queue-skill'
 import {
   actionsQueueGateWorkflow,
@@ -153,6 +154,17 @@ describe('/starthere.md, followed literally by each agent', () => {
 
   it('turns on automatic Copilot code review for every pull request', () => {
     expect(sectionFor('GitHub Copilot')).toMatch(/Automatically request Copilot code review/)
+  })
+
+  it('tells an agent to create each list over MCP with create_list and its agent mailbox (AWTD-1491)', () => {
+    const tools = OAUTH_MCP_TOOLS.map(t => t.name)
+    expect(tools).toContain('create_list')
+    for (const list of STARTER_LISTS) {
+      const agent = starterAgentForList(list)
+      expect(markdown).toContain(`create_list { name: "${list.name}", defaultAgent: "${agent.mailbox}"`)
+      // The mailbox must be one create_list can resolve: the queue accepts it.
+      expect(pollableMailboxes()).toContain(agent.mailbox)
+    }
   })
 
   it('copies every list description verbatim (they are the agent instructions)', () => {
