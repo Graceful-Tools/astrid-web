@@ -24,7 +24,7 @@ import {
 import { TASK_COMMENTS_RESPONSE_LIMIT } from '@/lib/task-query-utils'
 import { validateV1TaskUpdate, type V1TaskUpdateRequest } from '@/lib/api-contracts/v1-request-shapes'
 import { audienceForTask, recordDeletion } from "@/lib/deletion-log"
-import { resolveAgentAuthor } from '@/lib/ai-agent-author'
+import { resolveAgentAuthor, validateMcpAgentSelection } from '@/lib/ai-agent-author'
 import { assigneeIdsOf } from '@/lib/task-assignees'
 import { withTaskRemote } from '@/lib/backends/task-remote'
 
@@ -169,15 +169,8 @@ export const PUT = withAuth<RouteContext>(
       return NextResponse.json({ error: shape.error }, { status: 400 })
     }
 
-    // Same rule as the comments route: a legacy MCP credential cannot prove
-    // which harness is speaking, so letting it choose an identity would make
-    // the attribution a suggestion rather than a fact.
-    if (body.aiAgentId !== undefined && auth.source === 'legacy_mcp') {
-      return NextResponse.json(
-        { error: 'aiAgentId cannot be selected by the caller; use an agent-bound credential' },
-        { status: 400 }
-      )
-    }
+    const agentSelectionError = validateMcpAgentSelection(auth, body.aiAgentId)
+    if (agentSelectionError) return NextResponse.json({ error: agentSelectionError }, { status: 400 })
 
     // Subtasks: re-parent or promote to top-level (null). Validates existence,
     // self-parenting and cycles. Parsing is shared with the web route so the

@@ -18,7 +18,8 @@ import { PUT as UPLOAD } from '@/app/api/v1/attachment-uploads/route'
 import { authenticateAPI, requireScopes } from '@/lib/api-auth-middleware'
 import { createCommentWithSideEffects } from '@/services/comment.service'
 import { uploadFileToBlob } from '@/lib/secure-storage'
-import { signAttachmentUploadTicket } from '@/lib/attachment-upload-ticket'
+import { signAttachmentUploadTicket, verifyAttachmentUploadTicket } from '@/lib/attachment-upload-ticket'
+import { agentEmail } from '@/lib/brand/agent-emails'
 
 vi.mock('@/lib/api-auth-middleware', () => {
   class UnauthorizedError extends Error {}
@@ -44,6 +45,17 @@ const mockAuth = vi.mocked(authenticateAPI)
 const mockScopes = vi.mocked(requireScopes)
 const mockCreateComment = vi.mocked(createCommentWithSideEffects)
 const mockUpload = vi.mocked(uploadFileToBlob)
+
+const owner = { id: 'owner-1', email: 'owner@example.com', name: 'Owner', isAIAgent: false }
+const copilot = { id: 'copilot-agent', email: agentEmail('copilot'), name: 'GitHub Copilot Agent', isAIAgent: true }
+const boundMcpAuth = {
+  userId: owner.id,
+  source: 'legacy_mcp' as const,
+  scopes: ['*'],
+  isAIAgent: false,
+  user: owner,
+  agentUser: copilot,
+}
 
 const PNG = Buffer.concat([
   Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
@@ -115,6 +127,40 @@ beforeEach(() => {
 })
 
 describe('POST /api/v1/tasks/:id/attachment-uploads (mint)', () => {
+  it('AWTD-1383 mints a ticket attributed to the explicitly supplied bound MCP agent', async () => {
+    mockAuth.mockResolvedValue(boundMcpAuth)
+    mockPrisma.task.findUnique.mockResolvedValue(row(task()))
+
+    const res = await mintRequest({ fileName: 'shot.png', aiAgentId: copilot.id })
+
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(verifyAttachmentUploadTicket(body.upload.headers['X-Upload-Ticket'])).toMatchObject({
+      userId: owner.id,
+      authorId: copilot.id,
+    })
+  })
+
+  it('AWTD-1383 refuses a different agent on a bound MCP attachment ticket', async () => {
+    mockAuth.mockResolvedValue(boundMcpAuth)
+
+    const res = await mintRequest({ fileName: 'shot.png', aiAgentId: 'different-agent' })
+
+    expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({ error: 'aiAgentId does not match the agent-bound credential' })
+  })
+
+  it('AWTD-1383 refuses a caller-selected agent on an unbound MCP attachment ticket', async () => {
+    mockAuth.mockResolvedValue({ ...boundMcpAuth, agentUser: null })
+
+    const res = await mintRequest({ fileName: 'shot.png', aiAgentId: copilot.id })
+
+    expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({
+      error: 'aiAgentId cannot be selected by the caller; use an agent-bound credential',
+    })
+  })
+
   it('needs comments:write — the scope MCP connections already hold', async () => {
     mockPrisma.task.findUnique.mockResolvedValue(row(task()))
     await mintRequest({ fileName: 'shot.png' })
