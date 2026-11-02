@@ -32,10 +32,12 @@ const log = createLogger('task-update-broadcast')
 export async function updateEventRecipients(args: {
   audience: Iterable<string>
   actorId: string
+  /** As the route resolved it: an agent mailbox can be an unflagged user row. */
+  actorType?: 'user' | 'agent'
   originClientId?: string | null
 }): Promise<string[]> {
   const others = Array.from(args.audience).filter(id => id !== args.actorId)
-  if (!args.originClientId) return others
+  if (!args.originClientId || args.actorType === 'agent') return others
   return (await actorHearsOwnChange(args.actorId)) ? [...others, args.actorId] : others
 }
 
@@ -50,16 +52,19 @@ export async function broadcastTaskUpdated(args: {
   viewers: Set<string>
   actorId: string
   actorName?: string
+  actorType?: 'user' | 'agent'
   legacySsePayload: boolean
   originClientId?: string | null
 }): Promise<void> {
-  const { task, existingTask, justCompleted, viewers, actorId, actorName, legacySsePayload, originClientId } = args
+  const { task, existingTask, justCompleted, viewers, actorId, actorName, legacySsePayload } = args
+  // An agent is never sent its own write, so its writes are never tagged.
+  const originClientId = args.actorType === 'agent' ? null : args.originClientId
   try {
-    const recipients = await updateEventRecipients({ audience: args.audience, actorId, originClientId })
+    const recipients = await updateEventRecipients({ audience: args.audience, actorId, actorType: args.actorType, originClientId })
     if (recipients.length === 0) return
     // Untagged writes keep the two-argument call: nothing changes for them.
     const send: typeof broadcastToUsers = (ids, event) =>
-      originClientId ? broadcastToUsers(ids, event, { originClientId }) : broadcastToUsers(ids, event)
+      originClientId ? broadcastToUsers(ids, event, { originClientId, originUserId: actorId }) : broadcastToUsers(ids, event)
 
     // A new assignee gets task_assigned rather than task_updated — being
     // given work is a different event from work changing under you.

@@ -1302,7 +1302,7 @@ async function runUpdateSideEffects(args: {
 
   await broadcastTaskUpdated({
     task, existingTask, assigneeWritten: Object.hasOwn(intent, 'assigneeId'), justCompleted,
-    audience, viewers, actorId, actorName, legacySsePayload, originClientId,
+    audience, viewers, actorId, actorName, actorType, legacySsePayload, originClientId,
   })
 
   // Analytics lives here so the MCP surfaces are counted too — they were

@@ -9,7 +9,7 @@
  * red on the morning after the change (AWTD-1511).
  */
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDaysDifference } from '@/lib/date-comparison'
 import { formatDateForDisplay } from '@/lib/date-utils'
 
@@ -44,13 +44,13 @@ describe('getDaysDifference across a DST change', () => {
   })
 
   it('formatDateForDisplay says "Yesterday" on the morning after fall-back', () => {
-    const realNow = Date.now
-    Date.now = () => new Date(2026, 10, 2, 2, 41).getTime()
+    // new Date() reads the system clock, not Date.now (review on #636).
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 10, 2, 2, 41))
     try {
-      // formatDateForDisplay reads `new Date()`, which uses Date.now.
       expect(formatDateForDisplay(new Date(2026, 10, 1, 14, 0), false)).toBe('Yesterday')
     } finally {
-      Date.now = realNow
+      vi.useRealTimers()
     }
   })
 })
