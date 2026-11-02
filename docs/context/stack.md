@@ -31,14 +31,14 @@
 ## UI & Styling
 - **Styling**: Tailwind CSS 3.4.17
 - **Components**: Radix UI primitives (Shadcn/ui)
-- **Icons**: Lucide React 1.61.0 (brand glyphs in `components/ui/brand-icons.tsx` — v1 dropped them)
-- **Forms**: React Hook Form 7.90.0 + Zod 4.6.6
+- **Icons**: Lucide React 1.65.0 (brand glyphs in `components/ui/brand-icons.tsx` — v1 dropped them)
+- **Forms**: React Hook Form 7.91.0 + Zod 4.6.6
 
 ## Build & Development
 - **Bundler**: Next.js built-in (Turbopack in dev)
 - **ESLint**: ESLint 9.39.5
 - **TypeScript**: Strict mode
-- **PostCSS**: autoprefixer 10.6.1
+- **PostCSS**: autoprefixer 10.6.2
 
 ## AI & Automation
 - **OpenAI**: Chat Completions API, called with fetch (no SDK)
@@ -49,7 +49,7 @@
 - **GitHub Integration**: Octokit for repository access
 
 ## Email & Notifications
-- **Outbound Email**: Resend 6.34.1
+- **Outbound Email**: Resend 6.36.0
 - **Inbound Email**: Cloudflare Email Workers / Mailgun / Resend webhooks
 - **Email Parsing**: TurndownService (HTML to Markdown)
 - **Push Notifications**: web-push 3.6.7 (VAPID-based)
