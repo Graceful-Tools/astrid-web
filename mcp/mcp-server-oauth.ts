@@ -34,6 +34,7 @@ import { createLogger } from "../lib/logger"
 import { OAuthAPIClient, type OAuthAPIClientOptions } from "./oauth-api-client"
 import { fetchListMessages } from "./list-chat"
 import { callBlockerTool, isBlockerTool } from "./blockers"
+import { callListTool, isListTool } from "./list-tools"
 import { callAttachmentTool, isAttachmentTool } from "./task-attachments"
 
 const log = createLogger("mcp.server-oauth")
@@ -193,6 +194,7 @@ export default class AstridMCPServerOAuth {
             return await this.getListMessages(args)
           default:
             if (isBlockerTool(name)) return await callBlockerTool(this.oauthClient, name, args)
+            if (isListTool(name)) return await callListTool(this.oauthClient, name, args)
             if (isAttachmentTool(name)) return await callAttachmentTool(this.oauthClient, args, this.agentIdentity.signature())
             throw new Error(`Unknown tool: ${name}`)
         }

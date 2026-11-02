@@ -257,7 +257,14 @@ export function startHereMarkdown(origin: string): string {
     '',
     `Sign in at ${origin}, open ${origin}${START_HERE_PATH} and press **Create my lists**. It creates the lists below with their instructions and makes each agent the default assignee.`,
     '',
-    `By API instead (an agent with an ${app} OAuth token holding \`lists:write\`): \`POST ${origin}/api/v1/lists\` with header \`X-OAuth-Token\` and body \`{ "name", "description" }\` for each list.`,
+    `**Agent, over MCP:** once connected (Step 2), call \`create_list\` once per list with \`name\`, \`description\` (copied exactly from below) and \`defaultAgent\` (the mailbox in the table). It creates private lists; sharing stays a human step. It needs a token holding \`lists:write\` — if it is refused, ask the human to press **Create my lists** instead and carry on.`,
+    '',
+    '```text',
+    ...STARTER_LISTS.map(list => {
+      const agent = starterAgentForList(list)
+      return `create_list { name: "${list.name}", defaultAgent: "${agent.mailbox}", description: <the ${list.name} instructions below> }`
+    }),
+    '```',
     '',
     `A list's description is the instruction file every agent reads for tasks in that list. Copy these exactly:`,
     '',
