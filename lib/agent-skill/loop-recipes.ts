@@ -142,9 +142,15 @@ jobs:
   }
 }
 
-/** The secret holding an agent-bound access token, e.g. ASTRID_MCP_TOKEN. */
-export function mcpTokenSecretName(): string {
-  return `${BRAND.wordmark.replace(/[^a-z0-9]/gi, '_').toUpperCase()}_MCP_TOKEN`
+/**
+ * The secret holding one agent's bound access token, e.g. ASTRID_CLAUDE_MCP_TOKEN.
+ * Per mailbox, because the token decides who the writes are signed as: two
+ * workers in one repository sharing a name would overwrite each other's
+ * credential and post under the wrong agent (AWTD-1502).
+ */
+export function mcpTokenSecretName(mailbox: string): string {
+  const part = (value: string) => value.replace(/[^a-z0-9]/gi, '_').toUpperCase()
+  return `${part(BRAND.wordmark)}_${part(mailbox)}_MCP_TOKEN`
 }
 
 /** The secret `claude setup-token` produces for the official Claude action. */
@@ -152,7 +158,7 @@ export const CLAUDE_OAUTH_SECRET = 'CLAUDE_CODE_OAUTH_TOKEN'
 
 /** What a hosted agent job is told: the queue contract plus the PR hand-off. */
 function actionsAgentPrompt({ mailbox, listId }: LoopRecipeOptions): string {
-  return `${queueContractLine({ mailbox, listId })} For each task: work on a new branch named after its identifier, commit, push, open a pull request with gh, and put the PR link in your completion comment. Never merge or deploy.`
+  return `${queueContractLine({ mailbox, listId })} For a task that changes code: work on a new branch named after its identifier, commit, push, open a pull request with gh, and put the PR link in your completion comment. For a review task, post your findings on the existing pull request and on the task instead; there is nothing to commit. Never merge or deploy.`
 }
 
 /**
@@ -161,7 +167,7 @@ function actionsAgentPrompt({ mailbox, listId }: LoopRecipeOptions): string {
  * hour costs one HTTP call and none of the user's plan.
  */
 function bearerQueueGateJob({ origin, mailbox, listId }: LoopRecipeOptions): string {
-  const tokenSecret = `\${{ secrets.${mcpTokenSecretName()} }}`
+  const tokenSecret = `\${{ secrets.${mcpTokenSecretName(mailbox)} }}`
   const queueUrl = `${origin}/api/v1/agent-queue?agent=${mailbox}${listId ? `&listId=${listId}` : ''}`
   return `  queue-gate:
     runs-on: ubuntu-latest
@@ -194,7 +200,7 @@ function bearerQueueGateJob({ origin, mailbox, listId }: LoopRecipeOptions): str
 export function actionsClaudeCodeWorkflow(options: LoopRecipeOptions): { path: string; content: string } {
   const name = mcpServerName()
   const { origin } = options
-  const tokenSecret = `\${{ secrets.${mcpTokenSecretName()} }}`
+  const tokenSecret = `\${{ secrets.${mcpTokenSecretName(options.mailbox)} }}`
   const claudeSecret = `\${{ secrets.${CLAUDE_OAUTH_SECRET} }}`
   const prompt = actionsAgentPrompt(options)
   return {
@@ -264,7 +270,7 @@ export const COPILOT_TOKEN_SECRET = 'COPILOT_GITHUB_TOKEN'
 export function actionsCopilotWorkflow(options: LoopRecipeOptions): { path: string; content: string } {
   const name = mcpServerName()
   const { origin } = options
-  const tokenSecret = `\${{ secrets.${mcpTokenSecretName()} }}`
+  const tokenSecret = `\${{ secrets.${mcpTokenSecretName(options.mailbox)} }}`
   const copilotSecret = `\${{ secrets.${COPILOT_TOKEN_SECRET} }}`
   const prompt = actionsAgentPrompt(options)
   return {

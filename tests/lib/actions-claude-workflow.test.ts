@@ -94,7 +94,7 @@ describe('Claude Code in GitHub Actions (AWTD-1494)', () => {
 
   it('connects Claude Code to this server\'s MCP with the agent-bound token, and allows its tools', () => {
     const connect = doc.jobs.claude.steps.find(s => s.name?.startsWith('Connect Claude Code'))!
-    expect(connect.env!.TOKEN).toBe(`\${{ secrets.${mcpTokenSecretName()} }}`)
+    expect(connect.env!.TOKEN).toBe(`\${{ secrets.${mcpTokenSecretName('claude')} }}`)
     expect(connect.run).toContain(`--arg url "${ORIGIN}/mcp"`)
     // Run the step's jq with a fake token: the config must be valid JSON.
     const config = execFileSync('bash', ['-e', '-c', connect.run!.replace(/> "\$RUNNER_TEMP\/[^"]+"/, '')], {
