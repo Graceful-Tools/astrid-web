@@ -29,3 +29,6 @@ export type { UseTaskPaneStateProps, UseTaskPaneStateReturn } from './useTaskPan
 
 export { useTaskDetailHydration } from './useTaskDetailHydration'
 export type { UseTaskDetailHydrationProps } from './useTaskDetailHydration'
+
+// Not a hook: the create-echo upsert the controller needs (AWTD-1497).
+export { upsertCreatedTask } from './merge-tasks'

@@ -184,9 +184,12 @@ describe('MCP SSE Integration - Core Functionality', () => {
     const { readFileSync } = await import('node:fs')
     const { join } = await import('node:path')
     const service = readFileSync(join(process.cwd(), 'services/task.service.ts'), 'utf8')
+    // The event itself moved to its own module (AWTD-1497, size ratchet).
+    const broadcast = readFileSync(join(process.cwd(), 'services/task-delete-broadcast.ts'), 'utf8')
 
-    expect(service).toContain('task_deleted')
-    expect(service).toContain('broadcastToUsers')
+    expect(service).toContain('broadcastTaskDeleted')
     expect(service).toContain('recordDeletion')
+    expect(broadcast).toContain('task_deleted')
+    expect(broadcast).toContain('broadcastToUsers')
   })
 })
