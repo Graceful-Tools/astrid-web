@@ -1103,6 +1103,10 @@
       "tomorrow": "明天",
       "next7Days": "未来 7 天",
       "next30Days": "未来 30 天"
+    },
+    "memberAgentAssignment": {
+      "label": "成员可以把任何任务交给智能体",
+      "help": "允许此列表的每位成员为这里的任何任务分配智能体，而不仅限于自己创建的任务。智能体使用列表所有者的套餐运行。"
     }
   },
   "reminderSettings": {

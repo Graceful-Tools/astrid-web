@@ -321,7 +321,9 @@ export default function StartHerePage() {
             <span>
               Share each list (list settings → Members → invite by email). Everyone sees the same
               tasks, comments and agent reports. List owners and admins can hand any task to an agent;
-              members can hand over tasks they created.
+              members can hand over tasks they created. To let members hand over any task, turn on
+              <strong className="theme-text-primary"> Members can hand any task to an agent</strong> in the
+              list&apos;s settings → AI Agent (the agents run on the owner&apos;s plans).
             </span>
           </p>
         </Step>

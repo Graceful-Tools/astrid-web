@@ -81,6 +81,8 @@ const mockAuth = vi.mocked(authenticateAPI)
 
 /** A row exactly as the PUT normalizer stores it — the shape that broke iOS. */
 const OBJECT_FORM = { enabledTypes: ['claude', 'coding'], defaultAgentId: 'agent-1' }
+// The wire adds allowMemberAssignment, false when never opted in (AWTD-1493).
+const WIRE_FORM = { ...OBJECT_FORM, allowMemberAssignment: false }
 
 const listRow = {
   id: 'l1',
@@ -141,7 +143,7 @@ describe('v1 lists: aiAgentsEnabled is an array on the wire (iOS/Mac decode fail
     const { lists } = await response.json()
 
     expect(lists[0].aiAgentsEnabled).toEqual(['claude', 'coding'])
-    expect(lists[0].aiAgentConfig).toEqual(OBJECT_FORM)
+    expect(lists[0].aiAgentConfig).toEqual(WIRE_FORM)
   })
 
   it('GET /api/v1/lists emits [] — not null, not a dictionary — for a list with no config', async () => {
@@ -151,7 +153,7 @@ describe('v1 lists: aiAgentsEnabled is an array on the wire (iOS/Mac decode fail
     const { lists } = await response.json()
 
     expect(lists[0].aiAgentsEnabled).toEqual([])
-    expect(lists[0].aiAgentConfig).toEqual({ enabledTypes: [], defaultAgentId: null })
+    expect(lists[0].aiAgentConfig).toEqual({ enabledTypes: [], defaultAgentId: null, allowMemberAssignment: false })
   })
 
   it('GET /api/v1/lists/:id emits the same pair', async () => {
@@ -159,7 +161,7 @@ describe('v1 lists: aiAgentsEnabled is an array on the wire (iOS/Mac decode fail
     const { list } = await response.json()
 
     expect(list.aiAgentsEnabled).toEqual(['claude', 'coding'])
-    expect(list.aiAgentConfig).toEqual(OBJECT_FORM)
+    expect(list.aiAgentConfig).toEqual(WIRE_FORM)
   })
 
   it('PUT /api/v1/lists/:id echoes the same pair back', async () => {
@@ -167,7 +169,7 @@ describe('v1 lists: aiAgentsEnabled is an array on the wire (iOS/Mac decode fail
 
     expect(status).toBe(200)
     expect(list.aiAgentsEnabled).toEqual(['claude', 'coding'])
-    expect(list.aiAgentConfig).toEqual(OBJECT_FORM)
+    expect(list.aiAgentConfig).toEqual(WIRE_FORM)
   })
 
   it('PUT honours aiAgentConfig when the web sends it (it carries defaultAgentId)', async () => {
