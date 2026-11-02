@@ -139,8 +139,76 @@ function AgentSetup({
           agent &quot;{agent.mailbox}&quot;. <code className="font-mono text-xs">empty: true</code> means
           connected and idle.
         </p>
+        {setup.hosted && (
+          <div className="space-y-3 rounded-lg border theme-border p-3" data-testid={`starthere-hosted-${agent.key}`}>
+            <p className="text-sm font-semibold theme-text-primary">
+              No machine to leave on? Run {agent.name} in GitHub Actions instead.
+            </p>
+            <ul className="list-disc pl-5 space-y-1 text-sm theme-text-muted">
+              {setup.hosted.secrets.map(secret => (
+                <li key={secret.name}>
+                  <code className="font-mono text-xs theme-text-primary">{secret.name}</code>: {secret.how.replace(/\*\*/g, '').replace(/`/g, '')}
+                </li>
+              ))}
+            </ul>
+            {signedIn && <CiTokenButton mailbox={agent.mailbox} secretName={setup.hosted.secrets[1]?.name ?? ''} />}
+            <CopyBlock
+              label={`Commit ${setup.hosted.workflow.path}`}
+              code={setup.hosted.workflow.content}
+              testId={`starthere-hosted-workflow-${agent.key}`}
+            />
+            <p className="text-xs theme-text-muted">{setup.hosted.caveat}</p>
+          </div>
+        )}
       </div>
     </details>
+  )
+}
+
+/**
+ * Mint an access token bound to one agent, for a GitHub Actions secret
+ * (AWTD-1494). The same mint the Copilot cloud card uses; shown once.
+ */
+function CiTokenButton({ mailbox, secretName }: { mailbox: string; secretName: string }) {
+  const [token, setToken] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const create = async () => {
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await apiPost('/api/mcp/user-tokens', {
+        permissions: ['read', 'write'],
+        expiresInDays: 365,
+        description: `GitHub Actions — ${mailbox}`,
+        agent: mailbox,
+      })
+      const data: { token?: string; error?: string } = await res.json().catch(() => ({}))
+      if (!res.ok || !data.token) throw new Error(data.error || `HTTP ${res.status}`)
+      setToken(data.token)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (token) {
+    return (
+      <div className="space-y-1">
+        <CopyBlock label={`Save as the ${secretName} secret — shown once`} code={token} />
+      </div>
+    )
+  }
+  return (
+    <div className="space-y-1">
+      <Button size="sm" variant="outline" onClick={create} disabled={busy} data-testid={`starthere-ci-token-${mailbox}`}>
+        {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+        Create a GitHub Actions token
+      </Button>
+      {error && <p className="text-xs text-red-500" role="alert">{error}</p>}
+    </div>
   )
 }
 

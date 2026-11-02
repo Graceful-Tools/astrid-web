@@ -141,3 +141,91 @@ jobs:
       - run: echo "Queue has assigned Ready tasks - start your agent job"`,
   }
 }
+
+/** The secret holding an agent-bound access token, e.g. ASTRID_MCP_TOKEN. */
+export function mcpTokenSecretName(): string {
+  return `${BRAND.wordmark.replace(/[^a-z0-9]/gi, '_').toUpperCase()}_MCP_TOKEN`
+}
+
+/** The secret `claude setup-token` produces for the official Claude action. */
+export const CLAUDE_OAUTH_SECRET = 'CLAUDE_CODE_OAUTH_TOKEN'
+
+/**
+ * A complete GitHub Actions workflow that runs Claude Code on the user's own
+ * Claude plan, with no machine left on (AWTD-1494).
+ *
+ * Two jobs. The gate asks the queue with one HTTP request and stops when it is
+ * empty, so a quiet half hour costs no Claude usage. The worker runs the
+ * official `anthropics/claude-code-action@v1` (inputs verified against its
+ * action.yml: claude_code_oauth_token, prompt, claude_args) connected to this
+ * server's MCP with an agent-bound access token. The same token reads the
+ * queue: REST accepts an `astrid_mcp_` bearer, so it is ONE secret, not two.
+ *
+ * GitHub does not start other workflows for a PR opened with the job's own
+ * GITHUB_TOKEN, so CI on those PRs needs a re-run or a PAT — said in the
+ * guide rather than hidden here.
+ */
+export function actionsClaudeCodeWorkflow(options: LoopRecipeOptions): { path: string; content: string } {
+  const name = mcpServerName()
+  const { origin, mailbox, listId } = options
+  const tokenSecret = `\${{ secrets.${mcpTokenSecretName()} }}`
+  const claudeSecret = `\${{ secrets.${CLAUDE_OAUTH_SECRET} }}`
+  const queueUrl = `${origin}/api/v1/agent-queue?agent=${mailbox}${listId ? `&listId=${listId}` : ''}`
+  const prompt = `${queueContractLine({ mailbox, listId })} For each task: work on a new branch named after its identifier, commit, push, open a pull request with gh, and put the PR link in your completion comment. Never merge or deploy.`
+  return {
+    path: `.github/workflows/${name}-claude.yml`,
+    content: `name: ${BRAND.appName} queue — Claude Code
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${name}-claude
+  cancel-in-progress: false
+
+jobs:
+  queue-gate:
+    runs-on: ubuntu-latest
+    outputs:
+      has-work: \${{ steps.queue.outputs.has-work }}
+    steps:
+      - name: Is anything queued for ${mailbox}?
+        id: queue
+        run: |
+          curl -fsS "${queueUrl}" \\
+            -H "Authorization: Bearer ${tokenSecret}" > queue.json
+          echo "has-work=$(jq -r 'if .empty then "false" else "true" end' queue.json)" >> "$GITHUB_OUTPUT"
+
+  claude:
+    needs: queue-gate
+    if: needs.queue-gate.outputs.has-work == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Connect Claude Code to ${BRAND.appName}
+        env:
+          TOKEN: ${tokenSecret}
+        run: |
+          jq -n --arg url "${origin}/mcp" --arg auth "Bearer $TOKEN" \\
+            '{mcpServers: {${name}: {type: "http", url: $url, headers: {Authorization: $auth}}}}' \\
+            > "$RUNNER_TEMP/${name}-mcp.json"
+      - uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: \${{ github.token }}
+        with:
+          claude_code_oauth_token: ${claudeSecret}
+          prompt: "${prompt.replace(/"/g, '\\"')}"
+          claude_args: >-
+            --mcp-config \${{ runner.temp }}/${name}-mcp.json
+            --allowedTools "mcp__${name},Bash,Edit,Write,Read,Glob,Grep"
+            --max-turns 120`,
+  }
+}
