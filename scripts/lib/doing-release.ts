@@ -16,7 +16,8 @@
  *     Decided by idleness, so it is deliberately much longer than the watchdog.
  *
  * Released → back to Ready, KEEPING the agent assignment, with a comment naming
- * any branch that carries the work, so the next run resumes rather than restarts.
+ * any branch that carries the work — in any checkout the board's workflow can touch
+ * (AWTD-1510) — so the next run resumes rather than restarts.
  * Released a SECOND time → handed back to the task's human creator in Waiting:
  * docs/FIXALL_WORKFLOW.md says a task that fails twice stops being retried, and a
  * task that never fits a run would otherwise be claimed and killed forever.
@@ -155,6 +156,49 @@ function handbackTarget(task: DoingTask): string | null {
   return task.creatorId ?? task.creator?.id ?? null
 }
 
+/** One checkout's remote branches, as a release reads them (AWTD-1510). */
+export interface CheckoutBranches {
+  /** The repo the checkout is a clone of, e.g. `astrid-core` — how the comment names it. */
+  name: string
+  branches: string[]
+  /** Branches already merged into its origin/main: finished work, never named. */
+  merged?: string[]
+}
+
+/**
+ * Where a release says the work is. Every checkout the board's workflow can touch is
+ * searched (AWTD-1510: a Windows [core] task's branch is in astrid-core, not astrid-windows),
+ * a found branch is named with its repo, and when nothing is found the comment says where it
+ * looked rather than declaring a fresh start it cannot know about.
+ */
+export function describeTaskWork(input: {
+  identifier: string | null | undefined
+  checkouts: CheckoutBranches[]
+  /** Named first, in the first checkout (the loop saved it in its own checkout). */
+  savedBranch?: string | null
+}): string {
+  const saved = input.savedBranch?.trim()
+  const found: Array<{ branch: string; repo: string | null }> = []
+  input.checkouts.forEach((checkout, index) => {
+    const merged = new Set(checkout.merged ?? [])
+    const repo = checkout.name || null
+    if (index === 0 && saved) found.push({ branch: saved, repo })
+    for (const branch of branchesForTask(input.identifier, checkout.branches)) {
+      if (merged.has(branch) || (index === 0 && branch === saved)) continue
+      found.push({ branch, repo })
+    }
+  })
+  if (found.length === 0 && saved) found.push({ branch: saved, repo: null })
+  // One checkout with no name is the legacy single-repo call: nothing to disambiguate.
+  const qualify = input.checkouts.length > 1 || input.checkouts.some(c => c.name)
+  if (found.length > 0) {
+    const list = found.map(f => `\`${f.branch}\`${qualify && f.repo ? ` in ${f.repo}` : ''}`).join(', ')
+    return ` Its work so far is on ${list} — continue from there rather than starting over; it has not passed the gates.`
+  }
+  const names = input.checkouts.map(c => c.name).filter(Boolean)
+  return ` No branch carrying its id was found in the checkouts this loop can see${names.length ? ` (${names.join(', ')})` : ''}.`
+}
+
 /**
  * Release one claim. The caller has already decided it is releasable (a claim
  * this run made, or an abandoned one); this decides WHERE it goes and says why.
@@ -162,7 +206,10 @@ function handbackTarget(task: DoingTask): string | null {
 export async function releaseDoingClaim(input: {
   task: DoingTask
   comments: ReleaseComment[]
+  /** The single-checkout form: the branches of the one repo searched. Ignored when `checkouts` is given. */
   branches: string[]
+  /** Every checkout the board can touch, the loop's own first (AWTD-1510). */
+  checkouts?: CheckoutBranches[]
   /**
    * The branch the loop saved this run's unfinished work on (`--saved-branch`), named
    * first. A `wip/fixall-…` snapshot carries no task id, so matching alone misses it (AWTD-1471).
@@ -174,13 +221,11 @@ export async function releaseDoingClaim(input: {
   api: DoingReleaseApi
 }): Promise<ReleaseOutcome> {
   const { task, comments, why, api } = input
-  const merged = new Set(input.merged ?? [])
-  const saved = input.savedBranch?.trim()
-  const byId = branchesForTask(task.identifier, input.branches).filter(b => !merged.has(b) && b !== saved)
-  const branches = saved ? [saved, ...byId] : byId
-  const where = branches.length > 0
-    ? ` Its work so far is on ${branches.map(b => `\`${b}\``).join(', ')} — continue from there rather than starting over; it has not passed the gates.`
-    : ' No branch carrying its id was found, so it starts fresh.'
+  const where = describeTaskWork({
+    identifier: task.identifier,
+    checkouts: input.checkouts ?? [{ name: '', branches: input.branches, merged: input.merged }],
+    savedBranch: input.savedBranch,
+  })
 
   if (countReleases(comments) >= 1) {
     const to = handbackTarget(task)
