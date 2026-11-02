@@ -1016,6 +1016,32 @@
           "error": "连接 GitHub 时出错",
           "synced": "已刷新 GitHub 访问权限"
         }
+      },
+      "permissions": {
+        "edit": "编辑权限",
+        "title": "权限",
+        "description": "精确选择此连接可以执行的操作。跟随作用域组的连接在每次请求令牌时都会补全到该组，因此之后添加到组中的作用域会自动生效。",
+        "application": "应用",
+        "follow": "跟随作用域组",
+        "noGroup": "无 — 仅保留下方勾选的作用域",
+        "current": "当前",
+        "groupAdds": "添加 {scopes}",
+        "groupAddsNothing": "不添加任何内容 — 此连接已拥有该组的全部作用域",
+        "leavesGroup": "此连接将不再跟随 {group}，之后添加到该组的作用域不会生效。",
+        "inGroup": "属于 {group}",
+        "otherScopes": "其他作用域",
+        "scopes": "作用域",
+        "notGranted": "尚未授予",
+        "tokensNote": "已签发的令牌保留原有作用域。请重新请求令牌以应用更改。",
+        "save": "保存权限",
+        "saving": "正在保存...",
+        "savedAdded": "已添加 {scopes}。",
+        "savedRemoved": "已移除 {scopes}。",
+        "unchanged": "没有变化 — 此连接已拥有这些权限。",
+        "saveError": "无法更新权限",
+        "loadError": "无法加载此连接的权限",
+        "selectAtLeastOne": "请至少选择一个作用域",
+        "selectApp": "请选择一个应用。"
       }
     }
   },

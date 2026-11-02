@@ -196,7 +196,10 @@ const BUDGETS: Record<string, number> = {
   // most self-contained block left here — followed it into
   // components/oauth-client-edit-dialog.tsx. So the file ends up smaller than
   // before the feature.
-  'components/oauth-app-manager.tsx': 859,
+  // 859 → 857: AWTD-1513 relabelled "Scopes" as "Edit permissions" and wired
+  // the edit dialog to it; the granular editor itself lives in
+  // components/oauth-scope-group-dialog.tsx.
+  'components/oauth-app-manager.tsx': 857,
   // 801 → 791: AWTD-808 moved this off its own Resend client onto the shared
   // transport. Locking the gain in, which is what the slack check is for.
   // 791 → 790: AWTD-1073 escaped the HTML templates and dropped a duplicate

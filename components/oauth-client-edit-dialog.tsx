@@ -2,7 +2,12 @@
 
 /**
  * Edit the metadata an integration needs on an existing OAuth connection —
- * today, its redirect URIs.
+ * today, its redirect URIs — and point at where its scopes are edited.
+ *
+ * Jon, AWTD-1513: "the connection edit cards didn't show how to edit scope".
+ * Scopes are not edited here (a privilege change gets its own dialog and its
+ * own save), but this is where people look, so it shows what the connection
+ * holds and hands off to the permissions dialog.
  *
  * Extracted from `oauth-app-manager.tsx`, which sits on the oversized-files
  * ratchet (task 9377bc2c): that ratchet asks for a piece to come out rather
@@ -29,7 +34,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Badge } from '@/components/ui/badge'
+import { ShieldPlus } from 'lucide-react'
 import { apiCall, refusalReason } from '@/lib/api'
+import { useTranslations } from '@/lib/i18n/client'
 import { toast } from 'sonner'
 
 interface EditableClient {
@@ -37,6 +45,7 @@ interface EditableClient {
   name: string
   description: string | null
   redirectUris: string[]
+  scopes?: string[]
 }
 
 interface OAuthClientEditDialogProps {
@@ -45,6 +54,8 @@ interface OAuthClientEditDialogProps {
   onOpenChange: (open: boolean) => void
   /** Called after a successful save so the caller can refresh its list. */
   onUpdated: () => void | Promise<void>
+  /** Opens the permissions dialog for this client (AWTD-1513). */
+  onEditScopes?: () => void
 }
 
 export function OAuthClientEditDialog({
@@ -52,7 +63,9 @@ export function OAuthClientEditDialog({
   open,
   onOpenChange,
   onUpdated,
+  onEditScopes,
 }: OAuthClientEditDialogProps) {
+  const { t } = useTranslations()
   const [redirectUrisInput, setRedirectUrisInput] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -120,6 +133,20 @@ export function OAuthClientEditDialog({
             <div>
               <Label>Description</Label>
               <Input value={client.description || ''} readOnly className="bg-gray-50" />
+            </div>
+            <div>
+              <Label>{t('settingsPages.connections.columns.scopes')}</Label>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {(client.scopes ?? []).map(scope => (
+                  <Badge key={scope} variant="secondary" className="text-xs">{scope}</Badge>
+                ))}
+              </div>
+              {onEditScopes && (
+                <Button variant="outline" size="sm" className="mt-2" onClick={onEditScopes}>
+                  <ShieldPlus className="w-4 h-4 mr-2" />
+                  {t('settingsPages.connections.permissions.edit')}
+                </Button>
+              )}
             </div>
             <div>
               <Label htmlFor="redirect-uris-edit">Redirect URIs</Label>

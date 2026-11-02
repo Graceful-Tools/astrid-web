@@ -291,10 +291,7 @@ export function OAuthAppManager() {
     })
   }
 
-  const openScopeGroupDialog = (client: OAuthClient) => {
-    setScopeGroupClient(client)
-    setScopeGroupDialogOpen(true)
-  }
+  const openScopeGroupDialog = (client: OAuthClient) => { setScopeGroupClient(client); setScopeGroupDialogOpen(true) }
 
   const openTestDialog = (client: OAuthClient) => {
     // Navigate directly to testing page with client ID pre-filled
@@ -533,7 +530,7 @@ export function OAuthAppManager() {
                       onClick={() => openScopeGroupDialog(client)}
                     >
                       <ShieldPlus className="w-4 h-4 mr-2" />
-                      Scopes
+                      {t('settingsPages.connections.permissions.edit')}
                     </Button>
                     <Button
                       size="sm"
@@ -853,6 +850,7 @@ export function OAuthAppManager() {
           if (!open) setEditingClient(null)
         }}
         onUpdated={loadClients}
+        onEditScopes={() => { if (editingClient) openScopeGroupDialog(editingClient); setEditDialogOpen(false) }}
       />
     </div>
   )

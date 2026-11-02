@@ -1016,6 +1016,32 @@
           "error": "Si è verificato un problema durante il collegamento a GitHub",
           "synced": "Accesso a GitHub aggiornato"
         }
+      },
+      "permissions": {
+        "edit": "Modifica autorizzazioni",
+        "title": "Autorizzazioni",
+        "description": "Scegli esattamente cosa può fare questa connessione. Una connessione che segue un gruppo di ambiti viene completata con quel gruppo a ogni richiesta di token, quindi un ambito aggiunto in seguito le arriva automaticamente.",
+        "application": "Applicazione",
+        "follow": "Segui un gruppo di ambiti",
+        "noGroup": "Nessuno: mantieni esattamente gli ambiti selezionati sotto",
+        "current": "attuale",
+        "groupAdds": "Aggiunge {scopes}",
+        "groupAddsNothing": "Non aggiunge nulla: questa connessione ha già tutti gli ambiti del gruppo",
+        "leavesGroup": "Questa connessione smetterà di seguire {group}, quindi gli ambiti aggiunti in seguito a quel gruppo non le arriveranno.",
+        "inGroup": "In {group}",
+        "otherScopes": "Altri ambiti",
+        "scopes": "Ambiti",
+        "notGranted": "Non ancora concesso",
+        "tokensNote": "I token già emessi mantengono i loro ambiti. Richiedine uno nuovo per applicare la modifica.",
+        "save": "Salva autorizzazioni",
+        "saving": "Salvataggio...",
+        "savedAdded": "Aggiunto {scopes}.",
+        "savedRemoved": "Rimosso {scopes}.",
+        "unchanged": "Nessuna modifica: questa connessione ha già queste autorizzazioni.",
+        "saveError": "Impossibile aggiornare le autorizzazioni",
+        "loadError": "Impossibile caricare le autorizzazioni di questa connessione",
+        "selectAtLeastOne": "Seleziona almeno un ambito",
+        "selectApp": "Seleziona un'app."
       }
     }
   },

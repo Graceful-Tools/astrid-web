@@ -12,15 +12,21 @@
  * that is what an audit answers. Rows the agents page owns say so and link
  * there rather than pretending to manage them here.
  *
+ * An app you made yourself also offers "Edit permissions" (AWTD-1513: "the
+ * connection edit cards didn't show how to edit scope"), opening the same
+ * per-scope editor the developer section uses. Only `oauthClient` rows: the
+ * other app owners' clients are not the reader's to widen, and the server
+ * would refuse them anyway.
+ *
  * The list also reviews itself: `reviewConnections` turns the Created and
  * Last used dates into the recommendation the reader came for — which of
  * these can go — and the count at the top says how much there is to do
  * before any of the rows are read.
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ComponentProps } from 'react'
 import Link from 'next/link'
-import { Loader2, ShieldOff } from 'lucide-react'
+import { Loader2, ShieldOff, ShieldPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -33,6 +39,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { apiDelete, apiGet } from '@/lib/api'
+import { OAuthScopeGroupDialog } from '@/components/oauth-scope-group-dialog'
 import { useTranslations } from '@/lib/i18n/client'
 import { connectionKey, reviewConnections } from '@/lib/connections/review-connections'
 import { groupByCategory } from '@/lib/connections/connection-taxonomy'
@@ -53,6 +60,7 @@ export function ConnectionsList() {
   const [connections, setConnections] = useState<V1Connection[] | null>(null)
   const [pending, setPending] = useState<V1Connection | null>(null)
   const [revoking, setRevoking] = useState(false)
+  const [scopeClient, setScopeClient] = useState<ComponentProps<typeof OAuthScopeGroupDialog>['client']>(null)
 
   // Recomputed from the rows in hand, so revoking one takes it out of the
   // count without another round trip.
@@ -61,7 +69,7 @@ export function ConnectionsList() {
     [connections]
   )
 
-  useEffect(() => {
+  const load = () =>
     apiGet('/api/v1/users/me/connections')
       .then(res => res.json())
       .then((data: V1ConnectionsResponse) => setConnections(data.connections ?? []))
@@ -69,10 +77,25 @@ export function ConnectionsList() {
         toast.error(t('settingsPages.connections.loadError'))
         setConnections([])
       })
+
+  useEffect(() => {
+    load()
     // Load once: `t` is not a stable identity across renders, and a fetch
     // keyed on it would reset the list after every revoke.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // The row carries scopes but not the group the client follows, so read the
+  // client itself rather than guess — the editor starts from the real row.
+  const editPermissions = async (clientId: string) => {
+    try {
+      const res = await apiGet(`/api/v1/oauth/clients/${clientId}`)
+      const data = await res.json()
+      setScopeClient(data.client)
+    } catch {
+      toast.error(t('settingsPages.connections.permissions.loadError'))
+    }
+  }
 
   const revoke = async () => {
     if (!pending) return
@@ -191,6 +214,16 @@ export function ConnectionsList() {
                   })()}
                 </div>
                 <div className="flex flex-col items-end gap-1 shrink-0">
+                  {connection.kind === 'oauthClient' && connection.detail?.clientId && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => editPermissions(connection.detail!.clientId!)}
+                    >
+                      <ShieldPlus className="w-4 h-4 mr-1" />
+                      {t('settingsPages.connections.permissions.edit')}
+                    </Button>
+                  )}
                   {connection.revocable && (
                     <Button
                       variant="ghost"
@@ -213,6 +246,13 @@ export function ConnectionsList() {
           ))}
         </section>
       ))}
+
+      <OAuthScopeGroupDialog
+        client={scopeClient}
+        open={!!scopeClient}
+        onOpenChange={open => !open && setScopeClient(null)}
+        onUpdated={load}
+      />
 
       <Dialog open={!!pending} onOpenChange={open => !open && !revoking && setPending(null)}>
         <DialogContent className="theme-bg-secondary theme-border">
