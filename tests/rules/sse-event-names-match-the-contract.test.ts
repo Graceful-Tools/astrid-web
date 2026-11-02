@@ -80,6 +80,7 @@ describe('SSE event names (AWTD-1108)', () => {
 
   it('broadcastToUsers only accepts a registered event type', () => {
     const sseUtils = readFileSync(join(ROOT, 'lib', 'sse-utils.ts'), 'utf8')
-    expect(sseUtils).toMatch(/export async function broadcastToUsers\(userIds: string\[\], event: SseOutboundEvent\)/)
+    // The event parameter is typed by the registry; an options bag may follow (AWTD-1497).
+    expect(sseUtils).toMatch(/export async function broadcastToUsers\(\s*userIds: string\[\],\s*event: SseOutboundEvent[,)]/)
   })
 })
