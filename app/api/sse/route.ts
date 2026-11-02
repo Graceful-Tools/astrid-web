@@ -1,4 +1,5 @@
 import { BRAND } from '@/lib/brand/config'
+import { CLIENT_ID_QUERY_PARAM, parseClientId } from '@/lib/realtime/client-id'
 import { getUnifiedSession } from "@/lib/session-utils"
 import { NextRequest, NextResponse } from "next/server"
 import { authenticateAPI, type AuthContext } from "@/lib/api-auth-middleware"
@@ -131,6 +132,8 @@ export async function GET(request: NextRequest) {
   // Parse 'since' query parameter for reconnection recovery
   const sinceParam = request.nextUrl.searchParams.get('since')
   const sinceTimestamp = sinceParam ? parseInt(sinceParam, 10) : null
+  // Which client this is, so its own edits are not echoed back (AWTD-1497).
+  const clientId = parseClientId(request.nextUrl.searchParams.get(CLIENT_ID_QUERY_PARAM))
 
   // Create a ReadableStream for Server-Sent Events
   const encoder = new TextEncoder()
@@ -149,7 +152,7 @@ export async function GET(request: NextRequest) {
       // and, with `since`, first replays what the client missed. Each event is
       // written once even when it arrives by more than one path (AWTD-1459).
       // The replay is asynchronous, so the `connected` frame below goes first.
-      const connectionId = registerConnection(userId, controller, hasSince ? { since: sinceTimestamp } : {})
+      const connectionId = registerConnection(userId, controller, { clientId, ...(hasSince ? { since: sinceTimestamp } : {}) })
 
       // Send initial connection event
       const data = JSON.stringify({
