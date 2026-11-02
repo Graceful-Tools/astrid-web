@@ -44,8 +44,8 @@ import { audienceForTask, recordDeletion } from '@/lib/deletion-log'
 import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
 import { cancelCodingWorkflowForUpdate } from './coding-workflow-on-update'
 import { syncManualSortMemberships } from '@/lib/tasks/sync-manual-sort-memberships'
-import { broadcastToUsers } from '@/lib/sse-utils'
 import { broadcastTaskDeleted } from '@/services/task-delete-broadcast'
+import { broadcastTaskUpdated } from '@/services/task-update-broadcast'
 import { RedisCache, isRedisAvailable } from '@/lib/redis'
 import { mintTaskIdentifierBestEffort } from '@/services/task-identifier-mint'
 import { normalizeProjectStatusListIds } from '@/lib/project-status'
@@ -62,8 +62,6 @@ import { TASK_FULL_INCLUDE } from '@/lib/task-query-utils'
 import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
 import { taskEventSnapshot } from '@/lib/task-event-snapshot'
 import { enqueueTaskUpdatedEffects } from './task-update-deferred-effects'
-import { enrichTaskForAgent } from '@/lib/agent-protocol'
-import { loadV1TaskForEvent } from '@/lib/tasks/v1-task-shape'
 import { broadcastTaskCreated } from './task-create-broadcast'
 import { dispatchAgentAssignment } from '@/services/agent-assignment-dispatch'
 import { TASK_CREATE_INCLUDE, TASK_UPDATE_EXISTING_INCLUDE, type CreatedTask } from '@/services/task-includes'
@@ -877,6 +875,8 @@ export async function updateTaskWithSideEffects(args: {
    * tests/api/sse-event-delivery pins.
    */
   legacySsePayload?: boolean
+  /** The client that made the write (lib/realtime/client-id.ts): its own stream skips the echo. */
+  originClientId?: string | null
 }): Promise<UpdateTaskResult> {
   const {
     taskId,
@@ -890,6 +890,7 @@ export async function updateTaskWithSideEffects(args: {
     ifUnmodifiedSince,
     cancelWorkflowReason = 'Task marked as completed',
     legacySsePayload = false,
+    originClientId = null,
   } = args
 
   const has = (key: keyof UpdateTaskIntent) => Object.hasOwn(intent, key)
@@ -1044,6 +1045,7 @@ export async function updateTaskWithSideEffects(args: {
       rolledForward: true,
       cancelWorkflowReason,
       legacySsePayload,
+      originClientId,
     })
 
     return { ok: true, task: rolled, rolledForward: true, stateChangeComment: rolledComment }
@@ -1141,6 +1143,7 @@ export async function updateTaskWithSideEffects(args: {
     rolledForward: false,
     cancelWorkflowReason,
     legacySsePayload,
+    originClientId,
   })
 
   return { ok: true, task, rolledForward: false, stateChangeComment }
@@ -1169,6 +1172,7 @@ async function runUpdateSideEffects(args: {
   rolledForward: boolean
   cancelWorkflowReason: string
   legacySsePayload: boolean
+  originClientId?: string | null
 }): Promise<unknown> {
   const {
     existingTask,
@@ -1183,6 +1187,7 @@ async function runUpdateSideEffects(args: {
     rolledForward,
     cancelWorkflowReason,
     legacySsePayload,
+    originClientId,
   } = args
 
   const justCompleted = requestedCompleted === true && !existingTask.completed
@@ -1295,64 +1300,10 @@ async function runUpdateSideEffects(args: {
     log.error({ err }, 'Failed to invalidate task cache after update')
   }
 
-  try {
-    const recipients = Array.from(audience).filter(id => id !== actorId)
-    if (recipients.length > 0) {
-      // A new assignee gets task_assigned rather than task_updated — being
-      // given work is a different event from work changing under you.
-      const assigneeChanged =
-        Object.hasOwn(intent, 'assigneeId') && task.assigneeId !== existingTask.assigneeId
-
-      // Re-read in the v1 shape rather than reshaping `task`: callers pass
-      // their own include, and only the v1 read include is the GET's shape.
-      const v1Task = await loadV1TaskForEvent(task.id)
-
-      let updateRecipients = recipients
-      if (assigneeChanged && task.assigneeId && task.assigneeId !== actorId) {
-        broadcastToUsers([task.assigneeId], {
-          type: 'task_assigned',
-          timestamp: new Date().toISOString(),
-          data: { taskId: task.id, task: enrichTaskForAgent(task as never), v1Task },
-        })
-        updateRecipients = recipients.filter(id => id !== task.assigneeId)
-      }
-
-      const withFullTask = updateRecipients.filter(id => viewers.has(id))
-      const leanOnly = updateRecipients.filter(id => !viewers.has(id))
-      for (const [group, full] of [[withFullTask, true], [leanOnly, false]] as const) {
-        if (group.length === 0) continue
-        broadcastToUsers(group, {
-          type: justCompleted ? 'task_completed' : 'task_updated',
-          timestamp: new Date().toISOString(),
-          data: {
-            taskId: task.id,
-            task: enrichTaskForAgent(task as never),
-            ...(full ? { v1Task } : {}),
-            // The flat duplicates below are the WEB route's payload and only
-            // its own: every field here is already inside `task`, and v1 and
-            // the agent PATCH deliberately send the lean pair, which
-            // tests/api/sse-event-delivery asserts. Adding them everywhere
-            // would grow every agent's event payload to carry data it has and
-            // does not read.
-            ...(legacySsePayload
-              ? {
-                  taskTitle: task.title,
-                  taskPriority: task.priority,
-                  taskDueDateTime: task.dueDateTime,
-                  taskIsAllDay: task.isAllDay,
-                  taskCompleted: task.completed,
-                  updaterName: actorName || 'Someone',
-                  userId: actorId,
-                  listNames: (task.lists ?? []).map((list: any) => list.name),
-                }
-              : {}),
-          },
-        })
-      }
-    }
-  } catch (err) {
-    log.error({ err }, 'Failed to broadcast task update SSE')
-  }
+  await broadcastTaskUpdated({
+    task, existingTask, assigneeWritten: Object.hasOwn(intent, 'assigneeId'), justCompleted,
+    audience, viewers, actorId, actorName, legacySsePayload, originClientId,
+  })
 
   // Analytics lives here so the MCP surfaces are counted too — they were
   // invisible in TASK_EDITED and TASK_COMPLETED before.

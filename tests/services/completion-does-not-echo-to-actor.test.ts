@@ -1,77 +1,91 @@
 /**
  * Task 8ef93fb9, incident B — a completion toggle does not echo back to the
- * client that made it.
+ * client that made it. Rewritten for AWTD-1497.
  *
  * Between 2026-09-08 14:06 and 14:38 UTC, complete/incomplete flipped
- * repeatedly across nearly every open task on the Astrid Web board — up to
- * twenty alternating toggles inside one minute on AWTD-853. Eight finished
- * tasks came out of it marked incomplete.
+ * repeatedly across nearly every open task on the Astrid Web board. The
+ * investigation ruled out a server-side echo loop because the actor was
+ * excluded from the update fan-out: the client that toggled never received its
+ * own `task_completed`, so there was nothing for it to re-send into. The
+ * alternating pattern pointed at a client bug instead (AITD-360).
  *
- * The task asks whether a server-side sync loop, SSE echo or retry amplified
- * one tap into many writes. Two things rule that out, and this pins the one a
- * test can hold:
+ * That exclusion also kept the actor's OTHER devices waiting for the 60-second
+ * sync. AWTD-1497 (Jon, 2026-11-02: "track per device/application") narrows it
+ * from "the actor" to "the client that made the write":
  *
- * 1. **The actor is excluded from the fan-out.** `updateTaskWithSideEffects`
- *    builds its SSE recipients as `audience.filter(id => id !== actorId)`, so
- *    the user who toggles never receives their own `task_completed` /
- *    `task_updated` event. There is no loop for a client to re-send into.
+ * - A write that names its client (lib/realtime/client-id.ts) reaches the
+ *   actor's other devices, tagged so the originating stream drops it
+ *   (tests/lib/sse-client-echo.test.ts pins that drop).
+ * - A write with no client id leaves the actor out, exactly as before.
+ * - An AI-agent actor is always left out.
  *
- * 2. **The storm ALTERNATED**, which no retry can produce. A retry — the
- *    offline queue, a failed request replayed — sends the SAME value again;
- *    replaying `completed: true` twice is indistinguishable from once. Only a
- *    sequence of distinct intents produces true/false/true/false, and that is
- *    what the log shows.
- *
- * Together those point at the client bug the filing suspects (AITD-360, the
- * list-mode completion toggle, fixed for web in 36b389b7 and not yet deployed):
- * an optimistic completion that springs back looks exactly like a control that
- * did not work, and the reasonable response to a control that did not work is
- * to press it again.
- *
- * This test exists so that "the actor is excluded" cannot quietly stop being
- * true. If someone later adds the actor back to this audience — as the comment
- * fan-out did in 5139491, for its own good reasons — the amplifier the
- * investigation ruled out becomes possible again, and it should go red here
- * rather than be rediscovered in another board review.
+ * If either the tag or the drop stops being true, the amplifier the
+ * investigation ruled out becomes possible again. These go red first.
  */
 
-import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const SERVICE = 'services/task.service.ts'
-const source = readFileSync(join(process.cwd(), SERVICE), 'utf8')
+const sse = vi.hoisted(() => ({ broadcastToUsers: vi.fn() }))
+vi.mock('@/lib/sse-utils', () => sse)
+vi.mock('@/lib/tasks/v1-task-shape', () => ({ loadV1TaskForEvent: vi.fn(async () => ({ id: 't1' })) }))
+vi.mock('@/lib/agent-protocol', () => ({ enrichTaskForAgent: (t: unknown) => t }))
+const db = vi.hoisted(() => ({ user: { findUnique: vi.fn() } }))
+vi.mock('@/lib/prisma', () => ({ prisma: db }))
 
-describe('a task update is not broadcast back to its actor (task 8ef93fb9)', () => {
-  it('filters the actor out of the update fan-out', () => {
-    // The exact line the investigation rests on.
-    expect(
-      source,
-      `${SERVICE} no longer excludes the actor from the task-update SSE audience. ` +
-        `That reopens the echo path the 2026-09-08 completion-toggle storm was ` +
-        `investigated for and cleared of.`
-    ).toContain('.filter(id => id !== actorId)')
+import { broadcastTaskUpdated, updateEventRecipients } from '@/services/task-update-broadcast'
+import { resetActorKindCache } from '@/services/task-event-audience'
+
+const ACTOR = 'user-actor'
+const MATE = 'user-mate'
+const TAB = 'web_tab_that_toggled'
+
+function completion(originClientId?: string) {
+  const task = { id: 't1', title: 'T', assigneeId: null, creatorId: ACTOR, completed: true, lists: [] }
+  return broadcastTaskUpdated({
+    task,
+    existingTask: { ...task, completed: false },
+    assigneeWritten: false,
+    justCompleted: true,
+    audience: new Set([ACTOR, MATE]),
+    viewers: new Set([ACTOR, MATE]),
+    actorId: ACTOR,
+    legacySsePayload: false,
+    originClientId,
+  })
+}
+
+describe('a task update never echoes to the client that made it (8ef93fb9, AWTD-1497)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    resetActorKindCache()
+    db.user.findUnique.mockResolvedValue({ isAIAgent: false })
   })
 
-  it('sends task_completed through that same filtered audience', () => {
-    // A completion that took a different, unfiltered path would defeat the
-    // filter above without touching it.
-    const broadcast = source.slice(source.indexOf("type: justCompleted ? 'task_completed'"))
-    expect(broadcast.length).toBeGreaterThan(0)
-
-    const declaration = source.slice(0, source.indexOf("type: justCompleted ? 'task_completed'"))
-    // Since AWTD-1040 the fan-out is two groups — viewers get the full v1
-    // task, a former assignee off the lists gets the lean event — and both
-    // are carved out of updateRecipients, never out of the raw audience.
-    expect(declaration).toContain('updateRecipients.filter(id => viewers.has(id))')
-    expect(declaration).toContain('updateRecipients.filter(id => !viewers.has(id))')
-    expect(declaration).toContain('broadcastToUsers(group')
+  it('without a client id the actor is left out entirely, as before', async () => {
+    await completion()
+    const [ids, event, opts] = sse.broadcastToUsers.mock.calls[0]
+    expect(event.type).toBe('task_completed')
+    expect(ids).toEqual([MATE])
+    expect(opts?.originClientId ?? null).toBeNull()
   })
 
-  it('derives updateRecipients from the filtered list, not from the raw audience', () => {
-    // `updateRecipients` starts as `recipients` — the filtered set — and is only
-    // ever narrowed. Starting it from `audience` would put the actor back in.
-    expect(source).toContain('let updateRecipients = recipients')
-    expect(source).not.toContain('let updateRecipients = Array.from(audience)')
+  it('with a client id the actor\'s devices hear it, tagged so the originating tab drops it', async () => {
+    await completion(TAB)
+    const [ids, event, opts] = sse.broadcastToUsers.mock.calls[0]
+    expect(event.type).toBe('task_completed')
+    expect([...ids].sort()).toEqual([ACTOR, MATE].sort())
+    expect(opts).toEqual({ originClientId: TAB })
+  })
+
+  it('every event the update sends carries the tag', async () => {
+    await completion(TAB)
+    for (const call of sse.broadcastToUsers.mock.calls) {
+      expect(call[2]).toEqual({ originClientId: TAB })
+    }
+  })
+
+  it('an AI-agent actor never hears its own update, client id or not', async () => {
+    db.user.findUnique.mockResolvedValue({ isAIAgent: true })
+    expect(await updateEventRecipients({ audience: [ACTOR, MATE], actorId: ACTOR, originClientId: TAB })).toEqual([MATE])
   })
 })
