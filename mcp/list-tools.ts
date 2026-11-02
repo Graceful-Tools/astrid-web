@@ -14,7 +14,8 @@
  * - inviting members — it sends email to a real person.
  * - deleting a list.
  *
- * Both routes require the `lists:write` scope. A token without it gets the
+ * Both routes accept `lists:configure` (the narrow agent permission, AWTD-1504)
+ * or `lists:write`. A token without it gets the
  * route's 403, surfaced as a tool error naming the missing scope.
  *
  * Kept out of `mcp-server-oauth.ts` because that file is on the
@@ -33,7 +34,7 @@ export const LIST_TOOLS = [
   {
     name: "create_list",
     description:
-      "Create a private list (a board) owned by you. Its description becomes the instructions every agent reads for tasks in it, and defaultAssigneeId routes new tasks to an agent. Share it with people from the app. Requires the lists:write scope.",
+      "Create a private list (a board) owned by you. Its description becomes the instructions every agent reads for tasks in it, and defaultAssigneeId routes new tasks to an agent. Share it with people from the app. Requires the lists:configure (or lists:write) scope.",
     inputSchema: {
       type: "object",
       properties: {
@@ -50,7 +51,7 @@ export const LIST_TOOLS = [
   {
     name: "update_list",
     description:
-      "Rename a list, rewrite its agent instructions (description), or change its default assignee. Only fields you pass change. You must be the list's owner or an admin. Requires the lists:write scope.",
+      "Rename a list, rewrite its agent instructions (description), or change its default assignee. Only fields you pass change. You must be the list's owner or an admin. Requires the lists:configure (or lists:write) scope.",
     inputSchema: {
       type: "object",
       properties: {
@@ -110,7 +111,7 @@ function explain(error: unknown): never {
   const message = error instanceof Error ? error.message : String(error)
   if (/\bforbidden\b|\b403\b/i.test(message)) {
     throw new Error(
-      `${message}: either this connection's token does not carry the lists:write scope, or you are not this list's owner or an admin. Create or edit the list in the app, or reconnect with a token that has lists:write.`,
+      `${message}: either this connection's token carries neither the lists:configure nor the lists:write scope, or you are not this list's owner or an admin. Create or edit the list in the app, or reconnect with a token that has lists:configure.`,
     )
   }
   throw error instanceof Error ? error : new Error(message)

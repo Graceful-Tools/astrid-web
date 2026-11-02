@@ -47,6 +47,12 @@ interface WithAuthOptions {
   tokenOnly?: boolean
   /** Required OAuth scopes. Empty array (default) allows any authenticated caller. */
   scopes?: string[]
+  /**
+   * Alternative to `scopes`: the caller needs at least ONE of these. For a route
+   * that a narrow scope may reach with less power than the broad one — the
+   * handler then decides what the narrow scope is allowed to do.
+   */
+  anyOfScopes?: string[]
   /** Tag for the logger; defaults to "api". */
   tag?: string
   /**
@@ -132,9 +138,14 @@ export function withAuth<TContext = unknown>(
       return NextResponse.json({ error: 'Authentication error' }, { status: 500 })
     }
 
-    if (options.scopes && options.scopes.length > 0) {
+    const anyOf = options.anyOfScopes ?? []
+    const needed = options.scopes && options.scopes.length > 0 ? options.scopes : null
+    if (needed || anyOf.length > 0) {
       try {
-        requireScopes(auth, options.scopes)
+        if (needed) requireScopes(auth, needed)
+        if (anyOf.length > 0 && !anyOf.some(scope => hasRequiredScopes(auth.scopes, [scope]))) {
+          throw new ForbiddenError(`Missing required scopes: one of ${anyOf.join(', ')}`)
+        }
       } catch (err) {
         if (err instanceof ForbiddenError) {
           return NextResponse.json({ error: 'Forbidden', message: err.message }, { status: 403 })
@@ -144,16 +155,17 @@ export function withAuth<TContext = unknown>(
 
       // Shadow enforcement for access tokens: they pass on '*' today. Log what
       // real scopes would have refused, so the switch is made on evidence.
-      if (
-        auth.source === 'legacy_mcp' &&
-        auth.shadowScopes &&
-        !hasRequiredScopes(auth.shadowScopes, options.scopes)
-      ) {
+      const shadow = auth.shadowScopes
+      const shadowDenied =
+        !!shadow &&
+        ((needed ? !hasRequiredScopes(shadow, needed) : false) ||
+          (anyOf.length > 0 && !anyOf.some(scope => hasRequiredScopes(shadow, [scope]))))
+      if (auth.source === 'legacy_mcp' && shadow && shadowDenied) {
         const info: ShadowDenied = {
           tag: options.tag,
           path: req.nextUrl.pathname,
-          needed: options.scopes,
-          shadowScopes: auth.shadowScopes,
+          needed: needed ?? anyOf,
+          shadowScopes: shadow,
         }
         if (options.onShadowDenied) options.onShadowDenied(info)
         else log.warn(info, 'access token would be denied under scope mapping')

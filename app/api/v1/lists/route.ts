@@ -26,6 +26,7 @@ import { DEFAULT_LIST_SHOW_SUBTASKS } from '@/lib/list-subtask-visibility'
 import { getDeletionsSince } from '@/lib/deletion-log'
 import { serializeListAgentFields } from '@/lib/resolve-default-agent'
 import { listBackendFields, loadListBackendInfo } from '@/lib/backends/list-wire'
+import { LIST_CONFIGURE_ROUTE_SCOPES, listConfigureViolation } from '@/lib/list-configure-scope'
 import {
   createListWithImageOwnership,
   ListImageClaimError,
@@ -198,12 +199,18 @@ export const GET = withAuth(
  * Create a new list
  */
 export const POST = withAuth(
-  { scopes: ['lists:write'], tag: 'v1.lists' },
+  { anyOfScopes: LIST_CONFIGURE_ROUTE_SCOPES, tag: 'v1.lists' },
   async (req, auth) => {
     // Typed rather than `any` so a misspelled field is a build error instead of
     // one that silently never applies. Not validation — see the note in
     // lib/api-contracts/v1-request-shapes.ts. (Task 87e19910.)
     const body = (await req.json()) as V1ListCreateRequest
+
+    // A lists:configure-only token may set up a list, not everything lists:write can.
+    const notPermitted = listConfigureViolation(auth.scopes, body)
+    if (notPermitted) {
+      return NextResponse.json({ error: 'Forbidden', message: notPermitted }, { status: 403 })
+    }
 
     // Trimmed and non-blank, as legacy has always required. A bare typeof check
     // passes "   ", which creates a list that renders as an unidentifiable
