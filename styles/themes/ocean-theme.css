@@ -20,10 +20,13 @@
   --theme-border-focus: var(--brand-accent-rgb, 59, 130, 246);
   --theme-border-input: 209, 213, 219;
 
-  /* Text colors (same as light) */
+  /* Text colors. NOT the light theme's: those were chosen for white, and
+     grey-500 muted text on this cyan measured 3.1:1, under WCAG AA (AWTD-1496).
+     One step darker each keeps secondary above muted and passes on the cyan,
+     the white cards and the grey panels (tests/styles/ocean-theme-contrast). */
   --theme-text-primary: 0, 0, 0;
-  --theme-text-secondary: 75, 85, 99;
-  --theme-text-muted: 107, 114, 128;
+  --theme-text-secondary: 55, 65, 81;
+  --theme-text-muted: 75, 85, 99;
   --theme-text-inverted: 255, 255, 255;
   --theme-text-selected: 0, 0, 0;
 
