@@ -41,7 +41,7 @@ export const LIST_TOOLS = [
         description: { type: "string", description: DESCRIPTION },
         defaultAgent: { type: "string", description: DEFAULT_AGENT },
         defaultAssigneeId: { type: "string", description: DEFAULT_ASSIGNEE },
-        color: { type: "string", description: "Hex colour, e.g. \"#3b82f6\". Optional." },
+        color: { type: "string", description: "Hex colour such as \"#10b981\". Optional." },
       },
       required: ["name"],
       additionalProperties: false,
