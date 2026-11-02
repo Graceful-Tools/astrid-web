@@ -1016,6 +1016,34 @@
           "error": "Er ging iets mis bij het verbinden met GitHub",
           "synced": "GitHub-toegang vernieuwd"
         }
+      },
+      "permissions": {
+        "edit": "Rechten bewerken",
+        "title": "Rechten",
+        "description": "Kies precies wat deze verbinding mag doen. Een verbinding die een scopegroep volgt, wordt bij elke tokenaanvraag aangevuld tot die groep, zodat een later toegevoegde scope haar automatisch bereikt.",
+        "application": "Applicatie",
+        "follow": "Een scopegroep volgen",
+        "noGroup": "Geen — precies de hieronder aangevinkte scopes behouden",
+        "current": "huidig",
+        "groupAdds": "Voegt {scopes} toe",
+        "groupAddsNothing": "Voegt niets toe — deze verbinding heeft al alle scopes van deze groep",
+        "leavesGroup": "Deze verbinding volgt {group} dan niet meer, dus scopes die later aan die groep worden toegevoegd bereiken haar niet.",
+        "inGroup": "In {group}",
+        "otherScopes": "Overige scopes",
+        "scopes": "Scopes",
+        "notGranted": "Nog niet verleend",
+        "tokensNote": "Al uitgegeven tokens houden hun scopes. Vraag een nieuwe aan om de wijziging over te nemen.",
+        "save": "Rechten opslaan",
+        "saving": "Opslaan...",
+        "savedAdded": "{scopes} toegevoegd.",
+        "savedRemoved": "{scopes} verwijderd.",
+        "savedGroup": "Volgt nu {group}.",
+        "savedNoGroup": "Volgt geen scopegroep meer.",
+        "unchanged": "Niets gewijzigd — deze verbinding heeft deze rechten al.",
+        "saveError": "Rechten konden niet worden bijgewerkt",
+        "loadError": "Rechten van deze verbinding konden niet worden geladen",
+        "selectAtLeastOne": "Selecteer minstens één scope",
+        "selectApp": "Selecteer een app."
       }
     }
   },

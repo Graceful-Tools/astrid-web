@@ -1016,6 +1016,34 @@
           "error": "Algo salió mal al conectar GitHub",
           "synced": "Acceso a GitHub actualizado"
         }
+      },
+      "permissions": {
+        "edit": "Editar permisos",
+        "title": "Permisos",
+        "description": "Elige exactamente qué puede hacer esta conexión. Una conexión que sigue un grupo de alcances se completa con ese grupo cada vez que solicita un token, así que un alcance añadido después le llega automáticamente.",
+        "application": "Aplicación",
+        "follow": "Seguir un grupo de alcances",
+        "noGroup": "Ninguno: mantener exactamente los alcances marcados abajo",
+        "current": "actual",
+        "groupAdds": "Añade {scopes}",
+        "groupAddsNothing": "No añade nada: esta conexión ya tiene todos los alcances de este grupo",
+        "leavesGroup": "Esta conexión dejará de seguir {group}, así que los alcances añadidos después a ese grupo no le llegarán.",
+        "inGroup": "En {group}",
+        "otherScopes": "Otros alcances",
+        "scopes": "Alcances",
+        "notGranted": "Aún no concedido",
+        "tokensNote": "Los tokens ya emitidos conservan sus alcances. Solicita uno nuevo para aplicar el cambio.",
+        "save": "Guardar permisos",
+        "saving": "Guardando...",
+        "savedAdded": "Se añadió {scopes}.",
+        "savedRemoved": "Se quitó {scopes}.",
+        "savedGroup": "Ahora sigue {group}.",
+        "savedNoGroup": "Ya no sigue ningún grupo de alcances.",
+        "unchanged": "Nada cambió: esta conexión ya tiene estos permisos.",
+        "saveError": "No se pudieron actualizar los permisos",
+        "loadError": "No se pudieron cargar los permisos de esta conexión",
+        "selectAtLeastOne": "Selecciona al menos un alcance",
+        "selectApp": "Selecciona una aplicación."
       }
     }
   },

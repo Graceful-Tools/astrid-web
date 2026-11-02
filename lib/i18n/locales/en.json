@@ -1016,6 +1016,34 @@
           "error": "Something went wrong connecting GitHub",
           "synced": "GitHub access refreshed"
         }
+      },
+      "permissions": {
+        "edit": "Edit permissions",
+        "title": "Permissions",
+        "description": "Choose exactly what this connection can do. A connection that follows a scope group is topped up to that group whenever it requests a token, so a scope added to the group later reaches it automatically.",
+        "application": "Application",
+        "follow": "Follow a scope group",
+        "noGroup": "None — keep exactly the scopes ticked below",
+        "current": "current",
+        "groupAdds": "Adds {scopes}",
+        "groupAddsNothing": "Adds nothing — this connection already holds every scope in this group",
+        "leavesGroup": "This connection will stop following {group}, so scopes added to that group later won't reach it.",
+        "inGroup": "In {group}",
+        "otherScopes": "Other scopes",
+        "scopes": "Scopes",
+        "notGranted": "Not granted yet",
+        "tokensNote": "Tokens already issued keep the scopes they were minted with. Request a new one to pick up the change.",
+        "save": "Save permissions",
+        "saving": "Saving...",
+        "savedAdded": "Added {scopes}.",
+        "savedRemoved": "Removed {scopes}.",
+        "savedGroup": "Now following {group}.",
+        "savedNoGroup": "No longer following a scope group.",
+        "unchanged": "Nothing changed — this connection already has these permissions.",
+        "saveError": "Could not update permissions",
+        "loadError": "Could not load this connection's permissions",
+        "selectAtLeastOne": "Select at least one scope",
+        "selectApp": "Select an app."
       }
     }
   },

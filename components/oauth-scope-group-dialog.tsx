@@ -1,32 +1,40 @@
 "use client"
 
 /**
- * Put an existing OAuth connection on a scope group, and take whatever that
- * group grants that it lacks (AWTD-962).
+ * Edit exactly what an OAuth connection may do: one checkbox per scope, plus
+ * the scope group it follows (AWTD-962, made granular by AWTD-1513).
  *
- * WHY THIS EXISTS. `reconcileClientScopes` tops a client up to its group on
+ * WHY THE GROUP. `reconcileClientScopes` tops a client up to its group on
  * every token request, but its first bound is "no group, no change" — so it
  * does nothing until something records the group, and on 2026-09-19 every one
- * of the 23 `OAuthClient` rows in production carried `scopeGroup: null`. The
- * three code paths that stamp a group each own one known client; a connection
- * created here in Settings is reachable from none of them. Without this
- * dialog, the only way such a connection gains `chat:read`/`chat:write` is a
- * hand-written UPDATE against the production row — the manual grant Jon
- * rejected on 2026-09-16 as "a favour, not a standard".
+ * of the 23 `OAuthClient` rows in production carried `scopeGroup: null`. A
+ * connection created here in Settings is reachable from none of the code paths
+ * that stamp one. Following a group is how such a connection picks up a scope
+ * added later (e.g. `lists:configure`) without a hand-written UPDATE against
+ * the production row — the manual grant Jon rejected on 2026-09-16.
  *
- * The server does all the widening. This names a group and reports what came
- * back; the union / never-the-wildcard / named-group bounds stay in
- * `lib/oauth/scope-reconcile.ts` so there is one copy of them.
+ * WHY THE CHECKBOXES. Jon, AWTD-1513: "the scope edit cards didn't enable
+ * granular editing of scopes." A whole-group radio could only ever widen.
+ * Now the owner ticks the exact set; the scopes a group would grant but the
+ * connection does not hold yet are marked, so a newly added scope is visible
+ * rather than inferred.
+ *
+ * The two interact: a scope unticked from the followed group would be put
+ * back by reconciliation on the next token request, so unticking one stops
+ * following the group (the server applies the same rule, so an API caller
+ * cannot save a set that silently reverts). The server is the only judge of
+ * which scope names are real — this sends names, it does not vouch for them.
  *
  * It lives in its own file because `oauth-app-manager.tsx` is on the
- * oversized-files ratchet (task 9377bc2c) at 901 lines.
+ * oversized-files ratchet (task 9377bc2c).
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -34,11 +42,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { SCOPE_GROUPS } from '@/lib/oauth/oauth-scopes'
+import {
+  OAUTH_SCOPES,
+  SCOPE_GROUPS,
+  getAllScopes,
+  isRegisterableScope,
+  isScopeGroup,
+  type ScopeGroup,
+} from '@/lib/oauth/oauth-scopes'
 import { apiCall, refusalReason } from '@/lib/api'
+import { useTranslations } from '@/lib/i18n/client'
 import { toast } from 'sonner'
 
-type ScopeGroupName = keyof typeof SCOPE_GROUPS
+const PREFIX = 'settingsPages.connections.permissions'
+
+/** Every scope an owner may grant, in the canonical order of OAUTH_SCOPES. */
+const ASSIGNABLE = getAllScopes()
 
 interface ScopeGroupClient {
   clientId: string
@@ -61,24 +80,57 @@ export function OAuthScopeGroupDialog({
   onOpenChange,
   onUpdated,
 }: OAuthScopeGroupDialogProps) {
-  const [chosen, setChosen] = useState<ScopeGroupName>('ai_agent')
+  const { t } = useTranslations()
+  const [chosen, setChosen] = useState<ScopeGroup | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
   const [saving, setSaving] = useState(false)
+  // Leaving the group regroups the list, which remounts every checkbox; this
+  // puts keyboard focus back on the one that was just unticked.
+  const refocus = useRef<string | null>(null)
 
-  // Start on the group the connection already follows, so re-opening the
-  // dialog on an adopted client does not silently propose a different one.
+  useEffect(() => {
+    if (!refocus.current) return
+    document.getElementById(`scope-edit-${refocus.current}`)?.focus()
+    refocus.current = null
+  }, [chosen])
+
+  // Start from what the connection holds and the group it already follows —
+  // never a proposed group, which would pre-tick scopes nobody asked for. A
+  // followed group's scopes start ticked even where not yet granted: the next
+  // token request grants them anyway, so an unticked box would misstate what
+  // the connection is about to hold. The "not granted yet" badge marks them.
   useEffect(() => {
     if (!client) return
-    setChosen(
-      client.scopeGroup && client.scopeGroup in SCOPE_GROUPS
-        ? (client.scopeGroup as ScopeGroupName)
-        : 'ai_agent',
-    )
+    const group = isScopeGroup(client.scopeGroup) ? client.scopeGroup : null
+    setChosen(group)
+    setSelected(new Set([...client.scopes.filter(isRegisterableScope), ...(group ? SCOPE_GROUPS[group] : [])]))
   }, [client])
 
   const close = () => onOpenChange(false)
 
+  const follow = (group: ScopeGroup | null) => {
+    setChosen(group)
+    // Following a group grants everything in it — show that before saving.
+    if (group) setSelected(prev => new Set([...prev, ...SCOPE_GROUPS[group]]))
+  }
+
+  const toggle = (scope: string) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(scope)) next.delete(scope)
+      else next.add(scope)
+      return next
+    })
+    // Reconciliation would put an unticked group scope straight back.
+    if (chosen && selected.has(scope) && (SCOPE_GROUPS[chosen] as readonly string[]).includes(scope)) {
+      refocus.current = scope
+      setChosen(null)
+    }
+  }
+
   const apply = async () => {
     if (!client) return
+    const scopes = ASSIGNABLE.filter(scope => selected.has(scope))
 
     try {
       setSaving(true)
@@ -87,30 +139,56 @@ export function OAuthScopeGroupDialog({
       // anyone pressing this button is asking for. Throws ApiError on a 4xx.
       const response = await apiCall(`/api/v1/oauth/clients/${client.clientId}`, {
         method: 'PUT',
-        body: JSON.stringify({ scopeGroup: chosen }),
+        body: JSON.stringify({ scopes, scopeGroup: chosen }),
       })
       const data = await response.json()
-      const added: string[] = data.added ?? []
 
-      // Say what actually changed. "Saved" on a no-op reads as a grant that did
-      // not happen, which is how this entire class of bug went unnoticed.
+      // Say what actually changed, read off the row the server saved. "Saved"
+      // on a no-op reads as a grant that did not happen, which is how this
+      // entire class of bug went unnoticed.
+      const saved: string[] = Array.isArray(data.client?.scopes) ? data.client.scopes : scopes
+      const before = new Set(client.scopes)
+      const after = new Set(saved)
+      const added = saved.filter(scope => !before.has(scope))
+      const removed = client.scopes.filter(scope => !after.has(scope))
+      // The group is a change too: following one, or stopping, can leave
+      // today's scopes untouched and still alter what the connection gets later.
+      const savedGroup: string | null =
+        data.client && 'scopeGroup' in data.client ? data.client.scopeGroup : chosen
+      const groupChanged = (savedGroup ?? null) !== (client.scopeGroup ?? null)
+      const parts = [
+        added.length ? t(`${PREFIX}.savedAdded`, { scopes: added.join(', ') }) : null,
+        removed.length ? t(`${PREFIX}.savedRemoved`, { scopes: removed.join(', ') }) : null,
+        groupChanged
+          ? savedGroup
+            ? t(`${PREFIX}.savedGroup`, { group: savedGroup })
+            : t(`${PREFIX}.savedNoGroup`)
+          : null,
+      ].filter(Boolean)
       toast.success(
-        added.length
-          ? `Added ${added.join(', ')}. Tokens already issued keep their old scopes.`
-          : `Following ${chosen}. Nothing to add — this connection is already current.`,
+        parts.length ? `${parts.join(' ')} ${t(`${PREFIX}.tokensNote`)}` : t(`${PREFIX}.unchanged`),
       )
 
       close()
       await onUpdated()
     } catch (err) {
-      console.error('Failed to update scope group:', err)
+      console.error('Failed to update connection scopes:', err)
       // refusalReason surfaces the server's own 4xx sentence — an unknown
-      // group, a client the caller does not own — and nothing from a 5xx.
-      toast.error(refusalReason(err) ?? 'Failed to update scope group')
+      // scope, a client the caller does not own — and nothing from a 5xx.
+      toast.error(refusalReason(err) ?? t(`${PREFIX}.saveError`))
     } finally {
       setSaving(false)
     }
   }
+
+  const groupScopes: readonly string[] = chosen ? SCOPE_GROUPS[chosen] : []
+  const held = new Set(client?.scopes ?? [])
+  const sections = chosen
+    ? [
+        { key: 'group', title: t(`${PREFIX}.inGroup`, { group: chosen }), scopes: ASSIGNABLE.filter(s => groupScopes.includes(s)) },
+        { key: 'other', title: t(`${PREFIX}.otherScopes`), scopes: ASSIGNABLE.filter(s => !groupScopes.includes(s)) },
+      ]
+    : [{ key: 'all', title: t(`${PREFIX}.scopes`), scopes: ASSIGNABLE }]
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -131,27 +209,31 @@ export function OAuthScopeGroupDialog({
       */}
       <DialogContent className="max-w-xl flex flex-col max-h-[85vh] supports-[height:100dvh]:max-h-[85dvh]">
         <DialogHeader className="shrink-0">
-          <DialogTitle>Scope Group</DialogTitle>
-          <DialogDescription>
-            A connection that follows a scope group is topped up to that group whenever it
-            requests a token, so a scope added later reaches it without anyone editing the
-            database. Scopes are only ever added — nothing this connection already holds is
-            removed.
-          </DialogDescription>
+          <DialogTitle>{t(`${PREFIX}.title`)}</DialogTitle>
+          <DialogDescription>{t(`${PREFIX}.description`)}</DialogDescription>
         </DialogHeader>
 
         {client ? (
           <>
             <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
             <div>
-              <Label>Application</Label>
+              <Label>{t(`${PREFIX}.application`)}</Label>
               <Input value={client.name} readOnly className="bg-gray-50" />
             </div>
 
             <div className="space-y-2">
-              <Label>Follow</Label>
-              {(Object.keys(SCOPE_GROUPS) as ScopeGroupName[]).map(group => {
-                const held = new Set<string>(client.scopes)
+              <Label>{t(`${PREFIX}.follow`)}</Label>
+              <label className="flex items-start gap-3 rounded border p-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="scope-group"
+                  className="mt-1"
+                  checked={chosen === null}
+                  onChange={() => follow(null)}
+                />
+                <span className="flex-1 text-sm">{t(`${PREFIX}.noGroup`)}</span>
+              </label>
+              {(Object.keys(SCOPE_GROUPS) as ScopeGroup[]).map(group => {
                 const wouldAdd = SCOPE_GROUPS[group].filter(scope => !held.has(scope))
                 return (
                   <label
@@ -163,40 +245,72 @@ export function OAuthScopeGroupDialog({
                       name="scope-group"
                       className="mt-1"
                       checked={chosen === group}
-                      onChange={() => setChosen(group)}
+                      onChange={() => follow(group)}
                     />
                     <span className="flex-1">
                       <span className="font-mono text-sm">{group}</span>
                       {client.scopeGroup === group && (
-                        <Badge variant="outline" className="ml-2 text-xs">current</Badge>
+                        <Badge variant="outline" className="ml-2 text-xs">{t(`${PREFIX}.current`)}</Badge>
                       )}
                       <span className="block text-xs theme-text-muted mt-1">
                         {wouldAdd.length
-                          ? `Adds ${wouldAdd.join(', ')}`
-                          : 'Adds nothing — this connection already holds every scope in this group'}
+                          ? t(`${PREFIX}.groupAdds`, { scopes: wouldAdd.join(', ') })
+                          : t(`${PREFIX}.groupAddsNothing`)}
                       </span>
                     </span>
                   </label>
                 )
               })}
+              {isScopeGroup(client.scopeGroup) && chosen !== client.scopeGroup && (
+                <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                  {t(`${PREFIX}.leavesGroup`, { group: client.scopeGroup })}
+                </p>
+              )}
             </div>
 
-            <p className="text-xs theme-text-muted">
-              Tokens already issued keep the scopes they were minted with. Request a new one to
-              pick up the change.
-            </p>
+            {sections.map(section => (
+              <div key={section.key} className="space-y-2">
+                <Label>{section.title}</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {section.scopes.map(scope => (
+                    <div key={scope} data-scope={scope} className="flex items-start space-x-2">
+                      <Checkbox
+                        id={`scope-edit-${scope}`}
+                        className="mt-0.5"
+                        checked={selected.has(scope)}
+                        onCheckedChange={() => toggle(scope)}
+                      />
+                      <label htmlFor={`scope-edit-${scope}`} className="text-sm cursor-pointer flex-1">
+                        <code className="text-xs">{scope}</code>
+                        {groupScopes.includes(scope) && !held.has(scope) && (
+                          <Badge variant="outline" className="ml-2 text-[10px] text-yellow-600 dark:text-yellow-400">
+                            {t(`${PREFIX}.notGranted`)}
+                          </Badge>
+                        )}
+                        <span className="text-xs theme-text-muted block">{OAUTH_SCOPES[scope]}</span>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <p className="text-xs theme-text-muted">{t(`${PREFIX}.tokensNote`)}</p>
             </div>
 
             {/* Outside the scroller: the actions stay put however long the list gets. */}
             <div className="shrink-0 flex flex-wrap items-center justify-end gap-2 border-t pt-4">
-              <Button variant="outline" onClick={close}>Cancel</Button>
-              <Button onClick={apply} disabled={saving}>
-                {saving ? 'Updating...' : 'Update Scopes'}
+              {selected.size === 0 && (
+                <span className="text-xs text-red-500 mr-auto">{t(`${PREFIX}.selectAtLeastOne`)}</span>
+              )}
+              <Button variant="outline" onClick={close}>{t('settingsPages.connections.cancel')}</Button>
+              <Button onClick={apply} disabled={saving || selected.size === 0}>
+                {saving ? t(`${PREFIX}.saving`) : t(`${PREFIX}.save`)}
               </Button>
             </div>
           </>
         ) : (
-          <p className="text-sm theme-text-muted">Select an OAuth app.</p>
+          <p className="text-sm theme-text-muted">{t(`${PREFIX}.selectApp`)}</p>
         )}
       </DialogContent>
     </Dialog>

@@ -144,7 +144,9 @@ export type ScopeGroup = keyof typeof SCOPE_GROUPS
  * Check if a scope string is valid
  */
 export function isValidScope(scope: string): scope is OAuthScope {
-  return scope in OAUTH_SCOPES
+  // Own properties only: `in` would also accept `toString`, `__proto__` and
+  // the rest of Object.prototype as scope names (AWTD-1513 review).
+  return typeof scope === 'string' && Object.prototype.hasOwnProperty.call(OAUTH_SCOPES, scope)
 }
 
 /**
@@ -172,6 +174,24 @@ export function isRegisterableScope(scope: string): scope is OAuthScope {
  */
 export function validateRegisterableScopes(scopes: string[]): OAuthScope[] {
   return scopes.filter(isRegisterableScope)
+}
+
+/**
+ * The entries of a request-supplied scope list that are NOT registerable —
+ * unknown names, the wildcard, anything that is not a string. Empty means the
+ * whole list is acceptable.
+ *
+ * `validateRegisterableScopes` strips bad entries silently, which suits
+ * provisioning code that owns its own list. An owner editing a connection's
+ * scopes by hand (AWTD-1513) should instead be told which entry was refused,
+ * so the route rejects the request rather than saving a set nobody asked for.
+ */
+export function unregisterableScopes(scopes: readonly unknown[]): string[] {
+  return scopes
+    .filter(scope => typeof scope !== 'string' || !isRegisterableScope(scope))
+    // Never String() an arbitrary entry: `{"toString":null}` is valid JSON and
+    // String() on it throws, turning a 400 into a 500.
+    .map(scope => (typeof scope === 'string' ? scope : `<${scope === null ? 'null' : typeof scope}>`))
 }
 
 /**
