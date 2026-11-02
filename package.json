@@ -13,6 +13,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
+    "db:local": "tsx scripts/db-local.ts",
     "db:post-deploy": "node scripts/post-deploy-migrate.js",
     "db:reset": "tsx scripts/reset-database.ts",
     "db:reset:unsafe": "prisma db push --force-reset",
