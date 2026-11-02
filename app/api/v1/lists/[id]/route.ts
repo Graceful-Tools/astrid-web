@@ -34,6 +34,7 @@ import {
   updateListWithImageOwnership,
 } from "@/lib/images/update-list-image"
 import { afterListUpdated, validateListUpdate } from "@/services/list-update.service"
+import { LIST_CONFIGURE_ROUTE_SCOPES, listConfigureViolation } from '@/lib/list-configure-scope'
 
 const log = createLogger('api.v1.lists.id')
 
@@ -138,10 +139,16 @@ function storedAgentConfig(
  * Update a list
  */
 export const PUT = withAuth<RouteContext>(
-  { scopes: ['lists:write'], tag: 'v1.lists.id' },
+  { anyOfScopes: LIST_CONFIGURE_ROUTE_SCOPES, tag: 'v1.lists.id' },
   async (req, auth, { params }) => {
     const { id } = await params
     const body = await req.json()
+
+    // A lists:configure-only token may edit instructions, not everything lists:write can.
+    const notPermitted = listConfigureViolation(auth.scopes, body)
+    if (notPermitted) {
+      return NextResponse.json({ error: 'Forbidden', message: notPermitted }, { status: 403 })
+    }
 
     const isFilterOnlyUpdate = Object.keys(body).every(key =>
       (FILTER_FIELDS as readonly string[]).includes(key)
