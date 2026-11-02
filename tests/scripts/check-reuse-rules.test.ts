@@ -123,6 +123,19 @@ describe('check:reuse rules actually fire (task bc27c00a)', { timeout: 60_000 },
     expect(run(fixtureRoot)['public-brand-literal'].join('\n')).toContain('icon-generator.html')
   }, 120_000)
 
+  // AWTD-1495: an installed package's own dependencies (packages/*/node_modules,
+  // gitignored) carried uuid's nil/max constants into hardcoded-identity and
+  // turned predeploy red on any machine that had run npm install there.
+  it('AWTD-1495: never scans node_modules, which git ignores', () => {
+    const dep = join(fixtureRoot, 'packages/some-pkg/node_modules/uuid/dist')
+    mkdirSync(dep, { recursive: true })
+    writeFileSync(join(dep, 'nil.d.ts'), 'declare const _default: "00000000-0000-0000-0000-000000000000";\n')
+    const findings = run(fixtureRoot)
+    for (const hits of Object.values(findings)) {
+      expect(hits.join('\n')).not.toContain('node_modules')
+    }
+  }, 120_000)
+
   // AWTD-1458: lib/brand/config.ts holds Astrid's defaults, each an env override, so its
   // feedbackListId is not a leak. Exempt by PATH: a config.ts anywhere else still trips.
   it('AWTD-1458: hardcoded-identity skips lib/brand/config.ts, not other config.ts files', () => {
