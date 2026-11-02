@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `GET /api/v1/tasks` and `GET /api/tasks` without `listId` no longer include tasks from public lists the caller does not own, belong to, or have a task assigned in. Public lists are still read with `?listId=`. Clients that relied on the unscoped read for public tasks (iOS, Windows, Android sync) must fetch them by `listId`.
+
 ## [1.3.0] - 2026-11-01
 
 First release published as a container image (`ghcr.io/graceful-tools/astrid-web:1.3.0` and `:1.3.0-migrator`).
