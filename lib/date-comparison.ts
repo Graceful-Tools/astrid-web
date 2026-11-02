@@ -121,10 +121,13 @@ export function getDaysDifference(
     const dateUTC = getUTCDateMidnight(date)
     return Math.floor((dateUTC - refUTC) / MS_PER_DAY)
   } else {
-    // Timed: Use local timezone comparison
-    const refLocal = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate())
-    const dateLocal = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-    return Math.floor((dateLocal.getTime() - refLocal.getTime()) / MS_PER_DAY)
+    // Timed: compare LOCAL calendar days. Map each local date onto UTC
+    // midnight so every day is exactly 24h: local midnights are 25h apart when
+    // the clocks go back and 23h when they go forward, which made yesterday
+    // read as two days ago and tomorrow as today.
+    const refDay = Date.UTC(reference.getFullYear(), reference.getMonth(), reference.getDate())
+    const dateDay = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+    return Math.round((dateDay - refDay) / MS_PER_DAY)
   }
 }
 
