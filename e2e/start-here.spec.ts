@@ -95,6 +95,9 @@ test.describe('/starthere page', () => {
       )
     }
     await expect(page.getByTestId('starthere-workflow-github-actions')).toContainText('/api/v1/agent-queue?agent=copilot')
+    // AWTD-1494: Claude can also run in GitHub Actions on the user's plan.
+    await expect(page.getByTestId('starthere-hosted-claude')).toBeVisible()
+    await expect(page.getByTestId('starthere-hosted-workflow-claude')).toContainText('anthropics/claude-code-action@v1')
     await expect(page.getByTestId('starthere-markdown-link')).toHaveAttribute('href', '/starthere.md')
   })
 
@@ -135,6 +138,17 @@ test.describe('/starthere.md followed by each agent', () => {
     expect([400, 401]).toContain(token.status())
 
     const queue = await request.get('/api/v1/agent-queue?agent=copilot')
+    expect(queue.status()).toBe(401)
+  })
+
+  test('Claude in GitHub Actions: the gate\'s bearer request reaches the queue and is refused only for a bad token (AWTD-1494)', async ({ request }) => {
+    const section = sectionFor(await guide(request), 'Claude')
+    expect(section).toContain('anthropics/claude-code-action@v1')
+    const url = /curl -fsS "(https?:\/\/[^"]+\/api\/v1\/agent-queue\?agent=claude[^"]*)"/.exec(section)?.[1]
+    expect(url, 'gate curl not found in the Claude section').toBeTruthy()
+    const queue = await request.get(new URL(url!).pathname + '?agent=claude', {
+      headers: { Authorization: 'Bearer astrid_mcp_not_a_real_token' },
+    })
     expect(queue.status()).toBe(401)
   })
 })

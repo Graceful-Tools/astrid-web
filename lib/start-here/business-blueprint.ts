@@ -17,7 +17,10 @@ import { agentEmail } from '@/lib/brand/agent-emails'
 import { queueSkillAdapter, type QueueSkillHarness } from '@/lib/agent-skill/astrid-queue-skill'
 import {
   ACTIONS_SECRET_NAMES,
+  actionsClaudeCodeWorkflow,
   actionsQueueGateWorkflow,
+  CLAUDE_OAUTH_SECRET,
+  mcpTokenSecretName,
   loopConnectCommand,
   loopScheduleCommand,
   type LoopHarness,
@@ -193,6 +196,35 @@ export interface StarterAgentSetup {
   install: { path: string; content: string } | null
   schedule: string | null
   workflow: { path: string; content: string } | null
+  /**
+   * Run this agent in GitHub Actions instead — no machine left on (AWTD-1494).
+   * Only where the harness has a verified, plan-billed CI path; null otherwise.
+   */
+  hosted: {
+    workflow: { path: string; content: string }
+    secrets: Array<{ name: string; how: string }>
+    caveat: string
+  } | null
+}
+
+/** Which harnesses have a verified CI path on the user's own plan. */
+function hostedSetup(agent: StarterAgent, origin: string, listId?: string | null): StarterAgentSetup['hosted'] {
+  if (agent.harness !== 'claude-code') return null
+  return {
+    workflow: actionsClaudeCodeWorkflow({ mailbox: agent.mailbox, origin, listId }),
+    secrets: [
+      {
+        name: CLAUDE_OAUTH_SECRET,
+        how: 'Run `claude setup-token` once on your own machine and paste what it prints. It bills your Claude plan, not an API key.',
+      },
+      {
+        name: mcpTokenSecretName(),
+        how: `An ${BRAND.appName} access token bound to the "${agent.mailbox}" agent: press **Create a GitHub Actions token** on ${origin}${START_HERE_PATH}. It reads the queue and signs the agent's comments.`,
+      },
+    ],
+    caveat:
+      'GitHub does not start other workflows for a pull request opened with the job\'s own token, so re-run CI on those PRs (or give the job a personal access token as GH_TOKEN).',
+  }
 }
 
 /** Every copyable step for one agent, scoped to its list when the id is known. */
@@ -207,6 +239,7 @@ export function starterAgentSetup(
       install: null,
       schedule: null,
       workflow: actionsQueueGateWorkflow({ mailbox: agent.mailbox, origin, listId }),
+      hosted: null,
     }
   }
   const adapter = starterInstall(agent, listId)
@@ -215,6 +248,7 @@ export function starterAgentSetup(
     install: adapter ? { path: adapter.installPath, content: adapter.content } : null,
     schedule: loopScheduleCommand(agent.harness, { mailbox: agent.mailbox, origin, listId }),
     workflow: null,
+    hosted: hostedSetup(agent, origin, listId),
   }
 }
 
@@ -315,6 +349,22 @@ export function startHereMarkdown(origin: string): string {
       `${n}. Check it: ask the agent to call \`get_agent_queue\` with agent "${agent.mailbox}" and listId of the ${list.name} list. \`empty: true\` means connected and idle.`,
       '',
     )
+    if (setup.hosted) {
+      push(
+        `**No machine to leave on? Run ${agent.name} in GitHub Actions instead.** Add these repository secrets, then commit the workflow:`,
+        '',
+        ...setup.hosted.secrets.map(secret => `- \`${secret.name}\`: ${secret.how}`),
+        '',
+        `\`${setup.hosted.workflow.path}\`:`,
+        '',
+        '```yaml',
+        setup.hosted.workflow.content,
+        '```',
+        '',
+        setup.hosted.caveat,
+        '',
+      )
+    }
   }
   push(
     '## Step 3 — Work (every day)',
