@@ -87,11 +87,10 @@ function requestHeaders(supplied: HeadersInit | undefined): Record<string, strin
   const base: Record<string, string> =
     supplied === undefined
       ? { "Content-Type": "application/json" }
-      : supplied instanceof Headers
-        ? Object.fromEntries(supplied.entries())
-        : Array.isArray(supplied)
-          ? Object.fromEntries(supplied)
-          : { ...supplied }
+      : supplied instanceof Headers || Array.isArray(supplied)
+        // Through Headers, so a name given twice keeps both values joined.
+        ? Object.fromEntries(new Headers(supplied).entries())
+        : { ...supplied }
   if (API_BASE_URL || typeof window === "undefined") return base
   return { ...base, [CLIENT_ID_HEADER]: browserClientId() }
 }
