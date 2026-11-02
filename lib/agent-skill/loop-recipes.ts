@@ -142,13 +142,45 @@ jobs:
   }
 }
 
-/** The secret holding an agent-bound access token, e.g. ASTRID_MCP_TOKEN. */
-export function mcpTokenSecretName(): string {
-  return `${BRAND.wordmark.replace(/[^a-z0-9]/gi, '_').toUpperCase()}_MCP_TOKEN`
+/**
+ * The secret holding one agent's bound access token, e.g. ASTRID_CLAUDE_MCP_TOKEN.
+ * Per mailbox, because the token decides who the writes are signed as: two
+ * workers in one repository sharing a name would overwrite each other's
+ * credential and post under the wrong agent (AWTD-1502).
+ */
+export function mcpTokenSecretName(mailbox: string): string {
+  const part = (value: string) => value.replace(/[^a-z0-9]/gi, '_').toUpperCase()
+  return `${part(BRAND.wordmark)}_${part(mailbox)}_MCP_TOKEN`
 }
 
 /** The secret `claude setup-token` produces for the official Claude action. */
 export const CLAUDE_OAUTH_SECRET = 'CLAUDE_CODE_OAUTH_TOKEN'
+
+/** What a hosted agent job is told: the queue contract plus the PR hand-off. */
+function actionsAgentPrompt({ mailbox, listId }: LoopRecipeOptions): string {
+  return `${queueContractLine({ mailbox, listId })} For a task that changes code: work on a new branch named after its identifier, commit, push, open a pull request with gh, and put the PR link in your completion comment. For a review task, post your findings on the existing pull request and on the task instead; there is nothing to commit. Never merge or deploy.`
+}
+
+/**
+ * The gate job both hosted workflows share: one queue request with the
+ * agent-bound token, and `has-work` for the agent job to wait on. A quiet half
+ * hour costs one HTTP call and none of the user's plan.
+ */
+function bearerQueueGateJob({ origin, mailbox, listId }: LoopRecipeOptions): string {
+  const tokenSecret = `\${{ secrets.${mcpTokenSecretName(mailbox)} }}`
+  const queueUrl = `${origin}/api/v1/agent-queue?agent=${mailbox}${listId ? `&listId=${listId}` : ''}`
+  return `  queue-gate:
+    runs-on: ubuntu-latest
+    outputs:
+      has-work: \${{ steps.queue.outputs.has-work }}
+    steps:
+      - name: Is anything queued for ${mailbox}?
+        id: queue
+        run: |
+          curl -fsS "${queueUrl}" \\
+            -H "Authorization: Bearer ${tokenSecret}" > queue.json
+          echo "has-work=$(jq -r 'if .empty then "false" else "true" end' queue.json)" >> "$GITHUB_OUTPUT"`
+}
 
 /**
  * A complete GitHub Actions workflow that runs Claude Code on the user's own
@@ -167,11 +199,10 @@ export const CLAUDE_OAUTH_SECRET = 'CLAUDE_CODE_OAUTH_TOKEN'
  */
 export function actionsClaudeCodeWorkflow(options: LoopRecipeOptions): { path: string; content: string } {
   const name = mcpServerName()
-  const { origin, mailbox, listId } = options
-  const tokenSecret = `\${{ secrets.${mcpTokenSecretName()} }}`
+  const { origin } = options
+  const tokenSecret = `\${{ secrets.${mcpTokenSecretName(options.mailbox)} }}`
   const claudeSecret = `\${{ secrets.${CLAUDE_OAUTH_SECRET} }}`
-  const queueUrl = `${origin}/api/v1/agent-queue?agent=${mailbox}${listId ? `&listId=${listId}` : ''}`
-  const prompt = `${queueContractLine({ mailbox, listId })} For each task: work on a new branch named after its identifier, commit, push, open a pull request with gh, and put the PR link in your completion comment. Never merge or deploy.`
+  const prompt = actionsAgentPrompt(options)
   return {
     path: `.github/workflows/${name}-claude.yml`,
     content: `name: ${BRAND.appName} queue — Claude Code
@@ -185,17 +216,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  queue-gate:
-    runs-on: ubuntu-latest
-    outputs:
-      has-work: \${{ steps.queue.outputs.has-work }}
-    steps:
-      - name: Is anything queued for ${mailbox}?
-        id: queue
-        run: |
-          curl -fsS "${queueUrl}" \\
-            -H "Authorization: Bearer ${tokenSecret}" > queue.json
-          echo "has-work=$(jq -r 'if .empty then "false" else "true" end' queue.json)" >> "$GITHUB_OUTPUT"
+${bearerQueueGateJob(options)}
 
   claude:
     needs: queue-gate
@@ -227,5 +248,80 @@ jobs:
             --mcp-config \${{ runner.temp }}/${name}-mcp.json
             --allowedTools "mcp__${name},Bash,Edit,Write,Read,Glob,Grep"
             --max-turns 120`,
+  }
+}
+
+/**
+ * Copilot CLI reads its plan credential from this: a fine-grained personal
+ * access token with the account permission "Copilot Requests". It outranks
+ * GH_TOKEN, so `gh` in the same step keeps the job's own token.
+ */
+export const COPILOT_TOKEN_SECRET = 'COPILOT_GITHUB_TOKEN'
+
+/**
+ * The Copilot CLI counterpart of `actionsClaudeCodeWorkflow` (AWTD-1502):
+ * same gate, same single agent-bound token, billed to the user's Copilot plan.
+ *
+ * Flags verified against Copilot CLI 1.0.99 `--help` (2026-11-02): `-p` is
+ * non-interactive; `--additional-mcp-config @file` adds a server for this run
+ * in the JSON shape `copilot mcp add --transport http --header` writes;
+ * `--allow-all-tools` and `--no-ask-user` keep it from stopping for a person.
+ */
+export function actionsCopilotWorkflow(options: LoopRecipeOptions): { path: string; content: string } {
+  const name = mcpServerName()
+  const { origin } = options
+  const tokenSecret = `\${{ secrets.${mcpTokenSecretName(options.mailbox)} }}`
+  const copilotSecret = `\${{ secrets.${COPILOT_TOKEN_SECRET} }}`
+  const prompt = actionsAgentPrompt(options)
+  return {
+    path: `.github/workflows/${name}-copilot.yml`,
+    content: `name: ${BRAND.appName} queue — Copilot CLI
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${name}-copilot
+  cancel-in-progress: false
+
+jobs:
+${bearerQueueGateJob(options)}
+
+  copilot:
+    needs: queue-gate
+    if: needs.queue-gate.outputs.has-work == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Copilot CLI
+        run: npm install -g @github/copilot
+      - name: Connect Copilot CLI to ${BRAND.appName}
+        env:
+          TOKEN: ${tokenSecret}
+        run: |
+          jq -n --arg url "${origin}/mcp" --arg auth "Bearer $TOKEN" \\
+            '{mcpServers: {${name}: {type: "http", url: $url, headers: {Authorization: $auth}, tools: ["*"]}}}' \\
+            > "$RUNNER_TEMP/${name}-mcp.json"
+      - name: Work the queue
+        env:
+          ${COPILOT_TOKEN_SECRET}: ${copilotSecret}
+          GH_TOKEN: \${{ github.token }}
+          # An env var, not an inline argument, so no shell quoting can bend it.
+          PROMPT: "${prompt.replace(/"/g, '\\"')}"
+        run: >-
+          copilot -p "$PROMPT"
+          --additional-mcp-config "@$RUNNER_TEMP/${name}-mcp.json"
+          --allow-all-tools
+          --no-ask-user`,
   }
 }

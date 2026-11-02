@@ -160,6 +160,11 @@ function AgentSetup({
             <p className="text-xs theme-text-muted">{setup.hosted.caveat}</p>
           </div>
         )}
+        {setup.hostedUnavailable && (
+          <p className="text-xs theme-text-muted" data-testid={`starthere-hosted-unavailable-${agent.key}`}>
+            {setup.hostedUnavailable}
+          </p>
+        )}
       </div>
     </details>
   )
