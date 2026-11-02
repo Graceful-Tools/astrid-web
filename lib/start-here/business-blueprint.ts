@@ -18,8 +18,10 @@ import { queueSkillAdapter, type QueueSkillHarness } from '@/lib/agent-skill/ast
 import {
   ACTIONS_SECRET_NAMES,
   actionsClaudeCodeWorkflow,
+  actionsCopilotWorkflow,
   actionsQueueGateWorkflow,
   CLAUDE_OAUTH_SECRET,
+  COPILOT_TOKEN_SECRET,
   mcpTokenSecretName,
   loopConnectCommand,
   loopScheduleCommand,
@@ -205,10 +207,45 @@ export interface StarterAgentSetup {
     secrets: Array<{ name: string; how: string }>
     caveat: string
   } | null
+  /**
+   * Why this harness has no GitHub Actions workflow yet, said instead of
+   * offering one that would not run on the user's plan (AWTD-1502).
+   */
+  hostedUnavailable: string | null
+}
+
+/**
+ * Harnesses with no verified, plan-billed CI path (checked 2026-11-02). When
+ * one ships, add its workflow in loop-recipes and drop it from here.
+ */
+const HOSTED_UNAVAILABLE: Partial<Record<LoopHarness, string>> = {
+  codex:
+    'Codex has no GitHub Actions workflow here yet: OpenAI documents only a metered OpenAI API key for CI, not a ChatGPT plan login, so a run there would bill API usage rather than your plan.',
+  muse:
+    'Muse Code has no GitHub Actions workflow here yet: it has no documented way to sign in without a browser, so it needs a machine you leave on.',
 }
 
 /** Which harnesses have a verified CI path on the user's own plan. */
 function hostedSetup(agent: StarterAgent, origin: string, listId?: string | null): StarterAgentSetup['hosted'] {
+  const agentToken = {
+    name: mcpTokenSecretName(agent.mailbox),
+    how: `An ${BRAND.appName} access token bound to the "${agent.mailbox}" agent: press **Create a GitHub Actions token** on ${origin}${START_HERE_PATH}. It reads the queue and signs the agent's comments.`,
+  }
+  const prCaveat =
+    'GitHub does not start other workflows for a pull request opened with the job\'s own token, so re-run CI on those PRs (or give the job a personal access token as GH_TOKEN).'
+  if (agent.harness === 'copilot') {
+    return {
+      workflow: actionsCopilotWorkflow({ mailbox: agent.mailbox, origin, listId }),
+      secrets: [
+        {
+          name: COPILOT_TOKEN_SECRET,
+          how: 'A fine-grained personal access token owned by your own GitHub account (not an organization) with the account permission **Copilot Requests**. Classic tokens do not work. It bills your Copilot plan.',
+        },
+        agentToken,
+      ],
+      caveat: prCaveat,
+    }
+  }
   if (agent.harness !== 'claude-code') return null
   return {
     workflow: actionsClaudeCodeWorkflow({ mailbox: agent.mailbox, origin, listId }),
@@ -217,13 +254,9 @@ function hostedSetup(agent: StarterAgent, origin: string, listId?: string | null
         name: CLAUDE_OAUTH_SECRET,
         how: 'Run `claude setup-token` once on your own machine and paste what it prints. It bills your Claude plan, not an API key.',
       },
-      {
-        name: mcpTokenSecretName(),
-        how: `An ${BRAND.appName} access token bound to the "${agent.mailbox}" agent: press **Create a GitHub Actions token** on ${origin}${START_HERE_PATH}. It reads the queue and signs the agent's comments.`,
-      },
+      agentToken,
     ],
-    caveat:
-      'GitHub does not start other workflows for a pull request opened with the job\'s own token, so re-run CI on those PRs (or give the job a personal access token as GH_TOKEN).',
+    caveat: prCaveat,
   }
 }
 
@@ -240,6 +273,7 @@ export function starterAgentSetup(
       schedule: null,
       workflow: actionsQueueGateWorkflow({ mailbox: agent.mailbox, origin, listId }),
       hosted: null,
+      hostedUnavailable: null,
     }
   }
   const adapter = starterInstall(agent, listId)
@@ -249,6 +283,7 @@ export function starterAgentSetup(
     schedule: loopScheduleCommand(agent.harness, { mailbox: agent.mailbox, origin, listId }),
     workflow: null,
     hosted: hostedSetup(agent, origin, listId),
+    hostedUnavailable: HOSTED_UNAVAILABLE[agent.harness] ?? null,
   }
 }
 
@@ -365,6 +400,7 @@ export function startHereMarkdown(origin: string): string {
         '',
       )
     }
+    if (setup.hostedUnavailable) push(setup.hostedUnavailable, '')
   }
   push(
     '## Step 3 — Work (every day)',

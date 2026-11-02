@@ -19,6 +19,8 @@ import {
   type QueueSkillHarness,
 } from '@/lib/agent-skill/astrid-queue-skill'
 import {
+  actionsClaudeCodeWorkflow,
+  actionsCopilotWorkflow,
   actionsQueueGateWorkflow,
   claudeCodeLoopCommand,
   loopConnectCommand,
@@ -253,6 +255,23 @@ Treat empty:true as a successful connection. If a field cannot be verified, say 
     </RecipeStep>
   )
   const gate = actionsQueueGateWorkflow({ mailbox: agentFor('github'), origin, listId })
+  // The whole agent in Actions on the user's own plan (AWTD-1494, AWTD-1502).
+  // /starthere holds the secrets' how-to and the token button.
+  const hostedWorkflow = (tab: string, workflow: { path: string; content: string }) => (
+    <div className="space-y-2">
+      <p className="text-xs theme-text-muted">
+        No machine to leave on? Commit this workflow instead. It needs two repository
+        secrets; <a className="underline" href={`${origin}/starthere`}>Start here</a> says how
+        to make each one.
+      </p>
+      <CopyBlock
+        label="Run it in GitHub Actions"
+        code={`# ${workflow.path}
+${workflow.content}`}
+        testId={`agent-hosted-workflow-${tab}`}
+      />
+    </div>
+  )
   const cloudSecretName =
     `COPILOT_MCP_${BRAND.wordmark.replace(/[^a-z0-9]/gi, '_').toUpperCase()}_TOKEN`
   const tokenSetupUrl = `${origin}/settings/agents`
@@ -310,6 +329,10 @@ Treat empty:true as a successful connection. If a field cannot be verified, say 
             label="Unattended cron fallback"
             code={scheduleCmd('claude-code', 'claude-code')}
           />
+          {hostedWorkflow(
+            'claude-code',
+            actionsClaudeCodeWorkflow({ mailbox: agentFor('claude-code'), origin, listId }),
+          )}
         </RecipeStep>
         {connectionTest('claude-code', 'Claude Code /loop every 30 minutes, or the cron fallback')}
       </TabsContent>
@@ -361,8 +384,12 @@ Treat empty:true as a successful connection. If a field cannot be verified, say 
           />
           <p className="text-xs theme-text-muted">
             For an interactive run, select the {BRAND.appName} Queue custom agent in the
-            Copilot app, GitHub.com, or VS Code. For hosted scheduling, use the GitHub Actions tab.
+            Copilot app, GitHub.com, or VS Code.
           </p>
+          {hostedWorkflow(
+            'copilot',
+            actionsCopilotWorkflow({ mailbox: agentFor('copilot'), origin, listId }),
+          )}
         </RecipeStep>
         {connectionTest(
           'copilot',
