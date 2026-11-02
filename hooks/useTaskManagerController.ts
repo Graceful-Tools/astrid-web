@@ -44,7 +44,7 @@ import {
   useTaskNavigation,
   useTaskPaneState,
   useTaskSelection,
-  useTaskDragDrop
+  useTaskDragDrop, upsertCreatedTask
 } from "@/hooks/task-manager"
 
 interface UseTaskManagerControllerProps {
@@ -373,7 +373,7 @@ export function useTaskManagerController({
     session: effectiveSession,
     onTaskCreated: (task) => {
       // Opening it is the caller's choice — see handleCreateTask (AWTD-1351).
-      listState.setTasks(prev => [task, ...prev])
+      listState.setTasks(prev => upsertCreatedTask(prev, task))
 
       toast({
         title: "Task created",

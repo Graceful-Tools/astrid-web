@@ -127,15 +127,15 @@ describe('deleteTaskWithSideEffects (epic 9dedd8aa)', () => {
     })
   })
 
-  it('tells the other viewers, and not the deleter', async () => {
+  // AWTD-1497: the deleter's other devices need it; the deleting tab no-ops it.
+  it('tells the viewers, the deleter\'s own devices included', async () => {
     const { deleteTaskWithSideEffects } = await import('@/services/task.service')
 
     await deleteTaskWithSideEffects({ taskId: 'task-1', actorId: 'creator-1' })
 
     expect(broadcastToUsers).toHaveBeenCalled()
     const recipients = broadcastToUsers.mock.calls[0][0] as string[]
-    expect(recipients).not.toContain('creator-1')
-    expect(recipients).toEqual(expect.arrayContaining(['assignee-1', 'owner-1', 'member-1']))
+    expect(recipients).toEqual(expect.arrayContaining(['creator-1', 'assignee-1', 'owner-1', 'member-1']))
   })
 
   it('never lets a failing side effect fail the delete', async () => {
