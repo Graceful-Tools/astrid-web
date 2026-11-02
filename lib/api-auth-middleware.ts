@@ -442,6 +442,22 @@ export async function requireTaskAccess(
 }
 
 /**
+ * The `where` for "tasks this user may READ" — `requireTaskReadAccess`, and
+ * so `GET /api/v1/tasks/:id`. Exported for the batch existence check
+ * (AWTD-1515), which must call a task missing exactly when that GET refuses it.
+ */
+export function taskReadAccessWhere(userId: string) {
+  return {
+    OR: [
+      ...taskMembershipBranches(userId),
+      // Covers both public list types (copy-only and collaborative), which
+      // is what legacy does.
+      { lists: { some: { privacy: 'PUBLIC' as const } } },
+    ],
+  }
+}
+
+/**
  * Helper to check if a user may READ a specific task.
  *
  * Same three membership routes as `requireTaskAccess`, plus the one legacy
@@ -455,15 +471,7 @@ export async function requireTaskReadAccess(
   taskId: string
 ): Promise<void> {
   const task = await prisma.task.findFirst({
-    where: {
-      id: taskId,
-      OR: [
-        ...taskMembershipBranches(userId),
-        // Covers both public list types (copy-only and collaborative), which
-        // is what legacy does.
-        { lists: { some: { privacy: 'PUBLIC' } } },
-      ],
-    },
+    where: { id: taskId, ...taskReadAccessWhere(userId) },
   })
 
   if (!task) {

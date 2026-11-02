@@ -160,6 +160,9 @@ const EXPORTS: Record<string, () => Record<string, unknown>> = {
   // routes' own shapers, so the core's model decodes the real wire rather than a description of
   // it (AWTD-1263; the drift class of D52–D55).
   'wire-shapes.json': () => runDriver('wire-shapes.mjs', 'wire-shapes'),
+  // POST /api/v1/sync/existence: the batch "which cached ids are gone" request and answer, run
+  // through the route's own parser and shaper (AWTD-1515).
+  'sync-existence.json': () => runDriver('sync-existence.mjs', 'sync-existence'),
 }
 
 let failed = false
