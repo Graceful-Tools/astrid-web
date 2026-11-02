@@ -27,7 +27,7 @@ function apiFor(request: APIRequestContext): StarterApi {
   }
 }
 
-test.describe('/starthere (signed in)', () => {
+test.describe('/start (signed in)', () => {
   let lists: StarterListResult[] = []
   const createdTaskIds: string[] = []
 
@@ -52,7 +52,7 @@ test.describe('/starthere (signed in)', () => {
   })
 
   test('the page recognises the lists and scopes every command to them', async ({ page }) => {
-    await page.goto('/starthere')
+    await page.goto('/start')
     await expect(page.getByTestId('starthere-create-lists')).toContainText(/your lists are ready/i)
     const build = lists.find(l => l.key === 'build')!
     await page.getByTestId('starthere-agent-claude').locator('summary').click()
