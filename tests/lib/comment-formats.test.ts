@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseDecision, chosenLetter, decisionReply, isTradeoffGrid, RATING_STYLE } from '@/lib/comment-formats'
+import { parseDecision, chosenNumber, decisionReply, isTradeoffGrid, RATING_STYLE } from '@/lib/comment-formats'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { renderMarkdownWithLinks } from '@/lib/markdown'
@@ -10,20 +10,21 @@ describe('AWTD-1524 decision parsing', () => {
     const d = parseDecision(body)!
     expect(d.prompt).toBe('Which way?')
     expect(d.options).toEqual([
-      { letter: 'A', text: 'Ship now', recommended: true },
-      { letter: 'B', text: 'Wait', recommended: false },
+      { letter: 'A', number: 1, text: 'Ship now', recommended: true },
+      { letter: 'B', number: 2, text: 'Wait', recommended: false },
     ])
-    expect(decisionReply(d.options[0])).toBe('A — Ship now')
+    expect(decisionReply(d.options[0])).toBe('1 — Ship now')
   })
   it('rejects fewer than two options or an unlettered item', () => {
     expect(parseDecision('**Decision:** x\n\n- **A.** only')).toBeNull()
     expect(parseDecision('**Decision:** x\n\n- **A.** one\n- plain')).toBeNull()
     expect(parseDecision('just text')).toBeNull()
   })
-  it('reads the chosen letter from a reply', () => {
-    expect(chosenLetter('B — Wait')).toBe('B')
-    expect(chosenLetter('a, thanks')).toBe('A')
-    expect(chosenLetter('Actually no')).toBeNull()
+  it('reads the chosen option from a reply in the old letter form', () => {
+    const { options } = parseDecision(body)!
+    expect(chosenNumber('B — Wait', options)).toBe(2)
+    expect(chosenNumber('a, thanks', options)).toBe(1)
+    expect(chosenNumber('Actually no', options)).toBeNull()
   })
 })
 

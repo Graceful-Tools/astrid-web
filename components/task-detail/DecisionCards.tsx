@@ -8,8 +8,8 @@ import type { IdentifierLinkContext } from '@/lib/task-identifier-links'
 
 interface DecisionCardsProps {
   decision: ParsedDecision
-  /** Letter of the option someone already picked; marks that card chosen. */
-  chosen: string | null
+  /** Number of the option someone already picked; marks that card chosen. */
+  chosen: number | null
   /** Cards are inert unless this is set (not your own question, not yet answered). */
   onChoose?: (reply: string) => void
   identifiers?: IdentifierLinkContext
@@ -30,11 +30,11 @@ export function DecisionCards({ decision, chosen, onChoose, identifiers }: Decis
       <div className={prose} dangerouslySetInnerHTML={md(`**${decision.prompt}**`)} />
       <div className="flex flex-col gap-1.5">
         {decision.options.map(option => {
-          const isChosen = chosen === option.letter
+          const isChosen = chosen === option.number
           const interactive = !!onChoose && chosen === null
           return (
             <button
-              key={option.letter}
+              key={option.number}
               type="button"
               disabled={!interactive}
               data-chosen={isChosen || undefined}
@@ -48,7 +48,8 @@ export function DecisionCards({ decision, chosen, onChoose, identifiers }: Decis
                 isChosen ? 'border-blue-500 ring-1 ring-blue-500' : ''
               } ${interactive ? 'hover:border-blue-400 cursor-pointer' : 'cursor-default'}`}
             >
-              <span className="font-semibold">{option.letter}</span>
+              {/* Numbered in order, whatever marker the asker wrote (AWTD-1533). */}
+              <span className="font-semibold">{option.number}</span>
               <span className="flex-1" dangerouslySetInnerHTML={md(option.text)} />
               {option.recommended && (
                 <span className="rounded bg-green-100 px-1.5 text-xs text-green-700 dark:bg-green-900/30 dark:text-green-300">
