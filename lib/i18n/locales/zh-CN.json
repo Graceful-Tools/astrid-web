@@ -143,6 +143,13 @@
       "errorSaveFailed": "无法将该更改保存到 GitHub。请重试。",
       "filterLabel": "项目字段",
       "filterAll": "所有任务"
+    },
+    "tradeoffRatings": {
+      "veryPoor": "很差",
+      "poor": "差",
+      "mixed": "一般",
+      "good": "好",
+      "veryGood": "很好"
     }
   },
   "lists": {

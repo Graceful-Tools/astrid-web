@@ -1,6 +1,6 @@
 import DOMPurify from 'dompurify'
-import { Lexer, Marked, marked } from 'marked'
-import { isTradeoffGrid, parseRating, RATING_STYLE, type Rating } from '@/lib/comment-formats'
+import { Marked, marked, type Token } from 'marked'
+import { isTradeoffGrid, parseRating, RATING_STYLE, type Rating, type RatingLabels } from '@/lib/comment-formats'
 import { replaceIdentifierLinks, type IdentifierLinkContext } from '@/lib/task-identifier-links'
 
 // Allowed URL protocols for links
@@ -201,7 +201,7 @@ const RICH_TEXT_TAGS = [
   'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
   'ul', 'ol', 'li',
   'blockquote', 'hr',
-  'table', 'thead', 'tbody', 'tr', 'th', 'td',
+  'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div',
   'a',
   'input', // GFM task list checkboxes
 ]
@@ -232,6 +232,29 @@ function typedHtmlAsText(html: string): string {
 }
 
 /**
+ * The reader's rating names for the parse in progress. `richText` is one shared instance and its
+ * renderer takes no per-call options, so `renderMarkdownWithLinks` sets this around its synchronous
+ * parse (AWTD-1529).
+ */
+let activeRatingLabels: RatingLabels | undefined
+
+function ratingLabel(style: (typeof RATING_STYLE)[Rating]): string {
+  return escapeHtml(activeRatingLabels?.[style.labelKey] || style.label)
+}
+
+/**
+ * A rated cell's inline tokens with the leading rating removed. Works on the parsed tokens rather
+ * than re-lexing the text, so reference links defined elsewhere in the comment still resolve.
+ */
+function withoutLeadingRating(tokens: Token[], rating: string): Token[] {
+  const [first, ...rest] = tokens
+  if (!first || first.type !== 'text' || !first.raw.trimStart().startsWith(rating)) return tokens
+  const strip = (t: string) => t.trimStart().slice(rating.length).trimStart()
+  const text = strip(first.text)
+  return text ? [{ ...first, raw: strip(first.raw), text } as Token, ...rest] : rest
+}
+
+/**
  * The renderer for descriptions, comments and chat: GFM, a newline is a line break, and typed HTML
  * is text. Its own instance, so `renderMarkdown` (the editor preview) is unchanged.
  */
@@ -244,7 +267,7 @@ const richText = new Marked({
     table(token) {
       const plainRows = token.rows.map(row => row.map(cell => cell.text))
       if (!isTradeoffGrid(plainRows)) return false
-      const used = new Set<Rating>()
+      const used = new Map<string, (typeof RATING_STYLE)[Rating]>()
       const align = (a: string | null) => (a ? ` align="${a}"` : '')
       const head = token.header
         .map((cell, i) => `<th${align(token.align[i])}>${this.parser.parseInline(cell.tokens)}</th>`)
@@ -254,17 +277,24 @@ const richText = new Marked({
           const cells = row.map((cell, i) => {
             const parsed = i === 0 ? null : parseRating(cell.text)
             if (!parsed) return `<td${align(token.align[i])}>${this.parser.parseInline(cell.tokens)}</td>`
-            used.add(parsed.rating)
-            const rest: string = parsed.rest ? this.parser.parseInline(Lexer.lexInline(parsed.rest, { gfm: true, breaks: true })) : ''
-            return `<td${align(token.align[i])} class="${RATING_STYLE[parsed.rating].className}">${rest || parsed.rating}</td>`
+            const style = RATING_STYLE[parsed.rating]
+            used.set(style.className, style)
+            // The rating stays readable without colour (AWTD-1529).
+            const spoken = `<span class="sr-only">${ratingLabel(style)}: </span>`
+            // A rating-only cell shows its token, so it still reads where colours are overridden.
+            const reason = parsed.rest
+              ? this.parser.parseInline(withoutLeadingRating(cell.tokens, parsed.rating))
+              : escapeHtml(parsed.rating)
+            return `<td${align(token.align[i])} class="${style.className}">${spoken}${reason}</td>`
           })
           return `<tr>${cells.join('')}</tr>`
         })
         .join('')
-      const key = [...used]
-        .map(r => `<span class="${RATING_STYLE[r].className} px-1.5 rounded text-xs">${r}</span>`)
-        .join(' ')
-      return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table><p class="tradeoff-key">${key}</p>`
+      const key = [...used.values()]
+        .sort((a, b) => a.rank - b.rank)
+        .map(s => `<span class="tradeoff-key-item"><span class="tradeoff-swatch ${s.className}"></span>${ratingLabel(s)}</span>`)
+        .join('')
+      return `<div class="tradeoff-scroll"><table class="tradeoff-grid"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div><p class="tradeoff-key">${key}</p>`
     },
   },
 })
@@ -297,7 +327,7 @@ function styleInlineCode(html: string, codeClass: string): string {
  */
 export function renderMarkdownWithLinks(
   text: string,
-  options?: { codeClass?: string; identifiers?: IdentifierLinkContext }
+  options?: { codeClass?: string; identifiers?: IdentifierLinkContext; ratingLabels?: RatingLabels }
 ): string {
   if (!text) return ""
 
@@ -316,7 +346,13 @@ export function renderMarkdownWithLinks(
       })
     : extracted.text
 
-  let html = richText.parse(withSentinels, { async: false }) as string
+  activeRatingLabels = options?.ratingLabels
+  let html: string
+  try {
+    html = richText.parse(withSentinels, { async: false }) as string
+  } finally {
+    activeRatingLabels = undefined
+  }
   html = decorateExternalLinks(html)
   html = styleInlineCode(html, options?.codeClass || '')
   html = restoreReferences(html, rendered, typed)

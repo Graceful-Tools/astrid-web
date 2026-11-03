@@ -1,7 +1,8 @@
 "use client"
 
 import { renderMarkdownWithLinks } from '@/lib/markdown'
-import { decisionReply, type ParsedDecision } from '@/lib/comment-formats'
+import { decisionReply, ratingLabels, type ParsedDecision } from '@/lib/comment-formats'
+import { useTranslations } from '@/lib/i18n/client'
 import type { IdentifierLinkContext } from '@/lib/task-identifier-links'
 
 interface DecisionCardsProps {
@@ -17,7 +18,9 @@ const prose = 'prose prose-sm max-w-none text-sm theme-text-secondary'
 
 /** A Decision comment drawn as one card per option (AWTD-1524). Format: PRODUCT_CONTRACT.md §8. */
 export function DecisionCards({ decision, chosen, onChoose, identifiers }: DecisionCardsProps) {
-  const md = (text: string) => ({ __html: renderMarkdownWithLinks(text, { identifiers }) })
+  const { t } = useTranslations()
+  const labels = ratingLabels(t)
+  const md = (text: string) => ({ __html: renderMarkdownWithLinks(text, { identifiers, ratingLabels: labels }) })
   return (
     <div className="flex flex-col gap-2" data-testid="decision-cards">
       {decision.before && <div className={prose} dangerouslySetInnerHTML={md(decision.before)} />}
