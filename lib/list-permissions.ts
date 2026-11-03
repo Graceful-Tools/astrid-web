@@ -239,27 +239,23 @@ export function listVisibilityWhere(
 }
 
 /**
- * The `where` for `GET /api/v1/lists/:id` — owner, member, or any PUBLIC list.
+ * The `where` for `GET /api/v1/lists/:id`: every list the index shows the
+ * caller, plus any PUBLIC list.
  *
- * Narrower than {@link listVisibilityWhere}: no project or label branches.
- * Kept as its own definition because the batch existence check (AWTD-1515)
- * must call a list missing exactly when that GET answers 404, and the two
- * read the same clause from here.
+ * Built from {@link listVisibilityWhere} so opening one list agrees with the
+ * list index (AWTD-1519). It used to be owner, member or PUBLIC only, so a
+ * project member saw a project's list in `GET /api/v1/lists` and got 404 when
+ * opening it. The batch existence check (AWTD-1515) reads this same clause, so
+ * it calls a list missing exactly when this GET answers 404.
  *
- * Legacy has always allowed PUBLIC (`hasListAccess(...) || privacy ===
- * 'PUBLIC'`). Without it a signed-in non-member opening a public list gets
- * 404, which the list page renders as "List not found" — to precisely the
- * audience a public list exists for. READ only: PUT and DELETE keep their
+ * PUBLIC stays, as legacy has always allowed it (`hasListAccess(...) ||
+ * privacy === 'PUBLIC'`). Without it a signed-in non-member opening a public
+ * list gets 404, which the list page renders as "List not found", to exactly
+ * the audience a public list exists for. READ only: PUT and DELETE keep their
  * owner/admin gates. Same shape as the task-level fix in 92e582c6.
  */
 export function listReadByIdWhere(userId: string) {
-  return {
-    OR: [
-      { ownerId: userId },
-      { listMembers: { some: { userId } } },
-      { privacy: "PUBLIC" as const },
-    ],
-  }
+  return listVisibilityWhere(userId, { includePublic: true })
 }
 
 /**

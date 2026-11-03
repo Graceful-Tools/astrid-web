@@ -61,16 +61,34 @@ const mockAuth = vi.mocked(authenticateAPI)
 const ME = 'user-me'
 const OTHER = 'user-other'
 
-type ListRow = { id: string; ownerId: string; privacy: string; listMembers: { userId: string }[] }
+type ProjectRow = { ownerId: string; members: { userId: string }[]; lists: ListRow[] }
+type ListRow = {
+  id: string; ownerId: string; privacy: string; listMembers: { userId: string }[]
+  // The fields the project and label branches of the visibility clause read (AWTD-1519).
+  listType: string; remoteNodeId: string | null; project: ProjectRow | null; tasks: TaskRow[]
+}
 type TaskRow = { id: string; creatorId: string; assigneeId: string | null; lists: ListRow[] }
 
-const myList: ListRow = { id: 'list-mine', ownerId: ME, privacy: 'PRIVATE', listMembers: [] }
-const sharedWithMe: ListRow = { id: 'list-shared', ownerId: OTHER, privacy: 'SHARED', listMembers: [{ userId: ME }] }
+const list = (row: Pick<ListRow, 'id' | 'ownerId' | 'privacy' | 'listMembers'> & Partial<ListRow>): ListRow =>
+  ({ listType: 'regular', remoteNodeId: null, project: null, tasks: [], ...row })
+
+const myList = list({ id: 'list-mine', ownerId: ME, privacy: 'PRIVATE', listMembers: [] })
+const sharedWithMe = list({ id: 'list-shared', ownerId: OTHER, privacy: 'SHARED', listMembers: [{ userId: ME }] })
 // I was a member of this one and have been removed.
-const removedFrom: ListRow = { id: 'list-removed', ownerId: OTHER, privacy: 'SHARED', listMembers: [{ userId: 'user-third' }] }
-const othersPrivate: ListRow = { id: 'list-private', ownerId: OTHER, privacy: 'PRIVATE', listMembers: [] }
-const publicList: ListRow = { id: 'list-public', ownerId: OTHER, privacy: 'PUBLIC', listMembers: [] }
-const LISTS = [myList, sharedWithMe, removedFrom, othersPrivate, publicList]
+const removedFrom = list({ id: 'list-removed', ownerId: OTHER, privacy: 'SHARED', listMembers: [{ userId: 'user-third' }] })
+const othersPrivate = list({ id: 'list-private', ownerId: OTHER, privacy: 'PRIVATE', listMembers: [] })
+const publicList = list({ id: 'list-public', ownerId: OTHER, privacy: 'PUBLIC', listMembers: [] })
+// AWTD-1519: I reach this list only through the project it belongs to.
+const projectList = list({
+  id: 'list-project', ownerId: OTHER, privacy: 'PRIVATE', listMembers: [],
+  project: { ownerId: OTHER, members: [{ userId: ME }], lists: [] },
+})
+// A project I am not in: still private to me.
+const othersProjectList = list({
+  id: 'list-others-project', ownerId: OTHER, privacy: 'PRIVATE', listMembers: [],
+  project: { ownerId: OTHER, members: [{ userId: 'user-third' }], lists: [] },
+})
+const LISTS = [myList, sharedWithMe, removedFrom, othersPrivate, publicList, projectList, othersProjectList]
 
 const TASKS: TaskRow[] = [
   { id: 'task-mine', creatorId: ME, assigneeId: null, lists: [myList] },
@@ -86,9 +104,17 @@ function matches(row: Record<string, any>, where: Record<string, any>): boolean 
     if (key === 'OR') return (value as Record<string, any>[]).some(c => matches(row, c))
     if (key === 'AND') return (value as Record<string, any>[]).every(c => matches(row, c))
     if (value && typeof value === 'object' && 'in' in value) return (value.in as unknown[]).includes(row[key])
+    if (value && typeof value === 'object' && 'not' in value) {
+      if (!(key in row)) throw new Error(`fixture row has no field ${key}`)
+      return row[key] !== value.not
+    }
     if (value && typeof value === 'object' && 'some' in value) {
       if (!Array.isArray(row[key])) throw new Error(`fixture row has no relation ${key}`)
       return (row[key] as Record<string, any>[]).some(r => matches(r, value.some))
+    }
+    // A to-one relation (`project: { ownerId }`): a null relation matches nothing.
+    if (value && typeof value === 'object' && key in row && (row[key] === null || (typeof row[key] === 'object' && !Array.isArray(row[key])))) {
+      return row[key] !== null && matches(row[key], value)
     }
     if (value && typeof value === 'object') throw new Error(`unhandled condition on ${key}`)
     if (!(key in row)) throw new Error(`fixture row has no field ${key}`)
@@ -158,6 +184,16 @@ describe('POST /api/v1/sync/existence (AWTD-1515)', () => {
   it('AWTD-1515: a list the caller was removed from comes back missing; lists still shared are not', async () => {
     const res = await existence({ listIds: ['list-removed', 'list-shared', 'list-mine', 'list-public', 'list-private'] })
     expect((await res.json()).missingListIds).toEqual(['list-removed', 'list-private'])
+  })
+
+  it('AWTD-1519: a list I see only through its project is not missing; another project\'s list is', async () => {
+    const res = await existence({ listIds: ['list-project', 'list-others-project'] })
+    expect((await res.json()).missingListIds).toEqual(['list-others-project'])
+  })
+
+  it('AWTD-1519: GET /api/v1/lists/:id serves a project member the project\'s list', async () => {
+    const id = 'list-project'
+    expect((await getList(rowGet(`lists/${id}`), { params: Promise.resolve({ id }) })).status).toBe(200)
   })
 
   it('AWTD-1515: answers in one query per kind, in request order, duplicates once', async () => {
