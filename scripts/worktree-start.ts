@@ -95,7 +95,7 @@ export function addTaskWorktree(options: {
 /** `<task> [--branch <name> | --branch=<name>] [description words...]` */
 export function parseStartArgs(
   argv: string[],
-  env: NodeJS.ProcessEnv = {},
+  env: Record<string, string | undefined> = {},
 ): { taskIdentifier: string; description: string; branch?: string } {
   // Without `--`, npm keeps `--branch` for itself (setting npm_config_branch)
   // and passes the name on as a plain word, so the branch would quietly be
