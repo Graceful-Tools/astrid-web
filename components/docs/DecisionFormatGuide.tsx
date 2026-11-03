@@ -28,7 +28,7 @@ export function DecisionFormatGuide({ audience }: { audience: "people" | "agents
       <p>
         A comment that asks someone to choose can be drawn as tappable cards, with a coloured grid that
         weighs the options. Both are ordinary markdown, so they still read well anywhere they aren&apos;t
-        drawn (email, plain text): the reader just types the letter.
+        drawn (email, plain text): the reader just types the number.
       </p>
 
       <div className="space-y-2">
@@ -38,14 +38,14 @@ export function DecisionFormatGuide({ audience }: { audience: "people" | "agents
             Start a paragraph with <code className={code}>**Decision:**</code> and the question.
           </li>
           <li>
-            Follow it with a list whose items start with a bold letter: <code className={code}>- **A.** Ship today</code>.
-            At least two options.
+            Follow it with a list whose items start with a bold number: <code className={code}>- **1.** Ship today</code>.
+            At least two options. The cards are numbered 1, 2, 3 in order.
           </li>
           <li>
             Add <code className={code}>(recommended)</code> to the one option you would pick. It gets a badge.
           </li>
           <li>
-            Tapping a card posts <code className={code}>A — Ship today</code> as the reply. A link inside an
+            Tapping a card posts <code className={code}>1 — Ship today</code> as the reply. A link inside an
             option opens the link instead.
           </li>
         </ul>
@@ -78,7 +78,7 @@ export function DecisionFormatGuide({ audience }: { audience: "people" | "agents
           <ul className="list-disc pl-5 space-y-1">
             <li>Any question to a person with two to five discrete answers is a Decision.</li>
             <li>Recommend exactly one option. Keep option text short: it is posted back verbatim.</li>
-            <li>Add a grid when options trade off against several criteria: rows lettered to match, 3–5 columns.</li>
+            <li>Add a grid when options trade off against several criteria: rows numbered to match (1. Lisbon), 3–5 columns, which the apps letter A, B, C.</li>
             <li>Every cell is a rating plus a concrete reason, never a bare colour.</li>
             <li>
               End a handback with the <code className={code}>AGENT-HANDBACK: &lt;mailbox&gt;</code> line, last.

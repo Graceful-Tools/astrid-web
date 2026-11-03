@@ -59,7 +59,7 @@ describe('AWTD-1534 full-screen trade-off grid', () => {
     fireEvent.click(screen.getByRole('button', { name: /Plein écran/ }))
     const dialog = screen.getByRole('dialog')
     expect(within(dialog).getByRole('table')).toBeTruthy()
-    expect(within(dialog).getByText('Lisbon')).toBeTruthy()
+    expect(within(dialog).getByText('1. Lisbon')).toBeTruthy()
     expect(dialog.querySelector('[data-tradeoff-expand]')).toBeNull()
     expect(dialog.querySelector('.tradeoff-key')).not.toBeNull()
     // The description row behind it enters edit mode on click; opening the grid must not.
@@ -76,7 +76,7 @@ describe('AWTD-1534 full-screen trade-off grid', () => {
     const onHostClick = vi.fn()
     render(<Host onHostClick={onHostClick} />)
     fireEvent.click(screen.getByRole('button', { name: /Plein écran/ }))
-    fireEvent.click(within(screen.getByRole('dialog')).getByText('Lisbon'))
+    fireEvent.click(within(screen.getByRole('dialog')).getByText('1. Lisbon'))
     expect(onHostClick).not.toHaveBeenCalled()
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
     expect(screen.queryByRole('dialog')).toBeNull()

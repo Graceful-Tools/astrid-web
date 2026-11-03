@@ -1,6 +1,6 @@
 import DOMPurify from 'dompurify'
 import { Marked, marked, type Token } from 'marked'
-import { isTradeoffGrid, parseRating, RATING_STYLE, type Rating, type RatingLabels } from '@/lib/comment-formats'
+import { columnLetter, isTradeoffGrid, parseRating, RATING_STYLE, type Rating, type RatingLabels } from '@/lib/comment-formats'
 import { replaceIdentifierLinks, type IdentifierLinkContext } from '@/lib/task-identifier-links'
 
 // Allowed URL protocols for links
@@ -255,6 +255,35 @@ function withoutLeadingRating(tokens: Token[], rating: string): Token[] {
   return text ? [{ ...first, raw: strip(first.raw), text } as Token, ...rest] : rest
 }
 
+const BARE_MARKER = /^\s*(?:[A-Za-z]|\d{1,2})[.):]?\s*$/
+const PUNCTUATED_MARKER = /^\s*(?:[A-Za-z]|\d{1,2})[.):](?:\s+|$)/
+
+/**
+ * A grid row's option cell without its writer's marker, on the parsed tokens like
+ * `withoutLeadingRating`; the grid numbers rows itself (AWTD-1533). As AstridCore's
+ * `droppingMarker`: a marker followed by more words needs its punctuation ("A. Lisbon",
+ * "**2)** Cabin"), and a bare one ("B") goes only when it is the whole cell, so "I **am** here"
+ * keeps its "I". Text after the marker keeps its own spacing.
+ */
+function withoutRowMarker(tokens: Token[]): Token[] {
+  const [first, ...rest] = tokens
+  if (!first || (first.type !== 'text' && first.type !== 'strong')) return tokens
+  const whole = tokens.length === 1
+  if (whole && BARE_MARKER.test(first.text)) return []
+  if (first.type === 'strong') {
+    if (!PUNCTUATED_MARKER.test(first.text) || first.text.trim().length > 3) return tokens
+    const [next, ...after] = rest
+    if (next?.type !== 'text') return rest
+    const text = next.text.trimStart()
+    return text ? [{ ...next, raw: next.raw.trimStart(), text } as Token, ...after] : after
+  }
+  const m = PUNCTUATED_MARKER.exec(first.text)
+  if (!m) return tokens
+  const text = first.text.slice(m[0].length)
+  const raw = first.raw.replace(PUNCTUATED_MARKER, '')
+  return text ? [{ ...first, raw, text } as Token, ...rest] : rest
+}
+
 /**
  * The renderer for descriptions, comments and chat: GFM, a newline is a line break, and typed HTML
  * is text. Its own instance, so `renderMarkdown` (the editor preview) is unchanged.
@@ -270,13 +299,20 @@ const richText = new Marked({
       if (!isTradeoffGrid(plainRows)) return false
       const used = new Map<string, (typeof RATING_STYLE)[Rating]>()
       const align = (a: string | null) => (a ? ` align="${a}"` : '')
+      // Criteria columns are lettered A, B, C and rows numbered 1, 2, 3, as on iOS (AWTD-1533).
       const head = token.header
-        .map((cell, i) => `<th${align(token.align[i])}>${this.parser.parseInline(cell.tokens)}</th>`)
+        .map((cell, i) => {
+          const letter = i === 0 ? '' : `<span class="tradeoff-col">${columnLetter(i - 1)}</span> `
+          return `<th${align(token.align[i])}>${letter}${this.parser.parseInline(cell.tokens)}</th>`
+        })
         .join('')
       const body = token.rows
-        .map(row => {
+        .map((row, r) => {
           const cells = row.map((cell, i) => {
-            const parsed = i === 0 ? null : parseRating(cell.text)
+            if (i === 0) {
+              return `<td${align(token.align[i])}>${r + 1}. ${this.parser.parseInline(withoutRowMarker(cell.tokens))}</td>`
+            }
+            const parsed = parseRating(cell.text)
             if (!parsed) return `<td${align(token.align[i])}>${this.parser.parseInline(cell.tokens)}</td>`
             const style = RATING_STYLE[parsed.rating]
             used.set(style.className, style)
