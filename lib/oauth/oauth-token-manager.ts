@@ -15,6 +15,7 @@ import { createLogger } from '@/lib/logger'
 import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
 import { agentEmail } from '@/lib/brand/agent-emails'
 import { normalizeStoredAgentMailbox, type ConsentAgentMailbox } from './agent-consent'
+import { scopesForReissue } from './scope-narrowing'
 
 const log = createLogger('oauth.oauth-token-manager')
 
@@ -231,11 +232,11 @@ export async function refreshAccessToken(
     data: { revokedAt: new Date() },
   })
 
-  // Generate new token pair
+  // Generate new token pair, limited to what the app still holds (AWTD-1521)
   return await generateAccessAndRefreshToken(
     clientId,
     existingToken.userId,
-    existingToken.scopes,
+    await scopesForReissue(clientId, existingToken.scopes, 'refresh_token'),
     refreshMailbox,
   )
 }
@@ -531,11 +532,11 @@ export async function exchangeAuthorizationCode(
     data: { usedAt: new Date() },
   })
 
-  // Generate token pair
+  // Generate token pair, limited to what the app still holds (AWTD-1521)
   return await generateAccessAndRefreshToken(
     clientId,
     authCode.userId,
-    authCode.scopes,
+    await scopesForReissue(clientId, authCode.scopes, 'authorization_code'),
     codeMailbox,
   )
 }
