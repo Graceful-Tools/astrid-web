@@ -34,7 +34,8 @@ different **on the web board**.
 **First, take the working-tree lock** (FIXALL_WORKFLOW.md → *One session per working
 tree*), with your harness's own selector. Exit 2 means another live `/fixall` session
 owns this checkout — stop, and re-run from your own worktree via
-`npm run work:start <task-slug>`:
+`npm run work:start <task-slug> --branch agent/<harness>/<KEY>-<slug>`. It starts the
+worktree from a freshly fetched `origin/main`, never the local `main` (AWTD-1520):
 
 ```bash
 npx tsx scripts/fixall-session.ts acquire --pid $PPID --harness <claude-code|github-copilot|codex>
