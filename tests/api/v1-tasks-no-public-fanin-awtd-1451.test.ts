@@ -12,7 +12,8 @@ import { mockPrisma } from '../setup'
 import { GET } from '@/app/api/v1/tasks/route'
 import { authenticateAPI, requireScopes } from '@/lib/api-auth-middleware'
 import { BRAND } from '@/lib/brand/config'
-import { listReadByIdWhere } from '@/lib/list-permissions'
+import { listTasksByIdWhere } from '@/lib/list-permissions'
+import { LIST_TYPE_LABEL } from '@/lib/list-flavors'
 
 vi.mock('@/lib/api-auth-middleware', () => ({
   authenticateAPI: vi.fn(),
@@ -58,9 +59,16 @@ describe('GET /api/v1/tasks without listId — AWTD-1451', () => {
     expect(JSON.stringify(where())).toContain('PUBLIC')
   })
 
-  it('AWTD-1519: ?listId= admits exactly the lists GET /api/v1/lists/:id opens, project lists included', async () => {
+  it('AWTD-1519: ?listId= admits project lists, as GET /api/v1/lists/:id does', async () => {
     await get('?listId=list-1')
-    expect(where().lists).toEqual({ some: { id: 'list-1', ...listReadByIdWhere('user-1') } })
+    expect(where().lists).toEqual({ some: { id: 'list-1', ...listTasksByIdWhere('user-1') } })
     expect(JSON.stringify(where())).toContain('"project"')
+  })
+
+  it('AWTD-1519: ?listId= never reaches a label list through the derived branch, which spans other boards', async () => {
+    await get('?listId=label-list')
+    const json = JSON.stringify(where())
+    expect(json).not.toContain(`"listType":"${LIST_TYPE_LABEL}"`)
+    expect(json).not.toContain('remoteNodeId')
   })
 })
