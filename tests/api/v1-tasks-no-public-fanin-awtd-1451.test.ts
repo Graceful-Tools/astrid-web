@@ -12,6 +12,7 @@ import { mockPrisma } from '../setup'
 import { GET } from '@/app/api/v1/tasks/route'
 import { authenticateAPI, requireScopes } from '@/lib/api-auth-middleware'
 import { BRAND } from '@/lib/brand/config'
+import { listReadByIdWhere } from '@/lib/list-permissions'
 
 vi.mock('@/lib/api-auth-middleware', () => ({
   authenticateAPI: vi.fn(),
@@ -55,5 +56,11 @@ describe('GET /api/v1/tasks without listId — AWTD-1451', () => {
   it('keeps public lists readable by an explicit listId', async () => {
     await get('?listId=list-1')
     expect(JSON.stringify(where())).toContain('PUBLIC')
+  })
+
+  it('AWTD-1519: ?listId= admits exactly the lists GET /api/v1/lists/:id opens, project lists included', async () => {
+    await get('?listId=list-1')
+    expect(where().lists).toEqual({ some: { id: 'list-1', ...listReadByIdWhere('user-1') } })
+    expect(JSON.stringify(where())).toContain('"project"')
   })
 })
