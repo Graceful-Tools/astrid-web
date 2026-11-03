@@ -3,6 +3,7 @@
 import { renderMarkdownWithLinks } from '@/lib/markdown'
 import { decisionReply, ratingLabels, type ParsedDecision } from '@/lib/comment-formats'
 import { useTranslations } from '@/lib/i18n/client'
+import { useTradeoffGridViewer } from '@/components/shared/TradeoffGridViewer'
 import type { IdentifierLinkContext } from '@/lib/task-identifier-links'
 
 interface DecisionCardsProps {
@@ -21,8 +22,10 @@ export function DecisionCards({ decision, chosen, onChoose, identifiers }: Decis
   const { t } = useTranslations()
   const labels = ratingLabels(t)
   const md = (text: string) => ({ __html: renderMarkdownWithLinks(text, { identifiers, ratingLabels: labels }) })
+  const gridViewer = useTradeoffGridViewer()
   return (
-    <div className="flex flex-col gap-2" data-testid="decision-cards">
+    <div className="flex flex-col gap-2" data-testid="decision-cards" onClick={gridViewer.onClick} onKeyDown={gridViewer.onKeyDown}>
+      {gridViewer.dialog}
       {decision.before && <div className={prose} dangerouslySetInnerHTML={md(decision.before)} />}
       <div className={prose} dangerouslySetInnerHTML={md(`**${decision.prompt}**`)} />
       <div className="flex flex-col gap-1.5">

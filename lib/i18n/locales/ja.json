@@ -150,6 +150,9 @@
       "mixed": "どちらとも言えない",
       "good": "良い",
       "veryGood": "とても良い"
+    },
+    "tradeoffGrid": {
+      "fullScreen": "全画面表示"
     }
   },
   "lists": {

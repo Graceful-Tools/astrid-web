@@ -326,7 +326,9 @@ every rated cell is a bare `-`. Each cell draws on its colour with the remaining
 (`#CC0000` white text, `#E06666`, `#FFD966`, `#93C47D`, `#38761D` white text, near-black text on the
 three light fills — Google Docs palette). A cell with no reason shows its token. Each cell tells
 assistive technology its rating in words ("Good. fast"), and the colour key under the grid names the
-ratings used in words (Very poor … Very good, localised), worst to best.
+ratings used in words (Very poor … Very good, localised), worst to best. A grid wider than its
+container scrolls sideways, and a sideways drag there scrolls the grid rather than dismissing the
+task or pane behind it. Every grid offers a full-screen view of itself (web: "Full screen", AWTD-1534).
 
 ---
 

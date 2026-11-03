@@ -150,6 +150,9 @@
       "mixed": "Mitigé",
       "good": "Bon",
       "veryGood": "Très bon"
+    },
+    "tradeoffGrid": {
+      "fullScreen": "Plein écran"
     }
   },
   "lists": {
