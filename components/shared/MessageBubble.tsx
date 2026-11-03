@@ -46,6 +46,8 @@ export interface MessageBubbleProps {
   codeClass?: string
   /** Reader context for autolinking task ids (AWTD-1017); absent links none. */
   identifiers?: IdentifierLinkContext
+  /** Replaces the rendered markdown body (e.g. Decision cards, AWTD-1524). */
+  richContent?: React.ReactNode
   /** Action buttons (rendered below the bubble) */
   actions?: React.ReactNode
   /** Click handler for the bubble (e.g., to toggle actions) */
@@ -89,6 +91,7 @@ export const MessageBubble = React.memo(function MessageBubble({
   isOptimistic = false,
   codeClass,
   identifiers,
+  richContent,
   actions,
   onClick,
 }: MessageBubbleProps) {
@@ -167,7 +170,8 @@ export const MessageBubble = React.memo(function MessageBubble({
           )}
 
           {/* Text content */}
-          {content && !content.startsWith('Attached: ') && (
+          {richContent}
+          {!richContent && content && !content.startsWith('Attached: ') && (
             <div
               // `prose` restores the block styles Tailwind preflight strips.
               // Without it headings and lists parse correctly and then render
