@@ -7,15 +7,15 @@
  */
 export const DECISION_EXAMPLE = `**Decision:** Where should we hold the team offsite?
 
-- **A.** Lisbon (recommended)
-- **B.** Mountain cabin
-- **C.** Stay home and order pizza
+- **1.** Lisbon (recommended)
+- **2.** Mountain cabin
+- **3.** Stay home and order pizza
 
 | Option | Cost | Travel | Fun |
 |---|---|---|---|
-| A. Lisbon | ~ flights for everyone | - a long day | ++ food, sun, city |
-| B. Cabin | + one rental | + 3h drive | + hiking |
-| C. Pizza | ++ cheap | ++ none | -- same as every day |
+| 1. Lisbon | ~ flights for everyone | - a long day | ++ food, sun, city |
+| 2. Cabin | + one rental | + 3h drive | + hiking |
+| 3. Pizza | ++ cheap | ++ none | -- same as every day |
 
 - **Cost:** what the company pays, all in.
 - **Travel:** door-to-door time for most of the team.

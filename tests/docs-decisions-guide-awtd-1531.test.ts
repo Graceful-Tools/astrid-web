@@ -14,7 +14,7 @@ const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8')
 describe('Decision guide (AWTD-1531)', () => {
   it('the canonical example is a Decision with one recommended option and a grid', () => {
     const d = parseDecision(DECISION_EXAMPLE)!
-    expect(d.options.map(o => o.letter)).toEqual(['A', 'B', 'C'])
+    expect(d.options.map(o => o.number)).toEqual([1, 2, 3])
     expect(d.options.filter(o => o.recommended)).toHaveLength(1)
     const rows = d.after
       .split('\n')

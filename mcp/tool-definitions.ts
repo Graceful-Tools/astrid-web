@@ -28,9 +28,9 @@ import { LIST_TOOLS } from "./list-tools"
  * Most agents learn the format only from here. Full guide: docs/DECISIONS.md.
  */
 const DECISION_FORMAT_HINT =
-  "To ask a person to choose, write a Decision: a paragraph starting **Decision:**, then a list whose items start with a bold letter (- **A.** Ship today (recommended) / - **B.** Wait). " +
-  "The apps draw tappable cards; a tap posts \"A — Ship today\" as the reply. Recommend exactly one option, keep option text short, and use it for any question with 2–5 discrete answers. " +
-  "To weigh options, add a trade-off grid: a table with options as rows (lettered to match) and 3–5 criteria as columns; every cell is a rating (-- very poor, - poor, ~ mixed, + good, ++ very good) plus a few words of reason, e.g. \"+ 3h drive\". " +
+  "To ask a person to choose, write a Decision: a paragraph starting **Decision:**, then a list whose items start with a bold number (- **1.** Ship today (recommended) / - **2.** Wait). " +
+  "The apps draw cards numbered 1, 2, 3; a tap posts \"1 — Ship today\" as the reply. Recommend exactly one option, keep option text short, and use it for any question with 2–5 discrete answers. " +
+  "To weigh options, add a trade-off grid: a table with options as rows (numbered to match, \"1. Lisbon\") and 3–5 criteria as columns, which the apps letter A, B, C; every cell is a rating (-- very poor, - poor, ~ mixed, + good, ++ very good) plus a few words of reason, e.g. \"+ 3h drive\". " +
   "Define each criterion in a bold-term list under the table. Put examples of the format in a code block. End a handback with the AGENT-HANDBACK: <mailbox> line."
 
 export const OAUTH_MCP_TOOLS = [

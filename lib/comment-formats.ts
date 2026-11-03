@@ -6,7 +6,10 @@
  */
 
 export interface DecisionOption {
+  /** The marker as the asker wrote it, upper case: "A", or "1". A reply leading with it still chooses. */
   letter: string
+  /** Its place in the list, from 1: what the card shows and the reply leads with (AWTD-1533). */
+  number: number
   text: string
   recommended: boolean
 }
@@ -22,8 +25,9 @@ export interface ParsedDecision {
 }
 
 const DECISION_HEAD = /^\*\*Decision:\*\*\s*(.*)$/
-// **A.** text | **A)** text | **A:** text | **A**) text | **A**. text
-const OPTION_LINE = /^\s*(?:[-*+]|\d+[.)])\s+(?:\*\*([A-Za-z])(?:[.):])?\*\*[.):]?)\s*(.*)$/
+// **A.** text | **A)** text | **A:** text | **A**) text | **A**. text — or a number of up to two
+// digits in place of the letter, **1.** text (AWTD-1533, as iOS AITD-585).
+const OPTION_LINE = /^\s*(?:[-*+]|\d+[.)])\s+(?:\*\*([A-Za-z]|\d{1,2})(?:[.):])?\*\*[.):]?)\s*(.*)$/
 const RECOMMENDED = /\s*\(recommended\)\s*$/i
 
 /**
@@ -102,11 +106,11 @@ export function parseDecision(content: string): ParsedDecision | null {
   // Options drawn as code are an example, not answers (AWTD-1531).
   while (i < lines.length && !code.has(i) && /^\s*(?:[-*+]|\d+[.)])\s/.test(lines[i])) {
     const m = OPTION_LINE.exec(lines[i])
-    if (!m) return null // every item must start with a bold letter
+    if (!m) return null // every item must start with a bold letter or number
     let text = m[2].trim()
     const recommended = RECOMMENDED.test(text)
     if (recommended) text = text.replace(RECOMMENDED, '').trim()
-    options.push({ letter: m[1].toUpperCase(), text, recommended })
+    options.push({ letter: m[1].toUpperCase(), number: options.length + 1, text, recommended })
     i++
   }
   if (options.length < 2) return null
@@ -119,15 +123,46 @@ export function parseDecision(content: string): ParsedDecision | null {
   }
 }
 
-/** The comment a click on a card posts. */
+/**
+ * The comment a click on a card posts. Options are numbered in order, whatever marker the asker
+ * wrote, and the reply leads with the number (AWTD-1533, as iOS AITD-585).
+ */
 export function decisionReply(option: DecisionOption): string {
-  return `${option.letter} — ${option.text}`
+  return option.text ? `${option.number} — ${option.text}` : `${option.number}`
 }
 
-/** The option letter a reply chooses: a letter followed by end, whitespace or punctuation. */
-export function chosenLetter(reply: string): string | null {
-  const m = /^\s*([A-Za-z])(?=$|[\s.,:;)\]!?—–-])/.exec(reply ?? '')
-  return m ? m[1].toUpperCase() : null
+/**
+ * The number of the option a reply picks: the number it starts with, or the marker the asker wrote,
+ * alone or followed by a space or punctuation. "2 — Wait", "1. go", "b" and "C — Something else"
+ * choose; "Also…", "2nd thoughts" and "10 minutes" (with no tenth option) do not.
+ */
+export function chosenNumber(reply: string, options: DecisionOption[]): number | null {
+  const lead = /^\s*([A-Za-z0-9]+)/.exec(reply ?? '')?.[1]
+  if (!lead) return null
+  if (/^\d+$/.test(lead)) {
+    const n = Number(lead)
+    return options.some(o => o.number === n) ? n : null
+  }
+  return options.find(o => o.letter === lead.toUpperCase())?.number ?? null
+}
+
+/** A row's own option marker: "A. ", "2) ", "C: ", or a marker standing alone ("B"). */
+const ROW_MARKER = /^\s*(?:[A-Za-z]|\d{1,2})(?:[.):](?:\s+|$)|\s*$)/
+
+/**
+ * A grid row's option name without the marker its writer put in front ("A. Lisbon" → "Lisbon");
+ * the grid numbers its rows itself, like the cards (AWTD-1533).
+ */
+export function rowName(text: string): string {
+  const m = ROW_MARKER.exec(text)
+  return m ? text.slice(m[0].length).trim() : text.trim()
+}
+
+/** The letter over a grid's criterion column, from 0: A … Z, then AA, AB, as a spreadsheet does. */
+export function columnLetter(index: number): string {
+  let name = ''
+  for (let i = index; i >= 0; i = Math.floor(i / 26) - 1) name = String.fromCharCode(65 + (i % 26)) + name
+  return name
 }
 
 export type Rating = '--' | '-' | '~' | '+' | '++' | '🔴' | '🟡' | '🟢'
