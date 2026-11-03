@@ -163,6 +163,9 @@ const EXPORTS: Record<string, () => Record<string, unknown>> = {
   // POST /api/v1/sync/existence: the batch "which cached ids are gone" request and answer, run
   // through the route's own parser and shaper (AWTD-1515).
   'sync-existence.json': () => runDriver('sync-existence.mjs', 'sync-existence'),
+  // Decision cards and trade-off grids in comments: web's recognisers over the canonical example in
+  // docs/DECISIONS.md and the edge cases, so iOS/Mac read the same text the same way (AWTD-1531).
+  'decisions.json': () => runDriver('decisions.mjs', 'decisions'),
 }
 
 let failed = false
