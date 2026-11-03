@@ -96,6 +96,9 @@ const TASKS: TaskRow[] = [
   { id: 'task-hidden', creatorId: OTHER, assigneeId: null, lists: [othersPrivate] },
   { id: 'task-assigned', creatorId: OTHER, assigneeId: ME, lists: [othersPrivate] },
   { id: 'task-public', creatorId: OTHER, assigneeId: null, lists: [publicList] },
+  // AWTD-1523: reachable only through the project its list belongs to.
+  { id: 'task-project', creatorId: OTHER, assigneeId: null, lists: [projectList] },
+  { id: 'task-others-project', creatorId: OTHER, assigneeId: null, lists: [othersProjectList] },
 ]
 
 /** Just enough of Prisma's where semantics: equality, `in`, `some`, OR / AND. */
@@ -194,6 +197,16 @@ describe('POST /api/v1/sync/existence (AWTD-1515)', () => {
   it('AWTD-1519: GET /api/v1/lists/:id serves a project member the project\'s list', async () => {
     const id = 'list-project'
     expect((await getList(rowGet(`lists/${id}`), { params: Promise.resolve({ id }) })).status).toBe(200)
+  })
+
+  it('AWTD-1523: a task on a list I see only through its project is not missing; another project\'s is', async () => {
+    const res = await existence({ taskIds: ['task-project', 'task-others-project'] })
+    expect((await res.json()).missingTaskIds).toEqual(['task-others-project'])
+  })
+
+  it('AWTD-1523: GET /api/v1/tasks/:id serves a project member a task on the project\'s list', async () => {
+    const id = 'task-project'
+    expect((await getTask(rowGet(`tasks/${id}`), { params: Promise.resolve({ id }) })).status).toBe(200)
   })
 
   it('AWTD-1515: answers in one query per kind, in request order, duplicates once', async () => {
