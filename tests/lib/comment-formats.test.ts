@@ -82,4 +82,23 @@ describe('AWTD-1529 trade-off grid drawn like iOS', () => {
     expect(html).toContain('href="https://example.com/guide"')
     expect(html).not.toContain('[guide][g]')
   })
+
+  it('a rating-only cell shows its token, so it reads without colour', () => {
+    const html = renderMarkdownWithLinks('| Option | Cost |\n|---|---|\n| A | ++ |\n| B | - dear |')
+    expect(html).toContain('<span class="sr-only">Very good: </span>++</td>')
+  })
+
+  it('names ratings in the reader\'s language', () => {
+    const html = renderMarkdownWithLinks(grid, { ratingLabels: { veryGood: 'Sehr gut', veryPoor: 'Sehr schlecht' } })
+    expect(html).toContain('<span class="sr-only">Sehr gut: </span>cheap')
+    expect(html).toContain('</span>Sehr schlecht</span>')
+    expect(html).toContain('</span>Mixed</span>')
+  })
+
+  it('every rating name has a key in the locale files', () => {
+    const en = JSON.parse(readFileSync(join(process.cwd(), 'lib/i18n/locales/en.json'), 'utf8'))
+    for (const { labelKey, label } of Object.values(RATING_STYLE)) {
+      expect(en.tasks.tradeoffRatings[labelKey]).toBe(label)
+    }
+  })
 })

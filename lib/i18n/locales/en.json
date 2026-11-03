@@ -143,6 +143,13 @@
       "errorSaveFailed": "That change could not be saved to GitHub. Try again.",
       "filterLabel": "Project field",
       "filterAll": "All tasks"
+    },
+    "tradeoffRatings": {
+      "veryPoor": "Very poor",
+      "poor": "Poor",
+      "mixed": "Mixed",
+      "good": "Good",
+      "veryGood": "Very good"
     }
   },
   "lists": {

@@ -81,15 +81,25 @@ export type Rating = '--' | '-' | '~' | '+' | '++' | '🔴' | '🟡' | '🟢'
  * lib/ is outside Tailwind's content paths, so `bg-[#…]` written here was never generated (AWTD-1529).
  * `rank` orders the key from worst to best, as iOS draws it.
  */
-export const RATING_STYLE: Record<Rating, { className: string; label: string; rank: number }> = {
-  '--': { className: 'tradeoff-very-poor', label: 'Very poor', rank: 0 },
-  '-': { className: 'tradeoff-poor', label: 'Poor', rank: 1 },
-  '~': { className: 'tradeoff-mixed', label: 'Mixed', rank: 2 },
-  '+': { className: 'tradeoff-good', label: 'Good', rank: 3 },
-  '++': { className: 'tradeoff-very-good', label: 'Very good', rank: 4 },
-  '🔴': { className: 'tradeoff-poor', label: 'Poor', rank: 1 },
-  '🟡': { className: 'tradeoff-mixed', label: 'Mixed', rank: 2 },
-  '🟢': { className: 'tradeoff-good', label: 'Good', rank: 3 },
+export const RATING_LABEL_KEYS = ['veryPoor', 'poor', 'mixed', 'good', 'veryGood'] as const
+export type RatingLabelKey = (typeof RATING_LABEL_KEYS)[number]
+/** Translated rating names, from `tasks.tradeoffRatings.*`. Missing ones fall back to English. */
+export type RatingLabels = Partial<Record<RatingLabelKey, string>>
+
+/** Read the rating names for the reader's locale. */
+export function ratingLabels(t: (key: string) => string): RatingLabels {
+  return Object.fromEntries(RATING_LABEL_KEYS.map(k => [k, t(`tasks.tradeoffRatings.${k}`)]))
+}
+
+export const RATING_STYLE: Record<Rating, { className: string; labelKey: RatingLabelKey; label: string; rank: number }> = {
+  '--': { className: 'tradeoff-very-poor', labelKey: 'veryPoor', label: 'Very poor', rank: 0 },
+  '-': { className: 'tradeoff-poor', labelKey: 'poor', label: 'Poor', rank: 1 },
+  '~': { className: 'tradeoff-mixed', labelKey: 'mixed', label: 'Mixed', rank: 2 },
+  '+': { className: 'tradeoff-good', labelKey: 'good', label: 'Good', rank: 3 },
+  '++': { className: 'tradeoff-very-good', labelKey: 'veryGood', label: 'Very good', rank: 4 },
+  '🔴': { className: 'tradeoff-poor', labelKey: 'poor', label: 'Poor', rank: 1 },
+  '🟡': { className: 'tradeoff-mixed', labelKey: 'mixed', label: 'Mixed', rank: 2 },
+  '🟢': { className: 'tradeoff-good', labelKey: 'good', label: 'Good', rank: 3 },
 }
 
 const RATING_TOKEN = /^(--|-|~|\+\+|\+|🔴|🟡|🟢)(?=\s|$)/u
