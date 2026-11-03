@@ -2,19 +2,21 @@
 /**
  * Start parallel development work in a new Git worktree
  *
- * Usage: npm run work:start <taskSlug> [optional-description]
+ * Usage: npm run work:start -- <taskSlug> [--branch <name>] [optional-description]
  * Example: npm run work:start "fix-search-clear"
+ * Example: npm run work:start -- awtd-1520 --branch agent/claude-code/AWTD-1520-worktree-base
  * Example: npm run work:start 123 "fix search clear" (legacy numeric ID)
  *
  * Creates:
  * - New worktree at ../www-task-<slug>
- * - New branch: task/<slug>
+ * - New branch: task/<slug> (or --branch), started from a freshly fetched
+ *   origin/main, never the local main (AWTD-1520)
  * - SHARED database (same as main repo)
  * - Custom PORT assignment (3001, 3002, etc.)
  * - .env.local copied from main (with updated PORT)
  */
 
-import { execSync } from 'child_process'
+import { execFileSync, execSync } from 'child_process'
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
 
@@ -63,7 +65,61 @@ function findNextAvailablePort(): number {
   return port
 }
 
-function createWorktree(taskIdentifier: string, description?: string): WorktreeInfo {
+/**
+ * Fetch origin/main and add a worktree on a new branch started from it.
+ * Returns the commit the worktree starts at.
+ *
+ * Never the local `main` (AWTD-1520). Here it is checked out in the hygiene
+ * worktree and falls behind, so worktrees began weeks old, installed that
+ * commit's packages, and failed predeploy once the session reset to
+ * origin/main. A failed fetch throws: a stale base is the bug, not a fallback.
+ *
+ * `--no-track`: started from a remote-tracking ref, git would otherwise make
+ * origin/main the new branch's upstream, and a bare `git pull` or `git push`
+ * on the task branch would then aim at main.
+ */
+export function addTaskWorktree(options: {
+  repoDir: string
+  branch: string
+  worktreePath: string
+  env?: NodeJS.ProcessEnv
+}): string {
+  const { repoDir, branch, worktreePath, env = process.env } = options
+  const git = (args: string[], stdio: 'pipe' | 'inherit' = 'pipe') =>
+    execFileSync('git', args, { cwd: repoDir, env, encoding: 'utf8', stdio })
+  git(['fetch', '-q', 'origin', '+refs/heads/main:refs/remotes/origin/main'], 'inherit')
+  git(['worktree', 'add', '--no-track', '-b', branch, worktreePath, 'origin/main'], 'inherit')
+  return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: worktreePath, env, encoding: 'utf8' }).trim()
+}
+
+/** `<task> [--branch <name> | --branch=<name>] [description words...]` */
+export function parseStartArgs(
+  argv: string[],
+  env: Record<string, string | undefined> = {},
+): { taskIdentifier: string; description: string; branch?: string } {
+  // Without `--`, npm keeps `--branch` for itself (setting npm_config_branch)
+  // and passes the name on as a plain word, so the branch would quietly be
+  // task/<slug> and the name would join the description. Refuse instead.
+  if (env.npm_config_branch !== undefined && !argv.some(a => a === '--branch' || a.startsWith('--branch='))) {
+    throw new Error('npm kept --branch for itself. Put `--` first: npm run work:start -- <task> --branch <name>')
+  }
+  const rest: string[] = []
+  let branch: string | undefined
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]
+    if (arg === '--branch' || arg.startsWith('--branch=')) {
+      const value = arg === '--branch' ? argv[++i] : arg.slice('--branch='.length)
+      if (!value || value.startsWith('-')) throw new Error('--branch needs a branch name')
+      branch = value
+    } else {
+      rest.push(arg)
+    }
+  }
+  const [taskIdentifier = '', ...descriptionParts] = rest
+  return { taskIdentifier, description: descriptionParts.join(' '), branch }
+}
+
+function createWorktree(taskIdentifier: string, description?: string, branchOverride?: string): WorktreeInfo {
   console.log(`\n🌳 Creating worktree for task: ${taskIdentifier}...`)
 
   // Determine if taskIdentifier is numeric (legacy) or slug
@@ -91,7 +147,7 @@ function createWorktree(taskIdentifier: string, description?: string): WorktreeI
     taskId = description // Description can be used as task ID if needed
   }
 
-  const branch = `task/${taskSlug}`
+  const branch = branchOverride ?? `task/${taskSlug}`
 
   // Worktree path (sibling directory)
   const worktreePath = join(process.cwd(), '..', `www-task-${taskSlug}`)
@@ -104,13 +160,12 @@ function createWorktree(taskIdentifier: string, description?: string): WorktreeI
   }
 
   // Create worktree and branch
-  console.log(`📝 Creating branch: ${branch}`)
+  console.log(`📝 Creating branch: ${branch} from a freshly fetched origin/main`)
   try {
-    execSync(`git worktree add -b ${branch} "${worktreePath}" main`, {
-      stdio: 'inherit'
-    })
+    const base = addTaskWorktree({ repoDir: process.cwd(), branch, worktreePath })
+    console.log(`   at ${base.slice(0, 8)} (origin/main)`)
   } catch (error) {
-    console.error(`❌ Failed to create worktree`)
+    console.error(`❌ Failed to create worktree from origin/main`)
     process.exit(1)
   }
 
@@ -299,24 +354,25 @@ function printInstructions(info: WorktreeInfo) {
   console.log(`   3. When done: npm run work:done ${info.taskSlug}\n`)
 }
 
-// Main execution
-const args = process.argv.slice(2)
-if (args.length === 0) {
-  console.error('Usage: npm run work:start <task-slug-or-id> [optional-description]')
-  console.error('Example: npm run work:start "fix-search-clear"')
-  console.error('Example: npm run work:start "add-sounds-to-actions"')
-  console.error('Example: npm run work:start ee562552-8516-44d4-a5a9-215ecb734faa "add sounds"')
-  console.error('Example: npm run work:start 123 "fix search clear" (legacy numeric)')
-  process.exit(1)
+function main() {
+  let parsed: ReturnType<typeof parseStartArgs>
+  try {
+    parsed = parseStartArgs(process.argv.slice(2), process.env)
+  } catch (error) {
+    console.error(`❌ ${(error as Error).message}`)
+    process.exit(1)
+  }
+  if (!parsed.taskIdentifier.trim()) {
+    console.error('Usage: npm run work:start -- <task-slug-or-id> [--branch <name>] [optional-description]')
+    console.error('Example: npm run work:start "fix-search-clear"')
+    console.error('Example: npm run work:start -- awtd-1520 --branch agent/claude-code/AWTD-1520-worktree-base')
+    console.error('Example: npm run work:start ee562552-8516-44d4-a5a9-215ecb734faa "add sounds"')
+    console.error('Example: npm run work:start 123 "fix search clear" (legacy numeric)')
+    process.exit(1)
+  }
+
+  const info = createWorktree(parsed.taskIdentifier, parsed.description, parsed.branch)
+  printInstructions(info)
 }
 
-const [taskIdentifier, ...descriptionParts] = args
-const description = descriptionParts.join(' ')
-
-if (!taskIdentifier || taskIdentifier.trim() === '') {
-  console.error('❌ Task identifier (slug, UUID, or numeric ID) is required')
-  process.exit(1)
-}
-
-const info = createWorktree(taskIdentifier, description)
-printInstructions(info)
+if (process.argv[1]?.endsWith('worktree-start.ts')) main()
