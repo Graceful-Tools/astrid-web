@@ -88,6 +88,12 @@ describe('work:start arguments (AWTD-1520)', () => {
     expect(parseStartArgs(['--branch=agent/codex/AWTD-1-y', 'slug'])).toMatchObject({ taskIdentifier: 'slug', branch: 'agent/codex/AWTD-1-y' })
   })
 
+  it('refuses when npm swallowed --branch (no `--` separator), rather than quietly using task/<slug>', () => {
+    // `npm run work:start slug --branch x/y` reaches the script as ['slug', 'x/y'], npm_config_branch set.
+    expect(() => parseStartArgs(['slug', 'x/y'], { npm_config_branch: 'true' })).toThrow(/npm run work:start -- /)
+    expect(parseStartArgs(['slug', '--branch', 'x/y'], { npm_config_branch: 'true' })).toMatchObject({ branch: 'x/y' })
+  })
+
   it('rejects --branch with no name', () => {
     expect(() => parseStartArgs(['slug', '--branch'])).toThrow(/--branch/)
   })

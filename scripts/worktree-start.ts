@@ -2,9 +2,9 @@
 /**
  * Start parallel development work in a new Git worktree
  *
- * Usage: npm run work:start <taskSlug> [--branch <name>] [optional-description]
+ * Usage: npm run work:start -- <taskSlug> [--branch <name>] [optional-description]
  * Example: npm run work:start "fix-search-clear"
- * Example: npm run work:start awtd-1520 --branch agent/claude-code/AWTD-1520-worktree-base
+ * Example: npm run work:start -- awtd-1520 --branch agent/claude-code/AWTD-1520-worktree-base
  * Example: npm run work:start 123 "fix search clear" (legacy numeric ID)
  *
  * Creates:
@@ -93,7 +93,16 @@ export function addTaskWorktree(options: {
 }
 
 /** `<task> [--branch <name> | --branch=<name>] [description words...]` */
-export function parseStartArgs(argv: string[]): { taskIdentifier: string; description: string; branch?: string } {
+export function parseStartArgs(
+  argv: string[],
+  env: NodeJS.ProcessEnv = {},
+): { taskIdentifier: string; description: string; branch?: string } {
+  // Without `--`, npm keeps `--branch` for itself (setting npm_config_branch)
+  // and passes the name on as a plain word, so the branch would quietly be
+  // task/<slug> and the name would join the description. Refuse instead.
+  if (env.npm_config_branch !== undefined && !argv.some(a => a === '--branch' || a.startsWith('--branch='))) {
+    throw new Error('npm kept --branch for itself. Put `--` first: npm run work:start -- <task> --branch <name>')
+  }
   const rest: string[] = []
   let branch: string | undefined
   for (let i = 0; i < argv.length; i++) {
@@ -348,15 +357,15 @@ function printInstructions(info: WorktreeInfo) {
 function main() {
   let parsed: ReturnType<typeof parseStartArgs>
   try {
-    parsed = parseStartArgs(process.argv.slice(2))
+    parsed = parseStartArgs(process.argv.slice(2), process.env)
   } catch (error) {
     console.error(`❌ ${(error as Error).message}`)
     process.exit(1)
   }
   if (!parsed.taskIdentifier.trim()) {
-    console.error('Usage: npm run work:start <task-slug-or-id> [--branch <name>] [optional-description]')
+    console.error('Usage: npm run work:start -- <task-slug-or-id> [--branch <name>] [optional-description]')
     console.error('Example: npm run work:start "fix-search-clear"')
-    console.error('Example: npm run work:start awtd-1520 --branch agent/claude-code/AWTD-1520-worktree-base')
+    console.error('Example: npm run work:start -- awtd-1520 --branch agent/claude-code/AWTD-1520-worktree-base')
     console.error('Example: npm run work:start ee562552-8516-44d4-a5a9-215ecb734faa "add sounds"')
     console.error('Example: npm run work:start 123 "fix search clear" (legacy numeric)')
     process.exit(1)
