@@ -52,6 +52,21 @@ const DECISIONS = [
     text: 'Like this:\n\n    **Decision:** Pick\n\n    - **A.** one\n    - **B.** two',
   },
   {
+    name: 'one-line code span',
+    note: 'A ```code span``` on one line is not a fence (a backtick fence\'s info string has no backtick).',
+    text: 'Use ```**Decision:**``` to ask.\n\n**Decision:** Pick\n\n- **A.** one\n- **B.** two',
+  },
+  {
+    name: 'fence inside a list item',
+    note: 'A fence can open after a list marker; what it holds is code.',
+    text: '- Like this:\n- ```markdown\n  **Decision:** Pick\n\n  - **A.** one\n  - **B.** two\n  ```',
+  },
+  {
+    name: 'options indented as code',
+    note: 'A real heading whose options are an indented code block has no options.',
+    text: '**Decision:** Pick\n\n    - **A.** one\n    - **B.** two',
+  },
+  {
     name: 'after a fenced example',
     note: 'A real Decision after a code example is still read; the example stays in `before`.',
     text: '```\n**Decision:** Pick\n\n- **A.** one\n- **B.** two\n```\n\n**Decision:** Really pick\n\n- **A.** this\n- **B.** that',

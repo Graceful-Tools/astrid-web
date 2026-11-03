@@ -37,6 +37,20 @@ describe('AWTD-1531 a Decision shown as code stays code', () => {
     const indented = example.split('\n').map(l => '    ' + l).join('\n')
     expect(parseDecision('Like this:\n\n' + indented)).toBeNull()
   })
+  it('a one-line ```code span``` is not a fence', () => {
+    const d = parseDecision('Use ```**Decision:**``` to ask.\n\n' + example)
+    expect(d?.options.map(o => o.letter)).toEqual(['A', 'B'])
+  })
+  it('a fence opened inside a list item', () => {
+    const inList = '- Write it like this:\n- ```markdown\n  ' + example.split('\n').join('\n  ') + '\n  ```'
+    expect(parseDecision(inList)).toBeNull()
+  })
+  it('options indented as code under a real heading', () => {
+    expect(parseDecision('**Decision:** Pick\n\n    - **A.** one\n    - **B.** two')).toBeNull()
+  })
+  it('tab-and-space indentation still counts as code', () => {
+    expect(parseDecision('Like this:\n\n \t' + example.split('\n').join('\n \t'))).toBeNull()
+  })
   it('a real Decision after a code example is still recognised', () => {
     const d = parseDecision('```\n' + example + '\n```\n\n' + example)
     expect(d?.options.map(o => o.letter)).toEqual(['A', 'B'])
