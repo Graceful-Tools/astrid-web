@@ -143,6 +143,13 @@
       "errorSaveFailed": "Não foi possível guardar essa alteração no GitHub. Tente novamente.",
       "filterLabel": "Campo do projeto",
       "filterAll": "Todas as tarefas"
+    },
+    "tradeoffRatings": {
+      "veryPoor": "Muito ruim",
+      "poor": "Ruim",
+      "mixed": "Misto",
+      "good": "Bom",
+      "veryGood": "Muito bom"
     }
   },
   "lists": {

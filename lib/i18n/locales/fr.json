@@ -143,6 +143,13 @@
       "errorSaveFailed": "Cette modification n'a pas pu être enregistrée dans GitHub. Réessaie.",
       "filterLabel": "Champ du projet",
       "filterAll": "Toutes les tâches"
+    },
+    "tradeoffRatings": {
+      "veryPoor": "Très mauvais",
+      "poor": "Mauvais",
+      "mixed": "Mitigé",
+      "good": "Bon",
+      "veryGood": "Très bon"
     }
   },
   "lists": {
