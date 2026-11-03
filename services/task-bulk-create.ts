@@ -167,7 +167,8 @@ export async function createTasksInBulk(args: {
       }
 
       // Everything is written in one go, so each comment's place comes from an explicit
-      // timestamp: the creation comment, then the carried history in order (AWTD-1530).
+      // timestamp: the creation comment, then the carried history in order (AWTD-1530). The
+      // sequence ends at `now`, never after it, so a comment posted next sorts after the history.
       const now = Date.now()
       const withFiles: Prisma.CommentUncheckedCreateInput[] = []
       const comments = accepted.flatMap(row => [
@@ -176,10 +177,11 @@ export async function createTasksInBulk(args: {
           authorId: null,
           content: args.fromRemote ? `Imported from ${args.fromRemote.source}` : `${creatorName} created this task`,
           type: 'TEXT' as const,
-          createdAt: new Date(now),
+          createdAt: new Date(now - (row.input.comments?.length ?? 0)),
         },
-        ...(row.input.comments ?? []).flatMap((comment, i) => {
-          const data = { taskId: row.id, authorId: comment.authorId, content: comment.content, createdAt: new Date(now + i + 1) }
+        ...(row.input.comments ?? []).flatMap((comment, i, all) => {
+          const at = new Date(now - (all.length - 1 - i))
+          const data = { taskId: row.id, authorId: comment.authorId, content: comment.content, createdAt: at }
           if (!comment.files?.length) return [data]
           withFiles.push({ ...data, secureFiles: { create: comment.files.map(file => ({ ...file, taskId: row.id })) } })
           return []

@@ -6,7 +6,7 @@ import { getTaskCountInclude, getMultipleListTaskCounts } from "@/lib/task-count
 import { canAccessList } from "@/lib/list-member-utils"
 import type { TaskList, Task } from "@/types/task"
 import { createLogger } from '@/lib/logger'
-import { copyStoredObject } from '@/lib/secure-storage'
+import { copyStoredObject, deleteObject } from '@/lib/secure-storage'
 import { randomUUID } from 'crypto'
 
 const log = createLogger('copy-utils')
@@ -103,21 +103,32 @@ export async function copyTask(
     // Created through the bulk path (AWTD-1124) so the copy gets what a create
     // means — identifier, reminders, manual sort, live event — and history
     // goes in with it, original authors preserved.
-    const { tasks, rejected } = await createTasksInBulk({
-      actorId: options.newOwnerId,
-      tasks: [{
-        ...copyInput(originalTask, {
-          targetListId: options.targetListId,
-          assigneeId: finalAssigneeId,
-          preserveDueDate: options.preserveDueDate,
-        }),
-        comments: options.includeComments
-          ? await copyComments(originalTask.comments, options.newOwnerId)
-          : undefined,
-      }],
-    })
+    const comments = options.includeComments
+      ? await copyComments(originalTask.comments, options.newOwnerId)
+      : undefined
+    // Objects copied for comment files; deleted again if the task is never written (AWTD-1530).
+    const copiedObjects = (comments ?? []).flatMap(c => (c.files ?? []).map(f => f.blobUrl))
+    let created: Awaited<ReturnType<typeof createTasksInBulk>>
+    try {
+      created = await createTasksInBulk({
+        actorId: options.newOwnerId,
+        tasks: [{
+          ...copyInput(originalTask, {
+            targetListId: options.targetListId,
+            assigneeId: finalAssigneeId,
+            preserveDueDate: options.preserveDueDate,
+          }),
+          comments,
+        }],
+      })
+    } catch (error) {
+      await discardObjects(copiedObjects)
+      throw error
+    }
+    const { tasks, rejected } = created
 
     if (!tasks[0]) {
+      await discardObjects(copiedObjects)
       return { success: false, error: rejected?.[0]?.error ?? "Failed to copy task" }
     }
 
@@ -189,6 +200,13 @@ async function copyComments(comments: SourceComment[], copierId: string): Promis
     })
   }
   return out
+}
+
+/** Best-effort: an object nobody references is waste, not an error the caller can act on. */
+async function discardObjects(urls: string[]): Promise<void> {
+  const results = await Promise.allSettled(urls.map(url => deleteObject(url)))
+  const failed = results.filter(r => r.status === 'rejected').length
+  if (failed) log.warn({ failed, total: urls.length }, 'Copy task: could not remove copied comment files after a failed copy')
 }
 
 async function copyCommentFile(file: SecureFileRow, copierId: string) {

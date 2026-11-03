@@ -14,7 +14,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 const createTasksInBulk = vi.hoisted(() => vi.fn())
 vi.mock('@/services/task-bulk-create', () => ({ createTasksInBulk }))
 const copyStoredObject = vi.hoisted(() => vi.fn())
-vi.mock('@/lib/secure-storage', () => ({ copyStoredObject }))
+const deleteObject = vi.hoisted(() => vi.fn())
+vi.mock('@/lib/secure-storage', () => ({ copyStoredObject, deleteObject }))
 
 import { copyTask } from '@/lib/copy-utils'
 import { mockPrisma } from '../setup'
@@ -109,6 +110,27 @@ describe('AWTD-1530 copying comments copies their files', () => {
     const lost = handedComments()[3]
     expect(lost.content).toBe('gone missing')
     expect(lost.files ?? []).toEqual([])
+  })
+
+  it('removes the copied objects when the task is refused, and keeps them when it is written', async () => {
+    createTasksInBulk.mockResolvedValueOnce({ tasks: [], rejected: [{ index: 0, status: 403, error: 'nope' }] })
+    const result = await copyTask('original-task-id', { newOwnerId: 'u-copier', includeComments: true })
+    expect(result.success).toBe(false)
+    expect(deleteObject.mock.calls.map(c => c[0]).sort()).toEqual(
+      handedComments().flatMap(c => c.files ?? []).map(f => f.blobUrl).sort(),
+    )
+    expect(deleteObject).toHaveBeenCalledTimes(2)
+
+    deleteObject.mockClear()
+    await copyTask('original-task-id', { newOwnerId: 'u-copier', includeComments: true })
+    expect(deleteObject).not.toHaveBeenCalled()
+  })
+
+  it('removes the copied objects when the write throws (a rolled-back transaction)', async () => {
+    createTasksInBulk.mockRejectedValueOnce(new Error('transaction rolled back'))
+    const result = await copyTask('original-task-id', { newOwnerId: 'u-copier', includeComments: true })
+    expect(result.success).toBe(false)
+    expect(deleteObject).toHaveBeenCalledTimes(2)
   })
 
   it('copies no objects when comments are not copied', async () => {
