@@ -20,6 +20,7 @@ import { createLogger } from '@/lib/logger'
 import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
 import { agentEmail } from '@/lib/brand/agent-emails'
 import { normalizeStoredAgentMailbox } from './oauth/agent-consent'
+import { listTasksByIdWhere } from '@/lib/list-permissions'
 
 const log = createLogger('api-auth-middleware')
 
@@ -450,9 +451,14 @@ export function taskReadAccessWhere(userId: string) {
   return {
     OR: [
       ...taskMembershipBranches(userId),
-      // Covers both public list types (copy-only and collaborative), which
-      // is what legacy does.
-      { lists: { some: { privacy: 'PUBLIC' as const } } },
+      // Any list the caller may read every task of (AWTD-1523): project
+      // lists and a board's status lists, so a task on a list that opens
+      // opens too. PUBLIC is part of it, covering both public list types
+      // (copy-only and collaborative), which is what legacy does. Not the
+      // derived GitHub-label branch: a label spans boards, so seeing it does
+      // not mean seeing every task carrying it. READ only; the write check
+      // above stays owner/member until project-member editing is decided.
+      { lists: { some: listTasksByIdWhere(userId) } },
     ],
   }
 }
