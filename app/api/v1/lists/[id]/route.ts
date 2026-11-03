@@ -77,7 +77,7 @@ export const GET = withAuth<RouteContext>(
 
     return NextResponse.json(
       {
-        list: shapeV1List(list, defaultAssignees, await loadListBackendInfo([list])),
+        list: shapeV1List(list, defaultAssignees, await loadListBackendInfo([list]), auth.userId),
         meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
@@ -311,7 +311,7 @@ export const PUT = withAuth<RouteContext>(
 
     return NextResponse.json(
       {
-        list: shapeV1List(list, defaultAssignees, await loadListBackendInfo([list])),
+        list: shapeV1List(list, defaultAssignees, await loadListBackendInfo([list]), auth.userId),
         meta: { apiVersion: 'v1', authSource: auth.source },
       },
       { headers }
