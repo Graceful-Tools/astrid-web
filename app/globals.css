@@ -160,3 +160,23 @@
     -moz-osx-font-smoothing: grayscale;
   }
 }
+
+/* Trade-off grid (AWTD-1524, drawn like iOS in AWTD-1529). Rated cells sit on their colour with
+   rounded gaps instead of grid lines; the grid scrolls sideways when wider than the comment. The
+   palette is Google Docs', with dark text on the light colours and white on the two dark ones, so
+   it reads the same in light and dark mode. Selectors outrank `.prose table` / `.prose td`. */
+.tradeoff-scroll { overflow-x: auto; margin: 0.5rem 0; -webkit-overflow-scrolling: touch; }
+.tradeoff-scroll table.tradeoff-grid { border-collapse: separate; border-spacing: 4px; width: auto; min-width: 100%; margin: 0 -4px; font-size: 0.875rem; }
+.tradeoff-scroll table.tradeoff-grid th,
+.tradeoff-scroll table.tradeoff-grid td { border: none; padding: 0.375rem 0.5rem; vertical-align: middle; min-width: 5.5rem; border-radius: 0.375rem; }
+.tradeoff-scroll table.tradeoff-grid th { text-align: center; font-weight: 600; }
+.tradeoff-scroll table.tradeoff-grid td:first-child { font-weight: 600; min-width: 4.5rem; }
+.tradeoff-very-poor { background-color: #CC0000; color: #ffffff; }
+.tradeoff-poor { background-color: #E06666; color: #1f2937; }
+.tradeoff-mixed { background-color: #FFD966; color: #1f2937; }
+.tradeoff-good { background-color: #93C47D; color: #1f2937; }
+.tradeoff-very-good { background-color: #38761D; color: #ffffff; }
+.tradeoff-scroll .tradeoff-grid td a { color: inherit; text-decoration: underline; }
+.tradeoff-key { display: flex; flex-direction: column; gap: 0.125rem; font-size: 0.8125rem; }
+.tradeoff-key-item { display: inline-flex; align-items: center; gap: 0.375rem; }
+.tradeoff-swatch { display: inline-block; width: 0.75rem; height: 0.75rem; border-radius: 0.1875rem; }
