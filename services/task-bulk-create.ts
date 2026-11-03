@@ -53,11 +53,24 @@ export type BulkTaskData = Omit<
   'id' | 'creatorId' | 'identifier' | 'sequence'
 >
 
+/** A comment file whose stored object is already this copy's own. */
+export interface CarriedCommentFile {
+  blobUrl: string
+  originalName: string
+  mimeType: string
+  fileSize: number
+  uploadedBy: string
+  attachTarget: string | null
+}
+
 export interface BulkTaskInput {
   data: BulkTaskData
   listIds: string[]
-  /** History carried over verbatim — a copy keeps its comments' authors. */
-  comments?: Array<{ content: string; authorId: string | null }>
+  /**
+   * History carried over verbatim — a copy keeps its comments' authors. `files` are SecureFile rows
+   * for objects the caller has already duplicated in storage; each gets this task's id (AWTD-1530).
+   */
+  comments?: Array<{ content: string; authorId: string | null; files?: CarriedCommentFile[] }>
   /** fromRemote only: the remote's identifier (owner/repo#N), used as is. */
   identifier?: string | null
 }
@@ -153,20 +166,28 @@ export async function createTasksInBulk(args: {
         if (isManual) manualLists.push(updated)
       }
 
+      // Everything is written in one go, so each comment's place comes from an explicit
+      // timestamp: the creation comment, then the carried history in order (AWTD-1530).
+      const now = Date.now()
+      const withFiles: Prisma.CommentUncheckedCreateInput[] = []
       const comments = accepted.flatMap(row => [
         {
           taskId: row.id,
           authorId: null,
           content: args.fromRemote ? `Imported from ${args.fromRemote.source}` : `${creatorName} created this task`,
           type: 'TEXT' as const,
+          createdAt: new Date(now),
         },
-        ...(row.input.comments ?? []).map(comment => ({
-          taskId: row.id,
-          authorId: comment.authorId,
-          content: comment.content,
-        })),
+        ...(row.input.comments ?? []).flatMap((comment, i) => {
+          const data = { taskId: row.id, authorId: comment.authorId, content: comment.content, createdAt: new Date(now + i + 1) }
+          if (!comment.files?.length) return [data]
+          withFiles.push({ ...data, secureFiles: { create: comment.files.map(file => ({ ...file, taskId: row.id })) } })
+          return []
+        }),
       ])
       await tx.comment.createMany({ data: comments })
+      // A nested create is one statement per comment, paid only by comments that carry files.
+      for (const data of withFiles) await tx.comment.create({ data })
     },
     // A 500-task copy is a few statements, but large ones; the default 5s is
     // tuned for a single-row write.

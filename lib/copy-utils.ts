@@ -1,4 +1,4 @@
-import type { Prisma, Task as TaskRow, Comment as CommentRow } from "@prisma/client"
+import type { Prisma, Task as TaskRow, Comment as CommentRow, SecureFile as SecureFileRow } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import { createTasksInBulk, type BulkTaskInput } from "@/services/task-bulk-create"
 import { getConsistentDefaultImage } from "@/lib/default-images"
@@ -6,6 +6,8 @@ import { getTaskCountInclude, getMultipleListTaskCounts } from "@/lib/task-count
 import { canAccessList } from "@/lib/list-member-utils"
 import type { TaskList, Task } from "@/types/task"
 import { createLogger } from '@/lib/logger'
+import { copyStoredObject } from '@/lib/secure-storage'
+import { randomUUID } from 'crypto'
 
 const log = createLogger('copy-utils')
 
@@ -40,7 +42,14 @@ export interface CopyListOptions {
   newOwnerName?: string
 }
 
-type SourceTask = TaskRow & { comments: CommentRow[] }
+type SourceComment = CommentRow & { secureFiles?: SecureFileRow[] }
+type SourceTask = TaskRow & { comments: SourceComment[] }
+
+/** Comments oldest first, each with its files in upload order (AWTD-1530). */
+const COPY_COMMENTS = {
+  orderBy: { createdAt: 'asc' },
+  include: { secureFiles: { orderBy: { createdAt: 'asc' } } },
+} as const
 
 export interface CopyTaskResult {
   success: boolean
@@ -67,7 +76,7 @@ export async function copyTask(
     const originalTask = await prisma.task.findUnique({
       where: { id: taskId },
       include: {
-        comments: true,
+        comments: options.includeComments ? COPY_COMMENTS : true,
         attachments: true,
         lists: true
       }
@@ -96,12 +105,16 @@ export async function copyTask(
     // goes in with it, original authors preserved.
     const { tasks, rejected } = await createTasksInBulk({
       actorId: options.newOwnerId,
-      tasks: [copyInput(originalTask, {
-        targetListId: options.targetListId,
-        assigneeId: finalAssigneeId,
-        preserveDueDate: options.preserveDueDate,
-        includeComments: options.includeComments,
-      })],
+      tasks: [{
+        ...copyInput(originalTask, {
+          targetListId: options.targetListId,
+          assigneeId: finalAssigneeId,
+          preserveDueDate: options.preserveDueDate,
+        }),
+        comments: options.includeComments
+          ? await copyComments(originalTask.comments, options.newOwnerId)
+          : undefined,
+      }],
     })
 
     if (!tasks[0]) {
@@ -129,7 +142,6 @@ function copyInput(
     targetListId?: string
     assigneeId: string | null
     preserveDueDate?: boolean
-    includeComments?: boolean
   }
 ): BulkTaskInput {
   return {
@@ -148,12 +160,53 @@ function copyInput(
       assigneeId: options.assigneeId,
     },
     listIds: options.targetListId ? [options.targetListId] : [],
-    // System comments (no author) are the source's own history, not the copy's.
-    comments: options.includeComments
-      ? originalTask.comments
-          .filter(comment => comment.authorId !== null)
-          .map(comment => ({ content: comment.content, authorId: comment.authorId }))
-      : undefined,
+  }
+}
+
+type CopiedComment = NonNullable<BulkTaskInput['comments']>[number]
+
+/**
+ * A source task's comments as the copy's history (AWTD-1530).
+ *
+ * System comments (no author) are the source's own history, not the copy's. A comment's files are
+ * duplicated in storage, owned by the person copying, so deleting either task leaves the other's
+ * files alone. As on iOS (AITD-586) each file gets its own comment, with the text on the first.
+ * A file whose object cannot be copied is left out rather than failing the whole copy.
+ */
+async function copyComments(comments: SourceComment[], copierId: string): Promise<CopiedComment[]> {
+  const out: CopiedComment[] = []
+  for (const comment of comments) {
+    if (comment.authorId === null) continue
+    const sources = [...(comment.secureFiles ?? [])].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+    const files = await Promise.all(sources.map(file => copyCommentFile(file, copierId)))
+    const copied = files.filter((f): f is NonNullable<typeof f> => f !== null)
+    if (copied.length === 0) {
+      out.push({ content: comment.content, authorId: comment.authorId })
+      continue
+    }
+    copied.forEach((file, i) => {
+      out.push({ content: i === 0 ? comment.content : '', authorId: comment.authorId, files: [file] })
+    })
+  }
+  return out
+}
+
+async function copyCommentFile(file: SecureFileRow, copierId: string) {
+  const extension = file.originalName.includes('.') ? file.originalName.split('.').pop() : ''
+  const pathname = `files/${copierId}/${randomUUID()}${extension ? `.${extension}` : ''}`
+  try {
+    const object = await copyStoredObject(file.blobUrl, pathname, { contentType: file.mimeType })
+    return {
+      blobUrl: object.url,
+      originalName: file.originalName,
+      mimeType: file.mimeType,
+      fileSize: file.fileSize,
+      uploadedBy: copierId,
+      attachTarget: 'message',
+    }
+  } catch (error) {
+    log.warn({ err: error, fileId: file.id }, 'Copy task: a comment file could not be copied; leaving it out')
+    return null
   }
 }
 
