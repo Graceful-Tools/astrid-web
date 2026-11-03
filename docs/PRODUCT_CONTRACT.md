@@ -301,6 +301,29 @@ not a tidy-up.
 
 ---
 
+## 8. Decision cards and trade-off grids (comments)
+
+Two markdown shapes that comments draw richly on every platform. Anything else is plain markdown.
+Reference recogniser: astrid-ios `Packages/AstridCore/Sources/AstridCore/Decision.swift`; web:
+`lib/comment-formats.ts`.
+
+**Decision.** A paragraph starting with bold `**Decision:**`, followed directly by a list whose
+every item starts with a bold single letter (`A.` / `A)` / `A:` / `A`) — at least two items.
+Each option draws as a card with its letter; a trailing `(recommended)` becomes a badge.
+Clicking a card posts `<LETTER> — <option text>` as an ordinary comment (that reply wakes the
+agent via `AGENT-HANDBACK`). Cards are inert in a description, on your own question, and once
+someone other than the asker has replied after it (system comments don't count). If that reply
+starts with an option letter followed by end/space/punctuation, that card shows as chosen.
+
+**Trade-off grid.** A GFM table where every non-empty body cell after the first column starts
+with a rating token followed by whitespace or end: `--` very poor, `-` poor, `~` mixed, `+` good,
+`++` very good, or 🔴 poor / 🟡 mixed / 🟢 good. Not a grid if any such cell lacks a token, or if
+every rated cell is a bare `-`. Each cell draws on its colour with the remaining words
+(`#CC0000` white text, `#E06666`, `#FFD966`, `#93C47D`, `#38761D` white text — Google Docs
+palette), plus a colour key of the ratings used.
+
+---
+
 ## 7. How this stays true (anti-drift)
 
 - **Both repos cite this file.** Web: ASTRID.md → *Agent Working Agreements →

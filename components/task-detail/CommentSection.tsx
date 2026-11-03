@@ -14,6 +14,8 @@ import { isMobileDevice } from "@/lib/layout-detection"
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
 import { RichTextInput } from "@/components/shared/RichTextInput"
 import { MessageBubble } from "@/components/shared/MessageBubble"
+import { DecisionCards } from "@/components/task-detail/DecisionCards"
+import { parseDecision, chosenLetter } from "@/lib/comment-formats"
 import { buildPendingComments, postPendingComments } from "@/lib/comment-posting"
 import { nestComments, updateComment, removeComment, settleOptimisticComment } from "@/lib/comment-stream"
 import { useSharedEditingSession } from "@/hooks/use-editing-session"
@@ -188,23 +190,28 @@ export function CommentSection({
   // Bind the comments container to the pull-to-refresh hook
   const { bindToElement, onTouchStart, onTouchMove, onTouchEnd, isRefreshing, pullDistance, isPulling, canRefresh } = pullToRefresh
 
-  const handleAddComment = async () => {
+  // `textOverride` posts a comment that did not come from the input bar (a Decision card click,
+  // AWTD-1524) and leaves whatever the user has typed there alone.
+  const handleAddComment = async (textOverride?: string) => {
+    const override = typeof textOverride === 'string' ? textOverride : undefined
     // One comment per staged file — the comments API takes a single fileId (Task 9f325964).
     const pending = await buildPendingComments({
       taskId: task.id,
       currentUser,
-      text: newComment,
-      files: attachedFiles,
+      text: override ?? newComment,
+      files: override === undefined ? attachedFiles : [],
     })
     if (pending.length === 0) return
 
     // Store original values for potential rollback
-    const originalComment = newComment
-    const originalFiles = attachedFiles
+    const originalComment = override ?? newComment
+    const originalFiles = override === undefined ? attachedFiles : []
 
     // Clear inputs immediately for better UX
-    setNewComment("")
-    setAttachedFiles([])
+    if (override === undefined) {
+      setNewComment("")
+      setAttachedFiles([])
+    }
 
     // Check if this is a collaborative public list where user doesn't have edit permissions
     const taskList = task.lists?.[0]
@@ -499,11 +506,31 @@ export function CommentSection({
         </div>
       )
     }
+    // Decision cards (AWTD-1524): inert on your own question and once someone else has answered.
+    const decision = isSystem ? null : parseDecision(comment.content || '')
+    let decisionContent: React.ReactNode = undefined
+    if (decision) {
+      const flat = (task.comments || []).flatMap((c: any) => [c, ...(c.replies || [])])
+      const answer = flat
+        .filter((c: any) => !isSystemComment(c) && c.id !== comment.id && c.authorId !== comment.authorId &&
+          new Date(c.createdAt).getTime() > new Date(comment.createdAt).getTime())
+        .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0]
+      const canAnswer = !readOnly && !isCurrentUser && !answer
+      decisionContent = (
+        <DecisionCards
+          decision={decision}
+          chosen={answer ? chosenLetter(answer.content || '') : null}
+          onChoose={canAnswer ? (reply) => { void handleAddComment(reply) } : undefined}
+          identifiers={identifiers}
+        />
+      )
+    }
     return (
       <MessageBubble
         key={comment.id}
         id={comment.id}
         content={comment.content}
+        richContent={decisionContent}
         author={comment.author ? {
           id: comment.author.id,
           name: comment.author.name,

@@ -1,5 +1,6 @@
 import DOMPurify from 'dompurify'
-import { Marked, marked } from 'marked'
+import { Lexer, Marked, marked } from 'marked'
+import { isTradeoffGrid, parseRating, RATING_STYLE, type Rating } from '@/lib/comment-formats'
 import { replaceIdentifierLinks, type IdentifierLinkContext } from '@/lib/task-identifier-links'
 
 // Allowed URL protocols for links
@@ -239,6 +240,32 @@ const richText = new Marked({
   breaks: true,
   renderer: {
     html: ({ text }) => typedHtmlAsText(text),
+    // A trade-off grid (AWTD-1524) draws each rated cell on its colour; any other table is stock.
+    table(token) {
+      const plainRows = token.rows.map(row => row.map(cell => cell.text))
+      if (!isTradeoffGrid(plainRows)) return false
+      const used = new Set<Rating>()
+      const align = (a: string | null) => (a ? ` align="${a}"` : '')
+      const head = token.header
+        .map((cell, i) => `<th${align(token.align[i])}>${this.parser.parseInline(cell.tokens)}</th>`)
+        .join('')
+      const body = token.rows
+        .map(row => {
+          const cells = row.map((cell, i) => {
+            const parsed = i === 0 ? null : parseRating(cell.text)
+            if (!parsed) return `<td${align(token.align[i])}>${this.parser.parseInline(cell.tokens)}</td>`
+            used.add(parsed.rating)
+            const rest: string = parsed.rest ? this.parser.parseInline(Lexer.lexInline(parsed.rest, { gfm: true, breaks: true })) : ''
+            return `<td${align(token.align[i])} class="${RATING_STYLE[parsed.rating].className}">${rest || parsed.rating}</td>`
+          })
+          return `<tr>${cells.join('')}</tr>`
+        })
+        .join('')
+      const key = [...used]
+        .map(r => `<span class="${RATING_STYLE[r].className} px-1.5 rounded text-xs">${r}</span>`)
+        .join(' ')
+      return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table><p class="tradeoff-key">${key}</p>`
+    },
   },
 })
 
