@@ -15,13 +15,14 @@
 
 import { prisma } from '@/lib/prisma'
 import { copyTask } from '@/lib/copy-utils'
+import { userCanCopyTask } from '@/lib/task-batch-copy'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('task-copy-flow')
 
 export type CopyTaskFlowResult =
   | { ok: true; task: Record<string, unknown> }
-  | { ok: false; status: 400 | 403; error: string }
+  | { ok: false; status: 400 | 403 | 404; error: string }
 
 export async function copyTaskForUser(args: {
   taskId: string
@@ -39,6 +40,20 @@ export async function copyTaskForUser(args: {
     preserveAssignee = false,
     includeComments = false,
   } = args
+
+  // SECURITY: the caller must be able to read the source (AWTD-1530). Copying carries its title,
+  // description, comments and their files into a task the caller owns.
+  const source = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: {
+      creatorId: true,
+      assigneeId: true,
+      isPrivate: true,
+      lists: { include: { listMembers: true } },
+    },
+  })
+  if (!source) return { ok: false, status: 404, error: 'Task not found' }
+  if (!userCanCopyTask(source, userId)) return { ok: false, status: 403, error: 'Forbidden' }
 
   // SECURITY: the caller must be able to write to the destination. A
   // collaborative public list qualifies; a copy-only public one does not,

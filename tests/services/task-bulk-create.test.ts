@@ -154,6 +154,8 @@ describe('createTasksInBulk (AWTD-1124)', () => {
     const times = [plain[0], plain[1], created, plain[2]].map((c: { createdAt: Date }) => c.createdAt.getTime())
     expect([...times].sort((x, y) => x - y)).toEqual(times)
     expect(new Set(times).size).toBe(4)
+    // Never in the future: a comment posted right after the copy sorts after the history.
+    expect(Math.max(...times)).toBeLessThanOrEqual(Date.now())
   })
 
   it('schedules every reminder in one insert — automatic for a due date, explicit when set', async () => {

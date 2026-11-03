@@ -40,6 +40,9 @@ const createMockContext = (id: string) => ({
   params: Promise.resolve({ id })
 })
 
+/** The caller created the source, so the source access check passes. */
+const READABLE_SOURCE = { creatorId: 'test-user-id', assigneeId: null, isPrivate: false, lists: [] }
+
 describe('Task Copy API', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -120,6 +123,7 @@ describe('Task Copy API', () => {
 
       // Mock the copyTask utility flow
       mockPrisma.task.findUnique
+        .mockResolvedValueOnce(READABLE_SOURCE) // the source access check (AWTD-1530)
         .mockResolvedValueOnce(originalTask) // First call: copyTask utility fetches original
         .mockResolvedValueOnce(row({ creatorId: 'other-user-id' })) // Second call: stats invalidation fetches creator
         .mockResolvedValueOnce(copiedTaskWithRelations) // Third call: API fetches with relations
@@ -167,6 +171,7 @@ describe('Task Copy API', () => {
     it('should return 403 when user does not have access to target list', async () => {
       // Override the default mock to return null (no access)
       mockPrisma.taskList.findFirst.mockResolvedValueOnce(null)
+      mockPrisma.task.findUnique.mockResolvedValueOnce(READABLE_SOURCE) // the source access check (AWTD-1530)
 
       const requestData = {
         targetListId: 'unauthorized-list-id',
@@ -212,6 +217,7 @@ describe('Task Copy API', () => {
       }
 
       mockPrisma.task.findUnique
+        .mockResolvedValueOnce(READABLE_SOURCE) // the source access check (AWTD-1530)
         .mockResolvedValueOnce(originalTask) // First call: copyTask utility
         .mockResolvedValueOnce(row({ creatorId: 'other-user-id' })) // Second call: stats invalidation
         .mockResolvedValueOnce(copiedTaskWithRelations) // Third call: fetch with relations
@@ -261,6 +267,7 @@ describe('Task Copy API', () => {
       }
 
       mockPrisma.task.findUnique
+        .mockResolvedValueOnce(READABLE_SOURCE) // the source access check (AWTD-1530)
         .mockResolvedValueOnce(originalTask) // First call: copyTask utility
         .mockResolvedValueOnce(row({ creatorId: 'other-user-id' })) // Second call: stats invalidation
         .mockResolvedValueOnce(copiedTaskWithRelations) // Third call: fetch with relations
@@ -314,6 +321,7 @@ describe('Task Copy API', () => {
       }
 
       mockPrisma.task.findUnique
+        .mockResolvedValueOnce(READABLE_SOURCE) // the source access check (AWTD-1530)
         .mockResolvedValueOnce(originalTask) // First call: copyTask utility
         .mockResolvedValueOnce(row({ creatorId: 'other-user-id' })) // Second call: stats invalidation
         .mockResolvedValueOnce(copiedTaskWithRelations) // Third call: fetch with relations
