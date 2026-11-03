@@ -24,7 +24,7 @@ registerWebAliases(webRoot)
 const formats = await import(pathToFileURL(join(webRoot, 'lib/comment-formats.ts')).href)
 const { DECISION_EXAMPLE } = await import(pathToFileURL(join(webRoot, 'lib/decision-examples.ts')).href)
 
-const { parseDecision, parseRating, isTradeoffGrid, chosenLetter, decisionReply, RATING_STYLE } = formats
+const { parseDecision, parseRating, isTradeoffGrid, chosenNumber, decisionReply, rowName, columnLetter, RATING_STYLE } = formats
 
 /** A GFM table's body rows as cell text, enough for the cases here (no escaped pipes). */
 function tableRows(markdown) {
@@ -36,9 +36,15 @@ const DECISIONS = [
   { name: 'canonical example', note: 'docs/DECISIONS.md', text: DECISION_EXAMPLE },
   {
     name: 'option label forms',
-    note: 'A. / B) / C: / D with no punctuation, bullets or numbers.',
+    note: 'A. / B) / C: / D with no punctuation, bullets or numbers. Numbered 1-4 in order.',
     text: '**Decision:** Pick one\n\n- **A.** dot\n* **B)** paren\n1. **C:** colon\n2. **D** bare',
   },
+  {
+    name: 'numbered options',
+    note: '**1.** / **2)** / **3** work like letters (up to two digits); the marker is kept as `letter`.',
+    text: '**Decision:** Pick one\n\n- **1.** Go\n- **2)** Wait\n- **3** Neither',
+  },
+  { name: 'three-digit marker', note: 'Not an option marker.', text: '**Decision:** Pick\n\n- **100.** a\n- **101.** b' },
   { name: 'one option', note: 'Fewer than two options is not a Decision.', text: '**Decision:** Sure?\n\n- **A.** Yes' },
   { name: 'unlettered item', note: 'Every item must start with a bold letter.', text: '**Decision:** Pick\n\n- **A.** one\n- two' },
   {
@@ -83,11 +89,27 @@ const GRIDS = [
   ...c,
   isGrid: isTradeoffGrid(c.rows),
   cells: c.rows.map(row => row.slice(1).map(cell => (cell.trim() === '' ? null : parseRating(cell)))),
+  // The grid draws "<n>. <rowName>"; criteria are lettered A, B, C (AWTD-1533).
+  rowNames: c.rows.map(row => rowName(row[0])),
 }))
 
-const REPLIES = ['A — Lisbon', 'b', 'C.', 'A) sure', 'Lisbon please', 'AB', '  a, then b', ''].map(reply => ({
+const ROW_MARKERS = ['A. Lisbon', '2) Cabin', 'C: Pizza', 'B', '12. Twelve', 'Pizza', 'I am here', 'A.Lisbon'].map(text => ({
+  text,
+  name: rowName(text),
+}))
+
+const COLUMN_LETTERS = [0, 1, 25, 26, 27, 51, 52, 701, 702].map(index => ({ index, letter: columnLetter(index) }))
+
+// Against the canonical example's options (numbered 1-3) and a lettered A-C Decision.
+const LETTERED = parseDecision('**Decision:** x\n\n- **A.** a\n- **B.** b\n- **C.** c').options
+const REPLIES = [
+  '1 — Lisbon', '2', '3.', '1) sure', '4', '0', '2nd thoughts', '10 minutes',
+  'A — Lisbon', 'b', 'C.', 'A) sure', 'Lisbon please', 'AB', '  a, then b', '',
+  'Béatrice doit vérifier', '2ème avis nécessaire',
+].map(reply => ({
   reply,
-  chosen: chosenLetter(reply),
+  chosenNumbered: chosenNumber(reply, DECISIONS[0].parsed.options),
+  chosenLettered: chosenNumber(reply, LETTERED),
 }))
 
 const ratings = Object.fromEntries(
@@ -96,11 +118,13 @@ const ratings = Object.fromEntries(
 
 console.log(
   JSON.stringify({
-    generatedFrom: 'lib/comment-formats.ts (parseDecision, isTradeoffGrid, parseRating, chosenLetter, decisionReply)',
+    generatedFrom: 'lib/comment-formats.ts (parseDecision, isTradeoffGrid, parseRating, chosenNumber, decisionReply, rowName, columnLetter)',
     ratings,
     decisions: DECISIONS,
     replyFormat: DECISIONS[0].parsed.options.map(option => decisionReply(option)),
     grids: GRIDS,
     replies: REPLIES,
+    rowMarkers: ROW_MARKERS,
+    columnLetters: COLUMN_LETTERS,
   }),
 )

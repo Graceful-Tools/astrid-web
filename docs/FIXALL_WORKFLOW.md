@@ -476,9 +476,9 @@ Then assign the task to the human and move it to Waiting as described above.
 The human can answer on that task without reassigning it.
 
 **Write the question in the Decision format** ([DECISIONS.md](./DECISIONS.md), the full guide): a bold
-`**Decision:**` paragraph, then lettered options `- **A.** …`, with `(recommended)` on the one you
-would pick. The apps draw it as tappable cards, and a tap posts `A — <option>` as the reply that
-resumes you. When weighing options, put a trade-off grid (rating tokens `--` `-` `~` `+` `++`)
+`**Decision:**` paragraph, then numbered options `- **1.** …`, with `(recommended)` on the one you
+would pick. The apps draw it as tappable cards, and a tap posts `1 — <option>` as the reply that
+resumes you (a reply in the old letter form still counts). When weighing options, put a trade-off grid (rating tokens `--` `-` `~` `+` `++`)
 in the same comment. Keep the `AGENT-HANDBACK: <mailbox>` line last.
 
 On a named board, `attention.tasks[].resume` appears only when the **current human

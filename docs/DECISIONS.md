@@ -13,15 +13,15 @@ tested against the same text.
 ```markdown
 **Decision:** Where should we hold the team offsite?
 
-- **A.** Lisbon (recommended)
-- **B.** Mountain cabin
-- **C.** Stay home and order pizza
+- **1.** Lisbon (recommended)
+- **2.** Mountain cabin
+- **3.** Stay home and order pizza
 
 | Option | Cost | Travel | Fun |
 |---|---|---|---|
-| A. Lisbon | ~ flights for everyone | - a long day | ++ food, sun, city |
-| B. Cabin | + one rental | + 3h drive | + hiking |
-| C. Pizza | ++ cheap | ++ none | -- same as every day |
+| 1. Lisbon | ~ flights for everyone | - a long day | ++ food, sun, city |
+| 2. Cabin | + one rental | + 3h drive | + hiking |
+| 3. Pizza | ++ cheap | ++ none | -- same as every day |
 
 - **Cost:** what the company pays, all in.
 - **Travel:** door-to-door time for most of the team.
@@ -29,30 +29,34 @@ tested against the same text.
 ```
 
 On web, iOS and Mac this draws as:
-- three cards, A to C, with Lisbon badged as recommended;
-- a grid whose cells sit on their colour;
+- three cards numbered 1 to 3, with Lisbon badged as recommended;
+- a grid whose rows are numbered 1 to 3 and whose criteria are lettered A to C, each cell on its
+  colour;
 - a colour key, then the criteria key as an ordinary list.
 
 ## A Decision
 
 A paragraph that starts with bold `**Decision:**`, then a list straight after it. Every item starts
-with a bold single letter, and there are at least two items.
+with a bold number (or a single letter), and there are at least two items.
 
 ```markdown
 **Decision:** Ship the fix today or wait for the review?
 
-- **A.** Ship today (recommended)
-- **B.** Wait for the review
+- **1.** Ship today (recommended)
+- **2.** Wait for the review
 ```
 
-- **Letter forms:** `**A.**`, `**A)**`, `**A:**` or plain `**A**` all work, under `-`, `*`, `+` or
-  `1.` bullets.
+- **Numbered in order:** the cards always show 1, 2, 3 in list order, whatever marker you wrote.
+  Write numbers; letters still work for older questions.
+- **Marker forms:** `**1.**`, `**1)**`, `**1:**` or plain `**1**` (up to two digits), or the same
+  with a letter (`**A.**`), under `-`, `*`, `+` or `1.` bullets.
 - **Recommended:** `(recommended)` at the end of an option becomes a badge. Recommend exactly one.
-- **Tapping a card** posts `A — Ship today` as an ordinary comment. That reply is the answer, and if
+- **Tapping a card** posts `1 — Ship today` as an ordinary comment. That reply is the answer, and if
   the question ended with an `AGENT-HANDBACK:` line it wakes the agent. A link inside an option opens
   the link and does not answer.
 - **When cards are inert:** on your own question, in a task description, and once someone else has
-  replied after it. A reply that starts with an option letter marks that card as chosen.
+  replied after it. A reply that starts with an option's number, or with the letter the asker
+  wrote, marks that card as chosen (`2`, `2 — Wait`, `b`). `2nd thoughts` or `10 minutes` do not.
 
 ## A trade-off grid
 
@@ -68,11 +72,14 @@ a short reason.
 | `++` | Very good | `#38761D`, white text |
 | 🔴 / 🟡 / 🟢 | Poor / Mixed / Good | as above |
 
-- **Rows:** one per option, lettered to match the Decision (`A. Lisbon`).
-- **Columns:** three to five criteria.
+- **Rows:** one per option, numbered to match the Decision (`1. Lisbon`). The grid numbers its rows
+  1, 2, 3 itself and drops the marker you wrote (`A. Lisbon`, `2) Cabin` or a lone `B`).
+- **Columns:** three to five criteria. The grid letters them A, B, C (then AA after Z), shown before
+  each column's name, so a reply can say "1 is weak on B".
 - **A key** under the grid names each colour by its rating. Each cell also tells screen readers its
   rating in words ("Good. one rental").
-- **Wide grids scroll sideways**, and every grid has a **Full screen** control that opens it on its
+- **Wide grids scroll sideways** rather than squeezing columns: each cell wraps within about
+  84–150px. Rated cells are centred; column and option names are centred vertically. Every grid has a **Full screen** control that opens it on its
   own. Dragging a grid that scrolls moves the grid; it never closes the task behind it.
 - **Not a grid:** a table with any unrated cell, or one where every cell is a bare `-` (a
   placeholder table). These stay ordinary tables.
@@ -92,7 +99,7 @@ Put a bold-term list under the grid, one line per column:
   prose.
 - **Recommend exactly one option,** and say why in a sentence before the Decision.
 - **Keep option text short.** It is posted back verbatim as the reply.
-- **Add a grid when the options trade off against several criteria.** Options as rows, lettered to
+- **Add a grid when the options trade off against several criteria.** Options as rows, numbered to
   match; three to five criteria as columns.
 - **Every cell is a rating plus a concrete reason of a few words** (`- 2 days of work`), never a bare
   colour.
@@ -104,6 +111,6 @@ Put a bold-term list under the grid, one line per column:
 
 ## Where it isn't drawn
 
-Email notifications and any plain-text reader show the markdown as written. The format is chosen to read well that way: a bold question, a lettered list, and a
+Email notifications and any plain-text reader show the markdown as written. The format is chosen to read well that way: a bold question, a numbered list, and a
 table with `++` / `-` marks beside short reasons. Nothing is lost; the reader answers by typing the
-letter.
+number.

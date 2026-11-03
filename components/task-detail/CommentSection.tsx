@@ -15,7 +15,7 @@ import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
 import { RichTextInput } from "@/components/shared/RichTextInput"
 import { MessageBubble } from "@/components/shared/MessageBubble"
 import { DecisionCards } from "@/components/task-detail/DecisionCards"
-import { parseDecision, chosenLetter } from "@/lib/comment-formats"
+import { parseDecision, chosenNumber } from "@/lib/comment-formats"
 import { buildPendingComments, postPendingComments } from "@/lib/comment-posting"
 import { nestComments, updateComment, removeComment, settleOptimisticComment } from "@/lib/comment-stream"
 import { useSharedEditingSession } from "@/hooks/use-editing-session"
@@ -521,7 +521,7 @@ export function CommentSection({
       decisionContent = (
         <DecisionCards
           decision={decision}
-          chosen={answer ? chosenLetter(answer.content || '') : null}
+          chosen={answer ? chosenNumber(answer.content || '', decision.options) : null}
           onChoose={canAnswer ? (reply) => { void handleAddComment(reply) } : undefined}
           identifiers={identifiers}
         />
