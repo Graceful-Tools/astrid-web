@@ -44,10 +44,13 @@ export function narrowToClientScopes(
 ): { kept: string[]; dropped: string[] } {
   if (clientScopes.includes(WILDCARD)) return { kept: [...tokenScopes], dropped: [] }
   const held = new Set(clientScopes)
-  return {
-    kept: tokenScopes.filter(scope => held.has(scope)),
-    dropped: tokenScopes.filter(scope => !held.has(scope)),
+  const kept = tokenScopes.filter(scope => held.has(scope))
+  // A wildcard token whose app now lists explicit scopes keeps everything the
+  // app still grants, rather than collapsing to nothing.
+  if (tokenScopes.includes(WILDCARD)) {
+    for (const scope of clientScopes) if (!kept.includes(scope)) kept.push(scope)
   }
+  return { kept, dropped: tokenScopes.filter(scope => !held.has(scope)) }
 }
 
 /**

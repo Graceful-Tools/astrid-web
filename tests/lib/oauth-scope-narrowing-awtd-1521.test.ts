@@ -76,6 +76,13 @@ describe('narrowToClientScopes (AWTD-1521)', () => {
     })
   })
 
+  it('a wildcard token whose app switched to explicit scopes keeps those scopes', () => {
+    expect(narrowToClientScopes(['*'], ['tasks:read', 'lists:read'])).toEqual({
+      kept: ['tasks:read', 'lists:read'],
+      dropped: ['*'],
+    })
+  })
+
   it('is dry-run unless the switch says exactly enforce', () => {
     expect(scopeNarrowingMode({})).toBe('dry-run')
     expect(scopeNarrowingMode({ OAUTH_SCOPE_NARROWING: 'yes' })).toBe('dry-run')
@@ -103,6 +110,26 @@ describe('re-issued tokens follow the app\'s current permissions (AWTD-1521)', (
     await exchangeAuthorizationCode('astrid_code_x', 'db-client', 'https://example.test/cb')
 
     expect(issuedScopes()).toEqual(['tasks:read'])
+  })
+
+  it('a failed permission lookup leaves the refresh token unconsumed', async () => {
+    mockPrisma.oAuthToken.findFirst.mockResolvedValue(tokenRow(['tasks:read']))
+    mockPrisma.oAuthClient.findUnique.mockRejectedValue(new Error('db down'))
+
+    await expect(refreshAccessToken('astrid_refresh_x', 'db-client')).rejects.toThrow('db down')
+
+    expect(mockPrisma.oAuthToken.update).not.toHaveBeenCalled()
+  })
+
+  it('a failed permission lookup leaves the authorization code unused', async () => {
+    mockPrisma.oAuthAuthorizationCode.findFirst.mockResolvedValue(codeRow(['tasks:read']))
+    mockPrisma.oAuthClient.findUnique.mockRejectedValue(new Error('db down'))
+
+    await expect(
+      exchangeAuthorizationCode('astrid_code_x', 'db-client', 'https://example.test/cb'),
+    ).rejects.toThrow('db down')
+
+    expect(mockPrisma.oAuthAuthorizationCode.update).not.toHaveBeenCalled()
   })
 
   it('in dry run, the refreshed token keeps its old permissions', async () => {
