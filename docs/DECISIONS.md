@@ -72,6 +72,8 @@ a short reason.
 - **Columns:** three to five criteria.
 - **A key** under the grid names each colour by its rating. Each cell also tells screen readers its
   rating in words ("Good. one rental").
+- **Wide grids scroll sideways**, and every grid has a **Full screen** control that opens it on its
+  own. Dragging a grid that scrolls moves the grid; it never closes the task behind it.
 - **Not a grid:** a table with any unrated cell, or one where every cell is a bare `-` (a
   placeholder table). These stay ordinary tables.
 

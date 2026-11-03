@@ -165,6 +165,11 @@
    rounded gaps instead of grid lines; the grid scrolls sideways when wider than the comment. The
    palette is Google Docs', with dark text on the light colours and white on the two dark ones, so
    it reads the same in light and dark mode. Selectors outrank `.prose table` / `.prose td`. */
+.tradeoff-expand { display: inline-flex; align-items: center; gap: 0.25rem; margin-top: 0.5rem; font-size: 0.75rem; font-weight: 500; opacity: 0.75; cursor: pointer; border-radius: 0.25rem; padding: 0 0.25rem; }
+.tradeoff-expand:hover, .tradeoff-expand:focus-visible { opacity: 1; text-decoration: underline; }
+.tradeoff-expand + .tradeoff-scroll { margin-top: 0.25rem; }
+.tradeoff-viewer .tradeoff-scroll table.tradeoff-grid { font-size: 0.9375rem; }
+.tradeoff-viewer .tradeoff-scroll table.tradeoff-grid td { min-width: 9rem; }
 .tradeoff-scroll { overflow-x: auto; margin: 0.5rem 0; -webkit-overflow-scrolling: touch; }
 .tradeoff-scroll table.tradeoff-grid { border-collapse: separate; border-spacing: 4px; width: auto; min-width: 100%; margin: 0 -4px; font-size: 0.875rem; }
 .tradeoff-scroll table.tradeoff-grid th,

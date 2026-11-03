@@ -6,6 +6,7 @@ import { SecureAttachmentViewer } from '@/components/secure-attachment-viewer'
 import { renderMarkdownWithLinks } from '@/lib/markdown'
 import { ratingLabels } from '@/lib/comment-formats'
 import { useTranslations } from '@/lib/i18n/client'
+import { useTradeoffGridViewer } from '@/components/shared/TradeoffGridViewer'
 import type { IdentifierLinkContext } from '@/lib/task-identifier-links'
 import { FileText } from 'lucide-react'
 import { format } from 'date-fns'
@@ -98,6 +99,7 @@ export const MessageBubble = React.memo(function MessageBubble({
   onClick,
 }: MessageBubbleProps) {
   const { t } = useTranslations()
+  const gridViewer = useTradeoffGridViewer()
   const timestamp = createdAt instanceof Date ? createdAt : new Date(createdAt)
 
   // System message: centered muted text, no bubble
@@ -174,6 +176,7 @@ export const MessageBubble = React.memo(function MessageBubble({
 
           {/* Text content */}
           {richContent}
+          {gridViewer.dialog}
           {!richContent && content && !content.startsWith('Attached: ') && (
             <div
               // `prose` restores the block styles Tailwind preflight strips.
@@ -181,6 +184,8 @@ export const MessageBubble = React.memo(function MessageBubble({
               // at body size with no bullets — the markup is right and the
               // reader sees no difference (task 0a54e46f).
               className="prose prose-sm max-w-none text-sm theme-text-secondary"
+              onClick={gridViewer.onClick}
+              onKeyDown={gridViewer.onKeyDown}
               dangerouslySetInnerHTML={{
                 __html: renderMarkdownWithLinks(content, { codeClass: codeClass || 'theme-bg-tertiary px-1 rounded', identifiers, ratingLabels: ratingLabels(t) }),
               }}

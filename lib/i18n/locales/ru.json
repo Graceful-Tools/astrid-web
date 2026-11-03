@@ -150,6 +150,9 @@
       "mixed": "Неоднозначно",
       "good": "Хорошо",
       "veryGood": "Очень хорошо"
+    },
+    "tradeoffGrid": {
+      "fullScreen": "Во весь экран"
     }
   },
   "lists": {

@@ -1,4 +1,5 @@
 import { useRef, useCallback } from 'react'
+import { touchOwner } from '@/lib/gestures/swipe-owner'
 
 interface SwipeHandlers {
   onSwipeLeft?: () => void
@@ -40,13 +41,22 @@ export function useSwipe(handlers: SwipeHandlers, options: SwipeOptions = {}) {
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     if (!trackTouch) return
     const touch = e.touches[0]
+    const isEdge = touch.clientX <= edgeZone
+    touchEndRef.current = null
+    // A sideways scroller (a trade-off grid, a code block) or a portalled dialog owns this
+    // gesture. An edge swipe on the surface itself still goes back (AWTD-1534).
+    const owner = touchOwner(e.target, e.currentTarget)
+    if (owner === 'portal' || (owner === 'scroller' && !isEdge)) {
+      touchStartRef.current = null
+      isEdgeSwipeRef.current = false
+      return
+    }
     touchStartRef.current = {
       x: touch.clientX,
       y: touch.clientY,
     }
-    touchEndRef.current = null
     // Detect if swipe started from left edge (iOS-style edge swipe)
-    isEdgeSwipeRef.current = touch.clientX <= edgeZone
+    isEdgeSwipeRef.current = isEdge
   }, [trackTouch, edgeZone])
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
