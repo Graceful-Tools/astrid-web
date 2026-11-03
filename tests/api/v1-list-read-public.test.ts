@@ -88,6 +88,9 @@ function matches(row: ListRow, cond: Record<string, unknown>): boolean {
     if (key === 'OR') return (value as Record<string, unknown>[]).some(c => matches(row, c))
     if (key === 'ownerId') return row.ownerId === value
     if (key === 'privacy') return row.privacy === value
+    // The project, status-list and label branches the index shares (AWTD-1519).
+    // None of these fixtures sits in a project or is a label list.
+    if (key === 'project' || key === 'listType' || key === 'remoteNodeId' || key === 'tasks') return false
     if (key === 'listMembers') {
       const some = (value as { some: { userId: string } }).some
       return row.listMembers.some(m => m.userId === some.userId)

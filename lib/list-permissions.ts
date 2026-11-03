@@ -187,7 +187,16 @@ export const PROJECT_ACCESS_INCLUDE = {
  */
 export function listVisibilityWhere(
   userId: string,
-  options: { includePublic: boolean }
+  options: {
+    includePublic: boolean
+    /**
+     * The derived GitHub-label branch (AWTD-1193). Default on. Turn it off
+     * where the result reaches every TASK on the list rather than the list
+     * itself: a label is shared across boards, so seeing it does not mean
+     * seeing each task carrying it (AWTD-1519; see listTasksByIdWhere).
+     */
+    includeDerivedLabels?: boolean
+  }
 ) {
   // The ways a list is DIRECTLY the viewer's: owned, shared with them, or in a
   // project they own or belong to. Named because the label clause below reaches
@@ -223,12 +232,14 @@ export function listVisibilityWhere(
     // `remoteNodeId` keeps this to lists that MIRROR a GitHub label. A label
     // list someone converted from their own regular list (canConvertListFlavor)
     // has none, and must not be shared out to everyone who can see a task on it.
-    {
+  ]
+  if (options.includeDerivedLabels !== false) {
+    clauses.push({
       listType: LIST_TYPE_LABEL,
       remoteNodeId: { not: null },
       tasks: { some: { lists: { some: { OR: direct } } } },
-    },
-  ]
+    })
+  }
 
   // `includePublic` is explicit at every call site rather than defaulted: the
   // web list route has always returned PUBLIC lists and the v1 route never has,
@@ -239,27 +250,37 @@ export function listVisibilityWhere(
 }
 
 /**
- * The `where` for `GET /api/v1/lists/:id` — owner, member, or any PUBLIC list.
+ * The `where` for `GET /api/v1/lists/:id`: every list the index shows the
+ * caller, plus any PUBLIC list.
  *
- * Narrower than {@link listVisibilityWhere}: no project or label branches.
- * Kept as its own definition because the batch existence check (AWTD-1515)
- * must call a list missing exactly when that GET answers 404, and the two
- * read the same clause from here.
+ * Built from {@link listVisibilityWhere} so opening one list agrees with the
+ * list index (AWTD-1519). It used to be owner, member or PUBLIC only, so a
+ * project member saw a project's list in `GET /api/v1/lists` and got 404 when
+ * opening it. The batch existence check (AWTD-1515) reads this same clause, so
+ * it calls a list missing exactly when this GET answers 404.
  *
- * Legacy has always allowed PUBLIC (`hasListAccess(...) || privacy ===
- * 'PUBLIC'`). Without it a signed-in non-member opening a public list gets
- * 404, which the list page renders as "List not found" — to precisely the
- * audience a public list exists for. READ only: PUT and DELETE keep their
+ * PUBLIC stays, as legacy has always allowed it (`hasListAccess(...) ||
+ * privacy === 'PUBLIC'`). Without it a signed-in non-member opening a public
+ * list gets 404, which the list page renders as "List not found", to exactly
+ * the audience a public list exists for. READ only: PUT and DELETE keep their
  * owner/admin gates. Same shape as the task-level fix in 92e582c6.
  */
 export function listReadByIdWhere(userId: string) {
-  return {
-    OR: [
-      { ownerId: userId },
-      { listMembers: { some: { userId } } },
-      { privacy: "PUBLIC" as const },
-    ],
-  }
+  return listVisibilityWhere(userId, { includePublic: true })
+}
+
+/**
+ * The lists `GET /api/v1/tasks?listId=` may return EVERY task from: what
+ * {@link listReadByIdWhere} opens, minus the derived GitHub-label branch.
+ *
+ * Seeing a mirrored label list only means seeing SOME task that carries the
+ * label. The label is shared across boards, so all its tasks would include
+ * tasks on private boards the caller has no part in (AWTD-1519 review). A
+ * label list reached that way therefore lists no tasks here, as before; one
+ * the caller owns or is a member of still does.
+ */
+export function listTasksByIdWhere(userId: string) {
+  return listVisibilityWhere(userId, { includePublic: true, includeDerivedLabels: false })
 }
 
 /**

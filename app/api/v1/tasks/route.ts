@@ -20,6 +20,7 @@ import { assigneeIdsOf } from '@/lib/task-assignees'
 import { parseOmittedTaskFields } from '@/lib/tasks/v1-task-omit'
 import { shapeV1ListPageTask, v1TaskListSelect, v1TaskPageMeta } from '@/lib/tasks/v1-task-shape'
 import { withTaskRemote } from '@/lib/backends/task-remote'
+import { listTasksByIdWhere } from '@/lib/list-permissions'
 import {
   decodeTaskCursor,
   encodeTaskCursor,
@@ -129,18 +130,11 @@ export const GET = withAuth(
     const where: any = {}
 
     if (listId) {
-      // Filtering by a specific list returns ONLY that list's tasks; caller
-      // must have access to the list (owner, member, or public).
-      where.lists = {
-        some: {
-          id: listId,
-          OR: [
-            { ownerId: auth.userId },
-            { listMembers: { some: { userId: auth.userId } } },
-            { privacy: 'PUBLIC' },
-          ],
-        },
-      }
+      // Filtering by a specific list returns ONLY that list's tasks. Project
+      // membership counts, as it does for GET /api/v1/lists/:id (AWTD-1519);
+      // the derived label branch does not, since it would hand over tasks
+      // from other boards that share the label (listTasksByIdWhere).
+      where.lists = { some: { id: listId, ...listTasksByIdWhere(auth.userId) } }
     } else {
       // No listId: the caller's own tasks. Public lists are deliberately NOT
       // OR-ed in (AWTD-1451): that made this read, and its count, scan every
