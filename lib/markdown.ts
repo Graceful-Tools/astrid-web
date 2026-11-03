@@ -1,6 +1,6 @@
 import DOMPurify from 'dompurify'
 import { Marked, marked, type Token } from 'marked'
-import { columnLetter, isTradeoffGrid, parseRating, rowName, RATING_STYLE, type Rating, type RatingLabels } from '@/lib/comment-formats'
+import { columnLetter, isTradeoffGrid, parseRating, RATING_STYLE, type Rating, type RatingLabels } from '@/lib/comment-formats'
 import { replaceIdentifierLinks, type IdentifierLinkContext } from '@/lib/task-identifier-links'
 
 // Allowed URL protocols for links
@@ -255,27 +255,33 @@ function withoutLeadingRating(tokens: Token[], rating: string): Token[] {
   return text ? [{ ...first, raw: strip(first.raw), text } as Token, ...rest] : rest
 }
 
-const LONE_MARKER = /^(?:[A-Za-z]|\d{1,2})[.):]?$/
+const BARE_MARKER = /^\s*(?:[A-Za-z]|\d{1,2})[.):]?\s*$/
+const PUNCTUATED_MARKER = /^\s*(?:[A-Za-z]|\d{1,2})[.):](?:\s+|$)/
 
 /**
- * A grid row's option cell without its writer's marker ("A. Lisbon", "**2)** Cabin", a lone "B"),
- * on the parsed tokens like `withoutLeadingRating`. The grid numbers rows itself (AWTD-1533).
+ * A grid row's option cell without its writer's marker, on the parsed tokens like
+ * `withoutLeadingRating`; the grid numbers rows itself (AWTD-1533). As AstridCore's
+ * `droppingMarker`: a marker followed by more words needs its punctuation ("A. Lisbon",
+ * "**2)** Cabin"), and a bare one ("B") goes only when it is the whole cell, so "I **am** here"
+ * keeps its "I". Text after the marker keeps its own spacing.
  */
 function withoutRowMarker(tokens: Token[]): Token[] {
   const [first, ...rest] = tokens
-  if (!first) return tokens
-  if (first.type === 'strong' && LONE_MARKER.test(first.text.trim())) {
+  if (!first || (first.type !== 'text' && first.type !== 'strong')) return tokens
+  const whole = tokens.length === 1
+  if (whole && BARE_MARKER.test(first.text)) return []
+  if (first.type === 'strong') {
+    if (!PUNCTUATED_MARKER.test(first.text) || first.text.trim().length > 3) return tokens
     const [next, ...after] = rest
-    if (next?.type === 'text') {
-      const text = next.text.trimStart()
-      return text ? [{ ...next, raw: next.raw.trimStart(), text } as Token, ...after] : after
-    }
-    return rest
+    if (next?.type !== 'text') return rest
+    const text = next.text.trimStart()
+    return text ? [{ ...next, raw: next.raw.trimStart(), text } as Token, ...after] : after
   }
-  if (first.type !== 'text') return tokens
-  const name = rowName(first.text)
-  if (name === first.text.trim()) return tokens
-  return name ? [{ ...first, raw: rowName(first.raw), text: name } as Token, ...rest] : rest
+  const m = PUNCTUATED_MARKER.exec(first.text)
+  if (!m) return tokens
+  const text = first.text.slice(m[0].length)
+  const raw = first.raw.replace(PUNCTUATED_MARKER, '')
+  return text ? [{ ...first, raw, text } as Token, ...rest] : rest
 }
 
 /**

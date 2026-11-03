@@ -137,7 +137,8 @@ export function decisionReply(option: DecisionOption): string {
  * choose; "Also…", "2nd thoughts" and "10 minutes" (with no tenth option) do not.
  */
 export function chosenNumber(reply: string, options: DecisionOption[]): number | null {
-  const lead = /^\s*([A-Za-z0-9]+)/.exec(reply ?? '')?.[1]
+  // The lead must end at a non-letter, non-digit in any script: "Béatrice" and "2ème" are words.
+  const lead = /^\s*([A-Za-z0-9]+)(?![\p{L}\p{N}])/u.exec(reply ?? '')?.[1]
   if (!lead) return null
   if (/^\d+$/.test(lead)) {
     const n = Number(lead)
