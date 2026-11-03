@@ -266,6 +266,8 @@ export function CommentSection({
         writeComments(comments => comments.filter(c => !unsent.has(c.id)))
       },
       restore: (text, files) => {
+        // A card answer never took the draft or the staged files (AWTD-1531).
+        if (override !== undefined) return
         if (text !== null) setNewComment(text)
         setAttachedFiles(files)
       },

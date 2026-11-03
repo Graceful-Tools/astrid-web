@@ -280,7 +280,7 @@ const richText = new Marked({
             const style = RATING_STYLE[parsed.rating]
             used.set(style.className, style)
             // The rating stays readable without colour (AWTD-1529).
-            const spoken = `<span class="sr-only">${ratingLabel(style)}: </span>`
+            const spoken = `<span class="sr-only">${ratingLabel(style)}. </span>`
             // A rating-only cell shows its token, so it still reads where colours are overridden.
             const reason = parsed.rest
               ? this.parser.parseInline(withoutLeadingRating(cell.tokens, parsed.rating))
