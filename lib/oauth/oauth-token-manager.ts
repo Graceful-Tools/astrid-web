@@ -15,6 +15,7 @@ import { createLogger } from '@/lib/logger'
 import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
 import { agentEmail } from '@/lib/brand/agent-emails'
 import { normalizeStoredAgentMailbox, type ConsentAgentMailbox } from './agent-consent'
+import { scopesForReissue } from './scope-narrowing'
 
 const log = createLogger('oauth.oauth-token-manager')
 
@@ -225,17 +226,21 @@ export async function refreshAccessToken(
     return null
   }
 
+  // Resolve the scopes before consuming the refresh token, so a failed lookup
+  // leaves the credential usable for a retry (AWTD-1521).
+  const reissueScopes = await scopesForReissue(clientId, existingToken.scopes, 'refresh_token')
+
   // Revoke old token
   await prisma.oAuthToken.update({
     where: { id: existingToken.id },
     data: { revokedAt: new Date() },
   })
 
-  // Generate new token pair
+  // Generate new token pair, limited to what the app still holds (AWTD-1521)
   return await generateAccessAndRefreshToken(
     clientId,
     existingToken.userId,
-    existingToken.scopes,
+    reissueScopes,
     refreshMailbox,
   )
 }
@@ -525,17 +530,20 @@ export async function exchangeAuthorizationCode(
     return null
   }
 
+  // Before marking the code used, so a failed lookup does not burn it (AWTD-1521).
+  const reissueScopes = await scopesForReissue(clientId, authCode.scopes, 'authorization_code')
+
   // Mark code as used
   await prisma.oAuthAuthorizationCode.update({
     where: { id: authCode.id },
     data: { usedAt: new Date() },
   })
 
-  // Generate token pair
+  // Generate token pair, limited to what the app still holds (AWTD-1521)
   return await generateAccessAndRefreshToken(
     clientId,
     authCode.userId,
-    authCode.scopes,
+    reissueScopes,
     codeMailbox,
   )
 }
