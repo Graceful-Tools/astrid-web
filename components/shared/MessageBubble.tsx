@@ -4,6 +4,8 @@ import React from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { SecureAttachmentViewer } from '@/components/secure-attachment-viewer'
 import { renderMarkdownWithLinks } from '@/lib/markdown'
+import { ratingLabels } from '@/lib/comment-formats'
+import { useTranslations } from '@/lib/i18n/client'
 import type { IdentifierLinkContext } from '@/lib/task-identifier-links'
 import { FileText } from 'lucide-react'
 import { format } from 'date-fns'
@@ -95,6 +97,7 @@ export const MessageBubble = React.memo(function MessageBubble({
   actions,
   onClick,
 }: MessageBubbleProps) {
+  const { t } = useTranslations()
   const timestamp = createdAt instanceof Date ? createdAt : new Date(createdAt)
 
   // System message: centered muted text, no bubble
@@ -179,7 +182,7 @@ export const MessageBubble = React.memo(function MessageBubble({
               // reader sees no difference (task 0a54e46f).
               className="prose prose-sm max-w-none text-sm theme-text-secondary"
               dangerouslySetInnerHTML={{
-                __html: renderMarkdownWithLinks(content, { codeClass: codeClass || 'theme-bg-tertiary px-1 rounded', identifiers }),
+                __html: renderMarkdownWithLinks(content, { codeClass: codeClass || 'theme-bg-tertiary px-1 rounded', identifiers, ratingLabels: ratingLabels(t) }),
               }}
             />
           )}

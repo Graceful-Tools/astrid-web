@@ -76,16 +76,30 @@ export function chosenLetter(reply: string): string | null {
 
 export type Rating = '--' | '-' | '~' | '+' | '++' | '🔴' | '🟡' | '🟢'
 
-/** Cell background/text classes (Google Docs palette). Literal strings so Tailwind sees them. */
-export const RATING_STYLE: Record<Rating, { className: string; labelKey: string; label: string }> = {
-  '--': { className: 'bg-[#CC0000] text-white', labelKey: 'veryPoor', label: 'very poor' },
-  '-': { className: 'bg-[#E06666]', labelKey: 'poor', label: 'poor' },
-  '~': { className: 'bg-[#FFD966]', labelKey: 'mixed', label: 'mixed' },
-  '+': { className: 'bg-[#93C47D]', labelKey: 'good', label: 'good' },
-  '++': { className: 'bg-[#38761D] text-white', labelKey: 'veryGood', label: 'very good' },
-  '🔴': { className: 'bg-[#E06666]', labelKey: 'poor', label: 'poor' },
-  '🟡': { className: 'bg-[#FFD966]', labelKey: 'mixed', label: 'mixed' },
-  '🟢': { className: 'bg-[#93C47D]', labelKey: 'good', label: 'good' },
+/**
+ * Cell colours (Google Docs palette), as classes defined in app/globals.css. Not Tailwind utilities:
+ * lib/ is outside Tailwind's content paths, so `bg-[#…]` written here was never generated (AWTD-1529).
+ * `rank` orders the key from worst to best, as iOS draws it.
+ */
+export const RATING_LABEL_KEYS = ['veryPoor', 'poor', 'mixed', 'good', 'veryGood'] as const
+export type RatingLabelKey = (typeof RATING_LABEL_KEYS)[number]
+/** Translated rating names, from `tasks.tradeoffRatings.*`. Missing ones fall back to English. */
+export type RatingLabels = Partial<Record<RatingLabelKey, string>>
+
+/** Read the rating names for the reader's locale. */
+export function ratingLabels(t: (key: string) => string): RatingLabels {
+  return Object.fromEntries(RATING_LABEL_KEYS.map(k => [k, t(`tasks.tradeoffRatings.${k}`)]))
+}
+
+export const RATING_STYLE: Record<Rating, { className: string; labelKey: RatingLabelKey; label: string; rank: number }> = {
+  '--': { className: 'tradeoff-very-poor', labelKey: 'veryPoor', label: 'Very poor', rank: 0 },
+  '-': { className: 'tradeoff-poor', labelKey: 'poor', label: 'Poor', rank: 1 },
+  '~': { className: 'tradeoff-mixed', labelKey: 'mixed', label: 'Mixed', rank: 2 },
+  '+': { className: 'tradeoff-good', labelKey: 'good', label: 'Good', rank: 3 },
+  '++': { className: 'tradeoff-very-good', labelKey: 'veryGood', label: 'Very good', rank: 4 },
+  '🔴': { className: 'tradeoff-poor', labelKey: 'poor', label: 'Poor', rank: 1 },
+  '🟡': { className: 'tradeoff-mixed', labelKey: 'mixed', label: 'Mixed', rank: 2 },
+  '🟢': { className: 'tradeoff-good', labelKey: 'good', label: 'Good', rank: 3 },
 }
 
 const RATING_TOKEN = /^(--|-|~|\+\+|\+|🔴|🟡|🟢)(?=\s|$)/u

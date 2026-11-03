@@ -143,6 +143,13 @@
       "errorSaveFailed": "変更を GitHub に保存できませんでした。もう一度お試しください。",
       "filterLabel": "プロジェクトフィールド",
       "filterAll": "すべてのタスク"
+    },
+    "tradeoffRatings": {
+      "veryPoor": "とても悪い",
+      "poor": "悪い",
+      "mixed": "どちらとも言えない",
+      "good": "良い",
+      "veryGood": "とても良い"
     }
   },
   "lists": {
