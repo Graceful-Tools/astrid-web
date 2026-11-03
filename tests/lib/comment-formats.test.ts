@@ -27,6 +27,23 @@ describe('AWTD-1524 decision parsing', () => {
   })
 })
 
+describe('AWTD-1531 a Decision shown as code stays code', () => {
+  const example = '**Decision:** Which way?\n\n- **A.** Ship now (recommended)\n- **B.** Wait'
+  it('inside a fenced block', () => {
+    expect(parseDecision('Write it like this:\n\n```markdown\n' + example + '\n```')).toBeNull()
+    expect(parseDecision('~~~\n' + example + '\n~~~')).toBeNull()
+  })
+  it('as an indented block', () => {
+    const indented = example.split('\n').map(l => '    ' + l).join('\n')
+    expect(parseDecision('Like this:\n\n' + indented)).toBeNull()
+  })
+  it('a real Decision after a code example is still recognised', () => {
+    const d = parseDecision('```\n' + example + '\n```\n\n' + example)
+    expect(d?.options.map(o => o.letter)).toEqual(['A', 'B'])
+    expect(d?.before).toContain('```')
+  })
+})
+
 describe('AWTD-1524 trade-off grid', () => {
   it('recognises rated tables only', () => {
     expect(isTradeoffGrid([['x', '+ fast', '- slow']])).toBe(true)
@@ -72,7 +89,7 @@ describe('AWTD-1529 trade-off grid drawn like iOS', () => {
 
   it('still states each rating in words for screen readers', () => {
     const html = renderMarkdownWithLinks(grid)
-    expect(html).toContain('<span class="sr-only">Very good: </span>cheap')
+    expect(html).toContain('<span class="sr-only">Very good. </span>cheap')
   })
 
   it('a reason keeps a reference-style link defined elsewhere in the comment', () => {
@@ -85,12 +102,12 @@ describe('AWTD-1529 trade-off grid drawn like iOS', () => {
 
   it('a rating-only cell shows its token, so it reads without colour', () => {
     const html = renderMarkdownWithLinks('| Option | Cost |\n|---|---|\n| A | ++ |\n| B | - dear |')
-    expect(html).toContain('<span class="sr-only">Very good: </span>++</td>')
+    expect(html).toContain('<span class="sr-only">Very good. </span>++</td>')
   })
 
   it('names ratings in the reader\'s language', () => {
     const html = renderMarkdownWithLinks(grid, { ratingLabels: { veryGood: 'Sehr gut', veryPoor: 'Sehr schlecht' } })
-    expect(html).toContain('<span class="sr-only">Sehr gut: </span>cheap')
+    expect(html).toContain('<span class="sr-only">Sehr gut. </span>cheap')
     expect(html).toContain('</span>Sehr schlecht</span>')
     expect(html).toContain('</span>Mixed</span>')
   })

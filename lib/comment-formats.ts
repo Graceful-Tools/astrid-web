@@ -26,11 +26,34 @@ const DECISION_HEAD = /^\*\*Decision:\*\*\s*(.*)$/
 const OPTION_LINE = /^\s*(?:[-*+]|\d+[.)])\s+(?:\*\*([A-Za-z])(?:[.):])?\*\*[.):]?)\s*(.*)$/
 const RECOMMENDED = /\s*\(recommended\)\s*$/i
 
+/**
+ * Lines that markdown draws as code: inside a ``` or ~~~ fence, or indented four spaces (or a
+ * tab). A Decision written there is an example of the format and stays code (AWTD-1531).
+ */
+function codeLineIndexes(lines: string[]): Set<number> {
+  const code = new Set<number>()
+  let fence: string | null = null
+  lines.forEach((line, i) => {
+    const marker = /^ {0,3}(`{3,}|~{3,})/.exec(line)?.[1]
+    if (fence) {
+      code.add(i)
+      if (marker && marker[0] === fence[0] && marker.length >= fence.length && line.trim() === marker) fence = null
+    } else if (marker) {
+      fence = marker
+      code.add(i)
+    } else if (/^(?: {4}|\t)/.test(line)) {
+      code.add(i)
+    }
+  })
+  return code
+}
+
 /** Parse a comment body as a Decision, or null when it is not exactly that shape. */
 export function parseDecision(content: string): ParsedDecision | null {
   if (!content) return null
   const lines = content.split('\n')
-  const headIndex = lines.findIndex(line => DECISION_HEAD.test(line.trim()))
+  const code = codeLineIndexes(lines)
+  const headIndex = lines.findIndex((line, i) => !code.has(i) && DECISION_HEAD.test(line.trim()))
   if (headIndex < 0) return null
 
   const head = DECISION_HEAD.exec(lines[headIndex].trim())!

@@ -305,7 +305,11 @@ not a tidy-up.
 
 Two markdown shapes that comments draw richly on every platform. Anything else is plain markdown.
 Reference recogniser: astrid-ios `Packages/AstridCore/Sources/AstridCore/Decision.swift`; web:
-`lib/comment-formats.ts`.
+`lib/comment-formats.ts`. How to write them, with the canonical example: [DECISIONS.md](./DECISIONS.md).
+Both recognisers are held to `contracts/fixtures/decisions.json`.
+
+**Code is code.** A Decision on lines markdown draws as code (inside a ``` or ~~~ fence, or
+indented four spaces) is an example and stays code.
 
 **Decision.** A paragraph starting with bold `**Decision:**`, followed directly by a list whose
 every item starts with a bold single letter (`A.` / `A)` / `A:` / `A`) — at least two items.
@@ -319,8 +323,10 @@ starts with an option letter followed by end/space/punctuation, that card shows 
 with a rating token followed by whitespace or end: `--` very poor, `-` poor, `~` mixed, `+` good,
 `++` very good, or 🔴 poor / 🟡 mixed / 🟢 good. Not a grid if any such cell lacks a token, or if
 every rated cell is a bare `-`. Each cell draws on its colour with the remaining words
-(`#CC0000` white text, `#E06666`, `#FFD966`, `#93C47D`, `#38761D` white text — Google Docs
-palette), plus a colour key of the ratings used.
+(`#CC0000` white text, `#E06666`, `#FFD966`, `#93C47D`, `#38761D` white text, near-black text on the
+three light fills — Google Docs palette). A cell with no reason shows its token. Each cell tells
+assistive technology its rating in words ("Good. fast"), and the colour key under the grid names the
+ratings used in words (Very poor … Very good, localised), worst to best.
 
 ---
 

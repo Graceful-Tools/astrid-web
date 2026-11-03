@@ -2,6 +2,7 @@ import { BRAND } from '@/lib/brand/config'
 import Link from "next/link"
 import Image from "next/image"
 import { scrollShellClassName } from "@/components/scroll-shell"
+import { DecisionFormatGuide } from "@/components/docs/DecisionFormatGuide"
 import { RefreshCw, LogOut, Trash2, Download, Settings, RotateCcw, Smartphone, Globe, ChevronRight } from "lucide-react"
 
 export const metadata = {
@@ -232,6 +233,14 @@ export default function HelpPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Decisions and trade-off grids (AWTD-1531) */}
+        <section id="decisions" className="mb-16">
+          <h2 className="text-2xl font-bold theme-text-primary mb-6">Asking someone to choose</h2>
+          <div className="theme-surface border theme-border rounded-xl p-6">
+            <DecisionFormatGuide audience="people" />
           </div>
         </section>
 

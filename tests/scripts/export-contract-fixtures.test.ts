@@ -34,6 +34,7 @@ const FIXTURES = [
   'smart.json',
   'task-identifiers.json',
   'wire-shapes.json',
+  'decisions.json',
 ]
 
 describe('AWTD-1031: contract fixtures are exported from astrid-web', () => {

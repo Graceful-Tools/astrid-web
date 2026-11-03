@@ -37,6 +37,8 @@ export function DecisionCards({ decision, chosen, onChoose, identifiers }: Decis
               data-chosen={isChosen || undefined}
               onClick={e => {
                 e.stopPropagation()
+                // A link in the option opens the link; only the card itself answers (AWTD-1531).
+                if ((e.target as HTMLElement).closest('a')) return
                 onChoose?.(decisionReply(option))
               }}
               className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-left text-sm theme-border ${
