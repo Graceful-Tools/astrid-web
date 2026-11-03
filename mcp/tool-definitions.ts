@@ -23,6 +23,16 @@ import { BLOCKER_TOOLS } from "./blockers"
 import { ATTACHMENT_TOOLS } from "./task-attachments"
 import { LIST_TOOLS } from "./list-tools"
 
+/**
+ * The Decision and trade-off grid formats, short enough for a tool description (AWTD-1531).
+ * Most agents learn the format only from here. Full guide: docs/DECISIONS.md.
+ */
+const DECISION_FORMAT_HINT =
+  "To ask a person to choose, write a Decision: a paragraph starting **Decision:**, then a list whose items start with a bold letter (- **A.** Ship today (recommended) / - **B.** Wait). " +
+  "The apps draw tappable cards; a tap posts \"A — Ship today\" as the reply. Recommend exactly one option, keep option text short, and use it for any question with 2–5 discrete answers. " +
+  "To weigh options, add a trade-off grid: a table with options as rows (lettered to match) and 3–5 criteria as columns; every cell is a rating (-- very poor, - poor, ~ mixed, + good, ++ very good) plus a few words of reason, e.g. \"+ 3h drive\". " +
+  "Define each criterion in a bold-term list under the table. Put examples of the format in a code block. End a handback with the AGENT-HANDBACK: <mailbox> line."
+
 export const OAUTH_MCP_TOOLS = [
       {
         name: "get_lists",
@@ -120,7 +130,8 @@ export const OAUTH_MCP_TOOLS = [
             },
             description: {
               type: "string",
-              description: "Task description",
+              description:
+                "Task description (markdown). A trade-off grid renders in colour here too; Decision cards are drawn only in comments.",
             },
             priority: {
               type: "number",
@@ -206,7 +217,8 @@ export const OAUTH_MCP_TOOLS = [
             },
             description: {
               type: "string",
-              description: "New task description",
+              description:
+                "New task description (markdown). A trade-off grid renders in colour here too; Decision cards are drawn only in comments.",
             },
             priority: {
               type: "number",
@@ -277,7 +289,7 @@ export const OAUTH_MCP_TOOLS = [
       },
       {
         name: "add_comment",
-        description: "Add a comment to a task",
+        description: `Add a comment to a task. Markdown is rendered. ${DECISION_FORMAT_HINT}`,
         inputSchema: {
           type: "object",
           properties: {
