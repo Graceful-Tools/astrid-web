@@ -187,7 +187,16 @@ export const PROJECT_ACCESS_INCLUDE = {
  */
 export function listVisibilityWhere(
   userId: string,
-  options: { includePublic: boolean }
+  options: {
+    includePublic: boolean
+    /**
+     * The derived GitHub-label branch (AWTD-1193). Default on. Turn it off
+     * where the result reaches every TASK on the list rather than the list
+     * itself: a label is shared across boards, so seeing it does not mean
+     * seeing each task carrying it (AWTD-1519; see listTasksByIdWhere).
+     */
+    includeDerivedLabels?: boolean
+  }
 ) {
   // The ways a list is DIRECTLY the viewer's: owned, shared with them, or in a
   // project they own or belong to. Named because the label clause below reaches
@@ -223,12 +232,14 @@ export function listVisibilityWhere(
     // `remoteNodeId` keeps this to lists that MIRROR a GitHub label. A label
     // list someone converted from their own regular list (canConvertListFlavor)
     // has none, and must not be shared out to everyone who can see a task on it.
-    {
+  ]
+  if (options.includeDerivedLabels !== false) {
+    clauses.push({
       listType: LIST_TYPE_LABEL,
       remoteNodeId: { not: null },
       tasks: { some: { lists: { some: { OR: direct } } } },
-    },
-  ]
+    })
+  }
 
   // `includePublic` is explicit at every call site rather than defaulted: the
   // web list route has always returned PUBLIC lists and the v1 route never has,
@@ -256,6 +267,20 @@ export function listVisibilityWhere(
  */
 export function listReadByIdWhere(userId: string) {
   return listVisibilityWhere(userId, { includePublic: true })
+}
+
+/**
+ * The lists `GET /api/v1/tasks?listId=` may return EVERY task from: what
+ * {@link listReadByIdWhere} opens, minus the derived GitHub-label branch.
+ *
+ * Seeing a mirrored label list only means seeing SOME task that carries the
+ * label. The label is shared across boards, so all its tasks would include
+ * tasks on private boards the caller has no part in (AWTD-1519 review). A
+ * label list reached that way therefore lists no tasks here, as before; one
+ * the caller owns or is a member of still does.
+ */
+export function listTasksByIdWhere(userId: string) {
+  return listVisibilityWhere(userId, { includePublic: true, includeDerivedLabels: false })
 }
 
 /**
