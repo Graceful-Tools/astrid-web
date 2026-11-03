@@ -160,7 +160,7 @@ const BUDGETS: Record<string, number> = {
   // worked a third time. The PRIORITY row — self-contained, one picker and the
   // icon that served only it — went to TaskDetailPriorityRow.tsx, so the file
   // is smaller than before the feature once more.
-  'components/task-detail/TaskFieldEditors.tsx': 897,
+  'components/task-detail/TaskFieldEditors.tsx': 895,
   'components/oauth-api-tester.tsx': 973,
   // 957 → 688: AWTD-871 needed to add a `requireReady` parameter to the
   // get_agent_queue schema, which pushed this over. The 280-line

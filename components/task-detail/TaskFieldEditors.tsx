@@ -806,11 +806,9 @@ export function TaskFieldEditors({
 
                 // Show simple pattern with mode indicator
                 const pattern = repeatingValue || 'never'
-                if (pattern !== 'never' && repeatFrom === 'DUE_DATE') {
-                  return `${pattern} (from due date)`
-                }
-
-                return pattern
+                // AITD-582: the picker's label, not the raw value
+                const label = t(`repeating.${pattern === 'never' ? 'oneTimeOnly' : pattern}`)
+                return pattern !== 'never' && repeatFrom === 'DUE_DATE' ? `${label} (from due date)` : label
               })()}
             </div>
           )}
