@@ -13,7 +13,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const tx = vi.hoisted(() => ({
   task: { createMany: vi.fn(), findMany: vi.fn() },
   taskList: { findMany: vi.fn(), update: vi.fn() },
-  comment: { createMany: vi.fn() },
+  comment: { createMany: vi.fn(), create: vi.fn() },
   reminderQueue: { createMany: vi.fn() },
   user: { findUnique: vi.fn() },
   $transaction: vi.fn(),
@@ -122,6 +122,38 @@ describe('createTasksInBulk (AWTD-1124)', () => {
     expect(comments).toContainEqual(
       expect.objectContaining({ taskId: inserted[0].id, content: 'kept', authorId: 'someone' }),
     )
+  })
+
+  it('AWTD-1530: a carried comment with a file is created with its own SecureFile row, in order', async () => {
+    const copiedFile = {
+      blobUrl: 'https://store.example/files/u-1/new.png', originalName: 'a.png', mimeType: 'image/png',
+      fileSize: 10, uploadedBy: ACTOR, attachTarget: 'message',
+    }
+    await createTasksInBulk({
+      actorId: ACTOR,
+      tasks: [{
+        ...row('a'),
+        comments: [
+          { content: 'first', authorId: 'someone' },
+          { content: 'with a file', authorId: 'someone', files: [copiedFile] },
+          { content: 'last', authorId: 'someone' },
+        ],
+      }],
+    })
+
+    const taskId = tx.task.createMany.mock.calls[0][0].data[0].id
+    expect(tx.comment.create).toHaveBeenCalledTimes(1)
+    const created = tx.comment.create.mock.calls[0][0].data
+    expect(created).toMatchObject({
+      taskId, authorId: 'someone', content: 'with a file',
+      secureFiles: { create: [{ ...copiedFile, taskId }] },
+    })
+    const plain = tx.comment.createMany.mock.calls[0][0].data
+    expect(plain.map((c: { content: string }) => c.content)).toEqual(['Jon created this task', 'first', 'last'])
+    // Written in one go, so order comes from explicit timestamps: creation, first, file, last.
+    const times = [plain[0], plain[1], created, plain[2]].map((c: { createdAt: Date }) => c.createdAt.getTime())
+    expect([...times].sort((x, y) => x - y)).toEqual(times)
+    expect(new Set(times).size).toBe(4)
   })
 
   it('schedules every reminder in one insert — automatic for a due date, explicit when set', async () => {
