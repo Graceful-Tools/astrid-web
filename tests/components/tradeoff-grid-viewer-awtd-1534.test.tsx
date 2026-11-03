@@ -12,7 +12,7 @@
 
 import React from 'react'
 import { describe, it, expect, vi } from 'vitest'
-import { render, fireEvent, screen, within } from '@testing-library/react'
+import { render, fireEvent, screen, within, waitFor } from '@testing-library/react'
 import { renderMarkdownWithLinks } from '@/lib/markdown'
 import { useTradeoffGridViewer } from '@/components/shared/TradeoffGridViewer'
 
@@ -80,6 +80,23 @@ describe('AWTD-1534 full-screen trade-off grid', () => {
     expect(onHostClick).not.toHaveBeenCalled()
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
     expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('closing hands keyboard focus back to the control that opened it', async () => {
+    render(<Host />)
+    const control = screen.getByRole('button', { name: /Plein écran/ })
+    control.focus()
+    fireEvent.keyDown(control, { key: 'Enter' })
+    expect(screen.getByRole('dialog')).toBeTruthy()
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    await waitFor(() => expect(document.activeElement).toBe(control))
+  })
+
+  it('sits above an expanded task panel (z-index 60)', () => {
+    render(<Host />)
+    fireEvent.click(screen.getByRole('button', { name: /Plein écran/ }))
+    expect(screen.getByRole('dialog').className).toContain('z-[70]')
   })
 
   it('a click elsewhere in the text opens nothing', () => {
