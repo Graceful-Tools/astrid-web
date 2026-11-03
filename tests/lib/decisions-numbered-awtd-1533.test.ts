@@ -36,7 +36,11 @@ describe('AWTD-1533 a reply chooses by number or by the asker\'s letter', () => 
     expect(chosenNumber(reply, lettered)).toBe(n)
   })
 
-  it.each(['Also, what about D?', 'D', 'Let me think', '4', '0', '2nd thoughts', '10 minutes', ''])(
+  it.each([
+    'Also, what about D?', 'D', 'Let me think', '4', '0', '2nd thoughts', '10 minutes', '',
+    // Copilot on #669: a non-ASCII letter right after the lead is still part of a word.
+    'Béatrice doit vérifier', '2ème avis nécessaire',
+  ])(
     '%s chooses nothing',
     reply => expect(chosenNumber(reply, lettered)).toBeNull(),
   )
@@ -50,6 +54,14 @@ describe('AWTD-1533 grid rows numbered, columns lettered', () => {
 
   it('letters columns like a spreadsheet', () => {
     expect([0, 1, 2, 25, 26, 27, 51, 52].map(columnLetter)).toEqual(['A', 'B', 'C', 'Z', 'AA', 'AB', 'AZ', 'BA'])
+  })
+
+  it('keeps a row\'s words when the first one only looks like a marker (Copilot on #669)', () => {
+    const html = renderMarkdownWithLinks(
+      '| Option | Cost |\n|---|---|\n| I **am** here | + a |\n| **I** am here | + b |\n| A. Visit [Lisbon](https://example.com) | + c |\n| **B** | + d |',
+    )
+    const firstCells = [...html.matchAll(/<tr><td>(.*?)<\/td>/g)].map(m => m[1].replace(/<[^>]+>/g, ''))
+    expect(firstCells).toEqual(['1. I am here', '2. I am here', '3. Visit Lisbon', '4. '])
   })
 
   it('draws numbered rows and lettered criteria', () => {

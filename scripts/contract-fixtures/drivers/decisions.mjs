@@ -105,6 +105,7 @@ const LETTERED = parseDecision('**Decision:** x\n\n- **A.** a\n- **B.** b\n- **C
 const REPLIES = [
   '1 — Lisbon', '2', '3.', '1) sure', '4', '0', '2nd thoughts', '10 minutes',
   'A — Lisbon', 'b', 'C.', 'A) sure', 'Lisbon please', 'AB', '  a, then b', '',
+  'Béatrice doit vérifier', '2ème avis nécessaire',
 ].map(reply => ({
   reply,
   chosenNumbered: chosenNumber(reply, DECISIONS[0].parsed.options),
