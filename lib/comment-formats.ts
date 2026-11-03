@@ -34,18 +34,50 @@ function codeLineIndexes(lines: string[]): Set<number> {
   const code = new Set<number>()
   let fence: string | null = null
   lines.forEach((line, i) => {
-    const marker = /^ {0,3}(`{3,}|~{3,})/.exec(line)?.[1]
     if (fence) {
       code.add(i)
-      if (marker && marker[0] === fence[0] && marker.length >= fence.length && line.trim() === marker) fence = null
-    } else if (marker) {
-      fence = marker
-      code.add(i)
-    } else if (/^(?: {4}|\t)/.test(line)) {
-      code.add(i)
+      const close = /^(`{3,}|~{3,})\s*$/.exec(line.trim())?.[1]
+      if (close && close[0] === fence[0] && close.length >= fence.length) fence = null
+      return
     }
+    const opener = fenceOpener(line)
+    if (opener) {
+      fence = opener
+      code.add(i)
+      return
+    }
+    // Indented code: four columns (a tab is to the next multiple of four). It cannot interrupt a
+    // paragraph, so it needs a blank line or more code above it.
+    const prev = i === 0 ? '' : lines[i - 1]
+    if (line.trim() !== '' && indentWidth(line) >= 4 && (prev.trim() === '' || code.has(i - 1))) code.add(i)
   })
   return code
+}
+
+const LIST_PREFIX = /^\s*(?:[-*+]|\d+[.)])\s+/
+
+/** Leading whitespace in columns, tabs to the next multiple of four. */
+function indentWidth(line: string): number {
+  let width = 0
+  for (const ch of line) {
+    if (ch === ' ') width++
+    else if (ch === '\t') width += 4 - (width % 4)
+    else break
+  }
+  return width
+}
+
+/**
+ * The fence a line opens, or null. A fence may open inside a list item (`- ```markdown`), and a
+ * backtick fence's info string cannot contain a backtick, so a one-line ```code span``` is not one.
+ */
+function fenceOpener(line: string): string | null {
+  const body = LIST_PREFIX.test(line) ? line.replace(LIST_PREFIX, '') : line
+  if (body === line && indentWidth(line) >= 4) return null
+  const m = /^\s*(`{3,}|~{3,})(.*)$/.exec(body)
+  if (!m) return null
+  if (m[1][0] === '`' && m[2].includes('`')) return null
+  return m[1]
 }
 
 /** Parse a comment body as a Decision, or null when it is not exactly that shape. */
@@ -67,7 +99,8 @@ export function parseDecision(content: string): ParsedDecision | null {
   while (i < lines.length && lines[i].trim() === '') i++
 
   const options: DecisionOption[] = []
-  while (i < lines.length && /^\s*(?:[-*+]|\d+[.)])\s/.test(lines[i])) {
+  // Options drawn as code are an example, not answers (AWTD-1531).
+  while (i < lines.length && !code.has(i) && /^\s*(?:[-*+]|\d+[.)])\s/.test(lines[i])) {
     const m = OPTION_LINE.exec(lines[i])
     if (!m) return null // every item must start with a bold letter
     let text = m[2].trim()

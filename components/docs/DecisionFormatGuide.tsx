@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { DecisionCards } from "@/components/task-detail/DecisionCards"
-import { parseDecision, RATING_STYLE, type Rating } from "@/lib/comment-formats"
+import { parseDecision, ratingLabels, RATING_STYLE, type Rating } from "@/lib/comment-formats"
+import { useTranslations } from "@/lib/i18n/client"
 import { DECISION_EXAMPLE } from "@/lib/decision-examples"
 
 /**
@@ -12,6 +13,9 @@ import { DECISION_EXAMPLE } from "@/lib/decision-examples"
  */
 export function DecisionFormatGuide({ audience }: { audience: "people" | "agents" }) {
   const decision = parseDecision(DECISION_EXAMPLE)
+  // Rating names match the live example and the in-app key, in the reader's language.
+  const { t } = useTranslations()
+  const labels = ratingLabels(t)
   // The markdown renderer sanitises only in the browser, so the drawn example waits for mount
   // rather than hydrating over the server's plain-text fallback.
   const [mounted, setMounted] = useState(false)
@@ -58,7 +62,7 @@ export function DecisionFormatGuide({ audience }: { audience: "people" | "agents
             <li key={token} className="flex items-center gap-2">
               <span className={`tradeoff-swatch ${RATING_STYLE[token].className}`} />
               <code className={code}>{token}</code>
-              <span>{RATING_STYLE[token].label}</span>
+              <span>{labels[RATING_STYLE[token].labelKey] || RATING_STYLE[token].label}</span>
             </li>
           ))}
         </ul>
