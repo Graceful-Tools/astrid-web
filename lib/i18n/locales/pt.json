@@ -150,6 +150,9 @@
       "mixed": "Misto",
       "good": "Bom",
       "veryGood": "Muito bom"
+    },
+    "tradeoffGrid": {
+      "fullScreen": "Tela cheia"
     }
   },
   "lists": {

@@ -150,6 +150,9 @@
       "mixed": "一般",
       "good": "好",
       "veryGood": "很好"
+    },
+    "tradeoffGrid": {
+      "fullScreen": "全屏"
     }
   },
   "lists": {

@@ -139,12 +139,19 @@ export type Rating = '--' | '-' | '~' | '+' | '++' | '🔴' | '🟡' | '🟢'
  */
 export const RATING_LABEL_KEYS = ['veryPoor', 'poor', 'mixed', 'good', 'veryGood'] as const
 export type RatingLabelKey = (typeof RATING_LABEL_KEYS)[number]
-/** Translated rating names, from `tasks.tradeoffRatings.*`. Missing ones fall back to English. */
-export type RatingLabels = Partial<Record<RatingLabelKey, string>>
+/**
+ * Translated words a trade-off grid draws: the rating names, from `tasks.tradeoffRatings.*`, and
+ * its full-screen control, from `tasks.tradeoffGrid.fullScreen` (AWTD-1534). Missing ones fall back
+ * to English.
+ */
+export type RatingLabels = Partial<Record<RatingLabelKey | 'fullScreen', string>>
 
-/** Read the rating names for the reader's locale. */
+/** Read the grid's words for the reader's locale. */
 export function ratingLabels(t: (key: string) => string): RatingLabels {
-  return Object.fromEntries(RATING_LABEL_KEYS.map(k => [k, t(`tasks.tradeoffRatings.${k}`)]))
+  return {
+    ...Object.fromEntries(RATING_LABEL_KEYS.map(k => [k, t(`tasks.tradeoffRatings.${k}`)])),
+    fullScreen: t('tasks.tradeoffGrid.fullScreen'),
+  }
 }
 
 export const RATING_STYLE: Record<Rating, { className: string; labelKey: RatingLabelKey; label: string; rank: number }> = {
