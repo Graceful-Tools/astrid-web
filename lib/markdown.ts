@@ -207,12 +207,13 @@ const RICH_TEXT_TAGS = [
 ]
 
 /**
- * `type`/`checked`/`disabled` are for checkboxes; `align` for table cells; `start` for an ordered
+ * `type`/`checked`/`disabled` are for checkboxes; `align` for table cells; `role`/`tabindex` for a
+ * trade-off grid's full-screen control (AWTD-1534); `start` for an ordered
  * list that does not begin at 1 (`3. three` is numbered 3, as on iOS — CONTRACTS.md D38). DOMPurify
  * checks a value only for URI attributes, so `start` takes whatever `marked` wrote, which is the
  * list's number.
  */
-const RICH_TEXT_ATTRS = ['href', 'target', 'rel', 'class', 'type', 'checked', 'disabled', 'align', 'start']
+const RICH_TEXT_ATTRS = ['href', 'target', 'rel', 'class', 'type', 'checked', 'disabled', 'align', 'start', 'role', 'tabindex']
 
 const RICH_TEXT_TAG_SET = new Set(RICH_TEXT_TAGS)
 
@@ -294,7 +295,11 @@ const richText = new Marked({
         .sort((a, b) => a.rank - b.rank)
         .map(s => `<span class="tradeoff-key-item"><span class="tradeoff-swatch ${s.className}"></span>${ratingLabel(s)}</span>`)
         .join('')
-      return `<div class="tradeoff-scroll"><table class="tradeoff-grid"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div><p class="tradeoff-key">${key}</p>`
+      // The control opens the grid full screen (AWTD-1534). It is a span, not a button: typed
+      // HTML can never produce an allowlisted tag (typedHtmlAsText), so only this renderer emits it.
+      const fullScreen = escapeHtml(activeRatingLabels?.fullScreen || 'Full screen')
+      const expand = `<span class="tradeoff-expand" role="button" tabindex="0" data-tradeoff-expand>⤢ ${fullScreen}</span>`
+      return `<div class="tradeoff">${expand}<div class="tradeoff-scroll"><table class="tradeoff-grid"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div><p class="tradeoff-key">${key}</p></div>`
     },
   },
 })

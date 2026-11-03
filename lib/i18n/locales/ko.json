@@ -150,6 +150,9 @@
       "mixed": "보통",
       "good": "좋음",
       "veryGood": "매우 좋음"
+    },
+    "tradeoffGrid": {
+      "fullScreen": "전체 화면"
     }
   },
   "lists": {
