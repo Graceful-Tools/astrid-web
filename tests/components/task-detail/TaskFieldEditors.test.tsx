@@ -333,6 +333,18 @@ describe('TaskFieldEditors', () => {
       render(<TaskFieldEditors {...defaultProps} task={taskWithDate} tempWhen={taskWithDate.dueDateTime} />)
       expect(screen.getByTestId('when-repeat')).toBeInTheDocument()
     })
+
+    it('AITD-582: a non-repeating task reads "One time only", not "never"', () => {
+      const taskWithDate = {
+        ...mockTask,
+        dueDateTime: new Date('2025-12-25T10:00:00'),
+        isAllDay: false,
+        repeating: 'never' as const,
+      }
+      render(<TaskFieldEditors {...defaultProps} task={taskWithDate} tempWhen={taskWithDate.dueDateTime} />)
+      expect(screen.getByTestId('when-repeat')).toHaveTextContent('One time only')
+      expect(screen.getByTestId('when-repeat')).not.toHaveTextContent(/never/i)
+    })
   })
 
   describe('Helper Functions', () => {
