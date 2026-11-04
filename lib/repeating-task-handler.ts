@@ -136,7 +136,12 @@ export async function handleRepeatingTaskCompletion(
  */
 export async function applyRepeatingTaskRollForward(
   taskId: string,
-  result: RepeatingTaskResult
+  result: RepeatingTaskResult,
+  /**
+   * The lane the next occurrence starts in, from `resolveRollForwardStatusRole`
+   * (lib/task-status.ts). Undefined leaves the lane as it was.
+   */
+  nextStatusRole?: string,
 ): Promise<void> {
   if (result.shouldTerminate) {
     // Series has ended - clear the repeating config. Completing the final
@@ -160,6 +165,7 @@ export async function applyRepeatingTaskRollForward(
         dueDateTime: result.nextDueDate,
         occurrenceCount: result.newOccurrenceCount,
         reminderSent: false, // Reset reminder flag for next occurrence
+        ...(nextStatusRole !== undefined ? { statusRole: nextStatusRole } : {}),
       }
     })
   }

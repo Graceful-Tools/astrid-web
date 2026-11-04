@@ -40,7 +40,9 @@ import {
   DEFAULT_STALE_DOING_MINUTES,
   isAbandonedClaim,
   isAwaitingBuild,
+  isFinishedOccurrence,
   isOrphanedDoing,
+  parkFinishedOccurrence,
   isReleasableClaim,
   releaseDoingClaim,
   type CheckoutBranches,
@@ -197,6 +199,14 @@ async function main() {
     const comments = await sweep.comments(task)
     // Done and pushed: it waits for its build in Doing, and close-built-tasks closes it.
     if (isAwaitingBuild(comments)) continue
+    // A recurring task whose occurrence is done and whose date has moved on: park it until
+    // that date instead of calling it unfinished (AWTD-914, 2026-10-30).
+    if (isFinishedOccurrence(task, now)) {
+      await parkFinishedOccurrence({ task, now, api })
+      released += 1
+      console.log(`  RELEASE: ${task.identifier ?? task.id} → Waiting (recurring occurrence finished; next due ${task.dueDateTime})${dryRun ? ' [dry run]' : ''}`)
+      continue
+    }
     if (mode === 'stale' && !isAbandonedClaim({ updatedAt: task.updatedAt, comments, now, staleMinutes })) continue
 
     const why = mode === 'claims'

@@ -80,7 +80,7 @@ import {
 } from '@/lib/analytics-events'
 import { createLogger } from '@/lib/logger'
 import { runAfterResponse } from '@/lib/background'
-import { resolveCompletionFields, resolveCreateCompletionFields, type CreateCompletionInput } from './task-completion'
+import { resolveCompletionFields, resolveCreateCompletionFields, resolveRollForwardLane, type CreateCompletionInput } from './task-completion'
 import { parseTaskDate, resolveCreateDateFields } from './task-dates'
 import { resolveStatusRoleWrite } from './task-status-role'
 
@@ -1022,7 +1022,7 @@ export async function updateTaskWithSideEffects(args: {
     closedReason: parsedClosedReason.value,
   })
 
-  if (repeatingResult) await applyRepeatingTaskRollForward(taskId, repeatingResult)
+  if (repeatingResult) await applyRepeatingTaskRollForward(taskId, repeatingResult, await resolveRollForwardLane(existingTask))
   if (repeatingResult && !repeatingResult.shouldTerminate) {
     const rolled = await prisma.task.findUnique({
       where: { id: taskId },

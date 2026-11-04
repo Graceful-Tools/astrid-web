@@ -27,7 +27,7 @@
  */
 
 import { DOING_STATUS_ROLE, READY_STATUS_ROLE, WAITING_STATUS_ROLE } from '@/lib/task-status'
-import { latestCommentWatermark, type TimestampedComment } from '@/lib/ready-queue-scope'
+import { describeSchedule, isDueToStart, latestCommentWatermark, type TimestampedComment } from '@/lib/ready-queue-scope'
 import { agentMailboxFromEmail } from '@/lib/brand/agent-emails'
 
 /** Every release comment starts with this, and counting them is how "twice" is known. */
@@ -46,6 +46,9 @@ export interface DoingTask {
   creatorId?: string | null
   creator?: { id?: string | null; isAIAgent?: boolean | null } | null
   assignee?: { email?: string | null } | null
+  repeating?: string | null
+  dueDateTime?: string | null
+  isAllDay?: boolean | null
 }
 
 export interface ReleaseComment extends TimestampedComment {
@@ -132,6 +135,42 @@ export function isAwaitingBuild(comments: ReleaseComment[]): boolean {
     comment => comment.systemEventType === 'COMPLETED' || (comment.content ?? '').startsWith(RELEASE_MARKER),
   )
   return marker > superseded
+}
+
+/**
+ * A recurring task whose occurrence was finished but which was left in Doing (2026-11-04).
+ *
+ * The queue only hands out a task once it is due, so a REPEATING task in Doing whose date is
+ * already past now has had its date moved on: its run did the week's work and rolled it,
+ * by completing it or by editing the date, and simply did not move the lane. AWTD-914 did
+ * exactly that on 2026-10-30, and the release called it a run that "ended before finishing
+ * it… continue from the branch", which was false.
+ */
+export function isFinishedOccurrence(task: DoingTask, now: Date): boolean {
+  const repeating = (task.repeating ?? '').trim().toLowerCase()
+  if (!repeating || repeating === 'never') return false
+  if (!task.dueDateTime) return false
+  return !isDueToStart(task, now)
+}
+
+/**
+ * Park a finished occurrence in Waiting until its date, the same way the lane sweep parks a
+ * dated Ready task (scripts/ready-tasks.ts), so the sweep promotes it on schedule as usual.
+ * Deliberately NOT a release: no RELEASE_MARKER, so it never counts toward the
+ * second-release handback.
+ */
+export async function parkFinishedOccurrence(input: {
+  task: DoingTask
+  now: Date
+  api: Pick<DoingReleaseApi, 'setStatus' | 'comment'>
+}): Promise<void> {
+  const { task, now, api } = input
+  await api.setStatus(task, WAITING_STATUS_ROLE)
+  await api.comment(
+    task,
+    `📅 Scheduled for ${describeSchedule(task, now)} — parked in Waiting. The loop returns it to Ready when the date arrives. ` +
+      `(This occurrence was finished and its date moved on, but it was left in Doing; it is not unfinished work.)`,
+  )
 }
 
 export function countReleases(comments: ReleaseComment[]): number {
