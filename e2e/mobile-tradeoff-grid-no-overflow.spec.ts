@@ -85,20 +85,24 @@ test.describe('Mobile: a trade-off grid never widens the task detail (AITD-589)'
     expect(await sidewaysOverflow(page), 'elements scrolled or overflowing sideways').toEqual([])
 
     // Swipe right-to-left across the grid, as a reader does to see its last column.
-    await grid.scrollIntoViewIfNeeded()
-    const g = (await grid.boundingBox())!
+    // Start inside the grid's scroller, not the table: the table's box runs on past the screen.
+    const scroller = bubble.locator('.tradeoff-scroll').first()
+    await scroller.scrollIntoViewIfNeeded()
+    const s = (await scroller.boundingBox())!
     const height = page.viewportSize()!.height
     const cdp = await page.context().newCDPSession(page)
     for (let i = 0; i < 3; i += 1) {
       await cdp.send('Input.synthesizeScrollGesture', {
-        x: Math.round(Math.min(g.x + g.width, viewport) - 40),
-        y: Math.round(Math.min(Math.max(g.y + g.height / 2, 10), height - 10)),
-        xDistance: -300,
+        x: Math.round(Math.min(s.x + s.width, viewport) - 20),
+        y: Math.round(Math.min(Math.max(s.y + s.height / 2, 10), height - 10)),
+        xDistance: -150,
         speed: 1500,
         gestureSourceType: 'touch',
       })
     }
     await page.waitForTimeout(300)
+    // The swipe really did scroll the grid, so the checks below are about a scrolled grid.
+    expect(await scroller.evaluate(el => el.scrollLeft), 'the grid scrolled').toBeGreaterThan(0)
     expect(await sidewaysOverflow(page), 'after the swipe, only the grid may have scrolled').toEqual([])
     const after = (await bubble.boundingBox())!
     expect(after.x, 'bubble still starts on screen').toBeGreaterThanOrEqual(0)
