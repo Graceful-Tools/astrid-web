@@ -248,6 +248,29 @@ export function resolveCompletionStatusTransition(input: {
   }
 }
 
+/**
+ * The lane a repeating task's NEXT occurrence starts in, when completing it rolls the series
+ * forward (2026-11-04). Undefined means "leave the lane alone".
+ *
+ * A roll-forward reuses the row — new date, `completed: false` — so the completion rule above
+ * never runs and the card kept whatever lane the finished occurrence was in. For an agent that
+ * meant Doing: a /fixall run claims the weekly audit (Ready → Doing), completes it, and next
+ * week's occurrence sat in Doing, which the queue never reads and the stuck-Doing backstop
+ * reports as a run that "ended before finishing it" (AWTD-914, 2026-10-30).
+ *
+ * Doing describes the occurrence just finished, not the next one, so an agent's task goes
+ * back to Ready; the lane sweep then parks it in Waiting until its date (the queue only takes
+ * Ready tasks that are due). A person's card is theirs to move — the same split as reopening
+ * above — and every other lane is left exactly as it was.
+ */
+export function resolveRollForwardStatusRole(input: {
+  currentStatusRole: string | null | undefined
+  assigneeIsAgent: boolean
+}): string | undefined {
+  if (!input.assigneeIsAgent) return undefined
+  return (input.currentStatusRole ?? '').trim().toLowerCase() === DOING_STATUS_ROLE ? READY_STATUS_ROLE : undefined
+}
+
 /** Is this role one a board can actually show? */
 export function isKnownStatusRole(role: string | null | undefined, project?: ProjectLike | null): boolean {
   if (!role) return false

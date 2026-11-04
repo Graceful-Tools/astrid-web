@@ -13,7 +13,8 @@
 
 import { parseClosedReason } from '@/lib/closed-reason'
 import { parseCompletionStamp } from '@/lib/task-enums'
-import { resolveCompletionStatusTransition } from '@/lib/task-status'
+import { prisma } from '@/lib/prisma'
+import { DOING_STATUS_ROLE, resolveCompletionStatusTransition, resolveRollForwardStatusRole } from '@/lib/task-status'
 
 export interface CompletionFieldsInput {
   /** `completed` as the request asked for it, or undefined if it said nothing. */
@@ -75,6 +76,28 @@ export function resolveCompletionFields({
   )
 
   return { ok: true, data }
+}
+
+/**
+ * The lane a repeating task's next occurrence starts in when completing it rolls the series
+ * forward: an agent's task leaves Doing (lib/task-status.ts `resolveRollForwardStatusRole`).
+ * Undefined leaves the lane alone.
+ *
+ * The default update include does not load the assignee, so it is looked up — and only for a
+ * task in Doing, the one case that can move, so no other completion pays for the query.
+ */
+export async function resolveRollForwardLane(existingTask: {
+  statusRole?: string | null
+  assigneeId?: string | null
+  assignee?: { isAIAgent?: boolean | null } | null
+}): Promise<string | undefined> {
+  if ((existingTask.statusRole ?? '').trim().toLowerCase() !== DOING_STATUS_ROLE) return undefined
+  let assigneeIsAgent = existingTask.assignee?.isAIAgent === true
+  if (!existingTask.assignee && existingTask.assigneeId) {
+    const user = await prisma.user.findUnique({ where: { id: existingTask.assigneeId }, select: { isAIAgent: true } })
+    assigneeIsAgent = user?.isAIAgent === true
+  }
+  return resolveRollForwardStatusRole({ currentStatusRole: existingTask.statusRole, assigneeIsAgent })
 }
 
 /**

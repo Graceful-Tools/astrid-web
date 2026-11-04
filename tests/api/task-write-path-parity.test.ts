@@ -262,7 +262,7 @@ describe.each(NAMES)('%s task-write surface — completion semantics (task fb94f
 
     await drive({ completed: true })
 
-    expect(applyRepeatingTaskRollForward).toHaveBeenCalledWith('task-1', expect.anything())
+    expect(applyRepeatingTaskRollForward).toHaveBeenCalledWith('task-1', expect.anything(), undefined)
   })
 
   // AWTD-1092: the last occurrence of a series (count or until reached) used to
@@ -278,7 +278,7 @@ describe.each(NAMES)('%s task-write surface — completion semantics (task fb94f
 
     await drive({ completed: true })
 
-    expect(applyRepeatingTaskRollForward).toHaveBeenCalledWith('task-1', expect.objectContaining({ shouldTerminate: true }))
+    expect(applyRepeatingTaskRollForward).toHaveBeenCalledWith('task-1', expect.objectContaining({ shouldTerminate: true }), undefined)
     const data = updateData()
     expect(data.completed).toBe(true)
     expect(data.completedAt).toBeInstanceOf(Date)
