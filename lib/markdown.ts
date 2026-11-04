@@ -288,6 +288,9 @@ function withoutRowMarker(tokens: Token[]): Token[] {
  * The renderer for descriptions, comments and chat: GFM, a newline is a line break, and typed HTML
  * is text. Its own instance, so `renderMarkdown` (the editor preview) is unchanged.
  */
+/** The most criteria an even grid lays out; app/globals.css defines `tradeoff-cols-1`…`-10`. */
+const MAX_EVEN_GRID_CRITERIA = 10
+
 const richText = new Marked({
   gfm: true,
   breaks: true,
@@ -299,21 +302,26 @@ const richText = new Marked({
       if (!isTradeoffGrid(plainRows)) return false
       const used = new Map<string, (typeof RATING_STYLE)[Rating]>()
       const align = (a: string | null) => (a ? ` align="${a}"` : '')
+      // Up to ten criteria lay out as an even CSS grid (AWTD-1536). Its rows use `display:
+      // contents`, which drops table semantics in some browsers, so the roles are explicit.
+      const criteria = token.header.length - 1
+      const even = criteria >= 1 && criteria <= MAX_EVEN_GRID_CRITERIA
+      const role = (r: string) => (even ? ` role="${r}"` : '')
       // Criteria columns are lettered A, B, C and rows numbered 1, 2, 3, as on iOS (AWTD-1533).
       const head = token.header
         .map((cell, i) => {
           const letter = i === 0 ? '' : `<span class="tradeoff-col">${columnLetter(i - 1)}</span> `
-          return `<th${align(token.align[i])}>${letter}${this.parser.parseInline(cell.tokens)}</th>`
+          return `<th${role('columnheader')}${align(token.align[i])}>${letter}${this.parser.parseInline(cell.tokens)}</th>`
         })
         .join('')
       const body = token.rows
         .map((row, r) => {
           const cells = row.map((cell, i) => {
             if (i === 0) {
-              return `<td${align(token.align[i])}>${r + 1}. ${this.parser.parseInline(withoutRowMarker(cell.tokens))}</td>`
+              return `<td${role('rowheader')}${align(token.align[i])}>${r + 1}. ${this.parser.parseInline(withoutRowMarker(cell.tokens))}</td>`
             }
             const parsed = parseRating(cell.text)
-            if (!parsed) return `<td${align(token.align[i])}>${this.parser.parseInline(cell.tokens)}</td>`
+            if (!parsed) return `<td${role('cell')}${align(token.align[i])}>${this.parser.parseInline(cell.tokens)}</td>`
             const style = RATING_STYLE[parsed.rating]
             used.set(style.className, style)
             // The rating stays readable without colour (AWTD-1529).
@@ -322,9 +330,9 @@ const richText = new Marked({
             const reason = parsed.rest
               ? this.parser.parseInline(withoutLeadingRating(cell.tokens, parsed.rating))
               : escapeHtml(parsed.rating)
-            return `<td${align(token.align[i])} class="${style.className}">${spoken}${reason}</td>`
+            return `<td${role('cell')}${align(token.align[i])} class="${style.className}">${spoken}${reason}</td>`
           })
-          return `<tr>${cells.join('')}</tr>`
+          return `<tr${role('row')}>${cells.join('')}</tr>`
         })
         .join('')
       const key = [...used.values()]
@@ -334,8 +342,9 @@ const richText = new Marked({
       // The control opens the grid full screen (AWTD-1534). It is a span, not a button: typed
       // HTML can never produce an allowlisted tag (typedHtmlAsText), so only this renderer emits it.
       const fullScreen = escapeHtml(activeRatingLabels?.fullScreen || 'Full screen')
+      const gridClass = even ? `tradeoff-grid tradeoff-even tradeoff-cols-${criteria}` : 'tradeoff-grid'
       const expand = `<span class="tradeoff-expand" role="button" tabindex="0" data-tradeoff-expand>⤢ ${fullScreen}</span>`
-      return `<div class="tradeoff">${expand}<div class="tradeoff-scroll"><table class="tradeoff-grid"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div><p class="tradeoff-key">${key}</p></div>`
+      return `<div class="tradeoff">${expand}<div class="tradeoff-scroll"><table${role('table')} class="${gridClass}"><thead${role('rowgroup')}><tr${role('row')}>${head}</tr></thead><tbody${role('rowgroup')}>${body}</tbody></table></div><p class="tradeoff-key">${key}</p></div>`
     },
   },
 })
