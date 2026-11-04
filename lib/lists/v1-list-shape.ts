@@ -184,7 +184,7 @@ export async function loadV1ListsForViewers(
 
 /**
  * Broadcast a list or membership event, adding `v1List` for each recipient
- * who can see the list. Everyone else gets `data` unchanged.
+ * who can see the list. Everyone else gets `data` without its invites.
  *
  * One broadcast per viewer because the body differs per viewer; recipients
  * without one share a single lean broadcast.
@@ -196,7 +196,11 @@ export async function broadcastListEvent(args: {
   data: Record<string, unknown>
   timestamp?: string
 }): Promise<void> {
-  const { listId, type, data } = args
+  const { listId, type } = args
+  // A raw list row carries its pending invites, tokens included. They reach a
+  // viewer only through `v1List.invitations`, which is filtered per viewer
+  // (AWTD-1525); the shared body never carries them.
+  const { listInvites: _listInvites, invitations: _invitations, ...data } = args.data
   const recipients = [...new Set(args.recipients)].filter(Boolean)
   if (recipients.length === 0) return
 

@@ -413,6 +413,7 @@ function readList(rec, viewer) {
     { ...read(rec, { include: V1_LIST_READ_INCLUDE }), ...viewer.overlay },
     new Map([[MEMBER, read(memberUser, true)]]),
     viewer.backendInfo ?? new Map(),
+    viewer.id ?? OWNER,
   )
 }
 
