@@ -13,7 +13,9 @@ import {
   countReleases,
   isAbandonedClaim,
   isAwaitingBuild,
+  isFinishedOccurrence,
   isOrphanedDoing,
+  parkFinishedOccurrence,
   isReleasableClaim,
   releaseDoingClaim,
   type DoingTask,
@@ -313,5 +315,38 @@ describe('AWTD-1510: branches in every checkout the board can touch', () => {
     })
     expect(text).toContain('in the checkouts this loop can see (astrid-windows)')
     expect(text).not.toMatch(/starts? fresh/)
+  })
+})
+
+describe('a finished recurring occurrence is not an unfinished claim (2026-11-04)', () => {
+  // AWTD-914, 2026-10-30: the weekly audit posted its clean result and moved its date to
+  // Nov 6, but stayed in Doing; a minute later the release said "ended before finishing it…
+  // continue from the branch" and sent it to Ready.
+  const NOW = new Date('2026-10-30T03:00:00Z')
+  const weekly = (over: Partial<DoingTask> = {}) =>
+    task({ identifier: 'AWTD-914', repeating: 'weekly', dueDateTime: '2026-11-06T00:00:00.000Z', isAllDay: true, ...over })
+
+  it('recognises a repeating task whose date has already moved past now', () => {
+    expect(isFinishedOccurrence(weekly(), NOW)).toBe(true)
+  })
+
+  it('a repeating task that is still due is an ordinary claim', () => {
+    expect(isFinishedOccurrence(weekly({ dueDateTime: '2026-10-30T00:00:00.000Z' }), NOW)).toBe(false)
+  })
+
+  it('a one-off task with a future date is an ordinary claim', () => {
+    expect(isFinishedOccurrence(weekly({ repeating: 'never' }), NOW)).toBe(false)
+    expect(isFinishedOccurrence(weekly({ repeating: null }), NOW)).toBe(false)
+  })
+
+  it('parks it in Waiting until its date, without a release marker', async () => {
+    const api = fakeApi()
+    await parkFinishedOccurrence({ task: weekly(), now: NOW, api })
+    expect(api.setStatus).toHaveBeenCalledWith(expect.objectContaining({ id: 't1' }), 'waiting')
+    const text = api.comment.mock.calls[0][1]
+    expect(text).toContain('📅 Scheduled for 2026-11-06 — parked in Waiting.')
+    expect(text).not.toContain(RELEASE_MARKER)
+    expect(text).not.toMatch(/before finishing|continue from/)
+    expect(countReleases([{ content: text }])).toBe(0)
   })
 })

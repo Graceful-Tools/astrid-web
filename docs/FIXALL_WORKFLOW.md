@@ -193,6 +193,16 @@ queue when it is finished and comes back by itself when it is due. The schedule 
 Astrid, where Jon can see and change it from his phone, rather than in a cron file or in this
 document. To make something recurring, give the task a date and a repeat in Astrid.
 
+**Finish an occurrence by completing it — never by editing its date.** Post the week's
+report, then `update_task { taskId, completed: true }`. The server moves the date by the
+task's own repeat rule and, for a task assigned to an agent, takes it out of Doing; the sweep
+parks it in Waiting until then. Until 2026-11-04 runs edited the date by hand instead, which
+is how a recheck landed on the wrong week (AWTD-540) and how a finished run was left in Doing
+and then released as "ended before finishing it" (AWTD-914, 2026-10-30). The stuck-Doing
+backstop now parks such a task until its date instead of releasing it, but completing it is
+the one step that gets the date, the lane and the occurrence count right together. A
+`BLOCKED-ON` recheck is not a repeat: moving its recheck date by hand stays correct there.
+
 - **No date** → workable now. That is every task the loop took before this existed.
 - **All-day** → workable from the start of its day, since an all-day task carries midnight.
 - **Unreadable date** → treated as *no date*, never as "never". Stranding a task on a value
@@ -328,7 +338,8 @@ write if the task would be stranded, and reads back to prove it.
 9. **Finish per your repo's rule** — see its own `fixall.md`, since "done" differs.
 10. **Post a completion report** (`add_comment`) and mark it complete
     (`update_task { taskId, completed: true }`). Say what it does in plain language, not by
-    commit hash or task id.
+    commit hash or task id. A **repeating** task is completed the same way; that is what
+    rolls it to its next date (*A task with a date waits for its date*, above).
 
 **Never leave a red gate.** A failing test that looks unrelated is still a failing test — say
 plainly that it is unrelated and why, rather than moving past it quietly.
@@ -461,6 +472,11 @@ astrid-core checkout beside it — and names a found branch with its repo; when 
 says which checkouts it looked in, not that the task starts fresh (AWTD-1510). **The second release
 hands the task back** to its human creator in `Waiting` rather than retrying it again — the same
 "fails twice, stop" rule as below.
+
+**A repeating task whose date has already moved past now is not released.** The queue only
+hands out a task once it is due, so such a task finished its occurrence and was left in
+`Doing`. It is parked in `Waiting` until its date with the sweep's usual 📅 comment, and that
+park never counts as a release (AWTD-914, 2026-10-30).
 
 **So, while you work a task: comment as you go.** A claim with no activity for three hours
 reads as abandoned. And never finish a turn with a task you claimed still in `Doing`: complete
