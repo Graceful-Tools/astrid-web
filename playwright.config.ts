@@ -103,7 +103,7 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testMatch: /(auth|locale-navigation|layout-regression|document-pages-scroll|hover-theme-variants|start-here)\.spec\.ts/,
+      testMatch: /(auth|locale-navigation|layout-regression|document-pages-scroll|hover-theme-variants|start-here|tradeoff-grid-even)\.spec\.ts/,
     },
 
     {
@@ -123,7 +123,7 @@ export default defineConfig({
     {
       name: 'Mobile Chrome',
       use: { ...devices['Pixel 5'] },
-      testMatch: /(auth|locale-navigation|layout-regression|mobile-keyboard-no-list-shift|document-pages-scroll)\.spec\.ts/,
+      testMatch: /(auth|locale-navigation|layout-regression|mobile-keyboard-no-list-shift|document-pages-scroll|tradeoff-grid-even)\.spec\.ts/,
     },
     {
       name: 'Mobile Safari',
