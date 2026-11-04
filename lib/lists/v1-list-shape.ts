@@ -26,6 +26,7 @@ import { createLogger } from '@/lib/logger'
 import type { V1List, V1UserSummary } from '@/lib/api-contracts/v1-ios-shapes'
 import { resolveDefaultAssignees, pickDefaultAssignee } from '@/lib/default-assignee'
 import { hasListAccess } from '@/lib/list-member-utils'
+import { canUserManageMembers } from '@/lib/list-permissions'
 import { DEFAULT_LIST_SHOW_SUBTASKS } from '@/lib/list-subtask-visibility'
 import { serializeListAgentFields } from '@/lib/resolve-default-agent'
 import { listBackendFields, loadListBackendInfo, type ListBackendInfo } from '@/lib/backends/list-wire'
@@ -55,13 +56,28 @@ export type V1ListRow = Prisma.TaskListGetPayload<{ include: typeof V1_LIST_READ
 }
 
 /**
+ * The pending invitations `viewerId` may see. An invite token is what accepting
+ * the invite presents, so tokens (and the invited emails) go only to callers who
+ * can manage members; everyone else gets none (AWTD-1525). Project admins who
+ * are not list admins are not covered: the read does not load the project.
+ */
+export function invitationsVisibleTo<T>(
+  list: { listInvites?: T[] | null },
+  viewerId: string,
+): T[] {
+  if (!canUserManageMembers({ id: viewerId }, list as never)) return []
+  return list.listInvites ?? []
+}
+
+/**
  * Shape a row for the wire. The row must already carry the viewer's favorite
  * and view preferences; `defaultAssignees` is from resolveDefaultAssignees.
  */
 export function shapeV1List(
   list: V1ListRow,
   defaultAssignees: Map<string, unknown>,
-  backendInfo: ReadonlyMap<string, ListBackendInfo> = new Map(),
+  backendInfo: ReadonlyMap<string, ListBackendInfo>,
+  viewerId: string,
 ): V1List {
   return {
     id: list.id,
@@ -74,7 +90,7 @@ export function shapeV1List(
     favoriteOrder: list.favoriteOrder ?? null,
     owner: list.owner as V1UserSummary | null,
     listMembers: list.listMembers,
-    invitations: list.listInvites,
+    invitations: invitationsVisibleTo(list, viewerId),
     taskCount: list._count.tasks,
     isVirtual: list.isVirtual,
     virtualListType: list.virtualListType,
@@ -157,7 +173,7 @@ export async function loadV1ListsForViewers(
       row.isFavorite = favoriteOrderByUser.has(userId)
       row.favoriteOrder = favoriteOrderByUser.get(userId) ?? null
       overlayListViewPreferences(row, preferencesByUser.get(userId))
-      result.set(userId, shapeV1List(row, defaultAssignees, backendInfo))
+      result.set(userId, shapeV1List(row, defaultAssignees, backendInfo, userId))
     }
   } catch (err) {
     log.error({ err, listId }, 'Failed to load the v1 list for a list event')
@@ -168,7 +184,7 @@ export async function loadV1ListsForViewers(
 
 /**
  * Broadcast a list or membership event, adding `v1List` for each recipient
- * who can see the list. Everyone else gets `data` unchanged.
+ * who can see the list. Everyone else gets `data` without its invites.
  *
  * One broadcast per viewer because the body differs per viewer; recipients
  * without one share a single lean broadcast.
@@ -180,7 +196,11 @@ export async function broadcastListEvent(args: {
   data: Record<string, unknown>
   timestamp?: string
 }): Promise<void> {
-  const { listId, type, data } = args
+  const { listId, type } = args
+  // A raw list row carries its pending invites, tokens included. They reach a
+  // viewer only through `v1List.invitations`, which is filtered per viewer
+  // (AWTD-1525); the shared body never carries them.
+  const { listInvites: _listInvites, invitations: _invitations, ...data } = args.data
   const recipients = [...new Set(args.recipients)].filter(Boolean)
   if (recipients.length === 0) return
 

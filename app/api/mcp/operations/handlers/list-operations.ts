@@ -14,6 +14,7 @@ import {
   splitListViewPreferences,
 } from "@/lib/list-view-preferences"
 import { createLogger } from '@/lib/logger'
+import { invitationsVisibleTo } from '@/lib/lists/v1-list-shape'
 import {
   createListWithImageOwnership,
   deleteListWithImageRelease,
@@ -86,7 +87,7 @@ export async function getSharedLists(accessToken: string, userId: string) {
       favoriteOrder: list.favoriteOrder,
       owner: list.owner,
       listMembers: list.listMembers,
-      invitations: list.listInvites,
+      invitations: invitationsVisibleTo(list, mcpToken.userId),
       taskCount: list._count.tasks,
       permissions: determinePermissions(list, mcpToken.userId),
       mcpAccessLevel: getTokenAccessLevel(determinePermissions(list, mcpToken.userId)),
