@@ -23,6 +23,7 @@ import type { V1List, V1UserSummary } from '@/lib/api-contracts/v1-ios-shapes'
 import type { V1ListCreateRequest } from '@/lib/api-contracts/v1-request-shapes'
 import { isV1ListPrivacy, V1_LIST_PRIVACY_VALUES } from '@/lib/api-contracts/v1-request-shapes'
 import { listVisibilityWhere } from '@/lib/list-permissions'
+import { invitationsVisibleTo } from '@/lib/lists/v1-list-shape'
 import { DEFAULT_LIST_SHOW_SUBTASKS } from '@/lib/list-subtask-visibility'
 import { getDeletionsSince } from '@/lib/deletion-log'
 import { serializeListAgentFields } from '@/lib/resolve-default-agent'
@@ -140,7 +141,7 @@ export const GET = withAuth(
           favoriteOrder: list.favoriteOrder,
           owner: list.owner,
           listMembers: list.listMembers,
-          invitations: list.listInvites,
+          invitations: invitationsVisibleTo(list, auth.userId),
           taskCount: taskCounts[list.id] || 0,
           isVirtual: list.isVirtual,
           virtualListType: list.virtualListType,
