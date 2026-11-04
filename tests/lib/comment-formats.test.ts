@@ -91,7 +91,7 @@ describe('AWTD-1529 trade-off grid drawn like iOS', () => {
 
   it('scrolls sideways inside its own container', () => {
     const html = renderMarkdownWithLinks(grid)
-    expect(html).toMatch(/<div class="tradeoff-scroll"><table class="tradeoff-grid">/)
+    expect(html).toMatch(/<div class="tradeoff-scroll"><table[^>]* class="tradeoff-grid[ "]/)
   })
 
   it('keys each colour by name, worst to best', () => {

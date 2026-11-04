@@ -332,9 +332,11 @@ three light fills — Google Docs palette). A cell with no reason shows its toke
 assistive technology its rating in words ("Good. fast"), and the colour key under the grid names the
 ratings used in words (Very poor … Very good, localised), worst to best. Rows are numbered 1, 2, 3
 and lose the marker their writer put in front (`A. Lisbon`, `2) Cabin`, a lone `B`); criteria
-columns are lettered A, B, C (AA after Z) before their names. A cell wraps within 84–150 (pt or
-px) before the grid grows sideways; rated cells centre both ways, column and option names
-vertically. A grid wider than its
+columns are lettered A, B, C (AA after Z) before their names. Every option row is as tall as
+the tallest, and the criteria columns share the width equally, at least 84 (pt or px) each. A
+column grows past its share only to fit its longest word, so no text is clipped or broken mid-word.
+The option column is as wide as its longest name, from 6 to 12rem (about 96–192) and at most a
+third of the screen's width, and wraps past that (AWTD-1536). Rated cells centre both ways, column and option names vertically. A grid wider than its
 container scrolls sideways, and a sideways drag there scrolls the grid rather than dismissing the
 task or pane behind it. Every grid offers a full-screen view of itself (web: "Full screen", AWTD-1534).
 
