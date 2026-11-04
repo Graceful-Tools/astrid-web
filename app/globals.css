@@ -168,15 +168,15 @@
 .tradeoff-expand { display: inline-flex; align-items: center; gap: 0.25rem; margin-top: 0.5rem; font-size: 0.75rem; font-weight: 500; opacity: 0.75; cursor: pointer; border-radius: 0.25rem; padding: 0 0.25rem; }
 .tradeoff-expand:hover, .tradeoff-expand:focus-visible { opacity: 1; text-decoration: underline; }
 .tradeoff-expand + .tradeoff-scroll { margin-top: 0.25rem; }
-.tradeoff-viewer .tradeoff-scroll table.tradeoff-grid { font-size: 0.9375rem; --tradeoff-cell-min: 9rem; --tradeoff-cell-max: 16rem; --tradeoff-option-max: 18rem; }
+.tradeoff-viewer .tradeoff-scroll table.tradeoff-grid { font-size: 0.9375rem; --tradeoff-cell-min: 9rem; --tradeoff-cell-max: 16rem; --tradeoff-option-max: min(18rem, 33vw); }
 .tradeoff-scroll { overflow-x: auto; margin: 0.5rem 0; -webkit-overflow-scrolling: touch; }
 .tradeoff-scroll table.tradeoff-grid { border-collapse: separate; border-spacing: 4px; width: auto; min-width: 100%; margin: 0 -4px; font-size: 0.875rem; --tradeoff-cell-min: 84px; --tradeoff-cell-max: 150px; --tradeoff-option-min: 6rem; --tradeoff-option-max: min(12rem, 33vw); }
 .tradeoff-scroll table.tradeoff-grid th,
 /* As iOS AITD-585 (AWTD-1533): a word is never broken to squeeze in a column; the grid grows
    sideways and scrolls instead. Rated cells centre both ways; the column and option names centre
    vertically. */
-.tradeoff-scroll table.tradeoff-grid td { border: none; padding: 0.375rem 0.5rem; vertical-align: middle; text-align: center; min-width: var(--tradeoff-cell-min); max-width: 150px; overflow-wrap: normal; word-break: normal; hyphens: none; border-radius: 0.375rem; }
-.tradeoff-scroll table.tradeoff-grid th { text-align: center; vertical-align: middle; font-weight: 600; min-width: var(--tradeoff-cell-min); max-width: 150px; }
+.tradeoff-scroll table.tradeoff-grid td { border: none; padding: 0.375rem 0.5rem; vertical-align: middle; text-align: center; min-width: var(--tradeoff-cell-min); max-width: var(--tradeoff-cell-max); overflow-wrap: normal; word-break: normal; hyphens: none; border-radius: 0.375rem; }
+.tradeoff-scroll table.tradeoff-grid th { text-align: center; vertical-align: middle; font-weight: 600; min-width: var(--tradeoff-cell-min); max-width: var(--tradeoff-cell-max); }
 .tradeoff-scroll table.tradeoff-grid th:first-child,
 .tradeoff-scroll table.tradeoff-grid td:first-child { text-align: left; font-weight: 600; min-width: 64px; max-width: 120px; }
 /* Even grid (AWTD-1536): every option row is as tall as the tallest, and every criteria column
