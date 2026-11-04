@@ -1,5 +1,6 @@
 import DOMPurify from 'dompurify'
-import { Marked, marked } from 'marked'
+import { Marked, marked, type Token } from 'marked'
+import { columnLetter, isTradeoffGrid, parseRating, RATING_STYLE, type Rating, type RatingLabels } from '@/lib/comment-formats'
 import { replaceIdentifierLinks, type IdentifierLinkContext } from '@/lib/task-identifier-links'
 
 // Allowed URL protocols for links
@@ -200,18 +201,19 @@ const RICH_TEXT_TAGS = [
   'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
   'ul', 'ol', 'li',
   'blockquote', 'hr',
-  'table', 'thead', 'tbody', 'tr', 'th', 'td',
+  'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div',
   'a',
   'input', // GFM task list checkboxes
 ]
 
 /**
- * `type`/`checked`/`disabled` are for checkboxes; `align` for table cells; `start` for an ordered
+ * `type`/`checked`/`disabled` are for checkboxes; `align` for table cells; `role`/`tabindex` for a
+ * trade-off grid's full-screen control (AWTD-1534); `start` for an ordered
  * list that does not begin at 1 (`3. three` is numbered 3, as on iOS — CONTRACTS.md D38). DOMPurify
  * checks a value only for URI attributes, so `start` takes whatever `marked` wrote, which is the
  * list's number.
  */
-const RICH_TEXT_ATTRS = ['href', 'target', 'rel', 'class', 'type', 'checked', 'disabled', 'align', 'start']
+const RICH_TEXT_ATTRS = ['href', 'target', 'rel', 'class', 'type', 'checked', 'disabled', 'align', 'start', 'role', 'tabindex']
 
 const RICH_TEXT_TAG_SET = new Set(RICH_TEXT_TAGS)
 
@@ -231,6 +233,58 @@ function typedHtmlAsText(html: string): string {
 }
 
 /**
+ * The reader's rating names for the parse in progress. `richText` is one shared instance and its
+ * renderer takes no per-call options, so `renderMarkdownWithLinks` sets this around its synchronous
+ * parse (AWTD-1529).
+ */
+let activeRatingLabels: RatingLabels | undefined
+
+function ratingLabel(style: (typeof RATING_STYLE)[Rating]): string {
+  return escapeHtml(activeRatingLabels?.[style.labelKey] || style.label)
+}
+
+/**
+ * A rated cell's inline tokens with the leading rating removed. Works on the parsed tokens rather
+ * than re-lexing the text, so reference links defined elsewhere in the comment still resolve.
+ */
+function withoutLeadingRating(tokens: Token[], rating: string): Token[] {
+  const [first, ...rest] = tokens
+  if (!first || first.type !== 'text' || !first.raw.trimStart().startsWith(rating)) return tokens
+  const strip = (t: string) => t.trimStart().slice(rating.length).trimStart()
+  const text = strip(first.text)
+  return text ? [{ ...first, raw: strip(first.raw), text } as Token, ...rest] : rest
+}
+
+const BARE_MARKER = /^\s*(?:[A-Za-z]|\d{1,2})[.):]?\s*$/
+const PUNCTUATED_MARKER = /^\s*(?:[A-Za-z]|\d{1,2})[.):](?:\s+|$)/
+
+/**
+ * A grid row's option cell without its writer's marker, on the parsed tokens like
+ * `withoutLeadingRating`; the grid numbers rows itself (AWTD-1533). As AstridCore's
+ * `droppingMarker`: a marker followed by more words needs its punctuation ("A. Lisbon",
+ * "**2)** Cabin"), and a bare one ("B") goes only when it is the whole cell, so "I **am** here"
+ * keeps its "I". Text after the marker keeps its own spacing.
+ */
+function withoutRowMarker(tokens: Token[]): Token[] {
+  const [first, ...rest] = tokens
+  if (!first || (first.type !== 'text' && first.type !== 'strong')) return tokens
+  const whole = tokens.length === 1
+  if (whole && BARE_MARKER.test(first.text)) return []
+  if (first.type === 'strong') {
+    if (!PUNCTUATED_MARKER.test(first.text) || first.text.trim().length > 3) return tokens
+    const [next, ...after] = rest
+    if (next?.type !== 'text') return rest
+    const text = next.text.trimStart()
+    return text ? [{ ...next, raw: next.raw.trimStart(), text } as Token, ...after] : after
+  }
+  const m = PUNCTUATED_MARKER.exec(first.text)
+  if (!m) return tokens
+  const text = first.text.slice(m[0].length)
+  const raw = first.raw.replace(PUNCTUATED_MARKER, '')
+  return text ? [{ ...first, raw, text } as Token, ...rest] : rest
+}
+
+/**
  * The renderer for descriptions, comments and chat: GFM, a newline is a line break, and typed HTML
  * is text. Its own instance, so `renderMarkdown` (the editor preview) is unchanged.
  */
@@ -239,6 +293,50 @@ const richText = new Marked({
   breaks: true,
   renderer: {
     html: ({ text }) => typedHtmlAsText(text),
+    // A trade-off grid (AWTD-1524) draws each rated cell on its colour; any other table is stock.
+    table(token) {
+      const plainRows = token.rows.map(row => row.map(cell => cell.text))
+      if (!isTradeoffGrid(plainRows)) return false
+      const used = new Map<string, (typeof RATING_STYLE)[Rating]>()
+      const align = (a: string | null) => (a ? ` align="${a}"` : '')
+      // Criteria columns are lettered A, B, C and rows numbered 1, 2, 3, as on iOS (AWTD-1533).
+      const head = token.header
+        .map((cell, i) => {
+          const letter = i === 0 ? '' : `<span class="tradeoff-col">${columnLetter(i - 1)}</span> `
+          return `<th${align(token.align[i])}>${letter}${this.parser.parseInline(cell.tokens)}</th>`
+        })
+        .join('')
+      const body = token.rows
+        .map((row, r) => {
+          const cells = row.map((cell, i) => {
+            if (i === 0) {
+              return `<td${align(token.align[i])}>${r + 1}. ${this.parser.parseInline(withoutRowMarker(cell.tokens))}</td>`
+            }
+            const parsed = parseRating(cell.text)
+            if (!parsed) return `<td${align(token.align[i])}>${this.parser.parseInline(cell.tokens)}</td>`
+            const style = RATING_STYLE[parsed.rating]
+            used.set(style.className, style)
+            // The rating stays readable without colour (AWTD-1529).
+            const spoken = `<span class="sr-only">${ratingLabel(style)}. </span>`
+            // A rating-only cell shows its token, so it still reads where colours are overridden.
+            const reason = parsed.rest
+              ? this.parser.parseInline(withoutLeadingRating(cell.tokens, parsed.rating))
+              : escapeHtml(parsed.rating)
+            return `<td${align(token.align[i])} class="${style.className}">${spoken}${reason}</td>`
+          })
+          return `<tr>${cells.join('')}</tr>`
+        })
+        .join('')
+      const key = [...used.values()]
+        .sort((a, b) => a.rank - b.rank)
+        .map(s => `<span class="tradeoff-key-item"><span class="tradeoff-swatch ${s.className}"></span>${ratingLabel(s)}</span>`)
+        .join('')
+      // The control opens the grid full screen (AWTD-1534). It is a span, not a button: typed
+      // HTML can never produce an allowlisted tag (typedHtmlAsText), so only this renderer emits it.
+      const fullScreen = escapeHtml(activeRatingLabels?.fullScreen || 'Full screen')
+      const expand = `<span class="tradeoff-expand" role="button" tabindex="0" data-tradeoff-expand>⤢ ${fullScreen}</span>`
+      return `<div class="tradeoff">${expand}<div class="tradeoff-scroll"><table class="tradeoff-grid"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div><p class="tradeoff-key">${key}</p></div>`
+    },
   },
 })
 
@@ -270,7 +368,7 @@ function styleInlineCode(html: string, codeClass: string): string {
  */
 export function renderMarkdownWithLinks(
   text: string,
-  options?: { codeClass?: string; identifiers?: IdentifierLinkContext }
+  options?: { codeClass?: string; identifiers?: IdentifierLinkContext; ratingLabels?: RatingLabels }
 ): string {
   if (!text) return ""
 
@@ -289,7 +387,13 @@ export function renderMarkdownWithLinks(
       })
     : extracted.text
 
-  let html = richText.parse(withSentinels, { async: false }) as string
+  activeRatingLabels = options?.ratingLabels
+  let html: string
+  try {
+    html = richText.parse(withSentinels, { async: false }) as string
+  } finally {
+    activeRatingLabels = undefined
+  }
   html = decorateExternalLinks(html)
   html = styleInlineCode(html, options?.codeClass || '')
   html = restoreReferences(html, rendered, typed)

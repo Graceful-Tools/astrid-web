@@ -17,6 +17,7 @@ import {
   Wrench,
 } from "lucide-react"
 import { scrollShellClassName } from "@/components/scroll-shell"
+import { DecisionFormatGuide } from "@/components/docs/DecisionFormatGuide"
 
 export default function MCPDocsPage() {
   const router = useRouter()
@@ -395,6 +396,19 @@ Authorization: Bearer YOUR_ACCESS_TOKEN`}
                   { name: 'updateUserSettings', description: 'Update user preferences' },
                 ]}
               />
+            </CardContent>
+          </Card>
+
+          {/* Asking a person to choose (AWTD-1531) */}
+          <Card id="decisions" className="theme-bg-secondary theme-border">
+            <CardHeader>
+              <CardTitle className="theme-text-primary">Asking a person to choose</CardTitle>
+              <CardDescription className="theme-text-muted">
+                Decision cards and trade-off grids in comments. Full guide: docs/DECISIONS.md in the repository.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DecisionFormatGuide audience="agents" />
             </CardContent>
           </Card>
 

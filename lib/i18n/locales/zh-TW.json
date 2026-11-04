@@ -143,6 +143,16 @@
       "errorSaveFailed": "無法將該變更儲存到 GitHub。請再試一次。",
       "filterLabel": "專案欄位",
       "filterAll": "所有任務"
+    },
+    "tradeoffRatings": {
+      "veryPoor": "很差",
+      "poor": "差",
+      "mixed": "普通",
+      "good": "好",
+      "veryGood": "很好"
+    },
+    "tradeoffGrid": {
+      "fullScreen": "全螢幕"
     }
   },
   "lists": {

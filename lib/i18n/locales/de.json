@@ -143,6 +143,16 @@
       "errorSaveFailed": "Diese Änderung konnte nicht in GitHub gespeichert werden. Versuche es erneut.",
       "filterLabel": "Projektfeld",
       "filterAll": "Alle Aufgaben"
+    },
+    "tradeoffRatings": {
+      "veryPoor": "Sehr schlecht",
+      "poor": "Schlecht",
+      "mixed": "Gemischt",
+      "good": "Gut",
+      "veryGood": "Sehr gut"
+    },
+    "tradeoffGrid": {
+      "fullScreen": "Vollbild"
     }
   },
   "lists": {

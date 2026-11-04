@@ -301,6 +301,45 @@ not a tidy-up.
 
 ---
 
+## 8. Decision cards and trade-off grids (comments)
+
+Two markdown shapes that comments draw richly on every platform. Anything else is plain markdown.
+Reference recogniser: astrid-ios `Packages/AstridCore/Sources/AstridCore/Decision.swift`; web:
+`lib/comment-formats.ts`. How to write them, with the canonical example: [DECISIONS.md](./DECISIONS.md).
+Web is held to `contracts/fixtures/decisions.json`; AstridCore has its own tests (DecisionTests,
+AITD-585) and does not read the fixture yet.
+
+**Code is code.** A Decision on lines markdown draws as code (inside a ``` or ~~~ fence, or
+indented four spaces) is an example and stays code.
+
+**Decision.** A paragraph starting with bold `**Decision:**`, followed directly by a list whose
+every item starts with a bold marker — a number of up to two digits or a single letter (`1.` /
+`1)` / `1:` / `1`, or `A.` …) — at least two items. Options are numbered 1, 2, 3 in list order
+whatever marker was written (AWTD-1533, iOS AITD-585); each draws as a card with its number, and a
+trailing `(recommended)` becomes a badge. Clicking a card posts `<number> — <option text>` as an
+ordinary comment (that reply wakes the agent via `AGENT-HANDBACK`). Cards are inert in a
+description, on your own question, and once someone other than the asker has replied after it
+(system comments don't count). If that reply leads with an option's number, or with the marker the
+asker wrote (letters case-insensitive), followed by end/space/punctuation, that card shows as
+chosen. `2nd thoughts` and `10 minutes` (no tenth option) choose nothing.
+
+**Trade-off grid.** A GFM table where every non-empty body cell after the first column starts
+with a rating token followed by whitespace or end: `--` very poor, `-` poor, `~` mixed, `+` good,
+`++` very good, or 🔴 poor / 🟡 mixed / 🟢 good. Not a grid if any such cell lacks a token, or if
+every rated cell is a bare `-`. Each cell draws on its colour with the remaining words
+(`#CC0000` white text, `#E06666`, `#FFD966`, `#93C47D`, `#38761D` white text, near-black text on the
+three light fills — Google Docs palette). A cell with no reason shows its token. Each cell tells
+assistive technology its rating in words ("Good. fast"), and the colour key under the grid names the
+ratings used in words (Very poor … Very good, localised), worst to best. Rows are numbered 1, 2, 3
+and lose the marker their writer put in front (`A. Lisbon`, `2) Cabin`, a lone `B`); criteria
+columns are lettered A, B, C (AA after Z) before their names. A cell wraps within 84–150 (pt or
+px) before the grid grows sideways; rated cells centre both ways, column and option names
+vertically. A grid wider than its
+container scrolls sideways, and a sideways drag there scrolls the grid rather than dismissing the
+task or pane behind it. Every grid offers a full-screen view of itself (web: "Full screen", AWTD-1534).
+
+---
+
 ## 7. How this stays true (anti-drift)
 
 - **Both repos cite this file.** Web: ASTRID.md → *Agent Working Agreements →

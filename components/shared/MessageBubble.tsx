@@ -4,6 +4,9 @@ import React from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { SecureAttachmentViewer } from '@/components/secure-attachment-viewer'
 import { renderMarkdownWithLinks } from '@/lib/markdown'
+import { ratingLabels } from '@/lib/comment-formats'
+import { useTranslations } from '@/lib/i18n/client'
+import { useTradeoffGridViewer } from '@/components/shared/TradeoffGridViewer'
 import type { IdentifierLinkContext } from '@/lib/task-identifier-links'
 import { FileText } from 'lucide-react'
 import { format } from 'date-fns'
@@ -46,6 +49,8 @@ export interface MessageBubbleProps {
   codeClass?: string
   /** Reader context for autolinking task ids (AWTD-1017); absent links none. */
   identifiers?: IdentifierLinkContext
+  /** Replaces the rendered markdown body (e.g. Decision cards, AWTD-1524). */
+  richContent?: React.ReactNode
   /** Action buttons (rendered below the bubble) */
   actions?: React.ReactNode
   /** Click handler for the bubble (e.g., to toggle actions) */
@@ -89,9 +94,12 @@ export const MessageBubble = React.memo(function MessageBubble({
   isOptimistic = false,
   codeClass,
   identifiers,
+  richContent,
   actions,
   onClick,
 }: MessageBubbleProps) {
+  const { t } = useTranslations()
+  const gridViewer = useTradeoffGridViewer()
   const timestamp = createdAt instanceof Date ? createdAt : new Date(createdAt)
 
   // System message: centered muted text, no bubble
@@ -167,15 +175,19 @@ export const MessageBubble = React.memo(function MessageBubble({
           )}
 
           {/* Text content */}
-          {content && !content.startsWith('Attached: ') && (
+          {richContent}
+          {gridViewer.dialog}
+          {!richContent && content && !content.startsWith('Attached: ') && (
             <div
               // `prose` restores the block styles Tailwind preflight strips.
               // Without it headings and lists parse correctly and then render
               // at body size with no bullets — the markup is right and the
               // reader sees no difference (task 0a54e46f).
               className="prose prose-sm max-w-none text-sm theme-text-secondary"
+              onClick={gridViewer.onClick}
+              onKeyDown={gridViewer.onKeyDown}
               dangerouslySetInnerHTML={{
-                __html: renderMarkdownWithLinks(content, { codeClass: codeClass || 'theme-bg-tertiary px-1 rounded', identifiers }),
+                __html: renderMarkdownWithLinks(content, { codeClass: codeClass || 'theme-bg-tertiary px-1 rounded', identifiers, ratingLabels: ratingLabels(t) }),
               }}
             />
           )}
