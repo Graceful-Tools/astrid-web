@@ -169,7 +169,11 @@
 .tradeoff-expand:hover, .tradeoff-expand:focus-visible { opacity: 1; text-decoration: underline; }
 .tradeoff-expand + .tradeoff-scroll { margin-top: 0.25rem; }
 .tradeoff-viewer .tradeoff-scroll table.tradeoff-grid { font-size: 0.9375rem; --tradeoff-cell-min: 9rem; --tradeoff-cell-max: 16rem; --tradeoff-option-max: min(18rem, 33vw); }
-.tradeoff-scroll { overflow-x: auto; margin: 0.5rem 0; -webkit-overflow-scrolling: touch; }
+/* position: relative makes this the containing block of each cell's absolutely positioned
+   `.sr-only` rating label. Without it those labels belong to an ancestor outside this scroller, so it
+   does not clip them, and they widen the task detail itself. That scroller then scrolls sideways
+   with the comment pushed off screen (AITD-589, e2e/mobile-tradeoff-grid-no-overflow.spec.ts). */
+.tradeoff-scroll { position: relative; overflow-x: auto; margin: 0.5rem 0; -webkit-overflow-scrolling: touch; }
 .tradeoff-scroll table.tradeoff-grid { border-collapse: separate; border-spacing: 4px; width: auto; min-width: 100%; margin: 0 -4px; font-size: 0.875rem; --tradeoff-cell-min: 84px; --tradeoff-cell-max: 150px; --tradeoff-option-min: 6rem; --tradeoff-option-max: min(12rem, 33vw); }
 .tradeoff-scroll table.tradeoff-grid th,
 /* As iOS AITD-585 (AWTD-1533): a word is never broken to squeeze in a column; the grid grows
