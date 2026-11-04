@@ -60,7 +60,7 @@ describe('AWTD-1533 grid rows numbered, columns lettered', () => {
     const html = renderMarkdownWithLinks(
       '| Option | Cost |\n|---|---|\n| I **am** here | + a |\n| **I** am here | + b |\n| A. Visit [Lisbon](https://example.com) | + c |\n| **B** | + d |',
     )
-    const firstCells = [...html.matchAll(/<tr><td>(.*?)<\/td>/g)].map(m => m[1].replace(/<[^>]+>/g, ''))
+    const firstCells = [...html.matchAll(/<tr[^>]*><td[^>]*>(.*?)<\/td>/g)].map(m => m[1].replace(/<[^>]+>/g, ''))
     expect(firstCells).toEqual(['1. I am here', '2. I am here', '3. Visit Lisbon', '4. '])
   })
 
@@ -68,7 +68,7 @@ describe('AWTD-1533 grid rows numbered, columns lettered', () => {
     const html = renderMarkdownWithLinks(
       '| Option | Cost | Travel |\n|---|---|---|\n| A. Lisbon | ~ flights | - long |\n| **2)** Cabin | + rental | + 3h |\n| Pizza | ++ cheap | ++ none |\n| B | + x | + y |',
     )
-    const firstCells = [...html.matchAll(/<tr><td>(.*?)<\/td>/g)].map(m => m[1])
+    const firstCells = [...html.matchAll(/<tr[^>]*><td[^>]*>(.*?)<\/td>/g)].map(m => m[1])
     expect(firstCells).toEqual(['1. Lisbon', '2. Cabin', '3. Pizza', '4. '])
     const heads = [...html.matchAll(/<th(?:\s[^>]*)?>(.*?)<\/th>/g)].map(m => m[1])
     expect(heads).toEqual([

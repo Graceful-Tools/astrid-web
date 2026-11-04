@@ -78,8 +78,11 @@ a short reason.
   each column's name, so a reply can say "1 is weak on B".
 - **A key** under the grid names each colour by its rating. Each cell also tells screen readers its
   rating in words ("Good. one rental").
-- **Wide grids scroll sideways** rather than squeezing columns: each cell wraps within about
-  84–150px. Rated cells are centred; column and option names are centred vertically. Every grid has a **Full screen** control that opens it on its
+- **Even rows and columns:** every option row is as tall as the tallest, and the criteria columns
+  share the width equally, never narrower than their longest word. The option column can be
+  wider, up to about 12rem, and wraps past that.
+- **Wide grids scroll sideways** rather than squeezing columns below about 84px. Rated cells are
+  centred; column and option names are centred vertically. Every grid has a **Full screen** control that opens it on its
   own. Dragging a grid that scrolls moves the grid; it never closes the task behind it.
 - **Not a grid:** a table with any unrated cell, or one where every cell is a bare `-` (a
   placeholder table). These stay ordinary tables.
