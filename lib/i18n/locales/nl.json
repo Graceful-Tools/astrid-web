@@ -143,6 +143,16 @@
       "errorSaveFailed": "Die wijziging kon niet in GitHub worden opgeslagen. Probeer het opnieuw.",
       "filterLabel": "Projectveld",
       "filterAll": "Alle taken"
+    },
+    "tradeoffRatings": {
+      "veryPoor": "Zeer slecht",
+      "poor": "Slecht",
+      "mixed": "Gemengd",
+      "good": "Goed",
+      "veryGood": "Zeer goed"
+    },
+    "tradeoffGrid": {
+      "fullScreen": "Volledig scherm"
     }
   },
   "lists": {

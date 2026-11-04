@@ -15,7 +15,9 @@
 import { FileText as FileTextIcon } from "lucide-react"
 import { TaskFieldRow } from "./TaskFieldRow"
 import { useTranslations } from "@/lib/i18n/client"
+import { useTradeoffGridViewer } from "@/components/shared/TradeoffGridViewer"
 import { renderMarkdownWithLinks } from "@/lib/markdown"
+import { ratingLabels } from "@/lib/comment-formats"
 import { useIdentifierLinkContext } from "@/hooks/use-identifier-link-context"
 import type { Task } from "@/types/task"
 
@@ -45,6 +47,7 @@ export function TaskDetailDescriptionRow({
   handleCancelDescription,
 }: TaskDetailDescriptionRowProps) {
   const { t } = useTranslations()
+  const gridViewer = useTradeoffGridViewer()
   const identifiers = useIdentifierLinkContext((task.lists ?? []).map(list => list.id))
 
   return (
@@ -104,8 +107,10 @@ export function TaskDetailDescriptionRow({
               // a code block stretches the row past the panel instead of letting
               // `.prose pre` scroll horizontally (task 61a21152).
               className="prose prose-sm max-w-none theme-text-primary min-w-0 flex-1"
+              onClick={gridViewer.onClick}
+              onKeyDown={gridViewer.onKeyDown}
               dangerouslySetInnerHTML={{
-                __html: renderMarkdownWithLinks(task.description, { codeClass: 'theme-bg-tertiary px-1 rounded text-sm', identifiers })
+                __html: renderMarkdownWithLinks(task.description, { codeClass: 'theme-bg-tertiary px-1 rounded text-sm', identifiers, ratingLabels: ratingLabels(t) })
               }}
             />
           ) : (
@@ -113,6 +118,7 @@ export function TaskDetailDescriptionRow({
           )}
         </div>
       )}
+      {gridViewer.dialog}
     </TaskFieldRow>
   )
 }

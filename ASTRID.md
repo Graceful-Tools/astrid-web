@@ -107,6 +107,7 @@ the fixture is regenerated in the same PR:
 | `markdown.json` | `lib/markdown.ts` |
 | `wire-shapes.json` | `lib/tasks/v1-task-shape.ts`, `lib/lists/v1-list-shape.ts` |
 | `sync-existence.json` | `lib/sync/v1-existence.ts`, `app/api/v1/sync/existence/route.ts` |
+| `decisions.json` | `lib/comment-formats.ts`, `lib/decision-examples.ts` (guide: docs/DECISIONS.md) |
 
 The registry is `EXPORTS` in `scripts/export-contract-fixtures.ts`. Each fixture's consumer
 is listed in astrid-core's

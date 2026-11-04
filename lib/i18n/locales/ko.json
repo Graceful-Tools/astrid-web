@@ -143,6 +143,16 @@
       "errorSaveFailed": "변경 사항을 GitHub에 저장하지 못했습니다. 다시 시도하세요.",
       "filterLabel": "프로젝트 필드",
       "filterAll": "모든 작업"
+    },
+    "tradeoffRatings": {
+      "veryPoor": "매우 나쁨",
+      "poor": "나쁨",
+      "mixed": "보통",
+      "good": "좋음",
+      "veryGood": "매우 좋음"
+    },
+    "tradeoffGrid": {
+      "fullScreen": "전체 화면"
     }
   },
   "lists": {

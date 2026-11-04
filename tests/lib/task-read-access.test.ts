@@ -68,6 +68,9 @@ function listMatches(list: ListRow, cond: Record<string, unknown>): boolean {
     if (key === 'OR') return (value as Record<string, unknown>[]).some((c) => listMatches(list, c))
     if (key === 'ownerId') return list.ownerId === value
     if (key === 'privacy') return list.privacy === value
+    // The project and status-list branches (AWTD-1523): no fixture list here
+    // is in a project or is a status list.
+    if (key === 'project' || key === 'listType') return false
     if (key === 'listMembers') {
       const some = (value as { some: { userId: string } }).some
       return list.listMembers.some((m) => m.userId === some.userId)

@@ -16,6 +16,7 @@
 import {
   put,
   del,
+  copy,
   getDownloadUrl,
   issueSignedToken,
   presignUrl,
@@ -114,6 +115,36 @@ export async function deleteObject(url: string): Promise<void> {
     return
   }
   await del(url)
+}
+
+/**
+ * Duplicate a stored object at a new path, and return the copy (AWTD-1530).
+ *
+ * A copied task's comment files need their own objects: a SecureFile's blobUrl is unique, and
+ * deleting the original task must not take the copy's files with it. Rejects when the source is
+ * missing, so the caller decides what a lost file means.
+ */
+export async function copyStoredObject(
+  sourceUrl: string,
+  pathname: string,
+  options: { contentType?: string } = {},
+): Promise<StoredObject> {
+  if (isSelfHostedStorage()) {
+    const store = await selfHostedObjectStore()
+    const sourcePath = extractBlobPathname(sourceUrl)
+    const source = sourcePath ? await store.get(sourcePath) : null
+    if (!source) throw new Error('Source object not found')
+    const bytes = source.body instanceof Uint8Array
+      ? source.body
+      : new Uint8Array(await new Response(source.body).arrayBuffer())
+    await store.put(pathname, bytes, options.contentType || source.contentType || 'application/octet-stream')
+    return { url: selfHostedObjectUrl(pathname), pathname }
+  }
+  const blob = await copy(sourceUrl, pathname, {
+    access: 'public',
+    ...(options.contentType ? { contentType: options.contentType } : {}),
+  })
+  return { url: blob.url, pathname: blob.pathname }
 }
 
 /** What a client needs to upload straight to the store, bypassing our functions. */

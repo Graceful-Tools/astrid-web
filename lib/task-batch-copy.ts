@@ -25,6 +25,30 @@ export type BatchCopyResult =
   | { ok: true; task: Record<string, unknown> }
   | { ok: false; status: 400 | 403 | 404; error: string }
 
+/**
+ * Whether a user may copy a task they hold: the source-side rule for every copy, single or batch.
+ * The single-task copy checked only its destination until AWTD-1530 (Copilot on #668).
+ *
+ * A task on a public list is copyable by anyone, unless the task itself is marked private.
+ * Otherwise the shared access rule applies — services/task.service.ts (task 017a569a, slice 3).
+ *
+ * The public-list bypass stays HERE rather than becoming a flag on the predicate, which is the
+ * shape slice 1 argued for: a flag would let a caller widen a write to public readers by passing
+ * the wrong argument. The copy decides whether public access applies; the predicate only answers
+ * the membership question.
+ *
+ * userCanAccessTask also throws if `lists` was fetched without listMembers — the regression this
+ * file's header records (task 73733c3d).
+ */
+export function userCanCopyTask(
+  task: Parameters<typeof userCanAccessTask>[0] & { isPrivate: boolean },
+  userId: string,
+): boolean {
+  const lists = (task.lists ?? []) as Array<{ privacy?: string }>
+  const isPublic = lists.some(list => list.privacy === 'PUBLIC') && !task.isPrivate
+  return isPublic || userCanAccessTask(task, userId)
+}
+
 export async function batchCopyTask(args: {
   userId: string
   taskId?: string
@@ -52,26 +76,8 @@ export async function batchCopyTask(args: {
     return { ok: false, status: 404, error: 'Task not found' }
   }
 
-  // A task on a public list is copyable by anyone, unless the task itself is
-  // marked private.
-  const isPublic =
-    originalTask.lists.some(list => list.privacy === 'PUBLIC') && !originalTask.isPrivate
-
-  if (!isPublic) {
-    // The shared rule — services/task.service.ts (task 017a569a, slice 3).
-    //
-    // The public-list bypass stays HERE rather than becoming a flag on the
-    // predicate, which is the shape slice 1 argued for: a flag would let a
-    // caller widen a write to public readers by passing the wrong argument.
-    // The caller decides whether public access applies; the predicate only
-    // answers the membership question.
-    //
-    // userCanAccessTask also throws if `lists` was fetched without
-    // listMembers — the exact regression this file's header records (task
-    // 73733c3d), which until now was guarded only by that comment.
-    if (!userCanAccessTask(originalTask, userId)) {
-      return { ok: false, status: 403, error: 'Forbidden' }
-    }
+  if (!userCanCopyTask(originalTask, userId)) {
+    return { ok: false, status: 403, error: 'Forbidden' }
   }
 
   // Every target must be one the caller can write to. Unlike the single-target

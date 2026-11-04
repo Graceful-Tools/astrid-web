@@ -38,6 +38,7 @@ import {
 } from '@/lib/api-auth-middleware'
 import { BRAND } from '@/lib/brand/config'
 import { SCOPE_GROUPS } from '@/lib/oauth/oauth-scopes'
+import { listTasksByIdWhere } from '@/lib/list-permissions'
 
 const PERSON = { id: 'u1', email: 'u@example.com', name: 'U', isAIAgent: false }
 const AGENT = { id: 'a1', email: `claude@${BRAND.agentEmailDomain}`, name: 'Claude', isAIAgent: true }
@@ -348,7 +349,9 @@ describe('requireTaskAccess vs requireTaskReadAccess — the public-list asymmet
 
     const where = mockPrisma.task.findFirst.mock.calls[0][0].where
     expect(where.OR).toHaveLength(4)
-    expect(where.OR[3]).toEqual({ lists: { some: { privacy: 'PUBLIC' } } })
+    // AWTD-1523: any list the caller may read every task of, PUBLIC included.
+    expect(where.OR[3]).toEqual({ lists: { some: listTasksByIdWhere('u1') } })
+    expect(where.OR[3].lists.some.OR).toContainEqual({ privacy: 'PUBLIC' })
   })
 
   it('both accept the same three membership routes: creator, assignee, list member', async () => {
