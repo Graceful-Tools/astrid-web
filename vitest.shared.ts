@@ -18,6 +18,25 @@ import { defineConfig } from 'vitest/config'
  */
 
 /**
+ * Every run uses the same timezone: UTC, as CI always has (2026-11-08).
+ *
+ * The suite used to take the machine's zone. It passed in exactly two: UTC (CI)
+ * and Pacific (Jon's Mac). Run in Berlin or Kolkata, 57 tests failed; in
+ * Auckland, 73 — every one a test assuming the zone it was written in (a "today"
+ * built from the UTC date, a fixed list of expected clock times), none a product
+ * bug. So a scheduled runner, a Mac or a contributor anywhere else got a red
+ * predeploy that said nothing about their change.
+ *
+ * Set here, before any worker starts, so every config and worker inherits it.
+ * Zone behaviour is tested on purpose instead, by tests that set `process.env.TZ`
+ * themselves (tests/lib/date-dst-day-difference.test.ts,
+ * tests/lib/all-day-dates-east-of-utc.test.ts). `ASTRID_TEST_TZ` runs the suite
+ * in another zone, to find the next test that only passes in UTC:
+ *   ASTRID_TEST_TZ=Pacific/Auckland npx vitest run
+ */
+process.env.TZ = process.env.ASTRID_TEST_TZ || 'UTC'
+
+/**
  * Cap the fork pool below the core count.
  *
  * Vitest defaults `maxWorkers` to the number of CPUs, and each worker loads
