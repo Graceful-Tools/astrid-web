@@ -1,3 +1,4 @@
+import { agentBranchTaskId } from './cloud-handoff'
 /**
  * The decisions behind `scripts/land-and-deploy.ts` (AWTD-1250).
  *
@@ -58,12 +59,16 @@ const BENIGN_BUCKETS = new Set(['pass', 'skipping', 'neutral'])
  * `awtd-125`.
  */
 export function carriesTaskId(branch: string): boolean {
-  return /(^|[^0-9a-z])awtd-(\d+)([^0-9]|$)/i.test(branch)
+  // An agent branch may name any board's id (AGENT_BRANCH); it lands only with a valid
+  // cloud handoff, which checks that id against the task on this board.
+  return agentBranchTaskId(branch) !== null || /(^|[^0-9a-z])awtd-(\d+)([^0-9]|$)/i.test(branch)
 }
 
-/** The task ids a branch names, uppercased, in the order they appear. */
+/** The task ids a branch names, uppercased, in the order they appear — an agent branch's own id first. */
 export function taskIdsInBranch(branch: string): string[] {
-  return [...branch.matchAll(/awtd-(\d+)/gi)].map(match => `AWTD-${match[1]}`)
+  const agentId = agentBranchTaskId(branch)
+  const awtd = [...branch.matchAll(/awtd-(\d+)/gi)].map(match => `AWTD-${match[1]}`)
+  return agentId ? [agentId, ...awtd.filter(id => id !== agentId)] : awtd
 }
 
 /**
