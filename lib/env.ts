@@ -327,6 +327,8 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'PLAYWRIGHT_TEST_EMAIL', scope: 'tooling', description: 'Account used by authenticated e2e runs.' },
   { name: 'PLAYWRIGHT_TEST_PASSWORD', scope: 'tooling', description: 'Password for that account.' },
   { name: 'PLAYWRIGHT_AUTHENTICATED', scope: 'tooling', description: 'Marks an authenticated e2e project.' },
+  { name: 'TZ', scope: 'tooling', description: 'Process timezone; the main unit suite pins it to UTC (vitest.config.ts).' },
+  { name: 'ASTRID_TEST_TZ', scope: 'tooling', description: 'Runs the unit suite in another timezone, to find zone-dependent tests.' },
   { name: 'TEST_EMAIL', scope: 'tooling', description: 'Recipient for email test scripts.' },
   { name: 'TEST_USER_ID', scope: 'tooling', description: 'User id used by local test scripts.' },
   { name: 'COMMENT_AUTHOR_ID', scope: 'tooling', description: 'Author id used by comment test scripts.' },
