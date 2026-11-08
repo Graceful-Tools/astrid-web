@@ -221,13 +221,13 @@ The Playwright configuration is defined in [`playwright.config.ts`](../playwrigh
 
 Signed-in specs use a **minted NextAuth session**, not a sign-in flow. `npm run playwright:setup:ci-auth` (`scripts/create-e2e-auth-state.ts`) upserts `playwright-owner@example.test`, `playwright-outsider@example.test` and `playwright-viewer@example.test` in the database named by `TEST_DATABASE_URL` (localhost, name containing `test`), grants the owner Project Mode, and writes `.auth/user.json`, `.auth/outsider.json` and `.auth/viewer.json`. The third seat lets a sharing journey hold an editor and a read-only viewer at once (AWTD-1405).
 
-The signed-in projects (`authenticated-critical`, `authenticated-ui`) exist only when `PLAYWRIGHT_AUTHENTICATED=1`:
+The signed-in projects (`authenticated-critical`, `authenticated-ui`) exist only when `PLAYWRIGHT_AUTHENTICATED=1`. `npm run test:e2e:authenticated-critical` sets it itself, so a sandbox that allows `npm run *` but not an environment prefix can still run them:
 
 ```bash
 TEST_DATABASE_URL=postgresql://…/astrid_e2e_test DATABASE_URL=$TEST_DATABASE_URL \
   NEXTAUTH_SECRET=<32+ chars> NEXTAUTH_URL=http://localhost:3000 npm run playwright:setup:ci-auth
 # run the app with the same DATABASE_URL / NEXTAUTH_SECRET, then:
-PLAYWRIGHT_AUTHENTICATED=1 npm run test:e2e:authenticated-critical   # both signed-in projects
+npm run test:e2e:authenticated-critical   # both signed-in projects; add `-- <spec> --repeat-each=N` to narrow
 ```
 
 ### Every spec must run somewhere
