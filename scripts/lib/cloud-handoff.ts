@@ -42,7 +42,9 @@ export function cloudHandoffEligible(input: {
   comments: CloudHandoffComment[]
 }): boolean {
   const { task, comments, branch, headSha, listId } = input
-  const parts = /^agent\/([^/]+)\/(AWTD-\d+)(?:$|[-/])/i.exec(branch)
+  // Any board prefix: a task keeps its id when it moves boards, so a web-board task can be
+  // AITD-582 (run 41621632959). The id must still equal the task's own, checked below.
+  const parts = /^agent\/([^/]+)\/([A-Z][A-Z0-9]*-\d+)(?:$|[-/])/i.exec(branch)
   const mailbox = parts && branchMailbox(parts[1])
   if (!mailbox || !parts || parts[2].toUpperCase() !== task.identifier?.toUpperCase() ||
       !/^[0-9a-f]{40}$/.test(headSha) || task.completed || task.statusRole !== 'waiting' ||
