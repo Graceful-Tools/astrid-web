@@ -1,7 +1,7 @@
 /**
  * All-day dates for a user east of UTC, on purpose (2026-11-08).
  *
- * The suite runs in UTC (vitest.shared.ts). Before that it ran in the machine's
+ * The main suite runs in UTC (vitest.config.ts). Before that it ran in the machine's
  * zone, so the only coverage users east of UTC had was a Mac that happened to be
  * there. This pins the moment those users are most exposed: Auckland at 09:00
  * Monday is still Sunday in UTC, so an all-day date (stored at UTC midnight of
