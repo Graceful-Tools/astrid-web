@@ -38,7 +38,7 @@ export TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/astrid_te
 export NEXTAUTH_SECRET=<the same secret the dev server uses>
 
 npm run playwright:setup:ci-auth
-PLAYWRIGHT_AUTHENTICATED=1 npm run test:e2e:authenticated-critical
+npm run test:e2e:authenticated-critical   # sets PLAYWRIGHT_AUTHENTICATED=1 itself
 ```
 
 `PLAYWRIGHT_AUTHENTICATED=1` enables the `authenticated-critical` project in
