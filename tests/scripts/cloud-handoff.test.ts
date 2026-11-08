@@ -54,4 +54,15 @@ describe('cloud lifecycle release handoff', () => {
     expect(claimsCloudHandoff(comments)).toBe(true)
     expect(claimsCloudHandoff([{ authorId: 'claude-id', content: 'Already fixed on main, closing.' }])).toBe(false)
   })
+  it('accepts a web-board task whose id kept another board\'s prefix (2026-11-08)', () => {
+    // Run 41621632959: "Non repeating tasks say 'never'" moved from the iOS board and
+    // kept its id, AITD-582. Its branch agent/claude-code/AITD-582-one-time-only-label
+    // was refused for not saying AWTD, so its finished fix (PR #663) never shipped.
+    const moved = { ...input, task: { ...task, identifier: 'AITD-582' }, branch: 'agent/claude-code/AITD-582-one-time-only-label' }
+    expect(cloudHandoffEligible(moved)).toBe(true)
+    // The id in the branch must still be the task's own.
+    expect(cloudHandoffEligible({ ...moved, branch: 'agent/claude-code/AITD-583-one-time-only-label' })).toBe(false)
+    expect(cloudHandoffEligible({ ...moved, branch: 'agent/claude-code/AWTD-582-one-time-only-label' })).toBe(false)
+    expect(cloudHandoffEligible({ ...moved, branch: 'agent/claude-code/AITD-5820-other' })).toBe(false)
+  })
 })

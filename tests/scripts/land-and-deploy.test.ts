@@ -46,6 +46,23 @@ describe('only the loop’s own work is landable', () => {
     expect(carriesTaskId('feat/dark-mode')).toBe(false)
   })
 
+  it('a moved task keeps its board prefix on an agent branch, and only there (2026-11-08)', () => {
+    // "Non repeating tasks say 'never'" is AITD-582 on the web board (PR #663).
+    expect(carriesTaskId('agent/claude-code/AITD-582-one-time-only-label')).toBe(true)
+    expect(taskIdsInBranch('agent/claude-code/AITD-582-one-time-only-label')).toEqual(['AITD-582'])
+    // The widening is anchored to the agent branch shape, so nothing else starts matching.
+    expect(carriesTaskId('dependabot/npm_and_yarn/eslint-10')).toBe(false)
+    expect(carriesTaskId('dependabot/npm_and_yarn/prisma-7.10.0')).toBe(false)
+    expect(carriesTaskId('fix/aitd-582-label')).toBe(false)
+    expect(carriesTaskId('agent/claude-code/fix-label')).toBe(false)
+  })
+
+  it('a moved task with a valid handoff is landable; without one it is not', () => {
+    const moved = pr({ headRefName: 'agent/claude-code/AITD-582-one-time-only-label' })
+    expect(landablePullRequests([{ ...moved, cloudHandoffValid: true }]).land).toHaveLength(1)
+    expect(landablePullRequests([moved]).land).toHaveLength(0)
+  })
+
   it('reads the ids out of the branch', () => {
     expect(taskIdsInBranch('fix/awtd-1039-and-awtd-1248')).toEqual(['AWTD-1039', 'AWTD-1248'])
     expect(taskIdsInBranch('feat/none')).toEqual([])

@@ -30,6 +30,24 @@ function branchMailbox(who: string): string | undefined {
  * pushed branch must exist. A task closed with no code claims nothing, and its
  * missing branch is not a failure (AWTD-1416).
  */
+/**
+ * An agent's task branch: `agent/<mailbox or harness>/<task id>-…`.
+ *
+ * Any board prefix, because a task keeps its id when it moves boards: "Non repeating tasks
+ * say 'never'" is AITD-582 on the web board, and spelling the id AWTD-only refused its
+ * handoff and its landing (run 41621632959, PR #663). Safe to widen only because this shape
+ * is matched at the start of an `agent/` branch, never anywhere in a name: a
+ * `dependabot/…/prisma-7.10.0` branch is not an id. Every caller then requires the id to be
+ * the task's own on the board (cloudHandoffEligible).
+ */
+export const AGENT_BRANCH = /^agent\/([^/]+)\/([A-Z][A-Z0-9]*-\d+)(?:$|[-/])/i
+
+/** The task id an agent branch names, uppercased, or null for any other branch. */
+export function agentBranchTaskId(branch: string): string | null {
+  const id = AGENT_BRANCH.exec(branch)?.[2]
+  return id ? id.toUpperCase() : null
+}
+
 export function claimsCloudHandoff(comments: CloudHandoffComment[]): boolean {
   return Boolean(parseBlockedConditions(comments).awaitingDeploy)
 }
@@ -42,7 +60,7 @@ export function cloudHandoffEligible(input: {
   comments: CloudHandoffComment[]
 }): boolean {
   const { task, comments, branch, headSha, listId } = input
-  const parts = /^agent\/([^/]+)\/(AWTD-\d+)(?:$|[-/])/i.exec(branch)
+  const parts = AGENT_BRANCH.exec(branch)
   const mailbox = parts && branchMailbox(parts[1])
   if (!mailbox || !parts || parts[2].toUpperCase() !== task.identifier?.toUpperCase() ||
       !/^[0-9a-f]{40}$/.test(headSha) || task.completed || task.statusRole !== 'waiting' ||
