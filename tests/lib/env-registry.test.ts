@@ -54,4 +54,14 @@ describe('environment registry (task 0c387855)', () => {
     expect(db.validate!('postgresql://u:p@h/db')).toBeNull()
     expect(db.validate!('mysql://u:p@h/db')).toBeTruthy()
   })
+
+  it('AWTD-1541: rejects an ENCRYPTION_KEY that assertKeyShape would throw on', () => {
+    const base64Key = 'x7Kq9Zp2Lm4Vb8Nc1Rt6Yw3Hd5Fg0JsAa+/Qe9Uo2Ti7Pk4Mz1Xv8Cn6Bl3Dr5Gh' // 64 chars, not hex
+    for (const name of ['ENCRYPTION_KEY', 'ENCRYPTION_KEY_NEXT']) {
+      const validate = ENV_BY_NAME.get(name)!.validate!
+      expect(validate(base64Key), `${name} accepted base64`).not.toBeNull()
+      expect(validate('a'.repeat(32)), `${name} accepted 32 hex chars`).not.toBeNull()
+      expect(validate('a'.repeat(64)), `${name} rejected 64 hex chars`).toBeNull()
+    }
+  })
 })
