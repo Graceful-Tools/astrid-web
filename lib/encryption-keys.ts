@@ -40,8 +40,16 @@ function clean(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined
 }
 
+/**
+ * Whether `value` is a usable key. The one rule: `assertKeyShape` throws on it
+ * at runtime and lib/env.ts's validators report it before the deploy.
+ */
+export function isValidKeyShape(value: string): boolean {
+  return value.length === KEY_HEX_LENGTH && HEX.test(value)
+}
+
 function assertKeyShape(name: string, value: string): string {
-  if (value.length !== KEY_HEX_LENGTH || !HEX.test(value)) {
+  if (!isValidKeyShape(value)) {
     // Deliberately never includes the value. `[SENSITIVE]` — what `vercel pull`
     // writes for a Secret it may not read — lands here, which is the point:
     // it is truthy, so a presence check would have let it through.
