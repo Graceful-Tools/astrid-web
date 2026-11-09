@@ -19,7 +19,7 @@
 import { execFileSync } from 'child_process'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { profileEnv } from '../lib/brand/profile'
+import { parseBrandProfile, profileEnv } from '../lib/brand/profile'
 
 const PROFILE = process.argv.includes('--profile')
   ? process.argv[process.argv.indexOf('--profile') + 1]
@@ -27,11 +27,13 @@ const PROFILE = process.argv.includes('--profile')
 const strict = process.argv.includes('--strict')
 
 function main() {
-  const profile = JSON.parse(
-    readFileSync(join(process.cwd(), 'brands', `${PROFILE}.brand.json`), 'utf8')
+  const profilePath = join(process.cwd(), 'brands', `${PROFILE}.brand.json`)
+  const profile = parseBrandProfile(
+    JSON.parse(readFileSync(profilePath, 'utf8')),
+    profilePath,
   )
 
-  console.log(`\n🎭 brand audit — running the unit suite as "${profile.name}"\n`)
+  console.log('\n🎭 brand audit — running the unit suite with a partner profile\n')
 
   // profileEnv, not profile.env — the same call the deploy script and the brand
   // matrix make, so the audit cannot test a configuration that never ships.
@@ -62,7 +64,7 @@ function main() {
   ].sort()
 
   if (!failed) {
-    console.log(`✅ The whole suite passes as ${profile.name}. Nothing assumes Astrid.\n`)
+    console.log('✅ The whole suite passes with this brand profile. Nothing assumes Astrid.\n')
     process.exit(0)
   }
 
@@ -73,11 +75,11 @@ function main() {
   if (failingFiles.length === 0) {
     console.error('❌ vitest exited non-zero but reported no failing test files.')
     console.error('   The runner itself failed — this is NOT a passing audit.\n')
-    console.error(output.split('\n').slice(-40).join('\n'))
+    console.error('   No test failure details were logged because they may include profile values.')
     process.exit(1)
   }
 
-  console.log(`📋 ${failingFiles.length} test file(s) do not pass as ${profile.name}:\n`)
+  console.log(`📋 ${failingFiles.length} test file(s) do not pass with this brand profile:\n`)
   for (const file of failingFiles) console.log(`   ${file}`)
   console.log(
     '\n   Each is either a test asserting Astrid values where it should assert the\n' +

@@ -46,7 +46,7 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { loadScriptEnv } from './lib/load-env'
-import { profileEnv, type BrandProfile } from '../lib/brand/profile'
+import { parseBrandProfile, profileEnv, redactBrandProfileValues } from '../lib/brand/profile'
 import { previewPins, resolveVercelTarget, VERCEL_TARGET_FLAGS, type VercelTarget } from './lib/vercel-target'
 import { bootPreflightProblems } from '../lib/brand/boot-preflight'
 import { deploymentEnv, fetchStoredEnvRows, refuseIfBootWouldFail, storedKeysFor } from './lib/brand-boot-preflight'
@@ -96,7 +96,7 @@ if (!token) {
   process.exit(1)
 }
 
-const profile = JSON.parse(readFileSync(profilePath, 'utf8')) as BrandProfile
+const profile = parseBrandProfile(JSON.parse(readFileSync(profilePath, 'utf8')), profilePath)
 
 // Shared with the brand matrix tests so a deploy and a test apply a profile identically.
 const resolvedEnv = profileEnv(profile)
@@ -122,7 +122,7 @@ for (const [key, value] of Object.entries(resolvedEnv)) {
 // Always send the pinned values, whether or not the profile mentioned them — the
 // fallback chain means an absent variable is not the same as a safe one.
 for (const [key, value] of Object.entries(PINNED_FOR_PREVIEW)) {
-  pinned.push(`${key}=${value}`)
+  pinned.push(key)
   pushEnv(key, value)
 }
 
@@ -140,41 +140,47 @@ async function preflight(vercelToken: string): Promise<void> {
     ? storedKeysFor(await fetchStoredEnvRows(link.projectId, target.teamId, vercelToken), 'preview')
     : []
   const sent = { ...resolvedEnv, ...PINNED_FOR_PREVIEW }
-  refuseIfBootWouldFail(bootPreflightProblems(deploymentEnv(storedKeys, sent)), `The ${profile.name} preview`)
+  refuseIfBootWouldFail(bootPreflightProblems(deploymentEnv(storedKeys, sent)), 'The brand preview')
 }
 
 function deploy(vercelToken: string): void {
-  console.log(`\n🎨 Deploying brand profile: ${profile.name}`)
-  console.log(`   ${profile.description}\n`)
+  console.log('\n🎨 Deploying brand profile\n')
   console.log(`   ${applied.length} build-env value(s) applied`)
   if (pinned.length > 0) {
-    console.log(`   pinned for previews: ${pinned.join(', ')}`)
-    console.log('     (previews share the production database — see brands/README.md)')
+    console.log(`   pinned preview keys: ${pinned.join(', ')} (values redacted)`)
   }
   console.log('')
 
-  const output = execFileSync(
-    'npx',
-    ['vercel', '--yes', '--token', vercelToken, '--scope', target.scope, ...buildEnvArgs],
-    { encoding: 'utf8', stdio: ['inherit', 'pipe', 'inherit'] }
-  )
+  let output: string
+  try {
+    output = execFileSync(
+      'npx',
+      ['vercel', '--yes', '--token', vercelToken, '--scope', target.scope, ...buildEnvArgs],
+      { encoding: 'utf8', stdio: ['inherit', 'pipe', 'pipe'] }
+    )
+  } catch {
+    throw new Error('Vercel CLI failed while creating the brand preview; raw output was suppressed.')
+  }
 
-  const url = output.match(/https:\/\/[a-z0-9-]+\.vercel\.app/)?.[0]
-  console.log(output.trim())
-  if (url) {
-    console.log(`\n✅ ${profile.name} preview: ${url}`)
-    console.log(`   Verify:  curl -s ${url}/api/v1/capabilities | python3 -m json.tool`)
-    if (alias) {
+  const safeOutput = redactBrandProfileValues(output, Object.values({ ...resolvedEnv, ...PINNED_FOR_PREVIEW }))
+  const url = safeOutput.match(/https:\/\/[a-z0-9-]+\.vercel\.app/)?.[0]
+  if (!url) {
+    throw new Error('Vercel CLI completed without returning a preview URL; raw output was suppressed.')
+  }
+
+  console.log(`\n✅ Brand preview: ${url}`)
+  console.log(`   Verify:  curl -s ${url}/api/v1/capabilities | python3 -m json.tool`)
+  if (alias) {
+    try {
       execFileSync(
         'npx',
         ['vercel', 'alias', url, alias, '--token', vercelToken, '--scope', target.scope],
-        { encoding: 'utf8', stdio: ['inherit', 'inherit', 'inherit'] }
+        { encoding: 'utf8', stdio: ['inherit', 'pipe', 'pipe'] }
       )
-      console.log(`\n🔗 ${profile.name} is live at https://${alias}`)
+    } catch {
+      throw new Error('Vercel CLI failed while assigning the preview alias; raw output was suppressed.')
     }
-  } else if (alias) {
-    console.error(`❌ Could not find the deployment URL in Vercel's output, so ${alias} was NOT aliased.`)
-    process.exit(1)
+    console.log(`\n🔗 Brand preview is live at https://${alias}`)
   }
 }
 
