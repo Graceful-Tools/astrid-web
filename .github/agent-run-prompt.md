@@ -36,6 +36,14 @@ the PR using the repository template. Post its URL and end your report with
 your mailbox and leave it incomplete. The runner validates this handoff before
 making the PR eligible for deterministic shipping. Draft PRs remain held.
 
+When the task's fix is already on `main` (an earlier PR merged it), write no code
+and open no PR. Ask `curl -s https://astrid.cc/api/health` which `commitSha`
+production serves. If that commit contains the fix (`git merge-base --is-ancestor
+<fix sha> <served sha>`), complete the task with a comment naming both commits.
+Otherwise comment `AWAITING-DEPLOY: <the origin/main sha that contains the fix>`
+and move it to Waiting; a commit on `main` is pushed, and the runner accepts it.
+Either way the work is handed off: say `RESULT: OK`, not PARTIAL.
+
 For review-only tasks, read the linked PR diff, report concrete findings on the
 Astrid task, and do not merge, modify the reviewed branch, or treat a review as
 implementation/deployment. A review task is completed once its report is on the
