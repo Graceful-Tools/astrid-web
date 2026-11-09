@@ -52,7 +52,7 @@ permissions: {}
 jobs:
   run:
     name: "Agent run (${{ (inputs.harness || 'claude-code') }})"
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
       pull-requests: write
@@ -337,7 +337,7 @@ jobs:
     name: Start the next run
     needs: run
     if: ${{ !inputs.dry_run && (inputs.harness || 'claude-code') == 'claude-code' && needs.run.result == 'success' && needs.run.outputs.result == 'OK' }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     # AGENT_GH_TOKEN is an `agent` environment secret; without this it reads empty.
     environment: agent
     timeout-minutes: 5
