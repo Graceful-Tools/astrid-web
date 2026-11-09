@@ -359,6 +359,8 @@ describe('ReminderService', () => {
           expect.objectContaining({ taskId: 'task3', title: 'Overdue Task' })
         ]),
         upcomingTasks: [],
+        // The email formats its dates on the user's calendar (AWTD-1545).
+        timeZone: 'America/Los_Angeles',
       })
     })
 
@@ -400,6 +402,7 @@ describe('ReminderService', () => {
           expect.objectContaining({ taskId: 'task1', title: 'Wednesday Task' }),
           expect.objectContaining({ taskId: 'task2', title: 'Friday Task' }),
         ]),
+        timeZone: 'UTC',
       })
     })
   })
