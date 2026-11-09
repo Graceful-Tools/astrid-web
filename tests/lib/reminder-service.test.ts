@@ -405,6 +405,29 @@ describe('ReminderService', () => {
         timeZone: 'UTC',
       })
     })
+
+    it('AWTD-1545: tells the email which tasks are all-day, and in which zone', async () => {
+      // An all-day date is UTC midnight of its day: without isAllDay the email would show a
+      // Los Angeles user the previous evening at 4:00 PM.
+      const service = digestService(
+        { dailyDigestTime: '09:00', dailyDigestTimezone: 'America/Los_Angeles', nextWeeklyDigestAt: new Date('2024-01-15T17:00:00Z') },
+        [
+          { id: 'allday', title: 'All-day Wednesday', dueDateTime: new Date('2024-01-17T00:00:00Z'), isAllDay: true, assigneeId: 'user1', completed: false, lists: [] },
+          { id: 'timed', title: 'Timed Friday', dueDateTime: new Date('2024-01-19T18:00:00Z'), isAllDay: false, assigneeId: 'user1', completed: false, lists: [] },
+        ]
+      )
+      vi.setSystemTime(new Date('2024-01-15T17:00:00Z')) // Monday 09:00 in Los Angeles
+
+      await service.processWeeklyDigests()
+
+      expect(mockEmailService.sendWeeklyDigest).toHaveBeenCalledWith(expect.objectContaining({
+        timeZone: 'America/Los_Angeles',
+        upcomingTasks: expect.arrayContaining([
+          expect.objectContaining({ taskId: 'allday', isAllDay: true }),
+          expect.objectContaining({ taskId: 'timed', isAllDay: false }),
+        ]),
+      }))
+    })
   })
 
   describe('Snooze Functionality', () => {
