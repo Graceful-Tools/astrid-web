@@ -33,6 +33,11 @@ const runsOnLines = workflows.flatMap(file =>
     .filter(l => /^\s*runs-on:/.test(l.text)),
 )
 
+/** Every explicit ubuntu-NN.NN named on these runs-on lines. */
+function imagesIn(lines: string[]): Set<string> {
+  return new Set(lines.flatMap(text => text.match(/ubuntu-\d\d\.\d\d/g) ?? []))
+}
+
 const DEPLOY_WORKFLOWS = ['production-deployment.yml', 'preview-deployment.yml']
 
 describe('CI runners are pinned, not latest (AWTD-1202)', () => {
@@ -51,10 +56,13 @@ describe('CI runners are pinned, not latest (AWTD-1202)', () => {
   it('runs every hosted job on the same image, so one run never mixes OS majors', () => {
     // Moving images is one deliberate change across every workflow (AWTD-1214), never a
     // job-by-job drift that puts a deploy's Quality Gates and its migration on different OSes.
-    const images = new Set(
-      runsOnLines.map(l => /ubuntu-\d\d\.\d\d/.exec(l.text)?.[0]).filter((x): x is string => Boolean(x)),
-    )
-    expect([...images]).toEqual(['ubuntu-26.04'])
+    // Every version on the line, not the first: a conditional runner can name two.
+    expect([...imagesIn(runsOnLines.map(l => l.text))]).toEqual(['ubuntu-26.04'])
+  })
+
+  it('reads every image a conditional runner names', () => {
+    const conditional = "    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04' || 'ubuntu-24.04' }}"
+    expect([...imagesIn([conditional])].sort()).toEqual(['ubuntu-24.04', 'ubuntu-26.04'])
   })
 
   it('pins every job on the deploy path to one explicit image', () => {
