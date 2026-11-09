@@ -36,6 +36,10 @@ and stack versions with `npm run check:docs`.
 ### 🎨 Whitelabeling
 - **[Whitelabeling Guide](./WHITELABELING.md)** - ⭐ Deploy under a different brand, with a different set of back-end services, entirely through build-time configuration
 - **[White-label launch checklist](./deployment/WHITE_LABEL_LAUNCH_CHECKLIST.md)** - Operator launch steps, required versus optional setup, and post-deploy probes
+- **[White-label security and data flow](./deployment/WHITE_LABEL_SECURITY_DATA_FLOW.md)** - Deployment boundary, data locations, third-party flows, session/secrets handling, and retention questions
+- **[White-label backup and disaster recovery](./deployment/WHITE_LABEL_BACKUP_DR.md)** - Backup inventory and isolated restore-drill template; RPO/RTO remain decisions
+- **[White-label version compatibility](./deployment/WHITE_LABEL_COMPATIBILITY.md)** - Record web image, native client builds, and `astrid-core` revisions tested together
+- **[White-label support and SLO worksheet](./deployment/WHITE_LABEL_SUPPORT_SLO.md)** - Operator template with no invented service or support commitments
 - **[Brand Profiles](../brands/README.md)** - Per-partner profiles and the brand-matrix tests
 - **[Self-hosting](./deployment/SELF_HOSTING.md)** - Run it on your own infrastructure with no Vercel, Neon or Upstash account: Docker image, compose stack, storage drivers, cron runner
 - **[Azure](./deployment/AZURE.md)** - The same image on Azure Container Apps: Bicep template (Postgres Flexible Server, Cache for Redis, Blob, Key Vault), Entra ID sign-in, custom domain, upgrades and restore
