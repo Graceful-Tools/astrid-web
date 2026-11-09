@@ -1,5 +1,9 @@
 export class NextRequest extends Request {}
 
+export function after() {
+  throw new Error('after requires a Next.js request scope')
+}
+
 export class NextResponse extends Response {
   static json(body, init = {}) {
     const headers = new Headers(init.headers)
