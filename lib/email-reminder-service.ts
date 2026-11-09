@@ -7,6 +7,7 @@ import { getRandomReminderString } from '@/lib/reminder-constants'
 import { getBaseUrl, getUnsubscribeUrl, buildTaskUrlWithContext } from '@/lib/base-url'
 import { createLogger } from '@/lib/logger'
 import { escapeEmailHtml } from '@/lib/email-html'
+import { digestDueText, digestLongDate, digestShortDate, digestWeekRange } from '@/lib/digest-email-dates'
 
 const log = createLogger('email-reminder-service')
 
@@ -25,10 +26,7 @@ export class EmailReminderService {
   }
 
   async sendDailyDigest(data: DailyDigestData): Promise<void> {
-    const today = new Date().toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric'
-    })
+    const today = digestShortDate(new Date(), data.timeZone)
     const subject = `Reminders for ${today}`
     const htmlBody = this.getDailyDigestHtml(data)
     const textBody = this.getDailyDigestText(data)
@@ -46,8 +44,10 @@ export class EmailReminderService {
     userEmail: string
     userName: string
     upcomingTasks: TaskReminderData[]
+    /** The recipient's `dailyDigestTimezone` (AWTD-1545). */
+    timeZone?: string
   }): Promise<void> {
-    const subject = `Weekly Task Outlook - ${this.getWeekRange()}`
+    const subject = `Weekly Task Outlook - ${digestWeekRange(new Date(), data.timeZone)}`
     const htmlBody = this.getWeeklyDigestHtml(data)
     const textBody = this.getWeeklyDigestText(data)
 
@@ -432,12 +432,7 @@ You can modify your reminder preferences in your account settings.
   }
 
   private getDailyDigestHtml(data: DailyDigestData): string {
-    const today = new Date().toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
+    const today = digestLongDate(new Date(), data.timeZone)
     const allTasks = [...data.overdueTasks, ...data.dueTodayTasks, ...data.dueTomorrowTasks]
     const baseUrl = getBaseUrl()
 
@@ -586,12 +581,7 @@ You can modify your reminder preferences in your account settings.
   }
 
   private getDailyDigestText(data: DailyDigestData): string {
-    const today = new Date().toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
+    const today = digestLongDate(new Date(), data.timeZone)
     const allTasks = [...data.overdueTasks, ...data.dueTodayTasks, ...data.dueTomorrowTasks]
 
     let text = `${today}\n\n`
@@ -617,8 +607,9 @@ You can modify your reminder preferences in your account settings.
   private getWeeklyDigestHtml(data: {
     userName: string
     upcomingTasks: TaskReminderData[]
+    timeZone?: string
   }): string {
-    const weekRange = this.getWeekRange()
+    const weekRange = digestWeekRange(new Date(), data.timeZone)
     
     return `
       <!DOCTYPE html>
@@ -652,7 +643,7 @@ You can modify your reminder preferences in your account settings.
               <div class="task-item">
                 <div class="task-title">${escapeEmailHtml(task.title)}</div>
                 <div class="task-meta">
-                  Due: ${this.formatDueDate(task.dueDateTime)} •
+                  Due: ${this.digestDue(task, data.timeZone)} •
                   Lists: ${escapeEmailHtml(task.listNames.join(', '))}
                 </div>
               </div>
@@ -676,8 +667,9 @@ You can modify your reminder preferences in your account settings.
   private getWeeklyDigestText(data: {
     userName: string
     upcomingTasks: TaskReminderData[]
+    timeZone?: string
   }): string {
-    const weekRange = this.getWeekRange()
+    const weekRange = digestWeekRange(new Date(), data.timeZone)
     
     let text = `📅 WEEKLY TASK OUTLOOK - ${weekRange}\n\n`
     
@@ -689,7 +681,7 @@ You can modify your reminder preferences in your account settings.
 
     text += `🗓️ UPCOMING TASKS (${data.upcomingTasks.length})\n`
     text += `${data.upcomingTasks.map(task => 
-      `• ${task.title} - Due: ${this.formatDueDate(task.dueDateTime)} (${task.listNames.join(', ')})`
+      `• ${task.title} - Due: ${this.digestDue(task, data.timeZone)} (${task.listNames.join(', ')})`
     ).join('\n')}\n\n`
 
     text += `Open Task Manager: ${this.getAppUrl()}\n\n`
@@ -760,18 +752,10 @@ You can modify your reminder preferences in your account settings.
     }
   }
 
-  private getWeekRange(): string {
-    const now = new Date()
-    const startOfWeek = new Date(now)
-    startOfWeek.setDate(now.getDate() - now.getDay()) // Sunday
-    
-    const endOfWeek = new Date(startOfWeek)
-    endOfWeek.setDate(startOfWeek.getDate() + 6) // Saturday
-
-    const startString = startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    const endString = endOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    
-    return `${startString} - ${endString}`
+  /** A digest task's due text on the recipient's calendar (AWTD-1545). */
+  private digestDue(task: TaskReminderData, timeZone: string | undefined): string {
+    if (!task.dueDateTime) return 'No due date'
+    return digestDueText(new Date(task.dueDateTime), { now: new Date(), zone: timeZone, isAllDay: task.isAllDay })
   }
 
   private getTaskUrl(data: TaskReminderData | { taskId: string; listId?: string; shortcode?: string }): string {
