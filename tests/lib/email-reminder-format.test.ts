@@ -339,6 +339,27 @@ describe('EmailReminderService - Email Format', () => {
     })
   })
 
+  describe("AWTD-1545: dates are the recipient's, not the server's", () => {
+    // Mon 9 Nov 2026 07:00 in Auckland = Sun 8 Nov 18:00 UTC = Sun 10:00 in Los Angeles.
+    const digest = (timeZone: string): DailyDigestData => ({
+      userId: 'user-1', userEmail: 'test@example.com', userName: 'Test User',
+      overdueTasks: [], dueTodayTasks: [createMockTask()], dueTomorrowTasks: [], upcomingTasks: [], timeZone,
+    })
+    beforeEach(() => vi.setSystemTime(new Date('2026-11-08T18:00:00Z')))
+
+    it('heads an Auckland digest with Monday, a Los Angeles one with Sunday', () => {
+      expect((service as any).getDailyDigestHtml(digest('Pacific/Auckland'))).toContain('Monday, November 9, 2026')
+      expect((service as any).getDailyDigestText(digest('America/Los_Angeles'))).toContain('Sunday, November 8, 2026')
+    })
+
+    it("shows a weekly task's time on the recipient's clock", () => {
+      const task = createMockTask({ dueDateTime: new Date('2026-11-08T17:00:00Z') }) // 09:00 Sunday in LA
+      const text = (service as any).getWeeklyDigestText({ userName: 'T', upcomingTasks: [task], timeZone: 'America/Los_Angeles' })
+      expect(text).toContain('Today at 9:00 AM')
+      expect(text).not.toContain('5:00 PM')
+    })
+  })
+
   describe('Task URL Generation (Regression Test for Bug #404)', () => {
     it('should use shortcode URL format when shortcode is available', async () => {
       const task = createMockTask({
