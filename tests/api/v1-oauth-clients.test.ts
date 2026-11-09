@@ -485,3 +485,49 @@ describe('POST /api/v1/oauth/clients/:clientId/regenerate-secret', () => {
     expect(mockRegen).toHaveBeenCalledWith('client-1', 'user-1')
   })
 })
+
+/**
+ * AWTD-1539: regenerating a secret, deleting a client, or repointing it reaches
+ * the same escalation as registering one — a leaked narrow-scope token could
+ * regenerate a broader client_credentials client's secret and mint its scopes.
+ * Each needs an interactive session, like client creation.
+ */
+describe('OAuth client credential changes need an interactive session (AWTD-1539)', () => {
+  const delegated = { ...authedUser, source: 'oauth', scopes: ['tasks:read'] }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockAuth.mockResolvedValue(delegated as any)
+  })
+
+  it('AWTD-1539: regenerate-secret refuses an OAuth token', async () => {
+    const res = await REGEN(makeReq('POST', 'http://localhost/x'), { params } as any)
+    expect(res.status).toBe(403)
+    expect(mockRegen).not.toHaveBeenCalled()
+  })
+
+  it('AWTD-1539: DELETE refuses an OAuth token', async () => {
+    const res = await DELETE(makeReq('DELETE', 'http://localhost/x'), { params } as any)
+    expect(res.status).toBe(403)
+    expect(mockDelete).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['redirectUris', { redirectUris: ['https://evil.example/cb'] }],
+    ['isActive', { isActive: false }],
+  ])('AWTD-1539: PUT changing %s refuses an OAuth token', async (_field, body) => {
+    const res = await PUT(makeReq('PUT', 'http://localhost/x', body), { params } as any)
+    expect(res.status).toBe(403)
+    expect(mockUpdate).not.toHaveBeenCalled()
+  })
+
+  it('AWTD-1539: a session can still regenerate, delete and repoint', async () => {
+    mockAuth.mockResolvedValue(authedUser as any)
+    mockRegen.mockResolvedValue('s' as any)
+    mockDelete.mockResolvedValue(true as any)
+    mockUpdate.mockResolvedValue({ clientId: 'client-1' } as any)
+    expect((await REGEN(makeReq('POST', 'http://localhost/x'), { params } as any)).status).toBe(200)
+    expect((await DELETE(makeReq('DELETE', 'http://localhost/x'), { params } as any)).status).toBe(200)
+    expect((await PUT(makeReq('PUT', 'http://localhost/x', { isActive: false }), { params } as any)).status).toBe(200)
+  })
+})
