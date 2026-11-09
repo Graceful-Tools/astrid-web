@@ -67,6 +67,16 @@ export interface AgentTaskClaimResponse extends APIResponse<AgentTaskClaimResult
   unavailable?: true
 }
 
+const AGENT_TASK_CLAIM_OUTCOMES = new Set<AgentTaskClaimResult['outcome']>([
+  'claimed',
+  'already_yours',
+  'released',
+  'conflict',
+  'not_ready',
+  'not_found',
+  'forbidden',
+])
+
 export class AstridOAuthClient {
   private readonly baseUrl: string
   private readonly clientId: string
@@ -227,22 +237,40 @@ export class AstridOAuthClient {
     request: AgentTaskClaimRequest,
   ): Promise<AgentTaskClaimResponse> {
     try {
-      const data = await this.makeRequest<AgentTaskClaimResult>(
-        `/api/v1/tasks/${encodeURIComponent(taskId)}/claim`,
-        {
-          method: 'POST',
-          body: JSON.stringify(request),
+      const token = await this.obtainAccessToken()
+      const response = await fetch(`${this.baseUrl}/api/v1/tasks/${encodeURIComponent(taskId)}/claim`, {
+        method: 'POST',
+        headers: {
+          'X-OAuth-Token': token,
+          'Content-Type': 'application/json',
         },
-      )
-      return { success: true, data }
-    } catch (error) {
-      if (error instanceof APIRequestError && [404, 405, 501].includes(error.status)) {
-        return {
-          success: false,
-          unavailable: true,
-          error: `Atomic agent task claims are unavailable (HTTP ${error.status}).`,
-        }
+        body: JSON.stringify(request),
+      })
+      const body = await response.json().catch(() => null) as { outcome?: unknown; error?: string } | null
+      if (typeof body?.outcome === 'string' && AGENT_TASK_CLAIM_OUTCOMES.has(body.outcome as AgentTaskClaimResult['outcome'])) {
+        return { success: true, data: body as AgentTaskClaimResult }
       }
+      if (!response.ok) {
+        if (
+          [404, 405, 501].includes(response.status) &&
+          (!body || !Object.hasOwn(body, 'outcome'))
+        ) {
+          return {
+            success: false,
+            unavailable: true,
+            error: `Atomic agent task claims are unavailable (HTTP ${response.status}).`,
+          }
+        }
+        throw new APIRequestError(
+          body?.error || `HTTP ${response.status}: ${response.statusText}`,
+          response.status,
+        )
+      }
+      return {
+        success: true,
+        data: body as AgentTaskClaimResult,
+      }
+    } catch (error) {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

@@ -40,6 +40,16 @@ export interface ClaimTaskRequest {
   agentMailbox?: string
 }
 
+const AGENT_TASK_CLAIM_OUTCOMES = new Set([
+  'claimed',
+  'already_yours',
+  'released',
+  'conflict',
+  'not_ready',
+  'not_found',
+  'forbidden',
+])
+
 export class OAuthAPIClient {
   private readonly baseUrl: string
   private readonly clientId: string
@@ -149,10 +159,24 @@ export class OAuthAPIClient {
   }
 
   async claimTask<T = unknown>(taskId: string, input: ClaimTaskRequest): Promise<T> {
-    return this.makeRequest<T>(`/api/v1/tasks/${encodeURIComponent(taskId)}/claim`, {
+    const token = await this.obtainAccessToken()
+    const response = await this.fetchBackend(`/api/v1/tasks/${encodeURIComponent(taskId)}/claim`, {
       method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(input),
     })
+    const data = await response.json().catch(() => null) as { outcome?: unknown; error?: string } | null
+
+    if (typeof data?.outcome === 'string' && AGENT_TASK_CLAIM_OUTCOMES.has(data.outcome)) {
+      return data as T
+    }
+    if (!response.ok) {
+      throw new Error(data?.error || `HTTP ${response.status}: ${response.statusText}`)
+    }
+    return data as T
   }
 
   private fetchBackend(endpoint: string, options: RequestInit): Promise<Response> {

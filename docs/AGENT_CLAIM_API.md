@@ -22,6 +22,9 @@ mailbox is rejected.
 | `resume` | Does not change the task. Confirms an incomplete Doing task is already assigned to this agent. | `already_yours` |
 | `release` | An incomplete Doing task owned by this agent returns to Ready and this agent is removed from the assignee list; any remaining assignee becomes primary. | `released` |
 
+Claim, resume, and release write the task directly, like `/claim-fixall`; they do not add
+the usual status or assignee system comment or publish the task-update broadcast.
+
 Every response has an `outcome` and a task snapshot (`id`, `statusRole`,
 `completed`, `assigneeId`, `assigneeIds`, and `updatedAt`). The task is `null`
 when the outcome is `not_found` or `forbidden`.
