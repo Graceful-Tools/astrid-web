@@ -6,7 +6,7 @@ Autonomous queue work runs in the cloud on `agent-run.yml`. A run that finishes 
 task starts the next one (`repository_dispatch: agent-run-next`, at most
 `ASTRID_AGENT_MAX_CHAIN` in a row), and the schedule (`5,35 * * * *`) restarts an
 ended chain. `agent-ship.yml` lands the result when an agent PR's CI finishes. `fixall.yml` is manual-only for diagnostics and fallback runs,
-on GitHub-hosted `ubuntu-24.04`. The Mac's web loop, the Copilot app's web-queue
+on GitHub-hosted `ubuntu-26.04`. The Mac's web loop, the Copilot app's web-queue
 cron and the `[self-hosted, astrid-web]` runner were retired (AWTD-1363).
 
 The queue sweep and trigger require repository secrets

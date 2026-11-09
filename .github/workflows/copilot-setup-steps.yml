@@ -21,7 +21,7 @@ jobs:
       ASTRID_FIXALL_HARNESS: github-copilot
       ASTRID_FIXALL_EPHEMERAL: '1'
       ASTRID_FIXALL_MAX_TASKS: '1'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     permissions:
       contents: read
