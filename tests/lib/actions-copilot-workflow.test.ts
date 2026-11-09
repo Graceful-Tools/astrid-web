@@ -77,6 +77,25 @@ describe('Copilot CLI in GitHub Actions (AWTD-1502)', () => {
     expect(agentJob().if).toBe("needs.queue-gate.outputs.has-work == 'true'")
   })
 
+  it('gate prefers runnable and wakes for incomplete reads, with legacy fallback', () => {
+    expect(runGate({
+      empty: false,
+      queue: [{ id: 'legacy-only' }],
+      runnable: { version: 1, hasWork: false, reasons: [], incomplete: false },
+    }).hasWork).toBe('false')
+    expect(runGate({
+      empty: true,
+      queue: [],
+      runnable: { version: 1, hasWork: true, reasons: ['attention'], incomplete: false },
+    }).hasWork).toBe('true')
+    expect(runGate({
+      empty: true,
+      queue: [],
+      runnable: { version: 1, hasWork: false, reasons: [], incomplete: true },
+    }).hasWork).toBe('true')
+    expect(runGate({ empty: false, queue: [{ id: 'old-server' }] }).hasWork).toBe('true')
+  })
+
   it('installs the official CLI from npm (AWTD-1502)', () => {
     const install = agentJob().steps.find(s => s.name === 'Install Copilot CLI')!
     expect(install.run).toBe('npm install -g @github/copilot')

@@ -128,7 +128,7 @@ jobs:
         run: |
           curl -fsS "${origin}/api/v1/agent-queue?agent=${mailbox}${listId ? `&listId=${listId}` : ''}" \\
             -H "X-OAuth-Token: ${token}" > queue.json
-          echo "has-work=$(jq -r 'if .empty then "false" else "true" end' queue.json)" >> "$GITHUB_OUTPUT"
+          echo "has-work=$(jq -r 'if .runnable? then (.runnable.hasWork or .runnable.incomplete) else (.empty | not) end' queue.json)" >> "$GITHUB_OUTPUT"
 
   run-your-agent:
     needs: queue-gate
@@ -179,7 +179,7 @@ function bearerQueueGateJob({ origin, mailbox, listId }: LoopRecipeOptions): str
         run: |
           curl -fsS "${queueUrl}" \\
             -H "Authorization: Bearer ${tokenSecret}" > queue.json
-          echo "has-work=$(jq -r 'if .empty then "false" else "true" end' queue.json)" >> "$GITHUB_OUTPUT"`
+          echo "has-work=$(jq -r 'if .runnable? then (.runnable.hasWork or .runnable.incomplete) else (.empty | not) end' queue.json)" >> "$GITHUB_OUTPUT"`
 }
 
 /**

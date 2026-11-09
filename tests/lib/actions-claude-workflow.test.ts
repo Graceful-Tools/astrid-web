@@ -76,6 +76,25 @@ describe('Claude Code in GitHub Actions (AWTD-1494)', () => {
     expect(curlArgs).toContain('Authorization: Bearer astrid_mcp_test')
   })
 
+  it('gate: prefers runnable and wakes for incomplete reads, with legacy fallback', () => {
+    expect(runGate({
+      empty: false,
+      queue: [{ id: 'legacy-only' }],
+      runnable: { version: 1, hasWork: false, reasons: [], incomplete: false },
+    }).hasWork).toBe('false')
+    expect(runGate({
+      empty: true,
+      queue: [],
+      runnable: { version: 1, hasWork: true, reasons: ['attention'], incomplete: false },
+    }).hasWork).toBe('true')
+    expect(runGate({
+      empty: true,
+      queue: [],
+      runnable: { version: 1, hasWork: false, reasons: [], incomplete: true },
+    }).hasWork).toBe('true')
+    expect(runGate({ empty: false, queue: [{ id: 'old-server' }] }).hasWork).toBe('true')
+  })
+
   it('the Claude job only runs when the gate says so', () => {
     const job = doc.jobs.claude
     expect(job.needs).toBe('queue-gate')
