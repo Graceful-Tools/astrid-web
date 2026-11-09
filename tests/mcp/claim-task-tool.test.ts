@@ -3,11 +3,21 @@ import { createHash } from 'node:crypto'
 import AstridMCPServerOAuth from '@/mcp/mcp-server-oauth'
 import { getOAuthMcpTools, OAUTH_MCP_TOOLS } from '@/mcp/tool-definitions'
 
-function stubFetch(json: unknown) {
+function stubFetch(json: unknown, status = 200) {
+  const statusText = new Map([
+    [400, 'Bad Request'],
+    [401, 'Unauthorized'],
+    [403, 'Forbidden'],
+    [404, 'Not Found'],
+    [405, 'Method Not Allowed'],
+    [409, 'Conflict'],
+    [500, 'Internal Server Error'],
+    [501, 'Not Implemented'],
+  ]).get(status) || ''
   const fetchMock = vi.fn().mockResolvedValue({
-    ok: true,
-    status: 200,
-    statusText: '',
+    ok: status >= 200 && status < 300,
+    status,
+    statusText,
     json: async () => json,
   })
   vi.stubGlobal('fetch', fetchMock)
@@ -53,6 +63,48 @@ describe('MCP claim_task tool (AWTD-1557)', () => {
       agentMailbox: 'copilot',
     })
     expect(JSON.parse(result.content[0].text)).toEqual(apiResult)
+  })
+
+  it.each([
+    ['conflict', 409],
+    ['not_ready', 409],
+    ['forbidden', 403],
+    ['not_found', 404],
+  ] as const)('returns %s outcomes as normal tool results (AWTD-1557)', async (outcome, status) => {
+    vi.stubEnv('ASTRID_AGENT_CLAIM_API', 'on')
+    const apiResult = { outcome, task: null }
+    stubFetch(apiResult, status)
+    const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_test' })
+
+    const result = await callTool(server, 'claim_task', { taskId: 'task-1', action: 'claim' })
+
+    expect(result.isError).toBeFalsy()
+    expect(JSON.parse(result.content[0].text)).toEqual(apiResult)
+  })
+
+  it('keeps server failures as tool errors (AWTD-1557)', async () => {
+    vi.stubEnv('ASTRID_AGENT_CLAIM_API', 'on')
+    stubFetch({ error: 'Internal Server Error' }, 500)
+    const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_test' })
+
+    const result = await callTool(server, 'claim_task', { taskId: 'task-1', action: 'claim' })
+
+    expect(result.isError).toBe(true)
+    expect(result.content[0].text).toMatch(/Internal Server Error/)
+  })
+
+  it.each([
+    [400, 'Bad Request'],
+    [401, 'Unauthorized'],
+  ])('keeps HTTP %i failures without an outcome as tool errors (AWTD-1557)', async (status, error) => {
+    vi.stubEnv('ASTRID_AGENT_CLAIM_API', 'on')
+    stubFetch({ error }, status)
+    const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_test' })
+
+    const result = await callTool(server, 'claim_task', { taskId: 'task-1', action: 'claim' })
+
+    expect(result.isError).toBe(true)
+    expect(result.content[0].text).toContain(error)
   })
 
   it('keeps the existing tools/list unchanged while the API flag is off', async () => {
