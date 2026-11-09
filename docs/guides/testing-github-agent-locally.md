@@ -27,8 +27,8 @@ DATABASE_URL="postgresql://postgres:password@localhost:5432/astrid_dev" npx tsx 
 ```bash
 # Run this script to create a test list
 DATABASE_URL="postgresql://postgres:password@localhost:5432/astrid_dev" npx tsx -e "
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import { createScriptPrisma } from './scripts/lib/script-prisma';
+const prisma = createScriptPrisma();
 
 async function setup() {
   // Get your user ID (replace with actual email)
@@ -133,8 +133,8 @@ Check your GitHub repository:
 2. **Verify GitHub client authentication:**
    ```bash
    DATABASE_URL="postgresql://postgres:password@localhost:5432/astrid_dev" npx tsx -e "
-   import { PrismaClient } from '@prisma/client';
-   const prisma = new PrismaClient();
+   import { createScriptPrisma } from './scripts/lib/script-prisma';
+   const prisma = createScriptPrisma();
 
    async function test() {
      const user = await prisma.user.findUnique({
@@ -157,8 +157,8 @@ Check your GitHub repository:
 3. **Check workflow status:**
    ```bash
    DATABASE_URL="postgresql://postgres:password@localhost:5432/astrid_dev" npx tsx -e "
-   import { PrismaClient } from '@prisma/client';
-   const prisma = new PrismaClient();
+   import { createScriptPrisma } from './scripts/lib/script-prisma';
+   const prisma = createScriptPrisma();
 
    async function check() {
      const workflows = await prisma.codingTaskWorkflow.findMany({
@@ -238,8 +238,8 @@ Check your GitHub repository:
 ```bash
 # Delete test workflows
 DATABASE_URL="postgresql://postgres:password@localhost:5432/astrid_dev" npx tsx -e "
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import { createScriptPrisma } from './scripts/lib/script-prisma';
+const prisma = createScriptPrisma();
 
 async function cleanup() {
   // Delete test workflows
