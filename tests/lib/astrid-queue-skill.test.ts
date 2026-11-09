@@ -32,6 +32,7 @@ describe('canonical queue skill (AWTD-759)', () => {
 
     // Version stamp for staleness detection.
     expect(skill).toContain(`v${QUEUE_SKILL_VERSION}`)
+    expect(QUEUE_SKILL_VERSION).toBe('1.3.0')
     // Explicit mailbox and board selection.
     expect(skill).toContain('agent "codex"')
     expect(skill).toContain('listId "board-123"')
@@ -47,6 +48,9 @@ describe('canonical queue skill (AWTD-759)', () => {
     // Termination and re-check.
     expect(skill).toContain('empty:true')
     expect(skill).toContain('stop and say nothing is queued')
+    expect(skill).toContain('Prefer runnable.version 1')
+    expect(skill).toContain('never treat runnable.incomplete as idle')
+    expect(skill).toContain('Older servers omit runnable')
     expect(skill).toMatch(/Re-check the queue/)
     // Errors fail visibly rather than retrying indefinitely.
     expect(skill).toContain('never retry silently')

@@ -17,7 +17,7 @@
 
 import { BRAND } from '@/lib/brand/config'
 
-export const QUEUE_SKILL_VERSION = '1.2.0'
+export const QUEUE_SKILL_VERSION = '1.3.0'
 
 export interface QueueSkillOptions {
   /** Agent mailbox this loop polls, e.g. "claude". Required — never guessed. */
@@ -52,7 +52,7 @@ function requireMailbox(mailbox: string): string {
 export function queueContractLine({ mailbox, listId }: QueueSkillOptions): string {
   const agent = requireMailbox(mailbox)
   const listClause = listId ? ` and listId "${listId}"` : ''
-  return `Call get_agent_queue with agent "${agent}"${listClause}. Work every task it returns to completion, commenting progress on each one. If it answers empty:true, stop and say nothing is queued.`
+  return `Call get_agent_queue with agent "${agent}"${listClause}. Work every task it returns to completion, commenting progress on each one. Prefer runnable.version 1 when present: work when runnable.hasWork is true, and never treat runnable.incomplete as idle. If runnable is absent, fall back to empty:true and stop and say nothing is queued only when it is true.`
 }
 
 /** The repository-agnostic skill body every adapter embeds. */
@@ -80,7 +80,8 @@ Boundaries:
 - Only tasks assigned to "${agent}" in Ready status are yours. get_agent_queue already filters for this; never work around it. An unassigned task is someone's untriaged note.
 - If you do not use the board columns at all, do not work around that either — pass requireReady: false and a task with NO status queues on assignment alone. Waiting and Doing are still never queued under it, so parking a blocked task in Waiting still stops the loop re-reading it.
 - A task with a future date is held automatically (held.scheduled) — report it, do not start it early.
-- empty:true means the run is DONE: stop and say nothing is queued. It also carries a "hint" naming the condition that is unmet — usually tasks assigned to "${agent}" that nobody set to Ready. Report the hint rather than a bare "nothing queued"; it is the difference between a quiet day and a setup that has never worked.
+- When runnable.version is 1, use runnable.hasWork and runnable.reasons: "ready" means work the returned queue, and "attention" means answer the human reply or list-chat message. If runnable.incomplete is true, do not report an idle queue; attention was truncated or a part could not be read.
+- Older servers omit runnable. Fall back to the existing empty:true rule: stop only when it is true. It also carries a "hint" naming the unmet condition — usually tasks assigned to "${agent}" that nobody set to Ready. Report the hint rather than a bare "nothing queued"; it is the difference between a quiet day and a setup that has never worked.
 - If a tool call fails or a task is blocked, say so visibly on the task and stop or move on — never retry silently in a loop, and never invent adjacent work to fill a quiet run.`
 }
 
