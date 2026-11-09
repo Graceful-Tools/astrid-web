@@ -10,6 +10,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { mockPrisma } from '@/tests/setup'
 import { BadQueueOptionError, buildAgentQueue, UnknownAgentError } from '@/lib/agent-queue'
 import { BRAND } from '@/lib/brand/config'
+import { getTaskUrl } from '@/lib/base-url'
 
 const AGENT = { id: 'agent-claude', name: 'Claude Agent', isAIAgent: true }
 
@@ -60,6 +61,90 @@ describe('buildAgentQueue', () => {
     expect(result.empty).toBe(true)
     expect(result.queue).toEqual([])
     expect(result.agent.id).toBeNull()
+  })
+
+  it('AWTD-1560 adds a runnable verdict without changing the existing empty response', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(null)
+
+    const result = await buildAgentQueue({ agent: 'claude', userId: 'user-1' })
+    const { runnable: _runnable, ...legacyResponse } = result
+
+    expect(legacyResponse).toEqual({
+      agent: {
+        mailbox: 'claude',
+        email: `claude@${BRAND.agentEmailDomain}`,
+        id: null,
+      },
+      mode: 'polling',
+      empty: true,
+      queue: [],
+      held: { notDueCount: 0, notReadyCount: 0, scheduled: [] },
+      truncated: false,
+      attention: { tasks: [], messages: [], truncated: false, skipped: [] },
+      hint: 'No incomplete tasks are assigned to claude. A task is queued only when it is BOTH assigned to claude and in Ready status.',
+    })
+    expect(result.runnable).toEqual({
+      version: 1,
+      hasWork: false,
+      reasons: [],
+      incomplete: false,
+    })
+  })
+
+  it('AWTD-1560 names Ready as the runnable reason', async () => {
+    mockPrisma.task.findMany.mockResolvedValue([task()])
+
+    const result = await buildAgentQueue({
+      agent: 'claude',
+      userId: 'user-1',
+      includeChat: true,
+    })
+
+    expect(result.runnable).toEqual({
+      version: 1,
+      hasWork: true,
+      reasons: ['ready'],
+      incomplete: false,
+    })
+  })
+
+  it('AWTD-1560 snapshots the existing Ready response fields unchanged', async () => {
+    mockPrisma.task.findMany.mockResolvedValue([task()])
+
+    const result = await buildAgentQueue({
+      agent: 'claude',
+      userId: 'user-1',
+      includeChat: true,
+    })
+    const { runnable: _runnable, ...legacyResponse } = result
+
+    expect(legacyResponse).toEqual({
+      agent: {
+        mailbox: 'claude',
+        email: `claude@${BRAND.agentEmailDomain}`,
+        id: AGENT.id,
+        name: AGENT.name,
+      },
+      mode: 'polling',
+      empty: false,
+      hint: undefined,
+      queue: [{
+        id: 'task-1',
+        identifier: 'AWTD-1',
+        title: 'Fix the thing',
+        description: null,
+        priority: 2,
+        dueDateTime: null,
+        listId: 'list-1',
+        listName: 'Astrid Web To-do',
+        githubRepositoryId: 'owner/repo',
+        assigned: true,
+        url: getTaskUrl('task-1'),
+      }],
+      held: { notDueCount: 0, notReadyCount: 0, scheduled: [] },
+      truncated: false,
+      attention: { tasks: [], messages: [], truncated: false, skipped: [] },
+    })
   })
 
   it('asks only for Ready tasks assigned to this agent and visible to the caller', async () => {

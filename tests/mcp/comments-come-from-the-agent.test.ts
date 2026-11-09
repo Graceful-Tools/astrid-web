@@ -64,6 +64,22 @@ describe('MCP comments are attributed to the agent (AWTD-878)', () => {
     expect(commentBodyFrom(fetchMock).aiAgentId).toBe(AGENT_ID)
   })
 
+  it('passes the additive runnable verdict through get_agent_queue unchanged (AWTD-1560)', async () => {
+    const runnable = {
+      version: 1,
+      hasWork: true,
+      reasons: ['attention'],
+      incomplete: false,
+    }
+    const fetchMock = vi.fn(async () => jsonOk({ ...queueResponse(), runnable }))
+    vi.stubGlobal('fetch', fetchMock)
+    const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_token' })
+
+    const result = await (server as any).getAgentQueue({ agent: 'claude' })
+
+    expect(JSON.parse(result.content[0].text).runnable).toEqual(runnable)
+  })
+
   it('reads ASTRID_AGENT_ID when it comments before it ever polls', async () => {
     process.env.ASTRID_AGENT_ID = AGENT_ID
     const fetchMock = vi.fn(async () => jsonOk({ comment: { id: 'c1' } }))
