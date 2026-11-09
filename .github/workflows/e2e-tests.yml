@@ -10,7 +10,10 @@ on:
 jobs:
   authenticated-critical:
     timeout-minutes: 30
-    runs-on: ubuntu-24.04
+    # Ubuntu 26.04 canary (AWTD-1214): the one job with Postgres, the build and the
+    # Playwright install moves first; every other job stays on 24.04 until this is
+    # green. Rollback: set this line back to ubuntu-24.04.
+    runs-on: ubuntu-26.04
     services:
       postgres:
         image: postgres:15
@@ -37,6 +40,13 @@ jobs:
       PLAYWRIGHT_AUTHENTICATED: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # Canary evidence (AWTD-1214): which image this actually ran on.
+      - name: Record the runner image
+        run: |
+          echo "ImageOS=${ImageOS:-unknown} ImageVersion=${ImageVersion:-unknown}"
+          grep -E '^(PRETTY_NAME|VERSION_ID)=' /etc/os-release
+          echo "kernel=$(uname -r)"
+          systemctl --version | head -1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .nvmrc
