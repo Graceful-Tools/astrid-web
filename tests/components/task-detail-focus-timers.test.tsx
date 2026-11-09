@@ -13,6 +13,7 @@ import { row } from '../fixtures/prisma-rows'
 import { buildTaskList } from '../fixtures/domain'
 import { render } from '@testing-library/react'
 import { TaskDetail } from '@/components/task-detail'
+import { needsScrollIntoViewHandling } from '@/lib/layout-detection'
 import type { Task, User, TaskList } from '@/types/task'
 
 // Mock fetch for upload tests
@@ -163,5 +164,23 @@ describe('TaskDetail focus timers', () => {
     document.body.classList.add('form-element-focused')
     vi.advanceTimersByTime(500)
     expect(document.body.classList.contains('form-element-focused')).toBe(true)
+  })
+
+  it('a burst of focus-ins on iOS/iPad scrolls nothing after unmount', () => {
+    vi.mocked(needsScrollIntoViewHandling).mockReturnValue(true)
+    const { unmount } = render(<TaskDetail {...mockProps} />)
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+
+    const input = document.createElement('input')
+    input.scrollIntoView = vi.fn()
+    document.body.appendChild(input)
+    input.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+    input.dispatchEvent(new FocusEvent('focusin', { bubbles: true }))
+    unmount()
+
+    vi.advanceTimersByTime(500)
+    expect(input.scrollIntoView).not.toHaveBeenCalled()
+    input.remove()
+    vi.mocked(needsScrollIntoViewHandling).mockReturnValue(false)
   })
 })
