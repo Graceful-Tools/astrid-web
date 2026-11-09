@@ -8,7 +8,7 @@
  * installed copy be recognized as stale.
  */
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   QUEUE_SKILL_VERSION,
@@ -22,6 +22,8 @@ import {
 const OPTS = { mailbox: 'codex', listId: 'board-123' }
 
 describe('canonical queue skill (AWTD-759)', () => {
+  afterEach(() => vi.unstubAllEnvs())
+
   it('requires an explicit mailbox instead of guessing an identity', () => {
     expect(() => canonicalQueueSkill({ mailbox: '' })).toThrow(/mailbox is required/)
     expect(() => queueContractLine({ mailbox: '   ' })).toThrow(/mailbox is required/)
@@ -67,6 +69,34 @@ describe('canonical queue skill (AWTD-759)', () => {
     const skill = canonicalQueueSkill({ mailbox: 'claude' })
     expect(skill).toContain('pick ONE board with get_lists')
     expect(skill).not.toContain('listId "board-123"')
+  })
+
+  it('pins the old skill and queue line while the master switch is off, even for an enrolled board (AWTD-1557)', () => {
+    vi.stubEnv('ASTRID_AGENT_CLAIM_API', '')
+    vi.stubEnv('ASTRID_AGENT_CLAIM_REQUIRED_LISTS', 'board-123')
+    const options = { mailbox: 'codex', listId: 'board-123' }
+
+    expect(canonicalQueueSkill(options).replaceAll('board-123', '<board>')).toMatchSnapshot(
+      'claim-disabled legacy skill',
+    )
+    expect(queueContractLine(options).replaceAll('board-123', '<board>')).toMatchSnapshot(
+      'claim-disabled legacy queue line',
+    )
+  })
+
+  it('requires atomic claims only when the master switch is on and this board is enrolled (AWTD-1557)', () => {
+    vi.stubEnv('ASTRID_AGENT_CLAIM_API', 'on')
+    vi.stubEnv('ASTRID_AGENT_CLAIM_REQUIRED_LISTS', 'board-123, board-456')
+
+    const enrolledSkill = canonicalQueueSkill(OPTS)
+    expect(queueContractLine(OPTS)).toContain('includeUnassigned: true')
+    expect(enrolledSkill).toContain('claim_task')
+    expect(enrolledSkill).toContain('skip it on conflict')
+    expect(enrolledSkill).toContain('resume')
+    expect(canonicalQueueSkill({ mailbox: 'codex', listId: 'board-other' })).not.toContain('claim_task')
+
+    vi.stubEnv('ASTRID_AGENT_CLAIM_API', 'off')
+    expect(canonicalQueueSkill(OPTS)).not.toContain('claim_task')
   })
 })
 

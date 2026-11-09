@@ -69,7 +69,7 @@ const CreateCommentSchema = z.object({
  * second, unrelated change riding along with the extraction.
  */
 import { McpAgentIdentity } from "./agent-identity"
-import { OAUTH_MCP_TOOLS } from './tool-definitions'
+import { getOAuthMcpTools, OAUTH_MCP_TOOLS } from './tool-definitions'
 export { OAUTH_MCP_TOOLS }
 export { OAuthAPIClient }
 
@@ -126,7 +126,7 @@ export default class AstridMCPServerOAuth {
   private setupHandlers() {
     // List available tools
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      return { tools: OAUTH_MCP_TOOLS }
+      return { tools: getOAuthMcpTools() }
     })
 
     // List available resources
