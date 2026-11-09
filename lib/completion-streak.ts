@@ -51,6 +51,10 @@ export function isSystemComment(comment: StreakComment): boolean {
   return (comment.authorId === null || comment.authorId === undefined) && !comment.remoteAuthorLogin
 }
 
+export function isHiddenSystemComment(comment: StreakComment): boolean {
+  return isSystemComment(comment) && comment.systemEventType !== 'WEBHOOK_DELIVERY_NOTICE'
+}
+
 /**
  * Is this a completion event?
  *

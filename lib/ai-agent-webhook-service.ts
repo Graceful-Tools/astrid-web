@@ -7,6 +7,12 @@ import { decryptField } from '@/lib/field-encryption'
 import type { PrismaClient } from '@prisma/client'
 import { createLogger } from '@/lib/logger'
 import { getAgentType } from '@/lib/webhooks/agent-type'
+import {
+  deliveryMailbox,
+  readWebhookDeliveryPolicy,
+  type WebhookDeliveryPolicy,
+  type WebhookDeliveryResult,
+} from '@/lib/webhooks/delivery-policy'
 import { notifyCommentOnAssignedTask as notifyCommentOnAssignedTaskImpl } from '@/lib/webhooks/comment-notifier'
 import {
   notifyTaskAssignment as notifyTaskAssignmentImpl,
@@ -70,12 +76,18 @@ export class AIAgentWebhookService {
     userId: string,
     event: string,
     payload: TaskAssignmentWebhookPayload,
-    agentType?: string | null
-  ): Promise<{ sent: boolean; error?: string }> {
+    agentType?: string | null,
+    deliveryPolicy?: WebhookDeliveryPolicy,
+  ): Promise<WebhookDeliveryResult> {
     log.info(`🔔 [WEBHOOK] sendToUserWebhook called for user ${userId}, event: ${event}, agentType: ${agentType}`)
     log.info(`🔔 [WEBHOOK] ENV CHECK - CLAUDE_REMOTE_WEBHOOK_URL: ${process.env.CLAUDE_REMOTE_WEBHOOK_URL ? 'SET' : 'NOT SET'}`)
     log.info(`🔔 [WEBHOOK] ENV CHECK - CLAUDE_REMOTE_WEBHOOK_SECRET: ${process.env.CLAUDE_REMOTE_WEBHOOK_SECRET ? 'SET' : 'NOT SET'}`)
+    let accepted = false
+    let status: number | undefined
     try {
+      const policy = deliveryPolicy ?? await readWebhookDeliveryPolicy(
+        this.prisma, userId, deliveryMailbox(payload.aiAgent.email, agentType ?? null),
+      )
       // Get user's webhook config
       const config = await this.prisma.userWebhookConfig.findUnique({
         where: { userId }
@@ -84,6 +96,9 @@ export class AIAgentWebhookService {
 
       // No config or not enabled - check for env-based fallback
       if (!config || !config.enabled) {
+        if (policy === 'strict') {
+          return { sent: false, accepted: false, started: false, error: 'No enabled user webhook configured' }
+        }
         // Try environment-based Claude Remote configuration as fallback
         const envRemoteUrl = process.env.CLAUDE_REMOTE_WEBHOOK_URL
         const envRemoteSecret = process.env.CLAUDE_REMOTE_WEBHOOK_SECRET
@@ -105,19 +120,19 @@ export class AIAgentWebhookService {
 
           if (response.ok) {
             log.info(`✅ Webhook sent to env-configured Claude Code Remote server`)
-            return { sent: true }
+            return { sent: true, accepted: true, started: null, transport: 'env-webhook', fallbackReason: 'No enabled user webhook configured' }
           } else {
             log.error(`❌ Env-based Claude Remote webhook failed: HTTP ${response.status}`)
-            return { sent: false, error: `HTTP ${response.status}` }
+            return { sent: false, accepted: false, started: false, error: `HTTP ${response.status}`, transport: 'env-webhook', fallbackReason: 'No enabled user webhook configured' }
           }
         }
 
-        return { sent: false, error: 'No webhook configured' }
+        return { sent: false, accepted: false, started: false, error: 'No webhook configured' }
       }
 
       // Check if this event type is subscribed
       if (!config.events.includes(event)) {
-        return { sent: false, error: `Event ${event} not subscribed` }
+        return { sent: false, accepted: false, started: false, error: `Event ${event} not subscribed` }
       }
 
       // Check if this agent type is handled by the webhook (opt-in model)
@@ -127,12 +142,15 @@ export class AIAgentWebhookService {
         const agentsList = config.agents || []
         if (agentsList.length === 0 || !agentsList.includes(agentType)) {
           log.info(`🔔 [WEBHOOK] Agent ${agentType} not in webhook agents list [${agentsList.join(', ')}] - skipping webhook (will use polling)`)
-          return { sent: false, error: `Agent ${agentType} not configured for webhook` }
+          return { sent: false, accepted: false, started: false, error: `Agent ${agentType} not configured for webhook` }
         }
       }
 
       // Check failure count - fall back to env config if too many failures
       if (config.failureCount >= config.maxRetries) {
+        if (policy === 'strict') {
+          return { sent: false, accepted: false, started: false, error: 'User webhook retry limit reached' }
+        }
         log.info(`⚠️  User webhook disabled due to ${config.failureCount} failures - falling back to env config`)
         // Fall through to env-based config
         const envRemoteUrl = process.env.CLAUDE_REMOTE_WEBHOOK_URL
@@ -153,14 +171,14 @@ export class AIAgentWebhookService {
 
           if (response.ok) {
             log.info(`✅ Webhook sent to env-configured server (user config had failures)`)
-            return { sent: true }
+            return { sent: true, accepted: true, started: null, transport: 'env-webhook', fallbackReason: 'User webhook retry limit reached' }
           } else {
             log.error(`❌ Env-based webhook failed: HTTP ${response.status}`)
-            return { sent: false, error: `HTTP ${response.status}` }
+            return { sent: false, accepted: false, started: false, error: `HTTP ${response.status}`, transport: 'env-webhook', fallbackReason: 'User webhook retry limit reached' }
           }
         }
 
-        return { sent: false, error: 'Webhook disabled due to failures and no env fallback' }
+        return { sent: false, accepted: false, started: false, error: 'Webhook disabled due to failures and no env fallback' }
       }
 
       // Decrypt URL and secret
@@ -171,7 +189,7 @@ export class AIAgentWebhookService {
 
       if (!webhookUrl || !webhookSecret) {
         log.info(`🔔 [WEBHOOK] Decryption failed - URL: ${!!webhookUrl}, Secret: ${!!webhookSecret}`)
-        return { sent: false, error: 'Invalid webhook configuration' }
+        return { sent: false, accepted: false, started: false, error: 'Invalid webhook configuration' }
       }
 
       // Generate signed request
@@ -192,9 +210,11 @@ export class AIAgentWebhookService {
         signal: AbortSignal.timeout(10000) // 10s timeout
       })
 
+      status = response.status
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
+      accepted = true
 
       // Reset failure count on success
       await this.prisma.userWebhookConfig.update({
@@ -206,7 +226,7 @@ export class AIAgentWebhookService {
       })
 
       log.info(`✅ Webhook sent successfully to user's Claude Code Remote server`)
-      return { sent: true }
+      return { sent: true, accepted: true, started: null, status: response.status, transport: 'user-webhook' }
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -218,11 +238,18 @@ export class AIAgentWebhookService {
           where: { userId },
           data: { failureCount: { increment: 1 } }
         })
-      } catch {
-        // Ignore update errors
+      } catch (updateError) {
+        log.error({ err: updateError }, 'Could not update webhook failure count')
       }
 
-      return { sent: false, error: errorMessage }
+      // Keep legacy dispatch's sent/error contract, but never put transport
+      // diagnostics (which may contain secrets) in task comments.
+      return {
+        sent: false, error: errorMessage, accepted, started: null, status,
+        reason: accepted
+          ? 'Webhook accepted but delivery bookkeeping failed'
+          : status ? `HTTP ${status}` : 'Webhook transport or configuration failed',
+      }
     }
   }
 

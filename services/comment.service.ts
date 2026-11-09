@@ -138,6 +138,7 @@ export interface CommentForFanOut {
   author?: { id: string; name: string | null; email: string | null; isAIAgent?: boolean } | null
   /** A GitHub comment's author with no Astrid identity (AWTD-1283). */
   remoteAuthorLogin?: string | null
+  systemEventType?: string | null
 }
 
 /**
@@ -244,8 +245,9 @@ async function linkFile(
 export function broadcastCommentCreated(
   comment: CommentForFanOut,
   task: CommentTaskContext,
-  authorId: string,
+  authorId: string | null,
   additionalAudience?: string[],
+  excludedAudience?: string[],
 ): void {
   try {
     const userIds = new Set<string>(additionalAudience ?? [])
@@ -256,10 +258,11 @@ export function broadcastCommentCreated(
     if (task.assigneeId) userIds.add(task.assigneeId)
     if (task.creatorId) userIds.add(task.creatorId)
 
-    applyCommentActorRule(userIds, {
+    applyCommentActorRule(userIds, authorId ? {
       id: authorId,
       isAIAgent: Boolean(comment.author?.isAIAgent),
-    })
+    } : null)
+    for (const id of excludedAudience ?? []) userIds.delete(id)
 
     if (userIds.size === 0) return
 
@@ -291,6 +294,7 @@ export function broadcastCommentCreated(
           createdAt: new Date(comment.createdAt).toISOString(),
           type: comment.type,
           author: comment.author,
+          ...(comment.systemEventType && { systemEventType: comment.systemEventType }),
           // Only on a GitHub board, so hosted Astrid's payload is unchanged.
           ...(comment.remoteAuthorLogin && { remoteAuthorLogin: comment.remoteAuthorLogin }),
           parentCommentId: comment.parentCommentId ?? null,

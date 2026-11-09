@@ -115,6 +115,7 @@ export interface Comment {
   authorId: string | null
   /** A GitHub comment's author with no Astrid identity (AWTD-1283); shown as "@login". */
   remoteAuthorLogin?: string | null
+  systemEventType?: string | null
   taskId: string
   createdAt: Date
   updatedAt: Date

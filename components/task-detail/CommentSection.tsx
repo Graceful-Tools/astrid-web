@@ -1,7 +1,7 @@
 "use client"
 
 import { BRAND } from '@/lib/brand/config'
-import { foldCompletionStreaks, isSystemComment } from "@/lib/completion-streak"
+import { foldCompletionStreaks, isSystemComment, isHiddenSystemComment } from "@/lib/completion-streak"
 import { StreakRow } from "@/components/task-detail/StreakRow"
 import { useState, useRef, useMemo, useCallback, useEffect } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -440,8 +440,8 @@ export function CommentSection({
     })
   }
 
-  const userComments = (task.comments || []).filter(c => !isSystemComment(c))
-  const systemComments = (task.comments || []).filter(c => isSystemComment(c))
+  const userComments = (task.comments || []).filter(c => !isHiddenSystemComment(c))
+  const systemComments = (task.comments || []).filter(c => isHiddenSystemComment(c))
   const displayedCommentCount = showSystemComments
     ? (task.comments || []).length
     : userComments.length
@@ -453,7 +453,7 @@ export function CommentSection({
   // would instead orphan a reply whose parent is a hidden system comment.
   // (Task cb1581e0; nestComments sorts oldest-first.)
   const sortedComments = useMemo(
-    () => nestComments(task.comments || []).filter(c => showSystemComments || !isSystemComment(c)),
+    () => nestComments(task.comments || []).filter(c => showSystemComments || !isHiddenSystemComment(c)),
     [task.comments, showSystemComments],
   )
 
