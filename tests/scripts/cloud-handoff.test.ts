@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cloudHandoffEligible, claimsCloudHandoff } from '@/scripts/lib/cloud-handoff'
+import { cloudHandoffEligible, claimsCloudHandoff, handoffAlreadyOnMain } from '@/scripts/lib/cloud-handoff'
 import { automaticDeployHold, landablePullRequests, RUNNER_PR_MARKER } from '@/scripts/lib/land-and-deploy'
 import { agentEmail } from '@/lib/brand/agent-emails'
 
@@ -13,6 +13,15 @@ const comments = [{ authorId: 'claude-id', content: `Done\nAWAITING-DEPLOY: ${sh
 const input = { branch: 'agent/claude-code/awtd-1410-lifecycle', headSha: sha, listId: 'web', task, comments }
 
 describe('cloud lifecycle release handoff', () => {
+  it('a marker naming a commit already on main needs no branch (run 42615955158)', () => {
+    // The fix had merged in an earlier PR, so the agent marked main's commit. With no branch
+    // to open, registration called it a broken handoff and the run went red, although the
+    // runner completed the task minutes later once production served that commit.
+    const onMain = (commit: string) => commit === sha
+    expect(handoffAlreadyOnMain(comments, onMain)).toBe(true)
+    expect(handoffAlreadyOnMain([{ ...comments[0], content: `Done\nAWAITING-DEPLOY: ${'b'.repeat(40)}` }], onMain)).toBe(false)
+    expect(handoffAlreadyOnMain([{ ...comments[0], content: 'Done, no marker' }], onMain)).toBe(false)
+  })
   it('accepts an exact, agent-authored deployed-work handoff on its board', () => {
     expect(cloudHandoffEligible(input)).toBe(true)
   })

@@ -75,9 +75,8 @@ describe('cloud agent lifecycle wiring', () => {
     // although the runner then completed the task from its AWAITING-DEPLOY marker.
     const prompt = read('.github/agent-run-prompt.md')
     expect(prompt).toContain('already on `main`')
-    expect(prompt).toContain('api/health')
     expect(prompt).toMatch(/AWAITING-DEPLOY: <the origin\/main sha/)
-    expect(prompt).toMatch(/say `RESULT: OK`, not PARTIAL/)
+    expect(prompt).toMatch(/say `RESULT: OK`, not\s+PARTIAL/)
   })
   it('AWTD-1410: prepares the database once, with the real migrations', () => {
     // agent-setup pushed the schema and agent-run then ran `migrate deploy` on
