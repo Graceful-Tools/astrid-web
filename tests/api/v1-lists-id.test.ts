@@ -9,6 +9,7 @@ vi.mock('@/lib/prisma', () => ({
       update: vi.fn(),
       delete: vi.fn(),
     },
+    project: { findUnique: vi.fn() },
     secureFile: {
       findUnique: vi.fn(),
       updateMany: vi.fn(),
@@ -200,6 +201,8 @@ describe('PUT /api/v1/lists/:id', () => {
   // and the response came back with projectId still null.
   it('owner can attach the list to a project (projectId)', async () => {
     ;(mockPrisma.taskList.findFirst as any).mockResolvedValue(baseList)
+    // AWTD-1540: the caller must belong to the project; iOS owns the one it just created.
+    ;(mockPrisma.project.findUnique as any).mockResolvedValue({ ownerId: 'owner-1', members: [] })
     const res = await PUT(makeReq('PUT', { projectId: 'project-9' }), { params } as any)
     expect(res.status).toBe(200)
     const updateCall = (mockPrisma.taskList.update as any).mock.calls[0][0]
