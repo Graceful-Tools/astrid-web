@@ -966,7 +966,7 @@ The `packages/` directory contains reusable SDK and tool packages:
 
 | Package | Description |
 |---------|-------------|
-| `astrid-sdk` | Multi-provider AI agent SDK for building integrations. Run your own agent host with `npx astrid-agent`. |
+| `astrid-sdk` | Multi-provider AI agent SDK library for building integrations; it does not include a standalone agent-host CLI. |
 | `openclaw-astrid-channel` | OpenClaw channel adapter |
 
 Each package has its own README with setup and usage instructions.
