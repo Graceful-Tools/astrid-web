@@ -5,8 +5,8 @@ lenses: security, architecture, cross-platform contract drift, caching, producti
 performance, hygiene, and documentation. It is read-only on code. Its only side effects are
 Astrid tasks and comments.
 
-It supersedes the weekly hygiene review (`docs/WEEKLY_HYGIENE_REVIEW.md`), which covered
-astrid-web only and ran from launchd.
+It superseded the weekly hygiene review, a launchd job covering astrid-web only. That job and
+its scripts are retired and deleted (AWTD-1542).
 
 | File | Role |
 |---|---|
@@ -90,7 +90,7 @@ web board to add the repeat fields to the MCP schemas; once it lands, these beco
 The retired launchd job left two machine facts worth keeping.
 
 **launchd must invoke node, not zsh.** The job ran through
-`scripts/run-weekly-hygiene-review.mjs` rather than pointing straight at the shell script,
+a small node shim (`run-weekly-hygiene-review.mjs`, since deleted) rather than pointing straight at the shell script,
 because a `/bin/zsh` launched by launchd has **no TCC access to `~/Documents`** and dies at
 the first `git` call with `fatal: Unable to read current working directory: Operation not
 permitted`. `/opt/homebrew/bin/node` holds a Full Disk Access grant and children inherit it.
