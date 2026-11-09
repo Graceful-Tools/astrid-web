@@ -18,6 +18,8 @@ instead of restating values, commands, or policy.
 | Security | [Security policy](../SECURITY.md) | Reporting policy and repository-wide security requirements |
 | Product behavior | [Product contract](./PRODUCT_CONTRACT.md) | Cross-platform permissions, behavior, and shared copy |
 | Asking a person to choose | [Decisions and trade-off grids](./DECISIONS.md) | The Decision card and rated-grid formats, for users and agents |
+| Agent integrations | [Agent integration support matrix](./AGENT_INTEGRATION_SUPPORT_MATRIX.md) | Verified harness, transport, task lifecycle, and response-channel support |
+| White-label configuration | [Whitelabeling Guide](./WHITELABELING.md) | Brand configuration and white-label behavior; hosting and deployment details are owned by the self-hosting and Azure guides |
 
 `package.json`, workflow files, Prisma schema, and code remain the executable sources
 of truth. Documentation checks validate links, canonical headings, index ownership,

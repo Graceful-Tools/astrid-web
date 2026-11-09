@@ -36,6 +36,7 @@
     "check:contract-fixtures": "tsx scripts/export-contract-fixtures.ts --check",
     "export:contract-fixtures": "tsx scripts/export-contract-fixtures.ts",
     "check:docs": "tsx scripts/check-doc-links.ts && tsx scripts/report-script-inventory.ts --check",
+    "check:agent-docs": "node scripts/check-agent-docs.mjs",
     "check:reuse": "tsx scripts/check-reuse.ts --strict && npm run check:api-boundaries",
     "check:api-boundaries": "tsx scripts/check-api-boundaries.ts",
     "check:brands": "vitest run tests/brands",
