@@ -28,10 +28,12 @@ class FixedDate extends NativeDate {
 globalThis.Date = FixedDate
 process.env.NEXTAUTH_URL = 'https://astrid.cc'
 process.env.BRAND_AGENT_EMAIL_DOMAIN = 'astrid.cc'
+process.env.ASTRID_AGENT_EXECUTION_MODE_SHADOW = 'false'
 
 registerWebAliases(webRoot, {
   '@/lib/prisma': join(here, 'stubs', 'agent-protocol-prisma.mjs'),
   '@/lib/api-auth-wrapper': join(here, 'stubs', 'agent-protocol-with-auth.mjs'),
+  '@/lib/oauth/oauth-token-manager': join(here, 'stubs', 'unused-shadow-token.mjs'),
 })
 
 const { GET } = await import(pathToFileURL(join(webRoot, 'app/api/v1/agent-queue/route.ts')).href)
