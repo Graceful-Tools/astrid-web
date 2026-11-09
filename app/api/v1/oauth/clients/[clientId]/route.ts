@@ -104,6 +104,17 @@ export const PUT = withAuth<RouteContext>(
       )
     }
 
+    // Repointing redirect URIs or switching a client on/off needs a session
+    // too (AWTD-1539): a leaked delegated token must not hijack or disable a
+    // connection. Renaming stays open to any token.
+    const changesAccess = body.redirectUris !== undefined || body.isActive !== undefined
+    if (changesAccess && auth.source !== 'session') {
+      return NextResponse.json(
+        { error: 'Changing a client\'s redirect URIs or active state requires an interactive session' },
+        { status: 403 }
+      )
+    }
+
     // An adoption-only body must not also write the ordinary fields — a PUT
     // with every field undefined would otherwise blank nothing but still write.
     const hasFieldUpdates =
@@ -149,6 +160,13 @@ export const PUT = withAuth<RouteContext>(
 export const DELETE = withAuth<RouteContext>(
   { tag: 'v1.oauth.clients.id' },
   async (_req, auth, { params }) => {
+    if (auth.source !== 'session') {
+      return NextResponse.json(
+        { error: 'Deleting a client requires an interactive session' },
+        { status: 403 }
+      )
+    }
+
     const { clientId } = await params
     const deleted = await deleteOAuthClient(clientId, auth.userId)
 
