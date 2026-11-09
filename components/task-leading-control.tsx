@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import Image from "next/image"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { TaskCheckbox } from "@/components/task-checkbox"
@@ -74,6 +75,32 @@ interface TaskLeadingControlProps {
 
 /** Priority-coloured square shared by the avatar and unassigned marks. */
 const SQUARE_CLASS = "w-8 h-8 rounded-lg border-2 flex items-center justify-center"
+
+/**
+ * The repeat arrows as the BORDER of a photo or "U" mark (AWTD-1571).
+ *
+ * Your own repeating task already swaps its checkbox for the arrows icon; a
+ * repeating task assigned to someone else or to nobody drew the plain square, so
+ * "repeats" was visible on one of the three marks only. The arrows are the same
+ * priority-coloured art the checkbox uses, drawn larger than the square so the
+ * photo sits inside the loop.
+ */
+function RepeatFrame({ priority, children }: { priority: number; children: React.ReactNode }) {
+  const safePriority = priority >= 0 && priority <= 3 ? priority : 0
+  return (
+    <div data-testid="repeat-frame" className="relative flex h-10 w-10 items-center justify-center">
+      <Image
+        src={`/icons/check_box_repeat_${safePriority}.png`}
+        alt=""
+        aria-hidden="true"
+        width={40}
+        height={40}
+        className="pointer-events-none absolute inset-0 h-10 w-10"
+      />
+      {children}
+    </div>
+  )
+}
 
 export function TaskLeadingControl({
   assigneeId,
@@ -165,12 +192,23 @@ export function TaskLeadingControl({
               }
             : {})}
         >
-          <Avatar className={SQUARE_CLASS} style={{ borderColor }}>
-            <AvatarImage src={assignee?.image || undefined} />
-            <AvatarFallback className="text-xs bg-gray-300 text-gray-700 rounded-lg">
-              {assignee?.name?.slice(0, 2) || assignee?.email?.slice(0, 2) || '?'}
-            </AvatarFallback>
-          </Avatar>
+          {repeating ? (
+            <RepeatFrame priority={priority}>
+              <Avatar className="h-6 w-6 rounded-full">
+                <AvatarImage src={assignee?.image || undefined} />
+                <AvatarFallback className="rounded-full bg-gray-300 text-[10px] text-gray-700">
+                  {assignee?.name?.slice(0, 2) || assignee?.email?.slice(0, 2) || '?'}
+                </AvatarFallback>
+              </Avatar>
+            </RepeatFrame>
+          ) : (
+            <Avatar className={SQUARE_CLASS} style={{ borderColor }}>
+              <AvatarImage src={assignee?.image || undefined} />
+              <AvatarFallback className="text-xs bg-gray-300 text-gray-700 rounded-lg">
+                {assignee?.name?.slice(0, 2) || assignee?.email?.slice(0, 2) || '?'}
+              </AvatarFallback>
+            </Avatar>
+          )}
         </div>
       </>
     )
@@ -194,11 +232,19 @@ export function TaskLeadingControl({
         }
       }}
     >
-      <div className={SQUARE_CLASS} style={{ borderColor }}>
-        <span className="text-sm font-medium" style={{ color: borderColor }}>
-          {t('tasks.unassignedMark')}
-        </span>
-      </div>
+      {repeating ? (
+        <RepeatFrame priority={priority}>
+          <span className="text-xs font-medium" style={{ color: borderColor }}>
+            {t('tasks.unassignedMark')}
+          </span>
+        </RepeatFrame>
+      ) : (
+        <div className={SQUARE_CLASS} style={{ borderColor }}>
+          <span className="text-sm font-medium" style={{ color: borderColor }}>
+            {t('tasks.unassignedMark')}
+          </span>
+        </div>
+      )}
     </div>
   )
 }
