@@ -94,6 +94,14 @@ every agent and made a user setting.
 - **due** — a task carrying a future date is not work for today, so a repeating chore
   re-queues itself on completion and reappears when it comes due
 
+The response's additive `runnable` field (version 1) combines that Ready queue with
+unanswered task-comment and list-chat attention. `hasWork` tells a loop whether
+known work is present; `reasons` lists `ready` and/or `attention`. `incomplete`
+means the queue was truncated or some attention was truncated or skipped, so a
+consumer must not report the poll as idle. Older servers omit this field; clients
+should fall back to their existing `empty`-based behavior. `empty` itself still
+describes only the Ready queue.
+
 ### `requireReady: false`, for people who do not use the board (AWTD-871)
 
 Ready is a BOARD state, and the board is a Project-Mode-shaped feature. Someone who

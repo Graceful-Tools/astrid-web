@@ -104,6 +104,13 @@ export interface AgentAttention {
   skipped: string[]
 }
 
+export interface AgentRunnable {
+  version: 1
+  hasWork: boolean
+  reasons: Array<'ready' | 'attention'>
+  incomplete: boolean
+}
+
 export interface AgentQueueResult {
   agent: { mailbox: string; email: string; id: string | null; name?: string | null }
   mode: string
@@ -123,6 +130,8 @@ export interface AgentQueueResult {
    * with something to do needs no explanation (AWTD-845).
    */
   hint?: string
+  /** Additive verdict for loops that must also act on attention (AWTD-1560). */
+  runnable: AgentRunnable
 }
 
 /**
@@ -295,6 +304,7 @@ export async function buildAgentQueue({
       // An identity nobody has used yet has nothing to answer either.
       attention: { tasks: [], messages: [], truncated: false, skipped: [] },
       hint: nothingAssignedHint(mailbox),
+      runnable: { version: 1, hasWork: false, reasons: [], incomplete: false },
     }
   }
 
@@ -368,6 +378,9 @@ export async function buildAgentQueue({
     listId,
     includeChat,
   })
+  const reasons: AgentRunnable['reasons'] = []
+  if (dueTasks.length > 0) reasons.push('ready')
+  if (attention.tasks.length > 0 || attention.messages.length > 0) reasons.push('attention')
 
   return {
     agent: { mailbox, email, id: agentUser.id, name: agentUser.name },
@@ -402,6 +415,12 @@ export async function buildAgentQueue({
     // run, so say it rather than working a silent subset.
     truncated,
     attention,
+    runnable: {
+      version: 1,
+      hasWork: reasons.length > 0,
+      reasons,
+      incomplete: truncated || attention.truncated || attention.skipped.length > 0,
+    },
   }
 }
 
