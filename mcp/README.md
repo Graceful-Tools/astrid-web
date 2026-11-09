@@ -23,7 +23,7 @@ npm run build:mcp:oauth
 This will:
 1. Compile TypeScript to JavaScript
 2. Create an executable script
-3. Output the built server to `dist/mcp-server-oauth.js`
+3. Output the built server to `dist/mcp/mcp-server-oauth.js`
 
 ### Validating Configuration
 
@@ -54,7 +54,7 @@ Add this configuration to your Claude Desktop config:
   "mcpServers": {
     "astrid-oauth": {
       "command": "node",
-      "args": ["/absolute/path/to/project/dist/mcp-server-oauth.js"],
+      "args": ["/absolute/path/to/project/dist/mcp/mcp-server-oauth.js"],
       "env": {
         "ASTRID_OAUTH_CLIENT_ID": "your_client_id",
         "ASTRID_OAUTH_CLIENT_SECRET": "your_client_secret",
