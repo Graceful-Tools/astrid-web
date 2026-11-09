@@ -123,10 +123,7 @@ jobs:
             npm install @gracefultools/astrid-sdk@${{ env.NEW_VERSION }}
             ```
 
-            Run the agent:
-            ```bash
-            npx astrid-agent
-            ```
+            The SDK is a library, not a standalone agent-host CLI. See the README for integration examples.
           draft: false
           prerelease: false
 
