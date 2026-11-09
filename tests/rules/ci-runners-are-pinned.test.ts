@@ -11,9 +11,10 @@
  * published empty, so there is nothing to diff against; pinning is the only
  * way to know what a deploy ran on.
  *
- * THIS PIN IS A DEFERRAL, NOT A DESTINATION. 24.04 goes away eventually, so
- * moving off it is tracked on the board with a recheck date rather than by a
- * test that would start failing on a date nobody chose.
+ * Moved off 24.04 to an explicit ubuntu-26.04 on 2026-11-09 (AWTD-1214), after
+ * a canary of the e2e job (Postgres, the build, the Playwright install) passed
+ * on 26.04.1 (PR #676). Still explicit, not `latest`: the next major will roll
+ * out gradually too, and every job moving together is the point.
  *
  * Self-hosted jobs are exempt: they never resolve `ubuntu-latest` at all.
  */
@@ -45,6 +46,15 @@ describe('CI runners are pinned, not latest (AWTD-1202)', () => {
       .filter(l => l.text.includes('ubuntu-latest'))
       .map(l => `${l.file}:${l.line}`)
     expect(offenders).toEqual([])
+  })
+
+  it('runs every hosted job on the same image, so one run never mixes OS majors', () => {
+    // Moving images is one deliberate change across every workflow (AWTD-1214), never a
+    // job-by-job drift that puts a deploy's Quality Gates and its migration on different OSes.
+    const images = new Set(
+      runsOnLines.map(l => /ubuntu-\d\d\.\d\d/.exec(l.text)?.[0]).filter((x): x is string => Boolean(x)),
+    )
+    expect([...images]).toEqual(['ubuntu-26.04'])
   })
 
   it('pins every job on the deploy path to one explicit image', () => {
