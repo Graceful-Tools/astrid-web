@@ -115,8 +115,10 @@ describe('MCP claim_task tool (AWTD-1557)', () => {
 
     expect(tools).toBe(OAUTH_MCP_TOOLS)
     expect(JSON.stringify(tools)).not.toContain('"claim_task"')
+    expect(tools.find((tool: { name: string }) => tool.name === 'get_agent_queue')?.description)
+      .toContain('Prefer runnable.version 1')
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      '129efd8f742b51c18e9bd3f00ff35a3365a9c712d32b8a9ce8dfe384a164fcf3',
+      'a7897ef7507420d1882b660876647e4a70621a4bad746deb97e4d13244c32462',
     )
   })
 
