@@ -220,6 +220,42 @@ describe('CommentSection - Pull to Refresh', () => {
     expect(screen.getByText('First comment')).toBeInTheDocument()
   })
 
+  it('AWTD-1561 shows delivery warnings without revealing ordinary system history', () => {
+    const base = mockTask.comments![0]
+    mockTask.comments = [
+      { ...base, id: 'delivery-notice', authorId: null, author: null,
+        systemEventType: 'WEBHOOK_DELIVERY_NOTICE', content: 'Webhook delivery warning', type: 'MARKDOWN' },
+      { ...base, id: 'system-history', authorId: null, author: null, content: 'Ordinary system history' },
+    ]
+    render(
+      <CommentSection
+        task={mockTask}
+        currentUser={mockCurrentUser}
+        onUpdate={mockOnUpdate}
+        readOnly
+        hideInput
+        newComment=""
+        setNewComment={vi.fn()}
+        uploadingFile={false}
+        setUploadingFile={vi.fn()}
+        attachedFiles={[]}
+        setAttachedFiles={vi.fn()}
+        replyingTo={null}
+        setReplyingTo={vi.fn()}
+        replyContent=""
+        setReplyContent={vi.fn()}
+        replyAttachedFiles={[]}
+        setReplyAttachedFiles={vi.fn()}
+        uploadingReplyFile={false}
+        setUploadingReplyFile={vi.fn()}
+        showingActionsFor={null}
+        setShowingActionsFor={vi.fn()}
+      />
+    )
+    expect(screen.getByText(/Webhook delivery warning/)).toBeInTheDocument()
+    expect(screen.queryByText('Ordinary system history')).not.toBeInTheDocument()
+  })
+
   it('should work without onRefreshComments callback', () => {
     isMobileDeviceMock.mockReturnValue(true)
 

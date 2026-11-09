@@ -83,6 +83,61 @@ The first two replaced the hardcoded `isLocalHarnessAgentEmail()` check, which w
 this same idea available only to `codex@`. Polling mode is that check generalised to
 every agent and made a user setting.
 
+## Webhook delivery policy (AWTD-1561)
+
+Execution mode chooses the runtime; delivery policy chooses whether an unsuccessful
+webhook may cross into a fallback runtime. The policy belongs to the same billed
+account as the run (`resolveAgentRunBilling`): list configured-by, then list owner,
+then creator for a task without a list. It is not the person posting a comment.
+
+`fallback` is the default when no policy is stored. Existing webhook payloads,
+destination selection, retries and server execution stay unchanged, including the
+environment retry in both the user-webhook sender and assignment notifier.
+Fallbacks and delivery failures now add a system-authored warning comment and an
+in-app notification for the run owner. A failure to write that warning is logged
+and does not change default dispatch.
+Delivery notices use the existing `systemEventType` field, retain system authorship,
+and remain visible in the web task thread even when ordinary system history is hidden.
+
+`strict` is opt-in. Assignment/update and comment notifications may use the user's
+webhook or an external agent's own endpoint, but never the environment webhook,
+assistant workflow or tools workflow as fallback. Missing/disabled configuration,
+an unsubscribed event/agent, exhausted retries, invalid configuration and transport
+failure park the still-assigned, incomplete task in **Waiting**, with a system
+comment containing a line beginning `BLOCKED-ON: webhook delivery failed (reason)`
+and a durable notification to the run owner. Parking, comment and notification
+are one transaction; a concurrent reassignment/completion is not overwritten.
+System comments do not trigger agents. Repair the endpoint and move the task to
+Ready to retry. A parking failure is reported as an error and never permits fallback.
+
+Polling/off mailboxes keep their existing dispatch suppression. Strict does not
+send them a webhook or park them for not having one. OpenClaw retains its existing
+SSE transport. Delivery results distinguish `accepted` from `started`: a 2xx is
+accepted, but `started: null` means the current endpoint protocol did not provide
+an execution acknowledgement. Do not read successful delivery as proof of a running
+agent.
+
+### Opt-in and rollback
+
+`GET /api/v1/users/me/webhook-delivery-policy` requires `user:read` and returns
+`{ policy, agents, meta }`. `PUT` requires `user:write` and changes only the
+authenticated account. It stores policy in the existing `User.mcpSettings` JSON,
+preserving provider credentials and other settings; there is no migration.
+An intervening settings edit returns 409 rather than overwriting its credentials
+or preferences; reload and retry.
+
+Account default: `PUT` with `{"policy":"strict"}` writes `webhookDeliveryPolicy`.
+Per-account agent binding: `PUT` with `{"agent":"claude","policy":"strict"}` writes
+`agentWebhookDeliveryPolicies.claude`; an explicit mailbox policy overrides the
+account default. Binding keys use the same agent mailboxes as execution modes,
+not provider names (for example, `codex` and `openai` remain distinct).
+
+**Rollback:** set the account policy and any strict mailbox overrides back to
+`fallback` through the same endpoint, or revert the implementation. No deployed
+environment variable needs changing. Already parked tasks stay Waiting until their
+owner intentionally moves them to Ready. Invalid policy/settings reads fail rather
+than silently overriding a possibly strict preference.
+
 ## The queue
 
 `GET /api/v1/agent-queue?agent=claude[&listId=…][&requireReady=false]`, and the MCP tool

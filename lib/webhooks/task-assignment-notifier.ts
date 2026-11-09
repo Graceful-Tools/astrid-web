@@ -36,6 +36,8 @@ import { isPollingOnlyAgent, resolveAgentRunBilling } from '@/lib/ai/agent-execu
 import { buildAgentContextInstructions } from '@/lib/ai/prompt-trust'
 import type { TaskAssignmentWebhookPayload } from './types'
 import type { PushNotificationService } from '@/lib/push-notification-service'
+import { deliveryMailbox, readWebhookDeliveryPolicy, type WebhookDeliveryPolicy, type WebhookDeliveryResult } from './delivery-policy'
+import { recordDeliveryNotice } from '@/services/webhook-delivery.service'
 
 const log = createLogger('webhooks/task-assignment-notifier')
 
@@ -46,7 +48,8 @@ export type SendToUserWebhookFn = (
   event: string,
   payload: TaskAssignmentWebhookPayload,
   agentType: string | null,
-) => Promise<{ sent: boolean; status?: number; agentType?: string | null }>
+  deliveryPolicy?: WebhookDeliveryPolicy,
+) => Promise<WebhookDeliveryResult>
 
 export interface TaskAssignmentNotifierDeps {
   prisma: PrismaClient
@@ -141,8 +144,20 @@ export async function notifyTaskAssignment(
     const webhookUrl = agentRecord?.webhookUrl || agentUser?.webhookUrl
     const isInternalAgent = isBrandAgentEmail(agentUser?.email)
 
+    // Whose credentials this run spends. NOT the task creator for a task on a
+    // list — see resolveAgentRunBilling and task 0672b69b.
+    const billing = resolveAgentRunBilling({
+      aiAgentConfiguredBy: task.lists?.[0]?.aiAgentConfiguredBy,
+      listOwnerId: task.lists?.[0]?.ownerId,
+      creatorId: task.creatorId,
+    })
     if (!webhookUrl && !isInternalAgent) {
-      log.info(`⚠️  No webhook URL configured for external AI agent ${agentName}`)
+      const policy = await readWebhookDeliveryPolicy(prisma, billing.userId,
+        deliveryMailbox(agentUser?.email, getAgentType(agentUser?.email ?? undefined, agentName)))
+      await recordDeliveryNotice(prisma, {
+        taskId, aiAgentId, ownerId: billing.userId,
+        reason: 'No external agent webhook configured', strict: policy === 'strict',
+      })
       return
     }
 
@@ -164,14 +179,6 @@ export async function notifyTaskAssignment(
         })
       }
     }
-
-    // Whose credentials this run spends. NOT the task creator for a task on a
-    // list — see resolveAgentRunBilling and task 0672b69b.
-    const billing = resolveAgentRunBilling({
-      aiAgentConfiguredBy: task.lists?.[0]?.aiAgentConfiguredBy,
-      listOwnerId: task.lists?.[0]?.ownerId,
-      creatorId: task.creatorId,
-    })
 
     const payload: TaskAssignmentWebhookPayload = {
       event,
@@ -257,18 +264,42 @@ export async function notifyTaskAssignment(
       return
     }
 
+    const policy = await readWebhookDeliveryPolicy(prisma, webhookUserId, deliveryMailbox(agentUser?.email, agentType))
+    const notice = (reason: string, strict = policy === 'strict') => recordDeliveryNotice(prisma, {
+      taskId, aiAgentId, ownerId: billing.userId, reason, strict,
+    })
     // FIRST: route through user-level Claude Code Remote webhook if configured.
     log.info(`🔍 [WEBHOOK-TRACE] Checking user webhook for user ${webhookUserId} (billed via ${billing.source}; creatorId: ${task.creatorId}, listOwner: ${task.lists?.[0]?.ownerId})...`)
+    let failureReason = 'No webhook owner configured'
     if (webhookUserId) {
-      const userWebhookResult = await sendToUserWebhook(webhookUserId, event, payload, agentType)
+      const userWebhookResult = await sendToUserWebhook(webhookUserId, event, payload, agentType, policy)
       log.info({ userWebhookResult }, `🔍 [WEBHOOK-TRACE] sendToUserWebhook result`)
 
       if (userWebhookResult.sent) {
+        if (userWebhookResult.fallbackReason) await notice(userWebhookResult.fallbackReason, false)
         log.info(`📤 Routed to user's Claude Code Remote server (skipping standard flow)`)
         await sendSSENotification(task, payload, prisma)
         return
       }
+      failureReason = userWebhookResult.reason || userWebhookResult.error || 'User webhook delivery failed'
     }
+
+    if (policy === 'strict') {
+      // An external agent's own endpoint is allowed, never Astrid's fallback.
+      if (!isInternalAgent && webhookUrl) {
+        try {
+          await sendWebhookNotification(webhookUrl, payload)
+          await sendSSENotification(task, payload, prisma)
+          return
+        } catch {
+          failureReason = 'External agent webhook delivery failed'
+        }
+      }
+      await notice(failureReason)
+      await sendSSENotification(task, payload, prisma)
+      return
+    }
+    await notice(`${failureReason}; continuing via fallback`, false)
 
     // SECOND: ENV-configured Claude Remote fallback for claude-typed agents.
     const envRemoteUrl = process.env.CLAUDE_REMOTE_WEBHOOK_URL
@@ -295,9 +326,11 @@ export async function notifyTaskAssignment(
           return
         } else {
           log.error(`❌ Claude Remote webhook failed: HTTP ${response.status}`)
+          await notice(`Environment webhook failed (HTTP ${response.status}); continuing via fallback`, false)
         }
       } catch (error) {
         log.error({ err: error }, `❌ Claude Remote webhook error:`)
+        await notice('Environment webhook transport failed; continuing via fallback', false)
       }
     }
 
@@ -334,7 +367,12 @@ export async function notifyTaskAssignment(
         }
       }
     } else if (webhookUrl) {
-      await sendWebhookNotification(webhookUrl, payload)
+      try {
+        await sendWebhookNotification(webhookUrl, payload)
+      } catch (error) {
+        await notice('External agent webhook delivery failed', false)
+        throw error
+      }
     }
 
     if (agentUser?.aiAgentType === 'astrid') {

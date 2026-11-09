@@ -77,7 +77,7 @@ function buildDeps(task: Record<string, unknown>) {
       findFirst: vi.fn(async () => ({ id: 'tok-1', token: 'plain-token', tokenHash: null })),
       create: vi.fn(),
     },
-    user: { findFirst: vi.fn(async () => null), findMany: vi.fn(async () => []) },
+    user: { findUnique: vi.fn(async () => null), findFirst: vi.fn(async () => null), findMany: vi.fn(async () => []) },
     taskList: { findMany: vi.fn(async () => []) },
     listMember: { findMany: vi.fn(async () => []) },
   }
