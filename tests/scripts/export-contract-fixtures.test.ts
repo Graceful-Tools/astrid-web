@@ -35,6 +35,10 @@ const FIXTURES = [
   'task-identifiers.json',
   'wire-shapes.json',
   'decisions.json',
+  'agent-queue.json',
+  'agent-modes.json',
+  'fixall-claim.json',
+  'agent-registry.json',
 ]
 
 describe('AWTD-1031: contract fixtures are exported from astrid-web', () => {
@@ -70,5 +74,51 @@ describe('AWTD-1031: contract fixtures are exported from astrid-web', () => {
     const pkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'))
     expect(pkg.scripts['check:contract-fixtures']).toBe('tsx scripts/export-contract-fixtures.ts --check')
     expect(pkg.scripts['export:contract-fixtures']).toBe('tsx scripts/export-contract-fixtures.ts')
+  })
+})
+
+describe('AWTD-1566: the current agent protocol is exported for clients', () => {
+  it('pins queue, mode, claim, and harness registry response sections', () => {
+    const readFixture = (name: string) =>
+      JSON.parse(readFileSync(join(fixturesDir, name), 'utf8'))
+
+    const queue = readFixture('agent-queue.json')
+    expect(queue.scenarios.available.meta).toMatchObject({ apiVersion: 'v1', authSource: 'oauth' })
+    expect(queue.scenarios.available).toHaveProperty('queue')
+    expect(queue.scenarios.available).toHaveProperty('attention')
+    expect(queue.scenarios.available).toHaveProperty('held')
+    expect(queue.scenarios.scheduled).toMatchObject({
+      empty: true,
+      queue: [],
+      held: { notDueCount: expect.any(Number), scheduled: expect.any(Array) },
+    })
+    expect(queue.scenarios.scheduled.hint).toEqual(expect.any(String))
+    expect(queue.scenarios.notReady).toMatchObject({
+      empty: true,
+      queue: [],
+      held: { notReadyCount: expect.any(Number) },
+    })
+    expect(queue.scenarios.notReady.hint).toEqual(expect.any(String))
+
+    const modes = readFixture('agent-modes.json')
+    expect(modes).toHaveProperty('agents')
+    expect(modes.agents).toEqual(expect.arrayContaining([
+      expect.objectContaining({ mailbox: 'codex', mode: 'polling', locked: true }),
+    ]))
+
+    const claims = readFixture('fixall-claim.json')
+    expect(claims.outcomes).toEqual(expect.objectContaining({
+      claimed: expect.objectContaining({ status: expect.any(Number), body: expect.any(Object) }),
+      conflict: expect.objectContaining({ status: expect.any(Number), body: expect.any(Object) }),
+      notReady: expect.objectContaining({ status: expect.any(Number), body: expect.any(Object) }),
+      forbidden: expect.objectContaining({ status: expect.any(Number), body: expect.any(Object) }),
+    }))
+
+    const registry = readFixture('agent-registry.json')
+    expect(Object.values(registry.mailboxes)).toContain('codex')
+    expect(registry.pollingOnly).toContain('codex')
+    expect(registry.harnessAgents).toEqual(expect.arrayContaining([
+      expect.objectContaining({ mailbox: 'codex', label: expect.any(String) }),
+    ]))
   })
 })

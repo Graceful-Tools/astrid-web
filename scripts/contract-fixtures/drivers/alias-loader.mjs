@@ -37,6 +37,9 @@ const STUBS = {
   // timers at import, which would hang the export; see the stub.
   '@/lib/redis': join(here, 'stubs', 'server-only.mjs'),
   '@/lib/sse-utils': join(here, 'stubs', 'server-only.mjs'),
+  // Node does not resolve Next's extensionless package export in these direct
+  // drivers; the routes use only the Web Request/Response surface we stub here.
+  'next/server': join(here, 'stubs', 'next-server.mjs'),
   // A bare package, imported by lib/list-manual-order.ts for a type (`Prisma.JsonArray`) that
   // type-stripping leaves behind as a value import. Stubbed so the manual-order driver needs no
   // generated prisma client.
