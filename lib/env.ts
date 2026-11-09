@@ -207,6 +207,7 @@ export const ENV_VARS: EnvVar[] = [
 
   // ── MCP ───────────────────────────────────────────────────────────────────
   { name: 'ASTRID_API_BASE_URL', scope: 'optional', description: 'API base the standalone MCP servers call. Defaults to this brand’s own origin.', validate: isUrl },
+  { name: 'ASTRID_AGENT_CLAIM_API', scope: 'optional', description: 'Enables the additive agent task claim API only when set to "on"; unset or any other value leaves it disabled.' },
   { name: 'ASTRID_API_URL', scope: 'tooling', description: 'API base used by the SDK and local scripts.', validate: isUrl },
   { name: 'ASTRID_API_BASE', scope: 'tooling', description: 'Legacy alias read by older scripts.' },
   { name: 'ASTRID_OAUTH_CLIENT_ID', scope: 'optional', description: 'OAuth client the MCP server authenticates as.' },
