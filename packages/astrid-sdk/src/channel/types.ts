@@ -9,6 +9,12 @@ export interface AstridChannelConfig {
   agentEmail?: string
   lists?: string[]
   pollIntervalMs?: number
+  /** Opt-in restart recovery. Use a private, durable file unique to this agent. */
+  recovery?: {
+    stateFile: string
+    /** Explicit queue identity; never inferred from another harness or a default. */
+    agentMailbox: string
+  }
 }
 
 /** Task as returned by the agent protocol */
