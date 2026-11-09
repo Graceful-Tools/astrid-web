@@ -15,12 +15,16 @@ const DESKTOP_PANEL = '.task-panel-desktop'
 const MOBILE_PANEL = '.task-panel-mobile'
 
 /**
- * Resize, then open the first task. The click and the panel check retry as one
- * unit: the layout switches on a resize listener, and a click that lands before
- * the switch opens the wrong panel (or none).
+ * Resize, wait for the layout to switch, then open the first task. The click and
+ * the panel check retry as one unit: a click that lands mid-switch opens the wrong
+ * panel (or none).
  */
 async function resizeAndOpenFirstTask(page: Page, width: number, height: number, panel: string) {
   await page.setViewportSize({ width, height })
+  // The layout switches on a 100ms-debounced resize (useTaskManagerLayout), and both desktop
+  // layouts render the same panel, so the panel alone cannot tell 2-column from 3-column. The
+  // hamburger drawer wrapper is set in the same update: present below 1100px, absent above.
+  await expect(page.locator('.ios-drawer-content')).toHaveCount(width < 1100 ? 1 : 0)
   const firstTask = page.locator('.task-row, .mobile-task-item').first()
   await expect(firstTask).toBeVisible()
   await expect(async () => {
