@@ -38,6 +38,18 @@ Malformed actions or request bodies return `400`. This API does not change the
 existing `/api/v1/tasks/:id/claim-fixall` route or its board/mailbox
 allowlists.
 
+The OAuth MCP server exposes this operation as `claim_task` only when
+`ASTRID_AGENT_CLAIM_API=on`, and `@gracefultools/astrid-sdk` exposes it as
+`AstridOAuthClient.claimTask`. The MCP tool maps its optional `agent` mailbox
+to `agentMailbox`.
+
+`ASTRID_AGENT_CLAIM_REQUIRED_LISTS` is a comma-separated board-ID allowlist
+with an empty default. It changes generated queue-skill guidance only, and is
+ignored unless the master switch is on. Enrolled-board guidance tells agents
+to claim before work, skip conflicts, and resume their own Doing claim after a
+restart. It does not reject existing task updates or assignments. Remove a
+board ID to roll back enrollment; no schema change is involved.
+
 ## Rollback
 
 Keep `ASTRID_AGENT_CLAIM_API` unset/off to make the route return `404`, or revert

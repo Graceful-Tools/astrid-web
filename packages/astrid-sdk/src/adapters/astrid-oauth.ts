@@ -5,7 +5,12 @@
  */
 
 import { resolveOrigin } from '../config/api-base.js'
-import type { AstridTask, AstridList } from '../types/index.js'
+import type {
+  AgentTaskClaimRequest,
+  AgentTaskClaimResult,
+  AstridTask,
+  AstridList,
+} from '../types/index.js'
 
 interface OAuthTokenResponse {
   access_token: string
@@ -18,6 +23,13 @@ interface APIResponse<T = unknown> {
   success: boolean
   data?: T
   error?: string
+}
+
+class APIRequestError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message)
+    this.name = 'APIRequestError'
+  }
 }
 
 interface Comment {
@@ -49,6 +61,10 @@ export interface AstridOAuthConfig {
   baseUrl?: string
   clientId?: string
   clientSecret?: string
+}
+
+export interface AgentTaskClaimResponse extends APIResponse<AgentTaskClaimResult> {
+  unavailable?: true
 }
 
 export class AstridOAuthClient {
@@ -127,7 +143,10 @@ export class AstridOAuthClient {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: response.statusText })) as { error?: string }
-      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
+      throw new APIRequestError(
+        errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+        response.status,
+      )
     }
 
     return response.json() as Promise<T>
@@ -193,6 +212,37 @@ export class AstridOAuthClient {
       const data = await this.makeRequest<{ task: AstridTask }>(`/api/v1/tasks/${taskId}`)
       return { success: true, data: data.task }
     } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
+  }
+
+  /**
+   * Atomically claim, resume, or release a task for the authenticated agent.
+   */
+  async claimTask(
+    taskId: string,
+    request: AgentTaskClaimRequest,
+  ): Promise<AgentTaskClaimResponse> {
+    try {
+      const data = await this.makeRequest<AgentTaskClaimResult>(
+        `/api/v1/tasks/${encodeURIComponent(taskId)}/claim`,
+        {
+          method: 'POST',
+          body: JSON.stringify(request),
+        },
+      )
+      return { success: true, data }
+    } catch (error) {
+      if (error instanceof APIRequestError && [404, 405, 501].includes(error.status)) {
+        return {
+          success: false,
+          unavailable: true,
+          error: `Atomic agent task claims are unavailable (HTTP ${error.status}).`,
+        }
+      }
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

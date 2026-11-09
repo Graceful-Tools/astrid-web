@@ -247,8 +247,14 @@ finished run.
 The board is where Jon looks. A task being worked and a task nobody has touched must not look
 identical there.
 
-The MCP server has no status or assign tool yet, so these two steps — and only these — use the
-OAuth scripts in astrid-web. Not the database.
+The MCP server exposes `claim_task` only when `ASTRID_AGENT_CLAIM_API=on`. A board is enrolled
+for claim-required queue guidance by adding its ID to `ASTRID_AGENT_CLAIM_REQUIRED_LISTS`;
+the list defaults to empty. Enrollment changes guidance only: with the master switch on, the
+generated skill asks the agent to include unassigned Ready tasks, atomically claim before work,
+skip conflicts, and resume its own Doing claim after restart. With the master switch off, the
+existing skill text is unchanged and enrollment is ignored. This does not reject existing
+`update_task` or assignment paths. The local queue workflow below continues to use the OAuth
+claim script, not the database.
 
 **Starting → claim it**, before the strategy comment, so the window where the board is
 wrong is as small as possible:

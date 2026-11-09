@@ -35,6 +35,11 @@ export interface OAuthAPIClientOptions {
   hosted?: boolean
 }
 
+export interface ClaimTaskRequest {
+  action: 'claim' | 'resume' | 'release'
+  agentMailbox?: string
+}
+
 export class OAuthAPIClient {
   private readonly baseUrl: string
   private readonly clientId: string
@@ -141,6 +146,13 @@ export class OAuthAPIClient {
     }
 
     return response.json()
+  }
+
+  async claimTask<T = unknown>(taskId: string, input: ClaimTaskRequest): Promise<T> {
+    return this.makeRequest<T>(`/api/v1/tasks/${encodeURIComponent(taskId)}/claim`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
   }
 
   private fetchBackend(endpoint: string, options: RequestInit): Promise<Response> {

@@ -1,0 +1,85 @@
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
+import { createHash } from 'node:crypto'
+import AstridMCPServerOAuth from '@/mcp/mcp-server-oauth'
+import { getOAuthMcpTools, OAUTH_MCP_TOOLS } from '@/mcp/tool-definitions'
+
+function stubFetch(json: unknown) {
+  const fetchMock = vi.fn().mockResolvedValue({
+    ok: true,
+    status: 200,
+    statusText: '',
+    json: async () => json,
+  })
+  vi.stubGlobal('fetch', fetchMock)
+  return fetchMock
+}
+
+async function callTool(server: AstridMCPServerOAuth, name: string, args: unknown) {
+  const handler = (server as any).server._requestHandlers.get('tools/call')
+  return handler({ method: 'tools/call', params: { name, arguments: args } }, {})
+}
+
+const urlOf = (fetchMock: Mock) => String(fetchMock.mock.calls[0][0])
+const bodyOf = (fetchMock: Mock) => JSON.parse(String(fetchMock.mock.calls[0][1].body))
+
+describe('MCP claim_task tool (AWTD-1557)', () => {
+  afterEach(() => vi.unstubAllEnvs())
+
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('registers only when enabled and proxies the atomic claim action', async () => {
+    vi.stubEnv('ASTRID_AGENT_CLAIM_API', 'on')
+    const apiResult = { outcome: 'claimed', task: { id: 'task-1', statusRole: 'doing' } }
+    const fetchMock = stubFetch(apiResult)
+    const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_test' })
+
+    const result = await callTool(server, 'claim_task', {
+      taskId: 'task-1',
+      action: 'claim',
+      agent: 'copilot',
+    })
+    const listTools = (server as any).server._requestHandlers.get('tools/list')
+    const { tools } = await listTools({ method: 'tools/list', params: {} }, {})
+
+    expect(getOAuthMcpTools()).toEqual(tools)
+    expect(JSON.stringify(tools)).toContain('"claim_task"')
+    expect(result.isError).toBeFalsy()
+    expect(urlOf(fetchMock)).toMatch(/\/api\/v1\/tasks\/task-1\/claim$/)
+    expect(fetchMock.mock.calls[0][1].method).toBe('POST')
+    expect(bodyOf(fetchMock)).toEqual({
+      action: 'claim',
+      agentMailbox: 'copilot',
+    })
+    expect(JSON.parse(result.content[0].text)).toEqual(apiResult)
+  })
+
+  it('keeps the existing tools/list unchanged while the API flag is off', async () => {
+    vi.stubEnv('ASTRID_AGENT_CLAIM_API', '')
+    const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_test' })
+    const listTools = (server as any).server._requestHandlers.get('tools/list')
+    const { tools } = await listTools({ method: 'tools/list', params: {} }, {})
+
+    expect(tools).toBe(OAUTH_MCP_TOOLS)
+    expect(JSON.stringify(tools)).not.toContain('"claim_task"')
+    expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
+      '129efd8f742b51c18e9bd3f00ff35a3365a9c712d32b8a9ce8dfe384a164fcf3',
+    )
+  })
+
+  it('refuses a manual claim call while the API flag is off', async () => {
+    vi.stubEnv('ASTRID_AGENT_CLAIM_API', '')
+    const fetchMock = stubFetch({})
+    const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_test' })
+
+    const result = await callTool(server, 'claim_task', {
+      taskId: 'task-1',
+      action: 'claim',
+    })
+
+    expect(result.isError).toBe(true)
+    expect(result.content[0].text).toMatch(/unavailable/)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})
