@@ -10,7 +10,7 @@ on:
 jobs:
   authenticated-critical:
     timeout-minutes: 30
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     services:
       postgres:
         image: postgres:15
@@ -37,6 +37,14 @@ jobs:
       PLAYWRIGHT_AUTHENTICATED: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      # Which image this ran on (AWTD-1214): the job that exercises Postgres, the build and
+      # the Playwright install, so an image change shows up next to whatever it broke.
+      - name: Record the runner image
+        run: |
+          echo "ImageOS=${ImageOS:-unknown} ImageVersion=${ImageVersion:-unknown}"
+          grep -E '^(PRETTY_NAME|VERSION_ID)=' /etc/os-release
+          echo "kernel=$(uname -r)"
+          systemctl --version | head -1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .nvmrc
@@ -68,7 +76,7 @@ jobs:
 
   test:
     timeout-minutes: 60
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     services:
       postgres:
         image: postgres:15
@@ -167,7 +175,7 @@ jobs:
   # Mobile tests as separate job
   test-mobile:
     timeout-minutes: 60
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     services:
       postgres:
         image: postgres:15

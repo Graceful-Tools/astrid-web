@@ -22,7 +22,7 @@
 
 import { registerHooks } from 'node:module'
 import { existsSync } from 'node:fs'
-import { join, dirname } from 'node:path'
+import { join, dirname, resolve } from 'node:path'
 import { pathToFileURL, fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -37,6 +37,9 @@ const STUBS = {
   // timers at import, which would hang the export; see the stub.
   '@/lib/redis': join(here, 'stubs', 'server-only.mjs'),
   '@/lib/sse-utils': join(here, 'stubs', 'server-only.mjs'),
+  // Node does not resolve Next's extensionless package export in these direct
+  // drivers; the routes use only the Web Request/Response surface we stub here.
+  'next/server': join(here, 'stubs', 'next-server.mjs'),
   // A bare package, imported by lib/list-manual-order.ts for a type (`Prisma.JsonArray`) that
   // type-stripping leaves behind as a value import. Stubbed so the manual-order driver needs no
   // generated prisma client.
@@ -50,9 +53,9 @@ const EXTENSIONS = ['.ts', '.tsx', '.mjs', '.js', '/index.ts', '/index.tsx', '/i
  * Install the hook. Call once, before importing anything from the web checkout.
  *
  * @param {string} webRoot absolute path to the astrid-web checkout
- * @param {Record<string, string>} [overrides] specifier → file, replacing a stub for one driver.
- *   Only the reminders driver uses it, to run lib/reminder-snooze.ts against an in-memory
- *   reminder queue (stubs/prisma-reminder-queue.mjs) instead of the throwing prisma stub.
+ * @param {Record<string, string>} [overrides] specifier or exact resolved file path → file,
+ *   replacing a stub for one driver. Drivers use it for an in-memory Prisma implementation,
+ *   and the claim fixture overrides only the auth middleware dependency of the real withAuth.
  */
 export function registerWebAliases(webRoot, overrides = {}) {
   const stubs = { ...STUBS, ...overrides }
@@ -64,7 +67,9 @@ export function registerWebAliases(webRoot, overrides = {}) {
       if ((specifier.startsWith('./') || specifier.startsWith('../')) && context.parentURL) {
         const parent = fileURLToPath(context.parentURL)
         if (parent.startsWith(webRoot)) {
-          const base = join(dirname(parent), specifier)
+          const base = resolve(dirname(parent), specifier)
+          const override = overrides[base] ?? EXTENSIONS.map((ext) => overrides[base + ext]).find(Boolean)
+          if (override) return { url: pathToFileURL(override).href, shortCircuit: true }
           if (!existsSync(base) || !/\.[a-z]+$/.test(specifier)) {
             for (const ext of EXTENSIONS) {
               const candidate = base + ext

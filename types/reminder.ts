@@ -81,6 +81,8 @@ export interface TaskReminderData {
   taskId: string
   title: string
   dueDateTime: Date
+  /** An all-day date is a calendar day with no time (stored at UTC midnight of that day). */
+  isAllDay?: boolean
   assigneeEmail?: string
   assigneeName?: string
   listNames: string[]
@@ -101,6 +103,8 @@ export interface DailyDigestData {
   dueTomorrowTasks: TaskReminderData[]
   overdueTasks: TaskReminderData[]
   upcomingTasks: TaskReminderData[]
+  /** The recipient's `dailyDigestTimezone`, so the email's dates are their days (AWTD-1545). */
+  timeZone?: string
 }
 
 export type ReminderPreferenceKey = 
