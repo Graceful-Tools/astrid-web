@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import fs from 'fs'
 import path from 'path'
 
+import { themeColor } from '@/lib/design/tokens'
+
 describe('Light Mode Text Visibility Regression Test', () => {
   it('should ensure light mode theme-text-muted has readable color value', () => {
     // Read the light theme CSS file
@@ -12,7 +14,10 @@ describe('Light Mode Text Visibility Regression Test', () => {
     const themeTextMutedMatch = cssContent.match(/--theme-text-muted:\s*([^;]+);/)
     expect(themeTextMutedMatch).toBeTruthy()
 
-    const colorValue = themeTextMutedMatch![1].trim()
+    // The value lives in the design tokens now (docs/specs/DESIGN_SYSTEM.md);
+    // the stylesheet names the token and the token holds the readable grey.
+    expect(themeTextMutedMatch![1].trim()).toBe('var(--astrid-text-muted)')
+    const colorValue = themeColor('light', 'text-muted').join(', ')
     expect(colorValue).toBe('107, 114, 128') // Should be the darker value, not 156, 163, 175
 
     // Ensure it's not the old problematic light gray
@@ -76,9 +81,12 @@ describe('Light Mode Text Visibility Regression Test', () => {
     const cssContent = fs.readFileSync(cssPath, 'utf-8')
 
     // Verify that the light theme has proper text hierarchy
-    expect(cssContent).toMatch(/--theme-text-primary:\s*17,\s*24,\s*39/) // Dark for primary text
-    expect(cssContent).toMatch(/--theme-text-secondary:\s*75,\s*85,\s*99/) // Medium for secondary text
-    expect(cssContent).toMatch(/--theme-text-muted:\s*107,\s*114,\s*128/) // Readable muted text (not too light)
+    expect(cssContent).toMatch(/--theme-text-primary:\s*var\(--astrid-text-primary\)/)
+    expect(cssContent).toMatch(/--theme-text-secondary:\s*var\(--astrid-text-secondary\)/)
+    expect(cssContent).toMatch(/--theme-text-muted:\s*var\(--astrid-text-muted\)/)
+    expect(themeColor('light', 'text-primary')).toEqual([17, 24, 39]) // Dark for primary text
+    expect(themeColor('light', 'text-secondary')).toEqual([75, 85, 99]) // Medium for secondary text
+    expect(themeColor('light', 'text-muted')).toEqual([107, 114, 128]) // Readable muted text (not too light)
 
     // Ensure the CSS classes are defined
     expect(cssContent).toContain('.light .theme-text-muted { color: rgb(var(--theme-text-muted)); }')

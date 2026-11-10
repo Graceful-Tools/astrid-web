@@ -15,11 +15,22 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
+import { themeColor } from '@/lib/design/tokens'
+
 const css = readFileSync(join(process.cwd(), 'styles/themes/ocean-theme.css'), 'utf8')
 
+/**
+ * A `--theme-*` variable's colour in Ocean. Shared colours are no longer
+ * written here: they are `var(--astrid-*)`, read from the design tokens
+ * (docs/specs/DESIGN_SYSTEM.md), so the value is followed there. astrid-core
+ * refuses unreadable text at the source too; this keeps the web's own
+ * surfaces (`theme-surface`) in the measurement.
+ */
 function rgbVar(name: string): [number, number, number] {
+  const token = new RegExp(`--${name}:\\s*var\\(--astrid-([a-z0-9-]+)\\);`).exec(css)
+  if (token) return themeColor('ocean', token[1])
   const match = new RegExp(`--${name}:\\s*(\\d+),\\s*(\\d+),\\s*(\\d+);`).exec(css)
-  if (!match) throw new Error(`--${name} not found as an r, g, b triplet`)
+  if (!match) throw new Error(`--${name} not found as an r, g, b triplet or a design token`)
   return [Number(match[1]), Number(match[2]), Number(match[3])]
 }
 
