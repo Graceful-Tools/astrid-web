@@ -14,6 +14,7 @@ import { hydrateListFavorites } from "@/lib/favorites"
 import { hydrateListViewPreferences } from "@/lib/list-view-preferences"
 import { createLogger } from '@/lib/logger'
 import { getDeletionsSince } from '@/lib/deletion-log'
+import { authorizeProjectAttach } from '@/lib/projects-service'
 import {
   createListWithImageOwnership,
   ListImageClaimError,
@@ -199,6 +200,18 @@ export async function POST(request: NextRequest) {
         { error: `privacy must be one of: ${V1_LIST_PRIVACY_VALUES.join(', ')}` },
         { status: 400 }
       )
+    }
+
+    // Attaching a list to a project hands its members read access to the
+    // project's boards, so the caller must belong to that project (AWTD-1540).
+    if (data.projectId) {
+      const attach = await authorizeProjectAttach(data.projectId, session.user.id)
+      if ('error' in attach) {
+        return NextResponse.json(
+          { error: attach.error === 'not_found' ? 'Project not found' : 'You are not a member of this project' },
+          { status: attach.error === 'not_found' ? 404 : 403 }
+        )
+      }
     }
 
     // Create the list first to get the ID, then assign consistent default image

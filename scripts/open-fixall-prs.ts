@@ -24,7 +24,7 @@ import { loadScriptEnv } from './lib/load-env'
 import { branchesForCompletedTask, isFinishedWork, prBody, prTitle, type CandidateBranch } from './lib/fixall-prs'
 import { parseBlockedConditions } from '@/lib/ready-queue-scope'
 import { RUNNER_PR_MARKER } from './lib/land-and-deploy'
-import { claimsCloudHandoff, cloudHandoffEligible } from './lib/cloud-handoff'
+import { claimsCloudHandoff, cloudHandoffEligible, handoffAlreadyOnMain } from './lib/cloud-handoff'
 
 loadScriptEnv()
 
@@ -45,6 +45,16 @@ function run(cmd: string, args: string[], cwd: string): string {
 }
 
 const git = (repo: string, ...args: string[]) => run('git', ['-c', 'core.fsmonitor=false', ...args], repo)
+
+/** Whether `sha` is on origin/main. */
+function onMain(repo: string, sha: string): boolean {
+  try {
+    git(repo, 'merge-base', '--is-ancestor', sha, 'origin/main')
+    return true
+  } catch {
+    return false
+  }
+}
 
 /** Every origin branch main lacks commits from, with those commits' messages. */
 function unmergedBranches(repo: string): CandidateBranch[] {
@@ -123,6 +133,10 @@ async function main() {
       })),
     )
     if (matches.length === 0) {
+      if (cloudAgent && handoffAlreadyOnMain(comments, sha => onMain(repo, sha))) {
+        console.log(`  PR: ${task.identifier} — its fix is already on main; the runner completes it once deployed`)
+        continue
+      }
       if (cloudAgent && claimsCloudHandoff(comments)) failed = true
       console.log(`  PR: ${task.identifier} — finished, but no unmerged branch carries its id (nothing to open)`)
       continue

@@ -18,7 +18,7 @@
 #   ./scripts/launchd/install.sh cc.astrid.fixall-web   # just one
 #
 # Re-run it after moving the checkout. Bootstrapping stops any run currently in flight for
-# that label, so prefer a quiet moment. See docs/WEEKLY_HYGIENE_REVIEW.md and
+# that label, so prefer a quiet moment. See
 # .claude/commands/fixall.md.
 
 set -euo pipefail

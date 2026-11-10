@@ -84,5 +84,5 @@ Refer to tasks by **title** in every report; Jon does not read task ids.
    (`/fixall` → *DEPLOY WHAT YOU FINISH*), and verify production serves it. A pending
    migration or a red gate still goes to Jon.
 
-See [ASTRID.md](./ASTRID.md) > "Coding Workflow" for the full required workflow.
-See [ASTRID.md](./ASTRID.md) > "Let's Fix Stuff Workflow" for task script documentation.
+See [ASTRID.md](../../ASTRID.md) > "Coding Workflow" for the full required workflow.
+See [ASTRID.md](../../ASTRID.md) > "Let's Fix Stuff Workflow" for task script documentation.

@@ -17,6 +17,15 @@ type RouteContext = { params: Promise<{ clientId: string }> }
 export const POST = withAuth<RouteContext>(
   { tag: 'v1.oauth.clients.regenerate-secret' },
   async (_req, auth, { params }) => {
+    // A leaked narrow token could otherwise regenerate a broader
+    // client_credentials client's secret and mint its scopes (AWTD-1539).
+    if (auth.source !== 'session') {
+      return NextResponse.json(
+        { error: 'Regenerating a client secret requires an interactive session' },
+        { status: 403 }
+      )
+    }
+
     const { clientId } = await params
 
     try {
