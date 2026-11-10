@@ -20,6 +20,8 @@ Status: **active**. Companion to
 [docs/CODE_REUSE_AND_CONSISTENCY.md](./CODE_REUSE_AND_CONSISTENCY.md).
 API shapes live in [docs/API_CONTRACT.md](./API_CONTRACT.md);
 this file governs *behavioral rules* and *copy*, not wire formats.
+How the shared components **look** (colours, sizes, motion, themes) is
+[docs/specs/DESIGN_SYSTEM.md](./specs/DESIGN_SYSTEM.md).
 
 > Rule of thumb: if a change alters **who can do what** or **what words the user
 > sees**, and it should look the same everywhere, update this file in the

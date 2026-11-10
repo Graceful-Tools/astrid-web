@@ -1,17 +1,33 @@
 /* Themed Component Classes */
 
 /* ===== PRIORITY COLORS ===== */
-/* Consistent across all themes - matches iOS Theme.swift */
-/* None: Gray (107, 114, 128) */
-/* Low: Blue (59, 130, 246) */
-/* Medium: Yellow/Amber (251, 191, 36) */
-/* High: Red (239, 68, 68) */
+/* One colour per priority, from the design tokens (docs/specs/DESIGN_SYSTEM.md).
+   lib/design/priority.ts names these classes; nothing else defines a priority colour. */
+/* "No priority" as TEXT is the theme's muted text, not the grey the square is
+   drawn in: that grey is 3:1 on the dark header (PR #699 review). */
+.priority-text-none { color: rgb(var(--astrid-text-muted)); }
+.priority-text-low { color: rgb(var(--astrid-priority-low)); }
+.priority-text-medium { color: rgb(var(--astrid-priority-medium)); }
+.priority-text-high { color: rgb(var(--astrid-priority-high)); }
+
+.priority-fill-none { background-color: rgb(var(--astrid-priority-none)); border-color: rgb(var(--astrid-priority-none)); }
+.priority-fill-low { background-color: rgb(var(--astrid-priority-low)); border-color: rgb(var(--astrid-priority-low)); }
+.priority-fill-medium { background-color: rgb(var(--astrid-priority-medium)); border-color: rgb(var(--astrid-priority-medium)); }
+.priority-fill-high { background-color: rgb(var(--astrid-priority-high)); border-color: rgb(var(--astrid-priority-high)); }
+
+/* A filled control keeps its colour under the pointer. Button's outline variant
+   brings hover:bg-accent, which ties these on specificity and loses on order. */
+.priority-fill-none:hover { background-color: rgb(var(--astrid-priority-none)); }
+.priority-fill-low:hover { background-color: rgb(var(--astrid-priority-low)); }
+.priority-fill-medium:hover { background-color: rgb(var(--astrid-priority-medium)); }
+.priority-fill-high:hover { background-color: rgb(var(--astrid-priority-high)); }
+
+.priority-outline-none { border-color: rgb(var(--astrid-priority-none)); color: rgb(var(--astrid-priority-none)); }
+.priority-outline-low { border-color: rgb(var(--astrid-priority-low)); color: rgb(var(--astrid-priority-low)); }
+.priority-outline-medium { border-color: rgb(var(--astrid-priority-medium)); color: rgb(var(--astrid-priority-medium)); }
+.priority-outline-high { border-color: rgb(var(--astrid-priority-high)); color: rgb(var(--astrid-priority-high)); }
 
 :root {
-  --priority-none: rgb(107, 114, 128);
-  --priority-low: rgb(59, 130, 246);
-  --priority-medium: rgb(251, 191, 36);
-  --priority-high: rgb(239, 68, 68);
 
   /* How long the left drawer takes to slide open. The content, the sidebar and
      the tap guard that waits for them all read it from here (AWTD-1379), so the

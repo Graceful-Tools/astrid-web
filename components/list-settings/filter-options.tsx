@@ -27,6 +27,7 @@
  */
 
 import { SelectItem } from "@/components/ui/select"
+import { priorityTextClass } from "@/lib/design/priority"
 import { useTranslations } from "@/lib/i18n/client"
 import { MY_TASKS_DUE_DATE_VALUES, MY_TASKS_SORT_VALUES } from "@/lib/my-tasks-preferences"
 
@@ -76,10 +77,10 @@ export const COMPLETION_FILTER_OPTIONS: readonly FilterOption[] = [
  */
 export const PRIORITY_FILTER_OPTIONS: readonly FilterOption[] = [
   { value: "all", labelKey: "listSettings.priority.all", label: "All priorities", className: "text-blue-400" },
-  { value: "3", labelKey: "listSettings.priority.highest", label: "!!! Highest", className: "text-red-500" },
-  { value: "2", labelKey: "listSettings.priority.high", label: "!! High", className: "text-orange-500" },
-  { value: "1", labelKey: "listSettings.priority.medium", label: "! Medium", className: "text-blue-500" },
-  { value: "0", labelKey: "listSettings.priority.low", label: "○ Low", className: "text-gray-400" },
+  { value: "3", labelKey: "listSettings.priority.highest", label: "!!! Highest", className: priorityTextClass(3) },
+  { value: "2", labelKey: "listSettings.priority.high", label: "!! High", className: priorityTextClass(2) },
+  { value: "1", labelKey: "listSettings.priority.medium", label: "! Medium", className: priorityTextClass(1) },
+  { value: "0", labelKey: "listSettings.priority.low", label: "○ Low", className: priorityTextClass(0) },
 ]
 
 /**

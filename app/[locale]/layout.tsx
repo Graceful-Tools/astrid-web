@@ -15,6 +15,9 @@ import "../globals.css"
 // moving theme and component rules ABOVE Tailwind's output, silently flipping the cascade
 // wherever a themed class competes with a utility. Importing them here instead keeps them
 // after globals.css in the bundle, so the cascade order is exactly what it was.
+// The design tokens (astrid-core's design/tokens.json, vendored). Before the theme stylesheets,
+// which read every shared colour from them. docs/specs/DESIGN_SYSTEM.md
+import "../../packages/astrid-design/astrid-tokens.css"
 import "../../styles/themes/light-theme.css"
 import "../../styles/themes/dark-theme.css"
 import "../../styles/themes/ocean-theme.css"

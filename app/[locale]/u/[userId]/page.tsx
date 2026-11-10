@@ -117,14 +117,6 @@ export default function UserProfilePage() {
   const displayName = getUserDisplay(user)
   const userInitial = getUserInitial(user)
 
-  const getPriorityColor = (priority: number) => {
-    switch (priority) {
-      case 3: return 'rgb(239, 68, 68)' // Red
-      case 2: return 'rgb(251, 191, 36)' // Yellow
-      case 1: return 'rgb(59, 130, 246)' // Blue
-      default: return 'rgb(107, 114, 128)' // Gray
-    }
-  }
 
   const handleTaskClick = (task: any) => {
     // Navigate to the main app with the task's primary list selected and task ID in URL
