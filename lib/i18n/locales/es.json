@@ -792,6 +792,17 @@
         "listDesc": "La casilla completa la tarea, y la prioridad y el responsable tienen cada uno su propia fila.",
         "projectDesc": "Compacto. Al tocar la casilla se abren prioridad, responsable, estado y completar."
       },
+      "taskTitles": {
+        "title": "Títulos de tareas",
+        "description": "Cuánto de un título largo muestra la fila de una tarea (se guarda en este dispositivo)",
+        "label": "Líneas",
+        "optionwrap": "Ajustar",
+        "option2": "Dos líneas",
+        "option1": "Una línea",
+        "descwrap": "Se muestra el título completo, en tantas líneas como necesite.",
+        "desc2": "Los títulos se cortan a las dos líneas.",
+        "desc1": "Los títulos se quedan en una línea."
+      },
       "emailToTask": {
         "title": "Correo a Tarea",
         "description": "Crea tareas instantáneamente enviando correos a {inboundTaskEmail}",

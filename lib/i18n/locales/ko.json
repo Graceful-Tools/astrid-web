@@ -792,6 +792,17 @@
         "listDesc": "체크박스로 작업을 완료하며, 우선순위와 담당자는 각각 별도의 행을 가집니다.",
         "projectDesc": "간결하게 표시. 체크박스를 누르면 우선순위, 담당자, 상태, 완료가 열립니다."
       },
+      "taskTitles": {
+        "title": "작업 제목",
+        "description": "긴 제목을 작업 행에 얼마나 표시할지 (이 기기에 저장됨)",
+        "label": "줄 수",
+        "optionwrap": "줄바꿈",
+        "option2": "두 줄",
+        "option1": "한 줄",
+        "descwrap": "제목 전체를 필요한 만큼의 줄에 표시합니다.",
+        "desc2": "제목이 두 줄에서 끝납니다.",
+        "desc1": "제목이 한 줄에 표시됩니다."
+      },
       "emailToTask": {
         "title": "이메일에서 작업",
         "description": "{inboundTaskEmail}로 이메일을 보내 즉시 작업 생성",

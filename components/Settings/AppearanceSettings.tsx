@@ -20,15 +20,18 @@ import {
   Mail,
   Sparkles,
   ListTree,
-  LayoutList
+  LayoutList,
+  WrapText
 } from "lucide-react"
+import { ROW_TITLE_LINES, parseRowTitleLines } from "@/lib/design/row-title"
 
 interface AppearanceSettingsProps {
   onNavigate: (page: string) => void
 }
 
 export default function AppearanceSettings({ onNavigate }: AppearanceSettingsProps) {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, rowTitleLines: storedRowTitleLines, setRowTitleLines } = useTheme()
+  const rowTitleLines = parseRowTitleLines(storedRowTitleLines)
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false)
   /**
    * Read and write these through the SHARED hook, not a private copy
@@ -296,6 +299,43 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
                     <SelectItem value="project">
                       {t("settingsPages.appearancePage.taskDisplayMode.project")}
                     </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Task titles: how many lines a row's title may take */}
+          <Card className="theme-bg-secondary theme-border">
+            <CardHeader>
+              <CardTitle className="theme-text-primary flex items-center space-x-2">
+                <WrapText className="w-5 h-5 theme-text-secondary" />
+                <span>{t("settingsPages.appearancePage.taskTitles.title")}</span>
+              </CardTitle>
+              <CardDescription className="theme-text-muted">
+                {t("settingsPages.appearancePage.taskTitles.description")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-4 theme-bg-tertiary rounded-lg">
+                <div className="flex-1">
+                  <Label className="font-medium theme-text-primary">
+                    {t("settingsPages.appearancePage.taskTitles.label")}
+                  </Label>
+                  <p className="text-sm theme-text-muted">
+                    {t(`settingsPages.appearancePage.taskTitles.desc${rowTitleLines}`)}
+                  </p>
+                </div>
+                <Select value={rowTitleLines} onValueChange={(value) => setRowTitleLines(parseRowTitleLines(value))}>
+                  <SelectTrigger className="w-56" data-testid="row-title-lines">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROW_TITLE_LINES.map((lines) => (
+                      <SelectItem key={lines} value={lines}>
+                        {t(`settingsPages.appearancePage.taskTitles.option${lines}`)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

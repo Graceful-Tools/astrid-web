@@ -792,6 +792,17 @@
         "listDesc": "核取方塊用於完成任務，優先順序與負責人各佔一列。",
         "projectDesc": "精簡模式。點按核取方塊會開啟優先順序、負責人、狀態與完成。"
       },
+      "taskTitles": {
+        "title": "任務標題",
+        "description": "任務列顯示多長的標題（儲存在此裝置上）",
+        "label": "行數",
+        "optionwrap": "換行",
+        "option2": "兩行",
+        "option1": "一行",
+        "descwrap": "顯示完整標題，需要幾行就佔幾行。",
+        "desc2": "標題最多顯示兩行。",
+        "desc1": "標題只顯示一行。"
+      },
       "emailToTask": {
         "title": "郵件建立任務",
         "description": "透過傳送郵件到{inboundTaskEmail}即時建立任務",

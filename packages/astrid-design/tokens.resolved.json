@@ -158,12 +158,14 @@
     48
   ],
   "state": {
+    "complete-pop-scale": 1.28,
     "completed-mark-opacity": 0.5,
     "disabled-opacity": 0.5,
     "drawer-sidebar-opacity": 0.8,
     "drawer-sidebar-scale": 0.95,
     "drawer-width-fraction": 0.85,
     "press-scale": 0.98,
+    "selection-outline-opacity": 0.55,
     "subtask-max-depth": 4
   },
   "themeOrder": [

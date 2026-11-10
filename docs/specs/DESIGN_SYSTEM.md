@@ -114,10 +114,11 @@ pickers, filters and headers.
 
 ### Selection
 
-The selected row and anything that belongs to it wear one outline: the accent,
-`size.selection-outline` wide (2.5 comfortable, 1.5 compact), drawn inside the edge so
-selecting moves nothing. No glow and no heavier shadow. Web draws 2 px at every width and
-the Mac draws the accent at 55% (register DS5).
+The selected row and anything that belongs to it wear one outline, the Mac's (Jon,
+2026-11-10): the accent at `state.selection-outline-opacity` (55%),
+`size.selection-outline` wide (1.5 where there is a pointer, 2.5 on touch), drawn inside
+the edge so selecting moves nothing. No glow and no heavier shadow. Web defines it once
+(`--selection-outline-*` in `styles/components.css`) for the row, the pane and its arrow.
 
 ### Task details panel
 
@@ -129,9 +130,9 @@ row**:
   `motion.fast`;
 - the panel enters and leaves over `motion.panel`.
 
-The Mac and the web do this today. iOS (iPad and wider), Android and Windows adopt it
-(register DS7). On a phone the details take the whole screen; what carries the outline
-and motion there is settled in the iOS task.
+The Mac and the web do this today. It belongs wherever the list and the details share
+the screen: iPad, Windows, and two-pane Android (tablets, foldables and dual-screen
+devices). A phone's single pane does not get it (Jon, 2026-11-10; register DS7).
 
 ## Layout and alignment
 
@@ -168,13 +169,17 @@ a platform with curves the duration and curve; they are the same interaction.
 | Task details opening and closing | `panel` (300 ms ease-out) or `panel-spring` (340 ms, 0.85) |
 | The sidebar drawer | `drawer` (300 ms) or `drawer-spring` (250 ms, 0.85); the sidebar rises from 0.95 scale and 0.8 opacity, and the drawer is 85% of the screen |
 
-Three things are not settled, and the register says so rather than the tokens guessing:
+**Completing a task** is the Mac's motion and iOS's haptic together (Jon, 2026-11-10): the
+checkbox pops to `state.complete-pop-scale` (1.28) on `spring`, and the device taps back
+where it can. Reopening does neither.
 
-- **Completing a task** (DS16). The Mac pops the checkbox on a spring, iOS gives a haptic
-  and no motion, web does neither.
-- **Reduced motion** (DS17). No client checks the system setting. Every animation above
-  needs a no-motion form.
-- **Web reads none of these yet** (DS15): 57 durations are written out in its stylesheets
+Two things are not done, and the register says so:
+
+- **Reduced motion** (DS17). Every operating system has a setting for people who are
+  made unwell by movement on screen. An app that honours it swaps a slide or a pop for a
+  fade or nothing. Only web's checkbox pop checks it so far; every other animation on
+  every client still plays.
+- **Web reads few of these yet** (DS15): 57 durations are written out in its stylesheets
   and classes. iOS writes several springs out too.
 
 ## States
@@ -185,7 +190,7 @@ Three things are not settled, and the register says so rather than the tokens gu
 | Completed | title struck through in muted text; the mark at `state.completed-mark-opacity` (0.5). Web also dims the whole row (DS18) |
 | Selected | the selection outline; no fill change, no glow |
 | Hover | the theme's hover surface |
-| Row title | undecided: iOS wraps without limit, the Mac stops at two lines (DS19) |
+| Row title | wraps without limit by default, as on iOS. An appearance setting, "Task titles", chooses wrap, two lines or one on every client, and is kept per machine like the theme (Jon, 2026-11-10; DS19). Web: `lib/design/row-title.ts` |
 
 ## Markdown
 
