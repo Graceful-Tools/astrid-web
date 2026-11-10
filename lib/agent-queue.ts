@@ -20,6 +20,7 @@ import { READY_STATUS_ROLE } from '@/lib/task-status'
 import { agentEmail, agentMailboxFromEmail, isBrandAgentEmail } from '@/lib/brand/agent-emails'
 import { awaitsAgentReply, describeSchedule, isDueToStart } from '@/lib/ready-queue-scope'
 import { getAgentExecutionMode, pollableMailboxes } from '@/lib/ai/agent-execution-mode'
+import { observeAgentExecutionMode } from '@/lib/ai/agent-execution-mode-shadow'
 import { pendingAgentHandback, type AgentResumeContext } from '@/lib/agent-handback'
 
 /** One page is the point: a truncated queue looks exactly like a short one. */
@@ -278,6 +279,7 @@ export async function buildAgentQueue({
   }
 
   const mode = await getAgentExecutionMode(userId, email)
+  observeAgentExecutionMode({ userId, mailbox, mode })
 
   const agentUser = await prisma.user.findUnique({
     where: { email },

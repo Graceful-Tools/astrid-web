@@ -6,10 +6,21 @@
  * the queue reads as an idle day while work sits on the board. Both are pinned.
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mockPrisma } from '@/tests/setup'
 import { BadQueueOptionError, buildAgentQueue, UnknownAgentError } from '@/lib/agent-queue'
 import { BRAND } from '@/lib/brand/config'
+
+const { shadowInfo, deferred } = vi.hoisted(() => ({
+  shadowInfo: vi.fn(),
+  deferred: [] as Array<() => Promise<unknown>>,
+}))
+vi.mock('@/lib/logger', () => ({
+  createLogger: () => ({ info: shadowInfo, warn: vi.fn(), debug: vi.fn(), error: vi.fn() }),
+}))
+vi.mock('@/lib/background', () => ({
+  runAfterResponse: (_label: string, work: () => Promise<unknown>) => { deferred.push(work) },
+}))
 
 const AGENT = { id: 'agent-claude', name: 'Claude Agent', isAIAgent: true }
 
@@ -24,6 +35,57 @@ const task = (over: Record<string, unknown> = {}) => ({
   createdAt: new Date('2026-08-01T00:00:00Z'),
   lists: [{ id: 'list-1', name: 'Astrid Web To-do', githubRepositoryId: 'owner/repo' }],
   ...over,
+})
+
+describe('AWTD-1554 queue shadow', () => {
+  beforeEach(() => {
+    mockPrisma.user.findUnique.mockReset().mockImplementation(async query =>
+      'email' in query.where ? AGENT : { mcpSettings: JSON.stringify({ agentModes: { codex: 'off' } }) },
+    )
+    mockPrisma.task.findMany.mockReset().mockResolvedValue([task()])
+    shadowInfo.mockClear()
+    deferred.length = 0
+    vi.stubEnv('ASTRID_AGENT_EXECUTION_MODE_SHADOW', 'false')
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllEnvs()
+  })
+
+  it('keeps serialized queue output byte-identical while observing stored Off', async () => {
+    const options = { agent: 'codex', userId: 'user-1' }
+    const before = JSON.stringify(await buildAgentQueue(options))
+    expect(mockPrisma.user.findUnique).toHaveBeenCalledOnce()
+    expect(deferred).toHaveLength(0)
+    vi.stubEnv('ASTRID_AGENT_EXECUTION_MODE_SHADOW', 'true')
+    const after = JSON.stringify(await buildAgentQueue(options))
+    expect(after).toBe(before)
+    expect(JSON.parse(after)).toMatchObject({ mode: 'polling', queue: [{ id: 'task-1' }] })
+    // Scheduling observation has not read settings or held up queue construction.
+    expect(mockPrisma.user.findUnique).toHaveBeenCalledTimes(2)
+    expect(shadowInfo).not.toHaveBeenCalled()
+    await deferred[0]()
+    expect(shadowInfo).toHaveBeenCalledWith(
+      { userIdHash: expect.any(String), mailbox: 'codex' },
+      'agent execution mode shadow mismatch',
+    )
+    expect(mockPrisma.user.findUnique).toHaveBeenCalledTimes(3)
+    expect(mockPrisma.user.findUnique.mock.calls[2][0]).toEqual({
+      where: { id: options.userId },
+      select: { mcpSettings: true },
+    })
+  })
+
+  it.skip('enforcement follow-up: stored Off polling-only mailbox receives no queued work', async () => {
+    const result = await buildAgentQueue({
+      agent: 'codex',
+      userId: 'user-1',
+    })
+    expect(result.mode).toBe('off')
+    expect(result.queue).toEqual([])
+  })
 })
 
 describe('buildAgentQueue', () => {

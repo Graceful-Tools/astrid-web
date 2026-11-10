@@ -24,7 +24,7 @@ concurrency:
 jobs:
   unit-tests:
     name: 'Typecheck, Lint & Unit Tests'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 20
     # A real Redis for the RealtimeBus conformance suite's node-redis half
     # (tests/integration/realtime-bus-conformance.test.ts, AWTD-1459). Without

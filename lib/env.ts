@@ -28,6 +28,7 @@
  */
 
 import { androidAppLinksProblem } from './brand/android-asset-links'
+import { isValidKeyShape } from './encryption-keys'
 
 /**
  * How a variable is supplied, which decides whether it belongs in
@@ -68,6 +69,8 @@ const isHexColour = (v: string) =>
   /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(v) ? null : 'Must be a hex colour, e.g. #a855f7'
 const isDomain = (v: string) =>
   /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(v) ? null : 'Must be a bare domain, no scheme'
+const isEncryptionKey = (v: string) =>
+  isValidKeyShape(v) ? null : 'Must be 64 hex characters (32 bytes): generate with `openssl rand -hex 32`'
 const minLength = (n: number) => (v: string) =>
   v.length >= n ? null : `Must be at least ${n} characters`
 
@@ -142,11 +145,12 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'TRUSTED_PROXY_DEPTH', scope: 'optional', description: 'Proxy hops whose X-Forwarded-For entries are trusted. 1 is correct on Vercel; a deployment behind an extra proxy MUST raise it or rate limits are keyed on a value the caller chooses.' },
 
   // ── Encryption ────────────────────────────────────────────────────────────
-  { name: 'ENCRYPTION_KEY', scope: 'required', description: 'Encrypts stored user API keys and OAuth credentials at rest. Losing it makes them unrecoverable.', validate: minLength(32) },
-  { name: 'ENCRYPTION_KEY_NEXT', scope: 'optional', description: 'Set ONLY during an ENCRYPTION_KEY rotation: new values are written under it while both keys still decrypt. Unset it once scripts/reencrypt-fields.ts reports nothing left.', validate: minLength(32) },
+  { name: 'ENCRYPTION_KEY', scope: 'required', description: 'Encrypts stored user API keys and OAuth credentials at rest. Losing it makes them unrecoverable. Exactly 64 hex characters (openssl rand -hex 32).', validate: isEncryptionKey },
+  { name: 'ENCRYPTION_KEY_NEXT', scope: 'optional', description: 'Set ONLY during an ENCRYPTION_KEY rotation: new values are written under it while both keys still decrypt. Unset it once scripts/reencrypt-fields.ts reports nothing left.', validate: isEncryptionKey },
   { name: 'INTERNAL_API_SECRET', scope: 'optional', description: 'Shared secret for the /api/internal/* routes (legacy-usage census, model preferences), matched against the X-Internal-Secret header. Unset leaves those routes unreachable.' },
 
   // ── AI agents ─────────────────────────────────────────────────────────────
+  { name: 'ASTRID_AGENT_EXECUTION_MODE_SHADOW', scope: 'optional', description: 'Set to "true" to sample 1% of polling-only queues for a stored-Off mismatch. Observation only; one extra primary-key settings read per sampled request, deferred after the response with a 250ms observation timeout. Default off (AWTD-1554).', validate: v => ['true', 'false'].includes(v) ? null : 'Must be true or false' },
   // NOT read by the running app. Server-run inference uses the key each USER
   // stores in their own settings, encrypted at rest with ENCRYPTION_KEY — see
   // lib/ai/agent-execution-mode.ts. These four are read only by maintenance and
@@ -367,4 +371,9 @@ export function documentedVars(): EnvVar[] {
 /** Variables whose absence in production is an outage. */
 export function requiredVars(): EnvVar[] {
   return ENV_VARS.filter((v) => v.scope === 'required')
+}
+
+/** Observation only; anything except an explicit opt-in leaves it disabled. */
+export function agentExecutionModeShadowEnabled(): boolean {
+  return process.env.ASTRID_AGENT_EXECUTION_MODE_SHADOW === 'true'
 }
