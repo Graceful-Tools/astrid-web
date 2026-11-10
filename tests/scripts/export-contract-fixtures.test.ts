@@ -18,6 +18,7 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { getChecks } from '../../scripts/predeploy-self-healing'
+import { projectSelectedFields } from '../../scripts/contract-fixtures/drivers/stubs/agent-protocol-prisma.mjs'
 
 const repoRoot = join(__dirname, '..', '..')
 const fixturesDir = join(repoRoot, 'contracts', 'fixtures')
@@ -78,6 +79,24 @@ describe('AWTD-1031: contract fixtures are exported from astrid-web', () => {
 })
 
 describe('AWTD-1566: the current agent protocol is exported for clients', () => {
+  it('projects fixture rows through Prisma selects and rejects missing selected fields', () => {
+    const row = {
+      id: 'task-1',
+      identifier: 'AWTD-9001',
+      ignored: 'not selected',
+      lists: [{ id: 'list-1', name: 'Web', ignored: true }],
+    }
+
+    expect(projectSelectedFields(row, {
+      identifier: true,
+      lists: { select: { id: true } },
+    })).toEqual({
+      identifier: 'AWTD-9001',
+      lists: [{ id: 'list-1' }],
+    })
+    expect(() => projectSelectedFields(row, { title: true })).toThrow(/selected field "title".*missing/)
+  })
+
   it('pins queue, mode, claim, and harness registry response sections', () => {
     const readFixture = (name: string) =>
       JSON.parse(readFileSync(join(fixturesDir, name), 'utf8'))
@@ -111,8 +130,10 @@ describe('AWTD-1566: the current agent protocol is exported for clients', () => 
       claimed: expect.objectContaining({ status: expect.any(Number), body: expect.any(Object) }),
       conflict: expect.objectContaining({ status: expect.any(Number), body: expect.any(Object) }),
       notReady: expect.objectContaining({ status: expect.any(Number), body: expect.any(Object) }),
-      forbidden: expect.objectContaining({ status: expect.any(Number), body: expect.any(Object) }),
+      forbidden: { status: 403, body: { error: 'Forbidden', message: 'Access denied to this task' } },
     }))
+    const claimDriver = readFileSync(join(repoRoot, 'scripts/contract-fixtures/drivers/fixall-claim.mjs'), 'utf8')
+    expect(claimDriver).not.toContain("'@/lib/api-auth-wrapper'")
 
     const registry = readFixture('agent-registry.json')
     expect(Object.values(registry.mailboxes)).toContain('codex')
