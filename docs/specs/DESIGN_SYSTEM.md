@@ -146,13 +146,34 @@ the web-only surfaces it needs (register DS9).
 | Values as data | `lib/design/tokens.ts` |
 | The gate | `tests/styles/design-tokens.test.ts`: the copy is unedited, CSS and data agree, no shared colour is written out |
 
+### The ratchet
+
+`npm run check:design` counts the places where a value with a shared home was typed out
+instead: palette classes, hex and rgb colours, theme triplets, inline styles, arbitrary
+sizes, durations, and sentences in JSX (total and distinct). A count may not rise above
+`tests/rules/design-metrics.budget.json`, and Vitest runs the same check, so `predeploy`,
+CI and every agent workflow fail on a regression. Budgets only go down: after a
+reduction, `npm run design:metrics -- --update` in the same change.
+
+| Count | Before tokens (main `e770865b`) | With tokens |
+|---|---|---|
+| Palette classes | 1,631 | 1,586 |
+| Hex colours | 113 | 113 |
+| rgb literals | 101 | 85 |
+| Theme triplets | 119 | 35 |
+| Inline styles | 64 | 64 |
+| Arbitrary sizes | 97 | 97 |
+| Durations | 57 | 57 |
+| Sentences in JSX | 764 | 764 |
+| Distinct sentences in JSX | 612 | 612 |
+
 astrid-core's `cargo xtask check-design` compares this repo's copy with its own at the
 pinned revision, in its CI.
 
 ## Not built yet
 
-- **Literal ratchet.** Each repo counts hardcoded colours, radii, font sizes and spacing
-  in view code and fails when the count rises. Web has about 1,600 raw palette classes.
+- **Literal ratchet on the other clients.** Web has one (below). iOS has
+  `check-brand.sh` and Windows a radius test to grow from; Android has none.
 - **Reference screenshots.** A fixed set of screens in each theme, captured per client
   and set side by side.
 - **Shared assets.** The sixteen checkbox images and the agent marks are copied by hand
