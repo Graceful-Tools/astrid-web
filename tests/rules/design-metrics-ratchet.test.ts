@@ -8,7 +8,7 @@
  *
  * It exists because the agents that work this board are fast and many. Each
  * `text-gray-400` is harmless; the web had 1,631 of them, three colours for
- * medium priority and 612 distinct sentences typed into JSX, and no number
+ * medium priority and 802 distinct sentences typed into JSX, and no number
  * anywhere said so.
  *
  * When this fails: use the token, theme class or i18n key the message names.
@@ -52,6 +52,26 @@ describe('what the design metrics count', () => {
     const text = '<p>Access Denied</p><p>Access Denied</p><input placeholder="Search tasks" /><p>{t("ok")}</p>'
     expect(count(metric('hardcodedCopy'), source(text))).toBe(3)
     expect(count(metric('uniqueHardcodedStrings'), source(text))).toBe(2)
+  })
+
+  // PR #700 review. Each of these let a regression through or failed a clean change.
+  it('a sentence with punctuation is still a sentence', () => {
+    expect(count(metric('hardcodedCopy'), source('<p>Select an OAuth app to edit.</p><p>Are you sure? This cannot be undone.</p>'))).toBe(2)
+  })
+
+  it('an expression is not a sentence', () => {
+    expect(count(metric('hardcodedCopy'), source('const ok = a > Limit && b < c\n<p>{count} Tasks left</p>'))).toBe(0)
+  })
+
+  it('the same words in a text node, a placeholder and an aria-label are one string', () => {
+    const text = '<p>Search tasks</p><input placeholder="Search tasks" aria-label="Search tasks" />'
+    expect(count(metric('hardcodedCopy'), source(text))).toBe(3)
+    expect(count(metric('uniqueHardcodedStrings'), source(text))).toBe(1)
+  })
+
+  it('a duration that names the motion token is not a literal', () => {
+    const text = '<i className="duration-[var(--astrid-motion-fast-duration)] duration-[250ms] duration-200" />'
+    expect(count(metric('motionLiterals'), source(text))).toBe(2)
   })
 })
 

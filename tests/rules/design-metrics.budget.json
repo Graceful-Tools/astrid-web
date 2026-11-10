@@ -6,6 +6,6 @@
   "inlineStyles": 64,
   "arbitrarySizes": 97,
   "motionLiterals": 57,
-  "hardcodedCopy": 764,
-  "uniqueHardcodedStrings": 612
+  "hardcodedCopy": 999,
+  "uniqueHardcodedStrings": 802
 }

@@ -41,7 +41,20 @@ export interface Metric {
 
 const UI = ['app', 'components', 'hooks', 'contexts']
 const CODE = ['.ts', '.tsx']
-const COPY = /(?:placeholder|aria-label|title)="[A-Za-z][^"{}]{4,}"|>\s*[A-Z][a-z]+\s+[A-Za-z][\sa-zA-Z]*\s*</g
+/**
+ * A sentence a person reads, typed into JSX: a literal placeholder, title or
+ * aria-label, or a text node of two or more words starting with a capital.
+ * Punctuation is part of a sentence ("Select an app to edit."); `{`, `=`, `&`
+ * and `|` are not, which keeps expressions and comparisons out.
+ */
+const COPY = /(?:placeholder|aria-label|title)="[A-Za-z][^"{}]{4,}"|>\s*[A-Z][a-z]+\s+[A-Za-z][\w\s.,!?'’"“”:;()\/%…–—-]*</g
+
+/** The words themselves, so the same sentence in a text node and a placeholder is one string. */
+function sentence(match: string): string {
+  const attribute = /^(?:placeholder|aria-label|title)="(.*)"$/s.exec(match)
+  const text = attribute ? attribute[1] : match.replace(/^>/, '').replace(/<$/, '')
+  return text.replace(/\s+/g, ' ').trim()
+}
 
 export const METRICS: Metric[] = [
   {
@@ -100,7 +113,8 @@ export const METRICS: Metric[] = [
     instead: 'var(--astrid-motion-*)',
     roots: [...UI, 'styles'],
     extensions: ['.tsx', '.css'],
-    pattern: /\bduration-(?:\d+|\[[^\]]+\])|(?<![\w.#-])\d*\.?\d+m?s\b(?=[\s;,)"'`])/g,
+    // duration-[var(--astrid-motion-…)] is the token, not a literal.
+    pattern: /\bduration-(?:\d+|\[(?!var\()[^\]]+\])|(?<![\w.#-])\d*\.?\d+m?s\b(?=[\s;,)"'`])/g,
   },
   {
     id: 'hardcodedCopy',
@@ -152,7 +166,7 @@ export function count(metric: Metric, sources: Array<{ path: string; source: str
     if (metric.exempt?.test(path)) continue
     const matches = withoutComments(source).match(metric.pattern) ?? []
     total += matches.length
-    for (const match of matches) seen.add(match.replace(/\s+/g, ' ').trim())
+    for (const match of matches) seen.add(metric.pattern === COPY ? sentence(match) : match.replace(/\s+/g, ' ').trim())
   }
   return metric.distinct ? seen.size : total
 }
