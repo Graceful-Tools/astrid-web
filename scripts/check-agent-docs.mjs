@@ -75,7 +75,7 @@ function lineAt(text, index) {
 
 function checkRelativeLinks(file, text) {
   const withoutCode = text.replace(/```[\s\S]*?```/g, (block) => block.replace(/[^\n]/g, ' '))
-  const linkPattern = /!?\[[^\]]*\]\((<[^>]+>|[^)]+)\)/g
+  const linkPattern = /!?\[(?:`[^`]*`|[^\]`])*\]\((<[^>]+>|[^)]+)\)/g
 
   for (const match of withoutCode.matchAll(linkPattern)) {
     const rawDestination = match[1].replace(/^<|>$/g, '').trim()
