@@ -51,7 +51,7 @@ const COPY = /(?:placeholder|aria-label|title)="[A-Za-z][^"{}]{4,}"|>\s*[A-Z][a-
 
 /** The words themselves, so the same sentence in a text node and a placeholder is one string. */
 function sentence(match: string): string {
-  const attribute = /^(?:placeholder|aria-label|title)="(.*)"$/s.exec(match)
+  const attribute = /^(?:placeholder|aria-label|title)="([\s\S]*)"$/.exec(match)
   const text = attribute ? attribute[1] : match.replace(/^>/, '').replace(/<$/, '')
   return text.replace(/\s+/g, ' ').trim()
 }
