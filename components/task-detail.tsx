@@ -313,6 +313,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
 
         // Also prevent scrolling issues on iOS and iPad
         if (needsScrollIntoViewHandling()) {
+          if (focusInTimeout) clearTimeout(focusInTimeout) // one at a time; see focus-out
           focusInTimeout = setTimeout(() => {
             target.scrollIntoView({
               behavior: 'smooth',
@@ -325,7 +326,8 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     }
 
     const handleFocusOut = (event: Event) => {
-      // Small delay to prevent flickering when focus moves between elements
+      // Delay against flicker. Restarted, not stacked: cleanup clears only the one it holds (task-detail-focus-timers.test.tsx).
+      if (focusOutTimeout) clearTimeout(focusOutTimeout)
       focusOutTimeout = setTimeout(() => {
         const activeElement = document.activeElement as HTMLElement
         const shouldRemoveClass = !activeElement || (
@@ -353,12 +355,8 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
 
     return () => {
       // Clean up timeouts to prevent errors in tests
-      if (focusInTimeout) {
-        clearTimeout(focusInTimeout)
-      }
-      if (focusOutTimeout) {
-        clearTimeout(focusOutTimeout)
-      }
+      if (focusInTimeout) clearTimeout(focusInTimeout)
+      if (focusOutTimeout) clearTimeout(focusOutTimeout)
 
       window.removeEventListener('resize', handleResize)
       document.removeEventListener('focusin', handleFocusIn)

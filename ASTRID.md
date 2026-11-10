@@ -108,6 +108,10 @@ the fixture is regenerated in the same PR:
 | `wire-shapes.json` | `lib/tasks/v1-task-shape.ts`, `lib/lists/v1-list-shape.ts` |
 | `sync-existence.json` | `lib/sync/v1-existence.ts`, `app/api/v1/sync/existence/route.ts` |
 | `decisions.json` | `lib/comment-formats.ts`, `lib/decision-examples.ts` (guide: docs/DECISIONS.md) |
+| `agent-queue.json` | `app/api/v1/agent-queue/route.ts`, `lib/agent-queue.ts` (AWTD-1566) |
+| `agent-modes.json` | `app/api/v1/users/me/agent-modes/route.ts` (AWTD-1566) |
+| `fixall-claim.json` | `app/api/v1/tasks/[id]/claim-fixall/route.ts` (AWTD-1566) |
+| `agent-registry.json` | `lib/brand/agent-emails.ts`, `lib/ai/harness-agents.ts` (AWTD-1566) |
 
 The registry is `EXPORTS` in `scripts/export-contract-fixtures.ts`. Each fixture's consumer
 is listed in astrid-core's

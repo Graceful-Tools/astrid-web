@@ -69,6 +69,15 @@ describe('cloud agent lifecycle wiring', () => {
     expect(preserve.if).toBe("${{ always() && !inputs.dry_run && steps.preflight.outputs.work == 'true' }}")
     expect(read('.github/agent-run-prompt.md')).toMatch(/^RESULT: OK \| SKIPPED \| PARTIAL \| FAILED/m)
   })
+  it('a task already fixed on main is handed off as OK, not PARTIAL', () => {
+    // 2026-11-09: a cloud run took the digest-timezone task after its fix had merged
+    // and shipped, found nothing to write, said RESULT: PARTIAL, and the run went red
+    // although the runner then completed the task from its AWAITING-DEPLOY marker.
+    const prompt = read('.github/agent-run-prompt.md')
+    expect(prompt).toContain('already on `main`')
+    expect(prompt).toMatch(/AWAITING-DEPLOY: <the origin\/main sha/)
+    expect(prompt).toMatch(/say `RESULT: OK`, not\s+PARTIAL/)
+  })
   it('AWTD-1410: prepares the database once, with the real migrations', () => {
     // agent-setup pushed the schema and agent-run then ran `migrate deploy` on
     // the same database, which refuses a schema with no migration history

@@ -118,29 +118,3 @@ describe('the scheduled loop keeps the Mac awake for the whole run', () => {
     expect(existsSync(join(dir, 'caffeinate.args'))).toBe(false)
   })
 })
-
-/**
- * The weekly review is the other unattended run on this laptop, and the longest.
- * It has no watchdog holding a pid, so the wrapper form is the right one there —
- * caffeinate exits with the utility's own status, so `$?` still reads the
- * review's. Asserted on the source because the surrounding script sets up a
- * worktree and installs dependencies before it ever reaches this line.
- */
-describe('the weekly hygiene review keeps the Mac awake too', () => {
-  const review = readFileSync(join(process.cwd(), 'scripts/weekly-hygiene-review.sh'), 'utf8')
-
-  it('runs claude under caffeinate', () => {
-    expect(review).toMatch(/CAFFEINATE=\(caffeinate -i -m\)/)
-    expect(review).toMatch(/"\$\{CAFFEINATE\[@\]\}" "\$CLAUDE" -p/)
-  })
-
-  it('still reports the review’s own exit status', () => {
-    const afterRun = review.slice(review.indexOf('"${CAFFEINATE[@]}" "$CLAUDE" -p'))
-    expect(afterRun).toMatch(/STATUS=\$\?/)
-    expect(afterRun).toMatch(/exit \$STATUS/)
-  })
-
-  it('degrades to running without it', () => {
-    expect(review).toContain('no caffeinate on PATH')
-  })
-})

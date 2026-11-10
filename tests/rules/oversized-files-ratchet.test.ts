@@ -59,7 +59,7 @@ const BUDGETS: Record<string, number> = {
   // went to lib/task-detail/create-list-for-task.ts, following the Lists row
   // that already lives in TaskDetailListsRow.tsx. Smaller than before the
   // feature, and the inheritance rule is now testable on its own.
-  'components/task-detail.tsx': 1497,
+  'components/task-detail.tsx': 1495,
   'lib/ai-orchestrator.ts': 1547,
   // 1205 → 1199: AWTD-1227 needed four more props on the task-detail pane, and
   // this file renders that pane TWICE — desktop and mobile — with a dozen
@@ -204,7 +204,7 @@ const BUDGETS: Record<string, number> = {
   // transport. Locking the gain in, which is what the slack check is for.
   // 791 → 790: AWTD-1073 escaped the HTML templates and dropped a duplicate
   // branch in formatDueDate.
-  'lib/email-reminder-service.ts': 790,
+  'lib/email-reminder-service.ts': 774,
 }
 
 /** Product code. Tests and scripts are long for their own reasons. */

@@ -123,8 +123,8 @@ curl http://localhost:3000/api/coding-workflow/progress/any-task-id
 ```bash
 # Get a recent task ID from database
 npx tsx -e "
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { createScriptPrisma } = require('./scripts/lib/script-prisma');
+const prisma = createScriptPrisma();
 (async () => {
   const workflow = await prisma.codingTaskWorkflow.findFirst({
     orderBy: { createdAt: 'desc' },
@@ -241,8 +241,8 @@ Expected output:
 **Option B: Via Script**
 ```bash
 npx tsx -e "
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { createScriptPrisma } = require('./scripts/lib/script-prisma');
+const prisma = createScriptPrisma();
 (async () => {
   const list = await prisma.taskList.findFirst({
     where: { aiAgentConfiguredBy: { not: null } }
@@ -279,8 +279,8 @@ const prisma = new PrismaClient();
 **Option B: Via Script**
 ```bash
 npx tsx -e "
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { createScriptPrisma } = require('./scripts/lib/script-prisma');
+const prisma = createScriptPrisma();
 (async () => {
   const agent = await prisma.user.findFirst({
     where: { isAIAgent: true }
@@ -372,8 +372,8 @@ watch -n 5 'curl -s http://localhost:3000/api/coding-workflow/progress/TASK_ID |
 **Terminal 3: Database Monitoring (Optional)**
 ```bash
 npx tsx -e "
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { createScriptPrisma } = require('./scripts/lib/script-prisma');
+const prisma = createScriptPrisma();
 
 setInterval(async () => {
   const workflow = await prisma.codingTaskWorkflow.findUnique({
@@ -395,8 +395,8 @@ After workflow completes (or at any point):
 
 ```bash
 npx tsx -e "
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { createScriptPrisma } = require('./scripts/lib/script-prisma');
+const prisma = createScriptPrisma();
 (async () => {
   const comments = await prisma.comment.findMany({
     where: { taskId: 'YOUR_TASK_ID' },
@@ -458,8 +458,8 @@ After running all tests, verify:
 ```bash
 # Check if any lists have GitHub integration
 npx tsx -e "
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { createScriptPrisma } = require('./scripts/lib/script-prisma');
+const prisma = createScriptPrisma();
 (async () => {
   const count = await prisma.taskList.count({
     where: { githubRepositoryId: { not: null } }
@@ -526,8 +526,8 @@ To force-test pruning, you'd need a very large task with 50+ file reads.
 3. **Check task has workflow:**
    ```bash
    npx tsx -e "
-   const { PrismaClient } = require('@prisma/client');
-   const prisma = new PrismaClient();
+   const { createScriptPrisma } = require('./scripts/lib/script-prisma');
+   const prisma = createScriptPrisma();
    (async () => {
      const workflow = await prisma.codingTaskWorkflow.findUnique({
        where: { taskId: 'YOUR_TASK_ID' }
