@@ -16,6 +16,7 @@ import {
   isPollingOnlyAgent,
   isModeLockedToPolling,
   isModeSettableFor,
+  getAgentExecutionMode,
   pollableMailboxes,
   resolveAgentExecutionMode,
   resolveAgentRunOwnerId,
@@ -137,6 +138,17 @@ describe('isPollingOnlyAgent (reading a real user row)', () => {
       id: 'user-1',
       mcpSettings: typeof mcpSettings === 'string' ? mcpSettings : JSON.stringify(mcpSettings),
     })
+
+  it('AWTD-1554 characterization: stored Off is ignored by the polling-only getter', async () => {
+    userWith({ agentModes: { codex: 'off' } })
+    expect(await getAgentExecutionMode('user-1', `codex@${BRAND.agentEmailDomain}`)).toBe('polling')
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled()
+  })
+
+  it.skip('AWTD-1554 enforcement follow-up: polling-only getter honors stored Off', async () => {
+    userWith({ agentModes: { codex: 'off' } })
+    expect(await getAgentExecutionMode('user-1', `codex@${BRAND.agentEmailDomain}`)).toBe('off')
+  })
 
   it('keeps the server out of a task whose agent the user set to polling', async () => {
     userWith({ agentModes: { claude: 'polling' }, apiKeys: { claude: { encrypted: 'x', iv: 'y' } } })

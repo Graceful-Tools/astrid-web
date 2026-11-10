@@ -593,6 +593,7 @@ export class ReminderService {
       dueTomorrowTasks: dueTomorrowTasks.map(this.taskToReminderData),
       overdueTasks: overdueTasks.map(this.taskToReminderData),
       upcomingTasks: [], // Tasks due later than tomorrow - not included in daily digest
+      timeZone: zone,
     }
 
     await this.emailService.sendDailyDigest(digestData)
@@ -628,6 +629,7 @@ export class ReminderService {
       userEmail: user.email,
       userName: user.name ?? '',
       upcomingTasks: upcomingTasks.map(this.taskToReminderData),
+      timeZone: zone,
     })
   }
 
@@ -635,6 +637,7 @@ export class ReminderService {
     taskId: task.id,
     title: task.title,
     dueDateTime: task.dueDateTime,
+    isAllDay: task.isAllDay === true,
     assigneeEmail: task.assignee?.email,
     assigneeName: task.assignee?.name,
     listNames: (task.lists || []).filter((list: any) => list != null).map((list: any) => list.name),
