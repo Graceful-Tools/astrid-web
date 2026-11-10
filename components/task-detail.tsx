@@ -1202,13 +1202,6 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
 
 
 
-  const priorityColors = {
-    0: "bg-gray-500",
-    1: "bg-blue-500",
-    2: "bg-yellow-500",
-    3: "bg-red-500",
-  }
-
   const priorityLabels = {
     0: "None",
     1: "Low",

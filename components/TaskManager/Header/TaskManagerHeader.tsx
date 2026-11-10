@@ -184,7 +184,7 @@ export function TaskManagerHeader({
               } else if (part === '!') {
                 return <span key={index} className={getPriorityColorClass(1)}>{part}</span>
               } else if (part === '○') {
-                return <span key={index} className="text-gray-400">{part}</span>
+                return <span key={index} className={getPriorityColorClass(0)}>{part}</span>
               }
               return <span key={index}>{part}</span>
             })}
