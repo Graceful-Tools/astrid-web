@@ -187,6 +187,26 @@ Three things are not settled, and the register says so rather than the tokens gu
 | Hover | the theme's hover surface |
 | Row title | undecided: iOS wraps without limit, the Mac stops at two lines (DS19) |
 
+## Markdown
+
+Descriptions, comments and chat draw the same markdown on every client; what it parses to
+is the core's (`markdown.json`), and what is recognised as a Decision or a trade-off grid is
+[PRODUCT_CONTRACT §8](../PRODUCT_CONTRACT.md) and [DECISIONS.md](../DECISIONS.md). This is
+how it looks.
+
+| Element | Rule |
+|---|---|
+| Links | the accent |
+| Inline code and code blocks | a neutral wash behind monospace, radius `sm` or smaller |
+| Blockquote | a `markdown.blockquote-bar` (3) bar in the hover border colour |
+| Rule and table borders | the hover border colour, so they follow the theme |
+| Task list | the checkbox replaces the bullet |
+| **Trade-off grid** | each rated cell sits on its rating's fill (`palette.tradeoff`, worst to best: dark red, light red, yellow, light green, dark green) with that fill's text colour (`palette.tradeoff-text`: white on the two dark fills). The same five in every theme. Cells are `tradeoff-cell-min` to `tradeoff-cell-max` wide (84-150), separated by `tradeoff-gap` instead of grid lines, with radius `tradeoff-cell-radius`. The key under the grid shows a `tradeoff-swatch` square per rating used, named in words. The traffic-light emoji (🔴 🟡 🟢) are the same poor, mixed and good ratings and draw on the same fills |
+| **Decision card** | radius `decision-card-radius` (10), a `decision-badge` (24) circle with the option's number in the accent, a 1 pt border that becomes 2 pt in the accent when chosen; cards that can no longer be chosen dim to `state.disabled-opacity` |
+
+Web reads the rating fills and text from the tokens. Its gap (4), cell radius (6) and
+swatch (12) differ from iOS's (register DS23), and heading sizes are not tokens yet (DS24).
+
 ### Still to write
 
 Task row, sidebar row, board card, comment bubble, pickers, empty state. Each lands with
@@ -212,10 +232,10 @@ sizes, durations, and sentences in JSX (total and distinct). A count may not ris
 CI and every agent workflow fail on a regression. Budgets only go down: after a
 reduction, `npm run design:metrics -- --update` in the same change.
 
-| Count | Before tokens (main `e770865b`) | With tokens |
+| Count | Before tokens (main `e770865b`) | Now |
 |---|---|---|
 | Palette classes | 1,631 | 1,586 |
-| Hex colours | 113 | 113 |
+| Hex colours | 126 | 113 |
 | rgb literals | 101 | 85 |
 | Theme triplets | 119 | 35 |
 | Inline styles | 64 | 64 |
