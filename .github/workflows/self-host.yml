@@ -50,7 +50,7 @@ concurrency:
 jobs:
   image:
     name: 'Build, boot and smoke-test (${{ matrix.storage }})'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 40
     # One code path, backend chosen by env: the same image, smoke-tested on each
     # self-hosted storage driver it can reach without a cloud account.

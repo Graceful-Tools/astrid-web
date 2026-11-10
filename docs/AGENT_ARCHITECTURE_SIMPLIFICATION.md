@@ -2,9 +2,30 @@
 
 **Author:** Astrid Claw  
 **Date:** 2026-02-16  
-**Status:** Phase 1 Complete (executor removal done, Astrid SDK is the runtime)  
+**Status:** Historical proposal (2026-02-16); the executor-removal proposal is not complete.
+
+## Current implementation (verified 2026-11-08)
+
+This proposal is not a description of the current architecture. The repository still has
+server-run provider integrations, a task queue for external harnesses, webhook delivery,
+MCP transports, and the SDK/OpenClaw channel:
+
+| Area | Current evidence |
+|---|---|
+| Server-run agents | Provider implementations and agent definitions remain under `lib/ai/providers/` and `lib/ai/agent-config.ts`. |
+| Harness queue | `GET /api/v1/agent-queue` and `lib/agent-queue.ts` serve work and attention to a named agent identity. |
+| Webhook delivery | `lib/ai/agent-execution-mode.ts` still defines webhook mode; delivery is implemented in `lib/ai-agent-webhook-service.ts`. |
+| MCP | The hosted MCP setup and standalone stdio server are documented in [MCP OAuth Setup](./setup/MCP_OAUTH_SETUP.md); the stdio build output is `dist/mcp/mcp-server-oauth.js`. |
+| SDK / OpenClaw | `packages/astrid-sdk` provides the channel client and `packages/openclaw-astrid-channel` adapts it to OpenClaw. |
+
+The presence of the OpenClaw channel is one implemented integration, not evidence that
+provider executors were removed or that the SDK is Astrid's only agent runtime. The estimates
+and removal lists below were proposal-time planning, not a current code inventory.
 
 ## The Problem
+
+The following description and counts are the proposal's historical framing, not a refreshed
+inventory of the current codebase.
 
 Astrid currently maintains **three separate systems** for running AI agents:
 
@@ -86,13 +107,11 @@ Astrid becomes purely a **task management interface** — a beautiful UI for cre
 
 ## Migration Path
 
-### Phase 1: OpenClaw Channel (IN PROGRESS ✅)
+### Phase 1: OpenClaw channel (implementation exists)
 
-What we built tonight:
-- Astrid as an OpenClaw channel (SSE-based, outbound connection)
-- `{name}.oc@astrid.cc` agent identity
-- OAuth SSE support
-- Event enrichment
+The SDK-backed OpenClaw channel exists and receives task/comment events over SSE, then posts
+agent replies through the task API. Its startup path restores assigned task sessions. This
+does not complete the broader architecture proposal; later phases remain proposals.
 
 ### Phase 2: Generalized Agent Protocol
 
@@ -163,7 +182,11 @@ Astrid becomes a place where users can:
 4. **Tool execution** — agent runtime handles git, file ops, etc.
 5. **Model selection** — agent runtime decides
 
-## Code Reduction Estimate
+## Historical Code Reduction Estimate
+
+The figures below are unverified proposal-time estimates, not current measurements. The listed
+removals must not be read as completed work; several server-run provider implementations and
+workflow paths remain in the repository.
 
 | Component | Lines | Status |
 |---|---|---|
@@ -214,7 +237,9 @@ client.on('task.assigned', async (task) => {
 client.connect()
 ```
 
-This SDK works with ANY agent runtime — OpenClaw, LangChain, AutoGPT, a bash script, whatever.
+The SDK provides a client/channel API intended for external runtimes. Support and setup are
+integration-specific; see the [agent integration support matrix](./AGENT_INTEGRATION_SUPPORT_MATRIX.md)
+instead of assuming every runtime has a maintained adapter.
 
 ## Open Questions
 

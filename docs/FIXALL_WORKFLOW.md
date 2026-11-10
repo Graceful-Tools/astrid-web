@@ -754,6 +754,11 @@ green and the branch is pushed, the session:
    Leave it there and **do not** mark it complete. A task left in `Doing` is released back to
    Ready at the end of the run and gets worked again.
 
+**A task whose fix already merged** (an earlier PR, nothing left to write) needs no branch.
+The marker names the `origin/main` commit that contains the fix and the task goes to Waiting
+as above. `open-fixall-prs.ts` accepts a marker on `main` without a branch, and the run reports
+`RESULT: OK`: the work is handed off, so PARTIAL would turn the run red for nothing (2026-11-09).
+
 The runner then opens the PR, lands it once its checks are green, and deploys `main`. On every
 tick `land-and-deploy.ts` asks `/api/health` which commit production serves, and it completes
 each `AWAITING-DEPLOY` task whose sha is an ancestor of that commit, with a comment naming it.

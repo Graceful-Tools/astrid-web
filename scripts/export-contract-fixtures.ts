@@ -166,6 +166,12 @@ const EXPORTS: Record<string, () => Record<string, unknown>> = {
   // Decision cards and trade-off grids in comments: web's recognisers over the canonical example in
   // docs/DECISIONS.md and the edge cases, so iOS/Mac read the same text the same way (AWTD-1531).
   'decisions.json': () => runDriver('decisions.mjs', 'decisions'),
+  // The agent protocol clients rely on: queue/inbox and held work, settings modes, claim outcomes,
+  // and the canonical mailbox/harness registry (AWTD-1566).
+  'agent-queue.json': () => runDriver('agent-queue.mjs', 'agent-queue'),
+  'agent-modes.json': () => runDriver('agent-modes.mjs', 'agent-modes'),
+  'fixall-claim.json': () => runDriver('fixall-claim.mjs', 'fixall-claim'),
+  'agent-registry.json': () => runDriver('agent-registry.mjs', 'agent-registry'),
 }
 
 let failed = false
