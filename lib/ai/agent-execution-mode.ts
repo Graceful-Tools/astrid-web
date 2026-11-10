@@ -184,7 +184,11 @@ interface StoredAgentSettings {
   credentialedServices: Set<string>
 }
 
-async function readAgentSettings(userId: string | null | undefined): Promise<StoredAgentSettings> {
+/** Shadow callers abort on failure instead of logging raw user/config diagnostics. */
+export async function readAgentSettings(
+  userId: string | null | undefined,
+  onFailure?: () => never,
+): Promise<StoredAgentSettings> {
   const empty: StoredAgentSettings = { modes: {}, credentialedServices: new Set() }
   if (!userId) return empty
 
@@ -195,7 +199,7 @@ async function readAgentSettings(userId: string | null | undefined): Promise<Sto
     })
     if (!user) return empty
 
-    const settings = parseUserAIConfig(user.mcpSettings, MCPSettingsSchema, 'agent-execution-mode')
+    const settings = parseUserAIConfig(user.mcpSettings, MCPSettingsSchema, 'agent-execution-mode', onFailure)
     const apiKeys = settings.apiKeys ?? {}
     const credentialedServices = new Set(
       Object.entries(apiKeys)
@@ -204,6 +208,7 @@ async function readAgentSettings(userId: string | null | undefined): Promise<Sto
     )
     return { modes: (settings.agentModes ?? {}) as Record<string, unknown>, credentialedServices }
   } catch (err) {
+    if (onFailure) return onFailure()
     // A settings read that fails must not decide the mode by accident. Falling
     // through to the defaults keeps a database blip from silently firing paid API
     // calls for someone who had turned them off.
