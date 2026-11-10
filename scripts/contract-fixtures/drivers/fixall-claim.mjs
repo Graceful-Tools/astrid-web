@@ -31,8 +31,8 @@ process.env.BRAND_AGENT_EMAIL_DOMAIN = 'astrid.cc'
 
 registerWebAliases(webRoot, {
   '@/lib/prisma': join(here, 'stubs', 'agent-protocol-prisma.mjs'),
-  '@/lib/api-auth-wrapper': join(here, 'stubs', 'agent-protocol-with-auth.mjs'),
   '@/lib/api-auth-middleware': join(here, 'stubs', 'agent-protocol-auth.mjs'),
+  [join(webRoot, 'lib/api-auth-middleware.ts')]: join(here, 'stubs', 'agent-protocol-auth.mjs'),
 })
 
 const { POST } = await import(pathToFileURL(join(webRoot, 'app/api/v1/tasks/[id]/claim-fixall/route.ts')).href)
