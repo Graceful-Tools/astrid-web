@@ -47,6 +47,21 @@ describe('completing a task', () => {
     expect(vibrate).not.toHaveBeenCalled()
   })
 
+  // PR #701 review: on a board the tap opens the options sheet, and on a
+  // profile it does nothing. Neither completed anything.
+  it('gives no feedback where the tap does not complete the task', () => {
+    const vibrate = vi.fn()
+    Object.defineProperty(navigator, 'vibrate', { value: vibrate, configurable: true })
+    const onToggle = vi.fn()
+    const { container } = render(<TaskCheckbox checked={false} onToggle={onToggle} priority={1} completes={false} />)
+
+    fireEvent.click(screen.getByRole('checkbox'))
+
+    expect(onToggle).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('img')).not.toHaveClass('task-checkbox-pop')
+    expect(vibrate).not.toHaveBeenCalled()
+  })
+
   // jsdom cannot deliver animationend to React, so the reset is checked through
   // the other path: a task that is reopened is no longer popping.
   it('is not left popping once the task is reopened', () => {

@@ -10,9 +10,15 @@ interface TaskCheckboxProps {
   priority: 0 | 1 | 2 | 3
   repeating?: boolean
   onClick?: (e: React.MouseEvent) => void
+  /**
+   * Does activating this complete the task? False where the tap opens the
+   * options sheet (a board row) or does nothing (a read-only profile), so the
+   * completion pop and haptic are not given for something that did not happen.
+   */
+  completes?: boolean
 }
 
-export function TaskCheckbox({ checked, onToggle, priority, repeating = false, onClick }: TaskCheckboxProps) {
+export function TaskCheckbox({ checked, onToggle, priority, repeating = false, onClick, completes = true }: TaskCheckboxProps) {
   const [imageError, setImageError] = useState(false)
   const [popping, setPopping] = useState(false)
   const { t } = useTranslations()
@@ -22,7 +28,7 @@ export function TaskCheckbox({ checked, onToggle, priority, repeating = false, o
   // Reopening does neither. The class only animates when the person has not
   // asked for reduced motion (styles/components.css).
   const toggle = () => {
-    if (!checked) {
+    if (completes && !checked) {
       setPopping(true)
       if (typeof navigator !== 'undefined') navigator.vibrate?.(10)
     }

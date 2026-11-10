@@ -151,6 +151,7 @@ export function TaskLeadingControl({
       <TaskCheckbox
         checked={completed}
         onToggle={activate}
+        completes={!opensOptions}
         priority={priority as 0 | 1 | 2 | 3}
         repeating={repeating}
       />
