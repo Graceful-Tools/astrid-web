@@ -129,3 +129,17 @@ describe('priority has one colour each, everywhere', () => {
     expect(source.split('\n').filter((line) => /(yellow|orange)-\d00|rgb\(251, 191, 36\)/.test(line))).toEqual([])
   })
 })
+
+describe('priority classes hold up where they are used (PR #699 review)', () => {
+  const css = read('styles', 'components.css')
+
+  it('"no priority" text is the theme\'s muted text, readable on the dark header', () => {
+    expect(css).toMatch(/\.priority-text-none \{ color: rgb\(var\(--astrid-text-muted\)\); \}/)
+  })
+
+  it('a filled control keeps its colour on hover', () => {
+    for (const name of ['none', 'low', 'medium', 'high']) {
+      expect(css).toContain(`.priority-fill-${name}:hover { background-color: rgb(var(--astrid-priority-${name})); }`)
+    }
+  })
+})
