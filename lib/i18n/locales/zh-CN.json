@@ -792,6 +792,17 @@
         "listDesc": "复选框用于完成任务，优先级和负责人各占一行。",
         "projectDesc": "紧凑模式。点按复选框会打开优先级、负责人、状态和完成。"
       },
+      "taskTitles": {
+        "title": "任务标题",
+        "description": "任务行显示多长的标题（保存在此设备上）",
+        "label": "行数",
+        "optionwrap": "换行",
+        "option2": "两行",
+        "option1": "一行",
+        "descwrap": "显示完整标题，需要几行就占几行。",
+        "desc2": "标题最多显示两行。",
+        "desc1": "标题只显示一行。"
+      },
       "emailToTask": {
         "title": "邮件创建任务",
         "description": "通过发送邮件到{inboundTaskEmail}即时创建任务",

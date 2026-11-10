@@ -61,6 +61,40 @@ describe('a board task in list display mode (task 036ef139)', () => {
     ).not.toHaveBeenCalled()
   })
 
+  // PR #701 review: opening the picker is not completing, so it must not pop
+  // the checkbox the way a completion does.
+  it('gives no completion feedback when the tap opens the picker', () => {
+    const { container } = render(
+      <TaskLeadingControl
+        assigneeId={ME}
+        currentUserId={ME}
+        completed={false}
+        priority={0}
+        displayMode="list"
+        onBoard
+        onToggleComplete={vi.fn()}
+        onOpenOptions={vi.fn()}
+      />,
+    )
+    tapTheControl(container)
+    expect(container.querySelector('img')).not.toHaveClass('task-checkbox-pop')
+  })
+
+  it('pops when the same checkbox does complete, off a board', () => {
+    const { container } = render(
+      <TaskLeadingControl
+        assigneeId={ME}
+        currentUserId={ME}
+        completed={false}
+        priority={0}
+        displayMode="list"
+        onToggleComplete={vi.fn()}
+      />,
+    )
+    tapTheControl(container)
+    expect(container.querySelector('img')).toHaveClass('task-checkbox-pop')
+  })
+
   it('keeps the checkbox as the mark — no avatar swap', () => {
     // The checkbox renders an <img>; the project-mode avatar does not.
     const { container } = render(
