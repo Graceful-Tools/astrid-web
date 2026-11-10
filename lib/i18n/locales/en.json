@@ -792,6 +792,17 @@
         "listDesc": "The checkbox completes the task, and priority and assignee each get their own row.",
         "projectDesc": "Compact. Tapping the checkbox opens priority, assignee, state and complete."
       },
+      "taskTitles": {
+        "title": "Task titles",
+        "description": "How much of a long title a task row shows (saved on this device)",
+        "label": "Lines",
+        "optionwrap": "Wrap",
+        "option2": "Two lines",
+        "option1": "One line",
+        "descwrap": "The whole title shows, on as many lines as it needs.",
+        "desc2": "Titles stop at two lines.",
+        "desc1": "Titles stay on one line."
+      },
       "emailToTask": {
         "title": "Email-to-Task",
         "description": "Create tasks instantly by sending emails to {inboundTaskEmail}",
