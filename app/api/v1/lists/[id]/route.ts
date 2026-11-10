@@ -17,7 +17,7 @@ import {
   splitListViewPreferences,
 } from '@/lib/list-view-preferences'
 import { withAuth } from '@/lib/api-auth-wrapper'
-import { collectProjectMemberUserIds } from '@/lib/projects-service'
+import { authorizeProjectAttach, collectProjectMemberUserIds } from '@/lib/projects-service'
 import { RedisCache } from '@/lib/redis'
 import { createLogger } from '@/lib/logger'
 import { resolveDefaultAssignees } from '@/lib/default-assignee'
@@ -223,7 +223,20 @@ export const PUT = withAuth<RouteContext>(
       // with { projectId } to attach it; passing null detaches.
       // Without this the projectId was silently dropped and the
       // board never linked to its domain list.
-      if (body.projectId !== undefined) updateData.projectId = body.projectId
+      // Attaching needs membership of the target project (AWTD-1540); detaching
+      // is the list owner/admin's own call, which isOwnerOrAdmin already covers.
+      if (body.projectId !== undefined) {
+        if (body.projectId) {
+          const attach = await authorizeProjectAttach(body.projectId, auth.userId)
+          if ('error' in attach) {
+            return NextResponse.json(
+              { error: attach.error === 'not_found' ? 'Project not found' : 'You are not a member of this project' },
+              { status: attach.error === 'not_found' ? 404 : 403 }
+            )
+          }
+        }
+        updateData.projectId = body.projectId
+      }
       // Per-list "Recently completed" window. iOS sends the discriminated
       // union from lib/recently-completed-window.ts; null/undefined falls
       // back to the legacy 24h default. We don't validate the shape here —

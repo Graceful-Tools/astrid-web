@@ -264,6 +264,32 @@ export async function authorizeBoardOwner(
   return { ok: true }
 }
 
+export type ProjectAttachAuthorization =
+  | { error: 'not_found' }
+  | { error: 'forbidden' }
+  | { ok: true }
+
+/**
+ * May this user attach a list to this project (AWTD-1540)?
+ *
+ * Project membership cascades to every list in the project, including its
+ * status lists, so writing `projectId` from a request body without this check
+ * let anyone pull a stranger's project onto a list they own and read its boards.
+ * The project's owner and its members may attach; nobody else.
+ */
+export async function authorizeProjectAttach(
+  projectId: string,
+  userId: string,
+): Promise<ProjectAttachAuthorization> {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { ownerId: true, members: { where: { userId }, select: { userId: true } } },
+  })
+  if (!project) return { error: 'not_found' }
+  if (project.ownerId !== userId && project.members.length === 0) return { error: 'forbidden' }
+  return { ok: true }
+}
+
 /**
  * Add a custom status column to a board (board sub-task #5).
  *

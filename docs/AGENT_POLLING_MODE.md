@@ -144,6 +144,39 @@ date. A queue held up by scheduling must never read as an idle one — silence i
 failure mode a scheduled loop cannot debug. An empty queue answers `empty: true`, so a
 quiet run costs one HTTP request and stops.
 
+### Stored Off shadow comparison (AWTD-1554)
+
+The queue still uses `getAgentExecutionMode()` unchanged: a polling-only mailbox
+such as `codex` returns `polling` before that getter reads the caller's stored
+settings, including a stored `off`. This observation-only change does not
+suppress work, change the response, or enforce Off.
+
+`ASTRID_AGENT_EXECUTION_MODE_SHADOW=true` explicitly enables the observer in
+`lib/ai/agent-execution-mode-shadow.ts`. **Default off:** zero extra queries;
+no auth-context or authentication projection changes. When enabled, 1% of
+polling-only queue requests incur **one extra primary-key read of the caller's
+row, selecting only `mcpSettings`**. This cost is intentional and requires review
+before activation. Unsampled requests do not defer work, query, parse, or hash.
+
+`runAfterResponse()` defers observation until after the response. The observer
+reuses `readAgentSettings()` and its parsing, compares the existing mode to
+`resolveAgentExecutionMode()`, and bounds its observation wait at 250ms. The
+timeout does not cancel a database query already in flight; late results are
+ignored. Settings are never cached or retained across requests.
+
+Mismatches produce `agent execution mode shadow mismatch` with only a
+domain-separated SHA-256 `userIdHash` (using the existing `hashToken` helper) and
+`mailbox`. Neither raw identifiers, emails, settings, nor exception details are
+logged. Observation failures produce a fixed warning, and even logger failures
+are contained. Missing snapshots are not evidence of agreement.
+
+Characterization and byte-identity tests preserve today's behavior. Two skipped
+enforcement specs record the intended follow-up: the getter honors stored Off,
+and the queue supplies no work to that mailbox. Enforcement requires a separate
+review after shadow evidence. **Rollback:** revert the AWTD-1554 commit; no
+environment or migration changes are needed to revert. Leaving the new flag
+unset (or setting it to `false`) disables observation without a code revert.
+
 ## What this does not fix
 
 The retry path still treats a hard 400 (billing, invalid key) like a transient error.

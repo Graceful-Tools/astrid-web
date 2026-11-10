@@ -21,7 +21,7 @@ on:
 jobs:
   list-ready-tasks:
     name: 'List Ready Tasks'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       has_tasks: ${{ steps.list.outputs.has_tasks }}
       task_count: ${{ steps.list.outputs.task_count }}
@@ -83,7 +83,7 @@ jobs:
 
   dry-run-report:
     name: 'Dry Run — Task Report'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: list-ready-tasks
     if: ${{ inputs.dry_run == true }}
     steps:
@@ -97,7 +97,7 @@ jobs:
 
   work-tasks:
     name: 'Work Ready Tasks'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: list-ready-tasks
     if: ${{ inputs.dry_run != true && needs.list-ready-tasks.outputs.has_tasks == 'true' }}
     steps:
@@ -235,7 +235,7 @@ jobs:
 
   no-tasks:
     name: 'Nothing to do'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: list-ready-tasks
     if: ${{ needs.list-ready-tasks.outputs.has_tasks == 'false' }}
     steps:

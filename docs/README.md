@@ -63,7 +63,6 @@ and stack versions with `npm run check:docs`.
 - **[Fixall on the Web Board](./FIXALL_WEB.md)** - the web board's specifics (deploy rule, done, claim, gates), read by every harness
 - **[Agent Fleet](./AGENT_FLEET.md)** - which machine and harness runs what, and why agents never hold production keys
 - **[Legacy AI agent setup (archived)](./archive/ai-agents/README.md)** - superseded GitHub-App walkthrough, kept for history
-- **[Weekly Hygiene Review](./WEEKLY_HYGIENE_REVIEW.md)** - Scheduled review that files hygiene/security/perf tasks to the Astrid board
 
 ### 🧪 Testing & Quality
 - **[MCP Testing Guide](./testing/MCP_TESTING_GUIDE.md)** - Complete MCP (Model Context Protocol) testing

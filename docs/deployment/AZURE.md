@@ -86,7 +86,7 @@ file reads them from the environment when you deploy, so none is ever written to
 
 ```bash
 export NEXTAUTH_SECRET=$(openssl rand -base64 48)
-export ENCRYPTION_KEY=$(openssl rand -base64 48)
+export ENCRYPTION_KEY=$(openssl rand -hex 32)
 export CRON_SECRET=$(openssl rand -base64 32)
 export POSTGRES_ADMIN_PASSWORD=$(openssl rand -base64 32 | tr -d '/+=')
 npx web-push generate-vapid-keys   # → VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY, for web push

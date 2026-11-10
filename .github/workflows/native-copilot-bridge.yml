@@ -22,7 +22,7 @@ jobs:
     if: >-
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'workflow_dispatch' || vars.ASTRID_NATIVE_COPILOT_ENABLED == 'true')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     environment: copilot-bridge
     timeout-minutes: 15
     env:
