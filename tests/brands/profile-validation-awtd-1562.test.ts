@@ -4,6 +4,8 @@ import { join } from 'node:path'
 
 import {
   formatBrandEnvDryRun,
+  extractBrandPreviewUrl,
+  parseBrandProfile,
   profileEnv,
   redactBrandProfileValues,
   type BrandProfile,
@@ -47,6 +49,22 @@ describe('brand profile validation (AWTD-1562)', () => {
         env: { NEXT_PUBLIC_BRAND_NAME: 42 },
       } as never),
     ).toThrow(/NEXT_PUBLIC_BRAND_NAME must be a string/)
+  })
+
+  it('does not echo invalid profile values from environment validators', () => {
+    const profileValue = 'private-profile-content-that-must-not-be-logged'
+    let message = ''
+    try {
+      parseBrandProfile({
+        ...validProfile,
+        env: { BRAND_ANDROID_APP_LINKS: profileValue },
+      })
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error)
+    }
+
+    expect(message).toContain('BRAND_ANDROID_APP_LINKS')
+    expect(message).not.toContain(profileValue)
   })
 
   it.each([
@@ -107,5 +125,11 @@ describe('brand profile validation (AWTD-1562)', () => {
         [profileValue],
       ),
     ).toBe(`Created ${deploymentUrl}; received [redacted]`)
+  })
+
+  it('preserves generated preview URLs when a profile value overlaps the .app suffix', () => {
+    const profileScheme = 'app'
+    const generatedUrl = 'https://generated-deployment.vercel.app'
+    expect(extractBrandPreviewUrl(`Created ${generatedUrl} for scheme ${profileScheme}`)).toBe(generatedUrl)
   })
 })

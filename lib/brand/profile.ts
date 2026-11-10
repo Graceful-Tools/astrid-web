@@ -92,8 +92,9 @@ export function parseBrandProfile(value: unknown, source = 'Brand profile'): Bra
         problems.push(`env.${key} must be a string`)
         continue
       }
-      const problem = envVar.validate?.(envValue)
-      if (problem) problems.push(`env.${key} ${problem}`)
+      if (envVar.validate?.(envValue)) {
+        problems.push(`env.${key} failed validation`)
+      }
     }
   }
 
@@ -181,6 +182,10 @@ export function redactBrandProfileValues(text: string, values: readonly string[]
   return values
     .filter((value) => value.length > 0)
     .reduce((redacted, value) => redacted.replaceAll(value, '[redacted]'), text)
+}
+
+export function extractBrandPreviewUrl(output: string): string | null {
+  return output.match(/https:\/\/[a-z0-9-]+\.vercel\.app/)?.[0] ?? null
 }
 
 /**

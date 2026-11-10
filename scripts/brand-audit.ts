@@ -47,6 +47,7 @@ function main() {
       env,
       cwd: process.cwd(),
       maxBuffer: 64 * 1024 * 1024,
+      stdio: ['pipe', 'pipe', 'pipe'],
     })
   } catch (error) {
     failed = true

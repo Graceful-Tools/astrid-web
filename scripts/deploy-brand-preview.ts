@@ -46,7 +46,7 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { loadScriptEnv } from './lib/load-env'
-import { parseBrandProfile, profileEnv, redactBrandProfileValues } from '../lib/brand/profile'
+import { extractBrandPreviewUrl, parseBrandProfile, profileEnv } from '../lib/brand/profile'
 import { previewPins, resolveVercelTarget, VERCEL_TARGET_FLAGS, type VercelTarget } from './lib/vercel-target'
 import { bootPreflightProblems } from '../lib/brand/boot-preflight'
 import { deploymentEnv, fetchStoredEnvRows, refuseIfBootWouldFail, storedKeysFor } from './lib/brand-boot-preflight'
@@ -162,8 +162,7 @@ function deploy(vercelToken: string): void {
     throw new Error('Vercel CLI failed while creating the brand preview; raw output was suppressed.')
   }
 
-  const safeOutput = redactBrandProfileValues(output, Object.values({ ...resolvedEnv, ...PINNED_FOR_PREVIEW }))
-  const url = safeOutput.match(/https:\/\/[a-z0-9-]+\.vercel\.app/)?.[0]
+  const url = extractBrandPreviewUrl(output)
   if (!url) {
     throw new Error('Vercel CLI completed without returning a preview URL; raw output was suppressed.')
   }
