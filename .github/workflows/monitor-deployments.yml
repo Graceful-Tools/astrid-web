@@ -22,7 +22,7 @@ on:
 
 jobs:
   monitor:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     name: Monitor and Fix Deployment Issues
     # Declared so VERCEL_TOKEN can live in the `production` environment instead
