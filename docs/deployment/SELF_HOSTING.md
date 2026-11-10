@@ -93,7 +93,7 @@ The full registry, with a description of every variable: `npm run check:env`, or
 |---|---|
 | `NEXTAUTH_URL` | The public origin, `https://…`. Sign-in callbacks and every absolute link derive from it, including stored upload URLs |
 | `NEXTAUTH_SECRET` | Signs sessions and upload grants. Rotating it signs everyone out |
-| `ENCRYPTION_KEY` | Encrypts stored credentials. **Back it up with the database**: without it, those rows cannot be read |
+| `ENCRYPTION_KEY` | Encrypts stored credentials. Exactly 64 hex characters (`openssl rand -hex 32`). **Back it up with the database**: without it, those rows cannot be read |
 | `CRON_SECRET` | The cron service sends it. Every cron route refuses requests without it |
 | `POSTGRES_PASSWORD` | For the bundled Postgres. With your own database, set `DATABASE_URL` and `DATABASE_URL_DIRECT` instead (see *Your own database*) |
 

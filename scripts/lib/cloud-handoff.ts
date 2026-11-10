@@ -52,6 +52,16 @@ export function claimsCloudHandoff(comments: CloudHandoffComment[]): boolean {
   return Boolean(parseBlockedConditions(comments).awaitingDeploy)
 }
 
+/**
+ * A handoff for a fix that an earlier PR already merged: the marker names a commit on main, so
+ * there is no branch to open and nothing is broken. land-and-deploy completes the task once
+ * production serves that commit. `onMain` is `git merge-base --is-ancestor <sha> origin/main`.
+ */
+export function handoffAlreadyOnMain(comments: CloudHandoffComment[], onMain: (sha: string) => boolean): boolean {
+  const sha = parseBlockedConditions(comments).awaitingDeploy
+  return Boolean(sha) && onMain(sha as string)
+}
+
 export function cloudHandoffEligible(input: {
   branch: string
   headSha: string
