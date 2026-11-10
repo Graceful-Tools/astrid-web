@@ -137,9 +137,10 @@ DATABASE_URL="file:./dev.db"
 Test your database connection:
 
 ```javascript
-// test-db.js
-const { PrismaClient } = require('@prisma/client')
-const prisma = new PrismaClient()
+// test-db.ts (in the repo root)
+// Prisma 7 needs a driver adapter, so build the client with the script factory.
+import { createScriptPrisma } from './scripts/lib/script-prisma'
+const prisma = createScriptPrisma()
 
 async function main() {
   try {
@@ -158,7 +159,7 @@ async function main() {
 main()
 ```
 
-Run with: `node test-db.js`
+Run with: `npx tsx test-db.ts`
 
 ## 🚨 **Important Notes**
 

@@ -35,7 +35,7 @@ jobs:
       && (github.event_name != 'workflow_run'
           || (github.event.workflow_run.conclusion == 'success'
               && startsWith(github.event.workflow_run.head_branch, 'agent/'))) }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     environment: release
     timeout-minutes: 55
     env:

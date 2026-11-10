@@ -14,6 +14,8 @@ const log = createLogger('ai.user-config-schemas')
  * `parseUserAIConfig` returns `{}` (typed as the schema's output) on parse
  * failure and logs a warning, never throws. Callers historically assumed
  * `JSON.parse(... ?? {})` succeeds; preserving that contract avoids regressions.
+ * An optional `onInvalid` abort is for observation-only callers that must not
+ * emit detailed parser diagnostics or mistake invalid settings for defaults.
  */
 
 export const AIAssistantSettingsSchema = z
@@ -59,7 +61,8 @@ export type AIAgentConfig = z.infer<typeof AIAgentConfigSchema>
 export function parseUserAIConfig<T extends z.ZodTypeAny>(
   raw: string | null | undefined,
   schema: T,
-  context: string
+  context: string,
+  onInvalid?: () => never,
 ): z.infer<T> {
   if (!raw) {
     return schema.parse({})
@@ -69,12 +72,16 @@ export function parseUserAIConfig<T extends z.ZodTypeAny>(
   try {
     parsed = JSON.parse(raw)
   } catch (err) {
+    // Observation-only callers can abort without detailed, potentially
+    // secret-bearing parser diagnostics. Existing callers keep their logs.
+    if (onInvalid) return onInvalid()
     log.warn({ err }, `[user-config-schemas] ${context}: invalid JSON, returning empty`)
     return schema.parse({})
   }
 
   const result = schema.safeParse(parsed)
   if (!result.success) {
+    if (onInvalid) return onInvalid()
     log.warn(result.error.issues, `[user-config-schemas] ${context}: schema mismatch, returning empty`)
     return schema.parse({})
   }

@@ -111,7 +111,7 @@ param postgresSubnetPrefix string = '10.40.2.0/28'
 param nextauthSecret string
 
 @secure()
-@description('ENCRYPTION_KEY: 32+ characters. Never change it: stored credentials are unreadable without the original. Back it up with the database.')
+@description('ENCRYPTION_KEY: 64 hex characters (32 bytes), e.g. openssl rand -hex 32. Never change it: stored credentials are unreadable without the original. Back it up with the database.')
 param encryptionKey string
 
 @secure()
