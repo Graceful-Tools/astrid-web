@@ -1,13 +1,13 @@
 /* Dark Theme Variables */
 .dark {
   /* Background colors */
-  --theme-bg-primary: 22, 28, 42;
-  --theme-bg-secondary: 31, 41, 55;
-  --theme-bg-tertiary: 55, 65, 81;
-  --theme-bg-hover: 55, 65, 81;
-  --theme-bg-active: 75, 85, 99;
-  --theme-bg-selected: 30, 58, 138;
-  --theme-bg-selected-border: 59, 130, 246;
+  --theme-bg-primary: var(--astrid-bg-primary);
+  --theme-bg-secondary: var(--astrid-bg-secondary);
+  --theme-bg-tertiary: var(--astrid-bg-tertiary);
+  --theme-bg-hover: var(--astrid-bg-hover);
+  --theme-bg-active: var(--astrid-bg-active);
+  --theme-bg-selected: var(--astrid-bg-selected);
+  --theme-bg-selected-border: var(--astrid-bg-selected-border);
   
   /* Surface colors */
   --theme-surface: 31, 41, 55;
@@ -15,30 +15,30 @@
   --theme-surface-raised: 31, 41, 55;
   
   /* Border colors */
-  --theme-border: 55, 65, 78;
-  --theme-border-hover: 90, 100, 114;
-  --theme-border-focus: var(--brand-accent-rgb, 59, 130, 246);
-  --theme-border-input: 55, 65, 78;
+  --theme-border: var(--astrid-border);
+  --theme-border-hover: var(--astrid-border-hover);
+  --theme-border-focus: var(--astrid-border-focus);
+  --theme-border-input: var(--astrid-border-input);
   
   /* Text colors */
-  --theme-text-primary: 255, 255, 255;
-  --theme-text-secondary: 209, 213, 219;
-  --theme-text-muted: 156, 163, 175;
-  --theme-text-inverted: 17, 24, 39;
-  --theme-text-selected: 255, 255, 255;
+  --theme-text-primary: var(--astrid-text-primary);
+  --theme-text-secondary: var(--astrid-text-secondary);
+  --theme-text-muted: var(--astrid-text-muted);
+  --theme-text-inverted: var(--astrid-text-inverted);
+  --theme-text-selected: var(--astrid-text-selected);
   
   /* Interactive colors */
   /* Brand accent when a partner sets one (app/[locale]/layout.tsx publishes the
      triplets); the literals are Astrid's designed values and stay the fallback. */
-  --theme-accent: var(--brand-accent-rgb, 59, 130, 246);
-  --theme-accent-hover: var(--brand-accent-hover-rgb, 37, 99, 235);
-  --theme-accent-text: 255, 255, 255;
+  --theme-accent: var(--astrid-accent);
+  --theme-accent-hover: var(--astrid-accent-hover);
+  --theme-accent-text: var(--astrid-accent-text);
   
   /* Status colors */
-  --theme-success: 34, 197, 94;
-  --theme-warning: 245, 158, 11;
-  --theme-error: 239, 68, 68;
-  --theme-info: 6, 182, 212;
+  --theme-success: var(--astrid-success);
+  --theme-warning: var(--astrid-warning);
+  --theme-error: var(--astrid-error);
+  --theme-info: var(--astrid-info);
   
   /* Sidebar colors */
   --theme-sidebar-bg: 31, 41, 55;
@@ -52,21 +52,21 @@
   --theme-panel-arrow: 31, 41, 55;
   
   /* Header colors */
-  --theme-header-bg: 31, 41, 55;
-  --theme-header-border: 75, 85, 99;
+  --theme-header-bg: var(--astrid-header-bg);
+  --theme-header-border: var(--astrid-header-border);
   
   /* Input colors */
-  --theme-input-bg: 55, 65, 81;
-  --theme-input-border: 75, 85, 99;
-  --theme-input-placeholder: 156, 163, 175;
+  --theme-input-bg: var(--astrid-input-bg);
+  --theme-input-border: var(--astrid-input-border);
+  --theme-input-placeholder: var(--astrid-input-placeholder);
   
   /* Comment colors */
   --theme-comment-bg: 55, 65, 81;
   
   /* Button colors */
-  --theme-button-bg: 55, 65, 81;
-  --theme-button-hover: 75, 85, 99;
-  --theme-button-border: 75, 85, 99;
+  --theme-button-bg: var(--astrid-button-bg);
+  --theme-button-hover: var(--astrid-button-hover);
+  --theme-button-border: var(--astrid-button-border);
   
   /* Component shadows */
   --theme-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);

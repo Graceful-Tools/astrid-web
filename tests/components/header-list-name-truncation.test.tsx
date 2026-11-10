@@ -246,7 +246,7 @@ describe('TaskManagerHeader - List Name Truncation', () => {
       />
     )
 
-    const grayCircleSymbol = container.querySelector('span.text-gray-400')
+    const grayCircleSymbol = container.querySelector('span.priority-text-none')
     expect(grayCircleSymbol).toBeInTheDocument()
     expect(grayCircleSymbol?.textContent).toBe('○')
   })
@@ -266,7 +266,7 @@ describe('TaskManagerHeader - List Name Truncation', () => {
     expect(screen.getByText(/Today/)).toBeInTheDocument()
 
     // Check for ○ symbol with gray color
-    const grayCircleSymbol = container.querySelector('span.text-gray-400')
+    const grayCircleSymbol = container.querySelector('span.priority-text-none')
     expect(grayCircleSymbol).toBeInTheDocument()
     expect(grayCircleSymbol?.textContent).toBe('○')
   })
@@ -281,7 +281,7 @@ describe('TaskManagerHeader - List Name Truncation', () => {
         myTasksFilterDueDate="all"
       />
     )
-    const priority3Symbol = container3.querySelector('span.text-red-500')
+    const priority3Symbol = container3.querySelector('span.priority-text-high')
     expect(priority3Symbol).toBeInTheDocument()
     expect(priority3Symbol?.textContent).toBe('!!!')
 
@@ -294,7 +294,7 @@ describe('TaskManagerHeader - List Name Truncation', () => {
         myTasksFilterDueDate="all"
       />
     )
-    const priority2Symbol = container2.querySelector('span.text-orange-500')
+    const priority2Symbol = container2.querySelector('span.priority-text-medium')
     expect(priority2Symbol).toBeInTheDocument()
     expect(priority2Symbol?.textContent).toBe('!!')
 
@@ -307,7 +307,7 @@ describe('TaskManagerHeader - List Name Truncation', () => {
         myTasksFilterDueDate="all"
       />
     )
-    const priority1Symbol = container1.querySelector('span.text-blue-500')
+    const priority1Symbol = container1.querySelector('span.priority-text-low')
     expect(priority1Symbol).toBeInTheDocument()
     expect(priority1Symbol?.textContent).toBe('!')
   })
@@ -451,7 +451,7 @@ describe('TaskManagerHeader - My Tasks Filter Indicators', () => {
     const { container } = render(<TaskManagerHeader {...defaultProps} />)
 
     // Check that the priority indicator has a color class
-    const redTextElements = container.querySelectorAll('.text-red-500')
+    const redTextElements = container.querySelectorAll('.priority-text-high')
     expect(redTextElements.length).toBeGreaterThan(0)
 
     // Verify the colored element contains the priority indicator

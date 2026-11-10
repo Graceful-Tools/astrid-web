@@ -71,11 +71,21 @@ describe('brand accent colour reaches the things it paints (task 518ec534)', () 
     expect(rgb?.accent).toBe('168, 85, 247')
     expect(rgb?.hover).not.toBe(rgb?.accent)
 
+    // Two steps since the design tokens (docs/specs/DESIGN_SYSTEM.md): the theme
+    // stylesheet reads the token, and the token falls back from the brand's
+    // triplet to Astrid's. Both links are checked, in every theme.
+    const tokens = readFileSync(join(process.cwd(), 'packages', 'astrid-design', 'astrid-tokens.css'), 'utf8')
     for (const theme of ['light', 'dark', 'ocean']) {
       const css = readFileSync(join(process.cwd(), 'styles', 'themes', `${theme}-theme.css`), 'utf8')
-      expect(css, `${theme} theme must derive its accent from the brand`).toMatch(/--theme-accent:\s*var\(--brand-accent-rgb,/)
-      expect(css).toMatch(/--theme-accent-hover:\s*var\(--brand-accent-hover-rgb,/)
-      expect(css).toMatch(/--theme-border-focus:\s*var\(--brand-accent-rgb,/)
+      expect(css, `${theme} theme must take its accent from the tokens`).toMatch(/--theme-accent:\s*var\(--astrid-accent\);/)
+      expect(css).toMatch(/--theme-accent-hover:\s*var\(--astrid-accent-hover\);/)
+      expect(css).toMatch(/--theme-border-focus:\s*var\(--astrid-border-focus\);/)
+
+      const block = tokens.slice(tokens.indexOf(`\n.${theme} {`))
+      const body = block.slice(0, block.indexOf('}'))
+      expect(body, `${theme} tokens must derive the accent from the brand`).toMatch(/--astrid-accent:\s*var\(--brand-accent-rgb,/)
+      expect(body).toMatch(/--astrid-accent-hover:\s*var\(--brand-accent-hover-rgb,/)
+      expect(body).toMatch(/--astrid-border-focus:\s*var\(--brand-accent-rgb,/)
     }
   })
 
