@@ -319,7 +319,7 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
             <CardContent>
               <div className="flex items-center justify-between p-4 theme-bg-tertiary rounded-lg">
                 <div className="flex-1">
-                  <Label className="font-medium theme-text-primary">
+                  <Label id="row-title-lines-label" className="font-medium theme-text-primary">
                     {t("settingsPages.appearancePage.taskTitles.label")}
                   </Label>
                   <p className="text-sm theme-text-muted">
@@ -327,7 +327,7 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
                   </p>
                 </div>
                 <Select value={rowTitleLines} onValueChange={(value) => setRowTitleLines(parseRowTitleLines(value))}>
-                  <SelectTrigger className="w-56" data-testid="row-title-lines">
+                  <SelectTrigger className="w-56" data-testid="row-title-lines" aria-labelledby="row-title-lines-label">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
