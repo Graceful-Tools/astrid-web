@@ -41,6 +41,9 @@ the hand-rolled-visibility rule.
   `scripts/lib/vendor-sdk-boundaries.mjs`, and
   `tests/rules/vendor-sdks-stay-in-their-drivers.test.ts` also catches dynamic
   `import()` and `require()` (AWTD-1463).
+- `npm run check:design` (and `tests/rules/design-metrics-ratchet.test.ts`, which runs
+  the same count in Vitest) fails when a count of hand-written colours, sizes,
+  durations or JSX copy rises above its budget. Budgets only go down.
 - `ASTRID.md` requires a reuse search before new helpers, keys, or components are
   introduced.
 - `npm run check:docs` prevents competing canonical documentation headings and

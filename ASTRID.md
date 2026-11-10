@@ -598,6 +598,9 @@ Distilled from recurring friction across sessions. These apply to **every** AI a
   the `theme-*` classes, and `lib/design/priority.ts` for priority; never write a
   shared colour out. A design change starts in the iOS/Mac app, then astrid-core's
   token source. See [docs/specs/DESIGN_SYSTEM.md](./docs/specs/DESIGN_SYSTEM.md).
+  `npm run check:design` counts hand-written colours, sizes, durations and JSX copy
+  and fails when a count rises; after lowering one, run
+  `npm run design:metrics -- --update` in the same change.
 - **User-facing copy** lives in i18n locale files (`lib/i18n/locales/*.json`) —
   use `t("…")`, never a string literal in JSX. Keep key names mirrored with the
   Apple app's `Localizable.strings` where the string is shared.
