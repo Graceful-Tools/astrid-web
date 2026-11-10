@@ -4,14 +4,62 @@
     "accent-hover": "#2563EB",
     "accent-text": "#FFFFFF"
   },
+  "layout": {
+    "comfortable": {
+      "board-card-radius": 8,
+      "board-column-radius": 12,
+      "detail-icon-column": 62,
+      "detail-label-column": 80,
+      "detail-panel-radius": 16,
+      "row-gap": 12,
+      "row-min-height": 76,
+      "row-padding-x": 16,
+      "row-padding-y": 14,
+      "row-radius": 8,
+      "subtask-indent": 16
+    },
+    "compact": {
+      "board-card-radius": 6,
+      "board-column-radius": 8,
+      "detail-icon-column": 29,
+      "detail-panel-min-width": 380,
+      "detail-panel-radius": 14,
+      "row-gap": 12,
+      "row-min-height": 52,
+      "row-padding-x": 12,
+      "row-padding-y": 9,
+      "row-radius": 8,
+      "sidebar-min-width": 240,
+      "subtask-indent": 16
+    },
+    "three-column-breakpoint": 1100
+  },
+  "markdown": {
+    "blockquote-bar": 3,
+    "decision-badge": 24,
+    "decision-card-radius": 10,
+    "tradeoff-cell-max": 150,
+    "tradeoff-cell-min": 84,
+    "tradeoff-cell-radius": 4,
+    "tradeoff-gap": 3,
+    "tradeoff-swatch": 10
+  },
   "motion": {
     "drawer": {
       "ease": "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
       "ms": 300
     },
+    "drawer-spring": {
+      "damping": 0.85,
+      "ms": 250
+    },
     "fast": {
       "ease": "ease-out",
       "ms": 150
+    },
+    "hover": {
+      "ease": "ease-out",
+      "ms": 100
     },
     "medium": {
       "ease": "ease-in-out",
@@ -20,6 +68,14 @@
     "panel": {
       "ease": "ease-out",
       "ms": 300
+    },
+    "panel-spring": {
+      "damping": 0.85,
+      "ms": 340
+    },
+    "press": {
+      "ease": "ease-in-out",
+      "ms": 100
     },
     "spring": {
       "damping": 0.85,
@@ -43,6 +99,13 @@
       "#FFD966",
       "#93C47D",
       "#38761D"
+    ],
+    "tradeoff-text": [
+      "#FFFFFF",
+      "#111827",
+      "#111827",
+      "#111827",
+      "#FFFFFF"
     ]
   },
   "radius": {
@@ -70,14 +133,16 @@
   },
   "size": {
     "comfortable": {
+      "hit-target": 44,
       "leading-control": 34,
-      "selection-outline": 2
+      "selection-outline": 2.5
     },
     "compact": {
       "leading-control": 17,
       "leading-control-detail": 19,
       "selection-outline": 1.5
     },
+    "hairline": 0.5,
     "repeat-frame-scale": 1.25
   },
   "space": [
@@ -92,6 +157,15 @@
     40,
     48
   ],
+  "state": {
+    "completed-mark-opacity": 0.5,
+    "disabled-opacity": 0.5,
+    "drawer-sidebar-opacity": 0.8,
+    "drawer-sidebar-scale": 0.95,
+    "drawer-width-fraction": 0.85,
+    "press-scale": 0.98,
+    "subtask-max-depth": 4
+  },
   "themeOrder": [
     "light",
     "dark",

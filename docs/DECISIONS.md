@@ -65,12 +65,15 @@ a short reason.
 
 | Token | Meaning | Colour |
 |---|---|---|
-| `--` | Very poor | `#CC0000`, white text |
-| `-` | Poor | `#E06666` |
-| `~` | Mixed | `#FFD966` |
-| `+` | Good | `#93C47D` |
-| `++` | Very good | `#38761D`, white text |
+| `--` | Very poor | dark red, white text |
+| `-` | Poor | light red |
+| `~` | Mixed | yellow |
+| `+` | Good | light green |
+| `++` | Very good | dark green, white text |
 | 🔴 / 🟡 / 🟢 | Poor / Mixed / Good | as above |
+
+The exact colours are the design tokens' `palette.tradeoff`
+([specs/DESIGN_SYSTEM.md](./specs/DESIGN_SYSTEM.md) → Markdown), so they are the same on every client.
 
 - **Rows:** one per option, numbered to match the Decision (`1. Lisbon`). The grid numbers its rows
   1, 2, 3 itself and drops the marker you wrote (`A. Lisbon`, `2) Cabin` or a lone `B`).

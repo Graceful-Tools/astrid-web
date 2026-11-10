@@ -143,3 +143,25 @@ describe('priority classes hold up where they are used (PR #699 review)', () => 
     }
   })
 })
+
+describe('the trade-off grid draws its ratings from the tokens', () => {
+  const css = read('app', 'globals.css')
+
+  it.each([
+    ['very-poor', 1],
+    ['poor', 2],
+    ['mixed', 3],
+    ['good', 4],
+    ['very-good', 5],
+  ])('%s is rating %i, fill and text', (name, index) => {
+    expect(css).toContain(
+      `.tradeoff-${name} { background-color: rgb(var(--astrid-palette-tradeoff-${index})); color: rgb(var(--astrid-palette-tradeoff-text-${index})); }`,
+    )
+    expect(tokensCss).toContain(`--astrid-palette-tradeoff-${index}:`)
+    expect(tokensCss).toContain(`--astrid-palette-tradeoff-text-${index}:`)
+  })
+
+  it('markdown borders follow the theme', () => {
+    expect(css).not.toMatch(/\.prose[^{]*\{[^}]*#d1d5db/)
+  })
+})
