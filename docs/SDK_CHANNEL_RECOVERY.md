@@ -40,8 +40,11 @@ fails explicitly; it is never silently discarded. Give each agent a separate
 durable state file and run **one adapter process per file**. This is a local
 delivery ledger, not a distributed claim or lock.
 
-Task IDs do not expire with the local clock. Completion/deletion events remove
-them so a reopened task can be delivered again. Receipts expire after 30 days
+Task IDs do not expire with the local clock. In recovery mode, completion/deletion
+events re-read the assigned task before removing receipts: a retained terminal
+event must not clear a newly accepted reopened task. A currently completed or
+no-longer-visible task ends the session; a currently incomplete task keeps it.
+Receipts expire after 30 days
 measured using server samples, and the ledger holds at most 1,000 task/comment
 receipts/intents total. Either eviction logs a warning and can permit old work to be
 delivered again. Queue/attention truncation and unread list chat are also reported
@@ -67,9 +70,11 @@ Ready. If that task is completed, or the assigned-only endpoint returns 404
 (deleted/reassigned/no longer visible), its intent is cleared; 404 logs a warning.
 
 Delivery is recorded after the message callback succeeds (including awaiting
-an asynchronous callback in recovery mode). Failed
-callbacks are retried on reconciliation; callback or state-write failures are
-surfaced. A process crash between consumer acceptance and ledger persistence
+an asynchronous callback in recovery mode). A recovery callback or state-write
+failure aborts the stream and restores the pre-connection server-time checkpoint,
+so replay retries unaccepted comments as well as pending task intents. Legacy
+dispatch remains nonblocking and logs rejected callbacks. A process crash
+between consumer acceptance and ledger persistence
 can replay that message. The consumer must use task/session IDs as idempotency
 keys for durable side effects: this does **not** promise transactional exactly-once
 execution. Task attention and live comments share persisted comment-id receipts
@@ -86,7 +91,8 @@ as a replay-store cursor. Making it trustworthy requires a shared ordered store
 and replay API changes, not just adding an `id:` line. This branch deliberately
 does not change the server or advertise unsupported cursor semantics.
 
-In recovery mode the first connection requests replay from epoch; subsequent
+In recovery mode the first connection requests replay from one millisecond after
+epoch (zero disables replay in the current endpoint); subsequent
 connections use the last **server** `connected.timestamp` / `keepalive.serverTime`
 minus a 30-second overlap. Task events never advance the cursor using the client
 clock. Missing/invalid server times log a warning and leave the cursor unchanged.
@@ -99,6 +105,8 @@ connection regardless of whether such a gap can be detected. Queue recovery
 can recover pending assignments even if their SSE event has expired; it cannot
 reconstruct expired comments or terminal events, or infer intermediate
 completion/reassignment that occurred entirely while offline.
+An attention entry no longer readable through the assigned-only task endpoint is
+skipped with a warning instead of preventing unrelated queue/SSE work.
 
 ## Release and rollback
 

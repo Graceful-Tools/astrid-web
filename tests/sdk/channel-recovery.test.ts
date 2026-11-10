@@ -26,6 +26,7 @@ let requests: string[]
 let adapters: ReturnType<typeof astridChannel.createAdapter>[]
 let attention: { id: string; completed: boolean; statusRole: string; lastComment: { id: string } }[]
 let claims: Response[]
+let detailResponses: Map<string, (AgentTask | null)[]>
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -37,6 +38,7 @@ beforeEach(() => {
   adapters = []
   attention = []
   claims = []
+  detailResponses = new Map()
   vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request) => {
     const url = String(input)
     requests.push(url)
@@ -53,6 +55,11 @@ beforeEach(() => {
     if (url.endsWith('/claim')) return claims.shift() ?? Response.json({ error: 'Not found' }, { status: 404 })
     if (/\/agent\/tasks\/[^/?]+$/.test(url)) {
       const id = url.split('/').pop()!
+      const scripted = detailResponses.get(id)
+      if (scripted?.length) {
+        const detail = scripted.shift()
+        return detail ? Response.json({ task: detail }) : Response.json({ error: 'Task not found' }, { status: 404 })
+      }
       return Response.json({ task: {
         ...task(id),
         comments: attention.some(entry => entry.id === id)
@@ -154,6 +161,7 @@ describe('AWTD-1565 SDK channel recovery', () => {
   it.each(['task.completed', 'task.deleted'])(
     'AWTD-1565 removes a terminal task from the ledger on %s so it can be delivered again',
     async type => {
+      detailResponses.set('reopened', [type === 'task.deleted' ? null : { ...task('reopened'), completed: true }])
       const client = adapter()
       await client.init()
       stream(SERVER_TIME, assigned('reopened'), frame({ taskId: 'reopened' }, { event: type }), assigned('reopened'))
@@ -374,6 +382,90 @@ describe('AWTD-1565 SDK channel recovery', () => {
     expect(received.mock.calls[0][0].sessionKey).toBe('astrid:task:claimed')
   })
 
+  it('AWTD-1565 accepts attention arriving after pending history acceptance but before queue reconciliation', async () => {
+    const ledger = new DeliveryLedger(join(directory, 'delivery.json'), 'https://sdk-test.example/api/v1', 'test-client', 'copilot')
+    ledger.begin('racing-reply')
+    const client = adapter()
+    await client.init()
+    stream(SERVER_TIME, frame({
+      taskId: 'racing-reply', comment: { id: 'reply', content: 'Please continue' },
+    }, { event: 'task.commented' }))
+    const received = vi.fn().mockImplementationOnce(() => {
+      attention = [{ id: 'racing-reply', completed: false, statusRole: 'doing', lastComment: { id: 'reply' } }]
+    })
+    await client.connect(received)
+    expect(received).toHaveBeenCalledTimes(2)
+    expect(received.mock.calls[1][0].metadata.commentId).toBe('reply')
+  })
+
+  it.each(['task.completed', 'task.deleted'])(
+    'AWTD-1565 ignores stale %s replay after accepting the current reopened Ready task',
+    async type => {
+      pending = [task('current')]
+      const client = adapter()
+      await client.init()
+      stream(SERVER_TIME, frame({ taskId: 'current' }, { event: type }), assigned('current'))
+      const received = vi.fn()
+      await client.connect(received)
+      expect(received).toHaveBeenCalledTimes(1)
+      expect(client.getHealth().activeSessions).toBe(1)
+    },
+  )
+
+  it('AWTD-1565 logs rejected legacy consumer callbacks without an unhandled rejection', async () => {
+    const client = astridChannel.createAdapter({
+      enabled: true, clientId: 'test-client', clientSecret: 'test-secret',
+      apiBase: 'https://sdk-test.example/api/v1',
+    })
+    adapters.push(client)
+    await client.init()
+    stream(SERVER_TIME, assigned('throws'))
+    const error = new Error('consumer failed')
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await client.connect(() => { throw error })
+    await Promise.resolve()
+    expect(logged).toHaveBeenCalledWith('SSE handler error:', error)
+  })
+
+  it.each(['consumer', 'ledger'])(
+    'AWTD-1565 reconnects after live %s failure before advancing past unaccepted comments',
+    async failure => {
+      const ledger = new DeliveryLedger(join(directory, 'delivery.json'), 'https://sdk-test.example/api/v1', 'test-client', 'copilot')
+      ledger.observeServerTime(SERVER_TIME)
+      const client = adapter()
+      await client.init()
+      const commentFrame = frame({
+        taskId: 'live', comment: { id: 'reply', content: 'retry me' },
+      }, { event: 'task.commented' })
+      stream(SERVER_TIME + 120_000, assigned('live'), commentFrame,
+        frame({ serverTime: new Date(SERVER_TIME + 120_000).toISOString() }, { event: 'keepalive' }))
+      const error = new Error('acceptance failed')
+      const received = vi.fn()
+      if (failure === 'consumer') {
+        received.mockImplementationOnce(() => {}).mockRejectedValueOnce(error)
+      } else {
+        vi.spyOn(DeliveryLedger.prototype, 'commented').mockImplementationOnce(() => { throw error })
+      }
+      await expect(client.connect(received)).rejects.toThrow('acceptance failed')
+      expect(JSON.parse(readFileSync(join(directory, 'delivery.json'), 'utf8')).lastServerTime).toBe(SERVER_TIME)
+      stream(SERVER_TIME, commentFrame)
+      await vi.advanceTimersByTimeAsync(10_000)
+      expect(received).toHaveBeenCalledTimes(3)
+    },
+  )
+
+  it('AWTD-1565 skips unreadable attention without blocking buffered work', async () => {
+    attention = [{ id: 'human-handback', completed: false, statusRole: 'waiting', lastComment: { id: 'reply' } }]
+    detailResponses.set('human-handback', [null])
+    const client = adapter()
+    await client.init()
+    stream(SERVER_TIME, assigned('unrelated'))
+    const received = vi.fn()
+    await expect(client.connect(received)).resolves.toBeUndefined()
+    expect(received).toHaveBeenCalledTimes(1)
+    expect(received.mock.calls[0][0].sessionKey).toBe('astrid:task:unrelated')
+  })
+
   it.each([-24 * 60 * 60_000, 24 * 60 * 60_000])(
     'AWTD-1565 clock skew of %i ms neither skips new work nor duplicates delivery',
     async skew => {
@@ -391,7 +483,7 @@ describe('AWTD-1565 SDK channel recovery', () => {
         'astrid:task:first', 'astrid:task:second',
       ])
       const urls = requests.filter(url => url.includes('/agent/events'))
-      expect(new URL(urls[0]).searchParams.get('since')).toBe(new Date(0).toISOString())
+      expect(new URL(urls[0]).searchParams.get('since')).toBe(new Date(1).toISOString())
       expect(new URL(urls[1]).searchParams.get('since')).toBe(new Date(SERVER_TIME - 30_000).toISOString())
     },
   )
