@@ -54,19 +54,16 @@ Add this configuration to your Claude Desktop config:
   "mcpServers": {
     "astrid-oauth": {
       "command": "node",
-      "args": ["/absolute/path/to/project/dist/mcp/mcp-server-oauth.js"],
-      "env": {
-        "ASTRID_OAUTH_CLIENT_ID": "your_client_id",
-        "ASTRID_OAUTH_CLIENT_SECRET": "your_client_secret",
-        "ASTRID_OAUTH_LIST_ID": "your_list_uuid",
-        "ASTRID_API_BASE_URL": "https://astrid.cc"
-      }
+      "args": ["/absolute/path/to/project/mcp/astrid-mcp-launch.js"]
     }
   }
 }
 ```
 
-See [MCP OAuth Setup Guide](../docs/setup/MCP_OAUTH_SETUP.md) for detailed instructions.
+Keep credentials in the checkout's `.env.local`, as described in the
+[MCP OAuth Setup Guide](../docs/setup/MCP_OAUTH_SETUP.md). The launcher loads that file
+and sets `LOG_TO_STDERR=1` before loading the built server, keeping diagnostic logs off
+the stdio JSON-RPC channel.
 
 ## MCP Server Versions
 

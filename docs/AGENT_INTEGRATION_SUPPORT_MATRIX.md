@@ -13,19 +13,21 @@ It is not a statement about a vendor's general product capabilities.
 
 | Harness or client | Queue polling | Webhook | SDK channel / SSE | Hosted MCP | Local stdio MCP |
 |---|---|---|---|---|---|
-| Claude Code | **Yes** — named-agent queue | **Not shown** as a Claude Code setup path | **Not shown** | **Not shown** as the first-party setup path | **Yes** — repository launcher |
-| Codex | **Yes** — named-agent queue | **Not shown** | **Not shown** | **Not shown** as a Codex-specific recipe | **Not shown** as a Codex-specific recipe |
+| Claude Code | **Yes** — named-agent queue | **Not shown** as a Claude Code setup path | **Not shown** | **Yes** — HTTP MCP registration recipe | **Yes** — repository launcher |
+| Codex | **Yes** — named-agent queue | **Not shown** | **Not shown** | **Yes** — remote MCP registration and login recipe | **Not shown** as a Codex-specific recipe |
 | GitHub Copilot | **Yes** — named-agent queue | **Not shown** | **Not shown** | **Yes** — OAuth-capable Copilot clients in the setup guide | **Not shown** as a Copilot-specific recipe |
 | OpenAI | **Not shown** as a local harness; the `openai` agent has server API execution | **Not shown** as an OpenAI-specific setup | **Not shown** | **Yes** for ChatGPT's MCP client | **Not shown** as a ChatGPT setup path |
 | Gemini | **Yes** — named-agent queue | **Not shown** as a Gemini-harness protocol | **Not shown** | **Not shown** as a Gemini-specific recipe | **Not shown** as a Gemini-specific recipe |
-| Muse | **Yes** — local CLI queue; server API execution is also available | **Not shown** | **Not shown** | **Not shown** as a Muse-specific recipe | **Not shown** as a Muse-specific recipe |
+| Muse | **Yes** — local CLI queue; server API execution is also available | **Not shown** | **Not shown** | **Yes** — remote MCP registration and login recipe | **Not shown** as a Muse-specific recipe |
 | Astrid SDK / OpenClaw | **Not a polling adapter** — it restores assigned task sessions on startup | **Not shown** as the SDK channel transport | **Yes** — OAuth-backed event stream and task API | **Not part of the channel adapter** | **Not part of the channel adapter** |
 | User-operated webhook runtime | **Not a queue poller** | **Yes** — configured webhook execution mode | **Not the SDK channel** | **Not part of the webhook path** | **Not part of the webhook path** |
 | MCP-only client | **Yes** — queue tool can be called by a client loop | **Not shown** | **Not shown** | **Yes** — hosted Streamable HTTP MCP | **Yes** — standalone stdio server |
 
-The hosted MCP guide currently names VS Code/Copilot, ChatGPT, and generic OAuth-capable
-MCP clients. “Not shown” is intentional for other vendor-specific pairings: clients may
-support MCP generally, but this repository does not provide a verified setup path for them.
+The hosted MCP guide names VS Code/Copilot, ChatGPT, and generic OAuth-capable MCP clients.
+[`loopConnectCommand` in the loop recipes](../lib/agent-skill/loop-recipes.ts) also defines
+hosted HTTP MCP setup for Claude Code and Copilot, plus remote registration and login for
+Codex and Muse. “Not shown” means no corresponding recipe was found in these sources,
+not that the vendor cannot support that transport.
 
 ## What each transport does
 
@@ -53,6 +55,7 @@ documents remain the authority for those details.
   [`packages/astrid-sdk/src/channel/oauth-client.ts`](../packages/astrid-sdk/src/channel/oauth-client.ts),
   and [`packages/openclaw-astrid-channel/src/plugin.ts`](../packages/openclaw-astrid-channel/src/plugin.ts).
 - MCP setup paths: [`docs/setup/MCP_OAUTH_SETUP.md`](./setup/MCP_OAUTH_SETUP.md),
+  [`lib/agent-skill/loop-recipes.ts`](../lib/agent-skill/loop-recipes.ts),
   [`mcp/astrid-mcp-launch.js`](../mcp/astrid-mcp-launch.js), and
   [`mcp/build-mcp-oauth.js`](../mcp/build-mcp-oauth.js).
 - Provider/webhook execution modes: [`lib/ai/providers/`](../lib/ai/providers/) and
