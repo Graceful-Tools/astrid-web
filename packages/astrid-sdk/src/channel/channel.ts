@@ -41,6 +41,7 @@ export const astridChannel = {
     let onMessage: ((msg: InboundMessage) => void) | undefined
     let handlersRegistered = false
     let disconnected = false
+    let replayCheckpoint: number | undefined
 
     const deliver = async (task: AgentTask, action: 'claim' | 'resume' = 'claim'): Promise<boolean> => {
       if (ledger && task.completed) {
@@ -61,7 +62,7 @@ export const astridChannel = {
       sessions.getOrCreate(task.id)
       try {
         const accepted = onMessage(taskToMessage(task))
-        if (ledger) await accepted
+        await accepted
         ledger?.delivered(task.id, task.comments.map(comment => comment.id))
         return true
       } catch (error) {
@@ -74,15 +75,15 @@ export const astridChannel = {
       if (disconnected || !onMessage || ledger?.hasComment(comment.id)) return
       sessions.getOrCreate(taskId)
       const accepted = onMessage(commentToMessage(taskId, comment))
-      if (ledger) await accepted
+      await accepted
       ledger?.commented(comment.id)
     }
 
     const sse = new SSEClient(config, oauth, ledger ? {
-      since: () => Math.max(0, (ledger.lastServerTime ?? 0) - 30_000),
+      since: () => Math.max(1, (ledger.lastServerTime ?? 1) - 30_000),
       onConnected: async () => {
+        replayCheckpoint = ledger.lastServerTime
         const seen = new Set<string>()
-        const newlyDelivered = new Set<string>()
         for (const id of ledger.pendingTaskIds()) {
           const task = await rest.getPendingTask(id)
           if (!task) {
@@ -90,7 +91,6 @@ export const astridChannel = {
             continue
           }
           if (await deliver(task, 'resume')) {
-            newlyDelivered.add(id)
             seen.add(id)
           }
         }
@@ -100,16 +100,13 @@ export const astridChannel = {
           for (const entry of queue.queue) {
             if (seen.has(entry.id)) continue
             seen.add(entry.id)
-            const task = await rest.getTask(entry.id)
-            if (await deliver(task)) newlyDelivered.add(entry.id)
+            const task = await rest.getPendingTask(entry.id)
+            if (task) await deliver(task)
           }
           for (const entry of queue.attention.tasks) {
             if (ledger.hasComment(entry.lastComment.id)) continue
-            if (newlyDelivered.has(entry.id)) {
-              ledger.commented(entry.lastComment.id)
-              continue
-            }
-            const task = await rest.getTask(entry.id)
+            const task = await rest.getPendingTask(entry.id)
+            if (!task) continue
             if (!entry.completed && !ledger.has(entry.id)) {
               if (!await deliver(task, entry.statusRole === 'ready' ? 'claim' : 'resume')) continue
               ledger.commented(entry.lastComment.id)
@@ -127,6 +124,7 @@ export const astridChannel = {
         }
         ledger.observeServerTime(time)
       },
+      onError: () => ledger.restoreServerTime(replayCheckpoint),
     } : undefined)
 
     return {
@@ -161,15 +159,17 @@ export const astridChannel = {
             await deliverComment(event.data.taskId, event.data.comment)
           })
 
-          sse.on('task.completed', (event) => {
-            sessions.end(event.data.taskId)
-            ledger?.end(event.data.taskId)
-          })
-
-          sse.on('task.deleted', (event) => {
-            sessions.end(event.data.taskId)
-            ledger?.end(event.data.taskId)
-          })
+          const endSession = async (taskId: string): Promise<void> => {
+            if (ledger) {
+              // A replayed terminal event may precede the Ready snapshot just accepted.
+              const current = await rest.getPendingTask(taskId)
+              if (current && !current.completed) return
+              ledger.end(taskId)
+            }
+            sessions.end(taskId)
+          }
+          sse.on('task.completed', event => endSession(event.data.taskId))
+          sse.on('task.deleted', event => endSession(event.data.taskId))
           handlersRegistered = true
         }
 

@@ -115,6 +115,10 @@ export class DeliveryLedger {
     this.save({ ...this.state, entries, lastServerTime: time })
   }
 
+  restoreServerTime(time: number | undefined): void {
+    this.save({ ...this.state, lastServerTime: time })
+  }
+
   private save(state: DeliveryState): void {
     mkdirSync(dirname(this.file), { recursive: true, mode: 0o700 })
     const temporary = `${this.file}.${randomUUID()}.tmp`

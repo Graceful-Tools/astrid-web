@@ -8,6 +8,7 @@ interface RecoveryHooks {
   since: () => number
   onConnected: () => Promise<void>
   onServerTime: (time: number) => void
+  onError?: () => void
 }
 
 /**
@@ -127,6 +128,7 @@ export class SSEClient {
       }
     } catch (err: any) {
       if (err.name === 'AbortError') return
+      this.recovery?.onError?.()
       throw err
     } finally {
       this.abortController?.abort()
@@ -251,7 +253,9 @@ export class SSEClient {
       try {
         const handled = handler(mapped)
         if (this.recovery) await handled
+        else void Promise.resolve(handled).catch(err => console.error('SSE handler error:', err))
       } catch (err) {
+        if (this.recovery) throw err
         console.error('SSE handler error:', err)
       }
     }
