@@ -150,6 +150,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'INTERNAL_API_SECRET', scope: 'optional', description: 'Shared secret for the /api/internal/* routes (legacy-usage census, model preferences), matched against the X-Internal-Secret header. Unset leaves those routes unreachable.' },
 
   // ── AI agents ─────────────────────────────────────────────────────────────
+  { name: 'ASTRID_AGENT_EXECUTION_MODE_SHADOW', scope: 'optional', description: 'Set to "true" to sample 1% of polling-only queues for a stored-Off mismatch. Observation only; one extra primary-key settings read per sampled request, deferred after the response with a 250ms observation timeout. Default off (AWTD-1554).', validate: v => ['true', 'false'].includes(v) ? null : 'Must be true or false' },
   // NOT read by the running app. Server-run inference uses the key each USER
   // stores in their own settings, encrypted at rest with ENCRYPTION_KEY — see
   // lib/ai/agent-execution-mode.ts. These four are read only by maintenance and
@@ -370,4 +371,9 @@ export function documentedVars(): EnvVar[] {
 /** Variables whose absence in production is an outage. */
 export function requiredVars(): EnvVar[] {
   return ENV_VARS.filter((v) => v.scope === 'required')
+}
+
+/** Observation only; anything except an explicit opt-in leaves it disabled. */
+export function agentExecutionModeShadowEnabled(): boolean {
+  return process.env.ASTRID_AGENT_EXECUTION_MODE_SHADOW === 'true'
 }
