@@ -24,10 +24,10 @@
 .prose pre code { background: none; padding: 0; border-radius: 0; font-size: inherit; }
 .prose a { color: var(--brand-accent); text-decoration: none; }
 .prose a:hover { text-decoration: underline; }
-.prose blockquote { border-left: 3px solid #d1d5db; padding-left: 0.75rem; margin: 0.5rem 0; font-style: italic; opacity: 0.85; }
-.prose hr { border: none; border-top: 1px solid #d1d5db; margin: 0.75rem 0; }
+.prose blockquote { border-left: 3px solid rgb(var(--astrid-border-hover)); padding-left: 0.75rem; margin: 0.5rem 0; font-style: italic; opacity: 0.85; }
+.prose hr { border: none; border-top: 1px solid rgb(var(--astrid-border-hover)); margin: 0.75rem 0; }
 .prose table { border-collapse: collapse; width: 100%; font-size: 0.875rem; margin: 0.5rem 0; }
-.prose th, .prose td { border: 1px solid #d1d5db; padding: 0.25rem 0.5rem; text-align: left; }
+.prose th, .prose td { border: 1px solid rgb(var(--astrid-border-hover)); padding: 0.25rem 0.5rem; text-align: left; }
 .prose th { font-weight: 600; }
 .prose del { text-decoration: line-through; }
 /* GFM task lists: the checkbox replaces the bullet, as on GitHub. */
@@ -210,12 +210,14 @@
 .tradeoff-cols-8 { --tradeoff-cols: 8; }
 .tradeoff-cols-9 { --tradeoff-cols: 9; }
 .tradeoff-cols-10 { --tradeoff-cols: 10; }
+/* The five ratings, worst to best: fills and their text from the design tokens
+   (palette.tradeoff, docs/specs/DESIGN_SYSTEM.md), the same on every client and in every theme. */
 .tradeoff-col { font-weight: 600; opacity: 0.6; margin-right: 0.125rem; }
-.tradeoff-very-poor { background-color: #CC0000; color: #ffffff; }
-.tradeoff-poor { background-color: #E06666; color: #111827; }
-.tradeoff-mixed { background-color: #FFD966; color: #111827; }
-.tradeoff-good { background-color: #93C47D; color: #111827; }
-.tradeoff-very-good { background-color: #38761D; color: #ffffff; }
+.tradeoff-very-poor { background-color: rgb(var(--astrid-palette-tradeoff-1)); color: rgb(var(--astrid-palette-tradeoff-text-1)); }
+.tradeoff-poor { background-color: rgb(var(--astrid-palette-tradeoff-2)); color: rgb(var(--astrid-palette-tradeoff-text-2)); }
+.tradeoff-mixed { background-color: rgb(var(--astrid-palette-tradeoff-3)); color: rgb(var(--astrid-palette-tradeoff-text-3)); }
+.tradeoff-good { background-color: rgb(var(--astrid-palette-tradeoff-4)); color: rgb(var(--astrid-palette-tradeoff-text-4)); }
+.tradeoff-very-good { background-color: rgb(var(--astrid-palette-tradeoff-5)); color: rgb(var(--astrid-palette-tradeoff-text-5)); }
 .tradeoff-scroll .tradeoff-grid td a:not([class]) { color: inherit; text-decoration: underline; }
 .tradeoff-scroll .tradeoff-grid td code { background-color: rgba(0, 0, 0, 0.12); color: inherit; }
 .tradeoff-key { display: flex; flex-direction: column; gap: 0.125rem; font-size: 0.8125rem; }

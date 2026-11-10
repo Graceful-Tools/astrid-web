@@ -329,8 +329,9 @@ chosen. `2nd thoughts` and `10 minutes` (no tenth option) choose nothing.
 with a rating token followed by whitespace or end: `--` very poor, `-` poor, `~` mixed, `+` good,
 `++` very good, or 🔴 poor / 🟡 mixed / 🟢 good. Not a grid if any such cell lacks a token, or if
 every rated cell is a bare `-`. Each cell draws on its colour with the remaining words
-(`#CC0000` white text, `#E06666`, `#FFD966`, `#93C47D`, `#38761D` white text, near-black text on the
-three light fills — Google Docs palette). A cell with no reason shows its token. Each cell tells
+(five fills from red to green, white text on the two dark ones and near-black on the three light:
+the design tokens' `palette.tradeoff` and `palette.tradeoff-text`, Google Docs' palette; see
+[specs/DESIGN_SYSTEM.md](./specs/DESIGN_SYSTEM.md) → Markdown). A cell with no reason shows its token. Each cell tells
 assistive technology its rating in words ("Good. fast"), and the colour key under the grid names the
 ratings used in words (Very poor … Very good, localised), worst to best. Rows are numbered 1, 2, 3
 and lose the marker their writer put in front (`A. Lisbon`, `2) Cabin`, a lone `B`); criteria

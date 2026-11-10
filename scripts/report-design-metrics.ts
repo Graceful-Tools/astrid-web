@@ -54,10 +54,10 @@ export const METRICS: Metric[] = [
   },
   {
     id: 'hexColours',
-    what: 'hex colours in component code',
+    what: 'hex colours in code and stylesheets',
     instead: 'a token; lib/brand/colors.ts for the list palette',
-    roots: [...UI, 'lib'],
-    extensions: CODE,
+    roots: [...UI, 'lib', 'styles'],
+    extensions: [...CODE, '.css'],
     pattern: /#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g,
     exempt: /^lib\/(brand|design)\//,
   },
@@ -81,7 +81,7 @@ export const METRICS: Metric[] = [
   {
     id: 'inlineStyles',
     what: 'style={{ … }} props',
-    instead: 'a class; inline only for values computed at run time',
+    instead: 'a class; a style prop is for values computed at run time',
     roots: UI,
     extensions: ['.tsx'],
     pattern: /style=\{\{/g,
