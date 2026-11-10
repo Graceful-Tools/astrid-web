@@ -268,6 +268,7 @@ export default function UserProfilePage() {
                     <TaskCheckbox
                       checked={task.completed}
                       onToggle={() => {}} // Read-only in profile
+                      completes={false}
                       priority={task.priority}
                       repeating={task.repeating !== 'never'}
                     />

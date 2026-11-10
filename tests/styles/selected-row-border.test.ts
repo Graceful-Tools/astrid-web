@@ -28,19 +28,37 @@ function ruleBody(css: string, selector: string): string {
 
 const css = readFileSync(join(process.cwd(), 'styles', 'components.css'), 'utf8')
 
+const WIDTH = 'var(--selection-outline-width)'
+const COLOUR = 'var(--selection-outline-color)'
+
+describe("the selection outline is defined once, from the design tokens (Jon, 2026-11-10: the Mac's)", () => {
+  it('is the accent at the token opacity, compact where there is a pointer', () => {
+    expect(css).toContain('--selection-outline-width: var(--astrid-size-compact-selection-outline);')
+    expect(css).toContain(
+      '--selection-outline-color: rgba(var(--theme-accent), var(--astrid-state-selection-outline-opacity));',
+    )
+  })
+
+  it('is the comfortable width on touch', () => {
+    expect(css).toMatch(
+      /@media \(pointer: coarse\) \{\s*:root \{\s*--selection-outline-width: var\(--astrid-size-comfortable-selection-outline\);/,
+    )
+  })
+})
+
 describe('selected task row border (AWTD-1084, after task 37464d1f)', () => {
   const body = ruleBody(css, '.task-row-selected')
   // Every row carries the outline's colour, width and offset; selection only
   // switches it on (AWTD-1085, below).
   const card = ruleBody(css, '.task-card')
 
-  it('AWTD-1084: outlines the selected row with a solid 2px accent-blue border', () => {
-    expect(card).toMatch(/outline:\s*2px none rgb\(var\(--theme-accent\)\)/)
+  it('AWTD-1084: outlines the selected row with a solid accent border', () => {
+    expect(card).toContain(`outline: ${WIDTH} none ${COLOUR};`)
     expect(body).toMatch(/outline-style:\s*solid/)
   })
 
   it('AWTD-1084: draws the border inside the row so selecting does not shift layout', () => {
-    expect(card).toMatch(/outline-offset:\s*-2px/)
+    expect(card).toContain(`outline-offset: calc(-1 * ${WIDTH});`)
   })
 
   // Rows carry transition-theme (transition-all). If selection set the outline
@@ -60,16 +78,16 @@ describe('selected task row border (AWTD-1084, after task 37464d1f)', () => {
 })
 
 describe('desktop task detail pane border (AWTD-1084)', () => {
-  it('rings the pane in the same 2px accent blue instead of the grey theme border', () => {
+  it('rings the pane in the same outline as the row instead of the grey theme border', () => {
     const body = ruleBody(css, '.task-panel-desktop')
-    expect(body).toMatch(/box-shadow:\s*0 0 0 2px rgb\(var\(--theme-accent\)\)/)
+    expect(body).toContain(`box-shadow: 0 0 0 ${WIDTH} ${COLOUR}`)
     expect(body).not.toMatch(/0 0 0 1px rgb\(var\(--theme-border\)\)/)
   })
 
   it('gives the pointer arrow the same blue edge, so row and pane read as one selection', () => {
     const body = ruleBody(css, '.task-panel-desktop > .task-panel-arrow.theme-panel-arrow')
-    expect(body).toMatch(/border-left:\s*2px solid rgb\(var\(--theme-accent\)\)/)
-    expect(body).toMatch(/border-bottom:\s*2px solid rgb\(var\(--theme-accent\)\)/)
+    expect(body).toContain(`border-left: ${WIDTH} solid ${COLOUR};`)
+    expect(body).toContain(`border-bottom: ${WIDTH} solid ${COLOUR};`)
   })
 
   it('keeps full-screen detail borderless', () => {
