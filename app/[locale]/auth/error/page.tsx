@@ -28,26 +28,26 @@ function AuthErrorContent() {
   }
 
   return (
-    <div className={`${scrollShellClassName} bg-gray-900 flex items-center justify-center p-4`}>
+    <div className={`${scrollShellClassName} bg-theme-primary flex items-center justify-center p-4`}>
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Heart className="w-8 h-8 text-red-500 fill-red-500" />
-            <span className="text-3xl font-bold text-white">{BRAND.wordmark}</span>
+            <span className="text-3xl font-bold text-theme-primary">{BRAND.wordmark}</span>
           </div>
         </div>
 
         {/* Error Card */}
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-theme-surface border-theme-surface">
           <CardHeader className="text-center">
-            <CardTitle className="text-white">Authentication Error</CardTitle>
-            <CardDescription className="text-gray-400">Something went wrong during the sign-in process</CardDescription>
+            <CardTitle className="text-theme-primary">Authentication Error</CardTitle>
+            <CardDescription className="text-theme-muted">Something went wrong during the sign-in process</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Alert className="bg-red-500/10 border-red-500/20">
-              <AlertCircle className="h-4 w-4 text-red-400" />
-              <AlertDescription className="text-red-400">{getErrorMessage(error)}</AlertDescription>
+            <Alert className="bg-danger-subtle border-danger/20">
+              <AlertCircle className="h-4 w-4 text-danger" />
+              <AlertDescription className="text-theme-primary">{getErrorMessage(error)}</AlertDescription>
             </Alert>
 
             <div className="flex flex-col space-y-2">
@@ -70,7 +70,7 @@ function AuthErrorContent() {
 
 export default function AuthError() {
   return (
-    <Suspense fallback={<div className={`${scrollShellClassName} bg-gray-900 flex items-center justify-center p-4`}><div className="text-white">Loading...</div></div>}>
+    <Suspense fallback={<div className={`${scrollShellClassName} bg-theme-primary flex items-center justify-center p-4`}><div className="text-theme-primary">Loading...</div></div>}>
       <AuthErrorContent />
     </Suspense>
   )

@@ -62,7 +62,7 @@ export function DesktopHandoffClient({ clientId, appName, state, codeChallenge }
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-sm">
-          <CheckCircle className="w-4 h-4 text-green-500" />
+          <CheckCircle className="w-4 h-4 text-success" />
           <span>Opening {appName}…</span>
         </div>
         <p className="text-xs theme-text-muted">
@@ -86,7 +86,7 @@ export function DesktopHandoffClient({ clientId, appName, state, codeChallenge }
       </Button>
 
       {error && (
-        <div className="flex items-start gap-2 text-sm text-red-500">
+        <div className="flex items-start gap-2 text-sm text-danger">
           <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
           <span>{error}</span>
         </div>

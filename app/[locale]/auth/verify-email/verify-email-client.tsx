@@ -85,13 +85,13 @@ function VerifyEmailContent() {
   const getIcon = () => {
     switch (status) {
       case 'success':
-        return <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+        return <CheckCircle className="w-12 h-12 text-success mx-auto mb-4" />
       case 'error':
-        return <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        return <XCircle className="w-12 h-12 text-danger mx-auto mb-4" />
       case 'expired':
-        return <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+        return <AlertCircle className="w-12 h-12 text-warning mx-auto mb-4" />
       default:
-        return <Mail className="w-12 h-12 text-blue-500 mx-auto mb-4" />
+        return <Mail className="w-12 h-12 text-brand mx-auto mb-4" />
     }
   }
 
@@ -109,12 +109,12 @@ function VerifyEmailContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-gray-800 border-gray-700">
+    <div className="min-h-screen bg-theme-primary flex items-center justify-center p-4">
+      <Card className="w-full max-w-md bg-theme-surface border-theme-surface">
         <CardHeader className="text-center">
           {getIcon()}
-          <CardTitle className="text-white">{getTitle()}</CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardTitle className="text-theme-primary">{getTitle()}</CardTitle>
+          <CardDescription className="text-theme-muted">
             {message}
           </CardDescription>
         </CardHeader>
@@ -122,12 +122,12 @@ function VerifyEmailContent() {
         <CardContent className="space-y-4">
           {status === 'success' && (
             <div className="text-center">
-              <p className="text-gray-400 text-sm mb-4">
+              <p className="text-theme-muted text-sm mb-4">
                 Redirecting to settings in a few seconds...
               </p>
               <Button
                 onClick={() => router.push('/settings')}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-success hover:bg-success/90 text-success-foreground"
               >
                 Go to Settings
               </Button>
@@ -140,7 +140,7 @@ function VerifyEmailContent() {
                 <Button
                   onClick={handleResendVerification}
                   disabled={isResending}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
                 >
                   {isResending ? "Sending..." : "Resend Verification Email"}
                 </Button>
@@ -149,7 +149,7 @@ function VerifyEmailContent() {
               <Button
                 onClick={() => router.push('/')}
                 variant="outline"
-                className="w-full border-gray-600 text-gray-300"
+                className="w-full border-theme-button text-theme-secondary"
               >
                 Back to App
               </Button>
@@ -158,7 +158,7 @@ function VerifyEmailContent() {
 
           {status === 'expired' && (
             <div className="space-y-3">
-              <p className="text-gray-400 text-sm text-center">
+              <p className="text-theme-muted text-sm text-center">
                 The verification link has expired. You can request a new one from your account settings.
               </p>
 
@@ -167,7 +167,7 @@ function VerifyEmailContent() {
                   <Button
                     onClick={handleResendVerification}
                     disabled={isResending}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
+                    className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
                   >
                     {isResending ? "Sending..." : "Send New Verification Email"}
                   </Button>
@@ -175,7 +175,7 @@ function VerifyEmailContent() {
                   <Button
                     onClick={() => router.push('/settings')}
                     variant="outline"
-                    className="w-full border-gray-600 text-gray-300"
+                    className="w-full border-theme-button text-theme-secondary"
                   >
                     Go to Settings
                   </Button>
@@ -183,7 +183,7 @@ function VerifyEmailContent() {
               ) : (
                 <Button
                   onClick={() => router.push('/auth/signin')}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
                 >
                   Sign In
                 </Button>

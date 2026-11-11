@@ -36,7 +36,7 @@ export default function TestTimePickerPage() {
           placeholder="Select time"
         />
         {time1 && (
-          <div className="space-y-2 text-sm text-gray-600">
+          <div className="space-y-2 text-sm text-theme-muted">
             <p>Selected: {time1.toLocaleTimeString()}</p>
             <p>Concise format: {formatConciseTime(time1)}</p>
           </div>
@@ -53,7 +53,7 @@ export default function TestTimePickerPage() {
           placeholder="Select time"
         />
         {time2 && (
-          <div className="space-y-2 text-sm text-gray-600">
+          <div className="space-y-2 text-sm text-theme-muted">
             <p>Selected: {time2.toLocaleTimeString()}</p>
             <p>Concise format: {formatConciseTime(time2)}</p>
           </div>
@@ -61,7 +61,7 @@ export default function TestTimePickerPage() {
       </div>
 
       {/* Features */}
-      <div className="mt-12 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg">
+      <div className="mt-12 p-6 bg-theme-secondary rounded-lg">
         <h2 className="text-xl font-semibold mb-4">Features</h2>
         <ul className="space-y-2 text-sm">
           <li>• Vertical dial interface like Google Calendar</li>

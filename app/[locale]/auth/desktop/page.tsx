@@ -43,7 +43,7 @@ function InvalidLink({ reason }: { reason: string }) {
       <Card className="max-w-lg w-full theme-bg-secondary theme-border">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <AlertTriangle className="w-5 h-5 text-red-500" />
+            <AlertTriangle className="w-5 h-5 text-danger" />
             <span>This sign-in link is not valid</span>
           </CardTitle>
           <CardDescription className="theme-text-muted">{reason}</CardDescription>

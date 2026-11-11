@@ -88,7 +88,7 @@ export default function UserProfilePage() {
     return (
       <div className={`${scrollShellClassName} theme-bg-primary flex items-center justify-center`}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand mx-auto mb-4"></div>
           <p className="theme-text-muted">Loading profile...</p>
         </div>
       </div>
@@ -200,8 +200,8 @@ export default function UserProfilePage() {
           {/* Completed Tasks */}
           <Card className="theme-bg-secondary theme-border border p-6">
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-green-500/10 rounded-lg">
-                <CheckCircle2 className="w-6 h-6 text-green-500" />
+              <div className="p-2 bg-success-subtle rounded-lg">
+                <CheckCircle2 className="w-6 h-6 text-success" />
               </div>
               <div>
                 <p className="text-sm theme-text-muted">Completed</p>
@@ -214,8 +214,8 @@ export default function UserProfilePage() {
           {/* Inspired Tasks */}
           <Card className="theme-bg-secondary theme-border border p-6">
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-yellow-500/10 rounded-lg">
-                <Lightbulb className="w-6 h-6 text-yellow-500" />
+              <div className="p-2 bg-warning-subtle rounded-lg">
+                <Lightbulb className="w-6 h-6 text-warning" />
               </div>
               <div>
                 <p className="text-sm theme-text-muted">Inspired</p>
@@ -230,8 +230,8 @@ export default function UserProfilePage() {
           {/* Supported Tasks */}
           <Card className="theme-bg-secondary theme-border border p-6">
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <Heart className="w-6 h-6 text-blue-500" />
+              <div className="p-2 bg-brand-subtle rounded-lg">
+                <Heart className="w-6 h-6 text-brand" />
               </div>
               <div>
                 <p className="text-sm theme-text-muted">Supported</p>
@@ -298,13 +298,13 @@ export default function UserProfilePage() {
                                   const privacy = list?.privacy
 
                                   if (privacy === 'PUBLIC') {
-                                    return <Globe className="w-3 h-3 text-green-500" />
+                                    return <Globe className="w-3 h-3 text-success" />
                                   }
 
                                   const allMembers = getAllListMembers(list)
                                   const hasAdditionalMembers = allMembers.length > 1
                                   if (hasAdditionalMembers) {
-                                    return <Users className="w-3 h-3 text-blue-500" />
+                                    return <Users className="w-3 h-3 text-brand" />
                                   }
 
                                   return (
