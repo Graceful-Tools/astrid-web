@@ -196,6 +196,11 @@ To stand one up:
    rotating the first two signs everyone out and strands stored credentials. Run it again
    after attaching the database to map Neon's `DATABASE_URL_UNPOOLED` to the
    `DATABASE_URL_DIRECT` the build migrates through.
+   `--dry-run` lists keys it would add or update and known brand keys present on the project
+   but absent from the profile. It never deletes stale keys; Vercel returns stored keys
+   without their values, so existing keys are reported as updates. Profile and generated
+   values are redacted from the plan. Profile keys and their validators are registered in
+   `lib/env.ts`; invalid profile keys, value types, or URL schemes are rejected before use.
 5. **Deploy** a production build of that project.
 
 Sign-in starts passkey-only: Google and Apple each need an OAuth client registered for the
