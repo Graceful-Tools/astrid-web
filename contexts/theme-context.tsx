@@ -2,12 +2,24 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react"
 
+import {
+  DEFAULT_ROW_TITLE_LINES,
+  ROW_TITLE_CLASSES,
+  ROW_TITLE_STORAGE_KEY,
+  parseRowTitleLines,
+  rowTitleClass,
+  type RowTitleLines,
+} from "@/lib/design/row-title"
+
 export type Theme = "light" | "dark" | "ocean"
 
 interface ThemeContextType {
   theme: Theme
   setTheme: (theme: Theme) => void
   toggleTheme: () => void
+  /** How many lines a row's title may take. Per machine, like the theme. */
+  rowTitleLines: RowTitleLines
+  setRowTitleLines: (lines: RowTitleLines) => void
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
@@ -19,6 +31,24 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({ children, defaultTheme = "ocean" }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(defaultTheme)
+  const [rowTitleLines, setRowTitleLinesState] = useState<RowTitleLines>(DEFAULT_ROW_TITLE_LINES)
+
+  useEffect(() => {
+    setRowTitleLinesState(parseRowTitleLines(localStorage.getItem(ROW_TITLE_STORAGE_KEY)))
+  }, [])
+
+  useEffect(() => {
+    const root = window.document.documentElement
+    root.classList.remove(...ROW_TITLE_CLASSES)
+    root.classList.add(rowTitleClass(rowTitleLines))
+  }, [rowTitleLines])
+
+  // Stored on change, not in the effect above: that one also runs with the
+  // default before the stored value has been read, and would overwrite it.
+  const setRowTitleLines = (lines: RowTitleLines) => {
+    localStorage.setItem(ROW_TITLE_STORAGE_KEY, lines)
+    setRowTitleLinesState(lines)
+  }
 
   useEffect(() => {
     // Load theme from localStorage on mount
@@ -50,7 +80,7 @@ export function ThemeProvider({ children, defaultTheme = "ocean" }: ThemeProvide
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme, rowTitleLines, setRowTitleLines }}>
       {children}
     </ThemeContext.Provider>
   )

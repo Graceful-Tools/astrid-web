@@ -792,6 +792,17 @@
         "listDesc": "La case à cocher termine la tâche, et la priorité et l'assigné ont chacun leur propre ligne.",
         "projectDesc": "Compact. Toucher la case ouvre priorité, assigné, état et terminer."
       },
+      "taskTitles": {
+        "title": "Titres des tâches",
+        "description": "Quelle part d'un long titre une ligne de tâche affiche (enregistré sur cet appareil)",
+        "label": "Lignes",
+        "optionwrap": "Retour à la ligne",
+        "option2": "Deux lignes",
+        "option1": "Une ligne",
+        "descwrap": "Le titre entier s'affiche, sur autant de lignes que nécessaire.",
+        "desc2": "Les titres s'arrêtent à deux lignes.",
+        "desc1": "Les titres restent sur une ligne."
+      },
       "emailToTask": {
         "title": "E-mail vers tâche",
         "description": "Créez des tâches instantanément en envoyant des e-mails à {inboundTaskEmail}",

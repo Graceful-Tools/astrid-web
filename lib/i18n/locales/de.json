@@ -792,6 +792,17 @@
         "listDesc": "Das Kontrollkästchen schließt die Aufgabe ab; Priorität und zugewiesene Person haben je eine eigene Zeile.",
         "projectDesc": "Kompakt. Ein Tippen auf das Kontrollkästchen öffnet Priorität, zugewiesene Person, Status und Abschließen."
       },
+      "taskTitles": {
+        "title": "Aufgabentitel",
+        "description": "Wie viel von einem langen Titel eine Aufgabenzeile zeigt (auf diesem Gerät gespeichert)",
+        "label": "Zeilen",
+        "optionwrap": "Umbrechen",
+        "option2": "Zwei Zeilen",
+        "option1": "Eine Zeile",
+        "descwrap": "Der ganze Titel wird angezeigt, auf so vielen Zeilen wie nötig.",
+        "desc2": "Titel enden nach zwei Zeilen.",
+        "desc1": "Titel bleiben auf einer Zeile."
+      },
       "emailToTask": {
         "title": "E-Mail zu Aufgabe",
         "description": "Erstellen Sie Aufgaben sofort durch Senden von E-Mails an {inboundTaskEmail}",

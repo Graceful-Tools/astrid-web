@@ -792,6 +792,17 @@
         "listDesc": "Het selectievakje voltooit de taak, en prioriteit en toegewezen persoon krijgen elk een eigen rij.",
         "projectDesc": "Compact. Tikken op het selectievakje opent prioriteit, toegewezen persoon, status en voltooien."
       },
+      "taskTitles": {
+        "title": "Taaktitels",
+        "description": "Hoeveel van een lange titel een taakrij laat zien (op dit apparaat bewaard)",
+        "label": "Regels",
+        "optionwrap": "Terugloop",
+        "option2": "Twee regels",
+        "option1": "Eén regel",
+        "descwrap": "De hele titel is te zien, op zoveel regels als nodig.",
+        "desc2": "Titels stoppen na twee regels.",
+        "desc1": "Titels blijven op één regel."
+      },
       "emailToTask": {
         "title": "E-mail naar Taak",
         "description": "Maak direct taken door e-mails te sturen naar {inboundTaskEmail}",

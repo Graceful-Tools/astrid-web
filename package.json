@@ -139,6 +139,8 @@
     "prepare": "husky || true",
     "postinstall": "prisma generate",
     "check:reuse:warn": "tsx scripts/check-reuse.ts",
+    "check:design": "tsx scripts/report-design-metrics.ts --check",
+    "design:metrics": "tsx scripts/report-design-metrics.ts",
     "check:i18n": "tsx scripts/check-i18n.ts",
     "audit:brand": "tsx scripts/brand-audit.ts",
     "audit:prod": "tsx scripts/audit-production-advisories.ts",
