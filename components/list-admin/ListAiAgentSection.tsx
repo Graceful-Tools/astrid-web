@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { useTranslations } from "@/lib/i18n/client"
+import { RichMessage } from "@/components/shared/RichMessage"
 import { agentServiceLabel } from "@/lib/ai/agent-config"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Bot, ChevronDown, ChevronUp, RefreshCw, Repeat } from "lucide-react"
@@ -91,7 +92,7 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
     <div className="border-t theme-border pt-4 space-y-4">
       <div className="flex items-center space-x-2">
         <Bot className="w-4 h-4 text-brand" />
-        <Label className="text-sm font-medium theme-text-primary">AI Agent</Label>
+        <Label className="text-sm font-medium theme-text-primary">{t("listSettings.admin.aiAgent")}</Label>
       </div>
 
       {/* Members handing any task to an agent (AWTD-1493). Sent as an explicit
@@ -127,7 +128,7 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
           hidden rather than disabled when the account has none. */}
       {availableAgents.length > 0 && (
         <div className="space-y-2">
-          <Label className="text-sm theme-text-secondary">{BRAND.appName} model for this list</Label>
+          <Label className="text-sm theme-text-secondary">{t("listSettings.admin.modelForList")}</Label>
           <Select
             value={listDefaultAgentId || '_account_default'}
             onValueChange={(value) => {
@@ -144,11 +145,11 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
             }}
           >
             <SelectTrigger className="theme-bg-tertiary theme-border theme-text-primary">
-              <SelectValue placeholder="Use account default" />
+              <SelectValue placeholder={t("listSettings.admin.useAccountDefault")} />
             </SelectTrigger>
             <SelectContent className="theme-bg-primary theme-border z-[10100]">
               <SelectItem value="_account_default" className="theme-text-primary">
-                Use account default
+                {t("listSettings.admin.useAccountDefault")}
               </SelectItem>
               {availableAgents.map(agent => (
                 <SelectItem key={agent.id} value={agent.id} className="theme-text-primary">
@@ -168,8 +169,7 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
             </SelectContent>
           </Select>
           <p className="text-xs theme-text-muted">
-            Powers {BRAND.appName} in this list&apos;s chat and comments. Coding agents assigned to
-            tasks keep their own runtime.
+            {t("listSettings.admin.modelHint")}
           </p>
         </div>
       )}
@@ -178,7 +178,7 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
       {githubConnected ? (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-sm theme-text-secondary">Repository the coding agent works in</Label>
+            <Label className="text-sm theme-text-secondary">{t("listSettings.admin.repositoryLabel")}</Label>
             <Button
               variant="ghost"
               size="sm"
@@ -199,10 +199,10 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
             disabled={loadingRepositories}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder={loadingRepositories ? "Loading..." : "Select repo"} />
+              <SelectValue placeholder={loadingRepositories ? t("listSettings.admin.loading") : t("listSettings.admin.selectRepo")} />
             </SelectTrigger>
             <SelectContent className="z-[10100] max-w-[300px]">
-              <SelectItem value="none">None</SelectItem>
+              <SelectItem value="none">{t("common.none")}</SelectItem>
               {availableRepositories.map((repo) => (
                 <SelectItem key={repo.fullName} value={repo.fullName}>
                   <div className="truncate max-w-[250px]" title={repo.name}>
@@ -214,7 +214,7 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
           </Select>
           {availableRepositories.length === 0 && !loadingRepositories && (
             <div className="text-xs theme-text-muted">
-              No repositories found. Check that the GitHub App has access to your repositories.
+              {t("listSettings.admin.noRepositories")}
             </div>
           )}
         </div>
@@ -222,10 +222,16 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
         <p className="text-xs theme-text-muted flex items-center gap-1.5">
           <Github className="w-3.5 h-3.5" />
           <span>
-            Connect GitHub to pick the repository a coding agent works in —{' '}
-            <Link href="/settings/connections" className="text-brand hover:underline">
-              Settings → Connections → GitHub
-            </Link>
+            <RichMessage
+              message={t("listSettings.admin.connectGithub")}
+              values={{
+                link: (
+                  <Link href="/settings/connections" className="text-brand hover:underline">
+                    {t("listSettings.admin.connectGithubLink")}
+                  </Link>
+                ),
+              }}
+            />
           </span>
         </p>
       ) : null}
@@ -239,14 +245,16 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
           onClick={() => setShowLoop(!showLoop)}
         >
           <Repeat className="w-3.5 h-3.5" />
-          <span>Run a loop for this list</span>
+          <span>{t("listSettings.admin.runLoop")}</span>
           {showLoop ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         </button>
         {showLoop && (
           <div className="pt-1">
             <p className="text-xs theme-text-muted mb-2">
-              Your coding harness checks this list on a schedule and works whatever is assigned to
-              it and marked <strong>Ready</strong>. Tasks on other boards are never touched.
+              <RichMessage
+                message={t("listSettings.admin.loopDescription")}
+                values={{ ready: <strong>{t("listSettings.admin.readyStatus")}</strong> }}
+              />
             </p>
             <AgentLoopRecipes origin={origin} listId={list.id} />
           </div>
@@ -254,8 +262,10 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
       </div>
 
       <p className="text-xs theme-text-muted">
-        Agents read this list&apos;s <strong>description</strong> as their working instructions —
-        edit it above like a project brief.
+        <RichMessage
+          message={t("listSettings.admin.descriptionHint")}
+          values={{ description: <strong>{t("listSettings.admin.descriptionWord")}</strong> }}
+        />
       </p>
     </div>
   )

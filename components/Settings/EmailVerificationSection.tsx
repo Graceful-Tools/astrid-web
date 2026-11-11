@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { AlertCircle, CheckCircle, Clock, Mail, RefreshCw, X } from "lucide-react"
 import { useTranslations } from "@/lib/i18n/client"
+import { fillMessage } from "@/components/shared/RichMessage"
 import type { AccountData } from "./AccountSettings"
 
 /**
@@ -48,7 +49,7 @@ export function EmailVerificationSection({
           <div className="flex flex-wrap items-center gap-3 min-w-0">
             <Mail className="w-4 h-4 theme-text-muted shrink-0" />
             <div className="min-w-0">
-              <div className="theme-text-primary text-sm truncate">{accountData.email || "Loading..."}</div>
+              <div className="theme-text-primary text-sm truncate">{accountData.email || t("settingsPages.emailVerification.loadingEmail")}</div>
               <div className="flex items-center space-x-2">
                 {accountData.verified ? (
                   <>
@@ -93,8 +94,12 @@ export function EmailVerificationSection({
             <AlertDescription className="text-theme-primary">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Pending email change</p>
-                  <p className="text-sm">Waiting for verification: {accountData.pendingEmail || "Unknown"}</p>
+                  <p className="font-medium">{t("settingsPages.emailVerification.pendingChange")}</p>
+                  <p className="text-sm">
+                    {fillMessage(t("settingsPages.emailVerification.waitingVerificationFor"), {
+                      email: accountData.pendingEmail || t("settingsPages.emailVerification.unknownEmail"),
+                    })}
+                  </p>
                 </div>
                 <Button
                   onClick={onCancelEmailChange}

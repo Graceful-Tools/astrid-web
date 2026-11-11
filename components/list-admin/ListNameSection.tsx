@@ -10,6 +10,7 @@ import { Check, X, Edit3 } from "lucide-react"
 import { shouldPreventAutoFocus } from "@/lib/layout-detection"
 import { useClickOutsideSave } from "@/hooks/use-click-outside-save"
 import { useSharedEditingSession } from "@/hooks/use-editing-session"
+import { useTranslations } from "@/lib/i18n/client"
 import type { TaskList } from "@/types/task"
 
 interface ListNameSectionProps {
@@ -28,6 +29,7 @@ interface ListNameSectionProps {
  * abandoned text in the buffer, so it reappeared on the next open.
  */
 export function ListNameSection({ list, canEditSettings, onUpdate }: ListNameSectionProps) {
+  const { t } = useTranslations()
   const session = useSharedEditingSession()
   const editorId = `list-name:${list.id}`
   const editingListName = session.isEditing(editorId)
@@ -80,7 +82,7 @@ export function ListNameSection({ list, canEditSettings, onUpdate }: ListNameSec
 
   return (
     <div className="flex items-center justify-between">
-      <Label className="text-sm theme-text-secondary">List Name</Label>
+      <Label className="text-sm theme-text-secondary">{t("listSettings.admin.listName")}</Label>
       {editingListName ? (
         <div className="flex items-center space-x-2 flex-1 ml-4" ref={listNameRef}>
           <Input

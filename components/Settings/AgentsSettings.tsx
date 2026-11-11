@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AgentHub } from "@/components/agent-hub"
 import { agentServiceLabel } from "@/lib/ai/agent-config"
 import { useTranslations } from "@/lib/i18n/client"
+import { RichMessage } from "@/components/shared/RichMessage"
 import { Brain, FileText, Bot, Check } from "lucide-react"
 import { Github } from "@/components/ui/brand-icons"
 import Link from "next/link"
@@ -163,12 +164,16 @@ export default function AgentsSettings(_props: AgentsSettingsProps) {
           <CardHeader>
             <CardTitle className="theme-text-primary flex flex-wrap items-center gap-2">
               <Bot className="w-6 h-6 text-green-500" />
-              <span>Your agents</span>
+              <span>{t("settingsPages.aiAgents.yourAgents.title")}</span>
             </CardTitle>
             <CardDescription className="theme-text-muted">
-              Pick who runs each agent. <strong>{BRAND.appName} runs it</strong> needs that
-              provider&apos;s API key. <strong>I run it</strong> uses the coding tool you already
-              pay for — native harness polling, a Custom Agent, or a webhook server you host.
+              <RichMessage
+                message={t("settingsPages.aiAgents.yourAgents.description")}
+                values={{
+                  astridRuns: <strong>{t("settingsPages.aiAgents.yourAgents.astridRuns")}</strong>,
+                  selfRuns: <strong>{t("settingsPages.aiAgents.yourAgents.selfRuns")}</strong>,
+                }}
+              />
             </CardDescription>
           </CardHeader>
           <CardContent>

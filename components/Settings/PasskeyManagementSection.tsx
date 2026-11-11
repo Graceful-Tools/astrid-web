@@ -69,14 +69,14 @@ export function PasskeyManagementSection() {
     const result = await registerPasskey(undefined, "My Passkey")
     if (result.success) {
       toast({
-        title: "Passkey Added!",
-        description: "Your new passkey has been registered.",
+        title: t("settingsPages.passkeys.toasts.addedTitle"),
+        description: t("settingsPages.passkeys.toasts.addedDesc"),
         duration: 3000,
       })
       loadPasskeys()
     } else if (passkeyError) {
       toast({
-        title: "Error",
+        title: t("messages.error"),
         description: passkeyError,
         duration: 5000,
       })
@@ -95,8 +95,8 @@ export function PasskeyManagementSection() {
 
       if (response.ok) {
         toast({
-          title: "Passkey Renamed",
-          description: "Your passkey has been renamed.",
+          title: t("settingsPages.passkeys.toasts.renamedTitle"),
+          description: t("settingsPages.passkeys.toasts.renamedDesc"),
           duration: 3000,
         })
         if (editingPasskeyId) session.endEditing(`passkey:${editingPasskeyId}`)
@@ -106,16 +106,16 @@ export function PasskeyManagementSection() {
       } else {
         const error = await response.json()
         toast({
-          title: "Error",
-          description: error.error || "Failed to rename passkey.",
+          title: t("messages.error"),
+          description: error.error || t("settingsPages.passkeys.toasts.renameFailed"),
           duration: 5000,
         })
       }
     } catch (error) {
       console.error("Error renaming passkey:", error)
       toast({
-        title: "Error",
-        description: "Failed to rename passkey.",
+        title: t("messages.error"),
+        description: t("settingsPages.passkeys.toasts.renameFailed"),
         duration: 5000,
       })
     }
@@ -143,24 +143,24 @@ export function PasskeyManagementSection() {
 
       if (response.ok) {
         toast({
-          title: "Passkey Deleted",
-          description: "Your passkey has been removed.",
+          title: t("settingsPages.passkeys.toasts.deletedTitle"),
+          description: t("settingsPages.passkeys.toasts.deletedDesc"),
           duration: 3000,
         })
         loadPasskeys()
       } else {
         const error = await response.json()
         toast({
-          title: "Error",
-          description: error.error || "Failed to delete passkey.",
+          title: t("messages.error"),
+          description: error.error || t("settingsPages.passkeys.toasts.deleteFailed"),
           duration: 5000,
         })
       }
     } catch (error) {
       console.error("Error deleting passkey:", error)
       toast({
-        title: "Error",
-        description: "Failed to delete passkey.",
+        title: t("messages.error"),
+        description: t("settingsPages.passkeys.toasts.deleteFailed"),
         duration: 5000,
       })
     } finally {
@@ -186,7 +186,7 @@ export function PasskeyManagementSection() {
         {loadingPasskeys ? (
           <div className="text-center py-4 theme-text-muted">
             <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" />
-            Loading passkeys...
+            {t("settingsPages.passkeys.loading")}
           </div>
         ) : passkeys.length > 0 ? (
           <div className="space-y-3">
@@ -241,11 +241,11 @@ export function PasskeyManagementSection() {
                     ) : (
                       <>
                         <div className="theme-text-primary text-sm font-medium truncate">
-                          {passkey.name || "Passkey"}
+                          {passkey.name || t("settingsPages.passkeys.fallbackName")}
                         </div>
                         <div className="theme-text-muted text-xs">
-                          Added {new Date(passkey.createdAt).toLocaleDateString()}
-                          {passkey.credentialBackedUp && " • Synced"}
+                          {t("settingsPages.passkeys.added", { date: new Date(passkey.createdAt).toLocaleDateString() })}
+                          {passkey.credentialBackedUp && ` • ${t("settingsPages.passkeys.synced")}`}
                         </div>
                       </>
                     )}
@@ -316,9 +316,9 @@ export function PasskeyManagementSection() {
 
         {/* Info */}
         <div className="text-sm theme-text-muted space-y-1">
-          <p>• Passkeys use biometrics or device PIN for authentication</p>
-          <p>• Synced passkeys work across your devices automatically</p>
-          <p>• More secure than passwords - resistant to phishing</p>
+          <p>• {t("settingsPages.passkeys.tipBiometrics")}</p>
+          <p>• {t("settingsPages.passkeys.tipSynced")}</p>
+          <p>• {t("settingsPages.passkeys.tipSecure")}</p>
         </div>
       </CardContent>
     </Card>

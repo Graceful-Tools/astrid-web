@@ -74,12 +74,12 @@ export function AccountDeletionSection({ deleting, onConfirmDelete }: AccountDel
               <p className="font-semibold mb-2">{t("settingsPages.deleteAccount.warning")}</p>
               <p>{t("settingsPages.deleteAccount.willRemove")}</p>
               <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>All tasks, lists, and comments</li>
-                <li>All uploaded files and attachments</li>
-                <li>All integrations and settings</li>
-                <li>Access to shared lists and collaborations</li>
+                <li>{t("settingsPages.deleteAccount.allTasks")}</li>
+                <li>{t("settingsPages.deleteAccount.allFiles")}</li>
+                <li>{t("settingsPages.deleteAccount.allIntegrations")}</li>
+                <li>{t("settingsPages.deleteAccount.sharedAccess")}</li>
               </ul>
-              <p className="mt-2 font-semibold">Consider exporting your data first (see above).</p>
+              <p className="mt-2 font-semibold">{t("settingsPages.deleteAccount.considerExporting")}</p>
             </AlertDescription>
           </Alert>
           <Button
@@ -108,7 +108,7 @@ export function AccountDeletionSection({ deleting, onConfirmDelete }: AccountDel
             <Alert className="border-danger bg-danger-subtle">
               <AlertCircle className="w-4 h-4 text-danger" />
               <AlertDescription className="text-theme-primary text-sm">
-                All your data will be permanently deleted, including tasks, lists, and files.
+                {t("settingsPages.deleteAccount.dialogWarning")}
               </AlertDescription>
             </Alert>
 
@@ -134,7 +134,7 @@ export function AccountDeletionSection({ deleting, onConfirmDelete }: AccountDel
               disabled={deleting}
               className="border-theme-button text-theme-muted hover:bg-theme-button-hover hover:text-theme-primary"
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               variant="destructive"

@@ -1,6 +1,5 @@
 "use client"
 
-import { BRAND } from '@/lib/brand/config'
 import { useEffect } from "react"
 import { useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
@@ -9,12 +8,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { CheckCircle, AlertCircle, ArrowRight } from "lucide-react"
 import { Github } from "@/components/ui/brand-icons"
+import { useTranslations } from "@/lib/i18n/client"
+import { fillMessage } from "@/components/shared/RichMessage"
 
 interface GithubSetupSettingsProps {
   onNavigate: (page: string) => void
 }
 
 export default function GithubSetupSettings({ onNavigate }: GithubSetupSettingsProps) {
+  const { t } = useTranslations()
   const searchParams = useSearchParams()
   const { data: session, status } = useSession()
 
@@ -49,11 +51,11 @@ export default function GithubSetupSettings({ onNavigate }: GithubSetupSettingsP
   }
 
   if (status === "loading") {
-    return <LoadingScreen message="Loading GitHub setup..." />
+    return <LoadingScreen message={t("settingsPages.githubSetup.loading")} />
   }
 
   if (!session?.user) {
-    return <LoadingScreen message="Authenticating..." />
+    return <LoadingScreen message={t("settingsPages.githubSetup.authenticating")} />
   }
 
   // Show error state
@@ -66,20 +68,20 @@ export default function GithubSetupSettings({ onNavigate }: GithubSetupSettingsP
               <div className="flex items-center space-x-3">
                 <AlertCircle className="w-8 h-8 text-danger" />
                 <div>
-                  <CardTitle className="theme-text-primary">Setup Failed</CardTitle>
+                  <CardTitle className="theme-text-primary">{t("settingsPages.githubSetup.failedTitle")}</CardTitle>
                   <CardDescription className="theme-text-muted">
-                    There was an error setting up GitHub integration
+                    {t("settingsPages.githubSetup.failedDescription")}
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent>
               <p className="text-sm theme-text-muted mb-4">
-                Error: {error}
+                {fillMessage(t("settingsPages.githubSetup.errorDetail"), { error })}
               </p>
               <Button onClick={handleContinue} className="w-full">
                 <ArrowRight className="w-4 h-4 mr-2" />
-                Return to Settings
+                {t("settingsPages.githubSetup.returnToSettings")}
               </Button>
             </CardContent>
           </Card>
@@ -98,9 +100,9 @@ export default function GithubSetupSettings({ onNavigate }: GithubSetupSettingsP
               <div className="flex items-center space-x-3">
                 <Github className="w-8 h-8 text-theme-secondary" />
                 <div>
-                  <CardTitle className="theme-text-primary">Processing GitHub Setup</CardTitle>
+                  <CardTitle className="theme-text-primary">{t("settingsPages.githubSetup.processingTitle")}</CardTitle>
                   <CardDescription className="theme-text-muted">
-                    Connecting your GitHub installation...
+                    {t("settingsPages.githubSetup.processingDescription")}
                   </CardDescription>
                 </div>
               </div>
@@ -110,7 +112,7 @@ export default function GithubSetupSettings({ onNavigate }: GithubSetupSettingsP
                 <div className="animate-spin w-8 h-8 border-4 border-brand border-t-transparent rounded-full"></div>
               </div>
               <p className="text-sm theme-text-muted text-center">
-                Please wait while we configure your GitHub integration...
+                {t("settingsPages.githubSetup.pleaseWait")}
               </p>
             </CardContent>
           </Card>
@@ -128,20 +130,20 @@ export default function GithubSetupSettings({ onNavigate }: GithubSetupSettingsP
             <div className="flex items-center space-x-3">
               <CheckCircle className="w-8 h-8 text-success" />
               <div>
-                <CardTitle className="theme-text-primary">GitHub Connected!</CardTitle>
+                <CardTitle className="theme-text-primary">{t("settingsPages.githubSetup.connectedTitle")}</CardTitle>
                 <CardDescription className="theme-text-muted">
-                  Your GitHub integration is ready to use
+                  {t("settingsPages.githubSetup.connectedDescription")}
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent>
             <p className="text-sm theme-text-muted mb-4">
-              You can now use the {BRAND.appName} Agent to generate code and create pull requests.
+              {t("settingsPages.githubSetup.connectedBody")}
             </p>
             <Button onClick={handleContinue} className="w-full">
               <ArrowRight className="w-4 h-4 mr-2" />
-              Continue to Settings
+              {t("settingsPages.githubSetup.continueToSettings")}
             </Button>
           </CardContent>
         </Card>
