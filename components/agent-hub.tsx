@@ -585,7 +585,7 @@ export function AgentHub() {
                       </a>{' '}
                       provides integration libraries, not a prebuilt agent-host command. This mode
                       requires your own webhook receiver; the settings below configure delivery.
-                      For a guided MCP + queue-skill setup instead, choose Polling and follow the{' '}
+                      For a guided MCP + queue-skill setup instead, choose Native coding harness and follow the{' '}
                       <Link href="/docs/loops" className="text-[rgb(var(--theme-accent))] hover:underline">
                         Agent Loops
                       </Link>{' '}

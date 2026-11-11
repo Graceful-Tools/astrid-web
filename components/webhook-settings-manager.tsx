@@ -582,7 +582,7 @@ export function WebhookSettingsManager() {
               <li>Assign tasks to <code className="px-1 py-0.5 theme-bg-tertiary rounded">claude@{BRAND.agentEmailDomain}</code></li>
             </ol>
             <p className="text-sm theme-text-muted">
-              For a guided setup without a webhook receiver, choose Polling in Settings → AI Agents
+              For a guided setup without a webhook receiver, choose I run it → Native coding harness in Settings → AI Agents
               and follow the{' '}
               <Link href="/docs/loops" className="text-[rgb(var(--theme-accent))] hover:underline">
                 MCP + queue-skill recipes
