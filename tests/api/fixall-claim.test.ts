@@ -81,6 +81,38 @@ describe("POST /api/v1/tasks/:id/claim-fixall", () => {
     }))
   })
 
+  it("AWTD-1555 characterization: preserves the legacy success response", async () => {
+    vi.mocked(prisma.task.updateMany).mockResolvedValue({ count: 1 })
+
+    const response = await POST(request({
+      action: "ready",
+      commentWatermark: null,
+    }), { params })
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({
+      claimed: true,
+      taskId: TASK_ID,
+      assigneeEmail: `copilot@${BRAND.agentEmailDomain}`,
+      agent: "copilot",
+      action: "ready",
+    })
+  })
+
+  it("AWTD-1555 characterization: preserves the legacy conflict response", async () => {
+    vi.mocked(prisma.task.updateMany).mockResolvedValue({ count: 0 })
+
+    const response = await POST(request({
+      action: "ready",
+      commentWatermark: null,
+    }), { params })
+
+    expect(response.status).toBe(409)
+    expect(await response.json()).toEqual({
+      error: "Task changed after queue selection and was not claimed",
+    })
+  })
+
   it("claims for the harness that asked, not always for Copilot", async () => {
     // A Claude Code loop claiming as Copilot would assign its own work to a
     // different harness. Before this the identity was a module constant, which

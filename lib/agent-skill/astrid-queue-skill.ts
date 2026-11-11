@@ -18,6 +18,7 @@
 import { BRAND } from '@/lib/brand/config'
 
 export const QUEUE_SKILL_VERSION = '1.2.0'
+const CLAIM_REQUIRED_QUEUE_SKILL_VERSION = '1.3.0'
 
 export interface QueueSkillOptions {
   /** Agent mailbox this loop polls, e.g. "claude". Required — never guessed. */
@@ -45,6 +46,14 @@ function requireMailbox(mailbox: string): string {
   return mailbox.trim()
 }
 
+/** Enrollment changes guidance only, and is inert until the API is enabled. */
+export function claimRequiredForBoard(listId?: string | null): boolean {
+  if (!listId || process.env.ASTRID_AGENT_CLAIM_API !== 'on') return false
+  return (process.env.ASTRID_AGENT_CLAIM_REQUIRED_LISTS || '')
+    .split(',')
+    .some(enrolledId => enrolledId.trim() === listId)
+}
+
 /**
  * The one-sentence queue contract. Also used verbatim as the prompt in cron
  * one-liners, so keep it a single line.
@@ -52,17 +61,28 @@ function requireMailbox(mailbox: string): string {
 export function queueContractLine({ mailbox, listId }: QueueSkillOptions): string {
   const agent = requireMailbox(mailbox)
   const listClause = listId ? ` and listId "${listId}"` : ''
-  return `Call get_agent_queue with agent "${agent}"${listClause}. Work every task it returns to completion, commenting progress on each one. If it answers empty:true, stop and say nothing is queued.`
+  const claimGuidance = claimRequiredForBoard(listId)
+    ? ` Include unassigned Ready tasks with includeUnassigned: true, then claim each task with claim_task or AstridOAuthClient.claimTask before starting; start only when the result is claimed and skip it on any other result, and use resume to verify your Doing claim after a restart.`
+    : ''
+  return `Call get_agent_queue with agent "${agent}"${listClause}.${claimGuidance} Work every task it returns to completion, commenting progress on each one. If it answers empty:true, stop and say nothing is queued.`
 }
 
 /** The repository-agnostic skill body every adapter embeds. */
 export function canonicalQueueSkill(options: QueueSkillOptions): string {
   const agent = requireMailbox(options.mailbox)
+  const claimRequired = claimRequiredForBoard(options.listId)
+  const skillVersion = claimRequired ? CLAIM_REQUIRED_QUEUE_SKILL_VERSION : QUEUE_SKILL_VERSION
   const boardRule = options.listId
     ? `always pass listId "${options.listId}" so this loop never takes another board's work.`
     : 'pick ONE board with get_lists and pass its listId on every queue call — an unscoped queue mixes boards worked by different harnesses.'
+  const taskBoundary = claimRequired
+    ? `Ready tasks returned for this enrolled board are candidates, not yours yet. Claim each before work with claim_task or AstridOAuthClient.claimTask; start only when the result is claimed, and skip the task on any other result (already_yours on a claim means another worker on this mailbox holds it). After a restart, use action "resume" only for a claim this worker made, to verify it before continuing.`
+    : `Only tasks assigned to "${agent}" in Ready status are yours. get_agent_queue already filters for this; never work around it. An unassigned task is someone's untriaged note.`
+  const taskStep = claimRequired
+    ? `1. Atomically claim the task with claim_task { taskId, action: "claim", agent: "${agent}" } or AstridOAuthClient.claimTask(taskId, { action: "claim" }) before starting work. Start only when the result is claimed; on any other result, skip the task. Then read the task AND its comments (get_task, get_task_comments) before changing anything.`
+    : '1. Read the task AND its comments (get_task, get_task_comments) before changing anything.'
 
-  return `${BRAND.appName} queue skill v${QUEUE_SKILL_VERSION}
+  return `${BRAND.appName} queue skill v${skillVersion}
 
 ${queueContractLine(options)}
 
@@ -73,13 +93,13 @@ Mailbox and board are explicit choices, never defaults:
 - Board: ${boardRule}
 
 Per task, in queue order:
-1. Read the task AND its comments (get_task, get_task_comments) before changing anything.
+${taskStep}
 2. Post a short strategy comment (add_comment), then work the task to completion.
 3. Finish with a completion report in plain language, then update_task completed:true.
 4. Re-check the queue with the same call before the next task — new or reopened tasks arrive mid-run.
 
 Boundaries:
-- Only tasks assigned to "${agent}" in Ready status are yours. get_agent_queue already filters for this; never work around it. An unassigned task is someone's untriaged note.
+- ${taskBoundary}
 - If you do not use the board columns at all, do not work around that either — pass requireReady: false and a task with NO status queues on assignment alone. Waiting and Doing are still never queued under it, so parking a blocked task in Waiting still stops the loop re-reading it.
 - A task with a future date is held automatically (held.scheduled) — report it, do not start it early.
 - empty:true means the run is DONE: stop and say nothing is queued. It also carries a "hint" naming the condition that is unmet — usually tasks assigned to "${agent}" that nobody set to Ready. Report the hint rather than a bare "nothing queued"; it is the difference between a quiet day and a setup that has never worked.

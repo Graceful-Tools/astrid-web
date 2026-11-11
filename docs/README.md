@@ -68,6 +68,7 @@ and stack versions with `npm run check:docs`.
 - **[Fixall Queue Workflow](./FIXALL_WORKFLOW.md)** - the canonical autonomous agent queue loop; the user-facing connect flow is `/docs/loops` in the app
 - **[Fixall on the Web Board](./FIXALL_WEB.md)** - the web board's specifics (deploy rule, done, claim, gates), read by every harness
 - **[Agent Fleet](./AGENT_FLEET.md)** - which machine and harness runs what, and why agents never hold production keys
+- **[Agent Task Claim API](./AGENT_CLAIM_API.md)** - opt-in atomic claim, resume, and release contract for authenticated harnesses
 - **[Legacy AI agent setup (archived)](./archive/ai-agents/README.md)** - superseded GitHub-App walkthrough, kept for history
 
 ### 🧪 Testing & Quality
