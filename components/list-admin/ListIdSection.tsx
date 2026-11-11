@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { useTranslations } from "@/lib/i18n/client"
 import type { TaskList } from "@/types/task"
 
 interface ListIdSectionProps {
@@ -14,10 +15,11 @@ interface ListIdSectionProps {
  * list-admin-settings.tsx (Stage 13).
  */
 export function ListIdSection({ list }: ListIdSectionProps) {
+  const { t } = useTranslations()
   return (
     <div className="border-t theme-border pt-4">
       <div className="flex items-center justify-between">
-        <Label className="text-xs theme-text-muted">List ID</Label>
+        <Label className="text-xs theme-text-muted">{t("listSettings.admin.listId")}</Label>
         <div className="flex items-center space-x-2">
           <code className="text-xs theme-text-muted font-mono bg-theme-tertiary px-2 py-1 rounded">
             {list.id}
@@ -34,7 +36,7 @@ export function ListIdSection({ list }: ListIdSectionProps) {
               }
             }}
             className="h-6 w-6 p-0"
-            title="Copy List ID"
+            title={t("listSettings.admin.copyListId")}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -54,7 +56,7 @@ export function ListIdSection({ list }: ListIdSectionProps) {
         </div>
       </div>
       <p className="text-xs theme-text-muted mt-1">
-        Use this ID for OAuth API integrations and coding agents
+        {t("listSettings.admin.listIdHint")}
       </p>
     </div>
   )

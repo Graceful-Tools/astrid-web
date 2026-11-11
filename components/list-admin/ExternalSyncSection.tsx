@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RefreshCw } from "lucide-react"
+import { useTranslations } from "@/lib/i18n/client"
 import type { TaskList } from "@/types/task"
 import { useFeatureFlags } from "@/contexts/feature-flag-context"
 
@@ -36,6 +37,7 @@ const EMPTY: ProviderState = { connected: false, link: null, containers: [] }
  * session cookies).
  */
 export function ExternalSyncSection({ list }: ExternalSyncSectionProps) {
+  const { t } = useTranslations()
   const { isEnabled } = useFeatureFlags()
   // Build-time capability first: a deployment that does not ship Google Tasks sync has
   // no route to call, so no runtime rollout flag can turn it on. Task 97208a72.
@@ -116,9 +118,9 @@ export function ExternalSyncSection({ list }: ExternalSyncSectionProps) {
       <Label className="text-sm theme-text-secondary">{title}</Label>
       {!state.connected ? (
         <div className="flex items-center gap-2">
-          <p className="text-xs theme-text-muted flex-1">Not connected.</p>
+          <p className="text-xs theme-text-muted flex-1">{t("listSettings.admin.notConnected")}</p>
           <Button variant="outline" size="sm" onClick={() => connect(base)}>
-            Connect
+            {t("listSettings.admin.connect")}
           </Button>
         </div>
       ) : state.link ? (
@@ -133,13 +135,13 @@ export function ExternalSyncSection({ list }: ExternalSyncSectionProps) {
             className="text-danger hover:text-danger"
             onClick={() => unlink(base, state.link!.id)}
           >
-            Unlink
+            {t("listSettings.admin.unlink")}
           </Button>
         </div>
       ) : (
         <Select onValueChange={(value) => link(base, value)}>
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Choose where to mirror this list" />
+            <SelectValue placeholder={t("listSettings.admin.mirrorPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
             {state.containers.map(c => (
@@ -156,9 +158,9 @@ export function ExternalSyncSection({ list }: ExternalSyncSectionProps) {
   return (
     <div className="space-y-3">
       <div>
-        <h3 className="text-sm font-medium theme-text-primary">External sync</h3>
+        <h3 className="text-sm font-medium theme-text-primary">{t("listSettings.admin.externalSyncTitle")}</h3>
         <p className="text-xs theme-text-muted">
-          Mirror this list to another service and back, through your connected account.
+          {t("listSettings.admin.externalSyncDescription")}
         </p>
       </div>
       {githubIssuesEnabled && renderProvider("GitHub Issues", "github", github)}
