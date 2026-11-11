@@ -86,6 +86,8 @@ export function canonicalQueueSkill(options: QueueSkillOptions): string {
 
 ${queueContractLine(options)}
 
+Setup: connect this harness to ${BRAND.appName} MCP and install this skill using the guided steps at /docs/loops. This skill describes queue behavior; it does not install or start an agent host.
+
 Mailbox and board are explicit choices, never defaults:
 - Mailbox: this loop is agent "${agent}" — never poll another identity's queue.
 - Board: ${boardRule}

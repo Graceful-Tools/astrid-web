@@ -7,6 +7,8 @@ exports[`canonical queue skill (AWTD-759) > pins the old skill and queue line wh
 
 Call get_agent_queue with agent "codex" and listId "<board>". Work every task it returns to completion, commenting progress on each one. If it answers empty:true, stop and say nothing is queued.
 
+Setup: connect this harness to Astrid MCP and install this skill using the guided steps at /docs/loops. This skill describes queue behavior; it does not install or start an agent host.
+
 Mailbox and board are explicit choices, never defaults:
 - Mailbox: this loop is agent "codex" — never poll another identity's queue.
 - Board: always pass listId "<board>" so this loop never takes another board's work.
