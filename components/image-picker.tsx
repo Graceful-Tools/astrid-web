@@ -113,7 +113,7 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
       </div>
 
       <Tabs defaultValue="placeholders" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 theme-bg-secondary">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="placeholders" className="theme-text-secondary data-[state=active]:theme-text-primary">
             <Palette className="w-4 h-4 mr-2" />
             Colors
