@@ -32,7 +32,7 @@ export function useTranslations() {
     // Handle replacements like {name}
     if (typeof value === 'string' && replacements) {
       return Object.entries(replacements).reduce(
-        (str, [key, val]) => str.replace(`{${key}}`, val),
+        (str, [key, val]) => str.replace(`{${key}}`, () => val),
         value
       )
     }
