@@ -562,9 +562,9 @@ export function OAuthAPITester() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'success': return <CheckCircle2 className="w-4 h-4 text-green-600" />
-      case 'error': return <XCircle className="w-4 h-4 text-red-600" />
-      case 'pending': return <Clock className="w-4 h-4 text-yellow-600 animate-spin" />
+      case 'success': return <CheckCircle2 className="w-4 h-4 text-success" />
+      case 'error': return <XCircle className="w-4 h-4 text-danger" />
+      case 'pending': return <Clock className="w-4 h-4 text-warning animate-spin" />
       default: return null
     }
   }
@@ -575,14 +575,14 @@ export function OAuthAPITester() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
           <h1 className="text-xl sm:text-3xl font-bold flex items-center gap-2 theme-text-primary">
-            <Code className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
+            <Code className="w-6 h-6 sm:w-8 sm:h-8 text-brand" />
             API Testing
           </h1>
           <p className="theme-text-muted text-sm mt-1">
             Test {BRAND.appName} API endpoints
           </p>
         </div>
-        <Badge variant="outline" className="bg-blue-50 text-blue-700 self-start sm:self-auto">
+        <Badge variant="outline" className="bg-brand-subtle text-brand self-start sm:self-auto">
           <Zap className="w-3 h-3 mr-1" />
           {apiEndpoints.length} Endpoints
         </Badge>
@@ -625,10 +625,10 @@ export function OAuthAPITester() {
         <>
           {/* OAuth Client Secret Input (shown when clientId is in URL and no token) */}
           {clientIdFromUrl && !accessToken && (
-            <Card className="theme-bg-secondary theme-border border-blue-500/50">
+            <Card className="theme-bg-secondary border-brand/50">
               <CardHeader className="pb-3">
                 <CardTitle className="theme-text-primary flex items-center gap-2 text-base">
-                  <Key className="w-5 h-5 text-blue-500" />
+                  <Key className="w-5 h-5 text-brand" />
                   Get Token for {clientNameFromUrl}
                 </CardTitle>
               </CardHeader>
@@ -679,7 +679,7 @@ export function OAuthAPITester() {
               />
               {accessToken && (
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="bg-green-50 text-green-700">
+                  <Badge variant="outline" className="bg-success-subtle text-success">
                     <CheckCircle2 className="w-3 h-3 mr-1" />
                     Token ready
                   </Badge>
@@ -791,7 +791,7 @@ export function OAuthAPITester() {
 
         {/* Latest Result */}
         {testResults.length > 0 && (
-          <Card className="theme-bg-secondary theme-border border-l-4 border-l-blue-500">
+          <Card className="theme-bg-secondary border-theme border-l-4 border-l-brand">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <CardTitle className="text-sm theme-text-primary flex items-center gap-2">
@@ -811,7 +811,7 @@ export function OAuthAPITester() {
             <CardContent className="pt-0">
               {testResults[0].status === 'success' && testResults[0].response && (
                 <div>
-                  <pre className="bg-green-50 text-green-900 p-2 sm:p-3 rounded text-xs overflow-x-auto max-h-64 sm:max-h-96 overflow-y-auto">
+                  <pre className="bg-success-subtle text-theme-primary p-2 sm:p-3 rounded text-xs overflow-x-auto max-h-64 sm:max-h-96 overflow-y-auto">
                     {JSON.stringify(testResults[0].response, null, 2)}
                   </pre>
                   <Button
@@ -827,7 +827,7 @@ export function OAuthAPITester() {
               )}
 
               {testResults[0].status === 'error' && testResults[0].error && (
-                <div className="bg-red-50 p-2 sm:p-3 rounded text-sm text-red-800">
+                <div className="bg-danger-subtle p-2 sm:p-3 rounded text-sm text-theme-primary">
                   {testResults[0].error}
                 </div>
               )}
@@ -915,15 +915,15 @@ export function OAuthAPITester() {
                       </div>
 
                       {ep.requiresId && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded p-2">
-                          <p className="text-xs text-yellow-800">
+                        <div className="bg-warning-subtle border border-warning/30 rounded p-2">
+                          <p className="text-xs text-theme-primary">
                             Requires {ep.category === 'Tasks' ? 'Task' : 'List'} ID
                           </p>
                         </div>
                       )}
 
-                      {/* Request Preview */}
-                      <div className="border-t border-gray-200 pt-3">
+                      {/* Request Preview: code on a block that is dark in every theme, by design, so its colours stay literal */}
+                      <div className="border-t border-theme-surface pt-3">
                         <p className="text-xs font-medium theme-text-muted mb-2">Request Preview</p>
                         <code className="block bg-gray-900 text-green-400 px-2 py-1 rounded text-xs overflow-x-auto">
                           {ep.method} {(() => {

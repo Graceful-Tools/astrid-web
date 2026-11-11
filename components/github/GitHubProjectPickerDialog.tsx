@@ -255,7 +255,7 @@ export function GitHubProjectPickerDialog({ open, onOpenChange, navigate }: GitH
 
         {state.kind === 'ready' && state.installations.length > 0 && (
           <div className="flex flex-wrap gap-3 pt-2 border-t theme-border text-sm">
-            <a href={installUrl} className="inline-flex items-center gap-1 text-blue-500 hover:underline">
+            <a href={installUrl} className="inline-flex items-center gap-1 text-brand hover:underline">
               <ExternalLink className="w-3.5 h-3.5" />
               {t('githubProjectPicker.installAnother')}
             </a>

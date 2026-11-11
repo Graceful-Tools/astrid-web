@@ -248,7 +248,7 @@ export function CustomAgentManager() {
                       variant={agent.status === "active" ? "default" : "secondary"}
                       className={
                         agent.status === "active"
-                          ? "bg-green-600 hover:bg-green-700 text-white text-xs"
+                          ? "bg-success hover:bg-success/90 text-success-foreground text-xs"
                           : "text-xs"
                       }
                     >
@@ -274,7 +274,7 @@ export function CustomAgentManager() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setDeleteTarget(agent)}
-                className="text-red-500 hover:text-red-600 hover:bg-red-500/10 shrink-0"
+                className="text-danger hover:text-danger hover:bg-danger-subtle shrink-0"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -327,11 +327,11 @@ export function CustomAgentManager() {
               <div className="mt-2 text-sm">
                 {namePreview.length > 0 ? (
                   isNameValid ? (
-                    <span className="text-green-500">
+                    <span className="text-success">
                       {namePreview}.oc@{BRAND.domain}
                     </span>
                   ) : (
-                    <span className="text-red-500">
+                    <span className="text-danger">
                       {t('settingsPages.customAgents.register.invalid')}
                     </span>
                   )
@@ -373,7 +373,7 @@ export function CustomAgentManager() {
         <DialogContent className="theme-bg-secondary theme-border max-w-lg sm:max-w-xl mx-4">
           <DialogHeader>
             <DialogTitle className="theme-text-primary flex items-center gap-2">
-              <Check className="w-5 h-5 text-green-500" />
+              <Check className="w-5 h-5 text-success" />
               {t('settingsPages.customAgents.credentials.title')}
             </DialogTitle>
             <DialogDescription className="theme-text-muted">
@@ -383,8 +383,8 @@ export function CustomAgentManager() {
 
           {credentials && (
             <div className="space-y-3">
-              <div className="p-3 bg-red-900/20 border border-red-600/30 rounded-lg">
-                <div className="flex items-center gap-2 text-red-400 text-sm font-medium">
+              <div className="p-3 bg-danger-subtle border border-danger/30 rounded-lg">
+                <div className="flex items-center gap-2 text-danger text-sm font-medium">
                   <AlertTriangle className="w-4 h-4" />
                   {t('settingsPages.customAgents.credentials.warning')}
                 </div>
@@ -448,7 +448,7 @@ export function CustomAgentManager() {
       <Dialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <DialogContent className="theme-bg-secondary theme-border">
           <DialogHeader>
-            <DialogTitle className="text-red-400 flex items-center gap-2">
+            <DialogTitle className="text-danger flex items-center gap-2">
               <Trash2 className="w-5 h-5" />
               {t('settingsPages.customAgents.remove.title')}
             </DialogTitle>

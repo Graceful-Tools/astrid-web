@@ -139,7 +139,7 @@ export function CopyBlock({
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium theme-text-muted">{label}</span>
         <Button variant="ghost" size="sm" className="h-7 px-2" onClick={copy}>
-          {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+          {copied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
           <span className="ml-1 text-xs">
             {t(copied ? 'messages.copied' : 'actions.copy')}
           </span>
