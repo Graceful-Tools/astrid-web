@@ -24,6 +24,24 @@ export const tokenSpacing = {
 }
 
 /**
+ * The motion tokens a stylesheet can use (docs/specs/DESIGN_SYSTEM.md → Motion):
+ * `duration-fast ease-fast`, `duration-panel ease-panel`, … in place of
+ * `duration-200`. `spring` is a duration only; CSS has no damping, and the
+ * curve that stands in for it is `--motion-spring-ease` in styles/components.css.
+ */
+export const MOTION_NAMES = ['hover', 'press', 'fast', 'medium', 'spring', 'panel', 'drawer'] as const
+
+const MOTION_WITH_CURVE = MOTION_NAMES.filter((name) => name !== 'spring')
+
+export const tokenDurations = Object.fromEntries(
+  MOTION_NAMES.map((name) => [name, `var(--astrid-motion-${name}-duration)`]),
+)
+
+export const tokenEasings = Object.fromEntries(
+  MOTION_WITH_CURVE.map((name) => [name, `var(--astrid-motion-${name}-ease)`]),
+)
+
+/**
  * shadcn's colour names. The variables are declared in app/globals.css, each
  * one a token, so shadcn components answer through the theme.
  */
