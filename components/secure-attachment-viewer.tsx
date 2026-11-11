@@ -194,7 +194,8 @@ export function SecureAttachmentViewer({
             // The viewer is dark in every theme, by design: media is looked at on
             // black, so its greys and the file-type icon colours stay literal.
             className={cn(
-              "relative bg-gray-900 rounded-lg overflow-hidden flex flex-col",
+              // `dark`: this panel is dark in every theme, so tokens inside it answer as Dark.
+              "dark relative bg-gray-900 rounded-lg overflow-hidden flex flex-col",
               // iPad: Use contained modal (not full screen) for better UX
               isIPadDevice()
                 ? "w-[90vw] h-[85vh] max-w-4xl"
