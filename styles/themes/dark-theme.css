@@ -10,9 +10,11 @@
   --theme-bg-selected-border: var(--astrid-bg-selected-border);
   
   /* Surface colors */
-  --theme-surface: 31, 41, 55;
-  --theme-surface-hover: 55, 65, 81;
-  --theme-surface-raised: 31, 41, 55;
+  /* Web-only surfaces (register DS9), each named once and read from a token:
+     a card is the secondary grey, one step up from the page. */
+  --theme-surface: var(--astrid-bg-secondary);
+  --theme-surface-hover: var(--astrid-bg-tertiary);
+  --theme-surface-border: var(--astrid-border);
   
   /* Border colors */
   --theme-border: var(--astrid-border);
@@ -41,15 +43,13 @@
   --theme-info: var(--astrid-info);
   
   /* Sidebar colors */
-  --theme-sidebar-bg: 31, 41, 55;
-  --theme-sidebar-border: 55, 65, 78;
-  --theme-sidebar-hover: 55, 65, 81;
-  --theme-sidebar-active: 30, 58, 138;
+  --theme-sidebar-bg: var(--astrid-bg-secondary);
+  --theme-sidebar-border: var(--theme-surface-border);
   
   /* Task panel colors */
-  --theme-panel-bg: 31, 41, 55;
-  --theme-panel-border: 75, 85, 99;
-  --theme-panel-arrow: 31, 41, 55;
+  --theme-panel-bg: var(--theme-surface);
+  --theme-panel-border: var(--theme-surface-border);
+  --theme-panel-arrow: var(--theme-panel-bg);
   
   /* Header colors */
   --theme-header-bg: var(--astrid-header-bg);
@@ -61,17 +61,17 @@
   --theme-input-placeholder: var(--astrid-input-placeholder);
   
   /* Comment colors */
-  --theme-comment-bg: 55, 65, 81;
+  --theme-comment-bg: var(--astrid-bg-tertiary);
   
   /* Button colors */
   --theme-button-bg: var(--astrid-button-bg);
   --theme-button-hover: var(--astrid-button-hover);
   --theme-button-border: var(--astrid-button-border);
   
-  /* Component shadows */
-  --theme-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --theme-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --theme-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  /* Component shadows: the shared scale */
+  --theme-shadow-sm: var(--astrid-shadow-sm);
+  --theme-shadow: var(--astrid-shadow-md);
+  --theme-shadow-lg: var(--astrid-shadow-lg);
 }
 
 /* Dark Theme Component Styles */
@@ -152,59 +152,57 @@
 .dark .chat-bubble-other { background-color: rgb(var(--theme-bg-tertiary)); }
 
 /* ===== DARK THEME: Solid Dark Backgrounds ===== */
-/* Matches iOS Dark theme - reduced contrast for comfort */
+/* Matches iOS Dark theme - reduced contrast for comfort.
+   A card's edge is the tertiary grey, quieter than the border token. */
 
 /* Task cards: Solid dark gray */
 .dark .task-card {
-  background-color: rgb(31, 41, 55);
-  border-color: rgb(55, 65, 81);
+  background-color: rgb(var(--theme-surface));
+  border-color: rgb(var(--theme-bg-tertiary));
 }
 
+/* A quarter of the way from the card to its hover grey: the full step is the
+   colour of the list badges on the card, which would vanish into it. */
 .dark .task-card:hover {
-  background-color: rgb(37, 47, 61);
+  background-color: color-mix(in srgb, rgb(var(--theme-surface)) 75%, rgb(var(--theme-surface-hover)));
 }
 
 /* Selected task card: Darker with blue accent */
 .dark .task-row-selected {
-  background-color: rgb(30, 58, 138) !important;
-  border-color: rgb(59, 130, 246);
+  background-color: rgb(var(--theme-bg-selected)) !important;
+  border-color: rgb(var(--theme-bg-selected-border));
 }
 
 /* Mobile floating header: Solid dark */
 .dark .app-header-mobile-floating {
-  background-color: rgb(31, 41, 55);
-  border: 1px solid rgb(55, 65, 81);
+  background-color: rgb(var(--theme-surface));
+  border: 1px solid rgb(var(--theme-bg-tertiary));
 }
 
 /* iOS drawer header: Solid dark */
 .dark .app-header-ios-drawer {
-  background-color: rgb(31, 41, 55);
-  border: 1px solid rgb(55, 65, 81);
+  background-color: rgb(var(--theme-surface));
+  border: 1px solid rgb(var(--theme-bg-tertiary));
 }
 
 /* Mobile quick add bar: Solid dark gray */
 .dark .quick-add {
-  background-color: rgb(31, 41, 55);
-  border: 1px solid rgb(55, 65, 81);
+  background-color: rgb(var(--theme-surface));
+  border: 1px solid rgb(var(--theme-bg-tertiary));
 }
 
 /* Comment input bar: Match quick add styling */
 .dark .chat-input-bar {
-  background-color: rgb(31, 41, 55);
-  border-top: 1px solid rgb(55, 65, 81);
+  background-color: rgb(var(--theme-surface));
+  border-top: 1px solid rgb(var(--theme-bg-tertiary));
 }
 
 /* Mobile sidebar: Slightly lighter dark for contrast */
 .dark .app-sidebar-mobile {
-  background-color: rgb(31, 41, 55);
-}
-
-/* iOS drawer content wrapper: Near-black background */
-.dark .ios-drawer-content {
-  background-color: rgb(17, 24, 39);
+  background-color: rgb(var(--theme-surface));
 }
 
 /* List badges on Dark: Subtle dark surface */
 .dark .task-card .theme-bg-secondary {
-  background-color: rgb(55, 65, 81);
+  background-color: rgb(var(--theme-bg-tertiary));
 }
