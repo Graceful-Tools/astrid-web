@@ -76,7 +76,7 @@ export const COMPLETION_FILTER_OPTIONS: readonly FilterOption[] = [
  * they are part of the meaning here rather than decoration.
  */
 export const PRIORITY_FILTER_OPTIONS: readonly FilterOption[] = [
-  { value: "all", labelKey: "listSettings.priority.all", label: "All priorities", className: "text-blue-400" },
+  { value: "all", labelKey: "listSettings.priority.all", label: "All priorities", className: "text-brand" },
   { value: "3", labelKey: "listSettings.priority.highest", label: "!!! Highest", className: priorityTextClass(3) },
   { value: "2", labelKey: "listSettings.priority.high", label: "!! High", className: priorityTextClass(2) },
   { value: "1", labelKey: "listSettings.priority.medium", label: "! Medium", className: priorityTextClass(1) },
@@ -90,15 +90,15 @@ export const PRIORITY_FILTER_OPTIONS: readonly FilterOption[] = [
  * than in one of them, so the next one cannot go missing quietly.
  */
 export const DUE_DATE_FILTER_OPTIONS: readonly FilterOption[] = [
-  { value: "all", labelKey: "listSettings.due.allDates", label: "All dates", className: "text-blue-400" },
-  { value: "overdue", labelKey: "listSettings.due.overdue", label: "Overdue", className: "text-red-500" },
+  { value: "all", labelKey: "listSettings.due.allDates", label: "All dates", className: "text-brand" },
+  { value: "overdue", labelKey: "listSettings.due.overdue", label: "Overdue", className: "text-overdue" },
   { value: "today", labelKey: "listSettings.due.today", label: "Today", className: "text-green-500" },
   { value: "tomorrow", labelKey: "listSettings.due.tomorrow", label: "Tomorrow", className: "text-green-500" },
   { value: "this_week", labelKey: "listSettings.due.next7Days", label: "Next 7 days", className: "text-blue-500" },
   { value: "this_month", labelKey: "listSettings.due.next30Days", label: "Next 30 days", className: "text-purple-500" },
   { value: "this_calendar_week", labelKey: "listSettings.due.thisCalendarWeek", label: "This calendar week", className: "text-cyan-500" },
   { value: "this_calendar_month", labelKey: "listSettings.due.thisCalendarMonth", label: "This calendar month", className: "text-indigo-500" },
-  { value: "no_date", labelKey: "listSettings.due.noDate", label: "No date", className: "text-gray-400" },
+  { value: "no_date", labelKey: "listSettings.due.noDate", label: "No date", className: "text-theme-muted" },
 ]
 
 /**
