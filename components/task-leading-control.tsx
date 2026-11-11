@@ -82,20 +82,21 @@ const SQUARE_CLASS = "w-8 h-8 rounded-lg border-2 flex items-center justify-cent
  * Your own repeating task already swaps its checkbox for the arrows icon; a
  * repeating task assigned to someone else or to nobody drew the plain square, so
  * "repeats" was visible on one of the three marks only. The arrows are the same
- * priority-coloured art the checkbox uses, drawn larger than the square so the
- * photo sits inside the loop.
+ * priority-coloured art the checkbox uses, at the checkbox's own 32px (AWTD-1576:
+ * at 40px the mark was wider than every other leading control, so a repeating
+ * row's title sat further right than a one-off's). The photo sits inside the loop.
  */
 function RepeatFrame({ priority, children }: { priority: number; children: React.ReactNode }) {
   const safePriority = priority >= 0 && priority <= 3 ? priority : 0
   return (
-    <div data-testid="repeat-frame" className="relative flex h-10 w-10 items-center justify-center">
+    <div data-testid="repeat-frame" className="relative flex h-8 w-8 items-center justify-center">
       <Image
         src={`/icons/check_box_repeat_${safePriority}.png`}
         alt=""
         aria-hidden="true"
-        width={40}
-        height={40}
-        className="pointer-events-none absolute inset-0 h-10 w-10"
+        width={32}
+        height={32}
+        className="pointer-events-none absolute inset-0 h-8 w-8"
       />
       {children}
     </div>
@@ -151,6 +152,7 @@ export function TaskLeadingControl({
       <TaskCheckbox
         checked={completed}
         onToggle={activate}
+        completes={!opensOptions}
         priority={priority as 0 | 1 | 2 | 3}
         repeating={repeating}
       />
@@ -194,7 +196,7 @@ export function TaskLeadingControl({
         >
           {repeating ? (
             <RepeatFrame priority={priority}>
-              <Avatar className="h-6 w-6 rounded-full">
+              <Avatar className="h-5 w-5 rounded-full">
                 <AvatarImage src={assignee?.image || undefined} />
                 <AvatarFallback className="rounded-full bg-gray-300 text-[10px] text-gray-700">
                   {assignee?.name?.slice(0, 2) || assignee?.email?.slice(0, 2) || '?'}

@@ -8,6 +8,7 @@ import type { User } from '@/types/task'
 import { isCodingAgent } from "@/lib/ai-agent-utils"
 import { CompletionConfirmation } from "@/components/completion-confirmation"
 import { completionNeedsConfirmation } from "@/lib/task-leading-control"
+import { priorityFillClass, priorityOutlineClass } from "@/lib/design/priority"
 import { useTranslations } from "@/lib/i18n/client"
 
 interface PriorityAssigneePickerProps {
@@ -60,11 +61,13 @@ interface PriorityAssigneePickerProps {
   onToggleComplete?: () => void
 }
 
+// Colours come from the design tokens (lib/design/priority.ts): one per
+// priority, the same the row's leading control draws.
 const PRIORITY_OPTIONS = [
-  { value: 0, label: '○', color: 'rgb(107, 114, 128)', bgColor: 'bg-gray-500', borderColor: 'border-gray-500', textColor: 'text-gray-500' },
-  { value: 1, label: '!', color: 'rgb(59, 130, 246)', bgColor: 'bg-blue-500', borderColor: 'border-blue-500', textColor: 'text-blue-500' },
-  { value: 2, label: '!!', color: 'rgb(251, 191, 36)', bgColor: 'bg-yellow-500', borderColor: 'border-yellow-500', textColor: 'text-yellow-500' },
-  { value: 3, label: '!!!', color: 'rgb(239, 68, 68)', bgColor: 'bg-red-500', borderColor: 'border-red-500', textColor: 'text-red-500' },
+  { value: 0, label: '○' },
+  { value: 1, label: '!' },
+  { value: 2, label: '!!' },
+  { value: 3, label: '!!!' },
 ] as const
 
 export function PriorityAssigneePicker({
@@ -302,8 +305,8 @@ export function PriorityAssigneePicker({
                        and reads better as a fixed square. */
                     className={`h-12 w-12 rounded-xl flex items-center justify-center font-medium text-lg transition-all duration-150 active:scale-95 ${
                       isSelected
-                        ? `${option.bgColor} text-white`
-                        : `bg-transparent border-2 ${option.borderColor} ${option.textColor}`
+                        ? `${priorityFillClass(option.value)} text-white`
+                        : `bg-transparent border-2 ${priorityOutlineClass(option.value)}`
                     }`}
                     aria-label={`Priority ${option.value}`}
                     aria-pressed={isSelected}

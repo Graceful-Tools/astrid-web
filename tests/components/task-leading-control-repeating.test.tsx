@@ -43,6 +43,13 @@ describe('TaskLeadingControl repeating marks (AWTD-1571)', () => {
     expect(screen.getByText('U')).toBeInTheDocument()
   })
 
+  it("AWTD-1576: the repeat frame is the checkbox's own 32px, so repeating rows line up", () => {
+    renderControl({ assigneeId: 'other', assignee: { name: 'Ada Lovelace' }, repeating: true })
+    const frame = screen.getByTestId('repeat-frame')
+    expect(frame).toHaveClass('h-8', 'w-8')
+    expect(frame).not.toHaveClass('w-10')
+  })
+
   it('draws no repeat frame for a one-off task', () => {
     renderControl({ assigneeId: 'other', assignee: { name: 'Ada Lovelace' } })
     expect(screen.queryByTestId('repeat-frame')).not.toBeInTheDocument()
