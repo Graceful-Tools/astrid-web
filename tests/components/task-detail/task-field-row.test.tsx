@@ -16,7 +16,7 @@
  * its comment spells out the invariant — the icon column is exactly as wide as
  * the title row's checkbox, with the same horizontal padding and gap, so the
  * icon sits centred under the checkbox and the content's left edge lands on the
- * title field's left edge. On web that arithmetic is 16 + 32 + 8 = 56px, in the
+ * title field's left edge. On web that arithmetic is 16 + 34 + 8 = 58px, in the
  * header row and in every field row.
  */
 
@@ -56,10 +56,11 @@ describe('TaskFieldRow (task detail field layout)', () => {
   })
 
   it('aligns the icon column to the header checkbox width', () => {
-    // The invariant: icon column w-8 matches the leading control's w-8, and the
+    // The invariant: the icon column is the leading control's width (the
+    // size.leading-control token since AWTD-1574, not a literal w-8), and the
     // row gap is shared with the header. Change one without the other and
     // the content stops lining up with the title.
-    expect(FIELD_ICON_COLUMN_CLASS).toContain('w-8')
+    expect(FIELD_ICON_COLUMN_CLASS).toBe('w-leading-control')
     expect(FIELD_ROW_GAP_CLASS).toContain('gap-2')
   })
 

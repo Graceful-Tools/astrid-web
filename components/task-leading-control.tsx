@@ -13,6 +13,7 @@ import {
   taskLeadingControlKind,
 } from "@/lib/task-leading-control"
 import { usesCompactTaskDetail } from "@/lib/task-display-mode"
+import { LEADING_CONTROL_SIZE } from "@/lib/design/tokens"
 
 /**
  * The leading control on a task — one component for all three answers to
@@ -73,8 +74,11 @@ interface TaskLeadingControlProps {
   onBoard?: boolean
 }
 
-/** Priority-coloured square shared by the avatar and unassigned marks. */
-const SQUARE_CLASS = "w-8 h-8 rounded-lg border-2 flex items-center justify-center"
+/**
+ * Priority-coloured square shared by the avatar and unassigned marks, at the
+ * design token's size (`size.leading-control`, docs/specs/DESIGN_SYSTEM.md).
+ */
+const SQUARE_CLASS = "w-leading-control h-leading-control rounded-lg border-2 flex items-center justify-center"
 
 /**
  * The repeat arrows as the BORDER of a photo or "U" mark (AWTD-1571).
@@ -82,21 +86,21 @@ const SQUARE_CLASS = "w-8 h-8 rounded-lg border-2 flex items-center justify-cent
  * Your own repeating task already swaps its checkbox for the arrows icon; a
  * repeating task assigned to someone else or to nobody drew the plain square, so
  * "repeats" was visible on one of the three marks only. The arrows are the same
- * priority-coloured art the checkbox uses, at the checkbox's own 32px (AWTD-1576:
+ * priority-coloured art the checkbox uses, at the checkbox's own size (AWTD-1576:
  * at 40px the mark was wider than every other leading control, so a repeating
  * row's title sat further right than a one-off's). The photo sits inside the loop.
  */
 function RepeatFrame({ priority, children }: { priority: number; children: React.ReactNode }) {
   const safePriority = priority >= 0 && priority <= 3 ? priority : 0
   return (
-    <div data-testid="repeat-frame" className="relative flex h-8 w-8 items-center justify-center">
+    <div data-testid="repeat-frame" className="relative flex h-leading-control w-leading-control items-center justify-center">
       <Image
         src={`/icons/check_box_repeat_${safePriority}.png`}
         alt=""
         aria-hidden="true"
-        width={32}
-        height={32}
-        className="pointer-events-none absolute inset-0 h-8 w-8"
+        width={LEADING_CONTROL_SIZE}
+        height={LEADING_CONTROL_SIZE}
+        className="pointer-events-none absolute inset-0 h-leading-control w-leading-control"
       />
       {children}
     </div>

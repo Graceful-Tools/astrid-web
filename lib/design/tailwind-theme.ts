@@ -18,6 +18,11 @@
  */
 export const token = (property: string) => `rgba(var(--${property}), <alpha-value>)`
 
+/** Shared sizes as steps of the spacing scale: `w-leading-control`, `h-leading-control`. */
+export const tokenSpacing = {
+  'leading-control': 'var(--astrid-size-comfortable-leading-control)',
+}
+
 /**
  * shadcn's colour names. The variables are declared in app/globals.css, each
  * one a token, so shadcn components answer through the theme.

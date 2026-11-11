@@ -3,6 +3,7 @@
 import Image from "next/image"
 import { useEffect, useState } from "react"
 import { useTranslations } from "@/lib/i18n/client"
+import { LEADING_CONTROL_SIZE } from "@/lib/design/tokens"
 
 interface TaskCheckboxProps {
   checked: boolean
@@ -75,7 +76,7 @@ export function TaskCheckbox({ checked, onToggle, priority, repeating = false, o
           onClick?.(e)
         }}
       >
-        <div className={`w-8 h-8 border-2 rounded-sm flex items-center justify-center ${
+        <div className={`w-leading-control h-leading-control border-2 rounded-sm flex items-center justify-center ${
           checked ? 'bg-blue-500 border-blue-500' : 'border-gray-400 hover:border-gray-600'
         }`}>
           {checked && <span className="text-white text-sm">✓</span>}
@@ -101,9 +102,9 @@ export function TaskCheckbox({ checked, onToggle, priority, repeating = false, o
       <Image
         src={getIconPath()}
         alt={`${checked ? 'Checked' : 'Unchecked'} ${repeating ? 'repeating ' : ''}priority ${safePriority} checkbox`}
-        width={32}
-        height={32}
-        className={popping ? "w-8 h-8 task-checkbox-pop" : "w-8 h-8"}
+        width={LEADING_CONTROL_SIZE}
+        height={LEADING_CONTROL_SIZE}
+        className={popping ? "w-leading-control h-leading-control task-checkbox-pop" : "w-leading-control h-leading-control"}
         onAnimationEnd={() => setPopping(false)}
         onError={(e) => {
           console.error('Failed to load checkbox image:', getIconPath())

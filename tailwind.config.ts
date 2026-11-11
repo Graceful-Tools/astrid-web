@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
 
-import { shadcnColors } from "./lib/design/tailwind-theme";
+import { shadcnColors, tokenSpacing } from "./lib/design/tailwind-theme";
 
 // all in fixtures is set to tailwind v3 as interims solutions
 
@@ -21,6 +21,7 @@ const config: Config = {
   		colors: {
   			...shadcnColors,
   		},
+  		spacing: tokenSpacing,
   		fontSize: {
   			'display': ['2rem', { lineHeight: '2.5rem', letterSpacing: '-0.01em', fontWeight: '600' }],
   			'title': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.01em', fontWeight: '600' }],

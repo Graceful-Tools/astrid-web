@@ -30,6 +30,7 @@ import type { User, TaskList } from '@/types/task'
 import { useTranslations } from "@/lib/i18n/client"
 import { getPriorityColor } from "@/lib/task-leading-control"
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
+import { LEADING_CONTROL_SIZE } from '@/lib/design/tokens'
 import {
   applyHashtagSelection,
   filterListsForHashtag,
@@ -310,7 +311,7 @@ export function QuickAdd({
               {selectedAssignee === null ? (
                 // Unassigned: Rounded rectangle with "U" (matches task checkbox style)
                 <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center border-2"
+                  className="w-leading-control h-leading-control rounded-lg flex items-center justify-center border-2"
                   style={{ borderColor: priorityColor }}
                 >
                   <span
@@ -325,14 +326,14 @@ export function QuickAdd({
                 <Image
                   src={getCheckboxIconPath()}
                   alt={`Priority ${selectedPriority} checkbox`}
-                  width={32}
-                  height={32}
-                  className="w-8 h-8"
+                  width={LEADING_CONTROL_SIZE}
+                  height={LEADING_CONTROL_SIZE}
+                  className="w-leading-control h-leading-control"
                 />
               ) : (
                 // Other user: Show avatar with priority border
                 <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  className="w-leading-control h-leading-control rounded-lg flex items-center justify-center"
                   style={{ border: `2px solid ${priorityColor}` }}
                 >
                   <Avatar className="w-6 h-6">

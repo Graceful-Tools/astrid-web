@@ -393,7 +393,7 @@ export function MainContent({
       style={options?.style}
     >
       <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-blue-400/60" />
+        <div className="flex h-leading-control w-leading-control items-center justify-center rounded-lg border border-blue-400/60" />
         <div className="flex-1 space-y-2">
           <div className="h-3 rounded bg-blue-400/40" />
           <div className="h-2 w-1/2 rounded bg-blue-400/20" />
