@@ -118,6 +118,11 @@ export default async function LocaleLayout({ children, params }: Props) {
   return (
     <html
       lang={locale}
+      // The brand's default theme, so the server's HTML is already under a
+      // theme: every colour is a token, and a token only answers under a theme
+      // class. ThemeProvider starts from the same default and swaps this class
+      // for the stored choice once it has read it.
+      className={BRAND.defaultTheme}
       // The brand accent as a CSS custom property, so stylesheets can paint it
       // too. CSS cannot read env, so the stylesheets hardcoded the Astrid blue
       // and a partner's focus ring and prose links stayed blue (task 518ec534).
