@@ -142,9 +142,17 @@ describe('priority classes hold up where they are used (PR #699 review)', () => 
   })
 
   it('a filled control keeps its colour on hover', () => {
-    for (const name of ['none', 'low', 'medium', 'high']) {
+    for (const name of ['none', 'medium', 'high']) {
       expect(css).toContain(`.priority-fill-${name}:hover { background-color: rgb(var(--astrid-priority-${name})); }`)
     }
+    expect(css).toContain('.priority-fill-low:hover { background-color: rgb(var(--astrid-accent)); }')
+  })
+
+  // AWTD-1575: Dark's low-priority colour is the accent's lighter ink, so it
+  // reads as a line or a glyph on a dark card. As a FILL under a white "!" that
+  // blue is 2.54:1; the fill is the accent itself, which is 5.17:1 in every theme.
+  it('the low-priority fill is the accent fill, so its white glyph is readable in Dark', () => {
+    expect(css).toContain('.priority-fill-low { background-color: rgb(var(--astrid-accent)); border-color: rgb(var(--astrid-accent)); }')
   })
 })
 
