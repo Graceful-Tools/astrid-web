@@ -167,10 +167,13 @@
   background-color: color-mix(in srgb, rgb(var(--theme-surface)) 75%, rgb(var(--theme-surface-hover)));
 }
 
-/* Selected task card: Darker with blue accent */
+/* Selected task card: the selected surface. Its own border steps aside for the
+   selection outline (the accent at 55%, styles/components.css): Dark's
+   bg-selected-border is the accent itself, and under the outline it read as a
+   solid accent line (register DS5). */
 .dark .task-row-selected {
   background-color: rgb(var(--theme-bg-selected)) !important;
-  border-color: rgb(var(--theme-bg-selected-border));
+  border-color: transparent;
 }
 
 /* Mobile floating header: Solid dark */
