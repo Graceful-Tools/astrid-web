@@ -18,13 +18,11 @@ import { prisma } from '@/lib/prisma'
 import { getTaskUrl } from '@/lib/base-url'
 import { READY_STATUS_ROLE } from '@/lib/task-status'
 import { agentEmail, agentMailboxFromEmail, isBrandAgentEmail } from '@/lib/brand/agent-emails'
-import { awaitsAgentReply, describeSchedule, isDueToStart } from '@/lib/ready-queue-scope'
+import { awaitsAgentReply } from '@/lib/ready-queue-scope'
+import { PAGE_LIMIT, selectAgentQueueTasks } from '@/lib/agent-queue-due-first'
 import { getAgentExecutionMode, pollableMailboxes } from '@/lib/ai/agent-execution-mode'
 import { observeAgentExecutionMode } from '@/lib/ai/agent-execution-mode-shadow'
 import { pendingAgentHandback, type AgentResumeContext } from '@/lib/agent-handback'
-
-/** One page is the point: a truncated queue looks exactly like a short one. */
-const PAGE_LIMIT = 500
 
 /**
  * How much unanswered conversation one poll reports.
@@ -342,58 +340,15 @@ export async function buildAgentQueue({
         }
       : null
 
-  const tasks = await prisma.task.findMany({
-    where: {
-      completed: false,
-      ...(unassignedOnOwnBoard
-        ? { OR: [assignedToAgent, unassignedOnOwnBoard] }
-        : assignedToAgent),
-    },
-    select: {
-      id: true,
-      identifier: true,
-      title: true,
-      description: true,
-      priority: true,
-      dueDateTime: true,
-      isAllDay: true,
-      createdAt: true,
-      assigneeId: true,
-      lists: { select: { id: true, name: true, githubRepositoryId: true } },
-    },
-    // Priority high → low, then oldest first — the order a loop works them in.
-    orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
-    take: PAGE_LIMIT,
-  })
-
-  const now = new Date()
-  const withSchedule = tasks.map(task => ({
-    task,
-    schedule: {
-      dueDateTime: task.dueDateTime?.toISOString() ?? null,
-      isAllDay: task.isAllDay,
-    },
-  }))
-
-  // A task with a date is not work for today. Recurrence needs nothing else:
-  // completing a repeating task rolls it to its next occurrence, and this rule
-  // then holds it until that moment arrives.
-  const due = withSchedule.filter(({ schedule }) => isDueToStart(schedule, now))
-  const notDue = withSchedule.filter(({ schedule }) => !isDueToStart(schedule, now))
-
-  const scheduled = notDue
-    .sort(
-      (a, b) =>
-        new Date(a.schedule.dueDateTime ?? 0).getTime() -
-        new Date(b.schedule.dueDateTime ?? 0).getTime()
-    )
-    .map(({ task, schedule }) => ({
-      id: task.id,
-      title: task.title,
-      startsAt: describeSchedule(schedule, now),
-    }))
-
-  const empty = due.length === 0
+  const queueWhere: Prisma.TaskWhereInput = {
+    completed: false,
+    ...(unassignedOnOwnBoard
+      ? { OR: [assignedToAgent, unassignedOnOwnBoard] }
+      : assignedToAgent),
+  }
+  const { dueTasks, scheduled, notDueCount, truncated } =
+    await selectAgentQueueTasks(queueWhere)
+  const empty = dueTasks.length === 0
 
   // Asked only when the answer is empty. A loop with work to do must not pay a
   // second query to explain an emptiness it does not have (AWTD-845).
@@ -424,7 +379,7 @@ export async function buildAgentQueue({
     hint: empty
       ? emptyQueueHint(mailbox, notReadyCount, scheduled, requireReady, includeUnassigned)
       : undefined,
-    queue: due.map(({ task }) => ({
+    queue: dueTasks.map(task => ({
       id: task.id,
       identifier: task.identifier,
       title: task.title,
@@ -441,13 +396,13 @@ export async function buildAgentQueue({
     // a recurring task that is simply not due yet is visibly different from one
     // nobody has queued.
     held: {
-      notDueCount: notDue.length,
+      notDueCount,
       notReadyCount,
       scheduled,
     },
     // A truncated page would hide queued work behind a backlog and report a clean
     // run, so say it rather than working a silent subset.
-    truncated: tasks.length === PAGE_LIMIT,
+    truncated,
     attention,
   }
 }

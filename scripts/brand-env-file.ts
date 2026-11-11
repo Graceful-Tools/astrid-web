@@ -15,7 +15,7 @@
 
 import { existsSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { profileEnv, type BrandProfile } from '../lib/brand/profile'
+import { parseBrandProfile, profileEnv } from '../lib/brand/profile'
 
 const arg = process.argv[2]?.trim()
 
@@ -28,6 +28,6 @@ if (!arg) {
     console.error(`No brand profile at brands/${arg}.brand.json or ${path}`)
     process.exit(1)
   }
-  const profile = JSON.parse(readFileSync(path, 'utf8')) as BrandProfile
+  const profile = parseBrandProfile(JSON.parse(readFileSync(path, 'utf8')), path)
   process.stdout.write(`${JSON.stringify(profileEnv(profile), null, 2)}\n`)
 }
