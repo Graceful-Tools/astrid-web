@@ -133,7 +133,7 @@ export function SecureAttachmentViewer({
         isImage && fileInfo ? "hidden" : ""
       )}>
         {loading ? (
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand"></div>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-theme-focus"></div>
         ) : isVideo ? (
           <Play className="w-6 h-6 text-brand" />
         ) : (
@@ -341,7 +341,7 @@ export function SecureAttachmentViewer({
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   {loading ? (
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand mx-auto mb-4"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-theme-focus mx-auto mb-4"></div>
                   ) : error ? (
                     <div className="text-danger">
                       <X className="w-12 h-12 mx-auto mb-4" />

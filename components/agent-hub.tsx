@@ -586,14 +586,14 @@ export function AgentHub() {
                               href="https://www.npmjs.com/package/@gracefultools/astrid-sdk"
                               target="_blank"
                               rel="noreferrer"
-                              className="text-[rgb(var(--theme-accent))] hover:underline"
+                              className="text-brand hover:underline"
                             >
                               {BRAND.appName} SDK
                             </a>
                           ),
                           nativeHarness: t('settingsPages.aiAgents.hub.transportNative'),
                           agentLoops: (
-                            <Link href="/docs/loops" className="text-[rgb(var(--theme-accent))] hover:underline">
+                            <Link href="/docs/loops" className="text-brand hover:underline">
                               {t('settingsPages.aiAgents.hub.agentLoops')}
                             </Link>
                           ),

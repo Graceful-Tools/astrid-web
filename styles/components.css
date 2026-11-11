@@ -11,14 +11,14 @@
 .priority-text-high { color: rgb(var(--astrid-priority-high)); }
 
 .priority-fill-none { background-color: rgb(var(--astrid-priority-none)); border-color: rgb(var(--astrid-priority-none)); }
-.priority-fill-low { background-color: rgb(var(--astrid-priority-low)); border-color: rgb(var(--astrid-priority-low)); }
+.priority-fill-low { background-color: rgb(var(--astrid-accent)); border-color: rgb(var(--astrid-accent)); }
 .priority-fill-medium { background-color: rgb(var(--astrid-priority-medium)); border-color: rgb(var(--astrid-priority-medium)); }
 .priority-fill-high { background-color: rgb(var(--astrid-priority-high)); border-color: rgb(var(--astrid-priority-high)); }
 
 /* A filled control keeps its colour under the pointer. Button's outline variant
    brings hover:bg-accent, which ties these on specificity and loses on order. */
 .priority-fill-none:hover { background-color: rgb(var(--astrid-priority-none)); }
-.priority-fill-low:hover { background-color: rgb(var(--astrid-priority-low)); }
+.priority-fill-low:hover { background-color: rgb(var(--astrid-accent)); }
 .priority-fill-medium:hover { background-color: rgb(var(--astrid-priority-medium)); }
 .priority-fill-high:hover { background-color: rgb(var(--astrid-priority-high)); }
 
@@ -44,9 +44,11 @@
   /* The selection outline, defined once for the row, the details pane and its
      arrow so the three read as one object (docs/specs/DESIGN_SYSTEM.md →
      Selection). The Mac's: the accent at 55%, 1.5 wide where there is a pointer
-     and 2.5 on touch. */
+     and 2.5 on touch. The accent as a line is the focus border: the accent
+     itself in Light and Ocean, its lighter shade in Dark, where the fill is
+     2.84:1 on a card (astrid-core register DS26). */
   --selection-outline-width: var(--astrid-size-compact-selection-outline);
-  --selection-outline-color: rgba(var(--theme-accent), var(--astrid-state-selection-outline-opacity));
+  --selection-outline-color: rgba(var(--theme-border-focus), var(--astrid-state-selection-outline-opacity));
 
   /* How long the left drawer takes to slide open: the drawer motion token. The
      content, the sidebar and the tap guard that waits for them all read it from
@@ -827,8 +829,8 @@ html, body {
   .task-panel-mobile textarea:focus {
     /* Use a subtle focus state instead of blue ring */
     outline: none !important;
-    border-color: var(--brand-accent);
-    box-shadow: 0 0 0 1px var(--brand-accent);
+    border-color: rgb(var(--theme-border-focus));
+    box-shadow: 0 0 0 1px rgb(var(--theme-border-focus));
     /* Prevent iOS blue overlay */
     -webkit-tap-highlight-color: transparent;
   }

@@ -8,7 +8,8 @@
  * styles/components.css.
  *
  * Low is the brand accent, as on iOS, so a partner's low priority is the
- * partner's colour.
+ * partner's colour. In Dark it is the accent's lighter shade: the accent
+ * itself is 2.84:1 on a dark card (astrid-core register DS26).
  */
 const NAMES = ['none', 'low', 'medium', 'high'] as const
 
