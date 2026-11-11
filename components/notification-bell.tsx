@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "@/lib/i18n/client"
 import React from "react"
 import { Bell, CheckCheck, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -45,6 +46,7 @@ type NotificationBellProps = {
 }
 
 export function NotificationBell({ align = "end", className, iconClassName }: NotificationBellProps = {}) {
+  const { t } = useTranslations()
   const [open, setOpen] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
   const [notifications, setNotifications] = React.useState<NotificationItem[]>([])
@@ -96,7 +98,7 @@ export function NotificationBell({ align = "end", className, iconClassName }: No
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className={cn("relative p-2", className)} title="Notifications">
+        <Button variant="ghost" size="sm" className={cn("relative p-2", className)} title={t('settings.notifications')}>
           <Bell className={cn("h-5 w-5", iconClassName)} />
           {unreadCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-medium text-danger-foreground">
@@ -117,7 +119,7 @@ export function NotificationBell({ align = "end", className, iconClassName }: No
             disabled={unreadCount === 0}
           >
             <CheckCheck className="mr-1 h-3.5 w-3.5" />
-            Mark all read
+            {t('notificationBell.markAllRead')}
           </Button>
         </div>
 
@@ -131,7 +133,7 @@ export function NotificationBell({ align = "end", className, iconClassName }: No
             <div className="px-3 py-4 text-sm text-danger">{error}</div>
           ) : notifications.length === 0 ? (
             <div className="px-3 py-8 text-center text-sm text-muted-foreground">
-              You are all caught up.
+              {t('notificationBell.allCaughtUp')}
             </div>
           ) : (
             <ul className="divide-y">

@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "@/lib/i18n/client"
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,6 +21,7 @@ interface ImagePickerProps {
 }
 
 export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName, listId }: ImagePickerProps) {
+  const { t } = useTranslations()
   const [selectedPlaceholder, setSelectedPlaceholder] = useState<string | null>(null)
   const [selectedDefaultIcon, setSelectedDefaultIcon] = useState<string | null>(null)
   const [customImageUrl, setCustomImageUrl] = useState("")
@@ -106,7 +108,7 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
   return (
     <Card className="theme-bg-primary theme-border w-full max-w-2xl mx-4 p-6">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold theme-text-primary">Choose Image</h2>
+        <h2 className="text-xl font-semibold theme-text-primary">{t('lists.imagePicker.title')}</h2>
         <Button variant="ghost" size="sm" onClick={onCancel} className="theme-text-muted hover:theme-text-primary">
           ×
         </Button>
@@ -194,7 +196,7 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
         <TabsContent value="upload" className="space-y-4 mt-6">
           <div className="space-y-4">
             <Label htmlFor="file-upload" className="theme-text-primary">
-              Upload from your device
+              {t('lists.imagePicker.uploadLabel')}
             </Label>
             <input
               ref={fileInputRef}
@@ -210,7 +212,7 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
               className="w-full theme-border theme-text-primary hover:theme-bg-hover"
             >
               <Upload className="w-4 h-4 mr-2" />
-              Choose File
+              {t('lists.imagePicker.chooseFile')}
             </Button>
             {customImageUrl && customImageUrl.startsWith('data:') && (
               <div className="mt-4">
