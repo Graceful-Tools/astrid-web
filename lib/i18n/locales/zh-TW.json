@@ -803,6 +803,12 @@
         "desc2": "標題最多顯示兩行。",
         "desc1": "標題只顯示一行。"
       },
+      "taskReminders": {
+        "title": "任務提醒",
+        "description": "任務詳細資料是否顯示「提醒」一列（儲存在此裝置上）",
+        "label": "在任務詳細資料中顯示提醒",
+        "labelDesc": "關閉後，任務上已設定的提醒仍會準時發出。"
+      },
       "emailToTask": {
         "title": "郵件建立任務",
         "description": "透過傳送郵件到{inboundTaskEmail}即時建立任務",

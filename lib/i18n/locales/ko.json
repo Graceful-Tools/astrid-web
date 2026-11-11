@@ -803,6 +803,12 @@
         "desc2": "제목이 두 줄에서 끝납니다.",
         "desc1": "제목이 한 줄에 표시됩니다."
       },
+      "taskReminders": {
+        "title": "작업 알림",
+        "description": "작업 세부 정보에 알림 행을 표시할지 여부 (이 기기에 저장됨)",
+        "label": "작업 세부 정보에 알림 표시",
+        "labelDesc": "꺼 두어도 작업에 이미 설정된 알림은 그대로 울립니다."
+      },
       "emailToTask": {
         "title": "이메일에서 작업",
         "description": "{inboundTaskEmail}로 이메일을 보내 즉시 작업 생성",

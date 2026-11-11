@@ -140,6 +140,7 @@ section by whether the description gained or lost room.
 | **When** | Date · Time · Repeat | Time and Repeat are **conditional on a date existing**. With no date the row is a single "Add date" control, not three empty ones. |
 | **Priority** | Priority · Assignee | Priority leads — it is the row's label and its colour reads at a glance. A **public-list task shows its creator here instead**, and no priority. |
 | Lists | list chips | unchanged |
+| Reminder | the task's own reminder time | **Web: hidden unless opted in.** Appearance → "Task reminders" turns the row on; it is off by default and kept per device, like the theme (AWTD-1577; `lib/design/task-reminders.ts`). The setting is the whole rule — a task that already has a reminder does not bring the row back — and it hides the row only: the reminder stays on the task and still fires. |
 | Description | — | receives the reclaimed space |
 
 Further rules, learned on iOS and mirrored on Web:
