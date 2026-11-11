@@ -63,7 +63,7 @@ export function ProfileImage({
         )}
         style={{ width: dimension, height: dimension }}
       >
-        <span className={cn("font-medium theme-text-muted", text)}>
+        <span className={cn("font-medium text-theme-secondary", text)}>
           {fallback || "?"}
         </span>
       </div>
