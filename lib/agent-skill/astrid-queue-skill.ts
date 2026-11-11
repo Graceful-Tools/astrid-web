@@ -62,7 +62,7 @@ export function queueContractLine({ mailbox, listId }: QueueSkillOptions): strin
   const agent = requireMailbox(mailbox)
   const listClause = listId ? ` and listId "${listId}"` : ''
   const claimGuidance = claimRequiredForBoard(listId)
-    ? ` Include unassigned Ready tasks with includeUnassigned: true, then claim each task with claim_task or AstridOAuthClient.claimTask before starting; skip it on conflict, and use resume to verify your Doing claim after a restart.`
+    ? ` Include unassigned Ready tasks with includeUnassigned: true, then claim each task with claim_task or AstridOAuthClient.claimTask before starting; start only when the result is claimed and skip it on any other result, and use resume to verify your Doing claim after a restart.`
     : ''
   return `Call get_agent_queue with agent "${agent}"${listClause}.${claimGuidance} Work every task it returns to completion, commenting progress on each one. If it answers empty:true, stop and say nothing is queued.`
 }
@@ -76,10 +76,10 @@ export function canonicalQueueSkill(options: QueueSkillOptions): string {
     ? `always pass listId "${options.listId}" so this loop never takes another board's work.`
     : 'pick ONE board with get_lists and pass its listId on every queue call — an unscoped queue mixes boards worked by different harnesses.'
   const taskBoundary = claimRequired
-    ? `Ready tasks returned for this enrolled board are candidates, not yours yet. Claim each before work with claim_task or AstridOAuthClient.claimTask; if another worker wins, skip it on conflict. After a restart, use action "resume" to verify your existing Doing claim before continuing.`
+    ? `Ready tasks returned for this enrolled board are candidates, not yours yet. Claim each before work with claim_task or AstridOAuthClient.claimTask; start only when the result is claimed, and skip the task on any other result (already_yours on a claim means another worker on this mailbox holds it). After a restart, use action "resume" only for a claim this worker made, to verify it before continuing.`
     : `Only tasks assigned to "${agent}" in Ready status are yours. get_agent_queue already filters for this; never work around it. An unassigned task is someone's untriaged note.`
   const taskStep = claimRequired
-    ? `1. Atomically claim the task with claim_task { taskId, action: "claim", agent: "${agent}" } or AstridOAuthClient.claimTask(taskId, { action: "claim" }) before starting work. If the result is conflict, skip the task. Then read the task AND its comments (get_task, get_task_comments) before changing anything.`
+    ? `1. Atomically claim the task with claim_task { taskId, action: "claim", agent: "${agent}" } or AstridOAuthClient.claimTask(taskId, { action: "claim" }) before starting work. Start only when the result is claimed; on any other result, skip the task. Then read the task AND its comments (get_task, get_task_comments) before changing anything.`
     : '1. Read the task AND its comments (get_task, get_task_comments) before changing anything.'
 
   return `${BRAND.appName} queue skill v${skillVersion}

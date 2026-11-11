@@ -154,6 +154,21 @@ describe('POST /api/v1/tasks/:id/claim (AWTD-1555)', () => {
     expect(prisma.task.updateManyAndReturn).not.toHaveBeenCalled()
   })
 
+  it('returns conflict, not not_ready, when another agent already holds the task in Doing (AWTD-1555 review)', async () => {
+    vi.mocked(prisma.task.findFirst).mockResolvedValue({
+      ...readyTask,
+      statusRole: 'doing',
+      assigneeId: 'claude-1',
+      assigneeIds: ['claude-1'],
+    } as never)
+
+    const response = await POST(request({ action: 'claim', agentMailbox: 'codex' }), { params })
+
+    expect(response.status).toBe(409)
+    expect(await response.json()).toMatchObject({ outcome: 'conflict' })
+    expect(prisma.task.updateManyAndReturn).not.toHaveBeenCalled()
+  })
+
   it('returns conflict to a concurrent same-agent claim loser', async () => {
     vi.mocked(prisma.task.findFirst)
       .mockResolvedValueOnce(readyTask as never)
