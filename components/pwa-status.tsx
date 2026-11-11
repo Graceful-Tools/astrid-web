@@ -76,8 +76,8 @@ export function PWAStatus() {
     <div className="fixed top-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm z-50 transition-all duration-300">
       <div className={`flex items-center justify-between space-x-2 px-3 py-2 rounded-lg shadow-lg ${
         isOnline
-          ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-700'
-          : 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-700'
+          ? 'bg-theme-surface text-theme-primary border border-success'
+          : 'bg-theme-surface text-theme-primary border border-warning'
       }`}>
         <div className="flex items-center space-x-2 flex-1">
           {isOnline ? (

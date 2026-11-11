@@ -320,7 +320,7 @@ export function ListSortAndFilters({
           }}
         >
           <SelectItem value="all"><span className="text-blue-400">All tasks</span></SelectItem>
-          <SelectItem value="not_repeating"><span className="text-gray-400">Not repeating</span></SelectItem>
+          <SelectItem value="not_repeating"><span className="text-theme-muted">Not repeating</span></SelectItem>
           <SelectItem value="daily"><span className="text-green-500">Daily</span></SelectItem>
           <SelectItem value="weekly"><span className="text-blue-500">Weekly</span></SelectItem>
           <SelectItem value="monthly"><span className="text-purple-500">Monthly</span></SelectItem>
@@ -347,7 +347,7 @@ export function ListSortAndFilters({
               variant="ghost"
               size="sm"
               onClick={clearAllFilters}
-              className="text-xs text-blue-400 hover:text-blue-300"
+              className="text-xs text-brand hover:text-brand-hover"
             >
               Clear All
             </Button>

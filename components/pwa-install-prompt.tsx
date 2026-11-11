@@ -81,19 +81,19 @@ export function PWAInstallPrompt() {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 z-50">
+    <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm bg-theme-surface border border-theme-surface rounded-lg shadow-lg p-4 z-50">
       <div className="flex items-start space-x-3">
         <div className="flex-shrink-0">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-brand rounded-lg flex items-center justify-center">
             <Smartphone className="w-5 h-5 text-white" />
           </div>
         </div>
         
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+          <h3 className="text-sm font-medium text-theme-primary">
             Install {BRAND.appName}
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p className="text-sm text-theme-muted mt-1">
             Add {BRAND.appName} to your home screen for quick access and offline use.
           </p>
           
@@ -101,7 +101,7 @@ export function PWAInstallPrompt() {
             <Button
               size="sm"
               onClick={handleInstallClick}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-brand hover:bg-brand-hover text-brand-foreground"
             >
               <Download className="w-4 h-4 mr-1" />
               Install
@@ -110,7 +110,7 @@ export function PWAInstallPrompt() {
               size="sm"
               variant="ghost"
               onClick={handleDismiss}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              className="text-theme-muted hover:text-theme-primary"
             >
               Not now
             </Button>
@@ -119,7 +119,7 @@ export function PWAInstallPrompt() {
         
         <button
           onClick={handleDismiss}
-          className="flex-shrink-0 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+          className="flex-shrink-0 text-theme-muted hover:text-theme-primary"
         >
           <X className="w-4 h-4" />
         </button>
