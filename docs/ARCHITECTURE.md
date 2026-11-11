@@ -3,6 +3,9 @@
 ## Overview
 
 Astrid is a task management application built with clean separation of concerns using a controller-view pattern with custom React hooks.
+The hosted astrid.cc service is one deployment of the app. The same codebase also has
+self-hosted Docker/Compose and Azure Container Apps deployment options; see the
+[self-hosting guide](./deployment/SELF_HOSTING.md) and [Azure guide](./deployment/AZURE.md).
 
 ## Technology Stack
 
@@ -11,12 +14,12 @@ Astrid is a task management application built with clean separation of concerns 
 - **TypeScript** + **React**
 - **Tailwind CSS** + **Shadcn/ui** components (based on Radix UI)
 
-### Backend & Data
-- **PostgreSQL** with **Prisma** ORM (hosted on Neon)
+### Hosted Astrid Backend & Data Defaults
+- **PostgreSQL** with **Prisma** ORM (Neon for hosted Astrid)
 - **NextAuth.js** for authentication (Google OAuth + WebAuthn passkeys; Apple Sign-In on iOS)
 - **Server-Sent Events (SSE)** for real-time updates
-- **Vercel Blob** for file storage
-- **Redis** (Upstash) for caching and SSE state management
+- **Vercel Blob** for hosted file storage
+- **Redis** (Upstash on hosted Astrid) for caching and SSE state management
 - **IndexedDB** (Dexie) for offline-first client storage
 
 ### AI & Automation
@@ -631,7 +634,10 @@ Viewing: `GET /api/secure-files/:fileId` redirects to a signed Vercel Blob URL (
 
 ## Infrastructure & Deployment
 
-### **Hosting & Platform**
+Astrid supports hosted Vercel, self-hosted Docker/Compose, and Azure Container Apps
+deployments. The detailed guides own their deployment-specific settings and operations.
+
+### **Hosted Astrid on Vercel**
 
 #### **Vercel** (Primary Platform)
 - Next.js hosting; preview and production deployments are explicit workflows
@@ -666,7 +672,7 @@ Viewing: `GET /api/secure-files/:fileId` redirects to a signed Vercel Blob URL (
 > source of truth. The snippet here previously invented a function entry for an
 > admin-migrate route that does not exist, and showed one cron of six.
 
-### **Database & Storage**
+### **Hosted Database & Storage**
 
 #### **Neon (PostgreSQL)**
 - Serverless PostgreSQL with automatic scaling
