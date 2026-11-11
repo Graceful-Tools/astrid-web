@@ -153,6 +153,54 @@
     },
     "tradeoffGrid": {
       "fullScreen": "Tela cheia"
+    },
+    "promote": {
+      "label": "Mover para fora da subtarefa",
+      "dropHint": "Solte aqui para mover para fora da tarefa pai"
+    },
+    "dropTasksHere": "Solte tarefas aqui",
+    "noOneAssigned": "Ninguém atribuído",
+    "selectPriorityOrAssignee": "Selecionar prioridade ou responsável",
+    "saveNewTask": "Salvar nova tarefa",
+    "detail": {
+      "backToList": "Voltar para a lista",
+      "collapseTask": "Recolher tarefa",
+      "collapse": "Recolher",
+      "taskActions": "Ações da tarefa",
+      "exitFullScreen": "Sair da tela cheia",
+      "testReminder": "Testar lembrete",
+      "clickToAddDescription": "Clique para adicionar uma descrição...",
+      "searchLists": "Pesquisar listas...",
+      "noLists": "Sem listas",
+      "unknownCreator": "Criador desconhecido",
+      "searchUsersOrEmail": "Pesquise usuários ou digite um e-mail...",
+      "nextWeek": "Próxima semana",
+      "selectRepeat": "Selecionar repetição",
+      "repeatMode": "Modo de repetição",
+      "repeatFromCompletion": "Repetir a partir da data de conclusão",
+      "repeatFromDue": "Repetir a partir da data de vencimento",
+      "saveCustomPattern": "Salvar padrão personalizado"
+    },
+    "commentsSection": {
+      "addPlaceholder": "Adicionar um comentário...",
+      "replyPlaceholder": "Escrever uma resposta...",
+      "refresh": "Atualizar comentários",
+      "pullToRefresh": "Puxe para atualizar...",
+      "releaseToRefresh": "Solte para atualizar..."
+    },
+    "modals": {
+      "deleteTitle": "Excluir tarefa",
+      "copyTitle": "Copiar tarefa",
+      "copyToList": "Copiar para a lista:",
+      "myTasksOnly": "Minhas tarefas (somente)",
+      "copyNote": "A tarefa copiada manterá a data de vencimento e será atribuída a você.",
+      "shareTitle": "Compartilhar tarefa",
+      "privateNote": "Esta é uma tarefa privada. Somente usuários com acesso a esta lista podem vê-la.",
+      "generatingLink": "Gerando link de compartilhamento...",
+      "linkFailed": "Falha ao gerar o link de compartilhamento. Tente novamente."
+    },
+    "timer": {
+      "tapToChange": "Toque no tempo para alterar a duração"
     }
   },
   "lists": {
@@ -189,7 +237,67 @@
       "description": "Adicionar descrição..."
     },
     "showSubtasksLabel": "Mostrar subtarefas",
-    "showSubtasksDescription": "Mostra as subtarefas recuadas sob a tarefa principal nesta lista. Desative para mostrar apenas as tarefas principais — as subtarefas continuam visíveis nos detalhes da tarefa principal."
+    "showSubtasksDescription": "Mostra as subtarefas recuadas sob a tarefa principal nesta lista. Desative para mostrar apenas as tarefas principais — as subtarefas continuam visíveis nos detalhes da tarefa principal.",
+    "copyList": "Copiar lista",
+    "descriptionTitle": "Descrição da lista",
+    "descriptionAgentHint": "Os agentes recebem isto como contexto principal. Suporta Markdown.",
+    "image": "Imagem da lista",
+    "addModal": {
+      "title": "Adicionar uma lista",
+      "subtitle": "Use listas para organizar projetos, metas e aventuras!",
+      "namePlaceholder": "ex.: Família",
+      "shareWith": "Compartilhar com",
+      "sharePlaceholder": "Nome ou endereço de e-mail"
+    },
+    "membersManager": {
+      "invite": "Convidar membro",
+      "inviteTitle": "Convidar novo membro",
+      "emailPlaceholder": "Digite o endereço de e-mail",
+      "sendInvitation": "Enviar convite",
+      "empty": "Ainda não há membros",
+      "emptyHint": "Convide pessoas para colaborar nesta lista",
+      "makeAdmin": "Tornar administrador",
+      "makeMember": "Tornar membro",
+      "permissionLevels": "Níveis de permissão",
+      "ownerCan": "Controle total da lista",
+      "adminCan": "Pode gerenciar as configurações e os membros da lista",
+      "memberCan": "Pode adicionar, editar e gerenciar tarefas"
+    },
+    "membershipPanel": {
+      "availableAgents": "Agentes disponíveis",
+      "loadingAgents": "Carregando agentes disponíveis...",
+      "addAgent": "Adicionar agente",
+      "aiHelpTitle": "Quer que a IA ajude com suas tarefas?",
+      "addApiKeys": "Adicione suas chaves API para começar",
+      "privacyLabel": "Privacidade da lista",
+      "makePublic": "Tornar pública",
+      "makePrivate": "Tornar privada",
+      "publicListType": "Tipo de lista pública",
+      "makeCopyOnly": "Tornar somente cópia",
+      "makeCollaborative": "Tornar colaborativa",
+      "leaveList": "Sair da lista"
+    },
+    "ownerLeave": {
+      "title": "Transferir propriedade",
+      "selectNewOwner": "Selecionar novo proprietário:",
+      "noOtherMembers": "Não há outros membros para quem transferir a propriedade.",
+      "deleteList": "Excluir lista"
+    },
+    "publicBrowser": {
+      "searchPlaceholder": "Pesquisar por nome, descrição ou criador...",
+      "allLists": "Todas as listas",
+      "loading": "Carregando listas públicas...",
+      "tasksPreview": "Prévia das tarefas",
+      "loadingPreview": "Carregando prévia...",
+      "noTasks": "Esta lista não tem tarefas",
+      "selectTitle": "Selecione uma lista para visualizar",
+      "selectHint": "Escolha uma lista à esquerda para ver seus detalhes e tarefas"
+    },
+    "imagePicker": {
+      "title": "Escolher imagem",
+      "uploadLabel": "Enviar do seu dispositivo",
+      "chooseFile": "Escolher arquivo"
+    }
   },
   "priority": {
     "none": "Nenhuma",
@@ -226,7 +334,21 @@
     "monthly": "Mensalmente",
     "yearly": "Anualmente",
     "custom": "Personalizado",
-    "pickAtLeastOneDay": "Escolha pelo menos um dia"
+    "pickAtLeastOneDay": "Escolha pelo menos um dia",
+    "editor": {
+      "repeatEvery": "Repetir a cada",
+      "repeatOnDays": "Repetir nestes dias",
+      "repeatType": "Tipo de repetição",
+      "sameDate": "Mesma data todo mês",
+      "sameWeekday": "Mesmo dia da semana e semana do mês",
+      "dayOfMonth": "Dia do mês",
+      "weekOfMonth": "Semana do mês",
+      "endCondition": "Condição de término",
+      "afterOccurrences": "Após X ocorrências",
+      "untilDate": "Até uma data específica",
+      "occurrencesCount": "Número de ocorrências",
+      "endDate": "Data de término"
+    }
   },
   "weekdays": {
     "sunday": "Domingo",
@@ -295,7 +417,8 @@
     "timezone": {
       "title": "Fuso Horário",
       "auto": "Detectar automaticamente"
-    }
+    },
+    "helpMeHelpYou": "Me ajude a ajudar você a ser superprodutivo!!!"
   },
   "auth": {
     "signIn": "Entrar",
@@ -446,13 +569,18 @@
     "optional": "Opcional",
     "required": "Obrigatório",
     "copiedToClipboard": "Copiado para a área de transferência",
-    "unableToCopy": "Não foi possível copiar para a área de transferência"
+    "unableToCopy": "Não foi possível copiar para a área de transferência",
+    "pullToRefresh": "Puxe para atualizar",
+    "releaseToRefresh": "Solte para atualizar",
+    "clearAll": "Limpar tudo"
   },
   "search": {
     "placeholder": "Pesquisar tarefas e usuários",
     "noResults": "Nenhum resultado encontrado",
     "searching": "Pesquisando...",
-    "open": "Pesquisar"
+    "open": "Pesquisar",
+    "findAcrossLists": "Encontre tarefas e usuários em todas as listas",
+    "inputPlaceholder": "Pesquisar tarefas e usuários..."
   },
   "listHeaders": {
     "myTasks": "Minhas Tarefas",
@@ -511,6 +639,52 @@
         "title": "Conexão com o GitHub",
         "description": "Agentes de código executados no servidor usam a conexão com o GitHub em Configurações → Conexões, onde cada organização conectada aparece.",
         "open": "Abrir Conexões"
+      },
+      "hub": {
+        "getKey": "Obter uma chave",
+        "guideLink": "Guia para conectar meu agente de código",
+        "needsSetup": "Requer configuração",
+        "agentLoops": "Agent Loops",
+        "customAgents": "Agentes personalizados"
+      },
+      "runtime": {
+        "stepConnect": "Conectar",
+        "stepInstall": "Instalar",
+        "stepSchedule": "Agendar ou executar",
+        "stepTest": "Testar",
+        "hostedWorkflow": "Sem uma máquina para deixar ligada? Faça commit deste workflow. Ele precisa de dois segredos do repositório; {link} explica como criar cada um.",
+        "startHere": "Start here",
+        "copilotInstall": "Faça commit deste agente personalizado do repositório uma vez. O Copilot CLI, o app do Copilot, o GitHub.com e o VS Code poderão selecionar o mesmo comportamento de fila.",
+        "githubConnect": "Crie credenciais de cliente para este agente e salve-as como segredos do Actions do repositório com os nomes {clientId} e {clientSecret}. Cada execução troca as credenciais por um token de acesso de uma hora apenas com os escopos de que um worker de fila precisa — nenhum token de longa duração chega ao repositório.",
+        "githubInstall": "Este workflow é um portão de fila: ele responde \"há trabalho?\" e não executa um agente por conta própria. Aponte o segundo job para o seu job de agente compatível existente (uma etapa do Copilot CLI, Claude Code ou Codex das outras abas).",
+        "githubSchedule": "Faça commit do workflow para a programação de 30 minutos, ou use Run workflow no GitHub Actions para testá-lo imediatamente. Uma execução sem trabalho para após a consulta restrita à fila, então uma fila vazia custa uma chamada de API em vez de uma inicialização completa do agente."
+      },
+      "webhook": {
+        "title": "Configuração do webhook",
+        "description": "Configure uma URL de webhook para receber notificações de tarefas no seu servidor Claude Code Remote",
+        "urlLabel": "URL do webhook",
+        "urlHint": "A URL do seu servidor Claude Code Remote que receberá as notificações do webhook",
+        "enabledHint": "Quando ativado, webhooks serão enviados nas atribuições de tarefas",
+        "agentsLabel": "Agentes a tratar",
+        "agentsHint": "Selecione quais agentes de IA este webhook deve tratar. Agentes não selecionados serão tratados pelo modo de polling.",
+        "noAgents": "Nenhum agente selecionado. Todas as tarefas serão tratadas pelo modo de polling.",
+        "secretLabel": "Segredo do webhook",
+        "secretHint": "Regenerar o segredo usado na verificação de assinatura HMAC",
+        "regenerateOnSave": "Regenerar ao salvar",
+        "saveSecretTitle": "Salve seu segredo do webhook",
+        "envHint": "Adicione ao seu arquivo {file}:",
+        "failureCount": "Número de falhas",
+        "noFailures": "Sem falhas",
+        "lastFired": "Último disparo",
+        "agentsHandled": "Agentes tratados pelo webhook",
+        "otherAgentsPolling": "Os outros agentes serão tratados pelo modo de polling",
+        "subscribedEvents": "Eventos assinados",
+        "test": "Testar webhook",
+        "aboutTitle": "Sobre a entrega de webhooks",
+        "gettingStarted": "Primeiros passos",
+        "stepConfigureUrl": "Configure a URL do seu webhook acima",
+        "stepAssign": "Atribua tarefas a {agent}",
+        "eventsTitle": "Eventos do webhook"
       }
     },
     "apiAccess": {
@@ -520,6 +694,29 @@
         "title": "Do you need a client here?",
         "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
         "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant."
+      },
+      "apps": {
+        "loading": "Carregando aplicações OAuth...",
+        "testNow": "Testar a API agora",
+        "subtitle": "Gerencie o acesso à API das suas aplicações",
+        "newApp": "Novo app",
+        "empty": "Ainda não há aplicações OAuth",
+        "createFirst": "Crie seu primeiro app",
+        "grantTypes": "Tipos de concessão",
+        "redirectUris": "URIs de redirecionamento",
+        "testTitle": "Testar aplicação OAuth",
+        "testDescription": "Digite o segredo do cliente para obter um token de acesso e testar a API",
+        "secretPlaceholder": "Digite o segredo do cliente",
+        "secretHint": "O segredo do cliente foi exibido quando você criou este app",
+        "createTitle": "Criar aplicação OAuth",
+        "createDescription": "Crie um novo cliente OAuth para acesso à API",
+        "namePlaceholder": "Meu app",
+        "descriptionPlaceholder": "O que este app faz",
+        "mobileFullAccess": "App móvel (acesso total)",
+        "readOnly": "Somente leitura",
+        "editTitle": "Editar aplicação OAuth",
+        "editDescription": "Atualize as URLs de redirecionamento ou outros metadados exigidos pelas suas integrações.",
+        "selectToEdit": "Selecione um app OAuth para editar."
       }
     },
     "chatgpt": {
@@ -1072,6 +1269,32 @@
         "selectAtLeastOne": "Selecione pelo menos um escopo",
         "selectApp": "Selecione um aplicativo."
       }
+    },
+    "calendar": {
+      "loading": "Carregando configurações do calendário...",
+      "title": "Integração de calendário",
+      "description": "Sincronize suas tarefas com aplicativos de calendário externos",
+      "enableSync": "Ativar sincronização de calendário",
+      "enableSyncDescription": "Permita que suas tarefas sejam exportadas para aplicativos de calendário",
+      "include": "O que incluir no calendário",
+      "onlyWithDue": "Somente tarefas com data/hora de vencimento",
+      "noneDisabled": "Nenhuma (desativado)",
+      "export": "Exportação de calendário",
+      "downloadIcs": "Baixar arquivo de calendário (.ics)",
+      "subscribe": "Assinar calendário ao vivo",
+      "subscribeDescription": "Assinatura ao vivo que se atualiza automaticamente quando as tarefas mudam",
+      "howToUse": "Como usar:",
+      "downloadLabel": "Baixar:",
+      "howDownload": "Importe o arquivo .ics uma vez no Google Agenda, Calendário da Apple ou Outlook",
+      "subscribeLabel": "Assinar:",
+      "howSubscribe": "Adicione a URL webcal para sincronizar alterações automaticamente (recomendado)",
+      "howAppear": "Suas tarefas aparecerão como eventos de dia inteiro ou nos horários programados",
+      "howUpdates": "As alterações nas tarefas do {appName} serão refletidas nos calendários assinados"
+    },
+    "defaultDueTime": {
+      "title": "Horário de vencimento padrão",
+      "description": "Defina o horário padrão para novas tarefas ao selecionar uma data de vencimento",
+      "fallback": "Novas tarefas com data de vencimento usarão 17h por padrão"
     }
   },
   "projectMode": {
@@ -1162,6 +1385,19 @@
     "memberAgentAssignment": {
       "label": "Membros podem passar qualquer tarefa para um agente",
       "help": "Permite que qualquer membro desta lista atribua um agente a qualquer tarefa aqui, não apenas às que criou. Os agentes usam os planos do dono da lista."
+    },
+    "filters": {
+      "allAssignees": "Todos os responsáveis",
+      "notMe": "Não eu (outros)",
+      "allCreators": "Todos os criadores",
+      "notRepeating": "Sem repetição",
+      "inAnyList": "Tarefas em qualquer lista",
+      "notInAnyList": "Tarefas em nenhuma lista",
+      "clearAllFilters": "Limpar todos os filtros",
+      "removeFromFavorites": "Remover dos favoritos",
+      "makeFavorite": "Marcar como favorita",
+      "savedFilter": "Filtro salvo",
+      "savedFilterDescription": "Mostrar tarefas com base nos filtros, não na associação à lista"
     }
   },
   "reminderSettings": {
@@ -1170,7 +1406,32 @@
     "emailReminders": "Lembretes por e-mail",
     "defaultReminderTime": "Horário padrão do lembrete",
     "dailyDigest": "Resumo diário",
-    "quietHours": "Horário de silêncio"
+    "quietHours": "Horário de silêncio",
+    "description": "Configure quando e como você recebe lembretes de tarefas",
+    "pushDescription": "Receba notificações instantâneas no navegador",
+    "enablePush": "Ativar notificações push",
+    "pushBlocked": "As notificações push estão bloqueadas. Ative-as nas configurações do navegador para receber lembretes de tarefas.",
+    "emailDescription": "Receba e-mails de lembrete para tarefas com vencimento",
+    "defaultReminderTimeDescription": "Quando lembrar você antes do vencimento das tarefas",
+    "dailyDigestDescription": "Receba um resumo diário das suas tarefas",
+    "quietHoursDescription": "Desativar notificações durante este horário (opcional)",
+    "push": {
+      "description": "Receba avisos de lembretes e atualizações de tarefas mesmo com o app fechado",
+      "status": "Status das notificações",
+      "enableDescription": "Receba lembretes e notificações de tarefas",
+      "blockedIntro": "As notificações estão bloqueadas. Para ativar:",
+      "blockedChrome": "Clique no ícone de cadeado na barra de endereços → Notificações → Permitir",
+      "blockedFirefox": "Clique no ícone de escudo → Permissões → Permitir notificações",
+      "blockedSafari": "Safari → Ajustes → Sites → Notificações → Permitir",
+      "installTitle": "Para a melhor experiência, instale este app:",
+      "installMobileLabel": "Celular:",
+      "installMobile": "Toque em \"Adicionar à Tela de Início\" no menu do navegador",
+      "installDesktopLabel": "Computador:",
+      "installDesktop": "Procure o ícone de instalação na barra de endereços",
+      "installPwaLabel": "Vantagens do PWA:",
+      "installPwa": "As notificações funcionam mesmo com o app fechado",
+      "sendTest": "Enviar notificação de teste"
+    }
   },
   "keyboardShortcuts": {
     "title": "Atalhos de teclado",
@@ -1181,16 +1442,20 @@
       "taskEditing": "Edição de tarefas",
       "priority": "Prioridade",
       "interface": "Interface"
-    }
+    },
+    "chatHint": "Use em mensagens de chat e comentários de tarefas"
   },
   "commandPalette": {
     "label": "Paleta de comandos",
     "searchPlaceholder": "Pesquisar comandos…",
     "enterToSelect": "Enter para selecionar",
-    "escToClose": "Esc para fechar"
+    "escToClose": "Esc para fechar",
+    "noCommands": "Nenhum comando encontrado"
   },
   "userPicker": {
-    "optionalMessage": "Mensagem opcional…"
+    "optionalMessage": "Mensagem opcional…",
+    "sendInvite": "Enviar convite",
+    "assignAnyway": "Atribuir mesmo assim"
   },
   "astridAgent": {
     "modelSetup": {
@@ -1246,5 +1511,28 @@
       "hours": "{n} h",
       "days": "{n} d"
     }
+  },
+  "chat": {
+    "inputPlaceholder": "Mensagem para a lista...",
+    "empty": "Ainda não há mensagens. Comece a conversa!",
+    "loadFailed": "Falha ao carregar o chat"
+  },
+  "notificationBell": {
+    "markAllRead": "Marcar tudo como lido",
+    "allCaughtUp": "Você está em dia."
+  },
+  "admin": {
+    "navDescription": "Gerencie acesso, análises e disponibilidade de recursos.",
+    "navLabel": "Seções de administração"
+  },
+  "pwa": {
+    "notNow": "Agora não",
+    "syncing": "Sincronizando alterações..."
+  },
+  "attachmentViewer": {
+    "closeEsc": "Fechar (Esc)",
+    "videoUnsupported": "Seu navegador não suporta a tag de vídeo.",
+    "noPreview": "Prévia não disponível para este tipo de arquivo",
+    "downloadFile": "Baixar arquivo"
   }
 }

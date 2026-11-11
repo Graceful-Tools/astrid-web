@@ -153,6 +153,54 @@
     },
     "tradeoffGrid": {
       "fullScreen": "Schermo intero"
+    },
+    "promote": {
+      "label": "Sposta fuori dalla sottoattività",
+      "dropHint": "Rilascia qui per spostarla fuori dall'attività principale"
+    },
+    "dropTasksHere": "Rilascia qui le attività",
+    "noOneAssigned": "Nessuno assegnato",
+    "selectPriorityOrAssignee": "Seleziona priorità o assegnatario",
+    "saveNewTask": "Salva nuova attività",
+    "detail": {
+      "backToList": "Torna alla lista",
+      "collapseTask": "Comprimi attività",
+      "collapse": "Comprimi",
+      "taskActions": "Azioni attività",
+      "exitFullScreen": "Esci da schermo intero",
+      "testReminder": "Prova promemoria",
+      "clickToAddDescription": "Fai clic per aggiungere una descrizione...",
+      "searchLists": "Cerca liste...",
+      "noLists": "Nessuna lista",
+      "unknownCreator": "Creatore sconosciuto",
+      "searchUsersOrEmail": "Cerca utenti o inserisci un'email...",
+      "nextWeek": "Prossima settimana",
+      "selectRepeat": "Seleziona ripetizione",
+      "repeatMode": "Modalità di ripetizione",
+      "repeatFromCompletion": "Ripeti dalla data di completamento",
+      "repeatFromDue": "Ripeti dalla data di scadenza",
+      "saveCustomPattern": "Salva schema personalizzato"
+    },
+    "commentsSection": {
+      "addPlaceholder": "Aggiungi un commento...",
+      "replyPlaceholder": "Scrivi una risposta...",
+      "refresh": "Aggiorna commenti",
+      "pullToRefresh": "Trascina per aggiornare...",
+      "releaseToRefresh": "Rilascia per aggiornare..."
+    },
+    "modals": {
+      "deleteTitle": "Elimina attività",
+      "copyTitle": "Copia attività",
+      "copyToList": "Copia nella lista:",
+      "myTasksOnly": "Le mie attività (solo)",
+      "copyNote": "L'attività copiata manterrà la data di scadenza e sarà assegnata a te.",
+      "shareTitle": "Condividi attività",
+      "privateNote": "Questa è un'attività privata. Solo gli utenti con accesso a questa lista possono vederla.",
+      "generatingLink": "Generazione del link di condivisione...",
+      "linkFailed": "Impossibile generare il link di condivisione. Riprova."
+    },
+    "timer": {
+      "tapToChange": "Tocca il tempo per cambiare la durata"
     }
   },
   "lists": {
@@ -189,7 +237,67 @@
       "description": "Aggiungi una descrizione..."
     },
     "showSubtasksLabel": "Mostra sottoattività",
-    "showSubtasksDescription": "Mostra le sottoattività rientrate sotto l'attività principale in questo elenco. Disattivalo per mostrare solo le attività principali: le sottoattività restano visibili nel dettaglio dell'attività principale."
+    "showSubtasksDescription": "Mostra le sottoattività rientrate sotto l'attività principale in questo elenco. Disattivalo per mostrare solo le attività principali: le sottoattività restano visibili nel dettaglio dell'attività principale.",
+    "copyList": "Copia lista",
+    "descriptionTitle": "Descrizione della lista",
+    "descriptionAgentHint": "Gli agenti ricevono questo come contesto principale. Supporta Markdown.",
+    "image": "Immagine della lista",
+    "addModal": {
+      "title": "Aggiungi una lista",
+      "subtitle": "Usa le liste per organizzare progetti, obiettivi e avventure!",
+      "namePlaceholder": "es. Famiglia",
+      "shareWith": "Condividi con",
+      "sharePlaceholder": "Nome o indirizzo email"
+    },
+    "membersManager": {
+      "invite": "Invita membro",
+      "inviteTitle": "Invita un nuovo membro",
+      "emailPlaceholder": "Inserisci l'indirizzo email",
+      "sendInvitation": "Invia invito",
+      "empty": "Ancora nessun membro",
+      "emptyHint": "Invita persone a collaborare a questa lista",
+      "makeAdmin": "Rendi amministratore",
+      "makeMember": "Rendi membro",
+      "permissionLevels": "Livelli di autorizzazione",
+      "ownerCan": "Controllo completo della lista",
+      "adminCan": "Può gestire impostazioni e membri della lista",
+      "memberCan": "Può aggiungere, modificare e gestire attività"
+    },
+    "membershipPanel": {
+      "availableAgents": "Agenti disponibili",
+      "loadingAgents": "Caricamento degli agenti disponibili...",
+      "addAgent": "Aggiungi agente",
+      "aiHelpTitle": "Vuoi che l'IA ti aiuti con le tue attività?",
+      "addApiKeys": "Aggiungi le tue chiavi API per iniziare",
+      "privacyLabel": "Privacy della lista",
+      "makePublic": "Rendi pubblica",
+      "makePrivate": "Rendi privata",
+      "publicListType": "Tipo di lista pubblica",
+      "makeCopyOnly": "Rendi solo copia",
+      "makeCollaborative": "Rendi collaborativa",
+      "leaveList": "Lascia lista"
+    },
+    "ownerLeave": {
+      "title": "Trasferisci proprietà",
+      "selectNewOwner": "Seleziona nuovo proprietario:",
+      "noOtherMembers": "Nessun altro membro a cui trasferire la proprietà.",
+      "deleteList": "Elimina lista"
+    },
+    "publicBrowser": {
+      "searchPlaceholder": "Cerca per nome, descrizione o creatore...",
+      "allLists": "Tutte le liste",
+      "loading": "Caricamento delle liste pubbliche...",
+      "tasksPreview": "Anteprima attività",
+      "loadingPreview": "Caricamento anteprima...",
+      "noTasks": "Questa lista non ha attività",
+      "selectTitle": "Seleziona una lista da visualizzare in anteprima",
+      "selectHint": "Scegli una lista a sinistra per vederne dettagli e attività"
+    },
+    "imagePicker": {
+      "title": "Scegli immagine",
+      "uploadLabel": "Carica dal tuo dispositivo",
+      "chooseFile": "Scegli file"
+    }
   },
   "priority": {
     "none": "Nessuna",
@@ -226,7 +334,21 @@
     "monthly": "Mensile",
     "yearly": "Annuale",
     "custom": "Personalizzato",
-    "pickAtLeastOneDay": "Scegli almeno un giorno"
+    "pickAtLeastOneDay": "Scegli almeno un giorno",
+    "editor": {
+      "repeatEvery": "Ripeti ogni",
+      "repeatOnDays": "Ripeti in questi giorni",
+      "repeatType": "Tipo di ripetizione",
+      "sameDate": "Stessa data ogni mese",
+      "sameWeekday": "Stesso giorno della settimana e settimana del mese",
+      "dayOfMonth": "Giorno del mese",
+      "weekOfMonth": "Settimana del mese",
+      "endCondition": "Condizione di fine",
+      "afterOccurrences": "Dopo X occorrenze",
+      "untilDate": "Fino a una data specifica",
+      "occurrencesCount": "Numero di occorrenze",
+      "endDate": "Data di fine"
+    }
   },
   "weekdays": {
     "sunday": "Domenica",
@@ -295,7 +417,8 @@
     "timezone": {
       "title": "Fuso Orario",
       "auto": "Rilevamento automatico"
-    }
+    },
+    "helpMeHelpYou": "Aiutami ad aiutarti a diventare super produttivo!!!"
   },
   "auth": {
     "signIn": "Accedi",
@@ -446,13 +569,18 @@
     "optional": "Opzionale",
     "required": "Obbligatorio",
     "copiedToClipboard": "Copiato negli appunti",
-    "unableToCopy": "Impossibile copiare negli appunti"
+    "unableToCopy": "Impossibile copiare negli appunti",
+    "pullToRefresh": "Trascina per aggiornare",
+    "releaseToRefresh": "Rilascia per aggiornare",
+    "clearAll": "Cancella tutto"
   },
   "search": {
     "placeholder": "Cerca attività e utenti",
     "noResults": "Nessun risultato trovato",
     "searching": "Ricerca in corso...",
-    "open": "Cerca"
+    "open": "Cerca",
+    "findAcrossLists": "Trova attività e utenti in tutte le liste",
+    "inputPlaceholder": "Cerca attività e utenti..."
   },
   "listHeaders": {
     "myTasks": "Le Mie Attività",
@@ -511,6 +639,52 @@
         "title": "Connessione GitHub",
         "description": "Gli agenti di codice eseguiti sul server usano la connessione GitHub in Impostazioni → Connessioni, dove è elencata ogni organizzazione collegata.",
         "open": "Apri Connessioni"
+      },
+      "hub": {
+        "getKey": "Ottieni una chiave",
+        "guideLink": "Guida per collegare il mio agente di codice",
+        "needsSetup": "Da configurare",
+        "agentLoops": "Agent Loops",
+        "customAgents": "Agenti personalizzati"
+      },
+      "runtime": {
+        "stepConnect": "Collega",
+        "stepInstall": "Installa",
+        "stepSchedule": "Pianifica o esegui",
+        "stepTest": "Prova",
+        "hostedWorkflow": "Nessuna macchina da lasciare accesa? Fai il commit di questo workflow. Richiede due secret del repository; {link} spiega come crearli.",
+        "startHere": "Start here",
+        "copilotInstall": "Fai il commit di questo agente personalizzato del repository una volta. Copilot CLI, l'app Copilot, GitHub.com e VS Code potranno poi selezionare lo stesso comportamento della coda.",
+        "githubConnect": "Crea le credenziali client per questo agente e salvale come secret di Actions del repository con i nomi {clientId} e {clientSecret}. Ogni esecuzione scambia le credenziali con un token di accesso di un'ora che ha solo gli ambiti necessari a un worker della coda: nessun token a lunga durata raggiunge mai il repository.",
+        "githubInstall": "Questo workflow è un gate della coda: risponde a \"c'è lavoro?\" e non esegue alcun agente. Punta il secondo job al tuo job agente supportato esistente (uno step Copilot CLI, Claude Code o Codex dalle altre schede).",
+        "githubSchedule": "Fai il commit del workflow per la sua pianificazione ogni 30 minuti, oppure usa Run workflow in GitHub Actions per provarlo subito. Un'esecuzione a vuoto si ferma dopo la richiesta mirata alla coda, quindi una coda vuota costa una chiamata API anziché un intero avvio dell'agente."
+      },
+      "webhook": {
+        "title": "Configurazione webhook",
+        "description": "Configura un URL webhook per ricevere le notifiche delle attività sul tuo server Claude Code Remote",
+        "urlLabel": "URL webhook",
+        "urlHint": "L'URL del tuo server Claude Code Remote che riceverà le notifiche webhook",
+        "enabledHint": "Se attivo, i webhook verranno inviati per le assegnazioni di attività",
+        "agentsLabel": "Agenti da gestire",
+        "agentsHint": "Seleziona quali agenti IA deve gestire questo webhook. Gli agenti non selezionati saranno gestiti in modalità polling.",
+        "noAgents": "Nessun agente selezionato. Tutte le attività saranno gestite in modalità polling.",
+        "secretLabel": "Secret webhook",
+        "secretHint": "Rigenera il secret usato per la verifica della firma HMAC",
+        "regenerateOnSave": "Rigenera al salvataggio",
+        "saveSecretTitle": "Salva il tuo secret webhook",
+        "envHint": "Aggiungi al tuo file {file}:",
+        "failureCount": "Numero di errori",
+        "noFailures": "Nessun errore",
+        "lastFired": "Ultimo invio",
+        "agentsHandled": "Agenti gestiti dal webhook",
+        "otherAgentsPolling": "Gli altri agenti saranno gestiti in modalità polling",
+        "subscribedEvents": "Eventi sottoscritti",
+        "test": "Prova webhook",
+        "aboutTitle": "Informazioni sulla consegna dei webhook",
+        "gettingStarted": "Per iniziare",
+        "stepConfigureUrl": "Configura qui sopra l'URL del tuo webhook",
+        "stepAssign": "Assegna attività a {agent}",
+        "eventsTitle": "Eventi webhook"
       }
     },
     "apiAccess": {
@@ -520,6 +694,29 @@
         "title": "Do you need a client here?",
         "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
         "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant."
+      },
+      "apps": {
+        "loading": "Caricamento delle applicazioni OAuth...",
+        "testNow": "Prova l'API ora",
+        "subtitle": "Gestisci l'accesso API per le tue applicazioni",
+        "newApp": "Nuova app",
+        "empty": "Ancora nessuna applicazione OAuth",
+        "createFirst": "Crea la tua prima app",
+        "grantTypes": "Tipi di grant",
+        "redirectUris": "URI di reindirizzamento",
+        "testTitle": "Prova applicazione OAuth",
+        "testDescription": "Inserisci il tuo client secret per ottenere un token di accesso e provare l'API",
+        "secretPlaceholder": "Inserisci il tuo client secret",
+        "secretHint": "Il client secret è stato mostrato quando hai creato questa app",
+        "createTitle": "Crea applicazione OAuth",
+        "createDescription": "Crea un nuovo client OAuth per l'accesso API",
+        "namePlaceholder": "La mia app",
+        "descriptionPlaceholder": "Cosa fa questa app",
+        "mobileFullAccess": "App mobile (accesso completo)",
+        "readOnly": "Sola lettura",
+        "editTitle": "Modifica applicazione OAuth",
+        "editDescription": "Aggiorna gli URL di reindirizzamento o altri metadati richiesti dalle tue integrazioni.",
+        "selectToEdit": "Seleziona un'app OAuth da modificare."
       }
     },
     "chatgpt": {
@@ -1072,6 +1269,32 @@
         "selectAtLeastOne": "Seleziona almeno un ambito",
         "selectApp": "Seleziona un'app."
       }
+    },
+    "calendar": {
+      "loading": "Caricamento delle impostazioni del calendario...",
+      "title": "Integrazione calendario",
+      "description": "Sincronizza le tue attività con applicazioni di calendario esterne",
+      "enableSync": "Attiva sincronizzazione calendario",
+      "enableSyncDescription": "Consenti l'esportazione delle attività nelle applicazioni di calendario",
+      "include": "Cosa includere nel calendario",
+      "onlyWithDue": "Solo attività con data/ora di scadenza",
+      "noneDisabled": "Nessuna (disattivato)",
+      "export": "Esportazione calendario",
+      "downloadIcs": "Scarica file calendario (.ics)",
+      "subscribe": "Iscriviti al calendario live",
+      "subscribeDescription": "Abbonamento live che si aggiorna automaticamente quando le attività cambiano",
+      "howToUse": "Come si usa:",
+      "downloadLabel": "Scarica:",
+      "howDownload": "Importa il file .ics una volta in Google Calendar, Calendario Apple o Outlook",
+      "subscribeLabel": "Iscriviti:",
+      "howSubscribe": "Aggiungi l'URL webcal per sincronizzare automaticamente le modifiche (consigliato)",
+      "howAppear": "Le tue attività appariranno come eventi di un giorno intero o all'orario previsto",
+      "howUpdates": "Le modifiche alle attività in {appName} si rifletteranno nei calendari sottoscritti"
+    },
+    "defaultDueTime": {
+      "title": "Orario di scadenza predefinito",
+      "description": "Imposta l'orario predefinito per le nuove attività quando scegli una data di scadenza",
+      "fallback": "Le nuove attività con data di scadenza avranno come orario predefinito le 17:00"
     }
   },
   "projectMode": {
@@ -1162,6 +1385,19 @@
     "memberAgentAssignment": {
       "label": "I membri possono affidare qualsiasi attività a un agente",
       "help": "Consente a ogni membro di questa lista di assegnare un agente a qualsiasi attività, non solo a quelle create da lui. Gli agenti usano i piani del proprietario della lista."
+    },
+    "filters": {
+      "allAssignees": "Tutti gli assegnatari",
+      "notMe": "Non io (altri)",
+      "allCreators": "Tutti i creatori",
+      "notRepeating": "Non ricorrente",
+      "inAnyList": "Attività in qualsiasi lista",
+      "notInAnyList": "Attività in nessuna lista",
+      "clearAllFilters": "Cancella tutti i filtri",
+      "removeFromFavorites": "Rimuovi dai preferiti",
+      "makeFavorite": "Aggiungi ai preferiti",
+      "savedFilter": "Filtro salvato",
+      "savedFilterDescription": "Mostra le attività in base ai filtri, non all'appartenenza alla lista"
     }
   },
   "reminderSettings": {
@@ -1170,7 +1406,32 @@
     "emailReminders": "Promemoria via email",
     "defaultReminderTime": "Orario promemoria predefinito",
     "dailyDigest": "Riepilogo giornaliero",
-    "quietHours": "Ore di silenzio"
+    "quietHours": "Ore di silenzio",
+    "description": "Configura quando e come ricevere i promemoria delle attività",
+    "pushDescription": "Ricevi notifiche istantanee nel browser",
+    "enablePush": "Attiva notifiche push",
+    "pushBlocked": "Le notifiche push sono bloccate. Attivale nelle impostazioni del browser per ricevere i promemoria delle attività.",
+    "emailDescription": "Ricevi email di promemoria per le attività in scadenza",
+    "defaultReminderTimeDescription": "Quando ricordartelo prima della scadenza delle attività",
+    "dailyDigestDescription": "Ricevi un riepilogo giornaliero delle tue attività",
+    "quietHoursDescription": "Disattiva le notifiche in queste ore (opzionale)",
+    "push": {
+      "description": "Ricevi notifiche su promemoria e aggiornamenti delle attività anche ad app chiusa",
+      "status": "Stato delle notifiche",
+      "enableDescription": "Ricevi promemoria e notifiche delle attività",
+      "blockedIntro": "Le notifiche sono bloccate. Per attivarle:",
+      "blockedChrome": "Fai clic sull'icona del lucchetto nella barra degli indirizzi → Notifiche → Consenti",
+      "blockedFirefox": "Fai clic sull'icona dello scudo → Permessi → Consenti notifiche",
+      "blockedSafari": "Safari → Impostazioni → Siti web → Notifiche → Consenti",
+      "installTitle": "Per un'esperienza migliore, installa questa app:",
+      "installMobileLabel": "Mobile:",
+      "installMobile": "Tocca \"Aggiungi a schermata Home\" nel menu del browser",
+      "installDesktopLabel": "Desktop:",
+      "installDesktop": "Cerca l'icona di installazione nella barra degli indirizzi",
+      "installPwaLabel": "Vantaggi della PWA:",
+      "installPwa": "Le notifiche funzionano anche ad app chiusa",
+      "sendTest": "Invia notifica di prova"
+    }
   },
   "keyboardShortcuts": {
     "title": "Scorciatoie da tastiera",
@@ -1181,16 +1442,20 @@
       "taskEditing": "Modifica attività",
       "priority": "Priorità",
       "interface": "Interfaccia"
-    }
+    },
+    "chatHint": "Da usare nei messaggi di chat e nei commenti delle attività"
   },
   "commandPalette": {
     "label": "Palette dei comandi",
     "searchPlaceholder": "Cerca comandi…",
     "enterToSelect": "Invio per selezionare",
-    "escToClose": "Esc per chiudere"
+    "escToClose": "Esc per chiudere",
+    "noCommands": "Nessun comando trovato"
   },
   "userPicker": {
-    "optionalMessage": "Messaggio facoltativo…"
+    "optionalMessage": "Messaggio facoltativo…",
+    "sendInvite": "Invia invito",
+    "assignAnyway": "Assegna comunque"
   },
   "astridAgent": {
     "modelSetup": {
@@ -1246,5 +1511,28 @@
       "hours": "{n} h",
       "days": "{n} g"
     }
+  },
+  "chat": {
+    "inputPlaceholder": "Messaggio alla lista...",
+    "empty": "Ancora nessun messaggio. Inizia la conversazione!",
+    "loadFailed": "Impossibile caricare la chat"
+  },
+  "notificationBell": {
+    "markAllRead": "Segna tutto come letto",
+    "allCaughtUp": "Sei in pari."
+  },
+  "admin": {
+    "navDescription": "Gestisci accesso, analisi e disponibilità delle funzionalità.",
+    "navLabel": "Sezioni di amministrazione"
+  },
+  "pwa": {
+    "notNow": "Non ora",
+    "syncing": "Sincronizzazione delle modifiche..."
+  },
+  "attachmentViewer": {
+    "closeEsc": "Chiudi (Esc)",
+    "videoUnsupported": "Il tuo browser non supporta il tag video.",
+    "noPreview": "Anteprima non disponibile per questo tipo di file",
+    "downloadFile": "Scarica file"
   }
 }
