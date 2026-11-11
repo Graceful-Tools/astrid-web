@@ -1,3 +1,4 @@
+import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import { NextResponse, type NextRequest } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import {
@@ -27,7 +28,12 @@ const handlePost = withAuth<RouteContext>(
       return NextResponse.json({ outcome: 'forbidden', task: null }, { status: 403 })
     }
 
-    const { id: taskId } = await params
+    // Identifiers are accepted wherever a task id is (AWTD-1016); claim_task says so.
+    const { id: rawId } = await params
+    const taskId = await resolveTaskIdOrIdentifier(rawId)
+    if (!taskId) {
+      return NextResponse.json({ outcome: 'not_found', task: null }, { status: 404 })
+    }
     const result = await claimAgentTask({
       taskId,
       userId: auth.userId,

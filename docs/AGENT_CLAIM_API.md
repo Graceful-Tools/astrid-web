@@ -58,3 +58,19 @@ board ID to roll back enrollment; no schema change is involved.
 Keep `ASTRID_AGENT_CLAIM_API` unset/off to make the route return `404`, or revert
 the route and its service changes. No database migration or flag change in a
 deployed environment is part of this implementation.
+
+## Known limits (2026-11-10 review)
+
+- **Client-credentials tokens cannot claim.** The agent is taken from the credential's
+  binding, and a client-credentials token carries none, so those callers always get
+  `forbidden`. That includes the stdio MCP server run on a client id and secret. Agent
+  consent tokens, agent-bound static tokens and agent-owned clients work. Resolve this
+  before enrolling a board whose worker authenticates that way.
+- **`already_yours` is per mailbox, not per worker.** Two sessions on one mailbox are only
+  excluded while their claims race; a later claim by the second gets `already_yours`.
+  A worker that did not make the claim should treat `already_yours` on `claim` as taken.
+- **A future start date is not checked**, unlike `/claim-fixall`; the queue already withholds
+  such tasks, so claim only what the queue returned.
+- **`release` unassigns the agent**, so on a board that is not enrolled for unassigned
+  pickup the task leaves the agent's queue.
+

@@ -84,6 +84,20 @@ describe('POST /api/v1/tasks/:id/claim (AWTD-1555)', () => {
     expect(authenticateAPI).not.toHaveBeenCalled()
   })
 
+  it('accepts a task identifier, as claim_task says it does (AWTD-1557 review)', async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValueOnce({ id: TASK_ID } as never)
+
+    const response = await POST(request({ action: 'claim', agentMailbox: 'codex' }), {
+      params: Promise.resolve({ id: 'AWTD-1555' }),
+    })
+
+    expect(prisma.task.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { identifier: 'AWTD-1555' } }),
+    )
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ outcome: 'claimed', task: { id: TASK_ID } })
+  })
+
   it('atomically moves an accessible Ready task to Doing for the bound agent', async () => {
     const response = await POST(request({ action: 'claim', agentMailbox: 'codex' }), { params })
 
