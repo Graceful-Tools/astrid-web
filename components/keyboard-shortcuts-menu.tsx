@@ -59,16 +59,16 @@ export function KeyboardShortcutsMenu({ isOpen, onClose }: KeyboardShortcutsMenu
 
   const ShortcutGroup = ({ title, shortcuts }: { title: string; shortcuts: (typeof KEYBOARD_SHORTCUTS)[number][] }) => (
     <div className="space-y-2">
-      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+      <h3 className="text-sm font-semibold text-theme-secondary uppercase tracking-wide">
         {title}
       </h3>
       <div className="space-y-1">
         {shortcuts.map((shortcut, index) => (
           <div key={`${shortcut.key}-${index}`} className="flex items-center justify-between py-1">
-            <span className="text-sm text-gray-600 dark:text-gray-400">
+            <span className="text-sm text-theme-muted">
               {shortcut.description}
             </span>
-            <kbd className="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded border">
+            <kbd className="px-2 py-1 text-xs font-mono bg-theme-tertiary text-theme-primary rounded border">
               {formatKey(shortcut.key)}
             </kbd>
           </div>
@@ -117,10 +117,10 @@ export function KeyboardShortcutsMenu({ isOpen, onClose }: KeyboardShortcutsMenu
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <ShortcutGroup title={t('keyboardShortcuts.groups.interface')} shortcuts={groupedShortcuts.ui} />
             <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+              <h3 className="text-sm font-semibold text-theme-secondary uppercase tracking-wide">
                 Chat & References
               </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mb-2">
+              <p className="text-xs text-theme-muted mb-2">
                 Use in chat messages and task comments
               </p>
               <div className="space-y-1">
@@ -133,8 +133,8 @@ export function KeyboardShortcutsMenu({ isOpen, onClose }: KeyboardShortcutsMenu
                   { key: 'Esc', desc: 'Dismiss suggestions' },
                 ].map(({ key, desc }) => (
                   <div key={key} className="flex items-center justify-between py-1">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">{desc}</span>
-                    <kbd className="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded border">
+                    <span className="text-sm text-theme-muted">{desc}</span>
+                    <kbd className="px-2 py-1 text-xs font-mono bg-theme-tertiary text-theme-primary rounded border">
                       {key}
                     </kbd>
                   </div>

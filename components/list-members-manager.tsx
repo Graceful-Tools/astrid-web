@@ -418,7 +418,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
       case "owner":
         return <Crown className="w-4 h-4 text-yellow-500" />
       case "admin":
-        return <Shield className="w-4 h-4 text-blue-600 dark:text-blue-500" />
+        return <Shield className="w-4 h-4 text-brand" />
       case "member":
         return <UserIcon className="w-4 h-4 text-green-500" />
       case "viewer":
@@ -564,7 +564,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
                           {member.name || member.email}
                         </span>
                         {member.type === 'invite' && (
-                          <Badge variant="outline" className="text-xs px-1 py-0 text-yellow-400 border-yellow-400 shrink-0">
+                          <Badge variant="outline" className="text-xs px-1 py-0 text-warning border-warning shrink-0">
                             Pending
                           </Badge>
                         )}
@@ -647,7 +647,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
                               e.stopPropagation()
                               handleRemoveMember(member.user_id || member.email)
                             }}
-                            className="text-red-400 hover:text-red-300"
+                            className="text-danger hover:text-danger/80"
                           >
                             <UserMinus className="w-4 h-4 mr-2" />
                             {member.type === 'invite' ? 'Cancel' : 'Remove'}
@@ -662,7 +662,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
                             e.stopPropagation()
                             handleLeaveList()
                           }}
-                          className="text-red-400 hover:text-red-300"
+                          className="text-danger hover:text-danger/80"
                         >
                           <UserMinus className="w-4 h-4 mr-2" />
                           Leave
@@ -679,11 +679,11 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
       </div>
 
       {list.privacy === "SHARED" && (
-        <div className="mt-4 p-3 bg-blue-900/20 rounded-lg">
-          <h4 className="font-medium text-blue-600 dark:text-blue-200 mb-2 text-sm">
+        <div className="mt-4 p-3 bg-brand-subtle rounded-lg">
+          <h4 className="font-medium text-brand mb-2 text-sm">
             Permission Levels
           </h4>
-          <div className="space-y-1 text-xs text-blue-600 dark:text-blue-300">
+          <div className="space-y-1 text-xs text-theme-primary">
             <div className="flex items-center space-x-2">
               <Crown className="w-3 h-3" />
               <span><strong>Owner:</strong> Full control over the list</span>

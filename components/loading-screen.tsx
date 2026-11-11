@@ -11,10 +11,10 @@ export function LoadingScreen({ message = "Loading..." }: LoadingScreenProps) {
         <div className="app-sidebar theme-border">
           <div className="p-4">
             <div className="animate-pulse">
-              <div className="h-8 bg-gray-300 dark:bg-gray-600 rounded w-20 mb-4"></div>
+              <div className="h-8 bg-theme-active rounded w-20 mb-4"></div>
               <div className="space-y-2">
                 {Array.from({ length: 5 }, (_, i) => (
-                  <div key={i} className="h-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div key={i} className="h-10 bg-theme-active rounded"></div>
                 ))}
               </div>
             </div>
@@ -26,9 +26,9 @@ export function LoadingScreen({ message = "Loading..." }: LoadingScreenProps) {
           {/* Header skeleton */}
           <div className="app-header theme-header theme-border">
             <div className="flex items-center space-x-4">
-              <div className="animate-pulse h-6 bg-gray-300 dark:bg-gray-600 rounded w-24"></div>
+              <div className="animate-pulse h-6 bg-theme-active rounded w-24"></div>
               <div className="flex-1"></div>
-              <div className="animate-pulse h-8 w-8 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+              <div className="animate-pulse h-8 w-8 bg-theme-active rounded-full"></div>
             </div>
           </div>
           

@@ -61,7 +61,7 @@ export const ChatPanel = React.memo(function ChatPanel({
   if (error) {
     return (
       <div className={`flex flex-col h-full items-center justify-center ${className}`}>
-        <p className="text-sm text-red-500">Failed to load chat</p>
+        <p className="text-sm text-danger">Failed to load chat</p>
       </div>
     )
   }
