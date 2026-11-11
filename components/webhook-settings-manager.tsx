@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { useTranslations } from "@/lib/i18n/client"
+import Link from "next/link"
 import {
   Webhook,
   Copy,
@@ -554,11 +555,10 @@ export function WebhookSettingsManager() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <h4 className="font-medium theme-text-primary">What is Claude Code Remote?</h4>
+            <h4 className="font-medium theme-text-primary">About webhook delivery</h4>
             <p className="text-sm theme-text-muted">
-              Claude Code Remote allows you to run a self-hosted server that receives task notifications
-              and executes them using the Claude Code CLI on your own infrastructure. This gives you
-              full access to CLI capabilities like file editing, git operations, and bash commands.
+              Connect a webhook receiver you operate to {BRAND.appName}. This panel configures
+              where task notifications are sent; it does not install or start an agent host.
             </p>
           </div>
 
@@ -566,13 +566,29 @@ export function WebhookSettingsManager() {
             <h4 className="font-medium theme-text-primary">Getting Started</h4>
             <ol className="list-decimal list-inside text-sm theme-text-muted space-y-1">
               <li>
-                Run an agent host:{' '}
-                <code className="px-1 py-0.5 theme-bg-tertiary rounded">npx astrid-agent serve</code>
+                Use a webhook receiver you operate. The{' '}
+                <a
+                  href="https://www.npmjs.com/package/@gracefultools/astrid-sdk"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[rgb(var(--theme-accent))] hover:underline"
+                >
+                  {BRAND.appName} SDK
+                </a>{' '}
+                provides integration libraries, not a standalone agent-host command.
               </li>
               <li>Configure your webhook URL above</li>
               <li>Copy the webhook secret to your server&apos;s environment</li>
               <li>Assign tasks to <code className="px-1 py-0.5 theme-bg-tertiary rounded">claude@{BRAND.agentEmailDomain}</code></li>
             </ol>
+            <p className="text-sm theme-text-muted">
+              For a guided setup without a webhook receiver, choose I run it → Native coding harness in Settings → AI Agents
+              and follow the{' '}
+              <Link href="/docs/loops" className="text-[rgb(var(--theme-accent))] hover:underline">
+                MCP + queue-skill recipes
+              </Link>
+              .
+            </p>
           </div>
 
           <div className="space-y-2">
