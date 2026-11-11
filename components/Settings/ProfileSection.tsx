@@ -65,23 +65,23 @@ export function ProfileSection({ accountData, onSaved }: ProfileSectionProps) {
       if (response.ok) {
         await onSaved()
         toast({
-          title: "Success!",
-          description: "Your account information has been updated.",
+          title: t("settingsPages.profileInfo.toasts.successTitle"),
+          description: t("settingsPages.profileInfo.toasts.updated"),
           duration: 3000,
         })
       } else {
         const error = await response.json()
         toast({
-          title: "Error",
-          description: error.error || "Failed to update account information.",
+          title: t("messages.error"),
+          description: error.error || t("settingsPages.profileInfo.toasts.updateFailed"),
           duration: 5000,
         })
       }
     } catch (error) {
       console.error("Error updating account:", error)
       toast({
-        title: "Error",
-        description: "Failed to update account information.",
+        title: t("messages.error"),
+        description: t("settingsPages.profileInfo.toasts.updateFailed"),
         duration: 5000,
       })
     } finally {
@@ -115,10 +115,10 @@ export function ProfileSection({ accountData, onSaved }: ProfileSectionProps) {
             <div className="text-sm theme-text-muted space-y-1">
               <p>{t("settingsPages.profileInfo.clickToChangePhoto")}</p>
               {accountData.verifiedViaOAuth && (
-                <p className="text-xs">Currently synced with your OAuth provider</p>
+                <p className="text-xs">{t("settingsPages.profileInfo.syncedWithOAuth")}</p>
               )}
               {uploadingPhoto && (
-                <p className="text-xs text-brand">Uploading...</p>
+                <p className="text-xs text-brand">{t("settingsPages.profileInfo.uploading")}</p>
               )}
             </div>
             <input
@@ -144,22 +144,22 @@ export function ProfileSection({ accountData, onSaved }: ProfileSectionProps) {
                     const data = await response.json()
                     setCustomImageUrl(data.url)
                     toast({
-                      title: "Photo uploaded!",
-                      description: "Click 'Save Changes' to update your profile.",
+                      title: t("settingsPages.profileInfo.toasts.photoUploadedTitle"),
+                      description: t("settingsPages.profileInfo.toasts.photoUploadedDesc"),
                       duration: 3000,
                     })
                   } else {
                     toast({
-                      title: "Upload failed",
-                      description: "Failed to upload photo. Please try again.",
+                      title: t("settingsPages.profileInfo.toasts.uploadFailedTitle"),
+                      description: t("settingsPages.profileInfo.toasts.uploadFailedDesc"),
                       duration: 5000,
                     })
                   }
                 } catch (error) {
                   console.error("Upload error:", error)
                   toast({
-                    title: "Upload failed",
-                    description: "Failed to upload photo. Please try again.",
+                    title: t("settingsPages.profileInfo.toasts.uploadFailedTitle"),
+                    description: t("settingsPages.profileInfo.toasts.uploadFailedDesc"),
                     duration: 5000,
                   })
                 } finally {
@@ -186,7 +186,7 @@ export function ProfileSection({ accountData, onSaved }: ProfileSectionProps) {
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your display name"
+              placeholder={t("settingsPages.profileInfo.displayNamePlaceholder")}
               className="bg-theme-input border-theme-input text-theme-primary placeholder:text-theme-placeholder focus:border-brand focus:ring-brand cursor-text"
               disabled={false}
               readOnly={false}

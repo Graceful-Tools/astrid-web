@@ -448,7 +448,7 @@ export function TaskFieldEditors({
                 <span className="text-brand">{task.creator.name || task.creator.email}</span>
               </>
             ) : (
-              <span className="theme-text-muted">Unknown creator</span>
+              <span className="theme-text-muted">{t('tasks.detail.unknownCreator')}</span>
             )}
           </div>
             </div>
@@ -475,7 +475,7 @@ export function TaskFieldEditors({
                     setEditingAssignee(false)
                   }}
                   onInviteUser={onInviteUser}
-                  placeholder="Search users or enter email..."
+                  placeholder={t('tasks.detail.searchUsersOrEmail')}
                   inline={true}
                   autoFocus={true}
                 />
@@ -569,7 +569,7 @@ export function TaskFieldEditors({
                     }}
                     className="text-sm"
                   >
-                    Next Week
+                    {t('tasks.detail.nextWeek')}
                   </Button>
                 </div>
               </div>
@@ -661,7 +661,7 @@ export function TaskFieldEditors({
                   onOpenChange={(open) => setRepeatingSelectOpen(open)}
                 >
                   <SelectTrigger className="theme-input">
-                    <SelectValue placeholder="Select repeat" />
+                    <SelectValue placeholder={t('tasks.detail.selectRepeat')} />
                   </SelectTrigger>
                   <SelectContent
                     position="popper"
@@ -701,7 +701,7 @@ export function TaskFieldEditors({
 
                   {/* Repeat Mode Selector - part of custom pattern chooser */}
                   <div className="mb-3">
-                    <Label className="text-sm theme-text-muted mb-2 block">Repeat Mode</Label>
+                    <Label className="text-sm theme-text-muted mb-2 block">{t('tasks.detail.repeatMode')}</Label>
                     <div
                       data-task-detail-content="true"
                       onClick={(e) => e.stopPropagation()}
@@ -738,8 +738,8 @@ export function TaskFieldEditors({
                             e.stopPropagation()
                           }}
                         >
-                          <SelectItem value="COMPLETION_DATE">Repeat from completion date</SelectItem>
-                          <SelectItem value="DUE_DATE">Repeat from due date</SelectItem>
+                          <SelectItem value="COMPLETION_DATE">{t('tasks.detail.repeatFromCompletion')}</SelectItem>
+                          <SelectItem value="DUE_DATE">{t('tasks.detail.repeatFromDue')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -766,7 +766,7 @@ export function TaskFieldEditors({
                       size="sm" disabled={!isCustomPatternSavable(tempRepeatingData)}
                       onClick={() => handleSaveRepeating('custom')}
                     >
-                      Save Custom Pattern
+                      {t('tasks.detail.saveCustomPattern')}
                     </Button>
                   </div>
                 </div>

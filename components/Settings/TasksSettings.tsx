@@ -1,6 +1,5 @@
 "use client"
 
-import { BRAND } from '@/lib/brand/config'
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
@@ -10,15 +9,19 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckSquare, Mail, Clock, AlertCircle } from "lucide-react"
+import { useTranslations } from "@/lib/i18n/client"
+import { RichMessage } from "@/components/shared/RichMessage"
 
 interface TasksSettingsProps {
   onNavigate: (page: string) => void
 }
 
 export default function TasksSettings({ onNavigate }: TasksSettingsProps) {
+  const { t } = useTranslations()
   const { data: session } = useSession()
   const [isSaving, setIsSaving] = useState(false)
-  const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  // The outcome, not its sentence: the alert's colour must not depend on the wording.
+  const [saveResult, setSaveResult] = useState<"saved" | "failed" | null>(null)
 
   const [emailToTaskEnabled, setEmailToTaskEnabled] = useState(true)
   const [defaultTaskDueOffset, setDefaultTaskDueOffset] = useState("1_week")
@@ -46,7 +49,7 @@ export default function TasksSettings({ onNavigate }: TasksSettingsProps) {
 
   const saveSettings = async () => {
     setIsSaving(true)
-    setSaveMessage(null)
+    setSaveResult(null)
     try {
       const response = await fetch('/api/v1/users/me/smart-tasks', {
         method: 'PATCH',
@@ -54,14 +57,14 @@ export default function TasksSettings({ onNavigate }: TasksSettingsProps) {
         body: JSON.stringify({ emailToTaskEnabled, defaultTaskDueOffset, defaultDueTime })
       })
       if (response.ok) {
-        setSaveMessage('Settings saved successfully!')
-        setTimeout(() => setSaveMessage(null), 3000)
+        setSaveResult('saved')
+        setTimeout(() => setSaveResult(null), 3000)
       } else {
-        setSaveMessage('Failed to save settings')
+        setSaveResult('failed')
       }
     } catch (error) {
       console.error('Error saving settings:', error)
-      setSaveMessage('Failed to save settings')
+      setSaveResult('failed')
     } finally {
       setIsSaving(false)
     }
@@ -73,15 +76,15 @@ export default function TasksSettings({ onNavigate }: TasksSettingsProps) {
         <div className="flex items-center space-x-3">
           <CheckSquare className="w-8 h-8 text-brand" />
           <div>
-            <h1 className="text-2xl font-bold theme-text-primary">Task Settings</h1>
-            <p className="theme-text-muted">Configure default task behavior and email-to-task preferences</p>
+            <h1 className="text-2xl font-bold theme-text-primary">{t("settingsPages.tasksPage.title")}</h1>
+            <p className="theme-text-muted">{t("settingsPages.tasksPage.description")}</p>
           </div>
         </div>
 
-        {saveMessage && (
-          <Alert className={saveMessage.includes('success') ? 'bg-success-subtle border-success' : 'bg-danger-subtle border-danger'}>
+        {saveResult && (
+          <Alert className={saveResult === 'saved' ? 'bg-success-subtle border-success' : 'bg-danger-subtle border-danger'}>
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{saveMessage}</AlertDescription>
+            <AlertDescription>{t(saveResult === 'saved' ? "settingsPages.tasksPage.saved" : "settingsPages.tasksPage.saveFailed")}</AlertDescription>
           </Alert>
         )}
 
@@ -89,78 +92,78 @@ export default function TasksSettings({ onNavigate }: TasksSettingsProps) {
           <CardHeader>
             <div className="flex items-center space-x-2">
               <Mail className="w-5 h-5 text-purple-500" />
-              <CardTitle className="theme-text-primary">Email-to-Task</CardTitle>
+              <CardTitle className="theme-text-primary">{t("settingsPages.appearancePage.emailToTask.title")}</CardTitle>
             </div>
             <CardDescription className="theme-text-muted">
-              Create tasks by sending emails to {BRAND.inboundTaskEmail}
+              {t("settingsPages.tasksPage.emailDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label className="theme-text-primary">Enable Email-to-Task</Label>
-                <p className="text-sm theme-text-muted">Allow creating tasks via email</p>
+                <Label className="theme-text-primary">{t("settingsPages.tasksPage.enable")}</Label>
+                <p className="text-sm theme-text-muted">{t("settingsPages.tasksPage.enableDesc")}</p>
               </div>
               <Switch checked={emailToTaskEnabled} onCheckedChange={setEmailToTaskEnabled} />
             </div>
 
             <div className="space-y-2">
-              <Label className="theme-text-primary">Default Due Date</Label>
+              <Label className="theme-text-primary">{t("settingsPages.tasksPage.defaultDueDate")}</Label>
               <Select value={defaultTaskDueOffset} onValueChange={setDefaultTaskDueOffset}>
                 <SelectTrigger className="theme-bg-secondary theme-border theme-text-primary">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="theme-bg-card theme-border">
-                  <SelectItem value="none" className="theme-text-primary hover:theme-bg-hover">No due date</SelectItem>
-                  <SelectItem value="1_day" className="theme-text-primary hover:theme-bg-hover">1 day</SelectItem>
-                  <SelectItem value="3_days" className="theme-text-primary hover:theme-bg-hover">3 days</SelectItem>
-                  <SelectItem value="1_week" className="theme-text-primary hover:theme-bg-hover">1 week (default)</SelectItem>
+                  <SelectItem value="none" className="theme-text-primary hover:theme-bg-hover">{t("tasks.noDueDate")}</SelectItem>
+                  <SelectItem value="1_day" className="theme-text-primary hover:theme-bg-hover">{t("settingsPages.tasksPage.offset1Day")}</SelectItem>
+                  <SelectItem value="3_days" className="theme-text-primary hover:theme-bg-hover">{t("settingsPages.tasksPage.offset3Days")}</SelectItem>
+                  <SelectItem value="1_week" className="theme-text-primary hover:theme-bg-hover">{t("settingsPages.tasksPage.offset1Week")}</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-sm theme-text-muted">Tasks created via email will be due this many days from the send date</p>
+              <p className="text-sm theme-text-muted">{t("settingsPages.tasksPage.dueDateHint")}</p>
             </div>
 
             <div className="space-y-2">
               <Label className="theme-text-primary flex items-center space-x-2">
                 <Clock className="w-4 h-4" />
-                <span>Default Due Time</span>
+                <span>{t("settingsPages.tasksPage.defaultDueTime")}</span>
               </Label>
               <Select value={defaultDueTime} onValueChange={setDefaultDueTime}>
                 <SelectTrigger className="theme-bg-secondary theme-border theme-text-primary">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="theme-bg-card theme-border">
-                  <SelectItem value="09:00" className="theme-text-primary hover:theme-bg-hover">9:00 AM</SelectItem>
-                  <SelectItem value="12:00" className="theme-text-primary hover:theme-bg-hover">12:00 PM (Noon)</SelectItem>
-                  <SelectItem value="17:00" className="theme-text-primary hover:theme-bg-hover">5:00 PM (default)</SelectItem>
-                  <SelectItem value="20:00" className="theme-text-primary hover:theme-bg-hover">8:00 PM</SelectItem>
+                  <SelectItem value="09:00" className="theme-text-primary hover:theme-bg-hover">{t("settingsPages.tasksPage.time0900")}</SelectItem>
+                  <SelectItem value="12:00" className="theme-text-primary hover:theme-bg-hover">{t("settingsPages.tasksPage.time1200")}</SelectItem>
+                  <SelectItem value="17:00" className="theme-text-primary hover:theme-bg-hover">{t("settingsPages.tasksPage.time1700")}</SelectItem>
+                  <SelectItem value="20:00" className="theme-text-primary hover:theme-bg-hover">{t("settingsPages.tasksPage.time2000")}</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-sm theme-text-muted">Time of day for tasks created via email</p>
+              <p className="text-sm theme-text-muted">{t("settingsPages.tasksPage.dueTimeHint")}</p>
             </div>
 
             <div className="p-4 theme-bg-secondary rounded-lg border theme-border">
-              <h4 className="font-medium theme-text-primary mb-2">How to use Email-to-Task:</h4>
+              <h4 className="font-medium theme-text-primary mb-2">{t("settingsPages.tasksPage.howTo")}</h4>
               <ul className="space-y-2 text-sm theme-text-muted">
                 <li className="flex items-start space-x-2">
                   <span className="text-brand mt-0.5">•</span>
-                  <span><strong>Self-task:</strong> Send TO {BRAND.inboundTaskEmail}</span>
+                  <span><strong>{t("settingsPages.appearancePage.emailToTask.selfTask")}</strong> {t("settingsPages.appearancePage.emailToTask.selfTaskDesc")}</span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <span className="text-brand mt-0.5">•</span>
-                  <span><strong>Assigned task:</strong> CC {BRAND.inboundTaskEmail} with one recipient in TO</span>
+                  <span><strong>{t("settingsPages.appearancePage.emailToTask.assignedTask")}</strong> {t("settingsPages.tasksPage.assignedTaskDesc")}</span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <span className="text-brand mt-0.5">•</span>
-                  <span><strong>Group task:</strong> CC {BRAND.inboundTaskEmail} with multiple recipients</span>
+                  <span><strong>{t("settingsPages.appearancePage.emailToTask.groupTask")}</strong> {t("settingsPages.appearancePage.emailToTask.groupTaskDesc")}</span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <span className="text-purple-500 mt-0.5">•</span>
-                  <span><strong>Subject</strong> becomes task title</span>
+                  <span><RichMessage message={t("settingsPages.tasksPage.subjectLine")} values={{ subject: <strong>{t("settingsPages.tasksPage.subject")}</strong> }} /></span>
                 </li>
                 <li className="flex items-start space-x-2">
                   <span className="text-purple-500 mt-0.5">•</span>
-                  <span><strong>Body</strong> becomes task description</span>
+                  <span><RichMessage message={t("settingsPages.tasksPage.bodyLine")} values={{ body: <strong>{t("settingsPages.tasksPage.body")}</strong> }} /></span>
                 </li>
               </ul>
             </div>
@@ -169,7 +172,7 @@ export default function TasksSettings({ onNavigate }: TasksSettingsProps) {
 
         <div className="flex justify-end">
           <Button onClick={saveSettings} disabled={isSaving} className="bg-brand hover:bg-brand-hover text-brand-foreground">
-            {isSaving ? 'Saving...' : 'Save Settings'}
+            {isSaving ? t("settingsPages.profileInfo.saving") : t("settingsPages.tasksPage.saveSettings")}
           </Button>
         </div>
       </div>

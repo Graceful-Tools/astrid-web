@@ -11,6 +11,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { LoadingScreen } from "@/components/loading-screen"
 import { CheckCircle, XCircle, Clock, UserPlus, List, Briefcase } from "lucide-react"
+import { useTranslations } from "@/lib/i18n/client"
+
+/**
+ * Errors the load sets itself, kept as keys and translated when shown (the load
+ * is memoised and does not depend on the language). Anything else in "error"
+ * came from the server and is shown as it is.
+ */
+const LOAD_ERRORS = new Set(["invitePage.notFound", "invitePage.loadFailed"])
 
 interface InvitationData {
   id: string
@@ -26,6 +34,7 @@ interface InvitationData {
 }
 
 export default function InvitePage() {
+  const { t } = useTranslations()
   const params = useParams<{ token?: string }>()
   const router = useRouter()
   const { data: session, status } = useSession()
@@ -56,10 +65,10 @@ export default function InvitePage() {
           }
           return
         }
-        setError(data.error || "Invitation not found")
+        setError(data.error || "invitePage.notFound")
       }
     } catch (err) {
-      setError("Failed to load invitation")
+      setError("invitePage.loadFailed")
     } finally {
       setLoading(false)
     }
@@ -96,10 +105,10 @@ export default function InvitePage() {
           router.push('/')
         }, 2000)
       } else {
-        setError(data.error || "Failed to accept invitation")
+        setError(data.error || t("invitePage.acceptFailed"))
       }
     } catch (err) {
-      setError("Failed to accept invitation")
+      setError(t("invitePage.acceptFailed"))
     } finally {
       setAccepting(false)
     }
@@ -112,10 +121,10 @@ export default function InvitePage() {
       })
 
       if (response.ok) {
-        setError("Invitation declined")
+        setError(t("invitePage.declined"))
       }
     } catch (err) {
-      setError("Failed to decline invitation")
+      setError(t("invitePage.declineFailed"))
     }
   }
 
@@ -135,26 +144,26 @@ export default function InvitePage() {
   const getInvitationTitle = (type: string) => {
     switch (type) {
       case 'TASK_ASSIGNMENT':
-        return "Task Assignment"
+        return t("invitePage.taskTitle")
       case 'LIST_SHARING':
-        return "List Sharing"
+        return t("invitePage.listTitle")
       case 'WORKSPACE_INVITE':
-        return "Workspace Invitation"
+        return t("invitePage.workspaceTitle")
       default:
-        return "Collaboration Invitation"
+        return t("invitePage.defaultTitle")
     }
   }
 
   const getInvitationDescription = (type: string, senderName: string) => {
     switch (type) {
       case 'TASK_ASSIGNMENT':
-        return `${senderName} has assigned you a task and wants you to collaborate.`
+        return t("invitePage.taskDesc", { sender: senderName })
       case 'LIST_SHARING':
-        return `${senderName} has shared a task list with you.`
+        return t("invitePage.listDesc", { sender: senderName })
       case 'WORKSPACE_INVITE':
-        return `${senderName} has invited you to join their workspace.`
+        return t("invitePage.workspaceDesc", { sender: senderName })
       default:
-        return `${senderName} has invited you to collaborate.`
+        return t("invitePage.defaultDesc", { sender: senderName })
     }
   }
 
@@ -168,9 +177,9 @@ export default function InvitePage() {
         <Card className="w-full max-w-md bg-theme-surface border-theme-surface">
           <CardHeader className="text-center">
             <XCircle className="w-12 h-12 text-danger mx-auto mb-4" />
-            <CardTitle className="text-theme-primary">Invitation Error</CardTitle>
+            <CardTitle className="text-theme-primary">{t("invitePage.errorTitle")}</CardTitle>
             <CardDescription className="text-theme-muted">
-              {error || "This invitation is no longer valid."}
+              {error ? (LOAD_ERRORS.has(error) ? t(error) : error) : t("invitePage.noLongerValid")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -178,7 +187,7 @@ export default function InvitePage() {
               onClick={() => router.push('/auth/signin')}
               className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
             >
-              Sign In
+              {t("auth.signInButton")}
             </Button>
           </CardContent>
         </Card>
@@ -192,9 +201,9 @@ export default function InvitePage() {
         <Card className="w-full max-w-md bg-theme-surface border-theme-surface">
           <CardHeader className="text-center">
             <CheckCircle className="w-12 h-12 text-success mx-auto mb-4" />
-            <CardTitle className="text-theme-primary">Invitation Accepted!</CardTitle>
+            <CardTitle className="text-theme-primary">{t("invitePage.acceptedTitle")}</CardTitle>
             <CardDescription className="text-theme-muted">
-              You&apos;ve successfully joined the collaboration. Redirecting to the app...
+              {t("invitePage.acceptedBody")}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -202,7 +211,7 @@ export default function InvitePage() {
     )
   }
 
-  const senderName = invitation.sender?.name || invitation.sender?.email || "Someone"
+  const senderName = invitation.sender?.name || invitation.sender?.email || t("invitePage.someone")
   const isExpired = new Date(invitation.expiresAt) < new Date()
 
   return (
@@ -237,7 +246,7 @@ export default function InvitePage() {
           {/* Message */}
           {invitation.message && (
             <div className="p-3 bg-theme-tertiary rounded-lg">
-              <div className="text-theme-muted text-sm mb-1">Message:</div>
+              <div className="text-theme-muted text-sm mb-1">{t("invitePage.messageLabel")}</div>
               <div className="text-theme-primary text-sm italic">&quot;{invitation.message}&quot;</div>
             </div>
           )}
@@ -246,7 +255,7 @@ export default function InvitePage() {
           <div className="flex items-center space-x-2 text-sm text-theme-muted">
             <Clock className="w-4 h-4" />
             <span>
-              Expires {new Date(invitation.expiresAt).toLocaleDateString()}
+              {t("invitePage.expires", { date: new Date(invitation.expiresAt).toLocaleDateString() })}
             </span>
           </div>
 
@@ -254,8 +263,7 @@ export default function InvitePage() {
           {session && invitation.email && session.user?.email !== invitation.email && (
             <div className="p-3 bg-warning-subtle border border-warning rounded-lg">
               <div className="text-theme-primary text-sm">
-                ⚠️ This invitation was sent to {invitation.email}, but you&apos;re signed in as {session.user?.email}.
-                Please sign in with the correct account.
+                {t("invitePage.emailMismatch", { invited: invitation.email, current: session.user?.email ?? "" })}
               </div>
             </div>
           )}
@@ -263,18 +271,18 @@ export default function InvitePage() {
           {/* Actions */}
           {isExpired ? (
             <div className="text-center">
-              <Badge variant="destructive">Expired</Badge>
-              <p className="text-theme-muted text-sm mt-2">This invitation has expired.</p>
+              <Badge variant="destructive">{t("invitePage.expiredBadge")}</Badge>
+              <p className="text-theme-muted text-sm mt-2">{t("invitePage.expiredBody")}</p>
             </div>
           ) : (
             <div className="space-y-3">
               {!session ? (
                 <div className="space-y-2">
                   <Button onClick={handleAccept} className="w-full bg-brand hover:bg-brand-hover text-brand-foreground">
-                    Sign In to Accept
+                    {t("invitePage.signInToAccept")}
                   </Button>
                   <p className="text-theme-muted text-xs text-center">
-                    You&apos;ll be redirected to sign in with {invitation.email || invitation.emailHint}
+                    {t("invitePage.redirectNote", { email: invitation.email || invitation.emailHint || "" })}
                   </p>
                 </div>
               ) : session.user?.email === invitation.email ? (
@@ -283,7 +291,7 @@ export default function InvitePage() {
                   disabled={accepting}
                   className="w-full bg-success hover:bg-success/90 text-success-foreground"
                 >
-                  {accepting ? "Accepting..." : "Accept Invitation"}
+                  {accepting ? t("invitePage.accepting") : t("invitePage.accept")}
                 </Button>
               ) : (
                 <Button 
@@ -293,7 +301,7 @@ export default function InvitePage() {
                   })}
                   className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
                 >
-                  Sign In with Correct Account
+                  {t("invitePage.signInCorrectAccount")}
                 </Button>
               )}
               
@@ -303,7 +311,7 @@ export default function InvitePage() {
                   variant="outline"
                   className="w-full border-theme-button text-theme-secondary"
                 >
-                  Decline
+                  {t("invitePage.decline")}
                 </Button>
               )}
             </div>

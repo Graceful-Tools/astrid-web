@@ -153,6 +153,54 @@
     },
     "tradeoffGrid": {
       "fullScreen": "全螢幕"
+    },
+    "promote": {
+      "label": "移出子任務",
+      "dropHint": "拖放到此處以移出父任務"
+    },
+    "dropTasksHere": "將任務拖放到此處",
+    "noOneAssigned": "未指派給任何人",
+    "selectPriorityOrAssignee": "選擇優先順序或負責人",
+    "saveNewTask": "儲存新任務",
+    "detail": {
+      "backToList": "返回列表",
+      "collapseTask": "收合任務",
+      "collapse": "收合",
+      "taskActions": "任務操作",
+      "exitFullScreen": "退出全螢幕",
+      "testReminder": "測試提醒",
+      "clickToAddDescription": "點擊以新增描述...",
+      "searchLists": "搜尋列表...",
+      "noLists": "無列表",
+      "unknownCreator": "未知建立者",
+      "searchUsersOrEmail": "搜尋使用者或輸入電子郵件...",
+      "nextWeek": "下週",
+      "selectRepeat": "選擇重複",
+      "repeatMode": "重複模式",
+      "repeatFromCompletion": "從完成日期起重複",
+      "repeatFromDue": "從截止日期起重複",
+      "saveCustomPattern": "儲存自訂模式"
+    },
+    "commentsSection": {
+      "addPlaceholder": "新增留言...",
+      "replyPlaceholder": "寫回覆...",
+      "refresh": "重新整理留言",
+      "pullToRefresh": "下拉重新整理...",
+      "releaseToRefresh": "放開重新整理..."
+    },
+    "modals": {
+      "deleteTitle": "刪除任務",
+      "copyTitle": "複製任務",
+      "copyToList": "複製到列表：",
+      "myTasksOnly": "我的任務（僅）",
+      "copyNote": "複製的任務將保留截止日期並指派給你。",
+      "shareTitle": "分享任務",
+      "privateNote": "這是私人任務。只有可存取此列表的使用者才能檢視。",
+      "generatingLink": "正在產生分享連結...",
+      "linkFailed": "產生分享連結失敗。請再試一次。"
+    },
+    "timer": {
+      "tapToChange": "點按時間以變更時長"
     }
   },
   "lists": {
@@ -189,7 +237,67 @@
       "description": "新增描述..."
     },
     "showSubtasksLabel": "顯示子任務",
-    "showSubtasksDescription": "在此清單中將子任務縮排顯示在父任務下方。關閉後僅顯示上層任務，子任務仍可在父任務詳細資料中查看。"
+    "showSubtasksDescription": "在此清單中將子任務縮排顯示在父任務下方。關閉後僅顯示上層任務，子任務仍可在父任務詳細資料中查看。",
+    "copyList": "複製列表",
+    "descriptionTitle": "列表描述",
+    "descriptionAgentHint": "代理會將此作為主要脈絡。支援 Markdown。",
+    "image": "列表圖片",
+    "addModal": {
+      "title": "新增列表",
+      "subtitle": "用列表來整理專案、目標和冒險！",
+      "namePlaceholder": "例如：家庭",
+      "shareWith": "分享給",
+      "sharePlaceholder": "姓名或電子郵件地址"
+    },
+    "membersManager": {
+      "invite": "邀請成員",
+      "inviteTitle": "邀請新成員",
+      "emailPlaceholder": "輸入電子郵件地址",
+      "sendInvitation": "傳送邀請",
+      "empty": "尚無成員",
+      "emptyHint": "邀請他人協作此列表",
+      "makeAdmin": "設為管理員",
+      "makeMember": "設為成員",
+      "permissionLevels": "權限等級",
+      "ownerCan": "完全控制此列表",
+      "adminCan": "可以管理列表設定和成員",
+      "memberCan": "可以新增、編輯和管理任務"
+    },
+    "membershipPanel": {
+      "availableAgents": "可用的代理",
+      "loadingAgents": "正在載入可用的代理...",
+      "addAgent": "新增代理",
+      "aiHelpTitle": "想讓 AI 幫你處理任務嗎？",
+      "addApiKeys": "新增你的API金鑰即可開始",
+      "privacyLabel": "列表隱私",
+      "makePublic": "設為公開",
+      "makePrivate": "設為私人",
+      "publicListType": "公開列表類型",
+      "makeCopyOnly": "設為僅可複製",
+      "makeCollaborative": "設為協作",
+      "leaveList": "離開列表"
+    },
+    "ownerLeave": {
+      "title": "轉移擁有權",
+      "selectNewOwner": "選擇新擁有者：",
+      "noOtherMembers": "沒有其他成員可以接收擁有權。",
+      "deleteList": "刪除列表"
+    },
+    "publicBrowser": {
+      "searchPlaceholder": "依名稱、描述或建立者搜尋...",
+      "allLists": "所有列表",
+      "loading": "正在載入公開列表...",
+      "tasksPreview": "任務預覽",
+      "loadingPreview": "正在載入預覽...",
+      "noTasks": "此列表沒有任務",
+      "selectTitle": "選擇要預覽的列表",
+      "selectHint": "從左側選擇一個列表以檢視其詳細資料和任務"
+    },
+    "imagePicker": {
+      "title": "選擇圖片",
+      "uploadLabel": "從你的裝置上傳",
+      "chooseFile": "選擇檔案"
+    }
   },
   "priority": {
     "none": "無",
@@ -217,7 +325,10 @@
     "hoursBefore": "提前{count}小時",
     "dayBefore": "提前1天",
     "daysBefore": "提前{count}天",
-    "weekBefore": "提前1週"
+    "weekBefore": "提前1週",
+    "quickSelect": "快速選擇：",
+    "setTime": "設定時間",
+    "selectTime": "選擇時間"
   },
   "repeating": {
     "oneTimeOnly": "僅一次",
@@ -226,7 +337,21 @@
     "monthly": "每月",
     "yearly": "每年",
     "custom": "自訂",
-    "pickAtLeastOneDay": "請至少選擇一天"
+    "pickAtLeastOneDay": "請至少選擇一天",
+    "editor": {
+      "repeatEvery": "重複間隔",
+      "repeatOnDays": "在這些日子重複",
+      "repeatType": "重複類型",
+      "sameDate": "每月同一日期",
+      "sameWeekday": "每月同一週的同一星期幾",
+      "dayOfMonth": "每月的第幾天",
+      "weekOfMonth": "每月的第幾週",
+      "endCondition": "結束條件",
+      "afterOccurrences": "重複 X 次後",
+      "untilDate": "直到指定日期",
+      "occurrencesCount": "重複次數",
+      "endDate": "結束日期"
+    }
   },
   "weekdays": {
     "sunday": "星期日",
@@ -295,7 +420,8 @@
     "timezone": {
       "title": "時區",
       "auto": "自動偵測"
-    }
+    },
+    "helpMeHelpYou": "幫我一起讓你變得超級有效率！！！"
   },
   "auth": {
     "signIn": "登入",
@@ -307,7 +433,9 @@
     "alreadyHaveAccount": "已有帳戶？",
     "dontHaveAccount": "沒有帳戶？",
     "continueWith": "使用{provider}繼續",
-    "orContinueWith": "或者使用"
+    "orContinueWith": "或者使用",
+    "signInButton": "登入",
+    "signUpButton": "註冊"
   },
   "messages": {
     "success": "成功！",
@@ -446,13 +574,18 @@
     "optional": "選填",
     "required": "必填",
     "copiedToClipboard": "已複製到剪貼簿",
-    "unableToCopy": "無法複製到剪貼簿"
+    "unableToCopy": "無法複製到剪貼簿",
+    "pullToRefresh": "下拉重新整理",
+    "releaseToRefresh": "放開重新整理",
+    "clearAll": "全部清除"
   },
   "search": {
     "placeholder": "搜尋任務和使用者",
     "noResults": "找不到結果",
     "searching": "搜尋中...",
-    "open": "搜尋"
+    "open": "搜尋",
+    "findAcrossLists": "在所有列表中尋找任務和使用者",
+    "inputPlaceholder": "搜尋任務和使用者..."
   },
   "listHeaders": {
     "myTasks": "我的任務",
@@ -511,6 +644,58 @@
         "title": "GitHub 連線",
         "description": "在伺服器上執行的程式設計代理使用「設定 → 連線」中的 GitHub 連線，所有已連接的組織都列在那裡。",
         "open": "開啟連線"
+      },
+      "yourAgents": {
+        "title": "你的代理",
+        "description": "選擇由誰執行每個代理。{astridRuns}需要該供應商的 API 金鑰。{selfRuns}使用你已付費的程式設計工具：原生 harness 輪詢、自訂代理或你自行託管的 webhook 伺服器。",
+        "astridRuns": "由 {appName} 執行",
+        "selfRuns": "由我執行"
+      },
+      "hub": {
+        "getKey": "取得金鑰",
+        "guideLink": "連接我的程式代理指南",
+        "needsSetup": "需要設定",
+        "agentLoops": "Agent Loops",
+        "customAgents": "自訂代理"
+      },
+      "runtime": {
+        "stepConnect": "連接",
+        "stepInstall": "安裝",
+        "stepSchedule": "排程或執行",
+        "stepTest": "測試",
+        "hostedWorkflow": "沒有可以一直開著的機器？改為提交此工作流程。它需要兩個儲存庫密鑰；{link} 說明了如何建立。",
+        "startHere": "Start here",
+        "copilotInstall": "提交一次此儲存庫自訂代理。之後 Copilot CLI、Copilot 應用程式、GitHub.com 和 VS Code 都可以選擇相同的佇列行為。",
+        "githubConnect": "為此代理建立用戶端憑證，並將其儲存為名為 {clientId} 和 {clientSecret} 的儲存庫 Actions 密鑰。每次執行都會用用戶端憑證換取一個僅含佇列工作器所需權限、有效期一小時的存取權杖——長期權杖永遠不會進入儲存庫。",
+        "githubInstall": "此工作流程是佇列閘門：它只回答「有工作嗎？」，本身不執行代理。請將第二個作業指向你現有的受支援代理作業（其他分頁中的 Copilot CLI、Claude Code 或 Codex 步驟）。",
+        "githubSchedule": "提交此工作流程以按每 30 分鐘的排程執行，或在 GitHub Actions 中使用 Run workflow 立即測試。閒置的執行會在限定範圍的佇列請求後停止，因此空佇列只消耗一次 API 呼叫，而不是一次完整的代理啟動。"
+      },
+      "webhook": {
+        "title": "Webhook 設定",
+        "description": "設定 Webhook URL，以便在你的 Claude Code Remote 伺服器上接收任務通知",
+        "urlLabel": "Webhook URL",
+        "urlHint": "接收 Webhook 通知的 Claude Code Remote 伺服器 URL",
+        "enabledHint": "啟用後，指派任務時將傳送 Webhook",
+        "agentsLabel": "要處理的代理",
+        "agentsHint": "選擇此 Webhook 應處理哪些 AI 代理。未選擇的代理將改由輪詢模式處理。",
+        "noAgents": "未選擇代理。所有任務將由輪詢模式處理。",
+        "secretLabel": "Webhook 密鑰",
+        "secretHint": "重新產生用於 HMAC 簽章驗證的密鑰",
+        "regenerateOnSave": "儲存時重新產生",
+        "saveSecretTitle": "儲存你的 Webhook 密鑰",
+        "envHint": "加入你的 {file} 檔案：",
+        "failureCount": "失敗次數",
+        "noFailures": "無失敗",
+        "lastFired": "上次觸發",
+        "agentsHandled": "由 Webhook 處理的代理",
+        "otherAgentsPolling": "其他代理將由輪詢模式處理",
+        "subscribedEvents": "已訂閱的事件",
+        "test": "測試 Webhook",
+        "aboutTitle": "關於 Webhook 傳遞",
+        "gettingStarted": "開始使用",
+        "stepConfigureUrl": "在上方設定你的 Webhook URL",
+        "stepAssign": "將任務指派給 {agent}",
+        "eventsTitle": "Webhook 事件"
       }
     },
     "apiAccess": {
@@ -520,6 +705,29 @@
         "title": "Do you need a client here?",
         "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
         "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant."
+      },
+      "apps": {
+        "loading": "正在載入 OAuth 應用程式...",
+        "testNow": "立即測試 API",
+        "subtitle": "管理應用程式的 API 存取",
+        "newApp": "新增應用程式",
+        "empty": "尚無 OAuth 應用程式",
+        "createFirst": "建立你的第一個應用程式",
+        "grantTypes": "授權類型",
+        "redirectUris": "重新導向 URI",
+        "testTitle": "測試 OAuth 應用程式",
+        "testDescription": "輸入用戶端密鑰以取得存取權杖並測試 API",
+        "secretPlaceholder": "輸入用戶端密鑰",
+        "secretHint": "用戶端密鑰已在建立此應用程式時顯示",
+        "createTitle": "建立 OAuth 應用程式",
+        "createDescription": "建立用於 API 存取的新 OAuth 用戶端",
+        "namePlaceholder": "我的應用程式",
+        "descriptionPlaceholder": "此應用程式的用途",
+        "mobileFullAccess": "行動應用程式（完整存取）",
+        "readOnly": "唯讀",
+        "editTitle": "編輯 OAuth 應用程式",
+        "editDescription": "更新整合所需的重新導向 URL 或其他中繼資料。",
+        "selectToEdit": "選擇要編輯的 OAuth 應用程式。"
       }
     },
     "chatgpt": {
@@ -704,7 +912,19 @@
       "saveChanges": "儲存變更",
       "saving": "儲存中...",
       "clickToChangePhoto": "點擊更換頭像",
-      "viewPublicProfile": "檢視公開個人資料"
+      "viewPublicProfile": "檢視公開個人資料",
+      "syncedWithOAuth": "目前與你的 OAuth 供應商同步",
+      "uploading": "上傳中...",
+      "displayNamePlaceholder": "輸入你的顯示名稱",
+      "toasts": {
+        "successTitle": "成功！",
+        "updated": "你的帳戶資訊已更新。",
+        "updateFailed": "更新帳戶資訊失敗。",
+        "photoUploadedTitle": "照片已上傳！",
+        "photoUploadedDesc": "點選「儲存變更」以更新你的個人檔案。",
+        "uploadFailedTitle": "上傳失敗",
+        "uploadFailedDesc": "照片上傳失敗，請再試一次。"
+      }
     },
     "emailVerification": {
       "title": "電子郵件驗證",
@@ -716,7 +936,10 @@
       "verificationSent": "驗證郵件已傳送！",
       "checkEmail": "請查看你的電子郵件並點擊驗證連結。",
       "pendingChange": "電子郵件變更待處理",
-      "waitingVerification": "等待驗證"
+      "waitingVerification": "等待驗證",
+      "waitingVerificationFor": "等待驗證：{email}",
+      "unknownEmail": "未知",
+      "loadingEmail": "載入中..."
     },
     "passkeys": {
       "title": "通行金鑰",
@@ -724,7 +947,24 @@
       "addPasskey": "新增通行金鑰",
       "addingPasskey": "新增通行金鑰中...",
       "noPasskeys": "還沒有註冊通行金鑰",
-      "addPasskeyHint": "新增通行金鑰以更快地無密碼登入"
+      "addPasskeyHint": "新增通行金鑰以更快地無密碼登入",
+      "loading": "載入通行金鑰...",
+      "fallbackName": "通行金鑰",
+      "added": "新增於 {date}",
+      "synced": "已同步",
+      "tipBiometrics": "通行金鑰使用生物辨識或裝置 PIN 碼進行驗證",
+      "tipSynced": "已同步的通行金鑰可在你的所有裝置上自動使用",
+      "tipSecure": "比密碼更安全，可抵禦網路釣魚",
+      "toasts": {
+        "addedTitle": "通行金鑰已新增！",
+        "addedDesc": "你的新通行金鑰已註冊。",
+        "renamedTitle": "通行金鑰已重新命名",
+        "renamedDesc": "你的通行金鑰已重新命名。",
+        "renameFailed": "重新命名通行金鑰失敗。",
+        "deletedTitle": "通行金鑰已刪除",
+        "deletedDesc": "你的通行金鑰已移除。",
+        "deleteFailed": "刪除通行金鑰失敗。"
+      }
     },
     "accountInfo": {
       "title": "帳戶資訊",
@@ -759,7 +999,8 @@
       "confirmDescription": "此操作是永久的，無法復原。",
       "typeToConfirm": "輸入「{phrase}」以確認",
       "permanentlyDelete": "永久刪除帳戶",
-      "deleting": "刪除中..."
+      "deleting": "刪除中...",
+      "dialogWarning": "你的所有資料都將被永久刪除，包括任務、列表和檔案。"
     },
     "appearancePage": {
       "title": "外觀與使用者體驗",
@@ -781,7 +1022,8 @@
         "viewShortcuts": "檢視快速鍵",
         "viewTitle": "檢視鍵盤快速鍵",
         "viewDesc": "檢視所有可用的鍵盤快速鍵以高效管理任務",
-        "quickAccess": "在任務管理器中隨時按?開啟鍵盤快速鍵。"
+        "quickAccess": "在任務管理器中隨時按?開啟鍵盤快速鍵。",
+        "quickAccessLabel": "快速存取"
       },
       "taskDisplayMode": {
         "title": "任務詳情版面",
@@ -822,6 +1064,22 @@
         "configure": "設定郵件設定",
         "configureDesc": "自訂預設截止日期，啟用/停用功能等",
         "proTip": "郵件主旨變成任務標題，內文變成描述。非常適合從收件匣快速擷取任務！"
+      },
+      "tipLabel": "小提示",
+      "smartTasks": {
+        "title": "智慧建立任務",
+        "description": "自動從任務標題中辨識日期、優先順序和列表標籤",
+        "enable": "啟用智慧辨識",
+        "enableDesc": "從自然語言輸入中擷取任務資訊",
+        "supportedPatterns": "支援的格式："
+      },
+      "subtasks": {
+        "title": "子任務",
+        "description": "子任務在列表中的顯示方式（跨裝置同步）",
+        "label": "顯示子任務",
+        "labelDesc": "在列表中縮排顯示，或僅在父任務內顯示",
+        "indented": "在列表中縮排顯示",
+        "underParent": "僅在父任務內"
       }
     },
     "aiIntegrations": {
@@ -1008,7 +1266,9 @@
       "developer": {
         "title": "開發者",
         "description": "手動建立 OAuth 應用程式、測試 API，並連接支援 OpenAPI 的助理。",
-        "openTester": "開啟 API 測試器"
+        "openTester": "開啟 API 測試器",
+        "apiDocs": "API 文件",
+        "integrationGuide": "整合指南"
       },
       "github": {
         "title": "GitHub",
@@ -1072,6 +1332,75 @@
         "selectAtLeastOne": "請至少選擇一個範圍",
         "selectApp": "請選擇一個應用程式。"
       }
+    },
+    "openInNewTab": "在新分頁中開啟",
+    "githubSetup": {
+      "loading": "正在載入 GitHub 設定...",
+      "authenticating": "正在驗證身分...",
+      "failedTitle": "設定失敗",
+      "failedDescription": "設定 GitHub 整合時發生錯誤",
+      "errorDetail": "錯誤：{error}",
+      "returnToSettings": "返回設定",
+      "processingTitle": "正在處理 GitHub 設定",
+      "processingDescription": "正在連接你的 GitHub 安裝...",
+      "pleaseWait": "正在設定你的 GitHub 整合，請稍候...",
+      "connectedTitle": "GitHub 已連接！",
+      "connectedDescription": "你的 GitHub 整合已可使用",
+      "connectedBody": "現在可以使用 {appName} 代理產生程式碼並建立提取要求。",
+      "continueToSettings": "繼續前往設定"
+    },
+    "tasksPage": {
+      "title": "任務設定",
+      "description": "設定任務的預設行為和郵件建立任務偏好",
+      "saved": "設定已成功儲存！",
+      "saveFailed": "儲存設定失敗",
+      "emailDescription": "傳送郵件到 {inboundTaskEmail} 即可建立任務",
+      "enable": "啟用郵件建立任務",
+      "enableDesc": "允許透過郵件建立任務",
+      "defaultDueDate": "預設截止日期",
+      "offset1Day": "1 天",
+      "offset3Days": "3 天",
+      "offset1Week": "1 週（預設）",
+      "dueDateHint": "透過郵件建立的任務將在傳送日期後的這些天到期",
+      "defaultDueTime": "預設截止時間",
+      "time0900": "上午 9:00",
+      "time1200": "中午 12:00",
+      "time1700": "下午 5:00（預設）",
+      "time2000": "晚上 8:00",
+      "dueTimeHint": "透過郵件建立的任務的時間",
+      "howTo": "如何使用郵件建立任務：",
+      "assignedTaskDesc": "副本抄送 {inboundTaskEmail}，收件者（TO）填寫一位",
+      "subjectLine": "{subject}會成為任務標題",
+      "subject": "主旨",
+      "bodyLine": "{body}會成為任務描述",
+      "body": "內文",
+      "saveSettings": "儲存設定"
+    },
+    "calendar": {
+      "loading": "正在載入行事曆設定...",
+      "title": "行事曆整合",
+      "description": "將任務與外部行事曆應用程式同步",
+      "enableSync": "啟用行事曆同步",
+      "enableSyncDescription": "允許將任務匯出到行事曆應用程式",
+      "include": "行事曆中包含的內容",
+      "onlyWithDue": "僅有截止日期/時間的任務",
+      "noneDisabled": "無（已停用）",
+      "export": "行事曆匯出",
+      "downloadIcs": "下載行事曆檔案 (.ics)",
+      "subscribe": "訂閱即時行事曆",
+      "subscribeDescription": "即時訂閱，任務變更時自動更新",
+      "howToUse": "使用方式：",
+      "downloadLabel": "下載：",
+      "howDownload": "將 .ics 檔案一次匯入 Google 日曆、Apple 行事曆或 Outlook",
+      "subscribeLabel": "訂閱：",
+      "howSubscribe": "加入 webcal URL 以自動同步變更（建議）",
+      "howAppear": "任務將顯示為全天活動或在排定時間顯示",
+      "howUpdates": "{appName} 中的任務更新會同步到已訂閱的行事曆"
+    },
+    "defaultDueTime": {
+      "title": "預設截止時間",
+      "description": "設定選擇截止日期時新任務的預設時間",
+      "fallback": "有截止日期的新任務預設為下午 5 點"
     }
   },
   "projectMode": {
@@ -1162,6 +1491,89 @@
     "memberAgentAssignment": {
       "label": "成員可以把任何任務交給代理",
       "help": "允許此清單的每位成員為這裡的任何任務指派代理，而不只是自己建立的任務。代理使用清單擁有者的方案執行。"
+    },
+    "admin": {
+      "descriptionLabel": "列表描述",
+      "descriptionInfo": "列表描述會作為在此列表中工作的 AI 代理的指示",
+      "preview": "預覽",
+      "charCount": "{count} 個字元",
+      "noInstructionsYet": "*尚無指示*",
+      "instructionsPlaceholder": "為在此列表中工作的 AI 代理撰寫指示...\n\n範例：\n你協助我們一家規劃餐點。\n\n## 目標\n- 推薦健康食譜\n- 製作每週購物清單\n\n## 限制\n- 不要甲殼類（過敏）\n- 預算：每週 $150",
+      "agentsReceive": "代理會將其作為主要脈絡。支援 Markdown。",
+      "starterTemplates": "入門範本",
+      "clickToEdit": "點選以編輯",
+      "clickToAddInstructions": "點選以新增代理指示...",
+      "agentsUseGuidance": "AI 代理在處理此列表中的任務時會以此為主要指引",
+      "taskCreator": "任務建立者",
+      "memberNotFound": "找不到成員",
+      "clickToSet": "點選以設定...",
+      "defaultPriority": "預設優先順序",
+      "defaultAssignee": "預設負責人",
+      "selectDefaultAssignee": "選擇預設負責人...",
+      "defaultWhen": "預設時間",
+      "nextWeek": "下週",
+      "noDefaultWhenButton": "無預設時間",
+      "noDefaultWhen": "無預設時間",
+      "defaultRepeating": "預設重複",
+      "defaultWhenTime": "預設時刻",
+      "noDefaultTime": "無預設時刻",
+      "timezone": "時區：{timezone}",
+      "deleteList": "刪除列表",
+      "deleteConfirm": "確定要刪除「{name}」嗎？",
+      "deleteWarning": "此操作無法復原。此列表中的所有任務都會保留，但不再與此列表關聯。",
+      "dontDelete": "不刪除",
+      "notConnected": "未連接。",
+      "connect": "連接",
+      "unlink": "取消連結",
+      "mirrorPlaceholder": "選擇此列表的鏡像位置",
+      "externalSyncTitle": "外部同步",
+      "externalSyncDescription": "透過你已連接的帳號，將此列表與其他服務雙向鏡像。",
+      "aiAgent": "AI 代理",
+      "modelForList": "此列表的 {appName} 模型",
+      "useAccountDefault": "使用帳戶預設值",
+      "modelHint": "為此列表的聊天和留言中的 {appName} 提供支援。指派給任務的程式設計代理仍使用各自的執行環境。",
+      "repositoryLabel": "程式設計代理工作的儲存庫",
+      "loading": "載入中...",
+      "selectRepo": "選擇儲存庫",
+      "noRepositories": "找不到儲存庫。請確認 GitHub App 是否有權存取你的儲存庫。",
+      "connectGithub": "連接 GitHub 以選擇程式設計代理工作的儲存庫 — {link}",
+      "connectGithubLink": "設定 → 連接 → GitHub",
+      "runLoop": "為此列表執行迴圈",
+      "loopDescription": "你的程式設計 harness 會依排程檢查此列表，並處理指派給它且標記為 {ready} 的任務。其他看板上的任務不會被動到。",
+      "readyStatus": "Ready",
+      "descriptionHint": "代理會將此列表的{description}作為工作指示——請像撰寫專案簡介一樣在上方編輯。",
+      "descriptionWord": "描述",
+      "listId": "列表 ID",
+      "copyListId": "複製列表 ID",
+      "listIdHint": "此 ID 用於 OAuth API 整合和程式設計代理",
+      "listName": "列表名稱",
+      "statusesIntro": "Ready、Doing 和 Waiting 適用於你的{all}看板。在此新增的狀態僅屬於此看板。",
+      "statusesIntroAll": "所有",
+      "saveName": "儲存名稱",
+      "moveUp": "上移 {name}",
+      "moveDown": "下移 {name}",
+      "renameStatus": "重新命名 {name}",
+      "deleteStatus": "刪除 {name}",
+      "newStatusName": "新狀態名稱",
+      "renameStatusFailed": "重新命名狀態失敗",
+      "reorderStatusFailed": "重新排序狀態失敗",
+      "deleteStatusFailed": "刪除狀態失敗",
+      "addStatusFailed": "新增狀態失敗",
+      "recentlyCompletedLabel": "進階 — 最近完成的顯示時段",
+      "recentlyCompletedDescription": "已完成的任務在預設檢視（以及看板的 Done 欄）中保持可見的時間。更早完成的任務會被篩除；將列表切換到「已完成」或「全部」即可查看。"
+    },
+    "filters": {
+      "allAssignees": "所有負責人",
+      "notMe": "不是我（其他人）",
+      "allCreators": "所有建立者",
+      "notRepeating": "不重複",
+      "inAnyList": "在任一列表中的任務",
+      "notInAnyList": "不在任何列表中的任務",
+      "clearAllFilters": "清除所有篩選",
+      "removeFromFavorites": "從最愛中移除",
+      "makeFavorite": "設為最愛",
+      "savedFilter": "已儲存的篩選",
+      "savedFilterDescription": "依篩選設定而非列表歸屬顯示任務"
     }
   },
   "reminderSettings": {
@@ -1170,7 +1582,32 @@
     "emailReminders": "電子郵件提醒",
     "defaultReminderTime": "預設提醒時間",
     "dailyDigest": "每日摘要",
-    "quietHours": "勿擾時段"
+    "quietHours": "勿擾時段",
+    "description": "設定接收任務提醒的時間和方式",
+    "pushDescription": "在瀏覽器中接收即時通知",
+    "enablePush": "啟用推播通知",
+    "pushBlocked": "推播通知已被封鎖。請在瀏覽器設定中啟用以接收任務提醒。",
+    "emailDescription": "接收到期任務的提醒郵件",
+    "defaultReminderTimeDescription": "在任務到期前多久提醒你",
+    "dailyDigestDescription": "每天取得任務摘要",
+    "quietHoursDescription": "在這些時段停用通知（選填）",
+    "push": {
+      "description": "即使應用程式已關閉，也能收到任務提醒和更新通知",
+      "status": "通知狀態",
+      "enableDescription": "接收任務提醒和通知",
+      "blockedIntro": "通知已被封鎖。啟用方式：",
+      "blockedChrome": "點擊網址列中的鎖頭圖示 → 通知 → 允許",
+      "blockedFirefox": "點擊盾牌圖示 → 權限 → 允許通知",
+      "blockedSafari": "Safari → 設定 → 網站 → 通知 → 允許",
+      "installTitle": "為獲得最佳體驗，請安裝此應用程式：",
+      "installMobileLabel": "行動裝置：",
+      "installMobile": "在瀏覽器選單中點按「加入主畫面」",
+      "installDesktopLabel": "桌面：",
+      "installDesktop": "在網址列中找到安裝圖示",
+      "installPwaLabel": "PWA 優點：",
+      "installPwa": "即使應用程式已關閉，通知也能正常運作",
+      "sendTest": "傳送測試通知"
+    }
   },
   "keyboardShortcuts": {
     "title": "鍵盤快速鍵",
@@ -1181,16 +1618,20 @@
       "taskEditing": "工作編輯",
       "priority": "優先順序",
       "interface": "介面"
-    }
+    },
+    "chatHint": "在聊天訊息和任務留言中使用"
   },
   "commandPalette": {
     "label": "命令選擇區",
     "searchPlaceholder": "搜尋命令…",
     "enterToSelect": "按 Enter 選擇",
-    "escToClose": "按 Esc 關閉"
+    "escToClose": "按 Esc 關閉",
+    "noCommands": "找不到指令"
   },
   "userPicker": {
-    "optionalMessage": "選填訊息…"
+    "optionalMessage": "選填訊息…",
+    "sendInvite": "傳送邀請",
+    "assignAnyway": "仍然指派"
   },
   "astridAgent": {
     "modelSetup": {
@@ -1246,5 +1687,322 @@
       "hours": "{n} 小時",
       "days": "{n} 天"
     }
+  },
+  "codingAgentPage": {
+    "getStarted": "開始使用",
+    "heroTitle": "{appName} Agent",
+    "heroSubtitle": "AI 驅動的程式助手，自動撰寫程式碼、建立 PR 並完成部署",
+    "badgeProductionReady": "可用於正式環境的程式碼",
+    "badgeGithub": "GitHub 整合",
+    "badgeAutoDeploy": "自動部署",
+    "installGithubApp": "安裝 GitHub App",
+    "tryFree": "免費試用 {appName}",
+    "features": {
+      "codeGenerationTitle": "程式碼產生",
+      "codeGenerationDesc": "AI 根據自然語言描述產生可用於正式環境的程式碼",
+      "githubPrsTitle": "GitHub PR",
+      "githubPrsDesc": "自動建立 GitHub 拉取請求，並採用適當的分支",
+      "livePreviewsTitle": "即時預覽",
+      "livePreviewsDesc": "透過 Vercel 整合立即部署到預覽環境",
+      "commentActionsTitle": "留言操作",
+      "commentActionsDesc": "用簡單的留言即可控制：「approve」、「merge」、「change X」"
+    },
+    "howItWorks": {
+      "title": "運作方式",
+      "description": "從任務到正式部署的完整流程",
+      "assignTitle": "指派任務",
+      "assignDesc": "建立任務並將其指派給「{appName} Agent」",
+      "planningTitle": "AI 規劃",
+      "planningDesc": "代理程式分析需求並擬定實作計畫",
+      "reviewTitle": "審閱並核准",
+      "reviewDesc": "留言「approve」即可開始產生程式碼",
+      "generateTitle": "程式碼產生",
+      "generateDesc": "代理程式撰寫程式碼，建立 GitHub 分支和 PR",
+      "previewTitle": "即時預覽",
+      "previewDesc": "如果已連接 Vercel，即可立即取得預覽部署",
+      "deployTitle": "部署",
+      "deployDesc": "留言「merge」進行部署，或留言「change X」要求修改"
+    },
+    "githubApp": {
+      "title": "官方 GitHub App",
+      "description": "安全、持續維護，深受全球開發者信賴",
+      "quickSetupTitle": "快速設定",
+      "quickSetupDesc": "不必自行建立 GitHub App，只要安裝並連接，幾分鐘即可完成",
+      "secureTitle": "安全可靠",
+      "secureDesc": "由 {appName} 團隊維護的官方應用程式，遵循完善的安全實務",
+      "sharedTitle": "共用並統一維護",
+      "sharedDesc": "所有 {appName} 使用者共用，不必各自管理應用程式"
+    },
+    "controls": {
+      "title": "簡單的留言控制",
+      "description": "用自然語言留言來控制代理程式",
+      "approveDesc": "核准 AI 計畫並開始實作",
+      "mergeDesc": "將 PR 合併到正式環境",
+      "changeDesc": "附上具體意見，要求修改"
+    },
+    "cta": {
+      "title": "準備好翻新你的開發方式了嗎？",
+      "subtitle": "加入成千上萬名開發者，借助 AI 以前所未有的速度交付",
+      "startTrial": "開始免費試用"
+    },
+    "footerNote": "© 2024 {appName}。保留一切權利。由 AI 驅動，加速你的開發流程。"
+  },
+  "signInPage": {
+    "downloadOnAppStore": "在 App Store 下載",
+    "title": "登入即可開始！",
+    "passkey": "通行金鑰",
+    "continuing": "正在繼續...",
+    "passkeysNotSupported": "此瀏覽器不支援通行金鑰",
+    "newUser": "新使用者？",
+    "returningUser": "已有帳戶？",
+    "emailPlaceholder": "輸入你的電子郵件",
+    "creatingAccount": "正在建立帳戶...",
+    "signingIn": "登入中...",
+    "backToOptions": "返回登入選項",
+    "agreement": "登入即表示你同意我們的{terms}和{privacy}",
+    "termsOfService": "服務條款",
+    "privacyPolicy": "隱私權政策",
+    "havingTrouble": "遇到問題？",
+    "visitHelpCenter": "前往說明中心",
+    "organizeTitle": "整理你的任務",
+    "organizeDesc": "建立私人、共享和公開列表，管理工作與生活",
+    "collaborateTitle": "與團隊協作",
+    "collaborateDesc": "與管理員共享列表，並設定預設任務設定以保持一致",
+    "discoverTitle": "探索公開任務",
+    "discoverDesc": "瀏覽並複製社群分享的公開列表中的任務"
+  },
+  "authErrors": {
+    "signInUnexpected": "登入時發生未預期的錯誤",
+    "emailRequired": "請輸入你的電子郵件地址",
+    "configuration": "伺服器設定有問題。",
+    "configurationDetailed": "伺服器設定有問題。請檢查你的環境變數。",
+    "accessDenied": "存取遭拒。你沒有登入的權限。",
+    "verification": "驗證權杖已過期或已被使用。",
+    "oauthSignin": "建構授權 URL 時發生錯誤。請檢查你的 OAuth 設定。",
+    "oauthCallback": "處理 OAuth 提供者的回應時發生錯誤。",
+    "oauthCreateAccount": "無法建立 OAuth 帳戶。",
+    "emailCreateAccount": "無法建立電子郵件帳戶。",
+    "callback": "OAuth 回呼處理路由發生錯誤。",
+    "oauthAccountNotLinked": "使用此電子郵件的帳戶已存在。請再次登入，我們會自動連結你的 Google 帳戶。",
+    "emailSignin": "傳送含有驗證權杖的電子郵件失敗。",
+    "sessionRequired": "此頁面的內容需要你隨時保持登入狀態。",
+    "default": "驗證時發生錯誤。請再試一次或聯絡支援團隊。",
+    "unexpected": "驗證時發生未預期的錯誤。"
+  },
+  "authErrorPage": {
+    "title": "驗證錯誤",
+    "description": "登入過程中發生問題",
+    "tryAgain": "再試一次",
+    "goHome": "返回首頁",
+    "loading": "載入中..."
+  },
+  "verifyEmailPage": {
+    "verifiedTitle": "電子郵件已驗證！",
+    "failedTitle": "驗證失敗",
+    "expiredTitle": "連結已過期",
+    "defaultTitle": "電子郵件驗證",
+    "redirecting": "幾秒後將前往設定...",
+    "goToSettings": "前往設定",
+    "sending": "傳送中...",
+    "resend": "重新傳送驗證郵件",
+    "sendNew": "傳送新的驗證郵件",
+    "backToApp": "返回應用程式",
+    "expiredBody": "驗證連結已過期。你可以在帳戶設定中重新申請。",
+    "verificationFailed": "驗證失敗。請再試一次。",
+    "noToken": "未提供驗證權杖",
+    "resent": "驗證郵件已重新傳送。請查看你的收件匣。",
+    "resendFailed": "重新傳送驗證郵件失敗"
+  },
+  "desktopSignInPage": {
+    "invalidTitle": "此登入連結無效",
+    "invalidBody": "請從應用程式重新開始登入。這裡的連結由應用程式產生，不應手動輸入。",
+    "returnHome": "返回首頁",
+    "title": "登入 {app}",
+    "signedInAs": "你已使用 {email} 登入。繼續操作即可將此工作階段交給這台電腦上的應用程式。",
+    "codeNote": "應用程式會收到一組五分鐘後過期的一次性代碼，而且只有發起這次登入的那個應用程式才能兌換。",
+    "notExpecting": "不是你發起的？",
+    "closePage": "關閉此頁面",
+    "nothingHandedOver": "即可，不會交出任何內容。",
+    "continuingTo": "正在前往{provider}",
+    "singleSignOn": "單一登入",
+    "comeBack": "登入後，你會回到這裡完成 {app} 的登入。",
+    "nothingHappening": "沒有反應？",
+    "chooseAnother": "選擇其他登入方式",
+    "opening": "正在開啟 {app}…",
+    "closeTab": "你可以關閉此分頁。如果 {app} 沒有開啟，請回到應用程式重新開始登入。",
+    "preparing": "準備中…",
+    "open": "開啟 {app}",
+    "startFailed": "無法開始交接。請再試一次。",
+    "unreachable": "無法連線到伺服器。請檢查網路連線後再試一次。"
+  },
+  "oauthAuthorizePage": {
+    "unableTitle": "無法繼續",
+    "invalidRequest": "授權請求無效。請仔細檢查連結後再試一次。",
+    "errorCode": "錯誤代碼：",
+    "goToConnections": "前往連線",
+    "returnHome": "返回首頁",
+    "header": "授權 {appName} 整合",
+    "oauthApp": "OAuth 應用程式",
+    "defaultDescription": "此應用程式正在要求存取你的 {appName} 帳戶。",
+    "requestingAs": "要求存取的身分",
+    "yourAccount": "你的帳戶",
+    "developedBy": "由 {owner} 開發",
+    "brandUser": "{appName} 使用者",
+    "dynamicallyRegistered": "由你的 MCP 用戶端動態註冊",
+    "permissionsTitle": "要求的權限",
+    "permissionsIntro": "此應用程式將能夠：",
+    "scope": "權限範圍：",
+    "grantTitle": "授予存取權",
+    "grantDescription": "允許 {client} 以上述權限存取你的 {appName} 資料。",
+    "deny": "拒絕",
+    "approve": "核准存取",
+    "approveAs": "以 {agent} 的身分核准存取",
+    "tokenNote": "權杖會在 1 小時後過期。更新權杖的有效期為 30 天，或直到在「設定 → 連線」中被撤銷為止。"
+  },
+  "invitePage": {
+    "errorTitle": "邀請錯誤",
+    "noLongerValid": "此邀請已失效。",
+    "acceptedTitle": "已接受邀請！",
+    "acceptedBody": "你已成功加入協作。正在前往應用程式...",
+    "someone": "有人",
+    "taskTitle": "任務指派",
+    "taskDesc": "{sender} 指派了一項任務給你，希望與你協作。",
+    "listTitle": "列表分享",
+    "listDesc": "{sender} 與你分享了一個任務列表。",
+    "workspaceTitle": "工作區邀請",
+    "workspaceDesc": "{sender} 邀請你加入對方的工作區。",
+    "defaultTitle": "協作邀請",
+    "defaultDesc": "{sender} 邀請你一起協作。",
+    "messageLabel": "訊息：",
+    "expires": "{date} 到期",
+    "emailMismatch": "⚠️ 此邀請是寄給 {invited} 的，但你目前登入的是 {current}。請使用正確的帳戶登入。",
+    "expiredBadge": "已過期",
+    "expiredBody": "此邀請已過期。",
+    "signInToAccept": "登入以接受",
+    "redirectNote": "系統會引導你使用 {email} 登入",
+    "accepting": "接受中...",
+    "accept": "接受邀請",
+    "signInCorrectAccount": "使用正確的帳戶登入",
+    "decline": "拒絕",
+    "notFound": "找不到邀請",
+    "loadFailed": "無法載入邀請",
+    "acceptFailed": "無法接受邀請",
+    "declined": "已拒絕邀請",
+    "declineFailed": "無法拒絕邀請"
+  },
+  "downloadPage": {
+    "title": "下載 {appName}",
+    "subtitle": "原生應用程式，與你在網頁上的所有內容保持同步。",
+    "macTitle": "{appName} Mac 版",
+    "macRelease": "版本 {version} · {size} · 發佈於 {published}",
+    "macRequirements": "通用版 · macOS 14 Sonoma 或以上版本",
+    "downloadForMac": "下載 Mac 版",
+    "viewReleases": "查看發行版本",
+    "featureQuickAdd": "選單列快速新增與全域快速鍵",
+    "featureViews": "看板、列表和行事曆檢視",
+    "featureOffline": "可離線使用，重新連線後自動同步",
+    "featureApple": "整合 Apple 提醒事項與行事曆",
+    "installNote": "打開 DMG，將 {appName} 拖到「應用程式」檔案夾。此應用程式已由 Apple 簽署並公證，不需額外步驟即可開啟。需要 macOS 14 或以上版本。",
+    "iosTitle": "{appName} iPhone 和 iPad 版",
+    "iosBeta": "目前為 TestFlight Beta 測試階段",
+    "joinBeta": "加入 Beta 測試",
+    "preferBrowser": "比較想用瀏覽器？",
+    "useOnWeb": "在網頁上使用 {appName}"
+  },
+  "errorPages": {
+    "errorDescription": "發生未預期的錯誤。造成不便，敬請見諒。",
+    "tryAgain": "再試一次",
+    "goHome": "返回首頁",
+    "notFoundTitle": "找不到頁面",
+    "notFoundDescription": "你要找的頁面不存在或已被移動。",
+    "notFoundGoHome": "返回首頁",
+    "pageNotFound": "找不到頁面",
+    "listUnavailableTitle": "列表無法使用",
+    "goToDashboard": "前往主畫面",
+    "listNotFound": "找不到列表",
+    "listAccessDenied": "存取遭拒。你沒有檢視此列表的權限。",
+    "listLoadFailed": "無法載入列表",
+    "linkErrorTitle": "連結錯誤",
+    "linkNotFound": "連結不存在或已過期",
+    "linkResolveFailed": "無法解析連結",
+    "linkTaskNotFound": "任務不存在或已無法存取",
+    "linkTaskForbidden": "你沒有檢視此任務的權限",
+    "linkInvalidType": "連結類型無效"
+  },
+  "profilePage": {
+    "loading": "正在載入個人資料...",
+    "notFound": "找不到個人資料",
+    "goBack": "返回",
+    "badge": "個人資料",
+    "aiAgent": "AI 代理程式",
+    "joined": "{date} 加入",
+    "completedDesc": "已完成的任務",
+    "inspired": "啟發",
+    "inspiredDesc": "被他人建立、完成或複製的任務",
+    "supported": "支持",
+    "supportedDesc": "在他人任務上的留言",
+    "yourTasks": "你的任務",
+    "sharedWith": "與 {name} 共享的任務",
+    "noShared": "還沒有與 {name} 共享的任務",
+    "userNotFound": "找不到使用者",
+    "signInRequired": "請登入後查看使用者個人資料",
+    "loadFailedDetail": "無法載入使用者個人資料：{error}",
+    "loadFailed": "無法載入使用者個人資料",
+    "unknownError": "未知的錯誤"
+  },
+  "startPage": {
+    "backToDocs": "返回文件",
+    "step": "步驟 {n} — {title}",
+    "heading": "用代理程式經營你的軟體事業 — 一個 {appName} 就夠了",
+    "intro": "{appName} 是你的代理程式和隊友共同使用的共享待辦清單。把任務放進列表，負責該列表的代理程式會留言提出計畫、完成工作，並在同一個任務裡回報結果 — 不論在網頁或手機上。每個代理程式都會用你已付費的方案定期檢查自己的佇列，所以沒有需要時時盯著的儀表板。適合 1 到 10 人的團隊。",
+    "shapeTitle": "基本架構：五個列表，各配一個代理程式",
+    "shapeDescription": "只需要你已付費的那些代理程式 — 跳過某一列，那個列表就留給你自己。",
+    "createTitle": "建立列表（2 分鐘）",
+    "listsReady": "你的列表已準備就緒",
+    "createLists": "建立我的列表",
+    "signInToCreate": "登入以建立列表",
+    "seeInstructions": "查看列表說明",
+    "connectTitle": "連接你已付費的代理程式",
+    "workTitle": "工作（每天）",
+    "workAddTask": "把任務新增到應由其代理程式處理的列表 — 任務會自動指派。",
+    "workAgentReports": "代理程式會留言說明計畫、完成工作，並附上拉取請求連結回報。",
+    "workReply": "隨時隨地在留言中回覆。合併和部署由你來做。",
+    "workRecurring": "週期性工作：將任務設為重複（每天、每週），它會自動重新排入佇列。",
+    "teamTitle": "新增隊友（選用，2–10 人）",
+    "reference": "參考資料",
+    "everyRecipe": "所有執行工具的範本",
+    "mcpTokens": "MCP 連線與權杖",
+    "agentSettings": "代理程式設定",
+    "createCiToken": "建立 GitHub Actions 權杖"
+  },
+  "richTextInput": {
+    "placeholder": "輸入訊息...",
+    "timer": "計時器",
+    "uploading": "上傳中...",
+    "attachFile": "附加檔案",
+    "removeFile": "移除 {name}"
+  },
+  "chat": {
+    "inputPlaceholder": "傳訊息給列表...",
+    "empty": "尚無訊息。開始對話吧！",
+    "loadFailed": "載入聊天失敗"
+  },
+  "notificationBell": {
+    "markAllRead": "全部標為已讀",
+    "allCaughtUp": "你已全部看完。"
+  },
+  "admin": {
+    "navDescription": "管理存取權限、分析和功能可用性。",
+    "navLabel": "管理區段"
+  },
+  "pwa": {
+    "notNow": "暫時不要",
+    "syncing": "正在同步變更..."
+  },
+  "attachmentViewer": {
+    "closeEsc": "關閉 (Esc)",
+    "videoUnsupported": "你的瀏覽器不支援 video 標籤。",
+    "noPreview": "此檔案類型無法預覽",
+    "downloadFile": "下載檔案"
   }
 }

@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input"
 import { Plus, Check, Pencil, ChevronUp, ChevronDown, Trash2 } from "lucide-react"
 import { useSharedEditingSession } from "@/hooks/use-editing-session"
 import { isDefaultStatusRole } from "@/lib/task-status"
+import { useTranslations } from "@/lib/i18n/client"
+import { RichMessage, fillMessage } from "@/components/shared/RichMessage"
 import type { ProjectBoardColumn } from "@/lib/project-status"
 
 interface ManageStatusesPanelProps {
@@ -38,6 +40,7 @@ interface ManageStatusesPanelProps {
  * (the standard workflow progression) and sit above all custom columns.
  */
 export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageStatusesPanelProps) {
+  const { t } = useTranslations()
   const session = useSharedEditingSession()
   const [editingRole, setEditingRole] = React.useState<string | null>(null)
   const [editingName, setEditingName] = React.useState("")
@@ -52,7 +55,7 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
       await fn()
       onChanged()
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong")
+      setError(e instanceof Error ? e.message : t("messages.somethingWentWrong"))
     } finally {
       setBusy(false)
     }
@@ -73,7 +76,7 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
       })
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
-        throw new Error(data.error || "Failed to rename status")
+        throw new Error(data.error || t("listSettings.admin.renameStatusFailed"))
       }
       session.endEditing(`status-name:${column.id}`)
       setEditingRole(null)
@@ -105,7 +108,7 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
       })
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
-        throw new Error(data.error || "Failed to reorder status")
+        throw new Error(data.error || t("listSettings.admin.reorderStatusFailed"))
       }
     })
   }
@@ -119,7 +122,7 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
       })
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
-        throw new Error(data.error || "Failed to delete status")
+        throw new Error(data.error || t("listSettings.admin.deleteStatusFailed"))
       }
     })
   }
@@ -135,7 +138,7 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
       })
       if (!response.ok) {
         const data = await response.json().catch(() => ({}))
-        throw new Error(data.error || "Failed to add status")
+        throw new Error(data.error || t("listSettings.admin.addStatusFailed"))
       }
       setNewName("")
     })
@@ -147,8 +150,10 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
   return (
     <div className="space-y-3">
       <p className="text-xs theme-text-muted">
-        Ready, Doing and Waiting apply to <strong>all</strong> of your boards. A status you
-        add here belongs to this board only.
+        <RichMessage
+          message={t("listSettings.admin.statusesIntro")}
+          values={{ all: <strong>{t("listSettings.admin.statusesIntroAll")}</strong> }}
+        />
       </p>
 
       <div className="space-y-1.5">
@@ -169,7 +174,7 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
                     autoFocus
                     className="flex-1 h-8 text-sm"
                   />
-                  <Button size="sm" variant="outline" disabled={busy} onClick={() => handleRename(status)} aria-label="Save name">
+                  <Button size="sm" variant="outline" disabled={busy} onClick={() => handleRename(status)} aria-label={t("listSettings.admin.saveName")}>
                     <Check className="w-4 h-4" />
                   </Button>
                 </>
@@ -185,7 +190,7 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
                         disabled={busy || !canMoveUp}
                         onClick={() => handleReorder(status, "up")}
                         className="theme-text-muted hover:theme-text-primary p-1 disabled:opacity-30"
-                        aria-label={`Move ${status.name} up`}
+                        aria-label={fillMessage(t("listSettings.admin.moveUp"), { name: status.name })}
                       >
                         <ChevronUp className="w-3.5 h-3.5" />
                       </button>
@@ -194,7 +199,7 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
                         disabled={busy || !canMoveDown}
                         onClick={() => handleReorder(status, "down")}
                         className="theme-text-muted hover:theme-text-primary p-1 disabled:opacity-30"
-                        aria-label={`Move ${status.name} down`}
+                        aria-label={fillMessage(t("listSettings.admin.moveDown"), { name: status.name })}
                       >
                         <ChevronDown className="w-3.5 h-3.5" />
                       </button>
@@ -211,7 +216,7 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
                       setEditingName(status.name)
                     }}
                     className="theme-text-muted hover:theme-text-primary p-1 shrink-0"
-                    aria-label={`Rename ${status.name}`}
+                    aria-label={fillMessage(t("listSettings.admin.renameStatus"), { name: status.name })}
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
@@ -223,7 +228,7 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
                       disabled={busy}
                       onClick={() => handleDelete(status)}
                       className="text-theme-muted hover:text-danger p-1 shrink-0"
-                      aria-label={`Delete ${status.name}`}
+                      aria-label={fillMessage(t("listSettings.admin.deleteStatus"), { name: status.name })}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -240,11 +245,11 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") handleAdd() }}
-          placeholder="New status name"
+          placeholder={t("listSettings.admin.newStatusName")}
           className="flex-1 h-8 text-sm"
         />
         <Button size="sm" disabled={busy || !newName.trim()} onClick={handleAdd} className="bg-brand hover:bg-brand-hover text-brand-foreground">
-          <Plus className="w-4 h-4 mr-1" /> Add
+          <Plus className="w-4 h-4 mr-1" /> {t("actions.add")}
         </Button>
       </div>
 

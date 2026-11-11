@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "@/lib/i18n/client"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { EnhancedListImageDisplay } from "./enhanced-list-image-display"
@@ -38,6 +39,7 @@ export function ListAdminSettings({
   onProjectBoardCreated,
   onProjectBoardRemoved
 }: ListAdminSettingsProps) {
+  const { t } = useTranslations()
   return (
     <div className="space-y-4">
       {/* List Name */}
@@ -49,7 +51,7 @@ export function ListAdminSettings({
       {/* Enhanced List Image Display */}
       {(
         <div className="flex items-center justify-between">
-          <Label className="text-sm theme-text-secondary">List Image</Label>
+          <Label className="text-sm theme-text-secondary">{t('lists.image')}</Label>
           <EnhancedListImageDisplay
             list={list}
             canEdit={canEditSettings}

@@ -9,8 +9,10 @@ import { Heart, Bot, Code, GitBranch, Globe, MessageSquare, CheckCircle, Externa
 import { Github } from "@/components/ui/brand-icons"
 import { scrollShellClassName } from "@/components/scroll-shell"
 import { GITHUB_WEB_URL } from '@/lib/github/host'
+import { useTranslations } from '@/lib/i18n/client'
 
 export default function AstridCodingPage() {
+  const { t } = useTranslations()
   const handleGetStarted = () => {
     window.open(`${GITHUB_WEB_URL}/apps/${BRAND.githubAppSlug}/installations/new`, '_blank')
   }
@@ -29,15 +31,15 @@ export default function AstridCodingPage() {
               <Heart className="w-8 h-8 text-red-500 fill-red-500" />
               <span className="text-2xl font-bold text-theme-primary">{BRAND.wordmark}</span>
               <Badge variant="outline" className="bg-brand-subtle text-brand border-brand/30">
-                Coding Agent
+                {t('settingsPages.codingAgent.title')}
               </Badge>
             </div>
             <div className="flex items-center space-x-3">
               <Button variant="outline" onClick={handleSignUp}>
-                Sign Up
+                {t('auth.signUpButton')}
               </Button>
               <Button onClick={handleGetStarted}>
-                Get Started
+                {t('codingAgentPage.getStarted')}
               </Button>
             </div>
           </div>
@@ -51,10 +53,10 @@ export default function AstridCodingPage() {
             <Bot className="w-16 h-16 text-brand" />
             <div className="text-left">
               <h1 className="text-5xl font-bold text-theme-primary mb-2">
-                {BRAND.appName} Agent
+                {t('codingAgentPage.heroTitle')}
               </h1>
               <p className="text-xl text-theme-muted">
-                AI-powered coding assistant that writes code, creates PRs, and deploys automatically
+                {t('codingAgentPage.heroSubtitle')}
               </p>
             </div>
           </div>
@@ -62,26 +64,26 @@ export default function AstridCodingPage() {
           <div className="flex items-center justify-center space-x-4 mb-8">
             <div className="flex items-center space-x-2 text-sm text-theme-muted">
               <Star className="w-4 h-4 text-warning fill-warning" />
-              <span>Production-ready code</span>
+              <span>{t('codingAgentPage.badgeProductionReady')}</span>
             </div>
             <div className="flex items-center space-x-2 text-sm text-theme-muted">
               <CheckCircle className="w-4 h-4 text-success" />
-              <span>GitHub integration</span>
+              <span>{t('codingAgentPage.badgeGithub')}</span>
             </div>
             <div className="flex items-center space-x-2 text-sm text-theme-muted">
               <Zap className="w-4 h-4 text-brand" />
-              <span>Auto deployment</span>
+              <span>{t('codingAgentPage.badgeAutoDeploy')}</span>
             </div>
           </div>
 
           <div className="flex items-center justify-center space-x-4">
             <Button size="lg" onClick={handleGetStarted} className="bg-brand hover:bg-brand-hover text-brand-foreground">
               <Play className="w-5 h-5 mr-2" />
-              Install GitHub App
+              {t('codingAgentPage.installGithubApp')}
             </Button>
             <Button size="lg" variant="outline" onClick={handleSignUp}>
               <ArrowRight className="w-5 h-5 mr-2" />
-              Try {BRAND.appName} Free
+              {t('codingAgentPage.tryFree')}
             </Button>
           </div>
         </div>
@@ -91,9 +93,9 @@ export default function AstridCodingPage() {
           <Card className="bg-theme-surface/60 backdrop-blur-sm border-theme-surface hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
               <Code className="w-12 h-12 text-brand mx-auto mb-4" />
-              <h3 className="font-semibold text-theme-primary mb-2">Code Generation</h3>
+              <h3 className="font-semibold text-theme-primary mb-2">{t('codingAgentPage.features.codeGenerationTitle')}</h3>
               <p className="text-sm text-theme-muted">
-                AI generates production-ready code from natural language descriptions
+                {t('codingAgentPage.features.codeGenerationDesc')}
               </p>
             </CardContent>
           </Card>
@@ -101,9 +103,9 @@ export default function AstridCodingPage() {
           <Card className="bg-theme-surface/60 backdrop-blur-sm border-theme-surface hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
               <GitBranch className="w-12 h-12 text-success mx-auto mb-4" />
-              <h3 className="font-semibold text-theme-primary mb-2">GitHub PRs</h3>
+              <h3 className="font-semibold text-theme-primary mb-2">{t('codingAgentPage.features.githubPrsTitle')}</h3>
               <p className="text-sm text-theme-muted">
-                Automatically creates GitHub pull requests with proper branching
+                {t('codingAgentPage.features.githubPrsDesc')}
               </p>
             </CardContent>
           </Card>
@@ -111,9 +113,9 @@ export default function AstridCodingPage() {
           <Card className="bg-theme-surface/60 backdrop-blur-sm border-theme-surface hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
               <Globe className="w-12 h-12 text-purple-500 mx-auto mb-4" />
-              <h3 className="font-semibold text-theme-primary mb-2">Live Previews</h3>
+              <h3 className="font-semibold text-theme-primary mb-2">{t('codingAgentPage.features.livePreviewsTitle')}</h3>
               <p className="text-sm text-theme-muted">
-                Instant staging deployments via Vercel integration
+                {t('codingAgentPage.features.livePreviewsDesc')}
               </p>
             </CardContent>
           </Card>
@@ -121,9 +123,9 @@ export default function AstridCodingPage() {
           <Card className="bg-theme-surface/60 backdrop-blur-sm border-theme-surface hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
               <MessageSquare className="w-12 h-12 text-warning mx-auto mb-4" />
-              <h3 className="font-semibold text-theme-primary mb-2">Comment Actions</h3>
+              <h3 className="font-semibold text-theme-primary mb-2">{t('codingAgentPage.features.commentActionsTitle')}</h3>
               <p className="text-sm text-theme-muted">
-                Control with simple comments: &quot;approve&quot;, &quot;merge&quot;, &quot;change X&quot;
+                {t('codingAgentPage.features.commentActionsDesc')}
               </p>
             </CardContent>
           </Card>
@@ -132,20 +134,20 @@ export default function AstridCodingPage() {
         {/* How It Works */}
         <Card className="mb-16 bg-theme-surface/60 backdrop-blur-sm border-theme-surface">
           <CardHeader>
-            <CardTitle className="text-2xl text-center text-theme-primary">How It Works</CardTitle>
+            <CardTitle className="text-2xl text-center text-theme-primary">{t('codingAgentPage.howItWorks.title')}</CardTitle>
             <CardDescription className="text-center text-theme-muted">
-              Complete workflow from task to production deployment
+              {t('codingAgentPage.howItWorks.description')}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-8">
             <div className="space-y-6">
               {[
-                { step: 1, title: "Assign Task", desc: `Create a task and assign it to \"${BRAND.appName} Agent\"` },
-                { step: 2, title: "AI Planning", desc: "Agent analyzes requirements and creates implementation plan" },
-                { step: 3, title: "Review & Approve", desc: "Comment \"approve\" to start code generation" },
-                { step: 4, title: "Code Generation", desc: "Agent writes code, creates GitHub branch and PR" },
-                { step: 5, title: "Live Preview", desc: "Get instant staging deployment if Vercel is connected" },
-                { step: 6, title: "Deploy", desc: "Comment \"merge\" to deploy or \"change X\" for modifications" }
+                { step: 1, title: t('codingAgentPage.howItWorks.assignTitle'), desc: t('codingAgentPage.howItWorks.assignDesc') },
+                { step: 2, title: t('codingAgentPage.howItWorks.planningTitle'), desc: t('codingAgentPage.howItWorks.planningDesc') },
+                { step: 3, title: t('codingAgentPage.howItWorks.reviewTitle'), desc: t('codingAgentPage.howItWorks.reviewDesc') },
+                { step: 4, title: t('codingAgentPage.howItWorks.generateTitle'), desc: t('codingAgentPage.howItWorks.generateDesc') },
+                { step: 5, title: t('codingAgentPage.howItWorks.previewTitle'), desc: t('codingAgentPage.howItWorks.previewDesc') },
+                { step: 6, title: t('codingAgentPage.howItWorks.deployTitle'), desc: t('codingAgentPage.howItWorks.deployDesc') }
               ].map((item, index) => (
                 <div key={index} className="flex items-start space-x-4">
                   <div className="flex-shrink-0 w-8 h-8 bg-brand-subtle text-brand rounded-full flex items-center justify-center text-sm font-medium">
@@ -169,33 +171,33 @@ export default function AstridCodingPage() {
           <CardHeader>
             <div className="flex items-center justify-center space-x-3 mb-4">
               <Github className="w-8 h-8" />
-              <CardTitle className="text-2xl text-theme-primary">Official GitHub App</CardTitle>
+              <CardTitle className="text-2xl text-theme-primary">{t('codingAgentPage.githubApp.title')}</CardTitle>
             </div>
             <CardDescription className="text-center text-theme-muted">
-              Secure, maintained, and trusted by developers worldwide
+              {t('codingAgentPage.githubApp.description')}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-8">
             <div className="grid md:grid-cols-3 gap-6">
               <div className="text-center">
                 <Zap className="w-12 h-12 text-brand mx-auto mb-4" />
-                <h3 className="font-semibold text-theme-primary mb-2">Quick Setup</h3>
+                <h3 className="font-semibold text-theme-primary mb-2">{t('codingAgentPage.githubApp.quickSetupTitle')}</h3>
                 <p className="text-sm text-theme-muted">
-                  No GitHub App creation needed - just install and connect in minutes
+                  {t('codingAgentPage.githubApp.quickSetupDesc')}
                 </p>
               </div>
               <div className="text-center">
                 <Shield className="w-12 h-12 text-success mx-auto mb-4" />
-                <h3 className="font-semibold text-theme-primary mb-2">Secure & Trusted</h3>
+                <h3 className="font-semibold text-theme-primary mb-2">{t('codingAgentPage.githubApp.secureTitle')}</h3>
                 <p className="text-sm text-theme-muted">
-                  Official app maintained by the {BRAND.appName} team with proper security practices
+                  {t('codingAgentPage.githubApp.secureDesc')}
                 </p>
               </div>
               <div className="text-center">
                 <Users className="w-12 h-12 text-purple-500 mx-auto mb-4" />
-                <h3 className="font-semibold text-theme-primary mb-2">Shared & Maintained</h3>
+                <h3 className="font-semibold text-theme-primary mb-2">{t('codingAgentPage.githubApp.sharedTitle')}</h3>
                 <p className="text-sm text-theme-muted">
-                  Used by all {BRAND.appName} users - no individual app management required
+                  {t('codingAgentPage.githubApp.sharedDesc')}
                 </p>
               </div>
             </div>
@@ -205,24 +207,24 @@ export default function AstridCodingPage() {
         {/* Interactive Actions */}
         <Card className="mb-16 bg-theme-surface/60 backdrop-blur-sm border-warning/30">
           <CardHeader>
-            <CardTitle className="text-2xl text-center text-theme-primary">Simple Comment Controls</CardTitle>
+            <CardTitle className="text-2xl text-center text-theme-primary">{t('codingAgentPage.controls.title')}</CardTitle>
             <CardDescription className="text-center text-theme-muted">
-              Control the agent with natural language comments
+              {t('codingAgentPage.controls.description')}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-8">
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-success-subtle rounded-lg border border-success/30">
                 <span className="font-semibold text-success">&quot;approve&quot;</span>
-                <span className="text-sm text-theme-primary">Approves AI plan and starts implementation</span>
+                <span className="text-sm text-theme-primary">{t('codingAgentPage.controls.approveDesc')}</span>
               </div>
               <div className="flex items-center justify-between p-4 bg-brand-subtle rounded-lg border border-brand/30">
-                <span className="font-semibold text-brand">&quot;merge&quot; or &quot;ship it&quot;</span>
-                <span className="text-sm text-theme-primary">Merges PR to production</span>
+                <span className="font-semibold text-brand">&quot;merge&quot; {t('common.or')} &quot;ship it&quot;</span>
+                <span className="text-sm text-theme-primary">{t('codingAgentPage.controls.mergeDesc')}</span>
               </div>
               <div className="flex items-center justify-between p-4 bg-warning-subtle rounded-lg border border-warning/30">
                 <span className="font-semibold text-warning">&quot;change [feedback]&quot;</span>
-                <span className="text-sm text-theme-primary">Requests modifications with specific feedback</span>
+                <span className="text-sm text-theme-primary">{t('codingAgentPage.controls.changeDesc')}</span>
               </div>
             </div>
           </CardContent>
@@ -231,18 +233,18 @@ export default function AstridCodingPage() {
         {/* CTA Section */}
         <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0">
           <CardContent className="p-12 text-center">
-            <h2 className="text-3xl font-bold mb-4">Ready to Transform Your Development?</h2>
+            <h2 className="text-3xl font-bold mb-4">{t('codingAgentPage.cta.title')}</h2>
             <p className="text-xl mb-8 text-blue-100">
-              Join thousands of developers using AI to ship faster than ever
+              {t('codingAgentPage.cta.subtitle')}
             </p>
             <div className="flex items-center justify-center space-x-4">
               <Button size="lg" variant="secondary" onClick={handleGetStarted}>
                 <Github className="w-5 h-5 mr-2" />
-                Install GitHub App
+                {t('codingAgentPage.installGithubApp')}
               </Button>
               <Button size="lg" variant="outline" onClick={handleSignUp} className="bg-transparent text-white border-white hover:bg-white hover:text-blue-600">
                 <ArrowRight className="w-5 h-5 mr-2" />
-                Start Free Trial
+                {t('codingAgentPage.cta.startTrial')}
               </Button>
             </div>
           </CardContent>
@@ -257,22 +259,22 @@ export default function AstridCodingPage() {
             <div className="flex items-center space-x-3">
               <Heart className="w-6 h-6 text-red-500 fill-red-500" />
               <span className="text-xl font-semibold">{BRAND.wordmark}</span>
-              <span className="text-gray-400">Coding Agent</span>
+              <span className="text-gray-400">{t('settingsPages.codingAgent.title')}</span>
             </div>
             <div className="flex items-center space-x-6">
               <a href={`${GITHUB_WEB_URL}/apps/${BRAND.githubAppSlug}`} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
                 <Github className="w-5 h-5" />
               </a>
               <Link href="/auth/signin" className="text-gray-400 hover:text-white transition-colors">
-                Sign In
+                {t('auth.signInButton')}
               </Link>
               <Link href="/auth/signin" className="text-gray-400 hover:text-white transition-colors">
-                Sign Up
+                {t('auth.signUpButton')}
               </Link>
             </div>
           </div>
           <div className="mt-8 pt-8 border-t border-gray-800 text-center text-gray-400">
-            <p>&copy; 2024 {BRAND.appName}. All rights reserved. Powered by AI to accelerate your development workflow.</p>
+            <p>{t('codingAgentPage.footerNote')}</p>
           </div>
         </div>
       </div>

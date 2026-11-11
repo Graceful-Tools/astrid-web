@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "@/lib/i18n/client"
 import React, { useState, useEffect, useCallback } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -58,6 +59,7 @@ interface PublicListsBrowserProps {
 }
 
 export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicListsBrowserProps) {
+  const { t } = useTranslations()
   const [publicLists, setPublicLists] = useState<PublicList[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [loading, setLoading] = useState(false)
@@ -317,7 +319,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 theme-text-muted w-4 h-4" />
                 <Input
-                  placeholder="Search by name, description, or creator..."
+                  placeholder={t('lists.publicBrowser.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 theme-input theme-text-primary"
@@ -332,7 +334,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                   onClick={() => setFilterBy('all')}
                   className="text-xs"
                 >
-                  All Lists
+                  {t('lists.publicBrowser.allLists')}
                 </Button>
                 <Button
                   variant={filterBy === 'popular' ? 'default' : 'outline'}
@@ -360,7 +362,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
               <div className="p-4 space-y-3">
                 {loading ? (
                   <div className="text-center py-8 theme-text-muted">
-                    Loading public lists...
+                    {t('lists.publicBrowser.loading')}
                   </div>
                 ) : publicLists.length === 0 ? (
                   <div className="text-center py-8 theme-text-muted">
@@ -502,7 +504,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                 {/* Tasks Preview */}
                 <div className="flex-1 theme-bg-secondary rounded-lg theme-border border overflow-hidden mx-4 mb-4">
                   <div className="p-4 theme-border border-b">
-                    <h3 className="font-medium theme-text-primary">Tasks Preview</h3>
+                    <h3 className="font-medium theme-text-primary">{t('lists.publicBrowser.tasksPreview')}</h3>
                     <p className="text-sm theme-text-muted">
                       {selectedList.tasks.length > 0
                         ? `Showing ${selectedList.tasks.length} of ${selectedList._count.tasks} tasks`
@@ -515,11 +517,11 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                     <div className="p-4 space-y-2">
                       {previewLoading ? (
                         <div className="text-center py-8 theme-text-muted">
-                          Loading preview...
+                          {t('lists.publicBrowser.loadingPreview')}
                         </div>
                       ) : selectedList.tasks.length === 0 ? (
                         <div className="text-center py-8 theme-text-muted">
-                          This list has no tasks
+                          {t('lists.publicBrowser.noTasks')}
                         </div>
                       ) : (
                         selectedList.tasks.map((task) => (
@@ -571,10 +573,10 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                   <div className="text-center">
                     <Eye className="w-12 h-12 theme-text-muted mx-auto mb-4" />
                     <h3 className="text-lg font-medium theme-text-primary mb-2">
-                      Select a List to Preview
+                      {t('lists.publicBrowser.selectTitle')}
                     </h3>
                     <p className="theme-text-muted">
-                      Choose a list from the left to see its details and tasks
+                      {t('lists.publicBrowser.selectHint')}
                     </p>
                   </div>
                 </div>
