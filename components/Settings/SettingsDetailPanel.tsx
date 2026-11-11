@@ -3,6 +3,7 @@
 import React, { useRef } from "react"
 import { Maximize2 } from "lucide-react"
 import { usePanelArrowPosition } from "@/hooks/usePanelArrowPosition"
+import { useTranslations } from "@/lib/i18n/client"
 import { SettingsPageContent } from "./settings-pages"
 
 interface SettingsDetailPanelProps {
@@ -12,6 +13,7 @@ interface SettingsDetailPanelProps {
 }
 
 export default function SettingsDetailPanel({ page, onNavigate }: SettingsDetailPanelProps) {
+  const { t } = useTranslations()
   const panelRef = useRef<HTMLDivElement>(null)
   const arrowTop = usePanelArrowPosition({
     sourceSelector: `[data-settings-page="${page}"]`,
@@ -29,7 +31,7 @@ export default function SettingsDetailPanel({ page, onNavigate }: SettingsDetail
           <button
             onClick={() => window.open(`/settings/fullpage/${page}`, '_blank')}
             className="p-1.5 rounded-lg theme-text-muted hover:theme-text-primary hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-            title="Open in new tab"
+            title={t("settingsPages.openInNewTab")}
           >
             <Maximize2 className="w-3.5 h-3.5" />
           </button>

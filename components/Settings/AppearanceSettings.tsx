@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTheme } from "@/contexts/theme-context"
 import { KeyboardShortcutsMenu } from "@/components/keyboard-shortcuts-menu"
 import { useTranslations } from "@/lib/i18n/client"
+import { RichMessage } from "@/components/shared/RichMessage"
 import { useUserSettings } from "@/hooks/useUserSettings"
 import {
   Palette,
@@ -60,6 +61,17 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
     taskDisplayMode,
   } = useUserSettings()
   const { t } = useTranslations()
+
+  // The message arrives with the address already in it (lib/brand/i18n-values.ts
+  // substitutes brand tokens at load), so mark where it sits to style it.
+  const emailLine = (key: string) => (
+    <RichMessage
+      message={t(key).replace(BRAND.inboundTaskEmail, "{email}")}
+      values={{
+        email: <code className="px-1.5 py-0.5 bg-theme-active rounded text-xs font-mono">{BRAND.inboundTaskEmail}</code>,
+      }}
+    />
+  )
 
   const handleSubtaskDisplayChange = (value: string) => updateSettings({ subtaskDisplay: value })
   const handleTaskDisplayModeChange = (value: string) => updateSettings({ taskDisplayMode: value })
@@ -182,7 +194,7 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
               </div>
 
               <div className="text-sm theme-text-muted mt-4 p-3 bg-brand-subtle rounded-lg">
-                <p className="font-medium text-theme-primary mb-1">💡 Pro Tip</p>
+                <p className="font-medium text-theme-primary mb-1">💡 {t("settingsPages.appearancePage.tipLabel")}</p>
                 <p className="text-theme-primary">
                   {t("settingsPages.appearancePage.theme.proTip")}
                 </p>
@@ -220,7 +232,7 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
               </div>
 
               <div className="text-sm theme-text-muted p-3 bg-brand-subtle rounded-lg">
-                <p className="font-medium text-theme-primary mb-1">💡 Quick Access</p>
+                <p className="font-medium text-theme-primary mb-1">💡 {t("settingsPages.appearancePage.keyboard.quickAccessLabel")}</p>
                 <p className="text-theme-primary">
                   {t("settingsPages.appearancePage.keyboard.quickAccess")}
                 </p>
@@ -233,19 +245,19 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
                 <Sparkles className="w-5 h-5 text-yellow-500" />
-                <span>Smart Task Creation</span>
+                <span>{t("settingsPages.appearancePage.smartTasks.title")}</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
-                Automatically parse dates, priorities, and list hashtags from task titles
+                {t("settingsPages.appearancePage.smartTasks.description")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Toggle */}
               <div className="flex items-center justify-between p-4 bg-theme-secondary rounded-lg">
                 <div className="flex-1">
-                  <Label className="font-medium theme-text-primary">Enable Smart Parsing</Label>
+                  <Label className="font-medium theme-text-primary">{t("settingsPages.appearancePage.smartTasks.enable")}</Label>
                   <p className="text-sm theme-text-muted">
-                    Extract task metadata from natural language input
+                    {t("settingsPages.appearancePage.smartTasks.enableDesc")}
                   </p>
                 </div>
                 <Switch
@@ -256,7 +268,7 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
 
               {/* Examples */}
               <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-lg border theme-border">
-                <h4 className="font-medium theme-text-primary mb-2">Supported patterns:</h4>
+                <h4 className="font-medium theme-text-primary mb-2">{t("settingsPages.appearancePage.smartTasks.supportedPatterns")}</h4>
                 <ul className="space-y-2 text-sm theme-text-muted">
                   <li className="flex items-start space-x-2">
                     <span className="text-yellow-500 mt-0.5">•</span>
@@ -386,18 +398,18 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
                 <ListTree className="w-5 h-5 text-brand" />
-                <span>Sub tasks</span>
+                <span>{t("settingsPages.appearancePage.subtasks.title")}</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
-                How sub tasks appear in your lists (synced across devices)
+                {t("settingsPages.appearancePage.subtasks.description")}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between p-4 bg-theme-secondary rounded-lg">
                 <div className="flex-1">
-                  <Label className="font-medium theme-text-primary">Show sub tasks</Label>
+                  <Label className="font-medium theme-text-primary">{t("settingsPages.appearancePage.subtasks.label")}</Label>
                   <p className="text-sm theme-text-muted">
-                    Indented in lists, or only inside the parent task
+                    {t("settingsPages.appearancePage.subtasks.labelDesc")}
                   </p>
                 </div>
                 <Select value={subtaskDisplay} onValueChange={handleSubtaskDisplayChange}>
@@ -405,8 +417,8 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="indented">In lists, indented</SelectItem>
-                    <SelectItem value="under_parent">Inside parent task only</SelectItem>
+                    <SelectItem value="indented">{t("settingsPages.appearancePage.subtasks.indented")}</SelectItem>
+                    <SelectItem value="under_parent">{t("settingsPages.appearancePage.subtasks.underParent")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -435,15 +447,15 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
                     <ul className="space-y-2 text-sm theme-text-muted">
                       <li className="flex items-start space-x-2">
                         <span className="text-purple-500 mt-0.5">•</span>
-                        <span><strong>{t("settingsPages.appearancePage.emailToTask.selfTask")}</strong> Send TO <code className="px-1.5 py-0.5 bg-theme-active rounded text-xs font-mono">{BRAND.inboundTaskEmail}</code></span>
+                        <span><strong>{t("settingsPages.appearancePage.emailToTask.selfTask")}</strong> {emailLine("settingsPages.appearancePage.emailToTask.selfTaskDesc")}</span>
                       </li>
                       <li className="flex items-start space-x-2">
                         <span className="text-purple-500 mt-0.5">•</span>
-                        <span><strong>{t("settingsPages.appearancePage.emailToTask.assignedTask")}</strong> CC <code className="px-1.5 py-0.5 bg-theme-active rounded text-xs font-mono">{BRAND.inboundTaskEmail}</code> with one recipient</span>
+                        <span><strong>{t("settingsPages.appearancePage.emailToTask.assignedTask")}</strong> {emailLine("settingsPages.appearancePage.emailToTask.assignedTaskDesc")}</span>
                       </li>
                       <li className="flex items-start space-x-2">
                         <span className="text-purple-500 mt-0.5">•</span>
-                        <span><strong>{t("settingsPages.appearancePage.emailToTask.groupTask")}</strong> CC <code className="px-1.5 py-0.5 bg-theme-active rounded text-xs font-mono">{BRAND.inboundTaskEmail}</code> with multiple recipients</span>
+                        <span><strong>{t("settingsPages.appearancePage.emailToTask.groupTask")}</strong> {emailLine("settingsPages.appearancePage.emailToTask.groupTaskDesc")}</span>
                       </li>
                     </ul>
                   </div>
@@ -468,7 +480,7 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
               </div>
 
               <div className="text-sm theme-text-muted p-3 bg-brand-subtle rounded-lg">
-                <p className="font-medium text-theme-primary mb-1">💡 Pro Tip</p>
+                <p className="font-medium text-theme-primary mb-1">💡 {t("settingsPages.appearancePage.tipLabel")}</p>
                 <p className="text-theme-primary">
                   {t("settingsPages.appearancePage.emailToTask.proTip")}
                 </p>
