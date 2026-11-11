@@ -60,7 +60,7 @@ export default function SettingsHub({ onNavigate }: SettingsHubProps) {
       title: t("settingsPages.accountAccess.title"),
       description: t("settingsPages.accountAccess.description"),
       page: "account",
-      color: "text-blue-500"
+      color: "text-brand"
     },
     {
       icon: Bell,
@@ -81,7 +81,7 @@ export default function SettingsHub({ onNavigate }: SettingsHubProps) {
       title: t("settingsPages.connections.title"),
       description: t("settingsPages.connections.description"),
       page: "connections",
-      color: "text-blue-600"
+      color: "text-brand"
     },
     {
       icon: Users,

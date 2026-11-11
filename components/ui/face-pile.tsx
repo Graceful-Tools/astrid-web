@@ -33,18 +33,18 @@ export function FacePile({ users = [], maxVisible = 3, size = "sm", className = 
       {visibleUsers.map((user, index) => (
         <Avatar 
           key={user.id} 
-          className={`${sizeClasses[size]} border border-gray-600 ${user.isPending ? 'opacity-60' : ''}`}
+          className={`${sizeClasses[size]} border border-theme ${user.isPending ? 'opacity-60' : ''}`}
           style={{ zIndex: visibleUsers.length - index }}
         >
           <AvatarImage src={user.image || "/placeholder.svg"} />
-          <AvatarFallback className={`${textSizeClasses[size]} bg-gray-600 text-gray-200`}>
+          <AvatarFallback className={`${textSizeClasses[size]} bg-theme-active text-theme-secondary`}>
             {user.name?.charAt(0) || user.email.charAt(0)}
           </AvatarFallback>
         </Avatar>
       ))}
       {remainingCount > 0 && (
         <div 
-          className={`${sizeClasses[size]} border border-gray-600 bg-gray-700 text-gray-300 rounded-full flex items-center justify-center ${textSizeClasses[size]} font-medium`}
+          className={`${sizeClasses[size]} border border-theme bg-theme-tertiary text-theme-secondary rounded-full flex items-center justify-center ${textSizeClasses[size]} font-medium`}
           style={{ zIndex: 0 }}
         >
           +{remainingCount}

@@ -94,7 +94,7 @@ export function ListNameSection({ list, canEditSettings, onUpdate }: ListNameSec
             data-testid="list-name-input"
             autoFocus={!shouldPreventAutoFocus()}
           />
-          <Button size="sm" onClick={handleSaveListName} className="bg-blue-600 hover:bg-blue-700">
+          <Button size="sm" onClick={handleSaveListName} className="bg-brand hover:bg-brand-hover text-brand-foreground">
             <Check className="w-4 h-4" />
           </Button>
           <Button size="sm" variant="outline" onClick={handleCancel}

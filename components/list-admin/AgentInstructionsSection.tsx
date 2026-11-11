@@ -112,7 +112,7 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
               <button
                 type="button"
                 onClick={() => setShowInstructionPreview(false)}
-                className={`text-xs px-2 py-1 rounded ${!showInstructionPreview ? 'bg-blue-600 text-white' : 'theme-text-muted hover:theme-bg-hover'}`}
+                className={`text-xs px-2 py-1 rounded ${!showInstructionPreview ? 'bg-brand text-brand-foreground' : 'theme-text-muted hover:theme-bg-hover'}`}
               >
                 <Edit3 className="w-3 h-3 inline mr-1" />
                 Edit
@@ -120,7 +120,7 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
               <button
                 type="button"
                 onClick={() => setShowInstructionPreview(true)}
-                className={`text-xs px-2 py-1 rounded ${showInstructionPreview ? 'bg-blue-600 text-white' : 'theme-text-muted hover:theme-bg-hover'}`}
+                className={`text-xs px-2 py-1 rounded ${showInstructionPreview ? 'bg-brand text-brand-foreground' : 'theme-text-muted hover:theme-bg-hover'}`}
               >
                 <Eye className="w-3 h-3 inline mr-1" />
                 Preview
@@ -141,7 +141,7 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
               value={tempListDescription}
               onChange={(e) => setTempListDescription(e.target.value)}
               placeholder={"Write instructions for AI agents working in this list...\n\nExample:\nYou help our family plan meals.\n\n## Goals\n- Suggest healthy recipes\n- Create weekly shopping lists\n\n## Guardrails\n- No shellfish (allergy)\n- Budget: $150/week"}
-              className="w-full theme-comment-bg theme-border border theme-text-primary rounded-lg px-3 py-2 resize-vertical focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+              className="w-full theme-comment-bg border-theme border theme-text-primary rounded-lg px-3 py-2 resize-vertical focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent font-mono text-sm"
               rows={8}
               onKeyDown={(e) => {
                 if (e.key === 'Escape') {
@@ -178,7 +178,7 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
                   handleSaveListDescription()
                   setShowInstructionPreview(false)
                 }}
-                className="text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                className="text-xs bg-brand hover:bg-brand-hover text-brand-foreground"
               >
                 <Check className="w-3 h-3 mr-1" />
                 Save

@@ -86,14 +86,14 @@ export function ListColorSection({ list, canEditSettings, onUpdate }: ListColorS
             aria-checked={current === swatch}
             aria-label={swatch}
             onClick={() => { void save(swatch) }}
-            className="w-6 h-6 rounded-full flex items-center justify-center ring-offset-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="w-6 h-6 rounded-full flex items-center justify-center ring-offset-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             style={{ backgroundColor: swatch }}
           >
             {current === swatch && <Check className="w-3.5 h-3.5 text-white" aria-hidden="true" />}
           </button>
         ))}
         <label
-          className={`relative w-6 h-6 rounded-full overflow-hidden cursor-pointer border theme-border ${isCustom ? 'ring-2 ring-offset-1 ring-blue-500' : ''}`}
+          className={`relative w-6 h-6 rounded-full overflow-hidden cursor-pointer border theme-border ${isCustom ? 'ring-2 ring-offset-1 ring-brand' : ''}`}
           title={t("listSettings.color.custom")}
           style={isCustom ? { backgroundColor: color } : { background: CUSTOM_SWATCH_GRADIENT }}
         >

@@ -28,7 +28,7 @@ export function DeleteListSection({ list, canEditSettings, onDelete }: DeleteLis
           variant="destructive"
           size="sm"
           onClick={() => setShowDeleteConfirmation(true)}
-          className="w-full text-red-400 hover:text-red-300 hover:bg-red-900/20"
+          className="w-full hover:text-danger hover:bg-danger-subtle"
         >
           <Trash2 className="w-4 h-4 mr-2" />
           Delete List
@@ -37,7 +37,7 @@ export function DeleteListSection({ list, canEditSettings, onDelete }: DeleteLis
 
       {showDeleteConfirmation && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDeleteConfirmation(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm mx-4 shadow-xl" data-testid="list-delete-confirm" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-theme-surface rounded-lg p-6 max-w-sm mx-4 shadow-xl" data-testid="list-delete-confirm" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4">
               <h3 className="text-lg font-semibold theme-text-primary mb-2">Delete List</h3>
               <p className="theme-text-secondary mb-2">
@@ -63,7 +63,7 @@ export function DeleteListSection({ list, canEditSettings, onDelete }: DeleteLis
                   onDelete(list.id)
                   setShowDeleteConfirmation(false)
                 }}
-                className="bg-red-600 hover:bg-red-700 text-white"
+                className="bg-danger hover:bg-danger/90 text-danger-foreground"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete

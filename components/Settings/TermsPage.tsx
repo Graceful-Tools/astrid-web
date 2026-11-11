@@ -10,40 +10,40 @@ export default function TermsPage({ onNavigate }: TermsPageProps) {
   return (
     <div className="p-2 sm:p-4">
       <div className="max-w-sm sm:max-w-2xl mx-auto space-y-4 sm:space-y-6">
-        <h1 className="text-4xl font-bold text-white mb-2">Terms of Service</h1>
-        <p className="text-gray-500 mb-10">Last updated: January 3, 2026</p>
+        <h1 className="text-4xl font-bold text-theme-primary mb-2">Terms of Service</h1>
+        <p className="text-theme-muted mb-10">Last updated: January 3, 2026</p>
 
         <div className="space-y-10">
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">The Service</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold text-theme-primary mb-3">The Service</h2>
+            <p className="text-theme-secondary leading-relaxed">
               {BRAND.appName} is a task management application operated by Graceful Tools LLC.
               By using {BRAND.appName}, you agree to these terms.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Your Account</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold text-theme-primary mb-3">Your Account</h2>
+            <p className="text-theme-secondary leading-relaxed">
               You&apos;re responsible for your account security and all activity under it.
               Keep your credentials safe and notify us of any unauthorized access.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Your Content</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold text-theme-primary mb-3">Your Content</h2>
+            <p className="text-theme-secondary leading-relaxed">
               You own everything you create in {BRAND.appName}. We only use your content to
               provide the service—storing, syncing, and displaying it back to you.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Acceptable Use</h2>
-            <p className="text-gray-300 leading-relaxed mb-3">
+            <h2 className="text-xl font-semibold text-theme-primary mb-3">Acceptable Use</h2>
+            <p className="text-theme-secondary leading-relaxed mb-3">
               Don&apos;t use {BRAND.appName} to:
             </p>
-            <ul className="list-disc list-inside text-gray-300 space-y-1 ml-2">
+            <ul className="list-disc list-inside text-theme-secondary space-y-1 ml-2">
               <li>Break any laws</li>
               <li>Harass or harm others</li>
               <li>Distribute malware or spam</li>
@@ -53,50 +53,50 @@ export default function TermsPage({ onNavigate }: TermsPageProps) {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">External Services</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold text-theme-primary mb-3">External Services</h2>
+            <p className="text-theme-secondary leading-relaxed">
               {BRAND.appName} connects with Google and Apple for sign-in. When using these
               integrations, their respective terms apply.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Service Changes</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold text-theme-primary mb-3">Service Changes</h2>
+            <p className="text-theme-secondary leading-relaxed">
               We may modify or discontinue features at any time. We&apos;ll try to give
               notice for significant changes.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Warranty Disclaimer</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold text-theme-primary mb-3">Warranty Disclaimer</h2>
+            <p className="text-theme-secondary leading-relaxed">
               {BRAND.appName} is provided &quot;as is&quot; without warranties of any kind. We don&apos;t
               guarantee uptime, accuracy, or that the service will meet your specific needs.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Limitation of Liability</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold text-theme-primary mb-3">Limitation of Liability</h2>
+            <p className="text-theme-secondary leading-relaxed">
               To the extent permitted by law, Graceful Tools LLC isn&apos;t liable for
               indirect damages, data loss, or service interruptions.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Termination</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold text-theme-primary mb-3">Termination</h2>
+            <p className="text-theme-secondary leading-relaxed">
               You can delete your account anytime. We may suspend accounts that
               violate these terms.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Contact</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold text-theme-primary mb-3">Contact</h2>
+            <p className="text-theme-secondary leading-relaxed">
               Questions? Reach us at{" "}
-              <a href={`mailto:legal@${BRAND.domain}`} className="text-blue-400 hover:text-blue-300">
+              <a href={`mailto:legal@${BRAND.domain}`} className="text-brand hover:text-brand-hover">
                 legal@{BRAND.domain}
               </a>
             </p>
@@ -104,11 +104,11 @@ export default function TermsPage({ onNavigate }: TermsPageProps) {
         </div>
 
         {/* Footer Links */}
-        <div className="mt-12 pt-8 border-t border-gray-800">
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-center text-sm text-gray-400">
+        <div className="mt-12 pt-8 border-t border-theme">
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-center text-sm text-theme-muted">
             <p>&copy; {new Date().getFullYear()} Graceful Tools LLC</p>
             <div className="flex gap-6">
-              <button onClick={() => onNavigate('privacy')} className="hover:text-white transition-colors">
+              <button onClick={() => onNavigate('privacy')} className="hover:text-theme-primary transition-colors">
                 Privacy Policy
               </button>
             </div>

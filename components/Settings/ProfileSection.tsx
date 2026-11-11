@@ -118,7 +118,7 @@ export function ProfileSection({ accountData, onSaved }: ProfileSectionProps) {
                 <p className="text-xs">Currently synced with your OAuth provider</p>
               )}
               {uploadingPhoto && (
-                <p className="text-xs text-blue-400">Uploading...</p>
+                <p className="text-xs text-brand">Uploading...</p>
               )}
             </div>
             <input
@@ -172,7 +172,7 @@ export function ProfileSection({ accountData, onSaved }: ProfileSectionProps) {
             variant="outline"
             size="sm"
             onClick={() => router.push(`/u/${accountData.id}`)}
-            className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white"
+            className="border-brand text-brand hover:bg-brand hover:text-brand-foreground"
           >
             <ExternalLink className="w-4 h-4 mr-2" />
             {t("settingsPages.profileInfo.viewPublicProfile")}
@@ -187,7 +187,7 @@ export function ProfileSection({ accountData, onSaved }: ProfileSectionProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter your display name"
-              className="theme-input theme-text-primary focus:border-blue-500 focus:ring-blue-500 cursor-text"
+              className="bg-theme-input border-theme-input text-theme-primary placeholder:text-theme-placeholder focus:border-brand focus:ring-brand cursor-text"
               disabled={false}
               readOnly={false}
               autoComplete="name"
@@ -209,7 +209,7 @@ export function ProfileSection({ accountData, onSaved }: ProfileSectionProps) {
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-brand hover:bg-brand-hover text-brand-foreground"
             >
               {saving ? t("settingsPages.profileInfo.saving") : t("settingsPages.profileInfo.saveChanges")}
             </Button>

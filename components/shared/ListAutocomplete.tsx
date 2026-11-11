@@ -144,12 +144,12 @@ export function ListAutocomplete({
     <div className={className}>
       {/* Selected lists chips */}
       {selectedLists.length > 0 && (
-        <div className="flex flex-wrap gap-2 p-2 bg-gray-800 border border-gray-600 rounded-md mb-2">
+        <div className="flex flex-wrap gap-2 p-2 bg-theme-secondary border border-theme rounded-md mb-2">
           {selectedLists.map((list) => (
             <Badge
               key={list.id}
               variant="secondary"
-              className="bg-blue-600 text-white hover:bg-blue-700 group cursor-pointer"
+              className="bg-brand text-brand-foreground hover:bg-brand-hover group cursor-pointer"
               onClick={() => handleRemove(list)}
             >
               {list.name}
@@ -171,18 +171,18 @@ export function ListAutocomplete({
           onKeyDown={handleKeyDown}
           onFocus={() => inputValue && setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-          className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+          className="bg-theme-input border-theme-input text-theme-primary placeholder:text-theme-placeholder"
         />
 
         {/* Dropdown suggestions */}
         {showSuggestions && inputValue && (
-          <div className="absolute top-full left-0 right-0 z-10 mt-1 bg-gray-800 border border-gray-600 rounded-md shadow-lg max-h-40 overflow-y-auto">
+          <div className="absolute top-full left-0 right-0 z-10 mt-1 bg-theme-surface border border-theme-surface rounded-md shadow-lg max-h-40 overflow-y-auto">
             {filteredLists.length > 0 ? (
               filteredLists.map((list) => (
                 <div
                   key={list.id}
                   onClick={() => handleSelect(list)}
-                  className="px-3 py-2 hover:bg-gray-700 cursor-pointer text-white flex items-center justify-between"
+                  className="px-3 py-2 hover:bg-theme-hover cursor-pointer text-theme-primary flex items-center justify-between"
                 >
                   <span>{list.name}</span>
                   <Badge variant="outline" className="text-xs">
@@ -193,10 +193,10 @@ export function ListAutocomplete({
             ) : allowCreate && onCreateNew && inputValue.trim() ? (
               <div
                 onClick={handleCreateNew}
-                className="px-3 py-2 hover:bg-gray-700 cursor-pointer text-white"
+                className="px-3 py-2 hover:bg-theme-hover cursor-pointer text-theme-primary"
               >
                 <div className="flex items-center space-x-2">
-                  <Plus className="w-4 h-4 text-green-400" />
+                  <Plus className="w-4 h-4 text-success" />
                   <span>Create new list: &quot;{inputValue}&quot;</span>
                 </div>
               </div>
@@ -206,7 +206,7 @@ export function ListAutocomplete({
       </div>
 
       {/* Help text */}
-      <div className="text-xs text-gray-400 mt-2">
+      <div className="text-xs text-theme-muted mt-2">
         Type to search existing lists{allowCreate && ' or create a new private list'}. Use backspace to remove selected lists.
       </div>
     </div>
