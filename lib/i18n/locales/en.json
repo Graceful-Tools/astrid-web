@@ -803,6 +803,12 @@
         "desc2": "Titles stop at two lines.",
         "desc1": "Titles stay on one line."
       },
+      "taskReminders": {
+        "title": "Task reminders",
+        "description": "Whether a task's details show its Reminder row (saved on this device)",
+        "label": "Show reminders in task details",
+        "labelDesc": "Reminders already set on a task still go off when this is off."
+      },
       "emailToTask": {
         "title": "Email-to-Task",
         "description": "Create tasks instantly by sending emails to {inboundTaskEmail}",

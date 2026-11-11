@@ -6,6 +6,7 @@ import { SecureAttachmentViewer } from "../secure-attachment-viewer"
 import { TaskTimer } from "../task-timer"
 import { TaskDetailReminderRow } from "./TaskDetailReminderRow"
 import { collectTaskAttachments } from "@/lib/task-attachments"
+import { useTheme } from "@/contexts/theme-context"
 
 interface TaskActivitySectionProps {
   task: Task
@@ -18,7 +19,8 @@ interface TaskActivitySectionProps {
 /**
  * The "activity" sub-view of a task: its attachments — the files hung on the
  * task itself plus the ones its comments carry (task b4a362f1) —
- * plus the Timer button and its modal. Extracted verbatim from task-detail.tsx
+ * plus the Timer button and its modal, and the task's Reminder row for
+ * someone who has opted in to it (AWTD-1577). Extracted verbatim from task-detail.tsx
  * (Stage 22) — completes the header / fields / activity / modals split. Pure
  * function of `task` + the timer toggle; no behavior change.
  */
@@ -33,16 +35,22 @@ export function TaskActivitySection({
   // Task-level files used to be dropped here entirely (task b4a362f1), and
   // files attached through MCP were dropped until AWTD-803.
   const allAttachments = collectTaskAttachments(task)
+  // Off until the person opts in under Appearance (AWTD-1577). The setting is
+  // the whole rule: a task that already has a reminder keeps it, and it still
+  // fires, but the row to see or change it stays hidden with the setting off.
+  const { showTaskReminders } = useTheme()
 
   return (
     <>
       {/* The task's own reminder (AWTD-1418). Kept here rather than in
        *  TaskFieldEditors, which is at its size budget. */}
-      <TaskDetailReminderRow
-        value={task.reminderTime}
-        onChange={reminderTime => onUpdate({ ...task, reminderTime })}
-        readOnly={readOnly}
-      />
+      {showTaskReminders && (
+        <TaskDetailReminderRow
+          value={task.reminderTime}
+          onChange={reminderTime => onUpdate({ ...task, reminderTime })}
+          readOnly={readOnly}
+        />
+      )}
 
       {/* All Attachments Section */}
       {allAttachments.length > 0 && (

@@ -803,6 +803,12 @@
         "desc2": "Los títulos se cortan a las dos líneas.",
         "desc1": "Los títulos se quedan en una línea."
       },
+      "taskReminders": {
+        "title": "Recordatorios de tareas",
+        "description": "Si los detalles de una tarea muestran la fila Recordatorio (se guarda en este dispositivo)",
+        "label": "Mostrar recordatorios en los detalles de la tarea",
+        "labelDesc": "Los recordatorios ya definidos en una tarea siguen sonando aunque esto esté desactivado."
+      },
       "emailToTask": {
         "title": "Correo a Tarea",
         "description": "Crea tareas instantáneamente enviando correos a {inboundTaskEmail}",
