@@ -29,6 +29,9 @@ astrid-web. There is no native client that talks to GitHub, or any other backend
    npm install
    ```
 
+For the operator's end-to-end launch sequence, see the
+[white-label launch checklist](./deployment/WHITE_LABEL_LAUNCH_CHECKLIST.md).
+
 2. **Write a profile.** `cp brands/acme.brand.json brands/<partner>.brand.json` and edit
    `env`, plus `copy` if you want your own voice. Start from
    `brands/github-projects.brand.json` instead for a GitHub-backed brand. Every identity
@@ -82,7 +85,7 @@ astrid-web. There is no native client that talks to GitHub, or any other backend
 | **Web** | Supported | This document | — |
 | **iOS / Mac** | Supported | astrid-ios: `./scripts/make-brand-variant.sh <profile or path>` writes the **Whitelabel** build configuration; `apply-brand.sh` writes identity (§6) | [AITD-515](https://astrid.cc/t/AITD-515) |
 | **Windows** | Partial | astrid-windows: `scripts/package.ps1 -Brand <profile>`; `ASTRID_SERVER_URL` overrides the server at runtime. A non-`astrid` scheme also needs the core pin bumped past AWTD2-95 | [AWTD2-96](https://astrid.cc/t/AWTD2-96) |
-| **Android** | Partial | astrid-android: `brands/<name>/brand.properties`, then `./gradlew assembleRelease -PastridBrand=<name>` (see its `brands/README.md`). In-app accent colours are still fixed. Verified app links (`astridLinkAutoVerify`) need `BRAND_ANDROID_APP_LINKS` set on the server, so it serves `assetlinks.json` (§2) | [AATD-72](https://astrid.cc/t/AATD-72) |
+| **Android** | Partial | astrid-android: `brands/<name>/brand.properties`, then `./gradlew assembleRelease -PastridBrand=<name>` (see its `brands/README.md`). Accent, hover, and on-accent colours are configurable there; Android resources and the web profile must be kept aligned manually. Verified app links (`astridLinkAutoVerify`) need `BRAND_ANDROID_APP_LINKS` set on the server, so it serves `assetlinks.json` (§2) | [AATD-72](https://astrid.cc/t/AATD-72) |
 | **Core** (Windows and Android) | Partial | `urlScheme` and `handoffClientId` in the config JSON a shell passes; blank means Astrid's defaults | [AWTD2-95](https://astrid.cc/t/AWTD2-95) |
 
 The Apple apps read the same `brands/*.brand.json` you wrote in step 2. Windows can too.
@@ -290,6 +293,17 @@ env. That covers a white label serving one customer. A partner who runs one depl
 themselves. Astrid does not ship it, and does not choose a broker (spec §15 C1,
 [AWTD-1120](https://astrid.cc/t/AWTD-1120)). This is the contract that build must keep, so
 that it extends the linking rule above rather than working around it.
+
+### Deployment and tenancy boundary
+
+The supported model is **one customer organization per deployment**, with its own database
+and keys. A deployment has one OIDC issuer and an email-domain allow-list
+(`AUTH_SSO_DOMAINS`); Entra group claims are not consumed by Astrid. This is deployment
+isolation, not shared multi-organization tenancy. A shared deployment with multiple
+organizations, per-organization IdPs, SCIM provisioning, and session revocation are
+partner-built capabilities, not shipped features. See
+[Project Mode's scope](./product/PROJECT_MODE.md) and the
+[Azure sign-in guide](./deployment/AZURE.md#6-sign-in-with-entra-id).
 
 **SAML reaches Astrid as OIDC.** The app speaks one protocol. A customer on SAML goes behind
 a broker the partner runs: BoxyHQ SAML Jackson (open source, self-hosted), WorkOS (hosted), or
