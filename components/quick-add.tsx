@@ -423,7 +423,7 @@ export function QuickAdd({
               onClick={() => handleCreateTask(true)}
               disabled={!isSessionReady || !quickTaskInput.trim() || isCreating}
               className={`flex-shrink-0 h-9 rounded-lg bg-brand hover:bg-brand-hover
-                text-brand-foreground disabled:bg-brand-hover disabled:opacity-disabled disabled:cursor-not-allowed
+                text-brand-foreground disabled:opacity-disabled disabled:cursor-not-allowed
                 transition-all duration-press ease-press active:scale-95 ${
                   showAddTaskLabel ? 'px-4 gap-1 whitespace-nowrap' : 'w-9 p-0'
                 }`}

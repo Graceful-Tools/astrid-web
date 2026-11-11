@@ -85,7 +85,7 @@ export default function PrivacyPolicy() {
               to suggest people you might share a list with. We never write to your Google
               contacts. Clearing your imported contacts in Settings deletes them from our
               systems, and you can revoke the access itself at{" "}
-              <a href="https://myaccount.google.com/permissions" className="text-[rgb(var(--theme-accent))] hover:underline">
+              <a href="https://myaccount.google.com/permissions" className="text-brand hover:underline">
                 myaccount.google.com/permissions
               </a>.
             </p>
@@ -99,7 +99,7 @@ export default function PrivacyPolicy() {
               with law. OAuth tokens are stored encrypted on our servers and are deleted
               when you disconnect the integration, which you can do at any time from
               Settings or at{" "}
-              <a href="https://myaccount.google.com/permissions" className="text-[rgb(var(--theme-accent))] hover:underline">
+              <a href="https://myaccount.google.com/permissions" className="text-brand hover:underline">
                 myaccount.google.com/permissions
               </a>.
             </p>
@@ -117,7 +117,7 @@ export default function PrivacyPolicy() {
               Google Tasks data mirrored into your {BRAND.appName} account is retained only while the Google
               Tasks integration is connected, and is kept in sync with your Google account. You can
               delete it at any time: disconnecting the integration (in Settings, or at{" "}
-              <a href="https://myaccount.google.com/permissions" className="text-[rgb(var(--theme-accent))] hover:underline">
+              <a href="https://myaccount.google.com/permissions" className="text-brand hover:underline">
                 myaccount.google.com/permissions
               </a>
               ) immediately deletes your stored OAuth tokens and stops all further access. Deleting
@@ -129,7 +129,7 @@ export default function PrivacyPolicy() {
               {BRAND.appName}&apos;s use of information received from Google APIs adheres to the{" "}
               <a
                 href="https://developers.google.com/terms/api-services-user-data-policy"
-                className="text-[rgb(var(--theme-accent))] hover:underline"
+                className="text-brand hover:underline"
               >
                 Google API Services User Data Policy
               </a>
@@ -211,7 +211,7 @@ export default function PrivacyPolicy() {
             <h2 className="text-xl font-semibold theme-text-primary mb-3">Contact</h2>
             <p className="theme-text-secondary leading-relaxed">
               Questions? Reach us at{" "}
-              <a href={`mailto:privacy@${BRAND.domain}`} className="text-[rgb(var(--theme-accent))] hover:text-[rgb(var(--theme-accent-hover))]">
+              <a href={`mailto:privacy@${BRAND.domain}`} className="text-brand hover:text-brand-hover">
                 privacy@{BRAND.domain}
               </a>
             </p>

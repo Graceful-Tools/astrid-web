@@ -336,7 +336,7 @@ export function SignInContent() {
             {showPasskeyEmailPrompt && (
               <div className="space-y-5">
                 <div className="text-center mb-2">
-                  <KeyRound className="w-10 h-10 text-[rgb(var(--theme-accent))] mx-auto mb-2" />
+                  <KeyRound className="w-10 h-10 text-brand mx-auto mb-2" />
                   <p className="theme-text-primary font-medium">Continue with Passkey</p>
                 </div>
 
@@ -353,7 +353,7 @@ export function SignInContent() {
                       value={passkeyEmail}
                       onChange={(e) => setPasskeyEmail(e.target.value)}
                       placeholder="Enter your email"
-                      className="pl-10 h-12 theme-input theme-text-primary focus:border-[rgb(var(--theme-accent))] focus:ring-[rgb(var(--theme-accent))] rounded-xl"
+                      className="pl-10 h-12 theme-input theme-text-primary focus:border-theme-focus focus:ring-brand rounded-xl"
                       autoFocus
                     />
                   </div>
@@ -410,17 +410,17 @@ export function SignInContent() {
             <div className="text-center text-sm theme-text-muted mt-6">
               <p>
                 By signing in, you agree to our{" "}
-                <Link href="/terms" className="text-[rgb(var(--theme-accent))] hover:text-[rgb(var(--theme-accent-hover))] underline">
+                <Link href="/terms" className="text-brand hover:text-brand-hover underline">
                   Terms of Service
                 </Link>{" "}
                 and{" "}
-                <Link href="/privacy" className="text-[rgb(var(--theme-accent))] hover:text-[rgb(var(--theme-accent-hover))] underline">
+                <Link href="/privacy" className="text-brand hover:text-brand-hover underline">
                   Privacy Policy
                 </Link>
               </p>
               <p className="mt-2">
                 Having trouble?{" "}
-                <Link href="/help" className="text-[rgb(var(--theme-accent))] hover:text-[rgb(var(--theme-accent-hover))] underline">
+                <Link href="/help" className="text-brand hover:text-brand-hover underline">
                   Visit our Help Center
                 </Link>
               </p>

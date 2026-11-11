@@ -731,9 +731,9 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     })
 
     expect(html).toContain(profile.expect.accentColor)
-    if (profile.expect.accentColor !== '#3b82f6') {
+    if (profile.expect.accentColor !== '#2563eb') {
       expect(html, 'invitation email still hardcodes the Astrid accent')
-        .not.toContain('#3b82f6')
+        .not.toContain('#2563eb')
     }
   })
 

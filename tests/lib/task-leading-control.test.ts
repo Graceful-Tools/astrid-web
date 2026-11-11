@@ -69,10 +69,13 @@ describe('getPriorityColor (task 2bb1b196)', () => {
     expect(getPriorityColor(0)).toBe('rgb(var(--astrid-priority-none))')
   })
 
-  it('and the tokens hold the values the square has always drawn', () => {
+  // Low is the brand accent, darkened with it so a button's label reads
+  // (AWTD-1575, astrid-core register DS26); the others are their own colours.
+  it('and the tokens hold the values the square draws', () => {
     expect(themeColor('light', 'priority-high')).toEqual([239, 68, 68])
     expect(themeColor('light', 'priority-medium')).toEqual([251, 191, 36])
-    expect(themeColor('light', 'priority-low')).toEqual([59, 130, 246])
+    expect(themeColor('light', 'priority-low')).toEqual([37, 99, 235])
+    expect(themeColor('light', 'priority-low')).toEqual(themeColor('light', 'accent'))
     expect(themeColor('light', 'priority-none')).toEqual([107, 114, 128])
   })
 
