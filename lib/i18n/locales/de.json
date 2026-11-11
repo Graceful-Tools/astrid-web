@@ -153,6 +153,54 @@
     },
     "tradeoffGrid": {
       "fullScreen": "Vollbild"
+    },
+    "promote": {
+      "label": "Aus Unteraufgabe herauslösen",
+      "dropHint": "Hier ablegen, um sie aus der übergeordneten Aufgabe herauszulösen"
+    },
+    "dropTasksHere": "Aufgaben hier ablegen",
+    "noOneAssigned": "Niemand zugewiesen",
+    "selectPriorityOrAssignee": "Priorität oder Zugewiesenen auswählen",
+    "saveNewTask": "Neue Aufgabe speichern",
+    "detail": {
+      "backToList": "Zurück zur Liste",
+      "collapseTask": "Aufgabe einklappen",
+      "collapse": "Einklappen",
+      "taskActions": "Aufgabenaktionen",
+      "exitFullScreen": "Vollbild beenden",
+      "testReminder": "Erinnerung testen",
+      "clickToAddDescription": "Klicken, um eine Beschreibung hinzuzufügen...",
+      "searchLists": "Listen suchen...",
+      "noLists": "Keine Listen",
+      "unknownCreator": "Unbekannter Ersteller",
+      "searchUsersOrEmail": "Benutzer suchen oder E-Mail eingeben...",
+      "nextWeek": "Nächste Woche",
+      "selectRepeat": "Wiederholung auswählen",
+      "repeatMode": "Wiederholungsmodus",
+      "repeatFromCompletion": "Ab Abschlussdatum wiederholen",
+      "repeatFromDue": "Ab Fälligkeitsdatum wiederholen",
+      "saveCustomPattern": "Benutzerdefiniertes Muster speichern"
+    },
+    "commentsSection": {
+      "addPlaceholder": "Kommentar hinzufügen...",
+      "replyPlaceholder": "Antwort schreiben...",
+      "refresh": "Kommentare aktualisieren",
+      "pullToRefresh": "Zum Aktualisieren ziehen...",
+      "releaseToRefresh": "Zum Aktualisieren loslassen..."
+    },
+    "modals": {
+      "deleteTitle": "Aufgabe löschen",
+      "copyTitle": "Aufgabe kopieren",
+      "copyToList": "In Liste kopieren:",
+      "myTasksOnly": "Meine Aufgaben (nur)",
+      "copyNote": "Die kopierte Aufgabe behält das Fälligkeitsdatum und wird dir zugewiesen.",
+      "shareTitle": "Aufgabe teilen",
+      "privateNote": "Dies ist eine private Aufgabe. Nur Benutzer mit Zugriff auf diese Liste können sie sehen.",
+      "generatingLink": "Freigabelink wird erstellt...",
+      "linkFailed": "Freigabelink konnte nicht erstellt werden. Bitte versuche es erneut."
+    },
+    "timer": {
+      "tapToChange": "Tippe auf die Zeit, um die Dauer zu ändern"
     }
   },
   "lists": {
@@ -189,7 +237,67 @@
       "description": "Beschreibung hinzufügen..."
     },
     "showSubtasksLabel": "Unteraufgaben anzeigen",
-    "showSubtasksDescription": "Unteraufgaben in dieser Liste eingerückt unter ihrer übergeordneten Aufgabe anzeigen. Deaktivieren, um nur Hauptaufgaben zu zeigen – Unteraufgaben bleiben in der Detailansicht der übergeordneten Aufgabe sichtbar."
+    "showSubtasksDescription": "Unteraufgaben in dieser Liste eingerückt unter ihrer übergeordneten Aufgabe anzeigen. Deaktivieren, um nur Hauptaufgaben zu zeigen – Unteraufgaben bleiben in der Detailansicht der übergeordneten Aufgabe sichtbar.",
+    "copyList": "Liste kopieren",
+    "descriptionTitle": "Listenbeschreibung",
+    "descriptionAgentHint": "Agenten erhalten dies als ihren primären Kontext. Unterstützt Markdown.",
+    "image": "Listenbild",
+    "addModal": {
+      "title": "Liste hinzufügen",
+      "subtitle": "Nutze Listen, um Projekte, Ziele und Abenteuer zu organisieren!",
+      "namePlaceholder": "z. B. Familie",
+      "shareWith": "Teilen mit",
+      "sharePlaceholder": "Name oder E-Mail-Adresse"
+    },
+    "membersManager": {
+      "invite": "Mitglied einladen",
+      "inviteTitle": "Neues Mitglied einladen",
+      "emailPlaceholder": "E-Mail-Adresse eingeben",
+      "sendInvitation": "Einladung senden",
+      "empty": "Noch keine Mitglieder",
+      "emptyHint": "Lade Personen ein, an dieser Liste mitzuarbeiten",
+      "makeAdmin": "Zum Administrator machen",
+      "makeMember": "Zum Mitglied machen",
+      "permissionLevels": "Berechtigungsstufen",
+      "ownerCan": "Volle Kontrolle über die Liste",
+      "adminCan": "Kann Listeneinstellungen und Mitglieder verwalten",
+      "memberCan": "Kann Aufgaben hinzufügen, bearbeiten und verwalten"
+    },
+    "membershipPanel": {
+      "availableAgents": "Verfügbare Agenten",
+      "loadingAgents": "Verfügbare Agenten werden geladen...",
+      "addAgent": "Agent hinzufügen",
+      "aiHelpTitle": "Soll KI bei deinen Aufgaben helfen?",
+      "addApiKeys": "Füge deine API-Schlüssel hinzu, um loszulegen",
+      "privacyLabel": "Listen-Privatsphäre",
+      "makePublic": "Öffentlich machen",
+      "makePrivate": "Privat machen",
+      "publicListType": "Typ der öffentlichen Liste",
+      "makeCopyOnly": "Nur Kopieren erlauben",
+      "makeCollaborative": "Kollaborativ machen",
+      "leaveList": "Liste verlassen"
+    },
+    "ownerLeave": {
+      "title": "Eigentümer übertragen",
+      "selectNewOwner": "Neuen Eigentümer auswählen:",
+      "noOtherMembers": "Keine anderen Mitglieder, an die der Besitz übertragen werden kann.",
+      "deleteList": "Liste löschen"
+    },
+    "publicBrowser": {
+      "searchPlaceholder": "Nach Name, Beschreibung oder Ersteller suchen...",
+      "allLists": "Alle Listen",
+      "loading": "Öffentliche Listen werden geladen...",
+      "tasksPreview": "Aufgabenvorschau",
+      "loadingPreview": "Vorschau wird geladen...",
+      "noTasks": "Diese Liste enthält keine Aufgaben",
+      "selectTitle": "Liste für die Vorschau auswählen",
+      "selectHint": "Wähle links eine Liste, um ihre Details und Aufgaben zu sehen"
+    },
+    "imagePicker": {
+      "title": "Bild auswählen",
+      "uploadLabel": "Von deinem Gerät hochladen",
+      "chooseFile": "Datei auswählen"
+    }
   },
   "priority": {
     "none": "Keine",
@@ -226,7 +334,21 @@
     "monthly": "Monatlich",
     "yearly": "Jährlich",
     "custom": "Benutzerdefiniert",
-    "pickAtLeastOneDay": "Mindestens einen Tag auswählen"
+    "pickAtLeastOneDay": "Mindestens einen Tag auswählen",
+    "editor": {
+      "repeatEvery": "Wiederholen alle",
+      "repeatOnDays": "An diesen Tagen wiederholen",
+      "repeatType": "Wiederholungsart",
+      "sameDate": "Jeden Monat am selben Datum",
+      "sameWeekday": "Gleicher Wochentag und gleiche Woche im Monat",
+      "dayOfMonth": "Tag des Monats",
+      "weekOfMonth": "Woche des Monats",
+      "endCondition": "Endbedingung",
+      "afterOccurrences": "Nach X Wiederholungen",
+      "untilDate": "Bis zu einem bestimmten Datum",
+      "occurrencesCount": "Anzahl der Wiederholungen",
+      "endDate": "Enddatum"
+    }
   },
   "weekdays": {
     "sunday": "Sonntag",
@@ -295,7 +417,8 @@
     "timezone": {
       "title": "Zeitzone",
       "auto": "Automatisch erkennen"
-    }
+    },
+    "helpMeHelpYou": "Hilf mir, dir zu helfen, superproduktiv zu werden!!!"
   },
   "auth": {
     "signIn": "Anmelden",
@@ -446,13 +569,18 @@
     "optional": "Optional",
     "required": "Erforderlich",
     "copiedToClipboard": "In die Zwischenablage kopiert",
-    "unableToCopy": "Kopieren in die Zwischenablage nicht möglich"
+    "unableToCopy": "Kopieren in die Zwischenablage nicht möglich",
+    "pullToRefresh": "Zum Aktualisieren ziehen",
+    "releaseToRefresh": "Zum Aktualisieren loslassen",
+    "clearAll": "Alle löschen"
   },
   "search": {
     "placeholder": "Nach Aufgaben und Benutzern suchen",
     "noResults": "Keine Ergebnisse gefunden",
     "searching": "Suche läuft...",
-    "open": "Suchen"
+    "open": "Suchen",
+    "findAcrossLists": "Aufgaben und Benutzer in allen Listen finden",
+    "inputPlaceholder": "Aufgaben und Benutzer suchen..."
   },
   "listHeaders": {
     "myTasks": "Meine Aufgaben",
@@ -511,6 +639,52 @@
         "title": "GitHub-Verbindung",
         "description": "Vom Server ausgeführte Coding-Agenten nutzen die GitHub-Verbindung unter Einstellungen → Verbindungen, wo jede verbundene Organisation aufgeführt ist.",
         "open": "Verbindungen öffnen"
+      },
+      "hub": {
+        "getKey": "Schlüssel holen",
+        "guideLink": "Anleitung: Meinen Coding-Agenten verbinden",
+        "needsSetup": "Einrichtung nötig",
+        "agentLoops": "Agent Loops",
+        "customAgents": "Eigene Agenten"
+      },
+      "runtime": {
+        "stepConnect": "Verbinden",
+        "stepInstall": "Installieren",
+        "stepSchedule": "Planen oder ausführen",
+        "stepTest": "Testen",
+        "hostedWorkflow": "Kein Rechner, der durchlaufen kann? Committe stattdessen diesen Workflow. Er braucht zwei Repository-Secrets; {link} erklärt, wie du sie erstellst.",
+        "startHere": "Start here",
+        "copilotInstall": "Committe diesen benutzerdefinierten Repository-Agenten einmal. Copilot CLI, die Copilot-App, GitHub.com und VS Code können dann dasselbe Warteschlangenverhalten auswählen.",
+        "githubConnect": "Erstelle Client-Zugangsdaten für diesen Agenten und speichere sie als Actions-Secrets des Repositorys mit den Namen {clientId} und {clientSecret}. Jeder Lauf tauscht die Zugangsdaten gegen ein einstündiges Zugriffstoken, das nur die Berechtigungen eines Queue-Workers hat — kein langlebiges Token gelangt je ins Repository.",
+        "githubInstall": "Dieser Workflow ist ein Queue-Gate: Er beantwortet „Gibt es Arbeit?“ und führt selbst keinen Agenten aus. Richte den zweiten Job auf deinen bestehenden unterstützten Agenten-Job aus (einen Copilot-CLI-, Claude-Code- oder Codex-Schritt aus den anderen Tabs).",
+        "githubSchedule": "Committe den Workflow für seinen 30-Minuten-Zeitplan oder nutze „Run workflow“ in GitHub Actions, um ihn sofort zu testen. Ein ruhiger Lauf endet nach der begrenzten Queue-Abfrage, sodass eine leere Warteschlange einen API-Aufruf kostet statt eines ganzen Agentenstarts."
+      },
+      "webhook": {
+        "title": "Webhook-Konfiguration",
+        "description": "Konfiguriere eine Webhook-URL, um Aufgabenbenachrichtigungen auf deinem Claude Code Remote-Server zu empfangen",
+        "urlLabel": "Webhook-URL",
+        "urlHint": "Die URL deines Claude Code Remote-Servers, der Webhook-Benachrichtigungen empfängt",
+        "enabledHint": "Wenn aktiviert, werden Webhooks für Aufgabenzuweisungen gesendet",
+        "agentsLabel": "Zu bedienende Agenten",
+        "agentsHint": "Wähle aus, welche KI-Agenten dieser Webhook bedienen soll. Nicht ausgewählte Agenten werden stattdessen im Polling-Modus bedient.",
+        "noAgents": "Keine Agenten ausgewählt. Alle Aufgaben werden im Polling-Modus bedient.",
+        "secretLabel": "Webhook-Secret",
+        "secretHint": "Das für die HMAC-Signaturprüfung verwendete Secret neu erzeugen",
+        "regenerateOnSave": "Beim Speichern neu erzeugen",
+        "saveSecretTitle": "Speichere dein Webhook-Secret",
+        "envHint": "Füge dies zu deiner {file}-Datei hinzu:",
+        "failureCount": "Fehleranzahl",
+        "noFailures": "Keine Fehler",
+        "lastFired": "Zuletzt ausgelöst",
+        "agentsHandled": "Vom Webhook bediente Agenten",
+        "otherAgentsPolling": "Andere Agenten werden im Polling-Modus bedient",
+        "subscribedEvents": "Abonnierte Ereignisse",
+        "test": "Webhook testen",
+        "aboutTitle": "Über die Webhook-Zustellung",
+        "gettingStarted": "Erste Schritte",
+        "stepConfigureUrl": "Konfiguriere oben deine Webhook-URL",
+        "stepAssign": "Weise Aufgaben {agent} zu",
+        "eventsTitle": "Webhook-Ereignisse"
       }
     },
     "apiAccess": {
@@ -520,6 +694,29 @@
         "title": "Do you need a client here?",
         "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
         "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant."
+      },
+      "apps": {
+        "loading": "OAuth-Anwendungen werden geladen...",
+        "testNow": "API jetzt testen",
+        "subtitle": "API-Zugriff für deine Anwendungen verwalten",
+        "newApp": "Neue App",
+        "empty": "Noch keine OAuth-Anwendungen",
+        "createFirst": "Erstelle deine erste App",
+        "grantTypes": "Grant-Typen",
+        "redirectUris": "Weiterleitungs-URIs",
+        "testTitle": "OAuth-Anwendung testen",
+        "testDescription": "Gib dein Client-Secret ein, um ein Zugriffstoken zu erhalten und die API zu testen",
+        "secretPlaceholder": "Client-Secret eingeben",
+        "secretHint": "Dein Client-Secret wurde beim Erstellen dieser App angezeigt",
+        "createTitle": "OAuth-Anwendung erstellen",
+        "createDescription": "Neuen OAuth-Client für den API-Zugriff erstellen",
+        "namePlaceholder": "Meine App",
+        "descriptionPlaceholder": "Was diese App macht",
+        "mobileFullAccess": "Mobile App (Vollzugriff)",
+        "readOnly": "Nur Lesen",
+        "editTitle": "OAuth-Anwendung bearbeiten",
+        "editDescription": "Aktualisiere Weiterleitungs-URLs oder andere Metadaten, die deine Integrationen benötigen.",
+        "selectToEdit": "Wähle eine OAuth-App zum Bearbeiten aus."
       }
     },
     "chatgpt": {
@@ -1072,6 +1269,32 @@
         "selectAtLeastOne": "Wähle mindestens einen Bereich aus",
         "selectApp": "Wähle eine App aus."
       }
+    },
+    "calendar": {
+      "loading": "Kalendereinstellungen werden geladen...",
+      "title": "Kalenderintegration",
+      "description": "Synchronisiere deine Aufgaben mit externen Kalender-Apps",
+      "enableSync": "Kalendersynchronisierung aktivieren",
+      "enableSyncDescription": "Erlaube den Export deiner Aufgaben in Kalender-Apps",
+      "include": "Was im Kalender enthalten sein soll",
+      "onlyWithDue": "Nur Aufgaben mit Fälligkeitsdatum/-zeit",
+      "noneDisabled": "Keine (deaktiviert)",
+      "export": "Kalenderexport",
+      "downloadIcs": "Kalenderdatei herunterladen (.ics)",
+      "subscribe": "Live-Kalender abonnieren",
+      "subscribeDescription": "Live-Abonnement, das sich automatisch aktualisiert, wenn sich Aufgaben ändern",
+      "howToUse": "So funktioniert es:",
+      "downloadLabel": "Herunterladen:",
+      "howDownload": "Importiere die .ics-Datei einmalig in Google Kalender, Apple Kalender oder Outlook",
+      "subscribeLabel": "Abonnieren:",
+      "howSubscribe": "Füge die webcal-URL hinzu, um Änderungen automatisch zu synchronisieren (empfohlen)",
+      "howAppear": "Deine Aufgaben erscheinen als ganztägige Termine oder zu ihren geplanten Zeiten",
+      "howUpdates": "Änderungen an Aufgaben in {appName} werden in abonnierten Kalendern übernommen"
+    },
+    "defaultDueTime": {
+      "title": "Standard-Fälligkeitszeit",
+      "description": "Lege die Standardzeit für neue Aufgaben fest, wenn du ein Fälligkeitsdatum auswählst",
+      "fallback": "Neue Aufgaben mit Fälligkeitsdatum erhalten standardmäßig 17 Uhr"
     }
   },
   "projectMode": {
@@ -1162,6 +1385,19 @@
     "memberAgentAssignment": {
       "label": "Mitglieder können jede Aufgabe an einen Agenten übergeben",
       "help": "Erlaubt jedem Mitglied dieser Liste, jeder Aufgabe hier einen Agenten zuzuweisen, nicht nur eigenen Aufgaben. Die Agenten laufen über die Pläne des Listeninhabers."
+    },
+    "filters": {
+      "allAssignees": "Alle Zugewiesenen",
+      "notMe": "Nicht ich (andere)",
+      "allCreators": "Alle Ersteller",
+      "notRepeating": "Nicht wiederholend",
+      "inAnyList": "Aufgaben in einer beliebigen Liste",
+      "notInAnyList": "Aufgaben in keiner Liste",
+      "clearAllFilters": "Alle Filter löschen",
+      "removeFromFavorites": "Aus Favoriten entfernen",
+      "makeFavorite": "Zu Favoriten hinzufügen",
+      "savedFilter": "Gespeicherter Filter",
+      "savedFilterDescription": "Aufgaben anhand der Filtereinstellungen anzeigen, nicht anhand der Listenzugehörigkeit"
     }
   },
   "reminderSettings": {
@@ -1170,7 +1406,32 @@
     "emailReminders": "E-Mail-Erinnerungen",
     "defaultReminderTime": "Standard-Erinnerungszeit",
     "dailyDigest": "Tägliche Zusammenfassung",
-    "quietHours": "Ruhezeiten"
+    "quietHours": "Ruhezeiten",
+    "description": "Lege fest, wann und wie du Aufgabenerinnerungen erhältst",
+    "pushDescription": "Sofortige Benachrichtigungen im Browser erhalten",
+    "enablePush": "Push-Benachrichtigungen aktivieren",
+    "pushBlocked": "Push-Benachrichtigungen sind blockiert. Aktiviere sie in den Browsereinstellungen, um Aufgabenerinnerungen zu erhalten.",
+    "emailDescription": "Erinnerungs-E-Mails für fällige Aufgaben erhalten",
+    "defaultReminderTimeDescription": "Wie lange vor Fälligkeit du erinnert wirst",
+    "dailyDigestDescription": "Tägliche Zusammenfassung deiner Aufgaben erhalten",
+    "quietHoursDescription": "Benachrichtigungen in diesen Stunden deaktivieren (optional)",
+    "push": {
+      "description": "Erhalte Benachrichtigungen zu Aufgabenerinnerungen und Updates, auch wenn die App geschlossen ist",
+      "status": "Benachrichtigungsstatus",
+      "enableDescription": "Aufgabenerinnerungen und Benachrichtigungen erhalten",
+      "blockedIntro": "Benachrichtigungen sind blockiert. So aktivierst du sie:",
+      "blockedChrome": "Klicke auf das Schloss-Symbol in der Adressleiste → Benachrichtigungen → Zulassen",
+      "blockedFirefox": "Klicke auf das Schild-Symbol → Berechtigungen → Benachrichtigungen zulassen",
+      "blockedSafari": "Safari → Einstellungen → Websites → Mitteilungen → Erlauben",
+      "installTitle": "Für das beste Erlebnis installiere diese App:",
+      "installMobileLabel": "Mobil:",
+      "installMobile": "Tippe im Browsermenü auf „Zum Startbildschirm hinzufügen“",
+      "installDesktopLabel": "Desktop:",
+      "installDesktop": "Achte auf das Installationssymbol in der Adressleiste",
+      "installPwaLabel": "PWA-Vorteile:",
+      "installPwa": "Benachrichtigungen funktionieren auch bei geschlossener App",
+      "sendTest": "Testbenachrichtigung senden"
+    }
   },
   "keyboardShortcuts": {
     "title": "Tastenkürzel",
@@ -1181,16 +1442,20 @@
       "taskEditing": "Aufgaben bearbeiten",
       "priority": "Priorität",
       "interface": "Oberfläche"
-    }
+    },
+    "chatHint": "In Chatnachrichten und Aufgabenkommentaren verwenden"
   },
   "commandPalette": {
     "label": "Befehlspalette",
     "searchPlaceholder": "Befehle suchen …",
     "enterToSelect": "Enter zum Auswählen",
-    "escToClose": "Esc zum Schließen"
+    "escToClose": "Esc zum Schließen",
+    "noCommands": "Keine Befehle gefunden"
   },
   "userPicker": {
-    "optionalMessage": "Optionale Nachricht …"
+    "optionalMessage": "Optionale Nachricht …",
+    "sendInvite": "Einladung senden",
+    "assignAnyway": "Trotzdem zuweisen"
   },
   "astridAgent": {
     "modelSetup": {
@@ -1246,5 +1511,28 @@
       "hours": "{n} Std.",
       "days": "{n} T."
     }
+  },
+  "chat": {
+    "inputPlaceholder": "Nachricht an Liste...",
+    "empty": "Noch keine Nachrichten. Starte die Unterhaltung!",
+    "loadFailed": "Chat konnte nicht geladen werden"
+  },
+  "notificationBell": {
+    "markAllRead": "Alle als gelesen markieren",
+    "allCaughtUp": "Du bist auf dem neuesten Stand."
+  },
+  "admin": {
+    "navDescription": "Zugriff, Analysen und Funktionsverfügbarkeit verwalten.",
+    "navLabel": "Admin-Bereiche"
+  },
+  "pwa": {
+    "notNow": "Nicht jetzt",
+    "syncing": "Änderungen werden synchronisiert..."
+  },
+  "attachmentViewer": {
+    "closeEsc": "Schließen (Esc)",
+    "videoUnsupported": "Dein Browser unterstützt das Video-Tag nicht.",
+    "noPreview": "Für diesen Dateityp ist keine Vorschau verfügbar",
+    "downloadFile": "Datei herunterladen"
   }
 }

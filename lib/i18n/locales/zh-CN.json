@@ -153,6 +153,54 @@
     },
     "tradeoffGrid": {
       "fullScreen": "全屏"
+    },
+    "promote": {
+      "label": "移出子任务",
+      "dropHint": "拖放到此处以移出父任务"
+    },
+    "dropTasksHere": "将任务拖放到此处",
+    "noOneAssigned": "未分配给任何人",
+    "selectPriorityOrAssignee": "选择优先级或负责人",
+    "saveNewTask": "保存新任务",
+    "detail": {
+      "backToList": "返回列表",
+      "collapseTask": "收起任务",
+      "collapse": "收起",
+      "taskActions": "任务操作",
+      "exitFullScreen": "退出全屏",
+      "testReminder": "测试提醒",
+      "clickToAddDescription": "点击添加描述...",
+      "searchLists": "搜索列表...",
+      "noLists": "无列表",
+      "unknownCreator": "未知创建者",
+      "searchUsersOrEmail": "搜索用户或输入邮箱...",
+      "nextWeek": "下周",
+      "selectRepeat": "选择重复",
+      "repeatMode": "重复模式",
+      "repeatFromCompletion": "从完成日期起重复",
+      "repeatFromDue": "从截止日期起重复",
+      "saveCustomPattern": "保存自定义模式"
+    },
+    "commentsSection": {
+      "addPlaceholder": "添加评论...",
+      "replyPlaceholder": "写回复...",
+      "refresh": "刷新评论",
+      "pullToRefresh": "下拉刷新...",
+      "releaseToRefresh": "松开刷新..."
+    },
+    "modals": {
+      "deleteTitle": "删除任务",
+      "copyTitle": "复制任务",
+      "copyToList": "复制到列表：",
+      "myTasksOnly": "我的任务（仅）",
+      "copyNote": "复制的任务将保留截止日期并分配给你。",
+      "shareTitle": "分享任务",
+      "privateNote": "这是一个私密任务。只有可访问此列表的用户才能查看。",
+      "generatingLink": "正在生成分享链接...",
+      "linkFailed": "生成分享链接失败。请重试。"
+    },
+    "timer": {
+      "tapToChange": "点按时间以更改时长"
     }
   },
   "lists": {
@@ -189,7 +237,67 @@
       "description": "添加描述..."
     },
     "showSubtasksLabel": "显示子任务",
-    "showSubtasksDescription": "在此列表中将子任务缩进显示在父任务下方。关闭后仅显示顶层任务，子任务仍可在父任务详情中查看。"
+    "showSubtasksDescription": "在此列表中将子任务缩进显示在父任务下方。关闭后仅显示顶层任务，子任务仍可在父任务详情中查看。",
+    "copyList": "复制列表",
+    "descriptionTitle": "列表描述",
+    "descriptionAgentHint": "智能体会将此作为主要上下文。支持 Markdown。",
+    "image": "列表图片",
+    "addModal": {
+      "title": "添加列表",
+      "subtitle": "用列表来整理项目、目标和冒险！",
+      "namePlaceholder": "例如：家庭",
+      "shareWith": "共享给",
+      "sharePlaceholder": "姓名或邮箱地址"
+    },
+    "membersManager": {
+      "invite": "邀请成员",
+      "inviteTitle": "邀请新成员",
+      "emailPlaceholder": "输入邮箱地址",
+      "sendInvitation": "发送邀请",
+      "empty": "还没有成员",
+      "emptyHint": "邀请他人协作此列表",
+      "makeAdmin": "设为管理员",
+      "makeMember": "设为成员",
+      "permissionLevels": "权限级别",
+      "ownerCan": "完全控制此列表",
+      "adminCan": "可以管理列表设置和成员",
+      "memberCan": "可以添加、编辑和管理任务"
+    },
+    "membershipPanel": {
+      "availableAgents": "可用的智能体",
+      "loadingAgents": "正在加载可用的智能体...",
+      "addAgent": "添加智能体",
+      "aiHelpTitle": "想让 AI 帮你处理任务吗？",
+      "addApiKeys": "添加你的API密钥即可开始",
+      "privacyLabel": "列表隐私",
+      "makePublic": "设为公开",
+      "makePrivate": "设为私密",
+      "publicListType": "公开列表类型",
+      "makeCopyOnly": "设为仅可复制",
+      "makeCollaborative": "设为协作",
+      "leaveList": "离开列表"
+    },
+    "ownerLeave": {
+      "title": "转让所有权",
+      "selectNewOwner": "选择新所有者：",
+      "noOtherMembers": "没有其他成员可以接收所有权。",
+      "deleteList": "删除列表"
+    },
+    "publicBrowser": {
+      "searchPlaceholder": "按名称、描述或创建者搜索...",
+      "allLists": "所有列表",
+      "loading": "正在加载公开列表...",
+      "tasksPreview": "任务预览",
+      "loadingPreview": "正在加载预览...",
+      "noTasks": "此列表没有任务",
+      "selectTitle": "选择要预览的列表",
+      "selectHint": "从左侧选择一个列表以查看其详情和任务"
+    },
+    "imagePicker": {
+      "title": "选择图片",
+      "uploadLabel": "从你的设备上传",
+      "chooseFile": "选择文件"
+    }
   },
   "priority": {
     "none": "无",
@@ -226,7 +334,21 @@
     "monthly": "每月",
     "yearly": "每年",
     "custom": "自定义",
-    "pickAtLeastOneDay": "请至少选择一天"
+    "pickAtLeastOneDay": "请至少选择一天",
+    "editor": {
+      "repeatEvery": "重复间隔",
+      "repeatOnDays": "在这些日子重复",
+      "repeatType": "重复类型",
+      "sameDate": "每月同一日期",
+      "sameWeekday": "每月同一周的同一星期几",
+      "dayOfMonth": "每月的第几天",
+      "weekOfMonth": "每月的第几周",
+      "endCondition": "结束条件",
+      "afterOccurrences": "重复 X 次后",
+      "untilDate": "直到指定日期",
+      "occurrencesCount": "重复次数",
+      "endDate": "结束日期"
+    }
   },
   "weekdays": {
     "sunday": "星期日",
@@ -295,7 +417,8 @@
     "timezone": {
       "title": "时区",
       "auto": "自动检测"
-    }
+    },
+    "helpMeHelpYou": "帮我一起让你变得超级高效！！！"
   },
   "auth": {
     "signIn": "登录",
@@ -446,13 +569,18 @@
     "optional": "可选",
     "required": "必填",
     "copiedToClipboard": "已复制到剪贴板",
-    "unableToCopy": "无法复制到剪贴板"
+    "unableToCopy": "无法复制到剪贴板",
+    "pullToRefresh": "下拉刷新",
+    "releaseToRefresh": "松开刷新",
+    "clearAll": "全部清除"
   },
   "search": {
     "placeholder": "搜索任务和用户",
     "noResults": "未找到结果",
     "searching": "搜索中...",
-    "open": "搜索"
+    "open": "搜索",
+    "findAcrossLists": "在所有列表中查找任务和用户",
+    "inputPlaceholder": "搜索任务和用户..."
   },
   "listHeaders": {
     "myTasks": "我的任务",
@@ -511,6 +639,52 @@
         "title": "GitHub 连接",
         "description": "在服务器上运行的编程智能体使用“设置 → 连接”中的 GitHub 连接，所有已连接的组织都列在那里。",
         "open": "打开连接"
+      },
+      "hub": {
+        "getKey": "获取密钥",
+        "guideLink": "连接我的代码智能体指南",
+        "needsSetup": "需要设置",
+        "agentLoops": "Agent Loops",
+        "customAgents": "自定义智能体"
+      },
+      "runtime": {
+        "stepConnect": "连接",
+        "stepInstall": "安装",
+        "stepSchedule": "计划或运行",
+        "stepTest": "测试",
+        "hostedWorkflow": "没有可以一直开着的机器？改为提交此工作流。它需要两个仓库密钥；{link} 说明了如何创建。",
+        "startHere": "Start here",
+        "copilotInstall": "提交一次此仓库自定义智能体。之后 Copilot CLI、Copilot 应用、GitHub.com 和 VS Code 都可以选择相同的队列行为。",
+        "githubConnect": "为此智能体创建客户端凭据，并将其保存为名为 {clientId} 和 {clientSecret} 的仓库 Actions 密钥。每次运行都会用客户端凭据换取一个仅含队列工作器所需权限、有效期一小时的访问令牌——长期令牌永远不会进入仓库。",
+        "githubInstall": "此工作流是一个队列闸门：它只回答“有工作吗？”，本身不运行智能体。请将第二个作业指向你现有的受支持智能体作业（其他标签页中的 Copilot CLI、Claude Code 或 Codex 步骤）。",
+        "githubSchedule": "提交此工作流以按每 30 分钟的计划运行，或在 GitHub Actions 中使用 Run workflow 立即测试。空闲的运行会在限定范围的队列请求后停止，因此空队列只消耗一次 API 调用，而不是一次完整的智能体启动。"
+      },
+      "webhook": {
+        "title": "Webhook 配置",
+        "description": "配置 Webhook URL，以便在你的 Claude Code Remote 服务器上接收任务通知",
+        "urlLabel": "Webhook URL",
+        "urlHint": "接收 Webhook 通知的 Claude Code Remote 服务器 URL",
+        "enabledHint": "启用后，分配任务时将发送 Webhook",
+        "agentsLabel": "要处理的智能体",
+        "agentsHint": "选择此 Webhook 应处理哪些 AI 智能体。未选择的智能体将改由轮询模式处理。",
+        "noAgents": "未选择智能体。所有任务将由轮询模式处理。",
+        "secretLabel": "Webhook 密钥",
+        "secretHint": "重新生成用于 HMAC 签名验证的密钥",
+        "regenerateOnSave": "保存时重新生成",
+        "saveSecretTitle": "保存你的 Webhook 密钥",
+        "envHint": "添加到你的 {file} 文件：",
+        "failureCount": "失败次数",
+        "noFailures": "无失败",
+        "lastFired": "上次触发",
+        "agentsHandled": "由 Webhook 处理的智能体",
+        "otherAgentsPolling": "其他智能体将由轮询模式处理",
+        "subscribedEvents": "已订阅的事件",
+        "test": "测试 Webhook",
+        "aboutTitle": "关于 Webhook 投递",
+        "gettingStarted": "开始使用",
+        "stepConfigureUrl": "在上方配置你的 Webhook URL",
+        "stepAssign": "将任务分配给 {agent}",
+        "eventsTitle": "Webhook 事件"
       }
     },
     "apiAccess": {
@@ -520,6 +694,29 @@
         "title": "Do you need a client here?",
         "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
         "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant."
+      },
+      "apps": {
+        "loading": "正在加载 OAuth 应用程序...",
+        "testNow": "立即测试 API",
+        "subtitle": "管理应用程序的 API 访问",
+        "newApp": "新建应用",
+        "empty": "还没有 OAuth 应用程序",
+        "createFirst": "创建你的第一个应用",
+        "grantTypes": "授权类型",
+        "redirectUris": "重定向 URI",
+        "testTitle": "测试 OAuth 应用程序",
+        "testDescription": "输入客户端密钥以获取访问令牌并测试 API",
+        "secretPlaceholder": "输入客户端密钥",
+        "secretHint": "客户端密钥已在创建此应用时显示",
+        "createTitle": "创建 OAuth 应用程序",
+        "createDescription": "创建用于 API 访问的新 OAuth 客户端",
+        "namePlaceholder": "我的应用",
+        "descriptionPlaceholder": "此应用的用途",
+        "mobileFullAccess": "移动应用（完全访问）",
+        "readOnly": "只读",
+        "editTitle": "编辑 OAuth 应用程序",
+        "editDescription": "更新集成所需的重定向 URL 或其他元数据。",
+        "selectToEdit": "选择要编辑的 OAuth 应用。"
       }
     },
     "chatgpt": {
@@ -1072,6 +1269,32 @@
         "selectAtLeastOne": "请至少选择一个作用域",
         "selectApp": "请选择一个应用。"
       }
+    },
+    "calendar": {
+      "loading": "正在加载日历设置...",
+      "title": "日历集成",
+      "description": "将任务与外部日历应用同步",
+      "enableSync": "启用日历同步",
+      "enableSyncDescription": "允许将任务导出到日历应用",
+      "include": "日历中包含的内容",
+      "onlyWithDue": "仅有截止日期/时间的任务",
+      "noneDisabled": "无（已停用）",
+      "export": "日历导出",
+      "downloadIcs": "下载日历文件 (.ics)",
+      "subscribe": "订阅实时日历",
+      "subscribeDescription": "实时订阅，任务变更时自动更新",
+      "howToUse": "使用方法：",
+      "downloadLabel": "下载：",
+      "howDownload": "将 .ics 文件一次性导入 Google 日历、Apple 日历或 Outlook",
+      "subscribeLabel": "订阅：",
+      "howSubscribe": "添加 webcal URL 以自动同步更改（推荐）",
+      "howAppear": "任务将显示为全天事件或在计划时间显示",
+      "howUpdates": "{appName} 中的任务更新会同步到已订阅的日历"
+    },
+    "defaultDueTime": {
+      "title": "默认截止时间",
+      "description": "设置选择截止日期时新任务的默认时间",
+      "fallback": "有截止日期的新任务默认设为下午 5 点"
     }
   },
   "projectMode": {
@@ -1162,6 +1385,19 @@
     "memberAgentAssignment": {
       "label": "成员可以把任何任务交给智能体",
       "help": "允许此列表的每位成员为这里的任何任务分配智能体，而不仅限于自己创建的任务。智能体使用列表所有者的套餐运行。"
+    },
+    "filters": {
+      "allAssignees": "所有负责人",
+      "notMe": "不是我（其他人）",
+      "allCreators": "所有创建者",
+      "notRepeating": "不重复",
+      "inAnyList": "在任意列表中的任务",
+      "notInAnyList": "不在任何列表中的任务",
+      "clearAllFilters": "清除所有筛选",
+      "removeFromFavorites": "从收藏中移除",
+      "makeFavorite": "设为收藏",
+      "savedFilter": "已保存的筛选",
+      "savedFilterDescription": "根据筛选设置而非列表归属显示任务"
     }
   },
   "reminderSettings": {
@@ -1170,7 +1406,32 @@
     "emailReminders": "邮件提醒",
     "defaultReminderTime": "默认提醒时间",
     "dailyDigest": "每日摘要",
-    "quietHours": "免打扰时段"
+    "quietHours": "免打扰时段",
+    "description": "配置接收任务提醒的时间和方式",
+    "pushDescription": "在浏览器中接收即时通知",
+    "enablePush": "启用推送通知",
+    "pushBlocked": "推送通知已被屏蔽。请在浏览器设置中启用以接收任务提醒。",
+    "emailDescription": "接收到期任务的提醒邮件",
+    "defaultReminderTimeDescription": "在任务到期前多久提醒你",
+    "dailyDigestDescription": "每天获取任务摘要",
+    "quietHoursDescription": "在这些时段停用通知（可选）",
+    "push": {
+      "description": "即使应用已关闭，也能收到任务提醒和更新通知",
+      "status": "通知状态",
+      "enableDescription": "接收任务提醒和通知",
+      "blockedIntro": "通知已被屏蔽。启用方法：",
+      "blockedChrome": "点击地址栏中的锁形图标 → 通知 → 允许",
+      "blockedFirefox": "点击盾牌图标 → 权限 → 允许通知",
+      "blockedSafari": "Safari → 设置 → 网站 → 通知 → 允许",
+      "installTitle": "为获得最佳体验，请安装此应用：",
+      "installMobileLabel": "移动端：",
+      "installMobile": "在浏览器菜单中点按“添加到主屏幕”",
+      "installDesktopLabel": "桌面端：",
+      "installDesktop": "在地址栏中找到安装图标",
+      "installPwaLabel": "PWA 优势：",
+      "installPwa": "即使应用已关闭，通知也能正常工作",
+      "sendTest": "发送测试通知"
+    }
   },
   "keyboardShortcuts": {
     "title": "键盘快捷键",
@@ -1181,16 +1442,20 @@
       "taskEditing": "任务编辑",
       "priority": "优先级",
       "interface": "界面"
-    }
+    },
+    "chatHint": "在聊天消息和任务评论中使用"
   },
   "commandPalette": {
     "label": "命令面板",
     "searchPlaceholder": "搜索命令…",
     "enterToSelect": "按 Enter 选择",
-    "escToClose": "按 Esc 关闭"
+    "escToClose": "按 Esc 关闭",
+    "noCommands": "未找到命令"
   },
   "userPicker": {
-    "optionalMessage": "可选留言…"
+    "optionalMessage": "可选留言…",
+    "sendInvite": "发送邀请",
+    "assignAnyway": "仍然分配"
   },
   "astridAgent": {
     "modelSetup": {
@@ -1246,5 +1511,28 @@
       "hours": "{n} 小时",
       "days": "{n} 天"
     }
+  },
+  "chat": {
+    "inputPlaceholder": "给列表发消息...",
+    "empty": "还没有消息。开始对话吧！",
+    "loadFailed": "加载聊天失败"
+  },
+  "notificationBell": {
+    "markAllRead": "全部标为已读",
+    "allCaughtUp": "你已全部看完。"
+  },
+  "admin": {
+    "navDescription": "管理访问权限、分析和功能可用性。",
+    "navLabel": "管理分区"
+  },
+  "pwa": {
+    "notNow": "暂不",
+    "syncing": "正在同步更改..."
+  },
+  "attachmentViewer": {
+    "closeEsc": "关闭 (Esc)",
+    "videoUnsupported": "你的浏览器不支持 video 标签。",
+    "noPreview": "此文件类型无法预览",
+    "downloadFile": "下载文件"
   }
 }

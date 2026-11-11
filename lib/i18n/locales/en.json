@@ -153,6 +153,54 @@
     },
     "tradeoffGrid": {
       "fullScreen": "Full screen"
+    },
+    "promote": {
+      "label": "Move out of subtask",
+      "dropHint": "Drop here to move out of its parent task"
+    },
+    "dropTasksHere": "Drop tasks here",
+    "noOneAssigned": "No one assigned",
+    "selectPriorityOrAssignee": "Select priority or assignee",
+    "saveNewTask": "Save New Task",
+    "detail": {
+      "backToList": "Back to list",
+      "collapseTask": "Collapse task",
+      "collapse": "Collapse",
+      "taskActions": "Task actions",
+      "exitFullScreen": "Exit full screen",
+      "testReminder": "Test Reminder",
+      "clickToAddDescription": "Click to add a description...",
+      "searchLists": "Search lists...",
+      "noLists": "No lists",
+      "unknownCreator": "Unknown creator",
+      "searchUsersOrEmail": "Search users or enter email...",
+      "nextWeek": "Next Week",
+      "selectRepeat": "Select repeat",
+      "repeatMode": "Repeat Mode",
+      "repeatFromCompletion": "Repeat from completion date",
+      "repeatFromDue": "Repeat from due date",
+      "saveCustomPattern": "Save Custom Pattern"
+    },
+    "commentsSection": {
+      "addPlaceholder": "Add a comment...",
+      "replyPlaceholder": "Write a reply...",
+      "refresh": "Refresh comments",
+      "pullToRefresh": "Pull to refresh...",
+      "releaseToRefresh": "Release to refresh..."
+    },
+    "modals": {
+      "deleteTitle": "Delete Task",
+      "copyTitle": "Copy Task",
+      "copyToList": "Copy to list:",
+      "myTasksOnly": "My Tasks (only)",
+      "copyNote": "The copied task will preserve the due date and will be assigned to you.",
+      "shareTitle": "Share Task",
+      "privateNote": "This is a private task. Only users with access to this list can view it.",
+      "generatingLink": "Generating share link...",
+      "linkFailed": "Failed to generate share link. Please try again."
+    },
+    "timer": {
+      "tapToChange": "Tap the time to change duration"
     }
   },
   "lists": {
@@ -189,7 +237,67 @@
       "description": "Add a description..."
     },
     "showSubtasksLabel": "Show subtasks",
-    "showSubtasksDescription": "Show subtasks indented under their parent in this list. Turn it off to show only top-level tasks — subtasks stay visible on the parent's detail view."
+    "showSubtasksDescription": "Show subtasks indented under their parent in this list. Turn it off to show only top-level tasks — subtasks stay visible on the parent's detail view.",
+    "copyList": "Copy List",
+    "descriptionTitle": "List Description",
+    "descriptionAgentHint": "Agents receive this as their primary context. Supports markdown.",
+    "image": "List Image",
+    "addModal": {
+      "title": "Add a List",
+      "subtitle": "Use lists to organize projects, goals, and adventures!",
+      "namePlaceholder": "e.g., Family",
+      "shareWith": "Share with",
+      "sharePlaceholder": "Name or e-mail address"
+    },
+    "membersManager": {
+      "invite": "Invite member",
+      "inviteTitle": "Invite New Member",
+      "emailPlaceholder": "Enter email address",
+      "sendInvitation": "Send Invitation",
+      "empty": "No members yet",
+      "emptyHint": "Invite people to collaborate on this list",
+      "makeAdmin": "Make Admin",
+      "makeMember": "Make Member",
+      "permissionLevels": "Permission Levels",
+      "ownerCan": "Full control over the list",
+      "adminCan": "Can manage list settings and members",
+      "memberCan": "Can add, edit, and manage tasks"
+    },
+    "membershipPanel": {
+      "availableAgents": "Available Agents",
+      "loadingAgents": "Loading available agents...",
+      "addAgent": "Add Agent",
+      "aiHelpTitle": "Want AI to help with your tasks?",
+      "addApiKeys": "Add your API keys to get started",
+      "privacyLabel": "List Privacy",
+      "makePublic": "Make Public",
+      "makePrivate": "Make Private",
+      "publicListType": "Public List Type",
+      "makeCopyOnly": "Make Copy Only",
+      "makeCollaborative": "Make Collaborative",
+      "leaveList": "Leave List"
+    },
+    "ownerLeave": {
+      "title": "Transfer Ownership",
+      "selectNewOwner": "Select New Owner:",
+      "noOtherMembers": "No other members to transfer ownership to.",
+      "deleteList": "Delete List"
+    },
+    "publicBrowser": {
+      "searchPlaceholder": "Search by name, description, or creator...",
+      "allLists": "All Lists",
+      "loading": "Loading public lists...",
+      "tasksPreview": "Tasks Preview",
+      "loadingPreview": "Loading preview...",
+      "noTasks": "This list has no tasks",
+      "selectTitle": "Select a List to Preview",
+      "selectHint": "Choose a list from the left to see its details and tasks"
+    },
+    "imagePicker": {
+      "title": "Choose Image",
+      "uploadLabel": "Upload from your device",
+      "chooseFile": "Choose File"
+    }
   },
   "priority": {
     "none": "None",
@@ -226,7 +334,21 @@
     "monthly": "Monthly",
     "yearly": "Yearly",
     "custom": "Custom",
-    "pickAtLeastOneDay": "Pick at least one day"
+    "pickAtLeastOneDay": "Pick at least one day",
+    "editor": {
+      "repeatEvery": "Repeat every",
+      "repeatOnDays": "Repeat on these days",
+      "repeatType": "Repeat type",
+      "sameDate": "Same date every month",
+      "sameWeekday": "Same weekday and week of month",
+      "dayOfMonth": "Day of month",
+      "weekOfMonth": "Week of month",
+      "endCondition": "End condition",
+      "afterOccurrences": "After X occurrences",
+      "untilDate": "Until specific date",
+      "occurrencesCount": "Number of occurrences",
+      "endDate": "End date"
+    }
   },
   "weekdays": {
     "sunday": "Sunday",
@@ -295,7 +417,8 @@
     "timezone": {
       "title": "Timezone",
       "auto": "Auto-detect"
-    }
+    },
+    "helpMeHelpYou": "Help me help you become super productive!!!"
   },
   "auth": {
     "signIn": "Sign in",
@@ -446,13 +569,18 @@
     "optional": "Optional",
     "required": "Required",
     "copiedToClipboard": "Copied to clipboard",
-    "unableToCopy": "Unable to copy to clipboard"
+    "unableToCopy": "Unable to copy to clipboard",
+    "pullToRefresh": "Pull to refresh",
+    "releaseToRefresh": "Release to refresh",
+    "clearAll": "Clear All"
   },
   "search": {
     "placeholder": "Search for tasks and users",
     "noResults": "No results found",
     "searching": "Searching...",
-    "open": "Search"
+    "open": "Search",
+    "findAcrossLists": "Find tasks and users across all lists",
+    "inputPlaceholder": "Search tasks and users..."
   },
   "listHeaders": {
     "myTasks": "My Tasks",
@@ -511,6 +639,52 @@
         "title": "GitHub connection",
         "description": "Server-run coding agents use the GitHub connection on Settings → Connections, where every connected organization is listed.",
         "open": "Open Connections"
+      },
+      "hub": {
+        "getKey": "Get a key",
+        "guideLink": "Connect my coding agent guide",
+        "needsSetup": "Needs setup",
+        "agentLoops": "Agent Loops",
+        "customAgents": "Custom Agents"
+      },
+      "runtime": {
+        "stepConnect": "Connect",
+        "stepInstall": "Install",
+        "stepSchedule": "Schedule or run",
+        "stepTest": "Test",
+        "hostedWorkflow": "No machine to leave on? Commit this workflow instead. It needs two repository secrets; {link} says how to make each one.",
+        "startHere": "Start here",
+        "copilotInstall": "Commit this repository custom agent once. Copilot CLI, the Copilot app, GitHub.com, and VS Code can then select the same queue behavior.",
+        "githubConnect": "Create client credentials for this agent and save them as repository Actions secrets named {clientId} and {clientSecret}. Each run exchanges the client credentials for a one hour access token with only the scopes a queue worker needs — no long-lived token ever reaches the repository.",
+        "githubInstall": "This workflow is a queue gate: it answers \"is there work?\" and it does not run an agent itself. Point the second job at your existing supported agent job (a Copilot CLI, Claude Code, or Codex step from the other tabs).",
+        "githubSchedule": "Commit the workflow for its 30-minute schedule, or use Run workflow in GitHub Actions to test it immediately. A quiet run stops after the scoped queue request, so an empty queue costs one API call rather than a whole agent boot."
+      },
+      "webhook": {
+        "title": "Webhook Configuration",
+        "description": "Configure a webhook URL to receive task notifications on your Claude Code Remote server",
+        "urlLabel": "Webhook URL",
+        "urlHint": "The URL of your Claude Code Remote server that will receive webhook notifications",
+        "enabledHint": "When enabled, webhooks will be sent for task assignments",
+        "agentsLabel": "Agents to Handle",
+        "agentsHint": "Select which AI agents this webhook should handle. Unselected agents will be handled by polling mode instead.",
+        "noAgents": "No agents selected. All tasks will be handled by polling mode.",
+        "secretLabel": "Webhook Secret",
+        "secretHint": "Regenerate the secret used for HMAC signature verification",
+        "regenerateOnSave": "Regenerate on save",
+        "saveSecretTitle": "Save Your Webhook Secret",
+        "envHint": "Add to your {file} file:",
+        "failureCount": "Failure Count",
+        "noFailures": "No failures",
+        "lastFired": "Last Fired",
+        "agentsHandled": "Agents Handled by Webhook",
+        "otherAgentsPolling": "Other agents will be handled by polling mode",
+        "subscribedEvents": "Subscribed Events",
+        "test": "Test Webhook",
+        "aboutTitle": "About webhook delivery",
+        "gettingStarted": "Getting Started",
+        "stepConfigureUrl": "Configure your webhook URL above",
+        "stepAssign": "Assign tasks to {agent}",
+        "eventsTitle": "Webhook Events"
       }
     },
     "apiAccess": {
@@ -520,6 +694,29 @@
         "title": "Do you need a client here?",
         "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
         "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant."
+      },
+      "apps": {
+        "loading": "Loading OAuth applications...",
+        "testNow": "Test API Now",
+        "subtitle": "Manage API access for your applications",
+        "newApp": "New App",
+        "empty": "No OAuth applications yet",
+        "createFirst": "Create Your First App",
+        "grantTypes": "Grant Types",
+        "redirectUris": "Redirect URIs",
+        "testTitle": "Test OAuth Application",
+        "testDescription": "Enter your client secret to obtain an access token and test the API",
+        "secretPlaceholder": "Enter your client secret",
+        "secretHint": "Your client secret was shown when you created this app",
+        "createTitle": "Create OAuth Application",
+        "createDescription": "Create a new OAuth client for API access",
+        "namePlaceholder": "My App",
+        "descriptionPlaceholder": "What this app does",
+        "mobileFullAccess": "Mobile App (Full Access)",
+        "readOnly": "Read Only",
+        "editTitle": "Edit OAuth Application",
+        "editDescription": "Update redirect URLs or other metadata required by your integrations.",
+        "selectToEdit": "Select an OAuth app to edit."
       }
     },
     "chatgpt": {
@@ -1072,6 +1269,32 @@
         "selectAtLeastOne": "Select at least one scope",
         "selectApp": "Select an app."
       }
+    },
+    "calendar": {
+      "loading": "Loading calendar settings...",
+      "title": "Calendar Integration",
+      "description": "Sync your tasks with external calendar applications",
+      "enableSync": "Enable Calendar Sync",
+      "enableSyncDescription": "Allow your tasks to be exported to calendar applications",
+      "include": "What to include in calendar",
+      "onlyWithDue": "Only tasks with due dates/times",
+      "noneDisabled": "None (disabled)",
+      "export": "Calendar Export",
+      "downloadIcs": "Download Calendar File (.ics)",
+      "subscribe": "Subscribe to Live Calendar",
+      "subscribeDescription": "Live subscription that automatically updates as tasks change",
+      "howToUse": "How to use:",
+      "downloadLabel": "Download:",
+      "howDownload": "Import the .ics file once into Google Calendar, Apple Calendar, or Outlook",
+      "subscribeLabel": "Subscribe:",
+      "howSubscribe": "Add the webcal URL to automatically sync changes (recommended)",
+      "howAppear": "Your tasks will appear as all-day events or at their scheduled times",
+      "howUpdates": "Updates to tasks in {appName} will be reflected in subscribed calendars"
+    },
+    "defaultDueTime": {
+      "title": "Default Due Time",
+      "description": "Set the default time for new tasks when you select a due date",
+      "fallback": "New tasks with due dates will default to 5pm"
     }
   },
   "projectMode": {
@@ -1162,6 +1385,19 @@
     "memberAgentAssignment": {
       "label": "Members can hand any task to an agent",
       "help": "Lets every member of this list assign an agent to any task here, not only tasks they created. The agents run on the list owner's plans."
+    },
+    "filters": {
+      "allAssignees": "All assignees",
+      "notMe": "Not me (others)",
+      "allCreators": "All creators",
+      "notRepeating": "Not repeating",
+      "inAnyList": "Tasks in any list",
+      "notInAnyList": "Tasks not in any list",
+      "clearAllFilters": "Clear All Filters",
+      "removeFromFavorites": "Remove from Favorites",
+      "makeFavorite": "Make Favorite",
+      "savedFilter": "Saved Filter",
+      "savedFilterDescription": "Show tasks based on filter settings, not list membership"
     }
   },
   "reminderSettings": {
@@ -1170,7 +1406,32 @@
     "emailReminders": "Email Reminders",
     "defaultReminderTime": "Default Reminder Time",
     "dailyDigest": "Daily Digest",
-    "quietHours": "Quiet Hours"
+    "quietHours": "Quiet Hours",
+    "description": "Configure when and how you receive task reminders",
+    "pushDescription": "Receive instant notifications in your browser",
+    "enablePush": "Enable Push Notifications",
+    "pushBlocked": "Push notifications are blocked. Enable them in your browser settings to receive task reminders.",
+    "emailDescription": "Receive reminder emails for due tasks",
+    "defaultReminderTimeDescription": "When to remind you before tasks are due",
+    "dailyDigestDescription": "Get a daily summary of your tasks",
+    "quietHoursDescription": "Disable notifications during these hours (optional)",
+    "push": {
+      "description": "Get notified about task reminders and updates even when the app is closed",
+      "status": "Notification Status",
+      "enableDescription": "Receive task reminders and notifications",
+      "blockedIntro": "Notifications are blocked. To enable:",
+      "blockedChrome": "Click the lock icon in the address bar → Notifications → Allow",
+      "blockedFirefox": "Click the shield icon → Permissions → Allow notifications",
+      "blockedSafari": "Safari → Settings → Websites → Notifications → Allow",
+      "installTitle": "For best experience, install this app:",
+      "installMobileLabel": "Mobile:",
+      "installMobile": "Tap \"Add to Home Screen\" in your browser menu",
+      "installDesktopLabel": "Desktop:",
+      "installDesktop": "Look for the install icon in the address bar",
+      "installPwaLabel": "PWA benefits:",
+      "installPwa": "Notifications work even when the app is closed",
+      "sendTest": "Send Test Notification"
+    }
   },
   "keyboardShortcuts": {
     "title": "Keyboard Shortcuts",
@@ -1181,16 +1442,20 @@
       "taskEditing": "Task Editing",
       "priority": "Priority",
       "interface": "Interface"
-    }
+    },
+    "chatHint": "Use in chat messages and task comments"
   },
   "commandPalette": {
     "label": "Command Palette",
     "searchPlaceholder": "Search commands...",
     "enterToSelect": "Enter to select",
-    "escToClose": "Esc to close"
+    "escToClose": "Esc to close",
+    "noCommands": "No commands found"
   },
   "userPicker": {
-    "optionalMessage": "Optional message..."
+    "optionalMessage": "Optional message...",
+    "sendInvite": "Send Invite",
+    "assignAnyway": "Assign Anyway"
   },
   "astridAgent": {
     "modelSetup": {
@@ -1246,5 +1511,28 @@
       "hours": "{n} h",
       "days": "{n} d"
     }
+  },
+  "chat": {
+    "inputPlaceholder": "Message list...",
+    "empty": "No messages yet. Start the conversation!",
+    "loadFailed": "Failed to load chat"
+  },
+  "notificationBell": {
+    "markAllRead": "Mark all read",
+    "allCaughtUp": "You are all caught up."
+  },
+  "admin": {
+    "navDescription": "Manage access, analytics, and feature availability.",
+    "navLabel": "Admin sections"
+  },
+  "pwa": {
+    "notNow": "Not now",
+    "syncing": "Syncing changes..."
+  },
+  "attachmentViewer": {
+    "closeEsc": "Close (Esc)",
+    "videoUnsupported": "Your browser does not support the video tag.",
+    "noPreview": "Preview not available for this file type",
+    "downloadFile": "Download File"
   }
 }
