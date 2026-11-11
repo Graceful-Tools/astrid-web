@@ -58,7 +58,7 @@ export function ProfileImage({
     return (
       <div
         className={cn(
-          "rounded-full bg-muted flex items-center justify-center shrink-0",
+          "rounded-full bg-theme-active flex items-center justify-center shrink-0",
           className
         )}
         style={{ width: dimension, height: dimension }}

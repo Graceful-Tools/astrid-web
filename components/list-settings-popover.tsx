@@ -109,7 +109,7 @@ export function ListSettingsPopover({
                   own popover (task aa4e7eb0). With only Membership left for a
                   viewer who cannot edit settings, the list still renders as a
                   single full-width tab rather than a stranded half. */}
-              <TabsList className={`grid w-full ${TAB_GRID_COLS[tabCount]} theme-bg-secondary`}>
+              <TabsList className={`grid w-full ${TAB_GRID_COLS[tabCount]}`}>
                 <TabsTrigger value="membership" className="flex items-center space-x-1 text-xs">
                   <Users className="w-3 h-3" />
                   <span>Membership</span>
