@@ -53,7 +53,7 @@ export function RequestBoardAccessDialog({ onClose, onRequested }: RequestBoardA
       onClick={() => !submitting && onClose()}
     >
       <div
-        className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm mx-4 shadow-xl w-full"
+        className="bg-theme-surface rounded-lg p-6 max-w-sm mx-4 shadow-xl w-full"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -80,7 +80,7 @@ export function RequestBoardAccessDialog({ onClose, onRequested }: RequestBoardA
           disabled={submitting}
         />
 
-        {error ? <p className="text-xs text-red-500 mb-3">{error}</p> : null}
+        {error ? <p className="text-xs text-danger mb-3">{error}</p> : null}
 
         <div className="flex space-x-3 justify-end">
           <Button variant="outline" size="sm" disabled={submitting} onClick={onClose}>

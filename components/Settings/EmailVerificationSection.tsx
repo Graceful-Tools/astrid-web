@@ -52,8 +52,8 @@ export function EmailVerificationSection({
               <div className="flex items-center space-x-2">
                 {accountData.verified ? (
                   <>
-                    <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
-                    <span className="text-green-500 text-xs">
+                    <CheckCircle className="w-4 h-4 text-success shrink-0" />
+                    <span className="text-success text-xs">
                       {accountData.verifiedViaOAuth
                         ? t("settingsPages.emailVerification.verifiedViaGoogle")
                         : t("settingsPages.emailVerification.verified")}
@@ -61,8 +61,8 @@ export function EmailVerificationSection({
                   </>
                 ) : (
                   <>
-                    <AlertCircle className="w-4 h-4 text-yellow-500 shrink-0" />
-                    <span className="text-yellow-500 text-xs">{t("settingsPages.emailVerification.notVerified")}</span>
+                    <AlertCircle className="w-4 h-4 text-warning shrink-0" />
+                    <span className="text-warning text-xs">{t("settingsPages.emailVerification.notVerified")}</span>
                   </>
                 )}
               </div>
@@ -75,7 +75,7 @@ export function EmailVerificationSection({
               disabled={resendingVerification}
               size="sm"
               variant="outline"
-              className="border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white w-full sm:w-auto"
+              className="border-brand text-brand hover:bg-brand hover:text-brand-foreground w-full sm:w-auto"
             >
               {resendingVerification ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -88,9 +88,9 @@ export function EmailVerificationSection({
 
         {/* Pending Email Change */}
         {accountData.hasPendingChange && accountData.pendingEmail && (
-          <Alert className="border-yellow-600 bg-yellow-900/20">
+          <Alert className="border-warning bg-warning-subtle">
             <Clock className="w-4 h-4" />
-            <AlertDescription className="text-yellow-400">
+            <AlertDescription className="text-theme-primary">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Pending email change</p>
@@ -100,7 +100,7 @@ export function EmailVerificationSection({
                   onClick={onCancelEmailChange}
                   size="sm"
                   variant="ghost"
-                  className="text-yellow-400 hover:text-yellow-300"
+                  className="text-warning hover:text-warning"
                 >
                   <X className="w-4 h-4" />
                 </Button>

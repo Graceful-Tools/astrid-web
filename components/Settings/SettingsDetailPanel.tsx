@@ -22,7 +22,7 @@ export default function SettingsDetailPanel({ page, onNavigate }: SettingsDetail
     <>
       <div
         className="task-panel-arrow theme-panel-arrow"
-        style={{ top: `${arrowTop}px`, transition: 'top 0.15s ease-out' }}
+        style={{ top: `${arrowTop}px` }}
       ></div>
       <div ref={panelRef} className="w-full theme-panel flex flex-col h-full relative" data-task-detail-panel>
         <div className="flex items-center justify-end px-3 pt-2 flex-shrink-0">

@@ -41,7 +41,7 @@ function buildHighlightMarkup(text: string): string {
     let cls: string
     switch (trigger) {
       case '@':
-        cls = 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded px-0.5'
+        cls = 'bg-brand-subtle text-brand rounded px-0.5'
         break
       case '#':
         cls = 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded px-0.5'
@@ -350,8 +350,8 @@ export const RichTextInput = React.memo(function RichTextInput({
               data-selected={index === selectedIndex}
               className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition-colors ${
                 index === selectedIndex
-                  ? 'bg-blue-50 dark:bg-blue-900/20'
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                  ? 'bg-theme-selected'
+                  : 'hover:bg-theme-hover'
               }`}
               onClick={() => handleItemSelect(item)}
             >
@@ -370,11 +370,11 @@ export const RichTextInput = React.memo(function RichTextInput({
 
       {/* Upload error */}
       {uploadError && (
-        <div className="mx-0 mb-1 p-2 bg-red-900/20 border border-red-500/50 rounded-lg">
+        <div className="mx-0 mb-1 p-2 bg-danger-subtle border border-danger/50 rounded-lg">
           <div className="flex items-start gap-2">
-            <X className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-red-300 flex-1">{uploadError}</p>
-            <button onClick={() => onUploadErrorChange?.(null)} className="text-red-400 hover:text-red-300 flex-shrink-0">
+            <X className="w-4 h-4 text-danger flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-theme-primary flex-1">{uploadError}</p>
+            <button onClick={() => onUploadErrorChange?.(null)} className="text-danger hover:text-danger/80 flex-shrink-0">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -388,7 +388,7 @@ export const RichTextInput = React.memo(function RichTextInput({
             <div key={file.url} className="p-2 theme-bg-secondary rounded theme-border border">
               <div className="flex items-center gap-2">
                 {file.type?.startsWith('image/') ? (
-                  <ImageIcon className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                  <ImageIcon className="w-4 h-4 text-brand flex-shrink-0" />
                 ) : (
                   <FileText className="w-4 h-4 text-green-400 flex-shrink-0" />
                 )}
@@ -396,7 +396,7 @@ export const RichTextInput = React.memo(function RichTextInput({
                 <button
                   onClick={() => removeAttachedFile(file.url)}
                   aria-label={`Remove ${file.name}`}
-                  className="text-red-400 hover:text-red-300 flex-shrink-0"
+                  className="text-danger hover:text-danger/80 flex-shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -458,7 +458,7 @@ export const RichTextInput = React.memo(function RichTextInput({
             disabled={disabled}
             rows={1}
             spellCheck={!showOverlay}
-            className={`w-full resize-none rounded-xl px-3 py-2 text-sm leading-5 h-9 theme-bg-secondary border-0 outline-none focus:ring-1 focus:ring-blue-500 scrollbar-hide ${
+            className={`w-full resize-none rounded-xl px-3 py-2 text-sm leading-5 h-9 theme-bg-secondary border-0 outline-none focus:ring-1 focus:ring-brand scrollbar-hide ${
               showOverlay ? 'text-transparent caret-current' : 'theme-text-primary'
             }`}
             style={{ maxHeight: '120px', caretColor: 'currentColor' }}
@@ -480,7 +480,7 @@ export const RichTextInput = React.memo(function RichTextInput({
             <button
               onClick={onSend}
               disabled={!canSend}
-              className="flex-shrink-0 h-9 w-9 flex items-center justify-center rounded-full bg-blue-600 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-blue-700 transition-colors"
+              className="flex-shrink-0 h-9 w-9 flex items-center justify-center rounded-full bg-brand text-brand-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-hover transition-colors"
             >
               <Send className="w-4 h-4" />
             </button>
@@ -499,7 +499,7 @@ function AutocompleteItemIcon({ item }: { item: AutocompleteItem }) {
       return item.image ? (
         <img src={item.image} alt="" className="w-5 h-5 rounded-full flex-shrink-0" />
       ) : (
-        <div className="w-5 h-5 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-[10px] font-medium flex-shrink-0">
+        <div className="w-5 h-5 rounded-full bg-theme-active flex items-center justify-center text-[10px] font-medium flex-shrink-0">
           {item.label[0]?.toUpperCase()}
         </div>
       )
@@ -507,7 +507,7 @@ function AutocompleteItemIcon({ item }: { item: AutocompleteItem }) {
       return <Hash className="w-4 h-4 theme-text-muted flex-shrink-0" />
     case 'task':
       return item.completed
-        ? <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+        ? <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" />
         : <Circle className="w-4 h-4 theme-text-muted flex-shrink-0" />
   }
 }
@@ -515,7 +515,7 @@ function AutocompleteItemIcon({ item }: { item: AutocompleteItem }) {
 function AutocompleteItemBadge({ item }: { item: AutocompleteItem }) {
   if (item.type === 'mention' && item.isAIAgent) {
     return (
-      <span className="text-[10px] bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-1 rounded flex-shrink-0">
+      <span className="text-[10px] bg-agent-bubble text-purple-600 dark:text-purple-400 px-1 rounded flex-shrink-0">
         AI
       </span>
     )
@@ -524,7 +524,7 @@ function AutocompleteItemBadge({ item }: { item: AutocompleteItem }) {
     return item.privacy === 'PUBLIC' ? (
       <Globe className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
     ) : (
-      <Users className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+      <Users className="w-3.5 h-3.5 text-brand flex-shrink-0" />
     )
   }
   if (item.type === 'task' && item.completed) {
