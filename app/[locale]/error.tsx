@@ -30,7 +30,7 @@ export default function Error({ error, reset }: ErrorProps) {
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-6">
       <div className="flex flex-col items-center gap-4 text-center">
         <div className="rounded-full bg-destructive/10 p-4">
-          <AlertCircle className="h-12 w-12 text-destructive" />
+          <AlertCircle className="h-12 w-12 text-danger" />
         </div>
         <div className="space-y-2">
           <h1 className="text-2xl font-bold">Something went wrong</h1>
@@ -39,7 +39,7 @@ export default function Error({ error, reset }: ErrorProps) {
           </p>
           {process.env.NODE_ENV === "development" && (
             <div className="mt-4 max-w-lg rounded-md bg-muted p-4 text-left">
-              <p className="text-xs font-mono text-destructive">
+              <p className="text-xs font-mono text-danger">
                 {error.message}
               </p>
               {error.digest && (

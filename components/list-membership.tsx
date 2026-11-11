@@ -393,7 +393,7 @@ export function ListMembership({
             onClick={() => {
               onLeave(list)
             }}
-            className="w-full text-danger hover:text-danger hover:bg-danger-subtle"
+            className="w-full hover:text-danger hover:bg-danger-subtle"
           >
             Leave List
           </Button>
@@ -409,7 +409,7 @@ export function ListMembership({
             onClick={() => {
               onLeave(list, true) // true indicates owner leaving
             }}
-            className="w-full text-warning hover:text-warning hover:bg-warning-subtle"
+            className="w-full hover:text-warning hover:bg-warning-subtle"
           >
             Transfer Ownership & Leave
           </Button>

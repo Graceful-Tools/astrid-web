@@ -166,7 +166,7 @@ export function OwnerLeaveDialog({
               variant="destructive"
               onClick={handleDelete}
               disabled={isProcessing}
-              className="w-full text-danger hover:text-danger hover:bg-danger-subtle"
+              className="w-full hover:text-danger hover:bg-danger-subtle"
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Delete List

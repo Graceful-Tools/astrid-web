@@ -231,7 +231,7 @@ export default function DebugSettings({ onNavigate }: DebugSettingsProps) {
                 <Button
                   onClick={handleRefreshData}
                   disabled={refreshingData}
-                  className="w-full bg-success hover:bg-success/90 text-success-foreground"
+                  className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
                 >
                   {refreshingData ? (
                     <>

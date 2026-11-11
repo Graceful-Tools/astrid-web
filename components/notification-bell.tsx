@@ -128,7 +128,7 @@ export function NotificationBell({ align = "end", className, iconClassName }: No
               Loading
             </div>
           ) : error ? (
-            <div className="px-3 py-4 text-sm text-destructive">{error}</div>
+            <div className="px-3 py-4 text-sm text-danger">{error}</div>
           ) : notifications.length === 0 ? (
             <div className="px-3 py-8 text-center text-sm text-muted-foreground">
               You are all caught up.
