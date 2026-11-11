@@ -86,13 +86,13 @@ export function ListItem({
           isMobile ? 'mobile-list-item text-left' : ''
         } ${
           selectedListId === list.id
-          ? "bg-blue-500/15 text-blue-700 dark:text-blue-300 font-medium"
+          ? "bg-theme-selected text-theme-selected font-medium"
           : "theme-text-secondary hover:theme-text-primary hover:theme-bg-hover"
         } ${
           isDropTarget
-            ? "ring-2 ring-blue-400 ring-offset-2 ring-offset-transparent bg-blue-500/15 text-blue-50"
+            ? "ring-2 ring-brand ring-offset-2 ring-offset-transparent bg-brand/15"
             : ""
-        } ${droppable && isDragActive ? "transition-colors duration-150" : ""}`}
+        } ${droppable && isDragActive ? "transition-colors duration-fast" : ""}`}
         onMouseDown={(event) => {
           if (droppable && isDragActive) {
             event.preventDefault()
@@ -128,9 +128,9 @@ export function ListItem({
             {(privacy === 'PUBLIC' || hasAdditionalMembers) && (
               <div>
                 {privacy === 'PUBLIC' ? (
-                  <Globe className="w-3 h-3 text-green-500" />
+                  <Globe className="w-3 h-3 text-success" />
                 ) : hasAdditionalMembers ? (
-                  <Users className="w-3 h-3 text-blue-500" />
+                  <Users className="w-3 h-3 text-brand" />
                 ) : null}
               </div>
             )}
@@ -158,7 +158,7 @@ export function ListItem({
         </div>
       </Button>
       {isDropTarget && (
-        <span className="pointer-events-none absolute inset-y-1 left-0 w-1 rounded-full bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.7)]" />
+        <span className="pointer-events-none absolute inset-y-1 left-0 w-1 rounded-full bg-brand shadow-[0_0_12px_rgba(59,130,246,0.7)]" />
       )}
     </div>
   )

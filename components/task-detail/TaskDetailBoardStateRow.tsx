@@ -90,10 +90,10 @@ export function TaskDetailBoardStateRow({
               onClick={() => moveTo(column.id)}
               aria-pressed={isSelected}
               title={column.description || undefined}
-              className={`h-8 px-3 rounded-lg text-sm font-medium transition-all duration-150 active:scale-95 ${
+              className={`h-8 px-3 rounded-lg text-sm font-medium transition-all duration-fast active:scale-95 ${
                 isSelected
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-transparent border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200'
+                  ? 'bg-brand text-brand-foreground'
+                  : 'bg-transparent border-2 border-theme-button text-theme-secondary'
               }`}
             >
               {column.name}

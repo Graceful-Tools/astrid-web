@@ -77,7 +77,7 @@ export function TaskCheckbox({ checked, onToggle, priority, repeating = false, o
         }}
       >
         <div className={`w-leading-control h-leading-control border-2 rounded-sm flex items-center justify-center ${
-          checked ? 'bg-blue-500 border-blue-500' : 'border-gray-400 hover:border-gray-600'
+          checked ? 'bg-brand border-brand' : 'border-theme-strong hover:border-gray-600'
         }`}>
           {checked && <span className="text-white text-sm">✓</span>}
         </div>

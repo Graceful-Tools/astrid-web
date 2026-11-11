@@ -394,7 +394,7 @@ export function ProjectStatusBoard({
                   <div className="flex items-center gap-2">
                     <span className="truncate text-sm font-semibold theme-text-primary">{column.name}</span>
                     {isDoneColumn ? (
-                      <CheckCircle2 className="h-4 w-4 text-green-600" aria-hidden="true" />
+                      <CheckCircle2 className="h-4 w-4 text-success" aria-hidden="true" />
                     ) : null}
                     {isInboxColumn ? (
                       <Inbox className="h-4 w-4 theme-text-muted" aria-hidden="true" />
@@ -434,7 +434,7 @@ export function ProjectStatusBoard({
                     return (
                       <div
                         data-testid={`status-card-${task.id}`}
-                        className="relative rounded-md ring-2 ring-blue-500/40"
+                        className="relative rounded-md ring-2 ring-brand/40"
                         onClick={(event) => event.stopPropagation()}
                         onDragStart={(event) => event.stopPropagation()}
                       >
