@@ -16,6 +16,9 @@ export type {
   LogLevel,
   Logger,
   ProgressCallback,
+  AgentTaskClaimAction,
+  AgentTaskClaimRequest,
+  AgentTaskClaimResult,
   AstridTask,
   AstridList,
   PreviousTaskContext,
@@ -67,6 +70,7 @@ export {
 export {
   AstridOAuthClient,
   type AstridOAuthConfig,
+  type AgentTaskClaimResponse,
   type APIResponse,
   type Comment,
   type CreateTaskData,

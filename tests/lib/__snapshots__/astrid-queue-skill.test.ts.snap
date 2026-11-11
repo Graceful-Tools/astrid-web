@@ -1,0 +1,28 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`canonical queue skill (AWTD-759) > pins the old skill and queue line while the master switch is off, even for an enrolled board (AWTD-1557) > claim-disabled legacy queue line 1`] = `"Call get_agent_queue with agent "codex" and listId "<board>". Work every task it returns to completion, commenting progress on each one. If it answers empty:true, stop and say nothing is queued."`;
+
+exports[`canonical queue skill (AWTD-759) > pins the old skill and queue line while the master switch is off, even for an enrolled board (AWTD-1557) > claim-disabled legacy skill 1`] = `
+"Astrid queue skill v1.2.0
+
+Call get_agent_queue with agent "codex" and listId "<board>". Work every task it returns to completion, commenting progress on each one. If it answers empty:true, stop and say nothing is queued.
+
+Setup: connect this harness to Astrid MCP and install this skill using the guided steps at /docs/loops. This skill describes queue behavior; it does not install or start an agent host.
+
+Mailbox and board are explicit choices, never defaults:
+- Mailbox: this loop is agent "codex" — never poll another identity's queue.
+- Board: always pass listId "<board>" so this loop never takes another board's work.
+
+Per task, in queue order:
+1. Read the task AND its comments (get_task, get_task_comments) before changing anything.
+2. Post a short strategy comment (add_comment), then work the task to completion.
+3. Finish with a completion report in plain language, then update_task completed:true.
+4. Re-check the queue with the same call before the next task — new or reopened tasks arrive mid-run.
+
+Boundaries:
+- Only tasks assigned to "codex" in Ready status are yours. get_agent_queue already filters for this; never work around it. An unassigned task is someone's untriaged note.
+- If you do not use the board columns at all, do not work around that either — pass requireReady: false and a task with NO status queues on assignment alone. Waiting and Doing are still never queued under it, so parking a blocked task in Waiting still stops the loop re-reading it.
+- A task with a future date is held automatically (held.scheduled) — report it, do not start it early.
+- empty:true means the run is DONE: stop and say nothing is queued. It also carries a "hint" naming the condition that is unmet — usually tasks assigned to "codex" that nobody set to Ready. Report the hint rather than a bare "nothing queued"; it is the difference between a quiet day and a setup that has never worked.
+- If a tool call fails or a task is blocked, say so visibly on the task and stop or move on — never retry silently in a loop, and never invent adjacent work to fill a quiet run."
+`;
