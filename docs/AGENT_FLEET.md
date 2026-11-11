@@ -69,6 +69,17 @@ CLI logins; GitHub starts its built-in Copilot worker through native assignment.
 
 An `agent-run.yml` run fails unless the agent's last line is `RESULT: OK` or `RESULT: SKIPPED` (see `.github/agent-run-prompt.md`).
 
+### Due-first queue selection (opt-in)
+
+The web agent queue reads `AGENT_QUEUE_DUE_FIRST` in the server runtime. Unset or
+`off` preserves the legacy queue selection. `shadow` compares the due-first
+selection with the legacy result, returns the legacy response, and logs only
+task IDs and counts when reporting the comparison. `on` selects due tasks before
+the 500-task page cap and calculates the held-scheduled summary separately.
+
+The default remains `off`; this change does not enable a deployed setting. To
+roll back an enabled deployment, set the mode to `off` or revert the change.
+
 ## Secrets: agents never hold production keys
 
 | Tier | Holds | Can |
