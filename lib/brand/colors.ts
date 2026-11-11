@@ -19,7 +19,7 @@
  * series is invisible against a branded background.
  */
 
-import { BRAND } from './config'
+import { ASTRID_ACCENT_COLOR, BRAND } from './config'
 
 /**
  * The colour a list, project or status gets when nothing else specifies one.
@@ -33,9 +33,10 @@ export const DEFAULT_LIST_COLOR: string = BRAND.accentColor
  * Colours offered when creating a list. These are choices, not brand values —
  * a user picking "red" means red on every deployment.
  *
- * The brand accent is intentionally NOT spliced in: on the default Astrid
- * profile it is already the blue below, and on a partner profile adding it
- * would make the palette one longer on some deployments than others.
+ * The brand accent is intentionally NOT spliced in: adding it would make the
+ * palette one longer on some deployments than others. Astrid's own accent was
+ * the blue below until it was darkened to carry a white label (astrid-core
+ * register DS26); the swatch is a choice and stayed.
  */
 export const LIST_COLOR_PALETTE: readonly string[] = [
   '#ef4444', // red
@@ -77,8 +78,12 @@ export const CHART_SERIES_COLORS: readonly string[] = [
   '#ec4899', // pink
 ] as const
 
-/** Colour used for an overdue or failing state, regardless of brand. */
-export const DANGER_COLOR = '#ef4444'
+/**
+ * Colour used for an overdue or failing state, regardless of brand: the design
+ * tokens' `error`, written out because an email cannot read a custom property.
+ * White on it is 4.83:1 (astrid-core register DS26).
+ */
+export const DANGER_COLOR = '#dc2626'
 
 /**
  * Darken a `#rrggbb` colour by `amount` (0–1). Returns the input unchanged if
@@ -114,20 +119,27 @@ export function hexToRgbTriplet(hex: string): string | null {
  * and the stylesheets read them with their original values as the fallback.
  *
  * Null for the built-in accent ON PURPOSE: the stylesheets' fallbacks are the
- * designed Astrid values, hover included, and a computed hover would not match
- * them. A non-hex accent is null too — nothing sensible can be derived from it.
+ * designed Astrid values, hover and inks included, and a computed hover would
+ * not match them. A non-hex accent is null too — nothing sensible can be
+ * derived from it.
  */
 export function brandAccentRgb(): { accent: string; hover: string } | null {
-  if (BRAND.accentColor.trim().toLowerCase() === '#3b82f6') return null
+  if (BRAND.accentColor.trim().toLowerCase() === ASTRID_ACCENT_COLOR) return null
   const accent = hexToRgbTriplet(BRAND.accentColor)
   const hover = hexToRgbTriplet(darkenHex(BRAND.accentColor, 0.15))
   return accent && hover ? { accent, hover } : null
 }
 
 /**
- * The two stops of the branded email header gradient. Previously the literal
- * `#3b82f6 → #2563eb`, which stayed Astrid blue on every partner deployment.
+ * The two stops of the branded email header gradient. Previously a literal
+ * pair of blues, which stayed Astrid blue on every partner deployment. The
+ * second stop is also the accent under the pointer in an email.
  */
 export function accentGradientStops(): [string, string] {
   return [BRAND.accentColor, darkenHex(BRAND.accentColor)]
+}
+
+/** The same two stops for the overdue header, and its button under the pointer. */
+export function dangerGradientStops(): [string, string] {
+  return [DANGER_COLOR, darkenHex(DANGER_COLOR)]
 }

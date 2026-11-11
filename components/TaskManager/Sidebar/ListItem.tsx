@@ -158,7 +158,7 @@ export function ListItem({
         </div>
       </Button>
       {isDropTarget && (
-        <span className="pointer-events-none absolute inset-y-1 left-0 w-1 rounded-full bg-brand shadow-[0_0_12px_rgba(59,130,246,0.7)]" />
+        <span className="pointer-events-none absolute inset-y-1 left-0 w-1 rounded-full bg-brand shadow-[0_0_12px_rgba(var(--astrid-accent),0.7)]" />
       )}
     </div>
   )

@@ -67,7 +67,9 @@ The tokens decide what that looks like.
    register says so and the tokens take that value; iOS then follows. Three are recorded
    today: Ocean's darker text (web, AWTD-1496), the repeat frame around someone else's
    photo (web, AWTD-1571) and a darker or lighter shade for a status or brand colour drawn
-   as text (web, AWTD-1575; register DS25).
+   as text (web, AWTD-1575; register DS25). One value was decided in the tokens for every
+   client at once: the accent and the error red were darkened so a button's label reads
+   (Jon, 2026-11-11; register DS26).
 2. **A shared value is never restated.** Not as a literal in a view, not as a second
    table. In this repo: `var(--astrid-*)` in CSS, `lib/design/priority.ts` for priority,
    `lib/design/tokens.ts` where CSS cannot reach.
@@ -124,6 +126,8 @@ The selected row and anything that belongs to it wear one outline, the Mac's (Jo
 `size.selection-outline` wide (1.5 where there is a pointer, 2.5 on touch), drawn inside
 the edge so selecting moves nothing. No glow and no heavier shadow. Web defines it once
 (`--selection-outline-*` in `styles/components.css`) for the row, the pane and its arrow.
+The accent as a line is `border-focus`: the accent in Light and Ocean, its lighter shade
+in Dark (register DS26), so that is the colour the outline reads.
 
 ### Task details panel
 
@@ -189,8 +193,8 @@ Two things are not done, and the register says so:
   every client still plays.
 - **Web's components do not read these yet** (DS15). Its stylesheets do: nothing in
   `styles/` or `app/globals.css` writes a duration out, bar one `0s` that is a switch
-  with no duration rather than a design value. 28 remain in components
-  (`duration-200` and the like). iOS writes several springs out too.
+  with no duration rather than a design value. Five remain in components
+  (`duration-300` and the like). iOS writes several springs out too.
 
 ### Motion on web
 
@@ -297,7 +301,8 @@ has a name below.
 | Border around a card, dialog or menu | `border-theme-surface` | web-only `--theme-surface-border` |
 | Border: input, button, header, focus, selected | `border-theme-input`, `border-theme-button`, `border-theme-header`, `border-theme-focus`, `border-theme-selected` | `input-border`, `button-border`, `header-border`, `border-focus`, `bg-selected-border` |
 | Brand accent as text, a link or an icon | `text-brand` | `accent-ink` |
-| Brand accent: fill, text on the fill, border, focus ring, a wash | `bg-brand`, `text-brand-foreground`, `border-brand`, `ring-brand`, `bg-brand-subtle` | `accent`, `accent-text` |
+| Brand accent: fill, text on the fill, border, a wash | `bg-brand`, `text-brand-foreground`, `border-brand`, `bg-brand-subtle` | `accent`, `accent-text` |
+| Brand accent as a ring | `ring-brand`, `focus:ring-brand` | `border-focus` |
 | Brand accent under the pointer | `hover:bg-brand-hover`; `hover:text-brand-hover` | `accent-hover`; as text, `accent-ink` |
 | Danger: text or an icon; wash, fill, text on the fill, border | `text-danger`; `bg-danger-subtle`, `bg-danger`, `text-danger-foreground`, `border-danger` | `error-ink`; `error` |
 | Success | `text-success`; `bg-success-subtle`, `bg-success`, `text-success-foreground`, `border-success` | `success-ink`; `success` |
@@ -311,17 +316,28 @@ has a name below.
 | Priority | `lib/design/priority.ts` | `priority-*` |
 
 The brand, status, overdue, agent and list names are plain colours and work on any colour
-utility: `ring-brand`, `from-brand`, `border-l-warning`. A softer border or a pressed fill
+utility: `from-brand`, `border-l-warning`. A softer border or a pressed fill
 is an opacity modifier on the same name (`border-danger/30`, `hover:bg-danger/90`), not a
 second colour.
 
+**A fill that carries a label is dark enough for it** (AWTD-1575, register DS26; Jon,
+2026-11-11). The accent, its hover and the error red are buttons, and white on them is
+5.17:1, 6.70:1 and 4.83:1 in every theme (`tests/styles/fill-label-contrast.test.ts`;
+astrid-core's generator refuses less than 4.5:1). A fill that dark is 2.84:1 as a line on
+Dark's card, so **the accent as a ring is the focus border**: `ring-brand` and shadcn's
+`ring-ring` read `border-focus`, which is the accent in Light and Ocean and its lighter
+shade in Dark. `border-brand` stays the accent, because it is mostly the edge of a
+`bg-brand` fill; where it is a line by itself on a dark surface, use
+`border-theme-focus`. A disabled brand button is `bg-brand` under
+`disabled:opacity-disabled`, with no second fill.
+
 **A meaning as text reads its ink** (AWTD-1575, register DS25). `accent`, `error`,
-`success`, `warning` and `info` are one mid-tone each: the colour of a fill, and too light
-to read as text (the accent is 3.68:1 as a link on white, a status label about 2:1 on its
-own wash). Each has an ink, darker in Light and Ocean and lighter in Dark, at 4.5:1 or
+`success`, `warning` and `info` are one colour each in every theme: the colour of a fill,
+which does not read as text everywhere (the accent is 2.84:1 as a link on Dark's card, a
+green or amber label about 2:1 on its own wash in Light). Each has an ink, darker in Light and Ocean and lighter in Dark, at 4.5:1 or
 better on the card and on its own wash. The utilities that draw a glyph read it: `text-*`,
 and `fill-*` and `stroke-*` for an icon (`fill-danger`). Everything else (`bg-*`,
-`border-*`, `ring-*`, `bg-*-subtle`) reads the base colour, and `text-*-foreground` is
+`border-*`, `ring-*`, `bg-*-subtle`) reads the base colour, bar `ring-brand` above, and `text-*-foreground` is
 still the text on the fill. `hover:text-brand-hover` is the ink as well: the tokens have no
 ink for a link under the pointer, and `accent-hover` is a fill that would fade a link in
 Dark. shadcn's `text-destructive` is the error ink.
@@ -410,13 +426,14 @@ the fix.
 Moving to a token changes what is drawn. These are the differences to expect, and they are
 the point:
 
-- The accent is `blue-500` with `blue-600` under the pointer. A `bg-blue-600
-  hover:bg-blue-700` button gets one step lighter, and follows a partner's brand. White on
-  it is 3.68:1, and on the error red 3.76:1: the fills are the shared tokens, the same on
-  iOS, and darkening them is a brand decision, not a web one.
-- A status fill is one colour per status in every theme: `red-500`, `green-500`,
+- The accent is `blue-600` with `blue-700` under the pointer, so a `bg-blue-600
+  hover:bg-blue-700` button is the colour it was, and follows a partner's brand. It was
+  `blue-500` and `blue-600` until 2026-11-11, when white on it was 3.68:1 and on the
+  error red 3.76:1; the fills are the shared tokens, so they were darkened there for
+  every client (register DS26).
+- A status fill is one colour per status in every theme: `red-600`, `green-500`,
   `amber-500`, `cyan-500`. Yellow and orange both become the warning amber.
-- Status and brand text is the ink: `blue-600`, `red-700`, `green-700`, `amber-700` and
+- Status and brand text is the ink: `blue-700`, `red-700`, `green-700`, `amber-700` and
   `cyan-700` in Light and Ocean, `blue-400`, `red-400`, `green-400`, `amber-400` and
   `cyan-400` in Dark. `text-red-600` gets one step darker (it was 4.14:1 on its own wash);
   `text-blue-500` and `text-green-500` on a light surface get darker and readable.

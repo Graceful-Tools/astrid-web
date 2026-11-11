@@ -9,7 +9,7 @@
     "agentEmailDomain": "astrid.cc",
     "supportEmail": "support@astrid.cc",
     "inboundTaskEmail": "remindme@astrid.cc",
-    "accentColor": "#3b82f6",
+    "accentColor": "#2563eb",
     "enabledAgents": [
       "astrid",
       "claude",

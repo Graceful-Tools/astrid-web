@@ -21,7 +21,7 @@ const DEFAULTS = {
   agentEmailDomain: 'astrid.cc',
   supportEmail: 'support@astrid.cc',
   inboundTaskEmail: 'remindme@astrid.cc',
-  accentColor: '#3b82f6',
+  accentColor: '#2563eb',
   agentIdentityName: 'Astrid',
   githubAppSlug: 'astrid-code-assistant',
   wordmark: 'astrid',
@@ -51,6 +51,9 @@ function env(value: string | undefined, fallback: string): string {
   const trimmed = value?.trim()
   return trimmed ? trimmed : fallback
 }
+
+/** Astrid's own accent: the design tokens' `accent` (astrid-core register DS26). */
+export const ASTRID_ACCENT_COLOR = DEFAULTS.accentColor
 
 export const BRAND = {
   /** Short product name, e.g. "Astrid". Interpolated into i18n copy as `{appName}`. */

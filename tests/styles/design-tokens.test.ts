@@ -431,12 +431,14 @@ describe('a meaning as text reads its ink, as a fill its base colour (AWTD-1575)
     expect(ruleFor(shadcn, 'text-destructive-foreground')).toContain('rgba(var(--destructive-foreground)')
   })
 
+  // The accent's ring is the focus border, which is the accent in Light and
+  // Ocean and its lighter shade in Dark (astrid-core register DS26).
   it('AWTD-1575: fills, washes, borders, rings and text on the fill keep the base colour', () => {
     for (const [name, token] of MEANINGS) {
       expect(propertyOf(ruleFor(css, `bg-${name}`)), `bg-${name}`).toBe(`astrid-${token}`)
       expect(ruleFor(css, `bg-${name}-subtle`)).toBe(`background-color: rgba(var(--astrid-${token}), var(--theme-wash-opacity))`)
       expect(propertyOf(ruleFor(css, `border-${name}`)), `border-${name}`).toBe(`astrid-${token}`)
-      expect(ruleFor(css, `ring-${name}`)).toContain(`rgba(var(--astrid-${token}), `)
+      expect(ruleFor(css, `ring-${name}`)).toContain(`rgba(var(--astrid-${name === 'brand' ? 'border-focus' : token}), `)
       expect(propertyOf(ruleFor(css, `text-${name}-foreground`)), `text-${name}-foreground`).toBe('astrid-accent-text')
     }
   })

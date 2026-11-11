@@ -36,7 +36,7 @@ describe('BRAND defaults (task 97208a72)', () => {
     expect(BRAND.agentEmailDomain).toBe('astrid.cc')
     expect(BRAND.supportEmail).toBe('support@astrid.cc')
     expect(BRAND.inboundTaskEmail).toBe('remindme@astrid.cc')
-    expect(BRAND.accentColor).toBe('#3b82f6')
+    expect(BRAND.accentColor).toBe('#2563eb')
     expect(BRAND.agentIdentityName).toBe('Astrid')
     expect(brandOrigin()).toBe('https://astrid.cc')
   })
