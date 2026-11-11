@@ -150,7 +150,7 @@ export function GitHubConnectionCardView({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-red-500 hover:text-red-600 hover:bg-red-500/10 shrink-0"
+                  className="text-danger hover:text-danger hover:bg-danger-subtle shrink-0"
                   onClick={() => onDisconnect(installation)}
                 >
                   {t('settingsPages.connections.github.disconnect')}

@@ -57,20 +57,20 @@ export function AccountDeletionSection({ deleting, onConfirmDelete }: AccountDel
 
   return (
     <>
-      <Card className="theme-bg-secondary border-red-600">
+      <Card className="theme-bg-secondary border-danger">
         <CardHeader>
-          <CardTitle className="text-red-400 flex flex-wrap items-center gap-2">
+          <CardTitle className="text-danger flex flex-wrap items-center gap-2">
             <Trash2 className="w-5 h-5" />
             <span>{t("settingsPages.deleteAccount.title")}</span>
           </CardTitle>
-          <CardDescription className="text-red-300">
+          <CardDescription className="text-theme-muted">
             {t("settingsPages.deleteAccount.description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Alert className="border-red-600 bg-red-900/20">
-            <AlertCircle className="w-4 h-4 text-red-400" />
-            <AlertDescription className="text-red-300 text-sm">
+          <Alert className="border-danger bg-danger-subtle">
+            <AlertCircle className="w-4 h-4 text-danger" />
+            <AlertDescription className="text-theme-primary text-sm">
               <p className="font-semibold mb-2">{t("settingsPages.deleteAccount.warning")}</p>
               <p>{t("settingsPages.deleteAccount.willRemove")}</p>
               <ul className="list-disc list-inside mt-2 space-y-1">
@@ -85,7 +85,7 @@ export function AccountDeletionSection({ deleting, onConfirmDelete }: AccountDel
           <Button
             onClick={() => setShowDeleteDialog(true)}
             variant="destructive"
-            className="w-full bg-red-600 hover:bg-red-700"
+            className="w-full bg-danger hover:bg-danger/90 text-danger-foreground"
           >
             <Trash2 className="w-4 h-4 mr-2" />
             {t("settingsPages.deleteAccount.deleteMyAccount")}
@@ -96,7 +96,7 @@ export function AccountDeletionSection({ deleting, onConfirmDelete }: AccountDel
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent className="theme-bg-secondary theme-border">
           <DialogHeader>
-            <DialogTitle className="text-red-400 flex flex-wrap items-center gap-2">
+            <DialogTitle className="text-danger flex flex-wrap items-center gap-2">
               <Trash2 className="w-5 h-5" />
               <span>{t("settingsPages.deleteAccount.confirmTitle")}</span>
             </DialogTitle>
@@ -105,9 +105,9 @@ export function AccountDeletionSection({ deleting, onConfirmDelete }: AccountDel
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <Alert className="border-red-600 bg-red-900/20">
-              <AlertCircle className="w-4 h-4 text-red-400" />
-              <AlertDescription className="text-red-300 text-sm">
+            <Alert className="border-danger bg-danger-subtle">
+              <AlertCircle className="w-4 h-4 text-danger" />
+              <AlertDescription className="text-theme-primary text-sm">
                 All your data will be permanently deleted, including tasks, lists, and files.
               </AlertDescription>
             </Alert>
@@ -132,7 +132,7 @@ export function AccountDeletionSection({ deleting, onConfirmDelete }: AccountDel
               variant="outline"
               onClick={closeDialog}
               disabled={deleting}
-              className="border-gray-600 text-gray-400 hover:bg-gray-600 hover:text-white"
+              className="border-theme-button text-theme-muted hover:bg-theme-button-hover hover:text-theme-primary"
             >
               Cancel
             </Button>
@@ -140,7 +140,7 @@ export function AccountDeletionSection({ deleting, onConfirmDelete }: AccountDel
               variant="destructive"
               onClick={handleConfirm}
               disabled={deleting || deleteConfirmationText !== ACCOUNT_DELETION_CONFIRMATION_PHRASE}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-danger hover:bg-danger/90 text-danger-foreground"
             >
               {deleting ? (
                 <>

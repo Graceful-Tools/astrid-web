@@ -53,7 +53,7 @@ function AstridAgentSelector() {
   }
 
   if (loading) {
-    return <div className="h-10 bg-gray-800/50 rounded animate-pulse" />
+    return <div className="h-10 bg-theme-tertiary rounded animate-pulse" />
   }
 
   if (agents.length === 0) {
@@ -83,14 +83,14 @@ function AstridAgentSelector() {
           onClick={() => handleSelect(currentAgentId === agent.id ? null : agent.id)}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-colors ${
             currentAgentId === agent.id
-              ? 'border-blue-500 bg-blue-500/10'
-              : 'theme-border hover:border-blue-500/50'
+              ? 'border-brand bg-theme-selected'
+              : 'border-theme hover:border-brand/50'
           }`}
         >
           {agent.image ? (
             <img src={agent.image} alt="" className="w-8 h-8 rounded-full" />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-agent-bubble flex items-center justify-center">
               <Bot className="w-4 h-4 text-purple-500" />
             </div>
           )}
@@ -101,7 +101,7 @@ function AstridAgentSelector() {
             </div>
           </div>
           {currentAgentId === agent.id && (
-            <Check className="w-5 h-5 text-blue-500 flex-shrink-0" />
+            <Check className="w-5 h-5 text-brand flex-shrink-0" />
           )}
         </button>
       ))}
@@ -200,7 +200,7 @@ export default function AgentsSettings(_props: AgentsSettingsProps) {
         <Card className="theme-bg-secondary theme-border border-dashed">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <FileText className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
+              <FileText className="w-5 h-5 text-brand mt-0.5 shrink-0" />
               <div>
                 <h4 className="font-medium theme-text-primary text-sm">Tip: Control agent behavior per list</h4>
                 <p className="text-sm theme-text-muted mt-1">
