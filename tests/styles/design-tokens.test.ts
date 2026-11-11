@@ -175,3 +175,43 @@ describe('one global stylesheet (AWTD-1574)', () => {
     expect(read('components.json')).toContain('"css": "app/globals.css"')
   })
 })
+
+describe('web-only surfaces read the tokens (AWTD-1574, register DS9)', () => {
+  // The sidebar, the panel, the pill, the count badge and the card glass have no
+  // token of their own yet. Each is named once per theme and reads one; none is
+  // a colour written out.
+  for (const theme of THEME_NAMES) {
+    const css = read('styles', 'themes', `${theme}-theme.css`).replace(/\/\*[\s\S]*?\*\//g, '')
+    const declared = new Map<string, string>()
+    for (const match of css.matchAll(/--theme-([a-z0-9-]+):\s*([^;]+);/g)) declared.set(match[1], match[2].trim())
+
+    it(`${theme}: every --theme-* variable is a token or another theme variable`, () => {
+      const literal = [...declared].filter(([, value]) => !/^var\(--(astrid|theme)-[a-z0-9-]+\)$/.test(value))
+      expect(literal).toEqual([])
+    })
+
+    it(`${theme}: each one ends at a design token`, () => {
+      for (const name of declared.keys()) {
+        let value = declared.get(name)!
+        for (let hop = 0; hop < 5 && value.startsWith('var(--theme-'); hop += 1) {
+          value = declared.get(/^var\(--theme-([a-z0-9-]+)\)$/.exec(value)![1]) ?? `undeclared ${value}`
+        }
+        const token = /^var\(--astrid-([a-z0-9-]+)\)$/.exec(value)?.[1]
+        expect(token, `--theme-${name}`).toBeDefined()
+        expect(tokensCss, `--theme-${name} reads --astrid-${token}`).toContain(`--astrid-${token}:`)
+      }
+    })
+
+    it(`${theme}: no rule writes a colour out`, () => {
+      expect(css.match(/rgba?\(\s*\d[^)]*\)|#[0-9a-fA-F]{3,8}\b/g) ?? []).toEqual([])
+    })
+  }
+
+  it('the surfaces every theme has are the same names', () => {
+    const names = (theme: string) =>
+      [...read('styles', 'themes', `${theme}-theme.css`).matchAll(/--theme-((?:surface|sidebar|panel|comment|shadow)[a-z0-9-]*):/g)]
+        .map((match) => match[1])
+        .sort()
+    for (const theme of THEME_NAMES) expect(names(theme), theme).toEqual(names(THEME_NAMES[0]))
+  })
+})
