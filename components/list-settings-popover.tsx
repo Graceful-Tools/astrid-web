@@ -96,7 +96,7 @@ export function ListSettingsPopover({
       header={
         <>
           <h2 className="text-lg font-semibold theme-text-primary">
-            {canEditSettings ? "List Settings" : "List Details"}
+            {t(canEditSettings ? 'listSettings.listSettingsTitle' : 'listSettings.listDetailsTitle')}
           </h2>
           {list.privacy === "PRIVATE"
             ? <Lock className="w-4 h-4 theme-text-muted" />
@@ -112,7 +112,7 @@ export function ListSettingsPopover({
               <TabsList className={`grid w-full ${TAB_GRID_COLS[tabCount]}`}>
                 <TabsTrigger value="membership" className="flex items-center space-x-1 text-xs">
                   <Users className="w-3 h-3" />
-                  <span>Membership</span>
+                  <span>{t('lists.membership')}</span>
                 </TabsTrigger>
                 {showInsightsTab && (
                   <TabsTrigger value="insights" className="flex items-center space-x-1 text-xs">
@@ -123,7 +123,7 @@ export function ListSettingsPopover({
                 {showStatusesTab && (
                   <TabsTrigger value="statuses" className="flex items-center space-x-1 text-xs">
                     <KanbanSquare className="w-3 h-3" />
-                    <span>Statuses</span>
+                    <span>{t('listSettings.statusesTab')}</span>
                   </TabsTrigger>
                 )}
                 {canEditSettings && (

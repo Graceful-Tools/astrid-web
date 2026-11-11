@@ -106,22 +106,22 @@ export default function SettingsHub({ onNavigate }: SettingsHubProps) {
     },
     {
       icon: HelpCircle,
-      title: "Help & Support",
-      description: "Troubleshooting guides and contact support",
+      title: t("settingsPages.pageTitles.help"),
+      description: t("settingsPages.hub.helpDescription"),
       page: "help",
       color: "text-cyan-500"
     },
     {
       icon: RefreshCw,
       title: t("userMenu.refreshData"),
-      description: "Clear cache and reload fresh data",
+      description: t("settingsPages.hub.refreshDescription"),
       page: "_refresh",
       color: "text-emerald-500"
     },
     {
       icon: LogOut,
       title: t("userMenu.signOut"),
-      description: "Sign out of your account",
+      description: t("settingsPages.hub.signOutDescription"),
       page: "_signout",
       color: "text-red-500"
     }

@@ -45,7 +45,7 @@ export function TimePicker({
   // Quick time options
   const quickTimes = [
     { label: "9am", hours: 9, minutes: 0, period: "AM" as const },
-    { label: "Noon", hours: 12, minutes: 0, period: "PM" as const },
+    { label: t("time.noon"), hours: 12, minutes: 0, period: "PM" as const },
     { label: "5pm", hours: 5, minutes: 0, period: "PM" as const },
   ]
 

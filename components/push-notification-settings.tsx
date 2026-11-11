@@ -41,7 +41,7 @@ export function PushNotificationSettings({ className }: PushNotificationSettings
         isSupported: false,
         permission: 'unsupported',
         isSubscribed: false,
-        error: 'Push notifications are not supported in this browser'
+        error: t('reminderSettings.push.errorNotSupported')
       })
       return
     }
@@ -81,7 +81,7 @@ export function PushNotificationSettings({ className }: PushNotificationSettings
         setStatus(prev => ({ 
           ...prev, 
           permission,
-          error: 'Notification permission was denied. Please enable notifications in your browser settings.' 
+          error: t('reminderSettings.push.errorPermissionDenied')
         }))
         setLoading(false)
         return
@@ -118,7 +118,7 @@ export function PushNotificationSettings({ className }: PushNotificationSettings
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.message || 'Failed to save subscription to server')
+        throw new Error(error.message || t('reminderSettings.push.errorSaveSubscription'))
       }
 
       setStatus({
@@ -132,7 +132,7 @@ export function PushNotificationSettings({ className }: PushNotificationSettings
       console.error('Failed to enable notifications:', error)
       setStatus(prev => ({ 
         ...prev, 
-        error: error instanceof Error ? error.message : 'Failed to enable notifications'
+        error: error instanceof Error ? error.message : t('reminderSettings.push.errorEnable')
       }))
     } finally {
       setLoading(false)
@@ -166,7 +166,7 @@ export function PushNotificationSettings({ className }: PushNotificationSettings
       console.error('Failed to disable notifications:', error)
       setStatus(prev => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Failed to disable notifications'
+        error: error instanceof Error ? error.message : t('reminderSettings.push.errorDisable')
       }))
     } finally {
       setLoading(false)
@@ -187,7 +187,7 @@ export function PushNotificationSettings({ className }: PushNotificationSettings
 
       const data = await response.json()
       if (!data.success) {
-        throw new Error(data.message || data.error || 'Failed to send test notification')
+        throw new Error(data.message || data.error || t('reminderSettings.push.errorSendTest'))
       }
 
       // Clear any previous errors on success
@@ -196,7 +196,7 @@ export function PushNotificationSettings({ className }: PushNotificationSettings
       console.error('Test notification failed:', error)
       setStatus(prev => ({
         ...prev,
-        error: error instanceof Error ? error.message : 'Test notification failed'
+        error: error instanceof Error ? error.message : t('reminderSettings.push.errorTestFailed')
       }))
     } finally {
       setLoading(false)
@@ -227,17 +227,17 @@ export function PushNotificationSettings({ className }: PushNotificationSettings
               {status.isSubscribed ? (
                 <>
                   <CheckCircle className="w-4 h-4 text-success" />
-                  <span className="text-sm text-success">Enabled</span>
+                  <span className="text-sm text-success">{t('reminderSettings.push.statusEnabled')}</span>
                 </>
               ) : status.permission === 'denied' ? (
                 <>
                   <BellOff className="w-4 h-4 text-danger" />
-                  <span className="text-sm text-danger">Blocked</span>
+                  <span className="text-sm text-danger">{t('reminderSettings.push.statusBlocked')}</span>
                 </>
               ) : (
                 <>
                   <BellOff className="w-4 h-4 text-theme-muted" />
-                  <span className="text-sm text-theme-muted">Disabled</span>
+                  <span className="text-sm text-theme-muted">{t('settingsPages.connections.status.disabled')}</span>
                 </>
               )}
             </div>
@@ -315,9 +315,9 @@ export function PushNotificationSettings({ className }: PushNotificationSettings
 
         {/* Support Info */}
         <div className="text-xs text-muted-foreground space-y-1">
-          <p>• Browser support: {status.isSupported ? '✅ Supported' : '❌ Not supported'}</p>
-          <p>• Permission: {status.permission}</p>
-          <p>• Subscription: {status.isSubscribed ? '✅ Active' : '❌ None'}</p>
+          <p>• {t('reminderSettings.push.info.browserSupport')} {status.isSupported ? t('reminderSettings.push.info.supported') : t('reminderSettings.push.info.notSupported')}</p>
+          <p>• {t('reminderSettings.push.info.permission')} {t(`reminderSettings.push.permissionValues.${status.permission}`)}</p>
+          <p>• {t('reminderSettings.push.info.subscription')} {status.isSubscribed ? t('reminderSettings.push.info.subscriptionActive') : t('reminderSettings.push.info.subscriptionNone')}</p>
         </div>
       </CardContent>
     </Card>

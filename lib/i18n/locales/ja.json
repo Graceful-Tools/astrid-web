@@ -179,14 +179,30 @@
       "repeatMode": "繰り返しモード",
       "repeatFromCompletion": "完了日から繰り返す",
       "repeatFromDue": "期限から繰り返す",
-      "saveCustomPattern": "カスタムパターンを保存"
+      "saveCustomPattern": "カスタムパターンを保存",
+      "selectDate": "日付を選択",
+      "preview": "プレビュー:",
+      "repeatFromCompletionHint": "次回はタスクを完了した日を基準に決まります",
+      "repeatFromDueHint": "次回は元の期限を基準に決まります",
+      "descriptionKeysHint": "Enterで保存 • Shift+Enterで改行"
     },
     "commentsSection": {
       "addPlaceholder": "コメントを追加...",
       "replyPlaceholder": "返信を書く...",
       "refresh": "コメントを更新",
       "pullToRefresh": "引っ張って更新...",
-      "releaseToRefresh": "離して更新..."
+      "releaseToRefresh": "離して更新...",
+      "systemAuthor": "システム",
+      "unknownUser": "不明なユーザー",
+      "reply": "返信",
+      "count": "コメント（{count}）",
+      "hideSystemTitle": "システムコメントを非表示",
+      "showSystemTitle": "システムコメントを表示",
+      "hideSystem": "システムを非表示",
+      "showSystem": "システムを表示",
+      "refreshShort": "更新",
+      "replyingTo": "{name}に返信中",
+      "agentThinking": "{name}が考え中..."
     },
     "modals": {
       "deleteTitle": "タスクを削除",
@@ -197,11 +213,31 @@
       "shareTitle": "タスクを共有",
       "privateNote": "これはプライベートなタスクです。このリストにアクセスできるユーザーのみが閲覧できます。",
       "generatingLink": "共有リンクを生成中...",
-      "linkFailed": "共有リンクを生成できませんでした。もう一度お試しください。"
+      "linkFailed": "共有リンクを生成できませんでした。もう一度お試しください。",
+      "deleteConfirm": "「{title}」を削除してもよろしいですか？この操作は元に戻せません。",
+      "copyDescription": "「{title}」のコピーを作成します",
+      "includeCommentsOne": "コメントを含める（{count}件）",
+      "includeCommentsMany": "コメントを含める（{count}件）",
+      "shareDescription": "「{title}」の共有リンクを作成します",
+      "copied": "コピーしました",
+      "shareHintAccess": "🔗 このタスクを閲覧できる人とこのリンクを共有できます",
+      "shareHintRedirect": "📌 リンクを開くとアプリ内のタスクに移動します"
     },
     "timer": {
-      "tapToChange": "時間をタップして長さを変更"
-    }
+      "tapToChange": "時間をタップして長さを変更",
+      "completed": "タイマーが終了しました！",
+      "minutesShort": "分"
+    },
+    "priorityCheckboxAlt": "優先度{priority}のチェックボックス",
+    "priorityLevel": "優先度{level}",
+    "userAvatarAlt": "ユーザー",
+    "assigneeYou": "あなた",
+    "board": {
+      "collapseExpandedIn": "{name}で展開中のタスクを折りたたむ",
+      "tapToCollapse": "タップして折りたたむ",
+      "addTaskTo": "{name}にタスクを追加"
+    },
+    "dropToPlaceFirst": "ここにドロップして最初のタスクを配置"
   },
   "lists": {
     "list": "リスト",
@@ -247,7 +283,11 @@
       "subtitle": "リストを使ってプロジェクト、目標、冒険を整理しましょう！",
       "namePlaceholder": "例: 家族",
       "shareWith": "共有相手",
-      "sharePlaceholder": "名前またはメールアドレス"
+      "sharePlaceholder": "名前またはメールアドレス",
+      "optional": "（任意）",
+      "descriptionPlaceholder": "このリストは何のためのものですか？\n\nAIエージェントはタスクに取り組む際にこれを指針として使います。例：\n「献立の計画を手伝い、食事の好みに合わせたレシピを提案し、買い物リストを作成する。」",
+      "descriptionHint": "AIエージェントは、このリストのタスクに取り組む際にこれを指示として使います",
+      "create": "新しいリストを作成"
     },
     "membersManager": {
       "invite": "メンバーを招待",
@@ -261,7 +301,37 @@
       "permissionLevels": "権限レベル",
       "ownerCan": "リストを完全に管理できます",
       "adminCan": "リストの設定とメンバーを管理できます",
-      "memberCan": "タスクを追加、編集、管理できます"
+      "memberCan": "タスクを追加、編集、管理できます",
+      "loadFailed": "リストのメンバーを読み込めませんでした",
+      "emailRequired": "メールアドレスを入力してください",
+      "emailInvalid": "有効なメールアドレスを入力してください",
+      "invitationSent": "招待を送信しました",
+      "addFailed": "メンバーを追加できませんでした",
+      "invitationCancelled": "招待を取り消しました",
+      "memberRemoved": "メンバーを削除しました",
+      "removeFailed": "メンバーを削除できませんでした",
+      "roleUpdatedAdmin": "メンバーの役割を管理者に変更しました",
+      "roleUpdatedMember": "役割をメンバーに変更しました",
+      "updateRoleFailed": "メンバーの役割を変更できませんでした",
+      "inviteRoleUpdatedAdmin": "招待の役割を管理者に変更しました",
+      "inviteRoleUpdatedMember": "招待の役割をメンバーに変更しました",
+      "updateInviteRoleFailed": "招待の役割を変更できませんでした",
+      "membersCount": "メンバー（{count}）",
+      "role": "役割",
+      "adminOption": "管理者 - リストの設定とメンバーを管理できます",
+      "memberOption": "メンバー - タスクを追加、編集、管理できます",
+      "aiBadge": "AI",
+      "pending": "保留中",
+      "cancelInvite": "取り消す",
+      "remove": "削除",
+      "leave": "離れる",
+      "roles": {
+        "owner": "オーナー",
+        "admin": "管理者",
+        "member": "メンバー",
+        "viewer": "閲覧者"
+      },
+      "successTitle": "成功"
     },
     "membershipPanel": {
       "availableAgents": "利用可能なエージェント",
@@ -275,13 +345,26 @@
       "publicListType": "公開リストの種類",
       "makeCopyOnly": "コピー専用にする",
       "makeCollaborative": "共同編集可能にする",
-      "leaveList": "リストを離れる"
+      "leaveList": "リストを離れる",
+      "aiCodingAgents": "AIコーディングエージェント",
+      "aiAgents": "AIエージェント",
+      "agentForCoding": "{name}：コーディングとタスクのサポート",
+      "agentForTasks": "{name}：タスクのサポート（コーディングには GitHub リポジトリを追加）",
+      "removeAgent": "エージェントを削除",
+      "publicHint": "誰でもこのリストを見つけて参加できます",
+      "privateHint": "招待されたメンバーだけがこのリストにアクセスできます",
+      "collaborativeHint": "誰でもタスクを表示・追加できます。リストの管理者とタスクの作成者はタスクを編集できます。誰でもコメントできます。",
+      "copyOnlyHint": "コピー専用：公開メンバーはタスクの表示とコピーができますが、タスクを追加できるのは管理者だけです。",
+      "transferOwnershipAndLeave": "所有権を移転して離れる"
     },
     "ownerLeave": {
       "title": "所有権を移転",
       "selectNewOwner": "新しいオーナーを選択:",
       "noOtherMembers": "所有権を移転できる他のメンバーがいません。",
-      "deleteList": "リストを削除"
+      "deleteList": "リストを削除",
+      "body": "「{name}」のオーナーであるため、離れる前に所有権を移転する必要があります。後任を選ぶか、リストを削除してください。",
+      "transferAndLeave": "移転して離れる",
+      "deleteInstead": "または、リストを完全に削除することもできます："
     },
     "publicBrowser": {
       "searchPlaceholder": "名前、説明、作成者で検索...",
@@ -291,12 +374,71 @@
       "loadingPreview": "プレビューを読み込み中...",
       "noTasks": "このリストにはタスクがありません",
       "selectTitle": "プレビューするリストを選択",
-      "selectHint": "左側からリストを選ぶと、詳細とタスクが表示されます"
+      "selectHint": "左側からリストを選ぶと、詳細とタスクが表示されます",
+      "copiedMany": "{count}回コピーされました",
+      "copiedOne": "{count}回コピーされました",
+      "copiedMoreThan": "{count}回以上コピーされました",
+      "copiedNew": "新着",
+      "loadFailed": "公開リストを読み込めませんでした",
+      "previewFailed": "リストのプレビューを読み込めませんでした",
+      "copySuccess": "「{name}」を自分のリストにコピーしました",
+      "copyFailed": "リストをコピーできませんでした",
+      "title": "公開リストを見る",
+      "popular": "人気",
+      "recent": "新着",
+      "noListsFound": "リストが見つかりません",
+      "noPublicLists": "利用可能な公開リストはありません",
+      "taskCount": "タスク {count}件",
+      "copying": "コピー中...",
+      "copyToMyLists": "自分のリストにコピー",
+      "createdBy": "作成者：{name}",
+      "createdOn": "作成日：{date}",
+      "copyCount": "コピー {count}回",
+      "showingTasks": "{total}件中{shown}件のタスクを表示",
+      "noTasksInList": "このリストにタスクはありません",
+      "due": "期限：{date}"
     },
     "imagePicker": {
       "title": "画像を選択",
       "uploadLabel": "デバイスからアップロード",
-      "chooseFile": "ファイルを選択"
+      "chooseFile": "ファイルを選択",
+      "colorsTab": "カラー",
+      "defaultsTab": "デフォルト",
+      "colors": {
+        "lavender": "ラベンダー",
+        "mint": "ミント",
+        "peach": "ピーチ",
+        "coral": "コーラル",
+        "sky": "スカイ",
+        "sage": "セージ",
+        "rose": "ローズ",
+        "butter": "バター",
+        "periwinkle": "ペリウィンクル",
+        "seafoam": "シーフォーム",
+        "apricot": "アプリコット",
+        "lilac": "ライラック",
+        "blush": "ブラッシュ",
+        "powder": "パウダー",
+        "cream": "クリーム",
+        "pearl": "パール",
+        "yellow": "イエロー",
+        "green": "グリーン",
+        "blue": "ブルー",
+        "pink": "ピンク"
+      }
+    },
+    "descriptionView": "表示",
+    "descriptionDialogPlaceholder": "このリストで作業するAIエージェントへの指示を書いてください...\n\nMarkdown に対応：**太字**、*斜体*、## 見出し、- リスト、[リンク](url)",
+    "descriptionSaveHint": "Enter で保存 • Shift+Enter または Cmd/Ctrl+Enter で改行",
+    "memberEvents": {
+      "adminGrantedTitle": "管理者権限が付与されました",
+      "adminGrantedDescription": "「{list}」の管理者権限が付与されました。権限が更新されています。",
+      "roleChangedTitle": "役割が変更されました",
+      "roleChangedDescription": "「{list}」でのあなたの役割が{role}に変更されました。",
+      "addedTitle": "リストに追加されました",
+      "addedDescription": "{inviter}さんがあなたを「{list}」に追加しました",
+      "removedTitle": "リストから削除されました",
+      "removedDescription": "「{list}」から削除されました"
     }
   },
   "priority": {
@@ -328,7 +470,10 @@
     "weekBefore": "1週間前",
     "quickSelect": "クイック選択：",
     "setTime": "時刻を設定",
-    "selectTime": "時刻を選択"
+    "selectTime": "時刻を選択",
+    "twoHoursBefore": "2時間前",
+    "twoDaysBefore": "2日前",
+    "noon": "正午"
   },
   "repeating": {
     "oneTimeOnly": "1回のみ",
@@ -350,7 +495,40 @@
       "afterOccurrences": "X 回繰り返した後",
       "untilDate": "指定した日付まで",
       "occurrencesCount": "繰り返し回数",
-      "endDate": "終了日"
+      "endDate": "終了日",
+      "unitDays": "日",
+      "unitWeeks": "週",
+      "unitMonths": "か月",
+      "unitYears": "年",
+      "weekday": "曜日",
+      "month": "月",
+      "day": "日",
+      "never": "なし",
+      "week1": "第1週",
+      "week2": "第2週",
+      "week3": "第3週",
+      "week4": "第4週",
+      "week5": "第5週",
+      "weekLast": "最終週"
+    },
+    "summary": {
+      "everyDay": "毎日",
+      "everyDays": "{count}日ごと",
+      "everyWeek": "毎週",
+      "everyWeeks": "{count}週間ごと",
+      "everyMonth": "毎月",
+      "everyMonths": "{count}か月ごと",
+      "everyYear": "毎年",
+      "everyYears": "{count}年ごと",
+      "everyOther": "{interval}({unit})ごと",
+      "onDays": "{summary}（{days}）",
+      "onDayOfMonth": "{summary} {day}日",
+      "onDate": "{summary} {date}",
+      "endsAfterOne": "{summary}、{count}回で終了",
+      "endsAfterMany": "{summary}、{count}回で終了",
+      "until": "{summary}、{date}まで",
+      "fromDueDate": "{summary}、期限から",
+      "labelFromDueDate": "{label}（期限から）"
     }
   },
   "weekdays": {
@@ -463,7 +641,14 @@
     "cacheCleared": "キャッシュをクリアしました",
     "dataRefreshed": "データを更新しました。再読み込み中...",
     "settingsSaved": "設定を保存しました",
-    "changesSaved": "変更を保存しました"
+    "changesSaved": "変更を保存しました",
+    "loadingYourData": "データを読み込み中...",
+    "loadingYourDataDescription": "タスクとリストを準備しています",
+    "refreshed": "更新しました",
+    "refreshedDescription": "データが更新されました",
+    "refreshFailed": "更新に失敗しました",
+    "refreshFailedDescription": "データを更新できませんでした。もう一度お試しください。",
+    "loadDataFailed": "データを読み込めませんでした。ページを再読み込みしてください。"
   },
   "reminders": {
     "general": [
@@ -585,7 +770,9 @@
     "searching": "検索中...",
     "open": "検索",
     "findAcrossLists": "すべてのリストからタスクとユーザーを検索",
-    "inputPlaceholder": "タスクとユーザーを検索..."
+    "inputPlaceholder": "タスクとユーザーを検索...",
+    "resultsTitle": "検索結果",
+    "showingMatches": "アクセス可能なすべてのリストから「{term}」に一致するタスクを表示しています"
   },
   "listHeaders": {
     "myTasks": "マイタスク",
@@ -656,7 +843,34 @@
         "guideLink": "コーディングエージェント接続ガイド",
         "needsSetup": "設定が必要",
         "agentLoops": "Agent Loops",
-        "customAgents": "カスタムエージェント"
+        "customAgents": "カスタムエージェント",
+        "off": "オフ",
+        "transportLabel": "トランスポート:",
+        "transportNative": "ネイティブのコーディングハーネス",
+        "transportSse": "カスタムエージェント（SSE）",
+        "copilotConnected": "接続済み — {appName}はこのエージェントの作業にあなたのCopilotサブスクリプションを使います。",
+        "copilotAuthorize": "{appName}があなたのCopilotサブスクリプションを使えるよう、GitHubを認可してください。GitHubからいつでも取り消せます。",
+        "copilotDisconnected": "GitHub Copilotの接続を解除しました",
+        "copilotDisconnectFailed": "GitHub Copilotの接続を解除できませんでした",
+        "copilotAuthStartFailed": "GitHubの認可を開始できませんでした",
+        "copilotConnectFailed": "GitHub Copilotを接続できませんでした",
+        "keySavedPlaceholder": "キー保存済み — 置き換えるには貼り付け",
+        "keySaved": "{agent}のキーを保存しました",
+        "keySaveFailed": "APIキーを保存できませんでした",
+        "keyValid": "{agent}のキーは有効です",
+        "keyTestFailed": "キーのテストに失敗しました: {error}",
+        "keyTestError": "APIキーをテストできませんでした",
+        "testKey": "テスト",
+        "keyRemoved": "{agent}のキーを削除しました",
+        "keyRemoveFailed": "APIキーを削除できませんでした",
+        "keyEncrypted": "保存時に暗号化され、サーバー側でのみ使用されます。",
+        "loadFailed": "エージェント設定を読み込めませんでした",
+        "saveFailed": "保存できませんでした",
+        "apiModeDescription": "{appName}がこのエージェントをサーバー側で実行します。スマートフォンから使え、自宅で何かを動かしておく必要はありません。",
+        "pollingModeDescription": "あなた自身の{agent}環境が作業を行います。一度接続したら、このエージェントにタスクを割り当てて{ready}にしてください。ループがそれを拾います。",
+        "offModeDescription": "このエージェントは無効になっています。担当者の選択肢に表示されず、{appName}が実行することもありません。保存済みの設定とキーは保持されるので、別のモードを選べば元どおりに戻せます。",
+        "webhookModeDescription": "あなたが運用するWebhookレシーバーで、このエージェントの作業を発生と同時に受け取れます。{sdk}が提供するのは連携用ライブラリであり、既製のエージェントホスト用コマンドではありません。このモードには自前のWebhookレシーバーが必要で、下の設定で配信を構成します。MCPとキュースキルによるガイド付きセットアップを使う場合は、{nativeHarness}を選び、{agentLoops}のレシピに従ってください。",
+        "customAgentsDescription": "OAuth + REST + SSEで自分で運用するエージェント"
       },
       "runtime": {
         "stepConnect": "接続",
@@ -668,7 +882,28 @@
         "copilotInstall": "このリポジトリのカスタムエージェントを一度コミットしてください。Copilot CLI、Copilot アプリ、GitHub.com、VS Code で同じキューの動作を選択できるようになります。",
         "githubConnect": "このエージェント用のクライアント認証情報を作成し、{clientId} と {clientSecret} という名前のリポジトリ Actions シークレットとして保存してください。実行のたびに、認証情報はキューワーカーに必要なスコープだけを持つ1時間有効のアクセストークンに交換されます。長期間有効なトークンがリポジトリに渡ることはありません。",
         "githubInstall": "このワークフローはキューゲートです。「作業はあるか？」に答えるだけで、エージェント自体は実行しません。2つ目のジョブを、既存の対応エージェントジョブ（他のタブの Copilot CLI、Claude Code、Codex のステップ）に向けてください。",
-        "githubSchedule": "ワークフローをコミットすると30分ごとに実行されます。すぐに試すには GitHub Actions の Run workflow を使ってください。作業がない実行はスコープ付きのキュー要求の後で終了するため、空のキューにかかるのはエージェントの起動ではなく API 呼び出し1回分だけです。"
+        "githubSchedule": "ワークフローをコミットすると30分ごとに実行されます。すぐに試すには GitHub Actions の Run workflow を使ってください。作業がない実行はスコープ付きのキュー要求の後で終了するため、空のキューにかかるのはエージェントの起動ではなく API 呼び出し1回分だけです。",
+        "connectionCheckLabel": "何も変更しない接続チェックを実行",
+        "runInActions": "GitHub Actionsで実行",
+        "addRemoteMcp": "リモートMCPサーバーを追加",
+        "claudeAuthenticate": "Claude Codeで{mcpCommand}を開き、Authenticateを選びます。コマンドが使えない場合は、代わりに同じHTTPサーバーをプロジェクトの{mcpFile}ファイルに追加してください。",
+        "manualMcpFallback": "MCPの手動フォールバック",
+        "manualMcpFallbackFile": "MCPの手動フォールバック: {file}",
+        "saveSkillCommand": "キュースキルをプロジェクトコマンドとして保存",
+        "runInSession": "このセッションで30分ごとに実行",
+        "cronFallback": "無人実行のcronフォールバック",
+        "copilotAddMcp": "Copilot CLI: リモートMCPサーバーを追加",
+        "vscodeFallback": "VS Codeのフォールバック: {file}",
+        "copilotConnectNote": "CLIとVS Codeは{appName}のブラウザ認可を開きます。CopilotアプリとGitHub.comはリモートMCPのOAuthを開けません。専用トークンを作成してAgentsのsecret {secretName} として保存し、生成されたリポジトリMCP設定を Settings > Copilot > MCP servers に貼り付けてください。",
+        "repoCustomAgent": "リポジトリのカスタムエージェント",
+        "runEvery30": "{tool}を30分ごとに実行",
+        "copilotInteractive": "対話的に実行するには、Copilotアプリ、GitHub.com、またはVS Codeでカスタムエージェント「{appName} Queue」を選択してください。",
+        "addRemoteAuthorize": "リモートサーバーを追加して認可",
+        "addSkillTo": "キュースキルを{file}に追加",
+        "addQueueGate": "キューゲートのワークフローを追加",
+        "addQueueToFile": "1. キューを{file}に追加",
+        "runLoopScheduled": "2. スケジュールでループを実行",
+        "cursorNoScheduler": "2. Cursorには独自のスケジューラーがありません。作業セッションの開始時にキューを確認するよう頼むか、上のClaude Code / Codexのcron行を併用してください。"
       },
       "webhook": {
         "title": "Webhook の設定",
@@ -695,7 +930,38 @@
         "gettingStarted": "はじめに",
         "stepConfigureUrl": "上で Webhook URL を設定する",
         "stepAssign": "タスクを {agent} に割り当てる",
-        "eventsTitle": "Webhook イベント"
+        "eventsTitle": "Webhook イベント",
+        "testFailed": "Webhook をテストできませんでした",
+        "confirmRemove": "Webhook の設定を削除してもよろしいですか？",
+        "enabledLabel": "有効",
+        "updateConfig": "設定を更新",
+        "saveConfig": "設定を保存",
+        "secretShownOnce": "このシークレットは一度しか表示されません。今すぐコピーして、Claude Code Remote サーバーの環境変数に追加してください。",
+        "failuresCount": "失敗 {count} 件",
+        "noneAllPolling": "なし（すべてのタスクはポーリングで処理されます）",
+        "testing": "テスト中...",
+        "responseTime": "応答時間: {time}ms",
+        "statusCode": "ステータスコード: {code}",
+        "errorDetail": "エラー: {error}",
+        "documentation": "ドキュメント",
+        "aboutBody": "あなたが運用するWebhookレシーバーを{appName}に接続します。このパネルではタスク通知の送信先を設定します。エージェントホストのインストールや起動は行いません。",
+        "stepReceiver": "あなたが運用するWebhookレシーバーを使います。{sdk}が提供するのは連携用ライブラリであり、単体のエージェントホスト用コマンドではありません。",
+        "stepCopySecret": "Webhook シークレットをサーバーの環境にコピーする",
+        "guidedSetup": "Webhookレシーバーなしのガイド付きセットアップを使う場合は、{settings} → {aiAgents}で{selfRuns} → {nativeHarness}を選び、{recipes}に従ってください。",
+        "recipesLink": "MCP + キュースキルのレシピ",
+        "eventTaskAssigned": "タスクがAIエージェントに割り当てられた",
+        "eventCommentCreated": "ユーザーがAIタスクにコメントした"
+      },
+      "astrid": {
+        "noModel": "{appName}を動かすには、下でAPIキーを追加するか、カスタムエージェントを登録してください。",
+        "poweredBy": "{service}で動作",
+        "chooseModelHint": "マイタスクと非公開リストで{appName}を動かすモデルを選びます。",
+        "description": "{appName}を動かすモデルを選びます。チャットやコメントで{mention}とメンションすると手伝ってもらえます。{appName}はあなたのリスト全体のタスクを読み、メッセージに返信し、期限前にタスクを完了できます。"
+      },
+      "tip": {
+        "title": "ヒント: リストごとにエージェントの動作を制御",
+        "body": "各リストの{description}は、そのリストのタスクに取り組むAIエージェントへの指示として使われます。リストの説明にマークダウンで、タスクの扱い方をプロジェクト概要のように書いてください。",
+        "where": "リポジトリ、デフォルトのエージェント、リストごとのループは、リスト設定 → 管理者設定 → AIエージェントで設定します。指示は「説明」で編集します。"
       }
     },
     "apiAccess": {
@@ -704,7 +970,10 @@
       "clientGuide": {
         "title": "Do you need a client here?",
         "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
-        "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant."
+        "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant.",
+        "question": "ここでクライアントを作成する必要がありますか？",
+        "registersItself": "いいえ — アシスタントが OAuth に対応している場合（VS Code / Copilot、ChatGPT、その他の MCP クライアント）、ホストされた MCP エンドポイントに接続すると自動的に登録されます。ここで作成するものはありません。",
+        "manualOnly": "はい — 静的なシークレットを使うサーバー連携（スクリプト、stdio MCP サーバー、client_credentials グラントを使うカスタムヘッダー構成）の場合にのみ、下でクライアントを作成してください。"
       },
       "apps": {
         "loading": "OAuth アプリケーションを読み込み中...",
@@ -727,7 +996,64 @@
         "readOnly": "読み取り専用",
         "editTitle": "OAuth アプリケーションを編集",
         "editDescription": "連携に必要なリダイレクト URL やその他のメタデータを更新します。",
-        "selectToEdit": "編集する OAuth アプリを選択してください。"
+        "selectToEdit": "編集する OAuth アプリを選択してください。",
+        "heading": "OAuth アプリケーション",
+        "test": "テスト",
+        "regenerate": "再生成",
+        "followsGroup": "{group} に追従",
+        "fixedAtCreation": "作成時に固定",
+        "created": "作成日: {date}",
+        "lastUsed": "最終使用日: {date}",
+        "createdTitle": "OAuth クライアントを作成しました！",
+        "saveCredentialsNow": "⚠️ この認証情報を今すぐ保存してください。クライアントシークレットは二度と表示されません！",
+        "secretShownOnce": "⚠️ このシークレットは一度しか表示されません。今すぐコピーしてください！",
+        "obtainingToken": "トークンを取得中...",
+        "clientSecretRequired": "クライアントシークレット *",
+        "nameLabel": "アプリケーション名 *",
+        "descriptionLabel": "説明",
+        "scopesRequired": "スコープ *",
+        "aiAgentPreset": "AIエージェント",
+        "grantTypesRequired": "グラントタイプ *",
+        "grantHelp": "ChatGPT などユーザーの同意が必要な連携には {code} を有効にしてください。リダイレクト URI が 1 つ以上必要です。",
+        "redirectHelp": "1 行に 1 つの URL。認可コードフロー（ChatGPT、ウェブアプリ）では必須です。{appName} はここに記載された URL にのみリダイレクトします。",
+        "editRedirectHelp": "1 行に 1 つの URL。{appName} はここに記載された URL と完全に一致する場合にのみユーザーをリダイレクトします。{code} エラーを解消するには、ChatGPT のアクションのコールバック URL（GPT Builder から取得）を追加してください。",
+        "creating": "作成中...",
+        "createApplication": "アプリケーションを作成",
+        "errors": {
+          "loadFailed": "OAuth クライアントを読み込めませんでした",
+          "loadClientsFailed": "クライアントを読み込めませんでした",
+          "nameRequired": "アプリ名は必須です",
+          "scopeRequired": "スコープを 1 つ以上選択してください",
+          "grantRequired": "OAuth グラントタイプを 1 つ以上選択してください",
+          "redirectRequired": "認可コードグラントにはリダイレクト URI が 1 つ以上必要です",
+          "invalidRedirect": "無効なリダイレクト URI: {uri}",
+          "createFailed": "クライアントを作成できませんでした",
+          "deleteFailed": "クライアントを削除できませんでした",
+          "regenerateFailed": "シークレットを再生成できませんでした",
+          "copyFailed": "クリップボードにコピーできませんでした",
+          "secretRequired": "クライアントシークレットは必須です",
+          "tokenFailed": "アクセストークンを取得できませんでした",
+          "tokenFailedShort": "トークンを取得できませんでした",
+          "updateFailed": "OAuth クライアントを更新できませんでした"
+        },
+        "deleteConfirm": "よろしいですか？このアプリのすべてのトークンが取り消されます。",
+        "regenerateConfirm": "クライアントシークレットを再生成しますか？古いシークレットはすぐに使えなくなります。",
+        "tokenObtained": "アクセストークンを取得しました！API テストに移動します...",
+        "updated": "OAuth クライアントを更新しました"
+      },
+      "grants": {
+        "clientCredentials": {
+          "label": "クライアントクレデンシャル",
+          "description": "サーバー間アクセス（ユーザーのログイン不要）"
+        },
+        "authorizationCode": {
+          "label": "認可コード",
+          "description": "ブラウザでのユーザー同意（ChatGPT、サードパーティアプリ）"
+        },
+        "refreshToken": {
+          "label": "リフレッシュトークン",
+          "description": "セッションを維持するためにリフレッシュトークンを発行します"
+        }
       }
     },
     "chatgpt": {
@@ -939,7 +1265,10 @@
       "waitingVerification": "確認待ち",
       "waitingVerificationFor": "確認待ち：{email}",
       "unknownEmail": "不明",
-      "loadingEmail": "読み込み中..."
+      "loadingEmail": "読み込み中...",
+      "infoProtect": "• 確認済みのメールアドレスは、アカウントの保護と共同作業に役立ちます",
+      "infoOAuth": "• メールアドレスは Google OAuth で確認済みです",
+      "infoCheckEmail": "• 登録後、メールに届く確認リンクをご確認ください"
     },
     "passkeys": {
       "title": "パスキー",
@@ -1071,7 +1400,10 @@
         "description": "タスクのタイトルから日付、優先度、リストのハッシュタグを自動的に読み取ります",
         "enable": "スマート解析を有効にする",
         "enableDesc": "自然な文章の入力からタスクの情報を抽出します",
-        "supportedPatterns": "対応パターン："
+        "supportedPatterns": "対応パターン：",
+        "datesLabel": "日付：",
+        "priorityLabel": "優先度：",
+        "listsLabel": "リスト："
       },
       "subtasks": {
         "title": "サブタスク",
@@ -1268,7 +1600,8 @@
         "description": "OAuth アプリを手動で作成し、API をテストし、OpenAPI 対応のアシスタントを接続します。",
         "openTester": "API テスターを開く",
         "apiDocs": "APIドキュメント",
-        "integrationGuide": "連携ガイド"
+        "integrationGuide": "連携ガイド",
+        "copyField": "{label} をコピー"
       },
       "github": {
         "title": "GitHub",
@@ -1395,12 +1728,36 @@
       "subscribeLabel": "購読:",
       "howSubscribe": "webcal URL を追加して変更を自動同期（推奨）",
       "howAppear": "タスクは終日の予定として、または予定時刻に表示されます",
-      "howUpdates": "{appName} でのタスクの更新は、購読中のカレンダーに反映されます"
+      "howUpdates": "{appName} でのタスクの更新は、購読中のカレンダーに反映されます",
+      "toastUpdatedTitle": "設定を更新しました",
+      "toastUpdatedDescription": "カレンダー連携の設定を保存しました。",
+      "toastUpdateFailed": "カレンダーの設定を更新できませんでした。",
+      "syncAllHint": "期限のないタスクも含め、すべてのタスクがカレンダーに表示されます",
+      "syncDueHint": "期限または「いつ」の時刻があるタスクのみカレンダーに表示されます",
+      "syncNoneHint": "タスクはカレンダーに同期されません",
+      "downloadDescription": "カレンダーアプリに取り込むための1回限りのダウンロード"
     },
     "defaultDueTime": {
       "title": "デフォルトの期限時刻",
       "description": "期限を選択したときに新しいタスクに設定されるデフォルトの時刻",
-      "fallback": "期限のある新しいタスクは、デフォルトで午後5時になります"
+      "fallback": "期限のある新しいタスクは、デフォルトで午後5時になります",
+      "setTo": "期限のある新しいタスクは、デフォルトで{time}になります",
+      "toastSet": "デフォルトの期限時刻を{time}に設定しました",
+      "toastCleared": "デフォルトの期限時刻をクリアしました",
+      "saveFailed": "デフォルトの期限時刻の設定を保存できませんでした",
+      "placeholder": "5pm（デフォルト）",
+      "label": "デフォルトの期限時刻"
+    },
+    "pageTitles": {
+      "account": "アカウントアクセス",
+      "apiTesting": "API テスト",
+      "githubSetup": "GitHub のセットアップ",
+      "help": "ヘルプとサポート"
+    },
+    "hub": {
+      "helpDescription": "トラブルシューティングガイドとサポートへの問い合わせ",
+      "refreshDescription": "キャッシュを消去して最新のデータを読み込み直す",
+      "signOutDescription": "アカウントからサインアウトする"
     }
   },
   "projectMode": {
@@ -1438,7 +1795,9 @@
   "viewRotator": {
     "showList": "リストを表示",
     "showMessages": "メッセージを表示",
-    "showBoard": "ボードを表示"
+    "showBoard": "ボードを表示",
+    "board": "ボード",
+    "messages": "メッセージ"
   },
   "listSettings": {
     "color": {
@@ -1560,7 +1919,24 @@
       "deleteStatusFailed": "ステータスを削除できませんでした",
       "addStatusFailed": "ステータスを追加できませんでした",
       "recentlyCompletedLabel": "詳細 — 最近完了したタスクの表示期間",
-      "recentlyCompletedDescription": "完了したタスクをデフォルト表示（およびボードのDone列）に表示しておく期間です。それより古い完了タスクは非表示になります。表示するには、リストを「完了」または「すべて」に切り替えてください。"
+      "recentlyCompletedDescription": "完了したタスクをデフォルト表示（およびボードのDone列）に表示しておく期間です。それより古い完了タスクは非表示になります。表示するには、リストを「完了」または「すべて」に切り替えてください。",
+      "recentlyCompletedPresets": {
+        "default24h": "過去24時間（デフォルト）",
+        "last7Days": "過去7日間",
+        "last14Days": "過去14日間",
+        "last28Days": "過去28日間",
+        "last30Days": "過去30日間",
+        "sinceLastSunday": "前の日曜日から（今週）",
+        "sinceLastMonday": "前の月曜日から（今週）",
+        "sinceFirstOfMonth": "今月1日から",
+        "sinceSpecificDate": "特定の日付から…"
+      },
+      "templates": {
+        "codeReviewer": "コードレビュアー",
+        "researchAssistant": "リサーチアシスタント",
+        "familyAssistant": "ファミリーアシスタント",
+        "contentWriter": "コンテンツライター"
+      }
     },
     "filters": {
       "allAssignees": "すべての担当者",
@@ -1573,8 +1949,29 @@
       "removeFromFavorites": "お気に入りから削除",
       "makeFavorite": "お気に入りに追加",
       "savedFilter": "保存済みフィルター",
-      "savedFilterDescription": "リストの所属ではなく、フィルター設定に基づいてタスクを表示"
-    }
+      "savedFilterDescription": "リストの所属ではなく、フィルター設定に基づいてタスクを表示",
+      "me": "自分（{name}）",
+      "assignedByFilter": "割り当て元フィルター",
+      "repeatingFilter": "繰り返しフィルター",
+      "listFilter": "リストフィルター",
+      "favorite": "お気に入り"
+    },
+    "fixed": {
+      "todayTitle": "今日のタスクの設定",
+      "todayDescription": "今日のタスクの表示方法と絞り込みを設定します",
+      "fixedDueDateToday": "期限：今日（固定）",
+      "myTasksTitle": "マイタスクの設定",
+      "myTasksDescription": "個人のタスクの表示方法と絞り込みを設定します",
+      "unassignedTitle": "リストなしのタスクの設定",
+      "unassignedDescription": "リストに属さないタスクの表示方法と絞り込みを設定します",
+      "assignedTitle": "割り当てたタスクの設定",
+      "assignedDescription": "他の人に割り当てたタスクの表示方法と絞り込みを設定します",
+      "defaultDescription": "タスクの表示方法と絞り込みを設定します",
+      "cannotChange": "「{name}」ビューではこのフィルターを変更できません"
+    },
+    "listSettingsTitle": "リスト設定",
+    "listDetailsTitle": "リスト詳細",
+    "statusesTab": "ステータス"
   },
   "reminderSettings": {
     "title": "リマインダー設定",
@@ -1606,7 +2003,66 @@
       "installDesktop": "アドレスバーのインストールアイコンを探してください",
       "installPwaLabel": "PWA の利点:",
       "installPwa": "アプリを閉じていても通知が届きます",
-      "sendTest": "テスト通知を送信"
+      "sendTest": "テスト通知を送信",
+      "errorNotSupported": "このブラウザはプッシュ通知に対応していません",
+      "errorPermissionDenied": "通知が許可されませんでした。ブラウザの設定で通知を有効にしてください。",
+      "errorSaveSubscription": "登録情報をサーバーに保存できませんでした",
+      "errorEnable": "通知を有効にできませんでした",
+      "errorDisable": "通知を無効にできませんでした",
+      "errorSendTest": "テスト通知を送信できませんでした",
+      "errorTestFailed": "テスト通知に失敗しました",
+      "statusEnabled": "有効",
+      "statusBlocked": "ブロック中",
+      "info": {
+        "browserSupport": "ブラウザの対応:",
+        "supported": "✅ 対応",
+        "notSupported": "❌ 非対応",
+        "permission": "許可:",
+        "subscription": "登録:",
+        "subscriptionActive": "✅ 有効",
+        "subscriptionNone": "❌ なし"
+      },
+      "permissionValues": {
+        "granted": "許可",
+        "denied": "拒否",
+        "default": "未設定",
+        "unsupported": "非対応"
+      }
+    },
+    "toast": {
+      "loadFailed": "リマインダー設定を読み込めませんでした。",
+      "savedTitle": "設定を保存しました",
+      "savedDescription": "リマインダーの設定を更新しました。",
+      "saveFailed": "リマインダー設定を保存できませんでした。",
+      "notSupportedTitle": "非対応",
+      "notSupportedDescription": "このブラウザはプッシュ通知に対応していません。",
+      "permissionGrantedTitle": "許可されました",
+      "permissionGrantedDescription": "タスクのプッシュ通知が届くようになりました。",
+      "subscriptionFailedTitle": "登録に失敗しました",
+      "subscriptionFailedDescription": "プッシュ通知を設定できませんでした。メール通知は引き続き届きます。",
+      "permissionDeniedTitle": "許可されませんでした",
+      "permissionDeniedDescription": "プッシュ通知がブロックされています。ブラウザの設定で有効にできます。",
+      "permissionRequestFailed": "通知の許可をリクエストできませんでした。",
+      "testScheduledTitle": "テストを予約しました",
+      "testFailedTitle": "テストに失敗しました",
+      "testScheduleFailed": "テスト通知を予約できませんでした。",
+      "testFailed": "通知をテストできませんでした。"
+    },
+    "testing": "テスト中...",
+    "testPush": "プッシュ通知をテスト（5分後）",
+    "testDigest": "日次ダイジェストをテスト（5分後）",
+    "digestTime": "時刻",
+    "quietStart": "開始",
+    "quietEnd": "終了",
+    "timezones": {
+      "eastern": "アメリカ東部時間",
+      "pacific": "アメリカ太平洋時間",
+      "central": "アメリカ中部時間",
+      "mountain": "アメリカ山地時間",
+      "london": "ロンドン",
+      "paris": "パリ",
+      "tokyo": "東京",
+      "local": "{label}（現地）"
     }
   },
   "keyboardShortcuts": {
@@ -1617,21 +2073,60 @@
       "taskActions": "タスク操作",
       "taskEditing": "タスク編集",
       "priority": "優先度",
-      "interface": "インターフェース"
+      "interface": "インターフェース",
+      "chat": "チャットと参照"
     },
-    "chatHint": "チャットメッセージとタスクのコメントで使用"
+    "chatHint": "チャットメッセージとタスクのコメントで使用",
+    "chat": {
+      "mention": "ユーザーをメンション",
+      "referenceList": "リストを参照",
+      "referenceTask": "タスクを参照",
+      "selectSuggestion": "入力候補を選択",
+      "navigateSuggestions": "候補を移動",
+      "dismissSuggestions": "候補を閉じる"
+    },
+    "shortcuts": {
+      "completeTask": "選択中のタスクを完了",
+      "dueEarlier": "期限を1日早める",
+      "dueLater": "期限を1日遅らせる",
+      "jumpToDate": "「日付」へ移動",
+      "postpone": "タスクを1週間延期",
+      "removeDueDate": "タスクの期限を削除",
+      "editLists": "タスクのリストを編集",
+      "editTitle": "タスクのタイトルを編集",
+      "editDescription": "タスクの説明を編集",
+      "addComment": "タスクに新しいコメントを追加",
+      "assignNoOne": "タスクを「担当者なし」に割り当て",
+      "priorityNone": "優先度を ○（なし）に設定",
+      "priorityLow": "優先度を !（低）に設定",
+      "priorityMedium": "優先度を !!（中）に設定",
+      "priorityHigh": "優先度を !!!（高）に設定",
+      "deleteTask": "選択中のタスクを削除",
+      "deleteTaskAlt": "選択中のタスクを削除（別のキー）",
+      "togglePanel": "タスク編集パネルを開く／閉じる",
+      "cycleFilters": "リストのフィルター／タグを切り替え",
+      "selectPrevious": "前のタスクを選択",
+      "selectNext": "次のタスクを選択",
+      "outdent": "タスクを親タスクの外に移動",
+      "indent": "タスクを上のタスクの下に入れる",
+      "showHotkeys": "ショートカット一覧を表示"
+    }
   },
   "commandPalette": {
     "label": "コマンドパレット",
     "searchPlaceholder": "コマンドを検索…",
     "enterToSelect": "Enter で選択",
     "escToClose": "Esc で閉じる",
-    "noCommands": "コマンドが見つかりません"
+    "noCommands": "コマンドが見つかりません",
+    "arrowsToNavigate": "↑ ↓ で移動",
+    "selectTaskFirst": "先にタスクを選択してください"
   },
   "userPicker": {
     "optionalMessage": "メッセージ（任意）…",
     "sendInvite": "招待を送信",
-    "assignAnyway": "それでも割り当てる"
+    "assignAnyway": "それでも割り当てる",
+    "inviteEmail": "{email}を招待",
+    "accessWarningTitle": "⚠️ アクセスに関する警告"
   },
   "astridAgent": {
     "modelSetup": {
@@ -1907,7 +2402,9 @@
     "iosBeta": "現在TestFlightでベータ版を提供中",
     "joinBeta": "ベータ版に参加",
     "preferBrowser": "ブラウザで使いたい場合は",
-    "useOnWeb": "Web版の{appName}を使う"
+    "useOnWeb": "Web版の{appName}を使う",
+    "metaTitle": "Mac版{appName}をダウンロード",
+    "metaDescription": "Mac版{appName} — タスク、リスト、チャットのためのネイティブデスクトップアプリ。"
   },
   "errorPages": {
     "errorDescription": "予期しないエラーが発生しました。ご不便をおかけして申し訳ありません。",
@@ -1973,23 +2470,61 @@
     "everyRecipe": "すべてのハーネスレシピ",
     "mcpTokens": "MCP接続とトークン",
     "agentSettings": "エージェント設定",
-    "createCiToken": "GitHub Actionsトークンを作成"
+    "createCiToken": "GitHub Actionsトークンを作成",
+    "agentList": "→ {list}リスト",
+    "buyPlan": "購入するもの: {plan}",
+    "createListsFirst": "先にステップ1でリストを作成すると、これらのコマンドに{list}リストのIDが入ります。",
+    "connectStep": "{n}. 接続し、開いた{appName}のサインインを承認します",
+    "installSkillStep": "{n}. キュースキルを {path} にインストールします",
+    "scheduleStep": "{n}. 30分ごとに実行します（常時稼働しているマシンのcrontab）",
+    "workflowStep": "{n}. {path} をコミットし、最後のステップを実行したいジョブに置き換えます",
+    "checkStep": "{n}. 確認: エージェントに、エージェント「{mailbox}」を指定して {tool} を呼び出すよう依頼します。{empty} なら接続済みで待機中です。",
+    "hostedTitle": "常時稼働させるマシンがない場合は、代わりにGitHub Actionsで{agent}を実行します。",
+    "commitFile": "{path} をコミット",
+    "saveAsSecret": "{secret} シークレットとして保存 — 表示は一度きりです",
+    "agentReadThis": "エージェントの方は {link} をお読みください — 同じ手順のプレーンテキスト版です。",
+    "createIntro": "ボタン1つで、指示付きの5つのリストが作成され、各エージェントがデフォルトの担当者になります。リストの説明は、その中のタスクについて各エージェントが読む指示ファイル{is}です — いつでも編集できます。",
+    "createIntroIs": "そのもの",
+    "connectIntro": "各エージェントは独自の{appName} IDを持ち、自分のリストで{assignedAndReady}タスクだけを引き受けます。いずれかを開いて手順を貼り付けるか、このページのリンクをエージェントに貼り付けて、自分でセットアップするよう依頼してください。",
+    "connectIntroAssignedAndReady": "自分に割り当てられ、Readyになっている",
+    "workSetReady": "エージェントに始めてほしいときに、ステータスを{ready}にします。それがスタートボタンです。",
+    "teamIntro": "各リストを共有します（リスト設定 → {members} → メールで招待）。全員が同じタスク、コメント、エージェントの報告を見られます。リストのオーナーと管理者はどのタスクでもエージェントに任せられ、メンバーは自分が作成したタスクを任せられます。メンバーがどのタスクでも任せられるようにするには、リストの設定 → {aiAgent} で{setting}をオンにします（エージェントはオーナーのプランで動作します）。"
   },
   "richTextInput": {
     "placeholder": "メッセージを入力...",
     "timer": "タイマー",
     "uploading": "アップロード中...",
     "attachFile": "ファイルを添付",
-    "removeFile": "{name}を削除"
+    "removeFile": "{name}を削除",
+    "attachmentsUnavailable": "この表示ではファイルを添付できません。",
+    "tooManyOne": "一度に添付できるファイルは{max}個までです — {count}個のファイルは添付されませんでした。",
+    "tooManyMany": "一度に添付できるファイルは{max}個までです — {count}個のファイルは添付されませんでした。",
+    "people": "ユーザー",
+    "aiBadge": "AI",
+    "taskDone": "完了"
   },
   "chat": {
     "inputPlaceholder": "リストにメッセージ...",
     "empty": "まだメッセージはありません。会話を始めましょう！",
-    "loadFailed": "チャットを読み込めませんでした"
+    "loadFailed": "チャットを読み込めませんでした",
+    "openChat": "チャットを開く",
+    "showTasks": "タスクを表示"
   },
   "notificationBell": {
     "markAllRead": "すべて既読にする",
-    "allCaughtUp": "すべて確認済みです。"
+    "allCaughtUp": "すべて確認済みです。",
+    "loadFailed": "通知を読み込めませんでした",
+    "loadFailedStatus": "通知を読み込めませんでした（{status}）",
+    "markReadFailedStatus": "通知を既読にできませんでした（{status}）",
+    "updateFailed": "通知を更新できませんでした",
+    "taskUpdate": "タスクの更新",
+    "kinds": {
+      "assigned": "割り当て",
+      "mentioned": "メンション",
+      "replied": "返信",
+      "commented": "コメント",
+      "statusChanged": "ステータス変更"
+    }
   },
   "admin": {
     "navDescription": "アクセス、分析、機能の提供状況を管理します。",
@@ -1997,12 +2532,21 @@
   },
   "pwa": {
     "notNow": "あとで",
-    "syncing": "変更を同期中..."
+    "syncing": "変更を同期中...",
+    "backOnline": "オンラインに戻りました",
+    "offline": "オフラインです",
+    "pendingOne": "{count}件の変更が保留中",
+    "pendingMany": "{count}件の変更が保留中",
+    "installTitle": "{appName}をインストール",
+    "installDescription": "{appName}をホーム画面に追加すると、すばやくアクセスでき、オフラインでも使えます。",
+    "install": "インストール"
   },
   "attachmentViewer": {
     "closeEsc": "閉じる (Esc)",
     "videoUnsupported": "お使いのブラウザは video タグに対応していません。",
     "noPreview": "このファイル形式はプレビューできません",
-    "downloadFile": "ファイルをダウンロード"
+    "downloadFile": "ファイルをダウンロード",
+    "unknownFile": "不明なファイル",
+    "loadFailed": "ファイルを読み込めませんでした"
   }
 }

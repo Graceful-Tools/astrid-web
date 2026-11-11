@@ -72,36 +72,36 @@ export function FixedListSettingsPopover({
     switch (listId) {
       case "today":
         return {
-          title: "Today's Tasks Settings",
-          description: "Configure how today's tasks are displayed and filtered",
+          title: t('listSettings.fixed.todayTitle'),
+          description: t('listSettings.fixed.todayDescription'),
           fixedDueDate: "today" as const,
-          fixedDueDateLabel: "Due Date: Today (Fixed)"
+          fixedDueDateLabel: t('listSettings.fixed.fixedDueDateToday')
         }
       case "my-tasks":
         return {
-          title: "My Tasks Settings", 
-          description: "Configure how your personal tasks are displayed and filtered",
+          title: t('listSettings.fixed.myTasksTitle'),
+          description: t('listSettings.fixed.myTasksDescription'),
           fixedDueDate: null,
           fixedDueDateLabel: null
         }
       case "not-in-list":
         return {
-          title: "Unassigned Tasks Settings",
-          description: "Configure how tasks without lists are displayed and filtered", 
+          title: t('listSettings.fixed.unassignedTitle'),
+          description: t('listSettings.fixed.unassignedDescription'),
           fixedDueDate: null,
           fixedDueDateLabel: null
         }
       case "assigned":
         return {
-          title: "Assigned Tasks Settings",
-          description: "Configure how tasks you've assigned to others are displayed and filtered",
+          title: t('listSettings.fixed.assignedTitle'),
+          description: t('listSettings.fixed.assignedDescription'),
           fixedDueDate: null,
           fixedDueDateLabel: null
         }
       default:
         return {
-          title: "List Settings",
-          description: "Configure how tasks are displayed and filtered",
+          title: t('listSettings.listSettingsTitle'),
+          description: t('listSettings.fixed.defaultDescription'),
           fixedDueDate: null,
           fixedDueDateLabel: null
         }
@@ -139,7 +139,7 @@ export function FixedListSettingsPopover({
                 </span>
               </div>
               <p className="text-xs text-theme-primary mt-1">
-                This filter cannot be changed for the &quot;{listName}&quot; view
+                {t('listSettings.fixed.cannotChange', { name: listName })}
               </p>
             </div>
           )}

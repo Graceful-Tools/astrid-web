@@ -13,7 +13,7 @@ import {
   type Command as CommandType,
 } from "@/lib/command-palette"
 import type { Task } from "@/types/task"
-import type { KeyboardShortcutHandlers } from "@/hooks/useKeyboardShortcuts"
+import { KEYBOARD_SHORTCUTS, KEYBOARD_SHORTCUT_DESCRIPTION_KEYS, type KeyboardShortcutHandlers } from "@/hooks/useKeyboardShortcuts"
 
 interface CommandPaletteDialogProps {
   isOpen: boolean
@@ -30,14 +30,28 @@ export function CommandPaletteDialog({
   selectedTask,
   handlers,
 }: CommandPaletteDialogProps) {
-  const { t } = useTranslations()
+  const { t, locale } = useTranslations()
   const [query, setQuery] = useState("")
   const [selectedIndex, setSelectedIndex] = useState(0)
 
   // Build the complete command list
+  // The model (lib/command-palette) is built in English; titles and the
+  // disabled reason are translated here, before filtering, so search matches
+  // what is on screen.
   const allCommands = useMemo(() => {
-    return buildActionCommands(!!selectedTask)
-  }, [selectedTask])
+    return buildActionCommands(!!selectedTask).map((command) => {
+      const shortcut = KEYBOARD_SHORTCUTS.find(
+        (s) => s.action === command.action && ('param' in s ? s.param : undefined) === command.param
+      )
+      return {
+        ...command,
+        title: shortcut ? t(KEYBOARD_SHORTCUT_DESCRIPTION_KEYS[shortcut.key]) : command.title,
+        ...(command.disabledReason ? { disabledReason: t('commandPalette.selectTaskFirst') } : {}),
+      }
+    })
+    // `t` is a new function on every render; the locale is what changes it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTask, locale])
 
   // Filter based on query
   const displayCommands = useMemo(() => {
@@ -199,7 +213,7 @@ export function CommandPaletteDialog({
         {/* Footer */}
         <div className="px-4 py-2 border-t theme-border-light text-xs text-theme-muted">
           <div className="flex items-center gap-4">
-            <span>↑ ↓ to navigate</span>
+            <span>{t('commandPalette.arrowsToNavigate')}</span>
             <span>{t('commandPalette.enterToSelect')}</span>
             <span>{t('commandPalette.escToClose')}</span>
           </div>

@@ -171,11 +171,11 @@ export function TaskActionMenu({
         )}
         <DropdownMenuItem onClick={onCopy}>
           <Copy className="w-4 h-4 mr-2" />
-          Copy
+          {t('actions.copy')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onShare}>
           <Share2 className="w-4 h-4 mr-2" />
-          Share
+          {t('actions.share')}
         </DropdownMenuItem>
         {copyIdentifier.canCopy && !hideCopyIdentifier && (
           <DropdownMenuItem onClick={copyIdentifier.copy}>
@@ -229,7 +229,7 @@ export function TaskActionMenu({
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onDelete} className="text-danger focus:text-danger">
               <Trash2 className="w-4 h-4 mr-2" />
-              Delete
+              {t('common.delete')}
             </DropdownMenuItem>
           </>
         )}

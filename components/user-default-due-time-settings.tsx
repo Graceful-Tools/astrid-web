@@ -47,10 +47,10 @@ export function UserDefaultDueTimeSettings() {
       if (response.ok) {
         setDefaultDueTime(time)
         toast({
-          title: "Settings saved",
+          title: t('messages.settingsSaved'),
           description: time 
-            ? `Default due time set to ${formatTime(time)}` 
-            : "Default due time cleared",
+            ? t('settingsPages.defaultDueTime.toastSet', { time: formatTime(time) })
+            : t('settingsPages.defaultDueTime.toastCleared'),
         })
       } else {
         throw new Error("Failed to save settings")
@@ -58,8 +58,8 @@ export function UserDefaultDueTimeSettings() {
     } catch (error) {
       console.error("Error saving default due time:", error)
       toast({
-        title: "Error",
-        description: "Failed to save default due time settings",
+        title: t('messages.error'),
+        description: t('settingsPages.defaultDueTime.saveFailed'),
         variant: "destructive",
       })
     } finally {
@@ -108,14 +108,14 @@ export function UserDefaultDueTimeSettings() {
             mode="string"
             value={defaultDueTime}
             onChange={(time) => handleTimeChange(typeof time === "string" ? time : null)}
-            placeholder="5pm (default)"
+            placeholder={t('settingsPages.defaultDueTime.placeholder')}
             showAllDayOption={true}
-            label="Default due time"
+            label={t('settingsPages.defaultDueTime.label')}
             compact
           />
           {defaultDueTime && (
             <p className="text-sm theme-text-muted">
-              New tasks with due dates will default to {formatTime(defaultDueTime)}
+              {t('settingsPages.defaultDueTime.setTo', { time: formatTime(defaultDueTime) })}
             </p>
           )}
           {!defaultDueTime && (
@@ -129,7 +129,7 @@ export function UserDefaultDueTimeSettings() {
           <div className="flex items-center justify-center py-2">
             <div className="flex items-center space-x-2 theme-text-muted">
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent"></div>
-              <span className="text-sm">Saving...</span>
+              <span className="text-sm">{t('settingsPages.profileInfo.saving')}</span>
             </div>
           </div>
         )}

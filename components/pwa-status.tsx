@@ -89,11 +89,11 @@ export function PWAStatus() {
           )}
           <div className="flex flex-col">
             <span className="text-sm font-medium">
-              {isOnline ? 'Back online' : 'You are offline'}
+              {isOnline ? t('pwa.backOnline') : t('pwa.offline')}
             </span>
             {!isOnline && pendingCount > 0 && (
               <span className="text-xs opacity-90">
-                {pendingCount} change{pendingCount !== 1 ? 's' : ''} pending
+                {t(pendingCount === 1 ? 'pwa.pendingOne' : 'pwa.pendingMany', { count: String(pendingCount) })}
               </span>
             )}
             {isOnline && isSyncing && (

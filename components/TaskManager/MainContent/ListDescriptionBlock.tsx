@@ -18,6 +18,7 @@
  */
 
 import { useTranslations } from "@/lib/i18n/client"
+import { RichMessage } from "@/components/shared/RichMessage"
 import { Button } from "@/components/ui/button"
 import { Check, X } from "lucide-react"
 import type { TaskList } from "@/types/task"
@@ -84,7 +85,7 @@ export function ListDescriptionBlock({
           </div>
         </div>
         <div className="text-xs theme-text-muted mt-1 ml-0">
-          Press Enter to save • Shift+Enter or Cmd/Ctrl+Enter for line breaks
+          {t('lists.descriptionSaveHint')}
         </div>
       </>
     )
@@ -92,12 +93,9 @@ export function ListDescriptionBlock({
 
   if (searchTerm) {
     return (
-      <div
-        className="theme-text-muted text-sm text-left prose prose-sm max-w-none line-clamp-2 overflow-hidden"
-        dangerouslySetInnerHTML={{
-          __html: `Showing tasks matching "<strong>${searchTerm}</strong>" from all accessible lists`,
-        }}
-      />
+      <div className="theme-text-muted text-sm text-left prose prose-sm max-w-none line-clamp-2 overflow-hidden">
+        <RichMessage message={t('search.showingMatches')} values={{ term: <strong>{searchTerm}</strong> }} />
+      </div>
     )
   }
 
@@ -113,7 +111,7 @@ export function ListDescriptionBlock({
         }
       }}
     >
-      {list.description ? list.description : (canEdit ? "Add a description..." : "")}
+      {list.description ? list.description : (canEdit ? t('lists.placeholder.description') : "")}
     </div>
   )
 }

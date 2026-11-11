@@ -53,8 +53,8 @@ export function CalendarIntegrationSettings({}: CalendarIntegrationSettingsProps
         const data = await response.json()
         setSettings(data)
         toast({
-          title: "Settings Updated",
-          description: "Calendar integration settings have been saved.",
+          title: t('settingsPages.calendar.toastUpdatedTitle'),
+          description: t('settingsPages.calendar.toastUpdatedDescription'),
           duration: 3000,
         })
       } else {
@@ -63,8 +63,8 @@ export function CalendarIntegrationSettings({}: CalendarIntegrationSettingsProps
     } catch (error) {
       console.error("Error updating calendar settings:", error)
       toast({
-        title: "Error",
-        description: "Failed to update calendar settings.",
+        title: t('messages.error'),
+        description: t('settingsPages.calendar.toastUpdateFailed'),
         duration: 5000,
       })
     } finally {
@@ -169,9 +169,9 @@ export function CalendarIntegrationSettings({}: CalendarIntegrationSettingsProps
                 </SelectContent>
               </Select>
               <p className="text-xs theme-text-muted">
-                {settings.calendarSyncType === 'all' && 'All tasks will appear in your calendar, including those without due dates'}
-                {settings.calendarSyncType === 'with_due_times' && 'Only tasks with due dates or "when" times will appear in your calendar'}
-                {settings.calendarSyncType === 'none' && 'No tasks will be synced to your calendar'}
+                {settings.calendarSyncType === 'all' && t('settingsPages.calendar.syncAllHint')}
+                {settings.calendarSyncType === 'with_due_times' && t('settingsPages.calendar.syncDueHint')}
+                {settings.calendarSyncType === 'none' && t('settingsPages.calendar.syncNoneHint')}
               </p>
             </div>
 
@@ -192,7 +192,7 @@ export function CalendarIntegrationSettings({}: CalendarIntegrationSettingsProps
                       {t('settingsPages.calendar.downloadIcs')}
                     </Button>
                     <p className="text-xs theme-text-muted ml-6">
-                      One-time download to import into your calendar app
+                      {t('settingsPages.calendar.downloadDescription')}
                     </p>
                   </div>
 

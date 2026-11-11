@@ -1,7 +1,7 @@
 "use client"
 
 import { useTranslations } from "@/lib/i18n/client"
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useRef } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -60,6 +60,9 @@ interface PublicListsBrowserProps {
 
 export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicListsBrowserProps) {
   const { t } = useTranslations()
+  // `t` is a new function every render; the fetch callbacks must not depend on it.
+  const tRef = useRef(t)
+  useEffect(() => { tRef.current = t })
   const [publicLists, setPublicLists] = useState<PublicList[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [loading, setLoading] = useState(false)
@@ -83,17 +86,13 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  // Get copy count bucket label
-  const getCopyCountBucket = (count: number = 0): string => {
-    if (count >= 5000) return `${count.toLocaleString()} copies`
-    if (count >= 1000) return "> 1,000 copies"
-    if (count >= 500) return "> 500 copies"
-    if (count >= 100) return "> 100 copies"
-    if (count >= 50) return "> 50 copies"
-    if (count >= 10) return "> 10 copies"
-    if (count >= 5) return "> 5 copies"
-    if (count > 0) return `${count} ${count === 1 ? 'copy' : 'copies'}`
-    return "New"
+  // The "Copied …" line, by copy count bucket
+  const getCopiedLabel = (count: number = 0): string => {
+    if (count >= 5000) return t('lists.publicBrowser.copiedMany', { count: count.toLocaleString() })
+    const bucket = [1000, 500, 100, 50, 10, 5].find(threshold => count >= threshold)
+    if (bucket) return t('lists.publicBrowser.copiedMoreThan', { count: bucket.toLocaleString() })
+    if (count > 0) return t(count === 1 ? 'lists.publicBrowser.copiedOne' : 'lists.publicBrowser.copiedMany', { count: String(count) })
+    return t('lists.publicBrowser.copiedNew')
   }
 
   // Get copy count color
@@ -127,16 +126,16 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
       } else {
         console.error("Failed to fetch public lists")
         toast({
-          title: "Error",
-          description: "Failed to load public lists",
+          title: tRef.current('messages.error'),
+          description: tRef.current('lists.publicBrowser.loadFailed'),
           variant: "destructive"
         })
       }
     } catch (error) {
       console.error("Error fetching public lists:", error)
       toast({
-        title: "Error",
-        description: "Failed to load public lists",
+        title: tRef.current('messages.error'),
+        description: tRef.current('lists.publicBrowser.loadFailed'),
         variant: "destructive"
       })
     } finally {
@@ -157,16 +156,16 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
         }
       } else {
         toast({
-          title: "Error",
-          description: "Failed to load list preview",
+          title: tRef.current('messages.error'),
+          description: tRef.current('lists.publicBrowser.previewFailed'),
           variant: "destructive"
         })
       }
     } catch (error) {
       console.error("Error loading list preview:", error)
       toast({
-        title: "Error",
-        description: "Failed to load list preview",
+        title: tRef.current('messages.error'),
+        description: tRef.current('lists.publicBrowser.previewFailed'),
         variant: "destructive"
       })
     } finally {
@@ -190,24 +189,24 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
       if (response.ok) {
         const data = await response.json()
         toast({
-          title: "Success!",
-          description: data.message || `Copied "${listName}" to your lists`,
+          title: tRef.current('settingsPages.profileInfo.toasts.successTitle'),
+          description: data.message || tRef.current('lists.publicBrowser.copySuccess', { name: listName }),
         })
         onListCopied?.(data.list)
         onClose()
       } else {
         const error = await response.json()
         toast({
-          title: "Error",
-          description: error.error || "Failed to copy list",
+          title: tRef.current('messages.error'),
+          description: error.error || tRef.current('lists.publicBrowser.copyFailed'),
           variant: "destructive"
         })
       }
     } catch (error) {
       console.error("Error copying list:", error)
       toast({
-        title: "Error",
-        description: "Failed to copy list",
+        title: tRef.current('messages.error'),
+        description: tRef.current('lists.publicBrowser.copyFailed'),
         variant: "destructive"
       })
     } finally {
@@ -255,9 +254,9 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
 
   const getPriorityBadge = (priority: number) => {
     switch (priority) {
-      case 3: return <Badge variant="destructive" className="text-xs">High</Badge>
-      case 2: return <Badge variant="secondary" className="text-xs">Medium</Badge>
-      case 1: return <Badge variant="outline" className="text-xs">Low</Badge>
+      case 3: return <Badge variant="destructive" className="text-xs">{t('priority.high')}</Badge>
+      case 2: return <Badge variant="secondary" className="text-xs">{t('priority.medium')}</Badge>
+      case 1: return <Badge variant="outline" className="text-xs">{t('priority.low')}</Badge>
       default: return null
     }
   }
@@ -290,7 +289,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
             <h2 className="text-xl font-semibold theme-text-primary">
               {isMobile && mobileView === 'preview' && selectedList
                 ? selectedList.name
-                : 'Browse Public Lists'
+                : t('lists.publicBrowser.title')
               }
             </h2>
           </div>
@@ -343,7 +342,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                   className="text-xs"
                 >
                   <Star className="w-3 h-3 mr-1" />
-                  Popular
+                  {t('lists.publicBrowser.popular')}
                 </Button>
                 <Button
                   variant={filterBy === 'recent' ? 'default' : 'outline'}
@@ -352,7 +351,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                   className="text-xs"
                 >
                   <Clock className="w-3 h-3 mr-1" />
-                  Recent
+                  {t('lists.publicBrowser.recent')}
                 </Button>
               </div>
             </div>
@@ -366,7 +365,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                   </div>
                 ) : publicLists.length === 0 ? (
                   <div className="text-center py-8 theme-text-muted">
-                    {searchQuery ? "No lists found" : "No public lists available"}
+                    {t(searchQuery ? 'lists.publicBrowser.noListsFound' : 'lists.publicBrowser.noPublicLists')}
                   </div>
                 ) : (
                   publicLists.map((list) => (
@@ -403,7 +402,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                           {/* Copy count bucket display */}
                           <div className={`text-xs ${getCopyCountColor(list.copyCount)} mb-2`}>
                             <Copy className="w-3 h-3 inline mr-1" />
-                            Copied {getCopyCountBucket(list.copyCount)}
+                            {getCopiedLabel(list.copyCount)}
                           </div>
 
                           <div className="flex items-center gap-3 text-xs theme-text-muted">
@@ -413,7 +412,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                             </div>
                             <div className="flex items-center gap-1">
                               <ListTodo className="w-3 h-3" />
-                              {list._count.tasks} tasks
+                              {t('lists.publicBrowser.taskCount', { count: String(list._count.tasks) })}
                             </div>
                           </div>
                         </div>
@@ -429,7 +428,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                           className="ml-2 shrink-0"
                         >
                           <Copy className="w-3 h-3 mr-1" />
-                          {copying === list.id ? "Copying..." : "Copy"}
+                          {t(copying === list.id ? 'lists.publicBrowser.copying' : 'actions.copy')}
                         </Button>
                       </div>
                     </div>
@@ -464,7 +463,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                         </h2>
                         <div className="flex items-center gap-2 text-sm theme-text-muted">
                           <User className="w-4 h-4" />
-                          Created by {selectedList.owner.name || selectedList.owner.email}
+                          {t('lists.publicBrowser.createdBy', { name: selectedList.owner.name || selectedList.owner.email })}
                         </div>
                       </div>
                     </div>
@@ -475,7 +474,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                       className="bg-brand hover:bg-brand-hover text-brand-foreground shrink-0"
                     >
                       <Copy className="w-4 h-4 mr-2" />
-                      {copying === selectedList.id ? "Copying..." : isMobile ? "Copy" : "Copy to My Lists"}
+                      {t(copying === selectedList.id ? 'lists.publicBrowser.copying' : isMobile ? 'actions.copy' : 'lists.publicBrowser.copyToMyLists')}
                     </Button>
                   </div>
 
@@ -486,16 +485,16 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                   <div className="flex items-center gap-4 text-sm theme-text-muted flex-wrap">
                     <div className="flex items-center gap-1">
                       <ListTodo className="w-4 h-4" />
-                      {selectedList._count.tasks} tasks
+                      {t('lists.publicBrowser.taskCount', { count: String(selectedList._count.tasks) })}
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
-                      Created {formatDate(selectedList.createdAt)}
+                      {t('lists.publicBrowser.createdOn', { date: formatDate(selectedList.createdAt) })}
                     </div>
                     {selectedList.copyCount && (
                       <div className="flex items-center gap-1">
                         <Star className="w-4 h-4" />
-                        {selectedList.copyCount} copies
+                        {t('lists.publicBrowser.copyCount', { count: String(selectedList.copyCount) })}
                       </div>
                     )}
                   </div>
@@ -507,8 +506,8 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                     <h3 className="font-medium theme-text-primary">{t('lists.publicBrowser.tasksPreview')}</h3>
                     <p className="text-sm theme-text-muted">
                       {selectedList.tasks.length > 0
-                        ? `Showing ${selectedList.tasks.length} of ${selectedList._count.tasks} tasks`
-                        : "No tasks in this list"
+                        ? t('lists.publicBrowser.showingTasks', { shown: String(selectedList.tasks.length), total: String(selectedList._count.tasks) })
+                        : t('lists.publicBrowser.noTasksInList')
                       }
                     </p>
                   </div>
@@ -550,12 +549,12 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                                   {task.dueDateTime && (
                                     <div className="flex items-center gap-1">
                                       <Clock className="w-3 h-3" />
-                                      Due {formatDate(task.dueDateTime)}
+                                      {t('lists.publicBrowser.due', { date: formatDate(task.dueDateTime) })}
                                     </div>
                                   )}
                                   <div className="flex items-center gap-1">
                                     <Calendar className="w-3 h-3" />
-                                    Created {formatDate(task.createdAt)}
+                                    {t('lists.publicBrowser.createdOn', { date: formatDate(task.createdAt) })}
                                   </div>
                                 </div>
                               </div>

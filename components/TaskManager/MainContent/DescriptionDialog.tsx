@@ -86,7 +86,7 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
                 className={`text-xs px-2.5 py-1 rounded ${descriptionDialogMode === 'view' ? 'bg-brand text-brand-foreground' : 'theme-text-muted hover:theme-bg-hover'}`}
               >
                 <Eye className="w-3 h-3 inline mr-1" />
-                View
+                {t('lists.descriptionView')}
               </button>
               <button
                 type="button"
@@ -97,7 +97,7 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
                 className={`text-xs px-2.5 py-1 rounded ${descriptionDialogMode === 'edit' ? 'bg-brand text-brand-foreground' : 'theme-text-muted hover:theme-bg-hover'}`}
               >
                 <Edit3 className="w-3 h-3 inline mr-1" />
-                Edit
+                {t('actions.edit')}
               </button>
             </div>
           )}
@@ -107,17 +107,17 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
             {descriptionDialogMode === 'view' ? (
               <div
                 className="prose prose-sm max-w-none theme-text-primary p-1"
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(dialogDescription || '*No instructions yet*') }}
+                dangerouslySetInnerHTML={{ __html: renderMarkdown(dialogDescription || t('listSettings.admin.noInstructionsYet')) }}
               />
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center justify-end">
-                  <span className="text-xs theme-text-muted">{dialogDescription.length} chars</span>
+                  <span className="text-xs theme-text-muted">{t('listSettings.admin.charCount', { count: String(dialogDescription.length) })}</span>
                 </div>
                 <textarea
                   value={dialogDescription}
                   onChange={(e) => setDialogDescription(e.target.value)}
-                  placeholder={"Write instructions for AI agents working in this list...\n\nSupports markdown: **bold**, *italic*, ## headings, - lists, [links](url)"}
+                  placeholder={t('lists.descriptionDialogPlaceholder')}
                   className="w-full theme-comment-bg theme-border border theme-text-primary rounded-lg px-3 py-2 resize-vertical focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent font-mono text-sm min-h-[200px]"
                   rows={12}
                   autoFocus
@@ -134,7 +134,7 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
                       onClick={() => setDescriptionDialogMode('view')}
                       className="text-xs theme-border theme-text-secondary hover:theme-bg-hover"
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </Button>
                     <Button
                       size="sm"
@@ -161,7 +161,7 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
                       className="text-xs bg-brand hover:bg-brand-hover text-brand-foreground"
                     >
                       <Check className="w-3 h-3 mr-1" />
-                      Save
+                      {t('actions.save')}
                     </Button>
                   </div>
                 </div>

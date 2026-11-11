@@ -27,6 +27,7 @@ interface AgentOption {
 }
 
 function AstridAgentSelector() {
+  const { t } = useTranslations()
   const [agents, setAgents] = useState<AgentOption[]>([])
   const [currentAgentId, setCurrentAgentId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -60,7 +61,7 @@ function AstridAgentSelector() {
   if (agents.length === 0) {
     return (
       <p className="text-sm theme-text-muted">
-        Add an API key or register a Custom Agent below to power {BRAND.appName}.
+        {t('settingsPages.aiAgents.astrid.noModel')}
       </p>
     )
   }
@@ -71,7 +72,7 @@ function AstridAgentSelector() {
   if (modelOptions.length === 0) {
     return (
       <p className="text-sm theme-text-muted">
-        Add an API key or register a Custom Agent below to power {BRAND.appName}.
+        {t('settingsPages.aiAgents.astrid.noModel')}
       </p>
     )
   }
@@ -98,7 +99,7 @@ function AstridAgentSelector() {
           <div className="flex-1 text-left">
             <div className="text-sm font-medium theme-text-primary">{agent.name}</div>
             <div className="text-xs theme-text-muted">
-              Powered by {agentServiceLabel(agent.service)}
+              {t('settingsPages.aiAgents.astrid.poweredBy', { service: agentServiceLabel(agent.service) })}
             </div>
           </div>
           {currentAgentId === agent.id && (
@@ -107,7 +108,7 @@ function AstridAgentSelector() {
         </button>
       ))}
       <p className="text-xs theme-text-muted pt-1">
-        Choose the model that powers {BRAND.appName} for My Tasks and your private lists.
+        {t('settingsPages.aiAgents.astrid.chooseModelHint')}
       </p>
     </div>
   )
@@ -189,8 +190,10 @@ export default function AgentsSettings(_props: AgentsSettingsProps) {
               <span>{BRAND.appName}</span>
             </CardTitle>
             <CardDescription className="theme-text-muted">
-              Choose a model to power {BRAND.appName}. Mention <strong>@astrid</strong> in any chat or comment to get help.{' '}
-              {BRAND.appName} can read tasks across your lists, respond to messages, and complete tasks before their due dates.
+              <RichMessage
+                message={t('settingsPages.aiAgents.astrid.description')}
+                values={{ mention: <strong>@astrid</strong> }}
+              />
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -207,14 +210,15 @@ export default function AgentsSettings(_props: AgentsSettingsProps) {
             <div className="flex items-start gap-3">
               <FileText className="w-5 h-5 text-brand mt-0.5 shrink-0" />
               <div>
-                <h4 className="font-medium theme-text-primary text-sm">Tip: Control agent behavior per list</h4>
+                <h4 className="font-medium theme-text-primary text-sm">{t('settingsPages.aiAgents.tip.title')}</h4>
                 <p className="text-sm theme-text-muted mt-1">
-                  Each list&apos;s <strong>description</strong> is used as instructions for AI agents working on tasks in that list.
-                  Write markdown in your list description to tell agents how to handle tasks — like a project brief.
+                  <RichMessage
+                    message={t('settingsPages.aiAgents.tip.body')}
+                    values={{ description: <strong>{t('listSettings.admin.descriptionWord')}</strong> }}
+                  />
                 </p>
                 <p className="text-xs theme-text-muted mt-2">
-                  Set the repository, default agent, and per-list loop in List Settings → Admin →
-                  AI Agent; edit instructions under Description.
+                  {t('settingsPages.aiAgents.tip.where')}
                 </p>
               </div>
             </div>

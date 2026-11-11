@@ -1,7 +1,6 @@
 'use client'
 
 import { useTranslations } from '@/lib/i18n/client'
-import { BRAND } from '@/lib/brand/config'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { X, Download, Smartphone } from 'lucide-react'
@@ -93,10 +92,10 @@ export function PWAInstallPrompt() {
         
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-medium text-theme-primary">
-            Install {BRAND.appName}
+            {t('pwa.installTitle')}
           </h3>
           <p className="text-sm text-theme-muted mt-1">
-            Add {BRAND.appName} to your home screen for quick access and offline use.
+            {t('pwa.installDescription')}
           </p>
           
           <div className="flex space-x-2 mt-3">
@@ -106,7 +105,7 @@ export function PWAInstallPrompt() {
               className="bg-brand hover:bg-brand-hover text-brand-foreground"
             >
               <Download className="w-4 h-4 mr-1" />
-              Install
+              {t('pwa.install')}
             </Button>
             <Button
               size="sm"

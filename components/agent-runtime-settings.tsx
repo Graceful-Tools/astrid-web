@@ -36,6 +36,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ACTIONS_SECRET_NAMES, AgentCredentialsCard } from '@/components/agent-credentials-card'
 import { Check, Copy, ExternalLink } from 'lucide-react'
 import { useTranslations } from '@/lib/i18n/client'
+import { RichMessage, fillMessage } from '@/components/shared/RichMessage'
 import { toast } from 'sonner'
 
 type AgentExecutionMode = 'api' | 'polling'
@@ -252,7 +253,7 @@ Treat empty:true as a successful connection. If a field cannot be verified, say 
   const connectionTest = (tab: string, scheduling: string) => (
     <RecipeStep number={4} title={t('settingsPages.aiAgents.runtime.stepTest')}>
       <CopyBlock
-        label="Run a non-mutating connection check"
+        label={t('settingsPages.aiAgents.runtime.connectionCheckLabel')}
         code={connectionCheck(tab, scheduling)}
         testId="agent-connection-check"
       />
@@ -269,7 +270,7 @@ Treat empty:true as a successful connection. If a field cannot be verified, say 
         {around(t('settingsPages.aiAgents.runtime.hostedWorkflow'))[1]}
       </p>
       <CopyBlock
-        label="Run it in GitHub Actions"
+        label={t('settingsPages.aiAgents.runtime.runInActions')}
         code={`# ${workflow.path}
 ${workflow.content}`}
         testId={`agent-hosted-workflow-${tab}`}
@@ -301,16 +302,20 @@ ${workflow.content}`}
       <TabsContent value="claude-code" className="space-y-3 pt-3">
         <RecipeStep number={1} title={t('settingsPages.aiAgents.runtime.stepConnect')}>
           <CopyBlock
-            label="Add the remote MCP server"
+            label={t('settingsPages.aiAgents.runtime.addRemoteMcp')}
             code={connectCmd('claude-code')}
           />
           <p className="text-xs theme-text-muted">
-            Open <code className="font-mono">/mcp</code> in Claude Code and choose Authenticate.
-            If the command is unavailable, add the same HTTP server to a project
-            <code className="font-mono"> .mcp.json</code> file instead.
+            <RichMessage
+              message={t('settingsPages.aiAgents.runtime.claudeAuthenticate')}
+              values={{
+                mcpCommand: <code className="font-mono">/mcp</code>,
+                mcpFile: <code className="font-mono">.mcp.json</code>,
+              }}
+            />
           </p>
           <CopyBlock
-            label="Manual MCP fallback"
+            label={t('settingsPages.aiAgents.runtime.manualMcpFallback')}
             code={`{
   "mcpServers": {
     "${serverName}": {
@@ -323,14 +328,14 @@ ${workflow.content}`}
         </RecipeStep>
         <RecipeStep number={2} title={t('settingsPages.aiAgents.runtime.stepInstall')}>
           <CopyBlock
-            label="Save the queue skill as a project command"
+            label={t('settingsPages.aiAgents.runtime.saveSkillCommand')}
             code={installBlock('claude-code', 'claude-code')}
           />
         </RecipeStep>
         <RecipeStep number={3} title={t('settingsPages.aiAgents.runtime.stepSchedule')}>
-          <CopyBlock label="Run every 30 minutes in this session" code={claudeCodeLoopCommand()} />
+          <CopyBlock label={t('settingsPages.aiAgents.runtime.runInSession')} code={claudeCodeLoopCommand()} />
           <CopyBlock
-            label="Unattended cron fallback"
+            label={t('settingsPages.aiAgents.runtime.cronFallback')}
             code={scheduleCmd('claude-code', 'claude-code')}
           />
           {hostedWorkflow(
@@ -344,11 +349,11 @@ ${workflow.content}`}
       <TabsContent value="copilot" className="space-y-3 pt-3">
         <RecipeStep number={1} title={t('settingsPages.aiAgents.runtime.stepConnect')}>
           <CopyBlock
-            label="Copilot CLI: add the remote MCP server"
+            label={t('settingsPages.aiAgents.runtime.copilotAddMcp')}
             code={connectCmd('copilot')}
           />
           <CopyBlock
-            label="VS Code fallback: .vscode/mcp.json"
+            label={fillMessage(t('settingsPages.aiAgents.runtime.vscodeFallback'), { file: '.vscode/mcp.json' })}
             code={`{
   "servers": {
     "${serverName}": {
@@ -359,10 +364,10 @@ ${workflow.content}`}
 }`}
           />
           <p className="text-xs theme-text-muted">
-            The CLI and VS Code open {BRAND.appName}&apos;s browser authorization. The Copilot app and
-            GitHub.com cannot open remote MCP OAuth; create a dedicated token, save it as the
-            Agents secret <code className="font-mono">{cloudSecretName}</code>, and paste the
-            generated repository MCP configuration in Settings &gt; Copilot &gt; MCP servers.
+            <RichMessage
+              message={t('settingsPages.aiAgents.runtime.copilotConnectNote')}
+              values={{ secretName: <code className="font-mono">{cloudSecretName}</code> }}
+            />
           </p>
           <Button variant="outline" size="sm" asChild>
             <a href={tokenSetupUrl}>
@@ -376,18 +381,17 @@ ${workflow.content}`}
             {t('settingsPages.aiAgents.runtime.copilotInstall')}
           </p>
           <CopyBlock
-            label="Repository custom agent"
+            label={t('settingsPages.aiAgents.runtime.repoCustomAgent')}
             code={installBlock('copilot', 'copilot')}
           />
         </RecipeStep>
         <RecipeStep number={3} title={t('settingsPages.aiAgents.runtime.stepSchedule')}>
           <CopyBlock
-            label="Run Copilot CLI every 30 minutes"
+            label={fillMessage(t('settingsPages.aiAgents.runtime.runEvery30'), { tool: 'Copilot CLI' })}
             code={scheduleCmd('copilot', 'copilot')}
           />
           <p className="text-xs theme-text-muted">
-            For an interactive run, select the {BRAND.appName} Queue custom agent in the
-            Copilot app, GitHub.com, or VS Code.
+            {t('settingsPages.aiAgents.runtime.copilotInteractive')}
           </p>
           {hostedWorkflow(
             'copilot',
@@ -403,24 +407,24 @@ ${workflow.content}`}
       <TabsContent value="codex" className="space-y-3 pt-3">
         <RecipeStep number={1} title={t('settingsPages.aiAgents.runtime.stepConnect')}>
           <CopyBlock
-            label="Add the remote server and authorize it"
+            label={t('settingsPages.aiAgents.runtime.addRemoteAuthorize')}
             code={connectCmd('codex')}
           />
           <CopyBlock
-            label="Manual MCP fallback: ~/.codex/config.toml"
+            label={fillMessage(t('settingsPages.aiAgents.runtime.manualMcpFallbackFile'), { file: '~/.codex/config.toml' })}
             code={`[mcp_servers.${serverName}]
 url = "${mcpUrl}"`}
           />
         </RecipeStep>
         <RecipeStep number={2} title={t('settingsPages.aiAgents.runtime.stepInstall')}>
           <CopyBlock
-            label="Add the queue skill to AGENTS.md"
+            label={fillMessage(t('settingsPages.aiAgents.runtime.addSkillTo'), { file: 'AGENTS.md' })}
             code={installBlock('codex', 'codex')}
           />
         </RecipeStep>
         <RecipeStep number={3} title={t('settingsPages.aiAgents.runtime.stepSchedule')}>
           <CopyBlock
-            label="Run Codex every 30 minutes"
+            label={fillMessage(t('settingsPages.aiAgents.runtime.runEvery30'), { tool: 'Codex' })}
             code={scheduleCmd('codex', 'codex')}
           />
         </RecipeStep>
@@ -430,24 +434,24 @@ url = "${mcpUrl}"`}
       <TabsContent value="muse" className="space-y-3 pt-3">
         <RecipeStep number={1} title={t('settingsPages.aiAgents.runtime.stepConnect')}>
           <CopyBlock
-            label="Add the remote server and authorize it"
+            label={t('settingsPages.aiAgents.runtime.addRemoteAuthorize')}
             code={connectCmd('muse')}
           />
           <CopyBlock
-            label="Manual MCP fallback: ~/.muse/config.toml"
+            label={fillMessage(t('settingsPages.aiAgents.runtime.manualMcpFallbackFile'), { file: '~/.muse/config.toml' })}
             code={`[mcp_servers.${serverName}]
 url = "${mcpUrl}"`}
           />
         </RecipeStep>
         <RecipeStep number={2} title={t('settingsPages.aiAgents.runtime.stepInstall')}>
           <CopyBlock
-            label="Add the queue skill to AGENTS.md"
+            label={fillMessage(t('settingsPages.aiAgents.runtime.addSkillTo'), { file: 'AGENTS.md' })}
             code={installBlock('muse', 'muse')}
           />
         </RecipeStep>
         <RecipeStep number={3} title={t('settingsPages.aiAgents.runtime.stepSchedule')}>
           <CopyBlock
-            label="Run Muse every 30 minutes"
+            label={fillMessage(t('settingsPages.aiAgents.runtime.runEvery30'), { tool: 'Muse' })}
             code={scheduleCmd('muse', 'muse')}
           />
         </RecipeStep>
@@ -470,7 +474,7 @@ url = "${mcpUrl}"`}
             {t('settingsPages.aiAgents.runtime.githubInstall')}
           </p>
           <CopyBlock
-            label="Add the queue gate workflow"
+            label={t('settingsPages.aiAgents.runtime.addQueueGate')}
             testId="actions-queue-gate"
             code={`# ${gate.path}
 ${gate.content}`}
@@ -489,7 +493,7 @@ ${gate.content}`}
 
       <TabsContent value="gemini" className="space-y-3 pt-3">
         <CopyBlock
-          label="1. Add the queue to ~/.gemini/settings.json"
+          label={fillMessage(t('settingsPages.aiAgents.runtime.addQueueToFile'), { file: '~/.gemini/settings.json' })}
           code={`{
   "mcpServers": {
     "${serverName}": {
@@ -500,14 +504,14 @@ ${gate.content}`}
 }`}
         />
         <CopyBlock
-          label="2. Run the loop on a schedule"
+          label={t('settingsPages.aiAgents.runtime.runLoopScheduled')}
           code={`*/30 * * * * cd ~/code/your-project && gemini -p "${queueLine('gemini')}" >> ~/${serverName}-loop.log 2>&1`}
         />
       </TabsContent>
 
       <TabsContent value="cursor" className="space-y-3 pt-3">
         <CopyBlock
-          label="1. Add the queue to .cursor/mcp.json"
+          label={fillMessage(t('settingsPages.aiAgents.runtime.addQueueToFile'), { file: '.cursor/mcp.json' })}
           code={`{
   "mcpServers": {
     "${serverName}": {
@@ -517,8 +521,7 @@ ${gate.content}`}
 }`}
         />
         <p className="text-xs theme-text-muted">
-          2. Cursor has no scheduler of its own — ask it for your queue at the start of a
-          working session, or run the Claude Code / Codex cron line above alongside it.
+          {t('settingsPages.aiAgents.runtime.cursorNoScheduler')}
         </p>
       </TabsContent>
     </Tabs>
