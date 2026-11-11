@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from '@/lib/i18n/client'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -21,6 +22,7 @@ interface SubscriptionStatus {
 }
 
 export function PushNotificationSettings({ className }: PushNotificationSettingsProps) {
+  const { t } = useTranslations()
   const [status, setStatus] = useState<SubscriptionStatus>({
     isSupported: false,
     permission: 'unsupported',
@@ -210,17 +212,17 @@ export function PushNotificationSettings({ className }: PushNotificationSettings
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bell className="w-5 h-5" />
-          Push Notifications
+          {t('reminderSettings.pushNotifications')}
         </CardTitle>
         <CardDescription>
-          Get notified about task reminders and updates even when the app is closed
+          {t('reminderSettings.push.description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Status Display */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label>Notification Status</Label>
+            <Label>{t('reminderSettings.push.status')}</Label>
             <div className="flex items-center gap-2">
               {status.isSubscribed ? (
                 <>
@@ -244,9 +246,9 @@ export function PushNotificationSettings({ className }: PushNotificationSettings
           {/* Enable/Disable Toggle */}
           <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <Label>Enable Push Notifications</Label>
+              <Label>{t('reminderSettings.enablePush')}</Label>
               <p className="text-xs text-muted-foreground">
-                Receive task reminders and notifications
+                {t('reminderSettings.push.enableDescription')}
               </p>
             </div>
             <Switch 
@@ -276,10 +278,10 @@ export function PushNotificationSettings({ className }: PushNotificationSettings
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Notifications are blocked. To enable:
-              <br />• <strong>Chrome/Edge:</strong> Click the lock icon in the address bar → Notifications → Allow
-              <br />• <strong>Firefox:</strong> Click the shield icon → Permissions → Allow notifications
-              <br />• <strong>Safari:</strong> Safari → Settings → Websites → Notifications → Allow
+              {t('reminderSettings.push.blockedIntro')}
+              <br />• <strong>Chrome/Edge:</strong> {t('reminderSettings.push.blockedChrome')}
+              <br />• <strong>Firefox:</strong> {t('reminderSettings.push.blockedFirefox')}
+              <br />• <strong>Safari:</strong> {t('reminderSettings.push.blockedSafari')}
             </AlertDescription>
           </Alert>
         )}
@@ -289,10 +291,10 @@ export function PushNotificationSettings({ className }: PushNotificationSettings
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              <strong>For best experience, install this app:</strong>
-              <br />• <strong>Mobile:</strong> Tap &quot;Add to Home Screen&quot; in your browser menu
-              <br />• <strong>Desktop:</strong> Look for the install icon in the address bar
-              <br />• <strong>PWA benefits:</strong> Notifications work even when the app is closed
+              <strong>{t('reminderSettings.push.installTitle')}</strong>
+              <br />• <strong>{t('reminderSettings.push.installMobileLabel')}</strong> {t('reminderSettings.push.installMobile')}
+              <br />• <strong>{t('reminderSettings.push.installDesktopLabel')}</strong> {t('reminderSettings.push.installDesktop')}
+              <br />• <strong>{t('reminderSettings.push.installPwaLabel')}</strong> {t('reminderSettings.push.installPwa')}
             </AlertDescription>
           </Alert>
         )}
@@ -306,7 +308,7 @@ export function PushNotificationSettings({ className }: PushNotificationSettings
               disabled={loading}
               className="w-full"
             >
-              Send Test Notification
+              {t('reminderSettings.push.sendTest')}
             </Button>
           </div>
         )}

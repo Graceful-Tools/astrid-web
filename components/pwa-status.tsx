@@ -1,11 +1,13 @@
 'use client'
 
+import { useTranslations } from '@/lib/i18n/client'
 import { useState, useEffect } from 'react'
 import { Wifi, WifiOff, X } from 'lucide-react'
 import { OfflineSyncManager } from '@/lib/offline-sync'
 import { Button } from '@/components/ui/button'
 
 export function PWAStatus() {
+  const { t } = useTranslations()
   const [isOnline, setIsOnline] = useState(true)
   const [showStatus, setShowStatus] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
@@ -96,7 +98,7 @@ export function PWAStatus() {
             )}
             {isOnline && isSyncing && (
               <span className="text-xs opacity-90">
-                Syncing changes...
+                {t('pwa.syncing')}
               </span>
             )}
           </div>

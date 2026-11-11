@@ -225,16 +225,16 @@ export function WebhookSettingsManager() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 theme-text-primary">
             <Webhook className="w-5 h-5" />
-            Webhook Configuration
+            {t('settingsPages.aiAgents.webhook.title')}
           </CardTitle>
           <CardDescription className="theme-text-muted">
-            Configure a webhook URL to receive task notifications on your Claude Code Remote server
+            {t('settingsPages.aiAgents.webhook.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Webhook URL */}
           <div className="space-y-2">
-            <Label htmlFor="webhookUrl" className="theme-text-primary">Webhook URL</Label>
+            <Label htmlFor="webhookUrl" className="theme-text-primary">{t('settingsPages.aiAgents.webhook.urlLabel')}</Label>
             <Input
               id="webhookUrl"
               type="url"
@@ -244,7 +244,7 @@ export function WebhookSettingsManager() {
               className="theme-bg-primary theme-border theme-text-primary"
             />
             <p className="text-sm theme-text-muted">
-              The URL of your Claude Code Remote server that will receive webhook notifications
+              {t('settingsPages.aiAgents.webhook.urlHint')}
             </p>
           </div>
 
@@ -253,7 +253,7 @@ export function WebhookSettingsManager() {
             <div className="space-y-0.5">
               <Label className="theme-text-primary">Enabled</Label>
               <p className="text-sm theme-text-muted">
-                When enabled, webhooks will be sent for task assignments
+                {t('settingsPages.aiAgents.webhook.enabledHint')}
               </p>
             </div>
             <Switch
@@ -265,9 +265,9 @@ export function WebhookSettingsManager() {
           {/* Agent Selection */}
           <div className="space-y-3">
             <div className="space-y-0.5">
-              <Label className="theme-text-primary">Agents to Handle</Label>
+              <Label className="theme-text-primary">{t('settingsPages.aiAgents.webhook.agentsLabel')}</Label>
               <p className="text-sm theme-text-muted">
-                Select which AI agents this webhook should handle. Unselected agents will be handled by polling mode instead.
+                {t('settingsPages.aiAgents.webhook.agentsHint')}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -301,7 +301,7 @@ export function WebhookSettingsManager() {
             </div>
             {selectedAgents.length === 0 && (
               <p className="text-sm text-warning">
-                No agents selected. All tasks will be handled by polling mode.
+                {t('settingsPages.aiAgents.webhook.noAgents')}
               </p>
             )}
           </div>
@@ -312,10 +312,10 @@ export function WebhookSettingsManager() {
               <div className="space-y-0.5">
                 <Label className="theme-text-primary flex items-center gap-2">
                   <Shield className="w-4 h-4" />
-                  Webhook Secret
+                  {t('settingsPages.aiAgents.webhook.secretLabel')}
                 </Label>
                 <p className="text-sm theme-text-muted">
-                  Regenerate the secret used for HMAC signature verification
+                  {t('settingsPages.aiAgents.webhook.secretHint')}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -323,7 +323,7 @@ export function WebhookSettingsManager() {
                   checked={regenerateSecret}
                   onCheckedChange={setRegenerateSecret}
                 />
-                <span className="text-sm theme-text-muted">Regenerate on save</span>
+                <span className="text-sm theme-text-muted">{t('settingsPages.aiAgents.webhook.regenerateOnSave')}</span>
               </div>
             </div>
           )}
@@ -367,7 +367,7 @@ export function WebhookSettingsManager() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-warning">
               <AlertCircle className="w-5 h-5" />
-              Save Your Webhook Secret
+              {t('settingsPages.aiAgents.webhook.saveSecretTitle')}
             </CardTitle>
             <CardDescription className="theme-text-muted">
               This secret will only be shown once. Copy it now and add it to your Claude Code Remote server&apos;s environment variables.
@@ -394,7 +394,7 @@ export function WebhookSettingsManager() {
               </Button>
             </div>
             <div className="p-3 theme-bg-tertiary rounded-lg">
-              <p className="text-sm theme-text-muted mb-2">Add to your <code>.env</code> file:</p>
+              <p className="text-sm theme-text-muted mb-2">{t('settingsPages.aiAgents.webhook.envHint').split('{file}')[0]}<code>.env</code>{t('settingsPages.aiAgents.webhook.envHint').split('{file}')[1]}</p>
               <code className="text-sm theme-text-primary">ASTRID_WEBHOOK_SECRET={newSecret}</code>
             </div>
           </CardContent>
@@ -428,7 +428,7 @@ export function WebhookSettingsManager() {
               </div>
 
               <div className="space-y-1">
-                <Label className="theme-text-muted text-sm">Failure Count</Label>
+                <Label className="theme-text-muted text-sm">{t('settingsPages.aiAgents.webhook.failureCount')}</Label>
                 <div className="flex items-center gap-2">
                   {(config.failureCount ?? 0) > 0 ? (
                     <Badge variant="destructive">
@@ -436,7 +436,7 @@ export function WebhookSettingsManager() {
                     </Badge>
                   ) : (
                     <Badge variant="outline" className="theme-text-primary">
-                      No failures
+                      {t('settingsPages.aiAgents.webhook.noFailures')}
                     </Badge>
                   )}
                 </div>
@@ -445,7 +445,7 @@ export function WebhookSettingsManager() {
 
             {config.lastFiredAt && (
               <div className="space-y-1">
-                <Label className="theme-text-muted text-sm">Last Fired</Label>
+                <Label className="theme-text-muted text-sm">{t('settingsPages.aiAgents.webhook.lastFired')}</Label>
                 <p className="theme-text-primary text-sm">
                   {new Date(config.lastFiredAt).toLocaleString()}
                 </p>
@@ -453,7 +453,7 @@ export function WebhookSettingsManager() {
             )}
 
             <div className="space-y-1">
-              <Label className="theme-text-muted text-sm">Agents Handled by Webhook</Label>
+              <Label className="theme-text-muted text-sm">{t('settingsPages.aiAgents.webhook.agentsHandled')}</Label>
               <div className="flex flex-wrap gap-2">
                 {config.agents && config.agents.length > 0 ? (
                   config.agents.map((agent) => {
@@ -470,14 +470,14 @@ export function WebhookSettingsManager() {
               </div>
               {config.agents && config.agents.length > 0 && config.agents.length < 3 && (
                 <p className="text-xs theme-text-muted mt-1">
-                  Other agents will be handled by polling mode
+                  {t('settingsPages.aiAgents.webhook.otherAgentsPolling')}
                 </p>
               )}
             </div>
 
             {config.events && config.events.length > 0 && (
               <div className="space-y-1">
-                <Label className="theme-text-muted text-sm">Subscribed Events</Label>
+                <Label className="theme-text-muted text-sm">{t('settingsPages.aiAgents.webhook.subscribedEvents')}</Label>
                 <div className="flex flex-wrap gap-2">
                   {config.events.map((event) => (
                     <Badge key={event} variant="outline" className="theme-text-primary">
@@ -504,7 +504,7 @@ export function WebhookSettingsManager() {
                 ) : (
                   <>
                     <Send className="w-4 h-4 mr-2" />
-                    Test Webhook
+                    {t('settingsPages.aiAgents.webhook.test')}
                   </>
                 )}
               </Button>
@@ -555,7 +555,7 @@ export function WebhookSettingsManager() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <h4 className="font-medium theme-text-primary">About webhook delivery</h4>
+            <h4 className="font-medium theme-text-primary">{t('settingsPages.aiAgents.webhook.aboutTitle')}</h4>
             <p className="text-sm theme-text-muted">
               Connect a webhook receiver you operate to {BRAND.appName}. This panel configures
               where task notifications are sent; it does not install or start an agent host.
@@ -563,7 +563,7 @@ export function WebhookSettingsManager() {
           </div>
 
           <div className="space-y-2">
-            <h4 className="font-medium theme-text-primary">Getting Started</h4>
+            <h4 className="font-medium theme-text-primary">{t('settingsPages.aiAgents.webhook.gettingStarted')}</h4>
             <ol className="list-decimal list-inside text-sm theme-text-muted space-y-1">
               <li>
                 Use a webhook receiver you operate. The{' '}
@@ -577,9 +577,9 @@ export function WebhookSettingsManager() {
                 </a>{' '}
                 provides integration libraries, not a standalone agent-host command.
               </li>
-              <li>Configure your webhook URL above</li>
+              <li>{t('settingsPages.aiAgents.webhook.stepConfigureUrl')}</li>
               <li>Copy the webhook secret to your server&apos;s environment</li>
-              <li>Assign tasks to <code className="px-1 py-0.5 theme-bg-tertiary rounded">claude@{BRAND.agentEmailDomain}</code></li>
+              <li>{t('settingsPages.aiAgents.webhook.stepAssign').split('{agent}')[0]}<code className="px-1 py-0.5 theme-bg-tertiary rounded">claude@{BRAND.agentEmailDomain}</code>{t('settingsPages.aiAgents.webhook.stepAssign').split('{agent}')[1]}</li>
             </ol>
             <p className="text-sm theme-text-muted">
               For a guided setup without a webhook receiver, choose I run it → Native coding harness in Settings → AI Agents
@@ -592,7 +592,7 @@ export function WebhookSettingsManager() {
           </div>
 
           <div className="space-y-2">
-            <h4 className="font-medium theme-text-primary">Webhook Events</h4>
+            <h4 className="font-medium theme-text-primary">{t('settingsPages.aiAgents.webhook.eventsTitle')}</h4>
             <ul className="list-disc list-inside text-sm theme-text-muted space-y-1">
               <li><code className="px-1 py-0.5 theme-bg-tertiary rounded">task.assigned</code> - Task assigned to AI agent</li>
               <li><code className="px-1 py-0.5 theme-bg-tertiary rounded">comment.created</code> - User commented on AI task</li>

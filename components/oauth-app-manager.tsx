@@ -349,7 +349,7 @@ export function OAuthAppManager() {
   }
 
   if (loading) {
-    return <div className="text-center py-8">Loading OAuth applications...</div>
+    return <div className="text-center py-8">{t('settingsPages.apiAccess.apps.loading')}</div>
   }
 
   return (
@@ -379,7 +379,7 @@ export function OAuthAppManager() {
 
             <div className="space-y-4">
               <div>
-                <Label>Client ID</Label>
+                <Label>{t('settingsPages.customAgents.credentials.clientId')}</Label>
                 <div className="flex items-center space-x-2 mt-1">
                   <Input
                     value={newClientCredentials.clientId}
@@ -397,7 +397,7 @@ export function OAuthAppManager() {
               </div>
 
               <div>
-                <Label>Client Secret</Label>
+                <Label>{t('settingsPages.customAgents.credentials.clientSecret')}</Label>
                 <div className="flex items-center space-x-2 mt-1">
                   <Input
                     value={newClientCredentials.clientSecret}
@@ -460,7 +460,7 @@ export function OAuthAppManager() {
                   ) : (
                     <>
                       <FlaskConical className="w-4 h-4 mr-2" />
-                      Test API Now
+                      {t('settingsPages.apiAccess.apps.testNow')}
                     </>
                   )}
                 </Button>
@@ -474,11 +474,11 @@ export function OAuthAppManager() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold theme-text-primary">OAuth Applications</h2>
-          <p className="theme-text-muted">Manage API access for your applications</p>
+          <p className="theme-text-muted">{t('settingsPages.apiAccess.apps.subtitle')}</p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
-          New App
+          {t('settingsPages.apiAccess.apps.newApp')}
         </Button>
       </div>
 
@@ -488,10 +488,10 @@ export function OAuthAppManager() {
       {clients.length === 0 ? (
         <Card>
           <CardContent className="pt-6 text-center">
-            <p className="theme-text-muted mb-4">No OAuth applications yet</p>
+            <p className="theme-text-muted mb-4">{t('settingsPages.apiAccess.apps.empty')}</p>
             <Button onClick={() => setCreateDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Create Your First App
+              {t('settingsPages.apiAccess.apps.createFirst')}
             </Button>
           </CardContent>
         </Card>
@@ -552,7 +552,7 @@ export function OAuthAppManager() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label className="text-xs">Client ID</Label>
+                  <Label className="text-xs">{t('settingsPages.customAgents.credentials.clientId')}</Label>
                   <div className="flex items-center gap-2 mt-1">
                     <code className="text-sm theme-bg-tertiary px-2 py-1 rounded flex-1 font-mono break-all">
                       {client.clientId}
@@ -588,7 +588,7 @@ export function OAuthAppManager() {
                 </div>
 
                 <div>
-                  <Label className="text-xs">Grant Types</Label>
+                  <Label className="text-xs">{t('settingsPages.apiAccess.apps.grantTypes')}</Label>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {client.grantTypes.map(grant => (
                       <Badge key={grant} variant="outline" className="text-xs">
@@ -600,7 +600,7 @@ export function OAuthAppManager() {
 
                 {client.redirectUris.length > 0 && (
                   <div>
-                    <Label className="text-xs">Redirect URIs</Label>
+                    <Label className="text-xs">{t('settingsPages.apiAccess.apps.redirectUris')}</Label>
                     <div className="mt-1 space-y-1">
                       {client.redirectUris.map(uri => (
                         <div key={uri} className="text-xs font-mono theme-bg-tertiary rounded px-2 py-1 break-all">
@@ -627,9 +627,9 @@ export function OAuthAppManager() {
       <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Test OAuth Application</DialogTitle>
+            <DialogTitle>{t('settingsPages.apiAccess.apps.testTitle')}</DialogTitle>
             <DialogDescription>
-              Enter your client secret to obtain an access token and test the API
+              {t('settingsPages.apiAccess.apps.testDescription')}
             </DialogDescription>
           </DialogHeader>
 
@@ -644,7 +644,7 @@ export function OAuthAppManager() {
             </div>
 
             <div>
-              <Label>Client ID</Label>
+              <Label>{t('settingsPages.customAgents.credentials.clientId')}</Label>
               <Input
                 value={testingClient?.clientId || ''}
                 readOnly
@@ -659,11 +659,11 @@ export function OAuthAppManager() {
                 type="password"
                 value={testClientSecret}
                 onChange={(e) => setTestClientSecret(e.target.value)}
-                placeholder="Enter your client secret"
+                placeholder={t('settingsPages.apiAccess.apps.secretPlaceholder')}
                 className="font-mono text-sm"
               />
               <p className="text-xs theme-text-muted mt-1">
-                Your client secret was shown when you created this app
+                {t('settingsPages.apiAccess.apps.secretHint')}
               </p>
             </div>
 
@@ -683,9 +683,9 @@ export function OAuthAppManager() {
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create OAuth Application</DialogTitle>
+            <DialogTitle>{t('settingsPages.apiAccess.apps.createTitle')}</DialogTitle>
             <DialogDescription>
-              Create a new OAuth client for API access
+              {t('settingsPages.apiAccess.apps.createDescription')}
             </DialogDescription>
           </DialogHeader>
 
@@ -696,7 +696,7 @@ export function OAuthAppManager() {
                 id="app-name"
                 value={newAppName}
                 onChange={(e) => setNewAppName(e.target.value)}
-                placeholder="My App"
+                placeholder={t('settingsPages.apiAccess.apps.namePlaceholder')}
               />
             </div>
 
@@ -706,7 +706,7 @@ export function OAuthAppManager() {
                 id="app-description"
                 value={newAppDescription}
                 onChange={(e) => setNewAppDescription(e.target.value)}
-                placeholder="What this app does"
+                placeholder={t('settingsPages.apiAccess.apps.descriptionPlaceholder')}
               />
             </div>
 
@@ -719,14 +719,14 @@ export function OAuthAppManager() {
                     variant="outline"
                     onClick={() => selectScopeGroup('mobile_app')}
                   >
-                    Mobile App (Full Access)
+                    {t('settingsPages.apiAccess.apps.mobileFullAccess')}
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => selectScopeGroup('readonly')}
                   >
-                    Read Only
+                    {t('settingsPages.apiAccess.apps.readOnly')}
                   </Button>
                   <Button
                     size="sm"
@@ -740,7 +740,7 @@ export function OAuthAppManager() {
                     variant="outline"
                     onClick={() => setSelectedScopes([])}
                   >
-                    Clear All
+                    {t('common.clearAll')}
                   </Button>
                 </div>
 
@@ -788,7 +788,7 @@ export function OAuthAppManager() {
             </div>
 
             <div>
-              <Label htmlFor="redirect-uris">Redirect URIs</Label>
+              <Label htmlFor="redirect-uris">{t('settingsPages.apiAccess.apps.redirectUris')}</Label>
               <Textarea
                 id="redirect-uris"
                 value={redirectUrisInput}
