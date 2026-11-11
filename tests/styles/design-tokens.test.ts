@@ -9,7 +9,7 @@
  * CSS cannot be exercised in jsdom, so these read the files.
  */
 import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -163,5 +163,15 @@ describe('the trade-off grid draws its ratings from the tokens', () => {
 
   it('markdown borders follow the theme', () => {
     expect(css).not.toMatch(/\.prose[^{]*\{[^}]*#d1d5db/)
+  })
+})
+
+describe('one global stylesheet (AWTD-1574)', () => {
+  // styles/globals.css was shadcn's scaffold, imported by nothing: a second copy
+  // of the shadcn variables that drifted from app/globals.css (a different
+  // --radius, --border and --muted-foreground) and read as the one to edit.
+  it('app/globals.css is the only one', () => {
+    expect(existsSync(join(process.cwd(), 'styles', 'globals.css'))).toBe(false)
+    expect(read('components.json')).toContain('"css": "app/globals.css"')
   })
 })
