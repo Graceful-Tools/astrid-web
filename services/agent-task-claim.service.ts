@@ -83,6 +83,11 @@ export async function claimAgentTask(input: {
     if (task.statusRole === DOING_STATUS_ROLE && task.assigneeId === agentId) {
       return { outcome: 'already_yours', task: snapshot(task) }
     }
+    // Another agent already holds it: the same answer whether this caller lost the
+    // race or read the task just after the winner committed.
+    if (task.statusRole === DOING_STATUS_ROLE && task.assigneeId) {
+      return { outcome: 'conflict', task: snapshot(task) }
+    }
     if (task.statusRole !== READY_STATUS_ROLE) {
       return { outcome: 'not_ready', task: snapshot(task) }
     }

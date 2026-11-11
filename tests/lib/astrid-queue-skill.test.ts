@@ -91,7 +91,7 @@ describe('canonical queue skill (AWTD-759)', () => {
     const enrolledSkill = canonicalQueueSkill(OPTS)
     expect(queueContractLine(OPTS)).toContain('includeUnassigned: true')
     expect(enrolledSkill).toContain('claim_task')
-    expect(enrolledSkill).toContain('skip it on conflict')
+    expect(enrolledSkill).toContain('start only when the result is claimed')
     expect(enrolledSkill).toContain('resume')
     expect(canonicalQueueSkill({ mailbox: 'codex', listId: 'board-other' })).not.toContain('claim_task')
 
