@@ -220,7 +220,7 @@ export function ReminderNotification({
               className="flex-shrink-0 w-6 h-6 rounded border-2 border-theme hover:border-brand transition-colors flex items-center justify-center"
             >
               {isCompleting ? (
-                <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-theme-focus border-t-transparent rounded-full animate-spin" />
               ) : null}
             </button>
 

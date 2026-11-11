@@ -1322,7 +1322,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
             <div className="flex items-center space-x-2 theme-text-muted">
               {pullToRefresh.isRefreshing ? (
                 <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-brand"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-theme-focus"></div>
                   <span className="text-sm font-medium">Refreshing...</span>
                 </>
               ) : (
