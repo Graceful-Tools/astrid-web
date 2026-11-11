@@ -77,7 +77,7 @@ export function AgentCredentialsCard({
 
   return (
     <div className="space-y-3 rounded-lg border theme-border p-3">
-      <p className="text-xs font-medium text-red-400">
+      <p className="text-xs font-medium text-danger">
         {t('settingsPages.aiAgents.credentials.shownOnce')}
       </p>
       <CredentialField
@@ -104,7 +104,7 @@ export function AgentCredentialsCard({
           : t('settingsPages.aiAgents.credentials.sdkNeedsBoth')}
       </p>
       <p className="text-xs">
-        <Link href="/settings/connections" className="text-blue-500 hover:underline">
+        <Link href="/settings/connections" className="text-brand hover:underline">
           {t('settingsPages.aiAgents.credentials.manage')}
         </Link>
       </p>

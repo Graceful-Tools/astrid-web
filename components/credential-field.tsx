@@ -30,7 +30,7 @@ export function CredentialField({
       <div className="flex items-center gap-2 mt-0.5">
         <code
           className={`flex-1 text-xs font-mono p-2 theme-bg-tertiary rounded truncate ${
-            sensitive ? "text-red-400" : "theme-text-primary"
+            sensitive ? "text-danger" : "theme-text-primary"
           }`}
         >
           {value}
@@ -42,7 +42,7 @@ export function CredentialField({
           onClick={() => onCopy(value, field)}
         >
           {copiedField === field ? (
-            <Check className="w-4 h-4 text-green-500" />
+            <Check className="w-4 h-4 text-success" />
           ) : (
             <Copy className="w-4 h-4" />
           )}

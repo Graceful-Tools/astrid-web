@@ -131,14 +131,14 @@ export function FixedListSettingsPopover({
       <div className="p-4 pb-8 md:pb-4 space-y-4">
           {/* Fixed Due Date Display (for Today view) */}
           {defaults.fixedDueDate && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+            <div className="bg-brand-subtle border border-brand/30 rounded-lg p-3">
               <div className="flex items-center space-x-2">
-                <Filter className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                <Filter className="w-4 h-4 text-brand" />
+                <span className="text-sm font-medium text-theme-primary">
                   {defaults.fixedDueDateLabel}
                 </span>
               </div>
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+              <p className="text-xs text-theme-primary mt-1">
                 This filter cannot be changed for the &quot;{listName}&quot; view
               </p>
             </div>
@@ -247,7 +247,7 @@ export function FixedListSettingsPopover({
                 variant="outline"
                 size="sm"
                 onClick={clearAllFilters}
-                className="w-full text-orange-400 hover:text-orange-300 hover:bg-orange-900/20 border-orange-600 hover:border-orange-500"
+                className="w-full text-warning hover:text-warning hover:bg-warning-subtle border-warning"
               >
                 <Filter className="w-4 h-4 mr-2" />
                 Clear All Filters

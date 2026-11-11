@@ -83,7 +83,7 @@ export function UserDefaultDueTimeSettings() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="animate-pulse h-10 bg-gray-300 rounded"></div>
+          <div className="animate-pulse h-10 bg-theme-active rounded"></div>
         </CardContent>
       </Card>
     )

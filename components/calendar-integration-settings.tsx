@@ -144,7 +144,7 @@ export function CalendarIntegrationSettings({}: CalendarIntegrationSettingsProps
             checked={settings.enableCalendarSync}
             onCheckedChange={(checked) => updateSetting('enableCalendarSync', checked)}
             disabled={saving}
-            className="data-[state=checked]:bg-blue-600"
+            className="data-[state=checked]:bg-brand"
           />
         </div>
 
@@ -185,7 +185,7 @@ export function CalendarIntegrationSettings({}: CalendarIntegrationSettingsProps
                     <Button
                       onClick={downloadCalendar}
                       variant="outline"
-                      className="w-full justify-start bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300"
+                      className="w-full justify-start bg-brand-subtle hover:bg-brand/20 border-brand/30 text-brand"
                     >
                       <Download className="w-4 h-4 mr-2" />
                       Download Calendar File (.ics)
@@ -199,7 +199,7 @@ export function CalendarIntegrationSettings({}: CalendarIntegrationSettingsProps
                     <Button
                       onClick={subscribeToCalendar}
                       variant="outline"
-                      className="w-full justify-start bg-green-50 hover:bg-green-100 border-green-200 text-green-700 dark:bg-green-900/20 dark:hover:bg-green-900/30 dark:border-green-800 dark:text-green-300"
+                      className="w-full justify-start bg-success-subtle hover:bg-success/20 border-success/30 text-success"
                     >
                       <ExternalLink className="w-4 h-4 mr-2" />
                       Subscribe to Live Calendar

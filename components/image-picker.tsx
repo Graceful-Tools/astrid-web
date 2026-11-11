@@ -136,7 +136,7 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
                 onClick={() => handleSelectPlaceholder(option)}
                 className={`relative group aspect-square rounded-lg overflow-hidden transition-all ${
                   selectedPlaceholder === option.path
-                    ? 'ring-2 ring-blue-500 ring-offset-2 theme-ring-offset'
+                    ? 'ring-2 ring-brand ring-offset-2 theme-ring-offset'
                     : 'hover:scale-105 hover:shadow-lg'
                 }`}
               >
@@ -146,7 +146,7 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
                   className="w-full h-full object-cover"
                 />
                 {selectedPlaceholder === option.path && (
-                  <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-brand/20 flex items-center justify-center">
                     <Check className="w-6 h-6 text-white" />
                   </div>
                 )}
@@ -166,7 +166,7 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
                 onClick={() => handleSelectDefaultIcon(icon)}
                 className={`relative group w-16 h-16 rounded-lg overflow-hidden transition-all ${
                   selectedDefaultIcon === icon.filename
-                    ? 'ring-2 ring-blue-500 ring-offset-2 theme-ring-offset'
+                    ? 'ring-2 ring-brand ring-offset-2 theme-ring-offset'
                     : 'hover:scale-105 hover:shadow-lg'
                 }`}
               >
@@ -176,7 +176,7 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
                   className="w-full h-full object-cover"
                 />
                 {selectedDefaultIcon === icon.filename && (
-                  <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-brand/20 flex items-center justify-center">
                     <Check className="w-4 h-4 text-white" />
                   </div>
                 )}

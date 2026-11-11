@@ -53,19 +53,19 @@ export function AuthenticatedApp({
     return (
       <div className="min-h-screen theme-bg-primary flex">
         <div className="w-64 border-r theme-border hidden md:block p-4">
-          <div className="h-8 w-32 bg-gray-800 rounded animate-pulse mb-6" />
+          <div className="h-8 w-32 bg-theme-tertiary rounded animate-pulse mb-6" />
           <div className="space-y-3">
-            <div className="h-6 w-full bg-gray-800 rounded animate-pulse" />
-            <div className="h-6 w-3/4 bg-gray-800 rounded animate-pulse" />
-            <div className="h-6 w-5/6 bg-gray-800 rounded animate-pulse" />
+            <div className="h-6 w-full bg-theme-tertiary rounded animate-pulse" />
+            <div className="h-6 w-3/4 bg-theme-tertiary rounded animate-pulse" />
+            <div className="h-6 w-5/6 bg-theme-tertiary rounded animate-pulse" />
           </div>
         </div>
         <div className="flex-1 p-6">
-          <div className="h-8 w-48 bg-gray-800 rounded animate-pulse mb-6" />
+          <div className="h-8 w-48 bg-theme-tertiary rounded animate-pulse mb-6" />
           <div className="space-y-4">
-            <div className="h-12 w-full bg-gray-800 rounded animate-pulse" />
-            <div className="h-12 w-full bg-gray-800 rounded animate-pulse" />
-            <div className="h-12 w-3/4 bg-gray-800 rounded animate-pulse" />
+            <div className="h-12 w-full bg-theme-tertiary rounded animate-pulse" />
+            <div className="h-12 w-full bg-theme-tertiary rounded animate-pulse" />
+            <div className="h-12 w-3/4 bg-theme-tertiary rounded animate-pulse" />
           </div>
         </div>
       </div>

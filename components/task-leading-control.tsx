@@ -180,7 +180,7 @@ function AssigneePhoto({
   return (
     <Avatar className={className} style={style}>
       <AvatarImage src={assignee?.image || undefined} />
-      <AvatarFallback className="text-xs bg-gray-300 text-gray-700 rounded-lg">
+      <AvatarFallback className="text-xs bg-theme-active text-theme-secondary rounded-lg">
         {assignee?.name?.slice(0, 2) || assignee?.email?.slice(0, 2) || '?'}
       </AvatarFallback>
     </Avatar>

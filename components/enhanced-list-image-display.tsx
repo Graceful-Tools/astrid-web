@@ -101,7 +101,7 @@ export function EnhancedListImageDisplay({
 
   // Generate container classes
   const getContainerClasses = (): string => {
-    const baseClasses = `relative ${getSizeClasses(size)} group rounded-lg overflow-hidden transition-all duration-200`
+    const baseClasses = `relative ${getSizeClasses(size)} group rounded-lg overflow-hidden transition-all duration-medium`
     const interactiveClasses = canEdit
       ? 'cursor-pointer hover:scale-105 hover:shadow-md'
       : 'cursor-default'
@@ -112,8 +112,8 @@ export function EnhancedListImageDisplay({
   // Generate image classes
   const getImageClasses = (): string => {
     const baseClasses = `
-      w-full h-full object-cover transition-all duration-200
-      ${imageState === 'loading' ? 'animate-pulse bg-gray-200' : ''}
+      w-full h-full object-cover transition-all duration-medium
+      ${imageState === 'loading' ? 'animate-pulse bg-theme-active' : ''}
       ${canEdit ? 'group-hover:brightness-90' : ''}
     `
 
@@ -145,7 +145,7 @@ export function EnhancedListImageDisplay({
       {/* Edit Overlay */}
       {canEdit && showEditOverlay && (
         <div
-          className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-200 flex items-center justify-center cursor-pointer"
+          className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all duration-hover flex items-center justify-center cursor-pointer"
           onClick={handleImageClick}
           role="button"
           tabIndex={0}
@@ -157,7 +157,7 @@ export function EnhancedListImageDisplay({
           }}
           title={`Click to change image for ${list.name}`}
         >
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/90 rounded-full p-1 pointer-events-none">
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-hover bg-white/90 rounded-full p-1 pointer-events-none">
             <Edit3 className="w-3 h-3 text-gray-700" />
           </div>
         </div>
@@ -165,15 +165,15 @@ export function EnhancedListImageDisplay({
 
       {/* Loading State */}
       {imageState === 'loading' && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+        <div className="absolute inset-0 flex items-center justify-center bg-theme-tertiary">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand"></div>
         </div>
       )}
 
       {/* Error State */}
       {imageState === 'error' && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-          <ImageIcon className="w-3 h-3 text-gray-400" />
+        <div className="absolute inset-0 flex items-center justify-center bg-theme-tertiary">
+          <ImageIcon className="w-3 h-3 text-theme-muted" />
         </div>
       )}
 
