@@ -1,6 +1,7 @@
 "use client"
 
 import { SettingsSecondPane } from "./TaskManager/SettingsSecondPane"
+import { CopyListButton } from "./TaskManager/CopyListButton"
 import { SkipToContentLink } from "./TaskManager/SkipToContentLink"
 import React, { memo } from "react"
 import { taskDetailPaneProps } from "./TaskManager/task-detail-pane-props"
@@ -13,8 +14,6 @@ import { MainContent } from "./TaskManager/MainContent/MainContent"
 import { LoadingScreen } from "./loading-screen"
 import { computeTaskPaneLeftOffset } from "./TaskManager/task-pane-position"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Copy } from "lucide-react"
 import { useKeyboardShortcuts, type KeyboardShortcutHandlers } from "@/hooks/useKeyboardShortcuts"
 import { AddTaskInput } from "./add-task-input"
 import { ChatToggle } from "./chat/ChatToggle"
@@ -1109,13 +1108,7 @@ const TaskManagerView = memo(function TaskManagerView({
         if (isViewingFromFeatured || (isPublicList && !isUserOwnerOrAdmin)) {
           return (
             <div className="fixed bottom-0 left-0 right-0 bg-theme-surface border-t border-theme-surface p-4 z-30">
-              <Button
-                onClick={() => selectedList && handleCopyList(selectedList.id)}
-                className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
-              >
-                <Copy className="w-4 h-4 mr-2" />
-                Copy List
-              </Button>
+              <CopyListButton onCopy={() => selectedList && handleCopyList(selectedList.id)} />
             </div>
           )
         }

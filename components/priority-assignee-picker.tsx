@@ -409,8 +409,8 @@ export function PriorityAssigneePicker({
                   <span className="text-theme-muted text-sm font-medium">{t('tasks.unassignedMark')}</span>
                 </div>
                 <div className="flex-1 text-left">
-                  <div className="text-sm font-medium text-theme-primary">Unassigned</div>
-                  <div className="text-xs text-theme-muted">No one assigned</div>
+                  <div className="text-sm font-medium text-theme-primary">{t('tasks.unassigned')}</div>
+                  <div className="text-xs text-theme-muted">{t('tasks.noOneAssigned')}</div>
                 </div>
                 {tempAssignee === null && (
                   <Check className="w-5 h-5 text-brand flex-shrink-0" />

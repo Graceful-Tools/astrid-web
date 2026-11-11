@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "@/lib/i18n/client"
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,6 +17,7 @@ interface TaskTimerProps {
 }
 
 export function TaskTimer({ task, onClose, onUpdate }: TaskTimerProps) {
+  const { t } = useTranslations()
   const [duration, setDuration] = useState<number>(task.timerDuration || 25)
   const [timeLeft, setTimeLeft] = useState<number>((task.timerDuration || 25) * 60)
   const [isActive, setIsActive] = useState(false)
@@ -221,7 +223,7 @@ export function TaskTimer({ task, onClose, onUpdate }: TaskTimerProps) {
 
         {!isActive && !isEditing && (
           <p className="text-white/50 text-sm">
-            Tap the time to change duration
+            {t('tasks.timer.tapToChange')}
           </p>
         )}
       </div>

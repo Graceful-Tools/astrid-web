@@ -147,7 +147,7 @@ export function TaskDetailListsRow({
                 setShowListSuggestions(true)
               }}
               onFocus={() => setShowListSuggestions(true)}
-              placeholder="Search lists..."
+              placeholder={t('tasks.detail.searchLists')}
               className="w-full px-3 py-2 border rounded-md bg-theme-input border-theme-input text-theme-primary placeholder:text-theme-placeholder"
             />
 
@@ -211,7 +211,7 @@ export function TaskDetailListsRow({
               </Badge>
             ))
           ) : (
-            <span className="theme-text-muted">No lists</span>
+            <span className="theme-text-muted">{t('tasks.detail.noLists')}</span>
           )}
         </div>
       )}

@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "@/lib/i18n/client"
 import { useState, useEffect, useCallback, useRef } from "react"
 import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
@@ -37,6 +38,7 @@ export function SecureAttachmentViewer({
   showFileName = true,
   directFile
 }: SecureAttachmentViewerProps) {
+  const { t } = useTranslations()
   const [fileInfo, setFileInfo] = useState<SecureFileInfo | null>(
     directFile
       ? {
@@ -270,7 +272,7 @@ export function SecureAttachmentViewer({
                       variant="ghost"
                       onClick={handleDownload}
                       className="text-gray-400 hover:text-white"
-                      title="Download"
+                      title={t('actions.download')}
                     >
                       <Download className="w-4 h-4" />
                     </Button>
@@ -279,7 +281,7 @@ export function SecureAttachmentViewer({
                       variant="ghost"
                       onClick={() => setIsModalOpen(false)}
                       className="text-gray-400 hover:text-white"
-                      title="Close (Esc)"
+                      title={t('attachmentViewer.closeEsc')}
                     >
                       <X className="w-4 h-4" />
                     </Button>
@@ -307,7 +309,7 @@ export function SecureAttachmentViewer({
                         className="max-w-full max-h-full"
                         style={{ maxHeight: '100%', maxWidth: '100%' }}
                       >
-                        Your browser does not support the video tag.
+                        {t('attachmentViewer.videoUnsupported')}
                       </video>
                     </div>
                   ) : (
@@ -318,7 +320,7 @@ export function SecureAttachmentViewer({
                         {fileInfo.mimeType} • {(fileInfo.fileSize / 1024 / 1024).toFixed(2)} MB
                       </p>
                       <p className="text-gray-400 mb-8">
-                        Preview not available for this file type
+                        {t('attachmentViewer.noPreview')}
                       </p>
                       <Button
                         onClick={handleDownload}
@@ -326,7 +328,7 @@ export function SecureAttachmentViewer({
                         size="lg"
                       >
                         <Download className="w-5 h-5 mr-2" />
-                        Download File
+                        {t('attachmentViewer.downloadFile')}
                       </Button>
                     </div>
                   )}

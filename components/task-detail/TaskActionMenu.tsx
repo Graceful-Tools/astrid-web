@@ -145,7 +145,7 @@ export function TaskActionMenu({
           // nothing else, so a screen reader announced "button" and a test
           // could only reach it by class. Named now that a control users
           // depend on (full screen, on a board card) lives behind it.
-          aria-label="Task actions"
+          aria-label={t('tasks.detail.taskActions')}
         >
           <MoreVertical className={compact ? "w-4 h-4" : "w-5 h-5"} />
         </Button>
@@ -157,12 +157,12 @@ export function TaskActionMenu({
               {fullScreen ? (
                 <>
                   <Minimize2 className="w-4 h-4 mr-2" />
-                  Exit full screen
+                  {t('tasks.detail.exitFullScreen')}
                 </>
               ) : (
                 <>
                   <Maximize2 className="w-4 h-4 mr-2" />
-                  Full screen
+                  {t('tasks.tradeoffGrid.fullScreen')}
                 </>
               )}
             </DropdownMenuItem>
@@ -238,7 +238,7 @@ export function TaskActionMenu({
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={onTestReminder} className="text-warning focus:text-warning">
               <Bug className="w-4 h-4 mr-2" />
-              Test Reminder
+              {t('tasks.detail.testReminder')}
             </DropdownMenuItem>
           </>
         )}
