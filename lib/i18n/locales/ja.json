@@ -217,7 +217,10 @@
     "hoursBefore": "{count}時間前",
     "dayBefore": "1日前",
     "daysBefore": "{count}日前",
-    "weekBefore": "1週間前"
+    "weekBefore": "1週間前",
+    "quickSelect": "クイック選択：",
+    "setTime": "時刻を設定",
+    "selectTime": "時刻を選択"
   },
   "repeating": {
     "oneTimeOnly": "1回のみ",
@@ -511,6 +514,12 @@
         "title": "GitHub 接続",
         "description": "サーバーで実行されるコーディングエージェントは、設定 → 接続 にある GitHub 接続を使用します。接続済みの組織はすべてそこに表示されます。",
         "open": "接続を開く"
+      },
+      "yourAgents": {
+        "title": "あなたのエージェント",
+        "description": "各エージェントを誰が実行するかを選びます。{astridRuns}には、そのプロバイダーのAPIキーが必要です。{selfRuns}では、すでに契約しているコーディングツールを使います（ネイティブハーネスのポーリング、カスタムエージェント、または自分でホストするWebhookサーバー）。",
+        "astridRuns": "{appName}が実行",
+        "selfRuns": "自分で実行"
       }
     },
     "apiAccess": {
@@ -704,7 +713,19 @@
       "saveChanges": "変更を保存",
       "saving": "保存中...",
       "clickToChangePhoto": "クリックしてプロフィール画像を変更",
-      "viewPublicProfile": "公開プロフィールを表示"
+      "viewPublicProfile": "公開プロフィールを表示",
+      "syncedWithOAuth": "現在、OAuthプロバイダーと同期されています",
+      "uploading": "アップロード中...",
+      "displayNamePlaceholder": "表示名を入力",
+      "toasts": {
+        "successTitle": "完了しました",
+        "updated": "アカウント情報が更新されました。",
+        "updateFailed": "アカウント情報を更新できませんでした。",
+        "photoUploadedTitle": "写真をアップロードしました",
+        "photoUploadedDesc": "「変更を保存」をクリックしてプロフィールを更新してください。",
+        "uploadFailedTitle": "アップロードに失敗しました",
+        "uploadFailedDesc": "写真をアップロードできませんでした。もう一度お試しください。"
+      }
     },
     "emailVerification": {
       "title": "メール確認",
@@ -716,7 +737,10 @@
       "verificationSent": "確認メールを送信しました！",
       "checkEmail": "メールを確認して確認リンクをクリックしてください。",
       "pendingChange": "メール変更保留中",
-      "waitingVerification": "確認待ち"
+      "waitingVerification": "確認待ち",
+      "waitingVerificationFor": "確認待ち：{email}",
+      "unknownEmail": "不明",
+      "loadingEmail": "読み込み中..."
     },
     "passkeys": {
       "title": "パスキー",
@@ -724,7 +748,24 @@
       "addPasskey": "パスキーを追加",
       "addingPasskey": "パスキーを追加中...",
       "noPasskeys": "まだパスキーが登録されていません",
-      "addPasskeyHint": "パスワードなしで素早くログインするためにパスキーを追加"
+      "addPasskeyHint": "パスワードなしで素早くログインするためにパスキーを追加",
+      "loading": "パスキーを読み込み中...",
+      "fallbackName": "パスキー",
+      "added": "{date}に追加",
+      "synced": "同期済み",
+      "tipBiometrics": "パスキーは生体認証またはデバイスのPINで認証します",
+      "tipSynced": "同期されたパスキーは、お使いのデバイス間で自動的に使えます",
+      "tipSecure": "パスワードより安全で、フィッシングに強い",
+      "toasts": {
+        "addedTitle": "パスキーを追加しました",
+        "addedDesc": "新しいパスキーが登録されました。",
+        "renamedTitle": "パスキーの名前を変更しました",
+        "renamedDesc": "パスキーの名前が変更されました。",
+        "renameFailed": "パスキーの名前を変更できませんでした。",
+        "deletedTitle": "パスキーを削除しました",
+        "deletedDesc": "パスキーが削除されました。",
+        "deleteFailed": "パスキーを削除できませんでした。"
+      }
     },
     "accountInfo": {
       "title": "アカウント情報",
@@ -759,7 +800,8 @@
       "confirmDescription": "この操作は永続的で元に戻せません。",
       "typeToConfirm": "確認のために {phrase} と入力",
       "permanentlyDelete": "アカウントを完全に削除",
-      "deleting": "削除中..."
+      "deleting": "削除中...",
+      "dialogWarning": "タスク、リスト、ファイルを含むすべてのデータが完全に削除されます。"
     },
     "appearancePage": {
       "title": "外観とユーザー体験",
@@ -781,7 +823,8 @@
         "viewShortcuts": "ショートカットを見る",
         "viewTitle": "キーボードショートカットを見る",
         "viewDesc": "効率的なタスク管理のために利用可能なすべてのキーボードショートカットを見る",
-        "quickAccess": "タスクマネージャーのどこでも?を押してキーボードショートカットを開きます。"
+        "quickAccess": "タスクマネージャーのどこでも?を押してキーボードショートカットを開きます。",
+        "quickAccessLabel": "クイックアクセス"
       },
       "taskDisplayMode": {
         "title": "タスク詳細のレイアウト",
@@ -822,6 +865,22 @@
         "configure": "メール設定を構成",
         "configureDesc": "デフォルトの期限日をカスタマイズ、機能の有効化/無効化など",
         "proTip": "メールの件名がタスクのタイトルになり、本文が説明になります。受信トレイからの素早いタスク取り込みに最適！"
+      },
+      "tipLabel": "ヒント",
+      "smartTasks": {
+        "title": "スマートタスク作成",
+        "description": "タスクのタイトルから日付、優先度、リストのハッシュタグを自動的に読み取ります",
+        "enable": "スマート解析を有効にする",
+        "enableDesc": "自然な文章の入力からタスクの情報を抽出します",
+        "supportedPatterns": "対応パターン："
+      },
+      "subtasks": {
+        "title": "サブタスク",
+        "description": "リストでのサブタスクの表示方法（デバイス間で同期）",
+        "label": "サブタスクを表示",
+        "labelDesc": "リスト内でインデント表示、または親タスク内のみ",
+        "indented": "リスト内にインデント表示",
+        "underParent": "親タスク内のみ"
       }
     },
     "aiIntegrations": {
@@ -1008,7 +1067,9 @@
       "developer": {
         "title": "開発者",
         "description": "OAuth アプリを手動で作成し、API をテストし、OpenAPI 対応のアシスタントを接続します。",
-        "openTester": "API テスターを開く"
+        "openTester": "API テスターを開く",
+        "apiDocs": "APIドキュメント",
+        "integrationGuide": "連携ガイド"
       },
       "github": {
         "title": "GitHub",
@@ -1072,6 +1133,49 @@
         "selectAtLeastOne": "スコープを1つ以上選択してください",
         "selectApp": "アプリを選択してください。"
       }
+    },
+    "openInNewTab": "新しいタブで開く",
+    "githubSetup": {
+      "loading": "GitHubのセットアップを読み込み中...",
+      "authenticating": "認証中...",
+      "failedTitle": "セットアップに失敗しました",
+      "failedDescription": "GitHub連携のセットアップ中にエラーが発生しました",
+      "errorDetail": "エラー：{error}",
+      "returnToSettings": "設定に戻る",
+      "processingTitle": "GitHubのセットアップを処理中",
+      "processingDescription": "GitHubのインストールを接続中...",
+      "pleaseWait": "GitHub連携を設定しています。しばらくお待ちください...",
+      "connectedTitle": "GitHubに接続しました",
+      "connectedDescription": "GitHub連携を利用できるようになりました",
+      "connectedBody": "{appName} エージェントを使ってコードを生成し、プルリクエストを作成できるようになりました。",
+      "continueToSettings": "設定へ進む"
+    },
+    "tasksPage": {
+      "title": "タスク設定",
+      "description": "タスクのデフォルト動作とメールからタスクの設定を行います",
+      "saved": "設定を保存しました",
+      "saveFailed": "設定を保存できませんでした",
+      "emailDescription": "{inboundTaskEmail}にメールを送ってタスクを作成",
+      "enable": "メールからタスクを有効にする",
+      "enableDesc": "メールでのタスク作成を許可します",
+      "defaultDueDate": "デフォルトの期限",
+      "offset1Day": "1日",
+      "offset3Days": "3日",
+      "offset1Week": "1週間（デフォルト）",
+      "dueDateHint": "メールで作成したタスクの期限は、送信日からこの日数後になります",
+      "defaultDueTime": "デフォルトの期限時刻",
+      "time0900": "午前9:00",
+      "time1200": "午後0:00（正午）",
+      "time1700": "午後5:00（デフォルト）",
+      "time2000": "午後8:00",
+      "dueTimeHint": "メールで作成したタスクの時刻",
+      "howTo": "メールからタスクの使い方：",
+      "assignedTaskDesc": "{inboundTaskEmail}をCCに入れ、宛先（TO）は1人にする",
+      "subjectLine": "{subject}がタスクのタイトルになります",
+      "subject": "件名",
+      "bodyLine": "{body}がタスクの説明になります",
+      "body": "本文",
+      "saveSettings": "設定を保存"
     }
   },
   "projectMode": {
@@ -1162,6 +1266,76 @@
     "memberAgentAssignment": {
       "label": "メンバーはどのタスクでもエージェントに任せられる",
       "help": "このリストのメンバー全員が、自分で作成したタスクに限らず、ここにあるどのタスクにもエージェントを割り当てられます。エージェントはリスト所有者のプランで動作します。"
+    },
+    "admin": {
+      "descriptionLabel": "リストの説明",
+      "descriptionInfo": "リストの説明は、このリストで作業するAIエージェントへの指示として使われます",
+      "preview": "プレビュー",
+      "charCount": "{count}文字",
+      "noInstructionsYet": "*指示はまだありません*",
+      "instructionsPlaceholder": "このリストで作業するAIエージェントへの指示を書きます...\n\n例：\n家族の献立づくりを手伝ってください。\n\n## 目標\n- ヘルシーなレシピを提案する\n- 毎週の買い物リストを作る\n\n## 制約\n- 甲殻類は不可（アレルギー）\n- 予算：週150ドル",
+      "agentsReceive": "エージェントはこれを主なコンテキストとして受け取ります。Markdownに対応しています。",
+      "starterTemplates": "スターターテンプレート",
+      "clickToEdit": "クリックして編集",
+      "clickToAddInstructions": "クリックしてエージェントへの指示を追加...",
+      "agentsUseGuidance": "AIエージェントは、このリストのタスクに取り組む際にこれを主な指針として使います",
+      "taskCreator": "タスク作成者",
+      "memberNotFound": "メンバーが見つかりません",
+      "clickToSet": "クリックして設定...",
+      "defaultPriority": "デフォルトの優先度",
+      "defaultAssignee": "デフォルトの担当者",
+      "selectDefaultAssignee": "デフォルトの担当者を選択...",
+      "defaultWhen": "デフォルトの日時",
+      "nextWeek": "来週",
+      "noDefaultWhenButton": "デフォルトの日時なし",
+      "noDefaultWhen": "デフォルトの日時なし",
+      "defaultRepeating": "デフォルトの繰り返し",
+      "defaultWhenTime": "デフォルトの時刻",
+      "noDefaultTime": "デフォルトの時刻なし",
+      "timezone": "タイムゾーン：{timezone}",
+      "deleteList": "リストを削除",
+      "deleteConfirm": "「{name}」を削除してもよろしいですか？",
+      "deleteWarning": "この操作は元に戻せません。このリストのタスクはすべて残りますが、このリストとの関連付けは解除されます。",
+      "dontDelete": "削除しない",
+      "notConnected": "未接続です。",
+      "connect": "接続",
+      "unlink": "リンクを解除",
+      "mirrorPlaceholder": "このリストのミラー先を選択",
+      "externalSyncTitle": "外部同期",
+      "externalSyncDescription": "接続済みのアカウントを通じて、このリストを別のサービスと双方向にミラーリングします。",
+      "aiAgent": "AIエージェント",
+      "modelForList": "このリストの{appName}モデル",
+      "useAccountDefault": "アカウントのデフォルトを使用",
+      "modelHint": "このリストのチャットとコメントで{appName}を動かします。タスクに割り当てられたコーディングエージェントは、それぞれのランタイムを使い続けます。",
+      "repositoryLabel": "コーディングエージェントが作業するリポジトリ",
+      "loading": "読み込み中...",
+      "selectRepo": "リポジトリを選択",
+      "noRepositories": "リポジトリが見つかりません。GitHub Appがリポジトリにアクセスできるか確認してください。",
+      "connectGithub": "GitHubを接続すると、コーディングエージェントが作業するリポジトリを選べます — {link}",
+      "connectGithubLink": "設定 → 接続 → GitHub",
+      "runLoop": "このリストでループを実行",
+      "loopDescription": "コーディングハーネスがスケジュールに従ってこのリストを確認し、自分に割り当てられ{ready}になっているものに取り組みます。他のボードのタスクには一切触れません。",
+      "readyStatus": "Ready",
+      "descriptionHint": "エージェントはこのリストの{description}を作業指示として読みます。プロジェクト概要のように上で編集してください。",
+      "descriptionWord": "説明",
+      "listId": "リストID",
+      "copyListId": "リストIDをコピー",
+      "listIdHint": "このIDはOAuth API連携やコーディングエージェントで使用します",
+      "listName": "リスト名",
+      "statusesIntro": "Ready、Doing、Waitingは{all}のボードに適用されます。ここで追加したステータスはこのボード専用です。",
+      "statusesIntroAll": "すべて",
+      "saveName": "名前を保存",
+      "moveUp": "{name}を上へ移動",
+      "moveDown": "{name}を下へ移動",
+      "renameStatus": "{name}の名前を変更",
+      "deleteStatus": "{name}を削除",
+      "newStatusName": "新しいステータス名",
+      "renameStatusFailed": "ステータス名を変更できませんでした",
+      "reorderStatusFailed": "ステータスを並べ替えられませんでした",
+      "deleteStatusFailed": "ステータスを削除できませんでした",
+      "addStatusFailed": "ステータスを追加できませんでした",
+      "recentlyCompletedLabel": "詳細 — 最近完了したタスクの表示期間",
+      "recentlyCompletedDescription": "完了したタスクをデフォルト表示（およびボードのDone列）に表示しておく期間です。それより古い完了タスクは非表示になります。表示するには、リストを「完了」または「すべて」に切り替えてください。"
     }
   },
   "reminderSettings": {
@@ -1246,5 +1420,12 @@
       "hours": "{n} 時間",
       "days": "{n} 日"
     }
+  },
+  "richTextInput": {
+    "placeholder": "メッセージを入力...",
+    "timer": "タイマー",
+    "uploading": "アップロード中...",
+    "attachFile": "ファイルを添付",
+    "removeFile": "{name}を削除"
   }
 }

@@ -217,7 +217,10 @@
     "hoursBefore": "{count} Stunden vorher",
     "dayBefore": "1 Tag vorher",
     "daysBefore": "{count} Tage vorher",
-    "weekBefore": "1 Woche vorher"
+    "weekBefore": "1 Woche vorher",
+    "quickSelect": "Schnellauswahl:",
+    "setTime": "Zeit festlegen",
+    "selectTime": "Zeit auswählen"
   },
   "repeating": {
     "oneTimeOnly": "Nur einmal",
@@ -511,6 +514,12 @@
         "title": "GitHub-Verbindung",
         "description": "Vom Server ausgeführte Coding-Agenten nutzen die GitHub-Verbindung unter Einstellungen → Verbindungen, wo jede verbundene Organisation aufgeführt ist.",
         "open": "Verbindungen öffnen"
+      },
+      "yourAgents": {
+        "title": "Deine Agenten",
+        "description": "Lege fest, wer jeden Agenten ausführt. {astridRuns} benötigt den API-Schlüssel des jeweiligen Anbieters. {selfRuns} nutzt das Coding-Tool, für das du bereits bezahlst – natives Harness-Polling, einen Custom Agent oder einen selbst gehosteten Webhook-Server.",
+        "astridRuns": "{appName} führt ihn aus",
+        "selfRuns": "Ich führe ihn aus"
       }
     },
     "apiAccess": {
@@ -704,7 +713,19 @@
       "saveChanges": "Änderungen speichern",
       "saving": "Speichern...",
       "clickToChangePhoto": "Klicken um das Profilbild zu ändern",
-      "viewPublicProfile": "Öffentliches Profil anzeigen"
+      "viewPublicProfile": "Öffentliches Profil anzeigen",
+      "syncedWithOAuth": "Derzeit mit deinem OAuth-Anbieter synchronisiert",
+      "uploading": "Wird hochgeladen...",
+      "displayNamePlaceholder": "Anzeigenamen eingeben",
+      "toasts": {
+        "successTitle": "Erfolg!",
+        "updated": "Deine Kontoinformationen wurden aktualisiert.",
+        "updateFailed": "Kontoinformationen konnten nicht aktualisiert werden.",
+        "photoUploadedTitle": "Foto hochgeladen!",
+        "photoUploadedDesc": "Klicke auf „Änderungen speichern“, um dein Profil zu aktualisieren.",
+        "uploadFailedTitle": "Upload fehlgeschlagen",
+        "uploadFailedDesc": "Foto konnte nicht hochgeladen werden. Bitte versuche es erneut."
+      }
     },
     "emailVerification": {
       "title": "E-Mail-Verifizierung",
@@ -716,7 +737,10 @@
       "verificationSent": "Verifizierungs-E-Mail gesendet!",
       "checkEmail": "Bitte überprüfen Sie Ihre E-Mail und klicken Sie auf den Verifizierungslink.",
       "pendingChange": "E-Mail-Änderung ausstehend",
-      "waitingVerification": "Warte auf Verifizierung"
+      "waitingVerification": "Warte auf Verifizierung",
+      "waitingVerificationFor": "Warte auf Verifizierung: {email}",
+      "unknownEmail": "Unbekannt",
+      "loadingEmail": "Laden..."
     },
     "passkeys": {
       "title": "Passkeys",
@@ -724,7 +748,24 @@
       "addPasskey": "Passkey hinzufügen",
       "addingPasskey": "Passkey wird hinzugefügt...",
       "noPasskeys": "Noch keine Passkeys registriert",
-      "addPasskeyHint": "Fügen Sie einen Passkey für schnellere, passwortlose Anmeldung hinzu"
+      "addPasskeyHint": "Fügen Sie einen Passkey für schnellere, passwortlose Anmeldung hinzu",
+      "loading": "Passkeys werden geladen...",
+      "fallbackName": "Passkey",
+      "added": "Hinzugefügt am {date}",
+      "synced": "Synchronisiert",
+      "tipBiometrics": "Passkeys nutzen Biometrie oder die Geräte-PIN zur Authentifizierung",
+      "tipSynced": "Synchronisierte Passkeys funktionieren automatisch auf all deinen Geräten",
+      "tipSecure": "Sicherer als Passwörter – resistent gegen Phishing",
+      "toasts": {
+        "addedTitle": "Passkey hinzugefügt!",
+        "addedDesc": "Dein neuer Passkey wurde registriert.",
+        "renamedTitle": "Passkey umbenannt",
+        "renamedDesc": "Dein Passkey wurde umbenannt.",
+        "renameFailed": "Passkey konnte nicht umbenannt werden.",
+        "deletedTitle": "Passkey gelöscht",
+        "deletedDesc": "Dein Passkey wurde entfernt.",
+        "deleteFailed": "Passkey konnte nicht gelöscht werden."
+      }
     },
     "accountInfo": {
       "title": "Kontoinformationen",
@@ -759,7 +800,8 @@
       "confirmDescription": "Diese Aktion ist dauerhaft und kann nicht rückgängig gemacht werden.",
       "typeToConfirm": "Geben Sie {phrase} zur Bestätigung ein",
       "permanentlyDelete": "Konto dauerhaft löschen",
-      "deleting": "Löschen..."
+      "deleting": "Löschen...",
+      "dialogWarning": "Alle deine Daten werden dauerhaft gelöscht, einschließlich Aufgaben, Listen und Dateien."
     },
     "appearancePage": {
       "title": "Erscheinungsbild und Benutzererfahrung",
@@ -781,7 +823,8 @@
         "viewShortcuts": "Kürzel anzeigen",
         "viewTitle": "Tastaturkürzel anzeigen",
         "viewDesc": "Alle verfügbaren Tastaturkürzel für effiziente Aufgabenverwaltung anzeigen",
-        "quickAccess": "Drücken Sie ? irgendwo im Aufgabenmanager um die Tastaturkürzel zu öffnen."
+        "quickAccess": "Drücken Sie ? irgendwo im Aufgabenmanager um die Tastaturkürzel zu öffnen.",
+        "quickAccessLabel": "Schnellzugriff"
       },
       "taskDisplayMode": {
         "title": "Layout der Aufgabendetails",
@@ -822,6 +865,22 @@
         "configure": "E-Mail-Einstellungen konfigurieren",
         "configureDesc": "Passen Sie Standard-Fälligkeitsdaten an, aktivieren/deaktivieren Sie die Funktion und mehr",
         "proTip": "Der E-Mail-Betreff wird zum Aufgabentitel und der Text zur Beschreibung. Perfekt für schnelle Aufgabenerfassung aus Ihrem Posteingang!"
+      },
+      "tipLabel": "Profi-Tipp",
+      "smartTasks": {
+        "title": "Intelligente Aufgabenerstellung",
+        "description": "Daten, Prioritäten und Listen-Hashtags automatisch aus Aufgabentiteln erkennen",
+        "enable": "Intelligente Erkennung aktivieren",
+        "enableDesc": "Aufgabendetails aus natürlicher Spracheingabe übernehmen",
+        "supportedPatterns": "Unterstützte Muster:"
+      },
+      "subtasks": {
+        "title": "Unteraufgaben",
+        "description": "Wie Unteraufgaben in deinen Listen erscheinen (geräteübergreifend synchronisiert)",
+        "label": "Unteraufgaben anzeigen",
+        "labelDesc": "Eingerückt in Listen oder nur in der übergeordneten Aufgabe",
+        "indented": "In Listen, eingerückt",
+        "underParent": "Nur in der übergeordneten Aufgabe"
       }
     },
     "aiIntegrations": {
@@ -1008,7 +1067,9 @@
       "developer": {
         "title": "Entwickler",
         "description": "OAuth-Apps manuell erstellen, die API testen und Assistenten anbinden, die OpenAPI sprechen.",
-        "openTester": "API-Tester öffnen"
+        "openTester": "API-Tester öffnen",
+        "apiDocs": "API-Dokumentation",
+        "integrationGuide": "Integrationsleitfaden"
       },
       "github": {
         "title": "GitHub",
@@ -1072,6 +1133,49 @@
         "selectAtLeastOne": "Wähle mindestens einen Bereich aus",
         "selectApp": "Wähle eine App aus."
       }
+    },
+    "openInNewTab": "In neuem Tab öffnen",
+    "githubSetup": {
+      "loading": "GitHub-Einrichtung wird geladen...",
+      "authenticating": "Authentifizierung...",
+      "failedTitle": "Einrichtung fehlgeschlagen",
+      "failedDescription": "Beim Einrichten der GitHub-Integration ist ein Fehler aufgetreten",
+      "errorDetail": "Fehler: {error}",
+      "returnToSettings": "Zurück zu den Einstellungen",
+      "processingTitle": "GitHub-Einrichtung wird verarbeitet",
+      "processingDescription": "Deine GitHub-Installation wird verbunden...",
+      "pleaseWait": "Bitte warte, während wir deine GitHub-Integration konfigurieren...",
+      "connectedTitle": "GitHub verbunden!",
+      "connectedDescription": "Deine GitHub-Integration ist einsatzbereit",
+      "connectedBody": "Du kannst jetzt den {appName}-Agenten nutzen, um Code zu generieren und Pull Requests zu erstellen.",
+      "continueToSettings": "Weiter zu den Einstellungen"
+    },
+    "tasksPage": {
+      "title": "Aufgabeneinstellungen",
+      "description": "Standardverhalten von Aufgaben und Einstellungen für E-Mail zu Aufgabe konfigurieren",
+      "saved": "Einstellungen erfolgreich gespeichert!",
+      "saveFailed": "Einstellungen konnten nicht gespeichert werden",
+      "emailDescription": "Aufgaben per E-Mail an {inboundTaskEmail} erstellen",
+      "enable": "E-Mail zu Aufgabe aktivieren",
+      "enableDesc": "Erstellen von Aufgaben per E-Mail erlauben",
+      "defaultDueDate": "Standard-Fälligkeitsdatum",
+      "offset1Day": "1 Tag",
+      "offset3Days": "3 Tage",
+      "offset1Week": "1 Woche (Standard)",
+      "dueDateHint": "Per E-Mail erstellte Aufgaben werden so viele Tage nach dem Sendedatum fällig",
+      "defaultDueTime": "Standard-Fälligkeitszeit",
+      "time0900": "9:00 Uhr",
+      "time1200": "12:00 Uhr (Mittag)",
+      "time1700": "17:00 Uhr (Standard)",
+      "time2000": "20:00 Uhr",
+      "dueTimeHint": "Uhrzeit für per E-Mail erstellte Aufgaben",
+      "howTo": "So verwendest du E-Mail zu Aufgabe:",
+      "assignedTaskDesc": "{inboundTaskEmail} in CC setzen, mit einem Empfänger im AN-Feld",
+      "subjectLine": "{subject} wird zum Aufgabentitel",
+      "subject": "Betreff",
+      "bodyLine": "{body} wird zur Aufgabenbeschreibung",
+      "body": "Nachrichtentext",
+      "saveSettings": "Einstellungen speichern"
     }
   },
   "projectMode": {
@@ -1162,6 +1266,76 @@
     "memberAgentAssignment": {
       "label": "Mitglieder können jede Aufgabe an einen Agenten übergeben",
       "help": "Erlaubt jedem Mitglied dieser Liste, jeder Aufgabe hier einen Agenten zuzuweisen, nicht nur eigenen Aufgaben. Die Agenten laufen über die Pläne des Listeninhabers."
+    },
+    "admin": {
+      "descriptionLabel": "Listenbeschreibung",
+      "descriptionInfo": "Die Listenbeschreibung dient als Anweisung für KI-Agenten, die in dieser Liste arbeiten",
+      "preview": "Vorschau",
+      "charCount": "{count} Zeichen",
+      "noInstructionsYet": "*Noch keine Anweisungen*",
+      "instructionsPlaceholder": "Schreibe Anweisungen für KI-Agenten, die in dieser Liste arbeiten...\n\nBeispiel:\nDu hilfst unserer Familie bei der Essensplanung.\n\n## Ziele\n- Gesunde Rezepte vorschlagen\n- Wöchentliche Einkaufslisten erstellen\n\n## Leitplanken\n- Keine Schalentiere (Allergie)\n- Budget: 150 $/Woche",
+      "agentsReceive": "Agenten erhalten dies als primären Kontext. Markdown wird unterstützt.",
+      "starterTemplates": "Startvorlagen",
+      "clickToEdit": "Zum Bearbeiten klicken",
+      "clickToAddInstructions": "Klicken, um Agentenanweisungen hinzuzufügen...",
+      "agentsUseGuidance": "KI-Agenten nutzen dies als wichtigste Orientierung, wenn sie an Aufgaben in dieser Liste arbeiten",
+      "taskCreator": "Aufgabenersteller",
+      "memberNotFound": "Mitglied nicht gefunden",
+      "clickToSet": "Zum Festlegen klicken...",
+      "defaultPriority": "Standardpriorität",
+      "defaultAssignee": "Standardmäßig zugewiesen an",
+      "selectDefaultAssignee": "Standardzuweisung auswählen...",
+      "defaultWhen": "Standard-Wann",
+      "nextWeek": "Nächste Woche",
+      "noDefaultWhenButton": "Kein Standard-Wann",
+      "noDefaultWhen": "Kein Standard-Wann",
+      "defaultRepeating": "Standardwiederholung",
+      "defaultWhenTime": "Standard-Uhrzeit",
+      "noDefaultTime": "Keine Standardzeit",
+      "timezone": "Zeitzone: {timezone}",
+      "deleteList": "Liste löschen",
+      "deleteConfirm": "Möchtest du „{name}“ wirklich löschen?",
+      "deleteWarning": "Diese Aktion kann nicht rückgängig gemacht werden. Alle Aufgaben dieser Liste bleiben erhalten, sind aber nicht mehr mit dieser Liste verknüpft.",
+      "dontDelete": "Nicht löschen",
+      "notConnected": "Nicht verbunden.",
+      "connect": "Verbinden",
+      "unlink": "Verknüpfung aufheben",
+      "mirrorPlaceholder": "Wähle, wohin diese Liste gespiegelt werden soll",
+      "externalSyncTitle": "Externe Synchronisierung",
+      "externalSyncDescription": "Spiegle diese Liste über dein verbundenes Konto in einen anderen Dienst und zurück.",
+      "aiAgent": "KI-Agent",
+      "modelForList": "{appName}-Modell für diese Liste",
+      "useAccountDefault": "Kontostandard verwenden",
+      "modelHint": "Treibt {appName} im Chat und in den Kommentaren dieser Liste an. Coding-Agenten, die Aufgaben zugewiesen sind, behalten ihre eigene Laufzeitumgebung.",
+      "repositoryLabel": "Repository, in dem der Coding-Agent arbeitet",
+      "loading": "Laden...",
+      "selectRepo": "Repository auswählen",
+      "noRepositories": "Keine Repositories gefunden. Prüfe, ob die GitHub App Zugriff auf deine Repositories hat.",
+      "connectGithub": "Verbinde GitHub, um das Repository auszuwählen, in dem ein Coding-Agent arbeitet – {link}",
+      "connectGithubLink": "Einstellungen → Verbindungen → GitHub",
+      "runLoop": "Eine Schleife für diese Liste ausführen",
+      "loopDescription": "Dein Coding-Harness prüft diese Liste nach Zeitplan und bearbeitet alles, was ihm zugewiesen und als {ready} markiert ist. Aufgaben auf anderen Boards werden nie angefasst.",
+      "readyStatus": "Ready",
+      "descriptionHint": "Agenten lesen die {description} dieser Liste als Arbeitsanweisung – bearbeite sie oben wie ein Projektbriefing.",
+      "descriptionWord": "Beschreibung",
+      "listId": "Listen-ID",
+      "copyListId": "Listen-ID kopieren",
+      "listIdHint": "Verwende diese ID für OAuth-API-Integrationen und Coding-Agenten",
+      "listName": "Listenname",
+      "statusesIntro": "Ready, Doing und Waiting gelten für {all} deine Boards. Ein Status, den du hier hinzufügst, gehört nur zu diesem Board.",
+      "statusesIntroAll": "alle",
+      "saveName": "Namen speichern",
+      "moveUp": "{name} nach oben verschieben",
+      "moveDown": "{name} nach unten verschieben",
+      "renameStatus": "{name} umbenennen",
+      "deleteStatus": "{name} löschen",
+      "newStatusName": "Name des neuen Status",
+      "renameStatusFailed": "Status konnte nicht umbenannt werden",
+      "reorderStatusFailed": "Status konnte nicht neu angeordnet werden",
+      "deleteStatusFailed": "Status konnte nicht gelöscht werden",
+      "addStatusFailed": "Status konnte nicht hinzugefügt werden",
+      "recentlyCompletedLabel": "Erweitert – Zeitfenster für kürzlich Erledigtes",
+      "recentlyCompletedDescription": "Wie lange erledigte Aufgaben in der Standardansicht (und in der Done-Spalte auf Boards) sichtbar bleiben. Ältere erledigte Aufgaben werden ausgeblendet; stelle die Liste auf „Erledigt“ oder „Alle“ um, um sie zu sehen."
     }
   },
   "reminderSettings": {
@@ -1246,5 +1420,12 @@
       "hours": "{n} Std.",
       "days": "{n} T."
     }
+  },
+  "richTextInput": {
+    "placeholder": "Nachricht eingeben...",
+    "timer": "Timer",
+    "uploading": "Wird hochgeladen...",
+    "attachFile": "Datei anhängen",
+    "removeFile": "{name} entfernen"
   }
 }

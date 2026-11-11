@@ -217,7 +217,10 @@
     "hoursBefore": "{count} horas antes",
     "dayBefore": "1 día antes",
     "daysBefore": "{count} días antes",
-    "weekBefore": "1 semana antes"
+    "weekBefore": "1 semana antes",
+    "quickSelect": "Selección rápida:",
+    "setTime": "Establecer hora",
+    "selectTime": "Seleccionar hora"
   },
   "repeating": {
     "oneTimeOnly": "Solo una vez",
@@ -511,6 +514,12 @@
         "title": "Conexión con GitHub",
         "description": "Los agentes de código que se ejecutan en el servidor usan la conexión con GitHub de Ajustes → Conexiones, donde aparece cada organización conectada.",
         "open": "Abrir Conexiones"
+      },
+      "yourAgents": {
+        "title": "Tus agentes",
+        "description": "Elige quién ejecuta cada agente. {astridRuns} necesita la clave de API de ese proveedor. {selfRuns} usa la herramienta de programación que ya pagas: sondeo nativo del harness, un agente personalizado o un servidor de webhooks que tú alojas.",
+        "astridRuns": "{appName} lo ejecuta",
+        "selfRuns": "Lo ejecuto yo"
       }
     },
     "apiAccess": {
@@ -704,7 +713,19 @@
       "saveChanges": "Guardar Cambios",
       "saving": "Guardando...",
       "clickToChangePhoto": "Haz clic para cambiar la foto de perfil",
-      "viewPublicProfile": "Ver Perfil Público"
+      "viewPublicProfile": "Ver Perfil Público",
+      "syncedWithOAuth": "Sincronizado actualmente con tu proveedor de OAuth",
+      "uploading": "Subiendo...",
+      "displayNamePlaceholder": "Introduce tu nombre para mostrar",
+      "toasts": {
+        "successTitle": "¡Listo!",
+        "updated": "La información de tu cuenta se ha actualizado.",
+        "updateFailed": "No se pudo actualizar la información de la cuenta.",
+        "photoUploadedTitle": "¡Foto subida!",
+        "photoUploadedDesc": "Haz clic en «Guardar Cambios» para actualizar tu perfil.",
+        "uploadFailedTitle": "Error al subir",
+        "uploadFailedDesc": "No se pudo subir la foto. Inténtalo de nuevo."
+      }
     },
     "emailVerification": {
       "title": "Verificación de Correo",
@@ -716,7 +737,10 @@
       "verificationSent": "¡Correo de Verificación Enviado!",
       "checkEmail": "Por favor revisa tu correo y haz clic en el enlace de verificación.",
       "pendingChange": "Cambio de correo pendiente",
-      "waitingVerification": "Esperando verificación"
+      "waitingVerification": "Esperando verificación",
+      "waitingVerificationFor": "Esperando verificación: {email}",
+      "unknownEmail": "Desconocido",
+      "loadingEmail": "Cargando..."
     },
     "passkeys": {
       "title": "Passkeys",
@@ -724,7 +748,24 @@
       "addPasskey": "Agregar Passkey",
       "addingPasskey": "Agregando passkey...",
       "noPasskeys": "No hay passkeys registradas aún",
-      "addPasskeyHint": "Agrega una passkey para iniciar sesión más rápido sin contraseña"
+      "addPasskeyHint": "Agrega una passkey para iniciar sesión más rápido sin contraseña",
+      "loading": "Cargando passkeys...",
+      "fallbackName": "Passkey",
+      "added": "Añadida el {date}",
+      "synced": "Sincronizada",
+      "tipBiometrics": "Las passkeys usan datos biométricos o el PIN del dispositivo para autenticarte",
+      "tipSynced": "Las passkeys sincronizadas funcionan automáticamente en todos tus dispositivos",
+      "tipSecure": "Más seguras que las contraseñas: resistentes al phishing",
+      "toasts": {
+        "addedTitle": "¡Passkey agregada!",
+        "addedDesc": "Tu nueva passkey se ha registrado.",
+        "renamedTitle": "Passkey renombrada",
+        "renamedDesc": "Tu passkey se ha renombrado.",
+        "renameFailed": "No se pudo renombrar la passkey.",
+        "deletedTitle": "Passkey eliminada",
+        "deletedDesc": "Tu passkey se ha eliminado.",
+        "deleteFailed": "No se pudo eliminar la passkey."
+      }
     },
     "accountInfo": {
       "title": "Información de la Cuenta",
@@ -759,7 +800,8 @@
       "confirmDescription": "Esta acción es permanente y no se puede revertir.",
       "typeToConfirm": "Escribe {phrase} para confirmar",
       "permanentlyDelete": "Eliminar Cuenta Permanentemente",
-      "deleting": "Eliminando..."
+      "deleting": "Eliminando...",
+      "dialogWarning": "Todos tus datos se eliminarán de forma permanente, incluidas tareas, listas y archivos."
     },
     "appearancePage": {
       "title": "Apariencia y Experiencia de Usuario",
@@ -781,7 +823,8 @@
         "viewShortcuts": "Ver Atajos",
         "viewTitle": "Ver Atajos de Teclado",
         "viewDesc": "Ve todos los atajos de teclado disponibles para gestión eficiente de tareas",
-        "quickAccess": "Presiona ? en cualquier lugar del gestor de tareas para abrir atajos de teclado."
+        "quickAccess": "Presiona ? en cualquier lugar del gestor de tareas para abrir atajos de teclado.",
+        "quickAccessLabel": "Acceso rápido"
       },
       "taskDisplayMode": {
         "title": "Diseño del detalle de tarea",
@@ -822,6 +865,22 @@
         "configure": "Configurar Ajustes de Correo",
         "configureDesc": "Personaliza fechas límite predeterminadas, habilita/deshabilita la función y más",
         "proTip": "El asunto del correo se convierte en el título de tu tarea, y el cuerpo en la descripción. ¡Perfecto para captura rápida de tareas desde tu bandeja de entrada!"
+      },
+      "tipLabel": "Consejo",
+      "smartTasks": {
+        "title": "Creación inteligente de tareas",
+        "description": "Detecta automáticamente fechas, prioridades y hashtags de listas en los títulos de las tareas",
+        "enable": "Activar el análisis inteligente",
+        "enableDesc": "Extrae los datos de la tarea a partir de texto en lenguaje natural",
+        "supportedPatterns": "Patrones compatibles:"
+      },
+      "subtasks": {
+        "title": "Subtareas",
+        "description": "Cómo aparecen las subtareas en tus listas (sincronizado entre dispositivos)",
+        "label": "Mostrar subtareas",
+        "labelDesc": "Con sangría en las listas o solo dentro de la tarea principal",
+        "indented": "En las listas, con sangría",
+        "underParent": "Solo dentro de la tarea principal"
       }
     },
     "aiIntegrations": {
@@ -1008,7 +1067,9 @@
       "developer": {
         "title": "Desarrollador",
         "description": "Crea apps OAuth a mano, prueba la API y conecta asistentes que hablen OpenAPI.",
-        "openTester": "Abrir probador de API"
+        "openTester": "Abrir probador de API",
+        "apiDocs": "Documentación de la API",
+        "integrationGuide": "Guía de integración"
       },
       "github": {
         "title": "GitHub",
@@ -1072,6 +1133,49 @@
         "selectAtLeastOne": "Selecciona al menos un alcance",
         "selectApp": "Selecciona una aplicación."
       }
+    },
+    "openInNewTab": "Abrir en una pestaña nueva",
+    "githubSetup": {
+      "loading": "Cargando la configuración de GitHub...",
+      "authenticating": "Autenticando...",
+      "failedTitle": "Error en la configuración",
+      "failedDescription": "Se produjo un error al configurar la integración con GitHub",
+      "errorDetail": "Error: {error}",
+      "returnToSettings": "Volver a Configuración",
+      "processingTitle": "Procesando la configuración de GitHub",
+      "processingDescription": "Conectando tu instalación de GitHub...",
+      "pleaseWait": "Espera mientras configuramos tu integración con GitHub...",
+      "connectedTitle": "¡GitHub conectado!",
+      "connectedDescription": "Tu integración con GitHub está lista para usar",
+      "connectedBody": "Ya puedes usar el agente de {appName} para generar código y crear pull requests.",
+      "continueToSettings": "Continuar a Configuración"
+    },
+    "tasksPage": {
+      "title": "Configuración de tareas",
+      "description": "Configura el comportamiento predeterminado de las tareas y las preferencias de correo a tarea",
+      "saved": "¡Configuración guardada correctamente!",
+      "saveFailed": "No se pudo guardar la configuración",
+      "emailDescription": "Crea tareas enviando correos a {inboundTaskEmail}",
+      "enable": "Activar Correo a Tarea",
+      "enableDesc": "Permite crear tareas por correo electrónico",
+      "defaultDueDate": "Fecha límite predeterminada",
+      "offset1Day": "1 día",
+      "offset3Days": "3 días",
+      "offset1Week": "1 semana (predeterminado)",
+      "dueDateHint": "Las tareas creadas por correo vencerán este número de días después de la fecha de envío",
+      "defaultDueTime": "Hora límite predeterminada",
+      "time0900": "9:00",
+      "time1200": "12:00 (mediodía)",
+      "time1700": "17:00 (predeterminado)",
+      "time2000": "20:00",
+      "dueTimeHint": "Hora del día para las tareas creadas por correo",
+      "howTo": "Cómo usar Correo a Tarea:",
+      "assignedTaskDesc": "Pon en CC a {inboundTaskEmail} con un destinatario en PARA",
+      "subjectLine": "{subject} se convierte en el título de la tarea",
+      "subject": "El asunto",
+      "bodyLine": "{body} se convierte en la descripción de la tarea",
+      "body": "El cuerpo",
+      "saveSettings": "Guardar configuración"
     }
   },
   "projectMode": {
@@ -1162,6 +1266,76 @@
     "memberAgentAssignment": {
       "label": "Los miembros pueden pasar cualquier tarea a un agente",
       "help": "Permite a cualquier miembro de esta lista asignar un agente a cualquier tarea, no solo a las que creó. Los agentes usan los planes del propietario de la lista."
+    },
+    "admin": {
+      "descriptionLabel": "Descripción de la lista",
+      "descriptionInfo": "La descripción de la lista se usa como instrucciones para los agentes de IA que trabajan en esta lista",
+      "preview": "Vista previa",
+      "charCount": "{count} caracteres",
+      "noInstructionsYet": "*Aún no hay instrucciones*",
+      "instructionsPlaceholder": "Escribe instrucciones para los agentes de IA que trabajan en esta lista...\n\nEjemplo:\nAyudas a nuestra familia a planificar las comidas.\n\n## Objetivos\n- Sugerir recetas saludables\n- Crear listas de la compra semanales\n\n## Límites\n- Sin marisco (alergia)\n- Presupuesto: 150 $/semana",
+      "agentsReceive": "Los agentes reciben esto como su contexto principal. Admite markdown.",
+      "starterTemplates": "Plantillas iniciales",
+      "clickToEdit": "Haz clic para editar",
+      "clickToAddInstructions": "Haz clic para añadir instrucciones para agentes...",
+      "agentsUseGuidance": "Los agentes de IA usan esto como guía principal al trabajar en las tareas de esta lista",
+      "taskCreator": "Creador de la tarea",
+      "memberNotFound": "Miembro no encontrado",
+      "clickToSet": "Haz clic para establecer...",
+      "defaultPriority": "Prioridad predeterminada",
+      "defaultAssignee": "Responsable predeterminado",
+      "selectDefaultAssignee": "Selecciona el responsable predeterminado...",
+      "defaultWhen": "Cuándo predeterminado",
+      "nextWeek": "Próxima semana",
+      "noDefaultWhenButton": "Sin cuándo predeterminado",
+      "noDefaultWhen": "Sin cuándo predeterminado",
+      "defaultRepeating": "Repetición predeterminada",
+      "defaultWhenTime": "Hora predeterminada",
+      "noDefaultTime": "Sin hora predeterminada",
+      "timezone": "Zona horaria: {timezone}",
+      "deleteList": "Eliminar lista",
+      "deleteConfirm": "¿Seguro que quieres eliminar «{name}»?",
+      "deleteWarning": "Esta acción no se puede deshacer. Todas las tareas de esta lista se conservarán, pero dejarán de estar asociadas a ella.",
+      "dontDelete": "No eliminar",
+      "notConnected": "No conectado.",
+      "connect": "Conectar",
+      "unlink": "Desvincular",
+      "mirrorPlaceholder": "Elige dónde reflejar esta lista",
+      "externalSyncTitle": "Sincronización externa",
+      "externalSyncDescription": "Refleja esta lista en otro servicio y viceversa, mediante tu cuenta conectada.",
+      "aiAgent": "Agente de IA",
+      "modelForList": "Modelo de {appName} para esta lista",
+      "useAccountDefault": "Usar el valor predeterminado de la cuenta",
+      "modelHint": "Impulsa a {appName} en el chat y los comentarios de esta lista. Los agentes de código asignados a tareas mantienen su propio entorno de ejecución.",
+      "repositoryLabel": "Repositorio en el que trabaja el agente de código",
+      "loading": "Cargando...",
+      "selectRepo": "Seleccionar repositorio",
+      "noRepositories": "No se encontraron repositorios. Comprueba que la GitHub App tenga acceso a tus repositorios.",
+      "connectGithub": "Conecta GitHub para elegir el repositorio en el que trabaja un agente de código: {link}",
+      "connectGithubLink": "Configuración → Conexiones → GitHub",
+      "runLoop": "Ejecutar un bucle para esta lista",
+      "loopDescription": "Tu harness de programación revisa esta lista de forma programada y trabaja en todo lo que tenga asignado y esté marcado como {ready}. Las tareas de otros tableros nunca se tocan.",
+      "readyStatus": "Ready",
+      "descriptionHint": "Los agentes leen la {description} de esta lista como sus instrucciones de trabajo: edítala arriba como si fuera un brief de proyecto.",
+      "descriptionWord": "descripción",
+      "listId": "ID de la lista",
+      "copyListId": "Copiar ID de la lista",
+      "listIdHint": "Usa este ID para integraciones de API con OAuth y agentes de código",
+      "listName": "Nombre de lista",
+      "statusesIntro": "Ready, Doing y Waiting se aplican a {all} tus tableros. Un estado que añadas aquí pertenece solo a este tablero.",
+      "statusesIntroAll": "todos",
+      "saveName": "Guardar nombre",
+      "moveUp": "Mover {name} hacia arriba",
+      "moveDown": "Mover {name} hacia abajo",
+      "renameStatus": "Renombrar {name}",
+      "deleteStatus": "Eliminar {name}",
+      "newStatusName": "Nombre del nuevo estado",
+      "renameStatusFailed": "No se pudo renombrar el estado",
+      "reorderStatusFailed": "No se pudo reordenar el estado",
+      "deleteStatusFailed": "No se pudo eliminar el estado",
+      "addStatusFailed": "No se pudo añadir el estado",
+      "recentlyCompletedLabel": "Avanzado: ventana de completadas recientemente",
+      "recentlyCompletedDescription": "Cuánto tiempo permanecen visibles las tareas completadas en la vista predeterminada (y en la columna Done de los tableros). Las tareas completadas más antiguas se filtran; cambia la lista a «Completadas» o «Todas» para verlas."
     }
   },
   "reminderSettings": {
@@ -1246,5 +1420,12 @@
       "hours": "{n} h",
       "days": "{n} d"
     }
+  },
+  "richTextInput": {
+    "placeholder": "Escribe un mensaje...",
+    "timer": "Temporizador",
+    "uploading": "Subiendo...",
+    "attachFile": "Adjuntar archivo",
+    "removeFile": "Quitar {name}"
   }
 }

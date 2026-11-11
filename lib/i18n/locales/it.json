@@ -217,7 +217,10 @@
     "hoursBefore": "{count} ore prima",
     "dayBefore": "1 giorno prima",
     "daysBefore": "{count} giorni prima",
-    "weekBefore": "1 settimana prima"
+    "weekBefore": "1 settimana prima",
+    "quickSelect": "Selezione rapida:",
+    "setTime": "Imposta ora",
+    "selectTime": "Seleziona ora"
   },
   "repeating": {
     "oneTimeOnly": "Solo una volta",
@@ -511,6 +514,12 @@
         "title": "Connessione GitHub",
         "description": "Gli agenti di codice eseguiti sul server usano la connessione GitHub in Impostazioni → Connessioni, dove è elencata ogni organizzazione collegata.",
         "open": "Apri Connessioni"
+      },
+      "yourAgents": {
+        "title": "I tuoi agenti",
+        "description": "Scegli chi esegue ogni agente. {astridRuns} richiede la chiave API di quel provider. {selfRuns} usa lo strumento di programmazione che già paghi: polling nativo dell'harness, un Custom Agent o un server webhook ospitato da te.",
+        "astridRuns": "Lo esegue {appName}",
+        "selfRuns": "Lo eseguo io"
       }
     },
     "apiAccess": {
@@ -704,7 +713,19 @@
       "saveChanges": "Salva Modifiche",
       "saving": "Salvataggio...",
       "clickToChangePhoto": "Clicca per cambiare la foto profilo",
-      "viewPublicProfile": "Vedi Profilo Pubblico"
+      "viewPublicProfile": "Vedi Profilo Pubblico",
+      "syncedWithOAuth": "Attualmente sincronizzato con il tuo provider OAuth",
+      "uploading": "Caricamento...",
+      "displayNamePlaceholder": "Inserisci il tuo nome visualizzato",
+      "toasts": {
+        "successTitle": "Fatto!",
+        "updated": "Le informazioni del tuo account sono state aggiornate.",
+        "updateFailed": "Impossibile aggiornare le informazioni dell'account.",
+        "photoUploadedTitle": "Foto caricata!",
+        "photoUploadedDesc": "Fai clic su «Salva Modifiche» per aggiornare il tuo profilo.",
+        "uploadFailedTitle": "Caricamento non riuscito",
+        "uploadFailedDesc": "Impossibile caricare la foto. Riprova."
+      }
     },
     "emailVerification": {
       "title": "Verifica Email",
@@ -716,7 +737,10 @@
       "verificationSent": "Email di Verifica Inviata!",
       "checkEmail": "Per favore controlla la tua email e clicca sul link di verifica.",
       "pendingChange": "Cambio email in sospeso",
-      "waitingVerification": "In attesa di verifica"
+      "waitingVerification": "In attesa di verifica",
+      "waitingVerificationFor": "In attesa di verifica: {email}",
+      "unknownEmail": "Sconosciuto",
+      "loadingEmail": "Caricamento..."
     },
     "passkeys": {
       "title": "Passkey",
@@ -724,7 +748,24 @@
       "addPasskey": "Aggiungi Passkey",
       "addingPasskey": "Aggiunta passkey...",
       "noPasskeys": "Nessuna passkey registrata ancora",
-      "addPasskeyHint": "Aggiungi una passkey per un accesso più veloce senza password"
+      "addPasskeyHint": "Aggiungi una passkey per un accesso più veloce senza password",
+      "loading": "Caricamento passkey...",
+      "fallbackName": "Passkey",
+      "added": "Aggiunta il {date}",
+      "synced": "Sincronizzata",
+      "tipBiometrics": "Le passkey usano la biometria o il PIN del dispositivo per l'autenticazione",
+      "tipSynced": "Le passkey sincronizzate funzionano automaticamente su tutti i tuoi dispositivi",
+      "tipSecure": "Più sicure delle password: resistenti al phishing",
+      "toasts": {
+        "addedTitle": "Passkey aggiunta!",
+        "addedDesc": "La tua nuova passkey è stata registrata.",
+        "renamedTitle": "Passkey rinominata",
+        "renamedDesc": "La tua passkey è stata rinominata.",
+        "renameFailed": "Impossibile rinominare la passkey.",
+        "deletedTitle": "Passkey eliminata",
+        "deletedDesc": "La tua passkey è stata rimossa.",
+        "deleteFailed": "Impossibile eliminare la passkey."
+      }
     },
     "accountInfo": {
       "title": "Informazioni Account",
@@ -759,7 +800,8 @@
       "confirmDescription": "Questa azione è permanente e non può essere annullata.",
       "typeToConfirm": "Digita {phrase} per confermare",
       "permanentlyDelete": "Elimina Permanentemente Account",
-      "deleting": "Eliminazione..."
+      "deleting": "Eliminazione...",
+      "dialogWarning": "Tutti i tuoi dati verranno eliminati definitivamente, inclusi attività, liste e file."
     },
     "appearancePage": {
       "title": "Aspetto ed Esperienza Utente",
@@ -781,7 +823,8 @@
         "viewShortcuts": "Vedi Scorciatoie",
         "viewTitle": "Vedi Scorciatoie da Tastiera",
         "viewDesc": "Vedi tutte le scorciatoie da tastiera disponibili per una gestione efficiente delle attività",
-        "quickAccess": "Premi ? ovunque nel gestore attività per aprire le scorciatoie da tastiera."
+        "quickAccess": "Premi ? ovunque nel gestore attività per aprire le scorciatoie da tastiera.",
+        "quickAccessLabel": "Accesso rapido"
       },
       "taskDisplayMode": {
         "title": "Layout dei dettagli attività",
@@ -822,6 +865,22 @@
         "configure": "Configura Impostazioni Email",
         "configureDesc": "Personalizza date di scadenza predefinite, abilita/disabilita la funzione e altro",
         "proTip": "L'oggetto dell'email diventa il titolo della tua attività, e il corpo diventa la descrizione. Perfetto per catturare velocemente attività dalla tua casella di posta!"
+      },
+      "tipLabel": "Suggerimento",
+      "smartTasks": {
+        "title": "Creazione intelligente delle attività",
+        "description": "Riconosci automaticamente date, priorità e hashtag delle liste dai titoli delle attività",
+        "enable": "Attiva il riconoscimento intelligente",
+        "enableDesc": "Estrai i dettagli dell'attività dal testo in linguaggio naturale",
+        "supportedPatterns": "Formati supportati:"
+      },
+      "subtasks": {
+        "title": "Sottoattività",
+        "description": "Come appaiono le sottoattività nelle tue liste (sincronizzato tra dispositivi)",
+        "label": "Mostra sottoattività",
+        "labelDesc": "Rientrate nelle liste o solo all'interno dell'attività principale",
+        "indented": "Nelle liste, rientrate",
+        "underParent": "Solo nell'attività principale"
       }
     },
     "aiIntegrations": {
@@ -1008,7 +1067,9 @@
       "developer": {
         "title": "Sviluppatore",
         "description": "Crea app OAuth manualmente, testa l’API e collega assistenti che parlano OpenAPI.",
-        "openTester": "Apri tester API"
+        "openTester": "Apri tester API",
+        "apiDocs": "Documentazione API",
+        "integrationGuide": "Guida all'integrazione"
       },
       "github": {
         "title": "GitHub",
@@ -1072,6 +1133,49 @@
         "selectAtLeastOne": "Seleziona almeno un ambito",
         "selectApp": "Seleziona un'app."
       }
+    },
+    "openInNewTab": "Apri in una nuova scheda",
+    "githubSetup": {
+      "loading": "Caricamento della configurazione di GitHub...",
+      "authenticating": "Autenticazione...",
+      "failedTitle": "Configurazione non riuscita",
+      "failedDescription": "Si è verificato un errore durante la configurazione dell'integrazione con GitHub",
+      "errorDetail": "Errore: {error}",
+      "returnToSettings": "Torna alle impostazioni",
+      "processingTitle": "Configurazione di GitHub in corso",
+      "processingDescription": "Collegamento della tua installazione GitHub...",
+      "pleaseWait": "Attendi mentre configuriamo la tua integrazione con GitHub...",
+      "connectedTitle": "GitHub collegato!",
+      "connectedDescription": "La tua integrazione con GitHub è pronta all'uso",
+      "connectedBody": "Ora puoi usare l'agente {appName} per generare codice e creare pull request.",
+      "continueToSettings": "Continua alle impostazioni"
+    },
+    "tasksPage": {
+      "title": "Impostazioni Attività",
+      "description": "Configura il comportamento predefinito delle attività e le preferenze di email a attività",
+      "saved": "Impostazioni salvate correttamente!",
+      "saveFailed": "Impossibile salvare le impostazioni",
+      "emailDescription": "Crea attività inviando email a {inboundTaskEmail}",
+      "enable": "Attiva Email a Attività",
+      "enableDesc": "Consenti la creazione di attività via email",
+      "defaultDueDate": "Scadenza predefinita",
+      "offset1Day": "1 giorno",
+      "offset3Days": "3 giorni",
+      "offset1Week": "1 settimana (predefinito)",
+      "dueDateHint": "Le attività create via email scadranno dopo questo numero di giorni dalla data di invio",
+      "defaultDueTime": "Orario di scadenza predefinito",
+      "time0900": "9:00",
+      "time1200": "12:00 (mezzogiorno)",
+      "time1700": "17:00 (predefinito)",
+      "time2000": "20:00",
+      "dueTimeHint": "Ora del giorno per le attività create via email",
+      "howTo": "Come usare Email a Attività:",
+      "assignedTaskDesc": "Metti in CC {inboundTaskEmail} con un destinatario in A",
+      "subjectLine": "{subject} diventa il titolo dell'attività",
+      "subject": "L'oggetto",
+      "bodyLine": "{body} diventa la descrizione dell'attività",
+      "body": "Il corpo",
+      "saveSettings": "Salva impostazioni"
     }
   },
   "projectMode": {
@@ -1162,6 +1266,76 @@
     "memberAgentAssignment": {
       "label": "I membri possono affidare qualsiasi attività a un agente",
       "help": "Consente a ogni membro di questa lista di assegnare un agente a qualsiasi attività, non solo a quelle create da lui. Gli agenti usano i piani del proprietario della lista."
+    },
+    "admin": {
+      "descriptionLabel": "Descrizione della lista",
+      "descriptionInfo": "La descrizione della lista viene usata come istruzioni per gli agenti IA che lavorano in questa lista",
+      "preview": "Anteprima",
+      "charCount": "{count} caratteri",
+      "noInstructionsYet": "*Ancora nessuna istruzione*",
+      "instructionsPlaceholder": "Scrivi le istruzioni per gli agenti IA che lavorano in questa lista...\n\nEsempio:\nAiuti la nostra famiglia a pianificare i pasti.\n\n## Obiettivi\n- Suggerire ricette sane\n- Creare liste della spesa settimanali\n\n## Limiti\n- Niente crostacei (allergia)\n- Budget: 150 $/settimana",
+      "agentsReceive": "Gli agenti lo ricevono come contesto principale. Supporta markdown.",
+      "starterTemplates": "Modelli iniziali",
+      "clickToEdit": "Fai clic per modificare",
+      "clickToAddInstructions": "Fai clic per aggiungere istruzioni per gli agenti...",
+      "agentsUseGuidance": "Gli agenti IA lo usano come guida principale quando lavorano alle attività di questa lista",
+      "taskCreator": "Creatore dell'attività",
+      "memberNotFound": "Membro non trovato",
+      "clickToSet": "Fai clic per impostare...",
+      "defaultPriority": "Priorità predefinita",
+      "defaultAssignee": "Assegnatario predefinito",
+      "selectDefaultAssignee": "Seleziona l'assegnatario predefinito...",
+      "defaultWhen": "Quando predefinito",
+      "nextWeek": "Prossima settimana",
+      "noDefaultWhenButton": "Nessun quando predefinito",
+      "noDefaultWhen": "Nessun quando predefinito",
+      "defaultRepeating": "Ripetizione predefinita",
+      "defaultWhenTime": "Orario predefinito",
+      "noDefaultTime": "Nessun orario predefinito",
+      "timezone": "Fuso orario: {timezone}",
+      "deleteList": "Elimina lista",
+      "deleteConfirm": "Vuoi davvero eliminare «{name}»?",
+      "deleteWarning": "Questa azione non può essere annullata. Tutte le attività di questa lista rimarranno, ma non saranno più associate a questa lista.",
+      "dontDelete": "Non eliminare",
+      "notConnected": "Non collegato.",
+      "connect": "Collega",
+      "unlink": "Scollega",
+      "mirrorPlaceholder": "Scegli dove replicare questa lista",
+      "externalSyncTitle": "Sincronizzazione esterna",
+      "externalSyncDescription": "Replica questa lista su un altro servizio e viceversa, tramite il tuo account collegato.",
+      "aiAgent": "Agente IA",
+      "modelForList": "Modello di {appName} per questa lista",
+      "useAccountDefault": "Usa l'impostazione predefinita dell'account",
+      "modelHint": "Alimenta {appName} nella chat e nei commenti di questa lista. Gli agenti di codice assegnati alle attività mantengono il proprio runtime.",
+      "repositoryLabel": "Repository in cui lavora l'agente di codice",
+      "loading": "Caricamento...",
+      "selectRepo": "Seleziona repository",
+      "noRepositories": "Nessun repository trovato. Verifica che la GitHub App abbia accesso ai tuoi repository.",
+      "connectGithub": "Collega GitHub per scegliere il repository in cui lavora un agente di codice: {link}",
+      "connectGithubLink": "Impostazioni → Connessioni → GitHub",
+      "runLoop": "Esegui un loop per questa lista",
+      "loopDescription": "Il tuo harness di programmazione controlla questa lista a intervalli programmati e lavora su tutto ciò che gli è assegnato ed è contrassegnato come {ready}. Le attività di altre bacheche non vengono mai toccate.",
+      "readyStatus": "Ready",
+      "descriptionHint": "Gli agenti leggono la {description} di questa lista come istruzioni di lavoro: modificala qui sopra come un brief di progetto.",
+      "descriptionWord": "descrizione",
+      "listId": "ID lista",
+      "copyListId": "Copia ID lista",
+      "listIdHint": "Usa questo ID per le integrazioni API OAuth e gli agenti di codice",
+      "listName": "Nome lista",
+      "statusesIntro": "Ready, Doing e Waiting si applicano a {all} le tue bacheche. Uno stato aggiunto qui appartiene solo a questa bacheca.",
+      "statusesIntroAll": "tutte",
+      "saveName": "Salva nome",
+      "moveUp": "Sposta {name} su",
+      "moveDown": "Sposta {name} giù",
+      "renameStatus": "Rinomina {name}",
+      "deleteStatus": "Elimina {name}",
+      "newStatusName": "Nome del nuovo stato",
+      "renameStatusFailed": "Impossibile rinominare lo stato",
+      "reorderStatusFailed": "Impossibile riordinare lo stato",
+      "deleteStatusFailed": "Impossibile eliminare lo stato",
+      "addStatusFailed": "Impossibile aggiungere lo stato",
+      "recentlyCompletedLabel": "Avanzate — Finestra dei completati di recente",
+      "recentlyCompletedDescription": "Per quanto tempo le attività completate restano visibili nella vista predefinita (e nella colonna Done delle bacheche). Le attività completate meno recenti vengono filtrate; passa la lista a «Completate» o «Tutte» per vederle."
     }
   },
   "reminderSettings": {
@@ -1246,5 +1420,12 @@
       "hours": "{n} h",
       "days": "{n} g"
     }
+  },
+  "richTextInput": {
+    "placeholder": "Scrivi un messaggio...",
+    "timer": "Timer",
+    "uploading": "Caricamento...",
+    "attachFile": "Allega file",
+    "removeFile": "Rimuovi {name}"
   }
 }

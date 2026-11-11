@@ -217,7 +217,10 @@
     "hoursBefore": "{count}시간 전",
     "dayBefore": "1일 전",
     "daysBefore": "{count}일 전",
-    "weekBefore": "1주 전"
+    "weekBefore": "1주 전",
+    "quickSelect": "빠른 선택:",
+    "setTime": "시간 설정",
+    "selectTime": "시간 선택"
   },
   "repeating": {
     "oneTimeOnly": "한 번만",
@@ -511,6 +514,12 @@
         "title": "GitHub 연결",
         "description": "서버에서 실행되는 코딩 에이전트는 설정 → 연결의 GitHub 연결을 사용하며, 연결된 모든 조직이 그곳에 표시됩니다.",
         "open": "연결 열기"
+      },
+      "yourAgents": {
+        "title": "내 에이전트",
+        "description": "각 에이전트를 누가 실행할지 선택하세요. {astridRuns}에는 해당 제공업체의 API 키가 필요합니다. {selfRuns}은(는) 이미 사용 중인 코딩 도구를 활용합니다. 네이티브 하니스 폴링, 사용자 지정 에이전트 또는 직접 호스팅하는 웹훅 서버를 쓸 수 있습니다.",
+        "astridRuns": "{appName}이(가) 실행",
+        "selfRuns": "직접 실행"
       }
     },
     "apiAccess": {
@@ -704,7 +713,19 @@
       "saveChanges": "변경사항 저장",
       "saving": "저장 중...",
       "clickToChangePhoto": "클릭하여 프로필 사진 변경",
-      "viewPublicProfile": "공개 프로필 보기"
+      "viewPublicProfile": "공개 프로필 보기",
+      "syncedWithOAuth": "현재 OAuth 제공업체와 동기화되어 있습니다",
+      "uploading": "업로드 중...",
+      "displayNamePlaceholder": "표시 이름 입력",
+      "toasts": {
+        "successTitle": "완료!",
+        "updated": "계정 정보가 업데이트되었습니다.",
+        "updateFailed": "계정 정보를 업데이트하지 못했습니다.",
+        "photoUploadedTitle": "사진이 업로드되었습니다!",
+        "photoUploadedDesc": "'변경사항 저장'을 클릭해 프로필을 업데이트하세요.",
+        "uploadFailedTitle": "업로드 실패",
+        "uploadFailedDesc": "사진을 업로드하지 못했습니다. 다시 시도해 주세요."
+      }
     },
     "emailVerification": {
       "title": "이메일 인증",
@@ -716,7 +737,10 @@
       "verificationSent": "인증 이메일 발송됨!",
       "checkEmail": "이메일을 확인하고 인증 링크를 클릭해 주세요.",
       "pendingChange": "이메일 변경 대기 중",
-      "waitingVerification": "인증 대기 중"
+      "waitingVerification": "인증 대기 중",
+      "waitingVerificationFor": "인증 대기 중: {email}",
+      "unknownEmail": "알 수 없음",
+      "loadingEmail": "로딩 중..."
     },
     "passkeys": {
       "title": "패스키",
@@ -724,7 +748,24 @@
       "addPasskey": "패스키 추가",
       "addingPasskey": "패스키 추가 중...",
       "noPasskeys": "아직 등록된 패스키가 없습니다",
-      "addPasskeyHint": "비밀번호 없이 빠른 로그인을 위해 패스키 추가"
+      "addPasskeyHint": "비밀번호 없이 빠른 로그인을 위해 패스키 추가",
+      "loading": "패스키 로딩 중...",
+      "fallbackName": "패스키",
+      "added": "{date}에 추가됨",
+      "synced": "동기화됨",
+      "tipBiometrics": "패스키는 생체 인식 또는 기기 PIN으로 인증합니다",
+      "tipSynced": "동기화된 패스키는 모든 기기에서 자동으로 작동합니다",
+      "tipSecure": "비밀번호보다 안전하며 피싱에 강합니다",
+      "toasts": {
+        "addedTitle": "패스키가 추가되었습니다!",
+        "addedDesc": "새 패스키가 등록되었습니다.",
+        "renamedTitle": "패스키 이름 변경됨",
+        "renamedDesc": "패스키 이름이 변경되었습니다.",
+        "renameFailed": "패스키 이름을 변경하지 못했습니다.",
+        "deletedTitle": "패스키 삭제됨",
+        "deletedDesc": "패스키가 삭제되었습니다.",
+        "deleteFailed": "패스키를 삭제하지 못했습니다."
+      }
     },
     "accountInfo": {
       "title": "계정 정보",
@@ -759,7 +800,8 @@
       "confirmDescription": "이 작업은 영구적이며 취소할 수 없습니다.",
       "typeToConfirm": "확인을 위해 {phrase} 입력",
       "permanentlyDelete": "계정 영구 삭제",
-      "deleting": "삭제 중..."
+      "deleting": "삭제 중...",
+      "dialogWarning": "작업, 목록, 파일을 포함한 모든 데이터가 영구적으로 삭제됩니다."
     },
     "appearancePage": {
       "title": "외관 및 사용자 경험",
@@ -781,7 +823,8 @@
         "viewShortcuts": "단축키 보기",
         "viewTitle": "키보드 단축키 보기",
         "viewDesc": "효율적인 작업 관리를 위한 모든 사용 가능한 키보드 단축키 보기",
-        "quickAccess": "작업 관리자 어디서나 ?를 눌러 키보드 단축키를 엽니다."
+        "quickAccess": "작업 관리자 어디서나 ?를 눌러 키보드 단축키를 엽니다.",
+        "quickAccessLabel": "빠른 실행"
       },
       "taskDisplayMode": {
         "title": "작업 상세 레이아웃",
@@ -822,6 +865,22 @@
         "configure": "이메일 설정 구성",
         "configureDesc": "기본 마감일 사용자 지정, 기능 활성화/비활성화 등",
         "proTip": "이메일 제목이 작업 제목이 되고 본문이 설명이 됩니다. 받은 편지함에서 빠른 작업 캡처에 완벽합니다!"
+      },
+      "tipLabel": "유용한 팁",
+      "smartTasks": {
+        "title": "스마트 작업 생성",
+        "description": "작업 제목에서 날짜, 우선순위, 목록 해시태그를 자동으로 인식합니다",
+        "enable": "스마트 인식 사용",
+        "enableDesc": "자연어 입력에서 작업 정보를 추출합니다",
+        "supportedPatterns": "지원되는 패턴:"
+      },
+      "subtasks": {
+        "title": "하위 작업",
+        "description": "목록에서 하위 작업이 표시되는 방식 (기기 간 동기화)",
+        "label": "하위 작업 표시",
+        "labelDesc": "목록에서 들여쓰기하거나 상위 작업 안에서만 표시",
+        "indented": "목록에 들여쓰기로 표시",
+        "underParent": "상위 작업 안에서만"
       }
     },
     "aiIntegrations": {
@@ -1008,7 +1067,9 @@
       "developer": {
         "title": "개발자",
         "description": "OAuth 앱을 직접 만들고, API를 테스트하고, OpenAPI를 지원하는 어시스턴트를 연결합니다.",
-        "openTester": "API 테스터 열기"
+        "openTester": "API 테스터 열기",
+        "apiDocs": "API 문서",
+        "integrationGuide": "연동 가이드"
       },
       "github": {
         "title": "GitHub",
@@ -1072,6 +1133,49 @@
         "selectAtLeastOne": "범위를 하나 이상 선택하세요",
         "selectApp": "앱을 선택하세요."
       }
+    },
+    "openInNewTab": "새 탭에서 열기",
+    "githubSetup": {
+      "loading": "GitHub 설정 로딩 중...",
+      "authenticating": "인증 중...",
+      "failedTitle": "설정 실패",
+      "failedDescription": "GitHub 연동을 설정하는 중 오류가 발생했습니다",
+      "errorDetail": "오류: {error}",
+      "returnToSettings": "설정으로 돌아가기",
+      "processingTitle": "GitHub 설정 처리 중",
+      "processingDescription": "GitHub 설치를 연결하는 중...",
+      "pleaseWait": "GitHub 연동을 구성하는 동안 잠시 기다려 주세요...",
+      "connectedTitle": "GitHub 연결 완료!",
+      "connectedDescription": "GitHub 연동을 사용할 준비가 되었습니다",
+      "connectedBody": "이제 {appName} 에이전트로 코드를 생성하고 풀 리퀘스트를 만들 수 있습니다.",
+      "continueToSettings": "설정으로 계속"
+    },
+    "tasksPage": {
+      "title": "작업 설정",
+      "description": "기본 작업 동작과 이메일에서 작업 환경설정을 구성합니다",
+      "saved": "설정이 저장되었습니다!",
+      "saveFailed": "설정을 저장하지 못했습니다",
+      "emailDescription": "{inboundTaskEmail}(으)로 이메일을 보내 작업 만들기",
+      "enable": "이메일에서 작업 사용",
+      "enableDesc": "이메일로 작업 만들기 허용",
+      "defaultDueDate": "기본 마감일",
+      "offset1Day": "1일",
+      "offset3Days": "3일",
+      "offset1Week": "1주 (기본값)",
+      "dueDateHint": "이메일로 만든 작업의 마감일은 발송일로부터 이 일수 후로 설정됩니다",
+      "defaultDueTime": "기본 마감 시간",
+      "time0900": "오전 9:00",
+      "time1200": "오후 12:00 (정오)",
+      "time1700": "오후 5:00 (기본값)",
+      "time2000": "오후 8:00",
+      "dueTimeHint": "이메일로 만든 작업의 시간",
+      "howTo": "이메일에서 작업 사용 방법:",
+      "assignedTaskDesc": "{inboundTaskEmail}을(를) 참조(CC)에 넣고 받는 사람(TO)은 한 명으로 지정",
+      "subjectLine": "{subject}이(가) 작업 제목이 됩니다",
+      "subject": "제목",
+      "bodyLine": "{body}이(가) 작업 설명이 됩니다",
+      "body": "본문",
+      "saveSettings": "설정 저장"
     }
   },
   "projectMode": {
@@ -1162,6 +1266,76 @@
     "memberAgentAssignment": {
       "label": "멤버가 모든 작업을 에이전트에게 맡길 수 있음",
       "help": "이 목록의 모든 멤버가 자신이 만든 작업뿐 아니라 이곳의 모든 작업에 에이전트를 할당할 수 있습니다. 에이전트는 목록 소유자의 플랜으로 실행됩니다."
+    },
+    "admin": {
+      "descriptionLabel": "목록 설명",
+      "descriptionInfo": "목록 설명은 이 목록에서 작업하는 AI 에이전트의 지침으로 사용됩니다",
+      "preview": "미리보기",
+      "charCount": "{count}자",
+      "noInstructionsYet": "*아직 지침이 없습니다*",
+      "instructionsPlaceholder": "이 목록에서 작업하는 AI 에이전트를 위한 지침을 작성하세요...\n\n예시:\n우리 가족의 식단 계획을 도와주세요.\n\n## 목표\n- 건강한 레시피 제안\n- 주간 장보기 목록 만들기\n\n## 제한 사항\n- 갑각류 금지 (알레르기)\n- 예산: 주당 $150",
+      "agentsReceive": "에이전트는 이 내용을 기본 컨텍스트로 받습니다. 마크다운을 지원합니다.",
+      "starterTemplates": "시작 템플릿",
+      "clickToEdit": "클릭하여 편집",
+      "clickToAddInstructions": "클릭하여 에이전트 지침 추가...",
+      "agentsUseGuidance": "AI 에이전트는 이 목록의 작업을 수행할 때 이를 기본 지침으로 사용합니다",
+      "taskCreator": "작업 생성자",
+      "memberNotFound": "멤버를 찾을 수 없음",
+      "clickToSet": "클릭하여 설정...",
+      "defaultPriority": "기본 우선순위",
+      "defaultAssignee": "기본 담당자",
+      "selectDefaultAssignee": "기본 담당자 선택...",
+      "defaultWhen": "기본 일시",
+      "nextWeek": "다음 주",
+      "noDefaultWhenButton": "기본 일시 없음",
+      "noDefaultWhen": "기본 일시 없음",
+      "defaultRepeating": "기본 반복",
+      "defaultWhenTime": "기본 시간",
+      "noDefaultTime": "기본 시간 없음",
+      "timezone": "시간대: {timezone}",
+      "deleteList": "목록 삭제",
+      "deleteConfirm": "\"{name}\"을(를) 삭제하시겠습니까?",
+      "deleteWarning": "이 작업은 취소할 수 없습니다. 이 목록의 모든 작업은 유지되지만 더 이상 이 목록에 연결되지 않습니다.",
+      "dontDelete": "삭제 안 함",
+      "notConnected": "연결되지 않음.",
+      "connect": "연결",
+      "unlink": "연결 해제",
+      "mirrorPlaceholder": "이 목록을 미러링할 위치 선택",
+      "externalSyncTitle": "외부 동기화",
+      "externalSyncDescription": "연결된 계정을 통해 이 목록을 다른 서비스와 양방향으로 미러링합니다.",
+      "aiAgent": "AI 에이전트",
+      "modelForList": "이 목록의 {appName} 모델",
+      "useAccountDefault": "계정 기본값 사용",
+      "modelHint": "이 목록의 채팅과 댓글에서 {appName}을(를) 구동합니다. 작업에 지정된 코딩 에이전트는 자체 런타임을 유지합니다.",
+      "repositoryLabel": "코딩 에이전트가 작업하는 저장소",
+      "loading": "로딩 중...",
+      "selectRepo": "저장소 선택",
+      "noRepositories": "저장소를 찾을 수 없습니다. GitHub App이 저장소에 접근할 수 있는지 확인하세요.",
+      "connectGithub": "GitHub를 연결하면 코딩 에이전트가 작업할 저장소를 선택할 수 있습니다 — {link}",
+      "connectGithubLink": "설정 → 연결 → GitHub",
+      "runLoop": "이 목록에 대해 루프 실행",
+      "loopDescription": "코딩 하니스가 일정에 따라 이 목록을 확인하고, 자신에게 지정되어 {ready}(으)로 표시된 작업을 처리합니다. 다른 보드의 작업은 건드리지 않습니다.",
+      "readyStatus": "Ready",
+      "descriptionHint": "에이전트는 이 목록의 {description}을 작업 지침으로 읽습니다. 프로젝트 개요처럼 위에서 편집하세요.",
+      "descriptionWord": "설명",
+      "listId": "목록 ID",
+      "copyListId": "목록 ID 복사",
+      "listIdHint": "OAuth API 연동과 코딩 에이전트에 이 ID를 사용하세요",
+      "listName": "목록 이름",
+      "statusesIntro": "Ready, Doing, Waiting은 {all} 보드에 적용됩니다. 여기에서 추가한 상태는 이 보드에만 속합니다.",
+      "statusesIntroAll": "모든",
+      "saveName": "이름 저장",
+      "moveUp": "{name} 위로 이동",
+      "moveDown": "{name} 아래로 이동",
+      "renameStatus": "{name} 이름 변경",
+      "deleteStatus": "{name} 삭제",
+      "newStatusName": "새 상태 이름",
+      "renameStatusFailed": "상태 이름을 변경하지 못했습니다",
+      "reorderStatusFailed": "상태 순서를 변경하지 못했습니다",
+      "deleteStatusFailed": "상태를 삭제하지 못했습니다",
+      "addStatusFailed": "상태를 추가하지 못했습니다",
+      "recentlyCompletedLabel": "고급 — 최근 완료 표시 기간",
+      "recentlyCompletedDescription": "완료된 작업이 기본 보기(및 보드의 Done 열)에 표시되는 기간입니다. 더 오래된 완료 작업은 숨겨지며, 보려면 목록을 '완료' 또는 '전체'로 전환하세요."
     }
   },
   "reminderSettings": {
@@ -1246,5 +1420,12 @@
       "hours": "{n}시간",
       "days": "{n}일"
     }
+  },
+  "richTextInput": {
+    "placeholder": "메시지 입력...",
+    "timer": "타이머",
+    "uploading": "업로드 중...",
+    "attachFile": "파일 첨부",
+    "removeFile": "{name} 제거"
   }
 }

@@ -217,7 +217,10 @@
     "hoursBefore": "提前{count}小时",
     "dayBefore": "提前1天",
     "daysBefore": "提前{count}天",
-    "weekBefore": "提前1周"
+    "weekBefore": "提前1周",
+    "quickSelect": "快速选择：",
+    "setTime": "设置时间",
+    "selectTime": "选择时间"
   },
   "repeating": {
     "oneTimeOnly": "仅一次",
@@ -511,6 +514,12 @@
         "title": "GitHub 连接",
         "description": "在服务器上运行的编程智能体使用“设置 → 连接”中的 GitHub 连接，所有已连接的组织都列在那里。",
         "open": "打开连接"
+      },
+      "yourAgents": {
+        "title": "你的智能体",
+        "description": "选择由谁运行每个智能体。{astridRuns}需要相应提供商的 API 密钥。{selfRuns}使用你已付费的编程工具：原生 harness 轮询、自定义智能体或你自己托管的 webhook 服务器。",
+        "astridRuns": "由 {appName} 运行",
+        "selfRuns": "由我运行"
       }
     },
     "apiAccess": {
@@ -704,7 +713,19 @@
       "saveChanges": "保存更改",
       "saving": "保存中...",
       "clickToChangePhoto": "点击更改头像",
-      "viewPublicProfile": "查看公开资料"
+      "viewPublicProfile": "查看公开资料",
+      "syncedWithOAuth": "当前与你的 OAuth 提供商同步",
+      "uploading": "上传中...",
+      "displayNamePlaceholder": "输入你的显示名称",
+      "toasts": {
+        "successTitle": "成功！",
+        "updated": "你的账户信息已更新。",
+        "updateFailed": "更新账户信息失败。",
+        "photoUploadedTitle": "照片已上传！",
+        "photoUploadedDesc": "点击“保存更改”以更新你的个人资料。",
+        "uploadFailedTitle": "上传失败",
+        "uploadFailedDesc": "照片上传失败，请重试。"
+      }
     },
     "emailVerification": {
       "title": "邮箱验证",
@@ -716,7 +737,10 @@
       "verificationSent": "验证邮件已发送！",
       "checkEmail": "请查看你的邮箱并点击验证链接。",
       "pendingChange": "邮箱更改待处理",
-      "waitingVerification": "等待验证"
+      "waitingVerification": "等待验证",
+      "waitingVerificationFor": "等待验证：{email}",
+      "unknownEmail": "未知",
+      "loadingEmail": "加载中..."
     },
     "passkeys": {
       "title": "通行密钥",
@@ -724,7 +748,24 @@
       "addPasskey": "添加通行密钥",
       "addingPasskey": "添加通行密钥中...",
       "noPasskeys": "还没有注册通行密钥",
-      "addPasskeyHint": "添加通行密钥以更快地无密码登录"
+      "addPasskeyHint": "添加通行密钥以更快地无密码登录",
+      "loading": "加载通行密钥...",
+      "fallbackName": "通行密钥",
+      "added": "添加于 {date}",
+      "synced": "已同步",
+      "tipBiometrics": "通行密钥使用生物识别或设备 PIN 码进行验证",
+      "tipSynced": "已同步的通行密钥可在你的所有设备上自动使用",
+      "tipSecure": "比密码更安全，可抵御网络钓鱼",
+      "toasts": {
+        "addedTitle": "通行密钥已添加！",
+        "addedDesc": "你的新通行密钥已注册。",
+        "renamedTitle": "通行密钥已重命名",
+        "renamedDesc": "你的通行密钥已重命名。",
+        "renameFailed": "重命名通行密钥失败。",
+        "deletedTitle": "通行密钥已删除",
+        "deletedDesc": "你的通行密钥已移除。",
+        "deleteFailed": "删除通行密钥失败。"
+      }
     },
     "accountInfo": {
       "title": "账户信息",
@@ -759,7 +800,8 @@
       "confirmDescription": "此操作是永久的，无法撤销。",
       "typeToConfirm": "输入「{phrase}」以确认",
       "permanentlyDelete": "永久删除账户",
-      "deleting": "删除中..."
+      "deleting": "删除中...",
+      "dialogWarning": "你的所有数据都将被永久删除，包括任务、列表和文件。"
     },
     "appearancePage": {
       "title": "外观与用户体验",
@@ -781,7 +823,8 @@
         "viewShortcuts": "查看快捷键",
         "viewTitle": "查看键盘快捷键",
         "viewDesc": "查看所有可用的键盘快捷键以高效管理任务",
-        "quickAccess": "在任务管理器中随时按?打开键盘快捷键。"
+        "quickAccess": "在任务管理器中随时按?打开键盘快捷键。",
+        "quickAccessLabel": "快速访问"
       },
       "taskDisplayMode": {
         "title": "任务详情布局",
@@ -822,6 +865,22 @@
         "configure": "配置邮件设置",
         "configureDesc": "自定义默认截止日期，启用/禁用功能等",
         "proTip": "邮件主题变成任务标题，正文变成描述。非常适合从收件箱快速捕获任务！"
+      },
+      "tipLabel": "小贴士",
+      "smartTasks": {
+        "title": "智能创建任务",
+        "description": "自动从任务标题中识别日期、优先级和列表标签",
+        "enable": "启用智能识别",
+        "enableDesc": "从自然语言输入中提取任务信息",
+        "supportedPatterns": "支持的格式："
+      },
+      "subtasks": {
+        "title": "子任务",
+        "description": "子任务在列表中的显示方式（跨设备同步）",
+        "label": "显示子任务",
+        "labelDesc": "在列表中缩进显示，或仅在父任务内显示",
+        "indented": "在列表中缩进显示",
+        "underParent": "仅在父任务内"
       }
     },
     "aiIntegrations": {
@@ -1008,7 +1067,9 @@
       "developer": {
         "title": "开发者",
         "description": "手动创建 OAuth 应用、测试 API，并连接支持 OpenAPI 的助手。",
-        "openTester": "打开 API 测试器"
+        "openTester": "打开 API 测试器",
+        "apiDocs": "API 文档",
+        "integrationGuide": "集成指南"
       },
       "github": {
         "title": "GitHub",
@@ -1072,6 +1133,49 @@
         "selectAtLeastOne": "请至少选择一个作用域",
         "selectApp": "请选择一个应用。"
       }
+    },
+    "openInNewTab": "在新标签页中打开",
+    "githubSetup": {
+      "loading": "正在加载 GitHub 设置...",
+      "authenticating": "正在验证身份...",
+      "failedTitle": "设置失败",
+      "failedDescription": "设置 GitHub 集成时出错",
+      "errorDetail": "错误：{error}",
+      "returnToSettings": "返回设置",
+      "processingTitle": "正在处理 GitHub 设置",
+      "processingDescription": "正在连接你的 GitHub 安装...",
+      "pleaseWait": "正在配置你的 GitHub 集成，请稍候...",
+      "connectedTitle": "GitHub 已连接！",
+      "connectedDescription": "你的 GitHub 集成已可以使用",
+      "connectedBody": "现在可以使用 {appName} 智能体生成代码并创建拉取请求。",
+      "continueToSettings": "继续前往设置"
+    },
+    "tasksPage": {
+      "title": "任务设置",
+      "description": "配置任务的默认行为和邮件创建任务偏好",
+      "saved": "设置已成功保存！",
+      "saveFailed": "保存设置失败",
+      "emailDescription": "向 {inboundTaskEmail} 发送邮件即可创建任务",
+      "enable": "启用邮件创建任务",
+      "enableDesc": "允许通过邮件创建任务",
+      "defaultDueDate": "默认截止日期",
+      "offset1Day": "1 天",
+      "offset3Days": "3 天",
+      "offset1Week": "1 周（默认）",
+      "dueDateHint": "通过邮件创建的任务将在发送日期后的这些天到期",
+      "defaultDueTime": "默认截止时间",
+      "time0900": "上午 9:00",
+      "time1200": "中午 12:00",
+      "time1700": "下午 5:00（默认）",
+      "time2000": "晚上 8:00",
+      "dueTimeHint": "通过邮件创建的任务的时间",
+      "howTo": "如何使用邮件创建任务：",
+      "assignedTaskDesc": "抄送 {inboundTaskEmail}，收件人（TO）填写一位",
+      "subjectLine": "{subject}会成为任务标题",
+      "subject": "主题",
+      "bodyLine": "{body}会成为任务描述",
+      "body": "正文",
+      "saveSettings": "保存设置"
     }
   },
   "projectMode": {
@@ -1162,6 +1266,76 @@
     "memberAgentAssignment": {
       "label": "成员可以把任何任务交给智能体",
       "help": "允许此列表的每位成员为这里的任何任务分配智能体，而不仅限于自己创建的任务。智能体使用列表所有者的套餐运行。"
+    },
+    "admin": {
+      "descriptionLabel": "列表描述",
+      "descriptionInfo": "列表描述会作为在此列表中工作的 AI 智能体的指令",
+      "preview": "预览",
+      "charCount": "{count} 个字符",
+      "noInstructionsYet": "*暂无指令*",
+      "instructionsPlaceholder": "为在此列表中工作的 AI 智能体编写指令...\n\n示例：\n你帮助我们一家规划餐食。\n\n## 目标\n- 推荐健康食谱\n- 制作每周购物清单\n\n## 限制\n- 不要贝类（过敏）\n- 预算：每周 $150",
+      "agentsReceive": "智能体会将其作为主要上下文。支持 Markdown。",
+      "starterTemplates": "入门模板",
+      "clickToEdit": "点击编辑",
+      "clickToAddInstructions": "点击添加智能体指令...",
+      "agentsUseGuidance": "AI 智能体在处理此列表中的任务时会以此为主要指引",
+      "taskCreator": "任务创建者",
+      "memberNotFound": "未找到成员",
+      "clickToSet": "点击设置...",
+      "defaultPriority": "默认优先级",
+      "defaultAssignee": "默认负责人",
+      "selectDefaultAssignee": "选择默认负责人...",
+      "defaultWhen": "默认时间",
+      "nextWeek": "下周",
+      "noDefaultWhenButton": "无默认时间",
+      "noDefaultWhen": "无默认时间",
+      "defaultRepeating": "默认重复",
+      "defaultWhenTime": "默认时刻",
+      "noDefaultTime": "无默认时刻",
+      "timezone": "时区：{timezone}",
+      "deleteList": "删除列表",
+      "deleteConfirm": "确定要删除“{name}”吗？",
+      "deleteWarning": "此操作无法撤销。此列表中的所有任务都会保留，但不再与此列表关联。",
+      "dontDelete": "不删除",
+      "notConnected": "未连接。",
+      "connect": "连接",
+      "unlink": "取消关联",
+      "mirrorPlaceholder": "选择此列表的镜像位置",
+      "externalSyncTitle": "外部同步",
+      "externalSyncDescription": "通过你已连接的账号，将此列表与其他服务双向镜像。",
+      "aiAgent": "AI 智能体",
+      "modelForList": "此列表的 {appName} 模型",
+      "useAccountDefault": "使用账户默认设置",
+      "modelHint": "为此列表的聊天和评论中的 {appName} 提供支持。分配给任务的编程智能体仍使用各自的运行环境。",
+      "repositoryLabel": "编程智能体工作的仓库",
+      "loading": "加载中...",
+      "selectRepo": "选择仓库",
+      "noRepositories": "未找到仓库。请检查 GitHub App 是否有权访问你的仓库。",
+      "connectGithub": "连接 GitHub 以选择编程智能体工作的仓库 — {link}",
+      "connectGithubLink": "设置 → 连接 → GitHub",
+      "runLoop": "为此列表运行循环",
+      "loopDescription": "你的编程 harness 会按计划检查此列表，并处理分配给它且标记为 {ready} 的任务。其他看板上的任务不会被触碰。",
+      "readyStatus": "Ready",
+      "descriptionHint": "智能体会将此列表的{description}作为工作指令——请像撰写项目简介一样在上方编辑。",
+      "descriptionWord": "描述",
+      "listId": "列表 ID",
+      "copyListId": "复制列表 ID",
+      "listIdHint": "此 ID 用于 OAuth API 集成和编程智能体",
+      "listName": "列表名称",
+      "statusesIntro": "Ready、Doing 和 Waiting 适用于你的{all}看板。在此添加的状态仅属于此看板。",
+      "statusesIntroAll": "所有",
+      "saveName": "保存名称",
+      "moveUp": "上移 {name}",
+      "moveDown": "下移 {name}",
+      "renameStatus": "重命名 {name}",
+      "deleteStatus": "删除 {name}",
+      "newStatusName": "新状态名称",
+      "renameStatusFailed": "重命名状态失败",
+      "reorderStatusFailed": "重新排序状态失败",
+      "deleteStatusFailed": "删除状态失败",
+      "addStatusFailed": "添加状态失败",
+      "recentlyCompletedLabel": "高级 — 最近完成的显示时段",
+      "recentlyCompletedDescription": "已完成的任务在默认视图（以及看板的 Done 列）中保持可见的时长。更早完成的任务会被筛除；将列表切换到“已完成”或“全部”即可查看。"
     }
   },
   "reminderSettings": {
@@ -1246,5 +1420,12 @@
       "hours": "{n} 小时",
       "days": "{n} 天"
     }
+  },
+  "richTextInput": {
+    "placeholder": "输入消息...",
+    "timer": "计时器",
+    "uploading": "上传中...",
+    "attachFile": "添加附件",
+    "removeFile": "移除 {name}"
   }
 }
