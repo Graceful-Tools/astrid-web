@@ -34,6 +34,7 @@ and stack versions with `npm run check:docs`.
 - **[Offline Mode](./OFFLINE_MODE.md)** - Offline-first architecture with IndexedDB and background sync
 - **[Agent Architecture Simplification](./AGENT_ARCHITECTURE_SIMPLIFICATION.md)** - Simplified AI agent system (tools-based, multi-provider)
 - **[Agent Polling Mode](./AGENT_POLLING_MODE.md)** - Let a user's own harness (Claude Code, Codex, Copilot, Gemini) work the agent's queue on a loop instead of Astrid calling a provider API
+- **[Business Runtime Binding RFC](./architecture/BUSINESS_RUNTIME_BINDING_RFC.md)** - AWTD-1564 proposal (not implemented): explicit admin-managed runtimes with additive personal compatibility, enrollment, scope, billing and rollback
 
 ### 🎨 Whitelabeling
 - **[Whitelabeling Guide](./WHITELABELING.md)** - ⭐ Deploy under a different brand, with a different set of back-end services, entirely through build-time configuration

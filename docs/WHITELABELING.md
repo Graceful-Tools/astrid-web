@@ -655,6 +655,9 @@ own team (AWTD-1280):
    npx tsx scripts/deploy-brand-preview.ts partner --team team_xxx --scope partner-co
    ```
 
+   The push dry-run shows planned keys and stale known-brand keys without values, and never
+   deletes anything. Review the diff before running the write command.
+
    `deploy-brand-preview.ts` pins `BRAND_AGENT_EMAIL_DOMAIN=astrid.cc` **only on Astrid's
    team**, where a preview writes agent rows into Astrid's production data. On the
    partner's team it is their database, so the profile's agent domain is used as written.
