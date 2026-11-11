@@ -66,6 +66,28 @@ object identifies a reply to an explicit, agent-authored human handback:
 }
 ```
 
+The response also includes the additive, versioned `runnable` verdict:
+
+```json
+{
+  "runnable": {
+    "version": 1,
+    "hasWork": true,
+    "reasons": ["attention"],
+    "incomplete": false
+  }
+}
+```
+
+`hasWork` includes Ready tasks and unanswered attention items; `reasons` names
+which are present (`ready`, `attention`). `incomplete` is true when the queue or
+attention read was truncated or a part of attention was skipped. Consumers
+may prefer this verdict when present. `incomplete` says the read was partial; it is
+not by itself work, because a token without the chat scopes skips part of attention
+on every poll. No shipped skill or loop recipe reads the field yet. Existing `empty`, `hint`, `queue`, and `attention` values and ordering
+are unchanged. Older servers omit `runnable`; clients should then retain their
+existing `empty`-based behavior.
+
 `POST /api/v1/tasks/:id/claim-fixall` (`tasks:write`, existing task access)
 accepts the additive `resume` action. Send `{ action: "resume", agent,
 commentWatermark: resume.commentWatermark, resume, listId: resume.listId }`. The server independently

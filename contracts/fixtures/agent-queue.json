@@ -63,6 +63,15 @@
           "list chat: this token does not carry chat:read, so the board's channel was not read"
         ]
       },
+      "runnable": {
+        "version": 1,
+        "hasWork": true,
+        "reasons": [
+          "ready",
+          "attention"
+        ],
+        "incomplete": true
+      },
       "meta": {
         "apiVersion": "v1",
         "authSource": "oauth"
@@ -99,6 +108,12 @@
           "list chat: this token does not carry chat:read, so the board's channel was not read"
         ]
       },
+      "runnable": {
+        "version": 1,
+        "hasWork": false,
+        "reasons": [],
+        "incomplete": true
+      },
       "meta": {
         "apiVersion": "v1",
         "authSource": "oauth"
@@ -128,6 +143,12 @@
         "skipped": [
           "list chat: this token does not carry chat:read, so the board's channel was not read"
         ]
+      },
+      "runnable": {
+        "version": 1,
+        "hasWork": false,
+        "reasons": [],
+        "incomplete": true
       },
       "meta": {
         "apiVersion": "v1",
