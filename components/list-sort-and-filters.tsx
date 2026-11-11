@@ -285,10 +285,10 @@ export function ListSortAndFilters({
             onUpdate({ ...list, filterAssignee: value })
           }}
         >
-          <SelectItem value="all">All assignees</SelectItem>
+          <SelectItem value="all">{t('listSettings.filters.allAssignees')}</SelectItem>
           <SelectItem value="current_user">{currentUserLabel}</SelectItem>
-          <SelectItem value="not_current_user">Not me (others)</SelectItem>
-          <SelectItem value="unassigned">Unassigned</SelectItem>
+          <SelectItem value="not_current_user">{t('listSettings.filters.notMe')}</SelectItem>
+          <SelectItem value="unassigned">{t('tasks.unassigned')}</SelectItem>
           {members.map(member => <MemberItem key={member.id} member={member} />)}
         </FilterRow>
 
@@ -300,7 +300,7 @@ export function ListSortAndFilters({
             onUpdate({ ...list, filterAssignedBy: value })
           }}
         >
-          <SelectItem value="all">All creators</SelectItem>
+          <SelectItem value="all">{t('listSettings.filters.allCreators')}</SelectItem>
           <SelectItem value="current_user">{currentUserLabel}</SelectItem>
           {members.map(member => <MemberItem key={member.id} member={member} />)}
         </FilterRow>
@@ -319,8 +319,8 @@ export function ListSortAndFilters({
             onUpdate({ ...list, filterRepeating: value })
           }}
         >
-          <SelectItem value="all"><span className="text-blue-400">All tasks</span></SelectItem>
-          <SelectItem value="not_repeating"><span className="text-theme-muted">Not repeating</span></SelectItem>
+          <SelectItem value="all"><span className="text-blue-400">{t('listSettings.show.allTasks')}</span></SelectItem>
+          <SelectItem value="not_repeating"><span className="text-theme-muted">{t('listSettings.filters.notRepeating')}</span></SelectItem>
           <SelectItem value="daily"><span className="text-green-500">Daily</span></SelectItem>
           <SelectItem value="weekly"><span className="text-blue-500">Weekly</span></SelectItem>
           <SelectItem value="monthly"><span className="text-purple-500">Monthly</span></SelectItem>
@@ -336,9 +336,9 @@ export function ListSortAndFilters({
             onUpdate({ ...list, filterInLists: value })
           }}
         >
-          <SelectItem value="dont_filter"><span className="text-blue-400">All tasks</span></SelectItem>
-          <SelectItem value="in_list"><span className="text-green-500">Tasks in any list</span></SelectItem>
-          <SelectItem value="not_in_list"><span className="text-orange-500">Tasks not in any list</span></SelectItem>
+          <SelectItem value="dont_filter"><span className="text-blue-400">{t('listSettings.show.allTasks')}</span></SelectItem>
+          <SelectItem value="in_list"><span className="text-green-500">{t('listSettings.filters.inAnyList')}</span></SelectItem>
+          <SelectItem value="not_in_list"><span className="text-orange-500">{t('listSettings.filters.notInAnyList')}</span></SelectItem>
         </FilterRow>
 
         {hasActiveFilters && (
@@ -349,7 +349,7 @@ export function ListSortAndFilters({
               onClick={clearAllFilters}
               className="text-xs text-brand hover:text-brand-hover"
             >
-              Clear All
+              {t('common.clearAll')}
             </Button>
           </div>
         )}
@@ -373,12 +373,12 @@ export function ListSortAndFilters({
             {list.isFavorite ? (
               <>
                 <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                <span className="text-yellow-400">Remove from Favorites</span>
+                <span className="text-yellow-400">{t('listSettings.filters.removeFromFavorites')}</span>
               </>
             ) : (
               <>
                 <StarOff className="w-4 h-4 theme-text-muted" />
-                <span className="theme-text-muted">Make Favorite</span>
+                <span className="theme-text-muted">{t('listSettings.filters.makeFavorite')}</span>
               </>
             )}
           </Button>
@@ -386,8 +386,8 @@ export function ListSortAndFilters({
 
         <div className="flex items-center justify-between" data-testid="saved-filter-row">
           <div className="flex flex-col">
-            <Label className="text-sm theme-text-secondary">Saved Filter</Label>
-            <span className="text-xs theme-text-muted">Show tasks based on filter settings, not list membership</span>
+            <Label className="text-sm theme-text-secondary">{t('listSettings.filters.savedFilter')}</Label>
+            <span className="text-xs theme-text-muted">{t('listSettings.filters.savedFilterDescription')}</span>
           </div>
           <Checkbox
             checked={isVirtual}

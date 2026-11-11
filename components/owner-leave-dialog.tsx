@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "@/lib/i18n/client"
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -27,6 +28,7 @@ export function OwnerLeaveDialog({
   onTransferAndLeave,
   onDeleteList
 }: OwnerLeaveDialogProps) {
+  const { t } = useTranslations()
   const [selectedSuccessor, setSelectedSuccessor] = useState<string>("")
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -61,7 +63,7 @@ export function OwnerLeaveDialog({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
             <AlertTriangle className="w-5 h-5 text-warning" />
-            <h2 className="text-lg font-semibold theme-text-primary">Transfer Ownership</h2>
+            <h2 className="text-lg font-semibold theme-text-primary">{t('lists.ownerLeave.title')}</h2>
           </div>
           <Button
             variant="ghost"
@@ -83,7 +85,7 @@ export function OwnerLeaveDialog({
             <>
               <div>
                 <Label className="text-sm theme-text-secondary mb-3 block">
-                  Select New Owner:
+                  {t('lists.ownerLeave.selectNewOwner')}
                 </Label>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
                   {potentialSuccessors.map((member) => (
@@ -153,7 +155,7 @@ export function OwnerLeaveDialog({
           ) : (
             <div className="text-center py-4">
               <p className="text-sm theme-text-secondary mb-4">
-                No other members to transfer ownership to.
+                {t('lists.ownerLeave.noOtherMembers')}
               </p>
             </div>
           )}
@@ -169,7 +171,7 @@ export function OwnerLeaveDialog({
               className="w-full hover:text-danger hover:bg-danger-subtle"
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              Delete List
+              {t('lists.ownerLeave.deleteList')}
             </Button>
           </div>
         </div>

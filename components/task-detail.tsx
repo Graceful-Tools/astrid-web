@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "@/lib/i18n/client"
 import { useState, useEffect, useMemo, useRef, useCallback, memo } from "react"
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { createListForTask } from '@/lib/task-detail/create-list-for-task'
@@ -124,6 +125,7 @@ interface TaskDetailProps {
 }
 
 function TaskDetailComponent({ task, currentUser, availableLists = [], availableTasks = [], subtasks = [], onToggleSubtaskComplete, onAddSubtask, onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, displayMode, canComment, inline = false, allowFullScreen = false, swipeToDismiss }: TaskDetailProps) {
+  const { t } = useTranslations()
   const { theme } = useTheme()
 
   // Editing and commenting are separate permissions — see the canComment prop.
@@ -1323,10 +1325,8 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-brand"></div>
                   <span className="text-sm font-medium">Refreshing...</span>
                 </>
-              ) : pullToRefresh.canRefresh ? (
-                <span className="text-sm font-medium">Release to refresh</span>
               ) : (
-                <span className="text-sm font-medium">Pull to refresh</span>
+                <span className="text-sm font-medium">{t(pullToRefresh.canRefresh ? 'common.releaseToRefresh' : 'common.pullToRefresh')}</span>
               )}
             </div>
           </div>
@@ -1451,7 +1451,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
             className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
           >
             <Check className="w-4 h-4 mr-2" />
-            Save New Task
+            {t('tasks.saveNewTask')}
           </Button>
         </div>
       )}
