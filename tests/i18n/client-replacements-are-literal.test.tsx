@@ -1,8 +1,11 @@
 import React from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { NextIntlClientProvider } from 'next-intl'
 import { useTranslations } from '@/lib/i18n/client'
+
+// tests/setup.ts replaces this module for every test; this one is about the real hook.
+vi.unmock('@/lib/i18n/client')
 
 // AWTD-1575: a value typed by a person is text, not a String.replace pattern.
 // "Cash $& carry" used to come out as "Cash {name} carry".
