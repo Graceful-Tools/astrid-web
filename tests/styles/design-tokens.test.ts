@@ -23,6 +23,9 @@ import { THEME_NAMES, designTokens, themeColor, themeColorNames } from '@/lib/de
 import { getPriorityColor } from '@/lib/task-leading-control'
 import { getPriorityColorClass } from '@/lib/task-manager-utils'
 
+import { compileClasses, ruleFor } from './compile-tailwind'
+import { contrast, resolveRgb, themeScope } from './resolve-theme'
+
 const read = (...path: string[]) => readFileSync(join(process.cwd(), ...path), 'utf8')
 
 const tokensCss = read('packages', 'astrid-design', 'astrid-tokens.css')
@@ -213,5 +216,75 @@ describe('web-only surfaces read the tokens (AWTD-1574, register DS9)', () => {
         .map((match) => match[1])
         .sort()
     for (const theme of THEME_NAMES) expect(names(theme), theme).toEqual(names(THEME_NAMES[0]))
+  })
+})
+
+describe('shadcn\'s variables are answered by the theme (AWTD-1574)', () => {
+  // --background, --primary and the rest were a second colour system: stock
+  // shadcn greys for :root and .dark, and nothing for Ocean, which wore the
+  // light values. They now read the tokens, so a shadcn component and a
+  // theme-* class beside it are the same colour in every theme.
+  const globals = read('app', 'globals.css').replace(/\/\*[\s\S]*?\*\//g, '')
+  const SHADCN =
+    /--(background|foreground|card|popover|primary|secondary|muted|accent|destructive|border|input|ring|chart|sidebar)[a-z0-9-]*:\s*([^;]+);/g
+
+  it('each one is a token or a theme variable, declared once for every theme', () => {
+    const declared = [...globals.matchAll(SHADCN)]
+    expect(declared.length).toBeGreaterThan(25)
+    expect(declared.filter((match) => !/^var\(--(astrid|theme)-[a-z0-9-]+\)$/.test(match[2].trim())).map((match) => match[0])).toEqual([])
+    expect(new Set(declared.map((match) => match[0].split(':')[0])).size, 'no .dark copy').toBe(declared.length)
+  })
+
+  it('Tailwind reads them as r, g, b like every other token, never as hsl', () => {
+    const config = read('tailwind.config.ts') + read('lib', 'design', 'tailwind-theme.ts')
+    expect(config).not.toContain('hsl(')
+  })
+
+  it('compiles, and keeps opacity modifiers', async () => {
+    const css = await compileClasses(['bg-background', 'bg-background/95', 'hover:bg-primary/90', 'text-muted-foreground', 'border-input', 'ring-ring'])
+    expect(ruleFor(css, 'bg-background')).toContain('background-color: rgba(var(--background), var(--tw-bg-opacity, 1))')
+    expect(ruleFor(css, 'bg-background/95')).toBe('background-color: rgba(var(--background), 0.95)')
+    expect(ruleFor(css, 'hover:bg-primary/90')).toBe('background-color: rgba(var(--primary), 0.9)')
+    expect(ruleFor(css, 'text-muted-foreground')).toContain('color: rgba(var(--muted-foreground)')
+    expect(ruleFor(css, 'border-input')).toContain('border-color: rgba(var(--input)')
+    expect(ruleFor(css, 'ring-ring')).toContain('--tw-ring-color: rgba(var(--ring)')
+  })
+
+  const SHADCN_NAMES = [...new Set([...globals.matchAll(SHADCN)].map((match) => match[0].split(':')[0].slice(2)))]
+
+  it.each(THEME_NAMES)('%s: every one resolves to a colour', (theme) => {
+    const scope = themeScope(theme)
+    for (const name of SHADCN_NAMES) expect(() => resolveRgb(name, scope), `--${name}`).not.toThrow()
+  })
+
+  // What button, dialog, popover, select, input and card write text on.
+  it.each(THEME_NAMES)('%s: shadcn text is readable on the surface under it', (theme) => {
+    const scope = themeScope(theme)
+    for (const [text, surface] of [
+      ['foreground', 'background'],
+      ['card-foreground', 'card'],
+      ['popover-foreground', 'popover'],
+      ['primary-foreground', 'primary'],
+      ['secondary-foreground', 'secondary'],
+      ['accent-foreground', 'accent'],
+      ['muted-foreground', 'background'],
+      ['muted-foreground', 'popover'],
+    ]) {
+      const ratio = contrast(resolveRgb(text, scope), resolveRgb(surface, scope))
+      expect(ratio, `${theme}: --${text} on --${surface} is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+
+  it('a surface is the card, never Ocean\'s cyan page', () => {
+    expect(resolveRgb('background', themeScope('ocean'))).toEqual([255, 255, 255])
+    expect(resolveRgb('popover', themeScope('ocean'))).toEqual([255, 255, 255])
+    expect(resolveRgb('border', themeScope('ocean'))).not.toEqual(resolveRgb('astrid-bg-primary', themeScope('ocean')))
+  })
+
+  it('the first paint has a theme to answer them: the brand\'s default is on <html>', () => {
+    // The variables only resolve under a theme class, and the provider adds one
+    // after hydration. Without it the server's HTML painted with no border or
+    // text colour at all.
+    expect(read('app', '[locale]', 'layout.tsx')).toMatch(/<html\b[\s\S]{0,600}?className=\{BRAND\.defaultTheme\}/)
   })
 })
