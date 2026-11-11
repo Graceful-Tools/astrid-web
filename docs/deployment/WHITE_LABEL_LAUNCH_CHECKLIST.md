@@ -61,8 +61,13 @@ and release compatibility. Treat each as an operator check below. In particular,
 - [ ] **Configure the first administrator deliberately.** Set `INITIAL_ADMIN_EMAIL` only
   for an address the operator controls and can verify. The app grants bootstrap admin
   after that user exists with a verified email; unset means no bootstrap admin
-  (`lib/env.ts`, `lib/admin-auth.ts`). Sign in with that identity, confirm admin access,
-  and then remove the bootstrap setting if your operating procedure calls for it.
+  (`lib/env.ts`, `lib/admin-auth.ts`). Order matters on a deployment that signs in only
+  through a federated provider: while the setting names an address, a *new* provider
+  identity with that address is refused (`lib/auth/federated-identity-linking.ts`), and
+  the grant itself is applied by the analytics cron, not at sign-in
+  (`app/api/cron/analytics/route.ts`). So create and verify the account first with the
+  setting unset, then set it, then run or wait for that cron before checking admin
+  access. Remove the bootstrap setting afterwards if your operating procedure calls for it.
 - [ ] **Configure outbound mail and sign-in.** Register the chosen identity applications
   and callback URLs, and authorize the selected sender domain with the chosen mail relay.
   See [Whitelabeling — sign-in providers](../WHITELABELING.md#sign-in-providers),
