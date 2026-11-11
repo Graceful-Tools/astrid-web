@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { AlertTriangle, CheckCircle, Loader2 } from "lucide-react"
+import { useTranslations } from "@/lib/i18n/client"
 
 interface Props {
   clientId: string
@@ -20,6 +21,7 @@ interface Props {
  * happens.
  */
 export function DesktopHandoffClient({ clientId, appName, state, codeChallenge }: Props) {
+  const { t } = useTranslations()
   const [status, setStatus] = useState<"idle" | "working" | "handed-off" | "error">("idle")
   const [error, setError] = useState<string | null>(null)
 
@@ -41,7 +43,7 @@ export function DesktopHandoffClient({ clientId, appName, state, codeChallenge }
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({}))
-        setError(body.error || "Could not start the hand-off. Please try again.")
+        setError(body.error || t("desktopSignInPage.startFailed"))
         setStatus("error")
         return
       }
@@ -53,7 +55,7 @@ export function DesktopHandoffClient({ clientId, appName, state, codeChallenge }
       setStatus("handed-off")
       window.location.href = redirectUrl
     } catch {
-      setError("Could not reach the server. Check your connection and try again.")
+      setError(t("desktopSignInPage.unreachable"))
       setStatus("error")
     }
   }
@@ -63,10 +65,10 @@ export function DesktopHandoffClient({ clientId, appName, state, codeChallenge }
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-sm">
           <CheckCircle className="w-4 h-4 text-success" />
-          <span>Opening {appName}…</span>
+          <span>{t("desktopSignInPage.opening", { app: appName })}</span>
         </div>
         <p className="text-xs theme-text-muted">
-          You can close this tab. If {appName} did not open, return to it and start sign-in again.
+          {t("desktopSignInPage.closeTab", { app: appName })}
         </p>
       </div>
     )
@@ -78,10 +80,10 @@ export function DesktopHandoffClient({ clientId, appName, state, codeChallenge }
         {status === "working" ? (
           <>
             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Preparing…
+            {t("desktopSignInPage.preparing")}
           </>
         ) : (
-          <>Open {appName}</>
+          <>{t("desktopSignInPage.open", { app: appName })}</>
         )}
       </Button>
 
