@@ -128,11 +128,11 @@ export function OAuthClientEditDialog({
             <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
             <div>
               <Label>Application</Label>
-              <Input value={client.name} readOnly className="bg-gray-50" />
+              <Input value={client.name} readOnly className="bg-theme-secondary" />
             </div>
             <div>
               <Label>Description</Label>
-              <Input value={client.description || ''} readOnly className="bg-gray-50" />
+              <Input value={client.description || ''} readOnly className="bg-theme-secondary" />
             </div>
             <div>
               <Label>{t('settingsPages.connections.columns.scopes')}</Label>

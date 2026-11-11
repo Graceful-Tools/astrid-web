@@ -218,7 +218,7 @@ export function OAuthScopeGroupDialog({
             <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
             <div>
               <Label>{t(`${PREFIX}.application`)}</Label>
-              <Input value={client.name} readOnly className="bg-gray-50" />
+              <Input value={client.name} readOnly className="bg-theme-secondary" />
             </div>
 
             <div className="space-y-2">
@@ -262,7 +262,7 @@ export function OAuthScopeGroupDialog({
                 )
               })}
               {isScopeGroup(client.scopeGroup) && chosen !== client.scopeGroup && (
-                <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                <p className="text-xs text-warning">
                   {t(`${PREFIX}.leavesGroup`, { group: client.scopeGroup })}
                 </p>
               )}
@@ -283,7 +283,7 @@ export function OAuthScopeGroupDialog({
                       <label htmlFor={`scope-edit-${scope}`} className="text-sm cursor-pointer flex-1">
                         <code className="text-xs">{scope}</code>
                         {groupScopes.includes(scope) && !held.has(scope) && (
-                          <Badge variant="outline" className="ml-2 text-[10px] text-yellow-600 dark:text-yellow-400">
+                          <Badge variant="outline" className="ml-2 text-[10px] text-warning">
                             {t(`${PREFIX}.notGranted`)}
                           </Badge>
                         )}
@@ -301,7 +301,7 @@ export function OAuthScopeGroupDialog({
             {/* Outside the scroller: the actions stay put however long the list gets. */}
             <div className="shrink-0 flex flex-wrap items-center justify-end gap-2 border-t pt-4">
               {selected.size === 0 && (
-                <span className="text-xs text-red-500 mr-auto">{t(`${PREFIX}.selectAtLeastOne`)}</span>
+                <span className="text-xs text-danger mr-auto">{t(`${PREFIX}.selectAtLeastOne`)}</span>
               )}
               <Button variant="outline" onClick={close}>{t('settingsPages.connections.cancel')}</Button>
               <Button onClick={apply} disabled={saving || selected.size === 0}>

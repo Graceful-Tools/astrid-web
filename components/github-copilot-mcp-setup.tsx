@@ -37,7 +37,7 @@ function CopyBlock({
         <span className="text-xs font-medium theme-text-muted">{label}</span>
         <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => onCopy(value, field)}>
           {copiedField === field
-            ? <Check className="w-3.5 h-3.5 text-green-500" />
+            ? <Check className="w-3.5 h-3.5 text-success" />
             : <Copy className="w-3.5 h-3.5" />}
           <span className="ml-1 text-xs">
             {t(copiedField === field ? "messages.copied" : "actions.copy")}
@@ -113,7 +113,7 @@ export function GitHubCopilotMcpSetup({ origin }: { origin?: string }) {
   }
 
   return (
-    <Card className="theme-bg-secondary theme-border border-blue-500/30">
+    <Card className="theme-bg-secondary border-brand/30">
       <CardHeader>
         <CardTitle className="theme-text-primary flex items-center gap-2">
           <Github className="w-5 h-5" />

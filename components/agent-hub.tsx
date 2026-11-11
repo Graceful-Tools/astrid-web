@@ -155,9 +155,9 @@ function isHarnessOnly(row: AgentRowConfig): boolean {
 type Ownership = 'astrid' | 'self' | 'off'
 
 const OWNERSHIP_META: Record<Ownership, { label: string; icon: typeof Cloud; tint: string }> = {
-  astrid: { label: `${BRAND.appName} runs it`, icon: Cloud, tint: 'text-blue-500 bg-blue-500/15' },
-  self: { label: 'I run it', icon: Terminal, tint: 'text-green-500 bg-green-500/15' },
-  off: { label: 'Off', icon: CircleSlash, tint: 'text-gray-500 bg-gray-500/15' },
+  astrid: { label: `${BRAND.appName} runs it`, icon: Cloud, tint: 'text-brand bg-brand/15' },
+  self: { label: 'I run it', icon: Terminal, tint: 'text-success bg-success/15' },
+  off: { label: 'Off', icon: CircleSlash, tint: 'text-theme-muted bg-theme-tertiary' },
 }
 
 function ownershipOf(mode: Mode): Ownership {
@@ -339,7 +339,7 @@ function InlineKeyEditor({
       <p className="text-xs theme-text-muted">
         Encrypted at rest, used only server-side.{' '}
         {row.keyDocsUrl && (
-          <a href={row.keyDocsUrl} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">
+          <a href={row.keyDocsUrl} target="_blank" rel="noreferrer" className="text-brand hover:underline">
             Get a key
           </a>
         )}
@@ -409,7 +409,7 @@ export function AgentHub() {
     <div className="space-y-3">
       {CAPABILITIES.integrationMcp && (
         <div className="flex justify-end">
-          <Link href="/docs/loops" className="text-xs text-blue-500 hover:underline">
+          <Link href="/docs/loops" className="text-xs text-brand hover:underline">
             Connect my coding agent guide
           </Link>
         </div>
@@ -443,7 +443,7 @@ export function AgentHub() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm font-medium theme-text-primary">{row.label}</span>
                   {!configured && !isOff && (
-                    <Badge variant="outline" className="text-xs text-yellow-600 dark:text-yellow-400">
+                    <Badge variant="outline" className="text-xs text-warning">
                       Needs setup
                     </Badge>
                   )}
@@ -518,7 +518,7 @@ export function AgentHub() {
                             }}
                             className={`px-2.5 py-1.5 text-xs flex items-center gap-1.5 transition-colors ${
                               active
-                                ? 'text-green-500 bg-green-500/15'
+                                ? 'text-success bg-success/15'
                                 : 'theme-text-muted hover:theme-text-primary'
                             }`}
                           >
