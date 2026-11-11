@@ -107,10 +107,12 @@ pickers, filters and headers.
 [PRODUCT_CONTRACT.md §4](../PRODUCT_CONTRACT.md) decides the mark. Its look:
 
 - A square of `size.leading-control`, radius `lg`, a 2 pt border in the priority colour.
-- **A repeating task wears the repeat arrows as a frame**, `repeat-frame-scale` (1.25) ×
-  the square, in the priority colour, with the photo or unassigned mark inside. This
-  holds for all three marks. iOS draws a repeating task assigned to someone else at the
-  wrong size; web's is right (register DS6).
+- **A repeating task wears the repeat arrows.** Your own checkbox is the arrows. Someone
+  else's photo and the unassigned mark keep the square's size and shape, and the arrows
+  are drawn as its border in place of the priority outline, in the priority colour:
+  `repeat-frame-scale` (1.0) × the square, the photo or "U" inside at
+  `repeat-frame-inner-scale` (1.0), so a repeating task's face is as big as every other
+  face in the column (register DS6; iOS AITD-612, web AWTD-1579).
 
 ### Selection
 
