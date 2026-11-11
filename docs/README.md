@@ -10,8 +10,8 @@ instead of restating values, commands, or policy.
 
 | Domain | Authoritative owner | Scope |
 |---|---|---|
-| Architecture | [Architecture](./ARCHITECTURE.md) | Current system boundaries and runtime design |
-| Platform assessment (2026-11) | [PLATFORM_ASSESSMENT_2026-11](./architecture/PLATFORM_ASSESSMENT_2026-11.md) | Performance, maintainability and scale findings for web and astrid-core; what a partner needs to self-host on Azure |
+| Architecture | [Architecture](./ARCHITECTURE.md) | Current system boundaries and runtime design; deployment options |
+| Platform assessment (2026-11) | [PLATFORM_ASSESSMENT_2026-11](./architecture/PLATFORM_ASSESSMENT_2026-11.md) | Historical 2026-11-01 findings with current-status pass dated 2026-11-08 |
 | Local operations | [CLI operations](./CLI_OPERATIONS.md) | Deploy, quality-gate, OAuth, and task-management commands |
 | API contracts | [API contract](./API_CONTRACT.md) | Stable external and mobile wire contract |
 | Testing | [Testing strategy](./context/testing.md) | Test policy, locations, and selection |
@@ -34,9 +34,15 @@ and stack versions with `npm run check:docs`.
 - **[Offline Mode](./OFFLINE_MODE.md)** - Offline-first architecture with IndexedDB and background sync
 - **[Agent Architecture Simplification](./AGENT_ARCHITECTURE_SIMPLIFICATION.md)** - Simplified AI agent system (tools-based, multi-provider)
 - **[Agent Polling Mode](./AGENT_POLLING_MODE.md)** - Let a user's own harness (Claude Code, Codex, Copilot, Gemini) work the agent's queue on a loop instead of Astrid calling a provider API
+- **[Business Runtime Binding RFC](./architecture/BUSINESS_RUNTIME_BINDING_RFC.md)** - AWTD-1564 proposal (not implemented): explicit admin-managed runtimes with additive personal compatibility, enrollment, scope, billing and rollback
 
 ### 🎨 Whitelabeling
 - **[Whitelabeling Guide](./WHITELABELING.md)** - ⭐ Deploy under a different brand, with a different set of back-end services, entirely through build-time configuration
+- **[White-label launch checklist](./deployment/WHITE_LABEL_LAUNCH_CHECKLIST.md)** - Operator launch steps, required versus optional setup, and post-deploy probes
+- **[White-label security and data flow](./deployment/WHITE_LABEL_SECURITY_DATA_FLOW.md)** - Deployment boundary, data locations, third-party flows, session/secrets handling, and retention questions
+- **[White-label backup and disaster recovery](./deployment/WHITE_LABEL_BACKUP_DR.md)** - Backup inventory and isolated restore-drill template; RPO/RTO remain decisions
+- **[White-label version compatibility](./deployment/WHITE_LABEL_COMPATIBILITY.md)** - Record web image, native client builds, and `astrid-core` revisions tested together
+- **[White-label support and SLO worksheet](./deployment/WHITE_LABEL_SUPPORT_SLO.md)** - Operator template with no invented service or support commitments
 - **[Brand Profiles](../brands/README.md)** - Per-partner profiles and the brand-matrix tests
 - **[Self-hosting](./deployment/SELF_HOSTING.md)** - Run it on your own infrastructure with no Vercel, Neon or Upstash account: Docker image, compose stack, storage drivers, cron runner
 - **[Azure](./deployment/AZURE.md)** - The same image on Azure Container Apps: Bicep template (Postgres Flexible Server, Cache for Redis, Blob, Key Vault), Entra ID sign-in, custom domain, upgrades and restore
@@ -62,6 +68,7 @@ and stack versions with `npm run check:docs`.
 - **[Fixall Queue Workflow](./FIXALL_WORKFLOW.md)** - the canonical autonomous agent queue loop; the user-facing connect flow is `/docs/loops` in the app
 - **[Fixall on the Web Board](./FIXALL_WEB.md)** - the web board's specifics (deploy rule, done, claim, gates), read by every harness
 - **[Agent Fleet](./AGENT_FLEET.md)** - which machine and harness runs what, and why agents never hold production keys
+- **[Agent Task Claim API](./AGENT_CLAIM_API.md)** - opt-in atomic claim, resume, and release contract for authenticated harnesses
 - **[Legacy AI agent setup (archived)](./archive/ai-agents/README.md)** - superseded GitHub-App walkthrough, kept for history
 
 ### 🧪 Testing & Quality

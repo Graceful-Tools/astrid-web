@@ -29,7 +29,17 @@ await client.addComment(taskId, 'Working on this now...')
 
 // Complete a task
 await client.updateTask(taskId, { completed: true })
+
+// Atomically claim a Ready task for the authenticated agent
+const claim = await client.claimTask(taskId, { action: 'claim' })
+if (claim.unavailable) {
+  // The server does not expose the opt-in claim API yet.
+}
 ```
+
+`claimTask` also supports `resume` and `release`. A plain HTTP 404, 405, or 501
+returns `{ success: false, unavailable: true }`, so clients can distinguish an
+older or disabled server from a claim conflict.
 
 ### OpenClaw Channel Plugin
 Connect [OpenClaw](https://openclaw.ai) to Astrid as a task channel. Your agent receives tasks via SSE (outbound connection — works behind NAT/firewalls):

@@ -4,7 +4,7 @@
 
 **Written for:** Jon, and the engineers and agents who pick up the tasks it files.
 **Frame:** design for tens of thousands of users across many partner tenants; the partner **self-hosts** (we ship artifacts and docs, their IT runs it).
-**Method:** three read-only audits (core, web backend, white-label/hosting) on 2026-11-01, with the headline findings re-verified by hand against the code. Every `file:line` below was checked on `main` at `3b5bef19` (web) and astrid-core at `2e0ebed` (branch `fix/awtd-1318-viewer-membership`, 18 commits behind its `origin/main`). Production row counts were **not measured** — the read-only query was refused by the agent sandbox; the script is kept at the end so it can be run by hand.
+**Historical snapshot:** three read-only audits (core, web backend, white-label/hosting) on 2026-11-01. Every `file:line` below was checked on web `main` at `3b5bef19` and astrid-core at `2e0ebed` (branch `fix/awtd-1318-viewer-membership`, then 18 commits behind its `origin/main`). These findings describe that snapshot, not current gaps. Production row counts were **not measured**. A current-status pass follows §4.2.
 
 The tasks filed from this document are listed in [§7](#7-tasks-filed).
 
@@ -95,6 +95,31 @@ Plain Postgres via `DATABASE_URL` / `DATABASE_URL_DIRECT` (Azure Database for Po
 | **A8** | The MCP "list deployments" operation calls the Vercel API. | `lib/vercel-client.ts:51-52` | Gate it behind a capability; it already returns empty without a token. Document as Vercel-only. |
 | **A9** | Per-organisation SSO, SAML and SCIM are specified only. | `docs/WHITELABELING.md:266-348` | **Defer.** Single-issuer Entra per deployment satisfies the partner-self-hosts model; SCIM only when a partner asks. |
 | **A10** | Native release builds are tied to one server domain. | `docs/deployment/SELF_HOSTING.md:183-187` | Already handled by brand variants in astrid-ios and astrid-android; the partner needs their own app builds and store listings. A deliverable, not a code change. |
+
+### 4.3 Current status pass (2026-11-08)
+
+The table above is retained as the November 1 review record. The following pass checks
+whether each gap is still current against this repository's current `main`; “implemented”
+does not mean field-verified.
+
+| Finding | Current status | Evidence / qualification |
+|---|---|---|
+| A1 — published image | **Implemented** | `.github/workflows/release-image.yml` publishes app and migrator images to GHCR. |
+| A2 — realtime across replicas | **Implemented** | `lib/realtime/redis-bus.ts` provides Redis pub/sub; hosted Upstash remains a separate option. |
+| A3 — Azure Blob driver | **Implemented** | `lib/storage/azure-blob-object-store.ts` is registered as `azure-blob`. |
+| A4 — SMTP transport | **Implemented** | `lib/email-transport.ts` includes SMTP alongside Resend. |
+| A5 — configurable AI provider hosts | **Implemented** | `lib/ai/config/provider-endpoints.ts` supports configurable base URLs and `OPENAI_API_VERSION`. |
+| A6 — Azure deployment definition | **Implemented; not field-verified** | `deploy/azure/main.bicep` and `docs/deployment/AZURE.md` exist. The template has not been run against a real Azure subscription. |
+| A7 — preview authentication host | **Implemented** | `lib/auth-host.ts` and `tests/lib/auth-host.test.ts` cover the preview/production behavior. |
+| A8 — Vercel-only deployment listing | **Implemented/documented; Vercel-specific** | The operation returns an unavailable/empty result without a Vercel token; `docs/deployment/AZURE.md` documents that behavior. |
+| A9 — per-organisation identity lifecycle | **Still open; partner-built** | `docs/WHITELABELING.md` specifies per-organisation SSO as a partner build. Multi-organisation tenancy, per-organisation IdP, SCIM, and session revocation are not shipped. |
+| A10 — native branded variants | **Implemented; partner release work remains** | Native brand-variant instructions exist; partners still own their native builds, signing, and store listings. |
+
+**Core pin check (2026-11-08).** Windows main pins `astrid-core` at `8c3274d`
+(7 commits behind current `astrid-core` main); Android main pins `2cf2b5f` (53 commits
+behind). These distances were checked against `astrid-core` main. This confirms pin
+distance, not that either client has been rebuilt against current core. The iOS pin was
+not revalidated in this pass.
 
 ---
 

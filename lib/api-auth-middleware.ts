@@ -418,6 +418,11 @@ function taskMembershipBranches(userId: string) {
   ]
 }
 
+/** The shared task write boundary, also used to revalidate atomic writes. */
+export function taskWriteAccessWhere(userId: string) {
+  return { OR: taskMembershipBranches(userId) }
+}
+
 /**
  * Helper to check if user has access to a specific task.
  *
@@ -431,10 +436,7 @@ export async function requireTaskAccess(
   taskId: string
 ): Promise<void> {
   const task = await prisma.task.findFirst({
-    where: {
-      id: taskId,
-      OR: taskMembershipBranches(userId),
-    },
+    where: { id: taskId, ...taskWriteAccessWhere(userId) },
   })
 
   if (!task) {
