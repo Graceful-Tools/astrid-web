@@ -317,17 +317,17 @@ export function UserPicker({
     <div className={`relative ${className}`}>
       {/* Selected user display - only show when not in inline mode */}
       {!inline && selectedUser && (
-        <div className="flex items-center space-x-2 p-2 bg-gray-700 rounded-lg border border-gray-600 mb-2">
+        <div data-testid="user-picker-selected" className="flex items-center space-x-2 p-2 bg-theme-tertiary rounded-lg border border-theme mb-2">
           <Avatar className="w-6 h-6">
                             <AvatarImage src={selectedUser.image || "/placeholder.svg"} />
             <AvatarFallback>{selectedUser.name?.charAt(0) || selectedUser.email.charAt(0)}</AvatarFallback>
           </Avatar>
-          <span className="text-white flex-1">{selectedUser.name || selectedUser.email}</span>
+          <span className="text-theme-primary flex-1">{selectedUser.name || selectedUser.email}</span>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => onUserSelect(null)}
-            className="p-1 h-auto text-gray-400 hover:text-red-400"
+            className="p-1 h-auto text-theme-muted hover:text-danger"
           >
             <X className="w-4 h-4" />
           </Button>
@@ -354,26 +354,26 @@ export function UserPicker({
           }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          className="bg-gray-700 border-gray-600 text-white placeholder-gray-400"
+          className="bg-theme-input border-theme-input text-theme-primary placeholder:text-theme-placeholder"
         />
 
         {/* Search results dropdown */}
         {showSuggestions && allOptions.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-theme-surface border border-theme-surface rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
             {allOptions.filter(option => option.id !== 'invite').map((user, index) => (
               <div
                 key={user.id}
                 onClick={() => handleUserSelect(user)}
                 className={`flex items-center space-x-2 px-3 py-2 cursor-pointer ${
                   index === selectedIndex 
-                    ? 'bg-blue-600 text-white' 
-                    : 'hover:bg-gray-700 text-white'
+                    ? 'bg-brand text-brand-foreground'
+                    : 'hover:bg-theme-hover text-theme-primary'
                 }`}
               >
                 {user.id === 'unassigned' ? (
                   <Avatar className="w-6 h-6">
                     <AvatarImage src="/placeholder.svg" />
-                    <AvatarFallback className="bg-gray-600 text-gray-300">{t('tasks.unassignedMark')}</AvatarFallback>
+                    <AvatarFallback className="bg-theme-active text-theme-secondary">{t('tasks.unassignedMark')}</AvatarFallback>
                   </Avatar>
                 ) : (
                   <Avatar className="w-6 h-6">
@@ -385,16 +385,16 @@ export function UserPicker({
                   <div className="flex items-center space-x-2">
                     <div className="text-sm">{user.name || user.email}</div>
                     {user.isListMember && !isCodingAgent(user) && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-success-subtle text-theme-primary">
                         Member
                       </span>
                     )}
                   </div>
                   {user.name && (
-                    <div className="text-xs text-gray-400">{user.email}</div>
+                    <div className="text-xs text-theme-muted">{user.email}</div>
                   )}
                   {user.accessWarning && (
-                    <div className="text-xs text-yellow-400 mt-1">
+                    <div className="text-xs text-warning mt-1">
                       ⚠️ {user.accessWarning}
                     </div>
                   )}
@@ -406,10 +406,10 @@ export function UserPicker({
             {isValidEmail(searchTerm) && onInviteUser && !searchResults.some(u => u.email === searchTerm) && (
               <div
                 onClick={() => setShowInviteForm(true)}
-                className={`flex items-center space-x-2 px-3 py-2 cursor-pointer border-t border-gray-600 ${
+                className={`flex items-center space-x-2 px-3 py-2 cursor-pointer border-t border-theme-surface ${
                   allOptions.length - 1 === selectedIndex
-                    ? 'bg-blue-600 text-white' 
-                    : 'hover:bg-gray-700 text-blue-400'
+                    ? 'bg-brand text-brand-foreground'
+                    : 'hover:bg-theme-hover text-brand'
                 }`}
               >
                 <UserPlus className="w-4 h-4" />
@@ -421,21 +421,21 @@ export function UserPicker({
 
         {/* Invite form */}
         {showInviteForm && (
-          <div className="absolute top-full left-0 right-0 mt-1 p-3 bg-gray-800 border border-gray-600 rounded-lg shadow-lg z-10">
-            <div className="text-sm text-white mb-2">
+          <div className="absolute top-full left-0 right-0 mt-1 p-3 bg-theme-surface border border-theme-surface rounded-lg shadow-lg z-10">
+            <div className="text-sm text-theme-primary mb-2">
               Invite {searchTerm}
             </div>
             <Input
               value={inviteMessage}
               onChange={(e) => setInviteMessage(e.target.value)}
               placeholder={t('userPicker.optionalMessage')}
-              className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 mb-3"
+              className="bg-theme-input border-theme-input text-theme-primary placeholder:text-theme-placeholder mb-3"
             />
             <div className="flex space-x-2">
               <Button
                 size="sm"
                 onClick={handleInviteUser}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-brand hover:bg-brand-hover text-brand-foreground"
               >
                 <Mail className="w-4 h-4 mr-1" />
                 Send Invite
@@ -444,7 +444,7 @@ export function UserPicker({
                 variant="outline"
                 size="sm"
                 onClick={() => setShowInviteForm(false)}
-                className="border-gray-600 text-gray-300"
+                className="border-theme-button text-theme-secondary"
               >
                 Cancel
               </Button>
@@ -454,8 +454,8 @@ export function UserPicker({
 
         {/* Access warning dialog */}
         {showAccessWarning && pendingUser && (
-          <div className="absolute top-full left-0 right-0 mt-1 p-4 bg-yellow-900 border border-yellow-600 rounded-lg shadow-lg z-10">
-            <div className="text-sm text-yellow-100 mb-3">
+          <div className="absolute top-full left-0 right-0 mt-1 p-4 bg-theme-surface border border-warning rounded-lg shadow-lg z-10">
+            <div className="text-sm text-theme-primary mb-3">
               <div className="font-medium mb-1">⚠️ Access Warning</div>
               <div>{pendingUser.accessWarning}</div>
             </div>
@@ -463,7 +463,7 @@ export function UserPicker({
               <Button
                 size="sm"
                 onClick={confirmUserSelection}
-                className="bg-yellow-600 hover:bg-yellow-700 text-yellow-100"
+                className="bg-warning hover:bg-warning/90 text-warning-foreground"
               >
                 <Check className="w-4 h-4 mr-1" />
                 Assign Anyway
@@ -472,7 +472,7 @@ export function UserPicker({
                 variant="outline"
                 size="sm"
                 onClick={cancelUserSelection}
-                className="border-yellow-600 text-yellow-100"
+                className="border-warning text-theme-primary"
               >
                 <X className="w-4 h-4 mr-1" />
                 Cancel

@@ -19,6 +19,7 @@ import {
   priorityOutlineClass,
   priorityTextClass,
 } from '@/lib/design/priority'
+import { THEME_VOCABULARY } from '@/lib/design/tailwind-theme'
 import { THEME_NAMES, designTokens, themeColor, themeColorNames } from '@/lib/design/tokens'
 import { getPriorityColor } from '@/lib/task-leading-control'
 import { getPriorityColorClass } from '@/lib/task-manager-utils'
@@ -286,5 +287,98 @@ describe('shadcn\'s variables are answered by the theme (AWTD-1574)', () => {
     // after hydration. Without it the server's HTML painted with no border or
     // text colour at all.
     expect(read('app', '[locale]', 'layout.tsx')).toMatch(/<html\b[\s\S]{0,600}?className=\{BRAND\.defaultTheme\}/)
+  })
+})
+
+describe('the theme vocabulary: what a palette class is replaced with (AWTD-1574)', () => {
+  // 1,585 Tailwind palette classes (text-gray-400, bg-blue-600 …) each restate
+  // a colour the tokens already hold. These are the names they become. They are
+  // Tailwind theme colours, so nothing here is a hand-written rule that a
+  // variant could be missing for.
+  const spec = read('docs', 'specs', 'DESIGN_SYSTEM.md')
+  let css = ''
+  const VARIANTS = ['hover', 'focus', 'focus-visible', 'active', 'disabled', 'group-hover', 'md']
+
+  /** The custom property a compiled colour rule reads. */
+  const propertyOf = (rule: string) => /rgba\(var\(--((?:astrid|theme)-[a-z0-9-]+)\)/.exec(rule)?.[1]
+
+  it('compiles every class, in every variant the app uses', async () => {
+    css = await compileClasses([
+      ...THEME_VOCABULARY,
+      ...THEME_VOCABULARY.flatMap((name) => VARIANTS.map((variant) => `${variant}:${name}`)),
+    ])
+    for (const name of THEME_VOCABULARY) {
+      expect(propertyOf(ruleFor(css, name)), name).toBeDefined()
+      for (const variant of VARIANTS) {
+        expect(css, `${variant}:${name}`).toContain(`${variant}\\:${name}`)
+      }
+    }
+  })
+
+  it.each(THEME_NAMES)('%s: every class resolves to a colour', (theme) => {
+    const scope = themeScope(theme)
+    for (const name of THEME_VOCABULARY) {
+      const property = propertyOf(ruleFor(css, name))!
+      expect(() => resolveRgb(property, scope), `${name} reads --${property}`).not.toThrow()
+    }
+    // The wash behind a notice is a number, named once.
+    expect(Number(scope.get('theme-wash-opacity'))).toBeGreaterThan(0)
+  })
+
+  it.each(THEME_NAMES)('%s: theme text is readable on the theme\'s page, card and secondary surface', (theme) => {
+    const scope = themeScope(theme)
+    const colour = (name: string) => resolveRgb(propertyOf(ruleFor(css, name))!, scope)
+    for (const text of ['text-theme-primary', 'text-theme-secondary', 'text-theme-muted']) {
+      for (const surface of ['bg-theme-primary', 'bg-theme-surface', 'bg-theme-secondary']) {
+        const ratio = contrast(colour(text), colour(surface))
+        expect(ratio, `${theme}: ${text} on ${surface} is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+  })
+
+  it('says the same thing as the hand-written class it turns round', () => {
+    const light = read('styles', 'themes', 'light-theme.css')
+    for (const [tailwind, handWritten, property] of [
+      ['text-theme-primary', 'theme-text-primary', 'color'],
+      ['text-theme-secondary', 'theme-text-secondary', 'color'],
+      ['text-theme-muted', 'theme-text-muted', 'color'],
+      ['bg-theme-primary', 'theme-bg-primary', 'background-color'],
+      ['bg-theme-secondary', 'theme-bg-secondary', 'background-color'],
+      ['bg-theme-tertiary', 'theme-bg-tertiary', 'background-color'],
+      ['bg-theme-surface', 'theme-surface', 'background-color'],
+      ['border-theme', 'theme-border', 'border-color'],
+      ['border-theme-input', 'theme-border-input', 'border-color'],
+    ]) {
+      const variable = new RegExp(`\\.light \\.${handWritten} \\{ ${property}: rgb\\(var\\(--(theme-[a-z-]+)\\)\\); \\}`).exec(light)?.[1]
+      expect(variable, handWritten).toBeDefined()
+      const scope = themeScope('light')
+      expect(resolveRgb(propertyOf(ruleFor(css, tailwind))!, scope), tailwind).toEqual(resolveRgb(variable!, scope))
+    }
+  })
+
+  it('hover is the surface\'s hover tint, as hover:theme-bg-hover is', () => {
+    expect(ruleFor(css, 'hover:bg-theme-hover')).toContain('rgba(var(--theme-surface-hover)')
+    expect(read('styles', 'themes', 'hover-variants.css')).toMatch(
+      /\.hover\\:theme-bg-hover:hover \{\s*background-color: rgb\(var\(--theme-surface-hover\)\);/,
+    )
+  })
+
+  it('states reach the tokens too: disabled, completed, press', async () => {
+    const states = await compileClasses(['disabled:opacity-disabled', 'opacity-completed', 'active:scale-press'])
+    expect(ruleFor(states, 'disabled:opacity-disabled')).toBe('opacity: var(--astrid-state-disabled-opacity)')
+    expect(ruleFor(states, 'opacity-completed')).toBe('opacity: var(--astrid-state-completed-mark-opacity)')
+    expect(ruleFor(states, 'active:scale-press')).toContain('--tw-scale-x: var(--astrid-state-press-scale)')
+  })
+
+  it('the spec\'s table names every class', () => {
+    const section = spec.slice(spec.indexOf('## Palette classes to theme classes'))
+    expect(section.length).toBeGreaterThan(1000)
+    const listed = (name: string) => section.includes(`\`${name}\``) || new RegExp(`\`[^\`]*\\b${name}\\b[^\`]*\``).test(section)
+    expect(THEME_VOCABULARY.filter((name) => !/^bg-list-[2-7]$/.test(name) && !listed(name))).toEqual([])
+  })
+
+  it('no palette colour is named in the Tailwind theme', () => {
+    const source = read('lib', 'design', 'tailwind-theme.ts') + read('tailwind.config.ts')
+    expect(source.match(/#[0-9a-fA-F]{3,8}\b|rgba?\(\s*\d|hsl\(/g) ?? []).toEqual([])
   })
 })

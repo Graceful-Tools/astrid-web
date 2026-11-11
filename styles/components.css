@@ -42,6 +42,10 @@
   --ios-drawer-duration: var(--astrid-motion-drawer-duration);
   --ios-drawer-ease: var(--astrid-motion-drawer-ease);
 
+  /* How strong the wash behind a notice is: bg-danger-subtle, bg-brand-subtle
+     and the rest (lib/design/tailwind-theme.ts). Web-only, named once. */
+  --theme-wash-opacity: 0.12;
+
   /* CSS has no spring. This curve overshoots and settles, and stands in for the
      tokens' damping wherever a spring duration is used (the checkbox pop, a row
      springing back from a press). Web-only, named once. */

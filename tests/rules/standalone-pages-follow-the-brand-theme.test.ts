@@ -36,8 +36,10 @@ const THEMED_STANDALONE_PAGES = [
 
 /**
  * Palette classes that bypass the theme. Neutrals (black / white / gray) and
- * the hardcoded accent (blue), plus shadcn's `background` / `foreground`, which
- * are not wired to the Astrid theme or the brand accent either.
+ * the hardcoded accent (blue), plus shadcn's `background` / `foreground`: they
+ * read the tokens since AWTD-1574, but they are components/ui's names and say
+ * "card", not "page" (docs/specs/DESIGN_SYSTEM.md → Palette classes to theme
+ * classes).
  */
 const HARDCODED_PALETTE =
   /(?<![\w-])(?:(?:hover|focus|dark|group-hover):)*(?:bg|text|border|from|to|via|ring)-(?:black|white|gray-\d+|blue-\d+|purple-\d+|background|foreground)(?:\/\d+)?(?![\w-])/g
@@ -49,9 +51,10 @@ describe('standalone pages follow the brand theme (AWTD-1047)', () => {
       const hits = [...new Set(source.match(HARDCODED_PALETTE) ?? [])]
       expect(hits, [
         `${page} paints its own palette outside the theme system, so it ignores`,
-        'the brand theme and NEXT_PUBLIC_BRAND_ACCENT_COLOR. Use theme-bg-primary,',
-        'theme-surface / theme-border, theme-text-*, and the accent via',
-        'bg-[rgb(var(--theme-accent))] / text-[rgb(var(--theme-accent-text))].',
+        'the brand theme and NEXT_PUBLIC_BRAND_ACCENT_COLOR. Use the theme',
+        'vocabulary (docs/specs/DESIGN_SYSTEM.md → Palette classes to theme classes):',
+        'bg-theme-primary, bg-theme-surface / border-theme, text-theme-*, and the',
+        'accent as bg-brand / text-brand-foreground.',
       ].join('\n')).toEqual([])
     })
   }
