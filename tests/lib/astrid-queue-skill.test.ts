@@ -68,6 +68,12 @@ describe('canonical queue skill (AWTD-759)', () => {
     expect(skill).toContain('pick ONE board with get_lists')
     expect(skill).not.toContain('listId "board-123"')
   })
+
+  it('points to supported setup and does not claim to install an agent host (AWTD-1568)', () => {
+    const skill = canonicalQueueSkill(OPTS)
+    expect(skill).toContain('/docs/loops')
+    expect(skill).toContain('does not install or start an agent host')
+  })
 })
 
 describe('generated adapters (AWTD-759)', () => {

@@ -978,7 +978,7 @@ The `packages/` directory contains reusable SDK and tool packages:
 
 | Package | Description |
 |---------|-------------|
-| `astrid-sdk` | Multi-provider AI agent SDK for building integrations. Run your own agent host with `npx astrid-agent`. |
+| `astrid-sdk` | Multi-provider AI agent SDK library for building integrations; it does not include a standalone agent-host CLI. |
 | `openclaw-astrid-channel` | OpenClaw channel adapter |
 | `astrid-rules` | astrid-core's rules as WebAssembly, at a pinned revision |
 | `astrid-design` | astrid-core's design tokens (colours, spacing, type, motion), at a pinned revision. Never edited here: `scripts/sync-design-tokens.sh` |
