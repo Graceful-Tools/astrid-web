@@ -61,10 +61,10 @@ export default function GithubSetupSettings({ onNavigate }: GithubSetupSettingsP
     return (
       <div className="p-4">
         <div className="max-w-md mx-auto mt-16">
-          <Card className="theme-bg-secondary theme-border border-red-200">
+          <Card className="theme-bg-secondary border-danger/30">
             <CardHeader>
               <div className="flex items-center space-x-3">
-                <AlertCircle className="w-8 h-8 text-red-500" />
+                <AlertCircle className="w-8 h-8 text-danger" />
                 <div>
                   <CardTitle className="theme-text-primary">Setup Failed</CardTitle>
                   <CardDescription className="theme-text-muted">
@@ -96,7 +96,7 @@ export default function GithubSetupSettings({ onNavigate }: GithubSetupSettingsP
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <div className="flex items-center space-x-3">
-                <Github className="w-8 h-8 text-gray-700" />
+                <Github className="w-8 h-8 text-theme-secondary" />
                 <div>
                   <CardTitle className="theme-text-primary">Processing GitHub Setup</CardTitle>
                   <CardDescription className="theme-text-muted">
@@ -107,7 +107,7 @@ export default function GithubSetupSettings({ onNavigate }: GithubSetupSettingsP
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-center py-8">
-                <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+                <div className="animate-spin w-8 h-8 border-4 border-brand border-t-transparent rounded-full"></div>
               </div>
               <p className="text-sm theme-text-muted text-center">
                 Please wait while we configure your GitHub integration...
@@ -123,10 +123,10 @@ export default function GithubSetupSettings({ onNavigate }: GithubSetupSettingsP
   return (
     <div className="p-4">
       <div className="max-w-md mx-auto mt-16">
-        <Card className="theme-bg-secondary theme-border border-green-200">
+        <Card className="theme-bg-secondary border-success/30">
           <CardHeader>
             <div className="flex items-center space-x-3">
-              <CheckCircle className="w-8 h-8 text-green-500" />
+              <CheckCircle className="w-8 h-8 text-success" />
               <div>
                 <CardTitle className="theme-text-primary">GitHub Connected!</CardTitle>
                 <CardDescription className="theme-text-muted">

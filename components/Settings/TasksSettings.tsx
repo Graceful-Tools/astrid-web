@@ -71,7 +71,7 @@ export default function TasksSettings({ onNavigate }: TasksSettingsProps) {
     <div className="p-2 sm:p-4">
       <div className="max-w-sm sm:max-w-2xl mx-auto space-y-4 sm:space-y-6">
         <div className="flex items-center space-x-3">
-          <CheckSquare className="w-8 h-8 text-blue-500" />
+          <CheckSquare className="w-8 h-8 text-brand" />
           <div>
             <h1 className="text-2xl font-bold theme-text-primary">Task Settings</h1>
             <p className="theme-text-muted">Configure default task behavior and email-to-task preferences</p>
@@ -79,7 +79,7 @@ export default function TasksSettings({ onNavigate }: TasksSettingsProps) {
         </div>
 
         {saveMessage && (
-          <Alert className={saveMessage.includes('success') ? 'bg-green-900/20 border-green-600' : 'bg-red-900/20 border-red-600'}>
+          <Alert className={saveMessage.includes('success') ? 'bg-success-subtle border-success' : 'bg-danger-subtle border-danger'}>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{saveMessage}</AlertDescription>
           </Alert>
@@ -143,15 +143,15 @@ export default function TasksSettings({ onNavigate }: TasksSettingsProps) {
               <h4 className="font-medium theme-text-primary mb-2">How to use Email-to-Task:</h4>
               <ul className="space-y-2 text-sm theme-text-muted">
                 <li className="flex items-start space-x-2">
-                  <span className="text-blue-500 mt-0.5">•</span>
+                  <span className="text-brand mt-0.5">•</span>
                   <span><strong>Self-task:</strong> Send TO {BRAND.inboundTaskEmail}</span>
                 </li>
                 <li className="flex items-start space-x-2">
-                  <span className="text-blue-500 mt-0.5">•</span>
+                  <span className="text-brand mt-0.5">•</span>
                   <span><strong>Assigned task:</strong> CC {BRAND.inboundTaskEmail} with one recipient in TO</span>
                 </li>
                 <li className="flex items-start space-x-2">
-                  <span className="text-blue-500 mt-0.5">•</span>
+                  <span className="text-brand mt-0.5">•</span>
                   <span><strong>Group task:</strong> CC {BRAND.inboundTaskEmail} with multiple recipients</span>
                 </li>
                 <li className="flex items-start space-x-2">
@@ -168,7 +168,7 @@ export default function TasksSettings({ onNavigate }: TasksSettingsProps) {
         </Card>
 
         <div className="flex justify-end">
-          <Button onClick={saveSettings} disabled={isSaving} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={saveSettings} disabled={isSaving} className="bg-brand hover:bg-brand-hover text-brand-foreground">
             {isSaving ? 'Saving...' : 'Save Settings'}
           </Button>
         </div>

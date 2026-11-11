@@ -294,7 +294,7 @@ export default function AccountSettings({ onNavigate }: AccountSettingsProps) {
         <div className="max-w-sm sm:max-w-2xl mx-auto space-y-4 sm:space-y-6">
           {/* Settings Page Header */}
           <div className="flex flex-wrap items-center gap-3">
-            <Shield className="w-8 h-8 text-blue-500" />
+            <Shield className="w-8 h-8 text-brand" />
             <div>
               <h1 className="text-2xl font-bold theme-text-primary">{t("settingsPages.accountAccess.title")}</h1>
               <p className="theme-text-muted">{t("settingsPages.accountAccess.description")}</p>
