@@ -182,8 +182,48 @@ Two things are not done, and the register says so:
   made unwell by movement on screen. An app that honours it swaps a slide or a pop for a
   fade or nothing. Only web's checkbox pop checks it so far; every other animation on
   every client still plays.
-- **Web reads few of these yet** (DS15): 57 durations are written out in its stylesheets
-  and classes. iOS writes several springs out too.
+- **Web's components do not read these yet** (DS15). Its stylesheets do: nothing in
+  `styles/` or `app/globals.css` writes a duration out, bar one `0s` that is a switch
+  with no duration rather than a design value. 28 remain in components
+  (`duration-200` and the like). iOS writes several springs out too.
+
+### Motion on web
+
+A stylesheet names the token's custom properties; a component names the Tailwind utility
+bound to the same token (`lib/design/tailwind-theme.ts`). A written-out duration is a
+count in the ratchet.
+
+| Token | In CSS | In a class |
+|---|---|---|
+| `hover` | `var(--astrid-motion-hover-duration) var(--astrid-motion-hover-ease)` | `duration-hover ease-hover` |
+| `press` | `var(--astrid-motion-press-duration) var(--astrid-motion-press-ease)` | `duration-press ease-press` |
+| `fast` | `var(--astrid-motion-fast-duration) var(--astrid-motion-fast-ease)` | `duration-fast ease-fast` |
+| `medium` | `var(--astrid-motion-medium-duration) var(--astrid-motion-medium-ease)` | `duration-medium ease-medium` |
+| `spring` | `var(--astrid-motion-spring-duration) var(--motion-spring-ease)` | `duration-spring` |
+| `panel` | `var(--astrid-motion-panel-duration) var(--astrid-motion-panel-ease)` | `duration-panel ease-panel` |
+| `drawer` | `var(--ios-drawer-duration) var(--ios-drawer-ease)`, which read the token | `duration-drawer ease-drawer` |
+
+CSS has no spring, so `--motion-spring-ease` (`styles/components.css`) is the one curve
+that overshoots and settles; it stands in for the tokens' damping. The spring forms of
+`panel` and `drawer` are for platforms with springs; web uses their curve forms.
+
+What a written-out value becomes:
+
+| Written out | Token | Because |
+|---|---|---|
+| `duration-75`, `duration-100`, `0.1s` on a hover or a colour change | `hover` | pointer over a row or control |
+| `0.06s`, `0.08s`, `0.1s` on a press, `active:scale-95` timing | `press` | press, to `state.press-scale` |
+| `duration-150`, `0.15s`; the details arrow's `duration-75` | `fast` | small toggles, the arrow following its row, drop targets |
+| `duration-200`, `0.2s`, `transition-theme` | `medium` | rows moving, switching list, board and chat, switching theme |
+| `0.2s` on an accordion, `0.28s`, anything that expands or pops | `spring` | expand and collapse, the checkbox |
+| `duration-300`, `0.3s`, `0.35s` on the details panel or a sliding pane | `panel` | task details opening and closing |
+| `0.3s` on the sidebar drawer | `drawer` | the sidebar drawer |
+| `duration-500` and longer, a spinner, a skeleton pulse | none | not an interaction in the table; say so in the change that keeps it |
+
+Three things moved when the stylesheets adopted these, because the token differs from
+what was written: a row's hover tint takes 100 ms, not 200; the phone's details panel
+slides for 300 ms on ease-out, not 350 on a hand-made curve (the code that waits for it
+reads `motion.panel` too); and the details arrow follows its row over 150 ms, not 75.
 
 ## States
 

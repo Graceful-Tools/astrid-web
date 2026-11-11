@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
 
-import { shadcnColors, tokenSpacing } from "./lib/design/tailwind-theme";
+import { shadcnColors, tokenDurations, tokenEasings, tokenSpacing } from "./lib/design/tailwind-theme";
 
 // all in fixtures is set to tailwind v3 as interims solutions
 
@@ -22,6 +22,8 @@ const config: Config = {
   			...shadcnColors,
   		},
   		spacing: tokenSpacing,
+  		transitionDuration: tokenDurations,
+  		transitionTimingFunction: tokenEasings,
   		fontSize: {
   			'display': ['2rem', { lineHeight: '2.5rem', letterSpacing: '-0.01em', fontWeight: '600' }],
   			'title': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.01em', fontWeight: '600' }],
@@ -54,8 +56,8 @@ const config: Config = {
   			}
   		},
   		animation: {
-  			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-down': 'accordion-down var(--astrid-motion-spring-duration) ease-out',
+  			'accordion-up': 'accordion-up var(--astrid-motion-spring-duration) ease-out'
   		}
   	}
   },
