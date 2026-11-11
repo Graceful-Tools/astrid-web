@@ -260,6 +260,155 @@ swatch (12) differ from iOS's (register DS23), and heading sizes are not tokens 
 Task row, sidebar row, board card, comment bubble, pickers, empty state. Each lands with
 the web-only surfaces it needs (register DS9).
 
+## Palette classes to theme classes
+
+Web still writes Tailwind palette classes (`text-gray-400`, `bg-blue-600`) in `app/` and
+`components/`: each restates a colour the tokens hold, and most were drawn for one theme.
+This is what each becomes. The names are Tailwind theme colours wired to the tokens
+(`lib/design/tailwind-theme.ts`, spread into `tailwind.config.ts`), so every one takes
+`hover:`, `focus:`, `focus-visible:`, `active:`, `disabled:`, `group-hover:`, a
+breakpoint and an opacity modifier (`bg-danger/90`) with no rule written for it, and
+`cn()` resolves two of them on one element by order, as it does palette classes.
+`tests/styles/design-tokens.test.ts` compiles each through the real config and follows it
+to a colour in Light, Dark and Ocean.
+
+A `dark:` pair becomes one class: the token already differs by theme. An arbitrary form
+(`text-[rgb(var(--theme-accent))]`) is not a replacement; it is a hand-written value and
+has a name below.
+
+### The vocabulary
+
+| Meaning | Class | Token |
+|---|---|---|
+| Text: primary, secondary, muted | `text-theme-primary`, `text-theme-secondary`, `text-theme-muted` | `text-primary`, `text-secondary`, `text-muted` |
+| Text on the opposite surface; on a selected row | `text-theme-inverted`, `text-theme-selected` | `text-inverted`, `text-selected` |
+| Placeholder | `placeholder:text-theme-placeholder` | `input-placeholder` |
+| The page | `bg-theme-primary` | `bg-primary` |
+| A card, dialog or menu on the page | `bg-theme-surface` | web-only `--theme-surface` |
+| Secondary and tertiary surfaces | `bg-theme-secondary`, `bg-theme-tertiary` | `bg-secondary`, `bg-tertiary` |
+| Hover, pressed, selected | `hover:bg-theme-hover`, `active:bg-theme-active` or `bg-theme-active`, `bg-theme-selected` | web-only `--theme-surface-hover`, `bg-active`, `bg-selected` |
+| An input; a neutral button and its hover; the header | `bg-theme-input`, `bg-theme-button`, `hover:bg-theme-button-hover`, `bg-theme-header` | `input-bg`, `button-bg`, `button-hover`, `header-bg` |
+| Border: default, heavier | `border-theme`, `border-theme-strong` (also `divide-theme`, `divide-theme-strong`) | `border`, `border-hover` |
+| Border around a card, dialog or menu | `border-theme-surface` | web-only `--theme-surface-border` |
+| Border: input, button, header, focus, selected | `border-theme-input`, `border-theme-button`, `border-theme-header`, `border-theme-focus`, `border-theme-selected` | `input-border`, `button-border`, `header-border`, `border-focus`, `bg-selected-border` |
+| Brand accent: text and links, fill, text on the fill, border, focus ring, a wash | `text-brand`, `bg-brand`, `text-brand-foreground`, `border-brand`, `ring-brand`, `bg-brand-subtle` | `accent`, `accent-text` |
+| Brand accent under the pointer | `hover:text-brand-hover`, `hover:bg-brand-hover` | `accent-hover` |
+| Danger: text, wash, fill, text on the fill, border | `text-danger`, `bg-danger-subtle`, `bg-danger`, `text-danger-foreground`, `border-danger` | `error` |
+| Success | `text-success`, `bg-success-subtle`, `bg-success`, `text-success-foreground`, `border-success` | `success` |
+| Warning | `text-warning`, `bg-warning-subtle`, `bg-warning`, `text-warning-foreground`, `border-warning` | `warning` |
+| Info | `text-info`, `bg-info-subtle`, `bg-info`, `text-info-foreground`, `border-info` | `info` |
+| Overdue | `text-overdue` | `overdue` |
+| Behind an agent's message | `bg-agent-bubble` | `agent-bubble` |
+| A list colour fixed in the markup | `bg-list-1` … `bg-list-8` | `palette.list` |
+| Disabled; a completed mark; a press | `disabled:opacity-disabled`, `opacity-completed`, `active:scale-press` | `state.disabled-opacity`, `state.completed-mark-opacity`, `state.press-scale` |
+| The leading control's size | `w-leading-control h-leading-control` | `size.leading-control` |
+| Priority | `lib/design/priority.ts` | `priority-*` |
+
+The brand, status, overdue, agent and list names are plain colours and work on any colour
+utility: `fill-danger`, `ring-brand`, `from-brand`, `border-l-warning`. A softer border or
+a pressed fill is an opacity modifier on the same name (`border-danger/30`,
+`hover:bg-danger/90`), not a second colour.
+
+Rules that come with it:
+
+- **Same meaning as the hand-written class, turned round.** `theme-text-muted` is
+  `text-theme-muted`, `theme-bg-secondary` is `bg-theme-secondary`, `theme-border` is
+  `border-theme`, `theme-surface` is `bg-theme-surface`; the test holds each pair to one
+  colour. The hand-written ones stay valid where they are.
+- **Never both spellings for one property on one element.** A hand-written `theme-*`
+  class is two classes deep (`.light .theme-text-muted`) and loads after Tailwind, so it
+  beats any variant: `theme-text-muted hover:text-danger` never turns red, as
+  `theme-text-muted hover:text-red-500` never did. Convert the base with the variant:
+  `text-theme-muted hover:text-danger`.
+- **`brand` is the accent, `accent` is not.** `bg-accent` and `text-accent-foreground`
+  are shadcn's hover grey. shadcn's own names (`bg-background`, `text-muted-foreground`,
+  `border-input`, `bg-destructive` …) read the same tokens now and belong to
+  `components/ui`; outside it, write the names above.
+- **Ocean's `border-theme` is the page's cyan**, as `theme-border` is. Around something
+  white use `border-theme-surface`; for a rule inside one, `border-theme-strong`.
+- **A wash is not a surface.** `bg-danger-subtle` is the colour at
+  `--theme-wash-opacity`, so what is under it shows. Put it on a surface, and on a
+  floating panel give the panel `bg-theme-surface` and a status border instead.
+- **Body text on a wash is `text-theme-primary`.** The status colour itself is for the
+  icon, the heading or a short label: on its own wash it is under 4.5:1 in Light.
+
+### The sixty most common, and what each becomes
+
+Counted over `app/`, `components/`, `hooks/` and `contexts/` (1,545 in all, 311 distinct).
+An unpaired grey from the dark end (`bg-gray-800`, `text-gray-300`) was written for Dark
+only; it takes the same row as its pair and the component then follows the theme, which is
+the fix.
+
+| Palette class (uses) | Becomes |
+|---|---|
+| `text-gray-900` (19), `text-gray-800` (4), `text-gray-900 dark:text-gray-100`, `text-gray-800 dark:text-gray-200`, `text-white` on a dark-only surface | `text-theme-primary` |
+| `text-gray-700` (10), `text-gray-300` (31), `text-gray-700 dark:text-gray-300`, `dark:text-gray-200` (6) | `text-theme-secondary` |
+| `text-gray-600` (22), `text-gray-500` (20), `text-gray-400` (77), `text-gray-500 dark:text-gray-400`, `text-gray-600 dark:text-gray-400`, `dark:text-gray-400` (13) | `text-theme-muted` |
+| `placeholder-gray-400` (6) | `placeholder:text-theme-placeholder` |
+| `bg-gray-900` (24), `bg-white dark:bg-gray-900` as the page | `bg-theme-primary` |
+| `bg-gray-800` (42), `dark:bg-gray-800` (13), `bg-white dark:bg-gray-800` as a card, dialog or menu | `bg-theme-surface` |
+| `bg-gray-50` (11), `bg-gray-50 dark:bg-gray-800/50` | `bg-theme-secondary` |
+| `bg-gray-100` (9), `bg-gray-700` (14), `dark:bg-gray-700` (13), `bg-gray-100 dark:bg-gray-700` | `bg-theme-tertiary` |
+| `bg-gray-200` (12), `bg-gray-300` (8), `dark:bg-gray-600` (7), `bg-gray-200 dark:bg-gray-700`, `bg-gray-300 dark:bg-gray-600` | `bg-theme-active` |
+| `hover:bg-gray-700` (9), `hover:bg-gray-100` (5), `hover:bg-gray-100 dark:hover:bg-gray-800` | `hover:bg-theme-hover` |
+| `border-gray-200` (16), `border-gray-600` (17), `border-gray-700` (6), `border-gray-800` (15), `dark:border-gray-700` (6), `border-gray-200 dark:border-gray-700` | `border-theme`; around a card, dialog or menu `border-theme-surface` |
+| `border-gray-300` (7), `dark:border-gray-600` (7), `border-gray-300 dark:border-gray-600` | on an input `border-theme-input`; elsewhere `border-theme-strong` |
+| `text-blue-500` (54), `text-blue-400` (29), `text-blue-600` (22), `dark:text-blue-400` (16), `text-blue-600 dark:text-blue-400`, `text-blue-700` (8), `dark:text-blue-300` (6) | `text-brand` |
+| `hover:text-blue-400` (6), `hover:text-blue-300` | `hover:text-brand-hover` |
+| `text-blue-800` (7), `text-blue-800 dark:text-blue-200` (text on a blue wash) | `text-theme-primary` |
+| `bg-blue-600` (42), `bg-blue-500` (13), with `text-white` | `bg-brand text-brand-foreground` |
+| `hover:bg-blue-700` (36), `hover:bg-blue-600` (5) | `hover:bg-brand-hover` |
+| `bg-blue-50` (18), `dark:bg-blue-900/20` (13), `bg-blue-100` (5), `bg-blue-500/10` (6), `bg-blue-500/20` (6), `bg-blue-50 dark:bg-blue-900/20` | a selected item `bg-theme-selected`; a notice `bg-brand-subtle` |
+| `border-blue-500` (18), `border-blue-600` (11) | `border-brand` |
+| `border-blue-500/30` (8), `border-blue-200` (5), `border-blue-200 dark:border-blue-800` | around a selected item `border-theme-selected`; around a notice `border-brand/30` |
+| `focus:ring-blue-500` (9), `ring-blue-500` (4) | `focus:ring-brand`, `ring-brand` |
+| `text-red-500` (41), `text-red-400` (28), `text-red-600` (16), `text-red-600 dark:text-red-400` | `text-danger` |
+| `hover:text-red-300` (9), `hover:text-red-400`, `hover:text-red-600` | `hover:text-danger` |
+| `fill-red-500` (6) | `fill-danger` |
+| `bg-red-50` (6), `bg-red-900/20` (6), `bg-red-500/10` (4), `bg-red-50 dark:bg-red-900/20` | `bg-danger-subtle` |
+| `bg-red-600` (5) with `hover:bg-red-700` (5) and `text-white` | `bg-danger hover:bg-danger/90 text-danger-foreground` |
+| `border-red-600` (6), `border-red-500` (4) | `border-danger` |
+| `border-red-200` (4), `border-red-200 dark:border-red-800` | `border-danger/30` |
+| `text-green-500` (56), `text-green-600` (9), `text-green-400` (8), `text-green-700` (5), `text-green-600 dark:text-green-400` | `text-success` |
+| `bg-green-600` (8) with `hover:bg-green-700` (6) and `text-white` | `bg-success hover:bg-success/90 text-success-foreground` |
+| `bg-green-500/20` (6), `bg-green-100` (5), `bg-green-50` (4), `bg-green-500/10` (4) | `bg-success-subtle` |
+| `border-green-500` (6), `border-green-600` (4) | `border-success`; `border-green-200`, `border-green-500/30` are `border-success/30` |
+| `text-green-800` (4), `text-red-800` (4), `text-yellow-800` (3), `text-orange-800` (3) and their `dark:…-200` pairs (text on a wash) | `text-theme-primary` |
+| `text-yellow-500` (17), `text-yellow-600` (10), `text-yellow-400` (8), `dark:text-yellow-400` (7), `text-orange-500` (15), `text-orange-400` (5), `text-yellow-600 dark:text-yellow-400` | `text-warning`; if it is a priority, `priorityTextClass()` |
+| `border-yellow-500` (5), `border-yellow-600` (4), `bg-yellow-500/20` (4), `bg-yellow-50` (3) | `border-warning`, `bg-warning-subtle` |
+| `text-cyan-500` (7) | `text-info` |
+| `bg-purple-100` (5), `bg-purple-100 dark:bg-purple-900/30` behind an agent | `bg-agent-bubble` |
+| `text-purple-500` (21), `text-purple-600` (7), `text-purple-400` (4) | no token: see below |
+
+### Where the token is not the colour that was written
+
+Moving to a token changes what is drawn. These are the differences to expect, and they are
+the point:
+
+- The accent is `blue-500` with `blue-600` under the pointer. A `bg-blue-600
+  hover:bg-blue-700` button gets one step lighter, and follows a partner's brand.
+- Status colours are one colour per status in every theme: `red-500`, `green-500`,
+  `amber-500`, `cyan-500`. `text-red-600` gets lighter, `text-red-400` darker; yellow and
+  orange both become the warning amber.
+- Muted text is `gray-500` in Light and `gray-600` in Ocean, so a bare `text-gray-400`
+  gets darker there.
+
+### No honest token
+
+Leave these, or change them as said; do not pick the nearest name.
+
+| Usage | What to do |
+|---|---|
+| Purple for an agent's icon or label (`text-purple-500`) | The tokens hold only `agent-bubble`. Leave the palette class until astrid-core has an agent text colour; the wash behind is `bg-agent-bubble` |
+| A list's colour chosen by the person | A `style` prop from `lib/brand/colors.ts` (the eight are `palette.list`); `bg-list-N` only where the markup fixes which one |
+| Text on a status fill | `text-danger-foreground` and the others read the accent's text colour: the tokens have none of their own. White on the warning amber is 2.1:1; prefer a wash with `text-theme-primary` for a warning |
+| Dark red or green text on a pale wash (`text-red-800` on `bg-red-50`) | No dark status text token (register DS22 is the same gap for priority): `text-theme-primary` on the wash, the status colour for the icon |
+| Third-party marks and their brand colours (Google, Apple, GitHub in `components/ui/brand-icons.tsx`), illustrations | Stay literal. They are someone else's colours |
+| The checkbox art | Fixed-colour images (register DS21) |
+| A surface that is dark in every theme by design (a code block, the 404 page) | Stays literal, with a comment saying it is meant |
+| `bg-black/50` scrims, `text-white` over a photo | Not palette classes and not counted; leave them |
+| Charts | `chart-1` … `chart-5` read the list palette |
+
 ## In this repo
 
 | What | Where |

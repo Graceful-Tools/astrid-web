@@ -1,7 +1,18 @@
 import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
 
-import { shadcnColors, tokenDurations, tokenEasings, tokenSpacing } from "./lib/design/tailwind-theme";
+import {
+  semanticColors,
+  shadcnColors,
+  themeBackgroundColors,
+  themeBorderColors,
+  themeTextColors,
+  tokenDurations,
+  tokenEasings,
+  tokenOpacity,
+  tokenScale,
+  tokenSpacing,
+} from "./lib/design/tailwind-theme";
 
 // all in fixtures is set to tailwind v3 as interims solutions
 
@@ -18,9 +29,17 @@ const config: Config = {
   		screens: {
   			'cols2': '910px',
   		},
+  		// The design tokens (docs/specs/DESIGN_SYSTEM.md). Every colour, size and
+  		// duration below is a custom property from packages/astrid-design.
   		colors: {
   			...shadcnColors,
+  			...semanticColors,
   		},
+  		textColor: { theme: themeTextColors },
+  		backgroundColor: { theme: themeBackgroundColors },
+  		borderColor: { theme: themeBorderColors },
+  		opacity: tokenOpacity,
+  		scale: tokenScale,
   		spacing: tokenSpacing,
   		transitionDuration: tokenDurations,
   		transitionTimingFunction: tokenEasings,

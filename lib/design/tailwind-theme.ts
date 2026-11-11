@@ -76,3 +76,147 @@ export const shadcnColors = {
     ring: token('sidebar-ring'),
   },
 }
+
+/**
+ * The theme vocabulary: what a Tailwind palette class is replaced with
+ * (docs/specs/DESIGN_SYSTEM.md → Palette classes to theme classes).
+ *
+ * These are Tailwind theme colours, not hand-written classes, so each takes
+ * every variant (`hover:`, `focus:`, `disabled:`, `group-hover:`, `md:`) and
+ * opacity modifier without a rule being written for it, and tailwind-merge
+ * resolves two of them on one element the way it does `text-gray-500
+ * text-red-500`. The names turn the hand-written classes round:
+ * `theme-text-muted` is `text-theme-muted`, `theme-bg-secondary` is
+ * `bg-theme-secondary`, `theme-border` is `border-theme`.
+ *
+ * Text, surface and border names are scoped to their utility, so `bg-theme-…`
+ * cannot be given a text colour by mistake. The rest (brand, status, list…)
+ * are plain colours and work with any utility: `ring-brand`, `fill-danger`.
+ */
+
+/** `text-theme-*`: also `placeholder:text-theme-placeholder`. */
+export const themeTextColors = {
+  primary: token('astrid-text-primary'),
+  secondary: token('astrid-text-secondary'),
+  muted: token('astrid-text-muted'),
+  inverted: token('astrid-text-inverted'),
+  selected: token('astrid-text-selected'),
+  placeholder: token('astrid-input-placeholder'),
+}
+
+/**
+ * `bg-theme-*`. `primary` is the page and `surface` the card on it: the same
+ * white in Light, but Ocean's page is cyan. `hover` is the surface's hover
+ * tint, as `hover:theme-bg-hover` is (styles/themes/hover-variants.css): the
+ * `bg-hover` token is white on white in Light.
+ */
+export const themeBackgroundColors = {
+  primary: token('astrid-bg-primary'),
+  secondary: token('astrid-bg-secondary'),
+  tertiary: token('astrid-bg-tertiary'),
+  surface: token('theme-surface'),
+  hover: token('theme-surface-hover'),
+  active: token('astrid-bg-active'),
+  selected: token('astrid-bg-selected'),
+  input: token('astrid-input-bg'),
+  button: token('astrid-button-bg'),
+  'button-hover': token('astrid-button-hover'),
+  header: token('astrid-header-bg'),
+}
+
+/**
+ * `border-theme`, `border-theme-*`, and `divide-theme…`, which Tailwind takes
+ * from the same set. `strong` is the token's `border-hover`: one step heavier,
+ * and the neutral grey line on Ocean, whose `border` is the page's cyan.
+ */
+export const themeBorderColors = {
+  DEFAULT: token('astrid-border'),
+  input: token('astrid-input-border'),
+  strong: token('astrid-border-hover'),
+  focus: token('astrid-border-focus'),
+  selected: token('astrid-bg-selected-border'),
+  surface: token('theme-surface-border'),
+  button: token('astrid-button-border'),
+  header: token('astrid-header-border'),
+}
+
+/**
+ * A status colour: itself for text, a border and a solid fill; `subtle` for
+ * the wash behind a notice; `foreground` for text on the solid fill. The
+ * tokens have no colour for text on a status fill, so it reads the accent's.
+ */
+const status = (name: string) => ({
+  DEFAULT: token(`astrid-${name}`),
+  subtle: `rgba(var(--astrid-${name}), var(--theme-wash-opacity))`,
+  foreground: token('astrid-accent-text'),
+})
+
+/** Plain colours, for any utility: `text-brand`, `bg-danger-subtle`, `ring-brand`, `fill-danger`. */
+export const semanticColors = {
+  /** The brand accent. Not `accent`: that is shadcn's hover grey. */
+  brand: {
+    DEFAULT: token('astrid-accent'),
+    hover: token('astrid-accent-hover'),
+    foreground: token('astrid-accent-text'),
+    subtle: 'rgba(var(--astrid-accent), var(--theme-wash-opacity))',
+  },
+  danger: status('error'),
+  success: status('success'),
+  warning: status('warning'),
+  info: status('info'),
+  overdue: token('astrid-overdue'),
+  /** Behind an agent's message. The tokens have no agent text colour yet. */
+  agent: { bubble: token('astrid-agent-bubble') },
+  /** The eight list colours, for a colour fixed in the markup. One chosen at run time is a `style` prop from lib/brand/colors.ts. */
+  list: Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 8].map((n) => [String(n), token(`astrid-palette-list-${n}`)])),
+}
+
+/** `disabled:opacity-disabled`, `opacity-completed`. */
+export const tokenOpacity = {
+  disabled: 'var(--astrid-state-disabled-opacity)',
+  completed: 'var(--astrid-state-completed-mark-opacity)',
+}
+
+/** `active:scale-press`. */
+export const tokenScale = {
+  press: 'var(--astrid-state-press-scale)',
+}
+
+const flat = (prefix: string, colors: Record<string, string | Record<string, string>>): string[] =>
+  Object.entries(colors).flatMap(([name, value]) =>
+    typeof value === 'string'
+      ? [name === 'DEFAULT' ? prefix : `${prefix}-${name}`]
+      : flat(`${prefix}-${name}`, value),
+  )
+
+const STATUS_NAMES = ['danger', 'success', 'warning', 'info'] as const
+
+/**
+ * The vocabulary, as the classes a component writes: every text, surface and
+ * border name, and the plain colours on the utilities they are meant for (they
+ * compile on any colour utility). Tests compile each one and follow it to a
+ * colour in every theme, and the spec's table must name each.
+ */
+export const THEME_VOCABULARY: string[] = [
+  ...flat('text-theme', themeTextColors),
+  ...flat('bg-theme', themeBackgroundColors),
+  ...flat('border-theme', themeBorderColors),
+  'text-brand',
+  'text-brand-hover',
+  'text-brand-foreground',
+  'bg-brand',
+  'bg-brand-hover',
+  'bg-brand-subtle',
+  'border-brand',
+  'ring-brand',
+  ...STATUS_NAMES.flatMap((name) => [
+    `text-${name}`,
+    `text-${name}-foreground`,
+    `bg-${name}`,
+    `bg-${name}-subtle`,
+    `border-${name}`,
+  ]),
+  'text-overdue',
+  'bg-agent-bubble',
+  ...Object.keys(semanticColors.list).map((n) => `bg-list-${n}`),
+]
