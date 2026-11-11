@@ -20,15 +20,15 @@ export default function AstridCodingPage() {
   }
 
   return (
-    <div className={`${scrollShellClassName} bg-gradient-to-br from-blue-50 via-white to-purple-50`}>
+    <div className={`${scrollShellClassName} bg-theme-primary bg-gradient-to-br from-brand-subtle via-transparent to-agent-bubble`}>
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
+      <div className="bg-theme-header/80 backdrop-blur-sm border-b border-theme-header sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Heart className="w-8 h-8 text-red-500 fill-red-500" />
-              <span className="text-2xl font-bold text-gray-900">{BRAND.wordmark}</span>
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+              <span className="text-2xl font-bold text-theme-primary">{BRAND.wordmark}</span>
+              <Badge variant="outline" className="bg-brand-subtle text-brand border-brand/30">
                 Coding Agent
               </Badge>
             </div>
@@ -48,34 +48,34 @@ export default function AstridCodingPage() {
       <div className="max-w-6xl mx-auto px-4 py-16">
         <div className="text-center max-w-4xl mx-auto mb-16">
           <div className="flex items-center justify-center space-x-3 mb-6">
-            <Bot className="w-16 h-16 text-blue-500" />
+            <Bot className="w-16 h-16 text-brand" />
             <div className="text-left">
-              <h1 className="text-5xl font-bold text-gray-900 mb-2">
+              <h1 className="text-5xl font-bold text-theme-primary mb-2">
                 {BRAND.appName} Agent
               </h1>
-              <p className="text-xl text-gray-600">
+              <p className="text-xl text-theme-muted">
                 AI-powered coding assistant that writes code, creates PRs, and deploys automatically
               </p>
             </div>
           </div>
 
           <div className="flex items-center justify-center space-x-4 mb-8">
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+            <div className="flex items-center space-x-2 text-sm text-theme-muted">
+              <Star className="w-4 h-4 text-warning fill-warning" />
               <span>Production-ready code</span>
             </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <CheckCircle className="w-4 h-4 text-green-500" />
+            <div className="flex items-center space-x-2 text-sm text-theme-muted">
+              <CheckCircle className="w-4 h-4 text-success" />
               <span>GitHub integration</span>
             </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <Zap className="w-4 h-4 text-blue-500" />
+            <div className="flex items-center space-x-2 text-sm text-theme-muted">
+              <Zap className="w-4 h-4 text-brand" />
               <span>Auto deployment</span>
             </div>
           </div>
 
           <div className="flex items-center justify-center space-x-4">
-            <Button size="lg" onClick={handleGetStarted} className="bg-blue-600 hover:bg-blue-700">
+            <Button size="lg" onClick={handleGetStarted} className="bg-brand hover:bg-brand-hover text-brand-foreground">
               <Play className="w-5 h-5 mr-2" />
               Install GitHub App
             </Button>
@@ -88,41 +88,41 @@ export default function AstridCodingPage() {
 
         {/* Features Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          <Card className="bg-white/60 backdrop-blur-sm border-gray-200 hover:shadow-lg transition-shadow">
+          <Card className="bg-theme-surface/60 backdrop-blur-sm border-theme-surface hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
-              <Code className="w-12 h-12 text-blue-500 mx-auto mb-4" />
-              <h3 className="font-semibold text-gray-900 mb-2">Code Generation</h3>
-              <p className="text-sm text-gray-600">
+              <Code className="w-12 h-12 text-brand mx-auto mb-4" />
+              <h3 className="font-semibold text-theme-primary mb-2">Code Generation</h3>
+              <p className="text-sm text-theme-muted">
                 AI generates production-ready code from natural language descriptions
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/60 backdrop-blur-sm border-gray-200 hover:shadow-lg transition-shadow">
+          <Card className="bg-theme-surface/60 backdrop-blur-sm border-theme-surface hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
-              <GitBranch className="w-12 h-12 text-green-500 mx-auto mb-4" />
-              <h3 className="font-semibold text-gray-900 mb-2">GitHub PRs</h3>
-              <p className="text-sm text-gray-600">
+              <GitBranch className="w-12 h-12 text-success mx-auto mb-4" />
+              <h3 className="font-semibold text-theme-primary mb-2">GitHub PRs</h3>
+              <p className="text-sm text-theme-muted">
                 Automatically creates GitHub pull requests with proper branching
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/60 backdrop-blur-sm border-gray-200 hover:shadow-lg transition-shadow">
+          <Card className="bg-theme-surface/60 backdrop-blur-sm border-theme-surface hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
               <Globe className="w-12 h-12 text-purple-500 mx-auto mb-4" />
-              <h3 className="font-semibold text-gray-900 mb-2">Live Previews</h3>
-              <p className="text-sm text-gray-600">
+              <h3 className="font-semibold text-theme-primary mb-2">Live Previews</h3>
+              <p className="text-sm text-theme-muted">
                 Instant staging deployments via Vercel integration
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/60 backdrop-blur-sm border-gray-200 hover:shadow-lg transition-shadow">
+          <Card className="bg-theme-surface/60 backdrop-blur-sm border-theme-surface hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
-              <MessageSquare className="w-12 h-12 text-orange-500 mx-auto mb-4" />
-              <h3 className="font-semibold text-gray-900 mb-2">Comment Actions</h3>
-              <p className="text-sm text-gray-600">
+              <MessageSquare className="w-12 h-12 text-warning mx-auto mb-4" />
+              <h3 className="font-semibold text-theme-primary mb-2">Comment Actions</h3>
+              <p className="text-sm text-theme-muted">
                 Control with simple comments: &quot;approve&quot;, &quot;merge&quot;, &quot;change X&quot;
               </p>
             </CardContent>
@@ -130,10 +130,10 @@ export default function AstridCodingPage() {
         </div>
 
         {/* How It Works */}
-        <Card className="mb-16 bg-white/60 backdrop-blur-sm border-gray-200">
+        <Card className="mb-16 bg-theme-surface/60 backdrop-blur-sm border-theme-surface">
           <CardHeader>
-            <CardTitle className="text-2xl text-center text-gray-900">How It Works</CardTitle>
-            <CardDescription className="text-center text-gray-600">
+            <CardTitle className="text-2xl text-center text-theme-primary">How It Works</CardTitle>
+            <CardDescription className="text-center text-theme-muted">
               Complete workflow from task to production deployment
             </CardDescription>
           </CardHeader>
@@ -148,15 +148,15 @@ export default function AstridCodingPage() {
                 { step: 6, title: "Deploy", desc: "Comment \"merge\" to deploy or \"change X\" for modifications" }
               ].map((item, index) => (
                 <div key={index} className="flex items-start space-x-4">
-                  <div className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center text-sm font-medium">
+                  <div className="flex-shrink-0 w-8 h-8 bg-brand-subtle text-brand rounded-full flex items-center justify-center text-sm font-medium">
                     {item.step}
                   </div>
                   <div className="flex-1">
-                    <div className="font-semibold text-gray-900">{item.title}</div>
-                    <div className="text-gray-600">{item.desc}</div>
+                    <div className="font-semibold text-theme-primary">{item.title}</div>
+                    <div className="text-theme-muted">{item.desc}</div>
                   </div>
                   {index < 5 && (
-                    <div className="hidden md:block w-px h-12 bg-gray-200 mt-4"></div>
+                    <div className="hidden md:block w-px h-12 bg-theme-active mt-4"></div>
                   )}
                 </div>
               ))}
@@ -165,36 +165,36 @@ export default function AstridCodingPage() {
         </Card>
 
         {/* GitHub App Benefits */}
-        <Card className="mb-16 bg-gradient-to-r from-gray-50 to-blue-50 border-gray-200">
+        <Card className="mb-16 bg-gradient-to-r from-transparent to-brand-subtle border-theme-surface">
           <CardHeader>
             <div className="flex items-center justify-center space-x-3 mb-4">
               <Github className="w-8 h-8" />
-              <CardTitle className="text-2xl text-gray-900">Official GitHub App</CardTitle>
+              <CardTitle className="text-2xl text-theme-primary">Official GitHub App</CardTitle>
             </div>
-            <CardDescription className="text-center text-gray-600">
+            <CardDescription className="text-center text-theme-muted">
               Secure, maintained, and trusted by developers worldwide
             </CardDescription>
           </CardHeader>
           <CardContent className="p-8">
             <div className="grid md:grid-cols-3 gap-6">
               <div className="text-center">
-                <Zap className="w-12 h-12 text-blue-500 mx-auto mb-4" />
-                <h3 className="font-semibold text-gray-900 mb-2">Quick Setup</h3>
-                <p className="text-sm text-gray-600">
+                <Zap className="w-12 h-12 text-brand mx-auto mb-4" />
+                <h3 className="font-semibold text-theme-primary mb-2">Quick Setup</h3>
+                <p className="text-sm text-theme-muted">
                   No GitHub App creation needed - just install and connect in minutes
                 </p>
               </div>
               <div className="text-center">
-                <Shield className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                <h3 className="font-semibold text-gray-900 mb-2">Secure & Trusted</h3>
-                <p className="text-sm text-gray-600">
+                <Shield className="w-12 h-12 text-success mx-auto mb-4" />
+                <h3 className="font-semibold text-theme-primary mb-2">Secure & Trusted</h3>
+                <p className="text-sm text-theme-muted">
                   Official app maintained by the {BRAND.appName} team with proper security practices
                 </p>
               </div>
               <div className="text-center">
                 <Users className="w-12 h-12 text-purple-500 mx-auto mb-4" />
-                <h3 className="font-semibold text-gray-900 mb-2">Shared & Maintained</h3>
-                <p className="text-sm text-gray-600">
+                <h3 className="font-semibold text-theme-primary mb-2">Shared & Maintained</h3>
+                <p className="text-sm text-theme-muted">
                   Used by all {BRAND.appName} users - no individual app management required
                 </p>
               </div>
@@ -203,26 +203,26 @@ export default function AstridCodingPage() {
         </Card>
 
         {/* Interactive Actions */}
-        <Card className="mb-16 bg-white/60 backdrop-blur-sm border-orange-200">
+        <Card className="mb-16 bg-theme-surface/60 backdrop-blur-sm border-warning/30">
           <CardHeader>
-            <CardTitle className="text-2xl text-center text-gray-900">Simple Comment Controls</CardTitle>
-            <CardDescription className="text-center text-gray-600">
+            <CardTitle className="text-2xl text-center text-theme-primary">Simple Comment Controls</CardTitle>
+            <CardDescription className="text-center text-theme-muted">
               Control the agent with natural language comments
             </CardDescription>
           </CardHeader>
           <CardContent className="p-8">
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
-                <span className="font-semibold text-green-800">&quot;approve&quot;</span>
-                <span className="text-sm text-green-700">Approves AI plan and starts implementation</span>
+              <div className="flex items-center justify-between p-4 bg-success-subtle rounded-lg border border-success/30">
+                <span className="font-semibold text-success">&quot;approve&quot;</span>
+                <span className="text-sm text-theme-primary">Approves AI plan and starts implementation</span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <span className="font-semibold text-blue-800">&quot;merge&quot; or &quot;ship it&quot;</span>
-                <span className="text-sm text-blue-700">Merges PR to production</span>
+              <div className="flex items-center justify-between p-4 bg-brand-subtle rounded-lg border border-brand/30">
+                <span className="font-semibold text-brand">&quot;merge&quot; or &quot;ship it&quot;</span>
+                <span className="text-sm text-theme-primary">Merges PR to production</span>
               </div>
-              <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border border-orange-200">
-                <span className="font-semibold text-orange-800">&quot;change [feedback]&quot;</span>
-                <span className="text-sm text-orange-700">Requests modifications with specific feedback</span>
+              <div className="flex items-center justify-between p-4 bg-warning-subtle rounded-lg border border-warning/30">
+                <span className="font-semibold text-warning">&quot;change [feedback]&quot;</span>
+                <span className="text-sm text-theme-primary">Requests modifications with specific feedback</span>
               </div>
             </div>
           </CardContent>
@@ -250,6 +250,7 @@ export default function AstridCodingPage() {
       </div>
 
       {/* Footer */}
+      {/* Footer: dark in every theme by design, so its greys stay literal (DESIGN_SYSTEM.md, No honest token) */}
       <div className="bg-gray-900 text-white py-12">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex items-center justify-between">
