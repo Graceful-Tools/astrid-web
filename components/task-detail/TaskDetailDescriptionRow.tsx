@@ -93,7 +93,7 @@ export function TaskDetailDescriptionRow({
             }}
           />
           <div className="text-xs theme-text-muted mt-1">
-            Press Enter to save • Shift+Enter for line breaks
+            {t('tasks.detail.descriptionKeysHint')}
           </div>
         </div>
       ) : (

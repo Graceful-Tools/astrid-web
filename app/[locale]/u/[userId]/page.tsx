@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { TaskCheckbox } from "@/components/task-checkbox"
 import { CheckCircle2, Lightbulb, Heart, ArrowLeft, Calendar, ListTodo, Globe, Users, Hash } from "lucide-react"
-import { format } from "date-fns"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { getUserDisplay, getUserInitial } from "@/lib/user-display"
 import { shouldHideTaskWhen } from "@/lib/public-list-utils"
@@ -42,7 +41,7 @@ interface UserProfile {
 }
 
 export default function UserProfilePage() {
-  const { t } = useTranslations()
+  const { t, locale } = useTranslations()
   const params = useParams()
   const router = useRouter()
   const userId = params?.userId as string
@@ -195,7 +194,7 @@ export default function UserProfilePage() {
               {user.email && <p className="theme-text-muted text-sm mb-3">{user.email}</p>}
               <div className="flex items-center justify-center sm:justify-start gap-2 theme-text-muted text-sm">
                 <Calendar className="w-4 h-4" />
-                <span>{t('profilePage.joined', { date: format(new Date(user.createdAt), "MMMM yyyy") })}</span>
+                <span>{t('profilePage.joined', { date: new Date(user.createdAt).toLocaleDateString(locale, { month: "long", year: "numeric" }) })}</span>
               </div>
             </div>
           </div>
@@ -331,7 +330,7 @@ export default function UserProfilePage() {
                       </div>
                       {task.dueDateTime && !shouldHideTaskWhen(task) && (
                         <div className="text-xs theme-text-muted flex-shrink-0">
-                          {format(new Date(task.dueDateTime), "MMM d")}
+                          {new Date(task.dueDateTime).toLocaleDateString(locale, { month: "short", day: "numeric" })}
                         </div>
                       )}
                     </div>

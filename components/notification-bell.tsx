@@ -7,7 +7,16 @@ import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { apiGet, apiPut } from "@/lib/api"
-import { NOTIFICATION_KIND_LABELS, type NotificationKind } from "@/lib/notifications"
+import type { NotificationKind } from "@/lib/notifications"
+
+const NOTIFICATION_KIND_KEYS: Record<NotificationKind, string> = {
+  assigned: "notificationBell.kinds.assigned",
+  mentioned: "notificationBell.kinds.mentioned",
+  replied: "notificationBell.kinds.replied",
+  commented: "notificationBell.kinds.commented",
+  status_changed: "notificationBell.kinds.statusChanged",
+  completed: "tasks.completed",
+}
 
 type NotificationItem = {
   id: string
@@ -51,22 +60,24 @@ export function NotificationBell({ align = "end", className, iconClassName }: No
   const [loading, setLoading] = React.useState(false)
   const [notifications, setNotifications] = React.useState<NotificationItem[]>([])
   const [unreadCount, setUnreadCount] = React.useState(0)
-  const [error, setError] = React.useState<string | null>(null)
+  // A message key (plus the HTTP status, when there is one), translated at render.
+  const [error, setError] = React.useState<{ key: string; status?: string } | null>(null)
 
   const loadNotifications = React.useCallback(async () => {
     setLoading(true)
     try {
       const response = await apiGet("/api/v1/notifications?limit=20")
       if (!response.ok) {
-        throw new Error(`Failed to load notifications (${response.status})`)
+        setError({ key: "notificationBell.loadFailedStatus", status: String(response.status) })
+        return
       }
 
       const data = (await response.json()) as NotificationResponse
       setNotifications(data.notifications ?? [])
       setUnreadCount(data.unreadCount ?? 0)
       setError(null)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load notifications")
+    } catch {
+      setError({ key: "notificationBell.loadFailed" })
     } finally {
       setLoading(false)
     }
@@ -86,12 +97,13 @@ export function NotificationBell({ align = "end", className, iconClassName }: No
       const response = await apiPut("/api/v1/notifications", { all: true })
 
       if (!response.ok) {
-        throw new Error(`Failed to mark notifications read (${response.status})`)
+        setError({ key: "notificationBell.markReadFailedStatus", status: String(response.status) })
+        return
       }
 
       await loadNotifications()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update notifications")
+    } catch {
+      setError({ key: "notificationBell.updateFailed" })
     }
   }, [loadNotifications])
 
@@ -109,7 +121,7 @@ export function NotificationBell({ align = "end", className, iconClassName }: No
       </PopoverTrigger>
       <PopoverContent align={align} className="w-[22rem] p-0">
         <div className="flex items-center justify-between border-b px-3 py-2">
-          <div className="text-sm font-medium">Notifications</div>
+          <div className="text-sm font-medium">{t('settings.notifications')}</div>
           <Button
             type="button"
             variant="ghost"
@@ -127,10 +139,10 @@ export function NotificationBell({ align = "end", className, iconClassName }: No
           {loading ? (
             <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Loading
+              {t('messages.loading')}
             </div>
           ) : error ? (
-            <div className="px-3 py-4 text-sm text-danger">{error}</div>
+            <div className="px-3 py-4 text-sm text-danger">{t(error.key, error.status ? { status: error.status } : undefined)}</div>
           ) : notifications.length === 0 ? (
             <div className="px-3 py-8 text-center text-sm text-muted-foreground">
               {t('notificationBell.allCaughtUp')}
@@ -147,11 +159,11 @@ export function NotificationBell({ align = "end", className, iconClassName }: No
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="font-medium">{NOTIFICATION_KIND_LABELS[notification.kind]}</div>
+                      <div className="font-medium">{t(NOTIFICATION_KIND_KEYS[notification.kind])}</div>
                       <div className="truncate text-muted-foreground">
                         {notification.task
                           ? `${notification.task.identifier ? `${notification.task.identifier} · ` : ""}${notification.task.title}`
-                          : "Task update"}
+                          : t('notificationBell.taskUpdate')}
                       </div>
                     </div>
                     <div className="whitespace-nowrap text-xs text-muted-foreground">

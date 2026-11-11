@@ -118,7 +118,7 @@ describe('the menu omits what the pane already shows (AWTD-1252)', () => {
   it('still offers the actions that were never duplicated', async () => {
     renderMenu({ hideCopyIdentifier: true, onStatusSelect: undefined })
     await open()
-    expect(screen.getByText('Copy')).toBeTruthy()
-    expect(screen.getByText('Share')).toBeTruthy()
+    expect(screen.getByText('actions.copy')).toBeTruthy()
+    expect(screen.getByText('actions.share')).toBeTruthy()
   })
 })

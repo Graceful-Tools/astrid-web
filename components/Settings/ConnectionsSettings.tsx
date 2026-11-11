@@ -37,7 +37,9 @@ type CopyFieldProps = {
   copiedField: string | null
 }
 
-const CopyField = ({ label, value, field, onCopy, copiedField }: CopyFieldProps) => (
+const CopyField = ({ label, value, field, onCopy, copiedField }: CopyFieldProps) => {
+  const { t } = useTranslations()
+  return (
   <div className="flex items-center gap-2">
     <div className="flex-1">
       <div className="text-xs uppercase tracking-wide theme-text-muted mb-1">{label}</div>
@@ -50,12 +52,13 @@ const CopyField = ({ label, value, field, onCopy, copiedField }: CopyFieldProps)
       size="icon"
       className="shrink-0"
       onClick={() => onCopy(value, field)}
-      aria-label={`Copy ${label}`}
+      aria-label={t("settingsPages.connections.developer.copyField", { label })}
     >
       {copiedField === field ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
     </Button>
   </div>
-)
+  )
+}
 
 /**
  * The OpenAPI / GPT-actions hand-off: the URLs an assistant that does not

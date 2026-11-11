@@ -221,7 +221,7 @@ export function ListSortAndFilters({
   )
 
   const members = getDefaultAssigneeOptions()
-  const currentUserLabel = `Me (${currentUser.name || currentUser.email})`
+  const currentUserLabel = t('listSettings.filters.me', { name: currentUser.name || currentUser.email })
 
   return (
     <div className="space-y-4">
@@ -293,7 +293,7 @@ export function ListSortAndFilters({
         </FilterRow>
 
         <FilterRow
-          label="Assigned by filter"
+          label={t("listSettings.filters.assignedByFilter")}
           value={filterAssignedBy}
           onChange={(value) => {
             setFilterAssignedBy(value)
@@ -312,7 +312,7 @@ export function ListSortAndFilters({
         />
 
         <FilterRow
-          label="Repeating filter"
+          label={t("listSettings.filters.repeatingFilter")}
           value={filterRepeating}
           onChange={(value) => {
             setFilterRepeating(value)
@@ -321,15 +321,15 @@ export function ListSortAndFilters({
         >
           <SelectItem value="all"><span className="text-blue-400">{t('listSettings.show.allTasks')}</span></SelectItem>
           <SelectItem value="not_repeating"><span className="text-theme-muted">{t('listSettings.filters.notRepeating')}</span></SelectItem>
-          <SelectItem value="daily"><span className="text-green-500">Daily</span></SelectItem>
-          <SelectItem value="weekly"><span className="text-blue-500">Weekly</span></SelectItem>
-          <SelectItem value="monthly"><span className="text-purple-500">Monthly</span></SelectItem>
-          <SelectItem value="yearly"><span className="text-orange-500">Yearly</span></SelectItem>
-          <SelectItem value="custom"><span className="text-pink-500">Custom</span></SelectItem>
+          <SelectItem value="daily"><span className="text-green-500">{t('repeating.daily')}</span></SelectItem>
+          <SelectItem value="weekly"><span className="text-blue-500">{t('repeating.weekly')}</span></SelectItem>
+          <SelectItem value="monthly"><span className="text-purple-500">{t('repeating.monthly')}</span></SelectItem>
+          <SelectItem value="yearly"><span className="text-orange-500">{t('repeating.yearly')}</span></SelectItem>
+          <SelectItem value="custom"><span className="text-pink-500">{t('repeating.custom')}</span></SelectItem>
         </FilterRow>
 
         <FilterRow
-          label="List filter"
+          label={t("listSettings.filters.listFilter")}
           value={filterInLists}
           onChange={(value) => {
             setFilterInLists(value)
@@ -362,7 +362,7 @@ export function ListSortAndFilters({
         </Label>
 
         <div className="flex items-center justify-between" data-testid="favorite-row">
-          <Label className="text-sm theme-text-secondary">Favorite</Label>
+          <Label className="text-sm theme-text-secondary">{t('listSettings.filters.favorite')}</Label>
           <Button
             variant="ghost"
             size="sm"

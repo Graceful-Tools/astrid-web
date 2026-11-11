@@ -179,14 +179,30 @@
       "repeatMode": "Режим повторения",
       "repeatFromCompletion": "Повторять от даты завершения",
       "repeatFromDue": "Повторять от срока выполнения",
-      "saveCustomPattern": "Сохранить свой шаблон"
+      "saveCustomPattern": "Сохранить свой шаблон",
+      "selectDate": "Выбрать дату",
+      "preview": "Предпросмотр:",
+      "repeatFromCompletionHint": "Следующее повторение рассчитывается от момента, когда вы завершите задачу",
+      "repeatFromDueHint": "Следующее повторение рассчитывается от исходного срока выполнения",
+      "descriptionKeysHint": "Enter — сохранить • Shift+Enter — перенос строки"
     },
     "commentsSection": {
       "addPlaceholder": "Добавить комментарий...",
       "replyPlaceholder": "Написать ответ...",
       "refresh": "Обновить комментарии",
       "pullToRefresh": "Потяните, чтобы обновить...",
-      "releaseToRefresh": "Отпустите, чтобы обновить..."
+      "releaseToRefresh": "Отпустите, чтобы обновить...",
+      "systemAuthor": "Система",
+      "unknownUser": "Неизвестный пользователь",
+      "reply": "Ответить",
+      "count": "Комментарии ({count})",
+      "hideSystemTitle": "Скрыть системные комментарии",
+      "showSystemTitle": "Показать системные комментарии",
+      "hideSystem": "Скрыть системные",
+      "showSystem": "Показать системные",
+      "refreshShort": "Обновить",
+      "replyingTo": "Ответ для {name}",
+      "agentThinking": "{name} думает..."
     },
     "modals": {
       "deleteTitle": "Удалить задачу",
@@ -197,11 +213,31 @@
       "shareTitle": "Поделиться задачей",
       "privateNote": "Это личная задача. Её видят только пользователи с доступом к этому списку.",
       "generatingLink": "Создание ссылки...",
-      "linkFailed": "Не удалось создать ссылку. Попробуйте ещё раз."
+      "linkFailed": "Не удалось создать ссылку. Попробуйте ещё раз.",
+      "deleteConfirm": "Вы уверены, что хотите удалить «{title}»? Это действие нельзя отменить.",
+      "copyDescription": "Создать копию «{title}»",
+      "includeCommentsOne": "Включить комментарии ({count} комментарий)",
+      "includeCommentsMany": "Включить комментарии (комментариев: {count})",
+      "shareDescription": "Создать ссылку для доступа к «{title}»",
+      "copied": "Скопировано!",
+      "shareHintAccess": "🔗 Поделитесь этой ссылкой с теми, у кого есть доступ к этой задаче",
+      "shareHintRedirect": "📌 Ссылка откроет задачу в приложении"
     },
     "timer": {
-      "tapToChange": "Нажмите на время, чтобы изменить длительность"
-    }
+      "tapToChange": "Нажмите на время, чтобы изменить длительность",
+      "completed": "Таймер завершён!",
+      "minutesShort": "мин"
+    },
+    "priorityCheckboxAlt": "Флажок приоритета {priority}",
+    "priorityLevel": "Приоритет {level}",
+    "userAvatarAlt": "Пользователь",
+    "assigneeYou": "Вы",
+    "board": {
+      "collapseExpandedIn": "Свернуть развёрнутую задачу в «{name}»",
+      "tapToCollapse": "Нажмите, чтобы свернуть",
+      "addTaskTo": "Добавить задачу в «{name}»"
+    },
+    "dropToPlaceFirst": "Перетащите сюда, чтобы разместить первую задачу"
   },
   "lists": {
     "list": "Список",
@@ -247,7 +283,11 @@
       "subtitle": "Используйте списки, чтобы организовать проекты, цели и приключения!",
       "namePlaceholder": "например, Семья",
       "shareWith": "Поделиться с",
-      "sharePlaceholder": "Имя или адрес email"
+      "sharePlaceholder": "Имя или адрес email",
+      "optional": "(необязательно)",
+      "descriptionPlaceholder": "Для чего этот список?\n\nИИ-агенты используют это как руководство при работе над задачами. Пример:\n«Помогай планировать питание, предлагай рецепты с учётом пищевых предпочтений и составляй списки покупок.»",
+      "descriptionHint": "ИИ-агенты используют это как инструкции при работе над задачами этого списка",
+      "create": "Создать новый список"
     },
     "membersManager": {
       "invite": "Пригласить участника",
@@ -261,7 +301,37 @@
       "permissionLevels": "Уровни доступа",
       "ownerCan": "Полный контроль над списком",
       "adminCan": "Может управлять настройками и участниками списка",
-      "memberCan": "Может добавлять, изменять и управлять задачами"
+      "memberCan": "Может добавлять, изменять и управлять задачами",
+      "loadFailed": "Не удалось загрузить участников списка",
+      "emailRequired": "Введите адрес электронной почты",
+      "emailInvalid": "Введите действительный адрес электронной почты",
+      "invitationSent": "Приглашение отправлено",
+      "addFailed": "Не удалось добавить участника",
+      "invitationCancelled": "Приглашение отменено",
+      "memberRemoved": "Участник удалён",
+      "removeFailed": "Не удалось удалить участника",
+      "roleUpdatedAdmin": "Участник теперь администратор",
+      "roleUpdatedMember": "Роль изменена на «Участник»",
+      "updateRoleFailed": "Не удалось изменить роль участника",
+      "inviteRoleUpdatedAdmin": "Роль в приглашении изменена на «Администратор»",
+      "inviteRoleUpdatedMember": "Роль в приглашении изменена на «Участник»",
+      "updateInviteRoleFailed": "Не удалось изменить роль в приглашении",
+      "membersCount": "Участники ({count})",
+      "role": "Роль",
+      "adminOption": "Администратор — может управлять настройками и участниками списка",
+      "memberOption": "Участник — может добавлять, изменять и управлять задачами",
+      "aiBadge": "ИИ",
+      "pending": "Ожидает",
+      "cancelInvite": "Отменить",
+      "remove": "Удалить",
+      "leave": "Покинуть",
+      "roles": {
+        "owner": "владелец",
+        "admin": "администратор",
+        "member": "участник",
+        "viewer": "наблюдатель"
+      },
+      "successTitle": "Успешно!"
     },
     "membershipPanel": {
       "availableAgents": "Доступные агенты",
@@ -275,13 +345,26 @@
       "publicListType": "Тип публичного списка",
       "makeCopyOnly": "Сделать только для копирования",
       "makeCollaborative": "Сделать совместным",
-      "leaveList": "Покинуть список"
+      "leaveList": "Покинуть список",
+      "aiCodingAgents": "ИИ-агенты для программирования",
+      "aiAgents": "ИИ-агенты",
+      "agentForCoding": "{name}: программирование и помощь с задачами",
+      "agentForTasks": "{name}: помощь с задачами (добавьте репозиторий GitHub для программирования)",
+      "removeAgent": "Удалить агента",
+      "publicHint": "Любой может найти этот список и присоединиться к нему",
+      "privateHint": "Доступ к этому списку есть только у приглашённых участников",
+      "collaborativeHint": "Любой может просматривать и добавлять задачи. Изменять задачи могут администраторы списка и авторы задач. Комментировать может любой.",
+      "copyOnlyHint": "Только копирование: публичные участники могут просматривать и копировать задачи, но добавлять их могут только администраторы.",
+      "transferOwnershipAndLeave": "Передать владение и покинуть"
     },
     "ownerLeave": {
       "title": "Передать владение",
       "selectNewOwner": "Выберите нового владельца:",
       "noOtherMembers": "Нет других участников, которым можно передать владение.",
-      "deleteList": "Удалить список"
+      "deleteList": "Удалить список",
+      "body": "Вы владелец списка «{name}», поэтому перед выходом нужно передать владение. Выберите преемника или удалите список.",
+      "transferAndLeave": "Передать и покинуть",
+      "deleteInstead": "Либо вы можете полностью удалить список:"
     },
     "publicBrowser": {
       "searchPlaceholder": "Поиск по названию, описанию или автору...",
@@ -291,12 +374,71 @@
       "loadingPreview": "Загрузка предпросмотра...",
       "noTasks": "В этом списке нет задач",
       "selectTitle": "Выберите список для предпросмотра",
-      "selectHint": "Выберите список слева, чтобы увидеть его детали и задачи"
+      "selectHint": "Выберите список слева, чтобы увидеть его детали и задачи",
+      "copiedMany": "Скопировано раз: {count}",
+      "copiedOne": "Скопировано раз: {count}",
+      "copiedMoreThan": "Скопировано раз: более {count}",
+      "copiedNew": "Новый",
+      "loadFailed": "Не удалось загрузить публичные списки",
+      "previewFailed": "Не удалось загрузить предпросмотр списка",
+      "copySuccess": "Список «{name}» скопирован в ваши списки",
+      "copyFailed": "Не удалось скопировать список",
+      "title": "Обзор публичных списков",
+      "popular": "Популярные",
+      "recent": "Недавние",
+      "noListsFound": "Списки не найдены",
+      "noPublicLists": "Нет доступных публичных списков",
+      "taskCount": "Задач: {count}",
+      "copying": "Копирование...",
+      "copyToMyLists": "Скопировать в мои списки",
+      "createdBy": "Автор: {name}",
+      "createdOn": "Создано {date}",
+      "copyCount": "Копий: {count}",
+      "showingTasks": "Показано задач: {shown} из {total}",
+      "noTasksInList": "В этом списке нет задач",
+      "due": "Срок: {date}"
     },
     "imagePicker": {
       "title": "Выбрать изображение",
       "uploadLabel": "Загрузить с устройства",
-      "chooseFile": "Выбрать файл"
+      "chooseFile": "Выбрать файл",
+      "colorsTab": "Цвета",
+      "defaultsTab": "Стандартные",
+      "colors": {
+        "lavender": "Лаванда",
+        "mint": "Мята",
+        "peach": "Персик",
+        "coral": "Коралл",
+        "sky": "Небо",
+        "sage": "Шалфей",
+        "rose": "Роза",
+        "butter": "Сливочный",
+        "periwinkle": "Барвинок",
+        "seafoam": "Морская пена",
+        "apricot": "Абрикос",
+        "lilac": "Сирень",
+        "blush": "Румянец",
+        "powder": "Пудровый",
+        "cream": "Кремовый",
+        "pearl": "Жемчуг",
+        "yellow": "Жёлтый",
+        "green": "Зелёный",
+        "blue": "Синий",
+        "pink": "Розовый"
+      }
+    },
+    "descriptionView": "Просмотр",
+    "descriptionDialogPlaceholder": "Напишите инструкции для ИИ-агентов, работающих в этом списке...\n\nПоддерживается Markdown: **жирный**, *курсив*, ## заголовки, - списки, [ссылки](url)",
+    "descriptionSaveHint": "Enter — сохранить • Shift+Enter или Cmd/Ctrl+Enter — перенос строки",
+    "memberEvents": {
+      "adminGrantedTitle": "Права администратора предоставлены",
+      "adminGrantedDescription": "Теперь у вас есть права администратора в списке «{list}». Ваши разрешения обновлены.",
+      "roleChangedTitle": "Роль изменена",
+      "roleChangedDescription": "Ваша роль в списке «{list}» изменена: {role}.",
+      "addedTitle": "Вас добавили в список",
+      "addedDescription": "{inviter} добавил(а) вас в список «{list}»",
+      "removedTitle": "Вас удалили из списка",
+      "removedDescription": "Вас удалили из списка «{list}»"
     }
   },
   "priority": {
@@ -328,7 +470,10 @@
     "weekBefore": "За 1 неделю",
     "quickSelect": "Быстрый выбор:",
     "setTime": "Установить время",
-    "selectTime": "Выберите время"
+    "selectTime": "Выберите время",
+    "twoHoursBefore": "За 2 часа",
+    "twoDaysBefore": "За 2 дня",
+    "noon": "Полдень"
   },
   "repeating": {
     "oneTimeOnly": "Только один раз",
@@ -350,7 +495,40 @@
       "afterOccurrences": "После X повторений",
       "untilDate": "До определённой даты",
       "occurrencesCount": "Количество повторений",
-      "endDate": "Дата окончания"
+      "endDate": "Дата окончания",
+      "unitDays": "Дни",
+      "unitWeeks": "Недели",
+      "unitMonths": "Месяцы",
+      "unitYears": "Годы",
+      "weekday": "День недели",
+      "month": "Месяц",
+      "day": "День",
+      "never": "Никогда",
+      "week1": "1-я",
+      "week2": "2-я",
+      "week3": "3-я",
+      "week4": "4-я",
+      "week5": "5-я",
+      "weekLast": "Последняя"
+    },
+    "summary": {
+      "everyDay": "Каждый день",
+      "everyDays": "Каждый {count}-й день",
+      "everyWeek": "Каждую неделю",
+      "everyWeeks": "Каждую {count}-ю неделю",
+      "everyMonth": "Каждый месяц",
+      "everyMonths": "Каждый {count}-й месяц",
+      "everyYear": "Каждый год",
+      "everyYears": "Каждый {count}-й год",
+      "everyOther": "Каждые {interval}({unit})",
+      "onDays": "{summary}: {days}",
+      "onDayOfMonth": "{summary}, {day}-го числа",
+      "onDate": "{summary}, {date}",
+      "endsAfterOne": "{summary}, завершится после {count} повторения",
+      "endsAfterMany": "{summary}, всего повторений: {count}",
+      "until": "{summary}, до {date}",
+      "fromDueDate": "{summary}, от срока выполнения",
+      "labelFromDueDate": "{label} (от срока выполнения)"
     }
   },
   "weekdays": {
@@ -463,7 +641,14 @@
     "cacheCleared": "Кэш очищен",
     "dataRefreshed": "Данные обновлены. Приложение перезагрузится с новыми данными.",
     "settingsSaved": "Настройки сохранены",
-    "changesSaved": "Изменения сохранены"
+    "changesSaved": "Изменения сохранены",
+    "loadingYourData": "Загружаем ваши данные...",
+    "loadingYourDataDescription": "Готовим ваши задачи и списки",
+    "refreshed": "Обновлено",
+    "refreshedDescription": "Ваши данные обновлены",
+    "refreshFailed": "Не удалось обновить",
+    "refreshFailedDescription": "Не удалось обновить данные. Повторите попытку.",
+    "loadDataFailed": "Не удалось загрузить данные. Обновите страницу."
   },
   "reminders": {
     "general": [
@@ -585,7 +770,9 @@
     "searching": "Поиск...",
     "open": "Поиск",
     "findAcrossLists": "Поиск задач и пользователей во всех списках",
-    "inputPlaceholder": "Поиск задач и пользователей..."
+    "inputPlaceholder": "Поиск задач и пользователей...",
+    "resultsTitle": "Результаты поиска",
+    "showingMatches": "Задачи по запросу «{term}» из всех доступных списков"
   },
   "listHeaders": {
     "myTasks": "Мои задачи",
@@ -656,7 +843,34 @@
         "guideLink": "Руководство по подключению агента кода",
         "needsSetup": "Требуется настройка",
         "agentLoops": "Agent Loops",
-        "customAgents": "Пользовательские агенты"
+        "customAgents": "Пользовательские агенты",
+        "off": "Выкл.",
+        "transportLabel": "Транспорт:",
+        "transportNative": "Нативный harness для программирования",
+        "transportSse": "Пользовательский агент (SSE)",
+        "copilotConnected": "Подключено — {appName} использует вашу подписку Copilot для работы этого агента.",
+        "copilotAuthorize": "Авторизуйте GitHub, чтобы {appName} мог использовать вашу подписку Copilot. Доступ можно отозвать в GitHub в любой момент.",
+        "copilotDisconnected": "GitHub Copilot отключён",
+        "copilotDisconnectFailed": "Не удалось отключить GitHub Copilot",
+        "copilotAuthStartFailed": "Не удалось начать авторизацию GitHub",
+        "copilotConnectFailed": "Не удалось подключить GitHub Copilot",
+        "keySavedPlaceholder": "Ключ сохранён — вставьте новый, чтобы заменить",
+        "keySaved": "Ключ {agent} сохранён",
+        "keySaveFailed": "Не удалось сохранить API-ключ",
+        "keyValid": "Ключ {agent} действителен",
+        "keyTestFailed": "Проверка ключа не пройдена: {error}",
+        "keyTestError": "Не удалось проверить API-ключ",
+        "testKey": "Проверить",
+        "keyRemoved": "Ключ {agent} удалён",
+        "keyRemoveFailed": "Не удалось удалить API-ключ",
+        "keyEncrypted": "Хранится в зашифрованном виде и используется только на сервере.",
+        "loadFailed": "Не удалось загрузить настройки агентов",
+        "saveFailed": "Не удалось сохранить",
+        "apiModeDescription": "{appName} запускает этого агента на сервере — работает с телефона, дома ничего держать включённым не нужно.",
+        "pollingModeDescription": "Работу выполняет ваша собственная установка {agent}. Подключите её один раз, затем назначьте этому агенту задачу и отметьте её как {ready} — цикл возьмёт её в работу.",
+        "offModeDescription": "Этот агент убран с дороги: он не появляется в списках выбора исполнителя, и {appName} никогда его не запускает. Сохранённые настройки и ключи остаются — выберите другой режим, чтобы вернуть его в прежнем виде.",
+        "webhookModeDescription": "Приёмник вебхуков, которым управляете вы, может получать работу этого агента по мере её появления. {sdk} предоставляет библиотеки для интеграции, а не готовую команду для хостинга агента. Этот режим требует собственного приёмника вебхуков; настройки ниже определяют доставку. Если нужна пошаговая настройка с MCP и навыком очереди, выберите {nativeHarness} и следуйте рецептам из раздела {agentLoops}.",
+        "customAgentsDescription": "Агенты, которыми вы управляете через OAuth + REST + SSE"
       },
       "runtime": {
         "stepConnect": "Подключение",
@@ -668,7 +882,28 @@
         "copilotInstall": "Закоммитьте этого пользовательского агента репозитория один раз. После этого Copilot CLI, приложение Copilot, GitHub.com и VS Code смогут выбирать то же поведение очереди.",
         "githubConnect": "Создайте клиентские учётные данные для этого агента и сохраните их как секреты Actions репозитория с именами {clientId} и {clientSecret}. При каждом запуске они обмениваются на токен доступа на один час только с правами, нужными обработчику очереди, — долгоживущий токен никогда не попадает в репозиторий.",
         "githubInstall": "Этот workflow — шлюз очереди: он отвечает на вопрос «есть ли работа?» и сам агента не запускает. Направьте второе задание на существующее задание поддерживаемого агента (шаг Copilot CLI, Claude Code или Codex с других вкладок).",
-        "githubSchedule": "Закоммитьте workflow для запуска каждые 30 минут или используйте Run workflow в GitHub Actions, чтобы проверить его сразу. Пустой запуск завершается после ограниченного запроса к очереди, поэтому пустая очередь стоит одного вызова API, а не полного запуска агента."
+        "githubSchedule": "Закоммитьте workflow для запуска каждые 30 минут или используйте Run workflow в GitHub Actions, чтобы проверить его сразу. Пустой запуск завершается после ограниченного запроса к очереди, поэтому пустая очередь стоит одного вызова API, а не полного запуска агента.",
+        "connectionCheckLabel": "Запустите проверку подключения, которая ничего не изменяет",
+        "runInActions": "Запуск в GitHub Actions",
+        "addRemoteMcp": "Добавьте удалённый MCP-сервер",
+        "claudeAuthenticate": "Откройте {mcpCommand} в Claude Code и выберите Authenticate. Если команда недоступна, добавьте тот же HTTP-сервер в файл {mcpFile} проекта.",
+        "manualMcpFallback": "Ручная настройка MCP (запасной вариант)",
+        "manualMcpFallbackFile": "Ручная настройка MCP (запасной вариант): {file}",
+        "saveSkillCommand": "Сохраните навык очереди как команду проекта",
+        "runInSession": "Запуск каждые 30 минут в этой сессии",
+        "cronFallback": "Запасной вариант: автономный запуск через cron",
+        "copilotAddMcp": "Copilot CLI: добавьте удалённый MCP-сервер",
+        "vscodeFallback": "Запасной вариант для VS Code: {file}",
+        "copilotConnectNote": "CLI и VS Code открывают авторизацию {appName} в браузере. Приложение Copilot и GitHub.com не могут открыть OAuth удалённого MCP; создайте отдельный токен, сохраните его как secret Agents с именем {secretName} и вставьте сгенерированную MCP-конфигурацию репозитория в Settings > Copilot > MCP servers.",
+        "repoCustomAgent": "Пользовательский агент репозитория",
+        "runEvery30": "Запуск {tool} каждые 30 минут",
+        "copilotInteractive": "Для интерактивного запуска выберите пользовательского агента {appName} Queue в приложении Copilot, на GitHub.com или в VS Code.",
+        "addRemoteAuthorize": "Добавьте удалённый сервер и авторизуйте его",
+        "addSkillTo": "Добавьте навык очереди в {file}",
+        "addQueueGate": "Добавьте workflow-шлюз очереди",
+        "addQueueToFile": "1. Добавьте очередь в {file}",
+        "runLoopScheduled": "2. Запускайте цикл по расписанию",
+        "cursorNoScheduler": "2. У Cursor нет собственного планировщика — запрашивайте у него очередь в начале рабочей сессии или параллельно запускайте cron-строку Claude Code / Codex, приведённую выше."
       },
       "webhook": {
         "title": "Настройка webhook",
@@ -695,7 +930,38 @@
         "gettingStarted": "Начало работы",
         "stepConfigureUrl": "Настройте URL webhook выше",
         "stepAssign": "Назначайте задачи на {agent}",
-        "eventsTitle": "События webhook"
+        "eventsTitle": "События webhook",
+        "testFailed": "Не удалось проверить webhook",
+        "confirmRemove": "Вы уверены, что хотите удалить конфигурацию webhook?",
+        "enabledLabel": "Включено",
+        "updateConfig": "Обновить конфигурацию",
+        "saveConfig": "Сохранить конфигурацию",
+        "secretShownOnce": "Этот секрет будет показан только один раз. Скопируйте его сейчас и добавьте в переменные окружения сервера Claude Code Remote.",
+        "failuresCount": "Сбоев: {count}",
+        "noneAllPolling": "Нет (все задачи обрабатываются опросом)",
+        "testing": "Проверка...",
+        "responseTime": "Время ответа: {time} мс",
+        "statusCode": "Код состояния: {code}",
+        "errorDetail": "Ошибка: {error}",
+        "documentation": "Документация",
+        "aboutBody": "Подключите к {appName} приёмник вебхуков, которым управляете вы. Эта панель настраивает, куда отправляются уведомления о задачах; она не устанавливает и не запускает хост агента.",
+        "stepReceiver": "Используйте приёмник вебхуков, которым управляете вы. {sdk} предоставляет библиотеки для интеграции, а не отдельную команду для хостинга агента.",
+        "stepCopySecret": "Скопируйте секрет webhook в окружение вашего сервера",
+        "guidedSetup": "Если нужна пошаговая настройка без приёмника вебхуков, выберите {selfRuns} → {nativeHarness} в разделе {settings} → {aiAgents} и следуйте инструкциям: {recipes}.",
+        "recipesLink": "рецепты MCP + навык очереди",
+        "eventTaskAssigned": "Задача назначена ИИ-агенту",
+        "eventCommentCreated": "Пользователь прокомментировал задачу ИИ"
+      },
+      "astrid": {
+        "noModel": "Добавьте API-ключ или зарегистрируйте пользовательского агента ниже, чтобы {appName} мог работать.",
+        "poweredBy": "На базе {service}",
+        "chooseModelHint": "Выберите модель, на которой {appName} работает в разделе «Мои задачи» и в ваших личных списках.",
+        "description": "Выберите модель, на которой будет работать {appName}. Упомяните {mention} в любом чате или комментарии, чтобы получить помощь. {appName} может читать задачи в ваших списках, отвечать на сообщения и выполнять задачи до наступления срока."
+      },
+      "tip": {
+        "title": "Совет: управляйте поведением агентов для каждого списка",
+        "body": "У каждого списка {description} служит инструкцией для ИИ-агентов, работающих над задачами этого списка. Пишите в описании списка в формате markdown, чтобы объяснить агентам, как обращаться с задачами, — как в брифе проекта.",
+        "where": "Репозиторий, агент по умолчанию и цикл для списка задаются в разделе Настройки списка → Настройки администратора → ИИ-агент; инструкции редактируются в поле Описание."
       }
     },
     "apiAccess": {
@@ -704,7 +970,10 @@
       "clientGuide": {
         "title": "Do you need a client here?",
         "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
-        "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant."
+        "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant.",
+        "question": "Нужен ли вам здесь клиент?",
+        "registersItself": "Нет — если ваш ассистент поддерживает OAuth (VS Code / Copilot, ChatGPT или другой MCP-клиент), он регистрируется автоматически при подключении к размещённой конечной точке MCP. Здесь ничего создавать не нужно.",
+        "manualOnly": "Да — создавайте клиент ниже только для серверных интеграций со статическим секретом: скриптов, MCP-сервера stdio или конфигураций с пользовательскими заголовками, использующих грант client_credentials."
       },
       "apps": {
         "loading": "Загрузка OAuth-приложений...",
@@ -727,7 +996,64 @@
         "readOnly": "Только чтение",
         "editTitle": "Изменить OAuth-приложение",
         "editDescription": "Обновите URL перенаправления или другие метаданные, необходимые вашим интеграциям.",
-        "selectToEdit": "Выберите OAuth-приложение для изменения."
+        "selectToEdit": "Выберите OAuth-приложение для изменения.",
+        "heading": "OAuth-приложения",
+        "test": "Проверить",
+        "regenerate": "Создать заново",
+        "followsGroup": "следует за {group}",
+        "fixedAtCreation": "заданы при создании",
+        "created": "Создано: {date}",
+        "lastUsed": "Последнее использование: {date}",
+        "createdTitle": "OAuth-клиент создан!",
+        "saveCredentialsNow": "⚠️ Сохраните эти учётные данные сейчас — секрет клиента больше не будет показан!",
+        "secretShownOnce": "⚠️ Этот секрет будет показан только один раз. Скопируйте его сейчас!",
+        "obtainingToken": "Получение токена...",
+        "clientSecretRequired": "Секрет клиента *",
+        "nameLabel": "Название приложения *",
+        "descriptionLabel": "Описание",
+        "scopesRequired": "Области *",
+        "aiAgentPreset": "ИИ-агент",
+        "grantTypesRequired": "Типы грантов *",
+        "grantHelp": "Включите {code} для ChatGPT или других интеграций с согласием пользователя. Требуется хотя бы один URI перенаправления.",
+        "redirectHelp": "По одному URL в строке. Обязательно для потока с кодом авторизации (ChatGPT, веб-приложения). {appName} будет перенаправлять только на указанные здесь URL.",
+        "editRedirectHelp": "По одному URL в строке. {appName} будет перенаправлять пользователей только на точно указанные здесь URL. Добавьте URL обратного вызова действия ChatGPT (из GPT Builder), чтобы исправить ошибки {code}.",
+        "creating": "Создание...",
+        "createApplication": "Создать приложение",
+        "errors": {
+          "loadFailed": "Не удалось загрузить OAuth-клиенты",
+          "loadClientsFailed": "Не удалось загрузить клиенты",
+          "nameRequired": "Укажите название приложения",
+          "scopeRequired": "Выберите хотя бы одну область",
+          "grantRequired": "Выберите хотя бы один тип гранта OAuth",
+          "redirectRequired": "Для гранта с кодом авторизации нужен хотя бы один URI перенаправления",
+          "invalidRedirect": "Недопустимый URI перенаправления: {uri}",
+          "createFailed": "Не удалось создать клиент",
+          "deleteFailed": "Не удалось удалить клиент",
+          "regenerateFailed": "Не удалось создать секрет заново",
+          "copyFailed": "Не удалось скопировать в буфер обмена",
+          "secretRequired": "Укажите секрет клиента",
+          "tokenFailed": "Не удалось получить токен доступа",
+          "tokenFailedShort": "Не удалось получить токен",
+          "updateFailed": "Не удалось обновить OAuth-клиент"
+        },
+        "deleteConfirm": "Вы уверены? Все токены этого приложения будут отозваны.",
+        "regenerateConfirm": "Создать секрет клиента заново? Старый секрет сразу перестанет работать.",
+        "tokenObtained": "Токен доступа получен! Переход к тестированию API...",
+        "updated": "OAuth-клиент обновлён"
+      },
+      "grants": {
+        "clientCredentials": {
+          "label": "Учётные данные клиента",
+          "description": "Доступ «сервер — сервер» (вход пользователя не требуется)"
+        },
+        "authorizationCode": {
+          "label": "Код авторизации",
+          "description": "Согласие пользователя через браузер (ChatGPT, сторонние приложения)"
+        },
+        "refreshToken": {
+          "label": "Токен обновления",
+          "description": "Выдаёт токены обновления, чтобы сеансы оставались активными"
+        }
       }
     },
     "chatgpt": {
@@ -939,7 +1265,10 @@
       "waitingVerification": "Ожидание подтверждения",
       "waitingVerificationFor": "Ожидание подтверждения: {email}",
       "unknownEmail": "Неизвестно",
-      "loadingEmail": "Загрузка..."
+      "loadingEmail": "Загрузка...",
+      "infoProtect": "• Подтверждённый email помогает нам защищать ваш аккаунт и позволяет работать совместно",
+      "infoOAuth": "• Ваш email подтверждён через Google OAuth",
+      "infoCheckEmail": "• После регистрации проверьте почту — там будет ссылка для подтверждения"
     },
     "passkeys": {
       "title": "Ключи доступа",
@@ -1071,7 +1400,10 @@
         "description": "Автоматически распознавать даты, приоритеты и хештеги списков в названиях задач",
         "enable": "Включить умное распознавание",
         "enableDesc": "Извлекать данные задачи из текста на естественном языке",
-        "supportedPatterns": "Поддерживаемые шаблоны:"
+        "supportedPatterns": "Поддерживаемые шаблоны:",
+        "datesLabel": "Даты:",
+        "priorityLabel": "Приоритет:",
+        "listsLabel": "Списки:"
       },
       "subtasks": {
         "title": "Подзадачи",
@@ -1268,7 +1600,8 @@
         "description": "Создавайте OAuth-приложения вручную, тестируйте API и подключайте ассистентов, поддерживающих OpenAPI.",
         "openTester": "Открыть тестер API",
         "apiDocs": "Документация API",
-        "integrationGuide": "Руководство по интеграции"
+        "integrationGuide": "Руководство по интеграции",
+        "copyField": "Копировать: {label}"
       },
       "github": {
         "title": "GitHub",
@@ -1395,12 +1728,36 @@
       "subscribeLabel": "Подписаться:",
       "howSubscribe": "Добавьте URL webcal для автоматической синхронизации изменений (рекомендуется)",
       "howAppear": "Задачи отображаются как события на весь день или в назначенное время",
-      "howUpdates": "Изменения задач в {appName} отразятся в подписанных календарях"
+      "howUpdates": "Изменения задач в {appName} отразятся в подписанных календарях",
+      "toastUpdatedTitle": "Настройки обновлены",
+      "toastUpdatedDescription": "Настройки интеграции с календарем сохранены.",
+      "toastUpdateFailed": "Не удалось обновить настройки календаря.",
+      "syncAllHint": "В календаре появятся все задачи, включая задачи без срока",
+      "syncDueHint": "В календаре появятся только задачи со сроком или временем «когда»",
+      "syncNoneHint": "Задачи не будут синхронизироваться с календарем",
+      "downloadDescription": "Разовая загрузка для импорта в приложение календаря"
     },
     "defaultDueTime": {
       "title": "Время срока по умолчанию",
       "description": "Задайте время по умолчанию для новых задач при выборе срока",
-      "fallback": "Для новых задач со сроком по умолчанию будет 17:00"
+      "fallback": "Для новых задач со сроком по умолчанию будет 17:00",
+      "setTo": "Для новых задач со сроком по умолчанию будет {time}",
+      "toastSet": "Время срока по умолчанию: {time}",
+      "toastCleared": "Время срока по умолчанию сброшено",
+      "saveFailed": "Не удалось сохранить настройки времени срока по умолчанию",
+      "placeholder": "5pm (по умолчанию)",
+      "label": "Время срока по умолчанию"
+    },
+    "pageTitles": {
+      "account": "Доступ к аккаунту",
+      "apiTesting": "Тестирование API",
+      "githubSetup": "Настройка GitHub",
+      "help": "Помощь и поддержка"
+    },
+    "hub": {
+      "helpDescription": "Руководства по устранению неполадок и связь с поддержкой",
+      "refreshDescription": "Очистить кэш и загрузить свежие данные",
+      "signOutDescription": "Выйти из своей учётной записи"
     }
   },
   "projectMode": {
@@ -1438,7 +1795,9 @@
   "viewRotator": {
     "showList": "Показать список",
     "showMessages": "Показать сообщения",
-    "showBoard": "Показать доску"
+    "showBoard": "Показать доску",
+    "board": "Доска",
+    "messages": "Сообщения"
   },
   "listSettings": {
     "color": {
@@ -1560,7 +1919,24 @@
       "deleteStatusFailed": "Не удалось удалить статус",
       "addStatusFailed": "Не удалось добавить статус",
       "recentlyCompletedLabel": "Дополнительно — период недавно завершённых",
-      "recentlyCompletedDescription": "Как долго завершённые задачи остаются видимыми в стандартном виде (и в колонке Done на досках). Более старые завершённые задачи скрываются; переключите список на «Завершённые» или «Все», чтобы их увидеть."
+      "recentlyCompletedDescription": "Как долго завершённые задачи остаются видимыми в стандартном виде (и в колонке Done на досках). Более старые завершённые задачи скрываются; переключите список на «Завершённые» или «Все», чтобы их увидеть.",
+      "recentlyCompletedPresets": {
+        "default24h": "Последние 24 часа (по умолчанию)",
+        "last7Days": "Последние 7 дней",
+        "last14Days": "Последние 14 дней",
+        "last28Days": "Последние 28 дней",
+        "last30Days": "Последние 30 дней",
+        "sinceLastSunday": "С прошлого воскресенья (эта неделя)",
+        "sinceLastMonday": "С прошлого понедельника (эта неделя)",
+        "sinceFirstOfMonth": "С 1-го числа месяца",
+        "sinceSpecificDate": "С определённой даты…"
+      },
+      "templates": {
+        "codeReviewer": "Ревьюер кода",
+        "researchAssistant": "Помощник по исследованиям",
+        "familyAssistant": "Семейный помощник",
+        "contentWriter": "Автор контента"
+      }
     },
     "filters": {
       "allAssignees": "Все исполнители",
@@ -1573,8 +1949,29 @@
       "removeFromFavorites": "Убрать из избранного",
       "makeFavorite": "Добавить в избранное",
       "savedFilter": "Сохранённый фильтр",
-      "savedFilterDescription": "Показывать задачи по настройкам фильтра, а не по принадлежности к списку"
-    }
+      "savedFilterDescription": "Показывать задачи по настройкам фильтра, а не по принадлежности к списку",
+      "me": "Я ({name})",
+      "assignedByFilter": "Фильтр по автору назначения",
+      "repeatingFilter": "Фильтр по повторению",
+      "listFilter": "Фильтр по списку",
+      "favorite": "Избранное"
+    },
+    "fixed": {
+      "todayTitle": "Настройки задач на сегодня",
+      "todayDescription": "Настройте отображение и фильтрацию задач на сегодня",
+      "fixedDueDateToday": "Срок: сегодня (фиксировано)",
+      "myTasksTitle": "Настройки раздела «Мои задачи»",
+      "myTasksDescription": "Настройте отображение и фильтрацию ваших личных задач",
+      "unassignedTitle": "Настройки задач без списка",
+      "unassignedDescription": "Настройте отображение и фильтрацию задач без списка",
+      "assignedTitle": "Настройки назначенных задач",
+      "assignedDescription": "Настройте отображение и фильтрацию задач, которые вы назначили другим",
+      "defaultDescription": "Настройте отображение и фильтрацию задач",
+      "cannotChange": "Этот фильтр нельзя изменить для вида «{name}»"
+    },
+    "listSettingsTitle": "Настройки списка",
+    "listDetailsTitle": "Детали списка",
+    "statusesTab": "Статусы"
   },
   "reminderSettings": {
     "title": "Настройки напоминаний",
@@ -1606,7 +2003,66 @@
       "installDesktop": "Найдите значок установки в адресной строке",
       "installPwaLabel": "Преимущества PWA:",
       "installPwa": "Уведомления приходят, даже когда приложение закрыто",
-      "sendTest": "Отправить тестовое уведомление"
+      "sendTest": "Отправить тестовое уведомление",
+      "errorNotSupported": "Push-уведомления не поддерживаются в этом браузере",
+      "errorPermissionDenied": "В разрешении на уведомления отказано. Включите уведомления в настройках браузера.",
+      "errorSaveSubscription": "Не удалось сохранить подписку на сервере",
+      "errorEnable": "Не удалось включить уведомления",
+      "errorDisable": "Не удалось отключить уведомления",
+      "errorSendTest": "Не удалось отправить тестовое уведомление",
+      "errorTestFailed": "Тестовое уведомление не отправлено",
+      "statusEnabled": "Включено",
+      "statusBlocked": "Заблокировано",
+      "info": {
+        "browserSupport": "Поддержка браузером:",
+        "supported": "✅ Поддерживается",
+        "notSupported": "❌ Не поддерживается",
+        "permission": "Разрешение:",
+        "subscription": "Подписка:",
+        "subscriptionActive": "✅ Активна",
+        "subscriptionNone": "❌ Нет"
+      },
+      "permissionValues": {
+        "granted": "разрешено",
+        "denied": "запрещено",
+        "default": "не задано",
+        "unsupported": "не поддерживается"
+      }
+    },
+    "toast": {
+      "loadFailed": "Не удалось загрузить настройки напоминаний.",
+      "savedTitle": "Настройки сохранены",
+      "savedDescription": "Настройки напоминаний обновлены.",
+      "saveFailed": "Не удалось сохранить настройки напоминаний.",
+      "notSupportedTitle": "Не поддерживается",
+      "notSupportedDescription": "Push-уведомления не поддерживаются в этом браузере.",
+      "permissionGrantedTitle": "Разрешение получено",
+      "permissionGrantedDescription": "Теперь вы будете получать push-уведомления о своих задачах.",
+      "subscriptionFailedTitle": "Не удалось подписаться",
+      "subscriptionFailedDescription": "Не удалось настроить push-уведомления. Уведомления по эл. почте продолжат работать.",
+      "permissionDeniedTitle": "Доступ запрещён",
+      "permissionDeniedDescription": "Push-уведомления заблокированы. Их можно разрешить в настройках браузера.",
+      "permissionRequestFailed": "Не удалось запросить разрешение на уведомления.",
+      "testScheduledTitle": "Тест запланирован",
+      "testFailedTitle": "Тест не удался",
+      "testScheduleFailed": "Не удалось запланировать тестовое уведомление.",
+      "testFailed": "Не удалось протестировать уведомление."
+    },
+    "testing": "Проверка...",
+    "testPush": "Проверить push-уведомление (задержка 5 мин)",
+    "testDigest": "Проверить ежедневную сводку (задержка 5 мин)",
+    "digestTime": "Время",
+    "quietStart": "Начало",
+    "quietEnd": "Конец",
+    "timezones": {
+      "eastern": "Восточное время (США)",
+      "pacific": "Тихоокеанское время (США)",
+      "central": "Центральное время (США)",
+      "mountain": "Горное время (США)",
+      "london": "Лондон",
+      "paris": "Париж",
+      "tokyo": "Токио",
+      "local": "{label} (местное)"
     }
   },
   "keyboardShortcuts": {
@@ -1617,21 +2073,60 @@
       "taskActions": "Действия с задачами",
       "taskEditing": "Редактирование задач",
       "priority": "Приоритет",
-      "interface": "Интерфейс"
+      "interface": "Интерфейс",
+      "chat": "Чат и ссылки"
     },
-    "chatHint": "Используйте в сообщениях чата и комментариях к задачам"
+    "chatHint": "Используйте в сообщениях чата и комментариях к задачам",
+    "chat": {
+      "mention": "Упомянуть человека",
+      "referenceList": "Сослаться на список",
+      "referenceTask": "Сослаться на задачу",
+      "selectSuggestion": "Выбрать подсказку автозаполнения",
+      "navigateSuggestions": "Перемещаться по подсказкам",
+      "dismissSuggestions": "Закрыть подсказки"
+    },
+    "shortcuts": {
+      "completeTask": "Завершить выбранную задачу",
+      "dueEarlier": "Перенести срок на день раньше",
+      "dueLater": "Перенести срок на день позже",
+      "jumpToDate": "Перейти к полю «Дата»",
+      "postpone": "Отложить задачу на неделю",
+      "removeDueDate": "Убрать срок задачи",
+      "editLists": "Изменить списки задачи",
+      "editTitle": "Изменить название задачи",
+      "editDescription": "Изменить описание задачи",
+      "addComment": "Добавить новый комментарий к задаче",
+      "assignNoOne": "Назначить задачу на «Никого»",
+      "priorityNone": "Установить приоритет ○ (Нет)",
+      "priorityLow": "Установить приоритет ! (Низкий)",
+      "priorityMedium": "Установить приоритет !! (Средний)",
+      "priorityHigh": "Установить приоритет !!! (Высокий)",
+      "deleteTask": "Удалить выбранную задачу",
+      "deleteTaskAlt": "Удалить выбранную задачу (альтернатива)",
+      "togglePanel": "Открыть/закрыть панель редактирования задачи",
+      "cycleFilters": "Переключать фильтры/теги списков",
+      "selectPrevious": "Выбрать предыдущую задачу",
+      "selectNext": "Выбрать следующую задачу",
+      "outdent": "Вынести задачу из родительской",
+      "indent": "Вложить задачу в задачу выше",
+      "showHotkeys": "Показать список горячих клавиш"
+    }
   },
   "commandPalette": {
     "label": "Палитра команд",
     "searchPlaceholder": "Поиск команд…",
     "enterToSelect": "Enter — выбрать",
     "escToClose": "Esc — закрыть",
-    "noCommands": "Команды не найдены"
+    "noCommands": "Команды не найдены",
+    "arrowsToNavigate": "↑ ↓ — навигация",
+    "selectTaskFirst": "Сначала выберите задачу"
   },
   "userPicker": {
     "optionalMessage": "Необязательное сообщение…",
     "sendInvite": "Отправить приглашение",
-    "assignAnyway": "Всё равно назначить"
+    "assignAnyway": "Всё равно назначить",
+    "inviteEmail": "Пригласить {email}",
+    "accessWarningTitle": "⚠️ Предупреждение о доступе"
   },
   "astridAgent": {
     "modelSetup": {
@@ -1907,7 +2402,9 @@
     "iosBeta": "Сейчас в бета-версии в TestFlight",
     "joinBeta": "Присоединиться к бете",
     "preferBrowser": "Предпочитаете браузер?",
-    "useOnWeb": "Используйте {appName} в веб-версии"
+    "useOnWeb": "Используйте {appName} в веб-версии",
+    "metaTitle": "Скачать {appName} для Mac",
+    "metaDescription": "{appName} для Mac — нативное приложение для ваших задач, списков и чата."
   },
   "errorPages": {
     "errorDescription": "Произошла непредвиденная ошибка. Приносим извинения за неудобства.",
@@ -1973,23 +2470,61 @@
     "everyRecipe": "Рецепты для всех harness-сред",
     "mcpTokens": "Подключение MCP и токены",
     "agentSettings": "Настройки агентов",
-    "createCiToken": "Создать токен GitHub Actions"
+    "createCiToken": "Создать токен GitHub Actions",
+    "agentList": "→ список {list}",
+    "buyPlan": "Купить: {plan}",
+    "createListsFirst": "Сначала создайте списки на шаге 1, и в эти команды подставится идентификатор вашего списка {list}.",
+    "connectStep": "{n}. Подключите, затем подтвердите открывшийся вход в {appName}",
+    "installSkillStep": "{n}. Установите навык очереди в {path}",
+    "scheduleStep": "{n}. Запускайте каждые 30 минут (crontab на любой постоянно включённой машине)",
+    "workflowStep": "{n}. Закоммитьте {path}, затем замените последний шаг на задание, которое нужно запускать",
+    "checkStep": "{n}. Проверьте: попросите агента вызвать {tool} с агентом «{mailbox}». {empty} означает, что он подключён и свободен.",
+    "hostedTitle": "Нет машины, которую можно оставить включённой? Запускайте {agent} в GitHub Actions.",
+    "commitFile": "Закоммитьте {path}",
+    "saveAsSecret": "Сохраните как секрет {secret} — показывается один раз",
+    "agentReadThis": "Вы агент? Прочитайте {link} — те же шаги в виде простого текста.",
+    "createIntro": "Одна кнопка создаёт пять списков с инструкциями и делает каждого агента исполнителем по умолчанию. Описание списка — {is} файл инструкций, который каждый агент читает для задач в нём. Его можно изменить в любой момент.",
+    "createIntroIs": "и есть",
+    "connectIntro": "У каждого агента своя учётная запись {appName}, и он берёт только задачи, которые {assignedAndReady} в его собственном списке. Откройте одного и вставьте его шаги — или вставьте ссылку на эту страницу в агента и попросите его настроиться самостоятельно.",
+    "connectIntroAssignedAndReady": "назначены ему и отмечены как Ready",
+    "workSetReady": "Установите статус {ready}, когда хотите, чтобы агент начал. Это и есть кнопка «Старт».",
+    "teamIntro": "Поделитесь каждым списком (настройки списка → {members} → пригласить по email). Все видят одни и те же задачи, комментарии и отчёты агентов. Владельцы и администраторы списка могут передать агенту любую задачу; участники могут передавать задачи, которые создали сами. Чтобы участники могли передавать любую задачу, включите {setting} в настройках списка → {aiAgent} (агенты работают на тарифах владельца)."
   },
   "richTextInput": {
     "placeholder": "Введите сообщение...",
     "timer": "Таймер",
     "uploading": "Загрузка...",
     "attachFile": "Прикрепить файл",
-    "removeFile": "Удалить {name}"
+    "removeFile": "Удалить {name}",
+    "attachmentsUnavailable": "Вложения недоступны в этом представлении.",
+    "tooManyOne": "Можно прикрепить не более {max} файлов за раз — {count} файл не прикреплён.",
+    "tooManyMany": "Можно прикрепить не более {max} файлов за раз — не прикреплено файлов: {count}.",
+    "people": "Люди",
+    "aiBadge": "ИИ",
+    "taskDone": "Готово"
   },
   "chat": {
     "inputPlaceholder": "Сообщение в список...",
     "empty": "Пока нет сообщений. Начните разговор!",
-    "loadFailed": "Не удалось загрузить чат"
+    "loadFailed": "Не удалось загрузить чат",
+    "openChat": "Открыть чат",
+    "showTasks": "Показать задачи"
   },
   "notificationBell": {
     "markAllRead": "Отметить все как прочитанные",
-    "allCaughtUp": "Новых уведомлений нет."
+    "allCaughtUp": "Новых уведомлений нет.",
+    "loadFailed": "Не удалось загрузить уведомления",
+    "loadFailedStatus": "Не удалось загрузить уведомления ({status})",
+    "markReadFailedStatus": "Не удалось отметить уведомления как прочитанные ({status})",
+    "updateFailed": "Не удалось обновить уведомления",
+    "taskUpdate": "Обновление задачи",
+    "kinds": {
+      "assigned": "Назначено",
+      "mentioned": "Упоминание",
+      "replied": "Ответ",
+      "commented": "Комментарий",
+      "statusChanged": "Статус изменён"
+    }
   },
   "admin": {
     "navDescription": "Управление доступом, аналитикой и доступностью функций.",
@@ -1997,12 +2532,21 @@
   },
   "pwa": {
     "notNow": "Не сейчас",
-    "syncing": "Синхронизация изменений..."
+    "syncing": "Синхронизация изменений...",
+    "backOnline": "Снова в сети",
+    "offline": "Нет подключения к сети",
+    "pendingOne": "Ожидает отправки изменений: {count}",
+    "pendingMany": "Ожидает отправки изменений: {count}",
+    "installTitle": "Установить {appName}",
+    "installDescription": "Добавьте {appName} на главный экран для быстрого доступа и работы офлайн.",
+    "install": "Установить"
   },
   "attachmentViewer": {
     "closeEsc": "Закрыть (Esc)",
     "videoUnsupported": "Ваш браузер не поддерживает тег video.",
     "noPreview": "Предпросмотр недоступен для этого типа файла",
-    "downloadFile": "Скачать файл"
+    "downloadFile": "Скачать файл",
+    "unknownFile": "Неизвестный файл",
+    "loadFailed": "Не удалось загрузить файл"
   }
 }
