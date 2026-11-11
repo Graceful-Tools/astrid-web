@@ -15,6 +15,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { TaskActivitySection } from '@/components/task-detail/TaskActivitySection'
+// The section reads the reminders opt-in from the ThemeProvider (AWTD-1577).
+import { ThemeProvider } from '@/contexts/theme-context'
 
 vi.mock('@/components/secure-attachment-viewer', () => ({
   SecureAttachmentViewer: ({ fileId, directFile }: { fileId: string; directFile?: { url: string } }) => (
@@ -51,7 +53,8 @@ const task = {
 
 function renderSection() {
   return render(
-    <TaskActivitySection task={task} showTimer={false} setShowTimer={vi.fn()} onUpdate={vi.fn()} />
+    <TaskActivitySection task={task} showTimer={false} setShowTimer={vi.fn()} onUpdate={vi.fn()} />,
+    { wrapper: ThemeProvider },
   )
 }
 

@@ -107,10 +107,12 @@ pickers, filters and headers.
 [PRODUCT_CONTRACT.md §4](../PRODUCT_CONTRACT.md) decides the mark. Its look:
 
 - A square of `size.leading-control`, radius `lg`, a 2 pt border in the priority colour.
-- **A repeating task wears the repeat arrows as a frame**, `repeat-frame-scale` (1.25) ×
-  the square, in the priority colour, with the photo or unassigned mark inside. This
-  holds for all three marks. iOS draws a repeating task assigned to someone else at the
-  wrong size; web's is right (register DS6).
+- **A repeating task wears the repeat arrows.** Your own checkbox is the arrows. Someone
+  else's photo and the unassigned mark keep the square's size and shape, and the arrows
+  are drawn as its border in place of the priority outline, in the priority colour:
+  `repeat-frame-scale` (1.0) × the square, the photo or "U" inside at
+  `repeat-frame-inner-scale` (1.0), so a repeating task's face is as big as every other
+  face in the column (register DS6; iOS AITD-612, web AWTD-1579).
 
 ### Selection
 
@@ -334,7 +336,7 @@ Rules that come with it:
 
 ### The sixty most common, and what each becomes
 
-Counted over `app/`, `components/`, `hooks/` and `contexts/` (1,545 in all, 311 distinct).
+Counted over `app/`, `components/`, `hooks/` and `contexts/` (1,543 in all, 311 distinct).
 An unpaired grey from the dark end (`bg-gray-800`, `text-gray-300`) was written for Dark
 only; it takes the same row as its pair and the component then follows the theme, which is
 the fix.
@@ -456,12 +458,12 @@ reduction, `npm run design:metrics -- --update` in the same change.
 
 | Count | Before tokens (main `e770865b`) | Now |
 |---|---|---|
-| Palette classes | 1,631 | 1,545 |
+| Palette classes | 1,631 | 1,543 |
 | Hex colours | 126 | 113 |
 | rgb literals | 101 | 10 |
 | Theme triplets | 119 | 0 |
 | Inline styles | 64 | 64 |
-| Arbitrary sizes | 97 | 97 |
+| Arbitrary sizes | 97 | 96 |
 | Durations | 57 | 29 |
 | Sentences in JSX | 999 | 999 |
 | Distinct sentences in JSX | 802 | 802 |
