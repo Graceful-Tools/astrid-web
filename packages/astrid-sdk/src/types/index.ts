@@ -166,6 +166,25 @@ export interface AstridList {
   repository?: string
 }
 
+export type AgentTaskClaimAction = 'claim' | 'resume' | 'release'
+
+export interface AgentTaskClaimRequest {
+  action: AgentTaskClaimAction
+  agentMailbox?: string
+}
+
+export interface AgentTaskClaimResult {
+  outcome: 'claimed' | 'already_yours' | 'released' | 'conflict' | 'not_ready' | 'not_found' | 'forbidden'
+  task: {
+    id: string
+    statusRole: string | null
+    completed: boolean
+    assigneeId: string | null
+    assigneeIds: string[]
+    updatedAt: string
+  } | null
+}
+
 // ============================================================================
 // CONTEXT TYPES
 // ============================================================================

@@ -10,7 +10,11 @@
 import { callBlockerTool, isBlockerTool } from "./blockers"
 import { callListTool, isListTool } from "./list-tools"
 import { callAttachmentTool, isAttachmentTool } from "./task-attachments"
-import type { ChatRequester as Requester } from "./list-chat"
+import { callClaimTaskTool } from "./claim-task-tool"
+import type { ChatRequester } from "./list-chat"
+import type { OAuthAPIClient } from "./oauth-api-client"
+
+type Requester = ChatRequester & Pick<OAuthAPIClient, "claimTask">
 
 export async function callSideTool(
   client: Requester,
@@ -18,6 +22,7 @@ export async function callSideTool(
   args: unknown,
   signature: Parameters<typeof callAttachmentTool>[2],
 ) {
+  if (name === "claim_task") return callClaimTaskTool(client, args)
   if (isBlockerTool(name)) return callBlockerTool(client, name, args)
   if (isListTool(name)) return callListTool(client, name, args)
   if (isAttachmentTool(name)) return callAttachmentTool(client as Parameters<typeof callAttachmentTool>[0], args, signature)

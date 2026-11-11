@@ -63,7 +63,7 @@ export const OAUTH_MCP_TOOLS = [
       {
         name: "get_agent_queue",
         description:
-          "Get the tasks queued for an agent identity right now — Ready, assigned to that agent, and past any start date. This is the call a scheduled loop makes: work everything it returns, then stop. Returns empty:true when there is nothing to do, with a `hint` naming the condition that is unmet — most often tasks assigned to the agent that nobody set to Ready. Surface that hint instead of reporting a bare empty queue. If you do not use the board columns at all, pass requireReady: false so unstatused tasks queue too. On a board you keep for your own agents, pass includeUnassigned: true with listId so unassigned Ready tasks queue as well.",
+          "Get the tasks queued for an agent identity right now — Ready, assigned to that agent, and past any start date — plus unanswered human replies. Prefer runnable.version 1 to decide whether there is work: runnable.hasWork and runnable.reasons include both Ready tasks and attention; runnable.incomplete means the attention read was truncated or skipped and must not be treated as idle. Older servers omit runnable; there, empty:true still describes only the Ready queue. Its `hint` names the condition that is unmet — most often tasks assigned to the agent that nobody set to Ready. If you do not use the board columns at all, pass requireReady: false so unstatused tasks queue too. On a board you keep for your own agents, pass includeUnassigned: true with listId so unassigned Ready tasks queue as well.",
         inputSchema: {
           type: "object",
           properties: {
@@ -360,3 +360,38 @@ export const OAUTH_MCP_TOOLS = [
       ...ATTACHMENT_TOOLS,
       ...LIST_TOOLS,
 ] as const
+
+const CLAIM_TASK_TOOL = {
+  name: 'claim_task',
+  description:
+    'Atomically claim, resume, or release a task for the authenticated agent. The API requires write access to the task and derives the agent from the authenticated credential. Use claim before starting a Ready task, and resume to verify an existing Doing claim after a restart.',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      taskId: {
+        type: 'string',
+        description: 'Task id (uuid) or identifier such as AWTD-1007',
+      },
+      action: {
+        type: 'string',
+        enum: ['claim', 'resume', 'release'],
+        description:
+          'claim moves an incomplete Ready task to Doing for this agent; resume confirms its existing Doing claim; release returns its Doing task to Ready.',
+      },
+      agent: {
+        type: 'string',
+        description:
+          'Optional mailbox confirmation (claude, copilot, codex, …). It must match the agent bound to the authenticated credential.',
+      },
+    },
+    required: ['taskId', 'action'],
+    additionalProperties: false,
+  },
+} as const
+
+/** Register the additive tool only when the server-side API is enabled. */
+export function getOAuthMcpTools() {
+  return process.env.ASTRID_AGENT_CLAIM_API === 'on'
+    ? [...OAUTH_MCP_TOOLS, CLAIM_TASK_TOOL]
+    : OAUTH_MCP_TOOLS
+}
