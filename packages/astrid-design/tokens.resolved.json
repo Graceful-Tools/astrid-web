@@ -210,7 +210,7 @@
         "input-placeholder": "#9CA3AF",
         "overdue": "#EF4444",
         "priority-high": "#EF4444",
-        "priority-low": "{brand.accent}",
+        "priority-low": "{brand.accent-ink-dark}",
         "priority-medium": "#FBBF24",
         "priority-none": "#6B7280",
         "success": "#22C55E",
