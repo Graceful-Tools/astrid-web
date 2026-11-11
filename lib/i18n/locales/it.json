@@ -803,6 +803,12 @@
         "desc2": "I titoli si fermano a due righe.",
         "desc1": "I titoli restano su una riga."
       },
+      "taskReminders": {
+        "title": "Promemoria delle attività",
+        "description": "Se i dettagli di un'attività mostrano la riga Promemoria (salvato su questo dispositivo)",
+        "label": "Mostra i promemoria nei dettagli dell'attività",
+        "labelDesc": "I promemoria già impostati su un'attività scattano comunque quando questa opzione è disattivata."
+      },
       "emailToTask": {
         "title": "Email a Attività",
         "description": "Crea attività istantaneamente inviando email a {inboundTaskEmail}",

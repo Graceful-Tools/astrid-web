@@ -21,7 +21,8 @@ import {
   Sparkles,
   ListTree,
   LayoutList,
-  WrapText
+  WrapText,
+  Bell
 } from "lucide-react"
 import { ROW_TITLE_LINES, parseRowTitleLines } from "@/lib/design/row-title"
 
@@ -30,7 +31,14 @@ interface AppearanceSettingsProps {
 }
 
 export default function AppearanceSettings({ onNavigate }: AppearanceSettingsProps) {
-  const { theme, setTheme, rowTitleLines: storedRowTitleLines, setRowTitleLines } = useTheme()
+  const {
+    theme,
+    setTheme,
+    rowTitleLines: storedRowTitleLines,
+    setRowTitleLines,
+    showTaskReminders,
+    setShowTaskReminders,
+  } = useTheme()
   const rowTitleLines = parseRowTitleLines(storedRowTitleLines)
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false)
   /**
@@ -338,6 +346,37 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Task reminders: the Reminder row in task details is opt-in (AWTD-1577) */}
+          <Card className="theme-bg-secondary theme-border">
+            <CardHeader>
+              <CardTitle className="theme-text-primary flex items-center space-x-2">
+                <Bell className="w-5 h-5 theme-text-secondary" />
+                <span>{t("settingsPages.appearancePage.taskReminders.title")}</span>
+              </CardTitle>
+              <CardDescription className="theme-text-muted">
+                {t("settingsPages.appearancePage.taskReminders.description")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-4 theme-bg-tertiary rounded-lg">
+                <div className="flex-1">
+                  <Label id="show-task-reminders-label" className="font-medium theme-text-primary">
+                    {t("settingsPages.appearancePage.taskReminders.label")}
+                  </Label>
+                  <p className="text-sm theme-text-muted">
+                    {t("settingsPages.appearancePage.taskReminders.labelDesc")}
+                  </p>
+                </div>
+                <Switch
+                  data-testid="show-task-reminders"
+                  aria-labelledby="show-task-reminders-label"
+                  checked={showTaskReminders === true}
+                  onCheckedChange={setShowTaskReminders}
+                />
               </div>
             </CardContent>
           </Card>

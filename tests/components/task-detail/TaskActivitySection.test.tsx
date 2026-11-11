@@ -11,9 +11,13 @@
 
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render as renderBare, screen } from '@testing-library/react'
 import { TaskActivitySection } from '@/components/task-detail/TaskActivitySection'
+import { ThemeProvider } from '@/contexts/theme-context'
 import type { Task } from '@/types/task'
+
+// The section reads the reminders opt-in from the ThemeProvider (AWTD-1577).
+const render = (ui: React.ReactElement) => renderBare(ui, { wrapper: ThemeProvider })
 
 vi.mock('@/components/secure-attachment-viewer', () => ({
   SecureAttachmentViewer: ({ fileId }: { fileId: string }) => (
