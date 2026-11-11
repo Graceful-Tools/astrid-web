@@ -27,6 +27,19 @@
 .priority-outline-medium { border-color: rgb(var(--astrid-priority-medium)); color: rgb(var(--astrid-priority-medium)); }
 .priority-outline-high { border-color: rgb(var(--astrid-priority-high)); color: rgb(var(--astrid-priority-high)); }
 
+/* The repeat arrows round someone else's photo or the "U" (AWTD-1579, register
+   DS6). The arrows are the leading control's size and the mark fills them, so a
+   repeating task's face is as big as every other face in the column. Both
+   shares are the design tokens; the control itself is sized by its own box. */
+.repeat-frame-arrows {
+  width: calc(100% * var(--astrid-size-repeat-frame-scale));
+  height: calc(100% * var(--astrid-size-repeat-frame-scale));
+}
+.repeat-frame-mark {
+  width: calc(100% * var(--astrid-size-repeat-frame-inner-scale));
+  height: calc(100% * var(--astrid-size-repeat-frame-inner-scale));
+}
+
 :root {
   /* The selection outline, defined once for the row, the details pane and its
      arrow so the three read as one object (docs/specs/DESIGN_SYSTEM.md →

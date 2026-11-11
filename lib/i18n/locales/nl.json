@@ -803,6 +803,12 @@
         "desc2": "Titels stoppen na twee regels.",
         "desc1": "Titels blijven op één regel."
       },
+      "taskReminders": {
+        "title": "Taakherinneringen",
+        "description": "Of de details van een taak de rij Herinnering laten zien (op dit apparaat bewaard)",
+        "label": "Herinneringen tonen in taakdetails",
+        "labelDesc": "Herinneringen die al op een taak staan, gaan nog steeds af als dit uit staat."
+      },
       "emailToTask": {
         "title": "E-mail naar Taak",
         "description": "Maak direct taken door e-mails te sturen naar {inboundTaskEmail}",

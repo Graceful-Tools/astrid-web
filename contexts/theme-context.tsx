@@ -10,6 +10,11 @@ import {
   rowTitleClass,
   type RowTitleLines,
 } from "@/lib/design/row-title"
+import {
+  DEFAULT_SHOW_TASK_REMINDERS,
+  SHOW_TASK_REMINDERS_STORAGE_KEY,
+  parseShowTaskReminders,
+} from "@/lib/design/task-reminders"
 
 export type Theme = "light" | "dark" | "ocean"
 
@@ -20,6 +25,9 @@ interface ThemeContextType {
   /** How many lines a row's title may take. Per machine, like the theme. */
   rowTitleLines: RowTitleLines
   setRowTitleLines: (lines: RowTitleLines) => void
+  /** Whether task details show the Reminder row. Off until opted in; per machine (AWTD-1577). */
+  showTaskReminders: boolean
+  setShowTaskReminders: (show: boolean) => void
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
@@ -32,9 +40,11 @@ interface ThemeProviderProps {
 export function ThemeProvider({ children, defaultTheme = "ocean" }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(defaultTheme)
   const [rowTitleLines, setRowTitleLinesState] = useState<RowTitleLines>(DEFAULT_ROW_TITLE_LINES)
+  const [showTaskReminders, setShowTaskRemindersState] = useState(DEFAULT_SHOW_TASK_REMINDERS)
 
   useEffect(() => {
     setRowTitleLinesState(parseRowTitleLines(localStorage.getItem(ROW_TITLE_STORAGE_KEY)))
+    setShowTaskRemindersState(parseShowTaskReminders(localStorage.getItem(SHOW_TASK_REMINDERS_STORAGE_KEY)))
   }, [])
 
   useEffect(() => {
@@ -48,6 +58,12 @@ export function ThemeProvider({ children, defaultTheme = "ocean" }: ThemeProvide
   const setRowTitleLines = (lines: RowTitleLines) => {
     localStorage.setItem(ROW_TITLE_STORAGE_KEY, lines)
     setRowTitleLinesState(lines)
+  }
+
+  // Stored on change for the same reason.
+  const setShowTaskReminders = (show: boolean) => {
+    localStorage.setItem(SHOW_TASK_REMINDERS_STORAGE_KEY, String(show))
+    setShowTaskRemindersState(show)
   }
 
   useEffect(() => {
@@ -80,7 +96,7 @@ export function ThemeProvider({ children, defaultTheme = "ocean" }: ThemeProvide
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme, rowTitleLines, setRowTitleLines }}>
+    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme, rowTitleLines, setRowTitleLines, showTaskReminders, setShowTaskReminders }}>
       {children}
     </ThemeContext.Provider>
   )

@@ -1,7 +1,6 @@
 "use client"
 
 import React from "react"
-import Image from "next/image"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { TaskCheckbox } from "@/components/task-checkbox"
@@ -13,7 +12,6 @@ import {
   taskLeadingControlKind,
 } from "@/lib/task-leading-control"
 import { usesCompactTaskDetail } from "@/lib/task-display-mode"
-import { LEADING_CONTROL_SIZE } from "@/lib/design/tokens"
 
 /**
  * The leading control on a task — one component for all three answers to
@@ -85,25 +83,107 @@ const SQUARE_CLASS = "w-leading-control h-leading-control rounded-lg border-2 fl
  *
  * Your own repeating task already swaps its checkbox for the arrows icon; a
  * repeating task assigned to someone else or to nobody drew the plain square, so
- * "repeats" was visible on one of the three marks only. The arrows are the same
- * priority-coloured art the checkbox uses, at the checkbox's own size (AWTD-1576:
- * at 40px the mark was wider than every other leading control, so a repeating
- * row's title sat further right than a one-off's). The photo sits inside the loop.
+ * "repeats" was visible on one of the three marks only.
+ *
+ * The frame is the leading control's own size (AWTD-1576: at 40px the mark was
+ * wider than every other leading control, so a repeating row's title sat further
+ * right than a one-off's), and the photo or "U" fills it (AWTD-1579, iOS
+ * AITD-612): it is the same rounded square as a one-off's mark, with the arrows
+ * drawn where the plain priority outline would be. It used to be a 20px round
+ * photo inside the checkbox's arrows bitmap, whose loop only has room for half
+ * the square — a smaller face than every other row's. Both sizes are the design
+ * tokens `size.repeat-frame-scale` and `size.repeat-frame-inner-scale`
+ * (`.repeat-frame-arrows` / `.repeat-frame-mark` in styles/components.css).
  */
 function RepeatFrame({ priority, children }: { priority: number; children: React.ReactNode }) {
-  const safePriority = priority >= 0 && priority <= 3 ? priority : 0
   return (
     <div data-testid="repeat-frame" className="relative flex h-leading-control w-leading-control items-center justify-center">
-      <Image
-        src={`/icons/check_box_repeat_${safePriority}.png`}
-        alt=""
-        aria-hidden="true"
-        width={LEADING_CONTROL_SIZE}
-        height={LEADING_CONTROL_SIZE}
-        className="pointer-events-none absolute inset-0 h-leading-control w-leading-control"
-      />
-      {children}
+      <div
+        data-testid="repeat-frame-mark"
+        className="repeat-frame-mark flex items-center justify-center overflow-hidden rounded-lg"
+      >
+        {children}
+      </div>
+      <RepeatArrowsBorder color={getPriorityColor(priority)} />
     </div>
+  )
+}
+
+/**
+ * The geometry of the arrows, in the 32-unit box of the leading control. The
+ * shares are iOS's `RepeatFrameGeometry` (headLength 0.16, headHalfWidth 0.13 of
+ * the control); the corner and the 2px line are the plain square's own
+ * (`rounded-lg`, `border-2`), drawn inside the edge as that border is.
+ */
+const ARROWS_BOX = 32
+const ARROWS_LINE = 2
+const ARROWS_CORNER = 8
+const ARROWS_HEAD_LENGTH = ARROWS_BOX * 0.16
+const ARROWS_HEAD_HALF_WIDTH = ARROWS_BOX * 0.13
+
+/**
+ * The repeat arrows drawn round a rounded square: two brackets, each ending in
+ * an arrowhead halfway along the top or bottom edge, rotationally symmetric like
+ * `check_box_repeat_<p>.png`. Drawn rather than the bitmap so they can follow
+ * the edge of a full-size photo (iOS `RepeatArrowsBorder`).
+ */
+function RepeatArrowsBorder({ color }: { color: string }) {
+  const inset = ARROWS_LINE / 2
+  const far = ARROWS_BOX - inset
+  const radius = ARROWS_CORNER - inset
+  const middle = ARROWS_BOX / 2
+  // The left bracket: from the bottom edge, round the left side, along the top to the middle.
+  const bracket = [
+    `M ${ARROWS_CORNER} ${far}`,
+    `A ${radius} ${radius} 0 0 1 ${inset} ${ARROWS_BOX - ARROWS_CORNER}`,
+    `L ${inset} ${ARROWS_CORNER}`,
+    `A ${radius} ${radius} 0 0 1 ${ARROWS_CORNER} ${inset}`,
+    `L ${middle} ${inset}`,
+  ].join(' ')
+  // Its arrowhead, pointing right along the top edge.
+  const head = [
+    `${middle},${inset - ARROWS_HEAD_HALF_WIDTH}`,
+    `${middle + ARROWS_HEAD_LENGTH},${inset}`,
+    `${middle},${inset + ARROWS_HEAD_HALF_WIDTH}`,
+  ].join(' ')
+  const half = (
+    <>
+      <path d={bracket} fill="none" stroke="currentColor" strokeWidth={ARROWS_LINE} />
+      <polygon points={head} fill="currentColor" />
+    </>
+  )
+  return (
+    <svg
+      data-testid="repeat-frame-arrows"
+      aria-hidden="true"
+      viewBox={`0 0 ${ARROWS_BOX} ${ARROWS_BOX}`}
+      className="repeat-frame-arrows pointer-events-none absolute overflow-visible"
+      style={{ color }}
+    >
+      {half}
+      {/* The right bracket is the same half turned half a turn about the centre. */}
+      <g transform={`rotate(180 ${middle} ${middle})`}>{half}</g>
+    </svg>
+  )
+}
+
+/** Someone's photo, or their initials on the fallback, at whatever size the caller's class gives it. */
+function AssigneePhoto({
+  assignee,
+  className,
+  style,
+}: {
+  assignee: TaskLeadingControlProps['assignee']
+  className: string
+  style?: React.CSSProperties
+}) {
+  return (
+    <Avatar className={className} style={style}>
+      <AvatarImage src={assignee?.image || undefined} />
+      <AvatarFallback className="text-xs bg-gray-300 text-gray-700 rounded-lg">
+        {assignee?.name?.slice(0, 2) || assignee?.email?.slice(0, 2) || '?'}
+      </AvatarFallback>
+    </Avatar>
   )
 }
 
@@ -200,26 +280,21 @@ export function TaskLeadingControl({
         >
           {repeating ? (
             <RepeatFrame priority={priority}>
-              <Avatar className="h-5 w-5 rounded-full">
-                <AvatarImage src={assignee?.image || undefined} />
-                <AvatarFallback className="rounded-full bg-gray-300 text-[10px] text-gray-700">
-                  {assignee?.name?.slice(0, 2) || assignee?.email?.slice(0, 2) || '?'}
-                </AvatarFallback>
-              </Avatar>
+              <AssigneePhoto assignee={assignee} className="h-full w-full rounded-lg" />
             </RepeatFrame>
           ) : (
-            <Avatar className={SQUARE_CLASS} style={{ borderColor }}>
-              <AvatarImage src={assignee?.image || undefined} />
-              <AvatarFallback className="text-xs bg-gray-300 text-gray-700 rounded-lg">
-                {assignee?.name?.slice(0, 2) || assignee?.email?.slice(0, 2) || '?'}
-              </AvatarFallback>
-            </Avatar>
+            <AssigneePhoto assignee={assignee} className={SQUARE_CLASS} style={{ borderColor }} />
           )}
         </div>
       </>
     )
   }
 
+  const unassignedMark = (
+    <span className="text-sm font-medium" style={{ color: borderColor }}>
+      {t('tasks.unassignedMark')}
+    </span>
+  )
   return (
     <div
       className="relative p-2 -m-2 cursor-pointer flex items-center justify-center self-center"
@@ -239,17 +314,9 @@ export function TaskLeadingControl({
       }}
     >
       {repeating ? (
-        <RepeatFrame priority={priority}>
-          <span className="text-xs font-medium" style={{ color: borderColor }}>
-            {t('tasks.unassignedMark')}
-          </span>
-        </RepeatFrame>
+        <RepeatFrame priority={priority}>{unassignedMark}</RepeatFrame>
       ) : (
-        <div className={SQUARE_CLASS} style={{ borderColor }}>
-          <span className="text-sm font-medium" style={{ color: borderColor }}>
-            {t('tasks.unassignedMark')}
-          </span>
-        </div>
+        <div className={SQUARE_CLASS} style={{ borderColor }}>{unassignedMark}</div>
       )}
     </div>
   )
