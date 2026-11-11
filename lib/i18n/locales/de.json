@@ -803,6 +803,12 @@
         "desc2": "Titel enden nach zwei Zeilen.",
         "desc1": "Titel bleiben auf einer Zeile."
       },
+      "taskReminders": {
+        "title": "Aufgabenerinnerungen",
+        "description": "Ob die Details einer Aufgabe die Zeile „Erinnerung“ zeigen (auf diesem Gerät gespeichert)",
+        "label": "Erinnerungen in den Aufgabendetails anzeigen",
+        "labelDesc": "Bereits gesetzte Erinnerungen werden auch dann ausgelöst, wenn dies aus ist."
+      },
       "emailToTask": {
         "title": "E-Mail zu Aufgabe",
         "description": "Erstellen Sie Aufgaben sofort durch Senden von E-Mails an {inboundTaskEmail}",

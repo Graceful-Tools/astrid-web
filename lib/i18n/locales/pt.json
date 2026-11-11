@@ -803,6 +803,12 @@
         "desc2": "Os títulos param em duas linhas.",
         "desc1": "Os títulos ficam em uma linha."
       },
+      "taskReminders": {
+        "title": "Lembretes das tarefas",
+        "description": "Se os detalhes de uma tarefa mostram a linha Lembrete (guardado neste dispositivo)",
+        "label": "Mostrar lembretes nos detalhes da tarefa",
+        "labelDesc": "Os lembretes já definidos numa tarefa continuam a disparar com esta opção desligada."
+      },
       "emailToTask": {
         "title": "E-mail para Tarefa",
         "description": "Crie tarefas instantaneamente enviando e-mails para {inboundTaskEmail}",
