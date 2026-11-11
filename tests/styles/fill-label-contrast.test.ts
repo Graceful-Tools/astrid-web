@@ -91,3 +91,39 @@ describe('AWTD-1575: the accent as a ring shows on the page and the card in ever
     expect(css).toContain('--selection-outline-color: rgba(var(--theme-border-focus), var(--astrid-state-selection-outline-opacity));')
   })
 })
+
+// The browser pass after the fills were darkened: in Dark, low priority (the
+// outline, the "U" and "!", the repeat arrows, the picker) followed the accent
+// to 2.84:1 on a card and 2.0:1 on a selected row, and the repeat frame was
+// visibly dim. In Dark it reads the accent's lighter shade, as the ring does.
+describe('AWTD-1575: low priority shows on the card in every theme', () => {
+  const priority = (name: string, scope: Map<string, string>) => resolveRgb(`astrid-priority-${name}`, scope)
+
+  it('Dark: priority-low is the accent\'s lighter shade, 3:1 on the card and on a selected row', async () => {
+    const css = await compileClasses(['bg-theme-surface', 'bg-theme-selected'])
+    const scope = themeScope('dark')
+    const low = priority('low', scope)
+    expect(low).toEqual([96, 165, 250])
+    expect(low).toEqual(resolveRgb('astrid-accent-ink', scope))
+    for (const surface of ['bg-theme-surface', 'bg-theme-selected']) {
+      const ratio = contrast(low, colourOf(css, surface, scope))
+      expect(ratio, `${surface}: ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(LINE)
+    }
+  })
+
+  it.each(THEME_NAMES.filter((theme) => theme !== 'dark'))('%s: priority-low is the accent, 3:1 on the card', async (theme) => {
+    const css = await compileClasses(['bg-theme-surface'])
+    const scope = themeScope(theme)
+    expect(priority('low', scope)).toEqual(resolveRgb('astrid-accent', scope))
+    expect(contrast(priority('low', scope), colourOf(css, 'bg-theme-surface', scope))).toBeGreaterThanOrEqual(LINE)
+  })
+
+  it('none, medium and high are the same colour in every theme', () => {
+    for (const theme of THEME_NAMES) {
+      const scope = themeScope(theme)
+      expect(priority('none', scope), theme).toEqual([107, 114, 128])
+      expect(priority('medium', scope), theme).toEqual([251, 191, 36])
+      expect(priority('high', scope), theme).toEqual([239, 68, 68])
+    }
+  })
+})

@@ -76,6 +76,8 @@ describe('getPriorityColor (task 2bb1b196)', () => {
     expect(themeColor('light', 'priority-medium')).toEqual([251, 191, 36])
     expect(themeColor('light', 'priority-low')).toEqual([37, 99, 235])
     expect(themeColor('light', 'priority-low')).toEqual(themeColor('light', 'accent'))
+    // In Dark the accent is 2.84:1 on a card, so low is its lighter shade.
+    expect(themeColor('dark', 'priority-low')).toEqual([96, 165, 250])
     expect(themeColor('light', 'priority-none')).toEqual([107, 114, 128])
   })
 
