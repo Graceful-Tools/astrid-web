@@ -51,7 +51,7 @@ export default function CustomAgentsDocsPage() {
         <div className="max-w-sm sm:max-w-4xl mx-auto space-y-4 sm:space-y-6">
           {/* Page Header */}
           <div className="flex items-center space-x-3">
-            <Bot className="w-8 h-8 text-orange-500" />
+            <Bot className="w-8 h-8 text-warning" />
             <div>
               <h1 className="text-2xl font-bold theme-text-primary">Custom Agent Protocol</h1>
               <p className="theme-text-muted">Connect your own AI agents to {BRAND.appName}</p>
@@ -62,7 +62,7 @@ export default function CustomAgentsDocsPage() {
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <Zap className="w-5 h-5 text-orange-500" />
+                <Zap className="w-5 h-5 text-warning" />
                 <span>What are Custom Agents?</span>
               </CardTitle>
             </CardHeader>
@@ -91,7 +91,7 @@ export default function CustomAgentsDocsPage() {
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <BookOpen className="w-5 h-5 text-blue-500" />
+                <BookOpen className="w-5 h-5 text-brand" />
                 <span>5-Minute Setup</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
@@ -149,7 +149,7 @@ await adapter.connect((msg) => {
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <FileText className="w-5 h-5 text-green-500" />
+                <FileText className="w-5 h-5 text-success" />
                 <span>List Descriptions = Agent Instructions</span>
               </CardTitle>
             </CardHeader>
@@ -302,7 +302,7 @@ await adapter.connect((msg) => {
               </Button>
               <Button
                 variant="outline"
-                className="w-full justify-between opacity-50 cursor-not-allowed"
+                className="w-full justify-between opacity-disabled cursor-not-allowed"
                 disabled
               >
                 <span>ClaHub Skill &mdash; Coming Soon</span>
@@ -327,7 +327,7 @@ await adapter.connect((msg) => {
 function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
     <div className="flex gap-3">
-      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-orange-500/20 text-orange-500 text-xs font-bold flex items-center justify-center mt-0.5">
+      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-warning-subtle text-warning text-xs font-bold flex items-center justify-center mt-0.5">
         {n}
       </div>
       <div className="flex-1">

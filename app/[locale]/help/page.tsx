@@ -55,7 +55,7 @@ export default function HelpPage() {
             {/* Simple */}
             <div className="theme-surface border theme-border rounded-xl p-6">
               <div className="flex items-center gap-2 mb-4">
-                <span className="px-2 py-1 bg-green-500/15 text-green-600 text-xs font-semibold rounded">SIMPLE</span>
+                <span className="px-2 py-1 bg-success-subtle text-success text-xs font-semibold rounded">SIMPLE</span>
                 <span className="theme-text-secondary text-sm">Try these first</span>
               </div>
 
@@ -81,7 +81,7 @@ export default function HelpPage() {
             {/* Intermediate */}
             <div className="theme-surface border theme-border rounded-xl p-6">
               <div className="flex items-center gap-2 mb-4">
-                <span className="px-2 py-1 bg-yellow-500/15 text-yellow-600 text-xs font-semibold rounded">INTERMEDIATE</span>
+                <span className="px-2 py-1 bg-warning-subtle text-warning text-xs font-semibold rounded">INTERMEDIATE</span>
                 <span className="theme-text-secondary text-sm">If simple steps don&apos;t work</span>
               </div>
 
@@ -107,7 +107,7 @@ export default function HelpPage() {
             {/* Advanced */}
             <div className="theme-surface border theme-border rounded-xl p-6">
               <div className="flex items-center gap-2 mb-4">
-                <span className="px-2 py-1 bg-red-500/15 text-red-600 text-xs font-semibold rounded">ADVANCED</span>
+                <span className="px-2 py-1 bg-danger-subtle text-danger text-xs font-semibold rounded">ADVANCED</span>
                 <span className="theme-text-secondary text-sm">Last resort options</span>
               </div>
 
@@ -145,7 +145,7 @@ export default function HelpPage() {
             {/* Simple */}
             <div className="theme-surface border theme-border rounded-xl p-6">
               <div className="flex items-center gap-2 mb-4">
-                <span className="px-2 py-1 bg-green-500/15 text-green-600 text-xs font-semibold rounded">SIMPLE</span>
+                <span className="px-2 py-1 bg-success-subtle text-success text-xs font-semibold rounded">SIMPLE</span>
                 <span className="theme-text-secondary text-sm">Try these first</span>
               </div>
 
@@ -171,7 +171,7 @@ export default function HelpPage() {
             {/* Intermediate */}
             <div className="theme-surface border theme-border rounded-xl p-6">
               <div className="flex items-center gap-2 mb-4">
-                <span className="px-2 py-1 bg-yellow-500/15 text-yellow-600 text-xs font-semibold rounded">INTERMEDIATE</span>
+                <span className="px-2 py-1 bg-warning-subtle text-warning text-xs font-semibold rounded">INTERMEDIATE</span>
                 <span className="theme-text-secondary text-sm">If simple steps don&apos;t work</span>
               </div>
 
@@ -205,7 +205,7 @@ export default function HelpPage() {
             {/* Advanced */}
             <div className="theme-surface border theme-border rounded-xl p-6">
               <div className="flex items-center gap-2 mb-4">
-                <span className="px-2 py-1 bg-red-500/15 text-red-600 text-xs font-semibold rounded">ADVANCED</span>
+                <span className="px-2 py-1 bg-danger-subtle text-danger text-xs font-semibold rounded">ADVANCED</span>
                 <span className="theme-text-secondary text-sm">Last resort options</span>
               </div>
 

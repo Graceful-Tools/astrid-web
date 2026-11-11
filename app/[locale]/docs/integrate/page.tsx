@@ -23,11 +23,11 @@ import { enabledIntegrationMethods, WELL_KNOWN_ENDPOINTS } from "@/lib/integrati
 import { scrollShellClassName } from "@/components/scroll-shell"
 
 const ICON_MAP: Record<string, React.ReactNode> = {
-  Code2: <Code2 className="w-6 h-6 text-blue-500" />,
-  Cpu: <Cpu className="w-6 h-6 text-cyan-500" />,
-  Bot: <Bot className="w-6 h-6 text-orange-500" />,
+  Code2: <Code2 className="w-6 h-6 text-brand" />,
+  Cpu: <Cpu className="w-6 h-6 text-info" />,
+  Bot: <Bot className="w-6 h-6 text-warning" />,
   MessageSquare: <MessageSquare className="w-6 h-6 text-purple-500" />,
-  Terminal: <Terminal className="w-6 h-6 text-green-500" />,
+  Terminal: <Terminal className="w-6 h-6 text-success" />,
 }
 
 export default function IntegrationGuidePage() {
@@ -67,7 +67,7 @@ export default function IntegrationGuidePage() {
         <div className="max-w-sm sm:max-w-4xl mx-auto space-y-4 sm:space-y-6">
           {/* Page Header */}
           <div className="flex items-center space-x-3">
-            <Network className="w-8 h-8 text-blue-500" />
+            <Network className="w-8 h-8 text-brand" />
             <div>
               <h1 className="text-2xl font-bold theme-text-primary">Integration Guide</h1>
               <p className="theme-text-muted">Connect agents, tools, and services to {BRAND.appName}</p>
@@ -75,10 +75,10 @@ export default function IntegrationGuidePage() {
           </div>
 
           {/* Which Integration? */}
-          <Card className="theme-bg-secondary border-blue-500/30 border">
+          <Card className="theme-bg-secondary border-brand/30 border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <HelpCircle className="w-5 h-5 text-blue-500" />
+                <HelpCircle className="w-5 h-5 text-brand" />
                 <span>Which integration is right for you?</span>
               </CardTitle>
             </CardHeader>
@@ -126,7 +126,7 @@ export default function IntegrationGuidePage() {
               <CardContent className="py-4">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 mt-0.5">
-                    {ICON_MAP[method.icon] || <Code2 className="w-6 h-6 text-gray-500" />}
+                    {ICON_MAP[method.icon] || <Code2 className="w-6 h-6 text-theme-muted" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -151,7 +151,7 @@ export default function IntegrationGuidePage() {
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <Shield className="w-5 h-5 text-green-500" />
+                <Shield className="w-5 h-5 text-success" />
                 <span>Authentication</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
@@ -222,7 +222,7 @@ export default function IntegrationGuidePage() {
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <Cpu className="w-5 h-5 text-cyan-500" />
+                <Cpu className="w-5 h-5 text-info" />
                 <span>Machine-Readable Discovery</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">

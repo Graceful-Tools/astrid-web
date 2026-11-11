@@ -69,7 +69,7 @@ export default function AgentLoopsDocsPage() {
       <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-6">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-3">
-            <Repeat className="w-8 h-8 text-green-500" />
+            <Repeat className="w-8 h-8 text-success" />
             <h1 className="text-2xl font-bold theme-text-primary">Connect my coding agent</h1>
           </div>
           <p className="theme-text-muted">
@@ -90,7 +90,7 @@ export default function AgentLoopsDocsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-start gap-3">
-              <CircleDollarSign className="w-5 h-5 text-yellow-500 mt-0.5 shrink-0" />
+              <CircleDollarSign className="w-5 h-5 text-warning mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-medium theme-text-primary">You pay twice for the same work</p>
                 <p className="text-sm theme-text-muted">
@@ -100,7 +100,7 @@ export default function AgentLoopsDocsPage() {
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <ShieldCheck className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
+              <ShieldCheck className="w-5 h-5 text-brand mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-medium theme-text-primary">A dry balance is an invisible failure</p>
                 <p className="text-sm theme-text-muted">
@@ -111,7 +111,7 @@ export default function AgentLoopsDocsPage() {
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <Terminal className="w-5 h-5 text-green-500 mt-0.5 shrink-0" />
+              <Terminal className="w-5 h-5 text-success mt-0.5 shrink-0" />
               <div>
                 <p className="text-sm font-medium theme-text-primary">Your machine can do more than an API call</p>
                 <p className="text-sm theme-text-muted">
@@ -161,7 +161,7 @@ export default function AgentLoopsDocsPage() {
               re-queues itself on completion and shows up when it is due.
             </p>
             <div className="flex items-start gap-2 pt-1">
-              <Clock className="w-4 h-4 mt-0.5 shrink-0 text-blue-500" />
+              <Clock className="w-4 h-4 mt-0.5 shrink-0 text-brand" />
               <span>
                 An empty queue answers <code className="font-mono text-xs">empty: true</code>, so a
                 scheduled run on a quiet day costs one HTTP request and stops.
@@ -196,14 +196,14 @@ export default function AgentLoopsDocsPage() {
           </CardContent>
         </Card>
 
-        <Card className="theme-bg-secondary theme-border border-blue-500/30">
+        <Card className="theme-bg-secondary border-brand/30">
           <CardHeader>
             <CardTitle className="theme-text-primary text-lg">Next</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <Button
               variant="outline"
-              className="w-full justify-between border-blue-500/30"
+              className="w-full justify-between border-brand/30"
               onClick={() => router.push('/settings/agents')}
             >
               <span>Switch an agent to polling</span>
