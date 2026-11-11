@@ -13,7 +13,7 @@
 # Targets: `runner` (the default, last) serves the app and runs the cron
 # runner; `migrator` applies Prisma migrations and exits.
 
-ARG NODE_VERSION=24
+ARG NODE_VERSION=26
 
 FROM node:${NODE_VERSION}-bookworm-slim AS base
 RUN apt-get update \
