@@ -142,9 +142,17 @@ describe('priority classes hold up where they are used (PR #699 review)', () => 
   })
 
   it('a filled control keeps its colour on hover', () => {
-    for (const name of ['none', 'low', 'medium', 'high']) {
+    for (const name of ['none', 'medium', 'high']) {
       expect(css).toContain(`.priority-fill-${name}:hover { background-color: rgb(var(--astrid-priority-${name})); }`)
     }
+    expect(css).toContain('.priority-fill-low:hover { background-color: rgb(var(--astrid-accent)); }')
+  })
+
+  // AWTD-1575: Dark's low-priority colour is the accent's lighter ink, so it
+  // reads as a line or a glyph on a dark card. As a FILL under a white "!" that
+  // blue is 2.54:1; the fill is the accent itself, which is 5.17:1 in every theme.
+  it('the low-priority fill is the accent fill, so its white glyph is readable in Dark', () => {
+    expect(css).toContain('.priority-fill-low { background-color: rgb(var(--astrid-accent)); border-color: rgb(var(--astrid-accent)); }')
   })
 })
 
@@ -431,12 +439,14 @@ describe('a meaning as text reads its ink, as a fill its base colour (AWTD-1575)
     expect(ruleFor(shadcn, 'text-destructive-foreground')).toContain('rgba(var(--destructive-foreground)')
   })
 
+  // The accent's ring is the focus border, which is the accent in Light and
+  // Ocean and its lighter shade in Dark (astrid-core register DS26).
   it('AWTD-1575: fills, washes, borders, rings and text on the fill keep the base colour', () => {
     for (const [name, token] of MEANINGS) {
       expect(propertyOf(ruleFor(css, `bg-${name}`)), `bg-${name}`).toBe(`astrid-${token}`)
       expect(ruleFor(css, `bg-${name}-subtle`)).toBe(`background-color: rgba(var(--astrid-${token}), var(--theme-wash-opacity))`)
       expect(propertyOf(ruleFor(css, `border-${name}`)), `border-${name}`).toBe(`astrid-${token}`)
-      expect(ruleFor(css, `ring-${name}`)).toContain(`rgba(var(--astrid-${token}), `)
+      expect(ruleFor(css, `ring-${name}`)).toContain(`rgba(var(--astrid-${name === 'brand' ? 'border-focus' : token}), `)
       expect(propertyOf(ruleFor(css, `text-${name}-foreground`)), `text-${name}-foreground`).toBe('astrid-accent-text')
     }
   })

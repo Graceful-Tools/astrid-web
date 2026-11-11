@@ -574,7 +574,7 @@ export function WebhookSettingsManager() {
                         href="https://www.npmjs.com/package/@gracefultools/astrid-sdk"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[rgb(var(--theme-accent))] hover:underline"
+                        className="text-brand hover:underline"
                       >
                         {BRAND.appName} SDK
                       </a>
@@ -595,7 +595,7 @@ export function WebhookSettingsManager() {
                   settings: t('settings.settings'),
                   aiAgents: t('settingsPages.aiAgents.title'),
                   recipes: (
-                    <Link href="/docs/loops" className="text-[rgb(var(--theme-accent))] hover:underline">
+                    <Link href="/docs/loops" className="text-brand hover:underline">
                       {t('settingsPages.aiAgents.webhook.recipesLink')}
                     </Link>
                   ),

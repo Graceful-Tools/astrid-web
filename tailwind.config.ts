@@ -3,6 +3,7 @@ import tailwindcssAnimate from "tailwindcss-animate";
 
 import {
   inkColors,
+  ringColors,
   semanticColors,
   shadcnColors,
   themeBackgroundColors,
@@ -40,6 +41,8 @@ const config: Config = {
   		textColor: { theme: themeTextColors, ...inkColors },
   		fill: inkColors,
   		stroke: inkColors,
+  		// The accent as a ring is the focus border: lighter in Dark.
+  		ringColor: ringColors,
   		backgroundColor: { theme: themeBackgroundColors },
   		borderColor: { theme: themeBorderColors },
   		opacity: tokenOpacity,

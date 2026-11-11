@@ -1,5 +1,5 @@
 import { BRAND } from '@/lib/brand/config'
-import { DANGER_COLOR, accentGradientStops } from '@/lib/brand/colors'
+import { DANGER_COLOR, accentGradientStops, dangerGradientStops } from '@/lib/brand/colors'
 import type { TaskReminderData, DailyDigestData } from '@/types/reminder'
 import { sendVerificationEmail, getFromEmail } from '@/lib/email'
 import { isEmailTransportLive, sendTransportEmail } from '@/lib/email-transport'
@@ -142,7 +142,7 @@ export class EmailReminderService {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
           }
           .header {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            background: linear-gradient(135deg, ${dangerGradientStops()[0]} 0%, ${dangerGradientStops()[1]} 100%);
             padding: 30px 20px;
             text-align: center;
           }
@@ -307,7 +307,7 @@ export class EmailReminderService {
             transition: background-color 0.2s;
           }
           .button:hover {
-            background-color: ${isOverdue ? '#dc2626' : '#2563eb'};
+            background-color: ${isOverdue ? dangerGradientStops()[1] : accentGradientStops()[1]};
           }
           .button-secondary {
             background-color: #6b7280;

@@ -1,4 +1,5 @@
 import { BRAND } from '@/lib/brand/config'
+import { accentGradientStops } from '@/lib/brand/colors'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
@@ -93,7 +94,7 @@ export async function GET(request: NextRequest) {
             font-weight: 500;
           }
           .button:hover {
-            background-color: #2563eb;
+            background-color: ${accentGradientStops()[1]};
           }
         </style>
       </head>

@@ -109,7 +109,7 @@ export default function GithubSetupSettings({ onNavigate }: GithubSetupSettingsP
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-center py-8">
-                <div className="animate-spin w-8 h-8 border-4 border-brand border-t-transparent rounded-full"></div>
+                <div className="animate-spin w-8 h-8 border-4 border-theme-focus border-t-transparent rounded-full"></div>
               </div>
               <p className="text-sm theme-text-muted text-center">
                 {t("settingsPages.githubSetup.pleaseWait")}
