@@ -10,6 +10,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mockPrisma } from '@/tests/setup'
 import { BadQueueOptionError, buildAgentQueue, UnknownAgentError } from '@/lib/agent-queue'
 import { BRAND } from '@/lib/brand/config'
+import { getTaskUrl } from '@/lib/base-url'
 
 const { shadowInfo, deferred } = vi.hoisted(() => ({
   shadowInfo: vi.fn(),
@@ -122,6 +123,90 @@ describe('buildAgentQueue', () => {
     expect(result.empty).toBe(true)
     expect(result.queue).toEqual([])
     expect(result.agent.id).toBeNull()
+  })
+
+  it('AWTD-1560 adds a runnable verdict without changing the existing empty response', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(null)
+
+    const result = await buildAgentQueue({ agent: 'claude', userId: 'user-1' })
+    const { runnable: _runnable, ...legacyResponse } = result
+
+    expect(legacyResponse).toEqual({
+      agent: {
+        mailbox: 'claude',
+        email: `claude@${BRAND.agentEmailDomain}`,
+        id: null,
+      },
+      mode: 'polling',
+      empty: true,
+      queue: [],
+      held: { notDueCount: 0, notReadyCount: 0, scheduled: [] },
+      truncated: false,
+      attention: { tasks: [], messages: [], truncated: false, skipped: [] },
+      hint: 'No incomplete tasks are assigned to claude. A task is queued only when it is BOTH assigned to claude and in Ready status.',
+    })
+    expect(result.runnable).toEqual({
+      version: 1,
+      hasWork: false,
+      reasons: [],
+      incomplete: false,
+    })
+  })
+
+  it('AWTD-1560 names Ready as the runnable reason', async () => {
+    mockPrisma.task.findMany.mockResolvedValue([task()])
+
+    const result = await buildAgentQueue({
+      agent: 'claude',
+      userId: 'user-1',
+      includeChat: true,
+    })
+
+    expect(result.runnable).toEqual({
+      version: 1,
+      hasWork: true,
+      reasons: ['ready'],
+      incomplete: false,
+    })
+  })
+
+  it('AWTD-1560 snapshots the existing Ready response fields unchanged', async () => {
+    mockPrisma.task.findMany.mockResolvedValue([task()])
+
+    const result = await buildAgentQueue({
+      agent: 'claude',
+      userId: 'user-1',
+      includeChat: true,
+    })
+    const { runnable: _runnable, ...legacyResponse } = result
+
+    expect(legacyResponse).toEqual({
+      agent: {
+        mailbox: 'claude',
+        email: `claude@${BRAND.agentEmailDomain}`,
+        id: AGENT.id,
+        name: AGENT.name,
+      },
+      mode: 'polling',
+      empty: false,
+      hint: undefined,
+      queue: [{
+        id: 'task-1',
+        identifier: 'AWTD-1',
+        title: 'Fix the thing',
+        description: null,
+        priority: 2,
+        dueDateTime: null,
+        listId: 'list-1',
+        listName: 'Astrid Web To-do',
+        githubRepositoryId: 'owner/repo',
+        assigned: true,
+        url: getTaskUrl('task-1'),
+      }],
+      held: { notDueCount: 0, notReadyCount: 0, scheduled: [] },
+      truncated: false,
+      attention: { tasks: [], messages: [], truncated: false, skipped: [] },
+    })
   })
 
   it('asks only for Ready tasks assigned to this agent and visible to the caller', async () => {
@@ -270,6 +355,185 @@ describe('buildAgentQueue — saying which condition is unmet', () => {
     expect(result.empty).toBe(false)
     expect(result.hint).toBeUndefined()
     expect(mockPrisma.task.count).not.toHaveBeenCalled()
+  })
+})
+
+describe('buildAgentQueue — due-first selection (AWTD-1559)', () => {
+  beforeEach(() => {
+    mockPrisma.user.findUnique.mockReset()
+    mockPrisma.task.findMany.mockReset()
+    mockPrisma.task.count.mockReset()
+    mockPrisma.user.findUnique.mockResolvedValue(AGENT)
+    mockPrisma.task.count.mockResolvedValue(500)
+  })
+
+  it('returns a due task beyond 500 future tasks when due-first mode is on', async () => {
+    const previousMode = process.env.AGENT_QUEUE_DUE_FIRST
+    process.env.AGENT_QUEUE_DUE_FIRST = 'on'
+
+    try {
+      const dueTask = task({ id: 'due', dueDateTime: new Date(Date.now() - 60_000) })
+      const futureTasks = Array.from({ length: 500 }, (_, index) =>
+        task({
+          id: `future-${index}`,
+          dueDateTime: new Date(Date.now() + 60 * 60_000),
+        })
+      )
+
+      mockPrisma.task.findMany.mockImplementation(async args => {
+        if (args.where.comments) return []
+        const where = JSON.stringify(args.where)
+        if (where.includes('"lte"')) return [dueTask]
+        if (where.includes('"gt"')) return futureTasks
+        return futureTasks
+      })
+
+      const result = await buildAgentQueue({ agent: 'claude', userId: 'user-1' })
+
+      expect(result.queue.map(({ id }) => id)).toEqual(['due'])
+      expect(result.truncated).toBe(false)
+      expect(result.held.notDueCount).toBe(500)
+      expect(result.held.scheduled).toHaveLength(500)
+      expect(mockPrisma.task.findMany.mock.calls[0][0]).toMatchObject({
+        orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+        take: 501,
+      })
+    } finally {
+      if (previousMode === undefined) delete process.env.AGENT_QUEUE_DUE_FIRST
+      else process.env.AGENT_QUEUE_DUE_FIRST = previousMode
+    }
+  })
+
+  it('reports truncation based on due tasks, not future tasks', async () => {
+    const previousMode = process.env.AGENT_QUEUE_DUE_FIRST
+    process.env.AGENT_QUEUE_DUE_FIRST = 'on'
+
+    try {
+      const dueTasks = Array.from({ length: 501 }, (_, index) =>
+        task({ id: `due-${index}`, dueDateTime: new Date(Date.now() - 60_000) })
+      )
+      mockPrisma.task.findMany.mockImplementation(async args => {
+        if (args.where.comments) return []
+        return JSON.stringify(args.where).includes('"lte"') ? dueTasks : []
+      })
+
+      const result = await buildAgentQueue({ agent: 'claude', userId: 'user-1' })
+
+      expect(result.queue).toHaveLength(500)
+      expect(result.truncated).toBe(true)
+      expect(result.held.notDueCount).toBe(500)
+      expect(result.held.scheduled).toEqual([])
+    } finally {
+      if (previousMode === undefined) delete process.env.AGENT_QUEUE_DUE_FIRST
+      else process.env.AGENT_QUEUE_DUE_FIRST = previousMode
+    }
+  })
+
+  it('uses the independent scheduled summary in the empty-queue hint', async () => {
+    const previousMode = process.env.AGENT_QUEUE_DUE_FIRST
+    process.env.AGENT_QUEUE_DUE_FIRST = 'on'
+
+    try {
+      const futureTask = task({
+        id: 'future',
+        title: 'Scheduled work',
+        dueDateTime: new Date(Date.now() + 60 * 60_000),
+      })
+      mockPrisma.task.findMany.mockImplementation(async args => {
+        if (args.where.comments) return []
+        return JSON.stringify(args.where).includes('"gt"') ? [futureTask] : []
+      })
+      mockPrisma.task.count.mockImplementation(async args =>
+        JSON.stringify(args.where).includes('"gt"') ? 1 : 0
+      )
+
+      const result = await buildAgentQueue({ agent: 'claude', userId: 'user-1' })
+
+      expect(result.empty).toBe(true)
+      expect(result.held.scheduled.map(({ id }) => id)).toEqual(['future'])
+      expect(result.hint).toMatch(/date|scheduled|start/i)
+    } finally {
+      if (previousMode === undefined) delete process.env.AGENT_QUEUE_DUE_FIRST
+      else process.env.AGENT_QUEUE_DUE_FIRST = previousMode
+    }
+  })
+
+  it.each([0, 1, 499, 500, 501])('keeps off-mode paging unchanged for %i due tasks', async count => {
+    const previousMode = process.env.AGENT_QUEUE_DUE_FIRST
+    if (count === 0) delete process.env.AGENT_QUEUE_DUE_FIRST
+    else process.env.AGENT_QUEUE_DUE_FIRST = 'off'
+
+    try {
+      const queuedTasks = Array.from({ length: count }, (_, index) => task({ id: `task-${index}` }))
+      mockPrisma.task.findMany.mockReset()
+      mockPrisma.task.findMany.mockResolvedValue([])
+      mockPrisma.task.findMany.mockResolvedValueOnce(queuedTasks.slice(0, 500))
+      mockPrisma.task.count.mockReset()
+      mockPrisma.task.count.mockResolvedValue(0)
+
+      const result = await buildAgentQueue({ agent: 'claude', userId: 'user-1' })
+      const query = mockPrisma.task.findMany.mock.calls[0][0]
+
+      expect(query.take).toBe(500)
+      expect(query.where.dueDateTime).toBeUndefined()
+      expect(result.queue.map(({ id }) => id)).toEqual(
+        queuedTasks.slice(0, 500).map(({ id }) => id)
+      )
+      expect(result.truncated).toBe(count >= 500)
+      expect(result.held.notDueCount).toBe(0)
+    } finally {
+      if (previousMode === undefined) delete process.env.AGENT_QUEUE_DUE_FIRST
+      else process.env.AGENT_QUEUE_DUE_FIRST = previousMode
+    }
+  })
+
+  it('rejects an invalid due-first mode rather than silently changing behavior', async () => {
+    const previousMode = process.env.AGENT_QUEUE_DUE_FIRST
+    process.env.AGENT_QUEUE_DUE_FIRST = 'enabled'
+
+    try {
+      await expect(buildAgentQueue({ agent: 'claude', userId: 'user-1' }))
+        .rejects.toThrow('AGENT_QUEUE_DUE_FIRST must be off, shadow, or on')
+    } finally {
+      if (previousMode === undefined) delete process.env.AGENT_QUEUE_DUE_FIRST
+      else process.env.AGENT_QUEUE_DUE_FIRST = previousMode
+    }
+  })
+
+  it('returns the legacy queue in shadow mode while comparing due-first results', async () => {
+    const previousMode = process.env.AGENT_QUEUE_DUE_FIRST
+    process.env.AGENT_QUEUE_DUE_FIRST = 'shadow'
+
+    try {
+      const futureTasks = Array.from({ length: 500 }, (_, index) =>
+        task({
+          id: `future-${index}`,
+          dueDateTime: new Date(Date.now() + 60 * 60_000),
+        })
+      )
+      const dueTask = task({ id: 'due', dueDateTime: new Date(Date.now() - 60_000) })
+      mockPrisma.task.findMany.mockImplementation(async args => {
+        if (args.where.comments) return []
+        const where = JSON.stringify(args.where)
+        if (where.includes('"lte"')) return [dueTask]
+        if (where.includes('"gt"')) return futureTasks
+        return futureTasks
+      })
+      mockPrisma.task.count.mockImplementation(async args =>
+        JSON.stringify(args.where).includes('"gt"') ? 500 : 0
+      )
+
+      const result = await buildAgentQueue({ agent: 'claude', userId: 'user-1' })
+
+      expect(result.queue).toEqual([])
+      expect(result.truncated).toBe(true)
+      expect(result.held.notDueCount).toBe(500)
+      expect(result.held.scheduled).toHaveLength(500)
+      expect(mockPrisma.task.findMany).toHaveBeenCalledTimes(4)
+    } finally {
+      if (previousMode === undefined) delete process.env.AGENT_QUEUE_DUE_FIRST
+      else process.env.AGENT_QUEUE_DUE_FIRST = previousMode
+    }
   })
 })
 

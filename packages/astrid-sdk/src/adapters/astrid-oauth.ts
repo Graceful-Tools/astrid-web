@@ -5,7 +5,12 @@
  */
 
 import { resolveOrigin } from '../config/api-base.js'
-import type { AstridTask, AstridList } from '../types/index.js'
+import type {
+  AgentTaskClaimRequest,
+  AgentTaskClaimResult,
+  AstridTask,
+  AstridList,
+} from '../types/index.js'
 
 interface OAuthTokenResponse {
   access_token: string
@@ -18,6 +23,13 @@ interface APIResponse<T = unknown> {
   success: boolean
   data?: T
   error?: string
+}
+
+class APIRequestError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message)
+    this.name = 'APIRequestError'
+  }
 }
 
 interface Comment {
@@ -50,6 +62,20 @@ export interface AstridOAuthConfig {
   clientId?: string
   clientSecret?: string
 }
+
+export interface AgentTaskClaimResponse extends APIResponse<AgentTaskClaimResult> {
+  unavailable?: true
+}
+
+const AGENT_TASK_CLAIM_OUTCOMES = new Set<AgentTaskClaimResult['outcome']>([
+  'claimed',
+  'already_yours',
+  'released',
+  'conflict',
+  'not_ready',
+  'not_found',
+  'forbidden',
+])
 
 export class AstridOAuthClient {
   private readonly baseUrl: string
@@ -127,7 +153,10 @@ export class AstridOAuthClient {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: response.statusText })) as { error?: string }
-      throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`)
+      throw new APIRequestError(
+        errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+        response.status,
+      )
     }
 
     return response.json() as Promise<T>
@@ -192,6 +221,55 @@ export class AstridOAuthClient {
     try {
       const data = await this.makeRequest<{ task: AstridTask }>(`/api/v1/tasks/${taskId}`)
       return { success: true, data: data.task }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
+  }
+
+  /**
+   * Atomically claim, resume, or release a task for the authenticated agent.
+   */
+  async claimTask(
+    taskId: string,
+    request: AgentTaskClaimRequest,
+  ): Promise<AgentTaskClaimResponse> {
+    try {
+      const token = await this.obtainAccessToken()
+      const response = await fetch(`${this.baseUrl}/api/v1/tasks/${encodeURIComponent(taskId)}/claim`, {
+        method: 'POST',
+        headers: {
+          'X-OAuth-Token': token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+      })
+      const body = await response.json().catch(() => null) as { outcome?: unknown; error?: string } | null
+      if (typeof body?.outcome === 'string' && AGENT_TASK_CLAIM_OUTCOMES.has(body.outcome as AgentTaskClaimResult['outcome'])) {
+        return { success: true, data: body as AgentTaskClaimResult }
+      }
+      if (!response.ok) {
+        if (
+          [404, 405, 501].includes(response.status) &&
+          (!body || !Object.hasOwn(body, 'outcome'))
+        ) {
+          return {
+            success: false,
+            unavailable: true,
+            error: `Atomic agent task claims are unavailable (HTTP ${response.status}).`,
+          }
+        }
+        throw new APIRequestError(
+          body?.error || `HTTP ${response.status}: ${response.statusText}`,
+          response.status,
+        )
+      }
+      return {
+        success: true,
+        data: body as AgentTaskClaimResult,
+      }
     } catch (error) {
       return {
         success: false,

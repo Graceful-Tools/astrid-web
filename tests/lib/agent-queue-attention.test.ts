@@ -252,6 +252,93 @@ describe('buildAgentQueue attention — list chat (AWTD-963)', () => {
   })
 })
 
+describe('buildAgentQueue runnable verdict (AWTD-1560)', () => {
+  it('treats a new unanswered human reply as work until the agent answers', async () => {
+    mockPrisma.task.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([attentionTask({ comments: [comment()] })])
+
+    const waitingForReply = await buildAgentQueue({
+      agent: 'claude',
+      userId: 'user-1',
+      includeChat: true,
+    })
+
+    expect(waitingForReply.empty).toBe(true)
+    expect(waitingForReply.runnable).toEqual({
+      version: 1,
+      hasWork: true,
+      reasons: ['attention'],
+      incomplete: false,
+    })
+
+    mockPrisma.task.findMany.mockReset()
+    mockPrisma.task.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        attentionTask({
+          comments: [comment({ authorId: AGENT.id, author: AGENT, content: 'Done.' })],
+        }),
+      ])
+
+    const answered = await buildAgentQueue({
+      agent: 'claude',
+      userId: 'user-1',
+      includeChat: true,
+    })
+
+    expect(answered.empty).toBe(true)
+    expect(answered.runnable).toEqual({
+      version: 1,
+      hasWork: false,
+      reasons: [],
+      incomplete: false,
+    })
+  })
+
+  it('does not report work when both Ready and attention are empty', async () => {
+    const result = await buildAgentQueue({
+      agent: 'claude',
+      userId: 'user-1',
+      includeChat: true,
+    })
+
+    expect(result.runnable).toEqual({
+      version: 1,
+      hasWork: false,
+      reasons: [],
+      incomplete: false,
+    })
+  })
+
+  it('marks a truncated or skipped attention read incomplete', async () => {
+    const fullPage = Array.from({ length: 100 }, (_, index) =>
+      attentionTask({ id: `task-${index}`, comments: [comment({ id: `comment-${index}` })] }),
+    )
+    mockPrisma.task.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(fullPage)
+
+    const truncated = await buildAgentQueue({
+      agent: 'claude',
+      userId: 'user-1',
+      includeChat: true,
+    })
+    expect(truncated.runnable.incomplete).toBe(true)
+
+    mockPrisma.task.findMany.mockReset()
+    mockPrisma.task.findMany.mockResolvedValue([])
+    const skipped = await buildAgentQueue({
+      agent: 'claude',
+      userId: 'user-1',
+      listId: 'list-9',
+      includeChat: false,
+    })
+    expect(skipped.runnable.incomplete).toBe(true)
+    expect(skipped.runnable.hasWork).toBe(false)
+  })
+})
+
 describe('buildAgentQueue attention — cost (AWTD-963)', () => {
   it('adds no chat queries to a poll that does not ask for chat', async () => {
     // The property that a quiet tick costs ONE HTTP request is why the

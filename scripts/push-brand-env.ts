@@ -35,7 +35,7 @@ import { randomBytes } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { loadScriptEnv } from './lib/load-env'
-import { profileEnv, type BrandProfile } from '../lib/brand/profile'
+import { formatBrandEnvDryRun, parseBrandProfile, profileEnv } from '../lib/brand/profile'
 import { resolveVercelTarget, VERCEL_TARGET_FLAGS, type VercelTarget } from './lib/vercel-target'
 import { bootPreflightProblems } from '../lib/brand/boot-preflight'
 import { deploymentEnv, refuseIfBootWouldFail, storedKeysFor, type VercelEnvRow } from './lib/brand-boot-preflight'
@@ -78,7 +78,7 @@ if (!token) {
   process.exit(1)
 }
 
-const profile = JSON.parse(readFileSync(profilePath, 'utf8')) as BrandProfile
+const profile = parseBrandProfile(JSON.parse(readFileSync(profilePath, 'utf8')), profilePath)
 const brandEnv = profileEnv(profile)
 const domain = brandEnv.NEXT_PUBLIC_BRAND_DOMAIN
 if (!domain) {
@@ -95,7 +95,7 @@ async function vercel<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
   })
   const body = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(`${init?.method ?? 'GET'} ${path}: HTTP ${response.status} ${JSON.stringify(body).slice(0, 200)}`)
+  if (!response.ok) throw new Error(`${init?.method ?? 'GET'} ${path}: HTTP ${response.status}`)
   return body as T
 }
 
@@ -114,11 +114,9 @@ async function main() {
   writes.push({ key: 'NEXT_PUBLIC_APP_URL', value: `https://${domain}`, why: 'brand domain' })
 
   // Secrets: generated once, never rotated by this script.
-  const secrets: string[] = []
   for (const key of ['NEXTAUTH_SECRET', 'ENCRYPTION_KEY', 'CRON_SECRET', 'INTERNAL_API_SECRET']) {
     if (has(key)) continue
     writes.push({ key, value: randomBytes(32).toString('hex'), why: 'generated (was absent)' })
-    secrets.push(key)
   }
 
   // The Neon integration names the unpooled URL DATABASE_URL_UNPOOLED; the build
@@ -127,10 +125,15 @@ async function main() {
   const direct = has('DATABASE_URL_DIRECT')
   const unpooled = has('DATABASE_URL_UNPOOLED')
 
-  console.log(`\n🎨 ${profile.name} → Vercel project "${project}" (https://${domain})${dryRun ? '  [dry run]' : ''}\n`)
-  for (const write of writes) {
-    const shown = secrets.includes(write.key) ? '•••' : write.value.length > 60 ? `${write.value.slice(0, 57)}...` : write.value
-    console.log(`  ${has(write.key) ? '↻' : '+'} ${write.key} = ${shown}   (${write.why})`)
+  console.log(`\nBrand environment plan for Vercel project "${project}"${dryRun ? '  [dry run]' : ''}\n`)
+  if (dryRun) {
+    for (const line of formatBrandEnvDryRun(existing.map(({ key }) => key), writes)) {
+      console.log(`  ${line}`)
+    }
+  } else {
+    for (const write of writes) {
+      console.log(`  ${has(write.key) ? '↻' : '+'} ${write.key} = [redacted]   (${write.why})`)
+    }
   }
 
   // Refuse before writing anything the server would refuse to boot with (AWTD-1298), in
@@ -138,7 +141,7 @@ async function main() {
   const sent = Object.fromEntries(writes.map(write => [write.key, write.value]))
   for (const environment of ['production', 'preview'] as const) {
     const env = deploymentEnv(storedKeysFor(existing, environment), sent)
-    refuseIfBootWouldFail(bootPreflightProblems(env), `"${project}" (${environment})`)
+    refuseIfBootWouldFail(bootPreflightProblems(env), `Brand project (${environment})`)
   }
 
   if (!dryRun) {

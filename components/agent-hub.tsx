@@ -573,19 +573,23 @@ export function AgentHub() {
                 {mode === 'webhook' && (
                   <>
                     <p className="text-xs theme-text-muted">
-                      A server you host is pushed this agent&apos;s work the moment it appears —
-                      for machines with a permanent address. Runs on the{' '}
+                      A webhook receiver you operate can receive this agent&apos;s work as it
+                      appears. The{' '}
                       <a
                         href="https://www.npmjs.com/package/@gracefultools/astrid-sdk"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-blue-500 hover:underline"
+                        className="text-[rgb(var(--theme-accent))] hover:underline"
                       >
                         {BRAND.appName} SDK
                       </a>{' '}
-                      (<code className="text-xs">npx astrid-agent serve</code>). It needs the client
-                      credentials below to call the API and the webhook secret to verify what it is
-                      sent.
+                      provides integration libraries, not a prebuilt agent-host command. This mode
+                      requires your own webhook receiver; the settings below configure delivery.
+                      For a guided MCP + queue-skill setup instead, choose Native coding harness and follow the{' '}
+                      <Link href="/docs/loops" className="text-[rgb(var(--theme-accent))] hover:underline">
+                        Agent Loops
+                      </Link>{' '}
+                      recipes.
                     </p>
                     <AgentCredentialsCard preset="webhookServer" agent={row.pollMailbox} />
                     <WebhookSettingsManager />
