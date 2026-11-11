@@ -229,6 +229,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'MCP_TOKEN', scope: 'tooling', description: 'MCP token used by local validation scripts.' },
   { name: 'ASTRID_FIXALL_CLAIMS_FILE', scope: 'tooling', description: 'Set by the scheduled /fixall runner: where claim-fixall-task.ts records a run’s claims so any left in Doing are released after it.' },
   { name: 'ASTRID_FIXALL_HARNESS', scope: 'tooling', description: 'Explicit polling harness selector; controls queue identity and retained cloud wake-state scope.' },
+  { name: 'AGENT_QUEUE_DUE_FIRST', scope: 'optional', description: 'Agent queue selection mode: off preserves legacy selection (default), shadow compares and returns the legacy result, and on selects due tasks before the page cap. Set back to off to roll back.', validate: v => (['off', 'shadow', 'on'].includes(v.trim()) ? null : 'Must be off, shadow, or on') },
   { name: 'FIXALL_CLAIM_BOARD_IDS', scope: 'optional', description: 'Boards an atomic /fixall claim may target. A security allowlist; unset keeps this deployment’s defaults.' },
 
   // ── Brand ─────────────────────────────────────────────────────────────────
