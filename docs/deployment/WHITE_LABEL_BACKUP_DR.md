@@ -64,6 +64,12 @@ change public DNS during the exercise.
 3. **Restore database and objects.** Use the database and object-store provider's documented
    restore mechanisms. Confirm that the object store is reachable by the app and that the
    database backup corresponds to the intended recovery point.
+   Stored attachment rows keep the URL they were written with, and for local and
+   S3-compatible storage the app hands that URL back unchanged
+   (`generateSignedDownloadUrl` in `lib/secure-storage.ts`). A drill on a different
+   hostname can therefore read an old attachment from production and appear to pass.
+   Check that a known pre-backup attachment is served by the restored store (block the
+   production origin from the drill network, or compare the serving host).
 4. **Restore the required keys.** Supply the matching `ENCRYPTION_KEY` and deployment
    secrets. Without the encryption key, encrypted values cannot be recovered
    (`lib/env.ts`, `lib/field-encryption.ts`).
