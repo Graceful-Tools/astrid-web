@@ -11,14 +11,14 @@
 .priority-text-high { color: rgb(var(--astrid-priority-high)); }
 
 .priority-fill-none { background-color: rgb(var(--astrid-priority-none)); border-color: rgb(var(--astrid-priority-none)); }
-.priority-fill-low { background-color: rgb(var(--astrid-priority-low)); border-color: rgb(var(--astrid-priority-low)); }
+.priority-fill-low { background-color: rgb(var(--astrid-accent)); border-color: rgb(var(--astrid-accent)); }
 .priority-fill-medium { background-color: rgb(var(--astrid-priority-medium)); border-color: rgb(var(--astrid-priority-medium)); }
 .priority-fill-high { background-color: rgb(var(--astrid-priority-high)); border-color: rgb(var(--astrid-priority-high)); }
 
 /* A filled control keeps its colour under the pointer. Button's outline variant
    brings hover:bg-accent, which ties these on specificity and loses on order. */
 .priority-fill-none:hover { background-color: rgb(var(--astrid-priority-none)); }
-.priority-fill-low:hover { background-color: rgb(var(--astrid-priority-low)); }
+.priority-fill-low:hover { background-color: rgb(var(--astrid-accent)); }
 .priority-fill-medium:hover { background-color: rgb(var(--astrid-priority-medium)); }
 .priority-fill-high:hover { background-color: rgb(var(--astrid-priority-high)); }
 
