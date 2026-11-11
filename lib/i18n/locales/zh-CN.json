@@ -803,6 +803,12 @@
         "desc2": "标题最多显示两行。",
         "desc1": "标题只显示一行。"
       },
+      "taskReminders": {
+        "title": "任务提醒",
+        "description": "任务详情是否显示“提醒”一行（保存在此设备上）",
+        "label": "在任务详情中显示提醒",
+        "labelDesc": "关闭后，任务上已设置的提醒仍会按时发出。"
+      },
       "emailToTask": {
         "title": "邮件创建任务",
         "description": "通过发送邮件到{inboundTaskEmail}即时创建任务",

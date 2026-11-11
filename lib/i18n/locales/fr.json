@@ -803,6 +803,12 @@
         "desc2": "Les titres s'arrêtent à deux lignes.",
         "desc1": "Les titres restent sur une ligne."
       },
+      "taskReminders": {
+        "title": "Rappels des tâches",
+        "description": "Si les détails d'une tâche affichent la ligne Rappel (enregistré sur cet appareil)",
+        "label": "Afficher les rappels dans les détails de la tâche",
+        "labelDesc": "Les rappels déjà définis sur une tâche se déclenchent toujours quand cette option est désactivée."
+      },
       "emailToTask": {
         "title": "E-mail vers tâche",
         "description": "Créez des tâches instantanément en envoyant des e-mails à {inboundTaskEmail}",
