@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from '@/lib/i18n/client'
 import { BRAND } from '@/lib/brand/config'
 import { foldCompletionStreaks, isSystemComment } from "@/lib/completion-streak"
 import { StreakRow } from "@/components/task-detail/StreakRow"
@@ -111,6 +112,7 @@ export function CommentSection({
   tasks: availableTasks,
   agentTyping,
 }: CommentSectionProps) {
+  const { t } = useTranslations()
   const [showSystemComments, setShowSystemComments] = useState(false)
   // Task ids in comments autolink; #N means this task's project (AWTD-1017).
   const identifiers = useIdentifierLinkContext((task.lists ?? []).map(list => list.id))
@@ -636,7 +638,7 @@ export function CommentSection({
             onClick={handleDesktopRefresh}
             disabled={isRefreshingDesktop}
             className="ml-auto text-xs theme-text-muted hover:theme-text-secondary transition-colors flex items-center gap-1"
-            title="Refresh comments"
+            title={t('tasks.commentsSection.refresh')}
           >
             <RefreshCw className={`w-3 h-3 ${isRefreshingDesktop ? 'animate-spin' : ''}`} />
             {isRefreshingDesktop ? 'Refreshing...' : 'Refresh'}
@@ -656,9 +658,9 @@ export function CommentSection({
           {isRefreshing ? (
             <Loader2 className="w-5 h-5 animate-spin theme-text-muted" />
           ) : canRefresh ? (
-            <span className="text-sm theme-text-muted">Release to refresh...</span>
+            <span className="text-sm theme-text-muted">{t('tasks.commentsSection.releaseToRefresh')}</span>
           ) : (
-            <span className="text-sm theme-text-muted">Pull to refresh...</span>
+            <span className="text-sm theme-text-muted">{t('tasks.commentsSection.pullToRefresh')}</span>
           )}
         </div>
       )}
@@ -728,7 +730,7 @@ export function CommentSection({
                   currentUserId={currentUser.id}
                   lists={availableLists}
                   tasks={availableTasks}
-                  placeholder="Write a reply..."
+                  placeholder={t('tasks.commentsSection.replyPlaceholder')}
                   enableAttachments
                   uploadContext={{ taskId: task.id }}
                   attachedFiles={replyAttachedFiles}
@@ -769,7 +771,7 @@ export function CommentSection({
               currentUserId={currentUser.id}
               lists={availableLists}
               tasks={availableTasks}
-              placeholder="Add a comment..."
+              placeholder={t('tasks.commentsSection.addPlaceholder')}
               enableAttachments
               uploadContext={{ taskId: task.id }}
               attachedFiles={attachedFiles}

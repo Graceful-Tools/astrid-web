@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from '@/lib/i18n/client'
 import { BRAND } from '@/lib/brand/config'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
@@ -15,6 +16,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function PWAInstallPrompt() {
+  const { t } = useTranslations()
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showInstallPrompt, setShowInstallPrompt] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
@@ -112,7 +114,7 @@ export function PWAInstallPrompt() {
               onClick={handleDismiss}
               className="text-theme-muted hover:text-theme-primary"
             >
-              Not now
+              {t('pwa.notNow')}
             </Button>
           </div>
         </div>

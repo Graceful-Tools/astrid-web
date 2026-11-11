@@ -1,5 +1,6 @@
 'use client'
 
+import { useTranslations } from '@/lib/i18n/client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { BarChart3, Flag, ShieldCheck } from 'lucide-react'
@@ -11,6 +12,7 @@ const destinations = [
 ]
 
 export function AdminNavigation() {
+  const { t } = useTranslations()
   const pathname = usePathname()
 
   return (
@@ -18,9 +20,9 @@ export function AdminNavigation() {
       <div className="container mx-auto max-w-7xl">
         <div className="pb-3">
           <h1 className="text-xl font-bold sm:text-2xl">Admin</h1>
-          <p className="text-sm text-muted-foreground">Manage access, analytics, and feature availability.</p>
+          <p className="text-sm text-muted-foreground">{t('admin.navDescription')}</p>
         </div>
-        <nav aria-label="Admin sections" className="-mx-4 overflow-x-auto px-4">
+        <nav aria-label={t('admin.navLabel')} className="-mx-4 overflow-x-auto px-4">
           <div className="flex min-w-max gap-1" role="list">
             {destinations.map(({ href, label, icon: Icon }) => {
               const active = pathname === href

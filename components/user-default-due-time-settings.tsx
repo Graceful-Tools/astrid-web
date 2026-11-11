@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "@/lib/i18n/client"
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { TimePicker } from "@/components/ui/time-picker"
@@ -7,6 +8,7 @@ import { Clock, CheckCircle, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 export function UserDefaultDueTimeSettings() {
+  const { t } = useTranslations()
   const [defaultDueTime, setDefaultDueTime] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -79,7 +81,7 @@ export function UserDefaultDueTimeSettings() {
         <CardHeader>
           <CardTitle className="theme-text-primary flex items-center space-x-2">
             <Clock className="w-5 h-5" />
-            <span>Default Due Time</span>
+            <span>{t('settingsPages.defaultDueTime.title')}</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -94,10 +96,10 @@ export function UserDefaultDueTimeSettings() {
       <CardHeader>
         <CardTitle className="theme-text-primary flex items-center space-x-2">
           <Clock className="w-5 h-5" />
-          <span>Default Due Time</span>
+          <span>{t('settingsPages.defaultDueTime.title')}</span>
         </CardTitle>
         <CardDescription className="theme-text-muted">
-          Set the default time for new tasks when you select a due date
+          {t('settingsPages.defaultDueTime.description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -118,7 +120,7 @@ export function UserDefaultDueTimeSettings() {
           )}
           {!defaultDueTime && (
             <p className="text-sm theme-text-muted">
-              New tasks with due dates will default to 5pm
+              {t('settingsPages.defaultDueTime.fallback')}
             </p>
           )}
         </div>

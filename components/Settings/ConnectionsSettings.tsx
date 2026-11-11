@@ -171,11 +171,11 @@ export default function ConnectionsSettings(_props: ConnectionsSettingsProps) {
             <CardContent className="space-y-6 pt-0">
               <div className="flex flex-wrap gap-2">
                 <Link href="/docs" className="text-xs text-brand hover:underline">
-                  API Documentation
+                  {t("settingsPages.connections.developer.apiDocs")}
                 </Link>
                 <span className="text-xs theme-text-muted">&middot;</span>
                 <Link href="/docs/integrate" className="text-xs text-brand hover:underline">
-                  Integration Guide
+                  {t("settingsPages.connections.developer.integrationGuide")}
                 </Link>
               </div>
               <OAuthAppManager />

@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from '@/lib/i18n/client'
 import React, { useRef, useEffect, useCallback } from 'react'
 import { ChatMessageBubble } from './ChatMessageBubble'
 import { TypingIndicator } from './TypingIndicator'
@@ -27,6 +28,7 @@ export const ChatMessageList = React.memo(function ChatMessageList({
   agentTyping,
   identifiers,
 }: ChatMessageListProps) {
+  const { t } = useTranslations()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const isAtBottomRef = useRef(true)
   const prevMessageCountRef = useRef(0)
@@ -106,7 +108,7 @@ export const ChatMessageList = React.memo(function ChatMessageList({
       {/* Empty state */}
       {messages.length === 0 && !isLoading && (
         <div className="flex items-center justify-center h-full">
-          <p className="text-sm theme-text-muted">No messages yet. Start the conversation!</p>
+          <p className="text-sm theme-text-muted">{t('chat.empty')}</p>
         </div>
       )}
 

@@ -94,9 +94,9 @@ export function AddListModal({ onClose, onCreateList, currentUser }: AddListModa
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-xl font-semibold theme-text-primary">Add a List</h2>
+            <h2 className="text-xl font-semibold theme-text-primary">{t('lists.addModal.title')}</h2>
             <p className="text-sm theme-text-muted mt-1">
-              Use lists to organize projects, goals, and adventures!
+              {t('lists.addModal.subtitle')}
             </p>
           </div>
           <Button
@@ -125,13 +125,13 @@ export function AddListModal({ onClose, onCreateList, currentUser }: AddListModa
           {/* List Name */}
           <div>
             <Label htmlFor="listName" className="theme-text-secondary text-sm font-medium">
-              List name
+              {t('lists.listName')}
             </Label>
             <Input
               id="listName"
               value={listName}
               onChange={(e) => setListName(e.target.value)}
-              placeholder="e.g., Family"
+              placeholder={t('lists.addModal.namePlaceholder')}
               className="theme-input theme-text-primary mt-1"
               autoFocus
               onKeyDown={(e) => {
@@ -146,7 +146,7 @@ export function AddListModal({ onClose, onCreateList, currentUser }: AddListModa
           <div>
             <Label htmlFor="description" className="theme-text-secondary text-sm font-medium flex items-center space-x-1.5">
               <FileText className="w-4 h-4" />
-              <span>List Description</span>
+              <span>{t('lists.descriptionTitle')}</span>
               <span className="text-xs theme-text-muted font-normal">(optional)</span>
             </Label>
             <Textarea
@@ -166,7 +166,7 @@ export function AddListModal({ onClose, onCreateList, currentUser }: AddListModa
           {/* Share With */}
           <div>
             <Label className="theme-text-secondary text-sm font-medium">
-              Share with
+              {t('lists.addModal.shareWith')}
             </Label>
             <div className="mt-1 space-y-2">
               <div className="flex space-x-2">
@@ -174,7 +174,7 @@ export function AddListModal({ onClose, onCreateList, currentUser }: AddListModa
                   value={memberInput}
                   onChange={(e) => setMemberInput(e.target.value)}
                   onKeyDown={handleMemberKeyDown}
-                  placeholder="Name or e-mail address"
+                  placeholder={t('lists.addModal.sharePlaceholder')}
                   className="theme-input theme-text-primary flex-1"
                 />
                 <Button

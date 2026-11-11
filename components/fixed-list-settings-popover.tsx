@@ -250,7 +250,7 @@ export function FixedListSettingsPopover({
                 className="w-full text-warning hover:text-warning hover:bg-warning-subtle border-warning"
               >
                 <Filter className="w-4 h-4 mr-2" />
-                Clear All Filters
+                {t('listSettings.filters.clearAllFilters')}
               </Button>
             </div>
           )}

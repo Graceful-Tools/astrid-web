@@ -18,6 +18,8 @@ const redirect = vi.hoisted(() =>
 
 vi.mock('@/lib/session-utils', () => ({ getUnifiedSession }))
 vi.mock('next/navigation', () => ({ redirect }))
+// The page's copy comes from next-intl's server API, which needs a request.
+vi.mock('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }))
 vi.mock('@/lib/brand/capabilities', async importOriginal => ({
   ...(await importOriginal<typeof import('@/lib/brand/capabilities')>()),
   AUTH_PROVIDERS: ['google', 'apple', 'passkey', 'github'],

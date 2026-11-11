@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from '@/lib/i18n/client'
 import { BRAND } from '@/lib/brand/config'
 import { useState, useMemo, useEffect } from "react"
 import { RichTextInput } from "@/components/shared/RichTextInput"
@@ -54,6 +55,7 @@ export function CommentInputBar({
   setUploadError,
   onTimerClick,
 }: CommentInputBarProps) {
+  const { t } = useTranslations()
   // Fetch Astrid agent so it's available in the @-mention list.
   const [defaultAgent, setDefaultAgent] = useState<User | null>(null)
   useEffect(() => {
@@ -164,7 +166,7 @@ export function CommentInputBar({
         currentUserId={currentUser.id}
         lists={availableLists}
         tasks={availableTasks}
-        placeholder="Add a comment..."
+        placeholder={t('tasks.commentsSection.addPlaceholder')}
         enableAttachments
         uploadContext={{ taskId: task.id }}
         attachedFiles={attachedFiles}
