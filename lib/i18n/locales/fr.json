@@ -153,6 +153,54 @@
     },
     "tradeoffGrid": {
       "fullScreen": "Plein écran"
+    },
+    "promote": {
+      "label": "Sortir de la sous-tâche",
+      "dropHint": "Déposez ici pour la sortir de sa tâche parente"
+    },
+    "dropTasksHere": "Déposez des tâches ici",
+    "noOneAssigned": "Personne d'assigné",
+    "selectPriorityOrAssignee": "Sélectionner la priorité ou l'assigné",
+    "saveNewTask": "Enregistrer la nouvelle tâche",
+    "detail": {
+      "backToList": "Retour à la liste",
+      "collapseTask": "Réduire la tâche",
+      "collapse": "Réduire",
+      "taskActions": "Actions de la tâche",
+      "exitFullScreen": "Quitter le plein écran",
+      "testReminder": "Tester le rappel",
+      "clickToAddDescription": "Cliquez pour ajouter une description...",
+      "searchLists": "Rechercher des listes...",
+      "noLists": "Aucune liste",
+      "unknownCreator": "Créateur inconnu",
+      "searchUsersOrEmail": "Rechercher des utilisateurs ou saisir un e-mail...",
+      "nextWeek": "Semaine prochaine",
+      "selectRepeat": "Sélectionner la répétition",
+      "repeatMode": "Mode de répétition",
+      "repeatFromCompletion": "Répéter à partir de la date d'achèvement",
+      "repeatFromDue": "Répéter à partir de la date limite",
+      "saveCustomPattern": "Enregistrer le modèle personnalisé"
+    },
+    "commentsSection": {
+      "addPlaceholder": "Ajouter un commentaire...",
+      "replyPlaceholder": "Écrire une réponse...",
+      "refresh": "Actualiser les commentaires",
+      "pullToRefresh": "Tirez pour actualiser...",
+      "releaseToRefresh": "Relâchez pour actualiser..."
+    },
+    "modals": {
+      "deleteTitle": "Supprimer la tâche",
+      "copyTitle": "Copier la tâche",
+      "copyToList": "Copier vers la liste :",
+      "myTasksOnly": "Mes tâches (uniquement)",
+      "copyNote": "La tâche copiée conservera la date limite et vous sera assignée.",
+      "shareTitle": "Partager la tâche",
+      "privateNote": "Cette tâche est privée. Seuls les utilisateurs ayant accès à cette liste peuvent la voir.",
+      "generatingLink": "Génération du lien de partage...",
+      "linkFailed": "Échec de la génération du lien de partage. Veuillez réessayer."
+    },
+    "timer": {
+      "tapToChange": "Touchez le temps pour modifier la durée"
     }
   },
   "lists": {
@@ -189,7 +237,67 @@
       "description": "Ajouter une description..."
     },
     "showSubtasksLabel": "Afficher les sous-tâches",
-    "showSubtasksDescription": "Affiche les sous-tâches en retrait sous leur tâche parente dans cette liste. Désactivez cette option pour n'afficher que les tâches principales — les sous-tâches restent visibles dans le détail de la tâche parente."
+    "showSubtasksDescription": "Affiche les sous-tâches en retrait sous leur tâche parente dans cette liste. Désactivez cette option pour n'afficher que les tâches principales — les sous-tâches restent visibles dans le détail de la tâche parente.",
+    "copyList": "Copier la liste",
+    "descriptionTitle": "Description de la liste",
+    "descriptionAgentHint": "Les agents reçoivent ceci comme contexte principal. Markdown pris en charge.",
+    "image": "Image de la liste",
+    "addModal": {
+      "title": "Ajouter une liste",
+      "subtitle": "Utilisez des listes pour organiser vos projets, objectifs et aventures !",
+      "namePlaceholder": "p. ex. Famille",
+      "shareWith": "Partager avec",
+      "sharePlaceholder": "Nom ou adresse e-mail"
+    },
+    "membersManager": {
+      "invite": "Inviter un membre",
+      "inviteTitle": "Inviter un nouveau membre",
+      "emailPlaceholder": "Saisissez l'adresse e-mail",
+      "sendInvitation": "Envoyer l'invitation",
+      "empty": "Aucun membre pour le moment",
+      "emptyHint": "Invitez des personnes à collaborer sur cette liste",
+      "makeAdmin": "Nommer administrateur",
+      "makeMember": "Définir comme membre",
+      "permissionLevels": "Niveaux d'autorisation",
+      "ownerCan": "Contrôle total de la liste",
+      "adminCan": "Peut gérer les paramètres et les membres de la liste",
+      "memberCan": "Peut ajouter, modifier et gérer des tâches"
+    },
+    "membershipPanel": {
+      "availableAgents": "Agents disponibles",
+      "loadingAgents": "Chargement des agents disponibles...",
+      "addAgent": "Ajouter l'agent",
+      "aiHelpTitle": "Envie que l'IA vous aide dans vos tâches ?",
+      "addApiKeys": "Ajoutez vos clés API pour commencer",
+      "privacyLabel": "Confidentialité de la liste",
+      "makePublic": "Rendre publique",
+      "makePrivate": "Rendre privée",
+      "publicListType": "Type de liste publique",
+      "makeCopyOnly": "Limiter à la copie",
+      "makeCollaborative": "Rendre collaborative",
+      "leaveList": "Quitter la liste"
+    },
+    "ownerLeave": {
+      "title": "Transférer la propriété",
+      "selectNewOwner": "Sélectionner un nouveau propriétaire :",
+      "noOtherMembers": "Aucun autre membre à qui transférer la propriété.",
+      "deleteList": "Supprimer la liste"
+    },
+    "publicBrowser": {
+      "searchPlaceholder": "Rechercher par nom, description ou créateur...",
+      "allLists": "Toutes les listes",
+      "loading": "Chargement des listes publiques...",
+      "tasksPreview": "Aperçu des tâches",
+      "loadingPreview": "Chargement de l'aperçu...",
+      "noTasks": "Cette liste ne contient aucune tâche",
+      "selectTitle": "Sélectionnez une liste à prévisualiser",
+      "selectHint": "Choisissez une liste à gauche pour voir ses détails et ses tâches"
+    },
+    "imagePicker": {
+      "title": "Choisir une image",
+      "uploadLabel": "Importer depuis votre appareil",
+      "chooseFile": "Choisir un fichier"
+    }
   },
   "priority": {
     "none": "Aucune",
@@ -217,7 +325,10 @@
     "hoursBefore": "{count} heures avant",
     "dayBefore": "1 jour avant",
     "daysBefore": "{count} jours avant",
-    "weekBefore": "1 semaine avant"
+    "weekBefore": "1 semaine avant",
+    "quickSelect": "Sélection rapide :",
+    "setTime": "Définir l'heure",
+    "selectTime": "Sélectionner l'heure"
   },
   "repeating": {
     "oneTimeOnly": "Une seule fois",
@@ -226,7 +337,21 @@
     "monthly": "Mensuel",
     "yearly": "Annuel",
     "custom": "Personnalisé",
-    "pickAtLeastOneDay": "Choisissez au moins un jour"
+    "pickAtLeastOneDay": "Choisissez au moins un jour",
+    "editor": {
+      "repeatEvery": "Répéter tous les",
+      "repeatOnDays": "Répéter ces jours-ci",
+      "repeatType": "Type de répétition",
+      "sameDate": "Même date chaque mois",
+      "sameWeekday": "Même jour de la semaine et même semaine du mois",
+      "dayOfMonth": "Jour du mois",
+      "weekOfMonth": "Semaine du mois",
+      "endCondition": "Condition de fin",
+      "afterOccurrences": "Après X occurrences",
+      "untilDate": "Jusqu'à une date précise",
+      "occurrencesCount": "Nombre d'occurrences",
+      "endDate": "Date de fin"
+    }
   },
   "weekdays": {
     "sunday": "Dimanche",
@@ -295,7 +420,8 @@
     "timezone": {
       "title": "Fuseau horaire",
       "auto": "Détection auto"
-    }
+    },
+    "helpMeHelpYou": "Aidez-moi à vous aider à devenir super productif !!!"
   },
   "auth": {
     "signIn": "Connexion",
@@ -307,7 +433,9 @@
     "alreadyHaveAccount": "Vous avez déjà un compte ?",
     "dontHaveAccount": "Vous n'avez pas de compte ?",
     "continueWith": "Continuer avec {provider}",
-    "orContinueWith": "Ou continuer avec"
+    "orContinueWith": "Ou continuer avec",
+    "signInButton": "Connexion",
+    "signUpButton": "Inscription"
   },
   "messages": {
     "success": "Succès",
@@ -446,13 +574,18 @@
     "optional": "Optionnel",
     "required": "Requis",
     "copiedToClipboard": "Copié dans le presse-papiers",
-    "unableToCopy": "Impossible de copier dans le presse-papiers"
+    "unableToCopy": "Impossible de copier dans le presse-papiers",
+    "pullToRefresh": "Tirez pour actualiser",
+    "releaseToRefresh": "Relâchez pour actualiser",
+    "clearAll": "Tout effacer"
   },
   "search": {
     "placeholder": "Rechercher des tâches et des utilisateurs",
     "noResults": "Aucun résultat trouvé",
     "searching": "Recherche en cours...",
-    "open": "Rechercher"
+    "open": "Rechercher",
+    "findAcrossLists": "Trouvez des tâches et des utilisateurs dans toutes les listes",
+    "inputPlaceholder": "Rechercher des tâches et des utilisateurs..."
   },
   "listHeaders": {
     "myTasks": "Mes Tâches",
@@ -511,6 +644,58 @@
         "title": "Connexion GitHub",
         "description": "Les agents de code exécutés sur le serveur utilisent la connexion GitHub de Réglages → Connexions, où chaque organisation connectée est listée.",
         "open": "Ouvrir Connexions"
+      },
+      "yourAgents": {
+        "title": "Vos agents",
+        "description": "Choisissez qui exécute chaque agent. {astridRuns} nécessite la clé API du fournisseur concerné. {selfRuns} utilise l'outil de développement que vous payez déjà : interrogation native du harness, un agent personnalisé ou un serveur de webhooks que vous hébergez.",
+        "astridRuns": "{appName} l'exécute",
+        "selfRuns": "Je l'exécute"
+      },
+      "hub": {
+        "getKey": "Obtenir une clé",
+        "guideLink": "Guide pour connecter mon agent de code",
+        "needsSetup": "Configuration requise",
+        "agentLoops": "Agent Loops",
+        "customAgents": "Agents personnalisés"
+      },
+      "runtime": {
+        "stepConnect": "Connecter",
+        "stepInstall": "Installer",
+        "stepSchedule": "Planifier ou exécuter",
+        "stepTest": "Tester",
+        "hostedWorkflow": "Pas de machine à laisser allumée ? Committez plutôt ce workflow. Il nécessite deux secrets de dépôt ; {link} explique comment créer chacun d'eux.",
+        "startHere": "Start here",
+        "copilotInstall": "Committez une fois cet agent personnalisé du dépôt. Copilot CLI, l'application Copilot, GitHub.com et VS Code pourront alors sélectionner le même comportement de file d'attente.",
+        "githubConnect": "Créez des identifiants client pour cet agent et enregistrez-les comme secrets Actions du dépôt nommés {clientId} et {clientSecret}. Chaque exécution échange ces identifiants contre un jeton d'accès d'une heure limité aux portées nécessaires à un worker de file d'attente — aucun jeton longue durée n'atteint jamais le dépôt.",
+        "githubInstall": "Ce workflow est un portillon de file d'attente : il répond à « y a-t-il du travail ? » et n'exécute pas lui-même d'agent. Faites pointer le second job vers votre job d'agent pris en charge existant (une étape Copilot CLI, Claude Code ou Codex des autres onglets).",
+        "githubSchedule": "Committez le workflow pour sa planification toutes les 30 minutes, ou utilisez Run workflow dans GitHub Actions pour le tester immédiatement. Une exécution à vide s'arrête après la requête de file d'attente ciblée : une file vide coûte donc un appel d'API plutôt qu'un démarrage complet d'agent."
+      },
+      "webhook": {
+        "title": "Configuration du webhook",
+        "description": "Configurez une URL de webhook pour recevoir les notifications de tâches sur votre serveur Claude Code Remote",
+        "urlLabel": "URL du webhook",
+        "urlHint": "L'URL de votre serveur Claude Code Remote qui recevra les notifications du webhook",
+        "enabledHint": "Lorsque cette option est activée, des webhooks sont envoyés lors des assignations de tâches",
+        "agentsLabel": "Agents à gérer",
+        "agentsHint": "Sélectionnez les agents IA que ce webhook doit gérer. Les agents non sélectionnés seront gérés en mode polling.",
+        "noAgents": "Aucun agent sélectionné. Toutes les tâches seront gérées en mode polling.",
+        "secretLabel": "Secret du webhook",
+        "secretHint": "Régénérer le secret utilisé pour la vérification de signature HMAC",
+        "regenerateOnSave": "Régénérer à l'enregistrement",
+        "saveSecretTitle": "Enregistrez votre secret de webhook",
+        "envHint": "Ajoutez ceci à votre fichier {file} :",
+        "failureCount": "Nombre d'échecs",
+        "noFailures": "Aucun échec",
+        "lastFired": "Dernier déclenchement",
+        "agentsHandled": "Agents gérés par le webhook",
+        "otherAgentsPolling": "Les autres agents seront gérés en mode polling",
+        "subscribedEvents": "Événements abonnés",
+        "test": "Tester le webhook",
+        "aboutTitle": "À propos de la livraison des webhooks",
+        "gettingStarted": "Premiers pas",
+        "stepConfigureUrl": "Configurez l'URL de votre webhook ci-dessus",
+        "stepAssign": "Assignez des tâches à {agent}",
+        "eventsTitle": "Événements du webhook"
       }
     },
     "apiAccess": {
@@ -520,6 +705,29 @@
         "title": "Do you need a client here?",
         "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
         "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant."
+      },
+      "apps": {
+        "loading": "Chargement des applications OAuth...",
+        "testNow": "Tester l'API maintenant",
+        "subtitle": "Gérez l'accès à l'API de vos applications",
+        "newApp": "Nouvelle application",
+        "empty": "Aucune application OAuth pour le moment",
+        "createFirst": "Créez votre première application",
+        "grantTypes": "Types d'autorisation",
+        "redirectUris": "URI de redirection",
+        "testTitle": "Tester l'application OAuth",
+        "testDescription": "Saisissez votre secret client pour obtenir un jeton d'accès et tester l'API",
+        "secretPlaceholder": "Saisissez votre secret client",
+        "secretHint": "Votre secret client a été affiché lors de la création de cette application",
+        "createTitle": "Créer une application OAuth",
+        "createDescription": "Créez un nouveau client OAuth pour l'accès à l'API",
+        "namePlaceholder": "Mon application",
+        "descriptionPlaceholder": "Ce que fait cette application",
+        "mobileFullAccess": "Application mobile (accès complet)",
+        "readOnly": "Lecture seule",
+        "editTitle": "Modifier l'application OAuth",
+        "editDescription": "Mettez à jour les URL de redirection ou d'autres métadonnées requises par vos intégrations.",
+        "selectToEdit": "Sélectionnez une application OAuth à modifier."
       }
     },
     "chatgpt": {
@@ -704,7 +912,19 @@
       "saveChanges": "Enregistrer les modifications",
       "saving": "Enregistrement...",
       "clickToChangePhoto": "Cliquez pour changer la photo de profil",
-      "viewPublicProfile": "Voir le profil public"
+      "viewPublicProfile": "Voir le profil public",
+      "syncedWithOAuth": "Actuellement synchronisé avec votre fournisseur OAuth",
+      "uploading": "Envoi en cours...",
+      "displayNamePlaceholder": "Saisissez votre nom d'affichage",
+      "toasts": {
+        "successTitle": "Succès !",
+        "updated": "Les informations de votre compte ont été mises à jour.",
+        "updateFailed": "Impossible de mettre à jour les informations du compte.",
+        "photoUploadedTitle": "Photo envoyée !",
+        "photoUploadedDesc": "Cliquez sur « Enregistrer les modifications » pour mettre à jour votre profil.",
+        "uploadFailedTitle": "Échec de l'envoi",
+        "uploadFailedDesc": "Impossible d'envoyer la photo. Veuillez réessayer."
+      }
     },
     "emailVerification": {
       "title": "Vérification de l'e-mail",
@@ -716,7 +936,10 @@
       "verificationSent": "E-mail de vérification envoyé !",
       "checkEmail": "Veuillez vérifier votre e-mail et cliquer sur le lien de vérification.",
       "pendingChange": "Changement d'e-mail en attente",
-      "waitingVerification": "En attente de vérification"
+      "waitingVerification": "En attente de vérification",
+      "waitingVerificationFor": "En attente de vérification : {email}",
+      "unknownEmail": "Inconnu",
+      "loadingEmail": "Chargement..."
     },
     "passkeys": {
       "title": "Passkeys",
@@ -724,7 +947,24 @@
       "addPasskey": "Ajouter une passkey",
       "addingPasskey": "Ajout de la passkey...",
       "noPasskeys": "Aucune passkey enregistrée",
-      "addPasskeyHint": "Ajoutez une passkey pour une connexion plus rapide sans mot de passe"
+      "addPasskeyHint": "Ajoutez une passkey pour une connexion plus rapide sans mot de passe",
+      "loading": "Chargement des passkeys...",
+      "fallbackName": "Passkey",
+      "added": "Ajoutée le {date}",
+      "synced": "Synchronisée",
+      "tipBiometrics": "Les passkeys utilisent la biométrie ou le code PIN de l'appareil pour l'authentification",
+      "tipSynced": "Les passkeys synchronisées fonctionnent automatiquement sur tous vos appareils",
+      "tipSecure": "Plus sûres que les mots de passe : résistantes à l'hameçonnage",
+      "toasts": {
+        "addedTitle": "Passkey ajoutée !",
+        "addedDesc": "Votre nouvelle passkey a été enregistrée.",
+        "renamedTitle": "Passkey renommée",
+        "renamedDesc": "Votre passkey a été renommée.",
+        "renameFailed": "Impossible de renommer la passkey.",
+        "deletedTitle": "Passkey supprimée",
+        "deletedDesc": "Votre passkey a été supprimée.",
+        "deleteFailed": "Impossible de supprimer la passkey."
+      }
     },
     "accountInfo": {
       "title": "Informations du compte",
@@ -759,7 +999,8 @@
       "confirmDescription": "Cette action est permanente et irréversible.",
       "typeToConfirm": "Tapez {phrase} pour confirmer",
       "permanentlyDelete": "Supprimer définitivement le compte",
-      "deleting": "Suppression..."
+      "deleting": "Suppression...",
+      "dialogWarning": "Toutes vos données seront définitivement supprimées, y compris les tâches, les listes et les fichiers."
     },
     "appearancePage": {
       "title": "Apparence et expérience utilisateur",
@@ -781,7 +1022,8 @@
         "viewShortcuts": "Voir les raccourcis",
         "viewTitle": "Voir les raccourcis clavier",
         "viewDesc": "Voir tous les raccourcis clavier disponibles pour une gestion efficace des tâches",
-        "quickAccess": "Appuyez sur ? n'importe où dans le gestionnaire de tâches pour ouvrir les raccourcis clavier."
+        "quickAccess": "Appuyez sur ? n'importe où dans le gestionnaire de tâches pour ouvrir les raccourcis clavier.",
+        "quickAccessLabel": "Accès rapide"
       },
       "taskDisplayMode": {
         "title": "Disposition du détail de tâche",
@@ -822,6 +1064,22 @@
         "configure": "Configurer les paramètres d'e-mail",
         "configureDesc": "Personnalisez les dates d'échéance par défaut, activez/désactivez la fonctionnalité, et plus",
         "proTip": "L'objet de l'e-mail devient le titre de votre tâche, et le corps devient la description. Parfait pour capturer rapidement des tâches depuis votre boîte de réception !"
+      },
+      "tipLabel": "Astuce",
+      "smartTasks": {
+        "title": "Création intelligente de tâches",
+        "description": "Analyser automatiquement les dates, priorités et hashtags de liste dans les titres des tâches",
+        "enable": "Activer l'analyse intelligente",
+        "enableDesc": "Extraire les informations de la tâche à partir d'une saisie en langage naturel",
+        "supportedPatterns": "Formats pris en charge :"
+      },
+      "subtasks": {
+        "title": "Sous-tâches",
+        "description": "Comment les sous-tâches apparaissent dans vos listes (synchronisé entre appareils)",
+        "label": "Afficher les sous-tâches",
+        "labelDesc": "En retrait dans les listes, ou uniquement dans la tâche parente",
+        "indented": "Dans les listes, en retrait",
+        "underParent": "Uniquement dans la tâche parente"
       }
     },
     "aiIntegrations": {
@@ -1008,7 +1266,9 @@
       "developer": {
         "title": "Développeur",
         "description": "Créez des apps OAuth à la main, testez l’API et connectez des assistants qui parlent OpenAPI.",
-        "openTester": "Ouvrir le testeur d’API"
+        "openTester": "Ouvrir le testeur d’API",
+        "apiDocs": "Documentation de l'API",
+        "integrationGuide": "Guide d'intégration"
       },
       "github": {
         "title": "GitHub",
@@ -1072,6 +1332,75 @@
         "selectAtLeastOne": "Sélectionnez au moins une portée",
         "selectApp": "Sélectionnez une application."
       }
+    },
+    "openInNewTab": "Ouvrir dans un nouvel onglet",
+    "githubSetup": {
+      "loading": "Chargement de la configuration GitHub...",
+      "authenticating": "Authentification...",
+      "failedTitle": "Échec de la configuration",
+      "failedDescription": "Une erreur s'est produite lors de la configuration de l'intégration GitHub",
+      "errorDetail": "Erreur : {error}",
+      "returnToSettings": "Retour aux paramètres",
+      "processingTitle": "Configuration GitHub en cours",
+      "processingDescription": "Connexion de votre installation GitHub...",
+      "pleaseWait": "Veuillez patienter pendant la configuration de votre intégration GitHub...",
+      "connectedTitle": "GitHub connecté !",
+      "connectedDescription": "Votre intégration GitHub est prête à l'emploi",
+      "connectedBody": "Vous pouvez maintenant utiliser l'agent {appName} pour générer du code et créer des pull requests.",
+      "continueToSettings": "Continuer vers les paramètres"
+    },
+    "tasksPage": {
+      "title": "Paramètres des tâches",
+      "description": "Configurez le comportement par défaut des tâches et les préférences d'e-mail vers tâche",
+      "saved": "Paramètres enregistrés avec succès !",
+      "saveFailed": "Échec de l'enregistrement des paramètres",
+      "emailDescription": "Créez des tâches en envoyant des e-mails à {inboundTaskEmail}",
+      "enable": "Activer E-mail vers tâche",
+      "enableDesc": "Autoriser la création de tâches par e-mail",
+      "defaultDueDate": "Date limite par défaut",
+      "offset1Day": "1 jour",
+      "offset3Days": "3 jours",
+      "offset1Week": "1 semaine (par défaut)",
+      "dueDateHint": "Les tâches créées par e-mail arriveront à échéance ce nombre de jours après la date d'envoi",
+      "defaultDueTime": "Heure limite par défaut",
+      "time0900": "9 h 00",
+      "time1200": "12 h 00 (midi)",
+      "time1700": "17 h 00 (par défaut)",
+      "time2000": "20 h 00",
+      "dueTimeHint": "Heure de la journée pour les tâches créées par e-mail",
+      "howTo": "Comment utiliser E-mail vers tâche :",
+      "assignedTaskDesc": "Mettez {inboundTaskEmail} en CC avec un seul destinataire dans À",
+      "subjectLine": "{subject} devient le titre de la tâche",
+      "subject": "L'objet",
+      "bodyLine": "{body} devient la description de la tâche",
+      "body": "Le corps",
+      "saveSettings": "Enregistrer les paramètres"
+    },
+    "calendar": {
+      "loading": "Chargement des paramètres du calendrier...",
+      "title": "Intégration du calendrier",
+      "description": "Synchronisez vos tâches avec des applications de calendrier externes",
+      "enableSync": "Activer la synchronisation du calendrier",
+      "enableSyncDescription": "Autorisez l'export de vos tâches vers des applications de calendrier",
+      "include": "Éléments à inclure dans le calendrier",
+      "onlyWithDue": "Uniquement les tâches avec date/heure limite",
+      "noneDisabled": "Aucune (désactivé)",
+      "export": "Export du calendrier",
+      "downloadIcs": "Télécharger le fichier de calendrier (.ics)",
+      "subscribe": "S'abonner au calendrier en direct",
+      "subscribeDescription": "Abonnement en direct mis à jour automatiquement lorsque les tâches changent",
+      "howToUse": "Mode d'emploi :",
+      "downloadLabel": "Télécharger :",
+      "howDownload": "Importez le fichier .ics une fois dans Google Agenda, Calendrier Apple ou Outlook",
+      "subscribeLabel": "S'abonner :",
+      "howSubscribe": "Ajoutez l'URL webcal pour synchroniser automatiquement les modifications (recommandé)",
+      "howAppear": "Vos tâches apparaîtront comme des événements sur la journée ou à l'heure prévue",
+      "howUpdates": "Les modifications des tâches dans {appName} seront répercutées dans les calendriers abonnés"
+    },
+    "defaultDueTime": {
+      "title": "Heure limite par défaut",
+      "description": "Définissez l'heure par défaut des nouvelles tâches lorsque vous choisissez une date limite",
+      "fallback": "Les nouvelles tâches avec une date limite seront fixées à 17 h par défaut"
     }
   },
   "projectMode": {
@@ -1162,6 +1491,89 @@
     "memberAgentAssignment": {
       "label": "Les membres peuvent confier n'importe quelle tâche à un agent",
       "help": "Permet à chaque membre de cette liste d'assigner un agent à n'importe quelle tâche, pas seulement à celles qu'il a créées. Les agents utilisent les abonnements du propriétaire de la liste."
+    },
+    "admin": {
+      "descriptionLabel": "Description de la liste",
+      "descriptionInfo": "La description de la liste sert d'instructions aux agents IA qui travaillent dans cette liste",
+      "preview": "Aperçu",
+      "charCount": "{count} caractères",
+      "noInstructionsYet": "*Aucune instruction pour l'instant*",
+      "instructionsPlaceholder": "Rédigez des instructions pour les agents IA qui travaillent dans cette liste...\n\nExemple :\nTu aides notre famille à planifier les repas.\n\n## Objectifs\n- Proposer des recettes saines\n- Créer des listes de courses hebdomadaires\n\n## Garde-fous\n- Pas de fruits de mer (allergie)\n- Budget : 150 $/semaine",
+      "agentsReceive": "Les agents reçoivent ceci comme contexte principal. Markdown pris en charge.",
+      "starterTemplates": "Modèles de départ",
+      "clickToEdit": "Cliquez pour modifier",
+      "clickToAddInstructions": "Cliquez pour ajouter des instructions pour les agents...",
+      "agentsUseGuidance": "Les agents IA s'en servent comme guide principal lorsqu'ils travaillent sur les tâches de cette liste",
+      "taskCreator": "Créateur de la tâche",
+      "memberNotFound": "Membre introuvable",
+      "clickToSet": "Cliquez pour définir...",
+      "defaultPriority": "Priorité par défaut",
+      "defaultAssignee": "Assigné par défaut",
+      "selectDefaultAssignee": "Sélectionnez l'assigné par défaut...",
+      "defaultWhen": "Quand par défaut",
+      "nextWeek": "Semaine prochaine",
+      "noDefaultWhenButton": "Aucun quand par défaut",
+      "noDefaultWhen": "Aucun quand par défaut",
+      "defaultRepeating": "Répétition par défaut",
+      "defaultWhenTime": "Heure par défaut",
+      "noDefaultTime": "Aucune heure par défaut",
+      "timezone": "Fuseau horaire : {timezone}",
+      "deleteList": "Supprimer la liste",
+      "deleteConfirm": "Voulez-vous vraiment supprimer « {name} » ?",
+      "deleteWarning": "Cette action est irréversible. Toutes les tâches de cette liste seront conservées, mais ne seront plus associées à cette liste.",
+      "dontDelete": "Ne pas supprimer",
+      "notConnected": "Non connecté.",
+      "connect": "Connecter",
+      "unlink": "Dissocier",
+      "mirrorPlaceholder": "Choisissez où dupliquer cette liste",
+      "externalSyncTitle": "Synchronisation externe",
+      "externalSyncDescription": "Dupliquez cette liste vers un autre service et inversement, via votre compte connecté.",
+      "aiAgent": "Agent IA",
+      "modelForList": "Modèle {appName} pour cette liste",
+      "useAccountDefault": "Utiliser la valeur par défaut du compte",
+      "modelHint": "Alimente {appName} dans le chat et les commentaires de cette liste. Les agents de code assignés aux tâches conservent leur propre environnement d'exécution.",
+      "repositoryLabel": "Dépôt dans lequel travaille l'agent de code",
+      "loading": "Chargement...",
+      "selectRepo": "Sélectionner un dépôt",
+      "noRepositories": "Aucun dépôt trouvé. Vérifiez que la GitHub App a accès à vos dépôts.",
+      "connectGithub": "Connectez GitHub pour choisir le dépôt dans lequel travaille un agent de code : {link}",
+      "connectGithubLink": "Paramètres → Connexions → GitHub",
+      "runLoop": "Lancer une boucle pour cette liste",
+      "loopDescription": "Votre harness de développement consulte cette liste à intervalles réguliers et traite tout ce qui lui est assigné et marqué {ready}. Les tâches des autres tableaux ne sont jamais modifiées.",
+      "readyStatus": "Ready",
+      "descriptionHint": "Les agents lisent la {description} de cette liste comme leurs instructions de travail : modifiez-la ci-dessus comme un brief de projet.",
+      "descriptionWord": "description",
+      "listId": "ID de la liste",
+      "copyListId": "Copier l'ID de la liste",
+      "listIdHint": "Utilisez cet ID pour les intégrations d'API OAuth et les agents de code",
+      "listName": "Nom de la liste",
+      "statusesIntro": "Ready, Doing et Waiting s'appliquent à {all} vos tableaux. Un statut ajouté ici n'appartient qu'à ce tableau.",
+      "statusesIntroAll": "tous",
+      "saveName": "Enregistrer le nom",
+      "moveUp": "Déplacer {name} vers le haut",
+      "moveDown": "Déplacer {name} vers le bas",
+      "renameStatus": "Renommer {name}",
+      "deleteStatus": "Supprimer {name}",
+      "newStatusName": "Nom du nouveau statut",
+      "renameStatusFailed": "Impossible de renommer le statut",
+      "reorderStatusFailed": "Impossible de réordonner le statut",
+      "deleteStatusFailed": "Impossible de supprimer le statut",
+      "addStatusFailed": "Impossible d'ajouter le statut",
+      "recentlyCompletedLabel": "Avancé — Fenêtre des tâches récemment terminées",
+      "recentlyCompletedDescription": "Durée pendant laquelle les tâches terminées restent visibles dans la vue par défaut (et dans la colonne Done des tableaux). Les tâches terminées plus anciennes sont filtrées ; passez la liste sur « Terminées » ou « Toutes » pour les voir."
+    },
+    "filters": {
+      "allAssignees": "Tous les assignés",
+      "notMe": "Pas moi (les autres)",
+      "allCreators": "Tous les créateurs",
+      "notRepeating": "Sans répétition",
+      "inAnyList": "Tâches dans n'importe quelle liste",
+      "notInAnyList": "Tâches dans aucune liste",
+      "clearAllFilters": "Effacer tous les filtres",
+      "removeFromFavorites": "Retirer des favoris",
+      "makeFavorite": "Ajouter aux favoris",
+      "savedFilter": "Filtre enregistré",
+      "savedFilterDescription": "Afficher les tâches selon les filtres, et non selon l'appartenance à la liste"
     }
   },
   "reminderSettings": {
@@ -1170,7 +1582,32 @@
     "emailReminders": "Rappels par e-mail",
     "defaultReminderTime": "Heure de rappel par défaut",
     "dailyDigest": "Résumé quotidien",
-    "quietHours": "Heures calmes"
+    "quietHours": "Heures calmes",
+    "description": "Configurez quand et comment vous recevez les rappels de tâches",
+    "pushDescription": "Recevez des notifications instantanées dans votre navigateur",
+    "enablePush": "Activer les notifications push",
+    "pushBlocked": "Les notifications push sont bloquées. Activez-les dans les paramètres de votre navigateur pour recevoir les rappels de tâches.",
+    "emailDescription": "Recevez des e-mails de rappel pour les tâches à échéance",
+    "defaultReminderTimeDescription": "Quand vous rappeler avant l'échéance des tâches",
+    "dailyDigestDescription": "Recevez un résumé quotidien de vos tâches",
+    "quietHoursDescription": "Désactiver les notifications pendant ces heures (facultatif)",
+    "push": {
+      "description": "Soyez averti des rappels et mises à jour de tâches même lorsque l'application est fermée",
+      "status": "État des notifications",
+      "enableDescription": "Recevez des rappels et notifications de tâches",
+      "blockedIntro": "Les notifications sont bloquées. Pour les activer :",
+      "blockedChrome": "Cliquez sur l'icône de cadenas dans la barre d'adresse → Notifications → Autoriser",
+      "blockedFirefox": "Cliquez sur l'icône de bouclier → Permissions → Autoriser les notifications",
+      "blockedSafari": "Safari → Réglages → Sites web → Notifications → Autoriser",
+      "installTitle": "Pour une expérience optimale, installez cette application :",
+      "installMobileLabel": "Mobile :",
+      "installMobile": "Touchez « Ajouter à l'écran d'accueil » dans le menu du navigateur",
+      "installDesktopLabel": "Ordinateur :",
+      "installDesktop": "Repérez l'icône d'installation dans la barre d'adresse",
+      "installPwaLabel": "Avantages de la PWA :",
+      "installPwa": "Les notifications fonctionnent même lorsque l'application est fermée",
+      "sendTest": "Envoyer une notification de test"
+    }
   },
   "keyboardShortcuts": {
     "title": "Raccourcis clavier",
@@ -1181,16 +1618,20 @@
       "taskEditing": "Édition des tâches",
       "priority": "Priorité",
       "interface": "Interface"
-    }
+    },
+    "chatHint": "À utiliser dans les messages de chat et les commentaires de tâches"
   },
   "commandPalette": {
     "label": "Palette de commandes",
     "searchPlaceholder": "Rechercher des commandes…",
     "enterToSelect": "Entrée pour sélectionner",
-    "escToClose": "Échap pour fermer"
+    "escToClose": "Échap pour fermer",
+    "noCommands": "Aucune commande trouvée"
   },
   "userPicker": {
-    "optionalMessage": "Message facultatif…"
+    "optionalMessage": "Message facultatif…",
+    "sendInvite": "Envoyer l'invitation",
+    "assignAnyway": "Assigner quand même"
   },
   "astridAgent": {
     "modelSetup": {
@@ -1246,5 +1687,322 @@
       "hours": "{n} h",
       "days": "{n} j"
     }
+  },
+  "codingAgentPage": {
+    "getStarted": "Commencer",
+    "heroTitle": "{appName} Agent",
+    "heroSubtitle": "Un assistant de code propulsé par l’IA qui écrit le code, crée des PR et déploie automatiquement",
+    "badgeProductionReady": "Code prêt pour la production",
+    "badgeGithub": "Intégration GitHub",
+    "badgeAutoDeploy": "Déploiement automatique",
+    "installGithubApp": "Installer la GitHub App",
+    "tryFree": "Essayer {appName} gratuitement",
+    "features": {
+      "codeGenerationTitle": "Génération de code",
+      "codeGenerationDesc": "L’IA génère du code prêt pour la production à partir de descriptions en langage naturel",
+      "githubPrsTitle": "PR GitHub",
+      "githubPrsDesc": "Crée automatiquement des pull requests GitHub avec les bonnes branches",
+      "livePreviewsTitle": "Aperçus en direct",
+      "livePreviewsDesc": "Déploiements de préproduction instantanés grâce à l’intégration Vercel",
+      "commentActionsTitle": "Actions par commentaire",
+      "commentActionsDesc": "Pilotez avec de simples commentaires : \"approve\", \"merge\", \"change X\""
+    },
+    "howItWorks": {
+      "title": "Comment ça marche",
+      "description": "Un flux complet, de la tâche au déploiement en production",
+      "assignTitle": "Assigner la tâche",
+      "assignDesc": "Créez une tâche et assignez-la à \"{appName} Agent\"",
+      "planningTitle": "Planification par l’IA",
+      "planningDesc": "L’agent analyse les besoins et établit un plan de mise en œuvre",
+      "reviewTitle": "Relire et approuver",
+      "reviewDesc": "Commentez \"approve\" pour lancer la génération du code",
+      "generateTitle": "Génération de code",
+      "generateDesc": "L’agent écrit le code, crée la branche GitHub et la PR",
+      "previewTitle": "Aperçu en direct",
+      "previewDesc": "Obtenez un déploiement de préproduction instantané si Vercel est connecté",
+      "deployTitle": "Déployer",
+      "deployDesc": "Commentez \"merge\" pour déployer ou \"change X\" pour demander des modifications"
+    },
+    "githubApp": {
+      "title": "GitHub App officielle",
+      "description": "Sécurisée, maintenue et adoptée par des développeurs du monde entier",
+      "quickSetupTitle": "Configuration rapide",
+      "quickSetupDesc": "Aucune GitHub App à créer : installez et connectez en quelques minutes",
+      "secureTitle": "Sécurisée et fiable",
+      "secureDesc": "Application officielle maintenue par l’équipe {appName} selon de bonnes pratiques de sécurité",
+      "sharedTitle": "Partagée et maintenue",
+      "sharedDesc": "Utilisée par tous les utilisateurs de {appName} : aucune application à gérer individuellement"
+    },
+    "controls": {
+      "title": "Commandes simples par commentaire",
+      "description": "Pilotez l’agent avec des commentaires en langage naturel",
+      "approveDesc": "Approuve le plan de l’IA et lance la mise en œuvre",
+      "mergeDesc": "Fusionne la PR en production",
+      "changeDesc": "Demande des modifications avec un retour précis"
+    },
+    "cta": {
+      "title": "Prêt à transformer votre développement ?",
+      "subtitle": "Rejoignez des milliers de développeurs qui utilisent l’IA pour livrer plus vite que jamais",
+      "startTrial": "Commencer l’essai gratuit"
+    },
+    "footerNote": "© 2024 {appName}. Tous droits réservés. Propulsé par l’IA pour accélérer votre flux de développement."
+  },
+  "signInPage": {
+    "downloadOnAppStore": "Télécharger dans l’App Store",
+    "title": "Connectez-vous pour commencer !",
+    "passkey": "une passkey",
+    "continuing": "Poursuite...",
+    "passkeysNotSupported": "Les passkeys ne sont pas prises en charge par ce navigateur",
+    "newUser": "Nouveau ?",
+    "returningUser": "Déjà inscrit ?",
+    "emailPlaceholder": "Saisissez votre e-mail",
+    "creatingAccount": "Création du compte...",
+    "signingIn": "Connexion...",
+    "backToOptions": "Retour aux options",
+    "agreement": "En vous connectant, vous acceptez nos {terms} et notre {privacy}",
+    "termsOfService": "Conditions d’utilisation",
+    "privacyPolicy": "Politique de confidentialité",
+    "havingTrouble": "Un problème ?",
+    "visitHelpCenter": "Consultez notre centre d’aide",
+    "organizeTitle": "Organisez vos tâches",
+    "organizeDesc": "Créez des listes privées, partagées et publiques pour gérer votre travail et votre quotidien",
+    "collaborateTitle": "Collaborez en équipe",
+    "collaborateDesc": "Partagez des listes avec des administrateurs et définissez des paramètres de tâche par défaut pour plus de cohérence",
+    "discoverTitle": "Découvrez les tâches publiques",
+    "discoverDesc": "Parcourez et copiez des tâches depuis les listes publiques partagées par la communauté"
+  },
+  "authErrors": {
+    "signInUnexpected": "Une erreur inattendue s’est produite lors de la connexion",
+    "emailRequired": "Veuillez saisir votre adresse e-mail",
+    "configuration": "Il y a un problème avec la configuration du serveur.",
+    "configurationDetailed": "Il y a un problème avec la configuration du serveur. Veuillez vérifier vos variables d’environnement.",
+    "accessDenied": "Accès refusé. Vous n’avez pas l’autorisation de vous connecter.",
+    "verification": "Le jeton de vérification a expiré ou a déjà été utilisé.",
+    "oauthSignin": "Erreur lors de la construction de l’URL d’autorisation. Veuillez vérifier votre configuration OAuth.",
+    "oauthCallback": "Erreur lors du traitement de la réponse d’un fournisseur OAuth.",
+    "oauthCreateAccount": "Impossible de créer le compte OAuth.",
+    "emailCreateAccount": "Impossible de créer le compte e-mail.",
+    "callback": "Erreur dans la route de rappel OAuth.",
+    "oauthAccountNotLinked": "Un compte existe déjà avec cet e-mail. Veuillez réessayer de vous connecter : nous lierons automatiquement votre compte Google.",
+    "emailSignin": "L’envoi de l’e-mail contenant le jeton de vérification a échoué.",
+    "sessionRequired": "Vous devez rester connecté pour accéder au contenu de cette page.",
+    "default": "Une erreur s’est produite lors de l’authentification. Veuillez réessayer ou contacter l’assistance.",
+    "unexpected": "Une erreur inattendue s’est produite lors de l’authentification."
+  },
+  "authErrorPage": {
+    "title": "Erreur d’authentification",
+    "description": "Une erreur s’est produite lors de la connexion",
+    "tryAgain": "Réessayer",
+    "goHome": "Retour à l’accueil",
+    "loading": "Chargement..."
+  },
+  "verifyEmailPage": {
+    "verifiedTitle": "E-mail vérifié !",
+    "failedTitle": "Échec de la vérification",
+    "expiredTitle": "Lien expiré",
+    "defaultTitle": "Vérification de l’e-mail",
+    "redirecting": "Redirection vers les paramètres dans quelques secondes...",
+    "goToSettings": "Aller aux paramètres",
+    "sending": "Envoi...",
+    "resend": "Renvoyer l’e-mail de vérification",
+    "sendNew": "Envoyer un nouvel e-mail de vérification",
+    "backToApp": "Retour à l’application",
+    "expiredBody": "Le lien de vérification a expiré. Vous pouvez en demander un nouveau depuis les paramètres de votre compte.",
+    "verificationFailed": "Échec de la vérification. Veuillez réessayer.",
+    "noToken": "Aucun jeton de vérification fourni",
+    "resent": "E-mail de vérification renvoyé. Veuillez consulter votre boîte de réception.",
+    "resendFailed": "Échec du renvoi de l’e-mail de vérification"
+  },
+  "desktopSignInPage": {
+    "invalidTitle": "Ce lien de connexion n’est pas valide",
+    "invalidBody": "Relancez la connexion depuis l’application. Ces liens sont générés par l’application et ne sont pas faits pour être saisis à la main.",
+    "returnHome": "Retour à l’accueil",
+    "title": "Se connecter à {app}",
+    "signedInAs": "Vous êtes connecté en tant que {email}. Continuez pour transmettre cette session à l’application sur cet ordinateur.",
+    "codeNote": "L’application reçoit un code à usage unique qui expire au bout de cinq minutes, et seule la copie de l’application qui a lancé cette connexion peut l’utiliser.",
+    "notExpecting": "Vous ne vous y attendiez pas ?",
+    "closePage": "Fermez cette page",
+    "nothingHandedOver": "et rien ne sera transmis.",
+    "continuingTo": "Redirection vers {provider}",
+    "singleSignOn": "l’authentification unique",
+    "comeBack": "Connectez-vous, puis vous reviendrez ici pour terminer la connexion à {app}.",
+    "nothingHappening": "Il ne se passe rien ?",
+    "chooseAnother": "Choisir un autre mode de connexion",
+    "opening": "Ouverture de {app}…",
+    "closeTab": "Vous pouvez fermer cet onglet. Si {app} ne s’est pas ouvert, retournez-y et relancez la connexion.",
+    "preparing": "Préparation…",
+    "open": "Ouvrir {app}",
+    "startFailed": "Impossible de lancer le transfert. Veuillez réessayer.",
+    "unreachable": "Impossible de joindre le serveur. Vérifiez votre connexion et réessayez."
+  },
+  "oauthAuthorizePage": {
+    "unableTitle": "Impossible de continuer",
+    "invalidRequest": "La demande d’autorisation n’est pas valide. Veuillez vérifier le lien et réessayer.",
+    "errorCode": "Code d’erreur :",
+    "goToConnections": "Aller aux Connexions",
+    "returnHome": "Retour à l’accueil",
+    "header": "Autoriser l’intégration {appName}",
+    "oauthApp": "Application OAuth",
+    "defaultDescription": "Cette application demande l’accès à votre compte {appName}.",
+    "requestingAs": "Accès demandé en tant que",
+    "yourAccount": "Votre compte",
+    "developedBy": "Développée par {owner}",
+    "brandUser": "Utilisateur {appName}",
+    "dynamicallyRegistered": "Enregistrée dynamiquement par votre client MCP",
+    "permissionsTitle": "Autorisations demandées",
+    "permissionsIntro": "Cette application pourra :",
+    "scope": "Portée :",
+    "grantTitle": "Accorder l’accès",
+    "grantDescription": "Autoriser {client} à accéder à vos données {appName} avec les autorisations ci-dessus.",
+    "deny": "Refuser",
+    "approve": "Approuver l’accès",
+    "approveAs": "Approuver l’accès en tant que {agent}",
+    "tokenNote": "Les jetons expirent au bout d’une heure. Les jetons d’actualisation restent valides 30 jours ou jusqu’à leur révocation dans Paramètres → Connexions."
+  },
+  "invitePage": {
+    "errorTitle": "Erreur d’invitation",
+    "noLongerValid": "Cette invitation n’est plus valide.",
+    "acceptedTitle": "Invitation acceptée !",
+    "acceptedBody": "Vous avez bien rejoint la collaboration. Redirection vers l’application...",
+    "someone": "Quelqu’un",
+    "taskTitle": "Attribution de tâche",
+    "taskDesc": "{sender} vous a assigné une tâche et souhaite collaborer avec vous.",
+    "listTitle": "Partage de liste",
+    "listDesc": "{sender} a partagé une liste de tâches avec vous.",
+    "workspaceTitle": "Invitation à un espace de travail",
+    "workspaceDesc": "{sender} vous a invité à rejoindre son espace de travail.",
+    "defaultTitle": "Invitation à collaborer",
+    "defaultDesc": "{sender} vous a invité à collaborer.",
+    "messageLabel": "Message :",
+    "expires": "Expiration : {date}",
+    "emailMismatch": "⚠️ Cette invitation a été envoyée à {invited}, mais vous êtes connecté en tant que {current}. Veuillez vous connecter avec le bon compte.",
+    "expiredBadge": "Expirée",
+    "expiredBody": "Cette invitation a expiré.",
+    "signInToAccept": "Se connecter pour accepter",
+    "redirectNote": "Vous serez redirigé pour vous connecter avec {email}",
+    "accepting": "Acceptation...",
+    "accept": "Accepter l’invitation",
+    "signInCorrectAccount": "Se connecter avec le bon compte",
+    "decline": "Refuser",
+    "notFound": "Invitation introuvable",
+    "loadFailed": "Échec du chargement de l’invitation",
+    "acceptFailed": "Échec de l’acceptation de l’invitation",
+    "declined": "Invitation refusée",
+    "declineFailed": "Échec du refus de l’invitation"
+  },
+  "downloadPage": {
+    "title": "Télécharger {appName}",
+    "subtitle": "Des applications natives synchronisées avec tout ce que vous avez sur le web.",
+    "macTitle": "{appName} pour Mac",
+    "macRelease": "Version {version} · {size} · Sortie : {published}",
+    "macRequirements": "Universel · macOS 14 Sonoma ou version ultérieure",
+    "downloadForMac": "Télécharger pour Mac",
+    "viewReleases": "Voir les versions",
+    "featureQuickAdd": "Ajout rapide depuis la barre des menus et raccourci global",
+    "featureViews": "Vues tableau, liste et calendrier",
+    "featureOffline": "Fonctionne hors ligne, synchronise à la reconnexion",
+    "featureApple": "Intégration avec Rappels et Calendrier d’Apple",
+    "installNote": "Ouvrez le DMG et faites glisser {appName} dans votre dossier Applications. L’application est signée et notarisée par Apple : elle s’ouvre sans étape supplémentaire. macOS 14 ou version ultérieure.",
+    "iosTitle": "{appName} pour iPhone et iPad",
+    "iosBeta": "Actuellement en bêta TestFlight",
+    "joinBeta": "Rejoindre la bêta",
+    "preferBrowser": "Vous préférez le navigateur ?",
+    "useOnWeb": "Utilisez {appName} sur le web"
+  },
+  "errorPages": {
+    "errorDescription": "Une erreur inattendue s’est produite. Veuillez nous excuser pour la gêne occasionnée.",
+    "tryAgain": "Réessayer",
+    "goHome": "Retour à l’accueil",
+    "notFoundTitle": "Page introuvable",
+    "notFoundDescription": "La page que vous recherchez n’existe pas ou a été déplacée.",
+    "notFoundGoHome": "Retour à l’accueil",
+    "pageNotFound": "Page introuvable",
+    "listUnavailableTitle": "Liste indisponible",
+    "goToDashboard": "Aller au tableau de bord",
+    "listNotFound": "Liste introuvable",
+    "listAccessDenied": "Accès refusé. Vous n’avez pas l’autorisation de voir cette liste.",
+    "listLoadFailed": "Échec du chargement de la liste",
+    "linkErrorTitle": "Erreur de lien",
+    "linkNotFound": "Lien introuvable ou expiré",
+    "linkResolveFailed": "Échec de la résolution du lien",
+    "linkTaskNotFound": "Tâche introuvable ou désormais inaccessible",
+    "linkTaskForbidden": "Vous n’avez pas l’autorisation de voir cette tâche",
+    "linkInvalidType": "Type de lien non valide"
+  },
+  "profilePage": {
+    "loading": "Chargement du profil...",
+    "notFound": "Profil introuvable",
+    "goBack": "Retour",
+    "badge": "Profil",
+    "aiAgent": "Agent IA",
+    "joined": "Inscription : {date}",
+    "completedDesc": "Tâches terminées",
+    "inspired": "Inspiration",
+    "inspiredDesc": "Tâches créées, terminées ou copiées par d’autres",
+    "supported": "Soutien",
+    "supportedDesc": "Commentaires sur les tâches des autres",
+    "yourTasks": "Vos tâches",
+    "sharedWith": "Tâches partagées avec {name}",
+    "noShared": "Aucune tâche partagée avec {name} pour le moment",
+    "userNotFound": "Utilisateur introuvable",
+    "signInRequired": "Veuillez vous connecter pour voir les profils des utilisateurs",
+    "loadFailedDetail": "Échec du chargement du profil utilisateur : {error}",
+    "loadFailed": "Échec du chargement du profil utilisateur",
+    "unknownError": "Erreur inconnue"
+  },
+  "startPage": {
+    "backToDocs": "Retour à la documentation",
+    "step": "Étape {n} — {title}",
+    "heading": "Gérez votre activité logicielle avec des agents — depuis un seul {appName}",
+    "intro": "{appName} est la liste de tâches partagée sur laquelle travaillent tous vos agents et coéquipiers. Déposez une tâche dans une liste ; l’agent qui en est responsable commente un plan, fait le travail et rend compte dans la même tâche — sur le web ou sur votre téléphone. Chaque agent consulte sa propre file selon un planning, avec l’abonnement que vous payez déjà : aucun tableau de bord à surveiller. Pour les équipes de 1 à 10 personnes.",
+    "shapeTitle": "Le principe : cinq listes, un agent chacune",
+    "shapeDescription": "Vous n’avez besoin que des agents que vous payez — sautez une ligne et gardez cette liste pour vous.",
+    "createTitle": "Créez les listes (2 minutes)",
+    "listsReady": "Vos listes sont prêtes",
+    "createLists": "Créer mes listes",
+    "signInToCreate": "Connectez-vous pour les créer",
+    "seeInstructions": "Voir les instructions des listes",
+    "connectTitle": "Connectez les agents que vous payez",
+    "workTitle": "Travaillez (tous les jours)",
+    "workAddTask": "Ajoutez une tâche à la liste dont l’agent doit s’en charger — elle est assignée automatiquement.",
+    "workAgentReports": "L’agent commente son plan, fait le travail et rend compte avec un lien vers la pull request.",
+    "workReply": "Répondez dans les commentaires, où que vous soyez. Vous fusionnez et déployez.",
+    "workRecurring": "Travail récurrent : rendez la tâche répétitive (quotidienne, hebdomadaire) et elle se remet d’elle-même en file.",
+    "teamTitle": "Ajoutez des coéquipiers (facultatif, 2 à 10 personnes)",
+    "reference": "Référence",
+    "everyRecipe": "Toutes les recettes par harnais",
+    "mcpTokens": "Connexion MCP et jetons",
+    "agentSettings": "Paramètres des agents",
+    "createCiToken": "Créer un jeton GitHub Actions"
+  },
+  "richTextInput": {
+    "placeholder": "Saisissez un message...",
+    "timer": "Minuteur",
+    "uploading": "Envoi en cours...",
+    "attachFile": "Joindre un fichier",
+    "removeFile": "Retirer {name}"
+  },
+  "chat": {
+    "inputPlaceholder": "Message à la liste...",
+    "empty": "Aucun message pour le moment. Lancez la conversation !",
+    "loadFailed": "Échec du chargement du chat"
+  },
+  "notificationBell": {
+    "markAllRead": "Tout marquer comme lu",
+    "allCaughtUp": "Vous êtes à jour."
+  },
+  "admin": {
+    "navDescription": "Gérez l'accès, les statistiques et la disponibilité des fonctionnalités.",
+    "navLabel": "Sections d'administration"
+  },
+  "pwa": {
+    "notNow": "Pas maintenant",
+    "syncing": "Synchronisation des modifications..."
+  },
+  "attachmentViewer": {
+    "closeEsc": "Fermer (Échap)",
+    "videoUnsupported": "Votre navigateur ne prend pas en charge la balise vidéo.",
+    "noPreview": "Aperçu indisponible pour ce type de fichier",
+    "downloadFile": "Télécharger le fichier"
   }
 }

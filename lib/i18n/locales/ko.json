@@ -153,6 +153,54 @@
     },
     "tradeoffGrid": {
       "fullScreen": "전체 화면"
+    },
+    "promote": {
+      "label": "하위 작업에서 빼기",
+      "dropHint": "여기에 놓아 상위 작업에서 빼기"
+    },
+    "dropTasksHere": "여기에 작업 놓기",
+    "noOneAssigned": "담당자 없음",
+    "selectPriorityOrAssignee": "우선순위 또는 담당자 선택",
+    "saveNewTask": "새 작업 저장",
+    "detail": {
+      "backToList": "목록으로 돌아가기",
+      "collapseTask": "작업 접기",
+      "collapse": "접기",
+      "taskActions": "작업 동작",
+      "exitFullScreen": "전체 화면 종료",
+      "testReminder": "알림 테스트",
+      "clickToAddDescription": "클릭하여 설명 추가...",
+      "searchLists": "목록 검색...",
+      "noLists": "목록 없음",
+      "unknownCreator": "알 수 없는 작성자",
+      "searchUsersOrEmail": "사용자 검색 또는 이메일 입력...",
+      "nextWeek": "다음 주",
+      "selectRepeat": "반복 선택",
+      "repeatMode": "반복 모드",
+      "repeatFromCompletion": "완료일 기준으로 반복",
+      "repeatFromDue": "마감일 기준으로 반복",
+      "saveCustomPattern": "사용자 지정 패턴 저장"
+    },
+    "commentsSection": {
+      "addPlaceholder": "댓글 추가...",
+      "replyPlaceholder": "답글 작성...",
+      "refresh": "댓글 새로고침",
+      "pullToRefresh": "당겨서 새로고침...",
+      "releaseToRefresh": "놓아서 새로고침..."
+    },
+    "modals": {
+      "deleteTitle": "작업 삭제",
+      "copyTitle": "작업 복사",
+      "copyToList": "복사할 목록:",
+      "myTasksOnly": "내 작업 (만)",
+      "copyNote": "복사된 작업은 마감일을 유지하며 나에게 할당됩니다.",
+      "shareTitle": "작업 공유",
+      "privateNote": "비공개 작업입니다. 이 목록에 접근할 수 있는 사용자만 볼 수 있습니다.",
+      "generatingLink": "공유 링크 생성 중...",
+      "linkFailed": "공유 링크를 생성하지 못했습니다. 다시 시도해 주세요."
+    },
+    "timer": {
+      "tapToChange": "시간을 탭하여 길이 변경"
     }
   },
   "lists": {
@@ -189,7 +237,67 @@
       "description": "설명 추가..."
     },
     "showSubtasksLabel": "하위 작업 표시",
-    "showSubtasksDescription": "이 목록에서 하위 작업을 상위 작업 아래에 들여쓰기하여 표시합니다. 끄면 최상위 작업만 표시되며, 하위 작업은 상위 작업 상세 화면에서 계속 볼 수 있습니다."
+    "showSubtasksDescription": "이 목록에서 하위 작업을 상위 작업 아래에 들여쓰기하여 표시합니다. 끄면 최상위 작업만 표시되며, 하위 작업은 상위 작업 상세 화면에서 계속 볼 수 있습니다.",
+    "copyList": "목록 복사",
+    "descriptionTitle": "목록 설명",
+    "descriptionAgentHint": "에이전트가 이를 기본 컨텍스트로 받습니다. 마크다운을 지원합니다.",
+    "image": "목록 이미지",
+    "addModal": {
+      "title": "목록 추가",
+      "subtitle": "목록으로 프로젝트, 목표, 모험을 정리하세요!",
+      "namePlaceholder": "예: 가족",
+      "shareWith": "공유 대상",
+      "sharePlaceholder": "이름 또는 이메일 주소"
+    },
+    "membersManager": {
+      "invite": "멤버 초대",
+      "inviteTitle": "새 멤버 초대",
+      "emailPlaceholder": "이메일 주소 입력",
+      "sendInvitation": "초대 보내기",
+      "empty": "아직 멤버가 없습니다",
+      "emptyHint": "이 목록에서 함께 작업할 사람을 초대하세요",
+      "makeAdmin": "관리자로 지정",
+      "makeMember": "멤버로 지정",
+      "permissionLevels": "권한 수준",
+      "ownerCan": "목록에 대한 모든 권한",
+      "adminCan": "목록 설정과 멤버를 관리할 수 있음",
+      "memberCan": "작업을 추가, 편집, 관리할 수 있음"
+    },
+    "membershipPanel": {
+      "availableAgents": "사용 가능한 에이전트",
+      "loadingAgents": "사용 가능한 에이전트 불러오는 중...",
+      "addAgent": "에이전트 추가",
+      "aiHelpTitle": "AI가 작업을 돕도록 하시겠어요?",
+      "addApiKeys": "API 키를 추가하여 시작하세요",
+      "privacyLabel": "목록 공개 설정",
+      "makePublic": "공개로 전환",
+      "makePrivate": "비공개로 전환",
+      "publicListType": "공개 목록 유형",
+      "makeCopyOnly": "복사 전용으로 전환",
+      "makeCollaborative": "공동 작업으로 전환",
+      "leaveList": "목록 나가기"
+    },
+    "ownerLeave": {
+      "title": "소유권 이전",
+      "selectNewOwner": "새 소유자 선택:",
+      "noOtherMembers": "소유권을 이전할 다른 멤버가 없습니다.",
+      "deleteList": "목록 삭제"
+    },
+    "publicBrowser": {
+      "searchPlaceholder": "이름, 설명 또는 작성자로 검색...",
+      "allLists": "모든 목록",
+      "loading": "공개 목록 불러오는 중...",
+      "tasksPreview": "작업 미리보기",
+      "loadingPreview": "미리보기 불러오는 중...",
+      "noTasks": "이 목록에는 작업이 없습니다",
+      "selectTitle": "미리 볼 목록 선택",
+      "selectHint": "왼쪽에서 목록을 선택하면 세부 정보와 작업을 볼 수 있습니다"
+    },
+    "imagePicker": {
+      "title": "이미지 선택",
+      "uploadLabel": "기기에서 업로드",
+      "chooseFile": "파일 선택"
+    }
   },
   "priority": {
     "none": "없음",
@@ -217,7 +325,10 @@
     "hoursBefore": "{count}시간 전",
     "dayBefore": "1일 전",
     "daysBefore": "{count}일 전",
-    "weekBefore": "1주 전"
+    "weekBefore": "1주 전",
+    "quickSelect": "빠른 선택:",
+    "setTime": "시간 설정",
+    "selectTime": "시간 선택"
   },
   "repeating": {
     "oneTimeOnly": "한 번만",
@@ -226,7 +337,21 @@
     "monthly": "매월",
     "yearly": "매년",
     "custom": "사용자 지정",
-    "pickAtLeastOneDay": "하루 이상 선택하세요"
+    "pickAtLeastOneDay": "하루 이상 선택하세요",
+    "editor": {
+      "repeatEvery": "반복 간격",
+      "repeatOnDays": "반복할 요일",
+      "repeatType": "반복 유형",
+      "sameDate": "매월 같은 날짜",
+      "sameWeekday": "매월 같은 주의 같은 요일",
+      "dayOfMonth": "날짜",
+      "weekOfMonth": "몇째 주",
+      "endCondition": "종료 조건",
+      "afterOccurrences": "X회 반복 후",
+      "untilDate": "특정 날짜까지",
+      "occurrencesCount": "반복 횟수",
+      "endDate": "종료일"
+    }
   },
   "weekdays": {
     "sunday": "일요일",
@@ -295,7 +420,8 @@
     "timezone": {
       "title": "시간대",
       "auto": "자동 감지"
-    }
+    },
+    "helpMeHelpYou": "당신이 엄청나게 생산적이 되도록 제가 도울 수 있게 도와주세요!!!"
   },
   "auth": {
     "signIn": "로그인",
@@ -307,7 +433,9 @@
     "alreadyHaveAccount": "이미 계정이 있으신가요?",
     "dontHaveAccount": "계정이 없으신가요?",
     "continueWith": "{provider}로 계속",
-    "orContinueWith": "또는 다음으로 계속"
+    "orContinueWith": "또는 다음으로 계속",
+    "signInButton": "로그인",
+    "signUpButton": "회원가입"
   },
   "messages": {
     "success": "성공!",
@@ -446,13 +574,18 @@
     "optional": "선택사항",
     "required": "필수",
     "copiedToClipboard": "클립보드에 복사됨",
-    "unableToCopy": "클립보드에 복사할 수 없음"
+    "unableToCopy": "클립보드에 복사할 수 없음",
+    "pullToRefresh": "당겨서 새로고침",
+    "releaseToRefresh": "놓아서 새로고침",
+    "clearAll": "모두 지우기"
   },
   "search": {
     "placeholder": "작업 및 사용자 검색",
     "noResults": "결과를 찾을 수 없습니다",
     "searching": "검색 중...",
-    "open": "검색"
+    "open": "검색",
+    "findAcrossLists": "모든 목록에서 작업 및 사용자 찾기",
+    "inputPlaceholder": "작업 및 사용자 검색..."
   },
   "listHeaders": {
     "myTasks": "내 작업",
@@ -511,6 +644,58 @@
         "title": "GitHub 연결",
         "description": "서버에서 실행되는 코딩 에이전트는 설정 → 연결의 GitHub 연결을 사용하며, 연결된 모든 조직이 그곳에 표시됩니다.",
         "open": "연결 열기"
+      },
+      "yourAgents": {
+        "title": "내 에이전트",
+        "description": "각 에이전트를 누가 실행할지 선택하세요. {astridRuns}에는 해당 제공업체의 API 키가 필요합니다. {selfRuns}은(는) 이미 사용 중인 코딩 도구를 활용합니다. 네이티브 하니스 폴링, 사용자 지정 에이전트 또는 직접 호스팅하는 웹훅 서버를 쓸 수 있습니다.",
+        "astridRuns": "{appName}이(가) 실행",
+        "selfRuns": "직접 실행"
+      },
+      "hub": {
+        "getKey": "키 받기",
+        "guideLink": "내 코딩 에이전트 연결 가이드",
+        "needsSetup": "설정 필요",
+        "agentLoops": "Agent Loops",
+        "customAgents": "사용자 지정 에이전트"
+      },
+      "runtime": {
+        "stepConnect": "연결",
+        "stepInstall": "설치",
+        "stepSchedule": "예약 또는 실행",
+        "stepTest": "테스트",
+        "hostedWorkflow": "계속 켜 둘 머신이 없나요? 대신 이 워크플로를 커밋하세요. 리포지토리 시크릿 두 개가 필요하며, {link}에서 만드는 방법을 안내합니다.",
+        "startHere": "Start here",
+        "copilotInstall": "이 리포지토리 사용자 지정 에이전트를 한 번 커밋하세요. 그러면 Copilot CLI, Copilot 앱, GitHub.com, VS Code에서 동일한 대기열 동작을 선택할 수 있습니다.",
+        "githubConnect": "이 에이전트의 클라이언트 자격 증명을 만들고 {clientId} 및 {clientSecret}이라는 이름의 리포지토리 Actions 시크릿으로 저장하세요. 실행할 때마다 자격 증명을 대기열 워커에 필요한 범위만 가진 1시간짜리 액세스 토큰으로 교환하므로, 장기 토큰이 리포지토리에 전달되지 않습니다.",
+        "githubInstall": "이 워크플로는 대기열 게이트입니다. \"할 일이 있는가?\"에만 답하고 에이전트를 직접 실행하지 않습니다. 두 번째 작업을 기존의 지원되는 에이전트 작업(다른 탭의 Copilot CLI, Claude Code 또는 Codex 단계)으로 지정하세요.",
+        "githubSchedule": "워크플로를 커밋하면 30분 일정으로 실행되며, GitHub Actions의 Run workflow로 바로 테스트할 수도 있습니다. 할 일이 없는 실행은 범위가 지정된 대기열 요청 후 종료되므로, 빈 대기열은 에이전트 전체 부팅이 아니라 API 호출 한 번만 소모합니다."
+      },
+      "webhook": {
+        "title": "Webhook 구성",
+        "description": "Claude Code Remote 서버에서 작업 알림을 받을 Webhook URL을 구성하세요",
+        "urlLabel": "Webhook URL",
+        "urlHint": "Webhook 알림을 받을 Claude Code Remote 서버의 URL",
+        "enabledHint": "사용하면 작업이 할당될 때 Webhook이 전송됩니다",
+        "agentsLabel": "처리할 에이전트",
+        "agentsHint": "이 Webhook이 처리할 AI 에이전트를 선택하세요. 선택하지 않은 에이전트는 폴링 모드로 처리됩니다.",
+        "noAgents": "선택된 에이전트가 없습니다. 모든 작업이 폴링 모드로 처리됩니다.",
+        "secretLabel": "Webhook 시크릿",
+        "secretHint": "HMAC 서명 검증에 사용되는 시크릿을 다시 생성합니다",
+        "regenerateOnSave": "저장 시 다시 생성",
+        "saveSecretTitle": "Webhook 시크릿을 저장하세요",
+        "envHint": "{file} 파일에 추가:",
+        "failureCount": "실패 횟수",
+        "noFailures": "실패 없음",
+        "lastFired": "마지막 전송",
+        "agentsHandled": "Webhook이 처리하는 에이전트",
+        "otherAgentsPolling": "다른 에이전트는 폴링 모드로 처리됩니다",
+        "subscribedEvents": "구독 중인 이벤트",
+        "test": "Webhook 테스트",
+        "aboutTitle": "Webhook 전송 정보",
+        "gettingStarted": "시작하기",
+        "stepConfigureUrl": "위에서 Webhook URL을 구성하세요",
+        "stepAssign": "{agent}에 작업을 할당하세요",
+        "eventsTitle": "Webhook 이벤트"
       }
     },
     "apiAccess": {
@@ -520,6 +705,29 @@
         "title": "Do you need a client here?",
         "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
         "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant."
+      },
+      "apps": {
+        "loading": "OAuth 애플리케이션 불러오는 중...",
+        "testNow": "지금 API 테스트",
+        "subtitle": "애플리케이션의 API 액세스 관리",
+        "newApp": "새 앱",
+        "empty": "아직 OAuth 애플리케이션이 없습니다",
+        "createFirst": "첫 번째 앱 만들기",
+        "grantTypes": "권한 부여 유형",
+        "redirectUris": "리디렉션 URI",
+        "testTitle": "OAuth 애플리케이션 테스트",
+        "testDescription": "클라이언트 시크릿을 입력하여 액세스 토큰을 받고 API를 테스트하세요",
+        "secretPlaceholder": "클라이언트 시크릿 입력",
+        "secretHint": "클라이언트 시크릿은 이 앱을 만들 때 표시되었습니다",
+        "createTitle": "OAuth 애플리케이션 만들기",
+        "createDescription": "API 액세스를 위한 새 OAuth 클라이언트 만들기",
+        "namePlaceholder": "내 앱",
+        "descriptionPlaceholder": "이 앱이 하는 일",
+        "mobileFullAccess": "모바일 앱 (전체 액세스)",
+        "readOnly": "읽기 전용",
+        "editTitle": "OAuth 애플리케이션 편집",
+        "editDescription": "통합에 필요한 리디렉션 URL 또는 기타 메타데이터를 업데이트하세요.",
+        "selectToEdit": "편집할 OAuth 앱을 선택하세요."
       }
     },
     "chatgpt": {
@@ -704,7 +912,19 @@
       "saveChanges": "변경사항 저장",
       "saving": "저장 중...",
       "clickToChangePhoto": "클릭하여 프로필 사진 변경",
-      "viewPublicProfile": "공개 프로필 보기"
+      "viewPublicProfile": "공개 프로필 보기",
+      "syncedWithOAuth": "현재 OAuth 제공업체와 동기화되어 있습니다",
+      "uploading": "업로드 중...",
+      "displayNamePlaceholder": "표시 이름 입력",
+      "toasts": {
+        "successTitle": "완료!",
+        "updated": "계정 정보가 업데이트되었습니다.",
+        "updateFailed": "계정 정보를 업데이트하지 못했습니다.",
+        "photoUploadedTitle": "사진이 업로드되었습니다!",
+        "photoUploadedDesc": "'변경사항 저장'을 클릭해 프로필을 업데이트하세요.",
+        "uploadFailedTitle": "업로드 실패",
+        "uploadFailedDesc": "사진을 업로드하지 못했습니다. 다시 시도해 주세요."
+      }
     },
     "emailVerification": {
       "title": "이메일 인증",
@@ -716,7 +936,10 @@
       "verificationSent": "인증 이메일 발송됨!",
       "checkEmail": "이메일을 확인하고 인증 링크를 클릭해 주세요.",
       "pendingChange": "이메일 변경 대기 중",
-      "waitingVerification": "인증 대기 중"
+      "waitingVerification": "인증 대기 중",
+      "waitingVerificationFor": "인증 대기 중: {email}",
+      "unknownEmail": "알 수 없음",
+      "loadingEmail": "로딩 중..."
     },
     "passkeys": {
       "title": "패스키",
@@ -724,7 +947,24 @@
       "addPasskey": "패스키 추가",
       "addingPasskey": "패스키 추가 중...",
       "noPasskeys": "아직 등록된 패스키가 없습니다",
-      "addPasskeyHint": "비밀번호 없이 빠른 로그인을 위해 패스키 추가"
+      "addPasskeyHint": "비밀번호 없이 빠른 로그인을 위해 패스키 추가",
+      "loading": "패스키 로딩 중...",
+      "fallbackName": "패스키",
+      "added": "{date}에 추가됨",
+      "synced": "동기화됨",
+      "tipBiometrics": "패스키는 생체 인식 또는 기기 PIN으로 인증합니다",
+      "tipSynced": "동기화된 패스키는 모든 기기에서 자동으로 작동합니다",
+      "tipSecure": "비밀번호보다 안전하며 피싱에 강합니다",
+      "toasts": {
+        "addedTitle": "패스키가 추가되었습니다!",
+        "addedDesc": "새 패스키가 등록되었습니다.",
+        "renamedTitle": "패스키 이름 변경됨",
+        "renamedDesc": "패스키 이름이 변경되었습니다.",
+        "renameFailed": "패스키 이름을 변경하지 못했습니다.",
+        "deletedTitle": "패스키 삭제됨",
+        "deletedDesc": "패스키가 삭제되었습니다.",
+        "deleteFailed": "패스키를 삭제하지 못했습니다."
+      }
     },
     "accountInfo": {
       "title": "계정 정보",
@@ -759,7 +999,8 @@
       "confirmDescription": "이 작업은 영구적이며 취소할 수 없습니다.",
       "typeToConfirm": "확인을 위해 {phrase} 입력",
       "permanentlyDelete": "계정 영구 삭제",
-      "deleting": "삭제 중..."
+      "deleting": "삭제 중...",
+      "dialogWarning": "작업, 목록, 파일을 포함한 모든 데이터가 영구적으로 삭제됩니다."
     },
     "appearancePage": {
       "title": "외관 및 사용자 경험",
@@ -781,7 +1022,8 @@
         "viewShortcuts": "단축키 보기",
         "viewTitle": "키보드 단축키 보기",
         "viewDesc": "효율적인 작업 관리를 위한 모든 사용 가능한 키보드 단축키 보기",
-        "quickAccess": "작업 관리자 어디서나 ?를 눌러 키보드 단축키를 엽니다."
+        "quickAccess": "작업 관리자 어디서나 ?를 눌러 키보드 단축키를 엽니다.",
+        "quickAccessLabel": "빠른 실행"
       },
       "taskDisplayMode": {
         "title": "작업 상세 레이아웃",
@@ -822,6 +1064,22 @@
         "configure": "이메일 설정 구성",
         "configureDesc": "기본 마감일 사용자 지정, 기능 활성화/비활성화 등",
         "proTip": "이메일 제목이 작업 제목이 되고 본문이 설명이 됩니다. 받은 편지함에서 빠른 작업 캡처에 완벽합니다!"
+      },
+      "tipLabel": "유용한 팁",
+      "smartTasks": {
+        "title": "스마트 작업 생성",
+        "description": "작업 제목에서 날짜, 우선순위, 목록 해시태그를 자동으로 인식합니다",
+        "enable": "스마트 인식 사용",
+        "enableDesc": "자연어 입력에서 작업 정보를 추출합니다",
+        "supportedPatterns": "지원되는 패턴:"
+      },
+      "subtasks": {
+        "title": "하위 작업",
+        "description": "목록에서 하위 작업이 표시되는 방식 (기기 간 동기화)",
+        "label": "하위 작업 표시",
+        "labelDesc": "목록에서 들여쓰기하거나 상위 작업 안에서만 표시",
+        "indented": "목록에 들여쓰기로 표시",
+        "underParent": "상위 작업 안에서만"
       }
     },
     "aiIntegrations": {
@@ -1008,7 +1266,9 @@
       "developer": {
         "title": "개발자",
         "description": "OAuth 앱을 직접 만들고, API를 테스트하고, OpenAPI를 지원하는 어시스턴트를 연결합니다.",
-        "openTester": "API 테스터 열기"
+        "openTester": "API 테스터 열기",
+        "apiDocs": "API 문서",
+        "integrationGuide": "연동 가이드"
       },
       "github": {
         "title": "GitHub",
@@ -1072,6 +1332,75 @@
         "selectAtLeastOne": "범위를 하나 이상 선택하세요",
         "selectApp": "앱을 선택하세요."
       }
+    },
+    "openInNewTab": "새 탭에서 열기",
+    "githubSetup": {
+      "loading": "GitHub 설정 로딩 중...",
+      "authenticating": "인증 중...",
+      "failedTitle": "설정 실패",
+      "failedDescription": "GitHub 연동을 설정하는 중 오류가 발생했습니다",
+      "errorDetail": "오류: {error}",
+      "returnToSettings": "설정으로 돌아가기",
+      "processingTitle": "GitHub 설정 처리 중",
+      "processingDescription": "GitHub 설치를 연결하는 중...",
+      "pleaseWait": "GitHub 연동을 구성하는 동안 잠시 기다려 주세요...",
+      "connectedTitle": "GitHub 연결 완료!",
+      "connectedDescription": "GitHub 연동을 사용할 준비가 되었습니다",
+      "connectedBody": "이제 {appName} 에이전트로 코드를 생성하고 풀 리퀘스트를 만들 수 있습니다.",
+      "continueToSettings": "설정으로 계속"
+    },
+    "tasksPage": {
+      "title": "작업 설정",
+      "description": "기본 작업 동작과 이메일에서 작업 환경설정을 구성합니다",
+      "saved": "설정이 저장되었습니다!",
+      "saveFailed": "설정을 저장하지 못했습니다",
+      "emailDescription": "{inboundTaskEmail}(으)로 이메일을 보내 작업 만들기",
+      "enable": "이메일에서 작업 사용",
+      "enableDesc": "이메일로 작업 만들기 허용",
+      "defaultDueDate": "기본 마감일",
+      "offset1Day": "1일",
+      "offset3Days": "3일",
+      "offset1Week": "1주 (기본값)",
+      "dueDateHint": "이메일로 만든 작업의 마감일은 발송일로부터 이 일수 후로 설정됩니다",
+      "defaultDueTime": "기본 마감 시간",
+      "time0900": "오전 9:00",
+      "time1200": "오후 12:00 (정오)",
+      "time1700": "오후 5:00 (기본값)",
+      "time2000": "오후 8:00",
+      "dueTimeHint": "이메일로 만든 작업의 시간",
+      "howTo": "이메일에서 작업 사용 방법:",
+      "assignedTaskDesc": "{inboundTaskEmail}을(를) 참조(CC)에 넣고 받는 사람(TO)은 한 명으로 지정",
+      "subjectLine": "{subject}이(가) 작업 제목이 됩니다",
+      "subject": "제목",
+      "bodyLine": "{body}이(가) 작업 설명이 됩니다",
+      "body": "본문",
+      "saveSettings": "설정 저장"
+    },
+    "calendar": {
+      "loading": "캘린더 설정 불러오는 중...",
+      "title": "캘린더 통합",
+      "description": "작업을 외부 캘린더 앱과 동기화",
+      "enableSync": "캘린더 동기화 사용",
+      "enableSyncDescription": "작업을 캘린더 앱으로 내보낼 수 있도록 허용",
+      "include": "캘린더에 포함할 항목",
+      "onlyWithDue": "마감일/시간이 있는 작업만",
+      "noneDisabled": "없음 (사용 안 함)",
+      "export": "캘린더 내보내기",
+      "downloadIcs": "캘린더 파일(.ics) 다운로드",
+      "subscribe": "라이브 캘린더 구독",
+      "subscribeDescription": "작업이 변경되면 자동으로 업데이트되는 라이브 구독",
+      "howToUse": "사용 방법:",
+      "downloadLabel": "다운로드:",
+      "howDownload": ".ics 파일을 Google 캘린더, Apple 캘린더 또는 Outlook에 한 번 가져오기",
+      "subscribeLabel": "구독:",
+      "howSubscribe": "webcal URL을 추가하여 변경 사항을 자동 동기화 (권장)",
+      "howAppear": "작업은 종일 일정 또는 예정된 시간에 표시됩니다",
+      "howUpdates": "{appName}에서 작업을 변경하면 구독한 캘린더에 반영됩니다"
+    },
+    "defaultDueTime": {
+      "title": "기본 마감 시간",
+      "description": "마감일을 선택할 때 새 작업에 적용할 기본 시간을 설정하세요",
+      "fallback": "마감일이 있는 새 작업은 기본적으로 오후 5시로 설정됩니다"
     }
   },
   "projectMode": {
@@ -1162,6 +1491,89 @@
     "memberAgentAssignment": {
       "label": "멤버가 모든 작업을 에이전트에게 맡길 수 있음",
       "help": "이 목록의 모든 멤버가 자신이 만든 작업뿐 아니라 이곳의 모든 작업에 에이전트를 할당할 수 있습니다. 에이전트는 목록 소유자의 플랜으로 실행됩니다."
+    },
+    "admin": {
+      "descriptionLabel": "목록 설명",
+      "descriptionInfo": "목록 설명은 이 목록에서 작업하는 AI 에이전트의 지침으로 사용됩니다",
+      "preview": "미리보기",
+      "charCount": "{count}자",
+      "noInstructionsYet": "*아직 지침이 없습니다*",
+      "instructionsPlaceholder": "이 목록에서 작업하는 AI 에이전트를 위한 지침을 작성하세요...\n\n예시:\n우리 가족의 식단 계획을 도와주세요.\n\n## 목표\n- 건강한 레시피 제안\n- 주간 장보기 목록 만들기\n\n## 제한 사항\n- 갑각류 금지 (알레르기)\n- 예산: 주당 $150",
+      "agentsReceive": "에이전트는 이 내용을 기본 컨텍스트로 받습니다. 마크다운을 지원합니다.",
+      "starterTemplates": "시작 템플릿",
+      "clickToEdit": "클릭하여 편집",
+      "clickToAddInstructions": "클릭하여 에이전트 지침 추가...",
+      "agentsUseGuidance": "AI 에이전트는 이 목록의 작업을 수행할 때 이를 기본 지침으로 사용합니다",
+      "taskCreator": "작업 생성자",
+      "memberNotFound": "멤버를 찾을 수 없음",
+      "clickToSet": "클릭하여 설정...",
+      "defaultPriority": "기본 우선순위",
+      "defaultAssignee": "기본 담당자",
+      "selectDefaultAssignee": "기본 담당자 선택...",
+      "defaultWhen": "기본 일시",
+      "nextWeek": "다음 주",
+      "noDefaultWhenButton": "기본 일시 없음",
+      "noDefaultWhen": "기본 일시 없음",
+      "defaultRepeating": "기본 반복",
+      "defaultWhenTime": "기본 시간",
+      "noDefaultTime": "기본 시간 없음",
+      "timezone": "시간대: {timezone}",
+      "deleteList": "목록 삭제",
+      "deleteConfirm": "\"{name}\"을(를) 삭제하시겠습니까?",
+      "deleteWarning": "이 작업은 취소할 수 없습니다. 이 목록의 모든 작업은 유지되지만 더 이상 이 목록에 연결되지 않습니다.",
+      "dontDelete": "삭제 안 함",
+      "notConnected": "연결되지 않음.",
+      "connect": "연결",
+      "unlink": "연결 해제",
+      "mirrorPlaceholder": "이 목록을 미러링할 위치 선택",
+      "externalSyncTitle": "외부 동기화",
+      "externalSyncDescription": "연결된 계정을 통해 이 목록을 다른 서비스와 양방향으로 미러링합니다.",
+      "aiAgent": "AI 에이전트",
+      "modelForList": "이 목록의 {appName} 모델",
+      "useAccountDefault": "계정 기본값 사용",
+      "modelHint": "이 목록의 채팅과 댓글에서 {appName}을(를) 구동합니다. 작업에 지정된 코딩 에이전트는 자체 런타임을 유지합니다.",
+      "repositoryLabel": "코딩 에이전트가 작업하는 저장소",
+      "loading": "로딩 중...",
+      "selectRepo": "저장소 선택",
+      "noRepositories": "저장소를 찾을 수 없습니다. GitHub App이 저장소에 접근할 수 있는지 확인하세요.",
+      "connectGithub": "GitHub를 연결하면 코딩 에이전트가 작업할 저장소를 선택할 수 있습니다 — {link}",
+      "connectGithubLink": "설정 → 연결 → GitHub",
+      "runLoop": "이 목록에 대해 루프 실행",
+      "loopDescription": "코딩 하니스가 일정에 따라 이 목록을 확인하고, 자신에게 지정되어 {ready}(으)로 표시된 작업을 처리합니다. 다른 보드의 작업은 건드리지 않습니다.",
+      "readyStatus": "Ready",
+      "descriptionHint": "에이전트는 이 목록의 {description}을 작업 지침으로 읽습니다. 프로젝트 개요처럼 위에서 편집하세요.",
+      "descriptionWord": "설명",
+      "listId": "목록 ID",
+      "copyListId": "목록 ID 복사",
+      "listIdHint": "OAuth API 연동과 코딩 에이전트에 이 ID를 사용하세요",
+      "listName": "목록 이름",
+      "statusesIntro": "Ready, Doing, Waiting은 {all} 보드에 적용됩니다. 여기에서 추가한 상태는 이 보드에만 속합니다.",
+      "statusesIntroAll": "모든",
+      "saveName": "이름 저장",
+      "moveUp": "{name} 위로 이동",
+      "moveDown": "{name} 아래로 이동",
+      "renameStatus": "{name} 이름 변경",
+      "deleteStatus": "{name} 삭제",
+      "newStatusName": "새 상태 이름",
+      "renameStatusFailed": "상태 이름을 변경하지 못했습니다",
+      "reorderStatusFailed": "상태 순서를 변경하지 못했습니다",
+      "deleteStatusFailed": "상태를 삭제하지 못했습니다",
+      "addStatusFailed": "상태를 추가하지 못했습니다",
+      "recentlyCompletedLabel": "고급 — 최근 완료 표시 기간",
+      "recentlyCompletedDescription": "완료된 작업이 기본 보기(및 보드의 Done 열)에 표시되는 기간입니다. 더 오래된 완료 작업은 숨겨지며, 보려면 목록을 '완료' 또는 '전체'로 전환하세요."
+    },
+    "filters": {
+      "allAssignees": "모든 담당자",
+      "notMe": "나 제외 (다른 사람)",
+      "allCreators": "모든 작성자",
+      "notRepeating": "반복 안 함",
+      "inAnyList": "목록에 있는 작업",
+      "notInAnyList": "어떤 목록에도 없는 작업",
+      "clearAllFilters": "모든 필터 지우기",
+      "removeFromFavorites": "즐겨찾기에서 제거",
+      "makeFavorite": "즐겨찾기에 추가",
+      "savedFilter": "저장된 필터",
+      "savedFilterDescription": "목록 소속이 아닌 필터 설정에 따라 작업 표시"
     }
   },
   "reminderSettings": {
@@ -1170,7 +1582,32 @@
     "emailReminders": "이메일 알림",
     "defaultReminderTime": "기본 알림 시간",
     "dailyDigest": "일간 요약",
-    "quietHours": "방해 금지 시간"
+    "quietHours": "방해 금지 시간",
+    "description": "작업 알림을 받는 시점과 방법을 설정하세요",
+    "pushDescription": "브라우저에서 즉시 알림 받기",
+    "enablePush": "푸시 알림 사용",
+    "pushBlocked": "푸시 알림이 차단되어 있습니다. 작업 알림을 받으려면 브라우저 설정에서 허용하세요.",
+    "emailDescription": "마감 작업에 대한 알림 이메일 받기",
+    "defaultReminderTimeDescription": "작업 마감 전 언제 알릴지",
+    "dailyDigestDescription": "작업의 일간 요약 받기",
+    "quietHoursDescription": "이 시간 동안 알림 끄기 (선택사항)",
+    "push": {
+      "description": "앱이 닫혀 있어도 작업 알림과 업데이트를 받아보세요",
+      "status": "알림 상태",
+      "enableDescription": "작업 알림 및 푸시 받기",
+      "blockedIntro": "알림이 차단되어 있습니다. 허용하려면:",
+      "blockedChrome": "주소 표시줄의 자물쇠 아이콘 클릭 → 알림 → 허용",
+      "blockedFirefox": "방패 아이콘 클릭 → 권한 → 알림 허용",
+      "blockedSafari": "Safari → 설정 → 웹사이트 → 알림 → 허용",
+      "installTitle": "최상의 경험을 위해 이 앱을 설치하세요:",
+      "installMobileLabel": "모바일:",
+      "installMobile": "브라우저 메뉴에서 \"홈 화면에 추가\"를 탭하세요",
+      "installDesktopLabel": "데스크톱:",
+      "installDesktop": "주소 표시줄에서 설치 아이콘을 찾으세요",
+      "installPwaLabel": "PWA 장점:",
+      "installPwa": "앱이 닫혀 있어도 알림이 작동합니다",
+      "sendTest": "테스트 알림 보내기"
+    }
   },
   "keyboardShortcuts": {
     "title": "키보드 단축키",
@@ -1181,16 +1618,20 @@
       "taskEditing": "작업 편집",
       "priority": "우선순위",
       "interface": "인터페이스"
-    }
+    },
+    "chatHint": "채팅 메시지와 작업 댓글에서 사용"
   },
   "commandPalette": {
     "label": "명령 팔레트",
     "searchPlaceholder": "명령 검색…",
     "enterToSelect": "Enter로 선택",
-    "escToClose": "Esc로 닫기"
+    "escToClose": "Esc로 닫기",
+    "noCommands": "명령을 찾을 수 없습니다"
   },
   "userPicker": {
-    "optionalMessage": "선택 메시지…"
+    "optionalMessage": "선택 메시지…",
+    "sendInvite": "초대 보내기",
+    "assignAnyway": "그래도 할당"
   },
   "astridAgent": {
     "modelSetup": {
@@ -1246,5 +1687,322 @@
       "hours": "{n}시간",
       "days": "{n}일"
     }
+  },
+  "codingAgentPage": {
+    "getStarted": "시작하기",
+    "heroTitle": "{appName} Agent",
+    "heroSubtitle": "코드를 작성하고, PR을 만들고, 자동으로 배포하는 AI 코딩 어시스턴트",
+    "badgeProductionReady": "프로덕션 수준의 코드",
+    "badgeGithub": "GitHub 통합",
+    "badgeAutoDeploy": "자동 배포",
+    "installGithubApp": "GitHub App 설치",
+    "tryFree": "{appName} 무료로 사용해 보기",
+    "features": {
+      "codeGenerationTitle": "코드 생성",
+      "codeGenerationDesc": "자연어 설명으로 AI가 프로덕션 수준의 코드를 생성합니다",
+      "githubPrsTitle": "GitHub PR",
+      "githubPrsDesc": "적절한 브랜치로 GitHub 풀 리퀘스트를 자동 생성합니다",
+      "livePreviewsTitle": "라이브 미리보기",
+      "livePreviewsDesc": "Vercel 통합으로 스테이징 환경에 즉시 배포합니다",
+      "commentActionsTitle": "댓글 액션",
+      "commentActionsDesc": "간단한 댓글로 제어: \"approve\", \"merge\", \"change X\""
+    },
+    "howItWorks": {
+      "title": "작동 방식",
+      "description": "작업부터 프로덕션 배포까지 이어지는 전체 워크플로",
+      "assignTitle": "작업 할당",
+      "assignDesc": "작업을 만들어 \"{appName} Agent\"에 할당하세요",
+      "planningTitle": "AI 계획 수립",
+      "planningDesc": "에이전트가 요구사항을 분석하고 구현 계획을 작성합니다",
+      "reviewTitle": "검토 및 승인",
+      "reviewDesc": "\"approve\"라고 댓글을 달면 코드 생성이 시작됩니다",
+      "generateTitle": "코드 생성",
+      "generateDesc": "에이전트가 코드를 작성하고 GitHub 브랜치와 PR을 만듭니다",
+      "previewTitle": "라이브 미리보기",
+      "previewDesc": "Vercel이 연결되어 있으면 스테이징 환경에 즉시 배포됩니다",
+      "deployTitle": "배포",
+      "deployDesc": "\"merge\"라고 댓글을 달아 배포하거나 \"change X\"로 수정을 요청하세요"
+    },
+    "githubApp": {
+      "title": "공식 GitHub App",
+      "description": "안전하고, 꾸준히 관리되며, 전 세계 개발자가 신뢰합니다",
+      "quickSetupTitle": "빠른 설정",
+      "quickSetupDesc": "GitHub App을 만들 필요 없이 설치하고 몇 분 만에 연결하세요",
+      "secureTitle": "안전하고 신뢰할 수 있음",
+      "secureDesc": "{appName} 팀이 적절한 보안 관행에 따라 관리하는 공식 앱",
+      "sharedTitle": "공유 및 관리",
+      "sharedDesc": "모든 {appName} 사용자가 함께 사용하므로 개별 앱 관리가 필요 없습니다"
+    },
+    "controls": {
+      "title": "간단한 댓글 제어",
+      "description": "자연어 댓글로 에이전트를 제어하세요",
+      "approveDesc": "AI 계획을 승인하고 구현을 시작합니다",
+      "mergeDesc": "PR을 프로덕션에 병합합니다",
+      "changeDesc": "구체적인 피드백과 함께 수정을 요청합니다"
+    },
+    "cta": {
+      "title": "개발 방식을 바꿀 준비가 되셨나요?",
+      "subtitle": "AI로 그 어느 때보다 빠르게 출시하는 수천 명의 개발자와 함께하세요",
+      "startTrial": "무료 체험 시작"
+    },
+    "footerNote": "© 2024 {appName}. All rights reserved. AI로 개발 워크플로를 가속화합니다."
+  },
+  "signInPage": {
+    "downloadOnAppStore": "App Store에서 다운로드",
+    "title": "로그인하고 시작하세요!",
+    "passkey": "패스키",
+    "continuing": "계속하는 중...",
+    "passkeysNotSupported": "이 브라우저에서는 패스키를 지원하지 않습니다",
+    "newUser": "처음이신가요?",
+    "returningUser": "다시 오셨나요?",
+    "emailPlaceholder": "이메일을 입력하세요",
+    "creatingAccount": "계정 만드는 중...",
+    "signingIn": "로그인 중...",
+    "backToOptions": "옵션으로 돌아가기",
+    "agreement": "로그인하면 {terms} 및 {privacy}에 동의하는 것으로 간주됩니다",
+    "termsOfService": "서비스 약관",
+    "privacyPolicy": "개인정보 처리방침",
+    "havingTrouble": "문제가 있으신가요?",
+    "visitHelpCenter": "고객센터를 방문하세요",
+    "organizeTitle": "작업을 정리하세요",
+    "organizeDesc": "비공개, 공유, 공개 목록을 만들어 일과 생활을 관리하세요",
+    "collaborateTitle": "팀과 협업하세요",
+    "collaborateDesc": "관리자와 목록을 공유하고 기본 작업 설정으로 일관성을 유지하세요",
+    "discoverTitle": "공개 작업을 찾아보세요",
+    "discoverDesc": "커뮤니티가 공유한 공개 목록에서 작업을 둘러보고 복사하세요"
+  },
+  "authErrors": {
+    "signInUnexpected": "로그인 중 예기치 않은 오류가 발생했습니다",
+    "emailRequired": "이메일 주소를 입력해 주세요",
+    "configuration": "서버 구성에 문제가 있습니다.",
+    "configurationDetailed": "서버 구성에 문제가 있습니다. 환경 변수를 확인해 주세요.",
+    "accessDenied": "액세스가 거부되었습니다. 로그인할 권한이 없습니다.",
+    "verification": "인증 토큰이 만료되었거나 이미 사용되었습니다.",
+    "oauthSignin": "인증 URL을 구성하는 중 오류가 발생했습니다. OAuth 구성을 확인해 주세요.",
+    "oauthCallback": "OAuth 제공자의 응답을 처리하는 중 오류가 발생했습니다.",
+    "oauthCreateAccount": "OAuth 계정을 만들 수 없습니다.",
+    "emailCreateAccount": "이메일 계정을 만들 수 없습니다.",
+    "callback": "OAuth 콜백 핸들러 경로에서 오류가 발생했습니다.",
+    "oauthAccountNotLinked": "이 이메일을 사용하는 계정이 이미 있습니다. 다시 로그인해 주세요 - Google 계정을 자동으로 연결해 드립니다.",
+    "emailSignin": "인증 토큰이 담긴 이메일을 보내지 못했습니다.",
+    "sessionRequired": "이 페이지의 콘텐츠를 보려면 로그인 상태를 유지해야 합니다.",
+    "default": "인증 중 오류가 발생했습니다. 다시 시도하거나 지원팀에 문의해 주세요.",
+    "unexpected": "인증 중 예기치 않은 오류가 발생했습니다."
+  },
+  "authErrorPage": {
+    "title": "인증 오류",
+    "description": "로그인하는 중 문제가 발생했습니다",
+    "tryAgain": "다시 시도",
+    "goHome": "홈으로",
+    "loading": "로딩 중..."
+  },
+  "verifyEmailPage": {
+    "verifiedTitle": "이메일 인증 완료!",
+    "failedTitle": "인증 실패",
+    "expiredTitle": "링크 만료됨",
+    "defaultTitle": "이메일 인증",
+    "redirecting": "몇 초 후 설정으로 이동합니다...",
+    "goToSettings": "설정으로 이동",
+    "sending": "보내는 중...",
+    "resend": "인증 이메일 다시 보내기",
+    "sendNew": "새 인증 이메일 보내기",
+    "backToApp": "앱으로 돌아가기",
+    "expiredBody": "인증 링크가 만료되었습니다. 계정 설정에서 새 링크를 요청할 수 있습니다.",
+    "verificationFailed": "인증에 실패했습니다. 다시 시도해 주세요.",
+    "noToken": "인증 토큰이 제공되지 않았습니다",
+    "resent": "인증 이메일을 다시 보냈습니다. 받은편지함을 확인해 주세요.",
+    "resendFailed": "인증 이메일을 다시 보내지 못했습니다"
+  },
+  "desktopSignInPage": {
+    "invalidTitle": "이 로그인 링크는 유효하지 않습니다",
+    "invalidBody": "앱에서 로그인을 다시 시작하세요. 이 링크는 앱이 생성하며 직접 입력하는 용도가 아닙니다.",
+    "returnHome": "홈으로 돌아가기",
+    "title": "{app}에 로그인",
+    "signedInAs": "{email} 계정으로 로그인되어 있습니다. 계속하면 이 세션을 이 컴퓨터의 앱으로 넘깁니다.",
+    "codeNote": "앱은 5분 후 만료되는 일회용 코드를 받으며, 이 로그인을 시작한 앱만 그 코드를 사용할 수 있습니다.",
+    "notExpecting": "예상하지 못한 요청인가요?",
+    "closePage": "이 페이지를 닫으면",
+    "nothingHandedOver": "아무것도 넘어가지 않습니다.",
+    "continuingTo": "{provider}(으)로 이동 중",
+    "singleSignOn": "통합 로그인",
+    "comeBack": "로그인하면 이곳으로 돌아와 {app} 로그인을 마칩니다.",
+    "nothingHappening": "아무 반응이 없나요?",
+    "chooseAnother": "다른 로그인 방법 선택",
+    "opening": "{app} 여는 중…",
+    "closeTab": "이 탭은 닫아도 됩니다. {app} 앱이 열리지 않았다면 앱으로 돌아가 로그인을 다시 시작하세요.",
+    "preparing": "준비 중…",
+    "open": "{app} 열기",
+    "startFailed": "세션 전달을 시작하지 못했습니다. 다시 시도해 주세요.",
+    "unreachable": "서버에 연결할 수 없습니다. 연결 상태를 확인하고 다시 시도해 주세요."
+  },
+  "oauthAuthorizePage": {
+    "unableTitle": "계속할 수 없습니다",
+    "invalidRequest": "인증 요청이 유효하지 않습니다. 링크를 다시 확인하고 시도해 주세요.",
+    "errorCode": "오류 코드:",
+    "goToConnections": "연결로 이동",
+    "returnHome": "홈으로 돌아가기",
+    "header": "{appName} 통합 승인",
+    "oauthApp": "OAuth 앱",
+    "defaultDescription": "이 애플리케이션이 {appName} 계정에 대한 액세스를 요청하고 있습니다.",
+    "requestingAs": "액세스를 요청하는 계정",
+    "yourAccount": "내 계정",
+    "developedBy": "개발: {owner}",
+    "brandUser": "{appName} 사용자",
+    "dynamicallyRegistered": "MCP 클라이언트가 동적으로 등록함",
+    "permissionsTitle": "요청된 권한",
+    "permissionsIntro": "이 앱은 다음을 할 수 있게 됩니다:",
+    "scope": "범위:",
+    "grantTitle": "액세스 허용",
+    "grantDescription": "{client}에 위 권한으로 {appName} 데이터에 대한 액세스를 허용합니다.",
+    "deny": "거부",
+    "approve": "액세스 승인",
+    "approveAs": "{agent}(으)로 액세스 승인",
+    "tokenNote": "토큰은 1시간 후 만료됩니다. 리프레시 토큰은 30일 동안 또는 설정 → 연결에서 취소할 때까지 유효합니다."
+  },
+  "invitePage": {
+    "errorTitle": "초대 오류",
+    "noLongerValid": "이 초대는 더 이상 유효하지 않습니다.",
+    "acceptedTitle": "초대를 수락했습니다!",
+    "acceptedBody": "협업에 참여했습니다. 앱으로 이동합니다...",
+    "someone": "누군가",
+    "taskTitle": "작업 할당",
+    "taskDesc": "{sender}님이 작업을 할당하고 협업을 요청했습니다.",
+    "listTitle": "목록 공유",
+    "listDesc": "{sender}님이 작업 목록을 공유했습니다.",
+    "workspaceTitle": "워크스페이스 초대",
+    "workspaceDesc": "{sender}님이 워크스페이스에 초대했습니다.",
+    "defaultTitle": "협업 초대",
+    "defaultDesc": "{sender}님이 협업에 초대했습니다.",
+    "messageLabel": "메시지:",
+    "expires": "만료: {date}",
+    "emailMismatch": "⚠️ 이 초대는 {invited}(으)로 발송되었지만 현재 {current} 계정으로 로그인되어 있습니다. 올바른 계정으로 로그인해 주세요.",
+    "expiredBadge": "만료됨",
+    "expiredBody": "이 초대는 만료되었습니다.",
+    "signInToAccept": "로그인하여 수락",
+    "redirectNote": "{email} 계정으로 로그인하도록 이동합니다",
+    "accepting": "수락하는 중...",
+    "accept": "초대 수락",
+    "signInCorrectAccount": "올바른 계정으로 로그인",
+    "decline": "거절",
+    "notFound": "초대를 찾을 수 없습니다",
+    "loadFailed": "초대를 불러오지 못했습니다",
+    "acceptFailed": "초대를 수락하지 못했습니다",
+    "declined": "초대를 거절했습니다",
+    "declineFailed": "초대를 거절하지 못했습니다"
+  },
+  "downloadPage": {
+    "title": "{appName} 다운로드",
+    "subtitle": "웹에 있는 모든 것과 동기화되는 네이티브 앱입니다.",
+    "macTitle": "Mac용 {appName}",
+    "macRelease": "버전 {version} · {size} · 출시일: {published}",
+    "macRequirements": "유니버설 · macOS 14 Sonoma 이상",
+    "downloadForMac": "Mac용 다운로드",
+    "viewReleases": "릴리스 보기",
+    "featureQuickAdd": "메뉴 막대 빠른 추가 및 전역 단축키",
+    "featureViews": "보드, 목록, 캘린더 보기",
+    "featureOffline": "오프라인에서도 작동하고 다시 연결되면 동기화",
+    "featureApple": "Apple 미리 알림 및 캘린더 통합",
+    "installNote": "DMG를 열고 {appName}를 응용 프로그램 폴더로 드래그하세요. Apple의 서명과 공증을 받은 앱이라 추가 단계 없이 열립니다. macOS 14 이상.",
+    "iosTitle": "iPhone 및 iPad용 {appName}",
+    "iosBeta": "현재 TestFlight 베타 진행 중",
+    "joinBeta": "베타 참여하기",
+    "preferBrowser": "브라우저가 더 편하신가요?",
+    "useOnWeb": "웹에서 {appName} 사용하기"
+  },
+  "errorPages": {
+    "errorDescription": "예기치 않은 오류가 발생했습니다. 불편을 드려 죄송합니다.",
+    "tryAgain": "다시 시도",
+    "goHome": "홈으로",
+    "notFoundTitle": "페이지를 찾을 수 없습니다",
+    "notFoundDescription": "찾으시는 페이지가 없거나 이동되었습니다.",
+    "notFoundGoHome": "홈으로",
+    "pageNotFound": "페이지를 찾을 수 없습니다",
+    "listUnavailableTitle": "목록을 사용할 수 없습니다",
+    "goToDashboard": "대시보드로 이동",
+    "listNotFound": "목록을 찾을 수 없습니다",
+    "listAccessDenied": "액세스가 거부되었습니다. 이 목록을 볼 권한이 없습니다.",
+    "listLoadFailed": "목록을 불러오지 못했습니다",
+    "linkErrorTitle": "링크 오류",
+    "linkNotFound": "링크를 찾을 수 없거나 만료되었습니다",
+    "linkResolveFailed": "링크를 확인하지 못했습니다",
+    "linkTaskNotFound": "작업을 찾을 수 없거나 더 이상 액세스할 수 없습니다",
+    "linkTaskForbidden": "이 작업을 볼 권한이 없습니다",
+    "linkInvalidType": "잘못된 링크 유형"
+  },
+  "profilePage": {
+    "loading": "프로필 로딩 중...",
+    "notFound": "프로필을 찾을 수 없습니다",
+    "goBack": "뒤로",
+    "badge": "프로필",
+    "aiAgent": "AI 에이전트",
+    "joined": "가입일: {date}",
+    "completedDesc": "완료한 작업",
+    "inspired": "영감",
+    "inspiredDesc": "다른 사람이 생성, 완료 또는 복사한 작업",
+    "supported": "응원",
+    "supportedDesc": "다른 사람의 작업에 남긴 댓글",
+    "yourTasks": "내 작업",
+    "sharedWith": "{name}님과 공유한 작업",
+    "noShared": "아직 {name}님과 공유한 작업이 없습니다",
+    "userNotFound": "사용자를 찾을 수 없습니다",
+    "signInRequired": "사용자 프로필을 보려면 로그인해 주세요",
+    "loadFailedDetail": "사용자 프로필을 불러오지 못했습니다: {error}",
+    "loadFailed": "사용자 프로필을 불러오지 못했습니다",
+    "unknownError": "알 수 없는 오류"
+  },
+  "startPage": {
+    "backToDocs": "문서로 돌아가기",
+    "step": "{n}단계 — {title}",
+    "heading": "에이전트로 소프트웨어 비즈니스를 운영하세요 — 하나의 {appName}에서",
+    "intro": "{appName}는 에이전트와 팀원 모두가 함께 쓰는 공유 할 일 목록입니다. 작업을 목록에 넣으면 담당 에이전트가 계획을 댓글로 남기고, 작업을 수행한 뒤 같은 작업에서 결과를 보고합니다 — 웹에서도 휴대폰에서도 확인할 수 있습니다. 각 에이전트는 이미 결제 중인 요금제로 일정에 따라 자신의 대기열을 확인하므로 지켜봐야 할 대시보드가 없습니다. 1~10명 규모의 팀을 위한 서비스입니다.",
+    "shapeTitle": "기본 구조: 목록 다섯 개, 목록마다 에이전트 하나",
+    "shapeDescription": "결제 중인 에이전트만 있으면 됩니다 — 해당 없는 행은 건너뛰고 그 목록은 직접 사용하세요.",
+    "createTitle": "목록 만들기 (2분)",
+    "listsReady": "목록이 준비되었습니다",
+    "createLists": "내 목록 만들기",
+    "signInToCreate": "로그인하여 만들기",
+    "seeInstructions": "목록 안내 보기",
+    "connectTitle": "결제 중인 에이전트 연결",
+    "workTitle": "작업하기 (매일)",
+    "workAddTask": "작업을 맡길 에이전트의 목록에 작업을 추가하세요 — 자동으로 할당됩니다.",
+    "workAgentReports": "에이전트가 계획을 댓글로 남기고, 작업을 수행한 뒤 풀 리퀘스트 링크와 함께 보고합니다.",
+    "workReply": "어디서든 댓글로 답하세요. 병합과 배포는 직접 합니다.",
+    "workRecurring": "반복 작업: 작업을 반복(매일, 매주)으로 설정하면 스스로 다시 대기열에 들어갑니다.",
+    "teamTitle": "팀원 추가 (선택 사항, 2~10명)",
+    "reference": "참고 자료",
+    "everyRecipe": "모든 하네스 레시피",
+    "mcpTokens": "MCP 연결 및 토큰",
+    "agentSettings": "에이전트 설정",
+    "createCiToken": "GitHub Actions 토큰 만들기"
+  },
+  "richTextInput": {
+    "placeholder": "메시지 입력...",
+    "timer": "타이머",
+    "uploading": "업로드 중...",
+    "attachFile": "파일 첨부",
+    "removeFile": "{name} 제거"
+  },
+  "chat": {
+    "inputPlaceholder": "목록에 메시지 보내기...",
+    "empty": "아직 메시지가 없습니다. 대화를 시작해 보세요!",
+    "loadFailed": "채팅을 불러오지 못했습니다"
+  },
+  "notificationBell": {
+    "markAllRead": "모두 읽음으로 표시",
+    "allCaughtUp": "모두 확인했습니다."
+  },
+  "admin": {
+    "navDescription": "접근 권한, 분석, 기능 제공 여부를 관리합니다.",
+    "navLabel": "관리 섹션"
+  },
+  "pwa": {
+    "notNow": "나중에",
+    "syncing": "변경 사항 동기화 중..."
+  },
+  "attachmentViewer": {
+    "closeEsc": "닫기 (Esc)",
+    "videoUnsupported": "브라우저가 video 태그를 지원하지 않습니다.",
+    "noPreview": "이 파일 형식은 미리보기를 지원하지 않습니다",
+    "downloadFile": "파일 다운로드"
   }
 }

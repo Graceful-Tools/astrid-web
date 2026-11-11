@@ -153,6 +153,54 @@
     },
     "tradeoffGrid": {
       "fullScreen": "Full screen"
+    },
+    "promote": {
+      "label": "Move out of subtask",
+      "dropHint": "Drop here to move out of its parent task"
+    },
+    "dropTasksHere": "Drop tasks here",
+    "noOneAssigned": "No one assigned",
+    "selectPriorityOrAssignee": "Select priority or assignee",
+    "saveNewTask": "Save New Task",
+    "detail": {
+      "backToList": "Back to list",
+      "collapseTask": "Collapse task",
+      "collapse": "Collapse",
+      "taskActions": "Task actions",
+      "exitFullScreen": "Exit full screen",
+      "testReminder": "Test Reminder",
+      "clickToAddDescription": "Click to add a description...",
+      "searchLists": "Search lists...",
+      "noLists": "No lists",
+      "unknownCreator": "Unknown creator",
+      "searchUsersOrEmail": "Search users or enter email...",
+      "nextWeek": "Next Week",
+      "selectRepeat": "Select repeat",
+      "repeatMode": "Repeat Mode",
+      "repeatFromCompletion": "Repeat from completion date",
+      "repeatFromDue": "Repeat from due date",
+      "saveCustomPattern": "Save Custom Pattern"
+    },
+    "commentsSection": {
+      "addPlaceholder": "Add a comment...",
+      "replyPlaceholder": "Write a reply...",
+      "refresh": "Refresh comments",
+      "pullToRefresh": "Pull to refresh...",
+      "releaseToRefresh": "Release to refresh..."
+    },
+    "modals": {
+      "deleteTitle": "Delete Task",
+      "copyTitle": "Copy Task",
+      "copyToList": "Copy to list:",
+      "myTasksOnly": "My Tasks (only)",
+      "copyNote": "The copied task will preserve the due date and will be assigned to you.",
+      "shareTitle": "Share Task",
+      "privateNote": "This is a private task. Only users with access to this list can view it.",
+      "generatingLink": "Generating share link...",
+      "linkFailed": "Failed to generate share link. Please try again."
+    },
+    "timer": {
+      "tapToChange": "Tap the time to change duration"
     }
   },
   "lists": {
@@ -189,7 +237,67 @@
       "description": "Add a description..."
     },
     "showSubtasksLabel": "Show subtasks",
-    "showSubtasksDescription": "Show subtasks indented under their parent in this list. Turn it off to show only top-level tasks — subtasks stay visible on the parent's detail view."
+    "showSubtasksDescription": "Show subtasks indented under their parent in this list. Turn it off to show only top-level tasks — subtasks stay visible on the parent's detail view.",
+    "copyList": "Copy List",
+    "descriptionTitle": "List Description",
+    "descriptionAgentHint": "Agents receive this as their primary context. Supports markdown.",
+    "image": "List Image",
+    "addModal": {
+      "title": "Add a List",
+      "subtitle": "Use lists to organize projects, goals, and adventures!",
+      "namePlaceholder": "e.g., Family",
+      "shareWith": "Share with",
+      "sharePlaceholder": "Name or e-mail address"
+    },
+    "membersManager": {
+      "invite": "Invite member",
+      "inviteTitle": "Invite New Member",
+      "emailPlaceholder": "Enter email address",
+      "sendInvitation": "Send Invitation",
+      "empty": "No members yet",
+      "emptyHint": "Invite people to collaborate on this list",
+      "makeAdmin": "Make Admin",
+      "makeMember": "Make Member",
+      "permissionLevels": "Permission Levels",
+      "ownerCan": "Full control over the list",
+      "adminCan": "Can manage list settings and members",
+      "memberCan": "Can add, edit, and manage tasks"
+    },
+    "membershipPanel": {
+      "availableAgents": "Available Agents",
+      "loadingAgents": "Loading available agents...",
+      "addAgent": "Add Agent",
+      "aiHelpTitle": "Want AI to help with your tasks?",
+      "addApiKeys": "Add your API keys to get started",
+      "privacyLabel": "List Privacy",
+      "makePublic": "Make Public",
+      "makePrivate": "Make Private",
+      "publicListType": "Public List Type",
+      "makeCopyOnly": "Make Copy Only",
+      "makeCollaborative": "Make Collaborative",
+      "leaveList": "Leave List"
+    },
+    "ownerLeave": {
+      "title": "Transfer Ownership",
+      "selectNewOwner": "Select New Owner:",
+      "noOtherMembers": "No other members to transfer ownership to.",
+      "deleteList": "Delete List"
+    },
+    "publicBrowser": {
+      "searchPlaceholder": "Search by name, description, or creator...",
+      "allLists": "All Lists",
+      "loading": "Loading public lists...",
+      "tasksPreview": "Tasks Preview",
+      "loadingPreview": "Loading preview...",
+      "noTasks": "This list has no tasks",
+      "selectTitle": "Select a List to Preview",
+      "selectHint": "Choose a list from the left to see its details and tasks"
+    },
+    "imagePicker": {
+      "title": "Choose Image",
+      "uploadLabel": "Upload from your device",
+      "chooseFile": "Choose File"
+    }
   },
   "priority": {
     "none": "None",
@@ -217,7 +325,10 @@
     "hoursBefore": "{count} hours before",
     "dayBefore": "1 day before",
     "daysBefore": "{count} days before",
-    "weekBefore": "1 week before"
+    "weekBefore": "1 week before",
+    "quickSelect": "Quick select:",
+    "setTime": "Set Time",
+    "selectTime": "Select time"
   },
   "repeating": {
     "oneTimeOnly": "One time only",
@@ -226,7 +337,21 @@
     "monthly": "Monthly",
     "yearly": "Yearly",
     "custom": "Custom",
-    "pickAtLeastOneDay": "Pick at least one day"
+    "pickAtLeastOneDay": "Pick at least one day",
+    "editor": {
+      "repeatEvery": "Repeat every",
+      "repeatOnDays": "Repeat on these days",
+      "repeatType": "Repeat type",
+      "sameDate": "Same date every month",
+      "sameWeekday": "Same weekday and week of month",
+      "dayOfMonth": "Day of month",
+      "weekOfMonth": "Week of month",
+      "endCondition": "End condition",
+      "afterOccurrences": "After X occurrences",
+      "untilDate": "Until specific date",
+      "occurrencesCount": "Number of occurrences",
+      "endDate": "End date"
+    }
   },
   "weekdays": {
     "sunday": "Sunday",
@@ -295,7 +420,8 @@
     "timezone": {
       "title": "Timezone",
       "auto": "Auto-detect"
-    }
+    },
+    "helpMeHelpYou": "Help me help you become super productive!!!"
   },
   "auth": {
     "signIn": "Sign in",
@@ -307,7 +433,9 @@
     "alreadyHaveAccount": "Already have an account?",
     "dontHaveAccount": "Don't have an account?",
     "continueWith": "Continue with {provider}",
-    "orContinueWith": "Or continue with"
+    "orContinueWith": "Or continue with",
+    "signInButton": "Sign In",
+    "signUpButton": "Sign Up"
   },
   "messages": {
     "success": "Success",
@@ -446,13 +574,18 @@
     "optional": "Optional",
     "required": "Required",
     "copiedToClipboard": "Copied to clipboard",
-    "unableToCopy": "Unable to copy to clipboard"
+    "unableToCopy": "Unable to copy to clipboard",
+    "pullToRefresh": "Pull to refresh",
+    "releaseToRefresh": "Release to refresh",
+    "clearAll": "Clear All"
   },
   "search": {
     "placeholder": "Search for tasks and users",
     "noResults": "No results found",
     "searching": "Searching...",
-    "open": "Search"
+    "open": "Search",
+    "findAcrossLists": "Find tasks and users across all lists",
+    "inputPlaceholder": "Search tasks and users..."
   },
   "listHeaders": {
     "myTasks": "My Tasks",
@@ -511,6 +644,58 @@
         "title": "GitHub connection",
         "description": "Server-run coding agents use the GitHub connection on Settings → Connections, where every connected organization is listed.",
         "open": "Open Connections"
+      },
+      "yourAgents": {
+        "title": "Your agents",
+        "description": "Pick who runs each agent. {astridRuns} needs that provider's API key. {selfRuns} uses the coding tool you already pay for — native harness polling, a Custom Agent, or a webhook server you host.",
+        "astridRuns": "{appName} runs it",
+        "selfRuns": "I run it"
+      },
+      "hub": {
+        "getKey": "Get a key",
+        "guideLink": "Connect my coding agent guide",
+        "needsSetup": "Needs setup",
+        "agentLoops": "Agent Loops",
+        "customAgents": "Custom Agents"
+      },
+      "runtime": {
+        "stepConnect": "Connect",
+        "stepInstall": "Install",
+        "stepSchedule": "Schedule or run",
+        "stepTest": "Test",
+        "hostedWorkflow": "No machine to leave on? Commit this workflow instead. It needs two repository secrets; {link} says how to make each one.",
+        "startHere": "Start here",
+        "copilotInstall": "Commit this repository custom agent once. Copilot CLI, the Copilot app, GitHub.com, and VS Code can then select the same queue behavior.",
+        "githubConnect": "Create client credentials for this agent and save them as repository Actions secrets named {clientId} and {clientSecret}. Each run exchanges the client credentials for a one hour access token with only the scopes a queue worker needs — no long-lived token ever reaches the repository.",
+        "githubInstall": "This workflow is a queue gate: it answers \"is there work?\" and it does not run an agent itself. Point the second job at your existing supported agent job (a Copilot CLI, Claude Code, or Codex step from the other tabs).",
+        "githubSchedule": "Commit the workflow for its 30-minute schedule, or use Run workflow in GitHub Actions to test it immediately. A quiet run stops after the scoped queue request, so an empty queue costs one API call rather than a whole agent boot."
+      },
+      "webhook": {
+        "title": "Webhook Configuration",
+        "description": "Configure a webhook URL to receive task notifications on your Claude Code Remote server",
+        "urlLabel": "Webhook URL",
+        "urlHint": "The URL of your Claude Code Remote server that will receive webhook notifications",
+        "enabledHint": "When enabled, webhooks will be sent for task assignments",
+        "agentsLabel": "Agents to Handle",
+        "agentsHint": "Select which AI agents this webhook should handle. Unselected agents will be handled by polling mode instead.",
+        "noAgents": "No agents selected. All tasks will be handled by polling mode.",
+        "secretLabel": "Webhook Secret",
+        "secretHint": "Regenerate the secret used for HMAC signature verification",
+        "regenerateOnSave": "Regenerate on save",
+        "saveSecretTitle": "Save Your Webhook Secret",
+        "envHint": "Add to your {file} file:",
+        "failureCount": "Failure Count",
+        "noFailures": "No failures",
+        "lastFired": "Last Fired",
+        "agentsHandled": "Agents Handled by Webhook",
+        "otherAgentsPolling": "Other agents will be handled by polling mode",
+        "subscribedEvents": "Subscribed Events",
+        "test": "Test Webhook",
+        "aboutTitle": "About webhook delivery",
+        "gettingStarted": "Getting Started",
+        "stepConfigureUrl": "Configure your webhook URL above",
+        "stepAssign": "Assign tasks to {agent}",
+        "eventsTitle": "Webhook Events"
       }
     },
     "apiAccess": {
@@ -520,6 +705,29 @@
         "title": "Do you need a client here?",
         "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
         "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant."
+      },
+      "apps": {
+        "loading": "Loading OAuth applications...",
+        "testNow": "Test API Now",
+        "subtitle": "Manage API access for your applications",
+        "newApp": "New App",
+        "empty": "No OAuth applications yet",
+        "createFirst": "Create Your First App",
+        "grantTypes": "Grant Types",
+        "redirectUris": "Redirect URIs",
+        "testTitle": "Test OAuth Application",
+        "testDescription": "Enter your client secret to obtain an access token and test the API",
+        "secretPlaceholder": "Enter your client secret",
+        "secretHint": "Your client secret was shown when you created this app",
+        "createTitle": "Create OAuth Application",
+        "createDescription": "Create a new OAuth client for API access",
+        "namePlaceholder": "My App",
+        "descriptionPlaceholder": "What this app does",
+        "mobileFullAccess": "Mobile App (Full Access)",
+        "readOnly": "Read Only",
+        "editTitle": "Edit OAuth Application",
+        "editDescription": "Update redirect URLs or other metadata required by your integrations.",
+        "selectToEdit": "Select an OAuth app to edit."
       }
     },
     "chatgpt": {
@@ -704,7 +912,19 @@
       "saveChanges": "Save Changes",
       "saving": "Saving...",
       "clickToChangePhoto": "Click to change profile picture",
-      "viewPublicProfile": "View Public Profile"
+      "viewPublicProfile": "View Public Profile",
+      "syncedWithOAuth": "Currently synced with your OAuth provider",
+      "uploading": "Uploading...",
+      "displayNamePlaceholder": "Enter your display name",
+      "toasts": {
+        "successTitle": "Success!",
+        "updated": "Your account information has been updated.",
+        "updateFailed": "Failed to update account information.",
+        "photoUploadedTitle": "Photo uploaded!",
+        "photoUploadedDesc": "Click 'Save Changes' to update your profile.",
+        "uploadFailedTitle": "Upload failed",
+        "uploadFailedDesc": "Failed to upload photo. Please try again."
+      }
     },
     "emailVerification": {
       "title": "Email Verification",
@@ -716,7 +936,10 @@
       "verificationSent": "Verification Email Sent!",
       "checkEmail": "Please check your email and click the verification link.",
       "pendingChange": "Pending email change",
-      "waitingVerification": "Waiting for verification"
+      "waitingVerification": "Waiting for verification",
+      "waitingVerificationFor": "Waiting for verification: {email}",
+      "unknownEmail": "Unknown",
+      "loadingEmail": "Loading..."
     },
     "passkeys": {
       "title": "Passkeys",
@@ -724,7 +947,24 @@
       "addPasskey": "Add a Passkey",
       "addingPasskey": "Adding passkey...",
       "noPasskeys": "No passkeys registered yet",
-      "addPasskeyHint": "Add a passkey for faster, passwordless sign-in"
+      "addPasskeyHint": "Add a passkey for faster, passwordless sign-in",
+      "loading": "Loading passkeys...",
+      "fallbackName": "Passkey",
+      "added": "Added {date}",
+      "synced": "Synced",
+      "tipBiometrics": "Passkeys use biometrics or device PIN for authentication",
+      "tipSynced": "Synced passkeys work across your devices automatically",
+      "tipSecure": "More secure than passwords - resistant to phishing",
+      "toasts": {
+        "addedTitle": "Passkey Added!",
+        "addedDesc": "Your new passkey has been registered.",
+        "renamedTitle": "Passkey Renamed",
+        "renamedDesc": "Your passkey has been renamed.",
+        "renameFailed": "Failed to rename passkey.",
+        "deletedTitle": "Passkey Deleted",
+        "deletedDesc": "Your passkey has been removed.",
+        "deleteFailed": "Failed to delete passkey."
+      }
     },
     "accountInfo": {
       "title": "Account Information",
@@ -759,7 +999,8 @@
       "confirmDescription": "This action is permanent and cannot be reversed.",
       "typeToConfirm": "Type {phrase} to confirm",
       "permanentlyDelete": "Permanently Delete Account",
-      "deleting": "Deleting..."
+      "deleting": "Deleting...",
+      "dialogWarning": "All your data will be permanently deleted, including tasks, lists, and files."
     },
     "appearancePage": {
       "title": "Appearance and User Experience",
@@ -781,7 +1022,8 @@
         "viewShortcuts": "View Shortcuts",
         "viewTitle": "View Keyboard Shortcuts",
         "viewDesc": "See all available keyboard shortcuts for efficient task management",
-        "quickAccess": "Press ? anywhere in the task manager to open keyboard shortcuts."
+        "quickAccess": "Press ? anywhere in the task manager to open keyboard shortcuts.",
+        "quickAccessLabel": "Quick Access"
       },
       "taskDisplayMode": {
         "title": "Task detail layout",
@@ -822,6 +1064,22 @@
         "configure": "Configure Email Settings",
         "configureDesc": "Customize default due dates, enable/disable the feature, and more",
         "proTip": "The email subject becomes your task title, and the body becomes the description. Perfect for quick task capture from your inbox!"
+      },
+      "tipLabel": "Pro Tip",
+      "smartTasks": {
+        "title": "Smart Task Creation",
+        "description": "Automatically parse dates, priorities, and list hashtags from task titles",
+        "enable": "Enable Smart Parsing",
+        "enableDesc": "Extract task metadata from natural language input",
+        "supportedPatterns": "Supported patterns:"
+      },
+      "subtasks": {
+        "title": "Sub tasks",
+        "description": "How sub tasks appear in your lists (synced across devices)",
+        "label": "Show sub tasks",
+        "labelDesc": "Indented in lists, or only inside the parent task",
+        "indented": "In lists, indented",
+        "underParent": "Inside parent task only"
       }
     },
     "customAgents": {
@@ -1008,7 +1266,9 @@
       "developer": {
         "title": "Developer",
         "description": "Create OAuth apps by hand, test the API, and connect assistants that speak OpenAPI.",
-        "openTester": "Open API tester"
+        "openTester": "Open API tester",
+        "apiDocs": "API Documentation",
+        "integrationGuide": "Integration Guide"
       },
       "github": {
         "title": "GitHub",
@@ -1072,6 +1332,75 @@
         "selectAtLeastOne": "Select at least one scope",
         "selectApp": "Select an app."
       }
+    },
+    "openInNewTab": "Open in new tab",
+    "githubSetup": {
+      "loading": "Loading GitHub setup...",
+      "authenticating": "Authenticating...",
+      "failedTitle": "Setup Failed",
+      "failedDescription": "There was an error setting up GitHub integration",
+      "errorDetail": "Error: {error}",
+      "returnToSettings": "Return to Settings",
+      "processingTitle": "Processing GitHub Setup",
+      "processingDescription": "Connecting your GitHub installation...",
+      "pleaseWait": "Please wait while we configure your GitHub integration...",
+      "connectedTitle": "GitHub Connected!",
+      "connectedDescription": "Your GitHub integration is ready to use",
+      "connectedBody": "You can now use the {appName} Agent to generate code and create pull requests.",
+      "continueToSettings": "Continue to Settings"
+    },
+    "tasksPage": {
+      "title": "Task Settings",
+      "description": "Configure default task behavior and email-to-task preferences",
+      "saved": "Settings saved successfully!",
+      "saveFailed": "Failed to save settings",
+      "emailDescription": "Create tasks by sending emails to {inboundTaskEmail}",
+      "enable": "Enable Email-to-Task",
+      "enableDesc": "Allow creating tasks via email",
+      "defaultDueDate": "Default Due Date",
+      "offset1Day": "1 day",
+      "offset3Days": "3 days",
+      "offset1Week": "1 week (default)",
+      "dueDateHint": "Tasks created via email will be due this many days from the send date",
+      "defaultDueTime": "Default Due Time",
+      "time0900": "9:00 AM",
+      "time1200": "12:00 PM (Noon)",
+      "time1700": "5:00 PM (default)",
+      "time2000": "8:00 PM",
+      "dueTimeHint": "Time of day for tasks created via email",
+      "howTo": "How to use Email-to-Task:",
+      "assignedTaskDesc": "CC {inboundTaskEmail} with one recipient in TO",
+      "subjectLine": "{subject} becomes task title",
+      "subject": "Subject",
+      "bodyLine": "{body} becomes task description",
+      "body": "Body",
+      "saveSettings": "Save Settings"
+    },
+    "calendar": {
+      "loading": "Loading calendar settings...",
+      "title": "Calendar Integration",
+      "description": "Sync your tasks with external calendar applications",
+      "enableSync": "Enable Calendar Sync",
+      "enableSyncDescription": "Allow your tasks to be exported to calendar applications",
+      "include": "What to include in calendar",
+      "onlyWithDue": "Only tasks with due dates/times",
+      "noneDisabled": "None (disabled)",
+      "export": "Calendar Export",
+      "downloadIcs": "Download Calendar File (.ics)",
+      "subscribe": "Subscribe to Live Calendar",
+      "subscribeDescription": "Live subscription that automatically updates as tasks change",
+      "howToUse": "How to use:",
+      "downloadLabel": "Download:",
+      "howDownload": "Import the .ics file once into Google Calendar, Apple Calendar, or Outlook",
+      "subscribeLabel": "Subscribe:",
+      "howSubscribe": "Add the webcal URL to automatically sync changes (recommended)",
+      "howAppear": "Your tasks will appear as all-day events or at their scheduled times",
+      "howUpdates": "Updates to tasks in {appName} will be reflected in subscribed calendars"
+    },
+    "defaultDueTime": {
+      "title": "Default Due Time",
+      "description": "Set the default time for new tasks when you select a due date",
+      "fallback": "New tasks with due dates will default to 5pm"
     }
   },
   "projectMode": {
@@ -1162,6 +1491,89 @@
     "memberAgentAssignment": {
       "label": "Members can hand any task to an agent",
       "help": "Lets every member of this list assign an agent to any task here, not only tasks they created. The agents run on the list owner's plans."
+    },
+    "admin": {
+      "descriptionLabel": "List Description",
+      "descriptionInfo": "The list description is used as instructions for AI agents that work in this list",
+      "preview": "Preview",
+      "charCount": "{count} chars",
+      "noInstructionsYet": "*No instructions yet*",
+      "instructionsPlaceholder": "Write instructions for AI agents working in this list...\n\nExample:\nYou help our family plan meals.\n\n## Goals\n- Suggest healthy recipes\n- Create weekly shopping lists\n\n## Guardrails\n- No shellfish (allergy)\n- Budget: $150/week",
+      "agentsReceive": "Agents receive this as their primary context. Supports markdown.",
+      "starterTemplates": "Starter templates",
+      "clickToEdit": "Click to edit",
+      "clickToAddInstructions": "Click to add agent instructions...",
+      "agentsUseGuidance": "AI agents use this as their primary guidance when working on tasks in this list",
+      "taskCreator": "Task Creator",
+      "memberNotFound": "Member not found",
+      "clickToSet": "Click to set...",
+      "defaultPriority": "Default Priority",
+      "defaultAssignee": "Default Assignee",
+      "selectDefaultAssignee": "Select default assignee...",
+      "defaultWhen": "Default When",
+      "nextWeek": "Next Week",
+      "noDefaultWhenButton": "No Default When",
+      "noDefaultWhen": "No default when",
+      "defaultRepeating": "Default Repeating",
+      "defaultWhenTime": "Default When Time",
+      "noDefaultTime": "No default time",
+      "timezone": "Timezone: {timezone}",
+      "deleteList": "Delete List",
+      "deleteConfirm": "Are you sure you want to delete \"{name}\"?",
+      "deleteWarning": "This action cannot be undone. All tasks in this list will remain but will no longer be associated with this list.",
+      "dontDelete": "Don't Delete",
+      "notConnected": "Not connected.",
+      "connect": "Connect",
+      "unlink": "Unlink",
+      "mirrorPlaceholder": "Choose where to mirror this list",
+      "externalSyncTitle": "External sync",
+      "externalSyncDescription": "Mirror this list to another service and back, through your connected account.",
+      "aiAgent": "AI Agent",
+      "modelForList": "{appName} model for this list",
+      "useAccountDefault": "Use account default",
+      "modelHint": "Powers {appName} in this list's chat and comments. Coding agents assigned to tasks keep their own runtime.",
+      "repositoryLabel": "Repository the coding agent works in",
+      "loading": "Loading...",
+      "selectRepo": "Select repo",
+      "noRepositories": "No repositories found. Check that the GitHub App has access to your repositories.",
+      "connectGithub": "Connect GitHub to pick the repository a coding agent works in — {link}",
+      "connectGithubLink": "Settings → Connections → GitHub",
+      "runLoop": "Run a loop for this list",
+      "loopDescription": "Your coding harness checks this list on a schedule and works whatever is assigned to it and marked {ready}. Tasks on other boards are never touched.",
+      "readyStatus": "Ready",
+      "descriptionHint": "Agents read this list's {description} as their working instructions — edit it above like a project brief.",
+      "descriptionWord": "description",
+      "listId": "List ID",
+      "copyListId": "Copy List ID",
+      "listIdHint": "Use this ID for OAuth API integrations and coding agents",
+      "listName": "List Name",
+      "statusesIntro": "Ready, Doing and Waiting apply to {all} of your boards. A status you add here belongs to this board only.",
+      "statusesIntroAll": "all",
+      "saveName": "Save name",
+      "moveUp": "Move {name} up",
+      "moveDown": "Move {name} down",
+      "renameStatus": "Rename {name}",
+      "deleteStatus": "Delete {name}",
+      "newStatusName": "New status name",
+      "renameStatusFailed": "Failed to rename status",
+      "reorderStatusFailed": "Failed to reorder status",
+      "deleteStatusFailed": "Failed to delete status",
+      "addStatusFailed": "Failed to add status",
+      "recentlyCompletedLabel": "Advanced — Recently completed window",
+      "recentlyCompletedDescription": "How long completed tasks stay visible in the default view (and in the Done column on boards). Older completed tasks are filtered out; switch the list to “Completed” or “All” to see them."
+    },
+    "filters": {
+      "allAssignees": "All assignees",
+      "notMe": "Not me (others)",
+      "allCreators": "All creators",
+      "notRepeating": "Not repeating",
+      "inAnyList": "Tasks in any list",
+      "notInAnyList": "Tasks not in any list",
+      "clearAllFilters": "Clear All Filters",
+      "removeFromFavorites": "Remove from Favorites",
+      "makeFavorite": "Make Favorite",
+      "savedFilter": "Saved Filter",
+      "savedFilterDescription": "Show tasks based on filter settings, not list membership"
     }
   },
   "reminderSettings": {
@@ -1170,7 +1582,32 @@
     "emailReminders": "Email Reminders",
     "defaultReminderTime": "Default Reminder Time",
     "dailyDigest": "Daily Digest",
-    "quietHours": "Quiet Hours"
+    "quietHours": "Quiet Hours",
+    "description": "Configure when and how you receive task reminders",
+    "pushDescription": "Receive instant notifications in your browser",
+    "enablePush": "Enable Push Notifications",
+    "pushBlocked": "Push notifications are blocked. Enable them in your browser settings to receive task reminders.",
+    "emailDescription": "Receive reminder emails for due tasks",
+    "defaultReminderTimeDescription": "When to remind you before tasks are due",
+    "dailyDigestDescription": "Get a daily summary of your tasks",
+    "quietHoursDescription": "Disable notifications during these hours (optional)",
+    "push": {
+      "description": "Get notified about task reminders and updates even when the app is closed",
+      "status": "Notification Status",
+      "enableDescription": "Receive task reminders and notifications",
+      "blockedIntro": "Notifications are blocked. To enable:",
+      "blockedChrome": "Click the lock icon in the address bar → Notifications → Allow",
+      "blockedFirefox": "Click the shield icon → Permissions → Allow notifications",
+      "blockedSafari": "Safari → Settings → Websites → Notifications → Allow",
+      "installTitle": "For best experience, install this app:",
+      "installMobileLabel": "Mobile:",
+      "installMobile": "Tap \"Add to Home Screen\" in your browser menu",
+      "installDesktopLabel": "Desktop:",
+      "installDesktop": "Look for the install icon in the address bar",
+      "installPwaLabel": "PWA benefits:",
+      "installPwa": "Notifications work even when the app is closed",
+      "sendTest": "Send Test Notification"
+    }
   },
   "keyboardShortcuts": {
     "title": "Keyboard Shortcuts",
@@ -1181,16 +1618,20 @@
       "taskEditing": "Task Editing",
       "priority": "Priority",
       "interface": "Interface"
-    }
+    },
+    "chatHint": "Use in chat messages and task comments"
   },
   "commandPalette": {
     "label": "Command Palette",
     "searchPlaceholder": "Search commands...",
     "enterToSelect": "Enter to select",
-    "escToClose": "Esc to close"
+    "escToClose": "Esc to close",
+    "noCommands": "No commands found"
   },
   "userPicker": {
-    "optionalMessage": "Optional message..."
+    "optionalMessage": "Optional message...",
+    "sendInvite": "Send Invite",
+    "assignAnyway": "Assign Anyway"
   },
   "astridAgent": {
     "modelSetup": {
@@ -1246,5 +1687,322 @@
       "hours": "{n} h",
       "days": "{n} d"
     }
+  },
+  "codingAgentPage": {
+    "getStarted": "Get Started",
+    "heroTitle": "{appName} Agent",
+    "heroSubtitle": "AI-powered coding assistant that writes code, creates PRs, and deploys automatically",
+    "badgeProductionReady": "Production-ready code",
+    "badgeGithub": "GitHub integration",
+    "badgeAutoDeploy": "Auto deployment",
+    "installGithubApp": "Install GitHub App",
+    "tryFree": "Try {appName} Free",
+    "features": {
+      "codeGenerationTitle": "Code Generation",
+      "codeGenerationDesc": "AI generates production-ready code from natural language descriptions",
+      "githubPrsTitle": "GitHub PRs",
+      "githubPrsDesc": "Automatically creates GitHub pull requests with proper branching",
+      "livePreviewsTitle": "Live Previews",
+      "livePreviewsDesc": "Instant staging deployments via Vercel integration",
+      "commentActionsTitle": "Comment Actions",
+      "commentActionsDesc": "Control with simple comments: \"approve\", \"merge\", \"change X\""
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "description": "Complete workflow from task to production deployment",
+      "assignTitle": "Assign Task",
+      "assignDesc": "Create a task and assign it to \"{appName} Agent\"",
+      "planningTitle": "AI Planning",
+      "planningDesc": "Agent analyzes requirements and creates implementation plan",
+      "reviewTitle": "Review & Approve",
+      "reviewDesc": "Comment \"approve\" to start code generation",
+      "generateTitle": "Code Generation",
+      "generateDesc": "Agent writes code, creates GitHub branch and PR",
+      "previewTitle": "Live Preview",
+      "previewDesc": "Get instant staging deployment if Vercel is connected",
+      "deployTitle": "Deploy",
+      "deployDesc": "Comment \"merge\" to deploy or \"change X\" for modifications"
+    },
+    "githubApp": {
+      "title": "Official GitHub App",
+      "description": "Secure, maintained, and trusted by developers worldwide",
+      "quickSetupTitle": "Quick Setup",
+      "quickSetupDesc": "No GitHub App creation needed - just install and connect in minutes",
+      "secureTitle": "Secure & Trusted",
+      "secureDesc": "Official app maintained by the {appName} team with proper security practices",
+      "sharedTitle": "Shared & Maintained",
+      "sharedDesc": "Used by all {appName} users - no individual app management required"
+    },
+    "controls": {
+      "title": "Simple Comment Controls",
+      "description": "Control the agent with natural language comments",
+      "approveDesc": "Approves AI plan and starts implementation",
+      "mergeDesc": "Merges PR to production",
+      "changeDesc": "Requests modifications with specific feedback"
+    },
+    "cta": {
+      "title": "Ready to Transform Your Development?",
+      "subtitle": "Join thousands of developers using AI to ship faster than ever",
+      "startTrial": "Start Free Trial"
+    },
+    "footerNote": "© 2024 {appName}. All rights reserved. Powered by AI to accelerate your development workflow."
+  },
+  "signInPage": {
+    "downloadOnAppStore": "Download on the App Store",
+    "title": "Sign in to get started!",
+    "passkey": "Passkey",
+    "continuing": "Continuing...",
+    "passkeysNotSupported": "Passkeys not supported in this browser",
+    "newUser": "New?",
+    "returningUser": "Returning?",
+    "emailPlaceholder": "Enter your email",
+    "creatingAccount": "Creating account...",
+    "signingIn": "Signing in...",
+    "backToOptions": "Back to options",
+    "agreement": "By signing in, you agree to our {terms} and {privacy}",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy",
+    "havingTrouble": "Having trouble?",
+    "visitHelpCenter": "Visit our Help Center",
+    "organizeTitle": "Organize Your Tasks",
+    "organizeDesc": "Create private, shared, and public lists to manage your work and life",
+    "collaborateTitle": "Collaborate with Teams",
+    "collaborateDesc": "Share lists with admins and set default task settings for consistency",
+    "discoverTitle": "Discover Public Tasks",
+    "discoverDesc": "Browse and copy tasks from public lists shared by the community"
+  },
+  "authErrors": {
+    "signInUnexpected": "An unexpected error occurred during sign in",
+    "emailRequired": "Please enter your email address",
+    "configuration": "There is a problem with the server configuration.",
+    "configurationDetailed": "There is a problem with the server configuration. Please check your environment variables.",
+    "accessDenied": "Access denied. You do not have permission to sign in.",
+    "verification": "The verification token has expired or has already been used.",
+    "oauthSignin": "Error in constructing an authorization URL. Please check your OAuth configuration.",
+    "oauthCallback": "Error in handling the response from an OAuth provider.",
+    "oauthCreateAccount": "Could not create OAuth account.",
+    "emailCreateAccount": "Could not create email account.",
+    "callback": "Error in the OAuth callback handler route.",
+    "oauthAccountNotLinked": "An account with this email already exists. Please try signing in again - we'll link your Google account automatically.",
+    "emailSignin": "Sending the e-mail with the verification token failed.",
+    "sessionRequired": "The content of this page requires you to be signed in at all times.",
+    "default": "An error occurred during authentication. Please try again or contact support.",
+    "unexpected": "An unexpected error occurred during authentication."
+  },
+  "authErrorPage": {
+    "title": "Authentication Error",
+    "description": "Something went wrong during the sign-in process",
+    "tryAgain": "Try Again",
+    "goHome": "Go Home",
+    "loading": "Loading..."
+  },
+  "verifyEmailPage": {
+    "verifiedTitle": "Email Verified!",
+    "failedTitle": "Verification Failed",
+    "expiredTitle": "Link Expired",
+    "defaultTitle": "Email Verification",
+    "redirecting": "Redirecting to settings in a few seconds...",
+    "goToSettings": "Go to Settings",
+    "sending": "Sending...",
+    "resend": "Resend Verification Email",
+    "sendNew": "Send New Verification Email",
+    "backToApp": "Back to App",
+    "expiredBody": "The verification link has expired. You can request a new one from your account settings.",
+    "verificationFailed": "Verification failed. Please try again.",
+    "noToken": "No verification token provided",
+    "resent": "Verification email resent. Please check your inbox.",
+    "resendFailed": "Failed to resend verification email"
+  },
+  "desktopSignInPage": {
+    "invalidTitle": "This sign-in link is not valid",
+    "invalidBody": "Start sign-in again from the app. Links here are generated by the app and are not meant to be typed by hand.",
+    "returnHome": "Return home",
+    "title": "Sign in to {app}",
+    "signedInAs": "You are signed in as {email}. Continue to hand this session to the app on this computer.",
+    "codeNote": "The app receives a single-use code that expires in five minutes, and only the copy of the app that started this sign-in can redeem it.",
+    "notExpecting": "Not expecting this?",
+    "closePage": "Close this page",
+    "nothingHandedOver": "and nothing is handed over.",
+    "continuingTo": "Continuing to {provider}",
+    "singleSignOn": "single sign-on",
+    "comeBack": "Sign in, and you will come back here to finish signing in to {app}.",
+    "nothingHappening": "Nothing happening?",
+    "chooseAnother": "Choose another way to sign in",
+    "opening": "Opening {app}…",
+    "closeTab": "You can close this tab. If {app} did not open, return to it and start sign-in again.",
+    "preparing": "Preparing…",
+    "open": "Open {app}",
+    "startFailed": "Could not start the hand-off. Please try again.",
+    "unreachable": "Could not reach the server. Check your connection and try again."
+  },
+  "oauthAuthorizePage": {
+    "unableTitle": "Unable to Continue",
+    "invalidRequest": "The authorization request is invalid. Please double-check the link and try again.",
+    "errorCode": "Error code:",
+    "goToConnections": "Go to Connections",
+    "returnHome": "Return Home",
+    "header": "Authorize {appName} Integration",
+    "oauthApp": "OAuth App",
+    "defaultDescription": "This application is requesting access to your {appName} account.",
+    "requestingAs": "Requesting access as",
+    "yourAccount": "Your account",
+    "developedBy": "Developed by {owner}",
+    "brandUser": "{appName} user",
+    "dynamicallyRegistered": "Dynamically registered by your MCP client",
+    "permissionsTitle": "Requested Permissions",
+    "permissionsIntro": "This app will be able to:",
+    "scope": "Scope:",
+    "grantTitle": "Grant Access",
+    "grantDescription": "Allow {client} to access your {appName} data with the permissions above.",
+    "deny": "Deny",
+    "approve": "Approve Access",
+    "approveAs": "Approve Access as {agent}",
+    "tokenNote": "Tokens expire after 1 hour. Refresh tokens remain valid for 30 days or until revoked from Settings → Connections."
+  },
+  "invitePage": {
+    "errorTitle": "Invitation Error",
+    "noLongerValid": "This invitation is no longer valid.",
+    "acceptedTitle": "Invitation Accepted!",
+    "acceptedBody": "You've successfully joined the collaboration. Redirecting to the app...",
+    "someone": "Someone",
+    "taskTitle": "Task Assignment",
+    "taskDesc": "{sender} has assigned you a task and wants you to collaborate.",
+    "listTitle": "List Sharing",
+    "listDesc": "{sender} has shared a task list with you.",
+    "workspaceTitle": "Workspace Invitation",
+    "workspaceDesc": "{sender} has invited you to join their workspace.",
+    "defaultTitle": "Collaboration Invitation",
+    "defaultDesc": "{sender} has invited you to collaborate.",
+    "messageLabel": "Message:",
+    "expires": "Expires {date}",
+    "emailMismatch": "⚠️ This invitation was sent to {invited}, but you're signed in as {current}. Please sign in with the correct account.",
+    "expiredBadge": "Expired",
+    "expiredBody": "This invitation has expired.",
+    "signInToAccept": "Sign In to Accept",
+    "redirectNote": "You'll be redirected to sign in with {email}",
+    "accepting": "Accepting...",
+    "accept": "Accept Invitation",
+    "signInCorrectAccount": "Sign In with Correct Account",
+    "decline": "Decline",
+    "notFound": "Invitation not found",
+    "loadFailed": "Failed to load invitation",
+    "acceptFailed": "Failed to accept invitation",
+    "declined": "Invitation declined",
+    "declineFailed": "Failed to decline invitation"
+  },
+  "downloadPage": {
+    "title": "Download {appName}",
+    "subtitle": "Native apps that stay in sync with everything you have on the web.",
+    "macTitle": "{appName} for Mac",
+    "macRelease": "Version {version} · {size} · Released {published}",
+    "macRequirements": "Universal · macOS 14 Sonoma or later",
+    "downloadForMac": "Download for Mac",
+    "viewReleases": "View releases",
+    "featureQuickAdd": "Menu-bar quick add and global hotkey",
+    "featureViews": "Board, list, and calendar views",
+    "featureOffline": "Works offline, syncs when you reconnect",
+    "featureApple": "Apple Reminders and Calendar integration",
+    "installNote": "Open the DMG and drag {appName} to your Applications folder. The app is signed and notarized by Apple, so it opens without extra steps. macOS 14 or later.",
+    "iosTitle": "{appName} for iPhone & iPad",
+    "iosBeta": "Currently in TestFlight beta",
+    "joinBeta": "Join the beta",
+    "preferBrowser": "Prefer the browser?",
+    "useOnWeb": "Use {appName} on the web"
+  },
+  "errorPages": {
+    "errorDescription": "An unexpected error occurred. We apologize for the inconvenience.",
+    "tryAgain": "Try again",
+    "goHome": "Go home",
+    "notFoundTitle": "Page Not Found",
+    "notFoundDescription": "The page you're looking for doesn't exist or has been moved.",
+    "notFoundGoHome": "Go Home",
+    "pageNotFound": "Page not found",
+    "listUnavailableTitle": "List Not Available",
+    "goToDashboard": "Go to Dashboard",
+    "listNotFound": "List not found",
+    "listAccessDenied": "Access denied. You don't have permission to view this list.",
+    "listLoadFailed": "Failed to load list",
+    "linkErrorTitle": "Link Error",
+    "linkNotFound": "Link not found or expired",
+    "linkResolveFailed": "Failed to resolve link",
+    "linkTaskNotFound": "Task not found or no longer accessible",
+    "linkTaskForbidden": "You don't have permission to view this task",
+    "linkInvalidType": "Invalid link type"
+  },
+  "profilePage": {
+    "loading": "Loading profile...",
+    "notFound": "Profile not found",
+    "goBack": "Go Back",
+    "badge": "Profile",
+    "aiAgent": "AI Agent",
+    "joined": "Joined {date}",
+    "completedDesc": "Tasks completed",
+    "inspired": "Inspired",
+    "inspiredDesc": "Tasks created, completed or copied by others",
+    "supported": "Supported",
+    "supportedDesc": "Comments on others' tasks",
+    "yourTasks": "Your Tasks",
+    "sharedWith": "Shared Tasks with {name}",
+    "noShared": "No tasks shared with {name} yet",
+    "userNotFound": "User not found",
+    "signInRequired": "Please sign in to view user profiles",
+    "loadFailedDetail": "Failed to load user profile: {error}",
+    "loadFailed": "Failed to load user profile",
+    "unknownError": "Unknown error"
+  },
+  "startPage": {
+    "backToDocs": "Back to docs",
+    "step": "Step {n} — {title}",
+    "heading": "Run your software business with agents — from one {appName}",
+    "intro": "{appName} is the shared to-do list your agents and teammates all work from. Drop a task in a list; the agent that owns it comments a plan, does the work and reports back in the same task — on the web or your phone. Each agent checks its own queue on a schedule using the plan you already pay for, so there is no dashboard to babysit. For teams of 1 to 10.",
+    "shapeTitle": "The shape: five lists, one agent each",
+    "shapeDescription": "You only need the agents you pay for — skip a row and keep that list for yourself.",
+    "createTitle": "Create the lists (2 minutes)",
+    "listsReady": "Your lists are ready",
+    "createLists": "Create my lists",
+    "signInToCreate": "Sign in to create them",
+    "seeInstructions": "See the list instructions",
+    "connectTitle": "Connect the agents you pay for",
+    "workTitle": "Work (every day)",
+    "workAddTask": "Add a task to the list whose agent should do it — it is assigned automatically.",
+    "workAgentReports": "The agent comments its plan, does the work and reports back with a pull request link.",
+    "workReply": "Reply in the comments from anywhere. You merge and deploy.",
+    "workRecurring": "Recurring work: make the task repeat (daily, weekly) and it re-queues itself.",
+    "teamTitle": "Add teammates (optional, 2–10 people)",
+    "reference": "Reference",
+    "everyRecipe": "Every harness recipe",
+    "mcpTokens": "MCP connection & tokens",
+    "agentSettings": "Agent settings",
+    "createCiToken": "Create a GitHub Actions token"
+  },
+  "richTextInput": {
+    "placeholder": "Type a message...",
+    "timer": "Timer",
+    "uploading": "Uploading...",
+    "attachFile": "Attach file",
+    "removeFile": "Remove {name}"
+  },
+  "chat": {
+    "inputPlaceholder": "Message list...",
+    "empty": "No messages yet. Start the conversation!",
+    "loadFailed": "Failed to load chat"
+  },
+  "notificationBell": {
+    "markAllRead": "Mark all read",
+    "allCaughtUp": "You are all caught up."
+  },
+  "admin": {
+    "navDescription": "Manage access, analytics, and feature availability.",
+    "navLabel": "Admin sections"
+  },
+  "pwa": {
+    "notNow": "Not now",
+    "syncing": "Syncing changes..."
+  },
+  "attachmentViewer": {
+    "closeEsc": "Close (Esc)",
+    "videoUnsupported": "Your browser does not support the video tag.",
+    "noPreview": "Preview not available for this file type",
+    "downloadFile": "Download File"
   }
 }
