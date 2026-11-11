@@ -90,6 +90,8 @@ and stack versions with `npm run check:docs`.
 - **[Spec: Task Identifiers](./specs/TASK_IDENTIFIERS.md)** - Decided (AWTD-1010): short ids like `AWTD-1007` / `#1007` — uniqueness across astrid.cc, typing, visibility, where each client shows them
 
 ### 🎨 UI & Design
+- **[Spec: The Astrid Design System](./specs/DESIGN_SYSTEM.md)** - Decided, partly built: one token source in astrid-core with iOS and Mac as the reference, generated per platform; themes as data; component specs; what a platform may do differently
+- **[Design tokens (vendored)](../packages/astrid-design/README.md)** - astrid-core's generated tokens at a pinned revision; never edited here
 - **[Layout System](./LAYOUT_SYSTEM.md)** - ⚠️ **Critical**: Mobile vs Column Layout distinction, responsive breakpoints
 
 ### 💬 Chat & Messaging

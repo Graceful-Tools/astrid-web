@@ -792,6 +792,17 @@
         "listDesc": "La casella completa l'attività, e priorità e assegnatario hanno ciascuno la propria riga.",
         "projectDesc": "Compatto. Toccando la casella si aprono priorità, assegnatario, stato e completa."
       },
+      "taskTitles": {
+        "title": "Titoli delle attività",
+        "description": "Quanta parte di un titolo lungo mostra la riga di un'attività (salvato su questo dispositivo)",
+        "label": "Righe",
+        "optionwrap": "A capo",
+        "option2": "Due righe",
+        "option1": "Una riga",
+        "descwrap": "Viene mostrato l'intero titolo, su tutte le righe necessarie.",
+        "desc2": "I titoli si fermano a due righe.",
+        "desc1": "I titoli restano su una riga."
+      },
       "emailToTask": {
         "title": "Email a Attività",
         "description": "Crea attività istantaneamente inviando email a {inboundTaskEmail}",

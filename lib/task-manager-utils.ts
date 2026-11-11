@@ -9,6 +9,7 @@ import {
 import type { WeeklyRepeatingPattern, Weekday } from '@/types/repeating'
 import { getNLPKeywords, type NLPKeywords } from '@/lib/i18n/nlp-keywords'
 import { createLogger } from '@/lib/logger'
+import { priorityTextClass } from '@/lib/design/priority'
 import { isSystemListId } from "@/lib/list-permissions"
 
 const log = createLogger('task-manager-utils')
@@ -555,16 +556,7 @@ export function getMyTasksFilterText(filters: {
  * Maps priority (0-3) to corresponding color
  */
 export function getPriorityColorClass(priority: number): string {
-  switch (priority) {
-    case 3: // Highest priority - red
-      return 'text-red-500'
-    case 2: // High priority - orange/yellow
-      return 'text-orange-500'
-    case 1: // Medium priority - blue
-      return 'text-blue-500'
-    case 0: // Low/no priority - gray
-      return 'text-gray-400'
-    default:
-      return 'text-gray-400'
-  }
+  // One colour per priority, from the design tokens. This used to answer
+  // orange for 2 where the row drew amber and the pickers yellow.
+  return priorityTextClass(priority)
 }

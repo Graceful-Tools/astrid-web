@@ -593,6 +593,14 @@ Distilled from recurring friction across sessions. These apply to **every** AI a
   The quick-add parser `parseTaskInput` runs only in the browser, so it stays
   TypeScript; `core-rules-smart-parity.test.ts` pins it to the core's
   `smartParse` (what iOS and the Mac run).
+- **Colours and other design values** come from the design tokens
+  (`packages/astrid-design`, vendored from astrid-core). Use `var(--astrid-*)` or
+  the `theme-*` classes, and `lib/design/priority.ts` for priority; never write a
+  shared colour out. A design change starts in the iOS/Mac app, then astrid-core's
+  token source. See [docs/specs/DESIGN_SYSTEM.md](./docs/specs/DESIGN_SYSTEM.md).
+  `npm run check:design` counts hand-written colours, sizes, durations and JSX copy
+  and fails when a count rises; after lowering one, run
+  `npm run design:metrics -- --update` in the same change.
 - **User-facing copy** lives in i18n locale files (`lib/i18n/locales/*.json`) —
   use `t("…")`, never a string literal in JSX. Keep key names mirrored with the
   Apple app's `Localizable.strings` where the string is shared.
@@ -972,6 +980,8 @@ The `packages/` directory contains reusable SDK and tool packages:
 |---------|-------------|
 | `astrid-sdk` | Multi-provider AI agent SDK for building integrations. Run your own agent host with `npx astrid-agent`. |
 | `openclaw-astrid-channel` | OpenClaw channel adapter |
+| `astrid-rules` | astrid-core's rules as WebAssembly, at a pinned revision |
+| `astrid-design` | astrid-core's design tokens (colours, spacing, type, motion), at a pinned revision. Never edited here: `scripts/sync-design-tokens.sh` |
 
 Each package has its own README with setup and usage instructions.
 

@@ -3,6 +3,7 @@ import {
   getPriorityColor,
   taskLeadingControlKind,
 } from '@/lib/task-leading-control'
+import { themeColor } from '@/lib/design/tokens'
 
 /**
  * The leading control answers "whose task is this?" and it has THREE answers,
@@ -59,15 +60,24 @@ describe('taskLeadingControlKind (task 2bb1b196)', () => {
 })
 
 describe('getPriorityColor (task 2bb1b196)', () => {
-  it('maps each priority to the colour every call site was already using', () => {
-    expect(getPriorityColor(3)).toBe('rgb(239, 68, 68)')
-    expect(getPriorityColor(2)).toBe('rgb(251, 191, 36)')
-    expect(getPriorityColor(1)).toBe('rgb(59, 130, 246)')
-    expect(getPriorityColor(0)).toBe('rgb(107, 114, 128)')
+  // The colours every call site was already using, now read from the design
+  // tokens rather than written out here (docs/specs/DESIGN_SYSTEM.md).
+  it('maps each priority to its design token', () => {
+    expect(getPriorityColor(3)).toBe('rgb(var(--astrid-priority-high))')
+    expect(getPriorityColor(2)).toBe('rgb(var(--astrid-priority-medium))')
+    expect(getPriorityColor(1)).toBe('rgb(var(--astrid-priority-low))')
+    expect(getPriorityColor(0)).toBe('rgb(var(--astrid-priority-none))')
+  })
+
+  it('and the tokens hold the values the square has always drawn', () => {
+    expect(themeColor('light', 'priority-high')).toEqual([239, 68, 68])
+    expect(themeColor('light', 'priority-medium')).toEqual([251, 191, 36])
+    expect(themeColor('light', 'priority-low')).toEqual([59, 130, 246])
+    expect(themeColor('light', 'priority-none')).toEqual([107, 114, 128])
   })
 
   it('falls back to the no-priority grey for out-of-range values', () => {
-    expect(getPriorityColor(-1)).toBe('rgb(107, 114, 128)')
-    expect(getPriorityColor(99)).toBe('rgb(107, 114, 128)')
+    expect(getPriorityColor(-1)).toBe('rgb(var(--astrid-priority-none))')
+    expect(getPriorityColor(99)).toBe('rgb(var(--astrid-priority-none))')
   })
 })
