@@ -43,10 +43,12 @@ describe('TaskLeadingControl repeating marks (AWTD-1571)', () => {
     expect(screen.getByText('U')).toBeInTheDocument()
   })
 
-  it("AWTD-1576: the repeat frame is the checkbox's own 32px, so repeating rows line up", () => {
+  // AWTD-1574 moved the size itself to the token (34); the rule is unchanged:
+  // the frame is the size of every other leading control.
+  it("AWTD-1576: the repeat frame is the checkbox's own size, so repeating rows line up", () => {
     renderControl({ assigneeId: 'other', assignee: { name: 'Ada Lovelace' }, repeating: true })
     const frame = screen.getByTestId('repeat-frame')
-    expect(frame).toHaveClass('h-8', 'w-8')
+    expect(frame).toHaveClass('h-leading-control', 'w-leading-control')
     expect(frame).not.toHaveClass('w-10')
   })
 

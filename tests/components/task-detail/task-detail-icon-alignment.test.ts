@@ -10,13 +10,18 @@
  * So this is not a fix. It is the test that was missing while the alignment
  * happened to be right.
  *
- * `task-field-row.test.tsx` already asserts `FIELD_ICON_COLUMN_CLASS` is `w-8`
- * and the gap is `gap-2`. That pins two of the three terms. The third — the
+ * `task-field-row.test.tsx` already asserts `FIELD_ICON_COLUMN_CLASS` is the
+ * leading control's width and the gap is `gap-2`. That pins two of the three terms. The third — the
  * PADDING of the container each row sits in — lives in two different files, and
  * nothing compared them:
  *
- *     header row:  TaskHeader.tsx        p-4  + leading control w-8 + gap-2 → 56
- *     field rows:  task-detail.tsx       p-4  + icon column     w-8 + gap-2 → 56
+ *     header row:  TaskHeader.tsx        p-4  + leading control + gap-2 → 58
+ *     field rows:  task-detail.tsx       p-4  + icon column     + gap-2 → 58
+ *
+ * AWTD-1574: the leading control is the design token's size (34, register DS4),
+ * not a literal `w-8` (32), so both rows moved from 56 to 58 together. The
+ * token's own figure is 62 because its gap is 12; web's gap is still 8
+ * (register DS11).
  *
  * Change one `p-4` to `p-6` and every existing assertion still passes while the
  * icons visibly drift from the checkbox — which is exactly the defect being
@@ -35,6 +40,7 @@ import {
   FIELD_ICON_COLUMN_CLASS,
   FIELD_ROW_GAP_CLASS,
 } from '@/components/task-detail/TaskFieldRow'
+import { LEADING_CONTROL_SIZE } from '@/lib/design/tokens'
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8')
 
@@ -42,8 +48,12 @@ const headerSrc = read('components/task-detail/TaskHeader.tsx')
 const paneSrc = read('components/task-detail.tsx')
 const leadingSrc = read('components/task-leading-control.tsx')
 
-/** Tailwind spacing scale, in px, for the few steps these containers use. */
+/**
+ * Tailwind spacing scale, in px, for the few steps these containers use.
+ * `leading-control` is the token (tailwind.config.ts → spacing).
+ */
 const SPACING_PX: Record<string, number> = {
+  'leading-control': LEADING_CONTROL_SIZE,
   '0': 0, '0.5': 2, '1': 4, '1.5': 6, '2': 8, '2.5': 10, '3': 12, '4': 16, '5': 20, '6': 24, '8': 32,
 }
 
@@ -55,9 +65,9 @@ function px(token: string, kind: 'p' | 'w' | 'gap'): number {
   return value
 }
 
-/** `w-8` → 32. */
+/** `w-leading-control` → 34, `w-8` → 32. */
 function widthOf(cls: string): number {
-  const m = cls.match(/\bw-([\d.]+)\b/)
+  const m = cls.match(/\bw-(leading-control|[\d.]+)\b/)
   if (!m) throw new Error(`task-detail alignment: no w-* in "${cls}"`)
   return px(m[1], 'w')
 }
@@ -119,10 +129,14 @@ describe('task detail: field icons align with the title checkbox (AWTD-1177)', (
     const titleLeft = headerPadding + leadingWidth + gap
     const valueLeft = fieldsPadding + widthOf(FIELD_ICON_COLUMN_CLASS) + gap
 
-    // 16 + 32 + 8 = 56, both rows. Measured in a real browser as x=58 for both,
-    // the extra 2px being the leading control's own border.
+    // 16 + 34 + 8 = 58, both rows (AWTD-1574: the control is the token's 34).
     expect(valueLeft).toBe(titleLeft)
-    expect(titleLeft).toBe(56)
+    expect(titleLeft).toBe(58)
+  })
+
+  it('AWTD-1574: the leading control is the design token, 34', () => {
+    expect(leadingWidth).toBe(34)
+    expect(leadingSrc).toMatch(/const SQUARE_CLASS = "w-leading-control h-leading-control /)
   })
 
   it('centres the icon column on the leading control', () => {
