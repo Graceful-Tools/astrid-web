@@ -1,13 +1,13 @@
 /* Ocean Theme Variables - Light theme with cyan background */
 .ocean {
   /* Background colors - Cyan ocean background (#88DCF8) */
-  --theme-bg-primary: 136, 220, 248;
-  --theme-bg-secondary: 249, 250, 251;
-  --theme-bg-tertiary: 243, 244, 246;
-  --theme-bg-hover: 255, 255, 255;
-  --theme-bg-active: 229, 231, 235;
-  --theme-bg-selected: 239, 246, 255;
-  --theme-bg-selected-border: 59, 130, 246;
+  --theme-bg-primary: var(--astrid-bg-primary);
+  --theme-bg-secondary: var(--astrid-bg-secondary);
+  --theme-bg-tertiary: var(--astrid-bg-tertiary);
+  --theme-bg-hover: var(--astrid-bg-hover);
+  --theme-bg-active: var(--astrid-bg-active);
+  --theme-bg-selected: var(--astrid-bg-selected);
+  --theme-bg-selected-border: var(--astrid-bg-selected-border);
 
   /* Surface colors - White cards (same as light) */
   --theme-surface: 255, 255, 255;
@@ -15,33 +15,33 @@
   --theme-surface-raised: 255, 255, 255;
 
   /* Border colors (same as light) */
-  --theme-border: 229, 231, 235;
-  --theme-border-hover: 209, 213, 219;
-  --theme-border-focus: var(--brand-accent-rgb, 59, 130, 246);
-  --theme-border-input: 209, 213, 219;
+  --theme-border: var(--astrid-border);
+  --theme-border-hover: var(--astrid-border-hover);
+  --theme-border-focus: var(--astrid-border-focus);
+  --theme-border-input: var(--astrid-border-input);
 
   /* Text colors. NOT the light theme's: those were chosen for white, and
      grey-500 muted text on this cyan measured 3.1:1, under WCAG AA (AWTD-1496).
      One step darker each keeps secondary above muted and passes on the cyan,
      the white cards and the grey panels (tests/styles/ocean-theme-contrast). */
-  --theme-text-primary: 0, 0, 0;
-  --theme-text-secondary: 55, 65, 81;
-  --theme-text-muted: 75, 85, 99;
-  --theme-text-inverted: 255, 255, 255;
-  --theme-text-selected: 0, 0, 0;
+  --theme-text-primary: var(--astrid-text-primary);
+  --theme-text-secondary: var(--astrid-text-secondary);
+  --theme-text-muted: var(--astrid-text-muted);
+  --theme-text-inverted: var(--astrid-text-inverted);
+  --theme-text-selected: var(--astrid-text-selected);
 
   /* Interactive colors (same as light) */
   /* Brand accent when a partner sets one (app/[locale]/layout.tsx publishes the
      triplets); the literals are Astrid's designed values and stay the fallback. */
-  --theme-accent: var(--brand-accent-rgb, 59, 130, 246);
-  --theme-accent-hover: var(--brand-accent-hover-rgb, 37, 99, 235);
-  --theme-accent-text: 255, 255, 255;
+  --theme-accent: var(--astrid-accent);
+  --theme-accent-hover: var(--astrid-accent-hover);
+  --theme-accent-text: var(--astrid-accent-text);
 
   /* Status colors (same as light) */
-  --theme-success: 34, 197, 94;
-  --theme-warning: 245, 158, 11;
-  --theme-error: 239, 68, 68;
-  --theme-info: 6, 182, 212;
+  --theme-success: var(--astrid-success);
+  --theme-warning: var(--astrid-warning);
+  --theme-error: var(--astrid-error);
+  --theme-info: var(--astrid-info);
 
   /* Sidebar colors (same as light) */
   --theme-sidebar-bg: 249, 250, 251;
@@ -55,21 +55,21 @@
   --theme-panel-arrow: 249, 250, 251;
 
   /* Header colors (same as light) */
-  --theme-header-bg: 249, 250, 251;
-  --theme-header-border: 229, 231, 235;
+  --theme-header-bg: var(--astrid-header-bg);
+  --theme-header-border: var(--astrid-header-border);
 
   /* Input colors (same as light) */
-  --theme-input-bg: 255, 255, 255;
-  --theme-input-border: 209, 213, 219;
-  --theme-input-placeholder: 156, 163, 175;
+  --theme-input-bg: var(--astrid-input-bg);
+  --theme-input-border: var(--astrid-input-border);
+  --theme-input-placeholder: var(--astrid-input-placeholder);
 
   /* Comment colors (same as light) */
   --theme-comment-bg: 249, 250, 251;
 
   /* Button colors (same as light) */
-  --theme-button-bg: 255, 255, 255;
-  --theme-button-hover: 243, 244, 246;
-  --theme-button-border: 209, 213, 219;
+  --theme-button-bg: var(--astrid-button-bg);
+  --theme-button-hover: var(--astrid-button-hover);
+  --theme-button-border: var(--astrid-button-border);
 
   /* Component shadows (same as light) */
   --theme-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);

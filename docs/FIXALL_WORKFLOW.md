@@ -335,6 +335,11 @@ write if the task would be stranded, and reads back to prove it.
    citing the task id in the test name, and confirm it fails **for the right reason**. Then the
    minimum change to make it pass. Then refactor while green.
 8. **Run the repo's gates** and fix regressions.
+   A change to anything a person sees also holds to the design system
+   ([specs/DESIGN_SYSTEM.md](./specs/DESIGN_SYSTEM.md)): colours, sizes and motion come
+   from the design tokens and copy from the locale files, in every repo. Where the repo
+   counts hand-written ones (web: `npm run check:design`), the count never rises; when
+   your change lowers one, lower its budget in the same change.
 9. **Finish per your repo's rule** — see its own `fixall.md`, since "done" differs.
 10. **Post a completion report** (`add_comment`) and mark it complete
     (`update_task { taskId, completed: true }`). Say what it does in plain language, not by

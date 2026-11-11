@@ -56,6 +56,7 @@
  * same reason: they had been disagreeing about the same task.
  */
 
+import { priorityColor } from '@/lib/design/priority'
 import { usesCompactTaskDetail, type TaskDisplayMode } from '@/lib/task-display-mode'
 
 export type TaskLeadingControlKind = 'avatar' | 'checkbox' | 'unassigned'
@@ -228,10 +229,7 @@ export function taskLeadingControlKind({
  * square" is part of the cross-platform contract above.
  */
 export function getPriorityColor(priority: number): string {
-  switch (priority) {
-    case 3: return 'rgb(239, 68, 68)'   // Red - highest priority
-    case 2: return 'rgb(251, 191, 36)'  // Yellow - medium priority
-    case 1: return 'rgb(59, 130, 246)'  // Blue - low priority
-    default: return 'rgb(107, 114, 128)' // Gray - no priority
-  }
+  // The values are the design tokens' (lib/design/priority.ts), so the square,
+  // the pickers and the header cannot disagree, and low follows the brand.
+  return priorityColor(priority)
 }

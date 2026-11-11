@@ -78,8 +78,9 @@ describe('shared list filter options (task 9377bc2c)', () => {
   it('renders one item per option, with the colour classes both originals used', () => {
     renderInSelect(PRIORITY_FILTER_OPTIONS)
 
-    expect(screen.getByText('!!! Highest')).toHaveClass('text-red-500')
-    expect(screen.getByText('○ Low')).toHaveClass('text-gray-400')
+    // The priority colours are the design tokens' (lib/design/priority.ts).
+    expect(screen.getByText('!!! Highest')).toHaveClass('priority-text-high')
+    expect(screen.getByText('○ Low')).toHaveClass('priority-text-none')
   })
 
   it('falls back to English rather than printing a raw key when a translation is missing', () => {

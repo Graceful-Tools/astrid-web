@@ -131,6 +131,9 @@ async function hoverProbe(page: Page, target: Locator) {
 test.describe('hover:theme-* variants (AWTD-936, AWTD-935)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('about:blank')
+    // The design tokens first, as the layout imports them: every shared
+    // --theme-* variable is var(--astrid-*) and resolves to nothing without them.
+    await page.addStyleTag({ path: join(process.cwd(), 'packages', 'astrid-design', 'astrid-tokens.css') })
     for (const sheet of STYLESHEETS) {
       await page.addStyleTag({ path: join(process.cwd(), 'styles', 'themes', sheet) })
     }

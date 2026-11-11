@@ -792,6 +792,17 @@
         "listDesc": "A caixa de seleção conclui a tarefa, e prioridade e responsável têm cada um a sua própria linha.",
         "projectDesc": "Compacto. Tocar na caixa abre prioridade, responsável, estado e concluir."
       },
+      "taskTitles": {
+        "title": "Títulos das tarefas",
+        "description": "Quanto de um título longo a linha de uma tarefa mostra (guardado neste dispositivo)",
+        "label": "Linhas",
+        "optionwrap": "Quebrar",
+        "option2": "Duas linhas",
+        "option1": "Uma linha",
+        "descwrap": "O título inteiro aparece, em quantas linhas precisar.",
+        "desc2": "Os títulos param em duas linhas.",
+        "desc1": "Os títulos ficam em uma linha."
+      },
       "emailToTask": {
         "title": "E-mail para Tarefa",
         "description": "Crie tarefas instantaneamente enviando e-mails para {inboundTaskEmail}",
