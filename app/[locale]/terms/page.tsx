@@ -104,7 +104,7 @@ export default function TermsOfService() {
             <h2 className="text-xl font-semibold theme-text-primary mb-3">Contact</h2>
             <p className="theme-text-secondary leading-relaxed">
               Questions? Reach us at{" "}
-              <a href={`mailto:legal@${BRAND.domain}`} className="text-[rgb(var(--theme-accent))] hover:text-[rgb(var(--theme-accent-hover))]">
+              <a href={`mailto:legal@${BRAND.domain}`} className="text-brand hover:text-brand-hover">
                 legal@{BRAND.domain}
               </a>
             </p>

@@ -34,10 +34,13 @@ const WIDTH = 'var(--selection-outline-width)'
 const COLOUR = 'var(--selection-outline-color)'
 
 describe("the selection outline is defined once, from the design tokens (Jon, 2026-11-10: the Mac's)", () => {
+  // The accent as a line is the focus border: the accent itself in Light and
+  // Ocean, its lighter shade in Dark, where the accent that carries a white
+  // label is 2.84:1 on a card (AWTD-1575, astrid-core register DS26).
   it('is the accent at the token opacity, compact where there is a pointer', () => {
     expect(css).toContain('--selection-outline-width: var(--astrid-size-compact-selection-outline);')
     expect(css).toContain(
-      '--selection-outline-color: rgba(var(--theme-accent), var(--astrid-state-selection-outline-opacity));',
+      '--selection-outline-color: rgba(var(--theme-border-focus), var(--astrid-state-selection-outline-opacity));',
     )
   })
 
@@ -100,12 +103,13 @@ describe('desktop task detail pane border (AWTD-1084)', () => {
 
 // AWTD-1574 (register DS5). The outline is the accent at 55%, and it is the only
 // line a selected row wears. A row is also `theme-bg-selected`, whose border is
-// the theme's `bg-selected-border`; in Dark that token is the accent itself, so
+// the theme's `bg-selected-border`; in Dark that token is the brand's (the
+// accent, and since astrid-core DS26 its lighter shade for a line on dark), so
 // the 1px border under the outline read as a solid accent line, which is what
 // the Mac's outline replaced.
 describe('the outline is the only accent line on a selected row (AWTD-1574)', () => {
   it.each(THEME_NAMES)('%s: no solid accent border is drawn under it', (theme) => {
-    const solidAccent = (designTokens.themes[theme].colors as Record<string, string>)['bg-selected-border'] === '{brand.accent}'
+    const solidAccent = (designTokens.themes[theme].colors as Record<string, string>)['bg-selected-border'].startsWith('{brand.')
     if (!solidAccent) return
     const sheet = readFileSync(join(process.cwd(), 'styles', 'themes', `${theme}-theme.css`), 'utf8')
     expect(ruleBody(sheet, `.${theme} .task-row-selected`)).toMatch(/border-color:\s*transparent;/)
@@ -113,7 +117,7 @@ describe('the outline is the only accent line on a selected row (AWTD-1574)', ()
 
   it('at least one theme needs it, or this guards nothing', () => {
     const themes = THEME_NAMES.filter(
-      (theme) => (designTokens.themes[theme].colors as Record<string, string>)['bg-selected-border'] === '{brand.accent}',
+      (theme) => (designTokens.themes[theme].colors as Record<string, string>)['bg-selected-border'].startsWith('{brand.'),
     )
     expect(themes).toContain('dark')
   })

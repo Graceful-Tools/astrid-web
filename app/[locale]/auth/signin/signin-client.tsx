@@ -344,7 +344,7 @@ export function SignInContent() {
             {showPasskeyEmailPrompt && (
               <div className="space-y-5">
                 <div className="text-center mb-2">
-                  <KeyRound className="w-10 h-10 text-[rgb(var(--theme-accent))] mx-auto mb-2" />
+                  <KeyRound className="w-10 h-10 text-brand mx-auto mb-2" />
                   <p className="theme-text-primary font-medium">{t('auth.continueWith', { provider: t('signInPage.passkey') })}</p>
                 </div>
 
@@ -361,7 +361,7 @@ export function SignInContent() {
                       value={passkeyEmail}
                       onChange={(e) => setPasskeyEmail(e.target.value)}
                       placeholder={t('signInPage.emailPlaceholder')}
-                      className="pl-10 h-12 theme-input theme-text-primary focus:border-[rgb(var(--theme-accent))] focus:ring-[rgb(var(--theme-accent))] rounded-xl"
+                      className="pl-10 h-12 theme-input theme-text-primary focus:border-theme-focus focus:ring-brand rounded-xl"
                       autoFocus
                     />
                   </div>
@@ -421,11 +421,11 @@ export function SignInContent() {
                     {privacy} slots so each language orders them its own way. */}
                 {t('signInPage.agreement').split(/(\{terms\}|\{privacy\})/).map((part, index) =>
                   part === '{terms}' ? (
-                    <Link key={index} href="/terms" className="text-[rgb(var(--theme-accent))] hover:text-[rgb(var(--theme-accent-hover))] underline">
+                    <Link key={index} href="/terms" className="text-brand hover:text-brand-hover underline">
                       {t('signInPage.termsOfService')}
                     </Link>
                   ) : part === '{privacy}' ? (
-                    <Link key={index} href="/privacy" className="text-[rgb(var(--theme-accent))] hover:text-[rgb(var(--theme-accent-hover))] underline">
+                    <Link key={index} href="/privacy" className="text-brand hover:text-brand-hover underline">
                       {t('signInPage.privacyPolicy')}
                     </Link>
                   ) : (
@@ -435,7 +435,7 @@ export function SignInContent() {
               </p>
               <p className="mt-2">
                 {t('signInPage.havingTrouble')}{" "}
-                <Link href="/help" className="text-[rgb(var(--theme-accent))] hover:text-[rgb(var(--theme-accent-hover))] underline">
+                <Link href="/help" className="text-brand hover:text-brand-hover underline">
                   {t('signInPage.visitHelpCenter')}
                 </Link>
               </p>

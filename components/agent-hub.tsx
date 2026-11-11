@@ -582,14 +582,14 @@ export function AgentHub() {
                         href="https://www.npmjs.com/package/@gracefultools/astrid-sdk"
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[rgb(var(--theme-accent))] hover:underline"
+                        className="text-brand hover:underline"
                       >
                         {BRAND.appName} SDK
                       </a>{' '}
                       provides integration libraries, not a prebuilt agent-host command. This mode
                       requires your own webhook receiver; the settings below configure delivery.
                       For a guided MCP + queue-skill setup instead, choose Native coding harness and follow the{' '}
-                      <Link href="/docs/loops" className="text-[rgb(var(--theme-accent))] hover:underline">
+                      <Link href="/docs/loops" className="text-brand hover:underline">
                         {t('settingsPages.aiAgents.hub.agentLoops')}
                       </Link>{' '}
                       recipes.

@@ -161,8 +161,8 @@ const status = (name: string) => ({
  * same meaning at 4.5:1 or better on the theme's card and on its own wash,
  * darker in Light and Ocean, lighter in Dark. tailwind.config.ts gives these
  * to `textColor`, `fill` and `stroke`, the utilities that draw a glyph, so
- * `text-danger` and an icon's `fill-warning` are inks while `bg-danger`,
- * `border-danger` and `ring-brand` stay the base colour.
+ * `text-danger` and an icon's `fill-warning` are inks while `bg-danger` and
+ * `border-danger` stay the base colour.
  */
 const ink = (name: string) => ({
   DEFAULT: token(`astrid-${name}-ink`),
@@ -184,7 +184,19 @@ export const inkColors = {
   destructive: { DEFAULT: token('astrid-error-ink'), foreground: token('destructive-foreground') },
 }
 
-/** Plain colours, for any utility: `bg-brand`, `bg-danger-subtle`, `ring-brand`, `border-l-warning`. As text they are `inkColors`. */
+/**
+ * `ring-brand`: the accent as a ring is the focus border (astrid-core register
+ * DS26). The accent is dark enough to carry a white label, which makes it
+ * 2.84:1 as a line on Dark's card, so the token is the accent in Light and
+ * Ocean and its lighter shade in Dark. tailwind.config.ts gives this to
+ * `ringColor`; `border-brand` stays the fill's own colour, because most of
+ * its uses are the edge of a `bg-brand` fill.
+ */
+export const ringColors = {
+  brand: token('astrid-border-focus'),
+}
+
+/** Plain colours, for any utility: `bg-brand`, `bg-danger-subtle`, `border-l-warning`. As text they are `inkColors`, as a ring `ringColors`. */
 export const semanticColors = {
   /** The brand accent. Not `accent`: that is shadcn's hover grey. */
   brand: {
