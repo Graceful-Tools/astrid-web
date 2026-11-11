@@ -59,12 +59,12 @@ export function CompletionConfirmation({
       <div
         role="dialog"
         aria-modal="true"
-        className="relative w-full max-w-xs rounded-2xl bg-white p-4 shadow-xl dark:bg-gray-800"
+        className="relative w-full max-w-xs rounded-2xl bg-theme-surface p-4 shadow-xl"
       >
-        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+        <p className="text-sm font-medium text-theme-primary">
           {t('tasks.confirmCompleteTitle')}
         </p>
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+        <p className="mt-1 text-xs text-theme-muted">
           {t('tasks.confirmCompleteAssigned', { name: assigneeLabel })}
         </p>
         <div className="mt-4 flex justify-end gap-2">

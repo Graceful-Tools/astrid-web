@@ -44,7 +44,7 @@ export function DesktopChatPane({ boardMode, dimmed, onDismissOverlay, children 
     >
       {dimmed && (
         <div
-          className="absolute inset-0 bg-white/50 dark:bg-black/40 z-10 transition-opacity duration-200 pointer-events-auto cursor-pointer"
+          className="absolute inset-0 bg-white/50 dark:bg-black/40 z-10 transition-opacity duration-medium pointer-events-auto cursor-pointer"
           onClick={onDismissOverlay}
           data-testid="chat-pane-dimmer"
         />

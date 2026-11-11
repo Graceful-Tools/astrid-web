@@ -251,7 +251,7 @@ export function PriorityAssigneePicker({
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 bg-black z-40 transition-opacity duration-200 ${
+        className={`fixed inset-0 bg-black z-40 transition-opacity duration-medium ${
           isClosing ? 'opacity-0' : 'opacity-30'
         }`}
         onClick={(event) => {
@@ -276,21 +276,21 @@ export function PriorityAssigneePicker({
          * a scrolling list of people. 85vh gives the list room; the inner
          * container scrolls rather than the sheet growing past the viewport.
          */
-        className={`fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-md transform transition-transform duration-200 ease-out ${
+        className={`fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-md transform transition-transform duration-medium ease-medium ${
           isClosing ? 'translate-y-full' : 'translate-y-0'
         }`}
         style={{ maxHeight: '85vh' }}
         onClick={stopLeaking}
       >
-        <div className="flex max-h-[85vh] flex-col overflow-y-auto rounded-t-2xl bg-white shadow-xl dark:bg-gray-800 sm:rounded-2xl sm:mb-4">
+        <div className="flex max-h-[85vh] flex-col overflow-y-auto rounded-t-2xl bg-theme-surface shadow-xl sm:rounded-2xl sm:mb-4">
           {/* Handle */}
           <div className="flex justify-center pt-3 pb-2">
-            <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+            <div className="w-10 h-1 rounded-full bg-theme-active" />
           </div>
 
           {/* Priority Section */}
           <div className="px-4 pb-4">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Priority</h3>
+            <h3 className="text-sm font-medium text-theme-muted mb-3">Priority</h3>
             <div className="flex gap-3">
               {PRIORITY_OPTIONS.map((option) => {
                 const isSelected = tempPriority === option.value
@@ -303,7 +303,7 @@ export function PriorityAssigneePicker({
                        `flex-1` made each option as wide as a quarter of the
                        screen; a priority chip carries one or three characters
                        and reads better as a fixed square. */
-                    className={`h-12 w-12 rounded-xl flex items-center justify-center font-medium text-lg transition-all duration-150 active:scale-95 ${
+                    className={`h-12 w-12 rounded-xl flex items-center justify-center font-medium text-lg transition-all duration-fast active:scale-95 ${
                       isSelected
                         ? `${priorityFillClass(option.value)} text-white`
                         : `bg-transparent border-2 ${priorityOutlineClass(option.value)}`
@@ -319,14 +319,14 @@ export function PriorityAssigneePicker({
           </div>
 
           {/* Divider */}
-          <div className="h-px bg-gray-200 dark:bg-gray-700" />
+          <div className="h-px bg-theme-active" />
 
           {/* Board State Section — only when the caller has a task to move. */}
           {statusColumns && statusColumns.length > 0 && onStatusSelect && (
             <>
               <div className="px-4 py-4">
                 <h3
-                  className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3"
+                  className="text-sm font-medium text-theme-muted mb-3"
                   id="task-options-board-state"
                 >
                   {t('tasks.boardState')}
@@ -344,10 +344,10 @@ export function PriorityAssigneePicker({
                         type="button"
                         onClick={() => onStatusSelect(column.id)}
                         aria-pressed={isSelected}
-                        className={`h-9 px-3 rounded-lg text-sm font-medium transition-all duration-150 active:scale-95 ${
+                        className={`h-9 px-3 rounded-lg text-sm font-medium transition-all duration-fast active:scale-95 ${
                           isSelected
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-transparent border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200'
+                            ? 'bg-brand text-brand-foreground'
+                            : 'bg-transparent border-2 border-theme-button text-theme-secondary'
                         }`}
                       >
                         {column.name}
@@ -356,7 +356,7 @@ export function PriorityAssigneePicker({
                   })}
                 </div>
               </div>
-              <div className="h-px bg-gray-200 dark:bg-gray-700" />
+              <div className="h-px bg-theme-active" />
             </>
           )}
 
@@ -372,12 +372,12 @@ export function PriorityAssigneePicker({
                     if (needsConfirmation) setConfirmingComplete(true)
                     else onToggleComplete()
                   }}
-                  className="w-full h-11 rounded-lg text-sm font-medium border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 transition-all duration-150 active:scale-95"
+                  className="w-full h-11 rounded-lg text-sm font-medium border-2 border-theme-button text-theme-secondary transition-all duration-fast active:scale-95"
                 >
                   {completed ? t('tasks.markIncomplete') : t('tasks.markComplete')}
                 </button>
               </div>
-              <div className="h-px bg-gray-200 dark:bg-gray-700" />
+              <div className="h-px bg-theme-active" />
             </>
           )}
           {confirmingComplete && onToggleComplete && (
@@ -393,7 +393,7 @@ export function PriorityAssigneePicker({
 
           {/* Assignee Section */}
           <div className="px-4 py-4">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Assignee</h3>
+            <h3 className="text-sm font-medium text-theme-muted mb-3">Assignee</h3>
             <div className="max-h-48 overflow-y-auto -mx-4 px-4 space-y-1">
               {/* Unassigned option */}
               <button
@@ -401,19 +401,19 @@ export function PriorityAssigneePicker({
                 onClick={() => handleAssigneeSelect(null)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                   tempAssignee === null
-                    ? 'bg-blue-50 dark:bg-blue-900/30'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                    ? 'bg-theme-selected'
+                    : 'hover:bg-theme-hover'
                 }`}
               >
-                <div className="w-9 h-9 rounded-lg border-2 border-gray-400 dark:border-gray-500 flex items-center justify-center">
-                  <span className="text-gray-500 dark:text-gray-400 text-sm font-medium">{t('tasks.unassignedMark')}</span>
+                <div className="w-9 h-9 rounded-lg border-2 border-theme-strong flex items-center justify-center">
+                  <span className="text-theme-muted text-sm font-medium">{t('tasks.unassignedMark')}</span>
                 </div>
                 <div className="flex-1 text-left">
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">Unassigned</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">No one assigned</div>
+                  <div className="text-sm font-medium text-theme-primary">Unassigned</div>
+                  <div className="text-xs text-theme-muted">No one assigned</div>
                 </div>
                 {tempAssignee === null && (
-                  <Check className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                  <Check className="w-5 h-5 text-brand flex-shrink-0" />
                 )}
               </button>
 
@@ -429,26 +429,26 @@ export function PriorityAssigneePicker({
                     onClick={() => handleAssigneeSelect(user)}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                       isSelected
-                        ? 'bg-blue-50 dark:bg-blue-900/30'
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                        ? 'bg-theme-selected'
+                        : 'hover:bg-theme-hover'
                     }`}
                   >
                     <Avatar className="w-9 h-9">
                       <AvatarImage src={user.image || undefined} alt={user.name || 'User'} />
-                      <AvatarFallback className="text-xs bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300">
+                      <AvatarFallback className="text-xs bg-theme-active text-theme-secondary">
                         {getInitials(user.name, user.email)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 text-left min-w-0">
-                      <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      <div className="text-sm font-medium text-theme-primary truncate">
                         {user.name || user.email}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                      <div className="text-xs text-theme-muted truncate">
                         {isAIAgent ? 'AI Agent' : isCurrentUser ? 'You' : user.email}
                       </div>
                     </div>
                     {isSelected && (
-                      <Check className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                      <Check className="w-5 h-5 text-brand flex-shrink-0" />
                     )}
                   </button>
                 )
