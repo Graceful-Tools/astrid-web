@@ -91,7 +91,8 @@ export const shadcnColors = {
  *
  * Text, surface and border names are scoped to their utility, so `bg-theme-…`
  * cannot be given a text colour by mistake. The rest (brand, status, list…)
- * are plain colours and work with any utility: `ring-brand`, `fill-danger`.
+ * are plain colours and work with any utility: `ring-brand`, `from-brand`.
+ * The five meanings read their ink where they draw a glyph (`inkColors`).
  */
 
 /** `text-theme-*`: also `placeholder:text-theme-placeholder`. */
@@ -141,9 +142,10 @@ export const themeBorderColors = {
 }
 
 /**
- * A status colour: itself for text, a border and a solid fill; `subtle` for
- * the wash behind a notice; `foreground` for text on the solid fill. The
- * tokens have no colour for text on a status fill, so it reads the accent's.
+ * A status colour: itself for a border and a solid fill; `subtle` for the wash
+ * behind a notice; `foreground` for text on the solid fill. The tokens have no
+ * colour for text on a status fill, so it reads the accent's. As text it is
+ * its ink: see `inkColors`.
  */
 const status = (name: string) => ({
   DEFAULT: token(`astrid-${name}`),
@@ -151,7 +153,38 @@ const status = (name: string) => ({
   foreground: token('astrid-accent-text'),
 })
 
-/** Plain colours, for any utility: `text-brand`, `bg-danger-subtle`, `ring-brand`, `fill-danger`. */
+/**
+ * A meaning drawn as text or an icon: its ink (astrid-core register DS25).
+ *
+ * `accent`, `error`, `success`, `warning` and `info` are one mid-tone each,
+ * which is a fill: as a link on white the accent is 3.68:1. The ink is the
+ * same meaning at 4.5:1 or better on the theme's card and on its own wash,
+ * darker in Light and Ocean, lighter in Dark. tailwind.config.ts gives these
+ * to `textColor`, `fill` and `stroke`, the utilities that draw a glyph, so
+ * `text-danger` and an icon's `fill-warning` are inks while `bg-danger`,
+ * `border-danger` and `ring-brand` stay the base colour.
+ */
+const ink = (name: string) => ({
+  DEFAULT: token(`astrid-${name}-ink`),
+  foreground: token('astrid-accent-text'),
+})
+
+export const inkColors = {
+  /**
+   * `hover` is the ink too. The tokens have no ink for a link under the
+   * pointer, and `accent-hover` is a fill: darker than the ink on Dark, where
+   * it would fade the link it is meant to bring forward.
+   */
+  brand: { ...ink('accent'), hover: token('astrid-accent-ink') },
+  danger: ink('error'),
+  success: ink('success'),
+  warning: ink('warning'),
+  info: ink('info'),
+  /** shadcn's name for the same red, as `components/ui` writes it (`text-destructive`). */
+  destructive: { DEFAULT: token('astrid-error-ink'), foreground: token('destructive-foreground') },
+}
+
+/** Plain colours, for any utility: `bg-brand`, `bg-danger-subtle`, `ring-brand`, `border-l-warning`. As text they are `inkColors`. */
 export const semanticColors = {
   /** The brand accent. Not `accent`: that is shadcn's hover grey. */
   brand: {

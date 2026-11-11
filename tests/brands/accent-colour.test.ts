@@ -89,13 +89,49 @@ describe('brand accent colour reaches the things it paints (task 518ec534)', () 
     }
   })
 
+  it('AWTD-1575: a partner\'s links and icons are its accent, dark or light enough to read', async () => {
+    // Text reads --astrid-accent-ink, which the tokens take from the brand
+    // (--brand-accent-ink-rgb in Light and Ocean, --brand-accent-ink-dark-rgb in
+    // Dark). Without these a partner's buttons were purple and its links blue.
+    const { brandAccentCssVars } = await import('@/lib/brand/css-vars')
+    const { contrast, over } = await import('@/lib/design/contrast')
+    const { themeColor } = await import('@/lib/design/tokens')
+    const vars = brandAccentCssVars()
+    const triplet = (name: string) => vars[name].split(', ').map(Number) as [number, number, number]
+
+    expect(vars['--brand-accent-rgb']).toBe('168, 85, 247')
+    const accent = triplet('--brand-accent-rgb')
+    for (const [name, card] of [
+      ['--brand-accent-ink-rgb', themeColor('light', 'bg-hover')],
+      ['--brand-accent-ink-dark-rgb', themeColor('dark', 'bg-secondary')],
+    ] as const) {
+      const ink = triplet(name)
+      expect(contrast(ink, card), `${name} on the card`).toBeGreaterThanOrEqual(4.5)
+      expect(contrast(ink, over(accent, card, 0.12)), `${name} on its wash`).toBeGreaterThanOrEqual(4.5)
+      // Still the partner's purple: red and blue lead green, as in the accent.
+      expect(ink[1]).toBeLessThan(ink[0])
+      expect(ink[1]).toBeLessThan(ink[2])
+    }
+
+    const tokens = readFileSync(join(process.cwd(), 'packages', 'astrid-design', 'astrid-tokens.css'), 'utf8')
+    for (const [theme, variable] of [['light', 'brand-accent-ink-rgb'], ['dark', 'brand-accent-ink-dark-rgb'], ['ocean', 'brand-accent-ink-rgb']]) {
+      const block = tokens.slice(tokens.indexOf(`\n.${theme} {`))
+      expect(block.slice(0, block.indexOf('}')), theme).toContain(`--astrid-accent-ink: var(--${variable},`)
+    }
+    for (const file of [['app', '[locale]', 'layout.tsx'], ['app', 'global-error.tsx']]) {
+      expect(readFileSync(join(process.cwd(), ...file), 'utf8'), file.join('/')).toContain('brandAccentCssVars()')
+    }
+  })
+
   it('leaves the stylesheets on their own designed values for the Astrid accent', async () => {
     // The CSS fallbacks ARE Astrid's design, hover included; a computed hover
     // would not match them, so production publishes nothing and changes nothing.
     process.env.NEXT_PUBLIC_BRAND_ACCENT_COLOR = ASTRID_ACCENT
     vi.resetModules()
     const { brandAccentRgb } = await import('@/lib/brand/colors')
+    const { brandAccentCssVars } = await import('@/lib/brand/css-vars')
     expect(brandAccentRgb()).toBeNull()
+    expect(Object.keys(brandAccentCssVars())).toEqual(['--brand-accent'])
   })
 })
 

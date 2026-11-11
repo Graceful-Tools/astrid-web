@@ -2,6 +2,7 @@ import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
 
 import {
+  inkColors,
   semanticColors,
   shadcnColors,
   themeBackgroundColors,
@@ -35,7 +36,10 @@ const config: Config = {
   			...shadcnColors,
   			...semanticColors,
   		},
-  		textColor: { theme: themeTextColors },
+  		// A meaning as a glyph is its ink; as a fill, border or ring, itself.
+  		textColor: { theme: themeTextColors, ...inkColors },
+  		fill: inkColors,
+  		stroke: inkColors,
   		backgroundColor: { theme: themeBackgroundColors },
   		borderColor: { theme: themeBorderColors },
   		opacity: tokenOpacity,
