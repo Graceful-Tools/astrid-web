@@ -3,7 +3,8 @@ import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
-import { NextIntlClientProvider } from 'next-intl'
+import { notFound } from 'next/navigation'
+import { NextIntlClientProvider, hasLocale } from 'next-intl'
 import { getMessages, setRequestLocale } from 'next-intl/server'
 import { routing } from '@/lib/i18n/routing'
 import { BRAND } from '@/lib/brand/config'
@@ -104,6 +105,13 @@ export function generateStaticParams() {
 
 export default async function LocaleLayout({ children, params }: Props) {
   const { locale } = await params
+
+  // Only what the middleware skips arrives here with something that is not a
+  // locale: a missing icon, a mistyped /vendor file. That is not a page in any
+  // language, so it gets the bare root 404 rather than the app shell under
+  // <html lang="icons"> — which the catch-all in [...rest] would otherwise
+  // give it now that unknown addresses render inside this layout (AWTD-1575).
+  if (!hasLocale(routing.locales, locale)) notFound()
 
   // Enable static rendering
   setRequestLocale(locale)
