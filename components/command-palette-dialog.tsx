@@ -154,7 +154,7 @@ export function CommandPaletteDialog({
         <div className="flex-1 overflow-y-auto">
           {displayCommands.length === 0 ? (
             <div className="px-4 py-8 text-center text-theme-muted">
-              No commands found
+              {t('commandPalette.noCommands')}
             </div>
           ) : (
             <div className="py-2">

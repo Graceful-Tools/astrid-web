@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "@/lib/i18n/client"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Trash2, Copy, Share2, Lock, Check, Link as LinkIcon } from "lucide-react"
@@ -58,6 +59,7 @@ export function TaskModals({
   onCloseShareModal
 }: TaskModalsProps) {
 
+  const { t } = useTranslations()
   // Filter out virtual lists (Saved Filters)
   const realLists = availableLists.filter(list => !list.isVirtual)
 
@@ -120,7 +122,7 @@ export function TaskModals({
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50" onClick={handleCancelDelete}>
           <div className="bg-theme-surface rounded-lg p-6 max-w-sm mx-4 shadow-xl" data-testid="task-delete-confirm" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4">
-              <h3 className="text-lg font-semibold theme-text-primary mb-2">Delete Task</h3>
+              <h3 className="text-lg font-semibold theme-text-primary mb-2">{t('tasks.modals.deleteTitle')}</h3>
               <p className="theme-text-secondary">
                 Are you sure you want to delete &quot;{task.title}&quot;? This action cannot be undone.
               </p>
@@ -153,7 +155,7 @@ export function TaskModals({
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50" onClick={handleCancelCopy}>
           <div className="bg-theme-surface rounded-lg p-6 max-w-md mx-4 shadow-xl" data-testid="task-copy-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4">
-              <h3 className="text-lg font-semibold theme-text-primary mb-2">Copy Task</h3>
+              <h3 className="text-lg font-semibold theme-text-primary mb-2">{t('tasks.modals.copyTitle')}</h3>
               <p className="theme-text-secondary mb-4">
                 Create a copy of &quot;{task.title}&quot;
               </p>
@@ -163,14 +165,14 @@ export function TaskModals({
                 {/* List Selection */}
                 <div>
                   <label className="text-sm font-medium theme-text-primary mb-2 block">
-                    Copy to list:
+                    {t('tasks.modals.copyToList')}
                   </label>
                   <select
                     value={copyTargetListId || ''}
                     onChange={(e) => setCopyTargetListId(e.target.value || undefined)}
                     className="w-full px-3 py-2 rounded-md theme-bg-primary theme-text-primary theme-border focus:outline-none focus:ring-2 focus:ring-brand"
                   >
-                    <option value="">My Tasks (only)</option>
+                    <option value="">{t('tasks.modals.myTasksOnly')}</option>
                     {realLists.map((list) => (
                       <option key={list.id} value={list.id}>
                         {list.name}
@@ -195,7 +197,7 @@ export function TaskModals({
                 </div>
 
                 <div className="text-xs theme-text-muted">
-                  The copied task will preserve the due date and will be assigned to you.
+                  {t('tasks.modals.copyNote')}
                 </div>
               </div>
             </div>
@@ -230,7 +232,7 @@ export function TaskModals({
             <div className="mb-4">
               <h3 className="text-lg font-semibold theme-text-primary mb-2 flex items-center">
                 <Share2 className="w-5 h-5 mr-2" />
-                Share Task
+                {t('tasks.modals.shareTitle')}
               </h3>
 
               <p className="theme-text-secondary mb-4">
@@ -242,7 +244,7 @@ export function TaskModals({
                   <div className="flex items-start space-x-2">
                     <Lock className="w-4 h-4 text-brand flex-shrink-0 mt-0.5" />
                     <p className="text-xs text-theme-primary">
-                      This is a private task. Only users with access to this list can view it.
+                      {t('tasks.modals.privateNote')}
                     </p>
                   </div>
                 </div>
@@ -250,7 +252,7 @@ export function TaskModals({
 
               {loadingShareUrl ? (
                 <div className="p-4 bg-theme-tertiary rounded-lg text-center">
-                  <p className="theme-text-muted">Generating share link...</p>
+                  <p className="theme-text-muted">{t('tasks.modals.generatingLink')}</p>
                 </div>
               ) : shareUrl ? (
                 <div className="space-y-3">
@@ -295,7 +297,7 @@ export function TaskModals({
               ) : (
                 <div className="p-4 bg-danger-subtle border border-danger/30 rounded-lg">
                   <p className="text-sm text-theme-primary">
-                    Failed to generate share link. Please try again.
+                    {t('tasks.modals.linkFailed')}
                   </p>
                 </div>
               )}

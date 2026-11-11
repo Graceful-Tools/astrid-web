@@ -29,7 +29,6 @@ import {
   Check,
   X,
   ArrowLeft,
-  Copy,
   Search
 } from "lucide-react"
 import { getAllListMembers } from "@/lib/list-member-utils"
@@ -37,6 +36,7 @@ import { ListHeaderImage } from "./ListHeaderImage"
 import type { Task, TaskList } from "@/types/task"
 import { canUserManageList, isSystemListId } from "@/lib/list-permissions"
 import { useTranslations } from "@/lib/i18n/client"
+import { CopyListButton } from "../CopyListButton"
 import { ListSettingsButton, ListSortFiltersButton, ListViewToggle } from "./ListHeaderActions"
 import { ListDescriptionBlock } from "./ListDescriptionBlock"
 import type { ColumnCount } from "@/lib/layout-detection"
@@ -525,13 +525,7 @@ export function MainContent({
     if (isViewingFromFeatured || (isPublicList && !isUserOwnerOrAdmin)) {
       return (
         <div>
-          <Button
-            onClick={() => selectedList && handleCopyList(selectedList.id)}
-            className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
-          >
-            <Copy className="w-4 h-4 mr-2" />
-            Copy List
-          </Button>
+          <CopyListButton onCopy={() => selectedList && handleCopyList(selectedList.id)} />
         </div>
       )
     }
@@ -596,8 +590,8 @@ export function MainContent({
           {isSearchActive ? (
             <div className="flex items-center justify-start space-x-4 mb-4">
               <div className="text-left flex-1">
-                <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1">Search</h1>
-                <p className="theme-text-muted text-sm">Find tasks and users across all lists</p>
+                <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1">{t('actions.search')}</h1>
+                <p className="theme-text-muted text-sm">{t('search.findAcrossLists')}</p>
               </div>
             </div>
           ) : (
@@ -727,7 +721,7 @@ export function MainContent({
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 theme-text-muted" />
                 <Input
-                  placeholder="Search tasks and users..."
+                  placeholder={t('search.inputPlaceholder')}
                   value={searchValue}
                   onChange={(e) => onSearchChange(e.target.value)}
                   className="theme-input theme-text-primary pl-10 w-full"
@@ -868,12 +862,12 @@ export function MainContent({
                   ) : pullToRefresh.canRefresh ? (
                     <>
                       <ArrowLeft className="w-5 h-5 transform -rotate-90" />
-                      <span className="text-sm font-medium">Release to refresh</span>
+                      <span className="text-sm font-medium">{t('common.releaseToRefresh')}</span>
                     </>
                   ) : (
                     <>
                       <ArrowLeft className="w-5 h-5 transform rotate-90" />
-                      <span className="text-sm font-medium">Pull to refresh</span>
+                      <span className="text-sm font-medium">{t('common.pullToRefresh')}</span>
                     </>
                   )}
                 </div>
@@ -902,7 +896,7 @@ export function MainContent({
                   <div
                     id={PROMOTE_DROP_TARGET_ID}
                     data-testid="promote-to-top-level-target"
-                    aria-label="Move out of subtask"
+                    aria-label={t('tasks.promote.label')}
                     onDragOver={(event) => event.preventDefault()}
                     onDrop={(event) => {
                       event.preventDefault()
@@ -910,7 +904,7 @@ export function MainContent({
                     }}
                     className="mb-1 rounded-lg border-2 border-dashed border-brand bg-brand-subtle px-3 py-3 text-sm text-brand text-center"
                   >
-                    Drop here to move out of its parent task
+                    {t('tasks.promote.dropHint')}
                   </div>
                 )}
                 {shouldVirtualizeTaskList(finalFilteredTasks.length, manualSortActive) ? (

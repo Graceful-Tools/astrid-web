@@ -306,7 +306,7 @@ export function QuickAdd({
               type="button"
               onClick={() => setShowPicker(true)}
               className="flex-shrink-0 flex items-center justify-center transition-all duration-press ease-press active:scale-95"
-              aria-label="Select priority or assignee"
+              aria-label={t('tasks.selectPriorityOrAssignee')}
             >
               {selectedAssignee === null ? (
                 // Unassigned: Rounded rectangle with "U" (matches task checkbox style)

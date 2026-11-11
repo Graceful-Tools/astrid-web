@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "@/lib/i18n/client"
 import React from "react"
 import { unwrapList } from '@/lib/v1-response'
 import { apiPut } from '@/lib/api'
@@ -45,6 +46,7 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
     { currentList, canEditSettings, isViewingFromFeatured, setTempListDescription, onListUpdate },
     ref
   ) {
+    const { t } = useTranslations()
     const [showDescriptionDialog, setShowDescriptionDialog] = React.useState(false)
     const [descriptionDialogMode, setDescriptionDialogMode] = React.useState<'view' | 'edit'>('view')
     const [dialogDescription, setDialogDescription] = React.useState('')
@@ -68,7 +70,7 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
           <DialogHeader>
             <DialogTitle className="theme-text-primary flex items-center space-x-2">
               <FileText className="w-5 h-5" />
-              <span>List Description</span>
+              <span>{t('lists.descriptionTitle')}</span>
               {currentList && (
                 <span className="text-sm font-normal theme-text-muted">— {currentList.name}</span>
               )}
@@ -123,7 +125,7 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-1 text-xs theme-text-muted">
                     <Bot className="w-3 h-3" />
-                    <span>Agents receive this as their primary context. Supports markdown.</span>
+                    <span>{t('lists.descriptionAgentHint')}</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Button

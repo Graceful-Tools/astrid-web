@@ -9,6 +9,7 @@ import { FileText, Edit3, Eye, Bot, ChevronDown, ChevronRight, Sparkles, Check, 
 import { renderMarkdown, sanitizeTextToHtml } from "@/lib/markdown"
 import { useClickOutsideSave } from "@/hooks/use-click-outside-save"
 import { useSharedEditingSession } from "@/hooks/use-editing-session"
+import { useTranslations } from "@/lib/i18n/client"
 import type { TaskList } from "@/types/task"
 
 interface AgentInstructionsSectionProps {
@@ -43,6 +44,7 @@ const STARTER_TEMPLATES = [
  * from list-admin-settings.tsx (Stage 13).
  */
 export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: AgentInstructionsSectionProps) {
+  const { t } = useTranslations()
   const session = useSharedEditingSession()
   const editorId = `list-instructions:${list.id}`
   const editingListDescription = session.isEditing(editorId)
@@ -95,12 +97,12 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
       <div className="flex items-center justify-between">
         <Label className="text-sm theme-text-secondary flex items-center space-x-1.5">
           <FileText className="w-4 h-4" />
-          <span>List Description</span>
+          <span>{t("listSettings.admin.descriptionLabel")}</span>
           <Info
             className="w-3.5 h-3.5 theme-text-muted"
-            aria-label="The list description is used as instructions for AI agents that work in this list"
+            aria-label={t("listSettings.admin.descriptionInfo")}
           >
-            <title>The list description is used as instructions for AI agents that work in this list</title>
+            <title>{t("listSettings.admin.descriptionInfo")}</title>
           </Info>
         </Label>
       </div>
@@ -115,7 +117,7 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
                 className={`text-xs px-2 py-1 rounded ${!showInstructionPreview ? 'bg-brand text-brand-foreground' : 'theme-text-muted hover:theme-bg-hover'}`}
               >
                 <Edit3 className="w-3 h-3 inline mr-1" />
-                Edit
+                {t("actions.edit")}
               </button>
               <button
                 type="button"
@@ -123,24 +125,24 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
                 className={`text-xs px-2 py-1 rounded ${showInstructionPreview ? 'bg-brand text-brand-foreground' : 'theme-text-muted hover:theme-bg-hover'}`}
               >
                 <Eye className="w-3 h-3 inline mr-1" />
-                Preview
+                {t("listSettings.admin.preview")}
               </button>
             </div>
             <span className="text-xs theme-text-muted">
-              {tempListDescription.length} chars
+              {t("listSettings.admin.charCount", { count: String(tempListDescription.length) })}
             </span>
           </div>
 
           {showInstructionPreview ? (
             <div
               className="w-full theme-comment-bg theme-border border rounded-lg px-3 py-2 min-h-[120px] prose prose-sm max-w-none theme-text-primary"
-              dangerouslySetInnerHTML={{ __html: renderMarkdown(tempListDescription || '*No instructions yet*') }}
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(tempListDescription || t("listSettings.admin.noInstructionsYet")) }}
             />
           ) : (
             <textarea
               value={tempListDescription}
               onChange={(e) => setTempListDescription(e.target.value)}
-              placeholder={"Write instructions for AI agents working in this list...\n\nExample:\nYou help our family plan meals.\n\n## Goals\n- Suggest healthy recipes\n- Create weekly shopping lists\n\n## Guardrails\n- No shellfish (allergy)\n- Budget: $150/week"}
+              placeholder={t("listSettings.admin.instructionsPlaceholder")}
               className="w-full theme-comment-bg border-theme border theme-text-primary rounded-lg px-3 py-2 resize-vertical focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent font-mono text-sm"
               rows={8}
               onKeyDown={(e) => {
@@ -157,7 +159,7 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
           <div className="flex items-center justify-between mt-2">
             <div className="flex items-center space-x-1 text-xs theme-text-muted">
               <Bot className="w-3 h-3" />
-              <span>Agents receive this as their primary context. Supports markdown.</span>
+              <span>{t("listSettings.admin.agentsReceive")}</span>
             </div>
             <div className="flex items-center space-x-2">
               <Button
@@ -170,7 +172,7 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
                 }}
                 className="text-xs theme-border theme-text-secondary hover:theme-bg-hover"
               >
-                Cancel
+                {t("actions.cancel")}
               </Button>
               <Button
                 size="sm"
@@ -181,7 +183,7 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
                 className="text-xs bg-brand hover:bg-brand-hover text-brand-foreground"
               >
                 <Check className="w-3 h-3 mr-1" />
-                Save
+                {t("actions.save")}
               </Button>
             </div>
           </div>
@@ -195,7 +197,7 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
             >
               {showTemplates ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
               <Sparkles className="w-3 h-3" />
-              <span>Starter templates</span>
+              <span>{t("listSettings.admin.starterTemplates")}</span>
             </button>
             {showTemplates && (
               <div className="mt-2 grid grid-cols-2 gap-2">
@@ -235,15 +237,15 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
               />
               <div className="flex items-center space-x-1 text-xs theme-text-muted mt-2">
                 <Edit3 className="w-3 h-3" />
-                <span>Click to edit</span>
+                <span>{t("listSettings.admin.clickToEdit")}</span>
               </div>
             </div>
           ) : (
             <div className="space-y-1">
-              <span className="theme-text-muted italic">Click to add agent instructions...</span>
+              <span className="theme-text-muted italic">{t("listSettings.admin.clickToAddInstructions")}</span>
               <div className="flex items-center space-x-1 text-xs theme-text-muted">
                 <Bot className="w-3 h-3" />
-                <span>AI agents use this as their primary guidance when working on tasks in this list</span>
+                <span>{t("listSettings.admin.agentsUseGuidance")}</span>
               </div>
             </div>
           )}

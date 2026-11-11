@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from '@/lib/i18n/client'
 import React, { useState, useCallback } from 'react'
 import { RichTextInput } from '@/components/shared/RichTextInput'
 import type { FileAttachment } from '@/components/shared/FileUploadButton'
@@ -38,6 +39,7 @@ export const ChatInput = React.memo(function ChatInput({
   channelId,
   disabled = false,
 }: ChatInputProps) {
+  const { t } = useTranslations()
   const [text, setText] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [attachedFiles, setAttachedFiles] = useState<FileAttachment[]>([])
@@ -102,7 +104,7 @@ export const ChatInput = React.memo(function ChatInput({
         onAttachedFilesChange={setAttachedFiles}
         uploadError={uploadError}
         onUploadErrorChange={setUploadError}
-        placeholder="Message list..."
+        placeholder={t('chat.inputPlaceholder')}
         disabled={disabled}
         isSending={isSending}
       />

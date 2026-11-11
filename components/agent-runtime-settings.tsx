@@ -157,6 +157,9 @@ export function CopyBlock({
   )
 }
 
+/** A translated sentence split around its inline elements: the text between `{placeholders}`. */
+const around = (message: string) => message.split(/\{\w+\}/)
+
 function RecipeStep({
   number,
   title,
@@ -247,7 +250,7 @@ ${adapter.content}`
 Treat empty:true as a successful connection. If a field cannot be verified, say so instead of guessing.`
   }
   const connectionTest = (tab: string, scheduling: string) => (
-    <RecipeStep number={4} title="Test">
+    <RecipeStep number={4} title={t('settingsPages.aiAgents.runtime.stepTest')}>
       <CopyBlock
         label="Run a non-mutating connection check"
         code={connectionCheck(tab, scheduling)}
@@ -261,9 +264,9 @@ Treat empty:true as a successful connection. If a field cannot be verified, say 
   const hostedWorkflow = (tab: string, workflow: { path: string; content: string }) => (
     <div className="space-y-2">
       <p className="text-xs theme-text-muted">
-        No machine to leave on? Commit this workflow instead. It needs two repository
-        secrets; <a className="underline" href={`${origin}${START_HERE_PATH}`}>Start here</a> says how
-        to make each one.
+        {around(t('settingsPages.aiAgents.runtime.hostedWorkflow'))[0]}
+        <a className="underline" href={`${origin}${START_HERE_PATH}`}>{t('settingsPages.aiAgents.runtime.startHere')}</a>
+        {around(t('settingsPages.aiAgents.runtime.hostedWorkflow'))[1]}
       </p>
       <CopyBlock
         label="Run it in GitHub Actions"
@@ -296,7 +299,7 @@ ${workflow.content}`}
       )}
 
       <TabsContent value="claude-code" className="space-y-3 pt-3">
-        <RecipeStep number={1} title="Connect">
+        <RecipeStep number={1} title={t('settingsPages.aiAgents.runtime.stepConnect')}>
           <CopyBlock
             label="Add the remote MCP server"
             code={connectCmd('claude-code')}
@@ -318,13 +321,13 @@ ${workflow.content}`}
 }`}
           />
         </RecipeStep>
-        <RecipeStep number={2} title="Install">
+        <RecipeStep number={2} title={t('settingsPages.aiAgents.runtime.stepInstall')}>
           <CopyBlock
             label="Save the queue skill as a project command"
             code={installBlock('claude-code', 'claude-code')}
           />
         </RecipeStep>
-        <RecipeStep number={3} title="Schedule or run">
+        <RecipeStep number={3} title={t('settingsPages.aiAgents.runtime.stepSchedule')}>
           <CopyBlock label="Run every 30 minutes in this session" code={claudeCodeLoopCommand()} />
           <CopyBlock
             label="Unattended cron fallback"
@@ -339,7 +342,7 @@ ${workflow.content}`}
       </TabsContent>
 
       <TabsContent value="copilot" className="space-y-3 pt-3">
-        <RecipeStep number={1} title="Connect">
+        <RecipeStep number={1} title={t('settingsPages.aiAgents.runtime.stepConnect')}>
           <CopyBlock
             label="Copilot CLI: add the remote MCP server"
             code={connectCmd('copilot')}
@@ -368,17 +371,16 @@ ${workflow.content}`}
             </a>
           </Button>
         </RecipeStep>
-        <RecipeStep number={2} title="Install">
+        <RecipeStep number={2} title={t('settingsPages.aiAgents.runtime.stepInstall')}>
           <p className="text-xs theme-text-muted">
-            Commit this repository custom agent once. Copilot CLI, the Copilot app,
-            GitHub.com, and VS Code can then select the same queue behavior.
+            {t('settingsPages.aiAgents.runtime.copilotInstall')}
           </p>
           <CopyBlock
             label="Repository custom agent"
             code={installBlock('copilot', 'copilot')}
           />
         </RecipeStep>
-        <RecipeStep number={3} title="Schedule or run">
+        <RecipeStep number={3} title={t('settingsPages.aiAgents.runtime.stepSchedule')}>
           <CopyBlock
             label="Run Copilot CLI every 30 minutes"
             code={scheduleCmd('copilot', 'copilot')}
@@ -399,7 +401,7 @@ ${workflow.content}`}
       </TabsContent>
 
       <TabsContent value="codex" className="space-y-3 pt-3">
-        <RecipeStep number={1} title="Connect">
+        <RecipeStep number={1} title={t('settingsPages.aiAgents.runtime.stepConnect')}>
           <CopyBlock
             label="Add the remote server and authorize it"
             code={connectCmd('codex')}
@@ -410,13 +412,13 @@ ${workflow.content}`}
 url = "${mcpUrl}"`}
           />
         </RecipeStep>
-        <RecipeStep number={2} title="Install">
+        <RecipeStep number={2} title={t('settingsPages.aiAgents.runtime.stepInstall')}>
           <CopyBlock
             label="Add the queue skill to AGENTS.md"
             code={installBlock('codex', 'codex')}
           />
         </RecipeStep>
-        <RecipeStep number={3} title="Schedule or run">
+        <RecipeStep number={3} title={t('settingsPages.aiAgents.runtime.stepSchedule')}>
           <CopyBlock
             label="Run Codex every 30 minutes"
             code={scheduleCmd('codex', 'codex')}
@@ -426,7 +428,7 @@ url = "${mcpUrl}"`}
       </TabsContent>
 
       <TabsContent value="muse" className="space-y-3 pt-3">
-        <RecipeStep number={1} title="Connect">
+        <RecipeStep number={1} title={t('settingsPages.aiAgents.runtime.stepConnect')}>
           <CopyBlock
             label="Add the remote server and authorize it"
             code={connectCmd('muse')}
@@ -437,13 +439,13 @@ url = "${mcpUrl}"`}
 url = "${mcpUrl}"`}
           />
         </RecipeStep>
-        <RecipeStep number={2} title="Install">
+        <RecipeStep number={2} title={t('settingsPages.aiAgents.runtime.stepInstall')}>
           <CopyBlock
             label="Add the queue skill to AGENTS.md"
             code={installBlock('muse', 'muse')}
           />
         </RecipeStep>
-        <RecipeStep number={3} title="Schedule or run">
+        <RecipeStep number={3} title={t('settingsPages.aiAgents.runtime.stepSchedule')}>
           <CopyBlock
             label="Run Muse every 30 minutes"
             code={scheduleCmd('muse', 'muse')}
@@ -453,21 +455,19 @@ url = "${mcpUrl}"`}
       </TabsContent>
 
       <TabsContent value="github" className="space-y-3 pt-3">
-        <RecipeStep number={1} title="Connect">
+        <RecipeStep number={1} title={t('settingsPages.aiAgents.runtime.stepConnect')}>
           <p className="text-xs theme-text-muted">
-            Create client credentials for this agent and save them as repository Actions
-            secrets named <code className="font-mono">{ACTIONS_SECRET_NAMES.clientId}</code> and{' '}
-            <code className="font-mono">{ACTIONS_SECRET_NAMES.clientSecret}</code>. Each run
-            exchanges the client credentials for a one hour access token with only the scopes
-            a queue worker needs — no long-lived token ever reaches the repository.
+            {around(t('settingsPages.aiAgents.runtime.githubConnect'))[0]}
+            <code className="font-mono">{ACTIONS_SECRET_NAMES.clientId}</code>
+            {around(t('settingsPages.aiAgents.runtime.githubConnect'))[1]}
+            <code className="font-mono">{ACTIONS_SECRET_NAMES.clientSecret}</code>
+            {around(t('settingsPages.aiAgents.runtime.githubConnect'))[2]}
           </p>
           <AgentCredentialsCard preset="githubActions" agent={agentFor('github')} />
         </RecipeStep>
-        <RecipeStep number={2} title="Install">
+        <RecipeStep number={2} title={t('settingsPages.aiAgents.runtime.stepInstall')}>
           <p className="text-xs theme-text-muted">
-            This workflow is a queue gate: it answers &quot;is there work?&quot; and it does
-            not run an agent itself. Point the second job at your existing supported agent
-            job (a Copilot CLI, Claude Code, or Codex step from the other tabs).
+            {t('settingsPages.aiAgents.runtime.githubInstall')}
           </p>
           <CopyBlock
             label="Add the queue gate workflow"
@@ -476,11 +476,9 @@ url = "${mcpUrl}"`}
 ${gate.content}`}
           />
         </RecipeStep>
-        <RecipeStep number={3} title="Schedule or run">
+        <RecipeStep number={3} title={t('settingsPages.aiAgents.runtime.stepSchedule')}>
           <p className="text-xs theme-text-muted">
-            Commit the workflow for its 30-minute schedule, or use Run workflow in GitHub Actions
-            to test it immediately. A quiet run stops after the scoped queue request, so an
-            empty queue costs one API call rather than a whole agent boot.
+            {t('settingsPages.aiAgents.runtime.githubSchedule')}
           </p>
         </RecipeStep>
         {connectionTest(

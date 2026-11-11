@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Trash2 } from "lucide-react"
+import { useTranslations } from "@/lib/i18n/client"
+import { fillMessage } from "@/components/shared/RichMessage"
 import type { TaskList } from "@/types/task"
 
 interface DeleteListSectionProps {
@@ -17,6 +19,7 @@ interface DeleteListSectionProps {
  * (Stage 13 of the god-file refactor).
  */
 export function DeleteListSection({ list, canEditSettings, onDelete }: DeleteListSectionProps) {
+  const { t } = useTranslations()
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
 
   if (!canEditSettings) return null
@@ -31,7 +34,7 @@ export function DeleteListSection({ list, canEditSettings, onDelete }: DeleteLis
           className="w-full hover:text-danger hover:bg-danger-subtle"
         >
           <Trash2 className="w-4 h-4 mr-2" />
-          Delete List
+          {t("listSettings.admin.deleteList")}
         </Button>
       </div>
 
@@ -39,12 +42,12 @@ export function DeleteListSection({ list, canEditSettings, onDelete }: DeleteLis
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowDeleteConfirmation(false)}>
           <div className="bg-theme-surface rounded-lg p-6 max-w-sm mx-4 shadow-xl" data-testid="list-delete-confirm" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4">
-              <h3 className="text-lg font-semibold theme-text-primary mb-2">Delete List</h3>
+              <h3 className="text-lg font-semibold theme-text-primary mb-2">{t("listSettings.admin.deleteList")}</h3>
               <p className="theme-text-secondary mb-2">
-                Are you sure you want to delete &quot;{list.name}&quot;?
+                {fillMessage(t("listSettings.admin.deleteConfirm"), { name: list.name })}
               </p>
               <p className="text-sm theme-text-muted">
-                This action cannot be undone. All tasks in this list will remain but will no longer be associated with this list.
+                {t("listSettings.admin.deleteWarning")}
               </p>
             </div>
             <div className="flex space-x-3 justify-end">
@@ -54,7 +57,7 @@ export function DeleteListSection({ list, canEditSettings, onDelete }: DeleteLis
                 onClick={() => setShowDeleteConfirmation(false)}
                 className="theme-border theme-text-secondary hover:theme-bg-hover"
               >
-                Don&apos;t Delete
+                {t("listSettings.admin.dontDelete")}
               </Button>
               <Button
                 variant="destructive"
@@ -66,7 +69,7 @@ export function DeleteListSection({ list, canEditSettings, onDelete }: DeleteLis
                 className="bg-danger hover:bg-danger/90 text-danger-foreground"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Delete
+                {t("actions.delete")}
               </Button>
             </div>
           </div>

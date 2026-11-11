@@ -9,8 +9,10 @@ import { LoadingScreen } from "@/components/loading-screen"
 import { ArrowLeft } from "lucide-react"
 import { SettingsPageContent, SETTINGS_PAGE_TITLES } from "@/components/Settings/settings-pages"
 import { scrollShellClassName } from "@/components/scroll-shell"
+import { useTranslations } from "@/lib/i18n/client"
 
 export default function SettingsFullPage() {
+  const { t } = useTranslations()
   const params = useParams()
   const router = useRouter()
   const { status } = useSession()
@@ -47,7 +49,7 @@ export default function SettingsFullPage() {
         <button
           onClick={goBack}
           className="p-1.5 rounded-lg hover:bg-[rgb(var(--theme-surface-hover))] transition-colors"
-          title="Back"
+          title={t('actions.back')}
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
@@ -58,7 +60,7 @@ export default function SettingsFullPage() {
         <SettingsPageContent
           page={page}
           onNavigate={() => {}}
-          notFound={<div className="p-8 text-center theme-text-muted">Page not found</div>}
+          notFound={<div className="p-8 text-center theme-text-muted">{t('errorPages.pageNotFound')}</div>}
         />
       </div>
     </div>

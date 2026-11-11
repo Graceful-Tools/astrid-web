@@ -148,7 +148,7 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
       {/* Basic Settings */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor={`${fieldId}-interval`} className="theme-text-muted">Repeat every</Label>
+          <Label htmlFor={`${fieldId}-interval`} className="theme-text-muted">{t('repeating.editor.repeatEvery')}</Label>
           <div className="flex items-center space-x-2 mt-1">
             <NumberField
               id={`${fieldId}-interval`}
@@ -174,7 +174,7 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
       {/* Week-specific settings */}
       {pattern.unit === 'weeks' && (
         <div>
-          <Label className="theme-text-muted">Repeat on these days</Label>
+          <Label className="theme-text-muted">{t('repeating.editor.repeatOnDays')}</Label>
           <div className="flex flex-wrap gap-2 mt-2">
             {WEEKDAYS.map(({ value, label, short }) => (
               <div key={value} className="flex items-center space-x-2">
@@ -203,7 +203,7 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
       {pattern.unit === 'months' && (
         <div className="space-y-3">
           <div>
-            <Label className="theme-text-muted">Repeat type</Label>
+            <Label className="theme-text-muted">{t('repeating.editor.repeatType')}</Label>
             <Select
               value={pattern.monthRepeatType}
               onValueChange={handleMonthRepeatTypeChange}
@@ -212,15 +212,15 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="same_date">Same date every month</SelectItem>
-                <SelectItem value="same_weekday">Same weekday and week of month</SelectItem>
+                <SelectItem value="same_date">{t('repeating.editor.sameDate')}</SelectItem>
+                <SelectItem value="same_weekday">{t('repeating.editor.sameWeekday')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {pattern.monthRepeatType === 'same_date' && (
             <div>
-              <Label className="theme-text-muted">Day of month</Label>
+              <Label className="theme-text-muted">{t('repeating.editor.dayOfMonth')}</Label>
               <NumberField
                 max={31}
                 value={pattern.monthDay || 1}
@@ -254,7 +254,7 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
                 </Select>
               </div>
               <div>
-                <Label className="theme-text-muted">Week of month</Label>
+                <Label className="theme-text-muted">{t('repeating.editor.weekOfMonth')}</Label>
                 <Select
                   value={String(pattern.monthWeekday?.weekOfMonth || 1)}
                   onValueChange={(week) => updatePattern({
@@ -315,7 +315,7 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
 
       {/* End conditions */}
       <div>
-        <Label className="theme-text-muted">End condition</Label>
+        <Label className="theme-text-muted">{t('repeating.editor.endCondition')}</Label>
         <Select
           value={pattern.endCondition}
           onValueChange={(endCondition: RepeatEndCondition) => updatePattern({ endCondition })}
@@ -325,14 +325,14 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="never">Never</SelectItem>
-            <SelectItem value="after_occurrences">After X occurrences</SelectItem>
-            <SelectItem value="until_date">Until specific date</SelectItem>
+            <SelectItem value="after_occurrences">{t('repeating.editor.afterOccurrences')}</SelectItem>
+            <SelectItem value="until_date">{t('repeating.editor.untilDate')}</SelectItem>
           </SelectContent>
         </Select>
 
         {pattern.endCondition === 'after_occurrences' && (
           <div className="mt-2">
-            <Label className="theme-text-muted">Number of occurrences</Label>
+            <Label className="theme-text-muted">{t('repeating.editor.occurrencesCount')}</Label>
             <NumberField
               value={pattern.endAfterOccurrences || 1}
               onCommit={(endAfterOccurrences) => updatePattern({ endAfterOccurrences })}
@@ -343,7 +343,7 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
 
         {pattern.endCondition === 'until_date' && (
           <div className="mt-2">
-            <Label className="theme-text-muted">End date</Label>
+            <Label className="theme-text-muted">{t('repeating.editor.endDate')}</Label>
             <Popover open={showEndDatePicker} onOpenChange={setShowEndDatePicker}>
               <PopoverTrigger asChild>
                 <Button
