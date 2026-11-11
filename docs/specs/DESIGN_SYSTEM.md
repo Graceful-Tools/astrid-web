@@ -458,13 +458,13 @@ reduction, `npm run design:metrics -- --update` in the same change.
 
 | Count | Before tokens (main `e770865b`) | Now |
 |---|---|---|
-| Palette classes | 1,631 | 1,543 |
+| Palette classes | 1,631 | 202 |
 | Hex colours | 126 | 113 |
 | rgb literals | 101 | 10 |
 | Theme triplets | 119 | 0 |
 | Inline styles | 64 | 64 |
 | Arbitrary sizes | 97 | 96 |
-| Durations | 57 | 29 |
+| Durations | 57 | 5 |
 | Sentences in JSX | 999 | 999 |
 | Distinct sentences in JSX | 802 | 802 |
 
