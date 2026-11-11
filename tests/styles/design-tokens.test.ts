@@ -9,7 +9,7 @@
  * CSS cannot be exercised in jsdom, so these read the files.
  */
 import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -19,9 +19,13 @@ import {
   priorityOutlineClass,
   priorityTextClass,
 } from '@/lib/design/priority'
+import { THEME_VOCABULARY } from '@/lib/design/tailwind-theme'
 import { THEME_NAMES, designTokens, themeColor, themeColorNames } from '@/lib/design/tokens'
 import { getPriorityColor } from '@/lib/task-leading-control'
 import { getPriorityColorClass } from '@/lib/task-manager-utils'
+
+import { compileClasses, ruleFor } from './compile-tailwind'
+import { contrast, resolveRgb, themeScope, type Rgb } from './resolve-theme'
 
 const read = (...path: string[]) => readFileSync(join(process.cwd(), ...path), 'utf8')
 
@@ -163,5 +167,309 @@ describe('the trade-off grid draws its ratings from the tokens', () => {
 
   it('markdown borders follow the theme', () => {
     expect(css).not.toMatch(/\.prose[^{]*\{[^}]*#d1d5db/)
+  })
+})
+
+describe('one global stylesheet (AWTD-1574)', () => {
+  // styles/globals.css was shadcn's scaffold, imported by nothing: a second copy
+  // of the shadcn variables that drifted from app/globals.css (a different
+  // --radius, --border and --muted-foreground) and read as the one to edit.
+  it('app/globals.css is the only one', () => {
+    expect(existsSync(join(process.cwd(), 'styles', 'globals.css'))).toBe(false)
+    expect(read('components.json')).toContain('"css": "app/globals.css"')
+  })
+})
+
+describe('web-only surfaces read the tokens (AWTD-1574, register DS9)', () => {
+  // The sidebar, the panel, the pill, the count badge and the card glass have no
+  // token of their own yet. Each is named once per theme and reads one; none is
+  // a colour written out.
+  for (const theme of THEME_NAMES) {
+    const css = read('styles', 'themes', `${theme}-theme.css`).replace(/\/\*[\s\S]*?\*\//g, '')
+    const declared = new Map<string, string>()
+    for (const match of css.matchAll(/--theme-([a-z0-9-]+):\s*([^;]+);/g)) declared.set(match[1], match[2].trim())
+
+    it(`${theme}: every --theme-* variable is a token or another theme variable`, () => {
+      const literal = [...declared].filter(([, value]) => !/^var\(--(astrid|theme)-[a-z0-9-]+\)$/.test(value))
+      expect(literal).toEqual([])
+    })
+
+    it(`${theme}: each one ends at a design token`, () => {
+      for (const name of declared.keys()) {
+        let value = declared.get(name)!
+        for (let hop = 0; hop < 5 && value.startsWith('var(--theme-'); hop += 1) {
+          value = declared.get(/^var\(--theme-([a-z0-9-]+)\)$/.exec(value)![1]) ?? `undeclared ${value}`
+        }
+        const token = /^var\(--astrid-([a-z0-9-]+)\)$/.exec(value)?.[1]
+        expect(token, `--theme-${name}`).toBeDefined()
+        expect(tokensCss, `--theme-${name} reads --astrid-${token}`).toContain(`--astrid-${token}:`)
+      }
+    })
+
+    it(`${theme}: no rule writes a colour out`, () => {
+      expect(css.match(/rgba?\(\s*\d[^)]*\)|#[0-9a-fA-F]{3,8}\b/g) ?? []).toEqual([])
+    })
+  }
+
+  it('the surfaces every theme has are the same names', () => {
+    const names = (theme: string) =>
+      [...read('styles', 'themes', `${theme}-theme.css`).matchAll(/--theme-((?:surface|sidebar|panel|comment|shadow)[a-z0-9-]*):/g)]
+        .map((match) => match[1])
+        .sort()
+    for (const theme of THEME_NAMES) expect(names(theme), theme).toEqual(names(THEME_NAMES[0]))
+  })
+})
+
+describe('shadcn\'s variables are answered by the theme (AWTD-1574)', () => {
+  // --background, --primary and the rest were a second colour system: stock
+  // shadcn greys for :root and .dark, and nothing for Ocean, which wore the
+  // light values. They now read the tokens, so a shadcn component and a
+  // theme-* class beside it are the same colour in every theme.
+  const globals = read('app', 'globals.css').replace(/\/\*[\s\S]*?\*\//g, '')
+  const SHADCN =
+    /--(background|foreground|card|popover|primary|secondary|muted|accent|destructive|border|input|ring|chart|sidebar)[a-z0-9-]*:\s*([^;]+);/g
+
+  it('each one is a token or a theme variable, declared once for every theme', () => {
+    const declared = [...globals.matchAll(SHADCN)]
+    expect(declared.length).toBeGreaterThan(25)
+    expect(declared.filter((match) => !/^var\(--(astrid|theme)-[a-z0-9-]+\)$/.test(match[2].trim())).map((match) => match[0])).toEqual([])
+    expect(new Set(declared.map((match) => match[0].split(':')[0])).size, 'no .dark copy').toBe(declared.length)
+  })
+
+  it('Tailwind reads them as r, g, b like every other token, never as hsl', () => {
+    const config = read('tailwind.config.ts') + read('lib', 'design', 'tailwind-theme.ts')
+    expect(config).not.toContain('hsl(')
+  })
+
+  it('compiles, and keeps opacity modifiers', async () => {
+    const css = await compileClasses(['bg-background', 'bg-background/95', 'hover:bg-primary/90', 'text-muted-foreground', 'border-input', 'ring-ring'])
+    expect(ruleFor(css, 'bg-background')).toContain('background-color: rgba(var(--background), var(--tw-bg-opacity, 1))')
+    expect(ruleFor(css, 'bg-background/95')).toBe('background-color: rgba(var(--background), 0.95)')
+    expect(ruleFor(css, 'hover:bg-primary/90')).toBe('background-color: rgba(var(--primary), 0.9)')
+    expect(ruleFor(css, 'text-muted-foreground')).toContain('color: rgba(var(--muted-foreground)')
+    expect(ruleFor(css, 'border-input')).toContain('border-color: rgba(var(--input)')
+    expect(ruleFor(css, 'ring-ring')).toContain('--tw-ring-color: rgba(var(--ring)')
+  })
+
+  const SHADCN_NAMES = [...new Set([...globals.matchAll(SHADCN)].map((match) => match[0].split(':')[0].slice(2)))]
+
+  it.each(THEME_NAMES)('%s: every one resolves to a colour', (theme) => {
+    const scope = themeScope(theme)
+    for (const name of SHADCN_NAMES) expect(() => resolveRgb(name, scope), `--${name}`).not.toThrow()
+  })
+
+  // What button, dialog, popover, select, input and card write text on.
+  it.each(THEME_NAMES)('%s: shadcn text is readable on the surface under it', (theme) => {
+    const scope = themeScope(theme)
+    for (const [text, surface] of [
+      ['foreground', 'background'],
+      ['card-foreground', 'card'],
+      ['popover-foreground', 'popover'],
+      ['primary-foreground', 'primary'],
+      ['secondary-foreground', 'secondary'],
+      ['accent-foreground', 'accent'],
+      ['muted-foreground', 'background'],
+      ['muted-foreground', 'popover'],
+    ]) {
+      const ratio = contrast(resolveRgb(text, scope), resolveRgb(surface, scope))
+      expect(ratio, `${theme}: --${text} on --${surface} is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+
+  it('a surface is the card, never Ocean\'s cyan page', () => {
+    expect(resolveRgb('background', themeScope('ocean'))).toEqual([255, 255, 255])
+    expect(resolveRgb('popover', themeScope('ocean'))).toEqual([255, 255, 255])
+    expect(resolveRgb('border', themeScope('ocean'))).not.toEqual(resolveRgb('astrid-bg-primary', themeScope('ocean')))
+  })
+
+  it('the first paint has a theme to answer them: the brand\'s default is on <html>', () => {
+    // The variables only resolve under a theme class, and the provider adds one
+    // after hydration. Without it the server's HTML painted with no border or
+    // text colour at all.
+    expect(read('app', '[locale]', 'layout.tsx')).toMatch(/<html\b[\s\S]{0,600}?className=\{BRAND\.defaultTheme\}/)
+  })
+})
+
+describe('the theme vocabulary: what a palette class is replaced with (AWTD-1574)', () => {
+  // 1,585 Tailwind palette classes (text-gray-400, bg-blue-600 …) each restate
+  // a colour the tokens already hold. These are the names they become. They are
+  // Tailwind theme colours, so nothing here is a hand-written rule that a
+  // variant could be missing for.
+  const spec = read('docs', 'specs', 'DESIGN_SYSTEM.md')
+  let css = ''
+  const VARIANTS = ['hover', 'focus', 'focus-visible', 'active', 'disabled', 'group-hover', 'md']
+
+  /** The custom property a compiled colour rule reads. */
+  const propertyOf = (rule: string) => /rgba\(var\(--((?:astrid|theme)-[a-z0-9-]+)\)/.exec(rule)?.[1]
+
+  it('compiles every class, in every variant the app uses', async () => {
+    css = await compileClasses([
+      ...THEME_VOCABULARY,
+      ...THEME_VOCABULARY.flatMap((name) => VARIANTS.map((variant) => `${variant}:${name}`)),
+    ])
+    for (const name of THEME_VOCABULARY) {
+      expect(propertyOf(ruleFor(css, name)), name).toBeDefined()
+      for (const variant of VARIANTS) {
+        expect(css, `${variant}:${name}`).toContain(`${variant}\\:${name}`)
+      }
+    }
+  })
+
+  it.each(THEME_NAMES)('%s: every class resolves to a colour', (theme) => {
+    const scope = themeScope(theme)
+    for (const name of THEME_VOCABULARY) {
+      const property = propertyOf(ruleFor(css, name))!
+      expect(() => resolveRgb(property, scope), `${name} reads --${property}`).not.toThrow()
+    }
+    // The wash behind a notice is a number, named once.
+    expect(Number(scope.get('theme-wash-opacity'))).toBeGreaterThan(0)
+  })
+
+  it.each(THEME_NAMES)('%s: theme text is readable on the theme\'s page, card and secondary surface', (theme) => {
+    const scope = themeScope(theme)
+    const colour = (name: string) => resolveRgb(propertyOf(ruleFor(css, name))!, scope)
+    for (const text of ['text-theme-primary', 'text-theme-secondary', 'text-theme-muted']) {
+      for (const surface of ['bg-theme-primary', 'bg-theme-surface', 'bg-theme-secondary']) {
+        const ratio = contrast(colour(text), colour(surface))
+        expect(ratio, `${theme}: ${text} on ${surface} is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+  })
+
+  it('says the same thing as the hand-written class it turns round', () => {
+    const light = read('styles', 'themes', 'light-theme.css')
+    for (const [tailwind, handWritten, property] of [
+      ['text-theme-primary', 'theme-text-primary', 'color'],
+      ['text-theme-secondary', 'theme-text-secondary', 'color'],
+      ['text-theme-muted', 'theme-text-muted', 'color'],
+      ['bg-theme-primary', 'theme-bg-primary', 'background-color'],
+      ['bg-theme-secondary', 'theme-bg-secondary', 'background-color'],
+      ['bg-theme-tertiary', 'theme-bg-tertiary', 'background-color'],
+      ['bg-theme-surface', 'theme-surface', 'background-color'],
+      ['border-theme', 'theme-border', 'border-color'],
+      ['border-theme-input', 'theme-border-input', 'border-color'],
+    ]) {
+      const variable = new RegExp(`\\.light \\.${handWritten} \\{ ${property}: rgb\\(var\\(--(theme-[a-z-]+)\\)\\); \\}`).exec(light)?.[1]
+      expect(variable, handWritten).toBeDefined()
+      const scope = themeScope('light')
+      expect(resolveRgb(propertyOf(ruleFor(css, tailwind))!, scope), tailwind).toEqual(resolveRgb(variable!, scope))
+    }
+  })
+
+  it('hover is the surface\'s hover tint, as hover:theme-bg-hover is', () => {
+    expect(ruleFor(css, 'hover:bg-theme-hover')).toContain('rgba(var(--theme-surface-hover)')
+    expect(read('styles', 'themes', 'hover-variants.css')).toMatch(
+      /\.hover\\:theme-bg-hover:hover \{\s*background-color: rgb\(var\(--theme-surface-hover\)\);/,
+    )
+  })
+
+  it('states reach the tokens too: disabled, completed, press', async () => {
+    const states = await compileClasses(['disabled:opacity-disabled', 'opacity-completed', 'active:scale-press'])
+    expect(ruleFor(states, 'disabled:opacity-disabled')).toBe('opacity: var(--astrid-state-disabled-opacity)')
+    expect(ruleFor(states, 'opacity-completed')).toBe('opacity: var(--astrid-state-completed-mark-opacity)')
+    expect(ruleFor(states, 'active:scale-press')).toContain('--tw-scale-x: var(--astrid-state-press-scale)')
+  })
+
+  it('the spec\'s table names every class', () => {
+    const section = spec.slice(spec.indexOf('## Palette classes to theme classes'))
+    expect(section.length).toBeGreaterThan(1000)
+    const listed = (name: string) => section.includes(`\`${name}\``) || new RegExp(`\`[^\`]*\\b${name}\\b[^\`]*\``).test(section)
+    expect(THEME_VOCABULARY.filter((name) => !/^bg-list-[2-7]$/.test(name) && !listed(name))).toEqual([])
+  })
+
+  it('no palette colour is named in the Tailwind theme', () => {
+    const source = read('lib', 'design', 'tailwind-theme.ts') + read('tailwind.config.ts')
+    expect(source.match(/#[0-9a-fA-F]{3,8}\b|rgba?\(\s*\d|hsl\(/g) ?? []).toEqual([])
+  })
+})
+
+describe('a meaning as text reads its ink, as a fill its base colour (AWTD-1575)', () => {
+  // The conversion turned `text-blue-600 dark:text-blue-400` into `text-brand`,
+  // and the tokens had one mid-tone per meaning: right as a fill, 3.68:1 as a
+  // link on white, about 2:1 as a label on its own wash. astrid-core now has an
+  // ink per meaning (register DS25) and the text utilities read it.
+  const MEANINGS = [
+    ['brand', 'accent'],
+    ['danger', 'error'],
+    ['success', 'success'],
+    ['warning', 'warning'],
+    ['info', 'info'],
+  ] as const
+  const propertyOf = (rule: string) => /rgba\(var\(--((?:astrid|theme)-[a-z0-9-]+)\)/.exec(rule)?.[1]
+  let css = ''
+
+  it('AWTD-1575: text, and an icon drawn with fill or stroke, compile to the ink', async () => {
+    css = await compileClasses([
+      'bg-theme-surface',
+      'bg-theme-primary',
+      'bg-theme-secondary',
+      'hover:text-brand-hover',
+      ...MEANINGS.flatMap(([name]) => [
+        `text-${name}`,
+        `hover:text-${name}`,
+        `text-${name}/70`,
+        `fill-${name}`,
+        `stroke-${name}`,
+        `text-${name}-foreground`,
+        `bg-${name}`,
+        `bg-${name}-subtle`,
+        `border-${name}`,
+        `ring-${name}`,
+      ]),
+    ])
+    for (const [name, token] of MEANINGS) {
+      expect(propertyOf(ruleFor(css, `text-${name}`)), `text-${name}`).toBe(`astrid-${token}-ink`)
+      expect(propertyOf(ruleFor(css, `hover:text-${name}`)), `hover:text-${name}`).toBe(`astrid-${token}-ink`)
+      expect(ruleFor(css, `text-${name}/70`)).toBe(`color: rgba(var(--astrid-${token}-ink), 0.7)`)
+      expect(ruleFor(css, `fill-${name}`)).toContain(`rgba(var(--astrid-${token}-ink)`)
+      expect(ruleFor(css, `stroke-${name}`)).toContain(`rgba(var(--astrid-${token}-ink)`)
+    }
+    // shadcn's alert writes the same red as `text-destructive`; its fill is still `--destructive`.
+    const shadcn = await compileClasses(['text-destructive', 'bg-destructive', 'text-destructive-foreground'])
+    expect(propertyOf(ruleFor(shadcn, 'text-destructive'))).toBe('astrid-error-ink')
+    expect(ruleFor(shadcn, 'bg-destructive')).toContain('rgba(var(--destructive)')
+    expect(ruleFor(shadcn, 'text-destructive-foreground')).toContain('rgba(var(--destructive-foreground)')
+  })
+
+  it('AWTD-1575: fills, washes, borders, rings and text on the fill keep the base colour', () => {
+    for (const [name, token] of MEANINGS) {
+      expect(propertyOf(ruleFor(css, `bg-${name}`)), `bg-${name}`).toBe(`astrid-${token}`)
+      expect(ruleFor(css, `bg-${name}-subtle`)).toBe(`background-color: rgba(var(--astrid-${token}), var(--theme-wash-opacity))`)
+      expect(propertyOf(ruleFor(css, `border-${name}`)), `border-${name}`).toBe(`astrid-${token}`)
+      expect(ruleFor(css, `ring-${name}`)).toContain(`rgba(var(--astrid-${token}), `)
+      expect(propertyOf(ruleFor(css, `text-${name}-foreground`)), `text-${name}-foreground`).toBe('astrid-accent-text')
+    }
+  })
+
+  it.each(THEME_NAMES)('AWTD-1575 %s: each text-<meaning> is 4.5:1 on the card and on its own wash', (theme) => {
+    const scope = themeScope(theme)
+    const colour = (name: string) => resolveRgb(propertyOf(ruleFor(css, name))!, scope)
+    const wash = Number(scope.get('theme-wash-opacity'))
+    const card = colour('bg-theme-surface')
+    for (const [name, token] of MEANINGS) {
+      const ink = colour(`text-${name}`)
+      expect(ink, `${theme} text-${name}`).toEqual(themeColor(theme, `${token}-ink`))
+      const surfaces: [string, Rgb][] = [
+        ['bg-theme-surface', card],
+        ['bg-theme-secondary', colour('bg-theme-secondary')],
+        [
+          `bg-${name}-subtle on the card`,
+          colour(`bg-${name}`).map((channel, at) => Math.round(channel * wash + card[at] * (1 - wash))) as Rgb,
+        ],
+      ]
+      // Ocean's page is cyan; a status colour is drawn on a card there.
+      if (theme !== 'ocean') surfaces.push(['bg-theme-primary', colour('bg-theme-primary')])
+      for (const [surface, under] of surfaces) {
+        const ratio = contrast(ink, under)
+        expect(ratio, `${theme}: text-${name} on ${surface} is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+  })
+
+  it.each(THEME_NAMES)('AWTD-1575 %s: a link under the pointer is never fainter than the link', (theme) => {
+    const scope = themeScope(theme)
+    const colour = (name: string) => resolveRgb(propertyOf(ruleFor(css, name))!, scope)
+    const card = colour('bg-theme-surface')
+    expect(contrast(colour('hover:text-brand-hover'), card)).toBeGreaterThanOrEqual(contrast(colour('text-brand'), card))
   })
 })

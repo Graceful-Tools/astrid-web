@@ -193,7 +193,7 @@ describe('ListAdminSettings - Delete List Modal', () => {
       // Click "Delete" in modal - get all buttons with "Delete" text
       const allDeleteButtons = screen.getAllByRole('button', { name: /delete/i })
       const confirmDeleteButton = allDeleteButtons.find(
-        button => button.className.includes('bg-red-600')
+        button => button.classList.contains('bg-danger')
       )
       expect(confirmDeleteButton).toBeInTheDocument()
       fireEvent.click(confirmDeleteButton!)
@@ -288,14 +288,14 @@ describe('ListAdminSettings - Delete List Modal', () => {
       const dontDeleteButton = screen.getByText("Don't Delete")
       const allDeleteButtons = screen.getAllByRole('button', { name: /delete/i })
       const confirmDeleteButton = allDeleteButtons.find(
-        button => button.className.includes('bg-red-600')
+        button => button.classList.contains('bg-danger')
       )
 
       expect(dontDeleteButton).toBeInTheDocument()
       expect(confirmDeleteButton).toBeInTheDocument()
 
       // Verify destructive button styling
-      expect(confirmDeleteButton).toHaveClass('bg-red-600', 'hover:bg-red-700', 'text-white')
+      expect(confirmDeleteButton).toHaveClass('bg-danger', 'hover:bg-danger/90', 'text-danger-foreground')
     })
 
     it('should prevent reopening modal after successful delete', () => {
@@ -318,7 +318,7 @@ describe('ListAdminSettings - Delete List Modal', () => {
       // Confirm delete
       const allDeleteButtons = screen.getAllByRole('button', { name: /delete/i })
       const confirmDeleteButton = allDeleteButtons.find(
-        button => button.className.includes('bg-red-600')
+        button => button.classList.contains('bg-danger')
       )
       fireEvent.click(confirmDeleteButton!)
 

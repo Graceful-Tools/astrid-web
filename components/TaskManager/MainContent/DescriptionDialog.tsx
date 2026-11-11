@@ -81,7 +81,7 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
               <button
                 type="button"
                 onClick={() => setDescriptionDialogMode('view')}
-                className={`text-xs px-2.5 py-1 rounded ${descriptionDialogMode === 'view' ? 'bg-blue-600 text-white' : 'theme-text-muted hover:theme-bg-hover'}`}
+                className={`text-xs px-2.5 py-1 rounded ${descriptionDialogMode === 'view' ? 'bg-brand text-brand-foreground' : 'theme-text-muted hover:theme-bg-hover'}`}
               >
                 <Eye className="w-3 h-3 inline mr-1" />
                 View
@@ -92,7 +92,7 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
                   setDescriptionDialogMode('edit')
                   setDialogDescription(currentList.description || '')
                 }}
-                className={`text-xs px-2.5 py-1 rounded ${descriptionDialogMode === 'edit' ? 'bg-blue-600 text-white' : 'theme-text-muted hover:theme-bg-hover'}`}
+                className={`text-xs px-2.5 py-1 rounded ${descriptionDialogMode === 'edit' ? 'bg-brand text-brand-foreground' : 'theme-text-muted hover:theme-bg-hover'}`}
               >
                 <Edit3 className="w-3 h-3 inline mr-1" />
                 Edit
@@ -116,7 +116,7 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
                   value={dialogDescription}
                   onChange={(e) => setDialogDescription(e.target.value)}
                   placeholder={"Write instructions for AI agents working in this list...\n\nSupports markdown: **bold**, *italic*, ## headings, - lists, [links](url)"}
-                  className="w-full theme-comment-bg theme-border border theme-text-primary rounded-lg px-3 py-2 resize-vertical focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm min-h-[200px]"
+                  className="w-full theme-comment-bg theme-border border theme-text-primary rounded-lg px-3 py-2 resize-vertical focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent font-mono text-sm min-h-[200px]"
                   rows={12}
                   autoFocus
                 />
@@ -156,7 +156,7 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
                         }
                         setDescriptionDialogMode('view')
                       }}
-                      className="text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                      className="text-xs bg-brand hover:bg-brand-hover text-brand-foreground"
                     >
                       <Check className="w-3 h-3 mr-1" />
                       Save

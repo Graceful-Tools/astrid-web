@@ -86,7 +86,7 @@ export default function FeatureRequestsPage() {
   if (status === 'loading' || (!demand && !error)) {
     return <div className="flex min-h-screen items-center justify-center">Loading…</div>
   }
-  if (error) return <div className="container mx-auto p-8 text-red-600">{error}</div>
+  if (error) return <div className="container mx-auto p-8 text-danger">{error}</div>
 
   const pending = requests.filter(row => row.status === 'PENDING')
   const decided = requests.filter(row => row.status !== 'PENDING' && !row.grandfathered)

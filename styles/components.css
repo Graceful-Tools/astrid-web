@@ -48,11 +48,21 @@
   --selection-outline-width: var(--astrid-size-compact-selection-outline);
   --selection-outline-color: rgba(var(--theme-accent), var(--astrid-state-selection-outline-opacity));
 
-  /* How long the left drawer takes to slide open. The content, the sidebar and
-     the tap guard that waits for them all read it from here (AWTD-1379), so the
-     guard cannot drift out of step with the panel it is waiting for. */
-  --ios-drawer-duration: 0.3s;
-  --ios-drawer-ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  /* How long the left drawer takes to slide open: the drawer motion token. The
+     content, the sidebar and the tap guard that waits for them all read it from
+     here (AWTD-1379), so the guard cannot drift out of step with the panel it
+     is waiting for. */
+  --ios-drawer-duration: var(--astrid-motion-drawer-duration);
+  --ios-drawer-ease: var(--astrid-motion-drawer-ease);
+
+  /* How strong the wash behind a notice is: bg-danger-subtle, bg-brand-subtle
+     and the rest (lib/design/tailwind-theme.ts). Web-only, named once. */
+  --theme-wash-opacity: 0.12;
+
+  /* CSS has no spring. This curve overshoots and settles, and stands in for the
+     tokens' damping wherever a spring duration is used (the checkbox pop, a row
+     springing back from a press). Web-only, named once. */
+  --motion-spring-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Lock document-level scrolling. The app shell (.app-container) and inner
@@ -100,7 +110,7 @@ html, body {
   margin: 8px;
   margin-bottom: 0;
   border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--astrid-shadow-sm);
   border: none;
   /* Override border-b from base app-header */
   border-bottom: none !important;
@@ -112,7 +122,7 @@ html, body {
   margin: 8px;
   margin-bottom: 0;
   border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--astrid-shadow-sm);
   border: none;
   border-bottom: none !important;
 }
@@ -147,37 +157,39 @@ html, body {
 
 /* Task Components */
 .task-row {
-  @apply flex items-center space-x-3 px-3 py-2 cursor-pointer transition-all duration-200;
+  @apply flex items-center space-x-3 px-3 py-2 cursor-pointer transition-all duration-medium ease-medium;
 }
 
 /* Unified card styling for task rows - works on both mobile and desktop */
 .task-card {
   @apply rounded-xl border;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--astrid-shadow-sm);
   min-height: 64px;
   /* The selection border, switched off. .task-row-selected only turns its
      style on — see there for why (AWTD-1085). */
   outline: var(--selection-outline-width) none var(--selection-outline-color);
   outline-offset: calc(-1 * var(--selection-outline-width));
-  /* iOS-style spring physics: fast press, bouncy release */
-  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, box-shadow 0.2s ease;
+  /* The press springs back; the pointer's tint is the hover token. */
+  transition: transform var(--astrid-motion-press-duration) var(--motion-spring-ease),
+              background-color var(--astrid-motion-hover-duration) var(--astrid-motion-hover-ease),
+              box-shadow var(--astrid-motion-hover-duration) var(--astrid-motion-hover-ease);
   /* Optimize for animations */
   will-change: transform;
 }
 
 /* iOS-style active/pressed state with spring physics */
 .task-card:active {
-  transform: scale(0.98);
-  /* Faster press-down timing */
-  transition: transform 0.08s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, box-shadow 0.2s ease;
+  transform: scale(var(--astrid-state-press-scale));
+  /* Going down is the press token's own curve, with no overshoot. */
+  transition: transform var(--astrid-motion-press-duration) var(--astrid-motion-press-ease),
+              background-color var(--astrid-motion-hover-duration) var(--astrid-motion-hover-ease),
+              box-shadow var(--astrid-motion-hover-duration) var(--astrid-motion-hover-ease);
 }
 
-/* Mobile: Stronger touch feedback with spring physics */
+/* Mobile: Stronger touch feedback, on the same press timing */
 @media (max-width: 768px) {
   .task-card:active {
     transform: scale(0.95);
-    /* Slightly faster on mobile for snappier feel */
-    transition: transform 0.06s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, box-shadow 0.2s ease;
   }
 }
 
@@ -203,7 +215,7 @@ html, body {
    the component). Only where the person has not asked for less motion. */
 @media (prefers-reduced-motion: no-preference) {
   .task-checkbox-pop {
-    animation: taskCheckboxPop var(--astrid-motion-spring-duration) cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: taskCheckboxPop var(--astrid-motion-spring-duration) var(--motion-spring-ease);
   }
 }
 
@@ -251,7 +263,7 @@ html, body {
 }
 
 .task-panel-arrow {
-  @apply absolute w-5 h-5 transform rotate-45 transition-all duration-75;
+  @apply absolute w-5 h-5 transform rotate-45 transition-all duration-fast ease-fast;
   left: -11px;
   z-index: 10;
   border-left: 1px solid rgb(var(--theme-border));
@@ -448,7 +460,7 @@ html, body {
 }
 
 .mobile-panel {
-  @apply absolute inset-0 z-10 transform transition-transform duration-300 ease-in-out;
+  @apply absolute inset-0 z-10 transform transition-transform duration-panel ease-panel;
 }
 
 .mobile-panel-hidden {
@@ -460,7 +472,7 @@ html, body {
 }
 
 .mobile-main {
-  @apply absolute inset-0 transform transition-transform duration-300 ease-in-out;
+  @apply absolute inset-0 transform transition-transform duration-panel ease-panel;
 }
 
 .mobile-main-shifted {
@@ -517,7 +529,8 @@ html, body {
 .mobile-list-item {
   @apply p-3 rounded-lg;
   /* iOS-style touch feedback */
-  transition: transform 0.1s ease-out, background-color 0.15s ease;
+  transition: transform var(--astrid-motion-press-duration) var(--astrid-motion-press-ease),
+              background-color var(--astrid-motion-fast-duration) var(--astrid-motion-fast-ease);
 }
 
 .mobile-list-item:active {
@@ -526,15 +539,15 @@ html, body {
 
 /* Theme-aware active state backgrounds */
 .light .mobile-list-item:active {
-  background-color: rgba(243, 244, 246, 0.8);
+  background-color: rgba(var(--theme-surface-hover), 0.8);
 }
 
 .dark .mobile-list-item:active {
-  background-color: rgb(55, 65, 81);
+  background-color: rgb(var(--theme-surface-hover));
 }
 
 .ocean .mobile-list-item:active {
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(var(--theme-surface), 0.9);
 }
 
 /* Mobile Typography */
@@ -590,7 +603,7 @@ html, body {
 }
 
 .mobile-slide-enter-active {
-  @apply transform translate-x-0 transition-transform duration-300 ease-out;
+  @apply transform translate-x-0 transition-transform duration-panel ease-panel;
 }
 
 .mobile-slide-exit {
@@ -598,7 +611,7 @@ html, body {
 }
 
 .mobile-slide-exit-active {
-  @apply transform -translate-x-full transition-transform duration-300 ease-in;
+  @apply transform -translate-x-full transition-transform duration-panel ease-panel;
 }
 
 .mobile-fade-enter {
@@ -606,7 +619,7 @@ html, body {
 }
 
 .mobile-fade-enter-active {
-  @apply opacity-100 transition-opacity duration-200 ease-out;
+  @apply opacity-100 transition-opacity duration-medium ease-medium;
 }
 
 .mobile-fade-exit {
@@ -614,7 +627,7 @@ html, body {
 }
 
 .mobile-fade-exit-active {
-  @apply opacity-0 transition-opacity duration-200 ease-in;
+  @apply opacity-0 transition-opacity duration-medium ease-medium;
 }
 
 /* Responsive Layout Classes */
@@ -645,8 +658,8 @@ html, body {
 .ios-drawer-content {
   @apply relative z-20;
   transition: transform var(--ios-drawer-duration) var(--ios-drawer-ease);
-  /* Solid background to cover sidebar when closed - theme files override this */
-  background-color: rgb(255, 255, 255);
+  /* Solid background to cover sidebar when closed: the page's, in every theme */
+  background-color: rgb(var(--theme-bg-primary));
   /* Create containing block for fixed-position header so it moves with the drawer */
   transform: translateX(0);
   /* Optimize animation and prevent negative transforms */
@@ -697,7 +710,7 @@ html, body {
   @apply fixed top-32 bottom-10 bg-white dark:bg-gray-800 flex flex-col z-30 rounded-xl;
   /* Accent-blue selection ring, matching the selected row (AWTD-1084), plus
      a soft shadow for the floating panel look */
-  box-shadow: 0 0 0 var(--selection-outline-width) var(--selection-outline-color), 0 8px 24px -4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 0 0 var(--selection-outline-width) var(--selection-outline-color), var(--astrid-shadow-lg);
   /* Responsive width that adapts to available space and layout configuration */
   width: clamp(
     var(--task-panel-min-width),
@@ -779,9 +792,9 @@ html, body {
 }
 
 .task-panel-mobile {
-  /* Spring-like cubic-bezier for iOS-style natural animation */
+  /* Task details opening and closing: the panel motion token */
   @apply fixed left-0 w-full z-40 transform translate-x-full;
-  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: transform var(--astrid-motion-panel-duration) var(--astrid-motion-panel-ease);
   top: 0;
   height: 100vh;
   height: 100dvh; /* Use dynamic viewport height on mobile */
@@ -801,7 +814,8 @@ html, body {
     -webkit-user-select: text;
     -webkit-appearance: none;
     /* Reduce focus ring intensity on mobile */
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    transition: border-color var(--astrid-motion-fast-duration) var(--astrid-motion-fast-ease),
+                box-shadow var(--astrid-motion-fast-duration) var(--astrid-motion-fast-ease);
     /* Remove transforms that might interfere with keyboard */
     transform: none !important;
     -webkit-transform: none !important;
@@ -839,18 +853,18 @@ html, body {
     z-index: 50;
   }
   
-  /* Enable opening animation on mobile - slide in from right with spring physics */
+  /* Enable opening animation on mobile - slide in from right */
   .task-panel-mobile.task-panel-mobile-open {
     transform: translateX(0) !important;
     -webkit-transform: translateX(0) !important;
-    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1) !important;
+    transition: transform var(--astrid-motion-panel-duration) var(--astrid-motion-panel-ease) !important;
   }
 
-  /* Enable closing animation on mobile - slide out to the right with spring physics */
+  /* Enable closing animation on mobile - slide out to the right */
   .task-panel-mobile.task-panel-mobile-closing {
     transform: translateX(100%) !important;
     -webkit-transform: translateX(100%) !important;
-    transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1) !important;
+    transition: transform var(--astrid-motion-panel-duration) var(--astrid-motion-panel-ease) !important;
   }
   
   /* Ensure scrollable areas work properly on mobile */
@@ -885,14 +899,14 @@ html, body {
 
 /* Task Details Pane Animation - Slides in from left to right */
 .task-panel-animate {
-  animation: slideInFromLeft 0.3s ease-out;
+  animation: slideInFromLeft var(--astrid-motion-panel-duration) var(--astrid-motion-panel-ease);
 }
 
 .task-panel-animate-out {
   /* forwards: hold the off-screen end state until React unmounts the pane, so
      the panel can't snap back to visible if the animation finishes a frame
      before the unmount (scroll-to-close "reappear" bug). */
-  animation: slideOutToLeft 0.3s ease-out forwards;
+  animation: slideOutToLeft var(--astrid-motion-panel-duration) var(--astrid-motion-panel-ease) forwards;
 }
 
 @keyframes slideInFromLeft {
@@ -938,7 +952,7 @@ html, body {
 
 /* Utility Classes for Theming */
 .transition-theme {
-  @apply transition-all duration-200;
+  @apply transition-all duration-medium ease-medium;
 }
 
 .focus-ring {

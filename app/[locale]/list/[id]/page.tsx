@@ -83,14 +83,14 @@ export default function ListPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-theme-primary flex items-center justify-center p-4">
         <div className="text-center">
           <div className="text-6xl mb-4">📋</div>
-          <h1 className="text-2xl font-bold text-white mb-2">List Not Available</h1>
-          <p className="text-gray-400 mb-6">{error}</p>
+          <h1 className="text-2xl font-bold text-theme-primary mb-2">List Not Available</h1>
+          <p className="text-theme-muted mb-6">{error}</p>
           <button
             onClick={() => router.push('/')}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
+            className="bg-brand hover:bg-brand-hover text-brand-foreground px-6 py-2 rounded-lg"
           >
             Go to Dashboard
           </button>

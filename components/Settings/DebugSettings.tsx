@@ -169,7 +169,7 @@ export default function DebugSettings({ onNavigate }: DebugSettingsProps) {
               <Switch
                 checked={toastDebugMode}
                 onCheckedChange={setToastDebugMode}
-                className="data-[state=checked]:bg-blue-600"
+                className="data-[state=checked]:bg-brand"
               />
             </div>
 
@@ -186,7 +186,7 @@ export default function DebugSettings({ onNavigate }: DebugSettingsProps) {
               <Switch
                 checked={reminderDebugMode}
                 onCheckedChange={setReminderDebugMode}
-                className="data-[state=checked]:bg-orange-600"
+                className="data-[state=checked]:bg-warning"
               />
             </div>
           </CardContent>
@@ -209,7 +209,7 @@ export default function DebugSettings({ onNavigate }: DebugSettingsProps) {
               <Button
                 onClick={handleRestoreDefaultLists}
                 disabled={restoringDefaults}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
               >
                 {restoringDefaults ? (
                   <>
@@ -231,7 +231,7 @@ export default function DebugSettings({ onNavigate }: DebugSettingsProps) {
                 <Button
                   onClick={handleRefreshData}
                   disabled={refreshingData}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
                 >
                   {refreshingData ? (
                     <>

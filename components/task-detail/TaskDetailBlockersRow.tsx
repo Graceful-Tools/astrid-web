@@ -250,7 +250,7 @@ export function TaskDetailBlockersRow({
           )}
         </div>
 
-        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
 
         {picking && !readOnly && (
           <div className="flex flex-col gap-1">

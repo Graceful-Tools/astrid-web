@@ -37,7 +37,7 @@ describe('UserPicker', () => {
       )
 
       // Should NOT show the selected user display card
-      expect(container.querySelector('.bg-gray-700.rounded-lg.border')).toBeNull()
+      expect(container.querySelector('[data-testid="user-picker-selected"]')).toBeNull()
 
       // Should still show the search input
       const input = screen.getByPlaceholderText('Search users or enter email...')
@@ -55,7 +55,7 @@ describe('UserPicker', () => {
 
       // Should show the selected user display card
       expect(screen.getByText('Test User')).toBeDefined()
-      expect(container.querySelector('.bg-gray-700.rounded-lg.border')).not.toBeNull()
+      expect(container.querySelector('[data-testid="user-picker-selected"]')).not.toBeNull()
     })
 
     it('should show selected user display by default (inline defaults to false)', () => {
@@ -68,7 +68,7 @@ describe('UserPicker', () => {
 
       // Should show the selected user display card
       expect(screen.getByText('Test User')).toBeDefined()
-      expect(container.querySelector('.bg-gray-700.rounded-lg.border')).not.toBeNull()
+      expect(container.querySelector('[data-testid="user-picker-selected"]')).not.toBeNull()
     })
 
     it('should allow unassigning user in inline mode', () => {
@@ -554,3 +554,26 @@ describe('UserPicker', () => {
     })
   })
 })
+
+// AWTD-1574: the picker was drawn for Dark only (bg-gray-700, text-white), so
+// in Light and Ocean it was a dark grey box in a white panel. It is the first
+// component converted to the theme vocabulary (docs/specs/DESIGN_SYSTEM.md →
+// Palette classes to theme classes) and now holds no palette class at all.
+describe('UserPicker follows the theme (AWTD-1574)', () => {
+  it('names no Tailwind palette colour', async () => {
+    const { readFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const { METRICS, withoutComments } = await import('@/scripts/report-design-metrics')
+    const source = withoutComments(readFileSync(join(process.cwd(), 'components', 'user-picker.tsx'), 'utf8'))
+    const palette = METRICS.find((metric) => metric.id === 'rawPaletteClasses')!.pattern
+    expect(source.match(palette) ?? []).toEqual([])
+    expect(source.match(/\b(?:text|bg|border)-(?:white|black)\b/g) ?? []).toEqual([])
+  })
+
+  it('draws the selected person on a theme surface', () => {
+    const someone = { id: 'u1', name: 'Ada Lovelace', email: 'ada@example.com' } as User
+    const { getByTestId } = render(<UserPicker selectedUser={someone} onUserSelect={() => {}} />)
+    expect(getByTestId('user-picker-selected')).toHaveClass('bg-theme-tertiary', 'border-theme')
+  })
+})
+

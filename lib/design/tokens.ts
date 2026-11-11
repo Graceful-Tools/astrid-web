@@ -44,3 +44,10 @@ export function themeColorNames(): string[] {
 }
 
 export const designTokens = resolved
+
+/**
+ * The leading control's side, in px, for the places that need a number (an
+ * image's intrinsic size). In a class use `w-leading-control h-leading-control`,
+ * which reads the same token as a custom property.
+ */
+export const LEADING_CONTROL_SIZE = resolved.size.comfortable['leading-control']

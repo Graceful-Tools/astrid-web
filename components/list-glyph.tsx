@@ -12,10 +12,10 @@ type GlyphList = Pick<TaskList, "color" | "privacy"> & Parameters<typeof getAllL
  */
 export function ListGlyph({ list, className = "w-3 h-3" }: { list: GlyphList; className?: string }) {
   if (list?.privacy === "PUBLIC") {
-    return <Globe className={`${className} text-green-500`} aria-hidden="true" />
+    return <Globe className={`${className} text-success`} aria-hidden="true" />
   }
   if (getAllListMembers(list).length > 1) {
-    return <Users className={`${className} text-blue-500`} aria-hidden="true" />
+    return <Users className={`${className} text-brand`} aria-hidden="true" />
   }
   return <Hash className={className} style={{ color: list.color }} aria-hidden="true" />
 }

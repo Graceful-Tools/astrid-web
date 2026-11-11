@@ -19,7 +19,7 @@ export function ListIdSection({ list }: ListIdSectionProps) {
       <div className="flex items-center justify-between">
         <Label className="text-xs theme-text-muted">List ID</Label>
         <div className="flex items-center space-x-2">
-          <code className="text-xs theme-text-muted font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+          <code className="text-xs theme-text-muted font-mono bg-theme-tertiary px-2 py-1 rounded">
             {list.id}
           </code>
           <Button

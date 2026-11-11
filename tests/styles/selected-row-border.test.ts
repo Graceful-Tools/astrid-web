@@ -18,6 +18,8 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
+import { THEME_NAMES, designTokens } from '@/lib/design/tokens'
+
 function ruleBody(css: string, selector: string): string {
   const start = css.indexOf(selector + ' {')
   if (start === -1) throw new Error(`selector ${selector} not found`)
@@ -93,5 +95,26 @@ describe('desktop task detail pane border (AWTD-1084)', () => {
   it('keeps full-screen detail borderless', () => {
     const body = ruleBody(css, '.task-panel-desktop:has([data-fullscreen="true"])')
     expect(body).toMatch(/box-shadow:\s*none/)
+  })
+})
+
+// AWTD-1574 (register DS5). The outline is the accent at 55%, and it is the only
+// line a selected row wears. A row is also `theme-bg-selected`, whose border is
+// the theme's `bg-selected-border`; in Dark that token is the accent itself, so
+// the 1px border under the outline read as a solid accent line, which is what
+// the Mac's outline replaced.
+describe('the outline is the only accent line on a selected row (AWTD-1574)', () => {
+  it.each(THEME_NAMES)('%s: no solid accent border is drawn under it', (theme) => {
+    const solidAccent = (designTokens.themes[theme].colors as Record<string, string>)['bg-selected-border'] === '{brand.accent}'
+    if (!solidAccent) return
+    const sheet = readFileSync(join(process.cwd(), 'styles', 'themes', `${theme}-theme.css`), 'utf8')
+    expect(ruleBody(sheet, `.${theme} .task-row-selected`)).toMatch(/border-color:\s*transparent;/)
+  })
+
+  it('at least one theme needs it, or this guards nothing', () => {
+    const themes = THEME_NAMES.filter(
+      (theme) => (designTokens.themes[theme].colors as Record<string, string>)['bg-selected-border'] === '{brand.accent}',
+    )
+    expect(themes).toContain('dark')
   })
 })

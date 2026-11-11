@@ -130,7 +130,7 @@ export default function ConnectionsSettings(_props: ConnectionsSettingsProps) {
     <div className="p-2 sm:p-4">
       <div className="max-w-sm sm:max-w-4xl mx-auto space-y-4 sm:space-y-6">
         <div className="flex flex-wrap items-center gap-3">
-          <Link2 className="w-8 h-8 text-blue-500" />
+          <Link2 className="w-8 h-8 text-brand" />
           <div>
             <h1 className="text-2xl font-bold theme-text-primary">{t("settingsPages.connections.title")}</h1>
             <p className="theme-text-muted">{t("settingsPages.connections.description")}</p>
@@ -170,11 +170,11 @@ export default function ConnectionsSettings(_props: ConnectionsSettingsProps) {
           {showDeveloper && (
             <CardContent className="space-y-6 pt-0">
               <div className="flex flex-wrap gap-2">
-                <Link href="/docs" className="text-xs text-blue-500 hover:underline">
+                <Link href="/docs" className="text-xs text-brand hover:underline">
                   API Documentation
                 </Link>
                 <span className="text-xs theme-text-muted">&middot;</span>
-                <Link href="/docs/integrate" className="text-xs text-blue-500 hover:underline">
+                <Link href="/docs/integrate" className="text-xs text-brand hover:underline">
                   Integration Guide
                 </Link>
               </div>

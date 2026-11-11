@@ -66,13 +66,13 @@ export function ListDescriptionBlock({
                 onCancel()
               }
             }}
-            className="theme-comment-bg theme-border border theme-text-primary text-sm text-left max-w-md rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="theme-comment-bg theme-border border theme-text-primary text-sm text-left max-w-md rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
             placeholder="Add a description..."
             rows={2}
             autoFocus
           />
           <div className="flex flex-col space-y-1 mt-1">
-            <Button size="sm" onClick={onSave} className="bg-blue-600 hover:bg-blue-700">
+            <Button size="sm" onClick={onSave} className="bg-brand hover:bg-brand-hover text-brand-foreground">
               <Check className="w-4 h-4" />
             </Button>
             <Button size="sm" variant="outline" onClick={onCancel}

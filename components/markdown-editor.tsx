@@ -59,7 +59,7 @@ export function MarkdownEditor({
 
       {isPreview ? (
         <div
-          className="min-h-[100px] p-3 border border-gray-600 rounded-md bg-gray-800 text-white"
+          className="min-h-[100px] p-3 border border-theme-input rounded-md bg-theme-input text-theme-primary"
           dangerouslySetInnerHTML={{ __html: renderMarkdown(value) }}
         />
       ) : (
@@ -67,7 +67,7 @@ export function MarkdownEditor({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="min-h-[100px] bg-gray-800 border-gray-600 text-white placeholder-gray-400"
+          className="min-h-[100px] bg-theme-input border-theme-input text-theme-primary placeholder:text-theme-placeholder"
           onKeyDown={(e) => {
             if (e.key === 'Enter' && onSubmit) {
               if (e.shiftKey || e.metaKey || e.ctrlKey) {

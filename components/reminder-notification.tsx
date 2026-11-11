@@ -176,12 +176,12 @@ export function ReminderNotification({
 
   const getReminderIcon = () => {
     if (type === 'daily_digest') {
-      return <Calendar className="w-5 h-5 text-blue-500" />
+      return <Calendar className="w-5 h-5 text-brand" />
     }
     if (isOverdue) {
-      return <AlertCircle className="w-5 h-5 text-red-500" />
+      return <AlertCircle className="w-5 h-5 text-danger" />
     }
-    return <Bell className="w-5 h-5 text-orange-500" />
+    return <Bell className="w-5 h-5 text-warning" />
   }
 
   const getReminderTitle = () => {
@@ -217,10 +217,10 @@ export function ReminderNotification({
             <button
               onClick={handleMarkComplete}
               disabled={isCompleting}
-              className="flex-shrink-0 w-6 h-6 rounded border-2 theme-border hover:border-blue-500 transition-colors flex items-center justify-center"
+              className="flex-shrink-0 w-6 h-6 rounded border-2 border-theme hover:border-brand transition-colors flex items-center justify-center"
             >
               {isCompleting ? (
-                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin" />
               ) : null}
             </button>
 
@@ -228,7 +228,7 @@ export function ReminderNotification({
             <div className="flex-1 min-w-0">
               <div className="theme-text-primary font-medium truncate">{taskTitle}</div>
               {dueDateTime && (
-                <div className={`text-sm flex items-center space-x-1 ${isOverdue ? 'text-red-600 dark:text-red-400' : 'theme-text-muted'}`}>
+                <div className={`text-sm flex items-center space-x-1 ${isOverdue ? 'text-overdue' : 'theme-text-muted'}`}>
                   <Clock className="w-3 h-3" />
                   <span>{format(dueDateTime, "MMM d 'at' h:mm a")}</span>
                   {isOverdue && <span className="font-semibold">• Overdue</span>}
@@ -265,7 +265,7 @@ export function ReminderNotification({
             <div className="flex-1">
               <div className="relative theme-bg-secondary rounded-2xl p-4 border-2 theme-border shadow-lg">
                 {/* Comic-style speech bubble pointer */}
-                <div className="absolute -left-3 top-6 w-0 h-0 border-t-[12px] border-t-transparent border-r-[16px] border-r-gray-300 dark:border-r-gray-600 border-b-[12px] border-b-transparent"></div>
+                <div className="absolute -left-3 top-6 w-0 h-0 border-t-[12px] border-t-transparent border-r-[16px] border-r-theme border-b-[12px] border-b-transparent"></div>
                 <div className="absolute -left-[10px] top-[27px] w-0 h-0 border-t-[9px] border-t-transparent border-r-[13px] border-b-[9px] border-b-transparent speech-bubble-arrow-fill"></div>
                 <p className="text-base font-semibold theme-text-primary leading-relaxed">{quote}</p>
               </div>
@@ -274,7 +274,7 @@ export function ReminderNotification({
 
           {/* Collaborators (if shared list) */}
           {isSharedList && (
-            <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+            <div className="bg-warning-subtle border border-warning/30 rounded-lg p-3">
               <div className="flex items-center space-x-2">
                 <div className="flex -space-x-2">
                   {collaborators.slice(0, 5).map((collab) => {
@@ -282,7 +282,7 @@ export function ReminderNotification({
                     return (
                       <div
                         key={collab.id}
-                        className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-semibold border-2 border-white dark:border-gray-800"
+                        className="w-8 h-8 rounded-full bg-brand text-brand-foreground flex items-center justify-center text-xs font-semibold border-2 border-white dark:border-gray-800"
                         title={collab.name}
                       >
                         {initials}
@@ -290,12 +290,12 @@ export function ReminderNotification({
                     )
                   })}
                   {collaborators.length > 5 && (
-                    <div className="w-8 h-8 rounded-full bg-gray-400 text-white flex items-center justify-center text-xs font-semibold border-2 border-white dark:border-gray-800">
+                    <div className="w-8 h-8 rounded-full bg-theme-active text-theme-secondary flex items-center justify-center text-xs font-semibold border-2 border-white dark:border-gray-800">
                       +{collaborators.length - 5}
                     </div>
                   )}
                 </div>
-                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                <p className="text-sm font-medium text-theme-primary">
                   These people are counting on you! 🤝
                 </p>
               </div>
@@ -308,7 +308,7 @@ export function ReminderNotification({
             <Button
               onClick={handleMarkComplete}
               disabled={isCompleting}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-6 text-base"
+              className="w-full bg-success hover:bg-success/90 text-success-foreground font-semibold py-6 text-base"
             >
               <CheckCircle className="w-5 h-5 mr-2" />
               Complete

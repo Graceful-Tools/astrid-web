@@ -224,18 +224,18 @@ export function PushNotificationSettings({ className }: PushNotificationSettings
             <div className="flex items-center gap-2">
               {status.isSubscribed ? (
                 <>
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm text-green-600">Enabled</span>
+                  <CheckCircle className="w-4 h-4 text-success" />
+                  <span className="text-sm text-success">Enabled</span>
                 </>
               ) : status.permission === 'denied' ? (
                 <>
-                  <BellOff className="w-4 h-4 text-red-500" />
-                  <span className="text-sm text-red-600">Blocked</span>
+                  <BellOff className="w-4 h-4 text-danger" />
+                  <span className="text-sm text-danger">Blocked</span>
                 </>
               ) : (
                 <>
-                  <BellOff className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm text-gray-600">Disabled</span>
+                  <BellOff className="w-4 h-4 text-theme-muted" />
+                  <span className="text-sm text-theme-muted">Disabled</span>
                 </>
               )}
             </div>

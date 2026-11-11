@@ -30,6 +30,7 @@ import type { User, TaskList } from '@/types/task'
 import { useTranslations } from "@/lib/i18n/client"
 import { getPriorityColor } from "@/lib/task-leading-control"
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
+import { LEADING_CONTROL_SIZE } from '@/lib/design/tokens'
 import {
   applyHashtagSelection,
   filterListsForHashtag,
@@ -295,7 +296,7 @@ export function QuickAdd({
       >
         <div
           ref={cardRef}
-          className={`quick-add bg-white dark:bg-gray-800 rounded-xl px-4 py-3 ${
+          className={`quick-add bg-theme-surface rounded-xl px-4 py-3 ${
             isFixedBottom ? 'shadow-[0_2px_12px_rgba(0,0,0,0.15)]' : ''
           }`}
         >
@@ -304,13 +305,13 @@ export function QuickAdd({
             <button
               type="button"
               onClick={() => setShowPicker(true)}
-              className="flex-shrink-0 flex items-center justify-center transition-all duration-200 active:scale-95"
+              className="flex-shrink-0 flex items-center justify-center transition-all duration-press ease-press active:scale-95"
               aria-label="Select priority or assignee"
             >
               {selectedAssignee === null ? (
                 // Unassigned: Rounded rectangle with "U" (matches task checkbox style)
                 <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center border-2"
+                  className="w-leading-control h-leading-control rounded-lg flex items-center justify-center border-2"
                   style={{ borderColor: priorityColor }}
                 >
                   <span
@@ -325,19 +326,19 @@ export function QuickAdd({
                 <Image
                   src={getCheckboxIconPath()}
                   alt={`Priority ${selectedPriority} checkbox`}
-                  width={32}
-                  height={32}
-                  className="w-8 h-8"
+                  width={LEADING_CONTROL_SIZE}
+                  height={LEADING_CONTROL_SIZE}
+                  className="w-leading-control h-leading-control"
                 />
               ) : (
                 // Other user: Show avatar with priority border
                 <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center"
+                  className="w-leading-control h-leading-control rounded-lg flex items-center justify-center"
                   style={{ border: `2px solid ${priorityColor}` }}
                 >
                   <Avatar className="w-6 h-6">
                     <AvatarImage src={selectedAssignee.image || undefined} alt={selectedAssignee.name || 'Assignee'} />
-                    <AvatarFallback className="text-xs bg-gray-200 dark:bg-gray-600">
+                    <AvatarFallback className="text-xs bg-theme-active">
                       {getInitials(selectedAssignee.name, selectedAssignee.email)}
                     </AvatarFallback>
                   </Avatar>
@@ -354,11 +355,11 @@ export function QuickAdd({
                 onChange={(e) => setQuickTaskInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 className="w-full px-3 py-2 text-base rounded-lg resize-none overflow-hidden
-                  bg-gray-100 dark:bg-gray-700
-                  text-gray-900 dark:text-white
-                  placeholder-gray-500 dark:placeholder-gray-400
-                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-600
-                  transition-all duration-200 min-h-9"
+                  bg-theme-tertiary
+                  text-theme-primary
+                  placeholder:text-theme-muted
+                  focus:outline-none focus:ring-2 focus:ring-brand focus:bg-white dark:focus:bg-gray-600
+                  transition-all duration-medium min-h-9"
                 style={{
                   maxHeight: '120px',
                   lineHeight: '1.4',
@@ -372,7 +373,7 @@ export function QuickAdd({
               />
               {isCreating && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand"></div>
                 </div>
               )}
 
@@ -396,12 +397,12 @@ export function QuickAdd({
                         key={list.id}
                         type="button"
                         onClick={() => selectHashtagSuggestion(list)}
-                        className={`w-full px-3 py-2 text-left hover:bg-blue-50 dark:hover:bg-blue-900/30 flex items-center gap-2 transition-colors ${
-                          index === activeHashtagIndex ? 'bg-blue-100 dark:bg-blue-900/50' : ''
+                        className={`w-full px-3 py-2 text-left hover:bg-theme-hover flex items-center gap-2 transition-colors ${
+                          index === activeHashtagIndex ? 'bg-theme-selected' : ''
                         }`}
                       >
                         {isPublicOrShared ? (
-                          <span className="text-blue-600 dark:text-blue-400 font-mono text-sm flex-shrink-0">#</span>
+                          <span className="text-brand font-mono text-sm flex-shrink-0">#</span>
                         ) : (
                           <Hash className="w-3 h-3 flex-shrink-0" style={{ color: list.color || DEFAULT_LIST_COLOR }} />
                         )}
@@ -421,9 +422,9 @@ export function QuickAdd({
             <Button
               onClick={() => handleCreateTask(true)}
               disabled={!isSessionReady || !quickTaskInput.trim() || isCreating}
-              className={`flex-shrink-0 h-9 rounded-lg bg-blue-600 hover:bg-blue-700
-                text-white disabled:opacity-50 disabled:cursor-not-allowed
-                transition-all duration-200 active:scale-95 ${
+              className={`flex-shrink-0 h-9 rounded-lg bg-brand hover:bg-brand-hover
+                text-brand-foreground disabled:bg-brand-hover disabled:opacity-disabled disabled:cursor-not-allowed
+                transition-all duration-press ease-press active:scale-95 ${
                   showAddTaskLabel ? 'px-4 gap-1 whitespace-nowrap' : 'w-9 p-0'
                 }`}
               aria-label={t('tasks.addTask')}
