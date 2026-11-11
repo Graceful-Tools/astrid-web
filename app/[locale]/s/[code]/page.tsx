@@ -8,15 +8,18 @@ import { useSession } from "next-auth/react"
 import { LoadingScreen } from "@/components/loading-screen"
 import { createLogger } from '@/lib/logger'
 import { scrollShellClassName } from "@/components/scroll-shell"
+import { useTranslations } from "@/lib/i18n/client"
 
 const log = createLogger('[locale].s.[code].page.tsx')
 
 
 export default function ShortcodePage() {
+  const { t } = useTranslations()
   const params = useParams<{ code?: string }>()
   const router = useRouter()
   const { data: session, status } = useSession()
   const code = typeof params?.code === "string" ? params.code : ""
+  // An i18n key, translated when shown: the effect below does not depend on the language.
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -38,9 +41,9 @@ export default function ShortcodePage() {
 
         if (!response.ok) {
           if (response.status === 404) {
-            setError("Link not found or expired")
+            setError("errorPages.linkNotFound")
           } else {
-            setError("Failed to resolve link")
+            setError("errorPages.linkResolveFailed")
           }
           return
         }
@@ -81,9 +84,9 @@ export default function ShortcodePage() {
                 router.replace(`/?task=${targetId}`)
               }
             } else if (taskResponse.status === 404) {
-              setError("Task not found or no longer accessible")
+              setError("errorPages.linkTaskNotFound")
             } else if (taskResponse.status === 403) {
-              setError("You don't have permission to view this task")
+              setError("errorPages.linkTaskForbidden")
             } else {
               // Other errors - fall back to My Tasks (might still work if task is in accessible lists)
               router.replace(`/?task=${targetId}`)
@@ -96,11 +99,11 @@ export default function ShortcodePage() {
         } else if (targetType === "list") {
           router.replace(`/lists/${targetId}`)
         } else {
-          setError("Invalid link type")
+          setError("errorPages.linkInvalidType")
         }
       } catch (err) {
         log.error({ err: err }, "Error resolving shortcode:")
-        setError("Failed to resolve link")
+        setError("errorPages.linkResolveFailed")
       }
     }
 
@@ -112,13 +115,13 @@ export default function ShortcodePage() {
       <div className={`${scrollShellClassName} bg-theme-primary flex items-center justify-center p-4`}>
         <div className="text-center">
           <div className="text-6xl mb-4">🔗</div>
-          <h1 className="text-2xl font-bold text-theme-primary mb-2">Link Error</h1>
-          <p className="text-theme-muted mb-6">{error}</p>
+          <h1 className="text-2xl font-bold text-theme-primary mb-2">{t('errorPages.linkErrorTitle')}</h1>
+          <p className="text-theme-muted mb-6">{t(error)}</p>
           <button
             onClick={() => router.push("/")}
             className="bg-brand hover:bg-brand-hover text-brand-foreground px-6 py-2 rounded-lg"
           >
-            Go to Dashboard
+            {t('errorPages.goToDashboard')}
           </button>
         </div>
       </div>
