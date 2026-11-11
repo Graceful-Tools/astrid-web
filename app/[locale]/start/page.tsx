@@ -213,7 +213,7 @@ function CiTokenButton({ mailbox, secretName }: { mailbox: string; secretName: s
         {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
         Create a GitHub Actions token
       </Button>
-      {error && <p className="text-xs text-red-500" role="alert">{error}</p>}
+      {error && <p className="text-xs text-danger" role="alert">{error}</p>}
     </div>
   )
 }
@@ -342,7 +342,7 @@ export default function StartHerePage() {
               Sign in to create them
             </Button>
           )}
-          {error && <p className="text-sm text-red-500" role="alert">{error}</p>}
+          {error && <p className="text-sm text-danger" role="alert">{error}</p>}
           <details className="text-sm">
             <summary className="cursor-pointer theme-text-muted">See the list instructions</summary>
             <div className="space-y-3 pt-3">

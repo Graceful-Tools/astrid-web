@@ -67,7 +67,7 @@ export default function FeatureRolloutsIndexPage() {
   if (status === 'loading' || (!flags && !error)) {
     return <div className="flex min-h-screen items-center justify-center">Loading…</div>
   }
-  if (error) return <div className="container mx-auto p-8 text-red-600">{error}</div>
+  if (error) return <div className="container mx-auto p-8 text-danger">{error}</div>
 
   return (
     <div className="container mx-auto max-w-5xl px-4 py-6 sm:py-8">

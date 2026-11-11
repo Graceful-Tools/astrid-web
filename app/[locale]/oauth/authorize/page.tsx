@@ -83,7 +83,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
         <Card className="max-w-lg w-full theme-bg-secondary theme-border">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <AlertTriangle className="w-5 h-5 text-red-500" />
+              <AlertTriangle className="w-5 h-5 text-danger" />
               <span>Unable to Continue</span>
             </CardTitle>
             <CardDescription className="theme-text-muted">
@@ -209,7 +209,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <Shield className="w-5 h-5 text-blue-500" />
+                <Shield className="w-5 h-5 text-brand" />
                 <span>Requested Permissions</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
@@ -220,7 +220,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
               <ul className="space-y-2">
                 {context.scopes.map(scope => (
                   <li key={scope} className="flex items-start space-x-3">
-                    <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
                     <div>
                       <code className="text-xs theme-bg-tertiary px-2 py-0.5 rounded">{scope}</code>
                       <div className="text-sm theme-text-muted">{getScopeDescription(scope)}</div>
@@ -234,7 +234,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
             </CardContent>
           </Card>
 
-          <Card className="theme-bg-secondary theme-border border-green-500/40">
+          <Card className="theme-bg-secondary border-success/40">
             <CardHeader>
               <CardTitle>Grant Access</CardTitle>
               <CardDescription className="theme-text-muted">

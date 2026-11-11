@@ -244,8 +244,8 @@ export function SignInContent() {
           </CardHeader>
           <CardContent className="px-8 pb-8">
             {displayError && (
-              <Alert className="mb-6 border-red-500/40 bg-red-500/10">
-                <AlertCircle className="h-4 w-4 text-red-500" />
+              <Alert className="mb-6 border-danger/40 bg-danger-subtle">
+                <AlertCircle className="h-4 w-4 text-danger" />
                 <AlertDescription className="theme-text-primary">{getErrorMessage(displayError)}</AlertDescription>
               </Alert>
             )}

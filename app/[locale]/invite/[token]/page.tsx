@@ -122,13 +122,13 @@ export default function InvitePage() {
   const getInvitationIcon = (type: string) => {
     switch (type) {
       case 'TASK_ASSIGNMENT':
-        return <Briefcase className="w-8 h-8 text-blue-500" />
+        return <Briefcase className="w-8 h-8 text-brand" />
       case 'LIST_SHARING':
-        return <List className="w-8 h-8 text-green-500" />
+        return <List className="w-8 h-8 text-success" />
       case 'WORKSPACE_INVITE':
         return <UserPlus className="w-8 h-8 text-purple-500" />
       default:
-        return <UserPlus className="w-8 h-8 text-blue-500" />
+        return <UserPlus className="w-8 h-8 text-brand" />
     }
   }
 
@@ -164,19 +164,19 @@ export default function InvitePage() {
 
   if (error || !invitation) {
     return (
-      <div className="fixed inset-0 bg-gray-900 flex items-center justify-center p-4 z-50">
-        <Card className="w-full max-w-md bg-gray-800 border-gray-700">
+      <div className="fixed inset-0 bg-theme-primary flex items-center justify-center p-4 z-50">
+        <Card className="w-full max-w-md bg-theme-surface border-theme-surface">
           <CardHeader className="text-center">
-            <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <CardTitle className="text-white">Invitation Error</CardTitle>
-            <CardDescription className="text-gray-400">
+            <XCircle className="w-12 h-12 text-danger mx-auto mb-4" />
+            <CardTitle className="text-theme-primary">Invitation Error</CardTitle>
+            <CardDescription className="text-theme-muted">
               {error || "This invitation is no longer valid."}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Button
               onClick={() => router.push('/auth/signin')}
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
             >
               Sign In
             </Button>
@@ -188,12 +188,12 @@ export default function InvitePage() {
 
   if (success) {
     return (
-      <div className="fixed inset-0 bg-gray-900 flex items-center justify-center p-4 z-50">
-        <Card className="w-full max-w-md bg-gray-800 border-gray-700">
+      <div className="fixed inset-0 bg-theme-primary flex items-center justify-center p-4 z-50">
+        <Card className="w-full max-w-md bg-theme-surface border-theme-surface">
           <CardHeader className="text-center">
-            <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-            <CardTitle className="text-white">Invitation Accepted!</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CheckCircle className="w-12 h-12 text-success mx-auto mb-4" />
+            <CardTitle className="text-theme-primary">Invitation Accepted!</CardTitle>
+            <CardDescription className="text-theme-muted">
               You&apos;ve successfully joined the collaboration. Redirecting to the app...
             </CardDescription>
           </CardHeader>
@@ -206,44 +206,44 @@ export default function InvitePage() {
   const isExpired = new Date(invitation.expiresAt) < new Date()
 
   return (
-    <div className="fixed inset-0 bg-gray-900 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md bg-gray-800 border-gray-700">
+    <div className="fixed inset-0 bg-theme-primary flex items-center justify-center p-4 z-50">
+      <Card className="w-full max-w-md bg-theme-surface border-theme-surface">
         <CardHeader className="text-center">
           {getInvitationIcon(invitation.type)}
-          <CardTitle className="text-white mt-4">
+          <CardTitle className="text-theme-primary mt-4">
             {getInvitationTitle(invitation.type)}
           </CardTitle>
-          <CardDescription className="text-gray-400">
+          <CardDescription className="text-theme-muted">
             {getInvitationDescription(invitation.type, senderName)}
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
           {/* Sender info */}
-          <div className="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg">
+          <div className="flex items-center space-x-3 p-3 bg-theme-tertiary rounded-lg">
             <Avatar className="w-10 h-10">
               <AvatarFallback>
                 {senderName.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
-              <div className="text-white font-medium">{senderName}</div>
+              <div className="text-theme-primary font-medium">{senderName}</div>
               {invitation.sender?.email && (
-                <div className="text-gray-400 text-sm">{invitation.sender.email}</div>
+                <div className="text-theme-muted text-sm">{invitation.sender.email}</div>
               )}
             </div>
           </div>
 
           {/* Message */}
           {invitation.message && (
-            <div className="p-3 bg-gray-700 rounded-lg">
-              <div className="text-gray-400 text-sm mb-1">Message:</div>
-              <div className="text-white text-sm italic">&quot;{invitation.message}&quot;</div>
+            <div className="p-3 bg-theme-tertiary rounded-lg">
+              <div className="text-theme-muted text-sm mb-1">Message:</div>
+              <div className="text-theme-primary text-sm italic">&quot;{invitation.message}&quot;</div>
             </div>
           )}
 
           {/* Expiration */}
-          <div className="flex items-center space-x-2 text-sm text-gray-400">
+          <div className="flex items-center space-x-2 text-sm text-theme-muted">
             <Clock className="w-4 h-4" />
             <span>
               Expires {new Date(invitation.expiresAt).toLocaleDateString()}
@@ -252,8 +252,8 @@ export default function InvitePage() {
 
           {/* Email mismatch warning */}
           {session && invitation.email && session.user?.email !== invitation.email && (
-            <div className="p-3 bg-yellow-900/50 border border-yellow-600 rounded-lg">
-              <div className="text-yellow-400 text-sm">
+            <div className="p-3 bg-warning-subtle border border-warning rounded-lg">
+              <div className="text-theme-primary text-sm">
                 ⚠️ This invitation was sent to {invitation.email}, but you&apos;re signed in as {session.user?.email}.
                 Please sign in with the correct account.
               </div>
@@ -264,16 +264,16 @@ export default function InvitePage() {
           {isExpired ? (
             <div className="text-center">
               <Badge variant="destructive">Expired</Badge>
-              <p className="text-gray-400 text-sm mt-2">This invitation has expired.</p>
+              <p className="text-theme-muted text-sm mt-2">This invitation has expired.</p>
             </div>
           ) : (
             <div className="space-y-3">
               {!session ? (
                 <div className="space-y-2">
-                  <Button onClick={handleAccept} className="w-full bg-blue-600 hover:bg-blue-700">
+                  <Button onClick={handleAccept} className="w-full bg-brand hover:bg-brand-hover text-brand-foreground">
                     Sign In to Accept
                   </Button>
-                  <p className="text-gray-400 text-xs text-center">
+                  <p className="text-theme-muted text-xs text-center">
                     You&apos;ll be redirected to sign in with {invitation.email || invitation.emailHint}
                   </p>
                 </div>
@@ -281,7 +281,7 @@ export default function InvitePage() {
                 <Button 
                   onClick={handleAccept} 
                   disabled={accepting}
-                  className="w-full bg-green-600 hover:bg-green-700"
+                  className="w-full bg-success hover:bg-success/90 text-success-foreground"
                 >
                   {accepting ? "Accepting..." : "Accept Invitation"}
                 </Button>
@@ -291,7 +291,7 @@ export default function InvitePage() {
                     callbackUrl: window.location.href,
                     email: invitation.email 
                   })}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
                 >
                   Sign In with Correct Account
                 </Button>
@@ -301,7 +301,7 @@ export default function InvitePage() {
                 <Button
                   onClick={handleDecline}
                   variant="outline"
-                  className="w-full border-gray-600 text-gray-300"
+                  className="w-full border-theme-button text-theme-secondary"
                 >
                   Decline
                 </Button>
