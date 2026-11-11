@@ -1,5 +1,28 @@
 import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { extendTailwindMerge } from "tailwind-merge"
+import { MOTION_NAMES, tokenEasings, tokenOpacity, tokenScale, tokenSpacing } from "@/lib/design/tailwind-theme"
+
+/**
+ * tailwind-merge only knows Tailwind's own scales. The design-token utilities
+ * (`opacity-disabled`, `duration-medium`, `ease-fast`, `scale-press`,
+ * `w-leading-control`) are named steps it has never heard of, so without this a
+ * caller's override of a primitive's class kept both classes and CSS order
+ * decided which won (AWTD-1575). The names are read from the same table
+ * Tailwind is configured from, so a new token is known here as soon as it exists.
+ */
+const twMerge = extendTailwindMerge({
+  extend: {
+    theme: {
+      opacity: Object.keys(tokenOpacity),
+      scale: Object.keys(tokenScale),
+      spacing: Object.keys(tokenSpacing),
+    },
+    classGroups: {
+      duration: [{ duration: [...MOTION_NAMES] }],
+      ease: [{ ease: Object.keys(tokenEasings) }],
+    },
+  },
+})
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

@@ -133,7 +133,7 @@ export default function FeatureRolloutPage() {
   }
 
   if (status === 'loading' || (!flag && !error)) return <div className="flex min-h-screen items-center justify-center">Loading…</div>
-  if (error) return <div className="container mx-auto p-8 text-red-600">{error}</div>
+  if (error) return <div className="container mx-auto p-8 text-danger">{error}</div>
   if (!flag) return <div className="container mx-auto p-8">No feature flag named &quot;{featureKey}&quot; is seeded. <Link href="/admin/features" className="underline">Back to all features</Link></div>
 
   const saveDisabled = saving || !dirty || draft.invalidEmails.length > 0
@@ -175,13 +175,13 @@ export default function FeatureRolloutPage() {
         </CardHeader>
 
         <CardContent className="space-y-8 pt-6">
-          <Alert className={flag.enabled ? 'border-blue-500/40 bg-blue-500/5' : ''}>
+          <Alert className={flag.enabled ? 'border-brand/40 bg-brand-subtle' : ''}>
             {flag.enabled ? <Check className="h-4 w-4" /> : <Power className="h-4 w-4" />}
             <AlertTitle>Effective access</AlertTitle>
             <AlertDescription>{effectiveSummary}</AlertDescription>
           </Alert>
 
-          {pausedIncludedUser && <Alert className="border-amber-500/50 bg-amber-500/10">
+          {pausedIncludedUser && <Alert className="border-warning/50 bg-warning-subtle">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Rollout paused</AlertTitle>
             <AlertDescription className="space-y-3">
@@ -190,7 +190,7 @@ export default function FeatureRolloutPage() {
             </AlertDescription>
           </Alert>}
 
-          {nobodyHasInclusions && <Alert className="border-amber-500/50 bg-amber-500/10">
+          {nobodyHasInclusions && <Alert className="border-warning/50 bg-warning-subtle">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Nobody means nobody</AlertTitle>
             <AlertDescription>Your saved inclusion is inactive until you select Selected users, Percentage, or Everyone.</AlertDescription>
@@ -212,8 +212,8 @@ export default function FeatureRolloutPage() {
           <section className="space-y-3">
             <div><h2 className="font-semibold">2. Add user overrides</h2><p className="text-sm text-muted-foreground"><strong>Nobody disables access for everyone.</strong> In other modes, Excluded wins, then Included, then the base rollout. Enter one email per line or separate with commas.</p></div>
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2 rounded-lg border border-green-500/30 p-4"><Label htmlFor="included-users" className="flex items-center gap-2"><UserCheck className="h-4 w-4 text-green-600" />Include when active</Label><Textarea id="included-users" value={includedEmails} onChange={event => setIncludedEmails(event.target.value)} placeholder={`tester@${BRAND.domain}\nanother@${BRAND.domain}`} rows={5} /><p className="text-xs text-muted-foreground">{flag.rolloutMode === 'OFF' ? `${draft.includedEmails.length} saved user${draft.includedEmails.length === 1 ? '' : 's'}; inactive while Nobody is selected.` : `${draft.includedEmails.length} valid user${draft.includedEmails.length === 1 ? '' : 's'} will receive the feature whenever master availability is on.`}</p></div>
-              <div className="space-y-2 rounded-lg border border-red-500/30 p-4"><Label htmlFor="excluded-users" className="flex items-center gap-2"><UserX className="h-4 w-4 text-red-600" />Always exclude</Label><Textarea id="excluded-users" value={excludedEmails} onChange={event => setExcludedEmails(event.target.value)} placeholder={`user@${BRAND.domain}`} rows={5} /><p className="text-xs text-muted-foreground">{draft.excludedEmails.length} valid user{draft.excludedEmails.length === 1 ? '' : 's'} will never receive the feature.</p></div>
+              <div className="space-y-2 rounded-lg border border-success/30 p-4"><Label htmlFor="included-users" className="flex items-center gap-2"><UserCheck className="h-4 w-4 text-success" />Include when active</Label><Textarea id="included-users" value={includedEmails} onChange={event => setIncludedEmails(event.target.value)} placeholder={`tester@${BRAND.domain}\nanother@${BRAND.domain}`} rows={5} /><p className="text-xs text-muted-foreground">{flag.rolloutMode === 'OFF' ? `${draft.includedEmails.length} saved user${draft.includedEmails.length === 1 ? '' : 's'}; inactive while Nobody is selected.` : `${draft.includedEmails.length} valid user${draft.includedEmails.length === 1 ? '' : 's'} will receive the feature whenever master availability is on.`}</p></div>
+              <div className="space-y-2 rounded-lg border border-danger/30 p-4"><Label htmlFor="excluded-users" className="flex items-center gap-2"><UserX className="h-4 w-4 text-danger" />Always exclude</Label><Textarea id="excluded-users" value={excludedEmails} onChange={event => setExcludedEmails(event.target.value)} placeholder={`user@${BRAND.domain}`} rows={5} /><p className="text-xs text-muted-foreground">{draft.excludedEmails.length} valid user{draft.excludedEmails.length === 1 ? '' : 's'} will never receive the feature.</p></div>
             </div>
             {draft.invalidEmails.length > 0 && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>Fix invalid email addresses before saving</AlertTitle><AlertDescription>{draft.invalidEmails.join(', ')}</AlertDescription></Alert>}
             {included.emails.some(email => excluded.emails.includes(email)) && <Alert><AlertTriangle className="h-4 w-4" /><AlertTitle>Duplicate override resolved</AlertTitle><AlertDescription>A user listed in both boxes will be excluded.</AlertDescription></Alert>}

@@ -170,7 +170,7 @@ function MetricCard({
       <CardContent>
         <div className="text-2xl font-bold">{value.toLocaleString()}</div>
         {change !== null && (
-          <p className={`text-xs ${change >= 0 ? 'text-green-600' : 'text-red-600'} flex items-center`}>
+          <p className={`text-xs ${change >= 0 ? 'text-success' : 'text-danger'} flex items-center`}>
             {change >= 0 ? <ArrowUpIcon className="h-3 w-3 mr-1" /> : <ArrowDownIcon className="h-3 w-3 mr-1" />}
             {Math.abs(change)}% from yesterday
           </p>
@@ -230,7 +230,7 @@ export default function AnalyticsDashboard() {
   if (status === 'loading' || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand" />
       </div>
     )
   }
@@ -238,9 +238,9 @@ export default function AnalyticsDashboard() {
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <h2 className="text-red-800 font-semibold">Access Denied</h2>
-          <p className="text-red-600">{error}</p>
+        <div className="bg-danger-subtle border border-danger/30 rounded-lg p-4">
+          <h2 className="text-danger font-semibold">Access Denied</h2>
+          <p className="text-theme-primary">{error}</p>
           <Button variant="outline" className="mt-4" onClick={() => router.push('/')}>
             Go Home
           </Button>

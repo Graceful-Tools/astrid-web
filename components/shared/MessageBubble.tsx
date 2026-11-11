@@ -162,7 +162,7 @@ export const MessageBubble = React.memo(function MessageBubble({
                       href={att.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs underline text-blue-600 dark:text-blue-400"
+                      className="inline-flex items-center gap-1.5 text-xs underline text-brand"
                     >
                       <FileText className="w-3.5 h-3.5" />
                       {att.name || 'Download attachment'}

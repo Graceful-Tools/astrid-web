@@ -222,7 +222,7 @@ export function PasskeyManagementSection() {
                             onClick={() => handleRenamePasskey(passkey.id)}
                             className="h-7 px-2"
                           >
-                            <CheckCircle className="w-4 h-4 text-green-500" />
+                            <CheckCircle className="w-4 h-4 text-success" />
                           </Button>
                           <Button
                             size="sm"
@@ -270,7 +270,7 @@ export function PasskeyManagementSection() {
                       variant="ghost"
                       onClick={() => handleDeletePasskey(passkey.id)}
                       disabled={deletingPasskeyId === passkey.id}
-                      className="h-8 px-2 text-red-400 hover:text-red-300"
+                      className="h-8 px-2 text-danger hover:text-danger"
                     >
                       {deletingPasskeyId === passkey.id ? (
                         <RefreshCw className="w-4 h-4 animate-spin" />
@@ -295,7 +295,7 @@ export function PasskeyManagementSection() {
         <Button
           onClick={handleAddPasskey}
           disabled={isPasskeyLoading}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+          className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
         >
           {isPasskeyLoading ? (
             <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -306,9 +306,9 @@ export function PasskeyManagementSection() {
         </Button>
 
         {passkeyError && (
-          <Alert className="border-red-600 bg-red-900/20">
-            <AlertCircle className="w-4 h-4 text-red-400" />
-            <AlertDescription className="text-red-300 text-sm">
+          <Alert className="border-danger bg-danger-subtle">
+            <AlertCircle className="w-4 h-4 text-danger" />
+            <AlertDescription className="text-theme-primary text-sm">
               {passkeyError}
             </AlertDescription>
           </Alert>

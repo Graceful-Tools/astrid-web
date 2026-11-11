@@ -52,7 +52,7 @@ export default function APIEndpointsPage() {
         <div className="max-w-sm sm:max-w-4xl mx-auto space-y-4 sm:space-y-6">
           {/* Page Header */}
           <div className="flex items-center space-x-3">
-            <BookOpen className="w-8 h-8 text-blue-500" />
+            <BookOpen className="w-8 h-8 text-brand" />
             <div>
               <h1 className="text-2xl font-bold theme-text-primary">API Endpoints Reference</h1>
               <p className="theme-text-muted">Complete reference for all {BRAND.appName} API v1 endpoints</p>
@@ -60,7 +60,7 @@ export default function APIEndpointsPage() {
           </div>
 
           {/* Base URL */}
-          <Card className="theme-bg-secondary theme-border border-blue-500/30">
+          <Card className="theme-bg-secondary border-brand/30">
             <CardContent className="pt-6">
               <div className="flex items-start space-x-3">
                 <div className="flex-1">
@@ -80,7 +80,7 @@ export default function APIEndpointsPage() {
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <CheckSquare className="w-5 h-5 text-blue-500" />
+                <CheckSquare className="w-5 h-5 text-brand" />
                 <span>Tasks</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
@@ -89,14 +89,14 @@ export default function APIEndpointsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* GET /tasks */}
-              <div className="border-l-2 border-green-500 pl-3">
+              <div className="border-l-2 border-success pl-3">
                 <div className="flex items-center space-x-2 mb-2">
-                  <code className="bg-green-500/20 text-green-500 px-2 py-1 rounded text-xs font-mono">GET</code>
+                  <code className="bg-success-subtle text-success px-2 py-1 rounded text-xs font-mono">GET</code>
                   <code className="theme-bg-tertiary px-2 py-1 rounded text-sm font-mono">/tasks</code>
                 </div>
                 <p className="text-sm theme-text-muted mb-2">List all tasks for the authenticated user</p>
                 <details className="text-xs theme-text-muted">
-                  <summary className="cursor-pointer hover:text-blue-400">Query Parameters</summary>
+                  <summary className="cursor-pointer hover:text-brand-hover">Query Parameters</summary>
                   <div className="mt-2 ml-4 space-y-1">
                     <div><code className="theme-bg-tertiary px-1 rounded">listId</code> - Filter by list ID</div>
                     <div><code className="theme-bg-tertiary px-1 rounded">status</code> - Filter by status (TODO, IN_PROGRESS, COMPLETED)</div>
@@ -107,14 +107,14 @@ export default function APIEndpointsPage() {
               </div>
 
               {/* POST /tasks */}
-              <div className="border-l-2 border-blue-500 pl-3">
+              <div className="border-l-2 border-brand pl-3">
                 <div className="flex items-center space-x-2 mb-2">
-                  <code className="bg-blue-500/20 text-blue-500 px-2 py-1 rounded text-xs font-mono">POST</code>
+                  <code className="bg-brand-subtle text-brand px-2 py-1 rounded text-xs font-mono">POST</code>
                   <code className="theme-bg-tertiary px-2 py-1 rounded text-sm font-mono">/tasks</code>
                 </div>
                 <p className="text-sm theme-text-muted mb-2">Create a new task</p>
                 <details className="text-xs theme-text-muted">
-                  <summary className="cursor-pointer hover:text-blue-400">Request Body</summary>
+                  <summary className="cursor-pointer hover:text-brand-hover">Request Body</summary>
                   <pre className="mt-2 theme-bg-tertiary p-2 rounded overflow-x-auto">
                     <code>{`{
   "title": "Task title",
@@ -129,23 +129,23 @@ export default function APIEndpointsPage() {
               </div>
 
               {/* GET /tasks/:id */}
-              <div className="border-l-2 border-green-500 pl-3">
+              <div className="border-l-2 border-success pl-3">
                 <div className="flex items-center space-x-2 mb-2">
-                  <code className="bg-green-500/20 text-green-500 px-2 py-1 rounded text-xs font-mono">GET</code>
+                  <code className="bg-success-subtle text-success px-2 py-1 rounded text-xs font-mono">GET</code>
                   <code className="theme-bg-tertiary px-2 py-1 rounded text-sm font-mono">/tasks/:id</code>
                 </div>
                 <p className="text-sm theme-text-muted">Get a specific task by ID</p>
               </div>
 
               {/* PATCH /tasks/:id */}
-              <div className="border-l-2 border-yellow-500 pl-3">
+              <div className="border-l-2 border-warning pl-3">
                 <div className="flex items-center space-x-2 mb-2">
-                  <code className="bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded text-xs font-mono">PATCH</code>
+                  <code className="bg-warning-subtle text-warning px-2 py-1 rounded text-xs font-mono">PATCH</code>
                   <code className="theme-bg-tertiary px-2 py-1 rounded text-sm font-mono">/tasks/:id</code>
                 </div>
                 <p className="text-sm theme-text-muted mb-2">Update a task</p>
                 <details className="text-xs theme-text-muted">
-                  <summary className="cursor-pointer hover:text-blue-400">Request Body</summary>
+                  <summary className="cursor-pointer hover:text-brand-hover">Request Body</summary>
                   <pre className="mt-2 theme-bg-tertiary p-2 rounded overflow-x-auto">
                     <code>{`{
   "title": "Updated title",
@@ -157,9 +157,9 @@ export default function APIEndpointsPage() {
               </div>
 
               {/* DELETE /tasks/:id */}
-              <div className="border-l-2 border-red-500 pl-3">
+              <div className="border-l-2 border-danger pl-3">
                 <div className="flex items-center space-x-2 mb-2">
-                  <code className="bg-red-500/20 text-red-500 px-2 py-1 rounded text-xs font-mono">DELETE</code>
+                  <code className="bg-danger-subtle text-danger px-2 py-1 rounded text-xs font-mono">DELETE</code>
                   <code className="theme-bg-tertiary px-2 py-1 rounded text-sm font-mono">/tasks/:id</code>
                 </div>
                 <p className="text-sm theme-text-muted">Delete a task</p>
@@ -180,23 +180,23 @@ export default function APIEndpointsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* GET /lists */}
-              <div className="border-l-2 border-green-500 pl-3">
+              <div className="border-l-2 border-success pl-3">
                 <div className="flex items-center space-x-2 mb-2">
-                  <code className="bg-green-500/20 text-green-500 px-2 py-1 rounded text-xs font-mono">GET</code>
+                  <code className="bg-success-subtle text-success px-2 py-1 rounded text-xs font-mono">GET</code>
                   <code className="theme-bg-tertiary px-2 py-1 rounded text-sm font-mono">/lists</code>
                 </div>
                 <p className="text-sm theme-text-muted">Get all lists for the authenticated user</p>
               </div>
 
               {/* POST /lists */}
-              <div className="border-l-2 border-blue-500 pl-3">
+              <div className="border-l-2 border-brand pl-3">
                 <div className="flex items-center space-x-2 mb-2">
-                  <code className="bg-blue-500/20 text-blue-500 px-2 py-1 rounded text-xs font-mono">POST</code>
+                  <code className="bg-brand-subtle text-brand px-2 py-1 rounded text-xs font-mono">POST</code>
                   <code className="theme-bg-tertiary px-2 py-1 rounded text-sm font-mono">/lists</code>
                 </div>
                 <p className="text-sm theme-text-muted mb-2">Create a new list</p>
                 <details className="text-xs theme-text-muted">
-                  <summary className="cursor-pointer hover:text-blue-400">Request Body</summary>
+                  <summary className="cursor-pointer hover:text-brand-hover">Request Body</summary>
                   <pre className="mt-2 theme-bg-tertiary p-2 rounded overflow-x-auto">
                     <code>{`{
   "name": "My List",
@@ -209,27 +209,27 @@ export default function APIEndpointsPage() {
               </div>
 
               {/* GET /lists/:id */}
-              <div className="border-l-2 border-green-500 pl-3">
+              <div className="border-l-2 border-success pl-3">
                 <div className="flex items-center space-x-2 mb-2">
-                  <code className="bg-green-500/20 text-green-500 px-2 py-1 rounded text-xs font-mono">GET</code>
+                  <code className="bg-success-subtle text-success px-2 py-1 rounded text-xs font-mono">GET</code>
                   <code className="theme-bg-tertiary px-2 py-1 rounded text-sm font-mono">/lists/:id</code>
                 </div>
                 <p className="text-sm theme-text-muted">Get a specific list by ID</p>
               </div>
 
               {/* PATCH /lists/:id */}
-              <div className="border-l-2 border-yellow-500 pl-3">
+              <div className="border-l-2 border-warning pl-3">
                 <div className="flex items-center space-x-2 mb-2">
-                  <code className="bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded text-xs font-mono">PATCH</code>
+                  <code className="bg-warning-subtle text-warning px-2 py-1 rounded text-xs font-mono">PATCH</code>
                   <code className="theme-bg-tertiary px-2 py-1 rounded text-sm font-mono">/lists/:id</code>
                 </div>
                 <p className="text-sm theme-text-muted">Update a list</p>
               </div>
 
               {/* DELETE /lists/:id */}
-              <div className="border-l-2 border-red-500 pl-3">
+              <div className="border-l-2 border-danger pl-3">
                 <div className="flex items-center space-x-2 mb-2">
-                  <code className="bg-red-500/20 text-red-500 px-2 py-1 rounded text-xs font-mono">DELETE</code>
+                  <code className="bg-danger-subtle text-danger px-2 py-1 rounded text-xs font-mono">DELETE</code>
                   <code className="theme-bg-tertiary px-2 py-1 rounded text-sm font-mono">/lists/:id</code>
                 </div>
                 <p className="text-sm theme-text-muted">Delete a list</p>
@@ -241,7 +241,7 @@ export default function APIEndpointsPage() {
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <MessageSquare className="w-5 h-5 text-green-500" />
+                <MessageSquare className="w-5 h-5 text-success" />
                 <span>Comments</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
@@ -250,23 +250,23 @@ export default function APIEndpointsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* GET /tasks/:id/comments */}
-              <div className="border-l-2 border-green-500 pl-3">
+              <div className="border-l-2 border-success pl-3">
                 <div className="flex items-center space-x-2 mb-2">
-                  <code className="bg-green-500/20 text-green-500 px-2 py-1 rounded text-xs font-mono">GET</code>
+                  <code className="bg-success-subtle text-success px-2 py-1 rounded text-xs font-mono">GET</code>
                   <code className="theme-bg-tertiary px-2 py-1 rounded text-sm font-mono">/tasks/:id/comments</code>
                 </div>
                 <p className="text-sm theme-text-muted">Get all comments for a task</p>
               </div>
 
               {/* POST /tasks/:id/comments */}
-              <div className="border-l-2 border-blue-500 pl-3">
+              <div className="border-l-2 border-brand pl-3">
                 <div className="flex items-center space-x-2 mb-2">
-                  <code className="bg-blue-500/20 text-blue-500 px-2 py-1 rounded text-xs font-mono">POST</code>
+                  <code className="bg-brand-subtle text-brand px-2 py-1 rounded text-xs font-mono">POST</code>
                   <code className="theme-bg-tertiary px-2 py-1 rounded text-sm font-mono">/tasks/:id/comments</code>
                 </div>
                 <p className="text-sm theme-text-muted mb-2">Add a comment to a task</p>
                 <details className="text-xs theme-text-muted">
-                  <summary className="cursor-pointer hover:text-blue-400">Request Body</summary>
+                  <summary className="cursor-pointer hover:text-brand-hover">Request Body</summary>
                   <pre className="mt-2 theme-bg-tertiary p-2 rounded overflow-x-auto">
                     <code>{`{
   "content": "Comment text"
@@ -276,18 +276,18 @@ export default function APIEndpointsPage() {
               </div>
 
               {/* PATCH /comments/:id */}
-              <div className="border-l-2 border-yellow-500 pl-3">
+              <div className="border-l-2 border-warning pl-3">
                 <div className="flex items-center space-x-2 mb-2">
-                  <code className="bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded text-xs font-mono">PATCH</code>
+                  <code className="bg-warning-subtle text-warning px-2 py-1 rounded text-xs font-mono">PATCH</code>
                   <code className="theme-bg-tertiary px-2 py-1 rounded text-sm font-mono">/comments/:id</code>
                 </div>
                 <p className="text-sm theme-text-muted">Update a comment</p>
               </div>
 
               {/* DELETE /comments/:id */}
-              <div className="border-l-2 border-red-500 pl-3">
+              <div className="border-l-2 border-danger pl-3">
                 <div className="flex items-center space-x-2 mb-2">
-                  <code className="bg-red-500/20 text-red-500 px-2 py-1 rounded text-xs font-mono">DELETE</code>
+                  <code className="bg-danger-subtle text-danger px-2 py-1 rounded text-xs font-mono">DELETE</code>
                   <code className="theme-bg-tertiary px-2 py-1 rounded text-sm font-mono">/comments/:id</code>
                 </div>
                 <p className="text-sm theme-text-muted">Delete a comment</p>
@@ -299,7 +299,7 @@ export default function APIEndpointsPage() {
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <Settings className="w-5 h-5 text-orange-500" />
+                <Settings className="w-5 h-5 text-warning" />
                 <span>User Settings</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
@@ -308,23 +308,23 @@ export default function APIEndpointsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* GET /users/me/settings */}
-              <div className="border-l-2 border-green-500 pl-3">
+              <div className="border-l-2 border-success pl-3">
                 <div className="flex items-center space-x-2 mb-2">
-                  <code className="bg-green-500/20 text-green-500 px-2 py-1 rounded text-xs font-mono">GET</code>
+                  <code className="bg-success-subtle text-success px-2 py-1 rounded text-xs font-mono">GET</code>
                   <code className="theme-bg-tertiary px-2 py-1 rounded text-sm font-mono">/users/me/settings</code>
                 </div>
                 <p className="text-sm theme-text-muted">Get current user&apos;s settings</p>
               </div>
 
               {/* PATCH /users/me/settings */}
-              <div className="border-l-2 border-yellow-500 pl-3">
+              <div className="border-l-2 border-warning pl-3">
                 <div className="flex items-center space-x-2 mb-2">
-                  <code className="bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded text-xs font-mono">PATCH</code>
+                  <code className="bg-warning-subtle text-warning px-2 py-1 rounded text-xs font-mono">PATCH</code>
                   <code className="theme-bg-tertiary px-2 py-1 rounded text-sm font-mono">/users/me/settings</code>
                 </div>
                 <p className="text-sm theme-text-muted mb-2">Update user settings</p>
                 <details className="text-xs theme-text-muted">
-                  <summary className="cursor-pointer hover:text-blue-400">Request Body</summary>
+                  <summary className="cursor-pointer hover:text-brand-hover">Request Body</summary>
                   <pre className="mt-2 theme-bg-tertiary p-2 rounded overflow-x-auto">
                     <code>{`{
   "theme": "dark",
@@ -351,7 +351,7 @@ export default function APIEndpointsPage() {
               <div>
                 <h3 className="font-semibold theme-text-primary mb-2 text-sm">Success Response</h3>
                 <pre className="theme-bg-tertiary p-3 rounded-lg overflow-x-auto">
-                  <code className="text-xs text-gray-300">{`{
+                  <code className="text-xs text-theme-secondary">{`{
   "success": true,
   "data": {
     // Response data
@@ -363,7 +363,7 @@ export default function APIEndpointsPage() {
               <div>
                 <h3 className="font-semibold theme-text-primary mb-2 text-sm">Error Response</h3>
                 <pre className="theme-bg-tertiary p-3 rounded-lg overflow-x-auto">
-                  <code className="text-xs text-gray-300">{`{
+                  <code className="text-xs text-theme-secondary">{`{
   "error": "Error message",
   "details": "Additional error information"
 }`}</code>

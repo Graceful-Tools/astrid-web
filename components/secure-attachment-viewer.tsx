@@ -114,7 +114,7 @@ export function SecureAttachmentViewer({
         <img
           src={fileInfo.url}
           alt={displayName}
-          className="w-full h-full object-cover rounded-lg border-2 border-gray-600 group-hover:border-blue-400 transition-colors"
+          className="w-full h-full object-cover rounded-lg border-2 border-theme-strong group-hover:border-brand transition-colors"
           onError={(e) => {
             const target = e.target as HTMLImageElement
             target.style.display = 'none'
@@ -124,15 +124,15 @@ export function SecureAttachmentViewer({
       ) : null}
 
       <div className={cn(
-        "absolute inset-0 flex items-center justify-center bg-gray-700 rounded-lg border-2 border-gray-600 group-hover:border-blue-400 transition-colors",
+        "absolute inset-0 flex items-center justify-center bg-theme-tertiary rounded-lg border-2 border-theme-strong group-hover:border-brand transition-colors",
         isImage && fileInfo ? "hidden" : ""
       )}>
         {loading ? (
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400"></div>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand"></div>
         ) : isVideo ? (
-          <Play className="w-6 h-6 text-blue-400" />
+          <Play className="w-6 h-6 text-brand" />
         ) : (
-          <FileText className="w-6 h-6 text-gray-400" />
+          <FileText className="w-6 h-6 text-theme-muted" />
         )}
       </div>
 
@@ -144,7 +144,7 @@ export function SecureAttachmentViewer({
 
   if (error) {
     return (
-      <div className="flex items-center space-x-2 text-red-400">
+      <div className="flex items-center space-x-2 text-danger">
         <X className="w-4 h-4" />
         <span className="text-sm">{error}</span>
       </div>
@@ -178,7 +178,7 @@ export function SecureAttachmentViewer({
         </div>
 
         {showFileName && (
-          <span className="text-xs sm:text-sm text-gray-300 truncate">{displayName}</span>
+          <span className="text-xs sm:text-sm text-theme-secondary truncate">{displayName}</span>
         )}
       </div>
 
@@ -191,8 +191,11 @@ export function SecureAttachmentViewer({
           tabIndex={-1}
         >
           <div
+            // The viewer is dark in every theme, by design: media is looked at on
+            // black, so its greys and the file-type icon colours stay literal.
             className={cn(
-              "relative bg-gray-900 rounded-lg overflow-hidden flex flex-col",
+              // `dark`: this panel is dark in every theme, so tokens inside it answer as Dark.
+              "dark relative bg-gray-900 rounded-lg overflow-hidden flex flex-col",
               // iPad: Use contained modal (not full screen) for better UX
               isIPadDevice()
                 ? "w-[90vw] h-[85vh] max-w-4xl"
@@ -206,7 +209,7 @@ export function SecureAttachmentViewer({
                 <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-900 flex-shrink-0">
                   <div className="flex items-center space-x-3 min-w-0 flex-1">
                     {isImage ? (
-                      <ImageIcon className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                      <ImageIcon className="w-5 h-5 text-brand flex-shrink-0" />
                     ) : isVideo ? (
                       <Play className="w-5 h-5 text-purple-400 flex-shrink-0" />
                     ) : (
@@ -290,7 +293,7 @@ export function SecureAttachmentViewer({
                       <img
                         src={fileInfo.url}
                         alt={displayName}
-                        className="max-w-full max-h-full object-contain transition-transform duration-200"
+                        className="max-w-full max-h-full object-contain transition-transform duration-medium"
                         style={{
                           transform: `scale(${zoom}) rotate(${rotation}deg)`,
                         }}
@@ -319,7 +322,7 @@ export function SecureAttachmentViewer({
                       </p>
                       <Button
                         onClick={handleDownload}
-                        className="bg-blue-600 hover:bg-blue-700"
+                        className="bg-brand hover:bg-brand-hover text-brand-foreground"
                         size="lg"
                       >
                         <Download className="w-5 h-5 mr-2" />
@@ -333,9 +336,9 @@ export function SecureAttachmentViewer({
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
                   {loading ? (
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand mx-auto mb-4"></div>
                   ) : error ? (
-                    <div className="text-red-400">
+                    <div className="text-danger">
                       <X className="w-12 h-12 mx-auto mb-4" />
                       <p>{error}</p>
                     </div>

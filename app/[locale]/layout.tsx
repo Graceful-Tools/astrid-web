@@ -7,7 +7,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { getMessages, setRequestLocale } from 'next-intl/server'
 import { routing } from '@/lib/i18n/routing'
 import { BRAND } from '@/lib/brand/config'
-import { brandAccentRgb } from '@/lib/brand/colors'
+import { brandAccentCssVars } from '@/lib/brand/css-vars'
 import "../globals.css"
 // These four used to be `@import` rules at the BOTTOM of globals.css. That is invalid CSS —
 // @import must precede all other rules — which PostCSS tolerated and Turbopack (the Next 16
@@ -38,14 +38,10 @@ const inter = Inter({ subsets: ["latin"], display: "swap" })
  * CSS cannot read env, so the stylesheets hardcoded the Astrid blue and a
  * partner's focus ring and prose links stayed blue (task 518ec534). The RGB
  * triplets feed `--theme-accent` in styles/themes/*.css; absent, those keep
- * their built-in values (see brandAccentRgb).
+ * their built-in values (see brandAccentCssVars).
  */
 function brandCssVars(): React.CSSProperties {
-  const rgb = brandAccentRgb()
-  return {
-    '--brand-accent': BRAND.accentColor,
-    ...(rgb ? { '--brand-accent-rgb': rgb.accent, '--brand-accent-hover-rgb': rgb.hover } : {}),
-  } as React.CSSProperties
+  return brandAccentCssVars() as React.CSSProperties
 }
 
 export const viewport: Viewport = {
@@ -118,6 +114,11 @@ export default async function LocaleLayout({ children, params }: Props) {
   return (
     <html
       lang={locale}
+      // The brand's default theme, so the server's HTML is already under a
+      // theme: every colour is a token, and a token only answers under a theme
+      // class. ThemeProvider starts from the same default and swaps this class
+      // for the stored choice once it has read it.
+      className={BRAND.defaultTheme}
       // The brand accent as a CSS custom property, so stylesheets can paint it
       // too. CSS cannot read env, so the stylesheets hardcoded the Astrid blue
       // and a partner's focus ring and prose links stayed blue (task 518ec534).

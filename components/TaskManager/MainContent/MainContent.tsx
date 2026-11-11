@@ -389,19 +389,19 @@ export function MainContent({
     <div
       key={key}
       aria-hidden="true"
-      className={`task-row task-card transition-theme pointer-events-none border-2 border-dashed border-blue-400/70 bg-blue-500/10 text-blue-200 ${isMobile ? 'mobile-task-item' : ''} ${options?.className ?? ''}`}
+      className={`task-row task-card transition-theme pointer-events-none border-2 border-dashed border-brand/70 bg-brand/10 text-brand ${isMobile ? 'mobile-task-item' : ''} ${options?.className ?? ''}`}
       style={options?.style}
     >
       <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-blue-400/60" />
+        <div className="flex h-leading-control w-leading-control items-center justify-center rounded-lg border border-brand/60" />
         <div className="flex-1 space-y-2">
-          <div className="h-3 rounded bg-blue-400/40" />
-          <div className="h-2 w-1/2 rounded bg-blue-400/20" />
+          <div className="h-3 rounded bg-brand/40" />
+          <div className="h-2 w-1/2 rounded bg-brand/20" />
         </div>
-        {!isMobile && <div className="h-3 w-16 rounded bg-blue-400/20" />}
+        {!isMobile && <div className="h-3 w-16 rounded bg-brand/20" />}
       </div>
       {label && (
-        <div className="mt-3 text-[11px] font-medium uppercase tracking-wide text-blue-300">
+        <div className="mt-3 text-[11px] font-medium uppercase tracking-wide text-brand">
           {label}
         </div>
       )}
@@ -527,7 +527,7 @@ export function MainContent({
         <div>
           <Button
             onClick={() => selectedList && handleCopyList(selectedList.id)}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
           >
             <Copy className="w-4 h-4 mr-2" />
             Copy List
@@ -572,7 +572,7 @@ export function MainContent({
         className={`theme-bg-primary flex flex-col z-10 ${taskAreaPositionClasses({
           isMobile: Boolean(isMobile),
           boardMode: Boolean(hasProjectBoard && taskViewMode === 'board'),
-        })} ${isMobile ? 'transition-all duration-300 ease-in-out' : ''}`}
+        })} ${isMobile ? 'transition-all duration-panel ease-panel' : ''}`}
       style={{
         // Mobile: offset for floating header (header height + margin)
         top: isMobile ? '0px' : undefined,
@@ -630,7 +630,7 @@ export function MainContent({
                             className="theme-input theme-text-primary text-2xl font-semibold tracking-tight text-left max-w-md"
                             autoFocus
                           />
-                          <Button size="sm" onClick={handleSaveListName} className="bg-blue-600 hover:bg-blue-700">
+                          <Button size="sm" onClick={handleSaveListName} className="bg-brand hover:bg-brand-hover text-brand-foreground">
                             <Check className="w-4 h-4" />
                           </Button>
                           <Button size="sm" variant="outline" onClick={() => setEditingListName(false)}
@@ -853,16 +853,16 @@ export function MainContent({
             {/* Pull-to-refresh indicator - synced with content transform (both capped at 60px) */}
             {isMobile && (pullToRefresh.isPulling || pullToRefresh.isRefreshing) && (
               <div
-                className="absolute left-0 right-0 flex items-center justify-center transition-all duration-200 ease-out z-20"
+                className="absolute left-0 right-0 flex items-center justify-center transition-all duration-medium ease-medium z-20"
                 style={{
                   top: 0,
                   height: pullToRefresh.isRefreshing ? 60 : Math.min(pullToRefresh.pullDistance, 60),
                 }}
               >
-                <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+                <div className="flex items-center space-x-2 text-theme-muted">
                   {pullToRefresh.isRefreshing ? (
                     <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-brand"></div>
                       <span className="text-sm font-medium">Refreshing...</span>
                     </>
                   ) : pullToRefresh.canRefresh ? (
@@ -886,7 +886,7 @@ export function MainContent({
                 transform: isMobile && pullToRefresh.pullDistance > 0
                   ? `translateY(${Math.min(pullToRefresh.pullDistance, 60)}px)`
                   : undefined,
-                transition: pullToRefresh.isPulling ? 'none' : 'transform 0.2s ease-out'
+                transition: pullToRefresh.isPulling ? 'none' : 'transform var(--astrid-motion-medium-duration) var(--astrid-motion-medium-ease)'
               }}
             >
               <div
@@ -908,7 +908,7 @@ export function MainContent({
                       event.preventDefault()
                       void handleTaskDropOnPromoteTarget()
                     }}
-                    className="mb-1 rounded-lg border-2 border-dashed border-blue-400 bg-blue-50/60 dark:bg-blue-900/20 px-3 py-3 text-sm text-blue-700 dark:text-blue-300 text-center"
+                    className="mb-1 rounded-lg border-2 border-dashed border-brand bg-brand-subtle px-3 py-3 text-sm text-brand text-center"
                   >
                     Drop here to move out of its parent task
                   </div>

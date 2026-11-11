@@ -3,7 +3,7 @@
 import { useEffect } from "react"
 import { createLogger } from '@/lib/logger'
 import { BRAND } from '@/lib/brand/config'
-import { brandAccentRgb } from '@/lib/brand/colors'
+import { brandAccentCssVars } from '@/lib/brand/css-vars'
 
 const log = createLogger('global-error.tsx')
 
@@ -27,10 +27,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
       lang="en"
       // This page replaces the root layout, so it must set the brand accent
       // custom property itself or stylesheets that reference it paint nothing.
-      style={{
-        '--brand-accent': BRAND.accentColor,
-        ...(brandAccentRgb() ? { '--brand-accent-rgb': brandAccentRgb()!.accent, '--brand-accent-hover-rgb': brandAccentRgb()!.hover } : {}),
-      } as React.CSSProperties}
+      style={brandAccentCssVars() as React.CSSProperties}
     >
       <body>
         <div style={{

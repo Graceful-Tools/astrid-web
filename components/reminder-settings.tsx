@@ -317,7 +317,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
           </div>
         </CardContent>
       </Card>
@@ -363,10 +363,10 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
             </div>
             <div className="flex items-center space-x-2">
               {notificationState.permission === "granted" && (
-                <CheckCircle className="w-4 h-4 text-green-500" />
+                <CheckCircle className="w-4 h-4 text-success" />
               )}
               {notificationState.permission === "denied" && (
-                <AlertCircle className="w-4 h-4 text-red-500" />
+                <AlertCircle className="w-4 h-4 text-danger" />
               )}
               <Switch
                 checked={settings.enablePushReminders && notificationState.permission === "granted"}
@@ -394,7 +394,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
           )}
 
           {notificationState.permission === "denied" && (
-            <div className="text-xs theme-text-muted bg-red-50 dark:bg-red-900/20 p-2 rounded">
+            <div className="text-xs theme-text-muted bg-danger-subtle p-2 rounded">
               Push notifications are blocked. Enable them in your browser settings to receive task reminders.
             </div>
           )}
@@ -556,7 +556,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
 
         {saving && (
           <div className="flex items-center justify-center py-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand"></div>
             <span className="ml-2 text-sm theme-text-muted">Saving...</span>
           </div>
         )}

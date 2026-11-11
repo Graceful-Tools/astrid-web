@@ -58,12 +58,12 @@ export function ProfileImage({
     return (
       <div
         className={cn(
-          "rounded-full bg-muted flex items-center justify-center shrink-0",
+          "rounded-full bg-theme-active flex items-center justify-center shrink-0",
           className
         )}
         style={{ width: dimension, height: dimension }}
       >
-        <span className={cn("font-medium theme-text-muted", text)}>
+        <span className={cn("font-medium text-theme-secondary", text)}>
           {fallback || "?"}
         </span>
       </div>

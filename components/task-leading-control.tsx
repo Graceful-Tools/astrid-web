@@ -72,8 +72,11 @@ interface TaskLeadingControlProps {
   onBoard?: boolean
 }
 
-/** Priority-coloured square shared by the avatar and unassigned marks. */
-const SQUARE_CLASS = "w-8 h-8 rounded-lg border-2 flex items-center justify-center"
+/**
+ * Priority-coloured square shared by the avatar and unassigned marks, at the
+ * design token's size (`size.leading-control`, docs/specs/DESIGN_SYSTEM.md).
+ */
+const SQUARE_CLASS = "w-leading-control h-leading-control rounded-lg border-2 flex items-center justify-center"
 
 /**
  * The repeat arrows as the BORDER of a photo or "U" mark (AWTD-1571).
@@ -94,7 +97,7 @@ const SQUARE_CLASS = "w-8 h-8 rounded-lg border-2 flex items-center justify-cent
  */
 function RepeatFrame({ priority, children }: { priority: number; children: React.ReactNode }) {
   return (
-    <div data-testid="repeat-frame" className="relative flex h-8 w-8 items-center justify-center">
+    <div data-testid="repeat-frame" className="relative flex h-leading-control w-leading-control items-center justify-center">
       <div
         data-testid="repeat-frame-mark"
         className="repeat-frame-mark flex items-center justify-center overflow-hidden rounded-lg"
@@ -177,7 +180,7 @@ function AssigneePhoto({
   return (
     <Avatar className={className} style={style}>
       <AvatarImage src={assignee?.image || undefined} />
-      <AvatarFallback className="text-xs bg-gray-300 text-gray-700 rounded-lg">
+      <AvatarFallback className="text-xs bg-theme-active text-theme-secondary rounded-lg">
         {assignee?.name?.slice(0, 2) || assignee?.email?.slice(0, 2) || '?'}
       </AvatarFallback>
     </Avatar>

@@ -127,13 +127,13 @@ export default function ContactsSettings({ onNavigate }: ContactsSettingsProps) 
         {message && (
           <div className={`p-4 rounded-lg flex items-center space-x-2 ${
             message.type === 'success'
-              ? 'bg-green-500/10 text-green-500'
-              : 'bg-red-500/10 text-red-500'
+              ? 'bg-success-subtle text-theme-primary'
+              : 'bg-danger-subtle text-theme-primary'
           }`}>
             {message.type === 'success' ? (
-              <CheckCircle className="w-5 h-5" />
+              <CheckCircle className="w-5 h-5 text-success" />
             ) : (
-              <AlertCircle className="w-5 h-5" />
+              <AlertCircle className="w-5 h-5 text-danger" />
             )}
             <span>{message.text}</span>
             <button
@@ -199,7 +199,7 @@ export default function ContactsSettings({ onNavigate }: ContactsSettingsProps) 
               <Button
                 onClick={handleGoogleImport}
                 disabled={importing}
-                className="bg-blue-500 hover:bg-blue-600"
+                className="bg-brand hover:bg-brand-hover text-brand-foreground"
               >
                 {importing ? (
                   <>
@@ -223,9 +223,9 @@ export default function ContactsSettings({ onNavigate }: ContactsSettingsProps) 
 
         {/* Danger Zone */}
         {stats && stats.total > 0 && (
-          <Card className="theme-bg-secondary border-red-500/20">
+          <Card className="theme-bg-secondary border-danger/20">
             <CardHeader>
-              <CardTitle className="text-red-500">{t('settingsPages.contacts.dangerZone')}</CardTitle>
+              <CardTitle className="text-danger">{t('settingsPages.contacts.dangerZone')}</CardTitle>
               <CardDescription className="theme-text-muted">
                 {t('settingsPages.contacts.irreversibleActions')}
               </CardDescription>

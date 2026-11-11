@@ -70,14 +70,14 @@ export default function MCPDocsPage() {
         <div className="max-w-sm sm:max-w-4xl mx-auto space-y-4 sm:space-y-6">
           {/* Page Header */}
           <div className="flex items-center space-x-3">
-            <Cpu className="w-8 h-8 text-cyan-500" />
+            <Cpu className="w-8 h-8 text-info" />
             <div>
               <h1 className="text-2xl font-bold theme-text-primary">MCP Integration</h1>
               <p className="theme-text-muted">Model Context Protocol for AI tools</p>
             </div>
           </div>
 
-          <Card className="theme-bg-secondary border-green-500/30 border">
+          <Card className="theme-bg-secondary border-success/30 border">
             <CardContent className="py-4 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="font-semibold theme-text-primary">Want a coding agent to work your assigned queue?</p>
@@ -95,7 +95,7 @@ export default function MCPDocsPage() {
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <Info className="w-5 h-5 text-cyan-500" />
+                <Info className="w-5 h-5 text-info" />
                 <span>What is MCP?</span>
               </CardTitle>
             </CardHeader>
@@ -117,7 +117,7 @@ export default function MCPDocsPage() {
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <BookOpen className="w-5 h-5 text-green-500" />
+                <BookOpen className="w-5 h-5 text-success" />
                 <span>Connect Claude Code or Codex</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
@@ -148,7 +148,7 @@ args = ["-y", "mcp-remote", "${mcpUrl}"]`}</code>
                   handles the OAuth hand-off for clients that only speak stdio.
                 </p>
               </div>
-              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+              <div className="bg-success-subtle border border-success/20 rounded-lg p-3">
                 <p className="theme-text-secondary text-xs">
                   Once connected, ask for your queue — or put it on a schedule.{' '}
                   <Button variant="link" className="p-0 h-auto text-xs" onClick={() => router.push('/docs/loops')}>
@@ -163,7 +163,7 @@ args = ["-y", "mcp-remote", "${mcpUrl}"]`}</code>
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <BookOpen className="w-5 h-5 text-blue-500" />
+                <BookOpen className="w-5 h-5 text-brand" />
                 <span>Connect GitHub Copilot</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
@@ -199,7 +199,7 @@ args = ["-y", "mcp-remote", "${mcpUrl}"]`}</code>
                 </p>
               </div>
 
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+              <div className="bg-brand-subtle border border-brand/20 rounded-lg p-3">
                 <p className="theme-text-secondary">
                   <strong className="theme-text-primary">Then sign in.</strong> Copilot discovers
                   {' '}{BRAND.appName}&apos;s OAuth settings, registers itself, and opens your browser.
@@ -217,7 +217,7 @@ args = ["-y", "mcp-remote", "${mcpUrl}"]`}</code>
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <BookOpen className="w-5 h-5 text-blue-500" />
+                <BookOpen className="w-5 h-5 text-brand" />
                 <span>Manual setup for older clients</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
@@ -416,7 +416,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN`}
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <Wrench className="w-5 h-5 text-orange-500" />
+                <Wrench className="w-5 h-5 text-warning" />
                 <span>How It Works</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
@@ -458,9 +458,9 @@ Content-Type: application/json
 }`}
                 </code>
               </pre>
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+              <div className="bg-brand-subtle border border-brand/20 rounded-lg p-3">
                 <div className="flex items-start space-x-2">
-                  <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <Info className="w-4 h-4 text-brand mt-0.5 flex-shrink-0" />
                   <p className="text-xs theme-text-muted">
                     <strong className="theme-text-primary">Note:</strong> Operation names use <code className="px-1 py-0.5 theme-bg-tertiary rounded font-mono">snake_case</code>{' '}
                     in the API (e.g., <code className="px-1 py-0.5 theme-bg-tertiary rounded font-mono">get_shared_lists</code>).
@@ -475,7 +475,7 @@ Content-Type: application/json
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <Shield className="w-5 h-5 text-green-500" />
+                <Shield className="w-5 h-5 text-success" />
                 <span>Resources</span>
               </CardTitle>
             </CardHeader>
@@ -539,7 +539,7 @@ Content-Type: application/json
 function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
     <div className="flex gap-3">
-      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-500 text-xs font-bold flex items-center justify-center mt-0.5">
+      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-info-subtle text-info text-xs font-bold flex items-center justify-center mt-0.5">
         {n}
       </div>
       <div className="flex-1">

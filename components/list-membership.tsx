@@ -230,7 +230,7 @@ export function ListMembership({
                   const isRemoving = removingAgents.has(agent.id)
 
                   return (
-                    <div key={agent.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <div key={agent.id} className="flex items-center justify-between p-3 border border-theme-surface rounded-lg">
                       <div className="flex items-center space-x-3">
                         {/* AI agents are users - use same UserLink as members */}
                         <UserLink
@@ -257,7 +257,7 @@ export function ListMembership({
                           size="sm"
                           onClick={() => handleRemoveCodingAgent(agent)}
                           disabled={isRemoving}
-                          className="text-red-400 hover:text-red-300 hover:bg-red-900/20 border-red-600 hover:border-red-500 disabled:opacity-50"
+                          className="text-danger hover:text-danger hover:bg-danger-subtle border-danger disabled:opacity-disabled"
                         >
                           {isRemoving ? 'Removing...' : 'Remove Agent'}
                         </Button>
@@ -266,7 +266,7 @@ export function ListMembership({
                           variant="outline"
                           size="sm"
                           onClick={() => handleAddCodingAgent(agent)}
-                          className="text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 border-blue-600 hover:border-blue-500"
+                          className="text-brand hover:text-brand-hover hover:bg-brand-subtle border-brand"
                         >
                           Add Agent
                         </Button>
@@ -283,9 +283,9 @@ export function ListMembership({
       {/* AI Agents Promotion - Shown if NO AI agents configured */}
       {canEditSettings && availableAiAgents.length === 0 && !loadingAiProviders && (
         <div className="border-t theme-border pt-4">
-          <div className="flex items-center justify-between p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+          <div className="flex items-center justify-between p-3 bg-theme-secondary rounded-lg">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 relative flex items-center justify-center bg-purple-100 dark:bg-purple-900/30 rounded-full">
+              <div className="w-8 h-8 relative flex items-center justify-center bg-agent-bubble rounded-full">
                 <Bot className="w-5 h-5 text-purple-600" />
                 <Sparkles className="w-3 h-3 text-yellow-500 absolute -top-0.5 -right-0.5" />
               </div>
@@ -316,7 +316,7 @@ export function ListMembership({
                 onClick={() => {
                   onUpdate({ ...list, privacy: "PUBLIC" })
                 }}
-                className="w-full text-green-400 hover:text-green-300 hover:bg-green-900/20 border-green-600 hover:border-green-500"
+                className="w-full text-success hover:text-success hover:bg-success-subtle border-success"
               >
                 <Globe className="w-4 h-4 mr-2" />
                 Make Public
@@ -328,7 +328,7 @@ export function ListMembership({
                 onClick={() => {
                   onUpdate({ ...list, privacy: "SHARED" })
                 }}
-                className="w-full text-orange-400 hover:text-orange-300 hover:bg-orange-900/20 border-orange-600 hover:border-orange-500"
+                className="w-full text-warning hover:text-warning hover:bg-warning-subtle border-warning"
               >
                 <Lock className="w-4 h-4 mr-2" />
                 Make Private
@@ -356,7 +356,7 @@ export function ListMembership({
                 onClick={() => {
                   onUpdate({ ...list, publicListType: "copy_only" })
                 }}
-                className="w-full text-orange-400 hover:text-orange-300 hover:bg-orange-900/20 border-orange-600 hover:border-orange-500"
+                className="w-full text-warning hover:text-warning hover:bg-warning-subtle border-warning"
               >
                 <Lock className="w-4 h-4 mr-2" />
                 Make Copy Only
@@ -368,7 +368,7 @@ export function ListMembership({
                 onClick={() => {
                   onUpdate({ ...list, publicListType: "collaborative" })
                 }}
-                className="w-full text-green-400 hover:text-green-300 hover:bg-green-900/20 border-green-600 hover:border-green-500"
+                className="w-full text-success hover:text-success hover:bg-success-subtle border-success"
               >
                 <Globe className="w-4 h-4 mr-2" />
                 Make Collaborative
@@ -393,7 +393,7 @@ export function ListMembership({
             onClick={() => {
               onLeave(list)
             }}
-            className="w-full text-red-400 hover:text-red-300 hover:bg-red-900/20"
+            className="w-full hover:text-danger hover:bg-danger-subtle"
           >
             Leave List
           </Button>
@@ -409,7 +409,7 @@ export function ListMembership({
             onClick={() => {
               onLeave(list, true) // true indicates owner leaving
             }}
-            className="w-full text-orange-400 hover:text-orange-300 hover:bg-orange-900/20"
+            className="w-full hover:text-warning hover:bg-warning-subtle"
           >
             Transfer Ownership & Leave
           </Button>

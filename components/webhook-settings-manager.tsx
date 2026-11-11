@@ -288,11 +288,11 @@ export function WebhookSettingsManager() {
                       px-3 py-1.5 rounded-full text-sm font-medium transition-all border
                       ${isSelected
                         ? config.selectedClass
-                        : 'bg-gray-500/10 text-gray-400 border-gray-500/30 hover:border-gray-400/50'
+                        : 'bg-theme-tertiary text-theme-muted border-theme-surface hover:border-theme-strong'
                       }
                     `}
                   >
-                    <span className={`inline-block w-2 h-2 rounded-full mr-2 ${isSelected ? config.dotClass : 'bg-gray-500'}`}></span>
+                    <span className={`inline-block w-2 h-2 rounded-full mr-2 ${isSelected ? config.dotClass : 'bg-theme-active'}`}></span>
                     {config.label}
                     {isSelected && <Check className="inline-block w-3 h-3 ml-1" />}
                   </button>
@@ -300,7 +300,7 @@ export function WebhookSettingsManager() {
               })}
             </div>
             {selectedAgents.length === 0 && (
-              <p className="text-sm text-amber-500">
+              <p className="text-sm text-warning">
                 No agents selected. All tasks will be handled by polling mode.
               </p>
             )}
@@ -363,9 +363,9 @@ export function WebhookSettingsManager() {
 
       {/* New Secret Display (shown after save) */}
       {newSecret && (
-        <Card className="theme-bg-secondary border-yellow-500 border-2">
+        <Card className="theme-bg-secondary border-warning border-2">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-yellow-500">
+            <CardTitle className="flex items-center gap-2 text-warning">
               <AlertCircle className="w-5 h-5" />
               Save Your Webhook Secret
             </CardTitle>
@@ -390,7 +390,7 @@ export function WebhookSettingsManager() {
                 size="icon"
                 onClick={copySecret}
               >
-                {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                {copied ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
               </Button>
             </div>
             <div className="p-3 theme-bg-tertiary rounded-lg">
@@ -415,7 +415,7 @@ export function WebhookSettingsManager() {
                 <Label className="theme-text-muted text-sm">Status</Label>
                 <div className="flex items-center gap-2">
                   {config.enabled ? (
-                    <Badge variant="default" className="bg-green-500">
+                    <Badge variant="default" className="bg-success">
                       <CheckCircle2 className="w-3 h-3 mr-1" />
                       Active
                     </Badge>
@@ -457,7 +457,7 @@ export function WebhookSettingsManager() {
               <div className="flex flex-wrap gap-2">
                 {config.agents && config.agents.length > 0 ? (
                   config.agents.map((agent) => {
-                    const agentInfo = AGENT_CONFIG[agent] || { label: agent, badgeClass: 'text-gray-400 border-gray-500/50' }
+                    const agentInfo = AGENT_CONFIG[agent] || { label: agent, badgeClass: 'text-theme-muted border-theme-strong' }
                     return (
                       <Badge key={agent} variant="outline" className={agentInfo.badgeClass}>
                         {agentInfo.label}
@@ -465,7 +465,7 @@ export function WebhookSettingsManager() {
                     )
                   })
                 ) : (
-                  <span className="text-sm text-amber-500">None (all tasks go to polling)</span>
+                  <span className="text-sm text-warning">None (all tasks go to polling)</span>
                 )}
               </div>
               {config.agents && config.agents.length > 0 && config.agents.length < 3 && (
@@ -512,15 +512,15 @@ export function WebhookSettingsManager() {
 
             {/* Test Result */}
             {testResult && (
-              <div className={`p-4 rounded-lg ${testResult.success ? 'bg-green-500/10 border border-green-500/30' : 'bg-red-500/10 border border-red-500/30'}`}>
+              <div className={`p-4 rounded-lg ${testResult.success ? 'bg-success-subtle border border-success/30' : 'bg-danger-subtle border border-danger/30'}`}>
                 <div className="flex items-start gap-2">
                   {testResult.success ? (
-                    <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+                    <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
                   ) : (
-                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                    <AlertCircle className="w-5 h-5 text-danger flex-shrink-0" />
                   )}
                   <div>
-                    <p className={`font-medium ${testResult.success ? 'text-green-500' : 'text-red-500'}`}>
+                    <p className={`font-medium ${testResult.success ? 'text-success' : 'text-danger'}`}>
                       {testResult.message}
                     </p>
                     {testResult.responseTime && (
@@ -534,7 +534,7 @@ export function WebhookSettingsManager() {
                       </p>
                     )}
                     {testResult.error && (
-                      <p className="text-sm text-red-400 mt-1">
+                      <p className="text-sm text-danger mt-1">
                         Error: {testResult.error}
                       </p>
                     )}

@@ -43,7 +43,7 @@ export function DataExportSection({ exporting, onExport }: DataExportSectionProp
             onClick={() => onExport("json")}
             disabled={exporting}
             variant="outline"
-            className="flex-1 border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white w-full"
+            className="flex-1 border-brand text-brand hover:bg-brand hover:text-brand-foreground w-full"
           >
             <FileJson className="w-4 h-4 mr-2" />
             {exporting ? t("settingsPages.exportData.exporting") : t("settingsPages.exportData.exportJson")}
@@ -52,7 +52,7 @@ export function DataExportSection({ exporting, onExport }: DataExportSectionProp
             onClick={() => onExport("csv")}
             disabled={exporting}
             variant="outline"
-            className="flex-1 border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white w-full"
+            className="flex-1 border-brand text-brand hover:bg-brand hover:text-brand-foreground w-full"
           >
             <FileText className="w-4 h-4 mr-2" />
             {exporting ? t("settingsPages.exportData.exporting") : t("settingsPages.exportData.exportCsv")}

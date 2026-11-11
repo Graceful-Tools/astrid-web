@@ -164,9 +164,9 @@ export function DefaultTaskSettingsSection({
     const assigneeType = getDefaultAssigneeType()
 
     if (assigneeType === "task_creator") {
-      return <span className="text-blue-400">Task Creator</span>
+      return <span className="text-brand">Task Creator</span>
     } else if (assigneeType === "unassigned") {
-      return <span className="text-blue-400">Unassigned</span>
+      return <span className="text-brand">Unassigned</span>
     } else if (assigneeType !== "task_creator" && assigneeType !== "unassigned") {
       // This is a specific user ID
       if (list.defaultAssignee) {
@@ -176,7 +176,7 @@ export function DefaultTaskSettingsSection({
               <AvatarImage src={list.defaultAssignee.image || "/placeholder.svg"} />
               <AvatarFallback className="text-xs">{list.defaultAssignee.name?.charAt(0) || list.defaultAssignee.email.charAt(0)}</AvatarFallback>
             </Avatar>
-            <span className="text-blue-400">{list.defaultAssignee.name || list.defaultAssignee.email}</span>
+            <span className="text-brand">{list.defaultAssignee.name || list.defaultAssignee.email}</span>
           </>
         )
       } else {
@@ -190,15 +190,15 @@ export function DefaultTaskSettingsSection({
                 <AvatarImage src={assignedUser.image || "/placeholder.svg"} />
                 <AvatarFallback className="text-xs">{assignedUser.name?.charAt(0) || assignedUser.email.charAt(0)}</AvatarFallback>
               </Avatar>
-              <span className="text-blue-400">{assignedUser.name || assignedUser.email}</span>
+              <span className="text-brand">{assignedUser.name || assignedUser.email}</span>
             </>
           )
         } else {
-          return <span className="text-red-400">Member not found</span>
+          return <span className="text-danger">Member not found</span>
         }
       }
     } else {
-      return <span className="text-blue-400 italic">Click to set...</span>
+      return <span className="text-brand italic">Click to set...</span>
     }
   }
 
@@ -354,7 +354,7 @@ export function DefaultTaskSettingsSection({
           </div>
         ) : (
           <div
-            className="text-blue-400 cursor-pointer hover:theme-bg-hover px-2 py-1 rounded"
+            className="text-brand cursor-pointer hover:theme-bg-hover px-2 py-1 rounded"
             onClick={() => session.beginEditing(dueDateEditor)}
           >
             {getDefaultDueDateDisplay(tempDefaultDueDate)}
@@ -398,7 +398,7 @@ export function DefaultTaskSettingsSection({
             </div>
           ) : (
             <div
-              className="text-blue-400 cursor-pointer hover:theme-bg-hover px-2 py-1 rounded"
+              className="text-brand cursor-pointer hover:theme-bg-hover px-2 py-1 rounded"
               onClick={() => session.beginEditing(repeatingEditor)}
             >
               {getDefaultRepeatingDisplay(tempDefaultRepeating)}

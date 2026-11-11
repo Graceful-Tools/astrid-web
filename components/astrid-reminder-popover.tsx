@@ -148,14 +148,14 @@ export function AstridReminderPopover({
 
                           // Check if list is PUBLIC first
                           if (privacy === 'PUBLIC') {
-                            return <Globe className="w-3 h-3 text-green-500" />
+                            return <Globe className="w-3 h-3 text-success" />
                           }
 
                           // Check if list is SHARED
                           const allMembers = getAllListMembers(list)
                           const hasAdditionalMembers = allMembers.length > 1
                           if (hasAdditionalMembers) {
-                            return <Users className="w-3 h-3 text-blue-500" />
+                            return <Users className="w-3 h-3 text-brand" />
                           }
 
                           // Default to private - show colored dot
@@ -210,7 +210,7 @@ export function AstridReminderPopover({
             <div className="flex-1">
               <div className="relative theme-bg-secondary rounded-2xl p-4 border-2 theme-border shadow-lg z-0">
                 {/* Comic-style speech bubble pointer - outer border (points left toward Astrid) */}
-                <div className="absolute -left-[16px] top-6 w-0 h-0 border-t-[12px] border-t-transparent border-r-[16px] border-r-gray-300 dark:border-r-gray-600 border-b-[12px] border-b-transparent border-l-0 z-10"></div>
+                <div className="absolute -left-[16px] top-6 w-0 h-0 border-t-[12px] border-t-transparent border-r-[16px] border-r-theme border-b-[12px] border-b-transparent border-l-0 z-10"></div>
                 {/* Inner pointer fill (covers outer to create border effect) */}
                 <div className="absolute -left-[12px] top-[27px] w-0 h-0 border-t-[9px] border-t-transparent border-r-[13px] border-b-[10px] border-b-transparent border-l-0 z-10 speech-bubble-arrow-fill"></div>
                 <p className="text-base font-semibold theme-text-primary leading-relaxed">{astridPhrase}</p>
@@ -220,7 +220,7 @@ export function AstridReminderPopover({
 
           {/* Collaborators (if shared list) */}
           {sharedMembers.length > 0 && (
-            <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+            <div className="bg-warning-subtle border border-warning/30 rounded-lg p-3">
               <div className="flex items-center space-x-2">
                 <div className="flex -space-x-2">
                   {sharedMembers.map((member) => {
@@ -228,7 +228,7 @@ export function AstridReminderPopover({
                     return (
                       <div
                         key={member.id}
-                        className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-semibold border-2 border-white dark:border-gray-800"
+                        className="w-8 h-8 rounded-full bg-brand text-brand-foreground flex items-center justify-center text-xs font-semibold border-2 border-white dark:border-gray-800"
                         title={member.name || member.email}
                       >
                         {initials}
@@ -236,7 +236,7 @@ export function AstridReminderPopover({
                     )
                   })}
                 </div>
-                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                <p className="text-sm font-medium text-theme-primary">
                   {socialMessage}
                 </p>
               </div>
@@ -248,7 +248,7 @@ export function AstridReminderPopover({
             {/* Complete Button */}
             <Button
               onClick={handleComplete}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-6 text-base"
+              className="w-full bg-success hover:bg-success/90 text-success-foreground font-semibold py-6 text-base"
             >
               <CheckCircle className="w-5 h-5 mr-2" />
               {t("reminders.ui.complete")}

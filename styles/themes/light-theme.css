@@ -9,10 +9,13 @@
   --theme-bg-selected: var(--astrid-bg-selected);
   --theme-bg-selected-border: var(--astrid-bg-selected-border);
   
-  /* Surface colors */
-  --theme-surface: 255, 255, 255;
-  --theme-surface-hover: 243, 244, 246;
-  --theme-surface-raised: 255, 255, 255;
+  /* Web-only surfaces (register DS9). The tokens have no name for these yet,
+     so each is named once here and reads a token: nothing below is a colour
+     written out. A card is the page's white; its hover is the tertiary grey
+     (--astrid-bg-hover is white on white here); its border is the border. */
+  --theme-surface: var(--astrid-bg-primary);
+  --theme-surface-hover: var(--astrid-bg-tertiary);
+  --theme-surface-border: var(--astrid-border);
   
   /* Border colors */
   --theme-border: var(--astrid-border);
@@ -41,15 +44,13 @@
   --theme-info: var(--astrid-info);
   
   /* Sidebar colors */
-  --theme-sidebar-bg: 248, 249, 251;
-  --theme-sidebar-border: 235, 237, 240;
-  --theme-sidebar-hover: 235, 237, 240;
-  --theme-sidebar-active: 219, 234, 254;
+  --theme-sidebar-bg: var(--astrid-bg-secondary);
+  --theme-sidebar-border: var(--theme-surface-border);
   
   /* Task panel colors */
-  --theme-panel-bg: 255, 255, 255;
-  --theme-panel-border: 229, 231, 235;
-  --theme-panel-arrow: 255, 255, 255;
+  --theme-panel-bg: var(--theme-surface);
+  --theme-panel-border: var(--theme-surface-border);
+  --theme-panel-arrow: var(--theme-panel-bg);
   
   /* Header colors */
   --theme-header-bg: var(--astrid-header-bg);
@@ -66,14 +67,14 @@
   --theme-button-border: var(--astrid-button-border);
   
   /* Light mode specific UI elements */
-  --theme-pill-bg: 243, 244, 246;
-  --theme-comment-bg: 249, 250, 251;
-  --theme-count-bg: 239, 239, 239;
+  --theme-pill-bg: var(--astrid-bg-tertiary);
+  --theme-comment-bg: var(--astrid-bg-secondary);
+  --theme-count-bg: var(--astrid-bg-tertiary);
   
-  /* Component shadows */
-  --theme-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.035);
-  --theme-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.07), 0 1px 2px 0 rgba(0, 0, 0, 0.04);
-  --theme-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.035);
+  /* Component shadows: the shared scale */
+  --theme-shadow-sm: var(--astrid-shadow-sm);
+  --theme-shadow: var(--astrid-shadow-md);
+  --theme-shadow-lg: var(--astrid-shadow-lg);
 }
 
 /* Light Theme Component Styles */
@@ -155,70 +156,66 @@
 .light .chat-bubble-other { background-color: rgb(var(--theme-bg-tertiary)); }
 
 /* ===== LIGHT THEME: Glass/Blur Material Effects ===== */
-/* Matches iOS LiquidGlass theme - translucent backgrounds with blur */
+/* Matches iOS LiquidGlass theme - translucent backgrounds with blur.
+   The colours are the theme's; only how much shows through is written here. */
 
 /* Task cards: Glass material effect */
 .light .task-card {
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: rgba(var(--theme-surface), 0.7);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(var(--theme-surface), 0.3);
 }
 
 .light .task-card:hover {
-  background-color: rgba(255, 255, 255, 0.85);
+  background-color: rgba(var(--theme-surface), 0.85);
 }
 
 /* Selected task card: Thicker glass with accent tint */
 .light .task-row-selected {
-  background-color: rgba(239, 246, 255, 0.8) !important;
+  background-color: rgba(var(--theme-bg-selected), 0.8) !important;
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
 }
 
 /* Mobile floating header: Glass material */
 .light .app-header-mobile-floating {
-  background-color: rgba(249, 250, 251, 0.8);
+  background-color: rgba(var(--theme-header-bg), 0.8);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(var(--theme-surface), 0.3);
 }
 
 /* iOS drawer header: Glass material */
 .light .app-header-ios-drawer {
-  background-color: rgba(249, 250, 251, 0.8);
+  background-color: rgba(var(--theme-header-bg), 0.8);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(var(--theme-surface), 0.3);
 }
 
 /* Mobile quick add bar: Glass material */
 .light .quick-add {
-  background-color: rgba(255, 255, 255, 0.85);
+  background-color: rgba(var(--theme-surface), 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(var(--theme-surface), 0.4);
 }
 
 /* Comment input bar: Match quick add styling */
 .light .chat-input-bar {
-  background-color: rgba(255, 255, 255, 0.95);
-  border-top: 1px solid rgba(229, 231, 235, 0.8);
+  background-color: rgba(var(--theme-surface), 0.95);
+  border-top: 1px solid rgba(var(--theme-border), 0.8);
 }
 
 /* Mobile sidebar: Glass material */
 .light .app-sidebar-mobile {
-  background-color: rgba(243, 244, 246, 0.9);
+  background-color: rgba(var(--theme-bg-tertiary), 0.9);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
 }
 
 /* List badges: Translucent on glass */
 .light .task-card .theme-bg-secondary {
-  background-color: rgba(255, 255, 255, 0.4);
-}
-
-/* iOS drawer content: Solid background to cover sidebar when closed */
-.light .ios-drawer-content {
-  background-color: rgb(255, 255, 255);
+  background-color: rgba(var(--theme-surface), 0.4);
 }

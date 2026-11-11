@@ -118,7 +118,7 @@ export function TaskModals({
       {/* Delete Confirmation Modal */}
       {showDeleteConfirmation && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50" onClick={handleCancelDelete}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm mx-4 shadow-xl" data-testid="task-delete-confirm" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-theme-surface rounded-lg p-6 max-w-sm mx-4 shadow-xl" data-testid="task-delete-confirm" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4">
               <h3 className="text-lg font-semibold theme-text-primary mb-2">Delete Task</h3>
               <p className="theme-text-secondary">
@@ -138,7 +138,7 @@ export function TaskModals({
                 variant="destructive"
                 size="sm"
                 onClick={handleConfirmDelete}
-                className="bg-red-600 hover:bg-red-700 text-white"
+                className="bg-danger hover:bg-danger/90 text-danger-foreground"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete
@@ -151,7 +151,7 @@ export function TaskModals({
       {/* Copy Confirmation Modal - centered on task pane */}
       {showCopyConfirmation && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50" onClick={handleCancelCopy}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4 shadow-xl" data-testid="task-copy-dialog" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-theme-surface rounded-lg p-6 max-w-md mx-4 shadow-xl" data-testid="task-copy-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4">
               <h3 className="text-lg font-semibold theme-text-primary mb-2">Copy Task</h3>
               <p className="theme-text-secondary mb-4">
@@ -168,7 +168,7 @@ export function TaskModals({
                   <select
                     value={copyTargetListId || ''}
                     onChange={(e) => setCopyTargetListId(e.target.value || undefined)}
-                    className="w-full px-3 py-2 rounded-md theme-bg-primary theme-text-primary theme-border focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 rounded-md theme-bg-primary theme-text-primary theme-border focus:outline-none focus:ring-2 focus:ring-brand"
                   >
                     <option value="">My Tasks (only)</option>
                     {realLists.map((list) => (
@@ -213,7 +213,7 @@ export function TaskModals({
                 variant="default"
                 size="sm"
                 onClick={handleConfirmCopy}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-brand hover:bg-brand-hover text-brand-foreground"
               >
                 <Copy className="w-4 h-4 mr-2" />
                 Copy
@@ -226,7 +226,7 @@ export function TaskModals({
       {/* Share Modal - centered on task pane */}
       {showShareModal && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onCloseShareModal}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md mx-4 shadow-xl" data-testid="task-share-dialog" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-theme-surface rounded-lg p-6 max-w-md mx-4 shadow-xl" data-testid="task-share-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4">
               <h3 className="text-lg font-semibold theme-text-primary mb-2 flex items-center">
                 <Share2 className="w-5 h-5 mr-2" />
@@ -238,10 +238,10 @@ export function TaskModals({
               </p>
 
               {task.isPrivate && (
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
+                <div className="p-3 bg-brand-subtle border border-brand/30 rounded-lg mb-4">
                   <div className="flex items-start space-x-2">
-                    <Lock className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                    <Lock className="w-4 h-4 text-brand flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-theme-primary">
                       This is a private task. Only users with access to this list can view it.
                     </p>
                   </div>
@@ -249,12 +249,12 @@ export function TaskModals({
               )}
 
               {loadingShareUrl ? (
-                <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg text-center">
+                <div className="p-4 bg-theme-tertiary rounded-lg text-center">
                   <p className="theme-text-muted">Generating share link...</p>
                 </div>
               ) : shareUrl ? (
                 <div className="space-y-3">
-                  <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                  <div className="p-3 bg-theme-tertiary rounded-lg">
                     <div className="flex items-center justify-between space-x-2">
                       <div className="flex items-center space-x-2 flex-1 min-w-0">
                         <LinkIcon className="w-4 h-4 theme-text-muted flex-shrink-0" />
@@ -268,7 +268,7 @@ export function TaskModals({
                         onClick={onCopyShareUrl}
                         className={`flex-shrink-0 ${
                           shareUrlCopied
-                            ? 'bg-green-600 text-white border-green-600'
+                            ? 'bg-success text-success-foreground border-success'
                             : 'theme-border theme-text-secondary hover:theme-bg-hover'
                         }`}
                       >
@@ -293,8 +293,8 @@ export function TaskModals({
                   </div>
                 </div>
               ) : (
-                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                  <p className="text-sm text-red-800 dark:text-red-200">
+                <div className="p-4 bg-danger-subtle border border-danger/30 rounded-lg">
+                  <p className="text-sm text-theme-primary">
                     Failed to generate share link. Please try again.
                   </p>
                 </div>

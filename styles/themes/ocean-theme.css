@@ -9,10 +9,13 @@
   --theme-bg-selected: var(--astrid-bg-selected);
   --theme-bg-selected-border: var(--astrid-bg-selected-border);
 
-  /* Surface colors - White cards (same as light) */
-  --theme-surface: 255, 255, 255;
-  --theme-surface-hover: 243, 244, 246;
-  --theme-surface-raised: 255, 255, 255;
+  /* Web-only surfaces (register DS9), each named once and read from a token.
+     Ocean's page and border tokens are both the cyan, so a white card and the
+     grey line around it have no name of their own yet: the white is the one
+     the tokens call the hover surface, the grey the one they call active. */
+  --theme-surface: var(--astrid-bg-hover);
+  --theme-surface-hover: var(--astrid-bg-tertiary);
+  --theme-surface-border: var(--astrid-bg-active);
 
   /* Border colors (same as light) */
   --theme-border: var(--astrid-border);
@@ -44,15 +47,13 @@
   --theme-info: var(--astrid-info);
 
   /* Sidebar colors (same as light) */
-  --theme-sidebar-bg: 249, 250, 251;
-  --theme-sidebar-border: 229, 231, 235;
-  --theme-sidebar-hover: 243, 244, 246;
-  --theme-sidebar-active: 239, 246, 255;
+  --theme-sidebar-bg: var(--astrid-bg-secondary);
+  --theme-sidebar-border: var(--theme-surface-border);
 
   /* Task panel colors (same as light) */
-  --theme-panel-bg: 249, 250, 251;
-  --theme-panel-border: 229, 231, 235;
-  --theme-panel-arrow: 249, 250, 251;
+  --theme-panel-bg: var(--astrid-bg-secondary);
+  --theme-panel-border: var(--theme-surface-border);
+  --theme-panel-arrow: var(--theme-panel-bg);
 
   /* Header colors (same as light) */
   --theme-header-bg: var(--astrid-header-bg);
@@ -64,17 +65,17 @@
   --theme-input-placeholder: var(--astrid-input-placeholder);
 
   /* Comment colors (same as light) */
-  --theme-comment-bg: 249, 250, 251;
+  --theme-comment-bg: var(--astrid-bg-secondary);
 
   /* Button colors (same as light) */
   --theme-button-bg: var(--astrid-button-bg);
   --theme-button-hover: var(--astrid-button-hover);
   --theme-button-border: var(--astrid-button-border);
 
-  /* Component shadows (same as light) */
-  --theme-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --theme-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --theme-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  /* Component shadows: the shared scale */
+  --theme-shadow-sm: var(--astrid-shadow-sm);
+  --theme-shadow: var(--astrid-shadow-md);
+  --theme-shadow-lg: var(--astrid-shadow-lg);
 }
 
 /* Ocean Theme Component Styles */
@@ -153,19 +154,19 @@
 /* Ocean theme: Task cards use 80% opaque white (20% transparent) for subtle cyan show-through */
 /* Matches iOS TaskRowView.swift: Color.white.opacity(0.8) */
 .ocean .task-card {
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(var(--theme-surface), 0.8);
 }
 
 /* Ocean theme: Mobile quick add footer uses same treatment */
 .ocean .quick-add {
-  background-color: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(136, 220, 248, 0.3);
+  background-color: rgba(var(--theme-surface), 0.8);
+  border: 1px solid rgba(var(--theme-bg-primary), 0.3);
 }
 
 /* Comment input bar: Match quick add styling */
 .ocean .chat-input-bar {
-  background-color: rgba(255, 255, 255, 0.8);
-  border-top: 1px solid rgba(136, 220, 248, 0.3);
+  background-color: rgba(var(--theme-surface), 0.8);
+  border-top: 1px solid rgba(var(--theme-bg-primary), 0.3);
 }
 
 /* ===== OCEAN THEME: Cyan Background with White Cards ===== */
@@ -173,47 +174,43 @@
 
 /* Mobile floating header: White with subtle cyan border */
 .ocean .app-header-mobile-floating {
-  background-color: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(136, 220, 248, 0.4);
+  background-color: rgba(var(--theme-surface), 0.9);
+  border: 1px solid rgba(var(--theme-bg-primary), 0.4);
 }
 
 /* iOS drawer header: Same white treatment */
 .ocean .app-header-ios-drawer {
-  background-color: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(136, 220, 248, 0.4);
+  background-color: rgba(var(--theme-surface), 0.9);
+  border: 1px solid rgba(var(--theme-bg-primary), 0.4);
 }
 
 /* Mobile sidebar: White to contrast with cyan content */
 .ocean .app-sidebar-mobile {
-  background-color: rgba(255, 255, 255, 0.95);
+  background-color: rgba(var(--theme-surface), 0.95);
 }
 
 /* Selected task card: White with blue accent border */
 .ocean .task-row-selected {
-  background-color: rgba(255, 255, 255, 0.95) !important;
+  background-color: rgba(var(--theme-surface), 0.95) !important;
 }
 
-/* iOS drawer content wrapper: Cyan background shows through */
-.ocean .ios-drawer-content {
-  background-color: rgb(136, 220, 248);
-}
-
-/* Task list area: Cyan background */
+/* Task list area: the cyan page. Restated after the surfaces above on purpose:
+   an element that is both wears the page's colour. */
 .ocean .theme-bg-primary {
-  background-color: rgb(136, 220, 248);
+  background-color: rgb(var(--theme-bg-primary));
 }
 
 /* List badges on Ocean: Slightly tinted for depth */
 .ocean .task-card .theme-bg-secondary {
-  background-color: rgba(243, 244, 246, 0.8);
+  background-color: rgba(var(--theme-bg-tertiary), 0.8);
 }
 
-/* Chat bubble colors — blue tint for task comments (white background) */
-.ocean .chat-bubble-mine { background-color: rgba(59, 130, 246, 0.15); }
-.ocean .chat-bubble-other { background-color: rgba(59, 130, 246, 0.08); }
+/* Chat bubble colors — an accent tint for task comments (white background) */
+.ocean .chat-bubble-mine { background-color: rgba(var(--theme-accent), 0.15); }
+.ocean .chat-bubble-other { background-color: rgba(var(--theme-accent), 0.08); }
 
 /* List chat overrides — white bubbles on cyan background */
-.ocean .chat-panel-messages .chat-bubble-mine { background-color: rgba(255, 255, 255, 0.85); }
-.ocean .chat-panel-messages .chat-bubble-other { background-color: rgba(255, 255, 255, 0.65); }
+.ocean .chat-panel-messages .chat-bubble-mine { background-color: rgba(var(--theme-surface), 0.85); }
+.ocean .chat-panel-messages .chat-bubble-other { background-color: rgba(var(--theme-surface), 0.65); }
 
 /* Ocean theme inherits all component styles from light theme */

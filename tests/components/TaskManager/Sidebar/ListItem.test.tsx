@@ -38,8 +38,8 @@ describe('Sidebar ListItem drag indicator', () => {
     )
 
     const button = screen.getByRole('button')
-    expect(button.className).toContain('bg-blue-500/15')
-    expect(button.className).toContain('ring-blue-400')
+    expect(button.className).toContain('bg-brand/15')
+    expect(button.className).toContain('ring-brand')
   })
 
   it('shows add indicator when shift mode is active', () => {
@@ -58,7 +58,7 @@ describe('Sidebar ListItem drag indicator', () => {
     )
 
     const button = screen.getByRole('button')
-    expect(button.className).toContain('bg-blue-500/15')
-    expect(button.className).toContain('ring-blue-400')
+    expect(button.className).toContain('bg-brand/15')
+    expect(button.className).toContain('ring-brand')
   })
 })

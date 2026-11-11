@@ -90,7 +90,7 @@ export function TaskHeader({
   compact = false,
 }: TaskHeaderProps) {
   return (
-    <div className="border-b border-gray-200 dark:border-gray-700">
+    <div className="border-b border-theme-surface">
       {/* Task Content Row: back (mobile) + checkbox + title editor + action menu.
        *
        *  There is no separate "Task Details" header bar (task cc76307c). It cost a

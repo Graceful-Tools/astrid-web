@@ -29,12 +29,12 @@ export function PublicTaskCopyButton({ onCopy, onClick }: PublicTaskCopyButtonPr
       <div
         className={`w-8 h-8 rounded-sm flex items-center justify-center transition-all ${
           isHovered
-            ? 'bg-blue-500 border-2 border-blue-500'
-            : 'border-2 border-gray-400 hover:border-gray-600'
+            ? 'bg-brand border-2 border-brand'
+            : 'border-2 border-theme-strong hover:border-gray-600'
         }`}
       >
         <Copy
-          className={`w-4 h-4 ${isHovered ? 'text-white' : 'text-gray-600'}`}
+          className={`w-4 h-4 ${isHovered ? 'text-brand-foreground' : 'text-theme-muted'}`}
         />
       </div>
     </div>

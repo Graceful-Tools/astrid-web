@@ -129,7 +129,7 @@ export function CommandPaletteDialog({
       >
         {/* Header */}
         <div className="flex items-center gap-2 px-4 py-3 border-b theme-border-light">
-          <Command className="w-5 h-5 text-gray-400" />
+          <Command className="w-5 h-5 text-theme-muted" />
           <Input
             ref={searchInputRef}
             type="text"
@@ -137,7 +137,7 @@ export function CommandPaletteDialog({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 border-0 bg-transparent theme-text-primary placeholder-gray-400"
+            className="flex-1 border-0 bg-transparent theme-text-primary placeholder:text-theme-placeholder"
             autoFocus
           />
           <Button
@@ -153,7 +153,7 @@ export function CommandPaletteDialog({
         {/* Command List */}
         <div className="flex-1 overflow-y-auto">
           {displayCommands.length === 0 ? (
-            <div className="px-4 py-8 text-center text-gray-500">
+            <div className="px-4 py-8 text-center text-theme-muted">
               No commands found
             </div>
           ) : (
@@ -166,27 +166,27 @@ export function CommandPaletteDialog({
                   aria-disabled={!!command.disabledReason}
                   onClick={() => handleCommandClick(command)}
                   onMouseEnter={() => handleMouseEnter(index)}
-                  className={`w-full px-4 py-2 text-left flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
-                    index === selectedIndex ? "bg-blue-50 dark:bg-blue-950" : ""
+                  className={`w-full px-4 py-2 text-left flex items-center justify-between hover:bg-theme-hover transition-colors ${
+                    index === selectedIndex ? "bg-theme-selected" : ""
                   } ${
                     command.disabledReason
-                      ? "opacity-50 cursor-not-allowed"
+                      ? "opacity-disabled cursor-not-allowed"
                       : "cursor-pointer"
                   }`}
                   disabled={!!command.disabledReason}
                 >
                   <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <div className="text-sm font-medium text-theme-primary">
                       {command.title}
                     </div>
                     {command.disabledReason && (
-                      <div className="text-xs text-gray-500 mt-1">
+                      <div className="text-xs text-theme-muted mt-1">
                         {command.disabledReason}
                       </div>
                     )}
                   </div>
                   {command.shortcut && (
-                    <kbd className="ml-4 px-2 py-1 text-xs font-mono bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded border">
+                    <kbd className="ml-4 px-2 py-1 text-xs font-mono bg-theme-active text-theme-primary rounded border">
                       {command.shortcut}
                     </kbd>
                   )}
@@ -197,7 +197,7 @@ export function CommandPaletteDialog({
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-2 border-t theme-border-light text-xs text-gray-500">
+        <div className="px-4 py-2 border-t theme-border-light text-xs text-theme-muted">
           <div className="flex items-center gap-4">
             <span>↑ ↓ to navigate</span>
             <span>{t('commandPalette.enterToSelect')}</span>

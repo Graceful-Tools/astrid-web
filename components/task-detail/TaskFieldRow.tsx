@@ -15,12 +15,13 @@ import { Label } from "@/components/ui/label"
  * so the labels sat at different heights down the panel.
  *
  * **The alignment invariant, and it is shared with the header row.** The icon
- * column is exactly as wide as the title row's leading control (`w-8`), and
- * both rows use the shared `gap-2` class inside the
- * same `p-4` container. So the icon lands centred under the checkbox and the
- * content's left edge lands on the title field's left edge — 16 + 32 + 8 = 56px
- * in both. Changing one without the other breaks it. iOS states the same
- * invariant in the same terms, with its own numbers (16 + 34 + 12 = 62pt).
+ * column is exactly as wide as the title row's leading control (the
+ * `size.leading-control` token, 34), and both rows use the shared `gap-2` class
+ * inside the same `p-4` container. So the icon lands centred under the checkbox
+ * and the content's left edge lands on the title field's left edge — 16 + 34 +
+ * 8 = 58px in both. Changing one without the other breaks it. iOS states the
+ * same invariant in the same terms, with the token's gap (16 + 34 + 12 = 62pt;
+ * web's gap is still 8, register DS11).
  *
  * All three terms are pinned by `tests/components/task-detail/
  * task-detail-icon-alignment.test.ts`, including the container padding — which
@@ -29,13 +30,13 @@ import { Label } from "@/components/ui/label"
  *
  * An icon replaces the label text rather than joining it: the icon column keeps
  * every row's content starting at the same x — which is what the label was
- * really doing — in 32px rather than 80, and the word is redundant next to a
+ * really doing — in 34px rather than 80, and the word is redundant next to a
  * calendar chip or a coloured priority chip. The label stays as the
  * accessibility name.
  */
 
 /** Icon column width — must match the header's leading control. */
-export const FIELD_ICON_COLUMN_CLASS = "w-8"
+export const FIELD_ICON_COLUMN_CLASS = "w-leading-control"
 /** Row gap shared with the header row. */
 export const FIELD_ROW_GAP_CLASS = "gap-2"
 /** Text-label column width, for rows that show a word instead of an icon. */

@@ -10,16 +10,16 @@ export default function PrivacyPage({ onNavigate }: PrivacyPageProps) {
   return (
     <div className="p-2 sm:p-4">
       <div className="max-w-sm sm:max-w-2xl mx-auto space-y-4 sm:space-y-6">
-        <h1 className="text-4xl font-bold text-white mb-2">Privacy Policy</h1>
-        <p className="text-gray-500 mb-10">Last updated: January 3, 2026</p>
+        <h1 className="text-4xl font-bold text-theme-primary mb-2">Privacy Policy</h1>
+        <p className="text-theme-muted mb-10">Last updated: January 3, 2026</p>
 
         <div className="space-y-10">
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">What We Collect</h2>
-            <p className="text-gray-300 leading-relaxed mb-3">
+            <h2 className="text-xl font-semibold text-theme-primary mb-3">What We Collect</h2>
+            <p className="text-theme-secondary leading-relaxed mb-3">
               We collect information you provide directly:
             </p>
-            <ul className="list-disc list-inside text-gray-300 space-y-1 ml-2">
+            <ul className="list-disc list-inside text-theme-secondary space-y-1 ml-2">
               <li>Account details (name, email) via Google or Apple sign-in</li>
               <li>Tasks, lists, and content you create</li>
               <li>Usage data to improve the service</li>
@@ -27,8 +27,8 @@ export default function PrivacyPage({ onNavigate }: PrivacyPageProps) {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">How We Use It</h2>
-            <ul className="list-disc list-inside text-gray-300 space-y-1 ml-2">
+            <h2 className="text-xl font-semibold text-theme-primary mb-3">How We Use It</h2>
+            <ul className="list-disc list-inside text-theme-secondary space-y-1 ml-2">
               <li>Provide, maintain, and improve {BRAND.appName}</li>
               <li>Process and store your tasks and content</li>
               <li>Send service-related communications</li>
@@ -37,19 +37,19 @@ export default function PrivacyPage({ onNavigate }: PrivacyPageProps) {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Data Sharing</h2>
-            <p className="text-gray-300 leading-relaxed mb-3">
+            <h2 className="text-xl font-semibold text-theme-primary mb-3">Data Sharing</h2>
+            <p className="text-theme-secondary leading-relaxed mb-3">
               <strong>We do not sell your personal information.</strong>
             </p>
-            <p className="text-gray-300 leading-relaxed">
+            <p className="text-theme-secondary leading-relaxed">
               We share data only with infrastructure providers necessary to operate the service,
               when you explicitly share content with others, or when required by law.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Infrastructure</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold text-theme-primary mb-3">Infrastructure</h2>
+            <p className="text-theme-secondary leading-relaxed">
               Your data is stored securely using Neon (database) and Vercel (hosting).
               All data is encrypted in transit. Each provider maintains their own privacy
               practices which you can review independently.
@@ -57,8 +57,8 @@ export default function PrivacyPage({ onNavigate }: PrivacyPageProps) {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Your Rights</h2>
-            <ul className="list-disc list-inside text-gray-300 space-y-1 ml-2">
+            <h2 className="text-xl font-semibold text-theme-primary mb-3">Your Rights</h2>
+            <ul className="list-disc list-inside text-theme-secondary space-y-1 ml-2">
               <li>Access and update your account information</li>
               <li>Export your task data</li>
               <li>Delete your account and data</li>
@@ -67,18 +67,18 @@ export default function PrivacyPage({ onNavigate }: PrivacyPageProps) {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">External Services</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold text-theme-primary mb-3">External Services</h2>
+            <p className="text-theme-secondary leading-relaxed">
               {BRAND.appName} integrates with Google and Apple for authentication.
               When you connect these services, their respective privacy policies apply.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-white mb-3">Contact</h2>
-            <p className="text-gray-300 leading-relaxed">
+            <h2 className="text-xl font-semibold text-theme-primary mb-3">Contact</h2>
+            <p className="text-theme-secondary leading-relaxed">
               Questions? Reach us at{" "}
-              <a href={`mailto:privacy@${BRAND.domain}`} className="text-blue-400 hover:text-blue-300">
+              <a href={`mailto:privacy@${BRAND.domain}`} className="text-brand hover:text-brand-hover">
                 privacy@{BRAND.domain}
               </a>
             </p>
@@ -86,11 +86,11 @@ export default function PrivacyPage({ onNavigate }: PrivacyPageProps) {
         </div>
 
         {/* Footer Links */}
-        <div className="mt-12 pt-8 border-t border-gray-800">
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-center text-sm text-gray-400">
+        <div className="mt-12 pt-8 border-t border-theme">
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-center text-sm text-theme-muted">
             <p>&copy; {new Date().getFullYear()} Graceful Tools LLC</p>
             <div className="flex gap-6">
-              <button onClick={() => onNavigate('terms')} className="hover:text-white transition-colors">
+              <button onClick={() => onNavigate('terms')} className="hover:text-theme-primary transition-colors">
                 Terms of Service
               </button>
             </div>

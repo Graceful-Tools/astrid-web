@@ -445,7 +445,7 @@ export function TaskFieldEditors({
                   <AvatarImage src={task.creator.image || "/placeholder.svg"} />
                   <AvatarFallback>{task.creator.name?.charAt(0) || task.creator.email?.charAt(0)}</AvatarFallback>
                 </Avatar>
-                <span className="text-blue-600 dark:text-blue-400">{task.creator.name || task.creator.email}</span>
+                <span className="text-brand">{task.creator.name || task.creator.email}</span>
               </>
             ) : (
               <span className="theme-text-muted">Unknown creator</span>
@@ -491,7 +491,7 @@ export function TaskFieldEditors({
                       <AvatarImage src={task.assignee.image || "/placeholder.svg"} />
                       <AvatarFallback>{task.assignee.name?.charAt(0) || task.assignee.email?.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <span className="text-blue-600 dark:text-blue-400">{task.assignee.name || task.assignee.email}</span>
+                    <span className="text-brand">{task.assignee.name || task.assignee.email}</span>
                   </>
                 ) : (
                   <>
@@ -527,14 +527,14 @@ export function TaskFieldEditors({
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className="w-auto justify-start bg-gray-700 border-gray-600 text-white hover:bg-gray-600"
+                className="w-auto justify-start bg-theme-button border-theme-button text-theme-primary hover:bg-theme-button-hover"
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {tempWhen ? format(tempWhen, "PPP") : "Select date"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
-              <div className="p-3 border-b border-gray-200">
+              <div className="p-3 border-b border-theme-surface">
                 <div className="grid grid-cols-3 gap-2">
                   <Button
                     variant="outline"
@@ -579,7 +579,7 @@ export function TaskFieldEditors({
                 onSelect={handleSaveWhen}
                 autoFocus
               />
-              <div className="p-3 border-t border-gray-200 flex justify-between">
+              <div className="p-3 border-t border-theme-surface flex justify-between">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -598,7 +598,7 @@ export function TaskFieldEditors({
             className={`flex items-center gap-1 px-2 py-1 rounded ${!readOnly ? 'cursor-pointer theme-surface-hover' : ''}`}
             onClick={() => !readOnly && setEditingWhen(true)}
           >
-            <span className={task.dueDateTime ? "text-blue-600 dark:text-blue-400" : "theme-text-muted"}>
+            <span className={task.dueDateTime ? "text-brand" : "theme-text-muted"}>
               {task.dueDateTime ? formatDateForDisplay(new Date(task.dueDateTime), task.isAllDay) : t('time.noDate')}
             </span>
           </div>
@@ -620,7 +620,7 @@ export function TaskFieldEditors({
               className={`flex items-center gap-1 px-2 py-1 rounded ${!readOnly ? 'cursor-pointer theme-surface-hover' : ''}`}
               onClick={() => !readOnly && setEditingTime(true)}
             >
-              <span className={task.dueDateTime && !task.isAllDay ? "text-blue-600 dark:text-blue-400" : "theme-text-muted"}>
+              <span className={task.dueDateTime && !task.isAllDay ? "text-brand" : "theme-text-muted"}>
                 {task.dueDateTime && !task.isAllDay ? formatConciseTime(new Date(task.dueDateTime)) : t('time.allDay')}
               </span>
             </div>

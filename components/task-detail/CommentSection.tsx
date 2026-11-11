@@ -482,7 +482,7 @@ export function CommentSection({
           <textarea
             value={editingText}
             onChange={(e) => setEditingText(e.target.value)}
-            className="w-full min-h-[80px] p-2 text-sm rounded-md border theme-border theme-bg-secondary theme-text-primary resize-y focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full min-h-[80px] p-2 text-sm rounded-md border theme-border theme-bg-secondary theme-text-primary resize-y focus:outline-none focus:ring-1 focus:ring-brand"
             autoFocus
           />
           <div className="flex items-center justify-end gap-2 mt-1">
@@ -593,7 +593,7 @@ export function CommentSection({
             )}
             {isCurrentUser && (
               <button
-                className="flex items-center gap-1 text-xs text-red-500 hover:text-red-400 transition-colors"
+                className="flex items-center gap-1 text-xs text-danger hover:text-danger/80 transition-colors"
                 onClick={(e) => {
                   e.stopPropagation()
                   if (isReply && parentCommentId) {
@@ -647,7 +647,7 @@ export function CommentSection({
       {/* Pull-to-refresh indicator */}
       {isMobileDevice() && (isPulling || isRefreshing) && (
         <div
-          className="flex items-center justify-center py-2 transition-opacity duration-200"
+          className="flex items-center justify-center py-2 transition-opacity duration-medium"
           style={{
             opacity: isRefreshing ? 1 : Math.min(pullDistance / 60, 1),
             height: isRefreshing ? '40px' : `${Math.min(pullDistance / 2, 40)}px`
@@ -705,7 +705,7 @@ export function CommentSection({
             {/* Reply input (inline, below the comment) */}
             {replyingTo === comment.id && (
               <div className={`mt-2 ${comment.authorId === currentUser.id ? 'pr-10' : 'pl-10'}`}>
-                <div className="text-xs text-blue-400 mb-2">
+                <div className="text-xs text-brand mb-2">
                   Replying to {getAuthorDisplay(comment.author)}
                   <button
                     onClick={() => {
