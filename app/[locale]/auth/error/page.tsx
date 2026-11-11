@@ -9,21 +9,23 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Heart, AlertCircle, ArrowLeft } from "lucide-react"
 import { Suspense } from "react"
 import { scrollShellClassName } from "@/components/scroll-shell"
+import { useTranslations } from "@/lib/i18n/client"
 
 function AuthErrorContent() {
+  const { t } = useTranslations()
   const searchParams = useSearchParams()
   const error = searchParams?.get("error") ?? null
 
   const getErrorMessage = (error: string | null) => {
     switch (error) {
       case "Configuration":
-        return "There is a problem with the server configuration."
+        return t('authErrors.configuration')
       case "AccessDenied":
-        return "Access denied. You do not have permission to sign in."
+        return t('authErrors.accessDenied')
       case "Verification":
-        return "The verification token has expired or has already been used."
+        return t('authErrors.verification')
       default:
-        return "An unexpected error occurred during authentication."
+        return t('authErrors.unexpected')
     }
   }
 
@@ -41,8 +43,8 @@ function AuthErrorContent() {
         {/* Error Card */}
         <Card className="bg-theme-surface border-theme-surface">
           <CardHeader className="text-center">
-            <CardTitle className="text-theme-primary">Authentication Error</CardTitle>
-            <CardDescription className="text-theme-muted">Something went wrong during the sign-in process</CardDescription>
+            <CardTitle className="text-theme-primary">{t('authErrorPage.title')}</CardTitle>
+            <CardDescription className="text-theme-muted">{t('authErrorPage.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Alert className="bg-danger-subtle border-danger/20">
@@ -54,11 +56,11 @@ function AuthErrorContent() {
               <Button asChild className="w-full">
                 <Link href="/auth/signin">
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                  Try Again
+                  {t('authErrorPage.tryAgain')}
                 </Link>
               </Button>
               <Button variant="outline" asChild className="w-full bg-transparent">
-                <Link href="/">Go Home</Link>
+                <Link href="/">{t('authErrorPage.goHome')}</Link>
               </Button>
             </div>
           </CardContent>
@@ -69,8 +71,9 @@ function AuthErrorContent() {
 }
 
 export default function AuthError() {
+  const { t } = useTranslations()
   return (
-    <Suspense fallback={<div className={`${scrollShellClassName} bg-theme-primary flex items-center justify-center p-4`}><div className="text-theme-primary">Loading...</div></div>}>
+    <Suspense fallback={<div className={`${scrollShellClassName} bg-theme-primary flex items-center justify-center p-4`}><div className="text-theme-primary">{t('authErrorPage.loading')}</div></div>}>
       <AuthErrorContent />
     </Suspense>
   )
