@@ -123,20 +123,25 @@ describe('AWTD-1575: what the conversion made fainter', () => {
     ['components/shared/RichTextInput.tsx', 'disabled:opacity-40', null],
   ])('%s: a disabled add or send button is no fainter than before the conversion', async (file, opacityClass, opacityToken) => {
     // bg-blue-600 became bg-brand, one step lighter, under the same opacity:
-    // the white icon went from 2.42:1 to 2.0:1. Disabled, the button takes the
-    // accent's darker fill, which is the blue it had.
+    // the white icon went from 2.42:1 to 2.0:1, so the disabled button took the
+    // accent's darker fill, the blue it had. The accent is that blue now
+    // (astrid-core register DS26), so the button is its own fill again and
+    // draws what it drew: a second, darker fill would be a different button.
+    const blue600: Rgb = [37, 99, 235]
     const source = read(...file.split('/'))
     const button = /className=\{?[`"][^`"]*bg-brand\b[^`"]*text-brand-foreground[^`"]*disabled:opacity-[^`"]*[`"]/.exec(source)?.[0]
     expect(button, 'the button').toBeDefined()
     expect(button).toContain(opacityClass)
-    expect(button).toContain('disabled:bg-brand-hover')
+    expect(button).not.toMatch(/disabled:bg-/)
 
-    const css = await compileClasses(['bg-brand', 'bg-brand-hover', 'text-brand-foreground', 'bg-theme-surface'])
-    const scope = themeScope('light')
-    const opacity = opacityToken ? Number(scope.get(opacityToken)) : 0.4
-    const card = colourOf(css, 'bg-theme-surface', scope)
-    const drawn = (fill: string) =>
-      contrast(over(colourOf(css, 'text-brand-foreground', scope), card, opacity), over(colourOf(css, fill, scope), card, opacity))
-    expect(drawn('bg-brand-hover')).toBeGreaterThan(drawn('bg-brand'))
+    const css = await compileClasses(['bg-brand', 'text-brand-foreground', 'bg-theme-surface'])
+    for (const theme of THEME_NAMES) {
+      const scope = themeScope(theme)
+      const opacity = opacityToken ? Number(scope.get(opacityToken)) : 0.4
+      const card = colourOf(css, 'bg-theme-surface', scope)
+      const drawn = (fill: Rgb) =>
+        contrast(over(colourOf(css, 'text-brand-foreground', scope), card, opacity), over(fill, card, opacity))
+      expect(drawn(colourOf(css, 'bg-brand', scope)), theme).toBeGreaterThanOrEqual(drawn(blue600))
+    }
   })
 })

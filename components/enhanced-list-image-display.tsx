@@ -166,7 +166,7 @@ export function EnhancedListImageDisplay({
       {/* Loading State */}
       {imageState === 'loading' && (
         <div className="absolute inset-0 flex items-center justify-center bg-theme-tertiary">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand"></div>
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-theme-focus"></div>
         </div>
       )}
 

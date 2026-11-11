@@ -317,7 +317,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-theme-focus"></div>
           </div>
         </CardContent>
       </Card>
@@ -556,7 +556,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
 
         {saving && (
           <div className="flex items-center justify-center py-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-brand"></div>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-theme-focus"></div>
             <span className="ml-2 text-sm theme-text-muted">Saving...</span>
           </div>
         )}

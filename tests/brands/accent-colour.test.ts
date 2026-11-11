@@ -11,7 +11,10 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 
 const ACME_ACCENT = '#a855f7'
-const ASTRID_ACCENT = '#3b82f6'
+// Astrid's accent since AWTD-1575 (astrid-core register DS26). The one before
+// it is still the palette's blue, and still must not be written out elsewhere.
+const ASTRID_ACCENT = '#2563eb'
+const PALETTE_BLUE = '#3b82f6'
 
 const ORIGINAL_ENV = { ...process.env }
 
@@ -85,7 +88,11 @@ describe('brand accent colour reaches the things it paints (task 518ec534)', () 
       const body = block.slice(0, block.indexOf('}'))
       expect(body, `${theme} tokens must derive the accent from the brand`).toMatch(/--astrid-accent:\s*var\(--brand-accent-rgb,/)
       expect(body).toMatch(/--astrid-accent-hover:\s*var\(--brand-accent-hover-rgb,/)
-      expect(body).toMatch(/--astrid-border-focus:\s*var\(--brand-accent-rgb,/)
+      // The focus ring is the accent as a line: the accent on a light theme, its
+      // lighter shade on a dark one (astrid-core register DS26). Both the brand's.
+      expect(body).toMatch(
+        theme === 'dark' ? /--astrid-border-focus:\s*var\(--brand-accent-ink-dark-rgb,/ : /--astrid-border-focus:\s*var\(--brand-accent-rgb,/,
+      )
     }
   })
 
@@ -161,7 +168,7 @@ describe('no source file outside the colour modules hardcodes the Astrid accent 
       // nothing — the two colour modules reported themselves as offenders.
       const rel = relative(ROOT, file).split(sep).join('/')
       if (ALLOWED.has(rel)) continue
-      if (readFileSync(file, 'utf8').includes(ASTRID_ACCENT)) offenders.push(rel)
+      if (readFileSync(file, 'utf8').includes(PALETTE_BLUE)) offenders.push(rel)
     }
     expect(offenders).toEqual([])
   })
