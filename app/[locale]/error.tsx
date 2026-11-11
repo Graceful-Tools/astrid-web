@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { AlertCircle, RefreshCw, Home } from "lucide-react"
 import Link from "next/link"
 import { createLogger } from '@/lib/logger'
+import { useTranslations } from '@/lib/i18n/client'
 
 const log = createLogger('[locale].error.tsx')
 
@@ -19,6 +20,7 @@ interface ErrorProps {
  * Catches errors in route segments and displays a fallback UI.
  */
 export default function Error({ error, reset }: ErrorProps) {
+  const { t } = useTranslations()
   useEffect(() => {
     // Log error to console in development
     if (process.env.NODE_ENV === "development") {
@@ -33,9 +35,9 @@ export default function Error({ error, reset }: ErrorProps) {
           <AlertCircle className="h-12 w-12 text-danger" />
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold">Something went wrong</h1>
+          <h1 className="text-2xl font-bold">{t('messages.somethingWentWrong')}</h1>
           <p className="max-w-md text-muted-foreground">
-            An unexpected error occurred. We apologize for the inconvenience.
+            {t('errorPages.errorDescription')}
           </p>
           {process.env.NODE_ENV === "development" && (
             <div className="mt-4 max-w-lg rounded-md bg-muted p-4 text-left">
@@ -54,12 +56,12 @@ export default function Error({ error, reset }: ErrorProps) {
       <div className="flex gap-3">
         <Button variant="outline" onClick={reset} className="gap-2">
           <RefreshCw className="h-4 w-4" />
-          Try again
+          {t('errorPages.tryAgain')}
         </Button>
         <Button asChild className="gap-2">
           <Link href="/">
             <Home className="h-4 w-4" />
-            Go home
+            {t('errorPages.goHome')}
           </Link>
         </Button>
       </div>
