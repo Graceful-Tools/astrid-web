@@ -29,6 +29,7 @@
  * instead of offering the provider execution modes.
  */
 
+import { useTranslations } from '@/lib/i18n/client'
 import { BRAND } from '@/lib/brand/config'
 import { LOCAL_HARNESS_AGENT_MAILBOXES } from '@/lib/brand/agent-emails'
 import { CAPABILITIES } from '@/lib/brand/capabilities'
@@ -194,6 +195,7 @@ function InlineKeyEditor({
   copilotConnected: boolean
   onChanged: () => void
 }) {
+  const { t } = useTranslations()
   const [key, setKey] = useState('')
   const [showKey, setShowKey] = useState(false)
   const [busy, setBusy] = useState<'save' | 'test' | 'delete' | null>(null)
@@ -237,7 +239,7 @@ function InlineKeyEditor({
             }}
           >
             <Github className="w-4 h-4 mr-1.5" />
-            Connect GitHub
+            {t('settingsPages.connections.github.connect')}
           </Button>
         )}
       </div>
@@ -340,7 +342,7 @@ function InlineKeyEditor({
         Encrypted at rest, used only server-side.{' '}
         {row.keyDocsUrl && (
           <a href={row.keyDocsUrl} target="_blank" rel="noreferrer" className="text-brand hover:underline">
-            Get a key
+            {t('settingsPages.aiAgents.hub.getKey')}
           </a>
         )}
       </p>
@@ -349,6 +351,7 @@ function InlineKeyEditor({
 }
 
 export function AgentHub() {
+  const { t } = useTranslations()
   const [modes, setModes] = useState<Record<string, string>>({})
   const [keys, setKeys] = useState<Record<string, KeyStatus>>({})
   const [copilotConnected, setCopilotConnected] = useState(false)
@@ -410,7 +413,7 @@ export function AgentHub() {
       {CAPABILITIES.integrationMcp && (
         <div className="flex justify-end">
           <Link href="/docs/loops" className="text-xs text-brand hover:underline">
-            Connect my coding agent guide
+            {t('settingsPages.aiAgents.hub.guideLink')}
           </Link>
         </div>
       )}
@@ -444,7 +447,7 @@ export function AgentHub() {
                   <span className="text-sm font-medium theme-text-primary">{row.label}</span>
                   {!configured && !isOff && (
                     <Badge variant="outline" className="text-xs text-warning">
-                      Needs setup
+                      {t('settingsPages.aiAgents.hub.needsSetup')}
                     </Badge>
                   )}
                 </div>
@@ -587,7 +590,7 @@ export function AgentHub() {
                       requires your own webhook receiver; the settings below configure delivery.
                       For a guided MCP + queue-skill setup instead, choose Native coding harness and follow the{' '}
                       <Link href="/docs/loops" className="text-brand hover:underline">
-                        Agent Loops
+                        {t('settingsPages.aiAgents.hub.agentLoops')}
                       </Link>{' '}
                       recipes.
                     </p>
@@ -610,7 +613,7 @@ export function AgentHub() {
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <Bot className="w-4 h-4 text-orange-500" />
-              <span className="text-sm font-medium theme-text-primary">Custom Agents</span>
+              <span className="text-sm font-medium theme-text-primary">{t('settingsPages.aiAgents.hub.customAgents')}</span>
             </div>
             <div className="text-xs theme-text-muted">
               Agents you operate over OAuth + REST + SSE

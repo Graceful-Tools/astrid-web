@@ -6,6 +6,8 @@ import { useChatMentions, type AutocompleteItem, type AutocompleteType } from '@
 import type { User, TaskList, Task } from '@/types/task'
 import type { FileAttachment } from '@/components/shared/FileUploadButton'
 import { uploadCommentFile } from '@/lib/comment-file-upload'
+import { useTranslations } from '@/lib/i18n/client'
+import { fillMessage } from '@/components/shared/RichMessage'
 import {
   MAX_COMMENT_ATTACHMENTS,
   addAttachment,
@@ -132,7 +134,7 @@ export const RichTextInput = React.memo(function RichTextInput({
   onAttachedFilesChange,
   uploadError,
   onUploadErrorChange,
-  placeholder = 'Type a message...',
+  placeholder,
   disabled = false,
   hideSendButton = false,
   onTimerClick,
@@ -140,6 +142,7 @@ export const RichTextInput = React.memo(function RichTextInput({
   accept = 'image/*,video/*,.pdf,.doc,.docx,.txt,.zip',
   isSending = false,
 }: RichTextInputProps) {
+  const { t } = useTranslations()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const backdropRef = useRef<HTMLDivElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -395,7 +398,7 @@ export const RichTextInput = React.memo(function RichTextInput({
                 <span className="text-sm theme-text-primary flex-1 truncate">{file.name}</span>
                 <button
                   onClick={() => removeAttachedFile(file.url)}
-                  aria-label={`Remove ${file.name}`}
+                  aria-label={fillMessage(t("richTextInput.removeFile"), { name: file.name })}
                   className="text-danger hover:text-danger/80 flex-shrink-0"
                 >
                   <X className="w-4 h-4" />
@@ -424,7 +427,7 @@ export const RichTextInput = React.memo(function RichTextInput({
               onClick={() => fileInputRef.current?.click()}
               disabled={disabled || uploading || isAttachmentQueueFull(attachedFiles)}
               className="flex-shrink-0 h-9 w-9 flex items-center justify-center rounded-full theme-text-muted hover:theme-text-secondary transition-colors"
-              title={uploading ? 'Uploading...' : 'Attach file'}
+              title={uploading ? t("richTextInput.uploading") : t("richTextInput.attachFile")}
             >
               {uploading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -454,7 +457,7 @@ export const RichTextInput = React.memo(function RichTextInput({
             onPaste={handlePaste}
             onInput={handleInput}
             onScroll={syncScroll}
-            placeholder={placeholder}
+            placeholder={placeholder ?? t("richTextInput.placeholder")}
             disabled={disabled}
             rows={1}
             spellCheck={!showOverlay}
@@ -472,7 +475,7 @@ export const RichTextInput = React.memo(function RichTextInput({
               onClick={onTimerClick}
               disabled={disabled}
               className="flex-shrink-0 h-9 w-9 flex items-center justify-center rounded-full border theme-border theme-text-secondary hover:theme-text-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-              title="Timer"
+              title={t("richTextInput.timer")}
             >
               <Timer className="w-4 h-4" />
             </button>

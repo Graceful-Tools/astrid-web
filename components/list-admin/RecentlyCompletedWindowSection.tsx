@@ -10,6 +10,7 @@ import {
   type RecentlyCompletedPresetId,
 } from "@/lib/recently-completed-presets"
 import type { RecentlyCompletedWindow } from "@/lib/recently-completed-window"
+import { useTranslations } from "@/lib/i18n/client"
 import type { TaskList } from "@/types/task"
 
 interface RecentlyCompletedWindowSectionProps {
@@ -28,6 +29,7 @@ export function RecentlyCompletedWindowSection({
   canEditSettings,
   onUpdate,
 }: RecentlyCompletedWindowSectionProps) {
+  const { t } = useTranslations()
   if (!canEditSettings) return null
 
   const currentWindow = (list.recentlyCompletedWindow ?? null) as RecentlyCompletedWindow | null
@@ -51,9 +53,9 @@ export function RecentlyCompletedWindowSection({
 
   return (
     <div className="border-t theme-border pt-4 space-y-2" data-testid="advanced-settings-section">
-      <Label className="text-sm theme-text-secondary">Advanced — Recently completed window</Label>
+      <Label className="text-sm theme-text-secondary">{t("listSettings.admin.recentlyCompletedLabel")}</Label>
       <p className="text-xs theme-text-muted">
-        How long completed tasks stay visible in the default view (and in the Done column on boards). Older completed tasks are filtered out; switch the list to “Completed” or “All” to see them.
+        {t("listSettings.admin.recentlyCompletedDescription")}
       </p>
       <Select value={currentPreset} onValueChange={(v) => handleChange(v as RecentlyCompletedPresetId)}>
         <SelectTrigger className="theme-bg-tertiary theme-border theme-text-primary" data-testid="recently-completed-preset-trigger">

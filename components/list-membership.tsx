@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from '@/lib/i18n/client'
 import { BRAND } from '@/lib/brand/config'
 import { unwrapList } from '@/lib/v1-response'
 import React, { useState, useEffect } from "react"
@@ -39,6 +40,7 @@ export function ListMembership({
   onLeave
 }: ListMembershipProps) {
 
+  const { t } = useTranslations()
   // AI Coding Agent state
   const [availableAiAgents, setAvailableAiAgents] = useState<AIAgent[]>([])
   const [loadingAiProviders, setLoadingAiProviders] = useState(false)
@@ -218,9 +220,9 @@ export function ListMembership({
             </div>
 
             <div className="space-y-3">
-              <Label className="text-sm theme-text-secondary">Available Agents</Label>
+              <Label className="text-sm theme-text-secondary">{t('lists.membershipPanel.availableAgents')}</Label>
               {loadingAiProviders ? (
-                <p className="text-xs theme-text-muted">Loading available agents...</p>
+                <p className="text-xs theme-text-muted">{t('lists.membershipPanel.loadingAgents')}</p>
               ) : (
                 availableAiAgents.map((agent) => {
                   const agentDescription = isGitHubConnected
@@ -268,7 +270,7 @@ export function ListMembership({
                           onClick={() => handleAddCodingAgent(agent)}
                           className="text-brand hover:text-brand-hover hover:bg-brand-subtle border-brand"
                         >
-                          Add Agent
+                          {t('lists.membershipPanel.addAgent')}
                         </Button>
                       )}
                     </div>
@@ -290,12 +292,12 @@ export function ListMembership({
                 <Sparkles className="w-3 h-3 text-yellow-500 absolute -top-0.5 -right-0.5" />
               </div>
               <div className="space-y-0.5">
-                <div className="text-sm font-medium theme-text-primary">Want AI to help with your tasks?</div>
+                <div className="text-sm font-medium theme-text-primary">{t('lists.membershipPanel.aiHelpTitle')}</div>
                 <Link
                   href="/settings/agents"
                   className="text-xs text-purple-600 hover:text-purple-500 flex items-center gap-1"
                 >
-                  Add your API keys to get started
+                  {t('lists.membershipPanel.addApiKeys')}
                   <ExternalLink className="w-3 h-3" />
                 </Link>
               </div>
@@ -308,7 +310,7 @@ export function ListMembership({
       {canEditSettings && (
         <div className="pt-4 border-t theme-border">
           <div className="space-y-3">
-            <Label className="text-sm theme-text-secondary">List Privacy</Label>
+            <Label className="text-sm theme-text-secondary">{t('lists.membershipPanel.privacyLabel')}</Label>
             {list.privacy !== "PUBLIC" ? (
               <Button
                 variant="outline"
@@ -319,7 +321,7 @@ export function ListMembership({
                 className="w-full text-success hover:text-success hover:bg-success-subtle border-success"
               >
                 <Globe className="w-4 h-4 mr-2" />
-                Make Public
+                {t('lists.membershipPanel.makePublic')}
               </Button>
             ) : (
               <Button
@@ -331,7 +333,7 @@ export function ListMembership({
                 className="w-full text-warning hover:text-warning hover:bg-warning-subtle border-warning"
               >
                 <Lock className="w-4 h-4 mr-2" />
-                Make Private
+                {t('lists.membershipPanel.makePrivate')}
               </Button>
             )}
             <div className="text-xs theme-text-muted">
@@ -348,7 +350,7 @@ export function ListMembership({
       {canEditSettings && list.privacy === "PUBLIC" && (
         <div className="pt-4 border-t theme-border">
           <div className="space-y-3">
-            <Label className="text-sm theme-text-secondary">Public List Type</Label>
+            <Label className="text-sm theme-text-secondary">{t('lists.membershipPanel.publicListType')}</Label>
             {list.publicListType === "collaborative" ? (
               <Button
                 variant="outline"
@@ -359,7 +361,7 @@ export function ListMembership({
                 className="w-full text-warning hover:text-warning hover:bg-warning-subtle border-warning"
               >
                 <Lock className="w-4 h-4 mr-2" />
-                Make Copy Only
+                {t('lists.membershipPanel.makeCopyOnly')}
               </Button>
             ) : (
               <Button
@@ -371,7 +373,7 @@ export function ListMembership({
                 className="w-full text-success hover:text-success hover:bg-success-subtle border-success"
               >
                 <Globe className="w-4 h-4 mr-2" />
-                Make Collaborative
+                {t('lists.membershipPanel.makeCollaborative')}
               </Button>
             )}
             <div className="text-xs theme-text-muted">
@@ -395,7 +397,7 @@ export function ListMembership({
             }}
             className="w-full hover:text-danger hover:bg-danger-subtle"
           >
-            Leave List
+            {t('lists.membershipPanel.leaveList')}
           </Button>
         </div>
       )}

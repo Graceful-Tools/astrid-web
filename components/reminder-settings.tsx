@@ -345,7 +345,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
           <span>{t('reminderSettings.title')}</span>
         </CardTitle>
         <CardDescription className="theme-text-muted">
-          Configure when and how you receive task reminders
+          {t('reminderSettings.description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -358,7 +358,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
                 <span>{t('reminderSettings.pushNotifications')}</span>
               </Label>
               <p className="text-sm theme-text-muted">
-                Receive instant notifications in your browser
+                {t('reminderSettings.pushDescription')}
               </p>
             </div>
             <div className="flex items-center space-x-2">
@@ -389,13 +389,13 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
               variant="outline"
               className="w-full"
             >
-              Enable Push Notifications
+              {t('reminderSettings.enablePush')}
             </Button>
           )}
 
           {notificationState.permission === "denied" && (
             <div className="text-xs theme-text-muted bg-danger-subtle p-2 rounded">
-              Push notifications are blocked. Enable them in your browser settings to receive task reminders.
+              {t('reminderSettings.pushBlocked')}
             </div>
           )}
 
@@ -420,7 +420,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
               <span>{t('reminderSettings.emailReminders')}</span>
             </Label>
             <p className="text-sm theme-text-muted">
-              Receive reminder emails for due tasks
+              {t('reminderSettings.emailDescription')}
             </p>
           </div>
           <Switch
@@ -437,7 +437,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
             <span>{t('reminderSettings.defaultReminderTime')}</span>
           </Label>
           <p className="text-sm theme-text-muted">
-            When to remind you before tasks are due
+            {t('reminderSettings.defaultReminderTimeDescription')}
           </p>
           <Select
             value={settings.defaultReminderTime.toString()}
@@ -463,7 +463,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
             <div className="space-y-1">
               <Label className="theme-text-secondary">{t('reminderSettings.dailyDigest')}</Label>
               <p className="text-sm theme-text-muted">
-                Get a daily summary of your tasks
+                {t('reminderSettings.dailyDigestDescription')}
               </p>
             </div>
             <Switch
@@ -526,7 +526,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
           <div className="space-y-1">
             <Label className="theme-text-secondary">{t('reminderSettings.quietHours')}</Label>
             <p className="text-sm theme-text-muted">
-              Disable notifications during these hours (optional)
+              {t('reminderSettings.quietHoursDescription')}
             </p>
           </div>
           

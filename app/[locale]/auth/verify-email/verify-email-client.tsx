@@ -7,8 +7,21 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LoadingScreen } from "@/components/loading-screen"
 import { CheckCircle, XCircle, Mail, AlertCircle } from "lucide-react"
+import { useTranslations } from "@/lib/i18n/client"
+
+/**
+ * Messages this page sets itself, kept as keys and translated when shown.
+ * Anything else in "message" came from the server and is shown as it is.
+ */
+const LOCAL_MESSAGES = new Set([
+  'verifyEmailPage.verificationFailed',
+  'verifyEmailPage.noToken',
+  'verifyEmailPage.resent',
+  'verifyEmailPage.resendFailed',
+])
 
 function VerifyEmailContent() {
+  const { t } = useTranslations()
   const searchParams = useSearchParams()
   const router = useRouter()
   const { data: session } = useSession()
@@ -39,7 +52,7 @@ function VerifyEmailContent() {
       }
     } catch (error) {
       setStatus('error')
-      setMessage('Verification failed. Please try again.')
+      setMessage('verifyEmailPage.verificationFailed')
     }
   }, [router])
 
@@ -48,7 +61,7 @@ function VerifyEmailContent() {
       verifyToken(token)
     } else {
       setStatus('error')
-      setMessage('No verification token provided')
+      setMessage('verifyEmailPage.noToken')
     }
   }, [token, verifyToken])
 
@@ -67,12 +80,12 @@ function VerifyEmailContent() {
       const data = await response.json()
 
       if (data.success) {
-        setMessage('Verification email resent. Please check your inbox.')
+        setMessage('verifyEmailPage.resent')
       } else {
-        setMessage(data.message || 'Failed to resend verification email')
+        setMessage(data.message || 'verifyEmailPage.resendFailed')
       }
     } catch (error) {
-      setMessage('Failed to resend verification email')
+      setMessage('verifyEmailPage.resendFailed')
     } finally {
       setIsResending(false)
     }
@@ -98,13 +111,13 @@ function VerifyEmailContent() {
   const getTitle = () => {
     switch (status) {
       case 'success':
-        return 'Email Verified!'
+        return t('verifyEmailPage.verifiedTitle')
       case 'error':
-        return 'Verification Failed'
+        return t('verifyEmailPage.failedTitle')
       case 'expired':
-        return 'Link Expired'
+        return t('verifyEmailPage.expiredTitle')
       default:
-        return 'Email Verification'
+        return t('verifyEmailPage.defaultTitle')
     }
   }
 
@@ -115,7 +128,7 @@ function VerifyEmailContent() {
           {getIcon()}
           <CardTitle className="text-theme-primary">{getTitle()}</CardTitle>
           <CardDescription className="text-theme-muted">
-            {message}
+            {LOCAL_MESSAGES.has(message) ? t(message) : message}
           </CardDescription>
         </CardHeader>
 
@@ -123,13 +136,13 @@ function VerifyEmailContent() {
           {status === 'success' && (
             <div className="text-center">
               <p className="text-theme-muted text-sm mb-4">
-                Redirecting to settings in a few seconds...
+                {t('verifyEmailPage.redirecting')}
               </p>
               <Button
                 onClick={() => router.push('/settings')}
                 className="bg-success hover:bg-success/90 text-success-foreground"
               >
-                Go to Settings
+                {t('verifyEmailPage.goToSettings')}
               </Button>
             </div>
           )}
@@ -142,7 +155,7 @@ function VerifyEmailContent() {
                   disabled={isResending}
                   className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
                 >
-                  {isResending ? "Sending..." : "Resend Verification Email"}
+                  {isResending ? t('verifyEmailPage.sending') : t('verifyEmailPage.resend')}
                 </Button>
               )}
 
@@ -151,7 +164,7 @@ function VerifyEmailContent() {
                 variant="outline"
                 className="w-full border-theme-button text-theme-secondary"
               >
-                Back to App
+                {t('verifyEmailPage.backToApp')}
               </Button>
             </div>
           )}
@@ -159,7 +172,7 @@ function VerifyEmailContent() {
           {status === 'expired' && (
             <div className="space-y-3">
               <p className="text-theme-muted text-sm text-center">
-                The verification link has expired. You can request a new one from your account settings.
+                {t('verifyEmailPage.expiredBody')}
               </p>
 
               {session?.user ? (
@@ -169,7 +182,7 @@ function VerifyEmailContent() {
                     disabled={isResending}
                     className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
                   >
-                    {isResending ? "Sending..." : "Send New Verification Email"}
+                    {isResending ? t('verifyEmailPage.sending') : t('verifyEmailPage.sendNew')}
                   </Button>
 
                   <Button
@@ -177,7 +190,7 @@ function VerifyEmailContent() {
                     variant="outline"
                     className="w-full border-theme-button text-theme-secondary"
                   >
-                    Go to Settings
+                    {t('verifyEmailPage.goToSettings')}
                   </Button>
                 </div>
               ) : (
@@ -185,7 +198,7 @@ function VerifyEmailContent() {
                   onClick={() => router.push('/auth/signin')}
                   className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
                 >
-                  Sign In
+                  {t('auth.signInButton')}
                 </Button>
               )}
             </div>

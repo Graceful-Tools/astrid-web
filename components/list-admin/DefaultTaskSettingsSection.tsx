@@ -164,9 +164,9 @@ export function DefaultTaskSettingsSection({
     const assigneeType = getDefaultAssigneeType()
 
     if (assigneeType === "task_creator") {
-      return <span className="text-brand">Task Creator</span>
+      return <span className="text-brand">{t("listSettings.admin.taskCreator")}</span>
     } else if (assigneeType === "unassigned") {
-      return <span className="text-brand">Unassigned</span>
+      return <span className="text-brand">{t("tasks.unassigned")}</span>
     } else if (assigneeType !== "task_creator" && assigneeType !== "unassigned") {
       // This is a specific user ID
       if (list.defaultAssignee) {
@@ -194,11 +194,11 @@ export function DefaultTaskSettingsSection({
             </>
           )
         } else {
-          return <span className="text-danger">Member not found</span>
+          return <span className="text-danger">{t("listSettings.admin.memberNotFound")}</span>
         }
       }
     } else {
-      return <span className="text-brand italic">Click to set...</span>
+      return <span className="text-brand italic">{t("listSettings.admin.clickToSet")}</span>
     }
   }
 
@@ -224,11 +224,11 @@ export function DefaultTaskSettingsSection({
 
   const getDefaultDueDateDisplay = (dueDate: TaskList["defaultDueDate"]) => {
     switch (dueDate) {
-      case "none": return "No default when"
-      case "today": return "Today"
-      case "tomorrow": return "Tomorrow"
-      case "next_week": return "Next week"
-      default: return "No default when"
+      case "none": return t("listSettings.admin.noDefaultWhen")
+      case "today": return t("time.today")
+      case "tomorrow": return t("time.tomorrow")
+      case "next_week": return t("time.nextWeek")
+      default: return t("listSettings.admin.noDefaultWhen")
     }
   }
 
@@ -250,7 +250,7 @@ export function DefaultTaskSettingsSection({
     <>
       {/* Default Priority */}
       <div className="flex items-center justify-between">
-        <Label className="text-sm theme-text-secondary">Default Priority</Label>
+        <Label className="text-sm theme-text-secondary">{t("listSettings.admin.defaultPriority")}</Label>
         <PriorityPicker
           value={tempDefaultPriority}
           onChange={(priority: number) => {
@@ -263,7 +263,7 @@ export function DefaultTaskSettingsSection({
 
       {/* Default Assignee */}
       <div className="flex items-center justify-between">
-        <Label className="text-sm theme-text-secondary">Default Assignee</Label>
+        <Label className="text-sm theme-text-secondary">{t("listSettings.admin.defaultAssignee")}</Label>
         {editingDefaultAssignee ? (
           <div className="flex items-center space-x-2">
             <Select
@@ -271,11 +271,11 @@ export function DefaultTaskSettingsSection({
               onValueChange={handleDefaultAssigneeTypeChange}
             >
               <SelectTrigger className="w-48 theme-input">
-                <SelectValue placeholder="Select default assignee..." />
+                <SelectValue placeholder={t("listSettings.admin.selectDefaultAssignee")} />
               </SelectTrigger>
               <SelectContent className="z-[10100]">
-                <SelectItem value="task_creator">Task Creator</SelectItem>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
+                <SelectItem value="task_creator">{t("listSettings.admin.taskCreator")}</SelectItem>
+                <SelectItem value="unassigned">{t("tasks.unassigned")}</SelectItem>
                 {getDefaultAssigneeOptions().map(member => (
                   <SelectItem key={member.id} value={member.id}>
                     <div className="flex items-center space-x-2">
@@ -304,7 +304,7 @@ export function DefaultTaskSettingsSection({
 
       {/* Default When */}
       <div className="flex items-center justify-between">
-        <Label className="text-sm theme-text-secondary">Default When</Label>
+        <Label className="text-sm theme-text-secondary">{t("listSettings.admin.defaultWhen")}</Label>
         {editingDefaultDueDate ? (
           <div className="flex flex-col space-y-2">
             <div className="flex space-x-1">
@@ -314,7 +314,7 @@ export function DefaultTaskSettingsSection({
                 onClick={() => handleSaveDefaultDueDate("today")}
                 className="text-xs px-2 py-1 theme-border theme-text-secondary hover:theme-bg-hover hover:theme-text-primary"
               >
-                Today
+                {t("time.today")}
               </Button>
               <Button
                 variant="outline"
@@ -322,7 +322,7 @@ export function DefaultTaskSettingsSection({
                 onClick={() => handleSaveDefaultDueDate("tomorrow")}
                 className="text-xs px-2 py-1 theme-border theme-text-secondary hover:theme-bg-hover hover:theme-text-primary"
               >
-                Tomorrow
+                {t("time.tomorrow")}
               </Button>
               <Button
                 variant="outline"
@@ -330,7 +330,7 @@ export function DefaultTaskSettingsSection({
                 onClick={() => handleSaveDefaultDueDate("next_week")}
                 className="text-xs px-2 py-1 theme-border theme-text-secondary hover:theme-bg-hover hover:theme-text-primary"
               >
-                Next Week
+                {t("listSettings.admin.nextWeek")}
               </Button>
             </div>
             <div className="flex space-x-1">
@@ -340,7 +340,7 @@ export function DefaultTaskSettingsSection({
                 onClick={() => handleSaveDefaultDueDate("none")}
                 className="text-xs px-2 py-1 theme-border theme-text-secondary hover:theme-bg-hover hover:theme-text-primary"
               >
-                No Default When
+                {t("listSettings.admin.noDefaultWhenButton")}
               </Button>
               <Button
                 variant="outline"
@@ -365,7 +365,7 @@ export function DefaultTaskSettingsSection({
       {/* Default Repeating - Only show if there's a default due date */}
       {tempDefaultDueDate !== "none" && (
         <div className="flex items-center justify-between">
-          <Label className="text-sm theme-text-secondary">Default Repeating</Label>
+          <Label className="text-sm theme-text-secondary">{t("listSettings.admin.defaultRepeating")}</Label>
           {editingDefaultRepeating ? (
             <div className="flex items-center space-x-2">
               <Select
@@ -393,7 +393,7 @@ export function DefaultTaskSettingsSection({
                 onClick={() => session.endEditing(repeatingEditor)}
                 className="theme-border theme-text-secondary"
               >
-                Done
+                {t("actions.done")}
               </Button>
             </div>
           ) : (
@@ -410,7 +410,7 @@ export function DefaultTaskSettingsSection({
       {/* Default When Time */}
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <Label className="text-sm theme-text-secondary">Default When Time</Label>
+          <Label className="text-sm theme-text-secondary">{t("listSettings.admin.defaultWhenTime")}</Label>
           <TimePicker
             mode="string"
             value={tempDefaultDueTime || undefined}
@@ -424,14 +424,14 @@ export function DefaultTaskSettingsSection({
               // Save null as-is (represents "all day"), not undefined
               onUpdate({ ...list, defaultDueTime: timeString })
             }}
-            placeholder="No default time"
+            placeholder={t("listSettings.admin.noDefaultTime")}
             showAllDayOption={true}
             compact
             popoverClassName="z-[10100]"
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          Timezone: {Intl.DateTimeFormat().resolvedOptions().timeZone}
+          {t("listSettings.admin.timezone", { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone })}
         </p>
       </div>
     </>

@@ -153,6 +153,54 @@
     },
     "tradeoffGrid": {
       "fullScreen": "Vollbild"
+    },
+    "promote": {
+      "label": "Aus Unteraufgabe herauslösen",
+      "dropHint": "Hier ablegen, um sie aus der übergeordneten Aufgabe herauszulösen"
+    },
+    "dropTasksHere": "Aufgaben hier ablegen",
+    "noOneAssigned": "Niemand zugewiesen",
+    "selectPriorityOrAssignee": "Priorität oder Zugewiesenen auswählen",
+    "saveNewTask": "Neue Aufgabe speichern",
+    "detail": {
+      "backToList": "Zurück zur Liste",
+      "collapseTask": "Aufgabe einklappen",
+      "collapse": "Einklappen",
+      "taskActions": "Aufgabenaktionen",
+      "exitFullScreen": "Vollbild beenden",
+      "testReminder": "Erinnerung testen",
+      "clickToAddDescription": "Klicken, um eine Beschreibung hinzuzufügen...",
+      "searchLists": "Listen suchen...",
+      "noLists": "Keine Listen",
+      "unknownCreator": "Unbekannter Ersteller",
+      "searchUsersOrEmail": "Benutzer suchen oder E-Mail eingeben...",
+      "nextWeek": "Nächste Woche",
+      "selectRepeat": "Wiederholung auswählen",
+      "repeatMode": "Wiederholungsmodus",
+      "repeatFromCompletion": "Ab Abschlussdatum wiederholen",
+      "repeatFromDue": "Ab Fälligkeitsdatum wiederholen",
+      "saveCustomPattern": "Benutzerdefiniertes Muster speichern"
+    },
+    "commentsSection": {
+      "addPlaceholder": "Kommentar hinzufügen...",
+      "replyPlaceholder": "Antwort schreiben...",
+      "refresh": "Kommentare aktualisieren",
+      "pullToRefresh": "Zum Aktualisieren ziehen...",
+      "releaseToRefresh": "Zum Aktualisieren loslassen..."
+    },
+    "modals": {
+      "deleteTitle": "Aufgabe löschen",
+      "copyTitle": "Aufgabe kopieren",
+      "copyToList": "In Liste kopieren:",
+      "myTasksOnly": "Meine Aufgaben (nur)",
+      "copyNote": "Die kopierte Aufgabe behält das Fälligkeitsdatum und wird dir zugewiesen.",
+      "shareTitle": "Aufgabe teilen",
+      "privateNote": "Dies ist eine private Aufgabe. Nur Benutzer mit Zugriff auf diese Liste können sie sehen.",
+      "generatingLink": "Freigabelink wird erstellt...",
+      "linkFailed": "Freigabelink konnte nicht erstellt werden. Bitte versuche es erneut."
+    },
+    "timer": {
+      "tapToChange": "Tippe auf die Zeit, um die Dauer zu ändern"
     }
   },
   "lists": {
@@ -189,7 +237,67 @@
       "description": "Beschreibung hinzufügen..."
     },
     "showSubtasksLabel": "Unteraufgaben anzeigen",
-    "showSubtasksDescription": "Unteraufgaben in dieser Liste eingerückt unter ihrer übergeordneten Aufgabe anzeigen. Deaktivieren, um nur Hauptaufgaben zu zeigen – Unteraufgaben bleiben in der Detailansicht der übergeordneten Aufgabe sichtbar."
+    "showSubtasksDescription": "Unteraufgaben in dieser Liste eingerückt unter ihrer übergeordneten Aufgabe anzeigen. Deaktivieren, um nur Hauptaufgaben zu zeigen – Unteraufgaben bleiben in der Detailansicht der übergeordneten Aufgabe sichtbar.",
+    "copyList": "Liste kopieren",
+    "descriptionTitle": "Listenbeschreibung",
+    "descriptionAgentHint": "Agenten erhalten dies als ihren primären Kontext. Unterstützt Markdown.",
+    "image": "Listenbild",
+    "addModal": {
+      "title": "Liste hinzufügen",
+      "subtitle": "Nutze Listen, um Projekte, Ziele und Abenteuer zu organisieren!",
+      "namePlaceholder": "z. B. Familie",
+      "shareWith": "Teilen mit",
+      "sharePlaceholder": "Name oder E-Mail-Adresse"
+    },
+    "membersManager": {
+      "invite": "Mitglied einladen",
+      "inviteTitle": "Neues Mitglied einladen",
+      "emailPlaceholder": "E-Mail-Adresse eingeben",
+      "sendInvitation": "Einladung senden",
+      "empty": "Noch keine Mitglieder",
+      "emptyHint": "Lade Personen ein, an dieser Liste mitzuarbeiten",
+      "makeAdmin": "Zum Administrator machen",
+      "makeMember": "Zum Mitglied machen",
+      "permissionLevels": "Berechtigungsstufen",
+      "ownerCan": "Volle Kontrolle über die Liste",
+      "adminCan": "Kann Listeneinstellungen und Mitglieder verwalten",
+      "memberCan": "Kann Aufgaben hinzufügen, bearbeiten und verwalten"
+    },
+    "membershipPanel": {
+      "availableAgents": "Verfügbare Agenten",
+      "loadingAgents": "Verfügbare Agenten werden geladen...",
+      "addAgent": "Agent hinzufügen",
+      "aiHelpTitle": "Soll KI bei deinen Aufgaben helfen?",
+      "addApiKeys": "Füge deine API-Schlüssel hinzu, um loszulegen",
+      "privacyLabel": "Listen-Privatsphäre",
+      "makePublic": "Öffentlich machen",
+      "makePrivate": "Privat machen",
+      "publicListType": "Typ der öffentlichen Liste",
+      "makeCopyOnly": "Nur Kopieren erlauben",
+      "makeCollaborative": "Kollaborativ machen",
+      "leaveList": "Liste verlassen"
+    },
+    "ownerLeave": {
+      "title": "Eigentümer übertragen",
+      "selectNewOwner": "Neuen Eigentümer auswählen:",
+      "noOtherMembers": "Keine anderen Mitglieder, an die der Besitz übertragen werden kann.",
+      "deleteList": "Liste löschen"
+    },
+    "publicBrowser": {
+      "searchPlaceholder": "Nach Name, Beschreibung oder Ersteller suchen...",
+      "allLists": "Alle Listen",
+      "loading": "Öffentliche Listen werden geladen...",
+      "tasksPreview": "Aufgabenvorschau",
+      "loadingPreview": "Vorschau wird geladen...",
+      "noTasks": "Diese Liste enthält keine Aufgaben",
+      "selectTitle": "Liste für die Vorschau auswählen",
+      "selectHint": "Wähle links eine Liste, um ihre Details und Aufgaben zu sehen"
+    },
+    "imagePicker": {
+      "title": "Bild auswählen",
+      "uploadLabel": "Von deinem Gerät hochladen",
+      "chooseFile": "Datei auswählen"
+    }
   },
   "priority": {
     "none": "Keine",
@@ -217,7 +325,10 @@
     "hoursBefore": "{count} Stunden vorher",
     "dayBefore": "1 Tag vorher",
     "daysBefore": "{count} Tage vorher",
-    "weekBefore": "1 Woche vorher"
+    "weekBefore": "1 Woche vorher",
+    "quickSelect": "Schnellauswahl:",
+    "setTime": "Zeit festlegen",
+    "selectTime": "Zeit auswählen"
   },
   "repeating": {
     "oneTimeOnly": "Nur einmal",
@@ -226,7 +337,21 @@
     "monthly": "Monatlich",
     "yearly": "Jährlich",
     "custom": "Benutzerdefiniert",
-    "pickAtLeastOneDay": "Mindestens einen Tag auswählen"
+    "pickAtLeastOneDay": "Mindestens einen Tag auswählen",
+    "editor": {
+      "repeatEvery": "Wiederholen alle",
+      "repeatOnDays": "An diesen Tagen wiederholen",
+      "repeatType": "Wiederholungsart",
+      "sameDate": "Jeden Monat am selben Datum",
+      "sameWeekday": "Gleicher Wochentag und gleiche Woche im Monat",
+      "dayOfMonth": "Tag des Monats",
+      "weekOfMonth": "Woche des Monats",
+      "endCondition": "Endbedingung",
+      "afterOccurrences": "Nach X Wiederholungen",
+      "untilDate": "Bis zu einem bestimmten Datum",
+      "occurrencesCount": "Anzahl der Wiederholungen",
+      "endDate": "Enddatum"
+    }
   },
   "weekdays": {
     "sunday": "Sonntag",
@@ -295,7 +420,8 @@
     "timezone": {
       "title": "Zeitzone",
       "auto": "Automatisch erkennen"
-    }
+    },
+    "helpMeHelpYou": "Hilf mir, dir zu helfen, superproduktiv zu werden!!!"
   },
   "auth": {
     "signIn": "Anmelden",
@@ -307,7 +433,9 @@
     "alreadyHaveAccount": "Haben Sie bereits ein Konto?",
     "dontHaveAccount": "Haben Sie noch kein Konto?",
     "continueWith": "Weiter mit {provider}",
-    "orContinueWith": "Oder weiter mit"
+    "orContinueWith": "Oder weiter mit",
+    "signInButton": "Anmelden",
+    "signUpButton": "Registrieren"
   },
   "messages": {
     "success": "Erfolg",
@@ -446,13 +574,18 @@
     "optional": "Optional",
     "required": "Erforderlich",
     "copiedToClipboard": "In die Zwischenablage kopiert",
-    "unableToCopy": "Kopieren in die Zwischenablage nicht möglich"
+    "unableToCopy": "Kopieren in die Zwischenablage nicht möglich",
+    "pullToRefresh": "Zum Aktualisieren ziehen",
+    "releaseToRefresh": "Zum Aktualisieren loslassen",
+    "clearAll": "Alle löschen"
   },
   "search": {
     "placeholder": "Nach Aufgaben und Benutzern suchen",
     "noResults": "Keine Ergebnisse gefunden",
     "searching": "Suche läuft...",
-    "open": "Suchen"
+    "open": "Suchen",
+    "findAcrossLists": "Aufgaben und Benutzer in allen Listen finden",
+    "inputPlaceholder": "Aufgaben und Benutzer suchen..."
   },
   "listHeaders": {
     "myTasks": "Meine Aufgaben",
@@ -511,6 +644,58 @@
         "title": "GitHub-Verbindung",
         "description": "Vom Server ausgeführte Coding-Agenten nutzen die GitHub-Verbindung unter Einstellungen → Verbindungen, wo jede verbundene Organisation aufgeführt ist.",
         "open": "Verbindungen öffnen"
+      },
+      "yourAgents": {
+        "title": "Deine Agenten",
+        "description": "Lege fest, wer jeden Agenten ausführt. {astridRuns} benötigt den API-Schlüssel des jeweiligen Anbieters. {selfRuns} nutzt das Coding-Tool, für das du bereits bezahlst – natives Harness-Polling, einen Custom Agent oder einen selbst gehosteten Webhook-Server.",
+        "astridRuns": "{appName} führt ihn aus",
+        "selfRuns": "Ich führe ihn aus"
+      },
+      "hub": {
+        "getKey": "Schlüssel holen",
+        "guideLink": "Anleitung: Meinen Coding-Agenten verbinden",
+        "needsSetup": "Einrichtung nötig",
+        "agentLoops": "Agent Loops",
+        "customAgents": "Eigene Agenten"
+      },
+      "runtime": {
+        "stepConnect": "Verbinden",
+        "stepInstall": "Installieren",
+        "stepSchedule": "Planen oder ausführen",
+        "stepTest": "Testen",
+        "hostedWorkflow": "Kein Rechner, der durchlaufen kann? Committe stattdessen diesen Workflow. Er braucht zwei Repository-Secrets; {link} erklärt, wie du sie erstellst.",
+        "startHere": "Start here",
+        "copilotInstall": "Committe diesen benutzerdefinierten Repository-Agenten einmal. Copilot CLI, die Copilot-App, GitHub.com und VS Code können dann dasselbe Warteschlangenverhalten auswählen.",
+        "githubConnect": "Erstelle Client-Zugangsdaten für diesen Agenten und speichere sie als Actions-Secrets des Repositorys mit den Namen {clientId} und {clientSecret}. Jeder Lauf tauscht die Zugangsdaten gegen ein einstündiges Zugriffstoken, das nur die Berechtigungen eines Queue-Workers hat — kein langlebiges Token gelangt je ins Repository.",
+        "githubInstall": "Dieser Workflow ist ein Queue-Gate: Er beantwortet „Gibt es Arbeit?“ und führt selbst keinen Agenten aus. Richte den zweiten Job auf deinen bestehenden unterstützten Agenten-Job aus (einen Copilot-CLI-, Claude-Code- oder Codex-Schritt aus den anderen Tabs).",
+        "githubSchedule": "Committe den Workflow für seinen 30-Minuten-Zeitplan oder nutze „Run workflow“ in GitHub Actions, um ihn sofort zu testen. Ein ruhiger Lauf endet nach der begrenzten Queue-Abfrage, sodass eine leere Warteschlange einen API-Aufruf kostet statt eines ganzen Agentenstarts."
+      },
+      "webhook": {
+        "title": "Webhook-Konfiguration",
+        "description": "Konfiguriere eine Webhook-URL, um Aufgabenbenachrichtigungen auf deinem Claude Code Remote-Server zu empfangen",
+        "urlLabel": "Webhook-URL",
+        "urlHint": "Die URL deines Claude Code Remote-Servers, der Webhook-Benachrichtigungen empfängt",
+        "enabledHint": "Wenn aktiviert, werden Webhooks für Aufgabenzuweisungen gesendet",
+        "agentsLabel": "Zu bedienende Agenten",
+        "agentsHint": "Wähle aus, welche KI-Agenten dieser Webhook bedienen soll. Nicht ausgewählte Agenten werden stattdessen im Polling-Modus bedient.",
+        "noAgents": "Keine Agenten ausgewählt. Alle Aufgaben werden im Polling-Modus bedient.",
+        "secretLabel": "Webhook-Secret",
+        "secretHint": "Das für die HMAC-Signaturprüfung verwendete Secret neu erzeugen",
+        "regenerateOnSave": "Beim Speichern neu erzeugen",
+        "saveSecretTitle": "Speichere dein Webhook-Secret",
+        "envHint": "Füge dies zu deiner {file}-Datei hinzu:",
+        "failureCount": "Fehleranzahl",
+        "noFailures": "Keine Fehler",
+        "lastFired": "Zuletzt ausgelöst",
+        "agentsHandled": "Vom Webhook bediente Agenten",
+        "otherAgentsPolling": "Andere Agenten werden im Polling-Modus bedient",
+        "subscribedEvents": "Abonnierte Ereignisse",
+        "test": "Webhook testen",
+        "aboutTitle": "Über die Webhook-Zustellung",
+        "gettingStarted": "Erste Schritte",
+        "stepConfigureUrl": "Konfiguriere oben deine Webhook-URL",
+        "stepAssign": "Weise Aufgaben {agent} zu",
+        "eventsTitle": "Webhook-Ereignisse"
       }
     },
     "apiAccess": {
@@ -520,6 +705,29 @@
         "title": "Do you need a client here?",
         "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
         "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant."
+      },
+      "apps": {
+        "loading": "OAuth-Anwendungen werden geladen...",
+        "testNow": "API jetzt testen",
+        "subtitle": "API-Zugriff für deine Anwendungen verwalten",
+        "newApp": "Neue App",
+        "empty": "Noch keine OAuth-Anwendungen",
+        "createFirst": "Erstelle deine erste App",
+        "grantTypes": "Grant-Typen",
+        "redirectUris": "Weiterleitungs-URIs",
+        "testTitle": "OAuth-Anwendung testen",
+        "testDescription": "Gib dein Client-Secret ein, um ein Zugriffstoken zu erhalten und die API zu testen",
+        "secretPlaceholder": "Client-Secret eingeben",
+        "secretHint": "Dein Client-Secret wurde beim Erstellen dieser App angezeigt",
+        "createTitle": "OAuth-Anwendung erstellen",
+        "createDescription": "Neuen OAuth-Client für den API-Zugriff erstellen",
+        "namePlaceholder": "Meine App",
+        "descriptionPlaceholder": "Was diese App macht",
+        "mobileFullAccess": "Mobile App (Vollzugriff)",
+        "readOnly": "Nur Lesen",
+        "editTitle": "OAuth-Anwendung bearbeiten",
+        "editDescription": "Aktualisiere Weiterleitungs-URLs oder andere Metadaten, die deine Integrationen benötigen.",
+        "selectToEdit": "Wähle eine OAuth-App zum Bearbeiten aus."
       }
     },
     "chatgpt": {
@@ -704,7 +912,19 @@
       "saveChanges": "Änderungen speichern",
       "saving": "Speichern...",
       "clickToChangePhoto": "Klicken um das Profilbild zu ändern",
-      "viewPublicProfile": "Öffentliches Profil anzeigen"
+      "viewPublicProfile": "Öffentliches Profil anzeigen",
+      "syncedWithOAuth": "Derzeit mit deinem OAuth-Anbieter synchronisiert",
+      "uploading": "Wird hochgeladen...",
+      "displayNamePlaceholder": "Anzeigenamen eingeben",
+      "toasts": {
+        "successTitle": "Erfolg!",
+        "updated": "Deine Kontoinformationen wurden aktualisiert.",
+        "updateFailed": "Kontoinformationen konnten nicht aktualisiert werden.",
+        "photoUploadedTitle": "Foto hochgeladen!",
+        "photoUploadedDesc": "Klicke auf „Änderungen speichern“, um dein Profil zu aktualisieren.",
+        "uploadFailedTitle": "Upload fehlgeschlagen",
+        "uploadFailedDesc": "Foto konnte nicht hochgeladen werden. Bitte versuche es erneut."
+      }
     },
     "emailVerification": {
       "title": "E-Mail-Verifizierung",
@@ -716,7 +936,10 @@
       "verificationSent": "Verifizierungs-E-Mail gesendet!",
       "checkEmail": "Bitte überprüfen Sie Ihre E-Mail und klicken Sie auf den Verifizierungslink.",
       "pendingChange": "E-Mail-Änderung ausstehend",
-      "waitingVerification": "Warte auf Verifizierung"
+      "waitingVerification": "Warte auf Verifizierung",
+      "waitingVerificationFor": "Warte auf Verifizierung: {email}",
+      "unknownEmail": "Unbekannt",
+      "loadingEmail": "Laden..."
     },
     "passkeys": {
       "title": "Passkeys",
@@ -724,7 +947,24 @@
       "addPasskey": "Passkey hinzufügen",
       "addingPasskey": "Passkey wird hinzugefügt...",
       "noPasskeys": "Noch keine Passkeys registriert",
-      "addPasskeyHint": "Fügen Sie einen Passkey für schnellere, passwortlose Anmeldung hinzu"
+      "addPasskeyHint": "Fügen Sie einen Passkey für schnellere, passwortlose Anmeldung hinzu",
+      "loading": "Passkeys werden geladen...",
+      "fallbackName": "Passkey",
+      "added": "Hinzugefügt am {date}",
+      "synced": "Synchronisiert",
+      "tipBiometrics": "Passkeys nutzen Biometrie oder die Geräte-PIN zur Authentifizierung",
+      "tipSynced": "Synchronisierte Passkeys funktionieren automatisch auf all deinen Geräten",
+      "tipSecure": "Sicherer als Passwörter – resistent gegen Phishing",
+      "toasts": {
+        "addedTitle": "Passkey hinzugefügt!",
+        "addedDesc": "Dein neuer Passkey wurde registriert.",
+        "renamedTitle": "Passkey umbenannt",
+        "renamedDesc": "Dein Passkey wurde umbenannt.",
+        "renameFailed": "Passkey konnte nicht umbenannt werden.",
+        "deletedTitle": "Passkey gelöscht",
+        "deletedDesc": "Dein Passkey wurde entfernt.",
+        "deleteFailed": "Passkey konnte nicht gelöscht werden."
+      }
     },
     "accountInfo": {
       "title": "Kontoinformationen",
@@ -759,7 +999,8 @@
       "confirmDescription": "Diese Aktion ist dauerhaft und kann nicht rückgängig gemacht werden.",
       "typeToConfirm": "Geben Sie {phrase} zur Bestätigung ein",
       "permanentlyDelete": "Konto dauerhaft löschen",
-      "deleting": "Löschen..."
+      "deleting": "Löschen...",
+      "dialogWarning": "Alle deine Daten werden dauerhaft gelöscht, einschließlich Aufgaben, Listen und Dateien."
     },
     "appearancePage": {
       "title": "Erscheinungsbild und Benutzererfahrung",
@@ -781,7 +1022,8 @@
         "viewShortcuts": "Kürzel anzeigen",
         "viewTitle": "Tastaturkürzel anzeigen",
         "viewDesc": "Alle verfügbaren Tastaturkürzel für effiziente Aufgabenverwaltung anzeigen",
-        "quickAccess": "Drücken Sie ? irgendwo im Aufgabenmanager um die Tastaturkürzel zu öffnen."
+        "quickAccess": "Drücken Sie ? irgendwo im Aufgabenmanager um die Tastaturkürzel zu öffnen.",
+        "quickAccessLabel": "Schnellzugriff"
       },
       "taskDisplayMode": {
         "title": "Layout der Aufgabendetails",
@@ -822,6 +1064,22 @@
         "configure": "E-Mail-Einstellungen konfigurieren",
         "configureDesc": "Passen Sie Standard-Fälligkeitsdaten an, aktivieren/deaktivieren Sie die Funktion und mehr",
         "proTip": "Der E-Mail-Betreff wird zum Aufgabentitel und der Text zur Beschreibung. Perfekt für schnelle Aufgabenerfassung aus Ihrem Posteingang!"
+      },
+      "tipLabel": "Profi-Tipp",
+      "smartTasks": {
+        "title": "Intelligente Aufgabenerstellung",
+        "description": "Daten, Prioritäten und Listen-Hashtags automatisch aus Aufgabentiteln erkennen",
+        "enable": "Intelligente Erkennung aktivieren",
+        "enableDesc": "Aufgabendetails aus natürlicher Spracheingabe übernehmen",
+        "supportedPatterns": "Unterstützte Muster:"
+      },
+      "subtasks": {
+        "title": "Unteraufgaben",
+        "description": "Wie Unteraufgaben in deinen Listen erscheinen (geräteübergreifend synchronisiert)",
+        "label": "Unteraufgaben anzeigen",
+        "labelDesc": "Eingerückt in Listen oder nur in der übergeordneten Aufgabe",
+        "indented": "In Listen, eingerückt",
+        "underParent": "Nur in der übergeordneten Aufgabe"
       }
     },
     "aiIntegrations": {
@@ -1008,7 +1266,9 @@
       "developer": {
         "title": "Entwickler",
         "description": "OAuth-Apps manuell erstellen, die API testen und Assistenten anbinden, die OpenAPI sprechen.",
-        "openTester": "API-Tester öffnen"
+        "openTester": "API-Tester öffnen",
+        "apiDocs": "API-Dokumentation",
+        "integrationGuide": "Integrationsleitfaden"
       },
       "github": {
         "title": "GitHub",
@@ -1072,6 +1332,75 @@
         "selectAtLeastOne": "Wähle mindestens einen Bereich aus",
         "selectApp": "Wähle eine App aus."
       }
+    },
+    "openInNewTab": "In neuem Tab öffnen",
+    "githubSetup": {
+      "loading": "GitHub-Einrichtung wird geladen...",
+      "authenticating": "Authentifizierung...",
+      "failedTitle": "Einrichtung fehlgeschlagen",
+      "failedDescription": "Beim Einrichten der GitHub-Integration ist ein Fehler aufgetreten",
+      "errorDetail": "Fehler: {error}",
+      "returnToSettings": "Zurück zu den Einstellungen",
+      "processingTitle": "GitHub-Einrichtung wird verarbeitet",
+      "processingDescription": "Deine GitHub-Installation wird verbunden...",
+      "pleaseWait": "Bitte warte, während wir deine GitHub-Integration konfigurieren...",
+      "connectedTitle": "GitHub verbunden!",
+      "connectedDescription": "Deine GitHub-Integration ist einsatzbereit",
+      "connectedBody": "Du kannst jetzt den {appName}-Agenten nutzen, um Code zu generieren und Pull Requests zu erstellen.",
+      "continueToSettings": "Weiter zu den Einstellungen"
+    },
+    "tasksPage": {
+      "title": "Aufgabeneinstellungen",
+      "description": "Standardverhalten von Aufgaben und Einstellungen für E-Mail zu Aufgabe konfigurieren",
+      "saved": "Einstellungen erfolgreich gespeichert!",
+      "saveFailed": "Einstellungen konnten nicht gespeichert werden",
+      "emailDescription": "Aufgaben per E-Mail an {inboundTaskEmail} erstellen",
+      "enable": "E-Mail zu Aufgabe aktivieren",
+      "enableDesc": "Erstellen von Aufgaben per E-Mail erlauben",
+      "defaultDueDate": "Standard-Fälligkeitsdatum",
+      "offset1Day": "1 Tag",
+      "offset3Days": "3 Tage",
+      "offset1Week": "1 Woche (Standard)",
+      "dueDateHint": "Per E-Mail erstellte Aufgaben werden so viele Tage nach dem Sendedatum fällig",
+      "defaultDueTime": "Standard-Fälligkeitszeit",
+      "time0900": "9:00 Uhr",
+      "time1200": "12:00 Uhr (Mittag)",
+      "time1700": "17:00 Uhr (Standard)",
+      "time2000": "20:00 Uhr",
+      "dueTimeHint": "Uhrzeit für per E-Mail erstellte Aufgaben",
+      "howTo": "So verwendest du E-Mail zu Aufgabe:",
+      "assignedTaskDesc": "{inboundTaskEmail} in CC setzen, mit einem Empfänger im AN-Feld",
+      "subjectLine": "{subject} wird zum Aufgabentitel",
+      "subject": "Betreff",
+      "bodyLine": "{body} wird zur Aufgabenbeschreibung",
+      "body": "Nachrichtentext",
+      "saveSettings": "Einstellungen speichern"
+    },
+    "calendar": {
+      "loading": "Kalendereinstellungen werden geladen...",
+      "title": "Kalenderintegration",
+      "description": "Synchronisiere deine Aufgaben mit externen Kalender-Apps",
+      "enableSync": "Kalendersynchronisierung aktivieren",
+      "enableSyncDescription": "Erlaube den Export deiner Aufgaben in Kalender-Apps",
+      "include": "Was im Kalender enthalten sein soll",
+      "onlyWithDue": "Nur Aufgaben mit Fälligkeitsdatum/-zeit",
+      "noneDisabled": "Keine (deaktiviert)",
+      "export": "Kalenderexport",
+      "downloadIcs": "Kalenderdatei herunterladen (.ics)",
+      "subscribe": "Live-Kalender abonnieren",
+      "subscribeDescription": "Live-Abonnement, das sich automatisch aktualisiert, wenn sich Aufgaben ändern",
+      "howToUse": "So funktioniert es:",
+      "downloadLabel": "Herunterladen:",
+      "howDownload": "Importiere die .ics-Datei einmalig in Google Kalender, Apple Kalender oder Outlook",
+      "subscribeLabel": "Abonnieren:",
+      "howSubscribe": "Füge die webcal-URL hinzu, um Änderungen automatisch zu synchronisieren (empfohlen)",
+      "howAppear": "Deine Aufgaben erscheinen als ganztägige Termine oder zu ihren geplanten Zeiten",
+      "howUpdates": "Änderungen an Aufgaben in {appName} werden in abonnierten Kalendern übernommen"
+    },
+    "defaultDueTime": {
+      "title": "Standard-Fälligkeitszeit",
+      "description": "Lege die Standardzeit für neue Aufgaben fest, wenn du ein Fälligkeitsdatum auswählst",
+      "fallback": "Neue Aufgaben mit Fälligkeitsdatum erhalten standardmäßig 17 Uhr"
     }
   },
   "projectMode": {
@@ -1162,6 +1491,89 @@
     "memberAgentAssignment": {
       "label": "Mitglieder können jede Aufgabe an einen Agenten übergeben",
       "help": "Erlaubt jedem Mitglied dieser Liste, jeder Aufgabe hier einen Agenten zuzuweisen, nicht nur eigenen Aufgaben. Die Agenten laufen über die Pläne des Listeninhabers."
+    },
+    "admin": {
+      "descriptionLabel": "Listenbeschreibung",
+      "descriptionInfo": "Die Listenbeschreibung dient als Anweisung für KI-Agenten, die in dieser Liste arbeiten",
+      "preview": "Vorschau",
+      "charCount": "{count} Zeichen",
+      "noInstructionsYet": "*Noch keine Anweisungen*",
+      "instructionsPlaceholder": "Schreibe Anweisungen für KI-Agenten, die in dieser Liste arbeiten...\n\nBeispiel:\nDu hilfst unserer Familie bei der Essensplanung.\n\n## Ziele\n- Gesunde Rezepte vorschlagen\n- Wöchentliche Einkaufslisten erstellen\n\n## Leitplanken\n- Keine Schalentiere (Allergie)\n- Budget: 150 $/Woche",
+      "agentsReceive": "Agenten erhalten dies als primären Kontext. Markdown wird unterstützt.",
+      "starterTemplates": "Startvorlagen",
+      "clickToEdit": "Zum Bearbeiten klicken",
+      "clickToAddInstructions": "Klicken, um Agentenanweisungen hinzuzufügen...",
+      "agentsUseGuidance": "KI-Agenten nutzen dies als wichtigste Orientierung, wenn sie an Aufgaben in dieser Liste arbeiten",
+      "taskCreator": "Aufgabenersteller",
+      "memberNotFound": "Mitglied nicht gefunden",
+      "clickToSet": "Zum Festlegen klicken...",
+      "defaultPriority": "Standardpriorität",
+      "defaultAssignee": "Standardmäßig zugewiesen an",
+      "selectDefaultAssignee": "Standardzuweisung auswählen...",
+      "defaultWhen": "Standard-Wann",
+      "nextWeek": "Nächste Woche",
+      "noDefaultWhenButton": "Kein Standard-Wann",
+      "noDefaultWhen": "Kein Standard-Wann",
+      "defaultRepeating": "Standardwiederholung",
+      "defaultWhenTime": "Standard-Uhrzeit",
+      "noDefaultTime": "Keine Standardzeit",
+      "timezone": "Zeitzone: {timezone}",
+      "deleteList": "Liste löschen",
+      "deleteConfirm": "Möchtest du „{name}“ wirklich löschen?",
+      "deleteWarning": "Diese Aktion kann nicht rückgängig gemacht werden. Alle Aufgaben dieser Liste bleiben erhalten, sind aber nicht mehr mit dieser Liste verknüpft.",
+      "dontDelete": "Nicht löschen",
+      "notConnected": "Nicht verbunden.",
+      "connect": "Verbinden",
+      "unlink": "Verknüpfung aufheben",
+      "mirrorPlaceholder": "Wähle, wohin diese Liste gespiegelt werden soll",
+      "externalSyncTitle": "Externe Synchronisierung",
+      "externalSyncDescription": "Spiegle diese Liste über dein verbundenes Konto in einen anderen Dienst und zurück.",
+      "aiAgent": "KI-Agent",
+      "modelForList": "{appName}-Modell für diese Liste",
+      "useAccountDefault": "Kontostandard verwenden",
+      "modelHint": "Treibt {appName} im Chat und in den Kommentaren dieser Liste an. Coding-Agenten, die Aufgaben zugewiesen sind, behalten ihre eigene Laufzeitumgebung.",
+      "repositoryLabel": "Repository, in dem der Coding-Agent arbeitet",
+      "loading": "Laden...",
+      "selectRepo": "Repository auswählen",
+      "noRepositories": "Keine Repositories gefunden. Prüfe, ob die GitHub App Zugriff auf deine Repositories hat.",
+      "connectGithub": "Verbinde GitHub, um das Repository auszuwählen, in dem ein Coding-Agent arbeitet – {link}",
+      "connectGithubLink": "Einstellungen → Verbindungen → GitHub",
+      "runLoop": "Eine Schleife für diese Liste ausführen",
+      "loopDescription": "Dein Coding-Harness prüft diese Liste nach Zeitplan und bearbeitet alles, was ihm zugewiesen und als {ready} markiert ist. Aufgaben auf anderen Boards werden nie angefasst.",
+      "readyStatus": "Ready",
+      "descriptionHint": "Agenten lesen die {description} dieser Liste als Arbeitsanweisung – bearbeite sie oben wie ein Projektbriefing.",
+      "descriptionWord": "Beschreibung",
+      "listId": "Listen-ID",
+      "copyListId": "Listen-ID kopieren",
+      "listIdHint": "Verwende diese ID für OAuth-API-Integrationen und Coding-Agenten",
+      "listName": "Listenname",
+      "statusesIntro": "Ready, Doing und Waiting gelten für {all} deine Boards. Ein Status, den du hier hinzufügst, gehört nur zu diesem Board.",
+      "statusesIntroAll": "alle",
+      "saveName": "Namen speichern",
+      "moveUp": "{name} nach oben verschieben",
+      "moveDown": "{name} nach unten verschieben",
+      "renameStatus": "{name} umbenennen",
+      "deleteStatus": "{name} löschen",
+      "newStatusName": "Name des neuen Status",
+      "renameStatusFailed": "Status konnte nicht umbenannt werden",
+      "reorderStatusFailed": "Status konnte nicht neu angeordnet werden",
+      "deleteStatusFailed": "Status konnte nicht gelöscht werden",
+      "addStatusFailed": "Status konnte nicht hinzugefügt werden",
+      "recentlyCompletedLabel": "Erweitert – Zeitfenster für kürzlich Erledigtes",
+      "recentlyCompletedDescription": "Wie lange erledigte Aufgaben in der Standardansicht (und in der Done-Spalte auf Boards) sichtbar bleiben. Ältere erledigte Aufgaben werden ausgeblendet; stelle die Liste auf „Erledigt“ oder „Alle“ um, um sie zu sehen."
+    },
+    "filters": {
+      "allAssignees": "Alle Zugewiesenen",
+      "notMe": "Nicht ich (andere)",
+      "allCreators": "Alle Ersteller",
+      "notRepeating": "Nicht wiederholend",
+      "inAnyList": "Aufgaben in einer beliebigen Liste",
+      "notInAnyList": "Aufgaben in keiner Liste",
+      "clearAllFilters": "Alle Filter löschen",
+      "removeFromFavorites": "Aus Favoriten entfernen",
+      "makeFavorite": "Zu Favoriten hinzufügen",
+      "savedFilter": "Gespeicherter Filter",
+      "savedFilterDescription": "Aufgaben anhand der Filtereinstellungen anzeigen, nicht anhand der Listenzugehörigkeit"
     }
   },
   "reminderSettings": {
@@ -1170,7 +1582,32 @@
     "emailReminders": "E-Mail-Erinnerungen",
     "defaultReminderTime": "Standard-Erinnerungszeit",
     "dailyDigest": "Tägliche Zusammenfassung",
-    "quietHours": "Ruhezeiten"
+    "quietHours": "Ruhezeiten",
+    "description": "Lege fest, wann und wie du Aufgabenerinnerungen erhältst",
+    "pushDescription": "Sofortige Benachrichtigungen im Browser erhalten",
+    "enablePush": "Push-Benachrichtigungen aktivieren",
+    "pushBlocked": "Push-Benachrichtigungen sind blockiert. Aktiviere sie in den Browsereinstellungen, um Aufgabenerinnerungen zu erhalten.",
+    "emailDescription": "Erinnerungs-E-Mails für fällige Aufgaben erhalten",
+    "defaultReminderTimeDescription": "Wie lange vor Fälligkeit du erinnert wirst",
+    "dailyDigestDescription": "Tägliche Zusammenfassung deiner Aufgaben erhalten",
+    "quietHoursDescription": "Benachrichtigungen in diesen Stunden deaktivieren (optional)",
+    "push": {
+      "description": "Erhalte Benachrichtigungen zu Aufgabenerinnerungen und Updates, auch wenn die App geschlossen ist",
+      "status": "Benachrichtigungsstatus",
+      "enableDescription": "Aufgabenerinnerungen und Benachrichtigungen erhalten",
+      "blockedIntro": "Benachrichtigungen sind blockiert. So aktivierst du sie:",
+      "blockedChrome": "Klicke auf das Schloss-Symbol in der Adressleiste → Benachrichtigungen → Zulassen",
+      "blockedFirefox": "Klicke auf das Schild-Symbol → Berechtigungen → Benachrichtigungen zulassen",
+      "blockedSafari": "Safari → Einstellungen → Websites → Mitteilungen → Erlauben",
+      "installTitle": "Für das beste Erlebnis installiere diese App:",
+      "installMobileLabel": "Mobil:",
+      "installMobile": "Tippe im Browsermenü auf „Zum Startbildschirm hinzufügen“",
+      "installDesktopLabel": "Desktop:",
+      "installDesktop": "Achte auf das Installationssymbol in der Adressleiste",
+      "installPwaLabel": "PWA-Vorteile:",
+      "installPwa": "Benachrichtigungen funktionieren auch bei geschlossener App",
+      "sendTest": "Testbenachrichtigung senden"
+    }
   },
   "keyboardShortcuts": {
     "title": "Tastenkürzel",
@@ -1181,16 +1618,20 @@
       "taskEditing": "Aufgaben bearbeiten",
       "priority": "Priorität",
       "interface": "Oberfläche"
-    }
+    },
+    "chatHint": "In Chatnachrichten und Aufgabenkommentaren verwenden"
   },
   "commandPalette": {
     "label": "Befehlspalette",
     "searchPlaceholder": "Befehle suchen …",
     "enterToSelect": "Enter zum Auswählen",
-    "escToClose": "Esc zum Schließen"
+    "escToClose": "Esc zum Schließen",
+    "noCommands": "Keine Befehle gefunden"
   },
   "userPicker": {
-    "optionalMessage": "Optionale Nachricht …"
+    "optionalMessage": "Optionale Nachricht …",
+    "sendInvite": "Einladung senden",
+    "assignAnyway": "Trotzdem zuweisen"
   },
   "astridAgent": {
     "modelSetup": {
@@ -1246,5 +1687,322 @@
       "hours": "{n} Std.",
       "days": "{n} T."
     }
+  },
+  "codingAgentPage": {
+    "getStarted": "Loslegen",
+    "heroTitle": "{appName} Agent",
+    "heroSubtitle": "KI-gestützter Code-Assistent, der Code schreibt, PRs erstellt und automatisch bereitstellt",
+    "badgeProductionReady": "Produktionsreifer Code",
+    "badgeGithub": "GitHub-Integration",
+    "badgeAutoDeploy": "Automatische Bereitstellung",
+    "installGithubApp": "GitHub App installieren",
+    "tryFree": "{appName} kostenlos testen",
+    "features": {
+      "codeGenerationTitle": "Code-Generierung",
+      "codeGenerationDesc": "Die KI erzeugt produktionsreifen Code aus Beschreibungen in natürlicher Sprache",
+      "githubPrsTitle": "GitHub-PRs",
+      "githubPrsDesc": "Erstellt automatisch GitHub Pull Requests mit sauberem Branching",
+      "livePreviewsTitle": "Live-Vorschauen",
+      "livePreviewsDesc": "Sofortige Staging-Bereitstellungen über die Vercel-Integration",
+      "commentActionsTitle": "Kommentar-Aktionen",
+      "commentActionsDesc": "Steuerung mit einfachen Kommentaren: \"approve\", \"merge\", \"change X\""
+    },
+    "howItWorks": {
+      "title": "So funktioniert es",
+      "description": "Kompletter Workflow von der Aufgabe bis zur Produktionsbereitstellung",
+      "assignTitle": "Aufgabe zuweisen",
+      "assignDesc": "Erstellen Sie eine Aufgabe und weisen Sie sie \"{appName} Agent\" zu",
+      "planningTitle": "KI-Planung",
+      "planningDesc": "Der Agent analysiert die Anforderungen und erstellt einen Umsetzungsplan",
+      "reviewTitle": "Prüfen und freigeben",
+      "reviewDesc": "Kommentieren Sie \"approve\", um die Code-Generierung zu starten",
+      "generateTitle": "Code-Generierung",
+      "generateDesc": "Der Agent schreibt Code und erstellt GitHub-Branch und PR",
+      "previewTitle": "Live-Vorschau",
+      "previewDesc": "Sofortige Staging-Bereitstellung, wenn Vercel verbunden ist",
+      "deployTitle": "Bereitstellen",
+      "deployDesc": "Kommentieren Sie \"merge\" zum Bereitstellen oder \"change X\" für Änderungen"
+    },
+    "githubApp": {
+      "title": "Offizielle GitHub App",
+      "description": "Sicher, gepflegt und von Entwicklern weltweit geschätzt",
+      "quickSetupTitle": "Schnelle Einrichtung",
+      "quickSetupDesc": "Keine eigene GitHub App nötig - einfach installieren und in wenigen Minuten verbinden",
+      "secureTitle": "Sicher und vertrauenswürdig",
+      "secureDesc": "Offizielle App, vom {appName}-Team nach bewährten Sicherheitsstandards gepflegt",
+      "sharedTitle": "Gemeinsam genutzt und gepflegt",
+      "sharedDesc": "Von allen {appName}-Nutzern verwendet - keine eigene App-Verwaltung erforderlich"
+    },
+    "controls": {
+      "title": "Einfache Steuerung per Kommentar",
+      "description": "Steuern Sie den Agenten mit Kommentaren in natürlicher Sprache",
+      "approveDesc": "Gibt den KI-Plan frei und startet die Umsetzung",
+      "mergeDesc": "Führt den PR in die Produktion zusammen",
+      "changeDesc": "Fordert Änderungen mit konkretem Feedback an"
+    },
+    "cta": {
+      "title": "Bereit, Ihre Entwicklung zu verändern?",
+      "subtitle": "Schließen Sie sich Tausenden Entwicklern an, die mit KI schneller ausliefern als je zuvor",
+      "startTrial": "Kostenlos testen"
+    },
+    "footerNote": "© 2024 {appName}. Alle Rechte vorbehalten. Mit KI-Unterstützung, um Ihren Entwicklungsworkflow zu beschleunigen."
+  },
+  "signInPage": {
+    "downloadOnAppStore": "Im App Store laden",
+    "title": "Melden Sie sich an und legen Sie los!",
+    "passkey": "Passkey",
+    "continuing": "Weiter...",
+    "passkeysNotSupported": "Passkeys werden in diesem Browser nicht unterstützt",
+    "newUser": "Neu hier?",
+    "returningUser": "Schon dabei?",
+    "emailPlaceholder": "E-Mail-Adresse eingeben",
+    "creatingAccount": "Konto wird erstellt...",
+    "signingIn": "Anmeldung läuft...",
+    "backToOptions": "Zurück zu den Optionen",
+    "agreement": "Mit der Anmeldung stimmen Sie unseren {terms} und unserer {privacy} zu",
+    "termsOfService": "Nutzungsbedingungen",
+    "privacyPolicy": "Datenschutzerklärung",
+    "havingTrouble": "Probleme?",
+    "visitHelpCenter": "Besuchen Sie unser Hilfe-Center",
+    "organizeTitle": "Organisieren Sie Ihre Aufgaben",
+    "organizeDesc": "Erstellen Sie private, geteilte und öffentliche Listen für Arbeit und Alltag",
+    "collaborateTitle": "Im Team zusammenarbeiten",
+    "collaborateDesc": "Teilen Sie Listen mit Admins und legen Sie Standardeinstellungen für Aufgaben fest",
+    "discoverTitle": "Öffentliche Aufgaben entdecken",
+    "discoverDesc": "Durchsuchen und kopieren Sie Aufgaben aus öffentlichen Listen der Community"
+  },
+  "authErrors": {
+    "signInUnexpected": "Bei der Anmeldung ist ein unerwarteter Fehler aufgetreten",
+    "emailRequired": "Bitte geben Sie Ihre E-Mail-Adresse ein",
+    "configuration": "Es gibt ein Problem mit der Serverkonfiguration.",
+    "configurationDetailed": "Es gibt ein Problem mit der Serverkonfiguration. Bitte prüfen Sie Ihre Umgebungsvariablen.",
+    "accessDenied": "Zugriff verweigert. Sie haben keine Berechtigung, sich anzumelden.",
+    "verification": "Das Verifizierungstoken ist abgelaufen oder wurde bereits verwendet.",
+    "oauthSignin": "Fehler beim Erstellen der Autorisierungs-URL. Bitte prüfen Sie Ihre OAuth-Konfiguration.",
+    "oauthCallback": "Fehler bei der Verarbeitung der Antwort eines OAuth-Anbieters.",
+    "oauthCreateAccount": "OAuth-Konto konnte nicht erstellt werden.",
+    "emailCreateAccount": "E-Mail-Konto konnte nicht erstellt werden.",
+    "callback": "Fehler in der OAuth-Callback-Route.",
+    "oauthAccountNotLinked": "Ein Konto mit dieser E-Mail-Adresse existiert bereits. Bitte melden Sie sich erneut an - wir verknüpfen Ihr Google-Konto automatisch.",
+    "emailSignin": "Die E-Mail mit dem Verifizierungstoken konnte nicht gesendet werden.",
+    "sessionRequired": "Für den Inhalt dieser Seite müssen Sie durchgehend angemeldet sein.",
+    "default": "Bei der Authentifizierung ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut oder wenden Sie sich an den Support.",
+    "unexpected": "Bei der Authentifizierung ist ein unerwarteter Fehler aufgetreten."
+  },
+  "authErrorPage": {
+    "title": "Authentifizierungsfehler",
+    "description": "Bei der Anmeldung ist etwas schiefgelaufen",
+    "tryAgain": "Erneut versuchen",
+    "goHome": "Zur Startseite",
+    "loading": "Wird geladen..."
+  },
+  "verifyEmailPage": {
+    "verifiedTitle": "E-Mail verifiziert!",
+    "failedTitle": "Verifizierung fehlgeschlagen",
+    "expiredTitle": "Link abgelaufen",
+    "defaultTitle": "E-Mail-Verifizierung",
+    "redirecting": "Weiterleitung zu den Einstellungen in wenigen Sekunden...",
+    "goToSettings": "Zu den Einstellungen",
+    "sending": "Wird gesendet...",
+    "resend": "Verifizierungs-E-Mail erneut senden",
+    "sendNew": "Neue Verifizierungs-E-Mail senden",
+    "backToApp": "Zurück zur App",
+    "expiredBody": "Der Verifizierungslink ist abgelaufen. Sie können in Ihren Kontoeinstellungen einen neuen anfordern.",
+    "verificationFailed": "Verifizierung fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "noToken": "Kein Verifizierungstoken angegeben",
+    "resent": "Verifizierungs-E-Mail erneut gesendet. Bitte prüfen Sie Ihren Posteingang.",
+    "resendFailed": "Verifizierungs-E-Mail konnte nicht erneut gesendet werden"
+  },
+  "desktopSignInPage": {
+    "invalidTitle": "Dieser Anmeldelink ist ungültig",
+    "invalidBody": "Starten Sie die Anmeldung erneut in der App. Diese Links werden von der App erzeugt und sind nicht zur Eingabe von Hand gedacht.",
+    "returnHome": "Zur Startseite",
+    "title": "Bei {app} anmelden",
+    "signedInAs": "Sie sind als {email} angemeldet. Fahren Sie fort, um diese Sitzung an die App auf diesem Computer zu übergeben.",
+    "codeNote": "Die App erhält einen Einmalcode, der nach fünf Minuten abläuft. Nur die App-Instanz, die diese Anmeldung gestartet hat, kann ihn einlösen.",
+    "notExpecting": "Nicht erwartet?",
+    "closePage": "Schließen Sie diese Seite",
+    "nothingHandedOver": "und es wird nichts übergeben.",
+    "continuingTo": "Weiter zu {provider}",
+    "singleSignOn": "Single Sign-on",
+    "comeBack": "Melden Sie sich an. Danach kehren Sie hierher zurück, um die Anmeldung bei {app} abzuschließen.",
+    "nothingHappening": "Es passiert nichts?",
+    "chooseAnother": "Andere Anmeldemethode wählen",
+    "opening": "{app} wird geöffnet…",
+    "closeTab": "Sie können diesen Tab schließen. Falls {app} sich nicht geöffnet hat, kehren Sie zur App zurück und starten Sie die Anmeldung erneut.",
+    "preparing": "Wird vorbereitet…",
+    "open": "{app} öffnen",
+    "startFailed": "Die Übergabe konnte nicht gestartet werden. Bitte versuchen Sie es erneut.",
+    "unreachable": "Der Server ist nicht erreichbar. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+  },
+  "oauthAuthorizePage": {
+    "unableTitle": "Fortfahren nicht möglich",
+    "invalidRequest": "Die Autorisierungsanfrage ist ungültig. Bitte prüfen Sie den Link und versuchen Sie es erneut.",
+    "errorCode": "Fehlercode:",
+    "goToConnections": "Zu den Verbindungen",
+    "returnHome": "Zur Startseite",
+    "header": "{appName}-Integration autorisieren",
+    "oauthApp": "OAuth-App",
+    "defaultDescription": "Diese Anwendung fordert Zugriff auf Ihr {appName}-Konto an.",
+    "requestingAs": "Zugriff angefordert als",
+    "yourAccount": "Ihr Konto",
+    "developedBy": "Entwickelt von {owner}",
+    "brandUser": "{appName}-Nutzer",
+    "dynamicallyRegistered": "Dynamisch von Ihrem MCP-Client registriert",
+    "permissionsTitle": "Angeforderte Berechtigungen",
+    "permissionsIntro": "Diese App kann:",
+    "scope": "Scope:",
+    "grantTitle": "Zugriff gewähren",
+    "grantDescription": "Erlauben Sie {client}, mit den obigen Berechtigungen auf Ihre {appName}-Daten zuzugreifen.",
+    "deny": "Ablehnen",
+    "approve": "Zugriff genehmigen",
+    "approveAs": "Zugriff als {agent} genehmigen",
+    "tokenNote": "Tokens laufen nach 1 Stunde ab. Refresh-Tokens bleiben 30 Tage gültig oder bis sie unter Einstellungen → Verbindungen widerrufen werden."
+  },
+  "invitePage": {
+    "errorTitle": "Fehler bei der Einladung",
+    "noLongerValid": "Diese Einladung ist nicht mehr gültig.",
+    "acceptedTitle": "Einladung angenommen!",
+    "acceptedBody": "Sie sind der Zusammenarbeit beigetreten. Weiterleitung zur App...",
+    "someone": "Jemand",
+    "taskTitle": "Aufgabenzuweisung",
+    "taskDesc": "{sender} hat Ihnen eine Aufgabe zugewiesen und möchte mit Ihnen zusammenarbeiten.",
+    "listTitle": "Listenfreigabe",
+    "listDesc": "{sender} hat eine Aufgabenliste mit Ihnen geteilt.",
+    "workspaceTitle": "Einladung zum Workspace",
+    "workspaceDesc": "{sender} hat Sie in den eigenen Workspace eingeladen.",
+    "defaultTitle": "Einladung zur Zusammenarbeit",
+    "defaultDesc": "{sender} hat Sie zur Zusammenarbeit eingeladen.",
+    "messageLabel": "Nachricht:",
+    "expires": "Läuft ab am {date}",
+    "emailMismatch": "⚠️ Diese Einladung wurde an {invited} gesendet, Sie sind aber als {current} angemeldet. Bitte melden Sie sich mit dem richtigen Konto an.",
+    "expiredBadge": "Abgelaufen",
+    "expiredBody": "Diese Einladung ist abgelaufen.",
+    "signInToAccept": "Anmelden und annehmen",
+    "redirectNote": "Sie werden zur Anmeldung mit {email} weitergeleitet",
+    "accepting": "Wird angenommen...",
+    "accept": "Einladung annehmen",
+    "signInCorrectAccount": "Mit richtigem Konto anmelden",
+    "decline": "Ablehnen",
+    "notFound": "Einladung nicht gefunden",
+    "loadFailed": "Einladung konnte nicht geladen werden",
+    "acceptFailed": "Einladung konnte nicht angenommen werden",
+    "declined": "Einladung abgelehnt",
+    "declineFailed": "Einladung konnte nicht abgelehnt werden"
+  },
+  "downloadPage": {
+    "title": "{appName} herunterladen",
+    "subtitle": "Native Apps, die mit allem synchron bleiben, was Sie im Web haben.",
+    "macTitle": "{appName} für Mac",
+    "macRelease": "Version {version} · {size} · Veröffentlicht am {published}",
+    "macRequirements": "Universal · macOS 14 Sonoma oder neuer",
+    "downloadForMac": "Für Mac herunterladen",
+    "viewReleases": "Versionen ansehen",
+    "featureQuickAdd": "Schnelleingabe in der Menüleiste und globales Tastenkürzel",
+    "featureViews": "Board-, Listen- und Kalenderansicht",
+    "featureOffline": "Funktioniert offline, synchronisiert bei erneuter Verbindung",
+    "featureApple": "Integration mit Apple Erinnerungen und Kalender",
+    "installNote": "Öffnen Sie das DMG und ziehen Sie {appName} in Ihren Programme-Ordner. Die App ist von Apple signiert und notarisiert und öffnet sich daher ohne weitere Schritte. macOS 14 oder neuer.",
+    "iosTitle": "{appName} für iPhone und iPad",
+    "iosBeta": "Derzeit in der TestFlight-Beta",
+    "joinBeta": "An der Beta teilnehmen",
+    "preferBrowser": "Lieber im Browser?",
+    "useOnWeb": "{appName} im Web nutzen"
+  },
+  "errorPages": {
+    "errorDescription": "Ein unerwarteter Fehler ist aufgetreten. Wir bitten um Entschuldigung.",
+    "tryAgain": "Erneut versuchen",
+    "goHome": "Zur Startseite",
+    "notFoundTitle": "Seite nicht gefunden",
+    "notFoundDescription": "Die gesuchte Seite existiert nicht oder wurde verschoben.",
+    "notFoundGoHome": "Zur Startseite",
+    "pageNotFound": "Seite nicht gefunden",
+    "listUnavailableTitle": "Liste nicht verfügbar",
+    "goToDashboard": "Zum Dashboard",
+    "listNotFound": "Liste nicht gefunden",
+    "listAccessDenied": "Zugriff verweigert. Sie haben keine Berechtigung, diese Liste anzusehen.",
+    "listLoadFailed": "Liste konnte nicht geladen werden",
+    "linkErrorTitle": "Link-Fehler",
+    "linkNotFound": "Link nicht gefunden oder abgelaufen",
+    "linkResolveFailed": "Link konnte nicht aufgelöst werden",
+    "linkTaskNotFound": "Aufgabe nicht gefunden oder nicht mehr zugänglich",
+    "linkTaskForbidden": "Sie haben keine Berechtigung, diese Aufgabe anzusehen",
+    "linkInvalidType": "Ungültiger Link-Typ"
+  },
+  "profilePage": {
+    "loading": "Profil wird geladen...",
+    "notFound": "Profil nicht gefunden",
+    "goBack": "Zurück",
+    "badge": "Profil",
+    "aiAgent": "KI-Agent",
+    "joined": "Dabei seit {date}",
+    "completedDesc": "Erledigte Aufgaben",
+    "inspired": "Inspiriert",
+    "inspiredDesc": "Aufgaben, die andere erstellt, erledigt oder kopiert haben",
+    "supported": "Unterstützt",
+    "supportedDesc": "Kommentare zu Aufgaben anderer",
+    "yourTasks": "Ihre Aufgaben",
+    "sharedWith": "Mit {name} geteilte Aufgaben",
+    "noShared": "Noch keine Aufgaben mit {name} geteilt",
+    "userNotFound": "Benutzer nicht gefunden",
+    "signInRequired": "Bitte melden Sie sich an, um Benutzerprofile anzusehen",
+    "loadFailedDetail": "Benutzerprofil konnte nicht geladen werden: {error}",
+    "loadFailed": "Benutzerprofil konnte nicht geladen werden",
+    "unknownError": "Unbekannter Fehler"
+  },
+  "startPage": {
+    "backToDocs": "Zurück zur Dokumentation",
+    "step": "Schritt {n} — {title}",
+    "heading": "Führen Sie Ihr Softwaregeschäft mit Agenten — aus einem {appName}",
+    "intro": "{appName} ist die gemeinsame To-do-Liste, mit der alle Ihre Agenten und Teammitglieder arbeiten. Legen Sie eine Aufgabe in einer Liste ab; der zuständige Agent kommentiert einen Plan, erledigt die Arbeit und berichtet in derselben Aufgabe — im Web oder auf Ihrem Smartphone. Jeder Agent prüft seine eigene Warteschlange nach Zeitplan und nutzt dabei den Tarif, den Sie ohnehin bezahlen. Es gibt also kein Dashboard, das Sie beaufsichtigen müssen. Für Teams von 1 bis 10 Personen.",
+    "shapeTitle": "Der Aufbau: fünf Listen, je ein Agent",
+    "shapeDescription": "Sie brauchen nur die Agenten, für die Sie bezahlen — überspringen Sie eine Zeile und behalten Sie diese Liste für sich.",
+    "createTitle": "Listen erstellen (2 Minuten)",
+    "listsReady": "Ihre Listen sind bereit",
+    "createLists": "Meine Listen erstellen",
+    "signInToCreate": "Anmelden, um sie zu erstellen",
+    "seeInstructions": "Listenanweisungen ansehen",
+    "connectTitle": "Verbinden Sie die Agenten, für die Sie bezahlen",
+    "workTitle": "Arbeiten (jeden Tag)",
+    "workAddTask": "Fügen Sie eine Aufgabe der Liste hinzu, deren Agent sie erledigen soll — sie wird automatisch zugewiesen.",
+    "workAgentReports": "Der Agent kommentiert seinen Plan, erledigt die Arbeit und meldet sich mit einem Pull-Request-Link zurück.",
+    "workReply": "Antworten Sie von überall in den Kommentaren. Sie mergen und stellen bereit.",
+    "workRecurring": "Wiederkehrende Arbeit: Lassen Sie die Aufgabe sich wiederholen (täglich, wöchentlich), dann reiht sie sich selbst wieder ein.",
+    "teamTitle": "Teammitglieder hinzufügen (optional, 2–10 Personen)",
+    "reference": "Referenz",
+    "everyRecipe": "Alle Harness-Rezepte",
+    "mcpTokens": "MCP-Verbindung und Tokens",
+    "agentSettings": "Agenten-Einstellungen",
+    "createCiToken": "GitHub-Actions-Token erstellen"
+  },
+  "richTextInput": {
+    "placeholder": "Nachricht eingeben...",
+    "timer": "Timer",
+    "uploading": "Wird hochgeladen...",
+    "attachFile": "Datei anhängen",
+    "removeFile": "{name} entfernen"
+  },
+  "chat": {
+    "inputPlaceholder": "Nachricht an Liste...",
+    "empty": "Noch keine Nachrichten. Starte die Unterhaltung!",
+    "loadFailed": "Chat konnte nicht geladen werden"
+  },
+  "notificationBell": {
+    "markAllRead": "Alle als gelesen markieren",
+    "allCaughtUp": "Du bist auf dem neuesten Stand."
+  },
+  "admin": {
+    "navDescription": "Zugriff, Analysen und Funktionsverfügbarkeit verwalten.",
+    "navLabel": "Admin-Bereiche"
+  },
+  "pwa": {
+    "notNow": "Nicht jetzt",
+    "syncing": "Änderungen werden synchronisiert..."
+  },
+  "attachmentViewer": {
+    "closeEsc": "Schließen (Esc)",
+    "videoUnsupported": "Dein Browser unterstützt das Video-Tag nicht.",
+    "noPreview": "Für diesen Dateityp ist keine Vorschau verfügbar",
+    "downloadFile": "Datei herunterladen"
   }
 }

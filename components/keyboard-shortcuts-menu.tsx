@@ -121,7 +121,7 @@ export function KeyboardShortcutsMenu({ isOpen, onClose }: KeyboardShortcutsMenu
                 Chat & References
               </h3>
               <p className="text-xs text-theme-muted mb-2">
-                Use in chat messages and task comments
+                {t('keyboardShortcuts.chatHint')}
               </p>
               <div className="space-y-1">
                 {[

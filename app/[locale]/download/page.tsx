@@ -1,6 +1,7 @@
 import { BRAND } from '@/lib/brand/config'
 import Link from "next/link"
 import Image from "next/image"
+import { getTranslations } from "next-intl/server"
 import { ScrollShell } from "@/components/scroll-shell"
 import { fetchLatestMacRelease, MAC_RELEASES_FALLBACK_URL } from "@/lib/mac-release"
 
@@ -18,6 +19,7 @@ export default async function DownloadPage() {
   // disagree about the newest Mac build: when that endpoint hardcoded its own
   // number, it advertised a version this page could not offer (AWTD-942).
   const mac = await fetchLatestMacRelease()
+  const t = await getTranslations("downloadPage")
 
   return (
     <ScrollShell className="theme-bg-primary theme-text-primary">
@@ -31,38 +33,37 @@ export default async function DownloadPage() {
       </header>
 
       <main className="container mx-auto px-4 py-12 max-w-3xl">
-        <h1 className="text-4xl font-bold theme-text-primary mb-2">Download {BRAND.appName}</h1>
+        <h1 className="text-4xl font-bold theme-text-primary mb-2">{t("title")}</h1>
         <p className="theme-text-secondary mb-10">
-          Native apps that stay in sync with everything you have on the web.
+          {t("subtitle")}
         </p>
 
         {/* Mac */}
         <section className="rounded-xl border theme-border theme-surface p-6 mb-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold theme-text-primary mb-1">{BRAND.appName} for Mac</h2>
+              <h2 className="text-xl font-semibold theme-text-primary mb-1">{t("macTitle")}</h2>
               <p className="theme-text-secondary text-sm">
                 {mac
-                  ? `Version ${mac.version} · ${mac.size} · Released ${mac.published}`
-                  : "Universal · macOS 14 Sonoma or later"}
+                  ? t("macRelease", { version: mac.version, size: mac.size, published: mac.published })
+                  : t("macRequirements")}
               </p>
             </div>
             <a
               href={mac?.url ?? MAC_RELEASES_FALLBACK_URL}
               className="inline-flex items-center rounded-lg bg-[rgb(var(--theme-accent))] px-5 py-2.5 font-semibold text-[rgb(var(--theme-accent-text))] transition-colors hover:bg-[rgb(var(--theme-accent-hover))]"
             >
-              {mac ? "Download for Mac" : "View releases"}
+              {mac ? t("downloadForMac") : t("viewReleases")}
             </a>
           </div>
           <ul className="mt-5 grid gap-2 text-sm theme-text-secondary sm:grid-cols-2">
-            <li>• Menu-bar quick add and global hotkey</li>
-            <li>• Board, list, and calendar views</li>
-            <li>• Works offline, syncs when you reconnect</li>
-            <li>• Apple Reminders and Calendar integration</li>
+            <li>• {t("featureQuickAdd")}</li>
+            <li>• {t("featureViews")}</li>
+            <li>• {t("featureOffline")}</li>
+            <li>• {t("featureApple")}</li>
           </ul>
           <p className="mt-5 text-xs theme-text-muted">
-            Open the DMG and drag {BRAND.appName} to your Applications folder. The app is signed and
-            notarized by Apple, so it opens without extra steps. macOS 14 or later.
+            {t("installNote")}
           </p>
         </section>
 
@@ -70,22 +71,22 @@ export default async function DownloadPage() {
         <section className="rounded-xl border theme-border theme-surface p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold theme-text-primary mb-1">{BRAND.appName} for iPhone &amp; iPad</h2>
-              <p className="theme-text-secondary text-sm">Currently in TestFlight beta</p>
+              <h2 className="text-xl font-semibold theme-text-primary mb-1">{t("iosTitle")}</h2>
+              <p className="theme-text-secondary text-sm">{t("iosBeta")}</p>
             </div>
             <a
               href="https://testflight.apple.com/join/V11WpM3d"
               className="inline-flex items-center rounded-lg border theme-border-input px-5 py-2.5 font-semibold theme-text-primary transition-colors hover:bg-[rgb(var(--theme-surface-hover))]"
             >
-              Join the beta
+              {t("joinBeta")}
             </a>
           </div>
         </section>
 
         <p className="mt-10 text-sm theme-text-muted">
-          Prefer the browser?{" "}
+          {t("preferBrowser")}{" "}
           <Link href="/" className="theme-text-primary underline underline-offset-4 hover:opacity-80">
-            Use {BRAND.appName} on the web
+            {t("useOnWeb")}
           </Link>
           .
         </p>

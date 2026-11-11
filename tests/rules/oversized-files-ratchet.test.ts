@@ -75,7 +75,9 @@ const BUDGETS: Record<string, number> = {
   // for: the desktop settings pane became DesktopSettingsDetailPane, which also
   // took its visibility condition with it. The seventh is this. Next change to
   // this file takes something out.
-  'components/TaskManagerView.tsx': 1179,
+  // 1179 → 1172: the Copy List button, typed out here and in MainContent, became
+  // TaskManager/CopyListButton when its label moved to the locale files (AWTD-1575).
+  'components/TaskManagerView.tsx': 1172,
   // 1125 → 1115: the list header's two buttons moved to ListHeaderActions
   // when Sort & Filters gained its own control (task aa4e7eb0).
   // 1115 → 1100: the board-row context memos moved to useBoardRowContext (AWTD-1025).
@@ -87,7 +89,8 @@ const BUDGETS: Record<string, number> = {
   // 1009 → 1008: AWTD-1356 deleted the divider-line funnel block and the
   // layout gate around it, which more than paid for the header button and the
   // threaded state. Locking the line in.
-  'components/TaskManager/MainContent/MainContent.tsx': 1008,
+  // 1008 → 1002: the Copy List button moved to TaskManager/CopyListButton (AWTD-1575).
+  'components/TaskManager/MainContent/MainContent.tsx': 1002,
   'lib/cache-manager.ts': 935,
   // 819 → 797: its two hand-rolled comment inserts and SSE fan-outs went
   // through the comment service (spec §5.2 step 4).

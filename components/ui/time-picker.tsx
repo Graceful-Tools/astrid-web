@@ -27,7 +27,7 @@ const HOUR_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1)
 export function TimePicker({
   value,
   onChange,
-  placeholder = "Select time",
+  placeholder,
   className = "",
   showAllDayOption = true,
   compact = false,
@@ -165,7 +165,7 @@ export function TimePicker({
 
   const displayValue = value 
     ? formatDisplayTime(hours, minutes, period)
-    : placeholder
+    : placeholder ?? t("time.selectTime")
 
   // Note: previously the mobile branch used a native `<input type="time">`
   // overlay. iOS fired onChange on each wheel commit, which routed through
@@ -273,10 +273,10 @@ export function TimePicker({
               }`}
               size="sm"
             >
-              {hasChanges ? "Set Time" : "Set Time"}
+              {t("time.setTime")}
             </Button>
 
-            <div className="text-xs text-muted-foreground mb-2">Quick select:</div>
+            <div className="text-xs text-muted-foreground mb-2">{t("time.quickSelect")}</div>
             <div className="flex space-x-1 mb-2">
               {quickTimes.map((quickTime) => (
                 <Button

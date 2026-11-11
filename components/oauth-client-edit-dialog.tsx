@@ -117,9 +117,9 @@ export function OAuthClientEditDialog({
           pushes the actions off the bottom of the screen. */}
       <DialogContent className="max-w-xl flex flex-col max-h-[85vh] supports-[height:100dvh]:max-h-[85dvh]">
         <DialogHeader className="shrink-0">
-          <DialogTitle>Edit OAuth Application</DialogTitle>
+          <DialogTitle>{t('settingsPages.apiAccess.apps.editTitle')}</DialogTitle>
           <DialogDescription>
-            Update redirect URLs or other metadata required by your integrations.
+            {t('settingsPages.apiAccess.apps.editDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -149,7 +149,7 @@ export function OAuthClientEditDialog({
               )}
             </div>
             <div>
-              <Label htmlFor="redirect-uris-edit">Redirect URIs</Label>
+              <Label htmlFor="redirect-uris-edit">{t('settingsPages.apiAccess.apps.redirectUris')}</Label>
               <Textarea
                 id="redirect-uris-edit"
                 value={redirectUrisInput}
@@ -172,7 +172,7 @@ export function OAuthClientEditDialog({
             </div>
           </>
         ) : (
-          <p className="text-sm theme-text-muted">Select an OAuth app to edit.</p>
+          <p className="text-sm theme-text-muted">{t('settingsPages.apiAccess.apps.selectToEdit')}</p>
         )}
       </DialogContent>
     </Dialog>

@@ -8,6 +8,7 @@ import { Loader2 } from "lucide-react"
 import { planGoogleSignIn } from "@/lib/auth-host"
 import { scrollShellClassName } from "@/components/scroll-shell"
 import type { DesktopRedirectProvider } from "@/lib/auth/desktop-handoff"
+import { useTranslations } from "@/lib/i18n/client"
 
 interface Props {
   provider: DesktopRedirectProvider
@@ -18,10 +19,10 @@ interface Props {
   fallbackUrl: string
 }
 
-const PROVIDER_NAMES: Record<DesktopRedirectProvider, string> = {
+/** Brand names as they are; `sso` has no name of its own, so it is a translated phrase. */
+const PROVIDER_NAMES: Record<Exclude<DesktopRedirectProvider, "sso">, string> = {
   github: "GitHub",
   google: "Google",
-  sso: "single sign-on",
 }
 
 /**
@@ -33,6 +34,7 @@ const PROVIDER_NAMES: Record<DesktopRedirectProvider, string> = {
  * navigation, not a custom URL scheme.
  */
 export function DesktopProviderSignIn({ provider, appName, callbackUrl, fallbackUrl }: Props) {
+  const { t } = useTranslations()
   const started = useRef(false)
 
   useEffect(() => {
@@ -57,17 +59,21 @@ export function DesktopProviderSignIn({ provider, appName, callbackUrl, fallback
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Continuing to {PROVIDER_NAMES[provider]}</span>
+            <span>
+              {t("desktopSignInPage.continuingTo", {
+                provider: provider === "sso" ? t("desktopSignInPage.singleSignOn") : PROVIDER_NAMES[provider],
+              })}
+            </span>
           </CardTitle>
           <CardDescription className="theme-text-muted">
-            Sign in, and you will come back here to finish signing in to {appName}.
+            {t("desktopSignInPage.comeBack", { app: appName })}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-xs theme-text-muted">
-            Nothing happening?{" "}
+            {t("desktopSignInPage.nothingHappening")}{" "}
             <Link href={fallbackUrl} className="underline">
-              Choose another way to sign in
+              {t("desktopSignInPage.chooseAnother")}
             </Link>
           </p>
         </CardContent>

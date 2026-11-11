@@ -20,7 +20,12 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AgentLoopRecipes } from '@/components/agent-runtime-settings'
 
-vi.mock('@/lib/i18n/client', () => ({
+vi.mock('@/lib/i18n/client', async () => {
+  // The recipe prose lives in the locale file; read it from there so these
+  // tests keep asserting on the sentences a reader sees.
+  const en = (await import('@/lib/i18n/locales/en.json')).default
+  const runtime: Record<string, string> = en.settingsPages.aiAgents.runtime
+  return {
   useTranslations: () => ({
     t: (key: string) => ({
       'actions.copy': 'Copy',
@@ -29,9 +34,10 @@ vi.mock('@/lib/i18n/client', () => ({
       'settingsPages.aiAgents.githubMcp.create': 'Create GitHub setup',
       'settingsPages.apiAccess.title': 'API Access',
       'settingsPages.aiAgents.credentials.create': 'Create credentials for this workflow',
-    })[key] ?? key,
+    })[key] ?? runtime[key.replace('settingsPages.aiAgents.runtime.', '')] ?? key,
   }),
-}))
+  }
+})
 
 describe('AgentLoopRecipes tab filtering', () => {
   it('shows only the Claude Code recipe for the claude agent', () => {
