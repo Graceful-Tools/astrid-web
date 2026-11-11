@@ -60,14 +60,14 @@ export function OwnerLeaveDialog({
       <Card className="theme-bg-primary theme-border w-full max-w-lg mx-4 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
-            <AlertTriangle className="w-5 h-5 text-orange-400" />
+            <AlertTriangle className="w-5 h-5 text-warning" />
             <h2 className="text-lg font-semibold theme-text-primary">Transfer Ownership</h2>
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-200 p-1"
+            className="text-theme-muted hover:text-theme-primary p-1"
           >
             <X className="w-4 h-4" />
           </Button>
@@ -91,15 +91,15 @@ export function OwnerLeaveDialog({
                       key={member.user_id} 
                       className={`flex items-center space-x-3 p-2 rounded cursor-pointer border transition-all ${
                         selectedSuccessor === member.user_id 
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                          : 'border-gray-200 dark:border-gray-700 hover:theme-bg-hover'
+                          ? 'border-brand bg-theme-selected' 
+                          : 'border-theme-surface hover:theme-bg-hover'
                       }`}
                       onClick={() => setSelectedSuccessor(member.user_id)}
                     >
                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
                         selectedSuccessor === member.user_id 
-                          ? 'border-blue-500 bg-blue-500' 
-                          : 'border-gray-300 dark:border-gray-600'
+                          ? 'border-brand bg-brand' 
+                          : 'border-theme-input'
                       }`}>
                         {selectedSuccessor === member.user_id && (
                           <Check className="w-3 h-3 text-white" />
@@ -117,9 +117,9 @@ export function OwnerLeaveDialog({
                             {member.name || member.email}
                           </span>
                           {member.role === 'admin' ? (
-                            <Shield className="w-3 h-3 text-blue-400" />
+                            <Shield className="w-3 h-3 text-brand" />
                           ) : (
-                            <Users className="w-3 h-3 text-gray-400" />
+                            <Users className="w-3 h-3 text-theme-muted" />
                           )}
                         </div>
                         <span className="text-xs theme-text-muted">
@@ -135,7 +135,7 @@ export function OwnerLeaveDialog({
                 <Button
                   onClick={handleTransfer}
                   disabled={!selectedSuccessor || isProcessing}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  className="flex-1 bg-brand hover:bg-brand-hover text-brand-foreground"
                 >
                   <Crown className="w-4 h-4 mr-2" />
                   Transfer & Leave
@@ -166,7 +166,7 @@ export function OwnerLeaveDialog({
               variant="destructive"
               onClick={handleDelete}
               disabled={isProcessing}
-              className="w-full text-red-400 hover:text-red-300 hover:bg-red-900/20"
+              className="w-full text-danger hover:text-danger hover:bg-danger-subtle"
             >
               <Trash2 className="w-4 h-4 mr-2" />
               Delete List

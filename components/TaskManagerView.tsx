@@ -1108,10 +1108,10 @@ const TaskManagerView = memo(function TaskManagerView({
         // For featured lists OR copy-only public lists (not owner/admin), show Copy List button
         if (isViewingFromFeatured || (isPublicList && !isUserOwnerOrAdmin)) {
           return (
-            <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 z-30">
+            <div className="fixed bottom-0 left-0 right-0 bg-theme-surface border-t border-theme-surface p-4 z-30">
               <Button
                 onClick={() => selectedList && handleCopyList(selectedList.id)}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
               >
                 <Copy className="w-4 h-4 mr-2" />
                 Copy List

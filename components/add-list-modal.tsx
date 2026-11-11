@@ -181,7 +181,7 @@ export function AddListModal({ onClose, onCreateList, currentUser }: AddListModa
                   onClick={handleAddMember}
                   disabled={!memberInput.trim() || !memberInput.includes('@')}
                   size="sm"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4"
+                  className="bg-brand hover:bg-brand-hover text-brand-foreground px-4"
                 >
                   Add
                 </Button>
@@ -222,7 +222,7 @@ export function AddListModal({ onClose, onCreateList, currentUser }: AddListModa
           <Button
             onClick={handleCreateList}
             disabled={!listName.trim() || isCreating}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+            className="flex-1 bg-brand hover:bg-brand-hover text-brand-foreground"
           >
             {isCreating ? "Creating..." : "Create new list"}
           </Button>

@@ -356,9 +356,9 @@ export function OAuthAppManager() {
     <div className="space-y-6">
       {/* Error Display */}
       {error && (
-        <Card className="border-red-500 bg-red-50 dark:bg-red-950">
+        <Card className="border-danger bg-danger-subtle">
           <CardContent className="pt-6">
-            <div className="flex flex-wrap items-center gap-2 text-red-700 dark:text-red-300">
+            <div className="flex flex-wrap items-center gap-2 text-danger">
               <AlertTriangle className="w-5 h-5" />
               <span>{error}</span>
             </div>
@@ -413,7 +413,7 @@ export function OAuthAppManager() {
                     {copiedField === 'secret' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   </Button>
                 </div>
-                <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+                <p className="text-sm text-danger mt-2">
                   ⚠️ This secret will only be shown once. Copy it now!
                 </p>
               </div>
@@ -639,7 +639,7 @@ export function OAuthAppManager() {
               <Input
                 value={testingClient?.name || ''}
                 readOnly
-                className="bg-gray-50"
+                className="bg-theme-secondary"
               />
             </div>
 
@@ -648,7 +648,7 @@ export function OAuthAppManager() {
               <Input
                 value={testingClient?.clientId || ''}
                 readOnly
-                className="font-mono text-sm bg-gray-50"
+                className="font-mono text-sm bg-theme-secondary"
               />
             </div>
 

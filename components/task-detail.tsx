@@ -1215,12 +1215,12 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       {!inline && !onClose ? (
         <div
           className="task-panel-arrow theme-panel-arrow"
-          style={{ top: `${arrowTop}px`, transition: 'top 0.15s ease-out' }}
+          style={{ top: `${arrowTop}px`, transition: 'top var(--astrid-motion-fast-duration) var(--astrid-motion-fast-ease)' }}
         ></div>
       ) : !inline ? (
         <div
           className="task-panel-arrow theme-panel-arrow hidden cols2:block"
-          style={{ top: `${arrowTop}px`, transition: 'top 0.15s ease-out' }}
+          style={{ top: `${arrowTop}px`, transition: 'top var(--astrid-motion-fast-duration) var(--astrid-motion-fast-ease)' }}
         ></div>
       ) : null}
       <div
@@ -1320,7 +1320,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
             <div className="flex items-center space-x-2 theme-text-muted">
               {pullToRefresh.isRefreshing ? (
                 <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-brand"></div>
                   <span className="text-sm font-medium">Refreshing...</span>
                 </>
               ) : pullToRefresh.canRefresh ? (
@@ -1444,11 +1444,11 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
 
       {/* Footer with Action Buttons - only for new tasks now */}
       {isNewTask && onSaveNew && (
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-t border-theme-surface">
           <Button
             size="sm"
             onClick={handleSaveNewTask}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-full bg-brand hover:bg-brand-hover text-brand-foreground"
           >
             <Check className="w-4 h-4 mr-2" />
             Save New Task

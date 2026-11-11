@@ -227,7 +227,7 @@ export function TaskActionMenu({
         {showDelete && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onDelete} className="text-red-600 focus:text-red-600">
+            <DropdownMenuItem onClick={onDelete} className="text-danger focus:text-danger">
               <Trash2 className="w-4 h-4 mr-2" />
               Delete
             </DropdownMenuItem>
@@ -236,7 +236,7 @@ export function TaskActionMenu({
         {reminderDebugMode && (
           <>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={onTestReminder} className="text-orange-500 focus:text-orange-500">
+            <DropdownMenuItem onClick={onTestReminder} className="text-warning focus:text-warning">
               <Bug className="w-4 h-4 mr-2" />
               Test Reminder
             </DropdownMenuItem>

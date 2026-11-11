@@ -99,8 +99,8 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
     if (count >= 1000) return "text-purple-600 dark:text-purple-400 font-bold"
     if (count >= 100) return "text-blue-600 dark:text-blue-400 font-semibold"
     if (count >= 10) return "text-green-600 dark:text-green-400"
-    if (count >= 5) return "text-gray-600 dark:text-gray-400"
-    return "text-gray-500 dark:text-gray-500"
+    if (count >= 5) return "text-theme-secondary"
+    return "text-theme-muted"
   }
 
   // Fetch public lists
@@ -370,10 +370,10 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                   publicLists.map((list) => (
                     <div
                       key={list.id}
-                      className={`p-3 rounded-lg theme-border border cursor-pointer transition-all ${
+                      className={`p-3 rounded-lg border cursor-pointer transition-all ${
                         selectedList?.id === list.id
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                          : "theme-bg-primary hover:theme-bg-hover"
+                          ? "border-brand bg-theme-selected"
+                          : "border-theme theme-bg-primary hover:theme-bg-hover"
                       }`}
                       onClick={() => loadListPreview(list.id)}
                     >
@@ -470,7 +470,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                     <Button
                       onClick={() => copyList(selectedList.id, selectedList.name)}
                       disabled={copying === selectedList.id}
-                      className="bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+                      className="bg-brand hover:bg-brand-hover text-brand-foreground shrink-0"
                     >
                       <Copy className="w-4 h-4 mr-2" />
                       {copying === selectedList.id ? "Copying..." : isMobile ? "Copy" : "Copy to My Lists"}
@@ -526,7 +526,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                           <div key={task.id} className="p-3 theme-bg-primary rounded theme-border border">
                             <div className="flex items-start gap-2">
                               <CheckSquare className={`w-4 h-4 mt-0.5 ${
-                                task.completed ? "text-green-600" : "theme-text-muted"
+                                task.completed ? "text-success" : "theme-text-muted"
                               }`} />
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1 flex-wrap">

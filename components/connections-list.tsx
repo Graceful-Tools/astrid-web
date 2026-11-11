@@ -46,8 +46,8 @@ import { groupByCategory } from '@/lib/connections/connection-taxonomy'
 import type { V1Connection, V1ConnectionsResponse } from '@/lib/api-contracts/v1-ios-shapes'
 
 const STATUS_TINT: Record<V1Connection['status'], string> = {
-  active: 'bg-green-600 text-white',
-  expired: 'text-yellow-600 dark:text-yellow-400',
+  active: 'bg-success text-success-foreground',
+  expired: 'text-warning',
   disabled: '',
 }
 
@@ -134,7 +134,7 @@ export function ConnectionsList() {
   return (
     <div className="space-y-2">
       {reviews.size > 0 && (
-        <p data-testid="connections-review-summary" className="text-sm text-yellow-600 dark:text-yellow-400">
+        <p data-testid="connections-review-summary" className="text-sm text-warning">
           {reviews.size === 1
             ? t('settingsPages.connections.review.summaryOne')
             : t('settingsPages.connections.review.summaryMany', { count: String(reviews.size) })}
@@ -207,7 +207,7 @@ export function ConnectionsList() {
                     const review = reviews.get(connectionKey(connection))
                     if (!review) return null
                     return (
-                      <div className="text-xs text-yellow-600 dark:text-yellow-400">
+                      <div className="text-xs text-warning">
                         {t(`settingsPages.connections.review.${review.reason}`, { days: String(review.days) })}
                       </div>
                     )
@@ -228,7 +228,7 @@ export function ConnectionsList() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                      className="text-danger hover:text-danger hover:bg-danger-subtle"
                       onClick={() => setPending(connection)}
                     >
                       <ShieldOff className="w-4 h-4 mr-1" />
@@ -236,7 +236,7 @@ export function ConnectionsList() {
                     </Button>
                   )}
                   {connection.manageIn === 'agents' && (
-                    <Link href="/settings/agents" className="text-xs text-blue-500 hover:underline">
+                    <Link href="/settings/agents" className="text-xs text-brand hover:underline">
                       {t('settingsPages.connections.manageInAgents')}
                     </Link>
                   )}
@@ -257,7 +257,7 @@ export function ConnectionsList() {
       <Dialog open={!!pending} onOpenChange={open => !open && !revoking && setPending(null)}>
         <DialogContent className="theme-bg-secondary theme-border">
           <DialogHeader>
-            <DialogTitle className="text-red-400">
+            <DialogTitle className="text-danger">
               {t('settingsPages.connections.revoke')}
             </DialogTitle>
             <DialogDescription className="theme-text-muted">

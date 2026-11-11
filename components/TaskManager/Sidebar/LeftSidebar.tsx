@@ -248,7 +248,7 @@ export function LeftSidebar({
                 isMobile ? 'mobile-list-item text-left' : ''
               } ${
                 activeView === 'search'
-                  ? "bg-blue-600 !text-white hover:bg-blue-700 hover:!text-white"
+                  ? "bg-brand !text-brand-foreground hover:bg-brand-hover hover:!text-brand-foreground"
                   : "theme-text-secondary hover:theme-text-primary hover:theme-bg-hover"
               }`}
               onClick={handleSearchClick}
@@ -266,7 +266,7 @@ export function LeftSidebar({
                 isMobile ? 'mobile-list-item text-left' : ''
               } ${
                 activeView === 'list' && selectedListId === "my-tasks"
-                  ? "bg-blue-600 !text-white hover:bg-blue-700 hover:!text-white"
+                  ? "bg-brand !text-brand-foreground hover:bg-brand-hover hover:!text-brand-foreground"
                   : "theme-text-secondary hover:theme-text-primary hover:theme-bg-hover"
               }`}
               onClick={() => handleListClick("my-tasks")}
@@ -398,7 +398,7 @@ export function LeftSidebar({
             {collaborativePublicLists.length > 2 && (
               <button
                 onClick={() => setShowPublicBrowser(true)}
-                className="w-full mt-2 px-4 py-2 text-sm text-[rgb(var(--theme-accent))] hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-left"
+                className="w-full mt-2 px-4 py-2 text-sm text-brand hover:bg-theme-hover rounded-lg transition-colors text-left"
               >
                 {t("navigation.seeAllCollaborative")}
               </button>
@@ -439,7 +439,7 @@ export function LeftSidebar({
             {suggestedPublicLists.length > 2 && (
               <button
                 onClick={() => setShowPublicBrowser(true)}
-                className="w-full mt-2 px-4 py-2 text-sm text-[rgb(var(--theme-accent))] hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-left"
+                className="w-full mt-2 px-4 py-2 text-sm text-brand hover:bg-theme-hover rounded-lg transition-colors text-left"
               >
                 {t("navigation.seeAllSuggested")}
               </button>
@@ -457,7 +457,7 @@ export function LeftSidebar({
           onClick={handleSettingsClick}
           className={`w-full p-3 h-auto justify-start ${
             activeView === 'settings'
-              ? "bg-blue-600 !text-white hover:bg-blue-700 hover:!text-white"
+              ? "bg-brand !text-brand-foreground hover:bg-brand-hover hover:!text-brand-foreground"
               : "theme-text-secondary hover:theme-text-primary hover:theme-bg-hover"
           }`}
         >
