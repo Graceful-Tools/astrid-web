@@ -103,8 +103,9 @@ What each shared component looks like, in tokens. The core says which one to dra
 
 ### Priority
 
-Four values, one colour each: `priority-none`, `priority-low` (the brand accent),
-`priority-medium`, `priority-high`. Glyphs `○ ! !! !!!`. The same colour in the row, the
+Four values, one colour each: `priority-none`, `priority-low` (the brand accent; in Dark
+its lighter shade, because the accent that carries a white label is 2.84:1 on a dark
+card, register DS26), `priority-medium`, `priority-high`. Glyphs `○ ! !! !!!`. The same colour in the row, the
 pickers, filters and headers.
 
 ### Leading control
