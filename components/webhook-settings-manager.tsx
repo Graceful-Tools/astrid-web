@@ -571,7 +571,7 @@ export function WebhookSettingsManager() {
                   href="https://www.npmjs.com/package/@gracefultools/astrid-sdk"
                   target="_blank"
                   rel="noreferrer"
-                  className="text-blue-500 hover:underline"
+                  className="text-[rgb(var(--theme-accent))] hover:underline"
                 >
                   {BRAND.appName} SDK
                 </a>{' '}
@@ -584,7 +584,7 @@ export function WebhookSettingsManager() {
             <p className="text-sm theme-text-muted">
               For a guided setup without a webhook receiver, choose Polling in Settings → AI Agents
               and follow the{' '}
-              <Link href="/docs/loops" className="text-blue-500 hover:underline">
+              <Link href="/docs/loops" className="text-[rgb(var(--theme-accent))] hover:underline">
                 MCP + queue-skill recipes
               </Link>
               .
