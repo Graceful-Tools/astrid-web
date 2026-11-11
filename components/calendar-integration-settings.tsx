@@ -1,6 +1,6 @@
 "use client"
 
-import { BRAND } from '@/lib/brand/config'
+import { useTranslations } from '@/lib/i18n/client'
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -14,6 +14,7 @@ import type { ReminderSettings } from "@/types/reminder"
 interface CalendarIntegrationSettingsProps {}
 
 export function CalendarIntegrationSettings({}: CalendarIntegrationSettingsProps) {
+  const { t } = useTranslations()
   const { toast } = useToast()
   const [settings, setSettings] = useState<ReminderSettings | null>(null)
   const [loading, setLoading] = useState(true)
@@ -109,7 +110,7 @@ export function CalendarIntegrationSettings({}: CalendarIntegrationSettingsProps
         <CardContent className="p-6">
           <div className="flex items-center space-x-2">
             <RefreshCw className="w-4 h-4 animate-spin theme-text-muted" />
-            <span className="theme-text-muted">Loading calendar settings...</span>
+            <span className="theme-text-muted">{t('settingsPages.calendar.loading')}</span>
           </div>
         </CardContent>
       </Card>
@@ -125,19 +126,19 @@ export function CalendarIntegrationSettings({}: CalendarIntegrationSettingsProps
       <CardHeader>
         <CardTitle className="theme-text-primary flex items-center space-x-2">
           <Calendar className="w-5 h-5" />
-          <span>Calendar Integration</span>
+          <span>{t('settingsPages.calendar.title')}</span>
         </CardTitle>
         <CardDescription className="theme-text-muted">
-          Sync your tasks with external calendar applications
+          {t('settingsPages.calendar.description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Enable Calendar Sync */}
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <Label className="theme-text-secondary">Enable Calendar Sync</Label>
+            <Label className="theme-text-secondary">{t('settingsPages.calendar.enableSync')}</Label>
             <p className="text-sm theme-text-muted">
-              Allow your tasks to be exported to calendar applications
+              {t('settingsPages.calendar.enableSyncDescription')}
             </p>
           </div>
           <Switch
@@ -152,7 +153,7 @@ export function CalendarIntegrationSettings({}: CalendarIntegrationSettingsProps
           <>
             {/* Calendar Sync Type */}
             <div className="space-y-2">
-              <Label className="theme-text-secondary">What to include in calendar</Label>
+              <Label className="theme-text-secondary">{t('settingsPages.calendar.include')}</Label>
               <Select
                 value={settings.calendarSyncType}
                 onValueChange={(value) => updateSetting('calendarSyncType', value)}
@@ -162,9 +163,9 @@ export function CalendarIntegrationSettings({}: CalendarIntegrationSettingsProps
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All tasks</SelectItem>
-                  <SelectItem value="with_due_times">Only tasks with due dates/times</SelectItem>
-                  <SelectItem value="none">None (disabled)</SelectItem>
+                  <SelectItem value="all">{t('listSettings.show.allTasks')}</SelectItem>
+                  <SelectItem value="with_due_times">{t('settingsPages.calendar.onlyWithDue')}</SelectItem>
+                  <SelectItem value="none">{t('settingsPages.calendar.noneDisabled')}</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs theme-text-muted">
@@ -177,7 +178,7 @@ export function CalendarIntegrationSettings({}: CalendarIntegrationSettingsProps
             {/* Calendar Actions */}
             {settings.calendarSyncType !== 'none' && (
               <div className="space-y-4 pt-4 border-t theme-border">
-                <Label className="theme-text-secondary">Calendar Export</Label>
+                <Label className="theme-text-secondary">{t('settingsPages.calendar.export')}</Label>
                 
                 {/* Download Options */}
                 <div className="space-y-3">
@@ -188,7 +189,7 @@ export function CalendarIntegrationSettings({}: CalendarIntegrationSettingsProps
                       className="w-full justify-start bg-brand-subtle hover:bg-brand/20 border-brand/30 text-brand"
                     >
                       <Download className="w-4 h-4 mr-2" />
-                      Download Calendar File (.ics)
+                      {t('settingsPages.calendar.downloadIcs')}
                     </Button>
                     <p className="text-xs theme-text-muted ml-6">
                       One-time download to import into your calendar app
@@ -202,22 +203,22 @@ export function CalendarIntegrationSettings({}: CalendarIntegrationSettingsProps
                       className="w-full justify-start bg-success-subtle hover:bg-success/20 border-success/30 text-success"
                     >
                       <ExternalLink className="w-4 h-4 mr-2" />
-                      Subscribe to Live Calendar
+                      {t('settingsPages.calendar.subscribe')}
                     </Button>
                     <p className="text-xs theme-text-muted ml-6">
-                      Live subscription that automatically updates as tasks change
+                      {t('settingsPages.calendar.subscribeDescription')}
                     </p>
                   </div>
                 </div>
 
                 {/* Instructions */}
                 <div className="p-4 theme-bg-tertiary rounded-lg">
-                  <h4 className="text-sm font-medium theme-text-secondary mb-2">How to use:</h4>
+                  <h4 className="text-sm font-medium theme-text-secondary mb-2">{t('settingsPages.calendar.howToUse')}</h4>
                   <ul className="text-xs theme-text-muted space-y-1">
-                    <li>• <strong>Download:</strong> Import the .ics file once into Google Calendar, Apple Calendar, or Outlook</li>
-                    <li>• <strong>Subscribe:</strong> Add the webcal URL to automatically sync changes (recommended)</li>
-                    <li>• Your tasks will appear as all-day events or at their scheduled times</li>
-                    <li>• Updates to tasks in {BRAND.appName} will be reflected in subscribed calendars</li>
+                    <li>• <strong>{t('settingsPages.calendar.downloadLabel')}</strong> {t('settingsPages.calendar.howDownload')}</li>
+                    <li>• <strong>{t('settingsPages.calendar.subscribeLabel')}</strong> {t('settingsPages.calendar.howSubscribe')}</li>
+                    <li>• {t('settingsPages.calendar.howAppear')}</li>
+                    <li>• {t('settingsPages.calendar.howUpdates')}</li>
                   </ul>
                 </div>
               </div>
