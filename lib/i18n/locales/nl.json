@@ -217,7 +217,10 @@
     "hoursBefore": "{count} uur eerder",
     "dayBefore": "1 dag eerder",
     "daysBefore": "{count} dagen eerder",
-    "weekBefore": "1 week eerder"
+    "weekBefore": "1 week eerder",
+    "quickSelect": "Snelkeuze:",
+    "setTime": "Tijd instellen",
+    "selectTime": "Tijd selecteren"
   },
   "repeating": {
     "oneTimeOnly": "Eenmalig",
@@ -511,6 +514,12 @@
         "title": "GitHub-verbinding",
         "description": "Codeeragents die op de server draaien, gebruiken de GitHub-verbinding onder Instellingen → Verbindingen, waar elke verbonden organisatie staat.",
         "open": "Verbindingen openen"
+      },
+      "yourAgents": {
+        "title": "Je agents",
+        "description": "Kies wie elke agent uitvoert. {astridRuns} heeft de API-sleutel van die provider nodig. {selfRuns} gebruikt de codeertool waarvoor je al betaalt: native harness-polling, een Custom Agent of een webhookserver die je zelf host.",
+        "astridRuns": "{appName} voert hem uit",
+        "selfRuns": "Ik voer hem uit"
       }
     },
     "apiAccess": {
@@ -704,7 +713,19 @@
       "saveChanges": "Wijzigingen Opslaan",
       "saving": "Opslaan...",
       "clickToChangePhoto": "Klik om profielfoto te wijzigen",
-      "viewPublicProfile": "Openbaar Profiel Bekijken"
+      "viewPublicProfile": "Openbaar Profiel Bekijken",
+      "syncedWithOAuth": "Momenteel gesynchroniseerd met je OAuth-provider",
+      "uploading": "Uploaden...",
+      "displayNamePlaceholder": "Voer je weergavenaam in",
+      "toasts": {
+        "successTitle": "Gelukt!",
+        "updated": "Je accountgegevens zijn bijgewerkt.",
+        "updateFailed": "Accountgegevens bijwerken is mislukt.",
+        "photoUploadedTitle": "Foto geüpload!",
+        "photoUploadedDesc": "Klik op 'Wijzigingen Opslaan' om je profiel bij te werken.",
+        "uploadFailedTitle": "Uploaden mislukt",
+        "uploadFailedDesc": "Foto uploaden is mislukt. Probeer het opnieuw."
+      }
     },
     "emailVerification": {
       "title": "E-mailverificatie",
@@ -716,7 +737,10 @@
       "verificationSent": "Verificatie-e-mail Verzonden!",
       "checkEmail": "Controleer je e-mail en klik op de verificatielink.",
       "pendingChange": "E-mailwijziging in behandeling",
-      "waitingVerification": "Wachten op verificatie"
+      "waitingVerification": "Wachten op verificatie",
+      "waitingVerificationFor": "Wachten op verificatie: {email}",
+      "unknownEmail": "Onbekend",
+      "loadingEmail": "Laden..."
     },
     "passkeys": {
       "title": "Passkeys",
@@ -724,7 +748,24 @@
       "addPasskey": "Passkey Toevoegen",
       "addingPasskey": "Passkey toevoegen...",
       "noPasskeys": "Nog geen passkeys geregistreerd",
-      "addPasskeyHint": "Voeg een passkey toe voor sneller inloggen zonder wachtwoord"
+      "addPasskeyHint": "Voeg een passkey toe voor sneller inloggen zonder wachtwoord",
+      "loading": "Passkeys laden...",
+      "fallbackName": "Passkey",
+      "added": "Toegevoegd op {date}",
+      "synced": "Gesynchroniseerd",
+      "tipBiometrics": "Passkeys gebruiken biometrie of de pincode van je apparaat voor authenticatie",
+      "tipSynced": "Gesynchroniseerde passkeys werken automatisch op al je apparaten",
+      "tipSecure": "Veiliger dan wachtwoorden – bestand tegen phishing",
+      "toasts": {
+        "addedTitle": "Passkey toegevoegd!",
+        "addedDesc": "Je nieuwe passkey is geregistreerd.",
+        "renamedTitle": "Passkey hernoemd",
+        "renamedDesc": "Je passkey is hernoemd.",
+        "renameFailed": "Passkey hernoemen is mislukt.",
+        "deletedTitle": "Passkey verwijderd",
+        "deletedDesc": "Je passkey is verwijderd.",
+        "deleteFailed": "Passkey verwijderen is mislukt."
+      }
     },
     "accountInfo": {
       "title": "Accountinformatie",
@@ -759,7 +800,8 @@
       "confirmDescription": "Deze actie is permanent en kan niet ongedaan worden gemaakt.",
       "typeToConfirm": "Typ {phrase} om te bevestigen",
       "permanentlyDelete": "Account Permanent Verwijderen",
-      "deleting": "Verwijderen..."
+      "deleting": "Verwijderen...",
+      "dialogWarning": "Al je gegevens worden permanent verwijderd, inclusief taken, lijsten en bestanden."
     },
     "appearancePage": {
       "title": "Uiterlijk en Gebruikerservaring",
@@ -781,7 +823,8 @@
         "viewShortcuts": "Bekijk Sneltoetsen",
         "viewTitle": "Sneltoetsen Bekijken",
         "viewDesc": "Bekijk alle beschikbare sneltoetsen voor efficiënt taakbeheer",
-        "quickAccess": "Druk overal in de taakmanager op ? om sneltoetsen te openen."
+        "quickAccess": "Druk overal in de taakmanager op ? om sneltoetsen te openen.",
+        "quickAccessLabel": "Snelle toegang"
       },
       "taskDisplayMode": {
         "title": "Indeling van taakdetails",
@@ -822,6 +865,22 @@
         "configure": "E-mailinstellingen Configureren",
         "configureDesc": "Pas standaard vervaldatums aan, schakel de functie in/uit en meer",
         "proTip": "Het e-mailonderwerp wordt de taaktitel en de body wordt de beschrijving. Perfect voor snel taken vastleggen vanuit je inbox!"
+      },
+      "tipLabel": "Tip",
+      "smartTasks": {
+        "title": "Slim taken aanmaken",
+        "description": "Datums, prioriteiten en lijst-hashtags automatisch uit taaktitels halen",
+        "enable": "Slimme herkenning inschakelen",
+        "enableDesc": "Taakgegevens uit invoer in natuurlijke taal halen",
+        "supportedPatterns": "Ondersteunde patronen:"
+      },
+      "subtasks": {
+        "title": "Subtaken",
+        "description": "Hoe subtaken in je lijsten verschijnen (gesynchroniseerd tussen apparaten)",
+        "label": "Subtaken tonen",
+        "labelDesc": "Ingesprongen in lijsten, of alleen binnen de bovenliggende taak",
+        "indented": "In lijsten, ingesprongen",
+        "underParent": "Alleen binnen de bovenliggende taak"
       }
     },
     "aiIntegrations": {
@@ -1008,7 +1067,9 @@
       "developer": {
         "title": "Ontwikkelaar",
         "description": "Maak OAuth-apps handmatig, test de API en verbind assistenten die OpenAPI spreken.",
-        "openTester": "API-tester openen"
+        "openTester": "API-tester openen",
+        "apiDocs": "API-documentatie",
+        "integrationGuide": "Integratiegids"
       },
       "github": {
         "title": "GitHub",
@@ -1072,6 +1133,49 @@
         "selectAtLeastOne": "Selecteer minstens één scope",
         "selectApp": "Selecteer een app."
       }
+    },
+    "openInNewTab": "Openen in nieuw tabblad",
+    "githubSetup": {
+      "loading": "GitHub-installatie laden...",
+      "authenticating": "Authenticeren...",
+      "failedTitle": "Installatie mislukt",
+      "failedDescription": "Er is een fout opgetreden bij het instellen van de GitHub-integratie",
+      "errorDetail": "Fout: {error}",
+      "returnToSettings": "Terug naar Instellingen",
+      "processingTitle": "GitHub-installatie verwerken",
+      "processingDescription": "Je GitHub-installatie verbinden...",
+      "pleaseWait": "Even geduld terwijl we je GitHub-integratie configureren...",
+      "connectedTitle": "GitHub verbonden!",
+      "connectedDescription": "Je GitHub-integratie is klaar voor gebruik",
+      "connectedBody": "Je kunt nu de {appName}-agent gebruiken om code te genereren en pull requests aan te maken.",
+      "continueToSettings": "Doorgaan naar Instellingen"
+    },
+    "tasksPage": {
+      "title": "Taakinstellingen",
+      "description": "Standaardgedrag van taken en voorkeuren voor e-mail naar taak instellen",
+      "saved": "Instellingen opgeslagen!",
+      "saveFailed": "Instellingen opslaan is mislukt",
+      "emailDescription": "Maak taken door e-mails te sturen naar {inboundTaskEmail}",
+      "enable": "E-mail naar Taak inschakelen",
+      "enableDesc": "Taken aanmaken via e-mail toestaan",
+      "defaultDueDate": "Standaard vervaldatum",
+      "offset1Day": "1 dag",
+      "offset3Days": "3 dagen",
+      "offset1Week": "1 week (standaard)",
+      "dueDateHint": "Taken die via e-mail zijn aangemaakt, vervallen dit aantal dagen na de verzenddatum",
+      "defaultDueTime": "Standaard vervaltijd",
+      "time0900": "9:00",
+      "time1200": "12:00 (middag)",
+      "time1700": "17:00 (standaard)",
+      "time2000": "20:00",
+      "dueTimeHint": "Tijdstip voor taken die via e-mail zijn aangemaakt",
+      "howTo": "Zo gebruik je E-mail naar Taak:",
+      "assignedTaskDesc": "Zet {inboundTaskEmail} in CC met één ontvanger in AAN",
+      "subjectLine": "{subject} wordt de taaktitel",
+      "subject": "Onderwerp",
+      "bodyLine": "{body} wordt de taakbeschrijving",
+      "body": "Berichttekst",
+      "saveSettings": "Instellingen opslaan"
     }
   },
   "projectMode": {
@@ -1162,6 +1266,76 @@
     "memberAgentAssignment": {
       "label": "Leden kunnen elke taak aan een agent geven",
       "help": "Laat elk lid van deze lijst een agent aan elke taak hier toewijzen, niet alleen aan taken die ze zelf hebben gemaakt. De agents draaien op de abonnementen van de lijsteigenaar."
+    },
+    "admin": {
+      "descriptionLabel": "Lijstbeschrijving",
+      "descriptionInfo": "De lijstbeschrijving wordt gebruikt als instructies voor AI-agents die in deze lijst werken",
+      "preview": "Voorbeeld",
+      "charCount": "{count} tekens",
+      "noInstructionsYet": "*Nog geen instructies*",
+      "instructionsPlaceholder": "Schrijf instructies voor AI-agents die in deze lijst werken...\n\nVoorbeeld:\nJe helpt ons gezin met het plannen van maaltijden.\n\n## Doelen\n- Gezonde recepten voorstellen\n- Wekelijkse boodschappenlijsten maken\n\n## Grenzen\n- Geen schaaldieren (allergie)\n- Budget: $150/week",
+      "agentsReceive": "Agents ontvangen dit als hun primaire context. Ondersteunt markdown.",
+      "starterTemplates": "Startsjablonen",
+      "clickToEdit": "Klik om te bewerken",
+      "clickToAddInstructions": "Klik om agentinstructies toe te voegen...",
+      "agentsUseGuidance": "AI-agents gebruiken dit als belangrijkste leidraad wanneer ze aan taken in deze lijst werken",
+      "taskCreator": "Maker van de taak",
+      "memberNotFound": "Lid niet gevonden",
+      "clickToSet": "Klik om in te stellen...",
+      "defaultPriority": "Standaardprioriteit",
+      "defaultAssignee": "Standaard toegewezen aan",
+      "selectDefaultAssignee": "Selecteer standaard toegewezen persoon...",
+      "defaultWhen": "Standaard wanneer",
+      "nextWeek": "Volgende week",
+      "noDefaultWhenButton": "Geen standaard wanneer",
+      "noDefaultWhen": "Geen standaard wanneer",
+      "defaultRepeating": "Standaardherhaling",
+      "defaultWhenTime": "Standaardtijd",
+      "noDefaultTime": "Geen standaardtijd",
+      "timezone": "Tijdzone: {timezone}",
+      "deleteList": "Lijst verwijderen",
+      "deleteConfirm": "Weet je zeker dat je \"{name}\" wilt verwijderen?",
+      "deleteWarning": "Deze actie kan niet ongedaan worden gemaakt. Alle taken in deze lijst blijven bestaan, maar zijn niet langer aan deze lijst gekoppeld.",
+      "dontDelete": "Niet verwijderen",
+      "notConnected": "Niet verbonden.",
+      "connect": "Verbinden",
+      "unlink": "Ontkoppelen",
+      "mirrorPlaceholder": "Kies waar deze lijst wordt gespiegeld",
+      "externalSyncTitle": "Externe synchronisatie",
+      "externalSyncDescription": "Spiegel deze lijst naar een andere dienst en terug, via je verbonden account.",
+      "aiAgent": "AI-agent",
+      "modelForList": "{appName}-model voor deze lijst",
+      "useAccountDefault": "Accountstandaard gebruiken",
+      "modelHint": "Stuurt {appName} aan in de chat en opmerkingen van deze lijst. Codeeragents die aan taken zijn toegewezen, houden hun eigen runtime.",
+      "repositoryLabel": "Repository waarin de codeeragent werkt",
+      "loading": "Laden...",
+      "selectRepo": "Repository selecteren",
+      "noRepositories": "Geen repository's gevonden. Controleer of de GitHub App toegang heeft tot je repository's.",
+      "connectGithub": "Verbind GitHub om de repository te kiezen waarin een codeeragent werkt — {link}",
+      "connectGithubLink": "Instellingen → Verbindingen → GitHub",
+      "runLoop": "Een loop voor deze lijst uitvoeren",
+      "loopDescription": "Je codeerharness controleert deze lijst volgens een schema en werkt aan alles wat eraan is toegewezen en als {ready} is gemarkeerd. Taken op andere borden worden nooit aangeraakt.",
+      "readyStatus": "Ready",
+      "descriptionHint": "Agents lezen de {description} van deze lijst als hun werkinstructies — bewerk die hierboven als een projectbriefing.",
+      "descriptionWord": "beschrijving",
+      "listId": "Lijst-ID",
+      "copyListId": "Lijst-ID kopiëren",
+      "listIdHint": "Gebruik deze ID voor OAuth-API-integraties en codeeragents",
+      "listName": "Lijstnaam",
+      "statusesIntro": "Ready, Doing en Waiting gelden voor {all} je borden. Een status die je hier toevoegt, hoort alleen bij dit bord.",
+      "statusesIntroAll": "al",
+      "saveName": "Naam opslaan",
+      "moveUp": "{name} omhoog verplaatsen",
+      "moveDown": "{name} omlaag verplaatsen",
+      "renameStatus": "{name} hernoemen",
+      "deleteStatus": "{name} verwijderen",
+      "newStatusName": "Naam van nieuwe status",
+      "renameStatusFailed": "Status hernoemen is mislukt",
+      "reorderStatusFailed": "Status herordenen is mislukt",
+      "deleteStatusFailed": "Status verwijderen is mislukt",
+      "addStatusFailed": "Status toevoegen is mislukt",
+      "recentlyCompletedLabel": "Geavanceerd — Venster voor recent voltooid",
+      "recentlyCompletedDescription": "Hoe lang voltooide taken zichtbaar blijven in de standaardweergave (en in de Done-kolom op borden). Oudere voltooide taken worden weggefilterd; zet de lijst op ‘Voltooid’ of ‘Alle’ om ze te zien."
     }
   },
   "reminderSettings": {
@@ -1246,5 +1420,12 @@
       "hours": "{n} u",
       "days": "{n} d"
     }
+  },
+  "richTextInput": {
+    "placeholder": "Typ een bericht...",
+    "timer": "Timer",
+    "uploading": "Uploaden...",
+    "attachFile": "Bestand bijvoegen",
+    "removeFile": "{name} verwijderen"
   }
 }

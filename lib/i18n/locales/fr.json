@@ -217,7 +217,10 @@
     "hoursBefore": "{count} heures avant",
     "dayBefore": "1 jour avant",
     "daysBefore": "{count} jours avant",
-    "weekBefore": "1 semaine avant"
+    "weekBefore": "1 semaine avant",
+    "quickSelect": "Sélection rapide :",
+    "setTime": "Définir l'heure",
+    "selectTime": "Sélectionner l'heure"
   },
   "repeating": {
     "oneTimeOnly": "Une seule fois",
@@ -511,6 +514,12 @@
         "title": "Connexion GitHub",
         "description": "Les agents de code exécutés sur le serveur utilisent la connexion GitHub de Réglages → Connexions, où chaque organisation connectée est listée.",
         "open": "Ouvrir Connexions"
+      },
+      "yourAgents": {
+        "title": "Vos agents",
+        "description": "Choisissez qui exécute chaque agent. {astridRuns} nécessite la clé API du fournisseur concerné. {selfRuns} utilise l'outil de développement que vous payez déjà : interrogation native du harness, un agent personnalisé ou un serveur de webhooks que vous hébergez.",
+        "astridRuns": "{appName} l'exécute",
+        "selfRuns": "Je l'exécute"
       }
     },
     "apiAccess": {
@@ -704,7 +713,19 @@
       "saveChanges": "Enregistrer les modifications",
       "saving": "Enregistrement...",
       "clickToChangePhoto": "Cliquez pour changer la photo de profil",
-      "viewPublicProfile": "Voir le profil public"
+      "viewPublicProfile": "Voir le profil public",
+      "syncedWithOAuth": "Actuellement synchronisé avec votre fournisseur OAuth",
+      "uploading": "Envoi en cours...",
+      "displayNamePlaceholder": "Saisissez votre nom d'affichage",
+      "toasts": {
+        "successTitle": "Succès !",
+        "updated": "Les informations de votre compte ont été mises à jour.",
+        "updateFailed": "Impossible de mettre à jour les informations du compte.",
+        "photoUploadedTitle": "Photo envoyée !",
+        "photoUploadedDesc": "Cliquez sur « Enregistrer les modifications » pour mettre à jour votre profil.",
+        "uploadFailedTitle": "Échec de l'envoi",
+        "uploadFailedDesc": "Impossible d'envoyer la photo. Veuillez réessayer."
+      }
     },
     "emailVerification": {
       "title": "Vérification de l'e-mail",
@@ -716,7 +737,10 @@
       "verificationSent": "E-mail de vérification envoyé !",
       "checkEmail": "Veuillez vérifier votre e-mail et cliquer sur le lien de vérification.",
       "pendingChange": "Changement d'e-mail en attente",
-      "waitingVerification": "En attente de vérification"
+      "waitingVerification": "En attente de vérification",
+      "waitingVerificationFor": "En attente de vérification : {email}",
+      "unknownEmail": "Inconnu",
+      "loadingEmail": "Chargement..."
     },
     "passkeys": {
       "title": "Passkeys",
@@ -724,7 +748,24 @@
       "addPasskey": "Ajouter une passkey",
       "addingPasskey": "Ajout de la passkey...",
       "noPasskeys": "Aucune passkey enregistrée",
-      "addPasskeyHint": "Ajoutez une passkey pour une connexion plus rapide sans mot de passe"
+      "addPasskeyHint": "Ajoutez une passkey pour une connexion plus rapide sans mot de passe",
+      "loading": "Chargement des passkeys...",
+      "fallbackName": "Passkey",
+      "added": "Ajoutée le {date}",
+      "synced": "Synchronisée",
+      "tipBiometrics": "Les passkeys utilisent la biométrie ou le code PIN de l'appareil pour l'authentification",
+      "tipSynced": "Les passkeys synchronisées fonctionnent automatiquement sur tous vos appareils",
+      "tipSecure": "Plus sûres que les mots de passe : résistantes à l'hameçonnage",
+      "toasts": {
+        "addedTitle": "Passkey ajoutée !",
+        "addedDesc": "Votre nouvelle passkey a été enregistrée.",
+        "renamedTitle": "Passkey renommée",
+        "renamedDesc": "Votre passkey a été renommée.",
+        "renameFailed": "Impossible de renommer la passkey.",
+        "deletedTitle": "Passkey supprimée",
+        "deletedDesc": "Votre passkey a été supprimée.",
+        "deleteFailed": "Impossible de supprimer la passkey."
+      }
     },
     "accountInfo": {
       "title": "Informations du compte",
@@ -759,7 +800,8 @@
       "confirmDescription": "Cette action est permanente et irréversible.",
       "typeToConfirm": "Tapez {phrase} pour confirmer",
       "permanentlyDelete": "Supprimer définitivement le compte",
-      "deleting": "Suppression..."
+      "deleting": "Suppression...",
+      "dialogWarning": "Toutes vos données seront définitivement supprimées, y compris les tâches, les listes et les fichiers."
     },
     "appearancePage": {
       "title": "Apparence et expérience utilisateur",
@@ -781,7 +823,8 @@
         "viewShortcuts": "Voir les raccourcis",
         "viewTitle": "Voir les raccourcis clavier",
         "viewDesc": "Voir tous les raccourcis clavier disponibles pour une gestion efficace des tâches",
-        "quickAccess": "Appuyez sur ? n'importe où dans le gestionnaire de tâches pour ouvrir les raccourcis clavier."
+        "quickAccess": "Appuyez sur ? n'importe où dans le gestionnaire de tâches pour ouvrir les raccourcis clavier.",
+        "quickAccessLabel": "Accès rapide"
       },
       "taskDisplayMode": {
         "title": "Disposition du détail de tâche",
@@ -822,6 +865,22 @@
         "configure": "Configurer les paramètres d'e-mail",
         "configureDesc": "Personnalisez les dates d'échéance par défaut, activez/désactivez la fonctionnalité, et plus",
         "proTip": "L'objet de l'e-mail devient le titre de votre tâche, et le corps devient la description. Parfait pour capturer rapidement des tâches depuis votre boîte de réception !"
+      },
+      "tipLabel": "Astuce",
+      "smartTasks": {
+        "title": "Création intelligente de tâches",
+        "description": "Analyser automatiquement les dates, priorités et hashtags de liste dans les titres des tâches",
+        "enable": "Activer l'analyse intelligente",
+        "enableDesc": "Extraire les informations de la tâche à partir d'une saisie en langage naturel",
+        "supportedPatterns": "Formats pris en charge :"
+      },
+      "subtasks": {
+        "title": "Sous-tâches",
+        "description": "Comment les sous-tâches apparaissent dans vos listes (synchronisé entre appareils)",
+        "label": "Afficher les sous-tâches",
+        "labelDesc": "En retrait dans les listes, ou uniquement dans la tâche parente",
+        "indented": "Dans les listes, en retrait",
+        "underParent": "Uniquement dans la tâche parente"
       }
     },
     "aiIntegrations": {
@@ -1008,7 +1067,9 @@
       "developer": {
         "title": "Développeur",
         "description": "Créez des apps OAuth à la main, testez l’API et connectez des assistants qui parlent OpenAPI.",
-        "openTester": "Ouvrir le testeur d’API"
+        "openTester": "Ouvrir le testeur d’API",
+        "apiDocs": "Documentation de l'API",
+        "integrationGuide": "Guide d'intégration"
       },
       "github": {
         "title": "GitHub",
@@ -1072,6 +1133,49 @@
         "selectAtLeastOne": "Sélectionnez au moins une portée",
         "selectApp": "Sélectionnez une application."
       }
+    },
+    "openInNewTab": "Ouvrir dans un nouvel onglet",
+    "githubSetup": {
+      "loading": "Chargement de la configuration GitHub...",
+      "authenticating": "Authentification...",
+      "failedTitle": "Échec de la configuration",
+      "failedDescription": "Une erreur s'est produite lors de la configuration de l'intégration GitHub",
+      "errorDetail": "Erreur : {error}",
+      "returnToSettings": "Retour aux paramètres",
+      "processingTitle": "Configuration GitHub en cours",
+      "processingDescription": "Connexion de votre installation GitHub...",
+      "pleaseWait": "Veuillez patienter pendant la configuration de votre intégration GitHub...",
+      "connectedTitle": "GitHub connecté !",
+      "connectedDescription": "Votre intégration GitHub est prête à l'emploi",
+      "connectedBody": "Vous pouvez maintenant utiliser l'agent {appName} pour générer du code et créer des pull requests.",
+      "continueToSettings": "Continuer vers les paramètres"
+    },
+    "tasksPage": {
+      "title": "Paramètres des tâches",
+      "description": "Configurez le comportement par défaut des tâches et les préférences d'e-mail vers tâche",
+      "saved": "Paramètres enregistrés avec succès !",
+      "saveFailed": "Échec de l'enregistrement des paramètres",
+      "emailDescription": "Créez des tâches en envoyant des e-mails à {inboundTaskEmail}",
+      "enable": "Activer E-mail vers tâche",
+      "enableDesc": "Autoriser la création de tâches par e-mail",
+      "defaultDueDate": "Date limite par défaut",
+      "offset1Day": "1 jour",
+      "offset3Days": "3 jours",
+      "offset1Week": "1 semaine (par défaut)",
+      "dueDateHint": "Les tâches créées par e-mail arriveront à échéance ce nombre de jours après la date d'envoi",
+      "defaultDueTime": "Heure limite par défaut",
+      "time0900": "9 h 00",
+      "time1200": "12 h 00 (midi)",
+      "time1700": "17 h 00 (par défaut)",
+      "time2000": "20 h 00",
+      "dueTimeHint": "Heure de la journée pour les tâches créées par e-mail",
+      "howTo": "Comment utiliser E-mail vers tâche :",
+      "assignedTaskDesc": "Mettez {inboundTaskEmail} en CC avec un seul destinataire dans À",
+      "subjectLine": "{subject} devient le titre de la tâche",
+      "subject": "L'objet",
+      "bodyLine": "{body} devient la description de la tâche",
+      "body": "Le corps",
+      "saveSettings": "Enregistrer les paramètres"
     }
   },
   "projectMode": {
@@ -1162,6 +1266,76 @@
     "memberAgentAssignment": {
       "label": "Les membres peuvent confier n'importe quelle tâche à un agent",
       "help": "Permet à chaque membre de cette liste d'assigner un agent à n'importe quelle tâche, pas seulement à celles qu'il a créées. Les agents utilisent les abonnements du propriétaire de la liste."
+    },
+    "admin": {
+      "descriptionLabel": "Description de la liste",
+      "descriptionInfo": "La description de la liste sert d'instructions aux agents IA qui travaillent dans cette liste",
+      "preview": "Aperçu",
+      "charCount": "{count} caractères",
+      "noInstructionsYet": "*Aucune instruction pour l'instant*",
+      "instructionsPlaceholder": "Rédigez des instructions pour les agents IA qui travaillent dans cette liste...\n\nExemple :\nTu aides notre famille à planifier les repas.\n\n## Objectifs\n- Proposer des recettes saines\n- Créer des listes de courses hebdomadaires\n\n## Garde-fous\n- Pas de fruits de mer (allergie)\n- Budget : 150 $/semaine",
+      "agentsReceive": "Les agents reçoivent ceci comme contexte principal. Markdown pris en charge.",
+      "starterTemplates": "Modèles de départ",
+      "clickToEdit": "Cliquez pour modifier",
+      "clickToAddInstructions": "Cliquez pour ajouter des instructions pour les agents...",
+      "agentsUseGuidance": "Les agents IA s'en servent comme guide principal lorsqu'ils travaillent sur les tâches de cette liste",
+      "taskCreator": "Créateur de la tâche",
+      "memberNotFound": "Membre introuvable",
+      "clickToSet": "Cliquez pour définir...",
+      "defaultPriority": "Priorité par défaut",
+      "defaultAssignee": "Assigné par défaut",
+      "selectDefaultAssignee": "Sélectionnez l'assigné par défaut...",
+      "defaultWhen": "Quand par défaut",
+      "nextWeek": "Semaine prochaine",
+      "noDefaultWhenButton": "Aucun quand par défaut",
+      "noDefaultWhen": "Aucun quand par défaut",
+      "defaultRepeating": "Répétition par défaut",
+      "defaultWhenTime": "Heure par défaut",
+      "noDefaultTime": "Aucune heure par défaut",
+      "timezone": "Fuseau horaire : {timezone}",
+      "deleteList": "Supprimer la liste",
+      "deleteConfirm": "Voulez-vous vraiment supprimer « {name} » ?",
+      "deleteWarning": "Cette action est irréversible. Toutes les tâches de cette liste seront conservées, mais ne seront plus associées à cette liste.",
+      "dontDelete": "Ne pas supprimer",
+      "notConnected": "Non connecté.",
+      "connect": "Connecter",
+      "unlink": "Dissocier",
+      "mirrorPlaceholder": "Choisissez où dupliquer cette liste",
+      "externalSyncTitle": "Synchronisation externe",
+      "externalSyncDescription": "Dupliquez cette liste vers un autre service et inversement, via votre compte connecté.",
+      "aiAgent": "Agent IA",
+      "modelForList": "Modèle {appName} pour cette liste",
+      "useAccountDefault": "Utiliser la valeur par défaut du compte",
+      "modelHint": "Alimente {appName} dans le chat et les commentaires de cette liste. Les agents de code assignés aux tâches conservent leur propre environnement d'exécution.",
+      "repositoryLabel": "Dépôt dans lequel travaille l'agent de code",
+      "loading": "Chargement...",
+      "selectRepo": "Sélectionner un dépôt",
+      "noRepositories": "Aucun dépôt trouvé. Vérifiez que la GitHub App a accès à vos dépôts.",
+      "connectGithub": "Connectez GitHub pour choisir le dépôt dans lequel travaille un agent de code : {link}",
+      "connectGithubLink": "Paramètres → Connexions → GitHub",
+      "runLoop": "Lancer une boucle pour cette liste",
+      "loopDescription": "Votre harness de développement consulte cette liste à intervalles réguliers et traite tout ce qui lui est assigné et marqué {ready}. Les tâches des autres tableaux ne sont jamais modifiées.",
+      "readyStatus": "Ready",
+      "descriptionHint": "Les agents lisent la {description} de cette liste comme leurs instructions de travail : modifiez-la ci-dessus comme un brief de projet.",
+      "descriptionWord": "description",
+      "listId": "ID de la liste",
+      "copyListId": "Copier l'ID de la liste",
+      "listIdHint": "Utilisez cet ID pour les intégrations d'API OAuth et les agents de code",
+      "listName": "Nom de la liste",
+      "statusesIntro": "Ready, Doing et Waiting s'appliquent à {all} vos tableaux. Un statut ajouté ici n'appartient qu'à ce tableau.",
+      "statusesIntroAll": "tous",
+      "saveName": "Enregistrer le nom",
+      "moveUp": "Déplacer {name} vers le haut",
+      "moveDown": "Déplacer {name} vers le bas",
+      "renameStatus": "Renommer {name}",
+      "deleteStatus": "Supprimer {name}",
+      "newStatusName": "Nom du nouveau statut",
+      "renameStatusFailed": "Impossible de renommer le statut",
+      "reorderStatusFailed": "Impossible de réordonner le statut",
+      "deleteStatusFailed": "Impossible de supprimer le statut",
+      "addStatusFailed": "Impossible d'ajouter le statut",
+      "recentlyCompletedLabel": "Avancé — Fenêtre des tâches récemment terminées",
+      "recentlyCompletedDescription": "Durée pendant laquelle les tâches terminées restent visibles dans la vue par défaut (et dans la colonne Done des tableaux). Les tâches terminées plus anciennes sont filtrées ; passez la liste sur « Terminées » ou « Toutes » pour les voir."
     }
   },
   "reminderSettings": {
@@ -1246,5 +1420,12 @@
       "hours": "{n} h",
       "days": "{n} j"
     }
+  },
+  "richTextInput": {
+    "placeholder": "Saisissez un message...",
+    "timer": "Minuteur",
+    "uploading": "Envoi en cours...",
+    "attachFile": "Joindre un fichier",
+    "removeFile": "Retirer {name}"
   }
 }

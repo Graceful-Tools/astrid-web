@@ -217,7 +217,10 @@
     "hoursBefore": "{count} hours before",
     "dayBefore": "1 day before",
     "daysBefore": "{count} days before",
-    "weekBefore": "1 week before"
+    "weekBefore": "1 week before",
+    "quickSelect": "Quick select:",
+    "setTime": "Set Time",
+    "selectTime": "Select time"
   },
   "repeating": {
     "oneTimeOnly": "One time only",
@@ -511,6 +514,12 @@
         "title": "GitHub connection",
         "description": "Server-run coding agents use the GitHub connection on Settings → Connections, where every connected organization is listed.",
         "open": "Open Connections"
+      },
+      "yourAgents": {
+        "title": "Your agents",
+        "description": "Pick who runs each agent. {astridRuns} needs that provider's API key. {selfRuns} uses the coding tool you already pay for — native harness polling, a Custom Agent, or a webhook server you host.",
+        "astridRuns": "{appName} runs it",
+        "selfRuns": "I run it"
       }
     },
     "apiAccess": {
@@ -704,7 +713,19 @@
       "saveChanges": "Save Changes",
       "saving": "Saving...",
       "clickToChangePhoto": "Click to change profile picture",
-      "viewPublicProfile": "View Public Profile"
+      "viewPublicProfile": "View Public Profile",
+      "syncedWithOAuth": "Currently synced with your OAuth provider",
+      "uploading": "Uploading...",
+      "displayNamePlaceholder": "Enter your display name",
+      "toasts": {
+        "successTitle": "Success!",
+        "updated": "Your account information has been updated.",
+        "updateFailed": "Failed to update account information.",
+        "photoUploadedTitle": "Photo uploaded!",
+        "photoUploadedDesc": "Click 'Save Changes' to update your profile.",
+        "uploadFailedTitle": "Upload failed",
+        "uploadFailedDesc": "Failed to upload photo. Please try again."
+      }
     },
     "emailVerification": {
       "title": "Email Verification",
@@ -716,7 +737,10 @@
       "verificationSent": "Verification Email Sent!",
       "checkEmail": "Please check your email and click the verification link.",
       "pendingChange": "Pending email change",
-      "waitingVerification": "Waiting for verification"
+      "waitingVerification": "Waiting for verification",
+      "waitingVerificationFor": "Waiting for verification: {email}",
+      "unknownEmail": "Unknown",
+      "loadingEmail": "Loading..."
     },
     "passkeys": {
       "title": "Passkeys",
@@ -724,7 +748,24 @@
       "addPasskey": "Add a Passkey",
       "addingPasskey": "Adding passkey...",
       "noPasskeys": "No passkeys registered yet",
-      "addPasskeyHint": "Add a passkey for faster, passwordless sign-in"
+      "addPasskeyHint": "Add a passkey for faster, passwordless sign-in",
+      "loading": "Loading passkeys...",
+      "fallbackName": "Passkey",
+      "added": "Added {date}",
+      "synced": "Synced",
+      "tipBiometrics": "Passkeys use biometrics or device PIN for authentication",
+      "tipSynced": "Synced passkeys work across your devices automatically",
+      "tipSecure": "More secure than passwords - resistant to phishing",
+      "toasts": {
+        "addedTitle": "Passkey Added!",
+        "addedDesc": "Your new passkey has been registered.",
+        "renamedTitle": "Passkey Renamed",
+        "renamedDesc": "Your passkey has been renamed.",
+        "renameFailed": "Failed to rename passkey.",
+        "deletedTitle": "Passkey Deleted",
+        "deletedDesc": "Your passkey has been removed.",
+        "deleteFailed": "Failed to delete passkey."
+      }
     },
     "accountInfo": {
       "title": "Account Information",
@@ -759,7 +800,8 @@
       "confirmDescription": "This action is permanent and cannot be reversed.",
       "typeToConfirm": "Type {phrase} to confirm",
       "permanentlyDelete": "Permanently Delete Account",
-      "deleting": "Deleting..."
+      "deleting": "Deleting...",
+      "dialogWarning": "All your data will be permanently deleted, including tasks, lists, and files."
     },
     "appearancePage": {
       "title": "Appearance and User Experience",
@@ -781,7 +823,8 @@
         "viewShortcuts": "View Shortcuts",
         "viewTitle": "View Keyboard Shortcuts",
         "viewDesc": "See all available keyboard shortcuts for efficient task management",
-        "quickAccess": "Press ? anywhere in the task manager to open keyboard shortcuts."
+        "quickAccess": "Press ? anywhere in the task manager to open keyboard shortcuts.",
+        "quickAccessLabel": "Quick Access"
       },
       "taskDisplayMode": {
         "title": "Task detail layout",
@@ -822,6 +865,22 @@
         "configure": "Configure Email Settings",
         "configureDesc": "Customize default due dates, enable/disable the feature, and more",
         "proTip": "The email subject becomes your task title, and the body becomes the description. Perfect for quick task capture from your inbox!"
+      },
+      "tipLabel": "Pro Tip",
+      "smartTasks": {
+        "title": "Smart Task Creation",
+        "description": "Automatically parse dates, priorities, and list hashtags from task titles",
+        "enable": "Enable Smart Parsing",
+        "enableDesc": "Extract task metadata from natural language input",
+        "supportedPatterns": "Supported patterns:"
+      },
+      "subtasks": {
+        "title": "Sub tasks",
+        "description": "How sub tasks appear in your lists (synced across devices)",
+        "label": "Show sub tasks",
+        "labelDesc": "Indented in lists, or only inside the parent task",
+        "indented": "In lists, indented",
+        "underParent": "Inside parent task only"
       }
     },
     "customAgents": {
@@ -1008,7 +1067,9 @@
       "developer": {
         "title": "Developer",
         "description": "Create OAuth apps by hand, test the API, and connect assistants that speak OpenAPI.",
-        "openTester": "Open API tester"
+        "openTester": "Open API tester",
+        "apiDocs": "API Documentation",
+        "integrationGuide": "Integration Guide"
       },
       "github": {
         "title": "GitHub",
@@ -1072,6 +1133,49 @@
         "selectAtLeastOne": "Select at least one scope",
         "selectApp": "Select an app."
       }
+    },
+    "openInNewTab": "Open in new tab",
+    "githubSetup": {
+      "loading": "Loading GitHub setup...",
+      "authenticating": "Authenticating...",
+      "failedTitle": "Setup Failed",
+      "failedDescription": "There was an error setting up GitHub integration",
+      "errorDetail": "Error: {error}",
+      "returnToSettings": "Return to Settings",
+      "processingTitle": "Processing GitHub Setup",
+      "processingDescription": "Connecting your GitHub installation...",
+      "pleaseWait": "Please wait while we configure your GitHub integration...",
+      "connectedTitle": "GitHub Connected!",
+      "connectedDescription": "Your GitHub integration is ready to use",
+      "connectedBody": "You can now use the {appName} Agent to generate code and create pull requests.",
+      "continueToSettings": "Continue to Settings"
+    },
+    "tasksPage": {
+      "title": "Task Settings",
+      "description": "Configure default task behavior and email-to-task preferences",
+      "saved": "Settings saved successfully!",
+      "saveFailed": "Failed to save settings",
+      "emailDescription": "Create tasks by sending emails to {inboundTaskEmail}",
+      "enable": "Enable Email-to-Task",
+      "enableDesc": "Allow creating tasks via email",
+      "defaultDueDate": "Default Due Date",
+      "offset1Day": "1 day",
+      "offset3Days": "3 days",
+      "offset1Week": "1 week (default)",
+      "dueDateHint": "Tasks created via email will be due this many days from the send date",
+      "defaultDueTime": "Default Due Time",
+      "time0900": "9:00 AM",
+      "time1200": "12:00 PM (Noon)",
+      "time1700": "5:00 PM (default)",
+      "time2000": "8:00 PM",
+      "dueTimeHint": "Time of day for tasks created via email",
+      "howTo": "How to use Email-to-Task:",
+      "assignedTaskDesc": "CC {inboundTaskEmail} with one recipient in TO",
+      "subjectLine": "{subject} becomes task title",
+      "subject": "Subject",
+      "bodyLine": "{body} becomes task description",
+      "body": "Body",
+      "saveSettings": "Save Settings"
     }
   },
   "projectMode": {
@@ -1162,6 +1266,76 @@
     "memberAgentAssignment": {
       "label": "Members can hand any task to an agent",
       "help": "Lets every member of this list assign an agent to any task here, not only tasks they created. The agents run on the list owner's plans."
+    },
+    "admin": {
+      "descriptionLabel": "List Description",
+      "descriptionInfo": "The list description is used as instructions for AI agents that work in this list",
+      "preview": "Preview",
+      "charCount": "{count} chars",
+      "noInstructionsYet": "*No instructions yet*",
+      "instructionsPlaceholder": "Write instructions for AI agents working in this list...\n\nExample:\nYou help our family plan meals.\n\n## Goals\n- Suggest healthy recipes\n- Create weekly shopping lists\n\n## Guardrails\n- No shellfish (allergy)\n- Budget: $150/week",
+      "agentsReceive": "Agents receive this as their primary context. Supports markdown.",
+      "starterTemplates": "Starter templates",
+      "clickToEdit": "Click to edit",
+      "clickToAddInstructions": "Click to add agent instructions...",
+      "agentsUseGuidance": "AI agents use this as their primary guidance when working on tasks in this list",
+      "taskCreator": "Task Creator",
+      "memberNotFound": "Member not found",
+      "clickToSet": "Click to set...",
+      "defaultPriority": "Default Priority",
+      "defaultAssignee": "Default Assignee",
+      "selectDefaultAssignee": "Select default assignee...",
+      "defaultWhen": "Default When",
+      "nextWeek": "Next Week",
+      "noDefaultWhenButton": "No Default When",
+      "noDefaultWhen": "No default when",
+      "defaultRepeating": "Default Repeating",
+      "defaultWhenTime": "Default When Time",
+      "noDefaultTime": "No default time",
+      "timezone": "Timezone: {timezone}",
+      "deleteList": "Delete List",
+      "deleteConfirm": "Are you sure you want to delete \"{name}\"?",
+      "deleteWarning": "This action cannot be undone. All tasks in this list will remain but will no longer be associated with this list.",
+      "dontDelete": "Don't Delete",
+      "notConnected": "Not connected.",
+      "connect": "Connect",
+      "unlink": "Unlink",
+      "mirrorPlaceholder": "Choose where to mirror this list",
+      "externalSyncTitle": "External sync",
+      "externalSyncDescription": "Mirror this list to another service and back, through your connected account.",
+      "aiAgent": "AI Agent",
+      "modelForList": "{appName} model for this list",
+      "useAccountDefault": "Use account default",
+      "modelHint": "Powers {appName} in this list's chat and comments. Coding agents assigned to tasks keep their own runtime.",
+      "repositoryLabel": "Repository the coding agent works in",
+      "loading": "Loading...",
+      "selectRepo": "Select repo",
+      "noRepositories": "No repositories found. Check that the GitHub App has access to your repositories.",
+      "connectGithub": "Connect GitHub to pick the repository a coding agent works in — {link}",
+      "connectGithubLink": "Settings → Connections → GitHub",
+      "runLoop": "Run a loop for this list",
+      "loopDescription": "Your coding harness checks this list on a schedule and works whatever is assigned to it and marked {ready}. Tasks on other boards are never touched.",
+      "readyStatus": "Ready",
+      "descriptionHint": "Agents read this list's {description} as their working instructions — edit it above like a project brief.",
+      "descriptionWord": "description",
+      "listId": "List ID",
+      "copyListId": "Copy List ID",
+      "listIdHint": "Use this ID for OAuth API integrations and coding agents",
+      "listName": "List Name",
+      "statusesIntro": "Ready, Doing and Waiting apply to {all} of your boards. A status you add here belongs to this board only.",
+      "statusesIntroAll": "all",
+      "saveName": "Save name",
+      "moveUp": "Move {name} up",
+      "moveDown": "Move {name} down",
+      "renameStatus": "Rename {name}",
+      "deleteStatus": "Delete {name}",
+      "newStatusName": "New status name",
+      "renameStatusFailed": "Failed to rename status",
+      "reorderStatusFailed": "Failed to reorder status",
+      "deleteStatusFailed": "Failed to delete status",
+      "addStatusFailed": "Failed to add status",
+      "recentlyCompletedLabel": "Advanced — Recently completed window",
+      "recentlyCompletedDescription": "How long completed tasks stay visible in the default view (and in the Done column on boards). Older completed tasks are filtered out; switch the list to “Completed” or “All” to see them."
     }
   },
   "reminderSettings": {
@@ -1246,5 +1420,12 @@
       "hours": "{n} h",
       "days": "{n} d"
     }
+  },
+  "richTextInput": {
+    "placeholder": "Type a message...",
+    "timer": "Timer",
+    "uploading": "Uploading...",
+    "attachFile": "Attach file",
+    "removeFile": "Remove {name}"
   }
 }
