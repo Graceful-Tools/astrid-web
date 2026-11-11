@@ -59,7 +59,7 @@ export function ProjectFieldFilterSelect({
         </SelectTrigger>
         <SelectContent className="z-[10100]">
           <SelectItem value={ALL}>
-            <span className="text-blue-400">{t("tasks.projectFields.filterAll")}</span>
+            <span className="text-brand">{t("tasks.projectFields.filterAll")}</span>
           </SelectItem>
           {groups.map(group => (
             <SelectGroup key={group.fieldId}>

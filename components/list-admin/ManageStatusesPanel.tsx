@@ -222,7 +222,7 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
                       type="button"
                       disabled={busy}
                       onClick={() => handleDelete(status)}
-                      className="theme-text-muted hover:text-red-500 p-1 shrink-0"
+                      className="text-theme-muted hover:text-danger p-1 shrink-0"
                       aria-label={`Delete ${status.name}`}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -243,12 +243,12 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
           placeholder="New status name"
           className="flex-1 h-8 text-sm"
         />
-        <Button size="sm" disabled={busy || !newName.trim()} onClick={handleAdd} className="bg-blue-600 hover:bg-blue-700 text-white">
+        <Button size="sm" disabled={busy || !newName.trim()} onClick={handleAdd} className="bg-brand hover:bg-brand-hover text-brand-foreground">
           <Plus className="w-4 h-4 mr-1" /> Add
         </Button>
       </div>
 
-      {error && <p className="text-sm text-red-500">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
     </div>
   )
 }

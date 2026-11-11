@@ -90,7 +90,7 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
   return (
     <div className="border-t theme-border pt-4 space-y-4">
       <div className="flex items-center space-x-2">
-        <Bot className="w-4 h-4 text-blue-600" />
+        <Bot className="w-4 h-4 text-brand" />
         <Label className="text-sm font-medium theme-text-primary">AI Agent</Label>
       </div>
 
@@ -223,7 +223,7 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
           <Github className="w-3.5 h-3.5" />
           <span>
             Connect GitHub to pick the repository a coding agent works in —{' '}
-            <Link href="/settings/connections" className="text-blue-500 hover:underline">
+            <Link href="/settings/connections" className="text-brand hover:underline">
               Settings → Connections → GitHub
             </Link>
           </span>

@@ -271,7 +271,7 @@ export function BoardViewSection({
               aria-invalid={keyInvalid}
               className="h-7 w-20 font-mono text-xs"
             />
-            <span className={`text-xs ${keyInvalid ? "text-red-500" : "theme-text-muted"}`}>
+            <span className={`text-xs ${keyInvalid ? "text-danger" : "theme-text-muted"}`}>
               {keyInvalid
                 ? t("projectMode.keyInvalid", { min: String(MIN_PROJECT_KEY_LENGTH), max: String(MAX_PROJECT_KEY_LENGTH) })
                 : requestedKey
@@ -303,7 +303,7 @@ export function BoardViewSection({
             >
               {t("projectMode.keyRename")}
             </Button>
-            <span className={`text-xs ${renameInvalid ? "text-red-500" : "theme-text-muted"}`}>
+            <span className={`text-xs ${renameInvalid ? "text-danger" : "theme-text-muted"}`}>
               {renameInvalid
                 ? t("projectMode.keyInvalid", { min: String(MIN_PROJECT_KEY_LENGTH), max: String(MAX_PROJECT_KEY_LENGTH) })
                 : renameKey && renameKey !== currentKey
@@ -313,7 +313,7 @@ export function BoardViewSection({
           </div>
         ) : null}
         {projectBoardError ? (
-          <p className="text-xs text-red-500">{projectBoardError}</p>
+          <p className="text-xs text-danger">{projectBoardError}</p>
         ) : null}
       </div>
 
@@ -326,7 +326,7 @@ export function BoardViewSection({
 
       {showDisableBoardConfirmation && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => !isRemovingProjectBoard && setShowDisableBoardConfirmation(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-theme-surface rounded-lg p-6 max-w-sm mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4">
               <h3 className="text-lg font-semibold theme-text-primary mb-2">{t("projectMode.disableBoardTitle")}</h3>
               <p className="theme-text-secondary mb-2">
@@ -351,7 +351,7 @@ export function BoardViewSection({
                 size="sm"
                 disabled={isRemovingProjectBoard}
                 onClick={handleRemoveProjectBoard}
-                className="bg-red-600 hover:bg-red-700 text-white"
+                className="bg-danger hover:bg-danger/90 text-danger-foreground"
               >
                 {isRemovingProjectBoard ? t("projectMode.disablingBoard") : t("projectMode.disableBoard")}
               </Button>

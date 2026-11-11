@@ -130,7 +130,7 @@ export function ExternalSyncSection({ list }: ExternalSyncSectionProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="text-red-500 hover:text-red-400"
+            className="text-danger hover:text-danger"
             onClick={() => unlink(base, state.link!.id)}
           >
             Unlink
