@@ -60,7 +60,7 @@ export const METRICS: Metric[] = [
   {
     id: 'rawPaletteClasses',
     what: 'Tailwind palette classes (text-gray-400, bg-blue-500, …)',
-    instead: 'a theme-* class, a var(--astrid-*) token, or lib/design/priority.ts',
+    instead: 'the theme vocabulary (text-theme-muted, bg-brand, text-danger …: docs/specs/DESIGN_SYSTEM.md → Palette classes to theme classes), or lib/design/priority.ts',
     roots: UI,
     extensions: CODE,
     pattern: new RegExp(`\\b[a-z-]+-(?:${PALETTE})-\\d{2,3}\\b`, 'g'),
@@ -77,7 +77,7 @@ export const METRICS: Metric[] = [
   {
     id: 'rgbColours',
     what: 'rgb()/rgba() literals in code and stylesheets',
-    instead: 'rgb(var(--astrid-*)) or rgb(var(--theme-*))',
+    instead: 'rgb(var(--astrid-*)) or rgb(var(--theme-*)); in a class, the theme vocabulary',
     roots: [...UI, 'lib', 'styles'],
     extensions: [...CODE, '.css'],
     pattern: /rgba?\(\s*\d/g,
@@ -110,7 +110,7 @@ export const METRICS: Metric[] = [
   {
     id: 'motionLiterals',
     what: 'durations written out (duration-200, 0.3s, 150ms)',
-    instead: 'var(--astrid-motion-*)',
+    instead: 'var(--astrid-motion-*) in CSS, duration-fast ease-fast and the like in a class (docs/specs/DESIGN_SYSTEM.md → Motion on web)',
     roots: [...UI, 'styles'],
     extensions: ['.tsx', '.css'],
     // duration-[var(--astrid-motion-…)] is the token, not a literal.

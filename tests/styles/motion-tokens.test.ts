@@ -63,3 +63,28 @@ describe('stylesheets animate with the motion tokens (AWTD-1574)', () => {
     expect(read('hooks', 'useTaskManagerLayout.ts')).toContain('}, designTokens.motion.panel.ms)')
   })
 })
+
+// `next build` is the only thing that ran these stylesheets through Tailwind,
+// and it is too heavy for a unit test. An `@apply` of a class Tailwind does not
+// know (a mistyped `duration-fastt`) fails the build, so it fails here first.
+describe('the stylesheets compile with the real Tailwind config (AWTD-1574)', () => {
+  it.each(['app/globals.css', 'styles/components.css'])('%s', async (path) => {
+    const { default: postcss } = await import('postcss')
+    const { default: tailwindcss } = await import('tailwindcss')
+    const { default: config } = await import('@/tailwind.config')
+    // components.css is compiled after globals.css in the app, which is where
+    // `@tailwind` comes from; alone it needs the directives to @apply against.
+    const source = path === 'app/globals.css' ? read(...path.split('/')) : `@tailwind utilities;\n${read(...path.split('/'))}`
+    const result = await postcss([tailwindcss({ ...config, content: [{ raw: '', extension: 'html' }] })]).process(source, {
+      from: join(process.cwd(), path),
+    })
+    expect(result.css.length).toBeGreaterThan(1000)
+    expect(result.css).not.toContain('@apply')
+    if (path === 'styles/components.css') {
+      expect(result.css).toMatch(/\.task-panel-arrow \{[^}]*transition-duration: var\(--astrid-motion-fast-duration\)/)
+      expect(result.css).toMatch(/\.transition-theme \{[^}]*transition-timing-function: var\(--astrid-motion-medium-ease\)/)
+    } else {
+      expect(result.css).toMatch(/border-color: rgba\(var\(--border\), var\(--tw-border-opacity, 1\)\)/)
+    }
+  })
+})

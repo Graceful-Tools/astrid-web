@@ -415,10 +415,35 @@ Leave these, or change them as said; do not pick the nearest name.
 |---|---|
 | The vendored tokens | `packages/astrid-design/` (`astrid-tokens.css`, `tokens.resolved.json`, `REVISION`) |
 | Moving the pin | `scripts/sync-design-tokens.sh --rev <astrid-core sha>` |
-| Theme variables | `styles/themes/*.css`: every shared `--theme-*` is `var(--astrid-*)` |
+| Theme variables | `styles/themes/*.css`: every `--theme-*` is a token, directly or through another theme variable. The web-only surfaces are named there once (below) |
+| Classes | `lib/design/tailwind-theme.ts`, spread into `tailwind.config.ts`: the theme vocabulary, shadcn's colours, the motion utilities and the leading control's size, each a token |
+| shadcn's variables | `app/globals.css`: `--background`, `--primary` and the rest are tokens, declared once for every theme |
 | Priority | `lib/design/priority.ts`, classes in `styles/components.css` |
 | Values as data | `lib/design/tokens.ts` |
-| The gate | `tests/styles/design-tokens.test.ts`: the copy is unedited, CSS and data agree, no shared colour is written out |
+| The gate | `tests/styles/design-tokens.test.ts`: the copy is unedited, CSS and data agree, no colour is written out in a theme stylesheet, and every class and shadcn variable compiles and resolves to a colour in each theme. `tests/styles/motion-tokens.test.ts` does the same for durations |
+
+### Web-only surfaces
+
+The tokens have no name for these yet (register DS9). Each is a `--theme-*` variable that
+reads a token, per theme, so none is a colour written out; the card glass rules take
+their colour from these and write only how much shows through.
+
+| Variable | Light | Dark | Ocean |
+|---|---|---|---|
+| `--theme-surface`: a card, dialog or menu | `bg-primary` | `bg-secondary` | `bg-hover` (the white; the page is cyan) |
+| `--theme-surface-hover` | `bg-tertiary` | `bg-tertiary` | `bg-tertiary` |
+| `--theme-surface-border`: the line around one | `border` | `border` | `bg-active` (the grey; the border is cyan) |
+| `--theme-sidebar-bg`, `--theme-sidebar-border` | `bg-secondary`, the surface border | same | same |
+| `--theme-panel-bg`, `--theme-panel-border`, `--theme-panel-arrow` | the surface, its border | same | `bg-secondary`, the surface border |
+| `--theme-comment-bg` | `bg-secondary` | `bg-tertiary` | `bg-secondary` |
+| `--theme-pill-bg`, `--theme-count-bg` | `bg-tertiary` | not drawn | not drawn |
+| `--theme-shadow-sm`, `--theme-shadow`, `--theme-shadow-lg` | `shadow.sm`, `shadow.md`, `shadow.lg` | same | same |
+
+Two more are numbers rather than colours, in `styles/components.css`:
+`--theme-wash-opacity` (how strong `bg-danger-subtle` and the other washes are) and
+`--motion-spring-ease` (the curve that stands in for a spring). Ocean borrowing `bg-hover`
+and `bg-active` for a card and its border is the clearest case for a `surface` and a
+`surface-border` token in astrid-core.
 
 ### The ratchet
 
@@ -431,13 +456,13 @@ reduction, `npm run design:metrics -- --update` in the same change.
 
 | Count | Before tokens (main `e770865b`) | Now |
 |---|---|---|
-| Palette classes | 1,631 | 1,586 |
+| Palette classes | 1,631 | 1,545 |
 | Hex colours | 126 | 113 |
-| rgb literals | 101 | 85 |
-| Theme triplets | 119 | 35 |
+| rgb literals | 101 | 10 |
+| Theme triplets | 119 | 0 |
 | Inline styles | 64 | 64 |
 | Arbitrary sizes | 97 | 97 |
-| Durations | 57 | 57 |
+| Durations | 57 | 29 |
 | Sentences in JSX | 999 | 999 |
 | Distinct sentences in JSX | 802 | 802 |
 
