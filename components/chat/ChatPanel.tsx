@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from '@/lib/i18n/client'
 import React from 'react'
 import { ChatMessageList } from './ChatMessageList'
 import { ChatInput } from './ChatInput'
@@ -33,6 +34,7 @@ export const ChatPanel = React.memo(function ChatPanel({
   isLoading: externalLoading,
   className = '',
 }: ChatPanelProps) {
+  const { t } = useTranslations()
   const {
     messages,
     isLoading: messagesLoading,
@@ -61,7 +63,7 @@ export const ChatPanel = React.memo(function ChatPanel({
   if (error) {
     return (
       <div className={`flex flex-col h-full items-center justify-center ${className}`}>
-        <p className="text-sm text-danger">Failed to load chat</p>
+        <p className="text-sm text-danger">{t('chat.loadFailed')}</p>
       </div>
     )
   }

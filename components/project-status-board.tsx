@@ -413,7 +413,7 @@ export function ProjectStatusBoard({
                 tasks={tasksForColumn}
                 emptyState={(
                   <div className="flex min-h-28 items-center justify-center rounded-md border border-dashed theme-border px-3 text-center text-xs theme-text-muted">
-                    Drop tasks here
+                    {t('tasks.dropTasksHere')}
                   </div>
                 )}
                 renderCard={(task) => {

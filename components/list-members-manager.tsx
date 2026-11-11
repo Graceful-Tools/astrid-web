@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "@/lib/i18n/client"
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -50,6 +51,7 @@ interface ListMembersManagerProps {
 }
 
 export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: ListMembersManagerProps) {
+  const { t } = useTranslations()
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(false)
   const [showInviteForm, setShowInviteForm] = useState(false)
@@ -456,7 +458,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
           <Button
             onClick={() => setShowInviteForm(!showInviteForm)}
             data-testid="list-members-invite"
-            aria-label="Invite member"
+            aria-label={t('lists.membersManager.invite')}
             size="sm"
             variant="ghost"
             className="theme-text-muted hover:theme-text-primary p-1"
@@ -468,16 +470,16 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
 
       {showInviteForm && (
         <div className="mb-4 p-3 theme-bg-tertiary rounded-lg theme-border border">
-          <h4 className="font-medium mb-3 theme-text-primary">Invite New Member</h4>
+          <h4 className="font-medium mb-3 theme-text-primary">{t('lists.membersManager.inviteTitle')}</h4>
           <div className="space-y-3">
             <div>
-              <Label htmlFor="invite-email" className="text-sm theme-text-muted">Email Address</Label>
+              <Label htmlFor="invite-email" className="text-sm theme-text-muted">{t('settingsPages.profileInfo.emailAddress')}</Label>
               <Input
                 id="invite-email"
                 type="email"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="Enter email address"
+                placeholder={t('lists.membersManager.emailPlaceholder')}
                 className="theme-input theme-border-input border theme-text-primary"
                 autoFocus
               />
@@ -497,7 +499,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
             <div className="flex space-x-2">
               <Button onClick={handleInviteUser} disabled={loading} size="sm">
                 <Mail className="w-4 h-4 mr-2" />
-                Send Invitation
+                {t('lists.membersManager.sendInvitation')}
               </Button>
               <Button variant="outline" onClick={() => setShowInviteForm(false)} size="sm">
                 Cancel
@@ -511,9 +513,9 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
         {members.length === 0 ? (
           <div className="text-center py-6 theme-text-muted">
             <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No members yet</p>
+            <p className="text-sm">{t('lists.membersManager.empty')}</p>
             {isAdmin && (
-              <p className="text-xs">Invite people to collaborate on this list</p>
+              <p className="text-xs">{t('lists.membersManager.emptyHint')}</p>
             )}
           </div>
         ) : (
@@ -602,7 +604,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
                                   handleUpdateMemberRole(member.user_id!, "admin")
                                 }}>
                                   <Shield className="w-4 h-4 mr-2" />
-                                  Make Admin
+                                  {t('lists.membersManager.makeAdmin')}
                                 </DropdownMenuItem>
                               )}
                               {member.role !== "member" && (
@@ -612,7 +614,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
                                   handleUpdateMemberRole(member.user_id!, "member")
                                 }}>
                                   <UserCheck className="w-4 h-4 mr-2" />
-                                  Make Member
+                                  {t('lists.membersManager.makeMember')}
                                 </DropdownMenuItem>
                               )}
                             </>
@@ -626,7 +628,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
                                   handleUpdateInviteRole(member.email, "admin")
                                 }}>
                                   <Shield className="w-4 h-4 mr-2" />
-                                  Make Admin
+                                  {t('lists.membersManager.makeAdmin')}
                                 </DropdownMenuItem>
                               )}
                               {member.role !== "member" && (
@@ -636,7 +638,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
                                   handleUpdateInviteRole(member.email, "member")
                                 }}>
                                   <UserCheck className="w-4 h-4 mr-2" />
-                                  Make Member
+                                  {t('lists.membersManager.makeMember')}
                                 </DropdownMenuItem>
                               )}
                             </>
@@ -681,20 +683,20 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
       {list.privacy === "SHARED" && (
         <div className="mt-4 p-3 bg-brand-subtle rounded-lg">
           <h4 className="font-medium text-brand mb-2 text-sm">
-            Permission Levels
+            {t('lists.membersManager.permissionLevels')}
           </h4>
           <div className="space-y-1 text-xs text-theme-primary">
             <div className="flex items-center space-x-2">
               <Crown className="w-3 h-3" />
-              <span><strong>Owner:</strong> Full control over the list</span>
+              <span><strong>{t('lists.owner')}:</strong> {t('lists.membersManager.ownerCan')}</span>
             </div>
             <div className="flex items-center space-x-2">
               <Shield className="w-3 h-3" />
-              <span><strong>Admin:</strong> Can manage list settings and members</span>
+              <span><strong>{t('lists.admin')}:</strong> {t('lists.membersManager.adminCan')}</span>
             </div>
             <div className="flex items-center space-x-2">
               <UserIcon className="w-3 h-3" />
-              <span><strong>Member:</strong> Can add, edit, and manage tasks</span>
+              <span><strong>{t('lists.member')}:</strong> {t('lists.membersManager.memberCan')}</span>
             </div>
           </div>
         </div>

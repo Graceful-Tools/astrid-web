@@ -438,7 +438,7 @@ export function UserPicker({
                 className="bg-brand hover:bg-brand-hover text-brand-foreground"
               >
                 <Mail className="w-4 h-4 mr-1" />
-                Send Invite
+                {t('userPicker.sendInvite')}
               </Button>
               <Button
                 variant="outline"
@@ -466,7 +466,7 @@ export function UserPicker({
                 className="bg-warning hover:bg-warning/90 text-warning-foreground"
               >
                 <Check className="w-4 h-4 mr-1" />
-                Assign Anyway
+                {t('userPicker.assignAnyway')}
               </Button>
               <Button
                 variant="outline"

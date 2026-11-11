@@ -1,3 +1,4 @@
+import { useTranslations } from "@/lib/i18n/client"
 import { ChevronUp, Maximize2, Minimize2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TaskLeadingControl } from "../task-leading-control"
@@ -89,6 +90,7 @@ export function TaskHeader({
   onToggleFullScreen,
   compact = false,
 }: TaskHeaderProps) {
+  const { t } = useTranslations()
   return (
     <div className="border-b border-theme-surface">
       {/* Task Content Row: back (mobile) + checkbox + title editor + action menu.
@@ -117,7 +119,7 @@ export function TaskHeader({
               variant="ghost"
               onClick={onClose}
               className="cols2:hidden flex items-center flex-shrink-0 theme-text-primary hover:theme-text-secondary rounded-md hover:theme-bg-hover px-1 py-1 -ml-1"
-              aria-label="Back to list"
+              aria-label={t('tasks.detail.backToList')}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
                 <polyline points="15,18 9,12 15,6"></polyline>
@@ -218,8 +220,8 @@ export function TaskHeader({
                   size="sm"
                   onClick={onClose}
                   className="theme-text-muted hover:theme-text-primary h-5 w-5 p-0"
-                  aria-label="Collapse task"
-                  title="Collapse"
+                  aria-label={t('tasks.detail.collapseTask')}
+                  title={t('tasks.detail.collapse')}
                 >
                   <ChevronUp className="w-4 h-4" />
                 </Button>

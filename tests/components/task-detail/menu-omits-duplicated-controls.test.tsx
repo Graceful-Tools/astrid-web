@@ -82,7 +82,7 @@ function renderMenu(over: Record<string, unknown> = {}) {
 /** Open the menu the way a user does. */
 async function open() {
   const userEvent = (await import('@testing-library/user-event')).default
-  await userEvent.click(screen.getByLabelText('Task actions'))
+  await userEvent.click(screen.getByLabelText('tasks.detail.taskActions'))
 }
 
 describe('the menu omits what the pane already shows (AWTD-1252)', () => {

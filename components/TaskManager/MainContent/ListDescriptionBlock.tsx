@@ -17,6 +17,7 @@
  * what the dialog is for.
  */
 
+import { useTranslations } from "@/lib/i18n/client"
 import { Button } from "@/components/ui/button"
 import { Check, X } from "lucide-react"
 import type { TaskList } from "@/types/task"
@@ -49,6 +50,7 @@ export function ListDescriptionBlock({
   canEdit,
   searchTerm,
 }: ListDescriptionBlockProps) {
+  const { t } = useTranslations()
   if (editing) {
     return (
       <>
@@ -67,7 +69,7 @@ export function ListDescriptionBlock({
               }
             }}
             className="theme-comment-bg theme-border border theme-text-primary text-sm text-left max-w-md rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
-            placeholder="Add a description..."
+            placeholder={t('lists.placeholder.description')}
             rows={2}
             autoFocus
           />
