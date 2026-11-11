@@ -18,6 +18,7 @@ import Link from "next/link"
 import { createLogger } from '@/lib/logger'
 import { planGoogleSignIn } from "@/lib/auth-host"
 import { scrollShellClassName } from "@/components/scroll-shell"
+import { useTranslations } from "@/lib/i18n/client"
 
 const log = createLogger('[locale].auth.signin.signin-client.tsx')
 
@@ -31,6 +32,7 @@ function AppleLogo({ className }: { className?: string }) {
 }
 
 export function SignInContent() {
+  const { t } = useTranslations()
   const [providers, setProviders] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -94,7 +96,7 @@ export function SignInContent() {
       }
     } catch (error) {
       log.error({ err: error }, "Google sign in error:")
-      setError("An unexpected error occurred during sign in")
+      setError("SignInUnexpected")
     } finally {
       setLoading(false)
     }
@@ -109,7 +111,7 @@ export function SignInContent() {
       await signIn(providerId, { callbackUrl: searchParams?.get("callbackUrl") || "/" })
     } catch (error) {
       log.error({ err: error, providerId }, "Sign in error:")
-      setError("An unexpected error occurred during sign in")
+      setError("SignInUnexpected")
       setLoading(false)
     }
   }
@@ -154,7 +156,7 @@ export function SignInContent() {
   const handlePasskeyEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!passkeyEmail) {
-      setError("Please enter your email address")
+      setError("EmailRequired")
       return
     }
     clearPasskeyError()
@@ -170,30 +172,36 @@ export function SignInContent() {
     }
 
     switch (error) {
+      // Set by this page. A code rather than the sentence, so the rule above
+      // (a sentence is shown as it is) does not depend on the language.
+      case "SignInUnexpected":
+        return t('authErrors.signInUnexpected')
+      case "EmailRequired":
+        return t('authErrors.emailRequired')
       case "Configuration":
-        return "There is a problem with the server configuration. Please check your environment variables."
+        return t('authErrors.configurationDetailed')
       case "AccessDenied":
-        return "Access denied. You do not have permission to sign in."
+        return t('authErrors.accessDenied')
       case "Verification":
-        return "The verification token has expired or has already been used."
+        return t('authErrors.verification')
       case "OAuthSignin":
-        return "Error in constructing an authorization URL. Please check your OAuth configuration."
+        return t('authErrors.oauthSignin')
       case "OAuthCallback":
-        return "Error in handling the response from an OAuth provider."
+        return t('authErrors.oauthCallback')
       case "OAuthCreateAccount":
-        return "Could not create OAuth account."
+        return t('authErrors.oauthCreateAccount')
       case "EmailCreateAccount":
-        return "Could not create email account."
+        return t('authErrors.emailCreateAccount')
       case "Callback":
-        return "Error in the OAuth callback handler route."
+        return t('authErrors.callback')
       case "OAuthAccountNotLinked":
-        return "An account with this email already exists. Please try signing in again - we'll link your Google account automatically."
+        return t('authErrors.oauthAccountNotLinked')
       case "EmailSignin":
-        return "Sending the e-mail with the verification token failed."
+        return t('authErrors.emailSignin')
       case "SessionRequired":
-        return "The content of this page requires you to be signed in at all times."
+        return t('authErrors.sessionRequired')
       default:
-        return "An error occurred during authentication. Please try again or contact support."
+        return t('authErrors.default')
     }
   }
 
@@ -230,7 +238,7 @@ export function SignInContent() {
             className="inline-flex items-center gap-2 px-4 py-2.5 theme-surface hover:bg-[rgb(var(--theme-surface-hover))] border theme-border-input rounded-xl theme-text-primary text-sm font-medium transition-colors"
           >
             <AppleLogo className="w-5 h-5" />
-            Download on the App Store
+            {t('signInPage.downloadOnAppStore')}
           </a>
         </div>
         )}
@@ -239,7 +247,7 @@ export function SignInContent() {
         <Card className="theme-surface theme-border theme-shadow-lg">
           <CardHeader className="text-center pb-6">
             <CardTitle className="text-2xl font-semibold theme-text-primary">
-              Sign in to get started!
+              {t('signInPage.title')}
             </CardTitle>
           </CardHeader>
           <CardContent className="px-8 pb-8">
@@ -266,7 +274,7 @@ export function SignInContent() {
                   size="lg"
                 >
                   {id === "github" ? <Github className="w-5 h-5 mr-2" /> : <Building2 className="w-5 h-5 mr-2" />}
-                  {id === "github" ? "Continue with GitHub" : `Continue with ${providers?.sso?.name ?? "SSO"}`}
+                  {t('auth.continueWith', { provider: id === "github" ? "GitHub" : providers?.sso?.name ?? "SSO" })}
                 </Button>
                 ))}
 
@@ -282,7 +290,7 @@ export function SignInContent() {
                   size="lg"
                 >
                   {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Chrome className="w-5 h-5 mr-2" />}
-                  {loading ? "Continuing..." : "Continue with Google"}
+                  {loading ? t('signInPage.continuing') : t('auth.continueWith', { provider: "Google" })}
                 </Button>
                 )}
 
@@ -298,7 +306,7 @@ export function SignInContent() {
                   size="lg"
                 >
                   <AppleLogo className="w-5 h-5 mr-2" />
-                  Continue with Apple
+                  {t('auth.continueWith', { provider: "Apple" })}
                 </Button>
                 )}
 
@@ -320,11 +328,11 @@ export function SignInContent() {
                   size="lg"
                 >
                   <KeyRound className="w-5 h-5 mr-2" />
-                  Continue with Passkey
+                  {t('auth.continueWith', { provider: t('signInPage.passkey') })}
                 </Button>
                 {!isPasskeySupported && (
                   <p className="text-xs theme-text-muted text-center -mt-2">
-                    Passkeys not supported in this browser
+                    {t('signInPage.passkeysNotSupported')}
                   </p>
                 )}
                 </>
@@ -337,13 +345,13 @@ export function SignInContent() {
               <div className="space-y-5">
                 <div className="text-center mb-2">
                   <KeyRound className="w-10 h-10 text-[rgb(var(--theme-accent))] mx-auto mb-2" />
-                  <p className="theme-text-primary font-medium">Continue with Passkey</p>
+                  <p className="theme-text-primary font-medium">{t('auth.continueWith', { provider: t('signInPage.passkey') })}</p>
                 </div>
 
                 {/* New user - Email input */}
                 <div>
                   <Label htmlFor="passkey-email" className="text-sm font-medium theme-text-secondary mb-2 block">
-                    New?
+                    {t('signInPage.newUser')}
                   </Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 theme-text-muted" />
@@ -352,7 +360,7 @@ export function SignInContent() {
                       type="email"
                       value={passkeyEmail}
                       onChange={(e) => setPasskeyEmail(e.target.value)}
-                      placeholder="Enter your email"
+                      placeholder={t('signInPage.emailPlaceholder')}
                       className="pl-10 h-12 theme-input theme-text-primary focus:border-[rgb(var(--theme-accent))] focus:ring-[rgb(var(--theme-accent))] rounded-xl"
                       autoFocus
                     />
@@ -362,7 +370,7 @@ export function SignInContent() {
                 {/* Returning user - Only show when no email entered */}
                 {!passkeyEmail && (
                   <div className="text-center">
-                    <p className="text-sm font-medium theme-text-secondary mb-2">Returning?</p>
+                    <p className="text-sm font-medium theme-text-secondary mb-2">{t('signInPage.returningUser')}</p>
                   </div>
                 )}
 
@@ -386,8 +394,8 @@ export function SignInContent() {
                 >
                   {isPasskeyLoading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <KeyRound className="w-5 h-5 mr-2" />}
                   {isPasskeyLoading
-                    ? (passkeyEmail ? "Creating account..." : "Signing in...")
-                    : "Continue with Passkey"
+                    ? (passkeyEmail ? t('signInPage.creatingAccount') : t('signInPage.signingIn'))
+                    : t('auth.continueWith', { provider: t('signInPage.passkey') })
                   }
                 </Button>
 
@@ -400,7 +408,7 @@ export function SignInContent() {
                   }}
                   className="w-full theme-text-secondary hover:text-[rgb(var(--theme-text-primary))] text-sm"
                 >
-                  Back to options
+                  {t('signInPage.backToOptions')}
                 </button>
               </div>
             )}
@@ -409,19 +417,26 @@ export function SignInContent() {
 
             <div className="text-center text-sm theme-text-muted mt-6">
               <p>
-                By signing in, you agree to our{" "}
-                <Link href="/terms" className="text-[rgb(var(--theme-accent))] hover:text-[rgb(var(--theme-accent-hover))] underline">
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link href="/privacy" className="text-[rgb(var(--theme-accent))] hover:text-[rgb(var(--theme-accent-hover))] underline">
-                  Privacy Policy
-                </Link>
+                {/* One sentence with two links: the message keeps its {terms} and
+                    {privacy} slots so each language orders them its own way. */}
+                {t('signInPage.agreement').split(/(\{terms\}|\{privacy\})/).map((part, index) =>
+                  part === '{terms}' ? (
+                    <Link key={index} href="/terms" className="text-[rgb(var(--theme-accent))] hover:text-[rgb(var(--theme-accent-hover))] underline">
+                      {t('signInPage.termsOfService')}
+                    </Link>
+                  ) : part === '{privacy}' ? (
+                    <Link key={index} href="/privacy" className="text-[rgb(var(--theme-accent))] hover:text-[rgb(var(--theme-accent-hover))] underline">
+                      {t('signInPage.privacyPolicy')}
+                    </Link>
+                  ) : (
+                    part
+                  )
+                )}
               </p>
               <p className="mt-2">
-                Having trouble?{" "}
+                {t('signInPage.havingTrouble')}{" "}
                 <Link href="/help" className="text-[rgb(var(--theme-accent))] hover:text-[rgb(var(--theme-accent-hover))] underline">
-                  Visit our Help Center
+                  {t('signInPage.visitHelpCenter')}
                 </Link>
               </p>
             </div>
@@ -431,20 +446,20 @@ export function SignInContent() {
         {/* Features Preview */}
         <div className="mt-8 grid grid-cols-1 gap-4 text-center">
           <div className="theme-surface rounded-2xl p-6 border theme-border theme-shadow-sm">
-            <h3 className="theme-text-primary font-semibold mb-2">Organize Your Tasks</h3>
+            <h3 className="theme-text-primary font-semibold mb-2">{t('signInPage.organizeTitle')}</h3>
             <p className="theme-text-secondary text-sm">
-              Create private, shared, and public lists to manage your work and life
+              {t('signInPage.organizeDesc')}
             </p>
           </div>
           <div className="theme-surface rounded-2xl p-6 border theme-border theme-shadow-sm">
-            <h3 className="theme-text-primary font-semibold mb-2">Collaborate with Teams</h3>
+            <h3 className="theme-text-primary font-semibold mb-2">{t('signInPage.collaborateTitle')}</h3>
             <p className="theme-text-secondary text-sm">
-              Share lists with admins and set default task settings for consistency
+              {t('signInPage.collaborateDesc')}
             </p>
           </div>
           <div className="theme-surface rounded-2xl p-6 border theme-border theme-shadow-sm">
-            <h3 className="theme-text-primary font-semibold mb-2">Discover Public Tasks</h3>
-            <p className="theme-text-secondary text-sm">Browse and copy tasks from public lists shared by the community</p>
+            <h3 className="theme-text-primary font-semibold mb-2">{t('signInPage.discoverTitle')}</h3>
+            <p className="theme-text-secondary text-sm">{t('signInPage.discoverDesc')}</p>
           </div>
         </div>
       </div>

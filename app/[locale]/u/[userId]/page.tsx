@@ -16,6 +16,7 @@ import { shouldHideTaskWhen } from "@/lib/public-list-utils"
 import type { Task } from "@/types/task"
 import { createLogger } from '@/lib/logger'
 import { scrollShellClassName } from "@/components/scroll-shell"
+import { useTranslations } from "@/lib/i18n/client"
 
 const log = createLogger('[locale].u.[userId].page.tsx')
 
@@ -41,13 +42,17 @@ interface UserProfile {
 }
 
 export default function UserProfilePage() {
+  const { t } = useTranslations()
   const params = useParams()
   const router = useRouter()
   const userId = params?.userId as string
 
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  // An i18n key, translated when shown: the effect below does not depend on the language.
   const [error, setError] = useState<string | null>(null)
+  // What the server said went wrong, for the one message that quotes it.
+  const [errorDetail, setErrorDetail] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchProfile() {
@@ -60,11 +65,12 @@ export default function UserProfilePage() {
           log.error({ status: response.status, errorData }, '[User Profile Page] API error')
 
           if (response.status === 404) {
-            setError("User not found")
+            setError("profilePage.userNotFound")
           } else if (response.status === 401) {
-            setError("Please sign in to view user profiles")
+            setError("profilePage.signInRequired")
           } else {
-            setError(`Failed to load user profile: ${errorData.error || "Unknown error"}`)
+            setErrorDetail(errorData.error || null)
+            setError("profilePage.loadFailedDetail")
           }
           return
         }
@@ -73,7 +79,7 @@ export default function UserProfilePage() {
         setProfile(data)
       } catch (err) {
         log.error({ err: err }, "Error fetching user profile:")
-        setError("Failed to load user profile")
+        setError("profilePage.loadFailed")
       } finally {
         setLoading(false)
       }
@@ -89,7 +95,7 @@ export default function UserProfilePage() {
       <div className={`${scrollShellClassName} theme-bg-primary flex items-center justify-center`}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand mx-auto mb-4"></div>
-          <p className="theme-text-muted">Loading profile...</p>
+          <p className="theme-text-muted">{t('profilePage.loading')}</p>
         </div>
       </div>
     )
@@ -100,11 +106,11 @@ export default function UserProfilePage() {
       <div className={`${scrollShellClassName} theme-bg-primary flex items-center justify-center p-4`}>
         <Card className="theme-bg-secondary theme-border border p-8 text-center max-w-md">
           <h1 className="text-2xl font-bold theme-text-primary mb-4">
-            {error || "Profile not found"}
+            {error ? t(error, { error: errorDetail ?? t('profilePage.unknownError') }) : t('profilePage.notFound')}
           </h1>
           <Button onClick={() => router.back()} variant="outline">
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Go Back
+            {t('profilePage.goBack')}
           </Button>
         </Card>
       </div>
@@ -138,21 +144,21 @@ export default function UserProfilePage() {
             variant="ghost"
             onClick={() => router.back()}
             className="p-2 hover:bg-opacity-20"
-            aria-label="Back"
+            aria-label={t('actions.back')}
           >
             <ArrowLeft className="w-5 h-5 theme-text-primary" />
           </Button>
           <div
             className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => router.push('/')}
-            title="Go to Home"
+            title={t('navigation.goHome')}
           >
             <Heart className="w-6 h-6 text-red-500 fill-red-500" />
             <span className="text-xl font-semibold theme-text-primary">{BRAND.wordmark}</span>
           </div>
           <div className="flex items-center space-x-1 theme-count-bg rounded-full px-3 py-1">
             <div className="w-2 h-2 theme-bg-tertiary rounded-full"></div>
-            <span className="text-sm theme-text-primary">Profile</span>
+            <span className="text-sm theme-text-primary">{t('profilePage.badge')}</span>
           </div>
         </div>
       </div>
@@ -182,14 +188,14 @@ export default function UserProfilePage() {
                 </h1>
                 {user.isAIAgent && (
                   <Badge variant="secondary" className="text-xs">
-                    AI Agent
+                    {t('profilePage.aiAgent')}
                   </Badge>
                 )}
               </div>
               {user.email && <p className="theme-text-muted text-sm mb-3">{user.email}</p>}
               <div className="flex items-center justify-center sm:justify-start gap-2 theme-text-muted text-sm">
                 <Calendar className="w-4 h-4" />
-                <span>Joined {format(new Date(user.createdAt), "MMMM yyyy")}</span>
+                <span>{t('profilePage.joined', { date: format(new Date(user.createdAt), "MMMM yyyy") })}</span>
               </div>
             </div>
           </div>
@@ -204,11 +210,11 @@ export default function UserProfilePage() {
                 <CheckCircle2 className="w-6 h-6 text-success" />
               </div>
               <div>
-                <p className="text-sm theme-text-muted">Completed</p>
+                <p className="text-sm theme-text-muted">{t('tasks.completed')}</p>
                 <p className="text-2xl font-bold theme-text-primary">{stats.completed}</p>
               </div>
             </div>
-            <p className="text-xs theme-text-muted mt-2">Tasks completed</p>
+            <p className="text-xs theme-text-muted mt-2">{t('profilePage.completedDesc')}</p>
           </Card>
 
           {/* Inspired Tasks */}
@@ -218,12 +224,12 @@ export default function UserProfilePage() {
                 <Lightbulb className="w-6 h-6 text-warning" />
               </div>
               <div>
-                <p className="text-sm theme-text-muted">Inspired</p>
+                <p className="text-sm theme-text-muted">{t('profilePage.inspired')}</p>
                 <p className="text-2xl font-bold theme-text-primary">{stats.inspired}</p>
               </div>
             </div>
             <p className="text-xs theme-text-muted mt-2">
-              Tasks created, completed or copied by others
+              {t('profilePage.inspiredDesc')}
             </p>
           </Card>
 
@@ -234,11 +240,11 @@ export default function UserProfilePage() {
                 <Heart className="w-6 h-6 text-brand" />
               </div>
               <div>
-                <p className="text-sm theme-text-muted">Supported</p>
+                <p className="text-sm theme-text-muted">{t('profilePage.supported')}</p>
                 <p className="text-2xl font-bold theme-text-primary">{stats.supported}</p>
               </div>
             </div>
-            <p className="text-xs theme-text-muted mt-2">Comments on others&apos; tasks</p>
+            <p className="text-xs theme-text-muted mt-2">{t('profilePage.supportedDesc')}</p>
           </Card>
         </div>
 
@@ -248,7 +254,7 @@ export default function UserProfilePage() {
             <div className="flex items-center gap-2 mb-4">
               <ListTodo className="w-5 h-5 theme-text-muted" />
               <h2 className="text-lg font-semibold theme-text-primary">
-                {isOwnProfile ? "Your Tasks" : `Shared Tasks with ${displayName}`}
+                {isOwnProfile ? t('profilePage.yourTasks') : t('profilePage.sharedWith', { name: displayName })}
               </h2>
               <Badge variant="outline" className="ml-auto">
                 {sharedTasks.length}
@@ -341,7 +347,7 @@ export default function UserProfilePage() {
           <Card className="theme-bg-secondary theme-border border p-8 text-center">
             <ListTodo className="w-12 h-12 theme-text-muted mx-auto mb-3 opacity-50" />
             <p className="theme-text-muted">
-              No tasks shared with {displayName} yet
+              {t('profilePage.noShared', { name: displayName })}
             </p>
           </Card>
         )}

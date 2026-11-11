@@ -3,6 +3,7 @@
 import { BRAND } from '@/lib/brand/config'
 import Link from "next/link"
 import { redirect } from "next/navigation"
+import { getTranslations } from "next-intl/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import {
   buildErrorRedirect,
@@ -64,6 +65,8 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
     codeChallengeMethod: normalizeParam(resolvedSearchParams.code_challenge_method),
   }
 
+  const t = await getTranslations("oauthAuthorizePage")
+
   let context = null
   let validationError: OAuthAuthorizationError | null = null
 
@@ -84,24 +87,24 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <AlertTriangle className="w-5 h-5 text-danger" />
-              <span>Unable to Continue</span>
+              <span>{t("unableTitle")}</span>
             </CardTitle>
             <CardDescription className="theme-text-muted">
-              {validationError?.message || "The authorization request is invalid. Please double-check the link and try again."}
+              {validationError?.message || t("invalidRequest")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {validationError && (
               <div className="text-xs theme-text-muted">
-                Error code: <code className="px-1 rounded theme-bg-tertiary">{validationError.code}</code>
+                {t("errorCode")} <code className="px-1 rounded theme-bg-tertiary">{validationError.code}</code>
               </div>
             )}
             <div className="pt-2 flex flex-col sm:flex-row gap-2">
               <Button asChild className="flex-1">
-                <Link href="/settings/connections">Go to Connections</Link>
+                <Link href="/settings/connections">{t("goToConnections")}</Link>
               </Button>
               <Button variant="outline" asChild className="flex-1">
-                <Link href="/">Return Home</Link>
+                <Link href="/">{t("returnHome")}</Link>
               </Button>
             </div>
           </CardContent>
@@ -174,7 +177,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-2">
             <Lock className="w-5 h-5 theme-text-primary" />
-            <span className="font-semibold theme-text-primary">Authorize {BRAND.appName} Integration</span>
+            <span className="font-semibold theme-text-primary">{t("header")}</span>
           </div>
         </div>
       </div>
@@ -185,23 +188,23 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>{context.client.name}</span>
-                <Badge variant="secondary" className="text-xs">OAuth App</Badge>
+                <Badge variant="secondary" className="text-xs">{t("oauthApp")}</Badge>
               </CardTitle>
               <CardDescription className="theme-text-muted">
-                {context.client.description || `This application is requesting access to your ${BRAND.appName} account.`}
+                {context.client.description || t("defaultDescription")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="text-sm">
-                <div className="font-medium theme-text-primary">Requesting access as</div>
+                <div className="font-medium theme-text-primary">{t("requestingAs")}</div>
                 <div className="text-sm theme-text-muted">
-                  {session.user?.email || session.user?.name || "Your account"}
+                  {session.user?.email || session.user?.name || t("yourAccount")}
                 </div>
               </div>
               <div className="text-xs theme-text-muted">
                 {context.client.owner
-                  ? `Developed by ${context.client.owner.email || context.client.owner.name || `${BRAND.appName} user`}`
-                  : 'Dynamically registered by your MCP client'}
+                  ? t("developedBy", { owner: context.client.owner.email || context.client.owner.name || t("brandUser") })
+                  : t("dynamicallyRegistered")}
               </div>
             </CardContent>
           </Card>
@@ -210,10 +213,10 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Shield className="w-5 h-5 text-brand" />
-                <span>Requested Permissions</span>
+                <span>{t("permissionsTitle")}</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
-                This app will be able to:
+                {t("permissionsIntro")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -229,16 +232,16 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
                 ))}
               </ul>
               <div className="text-xs theme-text-muted">
-                Scope: <code className="theme-bg-tertiary px-1 rounded">{scopeSummary}</code>
+                {t("scope")} <code className="theme-bg-tertiary px-1 rounded">{scopeSummary}</code>
               </div>
             </CardContent>
           </Card>
 
           <Card className="theme-bg-secondary border-success/40">
             <CardHeader>
-              <CardTitle>Grant Access</CardTitle>
+              <CardTitle>{t("grantTitle")}</CardTitle>
               <CardDescription className="theme-text-muted">
-                Allow {context.client.name} to access your {BRAND.appName} data with the permissions above.
+                {t("grantDescription", { client: context.client.name })}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -261,7 +264,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
                     value="deny"
                     className="flex-1"
                   >
-                    Deny
+                    {t("deny")}
                   </Button>
                   <Button
                     type="submit"
@@ -269,7 +272,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
                     value="approve"
                     className="flex-1"
                   >
-                    Approve Access
+                    {t("approve")}
                   </Button>
                   {consentAgentMailbox && (
                     <Button
@@ -278,13 +281,13 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
                       value="approve_agent"
                       className="flex-1"
                     >
-                      Approve Access as {agentEmail(consentAgentMailbox)}
+                      {t("approveAs", { agent: agentEmail(consentAgentMailbox) })}
                     </Button>
                   )}
                 </div>
               </form>
               <p className="text-xs theme-text-muted">
-                Tokens expire after 1 hour. Refresh tokens remain valid for 30 days or until revoked from Settings → Connections.
+                {t("tokenNote")}
               </p>
             </CardContent>
           </Card>

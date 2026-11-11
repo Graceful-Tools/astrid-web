@@ -9,11 +9,13 @@ import { useSession } from "next-auth/react"
 import { AuthenticatedApp } from "@/components/authenticated-app"
 import { LoadingScreen } from "@/components/loading-screen"
 import { createLogger } from '@/lib/logger'
+import { useTranslations } from '@/lib/i18n/client'
 
 const log = createLogger('[locale].list.[id].page.tsx')
 
 
 export default function ListPage() {
+  const { t } = useTranslations()
   const { data: session, status } = useSession()
   const params = useParams<{ id?: string }>()
   const router = useRouter()
@@ -21,6 +23,7 @@ export default function ListPage() {
 
   const [listData, setListData] = useState(null)
   const [loading, setLoading] = useState(true)
+  // An i18n key, translated when shown: the effect below does not depend on the language.
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -31,15 +34,15 @@ export default function ListPage() {
         const response = await fetch(`/api/v1/lists/${listId}`)
         if (!response.ok) {
           if (response.status === 404) {
-            setError("List not found")
+            setError("errorPages.listNotFound")
           } else if (response.status === 403) {
-            setError("Access denied. You don't have permission to view this list.")
+            setError("errorPages.listAccessDenied")
           } else if (!navigator.onLine) {
             // The service worker's offline answer: keep the app on its cached
             // data rather than the error screen (AWTD-1417).
             log.info({ status: response.status }, 'Offline: list not refreshed, using cached data')
           } else {
-            setError("Failed to load list")
+            setError("errorPages.listLoadFailed")
           }
           return
         }
@@ -57,7 +60,7 @@ export default function ListPage() {
           log.info('Offline: list not refreshed, using cached data')
           return
         }
-        setError("Failed to load list")
+        setError("errorPages.listLoadFailed")
         log.error({ err: err }, "Error fetching list:")
       } finally {
         setLoading(false)
@@ -86,13 +89,13 @@ export default function ListPage() {
       <div className="min-h-screen bg-theme-primary flex items-center justify-center p-4">
         <div className="text-center">
           <div className="text-6xl mb-4">📋</div>
-          <h1 className="text-2xl font-bold text-theme-primary mb-2">List Not Available</h1>
-          <p className="text-theme-muted mb-6">{error}</p>
+          <h1 className="text-2xl font-bold text-theme-primary mb-2">{t('errorPages.listUnavailableTitle')}</h1>
+          <p className="text-theme-muted mb-6">{t(error)}</p>
           <button
             onClick={() => router.push('/')}
             className="bg-brand hover:bg-brand-hover text-brand-foreground px-6 py-2 rounded-lg"
           >
-            Go to Dashboard
+            {t('errorPages.goToDashboard')}
           </button>
         </div>
       </div>

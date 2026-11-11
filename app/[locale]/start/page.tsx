@@ -21,6 +21,7 @@ import { scrollShellClassName } from "@/components/scroll-shell"
 import { CopyBlock } from "@/components/agent-runtime-settings"
 import { AgentCredentialsCard } from "@/components/agent-credentials-card"
 import { apiGet, apiPost } from "@/lib/api"
+import { useTranslations } from "@/lib/i18n/client"
 import {
   START_HERE_MARKDOWN_PATH,
   START_HERE_PATH,
@@ -54,11 +55,12 @@ const starterApi: StarterApi = {
 const noopSubscribe = () => () => {}
 
 function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+  const { t } = useTranslations()
   return (
     <Card className="theme-bg-secondary theme-border" data-testid={`starthere-step-${n}`}>
       <CardHeader>
         <CardTitle className="theme-text-primary text-lg">
-          Step {n} — {title}
+          {t('startPage.step', { n: String(n), title })}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">{children}</CardContent>
@@ -176,6 +178,7 @@ function AgentSetup({
  * (AWTD-1494). The same mint the Copilot cloud card uses; shown once.
  */
 function CiTokenButton({ mailbox, secretName }: { mailbox: string; secretName: string }) {
+  const { t } = useTranslations()
   const [token, setToken] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -211,7 +214,7 @@ function CiTokenButton({ mailbox, secretName }: { mailbox: string; secretName: s
     <div className="space-y-1">
       <Button size="sm" variant="outline" onClick={create} disabled={busy} data-testid={`starthere-ci-token-${mailbox}`}>
         {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-        Create a GitHub Actions token
+        {t('startPage.createCiToken')}
       </Button>
       {error && <p className="text-xs text-danger" role="alert">{error}</p>}
     </div>
@@ -219,6 +222,7 @@ function CiTokenButton({ mailbox, secretName }: { mailbox: string; secretName: s
 }
 
 export default function StartHerePage() {
+  const { t } = useTranslations()
   const router = useRouter()
   const { status } = useSession()
   const signedIn = status === 'authenticated'
@@ -258,13 +262,13 @@ export default function StartHerePage() {
     <div className={`${scrollShellClassName} theme-bg-primary`}>
       <div className="theme-header theme-border app-header">
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" onClick={() => router.push('/docs')} className="p-2 hover:bg-opacity-20" aria-label="Back to docs">
+          <Button variant="ghost" onClick={() => router.push('/docs')} className="p-2 hover:bg-opacity-20" aria-label={t('startPage.backToDocs')}>
             <ArrowLeft className="w-5 h-5 theme-text-primary" />
           </Button>
           <div
             className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => router.push('/')}
-            title="Go to Home"
+            title={t('navigation.goHome')}
           >
             <Image src={BRAND.iconSmall} alt={BRAND.appName} width={24} height={24} className="rounded" />
             <span className="text-xl font-semibold theme-text-primary">{BRAND.wordmark}</span>
@@ -275,13 +279,10 @@ export default function StartHerePage() {
       <div className="max-w-3xl mx-auto p-4 sm:p-6 space-y-6">
         <div className="space-y-2">
           <h1 className="text-2xl font-bold theme-text-primary">
-            Run your software business with agents — from one {BRAND.appName}
+            {t('startPage.heading')}
           </h1>
           <p className="theme-text-muted">
-            {BRAND.appName} is the shared to-do list your agents and teammates all work from. Drop a task
-            in a list; the agent that owns it comments a plan, does the work and reports back in the same
-            task — on the web or your phone. Each agent checks its own queue on a schedule using the plan
-            you already pay for, so there is no dashboard to babysit. For teams of 1 to 10.
+            {t('startPage.intro')}
           </p>
           <p className="text-sm theme-text-muted flex items-center gap-2">
             <FileText className="w-4 h-4 shrink-0" />
@@ -298,10 +299,10 @@ export default function StartHerePage() {
         <Card className="theme-bg-secondary theme-border">
           <CardHeader>
             <CardTitle className="theme-text-primary text-lg flex items-center gap-2">
-              <ListChecks className="w-5 h-5" /> The shape: five lists, one agent each
+              <ListChecks className="w-5 h-5" /> {t('startPage.shapeTitle')}
             </CardTitle>
             <CardDescription className="theme-text-muted">
-              You only need the agents you pay for — skip a row and keep that list for yourself.
+              {t('startPage.shapeDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -320,7 +321,7 @@ export default function StartHerePage() {
           </CardContent>
         </Card>
 
-        <Step n={1} title="Create the lists (2 minutes)">
+        <Step n={1} title={t('startPage.createTitle')}>
           <p className="text-sm theme-text-muted">
             One button creates the five lists with their instructions and makes each agent the
             default assignee. A list&apos;s description <em>is</em> the instruction file every agent reads
@@ -331,20 +332,20 @@ export default function StartHerePage() {
               {creating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {allCreated ? (
                 <>
-                  <CheckCircle2 className="w-4 h-4 mr-2" /> Your lists are ready
+                  <CheckCircle2 className="w-4 h-4 mr-2" /> {t('startPage.listsReady')}
                 </>
               ) : (
-                'Create my lists'
+                t('startPage.createLists')
               )}
             </Button>
           ) : (
             <Button onClick={() => router.push(`/auth/signin?callbackUrl=${encodeURIComponent(START_HERE_PATH)}`)}>
-              Sign in to create them
+              {t('startPage.signInToCreate')}
             </Button>
           )}
           {error && <p className="text-sm text-danger" role="alert">{error}</p>}
           <details className="text-sm">
-            <summary className="cursor-pointer theme-text-muted">See the list instructions</summary>
+            <summary className="cursor-pointer theme-text-muted">{t('startPage.seeInstructions')}</summary>
             <div className="space-y-3 pt-3">
               {STARTER_LISTS.map(list => (
                 <CopyBlock key={list.key} label={list.name} code={list.description} />
@@ -353,7 +354,7 @@ export default function StartHerePage() {
           </details>
         </Step>
 
-        <Step n={2} title="Connect the agents you pay for">
+        <Step n={2} title={t('startPage.connectTitle')}>
           <p className="text-sm theme-text-muted flex items-start gap-2">
             <Bot className="w-4 h-4 mt-0.5 shrink-0" />
             <span>
@@ -376,20 +377,20 @@ export default function StartHerePage() {
           </div>
         </Step>
 
-        <Step n={3} title="Work (every day)">
+        <Step n={3} title={t('startPage.workTitle')}>
           <ol className="list-decimal pl-5 space-y-1 text-sm theme-text-primary">
-            <li>Add a task to the list whose agent should do it — it is assigned automatically.</li>
+            <li>{t('startPage.workAddTask')}</li>
             <li>Set its status to <strong>Ready</strong> when you want the agent to start. That is the go button.</li>
-            <li>The agent comments its plan, does the work and reports back with a pull request link.</li>
-            <li>Reply in the comments from anywhere. You merge and deploy.</li>
+            <li>{t('startPage.workAgentReports')}</li>
+            <li>{t('startPage.workReply')}</li>
           </ol>
           <p className="text-sm theme-text-muted flex items-center gap-2">
             <Repeat className="w-4 h-4 shrink-0" />
-            Recurring work: make the task repeat (daily, weekly) and it re-queues itself.
+            {t('startPage.workRecurring')}
           </p>
         </Step>
 
-        <Step n={4} title="Add teammates (optional, 2–10 people)">
+        <Step n={4} title={t('startPage.teamTitle')}>
           <p className="text-sm theme-text-muted flex items-start gap-2">
             <Users className="w-4 h-4 mt-0.5 shrink-0" />
             <span>
@@ -404,17 +405,17 @@ export default function StartHerePage() {
 
         <Card className="theme-bg-secondary theme-border">
           <CardHeader>
-            <CardTitle className="theme-text-primary text-lg">Reference</CardTitle>
+            <CardTitle className="theme-text-primary text-lg">{t('startPage.reference')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <Button variant="outline" className="w-full justify-between" onClick={() => router.push('/docs/loops')}>
-              Every harness recipe
+              {t('startPage.everyRecipe')}
             </Button>
             <Button variant="outline" className="w-full justify-between" onClick={() => router.push('/docs/mcp')}>
-              MCP connection &amp; tokens
+              {t('startPage.mcpTokens')}
             </Button>
             <Button variant="outline" className="w-full justify-between" onClick={() => router.push('/settings/agents')}>
-              Agent settings
+              {t('startPage.agentSettings')}
             </Button>
           </CardContent>
         </Card>
