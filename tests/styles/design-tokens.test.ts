@@ -25,7 +25,7 @@ import { getPriorityColor } from '@/lib/task-leading-control'
 import { getPriorityColorClass } from '@/lib/task-manager-utils'
 
 import { compileClasses, ruleFor } from './compile-tailwind'
-import { contrast, resolveRgb, themeScope } from './resolve-theme'
+import { contrast, resolveRgb, themeScope, type Rgb } from './resolve-theme'
 
 const read = (...path: string[]) => readFileSync(join(process.cwd(), ...path), 'utf8')
 
@@ -380,5 +380,96 @@ describe('the theme vocabulary: what a palette class is replaced with (AWTD-1574
   it('no palette colour is named in the Tailwind theme', () => {
     const source = read('lib', 'design', 'tailwind-theme.ts') + read('tailwind.config.ts')
     expect(source.match(/#[0-9a-fA-F]{3,8}\b|rgba?\(\s*\d|hsl\(/g) ?? []).toEqual([])
+  })
+})
+
+describe('a meaning as text reads its ink, as a fill its base colour (AWTD-1575)', () => {
+  // The conversion turned `text-blue-600 dark:text-blue-400` into `text-brand`,
+  // and the tokens had one mid-tone per meaning: right as a fill, 3.68:1 as a
+  // link on white, about 2:1 as a label on its own wash. astrid-core now has an
+  // ink per meaning (register DS25) and the text utilities read it.
+  const MEANINGS = [
+    ['brand', 'accent'],
+    ['danger', 'error'],
+    ['success', 'success'],
+    ['warning', 'warning'],
+    ['info', 'info'],
+  ] as const
+  const propertyOf = (rule: string) => /rgba\(var\(--((?:astrid|theme)-[a-z0-9-]+)\)/.exec(rule)?.[1]
+  let css = ''
+
+  it('AWTD-1575: text, and an icon drawn with fill or stroke, compile to the ink', async () => {
+    css = await compileClasses([
+      'bg-theme-surface',
+      'bg-theme-primary',
+      'bg-theme-secondary',
+      'hover:text-brand-hover',
+      ...MEANINGS.flatMap(([name]) => [
+        `text-${name}`,
+        `hover:text-${name}`,
+        `text-${name}/70`,
+        `fill-${name}`,
+        `stroke-${name}`,
+        `text-${name}-foreground`,
+        `bg-${name}`,
+        `bg-${name}-subtle`,
+        `border-${name}`,
+        `ring-${name}`,
+      ]),
+    ])
+    for (const [name, token] of MEANINGS) {
+      expect(propertyOf(ruleFor(css, `text-${name}`)), `text-${name}`).toBe(`astrid-${token}-ink`)
+      expect(propertyOf(ruleFor(css, `hover:text-${name}`)), `hover:text-${name}`).toBe(`astrid-${token}-ink`)
+      expect(ruleFor(css, `text-${name}/70`)).toBe(`color: rgba(var(--astrid-${token}-ink), 0.7)`)
+      expect(ruleFor(css, `fill-${name}`)).toContain(`rgba(var(--astrid-${token}-ink)`)
+      expect(ruleFor(css, `stroke-${name}`)).toContain(`rgba(var(--astrid-${token}-ink)`)
+    }
+    // shadcn's alert writes the same red as `text-destructive`; its fill is still `--destructive`.
+    const shadcn = await compileClasses(['text-destructive', 'bg-destructive', 'text-destructive-foreground'])
+    expect(propertyOf(ruleFor(shadcn, 'text-destructive'))).toBe('astrid-error-ink')
+    expect(ruleFor(shadcn, 'bg-destructive')).toContain('rgba(var(--destructive)')
+    expect(ruleFor(shadcn, 'text-destructive-foreground')).toContain('rgba(var(--destructive-foreground)')
+  })
+
+  it('AWTD-1575: fills, washes, borders, rings and text on the fill keep the base colour', () => {
+    for (const [name, token] of MEANINGS) {
+      expect(propertyOf(ruleFor(css, `bg-${name}`)), `bg-${name}`).toBe(`astrid-${token}`)
+      expect(ruleFor(css, `bg-${name}-subtle`)).toBe(`background-color: rgba(var(--astrid-${token}), var(--theme-wash-opacity))`)
+      expect(propertyOf(ruleFor(css, `border-${name}`)), `border-${name}`).toBe(`astrid-${token}`)
+      expect(ruleFor(css, `ring-${name}`)).toContain(`rgba(var(--astrid-${token}), `)
+      expect(propertyOf(ruleFor(css, `text-${name}-foreground`)), `text-${name}-foreground`).toBe('astrid-accent-text')
+    }
+  })
+
+  it.each(THEME_NAMES)('AWTD-1575 %s: each text-<meaning> is 4.5:1 on the card and on its own wash', (theme) => {
+    const scope = themeScope(theme)
+    const colour = (name: string) => resolveRgb(propertyOf(ruleFor(css, name))!, scope)
+    const wash = Number(scope.get('theme-wash-opacity'))
+    const card = colour('bg-theme-surface')
+    for (const [name, token] of MEANINGS) {
+      const ink = colour(`text-${name}`)
+      expect(ink, `${theme} text-${name}`).toEqual(themeColor(theme, `${token}-ink`))
+      const surfaces: [string, Rgb][] = [
+        ['bg-theme-surface', card],
+        ['bg-theme-secondary', colour('bg-theme-secondary')],
+        [
+          `bg-${name}-subtle on the card`,
+          colour(`bg-${name}`).map((channel, at) => Math.round(channel * wash + card[at] * (1 - wash))) as Rgb,
+        ],
+      ]
+      // Ocean's page is cyan; a status colour is drawn on a card there.
+      if (theme !== 'ocean') surfaces.push(['bg-theme-primary', colour('bg-theme-primary')])
+      for (const [surface, under] of surfaces) {
+        const ratio = contrast(ink, under)
+        expect(ratio, `${theme}: text-${name} on ${surface} is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+  })
+
+  it.each(THEME_NAMES)('AWTD-1575 %s: a link under the pointer is never fainter than the link', (theme) => {
+    const scope = themeScope(theme)
+    const colour = (name: string) => resolveRgb(propertyOf(ruleFor(css, name))!, scope)
+    const card = colour('bg-theme-surface')
+    expect(contrast(colour('hover:text-brand-hover'), card)).toBeGreaterThanOrEqual(contrast(colour('text-brand'), card))
   })
 })

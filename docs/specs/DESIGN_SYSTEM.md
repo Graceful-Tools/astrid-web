@@ -50,7 +50,7 @@ The tokens decide what that looks like.
 
 | Layer | Holds | Notes |
 |---|---|---|
-| **Brand** | accent, accent hover, text on accent | A partner build replaces these in every theme at once. On web they arrive as `--brand-*-rgb`. |
+| **Brand** | accent, accent hover, text on accent, the accent as text (`accent-ink`, and `accent-ink-dark` for dark themes) | A partner build replaces these in every theme at once. On web they arrive as `--brand-*-rgb`; web works a partner's two inks out from its one accent (`lib/brand/css-vars.ts`). |
 | **Themes** | every surface, border, text, status, input, button and priority colour, per theme | `light`, `dark`, `ocean`. Each theme answers for the same names. |
 | **Palettes** | the eight list colours, the five trade-off ratings | Choices, not brand values. |
 | **Scales** | spacing 2-48, radius 6/8/12/16, three shadows | Already equal on iOS, Android and Windows. |
@@ -64,9 +64,10 @@ The tokens decide what that looks like.
 
 1. **iOS and Mac are the reference.** A design change is made there first, then in
    `tokens.json`, then each client re-vendors. Where another client was right, the
-   register says so and the tokens take that value; iOS then follows. Two are recorded
-   today: Ocean's darker text (web, AWTD-1496) and the repeat frame around someone else's
-   photo (web, AWTD-1571).
+   register says so and the tokens take that value; iOS then follows. Three are recorded
+   today: Ocean's darker text (web, AWTD-1496), the repeat frame around someone else's
+   photo (web, AWTD-1571) and a darker or lighter shade for a status or brand colour drawn
+   as text (web, AWTD-1575; register DS25).
 2. **A shared value is never restated.** Not as a literal in a view, not as a second
    table. In this repo: `var(--astrid-*)` in CSS, `lib/design/priority.ts` for priority,
    `lib/design/tokens.ts` where CSS cannot reach.
@@ -87,7 +88,9 @@ restating only what differs. Adding one is that entry plus its name in
 
 - a theme the core cannot name, or a core theme with no colours;
 - a colour name that one theme defines and another lacks;
-- body text under 4.5:1 on the theme's own page.
+- body text under 4.5:1 on the theme's own page;
+- an ink (`accent-ink`, `error-ink` …) under 4.5:1 on the theme's card, on `bg-secondary`
+  or on its own wash.
 
 The brand accent is separate from the theme, so a partner's colour and a new theme do
 not multiply. A theme a partner wants for itself is still an entry in the same file.
@@ -293,12 +296,13 @@ has a name below.
 | Border: default, heavier | `border-theme`, `border-theme-strong` (also `divide-theme`, `divide-theme-strong`) | `border`, `border-hover` |
 | Border around a card, dialog or menu | `border-theme-surface` | web-only `--theme-surface-border` |
 | Border: input, button, header, focus, selected | `border-theme-input`, `border-theme-button`, `border-theme-header`, `border-theme-focus`, `border-theme-selected` | `input-border`, `button-border`, `header-border`, `border-focus`, `bg-selected-border` |
-| Brand accent: text and links, fill, text on the fill, border, focus ring, a wash | `text-brand`, `bg-brand`, `text-brand-foreground`, `border-brand`, `ring-brand`, `bg-brand-subtle` | `accent`, `accent-text` |
-| Brand accent under the pointer | `hover:text-brand-hover`, `hover:bg-brand-hover` | `accent-hover` |
-| Danger: text, wash, fill, text on the fill, border | `text-danger`, `bg-danger-subtle`, `bg-danger`, `text-danger-foreground`, `border-danger` | `error` |
-| Success | `text-success`, `bg-success-subtle`, `bg-success`, `text-success-foreground`, `border-success` | `success` |
-| Warning | `text-warning`, `bg-warning-subtle`, `bg-warning`, `text-warning-foreground`, `border-warning` | `warning` |
-| Info | `text-info`, `bg-info-subtle`, `bg-info`, `text-info-foreground`, `border-info` | `info` |
+| Brand accent as text, a link or an icon | `text-brand` | `accent-ink` |
+| Brand accent: fill, text on the fill, border, focus ring, a wash | `bg-brand`, `text-brand-foreground`, `border-brand`, `ring-brand`, `bg-brand-subtle` | `accent`, `accent-text` |
+| Brand accent under the pointer | `hover:bg-brand-hover`; `hover:text-brand-hover` | `accent-hover`; as text, `accent-ink` |
+| Danger: text or an icon; wash, fill, text on the fill, border | `text-danger`; `bg-danger-subtle`, `bg-danger`, `text-danger-foreground`, `border-danger` | `error-ink`; `error` |
+| Success | `text-success`; `bg-success-subtle`, `bg-success`, `text-success-foreground`, `border-success` | `success-ink`; `success` |
+| Warning | `text-warning`; `bg-warning-subtle`, `bg-warning`, `text-warning-foreground`, `border-warning` | `warning-ink`; `warning` |
+| Info | `text-info`; `bg-info-subtle`, `bg-info`, `text-info-foreground`, `border-info` | `info-ink`; `info` |
 | Overdue | `text-overdue` | `overdue` |
 | Behind an agent's message | `bg-agent-bubble` | `agent-bubble` |
 | A list colour fixed in the markup | `bg-list-1` … `bg-list-8` | `palette.list` |
@@ -307,9 +311,20 @@ has a name below.
 | Priority | `lib/design/priority.ts` | `priority-*` |
 
 The brand, status, overdue, agent and list names are plain colours and work on any colour
-utility: `fill-danger`, `ring-brand`, `from-brand`, `border-l-warning`. A softer border or
-a pressed fill is an opacity modifier on the same name (`border-danger/30`,
-`hover:bg-danger/90`), not a second colour.
+utility: `ring-brand`, `from-brand`, `border-l-warning`. A softer border or a pressed fill
+is an opacity modifier on the same name (`border-danger/30`, `hover:bg-danger/90`), not a
+second colour.
+
+**A meaning as text reads its ink** (AWTD-1575, register DS25). `accent`, `error`,
+`success`, `warning` and `info` are one mid-tone each: the colour of a fill, and too light
+to read as text (the accent is 3.68:1 as a link on white, a status label about 2:1 on its
+own wash). Each has an ink, darker in Light and Ocean and lighter in Dark, at 4.5:1 or
+better on the card and on its own wash. The utilities that draw a glyph read it: `text-*`,
+and `fill-*` and `stroke-*` for an icon (`fill-danger`). Everything else (`bg-*`,
+`border-*`, `ring-*`, `bg-*-subtle`) reads the base colour, and `text-*-foreground` is
+still the text on the fill. `hover:text-brand-hover` is the ink as well: the tokens have no
+ink for a link under the pointer, and `accent-hover` is a fill that would fade a link in
+Dark. shadcn's `text-destructive` is the error ink.
 
 Rules that come with it:
 
@@ -331,8 +346,16 @@ Rules that come with it:
 - **A wash is not a surface.** `bg-danger-subtle` is the colour at
   `--theme-wash-opacity`, so what is under it shows. Put it on a surface, and on a
   floating panel give the panel `bg-theme-surface` and a status border instead.
-- **Body text on a wash is `text-theme-primary`.** The status colour itself is for the
-  icon, the heading or a short label: on its own wash it is under 4.5:1 in Light.
+- **Body text on a wash is `text-theme-primary`.** The status colour (`text-danger`, its
+  ink) is for the icon, the heading or a short label; it is 4.5:1 or better on its own wash.
+- **Never a status text colour on a status fill.** `text-danger` on `bg-danger` or on a
+  `variant="destructive"` button is red on red. On a fill the text is `text-*-foreground`,
+  or the button variant's own. A hover that swaps the fill for a wash swaps the text with
+  it: `hover:bg-danger-subtle hover:text-danger`. `tests/styles/status-colour-uses.test.ts`
+  scans for it.
+- **A placeholder on anything but an input's own fill is `placeholder:text-theme-muted`.**
+  `input-placeholder` is drawn for `bg-theme-input`; on `bg-theme-tertiary` it is 2.3:1 in
+  Light.
 
 ### The sixty most common, and what each becomes
 
@@ -388,10 +411,15 @@ Moving to a token changes what is drawn. These are the differences to expect, an
 the point:
 
 - The accent is `blue-500` with `blue-600` under the pointer. A `bg-blue-600
-  hover:bg-blue-700` button gets one step lighter, and follows a partner's brand.
-- Status colours are one colour per status in every theme: `red-500`, `green-500`,
-  `amber-500`, `cyan-500`. `text-red-600` gets lighter, `text-red-400` darker; yellow and
-  orange both become the warning amber.
+  hover:bg-blue-700` button gets one step lighter, and follows a partner's brand. White on
+  it is 3.68:1, and on the error red 3.76:1: the fills are the shared tokens, the same on
+  iOS, and darkening them is a brand decision, not a web one.
+- A status fill is one colour per status in every theme: `red-500`, `green-500`,
+  `amber-500`, `cyan-500`. Yellow and orange both become the warning amber.
+- Status and brand text is the ink: `blue-600`, `red-700`, `green-700`, `amber-700` and
+  `cyan-700` in Light and Ocean, `blue-400`, `red-400`, `green-400`, `amber-400` and
+  `cyan-400` in Dark. `text-red-600` gets one step darker (it was 4.14:1 on its own wash);
+  `text-blue-500` and `text-green-500` on a light surface get darker and readable.
 - Muted text is `gray-500` in Light and `gray-600` in Ocean, so a bare `text-gray-400`
   gets darker there.
 
@@ -404,7 +432,7 @@ Leave these, or change them as said; do not pick the nearest name.
 | Purple for an agent's icon or label (`text-purple-500`) | The tokens hold only `agent-bubble`. Leave the palette class until astrid-core has an agent text colour; the wash behind is `bg-agent-bubble` |
 | A list's colour chosen by the person | A `style` prop from `lib/brand/colors.ts` (the eight are `palette.list`); `bg-list-N` only where the markup fixes which one |
 | Text on a status fill | `text-danger-foreground` and the others read the accent's text colour: the tokens have none of their own. White on the warning amber is 2.1:1; prefer a wash with `text-theme-primary` for a warning |
-| Dark red or green text on a pale wash (`text-red-800` on `bg-red-50`) | No dark status text token (register DS22 is the same gap for priority): `text-theme-primary` on the wash, the status colour for the icon |
+| Dark red or green text on a pale wash (`text-red-800` on `bg-red-50`) | A sentence is `text-theme-primary` on the wash; the icon, the heading or a short label is the status ink (`text-danger`). Priority glyphs have no ink yet (register DS22) |
 | Third-party marks and their brand colours (Google, Apple, GitHub in `components/ui/brand-icons.tsx`), illustrations | Stay literal. They are someone else's colours |
 | The checkbox art | Fixed-colour images (register DS21) |
 | A surface that is dark in every theme by design (a code block, the 404 page) | Stays literal, with a comment saying it is meant |
@@ -418,7 +446,7 @@ Leave these, or change them as said; do not pick the nearest name.
 | The vendored tokens | `packages/astrid-design/` (`astrid-tokens.css`, `tokens.resolved.json`, `REVISION`) |
 | Moving the pin | `scripts/sync-design-tokens.sh --rev <astrid-core sha>` |
 | Theme variables | `styles/themes/*.css`: every `--theme-*` is a token, directly or through another theme variable. The web-only surfaces are named there once (below) |
-| Classes | `lib/design/tailwind-theme.ts`, spread into `tailwind.config.ts`: the theme vocabulary, shadcn's colours, the motion utilities and the leading control's size, each a token |
+| Classes | `lib/design/tailwind-theme.ts`, spread into `tailwind.config.ts`: the theme vocabulary, the inks for text and icons, shadcn's colours, the motion utilities and the leading control's size, each a token |
 | shadcn's variables | `app/globals.css`: `--background`, `--primary` and the rest are tokens, declared once for every theme |
 | Priority | `lib/design/priority.ts`, classes in `styles/components.css` |
 | Values as data | `lib/design/tokens.ts` |
@@ -462,7 +490,7 @@ reduction, `npm run design:metrics -- --update` in the same change.
 | Hex colours | 126 | 113 |
 | rgb literals | 101 | 10 |
 | Theme triplets | 119 | 0 |
-| Inline styles | 64 | 64 |
+| Inline styles | 64 | 63 |
 | Arbitrary sizes | 97 | 96 |
 | Durations | 57 | 5 |
 | Sentences in JSX | 999 | 999 |
