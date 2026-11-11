@@ -66,7 +66,7 @@ export default function APIDocsPage() {
         <div className="max-w-sm sm:max-w-4xl mx-auto space-y-4 sm:space-y-6">
           {/* Page Header */}
           <div className="flex items-center space-x-3">
-            <BookOpen className="w-8 h-8 text-blue-500" />
+            <BookOpen className="w-8 h-8 text-brand" />
             <div>
               <h1 className="text-2xl font-bold theme-text-primary">{BRAND.appName} API Documentation</h1>
               <p className="theme-text-muted">Build powerful integrations with the {BRAND.appName} API</p>
@@ -77,7 +77,7 @@ export default function APIDocsPage() {
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <Code2 className="w-5 h-5 text-blue-500" />
+                <Code2 className="w-5 h-5 text-brand" />
                 <span>Getting Started</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
@@ -102,7 +102,7 @@ export default function APIDocsPage() {
                   Use the OAuth 2.0 Client Credentials flow to get an access token:
                 </p>
                 <pre className="theme-bg-tertiary p-3 rounded-lg overflow-x-auto">
-                  <code className="text-xs text-gray-300">{`curl -X POST https://${BRAND.domain}/api/v1/oauth/token \\
+                  <code className="text-xs text-theme-secondary">{`curl -X POST https://${BRAND.domain}/api/v1/oauth/token \\
   -d grant_type=client_credentials \\
   -d client_id=YOUR_CLIENT_ID \\
   -d client_secret=YOUR_CLIENT_SECRET`}</code>
@@ -118,7 +118,7 @@ export default function APIDocsPage() {
                   Include the access token in the Authorization header:
                 </p>
                 <pre className="theme-bg-tertiary p-3 rounded-lg overflow-x-auto">
-                  <code className="text-xs text-gray-300">{`curl https://${BRAND.domain}/api/v1/tasks \\
+                  <code className="text-xs text-theme-secondary">{`curl https://${BRAND.domain}/api/v1/tasks \\
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"`}</code>
                 </pre>
               </div>
@@ -139,7 +139,7 @@ export default function APIDocsPage() {
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <Shield className="w-5 h-5 text-green-500" />
+                <Shield className="w-5 h-5 text-success" />
                 <span>Authentication</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
@@ -163,7 +163,7 @@ export default function APIDocsPage() {
               <div>
                 <h3 className="font-semibold theme-text-primary mb-2">Request Body</h3>
                 <pre className="theme-bg-tertiary p-3 rounded-lg overflow-x-auto">
-                  <code className="text-xs text-gray-300">{`{
+                  <code className="text-xs text-theme-secondary">{`{
   "grant_type": "client_credentials",
   "client_id": "YOUR_CLIENT_ID",
   "client_secret": "YOUR_CLIENT_SECRET"
@@ -174,7 +174,7 @@ export default function APIDocsPage() {
               <div>
                 <h3 className="font-semibold theme-text-primary mb-2">Response</h3>
                 <pre className="theme-bg-tertiary p-3 rounded-lg overflow-x-auto">
-                  <code className="text-xs text-gray-300">{`{
+                  <code className="text-xs text-theme-secondary">{`{
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "token_type": "Bearer",
   "expires_in": 3600
@@ -182,9 +182,9 @@ export default function APIDocsPage() {
                 </pre>
               </div>
 
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+              <div className="bg-brand-subtle border border-brand/20 rounded-lg p-3">
                 <div className="flex items-start space-x-2">
-                  <Lock className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                  <Lock className="w-4 h-4 text-brand mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-medium theme-text-primary">Security Best Practices</p>
                     <ul className="text-xs theme-text-muted space-y-1 mt-1 ml-4 list-disc">
@@ -328,14 +328,14 @@ export default function APIDocsPage() {
           </Card>
 
           {/* Next Steps */}
-          <Card className="theme-bg-secondary theme-border border-blue-500/30">
+          <Card className="theme-bg-secondary border-brand/30">
             <CardHeader>
               <CardTitle className="theme-text-primary">Next Steps</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <Button
                 variant="outline"
-                className="w-full justify-between border-blue-500/30"
+                className="w-full justify-between border-brand/30"
                 onClick={() => router.push(START_HERE_PATH)}
               >
                 <span>Start Here: Run Your Business with Agents</span>
@@ -343,7 +343,7 @@ export default function APIDocsPage() {
               </Button>
               <Button
                 variant="outline"
-                className="w-full justify-between border-blue-500/30"
+                className="w-full justify-between border-brand/30"
                 onClick={() => router.push('/docs/integrate')}
               >
                 <span>Integration Guide</span>
