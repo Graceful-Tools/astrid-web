@@ -23,11 +23,13 @@ export const TARGET_KIB = 250
 export const NOISE_KIB = 1
 
 /**
- * Measured 2026-11-12 on the AWTD-1593 branch: heaviest route `/[locale]/lists/[listId]`
- * at 404.0 KiB gzipped; every `/[locale]/settings/*` page that renders the TaskManager
- * shell at 403.1 KiB. The ceiling is that rounded up to a whole KiB, plus NOISE_KIB.
+ * Measured 2026-11-12 on the AWTD-1604 branch (merged with main at that date), after the [locale] layout's background
+ * work moved behind next/dynamic: heaviest route `/[locale]/lists/[listId]` at 387.7 KiB
+ * gzipped; every `/[locale]/settings/*` page that renders the TaskManager shell at
+ * 386.8 KiB. The ceiling is that rounded up to a whole KiB, plus NOISE_KIB.
+ * (405 → 389; AWTD-1593 set 405.)
  */
-export const CEILING_KIB = 405
+export const CEILING_KIB = 389
 
 export interface RouteBundleStat {
   route: string
