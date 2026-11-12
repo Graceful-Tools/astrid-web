@@ -27,6 +27,31 @@
 .priority-outline-medium { border-color: rgb(var(--astrid-priority-medium)); color: rgb(var(--astrid-priority-medium)); }
 .priority-outline-high { border-color: rgb(var(--astrid-priority-high)); color: rgb(var(--astrid-priority-high)); }
 
+/* ===== BOARD STATUS PILL (AWTD-1582, iOS AITD-613) ===== */
+/* The task's board column on a LIST row — never on a board card. A tinted
+   capsule: 15% fill and 40% stroke of the semantic token, text in its ink shade
+   so it stays readable on the card in every theme. lib/task-board-status.ts
+   names these classes. Inbox error, Ready success, Doing info, Waiting warning,
+   Done the accent, a board's own column muted. */
+.board-status-pill {
+  --board-status: var(--astrid-text-muted);
+  --board-status-ink: var(--astrid-text-muted);
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  padding: 0 0.5rem;
+  background-color: rgba(var(--board-status), 0.15);
+  border: 1px solid rgba(var(--board-status), 0.4);
+  color: rgb(var(--board-status-ink));
+}
+.board-status-inbox { --board-status: var(--astrid-error); --board-status-ink: var(--astrid-error-ink); }
+.board-status-ready { --board-status: var(--astrid-success); --board-status-ink: var(--astrid-success-ink); }
+.board-status-doing { --board-status: var(--astrid-info); --board-status-ink: var(--astrid-info-ink); }
+.board-status-waiting { --board-status: var(--astrid-warning); --board-status-ink: var(--astrid-warning-ink); }
+.board-status-done { --board-status: var(--astrid-accent); --board-status-ink: var(--astrid-accent-ink); }
+
 /* The repeat arrows round someone else's photo or the "U" (AWTD-1579, register
    DS6). The arrows are the leading control's size and the mark fills them, so a
    repeating task's face is as big as every other face in the column. Both

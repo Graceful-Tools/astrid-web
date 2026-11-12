@@ -2548,5 +2548,14 @@
     "downloadFile": "Download File",
     "unknownFile": "Unknown file",
     "loadFailed": "Failed to load file"
+  },
+  "board": {
+    "status": {
+      "inbox": "Inbox",
+      "ready": "Ready",
+      "doing": "Doing",
+      "waiting": "Waiting",
+      "done": "Done"
+    }
   }
 }

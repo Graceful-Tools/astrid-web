@@ -2548,5 +2548,14 @@
     "downloadFile": "파일 다운로드",
     "unknownFile": "알 수 없는 파일",
     "loadFailed": "파일을 불러오지 못했습니다"
+  },
+  "board": {
+    "status": {
+      "inbox": "받은 편지함",
+      "ready": "준비됨",
+      "doing": "진행 중",
+      "waiting": "대기 중",
+      "done": "완료"
+    }
   }
 }
