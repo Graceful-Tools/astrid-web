@@ -130,9 +130,9 @@ Status of web's rows on 2026-11-12:
 | DS15 motion | Stylesheets closed; 4 durations left in components (the register still says five) |
 | DS16 completion pop | Takes it at the next vendored copy |
 | DS17 reduced motion | Open: one guarded rule in `components.css`, none in components |
-| DS18 completed row | Open: whole row dimmed to 75% |
+| DS18 completed row | Closed (AWTD-1617): the row is no longer dimmed |
 | DS19 title wrap setting | Open: web takes it now |
-| DS20 hairline | Open: 1 px |
+| DS20 hairline | Closed (AWTD-1617): `border` is 0.5 on high-density screens |
 | DS21 checkbox art | Accepted; drawn from the priority tokens since AWTD-1581 |
 | DS22 priority glyphs as text | Open in core (text variants of the priority colours) |
 | DS23 Decision grid | Open: gap, radius and swatch differ |

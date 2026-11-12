@@ -166,7 +166,9 @@ rule is the sentence; the numbers differ by density and only by density.
 | Triggers size to their content; an unset field is an affordance to add one; one label per row. | [PRODUCT_CONTRACT §3](../PRODUCT_CONTRACT.md) | same |
 
 Web differs on several of these today (icon column 58, indent 24, row and panel radius
-12, row height 64, hairline 1 px): register DS11-DS14 and DS20. The leading control
+12, row height 64): register DS11-DS14. Its `border` is the hairline (DS20, AWTD-1617):
+`--hairline-width` in `styles/components.css`, the token on a high-density screen and
+1px where half a pixel cannot be drawn. The leading control
 itself is the token's 34 (`w-leading-control h-leading-control`, or
 `LEADING_CONTROL_SIZE` where a number is needed), so the icon column is 16 + 34 + 8;
 what is left of DS11 is the gap, 8 against the token's 12.
@@ -244,7 +246,7 @@ reads `motion.panel` too); and the details arrow follows its row over 150 ms, no
 | State | Rule |
 |---|---|
 | Disabled | `state.disabled-opacity` (0.5) |
-| Completed | title struck through in muted text; the mark at `state.completed-mark-opacity` (0.5). Web also dims the whole row (DS18) |
+| Completed | title struck through in muted text; the mark at `state.completed-mark-opacity` (0.5). The row itself is not dimmed (web since AWTD-1617, DS18) |
 | Selected | the selection outline; no fill change, no glow |
 | Hover | the theme's hover surface |
 | Row title | wraps without limit by default, as on iOS. An appearance setting, "Task titles", chooses wrap, two lines or one on every client, and is kept per machine like the theme (Jon, 2026-11-10; DS19). Web: `lib/design/row-title.ts` |
