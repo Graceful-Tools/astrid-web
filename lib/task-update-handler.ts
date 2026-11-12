@@ -250,9 +250,17 @@ async function withPreviousAssignee(
 ): Promise<TaskWithRelations> {
   const previousId = existingTask.assigneeId ?? null
   if (!previousId || previousId === (updatedTask.assigneeId ?? null) || existingTask.assignee) return existingTask
-  const user = await prisma.user.findUnique({ where: { id: previousId }, select: { id: true, name: true, email: true } })
-  if (!user) return existingTask
-  return { ...existingTask, assignee: { id: previousId, name: user.name ?? user.email ?? null } }
+  // Best-effort: a failed lookup must not cost the line for the task's other
+  // changes. Name only, never the email — the new side is named the same way,
+  // and this comment can be read by people who never saw the address.
+  try {
+    const user = await prisma.user.findUnique({ where: { id: previousId }, select: { name: true } })
+    if (!user) return existingTask
+    return { ...existingTask, assignee: { id: previousId, name: user.name } }
+  } catch (err) {
+    log.warn({ err, taskId: updatedTask.id }, "Could not name the previous assignee")
+    return existingTask
+  }
 }
 
 /**

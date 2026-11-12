@@ -78,3 +78,27 @@ describe('reassignment activity line (AWTD-1619)', () => {
     expect(mockPrisma.user.findUnique).not.toHaveBeenCalled()
   })
 })
+
+describe('naming the previous assignee is best-effort (AWTD-1619, review)', () => {
+  beforeEach(() => vi.clearAllMocks())
+
+  it('a failed lookup still records the other changes', async () => {
+    mockPrisma.user.findUnique.mockRejectedValue(new Error('db down'))
+    const existingTask = { ...base, assigneeId: 'jon' } as TaskWithRelations
+    const updatedTask = { ...base, priority: 3, assigneeId: null, assignee: null } as TaskWithRelations
+
+    await recordStateChangeComment({ existingTask, updatedTask, updaterName: 'Jon Paris' })
+
+    expect(createdContent()).toContain('changed priority')
+  })
+
+  it('never falls back to the email address', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({ name: null, email: 'jon@example.com' } as never)
+    const existingTask = { ...base, assigneeId: 'jon' } as TaskWithRelations
+    const updatedTask = { ...base, assigneeId: null, assignee: null } as TaskWithRelations
+
+    await recordStateChangeComment({ existingTask, updatedTask, updaterName: 'Jon Paris' })
+
+    expect(createdContent()).not.toContain('jon@example.com')
+  })
+})
