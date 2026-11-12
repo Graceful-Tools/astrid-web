@@ -162,7 +162,9 @@ The ratchet can't see these rows: they're differences in layout, not hand-writte
 2. **[i18n] The last 438 sentences** (AWTD-1613): translate Help; the rest depends on the open
    decision.
 3. **[design] The 105 hex colours** (AWTD-1614): a token-backed palette module for email HTML
-   and server-rendered pages.
+   and server-rendered pages. *Done: `lib/design/email-palette.ts` and `lib/design/chart-colors.ts`
+   took the count to 36; what is left is art (placeholder and default-list images), Google's
+   logo, stored list colours and a few non-colours (`#123` in prose).*
 4. **[design] The 96 arbitrary sizes** (AWTD-1615): move them onto the type, spacing and radius
    scales.
 5. **[design] Inline styles, the last durations and rgb literals** (AWTD-1616): turn the fixed
