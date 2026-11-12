@@ -17,12 +17,16 @@
  * is nothing to warn about. `BRAND_PROFILE=/path/to/x.brand.json` then applies a mounted
  * profile at start. Precedence: a variable set in the environment, then the mounted
  * profile, then the profile the image was built with.
+ *
+ * The build's brand identity check (scripts/lib/brand-identity-check.mjs, AWTD-1285) never
+ * sees a mounted profile, so the start runs it again on what it applied (AWTD-1606): a
+ * warning naming each identity value still left on Astrid's, never a refusal to boot.
  */
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { brandProfileEnv } from './brand-profile-env.mjs'
 
 const [file, mode, ...rest] = process.argv.slice(2)
@@ -49,6 +53,22 @@ const mounted = mode === '--import' && process.env.BRAND_PROFILE?.trim()
 const values = { ...JSON.parse(readFileSync(resolve(file), 'utf8')), ...mounted }
 for (const [name, value] of Object.entries(values)) {
   if (process.env[name] === undefined) process.env[name] = String(value)
+}
+
+if (mode === '--import') await checkIdentityAtStart()
+
+/**
+ * The identity check, from scripts/lib/ beside this file in the image, or two levels up in
+ * a checkout (the Dockerfile copies it to the first; tests run this from the second).
+ */
+async function checkIdentityAtStart() {
+  const here = dirname(fileURLToPath(import.meta.url))
+  const checker = ['scripts/lib/brand-identity-check.mjs', '../../scripts/lib/brand-identity-check.mjs']
+    .map(candidate => join(here, candidate))
+    .find(existsSync)
+  if (!checker) return
+  const { checkBrandIdentity } = await import(pathToFileURL(checker).href)
+  checkBrandIdentity(process.env, { acknowledged: process.env.BRAND_INHERIT_ASTRID_IDENTITY, atStart: true })
 }
 
 if (mode === '--exec' && rest.length > 0) {

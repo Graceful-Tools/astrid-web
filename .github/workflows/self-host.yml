@@ -27,6 +27,14 @@ on:
       - 'scripts/job-worker.mjs'
       - 'scripts/lib/cron-schedule.mjs'
       - 'scripts/brand-env-file.ts'
+      - 'scripts/lib/brand-identity-check.mjs'
+      # One image, many brands (AWTD-1606): the job mounts acme into an image built
+      # with no brand, so the runtime brand path is smoked here too.
+      - 'brands/acme.brand.json'
+      - 'lib/brand/**'
+      - 'app/brand-assets/**'
+      - 'app/brand-icon/**'
+      - 'app/manifest.json/**'
       - 'scripts/self-host-smoke.ts'
       - 'scripts/build-with-migrations.js'
       - 'next.config.mjs'
@@ -84,12 +92,31 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Throwaway secrets for a throwaway stack. acme is the fully rebranded
-      # profile (passkey-only), so the build also proves a brand reaches the image.
+      # One image, many brands (AWTD-1606): the image is built with NO brand, as the
+      # published one is, and acme (the fully rebranded, passkey-only profile) is
+      # mounted at start. Its logo and icon move to the mounted artwork directory, so
+      # they are served from the mount, not from the image's public/. The smoke test
+      # then proves the pages, manifest and icons are Acme's with no rebuild.
+      - name: Mount the Acme profile
+        run: |
+          mkdir -p deploy/self-host/brand/assets
+          cp public/icons/acme-1024.png public/images/acme-logo.png deploy/self-host/brand/assets/
+          node -e '
+            const fs = require("fs")
+            const p = JSON.parse(fs.readFileSync("brands/acme.brand.json", "utf8"))
+            p.env.NEXT_PUBLIC_BRAND_LOGO = p.expect.logo = "/brand-assets/acme-logo.png"
+            p.assets.icon = p.expect.icon = "/brand-assets/acme-1024.png"
+            fs.writeFileSync("deploy/self-host/brand/acme.brand.json", JSON.stringify(p, null, 2))
+          '
+          # The volume docker-compose.yml carries commented out, switched on.
+          printf 'services:\n  app:\n    volumes:\n      - ./brand:/brand:ro\n' > deploy/self-host/brand.override.yml
+
+      # Throwaway secrets for a throwaway stack. No BRAND: the brand is mounted.
       - name: Write the stack's settings
         run: |
           {
-            echo "BRAND=acme"
+            echo "BRAND_PROFILE=/brand/acme.brand.json"
+            echo "BRAND_ASSETS_DIR=/brand/assets"
             echo "GIT_COMMIT_SHA=${GITHUB_SHA}"
             echo "NEXTAUTH_URL=http://localhost:3000"
             echo "NEXTAUTH_SECRET=$(openssl rand -base64 48)"
@@ -107,7 +134,7 @@ jobs:
           } > deploy/self-host/.env
 
       - name: Build and start
-        run: docker compose -f deploy/self-host/docker-compose.yml up -d --build --wait --wait-timeout 300
+        run: docker compose -f deploy/self-host/docker-compose.yml -f deploy/self-host/brand.override.yml up -d --build --wait --wait-timeout 300
 
       # The container is the operator's to create, as on real Azure.
       - name: Create the Azure Blob container
@@ -121,18 +148,27 @@ jobs:
           SMOKE_BASE_URL=http://localhost:3000 \
           SMOKE_SMTP_URL=smtp://localhost:1025 \
           SMOKE_MAILPIT_URL=http://localhost:8025 \
+          SMOKE_BRAND_PROFILE=deploy/self-host/brand/acme.brand.json \
+          SMOKE_BRAND_ASSETS_DIR=deploy/self-host/brand/assets \
             npx tsx scripts/self-host-smoke.ts
+
+      # load-env.mjs runs the brand identity check on the profile it applied
+      # (AWTD-1606). acme sets every identity value, so it must have nothing to say.
+      - name: The container start left no Astrid identity
+        run: |
+          docker compose -f deploy/self-host/docker-compose.yml -f deploy/self-host/brand.override.yml logs app > app.log
+          if grep -q 'identity variable' app.log; then grep -A15 'identity variable' app.log; exit 1; fi
 
       - name: The cron service is calling the app
         run: |
           sleep 75
-          docker compose -f deploy/self-host/docker-compose.yml logs cron | tee cron.log
+          docker compose -f deploy/self-host/docker-compose.yml -f deploy/self-host/brand.override.yml logs cron | tee cron.log
           grep -q 'cron/reminders","status":200' cron.log
 
       - name: Logs
         if: failure()
-        run: docker compose -f deploy/self-host/docker-compose.yml logs --no-color --tail 300
+        run: docker compose -f deploy/self-host/docker-compose.yml -f deploy/self-host/brand.override.yml logs --no-color --tail 300
 
       - name: Tear down
         if: always()
-        run: docker compose -f deploy/self-host/docker-compose.yml down -v
+        run: docker compose -f deploy/self-host/docker-compose.yml -f deploy/self-host/brand.override.yml down -v

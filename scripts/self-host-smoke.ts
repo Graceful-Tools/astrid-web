@@ -13,10 +13,22 @@
  * Vercel-only build had no way to take. With SMOKE_SMTP_URL and
  * SMOKE_MAILPIT_URL (the compose's `--profile mail` sink), one email goes
  * through the SMTP transport and is read back.
+ *
+ * With SMOKE_BRAND_PROFILE (a brand profile on this machine, the one the stack was
+ * started with), the brand is checked too (AWTD-1606): pages carry the profile's name
+ * and none of its `forbidLiterals`, the manifest is the brand's, and every icon loads
+ * and is not Astrid's. With SMOKE_BRAND_ASSETS_DIR (the directory mounted as the
+ * container's BRAND_ASSETS_DIR), artwork under /brand-assets/ must be those files.
+ *
+ * Pages are followed redirect by redirect, so a redirect loop is a failure with the
+ * hops named, not a fetch that gives up.
  */
 
 import { randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
+import { basename, join } from 'node:path'
 import { createUploadToken } from '../lib/storage/upload-token'
+import { astridFileForGenerated, parseGeneratedIconFile } from '../lib/brand/icons'
 
 const base = (process.env.SMOKE_BASE_URL || 'http://localhost:3000').replace(/\/+$/, '')
 const failures: string[] = []
@@ -33,6 +45,109 @@ async function check(name: string, run: () => Promise<string | void>) {
 
 function expectStatus(response: Response, ...statuses: number[]) {
   if (!statuses.includes(response.status)) throw new Error(`HTTP ${response.status}`)
+}
+
+const MAX_HOPS = 5
+
+/**
+ * GET a page, following redirects one at a time. A repeated location or more than
+ * MAX_HOPS fails with the chain, which is what a 307 loop looks like (AWTD-1606).
+ */
+async function getPage(path: string): Promise<{ response: Response; html: string; hops: string[] }> {
+  const hops = [path]
+  let url = new URL(path, base)
+  for (let hop = 0; hop <= MAX_HOPS; hop++) {
+    const response = await fetch(url, { redirect: 'manual' })
+    const location = response.headers.get('location')
+    if (response.status < 300 || response.status >= 400 || !location) {
+      return { response, html: await response.text(), hops }
+    }
+    url = new URL(location, url)
+    const next = `${url.pathname}${url.search}`
+    if (hops.includes(next)) throw new Error(`redirect loop: ${[...hops, next].join(' → ')} (HTTP ${response.status})`)
+    hops.push(next)
+  }
+  throw new Error(`more than ${MAX_HOPS} redirects: ${hops.join(' → ')}`)
+}
+
+/** The forbidden literals a page contains, each with a little context. */
+function forbiddenIn(text: string, literals: string[]): string[] {
+  return literals.flatMap((literal) => {
+    const at = text.indexOf(literal)
+    return at === -1 ? [] : [`"${literal}" in …${text.slice(Math.max(0, at - 40), at + literal.length + 40)}…`]
+  })
+}
+
+interface SmokeBrandProfile {
+  expect: {
+    appName: string
+    productTitle: string
+    accentColor: string
+    requireLiterals: string[]
+    forbidLiterals: string[]
+    logo: string
+    icon: string
+  }
+}
+
+async function checkBrand(profilePath: string, assetsDir: string | undefined) {
+  const { expect: brand } = JSON.parse(readFileSync(profilePath, 'utf8')) as SmokeBrandProfile
+
+  await check(`capabilities report ${brand.appName}`, async () => {
+    const body = await (await fetch(`${base}/api/v1/capabilities`)).json()
+    if (body.brand?.appName !== brand.appName) throw new Error(`brand ${body.brand?.appName}`)
+  })
+
+  // Default-locale paths, and one prefixed locale: the brand is per request, not per build.
+  for (const path of ['/auth/signin', '/terms', '/privacy', '/help', '/es/terms']) {
+    await check(`${path} is ${brand.appName}'s`, async () => {
+      const { response, html, hops } = await getPage(path)
+      expectStatus(response, 200)
+      const title = html.match(/<title[^>]*>([^<]*)<\/title>/)?.[1] ?? ''
+      if (!title.includes(brand.appName)) throw new Error(`title "${title}"`)
+      const missing = brand.requireLiterals.filter((literal) => !html.includes(literal))
+      if (missing.length > 0) throw new Error(`missing ${missing.join(', ')}`)
+      const forbidden = forbiddenIn(html, brand.forbidLiterals)
+      if (forbidden.length > 0) throw new Error(forbidden.join('; '))
+      return `${title}${hops.length > 1 ? ` via ${hops.join(' → ')}` : ''}`
+    })
+  }
+
+  await check(`the page carries ${brand.appName}'s logo`, async () => {
+    const { html } = await getPage('/auth/signin')
+    if (!html.includes(brand.logo)) throw new Error(`${brand.logo} is not on the page`)
+  })
+
+  await check(`manifest and icons are ${brand.appName}'s`, async () => {
+    const response = await fetch(`${base}/manifest.json`)
+    expectStatus(response, 200)
+    const manifest = (await response.json()) as { name: string; short_name: string; theme_color: string; icons: Array<{ src: string }> }
+    if (manifest.name !== brand.productTitle) throw new Error(`name "${manifest.name}"`)
+    if (manifest.short_name !== brand.appName) throw new Error(`short_name "${manifest.short_name}"`)
+    if (manifest.theme_color !== brand.accentColor) throw new Error(`theme_color ${manifest.theme_color}`)
+    const sources = [...new Set(manifest.icons.map((icon) => icon.src))]
+    for (const src of sources) {
+      const icon = await fetch(`${base}${src}`)
+      expectStatus(icon, 200)
+      if (icon.headers.get('content-type') !== 'image/png') throw new Error(`${src} is ${icon.headers.get('content-type')}`)
+      const generated = parseGeneratedIconFile(basename(src))
+      if (!src.startsWith('/brand-icon/') || !generated) throw new Error(`${src} is not generated from the brand icon`)
+      const astrid = readFileSync(join(process.cwd(), 'public', astridFileForGenerated(generated)))
+      if (Buffer.from(await icon.arrayBuffer()).equals(astrid)) throw new Error(`${src} is Astrid's icon`)
+    }
+    return `${manifest.name}, ${sources.length} icons`
+  })
+
+  if (assetsDir) {
+    for (const asset of [brand.icon, brand.logo].filter((path) => path.startsWith('/brand-assets/'))) {
+      await check(`${asset} is the mounted file`, async () => {
+        const response = await fetch(`${base}${asset}`)
+        expectStatus(response, 200)
+        const mounted = readFileSync(join(assetsDir, asset.slice('/brand-assets/'.length)))
+        if (!Buffer.from(await response.arrayBuffer()).equals(mounted)) throw new Error('served bytes differ from the mounted file')
+      })
+    }
+  }
 }
 
 async function main() {
@@ -52,9 +167,22 @@ async function main() {
   })
 
   await check('sign-in page renders', async () => {
-    const response = await fetch(`${base}/auth/signin`, { redirect: 'manual' })
-    expectStatus(response, 200, 307, 308)
+    const { response } = await getPage('/auth/signin')
+    expectStatus(response, 200)
   })
+
+  // A standalone `next start` reached as localhost was seen to 307-loop on these
+  // (AWTD-1606). getPage fails on a loop, naming the hops.
+  for (const path of ['/terms', '/en/terms']) {
+    await check(`${path} settles without a redirect loop`, async () => {
+      const { response, hops } = await getPage(path)
+      expectStatus(response, 200)
+      return hops.join(' → ')
+    })
+  }
+
+  const brandProfile = process.env.SMOKE_BRAND_PROFILE?.trim()
+  if (brandProfile) await checkBrand(brandProfile, process.env.SMOKE_BRAND_ASSETS_DIR?.trim() || undefined)
 
   await check('cron routes fail closed without the secret', async () => {
     expectStatus(await fetch(`${base}/api/cron/abandoned-uploads`), 401)
