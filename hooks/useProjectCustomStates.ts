@@ -23,14 +23,15 @@
  */
 
 import { useEffect, useState } from 'react'
-import { fetchProjects } from '@/lib/client-projects'
+import { __clearLoadedProjectsCache, loadProjectsOnce } from '@/lib/client-projects'
 
 /** Cached across mounts: switching boards must not refetch every time. */
 const cache = new Map<string, unknown>()
 const inflight = new Map<string, Promise<unknown>>()
 
 async function fetchCustomStates(projectId: string): Promise<unknown> {
-  const projects = await fetchProjects()
+  // The same read the row pills and the task-id links use: one request per page (AWTD-1582).
+  const projects = await loadProjectsOnce()
   return projects.find(project => project.id === projectId)?.customStates ?? []
 }
 
@@ -81,4 +82,5 @@ export function useProjectCustomStates(projectId: string | null | undefined): un
 export function __clearProjectCustomStatesCache() {
   cache.clear()
   inflight.clear()
+  __clearLoadedProjectsCache()
 }
