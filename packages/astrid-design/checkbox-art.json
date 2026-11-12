@@ -1,0 +1,54 @@
+{
+  "checkColor": "#89A912",
+  "layers": {
+    "box": [
+      {
+        "d": "M 13 11 L 43 11 A 2 2 0 0 1 45 13 L 45 43 A 2 2 0 0 1 43 45 L 13 45 A 2 2 0 0 1 11 43 L 11 13 A 2 2 0 0 1 13 11 Z",
+        "paint": "stroke",
+        "role": "tint",
+        "width": 4
+      }
+    ],
+    "check": [
+      {
+        "blur": 0.8,
+        "d": "M 11.5 27.75 L 27 41 L 49 12.75",
+        "opacity": 0.85,
+        "paint": "stroke",
+        "role": "shadow",
+        "width": 9.25
+      },
+      {
+        "d": "M 11.5 25.75 L 27 39 L 49 10.75",
+        "paint": "stroke",
+        "role": "check",
+        "width": 9.25
+      }
+    ],
+    "repeat": [
+      {
+        "d": "M 21 45 L 13 45 A 2 2 0 0 1 11 43 L 11 13 A 2 2 0 0 1 13 11 L 23 11",
+        "paint": "stroke",
+        "role": "tint",
+        "width": 4
+      },
+      {
+        "d": "M 20.5 3.75 L 28 11 L 20.5 18.25 Z",
+        "paint": "fill",
+        "role": "tint"
+      },
+      {
+        "d": "M 33 11 L 43 11 A 2 2 0 0 1 45 13 L 45 43 A 2 2 0 0 1 43 45 L 33 45",
+        "paint": "stroke",
+        "role": "tint",
+        "width": 4
+      },
+      {
+        "d": "M 33.5 52 L 26 45 L 33.5 38 Z",
+        "paint": "fill",
+        "role": "tint"
+      }
+    ]
+  },
+  "viewBox": "0 0 56 56"
+}

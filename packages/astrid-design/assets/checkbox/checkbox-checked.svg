@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56">
+  <g id="box">
+    <path d="M 13 11 L 43 11 A 2 2 0 0 1 45 13 L 45 43 A 2 2 0 0 1 43 45 L 13 45 A 2 2 0 0 1 11 43 L 11 13 A 2 2 0 0 1 13 11 Z" fill="none" stroke="currentColor" stroke-width="4"/>
+  </g>
+  <defs>
+    <filter id="check-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="0.8"/>
+    </filter>
+  </defs>
+  <g id="check">
+    <path d="M 11.5 27.75 L 27 41 L 49 12.75" fill="none" stroke="#000000" stroke-opacity="0.85" stroke-width="9.25" filter="url(#check-shadow)"/>
+    <path d="M 11.5 25.75 L 27 39 L 49 10.75" fill="none" stroke="#89A912" stroke-width="9.25"/>
+  </g>
+</svg>
