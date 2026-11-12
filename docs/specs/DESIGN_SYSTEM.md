@@ -517,8 +517,12 @@ reduction, `npm run design:metrics -- --update` in the same change.
 | Inline styles | 64 | 56 |
 | Arbitrary sizes | 97 | 96 |
 | Durations | 57 | 4 |
-| Sentences in JSX | 999 | 438 |
-| Distinct sentences in JSX | 802 | 399 |
+| Sentences in JSX | 999 | 0* |
+| Distinct sentences in JSX | 802 | 0* |
+
+\* Since AWTD-1613 the copy count leaves out Privacy and Terms, the developer docs and internal
+tools, which keep their English on purpose; each is an `exempt` pattern with its reason in
+`scripts/report-design-metrics.ts`. Help is translated and counted.
 
 What moved, what is left and why, and the ranked follow-ups are in
 [DESIGN_AUDIT_2026-11.md](./DESIGN_AUDIT_2026-11.md).

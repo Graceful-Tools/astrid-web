@@ -2440,7 +2440,9 @@
     "linkResolveFailed": "Impossibile risolvere il link",
     "linkTaskNotFound": "Attività non trovata o non più accessibile",
     "linkTaskForbidden": "Non hai l’autorizzazione per vedere questa attività",
-    "linkInvalidType": "Tipo di link non valido"
+    "linkInvalidType": "Tipo di link non valido",
+    "globalErrorTitle": "Qualcosa è andato storto",
+    "globalErrorDescription": "Si è verificato un errore critico. Prova a ricaricare la pagina."
   },
   "profilePage": {
     "loading": "Caricamento profilo...",
@@ -2668,5 +2670,93 @@
       "theAssignee": "la persona assegnata",
       "confirm": "Sposta in In attesa"
     }
+  },
+  "helpPage": {
+    "title": "Aiuto e risoluzione dei problemi",
+    "intro": "La maggior parte dei problemi si risolve aggiornando i tuoi dati. Prova prima le soluzioni semplici prima di passare ai passaggi più avanzati.",
+    "iosApp": "App iOS",
+    "webApp": "App web",
+    "levels": {
+      "simple": "SEMPLICE",
+      "simpleHint": "Prova prima queste",
+      "intermediate": "INTERMEDIO",
+      "intermediateHint": "Se i passaggi semplici non funzionano",
+      "advanced": "AVANZATO",
+      "advancedHint": "Opzioni di ultima istanza"
+    },
+    "signOutTitle": "Esci e accedi di nuovo",
+    "ios": {
+      "pullToRefreshTitle": "Trascina per aggiornare",
+      "pullToRefreshBody": "Nell’elenco delle attività, trascina verso il basso dall’alto per forzare una sincronizzazione con il server. Questo risolve la maggior parte dei problemi di sincronizzazione.",
+      "forceQuitTitle": "Chiudi forzatamente e riapri",
+      "forceQuitBody": "Scorri verso l’alto dal fondo (o premi due volte il tasto Home), scorri via {appName}, poi riapri l’app.",
+      "signOutBody": "Vai su <b>Impostazioni</b> (tocca il tuo profilo nella barra laterale) → <b>Account</b> → <b>Esci</b>. Poi accedi di nuovo con lo stesso account.",
+      "connectionTitle": "Controlla la connessione a internet",
+      "connectionBody": "{appName} funziona offline ma ha bisogno di internet per sincronizzare. Assicurati di essere connesso al WiFi o alla rete dati.",
+      "reinstallTitle": "Elimina e reinstalla l’app",
+      "reinstallBody": "Questo cancella tutti i dati locali e la cache. Le tue attività sono salvate sui nostri server, quindi non perderai nulla. Tieni premuta l’icona dell’app → Rimuovi app → Elimina app, poi reinstallala dall’App Store.",
+      "restartTitle": "Riavvia il dispositivo",
+      "restartBody": "A volte un riavvio completo del dispositivo risolve i problemi persistenti."
+    },
+    "web": {
+      "refreshTitle": "Ricarica la pagina",
+      "refreshBody": "Premi <kbd>F5</kbd> o <kbd>Cmd+R</kbd> (Mac) / <kbd>Ctrl+R</kbd> (Windows) per ricaricare la pagina.",
+      "hardRefreshTitle": "Ricaricamento forzato",
+      "hardRefreshBody": "Tieni premuto <kbd>Shift</kbd> mentre fai clic su ricarica, oppure premi <kbd>Cmd+Shift+R</kbd> (Mac) / <kbd>Ctrl+Shift+R</kbd> (Windows). In questo modo la cache viene ignorata.",
+      "signOutBody": "Fai clic sulla tua immagine del profilo nella barra laterale → <b>Impostazioni</b> → <b>Account</b> → <b>Esci</b>. Poi accedi di nuovo.",
+      "browserTitle": "Prova un altro browser",
+      "browserBody": "Se hai problemi in un browser, prova Chrome, Firefox, Safari o Edge. Così capisci se il problema dipende dal browser.",
+      "extensionsTitle": "Disattiva le estensioni del browser",
+      "extensionsBody": "I blocchi pubblicitari o le estensioni per la privacy a volte interferiscono. Prova a disattivarli temporaneamente o usa una finestra in incognito/privata.",
+      "clearCacheTitle": "Cancella cache e cookie del browser per {appName}",
+      "clearCacheChrome": "<b>Chrome:</b> Impostazioni → Privacy → Cancella dati di navigazione → Seleziona \"Cookie\" e \"Immagini memorizzate nella cache\"",
+      "clearCacheSafari": "<b>Safari:</b> Preferenze → Privacy → Gestisci dati siti web → Cerca \"{brandDomain}\" → Rimuovi",
+      "clearCacheFirefox": "<b>Firefox:</b> Impostazioni → Privacy → Elimina dati → Seleziona Cookie e Cache",
+      "indexedDbTitle": "Cancella l’archivio IndexedDB",
+      "indexedDbBody": "In Chrome: apri DevTools (F12) → scheda Application → Storage → IndexedDB → clic destro sulle voci {wordmark} → Delete database. Poi ricarica la pagina."
+    },
+    "decisionsTitle": "Chiedere a qualcuno di scegliere",
+    "commonIssuesTitle": "Problemi comuni",
+    "issues": {
+      "counts": {
+        "title": "I contatori delle attività mostrano 0 o numeri errati",
+        "intro": "I contatori delle attività sono calcolati dai tuoi dati sincronizzati. Se sembrano sbagliati:",
+        "step1": "Trascina per aggiornare (iOS) o ricarica forzatamente la pagina (web)",
+        "step2": "Attendi qualche secondo che la sincronizzazione finisca",
+        "step3": "Se sono ancora errati, esci e accedi di nuovo"
+      },
+      "sync": {
+        "title": "Le attività non si sincronizzano tra i dispositivi",
+        "intro": "La sincronizzazione è automatica ma può richiedere qualche secondo. Per forzarla:",
+        "step1": "Assicurati che entrambi i dispositivi siano connessi a internet",
+        "step2": "Su iOS: trascina verso il basso per aggiornare",
+        "step3": "Sul web: ricarica la pagina",
+        "step4": "Le modifiche dovrebbero comparire entro 5-10 secondi"
+      },
+      "slow": {
+        "title": "L’app è lenta o non risponde",
+        "intro": "I problemi di prestazioni sono di solito causati da dati nella cache o da troppe schede aperte. Prova a:",
+        "step1": "Chiudere le altre schede e applicazioni",
+        "step2": "Chiudere forzatamente e riaprire l’app (iOS)",
+        "step3": "Cancellare la cache del browser (web)",
+        "step4": "Reinstallare l’app se il problema persiste (iOS)"
+      },
+      "signIn": {
+        "title": "Non riesci ad accedere o ricevi errori di autenticazione",
+        "intro": "I problemi di autenticazione possono dipendere da sessioni scadute o dalle impostazioni del browser:",
+        "step1": "Assicurati che i cookie siano attivi nel browser",
+        "step2": "Prova ad accedere da una finestra in incognito/privata",
+        "step3": "Cancella i cookie di {brandDomain} in particolare",
+        "step4": "Se usi una passkey, assicurati che il tuo dispositivo la supporti"
+      }
+    },
+    "stillNeedHelpTitle": "Serve ancora aiuto?",
+    "stillNeedHelpBody": "Se nessuna di queste soluzioni funziona, siamo qui per aiutarti.",
+    "contactSupport": "Contatta l’assistenza"
+  },
+  "legalPages": {
+    "termsOfService": "Termini di servizio",
+    "privacyPolicy": "Informativa sulla privacy",
+    "backToHome": "Torna alla home"
   }
 }
