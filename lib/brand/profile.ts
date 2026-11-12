@@ -37,6 +37,20 @@ export interface BrandProfile {
    * brand schema (AWTD2-158), so one profile serves both. Becomes NEXT_PUBLIC_BRAND_ICON.
    */
   assets?: { icon?: string }
+  /**
+   * Native-platform identity, one block per client (AWTD-1589). Each is read by that
+   * client's own tooling and by NOTHING on the server, so like `ios` they stay OUT of
+   * `profileEnv`:
+   *   - `windows`: astrid-windows `scripts/lib/brand-profile.ps1` (package identity, tiles)
+   *   - `android`: the values astrid-android keeps in `brands/<n>/brand.properties`, under
+   *     the same names without the `astrid` prefix, so one profile can generate that file
+   *   - `vscode`, `code`: the VS Code extension and Astrid Code. No reader yet, so any
+   *     string key is accepted until astrid-core's brand schema (AWTD2-158) names them.
+   */
+  windows?: Record<string, string>
+  android?: Record<string, string>
+  vscode?: Record<string, string>
+  code?: Record<string, string>
   expect?: Record<string, unknown>
 }
 
@@ -52,7 +66,24 @@ const PROFILE_ENV_VARS = new Map(
     .filter(({ name }) => PROFILE_ENV_PREFIXES.some((prefix) => name.startsWith(prefix)))
     .map((envVar) => [envVar.name, envVar]),
 )
-const PROFILE_KEYS = new Set(['name', 'description', 'env', 'copy', 'ios', 'assets', 'expect'])
+const PROFILE_KEYS = new Set(['name', 'description', 'env', 'copy', 'ios', 'assets', 'windows', 'android', 'vscode', 'code', 'expect'])
+/**
+ * Keys each native block may carry; `null` means any string key (no reader defines them
+ * yet). Windows: the pairs brand-profile.ps1 reads, `assets` being a tile directory
+ * relative to the profile. Android: astrid-android's brand.properties, prefix dropped.
+ */
+const PLATFORM_PROFILE_KEYS: Record<'windows' | 'android' | 'vscode' | 'code', Set<string> | null> = {
+  windows: new Set([
+    'displayName', 'publisherDisplayName', 'description', 'shortName', 'scheme', 'schemeDisplayName',
+    'serverUrl', 'inboundTaskEmail', 'agentName', 'wordmark', 'identityName', 'identityPublisher', 'assets',
+  ]),
+  android: new Set([
+    'applicationId', 'appName', 'wordmark', 'baseUrl', 'urlScheme', 'linkAutoVerify', 'handoffClientId',
+    'supportEmail', 'inboundTaskEmail', 'agentEmailDomain', 'accentColor', 'accentHoverColor', 'accentTextColor',
+  ]),
+  vscode: null,
+  code: null,
+}
 const ASSET_PROFILE_KEYS = new Set(['icon'])
 const IOS_PROFILE_KEYS = new Set(['bundleId', 'appGroup', 'keychainGroup', 'developmentTeam', 'displayName'])
 const PROFILE_DERIVED_ENV_KEYS = new Set(['NEXTAUTH_URL', 'NEXT_PUBLIC_APP_URL'])
@@ -123,6 +154,19 @@ export function parseBrandProfile(value: unknown, source = 'Brand profile'): Bra
     }
   }
 
+  for (const [platform, allowed] of Object.entries(PLATFORM_PROFILE_KEYS)) {
+    const block = value[platform]
+    if (block === undefined) continue
+    if (!isStringRecord(block)) {
+      problems.push(`${platform} must be an object with string values`)
+      continue
+    }
+    if (!allowed) continue
+    for (const key of Object.keys(block)) {
+      if (!allowed.has(key)) problems.push(`${platform}.${key} is not a supported profile key`)
+    }
+  }
+
   if (value.assets !== undefined) {
     if (!isStringRecord(value.assets)) {
       problems.push('assets must be an object with string values')
@@ -153,6 +197,9 @@ export function parseBrandProfile(value: unknown, source = 'Brand profile'): Bra
   if (value.copy !== undefined) profile.copy = value.copy as Record<string, unknown>
   if (value.ios !== undefined) profile.ios = value.ios as Record<string, string>
   if (value.assets !== undefined) profile.assets = value.assets as { icon?: string }
+  for (const platform of ['windows', 'android', 'vscode', 'code'] as const) {
+    if (value[platform] !== undefined) profile[platform] = value[platform] as Record<string, string>
+  }
   if (value.expect !== undefined) profile.expect = value.expect as Record<string, unknown>
   return profile
 }
@@ -232,4 +279,4 @@ export function extractBrandPreviewUrl(output: string): string | null {
  * Exported so tests/brands/profile-ios-block.test.ts can assert the exclusion by
  * name rather than by a hardcoded list that drifts from this one.
  */
-export const NON_ENV_PROFILE_KEYS = ['ios'] as const
+export const NON_ENV_PROFILE_KEYS = ['ios', 'windows', 'android', 'vscode', 'code'] as const

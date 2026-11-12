@@ -31,6 +31,8 @@ enabled services.
   profile (e.g. a rebranded deployment must not leak "Astrid") |
 | `expect.inheritsAstridIdentity` | Identity variables the profile deliberately leaves on Astrid's value — exactly what its build warns about. `[]` for Astrid itself (AWTD-1285) |
 | `copy` | Optional. Brand *voice*: reminder nags and default-list captions |
+| `assets.icon` | Optional. The one square source icon (a PNG in `public/`, ideally 1024 px) every icon size is generated from (AWTD-1588) |
+| `ios`, `windows`, `android`, `vscode`, `code` | Optional. One block per native client, holding identity only that client's build needs. The web validates them and never puts them in a deployment's environment (AWTD-1589). See below |
 
 ## Brand voice (`copy`)
 
@@ -63,9 +65,24 @@ bad brand copy should never take down reminders. An empty override array counts 
 supplied* — a brand that wants no nags should disable reminders rather than ship blank
 notifications.
 
-## One profile, three platforms
+## One profile, every platform — what reads it today
 
-These files are **not web-only**. The iOS and Mac apps read the same profile:
+The web validates every block below (`lib/brand/profile.ts`, AWTD-1589). Validation is not
+the same as reading, though. Which client actually reads its block today:
+
+| Block | Read by | Status |
+|---|---|---|
+| `env`, `copy`, `assets` | the web; iOS/Mac read part of `env` | read |
+| `ios` | astrid-ios `make-brand-variant.sh` (bundle ID, App Group, keychain group, team, display name) | read |
+| `windows` | astrid-windows `scripts/lib/brand-profile.ps1`, via `package.ps1 -Brand <profile>` (package identity, publisher, tile directory) | read |
+| `android` | **nothing yet.** astrid-android keeps its own `brands/<name>/brand.properties`. The block uses the same names without the `astrid` prefix (`applicationId`, `accentColor` …), so the file can be generated from the profile once that tool exists | accepted, not read |
+| `vscode`, `code` | **nothing yet** (VS Code extension, Astrid Code). Any string key is accepted until astrid-core's brand schema (AWTD2-158) names them | accepted, not read |
+
+`windows` and `android` keys are checked against what their reader understands, so a typo
+fails `npm run check:brands` rather than being silently ignored. `acme.brand.json` carries
+every block, so all of them are exercised.
+
+The iOS and Mac apps read the same profile:
 
 ```bash
 cd ../astrid-ios
@@ -74,12 +91,7 @@ cd ../astrid-ios
 ./scripts/make-brand-variant.sh acme # your own bundle ID, App Group and team (Whitelabel config)
 ```
 
-`make-brand-variant.sh` reads an optional `ios` block in the profile, beside `env`. It holds
-identity that only an Apple build needs (bundle ID, App Group, keychain group, team,
-display name), and the web ignores it.
-docs/WHITELABELING.md §6 has the precedence rules. Windows reads an optional `windows` block
-the same way. Android does not read these files; it has its own `brands/<name>/brand.properties`
-in astrid-android.
+docs/WHITELABELING.md §6 has the precedence rules.
 
 `Astrid App/Utilities/BrandProfile.swift` maps the profile's variables onto the
 Info.plist keys `Brand` reads, and `BrandProfileTests` **parses `Brand.swift`** and fails
