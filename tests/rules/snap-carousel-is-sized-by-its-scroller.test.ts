@@ -55,7 +55,7 @@ function boardSource(): string {
 
 /** The className expression for one board column. */
 function columnClasses(source: string): string {
-  const marker = 'className={`flex h-full snap-start flex-col'
+  const marker = 'className={`board-column flex h-full snap-start flex-col'
   const start = source.indexOf(marker)
   expect(start, 'the snap-start column className moved — update this test').toBeGreaterThan(-1)
   return source.slice(start, source.indexOf('}`}', start))
