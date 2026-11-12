@@ -69,6 +69,17 @@ describe('AWTD-1599: missing addresses and the middleware', () => {
     },
   )
 
+  // Copilot on #723: /de/nope.png rendered the 404 in English, because the
+  // matcher skipped it and nothing forwarded "de". No real file lives under a
+  // locale prefix (public/ has no en/, de/ ... folders), so running the
+  // middleware there costs no static request anything.
+  it.each(['/de/nope.png', '/fr/nope.md', '/zh-TW/icons/x.png', '/ja/favicon.ico', '/en/vendor/x.js'])(
+    'runs on the locale-prefixed file miss %s, so the 404 gets its locale',
+    (pathname) => {
+      expect(matcherRuns(pathname)).toBe(true)
+    },
+  )
+
   it('hands a miss under /de to next-intl, whose locale header the root 404 renders in', () => {
     const res = middleware(new NextRequest(new URL('/de/nope', ORIGIN)))
     expect(intl.seen).toContain('/de/nope')
@@ -79,6 +90,19 @@ describe('AWTD-1599: missing addresses and the middleware', () => {
   it('forwards the default locale for an unprefixed miss', () => {
     const res = middleware(new NextRequest(new URL('/nope', ORIGIN)))
     expect(forwardedLocale(res)).toBe('en')
+  })
+})
+
+describe('AWTD-1599: the matcher spells out the locales', () => {
+  it('names exactly the configured locales (a matcher must be a literal, so it cannot import them)', async () => {
+    const { locales } = await import('@/lib/i18n/config')
+    const spelled = config.matcher[0].match(/\(\?!\(\?:([^)]*)\)\//)?.[1]?.split('|')
+    expect(spelled?.slice().sort()).toEqual([...locales].sort())
+  })
+
+  it('no public/ folder shares a locale name, so no real file is under a locale prefix', async () => {
+    const { locales } = await import('@/lib/i18n/config')
+    for (const locale of locales) expect(existsSync(join(process.cwd(), 'public', locale))).toBe(false)
   })
 })
 
