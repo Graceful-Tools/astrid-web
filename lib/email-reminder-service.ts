@@ -7,6 +7,7 @@ import { getRandomReminderString } from '@/lib/reminder-constants'
 import { getBaseUrl, getUnsubscribeUrl, buildTaskUrlWithContext } from '@/lib/base-url'
 import { createLogger } from '@/lib/logger'
 import { escapeEmailHtml } from '@/lib/email-html'
+import { themeColor } from '@/lib/design/tokens'
 import { digestDueText, digestLongDate, digestShortDate, digestWeekRange } from '@/lib/digest-email-dates'
 
 const log = createLogger('email-reminder-service')
@@ -436,11 +437,9 @@ You can modify your reminder preferences in your account settings.
     const allTasks = [...data.overdueTasks, ...data.dueTodayTasks, ...data.dueTomorrowTasks]
     const baseUrl = getBaseUrl()
 
-    const getPriorityColor = (task: TaskReminderData) => {
-      if (data.overdueTasks.includes(task)) return '#ef4444'
-      if (data.dueTodayTasks.includes(task)) return '#f59e0b'
-      return '#10b981'
-    }
+    const tokenColor = (name: string) => `rgb(${themeColor('light', name).join(', ')})` // an email cannot read a custom property (AWTD-1596)
+    const getPriorityColor = (task: TaskReminderData) =>
+      data.overdueTasks.includes(task) ? tokenColor('overdue') : data.dueTodayTasks.includes(task) ? tokenColor('warning') : '#10b981'
 
     return `
       <!DOCTYPE html>
