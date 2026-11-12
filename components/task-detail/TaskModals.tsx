@@ -1,6 +1,7 @@
 "use client"
 
 import { useTranslations } from "@/lib/i18n/client"
+import { fillMessage } from "@/components/shared/RichMessage"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Trash2, Copy, Share2, Lock, Check, Link as LinkIcon } from "lucide-react"
@@ -124,7 +125,7 @@ export function TaskModals({
             <div className="mb-4">
               <h3 className="text-lg font-semibold theme-text-primary mb-2">{t('tasks.modals.deleteTitle')}</h3>
               <p className="theme-text-secondary">
-                Are you sure you want to delete &quot;{task.title}&quot;? This action cannot be undone.
+                {fillMessage(t('tasks.modals.deleteConfirm'), { title: task.title })}
               </p>
             </div>
             <div className="flex space-x-3 justify-end">
@@ -134,7 +135,7 @@ export function TaskModals({
                 onClick={handleCancelDelete}
                 className="theme-border theme-text-secondary hover:theme-bg-hover"
               >
-                Don&apos;t Delete
+                {t('listSettings.admin.dontDelete')}
               </Button>
               <Button
                 variant="destructive"
@@ -143,7 +144,7 @@ export function TaskModals({
                 className="bg-danger hover:bg-danger/90 text-danger-foreground"
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                Delete
+                {t('common.delete')}
               </Button>
             </div>
           </div>
@@ -157,7 +158,7 @@ export function TaskModals({
             <div className="mb-4">
               <h3 className="text-lg font-semibold theme-text-primary mb-2">{t('tasks.modals.copyTitle')}</h3>
               <p className="theme-text-secondary mb-4">
-                Create a copy of &quot;{task.title}&quot;
+                {fillMessage(t('tasks.modals.copyDescription'), { title: task.title })}
               </p>
 
               {/* Copy Options */}
@@ -192,7 +193,7 @@ export function TaskModals({
                     htmlFor="include-comments"
                     className="text-sm theme-text-primary cursor-pointer"
                   >
-                    Include comments ({task.comments?.length || 0} comment{task.comments?.length === 1 ? '' : 's'})
+                    {t(task.comments?.length === 1 ? 'tasks.modals.includeCommentsOne' : 'tasks.modals.includeCommentsMany', { count: String(task.comments?.length || 0) })}
                   </label>
                 </div>
 
@@ -209,7 +210,7 @@ export function TaskModals({
                 onClick={handleCancelCopy}
                 className="theme-border theme-text-secondary hover:theme-bg-hover"
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 variant="default"
@@ -218,7 +219,7 @@ export function TaskModals({
                 className="bg-brand hover:bg-brand-hover text-brand-foreground"
               >
                 <Copy className="w-4 h-4 mr-2" />
-                Copy
+                {t('actions.copy')}
               </Button>
             </div>
           </div>
@@ -236,7 +237,7 @@ export function TaskModals({
               </h3>
 
               <p className="theme-text-secondary mb-4">
-                Create a shareable link for &quot;{task.title}&quot;
+                {fillMessage(t('tasks.modals.shareDescription'), { title: task.title })}
               </p>
 
               {task.isPrivate && (
@@ -277,12 +278,12 @@ export function TaskModals({
                         {shareUrlCopied ? (
                           <>
                             <Check className="w-4 h-4 mr-1" />
-                            Copied!
+                            {t('tasks.modals.copied')}
                           </>
                         ) : (
                           <>
                             <Copy className="w-4 h-4 mr-1" />
-                            Copy
+                            {t('actions.copy')}
                           </>
                         )}
                       </Button>
@@ -290,8 +291,8 @@ export function TaskModals({
                   </div>
 
                   <div className="text-xs theme-text-muted">
-                    <p className="mb-1">🔗 Share this link with anyone who has access to view this task</p>
-                    <p>📌 The link will redirect to the task in the app</p>
+                    <p className="mb-1">{t('tasks.modals.shareHintAccess')}</p>
+                    <p>{t('tasks.modals.shareHintRedirect')}</p>
                   </div>
                 </div>
               ) : (
@@ -310,7 +311,7 @@ export function TaskModals({
                 onClick={onCloseShareModal}
                 className="theme-border theme-text-secondary hover:theme-bg-hover"
               >
-                Close
+                {t('common.close')}
               </Button>
             </div>
           </div>

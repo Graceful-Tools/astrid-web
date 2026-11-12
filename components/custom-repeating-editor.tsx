@@ -29,20 +29,33 @@ interface CustomRepeatingEditorProps {
   onCancel: () => void
 }
 
-const WEEKDAYS: { value: Weekday; label: string; short: string }[] = [
-  { value: 'monday', label: 'Monday', short: 'M' },
-  { value: 'tuesday', label: 'Tuesday', short: 'T' },
-  { value: 'wednesday', label: 'Wednesday', short: 'W' },
-  { value: 'thursday', label: 'Thursday', short: 'T' },
-  { value: 'friday', label: 'Friday', short: 'F' },
-  { value: 'saturday', label: 'Saturday', short: 'S' },
-  { value: 'sunday', label: 'Sunday', short: 'S' },
+// `short` is the English fallback; the editor shows the locale's own narrow name.
+const WEEKDAYS: { value: Weekday; labelKey: string; short: string }[] = [
+  { value: 'monday', labelKey: 'weekdays.monday', short: 'M' },
+  { value: 'tuesday', labelKey: 'weekdays.tuesday', short: 'T' },
+  { value: 'wednesday', labelKey: 'weekdays.wednesday', short: 'W' },
+  { value: 'thursday', labelKey: 'weekdays.thursday', short: 'T' },
+  { value: 'friday', labelKey: 'weekdays.friday', short: 'F' },
+  { value: 'saturday', labelKey: 'weekdays.saturday', short: 'S' },
+  { value: 'sunday', labelKey: 'weekdays.sunday', short: 'S' },
 ]
+
+/** One-letter weekday names for a locale, Monday first (1 Jan 2024 was a Monday). */
+function narrowWeekdays(locale: string | undefined): string[] {
+  try {
+    const formatter = new Intl.DateTimeFormat(locale, { weekday: 'narrow' })
+    return WEEKDAYS.map((_, index) => formatter.format(new Date(2024, 0, 1 + index)))
+  } catch {
+    return WEEKDAYS.map(({ short }) => short)
+  }
+}
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ]
+
+const MONTH_KEYS = MONTHS.map(month => `months.${month.toLowerCase()}`)
 
 export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepeatingEditorProps) {
   const [pattern, setPattern] = useState<CustomRepeatingPattern>(() => {
@@ -57,7 +70,8 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
 
   const [showEndDatePicker, setShowEndDatePicker] = useState(false)
   const fieldId = useId()
-  const { t } = useTranslations()
+  const { t, locale } = useTranslations()
+  const shortWeekdays = narrowWeekdays(locale)
 
   useEffect(() => {
     onChange(pattern)
@@ -161,10 +175,10 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="days">Days</SelectItem>
-                <SelectItem value="weeks">Weeks</SelectItem>
-                <SelectItem value="months">Months</SelectItem>
-                <SelectItem value="years">Years</SelectItem>
+                <SelectItem value="days">{t('repeating.editor.unitDays')}</SelectItem>
+                <SelectItem value="weeks">{t('repeating.editor.unitWeeks')}</SelectItem>
+                <SelectItem value="months">{t('repeating.editor.unitMonths')}</SelectItem>
+                <SelectItem value="years">{t('repeating.editor.unitYears')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -176,17 +190,17 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
         <div>
           <Label className="theme-text-muted">{t('repeating.editor.repeatOnDays')}</Label>
           <div className="flex flex-wrap gap-2 mt-2">
-            {WEEKDAYS.map(({ value, label, short }) => (
+            {WEEKDAYS.map(({ value, labelKey }, index) => (
               <div key={value} className="flex items-center space-x-2">
                 <Checkbox
                   id={`${fieldId}-${value}`}
-                  aria-label={label}
+                  aria-label={t(labelKey)}
                   checked={pattern.weekdays?.includes(value) || false}
                   onCheckedChange={() => handleWeekdayToggle(value)}
                   className="theme-border"
                 />
                 <Label htmlFor={`${fieldId}-${value}`} className="text-sm theme-text-muted cursor-pointer">
-                  {short}
+                  {shortWeekdays[index]}
                 </Label>
               </div>
             ))}
@@ -233,7 +247,7 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
           {pattern.monthRepeatType === 'same_weekday' && (
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="theme-text-muted">Weekday</Label>
+                <Label className="theme-text-muted">{t('repeating.editor.weekday')}</Label>
                 <Select
                   value={pattern.monthWeekday?.weekday || 'monday'}
                   onValueChange={(weekday: Weekday) => updatePattern({
@@ -247,8 +261,8 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {WEEKDAYS.map(({ value, label }) => (
-                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    {WEEKDAYS.map(({ value, labelKey }) => (
+                      <SelectItem key={value} value={value}>{t(labelKey)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -268,12 +282,12 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">1st</SelectItem>
-                    <SelectItem value="2">2nd</SelectItem>
-                    <SelectItem value="3">3rd</SelectItem>
-                    <SelectItem value="4">4th</SelectItem>
-                    <SelectItem value="5">5th</SelectItem>
-                    <SelectItem value={String(LAST_WEEK_OF_MONTH)}>Last</SelectItem>
+                    <SelectItem value="1">{t('repeating.editor.week1')}</SelectItem>
+                    <SelectItem value="2">{t('repeating.editor.week2')}</SelectItem>
+                    <SelectItem value="3">{t('repeating.editor.week3')}</SelectItem>
+                    <SelectItem value="4">{t('repeating.editor.week4')}</SelectItem>
+                    <SelectItem value="5">{t('repeating.editor.week5')}</SelectItem>
+                    <SelectItem value={String(LAST_WEEK_OF_MONTH)}>{t('repeating.editor.weekLast')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -286,7 +300,7 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
       {pattern.unit === 'years' && (
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label className="theme-text-muted">Month</Label>
+            <Label className="theme-text-muted">{t('repeating.editor.month')}</Label>
             <Select
               value={String(pattern.month || 1)}
               onValueChange={(month) => updatePattern({ month: parseInt(month) })}
@@ -295,14 +309,14 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {MONTHS.map((month, index) => (
-                  <SelectItem key={index + 1} value={String(index + 1)}>{month}</SelectItem>
+                {MONTH_KEYS.map((monthKey, index) => (
+                  <SelectItem key={index + 1} value={String(index + 1)}>{t(monthKey)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label className="theme-text-muted">Day</Label>
+            <Label className="theme-text-muted">{t('repeating.editor.day')}</Label>
             <NumberField
               max={31}
               value={pattern.day || 1}
@@ -324,7 +338,7 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="never">Never</SelectItem>
+            <SelectItem value="never">{t('repeating.editor.never')}</SelectItem>
             <SelectItem value="after_occurrences">{t('repeating.editor.afterOccurrences')}</SelectItem>
             <SelectItem value="until_date">{t('repeating.editor.untilDate')}</SelectItem>
           </SelectContent>
@@ -354,7 +368,7 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {pattern.endUntilDate ? format(pattern.endUntilDate, "PPP") : "Pick a date"}
+                  {pattern.endUntilDate ? format(pattern.endUntilDate, "PPP") : t('time.pickDate')}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 theme-surface border theme-border">

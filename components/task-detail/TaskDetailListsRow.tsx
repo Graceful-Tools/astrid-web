@@ -181,7 +181,7 @@ export function TaskDetailListsRow({
               onClick={handleCancelLists}
             >
               <X className="w-4 h-4 mr-1" />
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               variant="default"
@@ -189,7 +189,7 @@ export function TaskDetailListsRow({
               onClick={handleSaveLists}
             >
               <Check className="w-4 h-4 mr-1" />
-              Save
+              {t('common.save')}
             </Button>
           </div>
         </div>

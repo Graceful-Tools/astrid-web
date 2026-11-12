@@ -374,8 +374,8 @@ export function ProjectStatusBoard({
               <div
                 role="button"
                 tabIndex={expandedTaskId ? 0 : -1}
-                aria-label={expandedTaskId ? `Collapse expanded task in ${column.name}` : undefined}
-                title={expandedTaskId ? "Tap to collapse" : undefined}
+                aria-label={expandedTaskId ? t('tasks.board.collapseExpandedIn', { name: column.name }) : undefined}
+                title={expandedTaskId ? t('tasks.board.tapToCollapse') : undefined}
                 onClick={() => {
                   if (expandedTaskId) setExpandedTaskId(null)
                 }}
@@ -542,7 +542,7 @@ export function ProjectStatusBoard({
                     size="sm"
                     className="h-9 w-9 shrink-0 p-0"
                     disabled={creatingColumnId === column.id || !(drafts[column.id] || "").trim()}
-                    aria-label={`Add task to ${column.name}`}
+                    aria-label={t('tasks.board.addTaskTo', { name: column.name })}
                   >
                     <Plus className="h-4 w-4" aria-hidden="true" />
                   </Button>

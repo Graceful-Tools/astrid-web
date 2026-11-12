@@ -179,14 +179,30 @@
       "repeatMode": "重复模式",
       "repeatFromCompletion": "从完成日期起重复",
       "repeatFromDue": "从截止日期起重复",
-      "saveCustomPattern": "保存自定义模式"
+      "saveCustomPattern": "保存自定义模式",
+      "selectDate": "选择日期",
+      "preview": "预览：",
+      "repeatFromCompletionHint": "下一次重复基于你完成任务的时间",
+      "repeatFromDueHint": "下一次重复基于原截止日期",
+      "descriptionKeysHint": "按 Enter 保存 • Shift+Enter 换行"
     },
     "commentsSection": {
       "addPlaceholder": "添加评论...",
       "replyPlaceholder": "写回复...",
       "refresh": "刷新评论",
       "pullToRefresh": "下拉刷新...",
-      "releaseToRefresh": "松开刷新..."
+      "releaseToRefresh": "松开刷新...",
+      "systemAuthor": "系统",
+      "unknownUser": "未知用户",
+      "reply": "回复",
+      "count": "评论（{count}）",
+      "hideSystemTitle": "隐藏系统评论",
+      "showSystemTitle": "显示系统评论",
+      "hideSystem": "隐藏系统",
+      "showSystem": "显示系统",
+      "refreshShort": "刷新",
+      "replyingTo": "正在回复 {name}",
+      "agentThinking": "{name} 正在思考..."
     },
     "modals": {
       "deleteTitle": "删除任务",
@@ -197,11 +213,31 @@
       "shareTitle": "分享任务",
       "privateNote": "这是一个私密任务。只有可访问此列表的用户才能查看。",
       "generatingLink": "正在生成分享链接...",
-      "linkFailed": "生成分享链接失败。请重试。"
+      "linkFailed": "生成分享链接失败。请重试。",
+      "deleteConfirm": "确定要删除“{title}”吗？此操作无法撤销。",
+      "copyDescription": "创建“{title}”的副本",
+      "includeCommentsOne": "包含评论（{count} 条评论）",
+      "includeCommentsMany": "包含评论（{count} 条评论）",
+      "shareDescription": "为“{title}”创建分享链接",
+      "copied": "已复制！",
+      "shareHintAccess": "🔗 将此链接分享给任何有权查看此任务的人",
+      "shareHintRedirect": "📌 该链接将跳转到应用中的任务"
     },
     "timer": {
-      "tapToChange": "点按时间以更改时长"
-    }
+      "tapToChange": "点按时间以更改时长",
+      "completed": "计时结束！",
+      "minutesShort": "分钟"
+    },
+    "priorityCheckboxAlt": "优先级 {priority} 复选框",
+    "priorityLevel": "优先级 {level}",
+    "userAvatarAlt": "用户",
+    "assigneeYou": "你",
+    "board": {
+      "collapseExpandedIn": "收起 {name} 中展开的任务",
+      "tapToCollapse": "点按收起",
+      "addTaskTo": "向 {name} 添加任务"
+    },
+    "dropToPlaceFirst": "拖放到此处以放置第一个任务"
   },
   "lists": {
     "list": "列表",
@@ -247,7 +283,11 @@
       "subtitle": "用列表来整理项目、目标和冒险！",
       "namePlaceholder": "例如：家庭",
       "shareWith": "共享给",
-      "sharePlaceholder": "姓名或邮箱地址"
+      "sharePlaceholder": "姓名或邮箱地址",
+      "optional": "（可选）",
+      "descriptionPlaceholder": "这个列表是做什么用的？\n\nAI 智能体在处理任务时会以此为指引。例如：\n“帮忙规划餐食，根据饮食偏好推荐食谱，并创建购物清单。”",
+      "descriptionHint": "AI 智能体在处理此列表中的任务时会以此为指令",
+      "create": "创建新列表"
     },
     "membersManager": {
       "invite": "邀请成员",
@@ -261,7 +301,37 @@
       "permissionLevels": "权限级别",
       "ownerCan": "完全控制此列表",
       "adminCan": "可以管理列表设置和成员",
-      "memberCan": "可以添加、编辑和管理任务"
+      "memberCan": "可以添加、编辑和管理任务",
+      "loadFailed": "无法加载列表成员",
+      "emailRequired": "请输入邮箱地址",
+      "emailInvalid": "请输入有效的邮箱地址",
+      "invitationSent": "邀请已发送",
+      "addFailed": "无法添加成员",
+      "invitationCancelled": "邀请已取消",
+      "memberRemoved": "已移除成员",
+      "removeFailed": "无法移除成员",
+      "roleUpdatedAdmin": "成员角色已更新为管理员",
+      "roleUpdatedMember": "成员角色已更新为成员",
+      "updateRoleFailed": "无法更新成员角色",
+      "inviteRoleUpdatedAdmin": "邀请角色已更新为管理员",
+      "inviteRoleUpdatedMember": "邀请角色已更新为成员",
+      "updateInviteRoleFailed": "无法更新邀请角色",
+      "membersCount": "成员（{count}）",
+      "role": "角色",
+      "adminOption": "管理员 - 可以管理列表设置和成员",
+      "memberOption": "成员 - 可以添加、编辑和管理任务",
+      "aiBadge": "AI",
+      "pending": "待接受",
+      "cancelInvite": "取消",
+      "remove": "移除",
+      "leave": "离开",
+      "roles": {
+        "owner": "所有者",
+        "admin": "管理员",
+        "member": "成员",
+        "viewer": "查看者"
+      },
+      "successTitle": "成功"
     },
     "membershipPanel": {
       "availableAgents": "可用的智能体",
@@ -275,13 +345,26 @@
       "publicListType": "公开列表类型",
       "makeCopyOnly": "设为仅可复制",
       "makeCollaborative": "设为协作",
-      "leaveList": "离开列表"
+      "leaveList": "离开列表",
+      "aiCodingAgents": "AI 编程智能体",
+      "aiAgents": "AI 智能体",
+      "agentForCoding": "{name}：编程和任务协助",
+      "agentForTasks": "{name}：任务协助（添加 GitHub 仓库以进行编程）",
+      "removeAgent": "移除智能体",
+      "publicHint": "任何人都可以找到并加入此列表",
+      "privateHint": "只有受邀成员可以访问此列表",
+      "collaborativeHint": "任何人都可以查看和添加任务。列表管理员和任务创建者可以编辑任务。任何人都可以评论。",
+      "copyOnlyHint": "仅可复制：公开成员可以查看和复制任务，但只有管理员可以添加任务。",
+      "transferOwnershipAndLeave": "转让所有权并离开"
     },
     "ownerLeave": {
       "title": "转让所有权",
       "selectNewOwner": "选择新所有者：",
       "noOtherMembers": "没有其他成员可以接收所有权。",
-      "deleteList": "删除列表"
+      "deleteList": "删除列表",
+      "body": "您是“{name}”的所有者，离开前需要先转让所有权。请选择继任者或删除该列表。",
+      "transferAndLeave": "转让并离开",
+      "deleteInstead": "您也可以直接删除整个列表："
     },
     "publicBrowser": {
       "searchPlaceholder": "按名称、描述或创建者搜索...",
@@ -291,12 +374,71 @@
       "loadingPreview": "正在加载预览...",
       "noTasks": "此列表没有任务",
       "selectTitle": "选择要预览的列表",
-      "selectHint": "从左侧选择一个列表以查看其详情和任务"
+      "selectHint": "从左侧选择一个列表以查看其详情和任务",
+      "copiedMany": "已被复制 {count} 次",
+      "copiedOne": "已被复制 {count} 次",
+      "copiedMoreThan": "已被复制超过 {count} 次",
+      "copiedNew": "新列表",
+      "loadFailed": "无法加载公开列表",
+      "previewFailed": "无法加载列表预览",
+      "copySuccess": "已将“{name}”复制到您的列表",
+      "copyFailed": "无法复制列表",
+      "title": "浏览公开列表",
+      "popular": "热门",
+      "recent": "最新",
+      "noListsFound": "未找到列表",
+      "noPublicLists": "暂无公开列表",
+      "taskCount": "{count} 个任务",
+      "copying": "正在复制...",
+      "copyToMyLists": "复制到我的列表",
+      "createdBy": "创建者：{name}",
+      "createdOn": "创建于 {date}",
+      "copyCount": "{count} 次复制",
+      "showingTasks": "显示 {total} 个任务中的 {shown} 个",
+      "noTasksInList": "此列表中没有任务",
+      "due": "截止日期：{date}"
     },
     "imagePicker": {
       "title": "选择图片",
       "uploadLabel": "从你的设备上传",
-      "chooseFile": "选择文件"
+      "chooseFile": "选择文件",
+      "colorsTab": "颜色",
+      "defaultsTab": "默认",
+      "colors": {
+        "lavender": "薰衣草",
+        "mint": "薄荷",
+        "peach": "蜜桃",
+        "coral": "珊瑚",
+        "sky": "天空",
+        "sage": "鼠尾草",
+        "rose": "玫瑰",
+        "butter": "奶油黄",
+        "periwinkle": "长春花",
+        "seafoam": "海沫绿",
+        "apricot": "杏色",
+        "lilac": "丁香",
+        "blush": "腮红",
+        "powder": "粉蓝",
+        "cream": "奶油",
+        "pearl": "珍珠",
+        "yellow": "黄色",
+        "green": "绿色",
+        "blue": "蓝色",
+        "pink": "粉色"
+      }
+    },
+    "descriptionView": "查看",
+    "descriptionDialogPlaceholder": "为在此列表中工作的 AI 智能体编写指令...\n\n支持 Markdown：**粗体**、*斜体*、## 标题、- 列表、[链接](url)",
+    "descriptionSaveHint": "按 Enter 保存 • Shift+Enter 或 Cmd/Ctrl+Enter 换行",
+    "memberEvents": {
+      "adminGrantedTitle": "已授予管理员权限",
+      "adminGrantedDescription": "你现在拥有“{list}”的管理员权限。你的权限已更新。",
+      "roleChangedTitle": "角色已更改",
+      "roleChangedDescription": "你在“{list}”中的角色已更改为{role}。",
+      "addedTitle": "已加入列表",
+      "addedDescription": "{inviter} 已将你加入“{list}”",
+      "removedTitle": "已从列表中移除",
+      "removedDescription": "你已被移出“{list}”"
     }
   },
   "priority": {
@@ -328,7 +470,10 @@
     "weekBefore": "提前1周",
     "quickSelect": "快速选择：",
     "setTime": "设置时间",
-    "selectTime": "选择时间"
+    "selectTime": "选择时间",
+    "twoHoursBefore": "提前2小时",
+    "twoDaysBefore": "提前2天",
+    "noon": "中午"
   },
   "repeating": {
     "oneTimeOnly": "仅一次",
@@ -350,7 +495,40 @@
       "afterOccurrences": "重复 X 次后",
       "untilDate": "直到指定日期",
       "occurrencesCount": "重复次数",
-      "endDate": "结束日期"
+      "endDate": "结束日期",
+      "unitDays": "天",
+      "unitWeeks": "周",
+      "unitMonths": "个月",
+      "unitYears": "年",
+      "weekday": "星期几",
+      "month": "月份",
+      "day": "日期",
+      "never": "永不",
+      "week1": "第一周",
+      "week2": "第二周",
+      "week3": "第三周",
+      "week4": "第四周",
+      "week5": "第五周",
+      "weekLast": "最后一周"
+    },
+    "summary": {
+      "everyDay": "每天",
+      "everyDays": "每 {count} 天",
+      "everyWeek": "每周",
+      "everyWeeks": "每 {count} 周",
+      "everyMonth": "每月",
+      "everyMonths": "每 {count} 个月",
+      "everyYear": "每年",
+      "everyYears": "每 {count} 年",
+      "everyOther": "每 {interval}({unit})",
+      "onDays": "{summary}（{days}）",
+      "onDayOfMonth": "{summary} {day} 日",
+      "onDate": "{summary} {date}",
+      "endsAfterOne": "{summary}，重复 {count} 次后结束",
+      "endsAfterMany": "{summary}，重复 {count} 次后结束",
+      "until": "{summary}，直到 {date}",
+      "fromDueDate": "{summary}，从截止日期起",
+      "labelFromDueDate": "{label}（从截止日期起）"
     }
   },
   "weekdays": {
@@ -463,7 +641,14 @@
     "cacheCleared": "缓存已清除",
     "dataRefreshed": "数据已刷新。正在重新加载...",
     "settingsSaved": "设置已保存",
-    "changesSaved": "更改已保存"
+    "changesSaved": "更改已保存",
+    "loadingYourData": "正在加载你的数据...",
+    "loadingYourDataDescription": "正在准备你的任务和列表",
+    "refreshed": "已刷新",
+    "refreshedDescription": "你的数据已更新",
+    "refreshFailed": "刷新失败",
+    "refreshFailedDescription": "无法刷新数据。请重试。",
+    "loadDataFailed": "无法加载数据。请刷新页面。"
   },
   "reminders": {
     "general": [
@@ -585,7 +770,9 @@
     "searching": "搜索中...",
     "open": "搜索",
     "findAcrossLists": "在所有列表中查找任务和用户",
-    "inputPlaceholder": "搜索任务和用户..."
+    "inputPlaceholder": "搜索任务和用户...",
+    "resultsTitle": "搜索结果",
+    "showingMatches": "显示所有可访问列表中与“{term}”匹配的任务"
   },
   "listHeaders": {
     "myTasks": "我的任务",
@@ -656,7 +843,34 @@
         "guideLink": "连接我的代码智能体指南",
         "needsSetup": "需要设置",
         "agentLoops": "Agent Loops",
-        "customAgents": "自定义智能体"
+        "customAgents": "自定义智能体",
+        "off": "关闭",
+        "transportLabel": "传输方式：",
+        "transportNative": "原生编程 harness",
+        "transportSse": "自定义智能体 (SSE)",
+        "copilotConnected": "已连接——{appName} 会使用你的 Copilot 订阅来完成此智能体的工作。",
+        "copilotAuthorize": "授权 GitHub，让 {appName} 可以使用你的 Copilot 订阅。可随时在 GitHub 中撤销。",
+        "copilotDisconnected": "已断开 GitHub Copilot 连接",
+        "copilotDisconnectFailed": "无法断开 GitHub Copilot 连接",
+        "copilotAuthStartFailed": "无法开始 GitHub 授权",
+        "copilotConnectFailed": "无法连接 GitHub Copilot",
+        "keySavedPlaceholder": "密钥已保存——粘贴即可替换",
+        "keySaved": "{agent} 密钥已保存",
+        "keySaveFailed": "保存 API 密钥失败",
+        "keyValid": "{agent} 密钥有效",
+        "keyTestFailed": "密钥测试失败：{error}",
+        "keyTestError": "测试 API 密钥失败",
+        "testKey": "测试",
+        "keyRemoved": "{agent} 密钥已移除",
+        "keyRemoveFailed": "移除 API 密钥失败",
+        "keyEncrypted": "静态加密存储，仅在服务器端使用。",
+        "loadFailed": "无法加载智能体设置",
+        "saveFailed": "无法保存",
+        "apiModeDescription": "{appName} 在服务器端运行此智能体——用手机就能操作，家里无需运行任何东西。",
+        "pollingModeDescription": "由你自己的 {agent} 环境来完成工作。连接一次后，把任务分配给此智能体并标记为 {ready}，循环就会接手。",
+        "offModeDescription": "此智能体已停用：它不会出现在负责人选择器中，{appName} 也不会运行它。已保存的设置和密钥都会保留——选择其他模式即可原样恢复。",
+        "webhookModeDescription": "由你运营的 webhook 接收端可以在此智能体的工作出现时立即接收。{sdk} 提供的是集成库，而不是现成的智能体托管命令。此模式需要你自己的 webhook 接收端；下方的设置用于配置投递。如果想改用带引导的 MCP + 队列技能设置，请选择{nativeHarness}，并按照{agentLoops}中的方案操作。",
+        "customAgentsDescription": "你通过 OAuth + REST + SSE 运营的智能体"
       },
       "runtime": {
         "stepConnect": "连接",
@@ -668,7 +882,28 @@
         "copilotInstall": "提交一次此仓库自定义智能体。之后 Copilot CLI、Copilot 应用、GitHub.com 和 VS Code 都可以选择相同的队列行为。",
         "githubConnect": "为此智能体创建客户端凭据，并将其保存为名为 {clientId} 和 {clientSecret} 的仓库 Actions 密钥。每次运行都会用客户端凭据换取一个仅含队列工作器所需权限、有效期一小时的访问令牌——长期令牌永远不会进入仓库。",
         "githubInstall": "此工作流是一个队列闸门：它只回答“有工作吗？”，本身不运行智能体。请将第二个作业指向你现有的受支持智能体作业（其他标签页中的 Copilot CLI、Claude Code 或 Codex 步骤）。",
-        "githubSchedule": "提交此工作流以按每 30 分钟的计划运行，或在 GitHub Actions 中使用 Run workflow 立即测试。空闲的运行会在限定范围的队列请求后停止，因此空队列只消耗一次 API 调用，而不是一次完整的智能体启动。"
+        "githubSchedule": "提交此工作流以按每 30 分钟的计划运行，或在 GitHub Actions 中使用 Run workflow 立即测试。空闲的运行会在限定范围的队列请求后停止，因此空队列只消耗一次 API 调用，而不是一次完整的智能体启动。",
+        "connectionCheckLabel": "运行不做任何更改的连接检查",
+        "runInActions": "在 GitHub Actions 中运行",
+        "addRemoteMcp": "添加远程 MCP 服务器",
+        "claudeAuthenticate": "在 Claude Code 中打开 {mcpCommand} 并选择 Authenticate。如果该命令不可用，请改为将同一个 HTTP 服务器添加到项目的 {mcpFile} 文件中。",
+        "manualMcpFallback": "手动 MCP 备用方案",
+        "manualMcpFallbackFile": "手动 MCP 备用方案：{file}",
+        "saveSkillCommand": "将队列技能保存为项目命令",
+        "runInSession": "在此会话中每 30 分钟运行一次",
+        "cronFallback": "无人值守的 cron 备用方案",
+        "copilotAddMcp": "Copilot CLI：添加远程 MCP 服务器",
+        "vscodeFallback": "VS Code 备用方案：{file}",
+        "copilotConnectNote": "CLI 和 VS Code 会打开 {appName} 的浏览器授权。Copilot 应用和 GitHub.com 无法打开远程 MCP OAuth；请创建专用令牌，将其保存为 Agents secret {secretName}，并把生成的仓库 MCP 配置粘贴到 Settings > Copilot > MCP servers 中。",
+        "repoCustomAgent": "仓库自定义智能体",
+        "runEvery30": "每 30 分钟运行一次 {tool}",
+        "copilotInteractive": "如需交互式运行，请在 Copilot 应用、GitHub.com 或 VS Code 中选择 {appName} Queue 自定义智能体。",
+        "addRemoteAuthorize": "添加远程服务器并授权",
+        "addSkillTo": "将队列技能添加到 {file}",
+        "addQueueGate": "添加队列闸门工作流",
+        "addQueueToFile": "1. 将队列添加到 {file}",
+        "runLoopScheduled": "2. 按计划运行循环",
+        "cursorNoScheduler": "2. Cursor 没有自带的调度器——在开始工作会话时让它查看你的队列，或者同时运行上面的 Claude Code / Codex cron 命令行。"
       },
       "webhook": {
         "title": "Webhook 配置",
@@ -695,7 +930,38 @@
         "gettingStarted": "开始使用",
         "stepConfigureUrl": "在上方配置你的 Webhook URL",
         "stepAssign": "将任务分配给 {agent}",
-        "eventsTitle": "Webhook 事件"
+        "eventsTitle": "Webhook 事件",
+        "testFailed": "测试 Webhook 失败",
+        "confirmRemove": "确定要移除你的 Webhook 配置吗？",
+        "enabledLabel": "已启用",
+        "updateConfig": "更新配置",
+        "saveConfig": "保存配置",
+        "secretShownOnce": "此密钥只会显示一次。请立即复制，并将其添加到你的 Claude Code Remote 服务器的环境变量中。",
+        "failuresCount": "{count} 次失败",
+        "noneAllPolling": "无（所有任务都交给轮询）",
+        "testing": "测试中...",
+        "responseTime": "响应时间：{time} 毫秒",
+        "statusCode": "状态码：{code}",
+        "errorDetail": "错误：{error}",
+        "documentation": "文档",
+        "aboutBody": "将你运营的 webhook 接收端连接到 {appName}。此面板用于配置任务通知的发送位置；它不会安装或启动智能体主机。",
+        "stepReceiver": "使用由你运营的 webhook 接收端。{sdk} 提供的是集成库，而不是独立的智能体托管命令。",
+        "stepCopySecret": "将 Webhook 密钥复制到你的服务器环境中",
+        "guidedSetup": "如果想在没有 webhook 接收端的情况下使用带引导的设置，请在 {settings} → {aiAgents} 中选择 {selfRuns} → {nativeHarness}，并按照{recipes}操作。",
+        "recipesLink": "MCP + 队列技能方案",
+        "eventTaskAssigned": "任务已分配给 AI 智能体",
+        "eventCommentCreated": "用户在 AI 任务上发表了评论"
+      },
+      "astrid": {
+        "noModel": "在下方添加 API 密钥或注册自定义智能体，为 {appName} 提供支持。",
+        "poweredBy": "由 {service} 提供支持",
+        "chooseModelHint": "选择在“我的任务”和你的私人列表中为 {appName} 提供支持的模型。",
+        "description": "选择为 {appName} 提供支持的模型。在任意聊天或评论中提及 {mention} 即可获得帮助。{appName} 可以读取你各个列表中的任务、回复消息，并在截止日期前完成任务。"
+      },
+      "tip": {
+        "title": "提示：按列表控制智能体的行为",
+        "body": "每个列表的{description}会作为 AI 智能体处理该列表任务时的指令。在列表描述中用 markdown 写明智能体应如何处理任务——就像写项目简介一样。",
+        "where": "在 列表设置 → 管理员设置 → AI 智能体 中设置仓库、默认智能体和每个列表的循环；在“描述”中编辑指令。"
       }
     },
     "apiAccess": {
@@ -704,7 +970,10 @@
       "clientGuide": {
         "title": "Do you need a client here?",
         "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
-        "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant."
+        "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant.",
+        "question": "这里需要创建客户端吗？",
+        "registersItself": "不需要——如果你的助手支持 OAuth（VS Code / Copilot、ChatGPT 或其他 MCP 客户端），它会在你连接到托管的 MCP 端点时自动注册。这里无需创建任何内容。",
+        "manualOnly": "需要——仅当服务器集成使用静态密钥时才在下方创建客户端：脚本、stdio MCP 服务器，或使用 client_credentials 授权的自定义标头配置。"
       },
       "apps": {
         "loading": "正在加载 OAuth 应用程序...",
@@ -727,7 +996,64 @@
         "readOnly": "只读",
         "editTitle": "编辑 OAuth 应用程序",
         "editDescription": "更新集成所需的重定向 URL 或其他元数据。",
-        "selectToEdit": "选择要编辑的 OAuth 应用。"
+        "selectToEdit": "选择要编辑的 OAuth 应用。",
+        "heading": "OAuth 应用程序",
+        "test": "测试",
+        "regenerate": "重新生成",
+        "followsGroup": "跟随 {group}",
+        "fixedAtCreation": "创建时固定",
+        "created": "创建于：{date}",
+        "lastUsed": "上次使用：{date}",
+        "createdTitle": "OAuth 客户端已创建！",
+        "saveCredentialsNow": "⚠️ 请立即保存这些凭证——客户端密钥不会再次显示！",
+        "secretShownOnce": "⚠️ 此密钥只会显示一次，请立即复制！",
+        "obtainingToken": "正在获取令牌...",
+        "clientSecretRequired": "客户端密钥 *",
+        "nameLabel": "应用程序名称 *",
+        "descriptionLabel": "描述",
+        "scopesRequired": "作用域 *",
+        "aiAgentPreset": "AI 智能体",
+        "grantTypesRequired": "授权类型 *",
+        "grantHelp": "为 ChatGPT 或其他需要用户同意的集成启用 {code}。至少需要一个重定向 URI。",
+        "redirectHelp": "每行一个 URL。授权码流程（ChatGPT、Web 应用）必填。{appName} 只会重定向到此处列出的 URL。",
+        "editRedirectHelp": "每行一个 URL。{appName} 只会将用户重定向到此处列出的确切 URL。添加 ChatGPT 操作的回调 URL（来自 GPT Builder）即可修复 {code} 错误。",
+        "creating": "正在创建...",
+        "createApplication": "创建应用程序",
+        "errors": {
+          "loadFailed": "无法加载 OAuth 客户端",
+          "loadClientsFailed": "无法加载客户端",
+          "nameRequired": "应用名称为必填项",
+          "scopeRequired": "请至少选择一个作用域",
+          "grantRequired": "请至少选择一种 OAuth 授权类型",
+          "redirectRequired": "授权码授权至少需要一个重定向 URI",
+          "invalidRedirect": "无效的重定向 URI：{uri}",
+          "createFailed": "无法创建客户端",
+          "deleteFailed": "无法删除客户端",
+          "regenerateFailed": "无法重新生成密钥",
+          "copyFailed": "无法复制到剪贴板",
+          "secretRequired": "客户端密钥为必填项",
+          "tokenFailed": "无法获取访问令牌",
+          "tokenFailedShort": "无法获取令牌",
+          "updateFailed": "无法更新 OAuth 客户端"
+        },
+        "deleteConfirm": "确定吗？这将撤销此应用的所有令牌。",
+        "regenerateConfirm": "重新生成客户端密钥？旧密钥将立即失效。",
+        "tokenObtained": "已获取访问令牌！正在跳转到 API 测试...",
+        "updated": "OAuth 客户端已更新"
+      },
+      "grants": {
+        "clientCredentials": {
+          "label": "客户端凭证",
+          "description": "服务器到服务器访问（无需用户登录）"
+        },
+        "authorizationCode": {
+          "label": "授权码",
+          "description": "通过浏览器获得用户同意（ChatGPT、第三方应用）"
+        },
+        "refreshToken": {
+          "label": "刷新令牌",
+          "description": "签发刷新令牌以保持会话有效"
+        }
       }
     },
     "chatgpt": {
@@ -939,7 +1265,10 @@
       "waitingVerification": "等待验证",
       "waitingVerificationFor": "等待验证：{email}",
       "unknownEmail": "未知",
-      "loadingEmail": "加载中..."
+      "loadingEmail": "加载中...",
+      "infoProtect": "• 已验证的邮箱有助于我们保护你的账户并支持协作",
+      "infoOAuth": "• 你的邮箱已通过 Google OAuth 验证",
+      "infoCheckEmail": "• 注册后，请在邮箱中查收验证链接"
     },
     "passkeys": {
       "title": "通行密钥",
@@ -1071,7 +1400,10 @@
         "description": "自动从任务标题中识别日期、优先级和列表标签",
         "enable": "启用智能识别",
         "enableDesc": "从自然语言输入中提取任务信息",
-        "supportedPatterns": "支持的格式："
+        "supportedPatterns": "支持的格式：",
+        "datesLabel": "日期：",
+        "priorityLabel": "优先级：",
+        "listsLabel": "列表："
       },
       "subtasks": {
         "title": "子任务",
@@ -1268,7 +1600,8 @@
         "description": "手动创建 OAuth 应用、测试 API，并连接支持 OpenAPI 的助手。",
         "openTester": "打开 API 测试器",
         "apiDocs": "API 文档",
-        "integrationGuide": "集成指南"
+        "integrationGuide": "集成指南",
+        "copyField": "复制 {label}"
       },
       "github": {
         "title": "GitHub",
@@ -1395,12 +1728,36 @@
       "subscribeLabel": "订阅：",
       "howSubscribe": "添加 webcal URL 以自动同步更改（推荐）",
       "howAppear": "任务将显示为全天事件或在计划时间显示",
-      "howUpdates": "{appName} 中的任务更新会同步到已订阅的日历"
+      "howUpdates": "{appName} 中的任务更新会同步到已订阅的日历",
+      "toastUpdatedTitle": "设置已更新",
+      "toastUpdatedDescription": "日历集成设置已保存。",
+      "toastUpdateFailed": "无法更新日历设置。",
+      "syncAllHint": "所有任务都会显示在日历中，包括没有截止日期的任务",
+      "syncDueHint": "只有设置了截止日期或“何时”时间的任务才会显示在日历中",
+      "syncNoneHint": "不会有任务同步到日历",
+      "downloadDescription": "一次性下载，用于导入日历应用"
     },
     "defaultDueTime": {
       "title": "默认截止时间",
       "description": "设置选择截止日期时新任务的默认时间",
-      "fallback": "有截止日期的新任务默认设为下午 5 点"
+      "fallback": "有截止日期的新任务默认设为下午 5 点",
+      "setTo": "有截止日期的新任务默认设为 {time}",
+      "toastSet": "默认截止时间已设为 {time}",
+      "toastCleared": "默认截止时间已清除",
+      "saveFailed": "无法保存默认截止时间设置",
+      "placeholder": "5pm（默认）",
+      "label": "默认截止时间"
+    },
+    "pageTitles": {
+      "account": "账户访问",
+      "apiTesting": "API 测试",
+      "githubSetup": "GitHub 设置",
+      "help": "帮助与支持"
+    },
+    "hub": {
+      "helpDescription": "故障排查指南与联系支持",
+      "refreshDescription": "清除缓存并重新加载最新数据",
+      "signOutDescription": "退出你的账户"
     }
   },
   "projectMode": {
@@ -1438,7 +1795,9 @@
   "viewRotator": {
     "showList": "显示列表",
     "showMessages": "显示消息",
-    "showBoard": "显示看板"
+    "showBoard": "显示看板",
+    "board": "看板",
+    "messages": "消息"
   },
   "listSettings": {
     "color": {
@@ -1560,7 +1919,24 @@
       "deleteStatusFailed": "删除状态失败",
       "addStatusFailed": "添加状态失败",
       "recentlyCompletedLabel": "高级 — 最近完成的显示时段",
-      "recentlyCompletedDescription": "已完成的任务在默认视图（以及看板的 Done 列）中保持可见的时长。更早完成的任务会被筛除；将列表切换到“已完成”或“全部”即可查看。"
+      "recentlyCompletedDescription": "已完成的任务在默认视图（以及看板的 Done 列）中保持可见的时长。更早完成的任务会被筛除；将列表切换到“已完成”或“全部”即可查看。",
+      "recentlyCompletedPresets": {
+        "default24h": "最近 24 小时（默认）",
+        "last7Days": "最近 7 天",
+        "last14Days": "最近 14 天",
+        "last28Days": "最近 28 天",
+        "last30Days": "最近 30 天",
+        "sinceLastSunday": "自上周日起（本周）",
+        "sinceLastMonday": "自上周一起（本周）",
+        "sinceFirstOfMonth": "自本月 1 日起",
+        "sinceSpecificDate": "自指定日期起…"
+      },
+      "templates": {
+        "codeReviewer": "代码审查员",
+        "researchAssistant": "研究助手",
+        "familyAssistant": "家庭助手",
+        "contentWriter": "内容撰稿人"
+      }
     },
     "filters": {
       "allAssignees": "所有负责人",
@@ -1573,8 +1949,29 @@
       "removeFromFavorites": "从收藏中移除",
       "makeFavorite": "设为收藏",
       "savedFilter": "已保存的筛选",
-      "savedFilterDescription": "根据筛选设置而非列表归属显示任务"
-    }
+      "savedFilterDescription": "根据筛选设置而非列表归属显示任务",
+      "me": "我（{name}）",
+      "assignedByFilter": "分配者筛选",
+      "repeatingFilter": "重复筛选",
+      "listFilter": "列表筛选",
+      "favorite": "收藏"
+    },
+    "fixed": {
+      "todayTitle": "今日任务设置",
+      "todayDescription": "配置今日任务的显示和筛选方式",
+      "fixedDueDateToday": "截止日期：今天（固定）",
+      "myTasksTitle": "我的任务设置",
+      "myTasksDescription": "配置个人任务的显示和筛选方式",
+      "unassignedTitle": "无列表任务设置",
+      "unassignedDescription": "配置无列表任务的显示和筛选方式",
+      "assignedTitle": "已分配任务设置",
+      "assignedDescription": "配置您分配给他人的任务的显示和筛选方式",
+      "defaultDescription": "配置任务的显示和筛选方式",
+      "cannotChange": "“{name}”视图无法更改此筛选条件"
+    },
+    "listSettingsTitle": "列表设置",
+    "listDetailsTitle": "列表详情",
+    "statusesTab": "状态"
   },
   "reminderSettings": {
     "title": "提醒设置",
@@ -1606,7 +2003,66 @@
       "installDesktop": "在地址栏中找到安装图标",
       "installPwaLabel": "PWA 优势：",
       "installPwa": "即使应用已关闭，通知也能正常工作",
-      "sendTest": "发送测试通知"
+      "sendTest": "发送测试通知",
+      "errorNotSupported": "此浏览器不支持推送通知",
+      "errorPermissionDenied": "通知权限被拒绝。请在浏览器设置中启用通知。",
+      "errorSaveSubscription": "无法将订阅保存到服务器",
+      "errorEnable": "无法启用通知",
+      "errorDisable": "无法停用通知",
+      "errorSendTest": "无法发送测试通知",
+      "errorTestFailed": "测试通知失败",
+      "statusEnabled": "已启用",
+      "statusBlocked": "已屏蔽",
+      "info": {
+        "browserSupport": "浏览器支持：",
+        "supported": "✅ 支持",
+        "notSupported": "❌ 不支持",
+        "permission": "权限：",
+        "subscription": "订阅：",
+        "subscriptionActive": "✅ 有效",
+        "subscriptionNone": "❌ 无"
+      },
+      "permissionValues": {
+        "granted": "已允许",
+        "denied": "已拒绝",
+        "default": "未设置",
+        "unsupported": "不支持"
+      }
+    },
+    "toast": {
+      "loadFailed": "无法加载提醒设置。",
+      "savedTitle": "设置已保存",
+      "savedDescription": "你的提醒偏好已更新。",
+      "saveFailed": "无法保存提醒设置。",
+      "notSupportedTitle": "不支持",
+      "notSupportedDescription": "此浏览器不支持推送通知。",
+      "permissionGrantedTitle": "已授予权限",
+      "permissionGrantedDescription": "现在你将收到任务的推送通知。",
+      "subscriptionFailedTitle": "订阅失败",
+      "subscriptionFailedDescription": "无法设置推送通知。邮件通知仍可正常使用。",
+      "permissionDeniedTitle": "权限被拒绝",
+      "permissionDeniedDescription": "推送通知已被屏蔽。可以在浏览器设置中启用。",
+      "permissionRequestFailed": "无法请求通知权限。",
+      "testScheduledTitle": "测试已安排",
+      "testFailedTitle": "测试失败",
+      "testScheduleFailed": "无法安排测试通知。",
+      "testFailed": "无法测试通知。"
+    },
+    "testing": "测试中...",
+    "testPush": "测试推送通知（延迟 5 分钟）",
+    "testDigest": "测试每日摘要（延迟 5 分钟）",
+    "digestTime": "时间",
+    "quietStart": "开始",
+    "quietEnd": "结束",
+    "timezones": {
+      "eastern": "美国东部时间",
+      "pacific": "美国太平洋时间",
+      "central": "美国中部时间",
+      "mountain": "美国山区时间",
+      "london": "伦敦",
+      "paris": "巴黎",
+      "tokyo": "东京",
+      "local": "{label}（本地）"
     }
   },
   "keyboardShortcuts": {
@@ -1617,21 +2073,60 @@
       "taskActions": "任务操作",
       "taskEditing": "任务编辑",
       "priority": "优先级",
-      "interface": "界面"
+      "interface": "界面",
+      "chat": "聊天与引用"
     },
-    "chatHint": "在聊天消息和任务评论中使用"
+    "chatHint": "在聊天消息和任务评论中使用",
+    "chat": {
+      "mention": "提及某人",
+      "referenceList": "引用列表",
+      "referenceTask": "引用任务",
+      "selectSuggestion": "选择自动补全建议",
+      "navigateSuggestions": "浏览建议",
+      "dismissSuggestions": "关闭建议"
+    },
+    "shortcuts": {
+      "completeTask": "完成所选任务",
+      "dueEarlier": "将截止日期提前一天",
+      "dueLater": "将截止日期推迟一天",
+      "jumpToDate": "跳转到“日期”",
+      "postpone": "将任务推迟一周",
+      "removeDueDate": "移除任务截止日期",
+      "editLists": "编辑任务所属列表",
+      "editTitle": "编辑任务标题",
+      "editDescription": "编辑任务描述",
+      "addComment": "添加新的任务评论",
+      "assignNoOne": "将任务分配给“无人”",
+      "priorityNone": "将优先级设为 ○（无）",
+      "priorityLow": "将优先级设为 !（低）",
+      "priorityMedium": "将优先级设为 !!（中）",
+      "priorityHigh": "将优先级设为 !!!（高）",
+      "deleteTask": "删除所选任务",
+      "deleteTaskAlt": "删除所选任务（备选按键）",
+      "togglePanel": "打开/关闭任务编辑面板",
+      "cycleFilters": "循环切换列表筛选器/标签",
+      "selectPrevious": "选择上一个任务",
+      "selectNext": "选择下一个任务",
+      "outdent": "将任务移出父任务",
+      "indent": "将任务嵌套到上方任务之下",
+      "showHotkeys": "显示快捷键列表"
+    }
   },
   "commandPalette": {
     "label": "命令面板",
     "searchPlaceholder": "搜索命令…",
     "enterToSelect": "按 Enter 选择",
     "escToClose": "按 Esc 关闭",
-    "noCommands": "未找到命令"
+    "noCommands": "未找到命令",
+    "arrowsToNavigate": "按 ↑ ↓ 导航",
+    "selectTaskFirst": "请先选择一个任务"
   },
   "userPicker": {
     "optionalMessage": "可选留言…",
     "sendInvite": "发送邀请",
-    "assignAnyway": "仍然分配"
+    "assignAnyway": "仍然分配",
+    "inviteEmail": "邀请 {email}",
+    "accessWarningTitle": "⚠️ 访问警告"
   },
   "astridAgent": {
     "modelSetup": {
@@ -1907,7 +2402,9 @@
     "iosBeta": "目前处于 TestFlight 测试阶段",
     "joinBeta": "加入测试",
     "preferBrowser": "更喜欢用浏览器？",
-    "useOnWeb": "在网页上使用 {appName}"
+    "useOnWeb": "在网页上使用 {appName}",
+    "metaTitle": "下载 {appName} Mac 版",
+    "metaDescription": "{appName} Mac 版 — 管理任务、列表和聊天的原生桌面应用。"
   },
   "errorPages": {
     "errorDescription": "发生了意外错误。给你带来不便，我们深表歉意。",
@@ -1973,23 +2470,61 @@
     "everyRecipe": "所有运行工具的配方",
     "mcpTokens": "MCP 连接与令牌",
     "agentSettings": "代理设置",
-    "createCiToken": "创建 GitHub Actions 令牌"
+    "createCiToken": "创建 GitHub Actions 令牌",
+    "agentList": "→ {list} 列表",
+    "buyPlan": "购买：{plan}",
+    "createListsFirst": "先在第 1 步创建列表，这些命令就会填入你的 {list} 列表 ID。",
+    "connectStep": "{n}. 连接，然后批准它打开的 {appName} 登录",
+    "installSkillStep": "{n}. 将队列技能安装到 {path}",
+    "scheduleStep": "{n}. 每 30 分钟运行一次（在任何一台始终开机的机器上用 crontab）",
+    "workflowStep": "{n}. 提交 {path}，然后把最后一步替换成要运行的作业",
+    "checkStep": "{n}. 检查：让代理以代理“{mailbox}”调用 {tool}。{empty} 表示已连接且空闲。",
+    "hostedTitle": "没有可以一直开着的机器？改在 GitHub Actions 中运行 {agent}。",
+    "commitFile": "提交 {path}",
+    "saveAsSecret": "保存为 {secret} 密钥 — 仅显示一次",
+    "agentReadThis": "你是代理吗？请阅读 {link} — 同样的步骤，纯文本版。",
+    "createIntro": "一个按钮即可创建五个带有指示的列表，并把每个代理设为默认负责人。列表的描述{is}每个代理处理其中任务时读取的指示文件 — 随时可以编辑。",
+    "createIntroIs": "就是",
+    "connectIntro": "每个代理都有自己的 {appName} 身份，只接手自己列表中{assignedAndReady}的任务。打开其中一个并粘贴它的步骤 — 或者把本页链接粘贴给代理，让它自行完成设置。",
+    "connectIntroAssignedAndReady": "分配给它并标记为 Ready",
+    "workSetReady": "想让代理开始时，把状态设为 {ready}。这就是启动按钮。",
+    "teamIntro": "共享每个列表（列表设置 → {members} → 通过邮件邀请）。所有人都能看到相同的任务、评论和代理报告。列表所有者和管理员可以把任何任务交给代理；成员可以移交自己创建的任务。要让成员可以移交任何任务，请在列表设置 → {aiAgent} 中开启{setting}（代理使用所有者的套餐运行）。"
   },
   "richTextInput": {
     "placeholder": "输入消息...",
     "timer": "计时器",
     "uploading": "上传中...",
     "attachFile": "添加附件",
-    "removeFile": "移除 {name}"
+    "removeFile": "移除 {name}",
+    "attachmentsUnavailable": "此视图不支持文件附件。",
+    "tooManyOne": "一次最多可添加 {max} 个附件 — 有 {count} 个文件未添加。",
+    "tooManyMany": "一次最多可添加 {max} 个附件 — 有 {count} 个文件未添加。",
+    "people": "人员",
+    "aiBadge": "AI",
+    "taskDone": "已完成"
   },
   "chat": {
     "inputPlaceholder": "给列表发消息...",
     "empty": "还没有消息。开始对话吧！",
-    "loadFailed": "加载聊天失败"
+    "loadFailed": "加载聊天失败",
+    "openChat": "打开聊天",
+    "showTasks": "显示任务"
   },
   "notificationBell": {
     "markAllRead": "全部标为已读",
-    "allCaughtUp": "你已全部看完。"
+    "allCaughtUp": "你已全部看完。",
+    "loadFailed": "无法加载通知",
+    "loadFailedStatus": "无法加载通知（{status}）",
+    "markReadFailedStatus": "无法将通知标为已读（{status}）",
+    "updateFailed": "无法更新通知",
+    "taskUpdate": "任务更新",
+    "kinds": {
+      "assigned": "已分配",
+      "mentioned": "被提及",
+      "replied": "已回复",
+      "commented": "已评论",
+      "statusChanged": "状态已更改"
+    }
   },
   "admin": {
     "navDescription": "管理访问权限、分析和功能可用性。",
@@ -1997,12 +2532,21 @@
   },
   "pwa": {
     "notNow": "暂不",
-    "syncing": "正在同步更改..."
+    "syncing": "正在同步更改...",
+    "backOnline": "已恢复在线",
+    "offline": "当前处于离线状态",
+    "pendingOne": "{count} 项更改待同步",
+    "pendingMany": "{count} 项更改待同步",
+    "installTitle": "安装 {appName}",
+    "installDescription": "将 {appName} 添加到主屏幕，以便快速访问和离线使用。",
+    "install": "安装"
   },
   "attachmentViewer": {
     "closeEsc": "关闭 (Esc)",
     "videoUnsupported": "你的浏览器不支持 video 标签。",
     "noPreview": "此文件类型无法预览",
-    "downloadFile": "下载文件"
+    "downloadFile": "下载文件",
+    "unknownFile": "未知文件",
+    "loadFailed": "文件加载失败"
   }
 }

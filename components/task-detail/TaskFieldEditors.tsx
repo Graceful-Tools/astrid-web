@@ -26,6 +26,8 @@ import { format } from "date-fns"
 import { formatDateForDisplay } from "@/lib/date-utils"
 import { allDayInstantForLocalDay, taskCalendarDay } from "@/lib/date-comparison"
 import { useTranslations } from "@/lib/i18n/client"
+import { fillMessage } from "@/components/shared/RichMessage"
+import { customRepeatingSummary } from "./custom-repeating-summary"
 import type { Task, TaskList, User } from "@/types/task"
 
 interface TaskFieldEditorsProps {
@@ -156,7 +158,7 @@ export function TaskFieldEditors({
   // the leading control's popover (task ffa5bbb5). Normalized rather than
   // compared, so an unrecognised mode renders the safe layout.
   const compactTaskDetail = usesCompactTaskDetail(displayMode)
-  const { t } = useTranslations()
+  const { t, locale } = useTranslations()
 
   // Local state for controlling Select dropdown open state
   const [repeatingSelectOpen, setRepeatingSelectOpen] = useState(false)
@@ -327,75 +329,6 @@ export function TaskFieldEditors({
     // Don't clear tempRepeatingData - keep it for optimistic display until server confirms
   }
 
-  const getCustomRepeatingSummary = (repeatingData: any, repeatFrom?: "DUE_DATE" | "COMPLETION_DATE"): string => {
-    if (!repeatingData) return ''
-
-    // CustomRepeatingEditor uses 'unit' (days/weeks/months/years)
-    // Support both 'unit' and 'frequency' for compatibility
-    const { unit, frequency, interval, weekdays, monthDay, month, endCondition, endAfterOccurrences, endUntilDate } = repeatingData
-
-    // Default interval to 1 if not provided
-    const actualInterval = interval || 1
-    const repeatUnit = unit || frequency
-
-    let summary = `Every ${actualInterval > 1 ? actualInterval + ' ' : ''}`
-
-    if (repeatUnit === 'days' || repeatUnit === 'daily') {
-      summary += actualInterval > 1 ? 'days' : 'day'
-    } else if (repeatUnit === 'weeks' || repeatUnit === 'weekly') {
-      summary += actualInterval > 1 ? 'weeks' : 'week'
-      if (weekdays && weekdays.length > 0) {
-        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-        const daysText = weekdays.map((day: string) => {
-          // Handle both numeric indices and string day names
-          if (typeof day === 'number') {
-            return dayNames[day]
-          }
-          return day.charAt(0).toUpperCase() + day.slice(1, 3)
-        }).join(', ')
-        summary += ` on ${daysText}`
-      }
-    } else if (repeatUnit === 'months' || repeatUnit === 'monthly') {
-      summary += actualInterval > 1 ? 'months' : 'month'
-      if (monthDay) {
-        summary += ` on the ${monthDay}${getOrdinalSuffix(monthDay)}`
-      }
-    } else if (repeatUnit === 'years' || repeatUnit === 'yearly') {
-      summary += actualInterval > 1 ? 'years' : 'year'
-      if (month !== undefined && monthDay) {
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-        summary += ` on ${monthNames[month - 1]} ${monthDay}${getOrdinalSuffix(monthDay)}`
-      }
-    } else {
-      // Fallback for unknown unit/frequency
-      summary += `(${repeatUnit || 'unknown'})`
-    }
-
-    // Add end condition information
-    if (endCondition === 'after_occurrences' && endAfterOccurrences) {
-      summary += `, ends after ${endAfterOccurrences} occurrence${endAfterOccurrences > 1 ? 's' : ''}`
-    } else if (endCondition === 'until_date' && endUntilDate) {
-      const date = endUntilDate instanceof Date ? endUntilDate : new Date(endUntilDate)
-      summary += `, until ${format(date, 'MMM d, yyyy')}`
-    }
-
-    // Add "from due date" suffix if using DUE_DATE mode (COMPLETION_DATE is default)
-    if (repeatFrom === 'DUE_DATE') {
-      summary += ', from due date'
-    }
-
-    return summary
-  }
-
-  const getOrdinalSuffix = (num: number): string => {
-    const j = num % 10
-    const k = num % 100
-    if (j === 1 && k !== 11) return 'st'
-    if (j === 2 && k !== 12) return 'nd'
-    if (j === 3 && k !== 13) return 'rd'
-    return 'th'
-  }
-
   const handleSaveAssignee = () => {
     onUpdate({ ...task, assignee: tempAssignee, assigneeId: tempAssignee?.id || null })
     setEditingAssignee(false)
@@ -497,9 +430,9 @@ export function TaskFieldEditors({
                   <>
                     <Avatar className="w-6 h-6">
                       <AvatarImage src="/placeholder.svg" />
-                      <AvatarFallback>U</AvatarFallback>
+                      <AvatarFallback>{t('tasks.unassignedMark')}</AvatarFallback>
                     </Avatar>
-                    <span className="theme-text-muted">Unassigned</span>
+                    <span className="theme-text-muted">{t('tasks.unassigned')}</span>
                   </>
                 )}
               </div>
@@ -530,7 +463,7 @@ export function TaskFieldEditors({
                 className="w-auto justify-start bg-theme-button border-theme-button text-theme-primary hover:bg-theme-button-hover"
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {tempWhen ? format(tempWhen, "PPP") : "Select date"}
+                {tempWhen ? (locale && locale !== 'en' ? tempWhen.toLocaleDateString(locale, { dateStyle: 'long' }) : format(tempWhen, "PPP")) : t('tasks.detail.selectDate')}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
@@ -545,7 +478,7 @@ export function TaskFieldEditors({
                     }}
                     className="text-sm"
                   >
-                    Today
+                    {t('time.today')}
                   </Button>
                   <Button
                     variant="outline"
@@ -557,7 +490,7 @@ export function TaskFieldEditors({
                     }}
                     className="text-sm"
                   >
-                    Tomorrow
+                    {t('time.tomorrow')}
                   </Button>
                   <Button
                     variant="outline"
@@ -694,8 +627,8 @@ export function TaskFieldEditors({
                   {/* Live preview of custom pattern */}
                   {tempRepeatingData && (
                     <div className="mb-3 p-2 theme-surface-secondary rounded text-sm theme-text">
-                      <span className="font-medium">Preview: </span>
-                      {getCustomRepeatingSummary(tempRepeatingData, localRepeatFrom)}
+                      <span className="font-medium">{t('tasks.detail.preview')} </span>
+                      {customRepeatingSummary(tempRepeatingData, localRepeatFrom, t, locale)}
                     </div>
                   )}
 
@@ -745,8 +678,8 @@ export function TaskFieldEditors({
                     </div>
                     <div className="text-xs theme-text-muted mt-1">
                       {localRepeatFrom === "COMPLETION_DATE"
-                        ? "Next occurrence is based on when you complete the task"
-                        : "Next occurrence is based on the original due date"}
+                        ? t('tasks.detail.repeatFromCompletionHint')
+                        : t('tasks.detail.repeatFromDueHint')}
                     </div>
                   </div>
 
@@ -800,7 +733,7 @@ export function TaskFieldEditors({
 
                 // Show custom pattern summary with mode indicator
                 if (repeatingValue === 'custom' && repeatingDataValue) {
-                  const summary = getCustomRepeatingSummary(repeatingDataValue, repeatFrom)
+                  const summary = customRepeatingSummary(repeatingDataValue, repeatFrom, t, locale)
                   return summary
                 }
 
@@ -808,7 +741,7 @@ export function TaskFieldEditors({
                 const pattern = repeatingValue || 'never'
                 // AITD-582: the picker's label, not the raw value
                 const label = t(`repeating.${pattern === 'never' ? 'oneTimeOnly' : pattern}`)
-                return pattern !== 'never' && repeatFrom === 'DUE_DATE' ? `${label} (from due date)` : label
+                return pattern !== 'never' && repeatFrom === 'DUE_DATE' ? fillMessage(t('repeating.summary.labelFromDueDate'), { label }) : label
               })()}
             </div>
           )}

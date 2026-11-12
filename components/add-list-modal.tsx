@@ -147,19 +147,19 @@ export function AddListModal({ onClose, onCreateList, currentUser }: AddListModa
             <Label htmlFor="description" className="theme-text-secondary text-sm font-medium flex items-center space-x-1.5">
               <FileText className="w-4 h-4" />
               <span>{t('lists.descriptionTitle')}</span>
-              <span className="text-xs theme-text-muted font-normal">(optional)</span>
+              <span className="text-xs theme-text-muted font-normal">{t('lists.addModal.optional')}</span>
             </Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={"What's this list for?\n\nAI agents use this as guidance when working on tasks. Example:\n\"Help plan meals, suggest recipes based on dietary preferences, and create shopping lists.\""}
+              placeholder={t('lists.addModal.descriptionPlaceholder')}
               className="theme-input theme-text-primary mt-1 resize-none text-sm"
               rows={4}
             />
             <div className="flex items-center space-x-1 text-xs theme-text-muted mt-1">
               <Bot className="w-3 h-3" />
-              <span>AI agents use this as instructions when working on tasks in this list</span>
+              <span>{t('lists.addModal.descriptionHint')}</span>
             </div>
           </div>
 
@@ -183,7 +183,7 @@ export function AddListModal({ onClose, onCreateList, currentUser }: AddListModa
                   size="sm"
                   className="bg-brand hover:bg-brand-hover text-brand-foreground px-4"
                 >
-                  Add
+                  {t('actions.add')}
                 </Button>
               </div>
               
@@ -217,14 +217,14 @@ export function AddListModal({ onClose, onCreateList, currentUser }: AddListModa
             onClick={onClose}
             className="flex-1 theme-border theme-text-secondary hover:theme-bg-hover"
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             onClick={handleCreateList}
             disabled={!listName.trim() || isCreating}
             className="flex-1 bg-brand hover:bg-brand-hover text-brand-foreground"
           >
-            {isCreating ? "Creating..." : "Create new list"}
+            {t(isCreating ? 'projectMode.creatingBoard' : 'lists.addModal.create')}
           </Button>
         </div>
       </Card>

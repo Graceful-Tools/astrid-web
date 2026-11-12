@@ -18,6 +18,7 @@ import {
   OAUTH_REDIRECT_PRESETS,
 } from '@/lib/oauth/oauth-client-presets'
 import { useTranslations } from '@/lib/i18n/client'
+import { RichMessage, fillMessage } from '@/components/shared/RichMessage'
 import { OAuthScopeGroupDialog } from '@/components/oauth-scope-group-dialog'
 import { OAuthClientEditDialog } from '@/components/oauth-client-edit-dialog'
 import { OAuthClientGuide, GRANT_TYPE_OPTIONS } from '@/components/oauth-client-guide'
@@ -46,7 +47,6 @@ interface OAuthClient {
 interface OAuthClientWithSecret extends OAuthClient {
   clientSecret: string
 }
-
 
 export function OAuthAppManager() {
   const router = useRouter()
@@ -88,12 +88,12 @@ export function OAuthAppManager() {
     try {
       setLoading(true)
       const response = await fetch('/api/v1/oauth/clients')
-      if (!response.ok) throw new Error('Failed to load OAuth clients')
+      if (!response.ok) throw new Error(t('settingsPages.apiAccess.apps.errors.loadFailed'))
 
       const data = await response.json()
       setClients(data.clients)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load clients')
+      setError(err instanceof Error ? err.message : t('settingsPages.apiAccess.apps.errors.loadClientsFailed'))
     } finally {
       setLoading(false)
     }
@@ -101,17 +101,17 @@ export function OAuthAppManager() {
 
   const createClient = async () => {
     if (!newAppName.trim()) {
-      setError('App name is required')
+      setError(t('settingsPages.apiAccess.apps.errors.nameRequired'))
       return
     }
 
     if (selectedScopes.length === 0) {
-      setError('Please select at least one scope')
+      setError(t('settingsPages.apiAccess.apps.errors.scopeRequired'))
       return
     }
 
     if (selectedGrantTypes.length === 0) {
-      setError('Select at least one OAuth grant type')
+      setError(t('settingsPages.apiAccess.apps.errors.grantRequired'))
       return
     }
 
@@ -121,7 +121,7 @@ export function OAuthAppManager() {
       .filter(Boolean)
 
     if (selectedGrantTypes.includes('authorization_code') && redirectUris.length === 0) {
-      setError('Authorization code grant requires at least one redirect URI')
+      setError(t('settingsPages.apiAccess.apps.errors.redirectRequired'))
       return
     }
 
@@ -135,7 +135,7 @@ export function OAuthAppManager() {
     })
 
     if (invalidRedirect) {
-      setError(`Invalid redirect URI: ${invalidRedirect}`)
+      setError(fillMessage(t('settingsPages.apiAccess.apps.errors.invalidRedirect'), { uri: invalidRedirect }))
       return
     }
 
@@ -157,7 +157,7 @@ export function OAuthAppManager() {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to create client')
+        throw new Error(error.error || t('settingsPages.apiAccess.apps.errors.createFailed'))
       }
 
       const data = await response.json()
@@ -174,37 +174,37 @@ export function OAuthAppManager() {
       // Reload clients
       await loadClients()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create client')
+      setError(err instanceof Error ? err.message : t('settingsPages.apiAccess.apps.errors.createFailed'))
     } finally {
       setCreating(false)
     }
   }
 
   const deleteClient = async (clientId: string) => {
-    if (!confirm('Are you sure? This will revoke all tokens for this app.')) return
+    if (!confirm(t('settingsPages.apiAccess.apps.deleteConfirm'))) return
 
     try {
       const response = await fetch(`/api/v1/oauth/clients/${clientId}`, {
         method: 'DELETE',
       })
 
-      if (!response.ok) throw new Error('Failed to delete client')
+      if (!response.ok) throw new Error(t('settingsPages.apiAccess.apps.errors.deleteFailed'))
 
       await loadClients()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete client')
+      setError(err instanceof Error ? err.message : t('settingsPages.apiAccess.apps.errors.deleteFailed'))
     }
   }
 
   const regenerateSecret = async (clientId: string) => {
-    if (!confirm('Regenerate client secret? The old secret will stop working immediately.')) return
+    if (!confirm(t('settingsPages.apiAccess.apps.regenerateConfirm'))) return
 
     try {
       const response = await fetch(`/api/v1/oauth/clients/${clientId}/regenerate-secret`, {
         method: 'POST',
       })
 
-      if (!response.ok) throw new Error('Failed to regenerate secret')
+      if (!response.ok) throw new Error(t('settingsPages.apiAccess.apps.errors.regenerateFailed'))
 
       const data = await response.json()
       // Show new secret
@@ -216,7 +216,7 @@ export function OAuthAppManager() {
         } as OAuthClientWithSecret)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to regenerate secret')
+      setError(err instanceof Error ? err.message : t('settingsPages.apiAccess.apps.errors.regenerateFailed'))
     }
   }
 
@@ -227,7 +227,7 @@ export function OAuthAppManager() {
         await navigator.clipboard.writeText(text)
         setCopiedField(field)
         setTimeout(() => setCopiedField(null), 2000)
-        toast.success('Copied to clipboard')
+        toast.success(t('common.copiedToClipboard'))
       } else {
         // Fallback for localhost/non-HTTPS
         const textArea = document.createElement('textarea')
@@ -240,11 +240,11 @@ export function OAuthAppManager() {
         document.body.removeChild(textArea)
         setCopiedField(field)
         setTimeout(() => setCopiedField(null), 2000)
-        toast.success('Copied to clipboard')
+        toast.success(t('common.copiedToClipboard'))
       }
     } catch (err) {
       console.error('Failed to copy:', err)
-      toast.error('Failed to copy to clipboard')
+      toast.error(t('settingsPages.apiAccess.apps.errors.copyFailed'))
     }
   }
 
@@ -305,7 +305,7 @@ export function OAuthAppManager() {
 
   const testOAuthApp = async () => {
     if (!testingClient || !testClientSecret) {
-      setError('Client secret is required')
+      setError(t('settingsPages.apiAccess.apps.errors.secretRequired'))
       return
     }
 
@@ -326,7 +326,7 @@ export function OAuthAppManager() {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to obtain access token')
+        throw new Error(error.error || t('settingsPages.apiAccess.apps.errors.tokenFailed'))
       }
 
       const data = await response.json()
@@ -339,10 +339,10 @@ export function OAuthAppManager() {
       // Navigate to testing page with token
       router.push(`/settings/api-testing?token=${encodeURIComponent(accessToken)}`)
 
-      toast.success('Access token obtained! Redirecting to API testing...')
+      toast.success(t('settingsPages.apiAccess.apps.tokenObtained'))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to obtain token')
-      toast.error(err instanceof Error ? err.message : 'Failed to obtain token')
+      setError(err instanceof Error ? err.message : t('settingsPages.apiAccess.apps.errors.tokenFailedShort'))
+      toast.error(err instanceof Error ? err.message : t('settingsPages.apiAccess.apps.errors.tokenFailedShort'))
     } finally {
       setObtainingToken(false)
     }
@@ -371,9 +371,9 @@ export function OAuthAppManager() {
         <Dialog open={!!newClientCredentials} onOpenChange={() => setNewClientCredentials(null)}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>OAuth Client Created!</DialogTitle>
+              <DialogTitle>{t('settingsPages.apiAccess.apps.createdTitle')}</DialogTitle>
               <DialogDescription>
-                ⚠️ Save these credentials now - the client secret will not be shown again!
+                {t('settingsPages.apiAccess.apps.saveCredentialsNow')}
               </DialogDescription>
             </DialogHeader>
 
@@ -414,13 +414,13 @@ export function OAuthAppManager() {
                   </Button>
                 </div>
                 <p className="text-sm text-danger mt-2">
-                  ⚠️ This secret will only be shown once. Copy it now!
+                  {t('settingsPages.apiAccess.apps.secretShownOnce')}
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center justify-end gap-2 pt-4 border-t">
                 <Button variant="outline" onClick={() => setNewClientCredentials(null)}>
-                  Close
+                  {t('common.close')}
                 </Button>
                 <Button
                   onClick={async () => {
@@ -438,7 +438,7 @@ export function OAuthAppManager() {
 
                       if (!response.ok) {
                         const error = await response.json()
-                        throw new Error(error.error || 'Failed to obtain access token')
+                        throw new Error(error.error || t('settingsPages.apiAccess.apps.errors.tokenFailed'))
                       }
 
                       const data = await response.json()
@@ -446,9 +446,9 @@ export function OAuthAppManager() {
 
                       setNewClientCredentials(null)
                       router.push(`/settings/api-testing?token=${encodeURIComponent(accessToken)}`)
-                      toast.success('Access token obtained! Redirecting to API testing...')
+                      toast.success(t('settingsPages.apiAccess.apps.tokenObtained'))
                     } catch (err) {
-                      toast.error(err instanceof Error ? err.message : 'Failed to obtain token')
+                      toast.error(err instanceof Error ? err.message : t('settingsPages.apiAccess.apps.errors.tokenFailedShort'))
                     } finally {
                       setObtainingToken(false)
                     }
@@ -456,7 +456,7 @@ export function OAuthAppManager() {
                   disabled={obtainingToken}
                 >
                   {obtainingToken ? (
-                    'Obtaining Token...'
+                    t('settingsPages.apiAccess.apps.obtainingToken')
                   ) : (
                     <>
                       <FlaskConical className="w-4 h-4 mr-2" />
@@ -473,7 +473,7 @@ export function OAuthAppManager() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold theme-text-primary">OAuth Applications</h2>
+          <h2 className="text-2xl font-bold theme-text-primary">{t('settingsPages.apiAccess.apps.heading')}</h2>
           <p className="theme-text-muted">{t('settingsPages.apiAccess.apps.subtitle')}</p>
         </div>
         <Button onClick={() => setCreateDialogOpen(true)}>
@@ -514,7 +514,7 @@ export function OAuthAppManager() {
                       onClick={() => openTestDialog(client)}
                     >
                       <FlaskConical className="w-4 h-4 mr-2" />
-                      Test
+                      {t('settingsPages.apiAccess.apps.test')}
                     </Button>
                     <Button
                       size="sm"
@@ -522,7 +522,7 @@ export function OAuthAppManager() {
                       onClick={() => openEditDialog(client)}
                     >
                       <Pencil className="w-4 h-4 mr-2" />
-                      Edit
+                      {t('common.edit')}
                     </Button>
                     <Button
                       size="sm"
@@ -538,7 +538,7 @@ export function OAuthAppManager() {
                       onClick={() => regenerateSecret(client.clientId)}
                     >
                       <Key className="w-4 h-4 mr-2" />
-                      Regenerate
+                      {t('settingsPages.apiAccess.apps.regenerate')}
                     </Button>
                     <Button
                       size="sm"
@@ -569,13 +569,13 @@ export function OAuthAppManager() {
 
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Label className="text-xs">Scopes</Label>
+                    <Label className="text-xs">{t('settingsPages.connections.columns.scopes')}</Label>
                     {client.scopeGroup ? (
                       <Badge variant="outline" className="text-xs">
-                        follows {client.scopeGroup}
+                        {t('settingsPages.apiAccess.apps.followsGroup', { group: client.scopeGroup })}
                       </Badge>
                     ) : (
-                      <span className="text-xs theme-text-muted">fixed at creation</span>
+                      <span className="text-xs theme-text-muted">{t('settingsPages.apiAccess.apps.fixedAtCreation')}</span>
                     )}
                   </div>
                   <div className="flex flex-wrap gap-1 mt-1">
@@ -612,9 +612,9 @@ export function OAuthAppManager() {
                 )}
 
                 <div className="flex items-center justify-between text-xs theme-text-muted">
-                  <span>Created: {new Date(client.createdAt).toLocaleDateString()}</span>
+                  <span>{t('settingsPages.apiAccess.apps.created', { date: new Date(client.createdAt).toLocaleDateString() })}</span>
                   {client.lastUsedAt && (
-                    <span>Last used: {new Date(client.lastUsedAt).toLocaleDateString()}</span>
+                    <span>{t('settingsPages.apiAccess.apps.lastUsed', { date: new Date(client.lastUsedAt).toLocaleDateString() })}</span>
                   )}
                 </div>
               </CardContent>
@@ -635,7 +635,7 @@ export function OAuthAppManager() {
 
           <div className="space-y-4">
             <div>
-              <Label>Application</Label>
+              <Label>{t('settingsPages.connections.permissions.application')}</Label>
               <Input
                 value={testingClient?.name || ''}
                 readOnly
@@ -653,7 +653,7 @@ export function OAuthAppManager() {
             </div>
 
             <div>
-              <Label htmlFor="test-secret">Client Secret *</Label>
+              <Label htmlFor="test-secret">{t('settingsPages.apiAccess.apps.clientSecretRequired')}</Label>
               <Input
                 id="test-secret"
                 type="password"
@@ -669,10 +669,10 @@ export function OAuthAppManager() {
 
             <div className="flex flex-wrap items-center justify-end gap-2 pt-4">
               <Button variant="outline" onClick={() => setTestDialogOpen(false)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button onClick={testOAuthApp} disabled={obtainingToken || !testClientSecret}>
-                {obtainingToken ? 'Obtaining Token...' : 'Test API'}
+                {obtainingToken ? t('settingsPages.apiAccess.apps.obtainingToken') : t('settingsPages.aiIntegrations.step2.testApiButton')}
               </Button>
             </div>
           </div>
@@ -691,7 +691,7 @@ export function OAuthAppManager() {
 
           <div className="space-y-4">
             <div>
-              <Label htmlFor="app-name">Application Name *</Label>
+              <Label htmlFor="app-name">{t('settingsPages.apiAccess.apps.nameLabel')}</Label>
               <Input
                 id="app-name"
                 value={newAppName}
@@ -701,7 +701,7 @@ export function OAuthAppManager() {
             </div>
 
             <div>
-              <Label htmlFor="app-description">Description</Label>
+              <Label htmlFor="app-description">{t('settingsPages.apiAccess.apps.descriptionLabel')}</Label>
               <Input
                 id="app-description"
                 value={newAppDescription}
@@ -711,7 +711,7 @@ export function OAuthAppManager() {
             </div>
 
             <div>
-              <Label>Scopes *</Label>
+              <Label>{t('settingsPages.apiAccess.apps.scopesRequired')}</Label>
               <div className="space-y-2 mt-2">
                 <div className="flex flex-wrap gap-2">
                   <Button
@@ -733,7 +733,7 @@ export function OAuthAppManager() {
                     variant="outline"
                     onClick={() => selectScopeGroup('ai_agent')}
                   >
-                    AI Agent
+                    {t('settingsPages.apiAccess.apps.aiAgentPreset')}
                   </Button>
                   <Button
                     size="sm"
@@ -766,7 +766,7 @@ export function OAuthAppManager() {
             </div>
 
             <div>
-              <Label>Grant Types *</Label>
+              <Label>{t('settingsPages.apiAccess.apps.grantTypesRequired')}</Label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
                 {GRANT_TYPE_OPTIONS.map(option => (
                   <div key={option.value} className="flex items-start space-x-2">
@@ -776,14 +776,14 @@ export function OAuthAppManager() {
                       onCheckedChange={() => toggleGrantType(option.value)}
                     />
                     <label htmlFor={`grant-${option.value}`} className="text-sm cursor-pointer">
-                      <div className="font-medium">{option.label}</div>
-                      <p className="text-xs theme-text-muted">{option.description}</p>
+                      <div className="font-medium">{t(option.labelKey)}</div>
+                      <p className="text-xs theme-text-muted">{t(option.descriptionKey)}</p>
                     </label>
                   </div>
                 ))}
               </div>
               <p className="text-xs theme-text-muted mt-2">
-                Enable <code className="px-1 theme-bg-tertiary rounded text-[10px]">authorization_code</code> for ChatGPT or other user-consented integrations. It requires at least one redirect URI.
+                <RichMessage message={t('settingsPages.apiAccess.apps.grantHelp')} values={{ code: <code className="px-1 theme-bg-tertiary rounded text-[10px]">authorization_code</code> }} />
               </p>
             </div>
 
@@ -816,16 +816,16 @@ export function OAuthAppManager() {
                 {t('settingsPages.aiIntegrations.mcp.vscodeTitle')}
               </Button>
               <p className="text-xs theme-text-muted mt-2">
-                One URL per line. Required for authorization code flow (ChatGPT, web apps). {BRAND.appName} will only redirect to URLs listed here.
+                {t('settingsPages.apiAccess.apps.redirectHelp', { appName: BRAND.appName })}
               </p>
             </div>
 
             <div className="flex items-center justify-end space-x-2 pt-4">
               <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button onClick={createClient} disabled={creating}>
-                {creating ? 'Creating...' : 'Create Application'}
+                {creating ? t('settingsPages.apiAccess.apps.creating') : t('settingsPages.apiAccess.apps.createApplication')}
               </Button>
             </div>
           </div>

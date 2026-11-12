@@ -116,11 +116,11 @@ export function EmailVerificationSection({
 
         {/* Verification Info */}
         <div className="text-sm theme-text-muted space-y-1">
-          <p>• Verified emails help us protect your account and enable collaboration</p>
+          <p>{t("settingsPages.emailVerification.infoProtect")}</p>
           {accountData.verifiedViaOAuth ? (
-            <p>• Your email is verified through Google OAuth</p>
+            <p>{t("settingsPages.emailVerification.infoOAuth")}</p>
           ) : (
-            <p>• Check your email for a verification link after signing up</p>
+            <p>{t("settingsPages.emailVerification.infoCheckEmail")}</p>
           )}
         </div>
       </CardContent>

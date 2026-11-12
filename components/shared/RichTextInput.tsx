@@ -143,6 +143,9 @@ export const RichTextInput = React.memo(function RichTextInput({
   isSending = false,
 }: RichTextInputProps) {
   const { t } = useTranslations()
+  // The latest `t` for callbacks: it is a new function every render, and listing it would re-create them.
+  const tRef = useRef(t)
+  useEffect(() => { tRef.current = t })
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const backdropRef = useRef<HTMLDivElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -255,7 +258,7 @@ export const RichTextInput = React.memo(function RichTextInput({
 
     if (picked.length === 0) return
     if (!uploadContext) {
-      onUploadErrorChange?.('File attachments are not available in this view.')
+      onUploadErrorChange?.(tRef.current('richTextInput.attachmentsUnavailable'))
       resetInput()
       return
     }
@@ -289,7 +292,7 @@ export const RichTextInput = React.memo(function RichTextInput({
       onUploadErrorChange?.(firstError)
     } else if (overCap > 0) {
       onUploadErrorChange?.(
-        `You can attach up to ${MAX_COMMENT_ATTACHMENTS} files at a time — ${overCap} ${overCap === 1 ? 'file was' : 'files were'} not attached.`
+        tRef.current(overCap === 1 ? 'richTextInput.tooManyOne' : 'richTextInput.tooManyMany', { max: String(MAX_COMMENT_ATTACHMENTS), count: String(overCap) })
       )
     }
 
@@ -343,9 +346,9 @@ export const RichTextInput = React.memo(function RichTextInput({
           className="absolute bottom-full left-0 right-0 mb-1 theme-bg-primary border theme-border rounded-lg shadow-lg max-h-48 overflow-y-auto z-10"
         >
           <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider theme-text-muted border-b theme-border">
-            {autocompleteType === 'mention' && 'People'}
-            {autocompleteType === 'list' && 'Lists'}
-            {autocompleteType === 'task' && 'Tasks'}
+            {autocompleteType === 'mention' && t('richTextInput.people')}
+            {autocompleteType === 'list' && t('navigation.lists')}
+            {autocompleteType === 'task' && t('tasks.tasks')}
           </div>
           {autocompleteItems.map((item, index) => (
             <button
@@ -516,10 +519,11 @@ function AutocompleteItemIcon({ item }: { item: AutocompleteItem }) {
 }
 
 function AutocompleteItemBadge({ item }: { item: AutocompleteItem }) {
+  const { t } = useTranslations()
   if (item.type === 'mention' && item.isAIAgent) {
     return (
       <span className="text-[10px] bg-agent-bubble text-purple-600 dark:text-purple-400 px-1 rounded flex-shrink-0">
-        AI
+        {t('richTextInput.aiBadge')}
       </span>
     )
   }
@@ -532,7 +536,7 @@ function AutocompleteItemBadge({ item }: { item: AutocompleteItem }) {
   }
   if (item.type === 'task' && item.completed) {
     return (
-      <span className="text-[10px] theme-text-muted flex-shrink-0">Done</span>
+      <span className="text-[10px] theme-text-muted flex-shrink-0">{t('richTextInput.taskDone')}</span>
     )
   }
   return null

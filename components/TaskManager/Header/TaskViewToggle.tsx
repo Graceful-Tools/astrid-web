@@ -27,10 +27,10 @@ interface TaskViewToggleProps {
   compact?: boolean
 }
 
-const segmentMeta: Record<HeaderToggleSegment, { label: string; showKey: string; Icon: typeof ListChecks }> = {
-  list: { label: 'List', showKey: 'viewRotator.showList', Icon: ListChecks },
-  board: { label: 'Board', showKey: 'viewRotator.showBoard', Icon: KanbanSquare },
-  messages: { label: 'Messages', showKey: 'viewRotator.showMessages', Icon: MessageCircle },
+const segmentMeta: Record<HeaderToggleSegment, { labelKey: string; showKey: string; Icon: typeof ListChecks }> = {
+  list: { labelKey: 'lists.list', showKey: 'viewRotator.showList', Icon: ListChecks },
+  board: { labelKey: 'viewRotator.board', showKey: 'viewRotator.showBoard', Icon: KanbanSquare },
+  messages: { labelKey: 'viewRotator.messages', showKey: 'viewRotator.showMessages', Icon: MessageCircle },
 }
 
 export function TaskViewToggle({
@@ -108,7 +108,8 @@ export function TaskViewToggle({
       data-testid="header-list-board-toggle"
     >
       {headerToggle.segments.map((segment) => {
-        const { label, Icon } = segmentMeta[segment]
+        const { labelKey, Icon } = segmentMeta[segment]
+        const label = t(labelKey)
         const active = isSegmentActive(segment)
         return (
           <Button

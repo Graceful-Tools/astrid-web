@@ -5,7 +5,7 @@ import { useTranslations } from "@/lib/i18n/client"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Keyboard, X } from "lucide-react"
-import { KEYBOARD_SHORTCUTS } from "@/hooks/useKeyboardShortcuts"
+import { KEYBOARD_SHORTCUTS, KEYBOARD_SHORTCUT_DESCRIPTION_KEYS } from "@/hooks/useKeyboardShortcuts"
 
 interface KeyboardShortcutsMenuProps {
   isOpen: boolean
@@ -66,7 +66,7 @@ export function KeyboardShortcutsMenu({ isOpen, onClose }: KeyboardShortcutsMenu
         {shortcuts.map((shortcut, index) => (
           <div key={`${shortcut.key}-${index}`} className="flex items-center justify-between py-1">
             <span className="text-sm text-theme-muted">
-              {shortcut.description}
+              {t(KEYBOARD_SHORTCUT_DESCRIPTION_KEYS[shortcut.key])}
             </span>
             <kbd className="px-2 py-1 text-xs font-mono bg-theme-tertiary text-theme-primary rounded border">
               {formatKey(shortcut.key)}
@@ -118,19 +118,19 @@ export function KeyboardShortcutsMenu({ isOpen, onClose }: KeyboardShortcutsMenu
             <ShortcutGroup title={t('keyboardShortcuts.groups.interface')} shortcuts={groupedShortcuts.ui} />
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-theme-secondary uppercase tracking-wide">
-                Chat & References
+                {t('keyboardShortcuts.groups.chat')}
               </h3>
               <p className="text-xs text-theme-muted mb-2">
                 {t('keyboardShortcuts.chatHint')}
               </p>
               <div className="space-y-1">
                 {[
-                  { key: '@', desc: 'Mention a person' },
-                  { key: '#', desc: 'Reference a list' },
-                  { key: '!', desc: 'Reference a task' },
-                  { key: 'Tab', desc: 'Select autocomplete suggestion' },
-                  { key: '↑ ↓', desc: 'Navigate suggestions' },
-                  { key: 'Esc', desc: 'Dismiss suggestions' },
+                  { key: '@', desc: t('keyboardShortcuts.chat.mention') },
+                  { key: '#', desc: t('keyboardShortcuts.chat.referenceList') },
+                  { key: '!', desc: t('keyboardShortcuts.chat.referenceTask') },
+                  { key: 'Tab', desc: t('keyboardShortcuts.chat.selectSuggestion') },
+                  { key: '↑ ↓', desc: t('keyboardShortcuts.chat.navigateSuggestions') },
+                  { key: 'Esc', desc: t('keyboardShortcuts.chat.dismissSuggestions') },
                 ].map(({ key, desc }) => (
                   <div key={key} className="flex items-center justify-between py-1">
                     <span className="text-sm text-theme-muted">{desc}</span>

@@ -38,6 +38,7 @@ import { Badge } from '@/components/ui/badge'
 import { ShieldPlus } from 'lucide-react'
 import { apiCall, refusalReason } from '@/lib/api'
 import { useTranslations } from '@/lib/i18n/client'
+import { RichMessage } from '@/components/shared/RichMessage'
 import { toast } from 'sonner'
 
 interface EditableClient {
@@ -97,14 +98,14 @@ export function OAuthClientEditDialog({
         }),
       })
 
-      toast.success('OAuth client updated')
+      toast.success(t('settingsPages.apiAccess.apps.updated'))
       close()
       await onUpdated()
     } catch (err) {
       console.error('Failed to update OAuth client:', err)
       // The server's own 4xx sentence (an invalid redirect URI, a client the
       // caller does not own); nothing from a 5xx.
-      toast.error(refusalReason(err) ?? 'Failed to update OAuth client')
+      toast.error(refusalReason(err) ?? t('settingsPages.apiAccess.apps.errors.updateFailed'))
     } finally {
       setSaving(false)
     }
@@ -127,11 +128,11 @@ export function OAuthClientEditDialog({
           <>
             <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1">
             <div>
-              <Label>Application</Label>
+              <Label>{t('settingsPages.connections.permissions.application')}</Label>
               <Input value={client.name} readOnly className="bg-theme-secondary" />
             </div>
             <div>
-              <Label>Description</Label>
+              <Label>{t('settingsPages.apiAccess.apps.descriptionLabel')}</Label>
               <Input value={client.description || ''} readOnly className="bg-theme-secondary" />
             </div>
             <div>
@@ -159,15 +160,15 @@ export function OAuthClientEditDialog({
                 placeholder="https://chat.openai.com/aip/.../oauth/callback"
               />
               <p className="text-xs theme-text-muted mt-2">
-                One URL per line. {BRAND.appName} will only redirect users to the exact URLs listed here. Add ChatGPT&apos;s action callback URL (from GPT Builder) to fix <code>invalid_redirect_uri</code> errors.
+                <RichMessage message={t('settingsPages.apiAccess.apps.editRedirectHelp')} values={{ appName: BRAND.appName, code: <code>invalid_redirect_uri</code> }} />
               </p>
             </div>
             </div>
 
             <div className="shrink-0 flex flex-wrap items-center justify-end gap-2 border-t pt-4">
-              <Button variant="outline" onClick={close}>Cancel</Button>
+              <Button variant="outline" onClick={close}>{t('common.cancel')}</Button>
               <Button onClick={save} disabled={saving}>
-                {saving ? 'Saving...' : 'Save Changes'}
+                {saving ? t('settingsPages.connections.permissions.saving') : t('settingsPages.profileInfo.saveChanges')}
               </Button>
             </div>
           </>

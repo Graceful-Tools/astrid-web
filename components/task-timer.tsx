@@ -1,7 +1,7 @@
 "use client"
 
 import { useTranslations } from "@/lib/i18n/client"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { X, Play, Pause, RotateCcw } from "lucide-react"
@@ -18,6 +18,9 @@ interface TaskTimerProps {
 
 export function TaskTimer({ task, onClose, onUpdate }: TaskTimerProps) {
   const { t } = useTranslations()
+  // The latest `t` for callbacks: it is a new function every render, and listing it would re-create them.
+  const tRef = useRef(t)
+  useEffect(() => { tRef.current = t })
   const [duration, setDuration] = useState<number>(task.timerDuration || 25)
   const [timeLeft, setTimeLeft] = useState<number>((task.timerDuration || 25) * 60)
   const [isActive, setIsActive] = useState(false)
@@ -50,7 +53,7 @@ export function TaskTimer({ task, onClose, onUpdate }: TaskTimerProps) {
       const updatedTask = unwrapTask<Task>(await response.json())
       if (updatedTask) onUpdate(updatedTask)
 
-      alert("Timer completed!")
+      alert(tRef.current('tasks.timer.completed'))
     } catch (error) {
       console.error("Error completing timer:", error)
     }
@@ -188,7 +191,7 @@ export function TaskTimer({ task, onClose, onUpdate }: TaskTimerProps) {
                 className="bg-transparent border-none text-8xl font-bold w-48 text-center focus-visible:ring-0 p-0 h-auto"
                 autoFocus
               />
-              <span className="text-4xl text-white/50">min</span>
+              <span className="text-4xl text-white/50">{t('tasks.timer.minutesShort')}</span>
             </div>
           ) : (
             formatTime(timeLeft)

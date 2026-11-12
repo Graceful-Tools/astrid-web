@@ -72,6 +72,44 @@ export const KEYBOARD_SHORTCUTS = [
   { key: "?", description: "Show hotkey listing", action: "onShowHotkeyMenu" },
 ] as const
 
+/**
+ * The locale key for each row's description, by the row's `key`.
+ *
+ * Beside the table rather than in it: the rows are a contract other clients read
+ * (scripts/export-contract-fixtures.ts parses their exact shape), and
+ * `description` stays as the English the fixture and the tests carry. The UI
+ * shows these instead. The type makes a new row without a key a compile error.
+ */
+export const KEYBOARD_SHORTCUT_DESCRIPTION_KEYS: Record<(typeof KEYBOARD_SHORTCUTS)[number]["key"], string> = {
+  "n": "tasks.newTask",
+  "x": "keyboardShortcuts.shortcuts.completeTask",
+  "←": "keyboardShortcuts.shortcuts.dueEarlier",
+  "→": "keyboardShortcuts.shortcuts.dueLater",
+  "d": "keyboardShortcuts.shortcuts.jumpToDate",
+  "p": "keyboardShortcuts.shortcuts.postpone",
+  "v": "keyboardShortcuts.shortcuts.removeDueDate",
+  "i": "keyboardShortcuts.shortcuts.editLists",
+  "t": "keyboardShortcuts.shortcuts.editTitle",
+  "s": "keyboardShortcuts.shortcuts.editDescription",
+  "c": "keyboardShortcuts.shortcuts.addComment",
+  "e": "keyboardShortcuts.shortcuts.assignNoOne",
+  "0": "keyboardShortcuts.shortcuts.priorityNone",
+  "1": "keyboardShortcuts.shortcuts.priorityLow",
+  "2": "keyboardShortcuts.shortcuts.priorityMedium",
+  "3": "keyboardShortcuts.shortcuts.priorityHigh",
+  "Delete": "keyboardShortcuts.shortcuts.deleteTask",
+  "Backspace": "keyboardShortcuts.shortcuts.deleteTaskAlt",
+  "o": "keyboardShortcuts.shortcuts.togglePanel",
+  "l": "keyboardShortcuts.shortcuts.cycleFilters",
+  "k": "keyboardShortcuts.shortcuts.selectPrevious",
+  "j": "keyboardShortcuts.shortcuts.selectNext",
+  "↑": "keyboardShortcuts.shortcuts.selectPrevious",
+  "↓": "keyboardShortcuts.shortcuts.selectNext",
+  "[": "keyboardShortcuts.shortcuts.outdent",
+  "]": "keyboardShortcuts.shortcuts.indent",
+  "?": "keyboardShortcuts.shortcuts.showHotkeys",
+}
+
 export function useKeyboardShortcuts({
   handlers,
   selectedTask,

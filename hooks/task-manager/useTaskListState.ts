@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { taskFromCreatedEvent, taskFromUpdateEvent } from "./sse-task-update"
 import { useToast } from "@/hooks/use-toast"
+import { useTranslations } from "@/lib/i18n/client"
+import { fillMessage } from "@/components/shared/RichMessage"
 import { useTaskSSEEvents, useSSESubscription } from "@/hooks/use-sse-subscription"
 import { SSEManager } from "@/lib/sse-manager"
 import { createRefreshScheduler, type RefreshScheduler } from "@/lib/refresh-scheduler"
@@ -153,6 +155,11 @@ export function useTaskListState({
   const setSelectedListIdRef = useRef(setSelectedListId)
   const loadDataRef = useRef<(() => Promise<void>) | undefined>(undefined)
   const toastRef = useRef(toast)
+  // `t` is a new function on every render; the loaders below are stable
+  // callbacks, so they read it through a ref rather than depend on it.
+  const { t } = useTranslations()
+  const tRef = useRef(t)
+  useEffect(() => { tRef.current = t })
 
   // One scheduler for the whole hook, kept for the life of the mount. It
   // reaches loadData through the ref, so it never has to be rebuilt when
@@ -192,8 +199,8 @@ export function useTaskListState({
         setLoading(true)
         // Only announce loading when there is genuinely nothing to show.
         toast({
-          title: "Loading your data...",
-          description: "Getting your tasks and lists ready",
+          title: tRef.current('messages.loadingYourData'),
+          description: tRef.current('messages.loadingYourDataDescription'),
           duration: 2000,
         })
       }
@@ -266,8 +273,8 @@ export function useTaskListState({
     } catch (error) {
       console.error("[useTaskListState] Error loading data:", error)
       toast({
-        title: "Error",
-        description: "Failed to load data. Please refresh the page.",
+        title: tRef.current('messages.error'),
+        description: tRef.current('messages.loadDataFailed'),
         variant: "destructive",
         duration: 1500,
       })
@@ -317,15 +324,15 @@ export function useTaskListState({
       await loadData()
 
       toast({
-        title: "Refreshed",
-        description: "Your data has been updated",
+        title: tRef.current('messages.refreshed'),
+        description: tRef.current('messages.refreshedDescription'),
         duration: 2000,
       })
     } catch (error) {
       console.error("[useTaskListState] Manual refresh error:", error)
       toast({
-        title: "Refresh failed",
-        description: "Could not refresh data. Please try again.",
+        title: tRef.current('messages.refreshFailed'),
+        description: tRef.current('messages.refreshFailedDescription'),
         variant: "destructive",
         duration: 3000,
       })
@@ -541,11 +548,15 @@ export function useTaskListState({
 
         if (toastRef.current && affectedMemberId(event.data) === currentUserId) {
           const isPromotion = event.data.newRole === 'admin'
+          const translate = tRef.current
+          // A role this build has no word for is shown as the server sent it.
+          const roleKey = `lists.membersManager.roles.${event.data.newRole}`
+          const role = translate(roleKey) === roleKey ? String(event.data.newRole) : translate(roleKey)
           toastRef.current({
-            title: isPromotion ? "Admin Access Granted" : "Role Changed",
+            title: translate(isPromotion ? 'lists.memberEvents.adminGrantedTitle' : 'lists.memberEvents.roleChangedTitle'),
             description: isPromotion
-              ? `You now have admin access to "${event.data.listName}". Your permissions have been updated.`
-              : `Your role in "${event.data.listName}" has been changed to ${event.data.newRole}.`
+              ? fillMessage(translate('lists.memberEvents.adminGrantedDescription'), { list: String(event.data.listName) })
+              : fillMessage(translate('lists.memberEvents.roleChangedDescription'), { list: String(event.data.listName), role })
           })
         }
         break
@@ -567,8 +578,11 @@ export function useTaskListState({
           // every existing member that THEY had just been added.
           if (toastRef.current && event.data.listName) {
             toastRef.current({
-              title: "Added to List",
-              description: `${event.data.inviterName} added you to "${event.data.listName}"`
+              title: tRef.current('lists.memberEvents.addedTitle'),
+              description: fillMessage(tRef.current('lists.memberEvents.addedDescription'), {
+                inviter: String(event.data.inviterName),
+                list: String(event.data.listName),
+              })
             })
           }
         }
@@ -594,8 +608,8 @@ export function useTaskListState({
 
           if (toastRef.current && event.data.listName) {
             toastRef.current({
-              title: "Removed from List",
-              description: `You were removed from "${event.data.listName}"`
+              title: tRef.current('lists.memberEvents.removedTitle'),
+              description: fillMessage(tRef.current('lists.memberEvents.removedDescription'), { list: String(event.data.listName) })
             })
           }
         }

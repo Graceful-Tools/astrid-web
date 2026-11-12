@@ -259,7 +259,7 @@ export function PasskeyManagementSection() {
                       onClick={() => {
                         session.beginEditing(`passkey:${passkey.id}`)
                         setEditingPasskeyId(passkey.id)
-                        setEditingPasskeyName(passkey.name || "Passkey")
+                        setEditingPasskeyName(passkey.name || t("settingsPages.passkeys.fallbackName"))
                       }}
                       className="h-8 px-2 theme-text-muted hover:theme-text-primary"
                     >

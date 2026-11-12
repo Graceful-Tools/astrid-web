@@ -1323,7 +1323,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
               {pullToRefresh.isRefreshing ? (
                 <>
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-theme-focus"></div>
-                  <span className="text-sm font-medium">Refreshing...</span>
+                  <span className="text-sm font-medium">{t('settingsPages.debug.sections.dataManagement.refreshData.refreshing')}</span>
                 </>
               ) : (
                 <span className="text-sm font-medium">{t(pullToRefresh.canRefresh ? 'common.releaseToRefresh' : 'common.pullToRefresh')}</span>

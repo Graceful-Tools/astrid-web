@@ -20,19 +20,19 @@ interface AgentInstructionsSectionProps {
 
 const STARTER_TEMPLATES = [
   {
-    name: "Code Reviewer",
+    nameKey: "listSettings.admin.templates.codeReviewer",
     instructions: "Review code changes for this project.\n\n## Focus Areas\n- Security vulnerabilities (XSS, injection, auth issues)\n- Test coverage gaps\n- Code style consistency\n- Performance concerns\n\n## How to Work\n1. Read the task description and any linked PRs\n2. Post findings as comments\n3. If everything looks good, say so and mark complete"
   },
   {
-    name: "Research Assistant",
+    nameKey: "listSettings.admin.templates.researchAssistant",
     instructions: "Research the topic described in the task.\n\n## Deliverables\n1. Summary of key findings (2-3 paragraphs)\n2. Links to primary sources\n3. Conflicting viewpoints or caveats\n4. Recommended next steps\n\n## Guidelines\n- Be thorough but concise\n- Cite sources\n- Flag low-confidence claims"
   },
   {
-    name: "Family Assistant",
+    nameKey: "listSettings.admin.templates.familyAssistant",
     instructions: "You help our family stay organized.\n\n## How to Help\n- Research options and present pros/cons\n- Be friendly and practical\n- Ask for preferences rather than guessing\n- Don't make purchases or bookings — just recommend\n\n## Guardrails\n- Keep suggestions family-friendly\n- Respect our budget\n- Post updates as comments"
   },
   {
-    name: "Content Writer",
+    nameKey: "listSettings.admin.templates.contentWriter",
     instructions: "Write content based on the task description.\n\n## Voice & Style\n- Casual but professional\n- Short sentences, no jargon\n- Use examples and analogies\n\n## Process\n1. Post a draft as a comment\n2. Wait for feedback before marking complete\n3. Revise based on comments"
   }
 ]
@@ -203,7 +203,7 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
               <div className="mt-2 grid grid-cols-2 gap-2">
                 {STARTER_TEMPLATES.map((template) => (
                   <button
-                    key={template.name}
+                    key={template.nameKey}
                     type="button"
                     onClick={() => {
                       setTempListDescription(template.instructions)
@@ -212,7 +212,7 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
                     }}
                     className="text-left text-xs p-2 rounded theme-border border hover:theme-bg-hover theme-text-secondary"
                   >
-                    {template.name}
+                    {t(template.nameKey)}
                   </button>
                 ))}
               </div>

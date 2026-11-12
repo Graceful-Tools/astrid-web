@@ -39,11 +39,14 @@ export function SecureAttachmentViewer({
   directFile
 }: SecureAttachmentViewerProps) {
   const { t } = useTranslations()
+  // The latest `t` for callbacks: it is a new function every render, and listing it would re-create them.
+  const tRef = useRef(t)
+  useEffect(() => { tRef.current = t })
   const [fileInfo, setFileInfo] = useState<SecureFileInfo | null>(
     directFile
       ? {
           url: directFile.url,
-          fileName: fileName || 'Unknown file',
+          fileName: fileName || t('attachmentViewer.unknownFile'),
           mimeType: directFile.mimeType,
           fileSize: directFile.fileSize,
           // Never expires: it is not a signed url in the first place.
@@ -81,13 +84,13 @@ export function SecureAttachmentViewer({
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to load file')
+        throw new Error(errorData.error || tRef.current('attachmentViewer.loadFailed'))
       }
 
       const info = await response.json()
       setFileInfo(info)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load file')
+      setError(err instanceof Error ? err.message : tRef.current('attachmentViewer.loadFailed'))
       // Reset the loaded ref on error so we can retry
       loadedFileRef.current = null
     } finally {
@@ -107,7 +110,7 @@ export function SecureAttachmentViewer({
 
   const isImage = fileInfo?.mimeType.startsWith('image/')
   const isVideo = fileInfo?.mimeType.startsWith('video/')
-  const displayName = fileName || fileInfo?.fileName || 'Unknown file'
+  const displayName = fileName || fileInfo?.fileName || t('attachmentViewer.unknownFile')
 
   // Thumbnail view
   const thumbnail = (
@@ -263,7 +266,7 @@ export function SecureAttachmentViewer({
                           }}
                           className="text-gray-400 hover:text-white hidden sm:inline-flex"
                         >
-                          Reset
+                          {t('actions.reset')}
                         </Button>
                       </>
                     )}

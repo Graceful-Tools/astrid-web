@@ -325,7 +325,7 @@ export function QuickAdd({
                 // Current user: Show checkbox (same as task rows)
                 <Image
                   src={getCheckboxIconPath()}
-                  alt={`Priority ${selectedPriority} checkbox`}
+                  alt={t('tasks.priorityCheckboxAlt', { priority: String(selectedPriority) })}
                   width={LEADING_CONTROL_SIZE}
                   height={LEADING_CONTROL_SIZE}
                   className="w-leading-control h-leading-control"
@@ -337,7 +337,7 @@ export function QuickAdd({
                   style={{ border: `2px solid ${priorityColor}` }}
                 >
                   <Avatar className="w-6 h-6">
-                    <AvatarImage src={selectedAssignee.image || undefined} alt={selectedAssignee.name || 'Assignee'} />
+                    <AvatarImage src={selectedAssignee.image || undefined} alt={selectedAssignee.name || t('tasks.assignee')} />
                     <AvatarFallback className="text-xs bg-theme-active">
                       {getInitials(selectedAssignee.name, selectedAssignee.email)}
                     </AvatarFallback>

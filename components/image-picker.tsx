@@ -12,6 +12,13 @@ import { getPlaceholderOptions, type PlaceholderOption } from "@/lib/placeholder
 import { DEFAULT_LIST_IMAGES } from "@/lib/default-images"
 import { uploadCommentFile } from "@/lib/comment-file-upload"
 
+const DEFAULT_ICON_COLORS: Record<string, string> = {
+  "Default List 0": "yellow",
+  "Default List 1": "green",
+  "Default List 2": "blue",
+  "Default List 3": "pink",
+}
+
 interface ImagePickerProps {
   currentImageUrl?: string
   onSelectImage: (imageUrl: string, type: 'placeholder' | 'custom' | 'generated') => void
@@ -98,6 +105,12 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
     }
   }
 
+  // The four default icons are named by their colour; anything else keeps its own name.
+  const defaultIconLabel = (name: string) => {
+    const color = DEFAULT_ICON_COLORS[name]
+    return color ? t(`lists.imagePicker.colors.${color}`) : name
+  }
+
   const handleCustomUrlSubmit = () => {
     if (customImageUrl.trim()) {
       onSelectImage(customImageUrl.trim(), 'custom')
@@ -118,15 +131,15 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="placeholders" className="theme-text-secondary data-[state=active]:theme-text-primary">
             <Palette className="w-4 h-4 mr-2" />
-            Colors
+            {t('lists.imagePicker.colorsTab')}
           </TabsTrigger>
           <TabsTrigger value="defaults" className="theme-text-secondary data-[state=active]:theme-text-primary">
             <ImageIcon className="w-4 h-4 mr-2" />
-            Defaults
+            {t('lists.imagePicker.defaultsTab')}
           </TabsTrigger>
           <TabsTrigger value="upload" className="theme-text-secondary data-[state=active]:theme-text-primary">
             <Upload className="w-4 h-4 mr-2" />
-            Upload
+            {t('actions.upload')}
           </TabsTrigger>
         </TabsList>
 
@@ -144,7 +157,7 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
               >
                 <img
                   src={option.path}
-                  alt={option.label}
+                  alt={t(`lists.imagePicker.colors.${option.name}`)}
                   className="w-full h-full object-cover"
                 />
                 {selectedPlaceholder === option.path && (
@@ -153,7 +166,7 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
                   </div>
                 )}
                 <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
-                  {option.label}
+                  {t(`lists.imagePicker.colors.${option.name}`)}
                 </div>
               </button>
             ))}
@@ -174,7 +187,7 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
               >
                 <img
                   src={icon.filename}
-                  alt={icon.name}
+                  alt={defaultIconLabel(icon.name)}
                   className="w-full h-full object-cover"
                 />
                 {selectedDefaultIcon === icon.filename && (
@@ -183,10 +196,7 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
                   </div>
                 )}
                 <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
-                  {icon.name === "Default List 0" ? "Yellow" : 
-                   icon.name === "Default List 1" ? "Green" :
-                   icon.name === "Default List 2" ? "Blue" :
-                   icon.name === "Default List 3" ? "Pink" : icon.name}
+                  {defaultIconLabel(icon.name)}
                 </div>
               </button>
             ))}
@@ -218,7 +228,7 @@ export function ImagePicker({ currentImageUrl, onSelectImage, onCancel, listName
               <div className="mt-4">
                 <img
                   src={customImageUrl}
-                  alt="Preview"
+                  alt={t("listSettings.admin.preview")}
                   className="w-24 h-24 object-cover rounded-lg mx-auto"
                 />
               </div>

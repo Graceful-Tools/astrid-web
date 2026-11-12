@@ -3,6 +3,7 @@
 import React from 'react'
 import { MessageCircle, ListTodo } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useTranslations } from '@/lib/i18n/client'
 
 interface ChatToggleProps {
   activePanel: 'tasks' | 'chat'
@@ -15,13 +16,14 @@ export const ChatToggle = React.memo(function ChatToggle({
   onToggle,
   unreadCount = 0,
 }: ChatToggleProps) {
+  const { t } = useTranslations()
   return (
     <Button
       variant="ghost"
       size="sm"
       onClick={() => onToggle(activePanel === 'tasks' ? 'chat' : 'tasks')}
       className="p-2 relative"
-      title={activePanel === 'tasks' ? 'Open chat' : 'Show tasks'}
+      title={activePanel === 'tasks' ? t('chat.openChat') : t('chat.showTasks')}
     >
       {activePanel === 'tasks' ? (
         <>

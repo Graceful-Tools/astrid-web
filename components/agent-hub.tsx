@@ -30,6 +30,7 @@
  */
 
 import { useTranslations } from '@/lib/i18n/client'
+import { RichMessage, fillMessage } from '@/components/shared/RichMessage'
 import { BRAND } from '@/lib/brand/config'
 import { LOCAL_HARNESS_AGENT_MAILBOXES } from '@/lib/brand/agent-emails'
 import { CAPABILITIES } from '@/lib/brand/capabilities'
@@ -155,10 +156,12 @@ function isHarnessOnly(row: AgentRowConfig): boolean {
 /** Who operates the runtime — the primary choice. Derived from the stored mode, never stored itself. */
 type Ownership = 'astrid' | 'self' | 'off'
 
-const OWNERSHIP_META: Record<Ownership, { label: string; icon: typeof Cloud; tint: string }> = {
-  astrid: { label: `${BRAND.appName} runs it`, icon: Cloud, tint: 'text-brand bg-brand/15' },
-  self: { label: 'I run it', icon: Terminal, tint: 'text-success bg-success/15' },
-  off: { label: 'Off', icon: CircleSlash, tint: 'text-theme-muted bg-theme-tertiary' },
+// The first two labels are the keys the page intro names the control with, so
+// the button and the sentence about it read the same in every locale.
+const OWNERSHIP_META: Record<Ownership, { labelKey: string; icon: typeof Cloud; tint: string }> = {
+  astrid: { labelKey: 'settingsPages.aiAgents.yourAgents.astridRuns', icon: Cloud, tint: 'text-brand bg-brand/15' },
+  self: { labelKey: 'settingsPages.aiAgents.yourAgents.selfRuns', icon: Terminal, tint: 'text-success bg-success/15' },
+  off: { labelKey: 'settingsPages.aiAgents.hub.off', icon: CircleSlash, tint: 'text-theme-muted bg-theme-tertiary' },
 }
 
 function ownershipOf(mode: Mode): Ownership {
@@ -172,10 +175,10 @@ function ownershipOf(mode: Mode): Ownership {
  * `sse` is not a per-provider mode at all — a Custom Agent is its own identity,
  * so that option hands over to the Custom Agents section.
  */
-const SELF_TRANSPORTS: { key: Mode | 'sse'; label: string; icon: typeof Cloud }[] = [
-  { key: 'polling', label: 'Native coding harness', icon: Terminal },
-  { key: 'webhook', label: 'Webhook server', icon: Webhook },
-  { key: 'sse', label: 'Custom Agent (SSE)', icon: Bot },
+const SELF_TRANSPORTS: { key: Mode | 'sse'; labelKey: string; icon: typeof Cloud }[] = [
+  { key: 'polling', labelKey: 'settingsPages.aiAgents.hub.transportNative', icon: Terminal },
+  { key: 'webhook', labelKey: 'settingsPages.connections.categories.webhook', icon: Webhook },
+  { key: 'sse', labelKey: 'settingsPages.aiAgents.hub.transportSse', icon: Bot },
 ]
 
 interface KeyStatus {
@@ -205,8 +208,8 @@ function InlineKeyEditor({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm theme-text-muted">
           {copilotConnected
-            ? `Connected — ${BRAND.appName} uses your Copilot subscription for this agent's work.`
-            : `Authorize GitHub so ${BRAND.appName} can use your Copilot subscription. Revocable from GitHub at any time.`}
+            ? t('settingsPages.aiAgents.hub.copilotConnected')
+            : t('settingsPages.aiAgents.hub.copilotAuthorize')}
         </p>
         {copilotConnected ? (
           <Button
@@ -215,14 +218,14 @@ function InlineKeyEditor({
             onClick={async () => {
               try {
                 await apiCall('/api/v1/integrations/copilot/status', { method: 'DELETE' })
-                toast.success('GitHub Copilot disconnected')
+                toast.success(t('settingsPages.aiAgents.hub.copilotDisconnected'))
                 onChanged()
               } catch {
-                toast.error('Unable to disconnect GitHub Copilot')
+                toast.error(t('settingsPages.aiAgents.hub.copilotDisconnectFailed'))
               }
             }}
           >
-            Disconnect
+            {t('settingsPages.connections.github.disconnect')}
           </Button>
         ) : (
           <Button
@@ -231,10 +234,10 @@ function InlineKeyEditor({
               try {
                 const response = await fetch('/api/v1/integrations/copilot/authorize')
                 const data = await response.json()
-                if (!response.ok || !data.url) throw new Error(data.error || 'Unable to start GitHub authorization')
+                if (!response.ok || !data.url) throw new Error(data.error || t('settingsPages.aiAgents.hub.copilotAuthStartFailed'))
                 window.location.assign(data.url)
               } catch (error) {
-                toast.error(error instanceof Error ? error.message : 'Unable to connect GitHub Copilot')
+                toast.error(error instanceof Error ? error.message : t('settingsPages.aiAgents.hub.copilotConnectFailed'))
               }
             }}
           >
@@ -254,7 +257,7 @@ function InlineKeyEditor({
             type={showKey ? 'text' : 'password'}
             value={key}
             onChange={e => setKey(e.target.value)}
-            placeholder={status?.hasKey ? 'Key saved — paste to replace' : row.keyPlaceholder}
+            placeholder={status?.hasKey ? t('settingsPages.aiAgents.hub.keySavedPlaceholder') : row.keyPlaceholder}
             className="pr-9 theme-bg-tertiary theme-border theme-text-primary"
           />
           <button
@@ -276,16 +279,16 @@ function InlineKeyEditor({
                 apiKey: key.trim(),
               })
               setKey('')
-              toast.success(`${row.label} key saved`)
+              toast.success(t('settingsPages.aiAgents.hub.keySaved', { agent: row.label }))
               onChanged()
             } catch {
-              toast.error('Failed to save API key')
+              toast.error(t('settingsPages.aiAgents.hub.keySaveFailed'))
             } finally {
               setBusy(null)
             }
           }}
         >
-          {busy === 'save' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+          {busy === 'save' ? <Loader2 className="w-4 h-4 animate-spin" /> : t('actions.save')}
         </Button>
         {status?.hasKey && (
           <>
@@ -300,18 +303,18 @@ function InlineKeyEditor({
                     serviceId: row.service,
                   })
                   const result = await response.json()
-                  if (result.success) toast.success(`${row.label} key is valid`)
-                  else toast.error(`Key test failed: ${result.error}`)
+                  if (result.success) toast.success(t('settingsPages.aiAgents.hub.keyValid', { agent: row.label }))
+                  else toast.error(fillMessage(t('settingsPages.aiAgents.hub.keyTestFailed'), { error: String(result.error) }))
                   onChanged()
                 } catch {
-                  toast.error('Failed to test API key')
+                  toast.error(t('settingsPages.aiAgents.hub.keyTestError'))
                 } finally {
                   setBusy(null)
                 }
               }}
             >
               <TestTube className="w-3.5 h-3.5 mr-1" />
-              Test
+              {t('settingsPages.aiAgents.hub.testKey')}
             </Button>
             <Button
               size="sm"
@@ -324,10 +327,10 @@ function InlineKeyEditor({
                     method: 'DELETE',
                     body: JSON.stringify({ serviceId: row.service }),
                   })
-                  toast.success(`${row.label} key removed`)
+                  toast.success(t('settingsPages.aiAgents.hub.keyRemoved', { agent: row.label }))
                   onChanged()
                 } catch {
-                  toast.error('Failed to remove API key')
+                  toast.error(t('settingsPages.aiAgents.hub.keyRemoveFailed'))
                 } finally {
                   setBusy(null)
                 }
@@ -339,7 +342,7 @@ function InlineKeyEditor({
         )}
       </div>
       <p className="text-xs theme-text-muted">
-        Encrypted at rest, used only server-side.{' '}
+        {t('settingsPages.aiAgents.hub.keyEncrypted')}{' '}
         {row.keyDocsUrl && (
           <a href={row.keyDocsUrl} target="_blank" rel="noreferrer" className="text-brand hover:underline">
             {t('settingsPages.aiAgents.hub.getKey')}
@@ -377,7 +380,7 @@ export function AgentHub() {
     fetch('/api/v1/users/me/agent-modes')
       .then(r => r.json())
       .then(data => setModes(data.modes || {}))
-      .catch(() => toast.error('Could not load agent settings'))
+      .catch(() => toast.error(t('settingsPages.aiAgents.hub.loadFailed')))
       .finally(() => setLoading(false))
 
     refreshCredentials()
@@ -397,7 +400,7 @@ export function AgentHub() {
       const data = await response.json()
       setModes(data.modes || {})
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not save')
+      toast.error(error instanceof Error ? error.message : t('settingsPages.aiAgents.hub.saveFailed'))
       setModes(prev => ({ ...prev, [row.modeMailbox]: previous }))
     } finally {
       setSavingMode(null)
@@ -483,7 +486,7 @@ export function AgentHub() {
                         }`}
                       >
                         <OwnershipIcon className="w-3.5 h-3.5" />
-                        <span className="hidden sm:inline">{meta.label}</span>
+                        <span className="hidden sm:inline">{t(meta.labelKey)}</span>
                       </button>
                     )
                   })}
@@ -505,7 +508,7 @@ export function AgentHub() {
                     runs it (task 42349da6). */}
                 {ownership === 'self' && !harnessOnly && (
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs theme-text-muted">Transport:</span>
+                    <span className="text-xs theme-text-muted">{t('settingsPages.aiAgents.hub.transportLabel')}</span>
                     <div className="inline-flex rounded-lg border theme-border overflow-hidden">
                       {SELF_TRANSPORTS.map(transport => {
                         const TransportIcon = transport.icon
@@ -526,7 +529,7 @@ export function AgentHub() {
                             }`}
                           >
                             <TransportIcon className="w-3.5 h-3.5" />
-                            {transport.label}
+                            {t(transport.labelKey)}
                           </button>
                         )
                       })}
@@ -537,8 +540,7 @@ export function AgentHub() {
                 {mode === 'api' && (
                   <>
                     <p className="text-xs theme-text-muted">
-                      {BRAND.appName} runs this agent server-side — works from your phone, needs
-                      nothing running at home.
+                      {t('settingsPages.aiAgents.hub.apiModeDescription')}
                     </p>
                     <InlineKeyEditor
                       row={row}
@@ -552,8 +554,10 @@ export function AgentHub() {
                 {mode === 'polling' && (
                   <>
                     <p className="text-xs theme-text-muted">
-                      Your own {row.label} setup does the work. Connect it once, then assign this
-                      agent a task and mark the task <strong>Ready</strong> — the loop picks it up.
+                      <RichMessage
+                        message={t('settingsPages.aiAgents.hub.pollingModeDescription')}
+                        values={{ agent: row.label, ready: <strong>{t('listSettings.admin.readyStatus')}</strong> }}
+                      />
                     </p>
                     <AgentLoopRecipes mailbox={row.pollMailbox} origin={origin} />
                     {/* The Copilot app / GitHub.com cloud agent is one of Copilot's
@@ -567,32 +571,34 @@ export function AgentHub() {
 
                 {mode === 'off' && (
                   <p className="text-xs theme-text-muted">
-                    This agent is out of the way: it does not appear in assignee pickers and{' '}
-                    {BRAND.appName} never runs it. Your saved settings and keys are kept — pick
-                    another mode to bring it back exactly as it was.
+                    {t('settingsPages.aiAgents.hub.offModeDescription')}
                   </p>
                 )}
 
                 {mode === 'webhook' && (
                   <>
                     <p className="text-xs theme-text-muted">
-                      A webhook receiver you operate can receive this agent&apos;s work as it
-                      appears. The{' '}
-                      <a
-                        href="https://www.npmjs.com/package/@gracefultools/astrid-sdk"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-brand hover:underline"
-                      >
-                        {BRAND.appName} SDK
-                      </a>{' '}
-                      provides integration libraries, not a prebuilt agent-host command. This mode
-                      requires your own webhook receiver; the settings below configure delivery.
-                      For a guided MCP + queue-skill setup instead, choose Native coding harness and follow the{' '}
-                      <Link href="/docs/loops" className="text-brand hover:underline">
-                        {t('settingsPages.aiAgents.hub.agentLoops')}
-                      </Link>{' '}
-                      recipes.
+                      <RichMessage
+                        message={t('settingsPages.aiAgents.hub.webhookModeDescription')}
+                        values={{
+                          sdk: (
+                            <a
+                              href="https://www.npmjs.com/package/@gracefultools/astrid-sdk"
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-brand hover:underline"
+                            >
+                              {BRAND.appName} SDK
+                            </a>
+                          ),
+                          nativeHarness: t('settingsPages.aiAgents.hub.transportNative'),
+                          agentLoops: (
+                            <Link href="/docs/loops" className="text-brand hover:underline">
+                              {t('settingsPages.aiAgents.hub.agentLoops')}
+                            </Link>
+                          ),
+                        }}
+                      />
                     </p>
                     <AgentCredentialsCard preset="webhookServer" agent={row.pollMailbox} />
                     <WebhookSettingsManager />
@@ -616,7 +622,7 @@ export function AgentHub() {
               <span className="text-sm font-medium theme-text-primary">{t('settingsPages.aiAgents.hub.customAgents')}</span>
             </div>
             <div className="text-xs theme-text-muted">
-              Agents you operate over OAuth + REST + SSE
+              {t('settingsPages.aiAgents.hub.customAgentsDescription')}
             </div>
           </div>
           <div className="flex items-center gap-2">
