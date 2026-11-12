@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
+import { isInMyTasksScope } from "@/lib/my-tasks-scope"
+import { completeManualOrder } from "@/lib/task-sort"
 import { shouldOpenCreatedTask, type CreateTaskOptions } from '@/hooks/task-manager/create-task-options'
 import { unwrapTask, unwrapList } from '@/lib/v1-response'
 import { useRouter } from "next/navigation"
@@ -206,41 +208,14 @@ export function useTaskManagerController({
     selectedListId: navigationState.selectedListId,
     currentList: listState.lists.find(l => l.id === navigationState.selectedListId),
     getManualOrder: useCallback((listId: string) => {
-      const collectRelevantTaskIds = () => {
-        if (listId === 'my-tasks') {
-          if (!listState.currentUserId) {
-            return []
-          }
-          return listState.tasks
-            .filter(task =>
-              task.assigneeId === listState.currentUserId ||
-              (task.assigneeId === null && task.creatorId === listState.currentUserId)
-            )
-            .map(task => task.id)
-        }
-
-        return listState.tasks
-          .filter(task => task.lists && task.lists.some(taskList => taskList && taskList.id === listId))
-          .map(task => task.id)
-      }
-
-      let baseOrder: string[] = []
-
-      if (listId === 'my-tasks') {
-        baseOrder = [...(myTasksPreferences.filters.manualSortOrder || [])]
-      } else {
-        const list = listState.lists.find(item => item.id === listId)
-        if (list && Array.isArray((list as any).manualSortOrder)) {
-          baseOrder = (list.manualSortOrder as string[]).filter((id): id is string => typeof id === 'string')
-        }
-      }
-
-      const relevantTaskIds = collectRelevantTaskIds()
-      const sanitizedOrder = baseOrder.filter(id => relevantTaskIds.includes(id))
-      const missingTaskIds = relevantTaskIds.filter(id => !sanitizedOrder.includes(id))
-      let workingOrder = [...sanitizedOrder, ...missingTaskIds]
-
-      return workingOrder.length > 0 ? workingOrder : undefined
+      // The tasks this view holds: My Tasks by its scope, a list by membership.
+      const relevant = listId === 'my-tasks'
+        ? listState.tasks.filter(task => isInMyTasksScope(task, listState.currentUserId))
+        : listState.tasks.filter(task => task.lists?.some(taskList => taskList?.id === listId))
+      const list = listId === 'my-tasks' ? undefined : listState.lists.find(item => item.id === listId)
+      const saved = listId === 'my-tasks' ? myTasksPreferences.filters.manualSortOrder : list?.manualSortOrder
+      const order = completeManualOrder(Array.isArray(saved) ? saved : [], relevant)
+      return order.length > 0 ? order : undefined
     }, [listState.lists, myTasksPreferences.filters.manualSortOrder, listState.tasks, listState.currentUserId])
   })
   const taskSearch = useTaskSearch(newFilterState.filters.search)
