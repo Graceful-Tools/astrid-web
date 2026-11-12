@@ -19,7 +19,6 @@ import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { profileEnv, type BrandProfile } from '@/lib/brand/profile'
-// @ts-expect-error -- plain .mjs shipped in the runtime image, no type declarations
 import { brandProfileEnv } from '@/deploy/self-host/brand-profile-env.mjs'
 
 const BRANDS_DIR = join(process.cwd(), 'brands')
@@ -70,7 +69,7 @@ describe('container start applies BRAND_PROFILE (AWTD-1587)', () => {
         ASTRID_RUNTIME_BRAND: 'true',
         BRAND_PROFILE: join(dir, 'acme.brand.json'),
         NEXT_PUBLIC_BRAND_DOMAIN: 'operator.example',
-      },
+      } as unknown as NodeJS.ProcessEnv,
     })
     expect(run.status, run.stderr).toBe(0)
     expect(run.stderr).not.toContain('compiled in at build')
