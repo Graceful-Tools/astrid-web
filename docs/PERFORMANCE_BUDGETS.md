@@ -570,6 +570,13 @@ Any route that grows past it fails predeploy and the E2E workflow. The check pri
 the ceiling can come down; lower it, and update this table, whenever it does. It also
 reports how many routes are over the 250 KiB target, which stays the budget.
 
+**Accepted exception: the TaskManager-shell routes, settings included** (Jon, 2026-11-12,
+AWTD-1618). Getting `/settings/*` under 250 KiB needs settings to stop rendering inside the
+TaskManager shell, which changes how settings look and navigate. Jon chose to keep settings
+as it is and accept it over the target. So the ratchet is the gate for those routes, and
+the 250 KiB target applies to the routes that do not mount the shell: do not switch the
+gate to 250 KiB for every route.
+
 **History: the stated source went away once before.** This row used to
 say "from the `next build` route output". Under Next 16.3.1 with Turbopack the
 route table has no First Load JS column at all; the sizes are simply not
