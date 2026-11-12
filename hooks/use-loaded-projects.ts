@@ -7,7 +7,12 @@
  * state they render before projects existed.
  */
 import { useEffect, useState } from 'react'
-import { loadProjectsOnce, peekLoadedProjects, type ClientProject } from '@/lib/client-projects'
+import {
+  loadProjectsOnce,
+  peekLoadedProjects,
+  subscribeLoadedProjects,
+  type ClientProject,
+} from '@/lib/client-projects'
 
 const NONE: ClientProject[] = []
 
@@ -16,6 +21,10 @@ export function useLoadedProjects(): ClientProject[] {
 
   useEffect(() => {
     let active = true
+    // A retry that succeeds for another caller reaches this one too.
+    const unsubscribe = subscribeLoadedProjects(result => {
+      if (active) setProjects(result)
+    })
     loadProjectsOnce()
       .then(result => {
         if (active) setProjects(result)
@@ -25,6 +34,7 @@ export function useLoadedProjects(): ClientProject[] {
       })
     return () => {
       active = false
+      unsubscribe()
     }
   }, [])
 

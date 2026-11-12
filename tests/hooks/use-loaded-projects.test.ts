@@ -35,4 +35,17 @@ describe('useLoadedProjects (AWTD-1582)', () => {
     renderHook(() => useLoadedProjects())
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
   })
+
+  it('AWTD-1582: a retry that succeeds reaches the rows mounted before it', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 500, json: async () => ({}) })
+      .mockResolvedValue({ ok: true, status: 200, json: async () => ({ projects: PROJECTS }) })
+    vi.stubGlobal('fetch', fetchMock)
+    const early = renderHook(() => useLoadedProjects())
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+    expect(early.result.current).toEqual([])
+    renderHook(() => useLoadedProjects())
+    await waitFor(() => expect(early.result.current).toEqual(PROJECTS))
+  })
 })
