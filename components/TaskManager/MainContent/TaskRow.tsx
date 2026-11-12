@@ -18,6 +18,7 @@ import {
 } from "@/lib/task-leading-control"
 import { taskBoardStatus, type BoardStatusSource } from "@/lib/task-board-status"
 import type { Task, TaskList } from "@/types/task"
+import { subtaskIndent } from "@/lib/design/subtask-indent"
 import type { TaskManagerControllerReturn } from "@/hooks/task-manager/controller-contract"
 
 interface DraggingTaskMetrics {
@@ -413,8 +414,9 @@ function TaskRowImpl({
           setDraggingTaskMetrics(null)
         }}
         style={{
-          // Per-level subtask indent, capped at 4 levels (deeper still shows)
-          ...(task.subtaskDepth ? { marginLeft: Math.min(task.subtaskDepth, 4) * 24 } : {}),
+          // Per-level subtask indent, the layout.subtask-indent token (16), capped
+          // at 4 levels; deeper still shows (register DS12, AWTD-1617).
+          ...(task.subtaskDepth ? { marginLeft: subtaskIndent(task.subtaskDepth) } : {}),
           ...(manualSortPreviewActive && isDragging ? { opacity: 0 } : {}),
         }}
       >

@@ -165,13 +165,14 @@ rule is the sentence; the numbers differ by density and only by density.
 | Three columns from 1100 wide, measured on the window. | — | 1100 |
 | Triggers size to their content; an unset field is an affordance to add one; one label per row. | [PRODUCT_CONTRACT §3](../PRODUCT_CONTRACT.md) | same |
 
-Web differs on several of these today (icon column 58, indent 24, row and panel radius
-12, row height 64): register DS11-DS14. Its `border` is the hairline (DS20, AWTD-1617):
+Web differs on two of these today (row and panel radius 12, row height 64): register
+DS13 and DS14. The detail icon column is the token's 62 (16 + 34 + `gap-row-gap`, DS11)
+and a subtask indents `layout.subtask-indent` per depth (`lib/design/subtask-indent.ts`,
+DS12), both since AWTD-1617. Its `border` is the hairline (DS20, AWTD-1617):
 `--hairline-width` in `styles/components.css`, the token on a high-density screen and
 1px where half a pixel cannot be drawn. The leading control
 itself is the token's 34 (`w-leading-control h-leading-control`, or
-`LEADING_CONTROL_SIZE` where a number is needed), so the icon column is 16 + 34 + 8;
-what is left of DS11 is the gap, 8 against the token's 12.
+`LEADING_CONTROL_SIZE` where a number is needed), so the icon column is 16 + 34 + 12.
 
 ## Motion
 
