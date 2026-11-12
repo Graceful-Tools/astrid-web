@@ -31,6 +31,12 @@ vi.mock('next-intl/server', () => ({
 
 const page = await import('@/app/[locale]/download/page')
 
+/** What the locale layout resolved: the page must keep these and change only the words. */
+const parent = Promise.resolve({
+  openGraph: { title: 'Brand', description: 'Brand default', siteName: 'kept' },
+  twitter: { title: 'Brand', description: 'Brand default', card: 'summary' },
+}) as unknown as Parameters<typeof page.generateMetadata>[1]
+
 describe('/download describes itself in the request locale (AWTD-1575)', () => {
   it('has no static metadata export left to win over generateMetadata', () => {
     expect('metadata' in page).toBe(false)
@@ -39,17 +45,21 @@ describe('/download describes itself in the request locale (AWTD-1575)', () => {
 
   it.each(LOCALES)('%s', async (locale) => {
     requestLocale.current = locale
-    const metadata = await page.generateMetadata()
+    const metadata = await page.generateMetadata({}, parent)
     const expected = downloadMessages(locale)
 
-    expect(metadata).toEqual({ title: expected.metaTitle, description: expected.metaDescription })
+    expect(metadata).toMatchObject({ title: expected.metaTitle, description: expected.metaDescription })
+    // A shared link shows openGraph/twitter, which the locale layout sets to the
+    // brand defaults; overriding only the top level left the preview in English.
+    expect(metadata.openGraph).toMatchObject({ title: expected.metaTitle, description: expected.metaDescription, siteName: 'kept' })
+    expect(metadata.twitter).toMatchObject({ title: expected.metaTitle, description: expected.metaDescription, card: 'summary' })
     expect(String(metadata.title)).toContain(BRAND.appName)
     expect(String(metadata.title)).not.toContain('{')
   })
 
   it('keeps the English wording it had as a static export', async () => {
     requestLocale.current = 'en'
-    expect(await page.generateMetadata()).toEqual({
+    expect(await page.generateMetadata({}, parent)).toMatchObject({
       title: `Download ${BRAND.appName} for Mac`,
       description: `${BRAND.appName} for Mac — a native desktop app for your tasks, lists, and chat.`,
     })
