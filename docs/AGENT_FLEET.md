@@ -34,7 +34,7 @@ Astrid boards, and **task assignment is the message**:
 |---|---|
 | **Any agent on that platform** | Put the task on that platform's board (Web, iOS, Windows, Android), **unassigned**, in Ready. Whichever loop claims it first owns it (`claim-fixall-task.ts`). |
 | **A specific agent** | Assign it to that agent's mailbox (`claude`, `copilot`, `codex`). Only that harness's queue returns it. |
-| **A human, to review or decide** | Assign it to **Jon (the default human)** with the question written on the task, and park it in `Waiting` (FIXALL_WORKFLOW.md → *Waiting carries its condition*). Agents never wait silently on a person. |
+| **A human, to review or decide** | Hand it back to **Jon (the default human)**: the Inbox, assigned to him, with the question written on the task (`assign-task.ts <id> <email> --handback`). Waiting is only for a date or another task (FIXALL_WORKFLOW.md → *Waiting carries its condition*). Agents never wait silently on a person. |
 
 Questions also carry the agent-authored `AGENT-HANDBACK: <mailbox>` line. The
 human answers in Astrid; the scoped attention inbox and atomic resume claim route
@@ -44,7 +44,8 @@ the reply back without requiring a reassignment. See
 Cross-platform work is split the same way. A web run that needs an iOS change files
 the iOS half on the **iOS board** (unassigned, or for the Mac's agent) and links it with a
 blocker row (`POST /api/v1/tasks/<id>/blockers`). The Mac's loop picks it up, and the web
-task waits on it in `Waiting`. Shared-rules changes for astrid-core go on the Windows board,
+task waits on it in `Waiting` — the blocker is its condition, and the server wakes it when
+the iOS half completes. Shared-rules changes for astrid-core go on the Windows board,
 as before.
 
 List membership decides who can see a task. Every agent identity that works a board must be
@@ -191,8 +192,8 @@ board/task/repository/issue binding committed transactionally with the claim.
 An inert mirror never permits adopting another Copilot session's Doing task.
 A lost
 assignment response is reconciled from the existing assignment before retrying;
-three unconfirmed attempts stop and atomically park a still-owned, version-matched
-Doing task in Waiting. An agent-signed Astrid notice exposes that blocker.
+three unconfirmed attempts stop and atomically move a still-owned, version-matched
+Doing task to the Inbox (still Copilot's; a `pause` claim). An agent-signed Astrid notice exposes that blocker.
 Exhausted tasks remain held without blocking other candidates or replies; the
 tick reports their failures after processing the remaining candidates.
 An assigned issue with no linked open PR and no issue activity for three hours
@@ -203,7 +204,7 @@ The bridge mirrors native agent comments and PR descriptions/heads into the
 source task. New human task replies are batched into one `@copilot` comment on
 the proven native PR, with exact task/PR/head metadata and idempotency markers.
 Replies before a linked PR exists remain pending, not falsely acknowledged.
-Human-assigned Waiting tasks require the shared atomic resume claim first.
+Handed-back tasks (Inbox, assigned to a human) require the shared atomic resume claim first.
 Malformed/duplicate/unowned mappings, changed heads and truncated history fail
 closed. No task text is evaluated as a shell command or release authorization.
 

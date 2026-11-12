@@ -11,7 +11,7 @@ Work at most $ASTRID_FIXALL_MAX_TASKS task. Finish by pushing a branch named
 agent/$ASTRID_FIXALL_HARNESS/<task-key>, opening one PR with the task link, and
 commenting the PR URL on the task. Do not merge and do not deploy.
 
-Read `.agent-output/preflight.json` for this run's queue, attention and lane work.
+Read `.agent-output/preflight.json` for this run's queue and attention.
 An attention task with `resume` metadata is a human reply to your own handback:
 read it, then use the atomic `resume` claim from docs/FIXALL_WORKFLOW.md before
 implementing anything. Do not claim another harness's assignments.
@@ -32,13 +32,14 @@ running without task communication.
 
 For finished implementation, run `npm run predeploy`, push your branch and open
 the PR using the repository template. Post its URL and end your report with
-`AWAITING-DEPLOY: <full pushed HEAD sha>`, then move the task to Waiting with
-your mailbox and leave it incomplete. The runner validates this handoff before
-making the PR eligible for deterministic shipping. Draft PRs remain held.
+`AWAITING-DEPLOY: <full pushed HEAD sha>`, and leave the task incomplete and in
+Doing, assigned to you — never Waiting. The release step skips it, and the runner
+validates this handoff before making the PR eligible for deterministic shipping.
+Draft PRs remain held.
 
 When the task's fix is already on `main` (an earlier PR merged it), write no code
 and open no PR. Comment `AWAITING-DEPLOY: <the origin/main sha that contains the fix>`
-and move the task to Waiting; the runner accepts a commit on `main` and completes
+and leave the task in Doing; the runner accepts a commit on `main` and completes
 the task once production serves it. The work is handed off: say `RESULT: OK`, not
 PARTIAL.
 

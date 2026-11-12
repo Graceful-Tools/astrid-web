@@ -156,7 +156,8 @@ describe("POST /api/v1/tasks/:id/claim-fixall", () => {
         updatedAt: new Date(version), lists: { some: { id: { in: [listId] } } },
         comments: { none: { updatedAt: { gt: new Date(version) } } },
       },
-      data: { assigneeId: 'copilot-1', statusRole: 'waiting' },
+      // Paused work needs a person: the Inbox, still the agent's (never condition-less Waiting).
+      data: { assigneeId: 'copilot-1', statusRole: null },
     })
   })
 
@@ -176,9 +177,10 @@ describe("POST /api/v1/tasks/:id/claim-fixall", () => {
     expect(prisma.comment.create).not.toHaveBeenCalled()
   })
 
-  it('AWTD-1432: parks a Ready task that is already handed off instead of claiming it again', async () => {
-    // Fixed in #601, handed off to Waiting with this marker, then found back in
-    // Ready by the next run, which fixed it a second time in #603.
+  it('AWTD-1432: puts a handed-off Ready task back in Doing instead of claiming it again', async () => {
+    // Fixed in #601, handed off with this marker, then found back in Ready by
+    // the next run, which fixed it a second time in #603. Finished work awaiting
+    // its deploy belongs in Doing (R6), not Waiting.
     vi.mocked(prisma.task.findUnique).mockResolvedValue({
       comments: [
         { content: 'Picked it up.', createdAt: new Date('2026-10-30T21:30:00Z') },
@@ -194,7 +196,7 @@ describe("POST /api/v1/tasks/:id/claim-fixall", () => {
     expect(prisma.task.updateMany).toHaveBeenCalledTimes(1)
     expect(prisma.task.updateMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ id: TASK_ID, completed: false, statusRole: 'ready' }),
-      data: { statusRole: 'waiting' },
+      data: { statusRole: 'doing' },
     }))
     // The note repeats the marker, so it stays the newest one: land-and-deploy
     // still finds the commit, and a second claim is refused the same way.
@@ -233,10 +235,7 @@ describe("POST /api/v1/tasks/:id/claim-fixall", () => {
   it("returns conflict instead of overwriting a task changed after queue selection", async () => {
     vi.mocked(prisma.task.updateMany).mockResolvedValue({ count: 0 })
 
-    const response = await POST(request({
-      action: "recheck",
-      commentWatermark: "2026-08-30T20:00:00.000Z",
-    }), { params })
+    const response = await POST(request({ action: "ready", commentWatermark: null }), { params })
 
     expect(response.status).toBe(409)
     expect(await response.json()).toEqual({
@@ -244,7 +243,7 @@ describe("POST /api/v1/tasks/:id/claim-fixall", () => {
     })
   })
 
-  it('atomically resumes only the exact human reply to an agent-owned handback', async () => {
+  it('atomically resumes only the exact human reply to an agent-owned handback (Inbox → Doing, R4)', async () => {
       const createdAt = new Date('2026-10-25T10:00:00Z')
       const updatedAt = new Date('2026-10-25T11:00:00Z')
       const resume = {
@@ -252,7 +251,7 @@ describe("POST /api/v1/tasks/:id/claim-fixall", () => {
         handbackCommentId: 'question', replyCommentId: 'reply', commentWatermark: updatedAt.toISOString(),
       }
       const row = {
-        completed: false, statusRole: 'waiting', assigneeId: 'human', updatedAt,
+        completed: false, statusRole: null, assigneeId: 'human', updatedAt,
         assignee: { isAIAgent: false }, lists: [{ id: resume.listId }],
         comments: [
           { id: 'reply', authorId: 'human', author: { isAIAgent: false },
@@ -268,7 +267,7 @@ describe("POST /api/v1/tasks/:id/claim-fixall", () => {
       expect(prisma.task.updateMany).toHaveBeenCalledWith(expect.objectContaining({
         data: { assigneeId: 'copilot-1', statusRole: 'doing' },
         where: expect.objectContaining({
-          statusRole: 'waiting', assigneeId: 'human', updatedAt,
+          statusRole: null, assigneeId: 'human', updatedAt,
           lists: { some: { id: resume.listId } },
           AND: expect.arrayContaining([{ comments: { none: { updatedAt: { gt: updatedAt } } } }]),
         }),
@@ -279,6 +278,10 @@ describe("POST /api/v1/tasks/:id/claim-fixall", () => {
       vi.mocked(prisma.task.findUnique).mockResolvedValue({
         ...row, comments: [row.comments[0], { ...row.comments[1], authorId: 'spoof' }],
       } as never)
+      expect((await POST(request(body), { params })).status).toBe(409)
+      expect(prisma.task.updateMany).not.toHaveBeenCalled()
+      // A handback still parked in Waiting is not resumable: Waiting is date/task waits only.
+      vi.mocked(prisma.task.findUnique).mockResolvedValue({ ...row, statusRole: 'waiting' } as never)
       expect((await POST(request(body), { params })).status).toBe(409)
       expect(prisma.task.updateMany).not.toHaveBeenCalled()
   })

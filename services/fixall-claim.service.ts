@@ -9,7 +9,7 @@ import {
 } from "@/lib/fixall-claim"
 import { prisma } from "@/lib/prisma"
 import { pendingAgentHandback } from '@/lib/agent-handback'
-import { READY_STATUS_ROLE, WAITING_STATUS_ROLE } from '@/lib/task-status'
+import { DOING_STATUS_ROLE, READY_STATUS_ROLE } from '@/lib/task-status'
 
 export type FixallClaimResult =
   | { status: "claimed"; assigneeEmail: string }
@@ -65,7 +65,8 @@ export async function claimFixallTask(
       expected[key as keyof typeof expected] !== actual[key as keyof typeof actual])) return { status: 'conflict' }
     const result = await prisma.task.updateMany({
       where: {
-        id: taskId, completed: false, statusRole: 'waiting',
+        // A handback sits in the Inbox (no status), assigned to the person (R4).
+        id: taskId, completed: false, statusRole: null,
         assigneeId: expected.assigneeId, updatedAt: task.updatedAt,
         lists: { some: { id: expected.listId } },
         AND: [
@@ -107,12 +108,13 @@ export async function claimFixallTask(
     })
     const sha = task ? pendingDeployHandoff(task.comments) : null
     if (sha) {
-      // Park it rather than only refusing: left in Ready, every run would wake
-      // for it and be refused again.
+      // Put it back rather than only refusing: left in Ready, every run would
+      // wake for it and be refused again. Finished work awaiting its deploy
+      // stays in Doing (R6); its assignee is left as it is.
       return prisma.$transaction(async (tx): Promise<FixallClaimResult> => {
         const parked = await tx.task.updateMany({
           where: { id: taskId, completed: false, statusRole: READY_STATUS_ROLE },
-          data: { statusRole: WAITING_STATUS_ROLE },
+          data: { statusRole: DOING_STATUS_ROLE },
         })
         if (parked.count === 1) {
           await tx.comment.create({ data: { taskId, authorId: agent.id, content: handedOffParkComment(sha) } })

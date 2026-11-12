@@ -9,7 +9,7 @@ function fixture(taskId = 'task-1', issueNumber = 1) {
   const writes: Array<{ path: string; body: unknown }> = []
   const reports: string[] = []
   const task = { id: taskId, title: 'AWTD-1383 lifecycle', identifier: 'AWTD-1383', completed: false,
-    description: 'Implement scoped native dispatch', assigneeId: 'copilot', statusRole: 'ready',
+    description: 'Implement scoped native dispatch', assigneeId: 'copilot', statusRole: 'ready' as string | null,
     updatedAt: '2026-10-20T00:00:00Z', lists: [{ id: listId }] }
   const comments = [{ id: 'human-1', content: 'Original request', updatedAt: '2026-10-20T00:00:00Z',
     authorId: 'human', author: { isAIAgent: false }, systemEventType: null }]
@@ -30,7 +30,7 @@ function fixture(taskId = 'task-1', issueNumber = 1) {
             task.statusRole = 'doing'
             throw new Error('claim conflict: another Copilot session won')
           }
-          task.statusRole = (body as { action: string }).action === 'pause' ? 'waiting' : 'doing'
+          task.statusRole = (body as { action: string }).action === 'pause' ? null : 'doing'
           task.assigneeId = 'copilot'
           const nativeDispatch = (body as { nativeDispatch?: NativeCopilotDispatch }).nativeDispatch
           if (nativeDispatch) comments.push({ ...comments[0], id: 'claim', authorId: 'copilot',
@@ -143,7 +143,7 @@ describe('native GitHub Copilot bridge (AWTD-1383)', () => {
     const f = fixture()
     await f.run()
     f.task.assigneeId = 'human'
-    f.task.statusRole = 'waiting'
+    f.task.statusRole = null
     f.state.humanResume = true
     f.state.hasPull = true
     f.comments.push({ ...f.comments[0], id: 'human-2', content: 'The answer is blue.' })
@@ -175,7 +175,7 @@ describe('native GitHub Copilot bridge (AWTD-1383)', () => {
     await expect(f.run()).rejects.toThrow(/exhausted three persisted attempts/)
     expect(f.writes.filter(row => row.path.endsWith('/assignees'))).toHaveLength(3)
     expect(f.issueComments).toHaveLength(3)
-    expect(f.task.statusRole).toBe('waiting')
+    expect(f.task.statusRole).toBeNull()
   })
 
   it('AWTD-1383: exhausted dispatch does not starve Ready work or PR replies on consecutive ticks', async () => {
@@ -201,7 +201,7 @@ describe('native GitHub Copilot bridge (AWTD-1383)', () => {
     })
 
     await expect(run()).rejects.toThrow(/exhausted three persisted attempts/)
-    expect(exhausted.task.statusRole).toBe('waiting')
+    expect(exhausted.task.statusRole).toBeNull()
     expect(healthy.writes.filter(row => row.path.endsWith('/assignees'))).toHaveLength(1)
 
     healthy.state.hasPull = true
@@ -265,7 +265,7 @@ describe('native GitHub Copilot bridge (AWTD-1383)', () => {
     f.state.issue!.updated_at = '2020-01-01T00:00:00Z'
     await f.run()
     await f.run()
-    expect(f.task.statusRole).toBe('waiting')
+    expect(f.task.statusRole).toBeNull()
     expect(f.comments.filter(row => row.content.includes('native-copilot-stalled:'))).toHaveLength(1)
     expect(f.writes.filter(row => row.path.endsWith('/assignees'))).toHaveLength(1)
   })

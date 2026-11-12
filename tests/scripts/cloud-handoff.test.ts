@@ -4,8 +4,10 @@ import { automaticDeployHold, landablePullRequests, RUNNER_PR_MARKER } from '@/s
 import { agentEmail } from '@/lib/brand/agent-emails'
 
 const sha = 'a'.repeat(40)
-const task = {
-  identifier: 'AWTD-1410', completed: false, statusRole: 'waiting',
+// R6: finished work awaiting its deploy stays in Doing.
+const task: { identifier: string; completed: boolean; statusRole: string | null;
+  assignee: { id: string; email: string }; lists: Array<{ id: string }> } = {
+  identifier: 'AWTD-1410', completed: false, statusRole: 'doing',
   assignee: { id: 'claude-id', email: agentEmail('claude') }, lists: [{ id: 'web' }],
 }
 const comments = [{ authorId: 'claude-id', content: `Done\nAWAITING-DEPLOY: ${sha}`,
@@ -24,6 +26,12 @@ describe('cloud lifecycle release handoff', () => {
   })
   it('accepts an exact, agent-authored deployed-work handoff on its board', () => {
     expect(cloudHandoffEligible(input)).toBe(true)
+  })
+  it('R6: accepts the handoff in Doing or the optional Testing column, never Waiting, Ready or the Inbox', () => {
+    expect(cloudHandoffEligible({ ...input, task: { ...task, statusRole: 'testing' } })).toBe(true)
+    expect(cloudHandoffEligible({ ...input, task: { ...task, statusRole: 'waiting' } })).toBe(false)
+    expect(cloudHandoffEligible({ ...input, task: { ...task, statusRole: 'ready' } })).toBe(false)
+    expect(cloudHandoffEligible({ ...input, task: { ...task, statusRole: null } })).toBe(false)
   })
   it('refuses stale commits, spoofed reports, human handbacks and another board', () => {
     expect(cloudHandoffEligible({ ...input, headSha: 'b'.repeat(40) })).toBe(false)

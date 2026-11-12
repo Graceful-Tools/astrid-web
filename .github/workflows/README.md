@@ -9,15 +9,16 @@ ended chain. `agent-ship.yml` lands the result when an agent PR's CI finishes. `
 on GitHub-hosted `ubuntu-26.04`. The Mac's web loop, the Copilot app's web-queue
 cron and the `[self-hosted, astrid-web]` runner were retired (AWTD-1363).
 
-The queue sweep and trigger require repository secrets
+The queue read and trigger require repository secrets
 `ASTRID_OAUTH_CLIENT_ID` and `ASTRID_OAUTH_CLIENT_SECRET`. The workflow uses the
 same external OAuth client throughout; Astrid derives `copilot@astrid.cc`
 server-side after the atomic claim instead of requiring a legacy agent MCP
 token. Secrets are passed only through step environments and request headers
 and are never printed.
 
-Dry runs pass `--dry-run` to `scripts/ready-tasks.ts`, so they neither mutate
-queue lanes nor trigger coding-agent workflows. Manual runs always use the
+Dry runs trigger no coding-agent workflows. (`scripts/ready-tasks.ts` is
+read-only either way: the server settles the Waiting lane, per astrid-core's
+waiting rules, so `--dry-run` there changes nothing.) Manual runs always use the
 `github-copilot` harness, and the workflow intentionally does not offer other
 harnesses. Before triggering each task, it uses the OAuth API to assign the task
 to `copilot@astrid.cc`, which also makes previously unassigned Ready tasks
@@ -39,23 +40,21 @@ Standard output is one versioned envelope; diagnostics stay on standard error:
 {
   "version": 1,
   "tasks": [
-    { "id": "<uuid>", "action": "ready" },
-    {
-      "id": "<uuid>",
-      "action": "recheck|review",
-      "commentWatermark": "<ISO timestamp|null>"
-    }
+    { "id": "<uuid>", "action": "ready" }
   ]
 }
 ```
+
+`ready` is the only action. The envelope once also carried `recheck`/`review`
+entries for the client-side Waiting sweep; that sweep is gone and the parser
+refuses them.
 
 Only IDs classified in memory by `ready-tasks.ts` are serialized. Titles and
 other presentation fields are deliberately absent, so multiline task content
 cannot add executable queue entries. Before execution, `claim-fixall-task.ts`
 posts each structured claim to the authenticated atomic claim endpoint. One
 conditional update verifies the task is still incomplete, on the web board, in
-the expected status/due state, unchanged since the waiting-task comment
-watermark, and either unassigned or already assigned to Copilot. A conflict
+in Ready and due, and either unassigned or already assigned to Copilot. A conflict
 prints `CLAIM_CONFLICT` and exits 2 without changing the task; success prints
 `CLAIMED` and exits 0.
 

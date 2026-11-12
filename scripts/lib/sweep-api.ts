@@ -1,5 +1,5 @@
 /**
- * The Ready/Waiting sweep's writes, kept small and loud.
+ * The board writes the release and deploy scripts make, kept small and loud.
  *
  * Every mutation is a single-field `statusRole` PUT (never `listIds` — a
  * full-membership PUT is the strand-a-task bug `scripts/set-task-status.ts`
@@ -13,7 +13,11 @@
  * exists.
  */
 
-/** Author id for the comments this sweep writes; see scripts/lib/agent-author.ts. */
+/**
+ * Author id for the comments these writes sign; see scripts/lib/agent-author.ts.
+ * (The client-side Ready/Waiting sweep this was extracted from is gone: the server
+ * settles Waiting now, per astrid-core's waiting rules.)
+ */
 export type SweepAuthorId = string | null
 
 export class SweepApi {
@@ -83,36 +87,5 @@ export class SweepApi {
     if (!response.ok) return []
     const body = await response.json()
     return Array.isArray(body.comments) ? body.comments : []
-  }
-
-  /**
-   * The task's STRUCTURED blockers — `TaskDependency` rows (AWTD-1002).
-   *
-   * Unioned by the caller with the `BLOCKED-BY:` comment markers rather than
-   * replacing them: on the day the rows shipped, every currently-parked task
-   * carried its condition in a comment, and reading only the rows would have
-   * silently unblocked all of them. A task that is unreadable here contributes
-   * nothing, because the markers remain the fallback that makes that safe.
-   */
-  async structuredBlockers(task: { id: string }): Promise<string[]> {
-    const response = await this.fetchImpl(`${this.apiBase}/api/v1/tasks/${task.id}`, { headers: this.auth })
-    if (!response.ok) return []
-    const body = await response.json()
-    return Array.isArray(body?.task?.blockedBy) ? body.task.blockedBy.filter((id: unknown) => typeof id === 'string') : []
-  }
-
-  /** Which of these blocker ids are still open? Unfetchable ids count as OPEN — promoting on a guess redoes the strand. */
-  async openBlockers(ids: string[]): Promise<string[]> {
-    const open: string[] = []
-    for (const id of ids) {
-      const response = await this.fetchImpl(`${this.apiBase}/api/v1/tasks/${id}`, { headers: this.auth })
-      if (!response.ok) {
-        open.push(`${id} (unreadable: HTTP ${response.status})`)
-        continue
-      }
-      const body = await response.json()
-      if (!body?.task?.completed) open.push(id)
-    }
-    return open
   }
 }

@@ -19,7 +19,9 @@ import { parseBlockedConditions } from '@/lib/ready-queue-scope'
 /**
  * Is this task's branch finished work, up for review?
  *
- * Completed, or incomplete with a current `AWAITING-DEPLOY:` marker (AWTD-1278).
+ * Completed, or incomplete with a current `AWAITING-DEPLOY:` marker (AWTD-1278) —
+ * which, since the Waiting redesign (R6), sits in Doing or the optional Testing
+ * column rather than Waiting. The lane is not checked here: the marker is the claim.
  * Done means deployed (Jon, 2026-10-13), so a scheduled run that obeys that
  * leaves finished work INCOMPLETE — and a check on `completed` alone never
  * opened its PR, so it never landed and never deployed: the AWTD-1039 failure,

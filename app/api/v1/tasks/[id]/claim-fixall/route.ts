@@ -31,7 +31,7 @@ export const POST = withAuth<RouteContext>(
     }
     if (result.status === "handed-off") {
       return NextResponse.json(
-        { error: `Already handed off: waiting for production to serve ${result.sha}. Moved back to Waiting.` },
+        { error: `Already handed off: waiting for production to serve ${result.sha}. Moved back to Doing.` },
         { status: 409 },
       )
     }

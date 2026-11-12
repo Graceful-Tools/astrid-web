@@ -2,10 +2,14 @@
  * Set a task's board status — Ready, Doing, Waiting.
  *
  *   npx tsx scripts/set-task-status.ts <taskId> Doing
- *   npx tsx scripts/set-task-status.ts <taskId> Waiting
+ *   npx tsx scripts/set-task-status.ts <taskId> Waiting --until 2026-12-01T09:00:00Z
+ *   npx tsx scripts/set-task-status.ts <taskId> Waiting --blocked-by AWTD-1234 [--keep-assignee]
  *
- * Written for the `/fixall` loops, which say what they are doing on the board:
- * Doing while a task is being worked, Waiting when it is handed back to Jon.
+ * Written for the `/fixall` loops, which say what they are doing on the board.
+ * Waiting is only for a task waiting on a DATE or another TASK, and the
+ * condition goes in the same write (scripts/lib/task-status-args.ts; the rule is
+ * astrid-core's and the server enforces it). Waiting on a PERSON is a handback:
+ * `assign-task.ts <taskId> <email> --handback`.
  *
  * STATUS IS A FIELD ON THE TASK (`statusRole`), not a list the task is attached
  * to. It was membership in a `listType: 'status'` list until AWTD-562, which
@@ -13,10 +17,9 @@
  * with duplicate Ready/Doing/Waiting sets) and shared (or two members of one
  * board resolved different columns) at the same time.
  *
- * Writing the field is also what makes the handback work. `scripts/ready-tasks.ts`
- * reads the field, so a status written only as list membership would leave the
- * task Ready as far as the queue is concerned — the loop would move a task to
- * Doing, then pick it up again on the next run, forever.
+ * Writing the field is also what the queue reads, so a status written only as
+ * list membership would leave the task Ready as far as the queue is concerned —
+ * the loop would move a task to Doing, then pick it up again on the next run.
  *
  * Because this no longer touches `listIds`, the destructive failure the previous
  * version guarded against — `PUT` replacing the whole membership set, dropping
@@ -29,36 +32,24 @@
 export {}
 
 import { loadScriptEnv } from './lib/load-env'
-import { agentSignature, positionalArgs } from './lib/agent-author'
+import { agentSignature } from './lib/agent-author'
+import { parseSetTaskStatusArgs, type SetTaskStatusArgs } from './lib/task-status-args'
+import { WAITING_STATUS_ROLE } from '@/lib/task-status'
 
 loadScriptEnv()
 
-import { DEFAULT_STATES } from '@/lib/task-status'
-
 const API = 'https://astrid.cc'
 
-const STATUS_NAMES = DEFAULT_STATES.map(state => state.name).join('|')
-
 async function main() {
-  const [taskId, statusArg] = positionalArgs()
-
-  if (!taskId || !statusArg) {
-    console.error(`Usage: npx tsx scripts/set-task-status.ts <taskId> <${STATUS_NAMES}> [--agent <mailbox>]`)
+  let args: SetTaskStatusArgs
+  try {
+    args = parseSetTaskStatusArgs(process.argv.slice(2))
+  } catch (error) {
+    console.error(`❌ ${error instanceof Error ? error.message : error}`)
     process.exit(1)
   }
-
-  // Accepts either the display name ("Waiting") or the stored role ("waiting"),
-  // case-insensitively. The roles are the same constants the app renders its
-  // board columns from, so this cannot drift from what the product calls them.
-  const wanted = statusArg.trim().toLowerCase()
-  const status = DEFAULT_STATES.find(
-    state => state.role === wanted || state.name.toLowerCase() === wanted,
-  )
-
-  if (!status) {
-    console.error(`❌ Unknown status "${statusArg}". Expected one of: ${STATUS_NAMES}`)
-    process.exit(1)
-  }
+  const { taskId } = args
+  const status = { role: args.role, name: args.name }
 
   const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
   const clientSecret = process.env.ASTRID_OAUTH_CLIENT_SECRET
@@ -116,7 +107,9 @@ async function main() {
   const put = await fetch(`${API}/api/v1/tasks/${taskId}`, {
     method: 'PUT',
     headers: auth,
-    body: JSON.stringify({ statusRole: status.role, ...signature }),
+    // The move and its wait condition in ONE write: the server decides Waiting
+    // against both, and refuses a condition-less move (WAITING_NEEDS_CONDITION).
+    body: JSON.stringify({ ...args.body, ...signature }),
   })
   if (!put.ok) {
     console.error('❌ Status change failed:', put.status, await put.text())
@@ -132,7 +125,11 @@ async function main() {
   const boardsAfter: string[] = (afterTask.lists || [])
     .filter((l: { listType?: string }) => l.listType !== 'status')
     .map((l: { name?: string; id: string }) => l.name || l.id)
-  console.log('after: ', JSON.stringify({ status: afterTask.statusRole ?? null, boards: boardsAfter }))
+  console.log('after: ', JSON.stringify({
+    status: afterTask.statusRole ?? null, boards: boardsAfter,
+    ...(args.body.dueDateTime ? { dueDateTime: afterTask.dueDateTime ?? null } : {}),
+    ...(status.role === WAITING_STATUS_ROLE ? { assigneeId: afterTask.assigneeId ?? null } : {}),
+  }))
 
   if (afterTask.statusRole !== status.role) {
     console.error(`❌ Status is "${afterTask.statusRole ?? 'none'}" after the write, not "${status.role}" — check it by hand.`)

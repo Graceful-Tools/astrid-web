@@ -57,7 +57,7 @@ things change:
   qualify for shipping. That native ship qualification is not yet automated.
   A CLI cloud runner registers release
   eligibility only after validating the task's agent-authored `AWAITING-DEPLOY`
-  report, Waiting state, assignment, board and exact pushed head. An ordinary PR,
+  report, its Doing (or Testing) state, assignment, board and exact pushed head. An ordinary PR,
   a draft, a WIP branch and a stale report are not release permission.
 
 ### Why this exists, and why the board lanes do not cover it
@@ -104,7 +104,7 @@ the caller, so a typo fails loudly.
 
 Boards: Astrid Web To-do `a623f322-4c3c-49b5-8a94-d2d9f00c82ba`, Astrid iOS To-do
 `aa41c1a3-bd63-4c6d-9b87-42c6e0aafa36`. Answers `empty: true`, or `queue` in the order to work
-it, plus `held.scheduled` for anything waiting on its date. `agent` never defaults — guessing
+it, plus `held.scheduled` for anything not due yet. `agent` never defaults — guessing
 would claim another harness's work — and a typo fails loudly rather than answering "nothing".
 
 The predicates are `lib/ready-queue-scope.ts`, the same ones `scripts/ready-tasks.ts` uses, so
@@ -136,72 +136,58 @@ A task is yours only when **all four** hold:
 The queue reports what it held and why (`held.notDueCount`, `held.scheduled`), so a queue
 held up by the clock never looks like an idle one.
 
-### The lanes must be REAL (Jon, 2026-08-29)
+### The lanes are the server's (Jon, 2026-11-12)
 
-**Ready means "actionable now". Doing means "being worked right now". Waiting means "paused
-on a NAMED condition".** A dated task sitting in Ready is Ready lying to whoever looks at the
-board, so the queue script — not the agent, and not this document — keeps the lanes honest
-with a mechanical sweep on every run:
+**Ready means "actionable now". Doing means "being worked right now", or finished and
+awaiting its deploy. Waiting means "waiting on a date or on another task" — nothing else.**
 
-- A **Ready task with a future date** (claimable by this loop) is **moved to `Waiting`**, with
-  a comment saying when it returns. Ready never holds scheduled work.
-- A **Waiting task whose condition is met** comes back: date arrived → back to `Ready`
-  automatically; blockers completed → back to `Ready` automatically; external condition due
-  for a recheck → surfaced to the agent (below).
-- The sweep only ever touches tasks that are **unassigned or assigned to this harness**. A
-  person's tasks are theirs to move, and the lane sweep never touches `Doing` — a peer session
-  or a human may be mid-task. Doing tasks are listed with their assignee so a human can spot a
-  stale claim; an agent's own abandoned claims are released by the scheduled runner instead
-  (*Doing must not be a dead end*, below).
+The lane rules live in **astrid-core** (`crates/astrid-rules`, the Waiting rules) and **the
+server enforces them** for every client — the apps, MCP, the API and these scripts alike. No
+script and no agent keeps the lanes honest by hand any more, and this document only says how
+to use them:
 
-**Every scheduled runner sweeps its board on every tick, before deciding whether there is work**
-— `--board web` in astrid-web's `scripts/fixall-loop.sh`, `--board ios` in astrid-ios's. So a
-`Waiting` task comes back by itself once its date arrives or its blockers are done, and a
-`RECHECK` due today wakes a run. (Until 2026-09-30 the iOS runner did not pass `--board`, so
-nothing parked on the iOS board ever came back on its own.) A `Waiting` task assigned to a
-**person** is theirs: the loop rechecks it only while it is the loop's, and once it has been
-handed to someone (AWTD-1014, step 2) its date passing is that person's reminder, not the loop's
-cue.
+- **Entering Waiting needs a condition in the same write**: a future due date, or an
+  incomplete blocking task. Without one the server refuses the write
+  (`WAITING_NEEDS_CONDITION`).
+- **Entering Waiting unassigns the task** unless the mover keeps it (`keepAssignee`).
+- **The server wakes Waiting tasks** when every blocker is done and the date has arrived,
+  back to **Ready** — on a schedule and on blocker completion, for every board. A woken task
+  simply arrives in the queue.
+- **A dated Ready task is moved to Waiting** by the server until its date (the date is its
+  condition).
+- **Waiting on a person is not Waiting.** It is the **Inbox** (no status), assigned to that
+  person (*A human reply resumes an explicit handback*, below).
+- **Finished work awaiting its release stays in Doing** — web with `AWAITING-DEPLOY: <sha>`
+  (*Deploying is part of finishing*), iOS/Mac with `**Awaiting build:**`.
+  A board may add the optional **Testing** preset column ("Deploying, in canary, or in an
+  experiment"); an agent MAY move finished work there, and the default is to stay in Doing.
 
-The sweep is a feature of `scripts/ready-tasks.ts` (OAuth API, never the DB), not of the MCP
-queue: `npx tsx scripts/ready-tasks.ts <web|ios> --harness <current-harness>` runs it
-(`github-copilot` for Copilot, `claude-code` for Claude Code), and
-`--dry-run` prints every move it would make without writing anything. Run it at the top of a
-loop when the board looks stale; the MCP `get_agent_queue` call is still how the work is read.
-GitHub Actions consumes the authoritative machine form,
-`scripts/ready-tasks.ts <web|ios> --json --harness <selector> [--dry-run]`, whose stdout is
-`{"version":1,"tasks":[{"id":"<uuid>","action":"ready"},{"id":"<uuid>",
-"action":"recheck|review","commentWatermark":"<ISO timestamp|null>"}]}`. Task titles are
-excluded so presentation text can never become an executable task ID. A worker must atomically
-revalidate the action, board, status, due state, completion, assignee, and waiting-comment
-watermark before claiming; a stale queue entry is skipped, never reassigned.
+`scripts/ready-tasks.ts` is read-only, for debugging the queue:
+`npx tsx scripts/ready-tasks.ts <web|ios> --harness <current-harness> [--list <boardId>]`
+lists what queues and what sits in Doing and Waiting. Its machine form
+(`--json`) is `{"version":1,"tasks":[{"id":"<uuid>","action":"ready"}]}`; task titles are
+excluded so presentation text can never become an executable task ID.
 
-### A task with a date waits for its date — in Waiting
+### A task with a date waits for its date
 
-**Explicit list IDs take precedence over board-name lookup.** Pass
-`--list <boardId>` to `ready-tasks.ts` when a launcher knows its board, and use
-that same ID for queue reads, claims, recovery and wake acknowledgement. A
-duplicate board name is an error, never a reason to select the first match.
+**Explicit list IDs take precedence over board-name lookup.** Pass `--list <boardId>` when a
+launcher knows its board, and use that same ID for queue reads, claims, recovery and wake
+acknowledgement. A duplicate board name is an error, never a reason to select the first match.
 
 Jon, 2026-08-19: *"If a task has a date don't start until the date or time of the task.
 Therefore we can have fixall respond to recurring tasks and track them in Astrid."*
 
 **This is how recurring work runs.** Completing a repeating task rolls it forward to its next
-occurrence — `RepeatingTaskCalculator` already does that — the sweep parks it in Waiting, and
-promotes it back to Ready the run after its date arrives. So a recurring chore leaves the
-queue when it is finished and comes back by itself when it is due. The schedule lives in
-Astrid, where Jon can see and change it from his phone, rather than in a cron file or in this
-document. To make something recurring, give the task a date and a repeat in Astrid.
+occurrence, the server holds it in Waiting until that date, and wakes it to Ready when the date
+arrives. The schedule lives in Astrid, where Jon can see and change it from his phone, rather
+than in a cron file or in this document. To make something recurring, give the task a date and
+a repeat in Astrid.
 
-**Finish an occurrence by completing it — never by editing its date.** Post the week's
-report, then `update_task { taskId, completed: true }`. The server moves the date by the
-task's own repeat rule and, for a task assigned to an agent, takes it out of Doing; the sweep
-parks it in Waiting until then. Until 2026-11-04 runs edited the date by hand instead, which
-is how a recheck landed on the wrong week (AWTD-540) and how a finished run was left in Doing
-and then released as "ended before finishing it" (AWTD-914, 2026-10-30). The stuck-Doing
-backstop now parks such a task until its date instead of releasing it, but completing it is
-the one step that gets the date, the lane and the occurrence count right together. A
-`BLOCKED-ON` recheck is not a repeat: moving its recheck date by hand stays correct there.
+**Finish an occurrence by completing it — never by editing its date.** Post the week's report,
+then `update_task { taskId, completed: true }`. The server moves the date by the task's own
+repeat rule and takes it out of Doing. Editing the date by hand is how a recheck landed on the
+wrong week (AWTD-540) and how a finished run was left in Doing and then released as "ended
+before finishing it" (AWTD-914, 2026-10-30).
 
 - **No date** → workable now. That is every task the loop took before this existed.
 - **All-day** → workable from the start of its day, since an all-day task carries midnight.
@@ -211,34 +197,18 @@ the one step that gets the date, the lane and the occurrence count right togethe
 If the queue is empty but something is parked, the script says when the next one comes due —
 a quiet run and a finished one are different things.
 
-### Waiting carries its condition, machine-readably
+### Waiting carries its condition — a date or a task
 
-Every Waiting task this loop owns must say WHAT it is waiting for, in a form the queue script
-can re-check on every run. Three kinds of condition, three mechanisms:
+| Waiting on… | How it is recorded |
+|---|---|
+| **a date** | the task's own due date, in the future |
+| **another task** | a real **blocker** — `TaskDependency` (AWTD-1002), set in the app, by MCP `add_blocker { taskId, blockingTaskId }`, by `POST /api/v1/tasks/:id/blockers` (identifiers like `AWTD-1007` accepted), or in the same write as the move |
+| **an external event** (a dependency release, a vendor fix, a client rollout) | **a recheck date.** Explain the event in a comment; the date is the machine condition. When the server wakes the task to Ready, the run re-verifies the event: met → work it; not met → move it back to Waiting with the next recheck date |
+| **a person** | not Waiting — hand it back to the Inbox (below) |
 
-| Waiting on… | How it is recorded | Who re-checks it |
-|---|---|---|
-| **a date** | the task's own due date | the script — promotes to Ready when due |
-| **another task** | the task's own **blockers** — `TaskDependency` rows (AWTD-1002), set in the app, by MCP `add_blocker { taskId, blockingTaskId }` / `remove_blocker`, or by `POST /api/v1/tasks/:id/blockers` (identifiers like `AWTD-1007` accepted, AWTD-1086) — unioned with a comment line `BLOCKED-BY: <task-id>` (repeatable), which stays the fallback for a harness that cannot call either. Prefer the real blocker: it moves Ready → Waiting itself and shows as "Waiting on" in both apps | the script — promotes when every blocker is complete |
-| **an external event** (a dependency release, a vendor fix, a client rollout) | a comment line `BLOCKED-ON: <one-line condition>` **plus a recheck due date** | the agent — the script surfaces it under `RECHECK` when the date arrives |
-| **its own deploy** (web: finished work a scheduled run cannot ship itself) | a comment line `AWAITING-DEPLOY: <commit sha>` (AWTD-1278) | the runner — `land-and-deploy.ts` marks it complete once production serves that commit; the sweep lists it, never as `REVIEW` |
-
-The **latest marker-bearing comment wins wholesale** — to change the conditions, post a new
-comment with the new markers (or none of the blocking kind). Do not edit old comments.
-
-External conditions never auto-promote: the script cannot know whether npm shipped a package,
-so when the recheck date arrives the task appears under `RECHECK (n)` with its condition, and
-the agent re-verifies it that run — condition met → move it to `Ready` (or just work it);
-still blocked → post what was checked and **bump the due date** to the next sensible recheck,
-and it goes quiet again. That date is the efficiency lever: zero attention spent between
-rechecks, guaranteed attention when one is due.
-
-A Waiting task with **no date, no `BLOCKED-BY`, and no `BLOCKED-ON`** will never wake up on
-its own. The script lists these under `REVIEW (n)` and the agent triages each one, every run,
-until the section is empty: give it the condition it is actually waiting on, or hand it back
-to Jon (assign + a question) if only he knows. `RECHECK` and `REVIEW` are WORK the run must
-do, not information — `READY_EMPTY` with a non-empty `RECHECK`/`REVIEW` section is not a
-finished run.
+`BLOCKED-BY:` and `BLOCKED-ON:` comment lines are no longer conditions: the server reads only
+the due date and the blocker rows. A task that is waiting on nothing the server can see is not
+in Waiting.
 
 ---
 
@@ -274,8 +244,9 @@ because the GitHub Actions worker calls this with positional arguments only and 
 default has to keep meaning what it always did. A Claude Code loop that omits it hands
 its own work to a different harness.
 
-`set-task-status.ts` remains the right tool for the OTHER transitions below — moving a
-task to `Waiting`, or handing it back. It is only the *claim* that has to be atomic.
+`set-task-status.ts` (moving a task to `Waiting`) and `assign-task.ts --handback` (handing it
+back) are the tools for the OTHER transitions below. It is only the *claim* that has to be
+atomic.
 
 **Both of them take `--agent <mailbox>` too** (AWTD-1311). A status change and an
 assignment each emit an activity line naming the actor, and client-credentials auth
@@ -285,28 +256,30 @@ reassigned from Unassigned to Jon Paris"* for a handback the loop made. That row
 `CLAUDE_AGENT_ID`, which was the same bug one layer along: `.env.local` sets it on every
 machine that runs the Claude loop, so a *Copilot* handback was recorded as Claude's.
 
-**Blocked → move it to `Waiting`, and record the RIGHT condition** (see *Waiting carries its
-condition* above). Who keeps the task depends on who can lift the block:
+**Blocked → name what unblocks it.** Who can lift the block decides where the task goes:
 
-- **Only Jon can lift it** (a product decision, an account credential): assign to him AND move
-  to `Waiting` — both, not one. Assigning alone leaves it in Doing, which reads as
-  in-progress; moving alone leaves it assigned to the agent, which reads as still yours. Then
-  say on the task what decision you need.
+- **Only a person can lift it** (a product decision, an account credential): **hand it back**
+  — Inbox, assigned to them, with the question on the task (*A human reply resumes an
+  explicit handback*, below). One call does both:
 
   ```bash
-  npx tsx scripts/assign-task.ts <taskId> jonparis@gmail.com --agent <mailbox>
-  npx tsx scripts/set-task-status.ts <taskId> Waiting --agent <mailbox>
+  npx tsx scripts/assign-task.ts <taskId> jonparis@gmail.com --handback --agent <mailbox>
   ```
 
-- **Time, another task, or an external event can lift it**: KEEP the assignment, move to
-  `Waiting`, and record the machine-readable condition — `add_blocker` (or `BLOCKED-BY: <task-id>`), or
-  `BLOCKED-ON: <condition>` with a recheck due date, or just the date. The loop now owns the
-  recheck; Jon owns nothing he didn't ask for.
+- **Time, another task, or an external event can lift it**: move it to `Waiting` with the
+  condition **in the same call**. It is unassigned on the way in, so whichever loop is free
+  takes it when it wakes; pass `--keep-assignee` to keep it yours.
 
-A task in `Waiting` with no condition and no question on it is just a task nobody is working.
-The point of `Waiting` is that a re-run stops re-reading it — a blocked task left in Ready is
-re-examined every fifteen minutes forever and reported as blocked every time, which is the
-no-op loop this workflow exists to avoid.
+  ```bash
+  npx tsx scripts/set-task-status.ts <taskId> Waiting --blocked-by <task id|AWTD-1234> --agent <mailbox>
+  npx tsx scripts/set-task-status.ts <taskId> Waiting --until <ISO date> --agent <mailbox>
+  ```
+
+  Without `--until` or `--blocked-by` the script refuses, as the server would.
+
+The point of `Waiting` is that a re-run stops re-reading a task until something has changed —
+a blocked task left in Ready is re-examined every fifteen minutes forever and reported as
+blocked every time, which is the no-op loop this workflow exists to avoid.
 
 **Use `set-task-status.ts`, never `move-task-to-list.ts`.** Status is a SECOND membership
 alongside the board, and `PUT` replaces the whole `listIds` set — so `move-task-to-list.ts`,
@@ -409,8 +382,7 @@ report and release as usual, then end the run.
 watchdog for it. **Never take a task listed in `ASTRID_FIXALL_DEFER_TASKS`** (comma-separated
 ids): it is flagged `LONG-RUN`, this run has only the ordinary watchdog, and it will start in
 the long-run window instead. Leave it in Ready, without comment. (*Tasks longer than one run*,
-below.) Answering the inbox and clearing `RECHECK` /
-`REVIEW` do not count toward the limit. Unset (an interactive `/fixall`), drive the queue to
+below.) Answering the inbox does not count toward the limit. Unset (an interactive `/fixall`), drive the queue to
 empty.
 
 The scheduled runners (`astrid-web/scripts/fixall-loop.sh`, `astrid-ios/scripts/fixall-loop.sh`)
@@ -461,13 +433,15 @@ The iOS runner does not read the flag yet.
 
 ## Doing must not be a dead end
 
-A claim moves a task Ready → `Doing`, and every way this workflow ends a task moves it on:
-completed, parked in `Waiting`, or handed back. **So an agent's task still in `Doing` after its
-session is gone was abandoned mid-task**, and before 2026-09-28 nothing ever moved it. The queue
-never takes `Doing`, so AWTD-1007, 1024 and 1025 sat there with their work on pushed branches
-while every tick reported "not in Ready".
+A claim moves a task Ready → `Doing`, and every way this workflow ends a task moves it on —
+completed, moved to Waiting on a date or a task, or handed back to the Inbox — **except
+finished work awaiting its deploy, which stays in Doing on purpose** with a current
+`AWAITING-DEPLOY:` marker (or `**Awaiting build:**` on iOS). Any other agent task still in
+`Doing` after its session is gone was abandoned mid-task. Before 2026-09-28 nothing moved
+these: AWTD-1007, 1024 and 1025 sat there with their work on pushed branches while every tick
+reported "not in Ready".
 
-The scheduled runners release these themselves, via `scripts/release-stuck-doing.ts`:
+The scheduled runners release them via `scripts/release-stuck-doing.ts`:
 
 - **After every run**, exactly: `claim-fixall-task.ts` records each Ready or resume claim in
   `$ASTRID_FIXALL_CLAIMS_FILE`, and anything the run claimed that is still in `Doing` goes back
@@ -476,30 +450,39 @@ The scheduled runners release these themselves, via `scripts/release-stuck-doing
   no activity (task update or comment) for `FIXALL_STALE_DOING_MINUTES` (default 180, well past
   the watchdog) — an interactive session that died, or anything older than this rule.
 
+Both skip a task whose latest marker is a current `AWAITING-DEPLOY:` / `**Awaiting build:**`
+(newer than its last completion and last release).
+
 A release **keeps the agent assignment** and comments with the branch that carries the task's
 id, so the next run resumes from that work instead of starting over. It searches **every
 checkout the board's workflow can touch** — for the Windows board, astrid-windows and the
 astrid-core checkout beside it — and names a found branch with its repo; when it finds none it
-says which checkouts it looked in, not that the task starts fresh (AWTD-1510). **The second release
-hands the task back** to its human creator in `Waiting` rather than retrying it again — the same
-"fails twice, stop" rule as below.
+says which checkouts it looked in (AWTD-1510). **The second release hands the task back** to
+its human creator in the Inbox rather than retrying it again — the same "fails twice, stop"
+rule as below.
 
-**A repeating task whose date has already moved past now is not released.** The queue only
-hands out a task once it is due, so such a task finished its occurrence and was left in
-`Doing`. It is parked in `Waiting` until its date with the sweep's usual 📅 comment, and that
-park never counts as a release (AWTD-914, 2026-10-30).
+**A repeating task whose date has already moved past now is not released.** It finished its
+occurrence and was left in `Doing`, so it is moved to Waiting until its date — the date is its
+condition — and that move never counts as a release (AWTD-914, 2026-10-30).
 
 **So, while you work a task: comment as you go.** A claim with no activity for three hours
-reads as abandoned. And never finish a turn with a task you claimed still in `Doing`: complete
-it, park it, or hand it back.
+reads as abandoned. And never finish a turn with a task you claimed still in `Doing`, unless it
+is finished and carries its `AWAITING-DEPLOY:` marker: complete it, move it to Waiting with its
+condition, or hand it back.
 
 ## After every task, re-check the queue AND the inbox
 
 ### A human reply resumes an explicit handback
 
-When asking a person a question, end the **agent-authored question comment**
-with an exact line `AGENT-HANDBACK: <mailbox>` (`claude`, `copilot` or `codex`).
-Then assign the task to the human and move it to Waiting as described above.
+Waiting on a person to act on a task is not Waiting: it is the **Inbox** (no status),
+**assigned to that person** — astrid-core's `handBack`. When asking a person a question, end the
+**agent-authored question comment** with an exact line `AGENT-HANDBACK: <mailbox>` (`claude`,
+`copilot` or `codex`), then hand it back in one call:
+
+```bash
+npx tsx scripts/assign-task.ts <taskId> <their email> --handback --agent <mailbox>
+```
+
 The human can answer on that task without reassigning it.
 
 **Write the question in the Decision format** ([DECISIONS.md](./DECISIONS.md), the full guide): a bold
@@ -509,8 +492,8 @@ resumes you (a reply in the old letter form still counts). When weighing options
 in the same comment. Keep the `AGENT-HANDBACK: <mailbox>` line last.
 
 On a named board, `attention.tasks[].resume` appears only when the **current human
-assignee** has replied after the question, the task is incomplete and still
-Waiting, and the latest agent comment is the marked question from this mailbox.
+assignee** has replied after the question, the task is incomplete and still in the
+Inbox, and the latest agent comment is the marked question from this mailbox.
 System activity does not swallow a reply. Another agent's marker, a quoted
 marker, a bystander's comment and unrelated human tasks do not qualify.
 
@@ -531,7 +514,7 @@ platform between discovery and the atomic update. Legacy callers may omit the
 optional field, but new launchers must not.
 
 This claim revalidates board, state, due date, human assignment, marker author,
-reply ID and comment watermark, then atomically moves Waiting → Doing and assigns
+reply ID and comment watermark, then atomically moves Inbox → Doing and assigns
 the agent. A stale or concurrent claim returns `CLAIM_CONFLICT` (exit 2); reread
 instead of overriding it. The original Ready claim remains the explicit start
 signal; this is continuation of that handed-back work, not a new queue of human
@@ -542,15 +525,16 @@ explicit human approval requirements.
 ### Launcher preflight and acknowledgement
 
 `agent-queue-status.ts --agent <mailbox> --board <platform> --list <boardId>
---include-unassigned --require-polling --no-write-seen --seen <durable-file>`
-checks activation before mutating lanes. An API/webhook/off mode is an error,
+`--include-unassigned --require-polling --no-write-seen --seen <durable-file>`
+checks activation before any claim. An API/webhook/off mode is an error,
 not an idle queue: otherwise the worker would race the hosted dispatcher.
 Unread list chat is reported explicitly; task replies do not require `chat:read`.
 
 Exit 0 means work; exit 3 means idle; any other exit means an error.
 `KEYS: <JSON string[]>` remains the backward-compatible acknowledgement contract.
 `--output <file>` also writes a version-1 preflight artifact with `listId`,
-`work`, `reason`, `wakeKeys`, `snapshot` and `lanes`; `--json` remains the raw
+`work`, `reason`, `wakeKeys`, `snapshot` and `lanes` (always `[]` now — the
+server settles Waiting); `--json` remains the raw
 endpoint/debug view. Do not parse human task titles as commands.
 
 After success, acknowledge the **original** keys with `--mark-seen`; after failure,
@@ -598,8 +582,7 @@ ANY state, completed included — whose newest authored comment is from a human.
 that already reads the queue, so a quiet tick still costs one HTTP request.
 
 The scheduled runner (`scripts/fixall-loop.sh`) reads that same call *before* starting a session
-— through its queue-status guard, which also runs the lane sweep — and starts one only for a
-Ready task, a new inbox item, or RECHECK/REVIEW work. An inbox item wakes **one** run:
+— through its queue-status guard — and starts one only for a Ready task or a new inbox item. An inbox item wakes **one** run:
 if that run chooses not to answer it, the same comment never wakes another, a new comment does.
 So an idle board costs no tokens at all, and an unanswered "thanks" cannot become a session
 every half hour.
@@ -646,8 +629,8 @@ parentheses — still renders as a tappable link to that task, so name tasks by 
 way through to them.
 
 **Anything needing a DECISION escalates to a person, and there is only one path that reaches
-one.** Assign the task to Jon AND post the question as a comment on it — both, for the reason
-the Waiting section already gives, and because `fanOutComment` in `lib/notifications.ts`
+one.** Hand the task back to Jon (Inbox, assigned to him) AND post the question as a comment on
+it — both, because `fanOutComment` in `lib/notifications.ts`
 notifies the assignee, the creator and the participants, while a list-chat message notifies
 nobody who was not mentioned. A decision left in the run summary reaches no one.
 
@@ -761,19 +744,21 @@ green and the branch is pushed, the session:
 1. Ends its completion report (`add_comment`) with a line of its own:
    `AWAITING-DEPLOY: <git rev-parse HEAD of the pushed branch>`. Without a commit sha the
    line is not a marker.
-2. Moves the task to **Waiting**: `npx tsx scripts/set-task-status.ts <taskId> Waiting --agent <mailbox>`.
-   Leave it there and **do not** mark it complete. A task left in `Doing` is released back to
-   Ready at the end of the run and gets worked again.
+2. **Leaves the task in Doing**, assigned to itself, and **does not** mark it complete. The
+   release at the end of the run skips a Doing task whose latest marker is a current
+   `AWAITING-DEPLOY:`. If the board has the optional Testing column, the session MAY move it
+   there instead; it is never Waiting, which holds only date and task waits.
 
 **A task whose fix already merged** (an earlier PR, nothing left to write) needs no branch.
-The marker names the `origin/main` commit that contains the fix and the task goes to Waiting
-as above. `open-fixall-prs.ts` accepts a marker on `main` without a branch, and the run reports
+The marker names the `origin/main` commit that contains the fix and the task stays in Doing as
+above. `open-fixall-prs.ts` accepts a marker on `main` without a branch, and the run reports
 `RESULT: OK`: the work is handed off, so PARTIAL would turn the run red for nothing (2026-11-09).
 
 The runner then opens the PR, lands it once its checks are green, and deploys `main`. On every
 tick `land-and-deploy.ts` asks `/api/health` which commit production serves, and it completes
-each `AWAITING-DEPLOY` task whose sha is an ancestor of that commit, with a comment naming it.
-A deploy dispatched by hand counts too. A failed deploy completes nothing. A pending migration
-on `main` holds every one of these tasks in Waiting until Jon ships the migration: that is the
-rule working, not the loop stuck. A squash merge drops the recorded sha, so such a task never
-matches and stays in Waiting. Land these PRs with a merge commit (the runner always does).
+each Doing (or Testing) task with an `AWAITING-DEPLOY` marker whose sha is an ancestor of that
+commit, with a comment naming it. A deploy dispatched by hand counts too. A failed deploy
+completes nothing. A pending migration on `main` holds every one of these tasks in Doing until
+Jon ships the migration: that is the rule working, not the loop stuck. A squash merge drops the
+recorded sha, so such a task never matches and stays in Doing. Land these PRs with a merge
+commit (the runner always does).
