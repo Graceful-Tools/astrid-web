@@ -15,18 +15,10 @@
  * served unresized and the browser scales it, which is a worse icon, not a missing one.
  */
 import { readFile } from 'node:fs/promises'
-import { join, normalize } from 'node:path'
 import { NextResponse } from 'next/server'
 import { BRAND } from '@/lib/brand/config'
 import { astridFileForGenerated, hasCustomBrandIcon, parseGeneratedIconFile } from '@/lib/brand/icons'
-
-const PUBLIC_DIR = join(process.cwd(), 'public')
-
-/** A path under public/, refusing anything that climbs out of it. */
-function publicFile(urlPath: string): string | null {
-  const resolved = normalize(join(PUBLIC_DIR, urlPath))
-  return resolved.startsWith(PUBLIC_DIR + '/') ? resolved : null
-}
+import { brandAssetFile } from '@/lib/brand/asset-files'
 
 function png(body: Buffer): NextResponse {
   return new NextResponse(new Uint8Array(body), {
@@ -43,7 +35,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ fil
   const request = parseGeneratedIconFile(file)
   if (!request) return new NextResponse('Not found', { status: 404 })
 
-  const sourcePath = publicFile(hasCustomBrandIcon() ? BRAND.icon : astridFileForGenerated(request))
+  // public/, or BRAND_ASSETS_DIR for a /brand-assets/ icon mounted beside the profile.
+  const sourcePath = brandAssetFile(hasCustomBrandIcon() ? BRAND.icon : astridFileForGenerated(request))
   if (!sourcePath) return new NextResponse('Not found', { status: 404 })
 
   let source: Buffer

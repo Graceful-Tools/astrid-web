@@ -8,6 +8,9 @@ import { getMessages, setRequestLocale } from 'next-intl/server'
 import { routing } from '@/lib/i18n/routing'
 import { BRAND, brandOrigin } from '@/lib/brand/config'
 import { brandIconUrl, brandMetadataIcons } from '@/lib/brand/icons'
+import { BrandEnvScript } from '@/lib/brand/client-env'
+import { isRuntimeBrandBuild } from '@/lib/brand/runtime-env'
+import { connection } from 'next/server'
 import { brandAccentCssVars } from '@/lib/brand/css-vars'
 import "../globals.css"
 // These four used to be `@import` rules at the BOTTOM of globals.css. That is invalid CSS —
@@ -104,6 +107,12 @@ export function generateStaticParams() {
 export default async function LocaleLayout({ children, params }: Props) {
   const { locale } = await params
 
+  // An image that takes its brand at runtime (the self-hosted image, AWTD-1587) cannot
+  // prerender: a static page would carry the brand of the build. Hosted Astrid is not
+  // such a build, so its pages stay static.
+  const runtimeBrand = isRuntimeBrandBuild()
+  if (runtimeBrand) await connection()
+
   // Enable static rendering
   setRequestLocale(locale)
 
@@ -124,6 +133,7 @@ export default async function LocaleLayout({ children, params }: Props) {
       style={brandCssVars()}
     >
       <head>
+        {runtimeBrand && <BrandEnvScript />}
         <link rel="apple-touch-icon" href={brandIconUrl({ kind: "apple-touch" })} />
         <link rel="apple-touch-icon" sizes="180x180" href={brandIconUrl({ kind: "apple-touch" })} />
         <meta name="mobile-web-app-capable" content="yes" />
