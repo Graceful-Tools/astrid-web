@@ -111,8 +111,8 @@ const RULES: Rule[] = [
   },
   {
     id: "hardcoded-brand-literal",
-    description: "Hardcoded brand literal (\"Astrid\" / astrid.cc) in UI code",
-    fix: "Use lib/brand/config.ts — BRAND.appName, BRAND.domain, BRAND.agentEmailDomain, BRAND.supportEmail, BRAND.inboundTaskEmail — or an i18n key with an {appName} token.",
+    description: "Hardcoded brand literal (\"Astrid\" / astrid.cc / Graceful Tools) in UI code",
+    fix: "Use lib/brand/config.ts — BRAND.appName, BRAND.domain, BRAND.agentEmailDomain, BRAND.supportEmail, BRAND.inboundTaskEmail, BRAND.operatorName — or an i18n key with an {appName} token.",
     // Word-boundary "Astrid" so identifiers (AstridEmptyState, astridPhrase) and the
     // `astrid-signed` wire value are not flagged; plus the bare domain. Task 97208a72.
     //
@@ -124,7 +124,13 @@ const RULES: Rule[] = [
     // and the astrid-signed wire value would all trip it — which is exactly why
     // `<h1>astrid</h1>` survived every earlier sweep and shipped on the Acme sign-in
     // page. Matching it as a standalone JSX text node keeps identifiers exempt.
-    pattern: String.raw`\bAstrid\b|astrid\.cc|/[a-z/]*astrid-[a-z0-9-]*\.(png|jpg|jpeg|svg|webp|ico)|>[[:space:]]*astrid[[:space:]]*<|Get it done!`,
+    //
+    // Also the operator: "Graceful Tools" and gracefultools.com (AWTD-1584). Every legal
+    // page named Graceful Tools LLC as the operator on every deployment, and none of the
+    // patterns above could see it. BRAND.operatorName is its home. The npm scope
+    // `@gracefultools/` is a published package identity (see excludeDirs below) and has
+    // no `.com`, so it does not match.
+    pattern: String.raw`\bAstrid\b|astrid\.cc|/[a-z/]*astrid-[a-z0-9-]*\.(png|jpg|jpeg|svg|webp|ico)|>[[:space:]]*astrid[[:space:]]*<|Get it done!|Graceful Tools|gracefultools\.com`,
     globs: ALL_ROOTS,
     // Canonical homes and frozen wire values only:
     //   config.ts / capabilities.ts / agent-emails.ts — where the brand is defined
