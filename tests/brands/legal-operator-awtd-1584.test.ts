@@ -86,3 +86,21 @@ describe('an operator’s own terms and privacy pages (AWTD-1584)', () => {
     vi.doUnmock('next/navigation')
   })
 })
+
+describe('the ChatGPT plugin manifest names the operator’s policy (AWTD-1584)', () => {
+  afterEach(() => {
+    process.env = { ...ORIGINAL }
+    vi.resetModules()
+  })
+
+  it('points legal_info_url at the operator’s page, or ours when none is set', async () => {
+    await brandWith({ NEXT_PUBLIC_BRAND_PRIVACY_URL: 'https://acme.example/privacy' })
+    const { GET } = await import('@/app/.well-known/ai-plugin.json/route')
+    const withUrl = await (await GET()).json()
+    expect(withUrl.legal_info_url).toBe('https://acme.example/privacy')
+
+    await brandWith({})
+    const { GET: plain } = await import('@/app/.well-known/ai-plugin.json/route')
+    expect((await (await plain()).json()).legal_info_url).toMatch(/\/privacy$/)
+  })
+})
