@@ -74,7 +74,9 @@ Refer to tasks by **title** in every report; Jon does not read task ids.
           manifests in the UI, add a Playwright spec under `e2e/` too.
      2. Implement the minimum code change to make the test pass.
      3. Refactor while tests stay green.
-   - Run `npm run predeploy` to verify
+   - Run `npm run predeploy` to verify (it includes `npm run check:reuse` and
+     `npm run check:design`; run those two alone while iterating — the design count never
+     rises, and a change that lowers it lowers its budget with `npm run design:metrics -- --update`)
    - Fix any regressions
    - Deploy preview: `./scripts/deploy-preview.sh`
    - Post preview link and fix summary comment to the task

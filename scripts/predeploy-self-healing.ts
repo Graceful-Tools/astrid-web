@@ -326,6 +326,18 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
       autoFixable: false,
     },
     {
+      // The design ratchet (docs/specs/DESIGN_SYSTEM.md → The ratchet, AWTD-1575):
+      // palette classes, hex/rgb colours, inline styles, arbitrary sizes, durations and
+      // JSX copy may not rise above tests/rules/design-metrics.budget.json. Vitest runs
+      // the same check, but there a regression is one failure among 3000 and a red Vitest
+      // gate is routinely read as a load flake; as its own step it is named in a second.
+      // Not auto-fixed: each hit wants a token, theme class or i18n key.
+      name: 'Design Consistency',
+      command: 'npm run check:design',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
+      autoFixable: false,
+    },
+    {
       name: 'Model Sync',
       command: 'npm run check:model-sync',
       timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,

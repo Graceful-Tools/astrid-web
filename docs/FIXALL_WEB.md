@@ -182,7 +182,8 @@ finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has t
   here at once — one created a branch, moving `HEAD` while the other had six files
   uncommitted, and both wrote the same fix for AWTD-865. **Never run `git checkout` or
   `git checkout -b` in a tree you did not lock.**
-- **Gates:** `npm run predeploy`, plus `npm run check:reuse`.
+- **Gates:** `npm run predeploy`, plus `npm run check:reuse` and `npm run check:design` (the
+  design ratchet: no count rises; lower a budget when your change lowers its count).
 - **A red predeploy files its own Astrid task.** If it was your own mid-refactor breakage,
   close that task with a one-line explanation rather than leaving a false alarm on the board.
 - **If a task is blocked by something outside the repo**, say what unblocks it
