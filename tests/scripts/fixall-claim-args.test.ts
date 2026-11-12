@@ -41,9 +41,9 @@ describe('parseClaimArgs (AWTD-922)', () => {
   })
 
   it('keeps BOTH a real watermark and the agent, flag last', () => {
-    expect(parseClaimArgs([TASK, 'recheck', ISO, '--agent', 'codex'])).toEqual({
+    expect(parseClaimArgs([TASK, 'resume', ISO, '--agent', 'codex'])).toEqual({
       taskId: TASK,
-      action: 'recheck',
+      action: 'resume',
       commentWatermark: ISO,
       agent: 'codex',
     })
@@ -51,9 +51,9 @@ describe('parseClaimArgs (AWTD-922)', () => {
 
   it('keeps both regardless of flag position — order must not decide the outcome', () => {
     // The old parse was order-dependent: whichever non-flag token landed third won.
-    expect(parseClaimArgs([TASK, '--agent', 'codex', 'recheck', ISO])).toEqual({
+    expect(parseClaimArgs([TASK, '--agent', 'codex', 'resume', ISO])).toEqual({
       taskId: TASK,
-      action: 'recheck',
+      action: 'resume',
       commentWatermark: ISO,
       agent: 'codex',
     })
@@ -61,9 +61,9 @@ describe('parseClaimArgs (AWTD-922)', () => {
 
   describe('the CI contract (.github/workflows/fixall.yml) is unchanged', () => {
     it('three positionals and no flag default the agent to copilot', () => {
-      expect(parseClaimArgs([TASK, 'recheck', ISO])).toEqual({
+      expect(parseClaimArgs([TASK, 'resume', ISO])).toEqual({
         taskId: TASK,
-        action: 'recheck',
+        action: 'resume',
         commentWatermark: ISO,
         agent: undefined,
       })

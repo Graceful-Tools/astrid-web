@@ -523,12 +523,13 @@ async function buildAttention({
 
   const messages = await unansweredChatMessages({ agentId, listId, includeChat, skipped })
 
-  // A handback remains assigned to the human until an atomic resume claim.
+  // A handback sits in the Inbox (no status), assigned to the human, until an
+  // atomic resume claim (R4: waiting on a person is not Waiting).
   // Only a named board is read; public visibility alone does not widen this inbox.
   const handbacks = listId ? await prisma.task.findMany({
     where: {
       completed: false,
-      statusRole: 'waiting',
+      statusRole: null,
       assignee: { isAIAgent: false },
       lists: listScope,
       comments: { some: { authorId: agentId, content: { contains: `AGENT-HANDBACK: ${mailbox}` } } },

@@ -35,8 +35,7 @@
  */
 
 import { execFileSync } from 'child_process'
-import { parseBlockedConditions } from '@/lib/ready-queue-scope'
-import { WAITING_STATUS_ROLE } from '@/lib/task-status'
+import { isAwaitingDeployLane, parseBlockedConditions } from '@/lib/ready-queue-scope'
 import { resolveAgentAuthorId } from './lib/agent-author'
 import { agentMailboxFromEmail } from '@/lib/brand/agent-emails'
 import { cloudHandoffEligible } from './lib/cloud-handoff'
@@ -153,8 +152,8 @@ async function servingSha(): Promise<string | null> {
 /**
  * Complete the board's tasks whose deploy production now serves (AWTD-1278).
  *
- * Done means deployed, so a scheduled run leaves finished work incomplete in
- * Waiting with `AWAITING-DEPLOY: <sha>`. This runs every tick, not only after a
+ * Done means deployed, so a run leaves finished work incomplete in Doing (or a
+ * board's optional Testing column) with `AWAITING-DEPLOY: <sha>` (R6). This runs every tick, not only after a
  * deploy this tick made: a deploy dispatched by hand finishes them too, and one
  * that failed finishes nothing, because the question is put to production.
  * Best effort — a failure here leaves the task waiting for the next tick.
@@ -184,12 +183,12 @@ async function completeDeployedTasks(listId: string): Promise<string[]> {
   }
   const boardBody = (await boardResponse.json()) as { tasks?: unknown } | unknown[]
   const listed = (Array.isArray(boardBody) ? boardBody : (boardBody as { tasks?: unknown }).tasks) ?? []
-  const waiting = (listed as Array<{ id: string; identifier?: string | null; statusRole?: string | null; completed?: boolean;
+  const finished = (listed as Array<{ id: string; identifier?: string | null; statusRole?: string | null; completed?: boolean;
     assignee?: { email?: string | null } | null }>)
-    .filter(task => !task.completed && (task.statusRole ?? '').trim().toLowerCase() === WAITING_STATUS_ROLE)
+    .filter(isAwaitingDeployLane)
 
   const awaiting: AwaitingDeployTask[] = []
-  for (const task of waiting) {
+  for (const task of finished) {
     const sha = parseBlockedConditions(await api.comments(task)).awaitingDeploy
     if (sha) awaiting.push({ id: task.id, identifier: task.identifier, sha })
   }
@@ -215,7 +214,7 @@ async function completeDeployedTasks(listId: string): Promise<string[]> {
       continue
     }
     // Comment first: a completed task with no word on why is the worse failure.
-    const original = waiting.find(row => row.id === task.id)
+    const original = finished.find(row => row.id === task.id)
     const mailbox = agentMailboxFromEmail(original?.assignee?.email ?? '')
     if (!mailbox) throw new Error(`Awaiting-deploy task ${name} has no agent assignee; refusing incorrect attribution`)
     const authorId = await resolveAgentAuthorId({ mailbox, accessToken: token, warn: log })

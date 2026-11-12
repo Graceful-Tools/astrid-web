@@ -2,9 +2,11 @@
  * Getting a task OUT of Doing when the session that claimed it is gone.
  *
  * A /fixall run moves a task Ready → Doing when it claims it, and every way the
- * workflow ends a task moves it on again: completed, parked in Waiting, or handed
- * back. So a claimed task still in Doing after its run is a run that died or
- * stopped mid-task — and nothing ever looked at Doing, so it sat there. On
+ * workflow ends a task moves it on again — completed, parked in Waiting on a date
+ * or a task, or handed back to the Inbox — except finished work awaiting its
+ * deploy, which stays in Doing with a current `AWAITING-DEPLOY:` marker (R6) and
+ * is skipped here. So any other claimed task still in Doing after its run is a run
+ * that died or stopped mid-task — and nothing ever looked at Doing, so it sat there. On
  * 2026-09-28 three did (AWTD-1007, AWTD-1024, AWTD-1025), each with its work
  * saved on a pushed branch, while the queue reported "not in Ready" every tick.
  *
@@ -18,7 +20,8 @@
  * Released → back to Ready, KEEPING the agent assignment, with a comment naming
  * any branch that carries the work — in any checkout the board's workflow can touch
  * (AWTD-1510) — so the next run resumes rather than restarts.
- * Released a SECOND time → handed back to the task's human creator in Waiting:
+ * Released a SECOND time → handed back to the task's human creator, in the Inbox
+ * (astrid-core `handBack`, R4 — waiting on a person is not Waiting):
  * docs/FIXALL_WORKFLOW.md says a task that fails twice stops being retried, and a
  * task that never fits a run would otherwise be claimed and killed forever.
  *
@@ -27,7 +30,13 @@
  */
 
 import { DOING_STATUS_ROLE, READY_STATUS_ROLE, WAITING_STATUS_ROLE } from '@/lib/task-status'
-import { describeSchedule, isDueToStart, latestCommentWatermark, type TimestampedComment } from '@/lib/ready-queue-scope'
+import {
+  describeSchedule,
+  isDueToStart,
+  latestCommentWatermark,
+  parseBlockedConditions,
+  type TimestampedComment,
+} from '@/lib/ready-queue-scope'
 import { agentMailboxFromEmail } from '@/lib/brand/agent-emails'
 
 /** Every release comment starts with this, and counting them is how "twice" is known. */
@@ -61,7 +70,11 @@ export const AWAITING_BUILD = /\*\*Awaiting build:\*\*\s*`[0-9a-f]{7,40}`/i
 
 export interface DoingReleaseApi {
   setStatus(task: { id: string }, statusRole: string): Promise<void>
-  assign(task: { id: string }, userId: string): Promise<void>
+  /**
+   * One write: the Inbox (no status), assigned to `personId` when there is one —
+   * scripts/lib/handback.ts. Null leaves the assignee as it is.
+   */
+  handBack(task: { id: string }, personId: string | null): Promise<void>
   comment(task: { id: string }, content: string): Promise<void>
 }
 
@@ -123,13 +136,37 @@ export function isAbandonedClaim(input: {
  * older one is the fix that missed (reopened) or an earlier attempt's.
  */
 export function isAwaitingBuild(comments: ReleaseComment[]): boolean {
+  return isCurrentMarker(comments, comment => AWAITING_BUILD.test(comment.content ?? ''))
+}
+
+/**
+ * Finished and waiting for its production deploy — done, in Doing, on purpose (R6).
+ *
+ * The web counterpart of `isAwaitingBuild`: the session ends its report with
+ * `AWAITING-DEPLOY: <sha>` and leaves the task in Doing, and land-and-deploy.ts
+ * completes it once production serves that commit. It counts only while it is the
+ * LATEST marker (a newer marker comment replaces it wholesale) and is newer than the
+ * last completion and the last release — an older one is the fix that missed.
+ */
+export function isAwaitingDeploy(comments: ReleaseComment[]): boolean {
+  const latest = parseBlockedConditions(comments.map(comment => ({
+    content: comment.content,
+    createdAt: comment.createdAt instanceof Date ? comment.createdAt.toISOString() : comment.createdAt,
+  }))).awaitingDeploy
+  if (!latest) return false
+  return isCurrentMarker(comments, comment => (comment.content ?? '').toLowerCase().split('\n')
+    .some(line => line.trim().startsWith('awaiting-deploy:') && line.includes(latest)))
+}
+
+/** The newest comment matching `isMarker` is newer than the last completion and the last release. */
+function isCurrentMarker(comments: ReleaseComment[], isMarker: (comment: ReleaseComment) => boolean): boolean {
   const at = (comment: ReleaseComment) => {
     const time = comment.createdAt ? new Date(comment.createdAt).getTime() : NaN
     return Number.isNaN(time) ? 0 : time
   }
   const newest = (match: (comment: ReleaseComment) => boolean) =>
     Math.max(0, ...comments.filter(match).map(at))
-  const marker = newest(comment => AWAITING_BUILD.test(comment.content ?? ''))
+  const marker = newest(isMarker)
   if (marker === 0) return false
   const superseded = newest(
     comment => comment.systemEventType === 'COMPLETED' || (comment.content ?? '').startsWith(RELEASE_MARKER),
@@ -154,10 +191,10 @@ export function isFinishedOccurrence(task: DoingTask, now: Date): boolean {
 }
 
 /**
- * Park a finished occurrence in Waiting until its date, the same way the lane sweep parks a
- * dated Ready task (scripts/ready-tasks.ts), so the sweep promotes it on schedule as usual.
- * Deliberately NOT a release: no RELEASE_MARKER, so it never counts toward the
- * second-release handback.
+ * Park a finished occurrence in Waiting until its date. Its future due date IS the wait
+ * condition (astrid-core waiting rules), so the server accepts the move, unassigns it, and its
+ * settle job returns it to Ready when the date arrives. Deliberately NOT a release: no
+ * RELEASE_MARKER, so it never counts toward the second-release handback.
  */
 export async function parkFinishedOccurrence(input: {
   task: DoingTask
@@ -168,7 +205,7 @@ export async function parkFinishedOccurrence(input: {
   await api.setStatus(task, WAITING_STATUS_ROLE)
   await api.comment(
     task,
-    `📅 Scheduled for ${describeSchedule(task, now)} — parked in Waiting. The loop returns it to Ready when the date arrives. ` +
+    `📅 Scheduled for ${describeSchedule(task, now)} — parked in Waiting. It returns to Ready by itself when the date arrives. ` +
       `(This occurrence was finished and its date moved on, but it was left in Doing; it is not unfinished work.)`,
   )
 }
@@ -269,13 +306,12 @@ export async function releaseDoingClaim(input: {
   if (countReleases(comments) >= 1) {
     const to = handbackTarget(task)
     const mailbox = agentMailboxFromEmail(task.assignee?.email ?? '')
-    if (to) await api.assign(task, to)
-    await api.setStatus(task, WAITING_STATUS_ROLE)
+    await api.handBack(task, to)
     await api.comment(
       task,
       `${RELEASE_MARKER} — for the second time. ${why} A task that fails twice is not retried ` +
         `automatically (docs/FIXALL_WORKFLOW.md), so it is handed back${to ? ' to its creator' : ''} ` +
-        `in Waiting: split it, clarify it, or move it to Ready to try again.${where}` +
+        `in the Inbox: split it, clarify it, or move it to Ready to try again.${where}` +
         (to && mailbox ? `\nAGENT-HANDBACK: ${mailbox}` : ''),
     )
     return { action: 'handback', to }

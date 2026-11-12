@@ -188,7 +188,8 @@ export async function runNativeCopilotBridge(options: {
         ...(resume ? { resume, commentWatermark: resume.commentWatermark } : {}),
         ...(!resume ? { nativeDispatch: { repository: repo, issueNumber: issue.number } } : {}),
       })
-    } else if (task.statusRole !== 'doing' && task.statusRole !== 'waiting') {
+    } else if (task.statusRole !== 'doing' && task.statusRole !== null) {
+      // Doing, or paused to the Inbox (a `pause` claim keeps the agent assigned).
       continue
     }
     if (!issue.assignees.some(row => isCopilot(row.login))) {

@@ -308,20 +308,19 @@ fi
 # THE expensive question, asked the cheap way. Without this a quiet tick still
 # boots a whole session — CLAUDE.md, fixall.md, the MCP tool schemas — to call
 # get_agent_queue once and find `empty: true`. A few HTTP requests answer the
-# same question, and answer ALL of it — three things the run must act on, and
+# same question, and answer ALL of it — two things the run must act on, and
 # until 2026-09-20 this guard checked only the first:
 #
 #   queue  — Ready ∩ (assigned to claude ∪ unassigned) ∩ due (the endpoint's
 #            `empty`; --include-unassigned is the /fixall rule, docs/FIXALL_WORKFLOW.md)
 #   inbox  — `attention`: comments and chat nobody answered (AWTD-963). The
 #            guard skipped past two direct questions from Jon, "nothing queued".
-#   lanes  — `--board web` runs the sweep as claude-code first: parked work
-#            whose date arrived comes back to Ready, and RECHECK/REVIEW items
-#            are work. Before this the sweep ran only INSIDE a session, and a
-#            session needed a non-empty queue to start, so a parked task could
-#            never wake the loop on its own.
 #
-# And it stays cheap in the other direction: an inbox or lane item wakes ONE
+# Waiting is not the loop's: the server's settle job wakes a Waiting task when
+# its date arrives or its blockers finish (astrid-core waiting rules), and it
+# then simply arrives in the queue.
+#
+# And it stays cheap in the other direction: an inbox item wakes ONE
 # run (scripts/agent-queue-status.ts keeps a seen-file), so something the
 # agent chose not to answer cannot start a session every half hour.
 #
@@ -560,8 +559,10 @@ case "$DEPLOY_STATUS" in
   *) echo "  ⚠️  land-and-deploy failed (exit $DEPLOY_STATUS)" ;;
 esac
 
-# A finished task is completed, a blocked one is in Waiting: anything this run
-# claimed that is STILL in Doing was abandoned mid-task. Release it now, after
+# A finished task is completed or left in Doing with AWAITING-DEPLOY (skipped by
+# the release), a blocked one is in Waiting on a date or a task, a question is
+# handed back to the Inbox: anything else this run claimed that is STILL in Doing
+# was abandoned mid-task. Release it now, after
 # the branch above is pushed, so its comment can point at the work.
 # --saved-branch: a wip/ snapshot carries no task id, so name it outright (AWTD-1471).
 "$TSX" scripts/release-stuck-doing.ts --agent claude --claims-file "$CLAIMS_FILE" --repo "$REPO" \

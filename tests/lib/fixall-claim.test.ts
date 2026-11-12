@@ -71,32 +71,6 @@ describe("buildAtomicFixallClaimWhere", () => {
     expect(where.lists.some.id.in).not.toContain("different-board")
   })
 
-  it("rejects a waiting claim if comments changed after classification", () => {
-    const watermark = "2026-08-30T19:00:00.000Z"
-    expect(buildAtomicFixallClaimWhere({
-      taskId: "task-1",
-      agentId: "copilot-1",
-      claim: { action: "recheck", commentWatermark: watermark, agent: DEFAULT_FIXALL_CLAIM_MAILBOX },
-      now,
-    })).toEqual(expect.objectContaining({
-      statusRole: "waiting",
-      AND: [{ OR: [{ dueDateTime: null }, { dueDateTime: { lte: now } }] }],
-      comments: { none: { updatedAt: { gt: new Date(watermark) } } },
-    }))
-  })
-
-  it("keeps null-dated external rechecks eligible like the queue classifier", () => {
-    const where = buildAtomicFixallClaimWhere({
-      taskId: "task-1",
-      agentId: "copilot-1",
-      claim: { action: "recheck", commentWatermark: null, agent: DEFAULT_FIXALL_CLAIM_MAILBOX },
-      now,
-    })
-
-    expect(where).toEqual(expect.objectContaining({
-      AND: [{ OR: [{ dueDateTime: null }, { dueDateTime: { lte: now } }] }],
-    }))
-  })
 })
 
 describe("parseFixallClaimRequest", () => {
@@ -110,7 +84,8 @@ describe("parseFixallClaimRequest", () => {
     expect(where).toMatchObject({ assigneeId: 'copilot', statusRole: 'doing', updatedAt: new Date(version),
       lists: { some: { id: { in: [listId] } } }, comments: { none: { updatedAt: { gt: new Date(version) } } } })
     expect(where).not.toHaveProperty('OR')
-    expect(buildFixallClaimData({ agentId: 'copilot', claim })).toEqual({ assigneeId: 'copilot', statusRole: 'waiting' })
+    // Paused work needs a person to look: the Inbox, never Waiting without a condition.
+    expect(buildFixallClaimData({ agentId: 'copilot', claim })).toEqual({ assigneeId: 'copilot', statusRole: null })
     expect(() => parseFixallClaimRequest({ action: 'pause' })).toThrow(/explicit board/)
   })
   it('pins a selected board so a task moved to another allowed platform cannot be claimed', () => {
@@ -120,7 +95,7 @@ describe("parseFixallClaimRequest", () => {
     expect(where.lists.some.id.in).toEqual([listId])
     expect(() => parseFixallClaimRequest({ action: 'ready', listId: 'unapproved' })).toThrow(/allowed board/)
   })
-  it("requires a watermark for waiting actions and none for ready", () => {
+  it("takes no watermark on a ready claim and refuses the retired Waiting-lane actions", () => {
     expect(parseFixallClaimRequest({ action: "ready" })).toEqual({
       action: "ready",
       commentWatermark: null,
@@ -129,7 +104,9 @@ describe("parseFixallClaimRequest", () => {
     })
     expect(() => parseFixallClaimRequest({ action: "ready", commentWatermark: "2026-08-30T00:00:00Z" }))
       .toThrow(/must not include/)
-    expect(() => parseFixallClaimRequest({ action: "recheck" })).toThrow(/watermark/)
+    // RECHECK/REVIEW belonged to the client-side lane sweep; the server settles Waiting now.
+    expect(() => parseFixallClaimRequest({ action: "recheck" })).toThrow(/ready, resume, or pause/)
+    expect(() => parseFixallClaimRequest({ action: "review", commentWatermark: null })).toThrow(/ready, resume, or pause/)
   })
 })
 
@@ -174,18 +151,6 @@ describe("the claim is exclusive (AWTD-865 follow-up)", () => {
     expect(data.assigneeId).toBe("claude-1")
   })
 
-  it("leaves a waiting task in Waiting — a recheck is not the start of work", () => {
-    // RECHECK and REVIEW re-examine a paused task. Flipping those to Doing would
-    // empty the Waiting lane on every sweep and lose the condition the lane exists
-    // to record.
-    const data = buildFixallClaimData({
-      agentId: "claude-1",
-      claim: { action: "recheck", commentWatermark: null, agent: "claude" },
-    })
-
-    expect(data.statusRole).toBeUndefined()
-    expect(data.assigneeId).toBe("claude-1")
-  })
 })
 
 describe("the claim names its harness (AWTD-865 follow-up)", () => {

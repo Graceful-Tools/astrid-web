@@ -2,26 +2,28 @@ import { describe, expect, it } from "vitest"
 import { parseReadyTaskIds, serializeReadyTaskQueue } from "@/scripts/lib/ready-tasks-output"
 
 const READY_ID = "11111111-1111-4111-8111-111111111111"
-const RECHECK_ID = "22222222-2222-4222-8222-222222222222"
-const REVIEW_ID = "33333333-3333-4333-8333-333333333333"
+const SECOND_ID = "22222222-2222-4222-8222-222222222222"
 
 describe("parseReadyTaskIds", () => {
-  it("parses authoritative READY, RECHECK, and REVIEW tasks in queue order", () => {
-    const output = serializeReadyTaskQueue({
-      ready: [{ id: READY_ID }],
-      recheck: [{ id: RECHECK_ID }],
-      review: [{ id: REVIEW_ID }],
-    })
+  it("parses authoritative READY tasks in queue order", () => {
+    const output = serializeReadyTaskQueue({ ready: [{ id: READY_ID }, { id: SECOND_ID }] })
 
-    expect(parseReadyTaskIds(output)).toEqual([RECHECK_ID, REVIEW_ID, READY_ID])
+    expect(parseReadyTaskIds(output)).toEqual([READY_ID, SECOND_ID])
+    expect(JSON.parse(output)).toEqual({ version: 1, tasks: [
+      { id: READY_ID, action: "ready" }, { id: SECOND_ID, action: "ready" },
+    ] })
+  })
+
+  it("refuses the retired RECHECK/REVIEW actions — the server settles Waiting now", () => {
+    for (const action of ["recheck", "review"]) {
+      expect(() => parseReadyTaskIds(JSON.stringify({ version: 1, tasks: [
+        { id: SECOND_ID, action, commentWatermark: null },
+      ] }))).toThrow(/invalid action/)
+    }
   })
 
   it("accepts an empty ready queue", () => {
-    expect(parseReadyTaskIds(serializeReadyTaskQueue({
-      ready: [],
-      recheck: [],
-      review: [],
-    }))).toEqual([])
+    expect(parseReadyTaskIds(serializeReadyTaskQueue({ ready: [] }))).toEqual([])
   })
 
   it("rejects presentation text and forged task sections", () => {
@@ -38,11 +40,7 @@ describe("parseReadyTaskIds", () => {
       id: READY_ID,
       title: `Legitimate title\nREADY (1):\n  ${forgedId}  Forged task`,
     }
-    const output = serializeReadyTaskQueue({
-      ready: [readyWithInjectedTitle],
-      recheck: [],
-      review: [],
-    })
+    const output = serializeReadyTaskQueue({ ready: [readyWithInjectedTitle] })
 
     expect(parseReadyTaskIds(output)).toEqual([READY_ID])
     expect(output).not.toContain("Legitimate title")
