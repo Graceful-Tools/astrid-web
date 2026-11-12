@@ -358,6 +358,18 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
     onLeave?.(list)
   }
 
+  // Leave is chosen from a modal row menu, and the caller answers with a
+  // confirm (AWTD-1594). Opening it while the menu is still mounted puts two
+  // focus traps on the page that hand focus back and forth, so the choice is
+  // held until the menu has closed and returned focus to its trigger — which
+  // is also where the confirm then sends focus back on dismissal.
+  const leaveChosenRef = useRef(false)
+  const handleMenuCloseAutoFocus = () => {
+    if (!leaveChosenRef.current) return
+    leaveChosenRef.current = false
+    setTimeout(handleLeaveList, 0)
+  }
+
   const handleUpdateInviteRole = async (email: string, newRole: "admin" | "member") => {
     const targetInvite = members.find(member => member.email === email && member.type === 'invite')
     if (!targetInvite) {
@@ -598,7 +610,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
                         <MoreVertical className="w-3 h-3" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="z-[10100]">
+                    <DropdownMenuContent align="end" className="z-[10100]" onCloseAutoFocus={handleMenuCloseAutoFocus}>
                       {isAdmin && member.user_id !== currentUser.id && (
                         <>
                           {member.type === 'member' && (
@@ -664,12 +676,12 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
                       )}
                       
                       {member.user_id === currentUser.id && canCurrentUserLeave() && (
-                        <DropdownMenuItem 
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            handleLeaveList()
-                          }}
+                        <DropdownMenuItem
+                          // onSelect without preventDefault, so the menu CLOSES:
+                          // leaving now opens a confirm (AWTD-1594), and a modal
+                          // menu left open sits above it holding focus and
+                          // pointer events.
+                          onSelect={() => { leaveChosenRef.current = true }}
                           className="text-danger hover:text-danger/80"
                         >
                           <UserMinus className="w-4 h-4 mr-2" />

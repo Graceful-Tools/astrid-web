@@ -13,7 +13,7 @@ import { getAllListMembers } from "@/lib/list-member-utils"
 import { UserLink } from "./user-link"
 import Link from "next/link"
 import { canUserDeleteList } from "@/lib/list-permissions"
-import { fillMessage } from "@/components/shared/RichMessage"
+import { LeaveListConfirm } from "./list-admin/LeaveListConfirm"
 
 // AI agent type from the database
 interface AIAgent {
@@ -408,55 +408,14 @@ export function ListMembership({
       )}
 
       {confirmingLeave && onLeave && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-          onClick={() => setConfirmingLeave(false)}
-          onKeyDown={(e) => {
-            // Escape dismisses this confirm, not the whole settings modal.
-            if (e.key === "Escape") {
-              e.stopPropagation()
-              setConfirmingLeave(false)
-            }
+        <LeaveListConfirm
+          listName={list.name}
+          onCancel={() => setConfirmingLeave(false)}
+          onConfirm={() => {
+            setConfirmingLeave(false)
+            onLeave(list)
           }}
-        >
-          <div
-            className="bg-theme-surface rounded-lg p-6 max-w-sm mx-4 shadow-xl"
-            data-testid="list-leave-confirm"
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby="list-leave-confirm-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 id="list-leave-confirm-title" className="text-lg font-semibold theme-text-primary mb-2">
-              {t('lists.membershipPanel.leaveList')}
-            </h3>
-            <p className="theme-text-secondary mb-4">
-              {fillMessage(t('lists.membershipPanel.leaveConfirm'), { name: list.name })}
-            </p>
-            <div className="flex space-x-3 justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                autoFocus
-                onClick={() => setConfirmingLeave(false)}
-                className="theme-border theme-text-secondary hover:theme-bg-hover"
-              >
-                {t('actions.cancel')}
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => {
-                  setConfirmingLeave(false)
-                  onLeave(list)
-                }}
-                className="bg-danger hover:bg-danger/90 text-danger-foreground"
-              >
-                {t('lists.membershipPanel.leaveList')}
-              </Button>
-            </div>
-          </div>
-        </div>
+        />
       )}
 
       {/* Owner Leave List Button - with succession planning */}
