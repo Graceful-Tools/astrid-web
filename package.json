@@ -140,6 +140,7 @@
     "postinstall": "prisma generate",
     "check:reuse:warn": "tsx scripts/check-reuse.ts",
     "check:design": "tsx scripts/report-design-metrics.ts --check",
+    "check:bundle": "tsx scripts/check-route-bundle-budget.ts",
     "design:metrics": "tsx scripts/report-design-metrics.ts",
     "check:i18n": "tsx scripts/check-i18n.ts",
     "audit:brand": "tsx scripts/brand-audit.ts",
@@ -202,7 +203,6 @@
     "jose": "^6.2.14",
     "lucide-react": "^1.65.0",
     "marked": "^18.1.2",
-    "nanoid": "^5.1.16",
     "next": "^16.4.3",
     "next-auth": "^4.24.15",
     "next-intl": "^4.14.9",
@@ -220,7 +220,6 @@
     "tailwindcss-animate": "^1.0.7",
     "turndown": "^7.2.4",
     "undici": "6.29.1",
-    "uuid": "^14.0.3",
     "web-push": "^3.6.7",
     "zod": "^4.6.6"
   },
