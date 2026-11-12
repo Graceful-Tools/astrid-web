@@ -7,6 +7,7 @@ import { Plus, Check, Pencil, ChevronUp, ChevronDown, Trash2 } from "lucide-reac
 import { useSharedEditingSession } from "@/hooks/use-editing-session"
 import { isDefaultStatusRole } from "@/lib/task-status"
 import { useTranslations } from "@/lib/i18n/client"
+import { boardColumnBlurb, boardColumnLabel } from "@/lib/board-column-labels"
 import { RichMessage, fillMessage } from "@/components/shared/RichMessage"
 import type { ProjectBoardColumn } from "@/lib/project-status"
 
@@ -180,7 +181,7 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
                 </>
               ) : (
                 <>
-                  <span className="flex-1 text-sm theme-text-primary truncate">{status.name}</span>
+                  <span className="flex-1 text-sm theme-text-primary truncate">{boardColumnLabel(status, t)}</span>
 
                   {/* Reorder: custom columns only */}
                   {!isBuiltIn && (

@@ -473,7 +473,8 @@
     "selectTime": "Sélectionner l'heure",
     "twoHoursBefore": "2 heures avant",
     "twoDaysBefore": "2 jours avant",
-    "noon": "Midi"
+    "noon": "Midi",
+    "dateAtTime": "{date} à {time}"
   },
   "repeating": {
     "oneTimeOnly": "Une seule fois",
@@ -716,7 +717,20 @@
       "complete": "Terminer",
       "completedToast": "Félicitations d'avoir terminé !",
       "snooze1day": "Reporter 1 jour",
-      "snooze1week": "Reporter 1 semaine"
+      "snooze1week": "Reporter 1 semaine",
+      "snoozedTitle": "Rappel reporté",
+      "snoozedDescription": "Le rappel reviendra {when}",
+      "snoozeFailedTitle": "Échec du report",
+      "snoozeFailed": "Impossible de reporter le rappel",
+      "dismissedTitle": "Rappel ignoré",
+      "dismissedDescription": "Ce rappel ne réapparaîtra plus",
+      "dismissFailedTitle": "Échec",
+      "dismissFailed": "Impossible d’ignorer le rappel",
+      "completedTitle": "Tâche terminée",
+      "completedDescription": "Tâche marquée comme terminée et rappel ignoré",
+      "completeFailedTitle": "Échec",
+      "completeFailed": "Impossible de terminer la tâche",
+      "overdue": "En retard"
     }
   },
   "emptyState": {
@@ -842,7 +856,7 @@
         "getKey": "Obtenir une clé",
         "guideLink": "Guide pour connecter mon agent de code",
         "needsSetup": "Configuration requise",
-        "agentLoops": "Agent Loops",
+        "agentLoops": "Boucles d’agents",
         "customAgents": "Agents personnalisés",
         "off": "Désactivé",
         "transportLabel": "Transport :",
@@ -878,7 +892,7 @@
         "stepSchedule": "Planifier ou exécuter",
         "stepTest": "Tester",
         "hostedWorkflow": "Pas de machine à laisser allumée ? Committez plutôt ce workflow. Il nécessite deux secrets de dépôt ; {link} explique comment créer chacun d'eux.",
-        "startHere": "Start here",
+        "startHere": "Commencer ici",
         "copilotInstall": "Committez une fois cet agent personnalisé du dépôt. Copilot CLI, l'application Copilot, GitHub.com et VS Code pourront alors sélectionner le même comportement de file d'attente.",
         "githubConnect": "Créez des identifiants client pour cet agent et enregistrez-les comme secrets Actions du dépôt nommés {clientId} et {clientSecret}. Chaque exécution échange ces identifiants contre un jeton d'accès d'une heure limité aux portées nécessaires à un worker de file d'attente — aucun jeton longue durée n'atteint jamais le dépôt.",
         "githubInstall": "Ce workflow est un portillon de file d'attente : il répond à « y a-t-il du travail ? » et n'exécute pas lui-même d'agent. Faites pointer le second job vers votre job d'agent pris en charge existant (une étape Copilot CLI, Claude Code ou Codex des autres onglets).",
@@ -968,9 +982,9 @@
       "title": "Accès API",
       "description": "Applications OAuth et intégrations API",
       "clientGuide": {
-        "title": "Do you need a client here?",
-        "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
-        "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant.",
+        "title": "Avez-vous besoin d’un client ici ?",
+        "dcrNote": "Non — si votre assistant prend en charge OAuth (VS Code / Copilot, ChatGPT ou un autre client MCP), il s’enregistre automatiquement lorsque vous vous connectez au point de terminaison MCP hébergé. Rien à créer ici.",
+        "manualNote": "Oui — créez un client ci-dessous uniquement pour les intégrations serveur qui utilisent un secret fixe : scripts, le serveur MCP stdio ou des configurations à en-têtes personnalisés utilisant le grant client_credentials.",
         "question": "Avez-vous besoin d’un client ici ?",
         "registersItself": "Non — si votre assistant prend en charge OAuth (VS Code / Copilot, ChatGPT ou un autre client MCP), il s’enregistre automatiquement lorsque vous vous connectez au point de terminaison MCP hébergé. Rien à créer ici.",
         "manualOnly": "Oui — créez un client ci-dessous uniquement pour les intégrations serveur qui utilisent un secret statique : scripts, serveur MCP stdio ou configurations à en-têtes personnalisés utilisant l’autorisation client_credentials."
@@ -1078,15 +1092,15 @@
         }
       },
       "mcp": {
-        "badge": "Recommended",
-        "title": "Connect via MCP",
-        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
-        "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
+        "badge": "Recommandé",
+        "title": "Se connecter via MCP",
+        "description": "Le Model Context Protocol est le moyen le plus rapide de connecter un assistant IA à vos tâches",
+        "serverUrl": "URL du serveur MCP",
+        "note": "Ajoutez cette URL aux réglages MCP de votre assistant. Il vous demandera de vous connecter à {appName} — aucune clé à copier.",
         "vscodeTitle": "VS Code / GitHub Copilot",
-        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "vscodeNote": "Enregistrez-le sous .vscode/mcp.json dans votre projet, puis appuyez sur Start sur le serveur",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+        "legacyNote": "Les anciens clients qui ne parlent que le transport SSE peuvent faire un GET sur la même URL et envoyer des messages en POST à /mcp/messages."
       },
       "step1": {
         "badge": "Étape 1",
@@ -1337,7 +1351,7 @@
       "theme": {
         "title": "Thème",
         "description": "Choisissez entre les thèmes Ocean, clair et sombre",
-        "ocean": "Ocean",
+        "ocean": "Océan",
         "oceanDesc": "Thème clair avec un arrière-plan cyan rafraîchissant",
         "light": "Mode clair",
         "lightDesc": "Une interface lumineuse et épurée parfaite pour une utilisation diurne",
@@ -1436,15 +1450,15 @@
         }
       },
       "mcp": {
-        "badge": "Recommended",
-        "title": "Connect via MCP",
-        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
-        "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
+        "badge": "Recommandé",
+        "title": "Se connecter via MCP",
+        "description": "Le Model Context Protocol est le moyen le plus rapide de connecter un assistant IA à vos tâches",
+        "serverUrl": "URL du serveur MCP",
+        "note": "Ajoutez cette URL aux réglages MCP de votre assistant. Il vous demandera de vous connecter à {appName} — aucune clé à copier.",
         "vscodeTitle": "VS Code / GitHub Copilot",
-        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "vscodeNote": "Enregistrez-le sous .vscode/mcp.json dans votre projet, puis appuyez sur Start sur le serveur",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages.",
+        "legacyNote": "Les anciens clients qui ne parlent que le transport SSE peuvent faire un GET sur la même URL et envoyer des messages en POST à /mcp/messages.",
         "claudeNote": "Une seule commande — elle ouvre votre navigateur pour approuver l’accès, aucune clé à copier",
         "copilotTitle": "CLI GitHub Copilot",
         "copilotNote": "La même connexion en une commande pour la CLI Copilot",
@@ -1761,21 +1775,21 @@
     }
   },
   "projectMode": {
-    "boardViewLabel": "Board View",
-    "boardViewDescriptionEnabled": "This list has a Ready / Doing / Waiting status board. Inbox holds new tasks; Done is completed.",
-    "boardViewDescriptionAvailable": "Add Ready, Doing, and Waiting status columns. Inbox and Done are derived automatically.",
-    "boardViewDescriptionLocked": "Boards add Ready / Doing / Waiting columns for working through tasks with other people. Available on request.",
-    "requestAccess": "Request access",
-    "requestPending": "Requested",
-    "requestPendingHint": "Your request is with the team. We'll email you when it's turned on.",
-    "requestDialogTitle": "Request board access",
-    "requestDialogBody": "Boards are rolling out gradually. Tell us what you'd use one for and we'll get back to you.",
-    "requestDialogUseCaseLabel": "What would you use a board for? (optional)",
-    "requestDialogUseCasePlaceholder": "e.g. tracking sprints with two teammates",
-    "requestDialogSubmit": "Send request",
-    "requestDialogCancel": "Cancel",
-    "requestSubmitted": "Request sent",
-    "requestFailed": "Couldn't send your request. Please try again.",
+    "boardViewLabel": "Vue tableau",
+    "boardViewDescriptionEnabled": "Cette liste a un tableau de statut Prêt / En cours / En attente. La boîte de réception contient les nouvelles tâches ; Terminé, celles qui sont achevées.",
+    "boardViewDescriptionAvailable": "Ajoutez les colonnes de statut Prêt, En cours et En attente. Boîte de réception et Terminé sont déduits automatiquement.",
+    "boardViewDescriptionLocked": "Les tableaux ajoutent les colonnes Prêt / En cours / En attente pour traiter des tâches avec d’autres personnes. Disponible sur demande.",
+    "requestAccess": "Demander l’accès",
+    "requestPending": "Demandé",
+    "requestPendingHint": "Votre demande est entre les mains de l’équipe. Nous vous écrirons dès que ce sera activé.",
+    "requestDialogTitle": "Demander l’accès aux tableaux",
+    "requestDialogBody": "Les tableaux sont déployés progressivement. Dites-nous à quoi il vous servirait et nous reviendrons vers vous.",
+    "requestDialogUseCaseLabel": "À quoi vous servirait un tableau ? (facultatif)",
+    "requestDialogUseCasePlaceholder": "p. ex. suivre des sprints avec deux coéquipiers",
+    "requestDialogSubmit": "Envoyer la demande",
+    "requestDialogCancel": "Annuler",
+    "requestSubmitted": "Demande envoyée",
+    "requestFailed": "Impossible d’envoyer votre demande. Veuillez réessayer.",
     "keyLabel": "Préfixe des ID de tâche",
     "keyExample": "Les tâches deviennent {example}, …",
     "keyInvalid": "{min} à {max} lettres ou chiffres, commençant par une lettre",
@@ -1899,7 +1913,7 @@
       "connectGithubLink": "Paramètres → Connexions → GitHub",
       "runLoop": "Lancer une boucle pour cette liste",
       "loopDescription": "Votre harness de développement consulte cette liste à intervalles réguliers et traite tout ce qui lui est assigné et marqué {ready}. Les tâches des autres tableaux ne sont jamais modifiées.",
-      "readyStatus": "Ready",
+      "readyStatus": "Prêt",
       "descriptionHint": "Les agents lisent la {description} de cette liste comme leurs instructions de travail : modifiez-la ci-dessus comme un brief de projet.",
       "descriptionWord": "description",
       "listId": "ID de la liste",
@@ -2488,7 +2502,36 @@
     "connectIntro": "Chaque agent a sa propre identité {appName} et ne prend que les tâches {assignedAndReady} dans sa propre liste. Ouvrez-en un et collez ses étapes — ou collez le lien de cette page dans l’agent et demandez-lui de se configurer lui-même.",
     "connectIntroAssignedAndReady": "qui lui sont assignées et marquées Ready",
     "workSetReady": "Passez son statut à {ready} quand vous voulez que l’agent commence. C’est le bouton de départ.",
-    "teamIntro": "Partagez chaque liste (paramètres de la liste → {members} → inviter par e-mail). Tout le monde voit les mêmes tâches, commentaires et rapports des agents. Les propriétaires et administrateurs de la liste peuvent confier n’importe quelle tâche à un agent ; les membres peuvent confier les tâches qu’ils ont créées. Pour permettre aux membres de confier n’importe quelle tâche, activez {setting} dans les paramètres de la liste → {aiAgent} (les agents fonctionnent avec les abonnements du propriétaire)."
+    "teamIntro": "Partagez chaque liste (paramètres de la liste → {members} → inviter par e-mail). Tout le monde voit les mêmes tâches, commentaires et rapports des agents. Les propriétaires et administrateurs de la liste peuvent confier n’importe quelle tâche à un agent ; les membres peuvent confier les tâches qu’ils ont créées. Pour permettre aux membres de confier n’importe quelle tâche, activez {setting} dans les paramètres de la liste → {aiAgent} (les agents fonctionnent avec les abonnements du propriétaire).",
+    "agents": {
+      "muse": {
+        "role": "Planifie et trie : transforme idées, retours et bugs en tâches Build et Fix claires.",
+        "plan": "Un compte Muse avec Muse Code",
+        "runs": "Muse Code se connecte au serveur MCP et consulte sa file toutes les 30 minutes."
+      },
+      "claude": {
+        "role": "Développe des fonctionnalités de bout en bout dans votre dépôt et ouvre des pull requests.",
+        "plan": "Claude Max (Claude Code inclus)",
+        "runs": "Claude Code se connecte au serveur MCP et consulte sa file toutes les 30 minutes."
+      },
+      "codex": {
+        "role": "Corrige les bugs en commençant par les tests, refactorise et ajoute les tests manquants.",
+        "plan": "ChatGPT Pro ou Plus (Codex CLI inclus)",
+        "runs": "Codex CLI se connecte au serveur MCP et consulte sa file toutes les 30 minutes."
+      },
+      "copilot": {
+        "role": "Relit automatiquement chaque pull request sur GitHub et traite les tâches de relecture.",
+        "plan": "GitHub Copilot Pro+ (ou Business pour une équipe)",
+        "runs": "GitHub demande une relecture Copilot sur chaque pull request ; Copilot CLI consulte la file Review toutes les 30 minutes.",
+        "extraStep0": "Dans votre dépôt GitHub, ouvrez Settings → Rules → Rulesets → New branch ruleset, ciblez votre branche par défaut et activez « Automatically request Copilot code review ». Chaque pull request ouverte par un agent est alors relue par Copilot sans que vous ayez à le demander."
+      },
+      "githubActions": {
+        "role": "Exécute vos automatisations récurrentes selon un calendrier dans GitHub — rien sur votre machine.",
+        "plan": "Inclus avec GitHub (minutes gratuites sur les dépôts publics et la plupart des dépôts privés)",
+        "runs": "Un workflow planifié demande du travail à la file Automations toutes les 30 minutes et ne lance un job que s’il y en a.",
+        "extraStep0": "Créez des identifiants client dans {app} (Réglages → Agents IA → Copilot → GitHub Actions) et enregistrez-les comme secrets du dépôt {clientId} et {clientSecret}."
+      }
+    }
   },
   "richTextInput": {
     "placeholder": "Saisissez un message...",
@@ -2508,7 +2551,11 @@
     "empty": "Aucun message pour le moment. Lancez la conversation !",
     "loadFailed": "Échec du chargement du chat",
     "openChat": "Ouvrir la discussion",
-    "showTasks": "Afficher les tâches"
+    "showTasks": "Afficher les tâches",
+    "authorYou": "Vous",
+    "authorSystem": "Système",
+    "authorUnknown": "Inconnu",
+    "systemEventAt": "Le {when}, {content}"
   },
   "notificationBell": {
     "markAllRead": "Tout marquer comme lu",
@@ -2556,6 +2603,49 @@
       "doing": "En cours",
       "waiting": "En attente",
       "done": "Terminé"
+    },
+    "blurb": {
+      "inbox": "Déplacez-les vers « Prêt » quand elles sont… prêtes !",
+      "ready": "Au travail !",
+      "doing": "Travail en cours !",
+      "waiting": "En pause jusqu’à ce que les conditions soient réunies.",
+      "done": "Terminé — bravo !"
     }
+  },
+  "passkeyErrors": {
+    "notSupported": "Les clés d’accès ne sont pas prises en charge sur cet appareil",
+    "optionsFailed": "Impossible de lancer la demande de clé d’accès. Veuillez réessayer.",
+    "registrationFailed": "L’enregistrement de la clé d’accès a échoué",
+    "authenticationFailed": "La connexion avec la clé d’accès a échoué",
+    "defaultName": "Ma clé d’accès"
+  },
+  "oauthScopes": {
+    "tasks_read": "Lire les tâches",
+    "tasks_write": "Créer et modifier des tâches",
+    "tasks_delete": "Supprimer des tâches",
+    "lists_read": "Lire les listes",
+    "lists_write": "Créer et modifier des listes",
+    "lists_configure": "Créer des listes et modifier leur nom, leurs instructions, la personne assignée par défaut et la couleur",
+    "lists_delete": "Supprimer des listes",
+    "lists_manage_members": "Gérer les membres des listes",
+    "projects_read": "Lire les projets (tableaux de statut)",
+    "projects_write": "Créer et modifier des projets (tableaux de statut)",
+    "projects_delete": "Supprimer des projets (tableaux de statut)",
+    "comments_read": "Lire les commentaires",
+    "comments_write": "Créer des commentaires",
+    "comments_delete": "Supprimer des commentaires",
+    "chat_read": "Lire les messages du chat",
+    "chat_write": "Envoyer des messages dans le chat",
+    "user_read": "Lire le profil et les réglages de l’utilisateur",
+    "user_write": "Modifier les réglages de l’utilisateur",
+    "attachments_read": "Lire les pièces jointes",
+    "attachments_write": "Envoyer des pièces jointes",
+    "attachments_delete": "Supprimer des pièces jointes",
+    "contacts_read": "Lire les contacts importés",
+    "contacts_write": "Importer et gérer des contacts",
+    "public_read": "Lire les listes publiques",
+    "public_write": "Créer et gérer des listes publiques",
+    "sse_connect": "Se connecter au flux d’événements SSE",
+    "all": "Accès complet (usage interne uniquement – accordé à l’authentification par session)"
   }
 }

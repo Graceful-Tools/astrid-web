@@ -473,7 +473,8 @@
     "selectTime": "時刻を選択",
     "twoHoursBefore": "2時間前",
     "twoDaysBefore": "2日前",
-    "noon": "正午"
+    "noon": "正午",
+    "dateAtTime": "{date} {time}"
   },
   "repeating": {
     "oneTimeOnly": "1回のみ",
@@ -716,7 +717,20 @@
       "complete": "完了",
       "completedToast": "完了おめでとうございます！",
       "snooze1day": "1日スヌーズ",
-      "snooze1week": "1週間スヌーズ"
+      "snooze1week": "1週間スヌーズ",
+      "snoozedTitle": "リマインダーを延期しました",
+      "snoozedDescription": "リマインダーは{when}に再表示されます",
+      "snoozeFailedTitle": "延期に失敗しました",
+      "snoozeFailed": "リマインダーを延期できませんでした",
+      "dismissedTitle": "リマインダーを閉じました",
+      "dismissedDescription": "このリマインダーは今後表示されません",
+      "dismissFailedTitle": "閉じられませんでした",
+      "dismissFailed": "リマインダーを閉じられませんでした",
+      "completedTitle": "タスクを完了しました",
+      "completedDescription": "タスクを完了にし、リマインダーを閉じました",
+      "completeFailedTitle": "完了にできませんでした",
+      "completeFailed": "タスクを完了にできませんでした",
+      "overdue": "期限切れ"
     }
   },
   "emptyState": {
@@ -842,7 +856,7 @@
         "getKey": "キーを取得",
         "guideLink": "コーディングエージェント接続ガイド",
         "needsSetup": "設定が必要",
-        "agentLoops": "Agent Loops",
+        "agentLoops": "エージェントループ",
         "customAgents": "カスタムエージェント",
         "off": "オフ",
         "transportLabel": "トランスポート:",
@@ -878,7 +892,7 @@
         "stepSchedule": "スケジュールまたは実行",
         "stepTest": "テスト",
         "hostedWorkflow": "常時起動しておくマシンがない場合は、代わりにこのワークフローをコミットしてください。リポジトリシークレットが2つ必要です。作り方は {link} にあります。",
-        "startHere": "Start here",
+        "startHere": "ここから始める",
         "copilotInstall": "このリポジトリのカスタムエージェントを一度コミットしてください。Copilot CLI、Copilot アプリ、GitHub.com、VS Code で同じキューの動作を選択できるようになります。",
         "githubConnect": "このエージェント用のクライアント認証情報を作成し、{clientId} と {clientSecret} という名前のリポジトリ Actions シークレットとして保存してください。実行のたびに、認証情報はキューワーカーに必要なスコープだけを持つ1時間有効のアクセストークンに交換されます。長期間有効なトークンがリポジトリに渡ることはありません。",
         "githubInstall": "このワークフローはキューゲートです。「作業はあるか？」に答えるだけで、エージェント自体は実行しません。2つ目のジョブを、既存の対応エージェントジョブ（他のタブの Copilot CLI、Claude Code、Codex のステップ）に向けてください。",
@@ -968,9 +982,9 @@
       "title": "APIアクセス",
       "description": "OAuthアプリケーションとAPI連携",
       "clientGuide": {
-        "title": "Do you need a client here?",
-        "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
-        "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant.",
+        "title": "ここでクライアントが必要ですか？",
+        "dcrNote": "いいえ — アシスタントが OAuth に対応していれば（VS Code / Copilot、ChatGPT、その他の MCP クライアント）、ホストされた MCP エンドポイントに接続したときに自動で登録されます。ここで作成するものはありません。",
+        "manualNote": "はい — 固定シークレットを使うサーバー連携（スクリプト、stdio MCP サーバー、client_credentials グラントを使うカスタムヘッダー構成）の場合だけ、下でクライアントを作成してください。",
         "question": "ここでクライアントを作成する必要がありますか？",
         "registersItself": "いいえ — アシスタントが OAuth に対応している場合（VS Code / Copilot、ChatGPT、その他の MCP クライアント）、ホストされた MCP エンドポイントに接続すると自動的に登録されます。ここで作成するものはありません。",
         "manualOnly": "はい — 静的なシークレットを使うサーバー連携（スクリプト、stdio MCP サーバー、client_credentials グラントを使うカスタムヘッダー構成）の場合にのみ、下でクライアントを作成してください。"
@@ -1078,15 +1092,15 @@
         }
       },
       "mcp": {
-        "badge": "Recommended",
-        "title": "Connect via MCP",
-        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
-        "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
+        "badge": "おすすめ",
+        "title": "MCP で接続",
+        "description": "Model Context Protocol は、AI アシスタントをタスクにつなぐいちばん手早い方法です",
+        "serverUrl": "MCP サーバーの URL",
+        "note": "この URL をアシスタントの MCP 設定に追加してください。{appName} へのサインインを求められます — コピーするキーはありません。",
         "vscodeTitle": "VS Code / GitHub Copilot",
-        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "vscodeNote": "プロジェクトに .vscode/mcp.json として保存し、サーバーの Start を押します",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+        "legacyNote": "SSE トランスポートしか使えない古いクライアントは、同じ URL に GET し、/mcp/messages に POST でメッセージを送れます。"
       },
       "step1": {
         "badge": "ステップ1",
@@ -1337,7 +1351,7 @@
       "theme": {
         "title": "テーマ",
         "description": "Ocean、ライト、ダークテーマから選択",
-        "ocean": "Ocean",
+        "ocean": "オーシャン",
         "oceanDesc": "さわやかなシアン背景のライトテーマ",
         "light": "ライトモード",
         "lightDesc": "日中の使用に最適な明るくクリーンなインターフェース",
@@ -1436,15 +1450,15 @@
         }
       },
       "mcp": {
-        "badge": "Recommended",
-        "title": "Connect via MCP",
-        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
-        "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
+        "badge": "おすすめ",
+        "title": "MCP で接続",
+        "description": "Model Context Protocol は、AI アシスタントをタスクにつなぐいちばん手早い方法です",
+        "serverUrl": "MCP サーバーの URL",
+        "note": "この URL をアシスタントの MCP 設定に追加してください。{appName} へのサインインを求められます — コピーするキーはありません。",
         "vscodeTitle": "VS Code / GitHub Copilot",
-        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "vscodeNote": "プロジェクトに .vscode/mcp.json として保存し、サーバーの Start を押します",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages.",
+        "legacyNote": "SSE トランスポートしか使えない古いクライアントは、同じ URL に GET し、/mcp/messages に POST でメッセージを送れます。",
         "claudeNote": "コマンド 1 つ。ブラウザーが開いてアクセスを承認するだけで、キーのコピーは不要です",
         "copilotTitle": "GitHub Copilot CLI",
         "copilotNote": "Copilot CLI でも同じ 1 コマンドで接続できます",
@@ -1761,21 +1775,21 @@
     }
   },
   "projectMode": {
-    "boardViewLabel": "Board View",
-    "boardViewDescriptionEnabled": "This list has a Ready / Doing / Waiting status board. Inbox holds new tasks; Done is completed.",
-    "boardViewDescriptionAvailable": "Add Ready, Doing, and Waiting status columns. Inbox and Done are derived automatically.",
-    "boardViewDescriptionLocked": "Boards add Ready / Doing / Waiting columns for working through tasks with other people. Available on request.",
-    "requestAccess": "Request access",
-    "requestPending": "Requested",
-    "requestPendingHint": "Your request is with the team. We'll email you when it's turned on.",
-    "requestDialogTitle": "Request board access",
-    "requestDialogBody": "Boards are rolling out gradually. Tell us what you'd use one for and we'll get back to you.",
-    "requestDialogUseCaseLabel": "What would you use a board for? (optional)",
-    "requestDialogUseCasePlaceholder": "e.g. tracking sprints with two teammates",
-    "requestDialogSubmit": "Send request",
-    "requestDialogCancel": "Cancel",
-    "requestSubmitted": "Request sent",
-    "requestFailed": "Couldn't send your request. Please try again.",
+    "boardViewLabel": "ボード表示",
+    "boardViewDescriptionEnabled": "このリストには「準備完了 / 作業中 / 待機中」のステータスボードがあります。受信箱には新しいタスク、完了には終わったタスクが入ります。",
+    "boardViewDescriptionAvailable": "「準備完了」「作業中」「待機中」のステータス列を追加します。受信箱と完了は自動で作られます。",
+    "boardViewDescriptionLocked": "ボードは、ほかの人とタスクを進めるための「準備完了 / 作業中 / 待機中」列を追加します。リクエストに応じて利用できます。",
+    "requestAccess": "アクセスをリクエスト",
+    "requestPending": "リクエスト済み",
+    "requestPendingHint": "リクエストはチームに届いています。有効になったらメールでお知らせします。",
+    "requestDialogTitle": "ボードへのアクセスをリクエスト",
+    "requestDialogBody": "ボードは順次提供中です。何に使いたいか教えていただければ、ご連絡します。",
+    "requestDialogUseCaseLabel": "ボードを何に使いますか？（任意）",
+    "requestDialogUseCasePlaceholder": "例：2人のチームメイトとスプリントを管理する",
+    "requestDialogSubmit": "リクエストを送信",
+    "requestDialogCancel": "キャンセル",
+    "requestSubmitted": "リクエストを送信しました",
+    "requestFailed": "リクエストを送信できませんでした。もう一度お試しください。",
     "keyLabel": "タスクIDの接頭辞",
     "keyExample": "タスクは {example} のようになります",
     "keyInvalid": "{min}〜{max} 文字の英数字（先頭は英字）",
@@ -1899,7 +1913,7 @@
       "connectGithubLink": "設定 → 接続 → GitHub",
       "runLoop": "このリストでループを実行",
       "loopDescription": "コーディングハーネスがスケジュールに従ってこのリストを確認し、自分に割り当てられ{ready}になっているものに取り組みます。他のボードのタスクには一切触れません。",
-      "readyStatus": "Ready",
+      "readyStatus": "準備完了",
       "descriptionHint": "エージェントはこのリストの{description}を作業指示として読みます。プロジェクト概要のように上で編集してください。",
       "descriptionWord": "説明",
       "listId": "リストID",
@@ -2488,7 +2502,36 @@
     "connectIntro": "各エージェントは独自の{appName} IDを持ち、自分のリストで{assignedAndReady}タスクだけを引き受けます。いずれかを開いて手順を貼り付けるか、このページのリンクをエージェントに貼り付けて、自分でセットアップするよう依頼してください。",
     "connectIntroAssignedAndReady": "自分に割り当てられ、Readyになっている",
     "workSetReady": "エージェントに始めてほしいときに、ステータスを{ready}にします。それがスタートボタンです。",
-    "teamIntro": "各リストを共有します（リスト設定 → {members} → メールで招待）。全員が同じタスク、コメント、エージェントの報告を見られます。リストのオーナーと管理者はどのタスクでもエージェントに任せられ、メンバーは自分が作成したタスクを任せられます。メンバーがどのタスクでも任せられるようにするには、リストの設定 → {aiAgent} で{setting}をオンにします（エージェントはオーナーのプランで動作します）。"
+    "teamIntro": "各リストを共有します（リスト設定 → {members} → メールで招待）。全員が同じタスク、コメント、エージェントの報告を見られます。リストのオーナーと管理者はどのタスクでもエージェントに任せられ、メンバーは自分が作成したタスクを任せられます。メンバーがどのタスクでも任せられるようにするには、リストの設定 → {aiAgent} で{setting}をオンにします（エージェントはオーナーのプランで動作します）。",
+    "agents": {
+      "muse": {
+        "role": "計画と仕分け：アイデア、フィードバック、バグを明確な Build と Fix のタスクにします。",
+        "plan": "Muse Code 付きの Muse アカウント",
+        "runs": "Muse Code が MCP サーバーに接続し、30分ごとにキューを確認します。"
+      },
+      "claude": {
+        "role": "リポジトリで機能を一から完成まで作り、プルリクエストを開きます。",
+        "plan": "Claude Max（Claude Code 込み）",
+        "runs": "Claude Code が MCP サーバーに接続し、30分ごとにキューを確認します。"
+      },
+      "codex": {
+        "role": "テストファーストでバグを直し、リファクタリングし、足りないテストを追加します。",
+        "plan": "ChatGPT Pro または Plus（Codex CLI 込み）",
+        "runs": "Codex CLI が MCP サーバーに接続し、30分ごとにキューを確認します。"
+      },
+      "copilot": {
+        "role": "GitHub のすべてのプルリクエストを自動でレビューし、レビュータスクを処理します。",
+        "plan": "GitHub Copilot Pro+（チームなら Business）",
+        "runs": "GitHub がすべてのプルリクエストで Copilot レビューを依頼し、Copilot CLI が30分ごとに Review キューを確認します。",
+        "extraStep0": "GitHub リポジトリで Settings → Rules → Rulesets → New branch ruleset を開き、既定のブランチを対象にして「Automatically request Copilot code review」をオンにします。これで、どのエージェントが開いたプルリクエストも頼まなくても Copilot がレビューします。"
+      },
+      "githubActions": {
+        "role": "定期的な自動化を GitHub 上でスケジュール実行します — あなたのマシンでは何も動きません。",
+        "plan": "GitHub に含まれます（公開リポジトリとほとんどの非公開リポジトリで無料枠あり）",
+        "runs": "スケジュールされたワークフローが30分ごとに Automations キューに作業を問い合わせ、作業があるときだけジョブを開始します。",
+        "extraStep0": "{app} でクライアント認証情報を作成し（設定 → AIエージェント → Copilot → GitHub Actions）、リポジトリシークレット {clientId} と {clientSecret} として保存します。"
+      }
+    }
   },
   "richTextInput": {
     "placeholder": "メッセージを入力...",
@@ -2508,7 +2551,11 @@
     "empty": "まだメッセージはありません。会話を始めましょう！",
     "loadFailed": "チャットを読み込めませんでした",
     "openChat": "チャットを開く",
-    "showTasks": "タスクを表示"
+    "showTasks": "タスクを表示",
+    "authorYou": "あなた",
+    "authorSystem": "システム",
+    "authorUnknown": "不明",
+    "systemEventAt": "{when}：{content}"
   },
   "notificationBell": {
     "markAllRead": "すべて既読にする",
@@ -2556,6 +2603,49 @@
       "doing": "作業中",
       "waiting": "待機中",
       "done": "完了"
+    },
+    "blurb": {
+      "inbox": "準備ができたら「準備完了」へ移しましょう！",
+      "ready": "さあ、取りかかりましょう！",
+      "doing": "作業中です！",
+      "waiting": "状況が整うまで一時停止中。",
+      "done": "完了 — おめでとう！"
     }
+  },
+  "passkeyErrors": {
+    "notSupported": "このデバイスはパスキーに対応していません",
+    "optionsFailed": "パスキーのリクエストを開始できませんでした。もう一度お試しください。",
+    "registrationFailed": "パスキーの登録に失敗しました",
+    "authenticationFailed": "パスキーでのサインインに失敗しました",
+    "defaultName": "マイパスキー"
+  },
+  "oauthScopes": {
+    "tasks_read": "タスクの読み取り",
+    "tasks_write": "タスクの作成と更新",
+    "tasks_delete": "タスクの削除",
+    "lists_read": "リストの読み取り",
+    "lists_write": "リストの作成と更新",
+    "lists_configure": "リストの作成と、名前・指示・既定の担当者・色の編集",
+    "lists_delete": "リストの削除",
+    "lists_manage_members": "リストメンバーの管理",
+    "projects_read": "プロジェクト（ステータスボード）の読み取り",
+    "projects_write": "プロジェクト（ステータスボード）の作成と更新",
+    "projects_delete": "プロジェクト（ステータスボード）の削除",
+    "comments_read": "コメントの読み取り",
+    "comments_write": "コメントの作成",
+    "comments_delete": "コメントの削除",
+    "chat_read": "チャットメッセージの読み取り",
+    "chat_write": "チャットメッセージの送信",
+    "user_read": "ユーザープロフィールと設定の読み取り",
+    "user_write": "ユーザー設定の更新",
+    "attachments_read": "添付ファイルの読み取り",
+    "attachments_write": "添付ファイルのアップロード",
+    "attachments_delete": "添付ファイルの削除",
+    "contacts_read": "アップロードした連絡先の読み取り",
+    "contacts_write": "連絡先のアップロードと管理",
+    "public_read": "公開リストの読み取り",
+    "public_write": "公開リストの作成と管理",
+    "sse_connect": "SSEイベントストリームへの接続",
+    "all": "フルアクセス（内部専用 — セッション認証に付与）"
   }
 }

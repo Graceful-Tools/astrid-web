@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { Bell, Clock, X, CheckCircle, AlertCircle, Calendar, Users } from 'lucide-react'
-import { format } from 'date-fns'
+import { useTranslations } from '@/lib/i18n/client'
+import { formatDateAtTime, formatRelativeFromNow } from '@/lib/i18n/date-format'
 import { getRandomReminderString } from '@/lib/reminder-constants'
 import { apiPut } from '@/lib/api'
 import Image from 'next/image'
@@ -54,16 +55,16 @@ export function ReminderNotification({
   onComplete,
 }: ReminderNotificationProps) {
   const { toast } = useToast()
+  const { t, locale, messages } = useTranslations()
   const [isSnoozing, setIsSnoozing] = useState(false)
   const [isDismissing, setIsDismissing] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
   const isOverdue = dueDateTime && new Date(dueDateTime) < new Date()
   const [quote] = useState(() =>
     isOverdue
-      ? getRandomReminderString('reminders_due')
-      : getRandomReminderString('reminder_responses')
+      ? getRandomReminderString('reminders_due', locale, messages)
+      : getRandomReminderString('reminder_responses', locale, messages)
   )
-  const timeUntilDue = dueDateTime ? getTimeUntilDue(dueDateTime) : null
   const isSharedList = collaborators.length > 0
 
   const handleSnooze = async (minutes: number) => {
@@ -79,20 +80,20 @@ export function ReminderNotification({
       if (response.ok) {
         const result = await response.json()
         toast({
-          title: 'Reminder Snoozed',
-          description: `Reminder will come back in ${formatSnoozeTime(minutes)}`,
+          title: t('reminders.ui.snoozedTitle'),
+          description: t('reminders.ui.snoozedDescription', { when: formatRelativeFromNow(minutes * 60 * 1000, locale) }),
           duration: 3000,
         })
         onSnooze(minutes)
       } else {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to snooze reminder')
+        throw new Error(error.error || t('reminders.ui.snoozeFailed'))
       }
     } catch (error) {
       console.error('Error snoozing reminder:', error)
       toast({
-        title: 'Snooze Failed',
-        description: error instanceof Error ? error.message : 'Failed to snooze reminder',
+        title: t('reminders.ui.snoozeFailedTitle'),
+        description: error instanceof Error ? error.message : t('reminders.ui.snoozeFailed'),
         duration: 5000,
       })
     } finally {
@@ -110,20 +111,20 @@ export function ReminderNotification({
 
       if (response.ok) {
         toast({
-          title: 'Reminder Dismissed',
-          description: 'This reminder will not appear again',
+          title: t('reminders.ui.dismissedTitle'),
+          description: t('reminders.ui.dismissedDescription'),
           duration: 3000,
         })
         onDismiss()
       } else {
         const error = await response.json()
-        throw new Error(error.error || 'Failed to dismiss reminder')
+        throw new Error(error.error || t('reminders.ui.dismissFailed'))
       }
     } catch (error) {
       console.error('Error dismissing reminder:', error)
       toast({
-        title: 'Dismiss Failed',
-        description: error instanceof Error ? error.message : 'Failed to dismiss reminder',
+        title: t('reminders.ui.dismissFailedTitle'),
+        description: error instanceof Error ? error.message : t('reminders.ui.dismissFailed'),
         duration: 5000,
       })
     } finally {
@@ -151,8 +152,8 @@ export function ReminderNotification({
       await apiPut(`/api/v1/tasks/${taskId}`, { completed: true })
 
       toast({
-        title: 'Task Completed',
-        description: 'Task marked as complete and reminder dismissed',
+        title: t('reminders.ui.completedTitle'),
+        description: t('reminders.ui.completedDescription'),
         duration: 3000,
       })
 
@@ -165,8 +166,8 @@ export function ReminderNotification({
     } catch (error) {
       console.error('Error completing task:', error)
       toast({
-        title: 'Complete Failed',
-        description: error instanceof Error ? error.message : 'Failed to complete task',
+        title: t('reminders.ui.completeFailedTitle'),
+        description: error instanceof Error ? error.message : t('reminders.ui.completeFailed'),
         duration: 5000,
       })
     } finally {
@@ -182,29 +183,6 @@ export function ReminderNotification({
       return <AlertCircle className="w-5 h-5 text-danger" />
     }
     return <Bell className="w-5 h-5 text-warning" />
-  }
-
-  const getReminderTitle = () => {
-    if (type === 'daily_digest') {
-      return 'Daily Task Digest'
-    }
-    if (isOverdue) {
-      return 'Task Overdue'
-    }
-    return 'Task Reminder'
-  }
-
-  const getReminderDescription = () => {
-    if (type === 'daily_digest') {
-      return 'Your daily task summary is ready'
-    }
-    if (isOverdue) {
-      return `${taskTitle} is overdue`
-    }
-    if (timeUntilDue) {
-      return `${taskTitle} is due ${timeUntilDue}`
-    }
-    return `${taskTitle} is due`
   }
 
   return (
@@ -230,8 +208,8 @@ export function ReminderNotification({
               {dueDateTime && (
                 <div className={`text-sm flex items-center space-x-1 ${isOverdue ? 'text-overdue' : 'theme-text-muted'}`}>
                   <Clock className="w-3 h-3" />
-                  <span>{format(dueDateTime, "MMM d 'at' h:mm a")}</span>
-                  {isOverdue && <span className="font-semibold">• Overdue</span>}
+                  <span>{formatDateAtTime(new Date(dueDateTime), locale, t)}</span>
+                  {isOverdue && <span className="font-semibold">• {t('reminders.ui.overdue')}</span>}
                 </div>
               )}
             </div>
@@ -296,7 +274,7 @@ export function ReminderNotification({
                   )}
                 </div>
                 <p className="text-sm font-medium text-theme-primary">
-                  These people are counting on you! 🤝
+                  {t('reminders.social.multiple')} 🤝
                 </p>
               </div>
             </div>
@@ -311,7 +289,7 @@ export function ReminderNotification({
               className="w-full bg-success hover:bg-success/90 text-success-foreground font-semibold py-6 text-base"
             >
               <CheckCircle className="w-5 h-5 mr-2" />
-              Complete
+              {t('reminders.ui.complete')}
             </Button>
 
             {/* Snooze Buttons */}
@@ -322,7 +300,7 @@ export function ReminderNotification({
                 disabled={isSnoozing}
                 className="py-6 text-base font-semibold"
               >
-                Snooze 1 day
+                {t('reminders.ui.snooze1day')}
               </Button>
               <Button
                 variant="outline"
@@ -330,7 +308,7 @@ export function ReminderNotification({
                 disabled={isSnoozing}
                 className="py-6 text-base font-semibold"
               >
-                Snooze 1 week
+                {t('reminders.ui.snooze1week')}
               </Button>
             </div>
           </div>
@@ -338,39 +316,4 @@ export function ReminderNotification({
       </Card>
     </div>
   )
-}
-
-// Helper functions
-function getTimeUntilDue(dueDateTime: Date): string {
-  const due = new Date(dueDateTime)
-  const now = new Date()
-  const diffMs = due.getTime() - now.getTime()
-  
-  if (diffMs <= 0) return 'now'
-
-  const diffMinutes = Math.floor(diffMs / (1000 * 60))
-  const diffHours = Math.floor(diffMinutes / 60)
-  const diffDays = Math.floor(diffHours / 24)
-
-  if (diffDays > 0) {
-    return `in ${diffDays} day${diffDays !== 1 ? 's' : ''}`
-  } else if (diffHours > 0) {
-    return `in ${diffHours} hour${diffHours !== 1 ? 's' : ''}`
-  } else if (diffMinutes > 0) {
-    return `in ${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''}`
-  } else {
-    return 'now'
-  }
-}
-
-function formatSnoozeTime(minutes: number): string {
-  if (minutes < 60) {
-    return `${minutes} minutes`
-  } else if (minutes < 1440) {
-    const hours = Math.floor(minutes / 60)
-    return `${hours} hour${hours !== 1 ? 's' : ''}`
-  } else {
-    const days = Math.floor(minutes / 1440)
-    return `${days} day${days !== 1 ? 's' : ''}`
-  }
 }

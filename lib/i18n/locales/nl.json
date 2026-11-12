@@ -473,7 +473,8 @@
     "selectTime": "Tijd selecteren",
     "twoHoursBefore": "2 uur eerder",
     "twoDaysBefore": "2 dagen eerder",
-    "noon": "Middag"
+    "noon": "Middag",
+    "dateAtTime": "{date} om {time}"
   },
   "repeating": {
     "oneTimeOnly": "Eenmalig",
@@ -716,7 +717,20 @@
       "complete": "Voltooien",
       "completedToast": "Gefeliciteerd met het afronden!",
       "snooze1day": "Snooze 1 dag",
-      "snooze1week": "Snooze 1 week"
+      "snooze1week": "Snooze 1 week",
+      "snoozedTitle": "Herinnering uitgesteld",
+      "snoozedDescription": "De herinnering komt {when} terug",
+      "snoozeFailedTitle": "Uitstellen mislukt",
+      "snoozeFailed": "Herinnering kon niet worden uitgesteld",
+      "dismissedTitle": "Herinnering genegeerd",
+      "dismissedDescription": "Deze herinnering verschijnt niet meer",
+      "dismissFailedTitle": "Negeren mislukt",
+      "dismissFailed": "Herinnering kon niet worden genegeerd",
+      "completedTitle": "Taak voltooid",
+      "completedDescription": "Taak gemarkeerd als voltooid en herinnering genegeerd",
+      "completeFailedTitle": "Voltooien mislukt",
+      "completeFailed": "Taak kon niet worden voltooid",
+      "overdue": "Te laat"
     }
   },
   "emptyState": {
@@ -842,7 +856,7 @@
         "getKey": "Sleutel ophalen",
         "guideLink": "Handleiding: mijn code-agent verbinden",
         "needsSetup": "Instellen vereist",
-        "agentLoops": "Agent Loops",
+        "agentLoops": "Agent-loops",
         "customAgents": "Aangepaste agents",
         "off": "Uit",
         "transportLabel": "Transport:",
@@ -878,7 +892,7 @@
         "stepSchedule": "Plannen of uitvoeren",
         "stepTest": "Testen",
         "hostedWorkflow": "Geen machine die aan kan blijven? Commit dan deze workflow. Die heeft twee repository-secrets nodig; {link} legt uit hoe je ze maakt.",
-        "startHere": "Start here",
+        "startHere": "Begin hier",
         "copilotInstall": "Commit deze aangepaste repository-agent één keer. Copilot CLI, de Copilot-app, GitHub.com en VS Code kunnen daarna hetzelfde wachtrijgedrag selecteren.",
         "githubConnect": "Maak clientgegevens voor deze agent en sla ze op als Actions-secrets van de repository met de namen {clientId} en {clientSecret}. Elke run wisselt de clientgegevens in voor een toegangstoken van één uur met alleen de rechten die een wachtrijworker nodig heeft — er komt nooit een langlevend token in de repository.",
         "githubInstall": "Deze workflow is een wachtrijpoort: hij beantwoordt \"is er werk?\" en voert zelf geen agent uit. Richt de tweede job op je bestaande ondersteunde agent-job (een Copilot CLI-, Claude Code- of Codex-stap uit de andere tabbladen).",
@@ -968,9 +982,9 @@
       "title": "API Toegang",
       "description": "OAuth-applicaties en API-integraties",
       "clientGuide": {
-        "title": "Do you need a client here?",
-        "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
-        "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant.",
+        "title": "Heb je hier een client nodig?",
+        "dcrNote": "Nee — als je assistent OAuth ondersteunt (VS Code / Copilot, ChatGPT of een andere MCP-client), registreert hij zich automatisch zodra je verbinding maakt met het gehoste MCP-endpoint. Hier hoef je niets aan te maken.",
+        "manualNote": "Ja — maak hieronder alleen een client aan voor serverintegraties met een vast secret: scripts, de stdio-MCP-server of opstellingen met eigen headers die de client_credentials-grant gebruiken.",
         "question": "Heb je hier een client nodig?",
         "registersItself": "Nee — als je assistent OAuth ondersteunt (VS Code / Copilot, ChatGPT of een andere MCP-client), registreert die zichzelf automatisch wanneer je verbinding maakt met het gehoste MCP-endpoint. Je hoeft hier niets aan te maken.",
         "manualOnly": "Ja — maak hieronder alleen een client aan voor serverintegraties die een statisch geheim gebruiken: scripts, de stdio-MCP-server of configuraties met aangepaste headers die de grant client_credentials gebruiken."
@@ -1078,15 +1092,15 @@
         }
       },
       "mcp": {
-        "badge": "Recommended",
-        "title": "Connect via MCP",
-        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
-        "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
+        "badge": "Aanbevolen",
+        "title": "Verbinden via MCP",
+        "description": "Het Model Context Protocol is de snelste manier om een AI-assistent met je taken te verbinden",
+        "serverUrl": "MCP-server-URL",
+        "note": "Voeg deze URL toe aan de MCP-instellingen van je assistent. Hij vraagt je om in te loggen bij {appName} — geen sleutels om te kopiëren.",
         "vscodeTitle": "VS Code / GitHub Copilot",
-        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "vscodeNote": "Sla het op als .vscode/mcp.json in je project en klik dan bij de server op Start",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+        "legacyNote": "Oudere clients die alleen het SSE-transport spreken, kunnen dezelfde URL met GET ophalen en berichten met POST naar /mcp/messages sturen."
       },
       "step1": {
         "badge": "Stap 1",
@@ -1337,7 +1351,7 @@
       "theme": {
         "title": "Thema",
         "description": "Kies tussen Ocean, licht en donker thema's",
-        "ocean": "Ocean",
+        "ocean": "Oceaan",
         "oceanDesc": "Licht thema met een verfrissende cyaan achtergrond",
         "light": "Lichte Modus",
         "lightDesc": "Een heldere, schone interface perfect voor daggebruik",
@@ -1436,15 +1450,15 @@
         }
       },
       "mcp": {
-        "badge": "Recommended",
-        "title": "Connect via MCP",
-        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
-        "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
+        "badge": "Aanbevolen",
+        "title": "Verbinden via MCP",
+        "description": "Het Model Context Protocol is de snelste manier om een AI-assistent met je taken te verbinden",
+        "serverUrl": "MCP-server-URL",
+        "note": "Voeg deze URL toe aan de MCP-instellingen van je assistent. Hij vraagt je om in te loggen bij {appName} — geen sleutels om te kopiëren.",
         "vscodeTitle": "VS Code / GitHub Copilot",
-        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "vscodeNote": "Sla het op als .vscode/mcp.json in je project en klik dan bij de server op Start",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages.",
+        "legacyNote": "Oudere clients die alleen het SSE-transport spreken, kunnen dezelfde URL met GET ophalen en berichten met POST naar /mcp/messages sturen.",
         "claudeNote": "Eén commando — het opent je browser om toegang goed te keuren, geen sleutels om te kopiëren",
         "copilotTitle": "GitHub Copilot CLI",
         "copilotNote": "Dezelfde verbinding met één commando voor de Copilot-CLI",
@@ -1761,21 +1775,21 @@
     }
   },
   "projectMode": {
-    "boardViewLabel": "Board View",
-    "boardViewDescriptionEnabled": "This list has a Ready / Doing / Waiting status board. Inbox holds new tasks; Done is completed.",
-    "boardViewDescriptionAvailable": "Add Ready, Doing, and Waiting status columns. Inbox and Done are derived automatically.",
-    "boardViewDescriptionLocked": "Boards add Ready / Doing / Waiting columns for working through tasks with other people. Available on request.",
-    "requestAccess": "Request access",
-    "requestPending": "Requested",
-    "requestPendingHint": "Your request is with the team. We'll email you when it's turned on.",
-    "requestDialogTitle": "Request board access",
-    "requestDialogBody": "Boards are rolling out gradually. Tell us what you'd use one for and we'll get back to you.",
-    "requestDialogUseCaseLabel": "What would you use a board for? (optional)",
-    "requestDialogUseCasePlaceholder": "e.g. tracking sprints with two teammates",
-    "requestDialogSubmit": "Send request",
-    "requestDialogCancel": "Cancel",
-    "requestSubmitted": "Request sent",
-    "requestFailed": "Couldn't send your request. Please try again.",
+    "boardViewLabel": "Bordweergave",
+    "boardViewDescriptionEnabled": "Deze lijst heeft een statusbord Klaar / Bezig / Wachten. Inbox bevat nieuwe taken; Gedaan de voltooide.",
+    "boardViewDescriptionAvailable": "Voeg de statuskolommen Klaar, Bezig en Wachten toe. Inbox en Gedaan worden automatisch afgeleid.",
+    "boardViewDescriptionLocked": "Borden voegen kolommen Klaar / Bezig / Wachten toe om taken samen met anderen af te werken. Beschikbaar op aanvraag.",
+    "requestAccess": "Toegang aanvragen",
+    "requestPending": "Aangevraagd",
+    "requestPendingHint": "Je aanvraag ligt bij het team. We mailen je zodra het is ingeschakeld.",
+    "requestDialogTitle": "Toegang tot borden aanvragen",
+    "requestDialogBody": "Borden worden geleidelijk uitgerold. Vertel ons waarvoor je er een zou gebruiken en we nemen contact op.",
+    "requestDialogUseCaseLabel": "Waarvoor zou je een bord gebruiken? (optioneel)",
+    "requestDialogUseCasePlaceholder": "bijv. sprints bijhouden met twee teamgenoten",
+    "requestDialogSubmit": "Aanvraag versturen",
+    "requestDialogCancel": "Annuleren",
+    "requestSubmitted": "Aanvraag verstuurd",
+    "requestFailed": "Je aanvraag kon niet worden verstuurd. Probeer het opnieuw.",
     "keyLabel": "Voorvoegsel taak-ID",
     "keyExample": "Taken worden {example}, …",
     "keyInvalid": "{min}–{max} letters of cijfers, beginnend met een letter",
@@ -1899,7 +1913,7 @@
       "connectGithubLink": "Instellingen → Verbindingen → GitHub",
       "runLoop": "Een loop voor deze lijst uitvoeren",
       "loopDescription": "Je codeerharness controleert deze lijst volgens een schema en werkt aan alles wat eraan is toegewezen en als {ready} is gemarkeerd. Taken op andere borden worden nooit aangeraakt.",
-      "readyStatus": "Ready",
+      "readyStatus": "Klaar",
       "descriptionHint": "Agents lezen de {description} van deze lijst als hun werkinstructies — bewerk die hierboven als een projectbriefing.",
       "descriptionWord": "beschrijving",
       "listId": "Lijst-ID",
@@ -2488,7 +2502,36 @@
     "connectIntro": "Elke agent heeft een eigen {appName}-identiteit en pakt alleen taken op die in zijn eigen lijst {assignedAndReady} zijn. Open er een en plak de stappen — of plak de link van deze pagina in de agent en vraag hem zichzelf in te stellen.",
     "connectIntroAssignedAndReady": "aan hem toegewezen en als Ready gemarkeerd",
     "workSetReady": "Zet de status op {ready} wanneer je wilt dat de agent begint. Dat is de startknop.",
-    "teamIntro": "Deel elke lijst (lijstinstellingen → {members} → uitnodigen per e-mail). Iedereen ziet dezelfde taken, opmerkingen en agentrapporten. Eigenaren en beheerders van de lijst kunnen elke taak aan een agent geven; leden kunnen taken overdragen die ze zelf hebben aangemaakt. Wil je dat leden elke taak kunnen overdragen, zet dan {setting} aan in de instellingen van de lijst → {aiAgent} (de agents draaien op de abonnementen van de eigenaar)."
+    "teamIntro": "Deel elke lijst (lijstinstellingen → {members} → uitnodigen per e-mail). Iedereen ziet dezelfde taken, opmerkingen en agentrapporten. Eigenaren en beheerders van de lijst kunnen elke taak aan een agent geven; leden kunnen taken overdragen die ze zelf hebben aangemaakt. Wil je dat leden elke taak kunnen overdragen, zet dan {setting} aan in de instellingen van de lijst → {aiAgent} (de agents draaien op de abonnementen van de eigenaar).",
+    "agents": {
+      "muse": {
+        "role": "Plant en sorteert: maakt van ideeën, feedback en bugs duidelijke Build- en Fix-taken.",
+        "plan": "Een Muse-account met Muse Code",
+        "runs": "Muse Code maakt verbinding met de MCP-server en controleert zijn wachtrij elke 30 minuten."
+      },
+      "claude": {
+        "role": "Bouwt functies van begin tot eind in je repo en opent pull requests.",
+        "plan": "Claude Max (inclusief Claude Code)",
+        "runs": "Claude Code maakt verbinding met de MCP-server en controleert zijn wachtrij elke 30 minuten."
+      },
+      "codex": {
+        "role": "Lost bugs test-first op, refactort en voegt ontbrekende tests toe.",
+        "plan": "ChatGPT Pro of Plus (inclusief Codex CLI)",
+        "runs": "Codex CLI maakt verbinding met de MCP-server en controleert zijn wachtrij elke 30 minuten."
+      },
+      "copilot": {
+        "role": "Beoordeelt elke pull request op GitHub automatisch en werkt reviewtaken af.",
+        "plan": "GitHub Copilot Pro+ (of Business voor een team)",
+        "runs": "GitHub vraagt bij elke pull request een Copilot-review aan; Copilot CLI controleert de Review-wachtrij elke 30 minuten.",
+        "extraStep0": "Open in je GitHub-repository Settings → Rules → Rulesets → New branch ruleset, kies je standaardbranch en zet \"Automatically request Copilot code review\" aan. Dan beoordeelt Copilot elke pull request die een agent opent, zonder dat je erom vraagt."
+      },
+      "githubActions": {
+        "role": "Voert je terugkerende automatiseringen volgens schema uit in GitHub — niets op je eigen computer.",
+        "plan": "Inbegrepen bij GitHub (gratis minuten voor openbare en de meeste privé-repo's)",
+        "runs": "Een geplande workflow vraagt de Automations-wachtrij elke 30 minuten om werk en start alleen een job als er iets is.",
+        "extraStep0": "Maak clientgegevens aan in {app} (Instellingen → AI-agenten → Copilot → GitHub Actions) en sla ze op als repository-secrets {clientId} en {clientSecret}."
+      }
+    }
   },
   "richTextInput": {
     "placeholder": "Typ een bericht...",
@@ -2508,7 +2551,11 @@
     "empty": "Nog geen berichten. Begin het gesprek!",
     "loadFailed": "Chat laden mislukt",
     "openChat": "Chat openen",
-    "showTasks": "Taken tonen"
+    "showTasks": "Taken tonen",
+    "authorYou": "Jij",
+    "authorSystem": "Systeem",
+    "authorUnknown": "Onbekend",
+    "systemEventAt": "Op {when}: {content}"
   },
   "notificationBell": {
     "markAllRead": "Alles als gelezen markeren",
@@ -2556,6 +2603,49 @@
       "doing": "Bezig",
       "waiting": "Wachten",
       "done": "Gedaan"
+    },
+    "blurb": {
+      "inbox": "Zet ze op \"Klaar\" als ze... klaar zijn!",
+      "ready": "Tijd om aan de slag te gaan!",
+      "doing": "Werk in uitvoering!",
+      "waiting": "Gepauzeerd tot de omstandigheden goed zijn.",
+      "done": "Voltooid — gefeliciteerd!"
     }
+  },
+  "passkeyErrors": {
+    "notSupported": "Passkeys worden niet ondersteund op dit apparaat",
+    "optionsFailed": "Het passkey-verzoek kon niet worden gestart. Probeer het opnieuw.",
+    "registrationFailed": "Passkey registreren mislukt",
+    "authenticationFailed": "Inloggen met passkey mislukt",
+    "defaultName": "Mijn passkey"
+  },
+  "oauthScopes": {
+    "tasks_read": "Taken lezen",
+    "tasks_write": "Taken maken en bijwerken",
+    "tasks_delete": "Taken verwijderen",
+    "lists_read": "Lijsten lezen",
+    "lists_write": "Lijsten maken en bijwerken",
+    "lists_configure": "Lijsten maken en hun naam, instructies, standaard toegewezene en kleur bewerken",
+    "lists_delete": "Lijsten verwijderen",
+    "lists_manage_members": "Lijstleden beheren",
+    "projects_read": "Projecten (statusborden) lezen",
+    "projects_write": "Projecten (statusborden) maken en bijwerken",
+    "projects_delete": "Projecten (statusborden) verwijderen",
+    "comments_read": "Opmerkingen lezen",
+    "comments_write": "Opmerkingen plaatsen",
+    "comments_delete": "Opmerkingen verwijderen",
+    "chat_read": "Chatberichten lezen",
+    "chat_write": "Chatberichten versturen",
+    "user_read": "Gebruikersprofiel en instellingen lezen",
+    "user_write": "Gebruikersinstellingen bijwerken",
+    "attachments_read": "Bijlagen lezen",
+    "attachments_write": "Bijlagen uploaden",
+    "attachments_delete": "Bijlagen verwijderen",
+    "contacts_read": "Geüploade contacten lezen",
+    "contacts_write": "Contacten uploaden en beheren",
+    "public_read": "Openbare lijsten lezen",
+    "public_write": "Openbare lijsten maken en beheren",
+    "sse_connect": "Verbinden met de SSE-eventstroom",
+    "all": "Volledige toegang (alleen intern — voor sessie-authenticatie)"
   }
 }
