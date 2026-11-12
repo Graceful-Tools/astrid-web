@@ -272,15 +272,15 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
                 <ul className="space-y-2 text-sm theme-text-muted">
                   <li className="flex items-start space-x-2">
                     <span className="text-yellow-500 mt-0.5">•</span>
-                    <span><strong>Dates:</strong> &quot;Buy milk tomorrow&quot;, &quot;Meeting next week&quot;, &quot;Call mom monday&quot;</span>
+                    <span><strong>{t("settingsPages.appearancePage.smartTasks.datesLabel")}</strong> &quot;Buy milk tomorrow&quot;, &quot;Meeting next week&quot;, &quot;Call mom monday&quot;</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-yellow-500 mt-0.5">•</span>
-                    <span><strong>Priority:</strong> &quot;Urgent fix bug&quot;, &quot;High priority review&quot;, &quot;Low priority cleanup&quot;</span>
+                    <span><strong>{t("settingsPages.appearancePage.smartTasks.priorityLabel")}</strong> &quot;Urgent fix bug&quot;, &quot;High priority review&quot;, &quot;Low priority cleanup&quot;</span>
                   </li>
                   <li className="flex items-start space-x-2">
                     <span className="text-yellow-500 mt-0.5">•</span>
-                    <span><strong>Lists:</strong> &quot;#shopping Buy groceries&quot;, &quot;#work Finish report&quot;</span>
+                    <span><strong>{t("settingsPages.appearancePage.smartTasks.listsLabel")}</strong> &quot;#shopping Buy groceries&quot;, &quot;#work Finish report&quot;</span>
                   </li>
                 </ul>
               </div>

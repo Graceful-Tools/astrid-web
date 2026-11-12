@@ -22,6 +22,7 @@ import { CopyBlock } from "@/components/agent-runtime-settings"
 import { AgentCredentialsCard } from "@/components/agent-credentials-card"
 import { apiGet, apiPost } from "@/lib/api"
 import { useTranslations } from "@/lib/i18n/client"
+import { RichMessage } from "@/components/shared/RichMessage"
 import {
   START_HERE_MARKDOWN_PATH,
   START_HERE_PATH,
@@ -79,6 +80,7 @@ function AgentSetup({
   listId?: string
   signedIn: boolean
 }) {
+  const { t } = useTranslations()
   const list = starterList(agent.list)
   const setup = starterAgentSetup(agent, origin, listId ?? null)
   let n = 1
@@ -90,28 +92,28 @@ function AgentSetup({
       <summary className="cursor-pointer list-none flex flex-wrap items-start justify-between gap-2">
         <span>
           <span className="font-semibold theme-text-primary">{agent.name}</span>
-          <span className="theme-text-muted"> → {list.name} list</span>
+          <span className="theme-text-muted"> {t('startPage.agentList', { list: list.name })}</span>
           <span className="block text-sm theme-text-muted">{agent.role}</span>
         </span>
-        <span className="text-xs theme-text-muted shrink-0">Buy: {agent.plan}</span>
+        <span className="text-xs theme-text-muted shrink-0">{t('startPage.buyPlan', { plan: agent.plan })}</span>
       </summary>
       <div className="space-y-3 pt-3">
         <p className="text-sm theme-text-muted">{agent.runs}</p>
         {!listId && (
           <p className="text-xs theme-text-muted">
-            Create the lists in Step 1 first and these commands fill in your {list.name} list id.
+            {t('startPage.createListsFirst', { list: list.name })}
           </p>
         )}
         {setup.connect && (
           <CopyBlock
-            label={`${n++}. Connect, then approve the ${BRAND.appName} sign-in it opens`}
+            label={t('startPage.connectStep', { n: String(n++) })}
             code={setup.connect}
             testId={`starthere-connect-${agent.key}`}
           />
         )}
         {setup.install && (
           <CopyBlock
-            label={`${n++}. Install the queue skill at ${setup.install.path}`}
+            label={t('startPage.installSkillStep', { n: String(n++), path: setup.install.path })}
             code={setup.install.content}
           />
         )}
@@ -125,27 +127,33 @@ function AgentSetup({
         )}
         {setup.schedule && (
           <CopyBlock
-            label={`${n++}. Run it every 30 minutes (crontab on any always-on machine)`}
+            label={t('startPage.scheduleStep', { n: String(n++) })}
             code={setup.schedule}
             testId={`starthere-schedule-${agent.key}`}
           />
         )}
         {setup.workflow && (
           <CopyBlock
-            label={`${n++}. Commit ${setup.workflow.path}, then replace its last step with the job to run`}
+            label={t('startPage.workflowStep', { n: String(n++), path: setup.workflow.path })}
             code={setup.workflow.content}
             testId={`starthere-workflow-${agent.key}`}
           />
         )}
         <p className="text-sm theme-text-muted">
-          {n}. Check it: ask the agent to call <code className="font-mono text-xs">get_agent_queue</code> with
-          agent &quot;{agent.mailbox}&quot;. <code className="font-mono text-xs">empty: true</code> means
-          connected and idle.
+          <RichMessage
+            message={t('startPage.checkStep')}
+            values={{
+              n,
+              tool: <code className="font-mono text-xs">get_agent_queue</code>,
+              mailbox: agent.mailbox,
+              empty: <code className="font-mono text-xs">empty: true</code>,
+            }}
+          />
         </p>
         {setup.hosted && (
           <div className="space-y-3 rounded-lg border theme-border p-3" data-testid={`starthere-hosted-${agent.key}`}>
             <p className="text-sm font-semibold theme-text-primary">
-              No machine to leave on? Run {agent.name} in GitHub Actions instead.
+              {t('startPage.hostedTitle', { agent: agent.name })}
             </p>
             <ul className="list-disc pl-5 space-y-1 text-sm theme-text-muted">
               {setup.hosted.secrets.map(secret => (
@@ -156,7 +164,7 @@ function AgentSetup({
             </ul>
             {signedIn && <CiTokenButton mailbox={agent.mailbox} secretName={setup.hosted.secrets[1]?.name ?? ''} />}
             <CopyBlock
-              label={`Commit ${setup.hosted.workflow.path}`}
+              label={t('startPage.commitFile', { path: setup.hosted.workflow.path })}
               code={setup.hosted.workflow.content}
               testId={`starthere-hosted-workflow-${agent.key}`}
             />
@@ -206,7 +214,7 @@ function CiTokenButton({ mailbox, secretName }: { mailbox: string; secretName: s
   if (token) {
     return (
       <div className="space-y-1">
-        <CopyBlock label={`Save as the ${secretName} secret — shown once`} code={token} />
+        <CopyBlock label={t('startPage.saveAsSecret', { secret: secretName })} code={token} />
       </div>
     )
   }
@@ -287,11 +295,16 @@ export default function StartHerePage() {
           <p className="text-sm theme-text-muted flex items-center gap-2">
             <FileText className="w-4 h-4 shrink-0" />
             <span>
-              Are you an agent? Read{' '}
-              <a className="underline" href={START_HERE_MARKDOWN_PATH} data-testid="starthere-markdown-link">
-                {START_HERE_MARKDOWN_PATH}
-              </a>{' '}
-              — the same steps as plain text.
+              <RichMessage
+                message={t('startPage.agentReadThis')}
+                values={{
+                  link: (
+                    <a className="underline" href={START_HERE_MARKDOWN_PATH} data-testid="starthere-markdown-link">
+                      {START_HERE_MARKDOWN_PATH}
+                    </a>
+                  ),
+                }}
+              />
             </span>
           </p>
         </div>
@@ -323,9 +336,7 @@ export default function StartHerePage() {
 
         <Step n={1} title={t('startPage.createTitle')}>
           <p className="text-sm theme-text-muted">
-            One button creates the five lists with their instructions and makes each agent the
-            default assignee. A list&apos;s description <em>is</em> the instruction file every agent reads
-            for tasks in it — edit it any time.
+            <RichMessage message={t('startPage.createIntro')} values={{ is: <em>{t('startPage.createIntroIs')}</em> }} />
           </p>
           {signedIn ? (
             <Button onClick={create} disabled={creating || allCreated} data-testid="starthere-create-lists">
@@ -358,10 +369,14 @@ export default function StartHerePage() {
           <p className="text-sm theme-text-muted flex items-start gap-2">
             <Bot className="w-4 h-4 mt-0.5 shrink-0" />
             <span>
-              Each agent has its own {BRAND.appName} identity and only takes tasks that are
-              <strong className="theme-text-primary"> assigned to it and marked Ready</strong> in its
-              own list. Open one, paste its steps — or paste this page&apos;s link into the agent and
-              ask it to set itself up.
+              <RichMessage
+                message={t('startPage.connectIntro')}
+                values={{
+                  assignedAndReady: (
+                    <strong className="theme-text-primary">{t('startPage.connectIntroAssignedAndReady')}</strong>
+                  ),
+                }}
+              />
             </span>
           </p>
           <div className="space-y-3">
@@ -380,7 +395,7 @@ export default function StartHerePage() {
         <Step n={3} title={t('startPage.workTitle')}>
           <ol className="list-decimal pl-5 space-y-1 text-sm theme-text-primary">
             <li>{t('startPage.workAddTask')}</li>
-            <li>Set its status to <strong>Ready</strong> when you want the agent to start. That is the go button.</li>
+            <li><RichMessage message={t('startPage.workSetReady')} values={{ ready: <strong>Ready</strong> }} /></li>
             <li>{t('startPage.workAgentReports')}</li>
             <li>{t('startPage.workReply')}</li>
           </ol>
@@ -394,11 +409,16 @@ export default function StartHerePage() {
           <p className="text-sm theme-text-muted flex items-start gap-2">
             <Users className="w-4 h-4 mt-0.5 shrink-0" />
             <span>
-              Share each list (list settings → Members → invite by email). Everyone sees the same
-              tasks, comments and agent reports. List owners and admins can hand any task to an agent;
-              members can hand over tasks they created. To let members hand over any task, turn on
-              <strong className="theme-text-primary"> Members can hand any task to an agent</strong> in the
-              list&apos;s settings → AI Agent (the agents run on the owner&apos;s plans).
+              <RichMessage
+                message={t('startPage.teamIntro')}
+                values={{
+                  members: t('lists.members'),
+                  setting: (
+                    <strong className="theme-text-primary">{t('listSettings.memberAgentAssignment.label')}</strong>
+                  ),
+                  aiAgent: t('listSettings.admin.aiAgent'),
+                }}
+              />
             </span>
           </p>
         </Step>

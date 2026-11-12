@@ -11,6 +11,27 @@ import { SettingsPageContent, SETTINGS_PAGE_TITLES } from "@/components/Settings
 import { scrollShellClassName } from "@/components/scroll-shell"
 import { useTranslations } from "@/lib/i18n/client"
 
+/**
+ * The header title of each page, as an i18n key. SETTINGS_PAGE_TITLES holds the
+ * same names in English only; it stays the fallback for a page not listed here.
+ */
+const PAGE_TITLE_KEYS: Record<string, string> = {
+  'account': 'settingsPages.pageTitles.account',
+  'appearance': 'settingsPages.appearance.title',
+  'reminders': 'settingsPages.remindersNotifications.title',
+  'agents': 'settingsPages.aiAgents.title',
+  'connections': 'settingsPages.connections.title',
+  'api-access': 'settingsPages.connections.title',
+  'contacts': 'settingsPages.contacts.title',
+  'debug': 'settingsPages.debug.title',
+  'tasks': 'settingsPages.tasksPage.title',
+  'api-testing': 'settingsPages.pageTitles.apiTesting',
+  'agents/github-setup': 'settingsPages.pageTitles.githubSetup',
+  'help': 'settingsPages.pageTitles.help',
+  'privacy': 'signInPage.privacyPolicy',
+  'terms': 'signInPage.termsOfService',
+}
+
 export default function SettingsFullPage() {
   const { t } = useTranslations()
   const params = useParams()
@@ -28,7 +49,7 @@ export default function SettingsFullPage() {
     return <LoadingScreen />
   }
 
-  const title = SETTINGS_PAGE_TITLES[page] || page
+  const title = PAGE_TITLE_KEYS[page] ? t(PAGE_TITLE_KEYS[page]) : SETTINGS_PAGE_TITLES[page] || page
 
   // Opened via window.open, this tab has no history — router.back() is a
   // silent no-op. Fall through to the in-app settings page instead.

@@ -1,13 +1,25 @@
 import { BRAND } from '@/lib/brand/config'
+import type { Metadata, ResolvingMetadata } from "next"
 import Link from "next/link"
 import Image from "next/image"
 import { getTranslations } from "next-intl/server"
 import { ScrollShell } from "@/components/scroll-shell"
 import { fetchLatestMacRelease, MAC_RELEASES_FALLBACK_URL } from "@/lib/mac-release"
 
-export const metadata = {
-  title: `Download ${BRAND.appName} for Mac`,
-  description: `${BRAND.appName} for Mac — a native desktop app for your tasks, lists, and chat.`,
+export async function generateMetadata(_props: unknown, parent: ResolvingMetadata): Promise<Metadata> {
+  const t = await getTranslations("downloadPage")
+  const title = t("metaTitle")
+  const description = t("metaDescription")
+  // The locale layout fills openGraph and twitter with the brand defaults, and a
+  // page that sets only the top level leaves a shared link's preview in English.
+  // Spread the parent's so the image and site name stay and only the words change.
+  const resolved = await parent
+  return {
+    title,
+    description,
+    openGraph: { ...resolved.openGraph, title, description },
+    twitter: { ...resolved.twitter, title, description },
+  } as Metadata
 }
 
 export default async function DownloadPage() {

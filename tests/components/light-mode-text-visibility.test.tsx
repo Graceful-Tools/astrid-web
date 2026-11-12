@@ -65,7 +65,7 @@ describe('Light Mode Text Visibility Regression Test', () => {
     ].join('\n')
 
     // 1. Comments section should use theme-text-muted (lives in CommentSection now)
-    expect(taskDetailFiles).toMatch(/className="text-sm theme-text-muted">Comments/)
+    expect(taskDetailFiles).toMatch(/className="text-sm theme-text-muted">\{t\('tasks\.commentsSection\.count'/)
 
     // 2. Chat bubble meta should use theme-text-muted (in shared MessageBubble)
     const messageBubblePath = path.join(root, 'components/shared/MessageBubble.tsx')

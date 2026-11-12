@@ -8,6 +8,7 @@ import { Check, X, Mail, UserPlus, Bot, Sparkles } from "lucide-react"
 import type { User } from "../types/task"
 import { isCodingAgent } from "@/lib/ai-agent-utils"
 import { useTranslations } from "@/lib/i18n/client"
+import { fillMessage } from "@/components/shared/RichMessage"
 
 /**
  * How long to wait after the last keystroke before searching.
@@ -55,7 +56,7 @@ export function UserPicker({
   selectedUser,
   onUserSelect,
   onInviteUser,
-  placeholder = "Search users or enter email...",
+  placeholder,
   className = "",
   taskId,
   listIds,
@@ -262,8 +263,8 @@ export function UserPicker({
 
     // Add "Unassigned" option if search term is empty or matches "unassigned"
     const searchLower = searchTerm.toLowerCase()
-    if (!searchTerm || 'unassigned'.includes(searchLower)) {
-      keyboardOptions.push({ id: 'unassigned', name: 'Unassigned', email: '', image: null, isListMember: false })
+    if (!searchTerm || 'unassigned'.includes(searchLower) || t('tasks.unassigned').toLowerCase().includes(searchLower)) {
+      keyboardOptions.push({ id: 'unassigned', name: t('tasks.unassigned'), email: '', image: null, isListMember: false })
     }
 
     // Add regular search results
@@ -303,8 +304,8 @@ export function UserPicker({
 
   // Add "Unassigned" option if search term is empty or matches "unassigned"
   const searchLower = searchTerm.toLowerCase()
-  if (!searchTerm || 'unassigned'.includes(searchLower)) {
-    allOptions.push({ id: 'unassigned', name: 'Unassigned', email: '', image: null, isListMember: false })
+  if (!searchTerm || 'unassigned'.includes(searchLower) || t('tasks.unassigned').toLowerCase().includes(searchLower)) {
+    allOptions.push({ id: 'unassigned', name: t('tasks.unassigned'), email: '', image: null, isListMember: false })
   }
 
   // Add regular search results
@@ -353,7 +354,7 @@ export function UserPicker({
             }
           }}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t('tasks.detail.searchUsersOrEmail')}
           className="bg-theme-input border-theme-input text-theme-primary placeholder:text-theme-placeholder"
         />
 
@@ -386,7 +387,7 @@ export function UserPicker({
                     <div className="text-sm">{user.name || user.email}</div>
                     {user.isListMember && !isCodingAgent(user) && (
                       <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-success-subtle text-theme-primary">
-                        Member
+                        {t('lists.member')}
                       </span>
                     )}
                   </div>
@@ -413,7 +414,7 @@ export function UserPicker({
                 }`}
               >
                 <UserPlus className="w-4 h-4" />
-                <span className="text-sm">Invite {searchTerm}</span>
+                <span className="text-sm">{fillMessage(t('userPicker.inviteEmail'), { email: searchTerm })}</span>
               </div>
             )}
           </div>
@@ -423,7 +424,7 @@ export function UserPicker({
         {showInviteForm && (
           <div className="absolute top-full left-0 right-0 mt-1 p-3 bg-theme-surface border border-theme-surface rounded-lg shadow-lg z-10">
             <div className="text-sm text-theme-primary mb-2">
-              Invite {searchTerm}
+              {fillMessage(t('userPicker.inviteEmail'), { email: searchTerm })}
             </div>
             <Input
               value={inviteMessage}
@@ -446,7 +447,7 @@ export function UserPicker({
                 onClick={() => setShowInviteForm(false)}
                 className="border-theme-button text-theme-secondary"
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
             </div>
           </div>
@@ -456,7 +457,7 @@ export function UserPicker({
         {showAccessWarning && pendingUser && (
           <div className="absolute top-full left-0 right-0 mt-1 p-4 bg-theme-surface border border-warning rounded-lg shadow-lg z-10">
             <div className="text-sm text-theme-primary mb-3">
-              <div className="font-medium mb-1">⚠️ Access Warning</div>
+              <div className="font-medium mb-1">{t('userPicker.accessWarningTitle')}</div>
               <div>{pendingUser.accessWarning}</div>
             </div>
             <div className="flex space-x-2">
@@ -475,7 +476,7 @@ export function UserPicker({
                 className="border-warning text-theme-primary"
               >
                 <X className="w-4 h-4 mr-1" />
-                Cancel
+                {t('common.cancel')}
               </Button>
             </div>
           </div>

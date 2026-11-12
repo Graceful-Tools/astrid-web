@@ -13,6 +13,22 @@ import type { RecentlyCompletedWindow } from "@/lib/recently-completed-window"
 import { useTranslations } from "@/lib/i18n/client"
 import type { TaskList } from "@/types/task"
 
+/**
+ * The presets live in lib/ with English labels; what is shown comes from these
+ * keys. A preset added there without a key here falls back to its own label.
+ */
+const PRESET_LABEL_KEYS: Partial<Record<RecentlyCompletedPresetId, string>> = {
+  'default-24h': 'default24h',
+  'last-7-days': 'last7Days',
+  'last-14-days': 'last14Days',
+  'last-28-days': 'last28Days',
+  'last-30-days': 'last30Days',
+  'since-last-sunday': 'sinceLastSunday',
+  'since-last-monday': 'sinceLastMonday',
+  'since-first-of-month': 'sinceFirstOfMonth',
+  'since-specific-date': 'sinceSpecificDate',
+}
+
 interface RecentlyCompletedWindowSectionProps {
   list: TaskList
   canEditSettings: boolean
@@ -64,7 +80,7 @@ export function RecentlyCompletedWindowSection({
         <SelectContent className="theme-bg-primary theme-border z-[10100]">
           {RECENTLY_COMPLETED_PRESETS.map(p => (
             <SelectItem key={p.id} value={p.id} className="theme-text-primary">
-              {p.label}
+              {PRESET_LABEL_KEYS[p.id] ? t(`listSettings.admin.recentlyCompletedPresets.${PRESET_LABEL_KEYS[p.id]}`) : p.label}
             </SelectItem>
           ))}
         </SelectContent>

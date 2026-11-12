@@ -256,8 +256,8 @@ export function TaskHeader({
                   // instead hid the control on iPad portrait, where the
                   // windowed pane does render. (Task 0ea0b818)
                   className="theme-text-muted hover:theme-text-primary h-7 w-7 p-0 inline-flex"
-                  aria-label={fullScreen ? "Exit full screen" : "Full screen"}
-                  title={fullScreen ? "Exit full screen" : "Full screen"}
+                  aria-label={t(fullScreen ? 'tasks.detail.exitFullScreen' : 'tasks.tradeoffGrid.fullScreen')}
+                  title={t(fullScreen ? 'tasks.detail.exitFullScreen' : 'tasks.tradeoffGrid.fullScreen')}
                 >
                   {fullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
                 </Button>

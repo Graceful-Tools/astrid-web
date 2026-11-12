@@ -1,6 +1,7 @@
 "use client"
 
 import { useTranslations } from "@/lib/i18n/client"
+import { RichMessage } from "@/components/shared/RichMessage"
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -77,8 +78,7 @@ export function OwnerLeaveDialog({
 
         <div className="space-y-4">
           <p className="text-sm theme-text-secondary">
-            As the owner of &quot;<strong>{list.name}</strong>&quot;, you need to transfer ownership before leaving. 
-            Choose a successor or delete the list.
+            <RichMessage message={t('lists.ownerLeave.body')} values={{ name: <strong>{list.name}</strong> }} />
           </p>
 
           {potentialSuccessors.length > 0 ? (
@@ -125,7 +125,7 @@ export function OwnerLeaveDialog({
                           )}
                         </div>
                         <span className="text-xs theme-text-muted">
-                          {member.role === 'admin' ? 'Admin' : 'Member'}
+                          {t(member.role === 'admin' ? 'lists.admin' : 'lists.member')}
                         </span>
                       </div>
                     </div>
@@ -140,7 +140,7 @@ export function OwnerLeaveDialog({
                   className="flex-1 bg-brand hover:bg-brand-hover text-brand-foreground"
                 >
                   <Crown className="w-4 h-4 mr-2" />
-                  Transfer & Leave
+                  {t('lists.ownerLeave.transferAndLeave')}
                 </Button>
                 <Button
                   variant="outline"
@@ -148,7 +148,7 @@ export function OwnerLeaveDialog({
                   disabled={isProcessing}
                   className="theme-border"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
               </div>
             </>
@@ -162,7 +162,7 @@ export function OwnerLeaveDialog({
 
           <div className="border-t theme-border pt-4">
             <p className="text-xs theme-text-muted mb-3">
-              Alternatively, you can delete the list entirely:
+              {t('lists.ownerLeave.deleteInstead')}
             </p>
             <Button
               variant="destructive"

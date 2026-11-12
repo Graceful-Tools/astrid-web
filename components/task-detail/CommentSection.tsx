@@ -1,6 +1,7 @@
 "use client"
 
 import { useTranslations } from '@/lib/i18n/client'
+import { fillMessage } from '@/components/shared/RichMessage'
 import { BRAND } from '@/lib/brand/config'
 import { foldCompletionStreaks, isSystemComment } from "@/lib/completion-streak"
 import { StreakRow } from "@/components/task-detail/StreakRow"
@@ -28,9 +29,9 @@ import { useIdentifierLinkContext } from '@/hooks/use-identifier-link-context'
 import type { V1CommentUpdateRequest } from '@/lib/api-contracts/v1-request-shapes'
 
 // Helper function to display author name/email with fallback for system/deleted users
-function getAuthorDisplay(author: User | null | undefined, isSystemComment: boolean = false): string {
-  if (isSystemComment || !author) return "System"
-  return author.name || author.email || "Unknown User"
+function getAuthorDisplay(author: User | null | undefined, t: (key: string) => string, isSystemComment: boolean = false): string {
+  if (isSystemComment || !author) return t('tasks.commentsSection.systemAuthor')
+  return author.name || author.email || t('tasks.commentsSection.unknownUser')
 }
 
 function getAuthorInitial(author: User | null | undefined, isSystemComment: boolean = false): string {
@@ -497,14 +498,14 @@ export function CommentSection({
                 setEditingText("")
               }}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button
               size="sm"
               disabled={!editingText.trim()}
               onClick={() => handleEditComment(comment.id, editingText)}
             >
-              Save
+              {t('common.save')}
             </Button>
           </div>
         </div>
@@ -563,7 +564,7 @@ export function CommentSection({
               }}
             >
               <Copy className="w-3.5 h-3.5" />
-              <span>Copy</span>
+              <span>{t('actions.copy')}</span>
             </button>
             {!isReply && (
               <button
@@ -575,7 +576,7 @@ export function CommentSection({
                 }}
               >
                 <Reply className="w-3.5 h-3.5" />
-                <span>Reply</span>
+                <span>{t('tasks.commentsSection.reply')}</span>
               </button>
             )}
             {isCurrentUser && (
@@ -590,7 +591,7 @@ export function CommentSection({
                 }}
               >
                 <Pencil className="w-3.5 h-3.5" />
-                <span>Edit</span>
+                <span>{t('common.edit')}</span>
               </button>
             )}
             {isCurrentUser && (
@@ -607,7 +608,7 @@ export function CommentSection({
                 }}
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>Delete</span>
+                <span>{t('common.delete')}</span>
               </button>
             )}
           </div>
@@ -622,14 +623,14 @@ export function CommentSection({
   return (
     <div className="border-t theme-border pt-4 flex flex-col flex-1 min-h-0">
       <div className="mb-3 flex items-center gap-2">
-        <Label className="text-sm theme-text-muted">Comments ({displayedCommentCount})</Label>
+        <Label className="text-sm theme-text-muted">{t('tasks.commentsSection.count', { count: String(displayedCommentCount) })}</Label>
         {systemComments.length > 0 && (
           <button
             onClick={() => setShowSystemComments(!showSystemComments)}
             className="text-xs theme-text-muted hover:theme-text-secondary transition-colors"
-            title={showSystemComments ? "Hide system comments" : "Show system comments"}
+            title={t(showSystemComments ? 'tasks.commentsSection.hideSystemTitle' : 'tasks.commentsSection.showSystemTitle')}
           >
-            {showSystemComments ? "Hide system" : "Show system"}
+            {t(showSystemComments ? 'tasks.commentsSection.hideSystem' : 'tasks.commentsSection.showSystem')}
           </button>
         )}
         {/* Desktop refresh button */}
@@ -641,7 +642,7 @@ export function CommentSection({
             title={t('tasks.commentsSection.refresh')}
           >
             <RefreshCw className={`w-3 h-3 ${isRefreshingDesktop ? 'animate-spin' : ''}`} />
-            {isRefreshingDesktop ? 'Refreshing...' : 'Refresh'}
+            {t(isRefreshingDesktop ? 'settingsPages.debug.sections.dataManagement.refreshData.refreshing' : 'tasks.commentsSection.refreshShort')}
           </button>
         )}
       </div>
@@ -708,7 +709,7 @@ export function CommentSection({
             {replyingTo === comment.id && (
               <div className={`mt-2 ${comment.authorId === currentUser.id ? 'pr-10' : 'pl-10'}`}>
                 <div className="text-xs text-brand mb-2">
-                  Replying to {getAuthorDisplay(comment.author)}
+                  {fillMessage(t('tasks.commentsSection.replyingTo'), { name: getAuthorDisplay(comment.author, t) })}
                   <button
                     onClick={() => {
                       setReplyingTo(null)
@@ -751,7 +752,7 @@ export function CommentSection({
               <span className="w-1.5 h-1.5 rounded-full bg-current theme-text-muted animate-bounce [animation-delay:300ms]" />
             </div>
             <span className="text-xs theme-text-muted">
-              {agentTyping.agentName || 'Agent'} is thinking...
+              {fillMessage(t('tasks.commentsSection.agentThinking'), { name: agentTyping.agentName || t('settingsPages.connections.owners.agent') })}
             </span>
           </div>
         )}

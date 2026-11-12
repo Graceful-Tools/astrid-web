@@ -1,12 +1,15 @@
 "use client"
 
 import React from 'react'
+import { useTranslations } from '@/lib/i18n/client'
+import { fillMessage } from '@/components/shared/RichMessage'
 
 interface TypingIndicatorProps {
   agentName: string | null
 }
 
 export const TypingIndicator = React.memo(function TypingIndicator({ agentName }: TypingIndicatorProps) {
+  const { t } = useTranslations()
   return (
     <div className="flex items-center gap-2 px-1 py-2">
       <div className="flex items-center gap-0.5 h-5">
@@ -15,7 +18,7 @@ export const TypingIndicator = React.memo(function TypingIndicator({ agentName }
         <span className="w-1.5 h-1.5 rounded-full bg-current theme-text-muted animate-bounce [animation-delay:300ms]" />
       </div>
       <span className="text-xs theme-text-muted">
-        {agentName || 'Agent'} is thinking...
+        {fillMessage(t('tasks.commentsSection.agentThinking'), { name: agentName || t('settingsPages.connections.owners.agent') })}
       </span>
     </div>
   )

@@ -635,7 +635,7 @@ export function MainContent({
                       ) : (
                         <h1 className={`text-2xl font-semibold tracking-tight theme-text-primary mb-1 text-left line-clamp-2 break-words ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
                             onClick={!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleEditListName(currentList) : undefined}>
-                          {newFilterState.filters.search.trim() ? 'Search Results' : currentList.name}
+                          {newFilterState.filters.search.trim() ? t('search.resultsTitle') : currentList.name}
                         </h1>
                       )}
 
@@ -857,7 +857,7 @@ export function MainContent({
                   {pullToRefresh.isRefreshing ? (
                     <>
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-theme-focus"></div>
-                      <span className="text-sm font-medium">Refreshing...</span>
+                      <span className="text-sm font-medium">{t('settingsPages.debug.sections.dataManagement.refreshData.refreshing')}</span>
                     </>
                   ) : pullToRefresh.canRefresh ? (
                     <>
@@ -951,7 +951,7 @@ export function MainContent({
                       }
                     }}
                   >
-                    {renderManualPlaceholderRow('manual-empty-placeholder', 'Drop here to place the first task')}
+                    {renderManualPlaceholderRow('manual-empty-placeholder', t('tasks.dropToPlaceFirst'))}
                   </div>
                 )}
               </div>

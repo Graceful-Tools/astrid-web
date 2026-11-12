@@ -27,20 +27,20 @@ const formatReminderTime = (minutes: number): string => {
 }
 
 // Get timezone options
-const getTimezoneOptions = (): Array<{ value: string; label: string }> => {
+const getTimezoneOptions = (t: (key: string, replacements?: Record<string, string>) => string): Array<{ value: string; label: string }> => {
   try {
     const currentTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
     
     // Predefined timezone options
     const predefinedTimezones = [
       { value: "UTC", label: "UTC" },
-      { value: "America/New_York", label: "Eastern Time" },
-      { value: "America/Los_Angeles", label: "Pacific Time" },
-      { value: "America/Chicago", label: "Central Time" },
-      { value: "America/Denver", label: "Mountain Time" },
-      { value: "Europe/London", label: "London" },
-      { value: "Europe/Paris", label: "Paris" },
-      { value: "Asia/Tokyo", label: "Tokyo" },
+      { value: "America/New_York", label: t('reminderSettings.timezones.eastern') },
+      { value: "America/Los_Angeles", label: t('reminderSettings.timezones.pacific') },
+      { value: "America/Chicago", label: t('reminderSettings.timezones.central') },
+      { value: "America/Denver", label: t('reminderSettings.timezones.mountain') },
+      { value: "Europe/London", label: t('reminderSettings.timezones.london') },
+      { value: "Europe/Paris", label: t('reminderSettings.timezones.paris') },
+      { value: "Asia/Tokyo", label: t('reminderSettings.timezones.tokyo') },
     ]
     
     // Check if current timezone is already in the list
@@ -50,13 +50,13 @@ const getTimezoneOptions = (): Array<{ value: string; label: string }> => {
       // Update the existing entry to show it's local
       return predefinedTimezones.map(tz => 
         tz.value === currentTimezone 
-          ? { ...tz, label: `${tz.label} (Local)` }
+          ? { ...tz, label: t('reminderSettings.timezones.local', { label: tz.label }) }
           : tz
       )
     } else {
       // Add current timezone at the top if it's not in the list
       return [
-        { value: currentTimezone, label: `${currentTimezone} (Local)` },
+        { value: currentTimezone, label: t('reminderSettings.timezones.local', { label: currentTimezone }) },
         ...predefinedTimezones
       ]
     }
@@ -118,21 +118,23 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
         }
       } else {
         toast({
-          title: "Error",
-          description: "Failed to load reminder settings.",
+          title: t('messages.error'),
+          description: t('reminderSettings.toast.loadFailed'),
           duration: 5000,
         })
       }
     } catch (error) {
       console.error("Error loading reminder settings:", error)
       toast({
-        title: "Error",
-        description: "Failed to load reminder settings.",
+        title: t('messages.error'),
+        description: t('reminderSettings.toast.loadFailed'),
         duration: 5000,
       })
     } finally {
       setLoading(false)
     }
+    // `t` is a new function on every render; listing it would reload in a loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast, onSettingsChange])
 
   // Load reminder settings
@@ -166,23 +168,23 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
         }
         
         toast({
-          title: "Settings Saved",
-          description: "Your reminder preferences have been updated.",
+          title: t('reminderSettings.toast.savedTitle'),
+          description: t('reminderSettings.toast.savedDescription'),
           duration: 3000,
         })
       } else {
         const error = await response.json()
         toast({
-          title: "Error",
-          description: error.error || "Failed to save reminder settings.",
+          title: t('messages.error'),
+          description: error.error || t('reminderSettings.toast.saveFailed'),
           duration: 5000,
         })
       }
     } catch (error) {
       console.error("Error saving reminder settings:", error)
       toast({
-        title: "Error",
-        description: "Failed to save reminder settings.",
+        title: t('messages.error'),
+        description: t('reminderSettings.toast.saveFailed'),
         duration: 5000,
       })
     } finally {
@@ -193,8 +195,8 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
   const handleRequestNotificationPermission = async () => {
     if (!notificationState.isSupported) {
       toast({
-        title: "Not Supported",
-        description: "Push notifications are not supported in this browser.",
+        title: t('reminderSettings.toast.notSupportedTitle'),
+        description: t('reminderSettings.toast.notSupportedDescription'),
         duration: 5000,
       })
       return
@@ -206,8 +208,8 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
 
       if (permission === "granted") {
         toast({
-          title: "Permission Granted",
-          description: "You'll now receive push notifications for your tasks.",
+          title: t('reminderSettings.toast.permissionGrantedTitle'),
+          description: t('reminderSettings.toast.permissionGrantedDescription'),
           duration: 3000,
         })
 
@@ -236,24 +238,24 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
           } catch (subscriptionError) {
             console.error("Failed to subscribe to push notifications:", subscriptionError)
             toast({
-              title: "Subscription Failed",
-              description: "Failed to set up push notifications. Email notifications will still work.",
+              title: t('reminderSettings.toast.subscriptionFailedTitle'),
+              description: t('reminderSettings.toast.subscriptionFailedDescription'),
               duration: 5000,
             })
           }
         }
       } else if (permission === "denied") {
         toast({
-          title: "Permission Denied",
-          description: "Push notifications are blocked. You can enable them in your browser settings.",
+          title: t('reminderSettings.toast.permissionDeniedTitle'),
+          description: t('reminderSettings.toast.permissionDeniedDescription'),
           duration: 5000,
         })
       }
     } catch (error) {
       console.error("Error requesting notification permission:", error)
       toast({
-        title: "Error",
-        description: "Failed to request notification permission.",
+        title: t('messages.error'),
+        description: t('reminderSettings.toast.permissionRequestFailed'),
         duration: 5000,
       })
     }
@@ -273,22 +275,22 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
 
       if (response.ok) {
         toast({
-          title: "Test Scheduled",
+          title: t('reminderSettings.toast.testScheduledTitle'),
           description: data.message,
           duration: 5000,
         })
       } else {
         toast({
-          title: "Test Failed",
-          description: data.error || "Failed to schedule test notification.",
+          title: t('reminderSettings.toast.testFailedTitle'),
+          description: data.error || t('reminderSettings.toast.testScheduleFailed'),
           duration: 5000,
         })
       }
     } catch (error) {
       console.error("Error testing notification:", error)
       toast({
-        title: "Error",
-        description: "Failed to test notification.",
+        title: t('messages.error'),
+        description: t('reminderSettings.toast.testFailed'),
         duration: 5000,
       })
     } finally {
@@ -325,16 +327,16 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
   }
 
   const getReminderTimeOptions = () => [
-    { value: 0, label: "At due time" },
-    { value: 15, label: "15 minutes before" },
-    { value: 30, label: "30 minutes before" },
-    { value: 60, label: "1 hour before" },
-    { value: 120, label: "2 hours before" },
-    { value: 360, label: "6 hours before" },
-    { value: 720, label: "12 hours before" },
-    { value: 1440, label: "1 day before" },
-    { value: 2880, label: "2 days before" },
-    { value: 7200, label: "1 week before" }
+    { value: 0, label: t('time.atDueTime') },
+    { value: 15, label: t('time.minutesBefore', { count: '15' }) },
+    { value: 30, label: t('time.minutesBefore', { count: '30' }) },
+    { value: 60, label: t('time.hourBefore') },
+    { value: 120, label: t('time.twoHoursBefore') },
+    { value: 360, label: t('time.hoursBefore', { count: '6' }) },
+    { value: 720, label: t('time.hoursBefore', { count: '12' }) },
+    { value: 1440, label: t('time.dayBefore') },
+    { value: 2880, label: t('time.twoDaysBefore') },
+    { value: 7200, label: t('time.weekBefore') }
   ]
 
   return (
@@ -407,7 +409,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
               disabled={testing === "push_notification" || saving}
               className="w-full text-xs mt-2"
             >
-              {testing === "push_notification" ? "Testing..." : "Test Push Notification (5min delay)"}
+              {testing === "push_notification" ? t('reminderSettings.testing') : t('reminderSettings.testPush')}
             </Button>
           )}
         </div>
@@ -482,12 +484,12 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
                     value={settings.dailyDigestTime || undefined}
                     onChange={(time) => updateSetting("dailyDigestTime", typeof time === "string" ? time : "")}
                     placeholder="8am"
-                    label="Time"
+                    label={t('reminderSettings.digestTime')}
                     compact
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="theme-text-secondary text-sm">Timezone</Label>
+                  <Label className="theme-text-secondary text-sm">{t('settings.timezone.title')}</Label>
                   <Select
                     value={settings.dailyDigestTimezone}
                     onValueChange={(value) => updateSetting("dailyDigestTimezone", value)}
@@ -497,7 +499,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {getTimezoneOptions().map((option) => (
+                      {getTimezoneOptions(t).map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
                         </SelectItem>
@@ -515,7 +517,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
                 disabled={testing === "daily_digest" || saving}
                 className="w-full text-xs"
               >
-                {testing === "daily_digest" ? "Testing..." : "Test Daily Digest (5min delay)"}
+                {testing === "daily_digest" ? t('reminderSettings.testing') : t('reminderSettings.testDigest')}
               </Button>
             </div>
           )}
@@ -537,7 +539,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
                 value={settings.quietHoursStart || undefined}
                 onChange={(time) => updateSetting("quietHoursStart", typeof time === "string" ? time : "")}
                 placeholder="10pm"
-                label="Start"
+                label={t('reminderSettings.quietStart')}
                 compact
               />
             </div>
@@ -547,7 +549,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
                 value={settings.quietHoursEnd || undefined}
                 onChange={(time) => updateSetting("quietHoursEnd", typeof time === "string" ? time : "")}
                 placeholder="8am"
-                label="End"
+                label={t('reminderSettings.quietEnd')}
                 compact
               />
             </div>
@@ -557,7 +559,7 @@ export function ReminderSettingsComponent({ onSettingsChange }: ReminderSettings
         {saving && (
           <div className="flex items-center justify-center py-2">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-theme-focus"></div>
-            <span className="ml-2 text-sm theme-text-muted">Saving...</span>
+            <span className="ml-2 text-sm theme-text-muted">{t('settingsPages.profileInfo.saving')}</span>
           </div>
         )}
       </CardContent>

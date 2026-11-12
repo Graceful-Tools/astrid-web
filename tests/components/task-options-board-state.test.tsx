@@ -61,7 +61,8 @@ describe('the picker without the new props is unchanged (task ffa5bbb5)', () => 
 
   it('still renders priority', () => {
     render(<PriorityAssigneePicker {...BASE} />)
-    expect(screen.getByLabelText('Priority 3')).toBeInTheDocument()
+    // The mocked t() echoes the key: one label per priority chip.
+    expect(screen.getAllByLabelText('tasks.priorityLevel')).toHaveLength(4)
   })
 })
 

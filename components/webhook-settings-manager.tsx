@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { useTranslations } from "@/lib/i18n/client"
+import { RichMessage, fillMessage } from "@/components/shared/RichMessage"
 import Link from "next/link"
 import {
   Webhook,
@@ -168,7 +169,7 @@ export function WebhookSettingsManager() {
     } catch (error) {
       setTestResult({
         success: false,
-        message: "Failed to test webhook",
+        message: t('settingsPages.aiAgents.webhook.testFailed'),
         error: String(error)
       })
     } finally {
@@ -177,7 +178,7 @@ export function WebhookSettingsManager() {
   }
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to remove your webhook configuration?")) {
+    if (!confirm(t('settingsPages.aiAgents.webhook.confirmRemove'))) {
       return
     }
 
@@ -251,7 +252,7 @@ export function WebhookSettingsManager() {
           {/* Enabled Toggle */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label className="theme-text-primary">Enabled</Label>
+              <Label className="theme-text-primary">{t('settingsPages.aiAgents.webhook.enabledLabel')}</Label>
               <p className="text-sm theme-text-muted">
                 {t('settingsPages.aiAgents.webhook.enabledHint')}
               </p>
@@ -338,12 +339,12 @@ export function WebhookSettingsManager() {
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving...
+                  {t('settingsPages.profileInfo.saving')}
                 </>
               ) : (
                 <>
                   <Check className="w-4 h-4 mr-2" />
-                  {config?.configured ? "Update Configuration" : "Save Configuration"}
+                  {t(config?.configured ? 'settingsPages.aiAgents.webhook.updateConfig' : 'settingsPages.aiAgents.webhook.saveConfig')}
                 </>
               )}
             </Button>
@@ -370,7 +371,7 @@ export function WebhookSettingsManager() {
               {t('settingsPages.aiAgents.webhook.saveSecretTitle')}
             </CardTitle>
             <CardDescription className="theme-text-muted">
-              This secret will only be shown once. Copy it now and add it to your Claude Code Remote server&apos;s environment variables.
+              {t('settingsPages.aiAgents.webhook.secretShownOnce')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -406,22 +407,22 @@ export function WebhookSettingsManager() {
         <Card className="theme-bg-secondary theme-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 theme-text-primary">
-              Status
+              {t('tasks.status')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <Label className="theme-text-muted text-sm">Status</Label>
+                <Label className="theme-text-muted text-sm">{t('tasks.status')}</Label>
                 <div className="flex items-center gap-2">
                   {config.enabled ? (
                     <Badge variant="default" className="bg-success">
                       <CheckCircle2 className="w-3 h-3 mr-1" />
-                      Active
+                      {t('settingsPages.connections.status.active')}
                     </Badge>
                   ) : (
                     <Badge variant="secondary">
-                      Disabled
+                      {t('settingsPages.connections.status.disabled')}
                     </Badge>
                   )}
                 </div>
@@ -432,7 +433,7 @@ export function WebhookSettingsManager() {
                 <div className="flex items-center gap-2">
                   {(config.failureCount ?? 0) > 0 ? (
                     <Badge variant="destructive">
-                      {config.failureCount} failures
+                      {t('settingsPages.aiAgents.webhook.failuresCount', { count: String(config.failureCount) })}
                     </Badge>
                   ) : (
                     <Badge variant="outline" className="theme-text-primary">
@@ -465,7 +466,7 @@ export function WebhookSettingsManager() {
                     )
                   })
                 ) : (
-                  <span className="text-sm text-warning">None (all tasks go to polling)</span>
+                  <span className="text-sm text-warning">{t('settingsPages.aiAgents.webhook.noneAllPolling')}</span>
                 )}
               </div>
               {config.agents && config.agents.length > 0 && config.agents.length < 3 && (
@@ -499,7 +500,7 @@ export function WebhookSettingsManager() {
                 {testing ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Testing...
+                    {t('settingsPages.aiAgents.webhook.testing')}
                   </>
                 ) : (
                   <>
@@ -525,17 +526,17 @@ export function WebhookSettingsManager() {
                     </p>
                     {testResult.responseTime && (
                       <p className="text-sm theme-text-muted">
-                        Response time: {testResult.responseTime}ms
+                        {t('settingsPages.aiAgents.webhook.responseTime', { time: String(testResult.responseTime) })}
                       </p>
                     )}
                     {testResult.statusCode && (
                       <p className="text-sm theme-text-muted">
-                        Status code: {testResult.statusCode}
+                        {t('settingsPages.aiAgents.webhook.statusCode', { code: String(testResult.statusCode) })}
                       </p>
                     )}
                     {testResult.error && (
                       <p className="text-sm text-danger mt-1">
-                        Error: {testResult.error}
+                        {fillMessage(t('settingsPages.aiAgents.webhook.errorDetail'), { error: testResult.error })}
                       </p>
                     )}
                   </div>
@@ -550,15 +551,14 @@ export function WebhookSettingsManager() {
       <Card className="theme-bg-secondary theme-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 theme-text-primary">
-            Documentation
+            {t('settingsPages.aiAgents.webhook.documentation')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <h4 className="font-medium theme-text-primary">{t('settingsPages.aiAgents.webhook.aboutTitle')}</h4>
             <p className="text-sm theme-text-muted">
-              Connect a webhook receiver you operate to {BRAND.appName}. This panel configures
-              where task notifications are sent; it does not install or start an agent host.
+              {t('settingsPages.aiAgents.webhook.aboutBody')}
             </p>
           </div>
 
@@ -566,36 +566,49 @@ export function WebhookSettingsManager() {
             <h4 className="font-medium theme-text-primary">{t('settingsPages.aiAgents.webhook.gettingStarted')}</h4>
             <ol className="list-decimal list-inside text-sm theme-text-muted space-y-1">
               <li>
-                Use a webhook receiver you operate. The{' '}
-                <a
-                  href="https://www.npmjs.com/package/@gracefultools/astrid-sdk"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-brand hover:underline"
-                >
-                  {BRAND.appName} SDK
-                </a>{' '}
-                provides integration libraries, not a standalone agent-host command.
+                <RichMessage
+                  message={t('settingsPages.aiAgents.webhook.stepReceiver')}
+                  values={{
+                    sdk: (
+                      <a
+                        href="https://www.npmjs.com/package/@gracefultools/astrid-sdk"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-brand hover:underline"
+                      >
+                        {BRAND.appName} SDK
+                      </a>
+                    ),
+                  }}
+                />
               </li>
               <li>{t('settingsPages.aiAgents.webhook.stepConfigureUrl')}</li>
-              <li>Copy the webhook secret to your server&apos;s environment</li>
+              <li>{t('settingsPages.aiAgents.webhook.stepCopySecret')}</li>
               <li>{t('settingsPages.aiAgents.webhook.stepAssign').split('{agent}')[0]}<code className="px-1 py-0.5 theme-bg-tertiary rounded">claude@{BRAND.agentEmailDomain}</code>{t('settingsPages.aiAgents.webhook.stepAssign').split('{agent}')[1]}</li>
             </ol>
             <p className="text-sm theme-text-muted">
-              For a guided setup without a webhook receiver, choose I run it → Native coding harness in Settings → AI Agents
-              and follow the{' '}
-              <Link href="/docs/loops" className="text-brand hover:underline">
-                MCP + queue-skill recipes
-              </Link>
-              .
+              <RichMessage
+                message={t('settingsPages.aiAgents.webhook.guidedSetup')}
+                values={{
+                  selfRuns: t('settingsPages.aiAgents.yourAgents.selfRuns'),
+                  nativeHarness: t('settingsPages.aiAgents.hub.transportNative'),
+                  settings: t('settings.settings'),
+                  aiAgents: t('settingsPages.aiAgents.title'),
+                  recipes: (
+                    <Link href="/docs/loops" className="text-brand hover:underline">
+                      {t('settingsPages.aiAgents.webhook.recipesLink')}
+                    </Link>
+                  ),
+                }}
+              />
             </p>
           </div>
 
           <div className="space-y-2">
             <h4 className="font-medium theme-text-primary">{t('settingsPages.aiAgents.webhook.eventsTitle')}</h4>
             <ul className="list-disc list-inside text-sm theme-text-muted space-y-1">
-              <li><code className="px-1 py-0.5 theme-bg-tertiary rounded">task.assigned</code> - Task assigned to AI agent</li>
-              <li><code className="px-1 py-0.5 theme-bg-tertiary rounded">comment.created</code> - User commented on AI task</li>
+              <li><code className="px-1 py-0.5 theme-bg-tertiary rounded">task.assigned</code> - {t('settingsPages.aiAgents.webhook.eventTaskAssigned')}</li>
+              <li><code className="px-1 py-0.5 theme-bg-tertiary rounded">comment.created</code> - {t('settingsPages.aiAgents.webhook.eventCommentCreated')}</li>
             </ul>
           </div>
         </CardContent>

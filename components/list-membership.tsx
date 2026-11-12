@@ -199,7 +199,7 @@ export function ListMembership({
     <div className="space-y-4">
       {/* Members Management */}
       <div>
-        <h3 className="text-sm font-medium theme-text-primary mb-3">Members</h3>
+        <h3 className="text-sm font-medium theme-text-primary mb-3">{t('lists.members')}</h3>
         <ListMembersManager
           list={list}
           currentUser={currentUser}
@@ -215,7 +215,7 @@ export function ListMembership({
             <div className="flex items-center space-x-2 mb-3">
               <Bot className="w-4 h-4 text-purple-600" />
               <Label className="text-sm font-medium theme-text-primary">
-                {isGitHubConnected ? 'AI Coding Agents' : 'AI Agents'}
+                {t(isGitHubConnected ? 'lists.membershipPanel.aiCodingAgents' : 'lists.membershipPanel.aiAgents')}
               </Label>
             </div>
 
@@ -225,9 +225,10 @@ export function ListMembership({
                 <p className="text-xs theme-text-muted">{t('lists.membershipPanel.loadingAgents')}</p>
               ) : (
                 availableAiAgents.map((agent) => {
-                  const agentDescription = isGitHubConnected
-                    ? `${agent.name} for coding and task assistance`
-                    : `${agent.name} for task assistance (add GitHub repo for coding)`
+                  const agentDescription = t(
+                    isGitHubConnected ? 'lists.membershipPanel.agentForCoding' : 'lists.membershipPanel.agentForTasks',
+                    { name: agent.name },
+                  )
                   const isAlreadyMember = isAgentMember(agent.email)
                   const isRemoving = removingAgents.has(agent.id)
 
@@ -261,7 +262,7 @@ export function ListMembership({
                           disabled={isRemoving}
                           className="text-danger hover:text-danger hover:bg-danger-subtle border-danger disabled:opacity-disabled"
                         >
-                          {isRemoving ? 'Removing...' : 'Remove Agent'}
+                          {t(isRemoving ? 'settingsPages.customAgents.remove.removing' : 'lists.membershipPanel.removeAgent')}
                         </Button>
                       ) : (
                         <Button
@@ -338,8 +339,8 @@ export function ListMembership({
             )}
             <div className="text-xs theme-text-muted">
               {list.privacy === "PUBLIC"
-                ? "Anyone can find and join this list"
-                : "Only invited members can access this list"
+                ? t('lists.membershipPanel.publicHint')
+                : t('lists.membershipPanel.privateHint')
               }
             </div>
           </div>
@@ -378,8 +379,8 @@ export function ListMembership({
             )}
             <div className="text-xs theme-text-muted">
               {list.publicListType === "collaborative"
-                ? "Anyone can view and add tasks. List admins and task creators can edit tasks. Anyone can comment."
-                : "Copy Only: Public members can view and copy tasks, but only admins can add tasks."
+                ? t('lists.membershipPanel.collaborativeHint')
+                : t('lists.membershipPanel.copyOnlyHint')
               }
             </div>
           </div>
@@ -413,7 +414,7 @@ export function ListMembership({
             }}
             className="w-full hover:text-warning hover:bg-warning-subtle"
           >
-            Transfer Ownership & Leave
+            {t('lists.membershipPanel.transferOwnershipAndLeave')}
           </Button>
         </div>
       )}

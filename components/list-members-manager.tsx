@@ -1,7 +1,7 @@
 "use client"
 
 import { useTranslations } from "@/lib/i18n/client"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -31,6 +31,9 @@ interface Member {
   type: 'member' | 'invite'
 }
 
+/** The stored roles that have a label. Any other role is shown as stored. */
+const LABELLED_ROLES = ['owner', 'admin', 'member', 'viewer']
+
 interface ListMembersManagerProps {
   list: TaskList
   currentUser: User
@@ -52,6 +55,9 @@ interface ListMembersManagerProps {
 
 export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: ListMembersManagerProps) {
   const { t } = useTranslations()
+  // `t` is a new function every render; loadMembers must not depend on it.
+  const tRef = useRef(t)
+  useEffect(() => { tRef.current = t })
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(false)
   const [showInviteForm, setShowInviteForm] = useState(false)
@@ -88,8 +94,8 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
     } catch (error) {
       console.error("Error loading members:", error)
       toast({
-        title: "Error",
-        description: "Failed to load list members",
+        title: tRef.current('messages.error'),
+        description: tRef.current('lists.membersManager.loadFailed'),
         variant: "destructive",
       })
     } finally {
@@ -131,8 +137,8 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
   const handleInviteUser = async () => {
     if (!inviteEmail.trim()) {
       toast({
-        title: "Error",
-        description: "Please enter an email address",
+        title: t('messages.error'),
+        description: t('lists.membersManager.emailRequired'),
         variant: "destructive",
       })
       return
@@ -142,8 +148,8 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(inviteEmail)) {
       toast({
-        title: "Error",
-        description: "Please enter a valid email address",
+        title: t('messages.error'),
+        description: t('lists.membersManager.emailInvalid'),
         variant: "destructive",
       })
       return
@@ -170,8 +176,8 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
       
       // Show optimistic success immediately
       toast({
-        title: "Success",
-        description: "Invitation sent",
+        title: t('lists.membersManager.successTitle'),
+        description: t('lists.membersManager.invitationSent'),
       })
       
       // 2. API CALL: Send the actual request
@@ -186,7 +192,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || "Failed to add member")
+        throw new Error(error.error || t('lists.membersManager.addFailed'))
       }
 
       // 3. SYNC: Replace temp member with real data
@@ -203,8 +209,8 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
       setInviteEmail(inviteEmail.trim())
       
       toast({
-        title: "Error", 
-        description: error instanceof Error ? error.message : "Failed to add member",
+        title: t('messages.error'),
+        description: error instanceof Error ? error.message : t('lists.membersManager.addFailed'),
         variant: "destructive",
       })
     } finally {
@@ -220,8 +226,8 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
     
     if (!member) {
       toast({
-        title: "Error",
-        description: "Member not found",
+        title: t('messages.error'),
+        description: t('listSettings.admin.memberNotFound'),
         variant: "destructive",
       })
       return
@@ -240,8 +246,8 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
 
       // Show optimistic success immediately
       toast({
-        title: "Success",
-        description: member.type === 'invite' ? 'Invitation cancelled' : 'Member removed successfully',
+        title: t('lists.membersManager.successTitle'),
+        description: t(member.type === 'invite' ? 'lists.membersManager.invitationCancelled' : 'lists.membersManager.memberRemoved'),
       })
 
       // 2. API CALL: Send the actual request
@@ -261,7 +267,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || "Failed to remove member")
+        throw new Error(error.error || t('lists.membersManager.removeFailed'))
       }
     } catch (error) {
       console.error("Error removing member:", error)
@@ -270,8 +276,8 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
       setMembers(prevMembers => [...prevMembers, member])
       
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to remove member",
+        title: t('messages.error'),
+        description: error instanceof Error ? error.message : t('lists.membersManager.removeFailed'),
         variant: "destructive",
       })
     } finally {
@@ -283,8 +289,8 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
     const targetMember = members.find(member => member.user_id === userId)
     if (!targetMember) {
       toast({
-        title: "Error",
-        description: "Member not found",
+        title: t('messages.error'),
+        description: t('listSettings.admin.memberNotFound'),
         variant: "destructive",
       })
       return
@@ -304,8 +310,8 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
 
       // Show optimistic success immediately
       toast({
-        title: "Success",
-        description: `Member role updated to ${newRole}`,
+        title: t('lists.membersManager.successTitle'),
+        description: t(newRole === 'admin' ? 'lists.membersManager.roleUpdatedAdmin' : 'lists.membersManager.roleUpdatedMember'),
       })
       
       // 2. API CALL: Send the actual request
@@ -318,7 +324,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || "Failed to update member role")
+        throw new Error(error.error || t('lists.membersManager.updateRoleFailed'))
       }
     } catch (error) {
       console.error("Error updating member role:", error)
@@ -331,8 +337,8 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
       ))
       
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update member role",
+        title: t('messages.error'),
+        description: error instanceof Error ? error.message : t('lists.membersManager.updateRoleFailed'),
         variant: "destructive",
       })
     } finally {
@@ -356,8 +362,8 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
     const targetInvite = members.find(member => member.email === email && member.type === 'invite')
     if (!targetInvite) {
       toast({
-        title: "Error",
-        description: "Invitation not found",
+        title: t('messages.error'),
+        description: t('invitePage.notFound'),
         variant: "destructive",
       })
       return
@@ -377,8 +383,8 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
 
       // Show optimistic success immediately
       toast({
-        title: "Success",
-        description: `Invitation role updated to ${newRole}`,
+        title: t('lists.membersManager.successTitle'),
+        description: t(newRole === 'admin' ? 'lists.membersManager.inviteRoleUpdatedAdmin' : 'lists.membersManager.inviteRoleUpdatedMember'),
       })
 
       // 2. API CALL: Send the actual request
@@ -392,7 +398,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.error || "Failed to update invitation role")
+        throw new Error(error.error || t('lists.membersManager.updateInviteRoleFailed'))
       }
     } catch (error) {
       console.error("Error updating invitation role:", error)
@@ -405,8 +411,8 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
       ))
       
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update invitation role",
+        title: t('messages.error'),
+        description: error instanceof Error ? error.message : t('lists.membersManager.updateInviteRoleFailed'),
         variant: "destructive",
       })
     } finally {
@@ -451,7 +457,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
         <div className="flex items-center space-x-2">
           <Users className="w-4 h-4 theme-text-muted" />
           <Label className="text-sm theme-text-muted">
-            Members ({members.length})
+            {t('lists.membersManager.membersCount', { count: String(members.length) })}
           </Label>
         </div>
         {isAdmin && (
@@ -485,14 +491,14 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
               />
             </div>
             <div>
-              <Label htmlFor="invite-role" className="text-sm theme-text-muted">Role</Label>
+              <Label htmlFor="invite-role" className="text-sm theme-text-muted">{t('lists.membersManager.role')}</Label>
               <Select value={inviteRole} onValueChange={(value: "admin" | "member") => setInviteRole(value)}>
                 <SelectTrigger className="theme-input theme-border-input border theme-text-primary">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="z-[10100]">
-                  <SelectItem value="admin">Admin - Can manage list settings and members</SelectItem>
-                  <SelectItem value="member">Member - Can add, edit, and manage tasks</SelectItem>
+                  <SelectItem value="admin">{t('lists.membersManager.adminOption')}</SelectItem>
+                  <SelectItem value="member">{t('lists.membersManager.memberOption')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -502,7 +508,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
                 {t('lists.membersManager.sendInvitation')}
               </Button>
               <Button variant="outline" onClick={() => setShowInviteForm(false)} size="sm">
-                Cancel
+                {t('common.cancel')}
               </Button>
             </div>
           </div>
@@ -543,7 +549,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
                         </span>
                         {member.isAIAgent && (
                           <Badge variant="outline" className="text-xs px-1 py-0 text-purple-400 border-purple-400 shrink-0">
-                            AI
+                            {t('lists.membersManager.aiBadge')}
                           </Badge>
                         )}
                       </div>
@@ -567,7 +573,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
                         </span>
                         {member.type === 'invite' && (
                           <Badge variant="outline" className="text-xs px-1 py-0 text-warning border-warning shrink-0">
-                            Pending
+                            {t('lists.membersManager.pending')}
                           </Badge>
                         )}
                       </div>
@@ -582,7 +588,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
               <div className="flex items-center space-x-2 shrink-0">
                 <div className="flex items-center space-x-1 text-xs theme-text-muted">
                   {getRoleIcon(member.role)}
-                  <span className="capitalize">{member.role}</span>
+                  <span className="capitalize">{LABELLED_ROLES.includes(member.role) ? t(`lists.membersManager.roles.${member.role}`) : member.role}</span>
                 </div>
                 
                 {(isAdmin || member.user_id === currentUser.id) && (
@@ -652,7 +658,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
                             className="text-danger hover:text-danger/80"
                           >
                             <UserMinus className="w-4 h-4 mr-2" />
-                            {member.type === 'invite' ? 'Cancel' : 'Remove'}
+                            {t(member.type === 'invite' ? 'lists.membersManager.cancelInvite' : 'lists.membersManager.remove')}
                           </DropdownMenuItem>
                         </>
                       )}
@@ -667,7 +673,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
                           className="text-danger hover:text-danger/80"
                         >
                           <UserMinus className="w-4 h-4 mr-2" />
-                          Leave
+                          {t('lists.membersManager.leave')}
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>

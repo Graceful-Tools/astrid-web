@@ -179,14 +179,30 @@
       "repeatMode": "Herhaalmodus",
       "repeatFromCompletion": "Herhalen vanaf voltooiingsdatum",
       "repeatFromDue": "Herhalen vanaf vervaldatum",
-      "saveCustomPattern": "Aangepast patroon opslaan"
+      "saveCustomPattern": "Aangepast patroon opslaan",
+      "selectDate": "Datum selecteren",
+      "preview": "Voorbeeld:",
+      "repeatFromCompletionHint": "De volgende herhaling is gebaseerd op wanneer je de taak voltooit",
+      "repeatFromDueHint": "De volgende herhaling is gebaseerd op de oorspronkelijke vervaldatum",
+      "descriptionKeysHint": "Druk op Enter om op te slaan • Shift+Enter voor een nieuwe regel"
     },
     "commentsSection": {
       "addPlaceholder": "Opmerking toevoegen...",
       "replyPlaceholder": "Schrijf een antwoord...",
       "refresh": "Opmerkingen vernieuwen",
       "pullToRefresh": "Trek om te vernieuwen...",
-      "releaseToRefresh": "Laat los om te vernieuwen..."
+      "releaseToRefresh": "Laat los om te vernieuwen...",
+      "systemAuthor": "Systeem",
+      "unknownUser": "Onbekende gebruiker",
+      "reply": "Beantwoorden",
+      "count": "Opmerkingen ({count})",
+      "hideSystemTitle": "Systeemopmerkingen verbergen",
+      "showSystemTitle": "Systeemopmerkingen tonen",
+      "hideSystem": "Systeem verbergen",
+      "showSystem": "Systeem tonen",
+      "refreshShort": "Vernieuwen",
+      "replyingTo": "Antwoord aan {name}",
+      "agentThinking": "{name} denkt na..."
     },
     "modals": {
       "deleteTitle": "Taak verwijderen",
@@ -197,11 +213,31 @@
       "shareTitle": "Taak delen",
       "privateNote": "Dit is een privétaak. Alleen gebruikers met toegang tot deze lijst kunnen deze bekijken.",
       "generatingLink": "Deellink genereren...",
-      "linkFailed": "Deellink genereren mislukt. Probeer het opnieuw."
+      "linkFailed": "Deellink genereren mislukt. Probeer het opnieuw.",
+      "deleteConfirm": "Weet je zeker dat je \"{title}\" wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.",
+      "copyDescription": "Maak een kopie van \"{title}\"",
+      "includeCommentsOne": "Opmerkingen meenemen ({count} opmerking)",
+      "includeCommentsMany": "Opmerkingen meenemen ({count} opmerkingen)",
+      "shareDescription": "Maak een deelbare link voor \"{title}\"",
+      "copied": "Gekopieerd!",
+      "shareHintAccess": "🔗 Deel deze link met iedereen die deze taak mag bekijken",
+      "shareHintRedirect": "📌 De link verwijst door naar de taak in de app"
     },
     "timer": {
-      "tapToChange": "Tik op de tijd om de duur te wijzigen"
-    }
+      "tapToChange": "Tik op de tijd om de duur te wijzigen",
+      "completed": "Timer voltooid!",
+      "minutesShort": "min"
+    },
+    "priorityCheckboxAlt": "Selectievakje prioriteit {priority}",
+    "priorityLevel": "Prioriteit {level}",
+    "userAvatarAlt": "Gebruiker",
+    "assigneeYou": "Jij",
+    "board": {
+      "collapseExpandedIn": "Uitgevouwen taak in {name} samenvouwen",
+      "tapToCollapse": "Tik om samen te vouwen",
+      "addTaskTo": "Taak toevoegen aan {name}"
+    },
+    "dropToPlaceFirst": "Zet hier neer om de eerste taak te plaatsen"
   },
   "lists": {
     "list": "Lijst",
@@ -247,7 +283,11 @@
       "subtitle": "Gebruik lijsten om projecten, doelen en avonturen te organiseren!",
       "namePlaceholder": "bijv. Familie",
       "shareWith": "Delen met",
-      "sharePlaceholder": "Naam of e-mailadres"
+      "sharePlaceholder": "Naam of e-mailadres",
+      "optional": "(optioneel)",
+      "descriptionPlaceholder": "Waar is deze lijst voor?\n\nAI-agents gebruiken dit als leidraad wanneer ze aan taken werken. Voorbeeld:\n“Help met het plannen van maaltijden, stel recepten voor op basis van voedingsvoorkeuren en maak boodschappenlijsten.”",
+      "descriptionHint": "AI-agents gebruiken dit als instructies wanneer ze aan taken in deze lijst werken",
+      "create": "Nieuwe lijst maken"
     },
     "membersManager": {
       "invite": "Lid uitnodigen",
@@ -261,7 +301,37 @@
       "permissionLevels": "Rechtenniveaus",
       "ownerCan": "Volledige controle over de lijst",
       "adminCan": "Kan lijstinstellingen en leden beheren",
-      "memberCan": "Kan taken toevoegen, bewerken en beheren"
+      "memberCan": "Kan taken toevoegen, bewerken en beheren",
+      "loadFailed": "Lijstleden konden niet worden geladen",
+      "emailRequired": "Voer een e-mailadres in",
+      "emailInvalid": "Voer een geldig e-mailadres in",
+      "invitationSent": "Uitnodiging verzonden",
+      "addFailed": "Lid kon niet worden toegevoegd",
+      "invitationCancelled": "Uitnodiging ingetrokken",
+      "memberRemoved": "Lid is verwijderd",
+      "removeFailed": "Lid kon niet worden verwijderd",
+      "roleUpdatedAdmin": "Het lid is nu beheerder",
+      "roleUpdatedMember": "De rol is nu lid",
+      "updateRoleFailed": "De rol van het lid kon niet worden bijgewerkt",
+      "inviteRoleUpdatedAdmin": "De uitnodiging is nu voor een beheerder",
+      "inviteRoleUpdatedMember": "De uitnodiging is nu voor een lid",
+      "updateInviteRoleFailed": "De rol van de uitnodiging kon niet worden bijgewerkt",
+      "membersCount": "Leden ({count})",
+      "role": "Rol",
+      "adminOption": "Beheerder - Kan lijstinstellingen en leden beheren",
+      "memberOption": "Lid - Kan taken toevoegen, bewerken en beheren",
+      "aiBadge": "AI",
+      "pending": "In afwachting",
+      "cancelInvite": "Intrekken",
+      "remove": "Verwijderen",
+      "leave": "Verlaten",
+      "roles": {
+        "owner": "eigenaar",
+        "admin": "beheerder",
+        "member": "lid",
+        "viewer": "kijker"
+      },
+      "successTitle": "Gelukt!"
     },
     "membershipPanel": {
       "availableAgents": "Beschikbare agents",
@@ -275,13 +345,26 @@
       "publicListType": "Type openbare lijst",
       "makeCopyOnly": "Alleen kopiëren maken",
       "makeCollaborative": "Collaboratief maken",
-      "leaveList": "Lijst verlaten"
+      "leaveList": "Lijst verlaten",
+      "aiCodingAgents": "AI-codeeragents",
+      "aiAgents": "AI-agents",
+      "agentForCoding": "{name} voor programmeren en hulp bij taken",
+      "agentForTasks": "{name} voor hulp bij taken (voeg een GitHub-repository toe om te programmeren)",
+      "removeAgent": "Agent verwijderen",
+      "publicHint": "Iedereen kan deze lijst vinden en eraan deelnemen",
+      "privateHint": "Alleen uitgenodigde leden hebben toegang tot deze lijst",
+      "collaborativeHint": "Iedereen kan taken bekijken en toevoegen. Lijstbeheerders en makers van taken kunnen taken bewerken. Iedereen kan reageren.",
+      "copyOnlyHint": "Alleen kopiëren: openbare leden kunnen taken bekijken en kopiëren, maar alleen beheerders kunnen taken toevoegen.",
+      "transferOwnershipAndLeave": "Eigendom overdragen en verlaten"
     },
     "ownerLeave": {
       "title": "Eigendom overdragen",
       "selectNewOwner": "Selecteer nieuwe eigenaar:",
       "noOtherMembers": "Geen andere leden om het eigendom aan over te dragen.",
-      "deleteList": "Lijst verwijderen"
+      "deleteList": "Lijst verwijderen",
+      "body": "Als eigenaar van “{name}” moet je het eigendom overdragen voordat je de lijst verlaat. Kies een opvolger of verwijder de lijst.",
+      "transferAndLeave": "Overdragen en verlaten",
+      "deleteInstead": "Je kunt de lijst ook helemaal verwijderen:"
     },
     "publicBrowser": {
       "searchPlaceholder": "Zoek op naam, beschrijving of maker...",
@@ -291,12 +374,71 @@
       "loadingPreview": "Voorbeeld laden...",
       "noTasks": "Deze lijst heeft geen taken",
       "selectTitle": "Selecteer een lijst om te bekijken",
-      "selectHint": "Kies links een lijst om de details en taken te bekijken"
+      "selectHint": "Kies links een lijst om de details en taken te bekijken",
+      "copiedMany": "{count} keer gekopieerd",
+      "copiedOne": "{count} keer gekopieerd",
+      "copiedMoreThan": "Meer dan {count} keer gekopieerd",
+      "copiedNew": "Nieuw",
+      "loadFailed": "Openbare lijsten konden niet worden geladen",
+      "previewFailed": "Lijstvoorbeeld kon niet worden geladen",
+      "copySuccess": "“{name}” is naar je lijsten gekopieerd",
+      "copyFailed": "Lijst kon niet worden gekopieerd",
+      "title": "Openbare lijsten bekijken",
+      "popular": "Populair",
+      "recent": "Recent",
+      "noListsFound": "Geen lijsten gevonden",
+      "noPublicLists": "Geen openbare lijsten beschikbaar",
+      "taskCount": "Taken: {count}",
+      "copying": "Bezig met kopiëren...",
+      "copyToMyLists": "Naar mijn lijsten kopiëren",
+      "createdBy": "Gemaakt door {name}",
+      "createdOn": "Gemaakt op {date}",
+      "copyCount": "Kopieën: {count}",
+      "showingTasks": "{shown} van {total} taken weergegeven",
+      "noTasksInList": "Geen taken in deze lijst",
+      "due": "Vervalt op {date}"
     },
     "imagePicker": {
       "title": "Afbeelding kiezen",
       "uploadLabel": "Uploaden vanaf je apparaat",
-      "chooseFile": "Bestand kiezen"
+      "chooseFile": "Bestand kiezen",
+      "colorsTab": "Kleuren",
+      "defaultsTab": "Standaard",
+      "colors": {
+        "lavender": "Lavendel",
+        "mint": "Mint",
+        "peach": "Perzik",
+        "coral": "Koraal",
+        "sky": "Hemel",
+        "sage": "Salie",
+        "rose": "Roos",
+        "butter": "Boter",
+        "periwinkle": "Maagdenpalm",
+        "seafoam": "Zeeschuim",
+        "apricot": "Abrikoos",
+        "lilac": "Lila",
+        "blush": "Blush",
+        "powder": "Poederblauw",
+        "cream": "Crème",
+        "pearl": "Parel",
+        "yellow": "Geel",
+        "green": "Groen",
+        "blue": "Blauw",
+        "pink": "Roze"
+      }
+    },
+    "descriptionView": "Bekijken",
+    "descriptionDialogPlaceholder": "Schrijf instructies voor AI-agents die in deze lijst werken...\n\nOndersteunt Markdown: **vet**, *cursief*, ## koppen, - lijsten, [links](url)",
+    "descriptionSaveHint": "Druk op Enter om op te slaan • Shift+Enter of Cmd/Ctrl+Enter voor een nieuwe regel",
+    "memberEvents": {
+      "adminGrantedTitle": "Beheerderstoegang verleend",
+      "adminGrantedDescription": "Je hebt nu beheerderstoegang tot \"{list}\". Je rechten zijn bijgewerkt.",
+      "roleChangedTitle": "Rol gewijzigd",
+      "roleChangedDescription": "Je rol in \"{list}\" is gewijzigd in {role}.",
+      "addedTitle": "Toegevoegd aan lijst",
+      "addedDescription": "{inviter} heeft je toegevoegd aan \"{list}\"",
+      "removedTitle": "Verwijderd uit lijst",
+      "removedDescription": "Je bent verwijderd uit \"{list}\""
     }
   },
   "priority": {
@@ -328,7 +470,10 @@
     "weekBefore": "1 week eerder",
     "quickSelect": "Snelkeuze:",
     "setTime": "Tijd instellen",
-    "selectTime": "Tijd selecteren"
+    "selectTime": "Tijd selecteren",
+    "twoHoursBefore": "2 uur eerder",
+    "twoDaysBefore": "2 dagen eerder",
+    "noon": "Middag"
   },
   "repeating": {
     "oneTimeOnly": "Eenmalig",
@@ -350,7 +495,40 @@
       "afterOccurrences": "Na X keer",
       "untilDate": "Tot een bepaalde datum",
       "occurrencesCount": "Aantal keren",
-      "endDate": "Einddatum"
+      "endDate": "Einddatum",
+      "unitDays": "Dagen",
+      "unitWeeks": "Weken",
+      "unitMonths": "Maanden",
+      "unitYears": "Jaren",
+      "weekday": "Weekdag",
+      "month": "Maand",
+      "day": "Dag",
+      "never": "Nooit",
+      "week1": "1e",
+      "week2": "2e",
+      "week3": "3e",
+      "week4": "4e",
+      "week5": "5e",
+      "weekLast": "Laatste"
+    },
+    "summary": {
+      "everyDay": "Elke dag",
+      "everyDays": "Elke {count} dagen",
+      "everyWeek": "Elke week",
+      "everyWeeks": "Elke {count} weken",
+      "everyMonth": "Elke maand",
+      "everyMonths": "Elke {count} maanden",
+      "everyYear": "Elk jaar",
+      "everyYears": "Elke {count} jaar",
+      "everyOther": "Elke {interval}({unit})",
+      "onDays": "{summary} op {days}",
+      "onDayOfMonth": "{summary} op dag {day}",
+      "onDate": "{summary} op {date}",
+      "endsAfterOne": "{summary}, eindigt na {count} keer",
+      "endsAfterMany": "{summary}, eindigt na {count} keer",
+      "until": "{summary}, tot {date}",
+      "fromDueDate": "{summary}, vanaf vervaldatum",
+      "labelFromDueDate": "{label} (vanaf vervaldatum)"
     }
   },
   "weekdays": {
@@ -463,7 +641,14 @@
     "cacheCleared": "Cache gewist",
     "dataRefreshed": "Gegevens zijn vernieuwd. De app wordt opnieuw geladen met nieuwe gegevens.",
     "settingsSaved": "Instellingen opgeslagen",
-    "changesSaved": "Wijzigingen opgeslagen"
+    "changesSaved": "Wijzigingen opgeslagen",
+    "loadingYourData": "Je gegevens worden geladen...",
+    "loadingYourDataDescription": "Je taken en lijsten worden klaargezet",
+    "refreshed": "Vernieuwd",
+    "refreshedDescription": "Je gegevens zijn bijgewerkt",
+    "refreshFailed": "Vernieuwen mislukt",
+    "refreshFailedDescription": "De gegevens konden niet worden vernieuwd. Probeer het opnieuw.",
+    "loadDataFailed": "De gegevens konden niet worden geladen. Vernieuw de pagina."
   },
   "reminders": {
     "general": [
@@ -585,7 +770,9 @@
     "searching": "Zoeken...",
     "open": "Zoeken",
     "findAcrossLists": "Vind taken en gebruikers in alle lijsten",
-    "inputPlaceholder": "Taken en gebruikers zoeken..."
+    "inputPlaceholder": "Taken en gebruikers zoeken...",
+    "resultsTitle": "Zoekresultaten",
+    "showingMatches": "Taken die overeenkomen met “{term}” uit alle toegankelijke lijsten"
   },
   "listHeaders": {
     "myTasks": "Mijn Taken",
@@ -656,7 +843,34 @@
         "guideLink": "Handleiding: mijn code-agent verbinden",
         "needsSetup": "Instellen vereist",
         "agentLoops": "Agent Loops",
-        "customAgents": "Aangepaste agents"
+        "customAgents": "Aangepaste agents",
+        "off": "Uit",
+        "transportLabel": "Transport:",
+        "transportNative": "Native codeerharness",
+        "transportSse": "Custom Agent (SSE)",
+        "copilotConnected": "Verbonden — {appName} gebruikt je Copilot-abonnement voor het werk van deze agent.",
+        "copilotAuthorize": "Autoriseer GitHub zodat {appName} je Copilot-abonnement kan gebruiken. Op elk moment in te trekken via GitHub.",
+        "copilotDisconnected": "Verbinding met GitHub Copilot verbroken",
+        "copilotDisconnectFailed": "Kan de verbinding met GitHub Copilot niet verbreken",
+        "copilotAuthStartFailed": "Kan de GitHub-autorisatie niet starten",
+        "copilotConnectFailed": "Kan GitHub Copilot niet verbinden",
+        "keySavedPlaceholder": "Sleutel opgeslagen — plak om te vervangen",
+        "keySaved": "{agent}-sleutel opgeslagen",
+        "keySaveFailed": "API-sleutel opslaan mislukt",
+        "keyValid": "{agent}-sleutel is geldig",
+        "keyTestFailed": "Sleuteltest mislukt: {error}",
+        "keyTestError": "API-sleutel testen mislukt",
+        "testKey": "Testen",
+        "keyRemoved": "{agent}-sleutel verwijderd",
+        "keyRemoveFailed": "API-sleutel verwijderen mislukt",
+        "keyEncrypted": "Versleuteld opgeslagen, alleen aan de serverkant gebruikt.",
+        "loadFailed": "Kan agentinstellingen niet laden",
+        "saveFailed": "Opslaan mislukt",
+        "apiModeDescription": "{appName} voert deze agent aan de serverkant uit — werkt vanaf je telefoon, thuis hoeft er niets te draaien.",
+        "pollingModeDescription": "Je eigen {agent}-installatie doet het werk. Verbind die één keer, wijs deze agent daarna een taak toe en markeer de taak als {ready} — de loop pakt hem op.",
+        "offModeDescription": "Deze agent staat aan de kant: hij verschijnt niet in de keuzelijsten voor toewijzing en {appName} voert hem nooit uit. Je opgeslagen instellingen en sleutels blijven bewaard — kies een andere modus om hem precies zo terug te halen.",
+        "webhookModeDescription": "Een webhook-ontvanger die je zelf beheert kan het werk van deze agent ontvangen zodra het verschijnt. De {sdk} biedt integratiebibliotheken, geen kant-en-klaar agent-hostcommando. Deze modus vereist je eigen webhook-ontvanger; de instellingen hieronder regelen de aflevering. Kies voor een begeleide installatie met MCP en wachtrij-skill in plaats daarvan {nativeHarness} en volg de recepten van {agentLoops}.",
+        "customAgentsDescription": "Agents die je zelf beheert via OAuth + REST + SSE"
       },
       "runtime": {
         "stepConnect": "Verbinden",
@@ -668,7 +882,28 @@
         "copilotInstall": "Commit deze aangepaste repository-agent één keer. Copilot CLI, de Copilot-app, GitHub.com en VS Code kunnen daarna hetzelfde wachtrijgedrag selecteren.",
         "githubConnect": "Maak clientgegevens voor deze agent en sla ze op als Actions-secrets van de repository met de namen {clientId} en {clientSecret}. Elke run wisselt de clientgegevens in voor een toegangstoken van één uur met alleen de rechten die een wachtrijworker nodig heeft — er komt nooit een langlevend token in de repository.",
         "githubInstall": "Deze workflow is een wachtrijpoort: hij beantwoordt \"is er werk?\" en voert zelf geen agent uit. Richt de tweede job op je bestaande ondersteunde agent-job (een Copilot CLI-, Claude Code- of Codex-stap uit de andere tabbladen).",
-        "githubSchedule": "Commit de workflow voor het schema van 30 minuten, of gebruik Run workflow in GitHub Actions om hem meteen te testen. Een stille run stopt na het afgebakende wachtrijverzoek, dus een lege wachtrij kost één API-aanroep in plaats van een volledige agentstart."
+        "githubSchedule": "Commit de workflow voor het schema van 30 minuten, of gebruik Run workflow in GitHub Actions om hem meteen te testen. Een stille run stopt na het afgebakende wachtrijverzoek, dus een lege wachtrij kost één API-aanroep in plaats van een volledige agentstart.",
+        "connectionCheckLabel": "Voer een verbindingscontrole uit die niets wijzigt",
+        "runInActions": "Voer het uit in GitHub Actions",
+        "addRemoteMcp": "Voeg de externe MCP-server toe",
+        "claudeAuthenticate": "Open {mcpCommand} in Claude Code en kies Authenticate. Is het commando niet beschikbaar, voeg dan dezelfde HTTP-server toe aan een {mcpFile}-bestand in het project.",
+        "manualMcpFallback": "Handmatige MCP-fallback",
+        "manualMcpFallbackFile": "Handmatige MCP-fallback: {file}",
+        "saveSkillCommand": "Sla de wachtrij-skill op als projectcommando",
+        "runInSession": "Voer elke 30 minuten uit in deze sessie",
+        "cronFallback": "Onbeheerde cron-fallback",
+        "copilotAddMcp": "Copilot CLI: voeg de externe MCP-server toe",
+        "vscodeFallback": "VS Code-fallback: {file}",
+        "copilotConnectNote": "De CLI en VS Code openen de browserautorisatie van {appName}. De Copilot-app en GitHub.com kunnen geen externe MCP-OAuth openen; maak een apart token, sla het op als het Agents-secret {secretName} en plak de gegenereerde MCP-configuratie van de repository in Settings > Copilot > MCP servers.",
+        "repoCustomAgent": "Aangepaste repository-agent",
+        "runEvery30": "Voer {tool} elke 30 minuten uit",
+        "copilotInteractive": "Selecteer voor een interactieve run de aangepaste agent {appName} Queue in de Copilot-app, op GitHub.com of in VS Code.",
+        "addRemoteAuthorize": "Voeg de externe server toe en autoriseer hem",
+        "addSkillTo": "Voeg de wachtrij-skill toe aan {file}",
+        "addQueueGate": "Voeg de queue-gate-workflow toe",
+        "addQueueToFile": "1. Voeg de wachtrij toe aan {file}",
+        "runLoopScheduled": "2. Voer de loop volgens een schema uit",
+        "cursorNoScheduler": "2. Cursor heeft geen eigen planner — vraag aan het begin van een werksessie om je wachtrij, of laat de cron-regel voor Claude Code / Codex hierboven ernaast draaien."
       },
       "webhook": {
         "title": "Webhook-configuratie",
@@ -695,7 +930,38 @@
         "gettingStarted": "Aan de slag",
         "stepConfigureUrl": "Configureer hierboven je webhook-URL",
         "stepAssign": "Wijs taken toe aan {agent}",
-        "eventsTitle": "Webhook-gebeurtenissen"
+        "eventsTitle": "Webhook-gebeurtenissen",
+        "testFailed": "Webhook testen mislukt",
+        "confirmRemove": "Weet je zeker dat je je webhook-configuratie wilt verwijderen?",
+        "enabledLabel": "Ingeschakeld",
+        "updateConfig": "Configuratie bijwerken",
+        "saveConfig": "Configuratie opslaan",
+        "secretShownOnce": "Dit geheim wordt maar één keer getoond. Kopieer het nu en voeg het toe aan de omgevingsvariabelen van je Claude Code Remote-server.",
+        "failuresCount": "Mislukkingen: {count}",
+        "noneAllPolling": "Geen (alle taken gaan via polling)",
+        "testing": "Testen...",
+        "responseTime": "Reactietijd: {time} ms",
+        "statusCode": "Statuscode: {code}",
+        "errorDetail": "Fout: {error}",
+        "documentation": "Documentatie",
+        "aboutBody": "Verbind een webhook-ontvanger die je zelf beheert met {appName}. Dit paneel stelt in waar taakmeldingen naartoe worden gestuurd; het installeert of start geen agent-host.",
+        "stepReceiver": "Gebruik een webhook-ontvanger die je zelf beheert. De {sdk} biedt integratiebibliotheken, geen losstaand agent-hostcommando.",
+        "stepCopySecret": "Kopieer het webhook-geheim naar de omgeving van je server",
+        "guidedSetup": "Kies voor een begeleide installatie zonder webhook-ontvanger {selfRuns} → {nativeHarness} in {settings} → {aiAgents} en volg de {recipes}.",
+        "recipesLink": "recepten voor MCP + wachtrij-skill",
+        "eventTaskAssigned": "Taak toegewezen aan AI-agent",
+        "eventCommentCreated": "Gebruiker heeft op een AI-taak gereageerd"
+      },
+      "astrid": {
+        "noModel": "Voeg hieronder een API-sleutel toe of registreer een Custom Agent om {appName} aan te sturen.",
+        "poweredBy": "Aangedreven door {service}",
+        "chooseModelHint": "Kies het model dat {appName} aanstuurt voor Mijn Taken en je privélijsten.",
+        "description": "Kies een model om {appName} aan te sturen. Noem {mention} in een chat of opmerking om hulp te krijgen. {appName} kan taken in al je lijsten lezen, op berichten reageren en taken vóór hun vervaldatum afronden."
+      },
+      "tip": {
+        "title": "Tip: stuur het gedrag van agents per lijst",
+        "body": "De {description} van elke lijst wordt gebruikt als instructies voor AI-agents die aan taken in die lijst werken. Schrijf markdown in je lijstbeschrijving om agents te vertellen hoe ze taken moeten aanpakken — als een projectbriefing.",
+        "where": "Stel de repository, de standaardagent en de loop per lijst in via Lijstinstellingen → Beheerdersinstellingen → AI-agent; bewerk instructies onder Beschrijving."
       }
     },
     "apiAccess": {
@@ -704,7 +970,10 @@
       "clientGuide": {
         "title": "Do you need a client here?",
         "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
-        "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant."
+        "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant.",
+        "question": "Heb je hier een client nodig?",
+        "registersItself": "Nee — als je assistent OAuth ondersteunt (VS Code / Copilot, ChatGPT of een andere MCP-client), registreert die zichzelf automatisch wanneer je verbinding maakt met het gehoste MCP-endpoint. Je hoeft hier niets aan te maken.",
+        "manualOnly": "Ja — maak hieronder alleen een client aan voor serverintegraties die een statisch geheim gebruiken: scripts, de stdio-MCP-server of configuraties met aangepaste headers die de grant client_credentials gebruiken."
       },
       "apps": {
         "loading": "OAuth-applicaties laden...",
@@ -727,7 +996,64 @@
         "readOnly": "Alleen-lezen",
         "editTitle": "OAuth-applicatie bewerken",
         "editDescription": "Werk redirect-URL's of andere metadata bij die je integraties nodig hebben.",
-        "selectToEdit": "Selecteer een OAuth-app om te bewerken."
+        "selectToEdit": "Selecteer een OAuth-app om te bewerken.",
+        "heading": "OAuth-applicaties",
+        "test": "Testen",
+        "regenerate": "Opnieuw genereren",
+        "followsGroup": "volgt {group}",
+        "fixedAtCreation": "vastgelegd bij het aanmaken",
+        "created": "Aangemaakt: {date}",
+        "lastUsed": "Laatst gebruikt: {date}",
+        "createdTitle": "OAuth-client aangemaakt!",
+        "saveCredentialsNow": "⚠️ Sla deze gegevens nu op – het clientgeheim wordt niet opnieuw getoond!",
+        "secretShownOnce": "⚠️ Dit geheim wordt maar één keer getoond. Kopieer het nu!",
+        "obtainingToken": "Token ophalen...",
+        "clientSecretRequired": "Clientgeheim *",
+        "nameLabel": "Naam van de applicatie *",
+        "descriptionLabel": "Beschrijving",
+        "scopesRequired": "Scopes *",
+        "aiAgentPreset": "AI-agent",
+        "grantTypesRequired": "Grant-typen *",
+        "grantHelp": "Schakel {code} in voor ChatGPT of andere integraties met toestemming van de gebruiker. Hiervoor is minstens één redirect-URI nodig.",
+        "redirectHelp": "Eén URL per regel. Vereist voor de autorisatiecode-flow (ChatGPT, webapps). {appName} verwijst alleen door naar URL’s die hier staan.",
+        "editRedirectHelp": "Eén URL per regel. {appName} verwijst gebruikers alleen door naar de exacte URL’s die hier staan. Voeg de callback-URL van de ChatGPT-actie (uit GPT Builder) toe om {code}-fouten op te lossen.",
+        "creating": "Aanmaken...",
+        "createApplication": "Applicatie maken",
+        "errors": {
+          "loadFailed": "OAuth-clients laden mislukt",
+          "loadClientsFailed": "Clients laden mislukt",
+          "nameRequired": "De naam van de app is verplicht",
+          "scopeRequired": "Selecteer minstens één scope",
+          "grantRequired": "Selecteer minstens één OAuth-grant-type",
+          "redirectRequired": "De autorisatiecode-grant vereist minstens één redirect-URI",
+          "invalidRedirect": "Ongeldige redirect-URI: {uri}",
+          "createFailed": "Client aanmaken mislukt",
+          "deleteFailed": "Client verwijderen mislukt",
+          "regenerateFailed": "Geheim opnieuw genereren mislukt",
+          "copyFailed": "Kopiëren naar klembord mislukt",
+          "secretRequired": "Het clientgeheim is verplicht",
+          "tokenFailed": "Toegangstoken ophalen mislukt",
+          "tokenFailedShort": "Token ophalen mislukt",
+          "updateFailed": "OAuth-client bijwerken mislukt"
+        },
+        "deleteConfirm": "Weet je het zeker? Hiermee worden alle tokens van deze app ingetrokken.",
+        "regenerateConfirm": "Clientgeheim opnieuw genereren? Het oude geheim werkt dan meteen niet meer.",
+        "tokenObtained": "Toegangstoken ontvangen! Doorsturen naar de API-test...",
+        "updated": "OAuth-client bijgewerkt"
+      },
+      "grants": {
+        "clientCredentials": {
+          "label": "Clientgegevens",
+          "description": "Server-naar-servertoegang (geen gebruikerslogin nodig)"
+        },
+        "authorizationCode": {
+          "label": "Autorisatiecode",
+          "description": "Toestemming van de gebruiker via de browser (ChatGPT, apps van derden)"
+        },
+        "refreshToken": {
+          "label": "Refresh-token",
+          "description": "Geeft refresh-tokens uit om sessies actief te houden"
+        }
       }
     },
     "chatgpt": {
@@ -939,7 +1265,10 @@
       "waitingVerification": "Wachten op verificatie",
       "waitingVerificationFor": "Wachten op verificatie: {email}",
       "unknownEmail": "Onbekend",
-      "loadingEmail": "Laden..."
+      "loadingEmail": "Laden...",
+      "infoProtect": "• Geverifieerde e-mailadressen helpen ons je account te beschermen en maken samenwerken mogelijk",
+      "infoOAuth": "• Je e-mailadres is geverifieerd via Google OAuth",
+      "infoCheckEmail": "• Kijk na het aanmelden in je e-mail voor een verificatielink"
     },
     "passkeys": {
       "title": "Passkeys",
@@ -1071,7 +1400,10 @@
         "description": "Datums, prioriteiten en lijst-hashtags automatisch uit taaktitels halen",
         "enable": "Slimme herkenning inschakelen",
         "enableDesc": "Taakgegevens uit invoer in natuurlijke taal halen",
-        "supportedPatterns": "Ondersteunde patronen:"
+        "supportedPatterns": "Ondersteunde patronen:",
+        "datesLabel": "Datums:",
+        "priorityLabel": "Prioriteit:",
+        "listsLabel": "Lijsten:"
       },
       "subtasks": {
         "title": "Subtaken",
@@ -1268,7 +1600,8 @@
         "description": "Maak OAuth-apps handmatig, test de API en verbind assistenten die OpenAPI spreken.",
         "openTester": "API-tester openen",
         "apiDocs": "API-documentatie",
-        "integrationGuide": "Integratiegids"
+        "integrationGuide": "Integratiegids",
+        "copyField": "{label} kopiëren"
       },
       "github": {
         "title": "GitHub",
@@ -1395,12 +1728,36 @@
       "subscribeLabel": "Abonneren:",
       "howSubscribe": "Voeg de webcal-URL toe om wijzigingen automatisch te synchroniseren (aanbevolen)",
       "howAppear": "Je taken verschijnen als afspraken voor de hele dag of op hun geplande tijd",
-      "howUpdates": "Wijzigingen in taken in {appName} worden doorgevoerd in geabonneerde agenda's"
+      "howUpdates": "Wijzigingen in taken in {appName} worden doorgevoerd in geabonneerde agenda's",
+      "toastUpdatedTitle": "Instellingen bijgewerkt",
+      "toastUpdatedDescription": "De instellingen voor agenda-integratie zijn opgeslagen.",
+      "toastUpdateFailed": "Agenda-instellingen bijwerken mislukt.",
+      "syncAllHint": "Alle taken verschijnen in je agenda, ook taken zonder vervaldatum",
+      "syncDueHint": "Alleen taken met een vervaldatum of \"wanneer\"-tijd verschijnen in je agenda",
+      "syncNoneHint": "Er worden geen taken met je agenda gesynchroniseerd",
+      "downloadDescription": "Eenmalige download om in je agenda-app te importeren"
     },
     "defaultDueTime": {
       "title": "Standaard vervaltijd",
       "description": "Stel de standaardtijd in voor nieuwe taken wanneer je een vervaldatum kiest",
-      "fallback": "Nieuwe taken met een vervaldatum krijgen standaard 17:00 uur"
+      "fallback": "Nieuwe taken met een vervaldatum krijgen standaard 17:00 uur",
+      "setTo": "Nieuwe taken met een vervaldatum krijgen standaard {time}",
+      "toastSet": "Standaard vervaltijd ingesteld op {time}",
+      "toastCleared": "Standaard vervaltijd gewist",
+      "saveFailed": "Instellingen voor standaard vervaltijd opslaan mislukt",
+      "placeholder": "5pm (standaard)",
+      "label": "Standaard vervaltijd"
+    },
+    "pageTitles": {
+      "account": "Accounttoegang",
+      "apiTesting": "API-test",
+      "githubSetup": "GitHub-configuratie",
+      "help": "Hulp en ondersteuning"
+    },
+    "hub": {
+      "helpDescription": "Handleidingen voor probleemoplossing en contact met support",
+      "refreshDescription": "Cache wissen en actuele gegevens opnieuw laden",
+      "signOutDescription": "Afmelden bij je account"
     }
   },
   "projectMode": {
@@ -1438,7 +1795,9 @@
   "viewRotator": {
     "showList": "Lijst tonen",
     "showMessages": "Berichten tonen",
-    "showBoard": "Bord tonen"
+    "showBoard": "Bord tonen",
+    "board": "Bord",
+    "messages": "Berichten"
   },
   "listSettings": {
     "color": {
@@ -1560,7 +1919,24 @@
       "deleteStatusFailed": "Status verwijderen is mislukt",
       "addStatusFailed": "Status toevoegen is mislukt",
       "recentlyCompletedLabel": "Geavanceerd — Venster voor recent voltooid",
-      "recentlyCompletedDescription": "Hoe lang voltooide taken zichtbaar blijven in de standaardweergave (en in de Done-kolom op borden). Oudere voltooide taken worden weggefilterd; zet de lijst op ‘Voltooid’ of ‘Alle’ om ze te zien."
+      "recentlyCompletedDescription": "Hoe lang voltooide taken zichtbaar blijven in de standaardweergave (en in de Done-kolom op borden). Oudere voltooide taken worden weggefilterd; zet de lijst op ‘Voltooid’ of ‘Alle’ om ze te zien.",
+      "recentlyCompletedPresets": {
+        "default24h": "Afgelopen 24 uur (standaard)",
+        "last7Days": "Afgelopen 7 dagen",
+        "last14Days": "Afgelopen 14 dagen",
+        "last28Days": "Afgelopen 28 dagen",
+        "last30Days": "Afgelopen 30 dagen",
+        "sinceLastSunday": "Sinds afgelopen zondag (deze week)",
+        "sinceLastMonday": "Sinds afgelopen maandag (deze week)",
+        "sinceFirstOfMonth": "Sinds de 1e van de maand",
+        "sinceSpecificDate": "Sinds een specifieke datum…"
+      },
+      "templates": {
+        "codeReviewer": "Codereviewer",
+        "researchAssistant": "Onderzoeksassistent",
+        "familyAssistant": "Gezinsassistent",
+        "contentWriter": "Contentschrijver"
+      }
     },
     "filters": {
       "allAssignees": "Alle toegewezenen",
@@ -1573,8 +1949,29 @@
       "removeFromFavorites": "Uit favorieten verwijderen",
       "makeFavorite": "Favoriet maken",
       "savedFilter": "Opgeslagen filter",
-      "savedFilterDescription": "Toon taken op basis van filterinstellingen, niet op lijstlidmaatschap"
-    }
+      "savedFilterDescription": "Toon taken op basis van filterinstellingen, niet op lijstlidmaatschap",
+      "me": "Ik ({name})",
+      "assignedByFilter": "Toegewezen-door-filter",
+      "repeatingFilter": "Herhalingsfilter",
+      "listFilter": "Lijstfilter",
+      "favorite": "Favoriet"
+    },
+    "fixed": {
+      "todayTitle": "Instellingen voor taken van vandaag",
+      "todayDescription": "Stel in hoe taken van vandaag worden weergegeven en gefilterd",
+      "fixedDueDateToday": "Vervaldatum: vandaag (vast)",
+      "myTasksTitle": "Instellingen voor Mijn Taken",
+      "myTasksDescription": "Stel in hoe je persoonlijke taken worden weergegeven en gefilterd",
+      "unassignedTitle": "Instellingen voor taken zonder lijst",
+      "unassignedDescription": "Stel in hoe taken zonder lijst worden weergegeven en gefilterd",
+      "assignedTitle": "Instellingen voor toegewezen taken",
+      "assignedDescription": "Stel in hoe taken die je aan anderen hebt toegewezen worden weergegeven en gefilterd",
+      "defaultDescription": "Stel in hoe taken worden weergegeven en gefilterd",
+      "cannotChange": "Dit filter kan niet worden gewijzigd voor de weergave “{name}”"
+    },
+    "listSettingsTitle": "Lijstinstellingen",
+    "listDetailsTitle": "Lijstdetails",
+    "statusesTab": "Statussen"
   },
   "reminderSettings": {
     "title": "Herinneringsinstellingen",
@@ -1606,7 +2003,66 @@
       "installDesktop": "Zoek het installatiepictogram in de adresbalk",
       "installPwaLabel": "PWA-voordelen:",
       "installPwa": "Meldingen werken ook als de app gesloten is",
-      "sendTest": "Testmelding versturen"
+      "sendTest": "Testmelding versturen",
+      "errorNotSupported": "Pushmeldingen worden niet ondersteund in deze browser",
+      "errorPermissionDenied": "Toestemming voor meldingen is geweigerd. Schakel meldingen in via je browserinstellingen.",
+      "errorSaveSubscription": "Abonnement opslaan op de server mislukt",
+      "errorEnable": "Meldingen inschakelen mislukt",
+      "errorDisable": "Meldingen uitschakelen mislukt",
+      "errorSendTest": "Testmelding verzenden mislukt",
+      "errorTestFailed": "Testmelding mislukt",
+      "statusEnabled": "Ingeschakeld",
+      "statusBlocked": "Geblokkeerd",
+      "info": {
+        "browserSupport": "Browserondersteuning:",
+        "supported": "✅ Ondersteund",
+        "notSupported": "❌ Niet ondersteund",
+        "permission": "Toestemming:",
+        "subscription": "Abonnement:",
+        "subscriptionActive": "✅ Actief",
+        "subscriptionNone": "❌ Geen"
+      },
+      "permissionValues": {
+        "granted": "verleend",
+        "denied": "geweigerd",
+        "default": "nog niet ingesteld",
+        "unsupported": "niet ondersteund"
+      }
+    },
+    "toast": {
+      "loadFailed": "Herinneringsinstellingen laden mislukt.",
+      "savedTitle": "Instellingen opgeslagen",
+      "savedDescription": "Je herinneringsvoorkeuren zijn bijgewerkt.",
+      "saveFailed": "Herinneringsinstellingen opslaan mislukt.",
+      "notSupportedTitle": "Niet ondersteund",
+      "notSupportedDescription": "Pushmeldingen worden niet ondersteund in deze browser.",
+      "permissionGrantedTitle": "Toestemming verleend",
+      "permissionGrantedDescription": "Je ontvangt nu pushmeldingen voor je taken.",
+      "subscriptionFailedTitle": "Abonneren mislukt",
+      "subscriptionFailedDescription": "Pushmeldingen instellen mislukt. E-mailmeldingen blijven werken.",
+      "permissionDeniedTitle": "Toestemming geweigerd",
+      "permissionDeniedDescription": "Pushmeldingen zijn geblokkeerd. Je kunt ze inschakelen via je browserinstellingen.",
+      "permissionRequestFailed": "Toestemming voor meldingen aanvragen mislukt.",
+      "testScheduledTitle": "Test gepland",
+      "testFailedTitle": "Test mislukt",
+      "testScheduleFailed": "Testmelding plannen mislukt.",
+      "testFailed": "Melding testen mislukt."
+    },
+    "testing": "Testen...",
+    "testPush": "Pushmelding testen (5 min vertraging)",
+    "testDigest": "Dagelijkse samenvatting testen (5 min vertraging)",
+    "digestTime": "Tijd",
+    "quietStart": "Begin",
+    "quietEnd": "Einde",
+    "timezones": {
+      "eastern": "Eastern-tijd",
+      "pacific": "Pacific-tijd",
+      "central": "Central-tijd",
+      "mountain": "Mountain-tijd",
+      "london": "Londen",
+      "paris": "Parijs",
+      "tokyo": "Tokio",
+      "local": "{label} (lokaal)"
     }
   },
   "keyboardShortcuts": {
@@ -1617,21 +2073,60 @@
       "taskActions": "Taakacties",
       "taskEditing": "Taken bewerken",
       "priority": "Prioriteit",
-      "interface": "Interface"
+      "interface": "Interface",
+      "chat": "Chat en verwijzingen"
     },
-    "chatHint": "Gebruik in chatberichten en taakopmerkingen"
+    "chatHint": "Gebruik in chatberichten en taakopmerkingen",
+    "chat": {
+      "mention": "Iemand vermelden",
+      "referenceList": "Naar een lijst verwijzen",
+      "referenceTask": "Naar een taak verwijzen",
+      "selectSuggestion": "Suggestie voor automatisch aanvullen selecteren",
+      "navigateSuggestions": "Door suggesties navigeren",
+      "dismissSuggestions": "Suggesties sluiten"
+    },
+    "shortcuts": {
+      "completeTask": "Geselecteerde taak voltooien",
+      "dueEarlier": "Vervaldatum een dag vervroegen",
+      "dueLater": "Vervaldatum een dag opschuiven",
+      "jumpToDate": "Naar ‘Datum’ gaan",
+      "postpone": "Taak een week uitstellen",
+      "removeDueDate": "Vervaldatum van taak verwijderen",
+      "editLists": "Lijsten van taak bewerken",
+      "editTitle": "Taaktitel bewerken",
+      "editDescription": "Taakbeschrijving bewerken",
+      "addComment": "Nieuwe taakopmerking toevoegen",
+      "assignNoOne": "Taak toewijzen aan ‘Niemand’",
+      "priorityNone": "Prioriteit instellen op ○ (Geen)",
+      "priorityLow": "Prioriteit instellen op ! (Laag)",
+      "priorityMedium": "Prioriteit instellen op !! (Gemiddeld)",
+      "priorityHigh": "Prioriteit instellen op !!! (Hoog)",
+      "deleteTask": "Geselecteerde taak verwijderen",
+      "deleteTaskAlt": "Geselecteerde taak verwijderen (alternatief)",
+      "togglePanel": "Bewerkingspaneel van taak openen/sluiten",
+      "cycleFilters": "Door lijstfilters/tags bladeren",
+      "selectPrevious": "Vorige taak selecteren",
+      "selectNext": "Volgende taak selecteren",
+      "outdent": "Taak uit de bovenliggende taak halen",
+      "indent": "Taak onder de bovenstaande taak plaatsen",
+      "showHotkeys": "Lijst met sneltoetsen tonen"
+    }
   },
   "commandPalette": {
     "label": "Opdrachtenpalet",
     "searchPlaceholder": "Opdrachten zoeken…",
     "enterToSelect": "Enter om te selecteren",
     "escToClose": "Esc om te sluiten",
-    "noCommands": "Geen opdrachten gevonden"
+    "noCommands": "Geen opdrachten gevonden",
+    "arrowsToNavigate": "↑ ↓ om te navigeren",
+    "selectTaskFirst": "Selecteer eerst een taak"
   },
   "userPicker": {
     "optionalMessage": "Optioneel bericht…",
     "sendInvite": "Uitnodiging versturen",
-    "assignAnyway": "Toch toewijzen"
+    "assignAnyway": "Toch toewijzen",
+    "inviteEmail": "{email} uitnodigen",
+    "accessWarningTitle": "⚠️ Toegangswaarschuwing"
   },
   "astridAgent": {
     "modelSetup": {
@@ -1907,7 +2402,9 @@
     "iosBeta": "Momenteel in TestFlight-bèta",
     "joinBeta": "Doe mee aan de bèta",
     "preferBrowser": "Liever in de browser?",
-    "useOnWeb": "Gebruik {appName} op het web"
+    "useOnWeb": "Gebruik {appName} op het web",
+    "metaTitle": "{appName} voor Mac downloaden",
+    "metaDescription": "{appName} voor Mac — een native desktop-app voor je taken, lijsten en chat."
   },
   "errorPages": {
     "errorDescription": "Er is een onverwachte fout opgetreden. Onze excuses voor het ongemak.",
@@ -1973,23 +2470,61 @@
     "everyRecipe": "Alle harness-recepten",
     "mcpTokens": "MCP-verbinding en tokens",
     "agentSettings": "Agentinstellingen",
-    "createCiToken": "Een GitHub Actions-token aanmaken"
+    "createCiToken": "Een GitHub Actions-token aanmaken",
+    "agentList": "→ lijst {list}",
+    "buyPlan": "Kopen: {plan}",
+    "createListsFirst": "Maak eerst de lijsten aan in stap 1, dan wordt in deze commando’s de id van je lijst {list} ingevuld.",
+    "connectStep": "{n}. Verbind en keur daarna de {appName}-aanmelding goed die wordt geopend",
+    "installSkillStep": "{n}. Installeer de wachtrij-skill in {path}",
+    "scheduleStep": "{n}. Voer het elke 30 minuten uit (crontab op een machine die altijd aan staat)",
+    "workflowStep": "{n}. Commit {path} en vervang daarna de laatste stap door de job die moet draaien",
+    "checkStep": "{n}. Controleer het: vraag de agent om {tool} aan te roepen met agent \"{mailbox}\". {empty} betekent verbonden en inactief.",
+    "hostedTitle": "Geen machine die aan kan blijven staan? Draai {agent} dan in GitHub Actions.",
+    "commitFile": "Commit {path}",
+    "saveAsSecret": "Opslaan als het secret {secret} — wordt één keer getoond",
+    "agentReadThis": "Ben je een agent? Lees {link} — dezelfde stappen als platte tekst.",
+    "createIntro": "Eén knop maakt de vijf lijsten met hun instructies aan en maakt van elke agent de standaard toegewezene. De beschrijving van een lijst {is} het instructiebestand dat elke agent leest voor de taken erin — pas het aan wanneer je wilt.",
+    "createIntroIs": "is",
+    "connectIntro": "Elke agent heeft een eigen {appName}-identiteit en pakt alleen taken op die in zijn eigen lijst {assignedAndReady} zijn. Open er een en plak de stappen — of plak de link van deze pagina in de agent en vraag hem zichzelf in te stellen.",
+    "connectIntroAssignedAndReady": "aan hem toegewezen en als Ready gemarkeerd",
+    "workSetReady": "Zet de status op {ready} wanneer je wilt dat de agent begint. Dat is de startknop.",
+    "teamIntro": "Deel elke lijst (lijstinstellingen → {members} → uitnodigen per e-mail). Iedereen ziet dezelfde taken, opmerkingen en agentrapporten. Eigenaren en beheerders van de lijst kunnen elke taak aan een agent geven; leden kunnen taken overdragen die ze zelf hebben aangemaakt. Wil je dat leden elke taak kunnen overdragen, zet dan {setting} aan in de instellingen van de lijst → {aiAgent} (de agents draaien op de abonnementen van de eigenaar)."
   },
   "richTextInput": {
     "placeholder": "Typ een bericht...",
     "timer": "Timer",
     "uploading": "Uploaden...",
     "attachFile": "Bestand bijvoegen",
-    "removeFile": "{name} verwijderen"
+    "removeFile": "{name} verwijderen",
+    "attachmentsUnavailable": "Bijlagen zijn niet beschikbaar in deze weergave.",
+    "tooManyOne": "Je kunt maximaal {max} bestanden tegelijk bijvoegen — {count} bestand is niet bijgevoegd.",
+    "tooManyMany": "Je kunt maximaal {max} bestanden tegelijk bijvoegen — {count} bestanden zijn niet bijgevoegd.",
+    "people": "Personen",
+    "aiBadge": "AI",
+    "taskDone": "Voltooid"
   },
   "chat": {
     "inputPlaceholder": "Bericht aan lijst...",
     "empty": "Nog geen berichten. Begin het gesprek!",
-    "loadFailed": "Chat laden mislukt"
+    "loadFailed": "Chat laden mislukt",
+    "openChat": "Chat openen",
+    "showTasks": "Taken tonen"
   },
   "notificationBell": {
     "markAllRead": "Alles als gelezen markeren",
-    "allCaughtUp": "Je bent helemaal bij."
+    "allCaughtUp": "Je bent helemaal bij.",
+    "loadFailed": "Meldingen laden mislukt",
+    "loadFailedStatus": "Meldingen laden mislukt ({status})",
+    "markReadFailedStatus": "Meldingen als gelezen markeren mislukt ({status})",
+    "updateFailed": "Meldingen bijwerken mislukt",
+    "taskUpdate": "Taakupdate",
+    "kinds": {
+      "assigned": "Toegewezen",
+      "mentioned": "Vermeld",
+      "replied": "Gereageerd",
+      "commented": "Opmerking",
+      "statusChanged": "Status gewijzigd"
+    }
   },
   "admin": {
     "navDescription": "Beheer toegang, analyses en beschikbaarheid van functies.",
@@ -1997,12 +2532,21 @@
   },
   "pwa": {
     "notNow": "Niet nu",
-    "syncing": "Wijzigingen synchroniseren..."
+    "syncing": "Wijzigingen synchroniseren...",
+    "backOnline": "Weer online",
+    "offline": "Je bent offline",
+    "pendingOne": "{count} openstaande wijziging",
+    "pendingMany": "{count} openstaande wijzigingen",
+    "installTitle": "{appName} installeren",
+    "installDescription": "Voeg {appName} toe aan je beginscherm voor snelle toegang en offline gebruik.",
+    "install": "Installeren"
   },
   "attachmentViewer": {
     "closeEsc": "Sluiten (Esc)",
     "videoUnsupported": "Je browser ondersteunt de videotag niet.",
     "noPreview": "Voorbeeld niet beschikbaar voor dit bestandstype",
-    "downloadFile": "Bestand downloaden"
+    "downloadFile": "Bestand downloaden",
+    "unknownFile": "Onbekend bestand",
+    "loadFailed": "Bestand laden mislukt"
   }
 }

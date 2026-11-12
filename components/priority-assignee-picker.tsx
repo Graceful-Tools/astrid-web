@@ -290,7 +290,7 @@ export function PriorityAssigneePicker({
 
           {/* Priority Section */}
           <div className="px-4 pb-4">
-            <h3 className="text-sm font-medium text-theme-muted mb-3">Priority</h3>
+            <h3 className="text-sm font-medium text-theme-muted mb-3">{t('tasks.priority')}</h3>
             <div className="flex gap-3">
               {PRIORITY_OPTIONS.map((option) => {
                 const isSelected = tempPriority === option.value
@@ -308,7 +308,7 @@ export function PriorityAssigneePicker({
                         ? `${priorityFillClass(option.value)} text-white`
                         : `bg-transparent border-2 ${priorityOutlineClass(option.value)}`
                     }`}
-                    aria-label={`Priority ${option.value}`}
+                    aria-label={t('tasks.priorityLevel', { level: String(option.value) })}
                     aria-pressed={isSelected}
                   >
                     {option.label}
@@ -393,7 +393,7 @@ export function PriorityAssigneePicker({
 
           {/* Assignee Section */}
           <div className="px-4 py-4">
-            <h3 className="text-sm font-medium text-theme-muted mb-3">Assignee</h3>
+            <h3 className="text-sm font-medium text-theme-muted mb-3">{t('tasks.assignee')}</h3>
             <div className="max-h-48 overflow-y-auto -mx-4 px-4 space-y-1">
               {/* Unassigned option */}
               <button
@@ -434,7 +434,7 @@ export function PriorityAssigneePicker({
                     }`}
                   >
                     <Avatar className="w-9 h-9">
-                      <AvatarImage src={user.image || undefined} alt={user.name || 'User'} />
+                      <AvatarImage src={user.image || undefined} alt={user.name || t('tasks.userAvatarAlt')} />
                       <AvatarFallback className="text-xs bg-theme-active text-theme-secondary">
                         {getInitials(user.name, user.email)}
                       </AvatarFallback>
@@ -444,7 +444,7 @@ export function PriorityAssigneePicker({
                         {user.name || user.email}
                       </div>
                       <div className="text-xs text-theme-muted truncate">
-                        {isAIAgent ? 'AI Agent' : isCurrentUser ? 'You' : user.email}
+                        {isAIAgent ? t('profilePage.aiAgent') : isCurrentUser ? t('tasks.assigneeYou') : user.email}
                       </div>
                     </div>
                     {isSelected && (
