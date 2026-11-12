@@ -157,7 +157,7 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
                     {agent.image ? (
                       <img src={agent.image} alt="" className="w-4 h-4 rounded-full" />
                     ) : (
-                      <Bot className="w-4 h-4 text-purple-500" />
+                      <Bot className="w-4 h-4 text-agent" />
                     )}
                     <span>{agent.name || agent.email}</span>
                     <span className="text-xs theme-text-muted">

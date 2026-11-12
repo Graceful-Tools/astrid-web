@@ -152,7 +152,7 @@ export default function UserProfilePage() {
             onClick={() => router.push('/')}
             title={t('navigation.goHome')}
           >
-            <Heart className="w-6 h-6 text-red-500 fill-red-500" />
+            <Heart className="w-6 h-6 text-category-red fill-category-red" />
             <span className="text-xl font-semibold theme-text-primary">{BRAND.wordmark}</span>
           </div>
           <div className="flex items-center space-x-1 theme-count-bg rounded-full px-3 py-1">

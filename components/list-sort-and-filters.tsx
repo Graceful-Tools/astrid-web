@@ -322,13 +322,13 @@ export function ListSortAndFilters({
             onUpdate({ ...list, filterRepeating: value })
           }}
         >
-          <SelectItem value="all"><span className="text-blue-400">{t('listSettings.show.allTasks')}</span></SelectItem>
+          <SelectItem value="all"><span className="text-category-blue">{t('listSettings.show.allTasks')}</span></SelectItem>
           <SelectItem value="not_repeating"><span className="text-theme-muted">{t('listSettings.filters.notRepeating')}</span></SelectItem>
-          <SelectItem value="daily"><span className="text-green-500">{t('repeating.daily')}</span></SelectItem>
-          <SelectItem value="weekly"><span className="text-blue-500">{t('repeating.weekly')}</span></SelectItem>
-          <SelectItem value="monthly"><span className="text-purple-500">{t('repeating.monthly')}</span></SelectItem>
-          <SelectItem value="yearly"><span className="text-orange-500">{t('repeating.yearly')}</span></SelectItem>
-          <SelectItem value="custom"><span className="text-pink-500">{t('repeating.custom')}</span></SelectItem>
+          <SelectItem value="daily"><span className="text-category-green">{t('repeating.daily')}</span></SelectItem>
+          <SelectItem value="weekly"><span className="text-category-blue">{t('repeating.weekly')}</span></SelectItem>
+          <SelectItem value="monthly"><span className="text-category-purple">{t('repeating.monthly')}</span></SelectItem>
+          <SelectItem value="yearly"><span className="text-category-orange">{t('repeating.yearly')}</span></SelectItem>
+          <SelectItem value="custom"><span className="text-category-pink">{t('repeating.custom')}</span></SelectItem>
         </FilterRow>
 
         <FilterRow
@@ -339,9 +339,9 @@ export function ListSortAndFilters({
             onUpdate({ ...list, filterInLists: value })
           }}
         >
-          <SelectItem value="dont_filter"><span className="text-blue-400">{t('listSettings.show.allTasks')}</span></SelectItem>
-          <SelectItem value="in_list"><span className="text-green-500">{t('listSettings.filters.inAnyList')}</span></SelectItem>
-          <SelectItem value="not_in_list"><span className="text-orange-500">{t('listSettings.filters.notInAnyList')}</span></SelectItem>
+          <SelectItem value="dont_filter"><span className="text-category-blue">{t('listSettings.show.allTasks')}</span></SelectItem>
+          <SelectItem value="in_list"><span className="text-category-green">{t('listSettings.filters.inAnyList')}</span></SelectItem>
+          <SelectItem value="not_in_list"><span className="text-category-orange">{t('listSettings.filters.notInAnyList')}</span></SelectItem>
         </FilterRow>
 
         {hasActiveFilters && (
@@ -375,8 +375,8 @@ export function ListSortAndFilters({
           >
             {list.isFavorite ? (
               <>
-                <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                <span className="text-yellow-400">{t('listSettings.filters.removeFromFavorites')}</span>
+                <Star className="w-4 h-4 text-category-amber fill-current" />
+                <span className="text-category-amber">{t('listSettings.filters.removeFromFavorites')}</span>
               </>
             ) : (
               <>

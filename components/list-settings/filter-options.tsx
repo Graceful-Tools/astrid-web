@@ -93,9 +93,9 @@ export const PRIORITY_FILTER_OPTIONS: readonly FilterOption[] = [
 export const DUE_DATE_FILTER_OPTIONS: readonly FilterOption[] = [
   { value: "all", labelKey: "listSettings.due.allDates", label: "All dates", className: "text-brand" },
   { value: "overdue", labelKey: "listSettings.due.overdue", label: "Overdue", className: "text-overdue" },
-  { value: "today", labelKey: "listSettings.due.today", label: "Today", className: "text-green-500" },
-  { value: "this_week", labelKey: "listSettings.due.next7Days", label: "Next 7 days", className: "text-blue-500" },
-  { value: "this_month", labelKey: "listSettings.due.next30Days", label: "Next 30 days", className: "text-purple-500" },
+  { value: "today", labelKey: "listSettings.due.today", label: "Today", className: "text-category-green" },
+  { value: "this_week", labelKey: "listSettings.due.next7Days", label: "Next 7 days", className: "text-category-blue" },
+  { value: "this_month", labelKey: "listSettings.due.next30Days", label: "Next 30 days", className: "text-category-purple" },
   { value: "no_date", labelKey: "listSettings.due.noDate", label: "No date", className: "text-theme-muted" },
 ]
 
