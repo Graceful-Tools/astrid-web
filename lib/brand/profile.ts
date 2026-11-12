@@ -29,6 +29,13 @@ export interface BrandProfile {
    * stay OUT of `profileEnv` — see the note there (AWTD-1289).
    */
   ios?: Record<string, string>
+  /**
+   * Brand artwork (AWTD-1588). `icon` is the one square source icon, ideally 1024 px, as a
+   * path in public/ (e.g. `/icons/acme-1024.png`); every favicon, manifest, touch and
+   * notification icon is generated from it. The same field name as the astrid-core
+   * brand schema (AWTD2-158), so one profile serves both. Becomes NEXT_PUBLIC_BRAND_ICON.
+   */
+  assets?: { icon?: string }
   expect?: Record<string, unknown>
 }
 
@@ -44,7 +51,10 @@ const PROFILE_ENV_VARS = new Map(
     .filter(({ name }) => PROFILE_ENV_PREFIXES.some((prefix) => name.startsWith(prefix)))
     .map((envVar) => [envVar.name, envVar]),
 )
-const PROFILE_KEYS = new Set(['name', 'description', 'env', 'copy', 'ios', 'expect'])
+const PROFILE_KEYS = new Set(['name', 'description', 'env', 'copy', 'ios', 'assets', 'expect'])
+const ASSET_PROFILE_KEYS = new Set(['icon'])
+/** A PNG served from public/: the icon route reads it from disk, so a URL cannot work. */
+const PUBLIC_PNG_PATH = /^\/[A-Za-z0-9._/-]+\.png$/
 const IOS_PROFILE_KEYS = new Set(['bundleId', 'appGroup', 'keychainGroup', 'developmentTeam', 'displayName'])
 const PROFILE_DERIVED_ENV_KEYS = new Set(['NEXTAUTH_URL', 'NEXT_PUBLIC_APP_URL'])
 
@@ -114,6 +124,24 @@ export function parseBrandProfile(value: unknown, source = 'Brand profile'): Bra
     }
   }
 
+  if (value.assets !== undefined) {
+    if (!isStringRecord(value.assets)) {
+      problems.push('assets must be an object with string values')
+    } else {
+      for (const key of Object.keys(value.assets)) {
+        if (!ASSET_PROFILE_KEYS.has(key)) problems.push(`assets.${key} is not a supported profile key`)
+      }
+      const icon = value.assets.icon
+      if (icon !== undefined && (!PUBLIC_PNG_PATH.test(icon) || icon.includes('..'))) {
+        problems.push('assets.icon must be a .png path in public/, e.g. /icons/acme-1024.png')
+      }
+      const envIcon = isRecord(env) ? env.NEXT_PUBLIC_BRAND_ICON : undefined
+      if (icon !== undefined && envIcon !== undefined && envIcon !== icon) {
+        problems.push('assets.icon and env.NEXT_PUBLIC_BRAND_ICON disagree; set only assets.icon')
+      }
+    }
+  }
+
   if (problems.length > 0) {
     throw new Error(`${source}: invalid brand profile:\n${problems.map((problem) => `- ${problem}`).join('\n')}`)
   }
@@ -125,6 +153,7 @@ export function parseBrandProfile(value: unknown, source = 'Brand profile'): Bra
   }
   if (value.copy !== undefined) profile.copy = value.copy as Record<string, unknown>
   if (value.ios !== undefined) profile.ios = value.ios as Record<string, string>
+  if (value.assets !== undefined) profile.assets = value.assets as { icon?: string }
   if (value.expect !== undefined) profile.expect = value.expect as Record<string, unknown>
   return profile
 }
@@ -150,6 +179,7 @@ export function profileEnv(profile: BrandProfile): Record<string, string> {
   const validProfile = parseBrandProfile(profile)
   return {
     ...validProfile.env,
+    ...(validProfile.assets?.icon ? { NEXT_PUBLIC_BRAND_ICON: validProfile.assets.icon } : {}),
     ...(validProfile.copy ? { [BRAND_COPY_ENV]: JSON.stringify(validProfile.copy) } : {}),
   }
 }

@@ -6,7 +6,8 @@ import { SpeedInsights } from '@vercel/speed-insights/next'
 import { NextIntlClientProvider } from 'next-intl'
 import { getMessages, setRequestLocale } from 'next-intl/server'
 import { routing } from '@/lib/i18n/routing'
-import { BRAND } from '@/lib/brand/config'
+import { BRAND, brandOrigin } from '@/lib/brand/config'
+import { brandIconUrl, brandMetadataIcons } from '@/lib/brand/icons'
 import { brandAccentCssVars } from '@/lib/brand/css-vars'
 import "../globals.css"
 // These four used to be `@import` rules at the BOTTOM of globals.css. That is invalid CSS —
@@ -69,27 +70,25 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  // There was no OG image at all, so a shared link previewed with nothing (AWTD-1588). The
+  // brand's square mark suits the "summary" card. Absolute, as crawlers require: there is
+  // no metadataBase here to resolve a relative one against.
   openGraph: {
     type: "website",
     siteName: BRAND.productTitle,
     title: BRAND.productTitle,
     description: BRAND.tagline,
+    images: [{ url: `${brandOrigin()}${brandIconUrl({ kind: "icon", size: 512 })}`, width: 512, height: 512, alt: BRAND.appName }],
   },
   twitter: {
     card: "summary",
     title: BRAND.productTitle,
     description: BRAND.tagline,
+    images: [`${brandOrigin()}${brandIconUrl({ kind: "icon", size: 512 })}`],
   },
+  // Every size from the brand's one source icon; Astrid's own files for Astrid (AWTD-1588).
   icons: {
-    icon: [
-      { url: "/favicon.ico", sizes: "32x32" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-48x48.png", sizes: "48x48", type: "image/png" },
-      { url: "/favicon-196x196.png", sizes: "196x196", type: "image/png" },
-      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
-    ],
+    icon: brandMetadataIcons(),
   },
 }
 
@@ -125,8 +124,8 @@ export default async function LocaleLayout({ children, params }: Props) {
       style={brandCssVars()}
     >
       <head>
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" href={brandIconUrl({ kind: "apple-touch" })} />
+        <link rel="apple-touch-icon" sizes="180x180" href={brandIconUrl({ kind: "apple-touch" })} />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={inter.className} style={BRAND.fontFamily ? { fontFamily: BRAND.fontFamily } : undefined}>
