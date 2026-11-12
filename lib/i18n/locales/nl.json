@@ -346,6 +346,7 @@
       "makeCopyOnly": "Alleen kopiëren maken",
       "makeCollaborative": "Collaboratief maken",
       "leaveList": "Lijst verlaten",
+      "leaveConfirm": "\"{name}\" verlaten? Alleen een eigenaar of beheerder kan je weer toevoegen.",
       "aiCodingAgents": "AI-codeeragents",
       "aiAgents": "AI-agents",
       "agentForCoding": "{name} voor programmeren en hulp bij taken",

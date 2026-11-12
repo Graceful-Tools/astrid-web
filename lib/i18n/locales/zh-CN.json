@@ -346,6 +346,7 @@
       "makeCopyOnly": "设为仅可复制",
       "makeCollaborative": "设为协作",
       "leaveList": "离开列表",
+      "leaveConfirm": "要离开“{name}”吗？只有所有者或管理员才能重新添加你。",
       "aiCodingAgents": "AI 编程智能体",
       "aiAgents": "AI 智能体",
       "agentForCoding": "{name}：编程和任务协助",
