@@ -21,7 +21,6 @@
  */
 
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
-import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Plus, Hash } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
@@ -30,7 +29,7 @@ import type { User, TaskList } from '@/types/task'
 import { useTranslations } from "@/lib/i18n/client"
 import { getPriorityColor } from "@/lib/task-leading-control"
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
-import { LEADING_CONTROL_SIZE } from '@/lib/design/tokens'
+import { CheckboxArt } from '@/components/task-checkbox-art'
 import {
   applyHashtagSelection,
   filterListsForHashtag,
@@ -268,12 +267,6 @@ export function QuickAdd({
 
   const priorityColor = getPriorityColor(selectedPriority)
 
-  // Get checkbox icon path (same as TaskCheckbox component)
-  const getCheckboxIconPath = () => {
-    const safePriority = selectedPriority >= 0 && selectedPriority <= 3 ? selectedPriority : 0
-    return `/icons/check_box_${safePriority}.png`
-  }
-
   const isFixedBottom = placement === 'fixed-bottom'
   const placeholder = quickAddPlaceholder({
     placement,
@@ -323,11 +316,9 @@ export function QuickAdd({
                 </div>
               ) : selectedAssignee?.id === currentUser?.id ? (
                 // Current user: Show checkbox (same as task rows)
-                <Image
-                  src={getCheckboxIconPath()}
-                  alt={t('tasks.priorityCheckboxAlt', { priority: String(selectedPriority) })}
-                  width={LEADING_CONTROL_SIZE}
-                  height={LEADING_CONTROL_SIZE}
+                <CheckboxArt
+                  priority={selectedPriority}
+                  label={t('tasks.priorityCheckboxAlt', { priority: String(selectedPriority) })}
                   className="w-leading-control h-leading-control"
                 />
               ) : (
