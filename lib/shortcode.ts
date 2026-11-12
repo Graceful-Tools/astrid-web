@@ -5,7 +5,7 @@
 
 import { BRAND } from '@/lib/brand/config'
 import { prisma } from "@/lib/prisma"
-import { customAlphabet } from "nanoid"
+import { randomInt } from "crypto"
 import { createLogger } from '@/lib/logger'
 import { SHORTCODE_ALPHABET, SHORTCODE_LENGTH } from '@/lib/shortcode-format'
 
@@ -14,7 +14,6 @@ const log = createLogger('shortcode')
 
 // Shape lives in lib/shortcode-format.ts so lib/legacy-api-usage.ts can strip
 // shortcodes out of telemetry without importing Prisma through this file.
-const nanoid = customAlphabet(SHORTCODE_ALPHABET, SHORTCODE_LENGTH)
 
 export type ShortcodeTargetType = "task" | "list"
 
@@ -40,11 +39,16 @@ export interface ShortcodeData {
 
 /**
  * Generate a unique shortcode
- * Uses nanoid with custom alphabet for cryptographically strong random codes
+ * Cryptographically strong and unbiased: node's randomInt rejection-samples, so
+ * every alphabet character is equally likely (what nanoid's customAlphabet did).
  * Only uses alphanumeric characters (0-9, A-Z, a-z)
  */
 export function generateShortcode(): string {
-  return nanoid()
+  let code = ""
+  for (let i = 0; i < SHORTCODE_LENGTH; i++) {
+    code += SHORTCODE_ALPHABET[randomInt(SHORTCODE_ALPHABET.length)]
+  }
+  return code
 }
 
 /**

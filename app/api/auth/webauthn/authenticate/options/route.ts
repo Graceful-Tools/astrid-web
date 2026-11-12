@@ -1,7 +1,7 @@
 import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextRequest, NextResponse } from "next/server"
 import { getAuthenticationOptions, storeChallenge } from "@/lib/webauthn"
-import { v4 as uuid } from "uuid"
+import { randomUUID as uuid } from "crypto"
 import { passkeyRateLimiter, withRateLimitHandlerAsync } from "@/lib/rate-limiter"
 import { createLogger } from '@/lib/logger'
 

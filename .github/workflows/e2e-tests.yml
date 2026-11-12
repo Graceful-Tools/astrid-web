@@ -63,6 +63,8 @@ jobs:
         run: npm run test:risk-coverage
       - name: Build application
         run: npx next build
+      - name: Initial JS budget (AWTD-1593)
+        run: npm run check:bundle
       - name: Provision authenticated state
         run: npm run playwright:setup:ci-auth
       - name: Run authenticated critical paths

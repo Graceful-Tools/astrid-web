@@ -431,6 +431,14 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
       fixCommand: 'rm -rf .next && npm run build:next',
       fixDescription: 'Clean build cache and rebuild',
     },
+    {
+      // Reads the route-bundle-stats.json the Build check just wrote, so it must stay
+      // after it. Ratchet on gzipped first-load JS per route (AWTD-1593).
+      name: 'Initial JS Budget',
+      command: 'npm run check:bundle',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
+      autoFixable: false,
+    },
   ]
 }
 

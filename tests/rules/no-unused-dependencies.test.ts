@@ -88,3 +88,15 @@ describe('AWTD-1593: round-2 unused dependencies stay removed', () => {
     expect(declared).toHaveProperty(['@opentelemetry/api-logs'])
   })
 })
+
+/**
+ * AWTD-1593: one id generator. `crypto.randomUUID` (node's in routes, the Web Crypto
+ * global in the browser) replaced `uuid` and `nanoid`; lib/shortcode.ts draws its
+ * alphanumeric codes with node's `randomInt`. A second id library would be dead weight
+ * in the client bundle.
+ */
+describe('AWTD-1593: crypto.randomUUID is the only id generator', () => {
+  it.each(['uuid', '@types/uuid', 'nanoid'])('%s is not declared', (name) => {
+    expect(declared).not.toHaveProperty([name])
+  })
+})

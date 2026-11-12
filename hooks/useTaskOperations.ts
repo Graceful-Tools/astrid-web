@@ -8,7 +8,6 @@ import type { CreateTaskData as ApiCreateTaskData, UpdateTaskData as ApiUpdateTa
 import type { CustomRepeatingPattern } from '@/types/repeating'
 import { OfflineSyncManager, isOfflineMode } from '@/lib/offline-sync'
 import { OfflineTaskOperations, OfflineListOperations } from '@/lib/offline-db'
-import { nanoid } from 'nanoid'
 import { safeResponseJson, hasRequiredFields } from '@/lib/safe-parse'
 import { unwrapTask } from '@/lib/v1-response'
 
@@ -147,7 +146,7 @@ export const useTaskOperations = ({
 
         // Create optimistic task with temporary ID and PROPER metadata
         const tempTask: Task = {
-          id: `temp-${nanoid()}`,
+          id: `temp-${globalThis.crypto.randomUUID()}`,
           title: taskData.title,
           description: taskData.description || '',
           priority: (taskData.priority || 0) as 0 | 1 | 2 | 3,
