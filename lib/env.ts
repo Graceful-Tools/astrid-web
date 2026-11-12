@@ -262,6 +262,9 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'NEXT_PUBLIC_BRAND_DEFAULT_THEME', scope: 'optional', description: 'Theme a visitor starts on before choosing: light, dark or ocean. A stored choice still wins.' },
   { name: 'NEXT_PUBLIC_BRAND_WWW_REDIRECT', scope: 'optional', description: 'Set to false when the brand domain is itself a subdomain (no www host): stops the apex→www redirect.' },
   { name: 'NEXT_PUBLIC_BRAND_FONT_FAMILY', scope: 'optional', description: 'CSS font-family stack for the whole app. Unset keeps the bundled Inter.' },
+  { name: 'NEXT_PUBLIC_BRAND_OPERATOR_NAME', scope: 'optional', description: 'Legal entity named in the Terms, Privacy Policy and copyright line. Unset: the default operator while the app keeps its default name, the brand name for a partner.' },
+  { name: 'NEXT_PUBLIC_BRAND_TERMS_URL', scope: 'optional', description: "The operator's own Terms of Service URL. Unset serves the built-in /terms page.", validate: isUrl },
+  { name: 'NEXT_PUBLIC_BRAND_PRIVACY_URL', scope: 'optional', description: "The operator's own Privacy Policy URL. Unset serves the built-in /privacy page.", validate: isUrl },
   { name: 'NEXT_PUBLIC_BRAND_COPY', scope: 'optional', description: 'JSON overriding the brand voice — reminder nags and default-list captions.' },
 
   // ── Capabilities ──────────────────────────────────────────────────────────

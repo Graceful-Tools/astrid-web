@@ -283,6 +283,53 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     vi.resetModules()
   })
 
+  it('names this profile’s operator on every legal and help page (AWTD-1584)', async () => {
+    // The Terms, Privacy and Help pages said "Graceful Tools LLC" on every deployment —
+    // a partner's terms of service naming someone else's company as the operator.
+    // They existed twice (the public route and the in-app Settings page), so both copies
+    // are rendered here.
+    const React = await import('react')
+    const { renderToStaticMarkup } = await import('react-dom/server')
+    const { BRAND } = await import('@/lib/brand/config')
+    const onNavigate = () => {}
+    const pages: Array<[string, string, Record<string, unknown>]> = [
+      ['/terms', '@/app/[locale]/terms/page', {}],
+      ['/privacy', '@/app/[locale]/privacy/page', {}],
+      ['/help', '@/app/[locale]/help/page', {}],
+      ['Settings → Terms', '@/components/Settings/TermsPage', { onNavigate }],
+      ['Settings → Privacy', '@/components/Settings/PrivacyPage', { onNavigate }],
+      ['Settings → Help', '@/components/Settings/HelpPage', { onNavigate }],
+    ]
+
+    if (profile.name !== 'Astrid') expect(BRAND.operatorName).not.toBe('Graceful Tools LLC')
+
+    for (const [what, path, props] of pages) {
+      const Page = (await import(path)).default
+      const html = renderToStaticMarkup(React.createElement(Page, props))
+      expect(html, `${what} names the operator`).toContain(BRAND.operatorName)
+      for (const literal of profile.expect.forbidLiterals) {
+        expect(html, `${what} leaked "${literal}" for the ${profile.name} profile`).not.toContain(literal)
+      }
+    }
+  })
+
+  it('routes feature requests to this profile’s own support address (AWTD-1584)', async () => {
+    // The fallback was jon@gracefultools.com, so a partner that forgot
+    // FEATURE_REQUEST_EMAIL mailed its users' requests to Astrid's founder.
+    const ORIGINAL = process.env.FEATURE_REQUEST_EMAIL
+    try {
+      delete process.env.FEATURE_REQUEST_EMAIL
+      const { featureRequestRecipient } = await import('@/lib/feature-access-requests')
+      expect(featureRequestRecipient()).toBe(profile.expect.supportEmail)
+      for (const literal of profile.expect.forbidLiterals) {
+        expect(featureRequestRecipient()).not.toContain(literal)
+      }
+    } finally {
+      if (ORIGINAL === undefined) delete process.env.FEATURE_REQUEST_EMAIL
+      else process.env.FEATURE_REQUEST_EMAIL = ORIGINAL
+    }
+  })
+
   it('enables no capability without the one it depends on (AWTD-1121)', async () => {
     // The check instrumentation.ts makes at server start: a profile that fails it
     // here would be a deployment that refuses to boot.

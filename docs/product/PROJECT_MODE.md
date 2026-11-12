@@ -116,7 +116,7 @@ there is no payments logic and no payments copy anywhere in this feature.
 - `FeatureAccessRequest`, unique on `(userId, featureKey)`. One person asking
   twice is one data point; re-requesting updates the note.
 - `POST /api/v1/feature-requests` records the request and emails
-  `FEATURE_REQUEST_EMAIL` (default `jon@gracefultools.com`, env-overridable so
+  `FEATURE_REQUEST_EMAIL` (default `NEXT_PUBLIC_BRAND_SUPPORT_EMAIL` since AWTD-1584, env-overridable so
   whitelabel partners route their own).
 - `GET /api/admin/feature-requests` returns the queue **plus demand counts**;
   rendered at `/admin/feature-requests`.

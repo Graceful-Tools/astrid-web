@@ -11,6 +11,7 @@
  */
 
 import { FEATURE_KEYS, type FeatureKey } from '@/lib/feature-flags'
+import { BRAND } from '@/lib/brand/config'
 
 export type FeatureRequestStatus = 'PENDING' | 'GRANTED' | 'DECLINED'
 
@@ -162,5 +163,8 @@ export function shouldNotifyFeatureRequest(
  * reasoning as every other brand-configurable address.
  */
 export function featureRequestRecipient(): string {
-  return process.env.FEATURE_REQUEST_EMAIL || 'jon@gracefultools.com'
+  // The brand's own support address, never a person's (AWTD-1584): the old fallback was
+  // a founder's mailbox, so a partner that forgot the variable mailed its users'
+  // requests to someone outside its company.
+  return process.env.FEATURE_REQUEST_EMAIL?.trim() || BRAND.supportEmail
 }
