@@ -28,6 +28,9 @@
     "NEXT_PUBLIC_BRAND_APP_URL_SCHEME": "acmetasks",
     "NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d"
   },
+  "assets": {
+    "icon": "/icons/acme-1024.png"
+  },
   "expect": {
     "appName": "Acme",
     "appleAppIds": [
@@ -71,7 +74,7 @@
       "gracefultools.com"
     ],
     "logo": "/images/acme-logo.png",
-    "icon": "/icons/icon-512x512.png",
+    "icon": "/icons/acme-1024.png",
     "wordmark": "ACME",
     "slogan": "Work, handled.",
     "appStoreUrl": "",

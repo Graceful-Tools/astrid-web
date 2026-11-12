@@ -347,7 +347,7 @@ export class EmailReminderService {
           <div class="astrid-section ${isOverdue ? '' : 'normal'}">
             <div class="astrid-container">
               <div class="astrid-icon">
-                <img src="${baseUrl}/icons/icon-512x512.png" alt="${BRAND.appName}" />
+                <img src="${baseUrl}${BRAND.icon}" alt="${BRAND.appName}" />
               </div>
               <div class="speech-bubble">
                 <p class="quote-text">${quote}</p>
