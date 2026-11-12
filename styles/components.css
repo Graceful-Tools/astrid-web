@@ -401,6 +401,10 @@ html, body {
      instead of letting `.prose pre` scroll (task 61a21152). */
   @apply rounded-lg max-w-[85%] min-w-0;
   padding: 12px;
+  /* A URL or other run with no spaces breaks instead of overflowing the
+     column (AWTD2-176). `pre` blocks still scroll: white-space: pre takes no
+     wrap opportunities. */
+  overflow-wrap: anywhere;
 }
 
 .chat-bubble-row {
