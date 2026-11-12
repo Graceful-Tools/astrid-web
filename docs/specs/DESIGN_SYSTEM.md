@@ -239,6 +239,24 @@ what was written: a row's hover tint takes 100 ms, not 200; the phone's details 
 slides for 300 ms on ease-out, not 350 on a hand-made curve (the code that waits for it
 reads `motion.panel` too); and the details arrow follows its row over 150 ms, not 75.
 
+### Sizes and small type on web
+
+A component names a size by its scale step, never as `w-[37px]` (the arbitrary-sizes count
+in the ratchet). AWTD-1615 moved 91 of them:
+
+| Written out | In a class | Reads |
+|---|---|---|
+| `text-[10px]`, `text-[11px]`, `text-[0.6875rem]` | `text-caption2` | `type.comfortable.caption2` (11, the smallest size in the tokens, as on iOS) |
+| `text-[0.8rem]` | `text-footnote` | `type.comfortable.footnote` (13) |
+| `min-h-[44px]`, `min-w-[44px]` | `min-h-hit-target`, `min-w-hit-target` | `size.comfortable.hit-target` |
+| a second pane's `min-w-[280px]`, the notifications popover's `w-[22rem]` | `min-w-pane-min`, `w-popover-wide` | `--pane-min-width`, `--popover-wide-width`, web-only and named once in `styles/components.css` |
+| any other px or rem | the nearest spacing step (`min-h-24`, `h-56` …), ties rounding up | the spacing scale |
+
+The speech bubble's tail is one shape (`.speech-bubble-tail`, drawn by
+`components/ui/speech-bubble-tail.tsx`). Five are still written out: the sign-in skeleton's
+88 (the logo it stands in for is 88), the calendar's 3 px focus ring (an outline width) and
+the board column header's 4.5 rem (board layout, register DS14).
+
 ## States
 
 | State | Rule |

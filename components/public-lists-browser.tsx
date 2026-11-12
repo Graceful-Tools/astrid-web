@@ -512,7 +512,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                     </p>
                   </div>
 
-                  <div className={`overflow-y-auto ${isMobile ? 'h-[50vh]' : 'h-[400px]'}`}>
+                  <div className={`overflow-y-auto ${isMobile ? 'h-[50vh]' : 'h-96'}`}>
                     <div className="p-4 space-y-2">
                       {previewLoading ? (
                         <div className="text-center py-8 theme-text-muted">
