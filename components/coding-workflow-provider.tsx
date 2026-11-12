@@ -1,19 +1,18 @@
 "use client"
 
 /**
- * Global provider for coding workflow management
- * Handles SSE events and workflow orchestration
+ * Global listener for coding workflow management.
+ * Handles SSE events and workflow orchestration; renders nothing.
+ *
+ * It used to be a pass-through provider wrapping the whole tree. It provided no context,
+ * so it is now mounted beside the tree and loaded after hydration (components/providers.tsx,
+ * AWTD-1604), which keeps the SSE manager out of every page's first-load JS.
  */
 
 import { useCodingWorkflow } from '@/hooks/use-coding-workflow'
-import { useSession } from 'next-auth/react'
 
-export function CodingWorkflowProvider({ children }: { children: React.ReactNode }) {
-  const { status } = useSession()
-
-  // Always call the hook (Rules of Hooks), but it will handle auth internally
+export function CodingWorkflowListener() {
+  // The hook handles auth internally: it subscribes only when the session is authenticated.
   useCodingWorkflow()
-
-  // This provider doesn't render anything, just handles global coding workflow logic
-  return <>{children}</>
+  return null
 }

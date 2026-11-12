@@ -24,7 +24,7 @@ Insights was collecting the numbers — see below.
 | Incremental sync response | <= 100 KiB and <= 1 MiB across all pages | `scripts/measure-api-latency.ts` (route not yet added) | never |
 | Server error rate | < 1% | `vercel logs` status codes — sample too small to assert, see below | 2026-09-11, indicative only |
 | Redis cache hit rate | >= 60% after warm-up (re-based 2026-10-16, AWTD-1201 — was >= 80%) | `/admin/analytics` → **Redis Cache**, per day, from the `CacheMetricBucket` table | 2026-10-16: **66.3% over the last 7 days — within budget**; 70.6% since recording began 2026-09-25. See below |
-| Initial JavaScript | <= 250 KiB gzipped first load, per route | `npm run check:bundle` over `.next/diagnostics/route-bundle-stats.json` (`scripts/check-route-bundle-budget.ts`); gated in predeploy and the E2E workflow as a **ratchet at 405 KiB**, not at the budget (AWTD-1593) — see below | 2026-11-12 — heaviest route **404.0 KiB, OVER**; `/settings/*` (TaskManager shell) **403.1 KiB, OVER**; leanest `[locale]` page 254.6 KiB, OVER; 58 of 61 routes over |
+| Initial JavaScript | <= 250 KiB gzipped first load, per route | `npm run check:bundle` over `.next/diagnostics/route-bundle-stats.json` (`scripts/check-route-bundle-budget.ts`); gated in predeploy and the E2E workflow as a **ratchet at 389 KiB**, not at the budget (AWTD-1593, lowered by AWTD-1604) — see below | 2026-11-12 (AWTD-1604) — heaviest route **387.7 KiB, OVER**; `/settings/*` (TaskManager shell) **386.8 KiB, OVER**; leanest `[locale]` page 189.8 KiB, within; 17 of 61 routes over |
 | Core Web Vitals (p75) | LCP <= 2.5 s; INP <= 200 ms; CLS <= 0.1 | Vercel Speed Insights (history, dashboard only) + `scripts/measure-web-vitals.ts` (scriptable, no history yet) — see below | **not yet transcribed** |
 | GitHub Projects webhook ack | p95 <= 300 ms (delivery check, one indexed read, one insert; work runs after the response) | `vercel logs --query projects_v2_item` route timings; shape pinned by `tests/api/github-projects-webhook.test.ts` (AWTD-1152) | 2026-10-21 (AWTD-1159): the lanes-test brand has it on and its App is delivering. GitHub's own delivery log reports **p50 360 ms, p95 1040 ms** over 58 `projects_v2_item` deliveries, all HTTP 200. **Not comparable to this budget**: GitHub's `duration` is its whole round trip — DNS, TLS, network and any cold start — while the budget is route time. Route time still unmeasured; see below |
 | GitHub Projects edit → replica | p95 <= 10 s from a github.com edit to the Astrid row | `npm run test:live:github-projects` (AWTD-1154) measures edit → hydrate job → replica; the webhook leg needs a deployed GitHub-Projects brand | 2026-10-21 (AWTD-1159), on the deployed lanes-test brand: webhook received → replica written is **p50 616 ms, p95 840 ms, max 1.34 s** over 67 first-attempt hydrate jobs. With the ack above that is **~1.9 s at p95**, against a 10 s budget. The one leg still unmeasured is github.com edit → GitHub delivering; see below. (2026-10-10: ~1.0–1.2 s for edit → hydrate → replica locally, webhook leg excluded, one run) |
@@ -532,12 +532,40 @@ Two findings set what the gate can be:
   view. Splitting it out means settings pages that render without the shell (their own
   layout, sidebar and providers), which is a product change to how settings look and
   navigate, not a bundling tweak.
-- **Even without the shell, no `[locale]` page is under 250 KiB.** The leanest is
+- **Even without the shell, no `[locale]` page was under 250 KiB** (fixed by AWTD-1604, below). The leanest is
   254.6 KiB, so the `[locale]` layout's providers alone exceed the budget. Getting
   `/settings/*` to 250 KiB needs both the split and a lighter layout baseline.
 
+**The layout baseline, slimmed (AWTD-1604, same day).** Mapping the leanest page's chunks
+back to source (a `productionBrowserSourceMaps` build, bytes attributed per mapping) showed
+the second finding was not the providers' *rendering* but what they statically imported:
+the offline database (Dexie, ~95 KiB raw), the cache, data-sync and offline-sync managers,
+the SSE manager, pino (via the error boundaries and those managers) and Radix Toast. None of
+it draws anything on first paint, and all of it already ran in effects. The offline sync,
+the coding-workflow SSE listener, the feature-flag SSE listener and the toast viewport now load
+through `next/dynamic` after hydration (a toast's auto-dismiss clock starts when the
+Toaster mounts); the offline/back-online banner stays eager, so it hears an early
+`offline`, but loads the offline queue on demand; and the error boundaries import the
+logger only when they catch something. Pinned by
+`tests/rules/layout-background-work-is-not-first-load.test.ts`. What is left in the
+baseline is mostly Next/React itself (~467 KiB of the ~600 KiB raw), next-intl's
+message formatter, next-auth and tailwind-merge.
+
+| Route group | Before (AWTD-1593) | After (AWTD-1604) |
+|---|---:|---:|
+| `/[locale]`, `/[locale]/lists/[listId]`, `/[locale]/list/[id]` | 403.4–404.0 KiB | 387.1–387.7 KiB |
+| `/[locale]/settings` and the 11 settings pages that render `AuthenticatedApp` | 403.1 KiB | 386.8 KiB |
+| `/[locale]/admin/analytics` | 383.9 KiB | 319.1 KiB |
+| docs, help, start, auth, admin, and the settings pages that do not render the shell | 254.6–306.0 KiB | 189.8–264.8 KiB |
+| Routes over the 250 KiB target | 58 of 61 | 17 of 61 |
+
+The 17 still over are the 14 TaskManager-shell routes, `/admin/analytics`, `/start` and
+`/docs/loops`. **`/settings/*` is therefore still 386.8 KiB**: the remaining gap is the
+TaskManager shell itself, which is the settings-without-the-shell split.
+
 So the gate is a **ratchet**: `CEILING_KIB` in `scripts/lib/route-bundle-budget.ts` is
-the heaviest route rounded up, plus 1 KiB for env-value noise between machines (405 KiB).
+the heaviest route rounded up, plus 1 KiB for env-value noise between machines (389 KiB;
+405 KiB before AWTD-1604).
 Any route that grows past it fails predeploy and the E2E workflow. The check prints when
 the ceiling can come down; lower it, and update this table, whenever it does. It also
 reports how many routes are over the 250 KiB target, which stays the budget.

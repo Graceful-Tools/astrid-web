@@ -1,11 +1,12 @@
 "use client"
 
 import { Toast, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from "@/components/ui/toast"
-import { useToast } from "@/hooks/use-toast"
+import { useToast, useToasterMounted } from "@/hooks/use-toast"
 import { useSettings } from "@/contexts/settings-context"
 
 export function Toaster() {
   const { toasts } = useToast()
+  useToasterMounted()
   const { toastDebugMode } = useSettings()
 
   return (
