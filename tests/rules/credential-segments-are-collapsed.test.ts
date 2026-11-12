@@ -74,6 +74,7 @@ const DYNAMIC_SEGMENT_PARENTS: Record<string, Classification> = {
   'brand-icon': 'route-word', // a generated icon file name, icon-192.png (AWTD-1588)
   'brand-assets': 'route-word', // a partner's artwork file name, acme-logo.png (AWTD-1587)
   connections: 'route-word', //  a connection KIND (google, github)
+  missing: 'route-word', //     app/missing/[locale]: a locale code from a 404 rewrite (AWTD-1599)
   t: 'route-word', //           app/[locale]/t/[identifier] — a task id like AWTD-12 (AWTD-1016):
   //                            human-readable and not a secret, like a project key
 

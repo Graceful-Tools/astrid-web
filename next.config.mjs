@@ -119,31 +119,46 @@ const nextConfig = {
     ]
   },
   async rewrites() {
-    return [
-      {
-        source: '/mcp',
-        destination: '/api/mcp',
-      },
-      {
-        source: '/mcp/messages',
-        destination: '/api/mcp/messages',
-      },
-      // A missing root-level file (/nope.png, /apple-touch-icon-precomposed.png,
-      // /nope.md) is a 404, not the app (AWTD-1599). The middleware cannot say
-      // so: its matcher skips file-shaped addresses so it does not run on every
-      // static request, and it runs before the filesystem, so it could not tell
-      // a missing file from a real one anyway. This list is the afterFiles
-      // phase: it runs only after public/ and the static routes (/llms.txt,
-      // /start.md, /manifest.json) found nothing, and before dynamic routes —
-      // where `[locale]` would otherwise take "nope.png" as a locale and render
-      // the app shell with a 200. A segment with a dot is never a locale.
-      // The destination is a locale-prefixed address no route claims, so the
-      // root not-found answers: server-rendered, a few KB, no app booted.
-      {
-        source: '/:file([^/]*\\.[^/]*)',
-        destination: '/en/_missing-file',
-      },
-    ]
+    return {
+      afterFiles: [
+        {
+          source: '/mcp',
+          destination: '/api/mcp',
+        },
+        {
+          source: '/mcp/messages',
+          destination: '/api/mcp/messages',
+        },
+        // A missing root-level file (/nope.png, /apple-touch-icon-precomposed.png,
+        // /nope.md) is a 404, not the app (AWTD-1599). The middleware cannot say
+        // so: its matcher skips file-shaped addresses so it does not run on every
+        // static request, and it runs before the filesystem, so it could not tell
+        // a missing file from a real one anyway. This list is the afterFiles
+        // phase: it runs only after public/ and the static routes (/llms.txt,
+        // /start.md, /manifest.json) found nothing, and before dynamic routes —
+        // where `[locale]` would otherwise take "nope.png" as a locale and render
+        // the app shell with a 200. A segment with a dot is never a locale.
+        // The destination is the localized 404 handler (app/missing/[locale]),
+        // in the default locale: a file has no language.
+        {
+          source: '/:file([^/]*\\.[^/]*)',
+          destination: '/missing/en',
+        },
+      ],
+      // A miss under a locale (/de/zz, /fr/list/x/y) gets the 404 in that
+      // locale. Fallback runs only after every page and dynamic route missed.
+      // On Vercel, a miss that gets past this is answered from the prerendered
+      // /404 without running a function, and that page cannot know the locale
+      // (AWTD-1599). The handler takes the first segment and falls back to the
+      // default locale for anything that is not one. /api and /_next keep
+      // Next's own 404.
+      fallback: [
+        {
+          source: '/:locale((?!(?:api|_next)/)[^/.]+)/:path+',
+          destination: '/missing/:locale',
+        },
+      ],
+    }
   },
   async headers() {
     // Security headers applied to all routes
