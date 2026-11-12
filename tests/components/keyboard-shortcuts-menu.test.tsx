@@ -129,6 +129,16 @@ describe('KeyboardShortcutsMenu', () => {
       }
     })
 
+    it('closes on Escape when focus is still on the page, as after opening with ? (AWTD-1600)', () => {
+      // `?` opens the menu from the document; nothing moves focus into it, so
+      // a keydown handler on the overlay never heard Escape in the real app.
+      render(<KeyboardShortcutsMenu {...mockProps} isOpen={true} />)
+
+      fireEvent.keyDown(document, { key: 'Escape' })
+
+      expect(mockProps.onClose).toHaveBeenCalled()
+    })
+
     it('should not close when clicking inside the modal content', () => {
       render(<KeyboardShortcutsMenu {...mockProps} isOpen={true} />)
 

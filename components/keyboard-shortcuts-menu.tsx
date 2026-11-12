@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Keyboard, X } from "lucide-react"
 import { KEYBOARD_SHORTCUTS, KEYBOARD_SHORTCUT_DESCRIPTION_KEYS } from "@/hooks/useKeyboardShortcuts"
+import { useClickOutside } from "@/hooks/shared/useClickOutside"
 
 interface KeyboardShortcutsMenuProps {
   isOpen: boolean
@@ -14,6 +15,11 @@ interface KeyboardShortcutsMenuProps {
 
 export function KeyboardShortcutsMenu({ isOpen, onClose }: KeyboardShortcutsMenuProps) {
   const { t } = useTranslations()
+  // Escape and a press outside the card are heard on the document (AWTD-1600).
+  // The menu opens from `?` with focus left on the page, so a keydown handler
+  // on the overlay itself never received Escape.
+  const cardRef = React.useRef<HTMLDivElement>(null)
+  useClickOutside(cardRef, { onClickOutside: onClose, enabled: isOpen })
   const groupedShortcuts = React.useMemo(() => {
     const groups = {
       navigation: [] as (typeof KEYBOARD_SHORTCUTS)[number][],
@@ -79,20 +85,13 @@ export function KeyboardShortcutsMenu({ isOpen, onClose }: KeyboardShortcutsMenu
 
   if (!isOpen) return null
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose()
-    }
-  }
-
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      onClick={onClose}
-      onKeyDown={handleKeyDown}
       tabIndex={-1}
     >
       <Card
+        ref={cardRef}
         className="theme-bg-primary theme-border w-full max-w-4xl mx-4 max-h-[80vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >

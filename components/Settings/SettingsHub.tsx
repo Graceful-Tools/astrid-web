@@ -123,7 +123,7 @@ export default function SettingsHub({ onNavigate }: SettingsHubProps) {
       title: t("userMenu.signOut"),
       description: t("settingsPages.hub.signOutDescription"),
       page: "_signout",
-      color: "text-red-500"
+      color: "text-danger"
     }
   ]
 

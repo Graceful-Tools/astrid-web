@@ -35,7 +35,6 @@ npm run db:seed      # Seed database
 - **Tailwind CSS**: 3.4.17
 - **Radix UI**: Component primitives
 - **Lucide React**: Icons
-- **React Hook Form**: Form handling
 - **Zod**: Validation
 
 ### Testing
