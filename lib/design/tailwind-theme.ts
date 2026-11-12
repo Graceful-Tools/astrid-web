@@ -18,9 +18,15 @@
  */
 export const token = (property: string) => `rgba(var(--${property}), <alpha-value>)`
 
-/** Shared sizes as steps of the spacing scale: `w-leading-control`, `h-leading-control`. */
+/**
+ * Shared sizes as steps of the spacing scale: `w-leading-control`,
+ * `h-leading-control`, and `gap-row-gap`, the gap between a leading control
+ * (or the detail icon column under it) and the text (`layout.row-gap`, 12 in
+ * both densities; register DS11).
+ */
 export const tokenSpacing = {
   'leading-control': 'var(--astrid-size-comfortable-leading-control)',
+  'row-gap': 'var(--astrid-layout-comfortable-row-gap)',
 }
 
 /**
