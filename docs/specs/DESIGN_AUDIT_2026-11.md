@@ -158,7 +158,8 @@ The ratchet can't see these rows: they're differences in layout, not hand-writte
 ## Follow-ups, most valuable first
 
 1. **[design] The last 197 palette classes** (AWTD-1612): needs a categorical icon palette and
-   an agent ink colour in astrid-core first.
+   an agent ink colour in astrid-core first. *Done: astrid-core's categorical palette, agent ink
+   and `surface-inverse` (register DS27-DS29) took the count to 0.*
 2. **[i18n] The last 438 sentences** (AWTD-1613): translate Help; the rest depends on the open
    decision.
 3. **[design] The 105 hex colours** (AWTD-1614): a token-backed palette module for email HTML

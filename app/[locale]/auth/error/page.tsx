@@ -35,7 +35,7 @@ function AuthErrorContent() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
-            <Heart className="w-8 h-8 text-red-500 fill-red-500" />
+            <Heart className="w-8 h-8 text-category-red fill-category-red" />
             <span className="text-3xl font-bold text-theme-primary">{BRAND.wordmark}</span>
           </div>
         </div>

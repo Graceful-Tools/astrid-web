@@ -28,7 +28,7 @@ export default function AstridCodingPage() {
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Heart className="w-8 h-8 text-red-500 fill-red-500" />
+              <Heart className="w-8 h-8 text-category-red fill-category-red" />
               <span className="text-2xl font-bold text-theme-primary">{BRAND.wordmark}</span>
               <Badge variant="outline" className="bg-brand-subtle text-brand border-brand/30">
                 {t('settingsPages.codingAgent.title')}
@@ -112,7 +112,7 @@ export default function AstridCodingPage() {
 
           <Card className="bg-theme-surface/60 backdrop-blur-sm border-theme-surface hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
-              <Globe className="w-12 h-12 text-purple-500 mx-auto mb-4" />
+              <Globe className="w-12 h-12 text-category-purple mx-auto mb-4" />
               <h3 className="font-semibold text-theme-primary mb-2">{t('codingAgentPage.features.livePreviewsTitle')}</h3>
               <p className="text-sm text-theme-muted">
                 {t('codingAgentPage.features.livePreviewsDesc')}
@@ -194,7 +194,7 @@ export default function AstridCodingPage() {
                 </p>
               </div>
               <div className="text-center">
-                <Users className="w-12 h-12 text-purple-500 mx-auto mb-4" />
+                <Users className="w-12 h-12 text-category-purple mx-auto mb-4" />
                 <h3 className="font-semibold text-theme-primary mb-2">{t('codingAgentPage.githubApp.sharedTitle')}</h3>
                 <p className="text-sm text-theme-muted">
                   {t('codingAgentPage.githubApp.sharedDesc')}
@@ -231,10 +231,11 @@ export default function AstridCodingPage() {
         </Card>
 
         {/* CTA Section */}
-        <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white border-0">
+        {/* `light`: the call to action is a brand gradient in every theme, so the white button under the pointer reads the light ink. */}
+        <Card className="light bg-gradient-to-r from-brand to-category-purple text-brand-foreground border-0">
           <CardContent className="p-12 text-center">
             <h2 className="text-3xl font-bold mb-4">{t('codingAgentPage.cta.title')}</h2>
-            <p className="text-xl mb-8 text-blue-100">
+            <p className="text-xl mb-8 text-brand-foreground/90">
               {t('codingAgentPage.cta.subtitle')}
             </p>
             <div className="flex items-center justify-center space-x-4">
@@ -242,7 +243,7 @@ export default function AstridCodingPage() {
                 <Github className="w-5 h-5 mr-2" />
                 {t('codingAgentPage.installGithubApp')}
               </Button>
-              <Button size="lg" variant="outline" onClick={handleSignUp} className="bg-transparent text-white border-white hover:bg-white hover:text-blue-600">
+              <Button size="lg" variant="outline" onClick={handleSignUp} className="bg-transparent text-white border-white hover:bg-white hover:text-brand">
                 <ArrowRight className="w-5 h-5 mr-2" />
                 {t('codingAgentPage.cta.startTrial')}
               </Button>
@@ -252,28 +253,28 @@ export default function AstridCodingPage() {
       </div>
 
       {/* Footer */}
-      {/* Footer: dark in every theme by design, so its greys stay literal (DESIGN_SYSTEM.md, No honest token) */}
-      <div className="bg-gray-900 text-white py-12">
+      {/* Footer: dark in every theme by design (surface-inverse); `dark` makes the tokens inside answer as Dark. */}
+      <div className="dark bg-theme-inverse text-white py-12">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Heart className="w-6 h-6 text-red-500 fill-red-500" />
+              <Heart className="w-6 h-6 text-category-red fill-category-red" />
               <span className="text-xl font-semibold">{BRAND.wordmark}</span>
-              <span className="text-gray-400">{t('settingsPages.codingAgent.title')}</span>
+              <span className="text-theme-muted">{t('settingsPages.codingAgent.title')}</span>
             </div>
             <div className="flex items-center space-x-6">
-              <a href={`${GITHUB_WEB_URL}/apps/${BRAND.githubAppSlug}`} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors">
+              <a href={`${GITHUB_WEB_URL}/apps/${BRAND.githubAppSlug}`} target="_blank" rel="noopener noreferrer" className="text-theme-muted hover:text-white transition-colors">
                 <Github className="w-5 h-5" />
               </a>
-              <Link href="/auth/signin" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="/auth/signin" className="text-theme-muted hover:text-white transition-colors">
                 {t('auth.signInButton')}
               </Link>
-              <Link href="/auth/signin" className="text-gray-400 hover:text-white transition-colors">
+              <Link href="/auth/signin" className="text-theme-muted hover:text-white transition-colors">
                 {t('auth.signUpButton')}
               </Link>
             </div>
           </div>
-          <div className="mt-8 pt-8 border-t border-gray-800 text-center text-gray-400">
+          <div className="mt-8 pt-8 border-t border-theme text-center text-theme-muted">
             <p>{t('codingAgentPage.footerNote')}</p>
           </div>
         </div>

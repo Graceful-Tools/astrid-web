@@ -552,11 +552,11 @@ export function OAuthAPITester() {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'Tasks': return 'bg-blue-100 text-blue-800'
-      case 'Lists': return 'bg-purple-100 text-purple-800'
-      case 'Comments': return 'bg-green-100 text-green-800'
-      case 'User': return 'bg-orange-100 text-orange-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'Tasks': return 'bg-category-blue-subtle text-category-blue'
+      case 'Lists': return 'bg-category-purple-subtle text-category-purple'
+      case 'Comments': return 'bg-category-green-subtle text-category-green'
+      case 'User': return 'bg-category-orange-subtle text-category-orange'
+      default: return 'bg-theme-tertiary text-theme-primary'
     }
   }
 
@@ -925,7 +925,7 @@ export function OAuthAPITester() {
                       {/* Request Preview: code on a block that is dark in every theme, by design, so its colours stay literal */}
                       <div className="border-t border-theme-surface pt-3">
                         <p className="text-xs font-medium theme-text-muted mb-2">Request Preview</p>
-                        <code className="block bg-gray-900 text-green-400 px-2 py-1 rounded text-xs overflow-x-auto">
+                        <code className="dark block bg-theme-inverse text-category-green px-2 py-1 rounded text-xs overflow-x-auto">
                           {ep.method} {(() => {
                             let path = ep.path
                             if (ep.requiresId) {
@@ -937,7 +937,7 @@ export function OAuthAPITester() {
                             return path
                           })()}
                         </code>
-                        <pre className="bg-gray-900 text-blue-400 px-2 py-1 rounded text-xs mt-2">
+                        <pre className="dark bg-theme-inverse text-category-blue px-2 py-1 rounded text-xs mt-2">
 {authMode === 'session' ? 'Cookie: (session)' : `Authorization: Bearer ${accessToken ? '...' : '<TOKEN>'}`}
                         </pre>
                       </div>
