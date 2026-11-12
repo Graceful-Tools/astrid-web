@@ -3,8 +3,8 @@
  *
  * Web's My Tasks rule lived inside `useFilterState.applyFiltersToTasks`, so no script could run
  * it and the contract fixtures could not lock it (astrid-core D25). These tests pin what the hook
- * answers today, then hold the pure module to the same answers, so the extraction cannot move a
- * task in or out of anyone's My Tasks.
+ * answers, then hold the pure module to the same answers. Since AWTD-1583 both answer as iOS and
+ * the core do: only what is assigned to you, the assignee filter not applied.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
@@ -57,16 +57,21 @@ describe('My Tasks scope (AWTD-1262)', () => {
     prefs.filterAssignee = []
   })
 
-  it('the hook keeps what is assigned to me, plus unassigned tasks I created', () => {
-    expect(hookShows(ME)).toEqual(['assigned-to-me', 'assigned-to-me-done', 'created-unassigned'])
+  it('AWTD-1583 (D25): the hook keeps only what is assigned to me — not unassigned tasks I created', () => {
+    expect(hookShows(ME)).toEqual(['assigned-to-me', 'assigned-to-me-done'])
   })
 
-  it('the hook narrows by the saved priority and assignee preferences', () => {
+  it('AWTD-1583 (D25): the hook narrows by the saved priority, and ignores the saved assignee filter', () => {
     prefs.filterPriority = [3, 0]
-    expect(hookShows(ME)).toEqual(['assigned-to-me', 'created-unassigned'])
+    expect(hookShows(ME)).toEqual(['assigned-to-me'])
     prefs.filterPriority = []
     prefs.filterAssignee = ['unassigned']
-    expect(hookShows(ME)).toEqual(['created-unassigned'])
+    expect(hookShows(ME)).toEqual(['assigned-to-me', 'assigned-to-me-done'])
+  })
+
+  it('AWTD-1583 (D25): signed out, My Tasks is empty', () => {
+    expect(hookShows(undefined)).toEqual([])
+    expect(TASKS.some((t) => isInMyTasksScope(t, null))).toBe(false)
   })
 
   it('isInMyTasksScope answers as the hook does, task by task', () => {
@@ -74,16 +79,16 @@ describe('My Tasks scope (AWTD-1262)', () => {
     expect(kept).toEqual(hookShows(ME))
   })
 
-  it('myTasksShows applies the priority and assignee preferences on top of the scope', () => {
+  it('myTasksShows applies the priority preference on top of the scope, and not filterAssignee', () => {
     const shown = (filterPriority: number[], filterAssignee: string[]) =>
       TASKS.filter((t) => myTasksShows(t, ME, { filterPriority, filterAssignee })).map((t) => t.id).sort()
-    expect(shown([3, 0], [])).toEqual(['assigned-to-me', 'created-unassigned'])
-    expect(shown([], ['unassigned'])).toEqual(['created-unassigned'])
+    expect(shown([3, 0], [])).toEqual(['assigned-to-me'])
+    expect(shown([], ['unassigned'])).toEqual(['assigned-to-me', 'assigned-to-me-done'])
     expect(shown([], [ME])).toEqual(['assigned-to-me', 'assigned-to-me-done'])
   })
 
-  it('reads only assigneeId, never the nested assignee (D25: iOS reads the relation too)', () => {
+  it('AWTD-1583 (D25): reads the nested assignee when assigneeId is missing, as iOS does', () => {
     const nestedOnly = { assigneeId: undefined, assignee: { id: ME }, creatorId: 'u-other' }
-    expect(isInMyTasksScope(nestedOnly, ME)).toBe(false)
+    expect(isInMyTasksScope(nestedOnly, ME)).toBe(true)
   })
 })

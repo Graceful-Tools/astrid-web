@@ -63,7 +63,7 @@ test.describe('Task detail edits (AWTD-1419)', () => {
 
     await detail(page).getByRole('button', { name: '!!!', exact: true }).click()
     await expect.poll(async () => (await readTask(request, task.id))?.priority).toBe(3)
-    await expect(row(page, task.title).getByRole('img', { name: 'Unchecked priority 3 checkbox' })).toBeVisible()
+    await expect(row(page, task.title).locator('[data-testid="task-checkbox-art"][data-priority="3"][data-checked="false"]')).toBeVisible()
 
     await detail(page).getByRole('button', { name: '!', exact: true }).click()
     await expect.poll(async () => (await readTask(request, task.id))?.priority).toBe(1)

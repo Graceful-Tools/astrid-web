@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useMyTasksPreferences } from './useMyTasksPreferences'
 import type { Task, TaskList } from '@/types/task'
 import { hasListAccess } from '@/lib/list-member-utils'
-import { applyDateFilter } from '@/lib/date-filter-utils'
+import { applyDateFilter, type DueDateWindow } from '@/lib/date-filter-utils'
 import { sortTasksForList } from '@/lib/task-sort'
 import { isInMyTasksScope, matchesAssigneeFilter, matchesPriorityFilter } from '@/lib/my-tasks-scope'
 import {
@@ -16,8 +16,8 @@ export interface FilterState {
   completed: "all" | "completed" | "incomplete" | "default"
   priority: number[]
   assignee: string[]
-  dueDate: "all" | "overdue" | "today" | "tomorrow" | "this_week" | "this_month" | "this_calendar_week" | "this_calendar_month" | "no_date"
-  sortBy: "auto" | "priority" | "when" | "assignee" | "completed" | "incomplete" | "completedAt" | "manual"
+  dueDate: DueDateWindow
+  sortBy: "auto" | "priority" | "when" | "completedAt" | "manual"
 }
 
 interface UseFilterStateProps {
@@ -30,12 +30,12 @@ const getValidSortBy = (value?: string | null): FilterState['sortBy'] => {
   switch (value) {
     case "priority":
     case "when":
-    case "assignee":
-    case "completed":
-    case "incomplete":
     case "completedAt":
     case "manual":
       return value
+    // "assignee", "completed" and "incomplete" were web-only orders, retired in AWTD-1583
+    // (astrid-core D33): a list that saved one sorts as auto, which is what every other client
+    // did with it, and the default below says so.
     // Legacy support: convert old "due_date" to "when"
     case "due_date":
       return "when"
@@ -60,7 +60,7 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
   )
   const [filterPriority, setFilterPriority] = useState<number[]>([])
   const [filterAssignee, setFilterAssignee] = useState<string[]>([])
-  const [filterDueDate, setFilterDueDate] = useState<"all" | "overdue" | "today" | "tomorrow" | "this_week" | "this_month" | "this_calendar_week" | "this_calendar_month" | "no_date">("all")
+  const [filterDueDate, setFilterDueDate] = useState<DueDateWindow>("all")
   const [sortBy, setSortBy] = useState<FilterState['sortBy']>(getValidSortBy(currentList?.sortBy))
 
   // Determine which filter set to use based on selected list
@@ -310,8 +310,10 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
       filtered = filtered.filter(task => matchesPriorityFilter(task, activeFilters.priority))
     }
 
-    // Assignee filter (always apply unless we know the virtual list already handled it)
-    if (activeFilters.assignee.length > 0) {
+    // Assignee filter (always apply unless we know the virtual list already handled it).
+    // Not in My Tasks, which is already only what is assigned to you and does not read it
+    // (lib/my-tasks-scope.ts, AWTD-1583 / astrid-core D25).
+    if (activeFilters.assignee.length > 0 && selectedListId !== "my-tasks") {
       console.log('🔍 Applying assignee filter:', activeFilters.assignee)
       filtered = filtered.filter(task => matchesAssigneeFilter(task, activeFilters.assignee))
     }
@@ -359,7 +361,7 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
     setCompleted: (value: "all" | "completed" | "incomplete" | "default") => setFilterValue('completed', value),
     setPriority: (value: number[]) => setFilterValue('priority', value),
     setAssignee: (value: string[]) => setFilterValue('assignee', value),
-    setDueDate: (value: "all" | "overdue" | "today" | "tomorrow" | "this_week" | "this_month" | "this_calendar_week" | "this_calendar_month" | "no_date") => setFilterValue('dueDate', value),
+    setDueDate: (value: DueDateWindow) => setFilterValue('dueDate', value),
     setSortBy: (value: FilterState['sortBy']) => setFilterValue('sortBy', value),
     
     // Actions

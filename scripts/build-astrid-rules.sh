@@ -18,6 +18,9 @@
 #   fixtures/smart.json
 #   fixtures/repeating.json
 #   fixtures/markdown.json
+#   fixtures/board.json
+#   fixtures/statuses.json
+#   fixtures/filters.json, my-tasks.json, manual-order.json, reminders.json
 #
 # Server-only: no browser build is vendored (377 KB gzipped is too much to ship to every page for
 # a shadow check). astrid-core's scripts/build-wasm.sh writes one when that changes.
@@ -62,7 +65,7 @@ mkdir -p "$pkg/fixtures"
 cp -R "$out/node" "$pkg/node"
 # The glue is CommonJS; say so, so a "type": "module" anywhere above it cannot change how it loads.
 printf '{ "type": "commonjs" }\n' >"$pkg/node/package.json"
-for fixture in permissions search smart repeating markdown; do
+for fixture in permissions search smart repeating markdown board statuses filters my-tasks manual-order reminders; do
   cp "$tree/contracts/fixtures/$fixture.json" "$pkg/fixtures/$fixture.json"
 done
 printf '%s\n' "$rev" >"$pkg/REVISION"

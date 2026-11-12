@@ -24,6 +24,12 @@
  */
 import type { Task, TaskList } from '@/types/task'
 import { DEFAULT_STATES, parseCustomStates, isDefaultStatusRole } from '@/lib/task-status'
+import {
+  VIRTUAL_DONE_COLUMN_ID,
+  VIRTUAL_INBOX_COLUMN_ID,
+  boardColumnsThroughCore,
+  columnMoveThroughCore,
+} from '@/lib/board-core-hook'
 
 export type ProjectStatusRole = 'ready' | 'doing' | 'waiting' | 'custom'
 
@@ -55,8 +61,8 @@ export const DEFAULT_PROJECT_STATUSES: ProjectStatusDefinition[] = [
   },
 ]
 
-export const VIRTUAL_INBOX_COLUMN_ID = '__virtual_inbox__'
-export const VIRTUAL_DONE_COLUMN_ID = '__virtual_done__'
+// astrid-core's ids for the two virtual columns; defined beside the core hook (AWTD-1585).
+export { VIRTUAL_INBOX_COLUMN_ID, VIRTUAL_DONE_COLUMN_ID }
 
 export type ProjectBoardColumnKind = 'inbox' | 'status' | 'done'
 
@@ -101,8 +107,15 @@ export function isProjectStatusList(list: Pick<TaskList, 'listType'> | null | un
  * take the user's lists as well, to find the row backing each column; Stage D
  * removed the rows, and with them the only reason a column id could be
  * anything but its role.
+ *
+ * On the server, astrid-core's `board` rule answers when it is installed (AWTD-1585,
+ * lib/core-rules/board-core.ts); this TypeScript is the fallback and the comparison.
  */
 export function getProjectBoardColumns(customStates?: unknown): ProjectBoardColumn[] {
+  return boardColumnsThroughCore(customStates, () => typescriptBoardColumns(customStates))
+}
+
+function typescriptBoardColumns(customStates: unknown): ProjectBoardColumn[] {
   const allCustomStates = parseCustomStates(customStates)
   // Built-in overrides (e.g. renamed defaults) stored alongside custom states.
   const defaultOverrides = new Map(
@@ -252,8 +265,30 @@ export function resolveProjectColumnCreate(
  *   done   → strip the (global) status, completed=true
  *   status → replace any existing status with the target, completed=false
  * Regular (non-status) list memberships are preserved in all cases.
+ *
+ * On the server, astrid-core's `boardMove` rule answers when it is installed (AWTD-1585); this
+ * TypeScript is the fallback and the comparison.
  */
 export function resolveProjectColumnMove(
+  task: Task,
+  targetColumn: ProjectBoardColumn,
+  lists: TaskList[],
+): { listIds: string[]; completed: boolean; statusRole: string | null } {
+  return columnMoveThroughCore(
+    {
+      task: {
+        completed: !!task.completed,
+        statusRole: (task as { statusRole?: string | null }).statusRole ?? null,
+        listIds: (task.lists ?? []).map(list => list.id),
+      },
+      column: { id: targetColumn.id, kind: targetColumn.kind },
+      lists: lists.map(list => ({ id: list.id, listType: list.listType ?? null, projectId: list.projectId ?? null })),
+    },
+    () => typescriptColumnMove(task, targetColumn, lists),
+  )
+}
+
+function typescriptColumnMove(
   task: Task,
   targetColumn: ProjectBoardColumn,
   lists: TaskList[],

@@ -746,6 +746,24 @@
       "shown": true
     },
     {
+      "id": "due/overdue/t-earlier-today",
+      "filter": "overdue",
+      "task": "t-earlier-today",
+      "shown": false
+    },
+    {
+      "id": "due/overdue/t-earlier-today-done",
+      "filter": "overdue",
+      "task": "t-earlier-today-done",
+      "shown": false
+    },
+    {
+      "id": "due/overdue/t-later-today",
+      "filter": "overdue",
+      "task": "t-later-today",
+      "shown": false
+    },
+    {
       "id": "due/overdue/t-tomorrow",
       "filter": "overdue",
       "task": "t-tomorrow",
@@ -970,6 +988,174 @@
     {
       "id": "due/today/undated-done",
       "filter": "today",
+      "task": "undated-done",
+      "shown": false
+    },
+    {
+      "id": "due/tomorrow/ad-last-week",
+      "filter": "tomorrow",
+      "task": "ad-last-week",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/ad-yesterday",
+      "filter": "tomorrow",
+      "task": "ad-yesterday",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/ad-yesterday-done",
+      "filter": "tomorrow",
+      "task": "ad-yesterday-done",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/ad-today",
+      "filter": "tomorrow",
+      "task": "ad-today",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/ad-today-done",
+      "filter": "tomorrow",
+      "task": "ad-today-done",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/ad-tomorrow",
+      "filter": "tomorrow",
+      "task": "ad-tomorrow",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/ad-saturday",
+      "filter": "tomorrow",
+      "task": "ad-saturday",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/ad-sunday",
+      "filter": "tomorrow",
+      "task": "ad-sunday",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/ad-plus-7",
+      "filter": "tomorrow",
+      "task": "ad-plus-7",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/ad-plus-8",
+      "filter": "tomorrow",
+      "task": "ad-plus-8",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/ad-sep-30",
+      "filter": "tomorrow",
+      "task": "ad-sep-30",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/ad-oct-1",
+      "filter": "tomorrow",
+      "task": "ad-oct-1",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/ad-plus-30",
+      "filter": "tomorrow",
+      "task": "ad-plus-30",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/ad-plus-31",
+      "filter": "tomorrow",
+      "task": "ad-plus-31",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/t-yesterday-late",
+      "filter": "tomorrow",
+      "task": "t-yesterday-late",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/t-earlier-today",
+      "filter": "tomorrow",
+      "task": "t-earlier-today",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/t-earlier-today-done",
+      "filter": "tomorrow",
+      "task": "t-earlier-today-done",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/t-later-today",
+      "filter": "tomorrow",
+      "task": "t-later-today",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/t-tomorrow",
+      "filter": "tomorrow",
+      "task": "t-tomorrow",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/t-saturday-late",
+      "filter": "tomorrow",
+      "task": "t-saturday-late",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/t-sunday-early",
+      "filter": "tomorrow",
+      "task": "t-sunday-early",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/t-plus-7-late",
+      "filter": "tomorrow",
+      "task": "t-plus-7-late",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/t-plus-8",
+      "filter": "tomorrow",
+      "task": "t-plus-8",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/t-plus-30",
+      "filter": "tomorrow",
+      "task": "t-plus-30",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/t-plus-31",
+      "filter": "tomorrow",
+      "task": "t-plus-31",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/t-last-week-done",
+      "filter": "tomorrow",
+      "task": "t-last-week-done",
+      "shown": true
+    },
+    {
+      "id": "due/tomorrow/undated",
+      "filter": "tomorrow",
+      "task": "undated",
+      "shown": false
+    },
+    {
+      "id": "due/tomorrow/undated-done",
+      "filter": "tomorrow",
       "task": "undated-done",
       "shown": false
     },
@@ -1310,6 +1496,342 @@
       "shown": false
     },
     {
+      "id": "due/this_calendar_week/ad-last-week",
+      "filter": "this_calendar_week",
+      "task": "ad-last-week",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/ad-yesterday",
+      "filter": "this_calendar_week",
+      "task": "ad-yesterday",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/ad-yesterday-done",
+      "filter": "this_calendar_week",
+      "task": "ad-yesterday-done",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/ad-today",
+      "filter": "this_calendar_week",
+      "task": "ad-today",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/ad-today-done",
+      "filter": "this_calendar_week",
+      "task": "ad-today-done",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/ad-tomorrow",
+      "filter": "this_calendar_week",
+      "task": "ad-tomorrow",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/ad-saturday",
+      "filter": "this_calendar_week",
+      "task": "ad-saturday",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/ad-sunday",
+      "filter": "this_calendar_week",
+      "task": "ad-sunday",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/ad-plus-7",
+      "filter": "this_calendar_week",
+      "task": "ad-plus-7",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/ad-plus-8",
+      "filter": "this_calendar_week",
+      "task": "ad-plus-8",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/ad-sep-30",
+      "filter": "this_calendar_week",
+      "task": "ad-sep-30",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/ad-oct-1",
+      "filter": "this_calendar_week",
+      "task": "ad-oct-1",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/ad-plus-30",
+      "filter": "this_calendar_week",
+      "task": "ad-plus-30",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/ad-plus-31",
+      "filter": "this_calendar_week",
+      "task": "ad-plus-31",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/t-yesterday-late",
+      "filter": "this_calendar_week",
+      "task": "t-yesterday-late",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/t-earlier-today",
+      "filter": "this_calendar_week",
+      "task": "t-earlier-today",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/t-earlier-today-done",
+      "filter": "this_calendar_week",
+      "task": "t-earlier-today-done",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/t-later-today",
+      "filter": "this_calendar_week",
+      "task": "t-later-today",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/t-tomorrow",
+      "filter": "this_calendar_week",
+      "task": "t-tomorrow",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/t-saturday-late",
+      "filter": "this_calendar_week",
+      "task": "t-saturday-late",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/t-sunday-early",
+      "filter": "this_calendar_week",
+      "task": "t-sunday-early",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/t-plus-7-late",
+      "filter": "this_calendar_week",
+      "task": "t-plus-7-late",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/t-plus-8",
+      "filter": "this_calendar_week",
+      "task": "t-plus-8",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/t-plus-30",
+      "filter": "this_calendar_week",
+      "task": "t-plus-30",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/t-plus-31",
+      "filter": "this_calendar_week",
+      "task": "t-plus-31",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/t-last-week-done",
+      "filter": "this_calendar_week",
+      "task": "t-last-week-done",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_week/undated",
+      "filter": "this_calendar_week",
+      "task": "undated",
+      "shown": false
+    },
+    {
+      "id": "due/this_calendar_week/undated-done",
+      "filter": "this_calendar_week",
+      "task": "undated-done",
+      "shown": false
+    },
+    {
+      "id": "due/this_calendar_month/ad-last-week",
+      "filter": "this_calendar_month",
+      "task": "ad-last-week",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/ad-yesterday",
+      "filter": "this_calendar_month",
+      "task": "ad-yesterday",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/ad-yesterday-done",
+      "filter": "this_calendar_month",
+      "task": "ad-yesterday-done",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/ad-today",
+      "filter": "this_calendar_month",
+      "task": "ad-today",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/ad-today-done",
+      "filter": "this_calendar_month",
+      "task": "ad-today-done",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/ad-tomorrow",
+      "filter": "this_calendar_month",
+      "task": "ad-tomorrow",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/ad-saturday",
+      "filter": "this_calendar_month",
+      "task": "ad-saturday",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/ad-sunday",
+      "filter": "this_calendar_month",
+      "task": "ad-sunday",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/ad-plus-7",
+      "filter": "this_calendar_month",
+      "task": "ad-plus-7",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/ad-plus-8",
+      "filter": "this_calendar_month",
+      "task": "ad-plus-8",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/ad-sep-30",
+      "filter": "this_calendar_month",
+      "task": "ad-sep-30",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/ad-oct-1",
+      "filter": "this_calendar_month",
+      "task": "ad-oct-1",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/ad-plus-30",
+      "filter": "this_calendar_month",
+      "task": "ad-plus-30",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/ad-plus-31",
+      "filter": "this_calendar_month",
+      "task": "ad-plus-31",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/t-yesterday-late",
+      "filter": "this_calendar_month",
+      "task": "t-yesterday-late",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/t-earlier-today",
+      "filter": "this_calendar_month",
+      "task": "t-earlier-today",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/t-earlier-today-done",
+      "filter": "this_calendar_month",
+      "task": "t-earlier-today-done",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/t-later-today",
+      "filter": "this_calendar_month",
+      "task": "t-later-today",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/t-tomorrow",
+      "filter": "this_calendar_month",
+      "task": "t-tomorrow",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/t-saturday-late",
+      "filter": "this_calendar_month",
+      "task": "t-saturday-late",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/t-sunday-early",
+      "filter": "this_calendar_month",
+      "task": "t-sunday-early",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/t-plus-7-late",
+      "filter": "this_calendar_month",
+      "task": "t-plus-7-late",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/t-plus-8",
+      "filter": "this_calendar_month",
+      "task": "t-plus-8",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/t-plus-30",
+      "filter": "this_calendar_month",
+      "task": "t-plus-30",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/t-plus-31",
+      "filter": "this_calendar_month",
+      "task": "t-plus-31",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/t-last-week-done",
+      "filter": "this_calendar_month",
+      "task": "t-last-week-done",
+      "shown": true
+    },
+    {
+      "id": "due/this_calendar_month/undated",
+      "filter": "this_calendar_month",
+      "task": "undated",
+      "shown": false
+    },
+    {
+      "id": "due/this_calendar_month/undated-done",
+      "filter": "this_calendar_month",
+      "task": "undated-done",
+      "shown": false
+    },
+    {
       "id": "due/no_date/ad-last-week",
       "filter": "no_date",
       "task": "ad-last-week",
@@ -1632,6 +2154,18 @@
       "filter": "someday",
       "task": "t-last-week-done",
       "shown": true
+    },
+    {
+      "id": "due/someday/undated",
+      "filter": "someday",
+      "task": "undated",
+      "shown": false
+    },
+    {
+      "id": "due/someday/undated-done",
+      "filter": "someday",
+      "task": "undated-done",
+      "shown": false
     },
     {
       "id": "completion/2026-09-09/none/all/open",
@@ -3866,6 +4400,22 @@
       "shown": false
     },
     {
+      "id": "completion/2026-09-09/since-garbage/default/done-sep-30-noon",
+      "now": "2026-09-09T10:30:00.000Z",
+      "window": "since-garbage",
+      "mode": "default",
+      "task": "done-sep-30-noon",
+      "shown": true
+    },
+    {
+      "id": "completion/2026-09-09/since-garbage/default/done-oct-1-noon",
+      "now": "2026-09-09T10:30:00.000Z",
+      "window": "since-garbage",
+      "mode": "default",
+      "task": "done-oct-1-noon",
+      "shown": true
+    },
+    {
       "id": "completion/2026-09-09/since-garbage/default/done-feb-28-noon",
       "now": "2026-09-09T10:30:00.000Z",
       "window": "since-garbage",
@@ -4258,6 +4808,126 @@
       "shown": false
     },
     {
+      "id": "completion/2026-10-09/since-31st/default/open",
+      "now": "2026-10-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "open",
+      "shown": true
+    },
+    {
+      "id": "completion/2026-10-09/since-31st/default/done-1h-ago",
+      "now": "2026-10-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-1h-ago",
+      "shown": false
+    },
+    {
+      "id": "completion/2026-10-09/since-31st/default/done-23h-ago",
+      "now": "2026-10-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-23h-ago",
+      "shown": false
+    },
+    {
+      "id": "completion/2026-10-09/since-31st/default/done-25h-ago",
+      "now": "2026-10-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-25h-ago",
+      "shown": false
+    },
+    {
+      "id": "completion/2026-10-09/since-31st/default/done-sep-7-noon",
+      "now": "2026-10-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-sep-7-noon",
+      "shown": false
+    },
+    {
+      "id": "completion/2026-10-09/since-31st/default/done-sep-6-noon",
+      "now": "2026-10-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-sep-6-noon",
+      "shown": false
+    },
+    {
+      "id": "completion/2026-10-09/since-31st/default/done-sep-1-start",
+      "now": "2026-10-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-sep-1-start",
+      "shown": false
+    },
+    {
+      "id": "completion/2026-10-09/since-31st/default/done-aug-31-noon",
+      "now": "2026-10-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-aug-31-noon",
+      "shown": false
+    },
+    {
+      "id": "completion/2026-10-09/since-31st/default/done-aug-9-noon",
+      "now": "2026-10-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-aug-9-noon",
+      "shown": false
+    },
+    {
+      "id": "completion/2026-10-09/since-31st/default/done-sep-30-noon",
+      "now": "2026-10-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-sep-30-noon",
+      "shown": true
+    },
+    {
+      "id": "completion/2026-10-09/since-31st/default/done-oct-1-noon",
+      "now": "2026-10-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-oct-1-noon",
+      "shown": true
+    },
+    {
+      "id": "completion/2026-10-09/since-31st/default/done-feb-28-noon",
+      "now": "2026-10-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-feb-28-noon",
+      "shown": false
+    },
+    {
+      "id": "completion/2026-10-09/since-31st/default/done-mar-2-noon",
+      "now": "2026-10-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-mar-2-noon",
+      "shown": false
+    },
+    {
+      "id": "completion/2026-10-09/since-31st/default/done-only-updated-1h-ago",
+      "now": "2026-10-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-only-updated-1h-ago",
+      "shown": false
+    },
+    {
+      "id": "completion/2026-10-09/since-31st/default/done-no-stamp",
+      "now": "2026-10-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-no-stamp",
+      "shown": false
+    },
+    {
       "id": "completion/2026-03-09/since-1st/default/open",
       "now": "2026-03-09T10:30:00.000Z",
       "window": "since-1st",
@@ -4618,6 +5288,126 @@
       "shown": false
     },
     {
+      "id": "completion/2026-03-09/since-31st/default/open",
+      "now": "2026-03-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "open",
+      "shown": true
+    },
+    {
+      "id": "completion/2026-03-09/since-31st/default/done-1h-ago",
+      "now": "2026-03-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-1h-ago",
+      "shown": true
+    },
+    {
+      "id": "completion/2026-03-09/since-31st/default/done-23h-ago",
+      "now": "2026-03-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-23h-ago",
+      "shown": true
+    },
+    {
+      "id": "completion/2026-03-09/since-31st/default/done-25h-ago",
+      "now": "2026-03-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-25h-ago",
+      "shown": true
+    },
+    {
+      "id": "completion/2026-03-09/since-31st/default/done-sep-7-noon",
+      "now": "2026-03-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-sep-7-noon",
+      "shown": true
+    },
+    {
+      "id": "completion/2026-03-09/since-31st/default/done-sep-6-noon",
+      "now": "2026-03-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-sep-6-noon",
+      "shown": true
+    },
+    {
+      "id": "completion/2026-03-09/since-31st/default/done-sep-1-start",
+      "now": "2026-03-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-sep-1-start",
+      "shown": true
+    },
+    {
+      "id": "completion/2026-03-09/since-31st/default/done-aug-31-noon",
+      "now": "2026-03-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-aug-31-noon",
+      "shown": true
+    },
+    {
+      "id": "completion/2026-03-09/since-31st/default/done-aug-9-noon",
+      "now": "2026-03-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-aug-9-noon",
+      "shown": true
+    },
+    {
+      "id": "completion/2026-03-09/since-31st/default/done-sep-30-noon",
+      "now": "2026-03-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-sep-30-noon",
+      "shown": true
+    },
+    {
+      "id": "completion/2026-03-09/since-31st/default/done-oct-1-noon",
+      "now": "2026-03-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-oct-1-noon",
+      "shown": true
+    },
+    {
+      "id": "completion/2026-03-09/since-31st/default/done-feb-28-noon",
+      "now": "2026-03-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-feb-28-noon",
+      "shown": true
+    },
+    {
+      "id": "completion/2026-03-09/since-31st/default/done-mar-2-noon",
+      "now": "2026-03-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-mar-2-noon",
+      "shown": true
+    },
+    {
+      "id": "completion/2026-03-09/since-31st/default/done-only-updated-1h-ago",
+      "now": "2026-03-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-only-updated-1h-ago",
+      "shown": true
+    },
+    {
+      "id": "completion/2026-03-09/since-31st/default/done-no-stamp",
+      "now": "2026-03-09T10:30:00.000Z",
+      "window": "since-31st",
+      "mode": "default",
+      "task": "done-no-stamp",
+      "shown": false
+    },
+    {
       "id": "sort/null",
       "sortBy": null,
       "manualOrder": null,
@@ -4650,6 +5440,22 @@
       ]
     },
     {
+      "id": "sort/priority",
+      "sortBy": "priority",
+      "manualOrder": null,
+      "shown": [
+        "s3",
+        "s2",
+        "s5",
+        "s4",
+        "s9",
+        "s1",
+        "s6",
+        "s8",
+        "s7"
+      ]
+    },
+    {
       "id": "sort/when",
       "sortBy": "when",
       "manualOrder": null,
@@ -4659,6 +5465,54 @@
         "s9",
         "s2",
         "s5",
+        "s1",
+        "s6",
+        "s8",
+        "s7"
+      ]
+    },
+    {
+      "id": "sort/assignee",
+      "sortBy": "assignee",
+      "manualOrder": null,
+      "shown": [
+        "s3",
+        "s2",
+        "s5",
+        "s4",
+        "s9",
+        "s1",
+        "s6",
+        "s8",
+        "s7"
+      ]
+    },
+    {
+      "id": "sort/completed",
+      "sortBy": "completed",
+      "manualOrder": null,
+      "shown": [
+        "s3",
+        "s2",
+        "s5",
+        "s4",
+        "s9",
+        "s1",
+        "s6",
+        "s8",
+        "s7"
+      ]
+    },
+    {
+      "id": "sort/incomplete",
+      "sortBy": "incomplete",
+      "manualOrder": null,
+      "shown": [
+        "s3",
+        "s2",
+        "s5",
+        "s4",
+        "s9",
         "s1",
         "s6",
         "s8",
@@ -4708,6 +5562,22 @@
       ]
     },
     {
+      "id": "sort/createdAt",
+      "sortBy": "createdAt",
+      "manualOrder": null,
+      "shown": [
+        "s9",
+        "s8",
+        "s7",
+        "s6",
+        "s5",
+        "s4",
+        "s3",
+        "s2",
+        "s1"
+      ]
+    },
+    {
       "id": "sort/somethingLater",
       "sortBy": "somethingLater",
       "manualOrder": null,
@@ -4724,1024 +5594,6 @@
       ]
     }
   ],
-  "disputed": [
-    {
-      "entry": "D34",
-      "id": "due/overdue/t-earlier-today",
-      "filter": "overdue",
-      "task": "t-earlier-today",
-      "shown": true
-    },
-    {
-      "entry": "D34",
-      "id": "due/overdue/t-earlier-today-done",
-      "filter": "overdue",
-      "task": "t-earlier-today-done",
-      "shown": false
-    },
-    {
-      "entry": "D34",
-      "id": "due/overdue/t-later-today",
-      "filter": "overdue",
-      "task": "t-later-today",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/ad-last-week",
-      "filter": "tomorrow",
-      "task": "ad-last-week",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/ad-yesterday",
-      "filter": "tomorrow",
-      "task": "ad-yesterday",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/ad-yesterday-done",
-      "filter": "tomorrow",
-      "task": "ad-yesterday-done",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/ad-today",
-      "filter": "tomorrow",
-      "task": "ad-today",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/ad-today-done",
-      "filter": "tomorrow",
-      "task": "ad-today-done",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/ad-tomorrow",
-      "filter": "tomorrow",
-      "task": "ad-tomorrow",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/ad-saturday",
-      "filter": "tomorrow",
-      "task": "ad-saturday",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/ad-sunday",
-      "filter": "tomorrow",
-      "task": "ad-sunday",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/ad-plus-7",
-      "filter": "tomorrow",
-      "task": "ad-plus-7",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/ad-plus-8",
-      "filter": "tomorrow",
-      "task": "ad-plus-8",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/ad-sep-30",
-      "filter": "tomorrow",
-      "task": "ad-sep-30",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/ad-oct-1",
-      "filter": "tomorrow",
-      "task": "ad-oct-1",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/ad-plus-30",
-      "filter": "tomorrow",
-      "task": "ad-plus-30",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/ad-plus-31",
-      "filter": "tomorrow",
-      "task": "ad-plus-31",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/t-yesterday-late",
-      "filter": "tomorrow",
-      "task": "t-yesterday-late",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/t-earlier-today",
-      "filter": "tomorrow",
-      "task": "t-earlier-today",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/t-earlier-today-done",
-      "filter": "tomorrow",
-      "task": "t-earlier-today-done",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/t-later-today",
-      "filter": "tomorrow",
-      "task": "t-later-today",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/t-tomorrow",
-      "filter": "tomorrow",
-      "task": "t-tomorrow",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/t-saturday-late",
-      "filter": "tomorrow",
-      "task": "t-saturday-late",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/t-sunday-early",
-      "filter": "tomorrow",
-      "task": "t-sunday-early",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/t-plus-7-late",
-      "filter": "tomorrow",
-      "task": "t-plus-7-late",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/t-plus-8",
-      "filter": "tomorrow",
-      "task": "t-plus-8",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/t-plus-30",
-      "filter": "tomorrow",
-      "task": "t-plus-30",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/t-plus-31",
-      "filter": "tomorrow",
-      "task": "t-plus-31",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/t-last-week-done",
-      "filter": "tomorrow",
-      "task": "t-last-week-done",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/undated",
-      "filter": "tomorrow",
-      "task": "undated",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/tomorrow/undated-done",
-      "filter": "tomorrow",
-      "task": "undated-done",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/ad-last-week",
-      "filter": "this_calendar_week",
-      "task": "ad-last-week",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/ad-yesterday",
-      "filter": "this_calendar_week",
-      "task": "ad-yesterday",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/ad-yesterday-done",
-      "filter": "this_calendar_week",
-      "task": "ad-yesterday-done",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/ad-today",
-      "filter": "this_calendar_week",
-      "task": "ad-today",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/ad-today-done",
-      "filter": "this_calendar_week",
-      "task": "ad-today-done",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/ad-tomorrow",
-      "filter": "this_calendar_week",
-      "task": "ad-tomorrow",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/ad-saturday",
-      "filter": "this_calendar_week",
-      "task": "ad-saturday",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/ad-sunday",
-      "filter": "this_calendar_week",
-      "task": "ad-sunday",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/ad-plus-7",
-      "filter": "this_calendar_week",
-      "task": "ad-plus-7",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/ad-plus-8",
-      "filter": "this_calendar_week",
-      "task": "ad-plus-8",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/ad-sep-30",
-      "filter": "this_calendar_week",
-      "task": "ad-sep-30",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/ad-oct-1",
-      "filter": "this_calendar_week",
-      "task": "ad-oct-1",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/ad-plus-30",
-      "filter": "this_calendar_week",
-      "task": "ad-plus-30",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/ad-plus-31",
-      "filter": "this_calendar_week",
-      "task": "ad-plus-31",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/t-yesterday-late",
-      "filter": "this_calendar_week",
-      "task": "t-yesterday-late",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/t-earlier-today",
-      "filter": "this_calendar_week",
-      "task": "t-earlier-today",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/t-earlier-today-done",
-      "filter": "this_calendar_week",
-      "task": "t-earlier-today-done",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/t-later-today",
-      "filter": "this_calendar_week",
-      "task": "t-later-today",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/t-tomorrow",
-      "filter": "this_calendar_week",
-      "task": "t-tomorrow",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/t-saturday-late",
-      "filter": "this_calendar_week",
-      "task": "t-saturday-late",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/t-sunday-early",
-      "filter": "this_calendar_week",
-      "task": "t-sunday-early",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/t-plus-7-late",
-      "filter": "this_calendar_week",
-      "task": "t-plus-7-late",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/t-plus-8",
-      "filter": "this_calendar_week",
-      "task": "t-plus-8",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/t-plus-30",
-      "filter": "this_calendar_week",
-      "task": "t-plus-30",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/t-plus-31",
-      "filter": "this_calendar_week",
-      "task": "t-plus-31",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/t-last-week-done",
-      "filter": "this_calendar_week",
-      "task": "t-last-week-done",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/undated",
-      "filter": "this_calendar_week",
-      "task": "undated",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_week/undated-done",
-      "filter": "this_calendar_week",
-      "task": "undated-done",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/ad-last-week",
-      "filter": "this_calendar_month",
-      "task": "ad-last-week",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/ad-yesterday",
-      "filter": "this_calendar_month",
-      "task": "ad-yesterday",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/ad-yesterday-done",
-      "filter": "this_calendar_month",
-      "task": "ad-yesterday-done",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/ad-today",
-      "filter": "this_calendar_month",
-      "task": "ad-today",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/ad-today-done",
-      "filter": "this_calendar_month",
-      "task": "ad-today-done",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/ad-tomorrow",
-      "filter": "this_calendar_month",
-      "task": "ad-tomorrow",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/ad-saturday",
-      "filter": "this_calendar_month",
-      "task": "ad-saturday",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/ad-sunday",
-      "filter": "this_calendar_month",
-      "task": "ad-sunday",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/ad-plus-7",
-      "filter": "this_calendar_month",
-      "task": "ad-plus-7",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/ad-plus-8",
-      "filter": "this_calendar_month",
-      "task": "ad-plus-8",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/ad-sep-30",
-      "filter": "this_calendar_month",
-      "task": "ad-sep-30",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/ad-oct-1",
-      "filter": "this_calendar_month",
-      "task": "ad-oct-1",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/ad-plus-30",
-      "filter": "this_calendar_month",
-      "task": "ad-plus-30",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/ad-plus-31",
-      "filter": "this_calendar_month",
-      "task": "ad-plus-31",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/t-yesterday-late",
-      "filter": "this_calendar_month",
-      "task": "t-yesterday-late",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/t-earlier-today",
-      "filter": "this_calendar_month",
-      "task": "t-earlier-today",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/t-earlier-today-done",
-      "filter": "this_calendar_month",
-      "task": "t-earlier-today-done",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/t-later-today",
-      "filter": "this_calendar_month",
-      "task": "t-later-today",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/t-tomorrow",
-      "filter": "this_calendar_month",
-      "task": "t-tomorrow",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/t-saturday-late",
-      "filter": "this_calendar_month",
-      "task": "t-saturday-late",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/t-sunday-early",
-      "filter": "this_calendar_month",
-      "task": "t-sunday-early",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/t-plus-7-late",
-      "filter": "this_calendar_month",
-      "task": "t-plus-7-late",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/t-plus-8",
-      "filter": "this_calendar_month",
-      "task": "t-plus-8",
-      "shown": true
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/t-plus-30",
-      "filter": "this_calendar_month",
-      "task": "t-plus-30",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/t-plus-31",
-      "filter": "this_calendar_month",
-      "task": "t-plus-31",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/t-last-week-done",
-      "filter": "this_calendar_month",
-      "task": "t-last-week-done",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/undated",
-      "filter": "this_calendar_month",
-      "task": "undated",
-      "shown": false
-    },
-    {
-      "entry": "D35",
-      "id": "due/this_calendar_month/undated-done",
-      "filter": "this_calendar_month",
-      "task": "undated-done",
-      "shown": false
-    },
-    {
-      "entry": "D7",
-      "id": "due/someday/undated",
-      "filter": "someday",
-      "task": "undated",
-      "shown": true
-    },
-    {
-      "entry": "D7",
-      "id": "due/someday/undated-done",
-      "filter": "someday",
-      "task": "undated-done",
-      "shown": true
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-09-09/since-garbage/default/done-sep-30-noon",
-      "now": "2026-09-09T10:30:00.000Z",
-      "window": "since-garbage",
-      "mode": "default",
-      "task": "done-sep-30-noon",
-      "shown": false
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-09-09/since-garbage/default/done-oct-1-noon",
-      "now": "2026-09-09T10:30:00.000Z",
-      "window": "since-garbage",
-      "mode": "default",
-      "task": "done-oct-1-noon",
-      "shown": false
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-10-09/since-31st/default/open",
-      "now": "2026-10-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "open",
-      "shown": true
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-10-09/since-31st/default/done-1h-ago",
-      "now": "2026-10-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-1h-ago",
-      "shown": false
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-10-09/since-31st/default/done-23h-ago",
-      "now": "2026-10-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-23h-ago",
-      "shown": false
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-10-09/since-31st/default/done-25h-ago",
-      "now": "2026-10-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-25h-ago",
-      "shown": false
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-10-09/since-31st/default/done-sep-7-noon",
-      "now": "2026-10-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-sep-7-noon",
-      "shown": false
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-10-09/since-31st/default/done-sep-6-noon",
-      "now": "2026-10-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-sep-6-noon",
-      "shown": false
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-10-09/since-31st/default/done-sep-1-start",
-      "now": "2026-10-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-sep-1-start",
-      "shown": false
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-10-09/since-31st/default/done-aug-31-noon",
-      "now": "2026-10-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-aug-31-noon",
-      "shown": false
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-10-09/since-31st/default/done-aug-9-noon",
-      "now": "2026-10-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-aug-9-noon",
-      "shown": false
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-10-09/since-31st/default/done-sep-30-noon",
-      "now": "2026-10-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-sep-30-noon",
-      "shown": false
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-10-09/since-31st/default/done-oct-1-noon",
-      "now": "2026-10-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-oct-1-noon",
-      "shown": true
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-10-09/since-31st/default/done-feb-28-noon",
-      "now": "2026-10-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-feb-28-noon",
-      "shown": false
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-10-09/since-31st/default/done-mar-2-noon",
-      "now": "2026-10-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-mar-2-noon",
-      "shown": false
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-10-09/since-31st/default/done-only-updated-1h-ago",
-      "now": "2026-10-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-only-updated-1h-ago",
-      "shown": false
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-10-09/since-31st/default/done-no-stamp",
-      "now": "2026-10-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-no-stamp",
-      "shown": false
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-03-09/since-31st/default/open",
-      "now": "2026-03-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "open",
-      "shown": true
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-03-09/since-31st/default/done-1h-ago",
-      "now": "2026-03-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-1h-ago",
-      "shown": true
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-03-09/since-31st/default/done-23h-ago",
-      "now": "2026-03-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-23h-ago",
-      "shown": true
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-03-09/since-31st/default/done-25h-ago",
-      "now": "2026-03-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-25h-ago",
-      "shown": true
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-03-09/since-31st/default/done-sep-7-noon",
-      "now": "2026-03-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-sep-7-noon",
-      "shown": true
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-03-09/since-31st/default/done-sep-6-noon",
-      "now": "2026-03-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-sep-6-noon",
-      "shown": true
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-03-09/since-31st/default/done-sep-1-start",
-      "now": "2026-03-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-sep-1-start",
-      "shown": true
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-03-09/since-31st/default/done-aug-31-noon",
-      "now": "2026-03-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-aug-31-noon",
-      "shown": true
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-03-09/since-31st/default/done-aug-9-noon",
-      "now": "2026-03-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-aug-9-noon",
-      "shown": true
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-03-09/since-31st/default/done-sep-30-noon",
-      "now": "2026-03-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-sep-30-noon",
-      "shown": true
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-03-09/since-31st/default/done-oct-1-noon",
-      "now": "2026-03-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-oct-1-noon",
-      "shown": true
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-03-09/since-31st/default/done-feb-28-noon",
-      "now": "2026-03-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-feb-28-noon",
-      "shown": false
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-03-09/since-31st/default/done-mar-2-noon",
-      "now": "2026-03-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-mar-2-noon",
-      "shown": false
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-03-09/since-31st/default/done-only-updated-1h-ago",
-      "now": "2026-03-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-only-updated-1h-ago",
-      "shown": true
-    },
-    {
-      "entry": "D36",
-      "id": "completion/2026-03-09/since-31st/default/done-no-stamp",
-      "now": "2026-03-09T10:30:00.000Z",
-      "window": "since-31st",
-      "mode": "default",
-      "task": "done-no-stamp",
-      "shown": false
-    },
-    {
-      "entry": "D33",
-      "id": "sort/priority",
-      "sortBy": "priority",
-      "manualOrder": null,
-      "shown": [
-        "s2",
-        "s3",
-        "s6",
-        "s5",
-        "s4",
-        "s8",
-        "s1",
-        "s7",
-        "s9"
-      ]
-    },
-    {
-      "entry": "D33",
-      "id": "sort/assignee",
-      "sortBy": "assignee",
-      "manualOrder": null,
-      "shown": [
-        "s2",
-        "s9",
-        "s4",
-        "s3",
-        "s5",
-        "s6",
-        "s7",
-        "s8",
-        "s1"
-      ]
-    },
-    {
-      "entry": "D33",
-      "id": "sort/completed",
-      "sortBy": "completed",
-      "manualOrder": null,
-      "shown": [
-        "s1",
-        "s2",
-        "s3",
-        "s4",
-        "s5",
-        "s9",
-        "s6",
-        "s7",
-        "s8"
-      ]
-    },
-    {
-      "entry": "D33",
-      "id": "sort/incomplete",
-      "sortBy": "incomplete",
-      "manualOrder": null,
-      "shown": [
-        "s6",
-        "s7",
-        "s8",
-        "s1",
-        "s2",
-        "s3",
-        "s4",
-        "s5",
-        "s9"
-      ]
-    },
-    {
-      "entry": "D33",
-      "id": "sort/createdAt",
-      "sortBy": "createdAt",
-      "manualOrder": null,
-      "shown": [
-        "s3",
-        "s2",
-        "s5",
-        "s4",
-        "s9",
-        "s1",
-        "s6",
-        "s8",
-        "s7"
-      ]
-    }
-  ],
-  "disputes": [
-    {
-      "entry": "D7",
-      "why": "an unrecognised due-date filter: web keeps undated tasks, iOS drops them"
-    },
-    {
-      "entry": "D34",
-      "why": "overdue for a timed task: web compares instants, iOS compares days"
-    },
-    {
-      "entry": "D35",
-      "why": "tomorrow / this calendar week / this calendar month: windows web has and iOS does not read"
-    },
-    {
-      "entry": "D36",
-      "why": "recently-completed window edges: \"since the Nth\" when last month has no Nth (web rolls into this month, iOS clamps), and an unreadable since-date (web hides every completion, iOS counts from now)"
-    },
-    {
-      "entry": "D33",
-      "why": "sort orders: iOS sinks completed tasks under priority, has no assignee/completed/incomplete orders, and puts createdAt newest first (\"when\" agreed in AWTD-1325: dueDateTime, as iOS)"
-    }
-  ]
+  "disputed": [],
+  "disputes": []
 }

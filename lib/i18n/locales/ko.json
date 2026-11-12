@@ -346,6 +346,7 @@
       "makeCopyOnly": "복사 전용으로 전환",
       "makeCollaborative": "공동 작업으로 전환",
       "leaveList": "목록 나가기",
+      "leaveConfirm": "\"{name}\"에서 나가시겠습니까? 소유자나 관리자만 다시 추가할 수 있습니다.",
       "aiCodingAgents": "AI 코딩 에이전트",
       "aiAgents": "AI 에이전트",
       "agentForCoding": "{name}: 코딩 및 작업 지원",
@@ -473,7 +474,8 @@
     "selectTime": "시간 선택",
     "twoHoursBefore": "2시간 전",
     "twoDaysBefore": "2일 전",
-    "noon": "정오"
+    "noon": "정오",
+    "dateAtTime": "{date} {time}"
   },
   "repeating": {
     "oneTimeOnly": "한 번만",
@@ -716,7 +718,20 @@
       "complete": "완료",
       "completedToast": "완료를 축하합니다!",
       "snooze1day": "1일 후 알림",
-      "snooze1week": "1주 후 알림"
+      "snooze1week": "1주 후 알림",
+      "snoozedTitle": "미리 알림을 미뤘습니다",
+      "snoozedDescription": "미리 알림이 {when} 다시 표시됩니다",
+      "snoozeFailedTitle": "미루기 실패",
+      "snoozeFailed": "미리 알림을 미루지 못했습니다",
+      "dismissedTitle": "미리 알림을 닫았습니다",
+      "dismissedDescription": "이 미리 알림은 다시 표시되지 않습니다",
+      "dismissFailedTitle": "닫기 실패",
+      "dismissFailed": "미리 알림을 닫지 못했습니다",
+      "completedTitle": "작업 완료",
+      "completedDescription": "작업을 완료로 표시하고 미리 알림을 닫았습니다",
+      "completeFailedTitle": "완료 실패",
+      "completeFailed": "작업을 완료하지 못했습니다",
+      "overdue": "기한 지남"
     }
   },
   "emptyState": {
@@ -842,7 +857,7 @@
         "getKey": "키 받기",
         "guideLink": "내 코딩 에이전트 연결 가이드",
         "needsSetup": "설정 필요",
-        "agentLoops": "Agent Loops",
+        "agentLoops": "에이전트 루프",
         "customAgents": "사용자 지정 에이전트",
         "off": "끄기",
         "transportLabel": "전송 방식:",
@@ -878,7 +893,7 @@
         "stepSchedule": "예약 또는 실행",
         "stepTest": "테스트",
         "hostedWorkflow": "계속 켜 둘 머신이 없나요? 대신 이 워크플로를 커밋하세요. 리포지토리 시크릿 두 개가 필요하며, {link}에서 만드는 방법을 안내합니다.",
-        "startHere": "Start here",
+        "startHere": "여기서 시작",
         "copilotInstall": "이 리포지토리 사용자 지정 에이전트를 한 번 커밋하세요. 그러면 Copilot CLI, Copilot 앱, GitHub.com, VS Code에서 동일한 대기열 동작을 선택할 수 있습니다.",
         "githubConnect": "이 에이전트의 클라이언트 자격 증명을 만들고 {clientId} 및 {clientSecret}이라는 이름의 리포지토리 Actions 시크릿으로 저장하세요. 실행할 때마다 자격 증명을 대기열 워커에 필요한 범위만 가진 1시간짜리 액세스 토큰으로 교환하므로, 장기 토큰이 리포지토리에 전달되지 않습니다.",
         "githubInstall": "이 워크플로는 대기열 게이트입니다. \"할 일이 있는가?\"에만 답하고 에이전트를 직접 실행하지 않습니다. 두 번째 작업을 기존의 지원되는 에이전트 작업(다른 탭의 Copilot CLI, Claude Code 또는 Codex 단계)으로 지정하세요.",
@@ -968,9 +983,9 @@
       "title": "API 액세스",
       "description": "OAuth 애플리케이션 및 API 통합",
       "clientGuide": {
-        "title": "Do you need a client here?",
-        "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
-        "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant.",
+        "title": "여기에서 클라이언트가 필요한가요?",
+        "dcrNote": "아니요 — 어시스턴트가 OAuth를 지원하면(VS Code / Copilot, ChatGPT 또는 다른 MCP 클라이언트) 호스팅된 MCP 엔드포인트에 연결할 때 자동으로 등록됩니다. 여기서 만들 것은 없습니다.",
+        "manualNote": "예 — 고정 시크릿을 쓰는 서버 연동(스크립트, stdio MCP 서버, client_credentials 그랜트를 쓰는 사용자 지정 헤더 구성)에만 아래에서 클라이언트를 만드세요.",
         "question": "여기서 클라이언트가 필요한가요?",
         "registersItself": "아니요 — 어시스턴트가 OAuth를 지원한다면(VS Code / Copilot, ChatGPT 또는 다른 MCP 클라이언트) 호스팅된 MCP 엔드포인트에 연결할 때 자동으로 등록됩니다. 여기서 만들 것은 없습니다.",
         "manualOnly": "예 — 정적 시크릿을 사용하는 서버 통합(스크립트, stdio MCP 서버 또는 client_credentials 권한 부여를 사용하는 사용자 지정 헤더 구성)에만 아래에서 클라이언트를 만드세요."
@@ -1078,15 +1093,15 @@
         }
       },
       "mcp": {
-        "badge": "Recommended",
-        "title": "Connect via MCP",
-        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
-        "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
+        "badge": "추천",
+        "title": "MCP로 연결",
+        "description": "Model Context Protocol은 AI 어시스턴트를 작업에 연결하는 가장 빠른 방법입니다",
+        "serverUrl": "MCP 서버 URL",
+        "note": "이 URL을 어시스턴트의 MCP 설정에 추가하세요. {appName}에 로그인하라는 안내가 나타납니다 — 복사할 키는 없습니다.",
         "vscodeTitle": "VS Code / GitHub Copilot",
-        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "vscodeNote": "프로젝트에 .vscode/mcp.json으로 저장한 다음 서버에서 Start를 누르세요",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+        "legacyNote": "SSE 전송만 지원하는 이전 클라이언트는 같은 URL에 GET 요청을 보내고 /mcp/messages로 POST 메시지를 보낼 수 있습니다."
       },
       "step1": {
         "badge": "단계 1",
@@ -1337,7 +1352,7 @@
       "theme": {
         "title": "테마",
         "description": "Ocean, 라이트, 다크 테마 중 선택",
-        "ocean": "Ocean",
+        "ocean": "오션",
         "oceanDesc": "상쾌한 시안 배경의 라이트 테마",
         "light": "라이트 모드",
         "lightDesc": "낮 시간 사용에 완벽한 밝고 깨끗한 인터페이스",
@@ -1436,15 +1451,15 @@
         }
       },
       "mcp": {
-        "badge": "Recommended",
-        "title": "Connect via MCP",
-        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
-        "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
+        "badge": "추천",
+        "title": "MCP로 연결",
+        "description": "Model Context Protocol은 AI 어시스턴트를 작업에 연결하는 가장 빠른 방법입니다",
+        "serverUrl": "MCP 서버 URL",
+        "note": "이 URL을 어시스턴트의 MCP 설정에 추가하세요. {appName}에 로그인하라는 안내가 나타납니다 — 복사할 키는 없습니다.",
         "vscodeTitle": "VS Code / GitHub Copilot",
-        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "vscodeNote": "프로젝트에 .vscode/mcp.json으로 저장한 다음 서버에서 Start를 누르세요",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages.",
+        "legacyNote": "SSE 전송만 지원하는 이전 클라이언트는 같은 URL에 GET 요청을 보내고 /mcp/messages로 POST 메시지를 보낼 수 있습니다.",
         "claudeNote": "명령 하나면 됩니다. 브라우저가 열려 액세스를 승인하고, 복사할 키는 없습니다",
         "copilotTitle": "GitHub Copilot CLI",
         "copilotNote": "Copilot CLI에서도 동일하게 명령 하나로 연결합니다",
@@ -1761,21 +1776,21 @@
     }
   },
   "projectMode": {
-    "boardViewLabel": "Board View",
-    "boardViewDescriptionEnabled": "This list has a Ready / Doing / Waiting status board. Inbox holds new tasks; Done is completed.",
-    "boardViewDescriptionAvailable": "Add Ready, Doing, and Waiting status columns. Inbox and Done are derived automatically.",
-    "boardViewDescriptionLocked": "Boards add Ready / Doing / Waiting columns for working through tasks with other people. Available on request.",
-    "requestAccess": "Request access",
-    "requestPending": "Requested",
-    "requestPendingHint": "Your request is with the team. We'll email you when it's turned on.",
-    "requestDialogTitle": "Request board access",
-    "requestDialogBody": "Boards are rolling out gradually. Tell us what you'd use one for and we'll get back to you.",
-    "requestDialogUseCaseLabel": "What would you use a board for? (optional)",
-    "requestDialogUseCasePlaceholder": "e.g. tracking sprints with two teammates",
-    "requestDialogSubmit": "Send request",
-    "requestDialogCancel": "Cancel",
-    "requestSubmitted": "Request sent",
-    "requestFailed": "Couldn't send your request. Please try again.",
+    "boardViewLabel": "보드 보기",
+    "boardViewDescriptionEnabled": "이 목록에는 준비됨 / 진행 중 / 대기 중 상태 보드가 있습니다. 받은 편지함에는 새 작업이, 완료에는 끝난 작업이 들어갑니다.",
+    "boardViewDescriptionAvailable": "준비됨, 진행 중, 대기 중 상태 열을 추가합니다. 받은 편지함과 완료는 자동으로 만들어집니다.",
+    "boardViewDescriptionLocked": "보드는 다른 사람과 함께 작업을 처리하기 위한 준비됨 / 진행 중 / 대기 중 열을 추가합니다. 요청 시 사용할 수 있습니다.",
+    "requestAccess": "액세스 요청",
+    "requestPending": "요청됨",
+    "requestPendingHint": "요청이 팀에 전달되었습니다. 사용할 수 있게 되면 이메일로 알려 드립니다.",
+    "requestDialogTitle": "보드 액세스 요청",
+    "requestDialogBody": "보드는 순차적으로 제공되고 있습니다. 어디에 쓰실지 알려 주시면 연락드리겠습니다.",
+    "requestDialogUseCaseLabel": "보드를 어디에 쓰시겠어요? (선택 사항)",
+    "requestDialogUseCasePlaceholder": "예: 팀원 두 명과 스프린트 관리",
+    "requestDialogSubmit": "요청 보내기",
+    "requestDialogCancel": "취소",
+    "requestSubmitted": "요청을 보냈습니다",
+    "requestFailed": "요청을 보내지 못했습니다. 다시 시도하세요.",
     "keyLabel": "작업 ID 접두사",
     "keyExample": "작업은 {example} 형식이 됩니다",
     "keyInvalid": "{min}~{max}자의 문자 또는 숫자, 문자로 시작",
@@ -1899,7 +1914,7 @@
       "connectGithubLink": "설정 → 연결 → GitHub",
       "runLoop": "이 목록에 대해 루프 실행",
       "loopDescription": "코딩 하니스가 일정에 따라 이 목록을 확인하고, 자신에게 지정되어 {ready}(으)로 표시된 작업을 처리합니다. 다른 보드의 작업은 건드리지 않습니다.",
-      "readyStatus": "Ready",
+      "readyStatus": "준비됨",
       "descriptionHint": "에이전트는 이 목록의 {description}을 작업 지침으로 읽습니다. 프로젝트 개요처럼 위에서 편집하세요.",
       "descriptionWord": "설명",
       "listId": "목록 ID",
@@ -2488,7 +2503,36 @@
     "connectIntro": "각 에이전트는 고유한 {appName} ID를 가지며, 자기 목록에서 {assignedAndReady} 작업만 맡습니다. 하나를 열어 단계를 붙여넣거나, 이 페이지의 링크를 에이전트에 붙여넣고 스스로 설정하라고 요청하세요.",
     "connectIntroAssignedAndReady": "자신에게 할당되고 Ready로 표시된",
     "workSetReady": "에이전트가 시작하기를 원할 때 상태를 {ready}로 설정하세요. 그것이 시작 버튼입니다.",
-    "teamIntro": "각 목록을 공유하세요(목록 설정 → {members} → 이메일로 초대). 모두가 같은 작업, 댓글, 에이전트 보고를 봅니다. 목록 소유자와 관리자는 모든 작업을 에이전트에게 맡길 수 있고, 멤버는 자신이 만든 작업을 맡길 수 있습니다. 멤버가 모든 작업을 맡길 수 있게 하려면 목록 설정 → {aiAgent}에서 {setting}을(를) 켜세요(에이전트는 소유자의 요금제로 실행됩니다)."
+    "teamIntro": "각 목록을 공유하세요(목록 설정 → {members} → 이메일로 초대). 모두가 같은 작업, 댓글, 에이전트 보고를 봅니다. 목록 소유자와 관리자는 모든 작업을 에이전트에게 맡길 수 있고, 멤버는 자신이 만든 작업을 맡길 수 있습니다. 멤버가 모든 작업을 맡길 수 있게 하려면 목록 설정 → {aiAgent}에서 {setting}을(를) 켜세요(에이전트는 소유자의 요금제로 실행됩니다).",
+    "agents": {
+      "muse": {
+        "role": "계획하고 분류합니다: 아이디어, 피드백, 버그를 명확한 Build 및 Fix 작업으로 만듭니다.",
+        "plan": "Muse Code가 포함된 Muse 계정",
+        "runs": "Muse Code가 MCP 서버에 연결해 30분마다 대기열을 확인합니다."
+      },
+      "claude": {
+        "role": "저장소에서 기능을 처음부터 끝까지 만들고 풀 리퀘스트를 엽니다.",
+        "plan": "Claude Max(Claude Code 포함)",
+        "runs": "Claude Code가 MCP 서버에 연결해 30분마다 대기열을 확인합니다."
+      },
+      "codex": {
+        "role": "테스트 우선으로 버그를 고치고, 리팩터링하고, 빠진 테스트를 추가합니다.",
+        "plan": "ChatGPT Pro 또는 Plus(Codex CLI 포함)",
+        "runs": "Codex CLI가 MCP 서버에 연결해 30분마다 대기열을 확인합니다."
+      },
+      "copilot": {
+        "role": "GitHub의 모든 풀 리퀘스트를 자동으로 리뷰하고 리뷰 작업을 처리합니다.",
+        "plan": "GitHub Copilot Pro+(팀은 Business)",
+        "runs": "GitHub가 모든 풀 리퀘스트에 Copilot 리뷰를 요청하고, Copilot CLI가 30분마다 Review 대기열을 확인합니다.",
+        "extraStep0": "GitHub 저장소에서 Settings → Rules → Rulesets → New branch ruleset을 열고 기본 브랜치를 대상으로 \"Automatically request Copilot code review\"를 켜세요. 그러면 어떤 에이전트가 연 풀 리퀘스트든 요청하지 않아도 Copilot이 리뷰합니다."
+      },
+      "githubActions": {
+        "role": "반복 자동화를 GitHub에서 일정에 따라 실행합니다 — 내 컴퓨터에서는 아무것도 실행되지 않습니다.",
+        "plan": "GitHub에 포함(공개 저장소와 대부분의 비공개 저장소에 무료 시간 제공)",
+        "runs": "예약된 워크플로가 30분마다 Automations 대기열에 작업을 묻고, 작업이 있을 때만 잡을 시작합니다.",
+        "extraStep0": "{app}에서 클라이언트 자격 증명을 만들고(설정 → AI 에이전트 → Copilot → GitHub Actions) 저장소 시크릿 {clientId}와 {clientSecret}로 저장하세요."
+      }
+    }
   },
   "richTextInput": {
     "placeholder": "메시지 입력...",
@@ -2508,7 +2552,11 @@
     "empty": "아직 메시지가 없습니다. 대화를 시작해 보세요!",
     "loadFailed": "채팅을 불러오지 못했습니다",
     "openChat": "채팅 열기",
-    "showTasks": "작업 보기"
+    "showTasks": "작업 보기",
+    "authorYou": "나",
+    "authorSystem": "시스템",
+    "authorUnknown": "알 수 없음",
+    "systemEventAt": "{when}: {content}"
   },
   "notificationBell": {
     "markAllRead": "모두 읽음으로 표시",
@@ -2548,5 +2596,57 @@
     "downloadFile": "파일 다운로드",
     "unknownFile": "알 수 없는 파일",
     "loadFailed": "파일을 불러오지 못했습니다"
+  },
+  "board": {
+    "status": {
+      "inbox": "받은 편지함",
+      "ready": "준비됨",
+      "doing": "진행 중",
+      "waiting": "대기 중",
+      "done": "완료"
+    },
+    "blurb": {
+      "inbox": "준비되면 \"준비됨\"으로 옮기세요!",
+      "ready": "이제 일할 시간!",
+      "doing": "작업이 진행 중입니다!",
+      "waiting": "상황이 맞을 때까지 일시 중지.",
+      "done": "완료 — 축하합니다!"
+    }
+  },
+  "passkeyErrors": {
+    "notSupported": "이 기기는 패스키를 지원하지 않습니다",
+    "optionsFailed": "패스키 요청을 시작하지 못했습니다. 다시 시도하세요.",
+    "registrationFailed": "패스키 등록에 실패했습니다",
+    "authenticationFailed": "패스키 로그인에 실패했습니다",
+    "defaultName": "내 패스키"
+  },
+  "oauthScopes": {
+    "tasks_read": "작업 읽기",
+    "tasks_write": "작업 만들기 및 수정",
+    "tasks_delete": "작업 삭제",
+    "lists_read": "목록 읽기",
+    "lists_write": "목록 만들기 및 수정",
+    "lists_configure": "목록을 만들고 이름, 지침, 기본 담당자, 색상 편집",
+    "lists_delete": "목록 삭제",
+    "lists_manage_members": "목록 구성원 관리",
+    "projects_read": "프로젝트(상태 보드) 읽기",
+    "projects_write": "프로젝트(상태 보드) 만들기 및 수정",
+    "projects_delete": "프로젝트(상태 보드) 삭제",
+    "comments_read": "댓글 읽기",
+    "comments_write": "댓글 작성",
+    "comments_delete": "댓글 삭제",
+    "chat_read": "채팅 메시지 읽기",
+    "chat_write": "채팅 메시지 보내기",
+    "user_read": "사용자 프로필 및 설정 읽기",
+    "user_write": "사용자 설정 수정",
+    "attachments_read": "첨부 파일 읽기",
+    "attachments_write": "첨부 파일 업로드",
+    "attachments_delete": "첨부 파일 삭제",
+    "contacts_read": "업로드한 연락처 읽기",
+    "contacts_write": "연락처 업로드 및 관리",
+    "public_read": "공개 목록 읽기",
+    "public_write": "공개 목록 만들기 및 관리",
+    "sse_connect": "SSE 이벤트 스트림에 연결",
+    "all": "전체 액세스(내부 전용 — 세션 기반 인증에 부여)"
   }
 }

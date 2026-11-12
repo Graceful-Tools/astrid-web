@@ -9,7 +9,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { useTradeoffGridViewer } from '@/components/shared/TradeoffGridViewer'
 import type { IdentifierLinkContext } from '@/lib/task-identifier-links'
 import { FileText } from 'lucide-react'
-import { format } from 'date-fns'
+import { formatDateAtTime } from '@/lib/i18n/date-format'
 
 export interface MessageBubbleAuthor {
   id: string
@@ -63,10 +63,14 @@ function getInitial(author?: MessageBubbleAuthor | null): string {
   return display.charAt(0).toUpperCase()
 }
 
-function getDisplayName(author?: MessageBubbleAuthor | null, isOwnMessage?: boolean): string {
-  if (isOwnMessage) return 'You'
-  if (!author) return 'System'
-  return author.name || author.email || 'Unknown'
+function getDisplayName(
+  t: (key: string) => string,
+  author?: MessageBubbleAuthor | null,
+  isOwnMessage?: boolean,
+): string {
+  if (isOwnMessage) return t('chat.authorYou')
+  if (!author) return t('chat.authorSystem')
+  return author.name || author.email || t('chat.authorUnknown')
 }
 
 /**
@@ -98,7 +102,7 @@ export const MessageBubble = React.memo(function MessageBubble({
   actions,
   onClick,
 }: MessageBubbleProps) {
-  const { t } = useTranslations()
+  const { t, locale } = useTranslations()
   const gridViewer = useTradeoffGridViewer()
   const timestamp = createdAt instanceof Date ? createdAt : new Date(createdAt)
 
@@ -106,7 +110,7 @@ export const MessageBubble = React.memo(function MessageBubble({
   if (isSystem) {
     return (
       <div className="text-xs theme-text-muted text-center py-1">
-        On {format(timestamp, "MMM d 'at' h:mm a")}, {content}
+        {t('chat.systemEventAt', { when: formatDateAtTime(timestamp, locale, t), content: content ?? '' })}
       </div>
     )
   }
@@ -196,9 +200,9 @@ export const MessageBubble = React.memo(function MessageBubble({
 
       {/* Meta: "Author · time" below bubble */}
       <div className={`chat-bubble-meta theme-text-muted ${isOwnMessage ? 'pr-10' : 'pl-10'}`}>
-        <span>{getDisplayName(author, isOwnMessage)}</span>
+        <span>{getDisplayName(t, author, isOwnMessage)}</span>
         <span>·</span>
-        <span>{format(timestamp, "MMM d 'at' h:mm a")}</span>
+        <span>{formatDateAtTime(timestamp, locale, t)}</span>
       </div>
 
       {/* Actions slot */}

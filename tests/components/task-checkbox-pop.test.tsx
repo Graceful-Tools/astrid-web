@@ -24,7 +24,7 @@ describe('completing a task', () => {
 
     fireEvent.click(screen.getByRole('checkbox'))
 
-    expect(container.querySelector('img')).toHaveClass('task-checkbox-pop')
+    expect(container.querySelector('[data-testid="task-checkbox-art"]')).toHaveClass('task-checkbox-pop')
     expect(vibrate).toHaveBeenCalledWith(10)
   })
 
@@ -33,7 +33,7 @@ describe('completing a task', () => {
     const { container } = render(<TaskCheckbox checked={false} onToggle={onToggle} priority={1} />)
     fireEvent.keyDown(screen.getByRole('checkbox'), { key: ' ' })
     expect(onToggle).toHaveBeenCalledTimes(1)
-    expect(container.querySelector('img')).toHaveClass('task-checkbox-pop')
+    expect(container.querySelector('[data-testid="task-checkbox-art"]')).toHaveClass('task-checkbox-pop')
   })
 
   it('reopening a task does neither', () => {
@@ -43,7 +43,7 @@ describe('completing a task', () => {
 
     fireEvent.click(screen.getByRole('checkbox'))
 
-    expect(container.querySelector('img')).not.toHaveClass('task-checkbox-pop')
+    expect(container.querySelector('[data-testid="task-checkbox-art"]')).not.toHaveClass('task-checkbox-pop')
     expect(vibrate).not.toHaveBeenCalled()
   })
 
@@ -58,7 +58,7 @@ describe('completing a task', () => {
     fireEvent.click(screen.getByRole('checkbox'))
 
     expect(onToggle).toHaveBeenCalledTimes(1)
-    expect(container.querySelector('img')).not.toHaveClass('task-checkbox-pop')
+    expect(container.querySelector('[data-testid="task-checkbox-art"]')).not.toHaveClass('task-checkbox-pop')
     expect(vibrate).not.toHaveBeenCalled()
   })
 
@@ -68,9 +68,9 @@ describe('completing a task', () => {
     const { container, rerender } = render(<TaskCheckbox checked={false} onToggle={vi.fn()} priority={1} />)
     fireEvent.click(screen.getByRole('checkbox'))
     rerender(<TaskCheckbox checked onToggle={vi.fn()} priority={1} />)
-    expect(container.querySelector('img')).toHaveClass('task-checkbox-pop')
+    expect(container.querySelector('[data-testid="task-checkbox-art"]')).toHaveClass('task-checkbox-pop')
     rerender(<TaskCheckbox checked={false} onToggle={vi.fn()} priority={1} />)
-    expect(container.querySelector('img')).not.toHaveClass('task-checkbox-pop')
+    expect(container.querySelector('[data-testid="task-checkbox-art"]')).not.toHaveClass('task-checkbox-pop')
   })
 
   it('only moves for someone who has not asked for reduced motion, and from the tokens', () => {

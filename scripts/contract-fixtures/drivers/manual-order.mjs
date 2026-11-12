@@ -78,14 +78,8 @@ const display = DISPLAY.map(([id, manualOrder]) => ({
   shown: sortTasksForList(TASKS, 'manual', manualOrder).map((t) => t.id),
 }))
 
-const everyId = new Set(TASKS.map((t) => t.id))
-const result = partition([...reconcile, ...display], [
-  {
-    entry: 'D33',
-    why: 'manual sort: tasks the arrangement does not name — web oldest first, iOS newest first',
-    applies: (c) => c.id.startsWith('display/') && ![...everyId].every((id) => c.manualOrder.includes(id)),
-  },
-])
+// D33 (unarranged tasks) was disputed here until AWTD-1583, when web put them newest first.
+const result = partition([...reconcile, ...display], [])
 
 process.stdout.write(JSON.stringify({
   generatedFrom: 'lib/list-manual-order.ts (sanitizeManualOrder), lib/task-sort.ts (sortTasksForList "manual")',

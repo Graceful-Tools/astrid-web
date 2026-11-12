@@ -6,7 +6,8 @@
  * (the one the Apple apps use), with the list's project, status-list siblings and legacy
  * `admins` / `members` arrays when the caller loaded them, and the core's answer is returned.
  *
- * The TypeScript still runs on every decision, for two reasons:
+ * The TypeScript still answers, for two reasons — on every decision until AWTD-1591, now on a
+ * sample of 1 in `ASTRID_CORE_RULES_SAMPLE` (lib/core-rules/sampling.ts) and on every fallback:
  *
  * - **Fail-safe.** It is the answer whenever the core cannot give one: not loaded, threw, sent an
  *   error envelope, or answered with something that is not an answer. Never a wrong deny or
@@ -22,6 +23,7 @@
  */
 import { createLogger } from '@/lib/logger'
 import { setListPermissionsCore, type ListDecisionQuestion } from '@/lib/list-permissions'
+import { createSampler, sampleEveryFrom } from './sampling'
 import { loadCoreRules } from './wasm'
 
 export type CoreRulesMode = 'decide' | 'shadow' | 'off'
@@ -126,10 +128,16 @@ function shapeOf(question: ListDecisionQuestion) {
 }
 
 export interface CoreStats {
-  /** The core answered and agreed with the TypeScript. */
+  /** The core answered, was compared (sampled), and agreed with the TypeScript. */
   agreed: number
-  /** The core answered and disagreed (in `decide` mode, the core's answer was returned). */
+  /** The core answered, was compared, and disagreed (in `decide` mode, the core's answer was returned). */
   disagreed: number
+  /**
+   * Not compared (AWTD-1591): in `decide` mode the core answered and the TypeScript was not run;
+   * in `shadow` mode the core was not asked. `agreed + disagreed` is the number of comparisons,
+   * so `disagreed / (agreed + disagreed)` is the disagreement rate whatever the sample.
+   */
+  unsampled: number
   /** Not put to the core (no signed-in id). */
   skipped: number
   /** The core could not answer; the TypeScript answer was returned. */
@@ -174,9 +182,15 @@ function memberBucket(count: number): '0' | '1' | 'many' {
 export function createListPermissionsCore(
   runJson: (request: string) => string,
   report: Reporter,
-  { revision = 'unknown', mode = 'decide' }: { revision?: string; mode?: Exclude<CoreRulesMode, 'off'> } = {},
+  {
+    revision = 'unknown',
+    mode = 'decide',
+    sampleEvery = 1,
+  }: { revision?: string; mode?: Exclude<CoreRulesMode, 'off'>; sampleEvery?: number } = {},
 ) {
-  const stats: CoreStats = { agreed: 0, disagreed: 0, skipped: 0, failed: 0 }
+  const stats: CoreStats = { agreed: 0, disagreed: 0, unsampled: 0, skipped: 0, failed: 0 }
+  /** Whether this decision is compared (AWTD-1591): 1 in `sampleEvery`. */
+  const sampled = createSampler(sampleEvery)
   const logged = new Set<string>()
   let failureLogged = false
   let tripped = false
@@ -199,7 +213,7 @@ export function createListPermissionsCore(
     decisions++
     if (decisions % SUMMARY_EVERY === 0) {
       try {
-        report.summary?.({ revision, mode, tripped, stats: { ...stats }, distinctLogged: logged.size })
+        report.summary?.({ revision, mode, sampleEvery, tripped, stats: { ...stats }, distinctLogged: logged.size })
       } catch {
         // A reporter that throws must not take the decision down with it.
       }
@@ -214,6 +228,13 @@ export function createListPermissionsCore(
     }
     if ('skip' in built) {
       stats.skipped++
+      return undefined
+    }
+
+    // Shadow mode: the TypeScript decides, so an unsampled decision does not ask the core at all.
+    const compared = sampled()
+    if (mode === 'shadow' && !compared) {
+      stats.unsampled++
       return undefined
     }
 
@@ -243,12 +264,27 @@ export function createListPermissionsCore(
       return fail(question, error)
     }
 
-    if (core === question.typescriptAnswer) {
+    // Decide mode, unsampled: the core's answer, and the TypeScript is never run (AWTD-1591).
+    if (!compared) {
+      stats.unsampled++
+      return core as string | boolean | null
+    }
+
+    let typescript: string | boolean | null
+    try {
+      typescript = question.typescriptAnswer()
+    } catch {
+      // The TypeScript failing is not the core's failure, and the core did answer: it stands.
+      stats.unsampled++
+      return mode === 'decide' ? (core as string | boolean | null) : undefined
+    }
+
+    if (core === typescript) {
       stats.agreed++
     } else {
       stats.disagreed++
       try {
-        const details = { decision: question.decision, ts: question.typescriptAnswer, core, shape: shapeOf(question) }
+        const details = { decision: question.decision, ts: typescript, core, shape: shapeOf(question) }
         const signature = JSON.stringify({
           ...details,
           shape: { ...details.shape, memberCount: memberBucket(details.shape.memberCount) },
@@ -278,6 +314,8 @@ export function coreRulesModeFrom(setting: string | undefined): CoreRulesMode {
 
 export interface CoreRulesStatus {
   mode: CoreRulesMode
+  /** 1 decision in this many is compared (`ASTRID_CORE_RULES_SAMPLE`; lib/core-rules/sampling.ts). */
+  sampleEvery: number
   /** Whether packages/astrid-rules loaded. False with mode `decide` means the TypeScript decides. */
   loaded: boolean
   revision: string | null
@@ -304,7 +342,8 @@ export function listPermissionsCoreStatus(): CoreRulesStatus | null {
 export function installListPermissionsCore(setting: string | undefined = process.env.ASTRID_CORE_RULES): boolean {
   const mode = coreRulesModeFrom(setting)
   const host = globalThis as StatusHost
-  host[STATUS_KEY] = { mode, loaded: false, revision: null, stats: null }
+  const sampleEvery = sampleEveryFrom()
+  host[STATUS_KEY] = { mode, sampleEvery, loaded: false, revision: null, stats: null }
   if (mode === 'off') {
     setListPermissionsCore(null)
     return false
@@ -323,10 +362,10 @@ export function installListPermissionsCore(setting: string | undefined = process
         failure: (details) => log.error(details, 'list permissions: astrid-core could not answer; the TypeScript answer was used'),
         summary: (details) => log.info(details, 'list permissions: astrid-core totals'),
       },
-      { revision: core.revision, mode },
+      { revision: core.revision, mode, sampleEvery },
     )
     setListPermissionsCore(decider.decide)
-    host[STATUS_KEY] = { mode, loaded: true, revision: core.revision, stats: decider.stats }
+    host[STATUS_KEY] = { mode, sampleEvery, loaded: true, revision: core.revision, stats: decider.stats }
     log.info({ revision: core.revision, mode }, 'list permissions: astrid-core installed')
     return true
   } catch (error) {

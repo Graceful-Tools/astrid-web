@@ -45,7 +45,7 @@ globalThis.Date = MovableDate
 
 registerWebAliases(webRoot, { '@/lib/prisma': queueStub })
 
-const { snoozeReminder, MAX_SNOOZE_COUNT } = await import(pathToFileURL(join(webRoot, 'lib/reminder-snooze.ts')).href)
+const { snoozeReminder } = await import(pathToFileURL(join(webRoot, 'lib/reminder-snooze.ts')).href)
 const { reminderRows } = await import(pathToFileURL(queueStub).href)
 
 // The route's accepted range, read rather than retyped.
@@ -99,17 +99,11 @@ for (const [name, steps] of Object.entries(SEQUENCES)) {
   }
 }
 
-const result = partition(cases, [
-  {
-    entry: 'D37',
-    why: 'web refuses a snooze after the fifth; iOS and the core have no limit',
-    applies: (c) => c.step > MAX_SNOOZE_COUNT,
-  },
-])
+// D37 (web refused a sixth snooze) was disputed here until AWTD-1583 removed the cap.
+const result = partition(cases, [])
 
 process.stdout.write(JSON.stringify({
   generatedFrom: 'lib/reminder-snooze.ts, app/api/v1/reminders/[id]/snooze/route.ts (bounds)',
   minutes: { min: Number(bounds[1]), max: Number(bounds[2]) },
-  maxSnoozeCount: MAX_SNOOZE_COUNT,
   ...result,
 }))

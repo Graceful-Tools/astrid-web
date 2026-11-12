@@ -27,8 +27,33 @@
  * Inbox and Done stay derived from task state and are never stored.
  */
 
+import {
+  VIRTUAL_DONE_COLUMN_ID,
+  VIRTUAL_INBOX_COLUMN_ID,
+  boardColumnsThroughCore,
+  columnMoveThroughCore,
+} from '@/lib/board-core-hook'
+
 export const INBOX_COLUMN_ID = '__inbox__'
 export const DONE_COLUMN_ID = '__done__'
+
+/**
+ * This file's virtual columns and astrid-core's are the same two columns under different ids
+ * (AWTD-1585). Translated by KIND, never by id: a status column keeps its role whatever it is
+ * spelled, so a stored custom role such as "__virtual_done__" stays a status column here.
+ */
+type KindedColumn = { id: string; kind: BoardColumnKind }
+const toCoreColumn = <T extends KindedColumn>(column: T): T =>
+  column.kind === 'inbox' ? { ...column, id: VIRTUAL_INBOX_COLUMN_ID }
+    : column.kind === 'done' ? { ...column, id: VIRTUAL_DONE_COLUMN_ID }
+    : column
+const fromCoreColumn = <T extends KindedColumn>(column: T): T =>
+  column.kind === 'inbox' ? { ...column, id: INBOX_COLUMN_ID }
+    : column.kind === 'done' ? { ...column, id: DONE_COLUMN_ID }
+    : column
+
+/** A role the core would read as one of its virtual columns: such a board is left to the TypeScript. */
+const isCoreVirtualId = (id: string) => id === VIRTUAL_INBOX_COLUMN_ID || id === VIRTUAL_DONE_COLUMN_ID
 
 export interface StatusState {
   role: string
@@ -127,8 +152,23 @@ export function parseCustomStates(raw: unknown): StatusState[] {
  * states, then virtual Done.
  *
  * Derived, so no arrangement of data can produce a duplicate column.
+ *
+ * On the server, astrid-core's `board` rule answers when it is installed (AWTD-1585); this
+ * TypeScript is the fallback and the comparison.
  */
 export function boardColumnsFor(project: ProjectLike | null | undefined): BoardColumn[] {
+  // A custom role spelled like one of the core's virtual ids cannot be told apart from that
+  // column on the core's side, so that (vanishingly rare) board is not put to it.
+  if (parseCustomStates(project?.customStates).some(state => isCoreVirtualId(state.role))) {
+    return typescriptBoardColumnsFor(project)
+  }
+  const answer = boardColumnsThroughCore(project?.customStates, () =>
+    typescriptBoardColumnsFor(project).map(toCoreColumn),
+  )
+  return answer.map(fromCoreColumn)
+}
+
+function typescriptBoardColumnsFor(project: ProjectLike | null | undefined): BoardColumn[] {
   const allCustomStates = parseCustomStates(project?.customStates)
   // Built-in overrides (renamed defaults) stored in customStates.
   const defaultOverrides = new Map(
@@ -165,11 +205,32 @@ export function taskColumnId(task: TaskLike): string {
  * Preserves the board invariants that the list model needed a server-side
  * normalizer to enforce: Done carries no status, and setting a status clears
  * completion.
+ *
+ * On the server, astrid-core's `boardMove` rule answers when it is installed (AWTD-1585). The
+ * column is given by id alone, so its kind is read from the id — what this TypeScript does too.
  */
 export function resolveColumnMove(
   task: TaskLike,
   targetColumnId: string
 ): { statusRole: string | null; completed: boolean } {
+  // The kind comes from THIS API's id: anything but Inbox and Done is a status role, however it
+  // is spelled. A role that collides with a core virtual id is refused by moveRequestFor's
+  // status-id guard, and the TypeScript answers.
+  const kind: BoardColumnKind = targetColumnId === INBOX_COLUMN_ID ? 'inbox' : targetColumnId === DONE_COLUMN_ID ? 'done' : 'status'
+  const coreId = toCoreColumn({ id: targetColumnId, kind }).id
+  // No memberships travel here: this planner never touches them, so neither side is asked to.
+  const { statusRole, completed } = columnMoveThroughCore(
+    {
+      task: { completed: !!task.completed, statusRole: task.statusRole ?? null, listIds: [] },
+      column: { id: coreId, kind },
+      lists: [],
+    },
+    () => ({ ...typescriptColumnMove(targetColumnId), listIds: [] }),
+  )
+  return { statusRole, completed }
+}
+
+function typescriptColumnMove(targetColumnId: string): { statusRole: string | null; completed: boolean } {
   if (targetColumnId === DONE_COLUMN_ID) return { statusRole: null, completed: true }
   if (targetColumnId === INBOX_COLUMN_ID) return { statusRole: null, completed: false }
   return { statusRole: targetColumnId, completed: false }

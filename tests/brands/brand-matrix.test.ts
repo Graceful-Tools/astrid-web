@@ -22,7 +22,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { createHash } from 'node:crypto'
 import { profileEnv, brandNameTrademarkProblem } from '@/lib/brand/profile'
+
+const sha256 = (data: Buffer) => createHash('sha256').update(data).digest('hex')
+
+/** Every square icon file Astrid ships in public/: what a rebranded profile must never serve. */
+function astridIconHashes(): Set<string> {
+  const pub = join(process.cwd(), 'public')
+  const files = [
+    ...readdirSync(join(pub, 'icons')).filter((f) => /^(maskable-)?icon-\d+x\d+\.png$/.test(f)).map((f) => join(pub, 'icons', f)),
+    ...readdirSync(pub).filter((f) => /^(favicon|apple-touch-icon|apple-icon)/.test(f)).map((f) => join(pub, f)),
+  ]
+  return new Set(files.map((f) => sha256(readFileSync(f))))
+}
 
 // next-intl's middleware cannot load under vitest. The plumbing assertions
 // below (apex redirect, CORS) run before it, so stub it out — the same
@@ -281,6 +294,138 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
   afterEach(() => {
     process.env = { ...ORIGINAL_ENV }
     vi.resetModules()
+  })
+
+  it('names this profile’s operator on every legal and help page (AWTD-1584)', async () => {
+    // The Terms, Privacy and Help pages said "Graceful Tools LLC" on every deployment —
+    // a partner's terms of service naming someone else's company as the operator.
+    // They existed twice (the public route and the in-app Settings page), so both copies
+    // are rendered here.
+    const React = await import('react')
+    const { renderToStaticMarkup } = await import('react-dom/server')
+    const { BRAND } = await import('@/lib/brand/config')
+    const onNavigate = () => {}
+    // `external`: the operator's own policy URL, when the profile names one. Then the
+    // public route redirects there and the Settings page links to it; neither renders
+    // our text, so neither names the operator.
+    const pages: Array<[string, string, Record<string, unknown>, string]> = [
+      ['/terms', '@/app/[locale]/terms/page', {}, BRAND.termsUrl],
+      ['/privacy', '@/app/[locale]/privacy/page', {}, BRAND.privacyUrl],
+      ['/help', '@/app/[locale]/help/page', {}, ''],
+      ['Settings → Terms', '@/components/Settings/TermsPage', { onNavigate }, BRAND.termsUrl],
+      ['Settings → Privacy', '@/components/Settings/PrivacyPage', { onNavigate }, BRAND.privacyUrl],
+      ['Settings → Help', '@/components/Settings/HelpPage', { onNavigate }, ''],
+    ]
+
+    if (profile.name !== 'Astrid') expect(BRAND.operatorName).not.toBe('Graceful Tools LLC')
+
+    for (const [what, path, props, external] of pages) {
+      const Page = (await import(path)).default
+      if (external && what.startsWith('/')) {
+        // next/navigation's redirect() throws; its digest carries the target.
+        let digest = ''
+        try {
+          renderToStaticMarkup(React.createElement(Page, props))
+        } catch (error) {
+          digest = String((error as { digest?: string }).digest ?? error)
+        }
+        expect(digest, `${what} redirects to the operator's page`).toContain(external)
+        continue
+      }
+      const html = renderToStaticMarkup(React.createElement(Page, props))
+      if (external) {
+        expect(html, `${what} links to the operator's page`).toContain(external)
+      } else {
+        expect(html, `${what} names the operator`).toContain(BRAND.operatorName)
+      }
+      for (const literal of profile.expect.forbidLiterals) {
+        expect(html, `${what} leaked "${literal}" for the ${profile.name} profile`).not.toContain(literal)
+      }
+    }
+  })
+
+  it('routes feature requests to this profile’s own support address (AWTD-1584)', async () => {
+    // The fallback was jon@gracefultools.com, so a partner that forgot
+    // FEATURE_REQUEST_EMAIL mailed its users' requests to Astrid's founder.
+    const ORIGINAL = process.env.FEATURE_REQUEST_EMAIL
+    try {
+      delete process.env.FEATURE_REQUEST_EMAIL
+      const { featureRequestRecipient } = await import('@/lib/feature-access-requests')
+      expect(featureRequestRecipient()).toBe(profile.expect.supportEmail)
+      for (const literal of profile.expect.forbidLiterals) {
+        expect(featureRequestRecipient()).not.toContain(literal)
+      }
+    } finally {
+      if (ORIGINAL === undefined) delete process.env.FEATURE_REQUEST_EMAIL
+      else process.env.FEATURE_REQUEST_EMAIL = ORIGINAL
+    }
+  })
+
+  it('serves every icon from this profile’s own source icon (AWTD-1588)', async () => {
+    // A partner that set NEXT_PUBLIC_BRAND_ICON still served Astrid's favicons, touch
+    // icon, manifest icons and notification icons: each was a fixed path to Astrid's file.
+    const { hasCustomBrandIcon, brandIconUrl, brandMetadataIcons } = await import('@/lib/brand/icons')
+    const { GET: manifestGET } = await import('@/app/manifest.json/route')
+    const { GET: iconGET } = await import('@/app/brand-icon/[file]/route')
+
+    const manifest = await (await manifestGET()).json()
+    // What app/[locale]/layout.tsx puts in <link rel="icon"> (the layout itself cannot load here).
+    const metadataIcons = brandMetadataIcons().map((i) => i.url)
+    const srcs: string[] = [
+      ...manifest.icons.map((i: { src: string }) => i.src),
+      ...manifest.shortcuts.flatMap((s: { icons: Array<{ src: string }> }) => s.icons.map((i) => i.src)),
+      ...metadataIcons,
+      brandIconUrl({ kind: 'apple-touch' }),
+    ]
+    // Never a file that does not exist (the manifest listed /screenshots/*.png).
+    expect(manifest.screenshots).toBeUndefined()
+
+    /** The bytes a URL serves: public/ for a static path, the route for a generated one. */
+    const bytes = async (src: string): Promise<Buffer> => {
+      if (src.startsWith('/brand-icon/')) {
+        const file = src.slice('/brand-icon/'.length)
+        const res = await iconGET(new Request(`https://x${src}`), { params: Promise.resolve({ file }) })
+        expect(res.status, src).toBe(200)
+        return Buffer.from(await res.arrayBuffer())
+      }
+      return readFileSync(join(process.cwd(), 'public', src))
+    }
+
+    if (!profile.expect.forbidLiterals.includes('Astrid')) {
+      // Hosted Astrid: the same URLs as before this change, each a hand-made file.
+      expect(hasCustomBrandIcon()).toBe(false)
+      expect(srcs.filter((src) => src.startsWith('/brand-icon/'))).toEqual([])
+      expect(srcs).toEqual(expect.arrayContaining([
+        '/icons/icon-72x72.png', '/icons/icon-512x512.png', '/icons/maskable-icon-512x512.png',
+        '/favicon.ico', '/favicon-16x16.png', '/favicon-196x196.png', '/apple-touch-icon.png',
+      ]))
+      // The service worker's URLs serve Astrid's notification icon and badge byte for byte.
+      expect(sha256(await bytes('/brand-icon/icon-192.png'))).toBe(sha256(await bytes('/icons/icon-192x192.png')))
+      expect(sha256(await bytes('/brand-icon/icon-72.png'))).toBe(sha256(await bytes('/icons/icon-72x72.png')))
+      return
+    }
+
+    // A rebranded profile names its own icon and serves none of Astrid's, by hash.
+    expect(hasCustomBrandIcon(), 'a rebranded profile must set assets.icon').toBe(true)
+    const astrid = astridIconHashes()
+    for (const src of [...new Set(srcs), '/brand-icon/icon-192.png', '/brand-icon/icon-72.png']) {
+      expect(astrid.has(sha256(await bytes(src))), `${src} serves an Astrid icon`).toBe(false)
+    }
+    // Plain generated icons are not padded, so only the maskable pair may claim maskable.
+    for (const icon of manifest.icons as Array<{ src: string; purpose: string }>) {
+      if (icon.purpose.includes('maskable')) expect(icon.src, icon.purpose).toMatch(/\/brand-icon\/maskable-/)
+    }
+    // And the maskable mark sits inside the 80% safe circle: its corners are background.
+    const { default: sharp } = await import('sharp')
+    const maskable = await sharp(await bytes('/brand-icon/maskable-512.png')).raw().toBuffer({ resolveWithObject: true })
+    const at = (x: number, y: number) => [...maskable.data.subarray((y * 512 + x) * 4, (y * 512 + x) * 4 + 3)]
+    const corner = Math.ceil(256 - (512 * 0.8) / Math.SQRT2 / 2) - 1
+    expect(at(corner, corner), 'the safe zone corner is brand colour, not artwork').toEqual(at(0, 0))
+    if (profile.expect.icon === '/icons/whitelabel-512.png') {
+      // The task's acceptance: the whitelabel manifest's 512 icon IS whitelabel-512.
+      const icon512 = manifest.icons.find((i: { sizes: string; purpose: string }) => i.sizes === '512x512' && i.purpose === 'any')
+      expect(sha256(await bytes(icon512.src))).toBe(sha256(await bytes('/icons/whitelabel-512.png')))
+    }
   })
 
   it('enables no capability without the one it depends on (AWTD-1121)', async () => {

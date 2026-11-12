@@ -11,6 +11,8 @@ import { getNLPKeywords, type NLPKeywords } from '@/lib/i18n/nlp-keywords'
 import { createLogger } from '@/lib/logger'
 import { priorityTextClass } from '@/lib/design/priority'
 import { isSystemListId } from "@/lib/list-permissions"
+import { isInMyTasksScope } from '@/lib/my-tasks-scope'
+import { coreDueDateWindow } from '@/lib/date-filter-utils'
 
 const log = createLogger('task-manager-utils')
 
@@ -437,7 +439,8 @@ export function getFixedListTaskCount(
       // list it applies to — that rule lives in this switch, not at each call
       // site, so the badge count and the list view cannot disagree.
       return tasks.filter(task =>
-        (task.assigneeId === userId || (task.assigneeId === null && task.creatorId === userId)) &&
+        // The same scope the list applies (lib/my-tasks-scope.ts), so the count cannot disagree.
+        isInMyTasksScope(task, userId) &&
         shouldShowCompletedByFilter(task, completionFilter, window, now)
       ).length
     case "today":
@@ -471,7 +474,9 @@ export function getMyTasksFilterText(filters: {
   filterDueDate?: string
   filterPriority?: number[]
 }): string {
-  const { filterDueDate = 'all', filterPriority = [] } = filters
+  const { filterPriority = [] } = filters
+  // A retired window reads as the one it now filters by (AWTD-1583).
+  const filterDueDate = coreDueDateWindow(filters.filterDueDate ?? 'all')
 
   const hasDateFilter = filterDueDate && filterDueDate !== 'all'
   const hasPriorityFilter = filterPriority && filterPriority.length > 0
@@ -487,18 +492,6 @@ export function getMyTasksFilterText(filters: {
     switch (filterDueDate) {
       case 'today':
         dateText = 'Today'
-        break
-      // These three filter correctly but had no label here, so choosing one
-      // showed an ACTIVE filter with a blank summary — the header read as
-      // unfiltered while the list was filtered (task 9377bc2c).
-      case 'tomorrow':
-        dateText = 'Tomorrow'
-        break
-      case 'this_calendar_week':
-        dateText = 'This Calendar Week'
-        break
-      case 'this_calendar_month':
-        dateText = 'This Calendar Month'
         break
       case 'this_week':
         dateText = 'This Week'

@@ -10,6 +10,7 @@ import { CompletionConfirmation } from "@/components/completion-confirmation"
 import { completionNeedsConfirmation } from "@/lib/task-leading-control"
 import { priorityFillClass, priorityOutlineClass } from "@/lib/design/priority"
 import { useTranslations } from "@/lib/i18n/client"
+import { boardColumnBlurb, boardColumnLabel } from "@/lib/board-column-labels"
 
 interface PriorityAssigneePickerProps {
   isOpen: boolean
@@ -350,7 +351,7 @@ export function PriorityAssigneePicker({
                             : 'bg-transparent border-2 border-theme-button text-theme-secondary'
                         }`}
                       >
-                        {column.name}
+                        {boardColumnLabel(column, t)}
                       </button>
                     )
                   })}

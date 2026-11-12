@@ -3,11 +3,32 @@
 import { useState, useCallback, useEffect } from "react"
 import { startRegistration, startAuthentication } from "@simplewebauthn/browser"
 import { safeResponseJson, hasRequiredFields } from "@/lib/safe-parse"
+import { useTranslations } from "@/lib/i18n/client"
+
+/**
+ * A browser refusal (NotAllowedError, InvalidStateError, …) carries the
+ * browser's English text; the reader gets the flow's own message in their
+ * language instead (AWTD-1601). A server message passes through.
+ *
+ * `@simplewebauthn/browser` wraps most of these in a `WebAuthnError` whose
+ * `cause` is the original DOMException and whose `code` is `ERROR_…`, so both
+ * the bare and the wrapped forms count.
+ */
+export function isBrowserError(err: unknown): boolean {
+  const isDomException = (value: unknown) =>
+    typeof DOMException !== "undefined" && value instanceof DOMException
+  if (isDomException(err)) return true
+  if (!(err instanceof Error)) return false
+  if (isDomException(err.cause)) return true
+  const code = (err as { code?: unknown }).code
+  return err.name === "WebAuthnError" || (typeof code === "string" && code.startsWith("ERROR_"))
+}
 
 export function useWebAuthn() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSupported, setIsSupported] = useState(false)
+  const { t } = useTranslations()
 
   // Check WebAuthn support after hydration to avoid SSR mismatch
   useEffect(() => {
@@ -19,7 +40,7 @@ export function useWebAuthn() {
 
   const registerPasskey = useCallback(async (email?: string, name?: string) => {
     if (!isSupported) {
-      setError("Passkeys are not supported on this device")
+      setError(t("passkeyErrors.notSupported"))
       return { success: false }
     }
 
@@ -38,11 +59,11 @@ export function useWebAuthn() {
         options?: any
         sessionId?: string
         error?: string
-      }>(optionsRes, { error: 'Failed to get registration options' })
+      }>(optionsRes, { error: t("passkeyErrors.optionsFailed") })
 
 
       if (!optionsRes.ok) {
-        throw new Error(optionsData.error || "Failed to get registration options")
+        throw new Error(optionsData.error || t("passkeyErrors.optionsFailed"))
       }
 
       const { options, sessionId } = optionsData
@@ -57,7 +78,7 @@ export function useWebAuthn() {
         body: JSON.stringify({
           sessionId,
           response: credential,
-          name: name || "My Passkey",
+          name: name || t("passkeyErrors.defaultName"),
         }),
       })
 
@@ -67,7 +88,7 @@ export function useWebAuthn() {
         existingUser?: boolean
         email?: string
         error?: string
-      }>(verifyRes, { error: "Registration failed" })
+      }>(verifyRes, { error: t("passkeyErrors.registrationFailed") })
 
       // The account already existed. /register/options cannot say so without
       // becoming an enumeration oracle (task c2fbe8e4), so verify is where we
@@ -83,9 +104,9 @@ export function useWebAuthn() {
         if (!authOptionsRes.ok) {
           const authData = await safeResponseJson<{ error?: string }>(
             authOptionsRes,
-            { error: "Failed to get authentication options" }
+            { error: t("passkeyErrors.optionsFailed") }
           )
-          throw new Error(authData.error || "Failed to get authentication options")
+          throw new Error(authData.error || t("passkeyErrors.optionsFailed"))
         }
 
         const authData = await safeResponseJson<{
@@ -94,7 +115,7 @@ export function useWebAuthn() {
         }>(authOptionsRes, {})
 
         if (!hasRequiredFields(authData, ['options', 'sessionId'])) {
-          throw new Error("Invalid authentication options response")
+          throw new Error(t("passkeyErrors.optionsFailed"))
         }
 
         const { options: authOptions, sessionId: authSessionId } = authData
@@ -115,9 +136,9 @@ export function useWebAuthn() {
         if (!authVerifyRes.ok) {
           const verifyData = await safeResponseJson<{ error?: string }>(
             authVerifyRes,
-            { error: "Authentication failed" }
+            { error: t("passkeyErrors.authenticationFailed") }
           )
-          throw new Error(verifyData.error || "Authentication failed")
+          throw new Error(verifyData.error || t("passkeyErrors.authenticationFailed"))
         }
 
         // Success — redirect to home
@@ -126,7 +147,7 @@ export function useWebAuthn() {
       }
 
       if (!verifyRes.ok) {
-        throw new Error(result.error || "Registration failed")
+        throw new Error(result.error || t("passkeyErrors.registrationFailed"))
       }
 
       // For new users, they're now logged in - redirect to home
@@ -139,22 +160,22 @@ export function useWebAuthn() {
       // For existing users adding a passkey, just return success
       return { success: true, user: result.user }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Registration failed"
+      const message = err instanceof Error ? err.message : ""
       // Handle user cancellation gracefully
       if (message.includes("cancelled") || message.includes("canceled")) {
         setError(null)
         return { success: false, cancelled: true }
       }
-      setError(message)
+      setError(message && !isBrowserError(err) ? message : t("passkeyErrors.registrationFailed"))
       return { success: false }
     } finally {
       setIsLoading(false)
     }
-  }, [isSupported])
+  }, [isSupported, t])
 
   const authenticateWithPasskey = useCallback(async (email?: string) => {
     if (!isSupported) {
-      setError("Passkeys are not supported on this device")
+      setError(t("passkeyErrors.notSupported"))
       return { success: false }
     }
 
@@ -172,9 +193,9 @@ export function useWebAuthn() {
       if (!optionsRes.ok) {
         const data = await safeResponseJson<{ error?: string }>(
           optionsRes,
-          { error: "Failed to get authentication options" }
+          { error: t("passkeyErrors.optionsFailed") }
         )
-        throw new Error(data.error || "Failed to get authentication options")
+        throw new Error(data.error || t("passkeyErrors.optionsFailed"))
       }
 
       const optionsData = await safeResponseJson<{
@@ -183,7 +204,7 @@ export function useWebAuthn() {
       }>(optionsRes, {})
 
       if (!hasRequiredFields(optionsData, ['options', 'sessionId'])) {
-        throw new Error("Invalid authentication options response")
+        throw new Error(t("passkeyErrors.optionsFailed"))
       }
 
       const { options, sessionId } = optionsData
@@ -204,9 +225,9 @@ export function useWebAuthn() {
       if (!verifyRes.ok) {
         const data = await safeResponseJson<{ error?: string }>(
           verifyRes,
-          { error: "Authentication failed" }
+          { error: t("passkeyErrors.authenticationFailed") }
         )
-        throw new Error(data.error || "Authentication failed")
+        throw new Error(data.error || t("passkeyErrors.authenticationFailed"))
       }
 
       const result = await safeResponseJson<{
@@ -221,18 +242,18 @@ export function useWebAuthn() {
 
       return { success: true, user: result.user }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Authentication failed"
+      const message = err instanceof Error ? err.message : ""
       // Handle user cancellation gracefully
       if (message.includes("cancelled") || message.includes("canceled")) {
         setError(null)
         return { success: false, cancelled: true }
       }
-      setError(message)
+      setError(message && !isBrowserError(err) ? message : t("passkeyErrors.authenticationFailed"))
       return { success: false }
     } finally {
       setIsLoading(false)
     }
-  }, [isSupported])
+  }, [isSupported, t])
 
   const clearError = useCallback(() => {
     setError(null)

@@ -21,6 +21,7 @@
  * has only ever been a filter panel.
  */
 
+import type { DueDateWindow } from "@/lib/date-filter-utils"
 import { ListSettingsPopover } from "../../list-settings-popover"
 import { FixedListSettingsPopover } from "../../fixed-list-settings-popover"
 import { ListSortAndFiltersPopover } from "../../list-sort-and-filters-popover"
@@ -30,9 +31,9 @@ import { ListSortAndFiltersPopover } from "../../list-sort-and-filters-popover"
 export { SYSTEM_LIST_IDS, isSystemListId as isSystemList } from "@/lib/list-permissions"
 import { isSystemListId } from "@/lib/list-permissions"
 
-type DueDateFilter = "overdue" | "today" | "tomorrow" | "this_week" | "this_month" | "this_calendar_week" | "this_calendar_month" | "no_date" | "all"
+type DueDateFilter = DueDateWindow
 type CompletionFilter = "completed" | "incomplete" | "all" | "default"
-type SortBy = "auto" | "priority" | "when" | "assignee" | "completed" | "incomplete" | "completedAt" | "manual"
+type SortBy = "auto" | "priority" | "when" | "completedAt" | "manual"
 
 /** Mirrors the filter slice FixedListSettingsPopover consumes. */
 interface FilterState {

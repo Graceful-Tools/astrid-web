@@ -16,9 +16,6 @@
 
 import { prisma } from '@/lib/prisma'
 
-/** A reminder may be pushed out at most this many times. */
-export const MAX_SNOOZE_COUNT = 5
-
 export type SnoozeResult =
   | { ok: true; scheduledFor: Date; snoozeCount: number }
   | { ok: false; status: 400 | 403 | 404; error: string }
@@ -39,14 +36,9 @@ export async function snoozeReminder(args: {
   }
 
   const reminderData = (reminder.data as Record<string, unknown> | null) ?? {}
+  // No cap on how often (AWTD-1583, astrid-core D37): iOS and the core snooze as often as asked,
+  // and web refused a sixth. The count is still kept, for the reminder views that show it.
   const currentSnoozeCount = (reminderData.snoozeCount as number | undefined) ?? 0
-  if (currentSnoozeCount >= MAX_SNOOZE_COUNT) {
-    return {
-      ok: false,
-      status: 400,
-      error: `maximum snooze limit reached (${MAX_SNOOZE_COUNT} times)`,
-    }
-  }
 
   const newScheduledFor = new Date(Date.now() + minutes * 60 * 1000)
 

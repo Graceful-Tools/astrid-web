@@ -49,14 +49,14 @@ export interface FilterOption {
  */
 export const FILTER_TRIGGER_CLASS = "w-48 theme-input gap-2 [&>span]:min-w-0 [&>span]:truncate [&>span]:text-left [&>svg]:shrink-0"
 
-/** How the list is ordered. Mirrors `TaskList.sortBy`. */
+/**
+ * How the list is ordered. Mirrors `TaskList.sortBy`: the orders every client reads (lib/task-sort.ts).
+ * "Who", "Completed" and "Incomplete" were web-only and retired in AWTD-1583 (astrid-core D33).
+ */
 export const SORT_BY_OPTIONS: readonly FilterOption[] = [
   { value: "auto", labelKey: "listSettings.sort.auto", label: "Auto" },
   { value: "priority", labelKey: "listSettings.sort.priority", label: "Priority" },
   { value: "when", labelKey: "listSettings.sort.date", label: "Date" },
-  { value: "assignee", labelKey: "listSettings.sort.who", label: "Who" },
-  { value: "completed", labelKey: "listSettings.sort.completed", label: "Completed" },
-  { value: "incomplete", labelKey: "listSettings.sort.incomplete", label: "Incomplete" },
   { value: "completedAt", labelKey: "listSettings.sort.recentlyCompleted", label: "Recently completed" },
   { value: "manual", labelKey: "listSettings.sort.manual", label: "Manual" },
 ]
@@ -84,20 +84,18 @@ export const PRIORITY_FILTER_OPTIONS: readonly FilterOption[] = [
 ]
 
 /**
- * Due-date windows.
+ * Due-date windows: the ones every client reads (lib/date-filter-utils.ts `DUE_DATE_WINDOWS`).
  *
- * `tomorrow` is the option the user-list popover was missing. It is here rather
- * than in one of them, so the next one cannot go missing quietly.
+ * One list for every popover, so an option cannot go missing from one quietly. "Tomorrow" and the
+ * calendar week and month were web-only and retired in AWTD-1583 (astrid-core D35); a saved one
+ * reads as the nearest of these (`coreDueDateWindow`).
  */
 export const DUE_DATE_FILTER_OPTIONS: readonly FilterOption[] = [
   { value: "all", labelKey: "listSettings.due.allDates", label: "All dates", className: "text-brand" },
   { value: "overdue", labelKey: "listSettings.due.overdue", label: "Overdue", className: "text-overdue" },
   { value: "today", labelKey: "listSettings.due.today", label: "Today", className: "text-green-500" },
-  { value: "tomorrow", labelKey: "listSettings.due.tomorrow", label: "Tomorrow", className: "text-green-500" },
   { value: "this_week", labelKey: "listSettings.due.next7Days", label: "Next 7 days", className: "text-blue-500" },
   { value: "this_month", labelKey: "listSettings.due.next30Days", label: "Next 30 days", className: "text-purple-500" },
-  { value: "this_calendar_week", labelKey: "listSettings.due.thisCalendarWeek", label: "This calendar week", className: "text-cyan-500" },
-  { value: "this_calendar_month", labelKey: "listSettings.due.thisCalendarMonth", label: "This calendar month", className: "text-indigo-500" },
   { value: "no_date", labelKey: "listSettings.due.noDate", label: "No date", className: "text-theme-muted" },
 ]
 

@@ -1,6 +1,37 @@
 import type { Task } from "@/types/task"
 
-export type TaskSortBy = "auto" | "priority" | "when" | "assignee" | "completed" | "incomplete" | "completedAt" | "manual"
+/**
+ * The orders every client reads (astrid-core `filters::sort_by_setting`, iOS's
+ * `sortTasksByListSetting`). Web also sorted by `assignee`, `completed` and `incomplete`; no other
+ * client had them, and since AWTD-1583 (astrid-core D33) a saved one reads as auto, as an unknown
+ * order always has. `createdAt` is newest first.
+ */
+export type TaskSortBy = "auto" | "priority" | "when" | "completedAt" | "manual" | "createdAt"
+
+const RETIRED_SORTS = new Set(["assignee", "completed", "incomplete"])
+
+/** A saved order as one every client reads: a retired web-only order is `auto` (AWTD-1583). */
+export function coreSortBy(value: string): string {
+  return RETIRED_SORTS.has(value) ? "auto" : value
+}
+
+const createdAtOf = (task: Partial<Pick<Task, 'createdAt'>>) => (task.createdAt ? new Date(task.createdAt).getTime() : -Infinity)
+
+/** Newest first; a task with no creation time last (the core reads it as the earliest instant). */
+export const newestFirst = (a: Partial<Pick<Task, 'createdAt'>>, b: Partial<Pick<Task, 'createdAt'>>) => {
+  const [aCreated, bCreated] = [createdAtOf(a), createdAtOf(b)]
+  return aCreated === bCreated ? 0 : bCreated > aCreated ? 1 : -1
+}
+
+/** Earlier due dates first; undated after every dated task. */
+function dueDateOrder(a: Task, b: Task): number {
+  const aDue = a.dueDateTime ? new Date(a.dueDateTime).getTime() : null
+  const bDue = b.dueDateTime ? new Date(b.dueDateTime).getTime() : null
+  if (aDue !== null && bDue !== null) return aDue - bDue
+  if (aDue !== null) return -1
+  if (bDue !== null) return 1
+  return 0
+}
 
 export function compareTasksBySort(
   a: Task,
@@ -10,7 +41,11 @@ export function compareTasksBySort(
 ): number {
   switch (sortBy) {
     case "priority":
-      return (b.priority || 0) - (a.priority || 0)
+      // iOS's order and the core's (D33, AWTD-1583): completed last, then priority, then due
+      // date. It sorted by priority alone, so a finished task could sit between open ones.
+      if (a.completed !== b.completed) return a.completed ? 1 : -1
+      if ((a.priority || 0) !== (b.priority || 0)) return (b.priority || 0) - (a.priority || 0)
+      return dueDateOrder(a, b)
 
     case "when": {
       // iOS's order and the core's (D33, AWTD-1325): completed last, then due
@@ -18,27 +53,11 @@ export function compareTasksBySort(
       // until AWTD-1325 — `when` was dropped and `dueDate` is legacy, so real
       // tasks compared equal and the sort did nothing.
       if (a.completed !== b.completed) return a.completed ? 1 : -1
-      const aDue = a.dueDateTime ? new Date(a.dueDateTime).getTime() : null
-      const bDue = b.dueDateTime ? new Date(b.dueDateTime).getTime() : null
-      if (aDue !== null && bDue !== null && aDue !== bDue) return aDue - bDue
-      if (aDue !== null && bDue === null) return -1
-      if (aDue === null && bDue !== null) return 1
-      return (b.priority || 0) - (a.priority || 0)
+      return dueDateOrder(a, b) || (b.priority || 0) - (a.priority || 0)
     }
 
-    case "assignee": {
-      const aName = a.assignee?.name || a.assignee?.email || "Unassigned"
-      const bName = b.assignee?.name || b.assignee?.email || "Unassigned"
-      return aName.localeCompare(bName)
-    }
-
-    case "completed":
-      if (a.completed === b.completed) return 0
-      return a.completed ? 1 : -1
-
-    case "incomplete":
-      if (a.completed === b.completed) return 0
-      return a.completed ? -1 : 1
+    case "createdAt":
+      return newestFirst(a, b)
 
     case "completedAt": {
       // Most recently completed first. Completed tasks lead — the sort exists
@@ -57,11 +76,8 @@ export function compareTasksBySort(
     }
 
     case "manual": {
-      if (!manualOrderMap) {
-        const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0
-        const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0
-        return aCreated - bCreated
-      }
+      // Nothing arranged yet: newest first, the same as createdAt (D33, AWTD-1583).
+      if (!manualOrderMap) return newestFirst(a, b)
       return (
         (manualOrderMap.get(a.id) ?? manualOrderMap.size) -
         (manualOrderMap.get(b.id) ?? manualOrderMap.size)
@@ -94,20 +110,31 @@ export function buildManualOrderMap(
   if (!manualOrder || manualOrder.length === 0) return null
   const map = new Map<string, number>(manualOrder.map((id, index) => [id, index]))
   const knownIds = new Set(manualOrder)
-  if (map.size < tasks.length) {
-    const fallback = tasks
-      .filter(task => !knownIds.has(task.id))
-      .sort((taskA, taskB) => {
-        const aCreated = taskA.createdAt ? new Date(taskA.createdAt).getTime() : 0
-        const bCreated = taskB.createdAt ? new Date(taskB.createdAt).getTime() : 0
-        return aCreated - bCreated
-      })
-    let nextIndex = map.size
-    fallback.forEach(task => {
-      if (!map.has(task.id)) map.set(task.id, nextIndex++)
-    })
-  }
+  // Tasks the arrangement does not name go after it, newest first — as on iOS and in the core
+  // (D33, AWTD-1583). They went oldest first, so a task created since the arrangement sank to
+  // the bottom on web and rose to the top of that group everywhere else. Decided by which tasks
+  // are unnamed, not by comparing sizes: the saved order may name tasks that are filtered out.
+  const fallback = tasks
+    .filter(task => !knownIds.has(task.id))
+    .sort(newestFirst)
+  let nextIndex = manualOrder.length
+  fallback.forEach(task => {
+    if (!map.has(task.id)) map.set(task.id, nextIndex++)
+  })
   return map
+}
+
+/**
+ * A view's whole manual order: the saved arrangement, keeping only the ids of tasks the view holds
+ * (and only strings), then every task it does not name, newest first — the same place
+ * `sortTasksForList` gives them (AWTD-1583, astrid-core D33).
+ */
+export function completeManualOrder(saved: readonly unknown[], tasks: Pick<Task, 'id' | 'createdAt'>[]): string[] {
+  const held = new Set(tasks.map(task => task.id))
+  const arranged = saved.filter((id): id is string => typeof id === 'string' && held.has(id))
+  const named = new Set(arranged)
+  const rest = tasks.filter(task => !named.has(task.id)).sort(newestFirst).map(task => task.id)
+  return [...arranged, ...rest]
 }
 
 export function sortTasksForList(

@@ -54,8 +54,9 @@ For the operator's end-to-end launch sequence, see the
 5. **Deploy**, one of two ways. Either way, check that `GET /api/v1/capabilities` reports
    your brand and providers.
    - **On your own infrastructure, with no Vercel account:** the Docker image and compose
-     stack in [deployment/SELF_HOSTING.md](./deployment/SELF_HOSTING.md). Build with
-     `--build-arg BRAND=<partner>`. It runs Postgres, the app, the scheduled jobs and file
+     stack in [deployment/SELF_HOSTING.md](./deployment/SELF_HOSTING.md). The published
+     image takes your brand at runtime: mount the profile and set `BRAND_PROFILE`
+     (AWTD-1587). Or build one in with `--build-arg BRAND=<partner>`. It runs Postgres, the app, the scheduled jobs and file
      storage (a volume or any S3-compatible bucket) on your own machines.
    - **On your own Vercel team and database:** §8, *A partner on their own Vercel account
      and their own database*. Preview first with
@@ -140,10 +141,13 @@ All optional. Each falls back to the Astrid value.
 | `NEXT_PUBLIC_BRAND_DEFAULT_THEME` | `ocean` | `light`, `dark` or `ocean` — where a visitor starts; a stored choice still wins |
 | `NEXT_PUBLIC_BRAND_WWW_REDIRECT` | `true` | `false` when the brand domain is a subdomain (`tasks.example.com`): no `www.` host exists to redirect to |
 | `NEXT_PUBLIC_BRAND_FONT_FAMILY` | *(Inter)* | CSS `font-family` stack for the whole app, e.g. the system stack |
+| `NEXT_PUBLIC_BRAND_OPERATOR_NAME` | Graceful Tools LLC, **or your brand name** | The legal entity named in the Terms, the Privacy Policy and every copyright line. Unlike the rest of this table it does **not** fall back to Astrid's value once `NEXT_PUBLIC_BRAND_NAME` is something other than Astrid: your terms would otherwise say another company runs your service (AWTD-1584) |
+| `NEXT_PUBLIC_BRAND_TERMS_URL` | *(built-in `/terms`)* | Your own Terms of Service. Set it and `/terms` redirects there, and the sign-in page, footers and the in-app Settings page link to it |
+| `NEXT_PUBLIC_BRAND_PRIVACY_URL` | *(built-in `/privacy`)* | Your own Privacy Policy. Same as the terms URL, for `/privacy` |
 | `NEXT_PUBLIC_BRAND_AGENT_NAME` | brand name | Default assistant's display name |
 | `NEXT_PUBLIC_BRAND_LOGO` | `/images/astrid-character.png` | Mascot art — sign-in, empty states |
-| `NEXT_PUBLIC_BRAND_ICON` | `/icons/icon-512x512.png` | Large square mark |
-| `NEXT_PUBLIC_BRAND_ICON_SMALL` | `/icons/icon-96x96.png` | Header mark |
+| `NEXT_PUBLIC_BRAND_ICON` | `/icons/icon-512x512.png` | The **source icon** every other size is generated from: set it as `assets.icon` in the profile (see *Artwork*) |
+| `NEXT_PUBLIC_BRAND_ICON_SMALL` | `/icons/icon-96x96.png`, or the generated 96 px icon | Header mark. Unset with a custom icon: generated from it |
 | `NEXT_PUBLIC_BRAND_APP_STORE_URL` | Astrid's listing | **Empty string hides the button** |
 | `NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG` | `astrid-code-assistant` | Your own registered GitHub App |
 | `NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID` | *(derived)* | Only if inference is wrong — see §7 |
@@ -155,7 +159,7 @@ All optional. Each falls back to the Astrid value.
 Falling back to Astrid is what keeps hosted Astrid unchanged, but it also means a partner
 who sets the name and forgets the support email ships `support@astrid.cc` without being
 told. So once **any** identity variable is set (name, title, tagline, domain, support or
-inbound email, slogan, logo, App Store URL, app URL scheme, GitHub App slug),
+inbound email, slogan, logo, icon, App Store URL, app URL scheme, GitHub App slug),
 `next.config.mjs` warns at build about each of them still unset
 (`scripts/lib/brand-identity-check.mjs`, AWTD-1285). Astrid sets none, so it never warns.
 
@@ -175,8 +179,32 @@ client's offline cache.
 
 ### Artwork
 
-The square icons use **generic paths on purpose**: replace the files in `public/icons/`
-and nothing needs configuring. The mascot is the exception — it ships under a
+**One source icon makes every icon** (AWTD-1588). Put a square PNG, ideally 1024 px, in
+`public/icons/` under your own name and point the profile at it:
+
+```json
+"assets": { "icon": "/icons/acme-1024.png" }
+```
+
+`assets.icon` becomes `NEXT_PUBLIC_BRAND_ICON`. Every size is generated from it on request
+by `app/brand-icon/[file]/route.ts` (sharp): the PWA manifest icons and maskable icons, the
+favicons, the Apple touch icon, the header mark, the service worker's notification icon and
+badge, the push payload icons, the OpenGraph image and the ChatGPT plugin logo. It must be a
+`.png` path in `public/`, not a URL, because the route reads it from disk.
+`lib/brand/icons.ts` decides which URL each place uses.
+
+Do **not** overwrite Astrid's files in `public/icons/` or the root favicons. Earlier
+versions of this section told you to. Those files are hosted Astrid's, and they are served
+unchanged, at the same URLs, while `BRAND.icon` is Astrid's. A partner sharing this
+repository could never replace them anyway, and the root favicons and touch icon were never
+under `public/icons/` in the first place.
+
+The brand matrix checks, by hash, that no profile forbidding "Astrid" serves any of
+Astrid's icon files. One gap remains: a browser that requests `/favicon.ico` without
+reading the page's `<link rel="icon">` still gets Astrid's file, because `public/` is
+served before any route.
+
+The mascot is a separate setting, `NEXT_PUBLIC_BRAND_LOGO`. It ships under a
 brand-specific filename, so it is a configurable path.
 
 Copy in `lib/i18n/locales/*.json` refers to the product as `{appName}`, substituted at
@@ -557,6 +585,23 @@ Not oversights. Changing any of these breaks something real.
 | `ASTRID.md` | Agent context filename, deliberately named. |
 | iOS bundle IDs, keychain service, App Group, `astrid://`, associated domains | App Store Connect and provisioning. |
 
+### Legal text: the operator is configurable, the wording is not (AWTD-1584)
+
+The built-in Terms of Service and Privacy Policy (`components/legal/`) are Astrid's own
+legal documents. A profile changes only **who** they name, through
+`NEXT_PUBLIC_BRAND_OPERATOR_NAME` (and the `legal@` / `privacy@` addresses, which follow
+`NEXT_PUBLIC_BRAND_DOMAIN`). It cannot rewrite the clauses. They describe Astrid's
+infrastructure (Neon, Vercel), its Google Limited Use commitment and its GitHub sync
+schedule, and those statements may not be true of your deployment. If your service differs,
+or your lawyers want their own wording, publish your own documents and set
+`NEXT_PUBLIC_BRAND_TERMS_URL` / `NEXT_PUBLIC_BRAND_PRIVACY_URL`. Each page exists once, and
+the public route and the in-app Settings page both render it, so no second copy can keep
+naming Astrid's operator. `check:reuse` fails on a literal "Graceful Tools" or
+`gracefultools.com` in app code.
+
+Feature-access requests (`FEATURE_REQUEST_EMAIL`) go to `NEXT_PUBLIC_BRAND_SUPPORT_EMAIL`
+when that variable is unset. Before this change they went to a person at Astrid.
+
 ### Service providers: what is swappable, and what is fixed (task 1e772f0c)
 
 This section used to be silent about the vendors the product runs on, so they
@@ -639,6 +684,41 @@ accepts `evil-<brand>.cc`. Pinned by `tests/lib/brand-security-boundaries.test.t
 Moving an existing deployment to a new agent-email domain also needs
 `scripts/migrate-agent-email-domain.ts` (dry-runs by default). A fresh deployment does
 not: agent rows are created lazily at whatever domain is configured.
+
+### One command: `npm run brand:launch` (AWTD-1590)
+
+Everything in the next section that a machine can do runs as one command. Each step is
+idempotent, so after a failure you fix it and run the same command again:
+
+```bash
+npm run brand:launch -- partner --project partner --team team_xxx --scope partner-co --dry-run
+npm run brand:launch -- partner --project partner --team team_xxx --scope partner-co
+npm run brand:launch -- partner --docker --dry-run            # the self-hosted stack instead
+```
+
+**Always start with `--dry-run`.** It lists each step and the command or API call behind
+it, and calls nothing. In order, the steps are:
+1. `check:brands`.
+2. The Vercel project, with framework set to Next.js.
+3. The domain.
+4. `provision-brand-database.ts`.
+5. `push-brand-env.ts`.
+6. A web-push (VAPID) key pair, generated only when absent and never printed.
+7. `push-brand-env.ts` again, to map the database's direct URL.
+8. A production deploy that targets the project by id, with no `vercel link`.
+9. A smoke test against the deployment's own `*.vercel.app` URL, which checks
+   `/api/health`, and that `/api/v1/capabilities` and `/manifest.json` name the brand.
+
+It refuses hosted Astrid's project and an `astrid.cc` domain. When the run ends it prints
+a checklist of what still needs a person, with links:
+- DNS;
+- the Google and Apple OAuth clients, but only for providers the profile keeps on;
+- the mail sender;
+- the first admin (`INITIAL_ADMIN_EMAIL`);
+- the native apps.
+
+The steps it runs are the scripts described below, so the rest of this section is also
+how to do any one step by hand.
 
 ### A partner on their own Vercel account and their own database
 

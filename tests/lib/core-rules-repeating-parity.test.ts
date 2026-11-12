@@ -89,7 +89,7 @@ describe('nextOccurrenceForTask with astrid-core answering, as the server runs i
     expect(same(nextOccurrenceForTask(request))).toEqual(same(answer))
     // The core answered itself — no fallback — and agreed.
     expect(reports).toEqual([])
-    expect(hook.stats).toEqual({ agreed: 1, disagreed: 0, skipped: 0, failed: 0 })
+    expect(hook.stats).toEqual({ agreed: 1, disagreed: 0, unsampled: 0, skipped: 0, failed: 0 })
   })
 
   it.each(progressions)('%s, step by step', (_name, c) => {
