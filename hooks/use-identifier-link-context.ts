@@ -14,26 +14,13 @@
  * renderer then links nothing, exactly as before task ids existed.
  */
 import { useEffect, useMemo, useState } from 'react'
-import { fetchProjects, type ClientProject } from '@/lib/client-projects'
+import {
+  __clearLoadedProjectsCache,
+  loadProjectsOnce,
+  peekLoadedProjects,
+  type ClientProject,
+} from '@/lib/client-projects'
 import type { IdentifierLinkContext } from '@/lib/task-identifier-links'
-
-let projects: ClientProject[] | null = null
-let inflight: Promise<ClientProject[]> | null = null
-
-function loadProjects(): Promise<ClientProject[]> {
-  if (projects) return Promise.resolve(projects)
-  if (!inflight) {
-    inflight = fetchProjects()
-      .then(result => {
-        projects = result
-        return result
-      })
-      .finally(() => {
-        inflight = null
-      })
-  }
-  return inflight
-}
 
 function projectFor(all: ClientProject[], listIds: string[]): ClientProject | undefined {
   const ids = new Set(listIds)
@@ -41,12 +28,12 @@ function projectFor(all: ClientProject[], listIds: string[]): ClientProject | un
 }
 
 export function useIdentifierLinkContext(listIds: string[]): IdentifierLinkContext | undefined {
-  const [loaded, setLoaded] = useState<ClientProject[] | null>(projects)
+  const [loaded, setLoaded] = useState<ClientProject[] | null>(peekLoadedProjects)
   const listKey = listIds.join(',')
 
   useEffect(() => {
     let active = true
-    loadProjects()
+    loadProjectsOnce()
       .then(result => {
         if (active) setLoaded(result)
       })
@@ -73,6 +60,5 @@ export function useIdentifierLinkContext(listIds: string[]): IdentifierLinkConte
 
 /** Test seam: the module-level cache would otherwise leak between cases. */
 export function __clearIdentifierLinkContextCache() {
-  projects = null
-  inflight = null
+  __clearLoadedProjectsCache()
 }

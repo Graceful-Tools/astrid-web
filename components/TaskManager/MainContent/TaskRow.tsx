@@ -16,6 +16,7 @@ import {
   leadingControlOpensOptions,
   taskLeadingControlKind,
 } from "@/lib/task-leading-control"
+import { taskBoardStatus, type BoardStatusSource } from "@/lib/task-board-status"
 import type { Task, TaskList } from "@/types/task"
 import type { TaskManagerControllerReturn } from "@/hooks/task-manager/controller-contract"
 
@@ -93,6 +94,13 @@ export interface TaskRowProps {
 
   /** The list being viewed; the row does not repeat its chip (AWTD-1025). */
   currentListId?: string | null
+
+  /**
+   * What the board-status pill reads (AWTD-1582), from `useBoardRowContext`:
+   * the synced lists, the reader's projects and the board being viewed. One
+   * object for the whole list. Absent, the row draws no pill.
+   */
+  boardStatusSource?: BoardStatusSource | null
 }
 
 /**
@@ -119,6 +127,7 @@ function TaskRowImpl({
   isSubtask,
   board,
   currentListId,
+  boardStatusSource,
 }: TaskRowProps) {
   const {
     selectedTaskId,
@@ -214,6 +223,12 @@ function TaskRowImpl({
     },
     [task, handleUpdateTask, board],
   )
+  // The board column as a coloured pill — this is a LIST row (AWTD-1582).
+  const boardStatus = React.useMemo(
+    () => (boardStatusSource ? taskBoardStatus(task, boardStatusSource) : null),
+    [task, boardStatusSource],
+  )
+
   // Unified card styling for both mobile and desktop
   const classNames = [
     'task-row task-card transition-theme relative theme-surface theme-border',
@@ -421,6 +436,7 @@ function TaskRowImpl({
           onOpenOptions={opensOptions ? () => setOptionsOpen(true) : undefined}
           onBoard={Boolean(board)}
           currentListId={currentListId}
+          boardStatus={boardStatus}
         />
         {opensOptions && (
           <PriorityAssigneePicker
