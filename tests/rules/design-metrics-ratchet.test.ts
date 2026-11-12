@@ -94,6 +94,23 @@ describe('what the design metrics count', () => {
     expect(literalStyleProps("<i style={{ a: f({ b: 1 }), c: 'x, y' }} /><b style={{ d: e }} />")).toHaveLength(1)
   })
 
+  // PR #752 review: a fixed value in any JavaScript spelling, and any JSX spacing, still counts.
+  it('a fixed value counts however it is spelled or spaced', () => {
+    const fixed = [
+      '<i style={{ opacity: .5 }} />',
+      '<i style={{ width: 1e2 }} />',
+      "<i style={{ content: 'it\\'s' }} />",
+      '<i style={{ label: "say \\"hi\\"" }} />',
+      '<i style={{ price: `$5` }} />',
+      '<i style ={{ width: 10 }} />',
+      '<i style={ { width: 10 } } />',
+      '<i style = {\n  {\n    width: 10\n  }\n} />',
+    ]
+    for (const text of fixed) expect(count(metric('inlineStyles'), source(text)), text).toBe(1)
+    expect(count(metric('inlineStyles'), source('<i style={{ width: `${w}px` }} />'))).toBe(0)
+    expect(count(metric('inlineStyles'), source('<i style={ { width: w } } />'))).toBe(0)
+  })
+
   it('global-error keeps its inline styles: app CSS may not have loaded there', () => {
     expect(count(metric('inlineStyles'), source("<div style={{ display: 'flex' }} />", 'app/global-error.tsx'))).toBe(0)
   })
