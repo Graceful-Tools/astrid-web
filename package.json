@@ -216,7 +216,7 @@
     "recharts": "^3.10.1",
     "redis": "^5.12.1",
     "resend": "^6.36.0",
-    "tailwind-merge": "^2.5.5",
+    "tailwind-merge": "^3.7.0",
     "tailwindcss-animate": "^1.0.7",
     "turndown": "^7.2.4",
     "undici": "6.29.1",
