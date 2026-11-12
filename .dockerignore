@@ -21,3 +21,7 @@ data
 *.tsbuildinfo
 .eslintcache
 .DS_Store
+# An operator's mounted brand (deploy/self-host/docker-compose.yml): mounted at start,
+# never built in (AWTD-1606).
+deploy/self-host/brand
+deploy/self-host/brand.override.yml

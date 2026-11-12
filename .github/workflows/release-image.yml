@@ -10,11 +10,17 @@ name: 'Release Image'
 # <version> is the git tag without its `v` (v1.4.0 → 1.4.0). Each image carries
 # an SBOM and a provenance attestation in the registry.
 #
+# One image, many brands (AWTD-1587, AWTD-1606): the image reads its brand when it
+# starts, so the bare tag is the ONLY image a partner needs. They mount their profile
+# and set BRAND_PROFILE (SELF_HOSTING.md, "Your brand"); self-host.yml proves exactly
+# that on every change, building with no brand and mounting acme. Nothing brand-
+# specific is published.
+#
 # Triggers, on purpose:
 # - A `v*` tag. Tags are cut from main by hand, with CHANGELOG.md as the notes
 #   (SELF_HOSTING.md, "Releases"). Cutting one is a release decision.
 # - Run workflow from main publishes `:edge`. Deliberately NOT on every push to
-#   main: each run builds a Next.js image per brand (~15 min of runner time),
+#   main: each run builds a Next.js image (~15 min of runner time),
 #   and nobody should run `:edge` in production. Dispatched from any other ref,
 #   it refuses rather than publishing a branch as edge.
 on:
@@ -44,9 +50,11 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        # The published brands. `astrid` is the built-in default (BRAND unset) and
-        # gets the bare tag; any other profile from brands/ is published as
-        # `<version>-<brand>`. One image is one brand: NEXT_PUBLIC_* is compiled in.
+        # `astrid` (BRAND unset) is the bare tag, and it serves every brand: a
+        # partner mounts a profile rather than pulling a brand's own image. Adding
+        # a profile here would publish `<version>-<brand>`, an image with that
+        # brand built in as its default. Nothing needs one; the path stays only
+        # for a partner who must run with no mount at all.
         brand: [astrid]
     outputs:
       version: ${{ steps.version.outputs.version }}

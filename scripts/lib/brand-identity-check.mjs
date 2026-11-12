@@ -77,19 +77,29 @@ export function inheritedAstridIdentity(env, acknowledged) {
  * options rather than being read off `env` so the config reads them by name, which is
  * what scripts/check-env-schema.ts looks for.
  *
+ * `atStart` is the self-hosted container's start (deploy/self-host/load-env.mjs,
+ * AWTD-1606): a profile mounted with BRAND_PROFILE never reaches the build, so the build's
+ * check cannot see it. At start the check only ever warns, because refusing to boot over
+ * a support address is worse than serving Astrid's.
+ *
  * @param {Record<string, string | undefined>} env
- * @param {{ strict?: string, acknowledged?: string, warn?: (message: string) => void }} [options]
+ * @param {{ strict?: string, acknowledged?: string, atStart?: boolean, warn?: (message: string) => void }} [options]
  */
-export function checkBrandIdentity(env, { strict, acknowledged, warn = console.warn } = {}) {
+export function checkBrandIdentity(env, { strict, acknowledged, atStart = false, warn = console.warn } = {}) {
   const inherited = inheritedAstridIdentity(env, acknowledged)
   if (inherited.length === 0) return
 
   const message =
-    `Brand configuration leaves ${inherited.length} identity variable(s) unset, so this build ` +
-    `ships Astrid's value for each:\n${inherited.map((name) => `  - ${name}`).join('\n')}\n` +
+    `Brand configuration leaves ${inherited.length} identity variable(s) unset, so this ` +
+    `${atStart ? 'server' : 'build'} ships Astrid's value for each:\n` +
+    `${inherited.map((name) => `  - ${name}`).join('\n')}\n` +
     'Set them, or list the ones you mean to keep in BRAND_INHERIT_ASTRID_IDENTITY ' +
     '(docs/WHITELABELING.md).'
 
+  if (atStart) {
+    warn(`[load-env] ⚠️  ${message}`)
+    return
+  }
   if (strict?.trim().toLowerCase() === 'true') {
     throw new Error(`${message}\nBRAND_STRICT_IDENTITY=true refuses to build with them.`)
   }

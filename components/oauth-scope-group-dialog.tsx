@@ -52,7 +52,7 @@ import {
 } from '@/lib/oauth/oauth-scopes'
 import { apiCall, refusalReason } from '@/lib/api'
 import { useTranslations } from '@/lib/i18n/client'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/use-toast'
 
 const PREFIX = 'settingsPages.connections.permissions'
 

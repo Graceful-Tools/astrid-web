@@ -1,11 +1,11 @@
 {
-  "rawPaletteClasses": 200,
-  "hexColours": 105,
+  "rawPaletteClasses": 197,
+  "hexColours": 104,
   "rgbColours": 9,
   "themeTriplets": 0,
   "inlineStyles": 56,
   "arbitrarySizes": 96,
-  "motionLiterals": 5,
-  "hardcodedCopy": 440,
+  "motionLiterals": 4,
+  "hardcodedCopy": 438,
   "uniqueHardcodedStrings": 399
 }
