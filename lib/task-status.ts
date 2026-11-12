@@ -157,11 +157,14 @@ export function parseCustomStates(raw: unknown): StatusState[] {
  * TypeScript is the fallback and the comparison.
  */
 export function boardColumnsFor(project: ProjectLike | null | undefined): BoardColumn[] {
-  const typescriptAnswer = typescriptBoardColumnsFor(project)
   // A custom role spelled like one of the core's virtual ids cannot be told apart from that
   // column on the core's side, so that (vanishingly rare) board is not put to it.
-  if (typescriptAnswer.some(column => column.kind === 'status' && isCoreVirtualId(column.id))) return typescriptAnswer
-  const answer = boardColumnsThroughCore(project?.customStates, typescriptAnswer.map(toCoreColumn))
+  if (parseCustomStates(project?.customStates).some(state => isCoreVirtualId(state.role))) {
+    return typescriptBoardColumnsFor(project)
+  }
+  const answer = boardColumnsThroughCore(project?.customStates, () =>
+    typescriptBoardColumnsFor(project).map(toCoreColumn),
+  )
   return answer.map(fromCoreColumn)
 }
 
@@ -210,7 +213,6 @@ export function resolveColumnMove(
   task: TaskLike,
   targetColumnId: string
 ): { statusRole: string | null; completed: boolean } {
-  const typescriptAnswer = typescriptColumnMove(targetColumnId)
   // The kind comes from THIS API's id: anything but Inbox and Done is a status role, however it
   // is spelled. A role that collides with a core virtual id is refused by moveRequestFor's
   // status-id guard, and the TypeScript answers.
@@ -223,7 +225,7 @@ export function resolveColumnMove(
       column: { id: coreId, kind },
       lists: [],
     },
-    { ...typescriptAnswer, listIds: [] },
+    () => ({ ...typescriptColumnMove(targetColumnId), listIds: [] }),
   )
   return { statusRole, completed }
 }
