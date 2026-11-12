@@ -132,7 +132,10 @@ export function taskBoardStatus(
     const project = (source.projects ?? []).find(candidate => candidate.id === id)
     const state = parseCustomStates(project?.customStates).find(candidate => candidate.role === role)
     if (state) {
-      boardName = state.name
+      // A built-in renamed back to its own English name is not a rename: it is
+      // translated, as the board and the status picker translate it
+      // (lib/board-column-labels.ts) — one rule for every surface.
+      boardName = state.name === BUILT_IN_NAMES[role] ? null : state.name
       break
     }
   }
