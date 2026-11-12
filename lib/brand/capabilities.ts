@@ -30,6 +30,7 @@
  * it into the client bundle — do not refactor these into a loop or a computed key.
  */
 
+import { brandEnv } from './runtime-env'
 import { resolveAuthProviders, type AuthProviderId } from './auth-providers'
 
 /** A capability is on unless explicitly set to "false"/"0"/"off". */
@@ -47,9 +48,9 @@ export function explicitlyEnabled(value: string | undefined): boolean {
   return ['true', '1', 'on', 'yes'].includes(value?.trim().toLowerCase() ?? '')
 }
 
-const integrationCustomAgents = enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW)
-const codingAgent = enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_CODING_AGENT)
-const githubProjects = explicitlyEnabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS)
+const integrationCustomAgents = enabled(brandEnv('NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW', process.env.NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW))
+const codingAgent = enabled(brandEnv('NEXT_PUBLIC_BRAND_ENABLE_CODING_AGENT', process.env.NEXT_PUBLIC_BRAND_ENABLE_CODING_AGENT))
+const githubProjects = explicitlyEnabled(brandEnv('NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS', process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS))
 
 /**
  * The sign-in providers this deployment offers, in button order (spec §6.2).
@@ -58,11 +59,11 @@ const githubProjects = explicitlyEnabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_GI
  * on only when listed. See lib/brand/auth-providers.ts for the rules.
  */
 export const AUTH_PROVIDERS: readonly AuthProviderId[] = resolveAuthProviders(
-  process.env.NEXT_PUBLIC_BRAND_AUTH_PROVIDERS,
+  brandEnv('NEXT_PUBLIC_BRAND_AUTH_PROVIDERS', process.env.NEXT_PUBLIC_BRAND_AUTH_PROVIDERS),
   {
-    google: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_GOOGLE),
-    apple: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_APPLE),
-    passkey: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_PASSKEY),
+    google: enabled(brandEnv('NEXT_PUBLIC_BRAND_ENABLE_AUTH_GOOGLE', process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_GOOGLE)),
+    apple: enabled(brandEnv('NEXT_PUBLIC_BRAND_ENABLE_AUTH_APPLE', process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_APPLE)),
+    passkey: enabled(brandEnv('NEXT_PUBLIC_BRAND_ENABLE_AUTH_PASSKEY', process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_PASSKEY)),
   },
 )
 
@@ -83,19 +84,19 @@ export const CAPABILITIES = {
 
   // --- External sync ------------------------------------------------------
   /** Two-way sync with Google Tasks. */
-  syncGoogleTasks: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_SYNC_GOOGLE_TASKS),
+  syncGoogleTasks: enabled(brandEnv('NEXT_PUBLIC_BRAND_ENABLE_SYNC_GOOGLE_TASKS', process.env.NEXT_PUBLIC_BRAND_ENABLE_SYNC_GOOGLE_TASKS)),
   /** Two-way sync with GitHub Issues. */
-  syncGithubIssues: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_SYNC_GITHUB_ISSUES),
+  syncGithubIssues: enabled(brandEnv('NEXT_PUBLIC_BRAND_ENABLE_SYNC_GITHUB_ISSUES', process.env.NEXT_PUBLIC_BRAND_ENABLE_SYNC_GITHUB_ISSUES)),
 
   // --- Assistant integrations ---------------------------------------------
   /** Model Context Protocol server endpoint. */
-  integrationMcp: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_MCP),
+  integrationMcp: enabled(brandEnv('NEXT_PUBLIC_BRAND_ENABLE_MCP', process.env.NEXT_PUBLIC_BRAND_ENABLE_MCP)),
   /** User-operated agents connected through OAuth, REST, and SSE. */
   integrationCustomAgents,
   /** Legacy capability alias retained for existing web and mobile clients. */
   integrationOpenClaw: integrationCustomAgents,
   /** OpenAPI + ai-plugin discovery documents for ChatGPT actions. */
-  integrationChatGptActions: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS),
+  integrationChatGptActions: enabled(brandEnv('NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS', process.env.NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS)),
   /**
    * The AI coding agent: the GitHub App that turns a task into a branch, a PR
    * and a merge. Its own switch — it used to ride on `syncGithubIssues`, so
@@ -123,7 +124,7 @@ export const CAPABILITIES = {
    * which users in a deployment that has it can reach it. Call sites check
    * the capability first (see lib/project-mode.ts, which does both in order).
    */
-  projectMode: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE),
+  projectMode: enabled(brandEnv('NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE', process.env.NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE)),
   /**
    * GitHub Projects as a task backend: org projects bound as boards, mirrored
    * from GitHub (docs/specs/GITHUB_PROJECTS_WHITELABEL.md §8). OFF unless the
@@ -137,14 +138,14 @@ export const CAPABILITIES = {
    * unless the brand sets it: a label written to a partner's customers' repos
    * is the partner's call. Means nothing without `githubProjects`.
    */
-  githubAgentLabels: explicitlyEnabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS),
-  taskCost: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_TASK_COST),
+  githubAgentLabels: explicitlyEnabled(brandEnv('NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS', process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS)),
+  taskCost: enabled(brandEnv('NEXT_PUBLIC_BRAND_ENABLE_TASK_COST', process.env.NEXT_PUBLIC_BRAND_ENABLE_TASK_COST)),
 
   // --- Other services -----------------------------------------------------
   /** Creating tasks by emailing the inbound address. */
-  emailToTask: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK),
+  emailToTask: enabled(brandEnv('NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK', process.env.NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK)),
   /** Public calendar (.ics) feed of tasks. */
-  calendarFeed: enabled(process.env.NEXT_PUBLIC_BRAND_ENABLE_CALENDAR_FEED),
+  calendarFeed: enabled(brandEnv('NEXT_PUBLIC_BRAND_ENABLE_CALENDAR_FEED', process.env.NEXT_PUBLIC_BRAND_ENABLE_CALENDAR_FEED)),
 } as const
 
 export type CapabilityKey = keyof typeof CAPABILITIES
