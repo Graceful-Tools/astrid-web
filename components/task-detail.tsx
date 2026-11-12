@@ -1,5 +1,6 @@
 "use client"
 
+import { scrollBehavior } from "@/lib/design/reduced-motion"
 import { useTranslations } from "@/lib/i18n/client"
 import { useState, useEffect, useMemo, useRef, useCallback, memo } from "react"
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
@@ -317,11 +318,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         if (needsScrollIntoViewHandling()) {
           if (focusInTimeout) clearTimeout(focusInTimeout) // one at a time; see focus-out
           focusInTimeout = setTimeout(() => {
-            target.scrollIntoView({
-              behavior: 'smooth',
-              block: 'center',
-              inline: 'nearest'
-            })
+            target.scrollIntoView({ behavior: scrollBehavior(), block: 'center', inline: 'nearest' })
           }, 100)
         }
       }
@@ -1102,10 +1099,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
 
     if (shouldScroll && scrollAreaRef.current) {
       setTimeout(() => {
-        scrollAreaRef.current?.scrollTo({
-          top: scrollAreaRef.current.scrollHeight,
-          behavior: 'smooth'
-        })
+        scrollAreaRef.current?.scrollTo({ top: scrollAreaRef.current.scrollHeight, behavior: scrollBehavior() })
       }, 100)
     }
 

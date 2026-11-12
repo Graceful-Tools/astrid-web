@@ -291,6 +291,23 @@ html, body {
   }
 }
 
+/* Reduced motion (astrid-core register DS17). Where the person has asked the
+   system for less movement, nothing slides, fades, pops or springs: the change
+   happens at once. `animation: none`, not a short duration, so Radix's
+   presence sees no animation and unmounts at once instead of waiting for an
+   animationend. A spinner keeps turning: it says work is happening, and
+   stopping it says the opposite. Motion started from script reads
+   lib/design/reduced-motion.ts. */
+@media (prefers-reduced-motion: reduce) {
+  *:not(.animate-spin),
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 @keyframes taskCheckboxPop {
   0% { transform: scale(1); }
   45% { transform: scale(var(--astrid-state-complete-pop-scale)); }

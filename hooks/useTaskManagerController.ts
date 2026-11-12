@@ -1,3 +1,4 @@
+import { scrollBehavior } from "@/lib/design/reduced-motion"
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { isInMyTasksScope } from "@/lib/my-tasks-scope"
 import { completeManualOrder } from "@/lib/task-sort"
@@ -1197,11 +1198,7 @@ export function useTaskManagerController({
             setSelectedTaskElement(taskElement)
             setSelectedTaskRect(taskElement.getBoundingClientRect())
             isKeyboardScrollingRef.current = true
-            taskElement.scrollIntoView({
-              behavior: 'smooth',
-              block: 'nearest',
-              inline: 'nearest'
-            })
+            taskElement.scrollIntoView({ behavior: scrollBehavior(), block: 'nearest', inline: 'nearest' })
             setTimeout(() => {
               isKeyboardScrollingRef.current = false
             }, 500)
@@ -1233,11 +1230,7 @@ export function useTaskManagerController({
             setSelectedTaskElement(taskElement)
             setSelectedTaskRect(taskElement.getBoundingClientRect())
             isKeyboardScrollingRef.current = true
-            taskElement.scrollIntoView({
-              behavior: 'smooth',
-              block: 'nearest',
-              inline: 'nearest'
-            })
+            taskElement.scrollIntoView({ behavior: scrollBehavior(), block: 'nearest', inline: 'nearest' })
             setTimeout(() => {
               isKeyboardScrollingRef.current = false
             }, 500)
