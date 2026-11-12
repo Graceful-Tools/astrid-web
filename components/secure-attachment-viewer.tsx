@@ -310,7 +310,6 @@ export function SecureAttachmentViewer({
                         src={fileInfo.url}
                         controls
                         className="max-w-full max-h-full"
-                        style={{ maxHeight: '100%', maxWidth: '100%' }}
                       >
                         {t('attachmentViewer.videoUnsupported')}
                       </video>

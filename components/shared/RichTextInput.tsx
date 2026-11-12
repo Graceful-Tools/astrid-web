@@ -447,8 +447,7 @@ export const RichTextInput = React.memo(function RichTextInput({
             <div
               ref={backdropRef}
               aria-hidden
-              className="absolute inset-0 rounded-xl px-3 py-2 text-sm leading-5 whitespace-pre-wrap break-words overflow-hidden pointer-events-none"
-              style={{ maxHeight: '120px' }}
+              className="absolute inset-0 rounded-xl px-3 py-2 text-sm leading-5 whitespace-pre-wrap break-words overflow-hidden pointer-events-none composer-input-max"
               dangerouslySetInnerHTML={{ __html: highlightHtml }}
             />
           )}
@@ -464,10 +463,9 @@ export const RichTextInput = React.memo(function RichTextInput({
             disabled={disabled}
             rows={1}
             spellCheck={!showOverlay}
-            className={`w-full resize-none rounded-xl px-3 py-2 text-sm leading-5 h-9 theme-bg-secondary border-0 outline-none focus:ring-1 focus:ring-brand scrollbar-hide ${
-              showOverlay ? 'text-transparent caret-current' : 'theme-text-primary'
+            className={`w-full resize-none rounded-xl px-3 py-2 text-sm leading-5 h-9 theme-bg-secondary border-0 outline-none focus:ring-1 focus:ring-brand scrollbar-hide composer-input-max caret-current ${
+              showOverlay ? 'text-transparent' : 'theme-text-primary'
             }`}
-            style={{ maxHeight: '120px', caretColor: 'currentColor' }}
           />
         </div>
 

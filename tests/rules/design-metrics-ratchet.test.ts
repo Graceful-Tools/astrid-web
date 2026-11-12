@@ -20,7 +20,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-import { BUDGET_FILE, METRICS, count, measure, overBudget, withoutComments } from '@/scripts/report-design-metrics'
+import { BUDGET_FILE, METRICS, count, literalStyleProps, measure, overBudget, withoutComments } from '@/scripts/report-design-metrics'
 
 const metric = (id: string) => METRICS.find((entry) => entry.id === id)!
 const source = (text: string, path = 'components/example.tsx') => [{ path, source: text }]
@@ -43,7 +43,7 @@ describe('what the design metrics count', () => {
   })
 
   it('an inline style, an arbitrary size and a typed duration', () => {
-    expect(count(metric('inlineStyles'), source('<div style={{ width }} />'))).toBe(1)
+    expect(count(metric('inlineStyles'), source("<div style={{ width: '33%' }} />"))).toBe(1)
     expect(count(metric('arbitrarySizes'), source('<div className="w-[37px] text-[10px] grid-cols-[1fr_auto]" />'))).toBe(2)
     expect(count(metric('motionLiterals'), source('.a { transition: transform 0.15s ease; animation: x 300ms; }\n<i className="duration-200" />', 'styles/a.css'))).toBe(3)
   })
@@ -67,6 +67,35 @@ describe('what the design metrics count', () => {
     const text = '<p>Search tasks</p><input placeholder="Search tasks" aria-label="Search tasks" />'
     expect(count(metric('hardcodedCopy'), source(text))).toBe(3)
     expect(count(metric('uniqueHardcodedStrings'), source(text))).toBe(1)
+  })
+
+  // AWTD-1616: the count is the fixed values a class should carry, not every style prop.
+  it('an inline style that only carries run-time values is not counted', () => {
+    const computed = [
+      '<i style={{ color: list.color }} />',
+      '<i style={{ width }} />',
+      '<i style={{ top: `${arrowTop}px` }} />',
+      '<i style={{ backgroundColor: `${label.color}25`, color: label.color }} />',
+      '<i style={{ height: isRefreshing ? 60 : Math.min(distance, 60) }} />',
+      '<i style={{ ...(depth ? { marginLeft: depth * 24 } : {}) }} />',
+    ]
+    for (const text of computed) expect(count(metric('inlineStyles'), source(text)), text).toBe(0)
+  })
+
+  it('an inline style counts once if any of its values is fixed', () => {
+    const fixed = [
+      "<i style={{ zIndex: 9999 }} />",
+      '<i style={{ position: "relative", zIndex: 10000 }} />',
+      "<i style={{ left: x - 18, right: 10, width: 'auto' }} />",
+      "<i style={{ backgroundColor: list.color, color: 'white' }} />",
+      '<i style={{ maxHeight: `120px` }} />',
+    ]
+    for (const text of fixed) expect(count(metric('inlineStyles'), source(text)), text).toBe(1)
+    expect(literalStyleProps("<i style={{ a: f({ b: 1 }), c: 'x, y' }} /><b style={{ d: e }} />")).toHaveLength(1)
+  })
+
+  it('global-error keeps its inline styles: app CSS may not have loaded there', () => {
+    expect(count(metric('inlineStyles'), source("<div style={{ display: 'flex' }} />", 'app/global-error.tsx'))).toBe(0)
   })
 
   it('a duration that names the motion token is not a literal', () => {
