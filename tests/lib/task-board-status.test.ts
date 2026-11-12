@@ -102,4 +102,9 @@ describe('taskBoardStatus (AWTD-1582)', () => {
     const elsewhere = { projectId: 'p9', columns: [{ id: 'ready', name: 'Approved', kind: 'status' }] }
     expect(taskBoardStatus(t, { projects: [other, viewed], board: elsewhere })?.boardName).toBe('Up next')
   })
+
+  it('AWTD-1582: a built-in renamed back to its own name reads as the built-in, as on the board', () => {
+    const p1 = { ...project, customStates: [{ role: 'ready', name: 'Ready', order: 0 }] }
+    expect(status(task({ statusRole: 'ready' }), [p1])).toEqual({ kind: 'ready', boardName: null })
+  })
 })
