@@ -260,7 +260,13 @@ describe('AWTD-1002 the board moves while you look at it', () => {
     })
 
     expect(result.reblocked).toEqual(['dependent'])
-    expect(broadcastsFor('dependent')).toHaveLength(1)
+    // Entering Waiting unassigns (R2): the board gets the full card, and the former assignee —
+    // no longer on it — the lean update, without the v1 card.
+    const [full, lean] = broadcastsFor('dependent')
+    expect(full[1].data.v1Task?.statusRole).toBe('waiting')
+    expect(lean[0]).toEqual(['u-assignee'])
+    expect(lean[1].data.v1Task).toBeUndefined()
+    expect(db.tasks.get('dependent').assigneeId).toBeNull()
     expect(notifiedUserIds()).toContain('u-assignee')
   })
 

@@ -36,7 +36,7 @@ import {
   WAITING_NEEDS_CONDITION_USER_MESSAGE,
 } from '@/lib/waiting-enforcement'
 import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
-import { checkBlockerCandidate } from '@/services/task-dependency.service'
+import { attachBlocker, checkBlockerCandidate } from '@/services/task-dependency.service'
 
 const log = createLogger('services.task-waiting')
 
@@ -228,4 +228,27 @@ export async function resolveWaitingForCreate(args: {
     return { ok: true, data: columnsFor(WAITING_ROLE, !request.keepAssignee && Boolean(assigneeId)), attachBlockerId, transition: 'native-lenient' }
   }
   return { ok: true, data: columnsFor(answer.value.statusRole, answer.value.assignee === 'clear'), attachBlockerId, transition: answer.value.transition }
+}
+
+/**
+ * Attach a new task's `waitOnTaskId` blocker. If the attach fails and that blocker was the task's
+ * only condition (no future date), the task would be a Waiting task with nothing to wait on — so it
+ * is moved to Inbox instead, and the change is returned for the caller's copy of the row. Retries
+ * cannot repair it later: a duplicate create returns before attaching.
+ */
+export async function attachCreatedBlocker(
+  task: { id: string; statusRole?: string | null; dueDateTime?: Date | string | null },
+  blockingTaskId: string,
+  actorId: string,
+): Promise<{ statusRole?: null }> {
+  try {
+    await attachBlocker({ taskId: task.id, blockingTaskId, userId: actorId })
+    return {}
+  } catch (err) {
+    log.error({ err, taskId: task.id }, 'Failed to attach the waitOnTaskId blocker to a new task')
+    const due = time(task.dueDateTime)
+    if (task.statusRole !== WAITING_ROLE || (due !== null && due > Date.now())) return {}
+    await prisma.task.update({ where: { id: task.id }, data: { statusRole: null } }).catch(() => undefined)
+    return { statusRole: null }
+  }
 }

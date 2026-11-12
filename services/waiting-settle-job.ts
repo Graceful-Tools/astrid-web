@@ -193,6 +193,10 @@ export async function runWaitingSettleJob(args: {
     const page = (await prisma.task.findMany({
       where: {
         completed: false,
+        // GitHub-backed tasks and boards change through their backend's write-through, which this
+        // system job has no actor for: left alone until it does.
+        remoteNodeId: null,
+        lists: { none: { remoteNodeId: { not: null } } },
         OR: [
           { statusRole: WAITING_STATUS_ROLE },
           { statusRole: READY_STATUS_ROLE, dueDateTime: { gt: now } },
@@ -236,7 +240,7 @@ export async function runWaitingSettleJob(args: {
         }
         if (named.title !== undefined) report.detail.push({ ...move, ...named })
         if (backfillMode === 'apply') {
-          if (await applyPlanned(move, task.assigneeId)) report.backfill.applied++
+          if (await applyPlanned(move, task, now, nativeEnforcement)) report.backfill.applied++
           continue
         }
       }
@@ -256,7 +260,7 @@ export async function runWaitingSettleJob(args: {
           clearAssignee: settlement.assignee === 'clear',
         }
         if (named.title !== undefined) report.detail.push({ ...move, ...named })
-        if (settleMode === 'apply' && (await applyPlanned(move, task.assigneeId))) report.settle.applied++
+        if (settleMode === 'apply' && (await applyPlanned(move, task, now, nativeEnforcement))) report.settle.applied++
       }
     }
     if (page.length < PAGE) break
@@ -276,15 +280,33 @@ export async function runWaitingSettleJob(args: {
   return report
 }
 
-async function applyPlanned(move: PlannedMove, formerAssigneeId: string | null): Promise<boolean> {
+/**
+ * Apply one planned move: conditional on the lane, date and assignee the plan saw, and re-decided
+ * from the task's blockers as they are now, so a concurrent edit makes the plan stale rather than
+ * wrong (it is planned again on the next run).
+ */
+async function applyPlanned(move: PlannedMove, planned: Candidate, now: Date, nativeEnforcement: NativeEnforcement): Promise<boolean> {
   try {
     return await applySettlement({
       taskId: move.taskId,
       from: move.from,
       to: move.to,
       clearAssignee: move.clearAssignee,
-      formerAssigneeId,
+      formerAssigneeId: planned.assigneeId,
       kind: move.action === 'wakeToReady' ? 'unblocked' : 'status_changed',
+      dueDateTime: planned.dueDateTime,
+      recheck: ({ task, blockers }) => {
+        const fresh = planTask(
+          {
+            ...task,
+            awaitingDeploy: planned.awaitingDeploy,
+            blockedBy: blockers.map(blocker => ({ blockingTaskId: blocker.id, blockingTask: { completed: blocker.completed } })),
+          },
+          now,
+          nativeEnforcement,
+        )
+        return fresh.backfill === move.action || fresh.settle?.settlement.action === move.action
+      },
     })
   } catch (err) {
     log.error({ err, taskId: move.taskId, action: move.action }, 'waiting settle: a move failed')
