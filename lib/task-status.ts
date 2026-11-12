@@ -27,8 +27,21 @@
  * Inbox and Done stay derived from task state and are never stored.
  */
 
+import {
+  VIRTUAL_DONE_COLUMN_ID,
+  VIRTUAL_INBOX_COLUMN_ID,
+  boardColumnsThroughCore,
+  columnMoveThroughCore,
+} from '@/lib/board-core-hook'
+
 export const INBOX_COLUMN_ID = '__inbox__'
 export const DONE_COLUMN_ID = '__done__'
+
+/** This file's virtual column ids and astrid-core's name the same two columns (AWTD-1585). */
+const toCoreColumnId = (id: string) =>
+  id === INBOX_COLUMN_ID ? VIRTUAL_INBOX_COLUMN_ID : id === DONE_COLUMN_ID ? VIRTUAL_DONE_COLUMN_ID : id
+const fromCoreColumnId = (id: string) =>
+  id === VIRTUAL_INBOX_COLUMN_ID ? INBOX_COLUMN_ID : id === VIRTUAL_DONE_COLUMN_ID ? DONE_COLUMN_ID : id
 
 export interface StatusState {
   role: string
@@ -127,8 +140,20 @@ export function parseCustomStates(raw: unknown): StatusState[] {
  * states, then virtual Done.
  *
  * Derived, so no arrangement of data can produce a duplicate column.
+ *
+ * On the server, astrid-core's `board` rule answers when it is installed (AWTD-1585); this
+ * TypeScript is the fallback and the comparison.
  */
 export function boardColumnsFor(project: ProjectLike | null | undefined): BoardColumn[] {
+  const typescriptAnswer = typescriptBoardColumnsFor(project)
+  const answer = boardColumnsThroughCore(
+    project?.customStates,
+    typescriptAnswer.map(column => ({ ...column, id: toCoreColumnId(column.id) })),
+  )
+  return answer.map(column => ({ ...column, id: fromCoreColumnId(column.id) }))
+}
+
+function typescriptBoardColumnsFor(project: ProjectLike | null | undefined): BoardColumn[] {
   const allCustomStates = parseCustomStates(project?.customStates)
   // Built-in overrides (renamed defaults) stored in customStates.
   const defaultOverrides = new Map(
@@ -165,11 +190,30 @@ export function taskColumnId(task: TaskLike): string {
  * Preserves the board invariants that the list model needed a server-side
  * normalizer to enforce: Done carries no status, and setting a status clears
  * completion.
+ *
+ * On the server, astrid-core's `boardMove` rule answers when it is installed (AWTD-1585). The
+ * column is given by id alone, so its kind is read from the id — what this TypeScript does too.
  */
 export function resolveColumnMove(
   task: TaskLike,
   targetColumnId: string
 ): { statusRole: string | null; completed: boolean } {
+  const typescriptAnswer = typescriptColumnMove(targetColumnId)
+  const coreId = toCoreColumnId(targetColumnId)
+  const kind = coreId === VIRTUAL_INBOX_COLUMN_ID ? 'inbox' : coreId === VIRTUAL_DONE_COLUMN_ID ? 'done' : 'status'
+  // No memberships travel here: this planner never touches them, so neither side is asked to.
+  const { statusRole, completed } = columnMoveThroughCore(
+    {
+      task: { completed: !!task.completed, statusRole: task.statusRole ?? null, listIds: [] },
+      column: { id: coreId, kind },
+      lists: [],
+    },
+    { ...typescriptAnswer, listIds: [] },
+  )
+  return { statusRole, completed }
+}
+
+function typescriptColumnMove(targetColumnId: string): { statusRole: string | null; completed: boolean } {
   if (targetColumnId === DONE_COLUMN_ID) return { statusRole: null, completed: true }
   if (targetColumnId === INBOX_COLUMN_ID) return { statusRole: null, completed: false }
   return { statusRole: targetColumnId, completed: false }
