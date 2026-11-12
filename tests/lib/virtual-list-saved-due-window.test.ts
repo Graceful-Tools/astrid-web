@@ -35,3 +35,15 @@ describe('AWTD-1583: saved filters with a retired due-date window', () => {
     expect(shown('this_calendar_month')).toEqual(['in-3-days', 'in-20-days'])
   })
 })
+
+describe('AWTD-1583: the My Tasks prefilter applies the same scope as the list', () => {
+  it('keeps a task assigned to me through the nested assignee only, and drops unassigned tasks I created', () => {
+    const myTasks = { id: 'my-tasks', name: 'My Tasks', isVirtual: true, virtualListType: 'my-tasks' } as unknown as TaskList
+    const scoped = [
+      { ...buildTask({ id: 'nested-only', creatorId: 'u-other' }), assigneeId: undefined, assignee: { id: 'u1' } },
+      buildTask({ id: 'created-unassigned', assigneeId: null, assignee: null, creatorId: 'u1' }),
+      buildTask({ id: 'mine', assigneeId: 'u1', creatorId: 'u-other' }),
+    ] as unknown as Parameters<typeof applyVirtualListFilter>[0]
+    expect(applyVirtualListFilter(scoped, myTasks, 'u1').map((t) => t.id)).toEqual(['nested-only', 'mine'])
+  })
+})

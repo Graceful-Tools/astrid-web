@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildTask, buildUser } from '../fixtures/domain'
-import { coreSortBy, sortTasksForList } from '@/lib/task-sort'
+import { completeManualOrder, coreSortBy, sortTasksForList } from '@/lib/task-sort'
 import type { Task } from '@/types/task'
 
 // `id` came through `overrides` twice, and the creator was cast rather than
@@ -94,6 +94,25 @@ describe('sortTasksForList', () => {
       baseTask({ id: 'late', createdAt: new Date('2026-01-05') }),
     ]
     expect(sortTasksForList(tasks, 'manual', undefined).map(t => t.id)).toEqual(['late', 'early'])
+  })
+
+  it('AWTD-1583 (D33) manual: unarranged visible tasks go newest first even when the saved order names only hidden tasks', () => {
+    const tasks = [
+      baseTask({ id: 'old', createdAt: new Date('2026-01-01') }),
+      baseTask({ id: 'new', createdAt: new Date('2026-01-05') }),
+    ]
+    expect(sortTasksForList(tasks, 'manual', ['hidden-1', 'hidden-2']).map(t => t.id)).toEqual(['new', 'old'])
+    expect(sortTasksForList(tasks, 'manual', ['hidden-1', 'old']).map(t => t.id)).toEqual(['old', 'new'])
+  })
+
+  it('AWTD-1583 (D33) completeManualOrder: the saved arrangement for tasks the view holds, then the rest newest first', () => {
+    const tasks = [
+      baseTask({ id: 'old', createdAt: new Date('2026-01-01') }),
+      baseTask({ id: 'mid', createdAt: new Date('2026-01-03') }),
+      baseTask({ id: 'new', createdAt: new Date('2026-01-05') }),
+    ]
+    expect(completeManualOrder(['gone', 'old', 7], tasks)).toEqual(['old', 'new', 'mid'])
+    expect(completeManualOrder([], tasks)).toEqual(['new', 'mid', 'old'])
   })
 
   it('AWTD-1583 (D33) priority: completed tasks sink below open ones, then due date breaks ties', () => {

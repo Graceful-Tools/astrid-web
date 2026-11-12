@@ -1,5 +1,6 @@
 import { Task, TaskList } from "@/types/task"
 import { applyDateFilter, coreDueDateWindow } from "@/lib/date-filter-utils"
+import { isInMyTasksScope } from "@/lib/my-tasks-scope"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('virtual-list-utils')
@@ -100,8 +101,9 @@ export function applyVirtualListFilter(
       filtered = tasks.filter(task => {
         // Only apply assignee filter if not explicitly set in filter settings
         if (!list.filterAssignee || list.filterAssignee === "all") {
-          // For My Tasks, only show tasks assigned to the current user (exclude unassigned)
-          return task.assigneeId === currentUserId
+          // The My Tasks scope every client applies (lib/my-tasks-scope.ts, AWTD-1583): assigned
+          // to the current user, the nested assignee counting when assigneeId is missing.
+          return isInMyTasksScope(task, currentUserId)
         }
 
         return true // Let other filters handle the logic

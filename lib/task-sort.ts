@@ -15,10 +15,10 @@ export function coreSortBy(value: string): string {
   return RETIRED_SORTS.has(value) ? "auto" : value
 }
 
-const createdAtOf = (task: Task) => (task.createdAt ? new Date(task.createdAt).getTime() : -Infinity)
+const createdAtOf = (task: Partial<Pick<Task, 'createdAt'>>) => (task.createdAt ? new Date(task.createdAt).getTime() : -Infinity)
 
 /** Newest first; a task with no creation time last (the core reads it as the earliest instant). */
-const newestFirst = (a: Task, b: Task) => {
+export const newestFirst = (a: Partial<Pick<Task, 'createdAt'>>, b: Partial<Pick<Task, 'createdAt'>>) => {
   const [aCreated, bCreated] = [createdAtOf(a), createdAtOf(b)]
   return aCreated === bCreated ? 0 : bCreated > aCreated ? 1 : -1
 }
@@ -110,19 +110,31 @@ export function buildManualOrderMap(
   if (!manualOrder || manualOrder.length === 0) return null
   const map = new Map<string, number>(manualOrder.map((id, index) => [id, index]))
   const knownIds = new Set(manualOrder)
-  if (map.size < tasks.length) {
-    // Tasks the arrangement does not name go after it, newest first — as on iOS and in the core
-    // (D33, AWTD-1583). They went oldest first, so a task created since the arrangement sank to
-    // the bottom on web and rose to the top of that group everywhere else.
-    const fallback = tasks
-      .filter(task => !knownIds.has(task.id))
-      .sort(newestFirst)
-    let nextIndex = map.size
-    fallback.forEach(task => {
-      if (!map.has(task.id)) map.set(task.id, nextIndex++)
-    })
-  }
+  // Tasks the arrangement does not name go after it, newest first — as on iOS and in the core
+  // (D33, AWTD-1583). They went oldest first, so a task created since the arrangement sank to
+  // the bottom on web and rose to the top of that group everywhere else. Decided by which tasks
+  // are unnamed, not by comparing sizes: the saved order may name tasks that are filtered out.
+  const fallback = tasks
+    .filter(task => !knownIds.has(task.id))
+    .sort(newestFirst)
+  let nextIndex = manualOrder.length
+  fallback.forEach(task => {
+    if (!map.has(task.id)) map.set(task.id, nextIndex++)
+  })
   return map
+}
+
+/**
+ * A view's whole manual order: the saved arrangement, keeping only the ids of tasks the view holds
+ * (and only strings), then every task it does not name, newest first — the same place
+ * `sortTasksForList` gives them (AWTD-1583, astrid-core D33).
+ */
+export function completeManualOrder(saved: readonly unknown[], tasks: Pick<Task, 'id' | 'createdAt'>[]): string[] {
+  const held = new Set(tasks.map(task => task.id))
+  const arranged = saved.filter((id): id is string => typeof id === 'string' && held.has(id))
+  const named = new Set(arranged)
+  const rest = tasks.filter(task => !named.has(task.id)).sort(newestFirst).map(task => task.id)
+  return [...arranged, ...rest]
 }
 
 export function sortTasksForList(
