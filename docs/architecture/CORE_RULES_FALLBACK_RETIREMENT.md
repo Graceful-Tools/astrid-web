@@ -31,12 +31,23 @@ TypeScript runs on 1 decision in `ASTRID_CORE_RULES_SAMPLE` (default 20,
 | `stats.failed` | The core couldn't answer, so the TypeScript answered |
 | `stats.skipped` | Not put to the core (outside its domain, such as a signed-out permission check) |
 
-The totals are **per process** and reset on every deploy and cold start. They can't show 30 days
-on their own. The 30-day evidence is the log: every distinct disagreement is logged once per
-process at `warn` by the `core-rules` logger, as "*astrid-core and the TypeScript disagree*",
-"*parse differently*" or "*roll over differently*". Every failure is logged at `error`. A
-30-day window with **no such line**, alongside health snapshots showing `loaded: true` and
-`agreed > 0` for each rule, is the bar.
+The totals are **per process** and reset on every deploy and cold start. The logs are
+deduplicated per process: a disagreement is logged once per distinct shape, and a failure once.
+So neither source shows 30 days on its own. A warm process can keep disagreeing after its one
+log line has aged out, and a health check reads whichever instance answered it. The evidence is
+both of these together:
+
+- **No disagreement and no failure line in 30 days.** These are the `core-rules` logger's lines:
+  "*astrid-core and the TypeScript disagree*", "*parse differently*" or "*roll over
+  differently*" at `warn`, and "*could not answer*" at `error`. This only counts on serverless
+  hosting, where an instance lives hours rather than weeks, so a repeated problem is logged
+  again by each new instance.
+- **Counter snapshots.** `/api/health` snapshots taken at least daily over the window, each
+  showing `loaded: true`, `failed: 0`, `disagreed: 0` and a growing `agreed`. On a long-lived
+  host (a self-hosted container), the snapshots are the evidence that counts. If they weren't
+  collected, the window hasn't started.
+
+If either is missing, postpone the retirement. Don't infer agreement from silence.
 
 ## The rule for retiring a fallback
 
@@ -55,9 +66,11 @@ A server fallback is retired when **all** of these hold:
 
 So there are two steps per rule, and they are dated separately:
 
-- **Step A: stop comparing on the server.** Gated on 1 and 2. Set `ASTRID_CORE_RULES_SAMPLE` to
-  a very large N, or remove the comparison from the rule's `lib/core-rules/*-core.ts`. The
-  TypeScript stays as the fail-safe.
+- **Step A: stop comparing on the server.** Gated on 1 and 2. Remove the comparison from that
+  rule's own `lib/core-rules/*-core.ts` (or give it a per-rule switch). **Don't** raise
+  `ASTRID_CORE_RULES_SAMPLE` for this: it sets N for every rule, so it would thin the evidence
+  for rules that aren't ready. Even a very large N still compares each process's first decision.
+  The TypeScript stays as the fail-safe.
 - **Step B: delete the TypeScript rule.** Gated on 1–4. The browser and the server both call the
   core. The fail-safe becomes "refuse": a permission check that can't be answered is a deny, and
   a search that can't be parsed is a 503, never a guess.
@@ -73,11 +86,12 @@ every date below by the same amount.
 | List permissions | `listAccess` | `lib/list-permissions.ts` (~760 LOC) | AWTD-1061 | **2026-12-14** | AWTD-1586 | ☐ A ☐ B |
 | Search query parse | `searchParse` | `lib/search-query-parser.ts` (~300) | AWTD-1062 | **2026-12-14** | AWTD-1586 (search box) | ☐ A ☐ B |
 | Repeating rollover | `nextOccurrence` | `types/repeating.ts` (~610) | AWTD-1063 | **2026-12-14** | none for Step B on the server. The browser shows the next date but completes through the server. Check the client callers first. | ☐ A ☐ B |
-| Board columns and drops | `board`, `boardMove` | `lib/project-status.ts`, `lib/task-status.ts` (board parts) | AWTD-1585 | **2026-12-14**, from AWTD-1585's deploy | AWTD-1586; the drag, the menus and the status row are client code | ☐ A ☐ B |
+| Board columns | `board` | `getProjectBoardColumns`, `boardColumnsFor` | AWTD-1585 | **2026-12-14**, from AWTD-1585's deploy | AWTD-1586 (the board and the menus are client code) | ☐ A ☐ B |
+| Board drops | `boardMove` | `resolveProjectColumnMove`, `resolveColumnMove` | AWTD-1585 | **Blocked.** No server path asks for a drop yet. `coreRulesBoard` counts columns and drops together, so its `agreed` says nothing about drops. The clock starts once a server caller exists and drops have their own counters. | AWTD-1586 | ☐ A ☐ B |
 | List filters, sort, My Tasks, manual order, snooze | none on the stateless door yet (AWTD2-161) | `lib/date-filter-utils.ts`, `lib/task-sort.ts`, `lib/my-tasks-scope.ts`, `lib/recently-completed-window.ts`, `lib/reminder-snooze.ts` | AWTD-1583 adopted the core's answers in TypeScript | n/a: nothing to compare until the core exposes these rules | AWTD2-161, then AWTD-1586 | ☐ |
 
 **On 2026-12-14** (the follow-up task "Retire the core-rules TypeScript fallbacks", due that
-day): read 30 days of `core-rules` logs and today's `/api/health`. For each rule that meets 1
+day): read 30 days of `core-rules` logs and the daily `/api/health` snapshots. For each rule that meets 1
 and 2, do Step A and tick it here. For each that doesn't, write down what disagreed, fix it in
 the core or in the TypeScript (the fixture first), and move its date out 30 days from the fix.
 

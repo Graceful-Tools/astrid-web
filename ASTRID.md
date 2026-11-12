@@ -126,6 +126,13 @@ the fixtures in the same PR → astrid-core's tests and port agree → the clien
 the core. Web's `main` must merge before core's PR, because core's CI stays red until `main` has
 the new fixture. Deploy web first, since the wire is the one thing every client shares.
 
+**A rule web's server already decides through the core** (permissions, search parsing,
+repeating rollover, board columns and drops) has the core as its source of truth for behaviour
+(AWTD-1591). Change it as a pair of PRs: web's TypeScript and fixture here, the core's rule
+there. The order above still holds, because the fixture is still generated here. A rule that
+exists only in web's TypeScript changes here first, as above. The fallbacks retire on
+[docs/architecture/CORE_RULES_FALLBACK_RETIREMENT.md](./docs/architecture/CORE_RULES_FALLBACK_RETIREMENT.md).
+
 **On a disagreement, follow iOS** (Jon, 2026-10-03). The core deliberately answers some cases
 the way iOS does even though web answers differently. A driver cannot record those as
 expectations, so it routes them to the fixture's `disputed` array through
