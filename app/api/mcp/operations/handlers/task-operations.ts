@@ -185,7 +185,8 @@ export async function createTask(accessToken: string, listIds: string[], taskDat
 
   // MCP surfaces signal failure by throwing; there is no status code to carry.
   if (!result.ok) {
-    throw new Error(result.error)
+    // The rule's code rides along (WAITING_NEEDS_CONDITION), so an agent can branch on it.
+    throw new Error(result.code ? `${result.error} (${result.code})` : result.error)
   }
 
   const task = result.task as any
@@ -283,6 +284,9 @@ export async function updateTask(accessToken: string, taskId: string, updates: a
   if (updates.assigneeId !== undefined) intent.assigneeId = updates.assigneeId
   if (updates.closedReason !== undefined) intent.closedReason = updates.closedReason
   if (updates.statusRole !== undefined) intent.statusRole = updates.statusRole
+  // The Waiting rules' request fields (services/task-waiting.ts, Jon 2026-11-12).
+  if (typeof updates.keepAssignee === 'boolean') intent.keepAssignee = updates.keepAssignee
+  if (typeof updates.waitOnTaskId === 'string' && updates.waitOnTaskId) intent.waitOnTaskId = updates.waitOnTaskId
 
   const result = await updateTaskWithSideEffects({
     taskId,
@@ -314,7 +318,8 @@ export async function updateTask(accessToken: string, taskId: string, updates: a
 
   // MCP surfaces signal failure by throwing; there is no status code to carry.
   if (!result.ok) {
-    throw new Error(result.error)
+    // The rule's code rides along (WAITING_NEEDS_CONDITION), so an agent can branch on it.
+    throw new Error(result.code ? `${result.error} (${result.code})` : result.error)
   }
 
   const updatedTask = result.task as any

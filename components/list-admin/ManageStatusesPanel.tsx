@@ -10,6 +10,8 @@ import { useTranslations } from "@/lib/i18n/client"
 import { boardColumnBlurb, boardColumnLabel } from "@/lib/board-column-labels"
 import { RichMessage, fillMessage } from "@/components/shared/RichMessage"
 import type { ProjectBoardColumn } from "@/lib/project-status"
+import { boardPresets, type BoardPreset } from "@/lib/waiting-rules"
+import { apiPost, refusalReason } from "@/lib/api"
 
 interface ManageStatusesPanelProps {
   /**
@@ -145,6 +147,19 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
     })
   }
 
+  // astrid-core's optional preset columns this board can still add (R7: Testing). A preset has a
+  // FIXED role, so the server is asked for the preset, never for a column by that name.
+  const presets = boardPresets(statuses.map(status => ({ role: status.id, name: status.name })))
+  const handleAddPreset = (preset: BoardPreset) => {
+    run(async () => {
+      try {
+        await apiPost("/api/statuses", { preset: preset.role, projectId })
+      } catch (error) {
+        throw new Error(refusalReason(error) ?? t("listSettings.admin.addStatusFailed"))
+      }
+    })
+  }
+
   // Custom-only statuses (for reorder boundary checks).
   const customStatuses = statuses.filter(s => !isDefaultStatusRole(s.id))
 
@@ -253,6 +268,29 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
           <Plus className="w-4 h-4 mr-1" /> {t("actions.add")}
         </Button>
       </div>
+
+      {presets.length > 0 && (
+        <div className="space-y-1.5" data-testid="status-presets">
+          {presets.map(preset => {
+            const column = { id: preset.role, name: preset.name, description: preset.description }
+            return (
+              <div key={preset.role} className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => handleAddPreset(preset)}
+                  data-testid={`status-preset-${preset.role}`}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  {fillMessage(t("listSettings.admin.addPreset"), { name: boardColumnLabel(column, t) })}
+                </Button>
+                <span className="text-xs theme-text-muted truncate">{boardColumnBlurb(column, t)}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {error && <p className="text-sm text-danger">{error}</p>}
     </div>

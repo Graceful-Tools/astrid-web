@@ -62,6 +62,10 @@ const CreateTaskSchema = z.object({
   reminderType: z.enum(["push", "email", "both"]).optional(),
   isPrivate: z.boolean().default(true),
   statusRole: z.string().nullable().optional(),
+  // The Waiting rules (Jon, 2026-11-12): entering Waiting clears the assignee unless kept, and
+  // needs a future dueDateTime or a task to wait on.
+  keepAssignee: z.boolean().optional(),
+  waitOnTaskId: z.string().min(1).optional(),
   repeating: z.enum(["never", "daily", "weekly", "monthly", "yearly", "custom"]).default("never"),
   repeatingData: RepeatingDataSchema,
   repeatFrom: z.enum(["DUE_DATE", "COMPLETION_DATE"]).optional(),
@@ -80,6 +84,10 @@ const UpdateTaskSchema = z.object({
   isPrivate: z.boolean().optional(),
   completed: z.boolean().optional(),
   statusRole: z.string().nullable().optional(),
+  // The Waiting rules (Jon, 2026-11-12): entering Waiting clears the assignee unless kept, and
+  // needs a future dueDateTime or a task to wait on.
+  keepAssignee: z.boolean().optional(),
+  waitOnTaskId: z.string().min(1).optional(),
   repeating: z.enum(["never", "daily", "weekly", "monthly", "yearly", "custom"]).optional(),
   repeatingData: RepeatingDataSchema,
   repeatFrom: z.enum(["DUE_DATE", "COMPLETION_DATE"]).optional(),

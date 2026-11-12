@@ -12,13 +12,18 @@
  * reaching a date) re-evaluate the whole condition rather than trusting what
  * woke them. So three blockers finished in any order — or finished while the
  * cron was failing — land in the same place.
+ *
+ * WHICH lane a blocker change moves a task to is astrid-core's Waiting rules
+ * (lib/waiting-rules.ts, Jon 2026-11-12): `waitingSettle` when a blocker
+ * completes or the clock passes a date, `waitingWrite` when a blocker is added,
+ * removed or reopened. Entering Waiting clears the assignee (R2); this module
+ * only applies the answer.
  */
 
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { recordTaskEvents, type TaskEventInput } from '@/lib/task-events'
 import {
-  isPromotableAfterBlockerChange,
   reachableTaskIds,
   shouldDemoteOnBlockerAdded,
   shouldReblockOnBlockerReopened,
@@ -27,6 +32,7 @@ import {
   type BlockerView,
 } from '@/lib/task-dependencies'
 import { READY_STATUS_ROLE, WAITING_STATUS_ROLE } from '@/lib/task-status'
+import { waitingSettle, waitingWrite, type WaitingBlocker, type WaitingChange } from '@/lib/waiting-rules'
 import { TASK_FULL_INCLUDE } from '@/lib/task-query-utils'
 import { loadV1TaskForEvent } from '@/lib/tasks/v1-task-shape'
 import { audienceForTask } from '@/lib/deletion-log'
@@ -108,8 +114,10 @@ async function announceTaskChange(args: {
   actorId: string | null
   event: TaskEventInput
   broadcast: boolean
+  /** Who was assigned before the move, when the move cleared them (R2): they still hear about it. */
+  formerAssigneeId?: string | null
 }): Promise<void> {
-  const { taskId, actorId, event, broadcast } = args
+  const { taskId, actorId, event, broadcast, formerAssigneeId } = args
   try {
     const task = await prisma.task.findUnique({ where: { id: taskId }, include: TASK_FULL_INCLUDE })
     if (!task) return
@@ -118,7 +126,7 @@ async function announceTaskChange(args: {
       targets: fanOutEvent({
         kind: event.kind,
         actorId,
-        audience: { assigneeId: task.assigneeId, creatorId: task.creatorId },
+        audience: { assigneeId: task.assigneeId ?? formerAssigneeId ?? null, creatorId: task.creatorId },
       }),
       context: { taskId, actorId },
     })
@@ -155,24 +163,91 @@ async function announceTaskChange(args: {
  */
 async function moveLane(args: {
   taskId: string
-  from: string
-  to: string
+  from: string | null
+  to: string | null
   kind: 'status_changed' | 'unblocked'
   actorId: string | null
   actorType: 'user' | 'agent' | 'system'
+  /** The Waiting rules said `assignee: "clear"` (entering Waiting, R2). */
+  clearAssignee?: boolean
+  formerAssigneeId?: string | null
 }): Promise<boolean> {
-  const { taskId, from, to, kind, actorId, actorType } = args
+  const { taskId, from, to, kind, actorId, actorType, clearAssignee = false, formerAssigneeId = null } = args
 
   const moved = await prisma.task.updateMany({
     where: { id: taskId, statusRole: from, completed: false },
-    data: { statusRole: to },
+    data: clearAssignee ? { statusRole: to, assigneeId: null, assigneeIds: [] } : { statusRole: to },
   })
   if (moved.count === 0) return false
 
-  const event: TaskEventInput = { kind, from, to }
-  await recordTaskEvents({ taskId, actorId, actorType, events: [event] })
-  await announceTaskChange({ taskId, actorId, event, broadcast: true })
+  const events: TaskEventInput[] = []
+  if (from !== to) events.push({ kind, from, to })
+  if (clearAssignee && formerAssigneeId) events.push({ kind: 'unassigned', from: formerAssigneeId, to: null })
+  const event = events[0] ?? { kind, from, to }
+  await recordTaskEvents({ taskId, actorId, actorType, events })
+  await announceTaskChange({ taskId, actorId, event, broadcast: true, formerAssigneeId: clearAssignee ? formerAssigneeId : null })
   return true
+}
+
+/**
+ * Apply one move the scheduled Waiting job planned (services/waiting-settle-job.ts): conditional
+ * on the task still being where the plan found it, announced like any move this module makes.
+ */
+export async function applySettlement(args: {
+  taskId: string
+  from: string | null
+  to: string | null
+  clearAssignee: boolean
+  formerAssigneeId: string | null
+  kind: 'status_changed' | 'unblocked'
+}): Promise<boolean> {
+  return moveLane({ ...args, actorId: null, actorType: 'system' })
+}
+
+/** One task as the Waiting rules read it, with its blockers. `null` when it is gone. */
+async function waitingStateOf(taskId: string) {
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: { id: true, statusRole: true, dueDateTime: true, isAllDay: true, assigneeId: true, completed: true },
+  })
+  if (!task) return null
+  const rows = await prisma.taskDependency.findMany({
+    where: { blockedTaskId: taskId },
+    select: { blockingTaskId: true, blockingTask: { select: { completed: true } } },
+  })
+  const blockers: WaitingBlocker[] = rows.map(row => ({ id: row.blockingTaskId, completed: Boolean(row.blockingTask?.completed) }))
+  return { task, blockers }
+}
+
+/**
+ * Apply `waitingWrite` for a blocker change the task's own row did not make (added, removed,
+ * reopened). Only a move into, or out of, Waiting is written; `none` and `stay` write nothing.
+ */
+async function applyWaitingWrite(args: {
+  taskId: string
+  blockers: WaitingBlocker[]
+  change: WaitingChange
+  kind: 'status_changed' | 'unblocked'
+  actorId: string | null
+  actorType: 'user' | 'agent' | 'system'
+  now: Date
+}): Promise<boolean> {
+  const state = await waitingStateOf(args.taskId)
+  if (!state || state.task.completed) return false
+  const answer = waitingWrite(state.task, args.blockers, args.change, args.now)
+  if (!answer.ok) return false
+  const { transition, statusRole, assignee } = answer.value
+  if (transition === 'none' || transition === 'stay') return false
+  return moveLane({
+    taskId: args.taskId,
+    from: state.task.statusRole ?? null,
+    to: statusRole,
+    kind: args.kind,
+    actorId: args.actorId,
+    actorType: args.actorType,
+    clearAssignee: assignee === 'clear',
+    formerAssigneeId: state.task.assigneeId,
+  })
 }
 
 /**
@@ -246,8 +321,9 @@ export async function addBlocker(args: {
   blockingTaskId: string
   userId: string
   actorType?: 'user' | 'agent'
+  now?: Date
 }): Promise<AddBlockerResult | DependencyFailure> {
-  const { taskId, blockingTaskId, userId, actorType = 'user' } = args
+  const { taskId, blockingTaskId, userId, actorType = 'user', now = new Date() } = args
 
   const blocked = await prisma.task.findUnique({
     where: { id: taskId },
@@ -255,14 +331,49 @@ export async function addBlocker(args: {
   })
   if (!blocked) return { ok: false, status: 404, error: 'Task not found' }
 
+  const candidate = await checkBlockerCandidate({ taskId, blockingTaskId, userId })
+  if (!candidate.ok) return candidate
+
+  const before = await waitingStateOf(taskId)
+  const created = await attachBlocker({ taskId, blockingTaskId, userId, actorType })
+
+  // Ready means "actionable now", and a blocked task is not: a Ready task given an open blocker
+  // enters Waiting — through the Waiting rules, so it is unassigned as any entry is (R2). A Doing
+  // task, or one in a custom column, is left where it is.
+  if (created && before && shouldDemoteOnBlockerAdded(blocked.statusRole) && !candidate.completed) {
+    await applyWaitingWrite({
+      taskId,
+      blockers: before.blockers,
+      change: { statusRole: WAITING_STATUS_ROLE, addBlockers: [{ id: blockingTaskId, completed: false }] },
+      kind: 'status_changed',
+      actorId: userId,
+      actorType,
+      now,
+    })
+  }
+
+  const { blockedBy } = await getBlockersForTask(taskId, userId)
+  return { ok: true, created, blockedBy }
+}
+
+/**
+ * May `userId` make `taskId` wait on `blockingTaskId`? Read access to the blocking task (pointing
+ * at a task is not modifying it) and no cycle. `taskId` null is a task not created yet, which no
+ * cycle can reach. Shared by the blocker route and `waitOnTaskId` on task writes (services/task-waiting.ts).
+ */
+export async function checkBlockerCandidate(args: {
+  taskId: string | null
+  blockingTaskId: string
+  userId: string
+}): Promise<{ ok: true; completed: boolean } | DependencyFailure> {
+  const { taskId, blockingTaskId, userId } = args
   const blockerAccess = await getTaskForUser(blockingTaskId, userId)
   if (!blockerAccess.ok) {
     return blockerAccess.status === 404
       ? { ok: false, status: 404, error: 'Blocking task not found' }
       : { ok: false, status: 403, error: 'Access denied to the blocking task' }
   }
-
-  if (await wouldCreateDependencyCycle({ blockedTaskId: taskId, blockingTaskId, blockersOf })) {
+  if (taskId && (await wouldCreateDependencyCycle({ blockedTaskId: taskId, blockingTaskId, blockersOf }))) {
     return {
       ok: false,
       status: 409,
@@ -270,43 +381,35 @@ export async function addBlocker(args: {
       reason: 'dependency_cycle',
     }
   }
+  return { ok: true, completed: Boolean(blockerAccess.task.completed) }
+}
 
+/**
+ * Write one link and its activity line; no lane decision (the caller has made it). Idempotent:
+ * false when the link already existed.
+ */
+export async function attachBlocker(args: {
+  taskId: string
+  blockingTaskId: string
+  userId: string
+  actorType?: 'user' | 'agent'
+}): Promise<boolean> {
+  const { taskId, blockingTaskId, userId, actorType = 'user' } = args
   const existing = await prisma.taskDependency.findUnique({
     where: { blockedTaskId_blockingTaskId: { blockedTaskId: taskId, blockingTaskId } },
     select: { id: true },
   })
-
-  if (!existing) {
-    await prisma.taskDependency.create({
-      data: { blockedTaskId: taskId, blockingTaskId, createdById: userId },
-    })
-
-    await recordTaskEvents({
-      taskId,
-      actorId: userId,
-      actorType,
-      events: [{ kind: 'blocker_added', to: { blockingTaskId } }],
-    })
-
-    // Ready means "actionable now", and a blocked task is not. A Doing task is
-    // left where it is — see shouldDemoteOnBlockerAdded.
-    if (
-      shouldDemoteOnBlockerAdded(blocked.statusRole) &&
-      !blockerAccess.task.completed
-    ) {
-      await moveLane({
-        taskId,
-        from: READY_STATUS_ROLE,
-        to: WAITING_STATUS_ROLE,
-        kind: 'status_changed',
-        actorId: userId,
-        actorType,
-      })
-    }
-  }
-
-  const { blockedBy } = await getBlockersForTask(taskId, userId)
-  return { ok: true, created: !existing, blockedBy }
+  if (existing) return false
+  await prisma.taskDependency.create({
+    data: { blockedTaskId: taskId, blockingTaskId, createdById: userId },
+  })
+  await recordTaskEvents({
+    taskId,
+    actorId: userId,
+    actorType,
+    events: [{ kind: 'blocker_added', to: { blockingTaskId } }],
+  })
+  return true
 }
 
 /**
@@ -324,6 +427,7 @@ export async function removeBlocker(args: {
 }): Promise<{ ok: true; removed: boolean; blockedBy: BlockerView[] } | DependencyFailure> {
   const { taskId, blockingTaskId, userId, actorType = 'user', now = new Date() } = args
 
+  const before = await waitingStateOf(taskId)
   const removed = await prisma.taskDependency.deleteMany({
     where: { blockedTaskId: taskId, blockingTaskId },
   })
@@ -335,23 +439,29 @@ export async function removeBlocker(args: {
       actorType,
       events: [{ kind: 'blocker_removed', to: { blockingTaskId } }],
     })
-    await promoteIfUnblocked({ taskId, actorId: userId, actorType, now })
+    // Taking away the last condition of a Waiting task wakes it (R2/R3) — to Ready, since it had one.
+    if (before) {
+      await applyWaitingWrite({
+        taskId,
+        blockers: before.blockers,
+        change: { removeBlockerIds: [blockingTaskId] },
+        kind: 'unblocked',
+        actorId: userId,
+        actorType,
+        now,
+      })
+    }
   }
 
   const { blockedBy } = await getBlockersForTask(taskId, userId)
   return { ok: true, removed: removed.count > 0, blockedBy }
 }
 
-/** The blockers of `taskId` that are still open. */
-async function outstandingBlockerIds(taskId: string): Promise<string[]> {
-  const rows = await prisma.taskDependency.findMany({
-    where: { blockedTaskId: taskId, blockingTask: { completed: false } },
-    select: { blockingTaskId: true },
-  })
-  return rows.map(row => row.blockingTaskId)
-}
-
-/** Promote ONE task if nothing holds it any more. The write is `moveLane`'s. */
+/**
+ * Settle ONE Waiting task through astrid-core's `waitingSettle` (R3): to Ready when nothing holds
+ * it any more. Only a task in Waiting is touched here — parking a dated Ready task (R5) is the
+ * scheduled settle job's (services/waiting-settle-job.ts), behind its own mode switch.
+ */
 async function promoteIfUnblocked(args: {
   taskId: string
   actorId: string | null
@@ -360,29 +470,22 @@ async function promoteIfUnblocked(args: {
 }): Promise<boolean> {
   const { taskId, actorId, actorType, now } = args
 
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
-    select: { id: true, statusRole: true, dueDateTime: true, completed: true },
-  })
-  if (!task || task.completed) return false
-  if ((task.statusRole ?? '') !== WAITING_STATUS_ROLE) return false
+  const state = await waitingStateOf(taskId)
+  if (!state || state.task.completed) return false
+  if ((state.task.statusRole ?? '') !== WAITING_STATUS_ROLE) return false
 
-  const outstanding = await outstandingBlockerIds(taskId)
-  if (!isPromotableAfterBlockerChange({
-    dueDateTime: task.dueDateTime,
-    now,
-    outstandingBlockerIds: outstanding,
-  })) {
-    return false
-  }
+  const settlement = waitingSettle(state.task, state.blockers, now)
+  if (settlement.action !== 'wakeToReady' && settlement.action !== 'resolveToInbox') return false
 
   return moveLane({
     taskId,
     from: WAITING_STATUS_ROLE,
-    to: READY_STATUS_ROLE,
+    to: settlement.statusRole,
     kind: 'unblocked',
     actorId,
     actorType,
+    clearAssignee: settlement.assignee === 'clear',
+    formerAssigneeId: state.task.assigneeId,
   })
 }
 
@@ -428,16 +531,21 @@ export async function promoteUnblockedDependents(args: {
         continue
       }
 
-      // Reopened: only a dependent sitting in Ready goes back to Waiting.
-      if (shouldReblockOnBlockerReopened(blockedTask.statusRole)) {
-        const moved = await moveLane({
-          taskId: blockedTask.id,
-          from: READY_STATUS_ROLE,
-          to: WAITING_STATUS_ROLE,
-          kind: 'status_changed',
-          actorId,
-          actorType,
-        })
+      // Reopened: only a dependent sitting in Ready goes back to Waiting — entering it through the
+      // Waiting rules, the reopened blocker being its condition (and so unassigned, R2).
+      if (shouldReblockOnBlockerReopened(blockedTask.statusRole) && !blockedTask.completed) {
+        const state = await waitingStateOf(blockedTask.id)
+        const moved = state
+          ? await applyWaitingWrite({
+              taskId: blockedTask.id,
+              blockers: state.blockers,
+              change: { statusRole: WAITING_STATUS_ROLE },
+              kind: 'status_changed',
+              actorId,
+              actorType,
+              now,
+            })
+          : false
         if (moved) reblocked.push(blockedTask.id)
         continue
       }
@@ -481,12 +589,33 @@ export async function reevaluateBlockedTasks(args: {
   actorId?: string | null
   actorType?: 'user' | 'agent' | 'system'
   now?: Date
+  /**
+   * The blocker that went (a deleted task): its rows have cascaded, so it is put back as an open
+   * blocker and removed in the change. Losing the last condition then WAKES the task to Ready
+   * (R2), rather than reading as a task that never had one and landing in Inbox.
+   */
+  removedBlockerId?: string
 }): Promise<string[]> {
-  const { taskIds, actorId = null, actorType = 'user', now = new Date() } = args
+  const { taskIds, actorId = null, actorType = 'user', now = new Date(), removedBlockerId } = args
   const promoted: string[] = []
 
   for (const taskId of taskIds) {
     try {
+      if (removedBlockerId) {
+        const state = await waitingStateOf(taskId)
+        if (!state) continue
+        const moved = await applyWaitingWrite({
+          taskId,
+          blockers: [...state.blockers, { id: removedBlockerId, completed: false }],
+          change: { removeBlockerIds: [removedBlockerId] },
+          kind: 'unblocked',
+          actorId,
+          actorType,
+          now,
+        })
+        if (moved) promoted.push(taskId)
+        continue
+      }
       if (await promoteIfUnblocked({ taskId, actorId, actorType, now })) {
         promoted.push(taskId)
       }

@@ -21,6 +21,10 @@ export interface CreateTaskData {
   // Board column at creation — a ROLE, never a list id (tasks eb7fce2f,
   // f58ece7c); POST /api/v1/tasks persists it. Absence means Inbox.
   statusRole?: string
+  /** Born in Waiting: keep the assignee (default: cleared). Jon, 2026-11-12. */
+  keepAssignee?: boolean
+  /** Born in Waiting on this task: attached as a blocker. */
+  waitOnTaskId?: string
   attachments?: Array<{
     name: string
     url: string

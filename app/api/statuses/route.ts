@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { RedisCache } from "@/lib/redis"
 import { createLogger } from "@/lib/logger"
-import { addUserStatus, renameUserStatus, reorderUserStatus, removeUserStatus } from "@/lib/projects-service"
+import { addUserPresetStatus, addUserStatus, renameUserStatus, reorderUserStatus, removeUserStatus } from "@/lib/projects-service"
 import { prisma } from "@/lib/prisma"
 
 const log = createLogger("api.statuses")
@@ -23,7 +23,8 @@ export const dynamic = "force-dynamic"
  * write alongside it, so the response carries `state` only — the `list` half
  * is gone with the rows.
  *
- * Body: { name, projectId }. Rename/reorder use PUT /api/lists/[id].
+ * Body: { name, projectId }, or { preset, projectId } to add one of astrid-core's optional preset
+ * columns with its fixed role (R7: `preset: "testing"`). Rename/reorder use PUT /api/lists/[id].
  */
 export async function POST(request: NextRequest) {
   try {
@@ -55,7 +56,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Only the board owner can add a status" }, { status: 403 })
     }
 
-    const result = await addUserStatus(session.user.id, name, projectId)
+    const preset = typeof body.preset === "string" ? body.preset : ""
+    const result = preset
+      ? await addUserPresetStatus(session.user.id, preset, projectId)
+      : await addUserStatus(session.user.id, name, projectId)
 
     if ("error" in result) {
       return NextResponse.json({ error: result.message }, { status: result.error === "duplicate" ? 409 : 400 })

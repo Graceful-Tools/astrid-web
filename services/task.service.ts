@@ -37,7 +37,7 @@ import { prisma } from '@/lib/prisma'
 // reach it through services/assignee-authorization.ts, and a direct call would
 // be a third answer to one question (AWTD-891, ratcheted by
 // tests/rules/assignee-rule-reaches-both-write-paths.test.ts).
-import { PROJECT_ACCESS_INCLUDE, hasExplicitListRole } from '@/lib/list-permissions'
+import { PROJECT_ACCESS_INCLUDE } from '@/lib/list-permissions'
 import { getListMemberIds } from '@/lib/list-member-utils'
 import { authorizeAssigneeWrite, authorizeNewTaskAssignee, resolveAssignee } from '@/services/assignee-authorization'
 import { audienceForTask, recordDeletion } from '@/lib/deletion-log'
@@ -86,107 +86,8 @@ import { resolveStatusRoleWrite } from './task-status-role'
 
 const log = createLogger('services.task')
 
-/**
- * The relations the access rule reads. NOT exported: fetching with this shape
- * and then hand-rolling the check is exactly the mistake this module exists to
- * prevent, so the only way to get the shape is to get the check with it.
- */
-const TASK_ACCESS_INCLUDE = {
-  creator: true,
-  assignee: true,
-  lists: {
-    include: {
-      owner: true,
-      listMembers: { include: { user: true } },
-    },
-  },
-} as const
-
-export type TaskAccessResult =
-  | { ok: true; task: NonNullable<Awaited<ReturnType<typeof findTask>>> }
-  | { ok: false; status: 404 | 403; error: string }
-
-function findTask(taskId: string) {
-  return prisma.task.findUnique({
-    where: { id: taskId },
-    include: TASK_ACCESS_INCLUDE,
-  })
-}
-
-/**
- * Fetch a task only if `userId` may act on it.
- *
- * Access is creator, assignee, or an explicit role on any list the task is on.
- * Deliberately NOT public-list access: a PUBLIC list makes a task readable, and
- * every caller of this so far is doing something to the task rather than
- * reading it. A read path that should honour public lists needs its own
- * function rather than a boolean on this one — a flag here would let a caller
- * widen a write to public readers by passing the wrong argument.
- *
- * Returns 404 for a missing task and 403 for a forbidden one, matching what the
- * routes already returned, so adopting it does not change any response.
- */
-export async function getTaskForUser(taskId: string, userId: string): Promise<TaskAccessResult> {
-  const task = await findTask(taskId)
-
-  if (!task) {
-    return { ok: false, status: 404, error: 'Task not found' }
-  }
-
-  if (!userCanAccessTask(task, userId)) {
-    return { ok: false, status: 403, error: 'Access denied' }
-  }
-
-  return { ok: true, task }
-}
-
-/** The minimum a task must carry for the access rule to be answerable. */
-export interface TaskWithAccessRelations {
-  creatorId?: string | null
-  assigneeId?: string | null
-  lists?: Array<{ ownerId?: string; listMembers?: unknown }> | null
-}
-
-/**
- * The access rule itself, for callers that ALREADY hold the task.
- *
- * Slice 2 (task 017a569a). Some routes reach a task as a relation of something
- * else — coding-workflow/status loads it through CodingTaskWorkflow — so
- * getTaskForUser would mean a second query for a row already in memory. They
- * were each re-spelling the three-way check instead.
- *
- * Exporting a predicate reopens the risk slice 1 closed by keeping the include
- * private: a caller can now pass a task fetched WITHOUT `lists.listMembers`,
- * and `hasExplicitListRole` would find no membership and deny a legitimate
- * member. That is the exact bug of task 73733c3d, and it is nasty because it
- * fails CLOSED — a denied member reads as a permissions quirk, not a missing
- * relation.
- *
- * So the shape is checked rather than trusted. A task whose lists were loaded
- * without their members THROWS here, loudly, at the call site that got it
- * wrong — instead of silently returning false in production. That makes the
- * predicate safer to export than the hand-rolled check it replaces, which had
- * no such guard.
- */
-export function userCanAccessTask(task: TaskWithAccessRelations, userId: string): boolean {
-  const lists = task.lists ?? []
-
-  for (const list of lists) {
-    if (list.listMembers === undefined) {
-      throw new Error(
-        'userCanAccessTask: task.lists was loaded without listMembers, so membership ' +
-          'cannot be decided. Include lists: { include: { listMembers: true } }, or use ' +
-          'getTaskForUser() which owns the shape.'
-      )
-    }
-  }
-
-  return (
-    task.creatorId === userId ||
-    task.assigneeId === userId ||
-    lists.some(list => hasExplicitListRole({ id: userId }, list as never))
-  )
-}
+// The access rule lives in ./task-access (ratchet, task 9377bc2c); re-exported so callers are unchanged.
+export { getTaskForUser, userCanAccessTask, type TaskAccessResult, type TaskWithAccessRelations } from './task-access'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Slice 2: the DELETE verb (epic 9dedd8aa)
@@ -274,7 +175,7 @@ export async function deleteTaskWithSideEffects(args: {
   await prisma.task.delete({ where: { id: taskId } })
 
   // A deleted blocker is one fewer blocker: its dependents may now be free.
-  await deps.reevaluateBlockedTasks({ taskIds: dependentTaskIds, actorId }).catch(() => {})
+  await deps.reevaluateBlockedTasks({ taskIds: dependentTaskIds, actorId, removedBlockerId: taskId }).catch(() => {})
 
   // Everything below is best-effort: the row is already gone. try/await, not .catch(),
   // so a caller stubbing these with a plain function (as a test might) does not
@@ -344,11 +245,15 @@ export interface CreateTaskInput extends CreateCompletionInput {
   clientRequestId?: string | null
   parentTaskId?: string | null
   statusRole?: string | null
+  /** Born in Waiting: keep the assignee rather than clear it (services/task-waiting.ts, R2). */
+  keepAssignee?: boolean
+  /** Attach this blocker once the task exists — a Waiting task's "waiting on" condition. */
+  waitOnTaskId?: string | null
 }
 
 export type CreateTaskResult =
   | { ok: true; task: CreatedTask; idempotent: boolean }
-  | { ok: false; status: 400 | 403 | 409 | 429 | 502; error: string }
+  | { ok: false; status: 400 | 403 | 404 | 409 | 422 | 429 | 502; error: string; code?: string }
 
 /**
  * Create a task, with every side effect the create implies.
@@ -514,6 +419,19 @@ export async function createTaskWithSideEffects(args: {
   const completion = resolveCreateCompletionFields(completed, input)
   if (!completion.ok) return { ok: false, status: 400, error: completion.error }
 
+  // Born in Waiting needs a future date or a task to wait on, and is unassigned unless kept
+  // (services/task-waiting.ts; astrid-core's create/* cases).
+  const waiting = await (await import('@/services/task-waiting')).resolveWaitingForCreate({
+    statusRole: input.statusRole,
+    dueDateTime: dueDateTime instanceof Date ? dueDateTime : dueDateTime ? new Date(dueDateTime as never) : null,
+    assigneeId: finalAssigneeId ?? null,
+    completed,
+    request: { keepAssignee: input.keepAssignee, waitOnTaskId: input.waitOnTaskId },
+    actorId,
+    platform,
+  })
+  if (!waiting.ok) return { ok: false, status: waiting.status, error: waiting.error, code: waiting.code }
+
   const repeatingData = normalizeRepeatingData(input.repeating, input.customRepeatingData)
 
   // ── Idempotency ───────────────────────────────────────────────────────────
@@ -592,6 +510,8 @@ export async function createTaskWithSideEffects(args: {
     parentTaskId: input.parentTaskId ?? null,
     statusRole: input.statusRole ?? null,
     lists: { connect: connectListIds.map(id => ({ id })) },
+    // The Waiting rules' role and, when cleared, assignee.
+    ...waiting.data,
   }
 
   const accepted = await (await taskBackendFor(connectListIds)).createTask({ actorId }, data)
@@ -619,6 +539,15 @@ export async function createTaskWithSideEffects(args: {
       return { ok: false, status: 409, error: 'clientRequestId already used by another request' }
     }
     throw err
+  }
+
+  if (waiting.attachBlockerId) {
+    try {
+      const deps = await import('@/services/task-dependency.service')
+      await deps.attachBlocker({ taskId: task.id, blockingTaskId: waiting.attachBlockerId, userId: actorId })
+    } catch (err) {
+      log.error({ err, taskId: task.id }, 'Failed to attach the waitOnTaskId blocker to a new task')
+    }
   }
 
   await runCreateSideEffects({ task, actorId, actorName, platform, connectListIds })
@@ -784,6 +713,10 @@ export interface UpdateTaskIntent {
   lastTimerValue?: number | null
   parentTaskId?: string | null
   listIds?: string[]
+  /** Entering Waiting clears the assignee unless this is true (services/task-waiting.ts, R2). */
+  keepAssignee?: boolean
+  /** Attach this blocker in the same write — a Waiting task's "waiting on" condition. */
+  waitOnTaskId?: string | null
 }
 
 /**
@@ -799,7 +732,7 @@ export interface UpdateTaskIntent {
  */
 export type UpdateTaskResult =
   | { ok: true; task: any; rolledForward: boolean; stateChangeComment?: any }
-  | { ok: false; status: 400 | 403 | 404 | 409 | 412 | 429 | 502; error: string; code?: string; conflict?: any; retryAfter?: number; ssoUrl?: string }
+  | { ok: false; status: 400 | 403 | 404 | 409 | 412 | 422 | 429 | 502; error: string; code?: string; conflict?: any; retryAfter?: number; ssoUrl?: string }
 
 
 /**
@@ -1106,6 +1039,21 @@ export async function updateTaskWithSideEffects(args: {
   if (!roleWrite.ok) return { ok: false, status: roleWrite.status, error: roleWrite.error }
   Object.assign(data, roleWrite.data)
 
+  // The Waiting rules (services/task-waiting.ts): may this write land in Waiting, what role it
+  // stores, and whether the assignee is cleared. Imported here for the reason the dependency
+  // service is in the delete verb: it reads this module's access rule.
+  const waiting = await (await import('@/services/task-waiting')).resolveWaitingForUpdate({
+    existingTask,
+    data,
+    requestedCompleted,
+    request: { keepAssignee: intent.keepAssignee, waitOnTaskId: intent.waitOnTaskId },
+    actorId,
+    platform,
+    surface: actorType === 'agent' ? 'update:agent' : 'update',
+  })
+  if (!waiting.ok) return { ok: false, status: waiting.status, error: waiting.error, code: waiting.code }
+  Object.assign(data, waiting.data)
+
   // Invariant: completed = true => no status memberships (task db7c6670). The
   // listIds branch enforces it through the normalizer, but only when the
   // request carries listIds. A completion-only update — PUT { completed: true },
@@ -1124,6 +1072,10 @@ export async function updateTaskWithSideEffects(args: {
   const lists = validatedListIds ?? (existingTask.lists ?? []).map((list: { id: string }) => list.id)
   const accepted = await (await taskBackendFor(listsBeforeAndAfter(existingTask.lists, lists))).updateTask({ actorId }, taskId, data)
   if (!accepted.ok) return { ok: false, status: accepted.status, error: accepted.error, retryAfter: accepted.retryAfter, ssoUrl: accepted.ssoUrl }
+  if (waiting.attachBlockerId) {
+    const deps = await import('@/services/task-dependency.service')
+    await deps.attachBlocker({ taskId, blockingTaskId: waiting.attachBlockerId, userId: actorId, actorType })
+  }
   const task = await prisma.task.update({
     where: { id: taskId },
     data: accepted.value as never,

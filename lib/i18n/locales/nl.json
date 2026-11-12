@@ -1951,7 +1951,8 @@
         "researchAssistant": "Onderzoeksassistent",
         "familyAssistant": "Gezinsassistent",
         "contentWriter": "Contentschrijver"
-      }
+      },
+      "addPreset": "Voorinstelling toevoegen: {name}"
     },
     "filters": {
       "allAssignees": "Alle toegewezenen",
@@ -2603,14 +2604,16 @@
       "ready": "Klaar",
       "doing": "Bezig",
       "waiting": "Wachten",
-      "done": "Gedaan"
+      "done": "Gedaan",
+      "testing": "Testen"
     },
     "blurb": {
       "inbox": "Zet ze op \"Klaar\" als ze... klaar zijn!",
       "ready": "Tijd om aan de slag te gaan!",
       "doing": "Werk in uitvoering!",
       "waiting": "Gepauzeerd tot de omstandigheden goed zijn.",
-      "done": "Voltooid — gefeliciteerd!"
+      "done": "Voltooid — gefeliciteerd!",
+      "testing": "Wordt uitgerold, in canary of in een experiment."
     }
   },
   "passkeyErrors": {
@@ -2648,5 +2651,22 @@
     "public_write": "Openbare lijsten maken en beheren",
     "sse_connect": "Verbinden met de SSE-eventstroom",
     "all": "Volledige toegang (alleen intern — voor sessie-authenticatie)"
+  },
+  "waiting": {
+    "prompt": {
+      "title": "Waarop wacht deze taak?",
+      "description": "Een wachtende taak wacht op een datum of op een andere taak.",
+      "descriptionFor": "‘{title}’ wacht op een datum of op een andere taak.",
+      "until": "Wachten tot…",
+      "on": "Wachten op…",
+      "dateLabel": "Tot",
+      "dateInPast": "Kies een dag na vandaag.",
+      "taskLabel": "De taak waarop ze wacht",
+      "picked": "Wacht op {task}",
+      "keepAssignedToMe": "Aan mij toegewezen laten",
+      "keepAssignedTo": "Aan {name} toegewezen laten",
+      "theAssignee": "de toegewezen persoon",
+      "confirm": "Naar Wachten verplaatsen"
+    }
   }
 }

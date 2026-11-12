@@ -38,6 +38,10 @@
     {
       "path": "/api/cron/github-projects-sync",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/waiting-settle",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

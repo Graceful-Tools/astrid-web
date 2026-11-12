@@ -171,8 +171,11 @@ describe('AWTD-1583 reminders.json: a reminder snoozes as often as asked (D37)',
 })
 
 describe('AWTD-1583: the 351 cases the clients disputed', () => {
-  it('are all here', () => {
-    const disputed = filters.disputed.length + myTasks.disputed.length + manualOrder.disputed.length + reminders.disputed.length
-    expect(disputed).toBe(351)
+  // astrid-core a1a8df5 regenerated these fixtures after web adopted the iOS rules, so the 351
+  // formerly disputed cases now sit in `cases` with the core's answer (and pass above); no
+  // `disputed` entry is left at the revision pinned since the Waiting rules (core 1c2adfd).
+  it('are resolved: the pinned fixtures carry no disputed case', () => {
+    const disputed = [filters, myTasks, manualOrder, reminders].reduce((sum, fixture) => sum + (fixture.disputed?.length ?? 0), 0)
+    expect(disputed).toBe(0)
   })
 })

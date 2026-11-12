@@ -60,6 +60,10 @@ export const CreateTaskSchema = z.object({
   reminderType: z.enum(["push", "email", "both"]).optional(),
   isPrivate: z.boolean().default(true),
   statusRole: z.string().nullable().optional(),
+  // The Waiting rules (Jon, 2026-11-12): entering Waiting clears the assignee unless kept, and
+  // needs a future dueDateTime or a task to wait on.
+  keepAssignee: z.boolean().optional(),
+  waitOnTaskId: z.string().min(1).optional(),
   ...RepeatingFields,
 }).strict()
 
@@ -76,6 +80,10 @@ export const UpdateTaskSchema = z.object({
   isPrivate: z.boolean().optional(),
   completed: z.boolean().optional(),
   statusRole: z.string().nullable().optional(),
+  // The Waiting rules (Jon, 2026-11-12): entering Waiting clears the assignee unless kept, and
+  // needs a future dueDateTime or a task to wait on.
+  keepAssignee: z.boolean().optional(),
+  waitOnTaskId: z.string().min(1).optional(),
   ...RepeatingFields,
   /**
    * The mailbox this harness runs as — `claude`, `copilot`, `codex`, … or `me`

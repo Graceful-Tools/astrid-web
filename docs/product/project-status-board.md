@@ -198,7 +198,9 @@ Agents should use the same human-readable buckets:
 - New uncertain work stays in Inbox (no status assigned).
 - Clear work ready to pick up goes to Ready.
 - Active work goes to Doing.
-- Work needing input, another task, a date, or external action goes to Waiting.
+- Work waiting on **a date or another task** goes to Waiting — and only that (Jon, 2026-11-12; canonical in astrid-core's Waiting rules). The move needs a future `dueDateTime` or a blocker (`waitOnTaskId`), else the server answers 422 `WAITING_NEEDS_CONDITION`; entering Waiting unassigns the task unless `keepAssignee: true`. It wakes to Ready by itself when the date comes and its blockers are done.
+- Work waiting on **a person** (an answer, a review) goes to Inbox, assigned to that person — not Waiting.
+- Finished agent work awaiting its production deploy stays in Doing. A board may add the optional **Testing** preset column ("Deploying, in canary, or in an experiment.") from Manage statuses.
 - Finished work goes to Done by using the existing completion path.
 
 Agents must not create a task that is `completed = true` while still attached to a status list, and must not attach a task to more than one status list (statuses are a single per-user global concept).

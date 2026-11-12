@@ -15,6 +15,7 @@ import { OfflineProvider } from "@/components/offline-provider"
 import { FeatureFlagProvider } from "@/contexts/feature-flag-context"
 import { EditingSessionProvider } from "@/hooks/use-editing-session"
 import { WebVitalsReporter } from "@/components/web-vitals-reporter"
+import { WaitingConditionPrompt } from "@/components/WaitingConditionPrompt"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -36,6 +37,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
                   <PWAStatus />
                   {children}
                   <Toaster />
+                  {/* The one Waiting prompt: "waiting until… / waiting on…" (lib/waiting-prompt.ts). */}
+                  <WaitingConditionPrompt />
                   <PWAInstallPrompt />
                 </EditingSessionProvider>
               </CodingWorkflowProvider>

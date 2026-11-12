@@ -1951,7 +1951,8 @@
         "researchAssistant": "Research Assistant",
         "familyAssistant": "Family Assistant",
         "contentWriter": "Content Writer"
-      }
+      },
+      "addPreset": "Add preset: {name}"
     },
     "filters": {
       "allAssignees": "All assignees",
@@ -2603,14 +2604,16 @@
       "ready": "Ready",
       "doing": "Doing",
       "waiting": "Waiting",
-      "done": "Done"
+      "done": "Done",
+      "testing": "Testing"
     },
     "blurb": {
       "inbox": "Move them to \"Ready\" when they are... ready!",
       "ready": "Time to get to work!",
       "doing": "Active work in progress!",
       "waiting": "Paused until the circumstances are right.",
-      "done": "Complete — congrats!"
+      "done": "Complete — congrats!",
+      "testing": "Deploying, in canary, or in an experiment."
     }
   },
   "passkeyErrors": {
@@ -2648,5 +2651,22 @@
     "public_write": "Create and manage public lists",
     "sse_connect": "Connect to SSE event stream",
     "all": "Full access (internal use only - granted to session-based auth)"
+  },
+  "waiting": {
+    "prompt": {
+      "title": "What is it waiting for?",
+      "description": "A task in Waiting waits for a date or for another task.",
+      "descriptionFor": "“{title}” will wait for a date or for another task.",
+      "until": "Waiting until…",
+      "on": "Waiting on…",
+      "dateLabel": "Until",
+      "dateInPast": "Pick a day after today.",
+      "taskLabel": "The task it waits on",
+      "picked": "Waiting on {task}",
+      "keepAssignedToMe": "Keep assigned to me",
+      "keepAssignedTo": "Keep assigned to {name}",
+      "theAssignee": "the assignee",
+      "confirm": "Move to Waiting"
+    }
   }
 }

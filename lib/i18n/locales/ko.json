@@ -1951,7 +1951,8 @@
         "researchAssistant": "리서치 어시스턴트",
         "familyAssistant": "가족 어시스턴트",
         "contentWriter": "콘텐츠 작가"
-      }
+      },
+      "addPreset": "프리셋 추가: {name}"
     },
     "filters": {
       "allAssignees": "모든 담당자",
@@ -2603,14 +2604,16 @@
       "ready": "준비됨",
       "doing": "진행 중",
       "waiting": "대기 중",
-      "done": "완료"
+      "done": "완료",
+      "testing": "테스트"
     },
     "blurb": {
       "inbox": "준비되면 \"준비됨\"으로 옮기세요!",
       "ready": "이제 일할 시간!",
       "doing": "작업이 진행 중입니다!",
       "waiting": "상황이 맞을 때까지 일시 중지.",
-      "done": "완료 — 축하합니다!"
+      "done": "완료 — 축하합니다!",
+      "testing": "배포 중, 카나리 중 또는 실험 중."
     }
   },
   "passkeyErrors": {
@@ -2648,5 +2651,22 @@
     "public_write": "공개 목록 만들기 및 관리",
     "sse_connect": "SSE 이벤트 스트림에 연결",
     "all": "전체 액세스(내부 전용 — 세션 기반 인증에 부여)"
+  },
+  "waiting": {
+    "prompt": {
+      "title": "무엇을 기다리고 있나요?",
+      "description": "대기 중인 작업은 날짜나 다른 작업을 기다립니다.",
+      "descriptionFor": "“{title}”은(는) 날짜나 다른 작업을 기다립니다.",
+      "until": "날짜까지 대기…",
+      "on": "작업 대기…",
+      "dateLabel": "기한",
+      "dateInPast": "오늘 이후의 날짜를 선택하세요.",
+      "taskLabel": "기다리는 작업",
+      "picked": "{task} 대기 중",
+      "keepAssignedToMe": "나에게 계속 할당",
+      "keepAssignedTo": "{name}에게 계속 할당",
+      "theAssignee": "담당자",
+      "confirm": "대기로 이동"
+    }
   }
 }
