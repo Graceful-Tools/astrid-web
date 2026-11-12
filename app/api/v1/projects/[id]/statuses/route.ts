@@ -6,6 +6,7 @@
  * had to be carried in each client as a special case.
  *
  *   POST   { name }               add a custom column
+ *   POST   { preset: "testing" }  add an optional preset column, fixed role (R7, astrid-core)
  *   PATCH  { role, name }         rename a column (built-in or custom)
  *   PUT    { role, direction }    move a custom column one slot up or down
  *   DELETE { role }               remove a custom column
@@ -36,6 +37,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import { RedisCache } from '@/lib/redis'
 import {
+  addUserPresetStatus,
   addUserStatus,
   authorizeBoardOwner,
   removeUserStatus,
@@ -114,12 +116,14 @@ async function mutateBoardStatuses(
 
 const asString = (value: unknown): string => (typeof value === 'string' ? value : '')
 
-/** Add a custom column. Body: `{ name }`. */
+/** Add a custom column. Body: `{ name }`, or `{ preset }` for a preset column with its fixed role. */
 export const POST = withAuth<RouteContext>(
   { scopes: ['projects:write'], tag: 'v1.projects.statuses' },
   (request, auth, context) =>
     mutateBoardStatuses(request, auth, context, 'add a status', (body, projectId) =>
-      addUserStatus(auth.userId, asString(body.name), projectId),
+      asString(body.preset)
+        ? addUserPresetStatus(auth.userId, asString(body.preset), projectId)
+        : addUserStatus(auth.userId, asString(body.name), projectId),
     ),
 )
 

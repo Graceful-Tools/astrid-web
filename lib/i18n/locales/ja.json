@@ -1951,7 +1951,8 @@
         "researchAssistant": "リサーチアシスタント",
         "familyAssistant": "ファミリーアシスタント",
         "contentWriter": "コンテンツライター"
-      }
+      },
+      "addPreset": "プリセットを追加: {name}"
     },
     "filters": {
       "allAssignees": "すべての担当者",
@@ -2603,14 +2604,16 @@
       "ready": "準備完了",
       "doing": "作業中",
       "waiting": "待機中",
-      "done": "完了"
+      "done": "完了",
+      "testing": "テスト"
     },
     "blurb": {
       "inbox": "準備ができたら「準備完了」へ移しましょう！",
       "ready": "さあ、取りかかりましょう！",
       "doing": "作業中です！",
       "waiting": "状況が整うまで一時停止中。",
-      "done": "完了 — おめでとう！"
+      "done": "完了 — おめでとう！",
+      "testing": "デプロイ中、カナリア中、または実験中。"
     }
   },
   "passkeyErrors": {
@@ -2648,5 +2651,22 @@
     "public_write": "公開リストの作成と管理",
     "sse_connect": "SSEイベントストリームへの接続",
     "all": "フルアクセス（内部専用 — セッション認証に付与）"
+  },
+  "waiting": {
+    "prompt": {
+      "title": "何を待っていますか？",
+      "description": "待機中のタスクは、日付または別のタスクを待ちます。",
+      "descriptionFor": "「{title}」は日付または別のタスクを待ちます。",
+      "until": "日付まで待機…",
+      "on": "タスクを待機…",
+      "dateLabel": "期日",
+      "dateInPast": "今日より後の日を選んでください。",
+      "taskLabel": "待機するタスク",
+      "picked": "{task} を待機中",
+      "keepAssignedToMe": "自分に割り当てたままにする",
+      "keepAssignedTo": "{name} に割り当てたままにする",
+      "theAssignee": "担当者",
+      "confirm": "待機中に移動"
+    }
   }
 }

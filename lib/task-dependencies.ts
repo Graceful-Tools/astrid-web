@@ -3,14 +3,12 @@
  *
  * Spec of record: docs/specs/TASK_BLOCKING_DEPENDENCIES.md.
  *
- * THE ONE THING THIS MODULE IS ABOUT. The promotion rule already exists in this
- * repo — `classifyWaitingTask` in lib/ready-queue-scope.ts implements "every
- * blocker complete AND the date has arrived" for the agent loops, and has since
- * the Waiting lane did. A second implementation here would be a third
- * description of one rule, and a board that promotes a task while the loop
- * refuses to take it looks, from the outside, like the board is broken. So this
- * module CALLS that function and adds only what the product feature needs on
- * top of it: cycle refusal, and who gets moved when.
+ * THE ONE THING THIS MODULE IS NOT ABOUT: when a Waiting task wakes. That is
+ * astrid-core's Waiting rules (lib/waiting-rules.ts `waitingSettle` /
+ * `waitingWrite`, Jon 2026-11-12) — "every blocker complete AND the date has
+ * arrived" stated once, for the board, the server's scheduled job and the
+ * agent loops alike. This module adds only what the product feature needs on
+ * top of it: cycle refusal, and which lanes a blocker change may move.
  *
  * Everything here is pure. The database work is services/task-dependency.service.ts,
  * which is what lets the rules be stated once and tested without a Postgres.
@@ -34,56 +32,7 @@
  * exactly once, in the copy layer. Do not "fix" one side to match the other.
  */
 
-import { classifyWaitingTask, type WaitingDisposition } from '@/lib/ready-queue-scope'
 import { READY_STATUS_ROLE } from '@/lib/task-status'
-
-export interface BlockerGateInput {
-  /** The dependent's own date — the "when time" the ask names. */
-  dueDateTime: string | Date | null | undefined
-  now: Date
-  /** Blockers that are still open. Empty means every blocker is done. */
-  outstandingBlockerIds: string[]
-}
-
-function toIsoOrNull(value: string | Date | null | undefined): string | null {
-  if (!value) return null
-  const date = value instanceof Date ? value : new Date(value)
-  return Number.isNaN(date.getTime()) ? null : date.toISOString()
-}
-
-/**
- * What holds this task, in `classifyWaitingTask`'s own vocabulary.
- *
- * Structured rows are passed in as `blockedBy`, exactly where the agent sweep
- * passes its parsed `BLOCKED-BY:` markers, so the two paths cannot disagree
- * about what "blocked" means.
- */
-export function blockerGateDisposition(input: BlockerGateInput): WaitingDisposition {
-  return classifyWaitingTask({
-    dueDateTime: toIsoOrNull(input.dueDateTime),
-    now: input.now,
-    blockedBy: input.outstandingBlockerIds,
-    blockedOn: null,
-  })
-}
-
-/**
- * May this task leave Waiting now?
- *
- * `promote` is the obvious yes. `review` is also a yes HERE, and the difference
- * is worth stating: the agent sweep answers `review` for an undated task with
- * no condition because nothing in the sweep would ever wake it, so a human must
- * look. This feature has the wake-up the sweep lacks — the blocker that just
- * cleared IS the event — so an undated task whose last blocker is done is
- * exactly a task that has become actionable.
- *
- * `check-blockers` and `hold` are both no, which is the spec's "either alone
- * leaves it in Waiting".
- */
-export function isPromotableAfterBlockerChange(input: BlockerGateInput): boolean {
-  const disposition = blockerGateDisposition(input)
-  return disposition === 'promote' || disposition === 'review'
-}
 
 export interface DependencyCycleInput {
   /** The task that would be held up. */

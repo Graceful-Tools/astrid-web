@@ -27,6 +27,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { isDefaultStatusRole } from '@/lib/task-status'
+import { BOARD_PRESETS } from '@/lib/board-presets'
 
 /**
  * A board column, as it must be spelled to be found again.
@@ -71,7 +72,8 @@ const CUSTOM_ROLE_PREFIX = 'custom-'
  * `done` is not here on purpose: it is derived from `completed`, not a role.
  */
 export function isWritableStatusRole(role: string): boolean {
-  return isDefaultStatusRole(role) || role.startsWith(CUSTOM_ROLE_PREFIX)
+  // The preset columns (R7) carry fixed roles, `testing`, not minted ones.
+  return isDefaultStatusRole(role) || role.startsWith(CUSTOM_ROLE_PREFIX) || BOARD_PRESETS.some(preset => preset.role === role)
 }
 
 /**
@@ -103,7 +105,7 @@ export async function resolveStatusRoleWrite(args: {
       return {
         ok: false,
         status: 400,
-        error: `Unknown statusRole "${role}". Expected ready, doing, waiting, or a board's own custom- column.`,
+        error: `Unknown statusRole "${role}". Expected ready, doing, waiting, testing, or a board's own custom- column.`,
       }
     }
     return { ok: true, data: { statusRole: role } }

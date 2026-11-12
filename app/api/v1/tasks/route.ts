@@ -259,6 +259,9 @@ export const GET = withAuth(
  *   repeatingData?: object (custom pattern; only read when repeating is "custom")
  *   repeatFrom?: 'DUE_DATE' | 'COMPLETION_DATE'
  *   clientRequestId?: string (8-128 chars; idempotency key)
+ *   statusRole?: string (a column role; "waiting" needs a future dueDateTime or waitOnTaskId — 422 WAITING_NEEDS_CONDITION otherwise)
+ *   keepAssignee?: boolean (born in Waiting: keep the assignee; default cleared)
+ *   waitOnTaskId?: string (a task id or identifier to wait on; attached as a blocker)
  * }
  */
 export const POST = withAuth(
@@ -323,6 +326,9 @@ export const POST = withAuth(
         clientRequestId: body.clientRequestId,
         parentTaskId: rawParentTaskId,
         statusRole: rawStatusRole,
+        // Born in Waiting (Jon, 2026-11-12): keep the assignee, and/or the task to wait on.
+        keepAssignee: body.keepAssignee === true,
+        waitOnTaskId: typeof body.waitOnTaskId === 'string' && body.waitOnTaskId ? body.waitOnTaskId : null,
       },
       actorId: auth.userId,
       platform: detectPlatform(req),
@@ -334,7 +340,7 @@ export const POST = withAuth(
     })
 
     if (!result.ok) {
-      return NextResponse.json({ error: result.error }, { status: result.status })
+      return NextResponse.json({ error: result.error, code: result.code }, { status: result.status })
     }
 
     const headers: Record<string, string> = {}

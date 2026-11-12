@@ -14,10 +14,11 @@
  */
 import { DEFAULT_STATES, DONE_COLUMN_ID, INBOX_COLUMN_ID } from '@/lib/task-status'
 import { VIRTUAL_DONE_COLUMN_ID, VIRTUAL_INBOX_COLUMN_ID } from '@/lib/project-status'
+import { BOARD_PRESETS } from '@/lib/board-presets'
 
 type Translate = (key: string) => string
 
-type BuiltIn = 'inbox' | 'ready' | 'doing' | 'waiting' | 'done'
+type BuiltIn = 'inbox' | 'ready' | 'doing' | 'waiting' | 'done' | 'testing'
 
 const INBOX_TEXT = { name: 'Inbox', description: 'Move them to "Ready" when they are... ready!' }
 const DONE_TEXT = { name: 'Done', description: 'Complete — congrats!' }
@@ -32,6 +33,10 @@ const BUILT_IN_TEXT: Record<string, { role: BuiltIn; name: string; description: 
       state.role,
       { role: state.role as BuiltIn, name: state.name, description: state.description ?? '' },
     ]),
+  ),
+  // The optional preset columns (R7, astrid-core): built-in words too, translated until renamed.
+  ...Object.fromEntries(
+    BOARD_PRESETS.map(preset => [preset.role, { role: preset.role as BuiltIn, name: preset.name, description: preset.description }]),
   ),
 }
 

@@ -60,7 +60,7 @@ async function createTask(args: any) {
   })
 
   if (!result.ok) {
-    throw new Error(result.error)
+    throw new Error(result.code ? `${result.error} (${result.code})` : result.error)
   }
 
   const newTask = result.task as any
@@ -157,7 +157,7 @@ async function updateTask(args: any) {
   })
 
   if (!result.ok) {
-    throw new Error(result.error)
+    throw new Error(result.code ? `${result.error} (${result.code})` : result.error)
   }
 
   const updatedTask = result.task as any

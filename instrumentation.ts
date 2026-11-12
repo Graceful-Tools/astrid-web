@@ -112,5 +112,14 @@ export async function register() {
     } catch (error) {
       console.error('board: astrid-core module failed to import; the TypeScript decides', error)
     }
+    // The Waiting lane (Jon, 2026-11-12): lib/waiting-rules.ts's waitingWrite / waitingSettle /
+    // boardPresets, behind every task write that can move a task into or out of Waiting and the
+    // scheduled settle job. Core-first: astrid-core's waiting.json is the contract.
+    try {
+      const { installWaitingCore } = await import('@/lib/core-rules/waiting-core')
+      installWaitingCore()
+    } catch (error) {
+      console.error('waiting: astrid-core module failed to import; the TypeScript decides', error)
+    }
   }
 }

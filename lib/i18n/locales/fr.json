@@ -1951,7 +1951,8 @@
         "researchAssistant": "Assistant de recherche",
         "familyAssistant": "Assistant familial",
         "contentWriter": "Rédacteur de contenu"
-      }
+      },
+      "addPreset": "Ajouter un modèle : {name}"
     },
     "filters": {
       "allAssignees": "Tous les assignés",
@@ -2603,14 +2604,16 @@
       "ready": "Prêt",
       "doing": "En cours",
       "waiting": "En attente",
-      "done": "Terminé"
+      "done": "Terminé",
+      "testing": "Test"
     },
     "blurb": {
       "inbox": "Déplacez-les vers « Prêt » quand elles sont… prêtes !",
       "ready": "Au travail !",
       "doing": "Travail en cours !",
       "waiting": "En pause jusqu’à ce que les conditions soient réunies.",
-      "done": "Terminé — bravo !"
+      "done": "Terminé — bravo !",
+      "testing": "En déploiement, en canary ou dans une expérience."
     }
   },
   "passkeyErrors": {
@@ -2648,5 +2651,22 @@
     "public_write": "Créer et gérer des listes publiques",
     "sse_connect": "Se connecter au flux d’événements SSE",
     "all": "Accès complet (usage interne uniquement – accordé à l’authentification par session)"
+  },
+  "waiting": {
+    "prompt": {
+      "title": "Qu’attend cette tâche ?",
+      "description": "Une tâche en attente attend une date ou une autre tâche.",
+      "descriptionFor": "« {title} » attendra une date ou une autre tâche.",
+      "until": "En attente jusqu’au…",
+      "on": "En attente de…",
+      "dateLabel": "Jusqu’au",
+      "dateInPast": "Choisissez un jour après aujourd’hui.",
+      "taskLabel": "La tâche qu’elle attend",
+      "picked": "En attente de {task}",
+      "keepAssignedToMe": "Me la laisser assignée",
+      "keepAssignedTo": "La laisser assignée à {name}",
+      "theAssignee": "la personne assignée",
+      "confirm": "Déplacer vers En attente"
+    }
   }
 }

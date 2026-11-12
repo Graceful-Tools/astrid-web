@@ -28,6 +28,8 @@ vi.mock('@/lib/prisma', () => ({
     user: { findUnique: vi.fn() },
     comment: { create: vi.fn() },
     taskEvent: { createMany: vi.fn() },
+    // The Waiting rules read a task's blockers when it moves into Waiting (none here).
+    taskDependency: { findMany: vi.fn(async () => []) },
   },
 }))
 
@@ -86,6 +88,8 @@ import { BRAND } from '@/lib/brand/config'
 const mockPrisma = vi.mocked(prisma, true)
 const mockAuth = vi.mocked(authenticateAPI)
 const mockRecordComment = vi.mocked(recordStateChangeComment)
+// A move into Waiting needs a condition (Jon, 2026-11-12): these moves carry a future date.
+const WAITING_UNTIL = '2099-01-01T00:00:00.000Z'
 
 const auth = {
   userId: 'user-1',
@@ -221,7 +225,7 @@ describe('PUT /api/v1/tasks/[id] — who the system line names (AWTD-974)', () =
   it('AWTD-1383 accepts the bound MCP identity on a task update', async () => {
     mockAuth.mockResolvedValue({ ...auth, source: 'legacy_mcp', agentUser: COPILOT })
 
-    const response = await PUT(putReq({ statusRole: 'waiting', aiAgentId: COPILOT.id }), ctx)
+    const response = await PUT(putReq({ statusRole: 'waiting', dueDateTime: WAITING_UNTIL, aiAgentId: COPILOT.id }), ctx)
 
     expect(response.status).toBe(200)
     expect(mockRecordComment).toHaveBeenCalledTimes(1)
@@ -254,7 +258,7 @@ describe('PUT /api/v1/tasks/[id] — who the system line names (AWTD-974)', () =
     // path scripts/set-task-status.ts and the MCP server actually take.
     ;(mockPrisma.user.findUnique as never as Mock).mockResolvedValue(CLAUDE as never)
 
-    await PUT(putReq({ statusRole: 'waiting', aiAgentId: 'ai-agent-claude' }) as never, ctx as never)
+    await PUT(putReq({ statusRole: 'waiting', dueDateTime: WAITING_UNTIL, aiAgentId: 'ai-agent-claude' }) as never, ctx as never)
 
     expect(mockRecordComment.mock.calls[0][0].updaterName).toBe('Claude Agent')
   })

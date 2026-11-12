@@ -152,7 +152,9 @@ export class OAuthAPIClient {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: response.statusText }))
-      throw new Error(error.error || `HTTP ${response.status}: ${response.statusText}`)
+      // A rule's refusal names its code (WAITING_NEEDS_CONDITION), so an agent can branch on it.
+      const message = error.error || `HTTP ${response.status}: ${response.statusText}`
+      throw new Error(typeof error.code === 'string' && error.code ? `${message} (${error.code})` : message)
     }
 
     return response.json()

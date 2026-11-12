@@ -228,7 +228,8 @@ export async function POST(request: NextRequest) {
     })
 
     if (!result.ok) {
-      return NextResponse.json({ error: result.error }, { status: result.status })
+      // `code`: WAITING_NEEDS_CONDITION on a create into Waiting with no date or task to wait on.
+      return NextResponse.json({ error: result.error, code: result.code }, { status: result.status })
     }
 
     return NextResponse.json(result.task)

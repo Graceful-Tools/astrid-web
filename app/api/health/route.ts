@@ -5,6 +5,8 @@ import { listPermissionsCoreStatus } from '@/lib/core-rules/list-permissions-cor
 import { searchQueryCoreStatus } from '@/lib/core-rules/search-query-core'
 import { repeatingCoreStatus } from '@/lib/core-rules/repeating-core'
 import { boardCoreStatus } from '@/lib/core-rules/board-core'
+import { waitingCoreStatus } from '@/lib/core-rules/waiting-core'
+import { waitingEnforcementStatus } from '@/lib/waiting-enforcement'
 
 const log = createLogger('health')
 
@@ -62,6 +64,11 @@ export async function GET(request: NextRequest) {
       coreRulesRepeating: repeatingCoreStatus(),
       // And for the project board's columns and drops (AWTD-1585).
       coreRulesBoard: boardCoreStatus(),
+      // And for the Waiting lane (Jon, 2026-11-12).
+      coreRulesWaiting: waitingCoreStatus(),
+      // How often a native client's condition-less move into Waiting was let through
+      // (WAITING_ENFORCE_NATIVE=lenient) — the number that says when enforcing is safe.
+      waitingEnforcement: waitingEnforcementStatus(),
       webhookConfigured: !!process.env.CLAUDE_REMOTE_WEBHOOK_URL,
       // Booleans only: this endpoint is unauthenticated, and it once returned the first 30
       // characters of the secret-bearing CLAUDE_REMOTE_WEBHOOK_URL (AWTD-1456).

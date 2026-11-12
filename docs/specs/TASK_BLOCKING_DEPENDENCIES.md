@@ -37,10 +37,21 @@ So the risk here is not the schema. It is shipping a **third** description of on
 440 lines; the same failure in *code* is worse, because a board that promotes a task and a
 loop that refuses to take it look, from the outside, like the board is broken.
 
-**Therefore: one promotion rule, one implementation, named here.** It is
-`classifyWaitingTask` in `lib/ready-queue-scope.ts`, and
+**Therefore: one promotion rule, one implementation, named here.** Since 2026-11-12 it is
+**astrid-core's Waiting rules** (`crates/astrid-rules/src/waiting.rs`), which web calls as
+`waitingSettle` / `waitingWrite` in `lib/waiting-rules.ts` (core first, a TypeScript mirror
+locked to the core-owned `waiting.json` fixture as the fallback).
 `tests/rules/blocking-spec-names-the-shared-promotion-rule.test.ts` fails if this document
-and that function come apart.
+and that function come apart. It replaced `classifyWaitingTask` in `lib/ready-queue-scope.ts`
+as the gate for the board: that classifier is the agent loops' reading of comment markers, and
+it is no longer what moves a card.
+
+**The wake is the server's, not a client's sweep.** A blocker completing, reopening, being
+removed or deleted moves its dependents through those rules at once
+(`services/task-dependency.service.ts`), and the scheduled settle job
+(`/api/cron/waiting-settle`, `services/waiting-settle-job.ts`) wakes every Waiting task whose
+date has come and blockers are done, on every board, whether or not any loop or app is
+running. Entering Waiting needs a date or an open blocker and unassigns the task (R2).
 
 ### What happens to `blockedByTaskId`
 
@@ -285,7 +296,8 @@ Once `TaskDependency` exists, **the rows are the source of truth** and the
 
 - `scripts/ready-tasks.ts` reads structured dependencies **unioned with** parsed
   `BLOCKED-BY:` markers, so no currently-parked task silently comes unblocked on the day
-  this ships.
+  this ships. Waking a Waiting task is no longer the script's job: the server's settle job
+  does it (see "one promotion rule" above); the script only reads the result.
 - `parseBlockedConditions` stays exactly as it is. A harness with no API for this — or a
   human typing on their phone — can still block a task with a comment.
 - A follow-up (not this spec) may have the marker *create* the row, at which point the union
@@ -368,6 +380,11 @@ people's cards.
 and we should not make it 'blocked on' but 'waiting on' to make it more obvious that these
 are connected (as well as due date)."* Implemented as `shouldDemoteOnBlockerAdded` in
 `lib/task-dependencies.ts`. A `Doing` task that acquires a blocker is still not moved.
+
+**Since 2026-11-12 the move itself is astrid-core's Waiting rules** (`lib/waiting-rules.ts`,
+`waitingWrite` / `waitingSettle`): a card entering Waiting this way is **unassigned**, as every
+entry into Waiting is (R2), and a card wakes when its blockers are done and its date has come
+(`waitingSettle`, R3). Removing a Waiting card's last blocker wakes it to Ready.
 
 That answer carried a second instruction the question had not asked about, and it is the
 one with the wider reach: **the feature is called "waiting on"**, not "blocked on", so that

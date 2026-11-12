@@ -66,6 +66,21 @@ test.describe('Project status board', () => {
     for (const [from, to, saved] of steps) {
       await column(from).evaluate(el => el.scrollIntoView({ inline: 'start', block: 'nearest' }))
       await card.dragTo(column(to))
+      if (to === 'waiting') {
+        // A move into Waiting asks what it waits for (Jon, 2026-11-12). Cancel leaves the card…
+        const prompt = page.getByTestId('waiting-prompt')
+        await expect(prompt).toBeVisible()
+        await page.getByTestId('waiting-prompt-cancel').click()
+        await expect(prompt).toBeHidden()
+        await expect(column(from)).toContainText(task.title)
+        // …and a date moves it.
+        await card.dragTo(column(to))
+        await expect(prompt).toBeVisible()
+        const tomorrow = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10)
+        await page.getByTestId('waiting-prompt-date').fill(tomorrow)
+        await page.getByTestId('waiting-prompt-confirm').click()
+        await expect(prompt).toBeHidden()
+      }
       await expect(column(to)).toContainText(task.title)
       await expect
         .poll(async () => {

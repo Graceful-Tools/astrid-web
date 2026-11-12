@@ -193,11 +193,30 @@ describe('ManageStatusesPanel', () => {
     const { onChanged } = setup()
 
     fireEvent.change(screen.getByPlaceholderText('New status name'), { target: { value: 'Blocked' } })
-    fireEvent.click(screen.getByRole('button', { name: /Add/ }))
+    fireEvent.click(screen.getByRole('button', { name: /^Add$/ }))
 
     await waitFor(() => expect(onChanged).toHaveBeenCalled())
     expect(global.fetch).toHaveBeenCalledWith('/api/statuses', expect.objectContaining({ method: 'POST' }))
     expect(JSON.parse(calls()[0][1].body)).toMatchObject({ name: 'Blocked', projectId: 'p1' })
+  })
+
+  // ── Presets (astrid-core R7, Jon 2026-11-12) ─────────────────────────────
+
+  it('offers the Testing preset and adds it by its fixed role, not by name', async () => {
+    okFetch()
+    const { onChanged } = setup()
+
+    fireEvent.click(screen.getByTestId('status-preset-testing'))
+
+    await waitFor(() => expect(onChanged).toHaveBeenCalled())
+    const [url, init] = calls()[0]
+    expect(String(url)).toContain('/api/statuses')
+    expect(JSON.parse(init.body)).toEqual({ preset: 'testing', projectId: 'p1' })
+  })
+
+  it('does not offer a preset the board already has', () => {
+    setup([...statuses, { id: 'testing', name: 'Testing', description: '', kind: 'status' }])
+    expect(screen.queryByTestId('status-preset-testing')).toBeNull()
   })
 })
 
