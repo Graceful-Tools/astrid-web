@@ -685,6 +685,41 @@ Moving an existing deployment to a new agent-email domain also needs
 `scripts/migrate-agent-email-domain.ts` (dry-runs by default). A fresh deployment does
 not: agent rows are created lazily at whatever domain is configured.
 
+### One command: `npm run brand:launch` (AWTD-1590)
+
+Everything in the next section that a machine can do runs as one command. Each step is
+idempotent, so after a failure you fix it and run the same command again:
+
+```bash
+npm run brand:launch -- partner --project partner --team team_xxx --scope partner-co --dry-run
+npm run brand:launch -- partner --project partner --team team_xxx --scope partner-co
+npm run brand:launch -- partner --docker --dry-run            # the self-hosted stack instead
+```
+
+**Always start with `--dry-run`.** It lists each step and the command or API call behind
+it, and calls nothing. In order, the steps are:
+1. `check:brands`.
+2. The Vercel project, with framework set to Next.js.
+3. The domain.
+4. `provision-brand-database.ts`.
+5. `push-brand-env.ts`.
+6. A web-push (VAPID) key pair, generated only when absent and never printed.
+7. `push-brand-env.ts` again, to map the database's direct URL.
+8. A production deploy that targets the project by id, with no `vercel link`.
+9. A smoke test against the deployment's own `*.vercel.app` URL, which checks
+   `/api/health`, and that `/api/v1/capabilities` and `/manifest.json` name the brand.
+
+It refuses hosted Astrid's project and an `astrid.cc` domain. When the run ends it prints
+a checklist of what still needs a person, with links:
+- DNS;
+- the Google and Apple OAuth clients, but only for providers the profile keeps on;
+- the mail sender;
+- the first admin (`INITIAL_ADMIN_EMAIL`);
+- the native apps.
+
+The steps it runs are the scripts described below, so the rest of this section is also
+how to do any one step by hand.
+
 ### A partner on their own Vercel account and their own database
 
 The steps above default to Astrid's Vercel team. Astrid's previews share Astrid's
