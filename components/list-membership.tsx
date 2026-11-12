@@ -13,6 +13,7 @@ import { getAllListMembers } from "@/lib/list-member-utils"
 import { UserLink } from "./user-link"
 import Link from "next/link"
 import { canUserDeleteList } from "@/lib/list-permissions"
+import { LeaveListConfirm } from "./list-admin/LeaveListConfirm"
 
 // AI agent type from the database
 interface AIAgent {
@@ -46,6 +47,11 @@ export function ListMembership({
   const [loadingAiProviders, setLoadingAiProviders] = useState(false)
   const [removingAgents, setRemovingAgents] = useState<Set<string>>(new Set())
   const [isGitHubConnected, setIsGitHubConnected] = useState(false)
+  // Leaving cannot be undone by the member — only an owner or admin can add
+  // them back — so it asks first, naming the list (AWTD-1594). Both the
+  // panel's Leave List button and the roster row's Leave come through here.
+  const [confirmingLeave, setConfirmingLeave] = useState(false)
+  const requestLeave = onLeave ? () => setConfirmingLeave(true) : undefined
 
   // Load AI agents on mount - fetch actual agents from database based on user's API keys
   useEffect(() => {
@@ -204,7 +210,7 @@ export function ListMembership({
           list={list}
           currentUser={currentUser}
           onUpdate={onUpdate}
-          onLeave={onLeave}
+          onLeave={requestLeave}
         />
       </div>
 
@@ -393,14 +399,23 @@ export function ListMembership({
           <Button
             variant="destructive"
             size="sm"
-            onClick={() => {
-              onLeave(list)
-            }}
+            onClick={() => setConfirmingLeave(true)}
             className="w-full hover:text-danger hover:bg-danger-subtle"
           >
             {t('lists.membershipPanel.leaveList')}
           </Button>
         </div>
+      )}
+
+      {confirmingLeave && onLeave && (
+        <LeaveListConfirm
+          listName={list.name}
+          onCancel={() => setConfirmingLeave(false)}
+          onConfirm={() => {
+            setConfirmingLeave(false)
+            onLeave(list)
+          }}
+        />
       )}
 
       {/* Owner Leave List Button - with succession planning */}
