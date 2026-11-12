@@ -4,8 +4,8 @@
  * The Waiting prompt (Jon, 2026-11-12): a task moved into Waiting must wait for something — a
  * date, or another task — so the person is asked which, and whether to keep it assigned.
  *
- * Mounted once (components/providers.tsx); opened by lib/waiting-prompt.ts
- * `requestWaitingCondition`. A Radix dialog, so focus is trapped inside it and returns where it
+ * Opened by lib/waiting-prompt.ts `requestWaitingCondition` through components/WaitingPromptHost.tsx,
+ * which loads this module only when a prompt is asked for, so it adds nothing to a page's first load. A Radix dialog, so focus is trapped inside it and returns where it
  * came from. Escape cancels THIS prompt only: the keydown stops here, so a task pane behind it
  * does not close too. Cancel leaves the task where it was.
  *
@@ -36,7 +36,6 @@ import {
 } from "@/lib/task-search-client"
 import { rankBlockerCandidates } from "@/lib/task-dependencies"
 import {
-  subscribeWaitingPrompt,
   type WaitingChoice,
   type WaitingPromptRequest,
   type WaitingPromptTask,
@@ -64,15 +63,8 @@ function initialDay(task: WaitingPromptTask): string {
   return task.isAllDay ? due.toISOString().slice(0, 10) : dayOf(due)
 }
 
-export function WaitingConditionPrompt() {
-  const [request, setRequest] = useState<WaitingPromptRequest | null>(null)
-  useEffect(() => subscribeWaitingPrompt(setRequest), [])
-  if (!request) return null
-  // Keyed by task, so a new request starts from a clean form.
-  return <WaitingConditionDialog key={request.task.id} request={request} />
-}
-
-function WaitingConditionDialog({ request }: { request: WaitingPromptRequest }) {
+/** The dialog itself; loaded on demand by components/WaitingPromptHost.tsx. */
+export default function WaitingConditionDialog({ request }: { request: WaitingPromptRequest }) {
   const { t } = useTranslations()
   const { data: session } = useSession()
   const { task } = request
