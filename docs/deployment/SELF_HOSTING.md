@@ -328,3 +328,7 @@ universal links are in [WHITELABELING.md](../WHITELABELING.md), *Native apps, pe
 - **Only one SSO provider (OIDC) per deployment.** Per-organisation SSO is a partner build:
   WHITELABELING §3.
 - **The image builds on linux/amd64 and linux/arm64.** CI exercises amd64.
+- **Default-locale paths do not redirect-loop in the image.** A standalone `next start`
+  run from a checkout and reached as `localhost` was seen to 307-loop on `/terms` and
+  `/en/terms`. The container does not (AWTD-1606): `/terms` answers 200, and `/en/terms`
+  redirects once to `/terms`. The smoke test follows both, hop by hop, on every image change.
