@@ -2548,5 +2548,14 @@
     "downloadFile": "Datei herunterladen",
     "unknownFile": "Unbekannte Datei",
     "loadFailed": "Datei konnte nicht geladen werden"
+  },
+  "board": {
+    "status": {
+      "inbox": "Eingang",
+      "ready": "Bereit",
+      "doing": "In Arbeit",
+      "waiting": "Wartet",
+      "done": "Erledigt"
+    }
   }
 }

@@ -2548,5 +2548,14 @@
     "downloadFile": "Bestand downloaden",
     "unknownFile": "Onbekend bestand",
     "loadFailed": "Bestand laden mislukt"
+  },
+  "board": {
+    "status": {
+      "inbox": "Inbox",
+      "ready": "Klaar",
+      "doing": "Bezig",
+      "waiting": "Wachten",
+      "done": "Gedaan"
+    }
   }
 }

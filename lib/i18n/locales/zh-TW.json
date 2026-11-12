@@ -2548,5 +2548,14 @@
     "downloadFile": "下載檔案",
     "unknownFile": "未知檔案",
     "loadFailed": "檔案載入失敗"
+  },
+  "board": {
+    "status": {
+      "inbox": "收件匣",
+      "ready": "就緒",
+      "doing": "進行中",
+      "waiting": "等待中",
+      "done": "已完成"
+    }
   }
 }
