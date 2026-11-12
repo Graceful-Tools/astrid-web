@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { createLogger } from '@/lib/logger'
 import { BRAND } from '@/lib/brand/config'
+import { DANGER_COLOR } from '@/lib/brand/colors'
 import { brandAccentCssVars } from '@/lib/brand/css-vars'
 
 const log = createLogger('global-error.tsx')
@@ -61,7 +62,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
                 height="32"
                 viewBox="0 0 24 24"
                 fill="none"
-                stroke="#ef4444"
+                stroke={DANGER_COLOR}
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"

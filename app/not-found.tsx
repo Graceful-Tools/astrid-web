@@ -1,5 +1,7 @@
 import Link from 'next/link'
 
+import { BRAND } from '@/lib/brand/config'
+
 /**
  * Root-level not-found page for routes that don't match any locale.
  * Must include html/body tags since it's outside the locale layout.
@@ -29,7 +31,7 @@ export default function NotFound() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: '0.75rem 1.5rem',
-                backgroundColor: '#2563eb',
+                backgroundColor: BRAND.accentColor,
                 color: '#fff',
                 fontWeight: '500',
                 borderRadius: '0.75rem',
