@@ -74,10 +74,6 @@ const DYNAMIC_SEGMENT_PARENTS: Record<string, Classification> = {
   connections: 'route-word', //  a connection KIND (google, github)
   t: 'route-word', //           app/[locale]/t/[identifier] — a task id like AWTD-12 (AWTD-1016):
   //                            human-readable and not a secret, like a project key
-  '[locale]': 'route-word', //  app/[locale]/[...rest] — whatever address matched no page, so that it
-  //                            gets the localized 404 (AWTD-1575). A page path, never /api, so it is
-  //                            not in this telemetry; a token typed after /invite is still collapsed
-  //                            by the `invite` parent above, which is matched by position in the path
 
   // Opaque record ids — uuid or cuid, collapsed by shape before the parent is
   // ever consulted.
