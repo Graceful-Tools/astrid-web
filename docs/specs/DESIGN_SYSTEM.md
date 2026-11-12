@@ -34,8 +34,12 @@ astrid-ios (iOS + Mac)  ── the reference: a design change starts here
         │
         ▼
 astrid-core  design/tokens.json ──▶ cargo xtask gen-design ──▶ design/generated/
-                                                                 ├─ web/astrid-tokens.css
-                                                                 ├─ apple/AstridTokens.swift
+             design/assets/ ────┘                                ├─ web/astrid-tokens.css
+             (checkbox, agent marks,                             ├─ web/checkbox-art.json
+              manifest.json)                                     ├─ apple/AstridTokens.swift
+                                                                 ├─ apple/AstridDesign.xcassets
+                                                                 ├─ android/drawable/
+                                                                 ├─ windows/AstridCheckbox.xaml
                                                                  └─ tokens.resolved.json
         │ vendored at a revision, checked in each client's gate
         ▼
@@ -452,7 +456,7 @@ Leave these, or change them as said; do not pick the nearest name.
 | Text on a status fill | `text-danger-foreground` and the others read the accent's text colour: the tokens have none of their own. White on the warning amber is 2.1:1; prefer a wash with `text-theme-primary` for a warning |
 | Dark red or green text on a pale wash (`text-red-800` on `bg-red-50`) | A sentence is `text-theme-primary` on the wash; the icon, the heading or a short label is the status ink (`text-danger`). Priority glyphs have no ink yet (register DS22) |
 | Third-party marks and their brand colours (Google, Apple, GitHub in `components/ui/brand-icons.tsx`), illustrations | Stay literal. They are someone else's colours |
-| The checkbox art | Fixed-colour images (register DS21) |
+| The checkbox art | astrid-core's shared art (`design/assets/checkbox`, AWTD-1605), drawn by `components/task-checkbox-art.tsx` from `packages/astrid-design/checkbox-art.json`: the box and arrows in the priority colour, the check in `checkbox-check`. Never redraw it here |
 | A surface that is dark in every theme by design (a code block, the 404 page) | Stays literal, with a comment saying it is meant |
 | `bg-black/50` scrims, `text-white` over a photo | Not palette classes and not counted; leave them |
 | Charts | `chart-1` … `chart-5` read the list palette |
@@ -462,6 +466,7 @@ Leave these, or change them as said; do not pick the nearest name.
 | What | Where |
 |---|---|
 | The vendored tokens | `packages/astrid-design/` (`astrid-tokens.css`, `tokens.resolved.json`, `REVISION`) |
+| The vendored shared art | `packages/astrid-design/assets/` (the checkbox SVGs, the agent marks, `manifest.json`) and `checkbox-art.json`, hash-checked by `tests/styles/design-assets.test.ts` |
 | Moving the pin | `scripts/sync-design-tokens.sh --rev <astrid-core sha>` |
 | Theme variables | `styles/themes/*.css`: every `--theme-*` is a token, directly or through another theme variable. The web-only surfaces are named there once (below) |
 | Classes | `lib/design/tailwind-theme.ts`, spread into `tailwind.config.ts`: the theme vocabulary, the inks for text and icons, shadcn's colours, the motion utilities and the leading control's size, each a token |
@@ -523,8 +528,9 @@ pinned revision, in its CI.
   `check-brand.sh` and Windows a radius test to grow from; Android has none.
 - **Reference screenshots.** A fixed set of screens in each theme, captured per client
   and set side by side.
-- **Shared assets.** The sixteen checkbox images and the agent marks are copied by hand
-  into each client.
+- **Shared assets on the native clients.** astrid-core generates the checkbox for Apple,
+  Android and Windows (AWTD-1605); until each draws it, it keeps its copies of the sixteen
+  images (register DS21).
 - **Icon map.** One meaning to one glyph per platform (SF Symbols, lucide, Segoe,
   Material).
 - **Shared copy.** Web's keys and the core's label keys exported from one place.

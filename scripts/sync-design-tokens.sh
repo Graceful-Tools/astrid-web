@@ -15,6 +15,9 @@
 #   REVISION               the astrid-core commit the files were copied from
 #   astrid-tokens.css      CSS custom properties (--astrid-*), imported by app/[locale]/layout.tsx
 #   tokens.resolved.json   the same values as data, for lib/design and the tests
+#   checkbox-art.json      the checkbox's shapes as data, drawn by components/task-checkbox-art.tsx
+#   assets/                astrid-core's design/assets: manifest.json and every file it lists (the
+#                          checkbox SVGs, the agent marks), hash-checked by tests/styles/design-assets.test.ts
 set -euo pipefail
 
 web="$(cd "$(dirname "$0")/.." && pwd)"
@@ -38,6 +41,18 @@ rev="$(git -C "$core" rev-parse --verify "$rev^{commit}")"
 mkdir -p "$pkg"
 git -C "$core" show "$rev:design/generated/web/astrid-tokens.css" >"$pkg/astrid-tokens.css"
 git -C "$core" show "$rev:design/generated/tokens.resolved.json" >"$pkg/tokens.resolved.json"
+git -C "$core" show "$rev:design/generated/web/checkbox-art.json" >"$pkg/checkbox-art.json"
+
+# The shared art: the manifest, then each file it lists. Replaced whole, so a file astrid-core
+# dropped leaves here too.
+rm -rf "$pkg/assets"
+mkdir -p "$pkg/assets"
+git -C "$core" show "$rev:design/assets/manifest.json" >"$pkg/assets/manifest.json"
+node -e 'for (const a of JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).assets) console.log(a.file)' \
+  "$pkg/assets/manifest.json" | while IFS= read -r file; do
+  mkdir -p "$(dirname "$pkg/assets/$file")"
+  git -C "$core" show "$rev:design/assets/$file" >"$pkg/assets/$file"
+done
 printf '%s\n' "$rev" >"$pkg/REVISION"
 
 echo "packages/astrid-design is astrid-core $rev"
