@@ -283,6 +283,71 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     vi.resetModules()
   })
 
+  it('names this profile’s operator on every legal and help page (AWTD-1584)', async () => {
+    // The Terms, Privacy and Help pages said "Graceful Tools LLC" on every deployment —
+    // a partner's terms of service naming someone else's company as the operator.
+    // They existed twice (the public route and the in-app Settings page), so both copies
+    // are rendered here.
+    const React = await import('react')
+    const { renderToStaticMarkup } = await import('react-dom/server')
+    const { BRAND } = await import('@/lib/brand/config')
+    const onNavigate = () => {}
+    // `external`: the operator's own policy URL, when the profile names one. Then the
+    // public route redirects there and the Settings page links to it; neither renders
+    // our text, so neither names the operator.
+    const pages: Array<[string, string, Record<string, unknown>, string]> = [
+      ['/terms', '@/app/[locale]/terms/page', {}, BRAND.termsUrl],
+      ['/privacy', '@/app/[locale]/privacy/page', {}, BRAND.privacyUrl],
+      ['/help', '@/app/[locale]/help/page', {}, ''],
+      ['Settings → Terms', '@/components/Settings/TermsPage', { onNavigate }, BRAND.termsUrl],
+      ['Settings → Privacy', '@/components/Settings/PrivacyPage', { onNavigate }, BRAND.privacyUrl],
+      ['Settings → Help', '@/components/Settings/HelpPage', { onNavigate }, ''],
+    ]
+
+    if (profile.name !== 'Astrid') expect(BRAND.operatorName).not.toBe('Graceful Tools LLC')
+
+    for (const [what, path, props, external] of pages) {
+      const Page = (await import(path)).default
+      if (external && what.startsWith('/')) {
+        // next/navigation's redirect() throws; its digest carries the target.
+        let digest = ''
+        try {
+          renderToStaticMarkup(React.createElement(Page, props))
+        } catch (error) {
+          digest = String((error as { digest?: string }).digest ?? error)
+        }
+        expect(digest, `${what} redirects to the operator's page`).toContain(external)
+        continue
+      }
+      const html = renderToStaticMarkup(React.createElement(Page, props))
+      if (external) {
+        expect(html, `${what} links to the operator's page`).toContain(external)
+      } else {
+        expect(html, `${what} names the operator`).toContain(BRAND.operatorName)
+      }
+      for (const literal of profile.expect.forbidLiterals) {
+        expect(html, `${what} leaked "${literal}" for the ${profile.name} profile`).not.toContain(literal)
+      }
+    }
+  })
+
+  it('routes feature requests to this profile’s own support address (AWTD-1584)', async () => {
+    // The fallback was jon@gracefultools.com, so a partner that forgot
+    // FEATURE_REQUEST_EMAIL mailed its users' requests to Astrid's founder.
+    const ORIGINAL = process.env.FEATURE_REQUEST_EMAIL
+    try {
+      delete process.env.FEATURE_REQUEST_EMAIL
+      const { featureRequestRecipient } = await import('@/lib/feature-access-requests')
+      expect(featureRequestRecipient()).toBe(profile.expect.supportEmail)
+      for (const literal of profile.expect.forbidLiterals) {
+        expect(featureRequestRecipient()).not.toContain(literal)
+      }
+    } finally {
+      if (ORIGINAL === undefined) delete process.env.FEATURE_REQUEST_EMAIL
+      else process.env.FEATURE_REQUEST_EMAIL = ORIGINAL
+    }
+  })
+
   it('enables no capability without the one it depends on (AWTD-1121)', async () => {
     // The check instrumentation.ts makes at server start: a profile that fails it
     // here would be a deployment that refuses to boot.

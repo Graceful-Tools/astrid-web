@@ -34,6 +34,7 @@ const DEFAULTS = {
   iconSmall: '/icons/icon-96x96.png',
   defaultTheme: 'ocean',
   fontFamily: '',
+  operatorName: 'Graceful Tools LLC',
 } as const
 
 /** The three stylesheets under styles/themes/. A brand picks which one it starts on. */
@@ -189,9 +190,45 @@ export const BRAND = {
    * domain as-is.
    */
   wwwRedirect: process.env.NEXT_PUBLIC_BRAND_WWW_REDIRECT?.trim().toLowerCase() !== 'false',
+
+  /**
+   * The legal entity that operates this deployment: named in the Terms of Service, the
+   * Privacy Policy and the copyright line (AWTD-1584).
+   *
+   * Unlike every other identity value this does NOT fall back to Astrid's once the
+   * deployment is a partner's. A partner that forgot it would publish terms saying their
+   * service is operated by Graceful Tools LLC, which is a legal statement about someone
+   * else's company, not a cosmetic leak. So the fallback is Astrid's operator only while
+   * the app is still called Astrid, and the partner's own app name after that.
+   */
+  operatorName: env(
+    process.env.NEXT_PUBLIC_BRAND_OPERATOR_NAME,
+    env(process.env.NEXT_PUBLIC_BRAND_NAME, DEFAULTS.appName) === DEFAULTS.appName
+      ? DEFAULTS.operatorName
+      : env(process.env.NEXT_PUBLIC_BRAND_NAME, DEFAULTS.appName)
+  ),
+
+  /**
+   * The operator's own Terms of Service, when they publish one elsewhere. Empty (the
+   * default) serves the built-in /terms page under `operatorName`; set, /terms redirects
+   * there and every terms link points at it.
+   */
+  termsUrl: process.env.NEXT_PUBLIC_BRAND_TERMS_URL?.trim() ?? '',
+
+  /** The operator's own Privacy Policy. Same rules as `termsUrl`, for /privacy. */
+  privacyUrl: process.env.NEXT_PUBLIC_BRAND_PRIVACY_URL?.trim() ?? '',
 } as const
 
 export type Brand = typeof BRAND
+
+/**
+ * Where a link to this deployment's terms or privacy policy goes: the operator's own page
+ * when the profile names one, else the built-in route.
+ */
+export function brandLegalHref(page: 'terms' | 'privacy'): string {
+  const external = page === 'terms' ? BRAND.termsUrl : BRAND.privacyUrl
+  return external || `/${page}`
+}
 
 /** Canonical production origin, e.g. `https://astrid.cc`. */
 export function brandOrigin(): string {

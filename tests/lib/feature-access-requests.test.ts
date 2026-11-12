@@ -108,9 +108,13 @@ describe('featureRequestRecipient (dd7172d8)', () => {
     else process.env.FEATURE_REQUEST_EMAIL = original
   })
 
-  it('defaults to the product owner', () => {
+  it('defaults to the brand support address, never a personal one (AWTD-1584)', async () => {
+    // A partner that forgot the variable mailed its users' requests to Jon.
     delete process.env.FEATURE_REQUEST_EMAIL
-    expect(featureRequestRecipient()).toBe('jon@gracefultools.com')
+    const { BRAND } = await import('@/lib/brand/config')
+    // Equality is the whole check: a brand's support mailbox may itself be under any
+    // domain (the Graceful Tools test sites use theirs).
+    expect(featureRequestRecipient()).toBe(BRAND.supportEmail)
   })
 
   it('is env-overridable so whitelabel partners route their own requests', () => {

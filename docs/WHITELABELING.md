@@ -140,6 +140,9 @@ All optional. Each falls back to the Astrid value.
 | `NEXT_PUBLIC_BRAND_DEFAULT_THEME` | `ocean` | `light`, `dark` or `ocean` — where a visitor starts; a stored choice still wins |
 | `NEXT_PUBLIC_BRAND_WWW_REDIRECT` | `true` | `false` when the brand domain is a subdomain (`tasks.example.com`): no `www.` host exists to redirect to |
 | `NEXT_PUBLIC_BRAND_FONT_FAMILY` | *(Inter)* | CSS `font-family` stack for the whole app, e.g. the system stack |
+| `NEXT_PUBLIC_BRAND_OPERATOR_NAME` | Graceful Tools LLC, **or your brand name** | The legal entity named in the Terms, the Privacy Policy and every copyright line. Unlike the rest of this table it does **not** fall back to Astrid's value once `NEXT_PUBLIC_BRAND_NAME` is something other than Astrid: your terms would otherwise say another company runs your service (AWTD-1584) |
+| `NEXT_PUBLIC_BRAND_TERMS_URL` | *(built-in `/terms`)* | Your own Terms of Service. Set it and `/terms` redirects there, and the sign-in page, footers and the in-app Settings page link to it |
+| `NEXT_PUBLIC_BRAND_PRIVACY_URL` | *(built-in `/privacy`)* | Your own Privacy Policy. Same as the terms URL, for `/privacy` |
 | `NEXT_PUBLIC_BRAND_AGENT_NAME` | brand name | Default assistant's display name |
 | `NEXT_PUBLIC_BRAND_LOGO` | `/images/astrid-character.png` | Mascot art — sign-in, empty states |
 | `NEXT_PUBLIC_BRAND_ICON` | `/icons/icon-512x512.png` | Large square mark |
@@ -556,6 +559,23 @@ Not oversights. Changing any of these breaks something real.
 | Apple bundle identifiers | Provisioning identities tied to signing certificates. |
 | `ASTRID.md` | Agent context filename, deliberately named. |
 | iOS bundle IDs, keychain service, App Group, `astrid://`, associated domains | App Store Connect and provisioning. |
+
+### Legal text: the operator is configurable, the wording is not (AWTD-1584)
+
+The built-in Terms of Service and Privacy Policy (`components/legal/`) are Astrid's own
+legal documents. A profile changes only **who** they name, through
+`NEXT_PUBLIC_BRAND_OPERATOR_NAME` (and the `legal@` / `privacy@` addresses, which follow
+`NEXT_PUBLIC_BRAND_DOMAIN`). It cannot rewrite the clauses. They describe Astrid's
+infrastructure (Neon, Vercel), its Google Limited Use commitment and its GitHub sync
+schedule, and those statements may not be true of your deployment. If your service differs,
+or your lawyers want their own wording, publish your own documents and set
+`NEXT_PUBLIC_BRAND_TERMS_URL` / `NEXT_PUBLIC_BRAND_PRIVACY_URL`. Each page exists once, and
+the public route and the in-app Settings page both render it, so no second copy can keep
+naming Astrid's operator. `check:reuse` fails on a literal "Graceful Tools" or
+`gracefultools.com` in app code.
+
+Feature-access requests (`FEATURE_REQUEST_EMAIL`) go to `NEXT_PUBLIC_BRAND_SUPPORT_EMAIL`
+when that variable is unset. Before this change they went to a person at Astrid.
 
 ### Service providers: what is swappable, and what is fixed (task 1e772f0c)
 
