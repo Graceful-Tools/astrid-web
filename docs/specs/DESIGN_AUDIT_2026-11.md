@@ -125,7 +125,7 @@ Status of web's rows on 2026-11-12:
 | DS9 web-only surfaces | Closed as far as web can go; two directional shadows still written out |
 | DS11 detail icon column | Closed (AWTD-1617): the gap is `layout.row-gap`, 12 |
 | DS12 subtask indent | Closed (AWTD-1617): `layout.subtask-indent`, 16 |
-| DS13 corner radii | Open: rows, cards and panel all 12 |
+| DS13 corner radii | Closed (AWTD-1617): row 8, board card 8/6, column 12/8, panel 16/14 from `layout` |
 | DS14 row height | Open: 64 at every width |
 | DS15 motion | Stylesheets closed; 4 durations left in components (the register still says five) |
 | DS16 completion pop | Takes it at the next vendored copy |
