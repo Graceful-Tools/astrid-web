@@ -2440,7 +2440,9 @@
     "linkResolveFailed": "リンクを解決できませんでした",
     "linkTaskNotFound": "タスクが見つからないか、アクセスできなくなりました",
     "linkTaskForbidden": "このタスクを表示する権限がありません",
-    "linkInvalidType": "無効なリンクタイプ"
+    "linkInvalidType": "無効なリンクタイプ",
+    "globalErrorTitle": "問題が発生しました",
+    "globalErrorDescription": "重大なエラーが発生しました。ページを再読み込みしてください。"
   },
   "profilePage": {
     "loading": "プロフィールを読み込み中...",
@@ -2668,5 +2670,93 @@
       "theAssignee": "担当者",
       "confirm": "待機中に移動"
     }
+  },
+  "helpPage": {
+    "title": "ヘルプとトラブルシューティング",
+    "intro": "ほとんどの問題はデータを更新すると解決します。より高度な手順に進む前に、まず簡単な方法をお試しください。",
+    "iosApp": "iOSアプリ",
+    "webApp": "Webアプリ",
+    "levels": {
+      "simple": "かんたん",
+      "simpleHint": "まずはこちらをお試しください",
+      "intermediate": "中級",
+      "intermediateHint": "かんたんな手順で解決しない場合",
+      "advanced": "上級",
+      "advancedHint": "最終手段"
+    },
+    "signOutTitle": "ログアウトしてもう一度ログイン",
+    "ios": {
+      "pullToRefreshTitle": "引っ張って更新",
+      "pullToRefreshBody": "タスクリストで上から下に引っ張ると、サーバーとの同期を強制できます。ほとんどの同期の問題はこれで解決します。",
+      "forceQuitTitle": "強制終了して再起動",
+      "forceQuitBody": "画面の下から上にスワイプ（またはホームボタンをダブルタップ）し、{appName}を上にスワイプして閉じてから、アプリを再度開いてください。",
+      "signOutBody": "<b>設定</b>（サイドバーのプロフィールをタップ）→ <b>アカウント</b> → <b>ログアウト</b> の順に進みます。その後、同じアカウントで再度ログインしてください。",
+      "connectionTitle": "インターネット接続を確認",
+      "connectionBody": "{appName}はオフラインでも使えますが、同期にはインターネットが必要です。WiFiまたはモバイルデータに接続されていることを確認してください。",
+      "reinstallTitle": "アプリを削除して再インストール",
+      "reinstallBody": "ローカルのデータとキャッシュがすべて消去されます。タスクはサーバーに保存されているため、何も失われません。アプリのアイコンを長押し → Appを削除 → Appを削除 の順に進み、App Storeから再インストールしてください。",
+      "restartTitle": "デバイスを再起動",
+      "restartBody": "デバイスを完全に再起動すると、解決しない問題が直ることがあります。"
+    },
+    "web": {
+      "refreshTitle": "ページを再読み込み",
+      "refreshBody": "<kbd>F5</kbd> または <kbd>Cmd+R</kbd>（Mac）/ <kbd>Ctrl+R</kbd>（Windows）を押してページを再読み込みします。",
+      "hardRefreshTitle": "強制再読み込み",
+      "hardRefreshBody": "<kbd>Shift</kbd> を押しながら再読み込みをクリックするか、<kbd>Cmd+Shift+R</kbd>（Mac）/ <kbd>Ctrl+Shift+R</kbd>（Windows）を押します。キャッシュを使わずに読み込みます。",
+      "signOutBody": "サイドバーのプロフィール写真をクリック → <b>設定</b> → <b>アカウント</b> → <b>ログアウト</b> の順に進みます。その後、再度ログインしてください。",
+      "browserTitle": "別のブラウザを試す",
+      "browserBody": "あるブラウザで問題が起きる場合は、Chrome、Firefox、Safari、Edgeをお試しください。ブラウザ固有の問題かどうかを確認できます。",
+      "extensionsTitle": "ブラウザの拡張機能を無効にする",
+      "extensionsBody": "広告ブロッカーやプライバシー系の拡張機能が干渉することがあります。一時的に無効にするか、シークレット/プライベートウィンドウをお使いください。",
+      "clearCacheTitle": "{appName}のブラウザキャッシュとCookieを削除",
+      "clearCacheChrome": "<b>Chrome:</b> 設定 → プライバシー → 閲覧履歴データの削除 →「Cookie」と「キャッシュされた画像」を選択",
+      "clearCacheSafari": "<b>Safari:</b> 環境設定 → プライバシー → Webサイトデータを管理 →「{brandDomain}」を検索 → 削除",
+      "clearCacheFirefox": "<b>Firefox:</b> 設定 → プライバシー → データを消去 → Cookieとキャッシュを選択",
+      "indexedDbTitle": "IndexedDBストレージを削除",
+      "indexedDbBody": "Chromeの場合：DevToolsを開く（F12）→ Applicationタブ → Storage → IndexedDB → {wordmark}のエントリを右クリック → Delete database。その後、ページを再読み込みしてください。"
+    },
+    "decisionsTitle": "相手に選んでもらう",
+    "commonIssuesTitle": "よくある問題",
+    "issues": {
+      "counts": {
+        "title": "タスク数が0または正しくない",
+        "intro": "タスク数は同期されたデータから計算されます。数が正しくないように見える場合：",
+        "step1": "引っ張って更新（iOS）またはページを強制再読み込み（Web）",
+        "step2": "同期が完了するまで数秒待つ",
+        "step3": "それでも正しくない場合は、ログアウトしてもう一度ログイン"
+      },
+      "sync": {
+        "title": "デバイス間でタスクが同期されない",
+        "intro": "同期は自動で行われますが、数秒かかることがあります。同期を強制するには：",
+        "step1": "両方のデバイスがインターネットに接続されていることを確認",
+        "step2": "iOSの場合：下に引っ張って更新",
+        "step3": "Webの場合：ページを再読み込み",
+        "step4": "変更は5〜10秒以内に反映されます"
+      },
+      "slow": {
+        "title": "アプリが遅い、または反応しない",
+        "intro": "パフォーマンスの問題は、キャッシュされたデータや開いているタブが多すぎることが原因の場合がほとんどです。次をお試しください：",
+        "step1": "ほかのタブやアプリを閉じる",
+        "step2": "アプリを強制終了して再度開く（iOS）",
+        "step3": "ブラウザのキャッシュを削除（Web）",
+        "step4": "問題が続く場合はアプリを再インストール（iOS）"
+      },
+      "signIn": {
+        "title": "ログインできない、または認証エラーが出る",
+        "intro": "認証の問題は、セッションの期限切れやブラウザの設定が原因で起こることがあります：",
+        "step1": "ブラウザでCookieが有効になっていることを確認",
+        "step2": "シークレット/プライベートウィンドウでログインしてみる",
+        "step3": "{brandDomain}のCookieだけを削除",
+        "step4": "パスキーを使う場合は、デバイスが対応していることを確認"
+      }
+    },
+    "stillNeedHelpTitle": "解決しない場合",
+    "stillNeedHelpBody": "どの方法でも解決しない場合は、お気軽にお問い合わせください。",
+    "contactSupport": "サポートに問い合わせる"
+  },
+  "legalPages": {
+    "termsOfService": "利用規約",
+    "privacyPolicy": "プライバシーポリシー",
+    "backToHome": "ホームに戻る"
   }
 }

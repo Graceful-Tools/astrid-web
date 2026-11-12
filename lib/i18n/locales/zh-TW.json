@@ -2440,7 +2440,9 @@
     "linkResolveFailed": "無法解析連結",
     "linkTaskNotFound": "任務不存在或已無法存取",
     "linkTaskForbidden": "你沒有檢視此任務的權限",
-    "linkInvalidType": "連結類型無效"
+    "linkInvalidType": "連結類型無效",
+    "globalErrorTitle": "發生錯誤",
+    "globalErrorDescription": "發生嚴重錯誤。請嘗試重新整理頁面。"
   },
   "profilePage": {
     "loading": "正在載入個人資料...",
@@ -2668,5 +2670,93 @@
       "theAssignee": "負責人",
       "confirm": "移至等待"
     }
+  },
+  "helpPage": {
+    "title": "說明與疑難排解",
+    "intro": "大多數問題只要重新整理資料就能解決。請先嘗試簡單的方法，再進行更進階的步驟。",
+    "iosApp": "iOS App",
+    "webApp": "網頁版",
+    "levels": {
+      "simple": "簡單",
+      "simpleHint": "先試試這些",
+      "intermediate": "進階",
+      "intermediateHint": "如果簡單步驟沒有用",
+      "advanced": "高級",
+      "advancedHint": "最後的辦法"
+    },
+    "signOutTitle": "登出後重新登入",
+    "ios": {
+      "pullToRefreshTitle": "下拉重新整理",
+      "pullToRefreshBody": "在任務列表中從頂端往下拉，強制與伺服器同步。這能解決大多數同步問題。",
+      "forceQuitTitle": "強制關閉後重新開啟",
+      "forceQuitBody": "從螢幕底部往上滑（或按兩下主畫面按鈕），將 {appName} 往上滑掉，然後重新開啟 App。",
+      "signOutBody": "前往<b>設定</b>（在側邊欄點一下你的個人檔案）→ <b>帳戶</b> → <b>登出</b>。然後用同一個帳戶重新登入。",
+      "connectionTitle": "檢查網路連線",
+      "connectionBody": "{appName} 可以離線使用，但同步需要網路。請確認已連上 WiFi 或行動數據。",
+      "reinstallTitle": "刪除並重新安裝 App",
+      "reinstallBody": "這會清除所有本機資料和快取。你的任務儲存在我們的伺服器上，所以不會遺失任何內容。長按 App 圖示 → 移除 App → 刪除 App，然後從 App Store 重新安裝。",
+      "restartTitle": "重新啟動裝置",
+      "restartBody": "有時完整重新啟動裝置可以解決頑固的問題。"
+    },
+    "web": {
+      "refreshTitle": "重新整理頁面",
+      "refreshBody": "按 <kbd>F5</kbd> 或 <kbd>Cmd+R</kbd>（Mac）/ <kbd>Ctrl+R</kbd>（Windows）重新載入頁面。",
+      "hardRefreshTitle": "強制重新整理",
+      "hardRefreshBody": "按住 <kbd>Shift</kbd> 並點擊重新整理，或按 <kbd>Cmd+Shift+R</kbd>（Mac）/ <kbd>Ctrl+Shift+R</kbd>（Windows）。這會略過快取。",
+      "signOutBody": "點擊側邊欄中的大頭貼 → <b>設定</b> → <b>帳戶</b> → <b>登出</b>。然後重新登入。",
+      "browserTitle": "換一個瀏覽器試試",
+      "browserBody": "如果在某個瀏覽器中遇到問題，請試試 Chrome、Firefox、Safari 或 Edge。這有助於判斷是否為瀏覽器本身的問題。",
+      "extensionsTitle": "停用瀏覽器擴充功能",
+      "extensionsBody": "廣告封鎖器或隱私擴充功能有時會造成干擾。請暫時停用，或使用無痕/私密視窗。",
+      "clearCacheTitle": "清除 {appName} 的瀏覽器快取和 Cookie",
+      "clearCacheChrome": "<b>Chrome：</b>設定 → 隱私權 → 清除瀏覽資料 → 選擇「Cookie」和「快取圖片」",
+      "clearCacheSafari": "<b>Safari：</b>偏好設定 → 隱私權 → 管理網站資料 → 搜尋「{brandDomain}」→ 移除",
+      "clearCacheFirefox": "<b>Firefox：</b>設定 → 隱私權 → 清除資料 → 選擇 Cookie 和快取",
+      "indexedDbTitle": "清除 IndexedDB 儲存空間",
+      "indexedDbBody": "在 Chrome 中：開啟開發人員工具（F12）→ Application 分頁 → Storage → IndexedDB → 在 {wordmark} 項目上按右鍵 → Delete database。然後重新整理頁面。"
+    },
+    "decisionsTitle": "請別人做選擇",
+    "commonIssuesTitle": "常見問題",
+    "issues": {
+      "counts": {
+        "title": "任務數量顯示為 0 或不正確",
+        "intro": "任務數量是根據已同步的資料計算的。如果數量看起來不對：",
+        "step1": "下拉重新整理（iOS）或強制重新整理頁面（網頁版）",
+        "step2": "等待幾秒，直到同步完成",
+        "step3": "如果仍然不正確，請登出後重新登入"
+      },
+      "sync": {
+        "title": "任務沒有在裝置之間同步",
+        "intro": "同步會自動進行，但可能需要幾秒鐘。要強制同步：",
+        "step1": "確認兩台裝置都已連上網路",
+        "step2": "在 iOS 上：下拉重新整理",
+        "step3": "在網頁版上：重新整理頁面",
+        "step4": "變更應在 5-10 秒內出現"
+      },
+      "slow": {
+        "title": "App 很慢或沒有回應",
+        "intro": "效能問題通常是快取資料或開啟太多瀏覽器分頁所造成。請試試：",
+        "step1": "關閉其他分頁和應用程式",
+        "step2": "強制關閉並重新開啟 App（iOS）",
+        "step3": "清除瀏覽器快取（網頁版）",
+        "step4": "如果問題持續，重新安裝 App（iOS）"
+      },
+      "signIn": {
+        "title": "無法登入或出現驗證錯誤",
+        "intro": "驗證問題可能是工作階段過期或瀏覽器設定所造成：",
+        "step1": "確認瀏覽器已啟用 Cookie",
+        "step2": "試著在無痕/私密視窗中登入",
+        "step3": "單獨清除 {brandDomain} 的 Cookie",
+        "step4": "如果使用密碼金鑰，請確認你的裝置支援"
+      }
+    },
+    "stillNeedHelpTitle": "仍需要協助？",
+    "stillNeedHelpBody": "如果這些方法都沒有用，我們隨時為你提供協助。",
+    "contactSupport": "聯絡支援團隊"
+  },
+  "legalPages": {
+    "termsOfService": "服務條款",
+    "privacyPolicy": "隱私權政策",
+    "backToHome": "返回首頁"
   }
 }
