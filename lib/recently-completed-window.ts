@@ -69,13 +69,19 @@ export function getRecentlyCompletedCutoff(
       // "Most recent N-th day of a month, including today." If the day has
       // not yet occurred this month (e.g. now=May 11, day=20), roll back to
       // the previous month's N-th.
+      //
+      // When last month has no N-th (9 March, "since the 31st"), it clamps to last month's last
+      // day — 28 February — as iOS's Calendar arithmetic and astrid-core do (AWTD-1583, D36).
+      // `setMonth(-1)` then `setDate(31)` used to roll on into 3 March.
       const start = startOfLocalDay(now)
       const todayDom = start.getDate()
       if (todayDom >= w.day) {
         start.setDate(w.day)
       } else {
+        start.setDate(1)
         start.setMonth(start.getMonth() - 1)
-        start.setDate(w.day)
+        const lastDay = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate()
+        start.setDate(Math.min(w.day, lastDay))
       }
       return start
     }
@@ -83,8 +89,13 @@ export function getRecentlyCompletedCutoff(
     case 'since-date': {
       // ISO YYYY-MM-DD interpreted at 00:00 local. Defensive parse: split on
       // '-' rather than `new Date('YYYY-MM-DD')` which parses as UTC.
+      //
+      // A date nobody can read counts from `now`, as iOS and astrid-core do (AWTD-1583, D36): it
+      // used to become an Invalid Date, against which every comparison is false, so the window
+      // hid every completed task.
       const [y, m, d] = w.date.split('-').map(Number)
-      return new Date(y, (m ?? 1) - 1, d ?? 1, 0, 0, 0, 0)
+      const start = new Date(y, (m ?? 1) - 1, d ?? 1, 0, 0, 0, 0)
+      return Number.isNaN(start.getTime()) ? new Date(now) : start
     }
   }
 }

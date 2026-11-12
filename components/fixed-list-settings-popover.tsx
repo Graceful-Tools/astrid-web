@@ -1,5 +1,6 @@
 "use client"
 
+import type { DueDateWindow } from "@/lib/date-filter-utils"
 import React from "react"
 import { useTranslations } from "@/lib/i18n/client"
 import { Button } from "@/components/ui/button"
@@ -34,12 +35,12 @@ interface FixedListSettingsPopoverProps {
   setFilterPriority: (priority: number[]) => void
   filterAssignee: string[]
   setFilterAssignee: (assignee: string[]) => void
-  filterDueDate: "overdue" | "today" | "tomorrow" | "this_week" | "this_month" | "this_calendar_week" | "this_calendar_month" | "no_date" | "all"
-  setFilterDueDate: (dueDate: "overdue" | "today" | "tomorrow" | "this_week" | "this_month" | "this_calendar_week" | "this_calendar_month" | "no_date" | "all") => void
+  filterDueDate: DueDateWindow
+  setFilterDueDate: (dueDate: DueDateWindow) => void
   filterCompletion: "completed" | "incomplete" | "all" | "default"
   setFilterCompletion: (completion: "completed" | "incomplete" | "all" | "default") => void
-  sortBy: "auto" | "priority" | "when" | "assignee" | "completed" | "incomplete" | "completedAt" | "manual"
-  setSortBy: (sort: "auto" | "priority" | "when" | "assignee" | "completed" | "incomplete" | "completedAt" | "manual") => void
+  sortBy: "auto" | "priority" | "when" | "completedAt" | "manual"
+  setSortBy: (sort: "auto" | "priority" | "when" | "completedAt" | "manual") => void
   hasActiveFilters: boolean
   clearAllFilters: () => void
 }

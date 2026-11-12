@@ -16,7 +16,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { Select, SelectContent, SelectTrigger } from '@/components/ui/select'
-import { applyDateFilter } from '@/lib/date-filter-utils'
+import { applyDateFilter, DUE_DATE_WINDOWS } from '@/lib/date-filter-utils'
 import { getMyTasksFilterText } from '@/lib/task-manager-utils'
 import type { FilterOption } from '@/components/list-settings/filter-options'
 import {
@@ -43,8 +43,9 @@ function renderInSelect(options: readonly FilterOption[]) {
 }
 
 describe('shared list filter options (task 9377bc2c)', () => {
-  it('offers Tomorrow, which the user-list popover was missing', () => {
-    expect(DUE_DATE_FILTER_OPTIONS.map(o => o.value)).toContain('tomorrow')
+  it('offers exactly the windows every client reads (AWTD-1583: Tomorrow and the calendar week and month are retired)', () => {
+    // Both popovers read this one list, so neither can lose an option alone (task 9377bc2c).
+    expect(DUE_DATE_FILTER_OPTIONS.map(o => o.value)).toEqual([...DUE_DATE_WINDOWS])
   })
 
   it('offers only date filters the filter engine can actually apply', () => {

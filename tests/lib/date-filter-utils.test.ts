@@ -3,12 +3,10 @@ import { buildTask } from '../fixtures/domain'
 import {
   isTaskDueToday,
   isTaskOverdue,
-  isTaskDueTomorrow,
   isTaskDueThisWeek,
   isTaskDueThisMonth,
-  isTaskDueThisCalendarWeek,
-  isTaskDueThisCalendarMonth,
-  applyDateFilter
+  applyDateFilter,
+  coreDueDateWindow,
 } from '@/lib/date-filter-utils'
 import type { Task } from '@/types/task'
 
@@ -21,7 +19,7 @@ import type { Task } from '@/types/task'
  *
  * Critical scenarios tested:
  * 1. All-day task due "today" shows in "Today" filter
- * 2. All-day task due "tomorrow" shows in "Tomorrow" filter
+ * 2. All-day task due "tomorrow" is not shown as "Today"
  * 3. Timed tasks respect local timezone
  * 4. Timezone changes don't affect all-day tasks
  * 5. All filters work correctly
@@ -156,13 +154,14 @@ describe('Date Filter Utils - Google Calendar Specification', () => {
   })
 
   describe('isTaskOverdue - Timed Tasks', () => {
-    it('should return true for timed task due 1 hour ago', () => {
+    it('AWTD-1583 (D34): a timed task due 1 hour ago is due today, not overdue, until its day has passed', () => {
       const oneHourAgo = new Date()
       oneHourAgo.setHours(oneHourAgo.getHours() - 1)
 
       const task = createMockTask(oneHourAgo.toISOString(), false)
 
-      expect(isTaskOverdue(task)).toBe(true)
+      expect(isTaskOverdue(task)).toBe(false)
+      expect(isTaskDueToday(task)).toBe(true)
     })
 
     it('should return false for timed task due 1 hour from now', () => {
@@ -181,35 +180,6 @@ describe('Date Filter Utils - Google Calendar Specification', () => {
       const task = createMockTask(yesterday.toISOString(), false)
 
       expect(isTaskOverdue(task)).toBe(true)
-    })
-  })
-
-  describe('isTaskDueTomorrow', () => {
-    it('should return true for all-day task due tomorrow', () => {
-      const now = new Date()
-      const tomorrowUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
-
-      const task = createMockTask(tomorrowUTC.toISOString(), true)
-
-      expect(isTaskDueTomorrow(task)).toBe(true)
-    })
-
-    it('should return false for all-day task due today', () => {
-      const now = new Date()
-      const todayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
-
-      const task = createMockTask(todayUTC.toISOString(), true)
-
-      expect(isTaskDueTomorrow(task)).toBe(false)
-    })
-
-    it('should return true for timed task due tomorrow', () => {
-      const tomorrow = new Date()
-      tomorrow.setDate(tomorrow.getDate() + 1)
-
-      const task = createMockTask(tomorrow.toISOString(), false)
-
-      expect(isTaskDueTomorrow(task)).toBe(true)
     })
   })
 
@@ -280,44 +250,6 @@ describe('Date Filter Utils - Google Calendar Specification', () => {
     })
   })
 
-  describe('isTaskDueThisCalendarWeek', () => {
-    it('should return true for task due before next Sunday', () => {
-      // Jan 15, 2025 is a Wednesday, so next Sunday is Jan 19
-      const friday = new Date(Date.UTC(2025, 0, 17)) // Jan 17 (Friday)
-
-      const task = createMockTask(friday.toISOString(), true)
-
-      expect(isTaskDueThisCalendarWeek(task)).toBe(true)
-    })
-
-    it('should return false for task due on or after next Sunday', () => {
-      // Jan 15, 2025 is a Wednesday, so next Sunday is Jan 19
-      const nextMonday = new Date(Date.UTC(2025, 0, 20)) // Jan 20 (Monday)
-
-      const task = createMockTask(nextMonday.toISOString(), true)
-
-      expect(isTaskDueThisCalendarWeek(task)).toBe(false)
-    })
-  })
-
-  describe('isTaskDueThisCalendarMonth', () => {
-    it('should return true for task due before first day of next month', () => {
-      const endOfMonth = new Date(Date.UTC(2025, 0, 31)) // Jan 31
-
-      const task = createMockTask(endOfMonth.toISOString(), true)
-
-      expect(isTaskDueThisCalendarMonth(task)).toBe(true)
-    })
-
-    it('should return false for task due on first day of next month', () => {
-      const nextMonth = new Date(Date.UTC(2025, 1, 1)) // Feb 1
-
-      const task = createMockTask(nextMonth.toISOString(), true)
-
-      expect(isTaskDueThisCalendarMonth(task)).toBe(false)
-    })
-  })
-
   describe('applyDateFilter - Generic Filter Function', () => {
     it('should apply "today" filter correctly', () => {
       const now = new Date()
@@ -328,13 +260,30 @@ describe('Date Filter Utils - Google Calendar Specification', () => {
       expect(applyDateFilter(task, 'today')).toBe(true)
     })
 
-    it('should apply "tomorrow" filter correctly', () => {
+    it('AWTD-1583 (D35, D7): a retired window reads as an unknown value — dated tasks kept, undated dropped', () => {
       const now = new Date()
-      const tomorrowUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
+      const nextMonthUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 2, 1))
 
-      const task = createMockTask(tomorrowUTC.toISOString(), true)
+      for (const retired of ['tomorrow', 'this_calendar_week', 'this_calendar_month', 'someday']) {
+        expect(applyDateFilter(createMockTask(nextMonthUTC.toISOString(), true), retired), retired).toBe(true)
+        expect(applyDateFilter(createMockTask(null, false), retired), retired).toBe(false)
+      }
+    })
 
-      expect(applyDateFilter(task, 'tomorrow')).toBe(true)
+    it('AWTD-1583: a SAVED retired window is read as the nearest window every client has', () => {
+      expect(coreDueDateWindow('tomorrow')).toBe('this_week')
+      expect(coreDueDateWindow('this_calendar_week')).toBe('this_week')
+      expect(coreDueDateWindow('this_calendar_month')).toBe('this_month')
+      for (const kept of ['all', 'overdue', 'today', 'this_week', 'this_month', 'no_date', 'someday']) {
+        expect(coreDueDateWindow(kept)).toBe(kept)
+      }
+      expect(coreDueDateWindow(null)).toBe(null)
+    })
+
+    it('AWTD-1583: overdue is for open tasks only', () => {
+      const now = new Date()
+      const yesterdayUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1))
+      expect(applyDateFilter({ ...createMockTask(yesterdayUTC.toISOString(), true), completed: true }, 'overdue')).toBe(false)
     })
 
     it('should apply "this_week" filter correctly', () => {
@@ -374,7 +323,6 @@ describe('Date Filter Utils - Google Calendar Specification', () => {
 
       expect(isTaskDueToday(task)).toBe(false)
       expect(isTaskOverdue(task)).toBe(false)
-      expect(isTaskDueTomorrow(task)).toBe(false)
     })
 
     it('should handle invalid date strings gracefully', () => {
@@ -405,9 +353,10 @@ describe('Date Filter Utils - Google Calendar Specification', () => {
 
       const task = createMockTask(tomorrowMidnightUTC.toISOString(), true)
 
-      // Web MUST display "Tomorrow" (not "Today")
-      expect(isTaskDueTomorrow(task)).toBe(true)
-      expect(applyDateFilter(task, 'tomorrow')).toBe(true)
+      // Web MUST NOT display it as "Today"; a saved "Tomorrow" filter (retired in AWTD-1583)
+      // reads as the next 7 days, which holds it.
+      expect(isTaskDueToday(task)).toBe(false)
+      expect(applyDateFilter(task, coreDueDateWindow('tomorrow'))).toBe(true)
       expect(applyDateFilter(task, 'today')).toBe(false)
     })
 
