@@ -92,7 +92,8 @@ describe('the brand profile tolerates an `ios` block (AWTD-1289)', () => {
   it('every key the profile deliberately keeps out of the environment is tested here', () => {
     // If someone adds a second non-env block, this fails until it is covered,
     // rather than the new block silently going untested.
-    expect(NON_ENV_PROFILE_KEYS).toEqual(['ios'])
+    // The native blocks beside `ios` are covered in profile-platform-blocks-awtd-1589.test.ts.
+    expect(NON_ENV_PROFILE_KEYS).toEqual(['ios', 'windows', 'android', 'vscode', 'code'])
   })
 
   it('the committed profiles still parse, with or without the block', () => {
