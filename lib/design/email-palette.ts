@@ -11,6 +11,10 @@
  * Emails are Light: a mail client's dark mode inverts what it is given, and
  * a dark email in a light inbox is worse than the reverse. The 404 is dark in
  * every theme by design, so it reads Dark.
+ *
+ * Server code only. It reads the whole token file, which a client component
+ * would add to the first load of every route it ships in; the crash page
+ * (`app/global-error.tsx`) keeps its three greys literal for that reason.
  */
 import { themeColor, type Rgb, type ThemeName } from './tokens'
 
