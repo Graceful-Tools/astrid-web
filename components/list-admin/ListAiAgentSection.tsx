@@ -201,11 +201,11 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
             <SelectTrigger className="w-full">
               <SelectValue placeholder={loadingRepositories ? t("listSettings.admin.loading") : t("listSettings.admin.selectRepo")} />
             </SelectTrigger>
-            <SelectContent className="z-[10100] max-w-[300px]">
+            <SelectContent className="z-[10100] max-w-72">
               <SelectItem value="none">{t("common.none")}</SelectItem>
               {availableRepositories.map((repo) => (
                 <SelectItem key={repo.fullName} value={repo.fullName}>
-                  <div className="truncate max-w-[250px]" title={repo.name}>
+                  <div className="truncate max-w-64" title={repo.name}>
                     {repo.name}
                   </div>
                 </SelectItem>

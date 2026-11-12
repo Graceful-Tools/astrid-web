@@ -134,7 +134,7 @@ export function ListItem({
                 ) : null}
               </div>
             )}
-            <span className="text-[0.6875rem] theme-count-bg theme-text-primary px-2 py-1 rounded">
+            <span className="text-caption2 theme-count-bg theme-text-primary px-2 py-1 rounded">
               {taskCount}
             </span>
             {isMobile && onSettingsClick && (

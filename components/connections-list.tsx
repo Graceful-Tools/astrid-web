@@ -186,7 +186,7 @@ export function ConnectionsList() {
                   {connection.scopes.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {connection.scopes.map(scope => (
-                        <Badge key={scope} variant="secondary" className="text-[10px] font-mono">
+                        <Badge key={scope} variant="secondary" className="text-caption2 font-mono">
                           {scope}
                         </Badge>
                       ))}

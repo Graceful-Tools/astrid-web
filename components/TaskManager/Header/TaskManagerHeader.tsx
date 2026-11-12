@@ -344,7 +344,7 @@ export function TaskManagerHeader({
     <div ref={headerRef} className={headerClasses}>
       {(
         // Mobile/Narrow Desktop List View: Unified flex layout with hamburger menu
-        <div className="flex items-center justify-between w-full max-w-full min-h-[44px]">
+        <div className="flex items-center justify-between w-full max-w-full min-h-hit-target">
           {/* Left: Hamburger button with large tap target, aligned with task checkboxes.
               The hamburger stays put across mobile list / task / chat panes. */}
           <div className="flex-shrink-0">
@@ -352,7 +352,7 @@ export function TaskManagerHeader({
               variant="ghost"
               size="sm"
               onClick={toggleMobileSidebar}
-              className="pl-1.5 pr-1 py-3 min-w-[44px] min-h-[44px]"
+              className="pl-1.5 pr-1 py-3 min-w-hit-target min-h-hit-target"
               data-hamburger-button
               onDragEnter={(event) => {
                 if (!isTaskDragActive) return

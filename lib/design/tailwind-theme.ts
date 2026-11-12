@@ -18,9 +18,28 @@
  */
 export const token = (property: string) => `rgba(var(--${property}), <alpha-value>)`
 
-/** Shared sizes as steps of the spacing scale: `w-leading-control`, `h-leading-control`. */
+/**
+ * Shared sizes as steps of the spacing scale: `w-leading-control`,
+ * `min-h-hit-target` (the 44 pt touch target, `size.hit-target`), and the
+ * web-only layout widths named once in styles/components.css (AWTD-1615).
+ */
 export const tokenSpacing = {
   'leading-control': 'var(--astrid-size-comfortable-leading-control)',
+  'hit-target': 'var(--astrid-size-comfortable-hit-target)',
+  'pane-min': 'var(--pane-min-width)',
+  'popover-wide': 'var(--popover-wide-width)',
+}
+
+/**
+ * The type scale's small sizes as text utilities (AWTD-1615): `text-caption2`
+ * (11), `text-caption1` (12), `text-footnote` (13). Size only, like the
+ * `text-[11px]` they replace; the line height stays the element's own. 11 is
+ * the smallest size in the tokens, as on iOS.
+ */
+export const tokenFontSizes = {
+  caption2: 'var(--astrid-type-comfortable-caption2-size)',
+  caption1: 'var(--astrid-type-comfortable-caption1-size)',
+  footnote: 'var(--astrid-type-comfortable-footnote-size)',
 }
 
 /**

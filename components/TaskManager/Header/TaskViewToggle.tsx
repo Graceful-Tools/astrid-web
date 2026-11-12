@@ -86,7 +86,7 @@ export function TaskViewToggle({
         size="sm"
         variant="ghost"
         onClick={() => handleSegmentClick(next)}
-        className="p-2 min-w-[44px] min-h-[44px]"
+        className="p-2 min-w-hit-target min-h-hit-target"
         aria-label={t(showKey)}
         title={t(showKey)}
         data-testid="header-view-rotator"

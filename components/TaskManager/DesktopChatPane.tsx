@@ -39,7 +39,7 @@ export function DesktopChatPane({ boardMode, dimmed, onDismissOverlay, children 
 
   return (
     <div
-      className={`order-last h-full border-l theme-border relative flex flex-col ${boardMode ? 'flex-none w-[320px]' : 'flex-1 min-w-[280px]'} ${dimmed ? 'pointer-events-none' : ''}`}
+      className={`order-last h-full border-l theme-border relative flex flex-col ${boardMode ? 'flex-none w-80' : 'flex-1 min-w-pane-min'} ${dimmed ? 'pointer-events-none' : ''}`}
       data-testid="chat-pane"
     >
       {dimmed && (

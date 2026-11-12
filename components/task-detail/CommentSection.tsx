@@ -485,7 +485,7 @@ export function CommentSection({
           <textarea
             value={editingText}
             onChange={(e) => setEditingText(e.target.value)}
-            className="w-full min-h-[80px] p-2 text-sm rounded-md border theme-border theme-bg-secondary theme-text-primary resize-y focus:outline-none focus:ring-1 focus:ring-brand"
+            className="w-full min-h-20 p-2 text-sm rounded-md border theme-border theme-bg-secondary theme-text-primary resize-y focus:outline-none focus:ring-1 focus:ring-brand"
             autoFocus
           />
           <div className="flex items-center justify-end gap-2 mt-1">

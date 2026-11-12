@@ -238,7 +238,7 @@ export function SecureAttachmentViewer({
                         >
                           <ZoomOut className="w-4 h-4" />
                         </Button>
-                        <span className="text-gray-400 text-sm min-w-[3rem] text-center hidden sm:inline">
+                        <span className="text-gray-400 text-sm min-w-12 text-center hidden sm:inline">
                           {Math.round(zoom * 100)}%
                         </span>
                         <Button

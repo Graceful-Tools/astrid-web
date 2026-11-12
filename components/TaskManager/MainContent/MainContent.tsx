@@ -401,7 +401,7 @@ export function MainContent({
         {!isMobile && <div className="h-3 w-16 rounded bg-brand/20" />}
       </div>
       {label && (
-        <div className="mt-3 text-[11px] font-medium uppercase tracking-wide text-brand">
+        <div className="mt-3 text-caption2 font-medium uppercase tracking-wide text-brand">
           {label}
         </div>
       )}
@@ -918,7 +918,7 @@ export function MainContent({
                 )}
                 {manualSortPreviewActive && finalFilteredTasks.length > 0 && (
                   <div
-                    className="mt-2 min-h-[24px]"
+                    className="mt-2 min-h-6"
                     onDragOver={(event) => {
                       if (!manualSortPreviewActive || !activeDragTaskId) return
                       event.preventDefault()

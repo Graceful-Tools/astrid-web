@@ -367,7 +367,7 @@ export function ProjectStatusBoard({
               className={`flex h-full snap-start flex-col rounded-lg border theme-border theme-bg-secondary ${
                 isOneColumn
                   ? "w-full shrink-0"
-                  : "min-w-[18rem] max-w-[28rem] flex-1"
+                  : "min-w-72 max-w-md flex-1"
               }`}
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => handleDrop(event, column)}

@@ -346,7 +346,7 @@ export default function AnalyticsDashboard() {
           <CardDescription>DAU, WAU, and MAU over time</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[220px] sm:h-[300px]">
+          <div className="h-56 sm:h-72">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -371,7 +371,7 @@ export default function AnalyticsDashboard() {
         </CardHeader>
         <CardContent>
           {hasPlatformData ? (
-            <div className="h-[220px] sm:h-[300px]">
+            <div className="h-56 sm:h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={platformTrendData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -389,7 +389,7 @@ export default function AnalyticsDashboard() {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-[220px] sm:h-[300px] flex items-center justify-center text-muted-foreground">
+            <div className="h-56 sm:h-72 flex items-center justify-center text-muted-foreground">
               No platform data available
             </div>
           )}
@@ -404,7 +404,7 @@ export default function AnalyticsDashboard() {
         </CardHeader>
         <CardContent>
           {eventData.some((e) => e.value > 0) ? (
-            <div className="h-[200px] sm:h-[250px]">
+            <div className="h-52 sm:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={eventData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />
@@ -416,7 +416,7 @@ export default function AnalyticsDashboard() {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-[200px] sm:h-[250px] flex items-center justify-center text-muted-foreground">
+            <div className="h-52 sm:h-64 flex items-center justify-center text-muted-foreground">
               No events recorded today
             </div>
           )}
@@ -567,7 +567,7 @@ export default function AnalyticsDashboard() {
                   />
                 </div>
 
-                <div className="h-[220px] sm:h-[300px]">
+                <div className="h-56 sm:h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={trend}>
                       <CartesianGrid strokeDasharray="3 3" />

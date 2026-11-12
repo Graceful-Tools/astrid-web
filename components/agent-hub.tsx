@@ -252,7 +252,7 @@ function InlineKeyEditor({
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[220px]">
+        <div className="relative flex-1 min-w-56">
           <Input
             type={showKey ? 'text' : 'password'}
             value={key}

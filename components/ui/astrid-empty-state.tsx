@@ -1,6 +1,7 @@
 "use client"
 
 import { BRAND } from '@/lib/brand/config'
+import { SpeechBubbleTail } from '@/components/ui/speech-bubble-tail'
 import { memo } from 'react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/lib/i18n/client'
@@ -82,10 +83,7 @@ export const AstridEmptyState = memo<AstridEmptyStateProps>(({
         {/* Speech Bubble - matching popover style exactly */}
         <div className="flex-1">
           <div className="relative theme-bg-secondary rounded-2xl p-4 border-2 theme-border shadow-lg z-0">
-            {/* Comic-style speech bubble pointer - outer border (points left toward Astrid) */}
-            <div className="absolute -left-[16px] top-6 w-0 h-0 border-t-[12px] border-t-transparent border-r-[16px] border-r-theme border-b-[12px] border-b-transparent border-l-0 z-10"></div>
-            {/* Inner pointer fill (covers outer to create border effect) */}
-            <div className="absolute -left-[12px] top-[27px] w-0 h-0 border-t-[9px] border-t-transparent border-r-[13px] border-b-[10px] border-b-transparent border-l-0 z-10 speech-bubble-arrow-fill"></div>
+            <SpeechBubbleTail />
             <p className="text-base font-semibold theme-text-primary leading-relaxed">
               {message}
             </p>

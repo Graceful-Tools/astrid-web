@@ -493,7 +493,7 @@ function TaskRowImpl({
               event.preventDefault()
             }}
           >
-            <div className="mb-0.5 h-[2px] w-10 rounded-full bg-muted-foreground/70" />
+            <div className="mb-0.5 h-0.5 w-10 rounded-full bg-muted-foreground/70" />
           </div>
         )}
       </div>
