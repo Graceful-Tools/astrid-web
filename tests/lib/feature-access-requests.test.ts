@@ -112,8 +112,9 @@ describe('featureRequestRecipient (dd7172d8)', () => {
     // A partner that forgot the variable mailed its users' requests to Jon.
     delete process.env.FEATURE_REQUEST_EMAIL
     const { BRAND } = await import('@/lib/brand/config')
+    // Equality is the whole check: a brand's support mailbox may itself be under any
+    // domain (the Graceful Tools test sites use theirs).
     expect(featureRequestRecipient()).toBe(BRAND.supportEmail)
-    expect(featureRequestRecipient()).not.toContain('gracefultools.com')
   })
 
   it('is env-overridable so whitelabel partners route their own requests', () => {
