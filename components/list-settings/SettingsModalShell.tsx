@@ -77,7 +77,10 @@ export function SettingsModalShell({
   // the card resizes under the pointer — Radix tabs switch on mousedown, and
   // Insights' short "Loading…" body shrinks the centred card — and the browser
   // then fires `click` on the overlay, the common ancestor, closing the modal.
+  // The click event itself cannot say where the press ended (it lands on the
+  // common ancestor either way), so mouseup is recorded too.
   const pressStartedOnOverlay = useRef(false)
+  const pressEndedOnOverlay = useRef(false)
 
   if (!mounted || !open || typeof document === "undefined") return null
 
@@ -87,9 +90,11 @@ export function SettingsModalShell({
       style={{ zIndex: 9999 }}
       onKeyDown={handleKeyDown}
       onMouseDown={e => { pressStartedOnOverlay.current = e.target === e.currentTarget }}
+      onMouseUp={e => { pressEndedOnOverlay.current = e.target === e.currentTarget }}
       onClick={e => {
-        if (pressStartedOnOverlay.current && e.target === e.currentTarget) onOpenChange(false)
+        if (pressStartedOnOverlay.current && pressEndedOnOverlay.current && e.target === e.currentTarget) onOpenChange(false)
         pressStartedOnOverlay.current = false
+        pressEndedOnOverlay.current = false
       }}
       tabIndex={-1}
       role="dialog"

@@ -40,6 +40,17 @@ describe('SettingsModalShell outside click (AWTD-1595)', () => {
     expect(onOpenChange).not.toHaveBeenCalled()
   })
 
+  it('stays open when a press starts on the overlay and is released inside the card', () => {
+    const { onOpenChange, overlay } = renderShell()
+
+    fireEvent.mouseDown(overlay)
+    fireEvent.mouseUp(screen.getByRole('button', { name: 'Insights' }))
+    // Common ancestor again: the click lands on the overlay.
+    fireEvent.click(overlay)
+
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
   it('still closes on a real click outside the card', () => {
     const { onOpenChange, overlay } = renderShell()
 
