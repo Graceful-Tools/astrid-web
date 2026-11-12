@@ -437,14 +437,9 @@ You can modify your reminder preferences in your account settings.
     const allTasks = [...data.overdueTasks, ...data.dueTodayTasks, ...data.dueTomorrowTasks]
     const baseUrl = getBaseUrl()
 
-    // The design tokens' overdue and warning, written out because an email
-    // cannot read a custom property (AWTD-1596). Light: email clients draw on white.
-    const tokenColor = (name: string) => `rgb(${themeColor('light', name).join(', ')})`
-    const getPriorityColor = (task: TaskReminderData) => {
-      if (data.overdueTasks.includes(task)) return tokenColor('overdue')
-      if (data.dueTodayTasks.includes(task)) return tokenColor('warning')
-      return '#10b981'
-    }
+    const tokenColor = (name: string) => `rgb(${themeColor('light', name).join(', ')})` // an email cannot read a custom property (AWTD-1596)
+    const getPriorityColor = (task: TaskReminderData) =>
+      data.overdueTasks.includes(task) ? tokenColor('overdue') : data.dueTodayTasks.includes(task) ? tokenColor('warning') : '#10b981'
 
     return `
       <!DOCTYPE html>
