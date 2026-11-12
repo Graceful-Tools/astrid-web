@@ -37,11 +37,23 @@ import {
 export const INBOX_COLUMN_ID = '__inbox__'
 export const DONE_COLUMN_ID = '__done__'
 
-/** This file's virtual column ids and astrid-core's name the same two columns (AWTD-1585). */
-const toCoreColumnId = (id: string) =>
-  id === INBOX_COLUMN_ID ? VIRTUAL_INBOX_COLUMN_ID : id === DONE_COLUMN_ID ? VIRTUAL_DONE_COLUMN_ID : id
-const fromCoreColumnId = (id: string) =>
-  id === VIRTUAL_INBOX_COLUMN_ID ? INBOX_COLUMN_ID : id === VIRTUAL_DONE_COLUMN_ID ? DONE_COLUMN_ID : id
+/**
+ * This file's virtual columns and astrid-core's are the same two columns under different ids
+ * (AWTD-1585). Translated by KIND, never by id: a status column keeps its role whatever it is
+ * spelled, so a stored custom role such as "__virtual_done__" stays a status column here.
+ */
+type KindedColumn = { id: string; kind: BoardColumnKind }
+const toCoreColumn = <T extends KindedColumn>(column: T): T =>
+  column.kind === 'inbox' ? { ...column, id: VIRTUAL_INBOX_COLUMN_ID }
+    : column.kind === 'done' ? { ...column, id: VIRTUAL_DONE_COLUMN_ID }
+    : column
+const fromCoreColumn = <T extends KindedColumn>(column: T): T =>
+  column.kind === 'inbox' ? { ...column, id: INBOX_COLUMN_ID }
+    : column.kind === 'done' ? { ...column, id: DONE_COLUMN_ID }
+    : column
+
+/** A role the core would read as one of its virtual columns: such a board is left to the TypeScript. */
+const isCoreVirtualId = (id: string) => id === VIRTUAL_INBOX_COLUMN_ID || id === VIRTUAL_DONE_COLUMN_ID
 
 export interface StatusState {
   role: string
@@ -146,11 +158,11 @@ export function parseCustomStates(raw: unknown): StatusState[] {
  */
 export function boardColumnsFor(project: ProjectLike | null | undefined): BoardColumn[] {
   const typescriptAnswer = typescriptBoardColumnsFor(project)
-  const answer = boardColumnsThroughCore(
-    project?.customStates,
-    typescriptAnswer.map(column => ({ ...column, id: toCoreColumnId(column.id) })),
-  )
-  return answer.map(column => ({ ...column, id: fromCoreColumnId(column.id) }))
+  // A custom role spelled like one of the core's virtual ids cannot be told apart from that
+  // column on the core's side, so that (vanishingly rare) board is not put to it.
+  if (typescriptAnswer.some(column => column.kind === 'status' && isCoreVirtualId(column.id))) return typescriptAnswer
+  const answer = boardColumnsThroughCore(project?.customStates, typescriptAnswer.map(toCoreColumn))
+  return answer.map(fromCoreColumn)
 }
 
 function typescriptBoardColumnsFor(project: ProjectLike | null | undefined): BoardColumn[] {
@@ -199,8 +211,11 @@ export function resolveColumnMove(
   targetColumnId: string
 ): { statusRole: string | null; completed: boolean } {
   const typescriptAnswer = typescriptColumnMove(targetColumnId)
-  const coreId = toCoreColumnId(targetColumnId)
-  const kind = coreId === VIRTUAL_INBOX_COLUMN_ID ? 'inbox' : coreId === VIRTUAL_DONE_COLUMN_ID ? 'done' : 'status'
+  // The kind comes from THIS API's id: anything but Inbox and Done is a status role, however it
+  // is spelled. A role that collides with a core virtual id is refused by moveRequestFor's
+  // status-id guard, and the TypeScript answers.
+  const kind: BoardColumnKind = targetColumnId === INBOX_COLUMN_ID ? 'inbox' : targetColumnId === DONE_COLUMN_ID ? 'done' : 'status'
+  const coreId = toCoreColumn({ id: targetColumnId, kind }).id
   // No memberships travel here: this planner never touches them, so neither side is asked to.
   const { statusRole, completed } = columnMoveThroughCore(
     {
