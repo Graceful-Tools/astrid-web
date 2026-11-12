@@ -128,6 +128,21 @@ const nextConfig = {
         source: '/mcp/messages',
         destination: '/api/mcp/messages',
       },
+      // A missing root-level file (/nope.png, /apple-touch-icon-precomposed.png,
+      // /nope.md) is a 404, not the app (AWTD-1599). The middleware cannot say
+      // so: its matcher skips file-shaped addresses so it does not run on every
+      // static request, and it runs before the filesystem, so it could not tell
+      // a missing file from a real one anyway. This list is the afterFiles
+      // phase: it runs only after public/ and the static routes (/llms.txt,
+      // /start.md, /manifest.json) found nothing, and before dynamic routes —
+      // where `[locale]` would otherwise take "nope.png" as a locale and render
+      // the app shell with a 200. A segment with a dot is never a locale.
+      // The destination is a locale-prefixed address no route claims, so the
+      // root not-found answers: server-rendered, a few KB, no app booted.
+      {
+        source: '/:file([^/]*\\.[^/]*)',
+        destination: '/en/_missing-file',
+      },
     ]
   },
   async headers() {

@@ -483,3 +483,20 @@ describe('a meaning as text reads its ink, as a fill its base colour (AWTD-1575)
     expect(contrast(colour('hover:text-brand-hover'), card)).toBeGreaterThanOrEqual(contrast(colour('text-brand'), card))
   })
 })
+
+describe('the darker accent and error are not restated (AWTD-1596, register DS25/DS26)', () => {
+  it('focus rings, primary buttons and spinners ask for the accent and the focus line, not Tailwind blue or red', () => {
+    const components = read('styles', 'components.css')
+    expect(components.split('\n').filter((line) => /(blue|red)-\d00/.test(line))).toEqual([])
+  })
+
+  it('Sign out in Settings is the error ink, not Tailwind red', () => {
+    expect(read('components', 'Settings', 'SettingsHub.tsx')).not.toMatch(/text-red-\d00/)
+  })
+
+  it('the 404 and crash pages read the brand accent and the error colour instead of typing them out', () => {
+    for (const file of [['app', 'not-found.tsx'], ['app', 'global-error.tsx']]) {
+      expect(read(...file), file.join('/')).not.toMatch(/#(3b82f6|2563eb|ef4444|dc2626)/i)
+    }
+  })
+})

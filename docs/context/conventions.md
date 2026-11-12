@@ -52,7 +52,7 @@
 
 ### Validation Strategy
 - **Zod Integration**: Zod 3.24.1 for schema validation (`package.json:105`)
-- **Form Validation**: React Hook Form + Zod for client-side validation
+- **Form Validation**: Zod for client-side validation
 - **Server Validation**: Manual validation in API routes (`app/api/tasks/route.ts:76`)
 - **Type Safety**: Full TypeScript coverage for all inputs
 

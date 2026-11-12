@@ -137,8 +137,12 @@ describe('EmailReminderService - Email Format', () => {
 
       const html = (service as any).getDailyDigestHtml(data)
 
-      expect(html).toContain('#ef4444')
-      expect(html).toContain('#f59e0b')
+      // AWTD-1596: overdue and due-today are the design tokens' overdue and
+      // warning (an email cannot read a custom property), not typed-out hex.
+      expect(html).toContain('rgb(239, 68, 68)')
+      expect(html).toContain('rgb(245, 158, 11)')
+      expect(html).not.toContain('#ef4444')
+      expect(html).not.toContain('#f59e0b')
       expect(html).toContain('#10b981')
     })
 
