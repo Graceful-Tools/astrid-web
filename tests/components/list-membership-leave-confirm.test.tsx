@@ -12,9 +12,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ListMembership } from '@/components/list-membership'
+import { SettingsModalShell } from '@/components/list-settings/SettingsModalShell'
 import type { TaskList, User } from '@/types/task'
 
-vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }))
+// One toast for the whole file: ListMembersManager reloads members whenever
+// `toast` changes identity, so a fresh vi.fn() per render loops fetch/render.
+const { toast } = vi.hoisted(() => ({ toast: vi.fn() }))
+vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast }) }))
 
 const CURRENT_USER: User = {
   id: 'member-user',
@@ -35,9 +39,20 @@ const LIST = {
   ],
 } as unknown as TaskList
 
+/** The roster as the members endpoint returns it: the owner and the viewer. */
+const MEMBER_ROWS = [
+  { id: 'm-owner', user_id: 'owner-user', email: 'owner@example.com', name: 'Olive', role: 'admin', type: 'member', created_at: new Date().toISOString() },
+  { id: 'm-self', user_id: CURRENT_USER.id, email: CURRENT_USER.email, name: CURRENT_USER.name, role: 'member', type: 'member', created_at: new Date().toISOString() },
+]
+
+let fetchMock: ReturnType<typeof vi.fn>
 beforeEach(() => {
   vi.clearAllMocks()
-  global.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ members: [] }) })) as never
+  fetchMock = vi.fn(async (url: string) => ({
+    ok: true,
+    json: async () => (String(url).includes('/members') ? { members: MEMBER_ROWS } : {}),
+  }))
+  global.fetch = fetchMock as never
 })
 
 function renderMembership(onLeave = vi.fn()) {
@@ -87,5 +102,58 @@ describe('Leave List asks before leaving (AWTD-1594)', () => {
 
     expect(onLeave).not.toHaveBeenCalled()
     expect(screen.queryByTestId('list-leave-confirm')).not.toBeInTheDocument()
+  })
+})
+
+describe('the Leave confirm keeps the keyboard and the pointer (AWTD-1594 review)', () => {
+  it('Leave in the roster row closes the row menu and puts focus in the confirm', async () => {
+    const user = userEvent.setup()
+    const onLeave = renderMembership()
+
+    await screen.findByText('Mabel')
+    const menus = await screen.findAllByRole('button', { expanded: false })
+    const trigger = menus.filter(b => b.getAttribute('aria-haspopup') === 'menu').at(-1)!
+    await user.click(trigger)
+    await user.click(await screen.findByText('Leave'))
+
+    const confirm = await screen.findByTestId('list-leave-confirm')
+    // The modal menu would otherwise sit above the confirm holding focus.
+    await waitFor(() => expect(screen.queryByRole('menu')).not.toBeInTheDocument())
+    await waitFor(() => expect(confirm).toContainElement(document.activeElement as HTMLElement))
+    expect(onLeave).not.toHaveBeenCalled()
+
+    // And Cancel / Leave work with the pointer.
+    await user.click(within(confirm).getByRole('button', { name: 'Leave List' }))
+    expect(onLeave).toHaveBeenCalledWith(LIST)
+  })
+
+  it('inside the real settings shell: Shift+Tab stays in the confirm, Escape closes only it, focus returns', async () => {
+    const user = userEvent.setup()
+    const onLeave = vi.fn()
+    const onOpenChange = vi.fn()
+    render(
+      <SettingsModalShell open onOpenChange={onOpenChange} header={<h2>List Details</h2>}>
+        <ListMembership list={LIST} currentUser={CURRENT_USER} canEditSettings={false} onUpdate={vi.fn()} onLeave={onLeave} />
+      </SettingsModalShell>
+    )
+    await screen.findByText('Mabel')
+
+    const leaveButton = screen.getByRole('button', { name: 'Leave List' })
+    await user.click(leaveButton)
+    const confirm = await screen.findByTestId('list-leave-confirm')
+    const cancel = within(confirm).getByRole('button', { name: 'Cancel' })
+    await waitFor(() => expect(document.activeElement).toBe(cancel))
+
+    // Shift+Tab from Cancel used to reach the covered Leave List button.
+    for (let i = 0; i < 3; i++) {
+      await user.tab({ shift: true })
+      expect(confirm).toContainElement(document.activeElement as HTMLElement)
+    }
+
+    await user.keyboard('{Escape}')
+    expect(screen.queryByTestId('list-leave-confirm')).not.toBeInTheDocument()
+    expect(onOpenChange).not.toHaveBeenCalled()
+    expect(onLeave).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(leaveButton)
   })
 })
