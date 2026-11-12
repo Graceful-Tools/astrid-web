@@ -1,14 +1,25 @@
 import Link from 'next/link'
+import { getLocale, getTranslations } from 'next-intl/server'
 
 import { BRAND } from '@/lib/brand/config'
 
 /**
- * Root-level not-found page for routes that don't match any locale.
+ * Root-level not-found page: every address that matches no route, under a
+ * locale or not (/de/nope, /nope, /nope.png).
  * Must include html/body tags since it's outside the locale layout.
+ *
+ * It stays outside the locale layout on purpose: server-rendered, a few KB,
+ * and it boots no app. Rendering misses inside [locale] (PR #717) made every
+ * 404 an empty client-rendered shell ~16x the size that fired API calls for a
+ * signed-out visitor. It speaks the request's language instead: the
+ * middleware forwards the locale next-intl resolved, and the copy is the
+ * shared errorPages strings (AWTD-1599).
  */
-export default function NotFound() {
+export default async function NotFound() {
+  const locale = await getLocale()
+  const t = await getTranslations('errorPages')
   return (
-    <html lang="en">
+    <html lang={locale}>
       <body style={{ margin: 0, fontFamily: 'system-ui, sans-serif' }}>
         <div style={{
           minHeight: '100vh',
@@ -20,9 +31,9 @@ export default function NotFound() {
         }}>
           <div style={{ textAlign: 'center' }}>
             <h1 style={{ fontSize: '3.75rem', fontWeight: 'bold', color: '#fff', marginBottom: '1rem' }}>404</h1>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#d1d5db', marginBottom: '1rem' }}>Page Not Found</h2>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#d1d5db', marginBottom: '1rem' }}>{t('notFoundTitle')}</h2>
             <p style={{ color: '#9ca3af', marginBottom: '2rem' }}>
-              The page you&apos;re looking for doesn&apos;t exist or has been moved.
+              {t('notFoundDescription')}
             </p>
             <Link
               href="/"
@@ -39,7 +50,7 @@ export default function NotFound() {
                 transition: 'background-color 0.2s'
               }}
             >
-              Go Home
+              {t('notFoundGoHome')}
             </Link>
           </div>
         </div>
