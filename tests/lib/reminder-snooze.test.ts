@@ -3,7 +3,7 @@
  *
  * `POST /api/reminders/:id/snooze` and `POST /api/v1/reminders/:id/snooze` were
  * two independent implementations of the same ~40 lines: same ownership check,
- * same 5-snooze cap, same scheduledFor arithmetic, same `data` merge. They
+ * same 5-snooze cap (removed in AWTD-1583), same scheduledFor arithmetic, same `data` merge. They
  * differed only in how the caller is authenticated and whether the response
  * carries a `meta` envelope.
  *
@@ -26,7 +26,7 @@ vi.mock('@/lib/prisma', () => ({
   },
 }))
 
-import { snoozeReminder, MAX_SNOOZE_COUNT } from '@/lib/reminder-snooze'
+import { snoozeReminder } from '@/lib/reminder-snooze'
 import { prisma } from '@/lib/prisma'
 
 const mockPrisma = vi.mocked(prisma, true)
@@ -76,17 +76,15 @@ describe('snoozeReminder (task e0613ae5)', () => {
     expect(mockPrisma.reminderQueue.update).not.toHaveBeenCalled()
   })
 
-  it('stops at the snooze cap', async () => {
+  it('AWTD-1583 (D37): snoozes as often as asked — a sixth snooze is accepted, as on iOS and in the core', async () => {
     mockPrisma.reminderQueue.findUnique.mockResolvedValue({
-      ...BASE, data: { snoozeCount: MAX_SNOOZE_COUNT },
+      ...BASE, data: { snoozeCount: 5 },
     } as never)
 
     const result = await snoozeReminder({ reminderId: 'rem-1', userId: 'owner-1', minutes: 15 })
 
-    expect(result).toMatchObject({ ok: false, status: 400 })
-    if (result.ok) return
-    expect(result.error).toMatch(/maximum snooze limit/i)
-    expect(mockPrisma.reminderQueue.update).not.toHaveBeenCalled()
+    expect(result).toMatchObject({ ok: true, snoozeCount: 6 })
+    expect(mockPrisma.reminderQueue.update).toHaveBeenCalled()
   })
 
   it('preserves the ORIGINAL scheduledFor across repeated snoozes', async () => {

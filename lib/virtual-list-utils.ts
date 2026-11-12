@@ -1,5 +1,6 @@
 import { Task, TaskList } from "@/types/task"
-import { applyDateFilter } from "@/lib/date-filter-utils"
+import { applyDateFilter, coreDueDateWindow } from "@/lib/date-filter-utils"
+import { isInMyTasksScope } from "@/lib/my-tasks-scope"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('virtual-list-utils')
@@ -100,8 +101,9 @@ export function applyVirtualListFilter(
       filtered = tasks.filter(task => {
         // Only apply assignee filter if not explicitly set in filter settings
         if (!list.filterAssignee || list.filterAssignee === "all") {
-          // For My Tasks, only show tasks assigned to the current user (exclude unassigned)
-          return task.assigneeId === currentUserId
+          // The My Tasks scope every client applies (lib/my-tasks-scope.ts, AWTD-1583): assigned
+          // to the current user, the nested assignee counting when assigneeId is missing.
+          return isInMyTasksScope(task, currentUserId)
         }
 
         return true // Let other filters handle the logic
@@ -128,7 +130,10 @@ export function applyVirtualListFilter(
 
   if (list.filterDueDate && list.filterDueDate !== "all") {
     // Use Google Calendar approach: UTC comparison for all-day, local for timed
-    filtered = filtered.filter(task => applyDateFilter(task, list.filterDueDate!))
+    // A saved filter may hold a window retired in AWTD-1583 ("tomorrow", the calendar week or
+    // month); it reads as the nearest current one rather than as an unknown value.
+    const window = coreDueDateWindow(list.filterDueDate)
+    filtered = filtered.filter(task => applyDateFilter(task, window))
   }
 
   // Apply filterAssignee filter
