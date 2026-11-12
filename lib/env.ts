@@ -336,6 +336,8 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'SMOKE_BASE_URL', scope: 'tooling', description: 'scripts/self-host-smoke.ts: the origin of the stack to check. Default http://localhost:3000.' },
   { name: 'SMOKE_SMTP_URL', scope: 'tooling', description: 'scripts/self-host-smoke.ts: the compose mail sink as this machine reaches it (smtp://localhost:1025). With SMOKE_MAILPIT_URL, one email is sent through the SMTP transport and read back (AWTD-1466).' },
   { name: 'SMOKE_MAILPIT_URL', scope: 'tooling', description: 'scripts/self-host-smoke.ts: the mail sink\'s HTTP API (http://localhost:8025), where the smoke email is read back.' },
+  { name: 'SMOKE_BRAND_PROFILE', scope: 'tooling', description: 'scripts/self-host-smoke.ts: the brand profile the stack was started with, on this machine. Pages, manifest and icons are then checked against its `expect` block (AWTD-1606).' },
+  { name: 'SMOKE_BRAND_ASSETS_DIR', scope: 'tooling', description: 'scripts/self-host-smoke.ts: the directory mounted as the container\'s BRAND_ASSETS_DIR, on this machine. /brand-assets/* artwork must be its files byte for byte (AWTD-1606).' },
   { name: 'CRON_BASE_URL', scope: 'tooling', description: 'Self-hosted cron runner (scripts/cron-runner.mjs): the origin it calls the cron routes on. Defaults to NEXTAUTH_URL.' },
   { name: 'JOB_WORKER_INTERVAL_MS', scope: 'tooling', description: 'Self-hosted job worker (scripts/job-worker.mjs): how long it waits between drains of the job queue when idle. Default 10000.' },
   { name: 'NEXT_DEV_PORT', scope: 'tooling', description: 'Preferred port for the dev server.' },

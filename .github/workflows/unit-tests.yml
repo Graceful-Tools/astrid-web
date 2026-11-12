@@ -65,6 +65,12 @@ jobs:
       - name: Check Documentation Links
         run: npm run check:docs
 
+      # The design ratchet (docs/specs/DESIGN_SYSTEM.md, AWTD-1575). Vitest runs it
+      # too; a step of its own names a new hand-written colour, size, duration or
+      # sentence in seconds instead of inside the full suite's output.
+      - name: Design Consistency
+        run: npm run check:design
+
       # tests/ is outside the app's tsconfig, so `typecheck` never sees it.
       # Predeploy ran this alone, so a fixture missing a new required prop
       # passed CI and failed the gate on the merged main (AWTD-1426).

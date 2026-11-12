@@ -36,9 +36,6 @@ vi.mock('@/lib/i18n/client', () => ({
   }),
 }))
 
-vi.mock('sonner', () => ({
-  toast: { error: vi.fn(), success: vi.fn() },
-}))
 
 vi.mock('@/lib/api', () => ({
   apiPost: mockApiPost,

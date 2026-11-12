@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56">
+  <g id="repeat">
+    <path d="M 21 45 L 13 45 A 2 2 0 0 1 11 43 L 11 13 A 2 2 0 0 1 13 11 L 23 11" fill="none" stroke="currentColor" stroke-width="4"/>
+    <path d="M 20.5 3.75 L 28 11 L 20.5 18.25 Z" fill="currentColor"/>
+    <path d="M 33 11 L 43 11 A 2 2 0 0 1 45 13 L 45 43 A 2 2 0 0 1 43 45 L 33 45" fill="none" stroke="currentColor" stroke-width="4"/>
+    <path d="M 33.5 52 L 26 45 L 33.5 38 Z" fill="currentColor"/>
+  </g>
+</svg>
