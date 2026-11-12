@@ -105,8 +105,10 @@ export function TaskDetailDescriptionRow({
             <div
               // min-w-0: this is a flex child; without it the intrinsic width of
               // a code block stretches the row past the panel instead of letting
-              // `.prose pre` scroll horizontally (task 61a21152).
-              className="prose prose-sm max-w-none theme-text-primary min-w-0 flex-1"
+              // `.prose pre` scroll horizontally (task 61a21152). overflow-wrap
+              // breaks a URL or other run with no spaces, like the title does
+              // (AWTD2-176).
+              className="prose prose-sm max-w-none theme-text-primary min-w-0 flex-1 break-words [overflow-wrap:anywhere]"
               onClick={gridViewer.onClick}
               onKeyDown={gridViewer.onKeyDown}
               dangerouslySetInnerHTML={{
