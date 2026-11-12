@@ -40,6 +40,7 @@
     "check:reuse": "tsx scripts/check-reuse.ts --strict && npm run check:api-boundaries",
     "check:api-boundaries": "tsx scripts/check-api-boundaries.ts",
     "check:brands": "vitest run tests/brands",
+    "brand:launch": "tsx scripts/brand-launch.ts",
     "check:api-breaking": "tsx scripts/check-api-breaking-changes.ts",
     "predeploy": "tsx scripts/predeploy-self-healing.ts",
     "predeploy:simple": "npm run check:model-sync && npm run check:api-breaking && npm run test:run && npx tsc --noEmit && npm run lint && echo 'All predeploy checks passed!'",
