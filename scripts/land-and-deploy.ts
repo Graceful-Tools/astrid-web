@@ -39,6 +39,7 @@ import { isAwaitingDeployLane, parseBlockedConditions } from '@/lib/ready-queue-
 import { resolveAgentAuthorId } from './lib/agent-author'
 import { agentMailboxFromEmail } from '@/lib/brand/agent-emails'
 import { cloudHandoffEligible } from './lib/cloud-handoff'
+import { isAwaitingDeploy } from './lib/doing-release'
 import { boardTasksUrl } from './lib/board-read-url'
 import { loadScriptEnv } from './lib/load-env'
 import { SweepApi } from './lib/sweep-api'
@@ -189,7 +190,11 @@ async function completeDeployedTasks(listId: string): Promise<string[]> {
 
   const awaiting: AwaitingDeployTask[] = []
   for (const task of finished) {
-    const sha = parseBlockedConditions(await api.comments(task)).awaitingDeploy
+    const comments = await api.comments(task)
+    // Only a CURRENT handoff: a task reopened after completion, released, or claimed
+    // again for a redo still carries its old marker, and production already serves it.
+    if (!isAwaitingDeploy(comments)) continue
+    const sha = parseBlockedConditions(comments).awaitingDeploy
     if (sha) awaiting.push({ id: task.id, identifier: task.identifier, sha })
   }
   if (!awaiting.length) return []

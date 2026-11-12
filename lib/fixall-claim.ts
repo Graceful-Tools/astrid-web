@@ -256,6 +256,19 @@ export function pendingDeployHandoff(
 }
 
 /**
+ * The first words of the note a Ready claim leaves when the task carries an older
+ * `AWAITING-DEPLOY:` handoff that somebody asked to have redone. It is the new
+ * attempt's boundary: a handoff older than it no longer counts as finished work,
+ * so the release does not skip the retry if it dies (scripts/lib/doing-release.ts)
+ * and the deploy check does not complete it on the old commit.
+ */
+export const REDO_CLAIM_MARKER = '🔁 Claimed again to redo it'
+
+export function redoClaimComment(previousSha: string): string {
+  return `${REDO_CLAIM_MARKER}: the earlier handoff (${previousSha.slice(0, 12)}) no longer counts as finished work.`
+}
+
+/**
  * The note a refused claim leaves. It repeats the marker so it stays the newest one.
  * Finished work awaiting its deploy belongs in Doing (R6), so that is where it goes back.
  */

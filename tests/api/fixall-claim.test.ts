@@ -222,6 +222,23 @@ describe("POST /api/v1/tasks/:id/claim-fixall", () => {
     expect(prisma.task.updateMany).toHaveBeenCalledWith(expect.objectContaining({
       data: { assigneeId: 'copilot-1', statusRole: 'doing' },
     }))
+    // The redo claim marks the new attempt, so the old handoff stops reading as
+    // finished work (the release would otherwise skip a retry that died).
+    expect(prisma.comment.create).toHaveBeenCalledWith({ data: expect.objectContaining({
+      taskId: TASK_ID, authorId: 'copilot-1',
+      content: expect.stringMatching(/^🔁 Claimed again to redo it: .*3d0392a40187/),
+    }) })
+  })
+
+  it('a redo claim that loses the race leaves no note', async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue({
+      comments: [
+        { content: 'Redo it.', createdAt: new Date('2026-10-31T08:00:00Z') },
+        { content: 'AWAITING-DEPLOY: 3d0392a40187c84be7d91e77048de22c429c09ea', createdAt: new Date('2026-10-30T21:51:17Z') },
+      ],
+    } as never)
+    vi.mocked(prisma.task.updateMany).mockResolvedValue({ count: 0 })
+    expect((await POST(request({ action: 'ready', commentWatermark: null }), { params })).status).toBe(409)
     expect(prisma.comment.create).not.toHaveBeenCalled()
   })
 
