@@ -16,6 +16,7 @@
 import { LayoutGrid } from "lucide-react"
 import { TaskFieldRow } from "./TaskFieldRow"
 import { useTranslations } from "@/lib/i18n/client"
+import { boardColumnBlurb, boardColumnLabel } from "@/lib/board-column-labels"
 import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
 import {
   applyProjectColumnTo,
@@ -89,14 +90,14 @@ export function TaskDetailBoardStateRow({
               data-testid={`task-detail-board-state-${column.id}`}
               onClick={() => moveTo(column.id)}
               aria-pressed={isSelected}
-              title={column.description || undefined}
+              title={boardColumnBlurb(column, t) || undefined}
               className={`h-8 px-3 rounded-lg text-sm font-medium transition-all duration-fast active:scale-95 ${
                 isSelected
                   ? 'bg-brand text-brand-foreground'
                   : 'bg-transparent border-2 border-theme-button text-theme-secondary'
               }`}
             >
-              {column.name}
+              {boardColumnLabel(column, t)}
             </button>
           )
         })}

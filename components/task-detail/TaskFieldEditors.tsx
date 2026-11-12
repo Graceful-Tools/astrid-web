@@ -532,7 +532,7 @@ export function TaskFieldEditors({
             onClick={() => !readOnly && setEditingWhen(true)}
           >
             <span className={task.dueDateTime ? "text-brand" : "theme-text-muted"}>
-              {task.dueDateTime ? formatDateForDisplay(new Date(task.dueDateTime), task.isAllDay) : t('time.noDate')}
+              {task.dueDateTime ? formatDateForDisplay(new Date(task.dueDateTime), task.isAllDay, { locale, t }) : t('time.noDate')}
             </span>
           </div>
         )}
@@ -554,7 +554,7 @@ export function TaskFieldEditors({
               onClick={() => !readOnly && setEditingTime(true)}
             >
               <span className={task.dueDateTime && !task.isAllDay ? "text-brand" : "theme-text-muted"}>
-                {task.dueDateTime && !task.isAllDay ? formatConciseTime(new Date(task.dueDateTime)) : t('time.allDay')}
+                {task.dueDateTime && !task.isAllDay ? formatConciseTime(new Date(task.dueDateTime), locale) : t('time.allDay')}
               </span>
             </div>
           )}

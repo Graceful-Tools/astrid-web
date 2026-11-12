@@ -18,6 +18,7 @@ import { canUserManageList } from "@/lib/list-permissions"
 import { isCanceled } from "@/lib/closed-reason"
 import { boardColumnsFor, taskColumnId } from "@/lib/task-status"
 import { useTranslations } from "@/lib/i18n/client"
+import { boardColumnBlurb, boardColumnLabel } from "@/lib/board-column-labels"
 import { useCopyTaskIdentifier } from "@/hooks/use-copy-task-identifier"
 
 /**
@@ -197,7 +198,7 @@ export function TaskActionMenu({
                   <DropdownMenuRadioGroup value={currentColumnId} onValueChange={onStatusSelect}>
                     {statusColumns.map(column => (
                       <DropdownMenuRadioItem key={column.id} value={column.id}>
-                        {column.name}
+                        {boardColumnLabel(column, t)}
                       </DropdownMenuRadioItem>
                     ))}
                   </DropdownMenuRadioGroup>

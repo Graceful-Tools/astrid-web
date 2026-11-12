@@ -10,7 +10,7 @@ import { getRandomReminderString, getSocialAccountabilityMessage } from "@/lib/r
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { useToast } from "@/hooks/use-toast"
 import { TaskCheckbox } from "@/components/task-checkbox"
-import { format } from "date-fns"
+import { formatMonthDay } from "@/lib/i18n/date-format"
 import { useTranslations } from "@/lib/i18n/client"
 
 interface AstridReminderPopoverProps {
@@ -180,7 +180,7 @@ export function AstridReminderPopover({
             {/* Due Date on the right - exactly like task row */}
             {task.dueDateTime && (
               <div className="text-xs theme-text-muted flex-shrink-0">
-                {format(new Date(task.dueDateTime), "MMM d")}
+                {formatMonthDay(new Date(task.dueDateTime), locale)}
               </div>
             )}
 
