@@ -511,8 +511,8 @@ reduction, `npm run design:metrics -- --update` in the same change.
 | Inline styles | 64 | 63 |
 | Arbitrary sizes | 97 | 96 |
 | Durations | 57 | 5 |
-| Sentences in JSX | 999 | 532 |
-| Distinct sentences in JSX | 802 | 400 |
+| Sentences in JSX | 999 | 530 |
+| Distinct sentences in JSX | 802 | 399 |
 
 astrid-core's `cargo xtask check-design` compares this repo's copy with its own at the
 pinned revision, in its CI.
