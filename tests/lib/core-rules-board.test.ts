@@ -87,3 +87,22 @@ describe('AWTD-1585: the board through astrid-core fails safe', () => {
     expect(boardCoreStatus()!.stats).toEqual({ agreed: 1, disagreed: 0, unsampled: 0, skipped: 0, failed: 0 })
   })
 })
+
+describe('AWTD-1585: a custom role spelled like a core virtual column id stays a status column', () => {
+  const colliding = [{ role: '__virtual_done__', name: 'Odd', order: 3 }, { role: '__virtual_inbox__', name: 'Odder', order: 4 }]
+
+  it('boardColumnsFor keeps the role as a status column, with or without the core', () => {
+    const expected = boardColumnsFor({ customStates: colliding })
+    expect(expected.filter((c) => c.kind === 'done')).toHaveLength(1)
+    expect(expected.filter((c) => c.kind === 'inbox')).toHaveLength(1)
+    expect(expected.filter((c) => c.kind === 'status').map((c) => c.id)).toEqual(['ready', 'doing', 'waiting', '__virtual_done__', '__virtual_inbox__'])
+    installBoardCore(undefined)
+    expect(boardColumnsFor({ customStates: colliding })).toEqual(expected)
+  })
+
+  it('resolveColumnMove sets that role rather than completing or un-statusing the task', () => {
+    installBoardCore(undefined)
+    expect(resolveColumnMove({ statusRole: null }, '__virtual_done__')).toEqual({ statusRole: '__virtual_done__', completed: false })
+    expect(resolveColumnMove({ statusRole: 'doing' }, '__virtual_inbox__')).toEqual({ statusRole: '__virtual_inbox__', completed: false })
+  })
+})
