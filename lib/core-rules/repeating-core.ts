@@ -20,6 +20,7 @@ import { createLogger } from '@/lib/logger'
 import { isTaskNextOccurrence, setRepeatingCore } from '@/lib/repeating-rollover'
 import type { TaskNextOccurrence, TaskNextOccurrenceInput } from '@/types/repeating'
 import { coreRulesModeFrom, type CoreRulesMode, type CoreRulesStatus, type CoreStats } from './list-permissions-core'
+import { createSampler, sampleEveryFrom } from './sampling'
 import { loadCoreRules } from './wasm'
 
 interface Reporter {
@@ -58,9 +59,15 @@ function kindOf(input: TaskNextOccurrenceInput): string {
 export function createRepeatingCore(
   runJson: (request: string) => string,
   report: Reporter,
-  { revision = 'unknown', mode = 'decide' }: { revision?: string; mode?: Exclude<CoreRulesMode, 'off'> } = {},
+  {
+    revision = 'unknown',
+    mode = 'decide',
+    sampleEvery = 1,
+  }: { revision?: string; mode?: Exclude<CoreRulesMode, 'off'>; sampleEvery?: number } = {},
 ) {
-  const stats: CoreStats = { agreed: 0, disagreed: 0, skipped: 0, failed: 0 }
+  const stats: CoreStats = { agreed: 0, disagreed: 0, unsampled: 0, skipped: 0, failed: 0 }
+  /** Whether this decision is compared (AWTD-1591): 1 in `sampleEvery`. */
+  const sampled = createSampler(sampleEvery)
   const logged = new Set<string>()
   let failureLogged = false
   let tripped = false
@@ -78,8 +85,15 @@ export function createRepeatingCore(
     return undefined
   }
 
-  function next(input: TaskNextOccurrenceInput, typescriptAnswer: TaskNextOccurrence): TaskNextOccurrence | undefined {
+  function next(input: TaskNextOccurrenceInput, typescriptAnswer: () => TaskNextOccurrence): TaskNextOccurrence | undefined {
     if (tripped) return fail('core switched off after it threw')
+
+    // Shadow mode: the TypeScript decides, so an unsampled rollover does not ask the core (AWTD-1591).
+    const compared = sampled()
+    if (mode === 'shadow' && !compared) {
+      stats.unsampled++
+      return undefined
+    }
 
     const completion = input.completion instanceof Date ? input.completion.toISOString() : input.completion
     const due = input.currentDueDate instanceof Date ? input.currentDueDate.toISOString() : input.currentDueDate ?? null
@@ -114,7 +128,21 @@ export function createRepeatingCore(
       return fail(error)
     }
 
-    const differing = differingFields(core, typescriptAnswer)
+    // Decide mode, unsampled: the core's answer, and the TypeScript is never run.
+    if (!compared) {
+      stats.unsampled++
+      return core
+    }
+
+    let typescript: TaskNextOccurrence
+    try {
+      typescript = typescriptAnswer()
+    } catch {
+      // The TypeScript failing is not the core's failure, and the core did answer: it stands.
+      stats.unsampled++
+      return mode === 'decide' ? core : undefined
+    }
+    const differing = differingFields(core, typescript)
     if (differing.length === 0) {
       stats.agreed++
     } else {
@@ -166,7 +194,8 @@ export function repeatingCoreStatus(): CoreRulesStatus | null {
 export function installRepeatingCore(setting: string | undefined = process.env.ASTRID_CORE_RULES): boolean {
   const mode = coreRulesModeFrom(setting)
   const host = globalThis as StatusHost
-  host[STATUS_KEY] = { mode, loaded: false, revision: null, stats: null }
+  const sampleEvery = sampleEveryFrom()
+  host[STATUS_KEY] = { mode, sampleEvery, loaded: false, revision: null, stats: null }
   if (mode === 'off') {
     setRepeatingCore(null)
     return false
@@ -184,10 +213,10 @@ export function installRepeatingCore(setting: string | undefined = process.env.A
         disagreement: (details) => log.warn(details, 'repeating: astrid-core and the TypeScript roll over differently'),
         failure: (details) => log.error(details, 'repeating: astrid-core could not answer; the TypeScript answer was used'),
       },
-      { revision: core.revision, mode },
+      { revision: core.revision, mode, sampleEvery },
     )
     setRepeatingCore(hook.next)
-    host[STATUS_KEY] = { mode, loaded: true, revision: core.revision, stats: hook.stats }
+    host[STATUS_KEY] = { mode, sampleEvery, loaded: true, revision: core.revision, stats: hook.stats }
     log.info({ revision: core.revision, mode }, 'repeating: astrid-core installed')
     return true
   } catch (error) {

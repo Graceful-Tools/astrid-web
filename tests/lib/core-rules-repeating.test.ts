@@ -156,7 +156,7 @@ describe('the TypeScript answer stands whenever the core cannot give one', () =>
 describe('installRepeatingCore (instrumentation.ts)', () => {
   it('loads nothing with ASTRID_CORE_RULES=off, and says so on /api/health', () => {
     expect(installRepeatingCore('off')).toBe(false)
-    expect(repeatingCoreStatus()).toEqual({ mode: 'off', loaded: false, revision: null, stats: null })
+    expect(repeatingCoreStatus()).toEqual({ mode: 'off', sampleEvery: 20, loaded: false, revision: null, stats: null })
     expect(nextOccurrenceForTask(DAILY).nextDueDate).toBe(TYPESCRIPT)
   })
 

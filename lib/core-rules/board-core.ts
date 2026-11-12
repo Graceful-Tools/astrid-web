@@ -30,6 +30,7 @@ import {
   type CoreMoveQuestion,
 } from '@/lib/board-core-hook'
 import { coreRulesModeFrom, type CoreRulesMode, type CoreRulesStatus, type CoreStats } from './list-permissions-core'
+import { createSampler, sampleEveryFrom } from './sampling'
 import { loadCoreRules } from './wasm'
 
 interface Reporter {
@@ -137,10 +138,13 @@ export function createBoardCore(
   {
     revision = 'unknown',
     mode = 'decide',
+    sampleEvery = 1,
     now = () => new Date(),
-  }: { revision?: string; mode?: Exclude<CoreRulesMode, 'off'>; now?: () => Date } = {},
+  }: { revision?: string; mode?: Exclude<CoreRulesMode, 'off'>; sampleEvery?: number; now?: () => Date } = {},
 ) {
-  const stats: CoreStats = { agreed: 0, disagreed: 0, skipped: 0, failed: 0 }
+  const stats: CoreStats = { agreed: 0, disagreed: 0, unsampled: 0, skipped: 0, failed: 0 }
+  /** Whether this decision is compared (AWTD-1591): 1 in `sampleEvery`. */
+  const sampled = createSampler(sampleEvery)
   const logged = new Set<string>()
   let failureLogged = false
   let tripped = false
@@ -176,13 +180,29 @@ export function createBoardCore(
     }
   }
 
-  function compare<T>(rule: string, core: T, differing: string[], shape: Record<string, unknown>): T | undefined {
-    if (differing.length === 0) {
+  /**
+   * The core's answer, compared with the TypeScript's when this decision is sampled. `differing`
+   * is only called (and so the TypeScript only run) for a sampled decision (AWTD-1591).
+   */
+  function compare<T>(rule: string, core: T, compared: boolean, differing: () => string[], shape: () => Record<string, unknown>): T | undefined {
+    if (!compared) {
+      stats.unsampled++
+      return core
+    }
+    let fields: string[]
+    try {
+      fields = differing()
+    } catch {
+      // The TypeScript failing is not the core's failure, and the core did answer: it stands.
+      stats.unsampled++
+      return mode === 'decide' ? core : undefined
+    }
+    if (fields.length === 0) {
       stats.agreed++
     } else {
       stats.disagreed++
       try {
-        const details = { rule, differing, ...shape }
+        const details = { rule, differing: fields, ...shape() }
         const signature = JSON.stringify(details)
         if (logged.size < MAX_LOGGED && !logged.has(signature)) {
           logged.add(signature)
@@ -195,8 +215,14 @@ export function createBoardCore(
     return mode === 'decide' ? core : undefined
   }
 
-  function columns(customStates: unknown, typescriptAnswer: CoreBoardColumn[]): CoreBoardColumn[] | undefined {
+  function columns(customStates: unknown, typescriptAnswer: () => CoreBoardColumn[]): CoreBoardColumn[] | undefined {
     if (tripped) return fail('board', 'core switched off after it threw')
+    // Shadow mode: the TypeScript decides, so an unsampled question does not ask the core.
+    const compared = sampled()
+    if (mode === 'shadow' && !compared) {
+      stats.unsampled++
+      return undefined
+    }
     let request: object
     try {
       // Columns only: no cards are asked about, so none are sent. A value that cannot be sent as
@@ -210,10 +236,12 @@ export function createBoardCore(
     if (value === undefined) return undefined
     if (!Array.isArray(value) || !value.every(isColumn)) return fail('board', 'core answered something that is not columns')
     const core = value.map(({ id, name, description, kind }) => ({ id, name, description, kind }))
-    return compare('board', core, differingColumns(core, typescriptAnswer), { customCount: customCount(customStates) })
+    return compare('board', core, compared, () => differingColumns(core, typescriptAnswer()), () => ({
+      customCount: customCount(customStates),
+    }))
   }
 
-  function move(question: CoreMoveQuestion, typescriptAnswer: CoreColumnMove): CoreColumnMove | undefined {
+  function move(question: CoreMoveQuestion, typescriptAnswer: () => CoreColumnMove): CoreColumnMove | undefined {
     if (tripped) return fail('boardMove', 'core switched off after it threw')
     let built: ReturnType<typeof moveRequestFor>
     try {
@@ -225,15 +253,20 @@ export function createBoardCore(
       stats.skipped++
       return undefined
     }
+    const compared = sampled()
+    if (mode === 'shadow' && !compared) {
+      stats.unsampled++
+      return undefined
+    }
     const value = ask('boardMove', built.request)
     if (value === undefined) return undefined
     if (!isMove(value)) return fail('boardMove', 'core answered something that is not a move')
     const core = { listIds: [...value.listIds], completed: value.completed, statusRole: value.statusRole }
-    return compare('boardMove', core, differingMove(core, typescriptAnswer), {
+    return compare('boardMove', core, compared, () => differingMove(core, typescriptAnswer()), () => ({
       target: targetOf(question.column),
       from: question.task.completed ? 'done' : question.task.statusRole ? 'status' : 'inbox',
       statusMemberships: question.lists.some((list) => list.listType === 'status' && question.task.listIds.includes(list.id)),
-    })
+    }))
   }
 
   return { columns, move, stats }
@@ -255,7 +288,8 @@ export function boardCoreStatus(): CoreRulesStatus | null {
 export function installBoardCore(setting: string | undefined = process.env.ASTRID_CORE_RULES): boolean {
   const mode = coreRulesModeFrom(setting)
   const host = globalThis as StatusHost
-  host[STATUS_KEY] = { mode, loaded: false, revision: null, stats: null }
+  const sampleEvery = sampleEveryFrom()
+  host[STATUS_KEY] = { mode, sampleEvery, loaded: false, revision: null, stats: null }
   if (mode === 'off') {
     setBoardCore(null)
     return false
@@ -273,10 +307,10 @@ export function installBoardCore(setting: string | undefined = process.env.ASTRI
         disagreement: (details) => log.warn(details, 'board: astrid-core and the TypeScript disagree'),
         failure: (details) => log.error(details, 'board: astrid-core could not answer; the TypeScript answer was used'),
       },
-      { revision: core.revision, mode },
+      { revision: core.revision, mode, sampleEvery },
     )
     setBoardCore({ columns: hook.columns, move: hook.move })
-    host[STATUS_KEY] = { mode, loaded: true, revision: core.revision, stats: hook.stats }
+    host[STATUS_KEY] = { mode, sampleEvery, loaded: true, revision: core.revision, stats: hook.stats }
     log.info({ revision: core.revision, mode }, 'board: astrid-core installed')
     return true
   } catch (error) {

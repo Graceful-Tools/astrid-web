@@ -22,6 +22,7 @@ import {
   type ParsedSearchQuery,
 } from '@/lib/search-query-parser'
 import { coreRulesModeFrom, type CoreRulesStatus, type CoreRulesMode, type CoreStats } from './list-permissions-core'
+import { createSampler, sampleEveryFrom } from './sampling'
 import { loadCoreRules } from './wasm'
 
 interface Reporter {
@@ -57,9 +58,15 @@ function differingFields(a: ParsedSearchQuery, b: ParsedSearchQuery): string[] {
 export function createSearchQueryCore(
   runJson: (request: string) => string,
   report: Reporter,
-  { revision = 'unknown', mode = 'decide' }: { revision?: string; mode?: Exclude<CoreRulesMode, 'off'> } = {},
+  {
+    revision = 'unknown',
+    mode = 'decide',
+    sampleEvery = 1,
+  }: { revision?: string; mode?: Exclude<CoreRulesMode, 'off'>; sampleEvery?: number } = {},
 ) {
-  const stats: CoreStats = { agreed: 0, disagreed: 0, skipped: 0, failed: 0 }
+  const stats: CoreStats = { agreed: 0, disagreed: 0, unsampled: 0, skipped: 0, failed: 0 }
+  /** Whether this decision is compared (AWTD-1591): 1 in `sampleEvery`. */
+  const sampled = createSampler(sampleEvery)
   const logged = new Set<string>()
   let failureLogged = false
   let tripped = false
@@ -77,10 +84,17 @@ export function createSearchQueryCore(
     return undefined
   }
 
-  function parse(query: string, typescriptAnswer: ParsedSearchQuery): ParsedSearchQuery | undefined {
+  function parse(query: string, typescriptAnswer: () => ParsedSearchQuery): ParsedSearchQuery | undefined {
     if (tripped) return fail('core switched off after it threw')
     if (typeof query !== 'string') {
       stats.skipped++
+      return undefined
+    }
+
+    // Shadow mode: the TypeScript decides, so an unsampled parse does not ask the core (AWTD-1591).
+    const compared = sampled()
+    if (mode === 'shadow' && !compared) {
+      stats.unsampled++
       return undefined
     }
 
@@ -116,7 +130,13 @@ export function createSearchQueryCore(
       return fail(error)
     }
 
-    const differing = differingFields(core, typescriptAnswer)
+    // Decide mode, unsampled: the core's parse, and the TypeScript is never run.
+    if (!compared) {
+      stats.unsampled++
+      return core
+    }
+
+    const differing = differingFields(core, typescriptAnswer())
     if (differing.length === 0) {
       stats.agreed++
     } else {
@@ -163,7 +183,8 @@ export function searchQueryCoreStatus(): CoreRulesStatus | null {
 export function installSearchQueryCore(setting: string | undefined = process.env.ASTRID_CORE_RULES): boolean {
   const mode = coreRulesModeFrom(setting)
   const host = globalThis as StatusHost
-  host[STATUS_KEY] = { mode, loaded: false, revision: null, stats: null }
+  const sampleEvery = sampleEveryFrom()
+  host[STATUS_KEY] = { mode, sampleEvery, loaded: false, revision: null, stats: null }
   if (mode === 'off') {
     setSearchQueryCore(null)
     return false
@@ -181,10 +202,10 @@ export function installSearchQueryCore(setting: string | undefined = process.env
         disagreement: (details) => log.warn(details, 'search query: astrid-core and the TypeScript parse differently'),
         failure: (details) => log.error(details, 'search query: astrid-core could not parse; the TypeScript parse was used'),
       },
-      { revision: core.revision, mode },
+      { revision: core.revision, mode, sampleEvery },
     )
     setSearchQueryCore(parser.parse)
-    host[STATUS_KEY] = { mode, loaded: true, revision: core.revision, stats: parser.stats }
+    host[STATUS_KEY] = { mode, sampleEvery, loaded: true, revision: core.revision, stats: parser.stats }
     log.info({ revision: core.revision, mode }, 'search query: astrid-core installed')
     return true
   } catch (error) {
