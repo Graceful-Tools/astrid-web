@@ -23,7 +23,7 @@ import {
   Zap,
   User
 } from "lucide-react"
-import { toast } from "sonner"
+import { toast } from '@/hooks/use-toast'
 
 interface APIEndpoint {
   name: string

@@ -27,7 +27,7 @@
 import { useEffect, useMemo, useState, type ComponentProps } from 'react'
 import Link from 'next/link'
 import { Loader2, ShieldOff, ShieldPlus } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/use-toast'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {

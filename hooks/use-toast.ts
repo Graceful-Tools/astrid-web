@@ -136,7 +136,7 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">
 
-function toast({ ...props }: Toast) {
+function showToast({ ...props }: Toast) {
   const id = genId()
 
   const update = (props: ToasterToast) =>
@@ -171,6 +171,17 @@ function toast({ ...props }: Toast) {
     update,
   }
 }
+
+/**
+ * One-line message shorthands (AWTD-1603). These are the call shapes the
+ * screens that used sonner relied on (`toast.success(msg)` / `toast.error(msg)`);
+ * they now land in the one mounted toaster. `error` uses the destructive
+ * variant, which the toaster draws as the red strip.
+ */
+const toast = Object.assign(showToast, {
+  success: (message: React.ReactNode) => showToast({ title: message }),
+  error: (message: React.ReactNode) => showToast({ title: message, variant: "destructive" }),
+})
 
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
