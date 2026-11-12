@@ -346,6 +346,7 @@
       "makeCopyOnly": "コピー専用にする",
       "makeCollaborative": "共同編集可能にする",
       "leaveList": "リストを離れる",
+      "leaveConfirm": "「{name}」から退出しますか？再び参加するには、オーナーか管理者による追加が必要です。",
       "aiCodingAgents": "AIコーディングエージェント",
       "aiAgents": "AIエージェント",
       "agentForCoding": "{name}：コーディングとタスクのサポート",

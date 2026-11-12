@@ -346,6 +346,7 @@
       "makeCopyOnly": "Nur Kopieren erlauben",
       "makeCollaborative": "Kollaborativ machen",
       "leaveList": "Liste verlassen",
+      "leaveConfirm": "„{name}“ verlassen? Nur ein Eigentümer oder Admin kann dich wieder hinzufügen.",
       "aiCodingAgents": "KI-Coding-Agenten",
       "aiAgents": "KI-Agenten",
       "agentForCoding": "{name} für Programmierung und Hilfe bei Aufgaben",

@@ -346,6 +346,7 @@
       "makeCopyOnly": "設為僅可複製",
       "makeCollaborative": "設為協作",
       "leaveList": "離開列表",
+      "leaveConfirm": "要離開「{name}」嗎？只有擁有者或管理員才能重新加入你。",
       "aiCodingAgents": "AI 程式設計代理",
       "aiAgents": "AI 代理",
       "agentForCoding": "{name}：程式設計與任務協助",

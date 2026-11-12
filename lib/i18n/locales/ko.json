@@ -346,6 +346,7 @@
       "makeCopyOnly": "복사 전용으로 전환",
       "makeCollaborative": "공동 작업으로 전환",
       "leaveList": "목록 나가기",
+      "leaveConfirm": "\"{name}\"에서 나가시겠습니까? 소유자나 관리자만 다시 추가할 수 있습니다.",
       "aiCodingAgents": "AI 코딩 에이전트",
       "aiAgents": "AI 에이전트",
       "agentForCoding": "{name}: 코딩 및 작업 지원",

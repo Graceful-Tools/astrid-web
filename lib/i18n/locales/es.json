@@ -346,6 +346,7 @@
       "makeCopyOnly": "Hacer solo copia",
       "makeCollaborative": "Hacer colaborativa",
       "leaveList": "Abandonar lista",
+      "leaveConfirm": "¿Salir de «{name}»? Solo un propietario o administrador puede volver a añadirte.",
       "aiCodingAgents": "Agentes de programación con IA",
       "aiAgents": "Agentes de IA",
       "agentForCoding": "{name} para programar y ayudar con las tareas",
