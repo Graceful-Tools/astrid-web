@@ -104,8 +104,12 @@ function entries(body: string): string[] {
   return out.map((entry) => entry.trim()).filter(Boolean)
 }
 
-/** A number, a string, or a template literal with nothing interpolated: a value a class could carry. */
-const LITERAL = /^(?:-?\d+(?:\.\d+)?|'[^']*'|"[^"]*"|`[^`$]*`)$/
+/**
+ * A number (`10`, `.5`, `1e2`, `-0x1f`), a string (escaped quotes allowed), or a
+ * template literal with nothing interpolated: a value a class could carry.
+ */
+const LITERAL =
+  /^(?:[-+]?(?:0[xob][\da-f_]+|(?:\d[\d_]*\.?[\d_]*|\.\d[\d_]*)(?:e[-+]?\d+)?)|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\$]|\\.|\$(?!\{))*`)$/i
 
 /**
  * The style props that write a fixed value out. `style={{ color: list.color }}`
@@ -116,8 +120,9 @@ const LITERAL = /^(?:-?\d+(?:\.\d+)?|'[^']*'|"[^"]*"|`[^`$]*`)$/
  */
 export function literalStyleProps(source: string): string[] {
   const found: string[] = []
-  for (const match of source.matchAll(/style=\{\{/g)) {
-    const body = balanced(source, match.index! + 'style={'.length)
+  // JSX allows whitespace around `=` and between the two braces.
+  for (const match of source.matchAll(/\bstyle\s*=\s*\{\s*\{/g)) {
+    const body = balanced(source, match.index! + match[0].length - 1)
     if (body === undefined) continue
     const fixed = entries(body).some((entry) => {
       if (entry.startsWith('...')) return false
@@ -171,7 +176,7 @@ export const METRICS: Metric[] = [
     instead: 'a class; a style prop is for values computed at run time',
     roots: UI,
     extensions: ['.tsx'],
-    pattern: /style=\{\{/g,
+    pattern: /\bstyle\s*=\s*\{\s*\{/g,
     select: literalStyleProps,
     // Renders in place of the root layout when it fails, so the app's CSS is not
     // guaranteed to have loaded: inline styles are the only styling it can trust.
