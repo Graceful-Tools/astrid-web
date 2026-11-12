@@ -541,14 +541,8 @@ export async function createTaskWithSideEffects(args: {
     throw err
   }
 
-  if (waiting.attachBlockerId) {
-    try {
-      const deps = await import('@/services/task-dependency.service')
-      await deps.attachBlocker({ taskId: task.id, blockingTaskId: waiting.attachBlockerId, userId: actorId })
-    } catch (err) {
-      log.error({ err, taskId: task.id }, 'Failed to attach the waitOnTaskId blocker to a new task')
-    }
-  }
+  // waitOnTaskId: attached now the task exists — or, if that fails and it was the only condition, Inbox.
+  if (waiting.attachBlockerId) Object.assign(task, await (await import('@/services/task-waiting')).attachCreatedBlocker(task, waiting.attachBlockerId, actorId))
 
   await runCreateSideEffects({ task, actorId, actorName, platform, connectListIds })
 

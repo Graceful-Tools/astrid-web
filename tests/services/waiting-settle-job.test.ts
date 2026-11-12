@@ -122,4 +122,24 @@ describe('runWaitingSettleJob', () => {
     expect(applySettlement).toHaveBeenCalledWith(expect.objectContaining({ taskId: 'legacy', to: null }))
     expect(applySettlement).not.toHaveBeenCalledWith(expect.objectContaining({ taskId: 'deploying' }))
   })
+
+  it('re-decides from the task as it is now before writing, and writes nothing when that changed', async () => {
+    const { runWaitingSettleJob } = await import('@/services/waiting-settle-job')
+    await runWaitingSettleJob({ now: NOW, settleMode: 'apply', backfillMode: 'off', nativeEnforcement: 'lenient' })
+    const call = (applySettlement.mock.calls as any[]).find(([args]) => args.taskId === 'wake')[0]
+    expect(call.dueDateTime).toEqual(PAST)
+    const base = { id: 'wake', statusRole: 'waiting', dueDateTime: PAST, isAllDay: false, assigneeId: null, completed: false }
+    expect(call.recheck({ task: base, blockers: [] })).toBe(true)
+    // A blocker added since the plan: still waiting, so no wake.
+    expect(call.recheck({ task: base, blockers: [{ id: 'new', completed: false }] })).toBe(false)
+  })
+
+  it('leaves GitHub-backed tasks and boards to their backend', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const { runWaitingSettleJob } = await import('@/services/waiting-settle-job')
+    await runWaitingSettleJob({ now: NOW, settleMode: 'dry-run', backfillMode: 'dry-run' })
+    const where = (prisma.task.findMany as any).mock.calls[0][0].where
+    expect(where.remoteNodeId).toBeNull()
+    expect(where.lists).toEqual({ none: { remoteNodeId: { not: null } } })
+  })
 })

@@ -42,6 +42,7 @@ import { fanOutEvent } from '@/lib/notifications'
 import { persistNotifications } from '@/lib/notification-store'
 import { enrichTaskForAgent } from '@/lib/agent-protocol'
 import { getTaskForUser } from '@/services/task.service'
+import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
 
 const log = createLogger('services.task-dependency')
 
@@ -134,10 +135,13 @@ async function announceTaskChange(args: {
     if (!broadcast) return
 
     const audience = audienceForTask(task as never)
+    // A former assignee the move unassigned may no longer see the task: their cache is cleared and
+    // they get the lean update the ordinary update path sends (no v1Task), as services/task-update-broadcast.ts does.
+    const former = formerAssigneeId && !audience.includes(formerAssigneeId) ? [formerAssigneeId] : []
     // Invalidated BEFORE the broadcast, so a client that refetches on the nudge
     // cannot be served the pre-move rows.
     if (await isRedisAvailable()) {
-      await Promise.all(audience.map(userId => RedisCache.del(RedisCache.keys.userTasks(userId))))
+      await Promise.all([...audience, ...former].map(userId => RedisCache.del(RedisCache.keys.userTasks(userId))))
     }
     // The FULL task, not a patch: the web cache stores the payload as the task.
     // `v1Task` is the shape the web board merges — the agent shape carries no
@@ -147,6 +151,13 @@ async function announceTaskChange(args: {
       timestamp: new Date().toISOString(),
       data: { taskId, task: enrichTaskForAgent(task as never), v1Task: await loadV1TaskForEvent(taskId) },
     })
+    if (former.length > 0) {
+      broadcastToUsers(former, {
+        type: 'task_updated',
+        timestamp: new Date().toISOString(),
+        data: { taskId, task: enrichTaskForAgent(task as never) },
+      })
+    }
   } catch (err) {
     log.error({ err, taskId }, 'Failed to announce a task the blocker gate changed')
   }
@@ -171,14 +182,32 @@ async function moveLane(args: {
   /** The Waiting rules said `assignee: "clear"` (entering Waiting, R2). */
   clearAssignee?: boolean
   formerAssigneeId?: string | null
+  /**
+   * The date the decision was made on. When given, the write only lands if it is still the
+   * task's date — a concurrent date change makes the decision stale (the scheduled job).
+   */
+  expectDueDateTime?: Date | null
 }): Promise<boolean> {
-  const { taskId, from, to, kind, actorId, actorType, clearAssignee = false, formerAssigneeId = null } = args
+  const { taskId, from, to, kind, actorId, actorType, clearAssignee = false, formerAssigneeId = null, expectDueDateTime } = args
 
   const moved = await prisma.task.updateMany({
-    where: { id: taskId, statusRole: from, completed: false },
+    where: {
+      id: taskId,
+      statusRole: from,
+      completed: false,
+      // Clear only the assignee the decision saw: a reassignment since then is not ours to undo.
+      ...(clearAssignee ? { assigneeId: formerAssigneeId } : {}),
+      ...(expectDueDateTime !== undefined ? { dueDateTime: expectDueDateTime } : {}),
+    },
     data: clearAssignee ? { statusRole: to, assigneeId: null, assigneeIds: [] } : { statusRole: to },
   })
   if (moved.count === 0) return false
+  // An unassigned agent stops working it, as an ordinary unassign through the update path does.
+  if (clearAssignee && formerAssigneeId) {
+    await cancelActiveCodingWorkflow({ taskId, reason: 'Unassigned on entering Waiting' }).catch(error => {
+      log.error({ err: error, taskId }, 'Failed to cancel the coding workflow of a task unassigned by the Waiting rules')
+    })
+  }
 
   const events: TaskEventInput[] = []
   if (from !== to) events.push({ kind, from, to })
@@ -200,8 +229,17 @@ export async function applySettlement(args: {
   clearAssignee: boolean
   formerAssigneeId: string | null
   kind: 'status_changed' | 'unblocked'
+  /** The date the plan was made on; the write is conditional on it (and on lane and assignee). */
+  dueDateTime?: Date | null
+  /** Re-decide from the task's state now (date, blockers) and write only if the answer is the same. */
+  recheck?: (state: { task: { id: string; statusRole: string | null; dueDateTime: Date | null; isAllDay: boolean; assigneeId: string | null; completed: boolean }; blockers: WaitingBlocker[] }) => boolean
 }): Promise<boolean> {
-  return moveLane({ ...args, actorId: null, actorType: 'system' })
+  const { recheck, dueDateTime, ...move } = args
+  if (recheck) {
+    const state = await waitingStateOf(args.taskId)
+    if (!state || !recheck(state)) return false
+  }
+  return moveLane({ ...move, expectDueDateTime: dueDateTime, actorId: null, actorType: 'system' })
 }
 
 /** One task as the Waiting rules read it, with its blockers. `null` when it is gone. */
@@ -427,10 +465,13 @@ export async function removeBlocker(args: {
 }): Promise<{ ok: true; removed: boolean; blockedBy: BlockerView[] } | DependencyFailure> {
   const { taskId, blockingTaskId, userId, actorType = 'user', now = new Date() } = args
 
-  const before = await waitingStateOf(taskId)
+  // Whether the removed blocker was open; the rest is read AFTER the delete, so two removals racing
+  // each see the other's (the authoritative blockers), with this one put back to be removed.
+  const removedBlocker = await prisma.task.findUnique({ where: { id: blockingTaskId }, select: { completed: true } })
   const removed = await prisma.taskDependency.deleteMany({
     where: { blockedTaskId: taskId, blockingTaskId },
   })
+  const after = removed.count > 0 ? await waitingStateOf(taskId) : null
 
   if (removed.count > 0) {
     await recordTaskEvents({
@@ -440,10 +481,10 @@ export async function removeBlocker(args: {
       events: [{ kind: 'blocker_removed', to: { blockingTaskId } }],
     })
     // Taking away the last condition of a Waiting task wakes it (R2/R3) — to Ready, since it had one.
-    if (before) {
+    if (after) {
       await applyWaitingWrite({
         taskId,
-        blockers: before.blockers,
+        blockers: [...after.blockers, { id: blockingTaskId, completed: Boolean(removedBlocker?.completed) }],
         change: { removeBlockerIds: [blockingTaskId] },
         kind: 'unblocked',
         actorId: userId,

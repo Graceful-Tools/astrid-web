@@ -34,7 +34,8 @@ import {
   searchTasks,
   type TaskSearchHit,
 } from "@/lib/task-search-client"
-import { rankBlockerCandidates } from "@/lib/task-dependencies"
+import { rankBlockerCandidates, type BlockerView } from "@/lib/task-dependencies"
+import { apiGet } from "@/lib/api"
 import {
   type WaitingChoice,
   type WaitingPromptRequest,
@@ -47,11 +48,14 @@ const pad = (n: number) => String(n).padStart(2, "0")
 /** A local calendar day as `YYYY-MM-DD`. */
 const dayOf = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 
-/** The earliest day that is still in the future: tomorrow. Today's all-day date has already begun. */
-function tomorrow(): string {
-  const date = new Date()
-  date.setDate(date.getDate() + 1)
-  return dayOf(date)
+/**
+ * The earliest day the server will accept. An all-day date is stored as midnight UTC and must be
+ * strictly in the future, so the first acceptable day is the day after today IN UTC — west of
+ * Greenwich in the evening, "tomorrow" locally is already today in UTC, and would be refused.
+ */
+function firstAcceptableDay(): string {
+  const now = new Date()
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)).toISOString().slice(0, 10)
 }
 
 /** The task's own date, as a day, when it is still ahead — the prompt's starting value. */
@@ -76,6 +80,23 @@ export default function WaitingConditionDialog({ request }: { request: WaitingPr
   const [hits, setHits] = useState<TaskSearchHit[]>([])
   const [picked, setPicked] = useState<TaskSearchHit | null>(null)
   const [keepAssignee, setKeepAssignee] = useState(false)
+  // Never offer a task the write would refuse: one already linked, or one that waits on this task
+  // (transitively) — the blocker picker's exclusions (TaskDetailBlockersRow), from the same route.
+  const [excludedIds, setExcludedIds] = useState<string[]>([])
+  const existing = task.id !== "new-task"
+  useEffect(() => {
+    if (!existing) return
+    let cancelled = false
+    apiGet(`/api/v1/tasks/${task.id}/blockers`)
+      .then(response => response.json() as Promise<{ blockedBy?: BlockerView[]; dependentIds?: string[] }>)
+      .then(body => {
+        if (!cancelled) setExcludedIds([...(body.blockedBy ?? []).map(blocker => blocker.id), ...(body.dependentIds ?? [])])
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [existing, task.id])
 
   const assigneeId = task.assignee?.id ?? task.assigneeId ?? null
   const viewerId = session?.user?.id ?? null
@@ -86,7 +107,7 @@ export default function WaitingConditionDialog({ request }: { request: WaitingPr
           name: task.assignee?.name || task.assignee?.email || t("waiting.prompt.theAssignee"),
         })
 
-  const [minDay] = useState(tomorrow)
+  const [minDay] = useState(firstAcceptableDay)
   const dayValid = day !== "" && day >= minDay
   const canConfirm = mode === "date" ? dayValid : picked !== null
 
@@ -103,7 +124,7 @@ export default function WaitingConditionDialog({ request }: { request: WaitingPr
             hits: found.filter(hit => !hit.completed),
             taskId: task.id,
             taskListIds: (task.lists ?? []).map(list => list.id),
-            excludedIds: [],
+            excludedIds,
           }),
         )
       } catch {
@@ -114,7 +135,7 @@ export default function WaitingConditionDialog({ request }: { request: WaitingPr
       cancelled = true
       clearTimeout(timer)
     }
-  }, [mode, query, task.id, task.lists])
+  }, [mode, query, task.id, task.lists, excludedIds])
 
   // A short query shows nothing, whatever the last search found.
   const shownHits = query.trim().length >= MIN_TASK_SEARCH_LENGTH ? hits : []

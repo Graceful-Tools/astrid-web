@@ -11,10 +11,12 @@ const blockers = vi.hoisted(() => ({ rows: [] as Array<{ blockingTaskId: string;
 const checkBlockerCandidate = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/prisma', () => ({
-  prisma: { taskDependency: { findMany: vi.fn(async () => blockers.rows) } },
+  prisma: { taskDependency: { findMany: vi.fn(async () => blockers.rows) }, task: { update: taskUpdate } },
 }))
 vi.mock('@/lib/task-identifier', () => ({ resolveTaskIdOrIdentifier: vi.fn(async (value: string) => value) }))
-vi.mock('@/services/task-dependency.service', () => ({ checkBlockerCandidate }))
+const attachBlocker = vi.hoisted(() => vi.fn())
+const taskUpdate = vi.hoisted(() => vi.fn(async () => ({})))
+vi.mock('@/services/task-dependency.service', () => ({ checkBlockerCandidate, attachBlocker }))
 
 const NOW = new Date('2026-11-12T12:00:00.000Z')
 const FUTURE = new Date('2026-11-20T09:00:00.000Z')
@@ -134,5 +136,22 @@ describe('a create into Waiting', () => {
 
   it('in any other lane is not asked about', async () => {
     expect(await create({ statusRole: 'ready' })).toMatchObject({ ok: true, data: {}, transition: 'none' })
+  })
+})
+
+describe('attachCreatedBlocker', () => {
+  it('moves a new task to Inbox when its only condition could not be attached', async () => {
+    attachBlocker.mockRejectedValueOnce(new Error('db down'))
+    const { attachCreatedBlocker } = await import('@/services/task-waiting')
+    expect(await attachCreatedBlocker({ id: 'n1', statusRole: 'waiting', dueDateTime: null }, 'b1', 'u1')).toEqual({ statusRole: null })
+    expect(taskUpdate).toHaveBeenCalledWith({ where: { id: 'n1' }, data: { statusRole: null } })
+  })
+
+  it('keeps it Waiting when a future date still holds it, and on success', async () => {
+    attachBlocker.mockRejectedValueOnce(new Error('db down'))
+    const { attachCreatedBlocker } = await import('@/services/task-waiting')
+    expect(await attachCreatedBlocker({ id: 'n2', statusRole: 'waiting', dueDateTime: '2099-01-01T00:00:00.000Z' }, 'b1', 'u1')).toEqual({})
+    attachBlocker.mockResolvedValueOnce(true)
+    expect(await attachCreatedBlocker({ id: 'n3', statusRole: 'waiting', dueDateTime: null }, 'b1', 'u1')).toEqual({})
   })
 })

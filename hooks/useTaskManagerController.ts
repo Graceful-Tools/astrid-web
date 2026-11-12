@@ -41,7 +41,9 @@ import { canUserManageList } from "@/lib/list-permissions"
 import { scopeTasksToList, withoutList, listPath, taskDetailPath } from "@/lib/task-list-scope"
 import { v1TaskUpdateBody } from "@/lib/tasks/v1-task-update-body"
 import type { UseTaskManagerControllerProps } from "@/hooks/task-manager/controller-contract"
-const waitingPrompt = () => import("@/lib/waiting-prompt") // on demand: not in the first load (AWTD-1593)
+import { WAITING_PROMPT_OFFLINE } from "@/lib/waiting-prompt-offline"
+// On demand, not in the first load (AWTD-1593); offline the chunk cannot load, and the edit goes as asked.
+const waitingPrompt = () => import("@/lib/waiting-prompt").catch(() => WAITING_PROMPT_OFFLINE)
 import { postponeTaskDueDate, shiftTaskDueDate } from "@/lib/date-comparison"
 import {
   useTaskListState,
@@ -492,8 +494,7 @@ export function useTaskManagerController({
         throw new Error("Task not found")
       }
 
-      // A move INTO Waiting asks what it waits for (a date or a task) and whether to keep it
-      // assigned, before anything changes (Jon, 2026-11-12); cancel leaves the task where it was.
+      // A move INTO Waiting (or a create into it) first asks what it waits for (Jon, 2026-11-12).
       await (await waitingPrompt()).sendWithWaitingPrompt(originalTask, requestedTask, async (updatedTask, waitingFields) => {
         const optimisticTask = { ...updatedTask, updatedAt: new Date() }
         listState.setTasks(prevTasks => {
@@ -692,7 +693,6 @@ export function useTaskManagerController({
         parentTaskId: options?.parentTaskId ?? undefined,
       }
 
-      // Created straight into Waiting: ask what it waits for first; cancel creates nothing.
       const waitingFields = await (await waitingPrompt()).waitingFieldsForCreate(options?.statusRole, taskDataWithDefaults)
       if (waitingFields === null) return null
       toast({
