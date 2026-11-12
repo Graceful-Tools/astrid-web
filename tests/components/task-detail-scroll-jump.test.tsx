@@ -193,7 +193,7 @@ describe('TaskDetail — scroll jump on edit (task 5e997cf9)', () => {
   it('still scrolls when this client posts the FIRST comment on a task', async () => {
     // The empty-thread guard must not swallow our own optimistic write —
     // otherwise "no comments yet, post one" silently stops scrolling.
-    // `buildPendingComments` mints `temp-<nanoid>` ids (lib/comment-posting.ts).
+    // `buildPendingComments` mints `temp-<uuid>` ids (lib/comment-posting.ts).
     const { rerender } = renderDetail(makeTask({ comments: [] }))
     scrollToSpy.mockClear()
 

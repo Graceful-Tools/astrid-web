@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getUnifiedSession } from "@/lib/session-utils"
 import { getRegistrationOptions, storeChallenge } from "@/lib/webauthn"
 import { prisma } from "@/lib/prisma"
-import { v4 as uuid } from "uuid"
+import { randomUUID as uuid } from "crypto"
 import { passkeyRateLimiter, withRateLimitHandlerAsync } from "@/lib/rate-limiter"
 import { createLogger } from '@/lib/logger'
 import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
