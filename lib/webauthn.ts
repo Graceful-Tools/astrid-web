@@ -1,3 +1,4 @@
+import { brandEnv } from '@/lib/brand/runtime-env'
 import { BRAND } from '@/lib/brand/config'
 import {
   generateRegistrationOptions,
@@ -81,7 +82,7 @@ function servingHost(): string | null {
  * better than we can infer.
  */
 export function resolveRpID(requestOrigin?: string): string {
-  const explicit = process.env.NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID?.trim()
+  const explicit = brandEnv('NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID', process.env.NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID)?.trim()
   if (explicit) return explicit
   if (!isProduction) return "localhost"
 

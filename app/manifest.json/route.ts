@@ -8,15 +8,20 @@
  *
  * Replaces the former static public/manifest.json.
  */
-import { NextResponse } from 'next/server'
+import { NextResponse, connection } from 'next/server'
 import { BRAND } from '@/lib/brand/config'
 import { brandIconUrl, hasCustomBrandIcon } from '@/lib/brand/icons'
+import { isRuntimeBrandBuild } from '@/lib/brand/runtime-env'
 
 const ICON_SIZES_MASKABLE_ANY = [72, 96, 128, 144, 152, 384]
 const ICON_SIZES_ANY = [192, 256, 512]
 const ICON_SIZES_MASKABLE = [192, 512] as const
 
 export async function GET() {
+  // Prerendered at build otherwise, which would freeze a runtime-brand image's manifest
+  // on the build's brand (AWTD-1587). Hosted Astrid keeps the static file.
+  if (isRuntimeBrandBuild()) await connection()
+
   const manifest = {
     name: BRAND.productTitle,
     short_name: BRAND.appName,

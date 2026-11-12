@@ -7,8 +7,10 @@
 #   docker build --build-arg BRAND=acme --build-arg GIT_COMMIT_SHA=$(git rev-parse HEAD) -t tasks .
 #
 # BRAND is a profile name in brands/ or a path to one inside the build context.
-# It is a build argument because NEXT_PUBLIC_* values are compiled into the
-# bundle: one image is one brand. Unset builds Astrid's defaults.
+# Unset builds Astrid's defaults. The image also takes a brand at RUNTIME
+# (AWTD-1587): mount a profile and set BRAND_PROFILE=/path/to/x.brand.json, so the
+# published image serves any brand without a rebuild. ASTRID_RUNTIME_BRAND=true is
+# what makes that work: pages render per request rather than at build.
 #
 # Targets: `runner` (the default, last) serves the app and runs the cron
 # runner; `migrator` applies Prisma migrations and exits.
@@ -46,6 +48,7 @@ COPY . .
 # build talks to a database: scripts/lib/build-migration-policy.js never
 # migrates outside a Vercel production build.
 ENV NEXT_OUTPUT=standalone \
+    ASTRID_RUNTIME_BRAND=true \
     DATABASE_URL=postgresql://build:build@localhost:5432/build \
     DATABASE_URL_DIRECT=postgresql://build:build@localhost:5432/build
 RUN npx tsx scripts/brand-env-file.ts "$BRAND" > brand-env.json \
@@ -55,6 +58,7 @@ RUN npx tsx scripts/brand-env-file.ts "$BRAND" > brand-env.json \
 FROM base AS runner
 ARG GIT_COMMIT_SHA=unknown
 ENV NODE_ENV=production \
+    ASTRID_RUNTIME_BRAND=true \
     PORT=3000 \
     HOSTNAME=0.0.0.0 \
     GIT_COMMIT_SHA=${GIT_COMMIT_SHA} \
@@ -66,6 +70,7 @@ COPY --from=builder --chown=node:node /app/public ./public
 COPY --from=builder --chown=node:node /app/brand-env.json ./brand-env.json
 COPY --from=builder --chown=node:node /app/brand-env.json.public ./brand-env.json.public
 COPY --chown=node:node deploy/self-host/load-env.mjs ./load-env.mjs
+COPY --chown=node:node deploy/self-host/brand-profile-env.mjs ./brand-profile-env.mjs
 # The cron runner reads the job list from vercel.json, the one place it is written.
 COPY --chown=node:node vercel.json ./vercel.json
 COPY --chown=node:node scripts/cron-runner.mjs ./scripts/cron-runner.mjs

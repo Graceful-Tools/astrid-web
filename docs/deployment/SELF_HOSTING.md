@@ -63,21 +63,49 @@ Then:
 
 The same stack runs in CI on every change to the image (`.github/workflows/self-host.yml`).
 
-## Your brand goes in at build time
+## Your brand: mounted at runtime, or built in
+
+**One image serves any brand** (AWTD-1587). The image reads every brand value when it
+starts, `NEXT_PUBLIC_*` included. To brand the published image, mount your profile and,
+optionally, a directory of artwork:
+
+```yaml
+# deploy/self-host/docker-compose.yml, under the app service
+    volumes:
+      - ./brand:/brand:ro            # acme.brand.json, plus assets/ with your logo and icon
+    environment:
+      BRAND_PROFILE: /brand/acme.brand.json
+      BRAND_ASSETS_DIR: /brand/assets
+```
+
+In the profile, refer to mounted artwork as `/brand-assets/<file>`. For example, set
+`"assets": { "icon": "/brand-assets/acme-1024.png" }` and
+`NEXT_PUBLIC_BRAND_LOGO: "/brand-assets/acme-logo.png"`. Every icon size is generated from
+that one icon. Changing the brand means a restart, not a rebuild.
+
+Precedence at start is:
+1. a variable set in the environment file;
+2. the mounted profile;
+3. the profile the image was built with.
+
+Run `npm run check:brands` on a profile before mounting it. The container checks only the
+profile's shape, not every key.
+
+The image renders pages per request, because that is what lets the brand change without a
+rebuild. It sets `ASTRID_RUNTIME_BRAND=true` itself. Hosted Astrid does not set it, so
+Astrid's pages stay prerendered.
+
+You can still build a brand in:
 
 ```bash
 docker build --build-arg BRAND=acme --build-arg GIT_COMMIT_SHA=$(git rev-parse HEAD) -t tasks .
 ```
 
-`BRAND` is a profile in `brands/`, or a path to one inside the checkout. Every
-`NEXT_PUBLIC_*` value is compiled into the bundle: the name, colours, capability switches
-and which sign-in providers exist. So **one image is one brand**, and changing any of
-those values means building a new image. If one is set in `.env` instead, it is ignored.
-The app logs a warning that names it at start, rather than appearing to apply it.
+`BRAND` is a profile in `brands/`, or a path to one inside the checkout. It becomes the
+image's default brand: the lowest step in the precedence list above.
 
-Values that are not `NEXT_PUBLIC_*` are read at runtime. Set them in `.env`: secrets,
-provider credentials, `BRAND_ENABLED_AGENTS` and the like. A runtime value overrides the
-profile's.
+Values that are not brand identity are read at runtime as they always were. Set them in
+the environment file: secrets, provider credentials, `BRAND_ENABLED_AGENTS` and the like.
 
 The one compiled-in value that is not brand identity is `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, for
 web push. It is a build argument.
@@ -195,10 +223,9 @@ provenance attestation (`docker buildx imagetools inspect <image> --format '{{js
 `:edge` is the latest build of `main`, published only when someone runs the workflow by
 hand. Do not run it in production.
 
-The published images are built with **Astrid's default brand**. A partner with its own
-brand still builds its own image ([Your brand goes in at build time](#your-brand-goes-in-at-build-time)),
-because one image is one brand. A brand that gets published images too is tagged
-`<version>-<brand>`.
+The published images are built with **Astrid's default brand**, and they take any brand at
+runtime ([Your brand](#your-brand-mounted-at-runtime-or-built-in)). A partner does not need
+an image of its own.
 
 To run a published release instead of building, set the image in `deploy/self-host/.env`:
 
