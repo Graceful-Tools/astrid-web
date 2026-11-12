@@ -200,8 +200,11 @@ Two things are not done, and the register says so:
 
 - **Reduced motion** (DS17). Every operating system has a setting for people who are
   made unwell by movement on screen. An app that honours it swaps a slide or a pop for a
-  fade or nothing. Only web's checkbox pop checks it so far; every other animation on
-  every client still plays.
+  fade or nothing. Web honours it everywhere since AWTD-1617: under
+  `prefers-reduced-motion: reduce`, `styles/components.css` stops every transition and
+  animation (a spinner keeps turning), and a smooth scroll started from script jumps
+  (`scrollBehavior()` in `lib/design/reduced-motion.ts`). The other clients still play
+  every animation.
 - **Web's components do not read these yet** (DS15). Its stylesheets do: nothing in
   `styles/` or `app/globals.css` writes a duration out, bar one `0s` that is a switch
   with no duration rather than a design value. Five remain in components

@@ -129,7 +129,7 @@ Status of web's rows on 2026-11-12:
 | DS14 row height | Closed (AWTD-1617): 52 with a pointer, 76 on touch |
 | DS15 motion | Stylesheets closed; 4 durations left in components (the register still says five) |
 | DS16 completion pop | Takes it at the next vendored copy |
-| DS17 reduced motion | Open: one guarded rule in `components.css`, none in components |
+| DS17 reduced motion | Closed (AWTD-1617): one rule stops transitions and animations; script scrolls read `lib/design/reduced-motion.ts` |
 | DS18 completed row | Closed (AWTD-1617): the row is no longer dimmed |
 | DS19 title wrap setting | Open: web takes it now |
 | DS20 hairline | Closed (AWTD-1617): `border` is 0.5 on high-density screens |

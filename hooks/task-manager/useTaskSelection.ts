@@ -1,3 +1,4 @@
+import { scrollBehavior } from "@/lib/design/reduced-motion"
 import { useState, useCallback, useRef, useMemo } from "react"
 import type { Task } from "@/types/task"
 
@@ -36,7 +37,7 @@ function navigateToTask(
 
         // Scroll the selected task into view
         taskElement.scrollIntoView({
-          behavior: 'smooth',
+          behavior: scrollBehavior(),
           block: 'nearest',
           inline: 'nearest'
         })

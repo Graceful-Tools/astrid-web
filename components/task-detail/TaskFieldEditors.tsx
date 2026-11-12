@@ -1,5 +1,6 @@
 "use client"
 
+import { scrollBehavior } from "@/lib/design/reduced-motion"
 import { useEffect, useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -215,11 +216,7 @@ export function TaskFieldEditors({
 
       // Scroll the textarea into view, ensuring cursor is visible
       setTimeout(() => {
-        textarea.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-          inline: 'nearest'
-        })
+        textarea.scrollIntoView({ behavior: scrollBehavior(), block: 'center', inline: 'nearest' })
       }, 100)
     }
   }, [editingDescription, keyboardVisible, descriptionTextareaRef])

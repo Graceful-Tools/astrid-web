@@ -1,5 +1,6 @@
 "use client"
 
+import { scrollBehavior } from "@/lib/design/reduced-motion"
 import React from "react"
 import { CheckCircle2, Inbox, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -211,7 +212,7 @@ export function ProjectStatusBoard({
     const nextIndex = Math.max(0, Math.min(columns.length - 1, index))
     const container = scrollRef.current
     const column = container?.querySelector<HTMLElement>(`[data-column-index="${nextIndex}"]`)
-    column?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" })
+    column?.scrollIntoView({ behavior: scrollBehavior(), block: "nearest", inline: "center" })
   }
 
   const moveTaskToColumn = (taskId: string, column: ProjectBoardColumn) => {
