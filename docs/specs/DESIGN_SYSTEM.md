@@ -165,10 +165,11 @@ rule is the sentence; the numbers differ by density and only by density.
 | Three columns from 1100 wide, measured on the window. | — | 1100 |
 | Triggers size to their content; an unset field is an affordance to add one; one label per row. | [PRODUCT_CONTRACT §3](../PRODUCT_CONTRACT.md) | same |
 
-Web differs on one of these today (row height 64): register DS14. Corner radii are the
-tokens' by kind and density (`--row-radius`, `--board-card-radius`, `--board-column-radius`,
-`--detail-panel-radius` in `styles/components.css`: compact where there is a pointer,
-comfortable on touch, like the selection outline; DS13, AWTD-1617). The detail icon column is the token's 62 (16 + 34 + `gap-row-gap`, DS11)
+Web follows all of these since AWTD-1617. Its corner radii and row height are the tokens'
+by kind and density (`--row-radius`, `--board-card-radius`, `--board-column-radius`,
+`--detail-panel-radius`, `--row-min-height` in `styles/components.css`; DS13, DS14). Web has
+no density setting: compact where there is a pointer, comfortable on touch, the same rule
+the selection outline follows. The detail icon column is the token's 62 (16 + 34 + `gap-row-gap`, DS11)
 and a subtask indents `layout.subtask-indent` per depth (`lib/design/subtask-indent.ts`,
 DS12), both since AWTD-1617. Its `border` is the hairline (DS20, AWTD-1617):
 `--hairline-width` in `styles/components.css`, the token on a high-density screen and

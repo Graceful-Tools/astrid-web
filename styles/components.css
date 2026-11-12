@@ -108,6 +108,11 @@
   --board-card-radius: var(--astrid-layout-compact-board-card-radius);
   --board-column-radius: var(--astrid-layout-compact-board-column-radius);
   --detail-panel-radius: var(--astrid-layout-compact-detail-panel-radius);
+
+  /* A row is never shorter than its title, its meta line and its padding
+     (register DS14): 52 where there is a pointer, 76 on touch. Web has no
+     density setting; the input decides, as it does for the radii above. */
+  --row-min-height: var(--astrid-layout-compact-row-min-height);
 }
 
 @media (min-resolution: 2dppx) {
@@ -216,7 +221,7 @@ html, body {
   @apply border;
   border-radius: var(--row-radius);
   box-shadow: var(--astrid-shadow-sm);
-  min-height: 64px;
+  min-height: var(--row-min-height);
   /* The selection border, switched off. .task-row-selected only turns its
      style on — see there for why (AWTD-1085). */
   outline: var(--selection-outline-width) none var(--selection-outline-color);
@@ -274,6 +279,7 @@ html, body {
     --board-card-radius: var(--astrid-layout-comfortable-board-card-radius);
     --board-column-radius: var(--astrid-layout-comfortable-board-column-radius);
     --detail-panel-radius: var(--astrid-layout-comfortable-detail-panel-radius);
+    --row-min-height: var(--astrid-layout-comfortable-row-min-height);
   }
 }
 
