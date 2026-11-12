@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
-import { useSSESubscription } from '@/hooks/use-sse-subscription'
+import dynamic from 'next/dynamic'
 import { featureRefreshPolicy, FEATURE_CACHE_TTL_MS } from '@/lib/feature-flag-lifecycle'
 import type { FeatureKey } from '@/lib/feature-flags'
 
@@ -14,7 +14,9 @@ type Cache = { version: number; features: EffectiveFeatures; updatedAt: number; 
 const DEFAULTS: EffectiveFeatures = { google_tasks: false, project_mode: false, task_cost: false }
 interface FeatureFlagContextValue { isEnabled: (key: FeatureKey) => boolean }
 const FeatureFlagContext = createContext<FeatureFlagContextValue>({ isEnabled: (_key: FeatureKey) => false })
-const FEATURE_FLAG_EVENTS = ['feature_flags_updated'] as const
+// The SSE subscription, loaded after hydration so the SSE manager is not first-load JS (AWTD-1604).
+// Mounted only while signed in, exactly when the subscription used to be enabled.
+const FeatureFlagSSEListener = dynamic(() => import('./feature-flag-sse-listener').then(m => m.FeatureFlagSSEListener), { ssr: false })
 
 function idle(callback: () => void): () => void {
   if ('requestIdleCallback' in window) {
@@ -79,13 +81,17 @@ export function FeatureFlagProvider({ children }: { children: React.ReactNode })
     return () => document.removeEventListener('visibilitychange', visible)
   }, [refresh])
 
-  useSSESubscription(FEATURE_FLAG_EVENTS, event => {
-    const version = Number(event.data?.version ?? 0)
+  const onFlagsVersion = useCallback((version: number) => {
     if (version > (cacheRef.current?.version ?? 0)) void refresh(true)
-  }, { enabled: Boolean(userId) })
+  }, [refresh])
 
   const value = useMemo(() => ({ isEnabled: (key: FeatureKey) => features[key] ?? false }), [features])
-  return <FeatureFlagContext.Provider value={value}>{children}</FeatureFlagContext.Provider>
+  return (
+    <FeatureFlagContext.Provider value={value}>
+      {userId && <FeatureFlagSSEListener onVersion={onFlagsVersion} />}
+      {children}
+    </FeatureFlagContext.Provider>
+  )
 }
 
 export function useFeatureFlags() {

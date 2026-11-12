@@ -1,13 +1,10 @@
 "use client"
 
 import { useEffect } from "react"
-import { createLogger } from '@/lib/logger'
+import { logBoundaryError } from '@/lib/log-boundary-error'
 import { BRAND } from '@/lib/brand/config'
 import { DANGER_COLOR } from '@/lib/brand/colors'
 import { brandAccentCssVars } from '@/lib/brand/css-vars'
-
-const log = createLogger('global-error.tsx')
-
 
 interface GlobalErrorProps {
   error: Error & { digest?: string }
@@ -20,7 +17,7 @@ interface GlobalErrorProps {
  */
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   useEffect(() => {
-    log.error({ err: error }, "Global error:")
+    logBoundaryError('global-error.tsx', error, "Global error:")
   }, [error])
 
   return (
