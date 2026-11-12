@@ -161,8 +161,10 @@ export function detectTaskStateChanges(
     })
   }
 
-  // Track assignee changes
-  if (oldTask.assigneeId !== newTask.assigneeId) {
+  // Track assignee changes. Absent and null both mean "nobody": a row read
+  // without the column must not turn a no-op into "from Unassigned to
+  // Unassigned" (AWTD-1619).
+  if ((oldTask.assigneeId ?? null) !== (newTask.assigneeId ?? null)) {
     const oldAssigneeText = oldTask.assignee?.name || 'Unassigned'
     const newAssigneeText = newTask.assignee?.name || 'Unassigned'
     changes.push({
