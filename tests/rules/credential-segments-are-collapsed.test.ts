@@ -71,6 +71,7 @@ const DYNAMIC_SEGMENT_PARENTS: Record<string, Classification> = {
   fullpage: 'route-word', //    a settings page name
   downloads: 'route-word', //   a release filename
   'agent-icon': 'route-word', // an agent slug
+  'brand-icon': 'route-word', // a generated icon file name, icon-192.png (AWTD-1588)
   connections: 'route-word', //  a connection KIND (google, github)
   t: 'route-word', //           app/[locale]/t/[identifier] — a task id like AWTD-12 (AWTD-1016):
   //                            human-readable and not a secret, like a project key

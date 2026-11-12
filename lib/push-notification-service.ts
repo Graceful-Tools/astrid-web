@@ -1,4 +1,5 @@
 import { BRAND } from '@/lib/brand/config'
+import { brandIconUrl } from '@/lib/brand/icons'
 import webpush from 'web-push'
 import { prisma as defaultPrisma } from '@/lib/prisma'
 import { decryptField } from '@/lib/field-encryption'
@@ -163,8 +164,8 @@ export class PushNotificationService {
         action: 'task_reminder',
         url: `/tasks/${taskId}`,
       },
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-72x72.png',
+      icon: brandIconUrl({ kind: 'icon', size: 192 }),
+      badge: brandIconUrl({ kind: 'icon', size: 72 }),
       actions: [
         {
           action: 'open',
@@ -213,8 +214,8 @@ export class PushNotificationService {
         action: 'daily_digest',
         url: '/',
       },
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-72x72.png',
+      icon: brandIconUrl({ kind: 'icon', size: 192 }),
+      badge: brandIconUrl({ kind: 'icon', size: 72 }),
       actions: [
         {
           action: 'open',
@@ -260,8 +261,8 @@ export class PushNotificationService {
         action: 'comment',
         url: `/tasks/${taskId}#comment-${data.commentId}`,
       },
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-72x72.png',
+      icon: brandIconUrl({ kind: 'icon', size: 192 }),
+      badge: brandIconUrl({ kind: 'icon', size: 72 }),
     }
 
     await this.sendNotification(userId, payload)
@@ -290,8 +291,8 @@ export class PushNotificationService {
         action: 'chat_mention',
         url: '/',
       },
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-72x72.png',
+      icon: brandIconUrl({ kind: 'icon', size: 192 }),
+      badge: brandIconUrl({ kind: 'icon', size: 72 }),
     }
 
     await this.sendNotification(userId, payload)
@@ -328,8 +329,8 @@ export class PushNotificationService {
         action: 'test',
         url: '/',
       },
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-72x72.png',
+      icon: brandIconUrl({ kind: 'icon', size: 192 }),
+      badge: brandIconUrl({ kind: 'icon', size: 72 }),
     }
 
     await this.sendNotification(userId, payload)

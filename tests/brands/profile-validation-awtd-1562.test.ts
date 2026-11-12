@@ -83,9 +83,29 @@ describe('brand profile validation (AWTD-1562)', () => {
       const profile = JSON.parse(readFileSync(join(BRANDS_DIR, file), 'utf8')) as BrandProfile
       expect(profileEnv(profile), file).toEqual({
         ...profile.env,
+        // assets.icon is the profile's name for NEXT_PUBLIC_BRAND_ICON (AWTD-1588).
+        ...(profile.assets?.icon ? { NEXT_PUBLIC_BRAND_ICON: profile.assets.icon } : {}),
         ...(profile.copy ? { NEXT_PUBLIC_BRAND_COPY: JSON.stringify(profile.copy) } : {}),
       })
     }
+  })
+
+  it('accepts assets.icon as a public/ PNG and rejects anything else (AWTD-1588)', () => {
+    expect(profileEnv({ ...validProfile, assets: { icon: '/icons/acme-1024.png' } }))
+      .toMatchObject({ NEXT_PUBLIC_BRAND_ICON: '/icons/acme-1024.png' })
+    // /branding/ is in public/ but not traced into the icon function, so it would 404 on Vercel.
+    for (const icon of ['https://cdn.example/icon.png', '/icons/icon.svg', '/../secret.png', 'icons/a.png', '/branding/a.png']) {
+      expect(() => parseBrandProfile({ ...validProfile, assets: { icon } }), icon).toThrow(/assets\.icon/)
+    }
+    expect(() => parseBrandProfile({ ...validProfile, assets: { banner: '/b.png' } })).toThrow(/assets\.banner/)
+    // Setting the variable directly is held to the same rule.
+    expect(() => parseBrandProfile({ ...validProfile, env: { NEXT_PUBLIC_BRAND_ICON: 'https://cdn.example/icon.png' } }))
+      .toThrow(/NEXT_PUBLIC_BRAND_ICON failed validation/)
+    expect(() => parseBrandProfile({
+      ...validProfile,
+      env: { ...validProfile.env, NEXT_PUBLIC_BRAND_ICON: '/icons/other.png' },
+      assets: { icon: '/icons/acme-1024.png' },
+    })).toThrow(/disagree/)
   })
 
   it('keeps profile values intact in the runtime environment', () => {

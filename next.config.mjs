@@ -80,6 +80,15 @@ const nextConfig = {
     '/api/downloads/[filename]': [
       'scripts/get-project-tasks-oauth.ts',
     ],
+    // Generates every icon size from the brand's source icon, read from public/ at
+    // request time (AWTD-1588). public/ is served statically but not traced into
+    // functions, so without this the read fails and every generated icon 404s on Vercel.
+    '/brand-icon/[file]': [
+      'public/icons/**',
+      'public/images/**',
+      'public/favicon*',
+      'public/apple-touch-icon.png',
+    ],
     // astrid-core's rules as WebAssembly (lib/core-rules/wasm.ts). Loaded through a require
     // resolved at runtime, which tracing cannot follow, by every server function at start —
     // list permissions are decided by it everywhere (AWTD-1061) — so every function carries it
