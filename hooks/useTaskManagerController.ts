@@ -40,6 +40,8 @@ import { preloadUserAvatars } from "@/lib/image-cache"
 import { canUserManageList } from "@/lib/list-permissions"
 import { scopeTasksToList, withoutList, listPath, taskDetailPath } from "@/lib/task-list-scope"
 import { v1TaskUpdateBody } from "@/lib/tasks/v1-task-update-body"
+import type { UseTaskManagerControllerProps } from "@/hooks/task-manager/controller-contract"
+import { isWaitingNeedsCondition, sendWithWaitingPrompt, waitingFieldsForCreate } from "@/lib/waiting-prompt"
 import { postponeTaskDueDate, shiftTaskDueDate } from "@/lib/date-comparison"
 import {
   useTaskListState,
@@ -48,19 +50,6 @@ import {
   useTaskSelection,
   useTaskDragDrop, upsertCreatedTask
 } from "@/hooks/task-manager"
-
-interface UseTaskManagerControllerProps {
-  initialSelectedListId?: string
-  initialSelectedTaskId?: string
-  initialSettingsPage?: string
-  listMetadata?: any
-  taskMetadata?: any
-  isMobile?: boolean
-  is1Column?: boolean
-  setMobileView?: (view: 'list' | 'task' | 'chat') => void
-  handleMobileBack?: () => void
-  setShowMobileSidebar?: (show: boolean) => void
-}
 
 // Import session handling
 let useSession: any = () => ({ data: null, status: "loading" })
@@ -496,22 +485,25 @@ export function useTaskManagerController({
 
   // === TASK MANAGEMENT METHODS ===
 
-  const handleUpdateTask = useCallback(async (updatedTask: Task) => {
+  const handleUpdateTask = useCallback(async (requestedTask: Task) => {
     try {
-      const originalTask = listState.tasks.find(task => task.id === updatedTask.id)
+      const originalTask = listState.tasks.find(task => task.id === requestedTask.id)
       if (!originalTask) {
         throw new Error("Task not found")
       }
 
-      const optimisticTask = { ...updatedTask, updatedAt: new Date() }
-      listState.setTasks(prevTasks => {
-        return prevTasks.map((task) => {
-          if (task.id === optimisticTask.id) {
-            playTaskCompleteSound(task.completed, optimisticTask.completed)
-            return optimisticTask
-          }
-          return task
-        })
+      // A move INTO Waiting asks what it waits for (a date or a task) and whether to keep it
+      // assigned, before anything changes (Jon, 2026-11-12); cancel leaves the task where it was.
+      await sendWithWaitingPrompt(originalTask, requestedTask, async (updatedTask, waitingFields) => {
+        const optimisticTask = { ...updatedTask, updatedAt: new Date() }
+        listState.setTasks(prevTasks => {
+          return prevTasks.map((task) => {
+            if (task.id === optimisticTask.id) {
+              playTaskCompleteSound(task.completed, optimisticTask.completed)
+              return optimisticTask
+            }
+            return task
+          })
       })
 
       toast({
@@ -521,7 +513,7 @@ export function useTaskManagerController({
       })
 
       try {
-        const apiData = v1TaskUpdateBody(updatedTask, originalTask)
+        const apiData = { ...v1TaskUpdateBody(updatedTask, originalTask), ...waitingFields }
 
         const response = await apiPut(`/api/v1/tasks/${updatedTask.id}`, apiData)
         const realUpdatedTask = unwrapTask<Task>(await response.json())
@@ -537,6 +529,8 @@ export function useTaskManagerController({
         listState.setTasks(prevTasks => prevTasks.map((task) =>
           task.id === originalTask.id ? originalTask : task
         ))
+        // A 422 asking for a wait condition is answered by the prompt, not a toast.
+        if (isWaitingNeedsCondition(error) && Object.keys(waitingFields).length === 0) throw error
         toast({
           title: "Error",
           description: refusalReason(error) ?? "Failed to update task. Please try again.",
@@ -545,6 +539,7 @@ export function useTaskManagerController({
         })
         throw error
       }
+      })
 
     } catch (error) {
       console.error("Error updating task:", error)
@@ -697,13 +692,16 @@ export function useTaskManagerController({
         parentTaskId: options?.parentTaskId ?? undefined,
       }
 
+      // Created straight into Waiting: ask what it waits for first; cancel creates nothing.
+      const waitingFields = await waitingFieldsForCreate(options?.statusRole, taskDataWithDefaults)
+      if (waitingFields === null) return null
       toast({
         title: "Creating task...",
         description: `"${taskTitle}" is being added`,
         duration: 1500,
       })
 
-      const apiTaskData = mapTaskDataForApi(taskDataWithDefaults)
+      const apiTaskData = { ...mapTaskDataForApi(taskDataWithDefaults), ...waitingFields }
       const created = await newTaskOperations.createTask(apiTaskData)
 
       // Through the click path, so the selection and `?task=` agree (AWTD-1351).

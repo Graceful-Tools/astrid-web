@@ -10,66 +10,37 @@
  */
 
 import { describe, it, expect } from 'vitest'
+import { settleWaitingTs } from '@/lib/waiting-rules'
 import {
-  blockerGateDisposition,
-  isPromotableAfterBlockerChange,
   shouldDemoteOnBlockerAdded,
   shouldReblockOnBlockerReopened,
   wouldCreateDependencyCycle,
 } from '@/lib/task-dependencies'
 
+// The gate is astrid-core's Waiting rules now (lib/waiting-rules.ts, Jon 2026-11-12); these are
+// the AWTD-1002 cases, asked of the same rule the service applies.
 describe('AWTD-1002 blocker gate', () => {
   const now = new Date('2026-09-25T12:00:00.000Z')
+  const waiting = (dueDateTime: string | null) => ({ id: 't', statusRole: 'waiting', dueDateTime, assigneeId: null })
 
   it('holds a task whose blockers are outstanding, even once its date has arrived', () => {
-    expect(
-      blockerGateDisposition({
-        dueDateTime: '2026-09-01T00:00:00.000Z',
-        now,
-        outstandingBlockerIds: ['blocker-1'],
-      }),
-    ).toBe('check-blockers')
-
-    expect(
-      isPromotableAfterBlockerChange({
-        dueDateTime: '2026-09-01T00:00:00.000Z',
-        now,
-        outstandingBlockerIds: ['blocker-1'],
-      }),
-    ).toBe(false)
+    expect(settleWaitingTs(waiting('2026-09-01T00:00:00.000Z'), [{ id: 'blocker-1', completed: false }], now).action).toBe('stay')
   })
 
   it('holds a task whose blockers are clear but whose date has not arrived', () => {
-    expect(
-      isPromotableAfterBlockerChange({
-        dueDateTime: '2026-12-01T00:00:00.000Z',
-        now,
-        outstandingBlockerIds: [],
-      }),
-    ).toBe(false)
+    expect(settleWaitingTs(waiting('2026-12-01T00:00:00.000Z'), [{ id: 'blocker-1', completed: true }], now).action).toBe('stay')
   })
 
   it('promotes when every blocker is complete and the date has arrived', () => {
-    expect(
-      isPromotableAfterBlockerChange({
-        dueDateTime: '2026-09-01T00:00:00.000Z',
-        now,
-        outstandingBlockerIds: [],
-      }),
-    ).toBe(true)
+    expect(settleWaitingTs(waiting('2026-09-01T00:00:00.000Z'), [{ id: 'blocker-1', completed: true }], now)).toEqual({
+      action: 'wakeToReady',
+      statusRole: 'ready',
+      assignee: 'keep',
+    })
   })
 
   it('promotes a dated-less task the moment its last blocker clears', () => {
-    // `classifyWaitingTask` answers "review" here — nothing would ever wake an
-    // undated, unblocked, unconditioned task in the AGENT sweep. The product
-    // feature has a wake-up the sweep does not: the blocker that just cleared.
-    expect(
-      isPromotableAfterBlockerChange({
-        dueDateTime: null,
-        now,
-        outstandingBlockerIds: [],
-      }),
-    ).toBe(true)
+    expect(settleWaitingTs(waiting(null), [{ id: 'blocker-1', completed: true }], now).action).toBe('wakeToReady')
   })
 })
 

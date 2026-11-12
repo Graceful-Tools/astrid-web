@@ -48,6 +48,9 @@ interface CreateTaskData {
    * so a subtask could only be made by creating a task and re-parenting it.
    */
   parentTaskId?: string | null
+  /** Created into Waiting: the prompt's answer (lib/waiting-prompt.ts). */
+  keepAssignee?: boolean
+  waitOnTaskId?: string
 }
 
 interface UpdateTaskData extends Partial<CreateTaskData> {
@@ -89,6 +92,8 @@ export const useTaskOperations = ({
         // the board sends it and POST /api/v1/tasks persists it (task f58ece7c).
         statusRole: taskData.statusRole,
         ...(taskData.parentTaskId ? { parentTaskId: taskData.parentTaskId } : {}),
+        ...(taskData.keepAssignee !== undefined ? { keepAssignee: taskData.keepAssignee } : {}),
+        ...(taskData.waitOnTaskId ? { waitOnTaskId: taskData.waitOnTaskId } : {}),
       }
 
       // Check if offline

@@ -21,6 +21,7 @@
  */
 
 import { parseCustomStates, isDefaultStatusRole, DEFAULT_STATES, type StatusState } from '@/lib/task-status'
+import { boardPresets } from '@/lib/waiting-rules'
 
 /** Longest name that fits a column header without truncating. */
 export const MAX_STATUS_NAME_LENGTH = 40
@@ -230,6 +231,22 @@ export function addCustomState(
     order: maxOrder + 1,
   }
 
+  return { states: [...states, state], state }
+}
+
+/**
+ * Add one of astrid-core's optional preset columns (R7) — its FIXED role (`testing`), name and
+ * description, after every existing column. Offered only while the board has neither that role
+ * nor a column of that name (`boardPresets`, decided by the core on the server).
+ */
+export function addPresetState(raw: unknown, role: string): CustomStateWrite {
+  const preset = boardPresets(raw).find(candidate => candidate.role === role)
+  if (!preset) {
+    return { error: 'duplicate', message: 'That preset is not available on this board' }
+  }
+  const states = parseCustomStates(raw)
+  const maxOrder = states.reduce((max, state) => Math.max(max, state.order), -1)
+  const state: StatusState = { role: preset.role, name: preset.name, description: preset.description, order: maxOrder + 1 }
   return { states: [...states, state], state }
 }
 

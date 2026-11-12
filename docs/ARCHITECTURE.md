@@ -422,7 +422,7 @@ Astrid implements a comprehensive offline-first strategy for seamless operation 
 
 ### **Vercel Cron Configuration** ([vercel.json](../vercel.json))
 
-Six crons handle scheduled tasks across the platform:
+Seven crons handle scheduled tasks across the platform:
 
 ```json
 "crons": [
@@ -431,7 +431,8 @@ Six crons handle scheduled tasks across the platform:
   { "path": "/api/cron/github-sync", "schedule": "*/15 * * * *" },      // Every 15 minutes
   { "path": "/api/cron/abandoned-uploads", "schedule": "0 4 * * *" },   // Daily at 4 AM UTC
   { "path": "/api/cron/analytics", "schedule": "0 8 * * *" },            // Daily at 8 AM UTC
-  { "path": "/api/cron/system-tasks", "schedule": "0 0 * * 0" }         // Weekly Sunday at midnight UTC
+  { "path": "/api/cron/system-tasks", "schedule": "0 0 * * 0" },        // Weekly Sunday at midnight UTC
+  { "path": "/api/cron/waiting-settle", "schedule": "*/5 * * * *" }     // Every 5 minutes: Waiting lane settle + backfill (dry-run by default)
 ]
 ```
 
@@ -663,7 +664,8 @@ deployments. The detailed guides own their deployment-specific settings and oper
     { "path": "/api/cron/analytics", "schedule": "0 8 * * *" },
     { "path": "/api/cron/abandoned-uploads", "schedule": "0 4 * * *" },
     { "path": "/api/cron/github-sync", "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/github-projects-sync", "schedule": "* * * * *" }
+    { "path": "/api/cron/github-projects-sync", "schedule": "* * * * *" },
+    { "path": "/api/cron/waiting-settle", "schedule": "*/5 * * * *" }
   ]
 }
 ```

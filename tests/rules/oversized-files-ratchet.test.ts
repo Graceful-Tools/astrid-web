@@ -47,7 +47,7 @@ const BUDGETS: Record<string, number> = {
   // 1661 → 1659: AWTD-1227's add-subtask option did not fit. The options both
   // create entry points take — declared inline and identically, twice — became
   // hooks/task-manager/create-task-options.ts, so the next field is added once.
-  'hooks/useTaskManagerController.ts': 1567,
+  'hooks/useTaskManagerController.ts': 1565,
   // 1585 → 1591: AWTD-877 made someone else's task open the options sheet on
   // every surface, and this panel is one of the three that owns a sheet. Six
   // lines — the predicate, the import, and two props — with the rule itself in
@@ -147,7 +147,7 @@ const BUDGETS: Record<string, number> = {
   // 1466 → 1448: AWTD-1329 moved the update path's event snapshot and its
   // notify filter into lib/task-event-snapshot.ts (taskEventSnapshot,
   // notifiableUpdateEvents).
-  'services/task.service.ts': 1323,
+  'services/task.service.ts': 1275,
   // 1078 → 1039: AWTD-945 added the board-state row, which this budget
   // refused. Rather than raise it, the new row went straight into its own
   // TaskDetailBoardStateRow.tsx and the DESCRIPTION row — the largest

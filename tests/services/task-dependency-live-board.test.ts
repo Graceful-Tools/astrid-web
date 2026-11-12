@@ -241,6 +241,8 @@ describe('AWTD-1002 the board moves while you look at it', () => {
 
     expect(result.ok).toBe(true)
     expect(db.tasks.get('dependent').statusRole).toBe('waiting')
+    // Entering Waiting unassigns (the Waiting rules, R2, Jon 2026-11-12).
+    expect(db.tasks.get('dependent').assigneeId).toBeNull()
     const [call] = broadcastsFor('dependent')
     expect(call).toBeDefined()
     expect(call[0]).toContain('u-actor')
@@ -310,6 +312,36 @@ describe('AWTD-1002 the board moves while you look at it', () => {
 
     expect(recordTaskEvents).not.toHaveBeenCalled()
     expect(persistNotifications).not.toHaveBeenCalled()
+  })
+})
+
+describe('the Waiting rules on blocker changes (Jon, 2026-11-12)', () => {
+  it('removing the last blocker of a Waiting card wakes it to Ready, not Inbox', async () => {
+    seed([task('blocker'), task('dependent', { statusRole: 'waiting', assigneeId: null })], [['dependent', 'blocker']])
+    const { removeBlocker } = await import('@/services/task-dependency.service')
+
+    await removeBlocker({ taskId: 'dependent', blockingTaskId: 'blocker', userId: 'u-actor' })
+
+    expect(db.tasks.get('dependent').statusRole).toBe('ready')
+  })
+
+  it('removing one of two open blockers leaves the card waiting', async () => {
+    seed([task('b1'), task('b2'), task('dependent', { statusRole: 'waiting' })], [['dependent', 'b1'], ['dependent', 'b2']])
+    const { removeBlocker } = await import('@/services/task-dependency.service')
+
+    await removeBlocker({ taskId: 'dependent', blockingTaskId: 'b1', userId: 'u-actor' })
+
+    expect(db.tasks.get('dependent').statusRole).toBe('waiting')
+  })
+
+  it('a deleted blocker wakes its Waiting dependent to Ready', async () => {
+    seed([task('dependent', { statusRole: 'waiting' })], [])
+    const { reevaluateBlockedTasks } = await import('@/services/task-dependency.service')
+
+    const promoted = await reevaluateBlockedTasks({ taskIds: ['dependent'], removedBlockerId: 'gone' })
+
+    expect(promoted).toEqual(['dependent'])
+    expect(db.tasks.get('dependent').statusRole).toBe('ready')
   })
 })
 

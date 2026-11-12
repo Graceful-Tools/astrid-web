@@ -210,6 +210,9 @@ export const PUT = withAuth<RouteContext>(
     if (body.lastTimerValue !== undefined) intent.lastTimerValue = body.lastTimerValue
     if (body.listIds !== undefined && Array.isArray(body.listIds)) intent.listIds = body.listIds
     if (!parentUpdate.skip) intent.parentTaskId = parentUpdate.parentTaskId
+    // The Waiting rules' two request fields (services/task-waiting.ts). Additive for iOS.
+    if (body.keepAssignee !== undefined) intent.keepAssignee = body.keepAssignee
+    if (body.waitOnTaskId) intent.waitOnTaskId = body.waitOnTaskId
 
     // An empty string clears the date, and clearing a date clears all-day with
     // it — an all-day flag on no date means nothing.
@@ -278,8 +281,10 @@ export const PUT = withAuth<RouteContext>(
       }
       // retryAfter (rate_limited) and ssoUrl (sso_required) come from a
       // GitHub-backed list's write-through (AWTD-1116); absent otherwise.
+      // `code` names a rule's refusal: WAITING_NEEDS_CONDITION (422) is a client's cue to ask
+      // for a date or a task to wait on; `error` is a sentence old clients can show as is.
       return NextResponse.json(
-        { error: result.error, retryAfter: result.retryAfter, ssoUrl: result.ssoUrl },
+        { error: result.error, code: result.code, retryAfter: result.retryAfter, ssoUrl: result.ssoUrl },
         { status: result.status }
       )
     }

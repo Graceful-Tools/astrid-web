@@ -369,6 +369,11 @@ and we should not make it 'blocked on' but 'waiting on' to make it more obvious 
 are connected (as well as due date)."* Implemented as `shouldDemoteOnBlockerAdded` in
 `lib/task-dependencies.ts`. A `Doing` task that acquires a blocker is still not moved.
 
+**Since 2026-11-12 the move itself is astrid-core's Waiting rules** (`lib/waiting-rules.ts`,
+`waitingWrite` / `waitingSettle`): a card entering Waiting this way is **unassigned**, as every
+entry into Waiting is (R2), and a card wakes when its blockers are done and its date has come
+(`waitingSettle`, R3). Removing a Waiting card's last blocker wakes it to Ready.
+
 That answer carried a second instruction the question had not asked about, and it is the
 one with the wider reach: **the feature is called "waiting on"**, not "blocked on", so that
 the tasks a card waits for and the date it waits for read as two halves of one question.

@@ -1951,7 +1951,8 @@
         "researchAssistant": "Recherche-Assistent",
         "familyAssistant": "Familienassistent",
         "contentWriter": "Content-Autor"
-      }
+      },
+      "addPreset": "Vorlage hinzufügen: {name}"
     },
     "filters": {
       "allAssignees": "Alle Zugewiesenen",
@@ -2603,14 +2604,16 @@
       "ready": "Bereit",
       "doing": "In Arbeit",
       "waiting": "Wartet",
-      "done": "Erledigt"
+      "done": "Erledigt",
+      "testing": "Test"
     },
     "blurb": {
       "inbox": "Verschiebe sie nach „Bereit“, wenn sie … bereit sind!",
       "ready": "Zeit, loszulegen!",
       "doing": "Arbeit in vollem Gange!",
       "waiting": "Pausiert, bis die Umstände passen.",
-      "done": "Erledigt – Glückwunsch!"
+      "done": "Erledigt – Glückwunsch!",
+      "testing": "Wird ausgerollt, im Canary oder in einem Experiment."
     }
   },
   "passkeyErrors": {
@@ -2648,5 +2651,22 @@
     "public_write": "Öffentliche Listen erstellen und verwalten",
     "sse_connect": "Mit dem SSE-Ereignisstrom verbinden",
     "all": "Vollzugriff (nur intern – für sitzungsbasierte Anmeldung)"
+  },
+  "waiting": {
+    "prompt": {
+      "title": "Worauf wartet die Aufgabe?",
+      "description": "Eine wartende Aufgabe wartet auf ein Datum oder auf eine andere Aufgabe.",
+      "descriptionFor": "„{title}“ wartet auf ein Datum oder auf eine andere Aufgabe.",
+      "until": "Warten bis…",
+      "on": "Warten auf…",
+      "dateLabel": "Bis",
+      "dateInPast": "Wähle einen Tag nach heute.",
+      "taskLabel": "Die Aufgabe, auf die sie wartet",
+      "picked": "Wartet auf {task}",
+      "keepAssignedToMe": "Mir zugewiesen lassen",
+      "keepAssignedTo": "{name} zugewiesen lassen",
+      "theAssignee": "der zugewiesenen Person",
+      "confirm": "Nach „Warten“ verschieben"
+    }
   }
 }
