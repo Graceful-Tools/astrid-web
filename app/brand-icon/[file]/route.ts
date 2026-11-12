@@ -59,9 +59,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ fil
     const { default: sharp } = await import('sharp')
     const { size } = request
     if (request.maskable) {
-      // Maskable icons are cropped to a circle by some launchers: keep the mark inside the
-      // central 80% safe zone, on the brand colour.
-      const inner = Math.round(size * 0.8)
+      // The maskable safe zone is a CIRCLE of 80% diameter, and launchers may crop to it.
+      // A square mark fits inside it only at side 0.8/sqrt(2) of the icon, so its corners
+      // survive any mask. On the brand colour, centred on whole pixels.
+      const inner = Math.floor((size * 0.8) / Math.SQRT2)
       const mark = await sharp(source).resize(inner, inner, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer()
       const pad = Math.floor((size - inner) / 2)
       return png(await sharp({ create: { width: size, height: size, channels: 4, background: BRAND.accentColor } })

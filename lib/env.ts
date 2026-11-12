@@ -28,6 +28,7 @@
  */
 
 import { androidAppLinksProblem } from './brand/android-asset-links'
+import { brandIconSourceProblem } from './brand/icon-source'
 import { isValidKeyShape } from './encryption-keys'
 
 /**
@@ -251,7 +252,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'BRAND_INHERIT_ASTRID_IDENTITY', scope: 'optional', description: 'Build-time. Comma-separated brand identity variables a partner build keeps on the default value on purpose; the identity check stops warning about them.' },
   { name: 'BRAND_STRICT_IDENTITY', scope: 'optional', description: 'Build-time. true fails a partner build that leaves an unacknowledged identity variable on the default value, instead of only warning.' },
   { name: 'NEXT_PUBLIC_BRAND_LOGO', scope: 'optional', description: 'Path to the mascot/character artwork.' },
-  { name: 'NEXT_PUBLIC_BRAND_ICON', scope: 'optional', description: 'Path to the large square app mark.' },
+  { name: 'NEXT_PUBLIC_BRAND_ICON', scope: 'optional', description: 'The source icon every icon size is generated from: a .png path under /icons/, /images/ or /brand-assets/.', validate: brandIconSourceProblem },
   { name: 'NEXT_PUBLIC_BRAND_ICON_SMALL', scope: 'optional', description: 'Path to the small square app mark.' },
   { name: 'NEXT_PUBLIC_BRAND_WORDMARK', scope: 'optional', description: 'Wordmark as drawn in the header lockup.' },
   { name: 'NEXT_PUBLIC_BRAND_SLOGAN', scope: 'optional', description: 'Short slogan beside the wordmark.' },

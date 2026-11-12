@@ -10,7 +10,7 @@
  */
 import { NextResponse } from 'next/server'
 import { BRAND } from '@/lib/brand/config'
-import { brandIconUrl } from '@/lib/brand/icons'
+import { brandIconUrl, hasCustomBrandIcon } from '@/lib/brand/icons'
 
 const ICON_SIZES_MASKABLE_ANY = [72, 96, 128, 144, 152, 384]
 const ICON_SIZES_ANY = [192, 256, 512]
@@ -34,7 +34,9 @@ export async function GET() {
         src: brandIconUrl({ kind: 'icon', size }),
         sizes: `${size}x${size}`,
         type: 'image/png',
-        purpose: 'maskable any',
+        // A generated plain icon has no safe-zone padding, so it must not offer itself
+        // as maskable; the padded maskable-* pair below does. Astrid's files keep theirs.
+        purpose: hasCustomBrandIcon() ? 'any' : 'maskable any',
       })),
       ...ICON_SIZES_ANY.map((size) => ({
         src: brandIconUrl({ kind: 'icon', size }),

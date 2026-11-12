@@ -1,4 +1,5 @@
 import { ENV_VARS } from '../env'
+import { brandIconSourceProblem } from './icon-source'
 
 /**
  * Turn a `brands/*.brand.json` profile into the environment a deployment needs.
@@ -53,8 +54,6 @@ const PROFILE_ENV_VARS = new Map(
 )
 const PROFILE_KEYS = new Set(['name', 'description', 'env', 'copy', 'ios', 'assets', 'expect'])
 const ASSET_PROFILE_KEYS = new Set(['icon'])
-/** A PNG served from public/: the icon route reads it from disk, so a URL cannot work. */
-const PUBLIC_PNG_PATH = /^\/[A-Za-z0-9._/-]+\.png$/
 const IOS_PROFILE_KEYS = new Set(['bundleId', 'appGroup', 'keychainGroup', 'developmentTeam', 'displayName'])
 const PROFILE_DERIVED_ENV_KEYS = new Set(['NEXTAUTH_URL', 'NEXT_PUBLIC_APP_URL'])
 
@@ -132,9 +131,9 @@ export function parseBrandProfile(value: unknown, source = 'Brand profile'): Bra
         if (!ASSET_PROFILE_KEYS.has(key)) problems.push(`assets.${key} is not a supported profile key`)
       }
       const icon = value.assets.icon
-      if (icon !== undefined && (!PUBLIC_PNG_PATH.test(icon) || icon.includes('..'))) {
-        problems.push('assets.icon must be a .png path in public/, e.g. /icons/acme-1024.png')
-      }
+      // The same rule NEXT_PUBLIC_BRAND_ICON is held to (lib/brand/icon-source.ts).
+      const iconProblem = icon === undefined ? null : brandIconSourceProblem(icon)
+      if (iconProblem) problems.push(`assets.icon: ${iconProblem}`)
       const envIcon = isRecord(env) ? env.NEXT_PUBLIC_BRAND_ICON : undefined
       if (icon !== undefined && envIcon !== undefined && envIcon !== icon) {
         problems.push('assets.icon and env.NEXT_PUBLIC_BRAND_ICON disagree; set only assets.icon')

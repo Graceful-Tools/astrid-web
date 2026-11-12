@@ -411,6 +411,16 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     for (const src of [...new Set(srcs), '/brand-icon/icon-192.png', '/brand-icon/icon-72.png']) {
       expect(astrid.has(sha256(await bytes(src))), `${src} serves an Astrid icon`).toBe(false)
     }
+    // Plain generated icons are not padded, so only the maskable pair may claim maskable.
+    for (const icon of manifest.icons as Array<{ src: string; purpose: string }>) {
+      if (icon.purpose.includes('maskable')) expect(icon.src, icon.purpose).toMatch(/\/brand-icon\/maskable-/)
+    }
+    // And the maskable mark sits inside the 80% safe circle: its corners are background.
+    const { default: sharp } = await import('sharp')
+    const maskable = await sharp(await bytes('/brand-icon/maskable-512.png')).raw().toBuffer({ resolveWithObject: true })
+    const at = (x: number, y: number) => [...maskable.data.subarray((y * 512 + x) * 4, (y * 512 + x) * 4 + 3)]
+    const corner = Math.ceil(256 - (512 * 0.8) / Math.SQRT2 / 2) - 1
+    expect(at(corner, corner), 'the safe zone corner is brand colour, not artwork').toEqual(at(0, 0))
     if (profile.expect.icon === '/icons/whitelabel-512.png') {
       // The task's acceptance: the whitelabel manifest's 512 icon IS whitelabel-512.
       const icon512 = manifest.icons.find((i: { sizes: string; purpose: string }) => i.sizes === '512x512' && i.purpose === 'any')
