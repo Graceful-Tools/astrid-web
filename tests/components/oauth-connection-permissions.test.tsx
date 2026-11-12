@@ -31,7 +31,13 @@ vi.mock('@/lib/api', () => ({
 }))
 
 const toastSuccess = vi.fn()
-vi.mock('sonner', () => ({ toast: { success: (...a: unknown[]) => toastSuccess(...a), error: vi.fn() } }))
+vi.mock('@/hooks/use-toast', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/hooks/use-toast')>()
+  return {
+    ...actual,
+    toast: Object.assign(vi.fn(), { success: (...a: unknown[]) => toastSuccess(...a), error: vi.fn() }),
+  }
+})
 
 // Keys echo back with their variables, so the assertions read the key that
 // was chosen rather than a copy of the English.
