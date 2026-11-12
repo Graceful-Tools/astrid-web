@@ -38,6 +38,7 @@ import {
   type TimestampedComment,
 } from '@/lib/ready-queue-scope'
 import { agentMailboxFromEmail } from '@/lib/brand/agent-emails'
+import { REDO_CLAIM_MARKER } from '@/lib/fixall-claim'
 
 /** Every release comment starts with this, and counting them is how "twice" is known. */
 export const RELEASE_MARKER = '🔁 Released from Doing by the scheduled /fixall loop'
@@ -146,7 +147,8 @@ export function isAwaitingBuild(comments: ReleaseComment[]): boolean {
  * `AWAITING-DEPLOY: <sha>` and leaves the task in Doing, and land-and-deploy.ts
  * completes it once production serves that commit. It counts only while it is the
  * LATEST marker (a newer marker comment replaces it wholesale) and is newer than the
- * last completion and the last release — an older one is the fix that missed.
+ * last completion, release and redo claim — an older one is the fix that missed, or
+ * an attempt somebody asked to have redone.
  */
 export function isAwaitingDeploy(comments: ReleaseComment[]): boolean {
   const latest = parseBlockedConditions(comments.map(comment => ({
@@ -168,9 +170,9 @@ function isCurrentMarker(comments: ReleaseComment[], isMarker: (comment: Release
     Math.max(0, ...comments.filter(match).map(at))
   const marker = newest(isMarker)
   if (marker === 0) return false
-  const superseded = newest(
-    comment => comment.systemEventType === 'COMPLETED' || (comment.content ?? '').startsWith(RELEASE_MARKER),
-  )
+  // A completion, a release, or a redo claim (lib/fixall-claim.ts) starts a new attempt.
+  const superseded = newest(comment => comment.systemEventType === 'COMPLETED' ||
+    (comment.content ?? '').startsWith(RELEASE_MARKER) || (comment.content ?? '').startsWith(REDO_CLAIM_MARKER))
   return marker > superseded
 }
 

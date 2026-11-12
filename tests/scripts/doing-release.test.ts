@@ -22,6 +22,7 @@ import {
   type DoingTask,
 } from '@/scripts/lib/doing-release'
 import { agentEmail } from '@/lib/brand/agent-emails'
+import { REDO_CLAIM_MARKER } from '@/lib/fixall-claim'
 
 const CLAUDE = agentEmail('claude')
 const task = (over: Partial<DoingTask> = {}): DoingTask => ({
@@ -210,6 +211,19 @@ describe('isAwaitingDeploy', () => {
   it('no marker, or a prose line that is not a sha, is not a handoff', () => {
     expect(isAwaitingDeploy([])).toBe(false)
     expect(isAwaitingDeploy([{ content: 'AWAITING-DEPLOY: soon', createdAt: '2026-11-12T10:00:00Z' }])).toBe(false)
+  })
+
+  it('a redo claim starts a new attempt, so a retry that dies is released, not skipped', () => {
+    expect(isAwaitingDeploy([
+      marker('2026-11-10T10:00:00Z'),
+      { content: 'Redo it.', createdAt: '2026-11-11T09:00:00Z' },
+      { content: `${REDO_CLAIM_MARKER}: the earlier handoff no longer counts.`, createdAt: '2026-11-11T09:01:00Z' },
+    ])).toBe(false)
+    // ...until the retry posts its own handoff.
+    expect(isAwaitingDeploy([
+      { content: `${REDO_CLAIM_MARKER}: x`, createdAt: '2026-11-11T09:01:00Z' },
+      marker('2026-11-11T12:00:00Z'),
+    ])).toBe(true)
   })
 
   it('a marker older than a completion or a release is stale', () => {
