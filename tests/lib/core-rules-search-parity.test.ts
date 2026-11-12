@@ -69,6 +69,6 @@ describe('parseSearchQuery with astrid-core parsing, as the server runs it', () 
     expect(isEmptySearch(answer)).toBe(isEmpty)
     // The core answered itself — no fallback — and agreed.
     expect(reports).toEqual([])
-    expect(parser.stats).toEqual({ agreed: 1, disagreed: 0, skipped: 0, failed: 0 })
+    expect(parser.stats).toEqual({ agreed: 1, disagreed: 0, unsampled: 0, skipped: 0, failed: 0 })
   })
 })

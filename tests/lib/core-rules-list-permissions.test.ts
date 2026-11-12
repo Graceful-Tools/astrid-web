@@ -199,7 +199,7 @@ describe('what the core is sent', () => {
           lists: [{ id: 'd', listMembers: [{ userId: 'user-me' }] }],
         },
       },
-      typescriptAnswer: 'member',
+      typescriptAnswer: () => 'member',
     })
     expect(built).toEqual({
       request: expect.objectContaining({
@@ -226,7 +226,7 @@ describe('what the core is sent', () => {
         admins: [null as unknown as { id: string }, { id: 'a' }],
         project: { lists: [{ id: 'd', listMembers: null }, { id: 'e' }] },
       },
-      typescriptAnswer: null,
+      typescriptAnswer: () => null,
     }) as { request: { list: Record<string, unknown> } }
     expect(built.request.list.admins).toEqual([{ id: 'a' }])
     expect(built.request.list.project).toEqual({ ownerId: null, members: [], lists: [{ listMembers: [] }, { listMembers: [] }] })

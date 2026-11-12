@@ -12,6 +12,7 @@
  *
  * Pure: no database and no WebAssembly. The caller (lib/repeating-task-handler.ts) reads the task.
  */
+import { lazyValue } from '@/lib/lazy-value'
 import {
   calculateTaskNextOccurrence,
   type TaskNextOccurrence,
@@ -24,7 +25,8 @@ import {
  */
 export type RepeatingCore = (
   input: TaskNextOccurrenceInput,
-  typescriptAnswer: TaskNextOccurrence,
+  /** Computed at most once, and only for a fallback or a sampled comparison (AWTD-1591). */
+  typescriptAnswer: () => TaskNextOccurrence,
 ) => TaskNextOccurrence | undefined
 
 // On globalThis, as with the other core hooks: Next compiles this module into several layers, each
@@ -57,14 +59,14 @@ export function isTaskNextOccurrence(value: unknown): value is TaskNextOccurrenc
  * a completion that is not a date), which the caller prevents by validating first.
  */
 export function nextOccurrenceForTask(input: TaskNextOccurrenceInput): TaskNextOccurrence {
-  const typescriptAnswer = calculateTaskNextOccurrence(input)
   const core = (globalThis as CoreHost)[CORE_KEY]
-  if (!core) return typescriptAnswer
+  if (!core) return calculateTaskNextOccurrence(input)
+  const typescriptAnswer = lazyValue(() => calculateTaskNextOccurrence(input))
   try {
     const answer = core(input, typescriptAnswer)
-    return answer !== undefined && isTaskNextOccurrence(answer) ? answer : typescriptAnswer
+    return answer !== undefined && isTaskNextOccurrence(answer) ? answer : typescriptAnswer()
   } catch {
     // A hook that throws must not fail the completion; the TypeScript answer stands.
-    return typescriptAnswer
+    return typescriptAnswer()
   }
 }

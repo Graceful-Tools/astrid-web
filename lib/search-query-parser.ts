@@ -13,6 +13,7 @@
  * never punish a typo. Someone typing `hostname:foo` is searching for
  * "hostname:foo", not making a mistake we should shout about.
  */
+import { lazyValue } from '@/lib/lazy-value'
 
 export type SearchPriority = 'none' | 'low' | 'medium' | 'high'
 export type SearchDue = 'today' | 'overdue' | 'week' | 'month' | 'none'
@@ -118,7 +119,7 @@ function tokenize(query: string): string[] {
  * Parses a query, or returns `undefined` to leave it to the TypeScript below. Given the
  * TypeScript's own answer so it can compare.
  */
-export type SearchQueryCore = (query: string, typescriptAnswer: ParsedSearchQuery) => ParsedSearchQuery | undefined
+export type SearchQueryCore = (query: string, typescriptAnswer: () => ParsedSearchQuery) => ParsedSearchQuery | undefined
 
 // On globalThis, as with lib/list-permissions.ts's hook: Next compiles this module into several
 // layers, each with its own module state, and the core is installed once from instrumentation.ts.
@@ -135,7 +136,7 @@ type CoreHost = { [CORE_KEY]?: SearchQueryCore | null }
  * (scripts, tests, the stdio MCP server) the TypeScript parses, pinned to the core by the shared
  * search fixture (tests/lib/core-rules-search-parity.test.ts).
  *
- * Fail-safe by construction: the TypeScript answer is computed first and returned whenever the
+ * Fail-safe by construction: the TypeScript answer is returned (computed then, lazily) whenever the
  * core declines, throws, or answers something that is not a parse.
  */
 export function setSearchQueryCore(core: SearchQueryCore | null): void {
@@ -172,15 +173,16 @@ export function isParsedSearchQuery(value: unknown): value is ParsedSearchQuery 
 }
 
 export function parseSearchQuery(query: string): ParsedSearchQuery {
-  const typescriptAnswer = parseWithTypeScript(query)
   const core = (globalThis as CoreHost)[CORE_KEY]
-  if (!core) return typescriptAnswer
+  if (!core) return parseWithTypeScript(query)
+  // Computed only for a fallback or a sampled comparison (AWTD-1591).
+  const typescriptAnswer = lazyValue(() => parseWithTypeScript(query))
   try {
     const answer = core(query, typescriptAnswer)
-    return answer !== undefined && isParsedSearchQuery(answer) ? answer : typescriptAnswer
+    return answer !== undefined && isParsedSearchQuery(answer) ? answer : typescriptAnswer()
   } catch {
     // A core that throws must never fail a search: the TypeScript answer stands.
-    return typescriptAnswer
+    return typescriptAnswer()
   }
 }
 

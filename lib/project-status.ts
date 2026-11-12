@@ -112,7 +112,7 @@ export function isProjectStatusList(list: Pick<TaskList, 'listType'> | null | un
  * lib/core-rules/board-core.ts); this TypeScript is the fallback and the comparison.
  */
 export function getProjectBoardColumns(customStates?: unknown): ProjectBoardColumn[] {
-  return boardColumnsThroughCore(customStates, typescriptBoardColumns(customStates))
+  return boardColumnsThroughCore(customStates, () => typescriptBoardColumns(customStates))
 }
 
 function typescriptBoardColumns(customStates: unknown): ProjectBoardColumn[] {
@@ -284,7 +284,7 @@ export function resolveProjectColumnMove(
       column: { id: targetColumn.id, kind: targetColumn.kind },
       lists: lists.map(list => ({ id: list.id, listType: list.listType ?? null, projectId: list.projectId ?? null })),
     },
-    typescriptColumnMove(task, targetColumn, lists),
+    () => typescriptColumnMove(task, targetColumn, lists),
   )
 }
 
