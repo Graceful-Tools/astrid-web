@@ -78,10 +78,8 @@ const canonicalVersionReferences = [
   ['@testing-library/react', 'React Testing Library'],
   ['tailwindcss', 'Tailwind CSS'],
   ['lucide-react', 'Lucide React'],
-  ['react-hook-form', 'React Hook Form'],
   ['zod', 'Zod'],
   ['eslint', 'ESLint'],
-  ['autoprefixer', 'autoprefixer'],
   ['resend', 'Resend'],
   ['web-push', 'web-push'],
 ] as const

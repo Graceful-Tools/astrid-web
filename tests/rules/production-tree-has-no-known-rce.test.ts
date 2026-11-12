@@ -123,13 +123,6 @@ const ADVISORY_FLOORS: Array<{
       'GHSA-rgj7-g3m4-5g8c (libheif; <0.35.4). Reached through `next`',
   },
   {
-    name: 'js-yaml',
-    minVersion: '4.3.2',
-    severity: 'high',
-    advisory:
-      'GHSA-2883-xcg3-v3hh (maxTotalMergeKeys does not bound CPU); >=4.0.0 <4.3.2',
-  },
-  {
     name: 'hono',
     minVersion: '4.13.11',
     severity: 'moderate',
@@ -236,6 +229,14 @@ const NOT_SHIPPED: Array<{ name: string; why: string }> = [
       'advisories (GHSA-587h-7wmj-h5pm high, GHSA-698v-4r3x-3vcv, GHSA-r825-w8mm-5pxw; ' +
       'vite >=8.3.0 <=8.3.2) as production and turned CI red — AWTD-1301. It belongs ' +
       'in devDependencies.',
+  },
+  {
+    name: 'js-yaml',
+    why:
+      'GHSA-2883-xcg3-v3hh (high: maxTotalMergeKeys does not bound CPU; >=4.0.0 <4.3.2) ' +
+      'was tracked here as a floor of 4.3.2. AWTD-1593: only tests parse YAML (workflow ' +
+      'files), so it moved to devDependencies and left the production tree. If app code ' +
+      'needs YAML again, put it back in ADVISORY_FLOORS with minVersion 4.3.2.',
   },
   {
     name: 'micromatch',
