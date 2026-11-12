@@ -11,7 +11,7 @@ export function Toaster() {
   return (
     <ToastProvider>
       {toasts.map(({ id, title, description, action, ...props }) => {
-        const isError = title === "Error" || title === "Access Denied"
+        const isError = props.variant === "destructive" || title === "Error" || title === "Access Denied"
         const variant = isError ? "destructive" : "default"
         
         return (
