@@ -499,20 +499,24 @@ and `bg-active` for a card and its border is the clearest case for a `surface` a
 instead: palette classes, hex and rgb colours, theme triplets, inline styles, arbitrary
 sizes, durations, and sentences in JSX (total and distinct). A count may not rise above
 `tests/rules/design-metrics.budget.json`, and Vitest runs the same check, so `predeploy`,
-CI and every agent workflow fail on a regression. Budgets only go down: after a
+CI and every agent workflow fail on a regression (predeploy and CI also run
+`check:design` as its own named step). Budgets only go down: after a
 reduction, `npm run design:metrics -- --update` in the same change.
 
-| Count | Before tokens (main `e770865b`) | Now |
+| Count | Before tokens (main `e770865b`) | Now (2026-11-12) |
 |---|---|---|
-| Palette classes | 1,631 | 202 |
-| Hex colours | 126 | 113 |
-| rgb literals | 101 | 10 |
+| Palette classes | 1,631 | 197 |
+| Hex colours | 126 | 105 |
+| rgb literals | 101 | 9 |
 | Theme triplets | 119 | 0 |
 | Inline styles | 64 | 56 |
 | Arbitrary sizes | 97 | 96 |
-| Durations | 57 | 5 |
-| Sentences in JSX | 999 | 440 |
+| Durations | 57 | 4 |
+| Sentences in JSX | 999 | 438 |
 | Distinct sentences in JSX | 802 | 399 |
+
+What moved, what is left and why, and the ranked follow-ups are in
+[DESIGN_AUDIT_2026-11.md](./DESIGN_AUDIT_2026-11.md).
 
 astrid-core's `cargo xtask check-design` compares this repo's copy with its own at the
 pinned revision, in its CI.
