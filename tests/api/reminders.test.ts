@@ -130,7 +130,7 @@ describe('Reminder API Endpoints', () => {
       expect(response.status).toBe(403)
     })
 
-    it('should reject snooze after maximum attempts', async () => {
+    it('AWTD-1583 (D37): accepts a sixth snooze — there is no cap, as on iOS and in the core', async () => {
       const mockReminder = {
         id: 'reminder1',
         userId: 'user1',
@@ -140,6 +140,10 @@ describe('Reminder API Endpoints', () => {
       }
 
       mockPrisma.reminderQueue.findUnique.mockResolvedValue(mockReminder)
+      mockPrisma.reminderQueue.update.mockImplementation(async ({ data }: { data: { scheduledFor: Date } }) => ({
+        ...mockReminder,
+        scheduledFor: data.scheduledFor,
+      }))
 
       const request = new NextRequest('http://localhost/api/v1/reminders/reminder1/snooze', {
         method: 'POST',
@@ -150,8 +154,8 @@ describe('Reminder API Endpoints', () => {
       const response = await snoozeHandler(request, { params: Promise.resolve({ id: 'reminder1' }) })
       const result = await response.json()
 
-      expect(response.status).toBe(400)
-      expect(result.error).toContain('maximum snooze limit')
+      expect(response.status).toBe(200)
+      expect(result.snoozeCount).toBe(6)
     })
 
     it('should validate snooze duration limits', async () => {

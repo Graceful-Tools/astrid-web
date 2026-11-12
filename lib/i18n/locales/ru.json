@@ -346,6 +346,7 @@
       "makeCopyOnly": "Сделать только для копирования",
       "makeCollaborative": "Сделать совместным",
       "leaveList": "Покинуть список",
+      "leaveConfirm": "Покинуть «{name}»? Вернуть вас сможет только владелец или администратор.",
       "aiCodingAgents": "ИИ-агенты для программирования",
       "aiAgents": "ИИ-агенты",
       "agentForCoding": "{name}: программирование и помощь с задачами",
@@ -473,7 +474,8 @@
     "selectTime": "Выберите время",
     "twoHoursBefore": "За 2 часа",
     "twoDaysBefore": "За 2 дня",
-    "noon": "Полдень"
+    "noon": "Полдень",
+    "dateAtTime": "{date} в {time}"
   },
   "repeating": {
     "oneTimeOnly": "Только один раз",
@@ -716,7 +718,20 @@
       "complete": "Завершить",
       "completedToast": "Поздравляем с завершением!",
       "snooze1day": "Отложить на 1 день",
-      "snooze1week": "Отложить на 1 неделю"
+      "snooze1week": "Отложить на 1 неделю",
+      "snoozedTitle": "Напоминание отложено",
+      "snoozedDescription": "Напоминание вернётся {when}",
+      "snoozeFailedTitle": "Не удалось отложить",
+      "snoozeFailed": "Не удалось отложить напоминание",
+      "dismissedTitle": "Напоминание закрыто",
+      "dismissedDescription": "Это напоминание больше не появится",
+      "dismissFailedTitle": "Не удалось закрыть",
+      "dismissFailed": "Не удалось закрыть напоминание",
+      "completedTitle": "Задача выполнена",
+      "completedDescription": "Задача отмечена выполненной, напоминание закрыто",
+      "completeFailedTitle": "Не удалось выполнить",
+      "completeFailed": "Не удалось отметить задачу выполненной",
+      "overdue": "Просрочено"
     }
   },
   "emptyState": {
@@ -842,7 +857,7 @@
         "getKey": "Получить ключ",
         "guideLink": "Руководство по подключению агента кода",
         "needsSetup": "Требуется настройка",
-        "agentLoops": "Agent Loops",
+        "agentLoops": "Циклы агентов",
         "customAgents": "Пользовательские агенты",
         "off": "Выкл.",
         "transportLabel": "Транспорт:",
@@ -878,7 +893,7 @@
         "stepSchedule": "Расписание или запуск",
         "stepTest": "Проверка",
         "hostedWorkflow": "Нет машины, которую можно оставить включённой? Закоммитьте этот workflow. Ему нужны два секрета репозитория; {link} объясняет, как создать каждый.",
-        "startHere": "Start here",
+        "startHere": "Начните здесь",
         "copilotInstall": "Закоммитьте этого пользовательского агента репозитория один раз. После этого Copilot CLI, приложение Copilot, GitHub.com и VS Code смогут выбирать то же поведение очереди.",
         "githubConnect": "Создайте клиентские учётные данные для этого агента и сохраните их как секреты Actions репозитория с именами {clientId} и {clientSecret}. При каждом запуске они обмениваются на токен доступа на один час только с правами, нужными обработчику очереди, — долгоживущий токен никогда не попадает в репозиторий.",
         "githubInstall": "Этот workflow — шлюз очереди: он отвечает на вопрос «есть ли работа?» и сам агента не запускает. Направьте второе задание на существующее задание поддерживаемого агента (шаг Copilot CLI, Claude Code или Codex с других вкладок).",
@@ -968,9 +983,9 @@
       "title": "Доступ к API",
       "description": "OAuth-приложения и интеграции API",
       "clientGuide": {
-        "title": "Do you need a client here?",
-        "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
-        "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant.",
+        "title": "Нужен ли вам здесь клиент?",
+        "dcrNote": "Нет — если ваш ассистент поддерживает OAuth (VS Code / Copilot, ChatGPT или другой MCP-клиент), он регистрируется сам при подключении к размещённой точке MCP. Здесь ничего создавать не нужно.",
+        "manualNote": "Да — создавайте клиент ниже только для серверных интеграций с постоянным секретом: скриптов, stdio-сервера MCP или конфигураций с собственными заголовками на grant client_credentials.",
         "question": "Нужен ли вам здесь клиент?",
         "registersItself": "Нет — если ваш ассистент поддерживает OAuth (VS Code / Copilot, ChatGPT или другой MCP-клиент), он регистрируется автоматически при подключении к размещённой конечной точке MCP. Здесь ничего создавать не нужно.",
         "manualOnly": "Да — создавайте клиент ниже только для серверных интеграций со статическим секретом: скриптов, MCP-сервера stdio или конфигураций с пользовательскими заголовками, использующих грант client_credentials."
@@ -1078,15 +1093,15 @@
         }
       },
       "mcp": {
-        "badge": "Recommended",
-        "title": "Connect via MCP",
-        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
-        "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
+        "badge": "Рекомендуется",
+        "title": "Подключение через MCP",
+        "description": "Model Context Protocol — самый быстрый способ подключить ИИ-ассистента к вашим задачам",
+        "serverUrl": "URL сервера MCP",
+        "note": "Добавьте этот URL в настройки MCP вашего ассистента. Он попросит войти в {appName} — никаких ключей копировать не нужно.",
         "vscodeTitle": "VS Code / GitHub Copilot",
-        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "vscodeNote": "Сохраните как .vscode/mcp.json в проекте, затем нажмите Start у сервера",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+        "legacyNote": "Старые клиенты, поддерживающие только транспорт SSE, могут делать GET на тот же URL и отправлять сообщения POST-запросом на /mcp/messages."
       },
       "step1": {
         "badge": "Шаг 1",
@@ -1337,7 +1352,7 @@
       "theme": {
         "title": "Тема",
         "description": "Выберите между темами Ocean, светлой и темной",
-        "ocean": "Ocean",
+        "ocean": "Океан",
         "oceanDesc": "Светлая тема с освежающим бирюзовым фоном",
         "light": "Светлый режим",
         "lightDesc": "Яркий, чистый интерфейс для дневного использования",
@@ -1436,15 +1451,15 @@
         }
       },
       "mcp": {
-        "badge": "Recommended",
-        "title": "Connect via MCP",
-        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
-        "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
+        "badge": "Рекомендуется",
+        "title": "Подключение через MCP",
+        "description": "Model Context Protocol — самый быстрый способ подключить ИИ-ассистента к вашим задачам",
+        "serverUrl": "URL сервера MCP",
+        "note": "Добавьте этот URL в настройки MCP вашего ассистента. Он попросит войти в {appName} — никаких ключей копировать не нужно.",
         "vscodeTitle": "VS Code / GitHub Copilot",
-        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "vscodeNote": "Сохраните как .vscode/mcp.json в проекте, затем нажмите Start у сервера",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages.",
+        "legacyNote": "Старые клиенты, поддерживающие только транспорт SSE, могут делать GET на тот же URL и отправлять сообщения POST-запросом на /mcp/messages.",
         "claudeNote": "Одна команда — откроется браузер для подтверждения доступа, ключи копировать не нужно",
         "copilotTitle": "GitHub Copilot CLI",
         "copilotNote": "То же подключение одной командой для Copilot CLI",
@@ -1761,21 +1776,21 @@
     }
   },
   "projectMode": {
-    "boardViewLabel": "Board View",
-    "boardViewDescriptionEnabled": "This list has a Ready / Doing / Waiting status board. Inbox holds new tasks; Done is completed.",
-    "boardViewDescriptionAvailable": "Add Ready, Doing, and Waiting status columns. Inbox and Done are derived automatically.",
-    "boardViewDescriptionLocked": "Boards add Ready / Doing / Waiting columns for working through tasks with other people. Available on request.",
-    "requestAccess": "Request access",
-    "requestPending": "Requested",
-    "requestPendingHint": "Your request is with the team. We'll email you when it's turned on.",
-    "requestDialogTitle": "Request board access",
-    "requestDialogBody": "Boards are rolling out gradually. Tell us what you'd use one for and we'll get back to you.",
-    "requestDialogUseCaseLabel": "What would you use a board for? (optional)",
-    "requestDialogUseCasePlaceholder": "e.g. tracking sprints with two teammates",
-    "requestDialogSubmit": "Send request",
-    "requestDialogCancel": "Cancel",
-    "requestSubmitted": "Request sent",
-    "requestFailed": "Couldn't send your request. Please try again.",
+    "boardViewLabel": "Вид доски",
+    "boardViewDescriptionEnabled": "У этого списка есть доска статусов «Готово к работе / В работе / Ожидание». Во «Входящих» — новые задачи, в «Сделано» — выполненные.",
+    "boardViewDescriptionAvailable": "Добавьте колонки статусов «Готово к работе», «В работе» и «Ожидание». «Входящие» и «Сделано» формируются автоматически.",
+    "boardViewDescriptionLocked": "Доски добавляют колонки «Готово к работе / В работе / Ожидание» для совместной работы над задачами. Доступно по запросу.",
+    "requestAccess": "Запросить доступ",
+    "requestPending": "Запрошено",
+    "requestPendingHint": "Ваш запрос у команды. Мы напишем вам, когда доступ будет включён.",
+    "requestDialogTitle": "Запрос доступа к доскам",
+    "requestDialogBody": "Доски открываются постепенно. Расскажите, для чего вам доска, и мы свяжемся с вами.",
+    "requestDialogUseCaseLabel": "Для чего вам доска? (необязательно)",
+    "requestDialogUseCasePlaceholder": "например, вести спринты с двумя коллегами",
+    "requestDialogSubmit": "Отправить запрос",
+    "requestDialogCancel": "Отмена",
+    "requestSubmitted": "Запрос отправлен",
+    "requestFailed": "Не удалось отправить запрос. Попробуйте ещё раз.",
     "keyLabel": "Префикс ID задач",
     "keyExample": "Задачи получат ID вида {example}, …",
     "keyInvalid": "{min}–{max} букв или цифр, начиная с буквы",
@@ -1899,7 +1914,7 @@
       "connectGithubLink": "Настройки → Подключения → GitHub",
       "runLoop": "Запустить цикл для этого списка",
       "loopDescription": "Ваш harness для программирования проверяет этот список по расписанию и берёт в работу всё, что назначено ему и отмечено как {ready}. Задачи на других досках никогда не затрагиваются.",
-      "readyStatus": "Ready",
+      "readyStatus": "Готово к работе",
       "descriptionHint": "Агенты читают {description} этого списка как рабочие инструкции — отредактируйте его выше, как бриф проекта.",
       "descriptionWord": "описание",
       "listId": "ID списка",
@@ -2488,7 +2503,36 @@
     "connectIntro": "У каждого агента своя учётная запись {appName}, и он берёт только задачи, которые {assignedAndReady} в его собственном списке. Откройте одного и вставьте его шаги — или вставьте ссылку на эту страницу в агента и попросите его настроиться самостоятельно.",
     "connectIntroAssignedAndReady": "назначены ему и отмечены как Ready",
     "workSetReady": "Установите статус {ready}, когда хотите, чтобы агент начал. Это и есть кнопка «Старт».",
-    "teamIntro": "Поделитесь каждым списком (настройки списка → {members} → пригласить по email). Все видят одни и те же задачи, комментарии и отчёты агентов. Владельцы и администраторы списка могут передать агенту любую задачу; участники могут передавать задачи, которые создали сами. Чтобы участники могли передавать любую задачу, включите {setting} в настройках списка → {aiAgent} (агенты работают на тарифах владельца)."
+    "teamIntro": "Поделитесь каждым списком (настройки списка → {members} → пригласить по email). Все видят одни и те же задачи, комментарии и отчёты агентов. Владельцы и администраторы списка могут передать агенту любую задачу; участники могут передавать задачи, которые создали сами. Чтобы участники могли передавать любую задачу, включите {setting} в настройках списка → {aiAgent} (агенты работают на тарифах владельца).",
+    "agents": {
+      "muse": {
+        "role": "Планирует и сортирует: превращает идеи, отзывы и ошибки в понятные задачи Build и Fix.",
+        "plan": "Аккаунт Muse с Muse Code",
+        "runs": "Muse Code подключается к серверу MCP и проверяет свою очередь каждые 30 минут."
+      },
+      "claude": {
+        "role": "Делает функции от начала до конца в вашем репозитории и открывает pull request.",
+        "plan": "Claude Max (Claude Code включён)",
+        "runs": "Claude Code подключается к серверу MCP и проверяет свою очередь каждые 30 минут."
+      },
+      "codex": {
+        "role": "Исправляет ошибки, начиная с тестов, проводит рефакторинг и добавляет недостающие тесты.",
+        "plan": "ChatGPT Pro или Plus (Codex CLI включён)",
+        "runs": "Codex CLI подключается к серверу MCP и проверяет свою очередь каждые 30 минут."
+      },
+      "copilot": {
+        "role": "Автоматически проверяет каждый pull request на GitHub и выполняет задачи на ревью.",
+        "plan": "GitHub Copilot Pro+ (или Business для команды)",
+        "runs": "GitHub запрашивает ревью Copilot для каждого pull request; Copilot CLI проверяет очередь Review каждые 30 минут.",
+        "extraStep0": "В своём репозитории GitHub откройте Settings → Rules → Rulesets → New branch ruleset, выберите основную ветку и включите «Automatically request Copilot code review». Тогда Copilot будет проверять каждый pull request, который открывает любой агент, без вашей просьбы."
+      },
+      "githubActions": {
+        "role": "Запускает ваши регулярные автоматизации по расписанию в GitHub — ничего на вашем компьютере.",
+        "plan": "Входит в GitHub (бесплатные минуты для публичных и большинства приватных репозиториев)",
+        "runs": "Плановый workflow каждые 30 минут запрашивает работу в очереди Automations и запускает job, только если она есть.",
+        "extraStep0": "Создайте учётные данные клиента в {app} (Настройки → ИИ-агенты → Copilot → GitHub Actions) и сохраните их как секреты репозитория {clientId} и {clientSecret}."
+      }
+    }
   },
   "richTextInput": {
     "placeholder": "Введите сообщение...",
@@ -2508,7 +2552,11 @@
     "empty": "Пока нет сообщений. Начните разговор!",
     "loadFailed": "Не удалось загрузить чат",
     "openChat": "Открыть чат",
-    "showTasks": "Показать задачи"
+    "showTasks": "Показать задачи",
+    "authorYou": "Вы",
+    "authorSystem": "Система",
+    "authorUnknown": "Неизвестно",
+    "systemEventAt": "{when}: {content}"
   },
   "notificationBell": {
     "markAllRead": "Отметить все как прочитанные",
@@ -2548,5 +2596,57 @@
     "downloadFile": "Скачать файл",
     "unknownFile": "Неизвестный файл",
     "loadFailed": "Не удалось загрузить файл"
+  },
+  "board": {
+    "status": {
+      "inbox": "Входящие",
+      "ready": "Готово к работе",
+      "doing": "В работе",
+      "waiting": "Ожидание",
+      "done": "Сделано"
+    },
+    "blurb": {
+      "inbox": "Переносите их в «Готово к работе», когда они… готовы!",
+      "ready": "Пора браться за дело!",
+      "doing": "Работа идёт полным ходом!",
+      "waiting": "На паузе, пока не сложатся подходящие условия.",
+      "done": "Готово — поздравляем!"
+    }
+  },
+  "passkeyErrors": {
+    "notSupported": "Ключи доступа не поддерживаются на этом устройстве",
+    "optionsFailed": "Не удалось начать запрос ключа доступа. Попробуйте ещё раз.",
+    "registrationFailed": "Не удалось зарегистрировать ключ доступа",
+    "authenticationFailed": "Не удалось войти с ключом доступа",
+    "defaultName": "Мой ключ доступа"
+  },
+  "oauthScopes": {
+    "tasks_read": "Чтение задач",
+    "tasks_write": "Создание и изменение задач",
+    "tasks_delete": "Удаление задач",
+    "lists_read": "Чтение списков",
+    "lists_write": "Создание и изменение списков",
+    "lists_configure": "Создание списков и изменение их названия, инструкций, исполнителя по умолчанию и цвета",
+    "lists_delete": "Удаление списков",
+    "lists_manage_members": "Управление участниками списков",
+    "projects_read": "Чтение проектов (досок статусов)",
+    "projects_write": "Создание и изменение проектов (досок статусов)",
+    "projects_delete": "Удаление проектов (досок статусов)",
+    "comments_read": "Чтение комментариев",
+    "comments_write": "Создание комментариев",
+    "comments_delete": "Удаление комментариев",
+    "chat_read": "Чтение сообщений чата",
+    "chat_write": "Отправка сообщений в чат",
+    "user_read": "Чтение профиля и настроек пользователя",
+    "user_write": "Изменение настроек пользователя",
+    "attachments_read": "Чтение вложений",
+    "attachments_write": "Загрузка вложений",
+    "attachments_delete": "Удаление вложений",
+    "contacts_read": "Чтение загруженных контактов",
+    "contacts_write": "Загрузка контактов и управление ими",
+    "public_read": "Чтение публичных списков",
+    "public_write": "Создание публичных списков и управление ими",
+    "sse_connect": "Подключение к потоку событий SSE",
+    "all": "Полный доступ (только для внутреннего использования — выдаётся при входе через сеанс)"
   }
 }

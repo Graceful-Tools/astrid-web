@@ -10,7 +10,12 @@
  *
  * NOTE: `process.env.NEXT_PUBLIC_*` must be referenced *literally* for Next.js to inline
  * it into the client bundle — do not refactor these into a loop or a computed key.
+ * Each read is `brandEnv(NAME, <literal>)`: the runtime value when the deployment
+ * supplies one (one image, many brands: lib/brand/runtime-env.ts, AWTD-1587), else the
+ * literal, inlined at build exactly as before.
  */
+
+import { brandEnv } from './runtime-env'
 
 /** Default (Astrid) values — also the fallbacks when no env is set. */
 const DEFAULTS = {
@@ -34,6 +39,7 @@ const DEFAULTS = {
   iconSmall: '/icons/icon-96x96.png',
   defaultTheme: 'ocean',
   fontFamily: '',
+  operatorName: 'Graceful Tools LLC',
 } as const
 
 /** The three stylesheets under styles/themes/. A brand picks which one it starts on. */
@@ -55,18 +61,21 @@ function env(value: string | undefined, fallback: string): string {
 /** Astrid's own accent: the design tokens' `accent` (astrid-core register DS26). */
 export const ASTRID_ACCENT_COLOR = DEFAULTS.accentColor
 
+/** Astrid's own app mark. Any other `BRAND.icon` is a brand's, and lib/brand/icons.ts generates from it. */
+export const ASTRID_ICON = DEFAULTS.icon
+
 export const BRAND = {
   /** Short product name, e.g. "Astrid". Interpolated into i18n copy as `{appName}`. */
-  appName: env(process.env.NEXT_PUBLIC_BRAND_NAME, DEFAULTS.appName),
+  appName: env(brandEnv('NEXT_PUBLIC_BRAND_NAME', process.env.NEXT_PUBLIC_BRAND_NAME), DEFAULTS.appName),
 
   /** Full product title used in <title>, OpenGraph and the PWA manifest. */
-  productTitle: env(process.env.NEXT_PUBLIC_BRAND_TITLE, DEFAULTS.productTitle),
+  productTitle: env(brandEnv('NEXT_PUBLIC_BRAND_TITLE', process.env.NEXT_PUBLIC_BRAND_TITLE), DEFAULTS.productTitle),
 
   /** One-line product description used in metadata and the manifest. */
-  tagline: env(process.env.NEXT_PUBLIC_BRAND_TAGLINE, DEFAULTS.tagline),
+  tagline: env(brandEnv('NEXT_PUBLIC_BRAND_TAGLINE', process.env.NEXT_PUBLIC_BRAND_TAGLINE), DEFAULTS.tagline),
 
   /** Apex domain, without scheme. Used for the production base-URL fallback. */
-  domain: env(process.env.NEXT_PUBLIC_BRAND_DOMAIN, DEFAULTS.domain),
+  domain: env(brandEnv('NEXT_PUBLIC_BRAND_DOMAIN', process.env.NEXT_PUBLIC_BRAND_DOMAIN), DEFAULTS.domain),
 
   /**
    * Domain for AI agent identities (`claude@<domain>`). Server-only: agent emails are
@@ -74,25 +83,25 @@ export const BRAND = {
    */
   agentEmailDomain: env(
     process.env.BRAND_AGENT_EMAIL_DOMAIN,
-    env(process.env.NEXT_PUBLIC_BRAND_DOMAIN, DEFAULTS.agentEmailDomain)
+    env(brandEnv('NEXT_PUBLIC_BRAND_DOMAIN', process.env.NEXT_PUBLIC_BRAND_DOMAIN), DEFAULTS.agentEmailDomain)
   ),
 
   /** Address shown to users for support requests. */
-  supportEmail: env(process.env.NEXT_PUBLIC_BRAND_SUPPORT_EMAIL, DEFAULTS.supportEmail),
+  supportEmail: env(brandEnv('NEXT_PUBLIC_BRAND_SUPPORT_EMAIL', process.env.NEXT_PUBLIC_BRAND_SUPPORT_EMAIL), DEFAULTS.supportEmail),
 
   /** Address users email to create a task. */
   inboundTaskEmail: env(
-    process.env.NEXT_PUBLIC_BRAND_INBOUND_TASK_EMAIL,
+    brandEnv('NEXT_PUBLIC_BRAND_INBOUND_TASK_EMAIL', process.env.NEXT_PUBLIC_BRAND_INBOUND_TASK_EMAIL),
     DEFAULTS.inboundTaskEmail
   ),
 
   /** Primary accent colour — drives `themeColor` and the manifest's `theme_color`. */
-  accentColor: env(process.env.NEXT_PUBLIC_BRAND_ACCENT_COLOR, DEFAULTS.accentColor),
+  accentColor: env(brandEnv('NEXT_PUBLIC_BRAND_ACCENT_COLOR', process.env.NEXT_PUBLIC_BRAND_ACCENT_COLOR), DEFAULTS.accentColor),
 
   /** Display name of the default assistant persona (may differ from `appName`). */
   agentIdentityName: env(
-    process.env.NEXT_PUBLIC_BRAND_AGENT_NAME,
-    env(process.env.NEXT_PUBLIC_BRAND_NAME, DEFAULTS.agentIdentityName)
+    brandEnv('NEXT_PUBLIC_BRAND_AGENT_NAME', process.env.NEXT_PUBLIC_BRAND_AGENT_NAME),
+    env(brandEnv('NEXT_PUBLIC_BRAND_NAME', process.env.NEXT_PUBLIC_BRAND_NAME), DEFAULTS.agentIdentityName)
   ),
 
   /**
@@ -102,7 +111,7 @@ export const BRAND = {
    * the private-key filename in the setup instructions all derive from it, so a
    * hardcoded slug sends their users to install someone else's App.
    */
-  githubAppSlug: env(process.env.NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG, DEFAULTS.githubAppSlug),
+  githubAppSlug: env(brandEnv('NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG', process.env.NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG), DEFAULTS.githubAppSlug),
 
   /**
    * The wordmark as drawn in the header lockup — lowercase for Astrid, which is a
@@ -112,18 +121,18 @@ export const BRAND = {
    * sensible wordmark; set this when the two should differ.
    */
   wordmark: env(
-    process.env.NEXT_PUBLIC_BRAND_WORDMARK,
-    (process.env.NEXT_PUBLIC_BRAND_NAME || DEFAULTS.appName).trim().toLowerCase()
+    brandEnv('NEXT_PUBLIC_BRAND_WORDMARK', process.env.NEXT_PUBLIC_BRAND_WORDMARK),
+    (brandEnv('NEXT_PUBLIC_BRAND_NAME', process.env.NEXT_PUBLIC_BRAND_NAME) || DEFAULTS.appName).trim().toLowerCase()
   ),
 
   /** Short slogan beside the wordmark. Distinct from `tagline`, which is metadata prose. */
-  slogan: env(process.env.NEXT_PUBLIC_BRAND_SLOGAN, DEFAULTS.slogan),
+  slogan: env(brandEnv('NEXT_PUBLIC_BRAND_SLOGAN', process.env.NEXT_PUBLIC_BRAND_SLOGAN), DEFAULTS.slogan),
 
   /**
    * App Store listing. Empty string hides the download button entirely — a partner
    * without a published app should not advertise someone else's.
    */
-  appStoreUrl: process.env.NEXT_PUBLIC_BRAND_APP_STORE_URL?.trim() ?? DEFAULTS.appStoreUrl,
+  appStoreUrl: brandEnv('NEXT_PUBLIC_BRAND_APP_STORE_URL', process.env.NEXT_PUBLIC_BRAND_APP_STORE_URL)?.trim() ?? DEFAULTS.appStoreUrl,
 
   /**
    * Custom URL scheme the desktop and mobile apps register, without `://`.
@@ -132,7 +141,7 @@ export const BRAND = {
    * `<scheme>://auth/callback`, so a fork that ships its own apps must set this
    * or the hand-off would deep-link into someone else's application.
    */
-  appUrlScheme: env(process.env.NEXT_PUBLIC_BRAND_APP_URL_SCHEME, DEFAULTS.appUrlScheme),
+  appUrlScheme: env(brandEnv('NEXT_PUBLIC_BRAND_APP_URL_SCHEME', process.env.NEXT_PUBLIC_BRAND_APP_URL_SCHEME), DEFAULTS.appUrlScheme),
 
   /**
    * The public list this deployment's Report an Issue opens in-app (AWTD-1443).
@@ -143,7 +152,7 @@ export const BRAND = {
    * partner's answer here, like the App Store URL. A partner that leaves it unset
    * inherits Astrid's list, which is the bug this setting exists to prevent.
    */
-  feedbackListId: process.env.NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID?.trim() ?? DEFAULTS.feedbackListId,
+  feedbackListId: brandEnv('NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID', process.env.NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID)?.trim() ?? DEFAULTS.feedbackListId,
 
   /**
    * Character / mascot artwork — the sign-in page, empty states and reminder popovers.
@@ -152,13 +161,24 @@ export const BRAND = {
    * in place: it ships under a brand-specific filename. The square icons below use
    * generic paths precisely so a fork CAN replace the files without touching config.
    */
-  logo: env(process.env.NEXT_PUBLIC_BRAND_LOGO, DEFAULTS.logo),
+  logo: env(brandEnv('NEXT_PUBLIC_BRAND_LOGO', process.env.NEXT_PUBLIC_BRAND_LOGO), DEFAULTS.logo),
 
-  /** Large square app mark. Generic path — a fork replaces public/icons/*. */
-  icon: env(process.env.NEXT_PUBLIC_BRAND_ICON, DEFAULTS.icon),
+  /**
+   * The brand's source icon — ideally 1024 px square — that every other size is generated
+   * from (lib/brand/icons.ts, AWTD-1588). A profile sets it as `assets.icon`.
+   */
+  icon: env(brandEnv('NEXT_PUBLIC_BRAND_ICON', process.env.NEXT_PUBLIC_BRAND_ICON), DEFAULTS.icon),
 
-  /** Small square app mark, used in page headers. */
-  iconSmall: env(process.env.NEXT_PUBLIC_BRAND_ICON_SMALL, DEFAULTS.iconSmall),
+  /**
+   * Small square app mark, used in page headers. Unset: Astrid's file for Astrid, and the
+   * 96 px icon generated from `icon` for a brand that names its own.
+   */
+  iconSmall: env(
+    brandEnv('NEXT_PUBLIC_BRAND_ICON_SMALL', process.env.NEXT_PUBLIC_BRAND_ICON_SMALL),
+    env(brandEnv('NEXT_PUBLIC_BRAND_ICON', process.env.NEXT_PUBLIC_BRAND_ICON), DEFAULTS.icon) === DEFAULTS.icon
+      ? DEFAULTS.iconSmall
+      : '/brand-icon/icon-96.png'
+  ),
 
   /**
    * The theme a visitor sees before they have picked one: `light`, `dark` or `ocean`.
@@ -168,7 +188,7 @@ export const BRAND = {
    * Appearance settings. A stored choice still wins — this is the starting point, not
    * a lock. An unknown name falls back rather than breaking the theme switcher.
    */
-  defaultTheme: themeEnv(process.env.NEXT_PUBLIC_BRAND_DEFAULT_THEME, DEFAULTS.defaultTheme),
+  defaultTheme: themeEnv(brandEnv('NEXT_PUBLIC_BRAND_DEFAULT_THEME', process.env.NEXT_PUBLIC_BRAND_DEFAULT_THEME), DEFAULTS.defaultTheme),
 
   /**
    * A CSS `font-family` stack for the whole app. Empty keeps the bundled Inter.
@@ -177,7 +197,7 @@ export const BRAND = {
    * loading anything: a partner's stack is usually the system font, which is why it
    * is a value rather than a second `next/font` import.
    */
-  fontFamily: env(process.env.NEXT_PUBLIC_BRAND_FONT_FAMILY, DEFAULTS.fontFamily),
+  fontFamily: env(brandEnv('NEXT_PUBLIC_BRAND_FONT_FAMILY', process.env.NEXT_PUBLIC_BRAND_FONT_FAMILY), DEFAULTS.fontFamily),
 
   /**
    * Whether the bare brand domain redirects to `www.<domain>` (middleware.ts).
@@ -188,10 +208,46 @@ export const BRAND = {
    * default so Astrid is unchanged; set NEXT_PUBLIC_BRAND_WWW_REDIRECT=false to serve the
    * domain as-is.
    */
-  wwwRedirect: process.env.NEXT_PUBLIC_BRAND_WWW_REDIRECT?.trim().toLowerCase() !== 'false',
+  wwwRedirect: brandEnv('NEXT_PUBLIC_BRAND_WWW_REDIRECT', process.env.NEXT_PUBLIC_BRAND_WWW_REDIRECT)?.trim().toLowerCase() !== 'false',
+
+  /**
+   * The legal entity that operates this deployment: named in the Terms of Service, the
+   * Privacy Policy and the copyright line (AWTD-1584).
+   *
+   * Unlike every other identity value this does NOT fall back to Astrid's once the
+   * deployment is a partner's. A partner that forgot it would publish terms saying their
+   * service is operated by Graceful Tools LLC, which is a legal statement about someone
+   * else's company, not a cosmetic leak. So the fallback is Astrid's operator only while
+   * the app is still called Astrid, and the partner's own app name after that.
+   */
+  operatorName: env(
+    brandEnv('NEXT_PUBLIC_BRAND_OPERATOR_NAME', process.env.NEXT_PUBLIC_BRAND_OPERATOR_NAME),
+    env(brandEnv('NEXT_PUBLIC_BRAND_NAME', process.env.NEXT_PUBLIC_BRAND_NAME), DEFAULTS.appName) === DEFAULTS.appName
+      ? DEFAULTS.operatorName
+      : env(brandEnv('NEXT_PUBLIC_BRAND_NAME', process.env.NEXT_PUBLIC_BRAND_NAME), DEFAULTS.appName)
+  ),
+
+  /**
+   * The operator's own Terms of Service, when they publish one elsewhere. Empty (the
+   * default) serves the built-in /terms page under `operatorName`; set, /terms redirects
+   * there and every terms link points at it.
+   */
+  termsUrl: brandEnv('NEXT_PUBLIC_BRAND_TERMS_URL', process.env.NEXT_PUBLIC_BRAND_TERMS_URL)?.trim() ?? '',
+
+  /** The operator's own Privacy Policy. Same rules as `termsUrl`, for /privacy. */
+  privacyUrl: brandEnv('NEXT_PUBLIC_BRAND_PRIVACY_URL', process.env.NEXT_PUBLIC_BRAND_PRIVACY_URL)?.trim() ?? '',
 } as const
 
 export type Brand = typeof BRAND
+
+/**
+ * Where a link to this deployment's terms or privacy policy goes: the operator's own page
+ * when the profile names one, else the built-in route.
+ */
+export function brandLegalHref(page: 'terms' | 'privacy'): string {
+  const external = page === 'terms' ? BRAND.termsUrl : BRAND.privacyUrl
+  return external || `/${page}`
+}
 
 /** Canonical production origin, e.g. `https://astrid.cc`. */
 export function brandOrigin(): string {

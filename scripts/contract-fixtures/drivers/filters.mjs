@@ -211,53 +211,10 @@ const sort = SORTS.map((sortBy) => ({
 
 // ── Disputes ──────────────────────────────────────────────────────────────────────────────
 
-const ymd = (iso) => iso.slice(0, 10)
-const dueTask = Object.fromEntries(DUE_TASKS.map((t) => [t.id, t]))
-const windowNamed = Object.fromEntries(WINDOWS)
-const daysInMonth = (year, month0) => new RealDate(RealDate.UTC(year, month0 + 1, 0)).getUTCDate()
-
-const result = partition([...dueDate, ...completion, ...sort], [
-  {
-    entry: 'D7',
-    why: 'an unrecognised due-date filter: web keeps undated tasks, iOS drops them',
-    applies: (c) => c.id.startsWith('due/') && c.filter === 'someday' && !dueTask[c.task].dueDateTime,
-  },
-  {
-    entry: 'D34',
-    why: 'overdue for a timed task: web compares instants, iOS compares days',
-    applies: (c) =>
-      c.id.startsWith('due/') && c.filter === 'overdue' && !dueTask[c.task].isAllDay &&
-      dueTask[c.task].dueDateTime && ymd(dueTask[c.task].dueDateTime) === ymd(NOW),
-  },
-  {
-    entry: 'D35',
-    why: 'tomorrow / this calendar week / this calendar month: windows web has and iOS does not read',
-    applies: (c) => c.id.startsWith('due/') && ['tomorrow', 'this_calendar_week', 'this_calendar_month'].includes(c.filter),
-  },
-  {
-    entry: 'D36',
-    why: 'recently-completed window edges: "since the Nth" when last month has no Nth (web rolls into this month, iOS clamps), and an unreadable since-date (web hides every completion, iOS counts from now)',
-    applies: (c) => {
-      const window = c.id.startsWith('completion/') ? windowNamed[c.window] : null
-      if (window?.kind === 'since-date' && Number.isNaN(RealDate.parse(window.date))) {
-        const task = COMPLETION_TASKS.find((t) => t.id === c.task)
-        const stamp = task.completedAt ?? task.updatedAt
-        return task.completed && stamp != null && stamp >= c.now
-      }
-      if (window?.kind !== 'since-day-of-month') return false
-      const now = new RealDate(c.now)
-      if (now.getUTCDate() >= window.day) return false
-      const prevMonth = (now.getUTCMonth() + 11) % 12
-      const prevYear = now.getUTCMonth() === 0 ? now.getUTCFullYear() - 1 : now.getUTCFullYear()
-      return window.day > daysInMonth(prevYear, prevMonth)
-    },
-  },
-  {
-    entry: 'D33',
-    why: 'sort orders: iOS sinks completed tasks under priority, has no assignee/completed/incomplete orders, and puts createdAt newest first ("when" agreed in AWTD-1325: dueDateTime, as iOS)',
-    applies: (c) => c.id.startsWith('sort/') && ['priority', 'assignee', 'completed', 'incomplete', 'createdAt'].includes(c.sortBy),
-  },
-])
+// D7, D33, D34, D35 and D36 were disputed here until AWTD-1583, when web adopted iOS's answers
+// (astrid-core docs/CONTRACTS.md, resolved toward iOS). Nothing is disputed now; a new divergence
+// goes back in as an entry, per ./disputed.mjs.
+const result = partition([...dueDate, ...completion, ...sort], [])
 
 process.stdout.write(JSON.stringify({
   generatedFrom: 'lib/date-filter-utils.ts, lib/recently-completed-window.ts, lib/task-sort.ts (as hooks/useFilterState.ts calls them)',

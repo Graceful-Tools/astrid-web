@@ -66,7 +66,7 @@ export function PasskeyManagementSection() {
 
   const handleAddPasskey = async () => {
     clearPasskeyError()
-    const result = await registerPasskey(undefined, "My Passkey")
+    const result = await registerPasskey(undefined, t("passkeyErrors.defaultName"))
     if (result.success) {
       toast({
         title: t("settingsPages.passkeys.toasts.addedTitle"),

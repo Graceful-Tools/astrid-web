@@ -1,7 +1,7 @@
 "use client"
 
 import { AUTH_PROVIDERS, CAPABILITIES } from '@/lib/brand/capabilities'
-import { BRAND } from '@/lib/brand/config'
+import { BRAND, brandLegalHref } from '@/lib/brand/config'
 import { signIn, getProviders } from "next-auth/react"
 import { useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -421,11 +421,11 @@ export function SignInContent() {
                     {privacy} slots so each language orders them its own way. */}
                 {t('signInPage.agreement').split(/(\{terms\}|\{privacy\})/).map((part, index) =>
                   part === '{terms}' ? (
-                    <Link key={index} href="/terms" className="text-brand hover:text-brand-hover underline">
+                    <Link key={index} href={brandLegalHref("terms")} className="text-brand hover:text-brand-hover underline">
                       {t('signInPage.termsOfService')}
                     </Link>
                   ) : part === '{privacy}' ? (
-                    <Link key={index} href="/privacy" className="text-brand hover:text-brand-hover underline">
+                    <Link key={index} href={brandLegalHref("privacy")} className="text-brand hover:text-brand-hover underline">
                       {t('signInPage.privacyPolicy')}
                     </Link>
                   ) : (

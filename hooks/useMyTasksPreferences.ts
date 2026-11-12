@@ -7,7 +7,7 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useSSESubscription } from './use-sse-subscription'
-import { MY_TASKS_DEFAULTS, type MyTasksPreferences } from '@/lib/my-tasks-preferences'
+import { MY_TASKS_DEFAULTS, normalizeMyTasksPreferences, type MyTasksPreferences } from '@/lib/my-tasks-preferences'
 
 const DEFAULT_PREFERENCES: MyTasksPreferences = MY_TASKS_DEFAULTS
 
@@ -24,7 +24,8 @@ export function useMyTasksPreferences() {
         const response = await fetch('/api/v1/users/me/my-tasks-preferences')
         if (response.ok) {
           const data = await response.json()
-          setPreferences(data)
+          // Retired windows and orders read as their nearest current value (AWTD-1583).
+          setPreferences(normalizeMyTasksPreferences(data))
         }
       } catch (error) {
         console.error('Failed to fetch My Tasks preferences:', error)
@@ -41,7 +42,7 @@ export function useMyTasksPreferences() {
   const reloadPreferences = useCallback(async () => {
     try {
       const response = await fetch('/api/v1/users/me/my-tasks-preferences')
-      if (response.ok) setPreferences(await response.json())
+      if (response.ok) setPreferences(normalizeMyTasksPreferences(await response.json()))
     } catch (error) {
       console.error('Failed to reload My Tasks preferences:', error)
     }
@@ -52,7 +53,7 @@ export function useMyTasksPreferences() {
     'my_tasks_preferences_updated',
     useCallback((event) => {
       if (event.data) {
-        setPreferences(event.data)
+        setPreferences(normalizeMyTasksPreferences(event.data))
       }
     }, []),
     { componentName: 'MyTasksPreferences' }
@@ -122,7 +123,7 @@ export function useMyTasksPreferences() {
     preferences.filterCompletion !== "default" ||
     preferences.filterDueDate !== "all" ||
     (preferences.filterPriority?.length ?? 0) > 0 ||
-    (preferences.filterAssignee?.length ?? 0) > 0 ||
+    // filterAssignee is not counted: My Tasks does not apply it (AWTD-1583, astrid-core D25).
     preferences.sortBy !== "auto"
 
   // Memoized filter values

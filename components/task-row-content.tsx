@@ -9,7 +9,8 @@ import { formatDateForDisplay } from "@/lib/date-utils"
 import { isCanceled } from "@/lib/closed-reason"
 import { chipLabelText, listsShownOnRow, splitTaskLists } from "@/lib/list-flavors"
 import { useTranslations } from "@/lib/i18n/client"
-import { format } from "date-fns"
+import { boardStatusClass, boardStatusNameKey, type TaskBoardStatus } from "@/lib/task-board-status"
+import { formatClockTime } from "@/lib/i18n/date-format"
 import type { Task } from "@/types/task"
 
 export interface TaskRowContentProps {
@@ -32,6 +33,10 @@ export interface TaskRowContentProps {
   identifier?: string | null
   /** The list being viewed; its chip is not repeated on every row (AWTD-1025). */
   currentListId?: string | null
+  /** The task's board column, drawn as a coloured pill after the due date —
+   *  LIST rows only (AWTD-1582). A board card never passes one: its column
+   *  header already says it. */
+  boardStatus?: TaskBoardStatus | null
 }
 
 export function TaskRowContent({
@@ -46,13 +51,17 @@ export function TaskRowContent({
   onBoard,
   identifier,
   currentListId,
+  boardStatus,
 }: TaskRowContentProps) {
-  const { t } = useTranslations()
+  const { t, locale } = useTranslations()
   // Split memberships once: lists are destinations, labels are tags
   // (task 60f5849d).
   const { lists: domainLists, labels } = splitTaskLists(
     listsShownOnRow((task.lists || []).filter(list => list != null), currentListId)
   )
+  const boardStatusName = boardStatus
+    ? boardStatus.boardName ?? t(boardStatusNameKey(boardStatus.kind) ?? "")
+    : null
   return (
     <>
       {isPublicListTask(task) ? (
@@ -92,16 +101,24 @@ export function TaskRowContent({
           )}
         </div>
 
-        {(identifier || (task.dueDateTime && !shouldHideTaskWhen(task)) || domainLists.length > 0 || labels.length > 0) && (
+        {(identifier || (task.dueDateTime && !shouldHideTaskWhen(task)) || boardStatusName || domainLists.length > 0 || labels.length > 0) && (
           <div className="flex items-center mt-1 gap-2">
             {identifier && (
               <span className="text-xs font-mono theme-text-muted flex-shrink-0">{identifier}</span>
             )}
             {task.dueDateTime && !shouldHideTaskWhen(task) && (
               <div className="text-xs theme-text-muted flex-shrink-0">
-                {formatDateForDisplay(new Date(task.dueDateTime), task.isAllDay)}
-                {!task.isAllDay && ` ${format(new Date(task.dueDateTime), "h:mm a")}`}
+                {formatDateForDisplay(new Date(task.dueDateTime), task.isAllDay, { locale, t })}
+                {!task.isAllDay && ` ${formatClockTime(new Date(task.dueDateTime), locale)}`}
               </div>
+            )}
+            {boardStatus && boardStatusName && (
+              <span
+                className={`text-xs ${boardStatusClass(boardStatus.kind)}`}
+                data-testid={`task-row-board-status-${boardStatus.kind}`}
+              >
+                {boardStatusName}
+              </span>
             )}
             <div className="flex flex-wrap gap-1 min-w-0 flex-1">
               {/* Labels render as their own chips, board columns as columns —

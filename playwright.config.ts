@@ -33,6 +33,7 @@ export const AUTHENTICATED_UI_SPECS = [
   'task-completion-deleted-list',
   'user-profile',
   'mobile-tradeoff-grid-no-overflow',
+  'long-unbroken-strings-wrap',
 ]
 
 /**

@@ -8,6 +8,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CalendarIcon, X, Check } from 'lucide-react'
 import { format } from 'date-fns'
+import { formatLongDate } from '@/lib/i18n/date-format'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/lib/i18n/client'
 import { LAST_WEEK_OF_MONTH } from '@/types/repeating'
@@ -368,7 +369,7 @@ export function CustomRepeatingEditor({ value, onChange, onCancel }: CustomRepea
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {pattern.endUntilDate ? format(pattern.endUntilDate, "PPP") : t('time.pickDate')}
+                  {pattern.endUntilDate ? formatLongDate(pattern.endUntilDate, locale) : t('time.pickDate')}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0 theme-surface border theme-border">

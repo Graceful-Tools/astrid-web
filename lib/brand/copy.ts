@@ -17,6 +17,7 @@
  * never take down reminders.
  */
 
+import { brandEnv } from './runtime-env'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('brand-copy')
@@ -42,7 +43,7 @@ export interface BrandCopy {
 }
 
 function parseBrandCopy(): BrandCopy {
-  const raw = process.env.NEXT_PUBLIC_BRAND_COPY?.trim()
+  const raw = brandEnv('NEXT_PUBLIC_BRAND_COPY', process.env.NEXT_PUBLIC_BRAND_COPY)?.trim()
   if (!raw) return {}
 
   try {

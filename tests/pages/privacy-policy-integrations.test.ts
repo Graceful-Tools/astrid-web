@@ -26,7 +26,8 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-const source = readFileSync(join(process.cwd(), 'app/[locale]/privacy/page.tsx'), 'utf8')
+// The policy's text lives in one component since AWTD-1584; the route only frames it.
+const source = readFileSync(join(process.cwd(), 'components/legal/PrivacyPolicyContent.tsx'), 'utf8')
 
 /**
  * Collapse whitespace before matching prose.

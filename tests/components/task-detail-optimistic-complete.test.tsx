@@ -9,6 +9,13 @@ import type { Task, User, TaskList } from '@/types/task'
 import { ThemeProvider } from '@/contexts/theme-context'
 import { SettingsProvider } from '@/contexts/settings-context'
 
+/** The checkbox's drawn art in the given state (AWTD-1581: it was an <img> whose alt said so). */
+const checkboxArt = (checked: boolean): HTMLElement => {
+  const art = document.querySelector(`[data-testid="task-checkbox-art"][data-checked="${checked}"]`)
+  if (!art) throw new Error(`no ${checked ? 'checked' : 'unchecked'} checkbox`)
+  return art as HTMLElement
+}
+
 // Mock the SSE subscription hook
 vi.mock('@/hooks/use-sse-subscription', () => ({
   useSSESubscription: vi.fn()
@@ -94,20 +101,20 @@ describe('TaskDetail Optimistic Checkbox Update', () => {
 
     renderTaskDetail(mockTask, delayedOnUpdate)
 
-    // Find the checkbox image (it has an alt text)
-    const checkbox = screen.getByAltText(/unchecked.*checkbox/i)
+    // Find the checkbox's art
+    const checkbox = checkboxArt(false)
 
     // Verify initial state (unchecked)
-    expect(checkbox).toHaveAttribute('alt', expect.stringContaining('Unchecked'))
+    expect(checkbox).toHaveAttribute('data-checked', 'false')
 
     // Click the checkbox (click on its parent container)
     const checkboxContainer = checkbox.parentElement!
     await user.click(checkboxContainer)
 
     // Verify checkbox updates immediately (optimistically) before API call completes
-    // After click, the alt text should change to "Checked"
+    // After click, the art should be the checked one
     await waitFor(() => {
-      const updatedCheckbox = screen.getByAltText(/checked.*checkbox/i)
+      const updatedCheckbox = checkboxArt(true)
       expect(updatedCheckbox).toBeInTheDocument()
     })
 
@@ -131,7 +138,7 @@ describe('TaskDetail Optimistic Checkbox Update', () => {
     renderTaskDetail(mockTask, successfulUpdate)
 
     // Find the checkbox
-    const checkbox = screen.getByAltText(/unchecked.*checkbox/i)
+    const checkbox = checkboxArt(false)
     const checkboxContainer = checkbox.parentElement!
 
     // Click the checkbox
@@ -139,7 +146,7 @@ describe('TaskDetail Optimistic Checkbox Update', () => {
 
     // Verify checkbox updates immediately
     await waitFor(() => {
-      const updatedCheckbox = screen.getByAltText(/checked.*checkbox/i)
+      const updatedCheckbox = checkboxArt(true)
       expect(updatedCheckbox).toBeInTheDocument()
     })
 
@@ -149,7 +156,7 @@ describe('TaskDetail Optimistic Checkbox Update', () => {
     })
 
     // Verify checkbox remains checked after API call succeeds
-    const finalCheckbox = screen.getByAltText(/checked.*checkbox/i)
+    const finalCheckbox = checkboxArt(true)
     expect(finalCheckbox).toBeInTheDocument()
   })
 
@@ -165,20 +172,17 @@ describe('TaskDetail Optimistic Checkbox Update', () => {
     renderTaskDetail(mockTask, failedUpdate)
 
     // Find the checkbox
-    const checkbox = screen.getByAltText(/unchecked.*checkbox/i)
+    const checkbox = checkboxArt(false)
     const checkboxContainer = checkbox.parentElement!
 
     // Verify initial state (unchecked)
-    expect(checkbox).toHaveAttribute('alt', expect.stringContaining('Unchecked'))
+    expect(checkbox).toHaveAttribute('data-checked', 'false')
 
-    // Click the checkbox
+    // Click the checkbox. The update rejects at once, so the optimistic
+    // checked state can be gone before anything looks for it; the test above
+    // holds the update open to see it. (The alt-text query used here matched
+    // either state, so this step never checked anything.)
     await user.click(checkboxContainer)
-
-    // Verify checkbox updates immediately (optimistically)
-    await waitFor(() => {
-      const checkedBox = screen.getByAltText(/checked.*checkbox/i)
-      expect(checkedBox).toBeInTheDocument()
-    })
 
     // Wait for API call to fail
     await waitFor(() => {
@@ -188,7 +192,7 @@ describe('TaskDetail Optimistic Checkbox Update', () => {
     // Wait a bit for the rollback to occur
     await waitFor(() => {
       // Verify checkbox reverts to unchecked after API call fails
-      const uncheckedBox = screen.getByAltText(/unchecked.*checkbox/i)
+      const uncheckedBox = checkboxArt(false)
       expect(uncheckedBox).toBeInTheDocument()
     })
 
@@ -206,7 +210,7 @@ describe('TaskDetail Optimistic Checkbox Update', () => {
     renderTaskDetail(mockTask, onUpdate)
 
     // Find the checkbox
-    const checkbox = screen.getByAltText(/unchecked.*checkbox/i)
+    const checkbox = checkboxArt(false)
     const checkboxContainer = checkbox.parentElement!
 
     // Click multiple times rapidly
@@ -221,7 +225,7 @@ describe('TaskDetail Optimistic Checkbox Update', () => {
 
     // Final state should reflect the last click (checked -> unchecked -> checked)
     await waitFor(() => {
-      const finalCheckbox = screen.getByAltText(/checked.*checkbox/i)
+      const finalCheckbox = checkboxArt(true)
       expect(finalCheckbox).toBeInTheDocument()
     })
   })
@@ -230,10 +234,10 @@ describe('TaskDetail Optimistic Checkbox Update', () => {
     const { rerender } = renderTaskDetail(mockTask)
 
     // Find the checkbox
-    const checkbox = screen.getByAltText(/unchecked.*checkbox/i)
+    const checkbox = checkboxArt(false)
 
     // Verify initial state (unchecked)
-    expect(checkbox).toHaveAttribute('alt', expect.stringContaining('Unchecked'))
+    expect(checkbox).toHaveAttribute('data-checked', 'false')
 
     // Simulate external update (e.g., from SSE)
     const updatedTask = { ...mockTask, completed: true }
@@ -253,7 +257,7 @@ describe('TaskDetail Optimistic Checkbox Update', () => {
 
     // Verify checkbox updates to reflect external change
     await waitFor(() => {
-      const checkedBox = screen.getByAltText(/checked.*checkbox/i)
+      const checkedBox = checkboxArt(true)
       expect(checkedBox).toBeInTheDocument()
     })
   })
