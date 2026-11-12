@@ -1,7 +1,7 @@
 import { capabilityGate } from '@/lib/brand/capabilities'
 import { NextResponse } from 'next/server'
 import { getBaseUrl } from '@/lib/base-url'
-import { BRAND } from '@/lib/brand/config'
+import { BRAND, brandLegalHref } from '@/lib/brand/config'
 import { brandIconUrl } from '@/lib/brand/icons'
 
 export async function GET() {
@@ -33,7 +33,9 @@ export async function GET() {
     },
     logo_url: `${baseUrl}${brandIconUrl({ kind: 'apple-touch' })}`,
     contact_email: BRAND.supportEmail,
-    legal_info_url: `${baseUrl}/privacy`,
+    // The operator's own policy when the profile names one (AWTD-1584): /privacy would
+    // only redirect there, and a plugin consumer may not follow redirects.
+    legal_info_url: BRAND.privacyUrl || `${baseUrl}${brandLegalHref('privacy')}`,
   }
 
   return NextResponse.json(manifest, {

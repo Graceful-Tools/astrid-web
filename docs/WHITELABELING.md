@@ -54,8 +54,9 @@ For the operator's end-to-end launch sequence, see the
 5. **Deploy**, one of two ways. Either way, check that `GET /api/v1/capabilities` reports
    your brand and providers.
    - **On your own infrastructure, with no Vercel account:** the Docker image and compose
-     stack in [deployment/SELF_HOSTING.md](./deployment/SELF_HOSTING.md). Build with
-     `--build-arg BRAND=<partner>`. It runs Postgres, the app, the scheduled jobs and file
+     stack in [deployment/SELF_HOSTING.md](./deployment/SELF_HOSTING.md). The published
+     image takes your brand at runtime: mount the profile and set `BRAND_PROFILE`
+     (AWTD-1587). Or build one in with `--build-arg BRAND=<partner>`. It runs Postgres, the app, the scheduled jobs and file
      storage (a volume or any S3-compatible bucket) on your own machines.
    - **On your own Vercel team and database:** §8, *A partner on their own Vercel account
      and their own database*. Preview first with
