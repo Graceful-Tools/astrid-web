@@ -9,9 +9,19 @@ import { useTranslations } from "@/lib/i18n/client"
  * A browser refusal (NotAllowedError, InvalidStateError, …) carries the
  * browser's English text; the reader gets the flow's own message in their
  * language instead (AWTD-1601). A server message passes through.
+ *
+ * `@simplewebauthn/browser` wraps most of these in a `WebAuthnError` whose
+ * `cause` is the original DOMException and whose `code` is `ERROR_…`, so both
+ * the bare and the wrapped forms count.
  */
-function isBrowserError(err: unknown): boolean {
-  return typeof DOMException !== "undefined" && err instanceof DOMException
+export function isBrowserError(err: unknown): boolean {
+  const isDomException = (value: unknown) =>
+    typeof DOMException !== "undefined" && value instanceof DOMException
+  if (isDomException(err)) return true
+  if (!(err instanceof Error)) return false
+  if (isDomException(err.cause)) return true
+  const code = (err as { code?: unknown }).code
+  return err.name === "WebAuthnError" || (typeof code === "string" && code.startsWith("ERROR_"))
 }
 
 export function useWebAuthn() {
