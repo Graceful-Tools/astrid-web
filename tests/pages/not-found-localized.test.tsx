@@ -19,6 +19,14 @@
  *    (/icons/list/x): a non-locale segment calls notFound() before any message
  *    is loaded, so it is at least a 404 rather than the app with a 200.
  */
+/*
+ * Follow-up (c888bddc on Vercel): the localized root page came out as Next's
+ * unbranded default 404 in production. Vercel answers an unmatched address
+ * from the prerendered /404 without running a function, and a not-found that
+ * reads the request locale is not prerendered. So app/not-found.tsx is static
+ * again (default locale), and a miss under a locale goes to the
+ * app/missing/[locale] handler through a fallback rewrite.
+ */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type React from 'react'
@@ -30,14 +38,22 @@ const MESSAGES = { de, en } as const
 const nextIntl = vi.hoisted(() => ({ locale: 'en' as 'de' | 'en' }))
 
 vi.mock('next-intl/server', () => ({
-  getLocale: vi.fn(async () => nextIntl.locale),
-  getTranslations: vi.fn(async (namespace: string) => {
-    const table = (MESSAGES[nextIntl.locale] as unknown as Record<string, Record<string, string>>)[namespace]
+  // Reading the request's locale is what made the root page dynamic.
+  getLocale: vi.fn(async () => {
+    throw new Error('getLocale() makes app/not-found.tsx dynamic, and Vercel then serves the default 404')
+  }),
+  getTranslations: vi.fn(async (arg: string | { locale: string; namespace: string }) => {
+    const { locale, namespace } =
+      typeof arg === 'string' ? { locale: nextIntl.locale, namespace: arg } : arg
+    const table = (MESSAGES[locale as keyof typeof MESSAGES] as unknown as Record<string, Record<string, string>>)[namespace]
     return (key: string) => table[key]
   }),
   getMessages: vi.fn(async () => ({})),
   setRequestLocale: vi.fn(),
 }))
+
+const connection = vi.hoisted(() => vi.fn(async () => undefined))
+vi.mock('next/server', async (orig) => ({ ...(await orig<object>()), connection }))
 
 const notFound = vi.hoisted(() =>
   vi.fn(() => {
@@ -54,27 +70,68 @@ async function renderRootNotFound(): Promise<string> {
   return renderToStaticMarkup(await NotFound())
 }
 
-describe('the root 404 speaks the request language (AWTD-1599)', () => {
+describe('the root 404 is static and branded (AWTD-1599)', () => {
   beforeEach(() => {
-    nextIntl.locale = 'en'
+    nextIntl.locale = 'de' // a request locale exists; the page must not read it
+    connection.mockClear()
+    vi.unstubAllEnvs()
   })
 
-  it('renders German under lang="de" for a miss under /de', async () => {
-    nextIntl.locale = 'de'
-    const html = await renderRootNotFound()
-
-    expect(html).toContain('<html lang="de"')
-    expect(html).toContain(de.errorPages.notFoundTitle)
-    expect(html).toContain(de.errorPages.notFoundDescription)
-    expect(html).toContain(de.errorPages.notFoundGoHome)
-    expect(html).not.toContain(en.errorPages.notFoundTitle)
+  it('stays prerendered on a hosted build (Vercel serves misses from the static /404)', async () => {
+    vi.stubEnv('ASTRID_RUNTIME_BRAND', '')
+    await renderRootNotFound()
+    expect(connection).not.toHaveBeenCalled()
   })
 
-  it('renders English under lang="en" when the request has no locale', async () => {
+  it('renders per request in an image that takes its brand at runtime (Copilot on #739)', async () => {
+    vi.stubEnv('ASTRID_RUNTIME_BRAND', 'true')
+    await renderRootNotFound()
+    expect(connection).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders the default locale without reading the request', async () => {
     const html = await renderRootNotFound()
 
     expect(html).toContain('<html lang="en"')
     expect(html).toContain(en.errorPages.notFoundTitle)
+    expect(html).toContain(en.errorPages.notFoundGoHome)
+  })
+})
+
+describe('the localized 404 handler (AWTD-1599)', () => {
+  async function get(locale: string) {
+    const { GET } = await import('@/app/missing/[locale]/route')
+    const res = await GET(new Request(`https://example.test/missing/${locale}`), {
+      params: Promise.resolve({ locale }),
+    })
+    return { res, html: await res.text() }
+  }
+
+  it('answers a miss under /de with a German 404', async () => {
+    const { res, html } = await get('de')
+
+    expect(res.status).toBe(404)
+    expect(res.headers.get('content-type')).toMatch(/^text\/html/)
+    expect(html).toMatch(/^<!DOCTYPE html><html lang="de">/)
+    expect(html).toContain(`<title>${de.errorPages.notFoundTitle} | Astrid</title>`)
+    expect(html).toContain(de.errorPages.notFoundDescription)
+    expect(html).toContain(`href="/de"`)
+    expect(html).not.toContain(en.errorPages.notFoundTitle)
+  })
+
+  it('carries no script: nothing to hydrate, nothing to call', async () => {
+    const { html } = await get('de')
+    expect(html).not.toMatch(/<script/i)
+    expect(html.length).toBeLessThan(4000)
+  })
+
+  it('answers in the default locale for a first segment that is not one', async () => {
+    const { res, html } = await get('zz')
+
+    expect(res.status).toBe(404)
+    expect(html).toContain('<html lang="en">')
+    expect(html).toContain(en.errorPages.notFoundTitle)
+    expect(html).toContain(`href="/"`)
   })
 })
 

@@ -508,7 +508,7 @@ reduction, `npm run design:metrics -- --update` in the same change.
 | Hex colours | 126 | 113 |
 | rgb literals | 101 | 10 |
 | Theme triplets | 119 | 0 |
-| Inline styles | 64 | 63 |
+| Inline styles | 64 | 56 |
 | Arbitrary sizes | 97 | 96 |
 | Durations | 57 | 5 |
 | Sentences in JSX | 999 | 440 |

@@ -106,43 +106,78 @@ describe('AWTD-1599: the matcher spells out the locales', () => {
   })
 })
 
-describe('AWTD-1599: a missing root-level file is rewritten to the 404, after the filesystem', () => {
-  type Rewrite = { source: string; destination: string }
+type Rewrite = { source: string; destination: string }
+type Phases = { beforeFiles?: Rewrite[]; afterFiles?: Rewrite[]; fallback?: Rewrite[] }
 
+async function rewritePhases(): Promise<Phases> {
+  const { default: nextConfig } = await import('@/next.config.mjs')
+  const rewrites = (await nextConfig.rewrites!()) as Rewrite[] | Phases
+  expect(Array.isArray(rewrites)).toBe(false)
+  return rewrites as Phases
+}
+
+/** Where `rule` sends `pathname`, or null when it does not match. */
+async function rewriteTo(rule: Rewrite, pathname: string): Promise<string | null> {
+  const { getPathMatch } = await import('next/dist/shared/lib/router/utils/path-match')
+  const params = getPathMatch(rule.source, { removeUnnamedParams: true, strict: true })(pathname)
+  if (params === false) return null
+  return rule.destination.replace(/:(\w+)/g, (_, name: string) => String(params[name]))
+}
+
+const HANDLER = join(process.cwd(), 'app/missing/[locale]/route.ts')
+
+describe('AWTD-1599: a missing root-level file is rewritten to the 404, after the filesystem', () => {
   async function missingFileRule(): Promise<Rewrite> {
-    const { default: nextConfig } = await import('@/next.config.mjs')
-    const rewrites = (await nextConfig.rewrites!()) as Rewrite[] | { afterFiles?: Rewrite[] }
-    // An array is Next's afterFiles phase: after public/ and static routes, before [locale].
-    expect(Array.isArray(rewrites)).toBe(true)
-    const rule = (rewrites as Rewrite[]).find((r) => r.destination.endsWith('/_missing-file'))
+    // afterFiles: after public/ and static routes, before [locale].
+    const rule = (await rewritePhases()).afterFiles?.find((r) => r.source.includes('\\.'))
     expect(rule).toBeDefined()
     return rule!
   }
 
-  async function rewrites(pathname: string): Promise<boolean> {
-    const { getPathMatch } = await import('next/dist/shared/lib/router/utils/path-match')
-    const rule = await missingFileRule()
-    return getPathMatch(rule.source, { removeUnnamedParams: true, strict: true })(pathname) !== false
-  }
-
   it.each(['/nope.png', '/nope.md', '/apple-touch-icon-precomposed.png', '/robots.txt'])(
-    'catches %s, which no file in public/ answered',
+    'sends %s, which no file in public/ answered, to the 404 handler in the default locale',
     async (pathname) => {
-      expect(await rewrites(pathname)).toBe(true)
+      expect(await rewriteTo(await missingFileRule(), pathname)).toBe('/missing/en')
     },
   )
 
   it.each(['/', '/de', '/zh-TW', '/settings', '/de/nope', '/icons/missing.png', '/api/v1/tasks/abc.json', '/.well-known/x'])(
     'leaves %s alone (a locale, a page, or deeper than the root)',
     async (pathname) => {
-      expect(await rewrites(pathname)).toBe(false)
+      expect(await rewriteTo(await missingFileRule(), pathname)).toBeNull()
     },
   )
 
-  it('points at a locale-prefixed address no page claims, so the root not-found answers', async () => {
-    const rule = await missingFileRule()
-    const [, locale, rest] = rule.destination.split('/')
-    expect(['en']).toContain(locale)
-    expect(existsSync(join(process.cwd(), 'app/[locale]', rest))).toBe(false)
+  it('points at a route that exists', () => {
+    expect(existsSync(HANDLER)).toBe(true)
   })
+})
+
+describe('AWTD-1599: a miss under a locale falls back to the localized 404 handler', () => {
+  // On Vercel an unmatched address is served from the prerendered /404 with no
+  // function run, so app/not-found.tsx can never see the locale. The fallback
+  // phase runs after every page and dynamic route missed, and sends the miss
+  // to a handler that can.
+  async function fallbackRule(): Promise<Rewrite> {
+    const rule = (await rewritePhases()).fallback?.find((r) => r.destination.startsWith('/missing/'))
+    expect(rule).toBeDefined()
+    return rule!
+  }
+
+  it.each([
+    ['/de/zz', '/missing/de'],
+    ['/fr/list/x/y/z', '/missing/fr'],
+    ['/zh-TW/nope.md', '/missing/zh-TW'],
+    ['/en/zz', '/missing/en'],
+    ['/zz/nope', '/missing/zz'], // not a locale: the handler answers in the default one
+  ])('sends %s to %s', async (pathname, destination) => {
+    expect(await rewriteTo(await fallbackRule(), pathname)).toBe(destination)
+  })
+
+  it.each(['/api/nope/x', '/_next/static/x.js', '/.well-known/x', '/de', '/zz'])(
+    'leaves %s alone',
+    async (pathname) => {
+      expect(await rewriteTo(await fallbackRule(), pathname)).toBeNull()
+    },
+  )
 })

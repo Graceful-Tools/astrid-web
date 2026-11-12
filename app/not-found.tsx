@@ -1,55 +1,39 @@
 import Link from 'next/link'
-import { getLocale, getTranslations } from 'next-intl/server'
-
-import { BRAND } from '@/lib/brand/config'
+import { connection } from 'next/server'
+import { getTranslations } from 'next-intl/server'
+import { routing } from '@/lib/i18n/routing'
+import { NOT_FOUND_STYLES as s } from '@/lib/not-found-page'
+import { isRuntimeBrandBuild } from '@/lib/brand/runtime-env'
 
 /**
- * Root-level not-found page: every address that matches no route, under a
- * locale or not (/de/nope, /nope, /nope.png).
- * Must include html/body tags since it's outside the locale layout.
+ * Root-level not-found page: the build-time 404, outside the locale layout,
+ * so it includes html/body tags.
  *
- * It stays outside the locale layout on purpose: server-rendered, a few KB,
- * and it boots no app. Rendering misses inside [locale] (PR #717) made every
- * 404 an empty client-rendered shell ~16x the size that fired API calls for a
- * signed-out visitor. It speaks the request's language instead: the
- * middleware forwards the locale next-intl resolved, and the copy is the
- * shared errorPages strings (AWTD-1599).
+ * It MUST stay static: no getLocale(), no headers(). On Vercel an unmatched
+ * address is answered from this page prerendered as /404, without running a
+ * function. When it read the request's locale, it was not prerendered, and
+ * production served Next's unbranded default 404 instead (AWTD-1599, c888bddc).
+ * Locale misses get their own localized page from app/missing/[locale]/route.ts
+ * through a fallback rewrite. This one speaks the default locale.
+ *
+ * The one exception is the same as in app/[locale]/layout.tsx. An image that
+ * takes its brand at runtime (the self-hosted image, AWTD-1587) must render
+ * per request, or this page would carry the build's accent and name. Hosted
+ * Astrid is not such a build, so on Vercel the page stays prerendered.
  */
 export default async function NotFound() {
-  const locale = await getLocale()
-  const t = await getTranslations('errorPages')
+  if (isRuntimeBrandBuild()) await connection()
+  const locale = routing.defaultLocale
+  const t = await getTranslations({ locale, namespace: 'errorPages' })
   return (
     <html lang={locale}>
-      <body style={{ margin: 0, fontFamily: 'system-ui, sans-serif' }}>
-        <div style={{
-          minHeight: '100vh',
-          backgroundColor: '#000',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem'
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <h1 style={{ fontSize: '3.75rem', fontWeight: 'bold', color: '#fff', marginBottom: '1rem' }}>404</h1>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: '600', color: '#d1d5db', marginBottom: '1rem' }}>{t('notFoundTitle')}</h2>
-            <p style={{ color: '#9ca3af', marginBottom: '2rem' }}>
-              {t('notFoundDescription')}
-            </p>
-            <Link
-              href="/"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0.75rem 1.5rem',
-                backgroundColor: BRAND.accentColor,
-                color: '#fff',
-                fontWeight: '500',
-                borderRadius: '0.75rem',
-                textDecoration: 'none',
-                transition: 'background-color 0.2s'
-              }}
-            >
+      <body style={s.body}>
+        <div style={s.shell}>
+          <div style={s.center}>
+            <h1 style={s.code}>404</h1>
+            <h2 style={s.title}>{t('notFoundTitle')}</h2>
+            <p style={s.description}>{t('notFoundDescription')}</p>
+            <Link href="/" style={s.home}>
               {t('notFoundGoHome')}
             </Link>
           </div>
