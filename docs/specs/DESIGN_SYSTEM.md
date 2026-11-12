@@ -473,7 +473,7 @@ Leave these, or change them as said; do not pick the nearest name.
 | shadcn's variables | `app/globals.css`: `--background`, `--primary` and the rest are tokens, declared once for every theme |
 | Priority | `lib/design/priority.ts`, classes in `styles/components.css` |
 | Values as data | `lib/design/tokens.ts` |
-| Values as hex, for HTML that cannot read a custom property | `lib/design/email-palette.ts`: `EMAIL_PALETTE` (Light) for the reminder, digest, invitation, verification and feature-request emails, the unsubscribe page and the crash page; `DARK_PAGE_PALETTE` (Dark) for the bare 404. A wash is the colour at `--theme-wash-opacity` over the card, flattened (AWTD-1614) |
+| Values as hex, for HTML that cannot read a custom property | `lib/design/email-palette.ts`: `EMAIL_PALETTE` (Light) for the reminder, digest, invitation, verification and feature-request emails, and the unsubscribe page; `DARK_PAGE_PALETTE` (Dark) for the bare 404. A wash is the colour at `--theme-wash-opacity` over the card, flattened (AWTD-1614). Server code only: it reads the whole token file, so the crash page, which is in every route's first load, keeps its three greys literal |
 | The gate | `tests/styles/design-tokens.test.ts`: the copy is unedited, CSS and data agree, no colour is written out in a theme stylesheet, and every class and shadcn variable compiles and resolves to a colour in each theme. `tests/styles/motion-tokens.test.ts` does the same for durations |
 
 ### Web-only surfaces
@@ -512,7 +512,7 @@ reduction, `npm run design:metrics -- --update` in the same change.
 | Count | Before tokens (main `e770865b`) | Now (2026-11-12) |
 |---|---|---|
 | Palette classes | 1,631 | 197 |
-| Hex colours | 126 | 36 |
+| Hex colours | 126 | 39 |
 | rgb literals | 101 | 9 |
 | Theme triplets | 119 | 0 |
 | Inline styles | 64 | 56 |

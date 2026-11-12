@@ -4,8 +4,6 @@ import { useEffect } from "react"
 import { logBoundaryError } from '@/lib/log-boundary-error'
 import { BRAND } from '@/lib/brand/config'
 import { DANGER_COLOR } from '@/lib/brand/colors'
-// The crash page replaces the root layout, so no theme stylesheet reaches it: the Light tokens as values.
-import { EMAIL_PALETTE } from '@/lib/design/email-palette'
 import { brandAccentCssVars } from '@/lib/brand/css-vars'
 
 interface GlobalErrorProps {
@@ -51,7 +49,9 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               width: "64px",
               height: "64px",
               borderRadius: "50%",
-              backgroundColor: EMAIL_PALETTE.errorWash,
+              // Literal on purpose (AWTD-1614): this boundary ships in every route's first load, and
+              // lib/design/email-palette.ts would bring the whole token file with it.
+              backgroundColor: "#fef2f2",
               display: "flex",
               alignItems: "center",
               justifyContent: "center"
@@ -75,7 +75,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               <h1 style={{ fontSize: "24px", fontWeight: "bold", margin: "0 0 8px 0" }}>
                 Something went wrong
               </h1>
-              <p style={{ color: EMAIL_PALETTE.textMuted, margin: 0, maxWidth: "400px" }}>
+              <p style={{ color: "#6b7280", margin: 0, maxWidth: "400px" }}>
                 A critical error occurred. Please try refreshing the page.
               </p>
             </div>
@@ -86,7 +86,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               style={{
                 padding: "10px 20px",
                 borderRadius: "6px",
-                border: `1px solid ${EMAIL_PALETTE.border}`,
+                border: "1px solid #e5e7eb",
                 backgroundColor: "white",
                 cursor: "pointer",
                 fontSize: "14px",

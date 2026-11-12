@@ -32,13 +32,12 @@ describe('the email palette is the tokens, as hex (AWTD-1614)', () => {
     expect(EMAIL_PALETTE.errorWash).toBe(washOver(EMAIL_PALETTE.error, EMAIL_PALETTE.card))
   })
 
-  it('the email builders, the unsubscribe page, the 404 and the crash page type no colour', () => {
+  it('the email builders, the unsubscribe page and the 404 type no colour', () => {
     for (const file of [
       'lib/email.ts',
       'lib/email-reminder-service.ts',
       'app/api/settings/reminders/unsubscribe/route.ts',
       'lib/not-found-page.ts',
-      'app/global-error.tsx',
       'app/[locale]/admin/analytics/page.tsx',
     ]) {
       expect(readFileSync(file, 'utf8').match(/#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g) ?? [], file).toEqual([])
