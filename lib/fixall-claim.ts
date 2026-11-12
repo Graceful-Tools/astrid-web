@@ -1,6 +1,6 @@
 import { AGENT_MAILBOXES, agentEmail } from "@/lib/brand/agent-emails"
 import { harnessAgentMailboxes } from "@/lib/ai/harness-agents"
-import { DOING_STATUS_ROLE, READY_STATUS_ROLE, WAITING_STATUS_ROLE } from "@/lib/task-status"
+import { DOING_STATUS_ROLE, READY_STATUS_ROLE } from "@/lib/task-status"
 import { parseAgentResumeContext, type AgentResumeContext } from '@/lib/agent-handback'
 import { parseBlockedConditions } from '@/lib/ready-queue-scope'
 
@@ -78,7 +78,12 @@ const DEFAULT_FIXALL_CLAIM_BOARD_IDS = [
 ] as const
 
 export const FIXALL_CLAIM_BOARD_IDS: readonly string[] = resolveBoardIds()
-export const FIXALL_CLAIM_ACTIONS = ["ready", "recheck", "review", "resume", "pause"] as const
+/**
+ * `recheck` and `review` were Waiting-lane claims for the client-side sweep's
+ * RECHECK/REVIEW items. The server's settle job owns Waiting now (astrid-core
+ * waiting rules), so nothing produces them and they are refused.
+ */
+export const FIXALL_CLAIM_ACTIONS = ["ready", "resume", "pause"] as const
 
 export type FixallClaimAction = typeof FIXALL_CLAIM_ACTIONS[number]
 
@@ -110,7 +115,7 @@ export function parseFixallClaimRequest(body: unknown): FixallClaimRequest {
     typeof candidate.action !== "string" ||
     !FIXALL_CLAIM_ACTIONS.includes(candidate.action as FixallClaimAction)
   ) {
-    throw new Error("Claim action must be ready, recheck, review, resume, or pause")
+    throw new Error("Claim action must be ready, resume, or pause")
   }
 
   const action = candidate.action as FixallClaimAction
@@ -147,21 +152,10 @@ export function parseFixallClaimRequest(body: unknown): FixallClaimRequest {
     if (listId !== undefined && listId !== resume.listId) throw new Error('Claim board must match resume board')
     return { action, agent, commentWatermark: resume.commentWatermark, resume, ...scope }
   }
-  if (action === "ready") {
-    if (commentWatermark !== undefined && commentWatermark !== null) {
-      throw new Error("Ready claims must not include a comment watermark")
-    }
-    return { action, commentWatermark: null, agent, ...scope, ...(nativeDispatch ? { nativeDispatch } : {}) }
+  if (commentWatermark !== undefined && commentWatermark !== null) {
+    throw new Error("Ready claims must not include a comment watermark")
   }
-
-  if (
-    commentWatermark !== null &&
-    (typeof commentWatermark !== "string" || Number.isNaN(Date.parse(commentWatermark)))
-  ) {
-    throw new Error("Waiting claims require a null or ISO comment watermark")
-  }
-
-  return { action, commentWatermark: commentWatermark as string | null, agent, ...scope }
+  return { action, commentWatermark: null, agent, ...scope, ...(nativeDispatch ? { nativeDispatch } : {}) }
 }
 
 export function buildAtomicFixallClaimWhere(input: {
@@ -180,30 +174,16 @@ export function buildAtomicFixallClaimWhere(input: {
       comments: { none: { updatedAt: { gt: new Date(claim.commentWatermark) } } },
     }
   }
-  const where = {
+  if (claim.action !== 'ready') throw new Error('Resume claims are revalidated by the claim service')
+  return {
     id: taskId,
     completed: false,
     lists: { some: { id: { in: claim.listId ? [claim.listId] : [...FIXALL_CLAIM_BOARD_IDS] } } },
     OR: [{ assigneeId: null }, { assigneeId: agentId }],
-    statusRole: claim.action === "ready" ? READY_STATUS_ROLE : WAITING_STATUS_ROLE,
-    ...(claim.action === "ready"
-      ? {}
-      : {
-          comments: claim.commentWatermark
-            ? { none: { updatedAt: { gt: new Date(claim.commentWatermark) } } }
-            : { none: {} },
-        }),
+    statusRole: READY_STATUS_ROLE,
+    // isDueToStart treats a missing date as due now.
+    AND: [{ OR: [{ dueDateTime: null }, { dueDateTime: { lte: now } }] }],
   }
-
-  if (claim.action !== "review") {
-    return {
-      ...where,
-      // isDueToStart treats a missing date as due now for Ready and RECHECK.
-      AND: [{ OR: [{ dueDateTime: null }, { dueDateTime: { lte: now } }] }],
-    }
-  }
-
-  return { ...where, dueDateTime: null }
 }
 
 function parseClaimMailbox(value: unknown): FixallClaimMailbox {
@@ -234,11 +214,10 @@ function parseClaimMailbox(value: unknown): FixallClaimMailbox {
  * 2026-09-09. It went unnoticed in CI because .github/workflows/fixall.yml has a
  * `concurrency:` group; a local loop has nothing equivalent.
  *
- * RECHECK and REVIEW deliberately do NOT move the task. Those re-examine a task
- * paused in Waiting, and promoting them to Doing would empty the Waiting lane on
- * every sweep and discard the condition the lane exists to record. They are also
- * therefore NOT mutually exclusive — they are cheap, idempotent re-reads, and the
- * comment watermark already guards the case that matters.
+ * A `resume` claim moves a handed-back task Inbox → Doing (R4: a handback sits
+ * in the Inbox, assigned to the person, never in Waiting). A `pause` takes the
+ * agent's own Doing task to the Inbox, still assigned to the agent: it needs a
+ * person to look, and Waiting holds only tasks waiting on a date or a task.
  *
  * NOTE for whoever merges AWTD-871 (a queue that does not require a Ready
  * column): tasks with `statusRole: null` are queueable there, and this where
@@ -248,10 +227,9 @@ function parseClaimMailbox(value: unknown): FixallClaimMailbox {
 export function buildFixallClaimData(input: {
   agentId: string
   claim: FixallClaimRequest
-}): { assigneeId: string; statusRole?: string } {
+}): { assigneeId: string; statusRole: string | null } {
   const { agentId, claim } = input
-  if (claim.action === 'pause') return { assigneeId: agentId, statusRole: WAITING_STATUS_ROLE }
-  if (claim.action !== "ready" && claim.action !== 'resume') return { assigneeId: agentId }
+  if (claim.action === 'pause') return { assigneeId: agentId, statusRole: null }
   return { assigneeId: agentId, statusRole: DOING_STATUS_ROLE }
 }
 
@@ -260,9 +238,9 @@ export function buildFixallClaimData(input: {
  * is the handoff that says so (`AWAITING-DEPLOY: <sha>`); otherwise null.
  *
  * A Ready claim on such a task is a second fix of finished work. AWTD-1432 was
- * fixed in #601 and handed off to Waiting, came back to Ready with no comment
- * saying why, and the next run fixed it again in #603. Whatever moves a card,
- * the claim is the one gate every harness passes, so the check lives here.
+ * fixed in #601 and handed off, came back to Ready with no comment saying why,
+ * and the next run fixed it again in #603. Whatever moves a card, the claim is
+ * the one gate every harness passes, so the check lives here.
  *
  * Only the newest comment counts. Anyone who wants the work redone says so on
  * the task, and that comment is newer than the marker.
@@ -277,11 +255,27 @@ export function pendingDeployHandoff(
   return parseBlockedConditions([{ content: newest.content, createdAt }]).awaitingDeploy
 }
 
-/** The note a refused claim leaves. It repeats the marker so it stays the newest one. */
+/**
+ * The first words of the note a Ready claim leaves when the task carries an older
+ * `AWAITING-DEPLOY:` handoff that somebody asked to have redone. It is the new
+ * attempt's boundary: a handoff older than it no longer counts as finished work,
+ * so the release does not skip the retry if it dies (scripts/lib/doing-release.ts)
+ * and the deploy check does not complete it on the old commit.
+ */
+export const REDO_CLAIM_MARKER = '🔁 Claimed again to redo it'
+
+export function redoClaimComment(previousSha: string): string {
+  return `${REDO_CLAIM_MARKER}: the earlier handoff (${previousSha.slice(0, 12)}) no longer counts as finished work.`
+}
+
+/**
+ * The note a refused claim leaves. It repeats the marker so it stays the newest one.
+ * Finished work awaiting its deploy belongs in Doing (R6), so that is where it goes back.
+ */
 export function handedOffParkComment(sha: string): string {
   return [
     'This task came back to Ready, but its fix is already handed off and waiting for its deploy, ' +
-      'so the claim was refused and the task is back in Waiting. The runner completes it once ' +
+      'so the claim was refused and the task is back in Doing. The runner completes it once ' +
       'production serves the commit. To have it redone, say so in a comment and move it to Ready.',
     '',
     `AWAITING-DEPLOY: ${sha}`,

@@ -66,7 +66,7 @@ export function parseClaimArgs(argv: string[], readText: (path: string) => strin
     : parseAgentResumeContext(JSON.parse(resumeText.replace(/^\uFEFF/, '')))
   if (!taskId || !action) {
     throw new Error(
-      'Usage: claim-fixall-task.ts <task-id> <ready|recheck|review|resume> [comment-watermark] [--agent <mailbox>] [--list <board-id>] [--resume-context <JSON>|--resume-context-file <path>]',
+      'Usage: claim-fixall-task.ts <task-id> <ready|resume> [comment-watermark] [--agent <mailbox>] [--list <board-id>] [--resume-context <JSON>|--resume-context-file <path>]',
     )
   }
 

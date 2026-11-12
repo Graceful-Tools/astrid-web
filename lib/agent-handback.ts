@@ -26,7 +26,13 @@ export interface HandbackTask {
   comments: HandbackComment[]
 }
 
-/** A reply resumes an explicit agent handback, never an unrelated human task. */
+/**
+ * A reply resumes an explicit agent handback, never an unrelated human task.
+ *
+ * A handback is "waiting on a person to act on this task", which is not
+ * Waiting: it is the Inbox (no status), assigned to that person — astrid-core's
+ * `handBack` shape (R4). Waiting holds only tasks waiting on a date or a task.
+ */
 export function pendingAgentHandback(input: {
   task: HandbackTask
   agentId: string
@@ -34,7 +40,7 @@ export function pendingAgentHandback(input: {
   listId: string
 }): AgentResumeContext | null {
   const { task, agentId, mailbox, listId } = input
-  if (task.completed || task.statusRole !== 'waiting' || !task.assigneeId ||
+  if (task.completed || task.statusRole !== null || !task.assigneeId ||
       !task.assignee || task.assignee.isAIAgent || !task.lists.some(list => list.id === listId)) return null
 
   const authored = task.comments.filter(comment => comment.authorId)

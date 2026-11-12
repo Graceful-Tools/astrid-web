@@ -84,7 +84,7 @@ async function main() {
   // A scheduled runner passes a file to collect this run's claims. After the run
   // it releases any of them still in Doing — the run died or stopped mid-task —
   // so they do not sit there forever (scripts/release-stuck-doing.ts). Only a
-  // Ready or resume claim moves a task to Doing; RECHECK and REVIEW leave it in Waiting.
+  // Ready or resume claim moves a task to Doing.
   const claimsFile = process.env.ASTRID_FIXALL_CLAIMS_FILE
   if (claimsFile && (action === "ready" || action === 'resume')) appendFileSync(claimsFile, `${taskId}\n`)
 }

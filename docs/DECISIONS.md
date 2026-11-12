@@ -111,7 +111,9 @@ Put a bold-term list under the grid, one line per column:
   colour.
 - **Define each criterion** in a key list under the grid.
 - **End a handback with the `AGENT-HANDBACK: <mailbox>` line** as the last line, as
-  [FIXALL_WORKFLOW.md](./FIXALL_WORKFLOW.md) describes.
+  [FIXALL_WORKFLOW.md](./FIXALL_WORKFLOW.md) describes. A handback goes to the **Inbox**,
+  assigned to the person who must decide — not Waiting, which holds only tasks waiting on a
+  date or another task.
 - **To show the format as an example,** put it in a fenced code block. A Decision inside a code block
   stays code.
 

@@ -64,7 +64,7 @@ const doingTask = {
 async function releaseComment(checkouts: ReturnType<typeof readCheckout>[]) {
   const api = {
     setStatus: vi.fn(async () => {}),
-    assign: vi.fn(async () => {}),
+    handBack: vi.fn(async () => {}),
     comment: vi.fn(async (_task: { id: string }, _content: string) => {}),
   }
   await releaseDoingClaim({ task: doingTask, comments: [], branches: [], checkouts, why: 'The run died.', api })

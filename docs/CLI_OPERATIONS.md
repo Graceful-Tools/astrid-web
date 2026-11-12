@@ -447,7 +447,8 @@ implementation, not before. Follow the per-task coding workflow in
 `add-task-comment.ts <id> "..."` (comment), `complete-task-with-workflow.ts <id>` (complete).
 
 For autonomous `/fixall`, use the single portable definition in
-[`.claude/commands/fixall.md`](../.claude/commands/fixall.md). Every queue read is:
+[`.claude/commands/fixall.md`](../.claude/commands/fixall.md). A loop reads its work from
+`get_agent_queue`; to debug the queue (read-only — the server owns the lanes):
 
 ```bash
 npx tsx scripts/ready-tasks.ts [web|ios] --harness <selector>
