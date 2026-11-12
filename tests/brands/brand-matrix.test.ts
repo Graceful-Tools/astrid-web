@@ -292,21 +292,39 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     const { renderToStaticMarkup } = await import('react-dom/server')
     const { BRAND } = await import('@/lib/brand/config')
     const onNavigate = () => {}
-    const pages: Array<[string, string, Record<string, unknown>]> = [
-      ['/terms', '@/app/[locale]/terms/page', {}],
-      ['/privacy', '@/app/[locale]/privacy/page', {}],
-      ['/help', '@/app/[locale]/help/page', {}],
-      ['Settings → Terms', '@/components/Settings/TermsPage', { onNavigate }],
-      ['Settings → Privacy', '@/components/Settings/PrivacyPage', { onNavigate }],
-      ['Settings → Help', '@/components/Settings/HelpPage', { onNavigate }],
+    // `external`: the operator's own policy URL, when the profile names one. Then the
+    // public route redirects there and the Settings page links to it; neither renders
+    // our text, so neither names the operator.
+    const pages: Array<[string, string, Record<string, unknown>, string]> = [
+      ['/terms', '@/app/[locale]/terms/page', {}, BRAND.termsUrl],
+      ['/privacy', '@/app/[locale]/privacy/page', {}, BRAND.privacyUrl],
+      ['/help', '@/app/[locale]/help/page', {}, ''],
+      ['Settings → Terms', '@/components/Settings/TermsPage', { onNavigate }, BRAND.termsUrl],
+      ['Settings → Privacy', '@/components/Settings/PrivacyPage', { onNavigate }, BRAND.privacyUrl],
+      ['Settings → Help', '@/components/Settings/HelpPage', { onNavigate }, ''],
     ]
 
     if (profile.name !== 'Astrid') expect(BRAND.operatorName).not.toBe('Graceful Tools LLC')
 
-    for (const [what, path, props] of pages) {
+    for (const [what, path, props, external] of pages) {
       const Page = (await import(path)).default
+      if (external && what.startsWith('/')) {
+        // next/navigation's redirect() throws; its digest carries the target.
+        let digest = ''
+        try {
+          renderToStaticMarkup(React.createElement(Page, props))
+        } catch (error) {
+          digest = String((error as { digest?: string }).digest ?? error)
+        }
+        expect(digest, `${what} redirects to the operator's page`).toContain(external)
+        continue
+      }
       const html = renderToStaticMarkup(React.createElement(Page, props))
-      expect(html, `${what} names the operator`).toContain(BRAND.operatorName)
+      if (external) {
+        expect(html, `${what} links to the operator's page`).toContain(external)
+      } else {
+        expect(html, `${what} names the operator`).toContain(BRAND.operatorName)
+      }
       for (const literal of profile.expect.forbidLiterals) {
         expect(html, `${what} leaked "${literal}" for the ${profile.name} profile`).not.toContain(literal)
       }
