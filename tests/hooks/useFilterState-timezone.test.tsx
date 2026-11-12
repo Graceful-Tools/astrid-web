@@ -279,13 +279,15 @@ describe('useFilterState - Timezone Regression Tests', () => {
       expect(filtered[0].id).toBe('overdue-all-day')
     })
 
-    it('should correctly identify overdue timed tasks', () => {
+    it('AWTD-1583 (D34): a timed task is overdue once its day has passed, not its time', () => {
       const now = new Date() // Mocked to 10 AM
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
       const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000)
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
 
       const tasks = [
-        createMockTask('overdue-timed', oneHourAgo.toISOString(), false, false),
+        createMockTask('overdue-timed', yesterday.toISOString(), false, false),
+        createMockTask('earlier-today-timed', oneHourAgo.toISOString(), false, false),
         createMockTask('future-timed', oneHourLater.toISOString(), false, false)
       ]
 

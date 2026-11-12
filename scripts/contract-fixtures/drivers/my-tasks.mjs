@@ -82,15 +82,9 @@ for (const reader of READERS) {
   }
 }
 
-const byId = Object.fromEntries(TASKS.map((t) => [t.id, t]))
 
-const result = partition(cases, [
-  {
-    entry: 'D25',
-    why: 'My Tasks scope: web also keeps unassigned tasks the reader created, reads assigneeId alone (not the nested assignee), and applies filterAssignee; iOS keeps only what is assigned to the reader, is empty signed out, and ignores filterAssignee',
-    applies: (c) => c.reader === null || byId[c.task].assigneeId == null || c.filterAssignee.length > 0,
-  },
-])
+// D25 was disputed here until AWTD-1583, when web adopted iOS's My Tasks scope.
+const result = partition(cases, [])
 
 process.stdout.write(JSON.stringify({
   generatedFrom: 'lib/my-tasks-scope.ts (myTasksShows, as hooks/useFilterState.ts calls it for "my-tasks")',

@@ -658,12 +658,9 @@ export class ReminderService {
         return { success: false, error: 'Reminder not found' }
       }
 
-      // Check snooze limit
+      // No snooze cap (AWTD-1583, astrid-core D37) — the same rule as lib/reminder-snooze.ts.
       const reminderData = reminder.data as any || {}
       const currentSnoozeCount = reminderData.snoozeCount || 0
-      if (currentSnoozeCount >= 5) {
-        return { success: false, error: 'maximum snooze limit reached (5 times)' }
-      }
 
       // Calculate new scheduled time
       const newScheduledFor = new Date(Date.now() + minutes * 60 * 1000)

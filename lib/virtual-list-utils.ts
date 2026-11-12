@@ -1,5 +1,5 @@
 import { Task, TaskList } from "@/types/task"
-import { applyDateFilter } from "@/lib/date-filter-utils"
+import { applyDateFilter, coreDueDateWindow } from "@/lib/date-filter-utils"
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('virtual-list-utils')
@@ -128,7 +128,10 @@ export function applyVirtualListFilter(
 
   if (list.filterDueDate && list.filterDueDate !== "all") {
     // Use Google Calendar approach: UTC comparison for all-day, local for timed
-    filtered = filtered.filter(task => applyDateFilter(task, list.filterDueDate!))
+    // A saved filter may hold a window retired in AWTD-1583 ("tomorrow", the calendar week or
+    // month); it reads as the nearest current one rather than as an unknown value.
+    const window = coreDueDateWindow(list.filterDueDate)
+    filtered = filtered.filter(task => applyDateFilter(task, window))
   }
 
   // Apply filterAssignee filter

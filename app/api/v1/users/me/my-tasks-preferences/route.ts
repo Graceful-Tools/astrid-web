@@ -14,6 +14,9 @@ import {
   MY_TASKS_COMPLETION_VALUES,
   MY_TASKS_DEFAULTS,
   MY_TASKS_DUE_DATE_VALUES,
+  RETIRED_MY_TASKS_DUE_DATE_VALUES,
+  RETIRED_MY_TASKS_SORT_VALUES,
+  normalizeMyTasksPreferences,
   MY_TASKS_SORT_VALUES,
   type MyTasksPreferences,
 } from '@/lib/my-tasks-preferences'
@@ -35,7 +38,7 @@ export const GET = withAuth(
       if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
       const preferences: MyTasksPreferences = user.myTasksPreferences
-        ? JSON.parse(user.myTasksPreferences)
+        ? normalizeMyTasksPreferences(JSON.parse(user.myTasksPreferences))
         : DEFAULTS
       return NextResponse.json({
         ...preferences,
@@ -48,9 +51,10 @@ export const GET = withAuth(
   }
 )
 
-const VALID_DUE_DATE = MY_TASKS_DUE_DATE_VALUES
+// Retired values are accepted and rewritten, so a tab opened before AWTD-1583 is not refused.
+const VALID_DUE_DATE = [...MY_TASKS_DUE_DATE_VALUES, ...RETIRED_MY_TASKS_DUE_DATE_VALUES]
 const VALID_COMPLETION = MY_TASKS_COMPLETION_VALUES
-const VALID_SORT = MY_TASKS_SORT_VALUES
+const VALID_SORT = [...MY_TASKS_SORT_VALUES, ...RETIRED_MY_TASKS_SORT_VALUES]
 
 export const PATCH = withAuth(
   { scopes: ['user:write'], tag: 'v1.users.me.my-tasks-preferences' },
@@ -81,7 +85,7 @@ export const PATCH = withAuth(
       const currentPrefs: MyTasksPreferences = current?.myTasksPreferences
         ? JSON.parse(current.myTasksPreferences)
         : {}
-      const updated: MyTasksPreferences = { ...currentPrefs, ...data }
+      const updated: MyTasksPreferences = normalizeMyTasksPreferences({ ...currentPrefs, ...data })
 
       const result = await prisma.user.update({
         where: { id: auth.userId },

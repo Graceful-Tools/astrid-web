@@ -346,11 +346,8 @@
         "a",
         "e"
       ]
-    }
-  ],
-  "disputed": [
+    },
     {
-      "entry": "D33",
       "id": "display/unarranged-tasks",
       "tasks": [
         {
@@ -396,13 +393,12 @@
       "shown": [
         "d",
         "b",
-        "a",
+        "e",
         "c",
-        "e"
+        "a"
       ]
     },
     {
-      "entry": "D33",
       "id": "display/nothing-arranged",
       "tasks": [
         {
@@ -443,18 +439,14 @@
       ],
       "manualOrder": [],
       "shown": [
-        "a",
-        "b",
-        "c",
+        "e",
         "d",
-        "e"
+        "c",
+        "b",
+        "a"
       ]
     }
   ],
-  "disputes": [
-    {
-      "entry": "D33",
-      "why": "manual sort: tasks the arrangement does not name — web oldest first, iOS newest first"
-    }
-  ]
+  "disputed": [],
+  "disputes": []
 }

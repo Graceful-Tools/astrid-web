@@ -74,3 +74,29 @@ describe('My Tasks offers only what the API stores (AWTD-1324)', () => {
     expect((await res.json()).sortBy).toBe('auto')
   })
 })
+
+describe('AWTD-1583: windows and orders retired from every client are mapped, never refused', () => {
+  it('accepts a retired value from an older tab and stores the nearest current one', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    const res = await patch({ filterDueDate: 'tomorrow', sortBy: 'assignee' })
+    expect(res.status).toBe(200)
+    const stored = JSON.parse(vi.mocked(prisma.user.update).mock.calls[0][0].data.myTasksPreferences as string)
+    expect(stored).toMatchObject({ filterDueDate: 'this_week', sortBy: 'auto' })
+  })
+
+  it('answers a saved retired value as the nearest current one', async () => {
+    const { prisma } = await import('@/lib/prisma')
+    vi.mocked(prisma.user.findUnique).mockResolvedValueOnce({
+      myTasksPreferences: JSON.stringify({ filterDueDate: 'this_calendar_month', sortBy: 'incomplete', filterPriority: [3] }),
+    } as never)
+    const res = await GET(new NextRequest('http://t/api/v1/users/me/my-tasks-preferences'), { params: Promise.resolve({}) } as never)
+    expect(await res.json()).toMatchObject({ filterDueDate: 'this_month', sortBy: 'auto', filterPriority: [3] })
+  })
+
+  it('no longer offers them', () => {
+    const offered = [...options.MY_TASKS_SORT_BY_OPTIONS, ...options.MY_TASKS_DUE_DATE_FILTER_OPTIONS].map((o) => o.value)
+    for (const retired of ['tomorrow', 'this_calendar_week', 'this_calendar_month', 'assignee', 'completed', 'incomplete']) {
+      expect(offered).not.toContain(retired)
+    }
+  })
+})
