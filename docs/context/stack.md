@@ -32,13 +32,13 @@
 - **Styling**: Tailwind CSS 3.4.17
 - **Components**: Radix UI primitives (Shadcn/ui)
 - **Icons**: Lucide React 1.65.0 (brand glyphs in `components/ui/brand-icons.tsx` — v1 dropped them)
-- **Forms**: React Hook Form 7.91.0 + Zod 4.6.6
+- **Forms**: Zod 4.6.6 for validation (no form library)
 
 ## Build & Development
 - **Bundler**: Next.js built-in (Turbopack in dev)
 - **ESLint**: ESLint 9.39.5
 - **TypeScript**: Strict mode
-- **PostCSS**: autoprefixer 10.6.2
+- **PostCSS**: the Tailwind CSS plugin only
 
 ## AI & Automation
 - **OpenAI**: Chat Completions API, called with fetch (no SDK)

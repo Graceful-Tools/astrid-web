@@ -167,7 +167,7 @@ export function TaskDetailListsRow({
                     }}
                   >
                     {getListPrivacyIcon(list)}
-                    <span className="text-white">{list.name}</span>
+                    <span className="text-theme-primary">{list.name}</span>
                   </div>
                 ))}
               </div>
