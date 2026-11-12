@@ -30,13 +30,13 @@ describe('TaskLeadingControl (task 2bb1b196)', () => {
     renderControl({ assigneeId: null })
 
     expect(screen.getByText('U')).toBeInTheDocument()
-    expect(screen.queryByAltText(/checkbox/i)).not.toBeInTheDocument()
+    expect(screen.queryByTestId('task-checkbox-art')).not.toBeInTheDocument()
   })
 
   it('renders the checkbox when the task is yours', () => {
     renderControl({ assigneeId: 'me' })
 
-    expect(screen.getByAltText(/unchecked.*checkbox/i)).toBeInTheDocument()
+    expect(screen.getByTestId('task-checkbox-art')).toHaveAttribute('data-checked', 'false')
     expect(screen.queryByText('U')).not.toBeInTheDocument()
   })
 
@@ -44,7 +44,7 @@ describe('TaskLeadingControl (task 2bb1b196)', () => {
     renderControl({ assigneeId: 'other', assignee: { name: 'Ada Lovelace' } })
 
     expect(screen.getByText('Ad')).toBeInTheDocument()
-    expect(screen.queryByAltText(/checkbox/i)).not.toBeInTheDocument()
+    expect(screen.queryByTestId('task-checkbox-art')).not.toBeInTheDocument()
   })
 
   it('still completes the task when the "U" mark is clicked — the mark changed, the action did not', async () => {
@@ -69,7 +69,7 @@ describe('TaskLeadingControl (task 2bb1b196)', () => {
   it('uses the checkbox for a completed unassigned task so its done state stays legible', () => {
     renderControl({ assigneeId: null, completed: true })
 
-    expect(screen.getByAltText(/^checked.*checkbox/i)).toBeInTheDocument()
+    expect(screen.getByTestId('task-checkbox-art')).toHaveAttribute('data-checked', 'true')
     expect(screen.queryByText('U')).not.toBeInTheDocument()
   })
 })
