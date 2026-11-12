@@ -23,7 +23,7 @@ import { OAuthScopeGroupDialog } from '@/components/oauth-scope-group-dialog'
 import { OAuthClientEditDialog } from '@/components/oauth-client-edit-dialog'
 import { OAuthClientGuide, GRANT_TYPE_OPTIONS } from '@/components/oauth-client-guide'
 import type { GrantType } from '@/types/oauth'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/use-toast'
 
 interface OAuthClient {
   id: string

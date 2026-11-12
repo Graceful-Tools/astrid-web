@@ -98,6 +98,7 @@ and stack versions with `npm run check:docs`.
 
 ### 🎨 UI & Design
 - **[Spec: The Astrid Design System](./specs/DESIGN_SYSTEM.md)** - Decided, partly built: one token source in astrid-core with iOS and Mac as the reference, generated per platform; themes as data; component specs; what a platform may do differently
+- **[Design audit, November 2026](./specs/DESIGN_AUDIT_2026-11.md)** - Hand-written colours, sizes, durations and JSX copy on web: before and after counts, what is left and why, ranked follow-ups (AWTD-1575)
 - **[Design tokens (vendored)](../packages/astrid-design/README.md)** - astrid-core's generated tokens at a pinned revision; never edited here
 - **[Layout System](./LAYOUT_SYSTEM.md)** - ⚠️ **Critical**: Mobile vs Column Layout distinction, responsive breakpoints
 

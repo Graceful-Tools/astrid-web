@@ -93,7 +93,7 @@
     "addAttachment": "Anhang hinzufügen",
     "moveToList": "In Liste verschieben",
     "copyToList": "In Liste kopieren",
-    "deleteConfirm": "Sind Sie sicher, dass Sie diese Aufgabe löschen möchten?",
+    "deleteConfirm": "Bist du sicher, dass du diese Aufgabe löschen möchtest?",
     "placeholder": {
       "taskName": "Was muss erledigt werden?",
       "description": "Beschreibung hinzufügen...",
@@ -267,7 +267,7 @@
     "transferOwnership": "Eigentümer übertragen",
     "selectNewOwner": "Neuen Eigentümer auswählen",
     "transferAndLeave": "Übertragen & Verlassen",
-    "deleteConfirm": "Sind Sie sicher, dass Sie diese Liste löschen möchten?",
+    "deleteConfirm": "Bist du sicher, dass du diese Liste löschen möchtest?",
     "placeholder": {
       "listName": "Listennamen eingeben...",
       "description": "Beschreibung hinzufügen..."
@@ -610,8 +610,8 @@
     "signInWith": "Mit {provider} anmelden",
     "email": "E-Mail",
     "createAccount": "Konto erstellen",
-    "alreadyHaveAccount": "Haben Sie bereits ein Konto?",
-    "dontHaveAccount": "Haben Sie noch kein Konto?",
+    "alreadyHaveAccount": "Hast du bereits ein Konto?",
+    "dontHaveAccount": "Hast du noch kein Konto?",
     "continueWith": "Weiter mit {provider}",
     "orContinueWith": "Oder weiter mit",
     "signInButton": "Anmelden",
@@ -635,10 +635,10 @@
     "copied": "Kopiert",
     "moving": "Verschieben",
     "moved": "Verschoben",
-    "confirmDelete": "Sind Sie sicher, dass Sie dies löschen möchten?",
+    "confirmDelete": "Bist du sicher, dass du dies löschen möchtest?",
     "cannotUndo": "Diese Aktion kann nicht rückgängig gemacht werden.",
     "noResults": "Keine Ergebnisse gefunden",
-    "tryAgain": "Bitte versuchen Sie es erneut",
+    "tryAgain": "Bitte versuche es erneut",
     "somethingWentWrong": "Etwas ist schief gelaufen",
     "cacheCleared": "Cache geleert",
     "dataRefreshed": "Daten aktualisiert. Neu laden...",
@@ -816,17 +816,17 @@
     },
     "aiAgents": {
       "title": "KI und Agenten",
-      "description": "KI-Assistenten und Code-Agenten mit Ihren API-Schlüsseln konfigurieren",
+      "description": "KI-Assistenten und Code-Agenten mit deinen API-Schlüsseln konfigurieren",
       "githubMcp": {
         "title": "{appName} in GitHub Copilot verwenden",
-        "description": "Verbinden Sie {appName} mit GitHubs Cloud-Coding-Agent und Code Review.",
-        "oauthWarning": "GitHub Cloud kann die Browser-Anmeldung von {appName} nicht öffnen. Erstellen Sie stattdessen hier ein eigenes Token; Copilot CLI und VS Code können die Browser-Anmeldung weiter nutzen.",
+        "description": "Verbinde {appName} mit GitHubs Cloud-Coding-Agent und Code Review.",
+        "oauthWarning": "GitHub Cloud kann die Browser-Anmeldung von {appName} nicht öffnen. Erstelle stattdessen hier ein eigenes Token; Copilot CLI und VS Code können die Browser-Anmeldung weiter nutzen.",
         "create": "GitHub-Einrichtung erstellen",
         "creating": "Einrichtung wird erstellt...",
         "createError": "GitHub-Einrichtung konnte nicht erstellt werden",
-        "secretStep": "Öffnen Sie im Repository Settings > Secrets and variables > Agents und fügen Sie ein Secret namens {secretName} hinzu.",
+        "secretStep": "Öffne im Repository Settings > Secrets and variables > Agents und füge ein Secret namens {secretName} hinzu.",
         "tokenLabel": "Secret-Wert",
-        "configStep": "Öffnen Sie Settings > Copilot > MCP servers und fügen Sie diese Konfiguration ein.",
+        "configStep": "Öffne Settings > Copilot > MCP servers und füge diese Konfiguration ein.",
         "configLabel": "MCP-Konfiguration",
         "openGitHub": "GitHub-Anleitung öffnen"
       },
@@ -838,7 +838,7 @@
         "clientSecret": "Client-Secret",
         "shownOnce": "Jetzt speichern — das Client-Secret wird nicht noch einmal angezeigt.",
         "saveAsSecrets": "Als Repository-Secrets mit den Namen {clientIdSecret} und {clientSecretSecret} speichern.",
-        "sdkNeedsBoth": "Ihr Server braucht beides: diese Zugangsdaten für API-Aufrufe und das Webhook-Secret unten zur Prüfung der Zustellungen.",
+        "sdkNeedsBoth": "Dein Server braucht beides: diese Zugangsdaten für API-Aufrufe und das Webhook-Secret unten zur Prüfung der Zustellungen.",
         "manage": "Unter Verbindungen verwalten",
         "error": "Zugangsdaten konnten nicht erstellt werden"
       },
@@ -1078,10 +1078,10 @@
       "breadcrumb": "ChatGPT-Integration",
       "howItWorks": {
         "title": "So funktioniert es",
-        "description": "Verbinden Sie {appName} mit ChatGPT über OAuth 2.0 und OpenAPI",
+        "description": "Verbinde {appName} mit ChatGPT über OAuth 2.0 und OpenAPI",
         "oauth": {
           "title": "Sicheres OAuth 2.0",
-          "description": "Authentifizieren Sie sich sicher ohne Ihr Passwort zu teilen"
+          "description": "Authentifiziere dich sicher, ohne dein Passwort zu teilen"
         },
         "openapi": {
           "title": "OpenAPI-Spezifikation",
@@ -1089,7 +1089,7 @@
         },
         "shareable": {
           "title": "Teilbare Integration",
-          "description": "Teilen Sie Ihr benutzerdefiniertes GPT mit anderen"
+          "description": "Teile dein benutzerdefiniertes GPT mit anderen"
         }
       },
       "mcp": {
@@ -1106,40 +1106,40 @@
       "step1": {
         "badge": "Schritt 1",
         "title": "OAuth-Client erstellen",
-        "description": "Erstellen Sie einen OAuth-Client um Ihr GPT mit {appName} zu authentifizieren",
+        "description": "Erstelle einen OAuth-Client, um dein GPT mit {appName} zu authentifizieren",
         "manageButton": "Clients verwalten",
         "instructions": {
-          "step1": "Gehen Sie zu API-Zugang Einstellungen",
-          "step2": "Klicken Sie auf 'OAuth-Client erstellen'",
-          "step3": "Setzen Sie den Berechtigungstyp auf 'authorization_code'",
-          "step4": "Fügen Sie die Weiterleitungs-URI unten hinzu",
-          "step5": "Kopieren Sie Ihre Client-ID und Ihr Secret"
+          "step1": "Gehe zu den API-Zugang-Einstellungen",
+          "step2": "Klicke auf 'OAuth-Client erstellen'",
+          "step3": "Setze den Berechtigungstyp auf 'authorization_code'",
+          "step4": "Füge die Weiterleitungs-URI unten hinzu",
+          "step5": "Kopiere deine Client-ID und dein Secret"
         },
         "redirectUri": "Weiterleitungs-URI",
         "scopes": "Berechtigungen"
       },
       "step2": {
         "badge": "Schritt 2",
-        "title": "Konfigurieren Sie Ihr GPT",
-        "description": "Verwenden Sie diese URLs in der Konfiguration Ihres benutzerdefinierten GPT",
+        "title": "Konfiguriere dein GPT",
+        "description": "Verwende diese URLs in der Konfiguration deines benutzerdefinierten GPT",
         "manifestUrl": "Plugin-Manifest-URL",
         "openapiSpec": "OpenAPI-Spezifikation",
         "authUrl": "Autorisierungs-URL",
         "tokenUrl": "Token-URL",
-        "note": "Kopieren Sie diese URLs in die Aktionskonfiguration Ihres GPT",
+        "note": "Kopiere diese URLs in die Aktionskonfiguration deines GPT",
         "viewDocsButton": "Dokumentation anzeigen",
         "testApiButton": "API testen"
       },
       "step3": {
         "badge": "Schritt 3",
-        "title": "Beginnen Sie mit der Nutzung Ihres GPT",
-        "description": "Probieren Sie diese Beispiel-Prompts mit Ihrem verbundenen GPT",
+        "title": "Beginne mit der Nutzung deines GPT",
+        "description": "Probiere diese Beispiel-Prompts mit deinem verbundenen GPT",
         "examples": {
           "example1": "Zeige mir meine Aufgaben für heute",
           "example2": "Erstelle eine neue Aufgabe: Quartalsbericht überprüfen",
           "example3": "Was steht auf meiner Einkaufsliste?"
         },
-        "shareNote": "Sie können Ihr benutzerdefiniertes GPT mit anderen teilen"
+        "shareNote": "Du kannst dein benutzerdefiniertes GPT mit anderen teilen"
       },
       "moreDetails": {
         "title": "Mehr erfahren",
@@ -1149,7 +1149,7 @@
       "step2b": {
         "badge": "Alt",
         "title": "MCP-Server (Alternative)",
-        "description": "Verwenden Sie das Model Context Protocol für direkte Integration",
+        "description": "Verwende das Model Context Protocol für direkte Integration",
         "serverUrl": "MCP-Server-URL",
         "postEndpoint": "POST-Endpunkt",
         "note": "MCP bietet eine standardisierte Möglichkeit, KI-Modelle mit externen Tools zu verbinden"
@@ -1160,25 +1160,25 @@
       "description": "Kontakte für Mitarbeitervorschläge importieren",
       "loading": "Kontakte werden geladen...",
       "importSuccess": "{count} Kontakte erfolgreich importiert",
-      "importError": "Kontakte konnten nicht importiert werden. Bitte versuchen Sie es erneut.",
-      "clearConfirmation": "Sind Sie sicher, dass Sie alle Kontakte löschen möchten? Dies kann nicht rückgängig gemacht werden.",
+      "importError": "Kontakte konnten nicht importiert werden. Bitte versuche es erneut.",
+      "clearConfirmation": "Bist du sicher, dass du alle Kontakte löschen möchtest? Dies kann nicht rückgängig gemacht werden.",
       "clearSuccess": "{count} Kontakte gelöscht",
-      "clearError": "Kontakte konnten nicht gelöscht werden. Bitte versuchen Sie es erneut.",
+      "clearError": "Kontakte konnten nicht gelöscht werden. Bitte versuche es erneut.",
       "syncedTitle": "Synchronisierte Kontakte",
       "syncedDescription": "Von externen Diensten importierte Kontakte",
       "contactsSynced": "Kontakte synchronisiert",
       "lastUpdated": "Zuletzt aktualisiert",
       "importTitle": "Kontakte importieren",
-      "importDescription": "Importieren Sie Kontakte von externen Diensten für Mitarbeitervorschläge",
+      "importDescription": "Importiere Kontakte von externen Diensten für Mitarbeitervorschläge",
       "googleContacts": "Google Kontakte",
-      "googleDescription": "Kontakte von Ihrem Google-Konto importieren",
+      "googleDescription": "Kontakte von deinem Google-Konto importieren",
       "connecting": "Verbinden...",
       "import": "Importieren",
-      "privacyNotice": "Ihre Kontakte werden sicher gespeichert und nur verwendet, um Mitarbeiter beim Teilen von Listen vorzuschlagen.",
+      "privacyNotice": "Deine Kontakte werden sicher gespeichert und nur verwendet, um Mitarbeiter beim Teilen von Listen vorzuschlagen.",
       "dangerZone": "Gefahrenzone",
       "irreversibleActions": "Diese Aktionen können nicht rückgängig gemacht werden",
       "clearAll": "Alle Kontakte löschen",
-      "clearAllDescription": "Alle importierten Kontakte von Ihrem Konto entfernen",
+      "clearAllDescription": "Alle importierten Kontakte von deinem Konto entfernen",
       "clearContacts": "Kontakte löschen"
     },
     "appearance": {
@@ -1228,10 +1228,10 @@
         },
         "dataManagement": {
           "title": "Datenverwaltung",
-          "description": "Verwalten Sie Ihre lokalen Daten und den Cache",
+          "description": "Verwalte deine lokalen Daten und den Cache",
           "favoriteLists": {
             "label": "Standardlisten wiederherstellen",
-            "description": "Stellen Sie die standardmäßigen Favoritenlisten wieder her, wenn sie gelöscht wurden",
+            "description": "Stelle die standardmäßigen Favoritenlisten wieder her, wenn sie gelöscht wurden",
             "button": "Standardlisten wiederherstellen",
             "restoring": "Wiederherstellung..."
           },
@@ -1247,7 +1247,7 @@
     "manageAccount": "Verwalte dein Konto und deine Einstellungen",
     "profileInfo": {
       "title": "Profilinformationen",
-      "description": "Aktualisieren Sie Ihre persönlichen Informationen",
+      "description": "Aktualisiere deine persönlichen Informationen",
       "displayName": "Anzeigename",
       "emailAddress": "E-Mail-Adresse",
       "saveChanges": "Änderungen speichern",
@@ -1269,13 +1269,13 @@
     },
     "emailVerification": {
       "title": "E-Mail-Verifizierung",
-      "description": "Verifizieren Sie Ihre E-Mail-Adresse für mehr Sicherheit",
+      "description": "Verifiziere deine E-Mail-Adresse für mehr Sicherheit",
       "verified": "Verifiziert",
       "verifiedViaGoogle": "Über Google verifiziert",
       "notVerified": "Nicht verifiziert",
       "verify": "Verifizieren",
       "verificationSent": "Verifizierungs-E-Mail gesendet!",
-      "checkEmail": "Bitte überprüfen Sie Ihre E-Mail und klicken Sie auf den Verifizierungslink.",
+      "checkEmail": "Bitte überprüfe deine E-Mail und klicke auf den Verifizierungslink.",
       "pendingChange": "E-Mail-Änderung ausstehend",
       "waitingVerification": "Warte auf Verifizierung",
       "waitingVerificationFor": "Warte auf Verifizierung: {email}",
@@ -1287,11 +1287,11 @@
     },
     "passkeys": {
       "title": "Passkeys",
-      "description": "Verwenden Sie Passkeys für schnellere, sicherere Anmeldung ohne Passwörter",
+      "description": "Verwende Passkeys für schnellere, sicherere Anmeldung ohne Passwörter",
       "addPasskey": "Passkey hinzufügen",
       "addingPasskey": "Passkey wird hinzugefügt...",
       "noPasskeys": "Noch keine Passkeys registriert",
-      "addPasskeyHint": "Fügen Sie einen Passkey für schnellere, passwortlose Anmeldung hinzu",
+      "addPasskeyHint": "Füge einen Passkey für schnellere, passwortlose Anmeldung hinzu",
       "loading": "Passkeys werden geladen...",
       "fallbackName": "Passkey",
       "added": "Hinzugefügt am {date}",
@@ -1317,8 +1317,8 @@
       "accountId": "Konto-ID"
     },
     "exportData": {
-      "title": "Ihre Daten exportieren",
-      "description": "Laden Sie alle Ihre Aufgaben, Listen und Kontodaten herunter",
+      "title": "Deine Daten exportieren",
+      "description": "Lade alle deine Aufgaben, Listen und Kontodaten herunter",
       "includes": "Export beinhaltet:",
       "allTasks": "Alle Aufgaben (erstellt und zugewiesen)",
       "allLists": "Alle Listen (Eigentümer und Mitglied)",
@@ -1330,43 +1330,43 @@
     },
     "deleteAccount": {
       "title": "Konto löschen",
-      "description": "Löschen Sie Ihr Konto und alle zugehörigen Daten dauerhaft",
+      "description": "Lösche dein Konto und alle zugehörigen Daten dauerhaft",
       "warning": "Warnung: Diese Aktion kann nicht rückgängig gemacht werden!",
-      "willRemove": "Das Löschen Ihres Kontos wird dauerhaft entfernen:",
+      "willRemove": "Das Löschen deines Kontos wird dauerhaft entfernen:",
       "allTasks": "Alle Aufgaben, Listen und Kommentare",
       "allFiles": "Alle hochgeladenen Dateien und Anhänge",
       "allIntegrations": "Alle Integrationen und Einstellungen",
       "sharedAccess": "Zugriff auf geteilte Listen und Zusammenarbeiten",
-      "considerExporting": "Erwägen Sie zuerst Ihre Daten zu exportieren (siehe oben).",
+      "considerExporting": "Erwäge, zuerst deine Daten zu exportieren (siehe oben).",
       "deleteMyAccount": "Mein Konto löschen",
       "confirmTitle": "Kontolöschung bestätigen",
       "confirmDescription": "Diese Aktion ist dauerhaft und kann nicht rückgängig gemacht werden.",
-      "typeToConfirm": "Geben Sie {phrase} zur Bestätigung ein",
+      "typeToConfirm": "Gib {phrase} zur Bestätigung ein",
       "permanentlyDelete": "Konto dauerhaft löschen",
       "deleting": "Löschen...",
       "dialogWarning": "Alle deine Daten werden dauerhaft gelöscht, einschließlich Aufgaben, Listen und Dateien."
     },
     "appearancePage": {
       "title": "Erscheinungsbild und Benutzererfahrung",
-      "description": "Passen Sie das Aussehen, Gefühl und den Ablauf Ihrer Oberfläche an",
+      "description": "Passe das Aussehen, Gefühl und den Ablauf deiner Oberfläche an",
       "theme": {
         "title": "Thema",
-        "description": "Wählen Sie zwischen Ocean, Hell und Dunkel Themen",
+        "description": "Wähle zwischen den Themen Ocean, Hell und Dunkel",
         "ocean": "Ozean",
         "oceanDesc": "Helles Thema mit einem erfrischenden Cyan-Hintergrund",
         "light": "Hell-Modus",
         "lightDesc": "Eine helle, saubere Oberfläche perfekt für die Tagesnutzung",
         "dark": "Dunkel-Modus",
         "darkDesc": "Eine elegante, dunkle Oberfläche die angenehmer für die Augen bei wenig Licht ist",
-        "proTip": "Ihre Themeneinstellung wird automatisch gespeichert und auf allen Ihren Geräten angewendet."
+        "proTip": "Deine Themeneinstellung wird automatisch gespeichert und auf allen deinen Geräten angewendet."
       },
       "keyboard": {
         "title": "Tastaturkürzel",
-        "description": "Sehen und lernen Sie Tastaturkürzel für schnellere Navigation",
+        "description": "Sieh dir Tastaturkürzel für schnellere Navigation an und lerne sie",
         "viewShortcuts": "Kürzel anzeigen",
         "viewTitle": "Tastaturkürzel anzeigen",
         "viewDesc": "Alle verfügbaren Tastaturkürzel für effiziente Aufgabenverwaltung anzeigen",
-        "quickAccess": "Drücken Sie ? irgendwo im Aufgabenmanager um die Tastaturkürzel zu öffnen.",
+        "quickAccess": "Drücke ? irgendwo im Aufgabenmanager, um die Tastaturkürzel zu öffnen.",
         "quickAccessLabel": "Schnellzugriff"
       },
       "taskDisplayMode": {
@@ -1397,17 +1397,17 @@
       },
       "emailToTask": {
         "title": "E-Mail zu Aufgabe",
-        "description": "Erstellen Sie Aufgaben sofort durch Senden von E-Mails an {inboundTaskEmail}",
+        "description": "Erstelle Aufgaben sofort durch Senden von E-Mails an {inboundTaskEmail}",
         "threeWays": "Drei Möglichkeiten Aufgaben zu erstellen",
         "selfTask": "Selbst-Aufgabe:",
-        "selfTaskDesc": "Senden Sie AN {inboundTaskEmail}",
+        "selfTaskDesc": "Sende AN {inboundTaskEmail}",
         "assignedTask": "Zugewiesene Aufgabe:",
         "assignedTaskDesc": "CC {inboundTaskEmail} mit einem Empfänger",
         "groupTask": "Gruppenaufgabe:",
         "groupTaskDesc": "CC {inboundTaskEmail} mit mehreren Empfängern",
         "configure": "E-Mail-Einstellungen konfigurieren",
-        "configureDesc": "Passen Sie Standard-Fälligkeitsdaten an, aktivieren/deaktivieren Sie die Funktion und mehr",
-        "proTip": "Der E-Mail-Betreff wird zum Aufgabentitel und der Text zur Beschreibung. Perfekt für schnelle Aufgabenerfassung aus Ihrem Posteingang!"
+        "configureDesc": "Passe Standard-Fälligkeitsdaten an, aktiviere/deaktiviere die Funktion und mehr",
+        "proTip": "Der E-Mail-Betreff wird zum Aufgabentitel und der Text zur Beschreibung. Perfekt für schnelle Aufgabenerfassung aus deinem Posteingang!"
       },
       "tipLabel": "Profi-Tipp",
       "smartTasks": {
@@ -1436,10 +1436,10 @@
       "breadcrumb": "ChatGPT-Integration",
       "howItWorks": {
         "title": "So funktioniert es",
-        "description": "Verbinden Sie {appName} mit ChatGPT über OAuth 2.0 und OpenAPI",
+        "description": "Verbinde {appName} mit ChatGPT über OAuth 2.0 und OpenAPI",
         "oauth": {
           "title": "Sicheres OAuth 2.0",
-          "description": "Authentifizieren Sie sich sicher ohne Ihr Passwort zu teilen"
+          "description": "Authentifiziere dich sicher, ohne dein Passwort zu teilen"
         },
         "openapi": {
           "title": "OpenAPI-Spezifikation",
@@ -1447,7 +1447,7 @@
         },
         "shareable": {
           "title": "Teilbare Integration",
-          "description": "Teilen Sie Ihr benutzerdefiniertes GPT mit anderen"
+          "description": "Teile dein benutzerdefiniertes GPT mit anderen"
         }
       },
       "mcp": {
@@ -1468,40 +1468,40 @@
       "step1": {
         "badge": "Schritt 1",
         "title": "OAuth-Client erstellen",
-        "description": "Erstellen Sie einen OAuth-Client um Ihr GPT mit {appName} zu authentifizieren",
+        "description": "Erstelle einen OAuth-Client, um dein GPT mit {appName} zu authentifizieren",
         "manageButton": "Clients verwalten",
         "instructions": {
-          "step1": "Gehen Sie zu API-Zugang Einstellungen",
-          "step2": "Klicken Sie auf 'OAuth-Client erstellen'",
-          "step3": "Setzen Sie den Berechtigungstyp auf 'authorization_code'",
-          "step4": "Fügen Sie die Weiterleitungs-URI unten hinzu",
-          "step5": "Kopieren Sie Ihre Client-ID und Ihr Secret"
+          "step1": "Gehe zu den API-Zugang-Einstellungen",
+          "step2": "Klicke auf 'OAuth-Client erstellen'",
+          "step3": "Setze den Berechtigungstyp auf 'authorization_code'",
+          "step4": "Füge die Weiterleitungs-URI unten hinzu",
+          "step5": "Kopiere deine Client-ID und dein Secret"
         },
         "redirectUri": "Weiterleitungs-URI",
         "scopes": "Berechtigungen"
       },
       "step2": {
         "badge": "Schritt 2",
-        "title": "Konfigurieren Sie Ihr GPT",
-        "description": "Verwenden Sie diese URLs in der Konfiguration Ihres benutzerdefinierten GPT",
+        "title": "Konfiguriere dein GPT",
+        "description": "Verwende diese URLs in der Konfiguration deines benutzerdefinierten GPT",
         "manifestUrl": "Plugin-Manifest-URL",
         "openapiSpec": "OpenAPI-Spezifikation",
         "authUrl": "Autorisierungs-URL",
         "tokenUrl": "Token-URL",
-        "note": "Kopieren Sie diese URLs in die Aktionskonfiguration Ihres GPT",
+        "note": "Kopiere diese URLs in die Aktionskonfiguration deines GPT",
         "viewDocsButton": "Dokumentation anzeigen",
         "testApiButton": "API testen"
       },
       "step3": {
         "badge": "Schritt 3",
-        "title": "Beginnen Sie mit der Nutzung Ihres GPT",
-        "description": "Probieren Sie diese Beispiel-Prompts mit Ihrem verbundenen GPT",
+        "title": "Beginne mit der Nutzung deines GPT",
+        "description": "Probiere diese Beispiel-Prompts mit deinem verbundenen GPT",
         "examples": {
           "example1": "Zeige mir meine Aufgaben für heute",
           "example2": "Erstelle eine neue Aufgabe: Quartalsbericht überprüfen",
           "example3": "Was steht auf meiner Einkaufsliste?"
         },
-        "shareNote": "Sie können Ihr benutzerdefiniertes GPT mit anderen teilen"
+        "shareNote": "Du kannst dein benutzerdefiniertes GPT mit anderen teilen"
       },
       "moreDetails": {
         "title": "Mehr erfahren",
@@ -1511,7 +1511,7 @@
       "step2b": {
         "badge": "Alt",
         "title": "MCP-Server (Alternative)",
-        "description": "Verwenden Sie das Model Context Protocol für direkte Integration",
+        "description": "Verwende das Model Context Protocol für direkte Integration",
         "serverUrl": "MCP-Server-URL",
         "postEndpoint": "POST-Endpunkt",
         "note": "MCP bietet eine standardisierte Möglichkeit, KI-Modelle mit externen Tools zu verbinden"
@@ -1569,8 +1569,8 @@
     },
     "connections": {
       "title": "Verbindungen",
-      "description": "Alles, was in Ihrem Namen handeln kann",
-      "empty": "Mit Ihrem Konto ist noch nichts verbunden.",
+      "description": "Alles, was in deinem Namen handeln kann",
+      "empty": "Mit deinem Konto ist noch nichts verbunden.",
       "loadError": "Verbindungen konnten nicht geladen werden",
       "categories": {
         "app": "Apps",
@@ -1578,7 +1578,7 @@
         "webhook": "Webhook-Server"
       },
       "owners": {
-        "you": "Ihre",
+        "you": "Deine",
         "thirdParty": "Drittanbieter",
         "agent": "Agent"
       },
@@ -1595,7 +1595,7 @@
         "expired": "Abgelaufen",
         "disabled": "Deaktiviert"
       },
-      "actsAsYou": "Sie",
+      "actsAsYou": "Du",
       "revoke": "Widerrufen",
       "revokeConfirm": "{name} widerrufen? Alles, was es verwendet, funktioniert sofort nicht mehr.",
       "removeAgentConfirm": "{name} entfernen? Der Agent und seine Zugangsdaten werden gelöscht.",
