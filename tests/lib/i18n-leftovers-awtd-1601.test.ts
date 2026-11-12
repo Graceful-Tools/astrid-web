@@ -4,7 +4,7 @@
  * descriptions, passkey errors, the /start agent copy, and keys whose value
  * was English in every locale.
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { formatDateForDisplay } from '@/lib/date-utils'
 import {
   formatClockTime,
@@ -58,6 +58,15 @@ const tDe = translator(de)
 const tEn = translator(en)
 
 describe('AWTD-1601 dates and times follow the active locale', () => {
+  // Fixed dates below are compared with "today"; pin it well away from them.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 5, 1, 12, 0))
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('AWTD-1601: the relative words come from the locale files', () => {
     const tomorrow = new Date(Date.now() + 24 * 3600 * 1000)
     expect(formatDateForDisplay(tomorrow, false, { locale: 'de', t: tDe })).toBe('Morgen')
@@ -180,5 +189,17 @@ describe('AWTD-1601 keys that were English in every locale', () => {
         expect(lookup(messages, key), `${locale} ${key}`).not.toBe(english)
       }
     }
+  })
+})
+
+describe('AWTD-1601 passkey errors', () => {
+  it('AWTD-1601: a browser refusal wrapped by @simplewebauthn/browser counts as a browser error', async () => {
+    const { isBrowserError } = await import('@/hooks/use-webauthn')
+    const { WebAuthnError } = await import('@simplewebauthn/browser')
+    const cause = new DOMException('The operation either timed out or was not allowed.', 'NotAllowedError')
+    const wrapped = new WebAuthnError({ message: 'Registration ceremony was sent an abort signal', code: 'ERROR_CEREMONY_ABORTED', cause })
+    expect(isBrowserError(cause)).toBe(true)
+    expect(isBrowserError(wrapped)).toBe(true)
+    expect(isBrowserError(new Error('No passkey found for this email'))).toBe(false)
   })
 })
