@@ -295,7 +295,7 @@ html, body {
 
 /* Input Components */
 .themed-input {
-  @apply rounded-lg px-3 py-2 border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500;
+  @apply rounded-lg px-3 py-2 border transition-colors focus:outline-none focus:ring-2 focus:ring-brand;
 }
 
 .themed-button {
@@ -303,7 +303,7 @@ html, body {
 }
 
 .themed-button-primary {
-  @apply bg-blue-600 hover:bg-blue-700 text-white border-blue-600;
+  @apply bg-brand hover:bg-brand-hover text-brand-foreground border-brand;
 }
 
 .themed-button-ghost {
@@ -341,7 +341,7 @@ html, body {
 }
 
 .theme-option-selected {
-  @apply border-blue-500;
+  @apply border-brand;
 }
 
 .theme-option-unselected {
@@ -391,7 +391,7 @@ html, body {
 }
 
 .comment-input {
-  @apply w-full rounded-lg px-3 py-2 pr-12 resize-none transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500;
+  @apply w-full rounded-lg px-3 py-2 pr-12 resize-none transition-colors focus:outline-none focus:ring-2 focus:ring-brand;
 }
 
 /* Chat-style Comments */
@@ -499,7 +499,7 @@ html, body {
 }
 
 .mobile-button-primary {
-  @apply bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800;
+  @apply bg-brand text-brand-foreground hover:bg-brand-hover active:bg-brand-hover;
 }
 
 .mobile-button-secondary {
@@ -507,7 +507,7 @@ html, body {
 }
 
 .mobile-input {
-  @apply px-4 py-3 text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+  @apply px-4 py-3 text-base border rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent;
 }
 
 .mobile-task-item {
@@ -580,7 +580,7 @@ html, body {
 }
 
 .mobile-loading-spinner {
-  @apply animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600;
+  @apply animate-spin rounded-full h-8 w-8 border-b-2 border-theme-focus;
 }
 
 .mobile-skeleton {
@@ -895,7 +895,7 @@ html, body {
 }
 
 .mobile-nav-back {
-  @apply flex items-center space-x-2 text-blue-600 cursor-pointer hover:text-blue-800;
+  @apply flex items-center space-x-2 text-brand cursor-pointer hover:text-brand-hover;
 }
 
 
@@ -958,5 +958,5 @@ html, body {
 }
 
 .focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50;
+  @apply focus:outline-none focus:ring-2 focus:ring-brand/50;
 }

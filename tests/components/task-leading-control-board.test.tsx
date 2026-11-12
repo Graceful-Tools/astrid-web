@@ -77,7 +77,7 @@ describe('a board task in list display mode (task 036ef139)', () => {
       />,
     )
     tapTheControl(container)
-    expect(container.querySelector('img')).not.toHaveClass('task-checkbox-pop')
+    expect(container.querySelector('[data-testid="task-checkbox-art"]')).not.toHaveClass('task-checkbox-pop')
   })
 
   it('pops when the same checkbox does complete, off a board', () => {
@@ -92,11 +92,11 @@ describe('a board task in list display mode (task 036ef139)', () => {
       />,
     )
     tapTheControl(container)
-    expect(container.querySelector('img')).toHaveClass('task-checkbox-pop')
+    expect(container.querySelector('[data-testid="task-checkbox-art"]')).toHaveClass('task-checkbox-pop')
   })
 
   it('keeps the checkbox as the mark — no avatar swap', () => {
-    // The checkbox renders an <img>; the project-mode avatar does not.
+    // The checkbox renders its drawn art; the project-mode avatar does not.
     const { container } = render(
       <TaskLeadingControl
         assigneeId={ME}
@@ -110,7 +110,7 @@ describe('a board task in list display mode (task 036ef139)', () => {
         onOpenOptions={vi.fn()}
       />,
     )
-    expect(container.querySelector('img')).toBeTruthy()
+    expect(container.querySelector('[data-testid="task-checkbox-art"]')).toBeTruthy()
   })
 
   it("makes someone else's task tappable, since the sheet is the only route to state", () => {
