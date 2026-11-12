@@ -18,7 +18,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Building2, FolderKanban, Loader2, Plus, RefreshCw, User } from "lucide-react"
 import { Github } from "@/components/ui/brand-icons"
-import { toast } from 'sonner'
+import { toast } from '@/hooks/use-toast'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'

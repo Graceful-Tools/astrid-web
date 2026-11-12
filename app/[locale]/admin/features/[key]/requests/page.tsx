@@ -27,7 +27,7 @@ import { Check, ChevronLeft, Inbox, TrendingUp, UserCheck, UserX, Users } from '
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/use-toast'
 import type { FeatureDemandSummary } from '@/lib/feature-access-requests'
 
 interface RequestRow {

@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { AlertCircle, Check, Copy, ExternalLink, Loader2 } from "lucide-react"
 import { Github } from "@/components/ui/brand-icons"
-import { toast } from "sonner"
+import { toast } from '@/hooks/use-toast'
 import { BRAND } from "@/lib/brand/config"
 import { apiPost } from "@/lib/api"
 import { useTranslations } from "@/lib/i18n/client"

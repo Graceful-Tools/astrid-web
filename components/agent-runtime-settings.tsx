@@ -37,7 +37,7 @@ import { ACTIONS_SECRET_NAMES, AgentCredentialsCard } from '@/components/agent-c
 import { Check, Copy, ExternalLink } from 'lucide-react'
 import { useTranslations } from '@/lib/i18n/client'
 import { RichMessage, fillMessage } from '@/components/shared/RichMessage'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/use-toast'
 
 type AgentExecutionMode = 'api' | 'polling'
 
