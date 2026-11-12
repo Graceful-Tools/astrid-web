@@ -32,7 +32,7 @@ const nextIntl = vi.hoisted(() => ({ locale: 'en' as 'de' | 'en' }))
 vi.mock('next-intl/server', () => ({
   getLocale: vi.fn(async () => nextIntl.locale),
   getTranslations: vi.fn(async (namespace: string) => {
-    const table = (MESSAGES[nextIntl.locale] as Record<string, Record<string, string>>)[namespace]
+    const table = (MESSAGES[nextIntl.locale] as unknown as Record<string, Record<string, string>>)[namespace]
     return (key: string) => table[key]
   }),
   getMessages: vi.fn(async () => ({})),
