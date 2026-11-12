@@ -64,6 +64,7 @@ services:
     build:
       context: ../..
       args:
+        # Built-in default brand; the mounted BRAND_PROFILE beats it at start.
         BRAND: ${BRAND:-}
         GIT_COMMIT_SHA: ${GIT_COMMIT_SHA:-unknown}
         NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
@@ -74,6 +75,11 @@ services:
       - "${APP_PORT:-3000}:3000"
     volumes:
       - uploads:/app/data/uploads
+      # Your brand, mounted (AWTD-1587, AWTD-1606): one image serves any brand. Put
+      # your profile, and an assets/ directory with your logo and icon, in ./brand
+      # beside this file, uncomment this line, and set BRAND_PROFILE (and
+      # BRAND_ASSETS_DIR) in .env. Changing the brand is a restart, not a rebuild.
+      # - ./brand:/brand:ro
     depends_on:
       migrate:
         condition: service_completed_successfully

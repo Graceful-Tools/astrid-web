@@ -67,15 +67,19 @@ The same stack runs in CI on every change to the image (`.github/workflows/self-
 
 **One image serves any brand** (AWTD-1587). The image reads every brand value when it
 starts, `NEXT_PUBLIC_*` included. To brand the published image, mount your profile and,
-optionally, a directory of artwork:
+optionally, a directory of artwork. `deploy/self-host/docker-compose.yml` carries the
+volume commented out under the `app` service:
 
 ```yaml
-# deploy/self-host/docker-compose.yml, under the app service
     volumes:
       - ./brand:/brand:ro            # acme.brand.json, plus assets/ with your logo and icon
-    environment:
-      BRAND_PROFILE: /brand/acme.brand.json
-      BRAND_ASSETS_DIR: /brand/assets
+```
+
+Uncomment it, put your files in `deploy/self-host/brand/`, and set the paths in `.env`:
+
+```bash
+BRAND_PROFILE=/brand/acme.brand.json
+BRAND_ASSETS_DIR=/brand/assets
 ```
 
 In the profile, refer to mounted artwork as `/brand-assets/<file>`. For example, set
@@ -89,7 +93,17 @@ Precedence at start is:
 3. the profile the image was built with.
 
 Run `npm run check:brands` on a profile before mounting it. The container checks only the
-profile's shape, not every key.
+profile's shape, not every key. It also runs the build's identity check on what it applied
+(AWTD-1606): any identity value the profile leaves on Astrid's (the support email, the URL
+scheme, the GitHub App…) is named in the app's log at start. It is a warning only; list the
+ones you keep on purpose in `BRAND_INHERIT_ASTRID_IDENTITY`.
+
+CI proves this path on every change to the image (`.github/workflows/self-host.yml`): it
+builds with no brand, mounts `brands/acme.brand.json` with its artwork moved to the mounted
+directory, and the smoke test checks that pages, manifest and icons are Acme's. To run the
+same brand checks against your deployment, add
+`SMOKE_BRAND_PROFILE=path/to/your.brand.json` (and `SMOKE_BRAND_ASSETS_DIR`) to the smoke
+command in *Quick start*.
 
 The image renders pages per request, because that is what lets the brand change without a
 rebuild. It sets `ASTRID_RUNTIME_BRAND=true` itself. Hosted Astrid does not set it, so
