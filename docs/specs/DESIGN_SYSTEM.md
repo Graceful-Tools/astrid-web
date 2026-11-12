@@ -486,7 +486,7 @@ Leave these, or change them as said; do not pick the nearest name.
 | Dark red or green text on a pale wash (`text-red-800` on `bg-red-50`) | A sentence is `text-theme-primary` on the wash; the icon, the heading or a short label is the status ink (`text-danger`). Priority glyphs have no ink yet (register DS22) |
 | Third-party marks and their brand colours (Google, Apple, GitHub in `components/ui/brand-icons.tsx`), illustrations | Stay literal. They are someone else's colours |
 | The checkbox art | astrid-core's shared art (`design/assets/checkbox`, AWTD-1605), drawn by `components/task-checkbox-art.tsx` from `packages/astrid-design/checkbox-art.json`: the box and arrows in the priority colour, the check in `checkbox-check`. Never redraw it here |
-| A surface that is dark in every theme by design (a code block, the attachment viewer, the landing footer) | `dark bg-theme-inverse` (above). The 404 and crash pages draw before the theme loads and stay literal, with a comment saying so |
+| A surface that is dark in every theme by design (a code block, the attachment viewer, the landing footer) | `dark bg-theme-inverse` (above) |
 | `bg-black/50` scrims, `text-white` over a photo | Not palette classes and not counted; leave them |
 | Charts | `chart-1` … `chart-5` read the list palette |
 
