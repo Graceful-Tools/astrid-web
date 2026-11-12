@@ -13,6 +13,7 @@ import {
   countReleases,
   isAbandonedClaim,
   isAwaitingBuild,
+  isAwaitingDeploy,
   isFinishedOccurrence,
   isOrphanedDoing,
   parkFinishedOccurrence,
@@ -21,6 +22,7 @@ import {
   type DoingTask,
 } from '@/scripts/lib/doing-release'
 import { agentEmail } from '@/lib/brand/agent-emails'
+import { REDO_CLAIM_MARKER } from '@/lib/fixall-claim'
 
 const CLAUDE = agentEmail('claude')
 const task = (over: Partial<DoingTask> = {}): DoingTask => ({
@@ -38,7 +40,7 @@ const task = (over: Partial<DoingTask> = {}): DoingTask => ({
 function fakeApi() {
   return {
     setStatus: vi.fn(async (_task: { id: string }, _role: string) => {}),
-    assign: vi.fn(async (_task: { id: string }, _userId: string) => {}),
+    handBack: vi.fn(async (_task: { id: string }, _personId: string | null) => {}),
     comment: vi.fn(async (_task: { id: string }, _content: string) => {}),
   }
 }
@@ -73,7 +75,7 @@ describe('isOrphanedDoing', () => {
     const api = fakeApi()
     const outcome = await releaseDoingClaim({ task: task({ assignee: null }), comments: [], branches: [], why: 'x', api })
     expect(outcome).toEqual({ action: 'ready' })
-    expect(api.assign).not.toHaveBeenCalled()
+    expect(api.handBack).not.toHaveBeenCalled()
   })
 })
 
@@ -122,14 +124,14 @@ describe('releaseDoingClaim', () => {
     })
     expect(outcome).toEqual({ action: 'ready' })
     expect(api.setStatus).toHaveBeenCalledWith(expect.objectContaining({ id: 't1' }), 'ready')
-    expect(api.assign).not.toHaveBeenCalled()
+    expect(api.handBack).not.toHaveBeenCalled()
     const text = api.comment.mock.calls[0][1]
     expect(text.startsWith(RELEASE_MARKER)).toBe(true)
     expect(text).toContain('`fix/awtd-1025-hide-current-list-chip`')
     expect(countReleases([{ content: text }])).toBe(1)
   })
 
-  it('second release: handed back to its human creator in Waiting, not retried forever', async () => {
+  it('second release: handed back to its human creator in the Inbox (R4), not retried forever', async () => {
     const api = fakeApi()
     const outcome = await releaseDoingClaim({
       task: task(),
@@ -139,9 +141,10 @@ describe('releaseDoingClaim', () => {
       api,
     })
     expect(outcome).toEqual({ action: 'handback', to: 'jon' })
-    expect(api.assign).toHaveBeenCalledWith(expect.objectContaining({ id: 't1' }), 'jon')
-    expect(api.setStatus).toHaveBeenCalledWith(expect.objectContaining({ id: 't1' }), 'waiting')
-    expect(api.setStatus).not.toHaveBeenCalledWith(expect.anything(), 'ready')
+    expect(api.handBack).toHaveBeenCalledWith(expect.objectContaining({ id: 't1' }), 'jon')
+    // Never Waiting: waiting on a person has no date or task to wake on.
+    expect(api.setStatus).not.toHaveBeenCalled()
+    expect(api.comment.mock.calls[0][1]).toContain('handed back to its creator in the Inbox')
   })
 
   it('does not hand a task back to an agent that filed it', async () => {
@@ -154,8 +157,8 @@ describe('releaseDoingClaim', () => {
       api,
     })
     expect(outcome).toEqual({ action: 'handback', to: null })
-    expect(api.assign).not.toHaveBeenCalled()
-    expect(api.setStatus).toHaveBeenCalledWith(expect.anything(), 'waiting')
+    expect(api.handBack).toHaveBeenCalledWith(expect.anything(), null)
+    expect(api.setStatus).not.toHaveBeenCalled()
   })
 })
 
@@ -189,6 +192,48 @@ describe('isAwaitingBuild', () => {
     expect(isAwaitingBuild([
       marker('2026-09-20T10:00:00Z'),
       { content: `${RELEASE_MARKER}. earlier`, createdAt: '2026-09-21T10:00:00Z' },
+    ])).toBe(false)
+  })
+})
+
+// R6 (2026-11-12): web finished work stays in Doing with `AWAITING-DEPLOY: <sha>` until
+// production serves it. The release must leave it there, or the next run redoes it.
+describe('isAwaitingDeploy', () => {
+  const sha = '3d0392a40187c84be7d91e77048de22c429c09ea'
+  const marker = (createdAt: string) => ({ content: `PR: #601\n\nAWAITING-DEPLOY: ${sha}`, createdAt })
+
+  it('finished work awaiting its deploy is not an abandoned claim', () => {
+    expect(isAwaitingDeploy([{ content: 'Strategy', createdAt: '2026-11-12T09:00:00Z' }, marker('2026-11-12T10:00:00Z')])).toBe(true)
+    // A later plain comment does not replace the marker (latest MARKER comment wins).
+    expect(isAwaitingDeploy([marker('2026-11-12T10:00:00Z'), { content: 'thanks', createdAt: '2026-11-12T11:00:00Z' }])).toBe(true)
+  })
+
+  it('no marker, or a prose line that is not a sha, is not a handoff', () => {
+    expect(isAwaitingDeploy([])).toBe(false)
+    expect(isAwaitingDeploy([{ content: 'AWAITING-DEPLOY: soon', createdAt: '2026-11-12T10:00:00Z' }])).toBe(false)
+  })
+
+  it('a redo claim starts a new attempt, so a retry that dies is released, not skipped', () => {
+    expect(isAwaitingDeploy([
+      marker('2026-11-10T10:00:00Z'),
+      { content: 'Redo it.', createdAt: '2026-11-11T09:00:00Z' },
+      { content: `${REDO_CLAIM_MARKER}: the earlier handoff no longer counts.`, createdAt: '2026-11-11T09:01:00Z' },
+    ])).toBe(false)
+    // ...until the retry posts its own handoff.
+    expect(isAwaitingDeploy([
+      { content: `${REDO_CLAIM_MARKER}: x`, createdAt: '2026-11-11T09:01:00Z' },
+      marker('2026-11-11T12:00:00Z'),
+    ])).toBe(true)
+  })
+
+  it('a marker older than a completion or a release is stale', () => {
+    expect(isAwaitingDeploy([
+      marker('2026-11-10T10:00:00Z'),
+      { content: 'Completed', systemEventType: 'COMPLETED', createdAt: '2026-11-11T10:00:00Z' },
+    ])).toBe(false)
+    expect(isAwaitingDeploy([
+      marker('2026-11-10T10:00:00Z'),
+      { content: `${RELEASE_MARKER}. earlier`, createdAt: '2026-11-11T10:00:00Z' },
     ])).toBe(false)
   })
 })
@@ -339,7 +384,7 @@ describe('a finished recurring occurrence is not an unfinished claim (2026-11-04
     expect(isFinishedOccurrence(weekly({ repeating: null }), NOW)).toBe(false)
   })
 
-  it('parks it in Waiting until its date, without a release marker', async () => {
+  it('parks it in Waiting until its date (the date is its condition), without a release marker', async () => {
     const api = fakeApi()
     await parkFinishedOccurrence({ task: weekly(), now: NOW, api })
     expect(api.setStatus).toHaveBeenCalledWith(expect.objectContaining({ id: 't1' }), 'waiting')

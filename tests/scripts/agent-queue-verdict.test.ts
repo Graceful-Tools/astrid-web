@@ -10,17 +10,15 @@
  *     close?" on AWTD-976. The endpoint returned both under `attention`, with
  *     `empty: true` beside them, and the loop logged "nothing queued" past
  *     them tick after tick.
- *   - the Waiting lanes. A date-parked task returns to Ready only when the
- *     sweep runs, the sweep runs only inside a session, and a session starts
- *     only when the queue is non-empty. So a parked task could never wake the
- *     loop by itself — its date would arrive and nothing would happen until
- *     some unrelated task landed in Ready.
+ *
+ * (The Waiting lanes were a third input — the client-side sweep's RECHECK/REVIEW
+ * items. The server's settle job wakes Waiting tasks now, so a woken task simply
+ * arrives in the queue and the verdict no longer reads lanes at all.)
  *
  * The other half of "token efficient" is that waking must be bounded. An
- * item the agent chose not to answer (the sweep's own parking comment, a
- * "thanks") would otherwise start a session every half hour, forever. So a
- * wake key is spent once: the same comment id, the same lane watermark, never
- * wakes a second run. A NEW comment does.
+ * item the agent chose not to answer (a "thanks") would otherwise start a
+ * session every half hour, forever. So a wake key is spent once: the same
+ * comment id never wakes a second run. A NEW comment does.
  */
 
 import { describe, it, expect } from 'vitest'
@@ -28,7 +26,6 @@ import {
   decideQueueVerdict,
   wakeKeys,
   type QueueSnapshot,
-  type LaneSnapshot,
 } from '../../scripts/lib/agent-queue-verdict'
 
 const TASK_904 = 'e586eff1-7198-413c-8cda-0fcdef18505c'
@@ -69,7 +66,6 @@ describe('decideQueueVerdict — the queue', () => {
   it('a Ready task is work, whatever else is true', () => {
     const verdict = decideQueueVerdict({
       snapshot: snapshot({ empty: false, queue: [{ id: TASK_904, identifier: 'AWTD-904', title: 'x' }] }),
-      lanes: [],
       seen: new Set(),
     })
     expect(verdict.work).toBe(true)
@@ -78,7 +74,7 @@ describe('decideQueueVerdict — the queue', () => {
   })
 
   it('an empty board is idle, and says so the way the log already reads', () => {
-    const verdict = decideQueueVerdict({ snapshot: snapshot(), lanes: [], seen: new Set() })
+    const verdict = decideQueueVerdict({ snapshot: snapshot(), seen: new Set() })
     expect(verdict.work).toBe(false)
     expect(verdict.reason).toBe('idle')
     expect(verdict.line).toBe('QUEUE: empty — No incomplete tasks are assigned to claude.')
@@ -89,7 +85,6 @@ describe('decideQueueVerdict — the queue', () => {
       snapshot: snapshot({
         held: { notDueCount: 1, notReadyCount: 0, scheduled: [{ id: 'x', title: 'Weekly audit', startsAt: '2026-09-25' }] },
       }),
-      lanes: [],
       seen: new Set(),
     })
     expect(verdict.work).toBe(false)
@@ -102,7 +97,6 @@ describe('decideQueueVerdict — the inbox (AWTD-963 was deaf on a scheduled tic
     // The 2026-09-20 case exactly: empty: true, two questions from Jon.
     const verdict = decideQueueVerdict({
       snapshot: snapshot({ attention: jonAsked }),
-      lanes: [],
       seen: new Set(),
     })
     expect(verdict.work).toBe(true)
@@ -120,7 +114,6 @@ describe('decideQueueVerdict — the inbox (AWTD-963 was deaf on a scheduled tic
           skipped: [],
         },
       }),
-      lanes: [],
       seen: new Set(),
     })
     expect(verdict.work).toBe(true)
@@ -132,10 +125,9 @@ describe('decideQueueVerdict — the inbox (AWTD-963 was deaf on a scheduled tic
     // The agent had its chance. If it chose not to answer, that is the
     // answer — a tick that re-runs on it every half hour is the bill this
     // whole guard exists to avoid.
-    const first = decideQueueVerdict({ snapshot: snapshot({ attention: jonAsked }), lanes: [], seen: new Set() })
+    const first = decideQueueVerdict({ snapshot: snapshot({ attention: jonAsked }), seen: new Set() })
     const second = decideQueueVerdict({
       snapshot: snapshot({ attention: jonAsked }),
-      lanes: [],
       seen: new Set(first.keys),
     })
     expect(second.work).toBe(false)
@@ -145,7 +137,7 @@ describe('decideQueueVerdict — the inbox (AWTD-963 was deaf on a scheduled tic
   })
 
   it('a NEW comment on an already-seen task wakes it again', () => {
-    const first = decideQueueVerdict({ snapshot: snapshot({ attention: jonAsked }), lanes: [], seen: new Set() })
+    const first = decideQueueVerdict({ snapshot: snapshot({ attention: jonAsked }), seen: new Set() })
     const followUp = {
       ...jonAsked,
       tasks: [
@@ -155,7 +147,6 @@ describe('decideQueueVerdict — the inbox (AWTD-963 was deaf on a scheduled tic
     }
     const second = decideQueueVerdict({
       snapshot: snapshot({ attention: followUp }),
-      lanes: [],
       seen: new Set(first.keys),
     })
     expect(second.work).toBe(true)
@@ -166,58 +157,22 @@ describe('decideQueueVerdict — the inbox (AWTD-963 was deaf on a scheduled tic
     // `attention` is absent on a response from before AWTD-963. Absent is
     // unknown, and unknown must not read as quiet — but it is not a reason to
     // run either; the run could not read it any better.
-    const verdict = decideQueueVerdict({ snapshot: snapshot({ attention: undefined }), lanes: [], seen: new Set() })
+    const verdict = decideQueueVerdict({ snapshot: snapshot({ attention: undefined }), seen: new Set() })
     expect(verdict.work).toBe(false)
     expect(verdict.line).toMatch(/inbox not read/)
   })
 })
 
-describe('decideQueueVerdict — the Waiting lanes (RECHECK / REVIEW are work)', () => {
-  const lanes: LaneSnapshot = [
-    { id: TASK_976, action: 'recheck', commentWatermark: '2026-09-19T10:00:00.000Z' },
-    { id: TASK_904, action: 'review', commentWatermark: null },
-  ]
-
-  it('a due recheck or a condition-less Waiting task wakes the run', () => {
-    const verdict = decideQueueVerdict({ snapshot: snapshot(), lanes, seen: new Set() })
-    expect(verdict.work).toBe(true)
-    expect(verdict.reason).toBe('lanes')
-    expect(verdict.line).toBe('QUEUE: empty — RECHECK 1 / REVIEW 1 need the agent')
-  })
-
-  it('the same lane item, unchanged, wakes only once', () => {
-    const first = decideQueueVerdict({ snapshot: snapshot(), lanes, seen: new Set() })
-    const second = decideQueueVerdict({ snapshot: snapshot(), lanes, seen: new Set(first.keys) })
-    expect(second.work).toBe(false)
-  })
-
-  it('a bumped watermark is a new item', () => {
-    const first = decideQueueVerdict({ snapshot: snapshot(), lanes, seen: new Set() })
-    const bumped: LaneSnapshot = [{ ...lanes[0], commentWatermark: '2026-09-27T10:00:00.000Z' }]
-    const second = decideQueueVerdict({ snapshot: snapshot(), lanes: bumped, seen: new Set(first.keys) })
-    expect(second.work).toBe(true)
-  })
-
-  it('lanes that could not be read are named, not treated as empty', () => {
-    const verdict = decideQueueVerdict({ snapshot: snapshot(), lanes: null, seen: new Set() })
-    expect(verdict.work).toBe(false)
-    expect(verdict.line).toMatch(/lanes not read/)
-  })
-})
-
 describe('wakeKeys', () => {
   it('is every wake-able item present now, so the seen file prunes itself', () => {
-    const keys = wakeKeys(snapshot({ attention: jonAsked }), [
-      { id: TASK_976, action: 'recheck', commentWatermark: null },
-    ])
+    const keys = wakeKeys(snapshot({ attention: jonAsked }))
     expect(keys).toEqual([
       `comment:${TASK_904}:cmu9x468v0005l204bnn0yoop`,
       `comment:${TASK_976}:cmu9xai95000al204y88xh6qn`,
-      `recheck:${TASK_976}:none`,
     ])
   })
 
   it('is empty on a quiet board', () => {
-    expect(wakeKeys(snapshot(), [])).toEqual([])
+    expect(wakeKeys(snapshot())).toEqual([])
   })
 })

@@ -23,8 +23,8 @@ means the two boards get findings judged by different rules.
 ## Trigger: a repeating Astrid task, not a cron
 
 Per `docs/FIXALL_WORKFLOW.md`: *"To make something recurring, give the task a date and a
-repeat in Astrid."* Completing the task rolls it to the next occurrence; the ready-tasks sweep
-parks it in `Waiting` and promotes it back when due. There is no cron and no launchd job.
+repeat in Astrid."* Completing the task rolls it to the next occurrence; the server holds it in
+`Waiting` until that date and returns it to Ready when due. There is no cron and no launchd job.
 
 ### Driver — on the **iOS** board
 

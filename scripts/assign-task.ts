@@ -3,10 +3,13 @@
  *
  *   npx tsx scripts/assign-task.ts <taskId> jonparis@gmail.com
  *   npx tsx scripts/assign-task.ts <taskId> claude@astrid.cc
+ *   npx tsx scripts/assign-task.ts <taskId> jonparis@gmail.com --handback
  *
- * Written for the `/fixall` loops, which hand a task back to Jon when they need a
- * decision — assign to him and move it to Waiting, so the board says who is holding
- * it rather than leaving it to look abandoned in Ready.
+ * Written for the `/fixall` loops, which hand a task back to a person when they
+ * need a decision. `--handback` writes astrid-core's `handBack` shape in ONE PUT:
+ * assigned to the person AND in the Inbox (no status, R4). Waiting on a person is
+ * not Waiting — Waiting holds only tasks waiting on a date or another task — and
+ * the reply-resume detection (lib/agent-handback.ts) keys on Inbox + assigned human.
  *
  * Distinct from `assign-to-agent.ts`, which only ever looks through the members of
  * `ASTRID_OAUTH_LIST_ID`. Jon OWNS the boards rather than appearing in their member
@@ -22,6 +25,7 @@ import { loadScriptEnv } from './lib/load-env'
 // "<name> reassigned from Unassigned to Jon Paris" — and the unsigned version
 // of it is the row on AWTD-1305 that put Jon's name on the loop's handback.
 import { agentSignature, positionalArgs } from './lib/agent-author'
+import { handbackWrite } from './lib/handback'
 
 loadScriptEnv()
 
@@ -43,10 +47,11 @@ function peopleOn(list: Record<string, unknown>): Person[] {
 async function main() {
   const [taskId, emailArg] = positionalArgs()
   if (!taskId || !emailArg) {
-    console.error('Usage: npx tsx scripts/assign-task.ts <taskId> <email> [--agent <mailbox>]')
+    console.error('Usage: npx tsx scripts/assign-task.ts <taskId> <email> [--handback] [--agent <mailbox>]')
     process.exit(1)
   }
   const email = emailArg.toLowerCase()
+  const handback = process.argv.includes('--handback')
 
   const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
   const clientSecret = process.env.ASTRID_OAUTH_CLIENT_SECRET
@@ -107,7 +112,10 @@ async function main() {
   const put = await fetch(`${API}/api/v1/tasks/${taskId}`, {
     method: 'PUT',
     headers: auth,
-    body: JSON.stringify({ assigneeId: match.id, ...(await agentSignature(token)) }),
+    body: JSON.stringify({
+      ...(handback ? handbackWrite(match.id) : { assigneeId: match.id }),
+      ...(await agentSignature(token)),
+    }),
   })
   if (!put.ok) {
     console.error('❌ Assignment failed:', put.status, await put.text())
@@ -121,8 +129,12 @@ async function main() {
     console.error(`❌ Assignee is "${afterTask.assigneeId}" after the write, expected "${match.id}".`)
     process.exit(1)
   }
+  if (handback && (afterTask.statusRole ?? null) !== null) {
+    console.error(`❌ Status is "${afterTask.statusRole}" after the handback, expected the Inbox (no status).`)
+    process.exit(1)
+  }
 
-  console.log(`✅ Assigned to ${match.name || match.email}`)
+  console.log(`✅ ${handback ? 'Handed back (Inbox) to' : 'Assigned to'} ${match.name || match.email}`)
 }
 
 main().catch(error => {

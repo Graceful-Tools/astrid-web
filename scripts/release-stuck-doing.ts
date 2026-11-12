@@ -40,6 +40,7 @@ import {
   DEFAULT_STALE_DOING_MINUTES,
   isAbandonedClaim,
   isAwaitingBuild,
+  isAwaitingDeploy,
   isFinishedOccurrence,
   isOrphanedDoing,
   parkFinishedOccurrence,
@@ -51,6 +52,7 @@ import {
 import { agentEmail } from '@/lib/brand/agent-emails'
 import { FIXALL_CLAIM_MAILBOXES } from '@/lib/fixall-claim'
 import { DOING_STATUS_ROLE } from '@/lib/task-status'
+import { handbackWrite } from './lib/handback'
 
 loadScriptEnv()
 
@@ -144,14 +146,15 @@ async function main() {
   const api = {
     setStatus: (task: { id: string }, role: string) => sweep.setStatus(task, role),
     comment: (task: { id: string }, content: string) => sweep.comment(task, content),
-    assign: async (task: { id: string }, userId: string) => {
+    // R4: the Inbox, assigned to the person, in one write (scripts/lib/handback.ts).
+    handBack: async (task: { id: string }, personId: string | null) => {
       if (dryRun) return
       const response = await fetch(`${API}/api/v1/tasks/${task.id}`, {
         method: 'PUT',
         headers: { ...auth, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assigneeId: userId }),
+        body: JSON.stringify(personId ? handbackWrite(personId) : { statusRole: null }),
       })
-      if (!response.ok) report(`  ⚠️ could not assign ${task.id}: HTTP ${response.status}`)
+      if (!response.ok) report(`  ⚠️ could not hand back ${task.id}: HTTP ${response.status}`)
     },
   }
 
@@ -197,8 +200,9 @@ async function main() {
     const releasable = task && (isReleasableClaim(task, email) || (mode === 'stale' && isOrphanedDoing(task)))
     if (!task || !releasable) continue
     const comments = await sweep.comments(task)
-    // Done and pushed: it waits for its build in Doing, and close-built-tasks closes it.
-    if (isAwaitingBuild(comments)) continue
+    // Done and pushed: it waits for its build (iOS, close-built-tasks closes it) or its
+    // production deploy (web, R6: land-and-deploy completes it) in Doing, on purpose.
+    if (isAwaitingBuild(comments) || isAwaitingDeploy(comments)) continue
     if (mode === 'stale' && !isAbandonedClaim({ updatedAt: task.updatedAt, comments, now, staleMinutes })) continue
     // A recurring task whose occurrence is done and whose date has moved on: park it until
     // that date instead of calling it unfinished (AWTD-914, 2026-10-30). After the idle
@@ -226,7 +230,7 @@ async function main() {
     const label = task.identifier ?? task.id
     console.log(
       outcome.action === 'handback'
-        ? `  RELEASE: ${label} → Waiting, handed back (second release)${dryRun ? ' [dry run]' : ''}`
+        ? `  RELEASE: ${label} → Inbox, handed back (second release)${dryRun ? ' [dry run]' : ''}`
         : `  RELEASE: ${label} → Ready (${mode === 'claims' ? 'its run ended mid-task' : 'abandoned claim'})${dryRun ? ' [dry run]' : ''}`,
     )
   }

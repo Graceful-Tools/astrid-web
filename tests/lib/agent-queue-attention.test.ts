@@ -76,7 +76,7 @@ describe('buildAgentQueue attention — task comments (AWTD-963)', () => {
       createdAt: new Date('2026-09-19T09:00:00Z'), updatedAt: new Date('2026-09-19T09:00:00Z') })
     mockPrisma.task.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([])
       .mockResolvedValueOnce([attentionTask({
-        statusRole: 'waiting', assigneeId: JON.id, assignee: JON, lists: [{ id: 'list-9' }],
+        statusRole: null, assigneeId: JON.id, assignee: JON, lists: [{ id: 'list-9' }],
         comments: [comment(), question],
       })])
     const result = await buildAgentQueue({ agent: 'claude', userId: JON.id, listId: 'list-9' })
@@ -85,7 +85,7 @@ describe('buildAgentQueue attention — task comments (AWTD-963)', () => {
       listId: 'list-9', assigneeId: JON.id, handbackCommentId: 'q', replyCommentId: 'c-1',
     })
     expect(mockPrisma.task.findMany.mock.calls[2][0].where).toMatchObject({
-      completed: false, statusRole: 'waiting', assignee: { isAIAgent: false },
+      completed: false, statusRole: null, assignee: { isAIAgent: false },
       lists: { some: { id: 'list-9' } },
       comments: { some: { authorId: AGENT.id } },
     })

@@ -5,11 +5,13 @@ import {
   fixallClaimAgentEmail,
   handedOffParkComment,
   nativeCopilotClaimMarker,
+  redoClaimComment,
   pendingDeployHandoff,
 } from "@/lib/fixall-claim"
 import { prisma } from "@/lib/prisma"
 import { pendingAgentHandback } from '@/lib/agent-handback'
-import { READY_STATUS_ROLE, WAITING_STATUS_ROLE } from '@/lib/task-status'
+import { parseBlockedConditions } from '@/lib/ready-queue-scope'
+import { DOING_STATUS_ROLE, READY_STATUS_ROLE } from '@/lib/task-status'
 
 export type FixallClaimResult =
   | { status: "claimed"; assigneeEmail: string }
@@ -65,7 +67,8 @@ export async function claimFixallTask(
       expected[key as keyof typeof expected] !== actual[key as keyof typeof actual])) return { status: 'conflict' }
     const result = await prisma.task.updateMany({
       where: {
-        id: taskId, completed: false, statusRole: 'waiting',
+        // A handback sits in the Inbox (no status), assigned to the person (R4).
+        id: taskId, completed: false, statusRole: null,
         assigneeId: expected.assigneeId, updatedAt: task.updatedAt,
         lists: { some: { id: expected.listId } },
         AND: [
@@ -100,19 +103,26 @@ export async function claimFixallTask(
     })
   }
 
+  // A handoff somebody asked to have redone: claimable, but the claim marks the
+  // new attempt so the old marker stops reading as finished work.
+  let redoOf: string | null = null
   if (claim.action === 'ready') {
     const task = await prisma.task.findUnique({
       where: { id: taskId },
-      select: { comments: { orderBy: { createdAt: 'desc' }, take: 1, select: { content: true, createdAt: true } } },
+      select: { comments: { orderBy: { createdAt: 'desc' }, take: 100, select: { content: true, createdAt: true } } },
     })
     const sha = task ? pendingDeployHandoff(task.comments) : null
+    redoOf = task && !sha ? parseBlockedConditions(task.comments.map(comment => ({
+      content: comment.content, createdAt: comment.createdAt.toISOString(),
+    }))).awaitingDeploy : null
     if (sha) {
-      // Park it rather than only refusing: left in Ready, every run would wake
-      // for it and be refused again.
+      // Put it back rather than only refusing: left in Ready, every run would
+      // wake for it and be refused again. Finished work awaiting its deploy
+      // stays in Doing (R6); its assignee is left as it is.
       return prisma.$transaction(async (tx): Promise<FixallClaimResult> => {
         const parked = await tx.task.updateMany({
           where: { id: taskId, completed: false, statusRole: READY_STATUS_ROLE },
-          data: { statusRole: WAITING_STATUS_ROLE },
+          data: { statusRole: DOING_STATUS_ROLE },
         })
         if (parked.count === 1) {
           await tx.comment.create({ data: { taskId, authorId: agent.id, content: handedOffParkComment(sha) } })
@@ -120,6 +130,19 @@ export async function claimFixallTask(
         return { status: 'handed-off', sha }
       })
     }
+  }
+
+  if (redoOf) {
+    const previous = redoOf
+    return prisma.$transaction(async (tx): Promise<FixallClaimResult> => {
+      const claimed = await tx.task.updateMany({
+        where: buildAtomicFixallClaimWhere({ taskId, agentId: agent.id, claim, now: new Date() }),
+        data: buildFixallClaimData({ agentId: agent.id, claim }),
+      })
+      if (claimed.count !== 1) return { status: 'conflict' }
+      await tx.comment.create({ data: { taskId, authorId: agent.id, content: redoClaimComment(previous) } })
+      return { status: 'claimed', assigneeEmail: agent.email }
+    })
   }
 
   const result = await prisma.task.updateMany({

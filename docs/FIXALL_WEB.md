@@ -10,20 +10,17 @@ to completion. Designed to be safe to re-run on a schedule.
 
 ## Goal
 
-**Drive the Ready list to empty — and clear `RECHECK` / `REVIEW`.** Unlike `/fixstuff`, this
-does not ask which task to work on — it takes them in priority order and keeps going until
-nothing is left. The queue script also sweeps the board's lanes honest (dated Ready work parks
-in Waiting; met conditions promote back) and may print `RECHECK` (re-verify an external
-condition, then promote or bump its date) and `REVIEW` (Waiting with no recorded condition —
-give it one or hand it back) sections: those are part of the run, not commentary. It stops on
-its own when all three are clear, so a scheduled re-run that finds nothing is a no-op, not
-busywork.
+**Drive the Ready list to empty.** Unlike `/fixstuff`, this does not ask which task to work on
+— it takes them in priority order and keeps going until nothing is left, so a scheduled re-run
+that finds nothing is a no-op, not busywork. The lanes are not the run's to keep: the Waiting
+rules live in astrid-core and the server enforces and settles them (FIXALL_WORKFLOW.md → *The
+lanes are the server's*).
 
 ## The workflow itself is shared
 
 **Read [docs/FIXALL_WORKFLOW.md](./FIXALL_WORKFLOW.md) — it is the canonical
 description** of the queue (board ∩ Ready ∩ assignee ∩ due date), the board etiquette
-(`Doing` / `Waiting` / handing back), the per-task loop (strategy comment → branch → RED-GREEN
+(`Doing` / `Waiting` on a date or a task / handing back to the Inbox), the per-task loop (strategy comment → branch → RED-GREEN
 TDD → gates → report), filing the other repo's half, re-checking after every task, and *The
 engagement contract* — the attention inbox that comes back on the same call as the queue, and
 where an answer goes once you have one.
@@ -147,8 +144,9 @@ finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has t
   2026-10-13 — see [AWTD-1245](https://astrid.cc/t/AWTD-1245)).
 
   A run that cannot dispatch (a scheduled `claude -p` session, where `gh` is denied, or
-  an ephemeral agent run, which has no `actions: write`) does not deploy: the **runner**
-  or the ship workflow deploys after the run, the same arrangement that opens the PRs
+  an ephemeral agent run, which has no `actions: write`) does not deploy: it leaves the
+  task **in Doing** with `AWAITING-DEPLOY: <sha>`, and the **runner** or the ship workflow
+  deploys after the run and completes it, the same arrangement that opens the PRs
   (`scripts/land-and-deploy.ts`, docs/FIXALL_WORKFLOW.md → *Deploying is part of finishing*).
 - **Pushing is NOT deploying, and needs no permission.** This bullet said the opposite for a
   long time — "`git push origin main` is a production deploy" — and the claim was wrong every
@@ -187,11 +185,12 @@ finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has t
 - **Gates:** `npm run predeploy`, plus `npm run check:reuse`.
 - **A red predeploy files its own Astrid task.** If it was your own mid-refactor breakage,
   close that task with a one-line explanation rather than leaving a false alarm on the board.
-- **If a task is blocked by something outside the repo**, park it in `Waiting` with the right
-  condition (docs/FIXALL_WORKFLOW.md → *Waiting carries its condition*): a decision only Jon
-  can make → assign to Jon with the question; blocked on another task → `BLOCKED-BY: <id>`;
-  blocked on an external event → `BLOCKED-ON: <condition>` plus a recheck due date. Do not
-  close it, and do not work around the block by breaking users.
+- **If a task is blocked by something outside the repo**, say what unblocks it
+  (docs/FIXALL_WORKFLOW.md → *Waiting carries its condition*): a decision only Jon can make →
+  hand it back (`assign-task.ts <id> jonparis@gmail.com --handback`, Inbox, with the question);
+  blocked on another task → `set-task-status.ts <id> Waiting --blocked-by <id>`; blocked on an
+  external event → explain it in a comment and `set-task-status.ts <id> Waiting --until <recheck
+  date>`. Do not close it, and do not work around the block by breaking users.
 - **If every Ready task is blocked, say so in a few lines and stop.** A run that ends with
   "nothing actionable" is a correct run. Do not invent adjacent work to fill it; re-checking a
   blocked task costs one call, and inventing work costs a review.

@@ -28,6 +28,13 @@
  * Exits 0 with "READY_EMPTY" when there is nothing queued, so a 15-minute run
  * can stop without parsing anything.
  *
+ * READ-ONLY. This used to sweep the lanes too — park dated Ready work in Waiting,
+ * promote met Waiting conditions, surface RECHECK/REVIEW. That is the server's
+ * job now: the Waiting rules are astrid-core's, and the server's settle job runs
+ * them for every board. This script only reads, and is for debugging the queue;
+ * a loop reads its work from `get_agent_queue`. `--dry-run` is accepted and
+ * changes nothing, for callers that still pass it.
+ *
  *   npx tsx scripts/ready-tasks.ts --harness github-copilot
  *   npx tsx scripts/ready-tasks.ts --json --harness github-copilot
  */
@@ -38,31 +45,24 @@ export {}
 
 // .env.local must beat inherited shell exports — a stale ~/.zshrc OAuth export
 // is the documented way every script here fails with invalid_client. This was
-// the one OAuth script not loading it (surfaced by the sweep's first write).
+// the one OAuth script not loading it (surfaced by its first write, when it still wrote).
 import { loadScriptEnv } from './lib/load-env'
 
 loadScriptEnv()
 
 import {
-  FIXALL_HARNESS_MAILBOXES,
   hasReadyStatus,
   isClaimableByAgent,
   describeAssignee,
   describeSchedule,
   isDueToStart,
   resolveReadyQueueOptions,
-  parseBlockedConditions,
-  classifyWaitingTask,
-  shouldParkScheduledReadyTask,
-  latestCommentWatermark,
   type AssignableTask,
   type SchedulableTask,
   type StatusRoleTask,
 } from "@/lib/ready-queue-scope"
-import { READY_STATUS_ROLE, WAITING_STATUS_ROLE, DOING_STATUS_ROLE } from "@/lib/task-status"
+import { WAITING_STATUS_ROLE, DOING_STATUS_ROLE } from "@/lib/task-status"
 import { serializeReadyTaskQueue } from "./lib/ready-tasks-output"
-import { resolveAgentAuthorId } from "./lib/agent-author"
-import { SweepApi } from "./lib/sweep-api"
 import { boardTasksUrl } from './lib/board-read-url'
 import { findBoardList } from './lib/board-by-name'
 
@@ -149,15 +149,10 @@ async function main() {
     process.exit(1)
   }
 
-  // Keep the queue read efficient for scheduled runs: one scoped board request
-  // with server-side Ready filtering and lean list payloads.
-  // Ready AND Waiting both matter now: the sweep below keeps the two lanes
-  // honest (dated work parks in Waiting; met conditions promote back), so the
-  // one board read fetches every open task and filters locally.
-  //
-  // It also leaves the descriptions on the server (AWTD-1237): this sweep reads
-  // id, title, priority, statusRole, dueDateTime and completed, and nothing
-  // else. The conditions it looks for live in COMMENTS, not descriptions.
+  // One board read of every open task, filtered locally, so the debug output can
+  // name what sits in Doing and Waiting as well as what queues. It leaves the
+  // descriptions on the server (AWTD-1237): this reads id, title, priority,
+  // statusRole, dueDateTime, assignee and completed, and nothing else.
   const tasksResponse = await fetch(
     boardTasksUrl({ boardId: board.id, limit: PAGE_LIMIT }),
     { headers: auth },
@@ -187,96 +182,10 @@ async function main() {
   const claimable = ready.filter(task => isClaimableByAgent(task, options.harness))
   const claimed = ready.filter(task => !isClaimableByAgent(task, options.harness))
 
-  // ── Sweep: keep Ready and Waiting honest (Jon, 2026-08-29) ────────────────
-  //
-  // Ready must mean "actionable now". A dated Ready task parks in Waiting
-  // until its date; a Waiting task whose condition is met comes back. Both
-  // moves are logged here and commented on the task, and both touch ONLY
-  // tasks this harness may claim — a person's tasks are theirs to move.
-  //
-  // The sweep signs its comments as the harness that is running it (AWTD-970).
-  // Unsigned, they arrived as Jon — the board showed him parking his own tasks
-  // in Waiting — and the mailbox has to come from --harness rather than from
-  // CLAUDE_AGENT_ID, or a Copilot sweep on this machine would write as Claude.
-  const authorId = await resolveAgentAuthorId({
-    mailbox: FIXALL_HARNESS_MAILBOXES[options.harness],
-    accessToken: token,
-    warn: message => report(message),
-  })
-  const api = new SweepApi(auth, options.dryRun, report, authorId)
-
-  const mine: QueueTask[] = []
-  for (const task of claimable) {
-    if (shouldParkScheduledReadyTask(task, now)) {
-      await api.setStatus(task, WAITING_STATUS_ROLE)
-      await api.comment(
-        task,
-        `📅 Scheduled for ${describeSchedule(task, now)} — parked in Waiting. The loop returns it to Ready when the date arrives.`,
-      )
-      report(`→ parked "${task.title}" in Waiting [due ${describeSchedule(task, now)}]`)
-    } else {
-      mine.push(task)
-    }
-  }
-
-  // Waiting tasks the loop owns: re-check each one's condition this run.
-  const held: Array<{ task: QueueTask; when: string }> = []
-  const recheck: Array<{ task: QueueTask; condition: string; commentWatermark: string | null }> = []
-  const review: Array<{ task: QueueTask; commentWatermark: string | null }> = []
-  const blocked: Array<{ task: QueueTask; on: string[] }> = []
-  const deploying: Array<{ task: QueueTask; sha: string }> = []
-
-  for (const task of waiting.filter(t => isClaimableByAgent(t, options.harness))) {
-    const comments = await api.comments(task)
-    const conditions = parseBlockedConditions(comments)
-    const commentWatermark = latestCommentWatermark(comments)
-    // Structured `TaskDependency` rows are the source of truth, UNIONED with
-    // the parsed `BLOCKED-BY:` markers rather than replacing them (AWTD-1002):
-    // every task parked by a marker before the rows existed must stay parked,
-    // and a human typing on their phone can still block a task with a comment.
-    const structured = await api.structuredBlockers(task)
-    const blockedBy = Array.from(new Set([...conditions.blockedBy, ...structured]))
-    let disposition = classifyWaitingTask({
-      dueDateTime: task.dueDateTime,
-      now,
-      blockedBy,
-      blockedOn: conditions.blockedOn,
-      awaitingDeploy: conditions.awaitingDeploy,
-    })
-
-    if (disposition === 'check-blockers') {
-      const open = await api.openBlockers(blockedBy)
-      if (open.length > 0) {
-        blocked.push({ task, on: open })
-        continue
-      }
-      // Every blocker is done — reclassify on whatever else holds it.
-      disposition = classifyWaitingTask({
-        dueDateTime: task.dueDateTime,
-        now,
-        blockedBy: [],
-        blockedOn: conditions.blockedOn,
-        awaitingDeploy: conditions.awaitingDeploy,
-      })
-      if (disposition === 'review') disposition = 'promote'
-    }
-
-    if (disposition === 'awaiting-deploy') {
-      // The runner completes it once production serves the commit (AWTD-1278).
-      deploying.push({ task, sha: conditions.awaitingDeploy ?? '' })
-    } else if (disposition === 'hold') {
-      held.push({ task, when: describeSchedule(task, now) })
-    } else if (disposition === 'recheck') {
-      recheck.push({ task, condition: conditions.blockedOn ?? '(no condition recorded)', commentWatermark })
-    } else if (disposition === 'promote') {
-      await api.setStatus(task, READY_STATUS_ROLE)
-      await api.comment(task, '⏰ Condition met (date arrived / blockers completed) — back to Ready.')
-      report(`→ promoted "${task.title}" to Ready`)
-      mine.push(task)
-    } else {
-      review.push({ task, commentWatermark })
-    }
-  }
+  // Due now, or held for its date. A dated Ready task is not this script's to
+  // move: the server's settle job parks it in Waiting (astrid-core R5).
+  const mine = claimable.filter(task => isDueToStart(task, now))
+  const notDue = claimable.filter(task => !isDueToStart(task, now))
 
   // Priority high → low, then oldest first — the order /fixall works them in.
   const queue = [...mine].sort((a, b) => {
@@ -285,11 +194,7 @@ async function main() {
   })
 
   if (options.format === 'json') {
-    console.log(serializeReadyTaskQueue({
-      ready: queue,
-      recheck: recheck.map(item => ({ id: item.task.id, commentWatermark: item.commentWatermark })),
-      review: review.map(item => ({ id: item.task.id, commentWatermark: item.commentWatermark })),
-    }))
+    console.log(serializeReadyTaskQueue({ ready: queue }))
     return
   }
 
@@ -303,8 +208,9 @@ async function main() {
     }
   }
 
-  // "Doing must be real" too — the loop never moves these (a peer session or
-  // a person may be mid-task), but naming them lets a human spot a stale claim.
+  // The loop never moves these (a peer session or a person may be mid-task, and
+  // finished work awaiting its deploy waits here), but naming them lets a human
+  // spot a stale claim.
   if (doing.length > 0) {
     console.log(`(${doing.length} task(s) in Doing — in progress elsewhere; not touched:)`)
     for (const task of doing) {
@@ -312,49 +218,25 @@ async function main() {
     }
   }
 
-  if (held.length > 0) {
-    console.log(`(${held.length} Waiting task(s) parked until their date:)`)
-    for (const { task, when } of [...held].sort((a, b) => byDueDate(a.task, b.task))) {
-      console.log(`  — ${task.title}  [returns ${when}]`)
+  if (notDue.length > 0) {
+    console.log(`(${notDue.length} Ready task(s) not due yet — the server's settle job parks them in Waiting until their date:)`)
+    for (const task of [...notDue].sort(byDueDate)) {
+      console.log(`  — ${task.title}  [due ${describeSchedule(task, now)}]`)
     }
   }
 
-  if (blocked.length > 0) {
-    console.log(`(${blocked.length} Waiting task(s) still blocked by open tasks:)`)
-    for (const { task, on } of blocked) {
-      console.log(`  — ${task.title}  [blocked by ${on.join(', ')}]`)
+  // Waiting is settled server-side (a date or a blocking task wakes it); listed
+  // so a human can see what is parked, never acted on here.
+  if (waiting.length > 0) {
+    console.log(`(${waiting.length} task(s) in Waiting — the server wakes each when its date arrives or its blockers finish:)`)
+    for (const task of [...waiting].sort(byDueDate)) {
+      const when = describeSchedule(task, now)
+      console.log(`  — ${task.title}  [${when ? `until ${when}` : 'on a blocking task'}; ${describeAssignee(task)}]`)
     }
   }
 
-  if (deploying.length > 0) {
-    console.log(`(${deploying.length} Waiting task(s) finished and awaiting their deploy — the runner completes them:)`)
-    for (const { task, sha } of deploying) {
-      console.log(`  — ${task.title}  [production must serve ${sha.slice(0, 8)}]`)
-    }
-  }
-
-  // RECHECK and REVIEW are WORK for the agent, not information: re-verify the
-  // stated condition (promote or bump the date), and triage the condition-less.
-  if (recheck.length > 0) {
-    console.log(`RECHECK (${recheck.length}) — re-verify each condition; if met move to Ready, if not bump the recheck date:`)
-    for (const { task, condition } of recheck) {
-      console.log(`  ${task.id}  ${task.title}  [waiting on: ${condition}]`)
-    }
-  }
-
-  if (review.length > 0) {
-    console.log(`REVIEW (${review.length}) — Waiting with NO recorded condition; give each a date, a BLOCKED-BY/BLOCKED-ON, or hand it back:`)
-    for (const { task } of review) {
-      console.log(`  ${task.id}  ${task.title}`)
-    }
-  }
-
-  if (mine.length === 0) {
-    if (recheck.length === 0 && review.length === 0) {
-      console.log("READY_EMPTY")
-    } else {
-      console.log("READY_EMPTY (but RECHECK/REVIEW above need the agent)")
-    }
+  if (queue.length === 0) {
+    console.log("READY_EMPTY")
     return
   }
 

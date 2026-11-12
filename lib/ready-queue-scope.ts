@@ -22,7 +22,7 @@ import {
 import { HARNESS_AGENTS } from '@/lib/ai/harness-agents'
 // The role lives with the states it belongs to. A second copy here would drift
 // silently: a wrong role matches nothing and reads as an empty queue.
-import { READY_STATUS_ROLE } from '@/lib/task-status'
+import { DOING_STATUS_ROLE, READY_STATUS_ROLE } from '@/lib/task-status'
 
 export const FIXALL_HARNESS_MAILBOXES: Record<string, string> = {
   'claude-code': AGENT_MAILBOXES.claude,
@@ -47,7 +47,7 @@ export interface ReadyQueueOptions {
   listId?: string
   board: ReadyQueueBoard
   harness: FixallHarness
-  /** Print the sweep's would-be moves without writing anything. */
+  /** Accepted for old callers; ready-tasks.ts is read-only, so it changes nothing. */
   dryRun: boolean
   /** Emit a stable machine-readable queue instead of presentation text. */
   format: 'human' | 'json'
@@ -298,28 +298,39 @@ export function describeAssignee(task: AssignableTask): string {
 }
 
 /**
- * ── Waiting-lane conditions (Jon, 2026-08-29) ────────────────────────────────
+ * ── Comment markers the agent workflow still reads ───────────────────────────
  *
- * Ready means "actionable now", so anything paused on a specific condition
- * lives in Waiting — and each such task carries the condition in a form the
- * queue script can re-check on every run:
+ * The Waiting lane's rules are astrid-core's (`crates/astrid-rules` waiting.rs),
+ * and the server enforces them: a task is in Waiting only while it waits on a
+ * DATE (`dueDateTime`) or an incomplete BLOCKING TASK (TaskDependency rows), and
+ * the server's settle job wakes it. Nothing here moves a task between lanes.
  *
- *   - a DATE: `dueDateTime` itself. Parked until due, then back to Ready.
- *   - ANOTHER TASK: a comment line `BLOCKED-BY: <task-id>` (repeatable). The
- *     script checks the blockers' completion each run and promotes when every
- *     one is done.
- *   - an EXTERNAL EVENT: a comment line `BLOCKED-ON: <one-line condition>`,
- *     ideally with a recheck date. External facts (an upstream release, a
- *     third-party fix) cannot be machine-verified, so when the date arrives
- *     the task SURFACES for the agent to re-verify rather than auto-promoting.
- *   - its OWN DEPLOY (AWTD-1278): a comment line `AWAITING-DEPLOY: <commit sha>`.
- *     Done means deployed, so a scheduled run that finished the work leaves it
- *     incomplete with this marker; the runner opens its PR, lands it, and marks
- *     it complete once production serves that commit (scripts/land-and-deploy.ts).
+ * What remains is reading markers out of comments:
  *
- * The latest marker-bearing comment wins wholesale: updating conditions is
- * "post a new comment", and a comment with no markers changes nothing.
+ *   - `AWAITING-DEPLOY: <commit sha>` (AWTD-1278): finished work that stays in
+ *     Doing (or a board's optional Testing column) until production serves the
+ *     commit; scripts/land-and-deploy.ts completes it.
+ *   - `BLOCKED-BY: <task-id>` / `BLOCKED-ON: <condition>`: legacy prose markers.
+ *     They are no longer a wait condition — a real blocker or a recheck date is —
+ *     and are parsed only so `classifyWaitingTask` keeps its old inputs.
+ *
+ * The latest marker-bearing comment wins wholesale: updating a marker is "post
+ * a new comment", and a comment with no markers changes nothing.
  */
+
+/** The lanes finished work waits for its deploy in (R6): Doing, or the optional Testing preset. */
+export const AWAITING_DEPLOY_STATUS_ROLES: readonly string[] = [
+  DOING_STATUS_ROLE,
+  // astrid-core `boardPresets` role for the optional "Testing" column (R7). A
+  // board without that column simply never has a task in it.
+  'testing',
+]
+
+/** Is this an open task in a lane where finished work waits for its deploy? */
+export function isAwaitingDeployLane(task: StatusRoleTask): boolean {
+  if (task.completed) return false
+  return AWAITING_DEPLOY_STATUS_ROLES.includes((task.statusRole ?? '').trim().toLowerCase())
+}
 
 export interface BlockedConditions {
   /** Task ids this task waits on; empty when none. */
@@ -479,6 +490,10 @@ export type WaitingDisposition =
   | 'awaiting-deploy'
 
 /**
+ * @deprecated Superseded by astrid-core's `waitingSettle` rule, which the
+ * server's settle job runs for every board. Kept only while lib/task-dependencies.ts
+ * (the blocker gate) still calls it; no agent script uses it any more.
+ *
  * What should the loop do with one claimable Waiting task this run?
  *
  * Order matters: blockers are checked before the date because a blocked task's
@@ -501,14 +516,4 @@ export function classifyWaitingTask(input: {
   if (input.blockedOn) return 'recheck'
   if (input.dueDateTime) return 'promote'
   return 'review'
-}
-
-/**
- * Should the sweep park this Ready task in Waiting? True exactly when it
- * carries a future date — Ready must mean "actionable now", and the date gate
- * that used to hide these inside Ready left the column lying to anyone who
- * looked at the board (Jon, 2026-08-29).
- */
-export function shouldParkScheduledReadyTask(task: SchedulableTask, now: Date): boolean {
-  return !isDueToStart(task, now)
 }

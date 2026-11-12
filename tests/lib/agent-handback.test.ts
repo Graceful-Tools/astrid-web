@@ -10,8 +10,10 @@ const reply = {
   id: 'reply', authorId: 'human', author: { isAIAgent: false }, content: 'Use the existing behaviour.',
   createdAt: new Date('2026-10-25T11:00:00Z'), updatedAt: new Date('2026-10-25T11:00:00Z'),
 }
-const task = {
-  completed: false, statusRole: 'waiting', assigneeId: 'human',
+// R4: a handback is the Inbox (no status), assigned to the person — never Waiting.
+const task: { completed: boolean; statusRole: string | null; assigneeId: string; assignee: { isAIAgent: boolean };
+  lists: Array<{ id: string }>; comments: Array<typeof question> } = {
+  completed: false, statusRole: null, assigneeId: 'human',
   assignee: { isAIAgent: false }, lists: [{ id: 'board' }], comments: [reply, question],
 }
 const pending = (over: Partial<typeof task> = {}) =>
@@ -39,6 +41,8 @@ describe('Astrid lifecycle reply routing', () => {
   it('never widens task state or board scope', () => {
     expect(pending({ completed: true })).toBeNull()
     expect(pending({ statusRole: 'doing' })).toBeNull()
+    // A handback parked in Waiting predates R4; Waiting holds only date/task waits.
+    expect(pending({ statusRole: 'waiting' })).toBeNull()
     expect(pending({ assignee: { isAIAgent: true } })).toBeNull()
     expect(pending({ lists: [{ id: 'other-board' }] })).toBeNull()
   })

@@ -1,5 +1,5 @@
 import { agentEmail } from '@/lib/brand/agent-emails'
-import { FIXALL_HARNESS_MAILBOXES, parseBlockedConditions } from '@/lib/ready-queue-scope'
+import { FIXALL_HARNESS_MAILBOXES, isAwaitingDeployLane, parseBlockedConditions } from '@/lib/ready-queue-scope'
 
 export interface CloudHandoffTask {
   identifier?: string | null
@@ -62,6 +62,12 @@ export function handoffAlreadyOnMain(comments: CloudHandoffComment[], onMain: (s
   return Boolean(sha) && onMain(sha as string)
 }
 
+/**
+ * May the runner release this agent branch to the ship workflow? Only for a live
+ * handoff: the task is incomplete, still in Doing (or the optional Testing column —
+ * finished work awaiting its deploy stays there, R6), assigned to the branch's agent,
+ * on the board, and that agent's latest marker names exactly the pushed head.
+ */
 export function cloudHandoffEligible(input: {
   branch: string
   headSha: string
@@ -73,7 +79,7 @@ export function cloudHandoffEligible(input: {
   const parts = AGENT_BRANCH.exec(branch)
   const mailbox = parts && branchMailbox(parts[1])
   if (!mailbox || !parts || parts[2].toUpperCase() !== task.identifier?.toUpperCase() ||
-      !/^[0-9a-f]{40}$/.test(headSha) || task.completed || task.statusRole !== 'waiting' ||
+      !/^[0-9a-f]{40}$/.test(headSha) || !isAwaitingDeployLane(task) ||
       task.assignee?.email?.toLowerCase() !== agentEmail(mailbox) || !task.assignee?.id ||
       !task.lists?.some(list => list.id === listId)) return false
   return parseBlockedConditions(comments).awaitingDeploy === headSha &&

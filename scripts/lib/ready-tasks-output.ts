@@ -1,37 +1,38 @@
+/**
+ * The machine form of `scripts/ready-tasks.ts --json`, read by
+ * `.github/workflows/fixall.yml` through `scripts/parse-ready-tasks-output.ts`.
+ *
+ * Schema version 1 is unchanged: `{"version":1,"tasks":[{"id":"<uuid>","action":"ready"}]}`.
+ * It used to carry `recheck` / `review` entries for the client-side Waiting sweep; the
+ * server settles Waiting now (astrid-core waiting rules), so the only action is `ready`.
+ * Task titles are never serialized, so presentation text cannot become a task id.
+ */
+
 const TASK_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-const ACTIONS = ["ready", "recheck", "review"] as const
+const ACTIONS = ["ready"] as const
 
 type ReadyTaskAction = typeof ACTIONS[number]
 
 export interface ReadyTaskReference {
   id: string
-  commentWatermark?: string | null
 }
 
-export function serializeReadyTaskQueue(input: {
-  ready: ReadyTaskReference[]
-  recheck: ReadyTaskReference[]
-  review: ReadyTaskReference[]
-}): string {
+export function serializeReadyTaskQueue(input: { ready: ReadyTaskReference[] }): string {
   return JSON.stringify({
     version: 1,
-    tasks: [
-      ...input.recheck.map(task => ({
-        id: task.id,
-        action: "recheck" as const,
-        commentWatermark: task.commentWatermark ?? null,
-      })),
-      ...input.review.map(task => ({
-        id: task.id,
-        action: "review" as const,
-        commentWatermark: task.commentWatermark ?? null,
-      })),
-      ...input.ready.map(task => ({ id: task.id, action: "ready" as const })),
-    ],
+    tasks: input.ready.map(task => ({ id: task.id, action: "ready" as const })),
   })
 }
 
 export function parseReadyTaskIds(output: string): string[] {
+  return parseReadyTaskClaims(output).map(claim => claim.id)
+}
+
+export function parseReadyTaskClaims(output: string): Array<{
+  id: string
+  action: ReadyTaskAction
+  commentWatermark: null
+}> {
   let body: unknown
   try {
     body = JSON.parse(output)
@@ -56,19 +57,7 @@ export function parseReadyTaskIds(output: string): string[] {
     if (typeof action !== "string" || !ACTIONS.includes(action as ReadyTaskAction)) {
       throw new Error(`Queue task ${index} has an invalid action`)
     }
-    const commentWatermark = "commentWatermark" in task ? task.commentWatermark : undefined
-    if (
-      action !== "ready" &&
-      commentWatermark !== null &&
-      (typeof commentWatermark !== "string" || Number.isNaN(Date.parse(commentWatermark)))
-    ) {
-      throw new Error(`Queue task ${index} has an invalid comment watermark`)
-    }
-    return {
-      id,
-      action: action as ReadyTaskAction,
-      commentWatermark: action === "ready" ? null : (commentWatermark as string | null),
-    }
+    return { id, action: action as ReadyTaskAction, commentWatermark: null }
   })
 
   const ids = claims.map(claim => claim.id)
@@ -76,22 +65,5 @@ export function parseReadyTaskIds(output: string): string[] {
     throw new Error("Queue output contained duplicate actionable task IDs")
   }
 
-  return ids
-}
-
-export function parseReadyTaskClaims(output: string): Array<{
-  id: string
-  action: ReadyTaskAction
-  commentWatermark: string | null
-}> {
-  const body = JSON.parse(output) as { tasks?: unknown[] }
-  parseReadyTaskIds(output)
-  return (body.tasks ?? []).map(task => {
-    const claim = task as { id: string; action: ReadyTaskAction; commentWatermark?: string | null }
-    return {
-      id: claim.id,
-      action: claim.action,
-      commentWatermark: claim.commentWatermark ?? null,
-    }
-  })
+  return claims
 }

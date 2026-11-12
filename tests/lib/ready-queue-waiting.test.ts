@@ -1,24 +1,19 @@
 /**
- * Waiting-lane semantics for the /fixall loop (Jon, 2026-08-29).
+ * Comment markers and the legacy Waiting classifier.
  *
- * Ready must mean "actionable now". Anything paused on a DATE, ANOTHER TASK,
- * or an EXTERNAL EVENT lives in Waiting with a machine-readable condition, and
- * the loop's queue script re-checks those conditions on every run:
+ * The Waiting lane's rules are astrid-core's now and the server enforces and
+ * settles them (a date or a blocking task, nothing else). What stays here is
+ * marker parsing — `AWAITING-DEPLOY:` above all — and `classifyWaitingTask`,
+ * kept only while lib/task-dependencies.ts still calls it.
  *
- *   - a dated task parks in Waiting and returns to Ready when due
- *   - `BLOCKED-BY: <task-id>` returns to Ready when every blocker completes
- *   - `BLOCKED-ON: <reason>` surfaces for the agent to re-verify when its
- *     recheck date arrives (external facts can't be machine-verified)
- *   - Waiting with no condition at all surfaces for triage — it would rot
- *
- * Latest marker-bearing comment wins wholesale, so updating the conditions is
- * "post a new comment", not "edit history".
+ * Latest marker-bearing comment wins wholesale, so updating a marker is "post
+ * a new comment", not "edit history".
  */
 import { describe, it, expect } from 'vitest'
 import {
   parseBlockedConditions,
   classifyWaitingTask,
-  shouldParkScheduledReadyTask,
+  isAwaitingDeployLane,
   resolveReadyQueueOptions,
 } from '@/lib/ready-queue-scope'
 
@@ -130,14 +125,17 @@ describe('classifyWaitingTask', () => {
   })
 })
 
-describe('shouldParkScheduledReadyTask', () => {
-  it('parks a Ready task whose date is in the future', () => {
-    expect(shouldParkScheduledReadyTask({ dueDateTime: FUTURE }, NOW)).toBe(true)
+describe('isAwaitingDeployLane (R6)', () => {
+  it('finished work awaits its deploy in Doing or the optional Testing column', () => {
+    expect(isAwaitingDeployLane({ statusRole: 'doing' })).toBe(true)
+    expect(isAwaitingDeployLane({ statusRole: 'Testing' })).toBe(true)
   })
 
-  it('leaves due and dateless Ready tasks alone', () => {
-    expect(shouldParkScheduledReadyTask({ dueDateTime: PAST }, NOW)).toBe(false)
-    expect(shouldParkScheduledReadyTask({ dueDateTime: null }, NOW)).toBe(false)
+  it('never in Waiting, Ready, the Inbox, or once completed', () => {
+    expect(isAwaitingDeployLane({ statusRole: 'waiting' })).toBe(false)
+    expect(isAwaitingDeployLane({ statusRole: 'ready' })).toBe(false)
+    expect(isAwaitingDeployLane({ statusRole: null })).toBe(false)
+    expect(isAwaitingDeployLane({ statusRole: 'doing', completed: true })).toBe(false)
   })
 })
 
