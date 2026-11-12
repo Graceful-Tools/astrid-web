@@ -54,8 +54,10 @@ const MAX_HOPS = 5
  * MAX_HOPS fails with the chain, which is what a 307 loop looks like (AWTD-1606).
  */
 async function getPage(path: string): Promise<{ response: Response; html: string; hops: string[] }> {
-  const hops = [path]
   let url = new URL(path, base)
+  // Whole URLs, so a same-path redirect to another host (apex to www) is not a loop.
+  const seen = [url.href]
+  const hops = [path]
   for (let hop = 0; hop <= MAX_HOPS; hop++) {
     const response = await fetch(url, { redirect: 'manual' })
     const location = response.headers.get('location')
@@ -63,8 +65,9 @@ async function getPage(path: string): Promise<{ response: Response; html: string
       return { response, html: await response.text(), hops }
     }
     url = new URL(location, url)
-    const next = `${url.pathname}${url.search}`
-    if (hops.includes(next)) throw new Error(`redirect loop: ${[...hops, next].join(' → ')} (HTTP ${response.status})`)
+    const next = url.origin === new URL(base).origin ? `${url.pathname}${url.search}` : url.href
+    if (seen.includes(url.href)) throw new Error(`redirect loop: ${[...hops, next].join(' → ')} (HTTP ${response.status})`)
+    seen.push(url.href)
     hops.push(next)
   }
   throw new Error(`more than ${MAX_HOPS} redirects: ${hops.join(' → ')}`)
@@ -113,9 +116,22 @@ async function checkBrand(profilePath: string, assetsDir: string | undefined) {
     })
   }
 
-  await check(`the page carries ${brand.appName}'s logo`, async () => {
+  // The rendered <img>, not the brand script (which carries the logo path on every page
+  // of a runtime-brand image whether or not anything displays it). next/image points at
+  // the optimizer, so the path is URL-encoded inside src/srcset; the image it names must
+  // then load.
+  await check(`the sign-in page shows ${brand.appName}'s logo`, async () => {
     const { html } = await getPage('/auth/signin')
-    if (!html.includes(brand.logo)) throw new Error(`${brand.logo} is not on the page`)
+    const imgs = [...html.matchAll(/<img\b[^>]*>/g)].map((match) => match[0])
+    const attr = (tag: string, name: string) => tag.match(new RegExp(`\\s${name}="([^"]*)"`, 'i'))?.[1]?.replace(/&amp;/g, '&')
+    const logo = imgs.find((tag) =>
+      [attr(tag, 'src'), attr(tag, 'srcset')].some((value) => value && decodeURIComponent(value).includes(brand.logo)))
+    if (!logo) throw new Error(`no <img> on the page shows ${brand.logo}`)
+    const src = attr(logo, 'src') as string
+    const image = await fetch(new URL(src, base))
+    expectStatus(image, 200)
+    if (!image.headers.get('content-type')?.startsWith('image/')) throw new Error(`${src} is ${image.headers.get('content-type')}`)
+    return src
   })
 
   await check(`manifest and icons are ${brand.appName}'s`, async () => {
@@ -171,8 +187,10 @@ async function main() {
     expectStatus(response, 200)
   })
 
-  // A standalone `next start` reached as localhost was seen to 307-loop on these
-  // (AWTD-1606). getPage fails on a loop, naming the hops.
+  // A local standalone `next start` reached as localhost was seen to 307-loop on these
+  // (AWTD-1606). The container does not: in CI /terms is a 200 and /en/terms is one 307
+  // to /terms (next-intl's `as-needed` prefix). getPage fails on a loop, naming the hops,
+  // so a regression in the image shows up here.
   for (const path of ['/terms', '/en/terms']) {
     await check(`${path} settles without a redirect loop`, async () => {
       const { response, hops } = await getPage(path)
