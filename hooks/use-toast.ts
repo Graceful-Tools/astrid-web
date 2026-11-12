@@ -136,6 +136,28 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">
 
+let toasterMounted = false
+const awaitingToaster: Array<() => void> = []
+
+function whenToasterMounted(start: () => void) {
+  if (toasterMounted) start()
+  else awaitingToaster.push(start)
+}
+
+/**
+ * Called by the Toaster: while one is mounted, auto-dismiss timers start immediately;
+ * timers for toasts raised before it mounted start when it does.
+ */
+function useToasterMounted() {
+  React.useEffect(() => {
+    toasterMounted = true
+    awaitingToaster.splice(0).forEach((start) => start())
+    return () => {
+      toasterMounted = false
+    }
+  }, [])
+}
+
 function toast({ ...props }: Toast) {
   const id = genId()
 
@@ -158,11 +180,16 @@ function toast({ ...props }: Toast) {
     },
   })
 
-  // Auto-dismiss toast if duration is specified
+  // Auto-dismiss toast if duration is specified. The clock starts when a Toaster can show
+  // it: the Toaster loads after hydration (AWTD-1604), and a timer started earlier could
+  // dismiss a short toast before it was ever on screen.
   if (props.duration !== undefined) {
-    setTimeout(() => {
-      dismiss()
-    }, props.duration)
+    const duration = props.duration
+    whenToasterMounted(() => {
+      setTimeout(() => {
+        dismiss()
+      }, duration)
+    })
   }
 
   return {
@@ -192,4 +219,4 @@ function useToast() {
   }
 }
 
-export { useToast, toast }
+export { useToast, useToasterMounted, toast }
