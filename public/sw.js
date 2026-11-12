@@ -487,8 +487,8 @@ self.addEventListener('push', (event) => {
     
     const options = {
       body: data.body,
-      icon: data.icon || '/icons/icon-192x192.png',
-      badge: data.badge || '/icons/icon-72x72.png',
+      icon: data.icon || '/brand-icon/icon-192.png',
+      badge: data.badge || '/brand-icon/icon-72.png',
       vibrate: [100, 50, 100],
       data: data.data,
       actions: data.actions || [
@@ -590,7 +590,7 @@ async function handleSnoozeAction(notificationData, minutes) {
       // Show success notification
       await self.registration.showNotification('Task Snoozed', {
         body: `Reminder snoozed for ${minutes} minutes`,
-        icon: '/icons/icon-192x192.png',
+        icon: '/brand-icon/icon-192.png',
         tag: 'snooze-success',
         silent: true,
         actions: []
@@ -602,7 +602,7 @@ async function handleSnoozeAction(notificationData, minutes) {
     // Show error notification
     await self.registration.showNotification('Snooze Failed', {
       body: 'Failed to snooze reminder. Please try again.',
-      icon: '/icons/icon-192x192.png',
+      icon: '/brand-icon/icon-192.png',
       tag: 'snooze-error'
     });
   }
@@ -629,7 +629,7 @@ async function handleCompleteAction(notificationData) {
       // Show success notification
       await self.registration.showNotification('Task Completed', {
         body: 'Task marked as complete!',
-        icon: '/icons/icon-192x192.png',
+        icon: '/brand-icon/icon-192.png',
         tag: 'complete-success',
         silent: true,
         actions: []
@@ -641,7 +641,7 @@ async function handleCompleteAction(notificationData) {
     // Show error notification
     await self.registration.showNotification('Complete Failed', {
       body: 'Failed to mark task as complete. Please try again.',
-      icon: '/icons/icon-192x192.png',
+      icon: '/brand-icon/icon-192.png',
       tag: 'complete-error'
     });
   }
@@ -756,8 +756,8 @@ async function showClientReminder(reminderData) {
 
     const options = {
       body: notificationBody,
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-72x72.png',
+      icon: '/brand-icon/icon-192.png',
+      badge: '/brand-icon/icon-72.png',
       vibrate: [100, 50, 100],
       data: {
         taskId,

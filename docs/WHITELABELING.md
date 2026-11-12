@@ -145,8 +145,8 @@ All optional. Each falls back to the Astrid value.
 | `NEXT_PUBLIC_BRAND_PRIVACY_URL` | *(built-in `/privacy`)* | Your own Privacy Policy. Same as the terms URL, for `/privacy` |
 | `NEXT_PUBLIC_BRAND_AGENT_NAME` | brand name | Default assistant's display name |
 | `NEXT_PUBLIC_BRAND_LOGO` | `/images/astrid-character.png` | Mascot art — sign-in, empty states |
-| `NEXT_PUBLIC_BRAND_ICON` | `/icons/icon-512x512.png` | Large square mark |
-| `NEXT_PUBLIC_BRAND_ICON_SMALL` | `/icons/icon-96x96.png` | Header mark |
+| `NEXT_PUBLIC_BRAND_ICON` | `/icons/icon-512x512.png` | The **source icon** every other size is generated from: set it as `assets.icon` in the profile (see *Artwork*) |
+| `NEXT_PUBLIC_BRAND_ICON_SMALL` | `/icons/icon-96x96.png`, or the generated 96 px icon | Header mark. Unset with a custom icon: generated from it |
 | `NEXT_PUBLIC_BRAND_APP_STORE_URL` | Astrid's listing | **Empty string hides the button** |
 | `NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG` | `astrid-code-assistant` | Your own registered GitHub App |
 | `NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID` | *(derived)* | Only if inference is wrong — see §7 |
@@ -158,7 +158,7 @@ All optional. Each falls back to the Astrid value.
 Falling back to Astrid is what keeps hosted Astrid unchanged, but it also means a partner
 who sets the name and forgets the support email ships `support@astrid.cc` without being
 told. So once **any** identity variable is set (name, title, tagline, domain, support or
-inbound email, slogan, logo, App Store URL, app URL scheme, GitHub App slug),
+inbound email, slogan, logo, icon, App Store URL, app URL scheme, GitHub App slug),
 `next.config.mjs` warns at build about each of them still unset
 (`scripts/lib/brand-identity-check.mjs`, AWTD-1285). Astrid sets none, so it never warns.
 
@@ -178,8 +178,32 @@ client's offline cache.
 
 ### Artwork
 
-The square icons use **generic paths on purpose**: replace the files in `public/icons/`
-and nothing needs configuring. The mascot is the exception — it ships under a
+**One source icon makes every icon** (AWTD-1588). Put a square PNG, ideally 1024 px, in
+`public/icons/` under your own name and point the profile at it:
+
+```json
+"assets": { "icon": "/icons/acme-1024.png" }
+```
+
+`assets.icon` becomes `NEXT_PUBLIC_BRAND_ICON`. Every size is generated from it on request
+by `app/brand-icon/[file]/route.ts` (sharp): the PWA manifest icons and maskable icons, the
+favicons, the Apple touch icon, the header mark, the service worker's notification icon and
+badge, the push payload icons, the OpenGraph image and the ChatGPT plugin logo. It must be a
+`.png` path in `public/`, not a URL, because the route reads it from disk.
+`lib/brand/icons.ts` decides which URL each place uses.
+
+Do **not** overwrite Astrid's files in `public/icons/` or the root favicons. Earlier
+versions of this section told you to. Those files are hosted Astrid's, and they are served
+unchanged, at the same URLs, while `BRAND.icon` is Astrid's. A partner sharing this
+repository could never replace them anyway, and the root favicons and touch icon were never
+under `public/icons/` in the first place.
+
+The brand matrix checks, by hash, that no profile forbidding "Astrid" serves any of
+Astrid's icon files. One gap remains: a browser that requests `/favicon.ico` without
+reading the page's `<link rel="icon">` still gets Astrid's file, because `public/` is
+served before any route.
+
+The mascot is a separate setting, `NEXT_PUBLIC_BRAND_LOGO`. It ships under a
 brand-specific filename, so it is a configurable path.
 
 Copy in `lib/i18n/locales/*.json` refers to the product as `{appName}`, substituted at

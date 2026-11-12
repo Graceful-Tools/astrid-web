@@ -56,6 +56,9 @@ function env(value: string | undefined, fallback: string): string {
 /** Astrid's own accent: the design tokens' `accent` (astrid-core register DS26). */
 export const ASTRID_ACCENT_COLOR = DEFAULTS.accentColor
 
+/** Astrid's own app mark. Any other `BRAND.icon` is a brand's, and lib/brand/icons.ts generates from it. */
+export const ASTRID_ICON = DEFAULTS.icon
+
 export const BRAND = {
   /** Short product name, e.g. "Astrid". Interpolated into i18n copy as `{appName}`. */
   appName: env(process.env.NEXT_PUBLIC_BRAND_NAME, DEFAULTS.appName),
@@ -155,11 +158,22 @@ export const BRAND = {
    */
   logo: env(process.env.NEXT_PUBLIC_BRAND_LOGO, DEFAULTS.logo),
 
-  /** Large square app mark. Generic path — a fork replaces public/icons/*. */
+  /**
+   * The brand's source icon — ideally 1024 px square — that every other size is generated
+   * from (lib/brand/icons.ts, AWTD-1588). A profile sets it as `assets.icon`.
+   */
   icon: env(process.env.NEXT_PUBLIC_BRAND_ICON, DEFAULTS.icon),
 
-  /** Small square app mark, used in page headers. */
-  iconSmall: env(process.env.NEXT_PUBLIC_BRAND_ICON_SMALL, DEFAULTS.iconSmall),
+  /**
+   * Small square app mark, used in page headers. Unset: Astrid's file for Astrid, and the
+   * 96 px icon generated from `icon` for a brand that names its own.
+   */
+  iconSmall: env(
+    process.env.NEXT_PUBLIC_BRAND_ICON_SMALL,
+    env(process.env.NEXT_PUBLIC_BRAND_ICON, DEFAULTS.icon) === DEFAULTS.icon
+      ? DEFAULTS.iconSmall
+      : '/brand-icon/icon-96.png'
+  ),
 
   /**
    * The theme a visitor sees before they have picked one: `light`, `dark` or `ocean`.
