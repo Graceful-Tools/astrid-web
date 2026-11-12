@@ -1,0 +1,65 @@
+{
+  "assets": [
+    {
+      "file": "checkbox/checkbox.svg",
+      "name": "checkbox",
+      "owner": "Astrid. Drawn on the 56-unit canvas of the PNGs it replaces, from astrid-web's components/task-checkbox-art.tsx (AWTD-1581): box and arrows in currentColor (the priority colour), the check in the checkbox-check token with a black shadow at 85%, offset 2, blur 0.8.",
+      "sha256": "f71d7c433d16db8c6ef0db4e63bbdef8e2806a42e235c274ffdc0538b0c407fe"
+    },
+    {
+      "file": "checkbox/checkbox-checked.svg",
+      "name": "checkbox-checked",
+      "owner": "Astrid. Drawn on the 56-unit canvas of the PNGs it replaces, from astrid-web's components/task-checkbox-art.tsx (AWTD-1581): box and arrows in currentColor (the priority colour), the check in the checkbox-check token with a black shadow at 85%, offset 2, blur 0.8.",
+      "sha256": "45369e8b54f4d303c72400d2ddd0b4c897992a652c677aa0a08c34883283041a"
+    },
+    {
+      "file": "checkbox/checkbox-repeat.svg",
+      "name": "checkbox-repeat",
+      "owner": "Astrid. Drawn on the 56-unit canvas of the PNGs it replaces, from astrid-web's components/task-checkbox-art.tsx (AWTD-1581): box and arrows in currentColor (the priority colour), the check in the checkbox-check token with a black shadow at 85%, offset 2, blur 0.8.",
+      "sha256": "da66084eb85246d0ade9bb70ac6b8e530da6553797aaa0c3ac32b0079a012e1a"
+    },
+    {
+      "file": "checkbox/checkbox-repeat-checked.svg",
+      "name": "checkbox-repeat-checked",
+      "owner": "Astrid. Drawn on the 56-unit canvas of the PNGs it replaces, from astrid-web's components/task-checkbox-art.tsx (AWTD-1581): box and arrows in currentColor (the priority colour), the check in the checkbox-check token with a black shadow at 85%, offset 2, blur 0.8.",
+      "sha256": "52c4b6edd2000ab554935fe0b0bc45ca9188feb2d34b723f210f2a67a2e07dad"
+    },
+    {
+      "file": "agents/claude.svg",
+      "name": "agent-claude",
+      "owner": "Simple Icons path data (CC0); the mark itself is Anthropic's trademark, shown only to identify the Claude agent.",
+      "sha256": "ce8349fbc5c40ecc9403cf41df5efd2229f2b83e030058ac440feea66c967f8d"
+    },
+    {
+      "file": "agents/copilot.svg",
+      "name": "agent-copilot",
+      "owner": "Simple Icons path data (CC0); the mark itself is GitHub's trademark, shown only to identify the Copilot agent.",
+      "sha256": "253769fa027c5dd33625a1b5fa7adb165f4cebd4117d8bfe1025c7c2e9bd212f"
+    },
+    {
+      "file": "agents/gemini.svg",
+      "name": "agent-gemini",
+      "owner": "Simple Icons path data (CC0); the mark itself is Google's trademark, shown only to identify the Gemini agent.",
+      "sha256": "404eba6940a54e63d40edcce2d2e7cb2b3dbfec765e7a1d523662b6f4e0d6747"
+    },
+    {
+      "file": "agents/muse.svg",
+      "name": "agent-muse",
+      "owner": "Simple Icons path data (CC0); the mark itself is Meta's trademark, shown only to identify the Muse agent (Muse Code); served as Meta's real mark since astrid-web AWTD-995.",
+      "sha256": "18e15e0cd6ef858aa8b054db472f83870e5e2ef15f9b19554480c89c93c264e1"
+    },
+    {
+      "file": "agents/openai.svg",
+      "name": "agent-openai",
+      "owner": "Simple Icons path data (CC0); the mark itself is OpenAI's trademark, shown only to identify the OpenAI (Codex) agent.",
+      "sha256": "7800930955052cd54de5d4f4261ac4f76193011c10aa2a29b54ef5566cedd0dd"
+    },
+    {
+      "file": "agents/openclaw.svg",
+      "name": "agent-openclaw",
+      "owner": "Astrid. A placeholder drawing (an orange lobster) for OpenClaw agents and custom agents with no image of their own; not OpenClaw's own mark.",
+      "sha256": "704f0a5570cde561141b5863d789f0323bad0e8166e3f7038d925290119138b8"
+    }
+  ],
+  "version": 1
+}
