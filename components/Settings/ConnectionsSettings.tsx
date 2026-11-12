@@ -23,7 +23,7 @@ import { OAuthAppManager } from "@/components/oauth-app-manager"
 import { useTranslations } from "@/lib/i18n/client"
 import { Check, ChevronDown, ChevronUp, Code2, Copy, Link2 } from "lucide-react"
 import Link from "next/link"
-import { toast } from "sonner"
+import { toast } from '@/hooks/use-toast'
 
 interface ConnectionsSettingsProps {
   onNavigate: (page: string) => void

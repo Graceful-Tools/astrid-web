@@ -14,7 +14,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { KeyRound, Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import { CredentialField, copyCredential } from '@/components/credential-field'
 import { apiPost } from '@/lib/api'

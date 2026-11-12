@@ -39,7 +39,7 @@ import { ShieldPlus } from 'lucide-react'
 import { apiCall, refusalReason } from '@/lib/api'
 import { useTranslations } from '@/lib/i18n/client'
 import { RichMessage } from '@/components/shared/RichMessage'
-import { toast } from 'sonner'
+import { toast } from '@/hooks/use-toast'
 
 interface EditableClient {
   clientId: string

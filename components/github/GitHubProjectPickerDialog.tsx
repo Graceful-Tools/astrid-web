@@ -19,7 +19,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Building2, ExternalLink, Loader2, RefreshCw } from "lucide-react"
 import { Github } from "@/components/ui/brand-icons"
-import { toast } from 'sonner'
+import { toast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
