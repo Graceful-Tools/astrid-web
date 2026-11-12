@@ -17,7 +17,7 @@
  * render, so the shell is the seam and the bodies stay apart.
  */
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -72,6 +72,13 @@ export function SettingsModalShell({
     if (e.key === "Escape") onOpenChange(false)
   }
 
+  // Dismiss only on a press that both starts and ends on the overlay itself
+  // (AWTD-1595). A press that starts inside the card can end outside it when
+  // the card resizes under the pointer — Radix tabs switch on mousedown, and
+  // Insights' short "Loading…" body shrinks the centred card — and the browser
+  // then fires `click` on the overlay, the common ancestor, closing the modal.
+  const pressStartedOnOverlay = useRef(false)
+
   if (!mounted || !open || typeof document === "undefined") return null
 
   return createPortal(
@@ -79,7 +86,11 @@ export function SettingsModalShell({
       className={`fixed inset-0 bg-black bg-opacity-50 flex ${layout.overlay}`}
       style={{ zIndex: 9999 }}
       onKeyDown={handleKeyDown}
-      onClick={() => onOpenChange(false)}
+      onMouseDown={e => { pressStartedOnOverlay.current = e.target === e.currentTarget }}
+      onClick={e => {
+        if (pressStartedOnOverlay.current && e.target === e.currentTarget) onOpenChange(false)
+        pressStartedOnOverlay.current = false
+      }}
       tabIndex={-1}
       role="dialog"
       aria-modal="true"
