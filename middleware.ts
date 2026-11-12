@@ -196,7 +196,14 @@ export const config = {
      * - manifest.json (PWA manifest)
      * - Static asset extensions (.png, .jpg, .ico, .svg, .webp)
      * - .md (public docs such as ASTRID_WORKFLOW.md, which users download)
+     *
+     * The static-file exclusions do NOT apply under a locale prefix
+     * (/de/nope.png). No real file lives there, so the middleware costs no
+     * asset anything, and it has to run: it is what forwards "de" to the root
+     * 404, which otherwise answers in English (AWTD-1599). The locales are
+     * spelled out because a matcher must be a literal; a test holds them to
+     * lib/i18n/config.ts.
      */
-    "/((?!_next/static|_next/image|favicon|apple-touch-icon|apple-icon|icons/|images/|screenshots/|sounds/|vendor/|sw\\.js|manifest\\.json|.*\\.png$|.*\\.ico$|.*\\.svg$|.*\\.jpg$|.*\\.webp$|.*\\.wav$|.*\\.md$).*)",
+    "/((?!_next/static|_next/image|(?!(?:en|es|fr|de|it|pt|nl|ru|ja|ko|zh-CN|zh-TW)/)(?:favicon|apple-touch-icon|apple-icon|icons/|images/|screenshots/|sounds/|vendor/|sw\\.js|manifest\\.json|.*\\.png$|.*\\.ico$|.*\\.svg$|.*\\.jpg$|.*\\.webp$|.*\\.wav$|.*\\.md$)).*)",
   ],
 }

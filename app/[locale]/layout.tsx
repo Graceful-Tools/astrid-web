@@ -3,7 +3,8 @@ import type { Metadata, Viewport } from "next"
 import { Inter } from "next/font/google"
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
-import { NextIntlClientProvider } from 'next-intl'
+import { notFound } from 'next/navigation'
+import { NextIntlClientProvider, hasLocale } from 'next-intl'
 import { getMessages, setRequestLocale } from 'next-intl/server'
 import { routing } from '@/lib/i18n/routing'
 import { BRAND } from '@/lib/brand/config'
@@ -104,6 +105,14 @@ export function generateStaticParams() {
 
 export default async function LocaleLayout({ children, params }: Props) {
   const { locale } = await params
+
+  // The middleware skips file-shaped addresses (its matcher excludes .png, .md,
+  // icons/, vendor/ ...), so a non-locale first segment can still land here and
+  // used to render the app shell with a 200 under <html lang="nope.png">. A
+  // missing root-level file never gets this far (next.config.mjs rewrites it to
+  // the root 404); this is the backstop for deeper ones like /icons/list/x.
+  // Not a page in any language: 404 before any message is loaded (AWTD-1599).
+  if (!hasLocale(routing.locales, locale)) notFound()
 
   // Enable static rendering
   setRequestLocale(locale)
