@@ -1,0 +1,8 @@
+{
+  "taskSlug": "register-rows",
+  "taskId": "",
+  "path": "/Users/jonparis/Documents/mycode/astrid-dev/www-task-register-rows",
+  "branch": "fix/AWTD-1617-completed-rows-hairlines",
+  "port": 3010,
+  "databaseUrl": "postgresql://jonparis@localhost:5432/astrid_dev"
+}
