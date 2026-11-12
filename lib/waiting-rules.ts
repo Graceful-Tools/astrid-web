@@ -22,15 +22,16 @@
  * - R5: a Ready task with a future date is parked in Waiting, unassigned.
  * - R7: optional preset columns a board can add (the first: `testing`).
  *
- * Imports nothing but lib/lazy-value.ts, so client components may use it.
+ * Imports only lib/lazy-value.ts and lib/board-presets.ts, so client components may use it.
  */
 
 import { lazyValue } from '@/lib/lazy-value'
+import { availableBoardPresets, type BoardPreset } from '@/lib/board-presets'
+
+export { BOARD_PRESETS, TESTING_STATUS_ROLE, type BoardPreset } from '@/lib/board-presets'
 
 export const WAITING_ROLE = 'waiting'
 export const READY_ROLE = 'ready'
-/** R7's fixed role. Not minted (`custom-…`) so the deploy check finds it on any board. */
-export const TESTING_STATUS_ROLE = 'testing'
 
 /** The refusal code, the same spelling whichever side refused. */
 export const WAITING_NEEDS_CONDITION = 'WAITING_NEEDS_CONDITION'
@@ -85,17 +86,6 @@ export interface Settlement {
   statusRole: string | null
   assignee: AssigneeWrite
 }
-
-export interface BoardPreset {
-  role: string
-  name: string
-  description: string
-}
-
-/** R7, in the core's order. */
-export const BOARD_PRESETS: readonly BoardPreset[] = [
-  { role: TESTING_STATUS_ROLE, name: 'Testing', description: 'Deploying, in canary, or in an experiment.' },
-]
 
 // ── The TypeScript mirror ────────────────────────────────────────────────────
 
@@ -207,18 +197,9 @@ export function handBackTs(assigneeId: string): { statusRole: null; assigneeId: 
   return { statusRole: null, assigneeId, completed: false }
 }
 
-/** R7: the presets this board can still add — not by role, nor by (case-insensitive) name. */
+/** R7: the TypeScript answer to `boardPresets` (lib/board-presets.ts). */
 export function boardPresetsTs(customStates: unknown): BoardPreset[] {
-  const states = Array.isArray(customStates) ? customStates : []
-  const held = states
-    .filter((state): state is Record<string, unknown> => Boolean(state) && typeof state === 'object')
-    .map(state => ({
-      role: typeof state.role === 'string' ? state.role : '',
-      name: typeof state.name === 'string' ? state.name.toLowerCase() : '',
-    }))
-  return BOARD_PRESETS.filter(
-    preset => !held.some(state => state.role === preset.role || state.name === preset.name.toLowerCase()),
-  ).map(preset => ({ ...preset }))
+  return availableBoardPresets(customStates)
 }
 
 // ── Where astrid-core plugs in ───────────────────────────────────────────────

@@ -27,7 +27,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { isDefaultStatusRole } from '@/lib/task-status'
-import { BOARD_PRESETS } from '@/lib/waiting-rules'
+import { BOARD_PRESETS } from '@/lib/board-presets'
 
 /**
  * A board column, as it must be spelled to be found again.

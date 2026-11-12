@@ -14,7 +14,7 @@
  */
 import { DEFAULT_STATES, DONE_COLUMN_ID, INBOX_COLUMN_ID } from '@/lib/task-status'
 import { VIRTUAL_DONE_COLUMN_ID, VIRTUAL_INBOX_COLUMN_ID } from '@/lib/project-status'
-import { BOARD_PRESETS } from '@/lib/waiting-rules'
+import { BOARD_PRESETS } from '@/lib/board-presets'
 
 type Translate = (key: string) => string
 

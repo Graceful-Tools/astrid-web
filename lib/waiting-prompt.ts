@@ -3,70 +3,16 @@
  * the user to pick a date or indicate a task."
  *
  * Any place that moves a task into Waiting — a board drop, the status picker, the task menu — or
- * that gets a 422 `WAITING_NEEDS_CONDITION` back, asks {@link requestWaitingCondition} and awaits the
- * person's answer. One host (components/WaitingConditionPrompt.tsx, mounted in providers.tsx) draws
- * the dialog. Cancel resolves `null`, and the caller leaves the task where it was.
+ * that gets a 422 `WAITING_NEEDS_CONDITION` back, asks `requestWaitingCondition` (lib/waiting-prompt-bus.ts)
+ * and awaits the person's answer; components/WaitingPromptHost.tsx draws the dialog. Cancel resolves
+ * `null`, and the caller leaves the task where it was. The task controller loads this module on
+ * demand, so it is not in any page's first load.
  */
 import { isWaitingTask, WAITING_NEEDS_CONDITION, WAITING_ROLE, type WaitingTask } from '@/lib/waiting-rules'
+import { requestWaitingCondition, type WaitingChoice, type WaitingPromptTask } from '@/lib/waiting-prompt-bus'
 
-/** What the person chose. */
-export type WaitingChoice = {
-  keepAssignee: boolean
-} & (
-  | { mode: 'date'; /** An all-day date, as the server stores one: midnight UTC. */ dueDateTime: string }
-  | { mode: 'task'; waitOnTaskId: string }
-)
-
-/** The task the prompt is about: enough to prefill it and label "Keep assigned to …". */
-export interface WaitingPromptTask {
-  id: string
-  title?: string
-  dueDateTime?: Date | string | null
-  isAllDay?: boolean | null
-  assigneeId?: string | null
-  assignee?: { id: string; name?: string | null; email?: string | null } | null
-  lists?: ReadonlyArray<{ id: string }> | null
-}
-
-export interface WaitingPromptRequest {
-  task: WaitingPromptTask
-  resolve: (choice: WaitingChoice | null) => void
-}
-
-type Listener = (request: WaitingPromptRequest | null) => void
-let listener: Listener | null = null
-let pending: WaitingPromptRequest | null = null
-
-/** The host registers here; one at a time. Returns the unsubscribe. */
-export function subscribeWaitingPrompt(next: Listener): () => void {
-  listener = next
-  if (pending) next(pending)
-  return () => {
-    if (listener === next) listener = null
-  }
-}
-
-/** Ask the person what a task waits for. Resolves `null` on cancel, or when no host is mounted. */
-export function requestWaitingCondition(task: WaitingPromptTask): Promise<WaitingChoice | null> {
-  return new Promise(resolve => {
-    if (!listener) {
-      resolve(null)
-      return
-    }
-    // A second request replaces the first, which is cancelled: one prompt at a time.
-    pending?.resolve(null)
-    const request: WaitingPromptRequest = {
-      task,
-      resolve: choice => {
-        if (pending === request) pending = null
-        listener?.(null)
-        resolve(choice)
-      },
-    }
-    pending = request
-    listener(request)
-  })
-}
+export type { WaitingChoice, WaitingPromptRequest, WaitingPromptTask } from '@/lib/waiting-prompt-bus'
+export { requestWaitingCondition, subscribeWaitingPrompt } from '@/lib/waiting-prompt-bus'
 
 /** Whether an edit moves a task INTO Waiting (from any other lane, or from Done). */
 export function entersWaiting(original: WaitingTask, updated: WaitingTask): boolean {

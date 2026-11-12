@@ -41,7 +41,7 @@ import { canUserManageList } from "@/lib/list-permissions"
 import { scopeTasksToList, withoutList, listPath, taskDetailPath } from "@/lib/task-list-scope"
 import { v1TaskUpdateBody } from "@/lib/tasks/v1-task-update-body"
 import type { UseTaskManagerControllerProps } from "@/hooks/task-manager/controller-contract"
-import { isWaitingNeedsCondition, sendWithWaitingPrompt, waitingFieldsForCreate } from "@/lib/waiting-prompt"
+const waitingPrompt = () => import("@/lib/waiting-prompt") // on demand: not in the first load (AWTD-1593)
 import { postponeTaskDueDate, shiftTaskDueDate } from "@/lib/date-comparison"
 import {
   useTaskListState,
@@ -494,7 +494,7 @@ export function useTaskManagerController({
 
       // A move INTO Waiting asks what it waits for (a date or a task) and whether to keep it
       // assigned, before anything changes (Jon, 2026-11-12); cancel leaves the task where it was.
-      await sendWithWaitingPrompt(originalTask, requestedTask, async (updatedTask, waitingFields) => {
+      await (await waitingPrompt()).sendWithWaitingPrompt(originalTask, requestedTask, async (updatedTask, waitingFields) => {
         const optimisticTask = { ...updatedTask, updatedAt: new Date() }
         listState.setTasks(prevTasks => {
           return prevTasks.map((task) => {
@@ -530,7 +530,7 @@ export function useTaskManagerController({
           task.id === originalTask.id ? originalTask : task
         ))
         // A 422 asking for a wait condition is answered by the prompt, not a toast.
-        if (isWaitingNeedsCondition(error) && Object.keys(waitingFields).length === 0) throw error
+        if ((await waitingPrompt()).isWaitingNeedsCondition(error) && Object.keys(waitingFields).length === 0) throw error
         toast({
           title: "Error",
           description: refusalReason(error) ?? "Failed to update task. Please try again.",
@@ -693,7 +693,7 @@ export function useTaskManagerController({
       }
 
       // Created straight into Waiting: ask what it waits for first; cancel creates nothing.
-      const waitingFields = await waitingFieldsForCreate(options?.statusRole, taskDataWithDefaults)
+      const waitingFields = await (await waitingPrompt()).waitingFieldsForCreate(options?.statusRole, taskDataWithDefaults)
       if (waitingFields === null) return null
       toast({
         title: "Creating task...",

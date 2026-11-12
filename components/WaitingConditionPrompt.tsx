@@ -39,7 +39,7 @@ import {
   type WaitingChoice,
   type WaitingPromptRequest,
   type WaitingPromptTask,
-} from "@/lib/waiting-prompt"
+} from "@/lib/waiting-prompt-bus"
 
 type Mode = "date" | "task"
 
