@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
       settleApplied: report.settle.applied,
       backfillUnassign: report.backfill.counts.unassign,
       backfillToInbox: report.backfill.counts.toInbox,
+      backfillToDoing: report.backfill.counts.toDoing,
       backfillApplied: report.backfill.applied,
     }
   })
