@@ -32,7 +32,22 @@ const THEMED_STANDALONE_PAGES = [
   'app/[locale]/download/page.tsx',
   'app/[locale]/not-found.tsx',
   'app/[locale]/settings/fullpage/[page]/page.tsx',
+  // Since AWTD-1584 the help, terms and privacy routes frame shared components; the
+  // palette lives in these, so they are what this ratchet has to read.
+  'components/legal/LegalPageShell.tsx',
+  'components/legal/LegalFooter.tsx',
+  'components/legal/HelpContent.tsx',
+  'components/legal/TermsOfServiceContent.tsx',
+  'components/legal/PrivacyPolicyContent.tsx',
 ]
+
+/** Files above that are pieces of a page rather than a page, so own no scroll surface. */
+const PAGE_PARTS = new Set([
+  'components/legal/LegalFooter.tsx',
+  'components/legal/HelpContent.tsx',
+  'components/legal/TermsOfServiceContent.tsx',
+  'components/legal/PrivacyPolicyContent.tsx',
+])
 
 /**
  * Palette classes that bypass the theme. Neutrals (black / white / gray) and
@@ -63,9 +78,10 @@ describe('standalone pages follow the brand theme (AWTD-1047)', () => {
     // The palette swap touches the root element of each page; the scroll shell
     // on that same element is what keeps content below the fold reachable
     // (tests/rules/standalone-pages-own-their-scrolling.test.ts).
-    for (const page of THEMED_STANDALONE_PAGES) {
+    for (const page of THEMED_STANDALONE_PAGES.filter((p) => !PAGE_PARTS.has(p))) {
       const source = readFileSync(join(ROOT, page), 'utf8')
-      expect(/ScrollShell|scrollShellClassName/.test(source), page).toBe(true)
+      // LegalPageShell is a ScrollShell (it is in the list above, so that is checked too).
+      expect(/ScrollShell|scrollShellClassName|LegalPageShell/.test(source), page).toBe(true)
     }
   })
 })
