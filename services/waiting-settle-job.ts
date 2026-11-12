@@ -24,7 +24,8 @@
  */
 import { createLogger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
-import { READY_STATUS_ROLE, WAITING_STATUS_ROLE } from '@/lib/task-status'
+import { DOING_STATUS_ROLE, READY_STATUS_ROLE, WAITING_STATUS_ROLE } from '@/lib/task-status'
+import { parseBlockedConditions } from '@/lib/ready-queue-scope'
 import { hasWaitCondition, waitingSettle, type SettleAction, type Settlement } from '@/lib/waiting-rules'
 import { backfillModeFrom, nativeEnforcementFrom, settleModeFrom, type JobMode, type NativeEnforcement } from '@/lib/waiting-enforcement'
 import { applySettlement } from '@/services/task-dependency.service'
@@ -34,7 +35,14 @@ const log = createLogger('services.waiting-settle-job')
 /** Rows read per page, so a large table is walked rather than loaded. */
 const PAGE = 500
 
-export type BackfillAction = 'unassign' | 'toInbox'
+/**
+ * - `unassign`: a Waiting task with a condition, still assigned (R2).
+ * - `toInbox`: a Waiting task with no condition at all (R3).
+ * - `toDoing`: finished agent work parked in Waiting on its own deploy — latest marker a current
+ *   `AWAITING-DEPLOY: <sha>`. R6: it belongs in Doing, still assigned (land-and-deploy completes
+ *   it from Doing / Testing only). Never unassigned, never Inbox.
+ */
+export type BackfillAction = 'unassign' | 'toInbox' | 'toDoing'
 
 export interface PlannedMove {
   taskId: string
@@ -69,6 +77,8 @@ interface Candidate {
   assigneeId: string | null
   completed: boolean
   blockedBy: Array<{ blockingTaskId: string; blockingTask: { completed: boolean } | null }>
+  /** Its latest marker comment is a current AWAITING-DEPLOY (lib/ready-queue-scope.ts). */
+  awaitingDeploy?: boolean
 }
 
 /**
@@ -81,8 +91,14 @@ export function planTask(
   nativeEnforcement: NativeEnforcement,
 ): { settle?: { settlement: Settlement; heldForBackfill: boolean }; backfill?: BackfillAction } {
   const blockers = task.blockedBy.map(row => ({ id: row.blockingTaskId, completed: Boolean(row.blockingTask?.completed) }))
-  const settlement = waitingSettle(task, blockers, now)
   const plan: ReturnType<typeof planTask> = {}
+  // Awaiting its own deploy (R6): Doing, assignee kept. The settle never touches it — waking it to
+  // Ready or resolving it to Inbox would hand finished work back to the queue.
+  if (task.awaitingDeploy && !task.completed && task.statusRole === WAITING_STATUS_ROLE) {
+    plan.backfill = 'toDoing'
+    return plan
+  }
+  const settlement = waitingSettle(task, blockers, now)
 
   if (settlement.action !== 'stay') {
     plan.settle = {
@@ -121,6 +137,29 @@ async function ownedByReader(taskIds: string[], readerId: string | null): Promis
 }
 
 /**
+ * Which of these Waiting tasks are parked on their own deploy: the latest marker-bearing comment
+ * carries `AWAITING-DEPLOY: <sha>` — lib/ready-queue-scope.ts `parseBlockedConditions`, the rule
+ * the agent loops read, not a second spelling of it. Only marker-bearing comments are read.
+ */
+async function awaitingDeployIds(taskIds: string[]): Promise<Set<string>> {
+  if (taskIds.length === 0) return new Set()
+  const comments = await prisma.comment.findMany({
+    where: {
+      taskId: { in: taskIds },
+      OR: ['awaiting-deploy:', 'blocked-by:', 'blocked-on:'].map(marker => ({ content: { contains: marker, mode: 'insensitive' as const } })),
+    },
+    select: { taskId: true, content: true, createdAt: true },
+  })
+  const byTask = new Map<string, Array<{ content: string | null; createdAt: string }>>()
+  for (const comment of comments) {
+    const list = byTask.get(comment.taskId) ?? []
+    list.push({ content: comment.content, createdAt: comment.createdAt.toISOString() })
+    byTask.set(comment.taskId, list)
+  }
+  return new Set([...byTask].filter(([, list]) => parseBlockedConditions(list).awaitingDeploy !== null).map(([id]) => id))
+}
+
+/**
  * Run the job once. `readerId` is whose boards the report may name tasks on (the admin asking).
  * Modes default to the env switches; a caller may pass a stricter one (the report always dry-runs).
  */
@@ -144,7 +183,7 @@ export async function runWaitingSettleJob(args: {
     nativeEnforcement,
     scanned: 0,
     settle: { counts: {}, heldForBackfill: 0, applied: 0 },
-    backfill: { counts: { unassign: 0, toInbox: 0 }, applied: 0 },
+    backfill: { counts: { unassign: 0, toInbox: 0, toDoing: 0 }, applied: 0 },
     detail: [],
   }
   if (settleMode === 'off' && backfillMode === 'off') return report
@@ -177,6 +216,8 @@ export async function runWaitingSettleJob(args: {
     if (page.length === 0) break
     cursor = page[page.length - 1].id
     const owned = await ownedByReader(page.map(task => task.id), readerId)
+    const deploying = await awaitingDeployIds(page.filter(task => task.statusRole === WAITING_STATUS_ROLE).map(task => task.id))
+    for (const task of page) task.awaitingDeploy = deploying.has(task.id)
 
     for (const task of page) {
       report.scanned++
@@ -190,7 +231,7 @@ export async function runWaitingSettleJob(args: {
           taskId: task.id,
           action: plan.backfill,
           from: task.statusRole,
-          to: plan.backfill === 'toInbox' ? null : WAITING_STATUS_ROLE,
+          to: plan.backfill === 'toInbox' ? null : plan.backfill === 'toDoing' ? DOING_STATUS_ROLE : WAITING_STATUS_ROLE,
           clearAssignee: plan.backfill === 'unassign',
         }
         if (named.title !== undefined) report.detail.push({ ...move, ...named })

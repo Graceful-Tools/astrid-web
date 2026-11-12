@@ -7,11 +7,12 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const rows = vi.hoisted(() => ({ tasks: [] as any[] }))
+const rows = vi.hoisted(() => ({ tasks: [] as any[], comments: [] as any[] }))
 const applySettlement = vi.hoisted(() => vi.fn(async () => true))
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
+    comment: { findMany: vi.fn(async ({ where }: any) => rows.comments.filter(c => where.taskId.in.includes(c.taskId))) },
     task: {
       findMany: vi.fn(async ({ cursor, where }: any) => {
         // The reader-owned lookup: ids on boards the reader (jon) owns, by list or by project.
@@ -46,6 +47,14 @@ beforeEach(() => {
     task('legacy', { assigneeId: 'jon' }),
     task('assigned', { dueDateTime: FUTURE, assigneeId: 'agent', lists: [{ ownerId: 'x', project: { ownerId: 'jon' } }] }),
     task('held', { blockedBy: [{ blockingTaskId: 'b', blockingTask: { completed: false } }] }),
+    task('deploying', { assigneeId: 'agent' }),
+    task('redeployed', { assigneeId: 'agent', dueDateTime: FUTURE }),
+  ]
+  rows.comments = [
+    { taskId: 'deploying', content: 'Done.\nAWAITING-DEPLOY: abc1234', createdAt: new Date('2026-11-11T00:00:00Z') },
+    // A later marker comment replaces the deploy marker: no longer awaiting its deploy.
+    { taskId: 'redeployed', content: 'AWAITING-DEPLOY: abc1234', createdAt: new Date('2026-11-10T00:00:00Z') },
+    { taskId: 'redeployed', content: 'BLOCKED-ON: upstream fix', createdAt: new Date('2026-11-11T00:00:00Z') },
   ]
 })
 
@@ -59,6 +68,7 @@ describe('planTask', () => {
     expect(plan('legacy', 'enforce')).toMatchObject({ backfill: 'toInbox', settle: { heldForBackfill: false } })
     expect(plan('assigned')).toEqual({ backfill: 'unassign' })
     expect(plan('held')).toEqual({})
+    expect(planTask({ ...rows.tasks.find(t => t.id === 'deploying'), awaitingDeploy: true }, NOW, 'enforce')).toEqual({ backfill: 'toDoing' })
   })
 })
 
@@ -67,10 +77,10 @@ describe('runWaitingSettleJob', () => {
     const { runWaitingSettleJob } = await import('@/services/waiting-settle-job')
     const report = await runWaitingSettleJob({ now: NOW, settleMode: 'dry-run', backfillMode: 'dry-run', nativeEnforcement: 'lenient', readerId: 'jon' })
     expect(applySettlement).not.toHaveBeenCalled()
-    expect(report.scanned).toBe(5)
+    expect(report.scanned).toBe(7)
     expect(report.settle.counts).toEqual({ wakeToReady: 1, parkInWaiting: 1 })
     expect(report.settle.heldForBackfill).toBe(1)
-    expect(report.backfill.counts).toEqual({ unassign: 1, toInbox: 1 })
+    expect(report.backfill.counts).toEqual({ unassign: 2, toInbox: 1, toDoing: 1 })
     expect(report.detail.map(move => move.identifier).sort()).toEqual(['AWTD-assigned', 'AWTD-park'])
     expect(JSON.stringify(report)).not.toContain('title wake')
   })
@@ -87,7 +97,9 @@ describe('runWaitingSettleJob', () => {
     const { runWaitingSettleJob } = await import('@/services/waiting-settle-job')
     const report = await runWaitingSettleJob({ now: NOW, settleMode: 'apply', backfillMode: 'apply', nativeEnforcement: 'lenient' })
     expect(report.settle.applied).toBe(2)
-    expect(report.backfill.applied).toBe(2)
+    expect(report.backfill.applied).toBe(4)
+    // Awaiting its deploy: to Doing, the agent still assigned.
+    expect(applySettlement).toHaveBeenCalledWith(expect.objectContaining({ taskId: 'deploying', from: 'waiting', to: 'doing', clearAssignee: false }))
     expect(applySettlement).toHaveBeenCalledWith(expect.objectContaining({ taskId: 'legacy', from: 'waiting', to: null, clearAssignee: false }))
     expect(applySettlement).toHaveBeenCalledWith(expect.objectContaining({ taskId: 'assigned', to: 'waiting', clearAssignee: true }))
     expect(applySettlement).toHaveBeenCalledWith(expect.objectContaining({ taskId: 'park', to: 'waiting', clearAssignee: true }))
@@ -102,5 +114,12 @@ describe('runWaitingSettleJob', () => {
     const { runWaitingSettleJob } = await import('@/services/waiting-settle-job')
     await runWaitingSettleJob({ now: NOW, settleMode: 'apply', backfillMode: 'off', nativeEnforcement: 'lenient' })
     expect(applySettlement).not.toHaveBeenCalledWith(expect.objectContaining({ taskId: 'legacy' }))
+  })
+
+  it('the settle never sends a task awaiting its deploy to Inbox, even when enforcing', async () => {
+    const { runWaitingSettleJob } = await import('@/services/waiting-settle-job')
+    await runWaitingSettleJob({ now: NOW, settleMode: 'apply', backfillMode: 'off', nativeEnforcement: 'enforce' })
+    expect(applySettlement).toHaveBeenCalledWith(expect.objectContaining({ taskId: 'legacy', to: null }))
+    expect(applySettlement).not.toHaveBeenCalledWith(expect.objectContaining({ taskId: 'deploying' }))
   })
 })

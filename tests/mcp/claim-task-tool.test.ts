@@ -119,9 +119,10 @@ describe('MCP claim_task tool (AWTD-1557)', () => {
     expect(tools.find((tool: { name: string }) => tool.name === 'get_agent_queue')?.description)
       .not.toContain('runnable')
     // Re-pinned for the Waiting rules (Jon, 2026-11-12): create_task / update_task gained
-    // keepAssignee and waitOnTaskId and their statusRole descriptions name the wait condition.
+    // keepAssignee and waitOnTaskId and their statusRole descriptions name the wait condition;
+    // add_blocker / remove_blocker say the server wakes the task, not a sweep.
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      '2251f9840c47a897456c3fcaae27773194a8454ba890fabeb53665d45b9d0c37',
+      '51de710177e5a1239d3de3c7f74c92dc99b67bddcb11386a8c73b2596d87034a',
     )
   })
 
