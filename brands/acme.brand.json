@@ -31,6 +31,41 @@
   "assets": {
     "icon": "/icons/acme-1024.png"
   },
+  "ios": {
+    "bundleId": "example.acme.Tasks",
+    "appGroup": "group.example.acme.Tasks",
+    "keychainGroup": "example.acme.Tasks",
+    "developmentTeam": "ACME000001",
+    "displayName": "Acme Tasks"
+  },
+  "windows": {
+    "publisherDisplayName": "Acme Corporation",
+    "identityName": "AcmeCorporation.AcmeTasks",
+    "identityPublisher": "CN=00000000-0000-0000-0000-000000000000"
+  },
+  "android": {
+    "applicationId": "example.acme.tasks",
+    "appName": "Acme Tasks",
+    "wordmark": "ACME",
+    "baseUrl": "https://tasks.acme.example",
+    "urlScheme": "acmetasks",
+    "linkAutoVerify": "true",
+    "handoffClientId": "android",
+    "supportEmail": "helpdesk@acme.example",
+    "inboundTaskEmail": "todo@acme.example",
+    "agentEmailDomain": "agents.acme.example",
+    "accentColor": "#a855f7"
+  },
+  "vscode": {
+    "publisher": "acme",
+    "displayName": "Acme Tasks"
+  },
+  "code": {
+    "nameShort": "Acme Code",
+    "nameLong": "Acme Code",
+    "applicationName": "acme-code",
+    "urlProtocol": "acmecode"
+  },
   "expect": {
     "appName": "Acme",
     "appleAppIds": [
