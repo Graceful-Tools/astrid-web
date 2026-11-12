@@ -346,6 +346,7 @@
       "makeCopyOnly": "Make Copy Only",
       "makeCollaborative": "Make Collaborative",
       "leaveList": "Leave List",
+      "leaveConfirm": "Leave \"{name}\"? Only an owner or admin can add you back.",
       "aiCodingAgents": "AI Coding Agents",
       "aiAgents": "AI Agents",
       "agentForCoding": "{name} for coding and task assistance",
