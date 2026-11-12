@@ -115,7 +115,7 @@ describe('the permissions fixture at the pinned core revision', () => {
         decision: 'role',
         user: { id: fixture.userId },
         list,
-        typescriptAnswer: null,
+        typescriptAnswer: () => null,
       })
       expect(built).not.toHaveProperty('skip')
     }
@@ -140,7 +140,7 @@ describe('the public functions with astrid-core deciding, as the server runs the
     expect(answersFor(list)).toEqual(expected)
     // The core answered every question itself — no fallback, no skip — and agreed.
     expect(reports).toEqual([])
-    expect(decider.stats).toEqual({ agreed: DECISIONS_PER_CASE, disagreed: 0, skipped: 0, failed: 0 })
+    expect(decider.stats).toEqual({ agreed: DECISIONS_PER_CASE, disagreed: 0, unsampled: 0, skipped: 0, failed: 0 })
   })
 
   it('nobody signed in has no access in the core either', () => {

@@ -10,12 +10,14 @@
  * TypeScript answer stands.
  *
  * Kept apart from both rule files so neither has to import the other's internals, and so this file
- * imports nothing at all: it is reachable from client components.
+ * imports nothing but lib/lazy-value.ts: it is reachable from client components.
  *
  * Column ids here are the core's (and lib/project-status.ts's): the virtual columns are
  * `__virtual_inbox__` / `__virtual_done__`. lib/task-status.ts names them `__inbox__` / `__done__`
  * and translates at its edge.
  */
+
+import { lazyValue } from '@/lib/lazy-value'
 
 /** astrid-core's id for the virtual Inbox column (board.rs `VIRTUAL_INBOX_COLUMN_ID`). */
 export const VIRTUAL_INBOX_COLUMN_ID = '__virtual_inbox__'
@@ -48,11 +50,13 @@ export interface CoreMoveQuestion {
 
 /**
  * The installed core. Each method returns its answer, or `undefined` to leave the TypeScript's
- * answer standing (shadow mode, or the core could not answer).
+ * answer standing (shadow mode, or the core could not answer). The TypeScript answer is a getter,
+ * computed at most once and only when asked for: for a fallback or a sampled comparison
+ * (AWTD-1591).
  */
 export interface BoardCore {
-  columns(customStates: unknown, typescriptAnswer: CoreBoardColumn[]): CoreBoardColumn[] | undefined
-  move(question: CoreMoveQuestion, typescriptAnswer: CoreColumnMove): CoreColumnMove | undefined
+  columns(customStates: unknown, typescriptAnswer: () => CoreBoardColumn[]): CoreBoardColumn[] | undefined
+  move(question: CoreMoveQuestion, typescriptAnswer: () => CoreColumnMove): CoreColumnMove | undefined
 }
 
 // On globalThis, as with the other core hooks: Next compiles this module into several layers, each
@@ -67,25 +71,27 @@ export function setBoardCore(core: BoardCore | null): void {
 
 const installed = (): BoardCore | null | undefined => (globalThis as CoreHost)[CORE_KEY]
 
-/** The board's columns: the core's answer when one is installed and answers, else `typescriptAnswer`. */
-export function boardColumnsThroughCore(customStates: unknown, typescriptAnswer: CoreBoardColumn[]): CoreBoardColumn[] {
+/** The board's columns: the core's answer when one is installed and answers, else the TypeScript's. */
+export function boardColumnsThroughCore(customStates: unknown, computeTypescript: () => CoreBoardColumn[]): CoreBoardColumn[] {
   const core = installed()
-  if (!core) return typescriptAnswer
+  if (!core) return computeTypescript()
+  const typescriptAnswer = lazyValue(computeTypescript)
   try {
-    return core.columns(customStates, typescriptAnswer) ?? typescriptAnswer
+    return core.columns(customStates, typescriptAnswer) ?? typescriptAnswer()
   } catch {
     // A hook that throws must not take a board down; the TypeScript answer stands.
-    return typescriptAnswer
+    return typescriptAnswer()
   }
 }
 
-/** What a drop writes: the core's answer when one is installed and answers, else `typescriptAnswer`. */
-export function columnMoveThroughCore(question: CoreMoveQuestion, typescriptAnswer: CoreColumnMove): CoreColumnMove {
+/** What a drop writes: the core's answer when one is installed and answers, else the TypeScript's. */
+export function columnMoveThroughCore(question: CoreMoveQuestion, computeTypescript: () => CoreColumnMove): CoreColumnMove {
   const core = installed()
-  if (!core) return typescriptAnswer
+  if (!core) return computeTypescript()
+  const typescriptAnswer = lazyValue(computeTypescript)
   try {
-    return core.move(question, typescriptAnswer) ?? typescriptAnswer
+    return core.move(question, typescriptAnswer) ?? typescriptAnswer()
   } catch {
-    return typescriptAnswer
+    return typescriptAnswer()
   }
 }

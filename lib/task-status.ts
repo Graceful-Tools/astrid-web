@@ -145,10 +145,8 @@ export function parseCustomStates(raw: unknown): StatusState[] {
  * TypeScript is the fallback and the comparison.
  */
 export function boardColumnsFor(project: ProjectLike | null | undefined): BoardColumn[] {
-  const typescriptAnswer = typescriptBoardColumnsFor(project)
-  const answer = boardColumnsThroughCore(
-    project?.customStates,
-    typescriptAnswer.map(column => ({ ...column, id: toCoreColumnId(column.id) })),
+  const answer = boardColumnsThroughCore(project?.customStates, () =>
+    typescriptBoardColumnsFor(project).map(column => ({ ...column, id: toCoreColumnId(column.id) })),
   )
   return answer.map(column => ({ ...column, id: fromCoreColumnId(column.id) }))
 }
@@ -198,7 +196,6 @@ export function resolveColumnMove(
   task: TaskLike,
   targetColumnId: string
 ): { statusRole: string | null; completed: boolean } {
-  const typescriptAnswer = typescriptColumnMove(targetColumnId)
   const coreId = toCoreColumnId(targetColumnId)
   const kind = coreId === VIRTUAL_INBOX_COLUMN_ID ? 'inbox' : coreId === VIRTUAL_DONE_COLUMN_ID ? 'done' : 'status'
   // No memberships travel here: this planner never touches them, so neither side is asked to.
@@ -208,7 +205,7 @@ export function resolveColumnMove(
       column: { id: coreId, kind },
       lists: [],
     },
-    { ...typescriptAnswer, listIds: [] },
+    () => ({ ...typescriptColumnMove(targetColumnId), listIds: [] }),
   )
   return { statusRole, completed }
 }

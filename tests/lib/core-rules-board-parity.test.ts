@@ -118,7 +118,7 @@ describe.each([
   const expectCoreAnswered = (installedCore: ReturnType<typeof setup>, questions: number) => {
     if (!installedCore) return
     expect(installedCore.reports).toEqual([])
-    expect(installedCore.hook.stats).toEqual({ agreed: questions, disagreed: 0, skipped: 0, failed: 0 })
+    expect(installedCore.hook.stats).toEqual({ agreed: questions, disagreed: 0, unsampled: 0, skipped: 0, failed: 0 })
   }
 
   it.each(configurations)('columns: %s', (_name, configuration) => {

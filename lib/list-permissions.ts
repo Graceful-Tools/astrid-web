@@ -1,4 +1,5 @@
 import type { TaskList, User } from "@/types/task"
+import { lazyValue } from "@/lib/lazy-value"
 import { createLogger } from '@/lib/logger'
 import { LIST_TYPE_LABEL } from '@/lib/list-flavors'
 
@@ -94,9 +95,11 @@ export interface ListDecisionQuestion {
   taskCreatorId?: string | null
   /**
    * The TypeScript rules' answer — what this module returns if the core does not answer, and
-   * what the core's answer is compared with.
+   * what the core's answer is compared with when the decision is sampled. A getter, computed at
+   * most once and only when asked for, so a decision the core answers unsampled never runs the
+   * TypeScript (AWTD-1591).
    */
-  typescriptAnswer: string | boolean | null
+  typescriptAnswer: () => string | boolean | null
 }
 
 /**
@@ -120,9 +123,10 @@ type CoreHost = { [CORE_KEY]?: ListPermissionsCore | null }
  * the stdio MCP server, which install nothing — the TypeScript below decides, and it is pinned to
  * the core by the shared permissions fixture (tests/lib/core-rules-permissions-parity.test.ts).
  *
- * Fail-safe by construction: the TypeScript answer is always computed first, and it is what is
- * returned when the core declines (`undefined`), throws, or answers something that is not a
- * valid answer to the question asked.
+ * Fail-safe by construction: the TypeScript answer is what is returned when the core declines
+ * (`undefined`), throws, or answers something that is not a valid answer to the question asked.
+ * It is computed then, or when the core samples the decision for comparison — not otherwise
+ * (AWTD-1591).
  */
 export function setListPermissionsCore(core: ListPermissionsCore | null): void {
   ;(globalThis as CoreHost)[CORE_KEY] = core
@@ -138,18 +142,19 @@ function decided<T extends string | boolean | null>(
   decision: ListDecision,
   user: UserLike,
   list: ListLike,
-  typescriptAnswer: T,
+  computeTypescript: () => T,
   taskCreatorId?: string | null,
 ): T {
   const core = (globalThis as CoreHost)[CORE_KEY]
-  if (!core) return typescriptAnswer
+  if (!core) return computeTypescript()
+  const typescriptAnswer = lazyValue(computeTypescript)
   try {
     const answer = core({ decision, user, list, taskCreatorId, typescriptAnswer })
-    if (answer === undefined || !isValidAnswer(decision, answer)) return typescriptAnswer
+    if (answer === undefined || !isValidAnswer(decision, answer)) return typescriptAnswer()
     return answer as T
   } catch {
     // A core that throws must never deny, allow or crash: the TypeScript answer stands.
-    return typescriptAnswer
+    return typescriptAnswer()
   }
 }
 
@@ -321,7 +326,7 @@ export function prismaToTaskList(prismaList: Record<string, unknown>): TaskList 
  */
 
 export function getUserRoleInList(user: UserLike, list: ListLike): "owner" | "admin" | "member" | "viewer" | null {
-  return decided<ListRoleAnswer>("role", user, list, roleInList(user, list))
+  return decided<ListRoleAnswer>("role", user, list, () => roleInList(user, list))
 }
 
 function roleInList(user: UserLike, list: ListLike): "owner" | "admin" | "member" | "viewer" | null {
@@ -426,7 +431,7 @@ function getProjectRole(user: UserLike, list: ListLike): "admin" | "member" | nu
 }
 
 export function canUserEditTasks(user: UserLike, list: ListLike): boolean {
-  return decided("canEditTasks", user, list, editTasks(user, list))
+  return decided("canEditTasks", user, list, () => editTasks(user, list))
 }
 
 function editTasks(user: UserLike, list: ListLike): boolean {
@@ -461,7 +466,7 @@ interface TaskLike {
  * For copy-only lists: only list admin or owner can edit
  */
 export function canUserEditTask(user: UserLike, task: TaskLike, list: ListLike): boolean {
-  return decided("canEditTask", user, list, editTask(user, task, list), task?.creatorId)
+  return decided("canEditTask", user, list, () => editTask(user, task, list), task?.creatorId)
 }
 
 function editTask(user: UserLike, task: TaskLike, list: ListLike): boolean {
@@ -511,23 +516,28 @@ function editTask(user: UserLike, task: TaskLike, list: ListLike): boolean {
  * `isOwner || isAdmin || isMember || isListMember` (task e2803305).
  */
 export function hasExplicitListRole(user: UserLike, list: ListLike): boolean {
-  const role = roleInList(user, list)
-  return decided("hasExplicitRole", user, list, role === "owner" || role === "admin" || role === "member")
+  return decided("hasExplicitRole", user, list, () => {
+    const role = roleInList(user, list)
+    return role === "owner" || role === "admin" || role === "member"
+  })
 }
 
 export function canUserManageList(user: UserLike, list: ListLike): boolean {
-  const role = roleInList(user, list)
-  return decided("canManage", user, list, role === "owner" || role === "admin")
+  return decided("canManage", user, list, () => {
+    const role = roleInList(user, list)
+    return role === "owner" || role === "admin"
+  })
 }
 
 export function canUserManageMembers(user: UserLike, list: ListLike): boolean {
-  const role = roleInList(user, list)
-  return decided("canManageMembers", user, list, role === "owner" || role === "admin")
+  return decided("canManageMembers", user, list, () => {
+    const role = roleInList(user, list)
+    return role === "owner" || role === "admin"
+  })
 }
 
 export function canUserDeleteList(user: UserLike, list: ListLike): boolean {
-  const role = roleInList(user, list)
-  return decided("canDelete", user, list, role === "owner")
+  return decided("canDelete", user, list, () => roleInList(user, list) === "owner")
 }
 
 export function getListPermissionDescription(role: "owner" | "admin" | "member" | "viewer" | null): string {
