@@ -16,6 +16,8 @@ import {
   leadingControlOpensOptions,
   taskLeadingControlKind,
 } from "@/lib/task-leading-control"
+import { taskBoardStatus } from "@/lib/task-board-status"
+import { useLoadedProjects } from "@/hooks/use-loaded-projects"
 import type { Task, TaskList } from "@/types/task"
 import type { TaskManagerControllerReturn } from "@/hooks/task-manager/controller-contract"
 
@@ -214,6 +216,12 @@ function TaskRowImpl({
     },
     [task, handleUpdateTask, board],
   )
+  // The board column as a coloured pill — this is a LIST row (AWTD-1582). The
+  // reader's boards say which board the task is on and what it calls a renamed
+  // or custom column; read once per page and shared, so a row adds no request.
+  const projects = useLoadedProjects()
+  const boardStatus = React.useMemo(() => taskBoardStatus(task, projects), [task, projects])
+
   // Unified card styling for both mobile and desktop
   const classNames = [
     'task-row task-card transition-theme relative theme-surface theme-border',
@@ -421,6 +429,7 @@ function TaskRowImpl({
           onOpenOptions={opensOptions ? () => setOptionsOpen(true) : undefined}
           onBoard={Boolean(board)}
           currentListId={currentListId}
+          boardStatus={boardStatus}
         />
         {opensOptions && (
           <PriorityAssigneePicker

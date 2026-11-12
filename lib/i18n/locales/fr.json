@@ -2548,5 +2548,14 @@
     "downloadFile": "Télécharger le fichier",
     "unknownFile": "Fichier inconnu",
     "loadFailed": "Échec du chargement du fichier"
+  },
+  "board": {
+    "status": {
+      "inbox": "Boîte de réception",
+      "ready": "Prêt",
+      "doing": "En cours",
+      "waiting": "En attente",
+      "done": "Terminé"
+    }
   }
 }

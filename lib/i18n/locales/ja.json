@@ -2548,5 +2548,14 @@
     "downloadFile": "ファイルをダウンロード",
     "unknownFile": "不明なファイル",
     "loadFailed": "ファイルを読み込めませんでした"
+  },
+  "board": {
+    "status": {
+      "inbox": "受信箱",
+      "ready": "準備完了",
+      "doing": "作業中",
+      "waiting": "待機中",
+      "done": "完了"
+    }
   }
 }

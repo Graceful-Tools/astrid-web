@@ -21,3 +21,38 @@ export async function fetchProjects(): Promise<ClientProject[]> {
   const body = await response.json()
   return Array.isArray(body?.projects) ? body.projects : []
 }
+
+let cachedProjects: ClientProject[] | null = null
+let inflightProjects: Promise<ClientProject[]> | null = null
+
+/**
+ * The projects, read once per page load and shared by every caller that is
+ * content with that (task-id links, the list row's board-status pill). A board
+ * created or renamed since then shows after a reload. A failed read is not
+ * cached, so the next caller retries.
+ */
+export function loadProjectsOnce(): Promise<ClientProject[]> {
+  if (cachedProjects) return Promise.resolve(cachedProjects)
+  if (!inflightProjects) {
+    inflightProjects = fetchProjects()
+      .then(result => {
+        cachedProjects = result
+        return result
+      })
+      .finally(() => {
+        inflightProjects = null
+      })
+  }
+  return inflightProjects
+}
+
+/** What `loadProjectsOnce` already holds, without asking. */
+export function peekLoadedProjects(): ClientProject[] | null {
+  return cachedProjects
+}
+
+/** Test seam: the module-level cache would otherwise leak between cases. */
+export function __clearLoadedProjectsCache() {
+  cachedProjects = null
+  inflightProjects = null
+}
