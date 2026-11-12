@@ -482,18 +482,20 @@ describe('ReminderService', () => {
       }
     })
 
-    it('should limit maximum snooze attempts', async () => {
-      // Mock a reminder that has been snoozed too many times
+    it('AWTD-1583 (D37): snoozes a sixth time — there is no cap, as on iOS and in the core', async () => {
       mockPrisma.reminderQueue.findUnique = vi.fn().mockResolvedValue({
         id: 'reminder1',
         retryCount: 5, // Already snoozed 5 times
         data: { snoozeCount: 5 },
       })
+      mockPrisma.reminderQueue.update = vi.fn().mockResolvedValue({})
 
       const result = await reminderService.snoozeReminder('reminder1', 30)
 
-      expect(result.success).toBe(false)
-      expect(result.error).toContain('maximum snooze limit')
+      expect(result.success).toBe(true)
+      expect(mockPrisma.reminderQueue.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ data: expect.objectContaining({ snoozeCount: 6 }) }) }),
+      )
     })
   })
 

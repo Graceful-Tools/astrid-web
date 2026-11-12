@@ -33,6 +33,8 @@ import { useTranslations } from "@/lib/i18n/client"
 import { DEFAULT_LIST_SHOW_SUBTASKS } from "@/lib/list-subtask-visibility"
 import { apiPatch } from '@/lib/api'
 import { ProjectFieldFilterSelect } from "./list-settings/ProjectFieldFilterSelect"
+import { coreDueDateWindow } from "@/lib/date-filter-utils"
+import { coreSortBy } from "@/lib/task-sort"
 
 interface ListSortAndFiltersProps {
   list: TaskList
@@ -103,26 +105,27 @@ export function ListSortAndFilters({
   // Filter states loaded from list settings
   const [filterPriority, setFilterPriority] = useState<string>(list.filterPriority || "all")
   const [filterAssignee, setFilterAssignee] = useState<string>(list.filterAssignee || "all")
-  const [filterDueDate, setFilterDueDate] = useState<string>(list.filterDueDate || "all")
+  const [filterDueDate, setFilterDueDate] = useState<string>(coreDueDateWindow(list.filterDueDate || "all"))
   const [filterCompletion, setFilterCompletion] = useState<string>(list.filterCompletion || "all")
   const [filterAssignedBy, setFilterAssignedBy] = useState<string>(list.filterAssignedBy || "all")
   const [filterRepeating, setFilterRepeating] = useState<string>(list.filterRepeating || "all")
   const [filterInLists, setFilterInLists] = useState<string>(list.filterInLists || "dont_filter")
   const [isVirtual, setIsVirtual] = useState<boolean>(list.isVirtual || false)
-  const [sortBy, setSortBy] = useState<string>(list.sortBy || "auto")
+  const [sortBy, setSortBy] = useState<string>(coreSortBy(list.sortBy || "auto"))
   const [isToggleFavorite, setIsToggleFavorite] = useState(false)
 
   // Update filter states when list changes
   useEffect(() => {
     setFilterCompletion(list.filterCompletion || "all")
-    setFilterDueDate(list.filterDueDate || "all")
+    // A retired window or order shows as the one it now means (AWTD-1583).
+    setFilterDueDate(coreDueDateWindow(list.filterDueDate || "all"))
     setFilterAssignee(list.filterAssignee || "all")
     setFilterAssignedBy(list.filterAssignedBy || "all")
     setFilterRepeating(list.filterRepeating || "all")
     setFilterPriority(list.filterPriority || "all")
     setFilterInLists(list.filterInLists || "dont_filter")
     setIsVirtual(list.isVirtual || false)
-    setSortBy(list.sortBy || "auto")
+    setSortBy(coreSortBy(list.sortBy || "auto"))
   }, [
     list.id,
     list.filterCompletion,

@@ -5,11 +5,11 @@
  * (scripts/contract-fixtures/drivers/my-tasks.mjs → contracts/fixtures/my-tasks.json). It lived
  * inside hooks/useFilterState.ts until AWTD-1262, where nothing but a rendered list could ask it.
  *
- * Web and the native clients disagree here (astrid-core docs/CONTRACTS.md D25, resolved toward
- * iOS): iOS's My Tasks is only what is assigned to you, read through the nested `assignee` when
- * `assigneeId` is missing, and it ignores `filterAssignee`. Web also keeps unassigned tasks you
- * created, reads `assigneeId` alone, and applies `filterAssignee`. The fixture carries those cases
- * as disputed, so changing this to iOS's rule is a deliberate contract change, not a refactor.
+ * Web follows iOS and astrid-core here (`filters::my_tasks::filter`; docs/CONTRACTS.md D25,
+ * resolved toward iOS, adopted on web in AWTD-1583): My Tasks is only what is assigned to you —
+ * read through the nested `assignee` when `assigneeId` is missing — it is empty signed out, and it
+ * ignores `filterAssignee`. Until AWTD-1583 web also kept unassigned tasks you created, read
+ * `assigneeId` alone, and applied `filterAssignee`.
  *
  * Completion and due date are not here: My Tasks applies them through the same functions every
  * list does (lib/recently-completed-window.ts, lib/date-filter-utils.ts), locked by filters.json.
@@ -17,6 +17,8 @@
 
 export interface MyTasksScopeTask {
   assigneeId?: string | null
+  /** The nested assignee, which stands in for a missing `assigneeId`. */
+  assignee?: { id?: string | null } | null
   creatorId?: string | null
   priority?: number | null
 }
@@ -24,13 +26,14 @@ export interface MyTasksScopeTask {
 export interface MyTasksScopePreferences {
   /** Empty means every priority. */
   filterPriority: number[]
-  /** Assignee ids, or `'unassigned'`. Empty means everyone. */
-  filterAssignee: string[]
+  /** Carried for the round trip; My Tasks does not apply it (D25). */
+  filterAssignee?: string[]
 }
 
-/** Assigned to the reader, or unassigned and created by them. */
+/** Assigned to the reader. Signed out (no reader), nothing is. */
 export function isInMyTasksScope(task: MyTasksScopeTask, userId?: string | null): boolean {
-  return task.assigneeId === userId || (task.assigneeId === null && task.creatorId === userId)
+  if (!userId) return false
+  return (task.assigneeId ?? task.assignee?.id ?? null) === userId
 }
 
 /** The priority filter every list applies: a missing priority reads as 0. */
@@ -43,15 +46,11 @@ export function matchesAssigneeFilter(task: MyTasksScopeTask, assignees: string[
   return assignees.length === 0 || assignees.includes(task.assigneeId || 'unassigned')
 }
 
-/** In My Tasks, before completion, due date and sort. */
+/** In My Tasks, before completion, due date and sort. `filterAssignee` is not read (D25). */
 export function myTasksShows(
   task: MyTasksScopeTask,
   userId: string | null | undefined,
   preferences: MyTasksScopePreferences,
 ): boolean {
-  return (
-    isInMyTasksScope(task, userId) &&
-    matchesPriorityFilter(task, preferences.filterPriority) &&
-    matchesAssigneeFilter(task, preferences.filterAssignee)
-  )
+  return isInMyTasksScope(task, userId) && matchesPriorityFilter(task, preferences.filterPriority)
 }

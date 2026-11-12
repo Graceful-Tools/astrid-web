@@ -23,7 +23,7 @@ describe('getFixedListTaskCount', () => {
       lists: overrides.lists ?? [],
     }) as Task
 
-  it('counts My Tasks using the same assignee/creator rules as the list view', () => {
+  it('counts My Tasks using the same scope as the list view (AWTD-1583: assigned to me only)', () => {
     const tasks = [
       makeTask({ id: 'assigned-open', assigneeId: currentUserId, completed: false }),
       makeTask({ id: 'assigned-completed', assigneeId: currentUserId, completed: true }),
@@ -33,7 +33,7 @@ describe('getFixedListTaskCount', () => {
 
     expect(
       getFixedListTaskCount(tasks, 'my-tasks', currentUserId, { completionFilter: 'all' }),
-    ).toBe(3)
+    ).toBe(2)
   })
 
   it('applies the My Tasks completion filter to the badge count', () => {
@@ -45,7 +45,7 @@ describe('getFixedListTaskCount', () => {
 
     expect(
       getFixedListTaskCount(tasks, 'my-tasks', currentUserId, { completionFilter: 'completed' }),
-    ).toBe(2)
+    ).toBe(1)
 
     expect(
       getFixedListTaskCount(tasks, 'my-tasks', currentUserId, { completionFilter: 'incomplete' }),

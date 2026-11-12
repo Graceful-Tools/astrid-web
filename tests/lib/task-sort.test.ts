@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildTask, buildUser } from '../fixtures/domain'
-import { sortTasksForList } from '@/lib/task-sort'
+import { coreSortBy, sortTasksForList } from '@/lib/task-sort'
 import type { Task } from '@/types/task'
 
 // `id` came through `overrides` twice, and the creator was cast rather than
@@ -88,12 +88,34 @@ describe('sortTasksForList', () => {
     ])
   })
 
-  it('manual: falls back to creation order when no manual order is supplied', () => {
+  it('AWTD-1583 (D33) manual: nothing arranged yet sorts newest first, as on iOS and in the core', () => {
     const tasks = [
-      baseTask({ id: 'late', createdAt: new Date('2026-01-05') }),
       baseTask({ id: 'early', createdAt: new Date('2026-01-01') }),
+      baseTask({ id: 'late', createdAt: new Date('2026-01-05') }),
     ]
-    expect(sortTasksForList(tasks, 'manual', undefined).map(t => t.id)).toEqual(['early', 'late'])
+    expect(sortTasksForList(tasks, 'manual', undefined).map(t => t.id)).toEqual(['late', 'early'])
+  })
+
+  it('AWTD-1583 (D33) priority: completed tasks sink below open ones, then due date breaks ties', () => {
+    const tasks = [
+      baseTask({ id: 'done-high', priority: 3, completed: true }),
+      baseTask({ id: 'open-low', priority: 0 }),
+      baseTask({ id: 'open-high-later', priority: 3, dueDateTime: new Date('2026-09-20') }),
+      baseTask({ id: 'open-high-sooner', priority: 3, dueDateTime: new Date('2026-09-10') }),
+    ]
+    expect(sortTasksForList(tasks, 'priority').map(t => t.id)).toEqual(['open-high-sooner', 'open-high-later', 'open-low', 'done-high'])
+  })
+
+  it('AWTD-1583 (D33): a retired order (assignee, completed, incomplete) sorts as auto; createdAt is newest first', () => {
+    const tasks = [
+      baseTask({ id: 'a', priority: 0, createdAt: new Date('2026-01-01') }),
+      baseTask({ id: 'b', priority: 3, createdAt: new Date('2026-01-02') }),
+    ]
+    for (const retired of ['assignee', 'completed', 'incomplete']) {
+      expect(sortTasksForList(tasks, retired).map(t => t.id), retired).toEqual(sortTasksForList(tasks, 'auto').map(t => t.id))
+      expect(coreSortBy(retired)).toBe('auto')
+    }
+    expect(sortTasksForList(tasks, 'createdAt').map(t => t.id)).toEqual(['b', 'a'])
   })
 })
 
