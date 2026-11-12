@@ -306,6 +306,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'OTEL_SERVICE_NAME', scope: 'optional', description: 'Service name reported to tracing.' },
   { name: 'NEXT_PUBLIC_DEBUG_PERMISSIONS', scope: 'tooling', description: 'Logs permission decisions in the browser.' },
   { name: 'ASTRID_CORE_RULES', scope: 'optional', description: 'How astrid-core (packages/astrid-rules) takes part in list permissions, search-query parsing and repeating-task rollover on the Node runtime. Unset: the core decides and the TypeScript rules are the fail-safe fallback and are compared. "shadow": the TypeScript decides and the core is only compared. "off": the core is not loaded. The rollback for AWTD-1061, AWTD-1062 and AWTD-1063 without a code revert.' },
+  { name: 'ASTRID_CORE_RULES_SAMPLE', scope: 'optional', description: 'In decide mode, compare the core with the TypeScript rules on 1 decision in N (default 20; 1 compares every decision). Health counts stay comparisons only (AWTD-1591).' },
 
   // ── Apple / App Store ─────────────────────────────────────────────────────
   { name: 'TESTFLIGHT_PUBLIC_LINK', scope: 'optional', description: 'Public TestFlight join link shown on the download page.' },
