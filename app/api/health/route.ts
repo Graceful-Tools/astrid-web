@@ -4,6 +4,7 @@ import { createLogger } from '@/lib/logger'
 import { listPermissionsCoreStatus } from '@/lib/core-rules/list-permissions-core'
 import { searchQueryCoreStatus } from '@/lib/core-rules/search-query-core'
 import { repeatingCoreStatus } from '@/lib/core-rules/repeating-core'
+import { boardCoreStatus } from '@/lib/core-rules/board-core'
 
 const log = createLogger('health')
 
@@ -59,6 +60,8 @@ export async function GET(request: NextRequest) {
       coreRulesSearch: searchQueryCoreStatus(),
       // And for repeating-task rollover on completion (AWTD-1063).
       coreRulesRepeating: repeatingCoreStatus(),
+      // And for the project board's columns and drops (AWTD-1585).
+      coreRulesBoard: boardCoreStatus(),
       webhookConfigured: !!process.env.CLAUDE_REMOTE_WEBHOOK_URL,
       // Booleans only: this endpoint is unauthenticated, and it once returned the first 30
       // characters of the secret-bearing CLAUDE_REMOTE_WEBHOOK_URL (AWTD-1456).

@@ -103,5 +103,14 @@ export async function register() {
     } catch (error) {
       console.error('repeating: astrid-core module failed to import; the TypeScript decides', error)
     }
+    // The project board too (AWTD-1585): lib/board-core-hook.ts, behind getProjectBoardColumns /
+    // resolveProjectColumnMove and boardColumnsFor / resolveColumnMove. Same setting, same fallback,
+    // pinned by the shared board fixture.
+    try {
+      const { installBoardCore } = await import('@/lib/core-rules/board-core')
+      installBoardCore()
+    } catch (error) {
+      console.error('board: astrid-core module failed to import; the TypeScript decides', error)
+    }
   }
 }
