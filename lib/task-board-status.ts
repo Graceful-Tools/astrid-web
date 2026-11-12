@@ -21,7 +21,7 @@
  *
  * Pure: the row reads it synchronously from what it already holds.
  */
-import { isDefaultStatusRole, parseCustomStates } from '@/lib/task-status'
+import { DEFAULT_STATES, isDefaultStatusRole, parseCustomStates } from '@/lib/task-status'
 
 export type TaskBoardStatusKind = 'inbox' | 'ready' | 'doing' | 'waiting' | 'done' | 'custom'
 
@@ -53,25 +53,60 @@ export function boardStatusClass(kind: TaskBoardStatusKind): string {
   return `board-status-pill board-status-${kind}`
 }
 
-/** The ids of the boards a task is on: its lists' own `projectId`, or a project that lists them. */
-function boardIdsFor(task: BoardStatusTask, projects: readonly BoardStatusProject[]): string[] {
-  const lists = (task.lists ?? []).filter((list): list is { id: string; projectId?: string | null } => list != null)
+type ListRef = { id: string; projectId?: string | null }
+
+/** What a row knows about boards: the synced lists and the reader's projects. */
+export interface BoardStatusSource {
+  /** The synced list collection; its `projectId` is authoritative when present (null = on no board). */
+  lists?: readonly ListRef[] | null
+  projects?: readonly BoardStatusProject[] | null
+  /**
+   * The board being viewed, when the row is on a board-backed list. Its column
+   * names are what the row's status picker and the board itself show, so they
+   * win over another board the task is also on.
+   */
+  board?: { projectId: string; columns: ReadonlyArray<{ id: string; name: string; kind: string }> } | null
+}
+
+/**
+ * The board a list belongs to. A `projectId` field that is present — on the
+ * synced list first, then on the task's own copy — decides, null included, so
+ * a list moved off a board loses its pill even while a cached project still
+ * names it. Project membership is consulted only when neither copy says.
+ */
+function boardIdForList(
+  list: ListRef,
+  synced: ReadonlyMap<string, ListRef>,
+  projects: readonly BoardStatusProject[],
+): string | null {
+  const fromSync = synced.get(list.id)
+  if (fromSync && 'projectId' in fromSync && fromSync.projectId !== undefined) return fromSync.projectId ?? null
+  if ('projectId' in list && list.projectId !== undefined) return list.projectId ?? null
+  return projects.find(project => (project.lists ?? []).some(entry => entry.id === list.id))?.id ?? null
+}
+
+function boardIdsFor(task: BoardStatusTask, source: BoardStatusSource): string[] {
+  const projects = source.projects ?? []
+  const synced = new Map((source.lists ?? []).map(list => [list.id, list]))
   const ids = new Set<string>()
-  for (const list of lists) {
-    if (list.projectId) ids.add(list.projectId)
-  }
-  const listIds = new Set(lists.map(list => list.id))
-  for (const project of projects) {
-    if ((project.lists ?? []).some(list => listIds.has(list.id))) ids.add(project.id)
+  for (const list of task.lists ?? []) {
+    if (!list) continue
+    const id = boardIdForList(list, synced, projects)
+    if (id) ids.add(id)
   }
   return [...ids]
 }
 
+/** The built-in English names, which mean "not renamed" when a column carries them. */
+const BUILT_IN_NAMES: Record<string, string> = Object.fromEntries(
+  DEFAULT_STATES.map(state => [state.role, state.name]),
+)
+
 export function taskBoardStatus(
   task: BoardStatusTask,
-  projects: readonly BoardStatusProject[] = [],
+  source: BoardStatusSource = {},
 ): TaskBoardStatus | null {
-  const boardIds = boardIdsFor(task, projects)
+  const boardIds = boardIdsFor(task, source)
   if (boardIds.length === 0) return null
 
   const role = task.statusRole ?? ''
@@ -80,13 +115,22 @@ export function taskBoardStatus(
   else if (!role) kind = 'inbox'
   else kind = isDefaultStatusRole(role) ? (role as TaskBoardStatusKind) : 'custom'
 
-  const lookupRole = kind === 'custom' ? role : kind
+  // Inbox and Done are virtual columns: always the built-in, localized name.
+  if (kind === 'inbox' || kind === 'done') return { kind, boardName: null }
+
+  // On the board being viewed, its own columns name the status.
+  const board = source.board
+  if (board && boardIds.includes(board.projectId)) {
+    const column = board.columns.find(candidate => candidate.kind === 'status' && candidate.id === role)
+    if (!column) return kind === 'custom' ? null : { kind, boardName: null }
+    const renamed = column.name && column.name !== BUILT_IN_NAMES[role] ? column.name : null
+    return { kind, boardName: renamed }
+  }
+
   let boardName: string | null = null
   for (const id of boardIds) {
-    const project = projects.find(candidate => candidate.id === id)
-    const state = parseCustomStates(project?.customStates).find(
-      candidate => candidate.role === lookupRole,
-    )
+    const project = (source.projects ?? []).find(candidate => candidate.id === id)
+    const state = parseCustomStates(project?.customStates).find(candidate => candidate.role === role)
     if (state) {
       boardName = state.name
       break

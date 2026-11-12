@@ -440,8 +440,7 @@ export function MainContent({
     taskDisplayMode,
   })
 
-  // The board behind the selected list, or null — once for the whole list.
-  const boardRowContext = useBoardRowContext(lists, selectedListId)
+  const { board: boardRowContext, statusSource: boardStatusSource } = useBoardRowContext(lists, selectedListId)
 
   // The Statuses settings tab manages the SAME columns the board renders. It
   // used to be handed the `listType: 'status'` rows; Stage D deleted them, and
@@ -469,6 +468,7 @@ export function MainContent({
       setDraggingTaskMetrics={setDraggingTaskMetrics}
       startMobileDrag={startMobileDrag}
       board={boardRowContext}
+      boardStatusSource={boardStatusSource}
       currentListId={selectedListId}
     />
   ), [
@@ -481,7 +481,7 @@ export function MainContent({
     registerTaskRow,
     renderManualPlaceholderRow,
     startMobileDrag,
-    boardRowContext,
+    boardRowContext, boardStatusSource,
   ])
 
   // Add-task input (or Copy-List button for read-only public/featured lists; a followed public list is listMetadata, AWTD-1405).
