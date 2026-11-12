@@ -52,6 +52,9 @@ vi.mock('next-intl/server', () => ({
   setRequestLocale: vi.fn(),
 }))
 
+const connection = vi.hoisted(() => vi.fn(async () => undefined))
+vi.mock('next/server', async (orig) => ({ ...(await orig<object>()), connection }))
+
 const notFound = vi.hoisted(() =>
   vi.fn(() => {
     throw new Error('NEXT_HTTP_ERROR_FALLBACK;404')
@@ -70,6 +73,20 @@ async function renderRootNotFound(): Promise<string> {
 describe('the root 404 is static and branded (AWTD-1599)', () => {
   beforeEach(() => {
     nextIntl.locale = 'de' // a request locale exists; the page must not read it
+    connection.mockClear()
+    vi.unstubAllEnvs()
+  })
+
+  it('stays prerendered on a hosted build (Vercel serves misses from the static /404)', async () => {
+    vi.stubEnv('ASTRID_RUNTIME_BRAND', '')
+    await renderRootNotFound()
+    expect(connection).not.toHaveBeenCalled()
+  })
+
+  it('renders per request in an image that takes its brand at runtime (Copilot on #739)', async () => {
+    vi.stubEnv('ASTRID_RUNTIME_BRAND', 'true')
+    await renderRootNotFound()
+    expect(connection).toHaveBeenCalledTimes(1)
   })
 
   it('renders the default locale without reading the request', async () => {
