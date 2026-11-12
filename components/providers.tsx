@@ -15,7 +15,10 @@ import { OfflineProvider } from "@/components/offline-provider"
 import { FeatureFlagProvider } from "@/contexts/feature-flag-context"
 import { EditingSessionProvider } from "@/hooks/use-editing-session"
 import { WebVitalsReporter } from "@/components/web-vitals-reporter"
-import { WaitingPromptHost } from "@/components/WaitingPromptHost"
+import dynamic from "next/dynamic"
+
+// Loaded after hydration, so the Waiting prompt costs no first-load JS (AWTD-1593).
+const WaitingPromptHost = dynamic(() => import("@/components/WaitingPromptHost").then(m => m.WaitingPromptHost), { ssr: false })
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (

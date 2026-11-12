@@ -21,7 +21,7 @@
  */
 
 import { parseCustomStates, isDefaultStatusRole, DEFAULT_STATES, type StatusState } from '@/lib/task-status'
-import { boardPresets } from '@/lib/waiting-rules'
+import { availableBoardPresets, type BoardPreset } from '@/lib/board-presets'
 
 /** Longest name that fits a column header without truncating. */
 export const MAX_STATUS_NAME_LENGTH = 40
@@ -237,10 +237,15 @@ export function addCustomState(
 /**
  * Add one of astrid-core's optional preset columns (R7) — its FIXED role (`testing`), name and
  * description, after every existing column. Offered only while the board has neither that role
- * nor a column of that name (`boardPresets`, decided by the core on the server).
+ * nor a column of that name. The server passes `available` from the core (lib/waiting-rules.ts
+ * `boardPresets`); the default is the same rule in TypeScript.
  */
-export function addPresetState(raw: unknown, role: string): CustomStateWrite {
-  const preset = boardPresets(raw).find(candidate => candidate.role === role)
+export function addPresetState(
+  raw: unknown,
+  role: string,
+  available: BoardPreset[] = availableBoardPresets(raw),
+): CustomStateWrite {
+  const preset = available.find(candidate => candidate.role === role)
   if (!preset) {
     return { error: 'duplicate', message: 'That preset is not available on this board' }
   }
