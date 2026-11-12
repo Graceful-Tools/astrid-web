@@ -43,7 +43,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
-  OAUTH_SCOPES,
+  localizedScopeDescription,
   SCOPE_GROUPS,
   getAllScopes,
   isRegisterableScope,
@@ -287,7 +287,7 @@ export function OAuthScopeGroupDialog({
                             {t(`${PREFIX}.notGranted`)}
                           </Badge>
                         )}
-                        <span className="text-xs theme-text-muted block">{OAUTH_SCOPES[scope]}</span>
+                        <span className="text-xs theme-text-muted block">{localizedScopeDescription(scope, t)}</span>
                       </label>
                     </div>
                   ))}

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { formatConciseClockTime } from "@/lib/i18n/date-format"
 import { Button } from "./button"
 import { Popover, PopoverContent, PopoverTrigger } from "./popover"
 import { Clock } from "lucide-react"
@@ -330,15 +331,8 @@ export function dateToTimeString(date: Date | null | undefined): string | null {
 }
 
 // Helper function to format time in concise format (10am, 9pm, 9:30pm)
-export function formatConciseTime(date: Date | null | undefined): string | null {
+export function formatConciseTime(date: Date | null | undefined, locale?: string | null): string | null {
   if (!date) return null
-  
-  const hours = date.getHours()
-  const minutes = date.getMinutes()
-  
-  let hour12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours
-  const period = hours >= 12 ? "pm" : "am"
-  const minuteStr = minutes === 0 ? "" : `:${minutes.toString().padStart(2, "0")}`
-  
-  return `${hour12}${minuteStr}${period}`
+  // "5pm" in English; the reader's own short time elsewhere (AWTD-1601).
+  return formatConciseClockTime(date, locale)
 }

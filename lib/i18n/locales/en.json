@@ -473,7 +473,8 @@
     "selectTime": "Select time",
     "twoHoursBefore": "2 hours before",
     "twoDaysBefore": "2 days before",
-    "noon": "Noon"
+    "noon": "Noon",
+    "dateAtTime": "{date} at {time}"
   },
   "repeating": {
     "oneTimeOnly": "One time only",
@@ -716,7 +717,20 @@
       "complete": "Complete",
       "completedToast": "Congratulations on finishing!",
       "snooze1day": "Snooze 1 day",
-      "snooze1week": "Snooze 1 week"
+      "snooze1week": "Snooze 1 week",
+      "snoozedTitle": "Reminder Snoozed",
+      "snoozedDescription": "Reminder will come back {when}",
+      "snoozeFailedTitle": "Snooze Failed",
+      "snoozeFailed": "Failed to snooze reminder",
+      "dismissedTitle": "Reminder Dismissed",
+      "dismissedDescription": "This reminder will not appear again",
+      "dismissFailedTitle": "Dismiss Failed",
+      "dismissFailed": "Failed to dismiss reminder",
+      "completedTitle": "Task Completed",
+      "completedDescription": "Task marked as complete and reminder dismissed",
+      "completeFailedTitle": "Complete Failed",
+      "completeFailed": "Failed to complete task",
+      "overdue": "Overdue"
     }
   },
   "emptyState": {
@@ -2488,7 +2502,36 @@
     "connectIntro": "Each agent has its own {appName} identity and only takes tasks that are {assignedAndReady} in its own list. Open one, paste its steps — or paste this page's link into the agent and ask it to set itself up.",
     "connectIntroAssignedAndReady": "assigned to it and marked Ready",
     "workSetReady": "Set its status to {ready} when you want the agent to start. That is the go button.",
-    "teamIntro": "Share each list (list settings → {members} → invite by email). Everyone sees the same tasks, comments and agent reports. List owners and admins can hand any task to an agent; members can hand over tasks they created. To let members hand over any task, turn on {setting} in the list's settings → {aiAgent} (the agents run on the owner's plans)."
+    "teamIntro": "Share each list (list settings → {members} → invite by email). Everyone sees the same tasks, comments and agent reports. List owners and admins can hand any task to an agent; members can hand over tasks they created. To let members hand over any task, turn on {setting} in the list's settings → {aiAgent} (the agents run on the owner's plans).",
+    "agents": {
+      "muse": {
+        "role": "Plans and triages: turns ideas, feedback and bugs into clear Build and Fix tasks.",
+        "plan": "A Muse account with Muse Code",
+        "runs": "Muse Code connects to the MCP server and checks its queue every 30 minutes."
+      },
+      "claude": {
+        "role": "Builds features end to end in your repo and opens pull requests.",
+        "plan": "Claude Max (Claude Code included)",
+        "runs": "Claude Code connects to the MCP server and checks its queue every 30 minutes."
+      },
+      "codex": {
+        "role": "Fixes bugs test-first, refactors and adds missing tests.",
+        "plan": "ChatGPT Pro or Plus (Codex CLI included)",
+        "runs": "Codex CLI connects to the MCP server and checks its queue every 30 minutes."
+      },
+      "copilot": {
+        "role": "Reviews every pull request on GitHub automatically, and works review tasks.",
+        "plan": "GitHub Copilot Pro+ (or Business for a team)",
+        "runs": "GitHub requests a Copilot review on every pull request; Copilot CLI checks the Review queue every 30 minutes.",
+        "extraStep0": "In your GitHub repository open Settings → Rules → Rulesets → New branch ruleset, target your default branch, and turn on \"Automatically request Copilot code review\". Every pull request any agent opens is then reviewed by Copilot without you asking."
+      },
+      "githubActions": {
+        "role": "Runs your recurring automations on a schedule in GitHub — nothing on your machine.",
+        "plan": "Included with GitHub (free minutes on public and most private repos)",
+        "runs": "A scheduled workflow asks the Automations queue for work every 30 minutes and only starts a job when there is some.",
+        "extraStep0": "Create client credentials in {app} (Settings → AI Agents → Copilot → GitHub Actions) and save them as repository secrets {clientId} and {clientSecret}."
+      }
+    }
   },
   "richTextInput": {
     "placeholder": "Type a message...",
@@ -2508,7 +2551,11 @@
     "empty": "No messages yet. Start the conversation!",
     "loadFailed": "Failed to load chat",
     "openChat": "Open chat",
-    "showTasks": "Show tasks"
+    "showTasks": "Show tasks",
+    "authorYou": "You",
+    "authorSystem": "System",
+    "authorUnknown": "Unknown",
+    "systemEventAt": "On {when}, {content}"
   },
   "notificationBell": {
     "markAllRead": "Mark all read",
@@ -2556,6 +2603,49 @@
       "doing": "Doing",
       "waiting": "Waiting",
       "done": "Done"
+    },
+    "blurb": {
+      "inbox": "Move them to \"Ready\" when they are... ready!",
+      "ready": "Time to get to work!",
+      "doing": "Active work in progress!",
+      "waiting": "Paused until the circumstances are right.",
+      "done": "Complete — congrats!"
     }
+  },
+  "passkeyErrors": {
+    "notSupported": "Passkeys are not supported on this device",
+    "optionsFailed": "Couldn't start the passkey request. Please try again.",
+    "registrationFailed": "Passkey registration failed",
+    "authenticationFailed": "Passkey sign-in failed",
+    "defaultName": "My Passkey"
+  },
+  "oauthScopes": {
+    "tasks_read": "Read tasks",
+    "tasks_write": "Create and update tasks",
+    "tasks_delete": "Delete tasks",
+    "lists_read": "Read lists",
+    "lists_write": "Create and update lists",
+    "lists_configure": "Create lists and edit their name, instructions, default assignee and colour",
+    "lists_delete": "Delete lists",
+    "lists_manage_members": "Manage list members",
+    "projects_read": "Read projects (status boards)",
+    "projects_write": "Create and update projects (status boards)",
+    "projects_delete": "Delete projects (status boards)",
+    "comments_read": "Read comments",
+    "comments_write": "Create comments",
+    "comments_delete": "Delete comments",
+    "chat_read": "Read chat messages",
+    "chat_write": "Send chat messages",
+    "user_read": "Read user profile and settings",
+    "user_write": "Update user settings",
+    "attachments_read": "Read attachments",
+    "attachments_write": "Upload attachments",
+    "attachments_delete": "Delete attachments",
+    "contacts_read": "Read uploaded contacts",
+    "contacts_write": "Upload and manage contacts",
+    "public_read": "Read public lists",
+    "public_write": "Create and manage public lists",
+    "sse_connect": "Connect to SSE event stream",
+    "all": "Full access (internal use only - granted to session-based auth)"
   }
 }
