@@ -19,7 +19,7 @@ export const BLOCKER_TOOLS = [
   {
     name: "add_blocker",
     description:
-      "Mark a task as waiting on another task (\"Waiting on\" in the app). Idempotent. A Ready task moves to Waiting while the blocker is open, and returns to Ready by itself when every blocker is complete — use this instead of a BLOCKED-BY comment line. Refused (409) if it would make two tasks wait for each other.",
+      "Mark a task as waiting on another task (\"Waiting on\" in the app). Idempotent. A Ready task given an open blocker moves to Waiting (and is unassigned, as every move into Waiting is). The server wakes it back to Ready by itself — on the blocker's completion, and in its scheduled settle job — once every blocker is complete and any date has come; no client or agent sweep is needed. Use this instead of a BLOCKED-BY comment line. Refused (409) if it would make two tasks wait for each other.",
     inputSchema: {
       type: "object",
       properties: {
@@ -33,7 +33,7 @@ export const BLOCKER_TOOLS = [
   {
     name: "remove_blocker",
     description:
-      "Stop a task waiting on another task. Removing the last open blocker returns a Waiting task to Ready, exactly as completing that blocker would.",
+      "Stop a task waiting on another task. Removing the last open condition of a Waiting task (no other open blocker, no future date) wakes it to Ready on the server, exactly as completing that blocker would.",
     inputSchema: {
       type: "object",
       properties: {

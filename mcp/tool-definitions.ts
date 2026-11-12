@@ -169,7 +169,17 @@ export const OAUTH_MCP_TOOLS = [
             statusRole: {
               type: ["string", "null"],
               description:
-                "Board column. \"ready\" is the one get_agent_queue requires: a task is queued for an agent only when it is BOTH assigned to that agent and ready. null means Inbox.",
+                "Board column. \"ready\" is the one get_agent_queue requires: a task is queued for an agent only when it is BOTH assigned to that agent and ready. null means Inbox. \"waiting\" needs a wait condition: a future dueDateTime or waitOnTaskId (or a blocker already attached); without one the call fails with WAITING_NEEDS_CONDITION. Waiting on a person is not Waiting: leave it in Inbox (null) assigned to them.",
+            },
+            keepAssignee: {
+              type: "boolean",
+              description:
+                "Only with statusRole \"waiting\": keep the assignee. By default a task that enters Waiting is unassigned (waiting is not anyone's work).",
+            },
+            waitOnTaskId: {
+              type: "string",
+              description:
+                "A task id or identifier this task waits on; attached as a blocker in the same call. With statusRole \"waiting\" it is the wait condition.",
             },
             isAllDay: {
               type: "boolean",
@@ -260,7 +270,17 @@ export const OAUTH_MCP_TOOLS = [
             statusRole: {
               type: ["string", "null"],
               description:
-                "Board column. \"ready\" is the one get_agent_queue requires: a task is queued for an agent only when it is BOTH assigned to that agent and ready. null moves it back to Inbox.",
+                "Board column. \"ready\" is the one get_agent_queue requires: a task is queued for an agent only when it is BOTH assigned to that agent and ready. null moves it back to Inbox. \"waiting\" needs a wait condition: a future dueDateTime or waitOnTaskId (or a blocker already attached); without one the call fails with WAITING_NEEDS_CONDITION. Waiting on a person is not Waiting: move it to Inbox (null) assigned to them.",
+            },
+            keepAssignee: {
+              type: "boolean",
+              description:
+                "Only with statusRole \"waiting\": keep the assignee. By default a task that enters Waiting is unassigned (waiting is not anyone's work).",
+            },
+            waitOnTaskId: {
+              type: "string",
+              description:
+                "A task id or identifier this task waits on; attached as a blocker in the same call. With statusRole \"waiting\" it is the wait condition.",
             },
             isAllDay: {
               type: "boolean",

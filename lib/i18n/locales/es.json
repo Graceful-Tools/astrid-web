@@ -1951,7 +1951,8 @@
         "researchAssistant": "Asistente de investigación",
         "familyAssistant": "Asistente familiar",
         "contentWriter": "Redactor de contenido"
-      }
+      },
+      "addPreset": "Añadir predefinida: {name}"
     },
     "filters": {
       "allAssignees": "Todos los asignados",
@@ -2603,14 +2604,16 @@
       "ready": "Listo",
       "doing": "En curso",
       "waiting": "En espera",
-      "done": "Hecho"
+      "done": "Hecho",
+      "testing": "Pruebas"
     },
     "blurb": {
       "inbox": "Muévelas a «Listo» cuando estén… ¡listas!",
       "ready": "¡Hora de ponerse a trabajar!",
       "doing": "¡Trabajo en curso!",
       "waiting": "En pausa hasta que se den las circunstancias.",
-      "done": "Completado: ¡enhorabuena!"
+      "done": "Completado: ¡enhorabuena!",
+      "testing": "En despliegue, en canary o en un experimento."
     }
   },
   "passkeyErrors": {
@@ -2648,5 +2651,22 @@
     "public_write": "Crear y gestionar listas públicas",
     "sse_connect": "Conectarse al flujo de eventos SSE",
     "all": "Acceso total (solo uso interno: se concede a la autenticación por sesión)"
+  },
+  "waiting": {
+    "prompt": {
+      "title": "¿Qué está esperando?",
+      "description": "Una tarea en espera espera una fecha u otra tarea.",
+      "descriptionFor": "«{title}» esperará una fecha u otra tarea.",
+      "until": "Esperando hasta…",
+      "on": "Esperando a…",
+      "dateLabel": "Hasta",
+      "dateInPast": "Elige un día posterior a hoy.",
+      "taskLabel": "La tarea que espera",
+      "picked": "Esperando a {task}",
+      "keepAssignedToMe": "Mantener asignada a mí",
+      "keepAssignedTo": "Mantener asignada a {name}",
+      "theAssignee": "la persona asignada",
+      "confirm": "Mover a En espera"
+    }
   }
 }

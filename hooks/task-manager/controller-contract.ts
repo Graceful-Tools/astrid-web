@@ -25,3 +25,17 @@ import type { useTaskManagerController } from '@/hooks/useTaskManagerController'
 
 /** The full shape returned by useTaskManagerController. */
 export type TaskManagerControllerReturn = ReturnType<typeof useTaskManagerController>
+
+/** What `useTaskManagerController` takes. Here rather than in the hook, which the oversized-files ratchet budgets. */
+export interface UseTaskManagerControllerProps {
+  initialSelectedListId?: string
+  initialSelectedTaskId?: string
+  initialSettingsPage?: string
+  listMetadata?: any
+  taskMetadata?: any
+  isMobile?: boolean
+  is1Column?: boolean
+  setMobileView?: (view: 'list' | 'task' | 'chat') => void
+  handleMobileBack?: () => void
+  setShowMobileSidebar?: (show: boolean) => void
+}

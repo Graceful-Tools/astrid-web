@@ -11,7 +11,8 @@
 import { Prisma } from '@prisma/client'
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { prisma } from '@/lib/prisma'
-import { addCustomState, renameCustomState, renameBuiltinState, reorderCustomState, removeCustomState, type ReorderDirection } from '@/lib/project-custom-states'
+import { boardPresets } from '@/lib/waiting-rules'
+import { addCustomState, addPresetState, renameCustomState, renameBuiltinState, reorderCustomState, removeCustomState, type ReorderDirection } from '@/lib/project-custom-states'
 import { isDefaultStatusRole, type StatusState } from '@/lib/task-status'
 
 /** Either the top-level client or a transaction client. */
@@ -351,6 +352,25 @@ export async function addUserStatus(
     data: { customStates: write.states as unknown as Prisma.InputJsonValue },
   })
 
+  return { state: write.state, userIdsToInvalidate: new Set<string>([userId]) }
+}
+
+/** Add an optional preset column (R7: `testing`) to a board. Same result shape as {@link addUserStatus}. */
+export async function addUserPresetStatus(
+  userId: string,
+  role: string,
+  projectId: string,
+): Promise<AddUserStatusResult> {
+  if (!projectId) return { error: 'invalid', message: 'A status must belong to a board' }
+  const project = await prisma.project.findUnique({ where: { id: projectId }, select: { customStates: true } })
+  if (!project) return { error: 'invalid', message: 'Board not found' }
+  // Which presets the board may still add is astrid-core's answer (R7).
+  const write = addPresetState(project.customStates, role, boardPresets(project.customStates))
+  if ('error' in write) return { error: write.error === 'duplicate' ? 'duplicate' : 'invalid', message: write.message }
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { customStates: write.states as unknown as Prisma.InputJsonValue },
+  })
   return { state: write.state, userIdsToInvalidate: new Set<string>([userId]) }
 }
 

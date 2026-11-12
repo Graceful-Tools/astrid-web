@@ -141,6 +141,13 @@ export interface V1TaskUpdateRequest {
 
   /** Board-column semantics; see the status handling in the route. */
   statusRole?: string | null
+  /**
+   * Moving into Waiting clears the assignee unless this is true (Jon, 2026-11-12). Additive: an
+   * old client that omits it gets the default.
+   */
+  keepAssignee?: boolean
+  /** Attach this task (id or identifier) as a blocker in the same write: "waiting on…". */
+  waitOnTaskId?: string | null
   closedReason?: string | null
 
   /**
@@ -236,6 +243,10 @@ export interface V1TaskCreateRequest {
    * 400s the whole create (task eb7fce2f). Absent means Inbox.
    */
   statusRole?: string | null
+  /** Born in Waiting: keep the assignee (default: cleared). */
+  keepAssignee?: boolean
+  /** Attach this task (id or identifier) as a blocker once created: "waiting on…". */
+  waitOnTaskId?: string | null
   /** Offline-retry idempotency key, 8–128 chars. See lib/comment-idempotency.ts. */
   clientRequestId?: string
 }
@@ -434,7 +445,7 @@ export function validateV1TaskUpdate(body: unknown): V1ValidationResult {
   for (const f of ['title', 'description'] as const) {
     if (b[f] !== undefined && typeof b[f] !== 'string') return wrong(f, 'a string')
   }
-  for (const f of ['completed', 'isAllDay', 'isPrivate'] as const) {
+  for (const f of ['completed', 'isAllDay', 'isPrivate', 'keepAssignee'] as const) {
     if (b[f] !== undefined && typeof b[f] !== 'boolean') return wrong(f, 'a boolean')
   }
   // The RANGE, not just the type. `priority: 999` used to pass this line and
@@ -453,7 +464,7 @@ export function validateV1TaskUpdate(body: unknown): V1ValidationResult {
   for (const f of ['timerDuration', 'lastTimerValue'] as const) {
     if (b[f] !== undefined && b[f] !== null && !isFiniteNumber(b[f])) return wrong(f, 'a number or null')
   }
-  for (const f of ['repeating', 'repeatFrom', 'assigneeId', 'parentTaskId', 'statusRole', 'closedReason', 'reminderType'] as const) {
+  for (const f of ['repeating', 'repeatFrom', 'assigneeId', 'parentTaskId', 'statusRole', 'closedReason', 'reminderType', 'waitOnTaskId'] as const) {
     if (b[f] !== undefined && b[f] !== null && typeof b[f] !== 'string') return wrong(f, 'a string or null')
   }
 

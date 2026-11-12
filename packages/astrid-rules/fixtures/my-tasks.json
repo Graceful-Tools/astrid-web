@@ -144,6 +144,14 @@
       "shown": true
     },
     {
+      "id": "my-tasks/u-me/any/anyone/created-by-me-unassigned",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [],
+      "task": "created-by-me-unassigned",
+      "shown": false
+    },
+    {
       "id": "my-tasks/u-me/any/anyone/created-by-me-assigned-other",
       "reader": "u-me",
       "filterPriority": [],
@@ -160,6 +168,22 @@
       "shown": false
     },
     {
+      "id": "my-tasks/u-me/any/anyone/unassigned-not-mine",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [],
+      "task": "unassigned-not-mine",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/any/anyone/assigned-to-me-nested-only",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [],
+      "task": "assigned-to-me-nested-only",
+      "shown": true
+    },
+    {
       "id": "my-tasks/u-me/any/anyone/assigned-to-me-in-list-i-left",
       "reader": "u-me",
       "filterPriority": [],
@@ -174,6 +198,314 @@
       "filterAssignee": [],
       "task": "assigned-to-me-completed",
       "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/any/anyone/created-by-me-unassigned-completed",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [],
+      "task": "created-by-me-unassigned-completed",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/any/me/assigned-to-me",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "assigned-to-me",
+      "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/any/me/assigned-to-me-by-me",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "assigned-to-me-by-me",
+      "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/any/me/created-by-me-unassigned",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "created-by-me-unassigned",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/any/me/created-by-me-assigned-other",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "created-by-me-assigned-other",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/any/me/someone-elses",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "someone-elses",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/any/me/unassigned-not-mine",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "unassigned-not-mine",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/any/me/assigned-to-me-nested-only",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "assigned-to-me-nested-only",
+      "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/any/me/assigned-to-me-in-list-i-left",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "assigned-to-me-in-list-i-left",
+      "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/any/me/assigned-to-me-completed",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "assigned-to-me-completed",
+      "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/any/me/created-by-me-unassigned-completed",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "created-by-me-unassigned-completed",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/any/unassigned/assigned-to-me",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "assigned-to-me",
+      "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/any/unassigned/assigned-to-me-by-me",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "assigned-to-me-by-me",
+      "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/any/unassigned/created-by-me-unassigned",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "created-by-me-unassigned",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/any/unassigned/created-by-me-assigned-other",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "created-by-me-assigned-other",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/any/unassigned/someone-elses",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "someone-elses",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/any/unassigned/unassigned-not-mine",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "unassigned-not-mine",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/any/unassigned/assigned-to-me-nested-only",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "assigned-to-me-nested-only",
+      "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/any/unassigned/assigned-to-me-in-list-i-left",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "assigned-to-me-in-list-i-left",
+      "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/any/unassigned/assigned-to-me-completed",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "assigned-to-me-completed",
+      "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/any/unassigned/created-by-me-unassigned-completed",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "created-by-me-unassigned-completed",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/any/other/assigned-to-me",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "assigned-to-me",
+      "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/any/other/assigned-to-me-by-me",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "assigned-to-me-by-me",
+      "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/any/other/created-by-me-unassigned",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "created-by-me-unassigned",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/any/other/created-by-me-assigned-other",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "created-by-me-assigned-other",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/any/other/someone-elses",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "someone-elses",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/any/other/unassigned-not-mine",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "unassigned-not-mine",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/any/other/assigned-to-me-nested-only",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "assigned-to-me-nested-only",
+      "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/any/other/assigned-to-me-in-list-i-left",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "assigned-to-me-in-list-i-left",
+      "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/any/other/assigned-to-me-completed",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "assigned-to-me-completed",
+      "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/any/other/created-by-me-unassigned-completed",
+      "reader": "u-me",
+      "filterPriority": [],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "created-by-me-unassigned-completed",
+      "shown": false
     },
     {
       "id": "my-tasks/u-me/high/anyone/assigned-to-me",
@@ -193,6 +525,16 @@
       ],
       "filterAssignee": [],
       "task": "assigned-to-me-by-me",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/anyone/created-by-me-unassigned",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [],
+      "task": "created-by-me-unassigned",
       "shown": false
     },
     {
@@ -216,6 +558,26 @@
       "shown": false
     },
     {
+      "id": "my-tasks/u-me/high/anyone/unassigned-not-mine",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [],
+      "task": "unassigned-not-mine",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/anyone/assigned-to-me-nested-only",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [],
+      "task": "assigned-to-me-nested-only",
+      "shown": false
+    },
+    {
       "id": "my-tasks/u-me/high/anyone/assigned-to-me-in-list-i-left",
       "reader": "u-me",
       "filterPriority": [
@@ -233,6 +595,376 @@
       ],
       "filterAssignee": [],
       "task": "assigned-to-me-completed",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/anyone/created-by-me-unassigned-completed",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [],
+      "task": "created-by-me-unassigned-completed",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/me/assigned-to-me",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "assigned-to-me",
+      "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/high/me/assigned-to-me-by-me",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "assigned-to-me-by-me",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/me/created-by-me-unassigned",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "created-by-me-unassigned",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/me/created-by-me-assigned-other",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "created-by-me-assigned-other",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/me/someone-elses",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "someone-elses",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/me/unassigned-not-mine",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "unassigned-not-mine",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/me/assigned-to-me-nested-only",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "assigned-to-me-nested-only",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/me/assigned-to-me-in-list-i-left",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "assigned-to-me-in-list-i-left",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/me/assigned-to-me-completed",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "assigned-to-me-completed",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/me/created-by-me-unassigned-completed",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-me"
+      ],
+      "task": "created-by-me-unassigned-completed",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/unassigned/assigned-to-me",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "assigned-to-me",
+      "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/high/unassigned/assigned-to-me-by-me",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "assigned-to-me-by-me",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/unassigned/created-by-me-unassigned",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "created-by-me-unassigned",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/unassigned/created-by-me-assigned-other",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "created-by-me-assigned-other",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/unassigned/someone-elses",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "someone-elses",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/unassigned/unassigned-not-mine",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "unassigned-not-mine",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/unassigned/assigned-to-me-nested-only",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "assigned-to-me-nested-only",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/unassigned/assigned-to-me-in-list-i-left",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "assigned-to-me-in-list-i-left",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/unassigned/assigned-to-me-completed",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "assigned-to-me-completed",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/unassigned/created-by-me-unassigned-completed",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "unassigned"
+      ],
+      "task": "created-by-me-unassigned-completed",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/other/assigned-to-me",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "assigned-to-me",
+      "shown": true
+    },
+    {
+      "id": "my-tasks/u-me/high/other/assigned-to-me-by-me",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "assigned-to-me-by-me",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/other/created-by-me-unassigned",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "created-by-me-unassigned",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/other/created-by-me-assigned-other",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "created-by-me-assigned-other",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/other/someone-elses",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "someone-elses",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/other/unassigned-not-mine",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "unassigned-not-mine",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/other/assigned-to-me-nested-only",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "assigned-to-me-nested-only",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/other/assigned-to-me-in-list-i-left",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "assigned-to-me-in-list-i-left",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/other/assigned-to-me-completed",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "assigned-to-me-completed",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/high/other/created-by-me-unassigned-completed",
+      "reader": "u-me",
+      "filterPriority": [
+        3
+      ],
+      "filterAssignee": [
+        "u-other"
+      ],
+      "task": "created-by-me-unassigned-completed",
       "shown": false
     },
     {
@@ -258,6 +990,17 @@
       "shown": true
     },
     {
+      "id": "my-tasks/u-me/none-or-low/anyone/created-by-me-unassigned",
+      "reader": "u-me",
+      "filterPriority": [
+        0,
+        1
+      ],
+      "filterAssignee": [],
+      "task": "created-by-me-unassigned",
+      "shown": false
+    },
+    {
       "id": "my-tasks/u-me/none-or-low/anyone/created-by-me-assigned-other",
       "reader": "u-me",
       "filterPriority": [
@@ -280,6 +1023,28 @@
       "shown": false
     },
     {
+      "id": "my-tasks/u-me/none-or-low/anyone/unassigned-not-mine",
+      "reader": "u-me",
+      "filterPriority": [
+        0,
+        1
+      ],
+      "filterAssignee": [],
+      "task": "unassigned-not-mine",
+      "shown": false
+    },
+    {
+      "id": "my-tasks/u-me/none-or-low/anyone/assigned-to-me-nested-only",
+      "reader": "u-me",
+      "filterPriority": [
+        0,
+        1
+      ],
+      "filterAssignee": [],
+      "task": "assigned-to-me-nested-only",
+      "shown": true
+    },
+    {
       "id": "my-tasks/u-me/none-or-low/anyone/assigned-to-me-in-list-i-left",
       "reader": "u-me",
       "filterPriority": [
@@ -300,847 +1065,8 @@
       "filterAssignee": [],
       "task": "assigned-to-me-completed",
       "shown": false
-    }
-  ],
-  "disputed": [
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/anyone/created-by-me-unassigned",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [],
-      "task": "created-by-me-unassigned",
-      "shown": true
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/anyone/unassigned-not-mine",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [],
-      "task": "unassigned-not-mine",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/anyone/assigned-to-me-nested-only",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [],
-      "task": "assigned-to-me-nested-only",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/anyone/created-by-me-unassigned-completed",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [],
-      "task": "created-by-me-unassigned-completed",
-      "shown": true
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/me/assigned-to-me",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "assigned-to-me",
-      "shown": true
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/me/assigned-to-me-by-me",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "assigned-to-me-by-me",
-      "shown": true
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/me/created-by-me-unassigned",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "created-by-me-unassigned",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/me/created-by-me-assigned-other",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "created-by-me-assigned-other",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/me/someone-elses",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "someone-elses",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/me/unassigned-not-mine",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "unassigned-not-mine",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/me/assigned-to-me-nested-only",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "assigned-to-me-nested-only",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/me/assigned-to-me-in-list-i-left",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "assigned-to-me-in-list-i-left",
-      "shown": true
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/me/assigned-to-me-completed",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "assigned-to-me-completed",
-      "shown": true
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/me/created-by-me-unassigned-completed",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "created-by-me-unassigned-completed",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/unassigned/assigned-to-me",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "assigned-to-me",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/unassigned/assigned-to-me-by-me",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "assigned-to-me-by-me",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/unassigned/created-by-me-unassigned",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "created-by-me-unassigned",
-      "shown": true
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/unassigned/created-by-me-assigned-other",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "created-by-me-assigned-other",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/unassigned/someone-elses",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "someone-elses",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/unassigned/unassigned-not-mine",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "unassigned-not-mine",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/unassigned/assigned-to-me-nested-only",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "assigned-to-me-nested-only",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/unassigned/assigned-to-me-in-list-i-left",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "assigned-to-me-in-list-i-left",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/unassigned/assigned-to-me-completed",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "assigned-to-me-completed",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/unassigned/created-by-me-unassigned-completed",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "created-by-me-unassigned-completed",
-      "shown": true
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/other/assigned-to-me",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "assigned-to-me",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/other/assigned-to-me-by-me",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "assigned-to-me-by-me",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/other/created-by-me-unassigned",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "created-by-me-unassigned",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/other/created-by-me-assigned-other",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "created-by-me-assigned-other",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/other/someone-elses",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "someone-elses",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/other/unassigned-not-mine",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "unassigned-not-mine",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/other/assigned-to-me-nested-only",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "assigned-to-me-nested-only",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/other/assigned-to-me-in-list-i-left",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "assigned-to-me-in-list-i-left",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/other/assigned-to-me-completed",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "assigned-to-me-completed",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/any/other/created-by-me-unassigned-completed",
-      "reader": "u-me",
-      "filterPriority": [],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "created-by-me-unassigned-completed",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/anyone/created-by-me-unassigned",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [],
-      "task": "created-by-me-unassigned",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/anyone/unassigned-not-mine",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [],
-      "task": "unassigned-not-mine",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/anyone/assigned-to-me-nested-only",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [],
-      "task": "assigned-to-me-nested-only",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/anyone/created-by-me-unassigned-completed",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [],
-      "task": "created-by-me-unassigned-completed",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/me/assigned-to-me",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "assigned-to-me",
-      "shown": true
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/me/assigned-to-me-by-me",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "assigned-to-me-by-me",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/me/created-by-me-unassigned",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "created-by-me-unassigned",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/me/created-by-me-assigned-other",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "created-by-me-assigned-other",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/me/someone-elses",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "someone-elses",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/me/unassigned-not-mine",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "unassigned-not-mine",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/me/assigned-to-me-nested-only",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "assigned-to-me-nested-only",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/me/assigned-to-me-in-list-i-left",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "assigned-to-me-in-list-i-left",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/me/assigned-to-me-completed",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "assigned-to-me-completed",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/me/created-by-me-unassigned-completed",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-me"
-      ],
-      "task": "created-by-me-unassigned-completed",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/unassigned/assigned-to-me",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "assigned-to-me",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/unassigned/assigned-to-me-by-me",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "assigned-to-me-by-me",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/unassigned/created-by-me-unassigned",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "created-by-me-unassigned",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/unassigned/created-by-me-assigned-other",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "created-by-me-assigned-other",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/unassigned/someone-elses",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "someone-elses",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/unassigned/unassigned-not-mine",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "unassigned-not-mine",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/unassigned/assigned-to-me-nested-only",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "assigned-to-me-nested-only",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/unassigned/assigned-to-me-in-list-i-left",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "assigned-to-me-in-list-i-left",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/unassigned/assigned-to-me-completed",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "assigned-to-me-completed",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/unassigned/created-by-me-unassigned-completed",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "unassigned"
-      ],
-      "task": "created-by-me-unassigned-completed",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/other/assigned-to-me",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "assigned-to-me",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/other/assigned-to-me-by-me",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "assigned-to-me-by-me",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/other/created-by-me-unassigned",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "created-by-me-unassigned",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/other/created-by-me-assigned-other",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "created-by-me-assigned-other",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/other/someone-elses",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "someone-elses",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/other/unassigned-not-mine",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "unassigned-not-mine",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/other/assigned-to-me-nested-only",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "assigned-to-me-nested-only",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/other/assigned-to-me-in-list-i-left",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "assigned-to-me-in-list-i-left",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/other/assigned-to-me-completed",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "assigned-to-me-completed",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/high/other/created-by-me-unassigned-completed",
-      "reader": "u-me",
-      "filterPriority": [
-        3
-      ],
-      "filterAssignee": [
-        "u-other"
-      ],
-      "task": "created-by-me-unassigned-completed",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/none-or-low/anyone/created-by-me-unassigned",
-      "reader": "u-me",
-      "filterPriority": [
-        0,
-        1
-      ],
-      "filterAssignee": [],
-      "task": "created-by-me-unassigned",
-      "shown": true
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/none-or-low/anyone/unassigned-not-mine",
-      "reader": "u-me",
-      "filterPriority": [
-        0,
-        1
-      ],
-      "filterAssignee": [],
-      "task": "unassigned-not-mine",
-      "shown": false
-    },
-    {
-      "entry": "D25",
-      "id": "my-tasks/u-me/none-or-low/anyone/assigned-to-me-nested-only",
-      "reader": "u-me",
-      "filterPriority": [
-        0,
-        1
-      ],
-      "filterAssignee": [],
-      "task": "assigned-to-me-nested-only",
-      "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/anyone/created-by-me-unassigned-completed",
       "reader": "u-me",
       "filterPriority": [
@@ -1149,10 +1075,9 @@
       ],
       "filterAssignee": [],
       "task": "created-by-me-unassigned-completed",
-      "shown": true
+      "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/me/assigned-to-me",
       "reader": "u-me",
       "filterPriority": [
@@ -1166,7 +1091,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/me/assigned-to-me-by-me",
       "reader": "u-me",
       "filterPriority": [
@@ -1180,7 +1104,6 @@
       "shown": true
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/me/created-by-me-unassigned",
       "reader": "u-me",
       "filterPriority": [
@@ -1194,7 +1117,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/me/created-by-me-assigned-other",
       "reader": "u-me",
       "filterPriority": [
@@ -1208,7 +1130,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/me/someone-elses",
       "reader": "u-me",
       "filterPriority": [
@@ -1222,7 +1143,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/me/unassigned-not-mine",
       "reader": "u-me",
       "filterPriority": [
@@ -1236,7 +1156,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/me/assigned-to-me-nested-only",
       "reader": "u-me",
       "filterPriority": [
@@ -1247,10 +1166,9 @@
         "u-me"
       ],
       "task": "assigned-to-me-nested-only",
-      "shown": false
+      "shown": true
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/me/assigned-to-me-in-list-i-left",
       "reader": "u-me",
       "filterPriority": [
@@ -1264,7 +1182,6 @@
       "shown": true
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/me/assigned-to-me-completed",
       "reader": "u-me",
       "filterPriority": [
@@ -1278,7 +1195,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/me/created-by-me-unassigned-completed",
       "reader": "u-me",
       "filterPriority": [
@@ -1292,7 +1208,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/unassigned/assigned-to-me",
       "reader": "u-me",
       "filterPriority": [
@@ -1306,7 +1221,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/unassigned/assigned-to-me-by-me",
       "reader": "u-me",
       "filterPriority": [
@@ -1317,10 +1231,9 @@
         "unassigned"
       ],
       "task": "assigned-to-me-by-me",
-      "shown": false
+      "shown": true
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/unassigned/created-by-me-unassigned",
       "reader": "u-me",
       "filterPriority": [
@@ -1331,10 +1244,9 @@
         "unassigned"
       ],
       "task": "created-by-me-unassigned",
-      "shown": true
+      "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/unassigned/created-by-me-assigned-other",
       "reader": "u-me",
       "filterPriority": [
@@ -1348,7 +1260,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/unassigned/someone-elses",
       "reader": "u-me",
       "filterPriority": [
@@ -1362,7 +1273,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/unassigned/unassigned-not-mine",
       "reader": "u-me",
       "filterPriority": [
@@ -1376,7 +1286,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/unassigned/assigned-to-me-nested-only",
       "reader": "u-me",
       "filterPriority": [
@@ -1387,10 +1296,9 @@
         "unassigned"
       ],
       "task": "assigned-to-me-nested-only",
-      "shown": false
+      "shown": true
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/unassigned/assigned-to-me-in-list-i-left",
       "reader": "u-me",
       "filterPriority": [
@@ -1401,10 +1309,9 @@
         "unassigned"
       ],
       "task": "assigned-to-me-in-list-i-left",
-      "shown": false
+      "shown": true
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/unassigned/assigned-to-me-completed",
       "reader": "u-me",
       "filterPriority": [
@@ -1418,7 +1325,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/unassigned/created-by-me-unassigned-completed",
       "reader": "u-me",
       "filterPriority": [
@@ -1429,10 +1335,9 @@
         "unassigned"
       ],
       "task": "created-by-me-unassigned-completed",
-      "shown": true
+      "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/other/assigned-to-me",
       "reader": "u-me",
       "filterPriority": [
@@ -1446,7 +1351,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/other/assigned-to-me-by-me",
       "reader": "u-me",
       "filterPriority": [
@@ -1457,10 +1361,9 @@
         "u-other"
       ],
       "task": "assigned-to-me-by-me",
-      "shown": false
+      "shown": true
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/other/created-by-me-unassigned",
       "reader": "u-me",
       "filterPriority": [
@@ -1474,7 +1377,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/other/created-by-me-assigned-other",
       "reader": "u-me",
       "filterPriority": [
@@ -1488,7 +1390,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/other/someone-elses",
       "reader": "u-me",
       "filterPriority": [
@@ -1502,7 +1403,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/other/unassigned-not-mine",
       "reader": "u-me",
       "filterPriority": [
@@ -1516,7 +1416,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/other/assigned-to-me-nested-only",
       "reader": "u-me",
       "filterPriority": [
@@ -1527,10 +1426,9 @@
         "u-other"
       ],
       "task": "assigned-to-me-nested-only",
-      "shown": false
+      "shown": true
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/other/assigned-to-me-in-list-i-left",
       "reader": "u-me",
       "filterPriority": [
@@ -1541,10 +1439,9 @@
         "u-other"
       ],
       "task": "assigned-to-me-in-list-i-left",
-      "shown": false
+      "shown": true
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/other/assigned-to-me-completed",
       "reader": "u-me",
       "filterPriority": [
@@ -1558,7 +1455,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/u-me/none-or-low/other/created-by-me-unassigned-completed",
       "reader": "u-me",
       "filterPriority": [
@@ -1572,7 +1468,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/anyone/assigned-to-me",
       "reader": null,
       "filterPriority": [],
@@ -1581,7 +1476,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/anyone/assigned-to-me-by-me",
       "reader": null,
       "filterPriority": [],
@@ -1590,16 +1484,14 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/anyone/created-by-me-unassigned",
       "reader": null,
       "filterPriority": [],
       "filterAssignee": [],
       "task": "created-by-me-unassigned",
-      "shown": true
+      "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/anyone/created-by-me-assigned-other",
       "reader": null,
       "filterPriority": [],
@@ -1608,7 +1500,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/anyone/someone-elses",
       "reader": null,
       "filterPriority": [],
@@ -1617,16 +1508,14 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/anyone/unassigned-not-mine",
       "reader": null,
       "filterPriority": [],
       "filterAssignee": [],
       "task": "unassigned-not-mine",
-      "shown": true
+      "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/anyone/assigned-to-me-nested-only",
       "reader": null,
       "filterPriority": [],
@@ -1635,7 +1524,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/anyone/assigned-to-me-in-list-i-left",
       "reader": null,
       "filterPriority": [],
@@ -1644,7 +1532,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/anyone/assigned-to-me-completed",
       "reader": null,
       "filterPriority": [],
@@ -1653,16 +1540,14 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/anyone/created-by-me-unassigned-completed",
       "reader": null,
       "filterPriority": [],
       "filterAssignee": [],
       "task": "created-by-me-unassigned-completed",
-      "shown": true
+      "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/me/assigned-to-me",
       "reader": null,
       "filterPriority": [],
@@ -1673,7 +1558,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/me/assigned-to-me-by-me",
       "reader": null,
       "filterPriority": [],
@@ -1684,7 +1568,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/me/created-by-me-unassigned",
       "reader": null,
       "filterPriority": [],
@@ -1695,7 +1578,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/me/created-by-me-assigned-other",
       "reader": null,
       "filterPriority": [],
@@ -1706,7 +1588,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/me/someone-elses",
       "reader": null,
       "filterPriority": [],
@@ -1717,7 +1598,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/me/unassigned-not-mine",
       "reader": null,
       "filterPriority": [],
@@ -1728,7 +1608,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/me/assigned-to-me-nested-only",
       "reader": null,
       "filterPriority": [],
@@ -1739,7 +1618,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/me/assigned-to-me-in-list-i-left",
       "reader": null,
       "filterPriority": [],
@@ -1750,7 +1628,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/me/assigned-to-me-completed",
       "reader": null,
       "filterPriority": [],
@@ -1761,7 +1638,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/me/created-by-me-unassigned-completed",
       "reader": null,
       "filterPriority": [],
@@ -1772,7 +1648,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/unassigned/assigned-to-me",
       "reader": null,
       "filterPriority": [],
@@ -1783,7 +1658,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/unassigned/assigned-to-me-by-me",
       "reader": null,
       "filterPriority": [],
@@ -1794,7 +1668,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/unassigned/created-by-me-unassigned",
       "reader": null,
       "filterPriority": [],
@@ -1802,10 +1675,9 @@
         "unassigned"
       ],
       "task": "created-by-me-unassigned",
-      "shown": true
+      "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/unassigned/created-by-me-assigned-other",
       "reader": null,
       "filterPriority": [],
@@ -1816,7 +1688,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/unassigned/someone-elses",
       "reader": null,
       "filterPriority": [],
@@ -1827,7 +1698,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/unassigned/unassigned-not-mine",
       "reader": null,
       "filterPriority": [],
@@ -1835,10 +1705,9 @@
         "unassigned"
       ],
       "task": "unassigned-not-mine",
-      "shown": true
+      "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/unassigned/assigned-to-me-nested-only",
       "reader": null,
       "filterPriority": [],
@@ -1849,7 +1718,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/unassigned/assigned-to-me-in-list-i-left",
       "reader": null,
       "filterPriority": [],
@@ -1860,7 +1728,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/unassigned/assigned-to-me-completed",
       "reader": null,
       "filterPriority": [],
@@ -1871,7 +1738,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/unassigned/created-by-me-unassigned-completed",
       "reader": null,
       "filterPriority": [],
@@ -1879,10 +1745,9 @@
         "unassigned"
       ],
       "task": "created-by-me-unassigned-completed",
-      "shown": true
+      "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/other/assigned-to-me",
       "reader": null,
       "filterPriority": [],
@@ -1893,7 +1758,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/other/assigned-to-me-by-me",
       "reader": null,
       "filterPriority": [],
@@ -1904,7 +1768,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/other/created-by-me-unassigned",
       "reader": null,
       "filterPriority": [],
@@ -1915,7 +1778,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/other/created-by-me-assigned-other",
       "reader": null,
       "filterPriority": [],
@@ -1926,7 +1788,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/other/someone-elses",
       "reader": null,
       "filterPriority": [],
@@ -1937,7 +1798,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/other/unassigned-not-mine",
       "reader": null,
       "filterPriority": [],
@@ -1948,7 +1808,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/other/assigned-to-me-nested-only",
       "reader": null,
       "filterPriority": [],
@@ -1959,7 +1818,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/other/assigned-to-me-in-list-i-left",
       "reader": null,
       "filterPriority": [],
@@ -1970,7 +1828,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/other/assigned-to-me-completed",
       "reader": null,
       "filterPriority": [],
@@ -1981,7 +1838,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/any/other/created-by-me-unassigned-completed",
       "reader": null,
       "filterPriority": [],
@@ -1992,7 +1848,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/anyone/assigned-to-me",
       "reader": null,
       "filterPriority": [
@@ -2003,7 +1858,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/anyone/assigned-to-me-by-me",
       "reader": null,
       "filterPriority": [
@@ -2014,7 +1868,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/anyone/created-by-me-unassigned",
       "reader": null,
       "filterPriority": [
@@ -2025,7 +1878,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/anyone/created-by-me-assigned-other",
       "reader": null,
       "filterPriority": [
@@ -2036,7 +1888,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/anyone/someone-elses",
       "reader": null,
       "filterPriority": [
@@ -2047,7 +1898,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/anyone/unassigned-not-mine",
       "reader": null,
       "filterPriority": [
@@ -2058,7 +1908,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/anyone/assigned-to-me-nested-only",
       "reader": null,
       "filterPriority": [
@@ -2069,7 +1918,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/anyone/assigned-to-me-in-list-i-left",
       "reader": null,
       "filterPriority": [
@@ -2080,7 +1928,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/anyone/assigned-to-me-completed",
       "reader": null,
       "filterPriority": [
@@ -2091,7 +1938,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/anyone/created-by-me-unassigned-completed",
       "reader": null,
       "filterPriority": [
@@ -2102,7 +1948,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/me/assigned-to-me",
       "reader": null,
       "filterPriority": [
@@ -2115,7 +1960,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/me/assigned-to-me-by-me",
       "reader": null,
       "filterPriority": [
@@ -2128,7 +1972,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/me/created-by-me-unassigned",
       "reader": null,
       "filterPriority": [
@@ -2141,7 +1984,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/me/created-by-me-assigned-other",
       "reader": null,
       "filterPriority": [
@@ -2154,7 +1996,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/me/someone-elses",
       "reader": null,
       "filterPriority": [
@@ -2167,7 +2008,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/me/unassigned-not-mine",
       "reader": null,
       "filterPriority": [
@@ -2180,7 +2020,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/me/assigned-to-me-nested-only",
       "reader": null,
       "filterPriority": [
@@ -2193,7 +2032,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/me/assigned-to-me-in-list-i-left",
       "reader": null,
       "filterPriority": [
@@ -2206,7 +2044,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/me/assigned-to-me-completed",
       "reader": null,
       "filterPriority": [
@@ -2219,7 +2056,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/me/created-by-me-unassigned-completed",
       "reader": null,
       "filterPriority": [
@@ -2232,7 +2068,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/unassigned/assigned-to-me",
       "reader": null,
       "filterPriority": [
@@ -2245,7 +2080,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/unassigned/assigned-to-me-by-me",
       "reader": null,
       "filterPriority": [
@@ -2258,7 +2092,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/unassigned/created-by-me-unassigned",
       "reader": null,
       "filterPriority": [
@@ -2271,7 +2104,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/unassigned/created-by-me-assigned-other",
       "reader": null,
       "filterPriority": [
@@ -2284,7 +2116,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/unassigned/someone-elses",
       "reader": null,
       "filterPriority": [
@@ -2297,7 +2128,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/unassigned/unassigned-not-mine",
       "reader": null,
       "filterPriority": [
@@ -2310,7 +2140,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/unassigned/assigned-to-me-nested-only",
       "reader": null,
       "filterPriority": [
@@ -2323,7 +2152,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/unassigned/assigned-to-me-in-list-i-left",
       "reader": null,
       "filterPriority": [
@@ -2336,7 +2164,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/unassigned/assigned-to-me-completed",
       "reader": null,
       "filterPriority": [
@@ -2349,7 +2176,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/unassigned/created-by-me-unassigned-completed",
       "reader": null,
       "filterPriority": [
@@ -2362,7 +2188,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/other/assigned-to-me",
       "reader": null,
       "filterPriority": [
@@ -2375,7 +2200,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/other/assigned-to-me-by-me",
       "reader": null,
       "filterPriority": [
@@ -2388,7 +2212,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/other/created-by-me-unassigned",
       "reader": null,
       "filterPriority": [
@@ -2401,7 +2224,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/other/created-by-me-assigned-other",
       "reader": null,
       "filterPriority": [
@@ -2414,7 +2236,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/other/someone-elses",
       "reader": null,
       "filterPriority": [
@@ -2427,7 +2248,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/other/unassigned-not-mine",
       "reader": null,
       "filterPriority": [
@@ -2440,7 +2260,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/other/assigned-to-me-nested-only",
       "reader": null,
       "filterPriority": [
@@ -2453,7 +2272,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/other/assigned-to-me-in-list-i-left",
       "reader": null,
       "filterPriority": [
@@ -2466,7 +2284,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/other/assigned-to-me-completed",
       "reader": null,
       "filterPriority": [
@@ -2479,7 +2296,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/high/other/created-by-me-unassigned-completed",
       "reader": null,
       "filterPriority": [
@@ -2492,7 +2308,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/anyone/assigned-to-me",
       "reader": null,
       "filterPriority": [
@@ -2504,7 +2319,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/anyone/assigned-to-me-by-me",
       "reader": null,
       "filterPriority": [
@@ -2516,7 +2330,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/anyone/created-by-me-unassigned",
       "reader": null,
       "filterPriority": [
@@ -2525,10 +2338,9 @@
       ],
       "filterAssignee": [],
       "task": "created-by-me-unassigned",
-      "shown": true
+      "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/anyone/created-by-me-assigned-other",
       "reader": null,
       "filterPriority": [
@@ -2540,7 +2352,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/anyone/someone-elses",
       "reader": null,
       "filterPriority": [
@@ -2552,7 +2363,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/anyone/unassigned-not-mine",
       "reader": null,
       "filterPriority": [
@@ -2561,10 +2371,9 @@
       ],
       "filterAssignee": [],
       "task": "unassigned-not-mine",
-      "shown": true
+      "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/anyone/assigned-to-me-nested-only",
       "reader": null,
       "filterPriority": [
@@ -2576,7 +2385,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/anyone/assigned-to-me-in-list-i-left",
       "reader": null,
       "filterPriority": [
@@ -2588,7 +2396,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/anyone/assigned-to-me-completed",
       "reader": null,
       "filterPriority": [
@@ -2600,7 +2407,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/anyone/created-by-me-unassigned-completed",
       "reader": null,
       "filterPriority": [
@@ -2609,10 +2415,9 @@
       ],
       "filterAssignee": [],
       "task": "created-by-me-unassigned-completed",
-      "shown": true
+      "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/me/assigned-to-me",
       "reader": null,
       "filterPriority": [
@@ -2626,7 +2431,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/me/assigned-to-me-by-me",
       "reader": null,
       "filterPriority": [
@@ -2640,7 +2444,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/me/created-by-me-unassigned",
       "reader": null,
       "filterPriority": [
@@ -2654,7 +2457,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/me/created-by-me-assigned-other",
       "reader": null,
       "filterPriority": [
@@ -2668,7 +2470,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/me/someone-elses",
       "reader": null,
       "filterPriority": [
@@ -2682,7 +2483,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/me/unassigned-not-mine",
       "reader": null,
       "filterPriority": [
@@ -2696,7 +2496,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/me/assigned-to-me-nested-only",
       "reader": null,
       "filterPriority": [
@@ -2710,7 +2509,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/me/assigned-to-me-in-list-i-left",
       "reader": null,
       "filterPriority": [
@@ -2724,7 +2522,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/me/assigned-to-me-completed",
       "reader": null,
       "filterPriority": [
@@ -2738,7 +2535,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/me/created-by-me-unassigned-completed",
       "reader": null,
       "filterPriority": [
@@ -2752,7 +2548,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/unassigned/assigned-to-me",
       "reader": null,
       "filterPriority": [
@@ -2766,7 +2561,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/unassigned/assigned-to-me-by-me",
       "reader": null,
       "filterPriority": [
@@ -2780,7 +2574,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/unassigned/created-by-me-unassigned",
       "reader": null,
       "filterPriority": [
@@ -2791,10 +2584,9 @@
         "unassigned"
       ],
       "task": "created-by-me-unassigned",
-      "shown": true
+      "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/unassigned/created-by-me-assigned-other",
       "reader": null,
       "filterPriority": [
@@ -2808,7 +2600,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/unassigned/someone-elses",
       "reader": null,
       "filterPriority": [
@@ -2822,7 +2613,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/unassigned/unassigned-not-mine",
       "reader": null,
       "filterPriority": [
@@ -2833,10 +2623,9 @@
         "unassigned"
       ],
       "task": "unassigned-not-mine",
-      "shown": true
+      "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/unassigned/assigned-to-me-nested-only",
       "reader": null,
       "filterPriority": [
@@ -2850,7 +2639,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/unassigned/assigned-to-me-in-list-i-left",
       "reader": null,
       "filterPriority": [
@@ -2864,7 +2652,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/unassigned/assigned-to-me-completed",
       "reader": null,
       "filterPriority": [
@@ -2878,7 +2665,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/unassigned/created-by-me-unassigned-completed",
       "reader": null,
       "filterPriority": [
@@ -2889,10 +2675,9 @@
         "unassigned"
       ],
       "task": "created-by-me-unassigned-completed",
-      "shown": true
+      "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/other/assigned-to-me",
       "reader": null,
       "filterPriority": [
@@ -2906,7 +2691,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/other/assigned-to-me-by-me",
       "reader": null,
       "filterPriority": [
@@ -2920,7 +2704,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/other/created-by-me-unassigned",
       "reader": null,
       "filterPriority": [
@@ -2934,7 +2717,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/other/created-by-me-assigned-other",
       "reader": null,
       "filterPriority": [
@@ -2948,7 +2730,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/other/someone-elses",
       "reader": null,
       "filterPriority": [
@@ -2962,7 +2743,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/other/unassigned-not-mine",
       "reader": null,
       "filterPriority": [
@@ -2976,7 +2756,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/other/assigned-to-me-nested-only",
       "reader": null,
       "filterPriority": [
@@ -2990,7 +2769,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/other/assigned-to-me-in-list-i-left",
       "reader": null,
       "filterPriority": [
@@ -3004,7 +2782,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/other/assigned-to-me-completed",
       "reader": null,
       "filterPriority": [
@@ -3018,7 +2795,6 @@
       "shown": false
     },
     {
-      "entry": "D25",
       "id": "my-tasks/signed-out/none-or-low/other/created-by-me-unassigned-completed",
       "reader": null,
       "filterPriority": [
@@ -3032,10 +2808,6 @@
       "shown": false
     }
   ],
-  "disputes": [
-    {
-      "entry": "D25",
-      "why": "My Tasks scope: web also keeps unassigned tasks the reader created, reads assigneeId alone (not the nested assignee), and applies filterAssignee; iOS keeps only what is assigned to the reader, is empty signed out, and ignores filterAssignee"
-    }
-  ]
+  "disputed": [],
+  "disputes": []
 }

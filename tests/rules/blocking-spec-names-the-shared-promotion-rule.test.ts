@@ -10,16 +10,16 @@
  * they start disagreeing — the exact failure docs/FIXALL_WORKFLOW.md was
  * written to end ("a rule written twice is a rule that disagrees with itself").
  *
- * So the spec is pinned to the implementation that already exists rather than
- * left free to invent a second one: it must name `classifyWaitingTask`, that
- * function must still be there, and it must still gate promotion on BOTH the
- * blockers and the date. A future implementation that adds a parallel rule can
- * still do so — but it cannot do so while this file claims they are the same.
+ * So the spec is pinned to ONE implementation rather than left free to invent
+ * a second: since 2026-11-12 that is astrid-core's Waiting rules, which web
+ * calls as `waitingSettle` in lib/waiting-rules.ts. The spec must name it, it
+ * must still be there, and it must still gate promotion on BOTH the blockers
+ * and the date.
  */
 import { describe, it, expect } from 'vitest'
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
-import { classifyWaitingTask } from '@/lib/ready-queue-scope'
+import { settleWaitingTs } from '@/lib/waiting-rules'
 
 const SPEC_PATH = join(process.cwd(), 'docs', 'specs', 'TASK_BLOCKING_DEPENDENCIES.md')
 const NOW = new Date('2026-09-24T12:00:00.000Z')
@@ -34,8 +34,8 @@ describe('the task-blocking spec (AWTD-1002)', () => {
   const spec = existsSync(SPEC_PATH) ? readFileSync(SPEC_PATH, 'utf8') : ''
 
   it('names the promotion rule that already exists rather than inventing a second one', () => {
-    expect(spec).toMatch(/classifyWaitingTask/)
-    expect(spec).toMatch(/lib\/ready-queue-scope\.ts/)
+    expect(spec).toMatch(/waitingSettle/)
+    expect(spec).toMatch(/lib\/waiting-rules\.ts/)
   })
 
   it('reconciles itself with the blockedByTaskId column PROJECT_MODE.md reserved', () => {
@@ -58,21 +58,17 @@ describe('the task-blocking spec (AWTD-1002)', () => {
 })
 
 describe('the promotion gate the spec points at', () => {
+  const waiting = (dueDateTime: string) => ({ id: 't', statusRole: 'waiting', dueDateTime })
+
   it('holds a task while any blocker is outstanding, whatever its date says', () => {
-    expect(
-      classifyWaitingTask({ dueDateTime: PAST, now: NOW, blockedBy: ['t1'], blockedOn: null }),
-    ).toBe('check-blockers')
+    expect(settleWaitingTs(waiting(PAST), [{ id: 't1', completed: false }], NOW).action).toBe('stay')
   })
 
   it('holds a task whose blockers are clear but whose date has not arrived', () => {
-    expect(
-      classifyWaitingTask({ dueDateTime: FUTURE, now: NOW, blockedBy: [], blockedOn: null }),
-    ).toBe('hold')
+    expect(settleWaitingTs(waiting(FUTURE), [{ id: 't1', completed: true }], NOW).action).toBe('stay')
   })
 
   it('promotes only when the blockers are clear AND the date has arrived', () => {
-    expect(
-      classifyWaitingTask({ dueDateTime: PAST, now: NOW, blockedBy: [], blockedOn: null }),
-    ).toBe('promote')
+    expect(settleWaitingTs(waiting(PAST), [{ id: 't1', completed: true }], NOW).action).toBe('wakeToReady')
   })
 })

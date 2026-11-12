@@ -1951,7 +1951,8 @@
         "researchAssistant": "研究助手",
         "familyAssistant": "家庭助手",
         "contentWriter": "内容撰稿人"
-      }
+      },
+      "addPreset": "添加预设：{name}"
     },
     "filters": {
       "allAssignees": "所有负责人",
@@ -2603,14 +2604,16 @@
       "ready": "就绪",
       "doing": "进行中",
       "waiting": "等待中",
-      "done": "已完成"
+      "done": "已完成",
+      "testing": "测试"
     },
     "blurb": {
       "inbox": "准备好了就把它们移到\"就绪\"吧！",
       "ready": "该开工了！",
       "doing": "工作进行中！",
       "waiting": "暂停，等待时机成熟。",
-      "done": "已完成——恭喜！"
+      "done": "已完成——恭喜！",
+      "testing": "正在部署、处于金丝雀发布或实验中。"
     }
   },
   "passkeyErrors": {
@@ -2648,5 +2651,22 @@
     "public_write": "创建和管理公开列表",
     "sse_connect": "连接 SSE 事件流",
     "all": "完全访问（仅限内部使用——授予基于会话的认证）"
+  },
+  "waiting": {
+    "prompt": {
+      "title": "它在等待什么？",
+      "description": "等待中的任务在等待一个日期或另一项任务。",
+      "descriptionFor": "“{title}”将等待一个日期或另一项任务。",
+      "until": "等待到…",
+      "on": "等待任务…",
+      "dateLabel": "截至",
+      "dateInPast": "请选择今天之后的日期。",
+      "taskLabel": "它等待的任务",
+      "picked": "正在等待 {task}",
+      "keepAssignedToMe": "仍分配给我",
+      "keepAssignedTo": "仍分配给 {name}",
+      "theAssignee": "负责人",
+      "confirm": "移至等待"
+    }
   }
 }
