@@ -105,6 +105,9 @@ describe('ListSortAndFiltersPopover (task aa4e7eb0)', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false)
 
     onOpenChange.mockClear()
+    // A whole press on the overlay: since AWTD-1595 a click only dismisses
+    // when the press also STARTED there.
+    fireEvent.mouseDown(overlay)
     fireEvent.click(overlay)
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
