@@ -34,6 +34,7 @@ import {
   type StarterAgent,
   type StarterList,
 } from "@/lib/start-here/business-blueprint"
+import { starterAgentCopy } from "@/lib/start-here/starter-agent-copy"
 import {
   createStarterLists,
   findStarterLists,
@@ -83,6 +84,7 @@ function AgentSetup({
   const { t } = useTranslations()
   const list = starterList(agent.list)
   const setup = starterAgentSetup(agent, origin, listId ?? null)
+  const copy = starterAgentCopy(agent, t)
   let n = 1
   return (
     <details
@@ -93,12 +95,12 @@ function AgentSetup({
         <span>
           <span className="font-semibold theme-text-primary">{agent.name}</span>
           <span className="theme-text-muted"> {t('startPage.agentList', { list: list.name })}</span>
-          <span className="block text-sm theme-text-muted">{agent.role}</span>
+          <span className="block text-sm theme-text-muted">{copy.role}</span>
         </span>
-        <span className="text-xs theme-text-muted shrink-0">{t('startPage.buyPlan', { plan: agent.plan })}</span>
+        <span className="text-xs theme-text-muted shrink-0">{t('startPage.buyPlan', { plan: copy.plan })}</span>
       </summary>
       <div className="space-y-3 pt-3">
-        <p className="text-sm theme-text-muted">{agent.runs}</p>
+        <p className="text-sm theme-text-muted">{copy.runs}</p>
         {!listId && (
           <p className="text-xs theme-text-muted">
             {t('startPage.createListsFirst', { list: list.name })}
@@ -117,7 +119,7 @@ function AgentSetup({
             code={setup.install.content}
           />
         )}
-        {agent.extraSteps.map(step => (
+        {copy.extraSteps.map(step => (
           <p key={step} className="text-sm theme-text-primary">
             {n++}. {step}
           </p>
@@ -326,7 +328,7 @@ export default function StartHerePage() {
                   <div key={list.key} className="flex flex-wrap items-baseline gap-x-2 text-sm">
                     <span className="font-semibold theme-text-primary w-28">{list.name}</span>
                     <span className="theme-text-primary">{agent.name}</span>
-                    <span className="theme-text-muted">— {agent.role}</span>
+                    <span className="theme-text-muted">— {starterAgentCopy(agent, t).role}</span>
                   </div>
                 )
               })}

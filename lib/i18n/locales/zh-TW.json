@@ -473,7 +473,8 @@
     "selectTime": "選擇時間",
     "twoHoursBefore": "提前2小時",
     "twoDaysBefore": "提前2天",
-    "noon": "中午"
+    "noon": "中午",
+    "dateAtTime": "{date} {time}"
   },
   "repeating": {
     "oneTimeOnly": "僅一次",
@@ -716,7 +717,20 @@
       "complete": "完成",
       "completedToast": "恭喜完成！",
       "snooze1day": "1天後提醒",
-      "snooze1week": "1週後提醒"
+      "snooze1week": "1週後提醒",
+      "snoozedTitle": "提醒已延後",
+      "snoozedDescription": "提醒將於{when}再次出現",
+      "snoozeFailedTitle": "延後失敗",
+      "snoozeFailed": "無法延後提醒",
+      "dismissedTitle": "提醒已關閉",
+      "dismissedDescription": "此提醒不會再出現",
+      "dismissFailedTitle": "關閉失敗",
+      "dismissFailed": "無法關閉提醒",
+      "completedTitle": "任務已完成",
+      "completedDescription": "任務已標示為完成，提醒已關閉",
+      "completeFailedTitle": "完成失敗",
+      "completeFailed": "無法完成任務",
+      "overdue": "已逾期"
     }
   },
   "emptyState": {
@@ -842,7 +856,7 @@
         "getKey": "取得金鑰",
         "guideLink": "連接我的程式代理指南",
         "needsSetup": "需要設定",
-        "agentLoops": "Agent Loops",
+        "agentLoops": "代理循環",
         "customAgents": "自訂代理",
         "off": "關閉",
         "transportLabel": "傳輸方式：",
@@ -878,7 +892,7 @@
         "stepSchedule": "排程或執行",
         "stepTest": "測試",
         "hostedWorkflow": "沒有可以一直開著的機器？改為提交此工作流程。它需要兩個儲存庫密鑰；{link} 說明了如何建立。",
-        "startHere": "Start here",
+        "startHere": "從這裡開始",
         "copilotInstall": "提交一次此儲存庫自訂代理。之後 Copilot CLI、Copilot 應用程式、GitHub.com 和 VS Code 都可以選擇相同的佇列行為。",
         "githubConnect": "為此代理建立用戶端憑證，並將其儲存為名為 {clientId} 和 {clientSecret} 的儲存庫 Actions 密鑰。每次執行都會用用戶端憑證換取一個僅含佇列工作器所需權限、有效期一小時的存取權杖——長期權杖永遠不會進入儲存庫。",
         "githubInstall": "此工作流程是佇列閘門：它只回答「有工作嗎？」，本身不執行代理。請將第二個作業指向你現有的受支援代理作業（其他分頁中的 Copilot CLI、Claude Code 或 Codex 步驟）。",
@@ -968,9 +982,9 @@
       "title": "API存取",
       "description": "OAuth應用程式和API整合",
       "clientGuide": {
-        "title": "Do you need a client here?",
-        "dcrNote": "No — if your assistant supports OAuth (VS Code / Copilot, ChatGPT, or another MCP client), it registers itself automatically when you connect to the hosted MCP endpoint. Nothing to create here.",
-        "manualNote": "Yes — create a client below only for server integrations that use a static secret: scripts, the stdio MCP server, or custom-header setups using the client_credentials grant.",
+        "title": "你需要在這裡建立用戶端嗎？",
+        "dcrNote": "不需要——如果你的助理支援 OAuth（VS Code / Copilot、ChatGPT 或其他 MCP 用戶端），連線到託管的 MCP 端點時就會自動註冊。這裡不需要建立任何東西。",
+        "manualNote": "需要——只有使用固定密鑰的伺服器整合才需在下方建立用戶端：指令碼、stdio MCP 伺服器，或使用 client_credentials 授權的自訂標頭設定。",
         "question": "這裡需要建立用戶端嗎？",
         "registersItself": "不需要——如果你的助理支援 OAuth（VS Code / Copilot、ChatGPT 或其他 MCP 用戶端），它會在你連線到託管的 MCP 端點時自動註冊。這裡不需要建立任何項目。",
         "manualOnly": "需要——僅當伺服器整合使用靜態密鑰時才在下方建立用戶端：指令碼、stdio MCP 伺服器，或使用 client_credentials 授權的自訂標頭設定。"
@@ -1078,15 +1092,15 @@
         }
       },
       "mcp": {
-        "badge": "Recommended",
-        "title": "Connect via MCP",
-        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
-        "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
+        "badge": "推薦",
+        "title": "透過 MCP 連線",
+        "description": "Model Context Protocol 是把 AI 助理連接到你的任務最快的方式",
+        "serverUrl": "MCP 伺服器 URL",
+        "note": "把這個 URL 加到助理的 MCP 設定中。它會提示你登入 {appName}——不必複製任何金鑰。",
         "vscodeTitle": "VS Code / GitHub Copilot",
-        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "vscodeNote": "在專案中儲存為 .vscode/mcp.json，然後在伺服器上按 Start",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+        "legacyNote": "只支援 SSE 傳輸的舊用戶端可以對同一個 URL 發出 GET，並以 POST 將訊息傳送到 /mcp/messages。"
       },
       "step1": {
         "badge": "步驟1",
@@ -1337,7 +1351,7 @@
       "theme": {
         "title": "主題",
         "description": "在Ocean、淺色和深色主題之間選擇",
-        "ocean": "Ocean",
+        "ocean": "海洋",
         "oceanDesc": "清爽青色背景的淺色主題",
         "light": "淺色模式",
         "lightDesc": "明亮整潔的介面，非常適合白天使用",
@@ -1436,15 +1450,15 @@
         }
       },
       "mcp": {
-        "badge": "Recommended",
-        "title": "Connect via MCP",
-        "description": "The Model Context Protocol is the quickest way to connect an AI assistant to your tasks",
-        "serverUrl": "MCP Server URL",
-        "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
+        "badge": "推薦",
+        "title": "透過 MCP 連線",
+        "description": "Model Context Protocol 是把 AI 助理連接到你的任務最快的方式",
+        "serverUrl": "MCP 伺服器 URL",
+        "note": "把這個 URL 加到助理的 MCP 設定中。它會提示你登入 {appName}——不必複製任何金鑰。",
         "vscodeTitle": "VS Code / GitHub Copilot",
-        "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
+        "vscodeNote": "在專案中儲存為 .vscode/mcp.json，然後在伺服器上按 Start",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages.",
+        "legacyNote": "只支援 SSE 傳輸的舊用戶端可以對同一個 URL 發出 GET，並以 POST 將訊息傳送到 /mcp/messages。",
         "claudeNote": "一道指令即可——它會開啟瀏覽器以核准存取，不必複製任何金鑰",
         "copilotTitle": "GitHub Copilot CLI",
         "copilotNote": "Copilot CLI 同樣一道指令即可連接",
@@ -1761,21 +1775,21 @@
     }
   },
   "projectMode": {
-    "boardViewLabel": "Board View",
-    "boardViewDescriptionEnabled": "This list has a Ready / Doing / Waiting status board. Inbox holds new tasks; Done is completed.",
-    "boardViewDescriptionAvailable": "Add Ready, Doing, and Waiting status columns. Inbox and Done are derived automatically.",
-    "boardViewDescriptionLocked": "Boards add Ready / Doing / Waiting columns for working through tasks with other people. Available on request.",
-    "requestAccess": "Request access",
-    "requestPending": "Requested",
-    "requestPendingHint": "Your request is with the team. We'll email you when it's turned on.",
-    "requestDialogTitle": "Request board access",
-    "requestDialogBody": "Boards are rolling out gradually. Tell us what you'd use one for and we'll get back to you.",
-    "requestDialogUseCaseLabel": "What would you use a board for? (optional)",
-    "requestDialogUseCasePlaceholder": "e.g. tracking sprints with two teammates",
-    "requestDialogSubmit": "Send request",
-    "requestDialogCancel": "Cancel",
-    "requestSubmitted": "Request sent",
-    "requestFailed": "Couldn't send your request. Please try again.",
+    "boardViewLabel": "看板檢視",
+    "boardViewDescriptionEnabled": "此清單有「就緒 / 進行中 / 等待中」狀態看板。收件匣存放新任務；已完成存放完成的任務。",
+    "boardViewDescriptionAvailable": "新增「就緒」、「進行中」與「等待中」狀態欄。收件匣與已完成會自動產生。",
+    "boardViewDescriptionLocked": "看板會新增「就緒 / 進行中 / 等待中」欄，方便與他人一起處理任務。可依要求開通。",
+    "requestAccess": "申請開通",
+    "requestPending": "已申請",
+    "requestPendingHint": "你的申請已交給團隊。開通後我們會寄電子郵件通知你。",
+    "requestDialogTitle": "申請看板權限",
+    "requestDialogBody": "看板正逐步開放。告訴我們你打算用它做什麼，我們會回覆你。",
+    "requestDialogUseCaseLabel": "你打算用看板做什麼？（選填）",
+    "requestDialogUseCasePlaceholder": "例如：和兩位隊友追蹤衝刺",
+    "requestDialogSubmit": "送出申請",
+    "requestDialogCancel": "取消",
+    "requestSubmitted": "申請已送出",
+    "requestFailed": "無法送出申請，請再試一次。",
     "keyLabel": "任務 ID 前綴",
     "keyExample": "任務將編號為 {example} 等",
     "keyInvalid": "{min}–{max} 個字母或數字，以字母開頭",
@@ -1899,7 +1913,7 @@
       "connectGithubLink": "設定 → 連接 → GitHub",
       "runLoop": "為此列表執行迴圈",
       "loopDescription": "你的程式設計 harness 會依排程檢查此列表，並處理指派給它且標記為 {ready} 的任務。其他看板上的任務不會被動到。",
-      "readyStatus": "Ready",
+      "readyStatus": "就緒",
       "descriptionHint": "代理會將此列表的{description}作為工作指示——請像撰寫專案簡介一樣在上方編輯。",
       "descriptionWord": "描述",
       "listId": "列表 ID",
@@ -2488,7 +2502,36 @@
     "connectIntro": "每個代理程式都有自己的 {appName} 身分，只接手自己列表中{assignedAndReady}的任務。開啟其中一個並貼上它的步驟 — 或者把本頁連結貼給代理程式，請它自行完成設定。",
     "connectIntroAssignedAndReady": "指派給它並標記為 Ready",
     "workSetReady": "想讓代理程式開始時，把狀態設為 {ready}。這就是啟動按鈕。",
-    "teamIntro": "分享每個列表（列表設定 → {members} → 透過電子郵件邀請）。所有人都能看到相同的任務、留言和代理程式回報。列表擁有者和管理員可以把任何任務交給代理程式；成員可以移交自己建立的任務。要讓成員可以移交任何任務，請在列表設定 → {aiAgent} 中開啟{setting}（代理程式使用擁有者的方案執行）。"
+    "teamIntro": "分享每個列表（列表設定 → {members} → 透過電子郵件邀請）。所有人都能看到相同的任務、留言和代理程式回報。列表擁有者和管理員可以把任何任務交給代理程式；成員可以移交自己建立的任務。要讓成員可以移交任何任務，請在列表設定 → {aiAgent} 中開啟{setting}（代理程式使用擁有者的方案執行）。",
+    "agents": {
+      "muse": {
+        "role": "規劃與分流：把想法、回饋與錯誤變成清楚的 Build 與 Fix 任務。",
+        "plan": "附 Muse Code 的 Muse 帳號",
+        "runs": "Muse Code 連線至 MCP 伺服器，每 30 分鐘檢查一次佇列。"
+      },
+      "claude": {
+        "role": "在你的儲存庫中從頭到尾打造功能，並開出拉取請求。",
+        "plan": "Claude Max（含 Claude Code）",
+        "runs": "Claude Code 連線至 MCP 伺服器，每 30 分鐘檢查一次佇列。"
+      },
+      "codex": {
+        "role": "以測試先行修正錯誤、重構並補上缺少的測試。",
+        "plan": "ChatGPT Pro 或 Plus（含 Codex CLI）",
+        "runs": "Codex CLI 連線至 MCP 伺服器，每 30 分鐘檢查一次佇列。"
+      },
+      "copilot": {
+        "role": "自動審查 GitHub 上的每個拉取請求，並處理審查任務。",
+        "plan": "GitHub Copilot Pro+（團隊可選 Business）",
+        "runs": "GitHub 會為每個拉取請求要求 Copilot 審查；Copilot CLI 每 30 分鐘檢查一次 Review 佇列。",
+        "extraStep0": "在你的 GitHub 儲存庫開啟 Settings → Rules → Rulesets → New branch ruleset，選擇預設分支並開啟「Automatically request Copilot code review」。之後任何代理開出的拉取請求都會由 Copilot 自動審查，不必你開口。"
+      },
+      "githubActions": {
+        "role": "在 GitHub 上依排程執行你的週期性自動化——你的電腦上什麼都不用跑。",
+        "plan": "GitHub 內含（公開儲存庫與大多數私人儲存庫享有免費分鐘數）",
+        "runs": "排程工作流程每 30 分鐘向 Automations 佇列詢問工作，只有在有工作時才啟動作業。",
+        "extraStep0": "在 {app} 中建立用戶端憑證（設定 → AI 代理 → Copilot → GitHub Actions），並儲存為儲存庫機密 {clientId} 與 {clientSecret}。"
+      }
+    }
   },
   "richTextInput": {
     "placeholder": "輸入訊息...",
@@ -2508,7 +2551,11 @@
     "empty": "尚無訊息。開始對話吧！",
     "loadFailed": "載入聊天失敗",
     "openChat": "開啟聊天",
-    "showTasks": "顯示任務"
+    "showTasks": "顯示任務",
+    "authorYou": "你",
+    "authorSystem": "系統",
+    "authorUnknown": "未知",
+    "systemEventAt": "{when}：{content}"
   },
   "notificationBell": {
     "markAllRead": "全部標為已讀",
@@ -2556,6 +2603,49 @@
       "doing": "進行中",
       "waiting": "等待中",
       "done": "已完成"
+    },
+    "blurb": {
+      "inbox": "準備好了就把它們移到「就緒」吧！",
+      "ready": "該開工了！",
+      "doing": "工作進行中！",
+      "waiting": "暫停，等待時機成熟。",
+      "done": "已完成——恭喜！"
     }
+  },
+  "passkeyErrors": {
+    "notSupported": "此裝置不支援通行金鑰",
+    "optionsFailed": "無法發起通行金鑰請求，請再試一次。",
+    "registrationFailed": "通行金鑰註冊失敗",
+    "authenticationFailed": "通行金鑰登入失敗",
+    "defaultName": "我的通行金鑰"
+  },
+  "oauthScopes": {
+    "tasks_read": "讀取任務",
+    "tasks_write": "建立及更新任務",
+    "tasks_delete": "刪除任務",
+    "lists_read": "讀取清單",
+    "lists_write": "建立及更新清單",
+    "lists_configure": "建立清單並編輯其名稱、說明、預設負責人與顏色",
+    "lists_delete": "刪除清單",
+    "lists_manage_members": "管理清單成員",
+    "projects_read": "讀取專案（狀態看板）",
+    "projects_write": "建立及更新專案（狀態看板）",
+    "projects_delete": "刪除專案（狀態看板）",
+    "comments_read": "讀取留言",
+    "comments_write": "發表留言",
+    "comments_delete": "刪除留言",
+    "chat_read": "讀取聊天訊息",
+    "chat_write": "傳送聊天訊息",
+    "user_read": "讀取使用者個人資料與設定",
+    "user_write": "更新使用者設定",
+    "attachments_read": "讀取附件",
+    "attachments_write": "上傳附件",
+    "attachments_delete": "刪除附件",
+    "contacts_read": "讀取已上傳的聯絡人",
+    "contacts_write": "上傳及管理聯絡人",
+    "public_read": "讀取公開清單",
+    "public_write": "建立及管理公開清單",
+    "sse_connect": "連線至 SSE 事件串流",
+    "all": "完整存取（僅供內部使用——授予以工作階段為基礎的驗證）"
   }
 }

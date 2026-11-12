@@ -32,6 +32,7 @@ import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
 import { VirtualizedTaskList } from "@/components/TaskManager/MainContent/VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { useTranslations } from "@/lib/i18n/client"
+import { boardColumnBlurb, boardColumnLabel } from "@/lib/board-column-labels"
 import { shouldShowTaskIdentifier } from "@/lib/task-identifier-links"
 import { useProjectFields } from "@/hooks/use-project-fields"
 import { useProjectFieldValues } from "@/hooks/use-project-field-values"
@@ -374,7 +375,7 @@ export function ProjectStatusBoard({
               <div
                 role="button"
                 tabIndex={expandedTaskId ? 0 : -1}
-                aria-label={expandedTaskId ? t('tasks.board.collapseExpandedIn', { name: column.name }) : undefined}
+                aria-label={expandedTaskId ? t('tasks.board.collapseExpandedIn', { name: boardColumnLabel(column, t) }) : undefined}
                 title={expandedTaskId ? t('tasks.board.tapToCollapse') : undefined}
                 onClick={() => {
                   if (expandedTaskId) setExpandedTaskId(null)
@@ -392,7 +393,7 @@ export function ProjectStatusBoard({
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="truncate text-sm font-semibold theme-text-primary">{column.name}</span>
+                    <span className="truncate text-sm font-semibold theme-text-primary">{boardColumnLabel(column, t)}</span>
                     {isDoneColumn ? (
                       <CheckCircle2 className="h-4 w-4 text-success" aria-hidden="true" />
                     ) : null}
@@ -400,8 +401,8 @@ export function ProjectStatusBoard({
                       <Inbox className="h-4 w-4 theme-text-muted" aria-hidden="true" />
                     ) : null}
                   </div>
-                  {column.description ? (
-                    <p className="mt-1 line-clamp-2 text-xs theme-text-secondary">{column.description}</p>
+                  {boardColumnBlurb(column, t) ? (
+                    <p className="mt-1 line-clamp-2 text-xs theme-text-secondary">{boardColumnBlurb(column, t)}</p>
                   ) : null}
                 </div>
                 <span className="min-w-6 rounded-full theme-bg-hover px-2 py-0.5 text-center text-xs theme-text-secondary">
@@ -542,7 +543,7 @@ export function ProjectStatusBoard({
                     size="sm"
                     className="h-9 w-9 shrink-0 p-0"
                     disabled={creatingColumnId === column.id || !(drafts[column.id] || "").trim()}
-                    aria-label={t('tasks.board.addTaskTo', { name: column.name })}
+                    aria-label={t('tasks.board.addTaskTo', { name: boardColumnLabel(column, t) })}
                   >
                     <Plus className="h-4 w-4" aria-hidden="true" />
                   </Button>

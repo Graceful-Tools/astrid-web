@@ -234,6 +234,22 @@ export function getScopeGroup(group: ScopeGroup): OAuthScope[] {
 }
 
 /**
+ * The locale-file key for a scope's description (AWTD-1601): `tasks:read` ->
+ * `oauthScopes.tasks_read`, `*` -> `oauthScopes.all`. OAUTH_SCOPES above stays
+ * the English source and the API's own wording.
+ */
+export function scopeMessageKey(scope: string): string {
+  return `oauthScopes.${scope === '*' ? 'all' : scope.replace(/[^a-z0-9]/gi, '_')}`
+}
+
+/** A scope's description in the reader's language, falling back to the English. */
+export function localizedScopeDescription(scope: string, t: (key: string) => string): string {
+  const key = scopeMessageKey(scope)
+  const value = t(key)
+  return value && value !== key ? value : getScopeDescription(scope)
+}
+
+/**
  * Get human-readable description for a scope
  */
 export function getScopeDescription(scope: string): string {

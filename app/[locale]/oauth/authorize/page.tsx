@@ -11,7 +11,7 @@ import {
   OAuthAuthorizationError,
   validateAuthorizationRequest,
 } from "@/lib/oauth/oauth-authorization"
-import { formatScopeString, getScopeDescription } from "@/lib/oauth/oauth-scopes"
+import { formatScopeString, localizedScopeDescription } from "@/lib/oauth/oauth-scopes"
 import { resolveConsentAgentMailbox, type ConsentAgentMailbox } from "@/lib/oauth/agent-consent"
 import { agentEmail } from "@/lib/brand/agent-emails"
 import { Button } from "@/components/ui/button"
@@ -66,6 +66,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
   }
 
   const t = await getTranslations("oauthAuthorizePage")
+  const tRoot = await getTranslations()
 
   let context = null
   let validationError: OAuthAuthorizationError | null = null
@@ -226,7 +227,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
                     <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
                     <div>
                       <code className="text-xs theme-bg-tertiary px-2 py-0.5 rounded">{scope}</code>
-                      <div className="text-sm theme-text-muted">{getScopeDescription(scope)}</div>
+                      <div className="text-sm theme-text-muted">{localizedScopeDescription(scope, key => (tRoot.has(key) ? tRoot(key) : key))}</div>
                     </div>
                   </li>
                 ))}

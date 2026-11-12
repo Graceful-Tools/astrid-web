@@ -9,6 +9,8 @@ import {
 import { DayButton, DayPicker, getDefaultClassNames } from 'react-day-picker'
 
 import { cn } from '@/lib/utils'
+import { useLocale } from '@/lib/i18n/client'
+import { dateFnsLocaleFor } from '@/lib/i18n/date-fns-locale'
 import { Button, buttonVariants } from '@/components/ui/button'
 
 function Calendar({
@@ -24,10 +26,14 @@ function Calendar({
   buttonVariant?: React.ComponentProps<typeof Button>['variant']
 }) {
   const defaultClassNames = getDefaultClassNames()
+  // Month and weekday names in the reader's language (AWTD-1601); a caller's
+  // own `locale` prop still wins.
+  const appLocale = useLocale()
 
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
+      locale={dateFnsLocaleFor(appLocale)}
       className={cn(
         // `--spacing(8)` is Tailwind v4 syntax and this project is on v3.4, so it compiled to
         // `var(--spacing(8))` — invalid CSS that every browser silently drops, leaving
@@ -44,7 +50,7 @@ function Calendar({
       captionLayout={captionLayout}
       formatters={{
         formatMonthDropdown: date =>
-          date.toLocaleString('default', { month: 'short' }),
+          date.toLocaleString(appLocale || 'default', { month: 'short' }),
         ...formatters,
       }}
       classNames={{

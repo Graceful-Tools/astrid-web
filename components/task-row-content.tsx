@@ -10,7 +10,7 @@ import { isCanceled } from "@/lib/closed-reason"
 import { chipLabelText, listsShownOnRow, splitTaskLists } from "@/lib/list-flavors"
 import { useTranslations } from "@/lib/i18n/client"
 import { boardStatusClass, boardStatusNameKey, type TaskBoardStatus } from "@/lib/task-board-status"
-import { format } from "date-fns"
+import { formatClockTime } from "@/lib/i18n/date-format"
 import type { Task } from "@/types/task"
 
 export interface TaskRowContentProps {
@@ -53,7 +53,7 @@ export function TaskRowContent({
   currentListId,
   boardStatus,
 }: TaskRowContentProps) {
-  const { t } = useTranslations()
+  const { t, locale } = useTranslations()
   // Split memberships once: lists are destinations, labels are tags
   // (task 60f5849d).
   const { lists: domainLists, labels } = splitTaskLists(
@@ -108,8 +108,8 @@ export function TaskRowContent({
             )}
             {task.dueDateTime && !shouldHideTaskWhen(task) && (
               <div className="text-xs theme-text-muted flex-shrink-0">
-                {formatDateForDisplay(new Date(task.dueDateTime), task.isAllDay)}
-                {!task.isAllDay && ` ${format(new Date(task.dueDateTime), "h:mm a")}`}
+                {formatDateForDisplay(new Date(task.dueDateTime), task.isAllDay, { locale, t })}
+                {!task.isAllDay && ` ${formatClockTime(new Date(task.dueDateTime), locale)}`}
               </div>
             )}
             {boardStatus && boardStatusName && (

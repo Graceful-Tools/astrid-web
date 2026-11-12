@@ -1,3 +1,4 @@
+import { formatShortDate } from '@/lib/i18n/date-format'
 import { getDaysDifference } from "./date-comparison"
 import { createLogger } from '@/lib/logger'
 
@@ -111,38 +112,39 @@ function getNextWeekday(targetDay: number): Date {
  * Convert a Date object to a user-friendly string
  * @param date - The date to format
  * @param isAllDay - Whether this is an all-day task (affects timezone handling)
+ * @param i18n - The reader's locale and translator (AWTD-1601). Without them
+ *   the words and the date are English, as server-side callers and tests expect.
  */
-export function formatDateForDisplay(date: Date | null, isAllDay: boolean = false): string {
-  if (!date) return "No due date"
+export function formatDateForDisplay(
+  date: Date | null,
+  isAllDay: boolean = false,
+  i18n: { locale?: string | null; t?: (key: string) => string } = {},
+): string {
+  const word = (key: string, english: string) => {
+    const value = i18n.t?.(key)
+    return value && value !== key ? value : english
+  }
+  if (!date) return word("time.noDate", "No due date")
 
   const daysDiff = getDaysDifference(date, new Date(), isAllDay)
 
   if (daysDiff === 0) {
-    return "Today"
+    return word("time.today", "Today")
   } else if (daysDiff === 1) {
-    return "Tomorrow"
+    return word("time.tomorrow", "Tomorrow")
   } else if (daysDiff === -1) {
-    return "Yesterday"
+    return word("time.yesterday", "Yesterday")
   } else if (isAllDay) {
     // Format date in UTC for all-day events
     const year = date.getUTCFullYear()
     const month = date.getUTCMonth()
     const day = date.getUTCDate()
-    return new Date(Date.UTC(year, month, day)).toLocaleDateString('en-US', {
-      timeZone: 'UTC',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
+    return formatShortDate(new Date(Date.UTC(year, month, day)), i18n.locale, { timeZone: 'UTC' })
   } else {
     // The same shape as the all-day branch above, in the viewer's own zone
     // (AWTD-1184). This used to be a bare toLocaleDateString(), which is
     // locale-numeric — so an all-day task read "Oct 8, 2026" while a timed one
     // a day later read "11/9/2026", in the same column.
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
+    return formatShortDate(date, i18n.locale)
   }
 }

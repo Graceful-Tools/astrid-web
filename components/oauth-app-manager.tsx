@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
 import { Trash2, Plus, Key, Copy, Check, AlertTriangle, FlaskConical, Pencil, ShieldPlus } from 'lucide-react'
-import { OAUTH_SCOPES, SCOPE_GROUPS, type OAuthScope } from '@/lib/oauth/oauth-scopes'
+import { OAUTH_SCOPES, SCOPE_GROUPS, localizedScopeDescription, type OAuthScope } from '@/lib/oauth/oauth-scopes'
 import {
   mergeOAuthRedirectUris,
   OAUTH_REDIRECT_PRESETS,
@@ -745,7 +745,7 @@ export function OAuthAppManager() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 mt-4">
-                  {Object.entries(OAUTH_SCOPES).filter(([scope]) => scope !== '*').map(([scope, description]) => (
+                  {Object.entries(OAUTH_SCOPES).filter(([scope]) => scope !== '*').map(([scope]) => (
                     <div key={scope} className="flex items-center space-x-2">
                       <Checkbox
                         id={scope}
@@ -757,7 +757,7 @@ export function OAuthAppManager() {
                         className="text-sm cursor-pointer flex-1"
                       >
                         <code className="text-xs">{scope}</code>
-                        <span className="text-xs theme-text-muted block">{description}</span>
+                        <span className="text-xs theme-text-muted block">{localizedScopeDescription(scope, t)}</span>
                       </label>
                     </div>
                   ))}
