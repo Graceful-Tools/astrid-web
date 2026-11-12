@@ -45,7 +45,8 @@ export function VirtualizedTaskList({
 
   return (
     <div
-      style={{ height: `${virtualizer.getTotalSize()}px`, width: "100%", position: "relative" }}
+      className="relative w-full"
+      style={{ height: `${virtualizer.getTotalSize()}px` }}
       data-testid={testId}
     >
       {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -56,11 +57,8 @@ export function VirtualizedTaskList({
             key={virtualRow.key}
             data-index={virtualRow.index}
             ref={virtualizer.measureElement}
+            className="absolute top-0 left-0 w-full"
             style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
               transform: `translateY(${virtualRow.start}px)`,
             }}
           >

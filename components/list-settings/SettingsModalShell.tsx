@@ -86,8 +86,7 @@ export function SettingsModalShell({
 
   return createPortal(
     <div
-      className={`fixed inset-0 bg-black bg-opacity-50 flex ${layout.overlay}`}
-      style={{ zIndex: 9999 }}
+      className={`fixed inset-0 bg-black bg-opacity-50 flex z-[9999] ${layout.overlay}`}
       onKeyDown={handleKeyDown}
       onMouseDown={e => { pressStartedOnOverlay.current = e.target === e.currentTarget }}
       onMouseUp={e => { pressEndedOnOverlay.current = e.target === e.currentTarget }}
@@ -101,9 +100,8 @@ export function SettingsModalShell({
       aria-modal="true"
     >
       <Card
-        className={`theme-bg-primary theme-border p-0 shadow-lg flex flex-col ${layout.card}`}
+        className={`theme-bg-primary theme-border p-0 shadow-lg flex flex-col relative z-[10000] ${layout.card}`}
         data-testid="settings-modal-card"
-        style={{ position: "relative", zIndex: 10000 }}
         onClick={e => e.stopPropagation()}
       >
         <div className="p-4 border-b theme-border">
