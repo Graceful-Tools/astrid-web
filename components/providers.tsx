@@ -8,6 +8,9 @@ import { SettingsProvider } from "@/contexts/settings-context"
 // SSEProvider removed - now using centralized SSE Manager
 import { PWARegistration } from "@/components/pwa-registration"
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
+// Stays eager so it hears an `offline` that fires before any deferred chunk arrives; it
+// loads the offline queue itself, on demand (AWTD-1604).
+import { PWAStatus } from "@/components/pwa-status"
 import { FeatureFlagProvider } from "@/contexts/feature-flag-context"
 import { EditingSessionProvider } from "@/hooks/use-editing-session"
 import { WebVitalsReporter } from "@/components/web-vitals-reporter"
@@ -25,8 +28,6 @@ const WaitingPromptHost = dynamic(() => import("@/components/WaitingPromptHost")
 const OfflineProvider = dynamic(() => import("@/components/offline-provider").then(m => m.OfflineProvider), { ssr: false })
 // - Coding-workflow SSE listener: was a pass-through provider around the tree.
 const CodingWorkflowListener = dynamic(() => import("@/components/coding-workflow-provider").then(m => m.CodingWorkflowListener), { ssr: false })
-// - The offline / back-online banner: hidden until the browser fires `offline` or `online`.
-const PWAStatus = dynamic(() => import("@/components/pwa-status").then(m => m.PWAStatus), { ssr: false })
 // - The toast viewport: empty until something calls toast(). A toast raised before it loads
 //   is not lost: hooks/use-toast.ts keeps it in its module store, which useToast() starts from.
 const Toaster = dynamic(() => import("@/components/ui/toaster").then(m => m.Toaster), { ssr: false })

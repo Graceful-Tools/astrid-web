@@ -3,8 +3,12 @@
 import { useTranslations } from '@/lib/i18n/client'
 import { useState, useEffect } from 'react'
 import { Wifi, WifiOff, X } from 'lucide-react'
-import { OfflineSyncManager } from '@/lib/offline-sync'
 import { Button } from '@/components/ui/button'
+
+// The offline queue (and Dexie behind it) loads only when the banner needs a count or a
+// sync, so this component can listen for `offline` from first paint without putting the
+// offline database into every page's first-load JS (AWTD-1604).
+const offlineSync = () => import('@/lib/offline-sync').then(m => m.OfflineSyncManager)
 
 export function PWAStatus() {
   const { t } = useTranslations()
@@ -16,7 +20,7 @@ export function PWAStatus() {
   // Update pending mutations count
   const updatePendingCount = async () => {
     try {
-      const stats = await OfflineSyncManager.getMutationStats()
+      const stats = await (await offlineSync()).getMutationStats()
       setPendingCount(stats.pending)
     } catch (error) {
       console.error('Failed to get pending mutations:', error)
@@ -35,7 +39,7 @@ export function PWAStatus() {
       if (pendingCount > 0) {
         setIsSyncing(true)
         try {
-          await OfflineSyncManager.syncPendingMutations()
+          await (await offlineSync()).syncPendingMutations()
           await updatePendingCount()
         } catch (error) {
           console.error('Auto-sync failed:', error)

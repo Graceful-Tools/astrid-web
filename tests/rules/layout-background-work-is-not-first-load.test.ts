@@ -5,7 +5,7 @@
  * imports there used to carry the offline database (Dexie), the cache and sync managers,
  * the SSE manager, pino and Radix Toast into EVERY page — about 70 KiB gzipped of code
  * that draws nothing on first paint. Measured with `npm run check:bundle`: the leanest
- * page went 258.4 → 188.4 KiB when they moved behind next/dynamic.
+ * page went 258.4 → 189.8 KiB when they moved behind next/dynamic.
  *
  * Checked as a grep because the regression is textual: one static `import` line puts the
  * whole graph back, and the bundle ceiling (which tracks the HEAVIEST route) would not
@@ -30,7 +30,6 @@ describe('AWTD-1604: background work in the [locale] layout loads after hydratio
     for (const specifier of [
       '@/components/offline-provider',
       '@/components/coding-workflow-provider',
-      '@/components/pwa-status',
       '@/components/ui/toaster',
       '@/lib/offline-sync',
       '@/lib/data-sync',
@@ -40,6 +39,10 @@ describe('AWTD-1604: background work in the [locale] layout loads after hydratio
     ]) {
       expect(staticallyImports(providers, specifier), `providers.tsx statically imports ${specifier}`).toBe(false)
     }
+  })
+
+  it('the offline banner stays eager but loads the offline queue on demand', () => {
+    expect(staticallyImports(read('components/pwa-status.tsx'), '@/lib/offline-sync')).toBe(false)
   })
 
   it('the feature-flag provider loads its SSE listener lazily', () => {
