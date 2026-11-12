@@ -57,10 +57,8 @@ export async function buildPendingComments(opts: {
   const drafts = commentDrafts(text, files)
   if (drafts.length === 0) return []
 
-  const { nanoid } = await import("nanoid")
-
   return drafts.map((draft, index) => {
-    const tempId = `${idPrefix}-${nanoid()}`
+    const tempId = `${idPrefix}-${globalThis.crypto.randomUUID()}`
     const file = files[index]
     const commentData = parentCommentId ? { ...draft, parentCommentId } : draft
 

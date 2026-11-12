@@ -1,4 +1,3 @@
-import { nanoid } from 'nanoid'
 import { offlineDB, type MutationOperation, OfflineIdMappingOperations } from './offline-db'
 import { apiCall } from './api'
 import { CrossTabSync } from './cross-tab-sync'
@@ -32,7 +31,7 @@ export class OfflineSyncManager {
     parentId?: string // For tracking relationships (e.g., comment's taskId)
   ): Promise<MutationOperation> {
     const mutation: MutationOperation = {
-      id: nanoid(),
+      id: globalThis.crypto.randomUUID(),
       type,
       entity,
       entityId,
