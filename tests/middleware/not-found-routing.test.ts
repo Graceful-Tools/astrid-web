@@ -87,7 +87,7 @@ describe('AWTD-1599: a missing root-level file is rewritten to the 404, after th
 
   async function missingFileRule(): Promise<Rewrite> {
     const { default: nextConfig } = await import('@/next.config.mjs')
-    const rewrites = (await nextConfig.rewrites()) as Rewrite[] | { afterFiles?: Rewrite[] }
+    const rewrites = (await nextConfig.rewrites!()) as Rewrite[] | { afterFiles?: Rewrite[] }
     // An array is Next's afterFiles phase: after public/ and static routes, before [locale].
     expect(Array.isArray(rewrites)).toBe(true)
     const rule = (rewrites as Rewrite[]).find((r) => r.destination.endsWith('/_missing-file'))
