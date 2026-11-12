@@ -6,7 +6,7 @@
  * workflow that publishes. These pin what it is allowed to do:
  *
  * - It runs on a `v*` tag, or when dispatched by hand (`:edge`, from main only).
- *   NOT on every push to main — each run builds a Next.js image per brand, and
+ *   NOT on every push to main — each run builds a Next.js image, and
  *   publishing on push would spend that on every merge. If that is ever wanted,
  *   change the trigger and this test together, on purpose.
  * - Only the publish job can write packages; the top-level token is read-only.
