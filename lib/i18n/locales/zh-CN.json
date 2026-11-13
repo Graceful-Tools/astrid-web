@@ -184,7 +184,9 @@
       "preview": "预览：",
       "repeatFromCompletionHint": "下一次重复基于你完成任务的时间",
       "repeatFromDueHint": "下一次重复基于原截止日期",
-      "descriptionKeysHint": "按 Enter 保存 • Shift+Enter 换行"
+      "descriptionKeysHint": "按 Enter 保存 • Shift+Enter 换行",
+      "descriptionPreview": "预览",
+      "expandDescription": "展开描述"
     },
     "commentsSection": {
       "addPlaceholder": "添加评论...",

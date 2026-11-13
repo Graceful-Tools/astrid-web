@@ -184,7 +184,9 @@
       "preview": "Prévia:",
       "repeatFromCompletionHint": "A próxima ocorrência se baseia em quando você conclui a tarefa",
       "repeatFromDueHint": "A próxima ocorrência se baseia na data de vencimento original",
-      "descriptionKeysHint": "Pressione Enter para salvar • Shift+Enter para quebras de linha"
+      "descriptionKeysHint": "Pressione Enter para salvar • Shift+Enter para quebras de linha",
+      "descriptionPreview": "Pré-visualização",
+      "expandDescription": "Expandir descrição"
     },
     "commentsSection": {
       "addPlaceholder": "Adicionar um comentário...",

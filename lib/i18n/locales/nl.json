@@ -184,7 +184,9 @@
       "preview": "Voorbeeld:",
       "repeatFromCompletionHint": "De volgende herhaling is gebaseerd op wanneer je de taak voltooit",
       "repeatFromDueHint": "De volgende herhaling is gebaseerd op de oorspronkelijke vervaldatum",
-      "descriptionKeysHint": "Druk op Enter om op te slaan • Shift+Enter voor een nieuwe regel"
+      "descriptionKeysHint": "Druk op Enter om op te slaan • Shift+Enter voor een nieuwe regel",
+      "descriptionPreview": "Voorvertoning",
+      "expandDescription": "Beschrijving uitvouwen"
     },
     "commentsSection": {
       "addPlaceholder": "Opmerking toevoegen...",

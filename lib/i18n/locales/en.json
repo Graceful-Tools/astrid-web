@@ -184,7 +184,9 @@
       "preview": "Preview:",
       "repeatFromCompletionHint": "Next occurrence is based on when you complete the task",
       "repeatFromDueHint": "Next occurrence is based on the original due date",
-      "descriptionKeysHint": "Press Enter to save • Shift+Enter for line breaks"
+      "descriptionKeysHint": "Press Enter to save • Shift+Enter for line breaks",
+      "descriptionPreview": "Preview",
+      "expandDescription": "Expand description"
     },
     "commentsSection": {
       "addPlaceholder": "Add a comment...",

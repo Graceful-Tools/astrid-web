@@ -184,7 +184,9 @@
       "preview": "プレビュー:",
       "repeatFromCompletionHint": "次回はタスクを完了した日を基準に決まります",
       "repeatFromDueHint": "次回は元の期限を基準に決まります",
-      "descriptionKeysHint": "Enterで保存 • Shift+Enterで改行"
+      "descriptionKeysHint": "Enterで保存 • Shift+Enterで改行",
+      "descriptionPreview": "プレビュー",
+      "expandDescription": "説明を拡大"
     },
     "commentsSection": {
       "addPlaceholder": "コメントを追加...",

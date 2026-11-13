@@ -234,8 +234,8 @@ export function TaskFieldEditors({
     setEditingTitle(false)
   }
 
-  const handleSaveDescription = () => {
-    onUpdate({ ...task, description: tempDescription })
+  const handleSaveDescription = (text: string = tempDescription) => {
+    onUpdate({ ...task, description: text })
     setEditingDescription(false)
   }
 
