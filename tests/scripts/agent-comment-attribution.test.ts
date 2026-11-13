@@ -187,3 +187,40 @@ describe('SweepApi comment attribution (AWTD-970)', () => {
     expect(fetchImpl).not.toHaveBeenCalled()
   })
 })
+
+/**
+ * AWTD-1620: land-and-deploy.ts completed AWTD-1606 after the deploy with a
+ * comment signed Claude Agent, then a completion logged as "Jon Paris marked
+ * this as complete". `comment()` sent `aiAgentId`; `complete()` and
+ * `setStatus()` did not, so the v1 PUT attributed them to the OAuth owner.
+ */
+describe('SweepApi task writes are signed too (AWTD-1620)', () => {
+  it('AWTD-1620: the deploy completion is signed by the agent', async () => {
+    const fetchImpl = stubFetch()
+    const api = new SweepApi(AUTH, false, () => {}, 'ai-agent-claude', fetchImpl)
+
+    await api.complete(TASK)
+
+    expect(bodyOf(fetchImpl)).toEqual({ completed: true, aiAgentId: 'ai-agent-claude' })
+  })
+
+  it('AWTD-1620: a status change is signed by the agent', async () => {
+    const fetchImpl = stubFetch()
+    const api = new SweepApi(AUTH, false, () => {}, 'ai-agent-claude', fetchImpl)
+
+    await api.setStatus(TASK, 'ready')
+
+    expect(bodyOf(fetchImpl)).toEqual({ statusRole: 'ready', aiAgentId: 'ai-agent-claude' })
+  })
+
+  it('AWTD-1620: an unknown identity omits aiAgentId rather than sending null', async () => {
+    const fetchImpl = stubFetch()
+    const api = new SweepApi(AUTH, false, () => {}, null, fetchImpl)
+
+    await api.complete(TASK)
+    await api.setStatus(TASK, 'ready')
+
+    expect(bodyOf(fetchImpl, 0)).toEqual({ completed: true })
+    expect(bodyOf(fetchImpl, 1)).toEqual({ statusRole: 'ready' })
+  })
+})

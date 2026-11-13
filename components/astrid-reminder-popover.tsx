@@ -199,7 +199,7 @@ export function AstridReminderPopover({
           {/* Astrid with Speech Bubble */}
           <div className="flex items-start space-x-4">
             {/* Astrid Icon - 1/3 of screen width */}
-            <div className="flex-shrink-0" style={{ width: '33%' }}>
+            <div className="flex-shrink-0 w-1/3">
               <img
                 src={BRAND.icon}
                 alt={BRAND.appName}
@@ -226,7 +226,7 @@ export function AstridReminderPopover({
                     return (
                       <div
                         key={member.id}
-                        className="w-8 h-8 rounded-full bg-brand text-brand-foreground flex items-center justify-center text-xs font-semibold border-2 border-white dark:border-gray-800"
+                        className="w-8 h-8 rounded-full bg-brand text-brand-foreground flex items-center justify-center text-xs font-semibold border-2 border-theme-card"
                         title={member.name || member.email}
                       >
                         {initials}

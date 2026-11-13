@@ -2440,7 +2440,9 @@
     "linkResolveFailed": "Failed to resolve link",
     "linkTaskNotFound": "Task not found or no longer accessible",
     "linkTaskForbidden": "You don't have permission to view this task",
-    "linkInvalidType": "Invalid link type"
+    "linkInvalidType": "Invalid link type",
+    "globalErrorTitle": "Something went wrong",
+    "globalErrorDescription": "A critical error occurred. Please try refreshing the page."
   },
   "profilePage": {
     "loading": "Loading profile...",
@@ -2668,5 +2670,93 @@
       "theAssignee": "the assignee",
       "confirm": "Move to Waiting"
     }
+  },
+  "helpPage": {
+    "title": "Help & Troubleshooting",
+    "intro": "Most issues can be solved by refreshing your data. Try the simple solutions first before moving to more advanced steps.",
+    "iosApp": "iOS App",
+    "webApp": "Web App",
+    "levels": {
+      "simple": "SIMPLE",
+      "simpleHint": "Try these first",
+      "intermediate": "INTERMEDIATE",
+      "intermediateHint": "If simple steps don't work",
+      "advanced": "ADVANCED",
+      "advancedHint": "Last resort options"
+    },
+    "signOutTitle": "Sign Out and Sign Back In",
+    "ios": {
+      "pullToRefreshTitle": "Pull to Refresh",
+      "pullToRefreshBody": "On the task list, pull down from the top to force a sync with the server. This fixes most sync issues.",
+      "forceQuitTitle": "Force Quit and Reopen",
+      "forceQuitBody": "Swipe up from the bottom (or double-tap home button), swipe {appName} away, then reopen the app.",
+      "signOutBody": "Go to <b>Settings</b> (tap your profile in the sidebar) → <b>Account</b> → <b>Sign Out</b>. Then sign back in with the same account.",
+      "connectionTitle": "Check Your Internet Connection",
+      "connectionBody": "{appName} works offline but needs internet to sync. Make sure you're connected to WiFi or cellular data.",
+      "reinstallTitle": "Delete and Reinstall the App",
+      "reinstallBody": "This clears all local data and cache. Your tasks are stored on our servers, so you won't lose anything. Press and hold the app icon → Remove App → Delete App, then reinstall from the App Store.",
+      "restartTitle": "Restart Your Device",
+      "restartBody": "Sometimes a full device restart can resolve persistent issues."
+    },
+    "web": {
+      "refreshTitle": "Refresh the Page",
+      "refreshBody": "Press <kbd>F5</kbd> or <kbd>Cmd+R</kbd> (Mac) / <kbd>Ctrl+R</kbd> (Windows) to reload the page.",
+      "hardRefreshTitle": "Hard Refresh",
+      "hardRefreshBody": "Hold <kbd>Shift</kbd> while clicking refresh, or press <kbd>Cmd+Shift+R</kbd> (Mac) / <kbd>Ctrl+Shift+R</kbd> (Windows). This bypasses the cache.",
+      "signOutBody": "Click your profile picture in the sidebar → <b>Settings</b> → <b>Account</b> → <b>Sign Out</b>. Then sign back in.",
+      "browserTitle": "Try a Different Browser",
+      "browserBody": "If you're having issues in one browser, try Chrome, Firefox, Safari, or Edge. This helps identify if it's a browser-specific issue.",
+      "extensionsTitle": "Disable Browser Extensions",
+      "extensionsBody": "Ad blockers or privacy extensions can sometimes interfere. Try disabling them temporarily or use an incognito/private window.",
+      "clearCacheTitle": "Clear Browser Cache and Cookies for {appName}",
+      "clearCacheChrome": "<b>Chrome:</b> Settings → Privacy → Clear browsing data → Select \"Cookies\" and \"Cached images\"",
+      "clearCacheSafari": "<b>Safari:</b> Preferences → Privacy → Manage Website Data → Search for \"{brandDomain}\" → Remove",
+      "clearCacheFirefox": "<b>Firefox:</b> Settings → Privacy → Clear Data → Select Cookies and Cache",
+      "indexedDbTitle": "Clear IndexedDB Storage",
+      "indexedDbBody": "In Chrome: Open DevTools (F12) → Application tab → Storage → IndexedDB → Right-click {wordmark} entries → Delete database. Then refresh the page."
+    },
+    "decisionsTitle": "Asking someone to choose",
+    "commonIssuesTitle": "Common Issues",
+    "issues": {
+      "counts": {
+        "title": "Task counts showing 0 or wrong numbers",
+        "intro": "Task counts are calculated from your synced data. If counts seem wrong:",
+        "step1": "Pull to refresh (iOS) or hard refresh the page (web)",
+        "step2": "Wait a few seconds for the sync to complete",
+        "step3": "If still incorrect, sign out and sign back in"
+      },
+      "sync": {
+        "title": "Tasks not syncing between devices",
+        "intro": "Syncing happens automatically but can take a few seconds. To force a sync:",
+        "step1": "Make sure both devices are connected to the internet",
+        "step2": "On iOS: Pull down to refresh",
+        "step3": "On web: Refresh the page",
+        "step4": "Changes should appear within 5-10 seconds"
+      },
+      "slow": {
+        "title": "App is slow or unresponsive",
+        "intro": "Performance issues are usually caused by cached data or too many browser tabs. Try:",
+        "step1": "Close other tabs and applications",
+        "step2": "Force quit and reopen the app (iOS)",
+        "step3": "Clear browser cache (web)",
+        "step4": "Reinstall the app if issues persist (iOS)"
+      },
+      "signIn": {
+        "title": "Can't sign in or getting authentication errors",
+        "intro": "Authentication issues can happen due to expired sessions or browser settings:",
+        "step1": "Make sure cookies are enabled in your browser",
+        "step2": "Try signing in with an incognito/private window",
+        "step3": "Clear cookies for {brandDomain} specifically",
+        "step4": "If using a passkey, make sure your device supports it"
+      }
+    },
+    "stillNeedHelpTitle": "Still Need Help?",
+    "stillNeedHelpBody": "If none of these solutions work, we're here to help.",
+    "contactSupport": "Contact Support"
+  },
+  "legalPages": {
+    "backToHome": "Back to Home",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy"
   }
 }

@@ -1216,13 +1216,13 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       {/* Arrow rendered outside the panel div so it escapes overflow:hidden */}
       {!inline && !onClose ? (
         <div
-          className="task-panel-arrow theme-panel-arrow"
-          style={{ top: `${arrowTop}px`, transition: 'top var(--astrid-motion-fast-duration) var(--astrid-motion-fast-ease)' }}
+          className="task-panel-arrow task-panel-arrow-tracks-row theme-panel-arrow"
+          style={{ top: `${arrowTop}px` }}
         ></div>
       ) : !inline ? (
         <div
-          className="task-panel-arrow theme-panel-arrow hidden cols2:block"
-          style={{ top: `${arrowTop}px`, transition: 'top var(--astrid-motion-fast-duration) var(--astrid-motion-fast-ease)' }}
+          className="task-panel-arrow task-panel-arrow-tracks-row theme-panel-arrow hidden cols2:block"
+          style={{ top: `${arrowTop}px` }}
         ></div>
       ) : null}
       <div
@@ -1313,9 +1313,8 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         {/* Pull-to-refresh indicator */}
         {isMobileDevice() && (pullToRefresh.isPulling || pullToRefresh.isRefreshing) && (
           <div
-            className="absolute left-0 right-0 flex items-center justify-center z-20"
+            className="absolute top-0 left-0 right-0 flex items-center justify-center z-20"
             style={{
-              top: 0,
               height: pullToRefresh.isRefreshing ? 60 : Math.min(pullToRefresh.pullDistance, 60),
             }}
           >

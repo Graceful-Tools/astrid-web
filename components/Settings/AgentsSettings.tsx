@@ -93,7 +93,7 @@ function AstridAgentSelector() {
             <img src={agent.image} alt="" className="w-8 h-8 rounded-full" />
           ) : (
             <div className="w-8 h-8 rounded-full bg-agent-bubble flex items-center justify-center">
-              <Bot className="w-4 h-4 text-purple-500" />
+              <Bot className="w-4 h-4 text-agent" />
             </div>
           )}
           <div className="flex-1 text-left">
@@ -151,7 +151,7 @@ export default function AgentsSettings(_props: AgentsSettingsProps) {
       <div className="max-w-sm sm:max-w-2xl mx-auto space-y-4 sm:space-y-6">
         {/* Settings Page Header */}
         <div className="flex flex-wrap items-center gap-3">
-          <Brain className="w-8 h-8 text-purple-500" />
+          <Brain className="w-8 h-8 text-agent" />
           <div>
             <h1 className="text-2xl font-bold theme-text-primary">{t("settingsPages.aiAgents.title")}</h1>
             <p className="theme-text-muted">{t("settingsPages.aiAgents.description")}</p>
@@ -161,10 +161,10 @@ export default function AgentsSettings(_props: AgentsSettingsProps) {
         {/* THE list: every agent, and per agent the one decision — who runs it.
             Everything else (key, loop recipe, webhook) appears inline as the
             answer to that choice. */}
-        <Card className="theme-bg-secondary theme-border border-green-500/30">
+        <Card className="theme-bg-secondary theme-border border-category-green/30">
           <CardHeader>
             <CardTitle className="theme-text-primary flex flex-wrap items-center gap-2">
-              <Bot className="w-6 h-6 text-green-500" />
+              <Bot className="w-6 h-6 text-category-green" />
               <span>{t("settingsPages.aiAgents.yourAgents.title")}</span>
             </CardTitle>
             <CardDescription className="theme-text-muted">

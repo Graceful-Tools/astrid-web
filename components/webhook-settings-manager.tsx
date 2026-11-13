@@ -46,27 +46,27 @@ const AGENT_CONFIG: Record<string, {
 }> = {
   claude: {
     label: 'Claude',
-    selectedClass: 'bg-purple-500/20 text-purple-400 border-purple-500/50',
-    dotClass: 'bg-purple-500',
-    badgeClass: 'text-purple-400 border-purple-500/50'
+    selectedClass: 'bg-category-purple/20 text-category-purple border-category-purple/50',
+    dotClass: 'bg-category-purple',
+    badgeClass: 'text-category-purple border-category-purple/50'
   },
   openai: {
     label: 'OpenAI',
-    selectedClass: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50',
-    dotClass: 'bg-emerald-500',
-    badgeClass: 'text-emerald-400 border-emerald-500/50'
+    selectedClass: 'bg-category-green/20 text-category-green border-category-green/50',
+    dotClass: 'bg-category-green',
+    badgeClass: 'text-category-green border-category-green/50'
   },
   gemini: {
     label: 'Gemini',
-    selectedClass: 'bg-blue-500/20 text-blue-400 border-blue-500/50',
-    dotClass: 'bg-blue-500',
-    badgeClass: 'text-blue-400 border-blue-500/50'
+    selectedClass: 'bg-category-blue/20 text-category-blue border-category-blue/50',
+    dotClass: 'bg-category-blue',
+    badgeClass: 'text-category-blue border-category-blue/50'
   },
   copilot: {
     label: 'GitHub Copilot',
-    selectedClass: 'bg-slate-500/20 text-slate-300 border-slate-500/50',
-    dotClass: 'bg-slate-400',
-    badgeClass: 'text-slate-300 border-slate-500/50'
+    selectedClass: 'bg-theme-active text-theme-secondary border-theme-strong',
+    dotClass: 'bg-current text-theme-muted',
+    badgeClass: 'text-theme-secondary border-theme-strong'
   }
 }
 

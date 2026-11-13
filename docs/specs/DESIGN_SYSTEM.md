@@ -196,10 +196,9 @@ Two things are not done, and the register says so:
   made unwell by movement on screen. An app that honours it swaps a slide or a pop for a
   fade or nothing. Only web's checkbox pop checks it so far; every other animation on
   every client still plays.
-- **Web's components do not read these yet** (DS15). Its stylesheets do: nothing in
-  `styles/` or `app/globals.css` writes a duration out, bar one `0s` that is a switch
-  with no duration rather than a design value. Five remain in components
-  (`duration-300` and the like). iOS writes several springs out too.
+- **Web reads them everywhere** (DS15). No stylesheet or component writes a duration
+  out (AWTD-1616); the empty state's entrance, which was `duration-500`, is now
+  `duration-panel`. iOS writes several springs out still.
 
 ### Motion on web
 
@@ -333,6 +332,10 @@ has a name below.
 | Info | `text-info`; `bg-info-subtle`, `bg-info`, `text-info-foreground`, `border-info` | `info-ink`; `info` |
 | Overdue | `text-overdue` | `overdue` |
 | Behind an agent's message | `bg-agent-bubble` | `agent-bubble` |
+| An agent's name, icon or badge; its dot or border | `text-agent`; `bg-agent`, `border-agent` | `agent-ink`; `agent` |
+| A category's icon or short label; the tile behind it; a dot, border or gradient stop | `text-category-red` … `text-category-pink`; `bg-category-red-subtle` … `bg-category-pink-subtle`; `bg-category-red` … `bg-category-pink`, `border-category-red` … `border-category-pink`, `from-category-blue`; a gradient stop under white text `to-category-purple-ink` | `category-<hue>-ink`; `category-<hue>` |
+| A surface dark in every theme (media viewer, code block, landing footer, a hint over the rows) | `dark bg-theme-inverse`: the `dark` class makes everything inside answer as Dark | `surface-inverse` |
+| The card's colour as a line: the ring that cuts one avatar out of the next | `border-theme-card` | web-only `--theme-surface` |
 | A list colour fixed in the markup | `bg-list-1` … `bg-list-8` | `palette.list` |
 | Disabled; a completed mark; a press | `disabled:opacity-disabled`, `opacity-completed`, `active:scale-press` | `state.disabled-opacity`, `state.completed-mark-opacity`, `state.press-scale` |
 | The leading control's size | `w-leading-control h-leading-control` | `size.leading-control` |
@@ -442,7 +445,9 @@ the fix.
 | `border-yellow-500` (5), `border-yellow-600` (4), `bg-yellow-500/20` (4), `bg-yellow-50` (3) | `border-warning`, `bg-warning-subtle` |
 | `text-cyan-500` (7) | `text-info` |
 | `bg-purple-100` (5), `bg-purple-100 dark:bg-purple-900/30` behind an agent | `bg-agent-bubble` |
-| `text-purple-500` (21), `text-purple-600` (7), `text-purple-400` (4) | no token: see below |
+| `text-purple-500` (21), `text-purple-600` (7), `text-purple-400` (4) for an agent | `text-agent` |
+| A decorative or per-category hue (`text-orange-500` on a settings icon, `bg-blue-100 dark:bg-blue-900/30` behind one, `from-blue-500 to-purple-600`) | the nearest of the eight categories: `text-category-orange`, `bg-category-blue-subtle`, `from-category-blue to-category-purple` (below) |
+| `bg-gray-900` on a surface dark in every theme, with `text-gray-400` and `border-gray-700` on it | `dark bg-theme-inverse`, then `text-theme-muted`, `border-theme` and `bg-theme-secondary` inside |
 
 ### Where the token is not the colour that was written
 
@@ -463,21 +468,44 @@ the point:
 - Muted text is `gray-500` in Light and `gray-600` in Ocean, so a bare `text-gray-400`
   gets darker there.
 
+### Categories
+
+The eight hues (astrid-core register DS27) are for colour that tells things apart and means
+nothing else: the settings sections, the repeat and due-date filters, an agent's kind on a
+webhook. A hue that already has a meaning takes the meaning: blue for the brand is `text-brand`,
+a success is `text-success`, Help is `text-info`, an agent is `text-agent`.
+
+| Written | Category |
+|---|---|
+| red, rose | `red` |
+| orange | `orange` |
+| amber, yellow | `amber` |
+| green, emerald, lime | `green` |
+| teal, cyan (where it is not `info`) | `teal` |
+| blue, sky, indigo | `blue` |
+| purple, violet, fuchsia | `purple` |
+| pink | `pink` |
+| slate, gray as a category | the theme's neutrals: `text-theme-secondary`, `bg-theme-active`, `border-theme-strong` |
+
+As with the meanings, the ink is darker than the `-500` that was written in Light and Ocean
+(`text-purple-500` becomes `#9333EA`, a `text-green-500` icon `#15803D`) and is the `-400` in
+Dark. Two settings sections share a hue now (Debug and Refresh are both green), where they were
+green and emerald.
+
 ### No honest token
 
 Leave these, or change them as said; do not pick the nearest name.
 
 | Usage | What to do |
 |---|---|
-| Purple for an agent's icon or label (`text-purple-500`) | The tokens hold only `agent-bubble`. Leave the palette class until astrid-core has an agent text colour; the wash behind is `bg-agent-bubble` |
 | A list's colour chosen by the person | A `style` prop from `lib/brand/colors.ts` (the eight are `palette.list`); `bg-list-N` only where the markup fixes which one |
 | Text on a status fill | `text-danger-foreground` and the others read the accent's text colour: the tokens have none of their own. White on the warning amber is 2.1:1; prefer a wash with `text-theme-primary` for a warning |
 | Dark red or green text on a pale wash (`text-red-800` on `bg-red-50`) | A sentence is `text-theme-primary` on the wash; the icon, the heading or a short label is the status ink (`text-danger`). Priority glyphs have no ink yet (register DS22) |
 | Third-party marks and their brand colours (Google, Apple, GitHub in `components/ui/brand-icons.tsx`), illustrations | Stay literal. They are someone else's colours |
 | The checkbox art | astrid-core's shared art (`design/assets/checkbox`, AWTD-1605), drawn by `components/task-checkbox-art.tsx` from `packages/astrid-design/checkbox-art.json`: the box and arrows in the priority colour, the check in `checkbox-check`. Never redraw it here |
-| A surface that is dark in every theme by design (a code block, the 404 page) | Stays literal, with a comment saying it is meant |
+| A surface that is dark in every theme by design (a code block, the attachment viewer, the landing footer) | `dark bg-theme-inverse` (above) |
 | `bg-black/50` scrims, `text-white` over a photo | Not palette classes and not counted; leave them |
-| Charts | `chart-1` … `chart-5` read the list palette |
+| Charts | `chart-1` … `chart-5` read the list palette; a Recharts series is `CHART_COLORS` (`lib/design/chart-colors.ts`), the list palette by hue as `rgb(var(--astrid-palette-list-N))` |
 
 ## In this repo
 
@@ -491,6 +519,7 @@ Leave these, or change them as said; do not pick the nearest name.
 | shadcn's variables | `app/globals.css`: `--background`, `--primary` and the rest are tokens, declared once for every theme |
 | Priority | `lib/design/priority.ts`, classes in `styles/components.css` |
 | Values as data | `lib/design/tokens.ts` |
+| Values as hex, for HTML that cannot read a custom property | `lib/design/email-palette.ts`: `EMAIL_PALETTE` (Light) for the reminder, digest, invitation, verification and feature-request emails, and the unsubscribe page; `DARK_PAGE_PALETTE` (Dark) for the bare 404. A wash is the colour at `--theme-wash-opacity` over the card, flattened (AWTD-1614). Server code only: it reads the whole token file, so the crash page, which is in every route's first load, keeps its three greys literal |
 | The gate | `tests/styles/design-tokens.test.ts`: the copy is unedited, CSS and data agree, no colour is written out in a theme stylesheet, and every class and shadcn variable compiles and resolves to a colour in each theme. `tests/styles/motion-tokens.test.ts` does the same for durations |
 
 ### Web-only surfaces
@@ -528,15 +557,19 @@ reduction, `npm run design:metrics -- --update` in the same change.
 
 | Count | Before tokens (main `e770865b`) | Now (2026-11-12) |
 |---|---|---|
-| Palette classes | 1,631 | 197 |
-| Hex colours | 126 | 105 |
+| Palette classes | 1,631 | 0 |
+| Hex colours | 126 | 39 |
 | rgb literals | 101 | 9 |
 | Theme triplets | 119 | 0 |
-| Inline styles | 64 | 56 |
-| Arbitrary sizes | 97 | 96 |
-| Durations | 57 | 4 |
-| Sentences in JSX | 999 | 438 |
-| Distinct sentences in JSX | 802 | 399 |
+| Inline styles (fixed values only, since AWTD-1616) | 64 | 0 |
+| Arbitrary sizes | 97 | 5 |
+| Durations | 57 | 0 |
+| Sentences in JSX | 999 | 0* |
+| Distinct sentences in JSX | 802 | 0* |
+
+\* Since AWTD-1613 the copy count leaves out Privacy and Terms, the developer docs and internal
+tools, which keep their English on purpose; each is an `exempt` pattern with its reason in
+`scripts/report-design-metrics.ts`. Help is translated and counted.
 
 What moved, what is left and why, and the ranked follow-ups are in
 [DESIGN_AUDIT_2026-11.md](./DESIGN_AUDIT_2026-11.md).

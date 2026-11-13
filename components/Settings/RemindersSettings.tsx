@@ -21,7 +21,7 @@ export default function RemindersSettings({ onNavigate }: RemindersSettingsProps
       <div className="max-w-sm sm:max-w-2xl mx-auto space-y-4 sm:space-y-6">
         {/* Settings Page Header */}
         <div className="flex items-center space-x-3">
-          <Bell className="w-8 h-8 text-orange-500" />
+          <Bell className="w-8 h-8 text-category-orange" />
           <div>
             <h1 className="text-2xl font-bold theme-text-primary">{t("settingsPages.remindersNotifications.title")}</h1>
             <p className="theme-text-muted">{t("settingsPages.remindersNotifications.description")}</p>

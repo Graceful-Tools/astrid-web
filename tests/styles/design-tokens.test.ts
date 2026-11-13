@@ -19,7 +19,7 @@ import {
   priorityOutlineClass,
   priorityTextClass,
 } from '@/lib/design/priority'
-import { THEME_VOCABULARY } from '@/lib/design/tailwind-theme'
+import { CATEGORY_HUES, THEME_VOCABULARY } from '@/lib/design/tailwind-theme'
 import { THEME_NAMES, designTokens, themeColor, themeColorNames } from '@/lib/design/tokens'
 import { getPriorityColor } from '@/lib/task-leading-control'
 import { getPriorityColorClass } from '@/lib/task-manager-utils'
@@ -382,7 +382,9 @@ describe('the theme vocabulary: what a palette class is replaced with (AWTD-1574
     const section = spec.slice(spec.indexOf('## Palette classes to theme classes'))
     expect(section.length).toBeGreaterThan(1000)
     const listed = (name: string) => section.includes(`\`${name}\``) || new RegExp(`\`[^\`]*\\b${name}\\b[^\`]*\``).test(section)
-    expect(THEME_VOCABULARY.filter((name) => !/^bg-list-[2-7]$/.test(name) && !listed(name))).toEqual([])
+    // The spec names the first and last of a numbered or hued run (`bg-list-1` … `bg-list-8`).
+    const middleOfARun = /^(bg-list-[2-7]|(text|bg|border)-category-(orange|amber|green|teal|blue|purple)(-subtle)?)$/
+    expect(THEME_VOCABULARY.filter((name) => !middleOfARun.test(name) && !listed(name))).toEqual([])
   })
 
   it('no palette colour is named in the Tailwind theme', () => {
@@ -481,6 +483,75 @@ describe('a meaning as text reads its ink, as a fill its base colour (AWTD-1575)
     const colour = (name: string) => resolveRgb(propertyOf(ruleFor(css, name))!, scope)
     const card = colour('bg-theme-surface')
     expect(contrast(colour('hover:text-brand-hover'), card)).toBeGreaterThanOrEqual(contrast(colour('text-brand'), card))
+  })
+})
+
+describe('categories, the agent and the inverse surface read their tokens (AWTD-1612, register DS27-DS29)', () => {
+  // The last palette classes (a settings tile's purple, the agent's purple, a
+  // viewer's gray-900) had no token. astrid-core now holds a categorical
+  // palette, an agent ink and surface-inverse; these hold the classes to them.
+  const propertyOf = (rule: string) => /rgba\(var\(--((?:astrid|theme)-[a-z0-9-]+)\)/.exec(rule)?.[1]
+  const INKS = [['agent', 'agent'], ...CATEGORY_HUES.map((hue) => [`category-${hue}`, `category-${hue}`])] as const
+  let css = ''
+
+  it('AWTD-1612: text and an icon read the ink, a fill, wash and border the base colour', async () => {
+    css = await compileClasses([
+      'bg-theme-surface',
+      'bg-theme-secondary',
+      'bg-theme-inverse',
+      'border-theme-card',
+      ...INKS.flatMap(([name]) => [`text-${name}`, `fill-${name}`, `bg-${name}`, `border-${name}`, `bg-${name}/20`]),
+      ...CATEGORY_HUES.map((hue) => `bg-category-${hue}-subtle`),
+      'from-category-blue',
+      'to-category-purple-ink',
+    ])
+    for (const [name, token] of INKS) {
+      expect(propertyOf(ruleFor(css, `text-${name}`)), `text-${name}`).toBe(`astrid-${token}-ink`)
+      expect(ruleFor(css, `fill-${name}`)).toContain(`rgba(var(--astrid-${token}-ink)`)
+      expect(propertyOf(ruleFor(css, `bg-${name}`)), `bg-${name}`).toBe(`astrid-${token}`)
+      expect(propertyOf(ruleFor(css, `border-${name}`)), `border-${name}`).toBe(`astrid-${token}`)
+      expect(ruleFor(css, `bg-${name}/20`)).toBe(`background-color: rgba(var(--astrid-${token}), 0.2)`)
+    }
+    for (const hue of CATEGORY_HUES) {
+      expect(ruleFor(css, `bg-category-${hue}-subtle`)).toBe(
+        `background-color: rgba(var(--astrid-category-${hue}), var(--theme-wash-opacity))`,
+      )
+    }
+    expect(ruleFor(css, 'from-category-blue')).toContain('rgba(var(--astrid-category-blue), 1)')
+    // A gradient that carries white text ends on the ink, not the lighter fill (PR #757 review).
+    expect(ruleFor(css, 'to-category-purple-ink')).toContain('rgba(var(--astrid-category-purple-ink), 1)')
+    expect(propertyOf(ruleFor(css, 'bg-theme-inverse'))).toBe('astrid-surface-inverse')
+    expect(propertyOf(ruleFor(css, 'border-theme-card'))).toBe('theme-surface')
+  })
+
+  it.each(THEME_NAMES)('AWTD-1612 %s: each ink is 4.5:1 on the card, the secondary surface and its own wash', (theme) => {
+    const scope = themeScope(theme)
+    const colour = (name: string) => resolveRgb(propertyOf(ruleFor(css, name))!, scope)
+    const wash = Number(scope.get('theme-wash-opacity'))
+    const card = colour('bg-theme-surface')
+    for (const [name, token] of INKS) {
+      const ink = colour(`text-${name}`)
+      expect(ink, `${theme} text-${name}`).toEqual(themeColor(theme, `${token}-ink`))
+      const under: [string, Rgb][] = [
+        ['the card', card],
+        ['bg-theme-secondary', colour('bg-theme-secondary')],
+        ['its wash', colour(`bg-${name}`).map((channel, at) => Math.round(channel * wash + card[at] * (1 - wash))) as Rgb],
+      ]
+      if (name === 'agent') under.push(['bg-agent-bubble', themeColor(theme, 'agent-bubble')])
+      for (const [surface, rgb] of under) {
+        const ratio = contrast(ink, rgb)
+        expect(ratio, `${theme}: text-${name} on ${surface} is ${ratio.toFixed(2)}:1`).toBeGreaterThanOrEqual(4.5)
+      }
+    }
+  })
+
+  it('AWTD-1612: the inverse surface is one dark colour, and Dark\'s text reads on it', () => {
+    const inverse = THEME_NAMES.map((theme) => resolveRgb('astrid-surface-inverse', themeScope(theme)))
+    for (const rgb of inverse) expect(rgb).toEqual(inverse[0])
+    const dark = themeScope('dark')
+    for (const text of ['astrid-text-primary', 'astrid-text-secondary', 'astrid-text-muted']) {
+      expect(contrast(resolveRgb(text, dark), inverse[0]), text).toBeGreaterThanOrEqual(4.5)
+    }
   })
 })
 

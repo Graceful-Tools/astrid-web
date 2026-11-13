@@ -584,8 +584,7 @@ export function MainContent({
         }),
       }}>
         <div
-          className="relative px-4 py-5 theme-border border-b"
-          style={{ display: is3Column ? 'block' : 'none' }}
+          className={`relative px-4 py-5 theme-border border-b ${is3Column ? 'block' : 'hidden'}`}
         >
           {isSearchActive ? (
             <div className="flex items-center justify-start space-x-4 mb-4">
@@ -760,11 +759,8 @@ export function MainContent({
             } : undefined}
           >
             <div
-              className="px-4 py-4"
-              style={{
-                transform: 'none', // No pull-to-refresh transform during loading
-                transition: 'none'
-              }}
+              // No pull-to-refresh transform during loading
+              className="px-4 py-4 transform-none transition-none"
             >
 
             </div>
@@ -847,9 +843,8 @@ export function MainContent({
             {/* Pull-to-refresh indicator - synced with content transform (both capped at 60px) */}
             {isMobile && (pullToRefresh.isPulling || pullToRefresh.isRefreshing) && (
               <div
-                className="absolute left-0 right-0 flex items-center justify-center transition-all duration-medium ease-medium z-20"
+                className="absolute left-0 right-0 flex items-center justify-center transition-all duration-medium ease-medium z-20 top-0"
                 style={{
-                  top: 0,
                   height: pullToRefresh.isRefreshing ? 60 : Math.min(pullToRefresh.pullDistance, 60),
                 }}
               >

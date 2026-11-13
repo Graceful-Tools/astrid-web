@@ -137,7 +137,7 @@ export default function DebugSettings({ onNavigate }: DebugSettingsProps) {
       <div className="max-w-sm sm:max-w-2xl mx-auto space-y-4 sm:space-y-6">
         {/* Settings Page Header */}
         <div className="flex items-center space-x-3">
-          <Bug className="w-8 h-8 text-green-500" />
+          <Bug className="w-8 h-8 text-category-green" />
           <div>
             <h1 className="text-2xl font-bold theme-text-primary">{t("settingsPages.debug.title")}</h1>
             <p className="theme-text-muted">{t("settingsPages.debug.description")}</p>

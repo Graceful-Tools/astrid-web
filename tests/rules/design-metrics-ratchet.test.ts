@@ -20,7 +20,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-import { BUDGET_FILE, METRICS, count, measure, overBudget, withoutComments } from '@/scripts/report-design-metrics'
+import { BUDGET_FILE, COPY_EXEMPTIONS, METRICS, count, literalStyleProps, measure, overBudget, withoutComments } from '@/scripts/report-design-metrics'
 
 const metric = (id: string) => METRICS.find((entry) => entry.id === id)!
 const source = (text: string, path = 'components/example.tsx') => [{ path, source: text }]
@@ -43,7 +43,7 @@ describe('what the design metrics count', () => {
   })
 
   it('an inline style, an arbitrary size and a typed duration', () => {
-    expect(count(metric('inlineStyles'), source('<div style={{ width }} />'))).toBe(1)
+    expect(count(metric('inlineStyles'), source("<div style={{ width: '33%' }} />"))).toBe(1)
     expect(count(metric('arbitrarySizes'), source('<div className="w-[37px] text-[10px] grid-cols-[1fr_auto]" />'))).toBe(2)
     expect(count(metric('motionLiterals'), source('.a { transition: transform 0.15s ease; animation: x 300ms; }\n<i className="duration-200" />', 'styles/a.css'))).toBe(3)
   })
@@ -69,9 +69,101 @@ describe('what the design metrics count', () => {
     expect(count(metric('uniqueHardcodedStrings'), source(text))).toBe(1)
   })
 
+  // AWTD-1616: the count is the fixed values a class should carry, not every style prop.
+  it('an inline style that only carries run-time values is not counted', () => {
+    const computed = [
+      '<i style={{ color: list.color }} />',
+      '<i style={{ width }} />',
+      '<i style={{ top: `${arrowTop}px` }} />',
+      '<i style={{ backgroundColor: `${label.color}25`, color: label.color }} />',
+      '<i style={{ height: isRefreshing ? 60 : Math.min(distance, 60) }} />',
+      '<i style={{ ...(depth ? { marginLeft: depth * 24 } : {}) }} />',
+    ]
+    for (const text of computed) expect(count(metric('inlineStyles'), source(text)), text).toBe(0)
+  })
+
+  it('an inline style counts once if any of its values is fixed', () => {
+    const fixed = [
+      "<i style={{ zIndex: 9999 }} />",
+      '<i style={{ position: "relative", zIndex: 10000 }} />',
+      "<i style={{ left: x - 18, right: 10, width: 'auto' }} />",
+      "<i style={{ backgroundColor: list.color, color: 'white' }} />",
+      '<i style={{ maxHeight: `120px` }} />',
+    ]
+    for (const text of fixed) expect(count(metric('inlineStyles'), source(text)), text).toBe(1)
+    expect(literalStyleProps("<i style={{ a: f({ b: 1 }), c: 'x, y' }} /><b style={{ d: e }} />")).toHaveLength(1)
+  })
+
+  // PR #752 review: a fixed value in any JavaScript spelling, and any JSX spacing, still counts.
+  it('a fixed value counts however it is spelled or spaced', () => {
+    const fixed = [
+      '<i style={{ opacity: .5 }} />',
+      '<i style={{ width: 1e2 }} />',
+      "<i style={{ content: 'it\\'s' }} />",
+      '<i style={{ label: "say \\"hi\\"" }} />',
+      '<i style={{ price: `$5` }} />',
+      '<i style ={{ width: 10 }} />',
+      '<i style={ { width: 10 } } />',
+      '<i style = {\n  {\n    width: 10\n  }\n} />',
+    ]
+    for (const text of fixed) expect(count(metric('inlineStyles'), source(text)), text).toBe(1)
+    expect(count(metric('inlineStyles'), source('<i style={{ width: `${w}px` }} />'))).toBe(0)
+    expect(count(metric('inlineStyles'), source('<i style={ { width: w } } />'))).toBe(0)
+  })
+
+  it('global-error keeps its inline styles: app CSS may not have loaded there', () => {
+    expect(count(metric('inlineStyles'), source("<div style={{ display: 'flex' }} />", 'app/global-error.tsx'))).toBe(0)
+  })
+
   it('a duration that names the motion token is not a literal', () => {
     const text = '<i className="duration-[var(--astrid-motion-fast-duration)] duration-[250ms] duration-200" />'
     expect(count(metric('motionLiterals'), source(text))).toBe(2)
+  })
+})
+
+// AWTD-1613: option 1 of the design audit's open question. Help is translated; legal text,
+// developer docs and internal tools keep their English and are not counted.
+describe('what the copy count leaves out', () => {
+  const sentence = '<p>Nothing here is translated yet.</p>'
+  const counted = (path: string) => count(metric('hardcodedCopy'), source(sentence, path))
+
+  it.each([
+    'components/legal/PrivacyPolicyContent.tsx',
+    'components/legal/TermsOfServiceContent.tsx',
+    'app/[locale]/docs/mcp/page.tsx',
+    'components/docs/DecisionFormatGuide.tsx',
+    'app/[locale]/admin/analytics/page.tsx',
+    'app/[locale]/admin/error.tsx',
+    'app/[locale]/debug-reminders/debug-reminders-client.tsx',
+    'app/[locale]/debug-reminders-enhanced/page.tsx',
+    'app/[locale]/test-time-picker/page.tsx',
+    'components/oauth-api-tester.tsx',
+  ])('%s', (path) => {
+    expect(counted(path)).toBe(0)
+    expect(count(metric('uniqueHardcodedStrings'), source(sentence, path))).toBe(0)
+  })
+
+  it.each([
+    'components/legal/HelpContent.tsx',
+    'components/legal/LegalPageShell.tsx',
+    'app/global-error.tsx',
+    'app/[locale]/settings/page.tsx',
+    'components/admin-badge.tsx',
+    'app/[locale]/docsearch/page.tsx',
+  ])('but still counts %s', (path) => {
+    expect(counted(path)).toBe(1)
+  })
+
+  it('gives every exemption a reason', () => {
+    for (const metric of METRICS) {
+      for (const exemption of metric.exempt ?? []) expect(exemption.reason.length, String(exemption.pattern)).toBeGreaterThan(20)
+    }
+    expect(COPY_EXEMPTIONS.length).toBe(3)
+  })
+
+  it('an example URL in a placeholder is not a sentence', () => {
+    const text = '<input placeholder="https://your-server.com/webhook" /><input placeholder="Paste your webhook URL" />'
+    expect(count(metric('hardcodedCopy'), source(text))).toBe(1)
   })
 })
 
