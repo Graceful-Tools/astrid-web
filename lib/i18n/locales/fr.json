@@ -184,7 +184,9 @@
       "preview": "Aperçu :",
       "repeatFromCompletionHint": "La prochaine occurrence est calculée à partir du moment où vous terminez la tâche",
       "repeatFromDueHint": "La prochaine occurrence est calculée à partir de la date limite d'origine",
-      "descriptionKeysHint": "Appuyez sur Entrée pour enregistrer • Maj+Entrée pour un saut de ligne"
+      "descriptionKeysHint": "Appuyez sur Entrée pour enregistrer • Maj+Entrée pour un saut de ligne",
+      "descriptionPreview": "Aperçu",
+      "expandDescription": "Agrandir la description"
     },
     "commentsSection": {
       "addPlaceholder": "Ajouter un commentaire...",

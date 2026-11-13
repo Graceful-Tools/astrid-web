@@ -184,7 +184,9 @@
       "preview": "Предпросмотр:",
       "repeatFromCompletionHint": "Следующее повторение рассчитывается от момента, когда вы завершите задачу",
       "repeatFromDueHint": "Следующее повторение рассчитывается от исходного срока выполнения",
-      "descriptionKeysHint": "Enter — сохранить • Shift+Enter — перенос строки"
+      "descriptionKeysHint": "Enter — сохранить • Shift+Enter — перенос строки",
+      "descriptionPreview": "Предпросмотр",
+      "expandDescription": "Развернуть описание"
     },
     "commentsSection": {
       "addPlaceholder": "Добавить комментарий...",

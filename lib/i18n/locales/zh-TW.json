@@ -184,7 +184,9 @@
       "preview": "預覽：",
       "repeatFromCompletionHint": "下一次重複以你完成任務的時間為準",
       "repeatFromDueHint": "下一次重複以原截止日期為準",
-      "descriptionKeysHint": "按 Enter 儲存 • Shift+Enter 換行"
+      "descriptionKeysHint": "按 Enter 儲存 • Shift+Enter 換行",
+      "descriptionPreview": "預覽",
+      "expandDescription": "展開描述"
     },
     "commentsSection": {
       "addPlaceholder": "新增留言...",
