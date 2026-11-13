@@ -152,7 +152,11 @@ async function main() {
       const response = await fetch(`${API}/api/v1/tasks/${task.id}`, {
         method: 'PUT',
         headers: { ...auth, 'Content-Type': 'application/json' },
-        body: JSON.stringify(personId ? handbackWrite(personId) : { statusRole: null }),
+        // Signed like the sweep's own writes (AWTD-1620): the handback is the agent's act.
+        body: JSON.stringify({
+          ...(personId ? handbackWrite(personId) : { statusRole: null }),
+          ...(authorId ? { aiAgentId: authorId } : {}),
+        }),
       })
       if (!response.ok) report(`  ⚠️ could not hand back ${task.id}: HTTP ${response.status}`)
     },
