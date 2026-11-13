@@ -59,7 +59,7 @@ const BUDGETS: Record<string, number> = {
   // went to lib/task-detail/create-list-for-task.ts, following the Lists row
   // that already lives in TaskDetailListsRow.tsx. Smaller than before the
   // feature, and the inheritance rule is now testable on its own.
-  'components/task-detail.tsx': 1481,
+  'components/task-detail.tsx': 1477,
   'lib/ai-orchestrator.ts': 1547,
   // 1205 → 1199: AWTD-1227 needed four more props on the task-detail pane, and
   // this file renders that pane TWICE — desktop and mobile — with a dozen
@@ -165,7 +165,7 @@ const BUDGETS: Record<string, number> = {
   // is smaller than before the feature once more.
   // 895 → 828: the custom-repeat summary went to custom-repeating-summary.ts when
   // it was translated (AWTD-1575) — as sentences per language it no longer fit here.
-  'components/task-detail/TaskFieldEditors.tsx': 825,
+  'components/task-detail/TaskFieldEditors.tsx': 817,
   'components/oauth-api-tester.tsx': 973,
   // 957 → 688: AWTD-871 needed to add a `requireReady` parameter to the
   // get_agent_queue schema, which pushed this over. The 280-line

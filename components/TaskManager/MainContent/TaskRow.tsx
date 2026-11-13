@@ -1,7 +1,6 @@
 "use client"
 
 import React from "react"
-import { withoutAssignees } from "@/lib/task-assignees"
 import { TaskRowContent } from "../../task-row-content"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
 import type { TaskDragCapability } from "@/lib/touch-drag-sort"
@@ -456,11 +455,7 @@ function TaskRowImpl({
             }}
             selectedPriority={task.priority}
             selectedAssignee={task.assignee ?? null}
-            selectedAssigneeIds={task.assigneeIds}
-            onUnassign={() => {
-              handleUpdateTask(withoutAssignees(task))
-              setOptionsOpen(false)
-            }}
+            unassign={{ task, apply: handleUpdateTask }}
             availableUsers={[]}
             taskId={task.id}
             listIds={(task.lists || []).map(list => list.id)}

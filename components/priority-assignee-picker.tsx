@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import type { User } from '@/types/task'
+import type { Task, User } from '@/types/task'
 import { isCodingAgent } from "@/lib/ai-agent-utils"
 import { CompletionConfirmation } from "@/components/completion-confirmation"
 import { completionNeedsConfirmation } from "@/lib/task-leading-control"
@@ -62,16 +62,11 @@ interface PriorityAssigneePickerProps {
    */
   onToggleComplete?: () => void
   /**
-   * Every assignee the task holds, primary first. With `onUnassign`, decides
-   * whether the one-tap × shows: it does while anyone is on the task, primary
-   * or not (AWTD-1637).
+   * Offer the one-tap × that clears every assignee (AWTD-1637, iOS AITD-650):
+   * shown while `task` holds anyone, primary or not; `apply` receives the task
+   * with nobody on it. Absent means no × — quick add has no task to unassign.
    */
-  selectedAssigneeIds?: readonly string[] | null
-  /**
-   * Clear every assignee in one tap (AWTD-1637, iOS AITD-650). Absent means no
-   * ×: quick add has no task to unassign, and its "Unassigned" row suffices.
-   */
-  onUnassign?: () => void
+  unassign?: { task: Task; apply: (cleared: Task) => void }
 }
 
 // Colours come from the design tokens (lib/design/priority.ts): one per
@@ -99,8 +94,7 @@ export function PriorityAssigneePicker({
   onStatusSelect,
   completed,
   onToggleComplete,
-  selectedAssigneeIds,
-  onUnassign,
+  unassign,
 }: PriorityAssigneePickerProps) {
   const { t } = useTranslations()
   const [tempPriority, setTempPriority] = useState(selectedPriority)
@@ -409,13 +403,13 @@ export function PriorityAssigneePicker({
           <div className="px-4 py-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium text-theme-muted">{t('tasks.assignee')}</h3>
-              {onUnassign && (
+              {unassign && (
                 <UnassignButton
-                  assigneeId={selectedAssignee?.id ?? null}
-                  assigneeIds={selectedAssigneeIds}
-                  onUnassign={() => {
+                  task={unassign.task}
+                  onUnassign={cleared => {
                     setTempAssignee(null)
-                    onUnassign()
+                    unassign.apply(cleared)
+                    onClose()
                   }}
                 />
               )}
