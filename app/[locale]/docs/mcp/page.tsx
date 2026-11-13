@@ -303,7 +303,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN`}
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <Layers className="w-5 h-5 text-purple-500" />
+                <Layers className="w-5 h-5 text-category-purple" />
                 <span>Available Operations</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">

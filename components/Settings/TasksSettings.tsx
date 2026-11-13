@@ -91,7 +91,7 @@ export default function TasksSettings({ onNavigate }: TasksSettingsProps) {
         <Card className="theme-bg-card theme-border">
           <CardHeader>
             <div className="flex items-center space-x-2">
-              <Mail className="w-5 h-5 text-purple-500" />
+              <Mail className="w-5 h-5 text-category-purple" />
               <CardTitle className="theme-text-primary">{t("settingsPages.appearancePage.emailToTask.title")}</CardTitle>
             </div>
             <CardDescription className="theme-text-muted">
@@ -158,11 +158,11 @@ export default function TasksSettings({ onNavigate }: TasksSettingsProps) {
                   <span><strong>{t("settingsPages.appearancePage.emailToTask.groupTask")}</strong> {t("settingsPages.appearancePage.emailToTask.groupTaskDesc")}</span>
                 </li>
                 <li className="flex items-start space-x-2">
-                  <span className="text-purple-500 mt-0.5">•</span>
+                  <span className="text-category-purple mt-0.5">•</span>
                   <span><RichMessage message={t("settingsPages.tasksPage.subjectLine")} values={{ subject: <strong>{t("settingsPages.tasksPage.subject")}</strong> }} /></span>
                 </li>
                 <li className="flex items-start space-x-2">
-                  <span className="text-purple-500 mt-0.5">•</span>
+                  <span className="text-category-purple mt-0.5">•</span>
                   <span><RichMessage message={t("settingsPages.tasksPage.bodyLine")} values={{ body: <strong>{t("settingsPages.tasksPage.body")}</strong> }} /></span>
                 </li>
               </ul>

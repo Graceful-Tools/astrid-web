@@ -135,7 +135,7 @@ export default function InvitePage() {
       case 'LIST_SHARING':
         return <List className="w-8 h-8 text-success" />
       case 'WORKSPACE_INVITE':
-        return <UserPlus className="w-8 h-8 text-purple-500" />
+        return <UserPlus className="w-8 h-8 text-category-purple" />
       default:
         return <UserPlus className="w-8 h-8 text-brand" />
     }

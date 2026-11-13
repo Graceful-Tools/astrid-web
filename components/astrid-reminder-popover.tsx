@@ -228,7 +228,7 @@ export function AstridReminderPopover({
                     return (
                       <div
                         key={member.id}
-                        className="w-8 h-8 rounded-full bg-brand text-brand-foreground flex items-center justify-center text-xs font-semibold border-2 border-white dark:border-gray-800"
+                        className="w-8 h-8 rounded-full bg-brand text-brand-foreground flex items-center justify-center text-xs font-semibold border-2 border-theme-card"
                         title={member.name || member.email}
                       >
                         {initials}

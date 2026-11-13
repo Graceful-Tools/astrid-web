@@ -67,14 +67,14 @@ export default function SettingsHub({ onNavigate }: SettingsHubProps) {
       title: t("settingsPages.remindersNotifications.title"),
       description: t("settingsPages.remindersNotifications.description"),
       page: "reminders",
-      color: "text-orange-500"
+      color: "text-category-orange"
     },
     {
       icon: Brain,
       title: t("settingsPages.aiAgents.title"),
       description: t("settingsPages.aiAgents.description"),
       page: "agents",
-      color: "text-purple-500"
+      color: "text-agent"
     },
     {
       icon: Network,
@@ -88,35 +88,35 @@ export default function SettingsHub({ onNavigate }: SettingsHubProps) {
       title: t("settingsPages.contacts.title"),
       description: t("settingsPages.contacts.description"),
       page: "contacts",
-      color: "text-teal-500"
+      color: "text-category-teal"
     },
     {
       icon: Palette,
       title: t("settingsPages.appearance.title"),
       description: t("settingsPages.appearance.description"),
       page: "appearance",
-      color: "text-pink-500"
+      color: "text-category-pink"
     },
     {
       icon: Bug,
       title: t("settingsPages.debug.title"),
       description: t("settingsPages.debug.description"),
       page: "debug",
-      color: "text-green-500"
+      color: "text-category-green"
     },
     {
       icon: HelpCircle,
       title: t("settingsPages.pageTitles.help"),
       description: t("settingsPages.hub.helpDescription"),
       page: "help",
-      color: "text-cyan-500"
+      color: "text-info"
     },
     {
       icon: RefreshCw,
       title: t("userMenu.refreshData"),
       description: t("settingsPages.hub.refreshDescription"),
       page: "_refresh",
-      color: "text-emerald-500"
+      color: "text-category-green"
     },
     {
       icon: LogOut,
@@ -132,7 +132,7 @@ export default function SettingsHub({ onNavigate }: SettingsHubProps) {
       <div className="space-y-4 sm:space-y-6">
         {/* Settings Page Header */}
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-br from-category-blue to-category-purple rounded-lg flex items-center justify-center">
             <div className="w-4 h-4 bg-white rounded-sm"></div>
           </div>
           <div>

@@ -84,7 +84,7 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
         <div className="max-w-sm sm:max-w-2xl mx-auto space-y-4 sm:space-y-6">
           {/* Settings Page Header */}
           <div className="flex items-center space-x-3">
-            <Palette className="w-8 h-8 text-pink-500" />
+            <Palette className="w-8 h-8 text-category-pink" />
             <div>
               <h1 className="text-2xl font-bold theme-text-primary">{t("settingsPages.appearancePage.title")}</h1>
               <p className="theme-text-muted">{t("settingsPages.appearancePage.description")}</p>
@@ -115,8 +115,8 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
                   onClick={() => setTheme('ocean')}
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                      <Waves className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <div className="p-2 bg-category-blue-subtle rounded-lg">
+                      <Waves className="w-5 h-5 text-category-blue" />
                     </div>
                     <div className="flex-1">
                       <Label className="text-base font-medium theme-text-primary cursor-pointer">
@@ -144,8 +144,8 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
                   onClick={() => setTheme('light')}
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
-                      <Sun className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                    <div className="p-2 bg-category-amber-subtle rounded-lg">
+                      <Sun className="w-5 h-5 text-category-amber" />
                     </div>
                     <div className="flex-1">
                       <Label className="text-base font-medium theme-text-primary cursor-pointer">
@@ -173,8 +173,8 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
                   onClick={() => setTheme('dark')}
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                      <Moon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                    <div className="p-2 bg-category-purple-subtle rounded-lg">
+                      <Moon className="w-5 h-5 text-category-purple" />
                     </div>
                     <div className="flex-1">
                       <Label className="text-base font-medium theme-text-primary cursor-pointer">
@@ -244,7 +244,7 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <Sparkles className="w-5 h-5 text-yellow-500" />
+                <Sparkles className="w-5 h-5 text-category-amber" />
                 <span>{t("settingsPages.appearancePage.smartTasks.title")}</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
@@ -267,19 +267,19 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
               </div>
 
               {/* Examples */}
-              <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-lg border theme-border">
+              <div className="p-4 bg-gradient-to-r from-category-amber/10 to-category-orange/10 rounded-lg border theme-border">
                 <h4 className="font-medium theme-text-primary mb-2">{t("settingsPages.appearancePage.smartTasks.supportedPatterns")}</h4>
                 <ul className="space-y-2 text-sm theme-text-muted">
                   <li className="flex items-start space-x-2">
-                    <span className="text-yellow-500 mt-0.5">•</span>
+                    <span className="text-category-amber mt-0.5">•</span>
                     <span><strong>{t("settingsPages.appearancePage.smartTasks.datesLabel")}</strong> &quot;Buy milk tomorrow&quot;, &quot;Meeting next week&quot;, &quot;Call mom monday&quot;</span>
                   </li>
                   <li className="flex items-start space-x-2">
-                    <span className="text-yellow-500 mt-0.5">•</span>
+                    <span className="text-category-amber mt-0.5">•</span>
                     <span><strong>{t("settingsPages.appearancePage.smartTasks.priorityLabel")}</strong> &quot;Urgent fix bug&quot;, &quot;High priority review&quot;, &quot;Low priority cleanup&quot;</span>
                   </li>
                   <li className="flex items-start space-x-2">
-                    <span className="text-yellow-500 mt-0.5">•</span>
+                    <span className="text-category-amber mt-0.5">•</span>
                     <span><strong>{t("settingsPages.appearancePage.smartTasks.listsLabel")}</strong> &quot;#shopping Buy groceries&quot;, &quot;#work Finish report&quot;</span>
                   </li>
                 </ul>
@@ -291,7 +291,7 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <LayoutList className="w-5 h-5 text-green-500" />
+                <LayoutList className="w-5 h-5 text-category-green" />
                 <span>{t("settingsPages.appearancePage.taskDisplayMode.title")}</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
@@ -437,24 +437,24 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg border theme-border">
+              <div className="p-4 bg-gradient-to-r from-category-purple/10 to-category-blue/10 rounded-lg border theme-border">
                 <div className="flex items-start space-x-3">
-                  <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                    <Mail className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  <div className="p-2 bg-category-purple-subtle rounded-lg">
+                    <Mail className="w-5 h-5 text-category-purple" />
                   </div>
                   <div className="flex-1">
                     <h3 className="font-medium theme-text-primary mb-2">{t("settingsPages.appearancePage.emailToTask.threeWays")}</h3>
                     <ul className="space-y-2 text-sm theme-text-muted">
                       <li className="flex items-start space-x-2">
-                        <span className="text-purple-500 mt-0.5">•</span>
+                        <span className="text-category-purple mt-0.5">•</span>
                         <span><strong>{t("settingsPages.appearancePage.emailToTask.selfTask")}</strong> {emailLine("settingsPages.appearancePage.emailToTask.selfTaskDesc")}</span>
                       </li>
                       <li className="flex items-start space-x-2">
-                        <span className="text-purple-500 mt-0.5">•</span>
+                        <span className="text-category-purple mt-0.5">•</span>
                         <span><strong>{t("settingsPages.appearancePage.emailToTask.assignedTask")}</strong> {emailLine("settingsPages.appearancePage.emailToTask.assignedTaskDesc")}</span>
                       </li>
                       <li className="flex items-start space-x-2">
-                        <span className="text-purple-500 mt-0.5">•</span>
+                        <span className="text-category-purple mt-0.5">•</span>
                         <span><strong>{t("settingsPages.appearancePage.emailToTask.groupTask")}</strong> {emailLine("settingsPages.appearancePage.emailToTask.groupTaskDesc")}</span>
                       </li>
                     </ul>

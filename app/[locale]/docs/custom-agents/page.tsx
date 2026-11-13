@@ -170,7 +170,7 @@ await adapter.connect((msg) => {
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <Shield className="w-5 h-5 text-purple-500" />
+                <Shield className="w-5 h-5 text-agent" />
                 <span>Agent Protocol</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
