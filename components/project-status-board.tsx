@@ -1,5 +1,6 @@
 "use client"
 
+import { scrollBehavior } from "@/lib/design/reduced-motion"
 import React from "react"
 import { CheckCircle2, Inbox, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -211,7 +212,7 @@ export function ProjectStatusBoard({
     const nextIndex = Math.max(0, Math.min(columns.length - 1, index))
     const container = scrollRef.current
     const column = container?.querySelector<HTMLElement>(`[data-column-index="${nextIndex}"]`)
-    column?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" })
+    column?.scrollIntoView({ behavior: scrollBehavior(), block: "nearest", inline: "center" })
   }
 
   const moveTaskToColumn = (taskId: string, column: ProjectBoardColumn) => {
@@ -364,7 +365,7 @@ export function ProjectStatusBoard({
               key={column.id}
               data-testid={columnTestId(column)}
               data-column-index={columnIndex}
-              className={`flex h-full snap-start flex-col rounded-lg border theme-border theme-bg-secondary ${
+              className={`board-column flex h-full snap-start flex-col border theme-border theme-bg-secondary ${
                 isOneColumn
                   ? "w-full shrink-0"
                   : "min-w-72 max-w-md flex-1"
@@ -466,7 +467,7 @@ export function ProjectStatusBoard({
                        *  (2px + a 20px button + 2px), so the collapsed row has
                        *  to reserve the same or the title rewraps on expand and
                        *  the card jumps (task 8eee392d). */
-                      className={`task-row task-card !pr-6 transition-theme relative theme-surface theme-border cursor-grab ${
+                      className={`task-row task-card board-card !pr-6 transition-theme relative theme-surface theme-border cursor-grab ${
                         task.completed
                           ? "task-row-completed theme-bg-hover"
                           : "theme-surface-hover"

@@ -165,11 +165,17 @@ rule is the sentence; the numbers differ by density and only by density.
 | Three columns from 1100 wide, measured on the window. | — | 1100 |
 | Triggers size to their content; an unset field is an affordance to add one; one label per row. | [PRODUCT_CONTRACT §3](../PRODUCT_CONTRACT.md) | same |
 
-Web differs on several of these today (icon column 58, indent 24, row and panel radius
-12, row height 64, hairline 1 px): register DS11-DS14 and DS20. The leading control
+Web follows all of these since AWTD-1617. Its corner radii and row height are the tokens'
+by kind and density (`--row-radius`, `--board-card-radius`, `--board-column-radius`,
+`--detail-panel-radius`, `--row-min-height` in `styles/components.css`; DS13, DS14). Web has
+no density setting: compact where there is a pointer, comfortable on touch, the same rule
+the selection outline follows. The detail icon column is the token's 62 (16 + 34 + `gap-row-gap`, DS11)
+and a subtask indents `layout.subtask-indent` per depth (`lib/design/subtask-indent.ts`,
+DS12), both since AWTD-1617. Its `border` is the hairline (DS20, AWTD-1617):
+`--hairline-width` in `styles/components.css`, the token on a high-density screen and
+1px where half a pixel cannot be drawn. The leading control
 itself is the token's 34 (`w-leading-control h-leading-control`, or
-`LEADING_CONTROL_SIZE` where a number is needed), so the icon column is 16 + 34 + 8;
-what is left of DS11 is the gap, 8 against the token's 12.
+`LEADING_CONTROL_SIZE` where a number is needed), so the icon column is 16 + 34 + 12.
 
 ## Motion
 
@@ -194,8 +200,11 @@ Two things are not done, and the register says so:
 
 - **Reduced motion** (DS17). Every operating system has a setting for people who are
   made unwell by movement on screen. An app that honours it swaps a slide or a pop for a
-  fade or nothing. Only web's checkbox pop checks it so far; every other animation on
-  every client still plays.
+  fade or nothing. Web honours it everywhere since AWTD-1617: under
+  `prefers-reduced-motion: reduce`, `styles/components.css` stops every transition and
+  animation (a spinner keeps turning), and a smooth scroll started from script jumps
+  (`scrollBehavior()` in `lib/design/reduced-motion.ts`). The other clients still play
+  every animation.
 - **Web reads them everywhere** (DS15). No stylesheet or component writes a duration
   out (AWTD-1616); the empty state's entrance, which was `duration-500`, is now
   `duration-panel`. iOS writes several springs out still.
@@ -261,7 +270,7 @@ the board column header's 4.5 rem (board layout, register DS14).
 | State | Rule |
 |---|---|
 | Disabled | `state.disabled-opacity` (0.5) |
-| Completed | title struck through in muted text; the mark at `state.completed-mark-opacity` (0.5). Web also dims the whole row (DS18) |
+| Completed | title struck through in muted text; the mark at `state.completed-mark-opacity` (0.5). The row itself is not dimmed (web since AWTD-1617, DS18) |
 | Selected | the selection outline; no fill change, no glow |
 | Hover | the theme's hover surface |
 | Row title | wraps without limit by default, as on iOS. An appearance setting, "Task titles", chooses wrap, two lines or one on every client, and is kept per machine like the theme (Jon, 2026-11-10; DS19). Web: `lib/design/row-title.ts` |
@@ -283,8 +292,9 @@ how it looks.
 | **Trade-off grid** | each rated cell sits on its rating's fill (`palette.tradeoff`, worst to best: dark red, light red, yellow, light green, dark green) with that fill's text colour (`palette.tradeoff-text`: white on the two dark fills). The same five in every theme. Cells are `tradeoff-cell-min` to `tradeoff-cell-max` wide (84-150), separated by `tradeoff-gap` instead of grid lines, with radius `tradeoff-cell-radius`. The key under the grid shows a `tradeoff-swatch` square per rating used, named in words. The traffic-light emoji (🔴 🟡 🟢) are the same poor, mixed and good ratings and draw on the same fills |
 | **Decision card** | radius `decision-card-radius` (10), a `decision-badge` (24) circle with the option's number in the accent, a 1 pt border that becomes 2 pt in the accent when chosen; cards that can no longer be chosen dim to `state.disabled-opacity` |
 
-Web reads the rating fills and text from the tokens. Its gap (4), cell radius (6) and
-swatch (12) differ from iOS's (register DS23), and heading sizes are not tokens yet (DS24).
+Web reads the rating fills and text, the grid's gap, cell widths and radius, the key's
+swatch, and the card's radius and number badge from the tokens (`app/globals.css`; DS23,
+AWTD-1617). Heading sizes are not tokens yet (DS24).
 
 ### Still to write
 

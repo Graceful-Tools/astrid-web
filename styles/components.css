@@ -102,6 +102,30 @@
      the notifications popover. */
   --pane-min-width: 280px;
   --popover-wide-width: 22rem;
+
+  /* A hairline: what Tailwind's `border` (and `border-t`, `divide-y` …) draws
+     (tailwind.config.ts → borderWidth). The token's half point where the screen
+     can draw one, a whole pixel where it cannot (astrid-core register DS20). */
+  --hairline-width: 1px;
+
+  /* Corner radius by kind (astrid-core register DS13), compact where there is a
+     pointer and comfortable on touch, like the selection outline: a row 8, a
+     board card 8 / 6, a board column 12 / 8, the details panel 16 / 14. */
+  --row-radius: var(--astrid-layout-compact-row-radius);
+  --board-card-radius: var(--astrid-layout-compact-board-card-radius);
+  --board-column-radius: var(--astrid-layout-compact-board-column-radius);
+  --detail-panel-radius: var(--astrid-layout-compact-detail-panel-radius);
+
+  /* A row is never shorter than its title, its meta line and its padding
+     (register DS14): 52 where there is a pointer, 76 on touch. Web has no
+     density setting; the input decides, as it does for the radii above. */
+  --row-min-height: var(--astrid-layout-compact-row-min-height);
+}
+
+@media (min-resolution: 2dppx) {
+  :root {
+    --hairline-width: var(--astrid-size-hairline);
+  }
 }
 
 /* Lock document-level scrolling. The app shell (.app-container) and inner
@@ -201,9 +225,10 @@ html, body {
 
 /* Unified card styling for task rows - works on both mobile and desktop */
 .task-card {
-  @apply rounded-xl border;
+  @apply border;
+  border-radius: var(--row-radius);
   box-shadow: var(--astrid-shadow-sm);
-  min-height: 64px;
+  min-height: var(--row-min-height);
   /* The selection border, switched off. .task-row-selected only turns its
      style on — see there for why (AWTD-1085). */
   outline: var(--selection-outline-width) none var(--selection-outline-color);
@@ -232,6 +257,16 @@ html, body {
   }
 }
 
+/* A task on a board is a card, and a column holds them (DS13). After
+   .task-card so the card's radius wins over the row's. */
+.board-card {
+  border-radius: var(--board-card-radius);
+}
+
+.board-column {
+  border-radius: var(--board-column-radius);
+}
+
 .task-row-selected {
   /* A crisp accent-blue border, as the Mac app draws it (AWTD-1084). An inset
      outline rather than a wider border, so selecting a row does not shift it;
@@ -247,6 +282,11 @@ html, body {
 @media (pointer: coarse) {
   :root {
     --selection-outline-width: var(--astrid-size-comfortable-selection-outline);
+    --row-radius: var(--astrid-layout-comfortable-row-radius);
+    --board-card-radius: var(--astrid-layout-comfortable-board-card-radius);
+    --board-column-radius: var(--astrid-layout-comfortable-board-column-radius);
+    --detail-panel-radius: var(--astrid-layout-comfortable-detail-panel-radius);
+    --row-min-height: var(--astrid-layout-comfortable-row-min-height);
   }
 }
 
@@ -275,9 +315,8 @@ html, body {
 .row-title-2 .task-title { -webkit-line-clamp: 2; line-clamp: 2; }
 .row-title-1 .task-title { -webkit-line-clamp: 1; line-clamp: 1; }
 
-.task-row-completed {
-  @apply opacity-75;
-}
+/* A completed row is not dimmed: its title is struck through and muted, as on
+   iOS and the Mac (astrid-core register DS18). The class stays as a hook. */
 
 .task-checkbox {
   @apply w-5 h-5 flex-shrink-0;
@@ -792,11 +831,13 @@ html, body {
 }
 
 .task-panel {
-  @apply w-96 flex flex-col h-full relative md:relative md:translate-x-0 rounded-xl overflow-hidden;
+  @apply w-96 flex flex-col h-full relative md:relative md:translate-x-0 overflow-hidden;
+  border-radius: var(--detail-panel-radius);
 }
 
 .task-panel-desktop {
-  @apply fixed top-32 bottom-10 bg-white dark:bg-gray-800 flex flex-col z-30 rounded-xl;
+  @apply fixed top-32 bottom-10 bg-white dark:bg-gray-800 flex flex-col z-30;
+  border-radius: var(--detail-panel-radius);
   /* Accent-blue selection ring, matching the selected row (AWTD-1084), plus
      a soft shadow for the floating panel look */
   box-shadow: 0 0 0 var(--selection-outline-width) var(--selection-outline-color), var(--astrid-shadow-lg);
@@ -823,7 +864,7 @@ html, body {
 /* Inner panel clips content to rounded corners while arrow stays outside */
 .task-panel-desktop > [data-task-detail-panel] {
   overflow: hidden;
-  border-radius: 0.75rem;
+  border-radius: var(--detail-panel-radius);
 }
 
 /* Task detail expanded to full screen (task 0ea0b818).
@@ -1056,4 +1097,24 @@ html, body {
 
 .focus-ring {
   @apply focus:outline-none focus:ring-2 focus:ring-brand/50;
+}
+
+/* Reduced motion (astrid-core register DS17). Where the person has asked the
+   system for less movement, nothing slides, fades, pops or springs: the change
+   happens at once. `animation: none`, not a short duration, so Radix's
+   presence sees no animation and unmounts at once instead of waiting for an
+   animationend. A spinner keeps turning: it says work is happening, and
+   stopping it says the opposite. Motion started from script reads
+   lib/design/reduced-motion.ts.
+   Last in the file and `:root`-scoped on purpose: the phone's details panel
+   sets its slide with `!important` on two classes, and this has to outrank
+   that, which a bare `*` did not. */
+@media (prefers-reduced-motion: reduce) {
+  :root :not(.animate-spin),
+  :root ::before,
+  :root ::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -149,12 +149,12 @@
    does not clip them, and they widen the task detail itself. That scroller then scrolls sideways
    with the comment pushed off screen (AITD-589, e2e/mobile-tradeoff-grid-no-overflow.spec.ts). */
 .tradeoff-scroll { position: relative; overflow-x: auto; margin: 0.5rem 0; -webkit-overflow-scrolling: touch; }
-.tradeoff-scroll table.tradeoff-grid { border-collapse: separate; border-spacing: 4px; width: auto; min-width: 100%; margin: 0 -4px; font-size: 0.875rem; --tradeoff-cell-min: 84px; --tradeoff-cell-max: 150px; --tradeoff-option-min: 6rem; --tradeoff-option-max: min(12rem, 33vw); }
+.tradeoff-scroll table.tradeoff-grid { border-collapse: separate; border-spacing: var(--astrid-markdown-tradeoff-gap); width: auto; min-width: 100%; margin: 0 calc(-1 * var(--astrid-markdown-tradeoff-gap)); font-size: 0.875rem; --tradeoff-cell-min: var(--astrid-markdown-tradeoff-cell-min); --tradeoff-cell-max: var(--astrid-markdown-tradeoff-cell-max); --tradeoff-option-min: 6rem; --tradeoff-option-max: min(12rem, 33vw); }
 .tradeoff-scroll table.tradeoff-grid th,
 /* As iOS AITD-585 (AWTD-1533): a word is never broken to squeeze in a column; the grid grows
    sideways and scrolls instead. Rated cells centre both ways; the column and option names centre
    vertically. */
-.tradeoff-scroll table.tradeoff-grid td { border: none; padding: 0.375rem 0.5rem; vertical-align: middle; text-align: center; min-width: var(--tradeoff-cell-min); max-width: var(--tradeoff-cell-max); overflow-wrap: normal; word-break: normal; hyphens: none; border-radius: 0.375rem; }
+.tradeoff-scroll table.tradeoff-grid td { border: none; padding: 0.375rem 0.5rem; vertical-align: middle; text-align: center; min-width: var(--tradeoff-cell-min); max-width: var(--tradeoff-cell-max); overflow-wrap: normal; word-break: normal; hyphens: none; border-radius: var(--astrid-markdown-tradeoff-cell-radius); }
 .tradeoff-scroll table.tradeoff-grid th { text-align: center; vertical-align: middle; font-weight: 600; min-width: var(--tradeoff-cell-min); max-width: var(--tradeoff-cell-max); }
 .tradeoff-scroll table.tradeoff-grid th:first-child,
 .tradeoff-scroll table.tradeoff-grid td:first-child { text-align: left; font-weight: 600; min-width: 64px; max-width: 120px; }
@@ -167,7 +167,7 @@
    `grid-auto-rows: 1fr`; the header row keeps its own height. A word longer than a cell breaks
    only as a last resort (`break-word` leaves min-content alone). The renderer adds
    `tradeoff-cols-N` for up to 10 criteria; a wider grid keeps the table layout above. */
-.tradeoff-scroll table.tradeoff-grid.tradeoff-even { display: grid; grid-template-columns: minmax(var(--tradeoff-option-min), max-content) repeat(var(--tradeoff-cols), 1fr); grid-template-rows: auto; grid-auto-rows: 1fr; gap: 4px; margin: 0; width: max-content; min-width: 0; }
+.tradeoff-scroll table.tradeoff-grid.tradeoff-even { display: grid; grid-template-columns: minmax(var(--tradeoff-option-min), max-content) repeat(var(--tradeoff-cols), 1fr); grid-template-rows: auto; grid-auto-rows: 1fr; gap: var(--astrid-markdown-tradeoff-gap); margin: 0; width: max-content; min-width: 0; }
 .tradeoff-scroll table.tradeoff-grid.tradeoff-even > thead,
 .tradeoff-scroll table.tradeoff-grid.tradeoff-even > tbody,
 .tradeoff-scroll table.tradeoff-grid.tradeoff-even tr { display: contents; }
@@ -198,4 +198,10 @@
 .tradeoff-scroll .tradeoff-grid td code { background-color: color-mix(in srgb, currentColor 12%, transparent); color: inherit; }
 .tradeoff-key { display: flex; flex-direction: column; gap: 0.125rem; font-size: 0.8125rem; }
 .tradeoff-key-item { display: inline-flex; align-items: center; gap: 0.375rem; }
-.tradeoff-swatch { display: inline-block; width: 0.75rem; height: 0.75rem; border-radius: 0.1875rem; }
+.tradeoff-swatch { display: inline-block; width: var(--astrid-markdown-tradeoff-swatch); height: var(--astrid-markdown-tradeoff-swatch); border-radius: calc(var(--astrid-markdown-tradeoff-cell-radius) / 2); }
+/* A Decision card and its number (register DS23, iOS DecisionViews.swift): the card at
+   markdown.decision-card-radius; the number in a markdown.decision-badge circle, the accent
+   on its wash, and white on the accent once that option is chosen. */
+.decision-card { border-radius: var(--astrid-markdown-decision-card-radius); }
+.decision-badge { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; min-width: var(--astrid-markdown-decision-badge); height: var(--astrid-markdown-decision-badge); border-radius: 9999px; font-weight: 600; color: rgb(var(--astrid-accent-ink)); background-color: rgba(var(--astrid-accent), var(--theme-wash-opacity)); }
+.decision-card[data-chosen] .decision-badge { color: rgb(var(--astrid-accent-text)); background-color: rgb(var(--astrid-accent)); }

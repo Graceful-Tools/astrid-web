@@ -20,11 +20,14 @@ export const token = (property: string) => `rgba(var(--${property}), <alpha-valu
 
 /**
  * Shared sizes as steps of the spacing scale: `w-leading-control`,
- * `min-h-hit-target` (the 44 pt touch target, `size.hit-target`), and the
+ * `h-leading-control`, `gap-row-gap` (the gap between a leading control, or the
+ * detail icon column under it, and the text: `layout.row-gap`, 12 in both densities;
+ * register DS11), `min-h-hit-target` (the 44 pt touch target, `size.hit-target`), and the
  * web-only layout widths named once in styles/components.css (AWTD-1615).
  */
 export const tokenSpacing = {
   'leading-control': 'var(--astrid-size-comfortable-leading-control)',
+  'row-gap': 'var(--astrid-layout-comfortable-row-gap)',
   'hit-target': 'var(--astrid-size-comfortable-hit-target)',
   'pane-min': 'var(--pane-min-width)',
   'popover-wide': 'var(--popover-wide-width)',

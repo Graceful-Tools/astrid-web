@@ -44,13 +44,13 @@ export function DecisionCards({ decision, chosen, onChoose, identifiers }: Decis
                 if ((e.target as HTMLElement).closest('a')) return
                 onChoose?.(decisionReply(option))
               }}
-              className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-left text-sm ${
+              className={`decision-card flex items-start gap-2 border-1 px-3 py-2 text-left text-sm ${
                 isChosen ? 'border-brand ring-1 ring-brand' : 'border-theme'
               } ${interactive ? 'hover:border-brand cursor-pointer' : 'cursor-default'}`}
             >
               {/* Numbered in order, whatever marker the asker wrote (AWTD-1533). */}
-              <span className="font-semibold">{option.number}</span>
-              <span className="flex-1" dangerouslySetInnerHTML={md(option.text)} />
+              <span className="decision-badge">{option.number}</span>
+              <span className="flex-1 leading-6" dangerouslySetInnerHTML={md(option.text)} />
               {option.recommended && (
                 <span className="rounded bg-success-subtle px-1.5 text-xs text-success">
                   ★
