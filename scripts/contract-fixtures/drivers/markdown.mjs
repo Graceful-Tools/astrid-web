@@ -175,6 +175,22 @@ const CASES = [
   ['xss-entity-script', '&lt;script&gt;alert(1)&lt;/script&gt;'],
   ['xss-code-span-html', '`<img src=x onerror=alert(1)>`'],
   ['xss-html-in-table', '| a |\n|---|\n| <img src=x onerror=alert(1)> |'],
+  // Trade-off grids (AWTD-1626): a table whose body cells all lead with a rating is drawn as a
+  // grid, and reads back as a `tradeoffGrid` block (../markdown-blocks.mjs says how).
+  ['grid', '| Option | Cost | Time |\n|---|---|---|\n| A. Lisbon | ++ cheap | - long flight |\n| B. Porto | ~ fair | + short |'],
+  ['grid-emoji', '| Option | Cost | Fun |\n|---|---|---|\n| Cabin | 🟢 cheap | 🔴 dull |\n| Hotel | 🟡 fair | - meh |'],
+  ['grid-rating-only', '| Option | A | B |\n|---|---|---|\n| One | ++ | -- |\n| Two | ~ | + |'],
+  ['grid-empty-cell', '| Option | Cost | Time |\n|---|---|---|\n| One | + cheap |  |\n| Two |  | -- slow |'],
+  ['grid-row-markers', '| Option | Cost |\n|---|---|\n| **1)** Cabin | + cheap |\n| B | ~ fair |\n| C: Tent | -- cold |\n| I **am** here | + ok |'],
+  ['grid-inline-reasons', '| Option | Cost |\n|---|---|\n| One | + **cheap** and `fast` |\n| Two | - see [docs](https://example.com) |'],
+  ['grid-reference-in-reason', '| Option | Who |\n|---|---|\n| One | + ask @[Ann](u1) |\n| Two | ~ #[Home](l1) |'],
+  ['grid-aligned', '| Option | Cost |\n|:--|:-:|\n| One | + cheap |\n| Two | - dear |'],
+  ['grid-between-paragraphs', 'Weighing it:\n\n| Option | Cost |\n|---|---|\n| One | + cheap |\n| Two | - dear |\n\nThoughts?'],
+  ['grid-eleven-criteria', '| Option | a | b | c | d | e | f | g | h | i | j | k |\n|---|---|---|---|---|---|---|---|---|---|---|---|\n| One | + | + | + | + | + | + | + | + | + | + | ++ |'],
+  ['table-not-all-rated', '| Option | Cost |\n|---|---|\n| One | + cheap |\n| Two | dear |'],
+  ['table-all-bare-dash', '| Option | Cost | Time |\n|---|---|---|\n| One | - | - |\n| Two | - |  |'],
+  ['table-rating-needs-space', '| Option | Cost |\n|---|---|\n| One | ++cheap |'],
+  ['grid-in-code-block', '```\n| Option | Cost |\n|---|---|\n| One | + cheap |\n```'],
   // Empties
   ['empty', ''],
   ['whitespace-only', '   \n  '],
