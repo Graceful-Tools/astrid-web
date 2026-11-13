@@ -5,6 +5,7 @@ import { getBaseUrl } from './base-url'
 import { BRAND } from '@/lib/brand/config'
 import { createLogger } from '@/lib/logger'
 import { escapeEmailHtml } from '@/lib/email-html'
+import { EMAIL_PALETTE } from '@/lib/design/email-palette'
 
 const log = createLogger('email')
 
@@ -151,8 +152,8 @@ function getVerificationEmailHtml(data: EmailVerificationData, verifyUrl: string
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
         .button { background-color: ${BRAND.accentColor}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; }
-        .footer { margin-top: 30px; font-size: 12px; color: #666; }
-        .warning { background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; margin: 16px 0; }
+        .footer { margin-top: 30px; font-size: 12px; color: ${EMAIL_PALETTE.textMuted}; }
+        .warning { background-color: ${EMAIL_PALETTE.warningWash}; border-left: 4px solid ${EMAIL_PALETTE.warning}; padding: 12px; margin: 16px 0; }
       </style>
     </head>
     <body>
@@ -267,8 +268,8 @@ function getListInvitationHtml(data: ListInvitationData): string {
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
         .button { background-color: ${BRAND.accentColor}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; }
-        .footer { margin-top: 30px; font-size: 12px; color: #666; }
-        .list-info { background-color: #f8fafc; border-left: 4px solid ${BRAND.accentColor}; padding: 16px; margin: 16px 0; border-radius: 4px; }
+        .footer { margin-top: 30px; font-size: 12px; color: ${EMAIL_PALETTE.textMuted}; }
+        .list-info { background-color: ${EMAIL_PALETTE.bgSecondary}; border-left: 4px solid ${BRAND.accentColor}; padding: 16px; margin: 16px 0; border-radius: 4px; }
       </style>
     </head>
     <body>
@@ -351,7 +352,7 @@ function getEmailHtml(invitation: Invitation, inviteUrl: string): string {
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         .container { max-width: 600px; margin: 0 auto; padding: 20px; }
         .button { background-color: ${BRAND.accentColor}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; }
-        .footer { margin-top: 30px; font-size: 12px; color: #666; }
+        .footer { margin-top: 30px; font-size: 12px; color: ${EMAIL_PALETTE.textMuted}; }
       </style>
     </head>
     <body>
@@ -432,11 +433,11 @@ export async function sendFeatureAccessRequestEmail(data: FeatureAccessRequestDa
   const htmlBody = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px;">
       <h2 style="margin-bottom: 4px;">Feature request: ${escapeEmailHtml(data.featureKey)}</h2>
-      <p style="color:#666; margin-top: 0;">${escapeEmailHtml(who)}</p>
-      <div style="background-color:#f8fafc; border-left:4px solid ${BRAND.accentColor}; padding:16px; margin:16px 0; border-radius:4px;">
+      <p style="color:${EMAIL_PALETTE.textMuted}; margin-top: 0;">${escapeEmailHtml(who)}</p>
+      <div style="background-color:${EMAIL_PALETTE.bgSecondary}; border-left:4px solid ${BRAND.accentColor}; padding:16px; margin:16px 0; border-radius:4px;">
         ${data.useCase
           ? `<p style="margin:0;"><strong>Use case</strong></p><p style="margin:8px 0 0; white-space:pre-wrap;">${escapeEmailHtml(data.useCase)}</p>`
-          : '<p style="margin:0; color:#666;">No use case given.</p>'}
+          : `<p style="margin:0; color:${EMAIL_PALETTE.textMuted};">No use case given.</p>`}
       </div>
       <p>Grant it in <strong>Admin → Feature rollouts</strong> by adding
         <code>${escapeEmailHtml(data.userEmail)}</code> to the Include list.</p>
