@@ -436,11 +436,11 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
   const getRoleIcon = (role: string) => {
     switch (role) {
       case "owner":
-        return <Crown className="w-4 h-4 text-yellow-500" />
+        return <Crown className="w-4 h-4 text-category-amber" />
       case "admin":
         return <Shield className="w-4 h-4 text-brand" />
       case "member":
-        return <UserIcon className="w-4 h-4 text-green-500" />
+        return <UserIcon className="w-4 h-4 text-category-green" />
       case "viewer":
         return <Eye className="w-4 h-4 theme-text-muted" />
       default:
@@ -560,7 +560,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
                           {member.name || member.email}
                         </span>
                         {member.isAIAgent && (
-                          <Badge variant="outline" className="text-xs px-1 py-0 text-purple-400 border-purple-400 shrink-0">
+                          <Badge variant="outline" className="text-xs px-1 py-0 text-agent border-agent shrink-0">
                             {t('lists.membersManager.aiBadge')}
                           </Badge>
                         )}
