@@ -16,6 +16,13 @@
 //     pill classes) is a reference: kind, label (its text without the sigil) and the decoded id.
 //     Any other relative href is the app's own page, which the core writes absolute
 //     (https://astrid.cc/…). An anchor DOMPurify stripped the href from is plain text.
+//   - A trade-off grid (`div.tradeoff`, AWTD-1626) is a `tradeoffGrid` block, not a table: the
+//     header without its column letters (a shell letters criteria by position, A, B, C), each row's
+//     option name without the "1. " the renderer numbers it with, and each rated cell's rating as
+//     its label key (`veryPoor` … `veryGood`), read from the cell's colour class. The key is
+//     the token's label, not the token, because `-` and 🔴 are drawn alike and the page cannot
+//     tell them apart. The spoken label (`.sr-only`) and the full-screen control are chrome, not
+//     content. `key` is the label keys the grid's legend shows, worst to best.
 //   - Renderer artefacts are not content and are dropped: the space marked prints after a task
 //     checkbox, the newline that closes a raw-HTML block, and an empty <p>.
 //
@@ -34,6 +41,64 @@ const PILLS = [
 
 const BLOCK_TAGS = new Set(['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'PRE', 'UL', 'OL', 'BLOCKQUOTE', 'HR', 'TABLE'])
 
+// A trade-off grid's colour classes (app/globals.css, lib/comment-formats.ts RATING_STYLE) and the
+// label key each stands for.
+const RATING_CLASSES = {
+  'tradeoff-very-poor': 'veryPoor',
+  'tradeoff-poor': 'poor',
+  'tradeoff-mixed': 'mixed',
+  'tradeoff-good': 'good',
+  'tradeoff-very-good': 'veryGood',
+}
+
+function isGrid(node) {
+  return node.nodeType === 1 && node.tagName === 'DIV' && node.classList.contains('tradeoff')
+}
+
+function ratingOf(el) {
+  for (const name of el.classList) if (RATING_CLASSES[name]) return RATING_CLASSES[name]
+  return null
+}
+
+// Drop the leading space a removed prefix leaves behind.
+function trimLeading(inlines) {
+  const first = inlines[0]
+  if (first && first.kind === 'text') {
+    first.text = first.text.replace(/^\s+/, '')
+    if (first.text === '') inlines.shift()
+  }
+  return inlines
+}
+
+function grid(node) {
+  const table = node.querySelector('table')
+  const headCells = [...table.querySelectorAll('thead th')]
+  const header = headCells.map((th) => {
+    th.querySelector('.tradeoff-col')?.remove()
+    return trimLeading(inlinesOf(th.childNodes, {}))
+  })
+  const rows = [...table.querySelectorAll('tbody tr')].map((tr) => {
+    const [nameCell, ...cells] = [...tr.children]
+    // The renderer writes "<n>. " before the name; the number is the row's position.
+    const first = nameCell.firstChild
+    if (first && first.nodeType === 3) first.textContent = first.textContent.replace(/^\d+\. ?/, '')
+    return {
+      name: inlinesOf(nameCell.childNodes, {}),
+      cells: cells.map((td) => {
+        td.querySelectorAll('.sr-only').forEach((el) => el.remove())
+        return { rating: ratingOf(td), inlines: inlinesOf(td.childNodes, {}) }
+      }),
+    }
+  })
+  return {
+    kind: 'tradeoffGrid',
+    alignments: headCells.map((th) => th.getAttribute('align') ?? 'none'),
+    header,
+    rows,
+    key: [...node.querySelectorAll('.tradeoff-key .tradeoff-swatch')].map(ratingOf).filter(Boolean),
+  }
+}
+
 function blocksOf(container, { skipCheckbox = false } = {}) {
   const blocks = []
   let pending = []
@@ -45,7 +110,10 @@ function blocksOf(container, { skipCheckbox = false } = {}) {
   }
   for (const node of container.childNodes) {
     if (skipCheckbox && isCheckbox(node)) continue
-    if (node.nodeType === 1 && BLOCK_TAGS.has(node.tagName)) {
+    if (isGrid(node)) {
+      flush()
+      blocks.push(grid(node))
+    } else if (node.nodeType === 1 && BLOCK_TAGS.has(node.tagName)) {
       flush()
       const b = block(node)
       if (b) blocks.push(b)

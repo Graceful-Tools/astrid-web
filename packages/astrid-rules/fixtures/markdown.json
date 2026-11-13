@@ -3748,6 +3748,1817 @@
       ]
     },
     {
+      "id": "grid",
+      "text": "| Option | Cost | Time |\n|---|---|---|\n| A. Lisbon | ++ cheap | - long flight |\n| B. Porto | ~ fair | + short |",
+      "context": null,
+      "html": "<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table role=\"table\" class=\"tradeoff-grid tradeoff-even tradeoff-cols-2\"><thead role=\"rowgroup\"><tr role=\"row\"><th role=\"columnheader\">Option</th><th role=\"columnheader\"><span class=\"tradeoff-col\">A</span> Cost</th><th role=\"columnheader\"><span class=\"tradeoff-col\">B</span> Time</th></tr></thead><tbody role=\"rowgroup\"><tr role=\"row\"><td role=\"rowheader\">1. Lisbon</td><td role=\"cell\" class=\"tradeoff-very-good\"><span class=\"sr-only\">Very good. </span>cheap</td><td role=\"cell\" class=\"tradeoff-poor\"><span class=\"sr-only\">Poor. </span>long flight</td></tr><tr role=\"row\"><td role=\"rowheader\">2. Porto</td><td role=\"cell\" class=\"tradeoff-mixed\"><span class=\"sr-only\">Mixed. </span>fair</td><td role=\"cell\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>short</td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-poor\"></span>Poor</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-mixed\"></span>Mixed</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-very-good\"></span>Very good</span></p></div>",
+      "blocks": [
+        {
+          "kind": "tradeoffGrid",
+          "alignments": [
+            "none",
+            "none",
+            "none"
+          ],
+          "header": [
+            [
+              {
+                "kind": "text",
+                "text": "Option",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "Cost",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "Time",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ]
+          ],
+          "rows": [
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "Lisbon",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "veryGood",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "cheap",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                },
+                {
+                  "rating": "poor",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "long flight",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "Porto",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "mixed",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "fair",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                },
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "short",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "key": [
+            "poor",
+            "mixed",
+            "good",
+            "veryGood"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "grid-emoji",
+      "text": "| Option | Cost | Fun |\n|---|---|---|\n| Cabin | 🟢 cheap | 🔴 dull |\n| Hotel | 🟡 fair | - meh |",
+      "context": null,
+      "html": "<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table role=\"table\" class=\"tradeoff-grid tradeoff-even tradeoff-cols-2\"><thead role=\"rowgroup\"><tr role=\"row\"><th role=\"columnheader\">Option</th><th role=\"columnheader\"><span class=\"tradeoff-col\">A</span> Cost</th><th role=\"columnheader\"><span class=\"tradeoff-col\">B</span> Fun</th></tr></thead><tbody role=\"rowgroup\"><tr role=\"row\"><td role=\"rowheader\">1. Cabin</td><td role=\"cell\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>cheap</td><td role=\"cell\" class=\"tradeoff-poor\"><span class=\"sr-only\">Poor. </span>dull</td></tr><tr role=\"row\"><td role=\"rowheader\">2. Hotel</td><td role=\"cell\" class=\"tradeoff-mixed\"><span class=\"sr-only\">Mixed. </span>fair</td><td role=\"cell\" class=\"tradeoff-poor\"><span class=\"sr-only\">Poor. </span>meh</td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-poor\"></span>Poor</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-mixed\"></span>Mixed</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span></p></div>",
+      "blocks": [
+        {
+          "kind": "tradeoffGrid",
+          "alignments": [
+            "none",
+            "none",
+            "none"
+          ],
+          "header": [
+            [
+              {
+                "kind": "text",
+                "text": "Option",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "Cost",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "Fun",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ]
+          ],
+          "rows": [
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "Cabin",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "cheap",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                },
+                {
+                  "rating": "poor",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "dull",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "Hotel",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "mixed",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "fair",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                },
+                {
+                  "rating": "poor",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "meh",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "key": [
+            "poor",
+            "mixed",
+            "good"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "grid-rating-only",
+      "text": "| Option | A | B |\n|---|---|---|\n| One | ++ | -- |\n| Two | ~ | + |",
+      "context": null,
+      "html": "<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table role=\"table\" class=\"tradeoff-grid tradeoff-even tradeoff-cols-2\"><thead role=\"rowgroup\"><tr role=\"row\"><th role=\"columnheader\">Option</th><th role=\"columnheader\"><span class=\"tradeoff-col\">A</span> A</th><th role=\"columnheader\"><span class=\"tradeoff-col\">B</span> B</th></tr></thead><tbody role=\"rowgroup\"><tr role=\"row\"><td role=\"rowheader\">1. One</td><td role=\"cell\" class=\"tradeoff-very-good\"><span class=\"sr-only\">Very good. </span>++</td><td role=\"cell\" class=\"tradeoff-very-poor\"><span class=\"sr-only\">Very poor. </span>--</td></tr><tr role=\"row\"><td role=\"rowheader\">2. Two</td><td role=\"cell\" class=\"tradeoff-mixed\"><span class=\"sr-only\">Mixed. </span>~</td><td role=\"cell\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-very-poor\"></span>Very poor</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-mixed\"></span>Mixed</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-very-good\"></span>Very good</span></p></div>",
+      "blocks": [
+        {
+          "kind": "tradeoffGrid",
+          "alignments": [
+            "none",
+            "none",
+            "none"
+          ],
+          "header": [
+            [
+              {
+                "kind": "text",
+                "text": "Option",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "A",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "B",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ]
+          ],
+          "rows": [
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "One",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "veryGood",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "++",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                },
+                {
+                  "rating": "veryPoor",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "--",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "Two",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "mixed",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "~",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                },
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "+",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "key": [
+            "veryPoor",
+            "mixed",
+            "good",
+            "veryGood"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "grid-empty-cell",
+      "text": "| Option | Cost | Time |\n|---|---|---|\n| One | + cheap |  |\n| Two |  | -- slow |",
+      "context": null,
+      "html": "<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table role=\"table\" class=\"tradeoff-grid tradeoff-even tradeoff-cols-2\"><thead role=\"rowgroup\"><tr role=\"row\"><th role=\"columnheader\">Option</th><th role=\"columnheader\"><span class=\"tradeoff-col\">A</span> Cost</th><th role=\"columnheader\"><span class=\"tradeoff-col\">B</span> Time</th></tr></thead><tbody role=\"rowgroup\"><tr role=\"row\"><td role=\"rowheader\">1. One</td><td role=\"cell\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>cheap</td><td role=\"cell\"></td></tr><tr role=\"row\"><td role=\"rowheader\">2. Two</td><td role=\"cell\"></td><td role=\"cell\" class=\"tradeoff-very-poor\"><span class=\"sr-only\">Very poor. </span>slow</td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-very-poor\"></span>Very poor</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span></p></div>",
+      "blocks": [
+        {
+          "kind": "tradeoffGrid",
+          "alignments": [
+            "none",
+            "none",
+            "none"
+          ],
+          "header": [
+            [
+              {
+                "kind": "text",
+                "text": "Option",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "Cost",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "Time",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ]
+          ],
+          "rows": [
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "One",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "cheap",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                },
+                {
+                  "rating": null,
+                  "inlines": []
+                }
+              ]
+            },
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "Two",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": null,
+                  "inlines": []
+                },
+                {
+                  "rating": "veryPoor",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "slow",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "key": [
+            "veryPoor",
+            "good"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "grid-row-markers",
+      "text": "| Option | Cost |\n|---|---|\n| **1)** Cabin | + cheap |\n| B | ~ fair |\n| C: Tent | -- cold |\n| I **am** here | + ok |",
+      "context": null,
+      "html": "<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table role=\"table\" class=\"tradeoff-grid tradeoff-even tradeoff-cols-1\"><thead role=\"rowgroup\"><tr role=\"row\"><th role=\"columnheader\">Option</th><th role=\"columnheader\"><span class=\"tradeoff-col\">A</span> Cost</th></tr></thead><tbody role=\"rowgroup\"><tr role=\"row\"><td role=\"rowheader\">1. Cabin</td><td role=\"cell\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>cheap</td></tr><tr role=\"row\"><td role=\"rowheader\">2. </td><td role=\"cell\" class=\"tradeoff-mixed\"><span class=\"sr-only\">Mixed. </span>fair</td></tr><tr role=\"row\"><td role=\"rowheader\">3. Tent</td><td role=\"cell\" class=\"tradeoff-very-poor\"><span class=\"sr-only\">Very poor. </span>cold</td></tr><tr role=\"row\"><td role=\"rowheader\">4. I <strong>am</strong> here</td><td role=\"cell\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>ok</td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-very-poor\"></span>Very poor</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-mixed\"></span>Mixed</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span></p></div>",
+      "blocks": [
+        {
+          "kind": "tradeoffGrid",
+          "alignments": [
+            "none",
+            "none"
+          ],
+          "header": [
+            [
+              {
+                "kind": "text",
+                "text": "Option",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "Cost",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ]
+          ],
+          "rows": [
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "Cabin",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "cheap",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": [],
+              "cells": [
+                {
+                  "rating": "mixed",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "fair",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "Tent",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "veryPoor",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "cold",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "I ",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                },
+                {
+                  "kind": "text",
+                  "text": "am",
+                  "bold": true,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                },
+                {
+                  "kind": "text",
+                  "text": " here",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "ok",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "key": [
+            "veryPoor",
+            "mixed",
+            "good"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "grid-inline-reasons",
+      "text": "| Option | Cost |\n|---|---|\n| One | + **cheap** and `fast` |\n| Two | - see [docs](https://example.com) |",
+      "context": null,
+      "html": "<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table role=\"table\" class=\"tradeoff-grid tradeoff-even tradeoff-cols-1\"><thead role=\"rowgroup\"><tr role=\"row\"><th role=\"columnheader\">Option</th><th role=\"columnheader\"><span class=\"tradeoff-col\">A</span> Cost</th></tr></thead><tbody role=\"rowgroup\"><tr role=\"row\"><td role=\"rowheader\">1. One</td><td role=\"cell\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span><strong>cheap</strong> and <code>fast</code></td></tr><tr role=\"row\"><td role=\"rowheader\">2. Two</td><td role=\"cell\" class=\"tradeoff-poor\"><span class=\"sr-only\">Poor. </span>see <a href=\"https://example.com\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">docs</a></td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-poor\"></span>Poor</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span></p></div>",
+      "blocks": [
+        {
+          "kind": "tradeoffGrid",
+          "alignments": [
+            "none",
+            "none"
+          ],
+          "header": [
+            [
+              {
+                "kind": "text",
+                "text": "Option",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "Cost",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ]
+          ],
+          "rows": [
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "One",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "cheap",
+                      "bold": true,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    },
+                    {
+                      "kind": "text",
+                      "text": " and ",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    },
+                    {
+                      "kind": "text",
+                      "text": "fast",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": true,
+                      "link": null
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "Two",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "poor",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "see ",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    },
+                    {
+                      "kind": "text",
+                      "text": "docs",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": "https://example.com"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "key": [
+            "poor",
+            "good"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "grid-reference-in-reason",
+      "text": "| Option | Who |\n|---|---|\n| One | + ask @[Ann](u1) |\n| Two | ~ #[Home](l1) |",
+      "context": null,
+      "html": "<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table role=\"table\" class=\"tradeoff-grid tradeoff-even tradeoff-cols-1\"><thead role=\"rowgroup\"><tr role=\"row\"><th role=\"columnheader\">Option</th><th role=\"columnheader\"><span class=\"tradeoff-col\">A</span> Who</th></tr></thead><tbody role=\"rowgroup\"><tr role=\"row\"><td role=\"rowheader\">1. One</td><td role=\"cell\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>ask <a href=\"/u/u1\" class=\"bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded font-medium no-underline hover:underline\">@Ann</a></td></tr><tr role=\"row\"><td role=\"rowheader\">2. Two</td><td role=\"cell\" class=\"tradeoff-mixed\"><span class=\"sr-only\">Mixed. </span><a href=\"/lists/l1\" class=\"bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1 rounded font-medium no-underline hover:underline\">#Home</a></td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-mixed\"></span>Mixed</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span></p></div>",
+      "blocks": [
+        {
+          "kind": "tradeoffGrid",
+          "alignments": [
+            "none",
+            "none"
+          ],
+          "header": [
+            [
+              {
+                "kind": "text",
+                "text": "Option",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "Who",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ]
+          ],
+          "rows": [
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "One",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "ask ",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    },
+                    {
+                      "kind": "reference",
+                      "reference": "user",
+                      "label": "Ann",
+                      "id": "u1"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "Two",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "mixed",
+                  "inlines": [
+                    {
+                      "kind": "reference",
+                      "reference": "list",
+                      "label": "Home",
+                      "id": "l1"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "key": [
+            "mixed",
+            "good"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "grid-aligned",
+      "text": "| Option | Cost |\n|:--|:-:|\n| One | + cheap |\n| Two | - dear |",
+      "context": null,
+      "html": "<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table role=\"table\" class=\"tradeoff-grid tradeoff-even tradeoff-cols-1\"><thead role=\"rowgroup\"><tr role=\"row\"><th role=\"columnheader\" align=\"left\">Option</th><th role=\"columnheader\" align=\"center\"><span class=\"tradeoff-col\">A</span> Cost</th></tr></thead><tbody role=\"rowgroup\"><tr role=\"row\"><td role=\"rowheader\" align=\"left\">1. One</td><td role=\"cell\" align=\"center\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>cheap</td></tr><tr role=\"row\"><td role=\"rowheader\" align=\"left\">2. Two</td><td role=\"cell\" align=\"center\" class=\"tradeoff-poor\"><span class=\"sr-only\">Poor. </span>dear</td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-poor\"></span>Poor</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span></p></div>",
+      "blocks": [
+        {
+          "kind": "tradeoffGrid",
+          "alignments": [
+            "left",
+            "center"
+          ],
+          "header": [
+            [
+              {
+                "kind": "text",
+                "text": "Option",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "Cost",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ]
+          ],
+          "rows": [
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "One",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "cheap",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "Two",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "poor",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "dear",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "key": [
+            "poor",
+            "good"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "grid-between-paragraphs",
+      "text": "Weighing it:\n\n| Option | Cost |\n|---|---|\n| One | + cheap |\n| Two | - dear |\n\nThoughts?",
+      "context": null,
+      "html": "<p>Weighing it:</p>\n<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table role=\"table\" class=\"tradeoff-grid tradeoff-even tradeoff-cols-1\"><thead role=\"rowgroup\"><tr role=\"row\"><th role=\"columnheader\">Option</th><th role=\"columnheader\"><span class=\"tradeoff-col\">A</span> Cost</th></tr></thead><tbody role=\"rowgroup\"><tr role=\"row\"><td role=\"rowheader\">1. One</td><td role=\"cell\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>cheap</td></tr><tr role=\"row\"><td role=\"rowheader\">2. Two</td><td role=\"cell\" class=\"tradeoff-poor\"><span class=\"sr-only\">Poor. </span>dear</td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-poor\"></span>Poor</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span></p></div><p>Thoughts?</p>\n",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "inlines": [
+            {
+              "kind": "text",
+              "text": "Weighing it:",
+              "bold": false,
+              "italic": false,
+              "strike": false,
+              "code": false,
+              "link": null
+            }
+          ]
+        },
+        {
+          "kind": "tradeoffGrid",
+          "alignments": [
+            "none",
+            "none"
+          ],
+          "header": [
+            [
+              {
+                "kind": "text",
+                "text": "Option",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "Cost",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ]
+          ],
+          "rows": [
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "One",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "cheap",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "Two",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "poor",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "dear",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "key": [
+            "poor",
+            "good"
+          ]
+        },
+        {
+          "kind": "paragraph",
+          "inlines": [
+            {
+              "kind": "text",
+              "text": "Thoughts?",
+              "bold": false,
+              "italic": false,
+              "strike": false,
+              "code": false,
+              "link": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "grid-eleven-criteria",
+      "text": "| Option | a | b | c | d | e | f | g | h | i | j | k |\n|---|---|---|---|---|---|---|---|---|---|---|---|\n| One | + | + | + | + | + | + | + | + | + | + | ++ |",
+      "context": null,
+      "html": "<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table class=\"tradeoff-grid\"><thead><tr><th>Option</th><th><span class=\"tradeoff-col\">A</span> a</th><th><span class=\"tradeoff-col\">B</span> b</th><th><span class=\"tradeoff-col\">C</span> c</th><th><span class=\"tradeoff-col\">D</span> d</th><th><span class=\"tradeoff-col\">E</span> e</th><th><span class=\"tradeoff-col\">F</span> f</th><th><span class=\"tradeoff-col\">G</span> g</th><th><span class=\"tradeoff-col\">H</span> h</th><th><span class=\"tradeoff-col\">I</span> i</th><th><span class=\"tradeoff-col\">J</span> j</th><th><span class=\"tradeoff-col\">K</span> k</th></tr></thead><tbody><tr><td>1. One</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-very-good\"><span class=\"sr-only\">Very good. </span>++</td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-very-good\"></span>Very good</span></p></div>",
+      "blocks": [
+        {
+          "kind": "tradeoffGrid",
+          "alignments": [
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none",
+            "none"
+          ],
+          "header": [
+            [
+              {
+                "kind": "text",
+                "text": "Option",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "a",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "b",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "c",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "d",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "e",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "f",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "g",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "h",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "i",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "j",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "k",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ]
+          ],
+          "rows": [
+            {
+              "name": [
+                {
+                  "kind": "text",
+                  "text": "One",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              "cells": [
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "+",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                },
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "+",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                },
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "+",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                },
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "+",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                },
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "+",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                },
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "+",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                },
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "+",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                },
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "+",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                },
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "+",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                },
+                {
+                  "rating": "good",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "+",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                },
+                {
+                  "rating": "veryGood",
+                  "inlines": [
+                    {
+                      "kind": "text",
+                      "text": "++",
+                      "bold": false,
+                      "italic": false,
+                      "strike": false,
+                      "code": false,
+                      "link": null
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "key": [
+            "good",
+            "veryGood"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "table-not-all-rated",
+      "text": "| Option | Cost |\n|---|---|\n| One | + cheap |\n| Two | dear |",
+      "context": null,
+      "html": "<table>\n<thead>\n<tr>\n<th>Option</th>\n<th>Cost</th>\n</tr>\n</thead>\n<tbody><tr>\n<td>One</td>\n<td>+ cheap</td>\n</tr>\n<tr>\n<td>Two</td>\n<td>dear</td>\n</tr>\n</tbody></table>\n",
+      "blocks": [
+        {
+          "kind": "table",
+          "alignments": [
+            "none",
+            "none"
+          ],
+          "header": [
+            [
+              {
+                "kind": "text",
+                "text": "Option",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "Cost",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ]
+          ],
+          "rows": [
+            [
+              [
+                {
+                  "kind": "text",
+                  "text": "One",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              [
+                {
+                  "kind": "text",
+                  "text": "+ cheap",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "kind": "text",
+                  "text": "Two",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              [
+                {
+                  "kind": "text",
+                  "text": "dear",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ]
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "table-all-bare-dash",
+      "text": "| Option | Cost | Time |\n|---|---|---|\n| One | - | - |\n| Two | - |  |",
+      "context": null,
+      "html": "<table>\n<thead>\n<tr>\n<th>Option</th>\n<th>Cost</th>\n<th>Time</th>\n</tr>\n</thead>\n<tbody><tr>\n<td>One</td>\n<td>-</td>\n<td>-</td>\n</tr>\n<tr>\n<td>Two</td>\n<td>-</td>\n<td></td>\n</tr>\n</tbody></table>\n",
+      "blocks": [
+        {
+          "kind": "table",
+          "alignments": [
+            "none",
+            "none",
+            "none"
+          ],
+          "header": [
+            [
+              {
+                "kind": "text",
+                "text": "Option",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "Cost",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "Time",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ]
+          ],
+          "rows": [
+            [
+              [
+                {
+                  "kind": "text",
+                  "text": "One",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              [
+                {
+                  "kind": "text",
+                  "text": "-",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              [
+                {
+                  "kind": "text",
+                  "text": "-",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ]
+            ],
+            [
+              [
+                {
+                  "kind": "text",
+                  "text": "Two",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              [
+                {
+                  "kind": "text",
+                  "text": "-",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              []
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "table-rating-needs-space",
+      "text": "| Option | Cost |\n|---|---|\n| One | ++cheap |",
+      "context": null,
+      "html": "<table>\n<thead>\n<tr>\n<th>Option</th>\n<th>Cost</th>\n</tr>\n</thead>\n<tbody><tr>\n<td>One</td>\n<td>++cheap</td>\n</tr>\n</tbody></table>\n",
+      "blocks": [
+        {
+          "kind": "table",
+          "alignments": [
+            "none",
+            "none"
+          ],
+          "header": [
+            [
+              {
+                "kind": "text",
+                "text": "Option",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ],
+            [
+              {
+                "kind": "text",
+                "text": "Cost",
+                "bold": false,
+                "italic": false,
+                "strike": false,
+                "code": false,
+                "link": null
+              }
+            ]
+          ],
+          "rows": [
+            [
+              [
+                {
+                  "kind": "text",
+                  "text": "One",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ],
+              [
+                {
+                  "kind": "text",
+                  "text": "++cheap",
+                  "bold": false,
+                  "italic": false,
+                  "strike": false,
+                  "code": false,
+                  "link": null
+                }
+              ]
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "grid-in-code-block",
+      "text": "```\n| Option | Cost |\n|---|---|\n| One | + cheap |\n```",
+      "context": null,
+      "html": "<pre><code>| Option | Cost |\n|---|---|\n| One | + cheap |\n</code></pre>\n",
+      "blocks": [
+        {
+          "kind": "code",
+          "language": null,
+          "text": "| Option | Cost |\n|---|---|\n| One | + cheap |\n"
+        }
+      ]
+    },
+    {
       "id": "empty",
       "text": "",
       "context": null,

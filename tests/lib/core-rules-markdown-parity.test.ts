@@ -58,9 +58,11 @@ function coreBlocks(c: Case): unknown {
 const render = (c: Case) => renderMarkdownWithLinks(c.text, c.context ? { identifiers: c.context } : undefined)
 
 // The sanitiser's contract (lib/markdown.ts RICH_TEXT_TAGS / RICH_TEXT_ATTRS), restated here so a
-// change to the allowlist has to change this too.
-const TAGS = new Set(['P', 'BR', 'SPAN', 'STRONG', 'EM', 'DEL', 'CODE', 'PRE', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'LI', 'BLOCKQUOTE', 'HR', 'TABLE', 'THEAD', 'TBODY', 'TR', 'TH', 'TD', 'A', 'INPUT'])
-const ATTRS = new Set(['href', 'target', 'rel', 'class', 'type', 'checked', 'disabled', 'align', 'start'])
+// change to the allowlist has to change this too. `div`, `role`, `tabindex` and the
+// `data-tradeoff-expand` hook are a trade-off grid's (AWTD-1524, AWTD-1534), which the fixture
+// carries since AWTD-1626; DOMPurify keeps `data-*` attributes by default.
+const TAGS = new Set(['P', 'BR', 'SPAN', 'STRONG', 'EM', 'DEL', 'CODE', 'PRE', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'LI', 'BLOCKQUOTE', 'HR', 'TABLE', 'THEAD', 'TBODY', 'TR', 'TH', 'TD', 'DIV', 'A', 'INPUT'])
+const ATTRS = new Set(['href', 'target', 'rel', 'class', 'type', 'checked', 'disabled', 'align', 'start', 'role', 'tabindex', 'data-tradeoff-expand'])
 // http, https, mailto, or relative to the app (no scheme, not protocol-relative). `[](u1)` is a
 // relative link to "u1", as it always was. It stays on this site.
 const SAFE_HREF = /^(https?:\/\/|mailto:|(?![a-z][a-z0-9+.-]*:)(?!\/\/))/i
