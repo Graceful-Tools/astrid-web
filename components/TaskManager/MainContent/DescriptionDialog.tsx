@@ -60,6 +60,11 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
     const [dialogDescription, setDialogDescription] = React.useState('')
 
     React.useEffect(() => {
+      // Warm the renderer chunk so the first open draws at once. Not under tests: a
+      // test that renders the whole TaskManager ends before this import resolves, and
+      // vitest fails the run with EnvironmentTeardownError (deploy run 43478909512).
+      // Next inlines NODE_ENV, so production builds keep the preload unconditionally.
+      if (process.env.NODE_ENV === 'test') return
       void loadDescriptionMarkdown()
     }, [])
 
