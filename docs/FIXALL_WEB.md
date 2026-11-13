@@ -187,6 +187,10 @@ finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has t
   `npm run work:done <slug>` removes the worktree and deletes the local branch (and the
   remote one if it survived). It asks only when the branch is not merged into `origin/main`.
   An orchestrator merging several PRs cleans every merged task worktree at the end of the run.
+  Then it sweeps GitHub: `npm run branches:prune` (and `-- --repo ../astrid-core` when core
+  PRs merged) deletes remote branches already merged into `main`. It keeps `main`, `prod`,
+  open-PR heads, and merged-looking branches younger than 7 days with no merged PR (a peer's
+  fresh branch). `--dry-run` lists without deleting. No need to ask (Jon, 2026-11-13).
 - **Gates:** `npm run predeploy`, plus `npm run check:reuse` and `npm run check:design` (the
   design ratchet: no count rises; lower a budget when your change lowers its count).
 - **A red predeploy files its own Astrid task.** If it was your own mid-refactor breakage,
