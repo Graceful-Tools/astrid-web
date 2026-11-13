@@ -20,10 +20,20 @@ function mockMatchMedia(reduce: boolean) {
 describe('reduced motion in the stylesheet (AWTD-1617, DS17)', () => {
   it('stops every transition and animation, bar a spinner, when the system asks', () => {
     const block = /@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/.exec(css)?.[1] ?? ''
-    expect(block).toMatch(/\*:not\(\.animate-spin\),\s*\*::before,\s*\*::after \{/)
+    expect(block).toMatch(/:root :not\(\.animate-spin\),\s*:root ::before,\s*:root ::after \{/)
     expect(block).toContain('animation: none !important;')
     expect(block).toContain('transition: none !important;')
     expect(block).toContain('scroll-behavior: auto !important;')
+  })
+
+  it("outranks the phone details panel's own !important slide", () => {
+    // `.task-panel-mobile.task-panel-mobile-open` is two classes with
+    // !important; `:root :not(.x)` ties it, and coming last wins the tie. A
+    // bare `*:not(.x)` lost, and the panel still slid (found on a prod build).
+    expect(css).toMatch(/\.task-panel-mobile\.task-panel-mobile-open \{[^}]*transition:[^;]*!important/)
+    const reduce = css.lastIndexOf('@media (prefers-reduced-motion: reduce)')
+    expect(reduce).toBeGreaterThan(css.lastIndexOf('.task-panel-mobile.task-panel-mobile-closing {'))
+    expect(css.slice(reduce)).not.toMatch(/\n\}\s*\n\s*\S[\s\S]*\{/)
   })
 })
 
