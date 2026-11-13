@@ -30,6 +30,8 @@ import { useTranslations } from "@/lib/i18n/client"
 import { fillMessage } from "@/components/shared/RichMessage"
 import { customRepeatingSummary } from "./custom-repeating-summary"
 import type { Task, TaskList, User } from "@/types/task"
+import { UnassignButton } from "@/components/unassign-button"
+import { withoutAssignees } from "@/lib/task-assignees"
 
 interface TaskFieldEditorsProps {
   task: Task
@@ -411,6 +413,7 @@ export function TaskFieldEditors({
                 />
               </div>
             ) : (
+              <>
               <div
                 className={`flex items-center space-x-2 px-2 py-1 rounded ${!readOnly ? 'cursor-pointer theme-surface-hover' : ''}`}
                 onClick={() => !readOnly && setEditingAssignee(true)}
@@ -433,6 +436,17 @@ export function TaskFieldEditors({
                   </>
                 )}
               </div>
+              {/* One-tap unassign, only while someone holds the task (AWTD-1637). */}
+              <UnassignButton
+                assigneeId={task.assigneeId}
+                assigneeIds={task.assigneeIds}
+                disabled={readOnly}
+                onUnassign={() => {
+                  setTempAssignee(null)
+                  onUpdate(withoutAssignees(task))
+                }}
+              />
+              </>
             )
           })()}
               </div>

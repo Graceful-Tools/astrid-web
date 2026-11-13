@@ -11,6 +11,7 @@ import { completionNeedsConfirmation } from "@/lib/task-leading-control"
 import { priorityFillClass, priorityOutlineClass } from "@/lib/design/priority"
 import { useTranslations } from "@/lib/i18n/client"
 import { boardColumnBlurb, boardColumnLabel } from "@/lib/board-column-labels"
+import { UnassignButton } from "@/components/unassign-button"
 
 interface PriorityAssigneePickerProps {
   isOpen: boolean
@@ -60,6 +61,17 @@ interface PriorityAssigneePickerProps {
    * work in both directions.
    */
   onToggleComplete?: () => void
+  /**
+   * Every assignee the task holds, primary first. With `onUnassign`, decides
+   * whether the one-tap × shows: it does while anyone is on the task, primary
+   * or not (AWTD-1637).
+   */
+  selectedAssigneeIds?: readonly string[] | null
+  /**
+   * Clear every assignee in one tap (AWTD-1637, iOS AITD-650). Absent means no
+   * ×: quick add has no task to unassign, and its "Unassigned" row suffices.
+   */
+  onUnassign?: () => void
 }
 
 // Colours come from the design tokens (lib/design/priority.ts): one per
@@ -87,6 +99,8 @@ export function PriorityAssigneePicker({
   onStatusSelect,
   completed,
   onToggleComplete,
+  selectedAssigneeIds,
+  onUnassign,
 }: PriorityAssigneePickerProps) {
   const { t } = useTranslations()
   const [tempPriority, setTempPriority] = useState(selectedPriority)
@@ -393,7 +407,19 @@ export function PriorityAssigneePicker({
 
           {/* Assignee Section */}
           <div className="px-4 py-4">
-            <h3 className="text-sm font-medium text-theme-muted mb-3">{t('tasks.assignee')}</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-theme-muted">{t('tasks.assignee')}</h3>
+              {onUnassign && (
+                <UnassignButton
+                  assigneeId={selectedAssignee?.id ?? null}
+                  assigneeIds={selectedAssigneeIds}
+                  onUnassign={() => {
+                    setTempAssignee(null)
+                    onUnassign()
+                  }}
+                />
+              )}
+            </div>
             <div className="max-h-48 overflow-y-auto -mx-4 px-4 space-y-1">
               {/* Unassigned option */}
               <button

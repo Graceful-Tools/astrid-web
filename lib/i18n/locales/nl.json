@@ -241,6 +241,9 @@
     },
     "dropToPlaceFirst": "Zet hier neer om de eerste taak te plaatsen"
   },
+  "assignee": {
+    "clear": "Toewijzing opheffen"
+  },
   "lists": {
     "list": "Lijst",
     "newList": "Nieuwe lijst",

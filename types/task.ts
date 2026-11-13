@@ -166,6 +166,8 @@ export interface Task {
   description: string
   assignee?: User | null
   assigneeId?: string | null
+  /** Every assignee, primary first; `assigneeId` is `assigneeIds[0]` (AWTD-1190, lib/task-assignees.ts). */
+  assigneeIds?: string[]
   creator: User
   creatorId: string
   when?: Date // Legacy due date field - kept for backward compatibility

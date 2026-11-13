@@ -1,6 +1,7 @@
 "use client"
 
 import { scrollBehavior } from "@/lib/design/reduced-motion"
+import { withoutAssignees } from "@/lib/task-assignees"
 import { useTranslations } from "@/lib/i18n/client"
 import { useState, useEffect, useMemo, useRef, useCallback, memo } from "react"
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
@@ -1279,6 +1280,11 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
           }}
           selectedPriority={task.priority}
           selectedAssignee={task.assignee ?? null}
+          selectedAssigneeIds={task.assigneeIds}
+          onUnassign={() => {
+            onUpdate(withoutAssignees(task))
+            setOptionsOpen(false)
+          }}
           availableUsers={[]}
           taskId={task.id}
           listIds={task.lists?.map(list => list.id)}
