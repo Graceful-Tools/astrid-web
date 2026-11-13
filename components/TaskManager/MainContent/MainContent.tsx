@@ -22,7 +22,7 @@ import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
 import { taskAreaPositionClasses } from '@/lib/task-area-position-classes'
 import { listHeaderBottomMarginClass } from '@/lib/list-header-spacing'
 import { useBoardRowContext } from "@/hooks/task-manager/useBoardRowContext"
-import { DescriptionDialog, type DescriptionDialogHandle } from "./DescriptionDialog"
+import { LazyDescriptionDialog, type DescriptionDialogHandle } from "../lazy-panels"
 import {
   Settings,
   Filter,
@@ -984,7 +984,7 @@ export function MainContent({
     </div>
 
     {/* Description Viewer/Editor Dialog */}
-    <DescriptionDialog
+    <LazyDescriptionDialog
       ref={descriptionDialogRef}
       currentList={currentListForDialog}
       canEditSettings={currentListForDialog ? canEditListSettingsMemo(currentListForDialog) : false}

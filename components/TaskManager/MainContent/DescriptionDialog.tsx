@@ -34,6 +34,8 @@ interface DescriptionDialogProps {
   setTempListDescription: (value: string) => void
   /** Persist an updated list back to the parent after a successful save. */
   onListUpdate: (updatedList: TaskList) => Promise<void>
+  /** Open straight away on mount with this text (the lazy wrapper loads us on first open). */
+  initialDescription?: string
 }
 
 /**
@@ -43,13 +45,13 @@ interface DescriptionDialogProps {
  */
 export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, DescriptionDialogProps>(
   function DescriptionDialog(
-    { currentList, canEditSettings, isViewingFromFeatured, setTempListDescription, onListUpdate },
+    { currentList, canEditSettings, isViewingFromFeatured, setTempListDescription, onListUpdate, initialDescription },
     ref
   ) {
     const { t } = useTranslations()
-    const [showDescriptionDialog, setShowDescriptionDialog] = React.useState(false)
+    const [showDescriptionDialog, setShowDescriptionDialog] = React.useState(initialDescription !== undefined)
     const [descriptionDialogMode, setDescriptionDialogMode] = React.useState<'view' | 'edit'>('view')
-    const [dialogDescription, setDialogDescription] = React.useState('')
+    const [dialogDescription, setDialogDescription] = React.useState(initialDescription ?? '')
 
     React.useImperativeHandle(ref, () => ({
       open: (description: string) => {

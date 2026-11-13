@@ -2,6 +2,9 @@
 
 import React from "react"
 import dynamic from "next/dynamic"
+import type { DescriptionDialogHandle } from "./MainContent/DescriptionDialog"
+
+export type { DescriptionDialogHandle }
 
 function PanelLoadingFallback({ modal = false }: { modal?: boolean }) {
   return (
@@ -63,6 +66,10 @@ const CommandPaletteDialog = dynamic(
 const ProjectStatusBoard = dynamic(
   () => import("../project-status-board").then(module => module.ProjectStatusBoard),
   { ssr: false, loading: () => <PanelLoadingFallback /> },
+)
+const DescriptionDialog = dynamic(
+  () => import("./MainContent/DescriptionDialog").then(module => module.DescriptionDialog),
+  { ssr: false, loading: () => null },
 )
 const ListSettingsHost = dynamic(
   () => import("./MainContent/ListSettingsHost").then(module => module.ListSettingsHost),
@@ -134,3 +141,20 @@ export function LazyProjectStatusBoard(props: React.ComponentProps<typeof Projec
 export function LazyListSettingsHost(props: React.ComponentProps<typeof ListSettingsHost>) {
   return <ListSettingsHost {...props} />
 }
+
+/**
+ * The list description dialog pulls in the markdown renderer, so it stays out of the
+ * first load and mounts on each open, already open via `initialDescription`. Same
+ * imperative `open` handle as the dialog itself.
+ */
+export const LazyDescriptionDialog = React.forwardRef<
+  DescriptionDialogHandle,
+  Omit<React.ComponentProps<typeof DescriptionDialog>, "ref" | "initialDescription">
+>(function LazyDescriptionDialog(props, ref) {
+  const [request, setRequest] = React.useState<{ description: string; n: number } | null>(null)
+  React.useImperativeHandle(ref, () => ({
+    open: (description: string) => setRequest(prev => ({ description, n: (prev?.n ?? 0) + 1 })),
+  }), [])
+  if (!request) return null
+  return <DescriptionDialog key={request.n} {...props} initialDescription={request.description} />
+})

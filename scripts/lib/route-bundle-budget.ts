@@ -28,8 +28,12 @@ export const NOISE_KIB = 1
  * gzipped; every `/[locale]/settings/*` page that renders the TaskManager shell at
  * 386.8 KiB. The ceiling is that rounded up to a whole KiB, plus NOISE_KIB.
  * (405 → 389; AWTD-1593 set 405.)
+ *
+ * Re-measured 2026-11-13 (AWTD-1632): main had crept to 389.0 KiB and the E2E job failed
+ * at this check. The list description dialog (marked + DOMPurify) now loads on first open,
+ * so the heaviest route is 356.6 KiB. 389 → 358.
  */
-export const CEILING_KIB = 389
+export const CEILING_KIB = 358
 
 export interface RouteBundleStat {
   route: string

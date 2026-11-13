@@ -51,8 +51,8 @@ describe('AWTD-1593: route bundle budget', () => {
 
   it('keeps the documented 250 KiB target, and a ceiling that has not been raised', () => {
     expect(TARGET_KIB).toBe(250)
-    // Measured 2026-11-12 (AWTD-1604: 405 → 389). Lowering this is the point; raising it
-    // needs a reason in docs/PERFORMANCE_BUDGETS.md and a change to this line in the same PR.
-    expect(CEILING_KIB).toBeLessThanOrEqual(389)
+    // Measured 2026-11-13 (AWTD-1632: 389 → 358; AWTD-1604 had 405 → 389). Lowering this is the
+    // point; raising it needs a reason in docs/PERFORMANCE_BUDGETS.md and a change to this line.
+    expect(CEILING_KIB).toBeLessThanOrEqual(358)
   })
 })
