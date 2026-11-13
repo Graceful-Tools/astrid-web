@@ -14,8 +14,10 @@
 //     break. Adjacent runs in the same style are one run, as the core writes them.
 //   - An anchor whose href is /u/<id>, /lists/<id> or /?task=<id> and that is drawn as a pill (the
 //     pill classes) is a reference: kind, label (its text without the sigil) and the decoded id.
-//     Any other relative href is the app's own page, which the core writes absolute
-//     (https://astrid.cc/…). An anchor DOMPurify stripped the href from is plain text.
+//     Any other relative href is the app's own page, which the core writes absolute against the
+//     origin the caller passes in (its own server: `origin` + href). The origin is an input, not a
+//     constant, so a partner build's link opens the partner's site (AWTD-1630). An anchor
+//     DOMPurify stripped the href from is plain text.
 //   - A trade-off grid (`div.tradeoff`, AWTD-1626) is a `tradeoffGrid` block, not a table: the
 //     header without its column letters (a shell letters criteria by position, A, B, C), each row's
 //     option name without the "1. " the renderer numbers it with, and each rated cell's rating as
@@ -30,7 +32,9 @@
 // markdown.json) and tests/lib/core-rules-markdown-parity.test.ts (which holds the browser's
 // renderer to the core). astrid-core's contracts/drivers/markdown.mjs carries the same reader.
 
-const APP_ORIGIN = 'https://astrid.cc'
+// The origin relative links resolve against, for the duration of one blocksOfHtml call (the walk
+// is synchronous, so a module variable is enough and keeps every helper's signature as it was).
+let origin = ''
 const PILLS = [
   ['/u/', 'user', '@'],
   ['/lists/', 'list', '#'],
@@ -251,7 +255,7 @@ function inline(node, style, out) {
         })
         return
       }
-      const link = href == null ? null : href.startsWith('/') && !href.startsWith('//') ? APP_ORIGIN + href : href
+      const link = href == null ? null : href.startsWith('/') && !href.startsWith('//') ? origin + href : href
       return node.childNodes.forEach((c) => inline(c, { ...style, link }, out))
     }
     default:
@@ -261,11 +265,17 @@ function inline(node, style, out) {
 }
 
 /**
- * The blocks a reader sees in `html`, read in `document`'s window.
+ * The blocks a reader sees in `html`, read in `document`'s window, with a relative link resolved
+ * against `options.origin` (the reader's server, e.g. `https://astrid.cc`; AWTD-1630).
  * @param {Document} document
  * @param {string} html
+ * @param {{ origin: string }} options
  */
-export function blocksOfHtml(document, html) {
+export function blocksOfHtml(document, html, options) {
+  if (typeof options?.origin !== 'string' || options.origin === '') {
+    throw new Error('blocksOfHtml needs the origin relative links resolve against (AWTD-1630)')
+  }
+  origin = options.origin.replace(/\/+$/, '')
   const body = document.createElement('body')
   body.innerHTML = html
   return blocksOf(body)

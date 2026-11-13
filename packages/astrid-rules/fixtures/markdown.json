@@ -5,6 +5,7 @@
     {
       "id": "plain",
       "text": "Buy oat milk",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>Buy oat milk</p>\n",
       "blocks": [
@@ -27,6 +28,7 @@
     {
       "id": "newline-is-a-break",
       "text": "first line\nsecond line\nthird",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>first line<br>second line<br>third</p>\n",
       "blocks": [
@@ -73,6 +75,7 @@
     {
       "id": "blank-line-is-a-paragraph",
       "text": "one\n\ntwo",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>one</p>\n<p>two</p>\n",
       "blocks": [
@@ -109,6 +112,7 @@
     {
       "id": "trailing-spaces-break",
       "text": "a  \nb",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>a<br>b</p>\n",
       "blocks": [
@@ -143,6 +147,7 @@
     {
       "id": "backslash-break",
       "text": "a\\\nb",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>a<br>b</p>\n",
       "blocks": [
@@ -177,6 +182,7 @@
     {
       "id": "unicode",
       "text": "Café ☕ — naïve 日本語 🎉",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>Café ☕ — naïve 日本語 🎉</p>\n",
       "blocks": [
@@ -199,6 +205,7 @@
     {
       "id": "entities",
       "text": "Fish &amp; chips &lt;3 & 5 > 4",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>Fish &amp; chips &lt;3 &amp; 5 &gt; 4</p>\n",
       "blocks": [
@@ -221,6 +228,7 @@
     {
       "id": "escapes",
       "text": "\\*not italic\\* and 1\\. not a list",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>*not italic* and 1. not a list</p>\n",
       "blocks": [
@@ -243,6 +251,7 @@
     {
       "id": "reported-description",
       "text": "##title\n**bold**\n*italics*\n(link)[https://google.com]",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>##title<br><strong>bold</strong><br><em>italics</em><br>(link)[<a>https://google.com]</a></p>\n",
       "blocks": [
@@ -301,6 +310,7 @@
     {
       "id": "bold",
       "text": "a **bold** word",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>a <strong>bold</strong> word</p>\n",
       "blocks": [
@@ -341,6 +351,7 @@
     {
       "id": "bold-underscore",
       "text": "a __bold__ word",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>a <strong>bold</strong> word</p>\n",
       "blocks": [
@@ -381,6 +392,7 @@
     {
       "id": "italic",
       "text": "an *italic* word",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>an <em>italic</em> word</p>\n",
       "blocks": [
@@ -421,6 +433,7 @@
     {
       "id": "italic-underscore",
       "text": "an _italic_ word",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>an <em>italic</em> word</p>\n",
       "blocks": [
@@ -461,6 +474,7 @@
     {
       "id": "bold-italic",
       "text": "***both*** at once",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><em><strong>both</strong></em> at once</p>\n",
       "blocks": [
@@ -492,6 +506,7 @@
     {
       "id": "nested-emphasis",
       "text": "**bold with *italic* inside**",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><strong>bold with <em>italic</em> inside</strong></p>\n",
       "blocks": [
@@ -532,6 +547,7 @@
     {
       "id": "intraword-underscore",
       "text": "snake_case_name stays",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>snake_case_name stays</p>\n",
       "blocks": [
@@ -554,6 +570,7 @@
     {
       "id": "strike-double",
       "text": "was ~~wrong~~ right",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>was <del>wrong</del> right</p>\n",
       "blocks": [
@@ -594,6 +611,7 @@
     {
       "id": "strike-single",
       "text": "was ~wrong~ right",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>was <del>wrong</del> right</p>\n",
       "blocks": [
@@ -634,6 +652,7 @@
     {
       "id": "unclosed-emphasis",
       "text": "a *dangling star",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>a *dangling star</p>\n",
       "blocks": [
@@ -656,6 +675,7 @@
     {
       "id": "inline-code",
       "text": "run `npm test` now",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>run <code>npm test</code> now</p>\n",
       "blocks": [
@@ -696,6 +716,7 @@
     {
       "id": "inline-code-with-stars",
       "text": "literally `**not bold**`",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>literally <code>**not bold**</code></p>\n",
       "blocks": [
@@ -727,6 +748,7 @@
     {
       "id": "inline-code-double-backtick",
       "text": "a `` code with ` tick `` here",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>a <code>code with ` tick</code> here</p>\n",
       "blocks": [
@@ -767,6 +789,7 @@
     {
       "id": "fenced-code",
       "text": "```\nconst x = 1\n```",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<pre><code>const x = 1\n</code></pre>\n",
       "blocks": [
@@ -780,6 +803,7 @@
     {
       "id": "fenced-code-language",
       "text": "```ts\nconst x: number = 1\n```",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<pre><code class=\"language-ts\">const x: number = 1\n</code></pre>\n",
       "blocks": [
@@ -793,6 +817,7 @@
     {
       "id": "fenced-code-tilde",
       "text": "~~~\nplain\n~~~",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<pre><code>plain\n</code></pre>\n",
       "blocks": [
@@ -806,6 +831,7 @@
     {
       "id": "fenced-code-two-lines",
       "text": "```\nline one\nline two\n```",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<pre><code>line one\nline two\n</code></pre>\n",
       "blocks": [
@@ -819,6 +845,7 @@
     {
       "id": "fenced-code-trailing-blank",
       "text": "```\ncode\n\n```",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<pre><code>code\n</code></pre>\n",
       "blocks": [
@@ -832,6 +859,7 @@
     {
       "id": "fenced-code-two-trailing-blanks",
       "text": "```\ncode\n\n\n```",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<pre><code>code\n\n</code></pre>\n",
       "blocks": [
@@ -845,6 +873,7 @@
     {
       "id": "fenced-code-empty",
       "text": "```\n```",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<pre><code></code></pre>\n",
       "blocks": [
@@ -858,6 +887,7 @@
     {
       "id": "indented-code-trailing-blank",
       "text": "    x = 1\n\n\nafter",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<pre><code>x = 1\n</code></pre>\n<p>after</p>\n",
       "blocks": [
@@ -885,6 +915,7 @@
     {
       "id": "indented-code-one-line",
       "text": "    x = 1",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<pre><code>x = 1\n</code></pre>\n",
       "blocks": [
@@ -898,6 +929,7 @@
     {
       "id": "indented-code",
       "text": "    indented code\n    more",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<pre><code>indented code\nmore\n</code></pre>\n",
       "blocks": [
@@ -911,6 +943,7 @@
     {
       "id": "headings",
       "text": "# One\n## Two\n### Three\n#### Four\n##### Five\n###### Six",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<h1>One</h1>\n<h2>Two</h2>\n<h3>Three</h3>\n<h4>Four</h4>\n<h5>Five</h5>\n<h6>Six</h6>\n",
       "blocks": [
@@ -1009,6 +1042,7 @@
     {
       "id": "heading-needs-space",
       "text": "##title",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>##title</p>\n",
       "blocks": [
@@ -1031,6 +1065,7 @@
     {
       "id": "heading-then-body",
       "text": "### Deeper\nbody",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<h3>Deeper</h3>\n<p>body</p>\n",
       "blocks": [
@@ -1068,6 +1103,7 @@
     {
       "id": "setext-heading",
       "text": "Title\n=====",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<h1>Title</h1>\n",
       "blocks": [
@@ -1091,6 +1127,7 @@
     {
       "id": "heading-with-emphasis",
       "text": "## Plan for **today**",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<h2>Plan for <strong>today</strong></h2>\n",
       "blocks": [
@@ -1123,6 +1160,7 @@
     {
       "id": "bullets-dash",
       "text": "- one\n- two\n- three",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<ul>\n<li>one</li>\n<li>two</li>\n<li>three</li>\n</ul>\n",
       "blocks": [
@@ -1195,6 +1233,7 @@
     {
       "id": "bullets-star",
       "text": "* one\n* two",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<ul>\n<li>one</li>\n<li>two</li>\n</ul>\n",
       "blocks": [
@@ -1248,6 +1287,7 @@
     {
       "id": "bullets-plus",
       "text": "+ one\n+ two",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<ul>\n<li>one</li>\n<li>two</li>\n</ul>\n",
       "blocks": [
@@ -1301,6 +1341,7 @@
     {
       "id": "ordered",
       "text": "1. one\n2. two",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<ol>\n<li>one</li>\n<li>two</li>\n</ol>\n",
       "blocks": [
@@ -1354,6 +1395,7 @@
     {
       "id": "ordered-start",
       "text": "3. three\n4. four",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<ol start=\"3\">\n<li>three</li>\n<li>four</li>\n</ol>\n",
       "blocks": [
@@ -1407,6 +1449,7 @@
     {
       "id": "nested-list",
       "text": "- outer\n  - inner\n- next",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<ul>\n<li>outer<ul>\n<li>inner</li>\n</ul>\n</li>\n<li>next</li>\n</ul>\n",
       "blocks": [
@@ -1486,6 +1529,7 @@
     {
       "id": "loose-list",
       "text": "- one\n\n- two",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<ul>\n<li><p>one</p>\n</li>\n<li><p>two</p>\n</li>\n</ul>\n",
       "blocks": [
@@ -1539,6 +1583,7 @@
     {
       "id": "task-list",
       "text": "- [ ] todo\n- [x] done",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<ul>\n<li><input disabled=\"\" type=\"checkbox\"> todo</li>\n<li><input checked=\"\" disabled=\"\" type=\"checkbox\"> done</li>\n</ul>\n",
       "blocks": [
@@ -1592,6 +1637,7 @@
     {
       "id": "task-list-uppercase",
       "text": "- [X] done",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<ul>\n<li><input checked=\"\" disabled=\"\" type=\"checkbox\"> done</li>\n</ul>\n",
       "blocks": [
@@ -1626,6 +1672,7 @@
     {
       "id": "list-after-paragraph",
       "text": "Groceries:\n- milk\n- eggs",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>Groceries:</p>\n<ul>\n<li>milk</li>\n<li>eggs</li>\n</ul>\n",
       "blocks": [
@@ -1693,6 +1740,7 @@
     {
       "id": "list-item-two-lines",
       "text": "- first line\n  continues",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<ul>\n<li>first line<br>continues</li>\n</ul>\n",
       "blocks": [
@@ -1739,6 +1787,7 @@
     {
       "id": "list-with-emphasis",
       "text": "- **bold** item\n- `code` item",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<ul>\n<li><strong>bold</strong> item</li>\n<li><code>code</code> item</li>\n</ul>\n",
       "blocks": [
@@ -1810,6 +1859,7 @@
     {
       "id": "quote",
       "text": "> quoted",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<blockquote>\n<p>quoted</p>\n</blockquote>\n",
       "blocks": [
@@ -1837,6 +1887,7 @@
     {
       "id": "quote-two-lines",
       "text": "> line one\n> line two",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<blockquote>\n<p>line one<br>line two</p>\n</blockquote>\n",
       "blocks": [
@@ -1876,6 +1927,7 @@
     {
       "id": "nested-quote",
       "text": "> outer\n>> inner",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<blockquote>\n<p>outer</p>\n<blockquote>\n<p>inner</p>\n</blockquote>\n</blockquote>\n",
       "blocks": [
@@ -1922,6 +1974,7 @@
     {
       "id": "quote-with-list",
       "text": "> - a\n> - b",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<blockquote>\n<ul>\n<li>a</li>\n<li>b</li>\n</ul>\n</blockquote>\n",
       "blocks": [
@@ -1980,6 +2033,7 @@
     {
       "id": "rule-dashes",
       "text": "above\n\n---\n\nbelow",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>above</p>\n<hr>\n<p>below</p>\n",
       "blocks": [
@@ -2019,6 +2073,7 @@
     {
       "id": "rule-stars",
       "text": "***",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<hr>\n",
       "blocks": [
@@ -2030,6 +2085,7 @@
     {
       "id": "table",
       "text": "| a | b |\n|---|---|\n| 1 | 2 |",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<table>\n<thead>\n<tr>\n<th>a</th>\n<th>b</th>\n</tr>\n</thead>\n<tbody><tr>\n<td>1</td>\n<td>2</td>\n</tr>\n</tbody></table>\n",
       "blocks": [
@@ -2095,6 +2151,7 @@
     {
       "id": "table-aligned",
       "text": "| l | c | r |\n|:--|:-:|--:|\n| 1 | 2 | 3 |",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<table>\n<thead>\n<tr>\n<th align=\"left\">l</th>\n<th align=\"center\">c</th>\n<th align=\"right\">r</th>\n</tr>\n</thead>\n<tbody><tr>\n<td align=\"left\">1</td>\n<td align=\"center\">2</td>\n<td align=\"right\">3</td>\n</tr>\n</tbody></table>\n",
       "blocks": [
@@ -2183,6 +2240,7 @@
     {
       "id": "table-inline",
       "text": "| name | note |\n|---|---|\n| **Jo** | `x` |",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<table>\n<thead>\n<tr>\n<th>name</th>\n<th>note</th>\n</tr>\n</thead>\n<tbody><tr>\n<td><strong>Jo</strong></td>\n<td><code>x</code></td>\n</tr>\n</tbody></table>\n",
       "blocks": [
@@ -2248,6 +2306,7 @@
     {
       "id": "link",
       "text": "see [the docs](https://example.com/docs)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>see <a href=\"https://example.com/docs\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">the docs</a></p>\n",
       "blocks": [
@@ -2279,6 +2338,7 @@
     {
       "id": "link-mailto",
       "text": "[write](mailto:a@example.com)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"mailto:a@example.com\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">write</a></p>\n",
       "blocks": [
@@ -2301,6 +2361,7 @@
     {
       "id": "link-javascript",
       "text": "[click](javascript:alert(1))",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a>click</a></p>\n",
       "blocks": [
@@ -2323,6 +2384,7 @@
     {
       "id": "link-relative",
       "text": "[home](/lists/abc)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"/lists/abc\">home</a></p>\n",
       "blocks": [
@@ -2345,6 +2407,7 @@
     {
       "id": "link-http-www-upgraded",
       "text": "[site](http://www.example.com/a)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"https://www.example.com/a\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">site</a></p>\n",
       "blocks": [
@@ -2367,6 +2430,7 @@
     {
       "id": "link-unparseable-host",
       "text": "[bad](https://exa]mple.com/x)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a>bad</a></p>\n",
       "blocks": [
@@ -2389,6 +2453,7 @@
     {
       "id": "link-port",
       "text": "[local](http://localhost:3000/x)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"http://localhost:3000/x\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">local</a></p>\n",
       "blocks": [
@@ -2411,6 +2476,7 @@
     {
       "id": "link-bold-text",
       "text": "[**bold link**](https://example.com)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"https://example.com\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\"><strong>bold link</strong></a></p>\n",
       "blocks": [
@@ -2433,6 +2499,7 @@
     {
       "id": "angle-autolink",
       "text": "<https://example.com/a>",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"https://example.com/a\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">https://example.com/a</a></p>\n",
       "blocks": [
@@ -2455,6 +2522,7 @@
     {
       "id": "bare-https",
       "text": "go to https://example.com/path?q=1 now",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>go to <a href=\"https://example.com/path?q=1\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">https://example.com/path?q=1</a> now</p>\n",
       "blocks": [
@@ -2495,6 +2563,7 @@
     {
       "id": "bare-http",
       "text": "http://example.com",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"http://example.com\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">http://example.com</a></p>\n",
       "blocks": [
@@ -2517,6 +2586,7 @@
     {
       "id": "bare-www",
       "text": "visit www.example.com today",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>visit <a href=\"https://www.example.com\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">www.example.com</a> today</p>\n",
       "blocks": [
@@ -2557,6 +2627,7 @@
     {
       "id": "bare-http-www-upgraded",
       "text": "http://www.example.com/x",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"https://www.example.com/x\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">http://www.example.com/x</a></p>\n",
       "blocks": [
@@ -2579,6 +2650,7 @@
     {
       "id": "bare-trailing-period",
       "text": "See https://example.com.",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>See <a href=\"https://example.com\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">https://example.com</a>.</p>\n",
       "blocks": [
@@ -2619,6 +2691,7 @@
     {
       "id": "bare-trailing-comma",
       "text": "https://example.com, then",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"https://example.com\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">https://example.com</a>, then</p>\n",
       "blocks": [
@@ -2650,6 +2723,7 @@
     {
       "id": "bare-in-parens",
       "text": "(https://example.com/a)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>(<a href=\"https://example.com/a\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">https://example.com/a</a>)</p>\n",
       "blocks": [
@@ -2690,6 +2764,7 @@
     {
       "id": "bare-with-parens",
       "text": "https://en.wikipedia.org/wiki/Foo_(bar)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"https://en.wikipedia.org/wiki/Foo_(bar)\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">https://en.wikipedia.org/wiki/Foo_(bar)</a></p>\n",
       "blocks": [
@@ -2712,6 +2787,7 @@
     {
       "id": "bare-email",
       "text": "mail jon@example.com please",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>mail <a href=\"mailto:jon@example.com\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">jon@example.com</a> please</p>\n",
       "blocks": [
@@ -2752,6 +2828,7 @@
     {
       "id": "bare-domain-only",
       "text": "example.com is not a link",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>example.com is not a link</p>\n",
       "blocks": [
@@ -2774,6 +2851,7 @@
     {
       "id": "mention",
       "text": "Ask @[Jon Paris](user-1) about it",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>Ask <a href=\"/u/user-1\" class=\"bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded font-medium no-underline hover:underline\">@Jon Paris</a> about it</p>\n",
       "blocks": [
@@ -2811,6 +2889,7 @@
     {
       "id": "list-reference",
       "text": "Filed in #[Groceries](list-1)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>Filed in <a href=\"/lists/list-1\" class=\"bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1 rounded font-medium no-underline hover:underline\">#Groceries</a></p>\n",
       "blocks": [
@@ -2839,6 +2918,7 @@
     {
       "id": "task-reference",
       "text": "Blocked by ![Buy milk](task-1)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>Blocked by <a href=\"/?task=task-1\" class=\"bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-1 rounded font-medium no-underline hover:underline\">!Buy milk</a></p>\n",
       "blocks": [
@@ -2867,6 +2947,7 @@
     {
       "id": "three-references",
       "text": "@[Ann](u1) #[Home](l1) ![Fix sink](t1)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"/u/u1\" class=\"bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded font-medium no-underline hover:underline\">@Ann</a> <a href=\"/lists/l1\" class=\"bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1 rounded font-medium no-underline hover:underline\">#Home</a> <a href=\"/?task=t1\" class=\"bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-1 rounded font-medium no-underline hover:underline\">!Fix sink</a></p>\n",
       "blocks": [
@@ -2916,6 +2997,7 @@
     {
       "id": "reference-in-bold",
       "text": "**ask @[Ann](u1)**",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><strong>ask <a href=\"/u/u1\" class=\"bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded font-medium no-underline hover:underline\">@Ann</a></strong></p>\n",
       "blocks": [
@@ -2944,6 +3026,7 @@
     {
       "id": "reference-in-code-span",
       "text": "`@[Ann](u1)`",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><code>@[Ann](u1)</code></p>\n",
       "blocks": [
@@ -2966,6 +3049,7 @@
     {
       "id": "reference-in-code-block",
       "text": "```\n@[Ann](u1)\n```",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<pre><code>@[Ann](u1)\n</code></pre>\n",
       "blocks": [
@@ -2979,6 +3063,7 @@
     {
       "id": "reference-label-markdown",
       "text": "@[*Ann*](u1)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"/u/u1\" class=\"bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded font-medium no-underline hover:underline\">@*Ann*</a></p>\n",
       "blocks": [
@@ -2998,6 +3083,7 @@
     {
       "id": "reference-id-needs-encoding",
       "text": "![Plan](a b/c)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"/?task=a%20b%2Fc\" class=\"bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-1 rounded font-medium no-underline hover:underline\">!Plan</a></p>\n",
       "blocks": [
@@ -3017,6 +3103,7 @@
     {
       "id": "reference-then-link",
       "text": "@[Ann](u1) [docs](https://example.com)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"/u/u1\" class=\"bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded font-medium no-underline hover:underline\">@Ann</a> <a href=\"https://example.com\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">docs</a></p>\n",
       "blocks": [
@@ -3054,6 +3141,7 @@
     {
       "id": "reference-at-line-start",
       "text": "@[Ann](u1)\nsecond line",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"/u/u1\" class=\"bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded font-medium no-underline hover:underline\">@Ann</a><br>second line</p>\n",
       "blocks": [
@@ -3085,6 +3173,7 @@
     {
       "id": "not-a-reference-empty-label",
       "text": "@[](u1)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>@<a href=\"u1\"></a></p>\n",
       "blocks": [
@@ -3107,6 +3196,7 @@
     {
       "id": "email-like-reference",
       "text": "a@[b](c)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>a<a href=\"/u/c\" class=\"bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded font-medium no-underline hover:underline\">@b</a></p>\n",
       "blocks": [
@@ -3135,6 +3225,7 @@
     {
       "id": "image-syntax-empty",
       "text": "![](https://example.com/x.png)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p></p>\n",
       "blocks": []
@@ -3142,6 +3233,7 @@
     {
       "id": "html-inline-allowed",
       "text": "a <strong>strong</strong> word",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>a strong word</p>\n",
       "blocks": [
@@ -3164,6 +3256,7 @@
     {
       "id": "html-inline-disallowed",
       "text": "a <b>bold</b> word",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>a bold word</p>\n",
       "blocks": [
@@ -3186,6 +3279,7 @@
     {
       "id": "html-script",
       "text": "<script>alert(1)</script>",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "",
       "blocks": []
@@ -3193,6 +3287,7 @@
     {
       "id": "html-block-div",
       "text": "<div>block text</div>",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "block text",
       "blocks": [
@@ -3215,6 +3310,7 @@
     {
       "id": "html-img",
       "text": "x <img src=\"y\" onerror=\"alert(1)\"> z",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>x  z</p>\n",
       "blocks": [
@@ -3237,6 +3333,7 @@
     {
       "id": "html-comment",
       "text": "a <!-- hidden --> b",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>a  b</p>\n",
       "blocks": [
@@ -3259,6 +3356,7 @@
     {
       "id": "html-inline-script",
       "text": "a <script>alert(1)</script> b",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>a  b</p>\n",
       "blocks": [
@@ -3281,6 +3379,7 @@
     {
       "id": "html-style-block",
       "text": "<style>p { color: red }</style>\n\nafter",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>after</p>\n",
       "blocks": [
@@ -3303,6 +3402,7 @@
     {
       "id": "xss-link-javascript-upper",
       "text": "[x](JAVASCRIPT:alert(1))",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a>x</a></p>\n",
       "blocks": [
@@ -3325,6 +3425,7 @@
     {
       "id": "xss-link-javascript-entity",
       "text": "[x](javascript&#58;alert(1))",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a>x</a></p>\n",
       "blocks": [
@@ -3347,6 +3448,7 @@
     {
       "id": "xss-link-data",
       "text": "[x](data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a>x</a></p>\n",
       "blocks": [
@@ -3369,6 +3471,7 @@
     {
       "id": "xss-link-vbscript",
       "text": "[x](vbscript:msgbox(1))",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a>x</a></p>\n",
       "blocks": [
@@ -3391,6 +3494,7 @@
     {
       "id": "xss-autolink-javascript",
       "text": "<javascript:alert(1)>",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a>javascript:alert(1)</a></p>\n",
       "blocks": [
@@ -3413,6 +3517,7 @@
     {
       "id": "xss-link-title-quote",
       "text": "[x](https://example.com \"a\\\" onmouseover=\\\"alert(1)\")",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"https://example.com\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">x</a></p>\n",
       "blocks": [
@@ -3435,6 +3540,7 @@
     {
       "id": "xss-html-anchor-javascript",
       "text": "<a href=\"javascript:alert(1)\">x</a>",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>x</p>\n",
       "blocks": [
@@ -3457,6 +3563,7 @@
     {
       "id": "xss-html-anchor-onclick",
       "text": "see <a href=\"https://example.com\" onclick=\"alert(1)\">x</a>",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>see x</p>\n",
       "blocks": [
@@ -3479,6 +3586,7 @@
     {
       "id": "xss-html-iframe",
       "text": "<iframe src=\"https://evil.example\"></iframe>",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "",
       "blocks": []
@@ -3486,6 +3594,7 @@
     {
       "id": "xss-html-svg-onload",
       "text": "a <svg onload=\"alert(1)\"><circle/></svg> b",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>a  b</p>\n",
       "blocks": [
@@ -3508,6 +3617,7 @@
     {
       "id": "xss-html-img-bare",
       "text": "<img src=x onerror=alert(1)>",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "",
       "blocks": []
@@ -3515,6 +3625,7 @@
     {
       "id": "xss-html-form",
       "text": "<form action=\"https://evil.example\"><input type=\"submit\" value=\"go\"></form>",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "",
       "blocks": []
@@ -3522,6 +3633,7 @@
     {
       "id": "xss-html-style-attr",
       "text": "<p style=\"background:url(javascript:alert(1))\">styled</p>",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "styled",
       "blocks": [
@@ -3544,6 +3656,7 @@
     {
       "id": "xss-html-object-embed",
       "text": "<object data=\"x\"></object><embed src=\"x\">",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p></p>\n",
       "blocks": []
@@ -3551,6 +3664,7 @@
     {
       "id": "xss-html-meta-refresh",
       "text": "<meta http-equiv=\"refresh\" content=\"0;url=https://evil.example\">",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "",
       "blocks": []
@@ -3558,6 +3672,7 @@
     {
       "id": "xss-html-input",
       "text": "a <input type=\"checkbox\" checked> typed box",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>a  typed box</p>\n",
       "blocks": [
@@ -3580,6 +3695,7 @@
     {
       "id": "xss-mention-label-quote",
       "text": "@[x\" onmouseover=\"alert(1)](u1)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"/u/u1\" class=\"bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded font-medium no-underline hover:underline\">@x\" onmouseover=\"alert(1)</a></p>\n",
       "blocks": [
@@ -3599,6 +3715,7 @@
     {
       "id": "xss-mention-id-quote",
       "text": "@[Ann](u1\" onclick=\"alert(1))",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"/u/u1%22%20onclick%3D%22alert(1\" class=\"bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded font-medium no-underline hover:underline\">@Ann</a>)</p>\n",
       "blocks": [
@@ -3627,6 +3744,7 @@
     {
       "id": "xss-task-id-javascript",
       "text": "![Plan](javascript:alert(1))",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"/?task=javascript%3Aalert(1\" class=\"bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-1 rounded font-medium no-underline hover:underline\">!Plan</a>)</p>\n",
       "blocks": [
@@ -3655,6 +3773,7 @@
     {
       "id": "xss-list-label-script",
       "text": "#[<script>alert(1)</script>](l1)",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><a href=\"/lists/l1\" class=\"bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1 rounded font-medium no-underline hover:underline\">#&lt;script&gt;alert(1)&lt;/script&gt;</a></p>\n",
       "blocks": [
@@ -3674,6 +3793,7 @@
     {
       "id": "xss-entity-script",
       "text": "&lt;script&gt;alert(1)&lt;/script&gt;",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>\n",
       "blocks": [
@@ -3696,6 +3816,7 @@
     {
       "id": "xss-code-span-html",
       "text": "`<img src=x onerror=alert(1)>`",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p><code>&lt;img src=x onerror=alert(1)&gt;</code></p>\n",
       "blocks": [
@@ -3718,6 +3839,7 @@
     {
       "id": "xss-html-in-table",
       "text": "| a |\n|---|\n| <img src=x onerror=alert(1)> |",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<table>\n<thead>\n<tr>\n<th>a</th>\n</tr>\n</thead>\n<tbody><tr>\n<td></td>\n</tr>\n</tbody></table>\n",
       "blocks": [
@@ -3750,6 +3872,7 @@
     {
       "id": "grid",
       "text": "| Option | Cost | Time |\n|---|---|---|\n| A. Lisbon | ++ cheap | - long flight |\n| B. Porto | ~ fair | + short |",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table role=\"table\" class=\"tradeoff-grid tradeoff-even tradeoff-cols-2\"><thead role=\"rowgroup\"><tr role=\"row\"><th role=\"columnheader\">Option</th><th role=\"columnheader\"><span class=\"tradeoff-col\">A</span> Cost</th><th role=\"columnheader\"><span class=\"tradeoff-col\">B</span> Time</th></tr></thead><tbody role=\"rowgroup\"><tr role=\"row\"><td role=\"rowheader\">1. Lisbon</td><td role=\"cell\" class=\"tradeoff-very-good\"><span class=\"sr-only\">Very good. </span>cheap</td><td role=\"cell\" class=\"tradeoff-poor\"><span class=\"sr-only\">Poor. </span>long flight</td></tr><tr role=\"row\"><td role=\"rowheader\">2. Porto</td><td role=\"cell\" class=\"tradeoff-mixed\"><span class=\"sr-only\">Mixed. </span>fair</td><td role=\"cell\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>short</td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-poor\"></span>Poor</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-mixed\"></span>Mixed</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-very-good\"></span>Very good</span></p></div>",
       "blocks": [
@@ -3895,6 +4018,7 @@
     {
       "id": "grid-emoji",
       "text": "| Option | Cost | Fun |\n|---|---|---|\n| Cabin | 🟢 cheap | 🔴 dull |\n| Hotel | 🟡 fair | - meh |",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table role=\"table\" class=\"tradeoff-grid tradeoff-even tradeoff-cols-2\"><thead role=\"rowgroup\"><tr role=\"row\"><th role=\"columnheader\">Option</th><th role=\"columnheader\"><span class=\"tradeoff-col\">A</span> Cost</th><th role=\"columnheader\"><span class=\"tradeoff-col\">B</span> Fun</th></tr></thead><tbody role=\"rowgroup\"><tr role=\"row\"><td role=\"rowheader\">1. Cabin</td><td role=\"cell\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>cheap</td><td role=\"cell\" class=\"tradeoff-poor\"><span class=\"sr-only\">Poor. </span>dull</td></tr><tr role=\"row\"><td role=\"rowheader\">2. Hotel</td><td role=\"cell\" class=\"tradeoff-mixed\"><span class=\"sr-only\">Mixed. </span>fair</td><td role=\"cell\" class=\"tradeoff-poor\"><span class=\"sr-only\">Poor. </span>meh</td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-poor\"></span>Poor</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-mixed\"></span>Mixed</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span></p></div>",
       "blocks": [
@@ -4039,6 +4163,7 @@
     {
       "id": "grid-rating-only",
       "text": "| Option | A | B |\n|---|---|---|\n| One | ++ | -- |\n| Two | ~ | + |",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table role=\"table\" class=\"tradeoff-grid tradeoff-even tradeoff-cols-2\"><thead role=\"rowgroup\"><tr role=\"row\"><th role=\"columnheader\">Option</th><th role=\"columnheader\"><span class=\"tradeoff-col\">A</span> A</th><th role=\"columnheader\"><span class=\"tradeoff-col\">B</span> B</th></tr></thead><tbody role=\"rowgroup\"><tr role=\"row\"><td role=\"rowheader\">1. One</td><td role=\"cell\" class=\"tradeoff-very-good\"><span class=\"sr-only\">Very good. </span>++</td><td role=\"cell\" class=\"tradeoff-very-poor\"><span class=\"sr-only\">Very poor. </span>--</td></tr><tr role=\"row\"><td role=\"rowheader\">2. Two</td><td role=\"cell\" class=\"tradeoff-mixed\"><span class=\"sr-only\">Mixed. </span>~</td><td role=\"cell\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-very-poor\"></span>Very poor</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-mixed\"></span>Mixed</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-very-good\"></span>Very good</span></p></div>",
       "blocks": [
@@ -4184,6 +4309,7 @@
     {
       "id": "grid-empty-cell",
       "text": "| Option | Cost | Time |\n|---|---|---|\n| One | + cheap |  |\n| Two |  | -- slow |",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table role=\"table\" class=\"tradeoff-grid tradeoff-even tradeoff-cols-2\"><thead role=\"rowgroup\"><tr role=\"row\"><th role=\"columnheader\">Option</th><th role=\"columnheader\"><span class=\"tradeoff-col\">A</span> Cost</th><th role=\"columnheader\"><span class=\"tradeoff-col\">B</span> Time</th></tr></thead><tbody role=\"rowgroup\"><tr role=\"row\"><td role=\"rowheader\">1. One</td><td role=\"cell\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>cheap</td><td role=\"cell\"></td></tr><tr role=\"row\"><td role=\"rowheader\">2. Two</td><td role=\"cell\"></td><td role=\"cell\" class=\"tradeoff-very-poor\"><span class=\"sr-only\">Very poor. </span>slow</td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-very-poor\"></span>Very poor</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span></p></div>",
       "blocks": [
@@ -4307,6 +4433,7 @@
     {
       "id": "grid-row-markers",
       "text": "| Option | Cost |\n|---|---|\n| **1)** Cabin | + cheap |\n| B | ~ fair |\n| C: Tent | -- cold |\n| I **am** here | + ok |",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table role=\"table\" class=\"tradeoff-grid tradeoff-even tradeoff-cols-1\"><thead role=\"rowgroup\"><tr role=\"row\"><th role=\"columnheader\">Option</th><th role=\"columnheader\"><span class=\"tradeoff-col\">A</span> Cost</th></tr></thead><tbody role=\"rowgroup\"><tr role=\"row\"><td role=\"rowheader\">1. Cabin</td><td role=\"cell\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>cheap</td></tr><tr role=\"row\"><td role=\"rowheader\">2. </td><td role=\"cell\" class=\"tradeoff-mixed\"><span class=\"sr-only\">Mixed. </span>fair</td></tr><tr role=\"row\"><td role=\"rowheader\">3. Tent</td><td role=\"cell\" class=\"tradeoff-very-poor\"><span class=\"sr-only\">Very poor. </span>cold</td></tr><tr role=\"row\"><td role=\"rowheader\">4. I <strong>am</strong> here</td><td role=\"cell\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>ok</td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-very-poor\"></span>Very poor</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-mixed\"></span>Mixed</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span></p></div>",
       "blocks": [
@@ -4477,6 +4604,7 @@
     {
       "id": "grid-inline-reasons",
       "text": "| Option | Cost |\n|---|---|\n| One | + **cheap** and `fast` |\n| Two | - see [docs](https://example.com) |",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table role=\"table\" class=\"tradeoff-grid tradeoff-even tradeoff-cols-1\"><thead role=\"rowgroup\"><tr role=\"row\"><th role=\"columnheader\">Option</th><th role=\"columnheader\"><span class=\"tradeoff-col\">A</span> Cost</th></tr></thead><tbody role=\"rowgroup\"><tr role=\"row\"><td role=\"rowheader\">1. One</td><td role=\"cell\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span><strong>cheap</strong> and <code>fast</code></td></tr><tr role=\"row\"><td role=\"rowheader\">2. Two</td><td role=\"cell\" class=\"tradeoff-poor\"><span class=\"sr-only\">Poor. </span>see <a href=\"https://example.com\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"text-blue-600 dark:text-blue-400 hover:underline\">docs</a></td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-poor\"></span>Poor</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span></p></div>",
       "blocks": [
@@ -4607,6 +4735,7 @@
     {
       "id": "grid-reference-in-reason",
       "text": "| Option | Who |\n|---|---|\n| One | + ask @[Ann](u1) |\n| Two | ~ #[Home](l1) |",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table role=\"table\" class=\"tradeoff-grid tradeoff-even tradeoff-cols-1\"><thead role=\"rowgroup\"><tr role=\"row\"><th role=\"columnheader\">Option</th><th role=\"columnheader\"><span class=\"tradeoff-col\">A</span> Who</th></tr></thead><tbody role=\"rowgroup\"><tr role=\"row\"><td role=\"rowheader\">1. One</td><td role=\"cell\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>ask <a href=\"/u/u1\" class=\"bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded font-medium no-underline hover:underline\">@Ann</a></td></tr><tr role=\"row\"><td role=\"rowheader\">2. Two</td><td role=\"cell\" class=\"tradeoff-mixed\"><span class=\"sr-only\">Mixed. </span><a href=\"/lists/l1\" class=\"bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1 rounded font-medium no-underline hover:underline\">#Home</a></td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-mixed\"></span>Mixed</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span></p></div>",
       "blocks": [
@@ -4713,6 +4842,7 @@
     {
       "id": "grid-aligned",
       "text": "| Option | Cost |\n|:--|:-:|\n| One | + cheap |\n| Two | - dear |",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table role=\"table\" class=\"tradeoff-grid tradeoff-even tradeoff-cols-1\"><thead role=\"rowgroup\"><tr role=\"row\"><th role=\"columnheader\" align=\"left\">Option</th><th role=\"columnheader\" align=\"center\"><span class=\"tradeoff-col\">A</span> Cost</th></tr></thead><tbody role=\"rowgroup\"><tr role=\"row\"><td role=\"rowheader\" align=\"left\">1. One</td><td role=\"cell\" align=\"center\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>cheap</td></tr><tr role=\"row\"><td role=\"rowheader\" align=\"left\">2. Two</td><td role=\"cell\" align=\"center\" class=\"tradeoff-poor\"><span class=\"sr-only\">Poor. </span>dear</td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-poor\"></span>Poor</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span></p></div>",
       "blocks": [
@@ -4816,6 +4946,7 @@
     {
       "id": "grid-between-paragraphs",
       "text": "Weighing it:\n\n| Option | Cost |\n|---|---|\n| One | + cheap |\n| Two | - dear |\n\nThoughts?",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>Weighing it:</p>\n<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table role=\"table\" class=\"tradeoff-grid tradeoff-even tradeoff-cols-1\"><thead role=\"rowgroup\"><tr role=\"row\"><th role=\"columnheader\">Option</th><th role=\"columnheader\"><span class=\"tradeoff-col\">A</span> Cost</th></tr></thead><tbody role=\"rowgroup\"><tr role=\"row\"><td role=\"rowheader\">1. One</td><td role=\"cell\" class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>cheap</td></tr><tr role=\"row\"><td role=\"rowheader\">2. Two</td><td role=\"cell\" class=\"tradeoff-poor\"><span class=\"sr-only\">Poor. </span>dear</td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-poor\"></span>Poor</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span></p></div><p>Thoughts?</p>\n",
       "blocks": [
@@ -4947,6 +5078,7 @@
     {
       "id": "grid-eleven-criteria",
       "text": "| Option | a | b | c | d | e | f | g | h | i | j | k |\n|---|---|---|---|---|---|---|---|---|---|---|---|\n| One | + | + | + | + | + | + | + | + | + | + | ++ |",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<div class=\"tradeoff\"><span class=\"tradeoff-expand\" role=\"button\" tabindex=\"0\" data-tradeoff-expand=\"\">⤢ Full screen</span><div class=\"tradeoff-scroll\"><table class=\"tradeoff-grid\"><thead><tr><th>Option</th><th><span class=\"tradeoff-col\">A</span> a</th><th><span class=\"tradeoff-col\">B</span> b</th><th><span class=\"tradeoff-col\">C</span> c</th><th><span class=\"tradeoff-col\">D</span> d</th><th><span class=\"tradeoff-col\">E</span> e</th><th><span class=\"tradeoff-col\">F</span> f</th><th><span class=\"tradeoff-col\">G</span> g</th><th><span class=\"tradeoff-col\">H</span> h</th><th><span class=\"tradeoff-col\">I</span> i</th><th><span class=\"tradeoff-col\">J</span> j</th><th><span class=\"tradeoff-col\">K</span> k</th></tr></thead><tbody><tr><td>1. One</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-good\"><span class=\"sr-only\">Good. </span>+</td><td class=\"tradeoff-very-good\"><span class=\"sr-only\">Very good. </span>++</td></tr></tbody></table></div><p class=\"tradeoff-key\"><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-good\"></span>Good</span><span class=\"tradeoff-key-item\"><span class=\"tradeoff-swatch tradeoff-very-good\"></span>Very good</span></p></div>",
       "blocks": [
@@ -5281,6 +5413,7 @@
     {
       "id": "table-not-all-rated",
       "text": "| Option | Cost |\n|---|---|\n| One | + cheap |\n| Two | dear |",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<table>\n<thead>\n<tr>\n<th>Option</th>\n<th>Cost</th>\n</tr>\n</thead>\n<tbody><tr>\n<td>One</td>\n<td>+ cheap</td>\n</tr>\n<tr>\n<td>Two</td>\n<td>dear</td>\n</tr>\n</tbody></table>\n",
       "blocks": [
@@ -5370,6 +5503,7 @@
     {
       "id": "table-all-bare-dash",
       "text": "| Option | Cost | Time |\n|---|---|---|\n| One | - | - |\n| Two | - |  |",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<table>\n<thead>\n<tr>\n<th>Option</th>\n<th>Cost</th>\n<th>Time</th>\n</tr>\n</thead>\n<tbody><tr>\n<td>One</td>\n<td>-</td>\n<td>-</td>\n</tr>\n<tr>\n<td>Two</td>\n<td>-</td>\n<td></td>\n</tr>\n</tbody></table>\n",
       "blocks": [
@@ -5483,6 +5617,7 @@
     {
       "id": "table-rating-needs-space",
       "text": "| Option | Cost |\n|---|---|\n| One | ++cheap |",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<table>\n<thead>\n<tr>\n<th>Option</th>\n<th>Cost</th>\n</tr>\n</thead>\n<tbody><tr>\n<td>One</td>\n<td>++cheap</td>\n</tr>\n</tbody></table>\n",
       "blocks": [
@@ -5548,6 +5683,7 @@
     {
       "id": "grid-in-code-block",
       "text": "```\n| Option | Cost |\n|---|---|\n| One | + cheap |\n```",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<pre><code>| Option | Cost |\n|---|---|\n| One | + cheap |\n</code></pre>\n",
       "blocks": [
@@ -5561,6 +5697,7 @@
     {
       "id": "empty",
       "text": "",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "",
       "blocks": []
@@ -5568,6 +5705,7 @@
     {
       "id": "whitespace-only",
       "text": "   \n  ",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "",
       "blocks": []
@@ -5575,6 +5713,7 @@
     {
       "id": "ids-with-context",
       "text": "Fixed by AWTD-12 and #4; see OPS-3",
+      "origin": "https://astrid.cc",
       "context": {
         "projectKey": "AWTD",
         "keys": [
@@ -5651,6 +5790,7 @@
     {
       "id": "ids-hidden-one",
       "text": "OPS-9 is hidden, OPS-8 is not",
+      "origin": "https://astrid.cc",
       "context": {
         "projectKey": "AWTD",
         "keys": [
@@ -5700,6 +5840,7 @@
     {
       "id": "ids-unknown-key",
       "text": "UTF-8 and COVID-19 stay prose",
+      "origin": "https://astrid.cc",
       "context": {
         "projectKey": "AWTD",
         "keys": [
@@ -5731,6 +5872,7 @@
     {
       "id": "ids-inside-task-pill",
       "text": "![Follow up AWTD-12](t1)",
+      "origin": "https://astrid.cc",
       "context": {
         "projectKey": "AWTD",
         "keys": [
@@ -5759,6 +5901,7 @@
     {
       "id": "ids-in-code",
       "text": "`AWTD-12`",
+      "origin": "https://astrid.cc",
       "context": {
         "projectKey": "AWTD",
         "keys": [
@@ -5790,6 +5933,7 @@
     {
       "id": "ids-without-context",
       "text": "AWTD-12 and #4",
+      "origin": "https://astrid.cc",
       "context": null,
       "html": "<p>AWTD-12 and #4</p>\n",
       "blocks": [
@@ -5804,6 +5948,70 @@
               "strike": false,
               "code": false,
               "link": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "link-relative-partner-origin",
+      "text": "[home](/lists/abc)",
+      "origin": "https://tasks.partner.example",
+      "context": null,
+      "html": "<p><a href=\"/lists/abc\">home</a></p>\n",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "inlines": [
+            {
+              "kind": "text",
+              "text": "home",
+              "bold": false,
+              "italic": false,
+              "strike": false,
+              "code": false,
+              "link": "https://tasks.partner.example/lists/abc"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ids-partner-origin",
+      "text": "Fixed by AWTD-12",
+      "origin": "https://tasks.partner.example",
+      "context": {
+        "projectKey": "AWTD",
+        "keys": [
+          "AWTD",
+          "OPS"
+        ],
+        "hidden": [
+          "OPS-9"
+        ]
+      },
+      "html": "<p>Fixed by <a href=\"/t/AWTD-12\" class=\"font-mono text-amber-700 dark:text-amber-300 no-underline hover:underline\">AWTD-12</a></p>\n",
+      "blocks": [
+        {
+          "kind": "paragraph",
+          "inlines": [
+            {
+              "kind": "text",
+              "text": "Fixed by ",
+              "bold": false,
+              "italic": false,
+              "strike": false,
+              "code": false,
+              "link": null
+            },
+            {
+              "kind": "text",
+              "text": "AWTD-12",
+              "bold": false,
+              "italic": false,
+              "strike": false,
+              "code": false,
+              "link": "https://tasks.partner.example/t/AWTD-12"
             }
           ]
         }
