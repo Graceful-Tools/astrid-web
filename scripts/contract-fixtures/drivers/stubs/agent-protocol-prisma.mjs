@@ -32,6 +32,8 @@ const prisma = {
           email: where.email,
           name: 'Claude Agent',
           isAIAgent: true,
+          aiAgentType: 'claude',
+          aiAgentConfig: null,
           isActive: true,
         }, select)
       }
