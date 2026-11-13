@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { useTranslations } from "next-intl"
 import { BRAND, brandLegalHref } from "@/lib/brand/config"
 import { ScrollShell } from "@/components/scroll-shell"
 import { LegalFooter } from "./LegalFooter"
@@ -10,6 +11,9 @@ const LINK = "hover:text-[rgb(var(--theme-text-primary))] transition-colors"
 /**
  * The chrome around a public legal or help page: the brand header, the content column
  * and the footer links (AWTD-1584). `links` names which sibling pages the footer offers.
+ * The legal text itself stays in English (AWTD-1613); the chrome around it follows the
+ * reader's language. The link names are `legalPages.*`, not the sign-in page's keys: those
+ * are declined to fit inside "you agree to our …" (Russian puts them in the accusative).
  */
 export function LegalPageShell({
   width,
@@ -20,6 +24,7 @@ export function LegalPageShell({
   links: Array<"terms" | "privacy">
   children: ReactNode
 }) {
+  const t = useTranslations("legalPages")
   return (
     <ScrollShell className="theme-bg-primary theme-text-primary">
       {/* Header */}
@@ -39,16 +44,16 @@ export function LegalPageShell({
         <LegalFooter surface="page">
           {links.includes("terms") && (
             <Link href={brandLegalHref("terms")} className={LINK}>
-              Terms of Service
+              {t("termsOfService")}
             </Link>
           )}
           {links.includes("privacy") && (
             <Link href={brandLegalHref("privacy")} className={LINK}>
-              Privacy Policy
+              {t("privacyPolicy")}
             </Link>
           )}
           <Link href="/" className={LINK}>
-            Back to Home
+            {t("backToHome")}
           </Link>
         </LegalFooter>
       </main>

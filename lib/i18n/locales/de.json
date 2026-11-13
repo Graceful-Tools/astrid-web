@@ -2440,7 +2440,9 @@
     "linkResolveFailed": "Link konnte nicht aufgelöst werden",
     "linkTaskNotFound": "Aufgabe nicht gefunden oder nicht mehr zugänglich",
     "linkTaskForbidden": "Du hast keine Berechtigung, diese Aufgabe anzusehen",
-    "linkInvalidType": "Ungültiger Link-Typ"
+    "linkInvalidType": "Ungültiger Link-Typ",
+    "globalErrorTitle": "Etwas ist schiefgelaufen",
+    "globalErrorDescription": "Ein schwerwiegender Fehler ist aufgetreten. Bitte lade die Seite neu."
   },
   "profilePage": {
     "loading": "Profil wird geladen...",
@@ -2668,5 +2670,93 @@
       "theAssignee": "der zugewiesenen Person",
       "confirm": "Nach „Warten“ verschieben"
     }
+  },
+  "helpPage": {
+    "title": "Hilfe und Fehlerbehebung",
+    "intro": "Die meisten Probleme lassen sich lösen, indem du deine Daten aktualisierst. Probiere zuerst die einfachen Lösungen, bevor du zu den fortgeschrittenen Schritten übergehst.",
+    "iosApp": "iOS-App",
+    "webApp": "Web-App",
+    "levels": {
+      "simple": "EINFACH",
+      "simpleHint": "Probiere das zuerst",
+      "intermediate": "MITTEL",
+      "intermediateHint": "Wenn die einfachen Schritte nicht helfen",
+      "advanced": "FORTGESCHRITTEN",
+      "advancedHint": "Letzte Möglichkeiten"
+    },
+    "signOutTitle": "Ab- und wieder anmelden",
+    "ios": {
+      "pullToRefreshTitle": "Zum Aktualisieren ziehen",
+      "pullToRefreshBody": "Ziehe in der Aufgabenliste von oben nach unten, um eine Synchronisierung mit dem Server zu erzwingen. Das behebt die meisten Synchronisierungsprobleme.",
+      "forceQuitTitle": "Sofort beenden und neu öffnen",
+      "forceQuitBody": "Wische vom unteren Rand nach oben (oder tippe zweimal auf die Home-Taste), wische {appName} weg und öffne die App dann neu.",
+      "signOutBody": "Gehe zu <b>Einstellungen</b> (tippe in der Seitenleiste auf dein Profil) → <b>Konto</b> → <b>Abmelden</b>. Melde dich danach mit demselben Konto wieder an.",
+      "connectionTitle": "Prüfe deine Internetverbindung",
+      "connectionBody": "{appName} funktioniert offline, braucht zum Synchronisieren aber Internet. Stelle sicher, dass du mit WLAN oder mobilen Daten verbunden bist.",
+      "reinstallTitle": "App löschen und neu installieren",
+      "reinstallBody": "Dabei werden alle lokalen Daten und der Cache gelöscht. Deine Aufgaben sind auf unseren Servern gespeichert, du verlierst also nichts. Halte das App-Symbol gedrückt → App entfernen → App löschen und installiere sie dann aus dem App Store neu.",
+      "restartTitle": "Starte dein Gerät neu",
+      "restartBody": "Manchmal behebt ein kompletter Neustart des Geräts hartnäckige Probleme."
+    },
+    "web": {
+      "refreshTitle": "Seite neu laden",
+      "refreshBody": "Drücke <kbd>F5</kbd> oder <kbd>Cmd+R</kbd> (Mac) / <kbd>Strg+R</kbd> (Windows), um die Seite neu zu laden.",
+      "hardRefreshTitle": "Hartes Neuladen",
+      "hardRefreshBody": "Halte <kbd>Shift</kbd> gedrückt, während du auf Neu laden klickst, oder drücke <kbd>Cmd+Shift+R</kbd> (Mac) / <kbd>Strg+Shift+R</kbd> (Windows). Dabei wird der Cache umgangen.",
+      "signOutBody": "Klicke in der Seitenleiste auf dein Profilbild → <b>Einstellungen</b> → <b>Konto</b> → <b>Abmelden</b>. Melde dich danach wieder an.",
+      "browserTitle": "Anderen Browser ausprobieren",
+      "browserBody": "Wenn du in einem Browser Probleme hast, probiere Chrome, Firefox, Safari oder Edge. So findest du heraus, ob das Problem am Browser liegt.",
+      "extensionsTitle": "Browser-Erweiterungen deaktivieren",
+      "extensionsBody": "Werbeblocker oder Datenschutz-Erweiterungen können manchmal stören. Deaktiviere sie vorübergehend oder nutze ein Inkognito- bzw. privates Fenster.",
+      "clearCacheTitle": "Browser-Cache und Cookies für {appName} löschen",
+      "clearCacheChrome": "<b>Chrome:</b> Einstellungen → Datenschutz → Browserdaten löschen → „Cookies“ und „Bilder und Dateien im Cache“ auswählen",
+      "clearCacheSafari": "<b>Safari:</b> Einstellungen → Datenschutz → Websitedaten verwalten → nach „{brandDomain}“ suchen → Entfernen",
+      "clearCacheFirefox": "<b>Firefox:</b> Einstellungen → Datenschutz → Daten entfernen → Cookies und Cache auswählen",
+      "indexedDbTitle": "IndexedDB-Speicher löschen",
+      "indexedDbBody": "In Chrome: DevTools öffnen (F12) → Tab Application → Storage → IndexedDB → Rechtsklick auf die {wordmark}-Einträge → Delete database. Lade die Seite danach neu."
+    },
+    "decisionsTitle": "Jemanden um eine Entscheidung bitten",
+    "commonIssuesTitle": "Häufige Probleme",
+    "issues": {
+      "counts": {
+        "title": "Aufgabenzähler zeigen 0 oder falsche Zahlen",
+        "intro": "Die Aufgabenzähler werden aus deinen synchronisierten Daten berechnet. Wenn sie falsch wirken:",
+        "step1": "Zum Aktualisieren ziehen (iOS) oder die Seite hart neu laden (Web)",
+        "step2": "Ein paar Sekunden warten, bis die Synchronisierung abgeschlossen ist",
+        "step3": "Wenn es immer noch falsch ist, ab- und wieder anmelden"
+      },
+      "sync": {
+        "title": "Aufgaben werden nicht zwischen Geräten synchronisiert",
+        "intro": "Die Synchronisierung läuft automatisch, kann aber ein paar Sekunden dauern. So erzwingst du sie:",
+        "step1": "Stelle sicher, dass beide Geräte mit dem Internet verbunden sind",
+        "step2": "Unter iOS: Zum Aktualisieren nach unten ziehen",
+        "step3": "Im Web: Die Seite neu laden",
+        "step4": "Änderungen sollten innerhalb von 5-10 Sekunden erscheinen"
+      },
+      "slow": {
+        "title": "Die App ist langsam oder reagiert nicht",
+        "intro": "Leistungsprobleme entstehen meist durch Daten im Cache oder zu viele Browser-Tabs. Probiere:",
+        "step1": "Andere Tabs und Programme schließen",
+        "step2": "Die App sofort beenden und neu öffnen (iOS)",
+        "step3": "Den Browser-Cache löschen (Web)",
+        "step4": "Die App neu installieren, wenn das Problem bleibt (iOS)"
+      },
+      "signIn": {
+        "title": "Anmeldung klappt nicht oder Authentifizierungsfehler",
+        "intro": "Authentifizierungsprobleme können durch abgelaufene Sitzungen oder Browser-Einstellungen entstehen:",
+        "step1": "Stelle sicher, dass Cookies in deinem Browser aktiviert sind",
+        "step2": "Versuche, dich in einem Inkognito- bzw. privaten Fenster anzumelden",
+        "step3": "Lösche gezielt die Cookies für {brandDomain}",
+        "step4": "Wenn du einen Passkey nutzt, prüfe, ob dein Gerät ihn unterstützt"
+      }
+    },
+    "stillNeedHelpTitle": "Brauchst du noch Hilfe?",
+    "stillNeedHelpBody": "Wenn keine dieser Lösungen hilft, sind wir für dich da.",
+    "contactSupport": "Support kontaktieren"
+  },
+  "legalPages": {
+    "termsOfService": "Nutzungsbedingungen",
+    "privacyPolicy": "Datenschutzerklärung",
+    "backToHome": "Zurück zur Startseite"
   }
 }

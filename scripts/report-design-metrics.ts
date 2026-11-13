@@ -35,9 +35,39 @@ export interface Metric {
   pattern: RegExp
   /** Count distinct matches rather than every occurrence. */
   distinct?: boolean
-  /** Paths (relative, forward slashes) that are the shared home and so exempt. */
-  exempt?: RegExp
+  /** Paths (relative, forward slashes) left out of the count, each with why. */
+  exempt?: Exemption[]
 }
+
+export interface Exemption {
+  pattern: RegExp
+  /** Why these files are not counted. A pattern with no reason is a budget raised quietly. */
+  reason: string
+}
+
+const DESIGN_HOME: Exemption[] = [
+  { pattern: /^lib\/(brand|design)\//, reason: 'the shared home of brand and design values' },
+]
+
+/**
+ * Pages that keep their English on purpose (AWTD-1613, option 1 of the design audit's open
+ * question; docs/specs/DESIGN_AUDIT_2026-11.md). Help is translated; these are not counted.
+ */
+export const COPY_EXEMPTIONS: Exemption[] = [
+  {
+    pattern: /^components\/legal\/(PrivacyPolicyContent|TermsOfServiceContent)\.tsx$/,
+    reason: 'legal text stays in English: a machine translation of a privacy policy or terms is not something to publish',
+  },
+  {
+    pattern: /^(app\/\[locale\]\/docs\/|components\/docs\/)/,
+    reason: 'developer documentation is written in English for developers, like the API it describes',
+  },
+  {
+    pattern:
+      /^(app\/\[locale\]\/(admin|debug-reminders|debug-reminders-enhanced|test-time-picker)\/|components\/oauth-api-tester\.tsx$)/,
+    reason: 'internal tools: admin, debugging and test pages that only the team opens',
+  },
+]
 
 const UI = ['app', 'components', 'hooks', 'contexts']
 const CODE = ['.ts', '.tsx']
@@ -45,9 +75,10 @@ const CODE = ['.ts', '.tsx']
  * A sentence a person reads, typed into JSX: a literal placeholder, title or
  * aria-label, or a text node of two or more words starting with a capital.
  * Punctuation is part of a sentence ("Select an app to edit."); `{`, `=`, `&`
- * and `|` are not, which keeps expressions and comparisons out.
+ * and `|` are not, which keeps expressions and comparisons out. An example URL
+ * in a placeholder is not a sentence either: it reads the same in every language.
  */
-const COPY = /(?:placeholder|aria-label|title)="[A-Za-z][^"{}]{4,}"|>\s*[A-Z][a-z]+\s+[A-Za-z][\w\s.,!?'’"“”:;()\/%…–—-]*</g
+const COPY = /(?:placeholder|aria-label|title)="(?!https?:\/\/)[A-Za-z][^"{}]{4,}"|>\s*[A-Z][a-z]+\s+[A-Za-z][\w\s.,!?'’"“”:;()\/%…–—-]*</g
 
 /** The words themselves, so the same sentence in a text node and a placeholder is one string. */
 function sentence(match: string): string {
@@ -72,7 +103,7 @@ export const METRICS: Metric[] = [
     roots: [...UI, 'lib', 'styles'],
     extensions: [...CODE, '.css'],
     pattern: /#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g,
-    exempt: /^lib\/(brand|design)\//,
+    exempt: DESIGN_HOME,
   },
   {
     id: 'rgbColours',
@@ -81,7 +112,7 @@ export const METRICS: Metric[] = [
     roots: [...UI, 'lib', 'styles'],
     extensions: [...CODE, '.css'],
     pattern: /rgba?\(\s*\d/g,
-    exempt: /^lib\/(brand|design)\//,
+    exempt: DESIGN_HOME,
   },
   {
     id: 'themeTriplets',
@@ -123,6 +154,7 @@ export const METRICS: Metric[] = [
     roots: ['app', 'components'],
     extensions: ['.tsx'],
     pattern: COPY,
+    exempt: COPY_EXEMPTIONS,
   },
   {
     id: 'uniqueHardcodedStrings',
@@ -132,6 +164,7 @@ export const METRICS: Metric[] = [
     extensions: ['.tsx'],
     pattern: COPY,
     distinct: true,
+    exempt: COPY_EXEMPTIONS,
   },
 ]
 
@@ -159,11 +192,15 @@ export function withoutComments(source: string): string {
     .replace(/(^|[^:'"`\\])\/\/[^\n]*/g, '$1')
 }
 
+export function isExempt(metric: Metric, path: string): boolean {
+  return metric.exempt?.some(({ pattern }) => pattern.test(path)) ?? false
+}
+
 export function count(metric: Metric, sources: Array<{ path: string; source: string }>): number {
   const seen = new Set<string>()
   let total = 0
   for (const { path, source } of sources) {
-    if (metric.exempt?.test(path)) continue
+    if (isExempt(metric, path)) continue
     const matches = withoutComments(source).match(metric.pattern) ?? []
     total += matches.length
     for (const match of matches) seen.add(metric.pattern === COPY ? sentence(match) : match.replace(/\s+/g, ' ').trim())
