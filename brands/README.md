@@ -76,11 +76,27 @@ the same as reading, though. Which client actually reads its block today:
 | `ios` | astrid-ios `make-brand-variant.sh` (bundle ID, App Group, keychain group, team, display name) | read |
 | `windows` | astrid-windows `scripts/lib/brand-profile.ps1`, via `package.ps1 -Brand <profile>` (package identity, publisher, tile directory) | read |
 | `android` | **nothing yet.** astrid-android keeps its own `brands/<name>/brand.properties`. The block uses the same names without the `astrid` prefix (`applicationId`, `accentColor` …), so the file can be generated from the profile once that tool exists | accepted, not read |
-| `vscode`, `code` | **nothing yet** (VS Code extension, Astrid Code). Any string key is accepted until astrid-core's brand schema (AWTD2-158) names them | accepted, not read |
+| `vscode`, `code` | **nothing yet** (VS Code extension, Astrid Code). Any string key is accepted | accepted, not read |
 
 `windows` and `android` keys are checked against what their reader understands, so a typo
 fails `npm run check:brands` rather than being silently ignored. `acme.brand.json` carries
 every block, so all of them are exercised.
+
+### Checked against astrid-core's schema
+
+astrid-core's `brand/schema.json` is the one description of a brand, and
+`cargo xtask gen-brand <profile> --out <dir>` writes every client's resources from it. A copy
+of the schema is vendored with the core wasm at `packages/astrid-rules/brand/schema.json`
+(`scripts/build-astrid-rules.sh`), and `npm run check:brands`
+(`tests/brands/core-brand-schema-awtd-1589.test.ts`) holds this directory to it: every env
+alias core declares is a key the web reads, every profile reads cleanly under core's rules
+(required fields, field types, core's verdict on the accent), and every env key a profile sets
+is one core reads too.
+
+**One gap, pinned in that test:** core's schema names the platform blocks' fields differently
+from what each client reads today (`ios.bundle-id` against `bundleId`, `android.package`
+against `applicationId`, `windows.package-identity` against `identityName`). So `gen-brand`
+reads none of acme's platform blocks yet. Which side renames is filed on the core board (AWTD2-195).
 
 The iOS and Mac apps read the same profile:
 
@@ -100,10 +116,13 @@ build failure rather than something they discover after shipping — that guard 
 surfaced `NEXT_PUBLIC_BRAND_ACCENT_HOVER_COLOR` and `NEXT_PUBLIC_BRAND_ACCENT_TEXT_COLOR`
 as missing.
 
-Those two are **consumed by the native apps only**, and that is fine: a shared profile
-describes more than one platform, so a key only one of them reads is normal. The web
-derives its hover and on-accent colours in CSS; SwiftUI has no cascade to derive them
-from, so the native apps need them as values.
+Leave both unset. A partner's hover and inks are derived from the accent by
+astrid-core's `brandColors` rule, which is what `gen-brand` writes for every client: the web
+runs it at build (`next.config.mjs` → `scripts/lib/brand-colors.mjs`, and again at
+container start for a runtime-brand image), so its hover and inks match core's byte for byte
+(AWTD-1589). An accent white cannot be read on is refused with the contrast in the message,
+and fails the build. A stated `NEXT_PUBLIC_BRAND_ACCENT_HOVER_COLOR` still wins on web and
+iOS, but core's schema gives it no env alias, so state it only if you mean to diverge.
 
 Variables the native apps consume: `NEXT_PUBLIC_BRAND_NAME`, `_DOMAIN`, `_WORDMARK`,
 `_SLOGAN`, `_SUPPORT_EMAIL`, `_INBOUND_TASK_EMAIL`, `_AGENT_NAME`, `_ACCENT_COLOR`,

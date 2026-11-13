@@ -97,6 +97,15 @@ export const BRAND = {
 
   /** Primary accent colour — drives `themeColor` and the manifest's `theme_color`. */
   accentColor: env(brandEnv('NEXT_PUBLIC_BRAND_ACCENT_COLOR', process.env.NEXT_PUBLIC_BRAND_ACCENT_COLOR), DEFAULTS.accentColor),
+  /**
+   * The accent's hover and its inks (as text on a light and on a dark card), as astrid-core's
+   * brandColors rule derives them from the accent — the same answer every client gets
+   * (AWTD-1589). Filled at build by next.config.mjs unless a deployment states one; empty when
+   * nothing derived them, and lib/brand/css-vars.ts then leaves the stylesheets on their own values.
+   */
+  accentHoverColor: env(brandEnv('NEXT_PUBLIC_BRAND_ACCENT_HOVER_COLOR', process.env.NEXT_PUBLIC_BRAND_ACCENT_HOVER_COLOR), ''),
+  accentInkColor: env(brandEnv('NEXT_PUBLIC_BRAND_ACCENT_INK_COLOR', process.env.NEXT_PUBLIC_BRAND_ACCENT_INK_COLOR), ''),
+  accentInkDarkColor: env(brandEnv('NEXT_PUBLIC_BRAND_ACCENT_INK_DARK_COLOR', process.env.NEXT_PUBLIC_BRAND_ACCENT_INK_DARK_COLOR), ''),
 
   /** Display name of the default assistant persona (may differ from `appName`). */
   agentIdentityName: env(

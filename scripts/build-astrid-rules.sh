@@ -23,6 +23,7 @@
 #   fixtures/filters.json, my-tasks.json, manual-order.json, reminders.json
 #   fixtures/waiting.json     (core-owned: generated in astrid-core, not exported from web)
 #   fixtures/decisions.json   (tests/lib/core-rules-decisions-parity.test.ts, AWTD-1626)
+#   brand/schema.json         the brand profile schema (tests/brands/core-brand-schema-awtd-1589.test.ts)
 #
 # Server-only: no browser build is vendored (377 KB gzipped is too much to ship to every page for
 # a shadow check). astrid-core's scripts/build-wasm.sh writes one when that changes.
@@ -70,6 +71,10 @@ printf '{ "type": "commonjs" }\n' >"$pkg/node/package.json"
 for fixture in permissions search smart repeating markdown board statuses filters my-tasks manual-order reminders waiting decisions; do
   cp "$tree/contracts/fixtures/$fixture.json" "$pkg/fixtures/$fixture.json"
 done
+# The brand profile schema at that revision: tests/brands/core-brand-schema-awtd-1589.test.ts
+# holds web's profiles and env keys to it (AWTD-1589).
+mkdir -p "$pkg/brand"
+cp "$tree/brand/schema.json" "$pkg/brand/schema.json"
 printf '%s\n' "$rev" >"$pkg/REVISION"
 
 echo "packages/astrid-rules at astrid-core $rev"
