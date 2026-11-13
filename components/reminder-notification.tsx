@@ -260,7 +260,7 @@ export function ReminderNotification({
                     return (
                       <div
                         key={collab.id}
-                        className="w-8 h-8 rounded-full bg-brand text-brand-foreground flex items-center justify-center text-xs font-semibold border-2 border-white dark:border-gray-800"
+                        className="w-8 h-8 rounded-full bg-brand text-brand-foreground flex items-center justify-center text-xs font-semibold border-2 border-theme-card"
                         title={collab.name}
                       >
                         {initials}
@@ -268,7 +268,7 @@ export function ReminderNotification({
                     )
                   })}
                   {collaborators.length > 5 && (
-                    <div className="w-8 h-8 rounded-full bg-theme-active text-theme-secondary flex items-center justify-center text-xs font-semibold border-2 border-white dark:border-gray-800">
+                    <div className="w-8 h-8 rounded-full bg-theme-active text-theme-secondary flex items-center justify-center text-xs font-semibold border-2 border-theme-card">
                       +{collaborators.length - 5}
                     </div>
                   )}

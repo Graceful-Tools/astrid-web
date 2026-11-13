@@ -157,8 +157,8 @@ export function EnhancedListImageDisplay({
           }}
           title={`Click to change image for ${list.name}`}
         >
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-hover bg-white/90 rounded-full p-1 pointer-events-none">
-            <Edit3 className="w-3 h-3 text-gray-700" />
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-hover light bg-white/90 rounded-full p-1 pointer-events-none">
+            <Edit3 className="w-3 h-3 text-theme-secondary" />
           </div>
         </div>
       )}

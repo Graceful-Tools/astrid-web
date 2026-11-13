@@ -65,6 +65,8 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               width: "64px",
               height: "64px",
               borderRadius: "50%",
+              // Literal on purpose (AWTD-1614): this boundary ships in every route's first load, and
+              // lib/design/email-palette.ts would bring the whole token file with it.
               backgroundColor: "#fef2f2",
               display: "flex",
               alignItems: "center",

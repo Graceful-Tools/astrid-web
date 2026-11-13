@@ -51,7 +51,7 @@ export default function APIDocsPage() {
             onClick={() => router.push('/')}
             title="Go to Home"
           >
-            <Heart className="w-6 h-6 text-red-500 fill-red-500" />
+            <Heart className="w-6 h-6 text-category-red fill-category-red" />
             <span className="text-xl font-semibold theme-text-primary">{BRAND.wordmark}</span>
           </div>
           <div className="flex items-center space-x-1 theme-count-bg rounded-full px-3 py-1">
@@ -203,7 +203,7 @@ export default function APIDocsPage() {
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <Key className="w-5 h-5 text-purple-500" />
+                <Key className="w-5 h-5 text-category-purple" />
                 <span>Rate Limits</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">
@@ -238,7 +238,7 @@ export default function APIDocsPage() {
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <MessageSquare className="w-5 h-5 text-purple-500" />
+                <MessageSquare className="w-5 h-5 text-category-purple" />
                 <span>ChatGPT Actions</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">

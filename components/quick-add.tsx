@@ -349,7 +349,7 @@ export function QuickAdd({
                   bg-theme-tertiary
                   text-theme-primary
                   placeholder:text-theme-muted
-                  focus:outline-none focus:ring-2 focus:ring-brand focus:bg-white dark:focus:bg-gray-600
+                  focus:outline-none focus:ring-2 focus:ring-brand focus:bg-theme-surface
                   transition-all duration-medium min-h-9 composer-input-max leading-[1.4]"
                 disabled={!isSessionReady || isCreating}
                 autoComplete="off"

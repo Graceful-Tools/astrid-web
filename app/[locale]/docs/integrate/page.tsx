@@ -26,7 +26,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   Code2: <Code2 className="w-6 h-6 text-brand" />,
   Cpu: <Cpu className="w-6 h-6 text-info" />,
   Bot: <Bot className="w-6 h-6 text-warning" />,
-  MessageSquare: <MessageSquare className="w-6 h-6 text-purple-500" />,
+  MessageSquare: <MessageSquare className="w-6 h-6 text-category-purple" />,
   Terminal: <Terminal className="w-6 h-6 text-success" />,
 }
 
@@ -193,7 +193,7 @@ export default function IntegrationGuidePage() {
           <Card className="theme-bg-secondary theme-border">
             <CardHeader>
               <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <Key className="w-5 h-5 text-indigo-500" />
+                <Key className="w-5 h-5 text-agent" />
                 <span>Agent Identity System</span>
               </CardTitle>
               <CardDescription className="theme-text-muted">

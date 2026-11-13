@@ -123,6 +123,12 @@ export const themeBackgroundColors = {
   button: token('astrid-button-bg'),
   'button-hover': token('astrid-button-hover'),
   header: token('astrid-header-bg'),
+  /**
+   * A surface dark in every theme by design: the attachment viewer, a code
+   * block, the landing footer (astrid-core `surface-inverse`, register DS29).
+   * Give the element `dark` too, so the text and inks inside answer as Dark.
+   */
+  inverse: token('astrid-surface-inverse'),
 }
 
 /**
@@ -139,6 +145,11 @@ export const themeBorderColors = {
   surface: token('theme-surface-border'),
   button: token('astrid-button-border'),
   header: token('astrid-header-border'),
+  /**
+   * The card's own colour as a line: the ring that cuts one avatar out of the
+   * one it overlaps. White in Light and Ocean, the dark card in Dark.
+   */
+  card: token('theme-surface'),
 }
 
 /**
@@ -169,6 +180,14 @@ const ink = (name: string) => ({
   foreground: token('astrid-accent-text'),
 })
 
+/**
+ * The categorical palette (astrid-core register DS27, AWTD-1612): a hue per
+ * category, for a settings tile, a filter's icon, an agent kind, where the
+ * colour tells things apart and means nothing else. A category that has a
+ * meaning (brand, danger, success…) uses that meaning instead.
+ */
+export const CATEGORY_HUES = ['red', 'orange', 'amber', 'green', 'teal', 'blue', 'purple', 'pink'] as const
+
 export const inkColors = {
   /**
    * `hover` is the ink too. The tokens have no ink for a link under the
@@ -180,6 +199,10 @@ export const inkColors = {
   success: ink('success'),
   warning: ink('warning'),
   info: ink('info'),
+  /** An agent's name or icon (astrid-core register DS28). */
+  agent: { DEFAULT: token('astrid-agent-ink') },
+  /** `text-category-<hue>`, `fill-category-<hue>`: the hue's ink, 4.5:1 on the card and its wash. */
+  category: Object.fromEntries(CATEGORY_HUES.map((hue) => [hue, token(`astrid-category-${hue}-ink`)])),
   /** shadcn's name for the same red, as `components/ui` writes it (`text-destructive`). */
   destructive: { DEFAULT: token('astrid-error-ink'), foreground: token('destructive-foreground') },
 }
@@ -210,8 +233,25 @@ export const semanticColors = {
   warning: status('warning'),
   info: status('info'),
   overdue: token('astrid-overdue'),
-  /** Behind an agent's message. The tokens have no agent text colour yet. */
-  agent: { bubble: token('astrid-agent-bubble') },
+  /** `bg-agent-bubble` behind an agent's message; `border-agent` and a dot are the agent's fill. As text, `inkColors.agent`. */
+  agent: { DEFAULT: token('astrid-agent'), bubble: token('astrid-agent-bubble') },
+  /**
+   * `bg-category-<hue>` (a dot, a gradient stop: `from-category-blue`),
+   * `bg-category-<hue>-subtle` (the tile behind an icon), `border-category-<hue>/50`,
+   * `to-category-<hue>-ink` (a stop in a gradient that carries text).
+   * As text, `inkColors.category`.
+   */
+  category: Object.fromEntries(
+    CATEGORY_HUES.map((hue) => [
+      hue,
+      {
+        DEFAULT: token(`astrid-category-${hue}`),
+        subtle: `rgba(var(--astrid-category-${hue}), var(--theme-wash-opacity))`,
+        /** The ink as a fill: a gradient stop under white text (`to-category-purple-ink`), where the mid-tone is too light. */
+        ink: token(`astrid-category-${hue}-ink`),
+      },
+    ]),
+  ),
   /** The eight list colours, for a colour fixed in the markup. One chosen at run time is a `style` prop from lib/brand/colors.ts. */
   list: Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 8].map((n) => [String(n), token(`astrid-palette-list-${n}`)])),
 }
@@ -263,5 +303,14 @@ export const THEME_VOCABULARY: string[] = [
   ]),
   'text-overdue',
   'bg-agent-bubble',
+  'text-agent',
+  'bg-agent',
+  'border-agent',
+  ...CATEGORY_HUES.flatMap((hue) => [
+    `text-category-${hue}`,
+    `bg-category-${hue}`,
+    `bg-category-${hue}-subtle`,
+    `border-category-${hue}`,
+  ]),
   ...Object.keys(semanticColors.list).map((n) => `bg-list-${n}`),
 ]
