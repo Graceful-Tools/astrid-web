@@ -11,7 +11,7 @@
  */
 
 import { FEATURE_KEYS, type FeatureKey } from '@/lib/feature-flags'
-import { BRAND } from '@/lib/brand/config'
+import { ASTRID_SUPPORT_EMAIL, BRAND, IS_ASTRID_IDENTITY } from '@/lib/brand/config'
 
 export type FeatureRequestStatus = 'PENDING' | 'GRANTED' | 'DECLINED'
 
@@ -162,9 +162,14 @@ export function shouldNotifyFeatureRequest(
  * must be able to route requests to their own team rather than ours — the same
  * reasoning as every other brand-configurable address.
  */
-export function featureRequestRecipient(): string {
+export function featureRequestRecipient(): string | null {
+  const configured = process.env.FEATURE_REQUEST_EMAIL?.trim()
+  if (configured) return configured
   // The brand's own support address, never a person's (AWTD-1584): the old fallback was
   // a founder's mailbox, so a partner that forgot the variable mailed its users'
-  // requests to someone outside its company.
-  return process.env.FEATURE_REQUEST_EMAIL?.trim() || BRAND.supportEmail
+  // requests to someone outside its company. And only the brand's OWN address
+  // (AWTD-1640): a partner that never set one inherits Astrid's support mailbox, so it
+  // gets no recipient at all. The request row is still saved and listed in the admin.
+  if (!IS_ASTRID_IDENTITY && BRAND.supportEmail === ASTRID_SUPPORT_EMAIL) return null
+  return BRAND.supportEmail
 }

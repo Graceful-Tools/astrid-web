@@ -419,6 +419,14 @@ interface FeatureAccessRequestData {
 export async function sendFeatureAccessRequestEmail(data: FeatureAccessRequestData) {
   const { featureRequestRecipient } = await import('./feature-access-requests')
   const to = featureRequestRecipient()
+  if (!to) {
+    // A partner with no feature-request or support address of its own (AWTD-1640). Sending
+    // to Astrid's mailbox instead would leak its users' requests to another company, so
+    // nothing is sent; the request row is the durable record and the admin lists it.
+    log.warn({ featureKey: data.featureKey },
+      'Feature request not emailed: set FEATURE_REQUEST_EMAIL or NEXT_PUBLIC_BRAND_SUPPORT_EMAIL to be told')
+    return
+  }
   const who = data.userName ? `${data.userName} <${data.userEmail}>` : data.userEmail
   const subject = `Feature request: ${data.featureKey} — ${data.userEmail}`
 
