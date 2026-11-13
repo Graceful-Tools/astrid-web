@@ -503,6 +503,7 @@ describe('categories, the agent and the inverse surface read their tokens (AWTD-
       ...INKS.flatMap(([name]) => [`text-${name}`, `fill-${name}`, `bg-${name}`, `border-${name}`, `bg-${name}/20`]),
       ...CATEGORY_HUES.map((hue) => `bg-category-${hue}-subtle`),
       'from-category-blue',
+      'to-category-purple-ink',
     ])
     for (const [name, token] of INKS) {
       expect(propertyOf(ruleFor(css, `text-${name}`)), `text-${name}`).toBe(`astrid-${token}-ink`)
@@ -517,6 +518,8 @@ describe('categories, the agent and the inverse surface read their tokens (AWTD-
       )
     }
     expect(ruleFor(css, 'from-category-blue')).toContain('rgba(var(--astrid-category-blue), 1)')
+    // A gradient that carries white text ends on the ink, not the lighter fill (PR #757 review).
+    expect(ruleFor(css, 'to-category-purple-ink')).toContain('rgba(var(--astrid-category-purple-ink), 1)')
     expect(propertyOf(ruleFor(css, 'bg-theme-inverse'))).toBe('astrid-surface-inverse')
     expect(propertyOf(ruleFor(css, 'border-theme-card'))).toBe('theme-surface')
   })

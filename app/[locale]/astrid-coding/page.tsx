@@ -231,11 +231,11 @@ export default function AstridCodingPage() {
         </Card>
 
         {/* CTA Section */}
-        {/* `light`: the call to action is a brand gradient in every theme, so the white button under the pointer reads the light ink. */}
-        <Card className="light bg-gradient-to-r from-brand to-category-purple text-brand-foreground border-0">
+        {/* `light`: the call to action is a brand gradient in every theme, so its purple stop and the white button under the pointer read the light ink (white text is 4.5:1+ across it). */}
+        <Card className="light bg-gradient-to-r from-brand to-category-purple-ink text-brand-foreground border-0">
           <CardContent className="p-12 text-center">
             <h2 className="text-3xl font-bold mb-4">{t('codingAgentPage.cta.title')}</h2>
-            <p className="text-xl mb-8 text-brand-foreground/90">
+            <p className="text-xl mb-8 text-brand-foreground">
               {t('codingAgentPage.cta.subtitle')}
             </p>
             <div className="flex items-center justify-center space-x-4">
