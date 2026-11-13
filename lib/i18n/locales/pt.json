@@ -2440,7 +2440,9 @@
     "linkResolveFailed": "Falha ao resolver o link",
     "linkTaskNotFound": "Tarefa não encontrada ou não mais acessível",
     "linkTaskForbidden": "Você não tem permissão para ver esta tarefa",
-    "linkInvalidType": "Tipo de link inválido"
+    "linkInvalidType": "Tipo de link inválido",
+    "globalErrorTitle": "Algo deu errado",
+    "globalErrorDescription": "Ocorreu um erro crítico. Tente recarregar a página."
   },
   "profilePage": {
     "loading": "Carregando perfil...",
@@ -2668,5 +2670,93 @@
       "theAssignee": "a pessoa responsável",
       "confirm": "Mover para Em espera"
     }
+  },
+  "helpPage": {
+    "title": "Ajuda e solução de problemas",
+    "intro": "A maioria dos problemas pode ser resolvida atualizando seus dados. Experimente primeiro as soluções simples antes de passar para as etapas mais avançadas.",
+    "iosApp": "App para iOS",
+    "webApp": "App web",
+    "levels": {
+      "simple": "SIMPLES",
+      "simpleHint": "Tente estas primeiro",
+      "intermediate": "INTERMEDIÁRIO",
+      "intermediateHint": "Se as etapas simples não funcionarem",
+      "advanced": "AVANÇADO",
+      "advancedHint": "Opções de último recurso"
+    },
+    "signOutTitle": "Saia e entre novamente",
+    "ios": {
+      "pullToRefreshTitle": "Puxe para atualizar",
+      "pullToRefreshBody": "Na lista de tarefas, puxe para baixo a partir do topo para forçar uma sincronização com o servidor. Isso resolve a maioria dos problemas de sincronização.",
+      "forceQuitTitle": "Force o fechamento e reabra",
+      "forceQuitBody": "Deslize para cima a partir da parte inferior (ou toque duas vezes no botão de início), deslize o {appName} para fora e reabra o app.",
+      "signOutBody": "Vá em <b>Configurações</b> (toque no seu perfil na barra lateral) → <b>Conta</b> → <b>Sair</b>. Depois entre novamente com a mesma conta.",
+      "connectionTitle": "Verifique sua conexão com a internet",
+      "connectionBody": "O {appName} funciona offline, mas precisa de internet para sincronizar. Verifique se você está conectado ao WiFi ou aos dados móveis.",
+      "reinstallTitle": "Apague e reinstale o app",
+      "reinstallBody": "Isso apaga todos os dados locais e o cache. Suas tarefas ficam armazenadas em nossos servidores, então você não perderá nada. Toque e segure o ícone do app → Remover App → Apagar App, depois reinstale pela App Store.",
+      "restartTitle": "Reinicie seu dispositivo",
+      "restartBody": "Às vezes, reiniciar o dispositivo por completo resolve problemas persistentes."
+    },
+    "web": {
+      "refreshTitle": "Recarregue a página",
+      "refreshBody": "Pressione <kbd>F5</kbd> ou <kbd>Cmd+R</kbd> (Mac) / <kbd>Ctrl+R</kbd> (Windows) para recarregar a página.",
+      "hardRefreshTitle": "Recarregamento forçado",
+      "hardRefreshBody": "Segure <kbd>Shift</kbd> enquanto clica em recarregar, ou pressione <kbd>Cmd+Shift+R</kbd> (Mac) / <kbd>Ctrl+Shift+R</kbd> (Windows). Isso ignora o cache.",
+      "signOutBody": "Clique na sua foto de perfil na barra lateral → <b>Configurações</b> → <b>Conta</b> → <b>Sair</b>. Depois entre novamente.",
+      "browserTitle": "Experimente outro navegador",
+      "browserBody": "Se você está tendo problemas em um navegador, experimente Chrome, Firefox, Safari ou Edge. Isso ajuda a identificar se o problema é do navegador.",
+      "extensionsTitle": "Desative as extensões do navegador",
+      "extensionsBody": "Bloqueadores de anúncios ou extensões de privacidade às vezes interferem. Tente desativá-los temporariamente ou use uma janela anônima/privada.",
+      "clearCacheTitle": "Limpe o cache e os cookies do navegador para o {appName}",
+      "clearCacheChrome": "<b>Chrome:</b> Configurações → Privacidade → Limpar dados de navegação → Selecione \"Cookies\" e \"Imagens em cache\"",
+      "clearCacheSafari": "<b>Safari:</b> Preferências → Privacidade → Gerenciar Dados de Sites → Pesquise \"{brandDomain}\" → Remover",
+      "clearCacheFirefox": "<b>Firefox:</b> Configurações → Privacidade → Limpar dados → Selecione Cookies e Cache",
+      "indexedDbTitle": "Limpe o armazenamento IndexedDB",
+      "indexedDbBody": "No Chrome: abra o DevTools (F12) → aba Application → Storage → IndexedDB → clique com o botão direito nas entradas do {wordmark} → Delete database. Depois recarregue a página."
+    },
+    "decisionsTitle": "Pedir para alguém escolher",
+    "commonIssuesTitle": "Problemas comuns",
+    "issues": {
+      "counts": {
+        "title": "Contagem de tarefas mostrando 0 ou números errados",
+        "intro": "A contagem de tarefas é calculada a partir dos seus dados sincronizados. Se parecer errada:",
+        "step1": "Puxe para atualizar (iOS) ou force o recarregamento da página (web)",
+        "step2": "Aguarde alguns segundos até a sincronização terminar",
+        "step3": "Se continuar errada, saia e entre novamente"
+      },
+      "sync": {
+        "title": "Tarefas não sincronizam entre dispositivos",
+        "intro": "A sincronização acontece automaticamente, mas pode levar alguns segundos. Para forçá-la:",
+        "step1": "Verifique se os dois dispositivos estão conectados à internet",
+        "step2": "No iOS: puxe para baixo para atualizar",
+        "step3": "Na web: recarregue a página",
+        "step4": "As alterações devem aparecer em 5-10 segundos"
+      },
+      "slow": {
+        "title": "O app está lento ou não responde",
+        "intro": "Problemas de desempenho geralmente são causados por dados em cache ou muitas abas abertas. Tente:",
+        "step1": "Fechar outras abas e aplicativos",
+        "step2": "Forçar o fechamento e reabrir o app (iOS)",
+        "step3": "Limpar o cache do navegador (web)",
+        "step4": "Reinstalar o app se o problema persistir (iOS)"
+      },
+      "signIn": {
+        "title": "Não consigo entrar ou recebo erros de autenticação",
+        "intro": "Problemas de autenticação podem acontecer por sessões expiradas ou configurações do navegador:",
+        "step1": "Verifique se os cookies estão ativados no seu navegador",
+        "step2": "Tente entrar em uma janela anônima/privada",
+        "step3": "Limpe os cookies de {brandDomain} especificamente",
+        "step4": "Se usar uma chave de acesso, verifique se seu dispositivo é compatível"
+      }
+    },
+    "stillNeedHelpTitle": "Ainda precisa de ajuda?",
+    "stillNeedHelpBody": "Se nenhuma dessas soluções funcionar, estamos aqui para ajudar.",
+    "contactSupport": "Falar com o suporte"
+  },
+  "legalPages": {
+    "termsOfService": "Termos de Serviço",
+    "privacyPolicy": "Política de Privacidade",
+    "backToHome": "Voltar ao início"
   }
 }

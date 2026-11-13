@@ -26,22 +26,33 @@ export class SweepApi {
     private readonly dryRun: boolean,
     private readonly report: (...args: unknown[]) => void,
     /**
-     * Who signs the sweep's comments. Null means "sign as the authenticated
-     * caller" — the field is then OMITTED rather than sent as null, because the
-     * API rejects an id it cannot resolve and a sweep that 400s instead of
-     * commenting is worse than one wrong byline.
+     * Who signs the sweep's writes: comments, status changes and completions.
+     * Null means "sign as the authenticated caller" — the field is then
+     * OMITTED rather than sent as null, because the API rejects an id it cannot
+     * resolve and a sweep that 400s instead of commenting is worse than one
+     * wrong byline.
      */
     private readonly authorId: SweepAuthorId = null,
     private readonly fetchImpl: typeof fetch = fetch,
     private readonly apiBase: string = 'https://astrid.cc',
   ) {}
 
+  /**
+   * The body with the agent's signature, on EVERY write (AWTD-1620). The v1 PUT
+   * names the actor on the activity line exactly as the comments route does, so
+   * a completion sent without it read "Jon Paris marked this as complete" right
+   * under a comment correctly signed Claude Agent.
+   */
+  private signed(body: Record<string, unknown>): string {
+    return JSON.stringify({ ...body, ...(this.authorId ? { aiAgentId: this.authorId } : {}) })
+  }
+
   async setStatus(task: { id: string }, statusRole: string): Promise<void> {
     if (this.dryRun) return
     const response = await this.fetchImpl(`${this.apiBase}/api/v1/tasks/${task.id}`, {
       method: "PUT",
       headers: { ...this.auth, "Content-Type": "application/json" },
-      body: JSON.stringify({ statusRole }),
+      body: this.signed({ statusRole }),
     })
     if (!response.ok) {
       this.report(`  ⚠️ could not set ${task.id} → ${statusRole}: HTTP ${response.status}`)
@@ -54,7 +65,7 @@ export class SweepApi {
     const response = await this.fetchImpl(`${this.apiBase}/api/v1/tasks/${task.id}`, {
       method: "PUT",
       headers: { ...this.auth, "Content-Type": "application/json" },
-      body: JSON.stringify({ completed: true }),
+      body: this.signed({ completed: true }),
     })
     if (!response.ok) {
       this.report(`  ⚠️ could not complete ${task.id}: HTTP ${response.status}`)
@@ -67,10 +78,7 @@ export class SweepApi {
     const response = await this.fetchImpl(`${this.apiBase}/api/v1/tasks/${task.id}/comments`, {
       method: "POST",
       headers: { ...this.auth, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content,
-        ...(this.authorId ? { aiAgentId: this.authorId } : {}),
-      }),
+      body: this.signed({ content }),
     })
     if (!response.ok) {
       this.report(`  ⚠️ could not comment on ${task.id}: HTTP ${response.status}`)

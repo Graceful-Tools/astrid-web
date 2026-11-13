@@ -143,7 +143,9 @@ describe('EmailReminderService - Email Format', () => {
       expect(html).toContain('rgb(245, 158, 11)')
       expect(html).not.toContain('#ef4444')
       expect(html).not.toContain('#f59e0b')
-      expect(html).toContain('#10b981')
+      // AWTD-1614: later tasks are the success token too, not a typed emerald.
+      expect(html).toContain('rgb(34, 197, 94)')
+      expect(html).not.toContain('#10b981')
     })
 
     it('should include unsubscribe link in footer', async () => {

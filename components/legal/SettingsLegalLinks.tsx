@@ -1,9 +1,10 @@
 "use client"
 
 import { BRAND } from "@/lib/brand/config"
+import { useTranslations } from "@/lib/i18n/client"
 
 const LINK = "hover:text-theme-primary transition-colors"
-const LABEL = { terms: "Terms of Service", privacy: "Privacy Policy" } as const
+const LABEL = { terms: "legalPages.termsOfService", privacy: "legalPages.privacyPolicy" } as const
 
 /**
  * Footer links between the in-app Terms, Privacy and Help panels (AWTD-1584). A page the
@@ -16,17 +17,18 @@ export function SettingsLegalLinks({
   pages: Array<"terms" | "privacy">
   onNavigate: (page: string) => void
 }) {
+  const { t } = useTranslations()
   return (
     <>
       {pages.map((page) => {
         const external = page === "terms" ? BRAND.termsUrl : BRAND.privacyUrl
         return external ? (
           <a key={page} href={external} target="_blank" rel="noopener noreferrer" className={LINK}>
-            {LABEL[page]}
+            {t(LABEL[page])}
           </a>
         ) : (
           <button key={page} onClick={() => onNavigate(page)} className={LINK}>
-            {LABEL[page]}
+            {t(LABEL[page])}
           </button>
         )
       })}

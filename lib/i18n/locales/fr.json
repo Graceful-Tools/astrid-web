@@ -2440,7 +2440,9 @@
     "linkResolveFailed": "Échec de la résolution du lien",
     "linkTaskNotFound": "Tâche introuvable ou désormais inaccessible",
     "linkTaskForbidden": "Vous n’avez pas l’autorisation de voir cette tâche",
-    "linkInvalidType": "Type de lien non valide"
+    "linkInvalidType": "Type de lien non valide",
+    "globalErrorTitle": "Une erreur s’est produite",
+    "globalErrorDescription": "Une erreur critique s’est produite. Veuillez actualiser la page."
   },
   "profilePage": {
     "loading": "Chargement du profil...",
@@ -2668,5 +2670,93 @@
       "theAssignee": "la personne assignée",
       "confirm": "Déplacer vers En attente"
     }
+  },
+  "helpPage": {
+    "title": "Aide et dépannage",
+    "intro": "La plupart des problèmes se règlent en actualisant vos données. Essayez d’abord les solutions simples avant de passer aux étapes plus avancées.",
+    "iosApp": "App iOS",
+    "webApp": "App web",
+    "levels": {
+      "simple": "SIMPLE",
+      "simpleHint": "À essayer en premier",
+      "intermediate": "INTERMÉDIAIRE",
+      "intermediateHint": "Si les étapes simples ne suffisent pas",
+      "advanced": "AVANCÉ",
+      "advancedHint": "En dernier recours"
+    },
+    "signOutTitle": "Se déconnecter et se reconnecter",
+    "ios": {
+      "pullToRefreshTitle": "Tirer pour actualiser",
+      "pullToRefreshBody": "Dans la liste des tâches, tirez vers le bas depuis le haut pour forcer une synchronisation avec le serveur. Cela règle la plupart des problèmes de synchronisation.",
+      "forceQuitTitle": "Forcer la fermeture et rouvrir",
+      "forceQuitBody": "Balayez vers le haut depuis le bas de l’écran (ou appuyez deux fois sur le bouton principal), faites glisser {appName} vers le haut, puis rouvrez l’app.",
+      "signOutBody": "Allez dans <b>Paramètres</b> (touchez votre profil dans la barre latérale) → <b>Compte</b> → <b>Déconnexion</b>. Reconnectez-vous ensuite avec le même compte.",
+      "connectionTitle": "Vérifier votre connexion internet",
+      "connectionBody": "{appName} fonctionne hors ligne mais a besoin d’internet pour synchroniser. Vérifiez que vous êtes connecté au WiFi ou aux données mobiles.",
+      "reinstallTitle": "Supprimer et réinstaller l’app",
+      "reinstallBody": "Cela efface toutes les données locales et le cache. Vos tâches sont stockées sur nos serveurs, vous ne perdrez donc rien. Maintenez l’icône de l’app → Supprimer l’app → Supprimer l’app, puis réinstallez-la depuis l’App Store.",
+      "restartTitle": "Redémarrer votre appareil",
+      "restartBody": "Un redémarrage complet de l’appareil suffit parfois à régler des problèmes persistants."
+    },
+    "web": {
+      "refreshTitle": "Actualiser la page",
+      "refreshBody": "Appuyez sur <kbd>F5</kbd> ou <kbd>Cmd+R</kbd> (Mac) / <kbd>Ctrl+R</kbd> (Windows) pour recharger la page.",
+      "hardRefreshTitle": "Actualisation forcée",
+      "hardRefreshBody": "Maintenez <kbd>Shift</kbd> en cliquant sur actualiser, ou appuyez sur <kbd>Cmd+Shift+R</kbd> (Mac) / <kbd>Ctrl+Shift+R</kbd> (Windows). Le cache est alors ignoré.",
+      "signOutBody": "Cliquez sur votre photo de profil dans la barre latérale → <b>Paramètres</b> → <b>Compte</b> → <b>Déconnexion</b>. Reconnectez-vous ensuite.",
+      "browserTitle": "Essayer un autre navigateur",
+      "browserBody": "Si vous rencontrez des problèmes dans un navigateur, essayez Chrome, Firefox, Safari ou Edge. Cela permet de savoir si le problème vient du navigateur.",
+      "extensionsTitle": "Désactiver les extensions du navigateur",
+      "extensionsBody": "Les bloqueurs de publicité ou les extensions de confidentialité peuvent parfois interférer. Désactivez-les temporairement ou utilisez une fenêtre de navigation privée.",
+      "clearCacheTitle": "Vider le cache et les cookies du navigateur pour {appName}",
+      "clearCacheChrome": "<b>Chrome :</b> Paramètres → Confidentialité → Effacer les données de navigation → Sélectionnez « Cookies » et « Images en cache »",
+      "clearCacheSafari": "<b>Safari :</b> Préférences → Confidentialité → Gérer les données de sites web → Recherchez « {brandDomain} » → Supprimer",
+      "clearCacheFirefox": "<b>Firefox :</b> Paramètres → Vie privée → Effacer les données → Sélectionnez Cookies et Cache",
+      "indexedDbTitle": "Vider le stockage IndexedDB",
+      "indexedDbBody": "Dans Chrome : ouvrez les DevTools (F12) → onglet Application → Storage → IndexedDB → clic droit sur les entrées {wordmark} → Delete database. Actualisez ensuite la page."
+    },
+    "decisionsTitle": "Demander à quelqu’un de choisir",
+    "commonIssuesTitle": "Problèmes fréquents",
+    "issues": {
+      "counts": {
+        "title": "Les compteurs de tâches affichent 0 ou des nombres erronés",
+        "intro": "Les compteurs de tâches sont calculés à partir de vos données synchronisées. S’ils semblent faux :",
+        "step1": "Tirez pour actualiser (iOS) ou forcez l’actualisation de la page (web)",
+        "step2": "Attendez quelques secondes que la synchronisation se termine",
+        "step3": "Si c’est toujours faux, déconnectez-vous puis reconnectez-vous"
+      },
+      "sync": {
+        "title": "Les tâches ne se synchronisent pas entre les appareils",
+        "intro": "La synchronisation est automatique mais peut prendre quelques secondes. Pour la forcer :",
+        "step1": "Vérifiez que les deux appareils sont connectés à internet",
+        "step2": "Sur iOS : tirez vers le bas pour actualiser",
+        "step3": "Sur le web : actualisez la page",
+        "step4": "Les modifications devraient apparaître en 5 à 10 secondes"
+      },
+      "slow": {
+        "title": "L’app est lente ou ne répond plus",
+        "intro": "Les problèmes de performance viennent généralement des données en cache ou d’un trop grand nombre d’onglets. Essayez de :",
+        "step1": "Fermer les autres onglets et applications",
+        "step2": "Forcer la fermeture puis rouvrir l’app (iOS)",
+        "step3": "Vider le cache du navigateur (web)",
+        "step4": "Réinstaller l’app si le problème persiste (iOS)"
+      },
+      "signIn": {
+        "title": "Impossible de se connecter ou erreurs d’authentification",
+        "intro": "Les problèmes d’authentification peuvent venir d’une session expirée ou des réglages du navigateur :",
+        "step1": "Vérifiez que les cookies sont activés dans votre navigateur",
+        "step2": "Essayez de vous connecter dans une fenêtre de navigation privée",
+        "step3": "Effacez les cookies de {brandDomain} en particulier",
+        "step4": "Si vous utilisez une clé d’accès, vérifiez que votre appareil la prend en charge"
+      }
+    },
+    "stillNeedHelpTitle": "Besoin d’aide ?",
+    "stillNeedHelpBody": "Si aucune de ces solutions ne fonctionne, nous sommes là pour vous aider.",
+    "contactSupport": "Contacter le support"
+  },
+  "legalPages": {
+    "termsOfService": "Conditions d’utilisation",
+    "privacyPolicy": "Politique de confidentialité",
+    "backToHome": "Retour à l’accueil"
   }
 }
