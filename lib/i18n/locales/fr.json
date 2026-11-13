@@ -241,6 +241,9 @@
     },
     "dropToPlaceFirst": "Déposez ici pour placer la première tâche"
   },
+  "assignee": {
+    "clear": "Désassigner"
+  },
   "lists": {
     "list": "Liste",
     "newList": "Nouvelle liste",

@@ -241,6 +241,9 @@
     },
     "dropToPlaceFirst": "Solte aqui para posicionar a primeira tarefa"
   },
+  "assignee": {
+    "clear": "Remover atribuição"
+  },
   "lists": {
     "list": "Lista",
     "newList": "Nova lista",

@@ -241,6 +241,9 @@
     },
     "dropToPlaceFirst": "여기에 놓아 첫 번째 작업 배치"
   },
+  "assignee": {
+    "clear": "할당 해제"
+  },
   "lists": {
     "list": "목록",
     "newList": "새 목록",
