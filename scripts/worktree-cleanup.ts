@@ -8,7 +8,8 @@
  *
  * Actions:
  * - Removes worktree directory
- * - Optionally deletes branch (asks user)
+ * - Deletes the branch locally and on origin once it is merged into origin/main
+ *   (Jon, 2026-11-12: "Always remove branches post merge"); asks only when unmerged
  * - Database is SHARED and NOT dropped
  */
 
@@ -38,6 +39,51 @@ function ask(question: string): Promise<string> {
       resolve(answer.trim().toLowerCase())
     })
   })
+}
+
+function isMergedIntoMain(branch: string): boolean {
+  try {
+    execSync('git fetch --prune --quiet origin', { stdio: 'pipe' })
+    execSync(`git merge-base --is-ancestor ${branch} origin/main`, { stdio: 'pipe' })
+    return true
+  } catch {
+    return false
+  }
+}
+
+function existsOnOrigin(branch: string): boolean {
+  try {
+    execSync(`git ls-remote --exit-code --heads origin ${branch}`, { stdio: 'pipe' })
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Merged branches are always removed, locally and on origin. Unmerged ones ask first.
+async function deleteBranch(branch: string) {
+  console.log(`\n🌿 Branch: ${branch}`)
+  if (!isMergedIntoMain(branch)) {
+    const answer = await ask('Branch is NOT merged into origin/main. Delete it anyway? (yes/no): ')
+    if (answer !== 'yes') {
+      console.log(`ℹ️  Branch kept: ${branch}`)
+      return
+    }
+  }
+  try {
+    execSync(`git branch -D ${branch}`, { stdio: 'pipe' })
+    console.log(`✅ Local branch deleted`)
+  } catch {
+    console.error(`⚠️  Could not delete local branch`)
+  }
+  if (existsOnOrigin(branch)) {
+    try {
+      execSync(`git push --quiet origin --delete ${branch}`, { stdio: 'pipe' })
+      console.log(`✅ origin/${branch} deleted`)
+    } catch {
+      console.error(`⚠️  Could not delete origin/${branch}`)
+    }
+  }
 }
 
 async function cleanupWorktree(taskIdentifier: string) {
@@ -70,9 +116,15 @@ async function cleanupWorktree(taskIdentifier: string) {
       encoding: 'utf-8'
     })
 
-    if (status.trim()) {
+    // The worktree's own scaffolding files are not work.
+    const changes = status
+      .split('\n')
+      .filter(line => line.trim() && !/\.worktree-(info\.json|context\.md)$/.test(line))
+      .join('\n')
+
+    if (changes) {
       console.log(`\n⚠️  Uncommitted changes detected:`)
-      console.log(status)
+      console.log(changes)
       const answer = await ask('Continue with cleanup? Changes will be lost! (yes/no): ')
       if (answer !== 'yes') {
         console.log('Cleanup cancelled.')
@@ -107,22 +159,8 @@ async function cleanupWorktree(taskIdentifier: string) {
     console.log(`🗄️  Database: ${dbName} (SHARED - not dropped)`)
   }
 
-  // Ask about branch deletion
   if (info) {
-    console.log(`\n🌿 Branch: ${info.branch}`)
-    const deleteBranch = await ask('Delete this branch? (yes/no): ')
-
-    if (deleteBranch === 'yes') {
-      try {
-        execSync(`git branch -D ${info.branch}`, { stdio: 'inherit' })
-        console.log(`✅ Branch deleted`)
-      } catch (error) {
-        console.error(`⚠️  Could not delete branch`)
-      }
-    } else {
-      console.log(`ℹ️  Branch kept: ${info.branch}`)
-      console.log(`   Delete later with: git branch -D ${info.branch}`)
-    }
+    await deleteBranch(info.branch)
   }
 
   console.log(`\n✨ Cleanup complete for task: ${taskSlug}!\n`)

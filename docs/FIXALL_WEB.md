@@ -182,6 +182,11 @@ finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has t
   here at once — one created a branch, moving `HEAD` while the other had six files
   uncommitted, and both wrote the same fix for AWTD-865. **Never run `git checkout` or
   `git checkout -b` in a tree you did not lock.**
+- **Remove branches once merged** (Jon, 2026-11-12). Both GitHub repos have
+  `delete_branch_on_merge` on, so merging a PR deletes its remote branch; then
+  `npm run work:done <slug>` removes the worktree and deletes the local branch (and the
+  remote one if it survived). It asks only when the branch is not merged into `origin/main`.
+  An orchestrator merging several PRs cleans every merged task worktree at the end of the run.
 - **Gates:** `npm run predeploy`, plus `npm run check:reuse` and `npm run check:design` (the
   design ratchet: no count rises; lower a budget when your change lowers its count).
 - **A red predeploy files its own Astrid task.** If it was your own mid-refactor breakage,
