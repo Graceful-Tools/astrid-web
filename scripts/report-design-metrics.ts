@@ -37,6 +37,8 @@ export interface Metric {
   distinct?: boolean
   /** Paths (relative, forward slashes) left out of the count, each with why. */
   exempt?: Exemption[]
+  /** Narrows the pattern's matches when a regex alone cannot tell debt from a legitimate use. */
+  select?: (source: string) => string[]
 }
 
 export interface Exemption {
@@ -87,6 +89,83 @@ function sentence(match: string): string {
   return text.replace(/\s+/g, ' ').trim()
 }
 
+/** The text between a `{` at `open` and the `}` that closes it, skipping strings and template literals. */
+function balanced(source: string, open: number): string | undefined {
+  let depth = 0
+  let quote: string | null = null
+  for (let i = open; i < source.length; i++) {
+    const c = source[i]
+    if (quote) {
+      if (c === '\\') i++
+      else if (c === quote) quote = null
+      continue
+    }
+    if (c === '"' || c === "'" || c === '`') quote = c
+    else if (c === '{' || c === '(' || c === '[') depth++
+    else if (c === '}' || c === ')' || c === ']') {
+      depth--
+      if (depth === 0) return source.slice(open + 1, i)
+    }
+  }
+  return undefined
+}
+
+/** An object literal's entries, split on its top-level commas. */
+function entries(body: string): string[] {
+  const out: string[] = []
+  let depth = 0
+  let quote: string | null = null
+  let start = 0
+  for (let i = 0; i < body.length; i++) {
+    const c = body[i]
+    if (quote) {
+      if (c === '\\') i++
+      else if (c === quote) quote = null
+      continue
+    }
+    if (c === '"' || c === "'" || c === '`') quote = c
+    else if (c === '{' || c === '(' || c === '[') depth++
+    else if (c === '}' || c === ')' || c === ']') depth--
+    else if (c === ',' && depth === 0) {
+      out.push(body.slice(start, i))
+      start = i + 1
+    }
+  }
+  out.push(body.slice(start))
+  return out.map((entry) => entry.trim()).filter(Boolean)
+}
+
+/**
+ * A number (`10`, `.5`, `1e2`, `-0x1f`), a string (escaped quotes allowed), or a
+ * template literal with nothing interpolated: a value a class could carry.
+ */
+const LITERAL =
+  /^(?:[-+]?(?:0[xob][\da-f_]+|(?:\d[\d_]*\.?[\d_]*|\.\d[\d_]*)(?:e[-+]?\d+)?)|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\$]|\\.|\$(?!\{))*`)$/i
+
+/**
+ * The style props that write a fixed value out. `style={{ color: list.color }}`
+ * is what a style prop is for, a value only known at run time, so it is not
+ * counted; `style={{ width: '33%' }}` is a class written the long way, and so is
+ * `style={{ left: x, width: 'auto' }}` (the `left` stays, the `width` should not).
+ * A spread or a shorthand property is computed.
+ */
+export function literalStyleProps(source: string): string[] {
+  const found: string[] = []
+  // JSX allows whitespace around `=` and between the two braces.
+  for (const match of source.matchAll(/\bstyle\s*=\s*\{\s*\{/g)) {
+    const body = balanced(source, match.index! + match[0].length - 1)
+    if (body === undefined) continue
+    const fixed = entries(body).some((entry) => {
+      if (entry.startsWith('...')) return false
+      const colon = entry.indexOf(':')
+      if (colon === -1) return false
+      return LITERAL.test(entry.slice(colon + 1).trim())
+    })
+    if (fixed) found.push(`style={{${body}}}`)
+  }
+  return found
+}
+
 export const METRICS: Metric[] = [
   {
     id: 'rawPaletteClasses',
@@ -124,11 +203,18 @@ export const METRICS: Metric[] = [
   },
   {
     id: 'inlineStyles',
-    what: 'style={{ … }} props',
+    what: 'style={{ … }} props that write a fixed value out',
     instead: 'a class; a style prop is for values computed at run time',
     roots: UI,
     extensions: ['.tsx'],
-    pattern: /style=\{\{/g,
+    pattern: /\bstyle\s*=\s*\{\s*\{/g,
+    select: literalStyleProps,
+    exempt: [
+      {
+        pattern: /^app\/global-error\.tsx$/,
+        reason: "renders in place of the root layout when it fails, so the app's CSS may not have loaded: inline styles are the only styling it can trust",
+      },
+    ],
   },
   {
     id: 'arbitrarySizes',
@@ -201,7 +287,8 @@ export function count(metric: Metric, sources: Array<{ path: string; source: str
   let total = 0
   for (const { path, source } of sources) {
     if (isExempt(metric, path)) continue
-    const matches = withoutComments(source).match(metric.pattern) ?? []
+    const code = withoutComments(source)
+    const matches = metric.select ? metric.select(code) : (code.match(metric.pattern) ?? [])
     total += matches.length
     for (const match of matches) seen.add(metric.pattern === COPY ? sentence(match) : match.replace(/\s+/g, ' ').trim())
   }

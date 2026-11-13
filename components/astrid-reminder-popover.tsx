@@ -198,7 +198,7 @@ export function AstridReminderPopover({
           {/* Astrid with Speech Bubble */}
           <div className="flex items-start space-x-4">
             {/* Astrid Icon - 1/3 of screen width */}
-            <div className="flex-shrink-0" style={{ width: '33%' }}>
+            <div className="flex-shrink-0 w-1/3">
               <img
                 src={BRAND.icon}
                 alt={BRAND.appName}

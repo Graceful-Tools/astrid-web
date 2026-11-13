@@ -36,8 +36,8 @@ export function DesktopSettingsDetailPane({
   if (!shown) return null
   return (
     <div
-      className={`task-panel-desktop scrollbar-hide ${closing ? 'task-panel-animate-out' : 'task-panel-animate'}`}
-      style={{ left: taskPaneLeft - 18, right: 10, width: 'auto' }}
+      className={`task-panel-desktop scrollbar-hide ${closing ? 'task-panel-animate-out' : 'task-panel-animate'} task-panel-desktop-anchored`}
+      style={{ left: taskPaneLeft - 18 }}
     >
       {page && (
         <LazySettingsDetailPanel page={page} onNavigate={onNavigate} onClose={onClose} />

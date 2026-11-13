@@ -196,10 +196,9 @@ Two things are not done, and the register says so:
   made unwell by movement on screen. An app that honours it swaps a slide or a pop for a
   fade or nothing. Only web's checkbox pop checks it so far; every other animation on
   every client still plays.
-- **Web's components do not read these yet** (DS15). Its stylesheets do: nothing in
-  `styles/` or `app/globals.css` writes a duration out, bar one `0s` that is a switch
-  with no duration rather than a design value. Five remain in components
-  (`duration-300` and the like). iOS writes several springs out too.
+- **Web reads them everywhere** (DS15). No stylesheet or component writes a duration
+  out (AWTD-1616); the empty state's entrance, which was `duration-500`, is now
+  `duration-panel`. iOS writes several springs out still.
 
 ### Motion on web
 
@@ -544,9 +543,9 @@ reduction, `npm run design:metrics -- --update` in the same change.
 | Hex colours | 126 | 39 |
 | rgb literals | 101 | 9 |
 | Theme triplets | 119 | 0 |
-| Inline styles | 64 | 56 |
+| Inline styles (fixed values only, since AWTD-1616) | 64 | 0 |
 | Arbitrary sizes | 97 | 96 |
-| Durations | 57 | 4 |
+| Durations | 57 | 0 |
 | Sentences in JSX | 999 | 0* |
 | Distinct sentences in JSX | 802 | 0* |
 
