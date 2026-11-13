@@ -135,7 +135,7 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
 
           {showInstructionPreview ? (
             <div
-              className="w-full theme-comment-bg theme-border border rounded-lg px-3 py-2 min-h-[120px] prose prose-sm max-w-none theme-text-primary"
+              className="w-full theme-comment-bg theme-border border rounded-lg px-3 py-2 min-h-32 prose prose-sm max-w-none theme-text-primary"
               dangerouslySetInnerHTML={{ __html: renderMarkdown(tempListDescription || t("listSettings.admin.noInstructionsYet")) }}
             />
           ) : (
@@ -221,7 +221,7 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
         </div>
       ) : (
         <div
-          className="theme-text-primary cursor-pointer hover:theme-bg-hover p-2 rounded border border-transparent hover:theme-border min-h-[2.5rem] flex items-start"
+          className="theme-text-primary cursor-pointer hover:theme-bg-hover p-2 rounded border border-transparent hover:theme-border min-h-10 flex items-start"
           onClick={() => {
             ;(window as unknown as { _lastFocusTime?: number })._lastFocusTime = Date.now()
             session.beginEditing(editorId)

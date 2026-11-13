@@ -283,7 +283,7 @@ export function OAuthScopeGroupDialog({
                       <label htmlFor={`scope-edit-${scope}`} className="text-sm cursor-pointer flex-1">
                         <code className="text-xs">{scope}</code>
                         {groupScopes.includes(scope) && !held.has(scope) && (
-                          <Badge variant="outline" className="ml-2 text-[10px] text-warning">
+                          <Badge variant="outline" className="ml-2 text-caption2 text-warning">
                             {t(`${PREFIX}.notGranted`)}
                           </Badge>
                         )}

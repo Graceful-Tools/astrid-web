@@ -187,7 +187,7 @@ export function TimePicker({
                 ? "h-8 px-2 text-sm" 
                 : "h-9 px-3"
             } ${!value && "text-muted-foreground"} ${
-              mode === "string" ? "w-auto min-w-[120px]" : ""
+              mode === "string" ? "w-auto min-w-32" : ""
             }`}
           >
             <Clock className="mr-2 h-4 w-4" />

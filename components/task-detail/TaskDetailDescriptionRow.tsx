@@ -59,7 +59,7 @@ export function TaskDetailDescriptionRow({
             value={tempDescription}
             onChange={(e) => setTempDescription(e.target.value)}
             placeholder={t('tasks.placeholder.description')}
-            className="w-full theme-comment-bg theme-border border theme-text-primary rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent text-base min-h-[80px] overflow-hidden"
+            className="w-full theme-comment-bg theme-border border theme-text-primary rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent text-base min-h-20 overflow-hidden"
             autoComplete="off"
             spellCheck={true}
             autoCapitalize="sentences"

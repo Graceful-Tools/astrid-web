@@ -15,7 +15,7 @@ interface ProfileImageProps {
 }
 
 const sizeMap = {
-  xs: { dimension: 24, text: "text-[10px]" },
+  xs: { dimension: 24, text: "text-caption2" },
   sm: { dimension: 32, text: "text-xs" },
   md: { dimension: 40, text: "text-sm" },
   lg: { dimension: 64, text: "text-base" },
