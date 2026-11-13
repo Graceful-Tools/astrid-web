@@ -111,6 +111,53 @@ describe('SSE Manager', () => {
     }
   })
 
+  describe('one stream however many subscribe at once (AWTD-1624)', () => {
+    it('opens a single EventSource when several components subscribe in the same tick', async () => {
+      // connect() awaited getSession() before claiming isConnecting, so every
+      // subscriber that mounted before the first session read returned started
+      // its own connect: six /api/sse opens on one page load in CI. Each closed
+      // the one before it, but a service worker held them all open (see
+      // tests/lib/sw-event-stream-bypass.test.ts) and the page ran out of
+      // connections.
+      const opened: string[] = []
+      const Original = global.EventSource
+      global.EventSource = class extends MockEventSource {
+        constructor(url: string) {
+          super(url)
+          opened.push(url)
+        }
+      } as any
+
+      try {
+        const unsubscribers = ['TaskList', 'Sidebar', 'CacheSync', 'Chat', 'Notifications', 'Reminders']
+          .map(name => SSEManager.subscribe(['task_updated'], vi.fn(), name))
+        await new Promise(resolve => setTimeout(resolve, 30))
+
+        expect(opened).toHaveLength(1)
+        expect(getSession).toHaveBeenCalledTimes(1)
+        expect(SSEManager.isConnected).toBe(true)
+
+        unsubscribers.forEach(unsubscribe => unsubscribe())
+      } finally {
+        global.EventSource = Original
+      }
+    })
+
+    it('can connect again after a session read that found no user', async () => {
+      vi.mocked(getSession).mockResolvedValueOnce(null as any)
+      const unsubscribe = SSEManager.subscribe(['task_updated'], vi.fn(), 'SignedOut')
+      await new Promise(resolve => setTimeout(resolve, 5))
+      expect(SSEManager.isConnecting).toBe(false)
+      expect(SSEManager.eventSource).toBeNull()
+      unsubscribe()
+
+      const again = SSEManager.subscribe(['task_updated'], vi.fn(), 'SignedIn')
+      await new Promise(resolve => setTimeout(resolve, 30))
+      expect(SSEManager.isConnected).toBe(true)
+      again()
+    })
+  })
+
   describe('Subscription Management', () => {
     it('should create a subscription and return unsubscribe function', async () => {
       const callback = vi.fn()

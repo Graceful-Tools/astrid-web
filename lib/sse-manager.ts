@@ -136,26 +136,31 @@ class SSEManagerClass {
       return
     }
 
+    // Claimed BEFORE the session read (AWTD-1624). Claimed after it, every
+    // component that subscribed while the read was in flight started its own
+    // connect, and one page load opened six EventSources.
+    this.isConnecting = true
+
     // Check if user is authenticated - with error handling
     let session
     try {
       session = await getSession()
     } catch (error) {
       log.warn({ error }, '🔗 [SSE Manager] Failed to get session, retrying in 2s:')
+      this.isConnecting = false
       // Retry session fetch after a short delay
       setTimeout(() => this.connect(), 2000)
       return
     }
 
     if (!session?.user) {
+      this.isConnecting = false
       // Only log in development - this is expected for logged-out users
       if (process.env.NODE_ENV === 'development') {
         log.info('🔗 [SSEManager] No session/user, skipping SSE connection')
       }
       return
     }
-
-    this.isConnecting = true
 
     // Close existing connection if any
     if (this.eventSource) {
