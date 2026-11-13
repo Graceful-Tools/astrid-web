@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import { escapeEmailHtml } from '@/lib/email-html'
 import { BRAND } from '@/lib/brand/config'
+import { DARK_PAGE_PALETTE } from '@/lib/design/email-palette'
 
 /**
  * The bare 404 page, shared by its two renderers (AWTD-1599).
@@ -21,16 +22,16 @@ export const NOT_FOUND_STYLES = {
   body: { margin: 0, fontFamily: 'system-ui, sans-serif' },
   shell: {
     minHeight: '100vh',
-    backgroundColor: '#000',
+    backgroundColor: DARK_PAGE_PALETTE.bgPrimary,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     padding: '1rem',
   },
   center: { textAlign: 'center' },
-  code: { fontSize: '3.75rem', fontWeight: 'bold', color: '#fff', marginBottom: '1rem' },
-  title: { fontSize: '1.5rem', fontWeight: '600', color: '#d1d5db', marginBottom: '1rem' },
-  description: { color: '#9ca3af', marginBottom: '2rem' },
+  code: { fontSize: '3.75rem', fontWeight: 'bold', color: DARK_PAGE_PALETTE.text, marginBottom: '1rem' },
+  title: { fontSize: '1.5rem', fontWeight: '600', color: DARK_PAGE_PALETTE.textSecondary, marginBottom: '1rem' },
+  description: { color: DARK_PAGE_PALETTE.textMuted, marginBottom: '2rem' },
   home: {
     display: 'inline-flex',
     alignItems: 'center',
@@ -38,7 +39,7 @@ export const NOT_FOUND_STYLES = {
     padding: '0.75rem 1.5rem',
     // The brand's accent, so a partner's 404 is theirs and not Astrid blue.
     backgroundColor: BRAND.accentColor,
-    color: '#fff',
+    color: DARK_PAGE_PALETTE.accentText,
     fontWeight: '500',
     borderRadius: '0.75rem',
     textDecoration: 'none',

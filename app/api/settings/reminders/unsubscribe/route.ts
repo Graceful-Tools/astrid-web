@@ -1,5 +1,6 @@
 import { BRAND } from '@/lib/brand/config'
 import { accentGradientStops } from '@/lib/brand/colors'
+import { EMAIL_PALETTE } from '@/lib/design/email-palette'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
@@ -57,8 +58,8 @@ export async function GET(request: NextRequest) {
           body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
-            color: #1f2937;
-            background-color: #f9fafb;
+            color: ${EMAIL_PALETTE.text};
+            background-color: ${EMAIL_PALETTE.bgSecondary};
             margin: 0;
             padding: 40px 20px;
             display: flex;
@@ -75,12 +76,12 @@ export async function GET(request: NextRequest) {
             text-align: center;
           }
           h1 {
-            color: #1f2937;
+            color: ${EMAIL_PALETTE.text};
             font-size: 24px;
             margin-bottom: 16px;
           }
           p {
-            color: #6b7280;
+            color: ${EMAIL_PALETTE.textMuted};
             font-size: 16px;
             margin-bottom: 24px;
           }
