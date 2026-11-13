@@ -49,6 +49,7 @@ interface BrandProfile {
   name: string
   description: string
   env: Record<string, string>
+  android?: { accentColor?: string }
   copy?: { reminders?: Record<string, string[]>; defaultLists?: Record<string, unknown> }
   expect: {
     appName: string
@@ -294,6 +295,22 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
   afterEach(() => {
     process.env = { ...ORIGINAL_ENV }
     vi.resetModules()
+  })
+
+  it('has an accent a white label reads on, 4.5:1 (AWTD-1623, astrid-core DS26)', async () => {
+    // accent-text is white in every theme, so an accent white cannot be read on
+    // is not a brand accent. astrid-core's gen-brand refuses such a profile; Acme
+    // shipped #a855f7 (3.96:1) because nothing here checked a partner's accent.
+    const { contrast } = await import('@/lib/design/contrast')
+    const { hexToRgbTriplet } = await import('@/lib/brand/colors')
+    const accents = new Set([profile.expect.accentColor, profile.env.NEXT_PUBLIC_BRAND_ACCENT_COLOR, profile.android?.accentColor])
+    for (const accent of accents) {
+      if (!accent) continue
+      const triplet = hexToRgbTriplet(accent)
+      expect(triplet, `${accent} is not #rrggbb`).not.toBeNull()
+      const rgb = triplet!.split(', ').map(Number) as [number, number, number]
+      expect(contrast(rgb, [255, 255, 255]), `white on ${accent}`).toBeGreaterThanOrEqual(4.5)
+    }
   })
 
   it('names this profile’s operator on every legal and help page (AWTD-1584)', async () => {

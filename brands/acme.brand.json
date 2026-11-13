@@ -8,7 +8,7 @@
     "NEXT_PUBLIC_BRAND_DOMAIN": "tasks.acme.example",
     "NEXT_PUBLIC_BRAND_SUPPORT_EMAIL": "helpdesk@acme.example",
     "NEXT_PUBLIC_BRAND_INBOUND_TASK_EMAIL": "todo@acme.example",
-    "NEXT_PUBLIC_BRAND_ACCENT_COLOR": "#a855f7",
+    "NEXT_PUBLIC_BRAND_ACCENT_COLOR": "#7e22ce",
     "NEXT_PUBLIC_BRAND_AGENT_NAME": "Acme Assistant",
     "BRAND_AGENT_EMAIL_DOMAIN": "agents.acme.example",
     "BRAND_ENABLED_AGENTS": "claude",
@@ -54,7 +54,7 @@
     "supportEmail": "helpdesk@acme.example",
     "inboundTaskEmail": "todo@acme.example",
     "agentEmailDomain": "agents.acme.example",
-    "accentColor": "#a855f7"
+    "accentColor": "#7e22ce"
   },
   "vscode": {
     "publisher": "acme",
@@ -80,7 +80,7 @@
     "agentEmailDomain": "agents.acme.example",
     "supportEmail": "helpdesk@acme.example",
     "inboundTaskEmail": "todo@acme.example",
-    "accentColor": "#a855f7",
+    "accentColor": "#7e22ce",
     "enabledAgents": [
       "astrid",
       "claude"

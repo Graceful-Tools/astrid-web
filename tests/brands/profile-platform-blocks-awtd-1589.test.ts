@@ -34,7 +34,7 @@ describe('platform blocks in a brand profile (AWTD-1589)', () => {
   })
 
   it('accepts Android values under brand.properties names', () => {
-    const profile = parseBrandProfile({ ...BASE, android: { applicationId: 'example.acme.tasks', accentColor: '#a855f7' } })
+    const profile = parseBrandProfile({ ...BASE, android: { applicationId: 'example.acme.tasks', accentColor: '#7e22ce' } })
     expect(profile.android?.applicationId).toBe('example.acme.tasks')
   })
 
