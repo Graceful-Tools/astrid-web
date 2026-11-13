@@ -184,7 +184,9 @@
       "preview": "Anteprima:",
       "repeatFromCompletionHint": "La prossima occorrenza si basa su quando completi l'attività",
       "repeatFromDueHint": "La prossima occorrenza si basa sulla data di scadenza originale",
-      "descriptionKeysHint": "Premi Invio per salvare • Maiusc+Invio per andare a capo"
+      "descriptionKeysHint": "Premi Invio per salvare • Maiusc+Invio per andare a capo",
+      "descriptionPreview": "Anteprima",
+      "expandDescription": "Espandi descrizione"
     },
     "commentsSection": {
       "addPlaceholder": "Aggiungi un commento...",
