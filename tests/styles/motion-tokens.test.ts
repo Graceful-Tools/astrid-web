@@ -11,6 +11,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { designTokens } from '@/lib/design/tokens'
+import { PANEL_MOTION_MS } from '@/lib/design/motion-tokens'
 import { MOTION_NAMES } from '@/lib/design/tailwind-theme'
 import { METRICS, withoutComments } from '@/scripts/report-design-metrics'
 
@@ -66,7 +67,8 @@ describe('stylesheets animate with the motion tokens (AWTD-1574)', () => {
     expect(read('styles', 'components.css')).toContain(
       'transition: transform var(--astrid-motion-panel-duration) var(--astrid-motion-panel-ease);',
     )
-    expect(read('hooks', 'useTaskManagerLayout.ts')).toContain('}, designTokens.motion.panel.ms)')
+    expect(read('hooks', 'useTaskManagerLayout.ts')).toContain('}, PANEL_MOTION_MS)')
+    expect(PANEL_MOTION_MS).toBe(designTokens.motion.panel.ms)
   })
 })
 
