@@ -115,7 +115,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'RESEND_WEBHOOK_SECRET', scope: 'optional', description: 'Svix signing secret (whsec_…) verifying inbound Resend email-to-task webhooks. Without it the route rejects everything.' },
   { name: 'MAILGUN_WEBHOOK_SIGNING_KEY', scope: 'optional', description: 'Verifies inbound Mailgun email-to-task webhooks. Without it the route rejects everything.' },
   { name: 'CLOUDFLARE_EMAIL_WEBHOOK_SECRET', scope: 'optional', description: 'Verifies inbound Cloudflare Email Routing webhooks.' },
-  { name: 'FEATURE_REQUEST_EMAIL', scope: 'optional', description: 'Recipient for feature-access requests.', validate: isEmail },
+  { name: 'FEATURE_REQUEST_EMAIL', scope: 'optional', description: 'Recipient for feature-access requests. Unset: the brand support address; a partner with no support address of its own sends none (AWTD-1640).', validate: isEmail },
 
   // ── Scheduled jobs ────────────────────────────────────────────────────────
   { name: 'CRON_SECRET', scope: 'required', description: 'REQUIRED: lib/cron-auth.ts fails closed, so all five cron routes 401 without it — no reminders, digests, analytics, sync or upload cleanup.' },
@@ -269,7 +269,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'ASTRID_RUNTIME_BRAND', scope: 'optional', description: 'true in an image that takes its brand at runtime (the self-hosted image sets it at build and start): pages render per request and the brand reaches the browser from the server. Unset on the hosted deployment.' },
   { name: 'BRAND_PROFILE', scope: 'optional', description: 'Self-hosted image: path to a mounted brands/*.brand.json, applied at container start (deploy/self-host/load-env.mjs).' },
   { name: 'BRAND_ASSETS_DIR', scope: 'optional', description: 'Self-hosted image: a mounted directory served at /brand-assets/, for a partner logo and source icon without a rebuild.' },
-  { name: 'NEXT_PUBLIC_BRAND_OPERATOR_NAME', scope: 'optional', description: 'Legal entity named in the Terms, Privacy Policy and copyright line. Unset: the default operator while the app keeps its default name, the brand name for a partner.' },
+  { name: 'NEXT_PUBLIC_BRAND_OPERATOR_NAME', scope: 'optional', description: 'Legal entity named in the Terms, Privacy Policy and copyright line. Unset: the default operator while the deployment keeps the default name and domain; for a partner, no operator is named and the copyright line is left out (AWTD-1640).' },
   { name: 'NEXT_PUBLIC_BRAND_TERMS_URL', scope: 'optional', description: "The operator's own Terms of Service URL. Unset serves the built-in /terms page.", validate: isUrl },
   { name: 'NEXT_PUBLIC_BRAND_PRIVACY_URL', scope: 'optional', description: "The operator's own Privacy Policy URL. Unset serves the built-in /privacy page.", validate: isUrl },
   { name: 'NEXT_PUBLIC_BRAND_COPY', scope: 'optional', description: 'JSON overriding the brand voice — reminder nags and default-list captions.' },
