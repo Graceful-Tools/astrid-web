@@ -197,10 +197,10 @@ export function SecureAttachmentViewer({
         >
           <div
             // The viewer is dark in every theme, by design: media is looked at on
-            // black, so its greys and the file-type icon colours stay literal.
+            // black (surface-inverse), and `dark` makes the tokens inside answer as Dark.
             className={cn(
               // `dark`: this panel is dark in every theme, so tokens inside it answer as Dark.
-              "dark relative bg-gray-900 rounded-lg overflow-hidden flex flex-col",
+              "dark relative bg-theme-inverse rounded-lg overflow-hidden flex flex-col",
               // iPad: Use contained modal (not full screen) for better UX
               isIPadDevice()
                 ? "w-[90vw] h-[85vh] max-w-4xl"
@@ -211,18 +211,18 @@ export function SecureAttachmentViewer({
             {fileInfo ? (
               <>
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-900 flex-shrink-0">
+                <div className="flex items-center justify-between p-4 border-b border-theme bg-theme-inverse flex-shrink-0">
                   <div className="flex items-center space-x-3 min-w-0 flex-1">
                     {isImage ? (
                       <ImageIcon className="w-5 h-5 text-brand flex-shrink-0" />
                     ) : isVideo ? (
-                      <Play className="w-5 h-5 text-purple-400 flex-shrink-0" />
+                      <Play className="w-5 h-5 text-category-purple flex-shrink-0" />
                     ) : (
-                      <FileText className="w-5 h-5 text-green-400 flex-shrink-0" />
+                      <FileText className="w-5 h-5 text-category-green flex-shrink-0" />
                     )}
                     <div className="min-w-0 flex-1">
                       <h2 className="text-white font-medium text-lg truncate">{displayName}</h2>
-                      <p className="text-gray-400 text-sm">
+                      <p className="text-theme-muted text-sm">
                         {fileInfo.mimeType} • {(fileInfo.fileSize / 1024 / 1024).toFixed(2)} MB
                       </p>
                     </div>
@@ -234,18 +234,18 @@ export function SecureAttachmentViewer({
                           size="sm"
                           variant="ghost"
                           onClick={() => setZoom(Math.max(0.1, zoom - 0.2))}
-                          className="text-gray-400 hover:text-white hidden sm:inline-flex"
+                          className="text-theme-muted hover:text-white hidden sm:inline-flex"
                         >
                           <ZoomOut className="w-4 h-4" />
                         </Button>
-                        <span className="text-gray-400 text-sm min-w-[3rem] text-center hidden sm:inline">
+                        <span className="text-theme-muted text-sm min-w-[3rem] text-center hidden sm:inline">
                           {Math.round(zoom * 100)}%
                         </span>
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => setZoom(Math.min(3, zoom + 0.2))}
-                          className="text-gray-400 hover:text-white hidden sm:inline-flex"
+                          className="text-theme-muted hover:text-white hidden sm:inline-flex"
                         >
                           <ZoomIn className="w-4 h-4" />
                         </Button>
@@ -253,7 +253,7 @@ export function SecureAttachmentViewer({
                           size="sm"
                           variant="ghost"
                           onClick={() => setRotation((rotation + 90) % 360)}
-                          className="text-gray-400 hover:text-white hidden sm:inline-flex"
+                          className="text-theme-muted hover:text-white hidden sm:inline-flex"
                         >
                           <RotateCcw className="w-4 h-4" />
                         </Button>
@@ -264,7 +264,7 @@ export function SecureAttachmentViewer({
                             setZoom(1)
                             setRotation(0)
                           }}
-                          className="text-gray-400 hover:text-white hidden sm:inline-flex"
+                          className="text-theme-muted hover:text-white hidden sm:inline-flex"
                         >
                           {t('actions.reset')}
                         </Button>
@@ -274,7 +274,7 @@ export function SecureAttachmentViewer({
                       size="sm"
                       variant="ghost"
                       onClick={handleDownload}
-                      className="text-gray-400 hover:text-white"
+                      className="text-theme-muted hover:text-white"
                       title={t('actions.download')}
                     >
                       <Download className="w-4 h-4" />
@@ -283,7 +283,7 @@ export function SecureAttachmentViewer({
                       size="sm"
                       variant="ghost"
                       onClick={() => setIsModalOpen(false)}
-                      className="text-gray-400 hover:text-white"
+                      className="text-theme-muted hover:text-white"
                       title={t('attachmentViewer.closeEsc')}
                     >
                       <X className="w-4 h-4" />
@@ -292,7 +292,7 @@ export function SecureAttachmentViewer({
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-hidden bg-gray-800 flex items-center justify-center">
+                <div className="flex-1 overflow-hidden bg-theme-secondary flex items-center justify-center">
                   {isImage ? (
                     <div className="w-full h-full flex items-center justify-center p-4">
                       <img
@@ -316,12 +316,12 @@ export function SecureAttachmentViewer({
                     </div>
                   ) : (
                     <div className="text-center p-8">
-                      <FileText className="w-20 h-20 text-gray-400 mx-auto mb-6" />
+                      <FileText className="w-20 h-20 text-theme-muted mx-auto mb-6" />
                       <h3 className="text-white text-xl font-medium mb-2">{displayName}</h3>
-                      <p className="text-gray-400 text-sm mb-6">
+                      <p className="text-theme-muted text-sm mb-6">
                         {fileInfo.mimeType} • {(fileInfo.fileSize / 1024 / 1024).toFixed(2)} MB
                       </p>
-                      <p className="text-gray-400 mb-8">
+                      <p className="text-theme-muted mb-8">
                         {t('attachmentViewer.noPreview')}
                       </p>
                       <Button
