@@ -109,8 +109,13 @@ operator (AWTD-1584), and the 404 is localized (AWTD-1599).
 | Privacy and Terms | 48 |
 | Product screens | 9 |
 
-How these pages should be treated is Jon's decision, still open. The recommendation is to
-translate Help, keep legal text and developer docs in English, and stop counting internal tools.
+**Then (AWTD-1613):** the recommended option was taken. Help, the legal-page footer links and the
+crash page (`app/global-error.tsx`, through a static lookup because it renders without the
+providers) are translated in all twelve locales. Privacy, Terms and the developer docs stay in
+English, and internal tools are no longer counted: each is an `exempt` pattern with its reason in
+`scripts/report-design-metrics.ts`. An example URL in a placeholder no longer counts as a sentence.
+Both copy budgets are now 0. Translating the legal text as well would mean removing that exemption
+and having the translations reviewed, not machine-made.
 The count also misses copy that doesn't match its pattern (text built in code, toast
 messages), so English seen on a German screen is checked separately (AWTD-1601).
 
@@ -159,8 +164,8 @@ The ratchet can't see these rows: they're differences in layout, not hand-writte
 
 1. **[design] The last 197 palette classes** (AWTD-1612): needs a categorical icon palette and
    an agent ink colour in astrid-core first.
-2. **[i18n] The last 438 sentences** (AWTD-1613): translate Help; the rest depends on the open
-   decision.
+2. **[i18n] The last 438 sentences** (AWTD-1613): done. Help translated; legal, developer docs
+   and internal tools exempt with reasons; both copy budgets at 0.
 3. **[design] The 105 hex colours** (AWTD-1614): a token-backed palette module for email HTML
    and server-rendered pages.
 4. **[design] The 96 arbitrary sizes** (AWTD-1615): move them onto the type, spacing and radius

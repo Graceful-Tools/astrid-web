@@ -2440,7 +2440,9 @@
     "linkResolveFailed": "解析链接失败",
     "linkTaskNotFound": "任务不存在或已无法访问",
     "linkTaskForbidden": "你没有查看此任务的权限",
-    "linkInvalidType": "链接类型无效"
+    "linkInvalidType": "链接类型无效",
+    "globalErrorTitle": "出了点问题",
+    "globalErrorDescription": "发生了严重错误。请尝试刷新页面。"
   },
   "profilePage": {
     "loading": "正在加载个人资料...",
@@ -2668,5 +2670,93 @@
       "theAssignee": "负责人",
       "confirm": "移至等待"
     }
+  },
+  "helpPage": {
+    "title": "帮助与故障排除",
+    "intro": "大多数问题都可以通过刷新数据解决。请先尝试简单的方法，再进行更高级的步骤。",
+    "iosApp": "iOS 应用",
+    "webApp": "网页版",
+    "levels": {
+      "simple": "简单",
+      "simpleHint": "先试试这些",
+      "intermediate": "进阶",
+      "intermediateHint": "如果简单步骤无效",
+      "advanced": "高级",
+      "advancedHint": "最后的办法"
+    },
+    "signOutTitle": "退出登录后重新登录",
+    "ios": {
+      "pullToRefreshTitle": "下拉刷新",
+      "pullToRefreshBody": "在任务列表中从顶部向下拉，强制与服务器同步。这能解决大多数同步问题。",
+      "forceQuitTitle": "强制退出并重新打开",
+      "forceQuitBody": "从屏幕底部向上轻扫（或连按两次主屏幕按钮），将 {appName} 向上滑走，然后重新打开应用。",
+      "signOutBody": "前往<b>设置</b>（在侧边栏中轻点你的个人资料）→ <b>账户</b> → <b>退出登录</b>。然后用同一个账户重新登录。",
+      "connectionTitle": "检查网络连接",
+      "connectionBody": "{appName} 可以离线使用，但同步需要联网。请确保已连接到 WiFi 或蜂窝数据。",
+      "reinstallTitle": "删除并重新安装应用",
+      "reinstallBody": "这会清除所有本地数据和缓存。你的任务保存在我们的服务器上，因此不会丢失任何内容。长按应用图标 → 移除 App → 删除 App，然后从 App Store 重新安装。",
+      "restartTitle": "重启设备",
+      "restartBody": "有时完整重启设备可以解决顽固问题。"
+    },
+    "web": {
+      "refreshTitle": "刷新页面",
+      "refreshBody": "按 <kbd>F5</kbd> 或 <kbd>Cmd+R</kbd>（Mac）/ <kbd>Ctrl+R</kbd>（Windows）重新加载页面。",
+      "hardRefreshTitle": "强制刷新",
+      "hardRefreshBody": "按住 <kbd>Shift</kbd> 并点击刷新，或按 <kbd>Cmd+Shift+R</kbd>（Mac）/ <kbd>Ctrl+Shift+R</kbd>（Windows）。这会跳过缓存。",
+      "signOutBody": "点击侧边栏中的头像 → <b>设置</b> → <b>账户</b> → <b>退出登录</b>。然后重新登录。",
+      "browserTitle": "换一个浏览器试试",
+      "browserBody": "如果在某个浏览器中遇到问题，请试试 Chrome、Firefox、Safari 或 Edge。这有助于判断是否是浏览器本身的问题。",
+      "extensionsTitle": "停用浏览器扩展",
+      "extensionsBody": "广告拦截器或隐私扩展有时会造成干扰。请暂时停用它们，或使用无痕/隐私窗口。",
+      "clearCacheTitle": "清除 {appName} 的浏览器缓存和 Cookie",
+      "clearCacheChrome": "<b>Chrome：</b>设置 → 隐私 → 清除浏览数据 → 选择“Cookie”和“缓存的图片”",
+      "clearCacheSafari": "<b>Safari：</b>偏好设置 → 隐私 → 管理网站数据 → 搜索“{brandDomain}”→ 移除",
+      "clearCacheFirefox": "<b>Firefox：</b>设置 → 隐私 → 清除数据 → 选择 Cookie 和缓存",
+      "indexedDbTitle": "清除 IndexedDB 存储",
+      "indexedDbBody": "在 Chrome 中：打开开发者工具（F12）→ Application 标签 → Storage → IndexedDB → 右键点击 {wordmark} 条目 → Delete database。然后刷新页面。"
+    },
+    "decisionsTitle": "请别人做选择",
+    "commonIssuesTitle": "常见问题",
+    "issues": {
+      "counts": {
+        "title": "任务数量显示为 0 或不正确",
+        "intro": "任务数量是根据已同步的数据计算的。如果数量看起来不对：",
+        "step1": "下拉刷新（iOS）或强制刷新页面（网页版）",
+        "step2": "等待几秒钟，直到同步完成",
+        "step3": "如果仍然不正确，退出登录后重新登录"
+      },
+      "sync": {
+        "title": "任务没有在设备之间同步",
+        "intro": "同步会自动进行，但可能需要几秒钟。要强制同步：",
+        "step1": "确保两台设备都已联网",
+        "step2": "在 iOS 上：下拉刷新",
+        "step3": "在网页版上：刷新页面",
+        "step4": "更改应在 5-10 秒内显示"
+      },
+      "slow": {
+        "title": "应用很慢或无响应",
+        "intro": "性能问题通常由缓存数据或打开的浏览器标签过多引起。请尝试：",
+        "step1": "关闭其他标签页和应用",
+        "step2": "强制退出并重新打开应用（iOS）",
+        "step3": "清除浏览器缓存（网页版）",
+        "step4": "如果问题持续，重新安装应用（iOS）"
+      },
+      "signIn": {
+        "title": "无法登录或出现身份验证错误",
+        "intro": "身份验证问题可能由会话过期或浏览器设置引起：",
+        "step1": "确保浏览器已启用 Cookie",
+        "step2": "尝试在无痕/隐私窗口中登录",
+        "step3": "单独清除 {brandDomain} 的 Cookie",
+        "step4": "如果使用通行密钥，请确保你的设备支持"
+      }
+    },
+    "stillNeedHelpTitle": "仍需帮助？",
+    "stillNeedHelpBody": "如果这些方法都不管用，我们随时为你提供帮助。",
+    "contactSupport": "联系支持"
+  },
+  "legalPages": {
+    "termsOfService": "服务条款",
+    "privacyPolicy": "隐私政策",
+    "backToHome": "返回首页"
   }
 }
