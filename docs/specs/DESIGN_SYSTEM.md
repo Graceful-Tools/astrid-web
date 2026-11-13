@@ -275,8 +275,9 @@ how it looks.
 | **Trade-off grid** | each rated cell sits on its rating's fill (`palette.tradeoff`, worst to best: dark red, light red, yellow, light green, dark green) with that fill's text colour (`palette.tradeoff-text`: white on the two dark fills). The same five in every theme. Cells are `tradeoff-cell-min` to `tradeoff-cell-max` wide (84-150), separated by `tradeoff-gap` instead of grid lines, with radius `tradeoff-cell-radius`. The key under the grid shows a `tradeoff-swatch` square per rating used, named in words. The traffic-light emoji (🔴 🟡 🟢) are the same poor, mixed and good ratings and draw on the same fills |
 | **Decision card** | radius `decision-card-radius` (10), a `decision-badge` (24) circle with the option's number in the accent, a 1 pt border that becomes 2 pt in the accent when chosen; cards that can no longer be chosen dim to `state.disabled-opacity` |
 
-Web reads the rating fills and text from the tokens. Its gap (4), cell radius (6) and
-swatch (12) differ from iOS's (register DS23), and heading sizes are not tokens yet (DS24).
+Web reads the rating fills and text, the grid's gap, cell widths and radius, the key's
+swatch, and the card's radius and number badge from the tokens (`app/globals.css`; DS23,
+AWTD-1617). Heading sizes are not tokens yet (DS24).
 
 ### Still to write
 

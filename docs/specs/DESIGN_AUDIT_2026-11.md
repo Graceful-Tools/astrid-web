@@ -131,11 +131,11 @@ Status of web's rows on 2026-11-12:
 | DS16 completion pop | Takes it at the next vendored copy |
 | DS17 reduced motion | Closed (AWTD-1617): one rule stops transitions and animations; script scrolls read `lib/design/reduced-motion.ts` |
 | DS18 completed row | Closed (AWTD-1617): the row is no longer dimmed |
-| DS19 title wrap setting | Open: web takes it now |
+| DS19 title wrap setting | Closed: "Task titles" in Appearance (wrap, two lines, one line), PR #701 |
 | DS20 hairline | Closed (AWTD-1617): `border` is 0.5 on high-density screens |
 | DS21 checkbox art | Accepted; drawn from the priority tokens since AWTD-1581 |
 | DS22 priority glyphs as text | Open in core (text variants of the priority colours) |
-| DS23 Decision grid | Open: gap, radius and swatch differ |
+| DS23 Decision grid | Closed (AWTD-1617): gap 3, cell radius 4, swatch 10, card radius 10 and a 24 badge, from `markdown` |
 | DS24 Markdown headings | Open: sizes written out until they join `type` |
 | DS25 / DS26 inks and fills | Adopted (PRs #716, #730) |
 
