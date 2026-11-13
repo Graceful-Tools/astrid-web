@@ -1,6 +1,7 @@
 "use client"
 
 import { BRAND } from '@/lib/brand/config'
+import { SpeechBubbleTail } from '@/components/ui/speech-bubble-tail'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -242,9 +243,7 @@ export function ReminderNotification({
             {/* Speech Bubble */}
             <div className="flex-1">
               <div className="relative theme-bg-secondary rounded-2xl p-4 border-2 theme-border shadow-lg">
-                {/* Comic-style speech bubble pointer */}
-                <div className="absolute -left-3 top-6 w-0 h-0 border-t-[12px] border-t-transparent border-r-[16px] border-r-theme border-b-[12px] border-b-transparent"></div>
-                <div className="absolute -left-[10px] top-[27px] w-0 h-0 border-t-[9px] border-t-transparent border-r-[13px] border-b-[9px] border-b-transparent speech-bubble-arrow-fill"></div>
+                <SpeechBubbleTail />
                 <p className="text-base font-semibold theme-text-primary leading-relaxed">{quote}</p>
               </div>
             </div>

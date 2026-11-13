@@ -118,7 +118,7 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
                   value={dialogDescription}
                   onChange={(e) => setDialogDescription(e.target.value)}
                   placeholder={t('lists.descriptionDialogPlaceholder')}
-                  className="w-full theme-comment-bg theme-border border theme-text-primary rounded-lg px-3 py-2 resize-vertical focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent font-mono text-sm min-h-[200px]"
+                  className="w-full theme-comment-bg theme-border border theme-text-primary rounded-lg px-3 py-2 resize-vertical focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent font-mono text-sm min-h-52"
                   rows={12}
                   autoFocus
                 />

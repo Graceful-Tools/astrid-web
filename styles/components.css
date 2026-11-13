@@ -95,6 +95,13 @@
      tokens' damping wherever a spring duration is used (the checkbox pop, a row
      springing back from a press). Web-only, named once. */
   --motion-spring-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Web-only layout widths, named once (AWTD-1615) and read as `min-w-pane-min`
+     and `w-popover-wide` (lib/design/tailwind-theme.ts). The narrowest a second
+     pane (chat, the settings placeholder) may get beside the list; the width of
+     the notifications popover. */
+  --pane-min-width: 280px;
+  --popover-wide-width: 22rem;
 }
 
 /* Lock document-level scrolling. The app shell (.app-container) and inner
@@ -469,6 +476,36 @@ html, body {
   max-height: 200px;
   overflow: hidden;
   font-size: 16px;
+}
+
+/* The comic speech bubble's tail, pointing left at Astrid (AWTD-1615): one
+   shape for the reminder popover, the reminder notification and the empty
+   state. Two triangles, the outline (border-r-theme) and the fill drawn inside
+   it (speech-bubble-arrow-fill, per theme), sized for a border-2 bubble.
+   components/ui/speech-bubble-tail.tsx draws both. */
+.speech-bubble-tail {
+  position: absolute;
+  z-index: 10;
+  top: 1.5rem;
+  left: -16px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 12px 16px 12px 0;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.speech-bubble-tail.speech-bubble-tail-fill {
+  top: 27px;
+  left: -12px;
+  border-width: 9px 13px 10px 0;
+}
+
+/* The settings placeholder's smaller, fill-only tail, for its 1px bubble. */
+.speech-bubble-tail.speech-bubble-tail-small {
+  left: -14px;
+  border-width: 10px 14px 10px 0;
 }
 
 /* The quick-add and comment composers grow with their text up to about five

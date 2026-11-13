@@ -345,7 +345,7 @@ export const RichTextInput = React.memo(function RichTextInput({
           ref={dropdownRef}
           className="absolute bottom-full left-0 right-0 mb-1 theme-bg-primary border theme-border rounded-lg shadow-lg max-h-48 overflow-y-auto z-10"
         >
-          <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider theme-text-muted border-b theme-border">
+          <div className="px-3 py-1.5 text-caption2 font-semibold uppercase tracking-wider theme-text-muted border-b theme-border">
             {autocompleteType === 'mention' && t('richTextInput.people')}
             {autocompleteType === 'list' && t('navigation.lists')}
             {autocompleteType === 'task' && t('tasks.tasks')}
@@ -365,7 +365,7 @@ export const RichTextInput = React.memo(function RichTextInput({
               <div className="flex-1 min-w-0">
                 <span className="font-medium truncate block">{item.label}</span>
                 {item.secondaryLabel && (
-                  <span className="text-[11px] theme-text-muted truncate block">{item.secondaryLabel}</span>
+                  <span className="text-caption2 theme-text-muted truncate block">{item.secondaryLabel}</span>
                 )}
               </div>
               <AutocompleteItemBadge item={item} />
@@ -503,7 +503,7 @@ function AutocompleteItemIcon({ item }: { item: AutocompleteItem }) {
       return item.image ? (
         <img src={item.image} alt="" className="w-5 h-5 rounded-full flex-shrink-0" />
       ) : (
-        <div className="w-5 h-5 rounded-full bg-theme-active flex items-center justify-center text-[10px] font-medium flex-shrink-0">
+        <div className="w-5 h-5 rounded-full bg-theme-active flex items-center justify-center text-caption2 font-medium flex-shrink-0">
           {item.label[0]?.toUpperCase()}
         </div>
       )
@@ -520,7 +520,7 @@ function AutocompleteItemBadge({ item }: { item: AutocompleteItem }) {
   const { t } = useTranslations()
   if (item.type === 'mention' && item.isAIAgent) {
     return (
-      <span className="text-[10px] bg-agent-bubble text-agent px-1 rounded flex-shrink-0">
+      <span className="text-caption2 bg-agent-bubble text-agent px-1 rounded flex-shrink-0">
         {t('richTextInput.aiBadge')}
       </span>
     )
@@ -534,7 +534,7 @@ function AutocompleteItemBadge({ item }: { item: AutocompleteItem }) {
   }
   if (item.type === 'task' && item.completed) {
     return (
-      <span className="text-[10px] theme-text-muted flex-shrink-0">{t('richTextInput.taskDone')}</span>
+      <span className="text-caption2 theme-text-muted flex-shrink-0">{t('richTextInput.taskDone')}</span>
     )
   }
   return null

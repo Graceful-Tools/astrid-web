@@ -783,7 +783,7 @@ export function OAuthAppManager() {
                 ))}
               </div>
               <p className="text-xs theme-text-muted mt-2">
-                <RichMessage message={t('settingsPages.apiAccess.apps.grantHelp')} values={{ code: <code className="px-1 theme-bg-tertiary rounded text-[10px]">authorization_code</code> }} />
+                <RichMessage message={t('settingsPages.apiAccess.apps.grantHelp')} values={{ code: <code className="px-1 theme-bg-tertiary rounded text-caption2">authorization_code</code> }} />
               </p>
             </div>
 

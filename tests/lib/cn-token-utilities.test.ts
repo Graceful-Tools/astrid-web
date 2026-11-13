@@ -26,4 +26,12 @@ describe('cn() merges the design-token utilities (AWTD-1575)', () => {
     expect(cn('bg-theme-surface', 'bg-brand')).toBe('bg-brand')
     expect(cn('border-theme', 'border-brand')).toBe('border-brand')
   })
+
+  // AWTD-1615: the type-scale sizes are sizes, not colours.
+  it('keeps a token font size beside a colour in either order, and lets it override text-xs', () => {
+    expect(cn('text-caption2', 'text-theme-muted')).toBe('text-caption2 text-theme-muted')
+    expect(cn('text-warning', 'text-caption2')).toBe('text-warning text-caption2')
+    expect(cn('text-xs', 'text-caption2')).toBe('text-caption2')
+    expect(cn('text-footnote', 'text-sm')).toBe('text-sm')
+  })
 })
