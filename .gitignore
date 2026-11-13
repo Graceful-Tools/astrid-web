@@ -207,3 +207,7 @@ mcp/astrid-mcp-oauth-http
 
 # Claude Code agent worktrees: full nested checkouts, never source (AWTD-865)
 .claude/worktrees/
+
+# Written by scripts/worktree-start.ts into each task worktree; never source
+.worktree-info.json
+.worktree-context.md
