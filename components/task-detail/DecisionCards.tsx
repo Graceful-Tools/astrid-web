@@ -44,7 +44,7 @@ export function DecisionCards({ decision, chosen, onChoose, identifiers }: Decis
                 if ((e.target as HTMLElement).closest('a')) return
                 onChoose?.(decisionReply(option))
               }}
-              className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-left text-sm ${
+              className={`flex items-start gap-2 rounded-lg border-1 px-3 py-2 text-left text-sm ${
                 isChosen ? 'border-brand ring-1 ring-brand' : 'border-theme'
               } ${interactive ? 'hover:border-brand cursor-pointer' : 'cursor-default'}`}
             >
