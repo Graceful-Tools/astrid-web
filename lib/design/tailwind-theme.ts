@@ -237,7 +237,8 @@ export const semanticColors = {
   agent: { DEFAULT: token('astrid-agent'), bubble: token('astrid-agent-bubble') },
   /**
    * `bg-category-<hue>` (a dot, a gradient stop: `from-category-blue`),
-   * `bg-category-<hue>-subtle` (the tile behind an icon), `border-category-<hue>/50`.
+   * `bg-category-<hue>-subtle` (the tile behind an icon), `border-category-<hue>/50`,
+   * `to-category-<hue>-ink` (a stop in a gradient that carries text).
    * As text, `inkColors.category`.
    */
   category: Object.fromEntries(
@@ -246,6 +247,8 @@ export const semanticColors = {
       {
         DEFAULT: token(`astrid-category-${hue}`),
         subtle: `rgba(var(--astrid-category-${hue}), var(--theme-wash-opacity))`,
+        /** The ink as a fill: a gradient stop under white text (`to-category-purple-ink`), where the mid-tone is too light. */
+        ink: token(`astrid-category-${hue}-ink`),
       },
     ]),
   ),

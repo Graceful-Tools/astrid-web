@@ -316,7 +316,7 @@ has a name below.
 | Overdue | `text-overdue` | `overdue` |
 | Behind an agent's message | `bg-agent-bubble` | `agent-bubble` |
 | An agent's name, icon or badge; its dot or border | `text-agent`; `bg-agent`, `border-agent` | `agent-ink`; `agent` |
-| A category's icon or short label; the tile behind it; a dot, border or gradient stop | `text-category-red` … `text-category-pink`; `bg-category-red-subtle` … `bg-category-pink-subtle`; `bg-category-red` … `bg-category-pink`, `border-category-red` … `border-category-pink`, `from-category-blue` | `category-<hue>-ink`; `category-<hue>` |
+| A category's icon or short label; the tile behind it; a dot, border or gradient stop | `text-category-red` … `text-category-pink`; `bg-category-red-subtle` … `bg-category-pink-subtle`; `bg-category-red` … `bg-category-pink`, `border-category-red` … `border-category-pink`, `from-category-blue`; a gradient stop under white text `to-category-purple-ink` | `category-<hue>-ink`; `category-<hue>` |
 | A surface dark in every theme (media viewer, code block, landing footer, a hint over the rows) | `dark bg-theme-inverse`: the `dark` class makes everything inside answer as Dark | `surface-inverse` |
 | The card's colour as a line: the ring that cuts one avatar out of the next | `border-theme-card` | web-only `--theme-surface` |
 | A list colour fixed in the markup | `bg-list-1` … `bg-list-8` | `palette.list` |
