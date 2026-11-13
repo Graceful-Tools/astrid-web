@@ -60,6 +60,10 @@ const config: Config = {
   			'caption': ['0.8125rem', { lineHeight: '1.25rem', fontWeight: '400' }],
   			'micro': ['0.6875rem', { lineHeight: '1rem', fontWeight: '500' }],
   		},
+  		// `border` is a hairline: half a point on a high-density screen (DS20).
+  		// `border-1` is a whole point, for a border the spec sizes in points
+  		// (a Decision card's 1 pt edge).
+  		borderWidth: { DEFAULT: 'var(--hairline-width)', '1': '1px' },
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',

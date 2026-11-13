@@ -40,7 +40,7 @@ import {
   FIELD_ICON_COLUMN_CLASS,
   FIELD_ROW_GAP_CLASS,
 } from '@/components/task-detail/TaskFieldRow'
-import { LEADING_CONTROL_SIZE } from '@/lib/design/tokens'
+import { LEADING_CONTROL_SIZE, designTokens } from '@/lib/design/tokens'
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8')
 
@@ -54,6 +54,7 @@ const leadingSrc = read('components/task-leading-control.tsx')
  */
 const SPACING_PX: Record<string, number> = {
   'leading-control': LEADING_CONTROL_SIZE,
+  'row-gap': designTokens.layout.comfortable['row-gap'],
   '0': 0, '0.5': 2, '1': 4, '1.5': 6, '2': 8, '2.5': 10, '3': 12, '4': 16, '5': 20, '6': 24, '8': 32,
 }
 
@@ -72,9 +73,9 @@ function widthOf(cls: string): number {
   return px(m[1], 'w')
 }
 
-/** `gap-2` → 8. */
+/** `gap-2` → 8, `gap-row-gap` → the token's 12. */
 function gapOf(cls: string): number {
-  const m = cls.match(/\bgap-([\d.]+)\b/)
+  const m = cls.match(/\bgap-(row-gap|[\d.]+)(?![\w-])/)
   if (!m) throw new Error(`task-detail alignment: no gap-* in "${cls}"`)
   return px(m[1], 'gap')
 }
@@ -129,9 +130,12 @@ describe('task detail: field icons align with the title checkbox (AWTD-1177)', (
     const titleLeft = headerPadding + leadingWidth + gap
     const valueLeft = fieldsPadding + widthOf(FIELD_ICON_COLUMN_CLASS) + gap
 
-    // 16 + 34 + 8 = 58, both rows (AWTD-1574: the control is the token's 34).
+    // 16 + 34 + 12 = 62, both rows: the token's detail icon column
+    // (AWTD-1574: the control is the token's 34; AWTD-1617, DS11: the gap is
+    // the token's 12).
     expect(valueLeft).toBe(titleLeft)
-    expect(titleLeft).toBe(58)
+    expect(titleLeft).toBe(designTokens.layout.comfortable['detail-icon-column'])
+    expect(titleLeft).toBe(62)
   })
 
   it('AWTD-1574: the leading control is the design token, 34', () => {

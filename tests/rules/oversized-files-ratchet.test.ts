@@ -47,7 +47,7 @@ const BUDGETS: Record<string, number> = {
   // 1661 → 1659: AWTD-1227's add-subtask option did not fit. The options both
   // create entry points take — declared inline and identically, twice — became
   // hooks/task-manager/create-task-options.ts, so the next field is added once.
-  'hooks/useTaskManagerController.ts': 1565,
+  'hooks/useTaskManagerController.ts': 1558,
   // 1585 → 1591: AWTD-877 made someone else's task open the options sheet on
   // every surface, and this panel is one of the three that owns a sheet. Six
   // lines — the predicate, the import, and two props — with the rule itself in
@@ -59,7 +59,7 @@ const BUDGETS: Record<string, number> = {
   // went to lib/task-detail/create-list-for-task.ts, following the Lists row
   // that already lives in TaskDetailListsRow.tsx. Smaller than before the
   // feature, and the inheritance rule is now testable on its own.
-  'components/task-detail.tsx': 1487,
+  'components/task-detail.tsx': 1481,
   'lib/ai-orchestrator.ts': 1547,
   // 1205 → 1199: AWTD-1227 needed four more props on the task-detail pane, and
   // this file renders that pane TWICE — desktop and mobile — with a dozen
@@ -165,7 +165,7 @@ const BUDGETS: Record<string, number> = {
   // is smaller than before the feature once more.
   // 895 → 828: the custom-repeat summary went to custom-repeating-summary.ts when
   // it was translated (AWTD-1575) — as sentences per language it no longer fit here.
-  'components/task-detail/TaskFieldEditors.tsx': 828,
+  'components/task-detail/TaskFieldEditors.tsx': 825,
   'components/oauth-api-tester.tsx': 973,
   // 957 → 688: AWTD-871 needed to add a `requireReady` parameter to the
   // get_agent_queue schema, which pushed this over. The 280-line

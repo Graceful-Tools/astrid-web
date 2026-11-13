@@ -128,19 +128,19 @@ Status of web's rows on 2026-11-12:
 | DS4 leading control size | Closed: drawn from `size.leading-control` |
 | DS5 selection outline | Takes the Mac's at the next vendored copy |
 | DS9 web-only surfaces | Closed as far as web can go; two directional shadows still written out |
-| DS11 detail icon column | Open: gap 8 against 12 |
-| DS12 subtask indent | Open: 24 against 16 |
-| DS13 corner radii | Open: rows, cards and panel all 12 |
-| DS14 row height | Open: 64 at every width |
+| DS11 detail icon column | Closed (AWTD-1617): the gap is `layout.row-gap`, 12 |
+| DS12 subtask indent | Closed (AWTD-1617): `layout.subtask-indent`, 16 |
+| DS13 corner radii | Closed (AWTD-1617): row 8, board card 8/6, column 12/8, panel 16/14 from `layout` |
+| DS14 row height | Closed (AWTD-1617): 52 with a pointer, 76 on touch |
 | DS15 motion | Stylesheets closed; 4 durations left in components (the register still says five) |
 | DS16 completion pop | Takes it at the next vendored copy |
-| DS17 reduced motion | Open: one guarded rule in `components.css`, none in components |
-| DS18 completed row | Open: whole row dimmed to 75% |
-| DS19 title wrap setting | Open: web takes it now |
-| DS20 hairline | Open: 1 px |
+| DS17 reduced motion | Closed (AWTD-1617): one rule stops transitions and animations; script scrolls read `lib/design/reduced-motion.ts` |
+| DS18 completed row | Closed (AWTD-1617): the row is no longer dimmed |
+| DS19 title wrap setting | Closed: "Task titles" in Appearance (wrap, two lines, one line), PR #701 |
+| DS20 hairline | Closed (AWTD-1617): `border` is 0.5 on high-density screens |
 | DS21 checkbox art | Accepted; drawn from the priority tokens since AWTD-1581 |
 | DS22 priority glyphs as text | Open in core (text variants of the priority colours) |
-| DS23 Decision grid | Open: gap, radius and swatch differ |
+| DS23 Decision grid | Closed (AWTD-1617): gap 3, cell radius 4, swatch 10, card radius 10 and a 24 badge, from `markdown` |
 | DS24 Markdown headings | Open: sizes written out until they join `type` |
 | DS25 / DS26 inks and fills | Adopted (PRs #716, #730) |
 

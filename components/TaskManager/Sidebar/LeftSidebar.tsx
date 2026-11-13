@@ -1,5 +1,6 @@
 "use client"
 
+import { scrollBehavior } from "@/lib/design/reduced-motion"
 import { BRAND } from '@/lib/brand/config'
 import React, { useRef } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -112,7 +113,7 @@ export function LeftSidebar({
     if (navigationRef.current) {
       navigationRef.current.scrollTo({
         top: 0,
-        behavior: 'smooth'
+        behavior: scrollBehavior()
       })
     }
 
