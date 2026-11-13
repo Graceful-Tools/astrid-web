@@ -50,7 +50,7 @@ export function DecisionCards({ decision, chosen, onChoose, identifiers }: Decis
             >
               {/* Numbered in order, whatever marker the asker wrote (AWTD-1533). */}
               <span className="decision-badge">{option.number}</span>
-              <span className="flex-1" dangerouslySetInnerHTML={md(option.text)} />
+              <span className="flex-1 leading-6" dangerouslySetInnerHTML={md(option.text)} />
               {option.recommended && (
                 <span className="rounded bg-success-subtle px-1.5 text-xs text-success">
                   ★
