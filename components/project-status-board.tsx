@@ -1,7 +1,6 @@
 "use client"
 
 import { scrollBehavior } from "@/lib/design/reduced-motion"
-import { withoutAssignees } from "@/lib/task-assignees"
 import React from "react"
 import { CheckCircle2, Inbox, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -587,11 +586,7 @@ export function ProjectStatusBoard({
             }}
             selectedPriority={task.priority}
             selectedAssignee={task.assignee ?? null}
-            selectedAssigneeIds={task.assigneeIds}
-            onUnassign={() => {
-              onUpdateTask(withoutAssignees(task))
-              setOptionsTaskId(null)
-            }}
+            unassign={{ task, apply: onUpdateTask }}
             availableUsers={[]}
             taskId={task.id}
             listIds={(task.lists || []).map(list => list.id)}
