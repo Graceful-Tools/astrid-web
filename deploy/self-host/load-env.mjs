@@ -56,6 +56,30 @@ for (const [name, value] of Object.entries(values)) {
 }
 
 if (mode === '--import') await checkIdentityAtStart()
+if (mode === '--import' && runtimeBrand) await deriveBrandColorsAtStart()
+
+/**
+ * A runtime-brand image builds with one accent and may start with another, so the hover and
+ * inks next.config.mjs derived at build can be the wrong brand's. Derive them again from what
+ * was applied, with astrid-core's rule (scripts/lib/brand-colors.mjs, AWTD-1589). Best effort,
+ * like the identity check: a refused accent or a missing core build is a warning, never a
+ * refusal to boot, and the stylesheets then keep their own values.
+ */
+async function deriveBrandColorsAtStart() {
+  const here = dirname(fileURLToPath(import.meta.url))
+  const find = candidates => candidates.map(candidate => join(here, candidate)).find(existsSync)
+  const helper = find(['scripts/lib/brand-colors.mjs', '../../scripts/lib/brand-colors.mjs'])
+  const packageDir = find(['packages/astrid-rules', '../../packages/astrid-rules'])
+  if (!helper || !packageDir) return
+  try {
+    const { derivedBrandColorEnv } = await import(pathToFileURL(helper).href)
+    for (const [name, value] of Object.entries(derivedBrandColorEnv(process.env, packageDir))) {
+      if (process.env[name] === undefined) process.env[name] = value
+    }
+  } catch (error) {
+    console.warn(`[load-env] the brand's hover and ink colours were not derived: ${error.message}`)
+  }
+}
 
 /**
  * The identity check, from scripts/lib/ beside this file in the image, or two levels up in
