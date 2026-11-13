@@ -54,14 +54,15 @@ describe('DescriptionDialog (Stage 21 / task 5aad267a)', () => {
     expect(screen.queryByText('List Description')).not.toBeInTheDocument()
   })
 
-  it('opens in view mode showing the list name and description', () => {
+  it('opens in view mode showing the list name and description', async () => {
     const { ref } = renderDialog()
     act(() => ref.current!.open('Hello world'))
     expect(screen.getByText('List Description')).toBeInTheDocument()
     expect(screen.getByText(/Engineering/)).toBeInTheDocument()
     // View mode renders markdown, not a textarea
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
-    expect(screen.getByText('Hello world')).toBeInTheDocument()
+    // The markdown view is next/dynamic (kept off the first load), so it resolves a tick later
+    expect(await screen.findByText('Hello world')).toBeInTheDocument()
   })
 
   it('toggles between view and edit modes', () => {

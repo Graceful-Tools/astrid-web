@@ -2,6 +2,7 @@
 
 import { useTranslations } from "@/lib/i18n/client"
 import React from "react"
+import dynamic from "next/dynamic"
 import { unwrapList } from '@/lib/v1-response'
 import { apiPut } from '@/lib/api'
 import { Button } from "@/components/ui/button"
@@ -12,8 +13,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { FileText, Eye, Edit3, Bot, Check } from "lucide-react"
-import { renderMarkdown } from "@/lib/markdown"
 import type { TaskList } from "@/types/task"
+
+/*
+ * The markdown renderer (marked + DOMPurify) is not first-load JS: the dialog is closed
+ * on first paint. The chunk is warmed after hydration (the effect below), so the first
+ * open renders at once.
+ */
+const loadDescriptionMarkdown = () => import("./DescriptionMarkdown")
+const DescriptionMarkdown = dynamic(loadDescriptionMarkdown)
 
 /**
  * Imperative handle for opening the description dialog from the parent.
@@ -50,6 +58,10 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
     const [showDescriptionDialog, setShowDescriptionDialog] = React.useState(false)
     const [descriptionDialogMode, setDescriptionDialogMode] = React.useState<'view' | 'edit'>('view')
     const [dialogDescription, setDialogDescription] = React.useState('')
+
+    React.useEffect(() => {
+      void loadDescriptionMarkdown()
+    }, [])
 
     React.useImperativeHandle(ref, () => ({
       open: (description: string) => {
@@ -105,10 +117,7 @@ export const DescriptionDialog = React.forwardRef<DescriptionDialogHandle, Descr
           {/* Content */}
           <div className="flex-1 overflow-y-auto min-h-0">
             {descriptionDialogMode === 'view' ? (
-              <div
-                className="prose prose-sm max-w-none theme-text-primary p-1"
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(dialogDescription || t('listSettings.admin.noInstructionsYet')) }}
-              />
+              <DescriptionMarkdown markdown={dialogDescription || t('listSettings.admin.noInstructionsYet')} />
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center justify-end">
