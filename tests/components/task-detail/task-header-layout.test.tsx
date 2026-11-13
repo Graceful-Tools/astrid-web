@@ -72,7 +72,7 @@ describe('TaskHeader layout (cc76307c)', () => {
     renderHeader({ onClose: vi.fn() })
 
     const titleRow = screen.getByText('Fix repeating rollover').parentElement
-    expect(titleRow?.className).toContain('gap-2')
+    expect(titleRow?.className).toContain('gap-row-gap')
     expect(titleRow?.className).not.toContain('space-x-2')
   })
 
