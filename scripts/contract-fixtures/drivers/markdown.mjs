@@ -32,9 +32,15 @@ registerWebAliases(webRoot)
 
 const { renderMarkdownWithLinks } = await import(pathToFileURL(join(webRoot, 'lib/markdown.ts')).href)
 
-function render(text, identifiers) {
+// The origin a relative link resolves against is the reader's server, an input every case carries
+// (AWTD-1630): astrid.cc for web's own pages, a partner's server for a white-label build. The HTML
+// does not depend on it (web writes `/lists/abc` as it is); the blocks do.
+const ORIGIN = 'https://astrid.cc'
+const PARTNER_ORIGIN = 'https://tasks.partner.example'
+
+function render(text, identifiers, origin) {
   const html = renderMarkdownWithLinks(text, identifiers ? { identifiers } : undefined)
-  return { html, blocks: blocksOfHtml(dom.window.document, html) }
+  return { html, blocks: blocksOfHtml(dom.window.document, html, { origin }) }
 }
 
 // ── Cases ─────────────────────────────────────────────────────────────────────────────────
@@ -207,9 +213,22 @@ const IDENTIFIER_CASES = [
   ['ids-without-context', 'AWTD-12 and #4', null],
 ]
 
+// The same relative links read on a partner's server open the partner's pages, not astrid.cc's.
+const ORIGIN_CASES = [
+  ['link-relative-partner-origin', '[home](/lists/abc)', null],
+  ['ids-partner-origin', 'Fixed by AWTD-12', CONTEXT],
+]
+
 const cases = [
-  ...CASES.map(([id, text]) => ({ id, text, context: null, ...render(text, null) })),
-  ...IDENTIFIER_CASES.map(([id, text, context]) => ({ id, text, context, ...render(text, context) })),
+  ...CASES.map(([id, text]) => ({ id, text, origin: ORIGIN, context: null, ...render(text, null, ORIGIN) })),
+  ...IDENTIFIER_CASES.map(([id, text, context]) => ({ id, text, origin: ORIGIN, context, ...render(text, context, ORIGIN) })),
+  ...ORIGIN_CASES.map(([id, text, context]) => ({
+    id,
+    text,
+    origin: PARTNER_ORIGIN,
+    context,
+    ...render(text, context, PARTNER_ORIGIN),
+  })),
 ]
 
 const result = partition(cases, [])

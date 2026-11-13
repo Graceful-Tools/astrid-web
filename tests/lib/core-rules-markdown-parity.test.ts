@@ -11,8 +11,8 @@
  *
  * - rendered here, now, and read back into blocks (scripts/contract-fixtures/markdown-blocks.mjs).
  *   It must equal the fixture, so the fixture is today's renderer;
- * - rendered by the vendored core (`renderMarkdown`, with the reader's identifier context when the
- *   case has one). It must equal the same blocks, so web and iOS draw the same thing;
+ * - rendered by the vendored core (`renderMarkdown`, with the case's origin, which a relative link
+ *   resolves against (AWTD-1630), and the reader's identifier context when the case has one). It must equal the same blocks, so web and iOS draw the same thing;
  * - and the HTML itself is checked against the sanitiser's contract: only allowlisted tags and
  *   attributes, no script, handler, frame or style, and no address other than http, https, mailto
  *   or a relative address on this site. That includes the `xss-*` cases.
@@ -32,6 +32,8 @@ const PACKAGE_DIR = path.join(process.cwd(), 'packages', 'astrid-rules')
 interface Case {
   id: string
   text: string
+  /** The reader's server, which a relative link resolves against (AWTD-1630). */
+  origin: string
   context: { projectKey?: string; keys: string[]; hidden?: string[] } | null
   html: string
   blocks: unknown[]
@@ -49,7 +51,9 @@ const cases = fixture.cases.map((c) => [c.id, c] as const)
 
 function coreBlocks(c: Case): unknown {
   const reply = JSON.parse(
-    core.runJson(JSON.stringify({ kind: 'renderMarkdown', text: c.text, ...(c.context ? { identifiers: c.context } : {}) })),
+    core.runJson(
+      JSON.stringify({ kind: 'renderMarkdown', text: c.text, origin: c.origin, ...(c.context ? { identifiers: c.context } : {}) }),
+    ),
   ) as { ok: boolean; value: unknown }
   expect(reply.ok).toBe(true)
   return reply.value
@@ -99,11 +103,18 @@ describe('the markdown fixture at the pinned core revision', () => {
     expect(fixture.cases.length).toBeGreaterThanOrEqual(130)
     expect(fixture.cases.filter((c) => c.id.startsWith('xss-')).length).toBeGreaterThanOrEqual(20)
   })
+
+  it('AWTD-1630: carries the origin as an input, with cases on a server other than astrid.cc', () => {
+    expect(fixture.cases.every((c) => typeof c.origin === 'string' && c.origin.startsWith('https://'))).toBe(true)
+    const partner = fixture.cases.filter((c) => c.origin !== 'https://astrid.cc')
+    expect(partner.length).toBeGreaterThanOrEqual(2)
+    expect(JSON.stringify(partner.map((c) => c.blocks))).not.toContain('astrid.cc')
+  })
 })
 
 describe('the browser renderer draws what the fixture records', () => {
   it.each(cases)('%s', (_id, c) => {
-    expect(blocksOfHtml(document, render(c))).toEqual(c.blocks)
+    expect(blocksOfHtml(document, render(c), { origin: c.origin })).toEqual(c.blocks)
   })
 })
 
