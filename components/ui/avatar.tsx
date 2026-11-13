@@ -47,17 +47,26 @@ const AvatarImage = React.forwardRef<HTMLImageElement, AvatarImageProps>(
     // Combine refs
     React.useImperativeHandle(ref, () => imgRef.current as HTMLImageElement)
 
+    // setImageLoaded comes from useState, so it is stable; the context object
+    // itself is not (it changes whenever imageLoaded flips). The effects below
+    // must depend only on src: depending on the context made an offline error
+    // (imageLoaded -> false) re-run the reset, clear hasError and re-mount the
+    // <img>, which failed again, thousands of times a second (AWTD-1634).
+    const setImageLoaded = context?.setImageLoaded
+    const onStatusRef = React.useRef(onLoadingStatusChange)
+    onStatusRef.current = onLoadingStatusChange
+
     // Reset error state when src changes
     React.useEffect(() => {
       setHasError(false)
       // Check memory cache first for instant load (only for string URLs)
       if (src && typeof src === 'string' && isImageCached(src)) {
-        context?.setImageLoaded(true)
-        onLoadingStatusChange?.("loaded")
+        setImageLoaded?.(true)
+        onStatusRef.current?.("loaded")
       } else {
-        context?.setImageLoaded(false)
+        setImageLoaded?.(false)
       }
-    }, [src, context, onLoadingStatusChange])
+    }, [src, setImageLoaded])
 
     // Check if image is already loaded (from browser cache) after mount
     // Use a separate effect with a microtask to ensure ref is attached
@@ -68,8 +77,8 @@ const AvatarImage = React.forwardRef<HTMLImageElement, AvatarImageProps>(
       const checkLoaded = () => {
         const img = imgRef.current
         if (img && img.complete && img.naturalWidth > 0) {
-          context?.setImageLoaded(true)
-          onLoadingStatusChange?.("loaded")
+          setImageLoaded?.(true)
+          onStatusRef.current?.("loaded")
           // Also add to memory cache (only for string URLs)
           if (typeof src === 'string') {
             preloadImage(src)
@@ -82,7 +91,7 @@ const AvatarImage = React.forwardRef<HTMLImageElement, AvatarImageProps>(
       const frameId = requestAnimationFrame(checkLoaded)
 
       return () => cancelAnimationFrame(frameId)
-    }, [src, context, onLoadingStatusChange])
+    }, [src, setImageLoaded])
 
     // Don't render anything if no src or if there was an error
     if (!src || hasError) {
