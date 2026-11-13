@@ -8,13 +8,14 @@
  */
 import { describe, expect, it } from 'vitest'
 import { renderMarkdownWithLinks } from '@/lib/markdown'
+import { BRAND } from '@/lib/brand/config'
 import { blocksOfHtml } from '../../scripts/contract-fixtures/markdown-blocks.mjs'
 
 const text = (t: string, style: Record<string, unknown> = {}) => ({
   kind: 'text', text: t, bold: false, italic: false, strike: false, code: false, link: null, ...style,
 })
 
-const blocks = (markdown: string) => blocksOfHtml(document, renderMarkdownWithLinks(markdown), { origin: 'https://astrid.cc' })
+const blocks = (markdown: string) => blocksOfHtml(document, renderMarkdownWithLinks(markdown), { origin: `https://${BRAND.domain}` })
 
 describe('a trade-off grid as a block (AWTD-1626)', () => {
   it('reads header, option names, ratings and key without the renderer chrome', () => {
