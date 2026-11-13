@@ -405,6 +405,22 @@
         "size": 17,
         "weight": 600
       },
+      "markdown-h1": {
+        "size": 28,
+        "weight": 600
+      },
+      "markdown-h2": {
+        "size": 22,
+        "weight": 600
+      },
+      "markdown-h3": {
+        "size": 17,
+        "weight": 600
+      },
+      "markdown-h4": {
+        "size": 17,
+        "weight": 600
+      },
       "row-title": {
         "size": 19,
         "weight": 500
@@ -434,6 +450,22 @@
       "label": {
         "size": 11,
         "weight": 400
+      },
+      "markdown-h1": {
+        "size": 17,
+        "weight": 600
+      },
+      "markdown-h2": {
+        "size": 15,
+        "weight": 600
+      },
+      "markdown-h3": {
+        "size": 13,
+        "weight": 600
+      },
+      "markdown-h4": {
+        "size": 13,
+        "weight": 600
       },
       "row-meta": {
         "size": 11,
