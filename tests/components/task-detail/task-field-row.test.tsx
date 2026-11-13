@@ -61,7 +61,7 @@ describe('TaskFieldRow (task detail field layout)', () => {
     // row gap is shared with the header. Change one without the other and
     // the content stops lining up with the title.
     expect(FIELD_ICON_COLUMN_CLASS).toBe('w-leading-control')
-    expect(FIELD_ROW_GAP_CLASS).toContain('gap-2')
+    expect(FIELD_ROW_GAP_CLASS).toBe('gap-row-gap')
   })
 
   it('centres label and content by default', () => {
