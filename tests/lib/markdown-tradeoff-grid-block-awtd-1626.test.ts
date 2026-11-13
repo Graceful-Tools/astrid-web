@@ -14,7 +14,7 @@ const text = (t: string, style: Record<string, unknown> = {}) => ({
   kind: 'text', text: t, bold: false, italic: false, strike: false, code: false, link: null, ...style,
 })
 
-const blocks = (markdown: string) => blocksOfHtml(document, renderMarkdownWithLinks(markdown))
+const blocks = (markdown: string) => blocksOfHtml(document, renderMarkdownWithLinks(markdown), { origin: 'https://astrid.cc' })
 
 describe('a trade-off grid as a block (AWTD-1626)', () => {
   it('reads header, option names, ratings and key without the renderer chrome', () => {
