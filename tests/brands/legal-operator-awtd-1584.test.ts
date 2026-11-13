@@ -39,8 +39,8 @@ describe('BRAND.operatorName (AWTD-1584)', () => {
     expect((await brandWith({ NEXT_PUBLIC_BRAND_NAME: 'Astrid' })).BRAND.operatorName).toBe('Graceful Tools LLC')
   })
 
-  it('falls back to a partner’s own name, never to Astrid’s operator', async () => {
-    expect((await brandWith({ NEXT_PUBLIC_BRAND_NAME: 'Acme' })).BRAND.operatorName).toBe('Acme')
+  it('names no operator for a partner that set none, never Astrid’s or a guessed one (AWTD-1640)', async () => {
+    expect((await brandWith({ NEXT_PUBLIC_BRAND_NAME: 'Acme' })).BRAND.operatorName).toBe('')
   })
 
   it('uses the configured operator over either fallback', async () => {

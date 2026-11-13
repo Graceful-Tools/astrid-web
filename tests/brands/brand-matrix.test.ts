@@ -368,8 +368,11 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
       const html = renderToStaticMarkup(withMessages(React.createElement(Page, props)))
       if (external) {
         expect(html, `${what} links to the operator's page`).toContain(external)
-      } else {
+      } else if (BRAND.operatorName) {
         expect(html, `${what} names the operator`).toContain(BRAND.operatorName)
+      } else {
+        // A partner that names no operator gets no operator clause and no copyright line (AWTD-1640).
+        expect(html, `${what} names no operator`).not.toMatch(/operated by|&copy;|©/)
       }
       for (const literal of profile.expect.forbidLiterals) {
         expect(html, `${what} leaked "${literal}" for the ${profile.name} profile`).not.toContain(literal)
