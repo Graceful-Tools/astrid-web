@@ -65,7 +65,7 @@ function runServiceWorker(cached: Cached[]) {
   return async function navigate(url: string): Promise<Response | undefined> {
     let responded: Promise<Response> | undefined
     listeners.fetch({
-      request: { url: `https://app.test${url}`, method: 'GET', mode: 'navigate' },
+      request: { url: `https://app.test${url}`, method: 'GET', mode: 'navigate', headers: new Headers({ accept: 'text/html' }) },
       respondWith: (promise: Promise<Response>) => {
         responded = promise
       },

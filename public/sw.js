@@ -129,6 +129,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Leave event streams (the live-updates EventSource) to the browser
+  // (AWTD-1624). handleApiRequest caches what it fetches, and a stream never
+  // ends: the worker kept reading it after the page closed it, holding a
+  // connection each, until the page had none left for anything else.
+  if ((request.headers.get('accept') || '').includes('text/event-stream')) {
+    return;
+  }
+
   // Handle different types of requests
   if (url.pathname.startsWith('/api/')) {
     // API requests - network first with cache fallback
