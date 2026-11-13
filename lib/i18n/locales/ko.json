@@ -184,7 +184,9 @@
       "preview": "미리보기:",
       "repeatFromCompletionHint": "다음 반복은 작업을 완료한 시점을 기준으로 합니다",
       "repeatFromDueHint": "다음 반복은 원래 마감일을 기준으로 합니다",
-      "descriptionKeysHint": "Enter로 저장 • Shift+Enter로 줄바꿈"
+      "descriptionKeysHint": "Enter로 저장 • Shift+Enter로 줄바꿈",
+      "descriptionPreview": "미리보기",
+      "expandDescription": "설명 확대"
     },
     "commentsSection": {
       "addPlaceholder": "댓글 추가...",

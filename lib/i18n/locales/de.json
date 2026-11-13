@@ -184,7 +184,9 @@
       "preview": "Vorschau:",
       "repeatFromCompletionHint": "Die nächste Wiederholung richtet sich danach, wann du die Aufgabe erledigst",
       "repeatFromDueHint": "Die nächste Wiederholung richtet sich nach dem ursprünglichen Fälligkeitsdatum",
-      "descriptionKeysHint": "Enter zum Speichern • Umschalt+Enter für Zeilenumbrüche"
+      "descriptionKeysHint": "Enter zum Speichern • Umschalt+Enter für Zeilenumbrüche",
+      "descriptionPreview": "Vorschau",
+      "expandDescription": "Beschreibung erweitern"
     },
     "commentsSection": {
       "addPlaceholder": "Kommentar hinzufügen...",

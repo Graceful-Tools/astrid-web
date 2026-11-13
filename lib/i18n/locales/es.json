@@ -184,7 +184,9 @@
       "preview": "Vista previa:",
       "repeatFromCompletionHint": "La próxima repetición se calcula a partir de cuando completes la tarea",
       "repeatFromDueHint": "La próxima repetición se calcula a partir de la fecha límite original",
-      "descriptionKeysHint": "Pulsa Enter para guardar • Shift+Enter para saltos de línea"
+      "descriptionKeysHint": "Pulsa Enter para guardar • Shift+Enter para saltos de línea",
+      "descriptionPreview": "Vista previa",
+      "expandDescription": "Ampliar descripción"
     },
     "commentsSection": {
       "addPlaceholder": "Añadir un comentario...",

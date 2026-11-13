@@ -12,8 +12,11 @@
  * mutate and arrive as props, so nothing about WHEN a description is written
  * moved with the markup.
  */
-import { FileText as FileTextIcon } from "lucide-react"
+import { useState } from "react"
+import { FileText as FileTextIcon, Maximize2 } from "lucide-react"
 import { TaskFieldRow } from "./TaskFieldRow"
+import { TaskDescriptionReader } from "./TaskDescriptionReader"
+import type { DescriptionReaderEntry } from "@/lib/description-reader"
 import { useTranslations } from "@/lib/i18n/client"
 import { useTradeoffGridViewer } from "@/components/shared/TradeoffGridViewer"
 import { renderMarkdownWithLinks } from "@/lib/markdown"
@@ -30,9 +33,14 @@ interface TaskDetailDescriptionRowProps {
   setTempDescription: (value: string) => void
   descriptionRef: React.RefObject<HTMLDivElement | null>
   descriptionTextareaRef: React.RefObject<HTMLTextAreaElement | null>
-  handleSaveDescription: () => void
+  /** Called with the text when the full-screen reader saves; bare for the inline editor. */
+  handleSaveDescription: (text?: string) => void
   handleCancelDescription: () => void
 }
+
+/** Narrow viewport = the mobile layout (Tailwind `md` breakpoint). */
+const isNarrowViewport = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(max-width: 767px)').matches === true
 
 export function TaskDetailDescriptionRow({
   task,
@@ -47,6 +55,13 @@ export function TaskDetailDescriptionRow({
   handleCancelDescription,
 }: TaskDetailDescriptionRowProps) {
   const { t } = useTranslations()
+  const [reader, setReader] = useState<DescriptionReaderEntry | null>(null)
+  const openInline = () => !readOnly && setEditingDescription(true)
+  const handleTap = () => {
+    if (readOnly) return
+    if (isNarrowViewport()) setReader('write')
+    else openInline()
+  }
   const gridViewer = useTradeoffGridViewer()
   const identifiers = useIdentifierLinkContext((task.lists ?? []).map(list => list.id))
 
@@ -99,7 +114,7 @@ export function TaskDetailDescriptionRow({
       ) : (
         <div
           className={`px-3 py-2 rounded border border-transparent flex items-start !min-h-0 ${!readOnly ? 'cursor-pointer theme-surface-hover hover:theme-border' : ''}`}
-          onClick={() => !readOnly && setEditingDescription(true)}
+          onClick={handleTap}
         >
           {task.description ? (
             <div
@@ -118,7 +133,27 @@ export function TaskDetailDescriptionRow({
           ) : (
             <span className="theme-text-muted italic">{t('tasks.detail.clickToAddDescription')}</span>
           )}
+          <button
+            type="button"
+            aria-label={t('tasks.detail.expandDescription')}
+            className="md:hidden ml-2 shrink-0 theme-text-muted"
+            onClick={(e) => {
+              e.stopPropagation()
+              setReader('expand')
+            }}
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
         </div>
+      )}
+      {reader && (
+        <TaskDescriptionReader
+          description={task.description || ''}
+          readOnly={readOnly}
+          entry={reader}
+          onSave={handleSaveDescription}
+          onClose={() => setReader(null)}
+        />
       )}
       {gridViewer.dialog}
     </TaskFieldRow>
