@@ -156,7 +156,7 @@ export function GitHubProjectPickerDialog({ open, onOpenChange, navigate }: GitH
           <DialogDescription>{t('githubProjectPicker.description', { appName: BRAND.appName })}</DialogDescription>
         </DialogHeader>
 
-        <div className="overflow-y-auto space-y-4 min-h-[6rem]" data-testid="github-project-picker">
+        <div className="overflow-y-auto space-y-4 min-h-24" data-testid="github-project-picker">
           {state.kind === 'loading' && (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-5 h-5 animate-spin theme-text-muted" />

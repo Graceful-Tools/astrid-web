@@ -79,7 +79,7 @@ export function PWAStatus() {
   if (!showStatus) return null
 
   return (
-    <div className="fixed top-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm z-50 transition-all duration-300">
+    <div className="fixed top-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm z-50 transition-all duration-panel">
       <div className={`flex items-center justify-between space-x-2 px-3 py-2 rounded-lg shadow-lg ${
         isOnline
           ? 'bg-theme-surface text-theme-primary border border-success'

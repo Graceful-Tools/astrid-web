@@ -2440,7 +2440,9 @@
     "linkResolveFailed": "Link kon niet worden verwerkt",
     "linkTaskNotFound": "Taak niet gevonden of niet meer toegankelijk",
     "linkTaskForbidden": "Je hebt geen toestemming om deze taak te bekijken",
-    "linkInvalidType": "Ongeldig linktype"
+    "linkInvalidType": "Ongeldig linktype",
+    "globalErrorTitle": "Er is iets misgegaan",
+    "globalErrorDescription": "Er is een kritieke fout opgetreden. Probeer de pagina te vernieuwen."
   },
   "profilePage": {
     "loading": "Profiel laden...",
@@ -2668,5 +2670,93 @@
       "theAssignee": "de toegewezen persoon",
       "confirm": "Naar Wachten verplaatsen"
     }
+  },
+  "helpPage": {
+    "title": "Hulp en probleemoplossing",
+    "intro": "De meeste problemen los je op door je gegevens te vernieuwen. Probeer eerst de eenvoudige oplossingen voordat je naar de geavanceerdere stappen gaat.",
+    "iosApp": "iOS-app",
+    "webApp": "Web-app",
+    "levels": {
+      "simple": "EENVOUDIG",
+      "simpleHint": "Probeer deze eerst",
+      "intermediate": "GEMIDDELD",
+      "intermediateHint": "Als de eenvoudige stappen niet werken",
+      "advanced": "GEAVANCEERD",
+      "advancedHint": "Laatste redmiddelen"
+    },
+    "signOutTitle": "Uitloggen en opnieuw inloggen",
+    "ios": {
+      "pullToRefreshTitle": "Trek omlaag om te vernieuwen",
+      "pullToRefreshBody": "Trek in de takenlijst vanaf de bovenkant omlaag om een synchronisatie met de server af te dwingen. Dit lost de meeste synchronisatieproblemen op.",
+      "forceQuitTitle": "Geforceerd stoppen en opnieuw openen",
+      "forceQuitBody": "Veeg omhoog vanaf de onderkant (of tik twee keer op de thuisknop), veeg {appName} weg en open de app opnieuw.",
+      "signOutBody": "Ga naar <b>Instellingen</b> (tik op je profiel in de zijbalk) → <b>Account</b> → <b>Uitloggen</b>. Log daarna opnieuw in met hetzelfde account.",
+      "connectionTitle": "Controleer je internetverbinding",
+      "connectionBody": "{appName} werkt offline, maar heeft internet nodig om te synchroniseren. Zorg dat je verbonden bent met wifi of mobiele data.",
+      "reinstallTitle": "Verwijder de app en installeer hem opnieuw",
+      "reinstallBody": "Hiermee worden alle lokale gegevens en de cache gewist. Je taken staan op onze servers, dus je raakt niets kwijt. Houd het app-pictogram ingedrukt → Verwijder app → Verwijder app, en installeer hem daarna opnieuw uit de App Store.",
+      "restartTitle": "Herstart je apparaat",
+      "restartBody": "Soms lost een volledige herstart van het apparaat hardnekkige problemen op."
+    },
+    "web": {
+      "refreshTitle": "Vernieuw de pagina",
+      "refreshBody": "Druk op <kbd>F5</kbd> of <kbd>Cmd+R</kbd> (Mac) / <kbd>Ctrl+R</kbd> (Windows) om de pagina opnieuw te laden.",
+      "hardRefreshTitle": "Geforceerd vernieuwen",
+      "hardRefreshBody": "Houd <kbd>Shift</kbd> ingedrukt terwijl je op vernieuwen klikt, of druk op <kbd>Cmd+Shift+R</kbd> (Mac) / <kbd>Ctrl+Shift+R</kbd> (Windows). Zo wordt de cache overgeslagen.",
+      "signOutBody": "Klik op je profielfoto in de zijbalk → <b>Instellingen</b> → <b>Account</b> → <b>Uitloggen</b>. Log daarna opnieuw in.",
+      "browserTitle": "Probeer een andere browser",
+      "browserBody": "Als je problemen hebt in één browser, probeer dan Chrome, Firefox, Safari of Edge. Zo zie je of het probleem aan de browser ligt.",
+      "extensionsTitle": "Schakel browserextensies uit",
+      "extensionsBody": "Adblockers of privacy-extensies kunnen soms storen. Schakel ze tijdelijk uit of gebruik een incognito-/privévenster.",
+      "clearCacheTitle": "Wis de browsercache en cookies voor {appName}",
+      "clearCacheChrome": "<b>Chrome:</b> Instellingen → Privacy → Browsegegevens wissen → Selecteer \"Cookies\" en \"Gecachte afbeeldingen\"",
+      "clearCacheSafari": "<b>Safari:</b> Voorkeuren → Privacy → Beheer websitegegevens → Zoek naar \"{brandDomain}\" → Verwijder",
+      "clearCacheFirefox": "<b>Firefox:</b> Instellingen → Privacy → Gegevens wissen → Selecteer Cookies en Cache",
+      "indexedDbTitle": "Wis de IndexedDB-opslag",
+      "indexedDbBody": "In Chrome: open DevTools (F12) → tabblad Application → Storage → IndexedDB → klik met rechts op de {wordmark}-items → Delete database. Vernieuw daarna de pagina."
+    },
+    "decisionsTitle": "Iemand laten kiezen",
+    "commonIssuesTitle": "Veelvoorkomende problemen",
+    "issues": {
+      "counts": {
+        "title": "Takentellers tonen 0 of verkeerde aantallen",
+        "intro": "De takentellers worden berekend uit je gesynchroniseerde gegevens. Als ze niet kloppen:",
+        "step1": "Trek omlaag om te vernieuwen (iOS) of vernieuw de pagina geforceerd (web)",
+        "step2": "Wacht een paar seconden tot de synchronisatie klaar is",
+        "step3": "Klopt het nog steeds niet, log dan uit en weer in"
+      },
+      "sync": {
+        "title": "Taken synchroniseren niet tussen apparaten",
+        "intro": "Synchroniseren gaat automatisch, maar kan een paar seconden duren. Zo dwing je het af:",
+        "step1": "Zorg dat beide apparaten met internet verbonden zijn",
+        "step2": "Op iOS: trek omlaag om te vernieuwen",
+        "step3": "Op het web: vernieuw de pagina",
+        "step4": "Wijzigingen zouden binnen 5-10 seconden moeten verschijnen"
+      },
+      "slow": {
+        "title": "De app is traag of reageert niet",
+        "intro": "Prestatieproblemen komen meestal door gecachte gegevens of te veel browsertabbladen. Probeer:",
+        "step1": "Andere tabbladen en apps te sluiten",
+        "step2": "De app geforceerd te stoppen en opnieuw te openen (iOS)",
+        "step3": "De browsercache te wissen (web)",
+        "step4": "De app opnieuw te installeren als het probleem blijft (iOS)"
+      },
+      "signIn": {
+        "title": "Kan niet inloggen of krijg authenticatiefouten",
+        "intro": "Authenticatieproblemen kunnen komen door verlopen sessies of browserinstellingen:",
+        "step1": "Zorg dat cookies zijn ingeschakeld in je browser",
+        "step2": "Probeer in te loggen in een incognito-/privévenster",
+        "step3": "Wis specifiek de cookies voor {brandDomain}",
+        "step4": "Gebruik je een passkey, controleer dan of je apparaat die ondersteunt"
+      }
+    },
+    "stillNeedHelpTitle": "Nog steeds hulp nodig?",
+    "stillNeedHelpBody": "Als geen van deze oplossingen werkt, helpen we je graag.",
+    "contactSupport": "Neem contact op met support"
+  },
+  "legalPages": {
+    "termsOfService": "Servicevoorwaarden",
+    "privacyPolicy": "Privacybeleid",
+    "backToHome": "Terug naar home"
   }
 }

@@ -44,8 +44,7 @@ export function FacePile({ users = [], maxVisible = 3, size = "sm", className = 
       ))}
       {remainingCount > 0 && (
         <div 
-          className={`${sizeClasses[size]} border border-theme bg-theme-tertiary text-theme-secondary rounded-full flex items-center justify-center ${textSizeClasses[size]} font-medium`}
-          style={{ zIndex: 0 }}
+          className={`${sizeClasses[size]} border border-theme bg-theme-tertiary text-theme-secondary rounded-full flex items-center justify-center ${textSizeClasses[size]} font-medium z-0`}
         >
           +{remainingCount}
         </div>

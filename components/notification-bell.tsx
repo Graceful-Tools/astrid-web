@@ -113,13 +113,13 @@ export function NotificationBell({ align = "end", className, iconClassName }: No
         <Button variant="ghost" size="sm" className={cn("relative p-2", className)} title={t('settings.notifications')}>
           <Bell className={cn("h-5 w-5", iconClassName)} />
           {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-medium text-danger-foreground">
+            <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-caption2 font-medium text-danger-foreground">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align={align} className="w-[22rem] p-0">
+      <PopoverContent align={align} className="w-popover-wide p-0">
         <div className="flex items-center justify-between border-b px-3 py-2">
           <div className="text-sm font-medium">{t('settings.notifications')}</div>
           <Button

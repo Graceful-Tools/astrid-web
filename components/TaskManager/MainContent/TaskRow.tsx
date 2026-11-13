@@ -421,9 +421,9 @@ function TaskRowImpl({
         }}
       >
         {manualSortPreviewActive && dragTargetTaskId === task.id && !isTouchManualSort && (
-          /* A hint that floats over the rows: dark in every theme by design, so its colours stay literal. */
-          <div className="pointer-events-none absolute -top-12 left-1/2 z-[1600] flex w-max -translate-x-1/2 items-center gap-2 rounded-full border border-blue-400/60 bg-blue-900/95 px-3 py-1.5 text-xs font-medium text-blue-50 shadow-2xl backdrop-blur">
-            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-300" />
+          /* A hint that floats over the rows: dark in every theme by design; `dark` makes its tokens answer as Dark (the selected blue). */
+          <div className="pointer-events-none absolute -top-12 left-1/2 z-[1600] flex w-max -translate-x-1/2 items-center gap-2 rounded-full dark border border-theme-focus/60 bg-theme-selected/95 px-3 py-1.5 text-xs font-medium text-theme-primary shadow-2xl backdrop-blur">
+            <span className="inline-flex h-2 w-2 rounded-full bg-success" />
             <span>Drag to move • Hold Shift to add without removing</span>
           </div>
         )}
@@ -495,7 +495,7 @@ function TaskRowImpl({
               event.preventDefault()
             }}
           >
-            <div className="mb-0.5 h-[2px] w-10 rounded-full bg-muted-foreground/70" />
+            <div className="mb-0.5 h-0.5 w-10 rounded-full bg-muted-foreground/70" />
           </div>
         )}
       </div>

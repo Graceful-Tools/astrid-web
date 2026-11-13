@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { logBoundaryError } from '@/lib/log-boundary-error'
 import { BRAND } from '@/lib/brand/config'
 import { DANGER_COLOR } from '@/lib/brand/colors'
 import { brandAccentCssVars } from '@/lib/brand/css-vars'
+import { GLOBAL_ERROR_ENGLISH } from '@/lib/i18n/global-error-english'
 
 interface GlobalErrorProps {
   error: Error & { digest?: string }
@@ -14,15 +15,30 @@ interface GlobalErrorProps {
 /**
  * Global error boundary that catches errors in the root layout.
  * This must define its own <html> and <body> tags since it replaces the root layout.
+ *
+ * It renders without the translation providers, so its words come from a static lookup
+ * keyed by the locale in the address (AWTD-1613), not from t(). The lookup is imported on
+ * render, not with the page, because this page is in every route's first load.
  */
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   useEffect(() => {
     logBoundaryError('global-error.tsx', error, "Global error:")
   }, [error])
 
+  const [{ locale, copy }, setLanguage] = useState({ locale: "en", copy: GLOBAL_ERROR_ENGLISH })
+  useEffect(() => {
+    import('@/lib/i18n/global-error-messages')
+      .then(({ GLOBAL_ERROR_MESSAGES, globalErrorLocale }) => {
+        const found = globalErrorLocale(window.location.pathname)
+        setLanguage({ locale: found, copy: GLOBAL_ERROR_MESSAGES[found] })
+      })
+      // If even this cannot load, the page stays in English.
+      .catch(() => {})
+  }, [])
+
   return (
     <html
-      lang="en"
+      lang={locale}
       // This page replaces the root layout, so it must set the brand accent
       // custom property itself or stylesheets that reference it paint nothing.
       style={brandAccentCssVars() as React.CSSProperties}
@@ -49,6 +65,8 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               width: "64px",
               height: "64px",
               borderRadius: "50%",
+              // Literal on purpose (AWTD-1614): this boundary ships in every route's first load, and
+              // lib/design/email-palette.ts would bring the whole token file with it.
               backgroundColor: "#fef2f2",
               display: "flex",
               alignItems: "center",
@@ -71,10 +89,10 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
             </div>
             <div>
               <h1 style={{ fontSize: "24px", fontWeight: "bold", margin: "0 0 8px 0" }}>
-                Something went wrong
+                {copy.title}
               </h1>
               <p style={{ color: "#6b7280", margin: 0, maxWidth: "400px" }}>
-                A critical error occurred. Please try refreshing the page.
+                {copy.description}
               </p>
             </div>
           </div>
@@ -91,7 +109,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
                 fontWeight: "500"
               }}
             >
-              Try again
+              {copy.tryAgain}
             </button>
             <button
               onClick={() => window.location.href = "/"}
@@ -106,7 +124,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
                 fontWeight: "500"
               }}
             >
-              Go home
+              {copy.goHome}
             </button>
           </div>
         </div>

@@ -114,9 +114,10 @@ describe('there is room for the assignee list (task 8599e136)', () => {
   it('allows more height than the old 50vh', () => {
     const { baseElement } = render(<PriorityAssigneePicker {...BASE} />)
     const el = sheet(baseElement)
-    const maxHeight = el.style.maxHeight
+    // A class since AWTD-1616 (it was an inline style): max-h-[85vh].
+    const maxHeight = /\bmax-h-\[(\d+)vh\]/.exec(el.className)?.[1] ?? ''
 
-    expect(maxHeight).toMatch(/vh$/)
+    expect(maxHeight).toMatch(/^\d+$/)
     expect(
       Number.parseInt(maxHeight, 10),
       'the sheet is still short enough to crowd the assignee list',

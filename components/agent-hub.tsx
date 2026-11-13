@@ -252,7 +252,7 @@ function InlineKeyEditor({
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[220px]">
+        <div className="relative flex-1 min-w-56">
           <Input
             type={showKey ? 'text' : 'password'}
             value={key}
@@ -618,7 +618,7 @@ export function AgentHub() {
         >
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <Bot className="w-4 h-4 text-orange-500" />
+              <Bot className="w-4 h-4 text-category-orange" />
               <span className="text-sm font-medium theme-text-primary">{t('settingsPages.aiAgents.hub.customAgents')}</span>
             </div>
             <div className="text-xs theme-text-muted">
@@ -626,7 +626,7 @@ export function AgentHub() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {expanded === 'custom-agents' && <Check className="w-4 h-4 text-orange-500" />}
+            {expanded === 'custom-agents' && <Check className="w-4 h-4 text-category-orange" />}
             <button type="button" className="theme-text-muted">
               {expanded === 'custom-agents' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>

@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState, useCallback } from 'react'
-import { CHART_SERIES_COLORS } from '@/lib/brand/colors'
+import { CHART_COLORS } from '@/lib/design/chart-colors'
 import { formatCacheHitRate, formatCacheLatencyMs } from '@/lib/cache-metrics'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -346,7 +346,7 @@ export default function AnalyticsDashboard() {
           <CardDescription>DAU, WAU, and MAU over time</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[220px] sm:h-[300px]">
+          <div className="h-56 sm:h-72">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -354,9 +354,9 @@ export default function AnalyticsDashboard() {
                 <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="DAU" stroke={CHART_SERIES_COLORS[0]} strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="WAU" stroke="#10b981" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="MAU" stroke="#8b5cf6" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="DAU" stroke={CHART_COLORS.blue} strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="WAU" stroke={CHART_COLORS.green} strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="MAU" stroke={CHART_COLORS.violet} strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -371,7 +371,7 @@ export default function AnalyticsDashboard() {
         </CardHeader>
         <CardContent>
           {hasPlatformData ? (
-            <div className="h-[220px] sm:h-[300px]">
+            <div className="h-56 sm:h-72">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={platformTrendData}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -379,17 +379,17 @@ export default function AnalyticsDashboard() {
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Legend />
-                  <Line type="monotone" dataKey="Desktop Web" stroke={CHART_SERIES_COLORS[0]} strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="iPhone Web" stroke="#10b981" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="Android Web" stroke="#f59e0b" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="iOS App" stroke="#8b5cf6" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="API" stroke="#ef4444" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="Unknown" stroke="#6b7280" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="Desktop Web" stroke={CHART_COLORS.blue} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="iPhone Web" stroke={CHART_COLORS.green} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="Android Web" stroke={CHART_COLORS.yellow} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="iOS App" stroke={CHART_COLORS.violet} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="API" stroke={CHART_COLORS.red} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="Unknown" stroke={CHART_COLORS.neutral} strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-[220px] sm:h-[300px] flex items-center justify-center text-muted-foreground">
+            <div className="h-56 sm:h-72 flex items-center justify-center text-muted-foreground">
               No platform data available
             </div>
           )}
@@ -404,19 +404,19 @@ export default function AnalyticsDashboard() {
         </CardHeader>
         <CardContent>
           {eventData.some((e) => e.value > 0) ? (
-            <div className="h-[200px] sm:h-[250px]">
+            <div className="h-52 sm:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={eventData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" tick={{ fontSize: 12 }} />
                   <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={100} />
                   <Tooltip />
-                  <Bar dataKey="value" fill={CHART_SERIES_COLORS[0]} radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="value" fill={CHART_COLORS.blue} radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-[200px] sm:h-[250px] flex items-center justify-center text-muted-foreground">
+            <div className="h-52 sm:h-64 flex items-center justify-center text-muted-foreground">
               No events recorded today
             </div>
           )}
@@ -567,7 +567,7 @@ export default function AnalyticsDashboard() {
                   />
                 </div>
 
-                <div className="h-[220px] sm:h-[300px]">
+                <div className="h-56 sm:h-72">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={trend}>
                       <CartesianGrid strokeDasharray="3 3" />
@@ -581,7 +581,7 @@ export default function AnalyticsDashboard() {
                         yAxisId="rate"
                         type="monotone"
                         dataKey="Hit rate %"
-                        stroke={CHART_SERIES_COLORS[0]}
+                        stroke={CHART_COLORS.blue}
                         strokeWidth={2}
                         dot={false}
                         connectNulls={false}
@@ -590,7 +590,7 @@ export default function AnalyticsDashboard() {
                         yAxisId="ms"
                         type="monotone"
                         dataKey="Mean lookup ms"
-                        stroke="#10b981"
+                        stroke={CHART_COLORS.green}
                         strokeWidth={2}
                         dot={false}
                         connectNulls={false}
@@ -599,7 +599,7 @@ export default function AnalyticsDashboard() {
                         yAxisId="ms"
                         type="monotone"
                         dataKey="Mean load ms"
-                        stroke="#f59e0b"
+                        stroke={CHART_COLORS.yellow}
                         strokeWidth={2}
                         dot={false}
                         connectNulls={false}

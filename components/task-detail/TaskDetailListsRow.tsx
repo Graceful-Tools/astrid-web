@@ -119,8 +119,8 @@ export function TaskDetailListsRow({
                   <Badge
                     key={list.id}
                     variant="secondary"
-                    className="flex items-center gap-1 pr-1 cursor-pointer"
-                    style={{ backgroundColor: list.color, color: 'white' }}
+                    className="flex items-center gap-1 pr-1 cursor-pointer text-white"
+                    style={{ backgroundColor: list.color }}
                   >
                     {getListPrivacyIcon(list, true)}
                     {list.name}
@@ -203,8 +203,8 @@ export function TaskDetailListsRow({
               <Badge
                 key={list.id}
                 variant="secondary"
-                className="flex items-center gap-1"
-                style={{ backgroundColor: list.color, color: 'white' }}
+                className="flex items-center gap-1 text-white"
+                style={{ backgroundColor: list.color }}
               >
                 {getListPrivacyIcon(list, true)}
                 {list.name}

@@ -157,7 +157,7 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
                     {agent.image ? (
                       <img src={agent.image} alt="" className="w-4 h-4 rounded-full" />
                     ) : (
-                      <Bot className="w-4 h-4 text-purple-500" />
+                      <Bot className="w-4 h-4 text-agent" />
                     )}
                     <span>{agent.name || agent.email}</span>
                     <span className="text-xs theme-text-muted">
@@ -201,11 +201,11 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
             <SelectTrigger className="w-full">
               <SelectValue placeholder={loadingRepositories ? t("listSettings.admin.loading") : t("listSettings.admin.selectRepo")} />
             </SelectTrigger>
-            <SelectContent className="z-[10100] max-w-[300px]">
+            <SelectContent className="z-[10100] max-w-72">
               <SelectItem value="none">{t("common.none")}</SelectItem>
               {availableRepositories.map((repo) => (
                 <SelectItem key={repo.fullName} value={repo.fullName}>
-                  <div className="truncate max-w-[250px]" title={repo.name}>
+                  <div className="truncate max-w-64" title={repo.name}>
                     {repo.name}
                   </div>
                 </SelectItem>
