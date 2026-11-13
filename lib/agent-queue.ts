@@ -17,7 +17,13 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getTaskUrl } from '@/lib/base-url'
 import { READY_STATUS_ROLE } from '@/lib/task-status'
-import { agentEmail, agentMailboxFromEmail, isBrandAgentEmail } from '@/lib/brand/agent-emails'
+import {
+  agentEmail,
+  agentMailboxFromEmail,
+  isBrandAgentEmail,
+  isCustomAgentEmail,
+} from '@/lib/brand/agent-emails'
+import { AIAgentConfigSchema, parseUserAIConfig } from '@/lib/ai/user-config-schemas'
 import { awaitsAgentReply } from '@/lib/ready-queue-scope'
 import { PAGE_LIMIT, selectAgentQueueTasks } from '@/lib/agent-queue-due-first'
 import { getAgentExecutionMode, pollableMailboxes } from '@/lib/ai/agent-execution-mode'
@@ -252,6 +258,25 @@ function heldByStatusFilter(requireReady: boolean) {
   return { statusRole: { not: null } }
 }
 
+/**
+ * May `userId` poll this Custom Agent's queue? Only the agent's own token, or the
+ * person recorded as its registrant (`aiAgentConfig.registeredBy`, the same
+ * ownership test `listMyCustomAgentUsers` and delete-agent use).
+ */
+function callerMayPollCustomAgent(
+  agentUser: { id: string; isAIAgent: boolean; aiAgentType: string | null; aiAgentConfig: unknown } | null,
+  userId: string
+): boolean {
+  if (!agentUser?.isAIAgent || agentUser.aiAgentType !== 'openclaw_worker') return false
+  if (agentUser.id === userId) return true
+  const config = parseUserAIConfig(
+    agentUser.aiAgentConfig as string | null | undefined,
+    AIAgentConfigSchema,
+    'agent-queue custom agent registeredBy'
+  )
+  return config.registeredBy === userId
+}
+
 export async function buildAgentQueue({
   agent,
   userId,
@@ -275,7 +300,14 @@ export async function buildAgentQueue({
   // that no row will ever match, so accepting it would answer "nothing queued"
   // on every run, forever, with nothing saying why — the exact silent failure a
   // scheduled loop cannot debug.
-  if (!mailbox || !isBrandAgentEmail(email) || !pollableMailboxes().includes(mailbox)) {
+  // A Custom Agent (`<name>.oc@<domain>`) is not a built-in mailbox, so it is
+  // admitted by who the CALLER is, below, not by the pollable list (AWTD-1642).
+  const isCustom = isCustomAgentEmail(email)
+  if (
+    !mailbox ||
+    !isBrandAgentEmail(email) ||
+    (!isCustom && !pollableMailboxes().includes(mailbox))
+  ) {
     throw new UnknownAgentError(`Unknown agent "${requested}"`)
   }
 
@@ -290,8 +322,16 @@ export async function buildAgentQueue({
 
   const agentUser = await prisma.user.findUnique({
     where: { email },
-    select: { id: true, name: true, isAIAgent: true },
+    select: { id: true, name: true, isAIAgent: true, aiAgentType: true, aiAgentConfig: true },
   })
+
+  // The auth rule for a custom agent: the caller is that agent, or is the person
+  // who registered it. Everything else — unknown row, a human or a built-in bot
+  // at a look-alike address, someone else's agent — gets the SAME error as a
+  // typo, so the endpoint cannot be used to learn which custom agents exist.
+  if (isCustom && !callerMayPollCustomAgent(agentUser, userId)) {
+    throw new UnknownAgentError(`Unknown agent "${requested}"`)
+  }
 
   // An agent identity that does not exist yet is an empty queue, not an error:
   // the row is created the first time someone assigns work to it.

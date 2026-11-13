@@ -125,6 +125,80 @@ describe('buildAgentQueue', () => {
     expect(result.agent.id).toBeNull()
   })
 
+  describe('AWTD-1642 custom-agent identity', () => {
+    const CUSTOM_EMAIL = `buddy.oc@${BRAND.agentEmailDomain}`
+    const customAgent = (over: Record<string, unknown> = {}) => ({
+      id: 'agent-buddy',
+      name: 'Buddy',
+      isAIAgent: true,
+      aiAgentType: 'openclaw_worker',
+      aiAgentConfig: JSON.stringify({ registeredBy: 'user-1' }),
+      ...over,
+    })
+
+    it('reconciles Ready + attention for the person who registered the custom agent', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(customAgent())
+      mockPrisma.task.findMany.mockResolvedValue([task()])
+
+      const result = await buildAgentQueue({ agent: CUSTOM_EMAIL, userId: 'user-1' })
+
+      expect(result.agent).toMatchObject({ email: CUSTOM_EMAIL, id: 'agent-buddy', name: 'Buddy' })
+      expect(result.queue.map(t => t.id)).toEqual(['task-1'])
+      expect(result.runnable).toMatchObject({ hasWork: true, reasons: ['ready'] })
+      // Assigned to the CUSTOM agent's row, never to a built-in one.
+      expect(mockPrisma.task.findMany.mock.calls[0][0].where.OR?.[0]?.assigneeId
+        ?? mockPrisma.task.findMany.mock.calls[0][0].where.assigneeId).toBe('agent-buddy')
+    })
+
+    it('reconciles when the token belongs to the custom agent itself', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(customAgent({ aiAgentConfig: null }))
+      mockPrisma.task.findMany.mockResolvedValue([task()])
+
+      const result = await buildAgentQueue({ agent: CUSTOM_EMAIL, userId: 'agent-buddy' })
+
+      expect(result.queue).toHaveLength(1)
+    })
+
+    it('refuses a caller who neither is nor registered that custom agent', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(customAgent())
+
+      await expect(
+        buildAgentQueue({ agent: CUSTOM_EMAIL, userId: 'stranger' })
+      ).rejects.toBeInstanceOf(UnknownAgentError)
+      expect(mockPrisma.task.findMany).not.toHaveBeenCalled()
+    })
+
+    it('answers an unknown custom agent exactly like an unauthorized one', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(null)
+
+      await expect(
+        buildAgentQueue({ agent: CUSTOM_EMAIL, userId: 'user-1' })
+      ).rejects.toBeInstanceOf(UnknownAgentError)
+    })
+
+    it('does not admit a non-custom bot row that merely carries a custom-looking address', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(customAgent({ aiAgentType: 'claude' }))
+
+      await expect(
+        buildAgentQueue({ agent: CUSTOM_EMAIL, userId: 'user-1' })
+      ).rejects.toBeInstanceOf(UnknownAgentError)
+    })
+
+    it('does not admit a human row at a custom-looking address', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(customAgent({ isAIAgent: false }))
+
+      await expect(
+        buildAgentQueue({ agent: CUSTOM_EMAIL, userId: 'user-1' })
+      ).rejects.toBeInstanceOf(UnknownAgentError)
+    })
+
+    it('still rejects a bare mailbox that is not a built-in agent', async () => {
+      await expect(
+        buildAgentQueue({ agent: 'buddy', userId: 'user-1' })
+      ).rejects.toBeInstanceOf(UnknownAgentError)
+    })
+  })
+
   it('AWTD-1560 adds a runnable verdict without changing the existing empty response', async () => {
     mockPrisma.user.findUnique.mockResolvedValue(null)
 

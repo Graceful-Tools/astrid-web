@@ -53,7 +53,10 @@ When building mobile or external integrations, always use `/api/v1/` routes. The
 ## Polling agent lifecycle
 
 `GET /api/v1/agent-queue?agent=<mailbox>&listId=<board>` keeps Ready work in
-`queue` and conversations in `attention`. An optional `attention.tasks[].resume`
+`queue` and conversations in `attention`. `agent` is a built-in mailbox or a
+Custom Agent address (`<name>.oc@<domain>`); a Custom Agent is accepted only
+for the agent's own token or the person who registered it, and any other caller
+gets the same 400 as an unknown agent (AWTD-1642). An optional `attention.tasks[].resume`
 object identifies a reply to an explicit, agent-authored human handback:
 
 ```json
