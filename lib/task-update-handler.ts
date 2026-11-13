@@ -184,9 +184,10 @@ export async function recordStateChangeComment(args: {
   updatedTask: TaskWithRelations
   updaterName: string
 }) {
-  const { existingTask, updatedTask, updaterName } = args
+  const { updatedTask, updaterName } = args
 
   try {
+    const existingTask = await withPreviousAssignee(args.existingTask, updatedTask)
     const stateChanges = detectTaskStateChanges(existingTask, updatedTask, updaterName)
     if (stateChanges.length === 0) return null
 
@@ -233,6 +234,32 @@ export async function recordStateChangeComment(args: {
       "Failed to create state change comment",
     )
     return null
+  }
+}
+
+/**
+ * The pre-update row with its assignee's name, when the assignee changed and
+ * the row was read without the relation (AWTD-1619). The update verb's
+ * existing-task include carries `assigneeId` only, so the line read
+ * "reassigned from Unassigned to …" for every task taken off a person. One
+ * lookup, and only for a write that actually reassigned.
+ */
+async function withPreviousAssignee(
+  existingTask: TaskWithRelations,
+  updatedTask: TaskWithRelations,
+): Promise<TaskWithRelations> {
+  const previousId = existingTask.assigneeId ?? null
+  if (!previousId || previousId === (updatedTask.assigneeId ?? null) || existingTask.assignee) return existingTask
+  // Best-effort: a failed lookup must not cost the line for the task's other
+  // changes. Name only, never the email — the new side is named the same way,
+  // and this comment can be read by people who never saw the address.
+  try {
+    const user = await prisma.user.findUnique({ where: { id: previousId }, select: { name: true } })
+    if (!user) return existingTask
+    return { ...existingTask, assignee: { id: previousId, name: user.name } }
+  } catch (err) {
+    log.warn({ err, taskId: updatedTask.id }, "Could not name the previous assignee")
+    return existingTask
   }
 }
 
