@@ -294,7 +294,8 @@ how it looks.
 
 Web reads the rating fills and text, the grid's gap, cell widths and radius, the key's
 swatch, and the card's radius and number badge from the tokens (`app/globals.css`; DS23,
-AWTD-1617). Heading sizes are not tokens yet (DS24).
+AWTD-1617). Headings h1 to h4 read `type.comfortable.markdown-h1` to `-h4` (28 / 22 / 17 / 17,
+semibold; DS24, AWTD-1625); h5 and h6 stay at 14 px.
 
 ### Still to write
 
