@@ -1,0 +1,283 @@
+{
+  "version": 1,
+  "description": "One brand profile, in sections. `env` names the NEXT_PUBLIC_*/BRAND_* key a field is also readable as, so today's web profiles validate unchanged. `default` is Astrid's own value, used when a profile does not state one \u2014 the colours' defaults come from design/tokens.json's brand block rather than being restated here.",
+  "sections": {
+    "identity": {
+      "name": {
+        "type": "string",
+        "required": true,
+        "env": "NEXT_PUBLIC_BRAND_NAME",
+        "default": "Astrid"
+      },
+      "title": {
+        "type": "string",
+        "env": "NEXT_PUBLIC_BRAND_TITLE",
+        "default": "Astrid Task Manager"
+      },
+      "tagline": {
+        "type": "string",
+        "env": "NEXT_PUBLIC_BRAND_TAGLINE"
+      },
+      "slogan": {
+        "type": "string",
+        "env": "NEXT_PUBLIC_BRAND_SLOGAN"
+      },
+      "wordmark": {
+        "type": "string",
+        "env": "NEXT_PUBLIC_BRAND_WORDMARK"
+      },
+      "domain": {
+        "type": "domain",
+        "required": true,
+        "env": "NEXT_PUBLIC_BRAND_DOMAIN",
+        "default": "astrid.cc"
+      },
+      "url-scheme": {
+        "type": "scheme",
+        "required": true,
+        "env": "NEXT_PUBLIC_BRAND_APP_URL_SCHEME",
+        "default": "astrid"
+      },
+      "support-email": {
+        "type": "email",
+        "env": "NEXT_PUBLIC_BRAND_SUPPORT_EMAIL",
+        "default": "support@astrid.cc"
+      },
+      "inbound-task-email": {
+        "type": "email",
+        "env": "NEXT_PUBLIC_BRAND_INBOUND_TASK_EMAIL",
+        "default": "remindme@astrid.cc"
+      },
+      "agent-name": {
+        "type": "string",
+        "env": "NEXT_PUBLIC_BRAND_AGENT_NAME",
+        "default": "Astrid"
+      },
+      "agent-email-domain": {
+        "type": "domain",
+        "env": "BRAND_AGENT_EMAIL_DOMAIN",
+        "default": "astrid.cc"
+      },
+      "www-redirect": {
+        "type": "bool",
+        "env": "NEXT_PUBLIC_BRAND_WWW_REDIRECT"
+      },
+      "legal-operator": {
+        "type": "string"
+      }
+    },
+    "colors": {
+      "accent": {
+        "type": "color",
+        "required": true,
+        "env": "NEXT_PUBLIC_BRAND_ACCENT_COLOR"
+      },
+      "accent-hover": {
+        "type": "color",
+        "derived": true
+      },
+      "accent-ink": {
+        "type": "color",
+        "derived": true
+      },
+      "accent-ink-dark": {
+        "type": "color",
+        "derived": true
+      },
+      "accent-text": {
+        "type": "color",
+        "derived": true
+      },
+      "default-theme": {
+        "type": "string",
+        "env": "NEXT_PUBLIC_BRAND_DEFAULT_THEME"
+      }
+    },
+    "font": {
+      "family": {
+        "type": "string",
+        "env": "NEXT_PUBLIC_BRAND_FONT_FAMILY"
+      }
+    },
+    "assets": {
+      "icon": {
+        "type": "path",
+        "env": "NEXT_PUBLIC_BRAND_ICON"
+      },
+      "icon-small": {
+        "type": "path",
+        "env": "NEXT_PUBLIC_BRAND_ICON_SMALL"
+      },
+      "logo": {
+        "type": "path",
+        "env": "NEXT_PUBLIC_BRAND_LOGO"
+      },
+      "character": {
+        "type": "path"
+      },
+      "notification-mark": {
+        "type": "path"
+      }
+    },
+    "copy": {
+      "feedback-list-id": {
+        "type": "string",
+        "env": "NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID"
+      }
+    },
+    "auth": {
+      "providers": {
+        "type": "list",
+        "env": "NEXT_PUBLIC_BRAND_AUTH_PROVIDERS"
+      },
+      "google": {
+        "type": "bool",
+        "env": "NEXT_PUBLIC_BRAND_ENABLE_AUTH_GOOGLE"
+      },
+      "apple": {
+        "type": "bool",
+        "env": "NEXT_PUBLIC_BRAND_ENABLE_AUTH_APPLE"
+      },
+      "passkey": {
+        "type": "bool",
+        "env": "NEXT_PUBLIC_BRAND_ENABLE_AUTH_PASSKEY"
+      },
+      "google-client-id": {
+        "type": "string"
+      },
+      "apple-client-id": {
+        "type": "string"
+      }
+    },
+    "capabilities": {
+      "agents": {
+        "type": "list",
+        "env": "BRAND_ENABLED_AGENTS"
+      },
+      "calendar-feed": {
+        "type": "bool",
+        "env": "NEXT_PUBLIC_BRAND_ENABLE_CALENDAR_FEED"
+      },
+      "chatgpt-actions": {
+        "type": "bool",
+        "env": "NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS"
+      },
+      "coding-agent": {
+        "type": "bool",
+        "env": "NEXT_PUBLIC_BRAND_ENABLE_CODING_AGENT"
+      },
+      "email-to-task": {
+        "type": "bool",
+        "env": "NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK"
+      },
+      "github-agent-labels": {
+        "type": "bool",
+        "env": "NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS"
+      },
+      "github-projects": {
+        "type": "bool",
+        "env": "NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS"
+      },
+      "mcp": {
+        "type": "bool",
+        "env": "NEXT_PUBLIC_BRAND_ENABLE_MCP"
+      },
+      "openclaw": {
+        "type": "bool",
+        "env": "NEXT_PUBLIC_BRAND_ENABLE_OPENCLAW"
+      },
+      "project-mode": {
+        "type": "bool",
+        "env": "NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE"
+      },
+      "sync-github-issues": {
+        "type": "bool",
+        "env": "NEXT_PUBLIC_BRAND_ENABLE_SYNC_GITHUB_ISSUES"
+      },
+      "sync-google-tasks": {
+        "type": "bool",
+        "env": "NEXT_PUBLIC_BRAND_ENABLE_SYNC_GOOGLE_TASKS"
+      },
+      "task-cost": {
+        "type": "bool",
+        "env": "NEXT_PUBLIC_BRAND_ENABLE_TASK_COST"
+      },
+      "github-app-slug": {
+        "type": "string",
+        "env": "NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG"
+      },
+      "app-store-url": {
+        "type": "string",
+        "env": "NEXT_PUBLIC_BRAND_APP_STORE_URL"
+      }
+    }
+  },
+  "platforms": {
+    "web": {},
+    "ios": {
+      "bundle-id": {
+        "type": "string"
+      },
+      "app-group": {
+        "type": "string"
+      },
+      "keychain-group": {
+        "type": "string"
+      },
+      "development-team": {
+        "type": "string"
+      },
+      "display-name": {
+        "type": "string"
+      },
+      "app-ids": {
+        "type": "list",
+        "env": "BRAND_APPLE_APP_IDS"
+      }
+    },
+    "mac": {
+      "bundle-id": {
+        "type": "string"
+      },
+      "display-name": {
+        "type": "string"
+      }
+    },
+    "android": {
+      "package": {
+        "type": "string"
+      },
+      "app-links": {
+        "type": "list",
+        "env": "BRAND_ANDROID_APP_LINKS"
+      }
+    },
+    "windows": {
+      "package-identity": {
+        "type": "string"
+      },
+      "publisher": {
+        "type": "string"
+      },
+      "display-name": {
+        "type": "string"
+      }
+    },
+    "vscode": {
+      "publisher": {
+        "type": "string"
+      },
+      "extension-id": {
+        "type": "string"
+      }
+    },
+    "code": {
+      "bundle-id": {
+        "type": "string"
+      },
+      "application-name": {
+        "type": "string"
+      }
+    }
+  }
+}

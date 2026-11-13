@@ -115,19 +115,27 @@ export function hexToRgbTriplet(hex: string): string | null {
  * `styles/themes/*.css` define `--theme-accent` (buttons, links, the focus ring) as
  * an RGB triplet, and until task 518ec534's follow-up they hardcoded Astrid blue —
  * so a partner's accent reached the manifest and the email chrome but not the UI.
- * The layout now publishes these as `--brand-accent-rgb` / `--brand-accent-hover-rgb`
- * and the stylesheets read them with their original values as the fallback.
+ * The layout now publishes these as `--brand-*-rgb` and the stylesheets read them
+ * with their original values as the fallback.
+ *
+ * The hover and inks are astrid-core's (BRAND.accentHoverColor and friends, derived
+ * at build by scripts/lib/brand-colors.mjs), so a partner's hover is the same on
+ * every client — web used to darken the accent itself, and iOS fell back to Astrid's
+ * blue (AWTD-1589).
  *
  * Null for the built-in accent ON PURPOSE: the stylesheets' fallbacks are the
- * designed Astrid values, hover and inks included, and a computed hover would
- * not match them. A non-hex accent is null too — nothing sensible can be
- * derived from it.
+ * designed Astrid values, hover and inks included, and a derived hover would not
+ * match them. Null too when nothing was derived (a non-hex accent, or a build that
+ * could not load core's rule) — half a set would mix a partner's accent with
+ * Astrid's hover.
  */
-export function brandAccentRgb(): { accent: string; hover: string } | null {
+export function brandAccentRgb(): { accent: string; hover: string; ink: string; inkDark: string } | null {
   if (BRAND.accentColor.trim().toLowerCase() === ASTRID_ACCENT_COLOR) return null
   const accent = hexToRgbTriplet(BRAND.accentColor)
-  const hover = hexToRgbTriplet(darkenHex(BRAND.accentColor, 0.15))
-  return accent && hover ? { accent, hover } : null
+  const hover = hexToRgbTriplet(BRAND.accentHoverColor)
+  const ink = hexToRgbTriplet(BRAND.accentInkColor)
+  const inkDark = hexToRgbTriplet(BRAND.accentInkDarkColor)
+  return accent && hover && ink && inkDark ? { accent, hover, ink, inkDark } : null
 }
 
 /**
