@@ -34,6 +34,25 @@ async function queuedTitles(page: Page, taskId: string): Promise<string[]> {
   })()`) as Promise<string[]>
 }
 
+/**
+ * The offline cache (IndexedDB) has this task. The page-load clear empties it
+ * and the offline provider's initial sync refills it; since that provider loads
+ * after hydration (AWTD-1604) the refill can land seconds after the list shows.
+ * Going offline before it did left an offline reload with nothing to show
+ * (AWTD-1631). A person who goes offline that early has no cache either, so the
+ * round trip starts once the task is cached, as it does for the worker above.
+ */
+async function offlineCacheHolds(page: Page, taskId: string) {
+  await expect
+    .poll(() => page.evaluate(`(async () => {
+      const db = await new Promise((resolve) => { const open = indexedDB.open('AstridOfflineDB'); open.onsuccess = () => resolve(open.result) })
+      const task = await new Promise((resolve) => { const req = db.transaction('tasks').objectStore('tasks').get('${taskId}'); req.onsuccess = () => resolve(req.result) })
+      db.close()
+      return !!task
+    })()`), { timeout: 15_000 })
+    .toBe(true)
+}
+
 async function serviceWorkerControls(page: Page) {
   await expect
     .poll(() => page.evaluate('!!(navigator.serviceWorker && navigator.serviceWorker.controller)'))
@@ -60,6 +79,7 @@ test.describe('Offline round trip (AWTD-1417)', () => {
     const row = (text: string) => page.locator('[data-task-id]').filter({ hasText: text })
     await expect(row(title)).toHaveCount(1)
     await serviceWorkerControls(page)
+    await offlineCacheHolds(page, task.id)
 
     await context.setOffline(true)
 

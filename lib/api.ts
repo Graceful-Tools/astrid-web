@@ -351,6 +351,16 @@ const queueingWrite = async <TBody extends object>(
               headers: { 'Content-Type': 'application/json' }
             })
           }
+
+          // No cached copy: there is no task to answer with (AWTD-1631). Echoing
+          // the body passed it off as the task — it carries `id` — and a
+          // whole-task edit names its lists as `listIds`, not `lists`, so the
+          // caller swapped its row for a list-less task and the list dropped it.
+          // Answer with no task, and the caller keeps its optimistic copy.
+          return new Response(JSON.stringify({ queued: true }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          })
         }
 
         // Return fake response for other entities
