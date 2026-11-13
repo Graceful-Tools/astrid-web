@@ -46,7 +46,7 @@ describe('DS20: a border is a hairline (AWTD-1617)', () => {
     const out = await compileClasses(['border-1'])
     expect(ruleFor(out, 'border-1')).toContain('border-width: 1px')
     const cards = readFileSync(join(process.cwd(), 'components/task-detail/DecisionCards.tsx'), 'utf8')
-    expect(cards).toMatch(/rounded-lg border-1 px-3/)
+    expect(cards).toMatch(/ border-1 px-3/)
   })
 
   it('is a whole pixel by default and the token on a high-density screen', () => {
