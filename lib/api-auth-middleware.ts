@@ -20,7 +20,7 @@ import { createLogger } from '@/lib/logger'
 import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
 import { agentEmail } from '@/lib/brand/agent-emails'
 import { normalizeStoredAgentMailbox } from './oauth/agent-consent'
-import { listTasksByIdWhere } from '@/lib/list-permissions'
+import { listTasksByIdWhere, listVisibilityWhere } from '@/lib/list-permissions'
 
 const log = createLogger('api-auth-middleware')
 
@@ -392,29 +392,24 @@ export async function requireListAccess(
 }
 
 /**
- * The three ways a user is attached to a task: creator, assignee, or a member
- * (or owner) of one of its lists. Shared by the read and write checks below so
- * the two cannot drift apart on everything except the one difference between
+ * The three ways a user is attached to a task: creator, assignee, or someone the
+ * list role lets work one of its lists. Shared by the read and write checks below
+ * so the two cannot drift apart on everything except the one difference between
  * them.
+ *
+ * The list branch is every list `getUserRoleInList` gives a role on, minus PUBLIC
+ * (the read check adds that) and minus the derived GitHub-label branch (a label
+ * spans boards): owner, member, the project's owner and members on every list of
+ * the project, and a board's status lists for anyone shared on a sibling list.
+ * It was owner/member only, so a project member could open a task on a project
+ * list but the API refused the edit the app offered them; Jon chose that project
+ * members may edit and delete there (AWTD-1523, 2026-11-13).
  */
 function taskMembershipBranches(userId: string) {
   return [
     { creatorId: userId },
     { assigneeId: userId },
-    {
-      lists: {
-        some: {
-          OR: [
-            { ownerId: userId },
-            {
-              listMembers: {
-                some: { userId },
-              },
-            },
-          ],
-        },
-      },
-    },
+    { lists: { some: listVisibilityWhere(userId, { includePublic: false, includeDerivedLabels: false }) } },
   ]
 }
 
@@ -458,8 +453,9 @@ export function taskReadAccessWhere(userId: string) {
       // opens too. PUBLIC is part of it, covering both public list types
       // (copy-only and collaborative), which is what legacy does. Not the
       // derived GitHub-label branch: a label spans boards, so seeing it does
-      // not mean seeing every task carrying it. READ only; the write check
-      // above stays owner/member until project-member editing is decided.
+      // not mean seeing every task carrying it. Since the write branch above
+      // took in the project and status-list routes too, PUBLIC is the one
+      // thing this adds, and it stays READ only.
       { lists: { some: listTasksByIdWhere(userId) } },
     ],
   }
