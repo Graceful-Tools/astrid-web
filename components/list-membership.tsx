@@ -219,7 +219,7 @@ export function ListMembership({
         <div className="border-t theme-border pt-4">
           <div className="space-y-4">
             <div className="flex items-center space-x-2 mb-3">
-              <Bot className="w-4 h-4 text-purple-600" />
+              <Bot className="w-4 h-4 text-agent" />
               <Label className="text-sm font-medium theme-text-primary">
                 {t(isGitHubConnected ? 'lists.membershipPanel.aiCodingAgents' : 'lists.membershipPanel.aiAgents')}
               </Label>
@@ -295,14 +295,14 @@ export function ListMembership({
           <div className="flex items-center justify-between p-3 bg-theme-secondary rounded-lg">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 relative flex items-center justify-center bg-agent-bubble rounded-full">
-                <Bot className="w-5 h-5 text-purple-600" />
-                <Sparkles className="w-3 h-3 text-yellow-500 absolute -top-0.5 -right-0.5" />
+                <Bot className="w-5 h-5 text-agent" />
+                <Sparkles className="w-3 h-3 text-category-amber absolute -top-0.5 -right-0.5" />
               </div>
               <div className="space-y-0.5">
                 <div className="text-sm font-medium theme-text-primary">{t('lists.membershipPanel.aiHelpTitle')}</div>
                 <Link
                   href="/settings/agents"
-                  className="text-xs text-purple-600 hover:text-purple-500 flex items-center gap-1"
+                  className="text-xs text-agent hover:text-agent/80 flex items-center gap-1"
                 >
                   {t('lists.membershipPanel.addApiKeys')}
                   <ExternalLink className="w-3 h-3" />

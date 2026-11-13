@@ -97,9 +97,9 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
 
   // Get copy count color
   const getCopyCountColor = (count: number = 0): string => {
-    if (count >= 1000) return "text-purple-600 dark:text-purple-400 font-bold"
-    if (count >= 100) return "text-blue-600 dark:text-blue-400 font-semibold"
-    if (count >= 10) return "text-green-600 dark:text-green-400"
+    if (count >= 1000) return "text-category-purple font-bold"
+    if (count >= 100) return "text-category-blue font-semibold"
+    if (count >= 10) return "text-category-green"
     if (count >= 5) return "text-theme-secondary"
     return "text-theme-muted"
   }
@@ -512,7 +512,7 @@ export function PublicListsBrowser({ isOpen, onClose, onListCopied }: PublicList
                     </p>
                   </div>
 
-                  <div className={`overflow-y-auto ${isMobile ? 'h-[50vh]' : 'h-[400px]'}`}>
+                  <div className={`overflow-y-auto ${isMobile ? 'h-[50vh]' : 'h-96'}`}>
                     <div className="p-4 space-y-2">
                       {previewLoading ? (
                         <div className="text-center py-8 theme-text-muted">

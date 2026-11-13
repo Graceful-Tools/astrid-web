@@ -1,6 +1,7 @@
 "use client"
 
 import { BRAND } from '@/lib/brand/config'
+import { SpeechBubbleTail } from '@/components/ui/speech-bubble-tail'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -229,7 +230,7 @@ export function ReminderNotification({
           {/* Astrid with Speech Bubble */}
           <div className="flex items-start space-x-4">
             {/* Astrid Icon - 1/3 of screen width */}
-            <div className="flex-shrink-0" style={{ width: '33%' }}>
+            <div className="flex-shrink-0 w-1/3">
               <Image
                 src={BRAND.icon}
                 alt={BRAND.appName}
@@ -242,9 +243,7 @@ export function ReminderNotification({
             {/* Speech Bubble */}
             <div className="flex-1">
               <div className="relative theme-bg-secondary rounded-2xl p-4 border-2 theme-border shadow-lg">
-                {/* Comic-style speech bubble pointer */}
-                <div className="absolute -left-3 top-6 w-0 h-0 border-t-[12px] border-t-transparent border-r-[16px] border-r-theme border-b-[12px] border-b-transparent"></div>
-                <div className="absolute -left-[10px] top-[27px] w-0 h-0 border-t-[9px] border-t-transparent border-r-[13px] border-b-[9px] border-b-transparent speech-bubble-arrow-fill"></div>
+                <SpeechBubbleTail />
                 <p className="text-base font-semibold theme-text-primary leading-relaxed">{quote}</p>
               </div>
             </div>
@@ -260,7 +259,7 @@ export function ReminderNotification({
                     return (
                       <div
                         key={collab.id}
-                        className="w-8 h-8 rounded-full bg-brand text-brand-foreground flex items-center justify-center text-xs font-semibold border-2 border-white dark:border-gray-800"
+                        className="w-8 h-8 rounded-full bg-brand text-brand-foreground flex items-center justify-center text-xs font-semibold border-2 border-theme-card"
                         title={collab.name}
                       >
                         {initials}
@@ -268,7 +267,7 @@ export function ReminderNotification({
                     )
                   })}
                   {collaborators.length > 5 && (
-                    <div className="w-8 h-8 rounded-full bg-theme-active text-theme-secondary flex items-center justify-center text-xs font-semibold border-2 border-white dark:border-gray-800">
+                    <div className="w-8 h-8 rounded-full bg-theme-active text-theme-secondary flex items-center justify-center text-xs font-semibold border-2 border-theme-card">
                       +{collaborators.length - 5}
                     </div>
                   )}

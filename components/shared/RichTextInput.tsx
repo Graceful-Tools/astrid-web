@@ -46,10 +46,10 @@ function buildHighlightMarkup(text: string): string {
         cls = 'bg-brand-subtle text-brand rounded px-0.5'
         break
       case '#':
-        cls = 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded px-0.5'
+        cls = 'bg-category-green-subtle text-category-green rounded px-0.5'
         break
       case '!':
-        cls = 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded px-0.5'
+        cls = 'bg-category-amber-subtle text-category-amber rounded px-0.5'
         break
       default:
         cls = ''
@@ -345,7 +345,7 @@ export const RichTextInput = React.memo(function RichTextInput({
           ref={dropdownRef}
           className="absolute bottom-full left-0 right-0 mb-1 theme-bg-primary border theme-border rounded-lg shadow-lg max-h-48 overflow-y-auto z-10"
         >
-          <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider theme-text-muted border-b theme-border">
+          <div className="px-3 py-1.5 text-caption2 font-semibold uppercase tracking-wider theme-text-muted border-b theme-border">
             {autocompleteType === 'mention' && t('richTextInput.people')}
             {autocompleteType === 'list' && t('navigation.lists')}
             {autocompleteType === 'task' && t('tasks.tasks')}
@@ -365,7 +365,7 @@ export const RichTextInput = React.memo(function RichTextInput({
               <div className="flex-1 min-w-0">
                 <span className="font-medium truncate block">{item.label}</span>
                 {item.secondaryLabel && (
-                  <span className="text-[11px] theme-text-muted truncate block">{item.secondaryLabel}</span>
+                  <span className="text-caption2 theme-text-muted truncate block">{item.secondaryLabel}</span>
                 )}
               </div>
               <AutocompleteItemBadge item={item} />
@@ -396,7 +396,7 @@ export const RichTextInput = React.memo(function RichTextInput({
                 {file.type?.startsWith('image/') ? (
                   <ImageIcon className="w-4 h-4 text-brand flex-shrink-0" />
                 ) : (
-                  <FileText className="w-4 h-4 text-green-400 flex-shrink-0" />
+                  <FileText className="w-4 h-4 text-category-green flex-shrink-0" />
                 )}
                 <span className="text-sm theme-text-primary flex-1 truncate">{file.name}</span>
                 <button
@@ -447,8 +447,7 @@ export const RichTextInput = React.memo(function RichTextInput({
             <div
               ref={backdropRef}
               aria-hidden
-              className="absolute inset-0 rounded-xl px-3 py-2 text-sm leading-5 whitespace-pre-wrap break-words overflow-hidden pointer-events-none"
-              style={{ maxHeight: '120px' }}
+              className="absolute inset-0 rounded-xl px-3 py-2 text-sm leading-5 whitespace-pre-wrap break-words overflow-hidden pointer-events-none composer-input-max"
               dangerouslySetInnerHTML={{ __html: highlightHtml }}
             />
           )}
@@ -464,10 +463,9 @@ export const RichTextInput = React.memo(function RichTextInput({
             disabled={disabled}
             rows={1}
             spellCheck={!showOverlay}
-            className={`w-full resize-none rounded-xl px-3 py-2 text-sm leading-5 h-9 theme-bg-secondary border-0 outline-none focus:ring-1 focus:ring-brand scrollbar-hide ${
-              showOverlay ? 'text-transparent caret-current' : 'theme-text-primary'
+            className={`w-full resize-none rounded-xl px-3 py-2 text-sm leading-5 h-9 theme-bg-secondary border-0 outline-none focus:ring-1 focus:ring-brand scrollbar-hide composer-input-max caret-current ${
+              showOverlay ? 'text-transparent' : 'theme-text-primary'
             }`}
-            style={{ maxHeight: '120px', caretColor: 'currentColor' }}
           />
         </div>
 
@@ -505,7 +503,7 @@ function AutocompleteItemIcon({ item }: { item: AutocompleteItem }) {
       return item.image ? (
         <img src={item.image} alt="" className="w-5 h-5 rounded-full flex-shrink-0" />
       ) : (
-        <div className="w-5 h-5 rounded-full bg-theme-active flex items-center justify-center text-[10px] font-medium flex-shrink-0">
+        <div className="w-5 h-5 rounded-full bg-theme-active flex items-center justify-center text-caption2 font-medium flex-shrink-0">
           {item.label[0]?.toUpperCase()}
         </div>
       )
@@ -522,21 +520,21 @@ function AutocompleteItemBadge({ item }: { item: AutocompleteItem }) {
   const { t } = useTranslations()
   if (item.type === 'mention' && item.isAIAgent) {
     return (
-      <span className="text-[10px] bg-agent-bubble text-purple-600 dark:text-purple-400 px-1 rounded flex-shrink-0">
+      <span className="text-caption2 bg-agent-bubble text-agent px-1 rounded flex-shrink-0">
         {t('richTextInput.aiBadge')}
       </span>
     )
   }
   if (item.type === 'list' && item.isShared) {
     return item.privacy === 'PUBLIC' ? (
-      <Globe className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+      <Globe className="w-3.5 h-3.5 text-category-green flex-shrink-0" />
     ) : (
       <Users className="w-3.5 h-3.5 text-brand flex-shrink-0" />
     )
   }
   if (item.type === 'task' && item.completed) {
     return (
-      <span className="text-[10px] theme-text-muted flex-shrink-0">{t('richTextInput.taskDone')}</span>
+      <span className="text-caption2 theme-text-muted flex-shrink-0">{t('richTextInput.taskDone')}</span>
     )
   }
   return null

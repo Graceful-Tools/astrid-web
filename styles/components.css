@@ -96,6 +96,13 @@
      springing back from a press). Web-only, named once. */
   --motion-spring-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
 
+  /* Web-only layout widths, named once (AWTD-1615) and read as `min-w-pane-min`
+     and `w-popover-wide` (lib/design/tailwind-theme.ts). The narrowest a second
+     pane (chat, the settings placeholder) may get beside the list; the width of
+     the notifications popover. */
+  --pane-min-width: 280px;
+  --popover-wide-width: 22rem;
+
   /* A hairline: what Tailwind's `border` (and `border-t`, `divide-y` …) draws
      (tailwind.config.ts → borderWidth). The token's half point where the screen
      can draw one, a whole pixel where it cannot (astrid-core register DS20). */
@@ -343,6 +350,12 @@ html, body {
   border-top: none;
 }
 
+/* The details arrow follows its row: only `top` animates, so a theme change
+   repaints its border at once instead of fading it (AWTD-1616). */
+.task-panel-arrow-tracks-row {
+  transition-property: top;
+}
+
 /* Desktop arrow: match the panel's accent-blue selection ring (AWTD-1084).
    .theme-panel-arrow in the selector outranks each theme's border-color. */
 .task-panel-desktop > .task-panel-arrow.theme-panel-arrow {
@@ -502,6 +515,43 @@ html, body {
   max-height: 200px;
   overflow: hidden;
   font-size: 16px;
+}
+
+/* The comic speech bubble's tail, pointing left at Astrid (AWTD-1615): one
+   shape for the reminder popover, the reminder notification and the empty
+   state. Two triangles, the outline (border-r-theme) and the fill drawn inside
+   it (speech-bubble-arrow-fill, per theme), sized for a border-2 bubble.
+   components/ui/speech-bubble-tail.tsx draws both. */
+.speech-bubble-tail {
+  position: absolute;
+  z-index: 10;
+  top: 1.5rem;
+  left: -16px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 12px 16px 12px 0;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.speech-bubble-tail.speech-bubble-tail-fill {
+  top: 27px;
+  left: -12px;
+  border-width: 9px 13px 10px 0;
+}
+
+/* The settings placeholder's smaller, fill-only tail, for its 1px bubble. */
+.speech-bubble-tail.speech-bubble-tail-small {
+  left: -14px;
+  border-width: 10px 14px 10px 0;
+}
+
+/* The quick-add and comment composers grow with their text up to about five
+   lines, then scroll. Their auto-grow code caps the height at the same 120 px
+   (quick-add.tsx, RichTextInput.tsx). */
+.composer-input-max {
+  max-height: 120px;
 }
 
 /* Form Components */
@@ -772,8 +822,11 @@ html, body {
 .ios-drawer-overlay-visible {
   opacity: 0.3;
   pointer-events: auto;
+  /* pointer-events takes the drawer's whole duration and switches at the end
+     (step-end), so it turns on as the panel lands: the same moment as a 0s
+     transition delayed by that duration, without writing a duration out. */
   transition: opacity var(--ios-drawer-duration) var(--ios-drawer-ease) var(--ios-drawer-duration),
-              pointer-events 0s var(--ios-drawer-duration);
+              pointer-events var(--ios-drawer-duration) step-end;
   transition-behavior: allow-discrete;
 }
 
@@ -796,6 +849,16 @@ html, body {
   );
   min-width: var(--task-panel-min-width);
   max-width: var(--task-panel-max-width);
+}
+
+/* The floating details pane: the left edge is computed from the list
+   (TaskManagerView, DesktopSettingsDetailPane), the right edge is fixed, and the
+   width is whatever lies between them (AWTD-1616). Two classes, so it outranks
+   the 3-column width below as the inline style it replaces did; full screen
+   still wins with !important. */
+.task-panel-desktop.task-panel-desktop-anchored {
+  right: 10px;
+  width: auto;
 }
 
 /* Inner panel clips content to rounded corners while arrow stays outside */

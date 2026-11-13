@@ -31,9 +31,15 @@ describe('stylesheets animate with the motion tokens (AWTD-1574)', () => {
     const found = STYLESHEETS.flatMap((path) =>
       (withoutComments(read(...path.split('/'))).match(literal) ?? []).map((match) => `${path}: ${match}`),
     )
-    // The one that stays is not a design value: the drawer's tap guard switches
-    // pointer-events with no duration of its own, after the drawer's.
-    expect(found).toEqual(['styles/components.css: 0s'])
+    // The drawer's tap guard used to keep a `0s` here (AWTD-1616 removed it).
+    expect(found).toEqual([])
+  })
+
+  it('the tap guard turns on as the drawer lands, without a written-out 0s (AWTD-1616)', () => {
+    // Over the drawer's duration with step-end is the same moment as 0s delayed by it.
+    expect(withoutComments(read('styles', 'components.css'))).toMatch(
+      /pointer-events var\(--ios-drawer-duration\) step-end;/,
+    )
   })
 
   it('the drawer reads the drawer token, so the tap guard still waits for the panel', () => {

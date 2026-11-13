@@ -312,7 +312,7 @@ export function LeftSidebar({
 
         {/* Lists */}
         <div className="p-3 mt-4">
-          <div className="text-[0.6875rem] font-medium opacity-50 tracking-wide mb-2 px-2">
+          <div className="text-caption2 font-medium opacity-50 tracking-wide mb-2 px-2">
             {t("navigation.lists")}
           </div>
           <div className="space-y-1">
@@ -369,7 +369,7 @@ export function LeftSidebar({
         {/* Public Shared Lists */}
         {collaborativePublicLists && collaborativePublicLists.length > 0 && (
           <div className="p-3 mt-4">
-            <div className="text-[0.6875rem] font-medium opacity-50 tracking-wide mb-2 px-2">
+            <div className="text-caption2 font-medium opacity-50 tracking-wide mb-2 px-2">
               {t("navigation.publicSharedLists")}
             </div>
             <div className="space-y-1">
@@ -410,7 +410,7 @@ export function LeftSidebar({
         {/* Public Lists */}
         {suggestedPublicLists && suggestedPublicLists.length > 0 && (
           <div className="p-3 mt-4">
-            <div className="text-[0.6875rem] font-medium opacity-50 tracking-wide mb-2 px-2">
+            <div className="text-caption2 font-medium opacity-50 tracking-wide mb-2 px-2">
               {t("navigation.publicLists")}
             </div>
             <div className="space-y-1">

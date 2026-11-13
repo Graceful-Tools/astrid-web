@@ -12,6 +12,7 @@ import {
   tokenDurations,
   tokenEasings,
   tokenOpacity,
+  tokenFontSizes,
   tokenScale,
   tokenSpacing,
 } from "./lib/design/tailwind-theme";
@@ -51,6 +52,7 @@ const config: Config = {
   		transitionDuration: tokenDurations,
   		transitionTimingFunction: tokenEasings,
   		fontSize: {
+  			...tokenFontSizes,
   			'display': ['2rem', { lineHeight: '2.5rem', letterSpacing: '-0.01em', fontWeight: '600' }],
   			'title': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.01em', fontWeight: '600' }],
   			'subtitle': ['1.125rem', { lineHeight: '1.5rem', fontWeight: '500' }],

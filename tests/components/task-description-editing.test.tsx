@@ -309,8 +309,8 @@ describe('Task Description Editing', () => {
 
       const textarea = screen.getByPlaceholderText('Add a description...') as HTMLTextAreaElement
 
-      // Should have minHeight for mobile (via Tailwind class)
-      expect(textarea.className).toContain('min-h-[80px]')
+      // Should have minHeight for mobile: min-h-20 is 80px on the spacing scale (AWTD-1615)
+      expect(textarea.className).toMatch(/\bmin-h-20\b/)
     })
 
     it('should use 16px font size to prevent zoom on iOS', () => {

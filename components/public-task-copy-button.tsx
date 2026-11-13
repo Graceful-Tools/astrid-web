@@ -30,7 +30,7 @@ export function PublicTaskCopyButton({ onCopy, onClick }: PublicTaskCopyButtonPr
         className={`w-8 h-8 rounded-sm flex items-center justify-center transition-all ${
           isHovered
             ? 'bg-brand border-2 border-brand'
-            : 'border-2 border-theme-strong hover:border-gray-600'
+            : 'border-2 border-theme-strong hover:border-brand'
         }`}
       >
         <Copy

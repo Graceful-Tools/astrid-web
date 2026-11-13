@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 describe('the attachment lightbox answers as the Dark theme (AWTD-1575)', () => {
   it('scopes its always-dark panel with the dark theme class', () => {
     const source = readFileSync('components/secure-attachment-viewer.tsx', 'utf8')
-    expect(source).toMatch(/"dark relative bg-gray-900 rounded-lg overflow-hidden flex flex-col"/)
+    // AWTD-1612: the panel is the inverse surface, the same dark in every theme.
+    expect(source).toMatch(/"dark relative bg-theme-inverse rounded-lg overflow-hidden flex flex-col"/)
   })
 })
