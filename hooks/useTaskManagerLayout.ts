@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react"
-import { designTokens } from "@/lib/design/tokens"
+import { PANEL_MOTION_MS } from "@/lib/design/motion-tokens"
 import { useSwipe } from "@/hooks/use-swipe"
 import { useSwipeToDismiss } from "@/hooks/use-swipe-to-dismiss"
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
@@ -147,7 +147,7 @@ export function useTaskManagerLayout({ onRefresh, onSearchClear }: UseTaskManage
         setIsMobileTaskDetailClosing(false)
         setTimeout(() => setJustReturnedFromTaskDetail(false), 500)
         // As long as .task-panel-mobile takes to slide out: the panel motion token.
-      }, designTokens.motion.panel.ms)
+      }, PANEL_MOTION_MS)
     } else if (mobileView === 'chat') {
       setMobileView('list')
     }
