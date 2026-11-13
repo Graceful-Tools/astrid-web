@@ -24,7 +24,7 @@ Insights was collecting the numbers — see below.
 | Incremental sync response | <= 100 KiB and <= 1 MiB across all pages | `scripts/measure-api-latency.ts` (route not yet added) | never |
 | Server error rate | < 1% | `vercel logs` status codes — sample too small to assert, see below | 2026-09-11, indicative only |
 | Redis cache hit rate | >= 60% after warm-up (re-based 2026-10-16, AWTD-1201 — was >= 80%) | `/admin/analytics` → **Redis Cache**, per day, from the `CacheMetricBucket` table | 2026-10-16: **66.3% over the last 7 days — within budget**; 70.6% since recording began 2026-09-25. See below |
-| Initial JavaScript | <= 250 KiB gzipped first load, per route | `npm run check:bundle` over `.next/diagnostics/route-bundle-stats.json` (`scripts/check-route-bundle-budget.ts`); gated in predeploy and the E2E workflow as a **ratchet at 389 KiB**, not at the budget (AWTD-1593, lowered by AWTD-1604) — see below | 2026-11-12 (AWTD-1604) — heaviest route **387.7 KiB, OVER**; `/settings/*` (TaskManager shell) **386.8 KiB, OVER**; leanest `[locale]` page 189.8 KiB, within; 17 of 61 routes over |
+| Initial JavaScript | <= 250 KiB gzipped first load, per route | `npm run check:bundle` over `.next/diagnostics/route-bundle-stats.json` (`scripts/check-route-bundle-budget.ts`); gated in predeploy and the E2E workflow as a **ratchet at 362 KiB**, not at the budget (AWTD-1593, lowered by AWTD-1604 and on 2026-11-13) — see below | 2026-11-13 — heaviest route **360.0 KiB, OVER**; `/settings/*` (TaskManager shell) **359.0 KiB, OVER**; leanest `[locale]` page 189.8 KiB, within; 17 of 61 routes over |
 | Core Web Vitals (p75) | LCP <= 2.5 s; INP <= 200 ms; CLS <= 0.1 | Vercel Speed Insights (history, dashboard only) + `scripts/measure-web-vitals.ts` (scriptable, no history yet) — see below | **not yet transcribed** |
 | GitHub Projects webhook ack | p95 <= 300 ms (delivery check, one indexed read, one insert; work runs after the response) | `vercel logs --query projects_v2_item` route timings; shape pinned by `tests/api/github-projects-webhook.test.ts` (AWTD-1152) | 2026-10-21 (AWTD-1159): the lanes-test brand has it on and its App is delivering. GitHub's own delivery log reports **p50 360 ms, p95 1040 ms** over 58 `projects_v2_item` deliveries, all HTTP 200. **Not comparable to this budget**: GitHub's `duration` is its whole round trip — DNS, TLS, network and any cold start — while the budget is route time. Route time still unmeasured; see below |
 | GitHub Projects edit → replica | p95 <= 10 s from a github.com edit to the Astrid row | `npm run test:live:github-projects` (AWTD-1154) measures edit → hydrate job → replica; the webhook leg needs a deployed GitHub-Projects brand | 2026-10-21 (AWTD-1159), on the deployed lanes-test brand: webhook received → replica written is **p50 616 ms, p95 840 ms, max 1.34 s** over 67 first-attempt hydrate jobs. With the ack above that is **~1.9 s at p95**, against a 10 s budget. The one leg still unmeasured is github.com edit → GitHub delivering; see below. (2026-10-10: ~1.0–1.2 s for edit → hydrate → replica locally, webhook leg excluded, one run) |
@@ -564,8 +564,26 @@ The 17 still over are the 14 TaskManager-shell routes, `/admin/analytics`, `/sta
 TaskManager shell itself, which is the settings-without-the-shell split.
 
 So the gate is a **ratchet**: `CEILING_KIB` in `scripts/lib/route-bundle-budget.ts` is
-the heaviest route rounded up, plus 1 KiB for env-value noise between machines (389 KiB;
-405 KiB before AWTD-1604).
+the heaviest route rounded up, plus 1 KiB for env-value noise between machines (362 KiB
+since 2026-11-13; 389 KiB after AWTD-1604; 405 KiB before it).
+
+**The markdown renderer, off the first load (2026-11-13).** Main went red on the 389 KiB
+ceiling with no single culprit: CI measured the list route at 388.4 KiB when the ceiling
+was set (a laptop measures ~0.6 KiB less, so the 1 KiB of noise slack was mostly spent on
+day one), then the design-system merges of 2026-11-12 added ~0.6 KiB between them
+(388.6 → 389.1 at #757's category/agent/inverse colour tokens, settling at 389.0). The
+saving was elsewhere: `MainContent` renders the list's Agent Instructions dialog on every
+list page, closed, and its static `renderMarkdown` import carried `marked` and DOMPurify
+(~24 KiB gzipped together) into every TaskManager route. The dialog now loads its rendered
+view through `next/dynamic` and warms that chunk after hydration. Pinned by
+`tests/rules/list-route-markdown-is-not-first-load.test.ts`.
+
+| Route (local build) | Before | After |
+|---|---:|---:|
+| `/[locale]/lists/[listId]` | 388.4 KiB | 360.0 KiB |
+| `/[locale]/list/[id]` | 388.3 KiB | 359.8 KiB |
+| `/[locale]` | 387.8 KiB | 359.3 KiB |
+| `/[locale]/settings/*` (TaskManager shell) | 387.5 KiB | 359.0 KiB |
 Any route that grows past it fails predeploy and the E2E workflow. The check prints when
 the ceiling can come down; lower it, and update this table, whenever it does. It also
 reports how many routes are over the 250 KiB target, which stays the budget.
