@@ -4,13 +4,13 @@
  * the literal #3b82f6: the default colour of every list and project a partner's
  * users create, the focus ring, and the transactional email chrome.
  *
- * A partner setting their accent to #a855f7 still got Astrid blue lists.
+ * A partner setting their accent to purple (Acme, #7e22ce) still got Astrid blue lists.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 
-const ACME_ACCENT = '#a855f7'
+const ACME_ACCENT = '#7e22ce'
 // Astrid's accent since AWTD-1575 (astrid-core register DS26). The one before
 // it is still the palette's blue, and still must not be written out elsewhere.
 const ASTRID_ACCENT = '#2563eb'
@@ -67,11 +67,11 @@ describe('brand accent colour reaches the things it paints (task 518ec534)', () 
     // blue, so a partner's accent reached the manifest and the email chrome but
     // not the app itself. The layout publishes these; the stylesheets read them.
     const { brandAccentRgb, hexToRgbTriplet } = await import('@/lib/brand/colors')
-    expect(hexToRgbTriplet(ACME_ACCENT)).toBe('168, 85, 247')
+    expect(hexToRgbTriplet(ACME_ACCENT)).toBe('126, 34, 206')
     expect(hexToRgbTriplet('rebeccapurple')).toBeNull()
 
     const rgb = brandAccentRgb()
-    expect(rgb?.accent).toBe('168, 85, 247')
+    expect(rgb?.accent).toBe('126, 34, 206')
     expect(rgb?.hover).not.toBe(rgb?.accent)
 
     // Two steps since the design tokens (docs/specs/DESIGN_SYSTEM.md): the theme
@@ -106,7 +106,7 @@ describe('brand accent colour reaches the things it paints (task 518ec534)', () 
     const vars = brandAccentCssVars()
     const triplet = (name: string) => vars[name].split(', ').map(Number) as [number, number, number]
 
-    expect(vars['--brand-accent-rgb']).toBe('168, 85, 247')
+    expect(vars['--brand-accent-rgb']).toBe('126, 34, 206')
     const accent = triplet('--brand-accent-rgb')
     for (const [name, card] of [
       ['--brand-accent-ink-rgb', themeColor('light', 'bg-hover')],
