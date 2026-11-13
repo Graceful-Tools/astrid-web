@@ -279,8 +279,7 @@ export function PriorityAssigneePicker({
          */
         className={`fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-md transform transition-transform duration-medium ease-medium ${
           isClosing ? 'translate-y-full' : 'translate-y-0'
-        }`}
-        style={{ maxHeight: '85vh' }}
+        } max-h-[85vh]`}
         onClick={stopLeaking}
       >
         <div className="flex max-h-[85vh] flex-col overflow-y-auto rounded-t-2xl bg-theme-surface shadow-xl sm:rounded-2xl sm:mb-4">
