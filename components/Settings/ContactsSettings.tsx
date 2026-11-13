@@ -114,7 +114,7 @@ export default function ContactsSettings({ onNavigate }: ContactsSettingsProps) 
       <div className="max-w-sm sm:max-w-2xl mx-auto space-y-4 sm:space-y-6">
         {/* Page Header */}
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-gradient-to-br from-category-teal to-category-blue rounded-lg flex items-center justify-center">
             <Users className="w-5 h-5 text-white" />
           </div>
           <div>

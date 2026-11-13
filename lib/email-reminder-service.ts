@@ -7,7 +7,7 @@ import { getRandomReminderString } from '@/lib/reminder-constants'
 import { getBaseUrl, getUnsubscribeUrl, buildTaskUrlWithContext } from '@/lib/base-url'
 import { createLogger } from '@/lib/logger'
 import { escapeEmailHtml } from '@/lib/email-html'
-import { themeColor } from '@/lib/design/tokens'
+import { EMAIL_PALETTE, emailRgb as tokenColor, washOver } from '@/lib/design/email-palette' // an email cannot read a custom property (AWTD-1596)
 import { digestDueText, digestLongDate, digestShortDate, digestWeekRange } from '@/lib/digest-email-dates'
 
 const log = createLogger('email-reminder-service')
@@ -129,8 +129,8 @@ export class EmailReminderService {
           body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
-            color: #1f2937;
-            background-color: #f9fafb;
+            color: ${EMAIL_PALETTE.text};
+            background-color: ${EMAIL_PALETTE.bgSecondary};
             margin: 0;
             padding: 20px;
           }
@@ -153,11 +153,11 @@ export class EmailReminderService {
           .astrid-section {
             padding: 40px 20px;
             text-align: center;
-            background-color: #fef2f2;
+            background-color: ${EMAIL_PALETTE.errorWash};
             position: relative;
           }
           .astrid-section.normal {
-            background-color: #eff6ff;
+            background-color: ${washOver(BRAND.accentColor, EMAIL_PALETTE.card)};
           }
           .astrid-container {
             display: flex;
@@ -180,7 +180,7 @@ export class EmailReminderService {
           .speech-bubble {
             position: relative;
             background-color: white;
-            border: 3px solid #1f2937;
+            border: 3px solid ${EMAIL_PALETTE.text};
             border-radius: 20px;
             padding: 20px 24px;
             margin-top: 10px;
@@ -196,7 +196,7 @@ export class EmailReminderService {
             width: 0;
             height: 0;
             border-top: 15px solid transparent;
-            border-right: 20px solid #1f2937;
+            border-right: 20px solid ${EMAIL_PALETTE.text};
             border-bottom: 15px solid transparent;
           }
           .speech-bubble:after {
@@ -213,7 +213,7 @@ export class EmailReminderService {
           .quote-text {
             font-size: 18px;
             font-weight: 600;
-            color: #1f2937;
+            color: ${EMAIL_PALETTE.text};
             text-align: left;
             margin: 0;
             line-height: 1.4;
@@ -234,25 +234,25 @@ export class EmailReminderService {
           }
           .detail-row {
             padding: 12px 0;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid ${EMAIL_PALETTE.border};
           }
           .detail-row:last-child {
             border-bottom: none;
           }
           .detail-label {
             font-weight: 600;
-            color: #6b7280;
+            color: ${EMAIL_PALETTE.textMuted};
             font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             margin-bottom: 4px;
           }
           .detail-value {
-            color: #1f2937;
+            color: ${EMAIL_PALETTE.text};
             font-size: 16px;
           }
           .collaborators-section {
-            background-color: #fef3c7;
+            background-color: ${EMAIL_PALETTE.warningWash};
             padding: 20px;
             margin: 20px;
             border-radius: 12px;
@@ -261,7 +261,7 @@ export class EmailReminderService {
           .collaborators-title {
             font-size: 14px;
             font-weight: 600;
-            color: #92400e;
+            color: ${EMAIL_PALETTE.warningInk};
             margin-bottom: 12px;
           }
           .collaborators-avatars {
@@ -288,12 +288,12 @@ export class EmailReminderService {
           .collaborators-message {
             font-size: 16px;
             font-weight: 600;
-            color: #92400e;
+            color: ${EMAIL_PALETTE.warningInk};
           }
           .actions {
             text-align: center;
             padding: 30px 20px;
-            background-color: #f9fafb;
+            background-color: ${EMAIL_PALETTE.bgSecondary};
           }
           .button {
             background-color: ${isOverdue ? DANGER_COLOR : BRAND.accentColor};
@@ -311,17 +311,17 @@ export class EmailReminderService {
             background-color: ${isOverdue ? dangerGradientStops()[1] : accentGradientStops()[1]};
           }
           .button-secondary {
-            background-color: #6b7280;
+            background-color: ${EMAIL_PALETTE.neutralButton};
           }
           .button-secondary:hover {
-            background-color: #4b5563;
+            background-color: ${EMAIL_PALETTE.neutralButtonHover};
           }
           .footer {
             padding: 20px;
             font-size: 12px;
-            color: #6b7280;
+            color: ${EMAIL_PALETTE.textMuted};
             text-align: center;
-            background-color: #f9fafb;
+            background-color: ${EMAIL_PALETTE.bgSecondary};
           }
           .overdue-badge {
             background-color: rgba(255, 255, 255, 0.2);
@@ -437,9 +437,8 @@ You can modify your reminder preferences in your account settings.
     const allTasks = [...data.overdueTasks, ...data.dueTodayTasks, ...data.dueTomorrowTasks]
     const baseUrl = getBaseUrl()
 
-    const tokenColor = (name: string) => `rgb(${themeColor('light', name).join(', ')})` // an email cannot read a custom property (AWTD-1596)
     const getPriorityColor = (task: TaskReminderData) =>
-      data.overdueTasks.includes(task) ? tokenColor('overdue') : data.dueTodayTasks.includes(task) ? tokenColor('warning') : '#10b981'
+      data.overdueTasks.includes(task) ? tokenColor('overdue') : data.dueTodayTasks.includes(task) ? tokenColor('warning') : tokenColor('success')
 
     return `
       <!DOCTYPE html>
@@ -451,8 +450,8 @@ You can modify your reminder preferences in your account settings.
           body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
-            color: #1f2937;
-            background-color: #f9fafb;
+            color: ${EMAIL_PALETTE.text};
+            background-color: ${EMAIL_PALETTE.bgSecondary};
             margin: 0;
             padding: 20px;
           }
@@ -466,17 +465,17 @@ You can modify your reminder preferences in your account settings.
           .header {
             background-color: white;
             padding: 24px 20px;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid ${EMAIL_PALETTE.border};
           }
           .date-header {
             font-size: 20px;
             font-weight: 600;
-            color: #1f2937;
+            color: ${EMAIL_PALETTE.text};
             margin: 0 0 12px 0;
           }
           .greeting {
             font-size: 16px;
-            color: #4b5563;
+            color: ${EMAIL_PALETTE.textSecondary};
             margin: 8px 0;
           }
           .task-list {
@@ -486,12 +485,12 @@ You can modify your reminder preferences in your account settings.
             display: flex;
             align-items: flex-start;
             padding: 12px 20px;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid ${EMAIL_PALETTE.border};
             text-decoration: none;
             transition: background-color 0.2s;
           }
           .task-row:hover {
-            background-color: #f9fafb;
+            background-color: ${EMAIL_PALETTE.bgSecondary};
           }
           .task-checkbox {
             width: 20px;
@@ -509,28 +508,28 @@ You can modify your reminder preferences in your account settings.
           }
           .task-title {
             font-size: 15px;
-            color: #1f2937;
+            color: ${EMAIL_PALETTE.text};
             font-weight: 500;
             word-wrap: break-word;
           }
           .task-meta {
             font-size: 13px;
-            color: #6b7280;
+            color: ${EMAIL_PALETTE.textMuted};
             margin-top: 4px;
           }
           .signature {
             padding: 20px;
             text-align: center;
-            color: #6b7280;
+            color: ${EMAIL_PALETTE.textMuted};
             font-size: 14px;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid ${EMAIL_PALETTE.border};
           }
           .footer {
             padding: 20px;
             font-size: 13px;
-            color: #6b7280;
+            color: ${EMAIL_PALETTE.textMuted};
             line-height: 1.5;
-            background-color: #f9fafb;
+            background-color: ${EMAIL_PALETTE.bgSecondary};
           }
           .footer-link {
             color: ${BRAND.accentColor};
@@ -617,15 +616,15 @@ You can modify your reminder preferences in your account settings.
         <meta charset="utf-8">
         <title>Weekly Task Outlook</title>
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: ${EMAIL_PALETTE.text}; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
           .header { text-align: center; padding: 20px 0; border-bottom: 2px solid ${BRAND.accentColor}; }
-          .task-list { background-color: #f9fafb; border-radius: 8px; padding: 16px; margin: 20px 0; }
-          .task-item { padding: 12px 0; border-bottom: 1px solid #e5e7eb; }
+          .task-list { background-color: ${EMAIL_PALETTE.bgSecondary}; border-radius: 8px; padding: 16px; margin: 20px 0; }
+          .task-item { padding: 12px 0; border-bottom: 1px solid ${EMAIL_PALETTE.border}; }
           .task-item:last-child { border-bottom: none; }
-          .task-title { font-weight: bold; color: #1f2937; }
-          .task-meta { font-size: 14px; color: #6b7280; margin-top: 4px; }
-          .footer { margin-top: 40px; font-size: 12px; color: #6b7280; text-align: center; }
+          .task-title { font-weight: bold; color: ${EMAIL_PALETTE.text}; }
+          .task-meta { font-size: 14px; color: ${EMAIL_PALETTE.textMuted}; margin-top: 4px; }
+          .footer { margin-top: 40px; font-size: 12px; color: ${EMAIL_PALETTE.textMuted}; text-align: center; }
           .button { background-color: ${BRAND.accentColor}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; }
         </style>
       </head>

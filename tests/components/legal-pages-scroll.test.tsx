@@ -1,7 +1,9 @@
 import { render } from '@testing-library/react'
+import { NextIntlClientProvider } from 'next-intl'
 import { describe, expect, it } from 'vitest'
 import PrivacyPolicy from '@/app/[locale]/privacy/page'
 import TermsOfService from '@/app/[locale]/terms/page'
+import en from '@/lib/i18n/locales/en.json'
 
 /**
  * Regression: the privacy and terms pages could not be scrolled on web.
@@ -15,7 +17,11 @@ describe('legal document pages', () => {
     ['privacy', PrivacyPolicy],
     ['terms', TermsOfService],
   ])('%s page owns a viewport scroll surface', (_name, Page) => {
-    const { container } = render(<Page />)
+    const { container } = render(
+      <NextIntlClientProvider locale="en" messages={en}>
+        <Page />
+      </NextIntlClientProvider>,
+    )
     const shell = container.firstElementChild as HTMLElement
 
     expect(shell).toHaveClass('h-dvh', 'overflow-y-auto', 'overscroll-contain')

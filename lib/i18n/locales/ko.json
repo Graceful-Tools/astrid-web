@@ -2440,7 +2440,9 @@
     "linkResolveFailed": "링크를 확인하지 못했습니다",
     "linkTaskNotFound": "작업을 찾을 수 없거나 더 이상 액세스할 수 없습니다",
     "linkTaskForbidden": "이 작업을 볼 권한이 없습니다",
-    "linkInvalidType": "잘못된 링크 유형"
+    "linkInvalidType": "잘못된 링크 유형",
+    "globalErrorTitle": "문제가 발생했습니다",
+    "globalErrorDescription": "심각한 오류가 발생했습니다. 페이지를 새로고침해 보세요."
   },
   "profilePage": {
     "loading": "프로필 로딩 중...",
@@ -2668,5 +2670,93 @@
       "theAssignee": "담당자",
       "confirm": "대기로 이동"
     }
+  },
+  "helpPage": {
+    "title": "도움말 및 문제 해결",
+    "intro": "대부분의 문제는 데이터를 새로고침하면 해결됩니다. 고급 단계로 넘어가기 전에 간단한 방법부터 시도해 보세요.",
+    "iosApp": "iOS 앱",
+    "webApp": "웹 앱",
+    "levels": {
+      "simple": "간단",
+      "simpleHint": "먼저 시도해 보세요",
+      "intermediate": "중급",
+      "intermediateHint": "간단한 방법으로 해결되지 않을 때",
+      "advanced": "고급",
+      "advancedHint": "최후의 방법"
+    },
+    "signOutTitle": "로그아웃 후 다시 로그인",
+    "ios": {
+      "pullToRefreshTitle": "당겨서 새로고침",
+      "pullToRefreshBody": "작업 목록에서 위에서 아래로 당겨 서버와 강제로 동기화하세요. 대부분의 동기화 문제가 해결됩니다.",
+      "forceQuitTitle": "강제 종료 후 다시 열기",
+      "forceQuitBody": "화면 아래에서 위로 쓸어올리고(또는 홈 버튼을 두 번 누르고) {appName}을(를) 위로 밀어 닫은 다음 앱을 다시 여세요.",
+      "signOutBody": "<b>설정</b>(사이드바에서 프로필을 탭) → <b>계정</b> → <b>로그아웃</b>으로 이동하세요. 그런 다음 같은 계정으로 다시 로그인하세요.",
+      "connectionTitle": "인터넷 연결 확인",
+      "connectionBody": "{appName}은(는) 오프라인에서도 작동하지만 동기화하려면 인터넷이 필요합니다. WiFi 또는 셀룰러 데이터에 연결되어 있는지 확인하세요.",
+      "reinstallTitle": "앱 삭제 후 다시 설치",
+      "reinstallBody": "모든 로컬 데이터와 캐시가 지워집니다. 작업은 서버에 저장되어 있으므로 잃어버리는 것은 없습니다. 앱 아이콘을 길게 누르기 → 앱 제거 → 앱 삭제 후 App Store에서 다시 설치하세요.",
+      "restartTitle": "기기 재시동",
+      "restartBody": "기기를 완전히 재시동하면 계속되는 문제가 해결되기도 합니다."
+    },
+    "web": {
+      "refreshTitle": "페이지 새로고침",
+      "refreshBody": "<kbd>F5</kbd> 또는 <kbd>Cmd+R</kbd>(Mac) / <kbd>Ctrl+R</kbd>(Windows)를 눌러 페이지를 새로고침하세요.",
+      "hardRefreshTitle": "강력 새로고침",
+      "hardRefreshBody": "<kbd>Shift</kbd>를 누른 채 새로고침을 클릭하거나 <kbd>Cmd+Shift+R</kbd>(Mac) / <kbd>Ctrl+Shift+R</kbd>(Windows)를 누르세요. 캐시를 건너뜁니다.",
+      "signOutBody": "사이드바에서 프로필 사진 클릭 → <b>설정</b> → <b>계정</b> → <b>로그아웃</b>. 그런 다음 다시 로그인하세요.",
+      "browserTitle": "다른 브라우저 사용해 보기",
+      "browserBody": "한 브라우저에서 문제가 있다면 Chrome, Firefox, Safari 또는 Edge를 사용해 보세요. 브라우저 고유의 문제인지 확인하는 데 도움이 됩니다.",
+      "extensionsTitle": "브라우저 확장 프로그램 끄기",
+      "extensionsBody": "광고 차단기나 개인정보 보호 확장 프로그램이 방해할 수 있습니다. 잠시 꺼 두거나 시크릿/비공개 창을 사용해 보세요.",
+      "clearCacheTitle": "{appName}의 브라우저 캐시와 쿠키 삭제",
+      "clearCacheChrome": "<b>Chrome:</b> 설정 → 개인정보 보호 → 인터넷 사용 기록 삭제 → \"쿠키\"와 \"캐시된 이미지\" 선택",
+      "clearCacheSafari": "<b>Safari:</b> 환경설정 → 개인정보 보호 → 웹사이트 데이터 관리 → \"{brandDomain}\" 검색 → 제거",
+      "clearCacheFirefox": "<b>Firefox:</b> 설정 → 개인정보 보호 → 데이터 지우기 → 쿠키와 캐시 선택",
+      "indexedDbTitle": "IndexedDB 저장소 삭제",
+      "indexedDbBody": "Chrome에서: DevTools 열기(F12) → Application 탭 → Storage → IndexedDB → {wordmark} 항목을 마우스 오른쪽 버튼으로 클릭 → Delete database. 그런 다음 페이지를 새로고침하세요."
+    },
+    "decisionsTitle": "다른 사람에게 선택 요청하기",
+    "commonIssuesTitle": "자주 발생하는 문제",
+    "issues": {
+      "counts": {
+        "title": "작업 개수가 0이거나 잘못 표시됨",
+        "intro": "작업 개수는 동기화된 데이터로 계산됩니다. 개수가 잘못된 것 같다면:",
+        "step1": "당겨서 새로고침(iOS) 또는 페이지 강력 새로고침(웹)",
+        "step2": "동기화가 끝날 때까지 몇 초 기다리기",
+        "step3": "그래도 맞지 않으면 로그아웃 후 다시 로그인"
+      },
+      "sync": {
+        "title": "기기 간에 작업이 동기화되지 않음",
+        "intro": "동기화는 자동으로 이루어지지만 몇 초 걸릴 수 있습니다. 강제로 동기화하려면:",
+        "step1": "두 기기 모두 인터넷에 연결되어 있는지 확인",
+        "step2": "iOS: 아래로 당겨서 새로고침",
+        "step3": "웹: 페이지 새로고침",
+        "step4": "변경 사항은 5~10초 안에 나타납니다"
+      },
+      "slow": {
+        "title": "앱이 느리거나 응답하지 않음",
+        "intro": "성능 문제는 대개 캐시된 데이터나 너무 많은 브라우저 탭 때문에 발생합니다. 다음을 시도해 보세요:",
+        "step1": "다른 탭과 앱 닫기",
+        "step2": "앱을 강제 종료하고 다시 열기(iOS)",
+        "step3": "브라우저 캐시 삭제(웹)",
+        "step4": "문제가 계속되면 앱 다시 설치(iOS)"
+      },
+      "signIn": {
+        "title": "로그인할 수 없거나 인증 오류가 발생함",
+        "intro": "인증 문제는 세션 만료나 브라우저 설정 때문에 발생할 수 있습니다:",
+        "step1": "브라우저에서 쿠키가 켜져 있는지 확인",
+        "step2": "시크릿/비공개 창에서 로그인해 보기",
+        "step3": "{brandDomain}의 쿠키만 따로 삭제",
+        "step4": "패스키를 사용한다면 기기가 지원하는지 확인"
+      }
+    },
+    "stillNeedHelpTitle": "아직 도움이 필요하신가요?",
+    "stillNeedHelpBody": "이 방법으로 해결되지 않으면 저희가 도와드리겠습니다.",
+    "contactSupport": "지원팀에 문의"
+  },
+  "legalPages": {
+    "termsOfService": "서비스 약관",
+    "privacyPolicy": "개인정보 처리방침",
+    "backToHome": "홈으로 돌아가기"
   }
 }

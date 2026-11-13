@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState, useCallback } from 'react'
-import { CHART_SERIES_COLORS } from '@/lib/brand/colors'
+import { CHART_COLORS } from '@/lib/design/chart-colors'
 import { formatCacheHitRate, formatCacheLatencyMs } from '@/lib/cache-metrics'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -354,9 +354,9 @@ export default function AnalyticsDashboard() {
                 <YAxis tick={{ fontSize: 12 }} />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="DAU" stroke={CHART_SERIES_COLORS[0]} strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="WAU" stroke="#10b981" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="MAU" stroke="#8b5cf6" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="DAU" stroke={CHART_COLORS.blue} strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="WAU" stroke={CHART_COLORS.green} strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="MAU" stroke={CHART_COLORS.violet} strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -379,12 +379,12 @@ export default function AnalyticsDashboard() {
                   <YAxis tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Legend />
-                  <Line type="monotone" dataKey="Desktop Web" stroke={CHART_SERIES_COLORS[0]} strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="iPhone Web" stroke="#10b981" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="Android Web" stroke="#f59e0b" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="iOS App" stroke="#8b5cf6" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="API" stroke="#ef4444" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="Unknown" stroke="#6b7280" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="Desktop Web" stroke={CHART_COLORS.blue} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="iPhone Web" stroke={CHART_COLORS.green} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="Android Web" stroke={CHART_COLORS.yellow} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="iOS App" stroke={CHART_COLORS.violet} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="API" stroke={CHART_COLORS.red} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="Unknown" stroke={CHART_COLORS.neutral} strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -411,7 +411,7 @@ export default function AnalyticsDashboard() {
                   <XAxis type="number" tick={{ fontSize: 12 }} />
                   <YAxis dataKey="name" type="category" tick={{ fontSize: 12 }} width={100} />
                   <Tooltip />
-                  <Bar dataKey="value" fill={CHART_SERIES_COLORS[0]} radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="value" fill={CHART_COLORS.blue} radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -581,7 +581,7 @@ export default function AnalyticsDashboard() {
                         yAxisId="rate"
                         type="monotone"
                         dataKey="Hit rate %"
-                        stroke={CHART_SERIES_COLORS[0]}
+                        stroke={CHART_COLORS.blue}
                         strokeWidth={2}
                         dot={false}
                         connectNulls={false}
@@ -590,7 +590,7 @@ export default function AnalyticsDashboard() {
                         yAxisId="ms"
                         type="monotone"
                         dataKey="Mean lookup ms"
-                        stroke="#10b981"
+                        stroke={CHART_COLORS.green}
                         strokeWidth={2}
                         dot={false}
                         connectNulls={false}
@@ -599,7 +599,7 @@ export default function AnalyticsDashboard() {
                         yAxisId="ms"
                         type="monotone"
                         dataKey="Mean load ms"
-                        stroke="#f59e0b"
+                        stroke={CHART_COLORS.yellow}
                         strokeWidth={2}
                         dot={false}
                         connectNulls={false}

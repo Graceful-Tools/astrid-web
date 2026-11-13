@@ -1006,8 +1006,8 @@ const TaskManagerView = memo(function TaskManagerView({
 
         return (
           <div
-            className={`task-panel-desktop scrollbar-hide ${isTaskPaneClosing ? 'task-panel-animate-out' : 'task-panel-animate'}`}
-            style={{ left: taskPanePosition.left - 18, right: 10, width: 'auto' }}
+            className={`task-panel-desktop scrollbar-hide ${isTaskPaneClosing ? 'task-panel-animate-out' : 'task-panel-animate'} task-panel-desktop-anchored`}
+            style={{ left: taskPanePosition.left - 18 }}
             data-task-panel-desktop
           >
             {/* One component for both, since task-detail-viewonly was deleted

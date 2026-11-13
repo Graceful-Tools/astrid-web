@@ -70,9 +70,9 @@ export const AstridEmptyState = memo<AstridEmptyStateProps>(({
       className
     )}>
       {/* Astrid with Speech Bubble - matching push notification style */}
-      <div className="flex items-start space-x-4 max-w-lg w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
+      <div className="flex items-start space-x-4 max-w-lg w-full animate-in fade-in slide-in-from-bottom-2 duration-panel">
         {/* Astrid Icon - 1/3 of width, matching popover */}
-        <div className="flex-shrink-0" style={{ width: '33%' }}>
+        <div className="flex-shrink-0 w-1/3">
           <img
             src={BRAND.icon}
             alt={BRAND.appName}
@@ -92,7 +92,7 @@ export const AstridEmptyState = memo<AstridEmptyStateProps>(({
       </div>
 
       {/* Subtle hint arrow pointing down to input (mobile only) */}
-      <div className="mt-8 animate-in fade-in duration-500 delay-300 md:hidden">
+      <div className="mt-8 animate-in fade-in duration-panel delay-300 md:hidden">
         <div className="flex flex-col items-center gap-1 theme-text-muted opacity-40">
           <div className="text-xs font-medium">{t("emptyState.addTaskHint")}</div>
           <svg width="16" height="20" viewBox="0 0 16 20" fill="none" className="animate-bounce">
