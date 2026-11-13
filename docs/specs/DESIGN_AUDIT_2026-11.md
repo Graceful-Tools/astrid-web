@@ -141,7 +141,7 @@ Status of web's rows on 2026-11-12:
 | DS21 checkbox art | Accepted; drawn from the priority tokens since AWTD-1581 |
 | DS22 priority glyphs as text | Open in core (text variants of the priority colours) |
 | DS23 Decision grid | Closed (AWTD-1617): gap 3, cell radius 4, swatch 10, card radius 10 and a 24 badge, from `markdown` |
-| DS24 Markdown headings | Open: sizes written out until they join `type` |
+| DS24 Markdown headings | Closed on web: h1 to h4 read `type.comfortable.markdown-h*` (AWTD-1625) |
 | DS25 / DS26 inks and fills | Adopted (PRs #716, #730) |
 
 The ratchet can't see these rows: they're differences in layout, not hand-written values.
