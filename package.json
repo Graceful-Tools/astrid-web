@@ -151,7 +151,8 @@
     "vendor:sync": "node scripts/sync-vendor-assets.mjs",
     "check:unimported": "tsx scripts/check-unimported.ts",
     "check:prisma-client": "tsx scripts/check-prisma-client.ts",
-    "analytics:reaggregate": "tsx scripts/reaggregate-analytics.ts"
+    "analytics:reaggregate": "tsx scripts/reaggregate-analytics.ts",
+    "branches:prune": "tsx scripts/prune-merged-branches.ts"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
