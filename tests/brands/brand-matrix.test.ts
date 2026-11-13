@@ -19,7 +19,7 @@
  * `astrid.brand.json` is the regression guard. It sets no environment at all, so if the
  * refactor ever changes today's production behaviour, that profile fails.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, onTestFinished } from 'vitest'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createHash } from 'node:crypto'
@@ -303,7 +303,23 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     // are rendered here.
     const React = await import('react')
     const { renderToStaticMarkup } = await import('react-dom/server')
+    // Help reads this profile's branded messages through the app's hook (AWTD-1613). The shared
+    // stub in tests/setup.ts answers from en.json branded once, as Astrid, so it is swapped for
+    // the real hook here and put back afterwards.
+    const stub = await import('@/lib/i18n/client')
+    vi.doMock('@/lib/i18n/client', () => vi.importActual('@/lib/i18n/client'))
+    onTestFinished(() => {
+      vi.doMock('@/lib/i18n/client', () => stub)
+    })
     const { BRAND } = await import('@/lib/brand/config')
+    const { NextIntlClientProvider } = await import('next-intl')
+    const { applyBrandToMessages } = await import('@/lib/brand/i18n-values')
+    const { default: en } = await import('@/lib/i18n/locales/en.json')
+    // The pages read their chrome and Help from the locale files (AWTD-1613), as in the app.
+    const messages = applyBrandToMessages(en)
+    // Typed with optional children so they can go as createElement's third argument.
+    const Provider = NextIntlClientProvider as React.ComponentType<{ locale: string; messages: typeof messages; children?: React.ReactNode }>
+    const withMessages = (element: React.ReactElement) => React.createElement(Provider, { locale: 'en', messages }, element)
     const onNavigate = () => {}
     // `external`: the operator's own policy URL, when the profile names one. Then the
     // public route redirects there and the Settings page links to it; neither renders
@@ -325,14 +341,14 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
         // next/navigation's redirect() throws; its digest carries the target.
         let digest = ''
         try {
-          renderToStaticMarkup(React.createElement(Page, props))
+          renderToStaticMarkup(withMessages(React.createElement(Page, props)))
         } catch (error) {
           digest = String((error as { digest?: string }).digest ?? error)
         }
         expect(digest, `${what} redirects to the operator's page`).toContain(external)
         continue
       }
-      const html = renderToStaticMarkup(React.createElement(Page, props))
+      const html = renderToStaticMarkup(withMessages(React.createElement(Page, props)))
       if (external) {
         expect(html, `${what} links to the operator's page`).toContain(external)
       } else {

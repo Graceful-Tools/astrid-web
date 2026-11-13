@@ -20,7 +20,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-import { BUDGET_FILE, METRICS, count, literalStyleProps, measure, overBudget, withoutComments } from '@/scripts/report-design-metrics'
+import { BUDGET_FILE, COPY_EXEMPTIONS, METRICS, count, literalStyleProps, measure, overBudget, withoutComments } from '@/scripts/report-design-metrics'
 
 const metric = (id: string) => METRICS.find((entry) => entry.id === id)!
 const source = (text: string, path = 'components/example.tsx') => [{ path, source: text }]
@@ -118,6 +118,52 @@ describe('what the design metrics count', () => {
   it('a duration that names the motion token is not a literal', () => {
     const text = '<i className="duration-[var(--astrid-motion-fast-duration)] duration-[250ms] duration-200" />'
     expect(count(metric('motionLiterals'), source(text))).toBe(2)
+  })
+})
+
+// AWTD-1613: option 1 of the design audit's open question. Help is translated; legal text,
+// developer docs and internal tools keep their English and are not counted.
+describe('what the copy count leaves out', () => {
+  const sentence = '<p>Nothing here is translated yet.</p>'
+  const counted = (path: string) => count(metric('hardcodedCopy'), source(sentence, path))
+
+  it.each([
+    'components/legal/PrivacyPolicyContent.tsx',
+    'components/legal/TermsOfServiceContent.tsx',
+    'app/[locale]/docs/mcp/page.tsx',
+    'components/docs/DecisionFormatGuide.tsx',
+    'app/[locale]/admin/analytics/page.tsx',
+    'app/[locale]/admin/error.tsx',
+    'app/[locale]/debug-reminders/debug-reminders-client.tsx',
+    'app/[locale]/debug-reminders-enhanced/page.tsx',
+    'app/[locale]/test-time-picker/page.tsx',
+    'components/oauth-api-tester.tsx',
+  ])('%s', (path) => {
+    expect(counted(path)).toBe(0)
+    expect(count(metric('uniqueHardcodedStrings'), source(sentence, path))).toBe(0)
+  })
+
+  it.each([
+    'components/legal/HelpContent.tsx',
+    'components/legal/LegalPageShell.tsx',
+    'app/global-error.tsx',
+    'app/[locale]/settings/page.tsx',
+    'components/admin-badge.tsx',
+    'app/[locale]/docsearch/page.tsx',
+  ])('but still counts %s', (path) => {
+    expect(counted(path)).toBe(1)
+  })
+
+  it('gives every exemption a reason', () => {
+    for (const metric of METRICS) {
+      for (const exemption of metric.exempt ?? []) expect(exemption.reason.length, String(exemption.pattern)).toBeGreaterThan(20)
+    }
+    expect(COPY_EXEMPTIONS.length).toBe(3)
+  })
+
+  it('an example URL in a placeholder is not a sentence', () => {
+    const text = '<input placeholder="https://your-server.com/webhook" /><input placeholder="Paste your webhook URL" />'
+    expect(count(metric('hardcodedCopy'), source(text))).toBe(1)
   })
 })
 
