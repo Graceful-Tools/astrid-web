@@ -291,23 +291,6 @@ html, body {
   }
 }
 
-/* Reduced motion (astrid-core register DS17). Where the person has asked the
-   system for less movement, nothing slides, fades, pops or springs: the change
-   happens at once. `animation: none`, not a short duration, so Radix's
-   presence sees no animation and unmounts at once instead of waiting for an
-   animationend. A spinner keeps turning: it says work is happening, and
-   stopping it says the opposite. Motion started from script reads
-   lib/design/reduced-motion.ts. */
-@media (prefers-reduced-motion: reduce) {
-  *:not(.animate-spin),
-  *::before,
-  *::after {
-    animation: none !important;
-    transition: none !important;
-    scroll-behavior: auto !important;
-  }
-}
-
 @keyframes taskCheckboxPop {
   0% { transform: scale(1); }
   45% { transform: scale(var(--astrid-state-complete-pop-scale)); }
@@ -1051,4 +1034,24 @@ html, body {
 
 .focus-ring {
   @apply focus:outline-none focus:ring-2 focus:ring-brand/50;
+}
+
+/* Reduced motion (astrid-core register DS17). Where the person has asked the
+   system for less movement, nothing slides, fades, pops or springs: the change
+   happens at once. `animation: none`, not a short duration, so Radix's
+   presence sees no animation and unmounts at once instead of waiting for an
+   animationend. A spinner keeps turning: it says work is happening, and
+   stopping it says the opposite. Motion started from script reads
+   lib/design/reduced-motion.ts.
+   Last in the file and `:root`-scoped on purpose: the phone's details panel
+   sets its slide with `!important` on two classes, and this has to outrank
+   that, which a bare `*` did not. */
+@media (prefers-reduced-motion: reduce) {
+  :root :not(.animate-spin),
+  :root ::before,
+  :root ::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }
