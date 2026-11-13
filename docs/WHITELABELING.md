@@ -141,7 +141,7 @@ All optional. Each falls back to the Astrid value.
 | `NEXT_PUBLIC_BRAND_DEFAULT_THEME` | `ocean` | `light`, `dark` or `ocean` — where a visitor starts; a stored choice still wins |
 | `NEXT_PUBLIC_BRAND_WWW_REDIRECT` | `true` | `false` when the brand domain is a subdomain (`tasks.example.com`): no `www.` host exists to redirect to |
 | `NEXT_PUBLIC_BRAND_FONT_FAMILY` | *(Inter)* | CSS `font-family` stack for the whole app, e.g. the system stack |
-| `NEXT_PUBLIC_BRAND_OPERATOR_NAME` | Graceful Tools LLC, **or your brand name** | The legal entity named in the Terms, the Privacy Policy and every copyright line. Unlike the rest of this table it does **not** fall back to Astrid's value once `NEXT_PUBLIC_BRAND_NAME` is something other than Astrid: your terms would otherwise say another company runs your service (AWTD-1584) |
+| `NEXT_PUBLIC_BRAND_OPERATOR_NAME` | Graceful Tools LLC, **or none** | The legal entity named in the Terms, the Privacy Policy and every copyright line. Unlike the rest of this table it does **not** fall back to Astrid's value once `NEXT_PUBLIC_BRAND_NAME` or `NEXT_PUBLIC_BRAND_DOMAIN` differs from Astrid's: your terms would otherwise say another company runs your service (AWTD-1584). Unset on a partner, no operator is named and the copyright line is left out (AWTD-1640) |
 | `NEXT_PUBLIC_BRAND_TERMS_URL` | *(built-in `/terms`)* | Your own Terms of Service. Set it and `/terms` redirects there, and the sign-in page, footers and the in-app Settings page link to it |
 | `NEXT_PUBLIC_BRAND_PRIVACY_URL` | *(built-in `/privacy`)* | Your own Privacy Policy. Same as the terms URL, for `/privacy` |
 | `NEXT_PUBLIC_BRAND_AGENT_NAME` | brand name | Default assistant's display name |
@@ -600,7 +600,9 @@ naming Astrid's operator. `check:reuse` fails on a literal "Graceful Tools" or
 `gracefultools.com` in app code.
 
 Feature-access requests (`FEATURE_REQUEST_EMAIL`) go to `NEXT_PUBLIC_BRAND_SUPPORT_EMAIL`
-when that variable is unset. Before this change they went to a person at Astrid.
+when that variable is unset. Before this change they went to a person at Astrid. A partner
+that sets neither is not mailed at all, rather than mailing Astrid's support address; the
+request is still saved and listed under Admin → Feature rollouts (AWTD-1640).
 
 ### Service providers: what is swappable, and what is fixed (task 1e772f0c)
 

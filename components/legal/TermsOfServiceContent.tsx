@@ -4,7 +4,8 @@ import { BRAND } from '@/lib/brand/config'
  * The Terms of Service, written once (AWTD-1584). The public /terms page and the in-app
  * Settings page both render this, so the two can no longer drift apart, which they had: the
  * in-app copy was months older. Legal text: change the wording here deliberately, and bump
- * the date. The operator is `BRAND.operatorName`, never a literal company.
+ * the date. The operator is `BRAND.operatorName`, never a literal company; when a partner
+ * names none, the operator clauses are left out or say "we" (AWTD-1640).
  */
 export function TermsOfServiceContent() {
   return (
@@ -16,7 +17,9 @@ export function TermsOfServiceContent() {
         <section>
           <h2 className="text-xl font-semibold theme-text-primary mb-3">The Service</h2>
           <p className="theme-text-secondary leading-relaxed">
-            {BRAND.appName} is a task management application operated by {BRAND.operatorName}.
+            {BRAND.operatorName
+              ? <>{BRAND.appName} is a task management application operated by {BRAND.operatorName}.</>
+              : <>{BRAND.appName} is a task management application.</>}{' '}
             By using {BRAND.appName}, you agree to these terms.
           </p>
         </section>
@@ -78,7 +81,9 @@ export function TermsOfServiceContent() {
         <section>
           <h2 className="text-xl font-semibold theme-text-primary mb-3">Limitation of Liability</h2>
           <p className="theme-text-secondary leading-relaxed">
-            To the extent permitted by law, {BRAND.operatorName} isn&apos;t liable for
+            {BRAND.operatorName
+              ? <>To the extent permitted by law, {BRAND.operatorName} isn&apos;t liable for</>
+              : <>To the extent permitted by law, we aren&apos;t liable for</>}{' '}
             indirect damages, data loss, or service interruptions.
           </p>
         </section>

@@ -64,6 +64,19 @@ export const ASTRID_ACCENT_COLOR = DEFAULTS.accentColor
 /** Astrid's own app mark. Any other `BRAND.icon` is a brand's, and lib/brand/icons.ts generates from it. */
 export const ASTRID_ICON = DEFAULTS.icon
 
+/**
+ * Whether this deployment still presents Astrid's own identity: the app name and the domain
+ * both Astrid's (nothing configured, as on hosted Astrid). Anything else is a partner or a
+ * self-host, and values that name Astrid's operator or mailboxes must not reach it by
+ * default (AWTD-1640): an unset value there is left out, not filled with ours.
+ */
+export const IS_ASTRID_IDENTITY =
+  env(brandEnv('NEXT_PUBLIC_BRAND_NAME', process.env.NEXT_PUBLIC_BRAND_NAME), DEFAULTS.appName) === DEFAULTS.appName &&
+  env(brandEnv('NEXT_PUBLIC_BRAND_DOMAIN', process.env.NEXT_PUBLIC_BRAND_DOMAIN), DEFAULTS.domain) === DEFAULTS.domain
+
+/** Astrid's own support mailbox. A partner whose `BRAND.supportEmail` is this never chose it. */
+export const ASTRID_SUPPORT_EMAIL = DEFAULTS.supportEmail
+
 export const BRAND = {
   /** Short product name, e.g. "Astrid". Interpolated into i18n copy as `{appName}`. */
   appName: env(brandEnv('NEXT_PUBLIC_BRAND_NAME', process.env.NEXT_PUBLIC_BRAND_NAME), DEFAULTS.appName),
@@ -226,14 +239,14 @@ export const BRAND = {
    * Unlike every other identity value this does NOT fall back to Astrid's once the
    * deployment is a partner's. A partner that forgot it would publish terms saying their
    * service is operated by Graceful Tools LLC, which is a legal statement about someone
-   * else's company, not a cosmetic leak. So the fallback is Astrid's operator only while
-   * the app is still called Astrid, and the partner's own app name after that.
+   * else's company, not a cosmetic leak. Nor does it fall back to the partner's brand
+   * name, which may not be a legal entity at all (AWTD-1640). So it is Astrid's operator
+   * only while the deployment keeps Astrid's identity (IS_ASTRID_IDENTITY), and empty
+   * otherwise: the legal pages then name no operator and leave the copyright line out.
    */
   operatorName: env(
     brandEnv('NEXT_PUBLIC_BRAND_OPERATOR_NAME', process.env.NEXT_PUBLIC_BRAND_OPERATOR_NAME),
-    env(brandEnv('NEXT_PUBLIC_BRAND_NAME', process.env.NEXT_PUBLIC_BRAND_NAME), DEFAULTS.appName) === DEFAULTS.appName
-      ? DEFAULTS.operatorName
-      : env(brandEnv('NEXT_PUBLIC_BRAND_NAME', process.env.NEXT_PUBLIC_BRAND_NAME), DEFAULTS.appName)
+    IS_ASTRID_IDENTITY ? DEFAULTS.operatorName : ''
   ),
 
   /**
