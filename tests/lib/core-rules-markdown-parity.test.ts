@@ -104,11 +104,13 @@ describe('the markdown fixture at the pinned core revision', () => {
     expect(fixture.cases.filter((c) => c.id.startsWith('xss-')).length).toBeGreaterThanOrEqual(20)
   })
 
-  it('AWTD-1630: carries the origin as an input, with cases on a server other than astrid.cc', () => {
+  it('AWTD-1630: carries the origin as an input, with cases on a partner server', () => {
     expect(fixture.cases.every((c) => typeof c.origin === 'string' && c.origin.startsWith('https://'))).toBe(true)
-    const partner = fixture.cases.filter((c) => c.origin !== 'https://astrid.cc')
+    // Most cases read on web's own origin; the rest on a partner's, and none of theirs may link home.
+    const home = fixture.cases[0].origin
+    const partner = fixture.cases.filter((c) => c.origin !== home)
     expect(partner.length).toBeGreaterThanOrEqual(2)
-    expect(JSON.stringify(partner.map((c) => c.blocks))).not.toContain('astrid.cc')
+    expect(JSON.stringify(partner.map((c) => c.blocks))).not.toContain(new URL(home).host)
   })
 })
 
