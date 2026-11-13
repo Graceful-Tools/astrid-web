@@ -22,6 +22,7 @@
 #   fixtures/statuses.json
 #   fixtures/filters.json, my-tasks.json, manual-order.json, reminders.json
 #   fixtures/waiting.json     (core-owned: generated in astrid-core, not exported from web)
+#   fixtures/decisions.json   (tests/lib/core-rules-decisions-parity.test.ts, AWTD-1626)
 #
 # Server-only: no browser build is vendored (377 KB gzipped is too much to ship to every page for
 # a shadow check). astrid-core's scripts/build-wasm.sh writes one when that changes.
@@ -66,7 +67,7 @@ mkdir -p "$pkg/fixtures"
 cp -R "$out/node" "$pkg/node"
 # The glue is CommonJS; say so, so a "type": "module" anywhere above it cannot change how it loads.
 printf '{ "type": "commonjs" }\n' >"$pkg/node/package.json"
-for fixture in permissions search smart repeating markdown board statuses filters my-tasks manual-order reminders waiting; do
+for fixture in permissions search smart repeating markdown board statuses filters my-tasks manual-order reminders waiting decisions; do
   cp "$tree/contracts/fixtures/$fixture.json" "$pkg/fixtures/$fixture.json"
 done
 printf '%s\n' "$rev" >"$pkg/REVISION"

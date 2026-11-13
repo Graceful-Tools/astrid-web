@@ -3,6 +3,12 @@
  * a Decision (cards) and a trade-off grid (coloured table). Reference recogniser on iOS/Mac:
  * astrid-ios Packages/AstridCore/Sources/AstridCore/Decision.swift. Format: docs/PRODUCT_CONTRACT.md §8.
  * Anything that is not exactly one of these shapes stays plain markdown.
+ *
+ * astrid-core ports this file as `astrid_rules::decisions`, which the other shells call. This file
+ * stays because the browser cannot load the core yet (AWTD-1586), and
+ * tests/lib/core-rules-decisions-parity.test.ts holds the two to the same answers (AWTD-1626).
+ * A Decision is not a renderer block: its cards are for a whole comment, and only in comments.
+ * A trade-off grid is one (`tradeoffGrid`, scripts/contract-fixtures/markdown-blocks.mjs).
  */
 
 export interface DecisionOption {
