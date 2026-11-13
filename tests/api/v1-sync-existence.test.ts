@@ -51,7 +51,8 @@ import { GET as getTask } from '@/app/api/v1/tasks/[id]/route'
 import { GET as getList } from '@/app/api/v1/lists/[id]/route'
 import { V1_EXISTENCE_MAX_IDS } from '@/lib/sync/v1-existence'
 import { prisma } from '@/lib/prisma'
-import { authenticateAPI } from '@/lib/api-auth-middleware'
+import { authenticateAPI, taskWriteAccessWhere } from '@/lib/api-auth-middleware'
+import { canUserEditTasks } from '@/lib/list-permissions'
 
 const mockPrisma = vi.mocked(prisma, true)
 const mockAuth = vi.mocked(authenticateAPI)
@@ -88,7 +89,13 @@ const othersProjectList = list({
   id: 'list-others-project', ownerId: OTHER, privacy: 'PRIVATE', listMembers: [],
   project: { ownerId: OTHER, members: [{ userId: 'user-third' }], lists: [] },
 })
-const LISTS = [myList, sharedWithMe, removedFrom, othersPrivate, publicList, projectList, othersProjectList]
+// A board's status list, which I reach through being a member of a sibling domain list
+// on the same project (task 142e4dd9). Not a project member.
+const statusColumn = list({
+  id: 'list-status', ownerId: OTHER, privacy: 'PRIVATE', listMembers: [], listType: 'status',
+  project: { ownerId: OTHER, members: [], lists: [list({ id: 'list-sibling', ownerId: OTHER, privacy: 'PRIVATE', listMembers: [{ userId: ME }] })] },
+})
+const LISTS = [myList, sharedWithMe, removedFrom, othersPrivate, publicList, projectList, othersProjectList, statusColumn]
 
 const TASKS: TaskRow[] = [
   { id: 'task-mine', creatorId: ME, assigneeId: null, lists: [myList] },
@@ -99,6 +106,7 @@ const TASKS: TaskRow[] = [
   // AWTD-1523: reachable only through the project its list belongs to.
   { id: 'task-project', creatorId: OTHER, assigneeId: null, lists: [projectList] },
   { id: 'task-others-project', creatorId: OTHER, assigneeId: null, lists: [othersProjectList] },
+  { id: 'task-status', creatorId: OTHER, assigneeId: null, lists: [statusColumn] },
 ]
 
 /** Just enough of Prisma's where semantics: equality, `in`, `some`, OR / AND. */
@@ -264,6 +272,46 @@ describe('POST /api/v1/sync/existence (AWTD-1515)', () => {
     for (const id of ids.listIds) {
       const status = (await getList(rowGet(`lists/${id}`), { params: Promise.resolve({ id }) })).status
       expect([403, 404, 410].includes(status), `list ${id}: GET ${status}`).toBe(body.missingListIds.includes(id))
+    }
+  })
+})
+
+/**
+ * AWTD-1523, the write half. Jon chose (2026-11-13) that a project member may edit and
+ * delete tasks on the project's lists, which is what `getUserRoleInList` already grants
+ * them ("member" on every list of the project, and on a board's status lists for anyone
+ * shared on a sibling list). The write check (`requireTaskAccess`: PUT, DELETE, blockers,
+ * claim) said owner/member only, so the app offered an edit the API then refused.
+ */
+describe('task write access follows the list role (AWTD-1523)', () => {
+  const writable = () => rowsFor('Task', TASKS, taskWriteAccessWhere(ME)).map(t => t.id)
+
+  it('AWTD-1523: a project member may write a task on the project\'s list; not another project\'s', () => {
+    expect(writable()).toContain('task-project')
+    expect(writable()).not.toContain('task-others-project')
+  })
+
+  it('AWTD-1523: a member of a sibling list may write a task on the board\'s status list', () => {
+    expect(writable()).toContain('task-status')
+  })
+
+  it('AWTD-1523: a public list still grants nobody write access', () => {
+    expect(writable()).not.toContain('task-public')
+    expect(JSON.stringify(taskWriteAccessWhere(ME))).not.toContain('PUBLIC')
+  })
+
+  it('AWTD-1523: for every task I neither created nor am assigned, write ⇔ the list role edits', () => {
+    const user = { id: ME }
+    for (const task of TASKS.filter(t => t.creatorId !== ME && t.assigneeId !== ME)) {
+      const canEdit = task.lists.some(l => canUserEditTasks(user, {
+        ...l,
+        listMembers: l.listMembers.map(m => ({ ...m, role: 'member' })),
+        project: l.project && {
+          ...l.project,
+          members: l.project.members.map(m => ({ ...m, role: 'member' })),
+        },
+      }))
+      expect(writable().includes(task.id), `task ${task.id}`).toBe(canEdit)
     }
   })
 })
