@@ -756,9 +756,9 @@ export function useTaskManagerController({
         memberEmails: listData.memberEmails
       })
 
-      const newList = await response.json()
-      listState.setLists(prev => [...prev, newList])
-
+      // v1 sends { list, meta }, offline the bare list; a raw body crashed the merge (AWTD-1635)
+      const newList = unwrapList<TaskList>(await response.json())
+      if (newList) listState.setLists(prev => [...prev, newList])
 
       toast({
         title: "List created",
