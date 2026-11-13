@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url'
 import createNextIntlPlugin from 'next-intl/plugin'
 import { turbopackRoot } from './scripts/lib/turbopack-root.mjs'
 import { checkBrandIdentity } from './scripts/lib/brand-identity-check.mjs'
+import { derivedBrandColorEnv } from './scripts/lib/brand-colors.mjs'
 
 const withNextIntl = createNextIntlPlugin('./lib/i18n/request.ts')
 
@@ -38,6 +39,20 @@ const filesystemRoot = turbopackRoot(dirname(fileURLToPath(import.meta.url)))
 // reintroduce 'unsafe-inline'. (Task eea00b1b.)
 const isProduction = process.env.NODE_ENV === 'production'
 
+// The brand's hover and inks, from astrid-core's rule so they match every other client
+// (AWTD-1589; scripts/lib/brand-colors.mjs). Derived here because the browser cannot load the
+// rule. A refused accent fails the build with core's reason; a missing core build only warns,
+// and the stylesheets then keep their own values.
+function brandColorEnv() {
+  try {
+    return derivedBrandColorEnv(process.env)
+  } catch (error) {
+    if (error.refused) throw error
+    console.warn(`[brand] astrid-core's colour rule did not load, so no hover or ink is derived: ${error.message}`)
+    return {}
+  }
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // The deploy environment, for the browser: lib/auth-host.ts bounces Google sign-in
@@ -46,6 +61,7 @@ const nextConfig = {
   // is empty, which reads as production.
   env: {
     NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV || process.env.VERCEL_ENV || '',
+    ...brandColorEnv(),
   },
   ...(filesystemRoot ? { turbopack: { root: filesystemRoot } } : {}),
   // A self-contained `node server.js` for the Docker image (Dockerfile, AWTD-1286).

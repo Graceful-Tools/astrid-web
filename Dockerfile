@@ -73,6 +73,7 @@ COPY --chown=node:node deploy/self-host/load-env.mjs ./load-env.mjs
 COPY --chown=node:node deploy/self-host/brand-profile-env.mjs ./brand-profile-env.mjs
 # load-env.mjs runs the brand identity check at start, on the profile it applied (AWTD-1606).
 COPY --chown=node:node scripts/lib/brand-identity-check.mjs ./scripts/lib/brand-identity-check.mjs
+COPY --chown=node:node scripts/lib/brand-colors.mjs ./scripts/lib/brand-colors.mjs
 # The cron runner reads the job list from vercel.json, the one place it is written.
 COPY --chown=node:node vercel.json ./vercel.json
 COPY --chown=node:node scripts/cron-runner.mjs ./scripts/cron-runner.mjs

@@ -9,6 +9,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
+import { derivedBrandColorEnv } from '@/scripts/lib/brand-colors.mjs'
 
 const ACME_ACCENT = '#7e22ce'
 // Astrid's accent since AWTD-1575 (astrid-core register DS26). The one before
@@ -21,6 +22,8 @@ const ORIGINAL_ENV = { ...process.env }
 beforeEach(() => {
   vi.resetModules()
   process.env.NEXT_PUBLIC_BRAND_ACCENT_COLOR = ACME_ACCENT
+  // What next.config.mjs does at build: the hover and inks from astrid-core (AWTD-1589).
+  Object.assign(process.env, derivedBrandColorEnv(process.env))
 })
 
 afterEach(() => {
