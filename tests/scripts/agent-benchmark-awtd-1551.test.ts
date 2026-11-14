@@ -4,11 +4,14 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import { BRAND } from '@/lib/brand/config'
 import { benchmarkTargetProblem, resultsTable, summarize } from '@/scripts/lib/agent-benchmark'
 
+const D = BRAND.domain
+
 describe('the benchmark refuses production (AWTD-1551)', () => {
-  it.each(['https://astrid.cc', 'https://www.astrid.cc', 'https://WWW.ASTRID.CC/api', 'https://api.astrid.cc'])(
-    'refuses %s',
+  it.each([`https://${D}`, `https://www.${D}`, `https://WWW.${D.toUpperCase()}/api`, `https://api.${D}`])(
+    'refuses %s (this deployment\'s production domain)',
     (origin) => {
       expect(benchmarkTargetProblem(origin)).toMatch(/production/)
     },

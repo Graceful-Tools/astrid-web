@@ -6,11 +6,16 @@
  * refuses a production host outright rather than trusting a flag.
  */
 
-/** Hosts the benchmark refuses: production, under any spelling. */
-const PRODUCTION_HOSTS = new Set(['astrid.cc', 'www.astrid.cc', 'api.astrid.cc'])
+import { BRAND } from '@/lib/brand/config'
+
+/** Hosts the benchmark refuses: this deployment's production domain, under any spelling. */
+function productionHosts(domain: string = BRAND.domain): Set<string> {
+  const bare = domain.toLowerCase().replace(/^www\./, '')
+  return new Set([bare, `www.${bare}`, `api.${bare}`])
+}
 
 /** Why a target is refused, or null when it may be benchmarked. */
-export function benchmarkTargetProblem(origin: string): string | null {
+export function benchmarkTargetProblem(origin: string, domain: string = BRAND.domain): string | null {
   let url: URL
   try {
     url = new URL(origin)
@@ -18,7 +23,7 @@ export function benchmarkTargetProblem(origin: string): string | null {
     return `not a URL: ${origin}`
   }
   if (url.protocol !== 'https:' && url.protocol !== 'http:') return `unsupported protocol ${url.protocol}`
-  if (PRODUCTION_HOSTS.has(url.hostname.toLowerCase())) {
+  if (productionHosts(domain).has(url.hostname.toLowerCase())) {
     return `${url.hostname} is production; point the benchmark at a preview or a local dev server`
   }
   return null
