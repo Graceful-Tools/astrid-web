@@ -193,6 +193,18 @@ badge, the push payload icons, the OpenGraph image and the ChatGPT plugin logo. 
 `.png` path in `public/`, not a URL, because the route reads it from disk.
 `lib/brand/icons.ts` decides which URL each place uses.
 
+**The native apps' icons come from an SVG master** (AWTD-1647). astrid-core's
+`cargo xtask gen-brand <profile> --out <dir>` renders the Apple, Android, Windows, web and
+VS Code icon sets from one SVG, named by `assets.iconSource`, a path relative to the profile:
+
+```json
+"assets": { "icon": "/icons/acme-1024.png", "iconSource": "acme.icon.svg" }
+```
+
+It is build-time only and never reaches the runtime env, so `assets.icon` stays the PNG
+above. `brands/acme.brand.json` is the worked example. Astrid's own profile has no master yet:
+its icon is a 3D render, which a flat SVG cannot reproduce.
+
 Do **not** overwrite Astrid's files in `public/icons/` or the root favicons. Earlier
 versions of this section told you to. Those files are hosted Astrid's, and they are served
 unchanged, at the same URLs, while `BRAND.icon` is Astrid's. A partner sharing this
