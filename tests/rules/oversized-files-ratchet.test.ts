@@ -90,7 +90,7 @@ const BUDGETS: Record<string, number> = {
   // layout gate around it, which more than paid for the header button and the
   // threaded state. Locking the line in.
   // 1008 → 1002: the Copy List button moved to TaskManager/CopyListButton (AWTD-1575).
-  'components/TaskManager/MainContent/MainContent.tsx': 997,
+  'components/TaskManager/MainContent/MainContent.tsx': 996,
   'lib/cache-manager.ts': 935,
   // 819 → 797: its two hand-rolled comment inserts and SSE fan-outs went
   // through the comment service (spec §5.2 step 4).
