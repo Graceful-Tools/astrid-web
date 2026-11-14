@@ -360,6 +360,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'ASTRID_BUGS_LIST_ID', scope: 'tooling', description: 'List id used by feedback scripts.' },
   { name: 'ASTRID_FEEDBACK_LIST_ID', scope: 'tooling', description: 'List id used by feedback scripts.' },
   { name: 'ASTRID_IOS_LIST_ID', scope: 'tooling', description: 'iOS board id used by cross-repo filing scripts.' },
+  { name: 'ASTRID_WEB_LIST_ID', scope: 'tooling', description: 'Web board id the public-request intake files into; defaults to the web board in docs/FIXALL_WORKFLOW.md (AWTD-1656).' },
   { name: 'ASTRID_IOS_LIST_NAME', scope: 'tooling', description: 'iOS board name used by cross-repo filing scripts.' },
   { name: 'ASTRID_IOS_GITHUB_TOKEN', scope: 'tooling', description: 'Token for filing issues on the iOS repository.' },
 
