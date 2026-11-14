@@ -2867,6 +2867,10 @@
         "footerWhy": "你收到這份每週展望，是為了協助你提前規劃下一週。",
         "footerPreferences": "你可以在帳戶設定中調整摘要偏好。"
       }
+    },
+    "webhookDelivery": {
+      "fallback": "Webhook 傳送失敗（{reason}）。你的傳送政策為備援，因此 {appName} 正透過自身途徑處理此任務。",
+      "strict": "Webhook 傳送失敗（{reason}）。依照你的嚴格傳送政策，{appName} 未使用自身的備援方式，因此此任務將等待至 {until}，仍指派給我。請修正 webhook，然後重新指派給我或新增留言以重試。"
     }
   }
 }

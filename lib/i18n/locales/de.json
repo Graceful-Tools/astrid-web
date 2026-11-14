@@ -2867,6 +2867,10 @@
         "footerWhy": "Du erhältst diese Wochenvorschau, damit du deine kommende Woche planen kannst.",
         "footerPreferences": "Du kannst deine Zusammenfassungseinstellungen in deinen Kontoeinstellungen anpassen."
       }
+    },
+    "webhookDelivery": {
+      "fallback": "Webhook-Zustellung fehlgeschlagen ({reason}). Deine Zustellrichtlinie ist „Fallback“, daher bearbeitet {appName} diese Aufgabe stattdessen über seinen eigenen Weg.",
+      "strict": "Webhook-Zustellung fehlgeschlagen ({reason}). Wegen deiner strikten Zustellrichtlinie hat {appName} keinen eigenen Fallback genutzt. Diese Aufgabe steht daher bis {until} in „Wartet“ und bleibt mir zugewiesen. Repariere den Webhook und weise sie mir dann erneut zu oder schreibe einen Kommentar, um es noch einmal zu versuchen."
     }
   }
 }

@@ -2867,6 +2867,10 @@
         "footerWhy": "你收到这份每周展望，是为了帮助你提前规划下一周。",
         "footerPreferences": "你可以在账户设置中调整摘要偏好。"
       }
+    },
+    "webhookDelivery": {
+      "fallback": "Webhook 投递失败（{reason}）。你的投递策略为回退，因此 {appName} 正在通过自身途径处理此任务。",
+      "strict": "Webhook 投递失败（{reason}）。根据你的严格投递策略，{appName} 未使用自身的回退方式，因此此任务将等待至 {until}，仍分配给我。请修复 webhook，然后重新分配给我或添加评论以重试。"
     }
   }
 }

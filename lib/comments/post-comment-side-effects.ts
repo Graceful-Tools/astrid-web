@@ -61,7 +61,8 @@ export interface PostCommentSideEffectsOptions {
 }
 
 const MENTION_REGEX = /@\[([^\]]+)\]\(([^)]+)\)/g
-const SYSTEM_GENERATED_MARKER = '<!-- SYSTEM_GENERATED_COMMENT -->'
+/** Marks automation output: it never wakes the assigned agent (below). */
+export const SYSTEM_GENERATED_MARKER = '<!-- SYSTEM_GENERATED_COMMENT -->'
 
 function extractMentionedUserIds(content: string): Set<string> {
   const ids = new Set<string>()

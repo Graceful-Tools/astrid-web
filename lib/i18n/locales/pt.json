@@ -2867,6 +2867,10 @@
         "footerWhy": "Você está recebendo este panorama semanal para ajudar a planejar sua semana.",
         "footerPreferences": "Você pode ajustar suas preferências de resumo nas configurações da sua conta."
       }
+    },
+    "webhookDelivery": {
+      "fallback": "A entrega do webhook falhou ({reason}). Sua política de entrega é de contingência, então o {appName} está tratando esta tarefa pela própria rota.",
+      "strict": "A entrega do webhook falhou ({reason}). Com sua política de entrega estrita, o {appName} não usou a própria contingência, então esta tarefa está em «Aguardando» até {until}, ainda atribuída a mim. Corrija o webhook e depois atribua a tarefa a mim de novo ou adicione um comentário para tentar outra vez."
     }
   }
 }
