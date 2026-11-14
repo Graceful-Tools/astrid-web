@@ -20,7 +20,7 @@ import { assigneeIdsOf } from '@/lib/task-assignees'
 import { parseOmittedTaskFields } from '@/lib/tasks/v1-task-omit'
 import { shapeV1ListPageTask, v1TaskListSelect, v1TaskPageMeta } from '@/lib/tasks/v1-task-shape'
 import { withTaskRemote } from '@/lib/backends/task-remote'
-import { listTasksByIdWhere } from '@/lib/list-permissions'
+import { listTasksByIdWhere, listVisibilityWhere } from '@/lib/list-permissions'
 import {
   decodeTaskCursor,
   encodeTaskCursor,
@@ -139,17 +139,19 @@ export const GET = withAuth(
       // No listId: the caller's own tasks. Public lists are deliberately NOT
       // OR-ed in (AWTD-1451): that made this read, and its count, scan every
       // public list in the deployment. They stay reachable by `?listId=`.
+      // Lists come from the same clause as the task write boundary, so a
+      // project member's sync includes tasks on that project's lists, as
+      // opening one does (AWTD-1643). Not the derived label branch: a label
+      // spans boards.
       where.OR = [
         { creatorId: auth.userId },
         { assigneeId: auth.userId },
         {
           lists: {
-            some: {
-              OR: [
-                { ownerId: auth.userId },
-                { listMembers: { some: { userId: auth.userId } } },
-              ],
-            },
+            some: listVisibilityWhere(auth.userId, {
+              includePublic: false,
+              includeDerivedLabels: false,
+            }),
           },
         },
       ]
