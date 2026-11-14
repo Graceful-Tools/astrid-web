@@ -102,9 +102,45 @@ export function describeSilentFailure(
   const ending = error.signal
     ? `was killed by ${error.signal}`
     : typeof error.status === 'number'
-      ? `exited with status ${error.status}`
+      ? `exited with status ${error.status}${describeWindowsStatus(error.status)}`
       : 'ended without an exit status or a signal'
   return `\`${command}\` printed nothing and ${ending}.`
+}
+
+/**
+ * Windows reports a process that could not start as an NTSTATUS exit code, a
+ * ten-digit decimal nobody recognises (AWTD-1655). The two launch failures
+ * mean the command never ran at all, which is the fact the reader needs.
+ */
+const WINDOWS_LAUNCH_STATUSES: Record<number, string> = {
+  0xc0000142: 'STATUS_DLL_INIT_FAILED: Windows could not start the process',
+  0xc0000135: 'STATUS_DLL_NOT_FOUND: Windows could not start the process',
+}
+
+function describeWindowsStatus(status: number): string {
+  const meaning = WINDOWS_LAUNCH_STATUSES[status]
+  if (!meaning) return ''
+  return ` (0x${status.toString(16).toUpperCase()}, ${meaning})`
+}
+
+/** Below this, a silent failure cannot have done any work. */
+const LAUNCH_FAILURE_MAX_MS = 1_000
+
+/**
+ * Did the machine fail to start processes, rather than the code fail checks?
+ * (AWTD-1655)
+ *
+ * True when at least three checks failed and every one of them died within a
+ * second without printing a byte. One or two silent failures can be a real
+ * check giving up early; a whole run of them is the environment.
+ */
+export function isEnvironmentLaunchFailure(
+  failed: ReadonlyArray<{ output: string; duration: number }>,
+): boolean {
+  return (
+    failed.length >= 3 &&
+    failed.every((c) => c.duration < LAUNCH_FAILURE_MAX_MS && /^`[^`]+` printed nothing and /.test(c.output))
+  )
 }
 
 /**
@@ -871,7 +907,13 @@ class SelfHealingPredeploy {
     }
 
     const failedNames = failedChecks.map((c) => c.name).join(', ')
-    const errorSummary = failedChecks[0]?.name || 'Unknown'
+    // Eighteen checks listed as failed sends the reader into the code when the
+    // machine simply could not start a process (AWTD-1655). Such a run matches
+    // only an earlier report of the same kind from the same machine, never a
+    // real failure of its first check.
+    const launchFailure = isEnvironmentLaunchFailure(failedChecks)
+    const launchFailureTitle = `could not start any check on ${hostname()}`
+    const errorSummary = launchFailure ? launchFailureTitle : failedChecks[0]?.name || 'Unknown'
 
     // Check for existing task
     const existingTaskId = await this.findExistingTask(errorSummary)
@@ -884,9 +926,16 @@ class SelfHealingPredeploy {
     // A task titled "Predeploy Failed" for a check that was merely killed sends
     // the reader hunting a broken test that does not exist.
     const allTimedOut = failedChecks.length > 0 && failedChecks.every((c) => c.timedOut)
-    const title = allTimedOut
-      ? `⏱️ Predeploy Timed Out: ${failedNames}`
-      : `🔴 Predeploy Failed: ${failedNames}`
+    const title = launchFailure
+      ? `⚙️ Predeploy ${launchFailureTitle}`
+      : allTimedOut
+        ? `⏱️ Predeploy Timed Out: ${failedNames}`
+        : `🔴 Predeploy Failed: ${failedNames}`
+    const launchFailureNote = launchFailure
+      ? `\n> **Not a code failure.** Every check below died within a second without printing anything, so ` +
+        `this machine could not start processes when it ran. Fix the machine (on Windows, a reboot or an ` +
+        `interactive sign-in usually clears it), then re-run \`npm run predeploy\`. No auto-fix was attempted.\n`
+      : ''
 
     // The tag is what findExistingTask matches on. It is written here, next to
     // the heading, so the writer and the reader cannot drift apart.
@@ -897,7 +946,7 @@ class SelfHealingPredeploy {
 **Generated**: ${new Date().toISOString()}
 **Duration**: ${((Date.now() - this.startTime) / 1000).toFixed(1)}s
 ${currentProvenance()}
-
+${launchFailureNote}
 ### Failed Checks
 
 ${failedChecks
@@ -1193,6 +1242,13 @@ All predeploy checks are now passing.
 
       if (failedChecks.length === 0) {
         console.log('\n✅ All checks passed!')
+        break
+      }
+
+      // A fix command cannot start either when no check could (AWTD-1655);
+      // retrying only repeats the same instant failures.
+      if (isEnvironmentLaunchFailure(failedChecks)) {
+        console.log('\n⚙️  No check could start - this machine cannot launch processes right now, not a code failure')
         break
       }
 
