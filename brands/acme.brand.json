@@ -61,6 +61,7 @@
     "displayName": "Acme Tasks"
   },
   "code": {
+    "bundleId": "example.acme.Code",
     "nameShort": "Acme Code",
     "nameLong": "Acme Code",
     "applicationName": "acme-code",
