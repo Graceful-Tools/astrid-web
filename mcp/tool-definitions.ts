@@ -63,7 +63,7 @@ export const OAUTH_MCP_TOOLS = [
       {
         name: "get_agent_queue",
         description:
-          "Get the tasks queued for an agent identity right now — Ready, assigned to that agent, and past any start date. This is the call a scheduled loop makes: work everything it returns, then stop. Returns empty:true when there is nothing to do, with a `hint` naming the condition that is unmet — most often tasks assigned to the agent that nobody set to Ready. Surface that hint instead of reporting a bare empty queue. If you do not use the board columns at all, pass requireReady: false so unstatused tasks queue too. On a board you keep for your own agents, pass includeUnassigned: true with listId so unassigned Ready tasks queue as well.",
+          "Get the tasks queued for an agent identity right now — Ready, assigned to that agent, and past any start date. This is the call a scheduled loop makes: work everything it returns, then stop. Returns empty:true when there is nothing to do, with a `hint` naming the condition that is unmet — most often tasks assigned to the agent that nobody set to Ready. Surface that hint instead of reporting a bare empty queue. runnable.reasons says why there is work: \"ready\" (the queue) or \"attention\" (unanswered human replies in attention, which want an answer even when the queue is empty). runnable.incomplete means part of the read was cut off: report it, but it is not work by itself. If you do not use the board columns at all, pass requireReady: false so unstatused tasks queue too. On a board you keep for your own agents, pass includeUnassigned: true with listId so unassigned Ready tasks queue as well.",
         inputSchema: {
           type: "object",
           properties: {
