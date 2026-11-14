@@ -365,8 +365,12 @@ describe('requireTaskAccess vs requireTaskReadAccess — the public-list asymmet
       expect(where.OR[1]).toEqual({ assigneeId: 'u1' })
       expect(JSON.stringify(where.OR[2])).toContain('listMembers')
     }
-    // The shared prefix is identical — they diverge only at the tail.
-    expect(JSON.stringify(read.OR.slice(0, 3))).toBe(JSON.stringify(write.OR))
+    // The shared prefix is identical — they diverge only at the tail, and in
+    // the list branch by the one thing writes exclude: a read-only viewer seat
+    // (AWTD-1644). Reads still admit it.
+    expect(JSON.stringify(read.OR.slice(0, 2))).toBe(JSON.stringify(write.OR.slice(0, 2)))
+    expect(JSON.stringify(read.OR[2])).not.toContain('viewer')
+    expect(JSON.stringify(write.OR[2])).toContain('viewer')
   })
 
   it('both refuse with Forbidden when no row matches', async () => {

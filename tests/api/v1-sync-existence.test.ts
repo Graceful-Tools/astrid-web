@@ -64,14 +64,18 @@ const OTHER = 'user-other'
 
 type ProjectRow = { ownerId: string; members: { userId: string }[]; lists: ListRow[] }
 type ListRow = {
-  id: string; ownerId: string; privacy: string; listMembers: { userId: string }[]
+  id: string; ownerId: string; privacy: string; listMembers: { userId: string; role?: string }[]
   // The fields the project and label branches of the visibility clause read (AWTD-1519).
   listType: string; remoteNodeId: string | null; project: ProjectRow | null; tasks: TaskRow[]
 }
 type TaskRow = { id: string; creatorId: string; assigneeId: string | null; lists: ListRow[] }
 
 const list = (row: Pick<ListRow, 'id' | 'ownerId' | 'privacy' | 'listMembers'> & Partial<ListRow>): ListRow =>
-  ({ listType: 'regular', remoteNodeId: null, project: null, tasks: [], ...row })
+  ({
+    listType: 'regular', remoteNodeId: null, project: null, tasks: [], ...row,
+    // The write clause reads the seat's role (AWTD-1644); a plain seat is a member.
+    listMembers: row.listMembers.map(m => ({ role: 'member', ...m })),
+  })
 
 const myList = list({ id: 'list-mine', ownerId: ME, privacy: 'PRIVATE', listMembers: [] })
 const sharedWithMe = list({ id: 'list-shared', ownerId: OTHER, privacy: 'SHARED', listMembers: [{ userId: ME }] })
@@ -114,6 +118,12 @@ function matches(row: Record<string, any>, where: Record<string, any>): boolean 
   return Object.entries(where).every(([key, value]) => {
     if (key === 'OR') return (value as Record<string, any>[]).some(c => matches(row, c))
     if (key === 'AND') return (value as Record<string, any>[]).every(c => matches(row, c))
+    if (key === 'NOT') return !matches(row, value)
+    if (value && typeof value === 'object' && 'equals' in value) {
+      if (!(key in row)) throw new Error(`fixture row has no field ${key}`)
+      const [a, b] = [String(row[key]), String(value.equals)]
+      return value.mode === 'insensitive' ? a.toLowerCase() === b.toLowerCase() : a === b
+    }
     if (value && typeof value === 'object' && 'in' in value) return (value.in as unknown[]).includes(row[key])
     if (value && typeof value === 'object' && 'not' in value) {
       if (!(key in row)) throw new Error(`fixture row has no field ${key}`)
