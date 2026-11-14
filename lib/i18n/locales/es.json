@@ -2867,6 +2867,10 @@
         "footerWhy": "Recibes este resumen semanal para ayudarte a planificar la semana.",
         "footerPreferences": "Puedes ajustar tus preferencias de resumen en los ajustes de tu cuenta."
       }
+    },
+    "webhookDelivery": {
+      "fallback": "La entrega del webhook falló ({reason}). Tu política de entrega es de respaldo, así que {appName} está gestionando esta tarea por su propia vía.",
+      "strict": "La entrega del webhook falló ({reason}). Con tu política de entrega estricta, {appName} no usó su propia alternativa, así que esta tarea está en «En espera» hasta {until}, todavía asignada a mí. Arregla el webhook y luego vuelve a asignármela o añade un comentario para reintentarlo."
     }
   }
 }

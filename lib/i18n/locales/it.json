@@ -2867,6 +2867,10 @@
         "footerWhy": "Ricevi questa panoramica settimanale per aiutarti a pianificare la settimana.",
         "footerPreferences": "Puoi modificare le preferenze del riepilogo nelle impostazioni del tuo account."
       }
+    },
+    "webhookDelivery": {
+      "fallback": "La consegna del webhook non è riuscita ({reason}). La tua regola di consegna è di riserva, quindi {appName} sta gestendo questa attività tramite il proprio percorso.",
+      "strict": "La consegna del webhook non è riuscita ({reason}). Con la tua regola di consegna rigorosa {appName} non ha usato il proprio percorso di riserva, quindi questa attività è In attesa fino a {until}, ancora assegnata a me. Correggi il webhook, poi riassegnamela o aggiungi un commento per riprovare."
     }
   }
 }

@@ -2867,6 +2867,10 @@
         "footerWhy": "Vous recevez cet aperçu hebdomadaire pour vous aider à planifier votre semaine.",
         "footerPreferences": "Vous pouvez modifier vos préférences de résumé dans les paramètres de votre compte."
       }
+    },
+    "webhookDelivery": {
+      "fallback": "La livraison du webhook a échoué ({reason}). Ta politique de livraison est « repli », donc {appName} traite cette tâche par sa propre voie.",
+      "strict": "La livraison du webhook a échoué ({reason}). Avec ta politique de livraison stricte, {appName} n’a pas utilisé son propre repli : cette tâche est « En attente » jusqu’au {until}, toujours assignée à moi. Répare le webhook, puis réassigne-la-moi ou ajoute un commentaire pour réessayer."
     }
   }
 }
