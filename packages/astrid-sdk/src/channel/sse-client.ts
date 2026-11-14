@@ -4,6 +4,13 @@ import type { AstridChannelConfig, AgentSSEEvent } from './types.js'
 
 type EventHandler = (event: AgentSSEEvent) => void
 
+interface RecoveryHooks {
+  since: () => number
+  onConnected: () => Promise<void>
+  onServerTime: (time: number) => void
+  onError?: () => void
+}
+
 /**
  * SSE client using fetch + ReadableStream (supports Authorization headers).
  * Reconnects with exponential backoff. Keepalive timeout at 90s.
@@ -34,7 +41,8 @@ export class SSEClient {
 
   constructor(
     private config: AstridChannelConfig,
-    private oauth: OAuthClient
+    private oauth: OAuthClient,
+    private recovery?: RecoveryHooks
   ) {}
 
   on(eventType: string, handler: EventHandler): void {
@@ -57,12 +65,13 @@ export class SSEClient {
     const token = await this.oauth.ensureToken()
     const base = this.config.sseEndpoint
       || `${resolveApiBase(this.config.apiBase)}/agent/events`
-    const since = new Date(this.lastEventTime).toISOString()
-    const url = `${base}?since=${encodeURIComponent(since)}`
+    const since = new Date(this.recovery?.since() ?? this.lastEventTime).toISOString()
+    const url = new URL(base)
+    url.searchParams.set('since', since)
 
     this.abortController = new AbortController()
 
-    const res = await fetch(url, {
+    const res = await fetch(url.toString(), {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'text/event-stream',
@@ -96,6 +105,9 @@ export class SSEClient {
     let buffer = ''
 
     try {
+      // The stream is already open and buffering while the queue is reconciled.
+      await this.recovery?.onConnected()
+      if (this.stopped) return
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
@@ -109,14 +121,17 @@ export class SSEClient {
         buffer = remaining
 
         for (const event of events) {
-          this.lastEventTime = Date.now()
-          this.dispatch(event)
+          if (!this.recovery) this.lastEventTime = Date.now()
+          const dispatched = this.dispatch(event)
+          if (this.recovery) await dispatched
         }
       }
     } catch (err: any) {
       if (err.name === 'AbortError') return
+      this.recovery?.onError?.()
       throw err
     } finally {
+      this.abortController?.abort()
       this.connected = false
       this.stopKeepalive()
       if (!this.stopped) {
@@ -206,7 +221,7 @@ export class SSEClient {
     return { events, remaining }
   }
 
-  private dispatch(event: AgentSSEEvent): void {
+  private async dispatch(event: AgentSSEEvent): Promise<void> {
     let type = event.type
     let data = event.data
 
@@ -219,15 +234,30 @@ export class SSEClient {
       data = (data.data || data) as AgentSSEEvent['data']
     }
 
-    // Client-side dedup: skip events we've already dispatched
+    if (this.recovery && (type === 'connected' || type === 'keepalive')) {
+      const raw = data.serverTime ?? data.timestamp
+      const time = typeof raw === 'string' ? Date.parse(raw) : NaN
+      if (Number.isFinite(time) && time >= 0) this.recovery.onServerTime(time)
+      else console.warn('Astrid recovery: stream has no valid server time; replay cursor unchanged')
+    }
+
+    // Recovery deliveries use persisted receipts; terminal repeats are idempotent.
     const fp = this.eventFingerprint(type, data)
-    if (this.isDuplicate(fp)) return
+    const ledgerEvent = ['task.assigned', 'task.commented', 'task.completed', 'task.deleted'].includes(type)
+    if (!(this.recovery && ledgerEvent) && this.isDuplicate(fp)) return
 
     const mapped: AgentSSEEvent = { type, data }
     if (event.id) mapped.id = event.id
     const handlers = this.handlers.get(type) || []
     for (const handler of handlers) {
-      try { handler(mapped) } catch (err) { console.error('SSE handler error:', err) }
+      try {
+        const handled = handler(mapped)
+        if (this.recovery) await handled
+        else void Promise.resolve(handled).catch(err => console.error('SSE handler error:', err))
+      } catch (err) {
+        if (this.recovery) throw err
+        console.error('SSE handler error:', err)
+      }
     }
   }
 
