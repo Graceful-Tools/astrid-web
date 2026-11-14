@@ -58,6 +58,14 @@ model User {
   /// that pre-migration rows read back as. NOT the project_mode feature flag,
   /// which is access to projects/boards rather than a display preference.
   taskDisplayMode              String?                    @default("list")
+  /// The language this user reads, as one of lib/i18n/config.ts `locales`
+  /// ("de", "zh-CN", …). Written by lib/i18n/user-locale.ts only — the web app
+  /// reports the page's locale, and native clients may send the device's
+  /// through PUT /api/v1/users/me/settings. Read by server-rendered copy that
+  /// has no request to take a language from: push notifications and reminder
+  /// and digest emails (AWTD-1592). Null means not known yet, which reads as
+  /// English.
+  locale                       String?
   mcpEnabled                   Boolean                    @default(true)
   mcpSettings                  String?
   aiAgentConfig                String?

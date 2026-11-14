@@ -98,6 +98,22 @@ describe('clientReminderSync.updateTaskReminders (AWTD-1342)', () => {
     expect(summary()).toEqual(['CANCEL_REMINDER', 'CANCEL_REMINDER', 'CANCEL_REMINDER'])
   })
 
+  it('AWTD-1592: once the page has set its labels, every scheduled reminder carries them', async () => {
+    const sync = await loadSync(true)
+    vi.useFakeTimers({ now: NOW, toFake: ['Date'] })
+    const labels = { overdueTitle: 'Aufgabe überfällig' } as never
+
+    await sync.updateTaskReminders(task(), 'u1')
+    expect(posted.filter(m => m.type === 'SCHEDULE_REMINDER').every(m => !(m.data as any).labels)).toBe(true)
+
+    posted.length = 0
+    sync.setLabels(labels)
+    await sync.updateTaskReminders(task(), 'u1')
+    const scheduled = posted.filter(m => m.type === 'SCHEDULE_REMINDER')
+    expect(scheduled).toHaveLength(2)
+    expect(scheduled.every(m => (m.data as any).labels === labels)).toBe(true)
+  })
+
   it('with no active service worker nothing is posted and nothing throws', async () => {
     const sync = await loadSync(false)
     await expect(sync.updateTaskReminders(task(), 'u1')).resolves.toBeUndefined()

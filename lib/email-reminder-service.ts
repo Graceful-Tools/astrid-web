@@ -8,15 +8,17 @@ import { getBaseUrl, getUnsubscribeUrl, buildTaskUrlWithContext } from '@/lib/ba
 import { createLogger } from '@/lib/logger'
 import { escapeEmailHtml } from '@/lib/email-html'
 import { EMAIL_PALETTE, emailRgb as tokenColor, washOver } from '@/lib/design/email-palette' // an email cannot read a custom property (AWTD-1596)
-import { digestDueText, digestLongDate, digestShortDate, digestWeekRange } from '@/lib/digest-email-dates'
+import { digestLongDate, digestShortDate, digestWeekRange } from '@/lib/digest-email-dates'
+import { copyFor, digestTaskDue, englishCopy, formatReminderDue, timeUntilDue, type EmailCopy } from '@/lib/email-copy'
 
 const log = createLogger('email-reminder-service')
 
 export class EmailReminderService {
   async sendTaskReminder(data: TaskReminderData): Promise<void> {
-    const subject = this.getTaskReminderSubject(data)
-    const htmlBody = this.getTaskReminderHtml(data)
-    const textBody = this.getTaskReminderText(data)
+    const copy = await copyFor(data.locale)
+    const subject = this.getTaskReminderSubject(data, copy)
+    const htmlBody = this.getTaskReminderHtml(data, copy)
+    const textBody = this.getTaskReminderText(data, copy)
 
     await this.sendEmail({
       to: data.assigneeEmail || '',
@@ -27,10 +29,11 @@ export class EmailReminderService {
   }
 
   async sendDailyDigest(data: DailyDigestData): Promise<void> {
-    const today = digestShortDate(new Date(), data.timeZone)
-    const subject = `Reminders for ${today}`
-    const htmlBody = this.getDailyDigestHtml(data)
-    const textBody = this.getDailyDigestText(data)
+    const copy = await copyFor(data.locale)
+    const today = digestShortDate(new Date(), data.timeZone, copy.locale)
+    const subject = copy.t('email.daily.subject', { date: today })
+    const htmlBody = this.getDailyDigestHtml(data, copy)
+    const textBody = this.getDailyDigestText(data, copy)
 
     await this.sendEmail({
       to: data.userEmail,
@@ -47,10 +50,13 @@ export class EmailReminderService {
     upcomingTasks: TaskReminderData[]
     /** The recipient's `dailyDigestTimezone` (AWTD-1545). */
     timeZone?: string
+    /** The recipient's `User.locale` (AWTD-1592). */
+    locale?: string | null
   }): Promise<void> {
-    const subject = `Weekly Task Outlook - ${digestWeekRange(new Date(), data.timeZone)}`
-    const htmlBody = this.getWeeklyDigestHtml(data)
-    const textBody = this.getWeeklyDigestText(data)
+    const copy = await copyFor(data.locale)
+    const subject = copy.t('email.weekly.subject', { range: digestWeekRange(new Date(), data.timeZone, copy.locale) })
+    const htmlBody = this.getWeeklyDigestHtml(data, copy)
+    const textBody = this.getWeeklyDigestText(data, copy)
 
     await this.sendEmail({
       to: data.userEmail,
@@ -98,33 +104,40 @@ export class EmailReminderService {
     }
   }
 
-  private getTaskReminderSubject(data: TaskReminderData): string {
+  private getTaskReminderSubject(data: TaskReminderData, copy: EmailCopy = englishCopy()): string {
+    const { t } = copy
     const isOverdue = data.dueDateTime && new Date(data.dueDateTime) < new Date()
     
     if (isOverdue) {
-      return `⚠️ Overdue: ${data.title}`
+      return t('email.reminder.subjectOverdue', { title: data.title })
     }
 
-    const timeUntilDue = this.getTimeUntilDue(data.dueDateTime)
-    return `⏰ Reminder: ${data.title}${timeUntilDue ? ` (due ${timeUntilDue})` : ''}`
+    const when = timeUntilDue(data.dueDateTime, copy.locale)
+    return when
+      ? t('email.reminder.subjectDue', { title: data.title, when })
+      : t('email.reminder.subject', { title: data.title })
   }
 
-  private getTaskReminderHtml(data: TaskReminderData): string {
+  private getTaskReminderHtml(data: TaskReminderData, copy: EmailCopy = englishCopy()): string {
+    const { t } = copy
+    const h = escapeEmailHtml
     const isOverdue = data.dueDateTime && new Date(data.dueDateTime) < new Date()
-    const dueText = this.formatDueDate(data.dueDateTime, isOverdue)
-    const listText = data.listNames.length > 0 ? ` in ${escapeEmailHtml(data.listNames.join(', '))}` : ''
+    const dueText = formatReminderDue(data.dueDateTime, isOverdue, copy)
+    const footerWhy = data.listNames.length > 0
+      ? t('email.reminder.footerWhyInLists', { lists: data.listNames.join(', ') })
+      : t('email.reminder.footerWhy')
     const quote = isOverdue
-      ? getRandomReminderString('reminders_due')
-      : getRandomReminderString('reminder_responses')
+      ? getRandomReminderString('reminders_due', copy.locale, copy.messages)
+      : getRandomReminderString('reminder_responses', copy.locale, copy.messages)
     const baseUrl = this.getAppUrl()
     const isSharedList = (data.collaborators?.length || 0) > 0
 
     return `
       <!DOCTYPE html>
-      <html>
+      <html lang="${copy.locale}">
       <head>
         <meta charset="utf-8">
-        <title>Task Reminder</title>
+        <title>${h(t('email.reminder.pageTitle'))}</title>
         <style>
           body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -339,9 +352,9 @@ export class EmailReminderService {
         <div class="container">
           <!-- Header with task title -->
           <div class="header ${isOverdue ? '' : 'normal'}">
-            ${isOverdue ? '<span class="overdue-badge">⚠️ OVERDUE</span>' : ''}
+            ${isOverdue ? `<span class="overdue-badge">${h(t('email.reminder.overdueBadge'))}</span>` : ''}
             <h1 class="task-title">${escapeEmailHtml(data.title)}</h1>
-            <p class="due-info">Due: ${dueText}</p>
+            <p class="due-info">${h(t('email.due', { when: dueText }))}</p>
           </div>
 
           <!-- ${BRAND.appName} mascot with motivational quote -->
@@ -360,13 +373,13 @@ export class EmailReminderService {
           <div class="task-details">
             ${data.listNames.length > 0 ? `
             <div class="detail-row">
-              <div class="detail-label">Lists</div>
+              <div class="detail-label">${h(t('email.reminder.lists'))}</div>
               <div class="detail-value">${escapeEmailHtml(data.listNames.join(', '))}</div>
             </div>
             ` : ''}
             ${data.assigneeName ? `
             <div class="detail-row">
-              <div class="detail-label">Assigned To</div>
+              <div class="detail-label">${h(t('email.reminder.assignedTo'))}</div>
               <div class="detail-value">${escapeEmailHtml(data.assigneeName)}</div>
             </div>
             ` : ''}
@@ -375,7 +388,7 @@ export class EmailReminderService {
           <!-- Collaborators section for shared lists -->
           ${isSharedList ? `
           <div class="collaborators-section">
-            <div class="collaborators-title">SHARED LIST</div>
+            <div class="collaborators-title">${h(t('email.reminder.sharedList'))}</div>
             <div class="collaborators-avatars">
               ${(data.collaborators || []).slice(0, 5).map(collab => {
                 const initials = collab.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'
@@ -383,24 +396,24 @@ export class EmailReminderService {
               }).join('')}
               ${(data.collaborators?.length || 0) > 5 ? `<div class="avatar">+${(data.collaborators?.length || 0) - 5}</div>` : ''}
             </div>
-            <div class="collaborators-message">These people are counting on you! 🤝</div>
+            <div class="collaborators-message">${h(t('email.reminder.countingOnYou'))}</div>
           </div>
           ` : ''}
 
           <!-- Action buttons -->
           <div class="actions">
             <a href="${this.getTaskUrl(data)}" class="button">
-              ${isOverdue ? 'View Overdue Task' : 'View Task'}
+              ${h(isOverdue ? t('actions.viewOverdueTask') : t('actions.viewTask'))}
             </a>
             <a href="${this.getSnoozeUrl(data)}" class="button button-secondary">
-              Snooze Reminder
+              ${h(t('actions.snoozeReminder'))}
             </a>
           </div>
 
           <!-- Footer -->
           <div class="footer">
-            <p>This reminder was sent because you have a task due${listText}.</p>
-            <p>You can modify your reminder preferences in your settings.</p>
+            <p>${h(footerWhy)}</p>
+            <p>${h(t('email.reminder.footerPreferences'))}</p>
           </div>
         </div>
       </body>
@@ -408,32 +421,35 @@ export class EmailReminderService {
     `
   }
 
-  private getTaskReminderText(data: TaskReminderData): string {
+  private getTaskReminderText(data: TaskReminderData, copy: EmailCopy = englishCopy()): string {
+    const { t } = copy
     const isOverdue = data.dueDateTime && new Date(data.dueDateTime) < new Date()
-    const dueText = this.formatDueDate(data.dueDateTime, isOverdue)
-    const listText = data.listNames.length > 0 ? ` in ${data.listNames.join(', ')}` : ''
+    const dueText = formatReminderDue(data.dueDateTime, isOverdue, copy)
+    const lists = data.listNames.join(', ')
 
     return `
-${isOverdue ? '⚠️ TASK OVERDUE' : '⏰ TASK REMINDER'}
+${isOverdue ? t('email.reminder.textHeadingOverdue') : t('email.reminder.textHeading')}
 
-Task: ${data.title}
-${data.listNames.length > 0 ? `Lists: ${data.listNames.join(', ')}` : ''}
-Due: ${dueText}
-${data.assigneeName ? `Assigned to: ${data.assigneeName}` : ''}
+${t('email.reminder.textTask', { title: data.title })}
+${data.listNames.length > 0 ? t('email.reminder.textLists', { lists }) : ''}
+${t('email.due', { when: dueText })}
+${data.assigneeName ? t('email.reminder.textAssignedTo', { name: data.assigneeName }) : ''}
 
-${isOverdue ? 'This task is overdue and needs your attention.' : 'This task is due soon.'}
+${isOverdue ? t('email.reminder.textOverdueNote') : t('email.reminder.textDueSoonNote')}
 
-View task: ${this.getTaskUrl(data)}
-Snooze reminder: ${this.getSnoozeUrl(data)}
+${t('email.reminder.textViewTask', { url: this.getTaskUrl(data) })}
+${t('email.reminder.textSnooze', { url: this.getSnoozeUrl(data) })}
 
 ---
-This reminder was sent because you have a task due${listText}.
-You can modify your reminder preferences in your account settings.
+${data.listNames.length > 0 ? t('email.reminder.footerWhyInLists', { lists }) : t('email.reminder.footerWhy')}
+${t('email.reminder.footerPreferences')}
     `.trim()
   }
 
-  private getDailyDigestHtml(data: DailyDigestData): string {
-    const today = digestLongDate(new Date(), data.timeZone)
+  private getDailyDigestHtml(data: DailyDigestData, copy: EmailCopy = englishCopy()): string {
+    const { t } = copy
+    const h = escapeEmailHtml
+    const today = digestLongDate(new Date(), data.timeZone, copy.locale)
     const allTasks = [...data.overdueTasks, ...data.dueTodayTasks, ...data.dueTomorrowTasks]
     const baseUrl = getBaseUrl()
 
@@ -442,10 +458,10 @@ You can modify your reminder preferences in your account settings.
 
     return `
       <!DOCTYPE html>
-      <html>
+      <html lang="${copy.locale}">
       <head>
         <meta charset="utf-8">
-        <title>Daily Task Digest</title>
+        <title>${h(t('email.daily.pageTitle'))}</title>
         <style>
           body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -544,8 +560,8 @@ You can modify your reminder preferences in your account settings.
         <div class="container">
           <div class="header">
             <div class="date-header">${today}</div>
-            <div class="greeting">${BRAND.appName} here,</div>
-            <div class="greeting">Reminding you about the things that are important to you.</div>
+            <div class="greeting">${h(t('email.daily.greeting'))}</div>
+            <div class="greeting">${h(t('email.daily.intro'))}</div>
           </div>
 
           <div class="task-list">
@@ -565,12 +581,12 @@ You can modify your reminder preferences in your account settings.
           </div>
 
           <div class="signature">
-            - ${BRAND.appName}
+            ${h(t('email.daily.signature'))}
           </div>
 
           <div class="footer">
-            Click on checkboxes to mark task as complete or task name to view / edit.<br>
-            <a href="${getUnsubscribeUrl(data.userId)}" class="footer-link">Unsubscribe from email reminders</a>.
+            ${h(t('email.daily.footerHint'))}<br>
+            <a href="${getUnsubscribeUrl(data.userId)}" class="footer-link">${h(t('email.daily.unsubscribe'))}</a>.
           </div>
         </div>
       </body>
@@ -578,26 +594,27 @@ You can modify your reminder preferences in your account settings.
     `
   }
 
-  private getDailyDigestText(data: DailyDigestData): string {
-    const today = digestLongDate(new Date(), data.timeZone)
+  private getDailyDigestText(data: DailyDigestData, copy: EmailCopy = englishCopy()): string {
+    const { t } = copy
+    const today = digestLongDate(new Date(), data.timeZone, copy.locale)
     const allTasks = [...data.overdueTasks, ...data.dueTodayTasks, ...data.dueTomorrowTasks]
 
     let text = `${today}\n\n`
-    text += `${BRAND.appName} here,\n\n`
-    text += `Reminding you about the things that are important to you.\n\n`
+    text += `${t('email.daily.greeting')}\n\n`
+    text += `${t('email.daily.intro')}\n\n`
 
     if (allTasks.length > 0) {
-      text += `TASKS\n`
+      text += `${t('email.daily.tasksHeading')}\n`
       text += `${allTasks.map(task => {
         const listInfo = task.listNames.length > 0 ? ` (${task.listNames.join(', ')})` : ''
         return `• ${task.title}${listInfo}\n  ${this.getTaskUrl(task)}`
       }).join('\n\n')}\n\n`
     }
 
-    text += `- ${BRAND.appName}\n\n`
+    text += `${t('email.daily.signature')}\n\n`
     text += `---\n`
-    text += `Click on checkboxes to mark task as complete or task name to view / edit.\n`
-    text += `Unsubscribe from email reminders: ${getUnsubscribeUrl(data.userId)}`
+    text += `${t('email.daily.footerHint')}\n`
+    text += t('email.daily.textUnsubscribe', { url: getUnsubscribeUrl(data.userId) })
 
     return text
   }
@@ -606,15 +623,17 @@ You can modify your reminder preferences in your account settings.
     userName: string
     upcomingTasks: TaskReminderData[]
     timeZone?: string
-  }): string {
-    const weekRange = digestWeekRange(new Date(), data.timeZone)
+  }, copy: EmailCopy = englishCopy()): string {
+    const { t } = copy
+    const h = escapeEmailHtml
+    const weekRange = digestWeekRange(new Date(), data.timeZone, copy.locale)
     
     return `
       <!DOCTYPE html>
-      <html>
+      <html lang="${copy.locale}">
       <head>
         <meta charset="utf-8">
-        <title>Weekly Task Outlook</title>
+        <title>${h(t('email.weekly.title'))}</title>
         <style>
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: ${EMAIL_PALETTE.text}; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -631,30 +650,30 @@ You can modify your reminder preferences in your account settings.
       <body>
         <div class="container">
           <div class="header">
-            <h1>📅 Weekly Task Outlook</h1>
-            <p>Hello${data.userName ? ` ${escapeEmailHtml(data.userName)}` : ''}! Here are your upcoming tasks for ${weekRange}</p>
+            <h1>📅 ${h(t('email.weekly.title'))}</h1>
+            <p>${h(data.userName ? t('email.weekly.helloNamed', { name: data.userName }) : t('email.weekly.hello'))} ${h(t('email.weekly.intro', { range: weekRange }))}</p>
           </div>
 
           <div class="task-list">
-            <h2>🗓️ Upcoming Tasks (${data.upcomingTasks.length})</h2>
+            <h2>🗓️ ${h(t('email.weekly.upcoming', { count: String(data.upcomingTasks.length) }))}</h2>
             ${data.upcomingTasks.map(task => `
               <div class="task-item">
                 <div class="task-title">${escapeEmailHtml(task.title)}</div>
                 <div class="task-meta">
-                  Due: ${this.digestDue(task, data.timeZone)} •
-                  Lists: ${escapeEmailHtml(task.listNames.join(', '))}
+                  ${h(t('email.due', { when: digestTaskDue(task, data.timeZone, copy) }))} •
+                  ${h(t('email.weekly.lists', { lists: task.listNames.join(', ') }))}
                 </div>
               </div>
             `).join('')}
           </div>
 
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${this.getAppUrl()}" class="button">Open Task Manager</a>
+            <a href="${this.getAppUrl()}" class="button">${h(t('actions.openTaskManager'))}</a>
           </div>
 
           <div class="footer">
-            <p>You're receiving this weekly outlook to help you plan your week ahead.</p>
-            <p>You can adjust your digest preferences in your account settings.</p>
+            <p>${h(t('email.weekly.footerWhy'))}</p>
+            <p>${h(t('email.weekly.footerPreferences'))}</p>
           </div>
         </div>
       </body>
@@ -666,94 +685,29 @@ You can modify your reminder preferences in your account settings.
     userName: string
     upcomingTasks: TaskReminderData[]
     timeZone?: string
-  }): string {
-    const weekRange = digestWeekRange(new Date(), data.timeZone)
+  }, copy: EmailCopy = englishCopy()): string {
+    const { t } = copy
+    const weekRange = digestWeekRange(new Date(), data.timeZone, copy.locale)
     
-    let text = `📅 WEEKLY TASK OUTLOOK - ${weekRange}\n\n`
+    let text = `${t('email.weekly.textTitle', { range: weekRange })}\n\n`
     
     if (data.userName) {
-      text += `Hello ${data.userName}!\n\n`
+      text += `${t('email.weekly.helloNamed', { name: data.userName })}\n\n`
     }
 
-    text += `Here are your upcoming tasks for this week:\n\n`
+    text += `${t('email.weekly.textIntro')}\n\n`
 
-    text += `🗓️ UPCOMING TASKS (${data.upcomingTasks.length})\n`
+    text += `${t('email.weekly.textUpcoming', { count: String(data.upcomingTasks.length) })}\n`
     text += `${data.upcomingTasks.map(task => 
-      `• ${task.title} - Due: ${this.digestDue(task, data.timeZone)} (${task.listNames.join(', ')})`
+      `• ${task.title} - ${t('email.due', { when: digestTaskDue(task, data.timeZone, copy) })} (${task.listNames.join(', ')})`
     ).join('\n')}\n\n`
 
-    text += `Open Task Manager: ${this.getAppUrl()}\n\n`
+    text += `${t('email.weekly.textOpen', { url: this.getAppUrl() })}\n\n`
     text += `---\n`
-    text += `You're receiving this weekly outlook to help you plan your week ahead.\n`
-    text += `You can adjust your digest preferences in your account settings.`
+    text += `${t('email.weekly.footerWhy')}\n`
+    text += t('email.weekly.footerPreferences')
 
     return text
-  }
-
-  private formatDueDate(dueDateTime: Date | null, isOverdue = false): string {
-    if (!dueDateTime) return 'No due date'
-
-    const due = new Date(dueDateTime)
-    const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const dueDate = new Date(due.getFullYear(), due.getMonth(), due.getDate())
-
-    const diffTime = dueDate.getTime() - today.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-    const timeString = due.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit',
-      hour12: true 
-    })
-
-    const dateString = due.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric'
-    })
-
-    if (isOverdue) {
-      return `${dateString} at ${timeString} (${Math.abs(diffDays)} days overdue)`
-    } else if (diffDays === 0) {
-      return `Today at ${timeString}`
-    } else if (diffDays === 1) {
-      return `Tomorrow at ${timeString}`
-    } else if (diffDays === -1) {
-      return `Yesterday at ${timeString}`
-    } else {
-      return `${dateString} at ${timeString}`
-    }
-  }
-
-  private getTimeUntilDue(dueDateTime: Date | null): string | null {
-    if (!dueDateTime) return null
-
-    const due = new Date(dueDateTime)
-    const now = new Date()
-    const diffMs = due.getTime() - now.getTime()
-    
-    if (diffMs <= 0) return null
-
-    const diffMinutes = Math.floor(diffMs / (1000 * 60))
-    const diffHours = Math.floor(diffMinutes / 60)
-    const diffDays = Math.floor(diffHours / 24)
-
-    if (diffDays > 0) {
-      return `in ${diffDays} day${diffDays !== 1 ? 's' : ''}`
-    } else if (diffHours > 0) {
-      return `in ${diffHours} hour${diffHours !== 1 ? 's' : ''}`
-    } else if (diffMinutes > 0) {
-      return `in ${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''}`
-    } else {
-      return 'now'
-    }
-  }
-
-  /** A digest task's due text on the recipient's calendar (AWTD-1545). */
-  private digestDue(task: TaskReminderData, timeZone: string | undefined): string {
-    if (!task.dueDateTime) return 'No due date'
-    return digestDueText(new Date(task.dueDateTime), { now: new Date(), zone: timeZone, isAllDay: task.isAllDay })
   }
 
   private getTaskUrl(data: TaskReminderData | { taskId: string; listId?: string; shortcode?: string }): string {

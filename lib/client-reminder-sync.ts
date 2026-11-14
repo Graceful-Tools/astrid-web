@@ -1,6 +1,11 @@
 // Client-side reminder synchronization service
 // Manages syncing reminders between the main app and Service Worker
 
+import { useEffect, useMemo } from 'react'
+import { useTranslations } from 'next-intl'
+import { createLogger } from '@/lib/logger'
+import { workerLabels, type WorkerLabels } from '@/lib/i18n/worker-labels'
+
 export interface ClientReminder {
   taskId: string
   title: string
@@ -8,10 +13,13 @@ export interface ClientReminder {
   type: 'due_reminder' | 'overdue_reminder'
   userId: string
   status: 'pending' | 'sent' | 'cancelled'
+  /** The worker's words in the page's language (AWTD-1592); public/sw.js keeps English without them. */
+  labels?: WorkerLabels
 }
 
 class ClientReminderSync {
   private serviceWorkerRegistration: ServiceWorkerRegistration | null = null
+  private labels: WorkerLabels | null = null
 
   constructor() {
     this.initialize()
@@ -52,9 +60,18 @@ class ClientReminderSync {
     }
   }
 
+  /** The page's language for the reminders it hands the worker from now on (AWTD-1592). */
+  setLabels(labels: WorkerLabels | null) {
+    this.labels = labels
+  }
+
+  private withLabels(reminder: ClientReminder): ClientReminder {
+    return this.labels ? { ...reminder, labels: this.labels } : reminder
+  }
+
   // Schedule a single reminder in the Service Worker
   async scheduleReminder(reminder: ClientReminder) {
-    await this.sendMessageToSW('SCHEDULE_REMINDER', reminder)
+    await this.sendMessageToSW('SCHEDULE_REMINDER', this.withLabels(reminder))
   }
 
   // Cancel a reminder in the Service Worker
@@ -64,7 +81,7 @@ class ClientReminderSync {
 
   // Sync all reminders with the Service Worker
   async syncAllReminders(reminders: ClientReminder[]) {
-    await this.sendMessageToSW('SYNC_REMINDERS', { reminders })
+    await this.sendMessageToSW('SYNC_REMINDERS', { reminders: reminders.map((r) => this.withLabels(r)) })
   }
 
   // Fetch reminders from the server and sync with Service Worker
@@ -186,13 +203,18 @@ class ClientReminderSync {
 export const clientReminderSync = new ClientReminderSync()
 
 // Hook for React components
-import { useEffect } from 'react'
-import { createLogger } from '@/lib/logger'
-
 const log = createLogger('client-reminder-sync')
 
 
 export function useClientReminderSync(userId: string) {
+  const t = useTranslations('notifications')
+  const labels = useMemo(() => workerLabels(t), [t])
+
+  useEffect(() => {
+    // Before anything is scheduled, so every reminder carries the page's language.
+    clientReminderSync.setLabels(labels)
+  }, [labels])
+
   useEffect(() => {
     // Initial sync when component mounts
     if (userId) {

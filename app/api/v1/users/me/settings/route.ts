@@ -3,6 +3,12 @@
  *
  * GET /api/v1/users/me/settings - Get current user's settings
  * PUT /api/v1/users/me/settings - Update current user's settings
+ *
+ * `locale` (top level, beside `reminderSettings`) is the language the user reads,
+ * for push notifications and reminder/digest emails (AWTD-1592). A client sends
+ * a BCP 47 tag as its platform spells it (`de-DE`, `zh-Hant`); it is stored as
+ * one of the app's twelve locales, a tag that is none of them is a 400, and
+ * `null` forgets it. GET answers `settings.locale`, null when unknown.
  */
 
 import { NextResponse } from 'next/server'
@@ -11,6 +17,7 @@ import { prisma } from '@/lib/prisma'
 import { trackEventFromRequest, AnalyticsEventType } from '@/lib/analytics-events'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { digestScheduleReset } from '@/lib/digest-schedule'
+import { normalizeLocale } from '@/lib/i18n/user-locale'
 
 const DEFAULT_REMINDER_SETTINGS = {
   enablePushReminders: false,
@@ -36,11 +43,13 @@ const reminderSettingsSelect = {
 
 function buildSettingsResponse(
   reminderSettings: Record<string, unknown> | null | undefined,
-  authSource: string
+  authSource: string,
+  locale: string | null | undefined
 ) {
   const s = reminderSettings ?? DEFAULT_REMINDER_SETTINGS
   return {
     settings: {
+      locale: locale ?? null,
       reminderSettings: {
         enablePushReminders: s.enablePushReminders ?? false,
         enableEmailReminders: s.enableEmailReminders ?? true,
@@ -72,6 +81,7 @@ export const GET = withAuth(
         id: true,
         email: true,
         name: true,
+        locale: true,
         reminderSettings: { select: reminderSettingsSelect },
       },
     })
@@ -85,7 +95,7 @@ export const GET = withAuth(
     if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
 
     return NextResponse.json(
-      buildSettingsResponse(user.reminderSettings, auth.source),
+      buildSettingsResponse(user.reminderSettings, auth.source, user.locale),
       { headers }
     )
   }
@@ -99,6 +109,20 @@ export const PUT = withAuth(
   { scopes: ['user:write'], tag: 'v1.users.me.settings' },
   async (req, auth) => {
     const body = await req.json()
+
+    // Validated before anything is written, so a bad tag changes nothing.
+    let locale: string | null | undefined
+    if (body.locale === null) {
+      locale = null
+    } else if (body.locale !== undefined) {
+      locale = normalizeLocale(body.locale)
+      if (!locale) {
+        return NextResponse.json(
+          { error: 'Unsupported locale: send a BCP 47 tag for one of the supported languages, or null' },
+          { status: 400 }
+        )
+      }
+    }
 
     // Validate and prepare update data
     const updateData: any = {}
@@ -140,6 +164,10 @@ export const PUT = withAuth(
       update: { ...updateData, ...digestScheduleReset(updateData) },
     })
 
+    if (locale !== undefined) {
+      await prisma.user.update({ where: { id: auth.userId }, data: { locale } })
+    }
+
     trackEventFromRequest(req, auth.userId, AnalyticsEventType.SETTINGS_UPDATED, {
       settingsType: 'reminderSettings',
     })
@@ -151,6 +179,7 @@ export const PUT = withAuth(
         id: true,
         email: true,
         name: true,
+        locale: true,
         reminderSettings: { select: reminderSettingsSelect },
       },
     })
@@ -160,7 +189,7 @@ export const PUT = withAuth(
     if (deprecationWarning) headers['X-Deprecation-Warning'] = deprecationWarning
 
     return NextResponse.json(
-      buildSettingsResponse(user?.reminderSettings, auth.source),
+      buildSettingsResponse(user?.reminderSettings, auth.source, user?.locale),
       { headers }
     )
   }

@@ -100,6 +100,23 @@ describe('daily digest schedule (AWTD-1453)', () => {
     expect(ids(digest.overdueTasks)).toEqual(['late-14th'])
   })
 
+  it('AWTD-1592: the daily and weekly digests are handed the user language', async () => {
+    const sendAt = new Date('2026-07-16T00:30:00Z')
+    const { prisma } = fakeDigestPrisma(
+      [{ id: 'user1', email: 'user@example.com', name: 'Test User', locale: 'ja', settings: settings('17:30', 'America/Los_Angeles', { nextDailyDigestAt: sendAt, nextWeeklyDigestAt: sendAt }) }],
+      TASKS,
+    )
+    const email = { sendTaskReminder: vi.fn(), sendDailyDigest: vi.fn(), sendWeeklyDigest: vi.fn() }
+    const service = new ReminderService(prisma as unknown as PrismaClient, email as any, { sendNotification: vi.fn() } as any)
+
+    vi.setSystemTime(sendAt)
+    await service.processDailyDigests()
+    await service.processWeeklyDigests()
+
+    expect(email.sendDailyDigest.mock.calls[0][0].locale).toBe('ja')
+    expect(email.sendWeeklyDigest.mock.calls[0][0].locale).toBe('ja')
+  })
+
   it("AWTD-1453: the weekly digest goes out once, on the user's Monday, not the server's", async () => {
     // Pacific/Auckland is UTC+12 in July: 09:00 on Monday 13 July there is 21:00 UTC on
     // Sunday 12 July, a day the server would never send on.
