@@ -80,7 +80,7 @@
     "markIncomplete": "Als offen markieren",
     "comments": "Kommentare",
     "attachments": "Anhänge",
-    "subtasks": "Unteraufgaben",
+    "subtasks": "Teilaufgaben",
     "tags": "Tags",
     "completed": "Abgeschlossen",
     "incomplete": "Unvollständig",
@@ -88,7 +88,7 @@
     "noDueDate": "Kein Fälligkeitsdatum",
     "noReminder": "Keine Erinnerung",
     "addReminder": "Erinnerung hinzufügen",
-    "addSubtask": "Unteraufgabe hinzufügen",
+    "addSubtask": "Teilaufgabe hinzufügen",
     "addComment": "Kommentar hinzufügen",
     "addAttachment": "Anhang hinzufügen",
     "moveToList": "In Liste verschieben",
@@ -168,7 +168,7 @@
       "collapse": "Einklappen",
       "taskActions": "Aufgabenaktionen",
       "exitFullScreen": "Vollbild beenden",
-      "testReminder": "Erinnerung testen",
+      "testReminder": "Testerinnerung",
       "clickToAddDescription": "Klicken, um eine Beschreibung hinzuzufügen...",
       "searchLists": "Listen suchen...",
       "noLists": "Keine Listen",
@@ -201,7 +201,7 @@
       "hideSystemTitle": "Systemkommentare ausblenden",
       "showSystemTitle": "Systemkommentare anzeigen",
       "hideSystem": "System ausblenden",
-      "showSystem": "System anzeigen",
+      "showSystem": "System einblenden",
       "refreshShort": "Aktualisieren",
       "replyingTo": "Antwort an {name}",
       "agentThinking": "{name} denkt nach..."
@@ -210,11 +210,11 @@
       "deleteTitle": "Aufgabe löschen",
       "copyTitle": "Aufgabe kopieren",
       "copyToList": "In Liste kopieren:",
-      "myTasksOnly": "Meine Aufgaben (nur)",
+      "myTasksOnly": "Nur meine Aufgaben",
       "copyNote": "Die kopierte Aufgabe behält das Fälligkeitsdatum und wird dir zugewiesen.",
       "shareTitle": "Aufgabe teilen",
       "privateNote": "Dies ist eine private Aufgabe. Nur Benutzer mit Zugriff auf diese Liste können sie sehen.",
-      "generatingLink": "Freigabelink wird erstellt...",
+      "generatingLink": "Link wird generiert...",
       "linkFailed": "Freigabelink konnte nicht erstellt werden. Bitte versuche es erneut.",
       "deleteConfirm": "Möchtest du „{title}“ wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
       "copyDescription": "Erstelle eine Kopie von „{title}“",
@@ -257,11 +257,11 @@
     "sortAndFilters": "Sortieren & Filtern",
     "membership": "Mitgliedschaft",
     "adminSettings": "Admin-Einstellungen",
-    "privacy": "Privatsphäre",
+    "privacy": "Datenschutz",
     "private": "Privat",
     "shared": "Geteilt",
     "public": "Öffentlich",
-    "owner": "Eigentümer",
+    "owner": "Besitzer",
     "admin": "Administrator",
     "member": "Mitglied",
     "viewer": "Betrachter",
@@ -269,8 +269,8 @@
     "addMember": "Mitglied hinzufügen",
     "removeMember": "Mitglied entfernen",
     "leaveList": "Liste verlassen",
-    "transferOwnership": "Eigentümer übertragen",
-    "selectNewOwner": "Neuen Eigentümer auswählen",
+    "transferOwnership": "Eigentum übertragen",
+    "selectNewOwner": "Neue Eigentümerin oder neuen Eigentümer wählen",
     "transferAndLeave": "Übertragen & Verlassen",
     "deleteConfirm": "Bist du sicher, dass du diese Liste löschen möchtest?",
     "placeholder": {
@@ -327,7 +327,7 @@
       "memberOption": "Mitglied – Kann Aufgaben hinzufügen, bearbeiten und verwalten",
       "aiBadge": "KI",
       "pending": "Ausstehend",
-      "cancelInvite": "Zurückziehen",
+      "cancelInvite": "Abbrechen",
       "remove": "Entfernen",
       "leave": "Verlassen",
       "roles": {
@@ -344,7 +344,7 @@
       "addAgent": "Agent hinzufügen",
       "aiHelpTitle": "Soll KI bei deinen Aufgaben helfen?",
       "addApiKeys": "Füge deine API-Schlüssel hinzu, um loszulegen",
-      "privacyLabel": "Listen-Privatsphäre",
+      "privacyLabel": "Listenschutz",
       "makePublic": "Öffentlich machen",
       "makePrivate": "Privat machen",
       "publicListType": "Typ der öffentlichen Liste",
@@ -352,7 +352,7 @@
       "makeCollaborative": "Kollaborativ machen",
       "leaveList": "Liste verlassen",
       "leaveConfirm": "„{name}“ verlassen? Nur ein Eigentümer oder Admin kann dich wieder hinzufügen.",
-      "aiCodingAgents": "KI-Coding-Agenten",
+      "aiCodingAgents": "KI-Programmieragenten",
       "aiAgents": "KI-Agenten",
       "agentForCoding": "{name} für Programmierung und Hilfe bei Aufgaben",
       "agentForTasks": "{name} für Hilfe bei Aufgaben (füge ein GitHub-Repository zum Programmieren hinzu)",
@@ -369,7 +369,7 @@
       "noOtherMembers": "Keine anderen Mitglieder, an die der Besitz übertragen werden kann.",
       "deleteList": "Liste löschen",
       "body": "Als Eigentümer von „{name}“ musst du die Liste übertragen, bevor du sie verlässt. Wähle einen Nachfolger oder lösche die Liste.",
-      "transferAndLeave": "Übertragen und verlassen",
+      "transferAndLeave": "Übertragen & verlassen",
       "deleteInstead": "Alternativ kannst du die Liste vollständig löschen:"
     },
     "publicBrowser": {
@@ -394,8 +394,8 @@
       "recent": "Neueste",
       "noListsFound": "Keine Listen gefunden",
       "noPublicLists": "Keine öffentlichen Listen verfügbar",
-      "taskCount": "Aufgaben: {count}",
-      "copying": "Wird kopiert...",
+      "taskCount": "{count} Aufgaben",
+      "copying": "Kopieren...",
       "copyToMyLists": "In meine Listen kopieren",
       "createdBy": "Erstellt von {name}",
       "createdOn": "Erstellt am {date}",
@@ -433,7 +433,7 @@
         "pink": "Pink"
       }
     },
-    "descriptionView": "Ansehen",
+    "descriptionView": "Ansicht",
     "descriptionDialogPlaceholder": "Schreibe Anweisungen für KI-Agenten, die in dieser Liste arbeiten...\n\nUnterstützt Markdown: **fett**, *kursiv*, ## Überschriften, - Listen, [Links](url)",
     "descriptionSaveHint": "Enter zum Speichern • Umschalt+Enter oder Cmd/Strg+Enter für Zeilenumbrüche",
     "memberEvents": {
@@ -498,7 +498,7 @@
       "sameWeekday": "Gleicher Wochentag und gleiche Woche im Monat",
       "dayOfMonth": "Tag des Monats",
       "weekOfMonth": "Woche des Monats",
-      "endCondition": "Endbedingung",
+      "endCondition": "Endebedingung",
       "afterOccurrences": "Nach X Wiederholungen",
       "untilDate": "Bis zu einem bestimmten Datum",
       "occurrencesCount": "Anzahl der Wiederholungen",
@@ -635,7 +635,7 @@
     "updating": "Aktualisieren",
     "updated": "Aktualisiert",
     "creating": "Erstellen",
-    "created": "Erstellt",
+    "created": "Erstellt am",
     "copying": "Kopieren",
     "copied": "Kopiert",
     "moving": "Verschieben",
@@ -720,7 +720,7 @@
     "ui": {
       "title": "Erinnerung:",
       "snooze": "Schlummern",
-      "complete": "Erledigen",
+      "complete": "Abschließen",
       "completedToast": "Herzlichen Glückwunsch zum Abschluss!",
       "snooze1day": "1 Tag schlummern",
       "snooze1week": "1 Woche schlummern",
@@ -754,7 +754,7 @@
     "noLists": "Noch keine Listen. Erstelle deine erste Liste, um zu starten!"
   },
   "common": {
-    "complete": "Erledigen",
+    "complete": "Abschließen",
     "snooze": "Schlummern",
     "cancel": "Abbrechen",
     "save": "Speichern",
@@ -808,7 +808,7 @@
   },
   "settingsPages": {
     "accountAccess": {
-      "title": "Konto und Zugang",
+      "title": "Konto & Zugang",
       "description": "Profil, E-Mail-Verifizierung und Zugriffseinstellungen"
     },
     "remindersNotifications": {
@@ -820,7 +820,7 @@
       "description": "Vollständiger Code-Agent mit GitHub + Vercel Integration"
     },
     "aiAgents": {
-      "title": "KI und Agenten",
+      "title": "KI-Agenten",
       "description": "KI-Assistenten und Code-Agenten mit deinen API-Schlüsseln konfigurieren",
       "githubMcp": {
         "title": "{appName} in GitHub Copilot verwenden",
@@ -1260,7 +1260,7 @@
       "clickToChangePhoto": "Klicken um das Profilbild zu ändern",
       "viewPublicProfile": "Öffentliches Profil anzeigen",
       "syncedWithOAuth": "Derzeit mit deinem OAuth-Anbieter synchronisiert",
-      "uploading": "Wird hochgeladen...",
+      "uploading": "Hochladen...",
       "displayNamePlaceholder": "Anzeigenamen eingeben",
       "toasts": {
         "successTitle": "Erfolg!",
@@ -1355,7 +1355,7 @@
       "title": "Erscheinungsbild und Benutzererfahrung",
       "description": "Passe das Aussehen, Gefühl und den Ablauf deiner Oberfläche an",
       "theme": {
-        "title": "Thema",
+        "title": "Design",
         "description": "Wähle zwischen den Themen Ocean, Hell und Dunkel",
         "ocean": "Ozean",
         "oceanDesc": "Helles Thema mit einem erfrischenden Cyan-Hintergrund",
@@ -1366,7 +1366,7 @@
         "proTip": "Deine Themeneinstellung wird automatisch gespeichert und auf allen deinen Geräten angewendet."
       },
       "keyboard": {
-        "title": "Tastaturkürzel",
+        "title": "Tastaturkurzbefehle",
         "description": "Sieh dir Tastaturkürzel für schnellere Navigation an und lerne sie",
         "viewShortcuts": "Kürzel anzeigen",
         "viewTitle": "Tastaturkürzel anzeigen",
@@ -1401,7 +1401,7 @@
         "labelDesc": "Bereits gesetzte Erinnerungen werden auch dann ausgelöst, wenn dies aus ist."
       },
       "emailToTask": {
-        "title": "E-Mail zu Aufgabe",
+        "title": "E-Mail-zu-Aufgabe",
         "description": "Erstelle Aufgaben sofort durch Senden von E-Mails an {inboundTaskEmail}",
         "threeWays": "Drei Möglichkeiten Aufgaben zu erstellen",
         "selfTask": "Selbst-Aufgabe:",
@@ -1528,7 +1528,7 @@
         "active": "Aktiv",
         "idle": "Inaktiv"
       },
-      "registered": "Registriert am {date}",
+      "registered": "Registriert {date}",
       "lastActive": "Zuletzt aktiv {date}",
       "empty": "Keine benutzerdefinierten Agenten verbunden. Registriere einen, um zu beginnen.",
       "connect": "Agent verbinden",
@@ -1540,19 +1540,19 @@
         "invalid": "Ungültiger Name. Verwende 2–32 alphanumerische Kleinbuchstaben, Punkte, Bindestriche oder Unterstriche.",
         "hint": "Wähle einen Namen für deinen Agenten (z. B. buddy, helper, dev-bot)",
         "cancel": "Abbrechen",
-        "registering": "Wird registriert …",
+        "registering": "Wird registriert...",
         "create": "Agent erstellen"
       },
       "credentials": {
         "title": "Agent erstellt",
         "description": "Speichere diese Zugangsdaten jetzt. Das Client-Secret wird nicht erneut angezeigt.",
         "warning": "Speichere diese Zugangsdaten jetzt!",
-        "email": "Agenten-E-Mail",
+        "email": "Agent-E-Mail",
         "clientId": "Client-ID",
         "clientSecret": "Client-Secret",
-        "tokenEndpoint": "Token-Endpunkt",
+        "tokenEndpoint": "Token-Endpoint",
         "apiBase": "API-Basis",
-        "sseEndpoint": "SSE-Endpunkt",
+        "sseEndpoint": "SSE-Endpoint",
         "done": "Fertig"
       },
       "remove": {
@@ -1590,7 +1590,7 @@
       "columns": {
         "actsAs": "Handelt als",
         "scopes": "Berechtigungen",
-        "created": "Erstellt",
+        "created": "Erstellt am",
         "lastUsed": "Zuletzt verwendet",
         "expires": "Läuft ab",
         "never": "Nie"
@@ -1670,11 +1670,11 @@
         "leavesGroup": "Diese Verbindung folgt {group} dann nicht mehr; später zu dieser Gruppe hinzugefügte Bereiche erreichen sie nicht.",
         "inGroup": "In {group}",
         "otherScopes": "Weitere Bereiche",
-        "scopes": "Bereiche",
+        "scopes": "Berechtigungen",
         "notGranted": "Noch nicht gewährt",
         "tokensNote": "Bereits ausgestellte Tokens behalten ihre bisherigen Bereiche. Fordere ein neues an, um die Änderung zu übernehmen.",
         "save": "Berechtigungen speichern",
-        "saving": "Wird gespeichert...",
+        "saving": "Speichern...",
         "savedAdded": "{scopes} hinzugefügt.",
         "savedRemoved": "{scopes} entfernt.",
         "savedGroup": "Folgt jetzt {group}.",
@@ -1781,7 +1781,7 @@
     }
   },
   "projectMode": {
-    "boardViewLabel": "Board-Ansicht",
+    "boardViewLabel": "Boardansicht",
     "boardViewDescriptionEnabled": "Diese Liste hat ein Status-Board mit Bereit / In Arbeit / Wartet. Der Eingang enthält neue Aufgaben; Erledigt sind die abgeschlossenen.",
     "boardViewDescriptionAvailable": "Füge die Statusspalten Bereit, In Arbeit und Wartet hinzu. Eingang und Erledigt ergeben sich automatisch.",
     "boardViewDescriptionLocked": "Boards fügen die Spalten Bereit / In Arbeit / Wartet hinzu, um Aufgaben gemeinsam mit anderen abzuarbeiten. Auf Anfrage verfügbar.",
@@ -1814,7 +1814,7 @@
   },
   "viewRotator": {
     "showList": "Liste anzeigen",
-    "showMessages": "Nachrichten anzeigen",
+    "showMessages": "Nachrichten einblenden",
     "showBoard": "Board anzeigen",
     "board": "Board",
     "messages": "Nachrichten"
@@ -1999,7 +1999,7 @@
     "pushNotifications": "Push-Benachrichtigungen",
     "emailReminders": "E-Mail-Erinnerungen",
     "defaultReminderTime": "Standard-Erinnerungszeit",
-    "dailyDigest": "Tägliche Zusammenfassung",
+    "dailyDigest": "Täglicher Rückblick",
     "quietHours": "Ruhezeiten",
     "description": "Lege fest, wann und wie du Aufgabenerinnerungen erhältst",
     "pushDescription": "Sofortige Benachrichtigungen im Browser erhalten",
@@ -2087,7 +2087,7 @@
     }
   },
   "keyboardShortcuts": {
-    "title": "Tastenkürzel",
+    "title": "Tastaturkurzbefehle",
     "close": "Schließen",
     "groups": {
       "navigation": "Navigation",
@@ -2113,7 +2113,7 @@
       "jumpToDate": "Zu „Datum“ springen",
       "postpone": "Aufgabe um eine Woche verschieben",
       "removeDueDate": "Fälligkeitsdatum der Aufgabe entfernen",
-      "editLists": "Listen der Aufgabe bearbeiten",
+      "editLists": "Aufgabenlisten bearbeiten",
       "editTitle": "Aufgabentitel bearbeiten",
       "editDescription": "Aufgabenbeschreibung bearbeiten",
       "addComment": "Neuen Aufgabenkommentar hinzufügen",
@@ -2130,7 +2130,7 @@
       "selectNext": "Nächste Aufgabe auswählen",
       "outdent": "Aufgabe aus der übergeordneten Aufgabe herauslösen",
       "indent": "Aufgabe unter der darüberliegenden Aufgabe einordnen",
-      "showHotkeys": "Tastenkürzel anzeigen"
+      "showHotkeys": "Kurzbefehle anzeigen"
     }
   },
   "commandPalette": {
@@ -2270,7 +2270,7 @@
     "continuing": "Weiter...",
     "passkeysNotSupported": "Passkeys werden in diesem Browser nicht unterstützt",
     "newUser": "Neu hier?",
-    "returningUser": "Schon dabei?",
+    "returningUser": "Zurück?",
     "emailPlaceholder": "E-Mail-Adresse eingeben",
     "creatingAccount": "Konto wird erstellt...",
     "signingIn": "Anmeldung läuft...",
@@ -2310,7 +2310,7 @@
     "description": "Bei der Anmeldung ist etwas schiefgelaufen",
     "tryAgain": "Erneut versuchen",
     "goHome": "Zur Startseite",
-    "loading": "Wird geladen..."
+    "loading": "Laden..."
   },
   "verifyEmailPage": {
     "verifiedTitle": "E-Mail verifiziert!",
@@ -2446,7 +2446,7 @@
     "linkTaskNotFound": "Aufgabe nicht gefunden oder nicht mehr zugänglich",
     "linkTaskForbidden": "Du hast keine Berechtigung, diese Aufgabe anzusehen",
     "linkInvalidType": "Ungültiger Link-Typ",
-    "globalErrorTitle": "Etwas ist schiefgelaufen",
+    "globalErrorTitle": "Etwas ist schief gelaufen",
     "globalErrorDescription": "Ein schwerwiegender Fehler ist aufgetreten. Bitte lade die Seite neu."
   },
   "profilePage": {
@@ -2455,7 +2455,7 @@
     "goBack": "Zurück",
     "badge": "Profil",
     "aiAgent": "KI-Agent",
-    "joined": "Dabei seit {date}",
+    "joined": "Beigetreten am {date}",
     "completedDesc": "Erledigte Aufgaben",
     "inspired": "Inspiriert",
     "inspiredDesc": "Aufgaben, die andere erstellt, erledigt oder kopiert haben",
@@ -2545,7 +2545,7 @@
   "richTextInput": {
     "placeholder": "Nachricht eingeben...",
     "timer": "Timer",
-    "uploading": "Wird hochgeladen...",
+    "uploading": "Hochladen...",
     "attachFile": "Datei anhängen",
     "removeFile": "{name} entfernen",
     "attachmentsUnavailable": "Dateianhänge sind in dieser Ansicht nicht verfügbar.",
@@ -2587,7 +2587,7 @@
     "navLabel": "Admin-Bereiche"
   },
   "pwa": {
-    "notNow": "Nicht jetzt",
+    "notNow": "Jetzt nicht",
     "syncing": "Änderungen werden synchronisiert...",
     "backOnline": "Wieder online",
     "offline": "Du bist offline",
