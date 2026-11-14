@@ -61,6 +61,7 @@
     "feedback:pull:dry": "tsx scripts/pull-user-feedback.ts --dry-run",
     "feedback:pull:reviews": "tsx scripts/pull-user-feedback.ts --source=reviews",
     "feedback:pull:feedback": "tsx scripts/pull-user-feedback.ts --source=feedback",
+    "intake:public": "tsx scripts/pull-user-feedback.ts --source=feedback",
     "monitor:vercel": "tsx scripts/monitor-vercel-logs.ts",
     "monitor:vercel:watch": "tsx scripts/monitor-vercel-logs.ts --watch",
     "monitor:vercel:no-fix": "tsx scripts/monitor-vercel-logs.ts --no-fix",

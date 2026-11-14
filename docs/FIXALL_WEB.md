@@ -48,6 +48,13 @@ Two cases skip the lock entirely:
 - **`ASTRID_FIXALL_EPHEMERAL=1`**: you are on a fresh runner checkout that no one else
   can touch (FIXALL_WORKFLOW.md → *On an ephemeral runner*).
 
+Then bring in the public requests (FIXALL_WORKFLOW.md → *Public requests come in through the
+Inbox*). It files into the Inbox only, so it never adds to this run's queue:
+
+```bash
+npm run intake:public
+```
+
 Then pull the queue with the identity of the harness that is actually running this
 command:
 
