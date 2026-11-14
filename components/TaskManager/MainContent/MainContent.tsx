@@ -761,9 +761,7 @@ export function MainContent({
             <div
               // No pull-to-refresh transform during loading
               className="px-4 py-4 transform-none transition-none"
-            >
-
-            </div>
+            />
           </div>
         ) : hasProjectBoard && taskViewMode === 'board' ? (
           <div id="task_list_area" className="flex-1 min-h-0">
