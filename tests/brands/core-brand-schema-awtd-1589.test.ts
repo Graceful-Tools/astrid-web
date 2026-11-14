@@ -165,7 +165,11 @@ describe("web's brand profiles against astrid-core's schema (AWTD-1589)", () => 
     // `applicationId`, `windows.package-identity` for `identityName`), so gen-brand reads none
     // of them. Which side renames is a cross-client call, filed on the core board (AWTD2-195) as
     // "[core][white-label] The brand schema's platform blocks use different field names from
-    // what each client reads". When it lands and core is re-pinned, this shrinks: update it.
+    // what each client reads". It has landed: core `11ea272` reads each of these through an
+    // `alias` key, and `cargo xtask gen-brand` on core's main writes acme's identities into every
+    // platform's output (checked for AWTD-1648). Web's vendored schema predates it, so this list
+    // still describes the pinned revision; when core is re-pinned it shrinks to the keys core
+    // deliberately does not alias (android's own copies of shared values, `code.urlProtocol`).
     const profile = acme()
     const unknownToCore = Object.fromEntries(
       Object.keys(SCHEMA.platforms)
@@ -183,7 +187,7 @@ describe("web's brand profiles against astrid-core's schema (AWTD-1589)", () => 
       ],
       windows: ['identityName', 'identityPublisher', 'publisherDisplayName'],
       vscode: ['displayName'],
-      code: ['applicationName', 'nameLong', 'nameShort', 'urlProtocol'],
+      code: ['applicationName', 'bundleId', 'nameLong', 'nameShort', 'urlProtocol'],
     })
   })
 })
