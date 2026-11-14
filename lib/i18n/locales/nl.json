@@ -2763,5 +2763,110 @@
     "termsOfService": "Servicevoorwaarden",
     "privacyPolicy": "Privacybeleid",
     "backToHome": "Terug naar home"
+  },
+  "notifications": {
+    "actions": {
+      "viewTask": "Taak bekijken",
+      "viewOverdueTask": "Verlopen taak bekijken",
+      "startWorking": "Aan de slag",
+      "snooze15": "Snooze 15 min",
+      "snooze60": "Snooze 1 uur",
+      "markComplete": "Markeer als voltooid",
+      "openApp": "App openen",
+      "dismiss": "Negeren",
+      "snoozeReminder": "Herinnering uitstellen",
+      "openTaskManager": "Taken openen"
+    },
+    "push": {
+      "dueSoonTitle": "Taak vervalt binnenkort",
+      "dueAtBody": "{title} vervalt om {time}",
+      "overdueTitle": "Taak verlopen",
+      "overdueBody": "{title} is verlopen",
+      "mentionTitle": "{name} heeft je vermeld",
+      "mentionBody": "\"{excerpt}\" in {task}",
+      "commentTitle": "Nieuwe opmerking bij je taak",
+      "commentBody": "{name}: \"{excerpt}\"",
+      "chatMentionTitle": "{name} heeft je vermeld in de chat",
+      "assignedTitle": "Nieuwe taak toegewezen",
+      "assignedBody": "Aan jou toegewezen: {title}",
+      "testTitle": "Testmelding",
+      "testBody": "Dit is een testmelding van {appName}"
+    },
+    "worker": {
+      "reminderTitle": "Taakherinnering",
+      "dueTitle": "Taak vervalt",
+      "dueNowBody": "{title} vervalt nu",
+      "snoozedTitle": "Taak uitgesteld",
+      "snoozedBody": "Herinnering {minutes} minuten uitgesteld",
+      "snoozeFailedTitle": "Uitstellen mislukt",
+      "snoozeFailedBody": "Herinnering kon niet worden uitgesteld. Probeer het opnieuw.",
+      "completedTitle": "Taak voltooid",
+      "completedBody": "Taak gemarkeerd als voltooid!",
+      "completeFailedTitle": "Voltooien mislukt",
+      "completeFailedBody": "Taak kon niet als voltooid worden gemarkeerd. Probeer het opnieuw."
+    },
+    "dates": {
+      "noDueDate": "Geen vervaldatum",
+      "today": "Vandaag",
+      "tomorrow": "Morgen",
+      "yesterday": "Gisteren",
+      "todayAt": "Vandaag om {time}",
+      "tomorrowAt": "Morgen om {time}",
+      "yesterdayAt": "Gisteren om {time}",
+      "dateAt": "{date} om {time}",
+      "overdueBy": "{when} ({count, plural, one {# dag verlopen} other {# dagen verlopen}})"
+    },
+    "email": {
+      "due": "Vervalt: {when}",
+      "reminder": {
+        "subject": "⏰ Herinnering: {title}",
+        "subjectDue": "⏰ Herinnering: {title} (vervalt {when})",
+        "subjectOverdue": "⚠️ Verlopen: {title}",
+        "pageTitle": "Taakherinnering",
+        "overdueBadge": "⚠️ VERLOPEN",
+        "lists": "Lijsten",
+        "assignedTo": "Toegewezen aan",
+        "sharedList": "GEDEELDE LIJST",
+        "countingOnYou": "Deze mensen rekenen op je! 🤝",
+        "textHeadingOverdue": "⚠️ TAAK VERLOPEN",
+        "textHeading": "⏰ TAAKHERINNERING",
+        "textTask": "Taak: {title}",
+        "textLists": "Lijsten: {lists}",
+        "textAssignedTo": "Toegewezen aan: {name}",
+        "textOverdueNote": "Deze taak is verlopen en heeft je aandacht nodig.",
+        "textDueSoonNote": "Deze taak vervalt binnenkort.",
+        "textViewTask": "Taak bekijken: {url}",
+        "textSnooze": "Herinnering uitstellen: {url}",
+        "footerWhy": "Je ontvangt deze herinnering omdat je een taak hebt die vervalt.",
+        "footerWhyInLists": "Je ontvangt deze herinnering omdat je een taak hebt die vervalt in {lists}.",
+        "footerPreferences": "Je kunt je herinneringsvoorkeuren aanpassen in je instellingen."
+      },
+      "daily": {
+        "subject": "Herinneringen voor {date}",
+        "pageTitle": "Dagelijkse samenvatting",
+        "greeting": "{appName} hier,",
+        "intro": "Ik herinner je aan de dingen die belangrijk voor je zijn.",
+        "tasksHeading": "TAKEN",
+        "signature": "- {appName}",
+        "footerHint": "Klik op een selectievakje om een taak als voltooid te markeren, of op de taaknaam om deze te bekijken / bewerken.",
+        "unsubscribe": "Afmelden voor e-mailherinneringen",
+        "textUnsubscribe": "Afmelden voor e-mailherinneringen: {url}"
+      },
+      "weekly": {
+        "subject": "Weekoverzicht - {range}",
+        "title": "Weekoverzicht",
+        "textTitle": "📅 WEEKOVERZICHT - {range}",
+        "helloNamed": "Hallo {name}!",
+        "hello": "Hallo!",
+        "intro": "Dit zijn je komende taken voor {range}",
+        "textIntro": "Dit zijn je komende taken voor deze week:",
+        "upcoming": "Komende taken ({count})",
+        "textUpcoming": "🗓️ KOMENDE TAKEN ({count})",
+        "lists": "Lijsten: {lists}",
+        "textOpen": "Taken openen: {url}",
+        "footerWhy": "Je ontvangt dit weekoverzicht om je te helpen je komende week te plannen.",
+        "footerPreferences": "Je kunt je samenvattingsvoorkeuren aanpassen in je accountinstellingen."
+      }
+    }
   }
 }

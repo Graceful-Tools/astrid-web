@@ -2763,5 +2763,110 @@
     "termsOfService": "Términos de servicio",
     "privacyPolicy": "Política de privacidad",
     "backToHome": "Volver al inicio"
+  },
+  "notifications": {
+    "actions": {
+      "viewTask": "Ver tarea",
+      "viewOverdueTask": "Ver tarea vencida",
+      "startWorking": "Empezar",
+      "snooze15": "Posponer 15 min",
+      "snooze60": "Posponer 1 h",
+      "markComplete": "Completar",
+      "openApp": "Abrir app",
+      "dismiss": "Descartar",
+      "snoozeReminder": "Posponer recordatorio",
+      "openTaskManager": "Abrir tareas"
+    },
+    "push": {
+      "dueSoonTitle": "Tarea por vencer",
+      "dueAtBody": "{title} vence a las {time}",
+      "overdueTitle": "Tarea vencida",
+      "overdueBody": "{title} está vencida",
+      "mentionTitle": "{name} te mencionó",
+      "mentionBody": "\"{excerpt}\" en {task}",
+      "commentTitle": "Nuevo comentario en tu tarea",
+      "commentBody": "{name}: \"{excerpt}\"",
+      "chatMentionTitle": "{name} te mencionó en el chat",
+      "assignedTitle": "Nueva tarea asignada",
+      "assignedBody": "Te han asignado: {title}",
+      "testTitle": "Notificación de prueba",
+      "testBody": "Esta es una notificación de prueba de {appName}"
+    },
+    "worker": {
+      "reminderTitle": "Recordatorio de tarea",
+      "dueTitle": "Tarea pendiente",
+      "dueNowBody": "{title} vence ahora",
+      "snoozedTitle": "Tarea pospuesta",
+      "snoozedBody": "Recordatorio pospuesto {minutes} minutos",
+      "snoozeFailedTitle": "No se pudo posponer",
+      "snoozeFailedBody": "No se pudo posponer el recordatorio. Inténtalo de nuevo.",
+      "completedTitle": "Tarea completada",
+      "completedBody": "¡Tarea marcada como completada!",
+      "completeFailedTitle": "No se pudo completar",
+      "completeFailedBody": "No se pudo marcar la tarea como completada. Inténtalo de nuevo."
+    },
+    "dates": {
+      "noDueDate": "Sin fecha límite",
+      "today": "Hoy",
+      "tomorrow": "Mañana",
+      "yesterday": "Ayer",
+      "todayAt": "Hoy a las {time}",
+      "tomorrowAt": "Mañana a las {time}",
+      "yesterdayAt": "Ayer a las {time}",
+      "dateAt": "{date} a las {time}",
+      "overdueBy": "{when} ({count, plural, one {# día de retraso} other {# días de retraso}})"
+    },
+    "email": {
+      "due": "Vence: {when}",
+      "reminder": {
+        "subject": "⏰ Recordatorio: {title}",
+        "subjectDue": "⏰ Recordatorio: {title} (vence {when})",
+        "subjectOverdue": "⚠️ Vencida: {title}",
+        "pageTitle": "Recordatorio de tarea",
+        "overdueBadge": "⚠️ VENCIDA",
+        "lists": "Listas",
+        "assignedTo": "Asignado a",
+        "sharedList": "LISTA COMPARTIDA",
+        "countingOnYou": "¡Estas personas cuentan contigo! 🤝",
+        "textHeadingOverdue": "⚠️ TAREA VENCIDA",
+        "textHeading": "⏰ RECORDATORIO DE TAREA",
+        "textTask": "Tarea: {title}",
+        "textLists": "Listas: {lists}",
+        "textAssignedTo": "Asignado a: {name}",
+        "textOverdueNote": "Esta tarea está vencida y requiere tu atención.",
+        "textDueSoonNote": "Esta tarea vence pronto.",
+        "textViewTask": "Ver tarea: {url}",
+        "textSnooze": "Posponer recordatorio: {url}",
+        "footerWhy": "Recibes este recordatorio porque tienes una tarea pendiente.",
+        "footerWhyInLists": "Recibes este recordatorio porque tienes una tarea pendiente en {lists}.",
+        "footerPreferences": "Puedes cambiar tus preferencias de recordatorios en los ajustes."
+      },
+      "daily": {
+        "subject": "Recordatorios para el {date}",
+        "pageTitle": "Resumen diario de tareas",
+        "greeting": "Hola, soy {appName}:",
+        "intro": "Te recuerdo lo que es importante para ti.",
+        "tasksHeading": "TAREAS",
+        "signature": "- {appName}",
+        "footerHint": "Haz clic en las casillas para marcar una tarea como completada, o en su nombre para verla o editarla.",
+        "unsubscribe": "Cancelar la suscripción a los recordatorios por correo",
+        "textUnsubscribe": "Cancelar la suscripción a los recordatorios por correo: {url}"
+      },
+      "weekly": {
+        "subject": "Resumen semanal de tareas - {range}",
+        "title": "Resumen semanal de tareas",
+        "textTitle": "📅 RESUMEN SEMANAL DE TAREAS - {range}",
+        "helloNamed": "¡Hola, {name}!",
+        "hello": "¡Hola!",
+        "intro": "Estas son tus próximas tareas para {range}",
+        "textIntro": "Estas son tus próximas tareas para esta semana:",
+        "upcoming": "Próximas tareas ({count})",
+        "textUpcoming": "🗓️ PRÓXIMAS TAREAS ({count})",
+        "lists": "Listas: {lists}",
+        "textOpen": "Abrir tareas: {url}",
+        "footerWhy": "Recibes este resumen semanal para ayudarte a planificar la semana.",
+        "footerPreferences": "Puedes ajustar tus preferencias de resumen en los ajustes de tu cuenta."
+      }
+    }
   }
 }

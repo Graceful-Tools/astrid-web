@@ -2763,5 +2763,110 @@
     "termsOfService": "Conditions d’utilisation",
     "privacyPolicy": "Politique de confidentialité",
     "backToHome": "Retour à l’accueil"
+  },
+  "notifications": {
+    "actions": {
+      "viewTask": "Voir la tâche",
+      "viewOverdueTask": "Voir la tâche en retard",
+      "startWorking": "Commencer",
+      "snooze15": "Reporter 15 min",
+      "snooze60": "Reporter 1 h",
+      "markComplete": "Terminer",
+      "openApp": "Ouvrir l'app",
+      "dismiss": "Ignorer",
+      "snoozeReminder": "Reporter le rappel",
+      "openTaskManager": "Ouvrir les tâches"
+    },
+    "push": {
+      "dueSoonTitle": "Échéance proche",
+      "dueAtBody": "{title} arrive à échéance à {time}",
+      "overdueTitle": "Tâche en retard",
+      "overdueBody": "{title} est en retard",
+      "mentionTitle": "{name} vous a mentionné",
+      "mentionBody": "« {excerpt} » dans {task}",
+      "commentTitle": "Nouveau commentaire sur votre tâche",
+      "commentBody": "{name} : « {excerpt} »",
+      "chatMentionTitle": "{name} vous a mentionné dans le chat",
+      "assignedTitle": "Nouvelle tâche assignée",
+      "assignedBody": "Une tâche vous a été assignée : {title}",
+      "testTitle": "Notification de test",
+      "testBody": "Ceci est une notification de test de {appName}"
+    },
+    "worker": {
+      "reminderTitle": "Rappel de tâche",
+      "dueTitle": "Tâche à échéance",
+      "dueNowBody": "{title} arrive à échéance maintenant",
+      "snoozedTitle": "Tâche reportée",
+      "snoozedBody": "Rappel reporté de {minutes} minutes",
+      "snoozeFailedTitle": "Échec du report",
+      "snoozeFailedBody": "Impossible de reporter le rappel. Veuillez réessayer.",
+      "completedTitle": "Tâche terminée",
+      "completedBody": "Tâche marquée comme terminée !",
+      "completeFailedTitle": "Échec",
+      "completeFailedBody": "Impossible de marquer la tâche comme terminée. Veuillez réessayer."
+    },
+    "dates": {
+      "noDueDate": "Pas de date limite",
+      "today": "Aujourd'hui",
+      "tomorrow": "Demain",
+      "yesterday": "Hier",
+      "todayAt": "Aujourd'hui à {time}",
+      "tomorrowAt": "Demain à {time}",
+      "yesterdayAt": "Hier à {time}",
+      "dateAt": "{date} à {time}",
+      "overdueBy": "{when} ({count, plural, one {# jour de retard} other {# jours de retard}})"
+    },
+    "email": {
+      "due": "Échéance : {when}",
+      "reminder": {
+        "subject": "⏰ Rappel : {title}",
+        "subjectDue": "⏰ Rappel : {title} (échéance {when})",
+        "subjectOverdue": "⚠️ En retard : {title}",
+        "pageTitle": "Rappel de tâche",
+        "overdueBadge": "⚠️ EN RETARD",
+        "lists": "Listes",
+        "assignedTo": "Assigné à",
+        "sharedList": "LISTE PARTAGÉE",
+        "countingOnYou": "Ces personnes comptent sur vous ! 🤝",
+        "textHeadingOverdue": "⚠️ TÂCHE EN RETARD",
+        "textHeading": "⏰ RAPPEL DE TÂCHE",
+        "textTask": "Tâche : {title}",
+        "textLists": "Listes : {lists}",
+        "textAssignedTo": "Assigné à : {name}",
+        "textOverdueNote": "Cette tâche est en retard et requiert votre attention.",
+        "textDueSoonNote": "Cette tâche arrive bientôt à échéance.",
+        "textViewTask": "Voir la tâche : {url}",
+        "textSnooze": "Reporter le rappel : {url}",
+        "footerWhy": "Vous recevez ce rappel car vous avez une tâche à échéance.",
+        "footerWhyInLists": "Vous recevez ce rappel car vous avez une tâche à échéance dans {lists}.",
+        "footerPreferences": "Vous pouvez modifier vos préférences de rappel dans vos paramètres."
+      },
+      "daily": {
+        "subject": "Rappels du {date}",
+        "pageTitle": "Résumé quotidien des tâches",
+        "greeting": "Bonjour, ici {appName},",
+        "intro": "Voici un rappel des choses qui comptent pour vous.",
+        "tasksHeading": "TÂCHES",
+        "signature": "- {appName}",
+        "footerHint": "Cliquez sur une case pour marquer la tâche comme terminée, ou sur son nom pour la voir / la modifier.",
+        "unsubscribe": "Se désabonner des rappels par e-mail",
+        "textUnsubscribe": "Se désabonner des rappels par e-mail : {url}"
+      },
+      "weekly": {
+        "subject": "Aperçu hebdomadaire des tâches - {range}",
+        "title": "Aperçu hebdomadaire des tâches",
+        "textTitle": "📅 APERÇU HEBDOMADAIRE DES TÂCHES - {range}",
+        "helloNamed": "Bonjour {name} !",
+        "hello": "Bonjour !",
+        "intro": "Voici vos prochaines tâches pour {range}",
+        "textIntro": "Voici vos prochaines tâches pour cette semaine :",
+        "upcoming": "Tâches à venir ({count})",
+        "textUpcoming": "🗓️ TÂCHES À VENIR ({count})",
+        "lists": "Listes : {lists}",
+        "textOpen": "Ouvrir les tâches : {url}",
+        "footerWhy": "Vous recevez cet aperçu hebdomadaire pour vous aider à planifier votre semaine.",
+        "footerPreferences": "Vous pouvez modifier vos préférences de résumé dans les paramètres de votre compte."
+      }
+    }
   }
 }

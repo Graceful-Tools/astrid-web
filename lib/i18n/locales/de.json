@@ -2763,5 +2763,110 @@
     "termsOfService": "Nutzungsbedingungen",
     "privacyPolicy": "Datenschutzerklärung",
     "backToHome": "Zurück zur Startseite"
+  },
+  "notifications": {
+    "actions": {
+      "viewTask": "Aufgabe ansehen",
+      "viewOverdueTask": "Überfällige Aufgabe ansehen",
+      "startWorking": "Loslegen",
+      "snooze15": "15 Min. schlummern",
+      "snooze60": "1 Std. schlummern",
+      "markComplete": "Als erledigt markieren",
+      "openApp": "App öffnen",
+      "dismiss": "Verwerfen",
+      "snoozeReminder": "Erinnerung verschieben",
+      "openTaskManager": "Aufgaben öffnen"
+    },
+    "push": {
+      "dueSoonTitle": "Aufgabe bald fällig",
+      "dueAtBody": "{title} ist um {time} fällig",
+      "overdueTitle": "Aufgabe überfällig",
+      "overdueBody": "{title} ist überfällig",
+      "mentionTitle": "{name} hat dich erwähnt",
+      "mentionBody": "„{excerpt}“ in {task}",
+      "commentTitle": "Neuer Kommentar zu deiner Aufgabe",
+      "commentBody": "{name}: „{excerpt}“",
+      "chatMentionTitle": "{name} hat dich im Chat erwähnt",
+      "assignedTitle": "Neue Aufgabe zugewiesen",
+      "assignedBody": "Dir wurde zugewiesen: {title}",
+      "testTitle": "Testbenachrichtigung",
+      "testBody": "Dies ist eine Testbenachrichtigung von {appName}"
+    },
+    "worker": {
+      "reminderTitle": "Aufgabenerinnerung",
+      "dueTitle": "Aufgabe fällig",
+      "dueNowBody": "{title} ist jetzt fällig",
+      "snoozedTitle": "Aufgabe verschoben",
+      "snoozedBody": "Erinnerung um {minutes} Minuten verschoben",
+      "snoozeFailedTitle": "Verschieben fehlgeschlagen",
+      "snoozeFailedBody": "Erinnerung konnte nicht verschoben werden. Bitte versuche es erneut.",
+      "completedTitle": "Aufgabe erledigt",
+      "completedBody": "Aufgabe als erledigt markiert!",
+      "completeFailedTitle": "Erledigen fehlgeschlagen",
+      "completeFailedBody": "Aufgabe konnte nicht als erledigt markiert werden. Bitte versuche es erneut."
+    },
+    "dates": {
+      "noDueDate": "Kein Fälligkeitsdatum",
+      "today": "Heute",
+      "tomorrow": "Morgen",
+      "yesterday": "Gestern",
+      "todayAt": "Heute um {time}",
+      "tomorrowAt": "Morgen um {time}",
+      "yesterdayAt": "Gestern um {time}",
+      "dateAt": "{date} um {time}",
+      "overdueBy": "{when} ({count, plural, one {# Tag überfällig} other {# Tage überfällig}})"
+    },
+    "email": {
+      "due": "Fällig: {when}",
+      "reminder": {
+        "subject": "⏰ Erinnerung: {title}",
+        "subjectDue": "⏰ Erinnerung: {title} (fällig {when})",
+        "subjectOverdue": "⚠️ Überfällig: {title}",
+        "pageTitle": "Aufgabenerinnerung",
+        "overdueBadge": "⚠️ ÜBERFÄLLIG",
+        "lists": "Listen",
+        "assignedTo": "Zugewiesen an",
+        "sharedList": "GETEILTE LISTE",
+        "countingOnYou": "Diese Leute zählen auf dich! 🤝",
+        "textHeadingOverdue": "⚠️ AUFGABE ÜBERFÄLLIG",
+        "textHeading": "⏰ AUFGABENERINNERUNG",
+        "textTask": "Aufgabe: {title}",
+        "textLists": "Listen: {lists}",
+        "textAssignedTo": "Zugewiesen an: {name}",
+        "textOverdueNote": "Diese Aufgabe ist überfällig und braucht deine Aufmerksamkeit.",
+        "textDueSoonNote": "Diese Aufgabe ist bald fällig.",
+        "textViewTask": "Aufgabe ansehen: {url}",
+        "textSnooze": "Erinnerung verschieben: {url}",
+        "footerWhy": "Du erhältst diese Erinnerung, weil du eine fällige Aufgabe hast.",
+        "footerWhyInLists": "Du erhältst diese Erinnerung, weil du eine fällige Aufgabe in {lists} hast.",
+        "footerPreferences": "Du kannst deine Erinnerungseinstellungen in deinen Einstellungen ändern."
+      },
+      "daily": {
+        "subject": "Erinnerungen für {date}",
+        "pageTitle": "Tägliche Zusammenfassung",
+        "greeting": "{appName} hier,",
+        "intro": "Ich erinnere dich an die Dinge, die dir wichtig sind.",
+        "tasksHeading": "AUFGABEN",
+        "signature": "- {appName}",
+        "footerHint": "Klicke auf ein Kästchen, um eine Aufgabe als erledigt zu markieren, oder auf den Aufgabennamen, um sie anzusehen / zu bearbeiten.",
+        "unsubscribe": "E-Mail-Erinnerungen abbestellen",
+        "textUnsubscribe": "E-Mail-Erinnerungen abbestellen: {url}"
+      },
+      "weekly": {
+        "subject": "Wochenvorschau - {range}",
+        "title": "Wochenvorschau",
+        "textTitle": "📅 WOCHENVORSCHAU - {range}",
+        "helloNamed": "Hallo {name}!",
+        "hello": "Hallo!",
+        "intro": "Hier sind deine anstehenden Aufgaben für {range}",
+        "textIntro": "Hier sind deine anstehenden Aufgaben für diese Woche:",
+        "upcoming": "Anstehende Aufgaben ({count})",
+        "textUpcoming": "🗓️ ANSTEHENDE AUFGABEN ({count})",
+        "lists": "Listen: {lists}",
+        "textOpen": "Aufgaben öffnen: {url}",
+        "footerWhy": "Du erhältst diese Wochenvorschau, damit du deine kommende Woche planen kannst.",
+        "footerPreferences": "Du kannst deine Zusammenfassungseinstellungen in deinen Kontoeinstellungen anpassen."
+      }
+    }
   }
 }

@@ -8,6 +8,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { digestLongDate, digestShortDate, digestDueText, digestWeekRange } from '@/lib/digest-email-dates'
+import { getNotificationTranslator } from '@/lib/i18n/user-locale'
 
 // Mon 9 Nov 2026 07:00 in Auckland (NZDT, UTC+13) = Sun 8 Nov 18:00 UTC = Sun 8 Nov 10:00 in LA (PST).
 const NOW = new Date('2026-11-08T18:00:00Z')
@@ -67,5 +68,26 @@ describe('the weekly range', () => {
     const sat = new Date('2026-11-15T04:00:00Z') // Sat 20:00 LA, Sun 17:00 Auckland
     expect(digestWeekRange(sat, LA)).toBe('Nov 8 - Nov 14')
     expect(digestWeekRange(sat, AKL)).toBe('Nov 15 - Nov 21')
+  })
+})
+
+describe('digest dates in the reader language (AWTD-1592)', () => {
+  it('formats the header, subject and week in German', async () => {
+    expect(digestLongDate(NOW, AKL, 'de')).toBe('Montag, 9. November 2026')
+    expect(digestShortDate(NOW, AKL, 'de')).toBe('9. November')
+    expect(digestWeekRange(NOW, LA, 'de')).toBe('8. Nov. - 14. Nov.')
+  })
+
+  it('writes the due words and a 24-hour clock in German', async () => {
+    const t = await getNotificationTranslator('de')
+    const due = new Date('2026-11-08T23:00:00Z') // 3pm Sunday in Los Angeles
+    expect(digestDueText(due, { now: NOW, zone: LA, locale: 'de', t })).toBe(
+      t('dates.todayAt', { time: '15:00' }),
+    )
+    const overdue = new Date('2026-11-06T17:00:00Z')
+    const text = digestDueText(overdue, { now: NOW, zone: LA, isOverdue: true, locale: 'de', t })
+    expect(text).toContain('6. Nov.')
+    expect(text).toContain('2')
+    expect(text).not.toMatch(/overdue|AM|PM/)
   })
 })

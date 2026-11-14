@@ -394,9 +394,10 @@ async function sendPushNotification(
   pushService: PushNotificationService,
 ): Promise<void> {
   try {
-    await pushService.sendNotification(userId, {
-      title: 'New Task Assignment',
-      body: `You've been assigned: ${payload.task.title}`,
+    // In the assignee's language (AWTD-1592).
+    await pushService.sendLocalizedNotification(userId, (t) => ({
+      title: t('push.assignedTitle'),
+      body: t('push.assignedBody', { title: payload.task.title }),
       data: {
         taskId: payload.task.id,
         action: 'task_assigned',
@@ -405,10 +406,10 @@ async function sendPushNotification(
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-72x72.png',
       actions: [
-        { action: 'view_task', title: 'View Task' },
-        { action: 'start_work', title: 'Start Working' },
+        { action: 'view_task', title: t('actions.viewTask') },
+        { action: 'start_work', title: t('actions.startWorking') },
       ],
-    })
+    }))
   } catch (error) {
     log.error({ err: error }, `❌ Failed to send push notification:`)
   }

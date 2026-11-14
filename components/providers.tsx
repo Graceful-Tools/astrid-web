@@ -14,6 +14,7 @@ import { PWAStatus } from "@/components/pwa-status"
 import { FeatureFlagProvider } from "@/contexts/feature-flag-context"
 import { EditingSessionProvider } from "@/hooks/use-editing-session"
 import { WebVitalsReporter } from "@/components/web-vitals-reporter"
+import { LocaleSync } from "@/components/locale-sync"
 import dynamic from "next/dynamic"
 
 // Loaded after hydration, so the Waiting prompt costs no first-load JS (AWTD-1593).
@@ -40,6 +41,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
           individual routes so it covers the task list and the marketing pages
           alike — the same reach <SpeedInsights /> has in the root layout. */}
       <WebVitalsReporter />
+      {/* The signed-in user's language, for notifications and emails (AWTD-1592). */}
+      <LocaleSync />
       <FeatureFlagProvider>
         <ThemeProvider defaultTheme={BRAND.defaultTheme}>
           <SettingsProvider>

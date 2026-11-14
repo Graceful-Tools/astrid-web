@@ -2763,5 +2763,110 @@
     "termsOfService": "Условия использования",
     "privacyPolicy": "Политика конфиденциальности",
     "backToHome": "На главную"
+  },
+  "notifications": {
+    "actions": {
+      "viewTask": "Открыть задачу",
+      "viewOverdueTask": "Открыть просроченную",
+      "startWorking": "Начать работу",
+      "snooze15": "Отложить на 15 мин",
+      "snooze60": "Отложить на 1 ч",
+      "markComplete": "Завершить",
+      "openApp": "Открыть приложение",
+      "dismiss": "Закрыть",
+      "snoozeReminder": "Отложить напоминание",
+      "openTaskManager": "Открыть задачи"
+    },
+    "push": {
+      "dueSoonTitle": "Скоро срок задачи",
+      "dueAtBody": "Срок «{title}» — {time}",
+      "overdueTitle": "Задача просрочена",
+      "overdueBody": "«{title}» просрочена",
+      "mentionTitle": "{name} упомянул(а) вас",
+      "mentionBody": "«{excerpt}» в {task}",
+      "commentTitle": "Новый комментарий к вашей задаче",
+      "commentBody": "{name}: «{excerpt}»",
+      "chatMentionTitle": "{name} упомянул(а) вас в чате",
+      "assignedTitle": "Новая задача назначена",
+      "assignedBody": "Вам назначена задача: {title}",
+      "testTitle": "Тестовое уведомление",
+      "testBody": "Это тестовое уведомление от {appName}"
+    },
+    "worker": {
+      "reminderTitle": "Напоминание о задаче",
+      "dueTitle": "Срок задачи",
+      "dueNowBody": "Срок «{title}» наступил",
+      "snoozedTitle": "Задача отложена",
+      "snoozedBody": "Напоминание отложено на {minutes} минут",
+      "snoozeFailedTitle": "Не удалось отложить",
+      "snoozeFailedBody": "Не удалось отложить напоминание. Попробуйте ещё раз.",
+      "completedTitle": "Задача выполнена",
+      "completedBody": "Задача отмечена выполненной!",
+      "completeFailedTitle": "Не удалось завершить",
+      "completeFailedBody": "Не удалось отметить задачу выполненной. Попробуйте ещё раз."
+    },
+    "dates": {
+      "noDueDate": "Без срока",
+      "today": "Сегодня",
+      "tomorrow": "Завтра",
+      "yesterday": "Вчера",
+      "todayAt": "Сегодня в {time}",
+      "tomorrowAt": "Завтра в {time}",
+      "yesterdayAt": "Вчера в {time}",
+      "dateAt": "{date} в {time}",
+      "overdueBy": "{when} ({count, plural, one {просрочено на # день} few {просрочено на # дня} many {просрочено на # дней} other {просрочено на # дня}})"
+    },
+    "email": {
+      "due": "Срок: {when}",
+      "reminder": {
+        "subject": "⏰ Напоминание: {title}",
+        "subjectDue": "⏰ Напоминание: {title} (срок {when})",
+        "subjectOverdue": "⚠️ Просрочено: {title}",
+        "pageTitle": "Напоминание о задаче",
+        "overdueBadge": "⚠️ ПРОСРОЧЕНО",
+        "lists": "Списки",
+        "assignedTo": "Исполнитель",
+        "sharedList": "ОБЩИЙ СПИСОК",
+        "countingOnYou": "Эти люди рассчитывают на вас! 🤝",
+        "textHeadingOverdue": "⚠️ ЗАДАЧА ПРОСРОЧЕНА",
+        "textHeading": "⏰ НАПОМИНАНИЕ О ЗАДАЧЕ",
+        "textTask": "Задача: {title}",
+        "textLists": "Списки: {lists}",
+        "textAssignedTo": "Исполнитель: {name}",
+        "textOverdueNote": "Эта задача просрочена и требует вашего внимания.",
+        "textDueSoonNote": "Срок этой задачи скоро наступит.",
+        "textViewTask": "Открыть задачу: {url}",
+        "textSnooze": "Отложить напоминание: {url}",
+        "footerWhy": "Вы получили это напоминание, потому что у вас есть задача с наступающим сроком.",
+        "footerWhyInLists": "Вы получили это напоминание, потому что у вас есть задача с наступающим сроком в {lists}.",
+        "footerPreferences": "Параметры напоминаний можно изменить в настройках."
+      },
+      "daily": {
+        "subject": "Напоминания на {date}",
+        "pageTitle": "Ежедневная сводка задач",
+        "greeting": "Это {appName},",
+        "intro": "Напоминаю о том, что для вас важно.",
+        "tasksHeading": "ЗАДАЧИ",
+        "signature": "- {appName}",
+        "footerHint": "Нажмите на флажок, чтобы отметить задачу выполненной, или на название задачи, чтобы открыть / изменить её.",
+        "unsubscribe": "Отписаться от напоминаний по email",
+        "textUnsubscribe": "Отписаться от напоминаний по email: {url}"
+      },
+      "weekly": {
+        "subject": "Задачи на неделю - {range}",
+        "title": "Задачи на неделю",
+        "textTitle": "📅 ЗАДАЧИ НА НЕДЕЛЮ - {range}",
+        "helloNamed": "Здравствуйте, {name}!",
+        "hello": "Здравствуйте!",
+        "intro": "Ваши предстоящие задачи на {range}",
+        "textIntro": "Ваши предстоящие задачи на эту неделю:",
+        "upcoming": "Предстоящие задачи ({count})",
+        "textUpcoming": "🗓️ ПРЕДСТОЯЩИЕ ЗАДАЧИ ({count})",
+        "lists": "Списки: {lists}",
+        "textOpen": "Открыть задачи: {url}",
+        "footerWhy": "Вы получаете этот обзор, чтобы спланировать предстоящую неделю.",
+        "footerPreferences": "Параметры сводки можно изменить в настройках аккаунта."
+      }
+    }
   }
 }
