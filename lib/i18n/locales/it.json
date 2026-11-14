@@ -241,6 +241,9 @@
     },
     "dropToPlaceFirst": "Rilascia qui per posizionare la prima attività"
   },
+  "assignee": {
+    "clear": "Rimuovi assegnazione"
+  },
   "lists": {
     "list": "Lista",
     "newList": "Nuova lista",

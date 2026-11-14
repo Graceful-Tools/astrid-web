@@ -241,6 +241,9 @@
     },
     "dropToPlaceFirst": "Suelta aquí para colocar la primera tarea"
   },
+  "assignee": {
+    "clear": "Desasignar"
+  },
   "lists": {
     "list": "Lista",
     "newList": "Nueva lista",
