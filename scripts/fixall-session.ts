@@ -18,7 +18,7 @@
  * PASS `$PPID`, NOT THE SCRIPT'S OWN PID. The lock is only useful if it names a
  * process that outlives the command that took it, and this script exits in
  * milliseconds. Inside an agent's shell `$PPID` is the harness session itself
- * (verified: the Bash tool's shell is a direct child of the `claude` binary), so
+ * (verified on macOS: the Bash tool's shell is a direct child of the `claude` binary; on Windows it is `1`, see docs/FIXALL_WORKFLOW.md and astrid-windows' fixall-session.ps1), so
  * the lock dies exactly when the session does. `process.pid` here would be tsx,
  * and every lock would read as stale to the next caller.
  *
