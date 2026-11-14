@@ -86,12 +86,12 @@ this table, and the iOS implementation together.
 ## 2. Shared user-facing strings come from astrid-core
 
 The hand-kept copy-key registry that lived here is retired (AWTD-1649). The strings web and iOS
-share are now **astrid-core's shared catalog**, `strings/shared/` in astrid-core: one key in the
+share are now **astrid-core's shared catalog**, the strings/shared directory in astrid-core: one key in the
 core's dotted snake_case, twelve languages, checked by `cargo xtask check-strings`.
 
 | | Where |
 |---|---|
-| The catalog | astrid-core `strings/shared/` (and `strings/` for the strings the core itself emits) |
+| The catalog | astrid-core, strings/shared (and strings/ for the strings the core itself emits) |
 | Web's copy, pinned | `lib/i18n/core-strings/` — `REVISION`, core's generated `web/<locale>.json`, and `sources.json`, the map from each shared key to the web keys with the same English |
 | Web's lookup | unchanged: web keeps its own camelCase key names, and `scripts/sync-core-strings.mjs` writes core's value into each mapped key |
 | The ratchet | `tests/i18n/core-shared-strings-awtd-1649.test.ts`: a mapped web value must equal core's, unless the pair is on `lib/i18n/core-strings/divergent.json` |
