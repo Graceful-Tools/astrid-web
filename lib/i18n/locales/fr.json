@@ -108,7 +108,7 @@
     "when": "Quand",
     "createdBy": "Créé par",
     "confirmCompleteTitle": "Terminer cette tâche ?",
-    "confirmCompleteAssigned": "Attribuée à {name}",
+    "confirmCompleteAssigned": "Assignée à {name}",
     "waitingOn": {
       "label": "En attente de",
       "add": "Attendre une tâche…",
@@ -122,7 +122,7 @@
     },
     "taskId": {
       "label": "ID de tâche",
-      "copy": "Copier l'ID de tâche",
+      "copy": "Copier l'ID de la tâche",
       "copied": "{id} copié"
     },
     "occurrence": {
@@ -168,7 +168,7 @@
       "collapse": "Réduire",
       "taskActions": "Actions de la tâche",
       "exitFullScreen": "Quitter le plein écran",
-      "testReminder": "Tester le rappel",
+      "testReminder": "Rappel de Test",
       "clickToAddDescription": "Cliquez pour ajouter une description...",
       "searchLists": "Rechercher des listes...",
       "noLists": "Aucune liste",
@@ -200,21 +200,21 @@
       "count": "Commentaires ({count})",
       "hideSystemTitle": "Masquer les commentaires système",
       "showSystemTitle": "Afficher les commentaires système",
-      "hideSystem": "Masquer système",
-      "showSystem": "Afficher système",
+      "hideSystem": "Masquer le système",
+      "showSystem": "Afficher le système",
       "refreshShort": "Actualiser",
       "replyingTo": "Réponse à {name}",
       "agentThinking": "{name} réfléchit..."
     },
     "modals": {
-      "deleteTitle": "Supprimer la tâche",
-      "copyTitle": "Copier la tâche",
+      "deleteTitle": "supprimer la tâche",
+      "copyTitle": "Copier la Tâche",
       "copyToList": "Copier vers la liste :",
-      "myTasksOnly": "Mes tâches (uniquement)",
+      "myTasksOnly": "Mes Tâches (uniquement)",
       "copyNote": "La tâche copiée conservera la date limite et vous sera assignée.",
       "shareTitle": "Partager la tâche",
       "privateNote": "Cette tâche est privée. Seuls les utilisateurs ayant accès à cette liste peuvent la voir.",
-      "generatingLink": "Génération du lien de partage...",
+      "generatingLink": "Génération du lien...",
       "linkFailed": "Échec de la génération du lien de partage. Veuillez réessayer.",
       "deleteConfirm": "Voulez-vous vraiment supprimer « {title} » ? Cette action ne peut pas être annulée.",
       "copyDescription": "Créer une copie de « {title} »",
@@ -270,7 +270,7 @@
     "removeMember": "Retirer un membre",
     "leaveList": "Quitter la liste",
     "transferOwnership": "Transférer la propriété",
-    "selectNewOwner": "Sélectionner un nouveau propriétaire",
+    "selectNewOwner": "Choisir le nouveau propriétaire",
     "transferAndLeave": "Transférer et quitter",
     "deleteConfirm": "Êtes-vous sûr de vouloir supprimer cette liste ?",
     "placeholder": {
@@ -301,8 +301,8 @@
       "sendInvitation": "Envoyer l'invitation",
       "empty": "Aucun membre pour le moment",
       "emptyHint": "Invitez des personnes à collaborer sur cette liste",
-      "makeAdmin": "Nommer administrateur",
-      "makeMember": "Définir comme membre",
+      "makeAdmin": "Rendre administrateur",
+      "makeMember": "Rendre membre",
       "permissionLevels": "Niveaux d'autorisation",
       "ownerCan": "Contrôle total de la liste",
       "adminCan": "Peut gérer les paramètres et les membres de la liste",
@@ -328,7 +328,7 @@
       "aiBadge": "IA",
       "pending": "En attente",
       "cancelInvite": "Annuler",
-      "remove": "Retirer",
+      "remove": "Supprimer",
       "leave": "Quitter",
       "roles": {
         "owner": "propriétaire",
@@ -352,7 +352,7 @@
       "makeCollaborative": "Rendre collaborative",
       "leaveList": "Quitter la liste",
       "leaveConfirm": "Quitter « {name} » ? Seul un propriétaire ou un administrateur pourra vous rajouter.",
-      "aiCodingAgents": "Agents de programmation IA",
+      "aiCodingAgents": "Agents IA de programmation",
       "aiAgents": "Agents IA",
       "agentForCoding": "{name} pour la programmation et l’aide aux tâches",
       "agentForTasks": "{name} pour l’aide aux tâches (ajoutez un dépôt GitHub pour la programmation)",
@@ -394,7 +394,7 @@
       "recent": "Récentes",
       "noListsFound": "Aucune liste trouvée",
       "noPublicLists": "Aucune liste publique disponible",
-      "taskCount": "Tâches : {count}",
+      "taskCount": "{count} tâches",
       "copying": "Copie...",
       "copyToMyLists": "Copier dans mes listes",
       "createdBy": "Créée par {name}",
@@ -433,7 +433,7 @@
         "pink": "Rose"
       }
     },
-    "descriptionView": "Afficher",
+    "descriptionView": "Affichage",
     "descriptionDialogPlaceholder": "Rédigez des instructions pour les agents IA qui travaillent dans cette liste...\n\nMarkdown pris en charge : **gras**, *italique*, ## titres, - listes, [liens](url)",
     "descriptionSaveHint": "Appuyez sur Entrée pour enregistrer • Maj+Entrée ou Cmd/Ctrl+Entrée pour un saut de ligne",
     "memberEvents": {
@@ -449,7 +449,7 @@
   },
   "priority": {
     "none": "Aucune",
-    "low": "Basse",
+    "low": "Faible",
     "medium": "Moyenne",
     "high": "Haute",
     "urgent": "Urgente"
@@ -506,26 +506,26 @@
       "unitDays": "Jours",
       "unitWeeks": "Semaines",
       "unitMonths": "Mois",
-      "unitYears": "Ans",
+      "unitYears": "Années",
       "weekday": "Jour de la semaine",
       "month": "Mois",
       "day": "Jour",
       "never": "Jamais",
-      "week1": "1re",
+      "week1": "1er",
       "week2": "2e",
       "week3": "3e",
       "week4": "4e",
       "week5": "5e",
-      "weekLast": "Dernière"
+      "weekLast": "Dernier"
     },
     "summary": {
-      "everyDay": "Tous les jours",
+      "everyDay": "Chaque jour",
       "everyDays": "Tous les {count} jours",
-      "everyWeek": "Toutes les semaines",
+      "everyWeek": "Chaque semaine",
       "everyWeeks": "Toutes les {count} semaines",
-      "everyMonth": "Tous les mois",
+      "everyMonth": "Chaque mois",
       "everyMonths": "Tous les {count} mois",
-      "everyYear": "Tous les ans",
+      "everyYear": "Chaque année",
       "everyYears": "Tous les {count} ans",
       "everyOther": "Chaque {interval}({unit})",
       "onDays": "{summary} les {days}",
@@ -603,13 +603,13 @@
       "system": "Système"
     },
     "timezone": {
-      "title": "Fuseau horaire",
+      "title": "Fuseau Horaire",
       "auto": "Détection auto"
     },
     "helpMeHelpYou": "Aidez-moi à vous aider à devenir super productif !!!"
   },
   "auth": {
-    "signIn": "Connexion",
+    "signIn": "Se connecter",
     "signUp": "Inscription",
     "signOut": "Déconnexion",
     "signInWith": "Se connecter avec {provider}",
@@ -619,7 +619,7 @@
     "dontHaveAccount": "Vous n'avez pas de compte ?",
     "continueWith": "Continuer avec {provider}",
     "orContinueWith": "Ou continuer avec",
-    "signInButton": "Connexion",
+    "signInButton": "Se connecter",
     "signUpButton": "Inscription"
   },
   "messages": {
@@ -635,7 +635,7 @@
     "updating": "Mise à jour",
     "updated": "Mis à jour",
     "creating": "Création",
-    "created": "Créé",
+    "created": "Créé le",
     "copying": "Copie",
     "copied": "Copié",
     "moving": "Déplacement",
@@ -803,7 +803,7 @@
     "assignedDescription": "Tâches assignées à d'autres",
     "notInList": "Sans Liste",
     "notInListDescription": "Tâches orphelines",
-    "public": "Publiques",
+    "public": "Publique",
     "publicDescription": "Tâches publiques"
   },
   "settingsPages": {
@@ -820,7 +820,7 @@
       "description": "Agent de code complet avec intégration GitHub + Vercel"
     },
     "aiAgents": {
-      "title": "IA et Agents",
+      "title": "Agents IA",
       "description": "Configurez les assistants IA et agents de code avec vos clés API",
       "githubMcp": {
         "title": "Utiliser {appName} dans GitHub Copilot",
@@ -1098,7 +1098,7 @@
         }
       },
       "mcp": {
-        "badge": "Recommandé",
+        "badge": "Recommandée",
         "title": "Se connecter via MCP",
         "description": "Le Model Context Protocol est le moyen le plus rapide de connecter un assistant IA à vos tâches",
         "serverUrl": "URL du serveur MCP",
@@ -1121,7 +1121,7 @@
           "step5": "Copiez votre ID client et votre secret"
         },
         "redirectUri": "URI de redirection",
-        "scopes": "Portées"
+        "scopes": "Autorisations"
       },
       "step2": {
         "badge": "Étape 2",
@@ -1169,7 +1169,7 @@
       "clearConfirmation": "Êtes-vous sûr de vouloir supprimer tous les contacts ? Cette action est irréversible.",
       "clearSuccess": "{count} contacts supprimés",
       "clearError": "Échec de la suppression des contacts. Veuillez réessayer.",
-      "syncedTitle": "Contacts synchronisés",
+      "syncedTitle": "Contacts Synchronisés",
       "syncedDescription": "Contacts importés depuis des services externes",
       "contactsSynced": "contacts synchronisés",
       "lastUpdated": "Dernière mise à jour",
@@ -1180,7 +1180,7 @@
       "connecting": "Connexion...",
       "import": "Importer",
       "privacyNotice": "Vos contacts sont stockés en toute sécurité et utilisés uniquement pour suggérer des collaborateurs lors du partage de listes.",
-      "dangerZone": "Zone dangereuse",
+      "dangerZone": "Zone de danger",
       "irreversibleActions": "Ces actions sont irréversibles",
       "clearAll": "Supprimer tous les contacts",
       "clearAllDescription": "Supprimer tous les contacts importés de votre compte",
@@ -1217,14 +1217,14 @@
           "title": "Options de débogage",
           "description": "Activer les fonctionnalités de débogage pour le développement",
           "toastDebugMode": {
-            "label": "Mode débogage des notifications",
+            "label": "Mode Débogage Toast",
             "description": "Afficher des notifications détaillées pour le débogage",
             "current": "Actuel",
             "debugOn": "Débogage (détaillé)",
             "subtleOn": "Subtil (minimal)"
           },
           "reminderDebugMode": {
-            "label": "Mode débogage des rappels",
+            "label": "Mode Débogage Rappels",
             "description": "Afficher les informations de débogage des rappels",
             "current": "Actuel",
             "debugOn": "Débogage activé",
@@ -1260,7 +1260,7 @@
       "clickToChangePhoto": "Cliquez pour changer la photo de profil",
       "viewPublicProfile": "Voir le profil public",
       "syncedWithOAuth": "Actuellement synchronisé avec votre fournisseur OAuth",
-      "uploading": "Envoi en cours...",
+      "uploading": "Téléversement...",
       "displayNamePlaceholder": "Saisissez votre nom d'affichage",
       "toasts": {
         "successTitle": "Succès !",
@@ -1293,14 +1293,14 @@
     "passkeys": {
       "title": "Passkeys",
       "description": "Utilisez les passkeys pour une connexion plus rapide et plus sécurisée sans mot de passe",
-      "addPasskey": "Ajouter une passkey",
+      "addPasskey": "Ajouter une Passkey",
       "addingPasskey": "Ajout de la passkey...",
       "noPasskeys": "Aucune passkey enregistrée",
       "addPasskeyHint": "Ajoutez une passkey pour une connexion plus rapide sans mot de passe",
       "loading": "Chargement des passkeys...",
       "fallbackName": "Passkey",
-      "added": "Ajoutée le {date}",
-      "synced": "Synchronisée",
+      "added": "Ajouté le {date}",
+      "synced": "Synchronisé",
       "tipBiometrics": "Les passkeys utilisent la biométrie ou le code PIN de l'appareil pour l'authentification",
       "tipSynced": "Les passkeys synchronisées fonctionnent automatiquement sur tous vos appareils",
       "tipSecure": "Plus sûres que les mots de passe : résistantes à l'hameçonnage",
@@ -1401,7 +1401,7 @@
         "labelDesc": "Les rappels déjà définis sur une tâche se déclenchent toujours quand cette option est désactivée."
       },
       "emailToTask": {
-        "title": "E-mail vers tâche",
+        "title": "Email-vers-Tâche",
         "description": "Créez des tâches instantanément en envoyant des e-mails à {inboundTaskEmail}",
         "threeWays": "Trois façons de créer des tâches",
         "selfTask": "Auto-tâche :",
@@ -1456,7 +1456,7 @@
         }
       },
       "mcp": {
-        "badge": "Recommandé",
+        "badge": "Recommandée",
         "title": "Se connecter via MCP",
         "description": "Le Model Context Protocol est le moyen le plus rapide de connecter un assistant IA à vos tâches",
         "serverUrl": "URL du serveur MCP",
@@ -1483,7 +1483,7 @@
           "step5": "Copiez votre ID client et votre secret"
         },
         "redirectUri": "URI de redirection",
-        "scopes": "Portées"
+        "scopes": "Autorisations"
       },
       "step2": {
         "badge": "Étape 2",
@@ -1528,27 +1528,27 @@
         "active": "Actif",
         "idle": "Inactif"
       },
-      "registered": "Enregistré le {date}",
+      "registered": "Enregistré {date}",
       "lastActive": "Dernière activité {date}",
       "empty": "Aucun agent personnalisé connecté. Enregistrez-en un pour commencer.",
-      "connect": "Connecter un agent",
+      "connect": "Connecter un Agent",
       "register": {
         "title": "Enregistrer un agent personnalisé",
         "description": "Créez une identité d’agent IA avec des identifiants OAuth pour le protocole d’agent personnalisé.",
-        "name": "Nom de l’agent",
+        "name": "Nom de l'Agent",
         "placeholder": "buddy",
         "invalid": "Nom invalide. Utilisez 2 à 32 caractères alphanumériques minuscules, points, tirets ou tirets bas.",
         "hint": "Choisissez un nom pour votre agent (par ex. buddy, helper, dev-bot)",
         "cancel": "Annuler",
-        "registering": "Enregistrement…",
-        "create": "Créer l’agent"
+        "registering": "Enregistrement...",
+        "create": "Créer l'Agent"
       },
       "credentials": {
-        "title": "Agent créé",
+        "title": "Agent Créé",
         "description": "Enregistrez ces identifiants maintenant. Le secret client ne sera plus affiché.",
         "warning": "Enregistrez ces identifiants maintenant !",
-        "email": "E-mail de l’agent",
-        "clientId": "Identifiant client",
+        "email": "Email de l'Agent",
+        "clientId": "ID client",
         "clientSecret": "Secret client",
         "tokenEndpoint": "Point de terminaison du jeton",
         "apiBase": "Base de l’API",
@@ -1589,15 +1589,15 @@
       },
       "columns": {
         "actsAs": "Agit en tant que",
-        "scopes": "Portées",
-        "created": "Créé",
+        "scopes": "Autorisations",
+        "created": "Créé le",
         "lastUsed": "Dernière utilisation",
         "expires": "Expire",
         "never": "Jamais"
       },
       "status": {
         "active": "Actif",
-        "expired": "Expiré",
+        "expired": "Expirée",
         "disabled": "Désactivé"
       },
       "actsAsYou": "Vous",
@@ -1670,7 +1670,7 @@
         "leavesGroup": "Cette connexion ne suivra plus {group} : les portées ajoutées plus tard à ce groupe ne lui parviendront pas.",
         "inGroup": "Dans {group}",
         "otherScopes": "Autres portées",
-        "scopes": "Portées",
+        "scopes": "Autorisations",
         "notGranted": "Pas encore accordée",
         "tokensNote": "Les jetons déjà émis conservent leurs portées. Demandez-en un nouveau pour appliquer le changement.",
         "save": "Enregistrer les autorisations",
@@ -1834,7 +1834,7 @@
     "assigneeFilter": "Filtre d’assigné",
     "dueDateFilter": "Filtre d’échéance",
     "sort": {
-      "recentlyCompleted": "Récemment terminées",
+      "recentlyCompleted": "Terminées récemment",
       "auto": "Automatique",
       "priority": "Priorité",
       "date": "Date",
@@ -1851,7 +1851,7 @@
     },
     "priority": {
       "all": "Toutes les priorités",
-      "highest": "!!! La plus haute",
+      "highest": "!!! Urgente",
       "high": "!! Haute",
       "medium": "! Moyenne",
       "low": "○ Basse"
@@ -1883,7 +1883,7 @@
       "clickToEdit": "Cliquez pour modifier",
       "clickToAddInstructions": "Cliquez pour ajouter des instructions pour les agents...",
       "agentsUseGuidance": "Les agents IA s'en servent comme guide principal lorsqu'ils travaillent sur les tâches de cette liste",
-      "taskCreator": "Créateur de la tâche",
+      "taskCreator": "Créateur de tâche",
       "memberNotFound": "Membre introuvable",
       "clickToSet": "Cliquez pour définir...",
       "defaultPriority": "Priorité par défaut",
@@ -1975,7 +1975,7 @@
       "assignedByFilter": "Filtre « assigné par »",
       "repeatingFilter": "Filtre de répétition",
       "listFilter": "Filtre de liste",
-      "favorite": "Favori"
+      "favorite": "Favoris"
     },
     "fixed": {
       "todayTitle": "Paramètres des tâches du jour",
@@ -1996,14 +1996,14 @@
   },
   "reminderSettings": {
     "title": "Paramètres de rappel",
-    "pushNotifications": "Notifications push",
+    "pushNotifications": "Notifications Push",
     "emailReminders": "Rappels par e-mail",
-    "defaultReminderTime": "Heure de rappel par défaut",
-    "dailyDigest": "Résumé quotidien",
+    "defaultReminderTime": "Heure de Rappel par Défaut",
+    "dailyDigest": "Résumé Quotidien",
     "quietHours": "Heures calmes",
     "description": "Configurez quand et comment vous recevez les rappels de tâches",
     "pushDescription": "Recevez des notifications instantanées dans votre navigateur",
-    "enablePush": "Activer les notifications push",
+    "enablePush": "Activer les Notifications Push",
     "pushBlocked": "Les notifications push sont bloquées. Activez-les dans les paramètres de votre navigateur pour recevoir les rappels de tâches.",
     "emailDescription": "Recevez des e-mails de rappel pour les tâches à échéance",
     "defaultReminderTimeDescription": "Quand vous rappeler avant l'échéance des tâches",
@@ -2266,11 +2266,11 @@
   "signInPage": {
     "downloadOnAppStore": "Télécharger dans l’App Store",
     "title": "Connectez-vous pour commencer !",
-    "passkey": "une passkey",
+    "passkey": "Passkey",
     "continuing": "Poursuite...",
     "passkeysNotSupported": "Les passkeys ne sont pas prises en charge par ce navigateur",
     "newUser": "Nouveau ?",
-    "returningUser": "Déjà inscrit ?",
+    "returningUser": "De retour ?",
     "emailPlaceholder": "Saisissez votre e-mail",
     "creatingAccount": "Création du compte...",
     "signingIn": "Connexion...",
@@ -2316,7 +2316,7 @@
     "verifiedTitle": "E-mail vérifié !",
     "failedTitle": "Échec de la vérification",
     "expiredTitle": "Lien expiré",
-    "defaultTitle": "Vérification de l’e-mail",
+    "defaultTitle": "Vérification de l'e-mail",
     "redirecting": "Redirection vers les paramètres dans quelques secondes...",
     "goToSettings": "Aller aux paramètres",
     "sending": "Envoi...",
@@ -2446,7 +2446,7 @@
     "linkTaskNotFound": "Tâche introuvable ou désormais inaccessible",
     "linkTaskForbidden": "Vous n’avez pas l’autorisation de voir cette tâche",
     "linkInvalidType": "Type de lien non valide",
-    "globalErrorTitle": "Une erreur s’est produite",
+    "globalErrorTitle": "Une erreur s'est produite",
     "globalErrorDescription": "Une erreur critique s’est produite. Veuillez actualiser la page."
   },
   "profilePage": {
@@ -2455,16 +2455,16 @@
     "goBack": "Retour",
     "badge": "Profil",
     "aiAgent": "Agent IA",
-    "joined": "Inscription : {date}",
+    "joined": "Inscrit {date}",
     "completedDesc": "Tâches terminées",
-    "inspired": "Inspiration",
+    "inspired": "Inspirées",
     "inspiredDesc": "Tâches créées, terminées ou copiées par d’autres",
-    "supported": "Soutien",
+    "supported": "Soutenues",
     "supportedDesc": "Commentaires sur les tâches des autres",
-    "yourTasks": "Vos tâches",
+    "yourTasks": "Vos Tâches",
     "sharedWith": "Tâches partagées avec {name}",
     "noShared": "Aucune tâche partagée avec {name} pour le moment",
-    "userNotFound": "Utilisateur introuvable",
+    "userNotFound": "Utilisateur non trouvé",
     "signInRequired": "Veuillez vous connecter pour voir les profils des utilisateurs",
     "loadFailedDetail": "Échec du chargement du profil utilisateur : {error}",
     "loadFailed": "Échec du chargement du profil utilisateur",
@@ -2545,7 +2545,7 @@
   "richTextInput": {
     "placeholder": "Saisissez un message...",
     "timer": "Minuteur",
-    "uploading": "Envoi en cours...",
+    "uploading": "Téléversement...",
     "attachFile": "Joindre un fichier",
     "removeFile": "Retirer {name}",
     "attachmentsUnavailable": "Les pièces jointes ne sont pas disponibles dans cette vue.",
@@ -2553,7 +2553,7 @@
     "tooManyMany": "Vous pouvez joindre jusqu'à {max} fichiers à la fois — {count} fichiers n'ont pas été joints.",
     "people": "Personnes",
     "aiBadge": "IA",
-    "taskDone": "Terminée"
+    "taskDone": "Terminé"
   },
   "chat": {
     "inputPlaceholder": "Message à la liste...",
@@ -2587,7 +2587,7 @@
     "navLabel": "Sections d'administration"
   },
   "pwa": {
-    "notNow": "Pas maintenant",
+    "notNow": "Plus tard",
     "syncing": "Synchronisation des modifications...",
     "backOnline": "De nouveau en ligne",
     "offline": "Vous êtes hors ligne",
@@ -2771,14 +2771,14 @@
       "startWorking": "Commencer",
       "snooze15": "Reporter 15 min",
       "snooze60": "Reporter 1 h",
-      "markComplete": "Terminer",
+      "markComplete": "Marquer comme terminée",
       "openApp": "Ouvrir l'app",
       "dismiss": "Ignorer",
       "snoozeReminder": "Reporter le rappel",
       "openTaskManager": "Ouvrir les tâches"
     },
     "push": {
-      "dueSoonTitle": "Échéance proche",
+      "dueSoonTitle": "Tâche bientôt due",
       "dueAtBody": "{title} arrive à échéance à {time}",
       "overdueTitle": "Tâche en retard",
       "overdueBody": "{title} est en retard",

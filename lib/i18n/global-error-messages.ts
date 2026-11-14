@@ -22,13 +22,13 @@ export const GLOBAL_ERROR_MESSAGES: Record<Locale, GlobalErrorMessages> = {
     goHome: 'Ir al inicio',
   },
   fr: {
-    title: 'Une erreur s’est produite',
+    title: 'Une erreur s\'est produite',
     description: 'Une erreur critique s’est produite. Veuillez actualiser la page.',
     tryAgain: 'Réessayer',
     goHome: 'Retour à l’accueil',
   },
   de: {
-    title: 'Etwas ist schiefgelaufen',
+    title: 'Etwas ist schief gelaufen',
     description: 'Ein schwerwiegender Fehler ist aufgetreten. Bitte lade die Seite neu.',
     tryAgain: 'Erneut versuchen',
     goHome: 'Zur Startseite',
@@ -70,13 +70,13 @@ export const GLOBAL_ERROR_MESSAGES: Record<Locale, GlobalErrorMessages> = {
     goHome: '홈으로',
   },
   'zh-CN': {
-    title: '出了点问题',
+    title: '出错了',
     description: '发生了严重错误。请尝试刷新页面。',
     tryAgain: '重试',
     goHome: '返回首页',
   },
   'zh-TW': {
-    title: '發生錯誤',
+    title: '出錯了',
     description: '發生嚴重錯誤。請嘗試重新整理頁面。',
     tryAgain: '再試一次',
     goHome: '返回首頁',

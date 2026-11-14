@@ -1,11 +1,11 @@
 {
   "navigation": {
-    "myTasks": "Le Mie Attività",
+    "myTasks": "I miei compiti",
     "today": "Oggi",
     "lists": "Liste",
-    "addList": "Aggiungi Lista",
-    "publicSharedLists": "Liste Pubbliche Condivise",
-    "publicLists": "Liste Pubbliche",
+    "addList": "Aggiungi lista",
+    "publicSharedLists": "Liste pubbliche condivise",
+    "publicLists": "Liste pubbliche",
     "seeAllCollaborative": "Vedi tutte le liste collaborative →",
     "seeAllSuggested": "Vedi tutte le liste suggerite →",
     "skipToContent": "Vai al contenuto",
@@ -56,14 +56,14 @@
     "deselectAll": "Deseleziona tutto"
   },
   "tasks": {
-    "task": "Attività",
+    "task": "Compito",
     "tasks": "Attività",
     "newTask": "Nuova attività",
-    "addTask": "Aggiungi attività",
-    "editTask": "Modifica attività",
-    "deleteTask": "Elimina attività",
+    "addTask": "Aggiungi compito",
+    "editTask": "Modifica compito",
+    "deleteTask": "Elimina compito",
     "completeTask": "Completa attività",
-    "taskName": "Nome attività",
+    "taskName": "Nome compito",
     "taskDescription": "Descrizione",
     "noDescription": "Nessuna descrizione",
     "dueDate": "Data di scadenza",
@@ -80,10 +80,10 @@
     "markIncomplete": "Segna come non completata",
     "comments": "Commenti",
     "attachments": "Allegati",
-    "subtasks": "Sottoattività",
+    "subtasks": "Attività secondarie",
     "tags": "Tag",
     "completed": "Completata",
-    "incomplete": "Incompleta",
+    "incomplete": "Incompleto",
     "overdue": "In ritardo",
     "noDueDate": "Nessuna scadenza",
     "noReminder": "Nessun promemoria",
@@ -168,7 +168,7 @@
       "collapse": "Comprimi",
       "taskActions": "Azioni attività",
       "exitFullScreen": "Esci da schermo intero",
-      "testReminder": "Prova promemoria",
+      "testReminder": "Promemoria di test",
       "clickToAddDescription": "Fai clic per aggiungere una descrizione...",
       "searchLists": "Cerca liste...",
       "noLists": "Nessuna lista",
@@ -176,7 +176,7 @@
       "searchUsersOrEmail": "Cerca utenti o inserisci un'email...",
       "nextWeek": "Prossima settimana",
       "selectRepeat": "Seleziona ripetizione",
-      "repeatMode": "Modalità di ripetizione",
+      "repeatMode": "Modalita di ripetizione",
       "repeatFromCompletion": "Ripeti dalla data di completamento",
       "repeatFromDue": "Ripeti dalla data di scadenza",
       "saveCustomPattern": "Salva schema personalizzato",
@@ -200,21 +200,21 @@
       "count": "Commenti ({count})",
       "hideSystemTitle": "Nascondi commenti di sistema",
       "showSystemTitle": "Mostra commenti di sistema",
-      "hideSystem": "Nascondi sistema",
-      "showSystem": "Mostra sistema",
+      "hideSystem": "Nascondi di sistema",
+      "showSystem": "Mostra di sistema",
       "refreshShort": "Aggiorna",
       "replyingTo": "Risposta a {name}",
       "agentThinking": "{name} sta pensando..."
     },
     "modals": {
-      "deleteTitle": "Elimina attività",
-      "copyTitle": "Copia attività",
+      "deleteTitle": "elimina attività",
+      "copyTitle": "Copia compito",
       "copyToList": "Copia nella lista:",
-      "myTasksOnly": "Le mie attività (solo)",
+      "myTasksOnly": "Solo i miei compiti",
       "copyNote": "L'attività copiata manterrà la data di scadenza e sarà assegnata a te.",
       "shareTitle": "Condividi attività",
       "privateNote": "Questa è un'attività privata. Solo gli utenti con accesso a questa lista possono vederla.",
-      "generatingLink": "Generazione del link di condivisione...",
+      "generatingLink": "Generazione link...",
       "linkFailed": "Impossibile generare il link di condivisione. Riprova.",
       "deleteConfirm": "Vuoi davvero eliminare «{title}»? Questa azione non può essere annullata.",
       "copyDescription": "Crea una copia di «{title}»",
@@ -258,9 +258,9 @@
     "membership": "Appartenenza",
     "adminSettings": "Impostazioni Admin",
     "privacy": "Privacy",
-    "private": "Privata",
-    "shared": "Condivisa",
-    "public": "Pubblica",
+    "private": "Privato",
+    "shared": "Condiviso",
+    "public": "Pubblico",
     "owner": "Proprietario",
     "admin": "Amministratore",
     "member": "Membro",
@@ -269,8 +269,8 @@
     "addMember": "Aggiungi membro",
     "removeMember": "Rimuovi membro",
     "leaveList": "Lascia lista",
-    "transferOwnership": "Trasferisci Proprietà",
-    "selectNewOwner": "Seleziona Nuovo Proprietario",
+    "transferOwnership": "Trasferisci proprietà",
+    "selectNewOwner": "Scegli il nuovo proprietario",
     "transferAndLeave": "Trasferisci ed Esci",
     "deleteConfirm": "Sei sicuro di voler eliminare questa lista?",
     "placeholder": {
@@ -282,7 +282,7 @@
     "copyList": "Copia lista",
     "descriptionTitle": "Descrizione della lista",
     "descriptionAgentHint": "Gli agenti ricevono questo come contesto principale. Supporta Markdown.",
-    "image": "Immagine della lista",
+    "image": "Immagine lista",
     "addModal": {
       "title": "Aggiungi una lista",
       "subtitle": "Usa le liste per organizzare progetti, obiettivi e avventure!",
@@ -326,7 +326,7 @@
       "adminOption": "Amministratore - Può gestire impostazioni e membri della lista",
       "memberOption": "Membro - Può aggiungere, modificare e gestire attività",
       "aiBadge": "IA",
-      "pending": "In attesa",
+      "pending": "In sospeso",
       "cancelInvite": "Annulla",
       "remove": "Rimuovi",
       "leave": "Lascia",
@@ -344,15 +344,15 @@
       "addAgent": "Aggiungi agente",
       "aiHelpTitle": "Vuoi che l'IA ti aiuti con le tue attività?",
       "addApiKeys": "Aggiungi le tue chiavi API per iniziare",
-      "privacyLabel": "Privacy della lista",
+      "privacyLabel": "Privacy lista",
       "makePublic": "Rendi pubblica",
       "makePrivate": "Rendi privata",
-      "publicListType": "Tipo di lista pubblica",
+      "publicListType": "Tipo di elenco pubblico",
       "makeCopyOnly": "Rendi solo copia",
       "makeCollaborative": "Rendi collaborativa",
       "leaveList": "Lascia lista",
       "leaveConfirm": "Lasciare \"{name}\"? Solo un proprietario o un amministratore potrà aggiungerti di nuovo.",
-      "aiCodingAgents": "Agenti IA per la programmazione",
+      "aiCodingAgents": "Agenti IA di programmazione",
       "aiAgents": "Agenti IA",
       "agentForCoding": "{name} per programmare e aiutare con le attività",
       "agentForTasks": "{name} per aiutare con le attività (aggiungi un repository GitHub per programmare)",
@@ -369,7 +369,7 @@
       "noOtherMembers": "Nessun altro membro a cui trasferire la proprietà.",
       "deleteList": "Elimina lista",
       "body": "In quanto proprietario di «{name}», devi trasferire la proprietà prima di lasciarla. Scegli un successore o elimina la lista.",
-      "transferAndLeave": "Trasferisci e lascia",
+      "transferAndLeave": "Trasferisci ed esci",
       "deleteInstead": "In alternativa, puoi eliminare completamente la lista:"
     },
     "publicBrowser": {
@@ -389,13 +389,13 @@
       "previewFailed": "Impossibile caricare l’anteprima della lista",
       "copySuccess": "«{name}» è stata copiata nelle tue liste",
       "copyFailed": "Impossibile copiare la lista",
-      "title": "Sfoglia le liste pubbliche",
+      "title": "Sfoglia elenchi pubblici",
       "popular": "Popolari",
       "recent": "Recenti",
       "noListsFound": "Nessuna lista trovata",
       "noPublicLists": "Nessuna lista pubblica disponibile",
-      "taskCount": "Attività: {count}",
-      "copying": "Copia...",
+      "taskCount": "{count} attività",
+      "copying": "Copia in corso...",
       "copyToMyLists": "Copia nelle mie liste",
       "createdBy": "Creata da {name}",
       "createdOn": "Creata il {date}",
@@ -433,7 +433,7 @@
         "pink": "Rosa"
       }
     },
-    "descriptionView": "Visualizza",
+    "descriptionView": "Vista",
     "descriptionDialogPlaceholder": "Scrivi le istruzioni per gli agenti IA che lavorano in questa lista...\n\nSupporta Markdown: **grassetto**, *corsivo*, ## titoli, - elenchi, [link](url)",
     "descriptionSaveHint": "Premi Invio per salvare • Maiusc+Invio o Cmd/Ctrl+Invio per andare a capo",
     "memberEvents": {
@@ -467,7 +467,7 @@
     "allDay": "Tutto il giorno",
     "pickDate": "Scegli una data",
     "pickTime": "Scegli un orario",
-    "atDueTime": "All'ora di scadenza",
+    "atDueTime": "Alla scadenza",
     "minutesBefore": "{count} minuti prima",
     "hourBefore": "1 ora prima",
     "hoursBefore": "{count} ore prima",
@@ -511,12 +511,12 @@
       "month": "Mese",
       "day": "Giorno",
       "never": "Mai",
-      "week1": "1ª",
-      "week2": "2ª",
-      "week3": "3ª",
-      "week4": "4ª",
-      "week5": "5ª",
-      "weekLast": "Ultima"
+      "week1": "1°",
+      "week2": "2°",
+      "week3": "3°",
+      "week4": "4°",
+      "week5": "5°",
+      "weekLast": "Ultimo"
     },
     "summary": {
       "everyDay": "Ogni giorno",
@@ -603,7 +603,7 @@
       "system": "Sistema"
     },
     "timezone": {
-      "title": "Fuso Orario",
+      "title": "Fuso orario",
       "auto": "Rilevamento automatico"
     },
     "helpMeHelpYou": "Aiutami ad aiutarti a diventare super produttivo!!!"
@@ -635,7 +635,7 @@
     "updating": "Aggiornamento",
     "updated": "Aggiornato",
     "creating": "Creazione",
-    "created": "Creato",
+    "created": "Creato il",
     "copying": "Copia",
     "copied": "Copiato",
     "moving": "Spostamento",
@@ -750,7 +750,7 @@
     "personal": "Pronto a catturare i tuoi pensieri? Tocca aggiungi attività per creare la tua prima attività!",
     "default": "Riempiamo \"{listName}\"! Aggiungi la tua prima attività per iniziare.",
     "defaultNoName": "È ora di organizzarsi! Aggiungi la tua prima attività per iniziare.",
-    "addTaskHint": "Aggiungi attività",
+    "addTaskHint": "Aggiungi compito",
     "noLists": "Ancora nessuna lista. Crea la tua prima lista per iniziare!"
   },
   "common": {
@@ -795,7 +795,7 @@
     "showingMatches": "Attività corrispondenti a «{term}» da tutte le liste accessibili"
   },
   "listHeaders": {
-    "myTasks": "Le Mie Attività",
+    "myTasks": "I miei compiti",
     "myTasksDescription": "Tutte le tue attività",
     "today": "Oggi",
     "todayDescription": "Attività per oggi",
@@ -803,12 +803,12 @@
     "assignedDescription": "Attività assegnate ad altri",
     "notInList": "Senza Lista",
     "notInListDescription": "Attività orfane",
-    "public": "Pubbliche",
+    "public": "Pubblico",
     "publicDescription": "Attività pubbliche"
   },
   "settingsPages": {
     "accountAccess": {
-      "title": "Account e Accesso",
+      "title": "Account e accesso",
       "description": "Profilo, verifica email e impostazioni di accesso"
     },
     "remindersNotifications": {
@@ -820,7 +820,7 @@
       "description": "Agente di codice completo con integrazione GitHub + Vercel"
     },
     "aiAgents": {
-      "title": "IA e Agenti",
+      "title": "Agenti IA",
       "description": "Configura assistenti IA e agenti di codice con le tue chiavi API",
       "githubMcp": {
         "title": "Usa {appName} in GitHub Copilot",
@@ -893,10 +893,10 @@
         "customAgentsDescription": "Agenti gestiti da te tramite OAuth + REST + SSE"
       },
       "runtime": {
-        "stepConnect": "Collega",
+        "stepConnect": "Connetti",
         "stepInstall": "Installa",
         "stepSchedule": "Pianifica o esegui",
-        "stepTest": "Prova",
+        "stepTest": "Testa",
         "hostedWorkflow": "Nessuna macchina da lasciare accesa? Fai il commit di questo workflow. Richiede due secret del repository; {link} spiega come crearli.",
         "startHere": "Inizia da qui",
         "copilotInstall": "Fai il commit di questo agente personalizzato del repository una volta. Copilot CLI, l'app Copilot, GitHub.com e VS Code potranno poi selezionare lo stesso comportamento della coda.",
@@ -1018,7 +1018,7 @@
         "editDescription": "Aggiorna gli URL di reindirizzamento o altri metadati richiesti dalle tue integrazioni.",
         "selectToEdit": "Seleziona un'app OAuth da modificare.",
         "heading": "Applicazioni OAuth",
-        "test": "Prova",
+        "test": "Testa",
         "regenerate": "Rigenera",
         "followsGroup": "segue {group}",
         "fixedAtCreation": "fissati alla creazione",
@@ -1098,7 +1098,7 @@
         }
       },
       "mcp": {
-        "badge": "Consigliato",
+        "badge": "Consigliata",
         "title": "Connetti tramite MCP",
         "description": "Il Model Context Protocol è il modo più rapido per collegare un assistente IA alle tue attività",
         "serverUrl": "URL del server MCP",
@@ -1169,7 +1169,7 @@
       "clearConfirmation": "Sei sicuro di voler eliminare tutti i contatti? Questa azione non può essere annullata.",
       "clearSuccess": "Eliminati {count} contatti",
       "clearError": "Eliminazione contatti fallita. Per favore riprova.",
-      "syncedTitle": "Contatti Sincronizzati",
+      "syncedTitle": "Contatti sincronizzati",
       "syncedDescription": "Contatti importati da servizi esterni",
       "contactsSynced": "contatti sincronizzati",
       "lastUpdated": "Ultimo aggiornamento",
@@ -1217,14 +1217,14 @@
           "title": "Opzioni Debug",
           "description": "Attiva funzionalità debug per sviluppo",
           "toastDebugMode": {
-            "label": "Modalità Debug Toast",
+            "label": "Modalità debug Toast",
             "description": "Mostra notifiche toast dettagliate per debug",
             "current": "Attuale",
             "debugOn": "Debug (dettagliato)",
             "subtleOn": "Sottile (minimo)"
           },
           "reminderDebugMode": {
-            "label": "Modalità Debug Promemoria",
+            "label": "Modalità debug promemoria",
             "description": "Mostra informazioni debug promemoria",
             "current": "Attuale",
             "debugOn": "Debug attivo",
@@ -1241,7 +1241,7 @@
             "restoring": "Ripristino..."
           },
           "refreshData": {
-            "label": "Aggiorna Dati",
+            "label": "Aggiorna dati",
             "description": "Svuota cache e ricarica tutti i dati dal server",
             "button": "Aggiorna Tutti i Dati",
             "refreshing": "Aggiornamento..."
@@ -1253,9 +1253,9 @@
     "profileInfo": {
       "title": "Informazioni Profilo",
       "description": "Aggiorna le tue informazioni personali",
-      "displayName": "Nome Visualizzato",
-      "emailAddress": "Indirizzo Email",
-      "saveChanges": "Salva Modifiche",
+      "displayName": "Nome visualizzato",
+      "emailAddress": "Indirizzo email",
+      "saveChanges": "Salva modifiche",
       "saving": "Salvataggio...",
       "clickToChangePhoto": "Clicca per cambiare la foto profilo",
       "viewPublicProfile": "Vedi Profilo Pubblico",
@@ -1263,7 +1263,7 @@
       "uploading": "Caricamento...",
       "displayNamePlaceholder": "Inserisci il tuo nome visualizzato",
       "toasts": {
-        "successTitle": "Fatto!",
+        "successTitle": "Successo!",
         "updated": "Le informazioni del tuo account sono state aggiornate.",
         "updateFailed": "Impossibile aggiornare le informazioni dell'account.",
         "photoUploadedTitle": "Foto caricata!",
@@ -1273,7 +1273,7 @@
       }
     },
     "emailVerification": {
-      "title": "Verifica Email",
+      "title": "Verifica email",
       "description": "Verifica il tuo indirizzo email per maggiore sicurezza",
       "verified": "Verificato",
       "verifiedViaGoogle": "Verificato tramite Google",
@@ -1293,14 +1293,14 @@
     "passkeys": {
       "title": "Passkey",
       "description": "Usa le passkey per un accesso più veloce e sicuro senza password",
-      "addPasskey": "Aggiungi Passkey",
+      "addPasskey": "Aggiungi una Passkey",
       "addingPasskey": "Aggiunta passkey...",
       "noPasskeys": "Nessuna passkey registrata ancora",
       "addPasskeyHint": "Aggiungi una passkey per un accesso più veloce senza password",
       "loading": "Caricamento passkey...",
       "fallbackName": "Passkey",
-      "added": "Aggiunta il {date}",
-      "synced": "Sincronizzata",
+      "added": "Aggiunto il {date}",
+      "synced": "Sincronizzato",
       "tipBiometrics": "Le passkey usano la biometria o il PIN del dispositivo per l'autenticazione",
       "tipSynced": "Le passkey sincronizzate funzionano automaticamente su tutti i tuoi dispositivi",
       "tipSecure": "Più sicure delle password: resistenti al phishing",
@@ -1316,10 +1316,10 @@
       }
     },
     "accountInfo": {
-      "title": "Informazioni Account",
+      "title": "Informazioni account",
       "created": "Account creato",
       "lastUpdated": "Ultimo aggiornamento",
-      "accountId": "ID Account"
+      "accountId": "ID account"
     },
     "exportData": {
       "title": "Esporta i Tuoi Dati",
@@ -1334,7 +1334,7 @@
       "exporting": "Esportazione..."
     },
     "deleteAccount": {
-      "title": "Elimina Account",
+      "title": "Elimina account",
       "description": "Elimina permanentemente il tuo account e tutti i dati associati",
       "warning": "Attenzione: Questa azione non può essere annullata!",
       "willRemove": "Eliminare il tuo account rimuoverà permanentemente:",
@@ -1343,7 +1343,7 @@
       "allIntegrations": "Tutte le integrazioni e impostazioni",
       "sharedAccess": "Accesso a liste condivise e collaborazioni",
       "considerExporting": "Considera di esportare prima i tuoi dati (vedi sopra).",
-      "deleteMyAccount": "Elimina Il Mio Account",
+      "deleteMyAccount": "Elimina il mio account",
       "confirmTitle": "Conferma Eliminazione Account",
       "confirmDescription": "Questa azione è permanente e non può essere annullata.",
       "typeToConfirm": "Digita {phrase} per confermare",
@@ -1366,7 +1366,7 @@
         "proTip": "La tua preferenza di tema viene salvata automaticamente e sarà applicata su tutti i tuoi dispositivi."
       },
       "keyboard": {
-        "title": "Scorciatoie da Tastiera",
+        "title": "Scorciatoie da tastiera",
         "description": "Visualizza e impara le scorciatoie da tastiera per navigare più velocemente",
         "viewShortcuts": "Vedi Scorciatoie",
         "viewTitle": "Vedi Scorciatoie da Tastiera",
@@ -1401,7 +1401,7 @@
         "labelDesc": "I promemoria già impostati su un'attività scattano comunque quando questa opzione è disattivata."
       },
       "emailToTask": {
-        "title": "Email a Attività",
+        "title": "Email-a-Compito",
         "description": "Crea attività istantaneamente inviando email a {inboundTaskEmail}",
         "threeWays": "Tre Modi per Creare Attività",
         "selfTask": "Auto-attività:",
@@ -1416,7 +1416,7 @@
       },
       "tipLabel": "Suggerimento",
       "smartTasks": {
-        "title": "Creazione intelligente delle attività",
+        "title": "Creazione intelligente dei compiti",
         "description": "Riconosci automaticamente date, priorità e hashtag delle liste dai titoli delle attività",
         "enable": "Attiva il riconoscimento intelligente",
         "enableDesc": "Estrai i dettagli dell'attività dal testo in linguaggio naturale",
@@ -1430,7 +1430,7 @@
         "description": "Come appaiono le sottoattività nelle tue liste (sincronizzato tra dispositivi)",
         "label": "Mostra sottoattività",
         "labelDesc": "Rientrate nelle liste o solo all'interno dell'attività principale",
-        "indented": "Nelle liste, rientrate",
+        "indented": "Negli elenchi, rientrate",
         "underParent": "Solo nell'attività principale"
       }
     },
@@ -1456,7 +1456,7 @@
         }
       },
       "mcp": {
-        "badge": "Consigliato",
+        "badge": "Consigliata",
         "title": "Connetti tramite MCP",
         "description": "Il Model Context Protocol è il modo più rapido per collegare un assistente IA alle tue attività",
         "serverUrl": "URL del server MCP",
@@ -1528,26 +1528,26 @@
         "active": "Attivo",
         "idle": "Inattivo"
       },
-      "registered": "Registrato il {date}",
+      "registered": "Registrato {date}",
       "lastActive": "Ultima attività {date}",
       "empty": "Nessun agente personalizzato collegato. Registrane uno per iniziare.",
-      "connect": "Collega agente",
+      "connect": "Connetti Agente",
       "register": {
         "title": "Registra agente personalizzato",
         "description": "Crea un’identità di agente IA con credenziali OAuth per il protocollo Custom Agent.",
-        "name": "Nome dell’agente",
+        "name": "Nome dell'Agente",
         "placeholder": "buddy",
         "invalid": "Nome non valido. Usa da 2 a 32 caratteri alfanumerici minuscoli, punti, trattini o trattini bassi.",
         "hint": "Scegli un nome per il tuo agente (es. buddy, helper, dev-bot)",
         "cancel": "Annulla",
-        "registering": "Registrazione…",
-        "create": "Crea agente"
+        "registering": "Registrazione...",
+        "create": "Crea Agente"
       },
       "credentials": {
-        "title": "Agente creato",
+        "title": "Agente Creato",
         "description": "Salva subito queste credenziali. Il client secret non verrà mostrato di nuovo.",
         "warning": "Salva subito queste credenziali!",
-        "email": "Email dell’agente",
+        "email": "Email dell'Agente",
         "clientId": "ID client",
         "clientSecret": "Client secret",
         "tokenEndpoint": "Endpoint del token",
@@ -1590,7 +1590,7 @@
       "columns": {
         "actsAs": "Agisce come",
         "scopes": "Ambiti",
-        "created": "Creato",
+        "created": "Creato il",
         "lastUsed": "Ultimo utilizzo",
         "expires": "Scade",
         "never": "Mai"
@@ -1641,7 +1641,7 @@
         "repoCountMany": "{count} repository",
         "allRepos": "tutti i repository",
         "suspended": "Sospesa",
-        "disconnect": "Scollega",
+        "disconnect": "Disconnetti",
         "disconnectTitle": "Scollegare {account}?",
         "disconnectDescription": "Gli agenti di codice smetteranno di funzionare nei repository di {account}. L'app GitHub resta installata lì; disinstallala su GitHub per rimuoverla del tutto.",
         "disconnectDescriptionProjects": "Non vedrai qui i progetti di {account} finché non aggiorni da GitHub. La GitHub App resta installata; disinstallala su GitHub per rimuoverla completamente.",
@@ -1840,7 +1840,7 @@
       "date": "Data",
       "who": "Chi",
       "completed": "Completata",
-      "incomplete": "Incompleta",
+      "incomplete": "Incompleto",
       "manual": "Manuale"
     },
     "show": {
@@ -1851,7 +1851,7 @@
     },
     "priority": {
       "all": "Tutte le priorità",
-      "highest": "!!! Massima",
+      "highest": "!!! Urgente",
       "high": "!! Alta",
       "medium": "! Media",
       "low": "○ Bassa"
@@ -1883,7 +1883,7 @@
       "clickToEdit": "Fai clic per modificare",
       "clickToAddInstructions": "Fai clic per aggiungere istruzioni per gli agenti...",
       "agentsUseGuidance": "Gli agenti IA lo usano come guida principale quando lavorano alle attività di questa lista",
-      "taskCreator": "Creatore dell'attività",
+      "taskCreator": "Creatore attività",
       "memberNotFound": "Membro non trovato",
       "clickToSet": "Fai clic per impostare...",
       "defaultPriority": "Priorità predefinita",
@@ -1902,7 +1902,7 @@
       "deleteWarning": "Questa azione non può essere annullata. Tutte le attività di questa lista rimarranno, ma non saranno più associate a questa lista.",
       "dontDelete": "Non eliminare",
       "notConnected": "Non collegato.",
-      "connect": "Collega",
+      "connect": "Connetti",
       "unlink": "Scollega",
       "mirrorPlaceholder": "Scegli dove replicare questa lista",
       "externalSyncTitle": "Sincronizzazione esterna",
@@ -1998,12 +1998,12 @@
     "title": "Impostazioni promemoria",
     "pushNotifications": "Notifiche push",
     "emailReminders": "Promemoria via email",
-    "defaultReminderTime": "Orario promemoria predefinito",
+    "defaultReminderTime": "Ora promemoria predefinita",
     "dailyDigest": "Riepilogo giornaliero",
     "quietHours": "Ore di silenzio",
     "description": "Configura quando e come ricevere i promemoria delle attività",
     "pushDescription": "Ricevi notifiche istantanee nel browser",
-    "enablePush": "Attiva notifiche push",
+    "enablePush": "Abilita notifiche push",
     "pushBlocked": "Le notifiche push sono bloccate. Attivale nelle impostazioni del browser per ricevere i promemoria delle attività.",
     "emailDescription": "Ricevi email di promemoria per le attività in scadenza",
     "defaultReminderTimeDescription": "Quando ricordartelo prima della scadenza delle attività",
@@ -2107,30 +2107,30 @@
       "dismissSuggestions": "Chiudi i suggerimenti"
     },
     "shortcuts": {
-      "completeTask": "Completa l'attività selezionata",
+      "completeTask": "Completa l’attività selezionata",
       "dueEarlier": "Anticipa la data di scadenza di un giorno",
       "dueLater": "Posticipa la data di scadenza di un giorno",
       "jumpToDate": "Vai a «Data»",
       "postpone": "Posticipa l'attività di una settimana",
       "removeDueDate": "Rimuovi la data di scadenza dell'attività",
-      "editLists": "Modifica le liste dell'attività",
-      "editTitle": "Modifica il titolo dell'attività",
-      "editDescription": "Modifica la descrizione dell'attività",
+      "editLists": "Modifica gli elenchi dell’attività",
+      "editTitle": "Modifica il titolo dell’attività",
+      "editDescription": "Modifica la descrizione dell’attività",
       "addComment": "Aggiungi un nuovo commento all'attività",
       "assignNoOne": "Assegna l'attività a «Nessuno»",
       "priorityNone": "Imposta la priorità su ○ (Nessuna)",
       "priorityLow": "Imposta la priorità su ! (Bassa)",
       "priorityMedium": "Imposta la priorità su !! (Media)",
       "priorityHigh": "Imposta la priorità su !!! (Alta)",
-      "deleteTask": "Elimina l'attività selezionata",
+      "deleteTask": "Elimina l’attività selezionata",
       "deleteTaskAlt": "Elimina l'attività selezionata (alternativa)",
       "togglePanel": "Apri/chiudi il pannello di modifica dell'attività",
       "cycleFilters": "Scorri i filtri/tag delle liste",
-      "selectPrevious": "Seleziona l'attività precedente",
-      "selectNext": "Seleziona l'attività successiva",
+      "selectPrevious": "Seleziona l’attività precedente",
+      "selectNext": "Seleziona l’attività successiva",
       "outdent": "Sposta l'attività fuori dall'attività principale",
       "indent": "Annida l'attività sotto quella sopra",
-      "showHotkeys": "Mostra l'elenco delle scorciatoie"
+      "showHotkeys": "Mostra l’elenco delle scorciatoie"
     }
   },
   "commandPalette": {
@@ -2269,8 +2269,8 @@
     "passkey": "Passkey",
     "continuing": "Continuo...",
     "passkeysNotSupported": "Passkey non supportate in questo browser",
-    "newUser": "Prima volta?",
-    "returningUser": "Hai già un account?",
+    "newUser": "Nuovo?",
+    "returningUser": "Di ritorno?",
     "emailPlaceholder": "Inserisci la tua email",
     "creatingAccount": "Creazione account...",
     "signingIn": "Accesso in corso...",
@@ -2452,16 +2452,16 @@
   "profilePage": {
     "loading": "Caricamento profilo...",
     "notFound": "Profilo non trovato",
-    "goBack": "Indietro",
+    "goBack": "Torna indietro",
     "badge": "Profilo",
     "aiAgent": "Agente IA",
-    "joined": "Iscrizione: {date}",
+    "joined": "Iscritto il {date}",
     "completedDesc": "Attività completate",
-    "inspired": "Ispirazione",
+    "inspired": "Ispirati",
     "inspiredDesc": "Attività create, completate o copiate da altri",
-    "supported": "Supporto",
+    "supported": "Supportati",
     "supportedDesc": "Commenti sulle attività di altri",
-    "yourTasks": "Le tue attività",
+    "yourTasks": "I tuoi compiti",
     "sharedWith": "Attività condivise con {name}",
     "noShared": "Ancora nessuna attività condivisa con {name}",
     "userNotFound": "Utente non trovato",
@@ -2771,7 +2771,7 @@
       "startWorking": "Inizia",
       "snooze15": "Posticipa 15 min",
       "snooze60": "Posticipa 1 ora",
-      "markComplete": "Completa",
+      "markComplete": "Segna come completata",
       "openApp": "Apri app",
       "dismiss": "Ignora",
       "snoozeReminder": "Posticipa promemoria",

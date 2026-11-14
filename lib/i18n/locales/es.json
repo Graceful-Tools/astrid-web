@@ -48,7 +48,7 @@
     "search": "Buscar",
     "filter": "Filtrar",
     "sort": "Ordenar",
-    "clear": "Limpiar",
+    "clear": "Borrar",
     "reset": "Restablecer",
     "apply": "Aplicar",
     "select": "Seleccionar",
@@ -88,7 +88,7 @@
     "noDueDate": "Sin fecha límite",
     "noReminder": "Sin recordatorio",
     "addReminder": "Agregar recordatorio",
-    "addSubtask": "Agregar subtarea",
+    "addSubtask": "Añadir subtarea",
     "addComment": "Agregar comentario",
     "addAttachment": "Agregar archivo",
     "moveToList": "Mover a lista",
@@ -145,11 +145,11 @@
       "filterAll": "Todas las tareas"
     },
     "tradeoffRatings": {
-      "veryPoor": "Muy malo",
-      "poor": "Malo",
-      "mixed": "Mixto",
-      "good": "Bueno",
-      "veryGood": "Muy bueno"
+      "veryPoor": "Muy mal",
+      "poor": "Mal",
+      "mixed": "Regular",
+      "good": "Bien",
+      "veryGood": "Muy bien"
     },
     "tradeoffGrid": {
       "fullScreen": "Pantalla completa"
@@ -168,7 +168,7 @@
       "collapse": "Contraer",
       "taskActions": "Acciones de la tarea",
       "exitFullScreen": "Salir de pantalla completa",
-      "testReminder": "Probar recordatorio",
+      "testReminder": "Recordatorio de Prueba",
       "clickToAddDescription": "Haz clic para añadir una descripción...",
       "searchLists": "Buscar listas...",
       "noLists": "Sin listas",
@@ -200,21 +200,21 @@
       "count": "Comentarios ({count})",
       "hideSystemTitle": "Ocultar comentarios del sistema",
       "showSystemTitle": "Mostrar comentarios del sistema",
-      "hideSystem": "Ocultar sistema",
-      "showSystem": "Mostrar sistema",
+      "hideSystem": "Ocultar del sistema",
+      "showSystem": "Mostrar del sistema",
       "refreshShort": "Actualizar",
       "replyingTo": "Respondiendo a {name}",
       "agentThinking": "{name} está pensando..."
     },
     "modals": {
-      "deleteTitle": "Eliminar tarea",
-      "copyTitle": "Copiar tarea",
+      "deleteTitle": "eliminar tarea",
+      "copyTitle": "Copiar Tarea",
       "copyToList": "Copiar a la lista:",
-      "myTasksOnly": "Mis tareas (solo)",
+      "myTasksOnly": "Mis Tareas (solo)",
       "copyNote": "La tarea copiada conservará la fecha límite y se te asignará a ti.",
       "shareTitle": "Compartir tarea",
       "privateNote": "Esta es una tarea privada. Solo los usuarios con acceso a esta lista pueden verla.",
-      "generatingLink": "Generando enlace para compartir...",
+      "generatingLink": "Generando enlace...",
       "linkFailed": "No se pudo generar el enlace para compartir. Inténtalo de nuevo.",
       "deleteConfirm": "¿Seguro que quieres eliminar «{title}»? Esta acción no se puede deshacer.",
       "copyDescription": "Crea una copia de «{title}»",
@@ -270,7 +270,7 @@
     "removeMember": "Eliminar miembro",
     "leaveList": "Abandonar lista",
     "transferOwnership": "Transferir propiedad",
-    "selectNewOwner": "Seleccionar nuevo propietario",
+    "selectNewOwner": "Elegir nueva persona propietaria",
     "transferAndLeave": "Transferir y salir",
     "deleteConfirm": "¿Estás seguro de que quieres eliminar esta lista?",
     "placeholder": {
@@ -282,7 +282,7 @@
     "copyList": "Copiar lista",
     "descriptionTitle": "Descripción de la lista",
     "descriptionAgentHint": "Los agentes reciben esto como su contexto principal. Admite Markdown.",
-    "image": "Imagen de la lista",
+    "image": "Imagen de lista",
     "addModal": {
       "title": "Agregar una lista",
       "subtitle": "¡Usa listas para organizar proyectos, metas y aventuras!",
@@ -344,7 +344,7 @@
       "addAgent": "Agregar agente",
       "aiHelpTitle": "¿Quieres que la IA te ayude con tus tareas?",
       "addApiKeys": "Agrega tus claves API para empezar",
-      "privacyLabel": "Privacidad de la lista",
+      "privacyLabel": "Privacidad de lista",
       "makePublic": "Hacer pública",
       "makePrivate": "Hacer privada",
       "publicListType": "Tipo de lista pública",
@@ -352,7 +352,7 @@
       "makeCollaborative": "Hacer colaborativa",
       "leaveList": "Abandonar lista",
       "leaveConfirm": "¿Salir de «{name}»? Solo un propietario o administrador puede volver a añadirte.",
-      "aiCodingAgents": "Agentes de programación con IA",
+      "aiCodingAgents": "Agentes de programación IA",
       "aiAgents": "Agentes de IA",
       "agentForCoding": "{name} para programar y ayudar con las tareas",
       "agentForTasks": "{name} para ayudar con las tareas (añade un repositorio de GitHub para programar)",
@@ -369,7 +369,7 @@
       "noOtherMembers": "No hay otros miembros a quienes transferir la propiedad.",
       "deleteList": "Eliminar lista",
       "body": "Como propietario de «{name}», debes transferir la propiedad antes de abandonarla. Elige un sucesor o elimina la lista.",
-      "transferAndLeave": "Transferir y abandonar",
+      "transferAndLeave": "Transferir y salir",
       "deleteInstead": "Como alternativa, puedes eliminar la lista por completo:"
     },
     "publicBrowser": {
@@ -394,7 +394,7 @@
       "recent": "Recientes",
       "noListsFound": "No se encontraron listas",
       "noPublicLists": "No hay listas públicas disponibles",
-      "taskCount": "Tareas: {count}",
+      "taskCount": "{count} tareas",
       "copying": "Copiando...",
       "copyToMyLists": "Copiar a mis listas",
       "createdBy": "Creada por {name}",
@@ -433,7 +433,7 @@
         "pink": "Rosa"
       }
     },
-    "descriptionView": "Ver",
+    "descriptionView": "Vista",
     "descriptionDialogPlaceholder": "Escribe instrucciones para los agentes de IA que trabajan en esta lista...\n\nAdmite Markdown: **negrita**, *cursiva*, ## encabezados, - listas, [enlaces](url)",
     "descriptionSaveHint": "Pulsa Enter para guardar • Shift+Enter o Cmd/Ctrl+Enter para saltos de línea",
     "memberEvents": {
@@ -484,10 +484,10 @@
   },
   "repeating": {
     "oneTimeOnly": "Solo una vez",
-    "daily": "Diariamente",
-    "weekly": "Semanalmente",
-    "monthly": "Mensualmente",
-    "yearly": "Anualmente",
+    "daily": "Diario",
+    "weekly": "Semanal",
+    "monthly": "Mensual",
+    "yearly": "Anual",
     "custom": "Personalizado",
     "pickAtLeastOneDay": "Elige al menos un día",
     "editor": {
@@ -499,9 +499,9 @@
       "dayOfMonth": "Día del mes",
       "weekOfMonth": "Semana del mes",
       "endCondition": "Condición de fin",
-      "afterOccurrences": "Después de X repeticiones",
-      "untilDate": "Hasta una fecha concreta",
-      "occurrencesCount": "Número de repeticiones",
+      "afterOccurrences": "Después de X ocurrencias",
+      "untilDate": "Hasta una fecha específica",
+      "occurrencesCount": "Número de ocurrencias",
       "endDate": "Fecha de fin",
       "unitDays": "Días",
       "unitWeeks": "Semanas",
@@ -511,12 +511,12 @@
       "month": "Mes",
       "day": "Día",
       "never": "Nunca",
-      "week1": "1.ª",
-      "week2": "2.ª",
-      "week3": "3.ª",
-      "week4": "4.ª",
-      "week5": "5.ª",
-      "weekLast": "Última"
+      "week1": "1ro",
+      "week2": "2do",
+      "week3": "3ro",
+      "week4": "4to",
+      "week5": "5to",
+      "weekLast": "Último"
     },
     "summary": {
       "everyDay": "Cada día",
@@ -635,7 +635,7 @@
     "updating": "Actualizando",
     "updated": "Actualizado",
     "creating": "Creando",
-    "created": "Creado",
+    "created": "Creada el",
     "copying": "Copiando",
     "copied": "Copiado",
     "moving": "Moviendo",
@@ -769,7 +769,7 @@
     "and": "y",
     "yes": "Sí",
     "no": "No",
-    "ok": "OK",
+    "ok": "Aceptar",
     "all": "Todo",
     "none": "Ninguno",
     "more": "Más",
@@ -803,7 +803,7 @@
     "assignedDescription": "Tareas asignadas a otros",
     "notInList": "Sin Lista",
     "notInListDescription": "Tareas huérfanas",
-    "public": "Públicas",
+    "public": "Pública",
     "publicDescription": "Tareas públicas"
   },
   "settingsPages": {
@@ -820,7 +820,7 @@
       "description": "Agente de código completo con integración GitHub + Vercel"
     },
     "aiAgents": {
-      "title": "IA y Agentes",
+      "title": "Agentes de IA",
       "description": "Configura asistentes de IA y agentes de código con tus claves API",
       "githubMcp": {
         "title": "Usar {appName} en GitHub Copilot",
@@ -1032,7 +1032,7 @@
         "nameLabel": "Nombre de la aplicación *",
         "descriptionLabel": "Descripción",
         "scopesRequired": "Alcances *",
-        "aiAgentPreset": "Agente de IA",
+        "aiAgentPreset": "Agente IA",
         "grantTypesRequired": "Tipos de concesión *",
         "grantHelp": "Activa {code} para ChatGPT u otras integraciones con consentimiento del usuario. Requiere al menos una URI de redirección.",
         "redirectHelp": "Una URL por línea. Obligatorio para el flujo de código de autorización (ChatGPT, apps web). {appName} solo redirigirá a las URL que aparezcan aquí.",
@@ -1098,7 +1098,7 @@
         }
       },
       "mcp": {
-        "badge": "Recomendado",
+        "badge": "Recomendada",
         "title": "Conectar mediante MCP",
         "description": "El Model Context Protocol es la forma más rápida de conectar un asistente de IA a tus tareas",
         "serverUrl": "URL del servidor MCP",
@@ -1121,7 +1121,7 @@
           "step5": "Copia tu ID de Cliente y Secreto"
         },
         "redirectUri": "URI de Redirección",
-        "scopes": "Alcances"
+        "scopes": "Permisos"
       },
       "step2": {
         "badge": "Paso 2",
@@ -1180,7 +1180,7 @@
       "connecting": "Conectando...",
       "import": "Importar",
       "privacyNotice": "Tus contactos se almacenan de forma segura y solo se usan para sugerir colaboradores al compartir listas.",
-      "dangerZone": "Zona de Peligro",
+      "dangerZone": "Zona de peligro",
       "irreversibleActions": "Estas acciones no se pueden deshacer",
       "clearAll": "Eliminar Todos los Contactos",
       "clearAllDescription": "Elimina todos los contactos importados de tu cuenta",
@@ -1217,14 +1217,14 @@
           "title": "Opciones de Depuración",
           "description": "Activa funciones de depuración para desarrollo",
           "toastDebugMode": {
-            "label": "Modo Debug de Notificaciones",
+            "label": "Modo de Depuración de Toast",
             "description": "Muestra notificaciones detalladas para depuración",
             "current": "Actual",
             "debugOn": "Debug (detallado)",
             "subtleOn": "Sutil (mínimo)"
           },
           "reminderDebugMode": {
-            "label": "Modo Debug de Recordatorios",
+            "label": "Modo de Depuración de Recordatorios",
             "description": "Muestra información de depuración de recordatorios",
             "current": "Actual",
             "debugOn": "Debug activado",
@@ -1241,7 +1241,7 @@
             "restoring": "Restaurando..."
           },
           "refreshData": {
-            "label": "Actualizar Datos",
+            "label": "Actualizar datos",
             "description": "Limpia el caché y recarga todos los datos del servidor",
             "button": "Actualizar Todos los Datos",
             "refreshing": "Actualizando..."
@@ -1254,8 +1254,8 @@
       "title": "Información del Perfil",
       "description": "Actualiza tu información personal",
       "displayName": "Nombre para Mostrar",
-      "emailAddress": "Dirección de Correo",
-      "saveChanges": "Guardar Cambios",
+      "emailAddress": "Correo electrónico",
+      "saveChanges": "Guardar cambios",
       "saving": "Guardando...",
       "clickToChangePhoto": "Haz clic para cambiar la foto de perfil",
       "viewPublicProfile": "Ver Perfil Público",
@@ -1263,7 +1263,7 @@
       "uploading": "Subiendo...",
       "displayNamePlaceholder": "Introduce tu nombre para mostrar",
       "toasts": {
-        "successTitle": "¡Listo!",
+        "successTitle": "¡Éxito!",
         "updated": "La información de tu cuenta se ha actualizado.",
         "updateFailed": "No se pudo actualizar la información de la cuenta.",
         "photoUploadedTitle": "¡Foto subida!",
@@ -1273,7 +1273,7 @@
       }
     },
     "emailVerification": {
-      "title": "Verificación de Correo",
+      "title": "Verificación de correo",
       "description": "Verifica tu dirección de correo para mayor seguridad",
       "verified": "Verificado",
       "verifiedViaGoogle": "Verificado vía Google",
@@ -1293,13 +1293,13 @@
     "passkeys": {
       "title": "Passkeys",
       "description": "Usa passkeys para iniciar sesión más rápido y seguro sin contraseñas",
-      "addPasskey": "Agregar Passkey",
+      "addPasskey": "Agregar una Passkey",
       "addingPasskey": "Agregando passkey...",
       "noPasskeys": "No hay passkeys registradas aún",
       "addPasskeyHint": "Agrega una passkey para iniciar sesión más rápido sin contraseña",
       "loading": "Cargando passkeys...",
       "fallbackName": "Passkey",
-      "added": "Añadida el {date}",
+      "added": "Agregada el {date}",
       "synced": "Sincronizada",
       "tipBiometrics": "Las passkeys usan datos biométricos o el PIN del dispositivo para autenticarte",
       "tipSynced": "Las passkeys sincronizadas funcionan automáticamente en todos tus dispositivos",
@@ -1316,10 +1316,10 @@
       }
     },
     "accountInfo": {
-      "title": "Información de la Cuenta",
+      "title": "Información de la cuenta",
       "created": "Cuenta creada",
       "lastUpdated": "Última actualización",
-      "accountId": "ID de Cuenta"
+      "accountId": "ID de cuenta"
     },
     "exportData": {
       "title": "Exportar Tus Datos",
@@ -1334,7 +1334,7 @@
       "exporting": "Exportando..."
     },
     "deleteAccount": {
-      "title": "Eliminar Cuenta",
+      "title": "Eliminar cuenta",
       "description": "Elimina permanentemente tu cuenta y todos los datos asociados",
       "warning": "¡Advertencia: Esta acción no se puede deshacer!",
       "willRemove": "Eliminar tu cuenta eliminará permanentemente:",
@@ -1343,7 +1343,7 @@
       "allIntegrations": "Todas las integraciones y configuraciones",
       "sharedAccess": "Acceso a listas compartidas y colaboraciones",
       "considerExporting": "Considera exportar tus datos primero (ver arriba).",
-      "deleteMyAccount": "Eliminar Mi Cuenta",
+      "deleteMyAccount": "Eliminar mi cuenta",
       "confirmTitle": "Confirmar Eliminación de Cuenta",
       "confirmDescription": "Esta acción es permanente y no se puede revertir.",
       "typeToConfirm": "Escribe {phrase} para confirmar",
@@ -1366,7 +1366,7 @@
         "proTip": "Tu preferencia de tema se guarda automáticamente y se aplicará en todos tus dispositivos."
       },
       "keyboard": {
-        "title": "Atajos de Teclado",
+        "title": "Atajos de teclado",
         "description": "Ve y aprende atajos de teclado para navegar más rápido",
         "viewShortcuts": "Ver Atajos",
         "viewTitle": "Ver Atajos de Teclado",
@@ -1401,7 +1401,7 @@
         "labelDesc": "Los recordatorios ya definidos en una tarea siguen sonando aunque esto esté desactivado."
       },
       "emailToTask": {
-        "title": "Correo a Tarea",
+        "title": "Email-a-Tarea",
         "description": "Crea tareas instantáneamente enviando correos a {inboundTaskEmail}",
         "threeWays": "Tres Formas de Crear Tareas",
         "selfTask": "Auto-tarea:",
@@ -1430,7 +1430,7 @@
         "description": "Cómo aparecen las subtareas en tus listas (sincronizado entre dispositivos)",
         "label": "Mostrar subtareas",
         "labelDesc": "Con sangría en las listas o solo dentro de la tarea principal",
-        "indented": "En las listas, con sangría",
+        "indented": "En listas, con sangría",
         "underParent": "Solo dentro de la tarea principal"
       }
     },
@@ -1456,7 +1456,7 @@
         }
       },
       "mcp": {
-        "badge": "Recomendado",
+        "badge": "Recomendada",
         "title": "Conectar mediante MCP",
         "description": "El Model Context Protocol es la forma más rápida de conectar un asistente de IA a tus tareas",
         "serverUrl": "URL del servidor MCP",
@@ -1483,7 +1483,7 @@
           "step5": "Copia tu ID de Cliente y Secreto"
         },
         "redirectUri": "URI de Redirección",
-        "scopes": "Alcances"
+        "scopes": "Permisos"
       },
       "step2": {
         "badge": "Paso 2",
@@ -1528,26 +1528,26 @@
         "active": "Activo",
         "idle": "Inactivo"
       },
-      "registered": "Registrado el {date}",
+      "registered": "Registrado {date}",
       "lastActive": "Última actividad {date}",
       "empty": "No hay agentes personalizados conectados. Registra uno para empezar.",
-      "connect": "Conectar agente",
+      "connect": "Conectar Agente",
       "register": {
         "title": "Registrar agente personalizado",
         "description": "Crea una identidad de agente de IA con credenciales OAuth para el protocolo de agentes personalizados.",
-        "name": "Nombre del agente",
+        "name": "Nombre del Agente",
         "placeholder": "buddy",
         "invalid": "Nombre no válido. Usa de 2 a 32 caracteres alfanuméricos en minúscula, puntos, guiones o guiones bajos.",
         "hint": "Elige un nombre para tu agente (p. ej., buddy, helper, dev-bot)",
         "cancel": "Cancelar",
-        "registering": "Registrando…",
-        "create": "Crear agente"
+        "registering": "Registrando...",
+        "create": "Crear Agente"
       },
       "credentials": {
-        "title": "Agente creado",
+        "title": "Agente Creado",
         "description": "Guarda estas credenciales ahora. El secreto de cliente no volverá a mostrarse.",
         "warning": "¡Guarda estas credenciales ahora!",
-        "email": "Correo del agente",
+        "email": "Email del Agente",
         "clientId": "ID de cliente",
         "clientSecret": "Secreto de cliente",
         "tokenEndpoint": "Endpoint de token",
@@ -1590,14 +1590,14 @@
       "columns": {
         "actsAs": "Actúa como",
         "scopes": "Permisos",
-        "created": "Creado",
+        "created": "Creada el",
         "lastUsed": "Último uso",
         "expires": "Caduca",
         "never": "Nunca"
       },
       "status": {
         "active": "Activo",
-        "expired": "Caducado",
+        "expired": "Expirada",
         "disabled": "Desactivado"
       },
       "actsAsYou": "Tú",
@@ -1670,7 +1670,7 @@
         "leavesGroup": "Esta conexión dejará de seguir {group}, así que los alcances añadidos después a ese grupo no le llegarán.",
         "inGroup": "En {group}",
         "otherScopes": "Otros alcances",
-        "scopes": "Alcances",
+        "scopes": "Permisos",
         "notGranted": "Aún no concedido",
         "tokensNote": "Los tokens ya emitidos conservan sus alcances. Solicita uno nuevo para aplicar el cambio.",
         "save": "Guardar permisos",
@@ -1851,7 +1851,7 @@
     },
     "priority": {
       "all": "Todas las prioridades",
-      "highest": "!!! Máxima",
+      "highest": "!!! Más alta",
       "high": "!! Alta",
       "medium": "! Media",
       "low": "○ Baja"
@@ -1907,7 +1907,7 @@
       "mirrorPlaceholder": "Elige dónde reflejar esta lista",
       "externalSyncTitle": "Sincronización externa",
       "externalSyncDescription": "Refleja esta lista en otro servicio y viceversa, mediante tu cuenta conectada.",
-      "aiAgent": "Agente de IA",
+      "aiAgent": "Agente IA",
       "modelForList": "Modelo de {appName} para esta lista",
       "useAccountDefault": "Usar el valor predeterminado de la cuenta",
       "modelHint": "Impulsa a {appName} en el chat y los comentarios de esta lista. Los agentes de código asignados a tareas mantienen su propio entorno de ejecución.",
@@ -1991,19 +1991,19 @@
       "cannotChange": "Este filtro no se puede cambiar en la vista «{name}»"
     },
     "listSettingsTitle": "Configuración de lista",
-    "listDetailsTitle": "Detalles de lista",
+    "listDetailsTitle": "Detalles de la lista",
     "statusesTab": "Estados"
   },
   "reminderSettings": {
     "title": "Ajustes de recordatorios",
-    "pushNotifications": "Notificaciones push",
+    "pushNotifications": "Notificaciones Push",
     "emailReminders": "Recordatorios por correo",
-    "defaultReminderTime": "Hora de recordatorio predeterminada",
-    "dailyDigest": "Resumen diario",
+    "defaultReminderTime": "Hora de Recordatorio Predeterminada",
+    "dailyDigest": "Resumen Diario",
     "quietHours": "Horas de silencio",
     "description": "Configura cuándo y cómo recibes recordatorios de tareas",
     "pushDescription": "Recibe notificaciones instantáneas en tu navegador",
-    "enablePush": "Activar notificaciones push",
+    "enablePush": "Habilitar Notificaciones Push",
     "pushBlocked": "Las notificaciones push están bloqueadas. Actívalas en la configuración del navegador para recibir recordatorios de tareas.",
     "emailDescription": "Recibe correos de recordatorio de tareas pendientes",
     "defaultReminderTimeDescription": "Cuándo recordarte antes de que venzan las tareas",
@@ -2205,7 +2205,7 @@
     }
   },
   "codingAgentPage": {
-    "getStarted": "Comenzar",
+    "getStarted": "Empezar",
     "heroTitle": "{appName} Agent",
     "heroSubtitle": "Asistente de código con IA que escribe código, crea PR y despliega automáticamente",
     "badgeProductionReady": "Código listo para producción",
@@ -2269,8 +2269,8 @@
     "passkey": "Passkey",
     "continuing": "Continuando...",
     "passkeysNotSupported": "Este navegador no admite passkeys",
-    "newUser": "¿Eres nuevo?",
-    "returningUser": "¿Ya tienes cuenta?",
+    "newUser": "¿Nuevo?",
+    "returningUser": "¿Vuelves?",
     "emailPlaceholder": "Ingresa tu correo electrónico",
     "creatingAccount": "Creando cuenta...",
     "signingIn": "Iniciando sesión...",
@@ -2454,14 +2454,14 @@
     "notFound": "Perfil no encontrado",
     "goBack": "Volver",
     "badge": "Perfil",
-    "aiAgent": "Agente de IA",
-    "joined": "Se unió el {date}",
+    "aiAgent": "Agente IA",
+    "joined": "Se unió {date}",
     "completedDesc": "Tareas completadas",
-    "inspired": "Inspiración",
+    "inspired": "Inspiradas",
     "inspiredDesc": "Tareas creadas, completadas o copiadas por otros",
-    "supported": "Apoyo",
+    "supported": "Apoyadas",
     "supportedDesc": "Comentarios en tareas de otros",
-    "yourTasks": "Tus tareas",
+    "yourTasks": "Tus Tareas",
     "sharedWith": "Tareas compartidas con {name}",
     "noShared": "Aún no hay tareas compartidas con {name}",
     "userNotFound": "Usuario no encontrado",
@@ -2771,7 +2771,7 @@
       "startWorking": "Empezar",
       "snooze15": "Posponer 15 min",
       "snooze60": "Posponer 1 h",
-      "markComplete": "Completar",
+      "markComplete": "Marcar como completada",
       "openApp": "Abrir app",
       "dismiss": "Descartar",
       "snoozeReminder": "Posponer recordatorio",
