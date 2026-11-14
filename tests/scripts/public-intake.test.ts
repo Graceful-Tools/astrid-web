@@ -36,7 +36,7 @@ describe('submissions that try to steer an agent are held (AWTD-1656)', () => {
 
   it.each([
     '[ios] updated profile photo, but profile didn’t update immediately',
-    'Bug: visiting astrid.cc/help opens app, but doesn’t go to help',
+    'Bug: visiting the help page opens the app, but doesn’t go to help',
     'Sign-in token expired after 30 days',
     'The App Store page https://apps.apple.com/app/astrid-tasks/id6755752694 shows an old screenshot',
   ])('copies an ordinary report: %j', (text) => {
