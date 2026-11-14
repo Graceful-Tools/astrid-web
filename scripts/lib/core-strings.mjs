@@ -78,13 +78,115 @@ export function sharedStringPlan({ sources, core, web }) {
         .filter(value => typeof value === 'string' && argumentNames(value) === argumentNames(english)))]
       if (values.length === 0) continue
       const status = values.length > 1 ? 'conflict' : values[0] === current ? 'agree' : 'differ'
-      pairs.push({ locale, webKey, sharedKeys, status, current, core: values.length === 1 ? values[0] : values })
+      pairs.push({ locale, webKey, sharedKeys, status, english, current, core: values.length === 1 ? values[0] : values })
     }
   }
   return { mapped: [...claims.keys()], skipped, pairs }
 }
 
-/** The committed form of the divergence list: `locale webKey`, sorted. */
+/**
+ * Where web and iOS translate a shared string differently, a SHORT one takes iOS's wording
+ * (Jon, 2026-11-14, AWTD-1654: "defer to iOS for short strings"). Core's catalog carries iOS's
+ * translations, so taking core's value is taking iOS's. Short means a button or label: three
+ * English words or fewer, an {argument} counting as one.
+ */
+export const SHORT_STRING_MAX_WORDS = 3
+
+export function isShortString(english) {
+  if (typeof english !== 'string') return false
+  return english.replace(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/g, 'x').trim().split(/\s+/).length <= SHORT_STRING_MAX_WORDS
+}
+
+/**
+ * The committed form of the divergence list: `locale webKey`, sorted. A short `differ` never
+ * stays on it (iOS wins those); a long one and every two-key `conflict` stay until the
+ * native-speaker review settles them.
+ */
 export function divergenceIds(pairs) {
-  return pairs.filter(p => p.status !== 'agree').map(p => `${p.locale} ${p.webKey}`).sort()
+  return pairs
+    .filter(p => p.status !== 'agree' && !(p.status === 'differ' && isShortString(p.english)))
+    .map(p => `${p.locale} ${p.webKey}`)
+    .sort()
+}
+
+// ── The native-speaker review sheet (AWTD-1654) ─────────────────────────────────────────────
+//
+// What is left on the divergence list after the short-string rule — long strings whose web and
+// iOS translations differ, and the web keys two shared keys claim with different values — is
+// settled per string by someone who speaks the language. One CSV per locale under
+// lib/i18n/core-strings/review/, with an empty `choice` column to fill in:
+//   ios  → take iOS's (core's) wording: `--apply-review` drops the pair and the sync writes it;
+//   web  → keep web's wording: it has to become core's, so `--apply-review` lists it for a core
+//          change and leaves it on the list until that change is vendored;
+//   other text → a new wording, which also belongs in core's catalog. Listed the same way.
+// A conflict has no single iOS value, so only `web` or a new wording settles it.
+
+export const REVIEW_COLUMNS = ['web_key', 'kind', 'english', 'web', 'ios', 'shared_keys', 'choice']
+
+/** Rows for every pair on the divergence list, grouped by locale, keyed for the CSV. */
+export function reviewRows(pairs, divergent) {
+  const listed = new Set(divergent)
+  const byLocale = {}
+  for (const p of pairs) {
+    if (!listed.has(`${p.locale} ${p.webKey}`)) continue
+    ;(byLocale[p.locale] ??= []).push({
+      web_key: p.webKey,
+      kind: p.status,
+      english: p.english,
+      web: p.current,
+      ios: Array.isArray(p.core) ? p.core.join(' ‖ ') : p.core,
+      shared_keys: p.sharedKeys.join(' '),
+      choice: '',
+    })
+  }
+  return byLocale
+}
+
+const csvCell = value => (/[",\n\r]/.test(value) ? `"${String(value).replaceAll('"', '""')}"` : String(value))
+
+export function toCsv(rows) {
+  return [REVIEW_COLUMNS.join(','), ...rows.map(r => REVIEW_COLUMNS.map(c => csvCell(r[c] ?? '')).join(','))].join('\n') + '\n'
+}
+
+/** RFC 4180, enough for what toCsv writes and what a spreadsheet saves back. */
+export function parseCsv(text) {
+  const records = []
+  let record = []
+  let cell = ''
+  let quoted = false
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++ }
+      else if (ch === '"') quoted = false
+      else cell += ch
+    } else if (ch === '"') quoted = true
+    else if (ch === ',') { record.push(cell); cell = '' }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++
+      record.push(cell); records.push(record); record = []; cell = ''
+    } else cell += ch
+  }
+  if (cell !== '' || record.length) { record.push(cell); records.push(record) }
+  const [header, ...body] = records.filter(r => r.some(c => c !== ''))
+  return body.map(r => Object.fromEntries(header.map((h, i) => [h.trim(), r[i] ?? ''])))
+}
+
+/**
+ * What a filled-in sheet decides, for one locale: the pairs iOS wins (they leave the list) and
+ * the ones whose wording must change in core first (they stay until it is vendored).
+ */
+export function reviewDecisions(locale, rows) {
+  const takeIos = []
+  const changeInCore = []
+  for (const row of rows) {
+    const choice = (row.choice ?? '').trim()
+    if (!choice) continue
+    const id = `${locale} ${row.web_key}`
+    if (choice.toLowerCase() === 'ios' && row.kind === 'differ') takeIos.push(id)
+    else if (choice.toLowerCase() === 'web') changeInCore.push({ id, wording: row.web })
+    else if (choice.toLowerCase() !== 'ios') changeInCore.push({ id, wording: choice })
+    else changeInCore.push({ id, wording: null, note: 'a conflict has no single iOS value; write the wording' })
+  }
+  return { takeIos, changeInCore }
 }

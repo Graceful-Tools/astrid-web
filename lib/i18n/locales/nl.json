@@ -1,11 +1,11 @@
 {
   "navigation": {
-    "myTasks": "Mijn Taken",
+    "myTasks": "Mijn taken",
     "today": "Vandaag",
     "lists": "Lijsten",
-    "addList": "Lijst Toevoegen",
-    "publicSharedLists": "Openbare Gedeelde Lijsten",
-    "publicLists": "Openbare Lijsten",
+    "addList": "Lijst toevoegen",
+    "publicSharedLists": "Openbare gedeelde lijsten",
+    "publicLists": "Openbare lijsten",
     "seeAllCollaborative": "Bekijk alle samenwerkingslijsten →",
     "seeAllSuggested": "Bekijk alle aanbevolen lijsten →",
     "skipToContent": "Naar inhoud springen",
@@ -41,7 +41,7 @@
     "archive": "Archiveren",
     "restore": "Herstellen",
     "retry": "Opnieuw",
-    "submit": "Versturen",
+    "submit": "Verzenden",
     "send": "Verzenden",
     "upload": "Uploaden",
     "download": "Downloaden",
@@ -78,7 +78,7 @@
     "boardState": "Bordstatus",
     "markComplete": "Markeer als voltooid",
     "markIncomplete": "Markeer als niet voltooid",
-    "comments": "Opmerkingen",
+    "comments": "Reacties",
     "attachments": "Bijlagen",
     "subtasks": "Subtaken",
     "tags": "Tags",
@@ -168,7 +168,7 @@
       "collapse": "Inklappen",
       "taskActions": "Taakacties",
       "exitFullScreen": "Volledig scherm afsluiten",
-      "testReminder": "Herinnering testen",
+      "testReminder": "Testherinnering",
       "clickToAddDescription": "Klik om een beschrijving toe te voegen...",
       "searchLists": "Lijsten zoeken...",
       "noLists": "Geen lijsten",
@@ -176,7 +176,7 @@
       "searchUsersOrEmail": "Zoek gebruikers of voer e-mail in...",
       "nextWeek": "Volgende week",
       "selectRepeat": "Herhaling selecteren",
-      "repeatMode": "Herhaalmodus",
+      "repeatMode": "Herhalingsmodus",
       "repeatFromCompletion": "Herhalen vanaf voltooiingsdatum",
       "repeatFromDue": "Herhalen vanaf vervaldatum",
       "saveCustomPattern": "Aangepast patroon opslaan",
@@ -185,7 +185,7 @@
       "repeatFromCompletionHint": "De volgende herhaling is gebaseerd op wanneer je de taak voltooit",
       "repeatFromDueHint": "De volgende herhaling is gebaseerd op de oorspronkelijke vervaldatum",
       "descriptionKeysHint": "Druk op Enter om op te slaan • Shift+Enter voor een nieuwe regel",
-      "descriptionPreview": "Voorvertoning",
+      "descriptionPreview": "Voorbeeld",
       "expandDescription": "Beschrijving uitvouwen"
     },
     "commentsSection": {
@@ -207,14 +207,14 @@
       "agentThinking": "{name} denkt na..."
     },
     "modals": {
-      "deleteTitle": "Taak verwijderen",
+      "deleteTitle": "taak verwijderen",
       "copyTitle": "Taak kopiëren",
       "copyToList": "Kopieer naar lijst:",
-      "myTasksOnly": "Mijn taken (alleen)",
+      "myTasksOnly": "Alleen mijn taken",
       "copyNote": "De gekopieerde taak behoudt de vervaldatum en wordt aan jou toegewezen.",
       "shareTitle": "Taak delen",
       "privateNote": "Dit is een privétaak. Alleen gebruikers met toegang tot deze lijst kunnen deze bekijken.",
-      "generatingLink": "Deellink genereren...",
+      "generatingLink": "Link genereren...",
       "linkFailed": "Deellink genereren mislukt. Probeer het opnieuw.",
       "deleteConfirm": "Weet je zeker dat je \"{title}\" wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.",
       "copyDescription": "Maak een kopie van \"{title}\"",
@@ -269,8 +269,8 @@
     "addMember": "Lid toevoegen",
     "removeMember": "Lid verwijderen",
     "leaveList": "Lijst verlaten",
-    "transferOwnership": "Eigendom Overdragen",
-    "selectNewOwner": "Selecteer Nieuwe Eigenaar",
+    "transferOwnership": "Eigendom overdragen",
+    "selectNewOwner": "Nieuwe eigenaar kiezen",
     "transferAndLeave": "Overdragen en Verlaten",
     "deleteConfirm": "Weet je zeker dat je deze lijst wilt verwijderen?",
     "placeholder": {
@@ -327,7 +327,7 @@
       "memberOption": "Lid - Kan taken toevoegen, bewerken en beheren",
       "aiBadge": "AI",
       "pending": "In afwachting",
-      "cancelInvite": "Intrekken",
+      "cancelInvite": "Annuleren",
       "remove": "Verwijderen",
       "leave": "Verlaten",
       "roles": {
@@ -352,7 +352,7 @@
       "makeCollaborative": "Collaboratief maken",
       "leaveList": "Lijst verlaten",
       "leaveConfirm": "\"{name}\" verlaten? Alleen een eigenaar of beheerder kan je weer toevoegen.",
-      "aiCodingAgents": "AI-codeeragents",
+      "aiCodingAgents": "AI-programmeeragenten",
       "aiAgents": "AI-agents",
       "agentForCoding": "{name} voor programmeren en hulp bij taken",
       "agentForTasks": "{name} voor hulp bij taken (voeg een GitHub-repository toe om te programmeren)",
@@ -394,8 +394,8 @@
       "recent": "Recent",
       "noListsFound": "Geen lijsten gevonden",
       "noPublicLists": "Geen openbare lijsten beschikbaar",
-      "taskCount": "Taken: {count}",
-      "copying": "Bezig met kopiëren...",
+      "taskCount": "{count} taken",
+      "copying": "Kopiëren...",
       "copyToMyLists": "Naar mijn lijsten kopiëren",
       "createdBy": "Gemaakt door {name}",
       "createdOn": "Gemaakt op {date}",
@@ -433,7 +433,7 @@
         "pink": "Roze"
       }
     },
-    "descriptionView": "Bekijken",
+    "descriptionView": "Weergave",
     "descriptionDialogPlaceholder": "Schrijf instructies voor AI-agents die in deze lijst werken...\n\nOndersteunt Markdown: **vet**, *cursief*, ## koppen, - lijsten, [links](url)",
     "descriptionSaveHint": "Druk op Enter om op te slaan • Shift+Enter of Cmd/Ctrl+Enter voor een nieuwe regel",
     "memberEvents": {
@@ -468,12 +468,12 @@
     "pickDate": "Kies een datum",
     "pickTime": "Kies een tijd",
     "atDueTime": "Op vervaltijd",
-    "minutesBefore": "{count} minuten eerder",
-    "hourBefore": "1 uur eerder",
-    "hoursBefore": "{count} uur eerder",
-    "dayBefore": "1 dag eerder",
+    "minutesBefore": "{count} minuten van tevoren",
+    "hourBefore": "1 uur van tevoren",
+    "hoursBefore": "{count} uur van tevoren",
+    "dayBefore": "1 dag van tevoren",
     "daysBefore": "{count} dagen eerder",
-    "weekBefore": "1 week eerder",
+    "weekBefore": "1 week van tevoren",
     "quickSelect": "Snelkeuze:",
     "setTime": "Tijd instellen",
     "selectTime": "Tijd selecteren",
@@ -498,10 +498,10 @@
       "sameWeekday": "Dezelfde weekdag en week van de maand",
       "dayOfMonth": "Dag van de maand",
       "weekOfMonth": "Week van de maand",
-      "endCondition": "Eindvoorwaarde",
+      "endCondition": "Eindconditie",
       "afterOccurrences": "Na X keer",
-      "untilDate": "Tot een bepaalde datum",
-      "occurrencesCount": "Aantal keren",
+      "untilDate": "Tot specifieke datum",
+      "occurrencesCount": "Aantal herhalingen",
       "endDate": "Einddatum",
       "unitDays": "Dagen",
       "unitWeeks": "Weken",
@@ -736,7 +736,7 @@
       "completedDescription": "Taak gemarkeerd als voltooid en herinnering genegeerd",
       "completeFailedTitle": "Voltooien mislukt",
       "completeFailed": "Taak kon niet worden voltooid",
-      "overdue": "Te laat"
+      "overdue": "Verlopen"
     }
   },
   "emptyState": {
@@ -795,7 +795,7 @@
     "showingMatches": "Taken die overeenkomen met “{term}” uit alle toegankelijke lijsten"
   },
   "listHeaders": {
-    "myTasks": "Mijn Taken",
+    "myTasks": "Mijn taken",
     "myTasksDescription": "Al je taken",
     "today": "Vandaag",
     "todayDescription": "Taken voor vandaag",
@@ -808,7 +808,7 @@
   },
   "settingsPages": {
     "accountAccess": {
-      "title": "Account en Toegang",
+      "title": "Account & Toegang",
       "description": "Profiel, e-mailverificatie en toegangsinstellingen"
     },
     "remindersNotifications": {
@@ -1169,7 +1169,7 @@
       "clearConfirmation": "Weet je zeker dat je alle contacten wilt verwijderen? Dit kan niet ongedaan worden gemaakt.",
       "clearSuccess": "{count} contacten verwijderd",
       "clearError": "Verwijderen van contacten mislukt. Probeer het opnieuw.",
-      "syncedTitle": "Gesynchroniseerde Contacten",
+      "syncedTitle": "Gesynchroniseerde contacten",
       "syncedDescription": "Contacten geïmporteerd van externe diensten",
       "contactsSynced": "contacten gesynchroniseerd",
       "lastUpdated": "Laatst bijgewerkt",
@@ -1241,7 +1241,7 @@
             "restoring": "Herstellen..."
           },
           "refreshData": {
-            "label": "Gegevens Vernieuwen",
+            "label": "Gegevens vernieuwen",
             "description": "Wis cache en herlaad alle gegevens van de server",
             "button": "Alle Gegevens Vernieuwen",
             "refreshing": "Vernieuwen..."
@@ -1263,7 +1263,7 @@
       "uploading": "Uploaden...",
       "displayNamePlaceholder": "Voer je weergavenaam in",
       "toasts": {
-        "successTitle": "Gelukt!",
+        "successTitle": "Succes!",
         "updated": "Je accountgegevens zijn bijgewerkt.",
         "updateFailed": "Accountgegevens bijwerken is mislukt.",
         "photoUploadedTitle": "Foto geüpload!",
@@ -1416,7 +1416,7 @@
       },
       "tipLabel": "Tip",
       "smartTasks": {
-        "title": "Slim taken aanmaken",
+        "title": "Slimme taakcreatie",
         "description": "Datums, prioriteiten en lijst-hashtags automatisch uit taaktitels halen",
         "enable": "Slimme herkenning inschakelen",
         "enableDesc": "Taakgegevens uit invoer in natuurlijke taal halen",
@@ -1528,10 +1528,10 @@
         "active": "Actief",
         "idle": "Inactief"
       },
-      "registered": "Geregistreerd op {date}",
+      "registered": "Geregistreerd {date}",
       "lastActive": "Laatst actief {date}",
       "empty": "Geen aangepaste agents verbonden. Registreer er een om te beginnen.",
-      "connect": "Agent verbinden",
+      "connect": "Agent Verbinden",
       "register": {
         "title": "Aangepaste agent registreren",
         "description": "Maak een AI-agentidentiteit met OAuth-inloggegevens voor het Custom Agent-protocol.",
@@ -1540,14 +1540,14 @@
         "invalid": "Ongeldige naam. Gebruik 2–32 alfanumerieke kleine letters, punten, koppeltekens of underscores.",
         "hint": "Kies een naam voor je agent (bijv. buddy, helper, dev-bot)",
         "cancel": "Annuleren",
-        "registering": "Bezig met registreren…",
-        "create": "Agent maken"
+        "registering": "Registreren...",
+        "create": "Agent Aanmaken"
       },
       "credentials": {
-        "title": "Agent aangemaakt",
+        "title": "Agent Aangemaakt",
         "description": "Sla deze gegevens nu op. Het clientgeheim wordt niet opnieuw getoond.",
         "warning": "Sla deze gegevens nu op!",
-        "email": "E-mailadres van agent",
+        "email": "Agent E-mail",
         "clientId": "Client-ID",
         "clientSecret": "Clientgeheim",
         "tokenEndpoint": "Token-endpoint",
@@ -1589,7 +1589,7 @@
       },
       "columns": {
         "actsAs": "Handelt als",
-        "scopes": "Rechten",
+        "scopes": "Scopes",
         "created": "Aangemaakt",
         "lastUsed": "Laatst gebruikt",
         "expires": "Verloopt",
@@ -1628,7 +1628,7 @@
         "description": "Verbindt {appName} met je GitHub-accounts en -organisaties. Codeeragents die op de server draaien, maken via deze verbinding branches en pull requests aan.",
         "descriptionProjects": "Koppelt {appName} aan je GitHub-organisaties, zodat hun projecten hier borden kunnen zijn.",
         "empty": "Nog niet verbonden met GitHub.",
-        "connect": "GitHub verbinden",
+        "connect": "GitHub koppelen",
         "installAnother": "Nog een organisatie toevoegen",
         "refresh": "Repositories vernieuwen",
         "refreshed": "Repositories vernieuwd",
@@ -1641,7 +1641,7 @@
         "repoCountMany": "{count} repositories",
         "allRepos": "alle repositories",
         "suspended": "Opgeschort",
-        "disconnect": "Verbinding verbreken",
+        "disconnect": "Ontkoppelen",
         "disconnectTitle": "Verbinding met {account} verbreken?",
         "disconnectDescription": "Codeeragents werken niet meer in de repositories van {account}. De GitHub-app blijft daar geïnstalleerd; verwijder hem op GitHub om hem helemaal te verwijderen.",
         "disconnectDescriptionProjects": "Je ziet de projecten van {account} hier pas weer na vernieuwen vanuit GitHub. De GitHub App blijft daar geïnstalleerd; verwijder hem op GitHub om hem volledig te verwijderen.",
@@ -1799,7 +1799,7 @@
     "keyLabel": "Voorvoegsel taak-ID",
     "keyExample": "Taken worden {example}, …",
     "keyInvalid": "{min}–{max} letters of cijfers, beginnend met een letter",
-    "keyRename": "Hernoemen",
+    "keyRename": "Naam wijzigen",
     "keyRenameHint": "Taken worden {next}; {old} blijft werken",
     "keyRenameFailed": "Kon het voorvoegsel niet hernoemen",
     "createBoard": "Bord maken",
@@ -1834,7 +1834,7 @@
     "assigneeFilter": "Toegewezen-filter",
     "dueDateFilter": "Vervaldatumfilter",
     "sort": {
-      "recentlyCompleted": "Recent voltooid",
+      "recentlyCompleted": "Onlangs voltooid",
       "auto": "Automatisch",
       "priority": "Prioriteit",
       "date": "Datum",
@@ -1883,7 +1883,7 @@
       "clickToEdit": "Klik om te bewerken",
       "clickToAddInstructions": "Klik om agentinstructies toe te voegen...",
       "agentsUseGuidance": "AI-agents gebruiken dit als belangrijkste leidraad wanneer ze aan taken in deze lijst werken",
-      "taskCreator": "Maker van de taak",
+      "taskCreator": "Taakmaker",
       "memberNotFound": "Lid niet gevonden",
       "clickToSet": "Klik om in te stellen...",
       "defaultPriority": "Standaardprioriteit",
@@ -1996,14 +1996,14 @@
   },
   "reminderSettings": {
     "title": "Herinneringsinstellingen",
-    "pushNotifications": "Pushmeldingen",
+    "pushNotifications": "Push-meldingen",
     "emailReminders": "E-mailherinneringen",
     "defaultReminderTime": "Standaard herinneringstijd",
-    "dailyDigest": "Dagelijkse samenvatting",
+    "dailyDigest": "Dagelijks overzicht",
     "quietHours": "Stille uren",
     "description": "Stel in wanneer en hoe je taakherinneringen ontvangt",
     "pushDescription": "Ontvang directe meldingen in je browser",
-    "enablePush": "Pushmeldingen inschakelen",
+    "enablePush": "Push-meldingen inschakelen",
     "pushBlocked": "Pushmeldingen zijn geblokkeerd. Schakel ze in via je browserinstellingen om taakherinneringen te ontvangen.",
     "emailDescription": "Ontvang herinneringsmails voor taken die verlopen",
     "defaultReminderTimeDescription": "Wanneer je vóór de vervaldatum wordt herinnerd",
@@ -2113,9 +2113,9 @@
       "jumpToDate": "Naar ‘Datum’ gaan",
       "postpone": "Taak een week uitstellen",
       "removeDueDate": "Vervaldatum van taak verwijderen",
-      "editLists": "Lijsten van taak bewerken",
+      "editLists": "Takenlijsten bewerken",
       "editTitle": "Taaktitel bewerken",
-      "editDescription": "Taakbeschrijving bewerken",
+      "editDescription": "Taakomschrijving bewerken",
       "addComment": "Nieuwe taakopmerking toevoegen",
       "assignNoOne": "Taak toewijzen aan ‘Niemand’",
       "priorityNone": "Prioriteit instellen op ○ (Geen)",
@@ -2130,7 +2130,7 @@
       "selectNext": "Volgende taak selecteren",
       "outdent": "Taak uit de bovenliggende taak halen",
       "indent": "Taak onder de bovenstaande taak plaatsen",
-      "showHotkeys": "Lijst met sneltoetsen tonen"
+      "showHotkeys": "Sneltoetsen tonen"
     }
   },
   "commandPalette": {
@@ -2270,7 +2270,7 @@
     "continuing": "Doorgaan...",
     "passkeysNotSupported": "Passkeys worden niet ondersteund in deze browser",
     "newUser": "Nieuw?",
-    "returningUser": "Al een account?",
+    "returningUser": "Terug?",
     "emailPlaceholder": "Voer je e-mailadres in",
     "creatingAccount": "Account aanmaken...",
     "signingIn": "Inloggen...",
@@ -2452,7 +2452,7 @@
   "profilePage": {
     "loading": "Profiel laden...",
     "notFound": "Profiel niet gevonden",
-    "goBack": "Terug",
+    "goBack": "Ga terug",
     "badge": "Profiel",
     "aiAgent": "AI-agent",
     "joined": "Lid sinds {date}",
@@ -2778,7 +2778,7 @@
       "openTaskManager": "Taken openen"
     },
     "push": {
-      "dueSoonTitle": "Taak vervalt binnenkort",
+      "dueSoonTitle": "Taak verloopt binnenkort",
       "dueAtBody": "{title} vervalt om {time}",
       "overdueTitle": "Taak verlopen",
       "overdueBody": "{title} is verlopen",
