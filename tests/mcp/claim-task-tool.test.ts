@@ -115,14 +115,18 @@ describe('MCP claim_task tool (AWTD-1557)', () => {
 
     expect(tools).toBe(OAUTH_MCP_TOOLS)
     expect(JSON.stringify(tools)).not.toContain('"claim_task"')
-    // The flag-off list is main's list: no existing description may change here.
-    expect(tools.find((tool: { name: string }) => tool.name === 'get_agent_queue')?.description)
-      .not.toContain('runnable')
+    // The flag-off list is main's list. get_agent_queue now explains runnable: held at the
+    // 2026-11-10 review, released by Jon's option 1 on 2026-11-13 (AWTD-1560). Replies want
+    // an answer; incomplete is reported, never work on its own.
+    const queueDescription = tools.find((tool: { name: string }) => tool.name === 'get_agent_queue')?.description
+    expect(queueDescription).toContain('"attention"')
+    expect(queueDescription).toContain('not work by itself')
     // Re-pinned for the Waiting rules (Jon, 2026-11-12): create_task / update_task gained
     // keepAssignee and waitOnTaskId and their statusRole descriptions name the wait condition;
     // add_blocker / remove_blocker say the server wakes the task, not a sweep.
+    // Re-pinned for AWTD-1560 (2026-11-14): get_agent_queue explains runnable.
     expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
-      '51de710177e5a1239d3de3c7f74c92dc99b67bddcb11386a8c73b2596d87034a',
+      'ba56a8837c2a3ad6a4aaad993e605657e622d36865fa5c3950b9923eb073d824',
     )
   })
 

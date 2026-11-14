@@ -1,11 +1,11 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`canonical queue skill (AWTD-759) > pins the old skill and queue line while the master switch is off, even for an enrolled board (AWTD-1557) > claim-disabled legacy queue line 1`] = `"Call get_agent_queue with agent "codex" and listId "<board>". Work every task it returns to completion, commenting progress on each one. If it answers empty:true, stop and say nothing is queued."`;
+exports[`canonical queue skill (AWTD-759) > pins the old skill and queue line while the master switch is off, even for an enrolled board (AWTD-1557) > claim-disabled legacy queue line 1`] = `"Call get_agent_queue with agent "codex" and listId "<board>". Work every task it returns to completion, commenting progress on each one. When runnable.reasons includes "attention", also answer the unanswered replies in attention. Stop only when there is no Ready work and nothing to answer; runnable.incomplete means part of the read was cut off, so say so, but it is not work on its own. (A server without runnable: stop on empty:true.)"`;
 
 exports[`canonical queue skill (AWTD-759) > pins the old skill and queue line while the master switch is off, even for an enrolled board (AWTD-1557) > claim-disabled legacy skill 1`] = `
-"Astrid queue skill v1.2.0
+"Astrid queue skill v1.4.0
 
-Call get_agent_queue with agent "codex" and listId "<board>". Work every task it returns to completion, commenting progress on each one. If it answers empty:true, stop and say nothing is queued.
+Call get_agent_queue with agent "codex" and listId "<board>". Work every task it returns to completion, commenting progress on each one. When runnable.reasons includes "attention", also answer the unanswered replies in attention. Stop only when there is no Ready work and nothing to answer; runnable.incomplete means part of the read was cut off, so say so, but it is not work on its own. (A server without runnable: stop on empty:true.)
 
 Setup: connect this harness to Astrid MCP and install this skill using the guided steps at /docs/loops. This skill describes queue behavior; it does not install or start an agent host.
 
@@ -23,6 +23,6 @@ Boundaries:
 - Only tasks assigned to "codex" in Ready status are yours. get_agent_queue already filters for this; never work around it. An unassigned task is someone's untriaged note.
 - If you do not use the board columns at all, do not work around that either — pass requireReady: false and a task with NO status queues on assignment alone. Waiting and Doing are still never queued under it, so parking a blocked task in Waiting still stops the loop re-reading it.
 - A task with a future date is held automatically (held.scheduled) — report it, do not start it early.
-- empty:true means the run is DONE: stop and say nothing is queued. It also carries a "hint" naming the condition that is unmet — usually tasks assigned to "codex" that nobody set to Ready. Report the hint rather than a bare "nothing queued"; it is the difference between a quiet day and a setup that has never worked.
+- runnable says why there is work: "ready" is the returned queue, "attention" is a human reply or chat message waiting for an answer. Answer it on the task; if no answer is needed, leave it, and a scheduled gate will not wake you for that reply again. With neither reason (or empty:true on a server without runnable) the run is DONE: stop and say nothing is queued. The answer also carries a "hint" naming the condition that is unmet — usually tasks assigned to "codex" that nobody set to Ready. Report the hint rather than a bare "nothing queued"; it is the difference between a quiet day and a setup that has never worked.
 - If a tool call fails or a task is blocked, say so visibly on the task and stop or move on — never retry silently in a loop, and never invent adjacent work to fill a quiet run."
 `;
