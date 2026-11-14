@@ -405,17 +405,26 @@ export async function requireListAccess(
  * list but the API refused the edit the app offered them; Jon chose that project
  * members may edit and delete there (AWTD-1523, 2026-11-13).
  */
-function taskMembershipBranches(userId: string) {
+function taskMembershipBranches(userId: string, options: { excludeViewers?: boolean } = {}) {
   return [
     { creatorId: userId },
     { assigneeId: userId },
-    { lists: { some: listVisibilityWhere(userId, { includePublic: false, includeDerivedLabels: false }) } },
+    {
+      lists: {
+        some: listVisibilityWhere(userId, {
+          includePublic: false,
+          includeDerivedLabels: false,
+          excludeViewers: options.excludeViewers,
+        }),
+      },
+    },
   ]
 }
 
 /** The shared task write boundary, also used to revalidate atomic writes. */
 export function taskWriteAccessWhere(userId: string) {
-  return { OR: taskMembershipBranches(userId) }
+  // A read-only (viewer) list seat may read but not write (AWTD-1644).
+  return { OR: taskMembershipBranches(userId, { excludeViewers: true }) }
 }
 
 /**

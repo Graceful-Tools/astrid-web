@@ -201,6 +201,13 @@ export function listVisibilityWhere(
      * seeing each task carrying it (AWTD-1519; see listTasksByIdWhere).
      */
     includeDerivedLabels?: boolean
+    /**
+     * WRITE checks: a `viewer` ListMember row is a read-only seat
+     * (AWTD-1318), so it must not count as the direct-membership route. A
+     * viewer who also has a project role still matches through the project
+     * branches, as `getUserRoleInList` raises them (AWTD-1644).
+     */
+    excludeViewers?: boolean
   }
 ) {
   // The ways a list is DIRECTLY the viewer's: owned, shared with them, or in a
@@ -208,7 +215,14 @@ export function listVisibilityWhere(
   // a label list through one of these rather than repeating them.
   const direct: Array<Record<string, unknown>> = [
     { ownerId: userId },
-    { listMembers: { some: { userId } } },
+    {
+      listMembers: {
+        some: options.excludeViewers
+          ? // Case-insensitive: uppercase role rows exist (task e2803305).
+            { userId, NOT: { role: { equals: "viewer", mode: "insensitive" } } }
+          : { userId },
+      },
+    },
     // Project membership cascades to every list in the project, including its
     // status lists.
     { project: { ownerId: userId } },
