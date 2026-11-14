@@ -22,3 +22,15 @@ export function brandIconSourceProblem(value: string): string | null {
     BRAND_ICON_SOURCE_DIRS.some((dir) => value.startsWith(dir))
   return ok ? null : `Must be a .png path under ${BRAND_ICON_SOURCE_DIRS.join(', ')} (e.g. /icons/acme-1024.png), not a URL`
 }
+
+/**
+ * The problem with a profile's `assets.iconSource`, or null when it is usable (AWTD-1647).
+ *
+ * The SVG master astrid-core's `gen-brand` renders every platform's icon set from. It is
+ * build-time only and read from disk beside the profile, so it is a relative `.svg` path
+ * inside `brands/` (e.g. `acme.icon.svg`), never a URL and never the runtime PNG.
+ */
+export function brandIconMasterProblem(value: string): string | null {
+  const ok = /^[A-Za-z0-9._-]+(\/[A-Za-z0-9._-]+)*\.svg$/.test(value) && !value.split('/').includes('..')
+  return ok ? null : 'Must be an .svg path relative to the profile (e.g. acme.icon.svg), not a URL or a public/ path'
+}

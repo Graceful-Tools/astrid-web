@@ -32,6 +32,7 @@ enabled services.
 | `expect.inheritsAstridIdentity` | Identity variables the profile deliberately leaves on Astrid's value — exactly what its build warns about. `[]` for Astrid itself (AWTD-1285) |
 | `copy` | Optional. Brand *voice*: reminder nags and default-list captions |
 | `assets.icon` | Optional. The one square source icon (a PNG in `public/`, ideally 1024 px) every icon size is generated from (AWTD-1588) |
+| `assets.iconSource` | Optional. The SVG master, relative to the profile (e.g. `acme.icon.svg`), that astrid-core's `gen-brand` renders every platform's icon set from. Build-time only (AWTD-1647) |
 | `ios`, `windows`, `android`, `vscode`, `code` | Optional. One block per native client, holding identity only that client's build needs. The web validates them and never puts them in a deployment's environment (AWTD-1589). See below |
 
 ## Brand voice (`copy`)
