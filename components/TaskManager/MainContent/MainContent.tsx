@@ -779,6 +779,7 @@ export function MainContent({
               onCopyTask={handleCopyTask}
               onCreateTask={handleQuickCreateTask}
               isOneColumn={isOneColumn}
+              onOpenTask={handleTaskClick}
             />
           </div>
         ) : finalFilteredTasks.length === 0 && !justReturnedFromTaskDetail ? (

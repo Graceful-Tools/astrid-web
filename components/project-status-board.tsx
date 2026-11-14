@@ -56,6 +56,11 @@ interface ProjectStatusBoardProps {
   onCopyTask?: (taskId: string, targetListId?: string, includeComments?: boolean) => Promise<void>
   onCreateTask: (title: string, options?: { listIds?: string[]; statusRole?: string }) => Promise<string | null>
   isOneColumn?: boolean
+  /**
+   * Opens task details the way a list row does (AWTD-1653, core DS30). On a
+   * one-column board a card tap calls this instead of expanding in place.
+   */
+  onOpenTask?: (taskId: string) => void
 }
 
 /**
@@ -115,6 +120,7 @@ export function ProjectStatusBoard({
   onCopyTask,
   onCreateTask,
   isOneColumn = false,
+  onOpenTask,
 }: ProjectStatusBoardProps) {
   const { t } = useTranslations()
   // One call for the whole board rather than one per row (task ffa5bbb5).
@@ -323,6 +329,17 @@ export function ProjectStatusBoard({
     setExpandedTaskId(prevTaskId => prevTaskId === taskId ? null : taskId)
   }
 
+  // In a one-pane (phone) view a card opens task details with the same
+  // full-screen push as a list row; it never expands in place (core DS30,
+  // AWTD-1653). The wide board keeps its in-place expansion.
+  const activateCard = (taskId: string) => {
+    if (isOneColumn && onOpenTask) {
+      onOpenTask(taskId)
+      return
+    }
+    toggleExpandedTask(taskId)
+  }
+
   const columnTestId = (column: ProjectBoardColumn) => {
     if (column.id === VIRTUAL_INBOX_COLUMN_ID) return 'status-column-inbox'
     if (column.id === VIRTUAL_DONE_COLUMN_ID) return 'status-column-done'
@@ -486,12 +503,12 @@ export function ProjectStatusBoard({
                           suppressClickTaskIdRef.current = null
                           return
                         }
-                        toggleExpandedTask(task.id)
+                        activateCard(task.id)
                       }}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault()
-                          toggleExpandedTask(task.id)
+                          activateCard(task.id)
                         }
                       }}
                       role="button"
