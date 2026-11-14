@@ -91,6 +91,54 @@ export const ACTIONS_SECRET_NAMES = {
 export const ACTIONS_QUEUE_SCOPES =
   'tasks:read tasks:write lists:read comments:read comments:write user:read'
 
+/**
+ * Where a generated gate keeps the reply keys it has already woken for, carried
+ * between runs with actions/cache (AWTD-1560).
+ */
+const WAKE_DIR = '.astrid-wake'
+
+/**
+ * The gate's wake decision, as shell (AWTD-1560, Jon's option 1, 2026-11-13).
+ *
+ * Wake on Ready work, or on an unanswered reply (task comment or list-chat
+ * message) this gate has not already woken for. Never on `runnable.incomplete`
+ * alone: a token without the chat scopes reports it on every poll, and waking
+ * on it would start a paid session every half hour. A server without
+ * `runnable` keeps the old Ready-only rule. Each reply key wakes one run; the
+ * seen set is bounded, and losing it re-wakes open replies once.
+ */
+function wakeDecision(): string {
+  return `          mkdir -p ${WAKE_DIR}
+          [ -s ${WAKE_DIR}/seen.json ] || echo '[]' > ${WAKE_DIR}/seen.json
+          DECISION=$(jq -c --slurpfile seen ${WAKE_DIR}/seen.json '
+            ($seen[0] // []) as $s
+            | ([.attention.tasks[]?.lastComment.id, .attention.messages[]?.id] | map(select(. != null))) as $keys
+            | ($keys - $s) as $new
+            | (if .runnable? then ((.runnable.reasons // []) | index("ready")) != null else (.empty | not) end) as $ready
+            | { wake: ($ready or (.runnable? != null and ($new | length) > 0)), seen: (($s + $new) | .[-500:]) }' queue.json)
+          echo "has-work=$(echo "$DECISION" | jq -r .wake)" >> "$GITHUB_OUTPUT"
+          echo "$DECISION" | jq -c .seen > ${WAKE_DIR}/seen.json`
+}
+
+/** The cache steps around a gate's queue read, so the seen set survives between runs. */
+function wakeCacheSteps(mailbox: string): { restore: string; save: string } {
+  const key = `astrid-wake-${mailbox}`
+  return {
+    restore: `      - name: Restore the replies this gate already woke for
+        uses: actions/cache/restore@v4
+        with:
+          path: ${WAKE_DIR}
+          key: ${key}-\${{ github.run_id }}
+          restore-keys: ${key}-`,
+    save: `      - name: Remember them for the next run
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: ${WAKE_DIR}
+          key: ${key}-\${{ github.run_id }}`,
+  }
+}
+
 /** The GitHub Actions queue-gate workflow file (path + YAML). */
 export function actionsQueueGateWorkflow(options: LoopRecipeOptions): { path: string; content: string } {
   const name = mcpServerName()
@@ -99,6 +147,7 @@ export function actionsQueueGateWorkflow(options: LoopRecipeOptions): { path: st
   const clientSecret = `\${{ secrets.${ACTIONS_SECRET_NAMES.clientSecret} }}`
   const token = '${{ steps.token.outputs.access-token }}'
   const path = `.github/workflows/${name}-queue.yml`
+  const cache = wakeCacheSteps(mailbox)
   return {
     path,
     content: `name: ${BRAND.appName} queue gate
@@ -123,12 +172,14 @@ jobs:
             -d "scope=${ACTIONS_QUEUE_SCOPES}" | jq -r .access_token)
           echo "::add-mask::$ACCESS_TOKEN"
           echo "access-token=$ACCESS_TOKEN" >> "$GITHUB_OUTPUT"
+${cache.restore}
       - name: Read the queue
         id: queue
         run: |
           curl -fsS "${origin}/api/v1/agent-queue?agent=${mailbox}${listId ? `&listId=${listId}` : ''}" \\
             -H "X-OAuth-Token: ${token}" > queue.json
-          echo "has-work=$(jq -r 'if .empty then "false" else "true" end' queue.json)" >> "$GITHUB_OUTPUT"
+${wakeDecision()}
+${cache.save}
 
   run-your-agent:
     needs: queue-gate
@@ -138,7 +189,7 @@ jobs:
       - uses: actions/checkout@v4
       # Replace this step with your existing supported agent job — the gate
       # only decides whether that job starts.
-      - run: echo "Queue has assigned Ready tasks - start your agent job"`,
+      - run: echo "Queue has Ready work or a new reply - start your agent job"`,
   }
 }
 
@@ -169,17 +220,20 @@ function actionsAgentPrompt({ mailbox, listId }: LoopRecipeOptions): string {
 function bearerQueueGateJob({ origin, mailbox, listId }: LoopRecipeOptions): string {
   const tokenSecret = `\${{ secrets.${mcpTokenSecretName(mailbox)} }}`
   const queueUrl = `${origin}/api/v1/agent-queue?agent=${mailbox}${listId ? `&listId=${listId}` : ''}`
+  const cache = wakeCacheSteps(mailbox)
   return `  queue-gate:
     runs-on: ubuntu-latest
     outputs:
       has-work: \${{ steps.queue.outputs.has-work }}
     steps:
+${cache.restore}
       - name: Is anything queued for ${mailbox}?
         id: queue
         run: |
           curl -fsS "${queueUrl}" \\
             -H "Authorization: Bearer ${tokenSecret}" > queue.json
-          echo "has-work=$(jq -r 'if .empty then "false" else "true" end' queue.json)" >> "$GITHUB_OUTPUT"`
+${wakeDecision()}
+${cache.save}`
 }
 
 /**

@@ -103,6 +103,11 @@ token without the chat scopes reports a skipped read on every poll. Older server
 should fall back to their existing `empty`-based behavior. `empty` itself still
 describes only the Ready queue.
 
+The generated GitHub Actions gates (`lib/agent-skill/loop-recipes.ts`) wake on `ready`, or on a
+reply key (task comment id or chat message id) they have not already woken for, kept in a bounded
+seen set carried by `actions/cache`. They never wake on `incomplete` alone (Jon, 2026-11-13,
+AWTD-1560). Losing the cache re-wakes the replies still open, once.
+
 ### `requireReady: false`, for people who do not use the board (AWTD-871)
 
 Ready is a BOARD state, and the board is a Project-Mode-shaped feature. Someone who
