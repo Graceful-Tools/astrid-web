@@ -12,7 +12,10 @@ export interface AstridChannelConfig {
   /** Opt-in restart recovery. Use a private, durable file unique to this agent. */
   recovery?: {
     stateFile: string
-    /** Explicit queue identity; never inferred from another harness or a default. */
+    /**
+     * Explicit queue identity; never inferred from another harness or a default.
+     * A built-in mailbox (`claude`) or a Custom Agent address (`scout.oc@astrid.cc`).
+     */
     agentMailbox: string
   }
 }

@@ -7,6 +7,13 @@ import { SessionMapper } from './session-mapper.js'
 import { DeliveryLedger } from './delivery-ledger.js'
 import { taskToMessage, commentToMessage, responseToComment } from './message-formatter.js'
 
+/** Replay window the server's event buffer is assumed to retain. */
+const REPLAY_RETENTION_MS = 15 * 60_000
+/** Time after `connected` before a keepalive may advance the replay cursor. */
+const REPLAY_SETTLE_MS = 30_000
+/** Overlap subtracted from the persisted cursor when reconnecting. */
+const REPLAY_OVERLAP_MS = 30_000
+
 /**
  * Astrid channel plugin for OpenClaw.
  */
@@ -41,7 +48,8 @@ export const astridChannel = {
     let onMessage: ((msg: InboundMessage) => void) | undefined
     let handlersRegistered = false
     let disconnected = false
-    let replayCheckpoint: number | undefined
+    // Server time of the current connection's `connected` event (recovery only).
+    let connectedAt: number | undefined
 
     const deliver = async (task: AgentTask, action: 'claim' | 'resume' = 'claim'): Promise<boolean> => {
       if (ledger && task.completed) {
@@ -66,23 +74,26 @@ export const astridChannel = {
         ledger?.delivered(task.id, task.comments.map(comment => comment.id))
         return true
       } catch (error) {
-        sessions.end(task.id)
+        // Recovery retries an unaccepted task, so it must not keep a session.
+        // The legacy path keeps it, exactly as before recovery existed: later
+        // comments still arrive and send() still works (AWTD-1565 review).
+        if (ledger) sessions.end(task.id)
         throw error
       }
     }
 
     const deliverComment = async (taskId: string, comment: AgentComment): Promise<void> => {
-      if (disconnected || !onMessage || ledger?.hasComment(comment.id)) return
+      if (disconnected || !onMessage || ledger?.hasComment(taskId, comment.id)) return
       sessions.getOrCreate(taskId)
       const accepted = onMessage(commentToMessage(taskId, comment))
       await accepted
-      ledger?.commented(comment.id)
+      ledger?.commented(taskId, comment.id)
     }
 
     const sse = new SSEClient(config, oauth, ledger ? {
-      since: () => Math.max(1, (ledger.lastServerTime ?? 1) - 30_000),
+      since: () => Math.max(1, (ledger.lastServerTime ?? 1) - REPLAY_OVERLAP_MS),
       onConnected: async () => {
-        replayCheckpoint = ledger.lastServerTime
+        connectedAt = undefined // set by this connection's `connected` event
         const seen = new Set<string>()
         for (const id of ledger.pendingTaskIds()) {
           const task = await rest.getPendingTask(id)
@@ -104,12 +115,12 @@ export const astridChannel = {
             if (task) await deliver(task)
           }
           for (const entry of queue.attention.tasks) {
-            if (ledger.hasComment(entry.lastComment.id)) continue
+            if (ledger.hasComment(entry.id, entry.lastComment.id)) continue
             const task = await rest.getPendingTask(entry.id)
             if (!task) continue
             if (!entry.completed && !ledger.has(entry.id)) {
               if (!await deliver(task, entry.statusRole === 'ready' ? 'claim' : 'resume')) continue
-              ledger.commented(entry.lastComment.id)
+              ledger.commented(entry.id, entry.lastComment.id)
             } else {
               const comment = task.comments.find(comment => comment.id === entry.lastComment.id)
               if (!comment) throw new Error('Astrid recovery: attention comment missing from task response')
@@ -118,13 +129,24 @@ export const astridChannel = {
           }
         }
       },
-      onServerTime: time => {
-        if (ledger.lastServerTime !== undefined && time - ledger.lastServerTime >= 15 * 60_000) {
-          console.warn('Astrid recovery: replay retention gap detected; reconciled assigned tasks from queue')
+      onServerTime: (time, kind) => {
+        if (kind === 'connected') {
+          connectedAt = time
+          if (ledger.lastServerTime !== undefined && time - ledger.lastServerTime >= REPLAY_RETENTION_MS) {
+            console.warn('Astrid recovery: replay retention gap detected; reconciled assigned tasks from queue')
+          }
+          return
         }
+        // The cursor moves only here, on a keepalive: the SSE client dispatches
+        // it after every event read before it was accepted (or recorded by the
+        // ledger), so a crash never leaves the cursor past unaccepted work.
+        // `connected` is not such a point, because the server replays missed
+        // events after it, asynchronously. Hold the cursor until the replay has
+        // had REPLAY_SETTLE_MS to drain, so a keepalive interleaved with a slow
+        // replay cannot skip the rest of it.
+        if (connectedAt === undefined || time - connectedAt < REPLAY_SETTLE_MS) return
         ledger.observeServerTime(time)
       },
-      onError: () => ledger.restoreServerTime(replayCheckpoint),
     } : undefined)
 
     return {

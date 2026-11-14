@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
+import { closeSync, fsyncSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
 interface DeliveryState {
@@ -29,7 +29,17 @@ export class DeliveryLedger {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') return
       throw error
     }
-    const parsed: unknown = JSON.parse(raw)
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(raw)
+    } catch {
+      // Empty or truncated (power loss before the data reached disk). Starting
+      // over re-delivers work at most once more; refusing would stop the
+      // channel until someone deletes the file. A file that parses but has the
+      // wrong shape or scope is still refused below.
+      console.warn('Astrid recovery: delivery ledger is unreadable (empty or truncated); starting a fresh ledger')
+      return
+    }
     if (!this.validState(parsed) || parsed.scope !== scope) {
       throw new Error('Astrid recovery: invalid ledger or different agent scope')
     }
@@ -54,8 +64,14 @@ export class DeliveryLedger {
     return this.state.entries.some(entry => entry.key === `task:${taskId}`)
   }
 
-  hasComment(commentId: string): boolean {
-    return this.state.entries.some(entry => entry.key === `comment:${commentId}`)
+  /** Comment receipts are keyed by task so that ending a task drops them. */
+  private static commentKey(taskId: string, commentId: string): string {
+    return `comment:${taskId}:${commentId}`
+  }
+
+  hasComment(taskId: string, commentId: string): boolean {
+    const key = DeliveryLedger.commentKey(taskId, commentId)
+    return this.state.entries.some(entry => entry.key === key)
   }
 
   get lastServerTime(): number | undefined {
@@ -69,7 +85,7 @@ export class DeliveryLedger {
 
   delivered(taskId: string, commentIds: string[] = []): void {
     if (this.has(taskId)) return
-    this.record([`task:${taskId}`, ...commentIds.map(id => `comment:${id}`)], `pending:${taskId}`)
+    this.record([`task:${taskId}`, ...commentIds.map(id => DeliveryLedger.commentKey(taskId, id))], `pending:${taskId}`)
   }
 
   pendingTaskIds(): string[] {
@@ -83,9 +99,9 @@ export class DeliveryLedger {
     this.record([key])
   }
 
-  commented(commentId: string): void {
-    if (this.hasComment(commentId)) return
-    this.record([`comment:${commentId}`])
+  commented(taskId: string, commentId: string): void {
+    if (this.hasComment(taskId, commentId)) return
+    this.record([DeliveryLedger.commentKey(taskId, commentId)])
   }
 
   private record(keys: string[], replaceKey?: string): void {
@@ -100,7 +116,9 @@ export class DeliveryLedger {
   }
 
   end(taskId: string): void {
-    const entries = this.state.entries.filter(entry => entry.key !== `task:${taskId}` && entry.key !== `pending:${taskId}`)
+    const comments = `comment:${taskId}:`
+    const entries = this.state.entries.filter(entry => entry.key !== `task:${taskId}`
+      && entry.key !== `pending:${taskId}` && !entry.key.startsWith(comments))
     if (entries.length === this.state.entries.length) return
     this.save({ ...this.state, entries })
   }
@@ -115,15 +133,19 @@ export class DeliveryLedger {
     this.save({ ...this.state, entries, lastServerTime: time })
   }
 
-  restoreServerTime(time: number | undefined): void {
-    this.save({ ...this.state, lastServerTime: time })
-  }
-
   private save(state: DeliveryState): void {
     mkdirSync(dirname(this.file), { recursive: true, mode: 0o700 })
     const temporary = `${this.file}.${randomUUID()}.tmp`
     try {
-      writeFileSync(temporary, JSON.stringify(state), { mode: 0o600, flag: 'wx' })
+      // fsync before the rename, so a power loss leaves the old file or the
+      // new one, not an empty one.
+      const fd = openSync(temporary, 'wx', 0o600)
+      try {
+        writeSync(fd, JSON.stringify(state))
+        fsyncSync(fd)
+      } finally {
+        closeSync(fd)
+      }
       renameSync(temporary, this.file)
       this.state = state
     } finally {
