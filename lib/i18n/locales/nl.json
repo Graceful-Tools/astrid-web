@@ -2867,6 +2867,10 @@
         "footerWhy": "Je ontvangt dit weekoverzicht om je te helpen je komende week te plannen.",
         "footerPreferences": "Je kunt je samenvattingsvoorkeuren aanpassen in je accountinstellingen."
       }
+    },
+    "webhookDelivery": {
+      "fallback": "Webhook-bezorging mislukt ({reason}). Je bezorgbeleid is terugval, dus {appName} handelt deze taak via zijn eigen route af.",
+      "strict": "Webhook-bezorging mislukt ({reason}). Door je strikte bezorgbeleid heeft {appName} zijn eigen terugval niet gebruikt, dus deze taak staat in Wachten tot {until} en is nog steeds aan mij toegewezen. Herstel de webhook en wijs hem daarna opnieuw aan mij toe of voeg een reactie toe om het opnieuw te proberen."
     }
   }
 }

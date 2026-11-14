@@ -28,6 +28,15 @@ import { isPollingOnlyAgent, resolveAgentRunBilling } from '@/lib/ai/agent-execu
 import { buildAgentContextInstructions } from '@/lib/ai/prompt-trust'
 import { getAgentType } from './agent-type'
 import type { TaskAssignmentWebhookPayload } from './types'
+import {
+  deliveryFailureReason,
+  deliveryMailbox,
+  readWebhookDeliveryPolicy,
+  userWebhookFailed,
+  type WebhookDeliveryPolicy,
+  type WebhookDeliveryResult,
+} from './delivery-policy'
+import { recordDeliveryNotice } from '@/services/webhook-delivery.service'
 
 const log = createLogger('webhooks/comment-notifier')
 
@@ -36,7 +45,8 @@ export type SendToUserWebhookFn = (
   event: string,
   payload: TaskAssignmentWebhookPayload,
   agentType: string | null,
-) => Promise<{ sent: boolean; status?: number; agentType?: string | null }>
+  deliveryPolicy?: WebhookDeliveryPolicy,
+) => Promise<WebhookDeliveryResult>
 
 export type SendWebhookNotificationFn = (
   url: string,
@@ -222,17 +232,41 @@ export async function notifyCommentOnAssignedTask(
       return
     }
 
+    const policy = await readWebhookDeliveryPolicy(prisma, webhookUserId, deliveryMailbox(task.assignee.email, agentType))
+    const notice = (reason: string, strict: boolean) => recordDeliveryNotice(prisma, {
+      taskId, agentUserId: task.assignee!.id, ownerId: billing.userId, reason, strict,
+    })
     // FIRST: route through user-level Claude Code Remote webhook if configured.
     log.info(`🔍 [WEBHOOK-TRACE] Comment: checking user webhook for ${webhookUserId}`)
+    let userWebhookResult: WebhookDeliveryResult = { sent: false }
     if (webhookUserId) {
-      const userWebhookResult = await sendToUserWebhook(webhookUserId, 'comment.created', payload, agentType)
-      if (userWebhookResult.sent) {
+      userWebhookResult = await sendToUserWebhook(webhookUserId, 'comment.created', payload, agentType, policy)
+      if (userWebhookResult.sent || (policy === 'strict' && userWebhookResult.accepted)) {
         log.info(`📤 Routed comment to user's Claude Code Remote server`)
         return
       }
     }
 
     const isInternalAgent = isBrandAgentEmail(task.assignee.email)
+    if (policy === 'strict') {
+      // The owner chose not to receive comment events: nothing runs, nothing parks.
+      if (userWebhookResult.unsubscribed) return
+      // An external agent's own endpoint is allowed, never Astrid's fallback.
+      let reason = deliveryFailureReason(userWebhookResult)
+      if (!isInternalAgent && task.assignee.webhookUrl) {
+        try {
+          await sendWebhookNotification(task.assignee.webhookUrl, payload)
+          return
+        } catch {
+          reason = "the agent's own webhook did not accept the delivery"
+        }
+      }
+      await notice(reason, true)
+      return
+    }
+    // Fallback: one notice, only when the owner's own webhook was tried and
+    // failed (not missing, not unsubscribed). Routing is unchanged.
+    if (userWebhookFailed(userWebhookResult)) await notice(deliveryFailureReason(userWebhookResult), false)
     const { isCodingAgent } = await import('@/lib/ai-agent-utils')
 
     if (isInternalAgent) {
