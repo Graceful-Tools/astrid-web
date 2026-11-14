@@ -488,10 +488,44 @@ async function removePendingAction(actionId) {
   }
 }
 
+// The worker's own words in the user's language (AWTD-1592). It cannot read the
+// locale files, and a push can wake it with no page open, so a server push brings
+// them in data.labels and each reminder the page schedules carries them too.
+// Anything missing keeps this English, which is what an older payload gets.
+// `{title}` and `{minutes}` are filled in here.
+const ENGLISH_LABELS = {
+  openApp: 'Open App',
+  dismiss: 'Dismiss',
+  viewTask: 'View Task',
+  snooze15: 'Snooze 15min',
+  markComplete: 'Mark Complete',
+  reminderTitle: 'Task Reminder',
+  dueTitle: 'Task Due',
+  dueNowBody: '{title} is due now',
+  overdueTitle: 'Task Overdue',
+  overdueBody: '{title} is overdue',
+  snoozedTitle: 'Task Snoozed',
+  snoozedBody: 'Reminder snoozed for {minutes} minutes',
+  snoozeFailedTitle: 'Snooze Failed',
+  snoozeFailedBody: 'Failed to snooze reminder. Please try again.',
+  completedTitle: 'Task Completed',
+  completedBody: 'Task marked as complete!',
+  completeFailedTitle: 'Complete Failed',
+  completeFailedBody: 'Failed to mark task as complete. Please try again.',
+};
+
+function label(labels, key, values) {
+  const source = (labels && typeof labels[key] === 'string' && labels[key]) || ENGLISH_LABELS[key];
+  // A function replacer, so a `$` in a task title is inserted as typed.
+  return source.replace(/\{(title|minutes)\}/g, (match, name) =>
+    values && values[name] !== undefined ? String(values[name]) : match);
+}
+
 // Handle push notifications
 self.addEventListener('push', (event) => {
   if (event.data) {
     const data = event.data.json();
+    const labels = data.data && data.data.labels;
     
     const options = {
       body: data.body,
@@ -502,11 +536,11 @@ self.addEventListener('push', (event) => {
       actions: data.actions || [
         {
           action: 'open',
-          title: 'Open App',
+          title: label(labels, 'openApp'),
         },
         {
           action: 'dismiss',
-          title: 'Dismiss',
+          title: label(labels, 'dismiss'),
         }
       ],
       requireInteraction: true, // Keep notification until user interacts
@@ -596,8 +630,8 @@ async function handleSnoozeAction(notificationData, minutes) {
     
     if (response.ok) {
       // Show success notification
-      await self.registration.showNotification('Task Snoozed', {
-        body: `Reminder snoozed for ${minutes} minutes`,
+      await self.registration.showNotification(label(notificationData.labels, 'snoozedTitle'), {
+        body: label(notificationData.labels, 'snoozedBody', { minutes }),
         icon: '/brand-icon/icon-192.png',
         tag: 'snooze-success',
         silent: true,
@@ -608,8 +642,8 @@ async function handleSnoozeAction(notificationData, minutes) {
     }
   } catch (error) {
     // Show error notification
-    await self.registration.showNotification('Snooze Failed', {
-      body: 'Failed to snooze reminder. Please try again.',
+    await self.registration.showNotification(label(notificationData.labels, 'snoozeFailedTitle'), {
+      body: label(notificationData.labels, 'snoozeFailedBody'),
       icon: '/brand-icon/icon-192.png',
       tag: 'snooze-error'
     });
@@ -635,8 +669,8 @@ async function handleCompleteAction(notificationData) {
     
     if (response.ok) {
       // Show success notification
-      await self.registration.showNotification('Task Completed', {
-        body: 'Task marked as complete!',
+      await self.registration.showNotification(label(notificationData.labels, 'completedTitle'), {
+        body: label(notificationData.labels, 'completedBody'),
         icon: '/brand-icon/icon-192.png',
         tag: 'complete-success',
         silent: true,
@@ -647,8 +681,8 @@ async function handleCompleteAction(notificationData) {
     }
   } catch (error) {
     // Show error notification
-    await self.registration.showNotification('Complete Failed', {
-      body: 'Failed to mark task as complete. Please try again.',
+    await self.registration.showNotification(label(notificationData.labels, 'completeFailedTitle'), {
+      body: label(notificationData.labels, 'completeFailedBody'),
       icon: '/brand-icon/icon-192.png',
       tag: 'complete-error'
     });
@@ -685,7 +719,7 @@ self.addEventListener('message', (event) => {
 // Schedule a client-side reminder
 function scheduleClientReminder(reminderData) {
   try {
-    const { taskId, title, scheduledFor, type, userId } = reminderData;
+    const { taskId, title, scheduledFor, type, userId, labels } = reminderData;
     const scheduledTime = new Date(scheduledFor);
     const now = new Date();
     
@@ -706,6 +740,7 @@ function scheduleClientReminder(reminderData) {
         title,
         type,
         userId,
+        labels,
         scheduledFor: scheduledTime
       });
       
@@ -749,17 +784,17 @@ async function showClientReminder(reminderData) {
       return;
     }
 
-    const { taskId, title, type } = reminderData;
+    const { taskId, title, type, labels } = reminderData;
 
-    let notificationTitle = 'Task Reminder';
+    let notificationTitle = label(labels, 'reminderTitle');
     let notificationBody = title;
 
     if (type === 'overdue_reminder') {
-      notificationTitle = 'Task Overdue';
-      notificationBody = `${title} is overdue`;
+      notificationTitle = label(labels, 'overdueTitle');
+      notificationBody = label(labels, 'overdueBody', { title });
     } else if (type === 'due_reminder') {
-      notificationTitle = 'Task Due';
-      notificationBody = `${title} is due now`;
+      notificationTitle = label(labels, 'dueTitle');
+      notificationBody = label(labels, 'dueNowBody', { title });
     }
 
     const options = {
@@ -774,9 +809,9 @@ async function showClientReminder(reminderData) {
         source: 'client-side'
       },
       actions: [
-        { action: 'open', title: 'View Task' },
-        { action: 'snooze_15', title: 'Snooze 15min' },
-        { action: 'complete', title: 'Mark Complete' }
+        { action: 'open', title: label(labels, 'viewTask') },
+        { action: 'snooze_15', title: label(labels, 'snooze15') },
+        { action: 'complete', title: label(labels, 'markComplete') }
       ],
       requireInteraction: true,
       tag: `task-${taskId}`

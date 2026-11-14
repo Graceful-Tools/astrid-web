@@ -209,7 +209,7 @@ const BUDGETS: Record<string, number> = {
   // transport. Locking the gain in, which is what the slack check is for.
   // 791 → 790: AWTD-1073 escaped the HTML templates and dropped a duplicate
   // branch in formatDueDate.
-  'lib/email-reminder-service.ts': 772,
+  'lib/email-reminder-service.ts': 726,
 }
 
 /** Product code. Tests and scripts are long for their own reasons. */

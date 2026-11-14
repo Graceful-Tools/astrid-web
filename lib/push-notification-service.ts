@@ -1,11 +1,13 @@
-import { BRAND } from '@/lib/brand/config'
 import { brandIconUrl } from '@/lib/brand/icons'
 import webpush from 'web-push'
 import { prisma as defaultPrisma } from '@/lib/prisma'
 import { decryptField } from '@/lib/field-encryption'
 import type { PushNotificationPayload } from '@/types/reminder'
+import { workerLabels } from '@/lib/i18n/worker-labels'
 import type { PrismaClient } from '@prisma/client'
 import { createLogger } from '@/lib/logger'
+import { getUserNotificationTranslator, type NotificationTranslator } from '@/lib/i18n/user-locale'
+import type { Locale } from '@/lib/i18n/config'
 
 const log = createLogger('push-notification-service')
 
@@ -61,7 +63,28 @@ export class PushNotificationService {
     this.prisma = customPrisma || defaultPrisma
   }
 
+  /**
+   * Send a push whose copy is written in the recipient's language (AWTD-1592):
+   * `build` gets a translator for their `User.locale`, English when unknown.
+   */
+  async sendLocalizedNotification(
+    userId: string,
+    build: (t: NotificationTranslator, locale: Locale) => PushNotificationPayload,
+  ): Promise<void> {
+    const { t, locale } = await getUserNotificationTranslator(this.prisma, userId)
+    await this.deliver(userId, withWorkerLabels(build(t, locale), t))
+  }
+
+  /**
+   * Send a push as given. Its title and body are the caller's; the service
+   * worker's own labels are still added in the recipient's language.
+   */
   async sendNotification(userId: string, payload: PushNotificationPayload): Promise<void> {
+    const { t } = await getUserNotificationTranslator(this.prisma, userId)
+    await this.deliver(userId, withWorkerLabels(payload, t))
+  }
+
+  private async deliver(userId: string, payload: PushNotificationPayload): Promise<void> {
     try {
       // Get active push subscriptions for user
       const subscriptions = await this.prisma.pushSubscription.findMany({
@@ -240,21 +263,15 @@ export class PushNotificationService {
     type: 'mention' | 'assignment'
   }): Promise<void> {
     const { taskId, taskTitle, commenterName, content, type } = data
+    const excerpt = `${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`
 
-    let title = ''
-    let body = ''
-
-    if (type === 'mention') {
-      title = `${commenterName} mentioned you`
-      body = `"${content.substring(0, 50)}${content.length > 50 ? '...' : ''}" in ${taskTitle}`
-    } else {
-      title = `New comment on your task`
-      body = `${commenterName}: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`
-    }
-
-    const payload: PushNotificationPayload = {
-      title,
-      body,
+    await this.sendLocalizedNotification(userId, (t) => ({
+      title: type === 'mention'
+        ? t('push.mentionTitle', { name: commenterName })
+        : t('push.commentTitle'),
+      body: type === 'mention'
+        ? t('push.mentionBody', { excerpt, task: taskTitle })
+        : t('push.commentBody', { name: commenterName, excerpt }),
       data: {
         taskId,
         commentId: data.commentId,
@@ -263,9 +280,7 @@ export class PushNotificationService {
       },
       icon: brandIconUrl({ kind: 'icon', size: 192 }),
       badge: brandIconUrl({ kind: 'icon', size: 72 }),
-    }
-
-    await this.sendNotification(userId, payload)
+    }))
   }
 
   async sendChatMentionNotification(userId: string, data: {
@@ -282,8 +297,8 @@ export class PushNotificationService {
       .replace(/#\[([^\]]+)\]\([^)]+\)/g, '#$1')
       .replace(/!\[([^\]]+)\]\([^)]+\)/g, '!$1')
 
-    const payload: PushNotificationPayload = {
-      title: `${senderName} mentioned you in chat`,
+    await this.sendLocalizedNotification(userId, (t) => ({
+      title: t('push.chatMentionTitle', { name: senderName }),
       body: `"${cleanContent.substring(0, 80)}${cleanContent.length > 80 ? '...' : ''}"`,
       data: {
         channelId,
@@ -293,9 +308,7 @@ export class PushNotificationService {
       },
       icon: brandIconUrl({ kind: 'icon', size: 192 }),
       badge: brandIconUrl({ kind: 'icon', size: 72 }),
-    }
-
-    await this.sendNotification(userId, payload)
+    }))
   }
 
   private getTimeUntilDue(dueDateTime: Date): string | null {
@@ -322,17 +335,21 @@ export class PushNotificationService {
 
   // For testing - send a test notification
   async sendTestNotification(userId: string): Promise<void> {
-    const payload: PushNotificationPayload = {
-      title: 'Test Notification',
-      body: `This is a test notification from ${BRAND.appName}`,
+    await this.sendLocalizedNotification(userId, (t) => ({
+      title: t('push.testTitle'),
+      body: t('push.testBody'),
       data: {
         action: 'test',
         url: '/',
       },
       icon: brandIconUrl({ kind: 'icon', size: 192 }),
       badge: brandIconUrl({ kind: 'icon', size: 72 }),
-    }
-
-    await this.sendNotification(userId, payload)
+    }))
   }
+}
+
+/** The payload with the worker's labels added, unless the caller already set them. */
+function withWorkerLabels(payload: PushNotificationPayload, t: NotificationTranslator): PushNotificationPayload {
+  if (payload.data?.labels) return payload
+  return { ...payload, data: { ...payload.data, labels: workerLabels(t) } }
 }

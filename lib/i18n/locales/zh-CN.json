@@ -2763,5 +2763,110 @@
     "termsOfService": "服务条款",
     "privacyPolicy": "隐私政策",
     "backToHome": "返回首页"
+  },
+  "notifications": {
+    "actions": {
+      "viewTask": "查看任务",
+      "viewOverdueTask": "查看逾期任务",
+      "startWorking": "开始处理",
+      "snooze15": "15分钟后提醒",
+      "snooze60": "1小时后提醒",
+      "markComplete": "标记为已完成",
+      "openApp": "打开应用",
+      "dismiss": "关闭",
+      "snoozeReminder": "稍后提醒",
+      "openTaskManager": "打开任务管理器"
+    },
+    "push": {
+      "dueSoonTitle": "任务即将到期",
+      "dueAtBody": "{title}将于{time}到期",
+      "overdueTitle": "任务已逾期",
+      "overdueBody": "{title}已逾期",
+      "mentionTitle": "{name}提到了你",
+      "mentionBody": "在{task}中：“{excerpt}”",
+      "commentTitle": "你的任务有新评论",
+      "commentBody": "{name}：“{excerpt}”",
+      "chatMentionTitle": "{name}在聊天中提到了你",
+      "assignedTitle": "新任务分配",
+      "assignedBody": "你被分配了任务：{title}",
+      "testTitle": "测试通知",
+      "testBody": "这是来自{appName}的测试通知"
+    },
+    "worker": {
+      "reminderTitle": "任务提醒",
+      "dueTitle": "任务到期",
+      "dueNowBody": "{title}现已到期",
+      "snoozedTitle": "任务已推迟",
+      "snoozedBody": "提醒已推迟{minutes}分钟",
+      "snoozeFailedTitle": "推迟失败",
+      "snoozeFailedBody": "无法推迟提醒，请重试。",
+      "completedTitle": "任务已完成",
+      "completedBody": "任务已标记为完成！",
+      "completeFailedTitle": "完成失败",
+      "completeFailedBody": "无法将任务标记为完成，请重试。"
+    },
+    "dates": {
+      "noDueDate": "无截止日期",
+      "today": "今天",
+      "tomorrow": "明天",
+      "yesterday": "昨天",
+      "todayAt": "今天 {time}",
+      "tomorrowAt": "明天 {time}",
+      "yesterdayAt": "昨天 {time}",
+      "dateAt": "{date} {time}",
+      "overdueBy": "{when}（{count, plural, other {已逾期 # 天}}）"
+    },
+    "email": {
+      "due": "截止：{when}",
+      "reminder": {
+        "subject": "⏰ 提醒：{title}",
+        "subjectDue": "⏰ 提醒：{title}（{when}截止）",
+        "subjectOverdue": "⚠️ 已逾期：{title}",
+        "pageTitle": "任务提醒",
+        "overdueBadge": "⚠️ 已逾期",
+        "lists": "列表",
+        "assignedTo": "负责人",
+        "sharedList": "共享列表",
+        "countingOnYou": "这些人都在指望你！🤝",
+        "textHeadingOverdue": "⚠️ 任务已逾期",
+        "textHeading": "⏰ 任务提醒",
+        "textTask": "任务：{title}",
+        "textLists": "列表：{lists}",
+        "textAssignedTo": "负责人：{name}",
+        "textOverdueNote": "此任务已逾期，需要你处理。",
+        "textDueSoonNote": "此任务即将到期。",
+        "textViewTask": "查看任务：{url}",
+        "textSnooze": "稍后提醒：{url}",
+        "footerWhy": "你有一项到期任务，因此收到此提醒。",
+        "footerWhyInLists": "你在{lists}中有一项到期任务，因此收到此提醒。",
+        "footerPreferences": "你可以在设置中修改提醒偏好。"
+      },
+      "daily": {
+        "subject": "{date}的提醒",
+        "pageTitle": "每日任务摘要",
+        "greeting": "这里是{appName}，",
+        "intro": "提醒你那些对你重要的事情。",
+        "tasksHeading": "任务",
+        "signature": "- {appName}",
+        "footerHint": "点击复选框可将任务标记为已完成，点击任务名称可查看/编辑。",
+        "unsubscribe": "退订邮件提醒",
+        "textUnsubscribe": "退订邮件提醒：{url}"
+      },
+      "weekly": {
+        "subject": "每周任务展望 - {range}",
+        "title": "每周任务展望",
+        "textTitle": "📅 每周任务展望 - {range}",
+        "helloNamed": "{name}，你好！",
+        "hello": "你好！",
+        "intro": "以下是你{range}的待办任务",
+        "textIntro": "以下是你本周的待办任务：",
+        "upcoming": "待办任务（{count}）",
+        "textUpcoming": "🗓️ 待办任务（{count}）",
+        "lists": "列表：{lists}",
+        "textOpen": "打开任务管理器：{url}",
+        "footerWhy": "你收到这份每周展望，是为了帮助你提前规划下一周。",
+        "footerPreferences": "你可以在账户设置中调整摘要偏好。"
+      }
+    }
   }
 }

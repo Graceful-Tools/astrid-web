@@ -93,6 +93,8 @@ export interface TaskReminderData {
     name: string
     email: string
   }>
+  /** The recipient's `User.locale`; the email is written in it, English when unknown (AWTD-1592). */
+  locale?: string | null
 }
 
 export interface DailyDigestData {
@@ -105,6 +107,8 @@ export interface DailyDigestData {
   upcomingTasks: TaskReminderData[]
   /** The recipient's `dailyDigestTimezone`, so the email's dates are their days (AWTD-1545). */
   timeZone?: string
+  /** The recipient's `User.locale` (AWTD-1592). */
+  locale?: string | null
 }
 
 export type ReminderPreferenceKey = 
@@ -133,6 +137,8 @@ export interface PushNotificationPayload {
     messageId?: string
     action?: string
     url?: string
+    /** The service worker's buttons and toasts in the recipient's language (AWTD-1592). */
+    labels?: import('@/lib/i18n/worker-labels').WorkerLabels
   }
   icon?: string
   badge?: string

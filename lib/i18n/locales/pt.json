@@ -2763,5 +2763,110 @@
     "termsOfService": "Termos de Serviço",
     "privacyPolicy": "Política de Privacidade",
     "backToHome": "Voltar ao início"
+  },
+  "notifications": {
+    "actions": {
+      "viewTask": "Ver tarefa",
+      "viewOverdueTask": "Ver tarefa atrasada",
+      "startWorking": "Começar",
+      "snooze15": "Adiar 15 min",
+      "snooze60": "Adiar 1 h",
+      "markComplete": "Concluir",
+      "openApp": "Abrir app",
+      "dismiss": "Dispensar",
+      "snoozeReminder": "Adiar lembrete",
+      "openTaskManager": "Abrir tarefas"
+    },
+    "push": {
+      "dueSoonTitle": "Tarefa vence em breve",
+      "dueAtBody": "{title} vence às {time}",
+      "overdueTitle": "Tarefa atrasada",
+      "overdueBody": "{title} está atrasada",
+      "mentionTitle": "{name} mencionou você",
+      "mentionBody": "\"{excerpt}\" em {task}",
+      "commentTitle": "Novo comentário na sua tarefa",
+      "commentBody": "{name}: \"{excerpt}\"",
+      "chatMentionTitle": "{name} mencionou você no chat",
+      "assignedTitle": "Nova tarefa atribuída",
+      "assignedBody": "Você foi atribuído a: {title}",
+      "testTitle": "Notificação de teste",
+      "testBody": "Esta é uma notificação de teste do {appName}"
+    },
+    "worker": {
+      "reminderTitle": "Lembrete de tarefa",
+      "dueTitle": "Tarefa vencendo",
+      "dueNowBody": "{title} vence agora",
+      "snoozedTitle": "Tarefa adiada",
+      "snoozedBody": "Lembrete adiado por {minutes} minutos",
+      "snoozeFailedTitle": "Falha ao adiar",
+      "snoozeFailedBody": "Não foi possível adiar o lembrete. Tente novamente.",
+      "completedTitle": "Tarefa concluída",
+      "completedBody": "Tarefa marcada como concluída!",
+      "completeFailedTitle": "Falha ao concluir",
+      "completeFailedBody": "Não foi possível marcar a tarefa como concluída. Tente novamente."
+    },
+    "dates": {
+      "noDueDate": "Sem data de vencimento",
+      "today": "Hoje",
+      "tomorrow": "Amanhã",
+      "yesterday": "Ontem",
+      "todayAt": "Hoje às {time}",
+      "tomorrowAt": "Amanhã às {time}",
+      "yesterdayAt": "Ontem às {time}",
+      "dateAt": "{date} às {time}",
+      "overdueBy": "{when} ({count, plural, one {# dia de atraso} other {# dias de atraso}})"
+    },
+    "email": {
+      "due": "Vencimento: {when}",
+      "reminder": {
+        "subject": "⏰ Lembrete: {title}",
+        "subjectDue": "⏰ Lembrete: {title} (vence {when})",
+        "subjectOverdue": "⚠️ Atrasada: {title}",
+        "pageTitle": "Lembrete de tarefa",
+        "overdueBadge": "⚠️ ATRASADA",
+        "lists": "Listas",
+        "assignedTo": "Atribuída a",
+        "sharedList": "LISTA COMPARTILHADA",
+        "countingOnYou": "Essas pessoas estão contando com você! 🤝",
+        "textHeadingOverdue": "⚠️ TAREFA ATRASADA",
+        "textHeading": "⏰ LEMBRETE DE TAREFA",
+        "textTask": "Tarefa: {title}",
+        "textLists": "Listas: {lists}",
+        "textAssignedTo": "Atribuída a: {name}",
+        "textOverdueNote": "Esta tarefa está atrasada e precisa da sua atenção.",
+        "textDueSoonNote": "Esta tarefa vence em breve.",
+        "textViewTask": "Ver tarefa: {url}",
+        "textSnooze": "Adiar lembrete: {url}",
+        "footerWhy": "Você recebeu este lembrete porque tem uma tarefa com vencimento.",
+        "footerWhyInLists": "Você recebeu este lembrete porque tem uma tarefa com vencimento em {lists}.",
+        "footerPreferences": "Você pode alterar suas preferências de lembrete nas configurações."
+      },
+      "daily": {
+        "subject": "Lembretes para {date}",
+        "pageTitle": "Resumo diário de tarefas",
+        "greeting": "Olá, aqui é o {appName},",
+        "intro": "Lembrando você das coisas que são importantes para você.",
+        "tasksHeading": "TAREFAS",
+        "signature": "- {appName}",
+        "footerHint": "Clique nas caixas de seleção para marcar a tarefa como concluída, ou no nome da tarefa para ver / editar.",
+        "unsubscribe": "Cancelar inscrição nos lembretes por e-mail",
+        "textUnsubscribe": "Cancelar inscrição nos lembretes por e-mail: {url}"
+      },
+      "weekly": {
+        "subject": "Panorama semanal de tarefas - {range}",
+        "title": "Panorama semanal de tarefas",
+        "textTitle": "📅 PANORAMA SEMANAL DE TAREFAS - {range}",
+        "helloNamed": "Olá, {name}!",
+        "hello": "Olá!",
+        "intro": "Aqui estão suas próximas tarefas para {range}",
+        "textIntro": "Aqui estão suas próximas tarefas para esta semana:",
+        "upcoming": "Próximas tarefas ({count})",
+        "textUpcoming": "🗓️ PRÓXIMAS TAREFAS ({count})",
+        "lists": "Listas: {lists}",
+        "textOpen": "Abrir tarefas: {url}",
+        "footerWhy": "Você está recebendo este panorama semanal para ajudar a planejar sua semana.",
+        "footerPreferences": "Você pode ajustar suas preferências de resumo nas configurações da sua conta."
+      }
+    }
   }
 }

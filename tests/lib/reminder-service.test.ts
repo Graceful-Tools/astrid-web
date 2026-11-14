@@ -149,6 +149,8 @@ describe('ReminderService', () => {
         listId: 'list1',
         shortcode: undefined,
         collaborators: [],
+        // No stored language: the email stays English (AWTD-1592).
+        locale: null,
       })
     })
 
@@ -361,6 +363,8 @@ describe('ReminderService', () => {
         upcomingTasks: [],
         // The email formats its dates on the user's calendar (AWTD-1545).
         timeZone: 'America/Los_Angeles',
+        // No stored language: English (AWTD-1592).
+        locale: null,
       })
     })
 
@@ -403,6 +407,7 @@ describe('ReminderService', () => {
           expect.objectContaining({ taskId: 'task2', title: 'Friday Task' }),
         ]),
         timeZone: 'UTC',
+        locale: null,
       })
     })
 
