@@ -352,8 +352,22 @@ write if the task would be stranded, and reads back to prove it.
    from the design tokens and copy from the locale files, in every repo. Where the repo
    counts hand-written ones (web: `npm run check:design`), the count never rises; when
    your change lowers one, lower its budget in the same change.
-9. **Finish per your repo's rule** — see its own `fixall.md`, since "done" differs.
-10. **Post a completion report** (`add_comment`) and mark it complete
+9. **Re-check the claim before you merge** (AWTD-1658). The claim stops two runs *starting* a
+   task, not one run *finishing* a task another already holds: a peer on another machine, a
+   person reassigning it, or `release-stuck-doing.ts` can change the board while you work.
+   One read, just before the merge:
+
+   ```bash
+   cd ../astrid-web && npx tsx scripts/check-claim.ts <taskId> --agent <mailbox>
+   ```
+
+   Exit `0`: still yours, so merge. **Exit `2`: the claim was lost. Do not merge.** Leave the
+   branch pushed, and comment on the task with what you found and where your branch is, so
+   whoever holds it now can resume from it instead of repeating it. Exit `1` means the check
+   failed, which is not permission either. A wrong re-check costs one skipped merge. A skipped
+   re-check costs work done twice.
+10. **Finish per your repo's rule** — see its own `fixall.md`, since "done" differs.
+11. **Post a completion report** (`add_comment`) and mark it complete
     (`update_task { taskId, completed: true }`). Say what it does in plain language, not by
     commit hash or task id. A **repeating** task is completed the same way; that is what
     rolls it to its next date (*A task with a date waits for its date*, above).
