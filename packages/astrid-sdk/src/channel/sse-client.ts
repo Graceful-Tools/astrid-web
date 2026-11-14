@@ -4,9 +4,30 @@ import type { AstridChannelConfig, AgentSSEEvent } from './types.js'
 
 type EventHandler = (event: AgentSSEEvent) => void
 
+interface RecoveryHooks {
+  since: () => number
+  onConnected: () => Promise<void>
+  /**
+   * Server time from a `connected` or `keepalive` event. A keepalive is
+   * dispatched only after every event read before it was accepted, so it is
+   * the one point at which a replay cursor may move.
+   */
+  onServerTime: (time: number, kind: 'connected' | 'keepalive') => void
+}
+
+/** A non-OK stream response; carries the server's Retry-After, if any. */
+class SSEConnectError extends Error {
+  constructor(readonly status: number, readonly retryAfterMs: number) {
+    super(`SSE connection failed: ${status}`)
+  }
+}
+
 /**
  * SSE client using fetch + ReadableStream (supports Authorization headers).
- * Reconnects with exponential backoff. Keepalive timeout at 90s.
+ * Reconnects with bounded exponential backoff and jitter (2 s doubling to a
+ * 60 s cap, ±20%); the backoff resets only after a keepalive proves the
+ * connection healthy, and a failed reconnect (including a 429) always
+ * schedules the next one (AWTD-1565). Keepalive timeout at 90s.
  */
 export class SSEClient {
   private abortController: AbortController | null = null
@@ -16,6 +37,7 @@ export class SSEClient {
   private handlers = new Map<string, EventHandler[]>()
   private keepaliveTimer: ReturnType<typeof setTimeout> | null = null
   private stopped = false
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null
 
   // Fields of the event being read. They live on the instance, not in
   // parseBuffer, because a frame can be split across reads anywhere: the
@@ -27,6 +49,9 @@ export class SSEClient {
 
   private static readonly MAX_AUTH_RETRIES = 3
   private static readonly AUTH_RETRY_BASE_MS = 1000
+  private static readonly RECONNECT_BASE_MS = 2000
+  private static readonly RECONNECT_MAX_MS = 60_000
+  private static readonly RECONNECT_JITTER = 0.2
 
   // Instance-level dedup map — survives disconnect/reconnect cycles
   private deliveredEvents = new Map<string, number>()
@@ -34,7 +59,8 @@ export class SSEClient {
 
   constructor(
     private config: AstridChannelConfig,
-    private oauth: OAuthClient
+    private oauth: OAuthClient,
+    private recovery?: RecoveryHooks
   ) {}
 
   on(eventType: string, handler: EventHandler): void {
@@ -57,12 +83,13 @@ export class SSEClient {
     const token = await this.oauth.ensureToken()
     const base = this.config.sseEndpoint
       || `${resolveApiBase(this.config.apiBase)}/agent/events`
-    const since = new Date(this.lastEventTime).toISOString()
-    const url = `${base}?since=${encodeURIComponent(since)}`
+    const since = new Date(this.recovery?.since() ?? this.lastEventTime).toISOString()
+    const url = new URL(base)
+    url.searchParams.set('since', since)
 
     this.abortController = new AbortController()
 
-    const res = await fetch(url, {
+    const res = await fetch(url.toString(), {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Accept': 'text/event-stream',
@@ -84,11 +111,13 @@ export class SSEClient {
     }
 
     if (!res.ok || !res.body) {
-      throw new Error(`SSE connection failed: ${res.status}`)
+      const retryAfter = Number(res.headers.get('Retry-After'))
+      throw new SSEConnectError(res.status, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 0)
     }
 
+    // Opening the stream is not success: a connection that is refused work,
+    // or closes straight away, must keep backing off. See onHealthy().
     this.connected = true
-    this.reconnectAttempts = 0
     this.startKeepalive()
 
     const reader = res.body.getReader()
@@ -96,6 +125,9 @@ export class SSEClient {
     let buffer = ''
 
     try {
+      // The stream is already open and buffering while the queue is reconciled.
+      await this.recovery?.onConnected()
+      if (this.stopped) return
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
@@ -109,14 +141,16 @@ export class SSEClient {
         buffer = remaining
 
         for (const event of events) {
-          this.lastEventTime = Date.now()
-          this.dispatch(event)
+          if (!this.recovery) this.lastEventTime = Date.now()
+          const dispatched = this.dispatch(event)
+          if (this.recovery) await dispatched
         }
       }
     } catch (err: any) {
       if (err.name === 'AbortError') return
       throw err
     } finally {
+      this.abortController?.abort()
       this.connected = false
       this.stopKeepalive()
       if (!this.stopped) {
@@ -127,6 +161,10 @@ export class SSEClient {
 
   disconnect(): void {
     this.stopped = true
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
+    }
     this.abortController?.abort()
     this.connected = false
     this.stopKeepalive()
@@ -154,15 +192,32 @@ export class SSEClient {
     return false
   }
 
-  private scheduleReconnect(): void {
+  /**
+   * One pending reconnect at a time. A reconnect that fails before its stream
+   * opens (network, token, 401 exhaustion, 429, 5xx) schedules the next one
+   * itself; a failure after the stream opened was already rescheduled by the
+   * read loop's `finally`, which the single-timer guard absorbs.
+   */
+  private scheduleReconnect(minDelayMs = 0): void {
+    if (this.stopped || this.reconnectTimer) return
     this.reconnectAttempts++
-    const base = 2000
-    const max = 120_000
-    const delay = Math.min(base * Math.pow(1.4, this.reconnectAttempts), max)
-    const jitter = delay * 0.2 * (Math.random() * 2 - 1)
-    setTimeout(() => {
-      if (!this.stopped) this.connect().catch(console.error)
-    }, Math.round(delay + jitter))
+    const exponential = SSEClient.RECONNECT_BASE_MS * 2 ** (this.reconnectAttempts - 1)
+    const backoff = Math.min(exponential, SSEClient.RECONNECT_MAX_MS)
+    const jittered = backoff * (1 + SSEClient.RECONNECT_JITTER * (Math.random() * 2 - 1))
+    const delay = Math.round(Math.min(Math.max(jittered, minDelayMs), SSEClient.RECONNECT_MAX_MS))
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null
+      if (this.stopped) return
+      this.connect().catch(err => {
+        console.error('Astrid SSE: reconnect failed:', err)
+        this.scheduleReconnect(err instanceof SSEConnectError ? err.retryAfterMs : 0)
+      })
+    }, delay)
+  }
+
+  /** A keepalive was dispatched: everything before it was handled. */
+  private onHealthy(): void {
+    this.reconnectAttempts = 0
   }
 
   private resetPending(): void {
@@ -206,7 +261,7 @@ export class SSEClient {
     return { events, remaining }
   }
 
-  private dispatch(event: AgentSSEEvent): void {
+  private async dispatch(event: AgentSSEEvent): Promise<void> {
     let type = event.type
     let data = event.data
 
@@ -219,15 +274,31 @@ export class SSEClient {
       data = (data.data || data) as AgentSSEEvent['data']
     }
 
-    // Client-side dedup: skip events we've already dispatched
+    if (this.recovery && (type === 'connected' || type === 'keepalive')) {
+      const raw = data.serverTime ?? data.timestamp
+      const time = typeof raw === 'string' ? Date.parse(raw) : NaN
+      if (Number.isFinite(time) && time >= 0) this.recovery.onServerTime(time, type)
+      else console.warn('Astrid recovery: stream has no valid server time; replay cursor unchanged')
+    }
+    if (type === 'keepalive') this.onHealthy()
+
+    // Recovery deliveries use persisted receipts; terminal repeats are idempotent.
     const fp = this.eventFingerprint(type, data)
-    if (this.isDuplicate(fp)) return
+    const ledgerEvent = ['task.assigned', 'task.commented', 'task.completed', 'task.deleted'].includes(type)
+    if (!(this.recovery && ledgerEvent) && this.isDuplicate(fp)) return
 
     const mapped: AgentSSEEvent = { type, data }
     if (event.id) mapped.id = event.id
     const handlers = this.handlers.get(type) || []
     for (const handler of handlers) {
-      try { handler(mapped) } catch (err) { console.error('SSE handler error:', err) }
+      try {
+        const handled = handler(mapped)
+        if (this.recovery) await handled
+        else void Promise.resolve(handled).catch(err => console.error('SSE handler error:', err))
+      } catch (err) {
+        if (this.recovery) throw err
+        console.error('SSE handler error:', err)
+      }
     }
   }
 
