@@ -83,48 +83,37 @@ this table, and the iOS implementation together.
 
 ---
 
-## 2. Copy-key registry (shared user-facing strings)
+## 2. Shared user-facing strings come from astrid-core
 
-Both platforms already namespace strings the same way (`tasks.`, `lists.`,
-`navigation.`, `settings.`, …) but use **different casing conventions**:
+The hand-kept copy-key registry that lived here is retired (AWTD-1649). The strings web and iOS
+share are now **astrid-core's shared catalog**, `strings/shared/` in astrid-core: one key in the
+core's dotted snake_case, twelve languages, checked by `cargo xtask check-strings`.
 
-| | Web | iOS |
+| | Where |
+|---|---|
+| The catalog | astrid-core `strings/shared/` (and `strings/` for the strings the core itself emits) |
+| Web's copy, pinned | `lib/i18n/core-strings/` — `REVISION`, core's generated `web/<locale>.json`, and `sources.json`, the map from each shared key to the web keys with the same English |
+| Web's lookup | unchanged: web keeps its own camelCase key names, and `scripts/sync-core-strings.mjs` writes core's value into each mapped key |
+| The ratchet | `tests/i18n/core-shared-strings-awtd-1649.test.ts`: a mapped web value must equal core's, unless the pair is on `lib/i18n/core-strings/divergent.json` |
+
+**Adding or changing a shared string:** change it in astrid-core's catalog, then move the pin
+with `node scripts/sync-core-strings.mjs --rev <core sha>`. A hand edit to a mapped key in
+`lib/i18n/locales/` fails the ratchet.
+
+**The divergence list** holds the pairs (locale, web key) where web's wording and core's differ,
+or where two shared keys claim one web key with different translations (core has `add` and
+`actions.add`, both "Add" in English, "Añadir" and "Agregar" in Spanish). Each keeps web's
+wording until someone decides which translation wins; settle it in core, re-sync, and run
+`--update-divergent` so the list shrinks. It may never grow.
+
+**Web-only strings rendered on the server** are not shared and are not in the core catalog. iOS
+shows them as sent:
+
+| What | Web key | Notes |
 |---|---|---|
-| Store | `lib/i18n/locales/<lang>.json` (base: `en.json`) | `Astrid App/Resources/Localizations/<lang>.lproj/Localizable.strings` |
-| Convention | **camelCase** leaf (`tasks.addTask`) | **snake_case** leaf (`tasks.add_task`) |
-| Lookup | `t("tasks.addTask")` | `NSLocalizedString("tasks.add_task", …)` |
-
-**The mapping rule:** for a shared string, the group is identical and the leaf is
-the same words with the platform's casing — Web `tasks.taskName` ⇄ iOS
-`tasks.task_name`. When you add a shared string, add it to **both** stores under
-the mapped names in the same change (or the follow-up iOS PR), and note it here
-if it's non-obvious.
-
-Registry of shared strings that already exist on both (extend as consolidated):
-
-| Meaning | Web key | iOS key | Notes |
-|---|---|---|---|
-| "Add task" (button) | `tasks.addTask` | `tasks.add_task` | |
-| New task | `tasks.newTask` | `tasks.new_task` | |
-| Edit task | `tasks.editTask` | `tasks.edit_task` | |
-| Delete task | `tasks.deleteTask` | `tasks.delete_task` | |
-| Task name | `tasks.taskName` | `tasks.task_name` | |
-| Description | `tasks.taskDescription` | `tasks.description` | **name mismatch** — reconcile |
-| Add-task input placeholder | `tasks.addTaskPlaceholder` | `tasks.add_task_placeholder` | |
-| Won't do (task menu item) | `tasks.wontDo` | `tasks.wont_do` | Closes as `closedReason: canceled`; never rolls a repeating task forward (AITD-496 / AWTD-1241) |
-| Reopen (the same item, on a won't-do task) | `tasks.reopen` | `tasks.reopen` | Clears `completed` and `closedReason` together — one without the other leaves a task that is open and still says "Won't do" |
-| Won't do (row chip) | `tasks.wontDoChip` | `tasks.wont_do_chip` | Drawn only when completed AND `closedReason` is a known reason, so an unrecognised reason shows as plain done rather than as a blank chip |
-| Unassign (one-tap × beside the assignee picker) | `assignee.clear` | `assignee.clear` | AWTD-1637 / AITD-650. Same words and translations on both. Shown only while the task holds anyone, primary or not; one tap writes `assigneeId: null` on a classic list and `assigneeIds: []` on a multi-assignee board (`components/unassign-button.tsx`, `withoutAssignees` in `lib/task-assignees.ts`) |
-| My Tasks (nav) | `listHeaders.myTasks` | `navigation.my_tasks` | **group mismatch** — reconcile |
-| Board status pill on a list row (Inbox / Ready / Doing / Waiting / Done) | `board.status.{inbox,ready,doing,waiting,done}` | `board.status.{inbox,ready,doing,waiting,done}` | AWTD-1582 / AITD-613. List rows only, never a board card. Not on a board → no pill; completed → Done; no role → Inbox; a board's `customStates` rename wins; a custom column shows the board's name (grey) or nothing. Colours are tokens: Inbox error, Ready success, Doing info, Waiting warning, Done accent (`lib/task-board-status.ts`, iOS `TaskBoardStatus`) |
-| "What is it waiting for?" prompt, on a move into Waiting with no date or task | `waiting.prompt.{title,description,descriptionFor,until,on,dateLabel,dateInPast,taskLabel,picked,keepAssignedToMe,keepAssignedTo,theAssignee,confirm}` | `waiting.prompt.{…same 13}` | AITD-631. Same keys and translations on both; web's `{title}` / `{task}` / `{name}` are iOS `%@`. Opened by the core's `WAITING_NEEDS_CONDITION` refusal; the date is all-day and after today; the keep toggle is off by default and hidden with no assignee (`components/WaitingPromptHost.tsx`, iOS `WaitingConditionPrompt`) |
-| Astrid: "set up a model" chat reply | `astridAgent.modelSetup.noModel` | — | **Server-rendered** (AWTD-1054): posted as Astrid's chat message in the request's `Accept-Language`, so iOS shows it as-is. Link stays root-relative `/settings/agents`, which iOS routes in-app (AITD-451). |
-| Astrid: "your model only runs on Apple devices" | `astridAgent.modelSetup.onDeviceUnavailable` | — | Server-rendered, as above. Sent when an on-device model is selected but the client cannot run it. |
-| Push notifications, the service worker's toasts, reminder / daily / weekly emails | `notifications.{actions,push,worker,dates,email}.*` | — | **Server-rendered in the recipient's `User.locale`** (AWTD-1592), English when unknown. Web reports the signed-in page's locale; a native client sends its device language as `locale` on `PUT /api/v1/users/me/settings` (a BCP 47 tag; `zh-Hans`/`zh-Hant` map to `zh-CN`/`zh-TW`). Each push carries the worker's labels in `data.labels` (`lib/i18n/worker-labels.ts`). |
-
-Known reconciliation items:
-- **`description` / `taskDescription`** and **`myTasks` group** differ beyond
-  casing — pick one canonical wording per row when the string is next touched.
+| Astrid: "set up a model" chat reply | `astridAgent.modelSetup.noModel` | Posted as Astrid's chat message in the request's `Accept-Language` (AWTD-1054). The link stays root-relative `/settings/agents`, which iOS routes in-app (AITD-451) |
+| Astrid: "your model only runs on Apple devices" | `astridAgent.modelSetup.onDeviceUnavailable` | As above; sent when an on-device model is selected but the client cannot run it |
+| Push notifications, the service worker's toasts, reminder / daily / weekly emails | `notifications.{actions,push,worker,dates,email}.*` | Rendered in the recipient's `User.locale` (AWTD-1592), English when unknown. A native client sends its device language as `locale` on `PUT /api/v1/users/me/settings` (`zh-Hans`/`zh-Hant` map to `zh-CN`/`zh-TW`). Each push carries the worker's labels in `data.labels` (`lib/i18n/worker-labels.ts`) |
 
 ---
 
