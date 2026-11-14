@@ -5,6 +5,7 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     user: {
       findUnique: vi.fn(),
+      update: vi.fn(),
     },
     reminderSettings: {
       upsert: vi.fn(),
@@ -212,5 +213,64 @@ describe('PUT /api/v1/users/me/settings', () => {
     expect(call.create.enableEmailReminders).toBe(false)
     expect(call.create.enablePushReminders).toBeUndefined()
     expect(call.create.defaultReminderTime).toBeUndefined()
+  })
+})
+
+describe('locale on /api/v1/users/me/settings (AWTD-1592)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockAuthenticateAPI.mockResolvedValue(authedUser as any)
+    mockPrisma.reminderSettings.upsert.mockResolvedValue({} as any)
+  })
+
+  it('GET returns the stored locale, null when unknown', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'user-123', email: 'jon@example.com', name: 'Jon', locale: 'de', reminderSettings: null,
+    } as any)
+    const json = await (await GET(makeReq('GET'), undefined as any)).json()
+    expect(json.settings.locale).toBe('de')
+
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'user-123', email: 'jon@example.com', name: 'Jon', reminderSettings: null,
+    } as any)
+    const unknown = await (await GET(makeReq('GET'), undefined as any)).json()
+    expect(unknown.settings.locale).toBeNull()
+  })
+
+  it('PUT stores a device tag as one of the app locales', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'user-123', email: 'jon@example.com', name: 'Jon', locale: 'zh-TW', reminderSettings: null,
+    } as any)
+    const res = await PUT(makeReq('PUT', { locale: 'zh-Hant-HK' }), undefined as any)
+    expect(res.status).toBe(200)
+    expect(mockPrisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-123' },
+      data: { locale: 'zh-TW' },
+    })
+    expect((await res.json()).settings.locale).toBe('zh-TW')
+  })
+
+  it('PUT refuses a language the app does not ship, and writes nothing', async () => {
+    const res = await PUT(makeReq('PUT', { locale: 'tlh', reminderSettings: { enableDailyDigest: true } }), undefined as any)
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toMatch(/locale/i)
+    expect(mockPrisma.user.update).not.toHaveBeenCalled()
+    expect(mockPrisma.reminderSettings.upsert).not.toHaveBeenCalled()
+  })
+
+  it('PUT with locale null forgets it', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'user-123', email: 'jon@example.com', name: 'Jon', locale: null, reminderSettings: null,
+    } as any)
+    await PUT(makeReq('PUT', { locale: null }), undefined as any)
+    expect(mockPrisma.user.update).toHaveBeenCalledWith({ where: { id: 'user-123' }, data: { locale: null } })
+  })
+
+  it('PUT without locale leaves it alone', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'user-123', email: 'jon@example.com', name: 'Jon', locale: 'fr', reminderSettings: null,
+    } as any)
+    await PUT(makeReq('PUT', { reminderSettings: { enableDailyDigest: true } }), undefined as any)
+    expect(mockPrisma.user.update).not.toHaveBeenCalled()
   })
 })

@@ -2763,5 +2763,110 @@
     "termsOfService": "利用規約",
     "privacyPolicy": "プライバシーポリシー",
     "backToHome": "ホームに戻る"
+  },
+  "notifications": {
+    "actions": {
+      "viewTask": "タスクを表示",
+      "viewOverdueTask": "期限切れタスクを表示",
+      "startWorking": "作業を開始",
+      "snooze15": "15分スヌーズ",
+      "snooze60": "1時間スヌーズ",
+      "markComplete": "完了にする",
+      "openApp": "アプリを開く",
+      "dismiss": "閉じる",
+      "snoozeReminder": "リマインダーをスヌーズ",
+      "openTaskManager": "タスク管理を開く"
+    },
+    "push": {
+      "dueSoonTitle": "まもなく期限のタスク",
+      "dueAtBody": "{title}の期限は{time}です",
+      "overdueTitle": "期限切れのタスク",
+      "overdueBody": "{title}は期限切れです",
+      "mentionTitle": "{name}さんがあなたをメンションしました",
+      "mentionBody": "{task}で「{excerpt}」",
+      "commentTitle": "あなたのタスクに新しいコメント",
+      "commentBody": "{name}：「{excerpt}」",
+      "chatMentionTitle": "{name}さんがチャットであなたをメンションしました",
+      "assignedTitle": "新しいタスクの割り当て",
+      "assignedBody": "タスクが割り当てられました：{title}",
+      "testTitle": "テスト通知",
+      "testBody": "{appName}からのテスト通知です"
+    },
+    "worker": {
+      "reminderTitle": "タスクのリマインダー",
+      "dueTitle": "タスクの期限",
+      "dueNowBody": "{title}の期限です",
+      "snoozedTitle": "スヌーズしました",
+      "snoozedBody": "リマインダーを{minutes}分間スヌーズしました",
+      "snoozeFailedTitle": "スヌーズに失敗しました",
+      "snoozeFailedBody": "リマインダーをスヌーズできませんでした。もう一度お試しください。",
+      "completedTitle": "タスクを完了しました",
+      "completedBody": "タスクを完了にしました！",
+      "completeFailedTitle": "完了にできませんでした",
+      "completeFailedBody": "タスクを完了にできませんでした。もう一度お試しください。"
+    },
+    "dates": {
+      "noDueDate": "期限なし",
+      "today": "今日",
+      "tomorrow": "明日",
+      "yesterday": "昨日",
+      "todayAt": "今日 {time}",
+      "tomorrowAt": "明日 {time}",
+      "yesterdayAt": "昨日 {time}",
+      "dateAt": "{date} {time}",
+      "overdueBy": "{when}（{count, plural, other {#日超過}}）"
+    },
+    "email": {
+      "due": "期限：{when}",
+      "reminder": {
+        "subject": "⏰ リマインダー：{title}",
+        "subjectDue": "⏰ リマインダー：{title}（期限 {when}）",
+        "subjectOverdue": "⚠️ 期限切れ：{title}",
+        "pageTitle": "タスクのリマインダー",
+        "overdueBadge": "⚠️ 期限切れ",
+        "lists": "リスト",
+        "assignedTo": "担当者",
+        "sharedList": "共有リスト",
+        "countingOnYou": "この人たちがあなたを頼りにしています！🤝",
+        "textHeadingOverdue": "⚠️ タスクの期限切れ",
+        "textHeading": "⏰ タスクのリマインダー",
+        "textTask": "タスク：{title}",
+        "textLists": "リスト：{lists}",
+        "textAssignedTo": "担当者：{name}",
+        "textOverdueNote": "このタスクは期限切れです。対応をお願いします。",
+        "textDueSoonNote": "このタスクはまもなく期限です。",
+        "textViewTask": "タスクを表示：{url}",
+        "textSnooze": "リマインダーをスヌーズ：{url}",
+        "footerWhy": "期限のタスクがあるため、このリマインダーをお送りしました。",
+        "footerWhyInLists": "{lists}に期限のタスクがあるため、このリマインダーをお送りしました。",
+        "footerPreferences": "リマインダーの設定は設定画面で変更できます。"
+      },
+      "daily": {
+        "subject": "{date}のリマインダー",
+        "pageTitle": "タスクの日次ダイジェスト",
+        "greeting": "{appName}です。",
+        "intro": "あなたにとって大切なことをお知らせします。",
+        "tasksHeading": "タスク",
+        "signature": "- {appName}",
+        "footerHint": "チェックボックスをクリックするとタスクを完了にでき、タスク名をクリックすると表示・編集できます。",
+        "unsubscribe": "メールリマインダーの配信を停止",
+        "textUnsubscribe": "メールリマインダーの配信を停止：{url}"
+      },
+      "weekly": {
+        "subject": "週間タスク予定 - {range}",
+        "title": "週間タスク予定",
+        "textTitle": "📅 週間タスク予定 - {range}",
+        "helloNamed": "{name}さん、こんにちは！",
+        "hello": "こんにちは！",
+        "intro": "{range}の今後のタスクはこちらです",
+        "textIntro": "今週の今後のタスクはこちらです：",
+        "upcoming": "今後のタスク（{count}）",
+        "textUpcoming": "🗓️ 今後のタスク（{count}）",
+        "lists": "リスト：{lists}",
+        "textOpen": "タスク管理を開く：{url}",
+        "footerWhy": "1週間の計画に役立てていただけるよう、この週間予定をお送りしています。",
+        "footerPreferences": "ダイジェストの設定はアカウント設定で変更できます。"
+      }
+    }
   }
 }

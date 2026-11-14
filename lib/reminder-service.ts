@@ -1,6 +1,8 @@
 import { Prisma, PrismaClient } from '@prisma/client'
 import type { ReminderSettings, TaskReminderData, DailyDigestData } from '@/types/reminder'
 import { createLogger } from '@/lib/logger'
+import { clockOptions, getNotificationTranslator, intlTag, renderLocale, type NotificationTranslator } from '@/lib/i18n/user-locale'
+import type { Locale } from '@/lib/i18n/config'
 import { digestDay, dueBefore, dueBetween, dueOn, nextDigestAt, WEEKLY_DIGEST_WEEKDAY } from '@/lib/digest-schedule'
 
 /** The columns a digest send reads (AWTD-1454): no full User row. */
@@ -10,7 +12,7 @@ interface DigestRow {
   dailyDigestTimezone: string
   nextDailyDigestAt: Date | null
   nextWeeklyDigestAt: Date | null
-  user: { id: string; email: string; name: string | null }
+  user: { id: string; email: string; name: string | null; locale?: string | null }
 }
 
 const log = createLogger('reminder-service')
@@ -89,7 +91,7 @@ export class ReminderService {
             lists: { select: { id: true, name: true } },
           },
         },
-        user: { select: { email: true, name: true } },
+        user: { select: { email: true, name: true, locale: true } },
       },
     })
 
@@ -233,15 +235,18 @@ export class ReminderService {
 
   private async sendPushReminder(reminder: any, userSettings: ReminderSettings): Promise<void> {
     const task = reminder.task
-    const dueTime = this.formatTimeForTimezone(task.dueDateTime, userSettings.dailyDigestTimezone)
-    
-    let title = 'Task Due Soon'
-    let body = `${task.title} is due at ${dueTime}`
+    // In the recipient's language (AWTD-1592); English when it is not known.
+    const locale = renderLocale(reminder.user?.locale)
+    const t: NotificationTranslator = await getNotificationTranslator(locale)
+    const dueTime = this.formatTimeForTimezone(task.dueDateTime, userSettings.dailyDigestTimezone, locale)
+
+    let title = t('push.dueSoonTitle')
+    let body = t('push.dueAtBody', { title: task.title, time: dueTime })
 
     // Check if task is overdue
     if (task.dueDateTime && new Date(task.dueDateTime) < new Date()) {
-      title = 'Task Overdue'
-      body = `${task.title} is overdue`
+      title = t('push.overdueTitle')
+      body = t('push.overdueBody', { title: task.title })
     }
 
     await this.pushService.sendNotification(reminder.userId, {
@@ -255,15 +260,15 @@ export class ReminderService {
       actions: [
         {
           action: 'snooze_15',
-          title: 'Snooze 15min',
+          title: t('actions.snooze15'),
         },
         {
           action: 'snooze_60',
-          title: 'Snooze 1hr',
+          title: t('actions.snooze60'),
         },
         {
           action: 'complete',
-          title: 'Mark Complete',
+          title: t('actions.markComplete'),
         },
       ],
     })
@@ -332,6 +337,7 @@ export class ReminderService {
       listId: firstListId,
       shortcode,
       collaborators: Array.from(collaboratorsMap.values()),
+      locale: user.locale ?? null,
     }
 
     await this.emailService.sendTaskReminder(reminderData)
@@ -447,21 +453,15 @@ export class ReminderService {
     return (utc.getTime() - target.getTime()) / 60000
   }
 
-  private formatTimeForTimezone(date: Date, timezone: string): string {
+  private formatTimeForTimezone(date: Date, timezone: string, locale: Locale = 'en'): string {
     try {
-      return new Intl.DateTimeFormat('en-US', {
+      return new Intl.DateTimeFormat(intlTag(locale), {
         timeZone: timezone,
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
+        ...clockOptions(locale),
       }).format(new Date(date))
     } catch (error) {
       // Fallback to UTC if timezone is invalid
-      return new Intl.DateTimeFormat('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-      }).format(new Date(date))
+      return new Intl.DateTimeFormat(intlTag(locale), clockOptions(locale)).format(new Date(date))
     }
   }
 
@@ -523,7 +523,7 @@ export class ReminderService {
         dailyDigestTimezone: true,
         nextDailyDigestAt: true,
         nextWeeklyDigestAt: true,
-        user: { select: { id: true, email: true, name: true } },
+        user: { select: { id: true, email: true, name: true, locale: true } },
       },
     })
 
@@ -594,6 +594,7 @@ export class ReminderService {
       overdueTasks: overdueTasks.map(this.taskToReminderData),
       upcomingTasks: [], // Tasks due later than tomorrow - not included in daily digest
       timeZone: zone,
+      locale: user.locale ?? null,
     }
 
     await this.emailService.sendDailyDigest(digestData)
@@ -630,6 +631,7 @@ export class ReminderService {
       userName: user.name ?? '',
       upcomingTasks: upcomingTasks.map(this.taskToReminderData),
       timeZone: zone,
+      locale: user.locale ?? null,
     })
   }
 

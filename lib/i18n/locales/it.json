@@ -2763,5 +2763,110 @@
     "termsOfService": "Termini di servizio",
     "privacyPolicy": "Informativa sulla privacy",
     "backToHome": "Torna alla home"
+  },
+  "notifications": {
+    "actions": {
+      "viewTask": "Vedi attività",
+      "viewOverdueTask": "Vedi attività in ritardo",
+      "startWorking": "Inizia",
+      "snooze15": "Posticipa 15 min",
+      "snooze60": "Posticipa 1 ora",
+      "markComplete": "Completa",
+      "openApp": "Apri app",
+      "dismiss": "Ignora",
+      "snoozeReminder": "Posticipa promemoria",
+      "openTaskManager": "Apri attività"
+    },
+    "push": {
+      "dueSoonTitle": "Attività in scadenza",
+      "dueAtBody": "{title} scade alle {time}",
+      "overdueTitle": "Attività in ritardo",
+      "overdueBody": "{title} è in ritardo",
+      "mentionTitle": "{name} ti ha menzionato",
+      "mentionBody": "\"{excerpt}\" in {task}",
+      "commentTitle": "Nuovo commento sulla tua attività",
+      "commentBody": "{name}: \"{excerpt}\"",
+      "chatMentionTitle": "{name} ti ha menzionato nella chat",
+      "assignedTitle": "Nuova attività assegnata",
+      "assignedBody": "Ti è stata assegnata: {title}",
+      "testTitle": "Notifica di prova",
+      "testBody": "Questa è una notifica di prova da {appName}"
+    },
+    "worker": {
+      "reminderTitle": "Promemoria attività",
+      "dueTitle": "Attività in scadenza",
+      "dueNowBody": "{title} scade adesso",
+      "snoozedTitle": "Attività posticipata",
+      "snoozedBody": "Promemoria posticipato di {minutes} minuti",
+      "snoozeFailedTitle": "Posticipo non riuscito",
+      "snoozeFailedBody": "Impossibile posticipare il promemoria. Riprova.",
+      "completedTitle": "Attività completata",
+      "completedBody": "Attività segnata come completata!",
+      "completeFailedTitle": "Completamento non riuscito",
+      "completeFailedBody": "Impossibile segnare l'attività come completata. Riprova."
+    },
+    "dates": {
+      "noDueDate": "Nessuna scadenza",
+      "today": "Oggi",
+      "tomorrow": "Domani",
+      "yesterday": "Ieri",
+      "todayAt": "Oggi alle {time}",
+      "tomorrowAt": "Domani alle {time}",
+      "yesterdayAt": "Ieri alle {time}",
+      "dateAt": "{date} alle {time}",
+      "overdueBy": "{when} ({count, plural, one {# giorno di ritardo} other {# giorni di ritardo}})"
+    },
+    "email": {
+      "due": "Scadenza: {when}",
+      "reminder": {
+        "subject": "⏰ Promemoria: {title}",
+        "subjectDue": "⏰ Promemoria: {title} (scadenza {when})",
+        "subjectOverdue": "⚠️ In ritardo: {title}",
+        "pageTitle": "Promemoria attività",
+        "overdueBadge": "⚠️ IN RITARDO",
+        "lists": "Liste",
+        "assignedTo": "Assegnata a",
+        "sharedList": "LISTA CONDIVISA",
+        "countingOnYou": "Queste persone contano su di te! 🤝",
+        "textHeadingOverdue": "⚠️ ATTIVITÀ IN RITARDO",
+        "textHeading": "⏰ PROMEMORIA ATTIVITÀ",
+        "textTask": "Attività: {title}",
+        "textLists": "Liste: {lists}",
+        "textAssignedTo": "Assegnata a: {name}",
+        "textOverdueNote": "Questa attività è in ritardo e richiede la tua attenzione.",
+        "textDueSoonNote": "Questa attività scade a breve.",
+        "textViewTask": "Vedi attività: {url}",
+        "textSnooze": "Posticipa promemoria: {url}",
+        "footerWhy": "Ricevi questo promemoria perché hai un'attività in scadenza.",
+        "footerWhyInLists": "Ricevi questo promemoria perché hai un'attività in scadenza in {lists}.",
+        "footerPreferences": "Puoi modificare le preferenze dei promemoria nelle impostazioni."
+      },
+      "daily": {
+        "subject": "Promemoria per {date}",
+        "pageTitle": "Riepilogo giornaliero delle attività",
+        "greeting": "Ciao, qui {appName},",
+        "intro": "Ti ricordo le cose importanti per te.",
+        "tasksHeading": "ATTIVITÀ",
+        "signature": "- {appName}",
+        "footerHint": "Fai clic sulle caselle per segnare un'attività come completata, o sul nome per vederla / modificarla.",
+        "unsubscribe": "Annulla l'iscrizione ai promemoria via email",
+        "textUnsubscribe": "Annulla l'iscrizione ai promemoria via email: {url}"
+      },
+      "weekly": {
+        "subject": "Panoramica settimanale delle attività - {range}",
+        "title": "Panoramica settimanale delle attività",
+        "textTitle": "📅 PANORAMICA SETTIMANALE DELLE ATTIVITÀ - {range}",
+        "helloNamed": "Ciao {name}!",
+        "hello": "Ciao!",
+        "intro": "Ecco le tue prossime attività per {range}",
+        "textIntro": "Ecco le tue prossime attività per questa settimana:",
+        "upcoming": "Prossime attività ({count})",
+        "textUpcoming": "🗓️ PROSSIME ATTIVITÀ ({count})",
+        "lists": "Liste: {lists}",
+        "textOpen": "Apri attività: {url}",
+        "footerWhy": "Ricevi questa panoramica settimanale per aiutarti a pianificare la settimana.",
+        "footerPreferences": "Puoi modificare le preferenze del riepilogo nelle impostazioni del tuo account."
+      }
+    }
   }
 }

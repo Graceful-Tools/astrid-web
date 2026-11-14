@@ -19,6 +19,8 @@ export interface FakeDigestUser {
   name: string | null
   /** Null: the user has no ReminderSettings row. */
   settings: Row | null
+  /** `User.locale` (AWTD-1592); absent reads as null. */
+  locale?: string | null
 }
 
 export interface FakeTask {
@@ -125,7 +127,7 @@ export function fakeDigestPrisma(users: FakeDigestUser[], tasks: FakeTask[]) {
         if (args.take !== undefined) rows = rows.slice(0, args.take)
         const projected = rows.map((s) => {
           const user = userById.get(s.userId)!
-          return project(s, args.select, { user: { id: user.id, email: user.email, name: user.name } })
+          return project(s, args.select, { user: { id: user.id, email: user.email, name: user.name, locale: user.locale ?? null } })
         })
         return read('reminderSettings.findMany', projected)
       }),

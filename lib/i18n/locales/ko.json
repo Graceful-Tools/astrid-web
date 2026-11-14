@@ -2763,5 +2763,110 @@
     "termsOfService": "서비스 약관",
     "privacyPolicy": "개인정보 처리방침",
     "backToHome": "홈으로 돌아가기"
+  },
+  "notifications": {
+    "actions": {
+      "viewTask": "작업 보기",
+      "viewOverdueTask": "기한 지난 작업 보기",
+      "startWorking": "작업 시작",
+      "snooze15": "15분 후 알림",
+      "snooze60": "1시간 후 알림",
+      "markComplete": "완료로 표시",
+      "openApp": "앱 열기",
+      "dismiss": "닫기",
+      "snoozeReminder": "미리 알림 미루기",
+      "openTaskManager": "작업 관리자 열기"
+    },
+    "push": {
+      "dueSoonTitle": "곧 마감되는 작업",
+      "dueAtBody": "{title}의 마감 시간은 {time}입니다",
+      "overdueTitle": "기한 지난 작업",
+      "overdueBody": "{title}의 기한이 지났습니다",
+      "mentionTitle": "{name}님이 회원님을 멘션했습니다",
+      "mentionBody": "{task}에서: \"{excerpt}\"",
+      "commentTitle": "내 작업에 새 댓글",
+      "commentBody": "{name}: \"{excerpt}\"",
+      "chatMentionTitle": "{name}님이 채팅에서 회원님을 멘션했습니다",
+      "assignedTitle": "새 작업 할당",
+      "assignedBody": "작업이 할당되었습니다: {title}",
+      "testTitle": "테스트 알림",
+      "testBody": "{appName}에서 보낸 테스트 알림입니다"
+    },
+    "worker": {
+      "reminderTitle": "작업 미리 알림",
+      "dueTitle": "작업 마감",
+      "dueNowBody": "{title}의 마감 시간입니다",
+      "snoozedTitle": "작업 알림 미룸",
+      "snoozedBody": "미리 알림을 {minutes}분 미뤘습니다",
+      "snoozeFailedTitle": "미루기 실패",
+      "snoozeFailedBody": "미리 알림을 미루지 못했습니다. 다시 시도하세요.",
+      "completedTitle": "작업 완료",
+      "completedBody": "작업을 완료로 표시했습니다!",
+      "completeFailedTitle": "완료 실패",
+      "completeFailedBody": "작업을 완료로 표시하지 못했습니다. 다시 시도하세요."
+    },
+    "dates": {
+      "noDueDate": "마감일 없음",
+      "today": "오늘",
+      "tomorrow": "내일",
+      "yesterday": "어제",
+      "todayAt": "오늘 {time}",
+      "tomorrowAt": "내일 {time}",
+      "yesterdayAt": "어제 {time}",
+      "dateAt": "{date} {time}",
+      "overdueBy": "{when} ({count, plural, other {#일 지남}})"
+    },
+    "email": {
+      "due": "마감: {when}",
+      "reminder": {
+        "subject": "⏰ 미리 알림: {title}",
+        "subjectDue": "⏰ 미리 알림: {title} (마감 {when})",
+        "subjectOverdue": "⚠️ 기한 지남: {title}",
+        "pageTitle": "작업 미리 알림",
+        "overdueBadge": "⚠️ 기한 지남",
+        "lists": "목록",
+        "assignedTo": "담당자",
+        "sharedList": "공유 목록",
+        "countingOnYou": "이 사람들이 회원님을 믿고 있어요! 🤝",
+        "textHeadingOverdue": "⚠️ 작업 기한 지남",
+        "textHeading": "⏰ 작업 미리 알림",
+        "textTask": "작업: {title}",
+        "textLists": "목록: {lists}",
+        "textAssignedTo": "담당자: {name}",
+        "textOverdueNote": "이 작업은 기한이 지나 확인이 필요합니다.",
+        "textDueSoonNote": "이 작업은 곧 마감됩니다.",
+        "textViewTask": "작업 보기: {url}",
+        "textSnooze": "미리 알림 미루기: {url}",
+        "footerWhy": "마감되는 작업이 있어 이 미리 알림을 보내드렸습니다.",
+        "footerWhyInLists": "{lists}에 마감되는 작업이 있어 이 미리 알림을 보내드렸습니다.",
+        "footerPreferences": "설정에서 알림 환경설정을 변경할 수 있습니다."
+      },
+      "daily": {
+        "subject": "{date} 미리 알림",
+        "pageTitle": "일간 작업 요약",
+        "greeting": "{appName}입니다.",
+        "intro": "회원님에게 중요한 일들을 알려드립니다.",
+        "tasksHeading": "작업",
+        "signature": "- {appName}",
+        "footerHint": "체크박스를 클릭하면 작업을 완료로 표시하고, 작업 이름을 클릭하면 보기/편집할 수 있습니다.",
+        "unsubscribe": "이메일 알림 수신 거부",
+        "textUnsubscribe": "이메일 알림 수신 거부: {url}"
+      },
+      "weekly": {
+        "subject": "주간 작업 전망 - {range}",
+        "title": "주간 작업 전망",
+        "textTitle": "📅 주간 작업 전망 - {range}",
+        "helloNamed": "안녕하세요, {name}님!",
+        "hello": "안녕하세요!",
+        "intro": "{range} 예정된 작업입니다",
+        "textIntro": "이번 주 예정된 작업입니다:",
+        "upcoming": "예정된 작업 ({count})",
+        "textUpcoming": "🗓️ 예정된 작업 ({count})",
+        "lists": "목록: {lists}",
+        "textOpen": "작업 관리자 열기: {url}",
+        "footerWhy": "한 주를 계획하는 데 도움이 되도록 주간 전망을 보내드립니다.",
+        "footerPreferences": "계정 설정에서 요약 환경설정을 변경할 수 있습니다."
+      }
+    }
   }
 }

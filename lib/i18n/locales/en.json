@@ -2763,5 +2763,110 @@
     "backToHome": "Back to Home",
     "termsOfService": "Terms of Service",
     "privacyPolicy": "Privacy Policy"
+  },
+  "notifications": {
+    "actions": {
+      "viewTask": "View Task",
+      "viewOverdueTask": "View Overdue Task",
+      "startWorking": "Start Working",
+      "snooze15": "Snooze 15min",
+      "snooze60": "Snooze 1hr",
+      "markComplete": "Mark Complete",
+      "openApp": "Open App",
+      "dismiss": "Dismiss",
+      "snoozeReminder": "Snooze Reminder",
+      "openTaskManager": "Open Task Manager"
+    },
+    "push": {
+      "dueSoonTitle": "Task Due Soon",
+      "dueAtBody": "{title} is due at {time}",
+      "overdueTitle": "Task Overdue",
+      "overdueBody": "{title} is overdue",
+      "mentionTitle": "{name} mentioned you",
+      "mentionBody": "\"{excerpt}\" in {task}",
+      "commentTitle": "New comment on your task",
+      "commentBody": "{name}: \"{excerpt}\"",
+      "chatMentionTitle": "{name} mentioned you in chat",
+      "assignedTitle": "New Task Assignment",
+      "assignedBody": "You've been assigned: {title}",
+      "testTitle": "Test Notification",
+      "testBody": "This is a test notification from {appName}"
+    },
+    "worker": {
+      "reminderTitle": "Task Reminder",
+      "dueTitle": "Task Due",
+      "dueNowBody": "{title} is due now",
+      "snoozedTitle": "Task Snoozed",
+      "snoozedBody": "Reminder snoozed for {minutes} minutes",
+      "snoozeFailedTitle": "Snooze Failed",
+      "snoozeFailedBody": "Failed to snooze reminder. Please try again.",
+      "completedTitle": "Task Completed",
+      "completedBody": "Task marked as complete!",
+      "completeFailedTitle": "Complete Failed",
+      "completeFailedBody": "Failed to mark task as complete. Please try again."
+    },
+    "dates": {
+      "noDueDate": "No due date",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "yesterday": "Yesterday",
+      "todayAt": "Today at {time}",
+      "tomorrowAt": "Tomorrow at {time}",
+      "yesterdayAt": "Yesterday at {time}",
+      "dateAt": "{date} at {time}",
+      "overdueBy": "{when} ({count, plural, one {# day overdue} other {# days overdue}})"
+    },
+    "email": {
+      "due": "Due: {when}",
+      "reminder": {
+        "subject": "⏰ Reminder: {title}",
+        "subjectDue": "⏰ Reminder: {title} (due {when})",
+        "subjectOverdue": "⚠️ Overdue: {title}",
+        "pageTitle": "Task Reminder",
+        "overdueBadge": "⚠️ OVERDUE",
+        "lists": "Lists",
+        "assignedTo": "Assigned To",
+        "sharedList": "SHARED LIST",
+        "countingOnYou": "These people are counting on you! 🤝",
+        "textHeadingOverdue": "⚠️ TASK OVERDUE",
+        "textHeading": "⏰ TASK REMINDER",
+        "textTask": "Task: {title}",
+        "textLists": "Lists: {lists}",
+        "textAssignedTo": "Assigned to: {name}",
+        "textOverdueNote": "This task is overdue and needs your attention.",
+        "textDueSoonNote": "This task is due soon.",
+        "textViewTask": "View task: {url}",
+        "textSnooze": "Snooze reminder: {url}",
+        "footerWhy": "This reminder was sent because you have a task due.",
+        "footerWhyInLists": "This reminder was sent because you have a task due in {lists}.",
+        "footerPreferences": "You can modify your reminder preferences in your settings."
+      },
+      "daily": {
+        "subject": "Reminders for {date}",
+        "pageTitle": "Daily Task Digest",
+        "greeting": "{appName} here,",
+        "intro": "Reminding you about the things that are important to you.",
+        "tasksHeading": "TASKS",
+        "signature": "- {appName}",
+        "footerHint": "Click on checkboxes to mark task as complete or task name to view / edit.",
+        "unsubscribe": "Unsubscribe from email reminders",
+        "textUnsubscribe": "Unsubscribe from email reminders: {url}"
+      },
+      "weekly": {
+        "subject": "Weekly Task Outlook - {range}",
+        "title": "Weekly Task Outlook",
+        "textTitle": "📅 WEEKLY TASK OUTLOOK - {range}",
+        "helloNamed": "Hello {name}!",
+        "hello": "Hello!",
+        "intro": "Here are your upcoming tasks for {range}",
+        "textIntro": "Here are your upcoming tasks for this week:",
+        "upcoming": "Upcoming Tasks ({count})",
+        "textUpcoming": "🗓️ UPCOMING TASKS ({count})",
+        "lists": "Lists: {lists}",
+        "textOpen": "Open Task Manager: {url}",
+        "footerWhy": "You're receiving this weekly outlook to help you plan your week ahead.",
+        "footerPreferences": "You can adjust your digest preferences in your account settings."
+      }
+    }
   }
 }
