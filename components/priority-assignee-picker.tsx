@@ -4,13 +4,14 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Check } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import type { User } from '@/types/task'
+import type { Task, User } from '@/types/task'
 import { isCodingAgent } from "@/lib/ai-agent-utils"
 import { CompletionConfirmation } from "@/components/completion-confirmation"
 import { completionNeedsConfirmation } from "@/lib/task-leading-control"
 import { priorityFillClass, priorityOutlineClass } from "@/lib/design/priority"
 import { useTranslations } from "@/lib/i18n/client"
 import { boardColumnBlurb, boardColumnLabel } from "@/lib/board-column-labels"
+import { UnassignButton } from "@/components/unassign-button"
 
 interface PriorityAssigneePickerProps {
   isOpen: boolean
@@ -60,6 +61,12 @@ interface PriorityAssigneePickerProps {
    * work in both directions.
    */
   onToggleComplete?: () => void
+  /**
+   * Offer the one-tap × that clears every assignee (AWTD-1637, iOS AITD-650):
+   * shown while `task` holds anyone, primary or not; `apply` receives the task
+   * with nobody on it. Absent means no × — quick add has no task to unassign.
+   */
+  unassign?: { task: Task; apply: (cleared: Task) => void }
 }
 
 // Colours come from the design tokens (lib/design/priority.ts): one per
@@ -87,6 +94,7 @@ export function PriorityAssigneePicker({
   onStatusSelect,
   completed,
   onToggleComplete,
+  unassign,
 }: PriorityAssigneePickerProps) {
   const { t } = useTranslations()
   const [tempPriority, setTempPriority] = useState(selectedPriority)
@@ -393,7 +401,19 @@ export function PriorityAssigneePicker({
 
           {/* Assignee Section */}
           <div className="px-4 py-4">
-            <h3 className="text-sm font-medium text-theme-muted mb-3">{t('tasks.assignee')}</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-medium text-theme-muted">{t('tasks.assignee')}</h3>
+              {unassign && (
+                <UnassignButton
+                  task={unassign.task}
+                  onUnassign={cleared => {
+                    setTempAssignee(null)
+                    unassign.apply(cleared)
+                    onClose()
+                  }}
+                />
+              )}
+            </div>
             <div className="max-h-48 overflow-y-auto -mx-4 px-4 space-y-1">
               {/* Unassigned option */}
               <button

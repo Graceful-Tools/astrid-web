@@ -241,6 +241,9 @@
     },
     "dropToPlaceFirst": "ここにドロップして最初のタスクを配置"
   },
+  "assignee": {
+    "clear": "割り当てを解除"
+  },
   "lists": {
     "list": "リスト",
     "newList": "新しいリスト",

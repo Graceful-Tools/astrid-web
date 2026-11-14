@@ -70,3 +70,23 @@ export function nextAssigneeIds(args: {
 
   return done([...args.current])
 }
+
+/**
+ * Whether the one-tap unassign × shows (AWTD-1637, iOS AITD-650): while the
+ * task holds ANYONE, primary or not. Read from both fields because a client
+ * row may carry a list without a primary, or a primary without the list.
+ */
+export function hasAnyAssignee(row: { assigneeId?: string | null; assigneeIds?: readonly string[] | null }): boolean {
+  return Boolean(row.assigneeId) || (row.assigneeIds?.length ?? 0) > 0
+}
+
+/**
+ * The task with nobody on it (AWTD-1637). `assigneeId: null` alone would only
+ * promote the next assignee on a multi-assignee board (see `nextAssigneeIds`),
+ * so the list is emptied too; `v1TaskUpdateBody` sends `assigneeIds: []` only
+ * when the task had a list to empty, so a classic list still gets plain
+ * `assigneeId: null`.
+ */
+export function withoutAssignees<T extends object>(task: T): T & { assignee: null; assigneeId: null; assigneeIds: string[] } {
+  return { ...task, assignee: null, assigneeId: null, assigneeIds: [] }
+}

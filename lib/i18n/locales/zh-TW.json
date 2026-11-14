@@ -241,6 +241,9 @@
     },
     "dropToPlaceFirst": "拖放到此處以放置第一個任務"
   },
+  "assignee": {
+    "clear": "取消指派"
+  },
   "lists": {
     "list": "列表",
     "newList": "新列表",

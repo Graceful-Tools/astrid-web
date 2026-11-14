@@ -241,6 +241,9 @@
     },
     "dropToPlaceFirst": "Hier ablegen, um die erste Aufgabe zu platzieren"
   },
+  "assignee": {
+    "clear": "Zuweisung aufheben"
+  },
   "lists": {
     "list": "Liste",
     "newList": "Neue Liste",

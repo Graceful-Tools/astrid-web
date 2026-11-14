@@ -241,6 +241,9 @@
     },
     "dropToPlaceFirst": "Drop here to place the first task"
   },
+  "assignee": {
+    "clear": "Unassign"
+  },
   "lists": {
     "list": "List",
     "newList": "New list",

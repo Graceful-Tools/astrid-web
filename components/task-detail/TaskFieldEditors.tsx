@@ -30,6 +30,7 @@ import { useTranslations } from "@/lib/i18n/client"
 import { fillMessage } from "@/components/shared/RichMessage"
 import { customRepeatingSummary } from "./custom-repeating-summary"
 import type { Task, TaskList, User } from "@/types/task"
+import { UnassignButton } from "@/components/unassign-button"
 
 interface TaskFieldEditorsProps {
   task: Task
@@ -326,16 +327,6 @@ export function TaskFieldEditors({
     // Don't clear tempRepeatingData - keep it for optimistic display until server confirms
   }
 
-  const handleSaveAssignee = () => {
-    onUpdate({ ...task, assignee: tempAssignee, assigneeId: tempAssignee?.id || null })
-    setEditingAssignee(false)
-  }
-
-  const handleCancelAssignee = () => {
-    setTempAssignee(task.assignee || null)
-    setEditingAssignee(false)
-  }
-
   return (
     <>
       {/* FIELD ORDER: Who, Date, Priority, Lists (task 4dd640d9).
@@ -432,6 +423,7 @@ export function TaskFieldEditors({
                     <span className="theme-text-muted">{t('tasks.unassigned')}</span>
                   </>
                 )}
+                <UnassignButton task={task} disabled={readOnly} onUnassign={cleared => { setTempAssignee(null); onUpdate(cleared) }} />
               </div>
             )
           })()}

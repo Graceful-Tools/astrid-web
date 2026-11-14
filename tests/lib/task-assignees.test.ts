@@ -4,7 +4,8 @@
  * the first entry without unassigning anyone else.
  */
 import { describe, it, expect } from 'vitest'
-import { assigneeIdsOf, nextAssigneeIds, MAX_ASSIGNEES } from '@/lib/task-assignees'
+import { assigneeIdsOf, nextAssigneeIds, MAX_ASSIGNEES, hasAnyAssignee, withoutAssignees } from '@/lib/task-assignees'
+import { v1TaskUpdateBody } from '@/lib/tasks/v1-task-update-body'
 
 describe('assigneeIdsOf (AWTD-1190)', () => {
   it('a task that has only ever had assigneeId reads as [assigneeId]', () => {
@@ -84,5 +85,31 @@ describe('nextAssigneeIds (AWTD-1190)', () => {
 
   it('an intent that names no assignee changes nothing', () => {
     expect(nextAssigneeIds({ current: ['a', 'b'], intent: {}, ...multi })).toEqual({ ok: true, assigneeIds: ['a', 'b'], added: [] })
+  })
+})
+
+describe('one-tap unassign (AWTD-1637, iOS AITD-650)', () => {
+  it('hasAnyAssignee: anyone at all, primary or not', () => {
+    expect(hasAnyAssignee({ assigneeId: null, assigneeIds: [] })).toBe(false)
+    expect(hasAnyAssignee({})).toBe(false)
+    expect(hasAnyAssignee({ assigneeId: 'a' })).toBe(true)
+    expect(hasAnyAssignee({ assigneeId: null, assigneeIds: ['b'] })).toBe(true)
+  })
+
+  it('withoutAssignees on a multi-assignee board sends assigneeIds [] so nobody is promoted', () => {
+    const task = { id: 't', lists: [], assignee: { id: 'a' }, assigneeId: 'a', assigneeIds: ['a', 'b'] }
+    const body = v1TaskUpdateBody(withoutAssignees(task), task)
+    expect(body.assigneeId).toBeNull()
+    expect(body.assigneeIds).toEqual([])
+    const write = nextAssigneeIds({ current: ['a', 'b'], intent: body as never, multiple: true })
+    expect(write).toEqual({ ok: true, assigneeIds: [], added: [] })
+  })
+
+  it('withoutAssignees on a classic list is plain assigneeId null', () => {
+    const task = { id: 't', lists: [], assignee: { id: 'a' }, assigneeId: 'a' }
+    const body = v1TaskUpdateBody(withoutAssignees(task), task)
+    expect(body.assigneeId).toBeNull()
+    const write = nextAssigneeIds({ current: ['a'], intent: body as never, multiple: false })
+    expect(write).toEqual({ ok: true, assigneeIds: [], added: [] })
   })
 })

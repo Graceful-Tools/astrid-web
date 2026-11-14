@@ -1269,16 +1269,12 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
           isOpen={optionsOpen}
           onClose={() => setOptionsOpen(false)}
           onSelect={(priority, assignee) => {
-            onUpdate({
-              ...task,
-              priority: priority as Task['priority'],
-              assigneeId: assignee?.id ?? null,
-              assignee: assignee ?? null,
-            })
+            onUpdate({ ...task, priority: priority as Task['priority'], assigneeId: assignee?.id ?? null, assignee: assignee ?? null })
             setOptionsOpen(false)
           }}
           selectedPriority={task.priority}
           selectedAssignee={task.assignee ?? null}
+          unassign={{ task, apply: onUpdate }}
           availableUsers={[]}
           taskId={task.id}
           listIds={task.lists?.map(list => list.id)}

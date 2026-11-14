@@ -586,6 +586,7 @@ export function ProjectStatusBoard({
             }}
             selectedPriority={task.priority}
             selectedAssignee={task.assignee ?? null}
+            unassign={{ task, apply: onUpdateTask }}
             availableUsers={[]}
             taskId={task.id}
             listIds={(task.lists || []).map(list => list.id)}

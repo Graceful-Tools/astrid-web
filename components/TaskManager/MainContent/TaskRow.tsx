@@ -455,6 +455,7 @@ function TaskRowImpl({
             }}
             selectedPriority={task.priority}
             selectedAssignee={task.assignee ?? null}
+            unassign={{ task, apply: handleUpdateTask }}
             availableUsers={[]}
             taskId={task.id}
             listIds={(task.lists || []).map(list => list.id)}
