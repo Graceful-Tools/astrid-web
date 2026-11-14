@@ -26,9 +26,25 @@ running `/fixall` here — stop, and do not read the queue.** Start again from y
 worktree (`npm run work:start <task-slug>`), which is the arrangement this is steering
 you toward rather than away from: parallel runs are good, sharing a checkout is not.
 
-`$PPID`, not the script's own pid. In an agent's shell that is the harness session
-itself, so the lock lives exactly as long as the run and clears itself if the session
-is killed. Staleness is decided by whether the holding process is alive, never by an
+**The lock is keyed on the current directory's git dir**, not on where the script lives:
+that is what makes it per working tree, and it also means a call made from the wrong
+directory locks the wrong tree while printing `Acquired` (AWTD-1659). So run it **with the
+cwd inside the tree you are about to edit**: from astrid-web for web, from the astrid-ios
+root for iOS (its `fixall.md` calls `../astrid-web/node_modules/.bin/tsx
+../astrid-web/scripts/fixall-session.ts` without changing directory), and through
+`scripts/fixall-session.ps1` in astrid-windows (below).
+
+`$PPID`, not the script's own pid, **where `$PPID` is the harness session**. That is
+verified for Claude Code on macOS (the Bash tool's shell is a direct child of `claude`;
+re-checked 2026-11-14, and astrid-ios uses the same harness and the same rule). Then the
+lock lives exactly as long as the run and clears itself if the session is killed.
+
+**On Windows it is not.** In Claude Code's Bash tool there, `$PPID` is `1`, and a per-call
+shell's own pid is dead before the next call, so either one makes liveness meaningless.
+astrid-windows wraps the call in `scripts/fixall-session.ps1`: it pins the cwd to its own
+repo root, finds the session's pid by walking the process ancestry to `claude.exe`, honours
+`ASTRID_FIXALL_LOCK_HELD`, and passes the exit codes through. Use the wrapper there. On any
+other harness, resolve the session's pid the same way, and never pass a per-call shell's. Staleness is decided by whether the holding process is alive, never by an
 age limit — a run can legitimately sit on one hard task for a long time, and a lock
 that expires under a working session is worse than no lock.
 
@@ -352,8 +368,22 @@ write if the task would be stranded, and reads back to prove it.
    from the design tokens and copy from the locale files, in every repo. Where the repo
    counts hand-written ones (web: `npm run check:design`), the count never rises; when
    your change lowers one, lower its budget in the same change.
-9. **Finish per your repo's rule** — see its own `fixall.md`, since "done" differs.
-10. **Post a completion report** (`add_comment`) and mark it complete
+9. **Re-check the claim before you merge** (AWTD-1658). The claim stops two runs *starting* a
+   task, not one run *finishing* a task another already holds: a peer on another machine, a
+   person reassigning it, or `release-stuck-doing.ts` can change the board while you work.
+   One read, just before the merge:
+
+   ```bash
+   cd ../astrid-web && npx tsx scripts/check-claim.ts <taskId> --agent <mailbox>
+   ```
+
+   Exit `0`: still yours, so merge. **Exit `2`: the claim was lost. Do not merge.** Leave the
+   branch pushed, and comment on the task with what you found and where your branch is, so
+   whoever holds it now can resume from it instead of repeating it. Exit `1` means the check
+   failed, which is not permission either. A wrong re-check costs one skipped merge. A skipped
+   re-check costs work done twice.
+10. **Finish per your repo's rule** — see its own `fixall.md`, since "done" differs.
+11. **Post a completion report** (`add_comment`) and mark it complete
     (`update_task { taskId, completed: true }`). Say what it does in plain language, not by
     commit hash or task id. A **repeating** task is completed the same way; that is what
     rolls it to its next date (*A task with a date waits for its date*, above).
