@@ -1,5 +1,5 @@
 import { ENV_VARS } from '../env'
-import { brandIconSourceProblem } from './icon-source'
+import { brandIconMasterProblem, brandIconSourceProblem } from './icon-source'
 
 /**
  * Turn a `brands/*.brand.json` profile into the environment a deployment needs.
@@ -35,8 +35,12 @@ export interface BrandProfile {
    * path in public/ (e.g. `/icons/acme-1024.png`); every favicon, manifest, touch and
    * notification icon is generated from it. The same field name as the astrid-core
    * brand schema (AWTD2-158), so one profile serves both. Becomes NEXT_PUBLIC_BRAND_ICON.
+   *
+   * `iconSource` is the SVG master astrid-core's `gen-brand` renders every platform's icon
+   * set from (AWTD-1647), relative to the profile (e.g. `acme.icon.svg`). Build-time only:
+   * it never reaches the runtime env. Core's schema spells it `assets.icon-source`.
    */
-  assets?: { icon?: string }
+  assets?: { icon?: string; iconSource?: string }
   /**
    * Native-platform identity, one block per client (AWTD-1589). Each is read by that
    * client's own tooling and by NOTHING on the server, so like `ios` they stay OUT of
@@ -84,7 +88,7 @@ const PLATFORM_PROFILE_KEYS: Record<'windows' | 'android' | 'vscode' | 'code', S
   vscode: null,
   code: null,
 }
-const ASSET_PROFILE_KEYS = new Set(['icon'])
+const ASSET_PROFILE_KEYS = new Set(['icon', 'iconSource'])
 const IOS_PROFILE_KEYS = new Set(['bundleId', 'appGroup', 'keychainGroup', 'developmentTeam', 'displayName'])
 const PROFILE_DERIVED_ENV_KEYS = new Set(['NEXTAUTH_URL', 'NEXT_PUBLIC_APP_URL'])
 
@@ -178,6 +182,9 @@ export function parseBrandProfile(value: unknown, source = 'Brand profile'): Bra
       // The same rule NEXT_PUBLIC_BRAND_ICON is held to (lib/brand/icon-source.ts).
       const iconProblem = icon === undefined ? null : brandIconSourceProblem(icon)
       if (iconProblem) problems.push(`assets.icon: ${iconProblem}`)
+      const master = value.assets.iconSource
+      const masterProblem = master === undefined ? null : brandIconMasterProblem(master)
+      if (masterProblem) problems.push(`assets.iconSource: ${masterProblem}`)
       const envIcon = isRecord(env) ? env.NEXT_PUBLIC_BRAND_ICON : undefined
       if (icon !== undefined && envIcon !== undefined && envIcon !== icon) {
         problems.push('assets.icon and env.NEXT_PUBLIC_BRAND_ICON disagree; set only assets.icon')
@@ -196,7 +203,7 @@ export function parseBrandProfile(value: unknown, source = 'Brand profile'): Bra
   }
   if (value.copy !== undefined) profile.copy = value.copy as Record<string, unknown>
   if (value.ios !== undefined) profile.ios = value.ios as Record<string, string>
-  if (value.assets !== undefined) profile.assets = value.assets as { icon?: string }
+  if (value.assets !== undefined) profile.assets = value.assets as { icon?: string; iconSource?: string }
   for (const platform of ['windows', 'android', 'vscode', 'code'] as const) {
     if (value[platform] !== undefined) profile[platform] = value[platform] as Record<string, string>
   }
