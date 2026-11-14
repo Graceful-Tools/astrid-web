@@ -56,6 +56,7 @@ import {
 } from '@/lib/ai/prompt-trust'
 import { uploadTextContent } from '@/lib/secure-storage'
 import { createLogger } from '@/lib/logger'
+import { isWebhookDeliveryNotice } from '@/lib/webhooks/delivery-policy'
 import { postCommentAs, type PostCommentAsResult } from '@/services/post-comment-as'
 
 const log = createLogger('assistant-workflow')
@@ -295,9 +296,11 @@ export function buildPrompt(task: any, isCommentResponse?: boolean, userComment?
     list: listName,
   })
 
-  // Include recent conversation history
+  // Include recent conversation history. Webhook delivery notices are about the
+  // plumbing, not the conversation, and must not read as a message (AWTD-1561).
   const conversationHistory = task.comments
-    ?.slice(0, 5)
+    ?.filter((c: any) => !isWebhookDeliveryNotice(c.content))
+    .slice(0, 5)
     .reverse()
     .map((c: any) => {
       const authorName = c.author?.isAIAgent ? 'AI Assistant' : (c.author?.name || 'User')

@@ -83,6 +83,67 @@ The first two replaced the hardcoded `isLocalHarnessAgentEmail()` check, which w
 this same idea available only to `codex@`. Polling mode is that check generalised to
 every agent and made a user setting.
 
+## Webhook delivery policy (AWTD-1561)
+
+Execution mode chooses the runtime; delivery policy chooses whether an unsuccessful
+webhook may cross into a fallback runtime (the environment webhook, the assistant
+workflow, the tools workflow). The policy belongs to the run's owner
+(`resolveAgentRunBilling`): list configured-by, then list owner, then creator for a
+task without a list. It is not the person posting a comment.
+
+**`fallback`** is the default, and what missing, malformed or unrecognised settings
+read as. Routing, payloads, retries and server execution are exactly today's. The
+owner sees nothing new **unless a webhook they configured was actually tried and
+failed** (an HTTP error, a transport error, or the outbound-URL guard refusing it);
+then ONE notice per dispatch, however many later routes also fail (Jon, 2026-11-13).
+No webhook, a disabled one, one not subscribed to the event or not listing the agent,
+or one past its retry limit: not tried, so nothing is posted, notified or broadcast.
+
+**`strict`** is opt-in. Assignment and comment dispatch may use the owner's webhook or
+an external agent's own endpoint, never the environment webhook or a server
+workflow. When nothing accepts the delivery the task is parked: moved to **Waiting**
+through the task service with the agent kept as assignee and a condition in the
+same write (the Waiting rules require one): a recheck date 24h ahead, or the
+task's own due date when that is already in the future. Once that date passes the
+condition is gone and the Waiting settle job wakes it to Ready (when
+`WAITING_SETTLE_MODE=apply`). A concurrent reassignment or completion wins (the
+write is conditional on the agent still holding the open task, and on
+`ifUnmodifiedSince`). A comment event the owner deliberately did not subscribe to is
+not a failure: nothing runs and nothing parks. Fix the webhook, then reassign the
+agent or comment to retry.
+
+**The notice** is a comment signed by the agent whose delivery failed (iOS and the
+Mac hide authorless comments), posted through the comment service so it is broadcast
+and notified like any comment, and it @mentions the run's owner. It carries
+`<!-- SYSTEM_GENERATED_COMMENT -->` (never wakes an agent) and
+`<!-- WEBHOOK_DELIVERY_NOTICE -->` (left out of the assistant's conversation
+history). Transport errors never reach it, only a bounded reason such as `HTTP 503`.
+A notice that cannot be written is logged and never changes the dispatch.
+
+Polling/off mailboxes keep their existing dispatch suppression; strict does not park
+them. OpenClaw keeps its SSE transport. Delivery results distinguish `accepted` from
+`started`: a 2xx is accepted, but `started: null` means the endpoint protocol gave no
+execution acknowledgement. `attempted` says whether the owner's own webhook was
+actually called.
+
+### Opt-in and rollback
+
+`GET /api/v1/users/me/webhook-delivery-policy` requires `user:read` and returns
+`{ policy, agents, meta }`. `PUT` requires `user:write` and changes only the
+authenticated account. It stores policy in the existing `User.mcpSettings` JSON,
+preserving provider credentials and other settings; there is no migration. An
+intervening settings edit returns 409; unreadable stored settings are never
+overwritten (500).
+
+Account default: `PUT {"policy":"strict"}` writes `webhookDeliveryPolicy`. Per-agent
+binding: `PUT {"agent":"claude","policy":"strict"}` writes
+`agentWebhookDeliveryPolicies.claude`, which overrides the account default. Binding
+keys are agent mailboxes, as for execution modes.
+
+**Rollback:** set the policy (and any strict bindings) back to `fallback` through the
+same endpoint, or revert the implementation. No environment variable is involved.
+Parked tasks stay in Waiting until their recheck date or until moved.
+
 ## The queue
 
 `GET /api/v1/agent-queue?agent=claude[&listId=…][&requireReady=false]`, and the MCP tool

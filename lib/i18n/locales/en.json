@@ -2867,6 +2867,10 @@
         "footerWhy": "You're receiving this weekly outlook to help you plan your week ahead.",
         "footerPreferences": "You can adjust your digest preferences in your account settings."
       }
+    },
+    "webhookDelivery": {
+      "fallback": "Webhook delivery failed ({reason}). Your delivery policy is fallback, so {appName} is handling this task through its own route instead.",
+      "strict": "Webhook delivery failed ({reason}). Under your strict delivery policy {appName} did not use its own fallback, so this task is in Waiting until {until}, still assigned to me. Fix the webhook, then reassign me or add a comment to retry."
     }
   }
 }
