@@ -159,6 +159,9 @@ function main(): void {
   console.error('')
   console.error('IF STEP 1 IS ALREADY LIVE, this is step 3 and the drop is safe. Re-run the')
   console.error('workflow with `allow_destructive_migrations: true` to say so on the record.')
+  console.error('')
+  console.error('DATA REWRITES (UPDATE / DELETE / TRUNCATE, AWTD-1680) change production rows')
+  console.error('that no redeploy restores. Jon reviews them; the same input records his yes.')
   console.error('━'.repeat(72))
 
   if (allowed) {

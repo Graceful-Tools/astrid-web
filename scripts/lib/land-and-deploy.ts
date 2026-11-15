@@ -1,4 +1,5 @@
 import { agentBranchTaskId } from './cloud-handoff'
+import { findDestructiveStatements } from './destructive-migrations'
 /**
  * The decisions behind `scripts/land-and-deploy.ts` (AWTD-1250).
  *
@@ -162,13 +163,14 @@ export function landablePullRequests(
  * it (`scripts/advance-prod-branch.sh`) — so this diff is exactly "what the
  * next deploy would apply".
  *
- * WHY THIS IS A STOP AND NOT A WARNING. `database-migration` runs BEFORE
- * `deploy-production` and does not depend on it, so a `DROP` lands while the
- * code that stops reading the dropped thing is still pending. On 2026-09-18
+ * WHY A DESTRUCTIVE ONE IS A STOP AND NOT A WARNING. `database-migration` runs
+ * BEFORE `deploy-production` and does not depend on it, so a `DROP` lands while
+ * the code that stops reading the dropped thing is still pending. On 2026-09-18
  * four TaskList columns dropped, the deploy hung and was cancelled, and the old
  * build 500'd on every list read — a DROP cannot be undone by redeploying. No
  * amount of green tests makes that reversible, which is why "all tests green"
- * does not license it.
+ * does not license it. Additive migrations ship (AWTD-1680): see
+ * `migrationHold`.
  */
 export function pendingMigrations(diffOutput: string): string[] {
   const dirs = new Set<string>()
@@ -215,16 +217,53 @@ export function automaticDeployHold(runs: Array<{ status: string; conclusion: st
   return null
 }
 
+/** A pending migration and its SQL; `sql` is null when it could not be read. */
+export interface PendingMigration {
+  name: string
+  sql: string | null
+}
+
+export const migrationSqlPath = (name: string) => `prisma/migrations/${name}/migration.sql`
+
+/**
+ * Why the pending migrations hold the deploy, or null when they may ship
+ * (AWTD-1680).
+ *
+ * Jon, 2026-11-15: additive migrations — a new table, a nullable column, an
+ * index — ship autonomously; only destructive or data-rewriting ones wait for
+ * him. "Destructive" is exactly what the workflow's own
+ * `check-destructive-migrations` step refuses without
+ * `allow_destructive_migrations`, because both read
+ * scripts/lib/destructive-migrations.ts. A migration whose SQL could not be read
+ * holds too: a check that cannot establish safety must not report safety.
+ */
+export function migrationHold(pending: PendingMigration[]): string | null {
+  const unreadable = pending.filter(migration => migration.sql === null)
+  if (unreadable.length) {
+    return `could not read the SQL of pending migration(s) ${unreadable
+      .map(migration => migrationSqlPath(migration.name))
+      .join(', ')}, so they cannot be shown to be additive — Jon's call`
+  }
+  const offences = pending.flatMap(migration =>
+    findDestructiveStatements(migration.sql ?? '').map(statement => {
+      const sql = statement.statement.length > 160 ? `${statement.statement.slice(0, 157)}...` : statement.statement
+      return `${statement.kind} in ${migrationSqlPath(migration.name)}: \`${sql}\``
+    }),
+  )
+  if (!offences.length) return null
+  return `destructive pending migration — it applies during the deploy, before the new code is live: ${offences.join('; ')} — Jon's call`
+}
+
 /**
  * The last gate before production changes.
  *
- * Ordered by how expensive the mistake is, not by how likely: a migration that
- * cannot be undone outranks a red gate that can simply be fixed, and both
+ * Ordered by how expensive the mistake is, not by how likely: a destructive
+ * migration that cannot be undone outranks a red gate that can simply be fixed, and both
  * outrank having nothing to ship.
  */
 export function deployVerdict(input: {
   landedOrAlreadyOnMain: boolean
-  pending: string[]
+  pending: PendingMigration[]
   predeployGreen: boolean
   allowDestructive?: boolean
 }): DeployVerdict {
@@ -238,13 +277,8 @@ export function deployVerdict(input: {
         'allow_destructive_migrations is never set by the loop — a human states, on the record, that the code is already live',
     }
   }
-  if (input.pending.length) {
-    return {
-      deploy: false,
-      code: 3,
-      reason: `pending migration(s) apply during the deploy, before the new code is live: ${input.pending.join(', ')} — Jon's call`,
-    }
-  }
+  const hold = migrationHold(input.pending)
+  if (hold) return { deploy: false, code: 3, reason: hold }
   // Before the gate, deliberately. A tick with nothing to ship does not run
   // predeploy at all, so `predeployGreen` is false for want of asking — and
   // reporting that as "the gate is red" would be a false alarm on every quiet
