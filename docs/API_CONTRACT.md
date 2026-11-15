@@ -105,6 +105,28 @@ named board does carry a binding:
 
 Clients should treat an unknown `reason` as a denial.
 
+**Runtime-binding pilot (AWTD-1669).** Inert unless the server sets BOTH
+`ASTRID_RUNTIME_BINDING_RESOLVER=true` and `ASTRID_RUNTIME_BINDING_SINGLE_BUSINESS=true`;
+with either off, every response below is unchanged byte for byte. When both are on:
+
+- **Discovery.** A task on a bound board appears in `get_agent_queue` (with or
+  without `listId`, in `queue`, `held`, `attention` and handbacks) only when the
+  caller authenticated with the OAuth client enrolled as the binding's runtime
+  (`runtimeSubjectId`) and the agent is one the binding allows. A task that also
+  sits on a board bound to a different binding is shown to nobody. Naming a bound
+  board as someone else answers 403 `principal-not-runtime`.
+- **Claims.** `POST /api/v1/tasks/:id/claim-fixall` and `POST /api/v1/tasks/:id/claim`
+  (MCP `claim_task`) on a bound task are refused unless the same runtime and an
+  allowed agent ask. A claim is fenced: at most `maxConcurrentRuns` (1 in the pilot)
+  bound tasks are in Doing across every board and agent sharing the binding. A
+  refusal is `{ error, reason, bindingId, boardId }` from `claim-fixall`, or
+  `{ outcome: "binding_denied", task: null, binding: { reason, bindingId, boardId, message } }`
+  from `/claim`. The status is **409** for `capacity-exhausted` (busy, like a lost
+  race) and **403** for every other reason, including `board-conflict` (the task's
+  bound boards disagree, or `listId` names one of its unbound boards) and
+  `transport-unsupported` (a native Copilot dispatch claim).
+- No response carries a credential or payer reference.
+
 **Admin enrollment of runtime bindings (AWTD-1668).** Web-only admin routes under
 `/api/v1/admin/runtime-bindings`; no iOS or SDK client calls them. Every route
 needs a deployment admin (`AdminUser`). Changes also need a browser session, so an

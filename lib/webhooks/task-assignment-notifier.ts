@@ -45,6 +45,7 @@ import {
   type WebhookDeliveryResult,
 } from './delivery-policy'
 import { recordDeliveryNotice } from '@/services/webhook-delivery.service'
+import { boundDispatchHold } from '@/lib/runtime-binding/task-runtime'
 
 const log = createLogger('webhooks/task-assignment-notifier')
 
@@ -143,6 +144,19 @@ export async function notifyTaskAssignment(
 
     if (!agentUser && !agentRecord) {
       log.info(`⚠️  Task ${taskId} not assigned to AI agent ${aiAgentId}`)
+      return
+    }
+
+    // A bound board never falls through to personal-settings dispatch
+    // (AWTD-1669). Checked before a token is minted or a payload built. With the
+    // runtime-binding pilot off this returns null without reading anything.
+    const bindingHold = await boundDispatchHold({
+      taskId,
+      agentEmail: agentUser?.email,
+      operation: `assignment-dispatch:${event}`,
+    })
+    if (bindingHold) {
+      log.info({ taskId }, `🔒 Not dispatching ${event}: ${bindingHold}`)
       return
     }
 

@@ -10,6 +10,9 @@ import type {
   AgentTaskClaimTask,
 } from '@/lib/agent-task-claim'
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
+import type { RuntimeBindingDenial } from '@/lib/ai/runtime-binding-resolver'
+import { gateBoundClaim, runFencedClaim } from '@/lib/runtime-binding/claim-fence'
 
 const CLAIM_TASK_SELECT = {
   id: true,
@@ -58,11 +61,20 @@ async function currentAccessibleTask(
     : { outcome: found.outcome, task: null }
 }
 
+function bindingDenied(denial: RuntimeBindingDenial): AgentTaskClaimResult {
+  const { reason, bindingId, boardId, message } = denial
+  return { outcome: 'binding_denied', task: null, binding: { reason, bindingId, boardId, message } }
+}
+
 export async function claimAgentTask(input: {
   taskId: string
   userId: string
   agentId: string
   action: AgentTaskClaimAction
+  /** The agent's address, for the runtime-binding gate (AWTD-1669). */
+  agentEmail?: string | null
+  /** The caller's OAuth client id; null for any other authentication. */
+  principal?: string | null
 }): Promise<AgentTaskClaimResult> {
   const { taskId, userId, agentId, action } = input
   const found = await findAccessibleTask(taskId, userId)
@@ -70,6 +82,37 @@ export async function claimAgentTask(input: {
 
   const task = found.task
   if (task.completed) return { outcome: 'not_ready', task: snapshot(task) }
+
+  // The runtime-binding pilot (AWTD-1669). Off, or on an unbound task, this is
+  // `legacy` with no query and the writes below run exactly as before. On a
+  // bound task only the binding's runtime may act, and a claim is fenced.
+  const gateInput = {
+    taskId,
+    agentEmail: input.agentEmail ?? null,
+    principal: input.principal ?? null,
+  }
+  const operation = `claim:${action}`
+  const binding = await gateBoundClaim(gateInput, { actorUserId: userId, operation })
+  if (binding.kind === 'denied') return bindingDenied(binding.denial)
+  const legacyClient = prisma as unknown as Prisma.TransactionClient
+  type ClaimRows = AgentTaskClaimTask[]
+  const runWrite = async (
+    write: (db: Prisma.TransactionClient) => Promise<ClaimRows>,
+    takesCapacity: boolean,
+  ): Promise<ClaimRows | AgentTaskClaimResult> => {
+    if (binding.kind !== 'bound') return write(legacyClient)
+    const outcome = await runFencedClaim({
+      plan: binding.plan,
+      gate: gateInput,
+      actorUserId: userId,
+      operation,
+      takesCapacity,
+      write,
+      started: rows => takesCapacity && rows.length === 1,
+    })
+    if (outcome.kind === 'denied') return bindingDenied(outcome.denial)
+    return outcome.kind === 'stale' ? [] : outcome.value
+  }
 
   if (action === 'resume') {
     return task.statusRole === DOING_STATUS_ROLE && task.assigneeId === agentId
@@ -96,7 +139,7 @@ export async function claimAgentTask(input: {
     }
 
     const assigneeIds = [agentId, ...assigneeIdsOf(task).filter(id => id !== agentId)]
-    const claimed = await prisma.task.updateManyAndReturn({
+    const claimed = await runWrite(db => db.task.updateManyAndReturn({
       where: {
         id: taskId,
         completed: false,
@@ -113,7 +156,8 @@ export async function claimAgentTask(input: {
         statusRole: DOING_STATUS_ROLE,
       },
       select: CLAIM_TASK_SELECT,
-    })
+    }), true)
+    if (!Array.isArray(claimed)) return claimed
     if (claimed.length === 1) {
       return { outcome: 'claimed', task: snapshot(claimed[0]) }
     }
@@ -141,7 +185,8 @@ export async function claimAgentTask(input: {
   }
 
   const assigneeIds = assigneeIdsOf(task).filter(id => id !== agentId)
-  const released = await prisma.task.updateManyAndReturn({
+  // A release ends a run: it frees capacity and never needs it.
+  const released = await runWrite(db => db.task.updateManyAndReturn({
     where: {
       id: taskId,
       completed: false,
@@ -156,7 +201,8 @@ export async function claimAgentTask(input: {
       statusRole: READY_STATUS_ROLE,
     },
     select: CLAIM_TASK_SELECT,
-  })
+  }), false)
+  if (!Array.isArray(released)) return released
   if (released.length === 1) {
     return { outcome: 'released', task: snapshot(released[0]) }
   }

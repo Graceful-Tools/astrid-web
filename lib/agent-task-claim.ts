@@ -1,5 +1,6 @@
 import { isBrandAgentEmail } from '@/lib/brand/agent-emails'
 import type { AuthContext } from '@/lib/api-auth-middleware'
+import type { RuntimeBindingDenial } from '@/lib/ai/runtime-binding-resolver'
 
 export const AGENT_TASK_CLAIM_ACTIONS = ['claim', 'resume', 'release'] as const
 
@@ -18,6 +19,8 @@ export type AgentTaskClaimOutcome =
   | 'not_ready'
   | 'not_found'
   | 'forbidden'
+  /** A bound board refused the claim (AWTD-1669); `binding` says why. */
+  | 'binding_denied'
 
 export interface AgentTaskClaimTask {
   id: string
@@ -31,6 +34,8 @@ export interface AgentTaskClaimTask {
 export interface AgentTaskClaimResult {
   outcome: AgentTaskClaimOutcome
   task: AgentTaskClaimTask | null
+  /** Only with `binding_denied`: identity and reason, never a credential or payer reference. */
+  binding?: Pick<RuntimeBindingDenial, 'reason' | 'bindingId' | 'boardId' | 'message'>
 }
 
 export interface AgentTaskClaimPrincipal {
