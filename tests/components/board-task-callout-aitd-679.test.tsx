@@ -27,7 +27,7 @@ vi.mock('@/components/TaskManager/lazy-panels', () => ({
   ),
 }))
 
-import { BoardTaskCallout } from '@/components/TaskManager/BoardTaskCallout'
+import { BoardTaskCallout, CALLOUT_ARROW_REACH } from '@/components/TaskManager/BoardTaskCallout'
 
 type Box = { left: number; top: number; width: number; height: number }
 const boxes = new Map<string, Box>()
@@ -82,8 +82,9 @@ describe('BoardTaskCallout (AITD-679)', () => {
     const { callout, arrow } = renderCallout(card)
 
     expect(callout.getAttribute('data-callout-side')).toBe('left')
-    // Its right edge a gutter clear of the card: 1000 - 8 - 420.
-    expect(callout.style.left).toBe('572px')
+    // Its arrow's tip on the card's left edge (Jon: "the arrow doesn't touch the task row"):
+    // the panel's right edge one arrow reach short of 1000, so 1000 - 15 - 420.
+    expect(callout.style.left).toBe('565px')
     // As tall as the board allows, a gutter from each edge.
     expect(callout.style.top).toBe('8px')
     expect(callout.style.height).toBe('884px')
@@ -97,7 +98,8 @@ describe('BoardTaskCallout (AITD-679)', () => {
     const { callout, arrow } = renderCallout(card)
 
     expect(callout.getAttribute('data-callout-side')).toBe('right')
-    expect(callout.style.left).toBe('368px')
+    // The arrow's tip on the card's right edge (360); the panel one arrow reach past it.
+    expect(callout.style.left).toBe(`${360 + CALLOUT_ARROW_REACH}px`)
     expect(arrow.side).toBe('right')
   })
 
