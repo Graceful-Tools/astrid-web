@@ -132,6 +132,9 @@ model User {
   copilotCredential            CopilotCredential?         @relation("UserCopilotCredential")
   featureAccessRequests        FeatureAccessRequest[]     @relation("UserFeatureAccessRequests")
   notifications                Notification[]             @relation("UserNotifications")
+  /// Runtime bindings this user is the accountable configuration owner of
+  /// (AWTD-1666). onDelete: Restrict on the other side — see RuntimeBinding.
+  ownedRuntimeBindings         RuntimeBinding[]           @relation("RuntimeBindingOwner")
 
   @@index([emailVerified])
   @@index([createdAt])
@@ -239,6 +242,13 @@ model TaskList {
   aiAgentConfiguredBy     String?
   manualSortOrder         Json?
   publicListType          String?
+  /// The explicit business runtime binding this board executes through
+  /// (AWTD-1666, docs/architecture/BUSINESS_RUNTIME_BINDING_RFC.md §4–§5).
+  /// NULL — every existing board, and every board until an administrator
+  /// enrolls it — selects the unchanged legacy resolver
+  /// (lib/ai/agent-execution-mode.ts). A non-null binding that cannot be used
+  /// is a denial, never a fall-back to null. No default, no backfill.
+  runtimeBindingId        String?
   listInvites             ListInvite[]
   listMembers             ListMember[]
   mcpTokens               MCPToken[]
@@ -250,6 +260,8 @@ model TaskList {
   project                 Project?                 @relation(fields: [projectId], references: [id], onDelete: SetNull)
   tasks                   Task[]                   @relation("TaskToTaskList")
   externalLinks           ExternalListLink[]       @relation("ListExternalLinks")
+  /// Restrict: a binding is revoked, never deleted, while a board points at it.
+  runtimeBinding          RuntimeBinding?          @relation(fields: [runtimeBindingId], references: [id], onDelete: Restrict)
 
   @@index([ownerId])
   @@index([projectId])
@@ -261,6 +273,7 @@ model TaskList {
   @@index([ownerId, isFavorite])
   @@index([virtualListType])
   @@index([mcpEnabled])
+  @@index([runtimeBindingId])
 }
 
 model Project {
@@ -1828,4 +1841,142 @@ model TaskCostEvent {
   @@unique([taskId, externalId])
   @@index([taskId])
   @@index([aiAgentId, createdAt])
+}
+
+// ── Explicit business runtime binding (AWTD-1666) ───────────────────────────
+// Design: docs/architecture/BUSINESS_RUNTIME_BINDING_RFC.md §4 (model), §5
+// (dual-read), §9 (migration plan). Jon approved the recommended decisions on
+// 2026-11-14: board-level opt-in on single-business deployments only; one
+// trusted execution board; polling pilot at concurrency one; business-provided
+// credentials only; 90-day audit plus lifecycle records.
+//
+// ADDITIVE ONLY. Nothing here is read yet, every existing board's
+// runtimeBindingId is NULL, and NULL means "today's resolver, unchanged".
+// States and kinds are String columns documented inline, the way
+// FeatureAccessRequest.status and Job.kind are: several values carry hyphens
+// (`deployment-business`, `signed-webhook`), and a String keeps adding a value
+// a code change rather than an ALTER TYPE migration.
+//
+// NO SECRET MATERIAL in any of these tables. endpointRef/credentialRef/
+// billingAccountRef are opaque deployment-local references, never a token,
+// key, URL with credentials, or payment detail.
+
+/// An administrator-approved agreement: which runtime runs which agents, for
+/// which boards and repositories, with whose credentials and on whose bill.
+///
+/// Lifecycle records survive their people. `owner` is onDelete: Restrict, so
+/// deleting the owning user fails until ownership is transferred (an audited
+/// action) — it can neither cascade the binding away nor leave boards pointing
+/// at nothing and quietly read as legacy. The other actor columns are plain ids
+/// with no foreign key, like AdminUser.grantedBy: they are history, and a
+/// deleted custodian must make the resolver DENY (it cannot verify consent),
+/// which it can only do if the binding row still exists.
+model RuntimeBinding {
+  id                     String                     @id @default(cuid())
+  /// Optimistic-concurrency revision. Every configuration change writes a new
+  /// RuntimeBindingRevision snapshot and bumps this; approvals name one.
+  revision               Int                        @default(1)
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+  /// Accountable human configuration owner in this deployment.
+  ownerUserId            String
+  /// "personal" | "deployment-business". Business scope is the deployment /
+  /// database boundary, not an organization foreign key.
+  managementScope        String
+  /// "user-machine" | "business-machine" | "astrid-hosted" | "provider-hosted"
+  runtimeKind            String
+  /// Enrolled opaque machine/service identity. One id is one capacity pool.
+  runtimeSubjectId       String
+  /// Human who accepted use of their machine/subscription, where applicable.
+  runtimeCustodianUserId String?
+  /// Exact agent principals/mailboxes. Empty denies every agent.
+  allowedAgentIds        String[]
+  /// "polling" | "signed-webhook" | "provider-api" | "sse-channel" |
+  /// "native-cloud-bridge". A descriptor, never a value of today's user modes.
+  transport              String
+  /// Opaque reference to approved endpoint metadata. Never a URL with secrets.
+  endpointRef            String?
+  /// Opaque reference to a separately protected credential record.
+  credentialRef          String?
+  /// Stable repository identities. Empty means deny all repositories.
+  allowedRepositoryRefs  String[]
+  /// Astrid list ids. Empty means deny all boards — never unrestricted.
+  allowedBoardIds        String[]
+  /// Positive; shared across every agent and board on this binding.
+  maxConcurrentRuns      Int                        @default(1)
+  /// "personal-authorized" | "business-provided" | "deployment-hosted"
+  billingSource          String
+  /// Opaque payer/grant reference. Never payment details.
+  billingAccountRef      String?
+  /// "pending" | "verified" | "active" | "suspended" | "revoked". Only
+  /// "active" may obtain new work; every other state is a visible denial.
+  state                  String                     @default("pending")
+  enrolledBy             String
+  approvedBy             String?
+  /// The exact revision the approval covers. A newer revision is unapproved.
+  approvedRevision       Int?
+  verifiedAt             DateTime?
+  approvedAt             DateTime?
+  activatedAt            DateTime?
+  suspendedAt            DateTime?
+  revokedAt              DateTime?
+  owner                  User                       @relation("RuntimeBindingOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  revisions              RuntimeBindingRevision[]
+  auditEvents            RuntimeBindingAuditEvent[]
+  boards                 TaskList[]
+
+  @@index([ownerUserId])
+  @@index([state])
+}
+
+/// Immutable configuration snapshot: one row per RuntimeBinding.revision.
+/// Written once, never updated. Restrict, so a binding with history cannot be
+/// deleted out from under it.
+model RuntimeBindingRevision {
+  id              String         @id @default(cuid())
+  bindingId       String
+  revision        Int
+  /// The binding's configuration fields as of this revision (no secrets).
+  snapshot        Json
+  createdByUserId String
+  createdAt       DateTime       @default(now())
+  binding         RuntimeBinding @relation(fields: [bindingId], references: [id], onDelete: Restrict)
+
+  @@unique([bindingId, revision])
+}
+
+/// Append-only lifecycle, approval, resolution, authorization and run events.
+/// Never UPDATE a row; correct with a new event. Never store tokens, headers,
+/// webhook secrets, prompts, endpoint credentials or payment information —
+/// credential identity/generation only. Retention (Jon, 2026-11-14): 90 days of
+/// operational events; consent/approval/revocation/run-attribution records for
+/// the binding's lifecycle plus 90 days.
+///
+/// bindingId is nullable so a denial can be recorded when no binding could be
+/// resolved at all. Restrict, so the trail outlives nothing it describes.
+model RuntimeBindingAuditEvent {
+  id               String          @id @default(cuid())
+  bindingId        String?
+  bindingRevision  Int?
+  /// e.g. "enrolled" | "approved" | "activated" | "suspended" | "revoked" |
+  /// "resolution-denied" | "run-started"
+  eventType        String
+  /// Human actor, when there is one.
+  actorUserId      String?
+  /// Agent principal/mailbox, when the actor is an agent or runtime.
+  actorPrincipal   String?
+  boardIds         String[]
+  repositoryRefs   String[]
+  /// Machine-readable reason, e.g. a denial code.
+  reasonCode       String?
+  /// Previous/new scope summary, consent/approval event ids. No secrets.
+  details          Json?
+  correlationId    String?
+  runId            String?
+  transportOutcome String?
+  createdAt        DateTime        @default(now())
+  binding          RuntimeBinding? @relation(fields: [bindingId], references: [id], onDelete: Restrict)
+
+  @@index([bindingId, createdAt])
+  @@index([createdAt])
 }
