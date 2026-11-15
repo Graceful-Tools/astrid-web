@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react"
 import type { Task, TaskList } from "@/types/task"
+import { setSelectedProjectId } from "@/hooks/use-selected-project"
 
 export interface UseTaskNavigationProps {
   initialSelectedListId?: string
@@ -122,6 +123,9 @@ export function useTaskNavigation({
 
   // Enhanced setSelectedListId that tracks navigation source and clears other views
   const setSelectedListId = useCallback((listId: string, fromFeatured?: boolean) => {
+    // Any list selection closes an open project board (AWTD-1675), not only a
+    // sidebar click: the command palette and shortcuts come through here too.
+    setSelectedProjectId(null)
     setSelectedListIdState(listId)
     setIsViewingFromFeatured(fromFeatured ?? false)
     setSettingsPage(null)

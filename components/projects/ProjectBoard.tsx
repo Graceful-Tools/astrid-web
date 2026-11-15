@@ -6,6 +6,10 @@
  * moves exactly as it does on a list's own board (`applyProjectColumnTo`, the
  * shared planner). A card opens in place, as on the wide single-list board.
  *
+ * Each cell ends in the list board's add-task box (AWTD-1675). A new card joins
+ * the cell's own row (its list) and its column's status, so "add here" means
+ * here. Someone else's card opens the same options sheet as on a list board.
+ *
  * Rows are chosen per person and saved on the server
  * (`useProjectBoardRows`): drag a list from the sidebar onto the board, or use
  * Add list, and × on a row header removes it. Loaded lazily from
@@ -14,6 +18,8 @@
 import React from "react"
 import { CheckCircle2, Inbox, Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,12 +29,19 @@ import {
 import { TaskRowContent } from "@/components/task-row-content"
 import { TaskDetail } from "@/components/task-detail"
 import { canUserEditTask } from "@/lib/list-permissions"
+import { isSomeoneElsesTask } from "@/lib/task-leading-control"
 import { useUserSettings } from "@/hooks/useUserSettings"
 import { useTranslations } from "@/lib/i18n/client"
 import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
 import { useProjectBoardRows } from "@/hooks/use-project-board-rows"
 import { boardColumnLabel } from "@/lib/board-column-labels"
-import { applyProjectColumnTo, getProjectBoardColumns, type ProjectBoardColumn } from "@/lib/project-status"
+import {
+  applyProjectColumnTo,
+  getProjectBoardColumns,
+  getTaskProjectColumnId,
+  resolveProjectColumnCreate,
+  type ProjectBoardColumn,
+} from "@/lib/project-status"
 import {
   addBoardRow,
   boardRowCandidates,
@@ -48,7 +61,10 @@ export interface ProjectBoardProps {
   currentUser?: User | null
   onUpdateTask: (task: Task) => void
   onDeleteTask: (taskId: string) => void
+  onCreateTask: (title: string, options?: { listIds?: string[]; statusRole?: string }) => Promise<string | null>
 }
+
+const cellKey = (listId: string, columnId: string) => `${listId}:${columnId}`
 
 export function ProjectBoard({
   projectId,
@@ -58,6 +74,7 @@ export function ProjectBoard({
   currentUser,
   onUpdateTask,
   onDeleteTask,
+  onCreateTask,
 }: ProjectBoardProps) {
   const { t } = useTranslations()
   const { taskDisplayMode } = useUserSettings()
@@ -67,6 +84,9 @@ export function ProjectBoard({
   const columns = React.useMemo(() => getProjectBoardColumns(customStates), [customStates])
   const { listIds, loaded, saveFailed, save } = useProjectBoardRows(projectId)
   const [isListDragOver, setIsListDragOver] = React.useState(false)
+  const [drafts, setDrafts] = React.useState<Record<string, string>>({})
+  const [creatingCell, setCreatingCell] = React.useState<string | null>(null)
+  const [optionsTaskId, setOptionsTaskId] = React.useState<string | null>(null)
 
   const rows = React.useMemo(() => resolveBoardRows(listIds, projectId, lists), [listIds, projectId, lists])
   const rowIds = React.useMemo(() => rows.map(row => row.id), [rows])
@@ -83,6 +103,25 @@ export function ProjectBoard({
     const task = allTasks.find(candidate => candidate.id === taskId)
     if (task) applyProjectColumnTo(task, column.id, columns, lists, onUpdateTask)
   }
+
+  const createInCell = async (event: React.FormEvent, listId: string, column: ProjectBoardColumn) => {
+    event.preventDefault()
+    const cell = cellKey(listId, column.id)
+    const title = drafts[cell]?.trim()
+    if (!title) return
+    setCreatingCell(cell)
+    try {
+      // The column is a role, never a list id (see resolveProjectColumnCreate);
+      // the row is the list the card joins.
+      const { statusRole } = resolveProjectColumnCreate(column, listId)
+      await onCreateTask(title, { listIds: [listId], statusRole })
+      setDrafts(previous => ({ ...previous, [cell]: "" }))
+    } finally {
+      setCreatingCell(null)
+    }
+  }
+
+  const optionsTask = optionsTaskId ? allTasks.find(candidate => candidate.id === optionsTaskId) : undefined
 
   const isListDrag = (event: React.DragEvent) => Array.from(event.dataTransfer.types).includes(PROJECT_BOARD_LIST_DRAG_TYPE)
 
@@ -236,10 +275,42 @@ export function ProjectBoard({
                             onCopyPublic={() => {}}
                             displayMode={taskDisplayMode}
                             currentListId={lane.list.id}
+                            onOpenOptions={
+                              isSomeoneElsesTask({ assigneeId: task.assigneeId, currentUserId: currentUser?.id })
+                                ? () => setOptionsTaskId(task.id)
+                                : undefined
+                            }
                           />
                         </div>
                       )
                     })}
+                    {column.kind !== "done" && (
+                      <form
+                        className="flex items-center gap-2 pt-1"
+                        onSubmit={(event) => createInCell(event, lane.list.id, column)}
+                      >
+                        <Input
+                          value={drafts[cellKey(lane.list.id, column.id)] || ""}
+                          onChange={(event) => {
+                            const value = event.target.value
+                            setDrafts(previous => ({ ...previous, [cellKey(lane.list.id, column.id)]: value }))
+                          }}
+                          placeholder={t("tasks.addTaskPlaceholder")}
+                          className="h-9 min-w-0 theme-input theme-text-primary"
+                          disabled={creatingCell === cellKey(lane.list.id, column.id)}
+                          data-testid={`project-board-add-input-${lane.list.id}-${column.id}`}
+                        />
+                        <Button
+                          type="submit"
+                          size="sm"
+                          className="h-9 w-9 shrink-0 p-0"
+                          disabled={creatingCell === cellKey(lane.list.id, column.id) || !(drafts[cellKey(lane.list.id, column.id)] || "").trim()}
+                          aria-label={t("tasks.board.addTaskTo", { name: boardColumnLabel(column, t) })}
+                        >
+                          <Plus className="h-4 w-4" aria-hidden="true" />
+                        </Button>
+                      </form>
+                    )}
                   </div>
                 ))}
               </div>
@@ -247,6 +318,41 @@ export function ProjectBoard({
           </div>
         )}
       </div>
+
+      {optionsTask && (
+        <PriorityAssigneePicker
+          isOpen
+          onClose={() => setOptionsTaskId(null)}
+          onSelect={(priority, assignee) => {
+            onUpdateTask({
+              ...optionsTask,
+              priority: priority as Task["priority"],
+              assigneeId: assignee?.id ?? null,
+              assignee: assignee ?? null,
+            })
+            setOptionsTaskId(null)
+          }}
+          selectedPriority={optionsTask.priority}
+          selectedAssignee={optionsTask.assignee ?? null}
+          unassign={{ task: optionsTask, apply: onUpdateTask }}
+          availableUsers={[]}
+          taskId={optionsTask.id}
+          listIds={(optionsTask.lists || []).map(list => list.id)}
+          currentUser={currentUser ?? undefined}
+          statusColumns={columns}
+          selectedColumnId={getTaskProjectColumnId(optionsTask, columns)}
+          onStatusSelect={columnId => {
+            const column = columns.find(candidate => candidate.id === columnId)
+            if (column) moveTask(optionsTask.id, column)
+            setOptionsTaskId(null)
+          }}
+          completed={Boolean(optionsTask.completed)}
+          onToggleComplete={() => {
+            onUpdateTask({ ...optionsTask, completed: !optionsTask.completed })
+            setOptionsTaskId(null)
+          }}
+        />
+      )}
     </div>
   )
 }
