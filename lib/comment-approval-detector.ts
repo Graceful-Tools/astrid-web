@@ -11,7 +11,8 @@ import {
   shouldPostServerWorkflowComments,
 } from '@/lib/ai/agent-execution-mode'
 import { createLogger } from '@/lib/logger'
-import { completeTask } from '@/services/complete-task'
+import { GITHUB_WEB_URL } from '@/lib/github/host'
+import { BRAND } from '@/lib/brand/config'
 import { boundDispatchHold } from '@/lib/runtime-binding/task-runtime'
 
 const log = createLogger('comment-approval-detector')
@@ -422,43 +423,28 @@ async function triggerMergeRequest(
       include: { assignee: true }
     })
 
-    // Only create acknowledgment if task has an AI assignee
+    // AWTD-1690: Astrid has no merge path yet, so say so and leave the workflow and
+    // task open with the pull request link. Claiming a ship that never happened
+    // took the task off the board while the PR was still open.
     if (task?.assignee?.isAIAgent) {
-      // Post acknowledgment comment using the new AI agent service
+      const workflow = await prisma.codingTaskWorkflow.findUnique({ where: { id: workflowId } })
+      const repo = workflow?.repositoryId
+      const prNumber = workflow?.pullRequestNumber
+      const prLink = prNumber
+        ? repo?.includes('/')
+          ? `${GITHUB_WEB_URL}/${repo}/pull/${prNumber}`
+          : `#${prNumber}`
+        : null
       const result = await createAIAgentComment(
         taskId,
-        `🚀 **Shipping to Production**\n\nDeploying your approved changes to production now!\n\n*This is an automated response to your ship command*\n\n<!-- SYSTEM_GENERATED_COMMENT -->`
+        `⚠️ **${BRAND.appName} cannot merge yet**\n\nI can't merge or deploy this change myself, so nothing has shipped.${prLink ? ` Please merge the pull request: ${prLink}` : ''}\n\nThis task stays open until the pull request is merged.\n\n<!-- SYSTEM_GENERATED_COMMENT -->`
       )
       if (!result.success) {
         log.error(result.error, 'Failed to post merge acknowledgment comment:')
       }
     }
 
-    // TODO: Implement actual merge/deployment logic
-    // This would typically:
-    // 1. Merge the GitHub PR
-    // 2. Deploy to production
-    // 3. Mark workflow as complete
-    // 4. Update task status
-
-    await prisma.codingTaskWorkflow.update({
-      where: { id: workflowId },
-      data: {
-        status: 'COMPLETED',
-        metadata: {
-          mergedAt: new Date().toISOString(),
-          mergedBy: commentId
-        }
-      }
-    })
-
-    // Mark task as complete, as the person who approved the merge (AWTD-1093)
-    const completion = await completeTask({ taskId, actorId: approverId })
-    if (!completion.ok) {
-      log.warn({ taskId, error: completion.error }, '[CommentApproval] Completing task after merge was refused')
-    }
-
-    log.info('🔀 [CommentApproval] Merge request triggered successfully')
+    log.info({ taskId, commentId, approverId }, '[CommentApproval] Merge requested; no merge path exists, task left open')
 
   } catch (error) {
     log.error({ err: error }, '❌ [CommentApproval] Failed to trigger merge request:')
