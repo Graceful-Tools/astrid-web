@@ -11,6 +11,13 @@
  * the cell's own row (its list) and its column's status, so "add here" means
  * here. Someone else's card opens the same options sheet as on a list board.
  *
+ * Every row is the same height (ADEV-4): one fixed height, and each cell
+ * scrolls its own cards inside it as a list board's column does, so a busy list
+ * cannot stretch its row past the others. In one-column (mobile) mode the board
+ * is the list board's snap carousel: each column header and cell is as wide as
+ * the scroller and snaps to its start. A scroller-wide cell leaves no room for
+ * the row-header column, so each cell names its row's list instead.
+ *
  * Rows are chosen per person and saved on the server
  * (`useProjectBoardRows`): drag a list from the sidebar onto the board, or use
  * Add list, and × on a row header removes it. Loaded lazily from
@@ -64,6 +71,8 @@ export interface ProjectBoardProps {
   onOpenTask?: (taskId: string, anchor?: HTMLElement) => void
   /** The task whose details are open, so its card reads as selected. */
   selectedTaskId?: string | null
+  /** Phone width: the columns become a snap carousel, one at a time (ADEV-4). */
+  isOneColumn?: boolean
 }
 
 const cellKey = (listId: string, columnId: string) => `${listId}:${columnId}`
@@ -78,6 +87,7 @@ export function ProjectBoard({
   onCreateTask,
   onOpenTask,
   selectedTaskId = null,
+  isOneColumn = false,
 }: ProjectBoardProps) {
   const { t } = useTranslations()
   const { taskDisplayMode } = useUserSettings()
@@ -126,6 +136,34 @@ export function ProjectBoard({
 
   const isListDrag = (event: React.DragEvent) => Array.from(event.dataTransfer.types).includes(PROJECT_BOARD_LIST_DRAG_TYPE)
 
+  // Desktop columns share the width; on a phone each one is the scroller's
+  // width and snaps, sized from the scroller, never the viewport (AWTD-1305).
+  const columnWidth = isOneColumn ? "w-full shrink-0 snap-start" : "min-w-64 flex-1"
+  // Overflow from a row inside the scroller does not count the scroller's end
+  // padding, so without this the last column stops a padding short of its snap
+  // point. The row's gap plus this quarter-rem is the scroller's 1rem padding.
+  const snapTail = isOneColumn ? <div className="w-1 shrink-0" aria-hidden="true" /> : null
+
+  const rowLabel = (lane: (typeof lanes)[number]) => (
+    <>
+      <div className="min-w-0">
+        <div className="truncate text-sm font-semibold theme-text-primary">{lane.list.name}</div>
+        <div className="text-xs theme-text-muted">{lane.total}</div>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-6 w-6 shrink-0 p-0 theme-text-muted hover:theme-text-primary"
+        aria-label={t("projectMode.boardRemoveRow", { name: lane.list.name })}
+        title={t("projectMode.boardRemoveRow", { name: lane.list.name })}
+        data-testid={`project-board-remove-${lane.list.id}`}
+        onClick={() => removeRow(lane.list.id)}
+      >
+        <X className="h-4 w-4" aria-hidden="true" />
+      </Button>
+    </>
+  )
+
   return (
     <div
       className={`flex h-full min-w-0 flex-1 flex-col theme-bg-primary ${isListDragOver ? "ring-2 ring-inset ring-brand" : ""}`}
@@ -172,48 +210,41 @@ export function ProjectBoard({
         <p role="alert" className="px-4 pt-2 text-xs text-destructive">{t("projectMode.boardSaveFailed")}</p>
       )}
 
-      <div className="flex-1 min-h-0 overflow-auto p-4" data-board-callout-viewport>
+      <div
+        className={`flex-1 min-h-0 overflow-auto p-4 ${isOneColumn ? "snap-x snap-mandatory scroll-px-4 overscroll-x-contain" : ""}`}
+        data-testid="project-board-scroller"
+        data-board-callout-viewport
+      >
         {loaded && lanes.length === 0 ? (
           <div className="flex min-h-28 items-center justify-center rounded-md border border-dashed theme-border px-3 text-center text-sm theme-text-muted">
             {t("projectMode.boardEmpty")}
           </div>
         ) : (
-          <div className="inline-flex min-w-full flex-col gap-3">
+          <div className={`${isOneColumn ? "flex" : "inline-flex min-w-full"} flex-col gap-3`}>
             <div className="flex gap-3" role="row">
-              <div className="w-48 shrink-0" />
+              {!isOneColumn && <div className="w-48 shrink-0" />}
               {columns.map(column => (
-                <div key={column.id} className="flex min-w-64 flex-1 items-center gap-2 px-2 text-sm font-semibold theme-text-primary" role="columnheader">
+                <div key={column.id} className={`flex ${columnWidth} items-center gap-2 px-2 text-sm font-semibold theme-text-primary`} role="columnheader">
                   <span className="truncate">{boardColumnLabel(column, t)}</span>
                   {column.kind === "done" && <CheckCircle2 className="h-4 w-4 text-success" aria-hidden="true" />}
                   {column.kind === "inbox" && <Inbox className="h-4 w-4 theme-text-muted" aria-hidden="true" />}
                 </div>
               ))}
+              {snapTail}
             </div>
 
             {lanes.map(lane => (
-              <div key={lane.list.id} className="flex gap-3" role="row" data-testid={`project-board-row-${lane.list.id}`}>
-                <div className="flex w-48 shrink-0 items-start justify-between gap-2 rounded-md border theme-border theme-bg-secondary px-3 py-2" role="rowheader">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold theme-text-primary">{lane.list.name}</div>
-                    <div className="text-xs theme-text-muted">{lane.total}</div>
+              <div key={lane.list.id} className="flex h-80 gap-3" role="row" data-testid={`project-board-row-${lane.list.id}`}>
+                {!isOneColumn && (
+                  <div className="flex w-48 shrink-0 items-start justify-between gap-2 rounded-md border theme-border theme-bg-secondary px-3 py-2" role="rowheader">
+                    {rowLabel(lane)}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 shrink-0 p-0 theme-text-muted hover:theme-text-primary"
-                    aria-label={t("projectMode.boardRemoveRow", { name: lane.list.name })}
-                    title={t("projectMode.boardRemoveRow", { name: lane.list.name })}
-                    data-testid={`project-board-remove-${lane.list.id}`}
-                    onClick={() => removeRow(lane.list.id)}
-                  >
-                    <X className="h-4 w-4" aria-hidden="true" />
-                  </Button>
-                </div>
+                )}
 
                 {columns.map(column => (
                   <div
                     key={column.id}
-                    className="board-column min-w-64 flex-1 space-y-2 rounded-md border theme-border theme-bg-secondary p-2"
+                    className={`board-column flex min-h-0 ${columnWidth} flex-col rounded-md border theme-border theme-bg-secondary p-2`}
                     data-testid={`project-board-cell-${lane.list.id}-${column.id}`}
                     onDragOver={(event) => {
                       if (!isListDrag(event)) event.preventDefault()
@@ -225,54 +256,61 @@ export function ProjectBoard({
                       moveTask(event.dataTransfer.getData("text/plain"), column)
                     }}
                   >
-                    {lane.cells[column.id]?.map(task => {
-                      return (
-                        <div
-                          key={task.id}
-                          data-task-id={task.id}
-                          className={`task-row task-card board-card transition-theme relative theme-surface theme-border cursor-grab ${
-                            task.completed
-                              ? "task-row-completed theme-bg-hover"
-                              : selectedTaskId === task.id
-                                ? "task-row-selected theme-bg-selected"
-                                : "theme-surface-hover"
-                          }`}
-                          draggable
-                          role="button"
-                          tabIndex={0}
-                          aria-haspopup="dialog"
-                          onDragStart={(event) => {
-                            event.dataTransfer.effectAllowed = "move"
-                            event.dataTransfer.setData("text/plain", task.id)
-                          }}
-                          onClick={(event) => onOpenTask?.(task.id, event.currentTarget)}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter" || event.key === " ") {
-                              event.preventDefault()
-                              onOpenTask?.(task.id, event.currentTarget)
-                            }
-                          }}
-                        >
-                          <TaskRowContent
-                            task={task}
-                            currentUserId={currentUser?.id}
-                            isSelected={selectedTaskId === task.id}
-                            onToggleComplete={() => onUpdateTask({ ...task, completed: !task.completed })}
-                            onCopyPublic={() => {}}
-                            displayMode={taskDisplayMode}
-                            currentListId={lane.list.id}
-                            onOpenOptions={
-                              isSomeoneElsesTask({ assigneeId: task.assigneeId, currentUserId: currentUser?.id })
-                                ? () => setOptionsTaskId(task.id)
-                                : undefined
-                            }
-                          />
-                        </div>
-                      )
-                    })}
+                    {isOneColumn && (
+                      <div className="flex shrink-0 items-start justify-between gap-2 px-1 pb-2">
+                        {rowLabel(lane)}
+                      </div>
+                    )}
+                    <div className="flex-1 min-h-0 space-y-2 overflow-y-auto" data-testid={`project-board-cell-body-${lane.list.id}-${column.id}`}>
+                      {lane.cells[column.id]?.map(task => {
+                        return (
+                          <div
+                            key={task.id}
+                            data-task-id={task.id}
+                            className={`task-row task-card board-card transition-theme relative theme-surface theme-border cursor-grab ${
+                              task.completed
+                                ? "task-row-completed theme-bg-hover"
+                                : selectedTaskId === task.id
+                                  ? "task-row-selected theme-bg-selected"
+                                  : "theme-surface-hover"
+                            }`}
+                            draggable
+                            role="button"
+                            tabIndex={0}
+                            aria-haspopup="dialog"
+                            onDragStart={(event) => {
+                              event.dataTransfer.effectAllowed = "move"
+                              event.dataTransfer.setData("text/plain", task.id)
+                            }}
+                            onClick={(event) => onOpenTask?.(task.id, event.currentTarget)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault()
+                                onOpenTask?.(task.id, event.currentTarget)
+                              }
+                            }}
+                          >
+                            <TaskRowContent
+                              task={task}
+                              currentUserId={currentUser?.id}
+                              isSelected={selectedTaskId === task.id}
+                              onToggleComplete={() => onUpdateTask({ ...task, completed: !task.completed })}
+                              onCopyPublic={() => {}}
+                              displayMode={taskDisplayMode}
+                              currentListId={lane.list.id}
+                              onOpenOptions={
+                                isSomeoneElsesTask({ assigneeId: task.assigneeId, currentUserId: currentUser?.id })
+                                  ? () => setOptionsTaskId(task.id)
+                                  : undefined
+                              }
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
                     {column.kind !== "done" && (
                       <form
-                        className="flex items-center gap-2 pt-1"
+                        className="flex shrink-0 items-center gap-2 pt-2"
                         onSubmit={(event) => createInCell(event, lane.list.id, column)}
                       >
                         <Input
@@ -299,6 +337,7 @@ export function ProjectBoard({
                     )}
                   </div>
                 ))}
+                {snapTail}
               </div>
             ))}
           </div>
