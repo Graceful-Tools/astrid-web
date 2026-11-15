@@ -203,7 +203,7 @@ describe('buildAgentQueue', () => {
     mockPrisma.user.findUnique.mockResolvedValue(null)
 
     const result = await buildAgentQueue({ agent: 'claude', userId: 'user-1' })
-    const { runnable: _runnable, ...legacyResponse } = result
+    const { runnable: _runnable, listInstructions: _instructions, ...legacyResponse } = result
 
     expect(legacyResponse).toEqual({
       agent: {
@@ -252,7 +252,7 @@ describe('buildAgentQueue', () => {
       userId: 'user-1',
       includeChat: true,
     })
-    const { runnable: _runnable, ...legacyResponse } = result
+    const { runnable: _runnable, listInstructions: _instructions, ...legacyResponse } = result
 
     expect(legacyResponse).toEqual({
       agent: {

@@ -31,6 +31,7 @@ import { RuntimeBindingDeniedError, resolveAgentRuntime } from '@/lib/ai/runtime
 import { runtimeBindingResolverEnabled } from '@/lib/env'
 import { pilotQueueScope } from '@/lib/runtime-binding/task-runtime'
 import { observeAgentExecutionMode } from '@/lib/ai/agent-execution-mode-shadow'
+import { collectListInstructions, LIST_INSTRUCTIONS_MAX_CHARS, type AgentListInstructions } from '@/lib/agent-queue-list-instructions'
 import { pendingAgentHandback, type AgentResumeContext } from '@/lib/agent-handback'
 
 /**
@@ -63,6 +64,8 @@ export interface AgentQueueTask {
   assigned: boolean
   url: string
 }
+
+export { LIST_INSTRUCTIONS_MAX_CHARS, type AgentListInstructions }
 
 /** A task with something said on it that the agent has not answered. */
 export interface AgentAttentionTask {
@@ -126,6 +129,8 @@ export interface AgentQueueResult {
   mode: string
   empty: boolean
   queue: AgentQueueTask[]
+  /** Instructions of the lists the queued tasks sit on; one entry per list. */
+  listInstructions: AgentListInstructions[]
   held: {
     notDueCount: number
     /** Assigned to this agent and visible to the caller, but not Ready. */
@@ -393,6 +398,7 @@ export async function buildAgentQueue({
       mode,
       empty: true,
       queue: [],
+      listInstructions: [],
       held: { notDueCount: 0, notReadyCount: 0, scheduled: [] },
       truncated: false,
       // An identity nobody has used yet has nothing to answer either.
@@ -498,6 +504,7 @@ export async function buildAgentQueue({
       notReadyCount,
       scheduled,
     },
+    listInstructions: collectListInstructions(dueTasks),
     // A truncated page would hide queued work behind a backlog and report a clean
     // run, so say it rather than working a silent subset.
     truncated,
