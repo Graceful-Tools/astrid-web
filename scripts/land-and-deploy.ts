@@ -24,7 +24,7 @@
  * Exit codes — chosen so the caller can tell "did not" from "could not":
  *   0  deployed and verified, or nothing to do
  *   2  refused: allow_destructive_migrations (never set by the loop)
- *   3  did not deploy: a pending migration needs a human
+ *   3  did not deploy: a destructive (or unreadable) pending migration needs a human
  *   4  did not deploy: the gate is red on the merged main
  *   5  deployed and could NOT verify production is serving it
  *   1  something broke (git, gh, network)
@@ -51,12 +51,15 @@ import {
   landedDespiteError,
   deployVerdict,
   landablePullRequests,
+  migrationHold,
+  migrationSqlPath,
   pendingMigrations,
   summary,
   tasksProductionServes,
   taskIdsInBranch,
   automaticDeployHold,
   type AwaitingDeployTask,
+  type PendingMigration,
   type PullRequestSummary,
 } from './lib/land-and-deploy'
 
@@ -387,10 +390,22 @@ async function main() {
   const hasSomethingToShip = Number(unshipped) > 0
   log(`  ${unshipped} commit(s) on main that production is not serving`)
 
-  const pending = pendingMigrations(
+  const pendingNames = pendingMigrations(
     run('git', ['diff', '--name-only', 'origin/prod', 'origin/main', '--', 'prisma/migrations/']),
   )
-  if (pending.length) log(`  pending migration(s): ${pending.join(', ')}`)
+  if (pendingNames.length) log(`  pending migration(s): ${pendingNames.join(', ')}`)
+
+  // AWTD-1680: the SQL is read from the merged main itself, not the working
+  // tree, which may be any branch. Unreadable stays null and holds the deploy.
+  const pending: PendingMigration[] = pendingNames.map(name => {
+    try {
+      return { name, sql: run('git', ['show', `origin/main:${migrationSqlPath(name)}`]) }
+    } catch {
+      return { name, sql: null }
+    }
+  })
+  const heldByMigration = migrationHold(pending)
+  if (pending.length && !heldByMigration) log('  all pending migrations are additive — they ship with this deploy')
 
   // WHICH GATE LICENSES THIS DEPLOY, and why it is not a local predeploy by
   // default. `deploy-production` is `needs: [quality-gates, database-migration]`
@@ -409,7 +424,7 @@ async function main() {
   //
   // `--gate` runs it anyway, for an interactive run that wants the answer
   // before spending ten minutes on a pipeline.
-  const needsGate = hasSomethingToShip && !pending.length
+  const needsGate = hasSomethingToShip && !heldByMigration
   let predeployGreen = true
   if (needsGate && options.gate && !options.dryRun) {
     log('  running predeploy on the merged main…')

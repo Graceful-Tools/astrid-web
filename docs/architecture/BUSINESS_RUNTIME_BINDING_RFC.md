@@ -1,7 +1,7 @@
 # RFC: explicit business runtime binding
 
 **Task:** AWTD-1564; agent-integration hardening program AWTD-1547.
-**Status:** proposed, awaiting Jon's decisions. Design only: this document adds no
+**Status:** phases 1–5 built and inert; staging pilot parked (AWTD-1671). Practical guide: [RUNTIME_BINDING_PARTNER_GUIDE.md](./RUNTIME_BINDING_PARTNER_GUIDE.md). Original status: proposed, awaiting Jon's decisions. Design only: this document adds no
 code, schema, migration, credential, deployed configuration or fleet activation.
 **Evidence date:** 2026-11-09 UTC.
 
