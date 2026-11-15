@@ -91,6 +91,20 @@ on every poll. No shipped skill or loop recipe reads the field yet. Existing `em
 are unchanged. Older servers omit `runnable`; clients should then retain their
 existing `empty`-based behavior.
 
+**Explicit business runtime bindings (AWTD-1667).** Inert unless the server sets
+`ASTRID_RUNTIME_BINDING_RESOLVER=true`. Even then, a response for a board with no
+binding, or for a request with no `listId`, is unchanged byte for byte. When the
+named board does carry a binding:
+
+- **Usable binding.** The response gains `runtimeBinding: { id, revision }` and
+  `mode: "polling"`. Credential and payer references are never included.
+- **Unusable binding.** The server answers **403** with `{ error, reason,
+  bindingId, boardId }`. "Unusable" means the binding is missing, unreadable,
+  inactive, unapproved, out of scope, or lacks a credential or business payer.
+  This is a denial, never an empty queue or the caller's personal mode.
+
+Clients should treat an unknown `reason` as a denial.
+
 `POST /api/v1/tasks/:id/claim-fixall` (`tasks:write`, existing task access)
 accepts the additive `resume` action. Send `{ action: "resume", agent,
 commentWatermark: resume.commentWatermark, resume, listId: resume.listId }`. The server independently
