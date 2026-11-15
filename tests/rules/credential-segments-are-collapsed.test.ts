@@ -97,6 +97,7 @@ const DYNAMIC_SEGMENT_PARENTS: Record<string, Classification> = {
   progress: 'opaque-id',
   projects: 'opaque-id',
   reminders: 'opaque-id',
+  'runtime-bindings': 'opaque-id', // app/api/v1/runtime-bindings/[id] — a RuntimeBinding cuid (AWTD-1670)
   'secure-files': 'opaque-id',
   status: 'opaque-id',
   tasks: 'opaque-id',

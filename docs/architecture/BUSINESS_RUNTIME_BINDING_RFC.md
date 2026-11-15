@@ -184,7 +184,13 @@ timestamp, request/correlation ID, run/lease ID and transport outcome.
 Audit credential reference identity/generation, not its value. Never record
 tokens, headers, webhook secrets, raw prompts, endpoint credentials or payment
 information. Audit reads require a scoped administrative permission and have an
-explicit retention/export policy; retention length remains a Decision below.
+explicit retention/export policy. Retention (Decision 5, Jon 2026-11-14; AWTD-1670):
+operational events 90 days; consent, approval, revocation, run-attribution and export
+records until the binding has been revoked for 90 days. The classes are one map in
+`lib/runtime-binding/audit-retention.ts` (an unclassified type counts as lifecycle),
+pruned daily by `/api/cron/binding-audit`; `RUNTIME_BINDING_AUDIT_OPERATIONAL_DAYS` /
+`RUNTIME_BINDING_AUDIT_LIFECYCLE_DAYS` can only extend them. The admin-only export is
+`GET /api/v1/runtime-bindings/:id/audit-export`, which audits itself first.
 
 Configuration changes and approvals must commit with their audit event. New
 bound claims fail closed if their required audit/lease record cannot persist.

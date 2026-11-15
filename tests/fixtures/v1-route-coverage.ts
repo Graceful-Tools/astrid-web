@@ -45,6 +45,7 @@ export const V1_ROUTE_FAMILY_COVERAGE = {
   projects: { mode: 'direct', tests: ['tests/api/v1-projects.test.ts'] },
   public: { mode: 'direct', tests: ['tests/api/v1-public-lists-popular-sort.test.ts'] },
   reminders: { mode: 'direct', tests: ['tests/api/v1-users-me-reminder-settings.test.ts'] },
+  'runtime-bindings': { mode: 'direct', tests: ['tests/api/v1-runtime-bindings-audit-export.test.ts'] },
   search: { mode: 'shared-domain', tests: ['tests/lib/search-query-parser.test.ts'] },
   'secure-files': { mode: 'parity', tests: ['tests/api/v1-secure-files-methods.test.ts'] },
   'secure-upload': {
