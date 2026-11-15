@@ -11,7 +11,7 @@
  * selection once the projects have loaded and the list view comes back.
  */
 import React from "react"
-import { ProjectBoard } from "@/components/projects/ProjectBoard"
+import { ProjectBoard, type ProjectBoardProps } from "@/components/projects/ProjectBoard"
 import { setSelectedProjectId, useSelectedProjectId } from "@/hooks/use-selected-project"
 import { useProjectMode } from "@/hooks/use-project-mode"
 import { useLoadedProjects } from "@/hooks/use-loaded-projects"
@@ -24,9 +24,10 @@ interface ProjectBoardHostProps {
   currentUser?: User | null
   onUpdateTask: (task: Task) => void
   onDeleteTask: (taskId: string) => void
+  onCreateTask: ProjectBoardProps["onCreateTask"]
 }
 
-export function ProjectBoardHost({ lists, tasks, currentUser, onUpdateTask, onDeleteTask }: ProjectBoardHostProps) {
+export function ProjectBoardHost({ lists, tasks, currentUser, onUpdateTask, onDeleteTask, onCreateTask }: ProjectBoardHostProps) {
   const projectId = useSelectedProjectId()
   const enabled = useProjectMode()
   const projects = useLoadedProjects()
@@ -47,6 +48,7 @@ export function ProjectBoardHost({ lists, tasks, currentUser, onUpdateTask, onDe
       currentUser={currentUser}
       onUpdateTask={onUpdateTask}
       onDeleteTask={onDeleteTask}
+      onCreateTask={onCreateTask}
     />
   )
 }

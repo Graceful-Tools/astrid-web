@@ -7,6 +7,7 @@ import { Search, Menu, Settings, Filter } from "lucide-react"
 import { ChatToggle } from "@/components/chat/ChatToggle"
 import { useTranslations } from "@/lib/i18n/client"
 import { isSystemListId } from "@/lib/list-permissions"
+import { useSelectedProjectName } from "@/hooks/use-selected-project"
 import { useMyTasksPreferences } from "@/hooks/useMyTasksPreferences"
 import { getMyTasksFilterText, getPriorityColorClass } from "@/lib/task-manager-utils"
 import { getMobileHeaderMode } from "@/lib/mobile-header-mode"
@@ -108,6 +109,9 @@ export function TaskManagerHeader({
 }: TaskManagerHeaderProps) {
   const { t } = useTranslations()
   const { filters } = useMyTasksPreferences()
+  // A project board open (AWTD-1675): the header names the project, not the
+  // list that was last selected underneath it.
+  const projectName = useSelectedProjectName()
 
   // Check if user can access settings for the selected list
   const selectedList = lists.find(list => list.id === selectedListId)
@@ -133,6 +137,7 @@ export function TaskManagerHeader({
 
   // Get filter text for My Tasks
   const getListNameWithFilters = () => {
+    if (projectName) return projectName
     let baseName = ''
     if (selectedListId === "my-tasks") {
       baseName = t("listHeaders.myTasks")
@@ -162,7 +167,7 @@ export function TaskManagerHeader({
     const fullText = getListNameWithFilters()
 
     // Only apply colors if we're on My Tasks and have priority filters
-    if (selectedListId === "my-tasks" && effectivePriority && effectivePriority.length > 0) {
+    if (!projectName && selectedListId === "my-tasks" && effectivePriority && effectivePriority.length > 0) {
       const filterText = getMyTasksFilterText({
         filterDueDate: effectiveDueDate,
         filterPriority: effectivePriority
