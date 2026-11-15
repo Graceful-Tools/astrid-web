@@ -1810,7 +1810,16 @@
     "disableBoardFailed": "Bord uitschakelen mislukt",
     "disableBoardTitle": "Bordweergave uitschakelen",
     "disableBoardBody": "Taken blijven in deze lijst, maar de kolommen Ready/Doing/Waiting worden verwijderd.",
-    "disableBoardNote": "Taken in een statuskolom verliezen hun status. Voltooide taken blijven voltooid."
+    "disableBoardNote": "Taken in een statuskolom verliezen hun status. Voltooide taken blijven voltooid.",
+    "projectsHeading": "Projecten",
+    "openBoard": "Bord {name} openen",
+    "showLists": "Lijsten in {name} tonen",
+    "hideLists": "Lijsten in {name} verbergen",
+    "boardAddList": "Lijst toevoegen",
+    "boardRemoveRow": "{name} van dit bord verwijderen",
+    "boardEmpty": "Sleep een lijst hierheen vanuit de zijbalk, of gebruik Lijst toevoegen.",
+    "boardNoCandidates": "Alle lijsten staan al op dit bord.",
+    "boardSaveFailed": "De lijsten van dit bord konden niet worden opgeslagen. Probeer het opnieuw."
   },
   "viewRotator": {
     "showList": "Lijst tonen",
