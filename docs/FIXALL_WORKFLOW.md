@@ -123,6 +123,46 @@ Each copy carries `[public-intake:<source id>]`, so a run on any machine skips w
 filed, completed copies included. Triage by model is optional: without it, a copy is filed
 under the submitter's own title, marked untriaged.
 
+## Autonomy: file to Ready, ask only about high risk (Jon, 2026-11-15)
+
+> *"We want to get to more autonomous development. Unless tasks are high risk (eg breaking
+> database changes, dropping columns) when you find issues add them directly to ready. I only
+> want to review changes that are high risk. All implementation of shared design, system or
+> performance enhancement, or code cleanup you should just add to ready and pick up."*
+
+**The default is to do the work, not to ask.** That holds for every board and every harness:
+
+- **Found an issue? File it straight to `Ready`**: on the right board, with `statusRole: "ready"`,
+  unassigned (or assigned to your own mailbox if you will take it now). Never file to the Inbox
+  "so Jon can promote it". The Inbox is for a person's own notes and for genuine handbacks.
+- **Shared-design implementation, system or performance work, and code cleanup are yours.** File
+  them Ready and pick them up. They do not need a review.
+- **A choice with a recommended option is not a question.** When you would write a Decision whose
+  answer you already recommend (scope of a feature, which of two designs, a naming question,
+  "accept the trade-off or not"), take the recommendation, record it on the task as
+  `Decided (agent, <date>): <choice> — <one-line reason>. Jon can override.`, and carry on.
+  Jon reviews the result, not the question.
+- **Deleting is not a high-risk act in itself.** Stale branches, dead code, superseded files and
+  merged worktrees are cleanup: verify, then delete.
+
+**High risk, and only high risk, goes to Jon** (Decision comment + `assign-task.ts --handback`):
+
+| High risk | Why |
+|---|---|
+| A **breaking or destructive database change**: `DROP`, `RENAME`, a new `NOT NULL` on existing data, or a migration that rewrites or deletes rows (`UPDATE`/`DELETE`) | It applies before the new code is live and a redeploy cannot undo it (2026-09-18). `production-deployment.yml` refuses the first group unless a person sets `allow_destructive_migrations`. |
+| Anything that **could lose or expose user data** (deleting production rows, changing who can read what, auth or token changes that could lock users out) | Irreversible, or reaches users directly |
+| **Spending money or acting as Jon outside the repos** (new paid services, billing, emails to people, App Store / Microsoft Store submissions, signing releases) | Outward-facing; hard to take back |
+| **A credential or account only Jon holds** (a PAT, an admin console, a one-time machine-admin step) | Nobody else can do it; ask once, with the exact steps |
+
+**Additive migrations are not high risk.** A new table, a new nullable column, a new index: ship
+them like any other change, gate the merged `main`, deploy. The production workflow's destructive
+check is the backstop that stops a mis-classified one.
+
+When you do ask, batch it: one task per thing Jon must do, with the exact command or click, so a
+person can clear a stack of them in one sitting.
+
+---
+
 ## The queue
 
 **Read and write tasks through the `astrid` MCP server** — the LOCAL stdio server
@@ -307,9 +347,10 @@ machine that runs the Claude loop, so a *Copilot* handback was recorded as Claud
 
 **Blocked → name what unblocks it.** Who can lift the block decides where the task goes:
 
-- **Only a person can lift it** (a product decision, an account credential): **hand it back**
-  — Inbox, assigned to them, with the question on the task (*A human reply resumes an
-  explicit handback*, below). One call does both:
+- **Only a person can lift it** (a high-risk decision or an account credential, per
+  *Autonomy* above; a low-risk product choice is not this, so decide it and record it):
+  **hand it back** — Inbox, assigned to them, with the question on the task (*A human reply
+  resumes an explicit handback*, below). One call does both:
 
   ```bash
   npx tsx scripts/assign-task.ts <taskId> jonparis@gmail.com --handback --agent <mailbox>
@@ -391,13 +432,32 @@ write if the task would be stranded, and reads back to prove it.
 **Never leave a red gate.** A failing test that looks unrelated is still a failing test — say
 plainly that it is unrelated and why, rather than moving past it quietly.
 
-**If a task is ambiguous or needs a product decision, hand it back** and move to the next one.
-Do not guess at intent, and do not stall the whole run on one blocked task.
+**If a task is ambiguous, pick the most reasonable reading, say which you picked, and do it.**
+Hand it back only when the choice is high risk (*Autonomy* above). Do not stall the whole run
+on one blocked task.
 
 **If the same task fails twice**, stop working it, comment with what was tried and why it
 failed, and move on.
 
 ---
+
+## astrid-core is worked by web and iOS, never blocked on Windows (Jon, 2026-11-15)
+
+> *"Let's have Astrid web and iOS both take over core tasks, so we wait less on Windows. Windows
+> can focus on implementing the windows experience. But it is the least used, least mature, so it
+> should not hold dependencies for the other interfaces."*
+
+- **Core tasks live on the web board by default**, or on the iOS board when the Apple apps are the
+  first consumer. **Never on the Windows board.** The web and iOS loops work astrid-core directly:
+  their own worktree of `../astrid-core`, its local gate, a PR, CI green (CI includes the Android
+  NDK and wasm builds, so no special toolchain is needed locally), then merge. astrid-core has no
+  deploy, so merged to `main` is done; consumers take it with a pin bump.
+- **The Windows board holds Windows-shell work only**: the WinUI app, its packaging, releases and
+  machine. When Windows needs a core change, its loop files the core half **Ready on the web board**
+  and implements the Windows half against it. It does not do the core half itself.
+- **Windows never holds a dependency for another client.** No web, iOS, Android or Code task waits
+  on a Windows task. If a shared change is needed, the web or iOS loop makes it in core, and Windows
+  catches up with its own pin bump.
 
 ## When the fix belongs to the other repo
 
@@ -412,10 +472,12 @@ session bug, which idled for a full cycle before anyone noticed the work belonge
 
 ```
 create_task { listId: "<target board id>", title: "[web] <what the other side must do>",
-              priority: 3, description: "<contract, evidence, and what this side does once it exists>" }
+              statusRole: "ready", priority: 3,
+              description: "<contract, evidence, and what this side does once it exists>" }
 ```
 
-(`get_tasks { listId }` first, so a re-run does not file the same title twice.)
+(`get_tasks { listId }` first, so a re-run does not file the same title twice. File it **Ready**,
+not Inbox — see *Autonomy* above.)
 
 **What that task must contain**, because whoever picks it up will not have your context:
 
@@ -691,8 +753,8 @@ Image syntax — an exclamation mark, the task title in square brackets, the tas
 parentheses — still renders as a tappable link to that task, so name tasks by title and give a
 way through to them.
 
-**Anything needing a DECISION escalates to a person, and there is only one path that reaches
-one.** Hand the task back to Jon (Inbox, assigned to him) AND post the question as a comment on
+**A high-risk DECISION escalates to a person, and there is only one path that reaches one.**
+(A low-risk one is decided and recorded by the agent; see *Autonomy*.) Hand the task back to Jon (Inbox, assigned to him) AND post the question as a comment on
 it — both, because `fanOutComment` in `lib/notifications.ts`
 notifies the assignee, the creator and the participants, while a list-chat message notifies
 nobody who was not mentioned. A decision left in the run summary reaches no one.
@@ -776,10 +838,13 @@ down. Ask production what it is serving. `scripts/verify-deployed-sha.sh` is tha
 
 ### What stays a human's call
 
-- **A pending migration.** It applies in a job that runs *before* the deploy and does not
-  depend on it, so a `DROP` lands while the code that stops reading it is still pending.
-  That took production down on 2026-09-18 and a redeploy cannot undo it. A non-empty
-  migration diff means: do not deploy, say so on the task, leave it **incomplete**.
+- **A destructive or data-rewriting migration.** Migrations apply in a job that runs *before*
+  the deploy and does not depend on it, so a `DROP` lands while the code that stops reading it
+  is still pending. That took production down on 2026-09-18 and a redeploy cannot undo it. So a
+  pending migration containing `DROP`, `RENAME`, `SET NOT NULL`, `UPDATE` or `DELETE` means: do
+  not deploy, put the Decision on the task, leave it **incomplete**. **An additive migration**
+  (new table, nullable column, index) **is not this**: gate the merged `main` and deploy it
+  (Jon, 2026-11-15).
 - **`allow_destructive_migrations`.** Always `false` from a loop. It exists so a human can
   state, on the record, that the code is already live.
 - **A red gate.** Red is red. A gate you believe is a false alarm is still red until the
@@ -821,7 +886,7 @@ The runner then opens the PR, lands it once its checks are green, and deploys `m
 tick `land-and-deploy.ts` asks `/api/health` which commit production serves, and it completes
 each Doing (or Testing) task with an `AWAITING-DEPLOY` marker whose sha is an ancestor of that
 commit, with a comment naming it. A deploy dispatched by hand counts too. A failed deploy
-completes nothing. A pending migration on `main` holds every one of these tasks in Doing until
+completes nothing. A pending destructive migration on `main` holds every one of these tasks in Doing until
 Jon ships the migration: that is the rule working, not the loop stuck. A squash merge drops the
 recorded sha, so such a task never matches and stays in Doing. Land these PRs with a merge
 commit (the runner always does).
