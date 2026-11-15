@@ -2593,7 +2593,58 @@
   },
   "admin": {
     "navDescription": "Gestisci accesso, analisi e disponibilità delle funzionalità.",
-    "navLabel": "Sezioni di amministrazione"
+    "navLabel": "Sezioni di amministrazione",
+    "nav": {
+      "admins": "Gestisci amministratori",
+      "analytics": "Analisi",
+      "features": "Rilasci delle funzionalità",
+      "runtimeBindings": "Associazioni di esecuzione"
+    },
+    "runtimeBindings": {
+      "description": "Quale runtime registrato esegue gli agenti per quali bacheche, approvato da un amministratore. Solo un’associazione attiva riceve lavoro.",
+      "gateOff": "La registrazione è disattivata in questa installazione. Le associazioni si possono registrare solo in un’installazione dedicata a una singola azienda. Puoi comunque sospendere, revocare e scollegare quelle esistenti.",
+      "empty": "Ancora nessuna associazione di esecuzione.",
+      "loading": "Caricamento…",
+      "loadFailed": "Impossibile caricare le associazioni di esecuzione.",
+      "saved": "Salvato",
+      "failed": "Non ha funzionato. Riprova.",
+      "confirmRevoke": "Revocare questa associazione? L’operazione non può essere annullata.",
+      "revision": "Revisione {revision}",
+      "approved": "Approvata",
+      "notApproved": "Non approvata",
+      "runtime": "Esecuzione",
+      "agents": "Agenti",
+      "boards": "Bacheche",
+      "attach": "Collega",
+      "detach": "Scollega",
+      "states": {
+        "pending": "In attesa",
+        "verified": "Verificata",
+        "active": "Attiva",
+        "suspended": "Sospesa",
+        "revoked": "Revocata"
+      },
+      "actions": {
+        "verify": "Verifica",
+        "approve": "Approva",
+        "activate": "Attiva",
+        "suspend": "Sospendi",
+        "revoke": "Revoca"
+      },
+      "enrollTitle": "Registra un’associazione",
+      "enrollDescription": "Si applicano i limiti del pilota: polling, un’esecuzione alla volta, pagata dall’azienda. L’associazione parte in attesa.",
+      "enroll": "Registra",
+      "fields": {
+        "runtimeKind": "Tipo di esecuzione",
+        "runtimeSubjectId": "ID di esecuzione",
+        "allowedAgentIds": "Agenti consentiti",
+        "allowedBoardIds": "Bacheche consentite",
+        "allowedRepositoryRefs": "Repository",
+        "credentialRef": "Riferimento credenziali",
+        "billingAccountRef": "Riferimento pagatore"
+      },
+      "commaHint": "Separa più valori con virgole. I riferimenti sono ID di record conservati altrove, mai un segreto."
+    }
   },
   "pwa": {
     "notNow": "Non ora",

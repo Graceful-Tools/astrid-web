@@ -2593,7 +2593,58 @@
   },
   "admin": {
     "navDescription": "접근 권한, 분석, 기능 제공 여부를 관리합니다.",
-    "navLabel": "관리 섹션"
+    "navLabel": "관리 섹션",
+    "nav": {
+      "admins": "관리자 관리",
+      "analytics": "분석",
+      "features": "기능 출시",
+      "runtimeBindings": "런타임 바인딩"
+    },
+    "runtimeBindings": {
+      "description": "등록된 어떤 런타임이 어떤 보드의 에이전트를 실행할지 관리자가 승인합니다. 활성 바인딩만 작업을 받습니다.",
+      "gateOff": "이 배포에서는 등록이 꺼져 있습니다. 런타임 바인딩은 단일 기업 전용 배포에서만 등록할 수 있습니다. 기존 바인딩의 일시 중지, 취소, 분리는 계속 가능합니다.",
+      "empty": "아직 런타임 바인딩이 없습니다.",
+      "loading": "불러오는 중…",
+      "loadFailed": "런타임 바인딩을 불러올 수 없습니다.",
+      "saved": "저장됨",
+      "failed": "실패했습니다. 다시 시도하세요.",
+      "confirmRevoke": "이 바인딩을 취소할까요? 되돌릴 수 없습니다.",
+      "revision": "리비전 {revision}",
+      "approved": "승인됨",
+      "notApproved": "승인되지 않음",
+      "runtime": "런타임",
+      "agents": "에이전트",
+      "boards": "보드",
+      "attach": "연결",
+      "detach": "분리",
+      "states": {
+        "pending": "대기 중",
+        "verified": "확인됨",
+        "active": "활성",
+        "suspended": "일시 중지됨",
+        "revoked": "취소됨"
+      },
+      "actions": {
+        "verify": "확인",
+        "approve": "승인",
+        "activate": "활성화",
+        "suspend": "일시 중지",
+        "revoke": "취소"
+      },
+      "enrollTitle": "바인딩 등록",
+      "enrollDescription": "파일럿 제한이 적용됩니다: 폴링, 한 번에 한 실행, 비용은 기업 부담. 바인딩은 대기 중 상태로 시작합니다.",
+      "enroll": "등록",
+      "fields": {
+        "runtimeKind": "런타임 종류",
+        "runtimeSubjectId": "런타임 ID",
+        "allowedAgentIds": "허용된 에이전트",
+        "allowedBoardIds": "허용된 보드",
+        "allowedRepositoryRefs": "저장소",
+        "credentialRef": "자격 증명 참조",
+        "billingAccountRef": "결제자 참조"
+      },
+      "commaHint": "여러 개는 쉼표로 구분하세요. 참조는 다른 곳에 보관된 기록의 ID이며 비밀 값이 아닙니다."
+    }
   },
   "pwa": {
     "notNow": "나중에",

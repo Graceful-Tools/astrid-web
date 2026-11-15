@@ -2593,7 +2593,58 @@
   },
   "admin": {
     "navDescription": "Zugriff, Analysen und Funktionsverfügbarkeit verwalten.",
-    "navLabel": "Admin-Bereiche"
+    "navLabel": "Admin-Bereiche",
+    "nav": {
+      "admins": "Admins verwalten",
+      "analytics": "Analysen",
+      "features": "Funktions-Rollouts",
+      "runtimeBindings": "Laufzeitbindungen"
+    },
+    "runtimeBindings": {
+      "description": "Welche registrierte Laufzeit Agenten für welche Boards ausführt, von einem Admin genehmigt. Nur eine aktive Bindung erhält Arbeit.",
+      "gateOff": "Die Registrierung ist in dieser Bereitstellung deaktiviert. Laufzeitbindungen können nur in einer eigenen Bereitstellung für ein einzelnes Unternehmen registriert werden. Bestehende Bindungen können weiterhin gesperrt, widerrufen und getrennt werden.",
+      "empty": "Noch keine Laufzeitbindungen.",
+      "loading": "Wird geladen…",
+      "loadFailed": "Laufzeitbindungen konnten nicht geladen werden.",
+      "saved": "Gespeichert",
+      "failed": "Das hat nicht funktioniert. Bitte erneut versuchen.",
+      "confirmRevoke": "Diese Bindung widerrufen? Das kann nicht rückgängig gemacht werden.",
+      "revision": "Revision {revision}",
+      "approved": "Genehmigt",
+      "notApproved": "Nicht genehmigt",
+      "runtime": "Laufzeit",
+      "agents": "Agenten",
+      "boards": "Boards",
+      "attach": "Verbinden",
+      "detach": "Trennen",
+      "states": {
+        "pending": "Ausstehend",
+        "verified": "Verifiziert",
+        "active": "Aktiv",
+        "suspended": "Gesperrt",
+        "revoked": "Widerrufen"
+      },
+      "actions": {
+        "verify": "Verifizieren",
+        "approve": "Genehmigen",
+        "activate": "Aktivieren",
+        "suspend": "Sperren",
+        "revoke": "Widerrufen"
+      },
+      "enrollTitle": "Bindung registrieren",
+      "enrollDescription": "Es gelten die Pilotgrenzen: Polling, jeweils ein Lauf, bezahlt vom Unternehmen. Die Bindung beginnt als ausstehend.",
+      "enroll": "Registrieren",
+      "fields": {
+        "runtimeKind": "Laufzeitart",
+        "runtimeSubjectId": "Laufzeit-ID",
+        "allowedAgentIds": "Erlaubte Agenten",
+        "allowedBoardIds": "Erlaubte Boards",
+        "allowedRepositoryRefs": "Repositorys",
+        "credentialRef": "Zugangsdaten-Referenz",
+        "billingAccountRef": "Zahler-Referenz"
+      },
+      "commaHint": "Mehrere Einträge durch Kommas trennen. Referenzen sind IDs von Einträgen an anderer Stelle, niemals ein Geheimnis."
+    }
   },
   "pwa": {
     "notNow": "Jetzt nicht",

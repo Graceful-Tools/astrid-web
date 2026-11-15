@@ -2593,7 +2593,58 @@
   },
   "admin": {
     "navDescription": "Gérez l'accès, les statistiques et la disponibilité des fonctionnalités.",
-    "navLabel": "Sections d'administration"
+    "navLabel": "Sections d'administration",
+    "nav": {
+      "admins": "Gérer les administrateurs",
+      "analytics": "Statistiques",
+      "features": "Déploiements de fonctionnalités",
+      "runtimeBindings": "Liaisons d’exécution"
+    },
+    "runtimeBindings": {
+      "description": "Quel environnement d’exécution inscrit exécute les agents pour quels tableaux, approuvé par un administrateur. Seule une liaison active reçoit du travail.",
+      "gateOff": "L’inscription est désactivée sur ce déploiement. Les liaisons ne peuvent être inscrites que sur un déploiement dédié à une seule entreprise. Vous pouvez toujours suspendre, révoquer et détacher les liaisons existantes.",
+      "empty": "Aucune liaison d’exécution pour l’instant.",
+      "loading": "Chargement…",
+      "loadFailed": "Impossible de charger les liaisons d’exécution.",
+      "saved": "Enregistré",
+      "failed": "Cela n’a pas fonctionné. Réessayez.",
+      "confirmRevoke": "Révoquer cette liaison ? Cette action est irréversible.",
+      "revision": "Révision {revision}",
+      "approved": "Approuvée",
+      "notApproved": "Non approuvée",
+      "runtime": "Exécution",
+      "agents": "Agents",
+      "boards": "Tableaux",
+      "attach": "Attacher",
+      "detach": "Détacher",
+      "states": {
+        "pending": "En attente",
+        "verified": "Vérifiée",
+        "active": "Active",
+        "suspended": "Suspendue",
+        "revoked": "Révoquée"
+      },
+      "actions": {
+        "verify": "Vérifier",
+        "approve": "Approuver",
+        "activate": "Activer",
+        "suspend": "Suspendre",
+        "revoke": "Révoquer"
+      },
+      "enrollTitle": "Inscrire une liaison",
+      "enrollDescription": "Les limites du pilote s’appliquent : interrogation, une exécution à la fois, payée par l’entreprise. La liaison commence en attente.",
+      "enroll": "Inscrire",
+      "fields": {
+        "runtimeKind": "Type d’exécution",
+        "runtimeSubjectId": "ID d’exécution",
+        "allowedAgentIds": "Agents autorisés",
+        "allowedBoardIds": "Tableaux autorisés",
+        "allowedRepositoryRefs": "Dépôts",
+        "credentialRef": "Référence d’identifiants",
+        "billingAccountRef": "Référence du payeur"
+      },
+      "commaHint": "Séparez plusieurs valeurs par des virgules. Les références sont des ID d’enregistrements conservés ailleurs, jamais un secret."
+    }
   },
   "pwa": {
     "notNow": "Plus tard",

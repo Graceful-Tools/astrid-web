@@ -3,12 +3,14 @@
 import { useTranslations } from '@/lib/i18n/client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BarChart3, Flag, ShieldCheck } from 'lucide-react'
+import { BarChart3, Flag, ServerCog, ShieldCheck } from 'lucide-react'
 
 const destinations = [
-  { href: '/admin/admins', label: 'Manage Admins', icon: ShieldCheck },
-  { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
-  { href: '/admin/features', label: 'Feature Rollouts', icon: Flag },
+  { href: '/admin/admins', labelKey: 'admin.nav.admins', icon: ShieldCheck },
+  { href: '/admin/analytics', labelKey: 'admin.nav.analytics', icon: BarChart3 },
+  { href: '/admin/features', labelKey: 'admin.nav.features', icon: Flag },
+  // Business runtime binding enrollment (AWTD-1668).
+  { href: '/admin/runtime-bindings', labelKey: 'admin.nav.runtimeBindings', icon: ServerCog },
 ]
 
 export function AdminNavigation() {
@@ -24,7 +26,7 @@ export function AdminNavigation() {
         </div>
         <nav aria-label={t('admin.navLabel')} className="-mx-4 overflow-x-auto px-4">
           <div className="flex min-w-max gap-1" role="list">
-            {destinations.map(({ href, label, icon: Icon }) => {
+            {destinations.map(({ href, labelKey, icon: Icon }) => {
               const active = pathname === href
                 || (href === '/admin/features' && pathname === '/admin')
                 || (href === '/admin/admins' && pathname?.startsWith('/admin/analytics/admins'))
@@ -36,7 +38,7 @@ export function AdminNavigation() {
                   className={`flex items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium transition-colors ${active ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
                 >
                   <Icon className="h-4 w-4" />
-                  {label}
+                  {t(labelKey)}
                 </Link>
               )
             })}
