@@ -46,9 +46,20 @@ describe('showsTaskDetailProjectState (task 5221e43f)', () => {
     }
   })
 
-  it('hides the row in project mode, where the quick changer already offers it', () => {
+  // AWTD-1665 / AITD-555 / astrid-core CONTRACTS D63: the leading control depicts WHO and
+  // PRIORITY, never the column, so project mode had no way to say where a board task was.
+  it('AITD-555: shows the row in project mode too (core D63), since the leading control never shows the column', () => {
     expect(
       showsTaskDetailProjectState({ displayMode: 'project', isInProject: true, isReadOnly: false }),
+    ).toBe(true)
+  })
+
+  it('AITD-555: project mode still hides it off a board and for a read-only viewer', () => {
+    expect(
+      showsTaskDetailProjectState({ displayMode: 'project', isInProject: false, isReadOnly: false }),
+    ).toBe(false)
+    expect(
+      showsTaskDetailProjectState({ displayMode: 'project', isInProject: true, isReadOnly: true }),
     ).toBe(false)
   })
 

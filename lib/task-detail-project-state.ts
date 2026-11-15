@@ -22,7 +22,6 @@
  */
 import type { Task, TaskList } from '@/types/task'
 import { VIRTUAL_DONE_COLUMN_ID, type ProjectBoardColumn } from '@/lib/project-status'
-import { usesCompactTaskDetail } from '@/lib/task-display-mode'
 import { shouldShowTaskIdentifier } from '@/lib/task-identifier-links'
 
 export interface TaskDetailProjectStateVisibility {
@@ -37,20 +36,26 @@ export interface TaskDetailProjectStateVisibility {
 /**
  * Does the board-state row appear?
  *
- * - **List mode only.** In project mode the state already lives behind the
- *   leading control's quick changer, and a row would say it twice in the
- *   layout that is compact on purpose.
+ * - **Both display modes** (AWTD-1665; astrid-core CONTRACTS D63, iOS
+ *   AITD-555). This used to be list mode only, on the claim that "in project
+ *   mode the state already lives behind the leading control". It does not: that
+ *   control depicts WHO and PRIORITY, never the column, so in the display mode
+ *   whose whole subject is boards the detail never said where the task was. Do
+ *   not restore the mode condition for that reason. `displayMode` stays a
+ *   parameter on purpose, as it does in the core and on iOS, so no call site can
+ *   re-add the rule by passing something else.
  * - **On a board only** — see the module comment.
  * - **Not read-only.** The row is a MOVER, not a label: its chips write. So it
  *   follows Who and Priority, which are hidden from a public-list viewer
  *   rather than rendered as controls that cannot be used.
  */
 export function showsTaskDetailProjectState({
-  displayMode,
+  // Kept in the interface deliberately; see "Both display modes" above.
+  displayMode: _displayMode,
   isInProject,
   isReadOnly,
 }: TaskDetailProjectStateVisibility): boolean {
-  return !usesCompactTaskDetail(displayMode) && isInProject && !isReadOnly
+  return isInProject && !isReadOnly
 }
 
 export interface TaskBlockersVisibility {
@@ -157,7 +162,7 @@ export function projectStateChips(columns: ProjectBoardColumn[]): ProjectBoardCo
  * outright is a silent regression:
  *
  * - **Status.** `TaskDetailBoardStateRow` renders only for a task on a project
- *   list, in a non-`project` mode (`showsTaskDetailProjectState` above). On an
+ *   list, in either display mode (`showsTaskDetailProjectState` above). On an
  *   ordinary list the menu is the only way to reach `statusRole: "ready"` —
  *   which is exactly what `get_agent_queue` requires, and what task ba1a4c4c
  *   put the control in the menu for: a user could otherwise assign a dozen

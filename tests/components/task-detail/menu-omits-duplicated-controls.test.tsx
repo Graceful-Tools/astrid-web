@@ -10,7 +10,7 @@
  * is the only control in a case the detail rows do not cover:
  *
  * - **Status.** `TaskDetailBoardStateRow` needs the task to be on a project
- *   list and the mode not to be `project`. For a task on an ordinary list the
+ *   list (either display mode, AWTD-1665). For a task on an ordinary list the
  *   menu is the only way to reach `statusRole: "ready"` — which is exactly what
  *   `get_agent_queue` requires, and what task ba1a4c4c put the control here
  *   for: a user could otherwise assign a dozen tasks to an agent and get
