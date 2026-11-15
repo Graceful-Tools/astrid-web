@@ -833,6 +833,19 @@ Export account data.
 
 **Formats:** `json`, `csv`
 
+### GET `/api/v1/runtime-bindings/{id}/audit-export?format={format}`
+Export one runtime binding's audit trail (AWTD-1670, RFC §7). Deployment
+administrators only, with a full-access credential (a browser session); an
+OAuth token scoped to tasks or lists gets 403. A download, not an envelope.
+
+**Formats:** `json` (default), `csv`
+
+Writes an `audit-exported` event before reading, and refuses (500) if it cannot.
+Each event carries its `retentionClass` (`operational` or `lifecycle`); detail
+keys that name a secret are redacted. Headers: `X-Audit-Event-Id` (the export's
+own event), `X-Audit-Export-Truncated` (more than 50,000 events). 404 for an
+unknown binding, 400 for another format.
+
 ---
 
 ## App Release Endpoints

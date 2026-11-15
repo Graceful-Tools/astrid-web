@@ -30,6 +30,7 @@
 import { androidAppLinksProblem } from './brand/android-asset-links'
 import { brandIconSourceProblem } from './brand/icon-source'
 import { isValidKeyShape } from './encryption-keys'
+import { retentionDaysProblem } from './runtime-binding/audit-retention'
 
 /**
  * How a variable is supplied, which decides whether it belongs in
@@ -156,6 +157,8 @@ export const ENV_VARS: EnvVar[] = [
   // ── AI agents ─────────────────────────────────────────────────────────────
   { name: 'ASTRID_AGENT_EXECUTION_MODE_SHADOW', scope: 'optional', description: 'Set to "true" to sample 1% of polling-only queues for a stored-Off mismatch. Observation only; one extra primary-key settings read per sampled request, deferred after the response with a 250ms observation timeout. Default off (AWTD-1554).', validate: v => ['true', 'false'].includes(v) ? null : 'Must be true or false' },
   { name: 'ASTRID_RUNTIME_BINDING_RESOLVER', scope: 'optional', description: 'Set to "true" to let a board with an explicit business runtime binding resolve through that binding (AWTD-1667, docs/architecture/BUSINESS_RUNTIME_BINDING_RFC.md §5). A binding that cannot be used is then a visible denial, never a personal fallback. Off: TaskList.runtimeBindingId is never read or queried and every board resolves exactly as before. Default off; rollback is unsetting it.', validate: v => ['true', 'false'].includes(v) ? null : 'Must be true or false' },
+  { name: 'RUNTIME_BINDING_AUDIT_OPERATIONAL_DAYS', scope: 'optional', description: 'Days to keep detailed operational runtime-binding audit events (resolution denials, transport attempts, lease renewals) before /api/cron/binding-audit deletes them (AWTD-1670). Default and minimum 90 (Jon, 2026-11-14); a shorter or malformed value is ignored, so this can only extend retention.', validate: retentionDaysProblem },
+  { name: 'RUNTIME_BINDING_AUDIT_LIFECYCLE_DAYS', scope: 'optional', description: 'Days to keep runtime-binding lifecycle audit records (consent, approval, revocation, run attribution, exports) after the binding is revoked (AWTD-1670). Records of a binding that is not revoked are never deleted. Default and minimum 90 (Jon, 2026-11-14); set longer if deployment policy or legal review requires it. A shorter or malformed value is ignored.', validate: retentionDaysProblem },
   // NOT read by the running app. Server-run inference uses the key each USER
   // stores in their own settings, encrypted at rest with ENCRYPTION_KEY — see
   // lib/ai/agent-execution-mode.ts. These four are read only by maintenance and
@@ -410,4 +413,19 @@ export function agentExecutionModeShadowEnabled(): boolean {
 /** Explicit business runtime bindings (AWTD-1667). Anything except an explicit opt-in leaves them unread. */
 export function runtimeBindingResolverEnabled(): boolean {
   return process.env.ASTRID_RUNTIME_BINDING_RESOLVER === 'true'
+}
+
+/**
+ * The raw retention overrides for runtime-binding audit events (AWTD-1670).
+ * lib/runtime-binding/audit-retention.ts decides what they mean, and never lets
+ * one shorten a window below Jon's ninety days.
+ */
+export function runtimeBindingAuditRetentionEnv(): {
+  RUNTIME_BINDING_AUDIT_OPERATIONAL_DAYS?: string
+  RUNTIME_BINDING_AUDIT_LIFECYCLE_DAYS?: string
+} {
+  return {
+    RUNTIME_BINDING_AUDIT_OPERATIONAL_DAYS: process.env.RUNTIME_BINDING_AUDIT_OPERATIONAL_DAYS,
+    RUNTIME_BINDING_AUDIT_LIFECYCLE_DAYS: process.env.RUNTIME_BINDING_AUDIT_LIFECYCLE_DAYS,
+  }
 }
