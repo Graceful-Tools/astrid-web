@@ -6,12 +6,13 @@
  *   npx tsx scripts/sync-core-fixtures.ts [--core-dir ../astrid-core]            # exit 1 if stale
  *   npx tsx scripts/sync-core-fixtures.ts --open-pr [--core-dir ../astrid-core]  # open the PR
  *
- * Run on every merge to main by .github/workflows/core-fixture-sync.yml, so a web contract
- * change leaves core main red for one workflow run, not until somebody copies files by hand.
+ * Run on every ship tick by scripts/land-and-deploy.ts (with `--clone`), so a web contract
+ * change leaves core main red for one tick, not until somebody copies files by hand.
  * `--open-pr` needs `gh` authenticated with a token that can push to astrid-core.
  */
 import { execFileSync } from 'node:child_process'
-import { copyFileSync, readFileSync, readdirSync } from 'node:fs'
+import { copyFileSync, mkdtempSync, readFileSync, readdirSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import {
   diffFixtureSets,
@@ -31,7 +32,15 @@ const option = (name: string, fallback: string) => {
   return i === -1 ? fallback : args[i + 1]
 }
 
-const coreDir = resolve(webRoot, option('--core-dir', '../astrid-core'))
+// `--clone` makes its own checkout (the ship job has none); GH_TOKEN must reach astrid-core.
+const coreDir = flag('--clone')
+  ? join(mkdtempSync(join(tmpdir(), 'astrid-core-')), 'astrid-core')
+  : resolve(webRoot, option('--core-dir', '../astrid-core'))
+if (flag('--clone')) {
+  execFileSync('gh', ['repo', 'clone', CORE_REPO, coreDir], { stdio: 'inherit' })
+  execFileSync('git', ['-C', coreDir, 'config', 'user.name', 'Astrid fixture sync'])
+  execFileSync('git', ['-C', coreDir, 'config', 'user.email', 'noreply@astrid.cc'])
+}
 const git = (...a: string[]) => execFileSync('git', ['-C', coreDir, ...a], { encoding: 'utf8' }).trim()
 
 function webFixtures(): FixtureSet {

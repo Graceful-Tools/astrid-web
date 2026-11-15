@@ -736,6 +736,22 @@ async function main() {
     log('  --core-repo needs --list-id: core handoffs are checked against the board')
   }
 
+  // AWTD-1701: a web fixture change must not leave astrid-core's copy stale. Best effort, and
+  // only with the core token; it opens at most one refresh PR per web commit.
+  if (options.coreRepo && !options.dryRun && process.env.ASTRID_CORE_GH_TOKEN) {
+    try {
+      const out = execFileSync('npx', ['tsx', 'scripts/sync-core-fixtures.ts', '--clone', '--open-pr'], {
+        cwd: options.repo,
+        encoding: 'utf8',
+        timeout: 180_000,
+        env: { ...process.env, GH_TOKEN: process.env.ASTRID_CORE_GH_TOKEN },
+      })
+      log(`  core fixtures: ${out.trim().split('\n').pop()}`)
+    } catch (error) {
+      log(`  ⚠️  core fixture sync failed: ${(error as Error).message.split('\n')[0]}`)
+    }
+  }
+
   const news = summary({
     landed,
     skipped,
