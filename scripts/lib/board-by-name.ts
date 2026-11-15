@@ -30,8 +30,10 @@ export const BOARD_LIST_NAMES: Record<ReadyQueueBoard, string> = {
  * is where astrid-windows' fixall-loop.ps1 looks for `$CoreRepo`.
  */
 export const BOARD_CHECKOUTS: Record<ReadyQueueBoard, readonly string[]> = {
-  web: ['astrid-web'],
-  ios: ['astrid-ios'],
+  // Since 2026-11-15 core work belongs to the web and iOS loops (FIXALL_WORKFLOW.md →
+  // *astrid-core is worked by web and iOS*); agent-run.yml clones it beside astrid-web (AWTD-1682).
+  web: ['astrid-web', 'astrid-core'],
+  ios: ['astrid-ios', 'astrid-core'],
   windows: ['astrid-windows', 'astrid-core'],
   android: ['astrid-android'],
 }

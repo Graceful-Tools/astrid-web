@@ -406,3 +406,76 @@ describe('AWTD-1556: an astrid-wake dispatch starts the cron\'s worker', () => {
     }
   })
 })
+
+/**
+ * AWTD-1682: the cloud worker can do astrid-core tasks. Core is cloned beside this
+ * checkout (../astrid-core), the Rust toolchain is installed only when a candidate is a
+ * core task, and the ship workflow lands core handoffs with a token that can write there.
+ */
+describe('AWTD-1682: the cloud worker does astrid-core tasks', () => {
+  const steps = () => yaml.load(read(AGENT_RUN)).jobs.run.steps as Array<Record<string, any>>
+  const step = (name: string) => steps().find(s => s.name === name)!
+  const CORE_QUEUE = 'Does the queue hold an astrid-core task'
+
+  it('AWTD-1682: clones astrid-core to the sibling path and checks push access with a clear error', () => {
+    const checkout = step('Check out astrid-core beside this repo')
+    expect(checkout.run).toContain('CORE_DIR="$(dirname "${GITHUB_WORKSPACE}")/astrid-core"')
+    expect(checkout.run).toContain('ASTRID_CORE_DIR=${CORE_DIR}')
+    expect(checkout.run).toContain("'!gh auth git-credential'")
+    expect(checkout.run).toContain('push --dry-run')
+    expect(checkout.run).toMatch(/::error::\$\{MESSAGE\}/)
+    expect(checkout.run).toContain('Contents and Pull requests read/write (no Actions)')
+    expect(yaml.load(read(AGENT_RUN)).jobs.run.env.ASTRID_CORE_REPO).toBe('Graceful-Tools/astrid-core')
+  })
+
+  it('AWTD-1682: installs the pinned toolchain, wasm target and cargo cache only for a core candidate', () => {
+    for (const name of ['Install the astrid-core Rust toolchain', "Cache astrid-core's cargo build"]) {
+      expect(step(name).if, name).toContain("steps.core-queue.outputs.core == 'true'")
+    }
+    const install = step('Install the astrid-core Rust toolchain')
+    expect(install.run).toContain('rust-toolchain.toml')
+    expect(install.run).toContain('--component clippy,rustfmt --target wasm32-unknown-unknown')
+    expect(step("Cache astrid-core's cargo build").uses).toMatch(/^Swatinem\/rust-cache@[0-9a-f]{40}$/)
+    // The agent may edit the core checkout and run cargo.
+    const claude = step('Run Claude Code').run
+    expect(claude).toContain('--add-dir "${ASTRID_CORE_DIR}"')
+    expect(claude).toContain('Bash(cargo *)')
+    expect(step('Preserve unfinished astrid-core work')['working-directory']).toBe('${{ env.ASTRID_CORE_DIR }}')
+  })
+
+  it.each([
+    [[{ id: '1', title: '[core] Recurrence rule for Sundays' }], [], 'true'],
+    [[{ id: '1', title: 'Fix the astrid-core pin bump' }], [], 'true'],
+    [[], [{ id: '2', title: '[CORE] reply on rule', lastComment: { id: 'c' } }], 'true'],
+    [[{ id: '1', title: '[web] Settings page spacing' }], [], 'false'],
+    [[], [], 'false'],
+  ])('AWTD-1682: decides core=%j from the preflight candidates', (queue, attention, expected) => {
+    const dir = mkdtempSync(join(tmpdir(), 'agent-run-core-'))
+    try {
+      mkdirSync(join(dir, '.agent-output'))
+      writeFileSync(join(dir, '.agent-output', 'preflight.json'), JSON.stringify({
+        version: 1, work: true, wakeKeys: [], snapshot: { empty: false, queue, attention: { tasks: attention, messages: [] } },
+      }))
+      const output = join(dir, 'github-output')
+      writeFileSync(output, '')
+      const result = runWorkflowStep(workflowStep(AGENT_RUN, 'run', CORE_QUEUE), { cwd: dir, env: { GITHUB_OUTPUT: output } })
+      expect(result.status, result.stderr).toBe(0)
+      expect(read(output)).toBe(`core=${expected}\n`)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('AWTD-1682: the ship workflow lands core handoffs with a token that can write there', () => {
+    const ship = yaml.load(read('.github/workflows/agent-ship.yml'))
+    expect(ship.jobs.ship.env.ASTRID_CORE_GH_TOKEN).toBe('${{ secrets.AGENT_GH_TOKEN }}')
+    expect(read('.github/workflows/agent-ship.yml')).toContain('--max-land 1 --core-repo Graceful-Tools/astrid-core')
+  })
+
+  it('AWTD-1682: the runner prompt tells a core run how to hand off', () => {
+    const prompt = read('.github/agent-run-prompt.md')
+    expect(prompt).toContain('AWAITING-MERGE: Graceful-Tools/astrid-core#<n> <full pushed HEAD sha>')
+    expect(prompt).toContain('$ASTRID_CORE_DIR')
+    expect(read('docs/FIXALL_WEB.md')).toContain('AWAITING-MERGE: Graceful-Tools/astrid-core#<n>')
+  })
+})

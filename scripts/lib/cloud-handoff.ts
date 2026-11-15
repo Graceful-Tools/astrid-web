@@ -19,7 +19,7 @@ export interface CloudHandoffComment {
  * selector (`claude-code`) or its mailbox (`claude`); agents write both, and
  * run 40973959090's handoff went unregistered over that (AWTD-1416).
  */
-function branchMailbox(who: string): string | undefined {
+export function branchMailbox(who: string): string | undefined {
   const key = who.toLowerCase()
   if (key in FIXALL_HARNESS_MAILBOXES) return FIXALL_HARNESS_MAILBOXES[key]
   return Object.values(FIXALL_HARNESS_MAILBOXES).includes(key) ? key : undefined

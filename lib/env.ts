@@ -201,6 +201,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'GITHUB_WEBHOOK_SECRET', scope: 'optional', description: 'Verifies GitHub App webhooks.' },
   { name: 'GITHUB_TOKEN', scope: 'tooling', description: 'Personal access token used by maintenance scripts and the gh CLI.' },
   { name: 'GH_TOKEN', scope: 'tooling', description: 'Alternative token name the gh CLI accepts.' },
+  { name: 'ASTRID_CORE_GH_TOKEN', scope: 'tooling', description: 'agent-ship: token that can merge astrid-core handoff PRs (AWTD-1682); unset skips core merges.' },
   { name: 'GITHUB_REF_NAME', scope: 'tooling', description: 'Actions branch name; isolates retained cloud worker wake state by branch.' },
   { name: 'GITHUB_RUN_ID', scope: 'tooling', description: 'Actions run id; excludes the current run when restoring retained worker state.' },
   { name: 'RUNNER_TEMP', scope: 'tooling', description: 'Actions temporary directory for downloading validated cloud wake-state artifacts.' },
