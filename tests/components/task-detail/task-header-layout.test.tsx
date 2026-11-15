@@ -14,7 +14,6 @@
 
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import type { Task, User } from '@/types/task'
 
 vi.mock('@/contexts/feature-flag-context', () => ({
@@ -81,11 +80,6 @@ describe('TaskHeader layout (cc76307c)', () => {
     expect(screen.queryByText('Task Details')).not.toBeInTheDocument()
   })
 
-  it('renders no "Task Details" bar in compact mode either', () => {
-    renderHeader({ onClose: vi.fn(), compact: true })
-    expect(screen.queryByText('Task Details')).not.toBeInTheDocument()
-  })
-
   it('still renders the title', () => {
     renderHeader({ onClose: vi.fn() })
     expect(screen.getByText('Fix repeating rollover')).toBeInTheDocument()
@@ -103,19 +97,9 @@ describe('TaskHeader layout (cc76307c)', () => {
     expect(screen.queryByLabelText('Back to list')).not.toBeInTheDocument()
   })
 
-  it('uses a collapse chevron instead of back in compact mode', () => {
-    // An inline/board panel collapses in place; it does not navigate.
-    renderHeader({ onClose: vi.fn(), compact: true })
-    expect(screen.getByLabelText('Collapse task')).toBeInTheDocument()
-    expect(screen.queryByLabelText('Back to list')).not.toBeInTheDocument()
-  })
-
-  it('renders the action menu in both layouts', () => {
-    const { unmount } = renderHeader({ onClose: vi.fn() })
-    expect(screen.getAllByRole('button').length).toBeGreaterThan(0)
-    unmount()
-    renderHeader({ onClose: vi.fn(), compact: true })
-    expect(screen.getAllByRole('button').length).toBeGreaterThan(0)
+  it('renders the action menu', () => {
+    renderHeader({ onClose: vi.fn() })
+    expect(screen.getByRole('button', { name: 'Task actions' })).toBeInTheDocument()
   })
 })
 
@@ -132,34 +116,6 @@ describe('full-screen toggle (dcbbb0fa)', () => {
     renderHeader({ onClose: vi.fn(), onToggleFullScreen: vi.fn(), fullScreen: true })
     expect(screen.getByLabelText('Exit full screen')).toBeInTheDocument()
     expect(screen.queryByLabelText('Full screen')).not.toBeInTheDocument()
-  })
-
-  it('still offers it on the compact/inline panel — now via the menu (52bf1efb, AWTD-872)', async () => {
-    // The CAPABILITY is what 52bf1efb won and what this test defends: a board
-    // card's details must be expandable, because the expanded card is the only
-    // way to read a long description there. That has not changed.
-    //
-    // Its PLACEMENT has. It was a button stacked above the collapse chevron,
-    // which put three 20px targets in a card's gutter — the clutter AWTD-872
-    // reports. It is a menu item now, one tap deeper and still reachable.
-    const u = userEvent.setup()
-    renderHeader({ onClose: vi.fn(), compact: true, onToggleFullScreen: vi.fn() })
-
-    expect(screen.queryByRole('button', { name: 'Full screen' })).not.toBeInTheDocument()
-
-    await u.click(screen.getByRole('button', { name: 'Task actions' }))
-    expect(await screen.findByRole('menuitem', { name: /full screen/i })).toBeInTheDocument()
-  })
-
-  it('still omits it on the compact panel when no handler is passed', async () => {
-    // The opt-in is the gate, in both header layouts — and it still gates the
-    // menu item now that the control lives there.
-    const u = userEvent.setup()
-    renderHeader({ onClose: vi.fn(), compact: true })
-    expect(screen.queryByLabelText('Full screen')).not.toBeInTheDocument()
-
-    await u.click(screen.getByRole('button', { name: 'Task actions' }))
-    expect(screen.queryByRole('menuitem', { name: /full screen/i })).not.toBeInTheDocument()
   })
 
   it('omits it entirely when the parent passes no handler', () => {

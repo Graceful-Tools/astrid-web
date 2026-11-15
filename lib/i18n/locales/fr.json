@@ -164,8 +164,6 @@
     "saveNewTask": "Enregistrer la nouvelle tâche",
     "detail": {
       "backToList": "Retour à la liste",
-      "collapseTask": "Réduire la tâche",
-      "collapse": "Réduire",
       "taskActions": "Actions de la tâche",
       "exitFullScreen": "Quitter le plein écran",
       "testReminder": "Rappel de Test",
@@ -235,8 +233,6 @@
     "userAvatarAlt": "Utilisateur",
     "assigneeYou": "Vous",
     "board": {
-      "collapseExpandedIn": "Réduire la tâche développée dans {name}",
-      "tapToCollapse": "Touchez pour réduire",
       "addTaskTo": "Ajouter une tâche à {name}"
     },
     "dropToPlaceFirst": "Déposez ici pour placer la première tâche"

@@ -147,9 +147,7 @@ interface MainContentProps {
   handleUpdateTask: (task: Task) => void
   /** Viewer's task display mode: 'list' | 'project' (task ffa5bbb5). */
   taskDisplayMode: string
-  handleLocalUpdateTask: (updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void
   handleToggleTaskComplete: (taskId: string) => Promise<void>
-  handleDeleteTask: (taskId: string) => void
   handleQuickCreateTask: (title: string, options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[] }) => Promise<string | null>
   handleCreateNewTask: () => void
   handleCopyList: (listId: string) => Promise<void>
@@ -240,9 +238,7 @@ export function MainContent({
   handleTaskClick,
   handleUpdateTask,
   taskDisplayMode,
-  handleLocalUpdateTask,
   handleToggleTaskComplete,
-  handleDeleteTask,
   handleQuickCreateTask,
   handleCreateNewTask,
   handleCopyList,
@@ -770,14 +766,12 @@ export function MainContent({
               lists={lists}
               selectedListId={selectedListId}
               currentUser={effectiveSession?.user}
-              availableTasks={allTasks}
               onUpdateTask={handleUpdateTask}
-              onLocalUpdateTask={handleLocalUpdateTask}
-              onDeleteTask={handleDeleteTask}
               onCopyTask={handleCopyTask}
               onCreateTask={handleQuickCreateTask}
               isOneColumn={isOneColumn}
               onOpenTask={handleTaskClick}
+              selectedTaskId={selectedTaskId}
             />
           </div>
         ) : finalFilteredTasks.length === 0 && !justReturnedFromTaskDetail ? (

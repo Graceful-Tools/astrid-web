@@ -36,8 +36,16 @@ describe('the project board opts into project mode (task ffa5bbb5)', () => {
     expect((src.match(/useUserSettings\(\)/g) || []).length).toBe(1)
   })
 
-  it('passes the mode to both its rows and its task detail', () => {
-    expect((src.match(/displayMode=\{taskDisplayMode\}/g) || []).length).toBeGreaterThanOrEqual(2)
+  it('passes the mode to its rows', () => {
+    expect(src).toMatch(/displayMode=\{taskDisplayMode\}/)
+  })
+
+  it("its task detail is the row pane's, which carries the same mode (AITD-679)", () => {
+    // A card no longer renders TaskDetail itself: it opens the callout, whose
+    // props come from taskDetailPaneProps with the viewer's display mode.
+    const view = readFileSync(join(process.cwd(), 'components/TaskManagerView.tsx'), 'utf8')
+    const callout = view.slice(view.indexOf('<BoardTaskCallout'))
+    expect(callout).toMatch(/taskDetailPaneProps\(\{[\s\S]*?displayMode: taskDisplayMode/)
   })
 
   it('opens the options sheet from the leading control', () => {

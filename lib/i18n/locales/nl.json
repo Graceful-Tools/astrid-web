@@ -164,8 +164,6 @@
     "saveNewTask": "Nieuwe taak opslaan",
     "detail": {
       "backToList": "Terug naar lijst",
-      "collapseTask": "Taak inklappen",
-      "collapse": "Inklappen",
       "taskActions": "Taakacties",
       "exitFullScreen": "Volledig scherm afsluiten",
       "testReminder": "Testherinnering",
@@ -235,8 +233,6 @@
     "userAvatarAlt": "Gebruiker",
     "assigneeYou": "Jij",
     "board": {
-      "collapseExpandedIn": "Uitgevouwen taak in {name} samenvouwen",
-      "tapToCollapse": "Tik om samen te vouwen",
       "addTaskTo": "Taak toevoegen aan {name}"
     },
     "dropToPlaceFirst": "Zet hier neer om de eerste taak te plaatsen"

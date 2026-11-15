@@ -164,8 +164,6 @@
     "saveNewTask": "Salva nuova attività",
     "detail": {
       "backToList": "Torna alla lista",
-      "collapseTask": "Comprimi attività",
-      "collapse": "Comprimi",
       "taskActions": "Azioni attività",
       "exitFullScreen": "Esci da schermo intero",
       "testReminder": "Promemoria di test",
@@ -235,8 +233,6 @@
     "userAvatarAlt": "Utente",
     "assigneeYou": "Tu",
     "board": {
-      "collapseExpandedIn": "Comprimi l’attività espansa in {name}",
-      "tapToCollapse": "Tocca per comprimere",
       "addTaskTo": "Aggiungi attività a {name}"
     },
     "dropToPlaceFirst": "Rilascia qui per posizionare la prima attività"

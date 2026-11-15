@@ -1,5 +1,5 @@
 import { useTranslations } from "@/lib/i18n/client"
-import { ChevronUp, Maximize2, Minimize2 } from "lucide-react"
+import { Maximize2, Minimize2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TaskLeadingControl } from "../task-leading-control"
 import { PublicTaskCopyButton } from "../public-task-copy-button"
@@ -53,14 +53,10 @@ interface TaskHeaderProps {
   onStatusSelect?: (columnId: string) => void
   /** Passed through to TaskActionMenu (AWTD-1252). */
   hideCopyIdentifier?: boolean
-  /** Full-screen task details (task dcbbb0fa). Undefined for the inline/board
-   *  panel, which is deliberately a peek and never offers it. */
+  /** Full-screen task details (task dcbbb0fa). Undefined where the pane is
+   *  already full screen (the phone). */
   fullScreen?: boolean
   onToggleFullScreen?: () => void
-  /** Compact: drop the centered "Task Details" header bar and put the action
-   *  menu inline next to the title (used by inline panels like the board card).
-   */
-  compact?: boolean
 }
 
 export function TaskHeader({
@@ -88,7 +84,6 @@ export function TaskHeader({
   hideCopyIdentifier,
   fullScreen,
   onToggleFullScreen,
-  compact = false,
 }: TaskHeaderProps) {
   const { t } = useTranslations()
   return (
@@ -101,20 +96,12 @@ export function TaskHeader({
        *  same space argument driving the wider edit-page redesign.
        *
        *  The action menu now sits inline at the far right of the title row in every
-       *  layout, so 2-column, 3-column and the inline/board panel agree. The mobile
+       *  layout, so 2-column, 3-column and a board callout agree. The mobile
        *  back button moved here rather than being deleted with the bar: it was the
        *  only way back to the list on a narrow viewport. */}
-      {/* Compact (board card) trims the RIGHT padding to almost nothing so the
-       *  action column below can sit inside the card's ordinary right gutter
-       *  rather than adding a column of its own. Expanding a card used to
-       *  narrow the title and rewrap every line — the card visibly jumped
-       *  (task 8eee392d). Jon's spec: a ~20px gutter, ~16px buttons, about 2px
-       *  either side of them. */}
-      <div className={compact ? "p-3 pr-0.5" : "p-4"}>
-        <div
-          className={`flex items-center min-w-0 ${compact ? "gap-3" : FIELD_ROW_GAP_CLASS}`}
-        >
-          {!compact && onClose && (
+      <div className="p-4">
+        <div className={`flex items-center min-w-0 ${FIELD_ROW_GAP_CLASS}`}>
+          {onClose && (
             <Button
               variant="ghost"
               onClick={onClose}
@@ -169,16 +156,12 @@ export function TaskHeader({
                   el.style.height = el.scrollHeight + 'px'
                 }
               }}
-              className={`text-base py-1 rounded flex-1 bg-transparent border-none outline-none resize-none overflow-hidden theme-text-primary ${
-                compact ? 'font-medium leading-tight px-0' : 'px-2'
-              }`}
+              className="text-base py-1 px-2 rounded flex-1 bg-transparent border-none outline-none resize-none overflow-hidden theme-text-primary"
               rows={1}
             />
           ) : (
             <span
-              className={`text-base ${readOnly ? '' : 'cursor-pointer hover:theme-bg-hover'} py-1 rounded flex-1 min-w-0 break-words [overflow-wrap:anywhere] ${
-                compact ? 'font-medium leading-tight px-0' : 'px-2'
-              } ${
+              className={`text-base ${readOnly ? '' : 'cursor-pointer hover:theme-bg-hover'} py-1 rounded flex-1 min-w-0 break-words [overflow-wrap:anywhere] px-2 ${
                 task.completed ? "line-through theme-text-muted" : "theme-text-primary"
               }`}
               data-testid="task-detail-title"
@@ -189,93 +172,39 @@ export function TaskHeader({
               {task.title}
             </span>
           )}
-          {/* Action menu, far right of the title row in every layout. Compact
-           *  stacks a collapse chevron above it (an inline panel collapses rather
-           *  than navigating back). */}
-          {compact ? (
-            /* Sized to the gutter, not to a comfortable button: 20px boxes
-             *  around the same 16px icons, hard against the card edge. Any
-             *  wider and the title reflows on expand, which is the whole
-             *  complaint.
-             *
-             *  -ml-2.5 cancels 10px of the row's 12px gap, leaving the 2px the
-             *  spec asks for between the title and the buttons. The gap itself
-             *  has to stay 12px, because that is what separates the leading
-             *  control from the title on the collapsed row. */
-            <div className="flex flex-col items-center -my-1 -ml-2.5 flex-shrink-0">
-              {/* Full screen is NOT a button here — it is an item in the menu
-               *  below (AWTD-872). This column used to stack three 20px targets
-               *  vertically inside a card gutter: full screen, collapse, and the
-               *  menu. Two is what a card can carry.
-               *
-               *  Full screen is the one that moved because the other two cannot:
-               *  collapse undoes the tap that expanded the card, and the menu is
-               *  where every other secondary action already lives. Task 52bf1efb
-               *  added full screen here in the first place — a board card's
-               *  details had no way to expand however long the description was —
-               *  so it is still reachable, one tap deeper. */}
-              {onClose && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onClose}
-                  className="theme-text-muted hover:theme-text-primary h-5 w-5 p-0"
-                  aria-label={t('tasks.detail.collapseTask')}
-                  title={t('tasks.detail.collapse')}
-                >
-                  <ChevronUp className="w-4 h-4" />
-                </Button>
-              )}
-              <TaskActionMenu
-                compact
-                task={task}
-                currentUser={currentUser}
-                reminderDebugMode={reminderDebugMode}
-                onCopy={onCopy}
-                onShare={onShare}
-                onDelete={onDelete}
-                onTestReminder={onTestReminder}
-                onCancel={onCancel}
-                onStatusSelect={onStatusSelect}
-                hideCopyIdentifier={hideCopyIdentifier}
-                onToggleFullScreen={onToggleFullScreen}
-                fullScreen={fullScreen}
-              />
-            </div>
-          ) : (
-            <div className="flex items-center flex-shrink-0">
-              {onToggleFullScreen && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onToggleFullScreen}
-                  // Deliberately NOT gated on a viewport breakpoint. Whether a
-                  // pane can be expanded is decided by whoever renders it —
-                  // the phone pane simply passes no handler, because it is
-                  // already full screen. Keying this off `cols2` (910px)
-                  // instead hid the control on iPad portrait, where the
-                  // windowed pane does render. (Task 0ea0b818)
-                  className="theme-text-muted hover:theme-text-primary h-7 w-7 p-0 inline-flex"
-                  aria-label={t(fullScreen ? 'tasks.detail.exitFullScreen' : 'tasks.tradeoffGrid.fullScreen')}
-                  title={t(fullScreen ? 'tasks.detail.exitFullScreen' : 'tasks.tradeoffGrid.fullScreen')}
-                >
-                  {fullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                </Button>
-              )}
-              <TaskActionMenu
-                task={task}
-                currentUser={currentUser}
-                reminderDebugMode={reminderDebugMode}
-                onCopy={onCopy}
-                onShare={onShare}
-                onDelete={onDelete}
-                onTestReminder={onTestReminder}
-                onCancel={onCancel}
-                onStatusSelect={onStatusSelect}
-                hideCopyIdentifier={hideCopyIdentifier}
-              />
-            </div>
-          )}
+          {/* Action menu, far right of the title row in every layout. */}
+          <div className="flex items-center flex-shrink-0">
+            {onToggleFullScreen && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onToggleFullScreen}
+                // Deliberately NOT gated on a viewport breakpoint. Whether a
+                // pane can be expanded is decided by whoever renders it —
+                // the phone pane simply passes no handler, because it is
+                // already full screen. Keying this off `cols2` (910px)
+                // instead hid the control on iPad portrait, where the
+                // windowed pane does render. (Task 0ea0b818)
+                className="theme-text-muted hover:theme-text-primary h-7 w-7 p-0 inline-flex"
+                aria-label={t(fullScreen ? 'tasks.detail.exitFullScreen' : 'tasks.tradeoffGrid.fullScreen')}
+                title={t(fullScreen ? 'tasks.detail.exitFullScreen' : 'tasks.tradeoffGrid.fullScreen')}
+              >
+                {fullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </Button>
+            )}
+            <TaskActionMenu
+              task={task}
+              currentUser={currentUser}
+              reminderDebugMode={reminderDebugMode}
+              onCopy={onCopy}
+              onShare={onShare}
+              onDelete={onDelete}
+              onTestReminder={onTestReminder}
+              onCancel={onCancel}
+              onStatusSelect={onStatusSelect}
+              hideCopyIdentifier={hideCopyIdentifier}
+            />
+          </div>
         </div>
       </div>
     </div>

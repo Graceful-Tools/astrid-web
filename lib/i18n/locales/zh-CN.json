@@ -164,8 +164,6 @@
     "saveNewTask": "保存新任务",
     "detail": {
       "backToList": "返回列表",
-      "collapseTask": "收起任务",
-      "collapse": "收起",
       "taskActions": "任务操作",
       "exitFullScreen": "退出全屏",
       "testReminder": "测试提醒",
@@ -235,8 +233,6 @@
     "userAvatarAlt": "用户",
     "assigneeYou": "你",
     "board": {
-      "collapseExpandedIn": "收起 {name} 中展开的任务",
-      "tapToCollapse": "点按收起",
       "addTaskTo": "向 {name} 添加任务"
     },
     "dropToPlaceFirst": "拖放到此处以放置第一个任务"
