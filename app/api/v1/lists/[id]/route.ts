@@ -17,7 +17,7 @@ import {
   splitListViewPreferences,
 } from '@/lib/list-view-preferences'
 import { withAuth } from '@/lib/api-auth-wrapper'
-import { authorizeProjectAttach, collectProjectMemberUserIds } from '@/lib/projects-service'
+import { authorizeProjectListMove, collectProjectMemberUserIds } from '@/lib/projects-service'
 import { RedisCache } from '@/lib/redis'
 import { createLogger } from '@/lib/logger'
 import { resolveDefaultAssignees } from '@/lib/default-assignee'
@@ -223,19 +223,29 @@ export const PUT = withAuth<RouteContext>(
       // with { projectId } to attach it; passing null detaches.
       // Without this the projectId was silently dropped and the
       // board never linked to its domain list.
-      // Attaching needs membership of the target project (AWTD-1540); detaching
-      // is the list owner/admin's own call, which isOwnerOrAdmin already covers.
+      // The list's owner/admin (isOwnerOrAdmin, above) AND the owner or an admin
+      // of every project the list enters or leaves (AWTD-1540, AWTD-1702). A
+      // no-op (the project it is already in, or none when it has none) asks nothing.
       if (body.projectId !== undefined) {
-        if (body.projectId) {
-          const attach = await authorizeProjectAttach(body.projectId, auth.userId)
-          if ('error' in attach) {
-            return NextResponse.json(
-              { error: attach.error === 'not_found' ? 'Project not found' : 'You are not a member of this project' },
-              { status: attach.error === 'not_found' ? 404 : 403 }
-            )
+        const target: string | null = body.projectId || null
+        const current: string | null = existingList.projectId ?? null
+        if (target !== current) {
+          const moves = [
+            { projectId: current, code: 'PROJECT_DETACH_FORBIDDEN', message: 'Only a project owner or admin can move a list out of it' },
+            { projectId: target, code: 'PROJECT_ATTACH_FORBIDDEN', message: 'Only a project owner or admin can move a list into it' },
+          ]
+          for (const move of moves) {
+            if (!move.projectId) continue
+            const access = await authorizeProjectListMove(move.projectId, auth.userId)
+            if (!('error' in access)) continue
+            // A project that no longer exists cannot hold the list: leaving it is fine.
+            if (access.error === 'not_found' && move.projectId === current) continue
+            return access.error === 'not_found'
+              ? NextResponse.json({ error: 'Project not found' }, { status: 404 })
+              : NextResponse.json({ error: move.message, code: move.code }, { status: 403 })
           }
         }
-        updateData.projectId = body.projectId
+        updateData.projectId = target
       }
       // Per-list "Recently completed" window. iOS sends the discriminated
       // union from lib/recently-completed-window.ts; null/undefined falls

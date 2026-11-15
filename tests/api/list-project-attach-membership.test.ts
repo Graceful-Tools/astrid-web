@@ -128,13 +128,19 @@ describe('PUT /api/v1/lists/:id projectId (AWTD-1540)', () => {
     expect(mockPrisma.taskList.update.mock.calls[0]?.[0]).toMatchObject({ data: { projectId: 'p-mine' } })
   })
 
-  it('lets a project member attach', async () => {
-    mockPrisma.project.findUnique.mockResolvedValue({ ownerId: 'x', members: [{ userId: 'u1' }] } as never)
+  it('no longer lets a plain project member attach (AWTD-1702: owner or admin only)', async () => {
+    mockPrisma.project.findUnique.mockResolvedValue({ ownerId: 'x', members: [{ userId: 'u1', role: 'member' }] } as never)
+    expect((await put({ projectId: 'p-shared' })).status).toBe(403)
+    expect(mockPrisma.taskList.update).not.toHaveBeenCalled()
+  })
+
+  it('lets a project admin attach', async () => {
+    mockPrisma.project.findUnique.mockResolvedValue({ ownerId: 'x', members: [{ userId: 'u1', role: 'admin' }] } as never)
     await put({ projectId: 'p-shared' })
     expect(mockPrisma.taskList.update.mock.calls[0]?.[0]).toMatchObject({ data: { projectId: 'p-shared' } })
   })
 
-  it('still lets the list owner detach with null, without a project lookup', async () => {
+  it('still lets the list owner detach a list that is in no project, without a project lookup', async () => {
     await put({ projectId: null })
     expect(mockPrisma.taskList.update.mock.calls[0]?.[0]).toMatchObject({ data: { projectId: null } })
     expect(mockPrisma.project.findUnique).not.toHaveBeenCalled()
