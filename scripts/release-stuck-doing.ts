@@ -41,6 +41,7 @@ import {
   isAbandonedClaim,
   isAwaitingBuild,
   isAwaitingDeploy,
+  isAwaitingMerge,
   isFinishedOccurrence,
   isOrphanedDoing,
   parkFinishedOccurrence,
@@ -205,8 +206,9 @@ async function main() {
     if (!task || !releasable) continue
     const comments = await sweep.comments(task)
     // Done and pushed: it waits for its build (iOS, close-built-tasks closes it) or its
-    // production deploy (web, R6: land-and-deploy completes it) in Doing, on purpose.
-    if (isAwaitingBuild(comments) || isAwaitingDeploy(comments)) continue
+    // production deploy (web, R6: land-and-deploy completes it) or its astrid-core merge
+    // (AWTD-1682: land-and-deploy merges it and completes it) in Doing, on purpose.
+    if (isAwaitingBuild(comments) || isAwaitingDeploy(comments) || isAwaitingMerge(comments)) continue
     if (mode === 'stale' && !isAbandonedClaim({ updatedAt: task.updatedAt, comments, now, staleMinutes })) continue
     // A recurring task whose occurrence is done and whose date has moved on: park it until
     // that date instead of calling it unfinished (AWTD-914, 2026-10-30). After the idle

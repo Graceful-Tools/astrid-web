@@ -37,6 +37,22 @@ Doing, assigned to you — never Waiting. The release step skips it, and the run
 validates this handoff before making the PR eligible for deterministic shipping.
 Draft PRs remain held.
 
+**An astrid-core task** (titled `[core]`, or its fix belongs in the shared Rust core;
+docs/FIXALL_WEB.md → *astrid-core tasks on an ephemeral runner*) is done in the core
+checkout at `$ASTRID_CORE_DIR` (`../astrid-core`), not here. If `$ASTRID_CORE_PUSH` is not
+`1` this run cannot push there: do not claim a core task; take a web task, or say
+`RESULT: SKIPPED — no push access to astrid-core`. Otherwise, in `$ASTRID_CORE_DIR`:
+branch `agent/$ASTRID_FIXALL_HARNESS/<task-key>-<slug>` from `origin/main`, follow its
+CLAUDE.md (RED test naming the task, then green), run its gate (`cargo fmt --all -- --check`,
+`cargo clippy --all-targets --all-features -- -D warnings`, `cargo test --workspace`,
+`cargo build -p astrid-rules --target wasm32-unknown-unknown`, and the `cargo xtask check-*`
+commands its CLAUDE.md lists), push, and open the PR there with
+`gh pr create --repo Graceful-Tools/astrid-core --base main` and the task link. Comment its
+URL on the task and end that report with a line of its own:
+`AWAITING-MERGE: Graceful-Tools/astrid-core#<n> <full pushed HEAD sha>`. Leave the task
+incomplete in Doing, assigned to you. astrid-core has no deploy: the ship workflow merges
+the PR once its checks are green and completes the task. Open no astrid-web PR for it.
+
 When the task's fix is already on `main` (an earlier PR merged it), write no code
 and open no PR. Comment `AWAITING-DEPLOY: <the origin/main sha that contains the fix>`
 and leave the task in Doing; the runner accepts a commit on `main` and completes

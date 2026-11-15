@@ -133,8 +133,9 @@ or device activation is implied by these repository changes.
    ID used by the current adapters is `85eef4ce-3d4d-4072-9ca7-bd631ca815b1`;
    duplicate same-name lists must be resolved explicitly, never first-match.
 3. For optional Claude/Codex dispatches, the `agent` environment holds Astrid
-   OAuth and `AGENT_GH_TOKEN` (repo-only Contents + Pull requests write,
-   **no Actions write**). Subscription login configuration is unchanged.
+   OAuth and `AGENT_GH_TOKEN` (a fine-grained token over the Graceful-Tools app repos,
+   astrid-core included, with Contents + Pull requests read/write, no org permissions and
+   **no Actions access**). Subscription login configuration is unchanged.
    `agent-run.yml` runs on a schedule (:05/:35, claude-code) since 2026-10-28, chains itself through a `repository_dispatch` that this same token sends, and can still be dispatched; it does not run Copilot CLI.
 4. For the selected **GitHub issue-assigned coding agent**, provision
    `COPILOT_DISPATCH_TOKEN` only in `copilot-bridge`. GitHub requires a real
@@ -258,10 +259,14 @@ scripts/push-agent-env.sh             # → GitHub `agent` environment (secrets 
 
 The script refuses a file that names a production key or value, or a key it doesn't know.
 
-- `AGENT_GH_TOKEN` (in `.env.cloud`): a fine-grained token for Graceful-Tools/astrid-web
-  only, with **Contents** and **Pull requests** read/write and **no Actions** access. Without
-  it the agent's PRs get no CI, because GitHub doesn't run workflows on events made with the
-  built-in token. PRs and pushes then show the token owner as the author. A GitHub App
+- `AGENT_GH_TOKEN` (in `.env.cloud`): a fine-grained token over the Graceful-Tools app repos
+  (astrid-web, astrid-core, astrid-ios, astrid-android, astrid-windows, gracefultools.com),
+  with **Contents** and **Pull requests** read/write, no org permissions and **no Actions**
+  access. Without it the agent's PRs get no CI, because GitHub doesn't run workflows on events
+  made with the built-in token. Core tasks (AWTD-1682) use its astrid-core access: agent runs
+  push their core branch and open the PR there, and `agent-ship.yml` merges it, reading the
+  token as `ASTRID_CORE_GH_TOKEN` from an `AGENT_GH_TOKEN` secret in the **`release`**
+  environment. Without that secret, core merges are skipped and only completions run. PRs and pushes then show the token owner as the author. A GitHub App
   token can replace it later for a separate bot identity.
 - `agent` environment: created 2026-10-24 with the Astrid OAuth client and
   `ASTRID_FIXALL_MAX_TASKS`. It still needs `CLAUDE_CODE_OAUTH_TOKEN`; Codex also needs

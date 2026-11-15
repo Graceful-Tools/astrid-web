@@ -100,6 +100,34 @@ finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has t
   A 75-minute harness timeout leaves time for WIP preservation, claim release and
   artifact upload within the 90-minute job. Force-cancelled/host-lost runs may
   still need the next tick's stale-Doing recovery.
+- **astrid-core tasks on an ephemeral runner** (AWTD-1682). Core work belongs to the web
+  board (FIXALL_WORKFLOW.md → *astrid-core is worked by web and iOS*), so `agent-run.yml`
+  clones `Graceful-Tools/astrid-core` beside the checkout, at `../astrid-core`
+  (`$ASTRID_CORE_DIR`). It is a plain `git clone`, not `actions/checkout`, which cannot
+  write outside the workspace. Pushes there use `AGENT_GH_TOKEN` through
+  `gh auth git-credential`. A dry-run push records `$ASTRID_CORE_PUSH`; without access the
+  run fails with an `::error::` naming the missing permission when a candidate is a core
+  task, and only warns otherwise. The Rust toolchain (astrid-core's `rust-toolchain.toml`
+  channel with clippy, rustfmt and `wasm32-unknown-unknown`, plus a cargo cache) is installed
+  only when a queue or attention candidate is titled `[core]` or names astrid-core. The claim
+  happens inside the harness, so this is a guess from the candidates. A wrong guess costs a
+  minute or two, and cargo still installs the pinned channel on first use. To finish a core task:
+  1. work in `../astrid-core` on `agent/<harness>/<TASK-KEY>-<slug>` from its `origin/main`;
+  2. run its gate (its CLAUDE.md → *Quality gate*: fmt, clippy, tests, the `cargo xtask check-*`
+     commands, the wasm build);
+  3. push that branch to astrid-core and open the PR there (`gh pr create --repo
+     Graceful-Tools/astrid-core --base main`) with the task link;
+  4. comment the PR URL on the task, ending the report with a line of its own:
+     `AWAITING-MERGE: Graceful-Tools/astrid-core#<n> <full pushed HEAD sha>`;
+  5. leave the task **incomplete in Doing**, assigned to yourself. The release skips a
+     current `AWAITING-MERGE` the way it skips `AWAITING-DEPLOY`.
+
+  astrid-core has no deploy, so the ship workflow finishes it: `land-and-deploy.ts
+  --core-repo` merges at most one eligible core PR a tick (agent branch, the assignee's own
+  current marker naming exactly that PR and head, Doing or Testing, this board, base `main`,
+  green checks, a merge commit pinned to the head). Then it completes every task whose PR is
+  merged at its recorded head, a PR a person merged included, and comments the merge sha.
+  Core CI cannot start `agent-ship.yml`, so core handoffs land on its :17/:47 schedule.
 - **The selected Copilot cloud worker is GitHub's built-in agent**, not a CLI
   replacement. `native-copilot-bridge.yml` has a disabled-by-default schedule,
   explicit exact-board claims, native issue assignment and task/PR comment relay.
