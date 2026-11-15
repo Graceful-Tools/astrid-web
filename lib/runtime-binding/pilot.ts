@@ -1,4 +1,7 @@
 /**
+ * START HERE for the whole feature: docs/architecture/RUNTIME_BINDING_PARTNER_GUIDE.md
+ * (file map, enrollment, denial reasons, gaps before activation).
+ *
  * Pilot limits for business runtime bindings (Jon, 2026-11-14). Widening one is
  * a decision, not a refactor.
  *

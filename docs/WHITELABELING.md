@@ -454,6 +454,12 @@ used, else Claude. A user's own choice in settings still wins. Local harnesses (
 `muse`) and Custom Agents cannot back it: the server dispatches nothing to them.
 Server-only, like `BRAND_ENABLED_AGENTS`.
 
+**Running agents on the partner's own machine and bill.** A dedicated single-business
+deployment can bind boards to a partner-owned polling runtime, with the partner's
+credential and payer and no personal fallback. It is built but parked, inert behind
+`ASTRID_RUNTIME_BINDING_RESOLVER` and `ASTRID_RUNTIME_BINDING_SINGLE_BUSINESS`. See the
+[runtime binding partner guide](./architecture/RUNTIME_BINDING_PARTNER_GUIDE.md).
+
 Clients learn all of this from **`GET /api/v1/capabilities`** rather than assuming, since
 one mobile build can point at several deployments.
 
