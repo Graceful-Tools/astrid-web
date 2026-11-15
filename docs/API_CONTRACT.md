@@ -592,8 +592,12 @@ Snooze a reminder.
 
 ## User Endpoints
 
-### GET `/api/users/search?q={query}`
-Search for users by name or email.
+### GET `/api/v1/users/search?q={query}`
+Search for users by name or email. Requires the `user:read` scope. The response
+also carries `listMemberCount` and a `meta` envelope.
+
+> The legacy `GET /api/users/search` was removed (AWTD-839, 2026-11-14) after
+> 28 days with no production traffic. Use this route.
 
 **Query Parameters:**
 - `q` (required): Search query (min 2 characters)
@@ -743,37 +747,45 @@ unknown service value as a provider they cannot configure, not as an error.
 
 ## Account Endpoints
 
-### GET `/api/account`
-Get current user's account details.
+> The legacy `/api/account` routes are gone: `/api/account/delete`,
+> `/verify-email` and `/export` were removed in AWTD-839 (2026-10-28), and
+> `GET|PUT /api/account` followed on 2026-11-14 after 28 days with no
+> production traffic. Their successors are below.
 
-### PUT `/api/account`
-Update account settings.
+### GET `/api/v1/users/me`
+Get current user's account details, as `{ "user": { ... }, "meta": { ... } }`.
+`user` includes the email verification status. Scope: `user:read`.
+
+### PUT `/api/v1/users/me`
+Update account settings. Scope: `user:write`. Changing `email` sends a
+verification email and returns `emailVerificationRequired: true`. The default
+due time has its own route, `/api/v1/users/me/default-due-time`.
 
 **Request:**
 ```json
 {
   "name": "string",
-  "image": "string",
-  "defaultDueTime": "09:00"
+  "email": "string",
+  "image": "string"
 }
 ```
 
-### POST `/api/account/verify-email?action={action}`
+### POST `/api/v1/users/me/verify-email?action={action}`
 Manage email verification.
 
 **Actions:** `send`, `resend`, `cancel`
 
-### POST `/api/account/delete`
+### POST `/api/v1/users/me/delete`
 Delete the user's account.
 
 **Request:**
 ```json
 {
-  "confirmationText": "delete my account"
+  "confirmationText": "DELETE MY ACCOUNT"
 }
 ```
 
-### GET `/api/account/export?format={format}`
+### GET `/api/v1/users/me/export?format={format}`
 Export account data.
 
 **Formats:** `json`, `csv`

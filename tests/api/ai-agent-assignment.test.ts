@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { row, rows } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
-import { GET } from '@/app/api/users/search/route'
+import { GET } from '@/app/api/v1/users/search/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
 import { BRAND } from '@/lib/brand/config'
 
 // Mock NextRequest with URL search params
 const createMockRequest = (searchParams: Record<string, string> = {}, headers: Record<string, string> = {}) => {
-  const url = new URL('http://localhost:3000/api/users/search')
+  const url = new URL('http://localhost:3000/api/v1/users/search')
   Object.entries(searchParams).forEach(([key, value]) => {
     url.searchParams.set(key, value)
   })
