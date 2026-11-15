@@ -66,6 +66,21 @@ describe('new work is filed Ready, and only high risk waits for Jon (2026-11-15)
     ).toEqual([])
   })
 
+  it('astrid-core work belongs to web and iOS, never the Windows board (Jon, 2026-11-15)', () => {
+    const workflow = readFileSync(join(ROOT, 'docs/FIXALL_WORKFLOW.md'), 'utf8')
+    expect(workflow).toMatch(/## astrid-core is worked by web and iOS, never blocked on Windows/)
+    const offenders = agentFacingDocs()
+      .concat(['docs/AGENT_FLEET.md'])
+      .flatMap(doc =>
+        readFileSync(join(ROOT, doc), 'utf8')
+          .split('\n')
+          .filter(line => !line.trim().startsWith('>'))
+          .filter(line => /(?:astrid-)?core[^.]{0,40}go(?:es)? on the Windows board/i.test(line))
+          .map(line => `${doc}: ${line.trim().slice(0, 140)}`),
+      )
+    expect(offenders).toEqual([])
+  })
+
   it('recognises the instruction, so it cannot pass by matching nothing', () => {
     expect(offendingLines('Filed in Inbox, not Ready, so no loop starts it before Jon promotes it.')).toHaveLength(1)
     expect(offendingLines('If a task needs a product decision, hand it back and move on.')).toHaveLength(1)

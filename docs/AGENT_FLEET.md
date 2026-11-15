@@ -45,8 +45,10 @@ Cross-platform work is split the same way. A web run that needs an iOS change fi
 the iOS half on the **iOS board** (unassigned, or for the Mac's agent) and links it with a
 blocker row (`POST /api/v1/tasks/<id>/blockers`). The Mac's loop picks it up, and the web
 task waits on it in `Waiting` — the blocker is its condition, and the server wakes it when
-the iOS half completes. Shared-rules changes for astrid-core go on the Windows board,
-as before.
+the iOS half completes. **astrid-core work belongs to the web and iOS loops**
+(Jon, 2026-11-15): file it on the web board by default, or the iOS board when the Apple apps are its
+first consumer, never on the Windows board. See FIXALL_WORKFLOW.md → *astrid-core is worked by web
+and iOS*.
 
 List membership decides who can see a task. Every agent identity that works a board must be
 a member of that list, and Jon is a member of every board, so each device sees exactly what

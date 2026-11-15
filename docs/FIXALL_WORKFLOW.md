@@ -441,6 +441,24 @@ failed, and move on.
 
 ---
 
+## astrid-core is worked by web and iOS, never blocked on Windows (Jon, 2026-11-15)
+
+> *"Let's have Astrid web and iOS both take over core tasks, so we wait less on Windows. Windows
+> can focus on implementing the windows experience. But it is the least used, least mature, so it
+> should not hold dependencies for the other interfaces."*
+
+- **Core tasks live on the web board by default**, or on the iOS board when the Apple apps are the
+  first consumer. **Never on the Windows board.** The web and iOS loops work astrid-core directly:
+  their own worktree of `../astrid-core`, its local gate, a PR, CI green (CI includes the Android
+  NDK and wasm builds, so no special toolchain is needed locally), then merge. astrid-core has no
+  deploy, so merged to `main` is done; consumers take it with a pin bump.
+- **The Windows board holds Windows-shell work only**: the WinUI app, its packaging, releases and
+  machine. When Windows needs a core change, its loop files the core half **Ready on the web board**
+  and implements the Windows half against it. It does not do the core half itself.
+- **Windows never holds a dependency for another client.** No web, iOS, Android or Code task waits
+  on a Windows task. If a shared change is needed, the web or iOS loop makes it in core, and Windows
+  catches up with its own pin bump.
+
 ## When the fix belongs to the other repo
 
 Some bugs cannot be fixed where they are reported. The 30-day sign-out was one: only the server
