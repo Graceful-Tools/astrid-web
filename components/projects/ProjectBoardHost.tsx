@@ -26,9 +26,10 @@ interface ProjectBoardHostProps {
   onCreateTask: ProjectBoardProps["onCreateTask"]
   onOpenTask?: ProjectBoardProps["onOpenTask"]
   selectedTaskId?: string | null
+  isOneColumn?: boolean
 }
 
-export function ProjectBoardHost({ lists, tasks, currentUser, onUpdateTask, onCreateTask, onOpenTask, selectedTaskId }: ProjectBoardHostProps) {
+export function ProjectBoardHost({ lists, tasks, currentUser, onUpdateTask, onCreateTask, onOpenTask, selectedTaskId, isOneColumn }: ProjectBoardHostProps) {
   const projectId = useSelectedProjectId()
   const enabled = useProjectMode()
   const projects = useLoadedProjects()
@@ -51,6 +52,7 @@ export function ProjectBoardHost({ lists, tasks, currentUser, onUpdateTask, onCr
       onCreateTask={onCreateTask}
       onOpenTask={onOpenTask}
       selectedTaskId={selectedTaskId}
+      isOneColumn={isOneColumn}
     />
   )
 }
