@@ -32,7 +32,7 @@ const projects = vi.hoisted(() => [
 ])
 vi.mock('@/lib/client-projects', () => ({
   loadProjectsOnce: vi.fn(async () => projects),
-  peekLoadedProjects: vi.fn(() => null),
+  peekLoadedProjects: vi.fn(() => projects),
   subscribeLoadedProjects: vi.fn(() => () => {}),
   __clearLoadedProjectsCache: vi.fn(),
 }))
@@ -57,6 +57,8 @@ vi.mock('@/components/task-row-content', () => ({
 import { ProjectsSection } from '@/components/TaskManager/Sidebar/ProjectsSection'
 import { ProjectBoard } from '@/components/projects/ProjectBoard'
 import { PROJECT_BOARD_LIST_DRAG_TYPE } from '@/lib/project-board-rows'
+import { ProjectBoardHost } from '@/components/projects/ProjectBoardHost'
+import { __resetSelectedProject, setSelectedProjectId } from '@/hooks/use-selected-project'
 
 function list(id: string, name: string, overrides: Partial<TaskList> = {}): TaskList {
   return {
@@ -241,5 +243,41 @@ describe('ProjectBoard rows (AWTD-1660)', () => {
     await screen.findByTestId('project-board-row-web')
     fireEvent.click(screen.getByTestId('project-board-remove-web'))
     expect(await screen.findByTestId('project-board-row-web')).toBeTruthy()
+  })
+})
+
+describe('ProjectBoardHost gating (AWTD-1660)', () => {
+  beforeEach(() => {
+    __resetSelectedProject()
+    api.apiGet.mockResolvedValue(jsonResponse({ listIds: null }))
+  })
+  const renderHost = () => render(
+    <ProjectBoardHost lists={lists} tasks={[]} onUpdateTask={vi.fn()} onDeleteTask={vi.fn()} />,
+  )
+
+  it('draws the selected project\'s board for someone with project_mode', async () => {
+    setSelectedProjectId('p1')
+    renderHost()
+    expect(await screen.findByTestId('project-board')).toHaveTextContent('Astrid')
+  })
+
+  it('without project_mode it draws nothing and closes the selection', async () => {
+    flags.projectMode = false
+    setSelectedProjectId('p1')
+    const { container } = renderHost()
+    await act(async () => {})
+    expect(container).toBeEmptyDOMElement()
+    const { useSelectedProjectId } = await import('@/hooks/use-selected-project')
+    let seen: string | null = 'unset'
+    function Probe() { seen = useSelectedProjectId(); return null }
+    render(<Probe />)
+    expect(seen).toBeNull()
+  })
+
+  it('a project that is not one of theirs closes the selection', async () => {
+    setSelectedProjectId('someone-elses')
+    const { container } = renderHost()
+    await act(async () => {})
+    expect(container).toBeEmptyDOMElement()
   })
 })

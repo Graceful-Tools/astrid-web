@@ -11,7 +11,7 @@ import { DesktopChatPane } from "./TaskManager/DesktopChatPane"
 import { DrawerTapGuard } from "./TaskManager/DrawerTapGuard"
 import { DesktopSettingsDetailPane } from "./TaskManager/DesktopSettingsDetailPane"
 import { MainContent } from "./TaskManager/MainContent/MainContent"
-import { ProjectBoardSwitch, useOpenProject } from "./projects/ProjectBoardSwitch"
+import { useSelectedProjectId } from "@/hooks/use-selected-project"
 import { LoadingScreen } from "./loading-screen"
 import { computeTaskPaneLeftOffset } from "./TaskManager/task-pane-position"
 import { Input } from "@/components/ui/input"
@@ -23,6 +23,7 @@ import {
   LazyChatPanel,
   LazyCommandPaletteDialog,
   LazyKeyboardShortcutsMenu,
+  LazyProjectBoardHost,
   LazyPublicListsBrowser,
   LazySettingsDetailPanel,
   LazySettingsPanel,
@@ -448,7 +449,7 @@ const TaskManagerView = memo(function TaskManagerView({
 }: TaskManagerViewModel) {
   const [taskViewMode, setTaskViewMode] = React.useState<'list' | 'board'>('list')
   // An open project board (AWTD-1660) lays the page out as a board too.
-  const projectBoardOpen = Boolean(useOpenProject())
+  const projectBoardOpen = Boolean(useSelectedProjectId())
   const isBoardMode = (hasProjectBoard && taskViewMode === 'board') || projectBoardOpen
 
   const handleProjectBoardCreated = React.useCallback((projectLists: TaskList[]) => {
@@ -828,8 +829,9 @@ const TaskManagerView = memo(function TaskManagerView({
               className="h-full"
             />
           </div>
+        ) : projectBoardOpen && !isSearchActive ? (
+          <LazyProjectBoardHost lists={lists} tasks={tasks} currentUser={effectiveSession?.user as User | undefined} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} />
         ) : (
-          <ProjectBoardSwitch lists={lists} tasks={tasks} currentUser={effectiveSession?.user as User | undefined} suppressed={isSearchActive} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask}>
           <MainContent
             isMobile={isMobile}
             mobileView={mobileView}
@@ -913,7 +915,6 @@ const TaskManagerView = memo(function TaskManagerView({
             handleCopyList={handleCopyList}
             handleCopyTask={handleCopyTask}
           />
-          </ProjectBoardSwitch>
         )}
         </main>
 
