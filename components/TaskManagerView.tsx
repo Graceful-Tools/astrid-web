@@ -5,6 +5,7 @@ import { CopyListButton } from "./TaskManager/CopyListButton"
 import { SkipToContentLink } from "./TaskManager/SkipToContentLink"
 import React, { memo } from "react"
 import { taskDetailPaneProps } from "./TaskManager/task-detail-pane-props"
+import { BoardTaskCallout } from "./TaskManager/BoardTaskCallout"
 import { TaskManagerHeader } from "./TaskManager/Header/TaskManagerHeader"
 import { LeftSidebar } from "./TaskManager/Sidebar/LeftSidebar"
 import { DesktopChatPane } from "./TaskManager/DesktopChatPane"
@@ -34,7 +35,7 @@ import type { Task, TaskList, User } from "@/types/task"
 import type { LayoutType } from "@/lib/layout-detection"
 import { isMobilePhoneDevice } from "@/lib/layout-detection"
 import { bodyClearsFloatingHeader } from "@/lib/task-area-position-classes"
-import { canUserEditTask, canUserManageList } from "@/lib/list-permissions"
+import { canUserManageList } from "@/lib/list-permissions"
 import { isCollaborativePublicTask } from "@/lib/public-list-utils"
 import { useSlideCloseAnimation } from "@/hooks/task-manager/useSlideCloseAnimation"
 import { useTaskManagerLayoutRouter } from "@/hooks/task-manager/useTaskManagerLayoutRouter"
@@ -830,7 +831,7 @@ const TaskManagerView = memo(function TaskManagerView({
             />
           </div>
         ) : projectBoardOpen && !isSearchActive ? (
-          <LazyProjectBoardHost lists={lists} tasks={tasks} currentUser={effectiveSession?.user as User | undefined} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} onCreateTask={handleQuickCreateTask} />
+          <LazyProjectBoardHost lists={lists} tasks={tasks} currentUser={effectiveSession?.user as User | undefined} onUpdateTask={handleUpdateTask} onCreateTask={handleQuickCreateTask} onOpenTask={handleTaskClick} selectedTaskId={selectedTaskId} />
         ) : (
           <MainContent
             isMobile={isMobile}
@@ -884,9 +885,7 @@ const TaskManagerView = memo(function TaskManagerView({
             handleTaskClick={async (taskId: string, taskElement?: HTMLElement) => handleTaskClick(taskId, taskElement)}
             handleUpdateTask={handleUpdateTask}
             taskDisplayMode={taskDisplayMode}
-            handleLocalUpdateTask={handleLocalUpdateTask as ((updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void)}
             handleToggleTaskComplete={handleToggleTaskComplete}
-            handleDeleteTask={handleDeleteTask}
             handleQuickCreateTask={handleQuickCreateTask}
             handleCreateNewTask={handleCreateNewTask}
             handleTaskDragStart={handleTaskDragStartInternal}
@@ -957,10 +956,6 @@ const TaskManagerView = memo(function TaskManagerView({
           Kept mounted during close animation even when settings activates,
           so the slide-out can play instead of popping. */}
       {layout.showDesktopTaskPane && selectedTask && effectiveSession?.user && (() => {
-        // Determine if user can edit this specific task based on list permissions and task creator
-        const taskList = selectedTask.lists?.[0] || lists.find(l => l.id === selectedListId)
-        const canEdit = taskList ? canUserEditTask(effectiveSession.user, selectedTask, taskList) : true
-
         return (
           <div
             className={`task-panel-desktop scrollbar-hide ${isTaskPaneClosing ? 'task-panel-animate-out' : 'task-panel-animate'} task-panel-desktop-anchored`}
@@ -987,6 +982,14 @@ const TaskManagerView = memo(function TaskManagerView({
         )
       })()}
 
+      {/* A board card's details: the same pane, as a callout beside the card (AITD-679). */}
+      {layout.showBoardTaskCallout && selectedTask && effectiveSession?.user && (
+        <BoardTaskCallout taskId={selectedTask.id} anchor={selectedTaskElement} onClose={closeTaskDetail} closing={isTaskPaneClosing} paneProps={taskDetailPaneProps({
+          task: selectedTask, lists, selectedListId, tasks, finalFilteredTasks, user: effectiveSession.user, displayMode: taskDisplayMode,
+          handleUpdateTask, handleLocalUpdateTask, handleDeleteTask, handleCopyTask, handleToggleTaskComplete, handleCreateTask,
+        })} />
+      )}
+
       {/* Mobile Settings Detail Pane - full screen */}
       {layout.showMobileSettingsDetailPane && settingsSubPage && (
         <div className="task-panel-mobile task-panel-mobile-open">
@@ -1000,10 +1003,6 @@ const TaskManagerView = memo(function TaskManagerView({
 
       {/* Mobile Task Pane - takes over mobile view */}
       {layout.showMobileTaskPane && selectedTask && effectiveSession?.user && (() => {
-        // Determine if user can edit this specific task based on list permissions and task creator
-        const taskList = selectedTask.lists?.[0] || lists.find(l => l.id === selectedListId)
-        const canEdit = taskList ? canUserEditTask(effectiveSession.user, selectedTask, taskList) : true
-
         return (
           <div
             className={`task-panel-mobile ${

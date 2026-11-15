@@ -170,50 +170,6 @@ describe('TaskDetail — expand to full screen (task 0ea0b818)', () => {
     expect(panel(container).className).not.toContain('fixed')
     expect(panel(container).className).not.toContain('inset-0')
   })
-
-  it('an inline/board panel expands when its renderer opts in (task 52bf1efb)', async () => {
-    // This assertion used to be the opposite: inline panels were excluded on
-    // the reasoning that a card is a peek. Jon overrode that — a board card's
-    // details are the only way to read the task on the board, so they need the
-    // escape hatch most. The rule is now uniform: the renderer decides, and
-    // `inline` no longer overrules it.
-    //
-    // AWTD-872 then moved WHERE it is offered on an inline panel: into the ⋯
-    // menu, because the card gutter was stacking three 20px targets. The rule
-    // this test defends — renderer decides, inline does not overrule — is
-    // unchanged; only the number of taps is.
-    const user = userEvent.setup()
-    wrap(
-      <TaskDetail
-        task={task}
-        currentUser={mockUser}
-        onUpdate={vi.fn()}
-        onDelete={vi.fn()}
-        onClose={vi.fn()}
-        inline
-        allowFullScreen
-      />,
-    )
-    expect(screen.queryByRole('button', { name: 'Full screen' })).not.toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: 'Task actions' }))
-    expect(await screen.findByRole('menuitem', { name: 'Full screen' })).toBeInTheDocument()
-  })
-
-  it('an inline panel still offers nothing when its renderer stays out', () => {
-    // The opt-in is what gates it, and that has not changed.
-    wrap(
-      <TaskDetail
-        task={task}
-        currentUser={mockUser}
-        onUpdate={vi.fn()}
-        onDelete={vi.fn()}
-        onClose={vi.fn()}
-        inline
-      />,
-    )
-    expect(screen.queryByLabelText('Full screen')).not.toBeInTheDocument()
-  })
 })
 
 describe('TaskDetail readOnly — expand to full screen (task 0ea0b818)', () => {
@@ -261,5 +217,38 @@ describe('TaskDetail readOnly — expand to full screen (task 0ea0b818)', () => 
 
     await user.click(screen.getByLabelText('Exit full screen'))
     expect(panel(container).getAttribute('data-fullscreen')).toBeNull()
+  })
+})
+
+describe('TaskDetail as a board callout — the arrow faces the card (AITD-679)', () => {
+  const arrowOf = (container: HTMLElement) => container.querySelector('.task-panel-arrow') as HTMLElement | null
+
+  it('opened LEFT of the card: the arrow is on the right edge, centred on the core offset', () => {
+    const { container } = wrap(
+      <TaskDetail task={task} currentUser={mockUser} onUpdate={vi.fn()} onDelete={vi.fn()} onClose={vi.fn()}
+        calloutArrow={{ side: 'left', offset: 324 }} />,
+    )
+    const arrow = arrowOf(container)!
+    expect(arrow.className).toMatch(/\btask-panel-arrow-end\b/)
+    expect(arrow.getAttribute('data-callout-arrow')).toBe('left')
+    expect(arrow.style.top).toBe('calc(324px - var(--task-panel-arrow-half))')
+    // Not gated on the cols2 breakpoint: an iPad in portrait shows it too.
+    expect(arrow.className).not.toMatch(/\bhidden\b/)
+  })
+
+  it('opened RIGHT of the card: the arrow keeps the left edge', () => {
+    const { container } = wrap(
+      <TaskDetail task={task} currentUser={mockUser} onUpdate={vi.fn()} onDelete={vi.fn()} onClose={vi.fn()}
+        calloutArrow={{ side: 'right', offset: 40 }} />,
+    )
+    expect(arrowOf(container)!.className).not.toMatch(/\btask-panel-arrow-end\b/)
+  })
+
+  it('draws no arrow while the callout is still being measured', () => {
+    const { container } = wrap(
+      <TaskDetail task={task} currentUser={mockUser} onUpdate={vi.fn()} onDelete={vi.fn()} onClose={vi.fn()}
+        calloutArrow={null} />,
+    )
+    expect(arrowOf(container)).toBeNull()
   })
 })

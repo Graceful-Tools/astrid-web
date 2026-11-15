@@ -82,12 +82,11 @@ function gapOf(cls: string): number {
 
 describe('task detail: field icons align with the title checkbox (AWTD-1177)', () => {
   /**
-   * The header's non-compact container. Compact is the board card, which
-   * deliberately uses its own p-3/gap-3 pair — it is a different row shape, not
-   * a drift, so this invariant is about the full pane only.
+   * The header's padding container. There is one shape since the board card's
+   * compact header went with in-place expansion (AITD-679).
    */
   const headerPadding = (() => {
-    const m = headerSrc.match(/className=\{compact \? "p-3 pr-0\.5" : "(p-\d+)"\}/)
+    const m = headerSrc.match(/<div className="(p-\d+)">/)
     if (!m) {
       throw new Error(
         'task-detail alignment: could not find the header padding container in TaskHeader.tsx. ' +

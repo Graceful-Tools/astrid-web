@@ -164,8 +164,6 @@
     "saveNewTask": "Neue Aufgabe speichern",
     "detail": {
       "backToList": "Zurück zur Liste",
-      "collapseTask": "Aufgabe einklappen",
-      "collapse": "Einklappen",
       "taskActions": "Aufgabenaktionen",
       "exitFullScreen": "Vollbild beenden",
       "testReminder": "Testerinnerung",
@@ -235,8 +233,6 @@
     "userAvatarAlt": "Benutzer",
     "assigneeYou": "Du",
     "board": {
-      "collapseExpandedIn": "Erweiterte Aufgabe in {name} einklappen",
-      "tapToCollapse": "Zum Einklappen tippen",
       "addTaskTo": "Aufgabe zu {name} hinzufügen"
     },
     "dropToPlaceFirst": "Hier ablegen, um die erste Aufgabe zu platzieren"

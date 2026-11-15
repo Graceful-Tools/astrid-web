@@ -90,4 +90,40 @@ test.describe('Project status board', () => {
         .toEqual(saved)
     }
   })
+
+  test('AITD-679: a card opens task details as a callout beside it, not expanded in the column (core DS32)', async ({ page, request }) => {
+    const suffix = Date.now()
+    const { list } = await postJson<{ list: { id: string } }>(request, '/api/v1/lists', {
+      name: `Callout board ${suffix}`,
+      privacy: 'PRIVATE',
+    })
+    await postJson(request, '/api/v1/projects/from-list', { listId: list.id })
+    const { task } = await postJson<{ task: ApiTask }>(request, '/api/v1/tasks', {
+      title: `Open beside the card ${suffix}`,
+      listIds: [list.id],
+    })
+
+    await gotoWithRetry(page, `/lists/${list.id}`)
+    await page.getByTestId('header-list-board-toggle').getByRole('button', { name: 'Board' }).click()
+    const board = page.getByTestId('project-status-board')
+    const card = board.getByTestId(`status-card-${task.id}`)
+    await expect(card).toBeVisible()
+
+    await card.click()
+    const callout = page.locator('[data-board-task-callout]')
+    await expect(callout).toBeVisible()
+    await expect(callout).toContainText(task.title)
+    // Nothing opened inside the column.
+    await expect(card.locator('[data-task-detail-panel]')).toHaveCount(0)
+    // Beside the card, on the roomier side (Inbox is the leftmost lane), with its arrow.
+    await expect(callout).toHaveAttribute('data-callout-side', 'right')
+    const cardBox = (await card.boundingBox())!
+    const calloutBox = (await callout.boundingBox())!
+    expect(calloutBox.x).toBeGreaterThanOrEqual(cardBox.x + cardBox.width)
+    await expect(callout.locator('[data-callout-arrow="right"]')).toHaveCount(1)
+
+    // Tapping the open card again closes it, as a row does.
+    await card.click()
+    await expect(callout).toHaveCount(0)
+  })
 })

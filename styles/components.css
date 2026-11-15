@@ -151,6 +151,9 @@ html, body {
   --task-list-width: 450px; /* Wider task list for better readability */
   --task-panel-min-width: 350px;
   --task-panel-max-width: 500px;
+  /* Half the details arrow's 20px square (.task-panel-arrow, w-5): a board
+     callout centres it on the offset core rows::callout returns (AITD-679). */
+  --task-panel-arrow-half: 10px;
   /* Prevent iOS drawer from overshooting left edge — and never be a scroll
      container (AWTD-1306/1307). `overflow-x: hidden` alone still scrolls
      programmatically and computes overflow-y to auto, so a list flick chained
@@ -361,6 +364,25 @@ html, body {
 .task-panel-desktop > .task-panel-arrow.theme-panel-arrow {
   border-left: var(--selection-outline-width) solid var(--selection-outline-color);
   border-bottom: var(--selection-outline-width) solid var(--selection-outline-color);
+}
+
+/* The arrow on the RIGHT edge: a board callout that opened on the card's left
+   points back across its own right side (AITD-679). Same square, the other two
+   borders, so it reads as the same arrow mirrored. */
+.task-panel-arrow.task-panel-arrow-end {
+  left: auto;
+  right: -11px;
+  border-left: none;
+  border-bottom: none;
+  border-right: 1px solid rgb(var(--theme-border));
+  border-top: 1px solid rgb(var(--theme-border));
+}
+
+.task-panel-desktop > .task-panel-arrow.task-panel-arrow-end.theme-panel-arrow {
+  border-left: none;
+  border-bottom: none;
+  border-right: var(--selection-outline-width) solid var(--selection-outline-color);
+  border-top: var(--selection-outline-width) solid var(--selection-outline-color);
 }
 
 .panel-header {
@@ -904,20 +926,49 @@ html, body {
   @apply absolute inset-0 w-full;
 }
 
-/* Full screen from an INLINE panel — the expanded card on the status board
- * (task 52bf1efb).
- *
- * The rule above cannot serve this case. A board card has no wrapper that
- * expands to the viewport, so `absolute inset-0` would size the "full screen"
- * panel to the card it is sitting in — a control that visibly does nothing.
- * Fixed positioning against the viewport is the whole point here.
- *
- * z-index 60 matches the expanded desktop pane, which is above the floating
- * app header (z-50); a full-screen panel painted under the header is the bug
- * that rule was written to fix.
- */
-.task-panel-expanded-viewport {
-  @apply fixed inset-0 w-full z-[60] rounded-none;
+/* A board card's details, floating beside the card (AITD-679,
+ * components/TaskManager/BoardTaskCallout.tsx). The row pane's look — ring,
+ * shadow, radius — at a size of its own: the width is set here and measured,
+ * then left, top and height come inline from core rows::callout. Cards no
+ * longer expand in place, so this replaced the inline panel's full-screen
+ * rule; full screen now expands this wrapper like the row pane's. */
+.task-panel-desktop.task-panel-callout {
+  bottom: auto;
+  right: auto;
+  width: min(var(--task-panel-max-width), calc(100vw - 16px));
+  min-width: 0;
+  max-width: none;
+}
+
+/* The reveal grows out of the edge that faces the card (core DS32): docked
+   right of the card it grows from its left edge, docked left from its right
+   edge, over motion.panel. Closing plays it backwards and holds the end state
+   until the pane unmounts, as the row pane's slide-out does. */
+.task-panel-callout-right { transform-origin: left center; }
+.task-panel-callout-left { transform-origin: right center; }
+.task-panel-desktop.task-panel-callout-right,
+.task-panel-desktop.task-panel-callout-left {
+  animation: calloutGrow var(--astrid-motion-panel-duration) var(--astrid-motion-panel-ease);
+}
+.task-panel-desktop.task-panel-callout-closing {
+  animation: calloutShrink var(--astrid-motion-panel-duration) var(--astrid-motion-panel-ease) forwards;
+}
+@keyframes calloutGrow {
+  from { transform: scaleX(0.92); opacity: 0; }
+  to { transform: scaleX(1); opacity: 1; }
+}
+@keyframes calloutShrink {
+  from { transform: scaleX(1); opacity: 1; }
+  to { transform: scaleX(0.92); opacity: 0; }
+}
+
+.task-panel-desktop.task-panel-callout:has([data-fullscreen="true"]) {
+  top: 0 !important;
+  height: auto !important;
+}
+
+.task-panel-desktop.task-panel-callout:has([data-fullscreen="true"]) > .task-panel-arrow {
+  display: none;
 }
 
 /* For 3-column layouts with visible sidebar */

@@ -13,7 +13,8 @@ interface ComparedProps {
   currentUser: User
   readOnly?: boolean
   displayMode?: string | null
-  inline?: boolean
+  /** A board callout's arrow (AITD-679): it must move when the card scrolls. */
+  calloutArrow?: { side: 'left' | 'right'; offset: number } | null
 }
 
 export function taskDetailPropsEqual(prevProps: ComparedProps, nextProps: ComparedProps): boolean {
@@ -52,7 +53,8 @@ export function taskDetailPropsEqual(prevProps: ComparedProps, nextProps: Compar
     prevProps.task.statusRole === nextProps.task.statusRole &&
     prevProps.readOnly === nextProps.readOnly &&
     prevProps.displayMode === nextProps.displayMode &&
-    prevProps.inline === nextProps.inline &&
+    prevProps.calloutArrow?.side === nextProps.calloutArrow?.side &&
+    prevProps.calloutArrow?.offset === nextProps.calloutArrow?.offset &&
     !listsChanged &&
     !commentsChanged &&
     prevProps.currentUser?.id === nextProps.currentUser?.id

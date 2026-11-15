@@ -5,8 +5,6 @@ import React from "react"
 import { CheckCircle2, Inbox, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { TaskDetail } from "@/components/task-detail"
-import { canUserEditTask } from "@/lib/list-permissions"
 import { TaskRowContent } from "@/components/task-row-content"
 import { sortTasksForList } from "@/lib/task-sort"
 import {
@@ -49,18 +47,19 @@ interface ProjectStatusBoardProps {
   lists: TaskList[]
   selectedListId: string
   currentUser?: User | null
-  availableTasks?: Task[]
   onUpdateTask: (task: Task) => void
-  onLocalUpdateTask?: (updatedTaskOrFn: Task | ((taskId: string, currentTask: Task) => Task)) => void
-  onDeleteTask: (taskId: string) => void
   onCopyTask?: (taskId: string, targetListId?: string, includeComments?: boolean) => Promise<void>
   onCreateTask: (title: string, options?: { listIds?: string[]; statusRole?: string }) => Promise<string | null>
   isOneColumn?: boolean
   /**
-   * Opens task details the way a list row does (AWTD-1653, core DS30). On a
-   * one-column board a card tap calls this instead of expanding in place.
+   * Opens task details the way a list row does, at every width (AWTD-1653,
+   * core DS30; AITD-679). The card passes itself as the anchor: a phone pushes
+   * the full-screen view, a multi-column board floats the callout beside the
+   * card (components/board-task-callout.tsx). A card never expands in place.
    */
-  onOpenTask?: (taskId: string) => void
+  onOpenTask?: (taskId: string, anchor?: HTMLElement) => void
+  /** The task whose details are open, so its card reads as selected like a row. */
+  selectedTaskId?: string | null
 }
 
 /**
@@ -113,14 +112,12 @@ export function ProjectStatusBoard({
   lists,
   selectedListId,
   currentUser,
-  availableTasks,
   onUpdateTask,
-  onLocalUpdateTask,
-  onDeleteTask,
   onCopyTask,
   onCreateTask,
   isOneColumn = false,
   onOpenTask,
+  selectedTaskId = null,
 }: ProjectStatusBoardProps) {
   const { t } = useTranslations()
   // One call for the whole board rather than one per row (task ffa5bbb5).
@@ -155,7 +152,6 @@ export function ProjectStatusBoard({
   const suppressClickTaskIdRef = React.useRef<string | null>(null)
   const [drafts, setDrafts] = React.useState<Record<string, string>>({})
   const [creatingColumnId, setCreatingColumnId] = React.useState<string | null>(null)
-  const [expandedTaskId, setExpandedTaskId] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     return () => {
@@ -199,12 +195,6 @@ export function ProjectStatusBoard({
 
     return sortTasksForList(trimmed, sortBy, manualOrder)
   }, [allTasks, lists, projectId, selectedList, fieldFilter, fieldValues])
-
-  React.useEffect(() => {
-    if (expandedTaskId && !boardTasks.some(task => task.id === expandedTaskId)) {
-      setExpandedTaskId(null)
-    }
-  }, [boardTasks, expandedTaskId])
 
   if (!projectId || columns.length === 0) {
     return null
@@ -325,19 +315,11 @@ export function ProjectStatusBoard({
     }
   }
 
-  const toggleExpandedTask = (taskId: string) => {
-    setExpandedTaskId(prevTaskId => prevTaskId === taskId ? null : taskId)
-  }
-
-  // In a one-pane (phone) view a card opens task details with the same
-  // full-screen push as a list row; it never expands in place (core DS30,
-  // AWTD-1653). The wide board keeps its in-place expansion.
-  const activateCard = (taskId: string) => {
-    if (isOneColumn && onOpenTask) {
-      onOpenTask(taskId)
-      return
-    }
-    toggleExpandedTask(taskId)
+  // A card opens task details exactly as a list row does — the same handler,
+  // the same detail view — and never expands in place (core DS30, AWTD-1653,
+  // AITD-679). Where the details appear is the layout's call, not the board's.
+  const activateCard = (taskId: string, card: HTMLElement) => {
+    onOpenTask?.(taskId, card)
   }
 
   const columnTestId = (column: ProjectBoardColumn) => {
@@ -357,6 +339,7 @@ export function ProjectStatusBoard({
         ref={scrollRef}
         className={`flex-1 min-h-0 overflow-x-auto overflow-y-hidden scrollbar-hide px-4 pb-6 pt-4 ${isOneColumn ? "snap-x snap-mandatory scroll-px-4 overscroll-x-contain" : ""}`}
         data-testid="project-status-board"
+        data-board-callout-viewport
       >
         {/*
           One-column (mobile) is a snap carousel, and its columns are sized from
@@ -390,25 +373,7 @@ export function ProjectStatusBoard({
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => handleDrop(event, column)}
             >
-              <div
-                role="button"
-                tabIndex={expandedTaskId ? 0 : -1}
-                aria-label={expandedTaskId ? t('tasks.board.collapseExpandedIn', { name: boardColumnLabel(column, t) }) : undefined}
-                title={expandedTaskId ? t('tasks.board.tapToCollapse') : undefined}
-                onClick={() => {
-                  if (expandedTaskId) setExpandedTaskId(null)
-                }}
-                onKeyDown={(event) => {
-                  if (!expandedTaskId) return
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault()
-                    setExpandedTaskId(null)
-                  }
-                }}
-                className={`flex min-h-[4.5rem] items-start justify-between gap-2 border-b theme-border px-3 py-2 ${
-                  expandedTaskId ? "cursor-pointer hover:theme-bg-hover" : ""
-                }`}
-              >
+              <div className="flex min-h-[4.5rem] items-start justify-between gap-2 border-b theme-border px-3 py-2">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="truncate text-sm font-semibold theme-text-primary">{boardColumnLabel(column, t)}</span>
@@ -436,12 +401,6 @@ export function ProjectStatusBoard({
                   </div>
                 )}
                 renderCard={(task) => {
-                  const isExpanded = expandedTaskId === task.id
-                  const taskList = task.lists.find(list => list.projectId === projectId && list.listType !== "status")
-                    || task.lists[0]
-                    || selectedList
-                  const canEdit = currentUser && taskList ? canUserEditTask(currentUser, task, taskList) : true
-
                   const handleToggleComplete = () => {
                     onUpdateTask({ ...task, completed: !task.completed })
                   }
@@ -449,45 +408,19 @@ export function ProjectStatusBoard({
                     if (onCopyTask) await onCopyTask(task.id)
                   }
 
-                  if (isExpanded && currentUser) {
-                    return (
-                      <div
-                        data-testid={`status-card-${task.id}`}
-                        className="relative rounded-md ring-2 ring-brand/40"
-                        onClick={(event) => event.stopPropagation()}
-                        onDragStart={(event) => event.stopPropagation()}
-                      >
-                        <TaskDetail
-                          task={task}
-                          currentUser={currentUser}
-                          displayMode={taskDisplayMode}
-                          availableLists={lists}
-                          availableTasks={availableTasks || boardTasks}
-                          onUpdate={onUpdateTask}
-                          onLocalUpdate={onLocalUpdateTask}
-                          onDelete={onDeleteTask}
-                          onClose={() => setExpandedTaskId(null)}
-                          onCopy={onCopyTask}
-                          readOnly={!canEdit}
-                          inline
-                          allowFullScreen
-                        />
-                      </div>
-                    )
-                  }
-
                   return (
                     <div
                       data-testid={`status-card-${task.id}`}
-                      /* pr-6 (24px), not the .task-row default of 12px: the
-                       *  expanded card spends exactly 24px on its action column
-                       *  (2px + a 20px button + 2px), so the collapsed row has
-                       *  to reserve the same or the title rewraps on expand and
-                       *  the card jumps (task 8eee392d). */
-                      className={`task-row task-card board-card !pr-6 transition-theme relative theme-surface theme-border cursor-grab ${
+                      /* data-task-id, as on a list row: the details' click-outside
+                       *  close leaves a tap on another card to open that card, and
+                       *  the callout finds its anchor by it (AITD-679). */
+                      data-task-id={task.id}
+                      className={`task-row task-card board-card transition-theme relative theme-surface theme-border cursor-grab ${
                         task.completed
                           ? "task-row-completed theme-bg-hover"
-                          : "theme-surface-hover"
+                          : selectedTaskId === task.id
+                            ? "task-row-selected theme-bg-selected"
+                            : "theme-surface-hover"
                       }`}
                       draggable
                       onDragStart={(event) => {
@@ -498,27 +431,27 @@ export function ProjectStatusBoard({
                       onPointerMove={handlePointerMove}
                       onPointerUp={handlePointerEnd}
                       onPointerCancel={handlePointerEnd}
-                      onClick={() => {
+                      onClick={(event) => {
                         if (suppressClickTaskIdRef.current === task.id) {
                           suppressClickTaskIdRef.current = null
                           return
                         }
-                        activateCard(task.id)
+                        activateCard(task.id, event.currentTarget)
                       }}
                       onKeyDown={(event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault()
-                          activateCard(task.id)
+                          activateCard(task.id, event.currentTarget)
                         }
                       }}
                       role="button"
                       tabIndex={0}
-                      aria-expanded={isExpanded}
+                      aria-haspopup="dialog"
                     >
                       <TaskRowContent
                         task={task}
                         currentUserId={currentUser?.id}
-                        isSelected={false}
+                        isSelected={selectedTaskId === task.id}
                         isMobile={isOneColumn}
                         onToggleComplete={handleToggleComplete}
                         onCopyPublic={handleCopyPublic}
