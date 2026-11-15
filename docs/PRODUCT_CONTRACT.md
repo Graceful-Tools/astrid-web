@@ -56,6 +56,20 @@ status lists. Three rules iOS must mirror exactly:
 3. **A project member is never downgraded to `viewer` on a PUBLIC list.** They
    are a real collaborator, not a passer-by.
 
+**Moving a list (AWTD-1702).** Because membership cascades, moving a list is stricter than
+reading it. Table (the core's `listProjectMoves` fixture is the same):
+
+| Action | Needs on the list | Needs on the project |
+|---|---|---|
+| Create a new list in a project | n/a (the creator owns it) | owner, admin or member |
+| Attach (`projectId: <id>`) | owner or admin | owner or admin of the destination |
+| Detach (`projectId: null`) | owner or admin | owner or admin of the project it leaves |
+| Move between projects | owner or admin | owner or admin of **both** |
+
+A plain project member can no longer attach or detach (before 2026-11-15 any member could
+attach). Tasks move with the list; a task whose custom `statusRole` the destination lacks
+shows in Inbox there and keeps its stored role, so moving back restores it.
+
 An absent `project` relation means **"not loaded"**, never "no project access".
 Any query backing a permission check must include it (`PROJECT_ACCESS_INCLUDE`),
 or project members silently lose access. Visibility is derived from the same

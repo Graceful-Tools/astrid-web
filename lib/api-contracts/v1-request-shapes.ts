@@ -363,6 +363,12 @@ export interface V1ListCreateRequest {
 
   /** Members to seed the list with, added alongside the owner at creation. */
   memberIds?: string[]
+
+  /**
+   * Create the list inside this project, in the same write (AWTD-1702). The caller
+   * must belong to the project (403 `PROJECT_CREATE_FORBIDDEN`); unknown is 404.
+   */
+  projectId?: string
 }
 
 /** POST /api/v1/lists/:id/invite */

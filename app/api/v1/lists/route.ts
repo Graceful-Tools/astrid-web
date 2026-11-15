@@ -23,6 +23,8 @@ import type { V1List, V1UserSummary } from '@/lib/api-contracts/v1-ios-shapes'
 import type { V1ListCreateRequest } from '@/lib/api-contracts/v1-request-shapes'
 import { isV1ListPrivacy, V1_LIST_PRIVACY_VALUES } from '@/lib/api-contracts/v1-request-shapes'
 import { listVisibilityWhere } from '@/lib/list-permissions'
+import { authorizeProjectAttach, collectProjectMemberUserIds } from '@/lib/projects-service'
+import { projectModeGate } from '@/lib/project-mode'
 import { invitationsVisibleTo } from '@/lib/lists/v1-list-shape'
 import { DEFAULT_LIST_SHOW_SUBTASKS } from '@/lib/list-subtask-visibility'
 import { getDeletionsSince } from '@/lib/deletion-log'
@@ -245,6 +247,25 @@ export const POST = withAuth(
       )
     }
 
+    // Created IN the project in the one write, so there is no create-then-PATCH
+    // window with an orphan list (AWTD-1702). Membership is enough: the caller
+    // owns what they create, so nothing of anyone else's is exposed. Moving an
+    // existing list is stricter (PUT /api/v1/lists/:id).
+    const projectId = typeof body.projectId === 'string' && body.projectId ? body.projectId : null
+    if (projectId) {
+      const gated = await projectModeGate(auth.userId)
+      if (gated) return gated
+      const access = await authorizeProjectAttach(projectId, auth.userId)
+      if ('error' in access) {
+        return access.error === 'not_found'
+          ? NextResponse.json({ error: 'Project not found' }, { status: 404 })
+          : NextResponse.json(
+              { error: 'You are not a member of this project', code: 'PROJECT_CREATE_FORBIDDEN' },
+              { status: 403 },
+            )
+      }
+    }
+
     let list
     try {
       list = await createListWithImageOwnership(
@@ -258,6 +279,7 @@ export const POST = withAuth(
             imageUrl: body.imageUrl,
             privacy: body.privacy || 'PRIVATE',
             ownerId: auth.userId,
+            projectId,
             defaultAssigneeId: body.defaultAssigneeId,
             defaultPriority: body.defaultPriority,
             defaultRepeating: body.defaultRepeating,
@@ -298,7 +320,9 @@ export const POST = withAuth(
     // `/api/lists` cache and the v1 cache key in one shot.
     try {
       const memberIds: string[] = body.memberIds || []
-      const userIdsToInvalidate = Array.from(new Set([auth.userId, ...memberIds]))
+      // A list created in a project is visible to the whole project at once.
+      const projectMemberIds = projectId ? await collectProjectMemberUserIds([projectId]) : []
+      const userIdsToInvalidate = Array.from(new Set([auth.userId, ...memberIds, ...projectMemberIds]))
       // Pass the list id: userLists used to wipe `members:list:*` for every
       // list on the platform, and now clears only the lists it is told about
       // (task 21dc1119). This is a brand-new list, so there is nothing cached
