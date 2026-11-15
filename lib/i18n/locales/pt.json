@@ -1810,7 +1810,16 @@
     "disableBoardFailed": "Não foi possível desativar o quadro",
     "disableBoardTitle": "Desativar a visualização de quadro",
     "disableBoardBody": "As tarefas permanecem nesta lista, mas as colunas Ready/Doing/Waiting serão removidas.",
-    "disableBoardNote": "As tarefas que estiverem em uma coluna de status perderão o status. As tarefas concluídas continuam concluídas."
+    "disableBoardNote": "As tarefas que estiverem em uma coluna de status perderão o status. As tarefas concluídas continuam concluídas.",
+    "projectsHeading": "Projetos",
+    "openBoard": "Abrir o quadro {name}",
+    "showLists": "Mostrar listas de {name}",
+    "hideLists": "Ocultar listas de {name}",
+    "boardAddList": "Adicionar lista",
+    "boardRemoveRow": "Remover {name} deste quadro",
+    "boardEmpty": "Arraste uma lista da barra lateral para cá ou use Adicionar lista.",
+    "boardNoCandidates": "Todas as listas já estão neste quadro.",
+    "boardSaveFailed": "Não foi possível salvar as listas deste quadro. Tente novamente."
   },
   "viewRotator": {
     "showList": "Mostrar lista",

@@ -1810,7 +1810,16 @@
     "disableBoardFailed": "Board konnte nicht deaktiviert werden",
     "disableBoardTitle": "Board-Ansicht deaktivieren",
     "disableBoardBody": "Die Aufgaben bleiben in dieser Liste, aber die Spalten Ready/Doing/Waiting werden entfernt.",
-    "disableBoardNote": "Aufgaben in einer Statusspalte verlieren ihren Status. Erledigte Aufgaben bleiben erledigt."
+    "disableBoardNote": "Aufgaben in einer Statusspalte verlieren ihren Status. Erledigte Aufgaben bleiben erledigt.",
+    "projectsHeading": "Projekte",
+    "openBoard": "Board {name} öffnen",
+    "showLists": "Listen in {name} anzeigen",
+    "hideLists": "Listen in {name} ausblenden",
+    "boardAddList": "Liste hinzufügen",
+    "boardRemoveRow": "{name} von diesem Board entfernen",
+    "boardEmpty": "Ziehe eine Liste aus der Seitenleiste hierher oder nutze „Liste hinzufügen“.",
+    "boardNoCandidates": "Alle Listen sind bereits auf diesem Board.",
+    "boardSaveFailed": "Die Listen dieses Boards konnten nicht gespeichert werden. Bitte versuche es erneut."
   },
   "viewRotator": {
     "showList": "Liste anzeigen",

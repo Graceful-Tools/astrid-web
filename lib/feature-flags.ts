@@ -1,5 +1,6 @@
 import { createHash } from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { isProjectModeAllowlisted } from '@/lib/project-mode-allowlist'
 
 export const FEATURE_KEYS = ['google_tasks', 'project_mode', 'task_cost'] as const
 export type FeatureKey = typeof FEATURE_KEYS[number]
@@ -79,7 +80,23 @@ export async function getEffectiveFeatures(userId: string): Promise<{
     key,
     evaluateFeatureFlag(loaded.flags.find(flag => flag.key === key) ?? null, userId),
   ])) as Record<FeatureKey, boolean>
+  if (!features.project_mode) features.project_mode = await projectModeAllowlisted(userId)
   return { version: loaded.version, features }
+}
+
+/**
+ * The configured allowlist (AWTD-1660, lib/project-mode-allowlist.ts). Asked only
+ * when no admin grant applies, and fails closed: a lookup that throws grants
+ * nothing.
+ */
+async function projectModeAllowlisted(userId: string): Promise<boolean> {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true, emailVerified: true } })
+    // Verified only: a passkey signup creates an unverified account for any address.
+    return Boolean(user?.emailVerified) && isProjectModeAllowlisted(user?.email)
+  } catch {
+    return false
+  }
 }
 
 export async function isFeatureEnabled(key: FeatureKey, userId: string): Promise<boolean> {

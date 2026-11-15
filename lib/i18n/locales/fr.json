@@ -1810,7 +1810,16 @@
     "disableBoardFailed": "Impossible de désactiver le tableau",
     "disableBoardTitle": "Désactiver la vue tableau",
     "disableBoardBody": "Les tâches restent dans cette liste, mais les colonnes Ready/Doing/Waiting seront supprimées.",
-    "disableBoardNote": "Les tâches placées dans une colonne de statut perdront leur statut. Les tâches terminées restent terminées."
+    "disableBoardNote": "Les tâches placées dans une colonne de statut perdront leur statut. Les tâches terminées restent terminées.",
+    "projectsHeading": "Projets",
+    "openBoard": "Ouvrir le tableau {name}",
+    "showLists": "Afficher les listes de {name}",
+    "hideLists": "Masquer les listes de {name}",
+    "boardAddList": "Ajouter une liste",
+    "boardRemoveRow": "Retirer {name} de ce tableau",
+    "boardEmpty": "Faites glisser une liste depuis la barre latérale, ou utilisez Ajouter une liste.",
+    "boardNoCandidates": "Toutes les listes sont déjà sur ce tableau.",
+    "boardSaveFailed": "Impossible d'enregistrer les listes de ce tableau. Veuillez réessayer."
   },
   "viewRotator": {
     "showList": "Afficher la liste",
