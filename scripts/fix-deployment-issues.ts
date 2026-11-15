@@ -20,8 +20,6 @@ function fixApiRoutes() {
   console.log('📡 Checking API routes for dynamic server usage...')
   
   const apiRoutes = [
-    'app/api/account/route.ts',
-    'app/api/users/search/route.ts',
     'app/api/invitations/route.ts',
     'app/api/invitations/[token]/route.ts',
     'app/api/tasks/route.ts',

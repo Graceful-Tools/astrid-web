@@ -1,9 +1,9 @@
 /**
  * GET /api/v1/users/search
  *
- * Type-ahead user search scoped by list/task context. Mirrors
- * /api/users/search behavior, including AI-agent inclusion when the
- * user has API keys configured for them.
+ * Type-ahead user search scoped by list/task context, including AI-agent
+ * inclusion when the user has API keys configured for them. The legacy
+ * /api/users/search it mirrored was deleted (AWTD-839).
  *
  * Query params:
  *   q          — search term (min 2 chars unless taskId/listIds/includeAIAgents set)

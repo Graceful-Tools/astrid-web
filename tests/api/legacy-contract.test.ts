@@ -23,9 +23,6 @@ import type {
   LegacyRemindersStatusResponse,
   LegacyReminderDismissResponse,
   LegacyReminderSnoozeResponse,
-  LegacyAccountResponse,
-  LegacyAccountDeleteResponse,
-  LegacyVerifyEmailResponse,
   LegacyUploadResponse,
   LegacySecureFileInfoResponse,
   LegacySecureUploadRequestResponse,
@@ -33,7 +30,6 @@ import type {
   LegacySecureFileUploadUrlResponse,
   LegacySecureFileConfirmUploadResponse,
   LegacyUserProfileResponse,
-  LegacyUsersSearchResponse,
   LegacyMyTasksPreferencesResponse,
   LegacyAiApiKeysResponse,
   LegacySuccessOnlyResponse,
@@ -176,42 +172,6 @@ describe('legacy contract — ReminderSnoozeResponse', () => {
   })
 })
 
-// ── Account ───────────────────────────────────────────────────────────
-
-describe('legacy contract — AccountResponse (GET /api/account)', () => {
-  it('wraps user under { user }', () => {
-    const sample = {
-      user: undefined as unknown as LegacyAccountResponse['user'],
-    } satisfies LegacyAccountResponse
-    expect(Object.keys(sample)).toEqual(['user'])
-  })
-})
-
-describe('legacy contract — AccountDeleteResponse', () => {
-  it('has { success: true, message }', () => {
-    const sample: LegacyAccountDeleteResponse = {
-      success: true, message: 'deleted',
-    }
-    expect(Object.keys(sample).sort()).toEqual(['message', 'success'])
-    expect(sample.success).toBe(true)
-  })
-})
-
-describe('legacy contract — VerifyEmailResponse (multi-action)', () => {
-  // Variant: the bare success case
-  it('always carries { success } regardless of action', () => {
-    const sample: LegacyVerifyEmailResponse = { success: true }
-    expect('success' in sample).toBe(true)
-  })
-
-  // Variant: error case
-  it('may include { error } when success=false', () => {
-    const sample: LegacyVerifyEmailResponse = { success: false, error: 'Token expired' }
-    expect(sample.success).toBe(false)
-    expect(sample.error).toBe('Token expired')
-  })
-})
-
 // ── Files ─────────────────────────────────────────────────────────────
 
 describe('legacy contract — UploadResponse', () => {
@@ -293,13 +253,6 @@ describe('legacy contract — UserProfileResponse', () => {
     expect(new Set(Object.keys(sample))).toEqual(new Set(EXPECTED))
     expect(new Set(Object.keys(sample.user))).toEqual(new Set(USER_KEYS))
     expect(new Set(Object.keys(sample.stats))).toEqual(new Set(STATS_KEYS))
-  })
-})
-
-describe('legacy contract — UsersSearchResponse', () => {
-  it('has { users, listMemberCount }', () => {
-    const sample: LegacyUsersSearchResponse = { users: [], listMemberCount: 0 }
-    expect(Object.keys(sample).sort()).toEqual(['listMemberCount', 'users'])
   })
 })
 

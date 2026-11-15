@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { NextRequest } from 'next/server'
 import { mockPrisma, mockGetServerSession } from '../setup'
 
 const appRequest = vi.fn()
@@ -24,7 +25,9 @@ vi.mock('@octokit/app', () => ({
   }),
 }))
 
-import { GET as listInstallations } from '@/app/api/github/installations/route'
+// The legacy session-auth twin, /api/github/installations, was deleted
+// (AWTD-839); v1 serves the same installationSummariesForUser listing.
+import { GET as listInstallations } from '@/app/api/v1/github/installations/route'
 import { POST as manualSetup } from '@/app/api/github/manual-setup/route'
 import { GET as setup } from '@/app/api/github/setup/route'
 import { mintOAuthStateWithSubject } from '@/lib/sync/oauth-state'
@@ -94,10 +97,13 @@ describe('GitHub App installations cannot be claimed without proof (AWTD-1087)',
 
   it('never lists installations the user has not linked', async () => {
     mockPrisma.gitHubInstallationAccess.findMany.mockResolvedValue([])
+    // withAuth resolves the session user's row before calling the handler.
+    mockPrisma.user.findUnique.mockResolvedValue({ id: ME, name: 'Me', email: 'me@example.com', isAIAgent: false })
 
-    const res = await listInstallations()
+    const res = await listInstallations(new NextRequest('http://localhost/api/v1/github/installations'))
     const body = await res.json()
 
+    expect(res.status).toBe(200)
     expect(body.installations).toEqual([])
     expect(JSON.stringify(body)).not.toContain('victim-org')
     expect(appRequest).not.toHaveBeenCalledWith('GET /app/installations')
