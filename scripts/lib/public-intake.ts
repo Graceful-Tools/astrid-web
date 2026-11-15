@@ -8,7 +8,7 @@
  *     and promotes it before any loop can start it;
  *   - its text is quoted line by line, with the syntax the apps and the loop act
  *     on defused (task links, mentions, Decision cards, AGENT-HANDBACK /
- *     AWAITING-DEPLOY / LONG-RUN markers) and invisible characters removed;
+ *     AWAITING-DEPLOY / AWAITING-MERGE / LONG-RUN markers) and invisible characters removed;
  *   - a submission that reads like an attempt to steer an agent, links off the
  *     domains a report needs, or is too long to be a bug report is HELD — not
  *     copied — and named in the run summary for a person to look at.
@@ -32,7 +32,7 @@ const STEERING: Array<[RegExp, string]> = [
     'asks an agent to ignore its instructions',
   ],
   [/\byou are (?:now )?(?:an?|the) (?:ai|assistant|agent|model)\b|\bsystem prompt\b/i, 'addresses an agent directly'],
-  [/\b(?:AGENT-HANDBACK|AWAITING-DEPLOY|LONG-RUN|BLOCKED-BY|BLOCKED-ON)\s*:/i, 'carries a marker the loop acts on'],
+  [/\b(?:AGENT-HANDBACK|AWAITING-DEPLOY|AWAITING-MERGE|LONG-RUN|BLOCKED-BY|BLOCKED-ON)\s*:/i, 'carries a marker the loop acts on'],
   [
     /\b(?:curl|wget|iwr|Invoke-WebRequest)\b[^\n]*\|\s*(?:ba|z|da)?sh\b|\brm\s+-rf\b|\bsudo\b/i,
     'contains a shell command',
@@ -59,7 +59,7 @@ export function routeBoard(text: string): IntakeBoard {
 }
 
 const INVISIBLE = /[​-‏‪-‮⁠-⁤﻿]/g
-const MARKER = /\b(AGENT-HANDBACK|AWAITING-DEPLOY|LONG-RUN|BLOCKED-BY|BLOCKED-ON)\s*:/gi
+const MARKER = /\b(AGENT-HANDBACK|AWAITING-DEPLOY|AWAITING-MERGE|LONG-RUN|BLOCKED-BY|BLOCKED-ON)\s*:/gi
 
 function defuse(text: string): string {
   return text

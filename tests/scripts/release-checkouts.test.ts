@@ -74,7 +74,10 @@ async function releaseComment(checkouts: ReturnType<typeof readCheckout>[]) {
 describe('AWTD-1510: the checkouts a board can touch', () => {
   it('AWTD-1510: the Windows board touches astrid-windows and astrid-core', () => {
     expect(BOARD_CHECKOUTS.windows).toEqual(['astrid-windows', 'astrid-core'])
-    expect(BOARD_CHECKOUTS.web).toEqual(['astrid-web'])
+  })
+  it('AWTD-1682: the web and iOS boards touch astrid-core too, since core work moved to them', () => {
+    expect(BOARD_CHECKOUTS.web).toEqual(['astrid-web', 'astrid-core'])
+    expect(BOARD_CHECKOUTS.ios).toEqual(['astrid-ios', 'astrid-core'])
   })
 })
 
@@ -121,7 +124,7 @@ describe('AWTD-1510: release search across sibling checkouts (temp git repos)', 
   })
 
   it('AWTD-1510: a board without companions searches only its own checkout', () => {
-    const found = releaseCheckouts({ repos: [windows], board: 'web' })
+    const found = releaseCheckouts({ repos: [windows], board: 'android' })
     expect(found.map(c => c.name)).toEqual(['astrid-windows'])
   })
 

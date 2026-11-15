@@ -12,6 +12,8 @@ on:
   schedule:
     - cron: '17,47 * * * *'
   # An agent PR becomes landable when its CI finishes, so that is when to look.
+  # (An astrid-core PR's CI runs in that repo and cannot start this one, so core
+  # handoffs land on the schedule, AWTD-1682.)
   # The schedule alone landed one PR every few hours (agent-run.yml, chain job).
   # workflow_run always runs THIS file from main, never the PR's copy.
   workflow_run:
@@ -44,6 +46,11 @@ jobs:
       ASTRID_OAUTH_CLIENT_SECRET: ${{ secrets.ASTRID_OAUTH_CLIENT_SECRET }}
       ASTRID_WEB_LIST_ID: ${{ vars.ASTRID_WEB_LIST_ID || 'a623f322-4c3c-49b5-8a94-d2d9f00c82ba' }}
       DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+      # AWTD-1682: the built-in token cannot write to another repository, so merging an
+      # astrid-core handoff uses the agent's fine-grained token (the Graceful-Tools app repos,
+      # Contents and Pull requests, no Actions), which this `release` environment must hold too.
+      # Unset, core merges are skipped and core completions still run.
+      ASTRID_CORE_GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -60,7 +67,7 @@ jobs:
           if [ "${DRY_RUN}" = true ]; then FLAGS+=(--dry-run); fi
           set -o pipefail
           npx tsx scripts/land-and-deploy.ts --list-id "${ASTRID_WEB_LIST_ID}" \
-            --max-land 1 "${FLAGS[@]}" 2>&1 | tee .agent-output/ship.log
+            --max-land 1 --core-repo Graceful-Tools/astrid-core "${FLAGS[@]}" 2>&1 | tee .agent-output/ship.log
       - name: Persist shipping evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

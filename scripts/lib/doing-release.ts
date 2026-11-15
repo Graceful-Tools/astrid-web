@@ -39,6 +39,7 @@ import {
 } from '@/lib/ready-queue-scope'
 import { agentMailboxFromEmail } from '@/lib/brand/agent-emails'
 import { REDO_CLAIM_MARKER } from '@/lib/fixall-claim'
+import { latestHandoff, parseAwaitingMerge } from './core-handoff'
 
 /** Every release comment starts with this, and counting them is how "twice" is known. */
 export const RELEASE_MARKER = '🔁 Released from Doing by the scheduled /fixall loop'
@@ -158,6 +159,19 @@ export function isAwaitingDeploy(comments: ReleaseComment[]): boolean {
   if (!latest) return false
   return isCurrentMarker(comments, comment => (comment.content ?? '').toLowerCase().split('\n')
     .some(line => line.trim().startsWith('awaiting-deploy:') && line.includes(latest)))
+}
+
+/**
+ * Finished astrid-core work waiting for its PR to merge (AWTD-1682). Core has no deploy, so
+ * the run's report ends `AWAITING-MERGE: <repo>#<n> <sha>` instead, the task stays in Doing,
+ * and land-and-deploy.ts completes it once that PR is merged. Current under the same rule as
+ * `isAwaitingDeploy`: the newest handoff of either kind, newer than any completion, release
+ * or redo claim.
+ */
+export function isAwaitingMerge(comments: ReleaseComment[]): boolean {
+  const current = latestHandoff(comments)
+  if (current?.kind !== 'merge') return false
+  return isCurrentMarker(comments, comment => parseAwaitingMerge(comment.content)?.sha === current.sha)
 }
 
 /** The newest comment matching `isMarker` is newer than the last completion and the last release. */
