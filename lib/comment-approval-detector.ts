@@ -12,6 +12,7 @@ import {
 } from '@/lib/ai/agent-execution-mode'
 import { createLogger } from '@/lib/logger'
 import { completeTask } from '@/services/complete-task'
+import { boundDispatchHold } from '@/lib/runtime-binding/task-runtime'
 
 const log = createLogger('comment-approval-detector')
 
@@ -43,6 +44,19 @@ async function usesServerWorkflow(taskId: string): Promise<boolean> {
       },
     },
   })
+
+  // A bound board is never server-managed: its runtime is the enrolled polling
+  // one, and approval commands must not start a workflow on anyone's personal
+  // settings (AWTD-1669). Pilot off: null, with no reads.
+  const bindingHold = await boundDispatchHold({
+    taskId,
+    agentEmail: task?.assignee?.email,
+    operation: 'approval-command',
+  })
+  if (bindingHold) {
+    log.info(`💻 [CommentAction] ${taskId}: ${bindingHold}`)
+    return false
+  }
 
   if (!task?.assignee?.email) return true
 

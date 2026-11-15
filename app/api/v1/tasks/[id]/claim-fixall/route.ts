@@ -3,6 +3,8 @@ import { withAuth } from "@/lib/api-auth-wrapper"
 import { requireTaskAccess } from "@/lib/api-auth-middleware"
 import { parseFixallClaimRequest } from "@/lib/fixall-claim"
 import { claimFixallTask } from "@/services/fixall-claim.service"
+import { runtimePrincipalOf } from "@/lib/runtime-binding/task-runtime"
+import { runtimeBindingDenialResponse } from "@/lib/runtime-binding/denial-response"
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -22,7 +24,13 @@ export const POST = withAuth<RouteContext>(
       )
     }
 
-    const result = await claimFixallTask(taskId, claim)
+    const result = await claimFixallTask(taskId, claim, {
+      principal: runtimePrincipalOf(auth),
+      actorUserId: auth.userId,
+    })
+    // A bound board refused the claim (AWTD-1669): capacity is a 409 like a
+    // lost race, so a loop moves on; every other reason is a 403 it must report.
+    if (result.status === "binding-denied") return runtimeBindingDenialResponse(result.denial)
     if (result.status === "agent-unavailable") {
       return NextResponse.json(
         { error: `No active agent account for ${claim.agent}` },

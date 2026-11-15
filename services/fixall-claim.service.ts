@@ -12,12 +12,26 @@ import { prisma } from "@/lib/prisma"
 import { pendingAgentHandback } from '@/lib/agent-handback'
 import { parseBlockedConditions } from '@/lib/ready-queue-scope'
 import { DOING_STATUS_ROLE, READY_STATUS_ROLE } from '@/lib/task-status'
+import type { Prisma } from '@prisma/client'
+import type { RuntimeBindingDenial } from '@/lib/ai/runtime-binding-resolver'
+import { denyUnsupportedBoundTransport, gateBoundClaim, runFencedClaim } from '@/lib/runtime-binding/claim-fence'
 
 export type FixallClaimResult =
   | { status: "claimed"; assigneeEmail: string }
   | { status: "agent-unavailable" }
   | { status: "conflict" }
   | { status: "handed-off"; sha: string }
+  /** A bound board refused this claim (AWTD-1669). Never a fall-back. */
+  | { status: "binding-denied"; denial: RuntimeBindingDenial }
+
+/** Who is claiming, beyond the agent: the authenticated runtime and person (AWTD-1669). */
+export interface FixallClaimContext {
+  /** The caller's OAuth client id; null for any other authentication. */
+  principal?: string | null
+  actorUserId?: string
+}
+
+type ClaimWrite = (db: Prisma.TransactionClient) => Promise<FixallClaimResult>
 
 /**
  * Take a task for the harness that asked, in ONE conditional update.
@@ -34,6 +48,7 @@ export type FixallClaimResult =
 export async function claimFixallTask(
   taskId: string,
   claim: FixallClaimRequest,
+  context: FixallClaimContext = {},
 ): Promise<FixallClaimResult> {
   const expectedEmail = fixallClaimAgentEmail(claim.agent)
   const agent = await prisma.user.findUnique({
@@ -47,6 +62,48 @@ export async function claimFixallTask(
     !agent.isActive
   ) {
     return { status: "agent-unavailable" }
+  }
+
+  // The runtime-binding pilot (AWTD-1669). Off, or on an unbound task, this is
+  // `legacy` with no query, and every write below runs exactly as before. On a
+  // bound task every write goes through the capacity fence instead.
+  const principal = context.principal ?? null
+  const actorUserId = context.actorUserId ?? agent.id
+  const operation = `claim-fixall:${claim.action}`
+  const gateInput = {
+    taskId,
+    agentEmail: agent.email,
+    executionBoardId: claim.listId ?? claim.resume?.listId ?? null,
+    principal,
+  }
+  const binding = await gateBoundClaim(gateInput, { actorUserId, operation })
+  if (binding.kind === 'denied') return { status: 'binding-denied', denial: binding.denial }
+  if (binding.kind === 'bound' && claim.nativeDispatch) {
+    return {
+      status: 'binding-denied',
+      denial: await denyUnsupportedBoundTransport(binding.plan, gateInput, { actorUserId, operation }),
+    }
+  }
+  const legacyClient = prisma as unknown as Prisma.TransactionClient
+  /** A single write: legacy runs it on the client as before; bound runs it fenced. */
+  const write = (fn: ClaimWrite, takesCapacity = true) =>
+    binding.kind === 'bound' ? fenced(fn, takesCapacity) : fn(legacyClient)
+  /** A transactional write: legacy keeps its own $transaction; bound runs inside the fence's. */
+  const transact = (fn: ClaimWrite, takesCapacity = true) =>
+    binding.kind === 'bound' ? fenced(fn, takesCapacity) : prisma.$transaction(fn)
+  const fenced = async (fn: ClaimWrite, takesCapacity: boolean): Promise<FixallClaimResult> => {
+    if (binding.kind !== 'bound') return fn(legacyClient)
+    const outcome = await runFencedClaim({
+      plan: binding.plan,
+      gate: gateInput,
+      actorUserId,
+      operation,
+      takesCapacity,
+      write: fn,
+      started: result => takesCapacity && result.status === 'claimed',
+    })
+    if (outcome.kind === 'denied') return { status: 'binding-denied', denial: outcome.denial }
+    return outcome.kind === 'stale' ? { status: 'conflict' } : outcome.value
   }
 
   if (claim.action === 'resume') {
@@ -65,31 +122,33 @@ export async function claimFixallTask(
     const actual = task && pendingAgentHandback({ task, agentId: agent.id, mailbox: claim.agent, listId: expected.listId })
     if (!actual || Object.keys(expected).some(key =>
       expected[key as keyof typeof expected] !== actual[key as keyof typeof actual])) return { status: 'conflict' }
-    const result = await prisma.task.updateMany({
-      where: {
-        // A handback sits in the Inbox (no status), assigned to the person (R4).
-        id: taskId, completed: false, statusRole: null,
-        assigneeId: expected.assigneeId, updatedAt: task.updatedAt,
-        lists: { some: { id: expected.listId } },
-        AND: [
-          { OR: [{ dueDateTime: null }, { dueDateTime: { lte: new Date() } }] },
-          { comments: { none: { updatedAt: { gt: new Date(expected.commentWatermark) } } } },
-          ...task.comments.filter(comment => [expected.handbackCommentId, expected.replyCommentId].includes(comment.id))
-            .map(comment => ({ comments: { some: {
-              id: comment.id, authorId: comment.authorId, content: comment.content, updatedAt: comment.updatedAt,
-            } } })),
-        ],
-      },
-      data: buildFixallClaimData({ agentId: agent.id, claim }),
+    return write(async db => {
+      const result = await db.task.updateMany({
+        where: {
+          // A handback sits in the Inbox (no status), assigned to the person (R4).
+          id: taskId, completed: false, statusRole: null,
+          assigneeId: expected.assigneeId, updatedAt: task.updatedAt,
+          lists: { some: { id: expected.listId } },
+          AND: [
+            { OR: [{ dueDateTime: null }, { dueDateTime: { lte: new Date() } }] },
+            { comments: { none: { updatedAt: { gt: new Date(expected.commentWatermark) } } } },
+            ...task.comments.filter(comment => [expected.handbackCommentId, expected.replyCommentId].includes(comment.id))
+              .map(comment => ({ comments: { some: {
+                id: comment.id, authorId: comment.authorId, content: comment.content, updatedAt: comment.updatedAt,
+              } } })),
+          ],
+        },
+        data: buildFixallClaimData({ agentId: agent.id, claim }),
+      })
+      return result.count === 1 ? { status: 'claimed', assigneeEmail: agent.email } : { status: 'conflict' }
     })
-    return result.count === 1 ? { status: 'claimed', assigneeEmail: agent.email } : { status: 'conflict' }
   }
 
   if (claim.nativeDispatch) {
     const nativeDispatch = claim.nativeDispatch
     const listId = claim.listId
     if (!listId) return { status: 'conflict' }
-    return prisma.$transaction(async (tx): Promise<FixallClaimResult> => {
+    return transact(async (tx): Promise<FixallClaimResult> => {
       const result = await tx.task.updateMany({
         where: buildAtomicFixallClaimWhere({ taskId, agentId: agent.id, claim, now: new Date() }),
         data: buildFixallClaimData({ agentId: agent.id, claim }),
@@ -119,7 +178,8 @@ export async function claimFixallTask(
       // Put it back rather than only refusing: left in Ready, every run would
       // wake for it and be refused again. Finished work awaiting its deploy
       // stays in Doing (R6); its assignee is left as it is.
-      return prisma.$transaction(async (tx): Promise<FixallClaimResult> => {
+      // Parking ends no run and starts none, so it takes no capacity.
+      return transact(async (tx): Promise<FixallClaimResult> => {
         const parked = await tx.task.updateMany({
           where: { id: taskId, completed: false, statusRole: READY_STATUS_ROLE },
           data: { statusRole: DOING_STATUS_ROLE },
@@ -128,13 +188,13 @@ export async function claimFixallTask(
           await tx.comment.create({ data: { taskId, authorId: agent.id, content: handedOffParkComment(sha) } })
         }
         return { status: 'handed-off', sha }
-      })
+      }, false)
     }
   }
 
   if (redoOf) {
     const previous = redoOf
-    return prisma.$transaction(async (tx): Promise<FixallClaimResult> => {
+    return transact(async (tx): Promise<FixallClaimResult> => {
       const claimed = await tx.task.updateMany({
         where: buildAtomicFixallClaimWhere({ taskId, agentId: agent.id, claim, now: new Date() }),
         data: buildFixallClaimData({ agentId: agent.id, claim }),
@@ -145,17 +205,20 @@ export async function claimFixallTask(
     })
   }
 
-  const result = await prisma.task.updateMany({
-    where: buildAtomicFixallClaimWhere({
-      taskId,
-      agentId: agent.id,
-      claim,
-      now: new Date(),
-    }),
-    data: buildFixallClaimData({ agentId: agent.id, claim }),
-  })
+  // A pause parks the agent's own run in the Inbox: it frees capacity, never takes it.
+  return write(async db => {
+    const result = await db.task.updateMany({
+      where: buildAtomicFixallClaimWhere({
+        taskId,
+        agentId: agent.id,
+        claim,
+        now: new Date(),
+      }),
+      data: buildFixallClaimData({ agentId: agent.id, claim }),
+    })
 
-  return result.count === 1
-    ? { status: "claimed", assigneeEmail: agent.email }
-    : { status: "conflict" }
+    return result.count === 1
+      ? { status: "claimed", assigneeEmail: agent.email }
+      : { status: "conflict" }
+  }, claim.action !== 'pause')
 }

@@ -159,7 +159,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'ASTRID_RUNTIME_BINDING_RESOLVER', scope: 'optional', description: 'Set to "true" to let a board with an explicit business runtime binding resolve through that binding (AWTD-1667, docs/architecture/BUSINESS_RUNTIME_BINDING_RFC.md §5). A binding that cannot be used is then a visible denial, never a personal fallback. Off: TaskList.runtimeBindingId is never read or queried and every board resolves exactly as before. Default off; rollback is unsetting it.', validate: v => ['true', 'false'].includes(v) ? null : 'Must be true or false' },
   { name: 'RUNTIME_BINDING_AUDIT_OPERATIONAL_DAYS', scope: 'optional', description: 'Days to keep detailed operational runtime-binding audit events (resolution denials, transport attempts, lease renewals) before /api/cron/binding-audit deletes them (AWTD-1670). Default and minimum 90 (Jon, 2026-11-14); a shorter or malformed value is ignored, so this can only extend retention.', validate: retentionDaysProblem },
   { name: 'RUNTIME_BINDING_AUDIT_LIFECYCLE_DAYS', scope: 'optional', description: 'Days to keep runtime-binding lifecycle audit records (consent, approval, revocation, run attribution, exports) after the binding is revoked (AWTD-1670). Records of a binding that is not revoked are never deleted. Default and minimum 90 (Jon, 2026-11-14); set longer if deployment policy or legal review requires it. A shorter or malformed value is ignored.', validate: retentionDaysProblem },
-  { name: 'ASTRID_RUNTIME_BINDING_SINGLE_BUSINESS', scope: 'optional', description: 'Set to "true" ONLY on a dedicated single-business deployment to allow admin enrollment of business runtime bindings (AWTD-1668, docs/architecture/BUSINESS_RUNTIME_BINDING_RFC.md §6). Off: creating, changing, verifying, approving, activating and attaching bindings are refused; suspend, revoke and detach still work. Default off, so the shared hosted service refuses enrollment.', validate: v => ['true', 'false'].includes(v) ? null : 'Must be true or false' },
+  { name: 'ASTRID_RUNTIME_BINDING_SINGLE_BUSINESS', scope: 'optional', description: 'Set to "true" ONLY on a dedicated single-business deployment to allow admin enrollment of business runtime bindings (AWTD-1668, docs/architecture/BUSINESS_RUNTIME_BINDING_RFC.md §6). Off: creating, changing, verifying, approving, activating and attaching bindings are refused; suspend, revoke and detach still work. With ASTRID_RUNTIME_BINDING_RESOLVER also on, the pilot runs (AWTD-1669): a bound board is discoverable and claimable only by its binding runtime, claims are capacity-fenced, and server-side dispatch stands down. Default off, so the shared hosted service refuses enrollment.', validate: v => ['true', 'false'].includes(v) ? null : 'Must be true or false' },
   // NOT read by the running app. Server-run inference uses the key each USER
   // stores in their own settings, encrypted at rest with ENCRYPTION_KEY — see
   // lib/ai/agent-execution-mode.ts. These four are read only by maintenance and
@@ -437,4 +437,14 @@ export function runtimeBindingAuditRetentionEnv(): {
  */
 export function runtimeBindingEnrollmentEnabled(): boolean {
   return process.env.ASTRID_RUNTIME_BINDING_SINGLE_BUSINESS === 'true'
+}
+
+/**
+ * The runtime-binding pilot (AWTD-1669): queue scoping, fenced claims and
+ * dispatch gating for bound boards. Needs BOTH the resolver and the
+ * single-business flag, so a shared deployment that only turned on the resolver
+ * changes nothing, and with either off no binding column is read by these paths.
+ */
+export function runtimeBindingPilotEnabled(): boolean {
+  return runtimeBindingResolverEnabled() && runtimeBindingEnrollmentEnabled()
 }

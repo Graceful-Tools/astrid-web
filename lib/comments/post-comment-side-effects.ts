@@ -19,6 +19,7 @@ import { isPollingOnlyAgent, resolveAgentRunOwnerId } from '@/lib/ai/agent-execu
 import { createLogger } from '@/lib/logger'
 import { fanOutComment } from '@/lib/notifications'
 import { persistNotifications } from '@/lib/notification-store'
+import { boundDispatchHold } from '@/lib/runtime-binding/task-runtime'
 
 const log = createLogger('comments.post-comment-side-effects')
 
@@ -164,7 +165,19 @@ async function notifyMentionsAndTriggerAgents(
         // trigger it again.
         if (commenter.isAIAgent) continue
         const { ASTRID_EMAIL } = await import('@/lib/astrid-agent')
-        if (mentionedUser.email === ASTRID_EMAIL) {
+        // The assistant's reply is a server-side model call: on a bound board
+        // it is not the enrolled runtime and has no business payer (AWTD-1669).
+        const bindingHold = mentionedUser.email === ASTRID_EMAIL
+          ? await boundDispatchHold({
+              taskId: task.id,
+              agentEmail: mentionedUser.email,
+              operation: 'mention-reply',
+              actorUserId: commenter.id,
+            })
+          : null
+        if (bindingHold) {
+          log.info({ taskId: task.id }, `[comments] not enqueueing the assistant reply: ${bindingHold}`)
+        } else if (mentionedUser.email === ASTRID_EMAIL) {
           // A durable job (AWTD-1460): the reply is a model call that outlives
           // this request, so it runs after the response and is retried if the
           // function is frozen first. One reply per comment, however many
@@ -339,6 +352,19 @@ async function resumeCodingAgentWorkflow(
 ): Promise<void> {
   const listWithRepo = task.lists?.find(l => l.githubRepositoryId)
   if (!listWithRepo?.githubRepositoryId) return
+
+  // A bound board never resumes on anyone's personal settings (AWTD-1669).
+  // Pilot off: null, with no reads.
+  const bindingHold = await boundDispatchHold({
+    taskId: task.id,
+    agentEmail: task.assignee?.email,
+    operation: 'workflow-resume',
+    actorUserId: commenter.id,
+  })
+  if (bindingHold) {
+    log.info({ taskId: task.id }, `[comments] not resuming the coding workflow: ${bindingHold}`)
+    return
+  }
 
   const configuredByUserId =
     resolveAgentRunOwnerId({
