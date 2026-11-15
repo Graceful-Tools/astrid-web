@@ -162,7 +162,7 @@ describe('Projects sidebar section gating (AWTD-1660)', () => {
 describe('ProjectBoard rows (AWTD-1660)', () => {
   const tasks = [task('a', 'web', 'doing'), task('b', 'ios', null), task('c', 'groceries', 'ready')]
 
-  function renderBoard(onUpdateTask = vi.fn()) {
+  function renderBoard(onUpdateTask = vi.fn(), onCreateTask = vi.fn(async (): Promise<string | null> => null)) {
     return render(
       <ProjectBoard
         projectId="p1"
@@ -172,6 +172,7 @@ describe('ProjectBoard rows (AWTD-1660)', () => {
         currentUser={{ id: 'u1' } as never}
         onUpdateTask={onUpdateTask}
         onDeleteTask={vi.fn()}
+        onCreateTask={onCreateTask}
       />,
     )
   }
@@ -184,6 +185,19 @@ describe('ProjectBoard rows (AWTD-1660)', () => {
     expect(screen.queryByTestId('project-board-row-groceries')).toBeNull()
     expect(screen.getByTestId('project-board-cell-web-doing')).toHaveTextContent('Task a')
     expect(screen.getByTestId('project-board-cell-ios-__virtual_inbox__')).toHaveTextContent('Task b')
+  })
+
+  it('AWTD-1675: a cell\'s add box creates the card in that row\'s list and that column\'s status', async () => {
+    api.apiGet.mockResolvedValue(jsonResponse({ listIds: ['web', 'ios'] }))
+    const onCreateTask = vi.fn(async (): Promise<string | null> => 'new')
+    renderBoard(vi.fn(), onCreateTask)
+    await screen.findByTestId('project-board-row-ios')
+
+    fireEvent.change(screen.getByTestId('project-board-add-input-ios-doing'), { target: { value: 'Ship it' } })
+    fireEvent.submit(screen.getByTestId('project-board-add-input-ios-doing').closest('form')!)
+
+    await waitFor(() => expect(onCreateTask).toHaveBeenCalledWith('Ship it', { listIds: ['ios'], statusRole: 'doing' }))
+    expect(screen.queryByTestId('project-board-add-input-ios-done')).toBeNull()
   })
 
   it('× on a row header removes the row and saves the choice on the server', async () => {
@@ -252,7 +266,7 @@ describe('ProjectBoardHost gating (AWTD-1660)', () => {
     api.apiGet.mockResolvedValue(jsonResponse({ listIds: null }))
   })
   const renderHost = () => render(
-    <ProjectBoardHost lists={lists} tasks={[]} onUpdateTask={vi.fn()} onDeleteTask={vi.fn()} />,
+    <ProjectBoardHost lists={lists} tasks={[]} onUpdateTask={vi.fn()} onDeleteTask={vi.fn()} onCreateTask={vi.fn(async () => null)} />,
   )
 
   it('draws the selected project\'s board for someone with project_mode', async () => {
