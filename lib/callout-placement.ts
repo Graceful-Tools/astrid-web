@@ -32,7 +32,10 @@ export interface CalloutPlacement {
   arrowOffset: number
 }
 
-/** The gap between anchor and callout, and between callout and viewport edge. Core `GUTTER`. */
+/**
+ * The gap between the callout and the viewport's edges. Core `GUTTER`. Not between the callout and
+ * its anchor: the callout touches the card, its arrow's tip on the card's edge (astrid-ios AITD-679).
+ */
 export const CALLOUT_GUTTER = 8
 
 /** How close to a corner the arrow may point. Core `ARROW_MARGIN`. */
@@ -87,7 +90,8 @@ export function placeCalloutOnSide(
   const viewportRight = viewport.left + viewport.width
   const viewportBottom = viewport.top + viewport.height
 
-  const wantedLeft = side === 'right' ? anchorRight + CALLOUT_GUTTER : anchor.left - CALLOUT_GUTTER - width
+  // The near edge on the anchor's edge: the arrow's tip touches the card (AITD-679).
+  const wantedLeft = side === 'right' ? anchorRight : anchor.left - width
   const left = clamp(wantedLeft, viewport.left + CALLOUT_GUTTER, viewportRight - CALLOUT_GUTTER - width)
 
   const top = clamp(

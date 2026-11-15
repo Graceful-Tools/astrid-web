@@ -50,6 +50,13 @@ interface BoardTaskCalloutProps {
   closing?: boolean
 }
 
+/**
+ * How far the details arrow reaches outside the panel: `.task-panel-arrow` is a 20px square at
+ * `left: -11px` turned 45°, so its centre is 1px outside and its tip half a diagonal (14.1px) past
+ * that. Rounded down, so the tip meets the card's edge rather than stopping short of it.
+ */
+export const CALLOUT_ARROW_REACH = 15
+
 function findAnchor(taskId: string, anchor?: HTMLElement | null): HTMLElement | null {
   if (anchor?.isConnected) return anchor
   return document.querySelector<HTMLElement>(`[data-task-id="${taskId}"]`)
@@ -87,13 +94,21 @@ export function BoardTaskCallout({ taskId, anchor, onClose, paneProps, closing =
     const viewport = boardViewport(card)
     // No card to point at (filtered away mid-open): sit against the board's left edge.
     const anchorRect = card ? toRect(card.getBoundingClientRect()) : { left: viewport.left, top: viewport.top, width: 0, height: 0 }
-    const width = callout.getBoundingClientRect().width
+    // The callout's width with its arrow: the rule places the box it is given against the card,
+    // so the arrow's reach goes in with it and the tip, not the panel, touches the card (AITD-679).
+    const width = callout.getBoundingClientRect().width + CALLOUT_ARROW_REACH
     // As tall as the board allows, like the row pane: the arrow, not the box, follows the card.
     const height = Math.max(0, viewport.height - 2 * CALLOUT_GUTTER)
     if (!sideRef.current || sideRef.current.key !== taskId || sideRef.current.anchor !== anchor) {
       sideRef.current = { key: taskId, anchor, side: pickCalloutSide(anchorRect, viewport) }
     }
-    const next = placeCalloutOnSide(anchorRect, viewport, width, height, sideRef.current.side)
+    const placed = placeCalloutOnSide(anchorRect, viewport, width, height, sideRef.current.side)
+    // Back to the panel's own box: the arrow's reach sits on the card side of it.
+    const next = {
+      ...placed,
+      left: placed.side === "right" ? placed.left + CALLOUT_ARROW_REACH : placed.left,
+      width: placed.width - CALLOUT_ARROW_REACH,
+    }
     setPlacement(previous =>
       previous &&
       previous.side === next.side &&
