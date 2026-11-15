@@ -29,6 +29,7 @@ import { PAGE_LIMIT, selectAgentQueueTasks } from '@/lib/agent-queue-due-first'
 import { pollableMailboxes } from '@/lib/ai/agent-execution-mode'
 import { RuntimeBindingDeniedError, resolveAgentRuntime } from '@/lib/ai/runtime-binding-resolver'
 import { runtimeBindingResolverEnabled } from '@/lib/env'
+import { pilotQueueScope } from '@/lib/runtime-binding/task-runtime'
 import { observeAgentExecutionMode } from '@/lib/ai/agent-execution-mode-shadow'
 import { pendingAgentHandback, type AgentResumeContext } from '@/lib/agent-handback'
 
@@ -224,6 +225,12 @@ export interface AgentQueueOptions {
    * first token minted with the scope, with no second deploy.
    */
   includeChat?: boolean
+  /**
+   * The authenticated runtime asking: its OAuth client id, or null (AWTD-1669).
+   * Read only by the runtime-binding pilot, where a bound board's work is
+   * discoverable solely by the binding's enrolled runtime (`runtimeSubjectId`).
+   */
+  runtimePrincipal?: string | null
 }
 
 /**
@@ -293,6 +300,7 @@ export async function buildAgentQueue({
   requireReady = true,
   includeUnassigned = false,
   includeChat = false,
+  runtimePrincipal = null,
 }: AgentQueueOptions): Promise<AgentQueueResult> {
   // No default identity, ever. A loop that guesses which agent it is claims
   // another harness's work — the one failure here that costs duplicated effort
@@ -354,6 +362,9 @@ export async function buildAgentQueue({
     legacyUserId: userId,
     board: board && listId ? { id: listId, runtimeBindingId: board.runtimeBindingId } : null,
   })
+  // The pilot (AWTD-1669): a named bound board answers only to its runtime, and
+  // bound boards are hidden from everyone else (lib/runtime-binding/task-runtime.ts).
+  const hiddenBoundBoards = await pilotQueueScope({ runtime, userId, agentEmail: email, runtimePrincipal })
   if (runtime.kind === 'denied') throw new RuntimeBindingDeniedError(runtime)
   const mode = runtime.mode
   if (runtime.kind === 'legacy') observeAgentExecutionMode({ userId, mailbox, mode })
@@ -394,7 +405,8 @@ export async function buildAgentQueue({
 
   // One shape, used by the queue and by the count that explains an empty one. A
   // count drawn more widely would report work the caller cannot see.
-  const listScope = { some: listId ? { id: listId, ...visibleToCaller } : visibleToCaller }
+  const boundScope = hiddenBoundBoards ? { none: hiddenBoundBoards } : {}
+  const listScope = { some: listId ? { id: listId, ...visibleToCaller } : visibleToCaller, ...boundScope }
 
   // Assignment is the handshake, and by default it is REQUIRED — an unassigned
   // Ready task on a shared list is somebody's untriaged note rather than an
@@ -418,6 +430,7 @@ export async function buildAgentQueue({
               id: listId,
               OR: [{ ownerId: userId }, { listMembers: { some: { userId } } }],
             },
+            ...boundScope,
           },
         }
       : null

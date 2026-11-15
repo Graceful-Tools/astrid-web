@@ -7,6 +7,8 @@ import {
   type AgentTaskClaimOutcome,
 } from '@/lib/agent-task-claim'
 import { claimAgentTask } from '@/services/agent-task-claim.service'
+import { runtimePrincipalOf } from '@/lib/runtime-binding/task-runtime'
+import { runtimeBindingDenialStatus } from '@/lib/runtime-binding/denial-response'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -39,9 +41,13 @@ const handlePost = withAuth<RouteContext>(
       userId: auth.userId,
       agentId: principal.agentId,
       action: body.action,
+      agentEmail: principal.agentEmail,
+      principal: runtimePrincipalOf(auth),
     })
     return NextResponse.json(result, {
-      status: statusForOutcome(result.outcome),
+      status: result.outcome === 'binding_denied' && result.binding
+        ? runtimeBindingDenialStatus(result.binding)
+        : statusForOutcome(result.outcome),
     })
   },
 )
@@ -59,6 +65,8 @@ function statusForOutcome(outcome: AgentTaskClaimOutcome): number {
     case 'conflict':
     case 'not_ready':
       return 409
+    case 'binding_denied':
+      return 403
   }
 }
 

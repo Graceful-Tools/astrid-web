@@ -22,11 +22,13 @@
  *    "Missing/deleted references, lookup failures, ambiguity and invalid
  *    configuration are explicit denials, not legacy fallback."
  *
- * Not here yet, deliberately (later runtime-binding tasks): multi-board
- * agreement at resolution time, claims/leases, repository checks at claim time,
- * and wiring the dispatch notifiers. Enrollment and its audit writes live in
- * lib/runtime-binding/ (AWTD-1668), which holds conflicting attachments rather
- * than creating them.
+ * Enrollment and its audit writes live in lib/runtime-binding/ (AWTD-1668),
+ * which holds conflicting attachments rather than creating them. The pilot
+ * (AWTD-1669) builds on this per-board answer: multi-board agreement, the
+ * runtime-principal check, queue discovery and dispatch gating in
+ * lib/runtime-binding/task-runtime.ts, and the fenced capacity lease in
+ * lib/runtime-binding/claim-fence.ts. Still not here: repository checks at
+ * claim time (the pilot binding's repository allow-list is not consulted).
  */
 
 import type { RuntimeBinding } from '@prisma/client'
@@ -71,7 +73,7 @@ export type RuntimeBindingRecord = Pick<
   | 'approvedRevision'
 >
 
-const BINDING_SELECT = {
+export const BINDING_SELECT = {
   id: true,
   revision: true,
   managementScope: true,
@@ -104,6 +106,11 @@ export type RuntimeBindingDenialReason =
   | 'credential-missing'
   | 'payer-not-business'
   | 'payer-missing'
+  // Raised by the pilot's task gate and claim fence (AWTD-1669), not by
+  // evaluateRuntimeBinding: they need the task, the caller or the occupancy.
+  | 'board-conflict'
+  | 'principal-not-runtime'
+  | 'capacity-exhausted'
 
 /** Operator-facing explanations. Server diagnostics, not UI copy. */
 const DENIAL_MESSAGES: Record<RuntimeBindingDenialReason, string> = {
@@ -120,6 +127,9 @@ const DENIAL_MESSAGES: Record<RuntimeBindingDenialReason, string> = {
   'credential-missing': 'The runtime binding has no business credential.',
   'payer-not-business': 'The runtime binding is not paid for by the business.',
   'payer-missing': 'The runtime binding has no business payer.',
+  'board-conflict': 'This task sits on boards that do not agree on one runtime binding, so no runtime was chosen.',
+  'principal-not-runtime': 'Only the runtime enrolled in this board\'s runtime binding may take its work.',
+  'capacity-exhausted': 'The runtime binding is already running as many tasks as it allows.',
 }
 
 export interface RuntimeBindingPlan {
@@ -257,7 +267,7 @@ export function evaluateRuntimeBinding(
   }
 }
 
-function deny(bindingId: string, boardId: string, reason: RuntimeBindingDenialReason): RuntimeBindingDenial {
+export function deny(bindingId: string, boardId: string, reason: RuntimeBindingDenialReason): RuntimeBindingDenial {
   return { kind: 'denied', bindingId, boardId, reason, message: DENIAL_MESSAGES[reason] }
 }
 
