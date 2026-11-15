@@ -14,6 +14,7 @@ import {
   deployVerdict,
   landedDespiteError,
   landablePullRequests,
+  migrationHold,
   pendingMigrations,
   summary,
   taskIdsInBranch,
@@ -249,13 +250,60 @@ describe('the verdict before production changes', () => {
     expect(deployVerdict(base)).toEqual({ deploy: true })
   })
 
-  it('stops for a pending migration, however green the tests are', () => {
+  // AWTD-1680. Jon, 2026-11-15: additive migrations ship autonomously; only
+  // destructive or data-rewriting ones wait for him. The loop used to stop on
+  // ANY pending migration, which held every new table and nullable column.
+  const additive = {
+    name: '20261011150000_project_fields',
+    sql: `-- adds two nullable columns
+ALTER TABLE "TaskList" ADD COLUMN "projectGoal" TEXT;
+CREATE INDEX "TaskList_projectGoal_idx" ON "TaskList"("projectGoal");`,
+  }
+  const drop = {
+    name: '20260917120000_drop_tasklist_status_columns',
+    sql: 'ALTER TABLE "TaskList" DROP COLUMN IF EXISTS "statusRole";',
+  }
+  const rewrite = {
+    name: '20261101000000_backfill_priority',
+    sql: 'UPDATE "Task" SET "priority" = 0 WHERE "priority" IS NULL;',
+  }
+
+  it('AWTD-1680: deploys an additive-only pending set', () => {
+    expect(deployVerdict({ ...base, pending: [additive] })).toEqual({ deploy: true })
+  })
+
+  it('AWTD-1680: stops with exit 3 for a pending DROP, naming the statement and the file', () => {
     // The migration job runs BEFORE the deploy. No test result makes a DROP
     // reversible, so "all tests green" does not license this one.
-    const verdict = deployVerdict({ ...base, pending: ['20261011150000_project_fields'] })
+    const verdict = deployVerdict({ ...base, pending: [additive, drop] })
     expect(verdict).toMatchObject({ deploy: false, code: 3 })
-    expect((verdict as { reason: string }).reason).toContain('20261011150000_project_fields')
-    expect((verdict as { reason: string }).reason).toMatch(/before the new code is live/)
+    const reason = (verdict as { reason: string }).reason
+    expect(reason).toContain('prisma/migrations/20260917120000_drop_tasklist_status_columns/migration.sql')
+    expect(reason).toContain('DROP COLUMN')
+    expect(reason).toContain('ALTER TABLE "TaskList" DROP COLUMN IF EXISTS "statusRole"')
+    expect(reason).not.toContain('20261011150000_project_fields')
+    expect(reason).toMatch(/before the new code is live/)
+  })
+
+  it('AWTD-1680: stops with exit 3 for a pending data rewrite', () => {
+    const verdict = deployVerdict({ ...base, pending: [rewrite] })
+    expect(verdict).toMatchObject({ deploy: false, code: 3 })
+    const reason = (verdict as { reason: string }).reason
+    expect(reason).toContain('prisma/migrations/20261101000000_backfill_priority/migration.sql')
+    expect(reason).toContain('UPDATE')
+  })
+
+  it('AWTD-1680: stops when a pending migration\'s SQL could not be read', () => {
+    // A check that cannot establish safety must not report safety.
+    const verdict = deployVerdict({ ...base, pending: [{ name: '20261102000000_mystery', sql: null }] })
+    expect(verdict).toMatchObject({ deploy: false, code: 3 })
+    expect((verdict as { reason: string }).reason).toContain('20261102000000_mystery')
+  })
+
+  it('AWTD-1680: migrationHold is null for additive sets and names the stop otherwise', () => {
+    expect(migrationHold([])).toBeNull()
+    expect(migrationHold([additive])).toBeNull()
+    expect(migrationHold([additive, rewrite])).toMatch(/backfill_priority/)
   })
 
   it('stops on a red gate', () => {
@@ -268,7 +316,7 @@ describe('the verdict before production changes', () => {
   it('prefers the migration stop over the red-gate stop', () => {
     // Both are stops; the report should name the one that cannot be undone.
     expect(
-      deployVerdict({ ...base, pending: ['x_drop_columns'], predeployGreen: false }),
+      deployVerdict({ ...base, pending: [drop], predeployGreen: false }),
     ).toMatchObject({ code: 3 })
   })
 

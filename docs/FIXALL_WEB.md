@@ -112,7 +112,7 @@ finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has t
   merged-source quality and migration gates. Drafts/held handoffs stay held,
   cloud eligibility is revalidated against Astrid, merge commits preserve
   `AWAITING-DEPLOY` ancestry, and the merge is pinned to its inspected head.
-  Pending migrations still stop shipping. A commit with an in-flight/successful
+  A destructive pending migration still stops shipping; additive ones ship (AWTD-1680). A commit with an in-flight/successful
   deploy is not dispatched again; two failed attempts require human investigation.
   It runs on its schedule and whenever an agent PR's CI finishes, and only while
   `ASTRID_SHIP_ENABLED=true` (set 2026-10-31).
@@ -142,10 +142,11 @@ finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has t
   **Gate the MERGED `main`, not just the branch.** On 2026-10-13 all seven of a run's PRs
   were green individually and the gate on the merge still went red.
 
-  **Two things are still not yours to decide.** A **pending migration** applies during the
-  deploy, in a job that runs *before* the new code is live — four dropped columns took
-  production down on 2026-09-18 and a redeploy could not undo it. So a non-empty migration
-  diff goes to Jon, and `allow_destructive_migrations` stays `false`, which makes the
+  **Two things are still not yours to decide.** A **destructive pending migration** (a
+  DROP, RENAME, SET NOT NULL, or a data rewrite: UPDATE / DELETE / TRUNCATE) applies during
+  the deploy, in a job that runs *before* the new code is live — four dropped columns took
+  production down on 2026-09-18 and a redeploy could not undo it. So a destructive migration
+  goes to Jon (additive ones ship, AWTD-1680), and `allow_destructive_migrations` stays `false`, which makes the
   workflow refuse rather than guess. And a **red gate** is red: if you believe it is a false
   alarm, prove it on the record first (a stale `.next/types` artifact did exactly this on
   2026-10-13 — see [AWTD-1245](https://astrid.cc/t/AWTD-1245)).

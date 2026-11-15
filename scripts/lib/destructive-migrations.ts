@@ -20,6 +20,11 @@
  * first, verify it, then deploy again carrying the migration. AWTD-853 did
  * exactly that for steps 1 and 2; only step 3 skipped it.
  *
+ * DATA REWRITES (AWTD-1680). Jon, 2026-11-15: additive migrations ship
+ * autonomously; destructive OR DATA-REWRITING ones wait for him. An `UPDATE`,
+ * `DELETE` or `TRUNCATE` breaks no query, but it changes production rows in a
+ * way no redeploy undoes — so it needs the same explicit "yes" as a DROP.
+ *
  * The detection is a pure function over SQL text so it can be tested. The CI
  * step around it needs a database to learn which migrations are pending, and a
  * rule nobody can run a test against is how the inline URL regex in this same
@@ -35,6 +40,9 @@ export interface DestructiveStatement {
     | 'RENAME TABLE'
     | 'RENAME TYPE'
     | 'SET NOT NULL'
+    | 'UPDATE'
+    | 'DELETE'
+    | 'TRUNCATE'
   /** The table it acts on, when the statement names one. */
   table?: string
   /** The column it acts on, for the column-level kinds. */
@@ -56,23 +64,71 @@ export interface DestructiveFinding {
 }
 
 /**
- * Remove comments before matching anything.
+ * Remove comments and literal text before matching anything.
  *
  * Every migration in this repo carries a long prose header, and the ones that
  * drop things describe the drop in words first — including drops that a LATER
- * migration will perform. Matching those would block every deploy.
+ * migration will perform. Matching those would block every deploy. String
+ * literals get the same treatment (AWTD-1680): seeded copy or a `COMMENT ON`
+ * that says "DELETE" is text, not a statement.
  *
- * This does not attempt to respect `--` inside a string literal. No migration
- * here has one, and the failure mode is a spurious block that a human reads,
- * not a silent pass.
+ * A single pass, because the three interact: `--` inside a string is not a
+ * comment, and a `'` inside a comment opens no string.
+ *
+ * Dollar-quoted bodies split two ways. A function or trigger body is stored,
+ * not run, so it is dropped — its inner `;`s would otherwise split it into
+ * fake statements. A `DO $$ ... $$` body RUNS at migration time, so its text is
+ * kept (sanitised the same way) with its `;`s turned into spaces: the block
+ * stays one statement starting with `DO`, which `findDestructiveStatements`
+ * searches unanchored.
  */
-function stripComments(sql: string): string {
-  return sql.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/--[^\n]*/g, ' ')
+function sanitize(sql: string): string {
+  let out = ''
+  let i = 0
+  while (i < sql.length) {
+    const ch = sql[i]
+    const next = sql[i + 1]
+    if (ch === '-' && next === '-') {
+      const end = sql.indexOf('\n', i)
+      i = end === -1 ? sql.length : end
+      out += ' '
+    } else if (ch === '/' && next === '*') {
+      const end = sql.indexOf('*/', i + 2)
+      i = end === -1 ? sql.length : end + 2
+      out += ' '
+    } else if (ch === "'") {
+      // `''` is an escaped quote inside the literal, not its end.
+      i++
+      while (i < sql.length) {
+        if (sql[i] === "'" && sql[i + 1] === "'") i += 2
+        else if (sql[i] === "'") break
+        else i++
+      }
+      i++
+      out += "''"
+    } else if (ch === '"') {
+      // A quoted identifier is kept verbatim: the detector reads table names.
+      const end = sql.indexOf('"', i + 1)
+      const stop = end === -1 ? sql.length : end + 1
+      out += sql.slice(i, stop)
+      i = stop
+    } else if (ch === '$' && /^\$[A-Za-z_]?[A-Za-z0-9_]*\$/.test(sql.slice(i))) {
+      const tag = /^\$[A-Za-z_]?[A-Za-z0-9_]*\$/.exec(sql.slice(i))![0]
+      const end = sql.indexOf(tag, i + tag.length)
+      const body = sql.slice(i + tag.length, end === -1 ? sql.length : end)
+      i = end === -1 ? sql.length : end + tag.length
+      out += /\bDO\s*$/i.test(out) ? ` ${sanitize(body).replace(/;/g, ' ')} ` : ' $$ '
+    } else {
+      out += ch
+      i++
+    }
+  }
+  return out
 }
 
 /** Split on `;` and drop the blank remainders. */
 function statements(sql: string): string[] {
-  return stripComments(sql)
+  return sanitize(sql)
     .split(';')
     .map(s => s.trim())
     .filter(Boolean)
@@ -89,6 +145,9 @@ const IDENT = String.raw`"([^"]+)"|([A-Za-z_][A-Za-z0-9_$]*)`
 function ident(quoted: string | undefined, bare: string | undefined): string | undefined {
   return quoted ?? bare
 }
+
+/** An optionally schema-qualified name; the table is the last part. */
+const QUALIFIED = String.raw`(?:(?:"[^"]+"|[A-Za-z_][A-Za-z0-9_$]*)\s*\.\s*)?(?:${IDENT})`
 
 const TABLE_OF_ALTER = new RegExp(String.raw`^\s*ALTER\s+TABLE\s+(?:ONLY\s+)?(?:${IDENT})`, 'i')
 
@@ -113,7 +172,55 @@ const WHY = {
   notNull:
     'the old code still writes rows without this column set, so its inserts ' +
     'start failing until the new code is live',
+  rewrite:
+    'it rewrites production rows when the migration job runs, before the new ' +
+    'code is live, and no redeploy restores them — Jon reviews data rewrites',
+  delete:
+    'it deletes production rows when the migration job runs, before the new ' +
+    'code is live, and no redeploy restores them — Jon reviews data rewrites',
 } as const
+
+/**
+ * Data rewrites: UPDATE, DELETE, TRUNCATE (AWTD-1680).
+ *
+ * Anchored at the start of a statement (or of a writable `WITH`), never matched
+ * as bare words: every Prisma relation migration says `ON DELETE CASCADE ON
+ * UPDATE CASCADE`, and a trigger says `AFTER UPDATE OR DELETE ON`. A `DO` block
+ * is the exception — its body runs, and is searched anywhere — as is an upsert's
+ * `ON CONFLICT ... DO UPDATE`, which rewrites the rows it collides with.
+ */
+const UPDATE_STMT = new RegExp(String.raw`\bUPDATE\s+(?:ONLY\s+)?${QUALIFIED}(?:\s+(?:AS\s+)?[A-Za-z_]\w*)?\s+SET\b`, 'i')
+const DELETE_STMT = new RegExp(String.raw`\bDELETE\s+FROM\s+(?:ONLY\s+)?${QUALIFIED}`, 'i')
+const TRUNCATE_STMT = new RegExp(String.raw`\bTRUNCATE\s+(?:TABLE\s+)?(?:ONLY\s+)?${QUALIFIED}`, 'i')
+
+function dataRewrites(statement: string, line: string): DestructiveStatement[] {
+  const leading = /^\s*(\w+)/.exec(statement)?.[1]?.toUpperCase()
+  // Where the verbs may appear: at the head of the statement, anywhere in a
+  // writable CTE or a DO block, and nowhere else.
+  const anywhere = leading === 'WITH' || leading === 'DO'
+  const at = (re: RegExp) => {
+    const match = re.exec(statement)
+    if (!match) return null
+    if (!anywhere && statement.slice(0, match.index).trim() !== '') return null
+    return match
+  }
+
+  const found: DestructiveStatement[] = []
+  const update = at(UPDATE_STMT)
+  if (update) {
+    found.push({ kind: 'UPDATE', table: ident(update[1], update[2]), statement: line, why: WHY.rewrite })
+  } else if (leading === 'INSERT' && /\bON\s+CONFLICT\b[\s\S]*\bDO\s+UPDATE\b/i.test(statement)) {
+    const into = new RegExp(String.raw`\bINTO\s+${QUALIFIED}`, 'i').exec(statement)
+    found.push({ kind: 'UPDATE', table: into ? ident(into[1], into[2]) : undefined, statement: line, why: WHY.rewrite })
+  }
+  const del = at(DELETE_STMT)
+  if (del) found.push({ kind: 'DELETE', table: ident(del[1], del[2]), statement: line, why: WHY.delete })
+  const truncate = at(TRUNCATE_STMT)
+  if (truncate) {
+    found.push({ kind: 'TRUNCATE', table: ident(truncate[1], truncate[2]), statement: line, why: WHY.delete })
+  }
+  return found
+}
 
 /**
  * Find the contract-breaking statements in one migration's SQL.
@@ -201,6 +308,8 @@ export function findDestructiveStatements(sql: string): DestructiveStatement[] {
         why: WHY.notNull,
       })
     }
+
+    found.push(...dataRewrites(statement, line))
   }
 
   return found

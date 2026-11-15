@@ -776,10 +776,12 @@ down. Ask production what it is serving. `scripts/verify-deployed-sha.sh` is tha
 
 ### What stays a human's call
 
-- **A pending migration.** It applies in a job that runs *before* the deploy and does not
-  depend on it, so a `DROP` lands while the code that stops reading it is still pending.
-  That took production down on 2026-09-18 and a redeploy cannot undo it. A non-empty
-  migration diff means: do not deploy, say so on the task, leave it **incomplete**.
+- **A destructive pending migration.** It applies in a job that runs *before* the deploy and
+  does not depend on it, so a `DROP` lands while the code that stops reading it is still
+  pending. That took production down on 2026-09-18 and a redeploy cannot undo it. A pending
+  DROP, RENAME, SET NOT NULL, UPDATE, DELETE or TRUNCATE (`scripts/lib/destructive-migrations.ts`)
+  means: do not deploy, say so on the task, leave it **incomplete**. Additive migrations ship
+  (AWTD-1680).
 - **`allow_destructive_migrations`.** Always `false` from a loop. It exists so a human can
   state, on the record, that the code is already live.
 - **A red gate.** Red is red. A gate you believe is a false alarm is still red until the
@@ -821,7 +823,7 @@ The runner then opens the PR, lands it once its checks are green, and deploys `m
 tick `land-and-deploy.ts` asks `/api/health` which commit production serves, and it completes
 each Doing (or Testing) task with an `AWAITING-DEPLOY` marker whose sha is an ancestor of that
 commit, with a comment naming it. A deploy dispatched by hand counts too. A failed deploy
-completes nothing. A pending migration on `main` holds every one of these tasks in Doing until
+completes nothing. A destructive pending migration on `main` holds every one of these tasks in Doing until
 Jon ships the migration: that is the rule working, not the loop stuck. A squash merge drops the
 recorded sha, so such a task never matches and stays in Doing. Land these PRs with a merge
 commit (the runner always does).

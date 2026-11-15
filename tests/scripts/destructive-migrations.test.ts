@@ -141,6 +141,124 @@ describe('findDestructiveStatements (AWTD-959)', () => {
   })
 })
 
+describe('data rewrites count as destructive (AWTD-1680)', () => {
+  // Jon, 2026-11-15: additive migrations ship autonomously; destructive or
+  // DATA-REWRITING ones wait for him. A rewrite of production rows cannot be
+  // undone by redeploying any more than a DROP can.
+
+  it('flags an UPDATE, naming its table', () => {
+    const found = findDestructiveStatements(
+      `UPDATE "Task" SET "priority" = 0 WHERE "priority" IS NULL;`,
+    )
+    expect(found.map(s => s.kind)).toEqual(['UPDATE'])
+    expect(found[0].table).toBe('Task')
+    expect(found[0].why).toMatch(/rewrites|deletes|production/i)
+  })
+
+  it('flags a DELETE', () => {
+    const found = findDestructiveStatements(`DELETE FROM "Session" WHERE "expires" < now();`)
+    expect(found.map(s => s.kind)).toEqual(['DELETE'])
+    expect(found[0].table).toBe('Session')
+  })
+
+  it('flags a TRUNCATE', () => {
+    const found = findDestructiveStatements('TRUNCATE TABLE "AuditLog";')
+    expect(found.map(s => s.kind)).toEqual(['TRUNCATE'])
+    expect(found[0].table).toBe('AuditLog')
+  })
+
+  it('flags them regardless of case, schema qualification and line breaks', () => {
+    const found = findDestructiveStatements(`
+      update public."Task"
+        set "notes" = ''
+      ;
+      delete
+        from "Comment";
+      truncate "Reminder", "Task";
+    `)
+    expect(found.map(s => s.kind)).toEqual(['UPDATE', 'DELETE', 'TRUNCATE'])
+    expect(found[0].table).toBe('Task')
+  })
+
+  it('flags a rewrite inside a DO block, which runs at migration time', () => {
+    const found = findDestructiveStatements(`
+      DO $$
+      BEGIN
+        IF EXISTS (SELECT 1 FROM "Task") THEN
+          UPDATE "Task" SET "notes" = NULL;
+        END IF;
+      END $$;
+    `)
+    expect(found.map(s => s.kind)).toEqual(['UPDATE'])
+  })
+
+  it('flags an upsert that rewrites existing rows', () => {
+    const found = findDestructiveStatements(
+      `INSERT INTO "Setting" ("key", "value") VALUES ('a', 'b') ON CONFLICT ("key") DO UPDATE SET "value" = EXCLUDED."value";`,
+    )
+    expect(found.map(s => s.kind)).toEqual(['UPDATE'])
+  })
+
+  it('ignores UPDATE / DELETE / TRUNCATE mentioned only in comments', () => {
+    expect(
+      findDestructiveStatements(`
+        -- A later migration will UPDATE "Task" SET "x" = 1; and DELETE FROM "Task";
+        /* TRUNCATE "Task"; */
+        ALTER TABLE "Task" ADD COLUMN "x" INTEGER;
+      `),
+    ).toEqual([])
+  })
+
+  it('ignores them inside string literals', () => {
+    expect(
+      findDestructiveStatements(`
+        INSERT INTO "Template" ("body") VALUES ('UPDATE "Task" SET x = 1; DELETE FROM "Task"; -- TRUNCATE');
+        COMMENT ON TABLE "Task" IS 'it''s safe; DROP TABLE "Task" is just words';
+      `),
+    ).toEqual([])
+  })
+
+  it('ignores them inside a function body, which does not run at migration time', () => {
+    expect(
+      findDestructiveStatements(`
+        CREATE OR REPLACE FUNCTION touch() RETURNS trigger AS $fn$
+        BEGIN
+          UPDATE "Task" SET "updatedAt" = now() WHERE id = NEW.id;
+          DELETE FROM "Stale";
+          RETURN NEW;
+        END;
+        $fn$ LANGUAGE plpgsql;
+        CREATE TRIGGER touch AFTER UPDATE OR DELETE ON "Task" FOR EACH ROW EXECUTE FUNCTION touch();
+      `),
+    ).toEqual([])
+  })
+
+  it('does not mistake foreign-key actions for rewrites', () => {
+    // Every Prisma relation migration carries these; flagging them would stop
+    // every ordinary deploy.
+    expect(
+      findDestructiveStatements(`
+        ALTER TABLE "Comment" ADD CONSTRAINT "Comment_taskId_fkey" FOREIGN KEY ("taskId")
+          REFERENCES "Task"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        ALTER TABLE "Task" ADD CONSTRAINT "Task_ownerId_fkey" FOREIGN KEY ("ownerId")
+          REFERENCES "User"("id") ON UPDATE SET NULL ON DELETE SET NULL;
+      `),
+    ).toEqual([])
+  })
+
+  it('leaves additive statements alone: new table, nullable column, index', () => {
+    expect(
+      findDestructiveStatements(`
+        CREATE TABLE "Webhook" ("id" TEXT NOT NULL, "url" TEXT, CONSTRAINT "Webhook_pkey" PRIMARY KEY ("id"));
+        ALTER TABLE "Task" ADD COLUMN "snoozedUntil" TIMESTAMP(3);
+        CREATE INDEX "Task_snoozedUntil_idx" ON "Task"("snoozedUntil");
+        CREATE UNIQUE INDEX "Webhook_url_key" ON "Webhook"("url");
+        INSERT INTO "Feature" ("id", "name") VALUES ('f1', 'updates');
+      `),
+    ).toEqual([])
+  })
+})
+
 describe('findDestructiveMigrations (AWTD-959)', () => {
   it('reports findings per migration and skips the clean ones', () => {
     const findings = findDestructiveMigrations([
