@@ -39,7 +39,7 @@ registerWebAliases(webRoot, {
 const { GET } = await import(pathToFileURL(join(webRoot, 'app/api/v1/agent-queue/route.ts')).href)
 const start = new Date(FIXED_NOW)
 const later = new Date(FIXED_NOW + 90 * 60_000)
-const list = { id: 'list-web', name: 'Astrid Web To-do', githubRepositoryId: null }
+const list = { id: 'list-web', name: 'Astrid Web To-do', githubRepositoryId: null, description: 'Run the gates before you push.' }
 
 const readyTask = {
   id: 'task-ready',
