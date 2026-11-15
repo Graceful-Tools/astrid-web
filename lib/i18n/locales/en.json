@@ -164,8 +164,6 @@
     "saveNewTask": "Save New Task",
     "detail": {
       "backToList": "Back to list",
-      "collapseTask": "Collapse task",
-      "collapse": "Collapse",
       "taskActions": "Task actions",
       "exitFullScreen": "Exit full screen",
       "testReminder": "Test Reminder",
@@ -235,8 +233,6 @@
     "userAvatarAlt": "User",
     "assigneeYou": "You",
     "board": {
-      "collapseExpandedIn": "Collapse expanded task in {name}",
-      "tapToCollapse": "Tap to collapse",
       "addTaskTo": "Add task to {name}"
     },
     "dropToPlaceFirst": "Drop here to place the first task"

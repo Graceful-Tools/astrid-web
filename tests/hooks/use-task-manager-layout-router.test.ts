@@ -159,6 +159,31 @@ describe('useTaskManagerLayoutRouter (Stage 19 / task b8a5ba21)', () => {
     })
   })
 
+  describe('showBoardTaskCallout (AITD-679)', () => {
+    it('opens a selected task as a callout on a 3-column board', () => {
+      expect(decide({ hasSelectedTask: true, isBoardMode: true }).showBoardTaskCallout).toBe(true)
+    })
+    it('and on a 2-column board — the iPad', () => {
+      const d = decide({ hasSelectedTask: true, isBoardMode: true, is3Column: false, is2Column: true, showHamburgerMenu: true })
+      expect(d.showBoardTaskCallout).toBe(true)
+      expect(d.showDesktopTaskPane).toBe(false)
+    })
+    it('never outside board mode: the list keeps its docked pane', () => {
+      const d = decide({ hasSelectedTask: true })
+      expect(d.showBoardTaskCallout).toBe(false)
+      expect(d.showDesktopTaskPane).toBe(true)
+    })
+    it('stays mounted while it animates closed (core DS32: the reveal plays backwards)', () => {
+      expect(decide({ hasSelectedTask: true, isBoardMode: true, isTaskPaneClosing: true }).showBoardTaskCallout).toBe(true)
+      expect(decide({ hasSelectedTask: true, isBoardMode: true, isSettingsActive: true, isTaskPaneClosing: true }).showBoardTaskCallout).toBe(true)
+    })
+    it('not on a phone, not in settings, not with nothing selected', () => {
+      expect(decide({ ...PHONE, hasSelectedTask: true, isBoardMode: true }).showBoardTaskCallout).toBe(false)
+      expect(decide({ hasSelectedTask: true, isBoardMode: true, isSettingsActive: true }).showBoardTaskCallout).toBe(false)
+      expect(decide({ isBoardMode: true }).showBoardTaskCallout).toBe(false)
+    })
+  })
+
   describe('mobile panes', () => {
     it('shows the mobile task pane for a selected task in mobile task view', () => {
       const d = decide({ isMobile: true, is3Column: false, is1Column: true, hasSelectedTask: true, mobileView: 'task' })
@@ -168,9 +193,10 @@ describe('useTaskManagerLayoutRouter (Stage 19 / task b8a5ba21)', () => {
       const d = decide({ isMobile: true, is3Column: false, is1Column: true, hasSelectedTask: true, mobileView: 'list', isMobileTaskDetailClosing: true })
       expect(d.showMobileTaskPane).toBe(true)
     })
-    it('hides the mobile task pane in board mode', () => {
-      const d = decide({ isMobile: true, isBoardMode: true, hasSelectedTask: true, mobileView: 'task' })
-      expect(d.showMobileTaskPane).toBe(false)
+    it('AITD-679: shows the mobile task pane on the phone board, so a card tap opens details (AWTD-1653)', () => {
+      const d = decide({ ...PHONE, isBoardMode: true, taskViewMode: 'board', hasSelectedTask: true, mobileView: 'task' })
+      expect(d.showMobileTaskPane).toBe(true)
+      expect(d.showBoardTaskCallout).toBe(false)
     })
     it('shows the mobile settings detail pane for a subpage in settings', () => {
       const d = decide({ isMobile: true, is3Column: false, is1Column: true, isSettingsActive: true, settingsSubPage: 'profile' })

@@ -47,7 +47,6 @@ describe("ProjectStatusBoard's Done column honors the list's Recently Completed 
         selectedListId={domain.id}
         currentUser={null}
         onUpdateTask={() => {}}
-        onDeleteTask={() => {}}
         onCreateTask={async () => null}
       />,
     )
@@ -85,7 +84,6 @@ describe("ProjectStatusBoard's Done column honors the list's Recently Completed 
         selectedListId={domain.id}
         currentUser={null}
         onUpdateTask={() => {}}
-        onDeleteTask={() => {}}
         onCreateTask={async () => null}
       />,
     )

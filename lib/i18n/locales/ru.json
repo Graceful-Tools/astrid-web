@@ -164,8 +164,6 @@
     "saveNewTask": "Сохранить новую задачу",
     "detail": {
       "backToList": "Назад к списку",
-      "collapseTask": "Свернуть задачу",
-      "collapse": "Свернуть",
       "taskActions": "Действия с задачей",
       "exitFullScreen": "Выйти из полноэкранного режима",
       "testReminder": "Тестовое напоминание",
@@ -235,8 +233,6 @@
     "userAvatarAlt": "Пользователь",
     "assigneeYou": "Вы",
     "board": {
-      "collapseExpandedIn": "Свернуть развёрнутую задачу в «{name}»",
-      "tapToCollapse": "Нажмите, чтобы свернуть",
       "addTaskTo": "Добавить задачу в «{name}»"
     },
     "dropToPlaceFirst": "Перетащите сюда, чтобы разместить первую задачу"

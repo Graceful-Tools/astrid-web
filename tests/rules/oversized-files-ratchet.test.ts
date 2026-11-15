@@ -59,7 +59,10 @@ const BUDGETS: Record<string, number> = {
   // went to lib/task-detail/create-list-for-task.ts, following the Lists row
   // that already lives in TaskDetailListsRow.tsx. Smaller than before the
   // feature, and the inheritance rule is now testable on its own.
-  'components/task-detail.tsx': 1477,
+  // 1477 → 1473: AITD-679 took the board card's in-place `inline` mode out
+  // (cards open a callout now) and an unused English `priorityLabels` with it,
+  // which more than paid for the callout's arrow.
+  'components/task-detail.tsx': 1473,
   'lib/ai-orchestrator.ts': 1547,
   // 1205 → 1199: AWTD-1227 needed four more props on the task-detail pane, and
   // this file renders that pane TWICE — desktop and mobile — with a dozen
@@ -81,7 +84,10 @@ const BUDGETS: Record<string, number> = {
   // lays the page out as a board while it is open (seven lines). Paid for by the
   // two sidebar sites, which repeated the same thirty props and differed only in
   // the drawer flag: they now share one object, so the next prop is added once.
-  'components/TaskManagerView.tsx': 1129,
+  // 1129 → 1128: AITD-679 renders a board card's details as a callout. The
+  // render site is five lines; the two pane sites' unused canEdit lookups and
+  // MainContent's board-only delete/local-update props paid for it.
+  'components/TaskManagerView.tsx': 1128,
   // 1125 → 1115: the list header's two buttons moved to ListHeaderActions
   // when Sort & Filters gained its own control (task aa4e7eb0).
   // 1115 → 1100: the board-row context memos moved to useBoardRowContext (AWTD-1025).
@@ -94,7 +100,9 @@ const BUDGETS: Record<string, number> = {
   // layout gate around it, which more than paid for the header button and the
   // threaded state. Locking the line in.
   // 1008 → 1002: the Copy List button moved to TaskManager/CopyListButton (AWTD-1575).
-  'components/TaskManager/MainContent/MainContent.tsx': 996,
+  // 996 → 990: the board no longer renders TaskDetail itself (AITD-679), so its
+  // delete and local-update props stopped passing through here.
+  'components/TaskManager/MainContent/MainContent.tsx': 990,
   'lib/cache-manager.ts': 935,
   // 819 → 797: its two hand-rolled comment inserts and SSE fan-outs went
   // through the comment service (spec §5.2 step 4).

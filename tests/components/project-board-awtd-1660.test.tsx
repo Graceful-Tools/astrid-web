@@ -162,7 +162,11 @@ describe('Projects sidebar section gating (AWTD-1660)', () => {
 describe('ProjectBoard rows (AWTD-1660)', () => {
   const tasks = [task('a', 'web', 'doing'), task('b', 'ios', null), task('c', 'groceries', 'ready')]
 
-  function renderBoard(onUpdateTask = vi.fn(), onCreateTask = vi.fn(async (): Promise<string | null> => null)) {
+  function renderBoard(
+    onUpdateTask = vi.fn(),
+    onCreateTask = vi.fn(async (): Promise<string | null> => null),
+    onOpenTask = vi.fn(),
+  ) {
     return render(
       <ProjectBoard
         projectId="p1"
@@ -171,8 +175,8 @@ describe('ProjectBoard rows (AWTD-1660)', () => {
         allTasks={tasks}
         currentUser={{ id: 'u1' } as never}
         onUpdateTask={onUpdateTask}
-        onDeleteTask={vi.fn()}
         onCreateTask={onCreateTask}
+        onOpenTask={onOpenTask}
       />,
     )
   }
@@ -241,12 +245,14 @@ describe('ProjectBoard rows (AWTD-1660)', () => {
     expect(onUpdateTask).toHaveBeenCalledWith(expect.objectContaining({ id: 'a', statusRole: 'waiting', completed: false }))
   })
 
-  it('a card opens in place, in its own row only, and closes again', async () => {
+  it('AITD-679: a card opens its details like a list row, anchored to the card, never in place', async () => {
     api.apiGet.mockResolvedValue(jsonResponse({ listIds: null }))
-    renderBoard()
-    fireEvent.click(await screen.findByText('Task a'))
-    expect(screen.getByTestId('inline-task-detail')).toHaveTextContent('Task a')
-    fireEvent.click(screen.getByText('close'))
+    const onOpenTask = vi.fn()
+    renderBoard(undefined, undefined, onOpenTask)
+    const card = (await screen.findByText('Task a')).closest('[data-task-id]') as HTMLElement
+    expect(card).toHaveAttribute('data-task-id', 'a')
+    fireEvent.click(card)
+    expect(onOpenTask).toHaveBeenCalledWith('a', card)
     expect(screen.queryByTestId('inline-task-detail')).toBeNull()
   })
 
@@ -266,7 +272,7 @@ describe('ProjectBoardHost gating (AWTD-1660)', () => {
     api.apiGet.mockResolvedValue(jsonResponse({ listIds: null }))
   })
   const renderHost = () => render(
-    <ProjectBoardHost lists={lists} tasks={[]} onUpdateTask={vi.fn()} onDeleteTask={vi.fn()} onCreateTask={vi.fn(async () => null)} />,
+    <ProjectBoardHost lists={lists} tasks={[]} onUpdateTask={vi.fn()} onCreateTask={vi.fn(async () => null)} />,
   )
 
   it('draws the selected project\'s board for someone with project_mode', async () => {

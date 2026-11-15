@@ -23,11 +23,12 @@ interface ProjectBoardHostProps {
   tasks: Task[]
   currentUser?: User | null
   onUpdateTask: (task: Task) => void
-  onDeleteTask: (taskId: string) => void
   onCreateTask: ProjectBoardProps["onCreateTask"]
+  onOpenTask?: ProjectBoardProps["onOpenTask"]
+  selectedTaskId?: string | null
 }
 
-export function ProjectBoardHost({ lists, tasks, currentUser, onUpdateTask, onDeleteTask, onCreateTask }: ProjectBoardHostProps) {
+export function ProjectBoardHost({ lists, tasks, currentUser, onUpdateTask, onCreateTask, onOpenTask, selectedTaskId }: ProjectBoardHostProps) {
   const projectId = useSelectedProjectId()
   const enabled = useProjectMode()
   const projects = useLoadedProjects()
@@ -47,8 +48,9 @@ export function ProjectBoardHost({ lists, tasks, currentUser, onUpdateTask, onDe
       allTasks={tasks}
       currentUser={currentUser}
       onUpdateTask={onUpdateTask}
-      onDeleteTask={onDeleteTask}
       onCreateTask={onCreateTask}
+      onOpenTask={onOpenTask}
+      selectedTaskId={selectedTaskId}
     />
   )
 }

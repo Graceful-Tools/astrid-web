@@ -50,6 +50,11 @@ export interface TaskManagerLayoutDecisions {
   showDesktopSettingsDetailPane: boolean
   /** Floating task detail pane on the right (desktop). */
   showDesktopTaskPane: boolean
+  /**
+   * The same task details as a callout beside the tapped card, on a 2/3-column
+   * board (AITD-679). A card never expands in place.
+   */
+  showBoardTaskCallout: boolean
   /** Full-screen settings detail pane (mobile). */
   showMobileSettingsDetailPane: boolean
   /** Full-screen task detail pane (mobile). */
@@ -110,10 +115,18 @@ export function useTaskManagerLayoutRouter(
         hasSelectedTask &&
         hasUser &&
         (!isSettingsActive || isTaskPaneClosing),
+      showBoardTaskCallout:
+        !is1Column &&
+        isBoardMode &&
+        hasSelectedTask &&
+        hasUser &&
+        (!isSettingsActive || isTaskPaneClosing),
       showMobileSettingsDetailPane: isMobile && Boolean(settingsSubPage) && isSettingsActive,
+      // On the board too: a phone card opens details exactly as a row does
+      // (AWTD-1653, core DS30). Hiding this pane in board mode dates from when
+      // cards expanded in place, and left the phone tap with nothing to show.
       showMobileTaskPane:
         isMobile &&
-        !isBoardMode &&
         !isSettingsActive &&
         hasSelectedTask &&
         hasUser &&
