@@ -369,6 +369,12 @@ export function summary(input: {
   runFailed?: string[]
   /** Awaiting-deploy tasks marked complete because production serves them (AWTD-1278). */
   completedTasks?: string[]
+  /** astrid-core PRs merged this tick, as `<repo>#<n>` (AWTD-1682). */
+  coreLanded?: string[]
+  /** Awaiting-merge tasks marked complete because their core PR merged (AWTD-1682). */
+  coreCompleted?: string[]
+  /** Core PRs held back, by `<repo>#<n>`. */
+  coreSkipped?: Array<{ ref: string; why: string }>
 }): string {
   const lines: string[] = []
   const verb = input.dryRun ? 'Would land' : 'Landed'
@@ -416,6 +422,17 @@ export function summary(input: {
     )
   }
 
+  if (input.coreLanded?.length) {
+    lines.push('')
+    lines.push(`${verb} ${input.coreLanded.join(', ')} — astrid-core has no deploy, so merged is done.`)
+  }
+  if (input.coreCompleted?.length) {
+    lines.push('')
+    lines.push(
+      `${input.dryRun ? 'Would mark' : 'Marked'} complete — their astrid-core PR merged: ${input.coreCompleted.join(', ')}.`,
+    )
+  }
+
   if (input.deferred?.length) {
     lines.push('')
     lines.push(
@@ -428,6 +445,12 @@ export function summary(input: {
     lines.push('')
     lines.push('Held back:')
     for (const skip of held) lines.push(`- #${skip.number} — ${skip.why}`)
+  }
+  const coreHeld = (input.coreSkipped ?? []).filter(s => !/next tick|not an agent handoff/.test(s.why))
+  if (coreHeld.length) {
+    lines.push('')
+    lines.push('Held back on astrid-core:')
+    for (const skip of coreHeld) lines.push(`- ${skip.ref} — ${skip.why}`)
   }
 
   return lines.join('\n')

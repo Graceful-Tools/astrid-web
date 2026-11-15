@@ -107,10 +107,14 @@ jobs:
       ASTRID_FIXALL_MAX_TASKS: ${{ vars.ASTRID_FIXALL_MAX_TASKS || '1' }}
       # PRs opened with the built-in token do not trigger other workflows (GitHub's
       # loop guard), so an agent PR would get no CI. AGENT_GH_TOKEN is a
-      # fine-grained token scoped to this repo with contents + pull-requests write
-      # and NO actions write, so it still cannot dispatch a deploy. Smoke test
-      # AWTD-1364 / PR #518 had no checks until a person reopened it.
+      # fine-grained token over the Graceful-Tools app repos, astrid-core included
+      # (AWTD-1682), with contents + pull-requests read/write and NO actions access,
+      # so it still cannot dispatch a deploy. Smoke test AWTD-1364 / PR #518 had no checks until a
+      # person reopened it.
       GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
+      # Core work belongs to the web and iOS loops (FIXALL_WORKFLOW.md → astrid-core is
+      # worked by web and iOS). It is cloned beside this checkout, at ../astrid-core.
+      ASTRID_CORE_REPO: Graceful-Tools/astrid-core
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -198,6 +202,81 @@ jobs:
               `Wake latency: ${row.latency_seconds ?? "unknown"}s (${row.reason}, ${row.mailbox}, work=${row.work})\n`);
           '
 
+      # AWTD-1682: the Rust toolchain costs a minute or two, so it is installed only when
+      # this run may take a core task. The claim happens inside the harness, so the
+      # question is asked of the candidates: any queue or attention task titled `[core]`
+      # or naming astrid-core. A run that guessed wrong still has the clone, and cargo
+      # installs rust-toolchain.toml's channel on first use; only the wasm target is missing.
+      - name: Does the queue hold an astrid-core task
+        id: core-queue
+        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
+        run: |
+          node -e '
+            const fs=require("fs"), p=JSON.parse(fs.readFileSync(".agent-output/preflight.json")).snapshot||{};
+            const tasks=[...(p.queue||[]), ...((p.attention&&p.attention.tasks)||[])];
+            const core=tasks.some(t=>/^\s*\[core\]/i.test(t.title||"") || /\bastrid-core\b/i.test(t.title||""));
+            fs.appendFileSync(process.env.GITHUB_OUTPUT,`core=${core}\n`);
+            console.log(core ? "A core task is a candidate: installing the Rust toolchain" : "No core task among the candidates");
+          '
+
+      # actions/checkout cannot write outside the workspace, and a checkout moved out of
+      # it loses the credentials it keyed to its path, so this is a plain clone. The repo
+      # is public, so the clone needs no token; pushes go through `gh auth git-credential`,
+      # which reads GH_TOKEN (AGENT_GH_TOKEN) when git asks. The dry-run push is the access
+      # check: GitHub refuses the push handshake to a token without Contents write.
+      - name: Check out astrid-core beside this repo
+        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
+        env:
+          CORE_TASK: ${{ steps.core-queue.outputs.core }}
+        run: |
+          CORE_DIR="$(dirname "${GITHUB_WORKSPACE}")/astrid-core"
+          if ! git clone --quiet "https://github.com/${ASTRID_CORE_REPO}.git" "${CORE_DIR}"; then
+            echo "::error::Could not clone ${ASTRID_CORE_REPO} into ${CORE_DIR}"
+            exit 1
+          fi
+          git -C "${CORE_DIR}" config user.name "Astrid agent (${ASTRID_FIXALL_HARNESS})"
+          git -C "${CORE_DIR}" config user.email "agent-${ASTRID_FIXALL_HARNESS}@users.noreply.github.com"
+          git -C "${CORE_DIR}" config credential.https://github.com.helper ''
+          git -C "${CORE_DIR}" config --add credential.https://github.com.helper '!gh auth git-credential'
+          echo "ASTRID_CORE_DIR=${CORE_DIR}" >> "${GITHUB_ENV}"
+          if GIT_TERMINAL_PROMPT=0 git -C "${CORE_DIR}" push --dry-run --quiet origin \
+              "HEAD:refs/heads/agent/access-check-${GITHUB_RUN_ID}" 2>/dev/null; then
+            echo "ASTRID_CORE_PUSH=1" >> "${GITHUB_ENV}"
+            echo "AGENT_GH_TOKEN can push to ${ASTRID_CORE_REPO}"
+          else
+            echo "ASTRID_CORE_PUSH=0" >> "${GITHUB_ENV}"
+            MESSAGE="AGENT_GH_TOKEN cannot push to ${ASTRID_CORE_REPO}: add ${ASTRID_CORE_REPO} to the token's repository access with Contents and Pull requests read/write (no Actions). docs/AGENT_FLEET.md"
+            # A web-only run is unaffected, so it goes on; a run whose candidates include
+            # a core task could not finish it, so it stops here, saying why.
+            if [ "${CORE_TASK}" = true ]; then echo "::error::${MESSAGE}"; exit 1; fi
+            echo "::warning::${MESSAGE}"
+          fi
+
+      - name: Install the astrid-core Rust toolchain
+        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' && steps.core-queue.outputs.core == 'true' }}
+        working-directory: ${{ env.ASTRID_CORE_DIR }}
+        run: |
+          if ! command -v rustup >/dev/null; then
+            echo "::error::rustup is not on this runner image; astrid-core needs it"
+            exit 1
+          fi
+          # The channel astrid-core pins, read the way its own msrv job reads it.
+          CHANNEL=$(sed -n 's/^channel *= *"\([^"]*\)".*/\1/p' rust-toolchain.toml | head -1)
+          if [ -z "${CHANNEL}" ]; then
+            echo "::error::Could not read the channel from astrid-core's rust-toolchain.toml"
+            exit 1
+          fi
+          rustup toolchain install "${CHANNEL}" --profile minimal \
+            --component clippy,rustfmt --target wasm32-unknown-unknown
+          rustup show active-toolchain
+
+      - name: Cache astrid-core's cargo build
+        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' && steps.core-queue.outputs.core == 'true' }}
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: ${{ env.ASTRID_CORE_DIR }} -> target
+          key: agent-run
+
       - name: Build and verify Astrid MCP
         if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
         run: |
@@ -239,10 +318,14 @@ jobs:
         run: |
           set -o pipefail
           npm install --global @anthropic-ai/claude-code@2.1.306
+          # The core checkout is outside the workspace, so it is added to what the agent may edit.
+          CORE_DIRS=()
+          if [ -n "${ASTRID_CORE_DIR:-}" ]; then CORE_DIRS=(--add-dir "${ASTRID_CORE_DIR}"); fi
           claude -p "$(cat .github/agent-run-prompt.md)" \
             --mcp-config "${RUNNER_TEMP}/astrid-mcp.json" --strict-mcp-config \
+            "${CORE_DIRS[@]}" \
             --permission-mode acceptEdits \
-            --allowedTools "Bash(npm run *),Bash(npx tsx scripts/*),Bash(npx vitest *),Bash(git *),Bash(gh pr *),mcp__astrid__*,Read,Edit,Write,Grep,Glob" \
+            --allowedTools "Bash(npm run *),Bash(npx tsx scripts/*),Bash(npx vitest *),Bash(git *),Bash(gh pr *),Bash(cargo *),Bash(rustup *),mcp__astrid__*,Read,Edit,Write,Grep,Glob" \
             | tee .agent-output/agent-transcript.txt
 
       - name: Run Codex
@@ -262,9 +345,14 @@ jobs:
           set -o pipefail
           npm install --global "@openai/codex@${CODEX_VERSION}"
           mkdir -p ~/.codex && printf '%s' "${CODEX_AUTH_JSON}" > ~/.codex/auth.json
+          CORE_ROOTS=()
+          if [ -n "${ASTRID_CORE_DIR:-}" ]; then
+            CORE_ROOTS=(-c "sandbox_workspace_write.writable_roots=[\"${ASTRID_CORE_DIR}\"]")
+          fi
           codex -c 'mcp_servers.astrid.command="node"' \
             -c "mcp_servers.astrid.args=[\"${GITHUB_WORKSPACE}/mcp/astrid-mcp-launch.js\"]" \
             -c sandbox_workspace_write.network_access=true \
+            "${CORE_ROOTS[@]}" \
             exec --full-auto "$(cat .github/agent-run-prompt.md)" | tee .agent-output/agent-transcript.txt
 
       # The harness exits 0 whether or not the agent finished. Smoke test 2
@@ -303,6 +391,30 @@ jobs:
             mkdir -p .agent-output
             git bundle create .agent-output/recovery.bundle HEAD --not --remotes=origin
             git rev-parse HEAD > .agent-output/recovery-head.txt
+            git push --set-upstream origin HEAD
+          fi
+
+      # The same rescue for the core checkout (AWTD-1682): a run that died mid core task
+      # leaves its work on agent/<harness>/recovery-… in astrid-core, and the bundle in
+      # this run's artifact if that push is refused.
+      - name: Preserve unfinished astrid-core work
+        if: ${{ always() && !inputs.dry_run && steps.preflight.outputs.work == 'true' && env.ASTRID_CORE_DIR != '' }}
+        working-directory: ${{ env.ASTRID_CORE_DIR }}
+        run: |
+          DIRTY=$(git status --porcelain)
+          UNPUSHED=$(git rev-list --count HEAD --not --remotes=origin)
+          if [ -n "${DIRTY}" ] || [ "${UNPUSHED}" != 0 ]; then
+            BRANCH=$(git branch --show-current)
+            if [ "${BRANCH}" = main ] || [ -z "${BRANCH}" ]; then
+              git switch -c "agent/${ASTRID_FIXALL_HARNESS}/recovery-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+            fi
+            if [ -n "${DIRTY}" ]; then
+              git add --all
+              git commit -m "wip: agent run ${GITHUB_RUN_ID} UNFINISHED, UNVERIFIED"
+            fi
+            mkdir -p "${GITHUB_WORKSPACE}/.agent-output"
+            git bundle create "${GITHUB_WORKSPACE}/.agent-output/core-recovery.bundle" HEAD --not --remotes=origin
+            git rev-parse HEAD > "${GITHUB_WORKSPACE}/.agent-output/core-recovery-head.txt"
             git push --set-upstream origin HEAD
           fi
 

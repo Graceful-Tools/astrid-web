@@ -13,8 +13,10 @@
 #   ASTRID_OAUTH_CLIENT_ID=      secret: the Astrid OAuth client the queue scripts use
 #   ASTRID_OAUTH_CLIENT_SECRET=  secret
 #   CODEX_AUTH_JSON=             secret: Codex only, ~/.codex/auth.json
-#   AGENT_GH_TOKEN=              secret: fine-grained token, this repo only, Contents +
-#                                Pull requests read/write, NOT Actions (so agent PRs get CI)
+#   AGENT_GH_TOKEN=              secret: fine-grained token over the Graceful-Tools app repos
+#                                (astrid-core included), Contents + Pull requests read/write,
+#                                NOT Actions (so agent PRs get CI). The ship job also reads it
+#                                from the `release` environment for core merges (AWTD-1682).
 #   ASTRID_FIXALL_MAX_TASKS=1    variable: tasks per run
 #   CODEX_VERSION=               variable: Codex only, exact @openai/codex version
 #

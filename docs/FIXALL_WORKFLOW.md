@@ -451,7 +451,10 @@ failed, and move on.
   first consumer. **Never on the Windows board.** The web and iOS loops work astrid-core directly:
   their own worktree of `../astrid-core`, its local gate, a PR, CI green (CI includes the Android
   NDK and wasm builds, so no special toolchain is needed locally), then merge. astrid-core has no
-  deploy, so merged to `main` is done; consumers take it with a pin bump.
+  deploy, so merged to `main` is done; consumers take it with a pin bump. The web board's cloud
+  worker does this too: it hands off with `AWAITING-MERGE: Graceful-Tools/astrid-core#<n> <sha>`
+  and the ship workflow merges and completes it (FIXALL_WEB.md → *astrid-core tasks on an
+  ephemeral runner*, AWTD-1682).
 - **The Windows board holds Windows-shell work only**: the WinUI app, its packaging, releases and
   machine. When Windows needs a core change, its loop files the core half **Ready on the web board**
   and implements the Windows half against it. It does not do the core half itself.
