@@ -12,17 +12,9 @@ import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
+import { escapeCsvValue } from '@/lib/csv'
 
 const log = createLogger('v1.users.me.export')
-
-const escapeCsvValue = (value: unknown): string => {
-  if (value === null || value === undefined) return ''
-  const s = String(value)
-  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-    return `"${s.replace(/"/g, '""')}"`
-  }
-  return s
-}
 
 export const GET = withAuth(
   { scopes: ['user:read'], tag: 'v1.users.me.export' },
