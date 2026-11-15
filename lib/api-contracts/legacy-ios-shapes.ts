@@ -155,40 +155,9 @@ export interface LegacyReminderSnoozeResponse {
 
 // ── Account ───────────────────────────────────────────────────────────
 
-/**
- * GET /api/account — user record extended with verification status iOS
- * uses to drive the email-verification UI.
- */
-export interface LegacyAccountResponse {
-  user: User & {
-    verified?: boolean
-    verifiedViaOAuth?: boolean
-    hasPendingChange?: boolean
-    pendingEmail?: string | null
-    createdAt?: string | Date
-    updatedAt?: string | Date
-  }
-}
-
-// PUT /api/account returns raw User.
-
-export interface LegacyAccountDeleteResponse {
-  success: true
-  message: string
-}
-
-/**
- * POST /api/account/verify-email — multi-action endpoint (send/resend/
- * cancel/verify-token). Response varies but always carries `success`.
- */
-export interface LegacyVerifyEmailResponse {
-  success: boolean
-  error?: string
-  message?: string
-}
-
-// GET /api/account/export returns a file download (JSON or CSV blob,
-// not a JSON envelope) — not a contract we can pin via interface.
+// Every legacy /api/account route is gone (AWTD-839): delete, verify-email
+// and export on 2026-10-28, GET/PUT /api/account on 2026-11-14. Their
+// successors live under /api/v1/users/me.
 
 // ── Files ─────────────────────────────────────────────────────────────
 
@@ -278,14 +247,8 @@ export interface LegacyUserProfileResponse {
   isOwnProfile: boolean
 }
 
-/**
- * GET /api/users/search — type-ahead user search.
- * iOS uses `listMemberCount` to badge "X already in this list."
- */
-export interface LegacyUsersSearchResponse {
-  users: User[]
-  listMemberCount: number
-}
+// GET /api/users/search was deleted (AWTD-839); its shape is pinned on the
+// v1 route as V1UsersSearchResponse in v1-ios-shapes.ts.
 
 // ── User settings (mixed-version /api/user/*) ─────────────────────────
 

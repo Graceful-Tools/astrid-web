@@ -2,7 +2,7 @@
  * GET /api/v1/users/me — Account info + verification status
  * PUT /api/v1/users/me — Update name/email/image
  *
- * Mirrors GET/PUT /api/account.
+ * Successor to GET/PUT /api/account, which was deleted (AWTD-839).
  */
 
 import { NextResponse } from 'next/server'

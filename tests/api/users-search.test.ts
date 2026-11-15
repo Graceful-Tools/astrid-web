@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { row, rowWith, rows } from '../fixtures/prisma-rows'
 import { NextRequest } from 'next/server'
-import { GET } from '@/app/api/users/search/route'
+import { GET } from '@/app/api/v1/users/search/route'
 import { mockPrisma, mockGetServerSession } from '../setup'
 
 // Mock NextRequest with URL search params
 const createMockRequest = (searchParams: Record<string, string> = {}, headers: Record<string, string> = {}) => {
-  const url = new URL('http://localhost:3000/api/users/search')
+  const url = new URL('http://localhost:3000/api/v1/users/search')
   Object.entries(searchParams).forEach(([key, value]) => {
     url.searchParams.set(key, value)
   })
@@ -358,7 +358,12 @@ describe('Users Search API', () => {
   })
 
   describe('Error handling', () => {
-    it('should handle database errors gracefully for list members query', async () => {
+    it('returns 500 when the list members query fails', async () => {
+      // The deleted legacy /api/users/search swallowed this error and fell
+      // back to "just the current user". v1 lets it reach the route's catch
+      // and answers 500, which is what this pins now (AWTD-839). Hiding a
+      // database failure behind a plausible one-person result is not a
+      // behaviour worth carrying forward.
       const mockTask = {
         id: 'task-1',
         lists: [{ id: 'list-1' }]
@@ -373,15 +378,20 @@ describe('Users Search API', () => {
       const response = await GET(request)
       const data = await response.json()
 
-      expect(response.status).toBe(200)
-      expect(data.users).toHaveLength(1) // Just current user
-      expect(data.users[0].id).toBe('test-user-id')
-      expect(data.listMemberCount).toBe(0)
+      expect(response.status).toBe(500)
+      expect(data.error).toBe('Internal server error')
     })
 
     it('should handle general database errors', async () => {
-      // When findUnique fails for current user, it causes an internal error
-      mockPrisma.user.findUnique.mockRejectedValue(new Error('Database error'))
+      // When the route's current-user lookup fails, it causes an internal
+      // error. Only that query fails: withAuth reads the user too, and failing
+      // it there would test the auth wrapper instead of this route.
+      const currentUserSelect = JSON.stringify({ id: true, name: true, email: true, image: true })
+      const authLookup = mockPrisma.user.findUnique.getMockImplementation()
+      mockPrisma.user.findUnique.mockImplementation(async (args: any) => {
+        if (JSON.stringify(args?.select) === currentUserSelect) throw new Error('Database error')
+        return authLookup ? authLookup(args) : null
+      })
 
       const request = createMockRequest({ q: 'search' })
       const response = await GET(request)
