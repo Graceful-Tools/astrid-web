@@ -14,7 +14,7 @@ import type { AccountData } from "./AccountSettings"
 
 interface ProfileSectionProps {
   accountData: AccountData
-  /** Called after a successful PUT /api/account so the parent can
+  /** Called after a successful PUT /api/v1/users/me so the parent can
    *  refresh its accountData (which downstream sections also consume). */
   onSaved: () => Promise<void> | void
 }

@@ -80,7 +80,7 @@ async function testPhase3GitHub() {
 
     const endpoints = [
       '/api/github/webhooks',
-      '/api/github/integration',
+      '/api/v1/github/installations',
       '/api/github/install-url'
     ]
 
