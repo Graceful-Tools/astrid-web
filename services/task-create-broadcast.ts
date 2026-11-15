@@ -15,6 +15,7 @@ import { loadV1TaskForEvent } from '@/lib/tasks/v1-task-shape'
 import { createLogger } from '@/lib/logger'
 import type { CreatedTask } from '@/services/task.service'
 import { actorHearsOwnChange } from '@/services/task-event-audience'
+import { wakeAgentsForTaskWrite } from '@/lib/agent-wake'
 
 const log = createLogger('services.task')
 
@@ -25,6 +26,9 @@ export async function broadcastTaskCreated(args: {
   creatorName: string
 }): Promise<string[]> {
   const { task, actorId, creatorName } = args
+  // A task created in Ready on an opted-in board wakes its polling worker now
+  // instead of at its next poll (AWTD-1556). Never throws; inert unless enrolled.
+  await wakeAgentsForTaskWrite({ before: null, after: task })
   const anyTask = task as unknown as Record<string, any>
   const listNames = (anyTask.lists ?? []).map((list: any) => list.name)
 

@@ -1,7 +1,12 @@
 # Opt-in event-driven wake for polling agents (AWTD-1556)
 
-**Status: proposal for Jon's approval. No code yet.** Polling stays the reconciliation path in
-every design below: a wake that never arrives costs latency, never work.
+**Status: approved by Jon 2026-11-14 (decisions below); implemented, inert until enrolled.** Polling
+stays the reconciliation path: a wake that never arrives costs latency, never work.
+
+Code: `lib/agent-wake.ts` (hooks, coalescing, delivery), job kind `agent-wake` in `lib/jobs/kinds.ts`,
+hooks in `services/task-create-broadcast.ts` and `services/task-update-broadcast.ts` (every task create and update) and `lib/comments/post-comment-side-effects.ts`,
+trigger and latency step in `.github/workflows/agent-run.yml`. Tests: `tests/lib/agent-wake.test.ts`,
+`tests/rules/cloud-agent-lifecycle.test.ts`, `tests/api/task-write-path-parity.test.ts`.
 
 ## The problem
 
@@ -34,17 +39,24 @@ migration.**
 2. A human comment reaches an enrolled agent (the same predicate as `attention` in the queue).
 
 **Wake job.** At either moment, `enqueueJob('agent-wake', payload, { dedupeKey })` with
-`dedupeKey = wake:<board>:<mailbox>:<taskId>:<eventId>`, where `eventId` is the status-change
-timestamp or the comment id. Enqueueing twice for the same event is a no-op, which is how a
-retried request, a double save or a webhook replay stays one wake.
+`dedupeKey = agent-wake:<board>:<mailbox>:<window>`, where `window` is the event time divided
+into 30-second slots (`WAKE_COALESCE_MS`). This is Jon's coalescing decision: one wake per
+(board, agent) per window, so a bulk move, a retried request, a double save or a replay all
+stay one wake. An unassigned Ready task uses the mailbox `any`. Only agents in **polling** mode
+are woken; webhook and api agents are already told by their notifiers, and `off` means nothing
+should start them.
 
 **Delivery, first canary: `repository_dispatch` to the board's repository.** The job handler
-mints a GitHub App installation token (`lib/github/installation-access.ts`) for the board's
-connected repository and sends `repository_dispatch` with a new type, `astrid-wake`, carrying
-only `{ taskId, mailbox, reason }`, never task text. `agent-run.yml` adds `astrid-wake` to its
+looks up the GitHub App's installation on the repository (`GET /repos/{owner}/{repo}/installation`
+with the App from `lib/github/app.ts`), mints its installation token, and sends
+`repository_dispatch` with a new type, `astrid-wake`, carrying only
+`{ task_id, mailbox, reason, event_at }`, never task text. The repository is the one named in the
+enrollment entry (`boardId=owner/repo`), else the board's connected repository
+(`TaskList.githubRepositoryId`). The App needs Contents write on that repository. `agent-run.yml` adds `astrid-wake` to its
 `repository_dispatch.types`. The run reads the queue and claims before working, exactly as a
 cron run does, so the payload is a hint, not an instruction: a forged or stale dispatch can
-only start a run that finds nothing.
+only start a run that finds nothing. The run job skips a wake whose mailbox is neither this
+worker's (`claude`) nor `any`.
 
 **Later, for SDK/self-hosted agents: SSE.** The same job publishes an `agent.wake` event on the
 realtime bus for the agent's channel. The SDK channel (AWTD-1565) treats it as "reconcile now".
@@ -56,11 +68,12 @@ with either unset, no job is enqueued and nothing changes.
 
 ## Idempotency and "exactly once"
 
-- **One wake per event:** the job's unique `dedupeKey`.
+- **At most one wake per (board, agent) per 30 seconds:** the job's unique `dedupeKey`, which
+  also makes a replayed event a no-op.
 - **One start per task:** the atomic claim. Two wakes, or a wake and a cron run, race to claim;
   exactly one wins and the other finds nothing.
-- **One wake per reply:** the reply's comment id is its event id, the same key the generated
-  gates' seen set uses (AWTD-1560).
+- **One answer per reply:** the wake does not mark anything seen; the run's own seen set, keyed
+  by the reply's comment id (AWTD-1560), decides whether a reply is still unanswered.
 
 ## Failure modes
 
@@ -70,19 +83,60 @@ with either unset, no job is enqueued and nothing changes.
 | Dispatch fails (token, rate limit, GitHub down) | Job retries with backoff, then dead-letters | the cron still runs; nothing is lost |
 | Duplicate dispatch | Second run's claim conflicts, it exits | claim is atomic |
 | Dispatch for work already done | Run reads an empty queue and exits | payload is a hint, not an instruction |
-| Wake storm (bulk move of 100 tasks to Ready) | 100 jobs, 100 dispatches | **needs a cap**: coalesce per board, at most one pending wake per board+mailbox at a time (`dedupeKey` per board while a run is pending) |
+| Wake storm (bulk move of 100 tasks to Ready) | 1 job, 1 dispatch | coalesced: `dedupeKey` per (board, mailbox, 30-second window); GitHub's concurrency group then holds at most one pending run |
+| Hook fails (database blip) | No wake | the hooks never throw into the task or comment write; the next poll finds the work |
+| Switch turned off with wakes queued | Queued wakes are dropped | the handler re-checks enrollment before sending |
 | Forged `repository_dispatch` | A run that reads the queue and finds nothing | the queue and claim are authorized server-side |
 
 ## Measurement
 
-Wake latency end to end, p50 and p95: the event's timestamp to the run's first queue read, and to
-the claim. Baseline is the cron (~15 min mean, ~30 min worst case). Recorded per canary run in
-the job's result and summarized in the canary report. The benchmark harness (AWTD-1551) can
-reuse the numbers.
+Wake latency end to end, p50 and p95: the event's timestamp to the run's first queue read. The
+baseline is the cron: about 15 minutes mean and 30 minutes worst case on paper, and worse in
+practice, since GitHub created only about one in ten scheduled runs from 10-29 to 10-31.
+
+**What is recorded.** Every `astrid-wake` run writes `.agent-output/wake-latency.json`
+(`event_at`, `queue_read_at`, `latency_seconds`, `reason`, `mailbox`, `work`) into its
+`agent-run-claude-code-<run id>` artifact, and one line to the run summary. `event_at` is stamped
+by the server when the job is queued, so the figure includes the queue, the GitHub API call,
+runner start-up and agent setup. The claim follows within seconds of the queue read.
+
+**How to compute p50/p95 for a canary week** (needs production enrollment, so it is not done yet):
+
+```bash
+mkdir -p /tmp/wake && cd /tmp/wake
+gh run list --repo Graceful-Tools/astrid-web --workflow agent-run.yml --event repository_dispatch \
+  --created ">=2026-11-15" --limit 500 --json databaseId --jq '.[].databaseId' |
+while read id; do
+  gh run download "$id" --repo Graceful-Tools/astrid-web -p 'agent-run-*' -D "run-$id" 2>/dev/null || true
+done
+cat run-*/*/.agent-output/wake-latency.json | jq -s '
+  map(.latency_seconds | select(. != null)) | sort as $l | ($l | length) as $n |
+  {runs: $n, p50: $l[($n * 0.5 | floor)], p95: $l[(($n * 0.95 | ceil) - 1)]}'
+```
+
+`repository_dispatch` also matches chain runs (`agent-run-next`), which write no latency file,
+so they drop out. For the baseline, the same artifacts from scheduled runs give the time from a
+task's Ready event to the run that claimed it; or compare against the cron's 15/30-minute
+figures. Watch alongside it: dead-lettered `agent-wake` jobs (`Job` rows with `deadAt` set),
+claim conflicts (expected, harmless) and duplicate starts (should be zero). The benchmark
+harness (AWTD-1551) can reuse the numbers.
+
+## How to enable
+
+Two production env vars, both required (no migration, no deploy of new code beyond this one):
+
+- `ASTRID_AGENT_WAKE=on`
+- `ASTRID_AGENT_WAKE_LISTS=a623f322-4c3c-49b5-8a94-d2d9f00c82ba` (this board already has
+  `Graceful-Tools/astrid-web` as its connected repository; an entry can name another as
+  `boardId=owner/repo`)
+
+`agent-run.yml` must be on `main` with the `astrid-wake` trigger (repository_dispatch runs the
+default branch's workflow), and the GitHub App must be installed on the repository with Contents
+write.
 
 ## Rollout and rollback
 
-1. Ship the job kind and handler with `ASTRID_AGENT_WAKE` unset: inert.
+1. Ship the job kind and handler with `ASTRID_AGENT_WAKE` unset: inert. (This change.)
 2. Enroll this board only (`a623f322-…`), master switch on, for a week. Watch latency, duplicate
    claims (should be zero starts, some conflicts), and dead-letters.
 3. Widen if clean.
@@ -90,7 +144,9 @@ reuse the numbers.
 Rollback is unsetting either variable: no job is enqueued, and the worker falls back to its cron.
 No schema change at any step.
 
-## Decisions for Jon
+## Decisions (Jon, 2026-11-14)
+
+All three went with the recommendation, and no migration.
 
 1. **First canary delivery:** `repository_dispatch` to `agent-run.yml` (recommended; that is how
    this board's agents run) vs SSE for SDK hosts first vs both at once.
