@@ -19,6 +19,8 @@ import { BadQueueOptionError, buildAgentQueue, UnknownAgentError } from '@/lib/a
 import { RuntimeBindingDeniedError } from '@/lib/ai/runtime-binding-resolver'
 import { hasRequiredScopes } from '@/lib/oauth/oauth-scopes'
 import { createLogger } from '@/lib/logger'
+import { runtimePrincipalOf } from '@/lib/runtime-binding/task-runtime'
+import { runtimeBindingDenialResponse } from '@/lib/runtime-binding/denial-response'
 
 const log = createLogger('v1.agent-queue')
 
@@ -70,6 +72,9 @@ export const GET = withAuth(
         // that carries the scope, and nothing has to be deployed twice.
         // hasRequiredScopes honours the wildcard, so session auth gets it.
         includeChat: hasRequiredScopes(auth.scopes ?? [], ['chat:read']),
+        // Only the runtime-binding pilot reads it (AWTD-1669): a bound board's
+        // work is discoverable solely by its binding's enrolled OAuth client.
+        runtimePrincipal: runtimePrincipalOf(auth),
       })
 
       return NextResponse.json({
@@ -86,12 +91,7 @@ export const GET = withAuth(
       // A board whose explicit runtime binding cannot be used (AWTD-1667). Its
       // own status, with a machine-readable reason, so a loop stops and says
       // why rather than reading an empty queue as a quiet day.
-      if (error instanceof RuntimeBindingDeniedError) {
-        return NextResponse.json(
-          { error: error.message, reason: error.reason, bindingId: error.bindingId, boardId: error.boardId },
-          { status: 403 }
-        )
-      }
+      if (error instanceof RuntimeBindingDeniedError) return runtimeBindingDenialResponse(error)
       log.error({ err: error }, 'Error building agent queue')
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }

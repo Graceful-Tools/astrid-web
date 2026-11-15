@@ -37,6 +37,7 @@ import {
   type WebhookDeliveryResult,
 } from './delivery-policy'
 import { recordDeliveryNotice } from '@/services/webhook-delivery.service'
+import { boundDispatchHold } from '@/lib/runtime-binding/task-runtime'
 
 const log = createLogger('webhooks/comment-notifier')
 
@@ -103,6 +104,18 @@ export async function notifyCommentOnAssignedTask(
 
     if (!task || !task.assignee || !task.assignee.isAIAgent) {
       log.info(`⚠️  Task ${taskId} is not assigned to an AI agent`)
+      return
+    }
+
+    // A bound board never falls through to personal-settings dispatch
+    // (AWTD-1669): checked before a token is minted. Pilot off: null, no reads.
+    const bindingHold = await boundDispatchHold({
+      taskId,
+      agentEmail: task.assignee.email,
+      operation: 'comment-dispatch',
+    })
+    if (bindingHold) {
+      log.info({ taskId }, `🔒 Not dispatching the comment: ${bindingHold}`)
       return
     }
 
