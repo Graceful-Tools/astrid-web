@@ -292,6 +292,29 @@ export async function authorizeProjectAttach(
 }
 
 /**
+ * May this user move a list into or out of this project (AWTD-1702)?
+ *
+ * Stricter than `authorizeProjectAttach`, which only asks for membership. Project
+ * membership cascades onto every list in the project, so a plain member who could
+ * pull someone's list in (or push one out) would hand the whole project access to
+ * it, or take it away. Moving needs the project's **owner or an admin**; the
+ * list's own admin/owner check is the caller's, since it has the list loaded.
+ * Creating a NEW list in a project stays membership-only: the creator owns it.
+ */
+export async function authorizeProjectListMove(
+  projectId: string,
+  userId: string,
+): Promise<ProjectAttachAuthorization> {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { ownerId: true, members: { where: { userId }, select: { userId: true, role: true } } },
+  })
+  if (!project) return { error: 'not_found' }
+  if (project.ownerId !== userId && !project.members.some(m => m.role === 'admin')) return { error: 'forbidden' }
+  return { ok: true }
+}
+
+/**
  * Add a custom status column to a board (board sub-task #5).
  *
  * **Scoped to the project, not to the user** (task 109d8a91): a custom state

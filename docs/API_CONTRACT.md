@@ -502,6 +502,18 @@ is rejected with 400 `Invalid color (must be #rrggbb)`. The same rule applies
 to `PUT /api/v1/lists/{id}`. Only the fields sent are changed on v1, so
 `{ "color": "#22c55e" }` alone is a valid recolour.
 
+`projectId` moves the list (AWTD-1702): `<id>` attaches, `null` detaches, another id moves
+between projects. It needs the **list's owner/admin AND the owner or an admin of every
+project the list enters or leaves**. A refusal is 403 with `code`
+`PROJECT_ATTACH_FORBIDDEN` (destination) or `PROJECT_DETACH_FORBIDDEN` (the project it
+leaves); an unknown destination is 404. Re-sending the project the list is already in is a
+no-op that asks nothing. Tasks move with the list; no data is rewritten.
+
+### POST `/api/v1/lists` — `projectId`
+Optional. Creates the list **in** that project in the same write (no create-then-PUT). The
+caller must be the project's owner, admin or member, else 403 `PROJECT_CREATE_FORBIDDEN`;
+unknown project is 404. Gated by Project Mode like `/api/v1/projects`.
+
 ### DELETE `/api/lists/{id}`
 Delete a list.
 
