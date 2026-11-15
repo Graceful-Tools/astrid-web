@@ -35,7 +35,8 @@ and stack versions with `npm run check:docs`.
 - **[Agent Architecture Simplification](./AGENT_ARCHITECTURE_SIMPLIFICATION.md)** - Simplified AI agent system (tools-based, multi-provider)
 - **[Agent Polling Mode](./AGENT_POLLING_MODE.md)** - Let a user's own harness (Claude Code, Codex, Copilot, Gemini) work the agent's queue on a loop instead of Astrid calling a provider API
 - **[Retiring the core-rules TypeScript fallbacks](./architecture/CORE_RULES_FALLBACK_RETIREMENT.md)** - AWTD-1591: how the core/TypeScript comparison is sampled, how to read `/api/health`, and the dated checklist for each fallback
-- **[Business Runtime Binding RFC](./architecture/BUSINESS_RUNTIME_BINDING_RFC.md)** - AWTD-1564 proposal (not implemented): explicit admin-managed runtimes with additive personal compatibility, enrollment, scope, billing and rollback
+- **[Business Runtime Binding: partner and agent guide](./architecture/RUNTIME_BINDING_PARTNER_GUIDE.md)** - ⭐ AWTD-1671: start here. Built and parked (inert behind two flags); file map, enrollment, denial reasons, gaps before activation
+- **[Business Runtime Binding RFC](./architecture/BUSINESS_RUNTIME_BINDING_RFC.md)** - AWTD-1564 design (phases 1–5 built, inert): explicit admin-managed runtimes with additive personal compatibility, enrollment, scope, billing and rollback
 
 ### 🎨 Whitelabeling
 - **[Whitelabeling Guide](./WHITELABELING.md)** - ⭐ Deploy under a different brand, with a different set of back-end services, entirely through build-time configuration
