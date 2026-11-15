@@ -88,7 +88,23 @@ export async function dispatchPostCommentSideEffects(
     notifyMentionsAndTriggerAgents(comment, task, commenter),
     detectWorkflowAction(comment, task.id, commenter),
     notifyAssigneeAgent(comment, task, commenter, isSystemGenerated),
+    wakePollingAgent(comment, task, commenter),
   ])
+}
+
+/**
+ * Opt-in event-driven wake (AWTD-1556): a reply to a polling agent nudges the
+ * board's worker instead of waiting for its next poll. Imported lazily because
+ * lib/agent-wake reads this module's SYSTEM_GENERATED_MARKER. Never throws.
+ */
+async function wakePollingAgent(
+  comment: CommentInfo,
+  task: TaskInfo,
+  commenter: CommenterInfo
+): Promise<void> {
+  if (process.env.ASTRID_AGENT_WAKE !== 'on') return
+  const { wakeAgentsForComment } = await import('@/lib/agent-wake')
+  await wakeAgentsForComment({ taskId: task.id, comment, commenter })
 }
 
 async function invalidateStatsForOthersTask(

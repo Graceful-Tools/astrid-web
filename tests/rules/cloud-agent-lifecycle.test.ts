@@ -302,7 +302,8 @@ describe('the loop keeps itself going without the scheduler', () => {
     expect(Object.keys(yaml.load(read('.github/workflows/production-deployment.yml')).on)).toEqual(['workflow_dispatch'])
     // No checkout: nothing the agent wrote runs here.
     expect(JSON.stringify(workflow.jobs.chain)).not.toContain('actions/checkout')
-    expect(workflow.on.repository_dispatch.types).toEqual(['agent-run-next'])
+    // agent-run-next is the chain; astrid-wake is the server's opt-in event wake (AWTD-1556).
+    expect(workflow.on.repository_dispatch.types).toEqual(['agent-run-next', 'astrid-wake'])
   })
 
   it('chains only after a run that finished a task', () => {
@@ -362,6 +363,46 @@ describe('the loop keeps itself going without the scheduler', () => {
       .map(file => yaml.load(read(join('.github/workflows', file)))?.name)
     for (const name of yaml.load(read('.github/workflows/agent-ship.yml')).on.workflow_run.workflows) {
       expect(names, name).toContain(name)
+    }
+  })
+})
+
+/**
+ * AWTD-1556: the server's opt-in event wake starts the same worker the cron
+ * starts. The payload is a hint; the run still reads the queue and claims.
+ */
+describe('AWTD-1556: an astrid-wake dispatch starts the cron\'s worker', () => {
+  const agentRun = () => yaml.load(read(AGENT_RUN))
+  const LATENCY_STEP = 'Record wake latency'
+
+  it('AWTD-1556: runs only for this harness\'s mailbox or an unassigned task, and keeps the queue read and claim', () => {
+    const workflow = agentRun()
+    expect(workflow.jobs.run.if).toBe(
+      `\${{ github.event.action != 'astrid-wake' || contains(fromJSON('["claude","any"]'), github.event.client_payload.mailbox) }}`)
+    // No special path: the preflight that reads the queue is the same step for every trigger.
+    const preflight = workflow.jobs.run.steps.find((s: { name?: string }) => s.name === 'Queue and inbox preflight')
+    expect(preflight.if).toBeUndefined()
+    // The payload never reaches a shell unquoted (zizmor template injection).
+    expect(JSON.stringify(workflow.jobs.run.steps.map((s: { run?: string }) => s.run ?? ''))).not.toContain('client_payload')
+  })
+
+  it('AWTD-1556: records the event-to-queue-read latency for the canary report', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'agent-run-wake-'))
+    try {
+      const summary = join(dir, 'summary.md')
+      const eventAt = new Date(Date.now() - 42_000).toISOString()
+      const result = runWorkflowStep(workflowStep(AGENT_RUN, 'run', LATENCY_STEP), {
+        cwd: dir,
+        env: { EVENT_AT: eventAt, WAKE_REASON: 'ready', WAKE_MAILBOX: 'claude', WORK: 'true', GITHUB_STEP_SUMMARY: summary },
+      })
+      expect(result.status).toBe(0)
+      const row = JSON.parse(read(join(dir, '.agent-output', 'wake-latency.json')))
+      expect(row).toMatchObject({ event_at: eventAt, reason: 'ready', mailbox: 'claude', work: true })
+      expect(row.latency_seconds).toBeGreaterThanOrEqual(42)
+      expect(row.latency_seconds).toBeLessThan(120)
+      expect(read(summary)).toMatch(/^Wake latency: \d+s \(ready, claude, work=true\)/)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
     }
   })
 })

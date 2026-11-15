@@ -66,6 +66,18 @@ export interface TaskUpdatedPayload {
   statsUserIds?: string[]
 }
 
+/** A hint that an enrolled board has work for a polling agent (AWTD-1556, lib/agent-wake.ts). */
+export interface AgentWakePayload {
+  listId: string
+  /** The agent's mailbox, or `any` for an unassigned Ready task. */
+  mailbox: string
+  /** The task that triggered the wake. A hint only: the worker reads its own queue. */
+  taskId: string
+  reason: 'ready' | 'assigned' | 'reply' | 'handback-reply'
+  /** When the event happened, so a run can report its wake latency. */
+  eventAt: string
+}
+
 export interface JobPayloads {
   /** Astrid's server-side chat reply, handed off by a client (lib/astrid-handoff.ts). */
   'astrid-handoff': AstridHandoffPayload
@@ -73,6 +85,8 @@ export interface JobPayloads {
   'astrid-comment-reply': AstridCommentReplyPayload
   /** A task edit's notifications, reminders, stats and dependents (services/task.service.ts). */
   'task-updated': TaskUpdatedPayload
+  /** A repository_dispatch nudging an enrolled board's polling worker (lib/agent-wake.ts). */
+  'agent-wake': AgentWakePayload
 }
 
 export type JobKind = keyof JobPayloads
@@ -99,6 +113,9 @@ export const JOB_POLICIES: Record<JobKind, JobPolicy> = {
   // A handful of short statements. Each step guards itself, so a retry is for
   // a run that was killed, and a short lock lets the next drain take it soon.
   'task-updated': { maxAttempts: 5, baseBackoffMs: 30_000, lockMs: 2 * 60_000 },
+  // One GitHub call. A wake that arrives late is worth less each minute and the
+  // 30-minute cron covers a dead one, so few attempts and a short backoff.
+  'agent-wake': { maxAttempts: 3, baseBackoffMs: 30_000, lockMs: 60_000 },
 }
 
 /** An unknown kind (a row from a newer deploy, a typo) still has to back off and die. */

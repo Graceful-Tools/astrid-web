@@ -25,6 +25,7 @@ import { createLogger } from '@/lib/logger'
 import { broadcastToUsers } from '@/lib/sse-utils'
 import { loadV1TaskForEvent } from '@/lib/tasks/v1-task-shape'
 import { actorHearsOwnChange } from '@/services/task-event-audience'
+import { wakeAgentsForTaskWrite } from '@/lib/agent-wake'
 
 const log = createLogger('task-update-broadcast')
 
@@ -57,6 +58,10 @@ export async function broadcastTaskUpdated(args: {
   originClientId?: string | null
 }): Promise<void> {
   const { task, existingTask, justCompleted, viewers, actorId, actorName, legacySsePayload } = args
+  // The board's polling worker hears about it too, when the board opted in
+  // (AWTD-1556): entering Ready, or a hand-off to a polling agent while Ready,
+  // wakes it now instead of at its next poll. Never throws; inert unless enrolled.
+  await wakeAgentsForTaskWrite({ before: existingTask, after: task })
   // An agent is never sent its own write, so its writes are never tagged.
   const originClientId = args.actorType === 'agent' ? null : args.originClientId
   try {
