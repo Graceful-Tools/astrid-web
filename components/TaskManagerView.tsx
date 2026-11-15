@@ -11,6 +11,7 @@ import { DesktopChatPane } from "./TaskManager/DesktopChatPane"
 import { DrawerTapGuard } from "./TaskManager/DrawerTapGuard"
 import { DesktopSettingsDetailPane } from "./TaskManager/DesktopSettingsDetailPane"
 import { MainContent } from "./TaskManager/MainContent/MainContent"
+import { ProjectBoardSwitch, useOpenProject } from "./projects/ProjectBoardSwitch"
 import { LoadingScreen } from "./loading-screen"
 import { computeTaskPaneLeftOffset } from "./TaskManager/task-pane-position"
 import { Input } from "@/components/ui/input"
@@ -446,7 +447,9 @@ const TaskManagerView = memo(function TaskManagerView({
   hasProjectBoard,
 }: TaskManagerViewModel) {
   const [taskViewMode, setTaskViewMode] = React.useState<'list' | 'board'>('list')
-  const isBoardMode = hasProjectBoard && taskViewMode === 'board'
+  // An open project board (AWTD-1660) lays the page out as a board too.
+  const projectBoardOpen = Boolean(useOpenProject())
+  const isBoardMode = (hasProjectBoard && taskViewMode === 'board') || projectBoardOpen
 
   const handleProjectBoardCreated = React.useCallback((projectLists: TaskList[]) => {
     setLists(prevLists => {
@@ -726,6 +729,19 @@ const TaskManagerView = memo(function TaskManagerView({
     return <LoadingScreen />
   }
 
+  // Both sidebar sites take the same props; only the drawer flag differs (AWTD-1660).
+  const sidebarProps: Omit<React.ComponentProps<typeof LeftSidebar>, 'showHamburgerMenu'> = {
+    isMobile, showMobileSidebar, sidebarRef, effectiveSession, lists, publicLists,
+    collaborativePublicLists, suggestedPublicLists, selectedListId, getFixedListTaskCountMemo,
+    getSavedFilterTaskCountMemo, getTaskCountForListMemo, setSelectedListId, setShowMobileSidebar,
+    setShowAddListModal, setShowPublicBrowser, setShowSettingsPopover, onNavigateSettings,
+    onLogoClick: loadData, activeView, onSelectSearch, sidebarSwipeToDismiss,
+    isTaskDragActive: Boolean(activeDragTaskId), dragOverListId, isShiftDrag,
+    onTaskDropOnList: handleTaskDropOnList, onTaskDragEnter: handleListDragEnter,
+    onTaskDragLeave: handleListDragLeave,
+    onTaskDragOver: (shiftKey, listId) => handleListDragOver(listId, shiftKey)
+  }
+
   // iOS drawer: sidebar is always rendered, content slides to reveal it
   // Works on mobile AND 2-column view (anywhere hamburger menu is shown)
   const isIOSDrawer = layout.isIOSDrawer
@@ -736,38 +752,7 @@ const TaskManagerView = memo(function TaskManagerView({
       <SkipToContentLink />
       {/* Mobile Sidebar - rendered outside content wrapper for iOS drawer effect */}
       {isIOSDrawer && (
-        <LeftSidebar
-          isMobile={isMobile}
-          showHamburgerMenu={isIOSDrawer}
-          showMobileSidebar={showMobileSidebar}
-          sidebarRef={sidebarRef}
-          effectiveSession={effectiveSession}
-          lists={lists}
-          publicLists={publicLists}
-          collaborativePublicLists={collaborativePublicLists}
-          suggestedPublicLists={suggestedPublicLists}
-          selectedListId={selectedListId}
-          getFixedListTaskCountMemo={getFixedListTaskCountMemo}
-          getSavedFilterTaskCountMemo={getSavedFilterTaskCountMemo}
-          getTaskCountForListMemo={getTaskCountForListMemo}
-          setSelectedListId={setSelectedListId}
-          setShowMobileSidebar={setShowMobileSidebar}
-          setShowAddListModal={setShowAddListModal}
-          setShowPublicBrowser={setShowPublicBrowser}
-          setShowSettingsPopover={setShowSettingsPopover}
-          onNavigateSettings={onNavigateSettings}
-          onLogoClick={loadData}
-          activeView={activeView}
-          onSelectSearch={onSelectSearch}
-          sidebarSwipeToDismiss={sidebarSwipeToDismiss}
-          isTaskDragActive={Boolean(activeDragTaskId)}
-          dragOverListId={dragOverListId}
-          isShiftDrag={isShiftDrag}
-          onTaskDropOnList={handleTaskDropOnList}
-          onTaskDragEnter={handleListDragEnter}
-          onTaskDragLeave={handleListDragLeave}
-          onTaskDragOver={(shiftKey, listId) => handleListDragOver(listId, shiftKey)}
-        />
+        <LeftSidebar {...sidebarProps} showHamburgerMenu={isIOSDrawer} />
       )}
 
       {/* iOS Drawer Content Wrapper - slides right to reveal sidebar */}
@@ -816,38 +801,7 @@ const TaskManagerView = memo(function TaskManagerView({
         <div className={`flex flex-1 min-h-0 app-body ${bodyClearsFloatingHeader({ isMobile, isIOSDrawer }) ? 'app-body-with-floating-header' : ''}`} {...swipeHandlers}>
           {/* Left Sidebar - only in non-iOS-drawer mode (desktop) */}
           {!isIOSDrawer && (
-            <LeftSidebar
-              isMobile={isMobile}
-              showHamburgerMenu={showHamburgerMenu}
-              showMobileSidebar={showMobileSidebar}
-              sidebarRef={sidebarRef}
-              effectiveSession={effectiveSession}
-              lists={lists}
-              publicLists={publicLists}
-              collaborativePublicLists={collaborativePublicLists}
-              suggestedPublicLists={suggestedPublicLists}
-              selectedListId={selectedListId}
-              getFixedListTaskCountMemo={getFixedListTaskCountMemo}
-              getSavedFilterTaskCountMemo={getSavedFilterTaskCountMemo}
-              getTaskCountForListMemo={getTaskCountForListMemo}
-              setSelectedListId={setSelectedListId}
-              setShowMobileSidebar={setShowMobileSidebar}
-              setShowAddListModal={setShowAddListModal}
-              setShowPublicBrowser={setShowPublicBrowser}
-              setShowSettingsPopover={setShowSettingsPopover}
-              onNavigateSettings={onNavigateSettings}
-              onLogoClick={loadData}
-              activeView={activeView}
-              onSelectSearch={onSelectSearch}
-              sidebarSwipeToDismiss={sidebarSwipeToDismiss}
-              isTaskDragActive={Boolean(activeDragTaskId)}
-              dragOverListId={dragOverListId}
-              isShiftDrag={isShiftDrag}
-              onTaskDropOnList={handleTaskDropOnList}
-              onTaskDragEnter={handleListDragEnter}
-              onTaskDragLeave={handleListDragLeave}
-              onTaskDragOver={(shiftKey, listId) => handleListDragOver(listId, shiftKey)}
-            />
+            <LeftSidebar {...sidebarProps} showHamburgerMenu={showHamburgerMenu} />
           )}
 
         <main id="main-content" className="contents" /* out of the flex layout (AWTD-1435) */>
@@ -875,6 +829,7 @@ const TaskManagerView = memo(function TaskManagerView({
             />
           </div>
         ) : (
+          <ProjectBoardSwitch lists={lists} tasks={tasks} currentUser={effectiveSession?.user as User | undefined} suppressed={isSearchActive} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask}>
           <MainContent
             isMobile={isMobile}
             mobileView={mobileView}
@@ -958,6 +913,7 @@ const TaskManagerView = memo(function TaskManagerView({
             handleCopyList={handleCopyList}
             handleCopyTask={handleCopyTask}
           />
+          </ProjectBoardSwitch>
         )}
         </main>
 

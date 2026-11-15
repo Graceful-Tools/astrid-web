@@ -339,6 +339,25 @@ task or pane behind it. Every grid offers a full-screen view of itself (web: "Fu
 
 ---
 
+## 9. The project board (Project Mode, AWTD-1660)
+
+Shown only to someone with Project Mode: the deployment ships it (`CAPABILITIES.projectMode`) and
+the person has the `project_mode` flag (`GET /api/v1/features`), from an admin grant or the
+`PROJECT_MODE_ALLOWLIST_EMAILS` list. Web is first; Mac and Windows follow this section.
+
+- **Sidebar.** A *Projects* section lists the projects the person owns or belongs to. A project
+  opens its board; its chevron expands it to show its lists.
+- **Board.** Each chosen list is a row; the project's status columns (Inbox, Ready, Doing,
+  Waiting, the project's custom columns, Done) are the columns. A card's column is its
+  `statusRole`, exactly as on a list's own board, and moving a card sets it the same way. A card
+  on two row lists shows in both rows. Done keeps to each list's recently-completed window.
+- **Rows.** Drag a list from the sidebar onto the board, or use *Add list*, to add it; × on the
+  row header removes it. The choice is the person's, per project, saved on the server
+  (`GET|PUT /api/v1/projects/{id}/board-rows`, see API_CONTRACT.md) so every device shows the
+  same rows. Nothing saved means the project's own lists; an emptied board stays empty.
+
+---
+
 ## 7. How this stays true (anti-drift)
 
 - **Both repos cite this file.** Web: ASTRID.md → *Agent Working Agreements →

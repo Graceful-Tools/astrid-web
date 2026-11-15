@@ -77,7 +77,11 @@ const BUDGETS: Record<string, number> = {
   // this file takes something out.
   // 1179 → 1172: the Copy List button, typed out here and in MainContent, became
   // TaskManager/CopyListButton when its label moved to the locale files (AWTD-1575).
-  'components/TaskManagerView.tsx': 1172,
+  // 1172 → 1128: AWTD-1660 put the project board in place of the list view and
+  // lays the page out as a board while it is open (six lines). Paid for by the
+  // two sidebar sites, which repeated the same thirty props and differed only in
+  // the drawer flag: they now share one object, so the next prop is added once.
+  'components/TaskManagerView.tsx': 1128,
   // 1125 → 1115: the list header's two buttons moved to ListHeaderActions
   // when Sort & Filters gained its own control (task aa4e7eb0).
   // 1115 → 1100: the board-row context memos moved to useBoardRowContext (AWTD-1025).

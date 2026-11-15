@@ -100,6 +100,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'GOOGLE_ALLOWED_AUDIENCES', scope: 'optional', description: 'Extra Google client ids whose ID tokens are accepted (comma-separated).' },
   { name: 'APPLE_CLIENT_IDS', scope: 'optional', description: 'Apple client ids whose identity tokens are accepted (comma-separated); adds to the iOS bundle id.' },
   { name: 'INITIAL_ADMIN_EMAIL', scope: 'optional', description: 'Address granted admin on bootstrap. Unset means no bootstrap admin at all.', validate: isEmail },
+  { name: 'PROJECT_MODE_ALLOWLIST_EMAILS', scope: 'optional', description: 'Comma-separated emails that get the project_mode flag on top of admin grants (AWTD-1660). Verified accounts only; unset means nobody.' },
   { name: 'NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID', scope: 'optional', description: 'Overrides the WebAuthn RP ID. Changing it on a live deployment invalidates every registered passkey.' },
 
   // ── Email ─────────────────────────────────────────────────────────────────
