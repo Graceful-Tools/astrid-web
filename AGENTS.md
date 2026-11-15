@@ -37,9 +37,11 @@ exactly one place:
    of a run. Shipping used to wait for "ready to ship it?"; since 2026-10-13 it waits for
    evidence instead: `npm run predeploy` green on the **merged** commit, then dispatch the
    workflow and verify `commitSha` on `/api/health`. **A task is not done until production
-   serves it.** Two exceptions keep asking: a **pending migration** (it applies during the
-   deploy, before the new code is live) and a **red gate**.
-   (Jon, 2026-09-06 and 2026-10-13; docs/CLI_OPERATIONS.md §0–§1)
+   serves it.** Two exceptions keep asking: a **destructive or data-rewriting migration**
+   (`DROP`/`RENAME`/`SET NOT NULL`/`UPDATE`/`DELETE` — it applies before the new code is live;
+   additive migrations ship like code) and a **red gate**. File issues you find straight to
+   **Ready**; only high-risk work waits for Jon (docs/FIXALL_WORKFLOW.md → *Autonomy*).
+   (Jon, 2026-09-06, 2026-10-13 and 2026-11-15; docs/CLI_OPERATIONS.md §0–§1)
 4. **Bug fixes are TDD:** RED regression test (name the task id) → green → `npm run predeploy`.
    Auth changes → run the full suite before committing. (ASTRID.md → Coding Workflow)
 5. **Tasks use the `listIds` array field** (not `listId`); the API uses the `X-OAuth-Token`
