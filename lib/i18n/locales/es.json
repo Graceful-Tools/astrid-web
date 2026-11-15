@@ -2593,7 +2593,58 @@
   },
   "admin": {
     "navDescription": "Gestiona el acceso, las analíticas y la disponibilidad de funciones.",
-    "navLabel": "Secciones de administración"
+    "navLabel": "Secciones de administración",
+    "nav": {
+      "admins": "Gestionar administradores",
+      "analytics": "Analíticas",
+      "features": "Lanzamientos de funciones",
+      "runtimeBindings": "Vinculaciones de ejecución"
+    },
+    "runtimeBindings": {
+      "description": "Qué entorno de ejecución registrado ejecuta agentes para qué tableros, aprobado por un administrador. Solo una vinculación activa recibe trabajo.",
+      "gateOff": "El registro está desactivado en esta implementación. Las vinculaciones solo se pueden registrar en una implementación dedicada a una sola empresa. Aún puedes suspender, revocar y desvincular las existentes.",
+      "empty": "Aún no hay vinculaciones de ejecución.",
+      "loading": "Cargando…",
+      "loadFailed": "No se pudieron cargar las vinculaciones de ejecución.",
+      "saved": "Guardado",
+      "failed": "No funcionó. Inténtalo de nuevo.",
+      "confirmRevoke": "¿Revocar esta vinculación? No se puede deshacer.",
+      "revision": "Revisión {revision}",
+      "approved": "Aprobada",
+      "notApproved": "No aprobada",
+      "runtime": "Ejecución",
+      "agents": "Agentes",
+      "boards": "Tableros",
+      "attach": "Vincular",
+      "detach": "Desvincular",
+      "states": {
+        "pending": "Pendiente",
+        "verified": "Verificada",
+        "active": "Activa",
+        "suspended": "Suspendida",
+        "revoked": "Revocada"
+      },
+      "actions": {
+        "verify": "Verificar",
+        "approve": "Aprobar",
+        "activate": "Activar",
+        "suspend": "Suspender",
+        "revoke": "Revocar"
+      },
+      "enrollTitle": "Registrar una vinculación",
+      "enrollDescription": "Se aplican los límites del piloto: sondeo, una ejecución a la vez, pagado por la empresa. La vinculación empieza como pendiente.",
+      "enroll": "Registrar",
+      "fields": {
+        "runtimeKind": "Tipo de ejecución",
+        "runtimeSubjectId": "ID de ejecución",
+        "allowedAgentIds": "Agentes permitidos",
+        "allowedBoardIds": "Tableros permitidos",
+        "allowedRepositoryRefs": "Repositorios",
+        "credentialRef": "Referencia de credencial",
+        "billingAccountRef": "Referencia del pagador"
+      },
+      "commaHint": "Separa varios con comas. Las referencias son ID de registros guardados en otro lugar, nunca un secreto."
+    }
   },
   "pwa": {
     "notNow": "Ahora no",

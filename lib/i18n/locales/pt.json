@@ -2593,7 +2593,58 @@
   },
   "admin": {
     "navDescription": "Gerencie acesso, análises e disponibilidade de recursos.",
-    "navLabel": "Seções de administração"
+    "navLabel": "Seções de administração",
+    "nav": {
+      "admins": "Gerenciar administradores",
+      "analytics": "Análises",
+      "features": "Lançamentos de recursos",
+      "runtimeBindings": "Vínculos de execução"
+    },
+    "runtimeBindings": {
+      "description": "Qual ambiente de execução registrado executa agentes para quais quadros, aprovado por um administrador. Só um vínculo ativo recebe trabalho.",
+      "gateOff": "O registro está desativado nesta implantação. Vínculos de execução só podem ser registrados em uma implantação dedicada a uma única empresa. Você ainda pode suspender, revogar e desvincular os existentes.",
+      "empty": "Ainda não há vínculos de execução.",
+      "loading": "Carregando…",
+      "loadFailed": "Não foi possível carregar os vínculos de execução.",
+      "saved": "Salvo",
+      "failed": "Não funcionou. Tente novamente.",
+      "confirmRevoke": "Revogar este vínculo? Não é possível desfazer.",
+      "revision": "Revisão {revision}",
+      "approved": "Aprovado",
+      "notApproved": "Não aprovado",
+      "runtime": "Execução",
+      "agents": "Agentes",
+      "boards": "Quadros",
+      "attach": "Vincular",
+      "detach": "Desvincular",
+      "states": {
+        "pending": "Pendente",
+        "verified": "Verificado",
+        "active": "Ativo",
+        "suspended": "Suspenso",
+        "revoked": "Revogado"
+      },
+      "actions": {
+        "verify": "Verificar",
+        "approve": "Aprovar",
+        "activate": "Ativar",
+        "suspend": "Suspender",
+        "revoke": "Revogar"
+      },
+      "enrollTitle": "Registrar um vínculo",
+      "enrollDescription": "Os limites do piloto se aplicam: polling, uma execução por vez, pago pela empresa. O vínculo começa como pendente.",
+      "enroll": "Registrar",
+      "fields": {
+        "runtimeKind": "Tipo de execução",
+        "runtimeSubjectId": "ID de execução",
+        "allowedAgentIds": "Agentes permitidos",
+        "allowedBoardIds": "Quadros permitidos",
+        "allowedRepositoryRefs": "Repositórios",
+        "credentialRef": "Referência da credencial",
+        "billingAccountRef": "Referência do pagador"
+      },
+      "commaHint": "Separe vários com vírgulas. Referências são IDs de registros guardados em outro lugar, nunca um segredo."
+    }
   },
   "pwa": {
     "notNow": "Agora não",

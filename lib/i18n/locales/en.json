@@ -2593,7 +2593,58 @@
   },
   "admin": {
     "navDescription": "Manage access, analytics, and feature availability.",
-    "navLabel": "Admin sections"
+    "navLabel": "Admin sections",
+    "nav": {
+      "admins": "Manage Admins",
+      "analytics": "Analytics",
+      "features": "Feature Rollouts",
+      "runtimeBindings": "Runtime Bindings"
+    },
+    "runtimeBindings": {
+      "description": "Which enrolled runtime runs agents for which boards, approved by an admin. Only an active binding gets work.",
+      "gateOff": "Enrollment is off on this deployment. Runtime bindings can only be enrolled on a dedicated single-business deployment. You can still suspend, revoke and detach existing bindings.",
+      "empty": "No runtime bindings yet.",
+      "loading": "Loading…",
+      "loadFailed": "Unable to load runtime bindings.",
+      "saved": "Saved",
+      "failed": "That did not work. Try again.",
+      "confirmRevoke": "Revoke this binding? This cannot be undone.",
+      "revision": "Revision {revision}",
+      "approved": "Approved",
+      "notApproved": "Not approved",
+      "runtime": "Runtime",
+      "agents": "Agents",
+      "boards": "Boards",
+      "attach": "Attach",
+      "detach": "Detach",
+      "states": {
+        "pending": "Pending",
+        "verified": "Verified",
+        "active": "Active",
+        "suspended": "Suspended",
+        "revoked": "Revoked"
+      },
+      "actions": {
+        "verify": "Verify",
+        "approve": "Approve",
+        "activate": "Activate",
+        "suspend": "Suspend",
+        "revoke": "Revoke"
+      },
+      "enrollTitle": "Enroll a binding",
+      "enrollDescription": "Pilot limits apply: polling transport, one run at a time, paid by the business. The binding starts pending.",
+      "enroll": "Enroll",
+      "fields": {
+        "runtimeKind": "Runtime kind",
+        "runtimeSubjectId": "Runtime ID",
+        "allowedAgentIds": "Allowed agents",
+        "allowedBoardIds": "Allowed boards",
+        "allowedRepositoryRefs": "Repositories",
+        "credentialRef": "Credential reference",
+        "billingAccountRef": "Payer reference"
+      },
+      "commaHint": "Separate several with commas. References are IDs of records kept elsewhere, never a secret."
+    }
   },
   "pwa": {
     "notNow": "Not now",

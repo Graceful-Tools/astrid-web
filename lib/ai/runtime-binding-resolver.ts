@@ -22,10 +22,11 @@
  *    "Missing/deleted references, lookup failures, ambiguity and invalid
  *    configuration are explicit denials, not legacy fallback."
  *
- * Not here yet, deliberately (later runtime-binding tasks): enrollment and
- * audit writes, multi-board agreement, claims/leases, repository checks at claim
- * time, and wiring the dispatch notifiers. No board can carry a binding until
- * enrollment ships, so those paths have nothing to resolve today.
+ * Not here yet, deliberately (later runtime-binding tasks): multi-board
+ * agreement at resolution time, claims/leases, repository checks at claim time,
+ * and wiring the dispatch notifiers. Enrollment and its audit writes live in
+ * lib/runtime-binding/ (AWTD-1668), which holds conflicting attachments rather
+ * than creating them.
  */
 
 import type { RuntimeBinding } from '@prisma/client'
@@ -40,6 +41,12 @@ import {
   type AgentRunOwnerCandidates,
 } from '@/lib/ai/agent-execution-mode'
 import { createLogger } from '@/lib/logger'
+import {
+  PILOT_BILLING_SOURCE,
+  PILOT_MAX_CONCURRENT_RUNS,
+  PILOT_SCOPE,
+  PILOT_TRANSPORT,
+} from '@/lib/runtime-binding/pilot' // shared with enrollment (AWTD-1668)
 
 const log = createLogger('ai.runtime-binding-resolver')
 
@@ -82,12 +89,6 @@ const BINDING_SELECT = {
   approvedBy: true,
   approvedRevision: true,
 } as const satisfies Record<keyof RuntimeBindingRecord, true>
-
-/** Pilot limits (Jon, 2026-11-14). Widening one is a decision, not a refactor. */
-const PILOT_SCOPE = 'deployment-business'
-const PILOT_TRANSPORT = 'polling'
-const PILOT_MAX_CONCURRENT_RUNS = 1
-const PILOT_BILLING_SOURCE = 'business-provided'
 
 export type RuntimeBindingDenialReason =
   | 'binding-missing'

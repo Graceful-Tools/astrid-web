@@ -11,6 +11,8 @@ export interface V1RouteFamilyCoverage {
  * decision or when one of these representative tests disappears.
  */
 export const V1_ROUTE_FAMILY_COVERAGE = {
+  // Runtime binding enrollment, admin only (AWTD-1668).
+  admin: { mode: 'direct', tests: ['tests/api/admin-runtime-bindings-routes.test.ts'] },
   agent: { mode: 'direct', tests: ['tests/api/ai-agent-assignment.test.ts'] },
   'agent-icon': { mode: 'direct', tests: ['tests/api/agent-icon.test.ts'] },
   'agent-queue': { mode: 'shared-domain', tests: ['tests/lib/agent-queue.test.ts'] },
