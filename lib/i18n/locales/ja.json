@@ -1810,7 +1810,16 @@
     "disableBoardFailed": "ボードを無効にできませんでした",
     "disableBoardTitle": "ボード表示を無効にする",
     "disableBoardBody": "タスクはこのリストに残りますが、Ready/Doing/Waiting の列は削除されます。",
-    "disableBoardNote": "ステータス列にあるタスクはステータスを失います。完了したタスクは完了のままです。"
+    "disableBoardNote": "ステータス列にあるタスクはステータスを失います。完了したタスクは完了のままです。",
+    "projectsHeading": "プロジェクト",
+    "openBoard": "{name} のボードを開く",
+    "showLists": "{name} のリストを表示",
+    "hideLists": "{name} のリストを隠す",
+    "boardAddList": "リストを追加",
+    "boardRemoveRow": "{name} をこのボードから外す",
+    "boardEmpty": "サイドバーからリストをここへドラッグするか、「リストを追加」を使ってください。",
+    "boardNoCandidates": "すべてのリストがすでにこのボードにあります。",
+    "boardSaveFailed": "このボードのリストを保存できませんでした。もう一度お試しください。"
   },
   "viewRotator": {
     "showList": "リストを表示",

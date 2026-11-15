@@ -8,6 +8,8 @@ import { apiGet } from '@/lib/api'
 
 export interface ClientProject {
   id: string
+  /** The board's name, drawn in the sidebar's Projects section (AWTD-1660). */
+  name?: string | null
   key?: string | null
   /** Keys this project had before a rename; ids under them still resolve (AWTD-1024). */
   keyAliases?: Array<{ key: string }> | null

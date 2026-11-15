@@ -1810,7 +1810,16 @@
     "disableBoardFailed": "无法停用看板",
     "disableBoardTitle": "停用看板视图",
     "disableBoardBody": "任务会保留在此列表中，但 Ready/Doing/Waiting 列将被移除。",
-    "disableBoardNote": "处于状态列中的任务将失去其状态。已完成的任务仍为已完成。"
+    "disableBoardNote": "处于状态列中的任务将失去其状态。已完成的任务仍为已完成。",
+    "projectsHeading": "项目",
+    "openBoard": "打开 {name} 看板",
+    "showLists": "显示 {name} 中的列表",
+    "hideLists": "隐藏 {name} 中的列表",
+    "boardAddList": "添加列表",
+    "boardRemoveRow": "从此看板移除 {name}",
+    "boardEmpty": "从侧边栏将列表拖到这里，或使用“添加列表”。",
+    "boardNoCandidates": "所有列表都已在此看板上。",
+    "boardSaveFailed": "无法保存此看板的列表，请重试。"
   },
   "viewRotator": {
     "showList": "显示列表",

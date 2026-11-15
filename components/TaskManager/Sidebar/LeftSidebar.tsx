@@ -13,10 +13,15 @@ import { NotificationBell } from "@/components/notification-bell"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "@/lib/i18n/client"
 import { ListItem } from "./ListItem"
+import dynamic from "next/dynamic"
+import { setSelectedProjectId, useSelectedProjectId } from "@/hooks/use-selected-project"
 import { isListAdminOrOwner } from "@/lib/list-member-utils"
 import { canUserEditTasks } from "@/lib/list-permissions"
 import { isDomainList } from "@/lib/list-flavors"
 import type { TaskList } from "@/types/task"
+
+// Only people with Project Mode see it (AWTD-1660), so it is not first-load JS.
+const ProjectsSection = dynamic(() => import("./ProjectsSection").then(m => m.ProjectsSection), { ssr: false })
 
 interface LeftSidebarProps {
   // Layout and responsive
@@ -102,10 +107,14 @@ export function LeftSidebar({
   const { t } = useTranslations()
   const navigationRef = useRef<HTMLDivElement>(null)
   const currentUser = effectiveSession?.user
+  // Project board open (AWTD-1660): no list is highlighted, and lists can be
+  // dragged onto the board as rows.
+  const selectedProjectId = useSelectedProjectId()
   // When not in list view, don't highlight any list
-  const effectiveSelectedListId = activeView === 'list' ? selectedListId : ''
+  const effectiveSelectedListId = activeView === 'list' && !selectedProjectId ? selectedListId : ''
 
   const handleListClick = (listId: string, fromFeatured?: boolean) => {
+    setSelectedProjectId(null)
     // Always update state immediately for smooth UX
     setSelectedListId(listId, fromFeatured)
 
@@ -129,6 +138,11 @@ export function LeftSidebar({
     if (showHamburgerMenu) {
       setShowMobileSidebar(false)
     }
+  }
+
+  const handleProjectClick = (projectId: string) => {
+    setSelectedProjectId(projectId)
+    if (showHamburgerMenu) setShowMobileSidebar(false)
   }
 
   const handleAddListClick = () => {
@@ -266,7 +280,7 @@ export function LeftSidebar({
               className={`w-full justify-start ${
                 isMobile ? 'mobile-list-item text-left' : ''
               } ${
-                activeView === 'list' && selectedListId === "my-tasks"
+                effectiveSelectedListId === "my-tasks"
                   ? "bg-brand !text-brand-foreground hover:bg-brand-hover hover:!text-brand-foreground"
                   : "theme-text-secondary hover:theme-text-primary hover:theme-bg-hover"
               }`}
@@ -305,10 +319,21 @@ export function LeftSidebar({
                   onTaskDragEnter={(shiftKey) => onTaskDragEnter(list.id, shiftKey)}
                   onTaskDragLeave={() => onTaskDragLeave(list.id)}
                   onTaskDragOver={onTaskDragOver}
+                  listDraggable={Boolean(selectedProjectId) && !list.isVirtual}
                 />
               ))}
           </div>
         </div>
+
+        <ProjectsSection
+          lists={lists}
+          isMobile={isMobile}
+          selectedProjectId={activeView === 'list' ? selectedProjectId : null}
+          selectedListId={effectiveSelectedListId}
+          onSelectProject={handleProjectClick}
+          onListClick={handleListClick}
+          getTaskCountForList={getTaskCountForListMemo}
+        />
 
         {/* Lists */}
         <div className="p-3 mt-4">
@@ -361,6 +386,7 @@ export function LeftSidebar({
                   onTaskDragEnter={(shiftKey) => onTaskDragEnter(list.id, shiftKey)}
                   onTaskDragLeave={() => onTaskDragLeave(list.id)}
                   onTaskDragOver={onTaskDragOver}
+                  listDraggable={Boolean(selectedProjectId) && !list.isVirtual}
                 />
               ))}
           </div>

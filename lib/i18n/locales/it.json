@@ -1810,7 +1810,16 @@
     "disableBoardFailed": "Impossibile disattivare la bacheca",
     "disableBoardTitle": "Disattiva la vista bacheca",
     "disableBoardBody": "Le attività restano in questa lista, ma le colonne Ready/Doing/Waiting verranno rimosse.",
-    "disableBoardNote": "Le attività in una colonna di stato perderanno il loro stato. Le attività completate restano completate."
+    "disableBoardNote": "Le attività in una colonna di stato perderanno il loro stato. Le attività completate restano completate.",
+    "projectsHeading": "Progetti",
+    "openBoard": "Apri la bacheca {name}",
+    "showLists": "Mostra le liste di {name}",
+    "hideLists": "Nascondi le liste di {name}",
+    "boardAddList": "Aggiungi lista",
+    "boardRemoveRow": "Rimuovi {name} da questa bacheca",
+    "boardEmpty": "Trascina qui una lista dalla barra laterale, oppure usa Aggiungi lista.",
+    "boardNoCandidates": "Tutte le liste sono già su questa bacheca.",
+    "boardSaveFailed": "Impossibile salvare le liste di questa bacheca. Riprova."
   },
   "viewRotator": {
     "showList": "Mostra elenco",
