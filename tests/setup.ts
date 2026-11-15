@@ -165,6 +165,10 @@ export const mockPrisma = {
     delete: vi.fn().mockResolvedValue({}),
     count: vi.fn().mockResolvedValue(0),
   },
+  // Explicit business runtime bindings (AWTD-1667): none exist unless a test says so.
+  runtimeBinding: {
+    findUnique: vi.fn().mockResolvedValue(null),
+  },
   // The durable job queue (AWTD-1460): enqueues succeed, drains find nothing.
   job: {
     createMany: vi.fn().mockResolvedValue({ count: 1 }),

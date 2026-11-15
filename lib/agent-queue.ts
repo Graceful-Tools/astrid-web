@@ -26,7 +26,9 @@ import {
 import { AIAgentConfigSchema, parseUserAIConfig } from '@/lib/ai/user-config-schemas'
 import { awaitsAgentReply } from '@/lib/ready-queue-scope'
 import { PAGE_LIMIT, selectAgentQueueTasks } from '@/lib/agent-queue-due-first'
-import { getAgentExecutionMode, pollableMailboxes } from '@/lib/ai/agent-execution-mode'
+import { pollableMailboxes } from '@/lib/ai/agent-execution-mode'
+import { RuntimeBindingDeniedError, resolveAgentRuntime } from '@/lib/ai/runtime-binding-resolver'
+import { runtimeBindingResolverEnabled } from '@/lib/env'
 import { observeAgentExecutionMode } from '@/lib/ai/agent-execution-mode-shadow'
 import { pendingAgentHandback, type AgentResumeContext } from '@/lib/agent-handback'
 
@@ -139,6 +141,13 @@ export interface AgentQueueResult {
   hint?: string
   /** Additive verdict for loops that must also act on attention (AWTD-1560). */
   runnable: AgentRunnable
+  /**
+   * Present ONLY when the named board resolved through an explicit business
+   * runtime binding (AWTD-1667) — absent, not null, otherwise, so an unbound
+   * queue's JSON is byte-for-byte what it was. Identity only: never the
+   * credential or payer reference.
+   */
+  runtimeBinding?: { id: string; revision: number }
 }
 
 /**
@@ -317,8 +326,40 @@ export async function buildAgentQueue({
     )
   }
 
-  const mode = await getAgentExecutionMode(userId, email)
-  observeAgentExecutionMode({ userId, mailbox, mode })
+  // Visibility is the CALLER's, not the agent's: the queue may only contain tasks
+  // the person driving the harness could already read.
+  const visibleToCaller = {
+    OR: [
+      { ownerId: userId },
+      { listMembers: { some: { userId } } },
+      { privacy: 'PUBLIC' as const },
+    ],
+  }
+
+  // One resolver (AWTD-1667). With ASTRID_RUNTIME_BINDING_RESOLVER off, or on a
+  // board with no binding, this is exactly getAgentExecutionMode for the caller
+  // and the board is not even looked up. A named board's binding is read only
+  // within what the caller can see, so a denial cannot reveal a stranger's
+  // board. A binding that cannot be used throws: an empty queue would read as a
+  // quiet day, and a personal one would be the fall-back the RFC forbids.
+  const board =
+    runtimeBindingResolverEnabled() && listId
+      ? await prisma.taskList.findFirst({
+          where: { id: listId, ...visibleToCaller },
+          select: { runtimeBindingId: true },
+        })
+      : null
+  const runtime = await resolveAgentRuntime({
+    agentEmail: email,
+    legacyUserId: userId,
+    board: board && listId ? { id: listId, runtimeBindingId: board.runtimeBindingId } : null,
+  })
+  if (runtime.kind === 'denied') throw new RuntimeBindingDeniedError(runtime)
+  const mode = runtime.mode
+  if (runtime.kind === 'legacy') observeAgentExecutionMode({ userId, mailbox, mode })
+  // Identity only. The plan's credential and payer references stay server-side.
+  const runtimeBinding =
+    runtime.kind === 'bound' ? { id: runtime.plan.bindingId, revision: runtime.plan.revision } : undefined
 
   const agentUser = await prisma.user.findUnique({
     where: { email },
@@ -347,17 +388,8 @@ export async function buildAgentQueue({
       attention: { tasks: [], messages: [], truncated: false, skipped: [] },
       hint: nothingAssignedHint(mailbox),
       runnable: { version: 1, hasWork: false, reasons: [], incomplete: false },
+      ...(runtimeBinding ? { runtimeBinding } : {}),
     }
-  }
-
-  // Visibility is the CALLER's, not the agent's: the queue may only contain tasks
-  // the person driving the harness could already read.
-  const visibleToCaller = {
-    OR: [
-      { ownerId: userId },
-      { listMembers: { some: { userId } } },
-      { privacy: 'PUBLIC' as const },
-    ],
   }
 
   // One shape, used by the queue and by the count that explains an empty one. A
@@ -463,6 +495,7 @@ export async function buildAgentQueue({
       reasons,
       incomplete: truncated || attention.truncated || attention.skipped.length > 0,
     },
+    ...(runtimeBinding ? { runtimeBinding } : {}),
   }
 }
 
