@@ -40,7 +40,6 @@ describe('ProjectStatusBoard scrollbar visibility (bug: left slider scrollbar sh
         selectedListId={domain.id}
         currentUser={null}
         onUpdateTask={() => {}}
-        onDeleteTask={() => {}}
         onCreateTask={async () => null}
       />,
     )
@@ -63,7 +62,6 @@ describe('ProjectStatusBoard scrollbar visibility (bug: left slider scrollbar sh
         selectedListId={domain.id}
         currentUser={null}
         onUpdateTask={() => {}}
-        onDeleteTask={() => {}}
         onCreateTask={async () => null}
       />,
     )

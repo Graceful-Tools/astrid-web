@@ -164,8 +164,6 @@
     "saveNewTask": "새 작업 저장",
     "detail": {
       "backToList": "목록으로 돌아가기",
-      "collapseTask": "작업 접기",
-      "collapse": "접기",
       "taskActions": "작업 동작",
       "exitFullScreen": "전체 화면 종료",
       "testReminder": "테스트 알림",
@@ -235,8 +233,6 @@
     "userAvatarAlt": "사용자",
     "assigneeYou": "나",
     "board": {
-      "collapseExpandedIn": "{name}에서 펼친 작업 접기",
-      "tapToCollapse": "탭하여 접기",
       "addTaskTo": "{name}에 작업 추가"
     },
     "dropToPlaceFirst": "여기에 놓아 첫 번째 작업 배치"

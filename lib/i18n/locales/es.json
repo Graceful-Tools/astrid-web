@@ -164,8 +164,6 @@
     "saveNewTask": "Guardar nueva tarea",
     "detail": {
       "backToList": "Volver a la lista",
-      "collapseTask": "Contraer tarea",
-      "collapse": "Contraer",
       "taskActions": "Acciones de la tarea",
       "exitFullScreen": "Salir de pantalla completa",
       "testReminder": "Recordatorio de Prueba",
@@ -235,8 +233,6 @@
     "userAvatarAlt": "Usuario",
     "assigneeYou": "Tú",
     "board": {
-      "collapseExpandedIn": "Contraer la tarea expandida en {name}",
-      "tapToCollapse": "Toca para contraer",
       "addTaskTo": "Añadir tarea a {name}"
     },
     "dropToPlaceFirst": "Suelta aquí para colocar la primera tarea"

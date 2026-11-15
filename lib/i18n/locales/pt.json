@@ -164,8 +164,6 @@
     "saveNewTask": "Salvar nova tarefa",
     "detail": {
       "backToList": "Voltar para a lista",
-      "collapseTask": "Recolher tarefa",
-      "collapse": "Recolher",
       "taskActions": "Ações da tarefa",
       "exitFullScreen": "Sair da tela cheia",
       "testReminder": "Lembrete de teste",
@@ -235,8 +233,6 @@
     "userAvatarAlt": "Usuário",
     "assigneeYou": "Você",
     "board": {
-      "collapseExpandedIn": "Recolher a tarefa expandida em {name}",
-      "tapToCollapse": "Toque para recolher",
       "addTaskTo": "Adicionar tarefa a {name}"
     },
     "dropToPlaceFirst": "Solte aqui para posicionar a primeira tarefa"

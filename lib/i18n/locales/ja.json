@@ -164,8 +164,6 @@
     "saveNewTask": "新しいタスクを保存",
     "detail": {
       "backToList": "リストに戻る",
-      "collapseTask": "タスクを折りたたむ",
-      "collapse": "折りたたむ",
       "taskActions": "タスクのアクション",
       "exitFullScreen": "全画面表示を終了",
       "testReminder": "テストリマインダー",
@@ -235,8 +233,6 @@
     "userAvatarAlt": "ユーザー",
     "assigneeYou": "あなた",
     "board": {
-      "collapseExpandedIn": "{name}で展開中のタスクを折りたたむ",
-      "tapToCollapse": "タップして折りたたむ",
       "addTaskTo": "{name}にタスクを追加"
     },
     "dropToPlaceFirst": "ここにドロップして最初のタスクを配置"

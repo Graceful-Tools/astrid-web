@@ -43,7 +43,6 @@ describe('ProjectStatusBoard virtualizes very long columns (task a48b2d24)', () 
         selectedListId={domain.id}
         currentUser={null}
         onUpdateTask={() => {}}
-        onDeleteTask={() => {}}
         onCreateTask={async () => null}
       />,
     )

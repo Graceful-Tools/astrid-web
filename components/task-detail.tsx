@@ -109,7 +109,13 @@ interface TaskDetailProps {
    * what the status board passes is a separate, visible change (task 72cb4a13).
    */
   canComment?: boolean
-  inline?: boolean
+  /**
+   * Set when the pane is a board card's callout (AITD-679): which side of the card it opened on
+   * and how far down its edge the arrow points, from core rows::callout (lib/callout-placement).
+   * `null` while it is still being measured. Absent for the docked row pane, whose arrow tracks
+   * the row by itself.
+   */
+  calloutArrow?: { side: 'left' | 'right'; offset: number } | null
   /**
    * Whether this pane can be expanded to full screen. Set by whoever renders
    * the pane, because only they know if it is windowed: the desktop floating
@@ -125,7 +131,7 @@ interface TaskDetailProps {
   }
 }
 
-function TaskDetailComponent({ task, currentUser, availableLists = [], availableTasks = [], subtasks = [], onToggleSubtaskComplete, onAddSubtask, onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, displayMode, canComment, inline = false, allowFullScreen = false, swipeToDismiss }: TaskDetailProps) {
+function TaskDetailComponent({ task, currentUser, availableLists = [], availableTasks = [], subtasks = [], onToggleSubtaskComplete, onAddSubtask, onUpdate, onLocalUpdate, onDelete, onEdit, onClose, onCopy, onSaveNew, selectedTaskElement, readOnly = false, displayMode, canComment, calloutArrow, allowFullScreen = false, swipeToDismiss }: TaskDetailProps) {
   const { t } = useTranslations()
   const { theme } = useTheme()
 
@@ -1196,42 +1202,33 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
     return suggestions
   }
 
-
-
-  const priorityLabels = {
-    0: "None",
-    1: "Low",
-    2: "Medium",
-    3: "High",
-  }
-
   return (
     <>
-      {/* Arrow rendered outside the panel div so it escapes overflow:hidden */}
-      {!inline && !onClose ? (
+      {/* Arrow rendered outside the panel div so it escapes overflow:hidden. A board callout's
+          sits on the edge facing its card, centred on the core's offset (AITD-679). */}
+      {calloutArrow !== undefined ? (
+        calloutArrow && (
+          <div
+            className={`task-panel-arrow task-panel-arrow-tracks-row theme-panel-arrow${calloutArrow.side === 'left' ? ' task-panel-arrow-end' : ''}`}
+            style={{ top: `calc(${calloutArrow.offset}px - var(--task-panel-arrow-half))` }}
+            data-callout-arrow={calloutArrow.side}
+          ></div>
+        )
+      ) : (
         <div
-          className="task-panel-arrow task-panel-arrow-tracks-row theme-panel-arrow"
+          className={`task-panel-arrow task-panel-arrow-tracks-row theme-panel-arrow${onClose ? ' hidden cols2:block' : ''}`}
           style={{ top: `${arrowTop}px` }}
         ></div>
-      ) : !inline ? (
-        <div
-          className="task-panel-arrow task-panel-arrow-tracks-row theme-panel-arrow hidden cols2:block"
-          style={{ top: `${arrowTop}px` }}
-        ></div>
-      ) : null}
+      )}
       <div
         className={`${
           isFullScreen
-            // A board card has no expanding wrapper to fill, so it positions
-            // against the viewport itself. The floating pane keeps `absolute`:
-            // its `.task-panel-desktop` wrapper expands underneath it via
-            // :has(), and staying inside that wrapper is what keeps the close
-            // animation working. (Task 52bf1efb.)
-            ? inline ? 'task-panel-expanded-viewport' : 'task-panel-expanded'
-            : inline ? 'w-full overflow-hidden rounded-md border theme-border' : onClose ? 'w-full' : 'task-panel'
-        } theme-panel flex flex-col ${
-          isFullScreen ? 'h-screen' : inline ? 'h-auto max-h-[70vh]' : 'h-full'
-        }${isFullScreen ? '' : ' relative'}`}
+            // Absolute: the `.task-panel-desktop` wrapper (the row pane or a
+            // board callout) expands underneath it via :has(), and staying
+            // inside it keeps the close animation working. (Task 52bf1efb.)
+            ? 'task-panel-expanded'
+            : onClose ? 'w-full' : 'task-panel'
+        } theme-panel flex flex-col ${isFullScreen ? 'h-screen' : 'h-full'}${isFullScreen ? '' : ' relative'}`}
         data-task-detail-panel
         data-fullscreen={isFullScreen ? 'true' : undefined}
         {...(swipeToDismiss || {})}
@@ -1260,7 +1257,6 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
         onCancel={handleSetClosedReason}
         onStatusSelect={menuDuplicates.status ? undefined : applyStatusColumn}
         hideCopyIdentifier={menuDuplicates.copyIdentifier}
-        compact={inline}
         fullScreen={canFullScreen ? fullScreen : undefined}
         onToggleFullScreen={canFullScreen ? () => setFullScreen(value => !value) : undefined}
       />
@@ -1294,7 +1290,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       )}
 
       <div
-        className={`${inline ? 'max-h-[48vh]' : 'flex-1'} overflow-y-auto scrollbar-hide p-4 space-y-4 relative`}
+        className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4 relative"
         ref={scrollAreaCallbackRef}
         onTouchStart={pullToRefresh.onTouchStart}
         onTouchMove={pullToRefresh.onTouchMove}

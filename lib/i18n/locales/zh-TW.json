@@ -164,8 +164,6 @@
     "saveNewTask": "儲存新任務",
     "detail": {
       "backToList": "返回列表",
-      "collapseTask": "收合任務",
-      "collapse": "收合",
       "taskActions": "任務動作",
       "exitFullScreen": "退出全螢幕",
       "testReminder": "測試提醒",
@@ -235,8 +233,6 @@
     "userAvatarAlt": "使用者",
     "assigneeYou": "你",
     "board": {
-      "collapseExpandedIn": "收合 {name} 中展開的任務",
-      "tapToCollapse": "點一下即可收合",
       "addTaskTo": "新增任務至 {name}"
     },
     "dropToPlaceFirst": "拖放到此處以放置第一個任務"

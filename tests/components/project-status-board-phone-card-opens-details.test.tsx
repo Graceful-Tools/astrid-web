@@ -4,13 +4,14 @@
 
 /**
  * AWTD-1653 — on a phone, a board card opens task details (core DS30).
+ * AITD-679 — and on every other width too, never by expanding in place.
  *
- * In a one-pane view a list row and a board card open task details the same
- * way: the ordinary full-screen push, never a card expanding in place. List
- * rows already did; cards expanded inline at every width. The wide board keeps
- * its in-place expansion, which DS30 does not cover.
+ * A list row and a board card open task details the same way, through the
+ * same handler: a phone pushes the full-screen view, a multi-column board
+ * floats the callout beside the card (components/TaskManager/BoardTaskCallout,
+ * tested in tests/components/board-task-callout-aitd-679.test.tsx).
  *
- * Expanded in place, the card is replaced by an inline TaskDetail panel, so
+ * Expanded in place, the card was replaced by an inline TaskDetail panel, so
  * "did not expand" is asserted as "no inline panel rendered".
  */
 
@@ -91,7 +92,7 @@ const task = {
 } as unknown as Task
 
 
-function renderBoard(props: { isOneColumn: boolean; onOpenTask?: (taskId: string) => void }) {
+function renderBoard(props: { isOneColumn: boolean; onOpenTask?: (taskId: string, anchor?: HTMLElement) => void; selectedTaskId?: string | null }) {
   return render(
     <ThemeProvider>
       <SettingsProvider>
@@ -101,26 +102,26 @@ function renderBoard(props: { isOneColumn: boolean; onOpenTask?: (taskId: string
         selectedListId={domain.id}
         currentUser={owner}
         onUpdateTask={() => {}}
-        onDeleteTask={() => {}}
         onCreateTask={async () => null}
         isOneColumn={props.isOneColumn}
         onOpenTask={props.onOpenTask}
+        selectedTaskId={props.selectedTaskId}
       />
       </SettingsProvider>
     </ThemeProvider>,
   )
 }
 
-describe('a board card on a phone opens task details (AWTD-1653, core DS30)', () => {
+describe('a board card opens task details like a list row (AWTD-1653, core DS30, AITD-679)', () => {
   it('opens the task through the list-row path on a one-column board, without expanding', async () => {
     const u = userEvent.setup()
     const onOpenTask = vi.fn()
     renderBoard({ isOneColumn: true, onOpenTask })
 
-    await u.click(screen.getByTestId('status-card-task-1'))
+    const card = screen.getByTestId('status-card-task-1')
+    await u.click(card)
 
-    expect(onOpenTask).toHaveBeenCalledWith('task-1')
-    expect(screen.getByTestId('status-card-task-1')).toHaveAttribute('aria-expanded', 'false')
+    expect(onOpenTask).toHaveBeenCalledWith('task-1', card)
     expect(document.querySelector('[data-task-detail-panel]')).toBeNull()
   })
 
@@ -129,21 +130,34 @@ describe('a board card on a phone opens task details (AWTD-1653, core DS30)', ()
     const onOpenTask = vi.fn()
     renderBoard({ isOneColumn: true, onOpenTask })
 
-    screen.getByTestId('status-card-task-1').focus()
+    const card = screen.getByTestId('status-card-task-1')
+    card.focus()
     await u.keyboard('{Enter}')
 
-    expect(onOpenTask).toHaveBeenCalledWith('task-1')
-    expect(screen.getByTestId('status-card-task-1')).toHaveAttribute('aria-expanded', 'false')
+    expect(onOpenTask).toHaveBeenCalledWith('task-1', card)
   })
 
-  it('still expands the card in place on a wide board', async () => {
+  it('AITD-679: on a wide board (iPad, desktop) the card opens the same way and never expands in place', async () => {
     const u = userEvent.setup()
     const onOpenTask = vi.fn()
     renderBoard({ isOneColumn: false, onOpenTask })
 
-    await u.click(screen.getByTestId('status-card-task-1'))
+    const card = screen.getByTestId('status-card-task-1')
+    await u.click(card)
 
-    expect(onOpenTask).not.toHaveBeenCalled()
-    expect(document.querySelector('[data-task-detail-panel]')).not.toBeNull()
+    // The card is the callout's anchor, so it is passed along with the id.
+    expect(onOpenTask).toHaveBeenCalledWith('task-1', card)
+    expect(document.querySelector('[data-task-detail-panel]')).toBeNull()
+    expect(screen.getByTestId('status-card-task-1')).toBe(card)
+  })
+
+  it('AITD-679: a card carries data-task-id like a row, so click-outside leaves it to open', () => {
+    renderBoard({ isOneColumn: false, onOpenTask: vi.fn() })
+    expect(screen.getByTestId('status-card-task-1')).toHaveAttribute('data-task-id', 'task-1')
+  })
+
+  it('AITD-679: the open card reads as selected, as the open row does', () => {
+    renderBoard({ isOneColumn: false, onOpenTask: vi.fn(), selectedTaskId: 'task-1' })
+    expect(screen.getByTestId('status-card-task-1').className).toMatch(/\btask-row-selected\b/)
   })
 })

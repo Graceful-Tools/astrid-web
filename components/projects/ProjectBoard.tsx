@@ -4,7 +4,8 @@
  * The multi-list project board (AWTD-1660): each chosen list is a row, the
  * project's status columns stay columns, and a card dragged to another column
  * moves exactly as it does on a list's own board (`applyProjectColumnTo`, the
- * shared planner). A card opens in place, as on the wide single-list board.
+ * shared planner). A card opens its details as a list row does, through
+ * `onOpenTask` — beside the card as a callout, never in place (AITD-679).
  *
  * Each cell ends in the list board's add-task box (AWTD-1675). A new card joins
  * the cell's own row (its list) and its column's status, so "add here" means
@@ -27,8 +28,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { TaskRowContent } from "@/components/task-row-content"
-import { TaskDetail } from "@/components/task-detail"
-import { canUserEditTask } from "@/lib/list-permissions"
 import { isSomeoneElsesTask } from "@/lib/task-leading-control"
 import { useUserSettings } from "@/hooks/useUserSettings"
 import { useTranslations } from "@/lib/i18n/client"
@@ -60,8 +59,11 @@ export interface ProjectBoardProps {
   allTasks: Task[]
   currentUser?: User | null
   onUpdateTask: (task: Task) => void
-  onDeleteTask: (taskId: string) => void
   onCreateTask: (title: string, options?: { listIds?: string[]; statusRole?: string }) => Promise<string | null>
+  /** Opens a card's details as a list row does, anchored to the card (AITD-679). */
+  onOpenTask?: (taskId: string, anchor?: HTMLElement) => void
+  /** The task whose details are open, so its card reads as selected. */
+  selectedTaskId?: string | null
 }
 
 const cellKey = (listId: string, columnId: string) => `${listId}:${columnId}`
@@ -73,13 +75,12 @@ export function ProjectBoard({
   allTasks,
   currentUser,
   onUpdateTask,
-  onDeleteTask,
   onCreateTask,
+  onOpenTask,
+  selectedTaskId = null,
 }: ProjectBoardProps) {
   const { t } = useTranslations()
   const { taskDisplayMode } = useUserSettings()
-  // The card open in place, keyed by row too: a card on two rows opens in one.
-  const [expanded, setExpanded] = React.useState<string | null>(null)
   const customStates = useProjectCustomStates(projectId)
   const columns = React.useMemo(() => getProjectBoardColumns(customStates), [customStates])
   const { listIds, loaded, saveFailed, save } = useProjectBoardRows(projectId)
@@ -171,7 +172,7 @@ export function ProjectBoard({
         <p role="alert" className="px-4 pt-2 text-xs text-destructive">{t("projectMode.boardSaveFailed")}</p>
       )}
 
-      <div className="flex-1 min-h-0 overflow-auto p-4">
+      <div className="flex-1 min-h-0 overflow-auto p-4" data-board-callout-viewport>
         {loaded && lanes.length === 0 ? (
           <div className="flex min-h-28 items-center justify-center rounded-md border border-dashed theme-border px-3 text-center text-sm theme-text-muted">
             {t("projectMode.boardEmpty")}
@@ -225,52 +226,37 @@ export function ProjectBoard({
                     }}
                   >
                     {lane.cells[column.id]?.map(task => {
-                      const key = `${lane.list.id}:${task.id}`
-                      if (expanded === key && currentUser) {
-                        return (
-                          <div key={task.id} className="relative rounded-md ring-2 ring-brand/40" data-testid={`project-board-open-${task.id}`}>
-                            <TaskDetail
-                              task={task}
-                              currentUser={currentUser}
-                              displayMode={taskDisplayMode}
-                              availableLists={lists}
-                              availableTasks={allTasks}
-                              onUpdate={onUpdateTask}
-                              onDelete={onDeleteTask}
-                              onClose={() => setExpanded(null)}
-                              readOnly={!canUserEditTask(currentUser, task, lane.list)}
-                              inline
-                              allowFullScreen
-                            />
-                          </div>
-                        )
-                      }
-                      const toggle = () => setExpanded(previous => (previous === key ? null : key))
                       return (
                         <div
                           key={task.id}
+                          data-task-id={task.id}
                           className={`task-row task-card board-card transition-theme relative theme-surface theme-border cursor-grab ${
-                            task.completed ? "task-row-completed theme-bg-hover" : "theme-surface-hover"
+                            task.completed
+                              ? "task-row-completed theme-bg-hover"
+                              : selectedTaskId === task.id
+                                ? "task-row-selected theme-bg-selected"
+                                : "theme-surface-hover"
                           }`}
                           draggable
                           role="button"
                           tabIndex={0}
-                          aria-expanded={false}
+                          aria-haspopup="dialog"
                           onDragStart={(event) => {
                             event.dataTransfer.effectAllowed = "move"
                             event.dataTransfer.setData("text/plain", task.id)
                           }}
-                          onClick={toggle}
+                          onClick={(event) => onOpenTask?.(task.id, event.currentTarget)}
                           onKeyDown={(event) => {
                             if (event.key === "Enter" || event.key === " ") {
                               event.preventDefault()
-                              toggle()
+                              onOpenTask?.(task.id, event.currentTarget)
                             }
                           }}
                         >
                           <TaskRowContent
                             task={task}
                             currentUserId={currentUser?.id}
+                            isSelected={selectedTaskId === task.id}
                             onToggleComplete={() => onUpdateTask({ ...task, completed: !task.completed })}
                             onCopyPublic={() => {}}
                             displayMode={taskDisplayMode}
