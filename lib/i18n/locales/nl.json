@@ -2593,7 +2593,58 @@
   },
   "admin": {
     "navDescription": "Beheer toegang, analyses en beschikbaarheid van functies.",
-    "navLabel": "Beheersecties"
+    "navLabel": "Beheersecties",
+    "nav": {
+      "admins": "Beheerders beheren",
+      "analytics": "Analyses",
+      "features": "Functie-uitrol",
+      "runtimeBindings": "Runtimekoppelingen"
+    },
+    "runtimeBindings": {
+      "description": "Welke ingeschreven runtime agents uitvoert voor welke borden, goedgekeurd door een beheerder. Alleen een actieve koppeling krijgt werk.",
+      "gateOff": "Inschrijven staat uit op deze installatie. Runtimekoppelingen kunnen alleen worden ingeschreven op een eigen installatie voor één bedrijf. Bestaande koppelingen kun je nog steeds pauzeren, intrekken en loskoppelen.",
+      "empty": "Nog geen runtimekoppelingen.",
+      "loading": "Laden…",
+      "loadFailed": "Runtimekoppelingen konden niet worden geladen.",
+      "saved": "Opgeslagen",
+      "failed": "Dat is niet gelukt. Probeer het opnieuw.",
+      "confirmRevoke": "Deze koppeling intrekken? Dit kan niet ongedaan worden gemaakt.",
+      "revision": "Revisie {revision}",
+      "approved": "Goedgekeurd",
+      "notApproved": "Niet goedgekeurd",
+      "runtime": "Runtime",
+      "agents": "Agents",
+      "boards": "Borden",
+      "attach": "Koppelen",
+      "detach": "Loskoppelen",
+      "states": {
+        "pending": "In afwachting",
+        "verified": "Geverifieerd",
+        "active": "Actief",
+        "suspended": "Gepauzeerd",
+        "revoked": "Ingetrokken"
+      },
+      "actions": {
+        "verify": "Verifiëren",
+        "approve": "Goedkeuren",
+        "activate": "Activeren",
+        "suspend": "Pauzeren",
+        "revoke": "Intrekken"
+      },
+      "enrollTitle": "Koppeling inschrijven",
+      "enrollDescription": "De pilotgrenzen gelden: polling, één run tegelijk, betaald door het bedrijf. De koppeling begint in afwachting.",
+      "enroll": "Inschrijven",
+      "fields": {
+        "runtimeKind": "Soort runtime",
+        "runtimeSubjectId": "Runtime-ID",
+        "allowedAgentIds": "Toegestane agents",
+        "allowedBoardIds": "Toegestane borden",
+        "allowedRepositoryRefs": "Repository’s",
+        "credentialRef": "Referentie inloggegevens",
+        "billingAccountRef": "Referentie betaler"
+      },
+      "commaHint": "Scheid meerdere waarden met komma’s. Referenties zijn ID’s van gegevens die elders worden bewaard, nooit een geheim."
+    }
   },
   "pwa": {
     "notNow": "Niet nu",

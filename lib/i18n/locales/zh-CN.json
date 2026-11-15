@@ -2593,7 +2593,58 @@
   },
   "admin": {
     "navDescription": "管理访问权限、分析和功能可用性。",
-    "navLabel": "管理分区"
+    "navLabel": "管理分区",
+    "nav": {
+      "admins": "管理管理员",
+      "analytics": "分析",
+      "features": "功能发布",
+      "runtimeBindings": "运行时绑定"
+    },
+    "runtimeBindings": {
+      "description": "由管理员批准哪个已登记的运行时为哪些看板运行智能体。只有处于活动状态的绑定才会接收工作。",
+      "gateOff": "此部署未开启登记。运行时绑定只能在单一企业专用部署中登记。你仍然可以暂停、撤销和解除现有绑定。",
+      "empty": "还没有运行时绑定。",
+      "loading": "加载中…",
+      "loadFailed": "无法加载运行时绑定。",
+      "saved": "已保存",
+      "failed": "操作未成功，请重试。",
+      "confirmRevoke": "要撤销此绑定吗？此操作无法撤消。",
+      "revision": "修订 {revision}",
+      "approved": "已批准",
+      "notApproved": "未批准",
+      "runtime": "运行时",
+      "agents": "智能体",
+      "boards": "看板",
+      "attach": "绑定",
+      "detach": "解除",
+      "states": {
+        "pending": "待处理",
+        "verified": "已验证",
+        "active": "活动",
+        "suspended": "已暂停",
+        "revoked": "已撤销"
+      },
+      "actions": {
+        "verify": "验证",
+        "approve": "批准",
+        "activate": "激活",
+        "suspend": "暂停",
+        "revoke": "撤销"
+      },
+      "enrollTitle": "登记绑定",
+      "enrollDescription": "适用试点限制：轮询、一次一个运行、由企业付费。绑定以待处理状态开始。",
+      "enroll": "登记",
+      "fields": {
+        "runtimeKind": "运行时类型",
+        "runtimeSubjectId": "运行时 ID",
+        "allowedAgentIds": "允许的智能体",
+        "allowedBoardIds": "允许的看板",
+        "allowedRepositoryRefs": "代码仓库",
+        "credentialRef": "凭据引用",
+        "billingAccountRef": "付款方引用"
+      },
+      "commaHint": "多个值用逗号分隔。引用是存放在别处的记录 ID，绝不是密钥。"
+    }
   },
   "pwa": {
     "notNow": "以后再说",
