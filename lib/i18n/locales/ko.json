@@ -1810,7 +1810,16 @@
     "disableBoardFailed": "보드를 비활성화하지 못했습니다",
     "disableBoardTitle": "보드 보기 비활성화",
     "disableBoardBody": "작업은 이 목록에 남지만 Ready/Doing/Waiting 열은 제거됩니다.",
-    "disableBoardNote": "상태 열에 있는 작업은 상태를 잃습니다. 완료된 작업은 완료된 상태로 유지됩니다."
+    "disableBoardNote": "상태 열에 있는 작업은 상태를 잃습니다. 완료된 작업은 완료된 상태로 유지됩니다.",
+    "projectsHeading": "프로젝트",
+    "openBoard": "{name} 보드 열기",
+    "showLists": "{name}의 목록 표시",
+    "hideLists": "{name}의 목록 숨기기",
+    "boardAddList": "목록 추가",
+    "boardRemoveRow": "이 보드에서 {name} 제거",
+    "boardEmpty": "사이드바에서 목록을 여기로 끌어오거나 목록 추가를 사용하세요.",
+    "boardNoCandidates": "모든 목록이 이미 이 보드에 있습니다.",
+    "boardSaveFailed": "이 보드의 목록을 저장하지 못했습니다. 다시 시도해 주세요."
   },
   "viewRotator": {
     "showList": "목록 보기",

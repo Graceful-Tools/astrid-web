@@ -1810,7 +1810,16 @@
     "disableBoardFailed": "No se pudo desactivar el tablero",
     "disableBoardTitle": "Desactivar la vista de tablero",
     "disableBoardBody": "Las tareas permanecen en esta lista, pero se eliminarán las columnas Ready/Doing/Waiting.",
-    "disableBoardNote": "Las tareas que estén en una columna de estado perderán su estado. Las tareas completadas siguen completadas."
+    "disableBoardNote": "Las tareas que estén en una columna de estado perderán su estado. Las tareas completadas siguen completadas.",
+    "projectsHeading": "Proyectos",
+    "openBoard": "Abrir el tablero {name}",
+    "showLists": "Mostrar listas de {name}",
+    "hideLists": "Ocultar listas de {name}",
+    "boardAddList": "Añadir lista",
+    "boardRemoveRow": "Quitar {name} de este tablero",
+    "boardEmpty": "Arrastra aquí una lista desde la barra lateral o usa Añadir lista.",
+    "boardNoCandidates": "Todas las listas ya están en este tablero.",
+    "boardSaveFailed": "No se pudieron guardar las listas de este tablero. Inténtalo de nuevo."
   },
   "viewRotator": {
     "showList": "Mostrar lista",

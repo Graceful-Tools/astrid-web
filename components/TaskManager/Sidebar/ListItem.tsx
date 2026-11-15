@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Globe, Users, Settings } from "lucide-react"
 import { getListImageUrl, getConsistentDefaultImage } from "@/lib/default-images"
 import { getAllListMembers } from "@/lib/list-member-utils"
+import { PROJECT_BOARD_LIST_DRAG_TYPE } from "@/lib/project-board-list-drag"
 import type { TaskList } from "@/types/task"
 
 interface ListItemProps {
@@ -22,6 +23,8 @@ interface ListItemProps {
   isDragActive?: boolean
   isDropTarget?: boolean
   dropMode?: 'move' | 'add'
+  /** Draggable onto a project board as a new row (AWTD-1660). */
+  listDraggable?: boolean
 }
 
 export function ListItem({
@@ -38,7 +41,8 @@ export function ListItem({
   droppable = false,
   isDragActive = false,
   isDropTarget = false,
-  dropMode = 'move'
+  dropMode = 'move',
+  listDraggable = false
 }: ListItemProps) {
   const privacy = list.privacy
 
@@ -77,6 +81,11 @@ export function ListItem({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      draggable={listDraggable || undefined}
+      onDragStart={listDraggable ? (event) => {
+        event.dataTransfer.effectAllowed = 'copy'
+        event.dataTransfer.setData(PROJECT_BOARD_LIST_DRAG_TYPE, list.id)
+      } : undefined}
       className="relative"
       aria-dropeffect={droppable && isDragActive ? (dropMode === 'add' ? 'copy' : 'move') : undefined}
     >

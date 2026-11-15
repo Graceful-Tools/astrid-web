@@ -488,6 +488,35 @@ Toggle list as favorite.
 
 ---
 
+## Project Board Endpoints
+
+### GET|PUT `/api/v1/projects/{id}/board-rows`
+Which lists the caller's multi-list project board shows as rows (AWTD-1660),
+saved per person per project so the choice follows them across devices. Rows
+draw in the saved order; the board's status columns are the project's own
+(`getProjectBoardColumns`).
+
+- Gated on Project Mode: 404 when the deployment does not ship it, 403
+  `reason: "not_granted"` when the caller has not been given it.
+- The project's owner or a member only (otherwise 403; unknown project 404).
+- `GET` scope `projects:read`; `PUT` scope `projects:write`.
+
+**GET response:** `listIds` is `null` when nothing has been saved, which a
+client draws as the project's own lists. Saved ids the caller can no longer see
+are left out.
+```json
+{ "listIds": ["list-a", "list-b"], "meta": { "apiVersion": "v1" } }
+```
+
+**PUT request:** at most 100 ids, de-duplicated in order. `[]` is an empty
+board. Any list the caller cannot see refuses the whole write with 403 and is
+named in `listIds`.
+```json
+{ "listIds": ["list-b", "list-a"] }
+```
+
+---
+
 ## Comment Endpoints
 
 ### GET `/api/tasks/{taskId}/comments`
