@@ -154,6 +154,7 @@ export const ENV_VARS: EnvVar[] = [
 
   // ── AI agents ─────────────────────────────────────────────────────────────
   { name: 'ASTRID_AGENT_EXECUTION_MODE_SHADOW', scope: 'optional', description: 'Set to "true" to sample 1% of polling-only queues for a stored-Off mismatch. Observation only; one extra primary-key settings read per sampled request, deferred after the response with a 250ms observation timeout. Default off (AWTD-1554).', validate: v => ['true', 'false'].includes(v) ? null : 'Must be true or false' },
+  { name: 'ASTRID_RUNTIME_BINDING_RESOLVER', scope: 'optional', description: 'Set to "true" to let a board with an explicit business runtime binding resolve through that binding (AWTD-1667, docs/architecture/BUSINESS_RUNTIME_BINDING_RFC.md §5). A binding that cannot be used is then a visible denial, never a personal fallback. Off: TaskList.runtimeBindingId is never read or queried and every board resolves exactly as before. Default off; rollback is unsetting it.', validate: v => ['true', 'false'].includes(v) ? null : 'Must be true or false' },
   // NOT read by the running app. Server-run inference uses the key each USER
   // stores in their own settings, encrypted at rest with ENCRYPTION_KEY — see
   // lib/ai/agent-execution-mode.ts. These four are read only by maintenance and
@@ -403,4 +404,9 @@ export function requiredVars(): EnvVar[] {
 /** Observation only; anything except an explicit opt-in leaves it disabled. */
 export function agentExecutionModeShadowEnabled(): boolean {
   return process.env.ASTRID_AGENT_EXECUTION_MODE_SHADOW === 'true'
+}
+
+/** Explicit business runtime bindings (AWTD-1667). Anything except an explicit opt-in leaves them unread. */
+export function runtimeBindingResolverEnabled(): boolean {
+  return process.env.ASTRID_RUNTIME_BINDING_RESOLVER === 'true'
 }

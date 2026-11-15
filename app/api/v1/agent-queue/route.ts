@@ -16,6 +16,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { BadQueueOptionError, buildAgentQueue, UnknownAgentError } from '@/lib/agent-queue'
+import { RuntimeBindingDeniedError } from '@/lib/ai/runtime-binding-resolver'
 import { hasRequiredScopes } from '@/lib/oauth/oauth-scopes'
 import { createLogger } from '@/lib/logger'
 
@@ -81,6 +82,15 @@ export const GET = withAuth(
       }
       if (error instanceof UnknownAgentError) {
         return NextResponse.json({ error: error.message, hint: error.hint }, { status: 400 })
+      }
+      // A board whose explicit runtime binding cannot be used (AWTD-1667). Its
+      // own status, with a machine-readable reason, so a loop stops and says
+      // why rather than reading an empty queue as a quiet day.
+      if (error instanceof RuntimeBindingDeniedError) {
+        return NextResponse.json(
+          { error: error.message, reason: error.reason, bindingId: error.bindingId, boardId: error.boardId },
+          { status: 403 }
+        )
       }
       log.error({ err: error }, 'Error building agent queue')
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
