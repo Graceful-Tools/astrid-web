@@ -9,6 +9,7 @@
  * list or My Tasks closes it.
  */
 import { useSyncExternalStore } from 'react'
+import { peekLoadedProjects, subscribeLoadedProjects } from '@/lib/client-projects'
 
 const PARAM = 'project'
 const listeners = new Set<() => void>()
@@ -29,14 +30,42 @@ function subscribe(listener: () => void) {
 export function setSelectedProjectId(projectId: string | null) {
   if (read() === projectId) return
   selected = projectId
-  if (typeof window !== 'undefined' && projectId) {
-    window.history.replaceState(null, '', `/?${PARAM}=${encodeURIComponent(projectId)}`)
+  if (typeof window !== 'undefined') {
+    if (projectId) {
+      window.history.replaceState(null, '', `/?${PARAM}=${encodeURIComponent(projectId)}`)
+    } else if (new URLSearchParams(window.location.search).has(PARAM)) {
+      // Closed by something other than a sidebar click (palette, shortcut):
+      // drop the param so a reload does not reopen the board (AWTD-1675).
+      window.history.replaceState(null, '', '/')
+    }
   }
   for (const listener of listeners) listener()
 }
 
 export function useSelectedProjectId(): string | null {
   return useSyncExternalStore(subscribe, read, () => null)
+}
+
+function subscribeProjects(listener: () => void) {
+  return subscribeLoadedProjects(() => listener())
+}
+
+/**
+ * The open project's name, once its projects have loaded (AWTD-1675). Reads the
+ * shared cache without starting a fetch: the board host already loads it, and a
+ * header for someone with no project open must cost nothing.
+ */
+export function useSelectedProjectName(): string | null {
+  const projectId = useSelectedProjectId()
+  return useSyncExternalStore(
+    subscribeProjects,
+    () => {
+      if (!projectId) return null
+      const project = peekLoadedProjects()?.find(candidate => candidate.id === projectId)
+      return project ? project.name || project.key || null : null
+    },
+    () => null,
+  )
 }
 
 /** Test seam: the module-level selection would otherwise leak between cases. */
