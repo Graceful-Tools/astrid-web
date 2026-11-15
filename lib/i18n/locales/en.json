@@ -1810,7 +1810,16 @@
     "disableBoardFailed": "Failed to disable board",
     "disableBoardTitle": "Disable Board View",
     "disableBoardBody": "Tasks stay in this list, but the Ready/Doing/Waiting columns will be removed.",
-    "disableBoardNote": "Tasks currently in a status column will lose their status. Completed tasks stay completed."
+    "disableBoardNote": "Tasks currently in a status column will lose their status. Completed tasks stay completed.",
+    "projectsHeading": "Projects",
+    "openBoard": "Open the {name} board",
+    "showLists": "Show lists in {name}",
+    "hideLists": "Hide lists in {name}",
+    "boardAddList": "Add list",
+    "boardRemoveRow": "Remove {name} from this board",
+    "boardEmpty": "Drag a list here from the sidebar, or use Add list.",
+    "boardNoCandidates": "Every list is already on this board.",
+    "boardSaveFailed": "Couldn't save this board's lists. Please try again."
   },
   "viewRotator": {
     "showList": "Show list",

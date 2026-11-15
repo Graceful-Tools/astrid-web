@@ -111,6 +111,7 @@ model User {
   desktopAuthGrants            DesktopAuthGrant[]
   ownedProjects                Project[]                  @relation("ProjectOwner")
   projectMemberships           ProjectMember[]            @relation("ProjectMembership")
+  projectBoardViews            ProjectBoardView[]
   pushSubscriptions            PushSubscription[]
   reminderQueue                ReminderQueue[]
   reminderSettings             ReminderSettings?
@@ -293,6 +294,7 @@ model Project {
   owner                User                  @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   members              ProjectMember[]
   lists                TaskList[]
+  boardViews           ProjectBoardView[]
   keyAliases           ProjectKeyAlias[]
   /// The GitHub App installation a GitHub-backed board belongs to — its tenant (AWTD-1149, §8.1).
   githubInstallationId Int?
@@ -317,6 +319,24 @@ model ProjectKeyAlias {
   createdAt DateTime @default(now())
   project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
+  @@index([projectId])
+}
+
+/// Which lists one person's project board shows as rows (AWTD-1660). Per
+/// person per project, so the choice follows them across devices; no row means
+/// nothing chosen yet and the board shows the project's own lists. Ids that
+/// stop being visible are dropped on read rather than cascaded here.
+model ProjectBoardView {
+  id        String   @id @default(cuid())
+  userId    String
+  projectId String
+  listIds   String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
   @@index([projectId])
 }
 

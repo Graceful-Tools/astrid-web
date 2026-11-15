@@ -64,6 +64,11 @@ const ProjectStatusBoard = dynamic(
   () => import("../project-status-board").then(module => module.ProjectStatusBoard),
   { ssr: false, loading: () => <PanelLoadingFallback /> },
 )
+// The multi-list project board (AWTD-1660): only people with Project Mode open it.
+const ProjectBoardHost = dynamic(
+  () => import("../projects/ProjectBoardHost").then(module => module.ProjectBoardHost),
+  { ssr: false, loading: () => <PanelLoadingFallback /> },
+)
 const ListSettingsHost = dynamic(
   () => import("./MainContent/ListSettingsHost").then(module => module.ListSettingsHost),
   { ssr: false, loading: () => null },
@@ -129,6 +134,10 @@ export function LazyCommandPaletteDialog(props: React.ComponentProps<typeof Comm
 
 export function LazyProjectStatusBoard(props: React.ComponentProps<typeof ProjectStatusBoard>) {
   return <ProjectStatusBoard {...props} />
+}
+
+export function LazyProjectBoardHost(props: React.ComponentProps<typeof ProjectBoardHost>) {
+  return <ProjectBoardHost {...props} />
 }
 
 export function LazyListSettingsHost(props: React.ComponentProps<typeof ListSettingsHost>) {
