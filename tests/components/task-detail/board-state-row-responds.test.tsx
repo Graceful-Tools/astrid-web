@@ -5,12 +5,10 @@
 /**
  * AWTD-1253 — "Status buttons in task details are unresponsive in list view."
  *
- * Diagnostic first, regression second. The board-state row renders in LIST
- * mode and not in project mode: `showsTaskDetailProjectState` is
- * `!usesCompactTaskDetail(displayMode) && isInProject && !isReadOnly`, and
- * `usesCompactTaskDetail` means `mode === 'project'` (lib/task-display-mode.ts).
- * So list view is exactly where these buttons are expected to work, which is
- * what the report is about.
+ * Diagnostic first, regression second. The board-state row renders in BOTH
+ * display modes since AWTD-1665 (core CONTRACTS D63, AITD-555):
+ * `showsTaskDetailProjectState` is `isInProject && !isReadOnly`. List view is
+ * where this report was filed, so it is where these buttons are exercised.
  *
  * These assert the contract the row owes its parent: a click resolves the move
  * through the board's own planner and hands the result to `onUpdate`. If this
@@ -90,9 +88,9 @@ describe('the board-state row responds in list view (AWTD-1253)', () => {
     })
   })
 
-  it('renders nothing in project mode, where the checkbox popover owns status', () => {
-    const { container } = renderRow('project')
-    expect(container.firstChild).toBeNull()
+  it('AITD-555: renders in project mode too (core D63), with no second mode guard of its own', () => {
+    renderRow('project')
+    expect(screen.getByTestId('task-detail-board-state-ready')).toBeTruthy()
   })
 
   it('renders nothing for a read-only viewer', () => {
