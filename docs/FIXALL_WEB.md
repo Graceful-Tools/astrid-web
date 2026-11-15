@@ -132,7 +132,7 @@ finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has t
 
   ```bash
   npm run predeploy                                    # 16/16 on the MERGED main
-  git diff origin/prod origin/main -- prisma/migrations/   # must be EMPTY, or ask Jon
+  git diff origin/prod origin/main -- prisma/migrations/   # additive only, or ask Jon
   gh workflow run production-deployment.yml --ref main \
     -f skip_tests=false -f allow_destructive_migrations=false
   gh run watch <run-id> --exit-status                  # to completion, not an early green step
@@ -142,12 +142,13 @@ finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has t
   **Gate the MERGED `main`, not just the branch.** On 2026-10-13 all seven of a run's PRs
   were green individually and the gate on the merge still went red.
 
-  **Two things are still not yours to decide.** A **destructive pending migration** (a
-  DROP, RENAME, SET NOT NULL, or a data rewrite: UPDATE / DELETE / TRUNCATE) applies during
-  the deploy, in a job that runs *before* the new code is live — four dropped columns took
-  production down on 2026-09-18 and a redeploy could not undo it. So a destructive migration
-  goes to Jon (additive ones ship, AWTD-1680), and `allow_destructive_migrations` stays `false`, which makes the
-  workflow refuse rather than guess. And a **red gate** is red: if you believe it is a false
+  **Two things are still not yours to decide.** A **destructive or data-rewriting migration**
+  (`DROP`, `RENAME`, `SET NOT NULL`, `UPDATE`, `DELETE`, `TRUNCATE`) applies during the deploy, in a job
+  that runs *before* the new code is live — four dropped columns took production down on
+  2026-09-18 and a redeploy could not undo it. So that kind of migration goes to Jon, and
+  `allow_destructive_migrations` stays `false`, which makes the workflow refuse rather than
+  guess. **Additive migrations ship like any other change** (Jon, 2026-11-15; FIXALL_WORKFLOW.md
+  → *Autonomy*). And a **red gate** is red: if you believe it is a false
   alarm, prove it on the record first (a stale `.next/types` artifact did exactly this on
   2026-10-13 — see [AWTD-1245](https://astrid.cc/t/AWTD-1245)).
 
@@ -204,14 +205,16 @@ finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has t
 - **A red predeploy files its own Astrid task.** If it was your own mid-refactor breakage,
   close that task with a one-line explanation rather than leaving a false alarm on the board.
 - **If a task is blocked by something outside the repo**, say what unblocks it
-  (docs/FIXALL_WORKFLOW.md → *Waiting carries its condition*): a decision only Jon can make →
-  hand it back (`assign-task.ts <id> jonparis@gmail.com --handback`, Inbox, with the question);
+  (docs/FIXALL_WORKFLOW.md → *Waiting carries its condition*): a high-risk decision or a credential
+  only Jon has → hand it back (`assign-task.ts <id> jonparis@gmail.com --handback`, Inbox, with the
+  question; a low-risk choice you decide and record, FIXALL_WORKFLOW.md → *Autonomy*);
   blocked on another task → `set-task-status.ts <id> Waiting --blocked-by <id>`; blocked on an
   external event → explain it in a comment and `set-task-status.ts <id> Waiting --until <recheck
   date>`. Do not close it, and do not work around the block by breaking users.
 - **If every Ready task is blocked, say so in a few lines and stop.** A run that ends with
-  "nothing actionable" is a correct run. Do not invent adjacent work to fill it; re-checking a
-  blocked task costs one call, and inventing work costs a review.
+  "nothing actionable" is a correct run. Do not invent busywork to fill it. A real issue you
+  *found* while working is different: file it straight to Ready (FIXALL_WORKFLOW.md →
+  *Autonomy*) and, if there is time, take it.
 
 ## For UI tasks: look at it
 

@@ -4,7 +4,7 @@
  *
  * Since 2026-10-13 the rule is the opposite (CLAUDE.md rule 3,
  * docs/CLI_OPERATIONS.md §0–§1): deploy once `npm run predeploy` is green on
- * the merged main — a pending migration and a red gate are the two exceptions
+ * the merged main — a destructive migration and a red gate are the two exceptions
  * — and a task is done when production serves it. ASTRID.md, read by every
  * agent, still said "Ask user: Ready to ship it? / Wait for approval before
  * deploying", and docs/CLI_OPERATIONS.md contradicted its own §0 forty lines
@@ -63,7 +63,7 @@ describe('deploying waits for green gates, not for approval (AWTD-1322)', () => 
     expect(
       offenders,
       'Since 2026-10-13 an agent deploys once predeploy is green on merged main ' +
-        '(pending migration or red gate excepted) and completes a task when production ' +
+        '(destructive migration or red gate excepted) and completes a task when production ' +
         'serves it. See docs/CLI_OPERATIONS.md §0–§1.',
     ).toEqual([])
   })
