@@ -105,6 +105,26 @@ named board does carry a binding:
 
 Clients should treat an unknown `reason` as a denial.
 
+**Admin enrollment of runtime bindings (AWTD-1668).** Web-only admin routes under
+`/api/v1/admin/runtime-bindings`; no iOS or SDK client calls them. Every route
+needs a deployment admin (`AdminUser`). Changes also need a browser session, so an
+OAuth or access token gets 403 `session-required`. All changes except suspend,
+revoke and detach are refused with 403 `deployment-not-single-business` unless the
+server sets `ASTRID_RUNTIME_BINDING_SINGLE_BUSINESS=true`, which is off by default.
+
+- `GET /` returns `{ enrollmentEnabled, bindings: [{ binding, attachedBoards, availableActions }] }`.
+  `POST /` enrolls a binding (pending, revision 1) and answers 201 `{ binding }`.
+- `GET /:id` returns the binding, its attached boards and its revisions. `PATCH /:id`
+  changes the configuration (`expectedRevision` is optional) and always writes a new
+  revision. A broadening returns the binding to `pending`.
+- `POST /:id/lifecycle` takes `{ action: verify|approve|activate|suspend|revoke, expectedRevision? }`.
+- `POST /:id/boards` takes `{ boardId }` and attaches the board.
+  `DELETE /:id/boards?boardId=` detaches it.
+
+A refusal is `{ error, code, details? }`. `error` is an explanation for the admin
+and `code` is machine-readable. A held multi-board conflict is 409 `board-conflict`
+with `details.conflictingBoards`. A stale revision is 409 `revision-conflict`.
+
 `POST /api/v1/tasks/:id/claim-fixall` (`tasks:write`, existing task access)
 accepts the additive `resume` action. Send `{ action: "resume", agent,
 commentWatermark: resume.commentWatermark, resume, listId: resume.listId }`. The server independently

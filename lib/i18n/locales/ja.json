@@ -2593,7 +2593,58 @@
   },
   "admin": {
     "navDescription": "アクセス、分析、機能の提供状況を管理します。",
-    "navLabel": "管理セクション"
+    "navLabel": "管理セクション",
+    "nav": {
+      "admins": "管理者を管理",
+      "analytics": "分析",
+      "features": "機能のロールアウト",
+      "runtimeBindings": "ランタイムバインディング"
+    },
+    "runtimeBindings": {
+      "description": "登録済みのどのランタイムがどのボードのエージェントを実行するかを、管理者が承認します。作業を受け取るのは有効なバインディングだけです。",
+      "gateOff": "このデプロイでは登録が無効です。ランタイムバインディングは単一企業専用のデプロイでのみ登録できます。既存のバインディングの一時停止、取り消し、切り離しは引き続き可能です。",
+      "empty": "ランタイムバインディングはまだありません。",
+      "loading": "読み込み中…",
+      "loadFailed": "ランタイムバインディングを読み込めませんでした。",
+      "saved": "保存しました",
+      "failed": "うまくいきませんでした。もう一度お試しください。",
+      "confirmRevoke": "このバインディングを取り消しますか？元に戻せません。",
+      "revision": "リビジョン {revision}",
+      "approved": "承認済み",
+      "notApproved": "未承認",
+      "runtime": "ランタイム",
+      "agents": "エージェント",
+      "boards": "ボード",
+      "attach": "接続",
+      "detach": "切り離す",
+      "states": {
+        "pending": "保留中",
+        "verified": "検証済み",
+        "active": "有効",
+        "suspended": "一時停止",
+        "revoked": "取り消し済み"
+      },
+      "actions": {
+        "verify": "検証",
+        "approve": "承認",
+        "activate": "有効化",
+        "suspend": "一時停止",
+        "revoke": "取り消し"
+      },
+      "enrollTitle": "バインディングを登録",
+      "enrollDescription": "パイロットの制限が適用されます：ポーリング、同時実行は1件、費用は企業負担。バインディングは保留中から始まります。",
+      "enroll": "登録",
+      "fields": {
+        "runtimeKind": "ランタイムの種類",
+        "runtimeSubjectId": "ランタイムID",
+        "allowedAgentIds": "許可するエージェント",
+        "allowedBoardIds": "許可するボード",
+        "allowedRepositoryRefs": "リポジトリ",
+        "credentialRef": "認証情報の参照",
+        "billingAccountRef": "支払者の参照"
+      },
+      "commaHint": "複数ある場合はカンマで区切ってください。参照は別の場所に保管された記録のIDで、秘密情報ではありません。"
+    }
   },
   "pwa": {
     "notNow": "後で",

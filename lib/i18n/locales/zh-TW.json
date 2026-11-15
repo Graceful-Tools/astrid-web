@@ -2593,7 +2593,58 @@
   },
   "admin": {
     "navDescription": "管理存取權限、分析和功能可用性。",
-    "navLabel": "管理區段"
+    "navLabel": "管理區段",
+    "nav": {
+      "admins": "管理管理員",
+      "analytics": "分析",
+      "features": "功能推出",
+      "runtimeBindings": "執行階段綁定"
+    },
+    "runtimeBindings": {
+      "description": "由管理員核准哪個已登記的執行階段為哪些看板執行代理。只有啟用中的綁定才會接收工作。",
+      "gateOff": "此部署未開放登記。執行階段綁定只能在單一企業專用部署中登記。你仍然可以暫停、撤銷和解除現有綁定。",
+      "empty": "還沒有執行階段綁定。",
+      "loading": "載入中…",
+      "loadFailed": "無法載入執行階段綁定。",
+      "saved": "已儲存",
+      "failed": "操作未成功，請再試一次。",
+      "confirmRevoke": "要撤銷此綁定嗎？此動作無法復原。",
+      "revision": "修訂 {revision}",
+      "approved": "已核准",
+      "notApproved": "未核准",
+      "runtime": "執行階段",
+      "agents": "代理",
+      "boards": "看板",
+      "attach": "綁定",
+      "detach": "解除",
+      "states": {
+        "pending": "待處理",
+        "verified": "已驗證",
+        "active": "啟用中",
+        "suspended": "已暫停",
+        "revoked": "已撤銷"
+      },
+      "actions": {
+        "verify": "驗證",
+        "approve": "核准",
+        "activate": "啟用",
+        "suspend": "暫停",
+        "revoke": "撤銷"
+      },
+      "enrollTitle": "登記綁定",
+      "enrollDescription": "適用試辦限制：輪詢、一次一個執行、由企業付費。綁定以待處理狀態開始。",
+      "enroll": "登記",
+      "fields": {
+        "runtimeKind": "執行階段類型",
+        "runtimeSubjectId": "執行階段 ID",
+        "allowedAgentIds": "允許的代理",
+        "allowedBoardIds": "允許的看板",
+        "allowedRepositoryRefs": "程式碼儲存庫",
+        "credentialRef": "憑證參照",
+        "billingAccountRef": "付款方參照"
+      },
+      "commaHint": "多個值請以逗號分隔。參照是存放在別處的紀錄 ID，絕不是密鑰。"
+    }
   },
   "pwa": {
     "notNow": "稍後再說",

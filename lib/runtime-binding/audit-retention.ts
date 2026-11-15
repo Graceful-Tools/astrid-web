@@ -47,6 +47,9 @@ export const RUNTIME_BINDING_AUDIT_EVENT_CLASS = {
   activated: 'lifecycle',
   'board-attached': 'lifecycle',
   'board-detached': 'lifecycle',
+  // An attach refused because bound boards would disagree (AWTD-1668): the
+  // record of a held conflict is part of the board's configuration history.
+  'board-attach-held': 'lifecycle',
   'credential-rotated': 'lifecycle',
   // ── Lifecycle: suspension and revocation ──────────────────────────────────
   suspended: 'lifecycle',
