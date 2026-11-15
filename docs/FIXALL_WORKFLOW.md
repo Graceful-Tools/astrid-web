@@ -841,7 +841,8 @@ down. Ask production what it is serving. `scripts/verify-deployed-sha.sh` is tha
 - **A destructive or data-rewriting migration.** Migrations apply in a job that runs *before*
   the deploy and does not depend on it, so a `DROP` lands while the code that stops reading it
   is still pending. That took production down on 2026-09-18 and a redeploy cannot undo it. So a
-  pending migration containing `DROP`, `RENAME`, `SET NOT NULL`, `UPDATE` or `DELETE` means: do
+  pending migration containing `DROP`, `RENAME`, `SET NOT NULL`, `UPDATE`, `DELETE` or `TRUNCATE`
+  (`scripts/lib/destructive-migrations.ts`, AWTD-1680) means: do
   not deploy, put the Decision on the task, leave it **incomplete**. **An additive migration**
   (new table, nullable column, index) **is not this**: gate the merged `main` and deploy it
   (Jon, 2026-11-15).

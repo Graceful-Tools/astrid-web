@@ -35,7 +35,7 @@ on:
       # So a destructive migration needs someone to say, on the record, that the
       # code is already live. Leave this false and the run refuses instead.
       allow_destructive_migrations:
-        description: 'Apply a pending DROP / RENAME / SET NOT NULL migration (only when the code that stops using it is ALREADY live)'
+        description: 'Apply a pending DROP / RENAME / SET NOT NULL / UPDATE / DELETE / TRUNCATE migration (only when the code that stops using it is ALREADY live, or Jon approved the data rewrite)'
         required: false
         default: false
         type: boolean
@@ -309,7 +309,7 @@ jobs:
       # AWTD-959. The gate that was missing on 2026-09-18. It runs here — after
       # failed migrations are resolved, so `prisma migrate status` gives a clean
       # answer, and before anything is applied — and refuses a pending DROP,
-      # RENAME or SET NOT NULL unless the dispatch input says the matching code
+      # RENAME, SET NOT NULL or data rewrite (UPDATE/DELETE/TRUNCATE, AWTD-1680) unless the dispatch input says the matching code
       # is already live. The detector is unit-tested in
       # tests/scripts/destructive-migrations.test.ts; a rule embedded in YAML is
       # a rule nobody can run a test against.

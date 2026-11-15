@@ -547,13 +547,13 @@ fi
 #
 # It lands PRs from EARLIER runs, not the one just opened: the checks on a PR
 # opened a moment ago take about ten minutes, and waiting would spend the
-# watchdog on CI. A pending migration or a red gate stops it and posts why.
+# watchdog on CI. A destructive pending migration or a red gate stops it and posts why.
 DEPLOY_OUT=$("$TSX" scripts/land-and-deploy.ts --repo "$REPO" --list-id "$WEB_LIST_ID" 2>&1)
 DEPLOY_STATUS=$?
 [ -n "$DEPLOY_OUT" ] && echo "$DEPLOY_OUT" | sed 's/^/ /'
 case "$DEPLOY_STATUS" in
   0) : ;;                                     # deployed and verified, or nothing to do
-  3) echo "  deploy held: a pending migration needs Jon" ;;
+  3) echo "  deploy held: a destructive pending migration needs Jon" ;;
   4) echo "  deploy held: the gate is red on main" ;;
   5) echo "  ⚠️  deployed but could NOT verify production is serving it" ;;
   *) echo "  ⚠️  land-and-deploy failed (exit $DEPLOY_STATUS)" ;;
