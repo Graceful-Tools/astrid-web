@@ -65,11 +65,12 @@ rule was rewritten from a check made 2m40s into a ~10-minute pipeline. Ask produ
 it is serving (`commitSha`, below) and watch the run to completion.
 
 **Two things an agent still does not decide:**
-- **A pending migration.** It applies during the deploy, before the new code is live
-  (§ *A destructive migration takes TWO deploys*). Check first —
-  `git diff origin/prod origin/main -- prisma/migrations/`. Code-only is the safe case and
-  needs no one; anything pending gets Jon, and `allow_destructive_migrations` stays
-  `false` so the workflow refuses rather than guesses.
+- **A destructive or data-rewriting migration.** Migrations apply during the deploy, before
+  the new code is live (§ *A destructive migration takes TWO deploys*). Check first —
+  `git diff origin/prod origin/main -- prisma/migrations/`. Code-only and **additive**
+  migrations (new table, nullable column, index) need no one (Jon, 2026-11-15). Anything with
+  `DROP`, `RENAME`, `SET NOT NULL`, `UPDATE` or `DELETE` gets Jon, and
+  `allow_destructive_migrations` stays `false` so the workflow refuses rather than guesses.
 - **A red gate.** "All tests green" is the whole of the permission. A red gate that you
   believe is a false alarm is still red until you have shown why, on the record.
 
@@ -275,8 +276,8 @@ Pushing `main` ships nothing (§0: production deploys are `workflow_dispatch` on
 how finished work becomes reviewable. A production deploy reaches real users, which used to
 mean it waited for an explicit "ship it"; it no longer does, because work nobody deploys is
 work nobody can use. The condition replaced the approval: green gates on the merged commit,
-then verify what production serves. **A pending migration is the exception that still asks**
-(§0).
+then verify what production serves. **A destructive or data-rewriting migration is the exception that still asks**
+(§0); an additive one ships like code.
 
 Jon, 2026-09-06: *"I want to look at work when you are done. I don't want to tell you to
 push it so I can look at it and then wait."* Asking to push made him wait twice — once for
@@ -289,7 +290,8 @@ report says what landed rather than offering to land it.
 | `git push` to main (ships nothing — see §0) | Autonomous, when the work is done |
 | `git merge` (merging a PR) | Autonomous, when the gates are green |
 | Production deploy, code-only (`gh workflow run production-deployment.yml`) | Autonomous, when the gates are green on the merged commit — then verify `commitSha` |
-| Production deploy carrying a **pending migration** | **Ask first** — it applies before the new code is live, and a `DROP` cannot be undone by redeploying |
+| Production deploy carrying an **additive migration** (new table / nullable column / index) | Autonomous, when the gates are green on the merged commit (Jon, 2026-11-15) |
+| Production deploy carrying a **destructive or data-rewriting migration** (`DROP`, `RENAME`, `SET NOT NULL`, `UPDATE`, `DELETE`) | **Ask first** — it applies before the new code is live, and a `DROP` cannot be undone by redeploying |
 | `allow_destructive_migrations=true` | **Ask first, always** — only ever true when the code that stopped using the dropped thing is already live |
 | DB destructive ops, file deletions outside the project | **Ask first** |
 
