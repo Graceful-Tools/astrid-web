@@ -38,6 +38,14 @@
           }
         ]
       },
+      "listInstructions": [
+        {
+          "listId": "list-web",
+          "listName": "Astrid Web To-do",
+          "instructions": "<untrusted_list_guidance format=\"json\">\n\"Run the gates before you push.\"\n</untrusted_list_guidance>",
+          "truncated": false
+        }
+      ],
       "truncated": false,
       "attention": {
         "tasks": [
@@ -99,6 +107,7 @@
           }
         ]
       },
+      "listInstructions": [],
       "truncated": false,
       "attention": {
         "tasks": [],
@@ -135,6 +144,7 @@
         "notReadyCount": 3,
         "scheduled": []
       },
+      "listInstructions": [],
       "truncated": false,
       "attention": {
         "tasks": [],

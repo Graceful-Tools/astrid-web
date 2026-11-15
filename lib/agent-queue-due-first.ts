@@ -19,7 +19,7 @@ const taskSelect = {
   isAllDay: true,
   createdAt: true,
   assigneeId: true,
-  lists: { select: { id: true, name: true, githubRepositoryId: true } },
+  lists: { select: { id: true, name: true, githubRepositoryId: true, description: true } },
 } satisfies Prisma.TaskSelect
 
 type QueueTaskRow = Prisma.TaskGetPayload<{ select: typeof taskSelect }>
