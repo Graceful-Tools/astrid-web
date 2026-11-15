@@ -1,0 +1,42 @@
+name: 'Core fixture sync'
+
+# AWTD-1701: astrid-core copies web's contracts/fixtures and checks them in its own CI
+# (`cargo xtask check-contracts ../astrid-web`). A web merge that changes a fixture turns core
+# main red until the copy is refreshed, so this opens that refresh PR on core after the merge.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'contracts/fixtures/**'
+      - 'scripts/sync-core-fixtures.ts'
+      - 'scripts/lib/core-fixture-sync.ts'
+      - '.github/workflows/core-fixture-sync.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: core-fixture-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    env:
+      # Fine-grained token with Contents + Pull requests on astrid-core (the agent's own).
+      GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Clone astrid-core beside the checkout
+        run: |
+          gh auth setup-git
+          git clone "https://github.com/Graceful-Tools/astrid-core.git" ../astrid-core
+          git -C ../astrid-core config user.name "Astrid fixture sync"
+          git -C ../astrid-core config user.email "noreply@astrid.cc"
+      - name: Open the refresh PR if core is behind
+        run: npx --yes tsx scripts/sync-core-fixtures.ts --open-pr
