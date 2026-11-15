@@ -23,9 +23,14 @@ name: 'Agent Run'
 on:
   schedule:
     - cron: '5,35 * * * *'
-  # The chain job's "start the next run" (below). Its payload carries the depth.
+  # agent-run-next: the chain job's "start the next run" (below); its payload
+  # carries the depth. astrid-wake: the server's opt-in event wake (AWTD-1556,
+  # lib/agent-wake.ts) when a task enters Ready or a person replies to an agent
+  # on an enrolled board. Its payload is a hint (task_id, mailbox, reason,
+  # event_at): the run reads the queue and claims exactly as a cron run does,
+  # so a stale, duplicate or forged wake starts a run that finds nothing.
   repository_dispatch:
-    types: [agent-run-next]
+    types: [agent-run-next, astrid-wake]
   workflow_dispatch:
     inputs:
       harness:
@@ -52,6 +57,10 @@ permissions: {}
 jobs:
   run:
     name: "Agent run (${{ (inputs.harness || 'claude-code') }})"
+    # A wake for another harness's mailbox is not this worker's: skip it rather
+    # than spend a runner reading a queue that is not ours. `any` is an
+    # unassigned Ready task, which any loop may claim.
+    if: ${{ github.event.action != 'astrid-wake' || contains(fromJSON('["claude","any"]'), github.event.client_payload.mailbox) }}
     runs-on: ubuntu-26.04
     permissions:
       contents: write
@@ -166,6 +175,27 @@ jobs:
             if(p.version!==1 || typeof p.work!=="boolean" || !Array.isArray(p.wakeKeys)) process.exit(1);
             fs.writeFileSync(".agent-output/wake-keys.json",JSON.stringify(p.wakeKeys));
             fs.appendFileSync(process.env.GITHUB_OUTPUT,`work=${p.work}\n`);
+          '
+
+      # Wake latency (AWTD-1556): from the event on the board to this run's
+      # queue read. docs/architecture/AGENT_EVENT_WAKE.md → Measurement.
+      - name: Record wake latency
+        if: ${{ github.event.action == 'astrid-wake' }}
+        env:
+          EVENT_AT: ${{ github.event.client_payload.event_at }}
+          WAKE_REASON: ${{ github.event.client_payload.reason }}
+          WAKE_MAILBOX: ${{ github.event.client_payload.mailbox }}
+          WORK: ${{ steps.preflight.outputs.work }}
+        run: |
+          node -e '
+            const fs=require("fs"), at=Date.parse(process.env.EVENT_AT||"");
+            const row={event_at:process.env.EVENT_AT||null, queue_read_at:new Date().toISOString(),
+              latency_seconds:Number.isFinite(at)?Math.round((Date.now()-at)/1000):null,
+              reason:process.env.WAKE_REASON||null, mailbox:process.env.WAKE_MAILBOX||null, work:process.env.WORK==="true"};
+            fs.mkdirSync(".agent-output",{recursive:true});
+            fs.writeFileSync(".agent-output/wake-latency.json",JSON.stringify(row)+"\n");
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY||"/dev/null",
+              `Wake latency: ${row.latency_seconds ?? "unknown"}s (${row.reason}, ${row.mailbox}, work=${row.work})\n`);
           '
 
       - name: Build and verify Astrid MCP

@@ -31,6 +31,7 @@ const applyRepeatingTaskRollForward = vi.hoisted(() => vi.fn())
 const recordTaskEvents = vi.hoisted(() => vi.fn())
 const notifyTaskUpdate = vi.hoisted(() => vi.fn())
 const dispatchAgentAssignment = vi.hoisted(() => vi.fn())
+const wakeAgentsForTaskWrite = vi.hoisted(() => vi.fn(async () => undefined))
 // The TaskBackend seam (spec §5.2 step 8). Defaults to the local passthrough;
 // cases below swap in a fake remote that reshapes or refuses.
 const fakeBackend = vi.hoisted(() => ({
@@ -67,6 +68,7 @@ const diffTaskEvents = vi.hoisted(() => vi.fn((..._args: unknown[]): unknown[] =
 vi.mock('@/lib/task-events', () => ({ diffTaskEvents, recordTaskEvents }))
 vi.mock('@/lib/notification-store', () => ({ notifyTaskUpdate }))
 vi.mock('@/services/agent-assignment-dispatch', () => ({ dispatchAgentAssignment }))
+vi.mock('@/lib/agent-wake', () => ({ wakeAgentsForTaskWrite }))
 vi.mock('@/lib/backends/resolve', async importOriginal => ({
   ...(await importOriginal<typeof import('@/lib/backends/resolve')>()),
   taskBackendFor: async () => fakeBackend,
@@ -404,5 +406,23 @@ describe.each(NAMES)('%s task-write surface — a lane move is history, not news
     expect(notified.map((e: { kind: string }) => e.kind)).not.toContain('status_changed')
 
     diffTaskEvents.mockImplementation(() => [])
+  })
+})
+
+describe.each(NAMES)('%s task-write surface — opt-in agent wake (AWTD-1556)', (name) => {
+  it('AWTD-1556: hands the before and after of a Ready move to the one wake hook', async () => {
+    taskFindUnique.mockResolvedValue({ ...OPEN_TASK, statusRole: null })
+    taskFindFirst.mockResolvedValue({ ...OPEN_TASK, statusRole: null })
+    taskUpdate.mockResolvedValue({ ...OPEN_TASK, statusRole: 'ready' })
+
+    const res = await SURFACES[name]({ statusRole: 'ready' })
+
+    expect(wakeAgentsForTaskWrite).toHaveBeenCalledTimes(1)
+    expect(wakeAgentsForTaskWrite).toHaveBeenCalledWith({
+      before: expect.objectContaining({ id: 'task-1', statusRole: null }),
+      after: expect.objectContaining({ id: 'task-1', statusRole: 'ready' }),
+    })
+    // The write itself is untouched: the hook never throws and queues at most a job.
+    if (res && typeof res === 'object' && 'status' in res) expect((res as Response).status).toBeLessThan(400)
   })
 })
