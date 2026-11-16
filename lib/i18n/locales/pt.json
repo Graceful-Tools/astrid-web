@@ -885,7 +885,7 @@
         "apiModeDescription": "{appName} executa este agente no servidor — funciona pelo seu celular, sem precisar de nada rodando em casa.",
         "pollingModeDescription": "Sua própria instalação do {agent} faz o trabalho. Conecte-a uma vez, depois atribua uma tarefa a este agente e marque-a como {ready} — o loop a assume.",
         "offModeDescription": "Este agente fica fora do caminho: não aparece nos seletores de responsável e {appName} nunca o executa. Suas configurações e chaves salvas são mantidas — escolha outro modo para trazê-lo de volta exatamente como estava.",
-        "webhookModeDescription": "Um receptor de webhook operado por você pode receber o trabalho deste agente assim que ele aparece. O {sdk} fornece bibliotecas de integração, não um comando pronto para hospedar agentes. Este modo exige seu próprio receptor de webhook; as configurações abaixo definem a entrega. Para uma configuração guiada com MCP e skill de fila, escolha {nativeHarness} e siga as receitas de {agentLoops}.",
+        "webhookModeDescription": "Um receptor de webhook operado por você pode receber o trabalho deste agente assim que ele aparece. O {sdk} é um executor de agentes (fila, reivindicar, liberar) e um cliente REST tipado, não um receptor de webhook. Este modo exige seu próprio receptor de webhook; as configurações abaixo definem a entrega. Para uma configuração guiada com MCP e skill de fila, escolha {nativeHarness} e siga as receitas de {agentLoops}.",
         "customAgentsDescription": "Agentes que você opera via OAuth + REST + SSE"
       },
       "runtime": {
@@ -961,7 +961,7 @@
         "errorDetail": "Erro: {error}",
         "documentation": "Documentação",
         "aboutBody": "Conecte ao {appName} um receptor de webhook operado por você. Este painel configura para onde as notificações de tarefas são enviadas; ele não instala nem inicia um host de agentes.",
-        "stepReceiver": "Use um receptor de webhook operado por você. O {sdk} fornece bibliotecas de integração, não um comando independente para hospedar agentes.",
+        "stepReceiver": "Use um receptor de webhook operado por você. O {sdk} é um executor de agentes (fila, reivindicar, liberar) e um cliente REST tipado, não um receptor de webhook.",
         "stepCopySecret": "Copie o segredo do webhook para o ambiente do seu servidor",
         "guidedSetup": "Para uma configuração guiada sem receptor de webhook, escolha {selfRuns} → {nativeHarness} em {settings} → {aiAgents} e siga as {recipes}.",
         "recipesLink": "receitas de MCP + skill de fila",
