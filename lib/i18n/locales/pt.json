@@ -1815,7 +1815,14 @@
     "boardRemoveRow": "Remover {name} deste quadro",
     "boardEmpty": "Arraste uma lista da barra lateral para cá ou use Adicionar lista.",
     "boardNoCandidates": "Todas as listas já estão neste quadro.",
-    "boardSaveFailed": "Não foi possível salvar as listas deste quadro. Tente novamente."
+    "boardSaveFailed": "Não foi possível salvar as listas deste quadro. Tente novamente.",
+    "projectLabel": "Projeto",
+    "projectNone": "Nenhum",
+    "projectMoveFailed": "Não foi possível mover esta lista",
+    "projectLockedIn": "Em {name}. Somente o proprietário ou um administrador do projeto pode removê-la.",
+    "newListInProject": "Nova lista no projeto…",
+    "newListName": "Nome da lista",
+    "newListFailed": "Não foi possível criar a lista"
   },
   "viewRotator": {
     "showList": "Mostrar lista",

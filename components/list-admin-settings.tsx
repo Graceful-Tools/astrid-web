@@ -66,6 +66,7 @@ export function ListAdminSettings({
       {/* Project Status Board */}
       <BoardViewSection
         list={list}
+        currentUserId={currentUser.id}
         canEditSettings={canEditSettings}
         onUpdate={onUpdate}
         onProjectBoardCreated={onProjectBoardCreated}

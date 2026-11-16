@@ -69,6 +69,8 @@ interface LeftSidebarProps {
   onTaskDragEnter: (listId: string, shiftKey: boolean) => void
   onTaskDragLeave: (listId: string) => void
   onTaskDragOver: (shiftKey: boolean, listId: string) => void
+  /** Make a new list inside a project and open it (AWTD-1703). */
+  onCreateListInProject?: (name: string, projectId: string) => Promise<void> | void
 }
 
 export function LeftSidebar({
@@ -101,7 +103,8 @@ export function LeftSidebar({
   onTaskDropOnList,
   onTaskDragEnter,
   onTaskDragLeave,
-  onTaskDragOver
+  onTaskDragOver,
+  onCreateListInProject
 }: LeftSidebarProps) {
   const router = useRouter()
   const { t } = useTranslations()
@@ -333,6 +336,8 @@ export function LeftSidebar({
           onSelectProject={handleProjectClick}
           onListClick={handleListClick}
           getTaskCountForList={getTaskCountForListMemo}
+          currentUserId={effectiveSession?.user?.id}
+          onCreateListInProject={onCreateListInProject}
         />
 
         {/* Lists */}

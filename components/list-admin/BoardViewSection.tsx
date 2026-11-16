@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -18,11 +18,14 @@ import { useFeatureFlags } from "@/contexts/feature-flag-context"
 import { useTranslations } from "@/lib/i18n/client"
 import { PROJECT_MODE_FEATURE_KEY } from "@/lib/project-mode-shared"
 import { RequestBoardAccessDialog } from "@/components/list-admin/RequestBoardAccessDialog"
-import { fetchProjects } from "@/lib/client-projects"
+import { fetchProjects, type ClientProject } from "@/lib/client-projects"
 import { apiCall, refusalReason } from "@/lib/api"
+import { listProjectMoves } from "@/lib/list-project-moves"
 
 interface BoardViewSectionProps {
   list: TaskList
+  /** Whose standing decides the Project picker's options (AWTD-1703). */
+  currentUserId?: string
   canEditSettings: boolean
   onUpdate: (list: TaskList) => void
   onProjectBoardCreated?: (projectLists: TaskList[]) => void
@@ -37,6 +40,7 @@ interface BoardViewSectionProps {
  */
 export function BoardViewSection({
   list,
+  currentUserId,
   canEditSettings,
   onUpdate,
   onProjectBoardCreated,
@@ -129,19 +133,56 @@ export function BoardViewSection({
   const renameKey = normalizeProjectKey(renameInput)
   const renameInvalid = renameInput !== "" && !renameKey
 
+  // The reader's projects, with their members: the Project picker offers what the core's
+  // listProjectMoves rule allows for them (AWTD-1703), and the key field reads its key.
+  const [projects, setProjects] = useState<ClientProject[]>([])
+  const [isMoving, setIsMoving] = useState(false)
+
   useEffect(() => {
-    if (!list.projectId || !canEditSettings) return
+    if (!canEditSettings || !showBoardControls) return
     let cancelled = false
     fetchProjects()
-      .then(projects => {
-        const key = projects.find(project => project.id === list.projectId)?.key ?? null
+      .then(loaded => {
         if (cancelled) return
+        setProjects(loaded)
+        const key = loaded.find(project => project.id === list.projectId)?.key ?? null
         setCurrentKey(key)
         setRenameInput(key ?? "")
       })
       .catch(() => {})
     return () => { cancelled = true }
-  }, [list.projectId, canEditSettings])
+  }, [list.projectId, canEditSettings, showBoardControls])
+
+  const moves = useMemo(
+    () => listProjectMoves(currentUserId ?? "", list, projects),
+    [currentUserId, list, projects],
+  )
+  const currentProject = projects.find(project => project.id === list.projectId) ?? null
+  const projectName = (project: ClientProject) => project.name || project.key || ""
+  const destinationProjects = moves.destinations
+    .map(id => projects.find(project => project.id === id))
+    .filter((project): project is ClientProject => Boolean(project))
+  const canMove = destinationProjects.length > 0 || moves.canLeave
+
+  // Moving a list is one PUT; a refusal keeps the picker where it was (the list is only
+  // updated on success) and shows the server's reason.
+  const handleMoveToProject = useCallback(async (value: string) => {
+    const target = value || null
+    if (target === (list.projectId ?? null) || isMoving) return
+    setIsMoving(true)
+    setProjectBoardError(null)
+    try {
+      await apiCall(`/api/v1/lists/${list.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ projectId: target }),
+      })
+      onUpdate({ ...list, projectId: target })
+    } catch (error) {
+      setProjectBoardError(refusalReason(error) ?? t("projectMode.projectMoveFailed"))
+    } finally {
+      setIsMoving(false)
+    }
+  }, [isMoving, list, onUpdate, t])
 
   const handleRenameKey = useCallback(async () => {
     if (!list.projectId || !renameKey || renameKey === currentKey || isRenamingKey) return
@@ -258,6 +299,33 @@ export function BoardViewSection({
             </Button>
           )}
         </div>
+        {showBoardControls && currentUserId && (canMove || list.projectId) ? (
+          <div className="flex flex-wrap items-center gap-2" data-testid="list-project-picker">
+            <Label htmlFor={`list-project-${list.id}`} className="text-xs theme-text-muted shrink-0">
+              {t("projectMode.projectLabel")}
+            </Label>
+            {canMove ? (
+              // Options the person may not choose are left out, not disabled (AWTD-1703).
+              <select
+                id={`list-project-${list.id}`}
+                value={list.projectId ?? ""}
+                disabled={isMoving}
+                onChange={(event) => void handleMoveToProject(event.target.value)}
+                className="h-7 rounded-md border theme-border bg-transparent px-2 text-xs theme-text-primary"
+              >
+                {(moves.canLeave || !list.projectId) && <option value="">{t("projectMode.projectNone")}</option>}
+                {currentProject && <option value={currentProject.id}>{projectName(currentProject)}</option>}
+                {destinationProjects.map(project => (
+                  <option key={project.id} value={project.id}>{projectName(project)}</option>
+                ))}
+              </select>
+            ) : (
+              <span className="text-xs theme-text-muted">
+                {t("projectMode.projectLockedIn", { name: currentProject ? projectName(currentProject) : "" })}
+              </span>
+            )}
+          </div>
+        ) : null}
         {showBoardControls && !list.projectId ? (
           <div className="flex items-center gap-2">
             <Label htmlFor={`project-key-${list.id}`} className="text-xs theme-text-muted shrink-0">
