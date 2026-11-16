@@ -1883,6 +1883,10 @@
       "label": "I membri possono affidare qualsiasi attività a un agente",
       "help": "Consente a ogni membro di questa lista di assegnare un agente a qualsiasi attività, non solo a quelle create da lui. Gli agenti usano i piani del proprietario della lista."
     },
+    "agentClaimRequired": {
+      "label": "Gli agenti prenotano le attività prima di lavorarci",
+      "help": "Gli agenti di questa lista prendono le attività Pronte non assegnate, prenotano ciascuna prima così due agenti non prendono mai la stessa, e mantengono attiva la prenotazione mentre lavorano. Una prenotazione non più rinnovata riporta l'attività in Pronta."
+    },
     "admin": {
       "descriptionLabel": "Descrizione della lista",
       "descriptionInfo": "La descrizione della lista viene usata come istruzioni per gli agenti IA che lavorano in questa lista",

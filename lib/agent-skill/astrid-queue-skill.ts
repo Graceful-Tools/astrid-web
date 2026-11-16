@@ -19,13 +19,16 @@ import { BRAND } from '@/lib/brand/config'
 
 export const QUEUE_SKILL_VERSION = '1.6.0'
 // 1.7.1 (AWTD-1691): names `astrid-agent claim` instead of the deleted AstridOAuthClient.
-const CLAIM_REQUIRED_QUEUE_SKILL_VERSION = '1.7.1'
+// 1.8.0 (AWTD-1688): a claim carries a lease; heartbeat while working.
+const CLAIM_REQUIRED_QUEUE_SKILL_VERSION = '1.8.0'
 
 export interface QueueSkillOptions {
   /** Agent mailbox this loop polls, e.g. "claude". Required — never guessed. */
   mailbox: string
   /** Scope the loop to one board. Omitted, the skill instructs an explicit get_lists choice. */
   listId?: string | null
+  /** The board's `agentClaimRequired` list setting (AWTD-1688). Only counts with a listId. */
+  claimRequired?: boolean | null
 }
 
 export type QueueSkillHarness = 'claude-code' | 'copilot' | 'codex' | 'muse' | 'generic'
@@ -47,23 +50,28 @@ function requireMailbox(mailbox: string): string {
   return mailbox.trim()
 }
 
-/** Enrollment changes guidance only, and is inert until the API is enabled. */
-export function claimRequiredForBoard(listId?: string | null): boolean {
-  if (!listId || process.env.ASTRID_AGENT_CLAIM_API !== 'on') return false
-  return (process.env.ASTRID_AGENT_CLAIM_REQUIRED_LISTS || '')
-    .split(',')
-    .some(enrolledId => enrolledId.trim() === listId)
+/**
+ * Is this loop's board enrolled for claims? The board's own list setting
+ * (`agentClaimRequired`, AWTD-1688), which replaced the
+ * ASTRID_AGENT_CLAIM_REQUIRED_LISTS allowlist. Enrollment changes guidance
+ * only; the claim route works on every board.
+ */
+export function claimRequiredForBoard(options: Pick<QueueSkillOptions, 'listId' | 'claimRequired'>): boolean {
+  return !!options.listId && options.claimRequired === true
 }
+
+/** How a claiming loop keeps its claim (AWTD-1688). One sentence, shared by both renderings. */
+const HEARTBEAT_GUIDANCE = 'While you work a claimed task, renew its lease every five minutes with claim_task action "heartbeat" or `astrid-agent heartbeat <taskId>`; a claim with no heartbeat for 15 minutes goes back to Ready, so stop work on a task whose heartbeat is not renewed.'
 
 /**
  * The one-sentence queue contract. Also used verbatim as the prompt in cron
  * one-liners, so keep it a single line.
  */
-export function queueContractLine({ mailbox, listId }: QueueSkillOptions): string {
+export function queueContractLine({ mailbox, listId, claimRequired }: QueueSkillOptions): string {
   const agent = requireMailbox(mailbox)
   const listClause = listId ? ` and listId "${listId}"` : ''
-  const claimGuidance = claimRequiredForBoard(listId)
-    ? ` Include unassigned Ready tasks with includeUnassigned: true, then claim each task with claim_task or \`astrid-agent claim <taskId>\` before starting; start only when the result is claimed and skip it on any other result, and use resume to verify your Doing claim after a restart.`
+  const claimGuidance = claimRequiredForBoard({ listId, claimRequired })
+    ? ` Include unassigned Ready tasks with includeUnassigned: true, then claim each task with claim_task or \`astrid-agent claim <taskId>\` before starting; start only when the result is claimed and skip it on any other result, heartbeat every five minutes while working, and use resume to verify your Doing claim after a restart.`
     : ''
   return `Call get_agent_queue with agent "${agent}"${listClause}.${claimGuidance} Work every task it returns to completion, commenting progress on each one. When runnable.reasons includes "attention", also answer the unanswered replies in attention. Stop only when there is no Ready work and nothing to answer; runnable.incomplete means part of the read was cut off, so say so, but it is not work on its own. (A server without runnable: stop on empty:true.)`
 }
@@ -71,13 +79,13 @@ export function queueContractLine({ mailbox, listId }: QueueSkillOptions): strin
 /** The repository-agnostic skill body every adapter embeds. */
 export function canonicalQueueSkill(options: QueueSkillOptions): string {
   const agent = requireMailbox(options.mailbox)
-  const claimRequired = claimRequiredForBoard(options.listId)
+  const claimRequired = claimRequiredForBoard(options)
   const skillVersion = claimRequired ? CLAIM_REQUIRED_QUEUE_SKILL_VERSION : QUEUE_SKILL_VERSION
   const boardRule = options.listId
     ? `always pass listId "${options.listId}" so this loop never takes another board's work.`
     : 'pick ONE board with get_lists and pass its listId on every queue call — an unscoped queue mixes boards worked by different harnesses.'
   const taskBoundary = claimRequired
-    ? `Ready tasks returned for this enrolled board are candidates, not yours yet. Claim each before work with claim_task or \`astrid-agent claim <taskId>\`; start only when the result is claimed, and skip the task on any other result (already_yours on a claim means another worker on this mailbox holds it). After a restart, use action "resume" only for a claim this worker made, to verify it before continuing.`
+    ? `Ready tasks returned for this enrolled board are candidates, not yours yet. Claim each before work with claim_task or \`astrid-agent claim <taskId>\`; start only when the result is claimed, and skip the task on any other result (already_yours on a claim means another worker on this mailbox holds it). After a restart, use action "resume" only for a claim this worker made, to verify it before continuing. ${HEARTBEAT_GUIDANCE}`
     : `Only tasks assigned to "${agent}" in Ready status are yours. get_agent_queue already filters for this; never work around it. An unassigned task is someone's untriaged note.`
   const taskStep = claimRequired
     ? `1. Atomically claim the task with claim_task { taskId, action: "claim", agent: "${agent}" } or \`astrid-agent claim <taskId>\` before starting work. Start only when the result is claimed; on any other result, skip the task. Then read the task AND its comments (get_task, get_task_comments) before changing anything.`

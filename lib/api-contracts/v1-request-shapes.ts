@@ -322,6 +322,8 @@ export interface V1ListUpdateRequest {
   sortBy?: string | null
   manualSortOrder?: string[] | null
   showSubtasks?: boolean
+  /** Agents claim before working this board (AWTD-1688). Owner/admin only. */
+  agentClaimRequired?: boolean
   /**
    * Three-way, not a plain user id: `null` means "whoever creates the task"
    * and the literal `'unassigned'` means nobody. See lib/task-batch-copy.ts,

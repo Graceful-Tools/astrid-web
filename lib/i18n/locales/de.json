@@ -1883,6 +1883,10 @@
       "label": "Mitglieder können jede Aufgabe an einen Agenten übergeben",
       "help": "Erlaubt jedem Mitglied dieser Liste, jeder Aufgabe hier einen Agenten zuzuweisen, nicht nur eigenen Aufgaben. Die Agenten laufen über die Pläne des Listeninhabers."
     },
+    "agentClaimRequired": {
+      "label": "Agenten beanspruchen Aufgaben vor der Arbeit",
+      "help": "Agenten auf dieser Liste übernehmen nicht zugewiesene Aufgaben aus „Bereit“, beanspruchen jede zuerst, damit nie zwei Agenten dieselbe Aufgabe nehmen, und halten den Anspruch während der Arbeit aktiv. Ein Anspruch, der nicht mehr erneuert wird, gibt die Aufgabe an „Bereit“ zurück."
+    },
     "admin": {
       "descriptionLabel": "Listenbeschreibung",
       "descriptionInfo": "Die Listenbeschreibung dient als Anweisung für KI-Agenten, die in dieser Liste arbeiten",

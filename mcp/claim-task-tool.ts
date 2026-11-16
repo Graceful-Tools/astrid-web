@@ -3,9 +3,6 @@ import type { OAuthAPIClient } from "./oauth-api-client"
 type ClaimTaskClient = Pick<OAuthAPIClient, "claimTask">
 
 export async function callClaimTaskTool(client: ClaimTaskClient, args: unknown) {
-  if (process.env.ASTRID_AGENT_CLAIM_API !== "on") {
-    throw new Error("Atomic task claims are unavailable on this server")
-  }
   if (!args || typeof args !== "object" || Array.isArray(args)) {
     throw new Error("taskId is required")
   }
@@ -14,8 +11,8 @@ export async function callClaimTaskTool(client: ClaimTaskClient, args: unknown) 
   if (typeof input.taskId !== "string" || !input.taskId) {
     throw new Error("taskId is required")
   }
-  if (input.action !== "claim" && input.action !== "resume" && input.action !== "release") {
-    throw new Error("action must be claim, resume, or release")
+  if (input.action !== "claim" && input.action !== "resume" && input.action !== "release" && input.action !== "heartbeat") {
+    throw new Error("action must be claim, resume, release, or heartbeat")
   }
   if (input.agent !== undefined && typeof input.agent !== "string") {
     throw new Error("agent must be a mailbox name")

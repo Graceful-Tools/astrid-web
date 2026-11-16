@@ -27,6 +27,8 @@ export interface LoopRecipeOptions {
   origin: string
   /** Scope the loop to one list. */
   listId?: string | null
+  /** The list's `agentClaimRequired` setting (AWTD-1688). */
+  claimRequired?: boolean | null
 }
 
 /** MCP server name every recipe registers, so one harness ends up with one entry. */
@@ -59,7 +61,7 @@ muse mcp login ${name}`
 /** Step 3: the unattended schedule line (cron every 30 minutes). */
 export function loopScheduleCommand(harness: LoopHarness, options: LoopRecipeOptions): string {
   const name = mcpServerName()
-  const line = queueContractLine({ mailbox: options.mailbox, listId: options.listId })
+  const line = queueContractLine({ mailbox: options.mailbox, listId: options.listId, claimRequired: options.claimRequired })
   const log = `>> ~/${name}-loop.log 2>&1`
   switch (harness) {
     case 'claude-code':
@@ -214,8 +216,8 @@ export function mcpTokenSecretName(mailbox: string): string {
 export const CLAUDE_OAUTH_SECRET = 'CLAUDE_CODE_OAUTH_TOKEN'
 
 /** What a hosted agent job is told: the queue contract plus the PR hand-off. */
-function actionsAgentPrompt({ mailbox, listId }: LoopRecipeOptions): string {
-  return `${queueContractLine({ mailbox, listId })} For a task that changes code: work on a new branch named after its identifier, commit, push, open a pull request with gh, and put the PR link in your completion comment. For a review task, post your findings on the existing pull request and on the task instead; there is nothing to commit. Never merge or deploy.`
+function actionsAgentPrompt({ mailbox, listId, claimRequired }: LoopRecipeOptions): string {
+  return `${queueContractLine({ mailbox, listId, claimRequired })} For a task that changes code: work on a new branch named after its identifier, commit, push, open a pull request with gh, and put the PR link in your completion comment. For a review task, post your findings on the existing pull request and on the task instead; there is nothing to commit. Never merge or deploy.`
 }
 
 /**

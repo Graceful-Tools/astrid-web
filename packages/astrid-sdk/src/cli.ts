@@ -6,6 +6,7 @@
  *            3 nothing to do, skip this tick
  *            1 could not tell (network, auth); never treat this as idle
  *   claim    0 claimed, start the task
+ *   heartbeat 0 lease renewed, keep working
  *   release  0 released
  *            2 someone else has it, or it is no longer eligible; move on
  *            1 error
@@ -49,8 +50,11 @@ Commands:
   queue    --agent <mailbox> [--list <listId>] [--include-unassigned]
            [--seen <file> [--write-seen]]
            Print the queue verdict as JSON. Exit 0 work, 3 idle, 1 could not tell.
-  claim    <taskId> [--agent <mailbox>] [--resume]
+  claim    <taskId> [--agent <mailbox>] [--resume] [--lease-seconds <n>]
            Atomic claim (POST /api/v1/tasks/:id/claim). Exit 0 claimed, 2 taken, 1 error.
+           The claim holds a lease (15 min by default): heartbeat while you work.
+  heartbeat <taskId> [--agent <mailbox>] [--lease-seconds <n>]
+           Renew the claim lease. Exit 0 renewed, 2 the claim is gone (stop), 1 error.
   claim    <taskId> --fixall [--agent <mailbox>] [--list <listId>]
            Claim through /claim-fixall (Astrid's allowlisted boards).
   release  <taskId> [--agent <mailbox>] [--comment <text>]
@@ -64,7 +68,7 @@ Options:
 Environment:
   ASTRID_TOKEN, or ASTRID_CLIENT_ID and ASTRID_CLIENT_SECRET`
 
-const VALUED = new Set(['--agent', '--list', '--seen', '--origin', '--comment'])
+const VALUED = new Set(['--agent', '--list', '--seen', '--origin', '--comment', '--lease-seconds'])
 const BOOLEAN = new Set(['--include-unassigned', '--write-seen', '--resume', '--fixall', '--help', '-h', '--version', '-v'])
 
 interface Parsed {
@@ -201,7 +205,12 @@ async function claim(client: AstridClient, args: Parsed, io: CliIO): Promise<num
     return EXIT.WORK
   }
 
-  const result = await client.claimTask(taskId, { action: resume ? 'resume' : 'claim', ...(agent ? { agentMailbox: agent } : {}) })
+  const leaseSeconds = resume ? undefined : leaseSecondsOf(args)
+  const result = await client.claimTask(taskId, {
+    action: resume ? 'resume' : 'claim',
+    ...(agent ? { agentMailbox: agent } : {}),
+    ...(leaseSeconds !== undefined ? { leaseSeconds } : {}),
+  })
   if (result.outcome === 'claimed' || (resume && result.outcome === 'already_yours')) {
     io.stdout(`${resume ? 'RESUMED' : 'CLAIMED'} ${taskId}`)
     return EXIT.WORK
@@ -217,6 +226,42 @@ async function claim(client: AstridClient, args: Parsed, io: CliIO): Promise<num
     return EXIT.CONFLICT
   }
   io.stderr(`CLAIM ${taskId}: ${result.outcome} (HTTP ${result.status})`)
+  return EXIT.ERROR
+}
+
+function leaseSecondsOf(args: Parsed): number | undefined {
+  const raw = args.flags.get('--lease-seconds')
+  if (raw === undefined) return undefined
+  const seconds = Number(raw)
+  if (!Number.isInteger(seconds) || seconds < 60 || seconds > 3600) {
+    throw new UsageError('--lease-seconds must be a whole number from 60 to 3600')
+  }
+  return seconds
+}
+
+async function heartbeat(client: AstridClient, args: Parsed, io: CliIO): Promise<number> {
+  const taskId = args.positional[1]
+  if (!taskId) throw new UsageError('heartbeat needs a task id')
+  const agent = args.flags.get('--agent')
+  const leaseSeconds = leaseSecondsOf(args)
+  const result = await client.heartbeatTask(taskId, {
+    ...(agent ? { agentMailbox: agent } : {}),
+    ...(leaseSeconds !== undefined ? { leaseSeconds } : {}),
+  })
+  if (result.outcome === 'renewed') {
+    io.stdout(`RENEWED ${taskId}${result.task?.claimLeaseExpiresAt ? ` until ${result.task.claimLeaseExpiresAt}` : ''}`)
+    return EXIT.WORK
+  }
+  if (result.outcome === 'unavailable') {
+    io.stderr(`HEARTBEAT ${taskId}: the claim API is unavailable on this server (HTTP ${result.status})`)
+    return EXIT.ERROR
+  }
+  // The task left Doing, or someone else holds it: the claim is gone, stop work.
+  if (result.status === 409) {
+    io.stderr(`HEARTBEAT_LOST ${taskId}: ${result.outcome}`)
+    return EXIT.CONFLICT
+  }
+  io.stderr(`HEARTBEAT ${taskId}: ${result.outcome} (HTTP ${result.status})`)
   return EXIT.ERROR
 }
 
@@ -262,7 +307,7 @@ export async function runCli(argv: string[], io: CliIO): Promise<number> {
   }
 
   const command = args.positional[0]
-  const handlers: Record<string, typeof queue> = { queue, claim, release }
+  const handlers: Record<string, typeof queue> = { queue, claim, heartbeat, release }
   const handler = command ? handlers[command] : undefined
   if (!handler) {
     io.stderr(`${command ? `Unknown command "${command}"` : 'No command given'}\n\n${USAGE}`)

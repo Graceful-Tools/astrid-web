@@ -132,7 +132,7 @@ describe('ListAiAgentSection', () => {
           onUpdate={vi.fn()}
         />,
       )
-      expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true')
+      expect(screen.getByRole('switch', { name: /Members can hand any task/ })).toHaveAttribute('aria-checked', 'true')
     })
 
     it('saves an explicit boolean, keeping the default agent', () => {
@@ -144,7 +144,7 @@ describe('ListAiAgentSection', () => {
           onUpdate={onUpdate}
         />,
       )
-      const toggle = screen.getByRole('switch')
+      const toggle = screen.getByRole('switch', { name: /Members can hand any task/ })
       expect(toggle).toHaveAttribute('aria-checked', 'false')
 
       fireEvent.click(toggle)
@@ -157,6 +157,29 @@ describe('ListAiAgentSection', () => {
     it('is not shown to someone who cannot edit the list', () => {
       render(<ListAiAgentSection list={makeList()} canEditSettings={false} onUpdate={vi.fn()} />)
       expect(screen.queryByRole('switch')).toBeNull()
+    })
+  })
+
+  // AWTD-1688: claim enrollment is a list setting, replacing ASTRID_AGENT_CLAIM_REQUIRED_LISTS.
+  describe('agents claim before working this board (AWTD-1688)', () => {
+    const claimSwitch = () => screen.getByRole('switch', { name: /Agents claim tasks before working them/ })
+
+    it('is off for a board that never enrolled, and shows a stored on', () => {
+      const { unmount } = render(<ListAiAgentSection list={makeList()} canEditSettings onUpdate={vi.fn()} />)
+      expect(claimSwitch()).toHaveAttribute('aria-checked', 'false')
+      unmount()
+
+      render(<ListAiAgentSection list={makeList({ agentClaimRequired: true })} canEditSettings onUpdate={vi.fn()} />)
+      expect(claimSwitch()).toHaveAttribute('aria-checked', 'true')
+    })
+
+    it('saves an explicit boolean on the list', () => {
+      const onUpdate = vi.fn()
+      render(<ListAiAgentSection list={makeList()} canEditSettings onUpdate={onUpdate} />)
+
+      fireEvent.click(claimSwitch())
+
+      expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ id: 'list-1', agentClaimRequired: true }))
     })
   })
 })

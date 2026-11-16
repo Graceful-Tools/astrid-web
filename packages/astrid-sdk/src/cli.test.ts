@@ -218,6 +218,55 @@ describe('astrid-agent claim (AWTD-1691)', () => {
   })
 })
 
+describe('astrid-agent heartbeat (AWTD-1688)', () => {
+  it('exits 0 and prints the new lease end when renewed', async () => {
+    const fetchImpl = fakeFetch({ status: 200, body: { outcome: 'renewed', task: { id: 'task-1', claimLeaseExpiresAt: '2026-11-16T01:00:00.000Z' } } })
+    const h = harness(fetchImpl)
+
+    expect(await h.run(['heartbeat', 'task-1', '--agent', 'claude', '--lease-seconds', '600'])).toBe(EXIT.WORK)
+    expect(h.out.join('\n')).toContain('RENEWED task-1 until 2026-11-16T01:00:00.000Z')
+    expect(String(fetchImpl.mock.calls[0][0])).toBe('https://astrid.test/api/v1/tasks/task-1/claim')
+    expect(JSON.parse(String(fetchImpl.mock.calls[0][1]?.body))).toEqual({ action: 'heartbeat', agentMailbox: 'claude', leaseSeconds: 600 })
+  })
+
+  it.each([
+    ['not_ready', 409],
+    ['conflict', 409],
+  ])('exits 2 when the claim is gone (%s): stop work', async (outcome, status) => {
+    const h = harness(fakeFetch({ status, body: { outcome, task: { id: 'task-1' } } }))
+
+    expect(await h.run(['heartbeat', 'task-1'])).toBe(EXIT.CONFLICT)
+    expect(h.err.join('\n')).toContain('HEARTBEAT_LOST task-1')
+  })
+
+  it('refuses a lease outside 60-3600 seconds before calling the server', async () => {
+    const fetchImpl = fakeFetch()
+    const h = harness(fetchImpl)
+
+    expect(await h.run(['heartbeat', 'task-1', '--lease-seconds', '5'])).toBe(EXIT.ERROR)
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('claim passes --lease-seconds through', async () => {
+    const fetchImpl = fakeFetch({ status: 200, body: { outcome: 'claimed', task: { id: 'task-1' } } })
+    const h = harness(fetchImpl)
+
+    expect(await h.run(['claim', 'task-1', '--lease-seconds', '1800'])).toBe(EXIT.WORK)
+    expect(JSON.parse(String(fetchImpl.mock.calls[0][1]?.body))).toEqual({ action: 'claim', leaseSeconds: 1800 })
+  })
+
+  it('claims for a named agent with client credentials (no agent-bound token)', async () => {
+    const fetchImpl = fakeFetch(
+      { status: 200, body: { access_token: 'cc-token', expires_in: 3600 } },
+      { status: 200, body: { outcome: 'claimed', task: { id: 'task-1' } } },
+    )
+    const h = harness(fetchImpl, { ASTRID_CLIENT_ID: 'id', ASTRID_CLIENT_SECRET: 'secret' })
+
+    expect(await h.run(['claim', 'task-1', '--agent', 'claude'])).toBe(EXIT.WORK)
+    expect(JSON.parse(String(fetchImpl.mock.calls[1][1]?.body))).toEqual({ action: 'claim', agentMailbox: 'claude' })
+  })
+})
+
 describe('astrid-agent release (AWTD-1691)', () => {
   it('exits 0 when released', async () => {
     const fetchImpl = fakeFetch({ status: 200, body: { outcome: 'released', task: { id: 'task-1' } } })
