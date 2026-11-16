@@ -1887,6 +1887,18 @@
       "label": "代理在处理任务前先认领",
       "help": "此列表中的代理会接手未分配的“就绪”任务，先认领每个任务以免两个代理拿到同一个任务，并在工作期间保持认领有效。停止续期的认领会让任务回到“就绪”。"
     },
+    "agentRoster": {
+      "title": "此看板上的智能体",
+      "empty": "还没有智能体检查过此看板。",
+      "lastSeen": "最后出现 {when}",
+      "notSeen": "自 {when} 起未出现",
+      "neverSeen": "尚未出现",
+      "holds": "正在处理 {task}",
+      "idle": "未持有任务",
+      "readyWait": "有 {count} 个就绪任务自 {when} 起一直在等待。",
+      "reasonNoAgent": "此看板未登记任何智能体。",
+      "reasonNotSeen": "最近在此看板上未发现任何智能体。"
+    },
     "admin": {
       "descriptionLabel": "列表描述",
       "descriptionInfo": "列表描述会作为在此列表中工作的 AI 智能体的指令",
@@ -2595,7 +2607,8 @@
       "mentioned": "被提及",
       "replied": "已回复",
       "commented": "已评论",
-      "statusChanged": "状态已更改"
+      "statusChanged": "状态已更改",
+      "agentQuiet": "智能体已失去响应"
     }
   },
   "admin": {

@@ -1887,6 +1887,18 @@
       "label": "Agents claimen taken voordat ze eraan werken",
       "help": "Agents op deze lijst pakken niet-toegewezen Klaar-taken op, claimen elke taak eerst zodat nooit twee agents dezelfde taak nemen, en houden de claim actief terwijl ze werken. Een claim die niet meer wordt vernieuwd, zet de taak terug naar Klaar."
     },
+    "agentRoster": {
+      "title": "Agents op dit bord",
+      "empty": "Nog geen agent heeft dit bord bekeken.",
+      "lastSeen": "Laatst gezien {when}",
+      "notSeen": "Niet gezien sinds {when}",
+      "neverSeen": "Nog niet gezien",
+      "holds": "Werkt aan {task}",
+      "idle": "Heeft geen taak",
+      "readyWait": "{count} taak/taken in Klaar wachten sinds {when}.",
+      "reasonNoAgent": "Er is geen agent ingeschreven op dit bord.",
+      "reasonNotSeen": "Er is onlangs geen agent gezien op dit bord."
+    },
     "admin": {
       "descriptionLabel": "Lijstbeschrijving",
       "descriptionInfo": "De lijstbeschrijving wordt gebruikt als instructies voor AI-agents die in deze lijst werken",
@@ -2595,7 +2607,8 @@
       "mentioned": "Vermeld",
       "replied": "Gereageerd",
       "commented": "Opmerking",
-      "statusChanged": "Status gewijzigd"
+      "statusChanged": "Status gewijzigd",
+      "agentQuiet": "Agent reageert niet meer"
     }
   },
   "admin": {

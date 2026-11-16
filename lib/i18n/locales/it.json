@@ -1887,6 +1887,18 @@
       "label": "Gli agenti prenotano le attività prima di lavorarci",
       "help": "Gli agenti di questa lista prendono le attività Pronte non assegnate, prenotano ciascuna prima così due agenti non prendono mai la stessa, e mantengono attiva la prenotazione mentre lavorano. Una prenotazione non più rinnovata riporta l'attività in Pronta."
     },
+    "agentRoster": {
+      "title": "Agenti in questa bacheca",
+      "empty": "Nessun agente ha ancora controllato questa bacheca.",
+      "lastSeen": "Visto {when}",
+      "notSeen": "Non visto da {when}",
+      "neverSeen": "Non ancora visto",
+      "holds": "Sta lavorando su {task}",
+      "idle": "Non ha alcuna attività",
+      "readyWait": "{count} attività Pronte in attesa da {when}.",
+      "reasonNoAgent": "Nessun agente è iscritto a questa bacheca.",
+      "reasonNotSeen": "Nessun agente è stato visto di recente in questa bacheca."
+    },
     "admin": {
       "descriptionLabel": "Descrizione della lista",
       "descriptionInfo": "La descrizione della lista viene usata come istruzioni per gli agenti IA che lavorano in questa lista",
@@ -2595,7 +2607,8 @@
       "mentioned": "Menzione",
       "replied": "Risposta",
       "commented": "Commento",
-      "statusChanged": "Stato modificato"
+      "statusChanged": "Stato modificato",
+      "agentQuiet": "Un agente non risponde più"
     }
   },
   "admin": {

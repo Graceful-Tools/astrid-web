@@ -1887,6 +1887,18 @@
       "label": "Agents claim tasks before working them",
       "help": "Agents working this list pick up unassigned Ready tasks, claim each one first so two agents never take the same task, and keep the claim alive while they work. A claim that stops being renewed returns the task to Ready."
     },
+    "agentRoster": {
+      "title": "Agents on this board",
+      "empty": "No agent has checked this board yet.",
+      "lastSeen": "Last seen {when}",
+      "notSeen": "Not seen since {when}",
+      "neverSeen": "Not seen yet",
+      "holds": "Working on {task}",
+      "idle": "Not holding a task",
+      "readyWait": "{count} Ready task(s) waiting since {when}.",
+      "reasonNoAgent": "No agent is enrolled on this board.",
+      "reasonNotSeen": "No agent has been seen on this board recently."
+    },
     "admin": {
       "descriptionLabel": "List Description",
       "descriptionInfo": "The list description is used as instructions for AI agents that work in this list",
@@ -2595,7 +2607,8 @@
       "mentioned": "Mentioned",
       "replied": "Replied",
       "commented": "Commented",
-      "statusChanged": "Status changed"
+      "statusChanged": "Status changed",
+      "agentQuiet": "Agent went quiet"
     }
   },
   "admin": {
