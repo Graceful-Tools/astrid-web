@@ -188,6 +188,15 @@ describe('agent-run verdict step, executed', () => {
   })
 })
 
+describe('the prompt states core push access (ADEV-33)', () => {
+  it('both harnesses get ASTRID_CORE_PUSH appended to the prompt, read by the runner', () => {
+    const src = read(AGENT_RUN)
+    const prompts = src.match(/"\$\(cat \.github\/agent-run-prompt\.md;[^\n]*ASTRID_CORE_PUSH:-0[^\n]*\)"/g) ?? []
+    expect(prompts).toHaveLength(2)
+    expect(src).not.toContain('"$(cat .github/agent-run-prompt.md)"')
+  })
+})
+
 describe('agent-run preserve-work step, executed', () => {
   let root: string
   let work: string
