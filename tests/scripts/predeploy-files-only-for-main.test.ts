@@ -57,6 +57,15 @@ describe('predeployReportScope (ADEV-31)', () => {
     expect(scope.reason).toContain('not on origin/main')
   })
 
+  it('ADEV-44: does not file for a dirty working tree sitting on main', () => {
+    writeFileSync(join(work, 'f.txt'), 'staged wip')
+    git(work, 'add', '.')
+    const scope = predeployReportScope({ cwd: work, env: {} })
+    expect(scope.file).toBe(false)
+    expect(scope.reason).toContain('uncommitted')
+    expect(predeployReportScope({ cwd: work, env: { ASTRID_PREDEPLOY_FILE_TASKS: '1' } }).file).toBe(true)
+  })
+
   it('ASTRID_PREDEPLOY_FILE_TASKS=1 forces filing, =0 forbids it', () => {
     git(work, 'checkout', '-q', '-b', 'agent/claude/x')
     commit('branch work')
