@@ -83,14 +83,30 @@ are never returned: another agent or a person is already on them.
 ## One task per scheduled run
 
 **If `ASTRID_FIXALL_MAX_TASKS` is set, stop after that many Ready tasks.** The runner here
-sets it to `1`, and a `wip: … UNFINISHED, UNVERIFIED` branch tip is a resume point, not a
+sets it to `1` per worker, and a `wip: … UNFINISHED, UNVERIFIED` branch tip is a resume point, not a
 finished task — docs/FIXALL_WORKFLOW.md → *One task per scheduled run* has the rule and why.
+A claim conflict is not a task taken.
+
+## Parallel workers
+
+**Local sessions and N cloud workers run concurrently** on this board (ADEV-26). Each cloud
+run is N workers, N = the repo variable `ASTRID_AGENT_WORKERS` (default 3, clamped to
+1..10). To change it: `gh variable set ASTRID_AGENT_WORKERS --body <n>`; `1` is the old
+single worker. Each worker takes a different task:
+`npx tsx scripts/claim-next-fixall-task.ts --agent <mailbox> --list <board-id>` walks the queue
+in priority order, moves past a task a peer already claimed (409), and re-reads the live
+queue before exiting 3 (`NO_READY_TASK`). So no worker ends `SKIPPED` while an unclaimed
+Ready task remains. Slots 2..N claim before setup and hand the task to the session as
+`$ASTRID_CLAIMED_TASK`. Slot 1 alone answers the inbox, runs the stale-Doing sweep and
+keeps wake state. **Deploys queue**: `production-deployment.yml` runs one at a time
+(`concurrency: production-deployment`), and skips a commit production has already moved
+past. The full mechanics are in [AGENT_FLEET.md → Parallel workers](./AGENT_FLEET.md#parallel-workers).
 
 ## What is different here
 
 - **Cloud workers stop at a verified PR handoff.** `agent-run.yml` runs
-  on a schedule (:05/:35, claude-code) and on dispatch (Claude Code or Codex). A
-  claude-code run that reports `RESULT: OK` starts the next run itself, up to
+  on a schedule (:05/:35, claude-code) and on dispatch (Claude Code or Codex), as N parallel
+  workers (*Parallel workers* above). A claude-code run in which any worker reports `RESULT: OK` starts the next run itself, up to
   `ASTRID_AGENT_MAX_CHAIN` (default 8) in a row, because GitHub creates only a
   fraction of the scheduled runs. It is how
   Claude works this board; the Mac loop was retired on 2026-10-28 (AWTD-1363). Its preflight reads queue + inbox + lanes,

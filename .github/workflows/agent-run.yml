@@ -20,6 +20,17 @@ name: 'Agent Run'
 # opened its own PR and got CI unaided. :05/:35 stays clear of the Mac loop's
 # :20/:50 until that loop is retired; claims are atomic either way. A scheduled
 # run has no inputs, so the harness defaults to claude-code below.
+#
+# PARALLEL WORKERS (ADEV-26). A run is N workers, N = repo variable
+# ASTRID_AGENT_WORKERS (default 3, clamped to 1..10): a matrix over worker slots
+# in the run job, each slot its own runner with its own checkout, Postgres,
+# claims file and artifact. Local sessions keep working the same board at the
+# same time; atomic claims are what make that safe, and every worker takes a
+# DIFFERENT task (scripts/claim-next-fixall-task.ts: a 409 moves it on to the
+# next Ready task). Only slot 1 answers the attention inbox, runs the stale-Doing
+# sweep and keeps wake state, so N workers never answer one comment N times or
+# release one task twice (a second release is a handback). docs/FIXALL_WEB.md →
+# Parallel workers.
 on:
   schedule:
     - cron: '5,35 * * * *'
@@ -47,27 +58,82 @@ on:
         default: false
         type: boolean
 
-concurrency:
-  group: agent-run-${{ (inputs.harness || 'claude-code') }}
-  cancel-in-progress: false
+# No workflow-level concurrency group (ADEV-26). There used to be one,
+# agent-run-<harness>, which made the whole loop ONE worker: a run held the
+# group for its full length, and since GitHub keeps only ONE pending run per
+# concurrency group, a wake or cron tick that arrived while one run worked and
+# another already waited was cancelled (three on 2026-11-15/16). The groups are
+# now per worker slot, on the run job below. GitHub still keeps one pending job
+# per group, so a new run's slot-k worker waits only for the previous run's slot
+# k, and starts the moment that slot frees. A pending worker is replaced by a
+# newer one only while its slot is busy, and the newer run reads the same live
+# queue, so a wake is never lost while any slot has capacity.
 
 # Per job: the run job's writes must not reach the chain job (zizmor).
 permissions: {}
 
 jobs:
-  run:
-    name: "Agent run (${{ (inputs.harness || 'claude-code') }})"
+  # How many workers, as a matrix the run job can expand. A job of its own
+  # because a matrix cannot be computed from an expression, and it holds no
+  # token and no secret. A dry run is one worker.
+  plan:
+    name: Plan the workers
     # A wake for another harness's mailbox is not this worker's: skip it rather
     # than spend a runner reading a queue that is not ours. `any` is an
-    # unassigned Ready task, which any loop may claim.
+    # unassigned Ready task, which any loop may claim. The run job needs this
+    # one, so a skip here skips the workers too.
     if: ${{ github.event.action != 'astrid-wake' || contains(fromJSON('["claude","any"]'), github.event.client_payload.mailbox) }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 5
+    permissions: {}
+    outputs:
+      slots: ${{ steps.slots.outputs.slots }}
+    steps:
+      - name: Turn ASTRID_AGENT_WORKERS into worker slots
+        id: slots
+        env:
+          WORKERS: ${{ vars.ASTRID_AGENT_WORKERS || '3' }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          N="${WORKERS}"
+          if ! [[ "${N}" =~ ^[0-9]+$ ]] || [ "${N}" -lt 1 ]; then
+            echo "::warning::ASTRID_AGENT_WORKERS=${WORKERS} is not a whole number of at least 1; running one worker"
+            N=1
+          fi
+          # Ten is a ceiling on runner minutes and subscription concurrency, not
+          # on the board: raise it here deliberately if ten is ever too few.
+          if [ "${N}" -gt 10 ]; then
+            echo "::warning::ASTRID_AGENT_WORKERS=${WORKERS} is above the ceiling of 10; running 10"
+            N=10
+          fi
+          if [ "${DRY_RUN}" = true ]; then N=1; fi
+          echo "slots=[$(seq 1 "${N}" | paste -sd, -)]" >> "${GITHUB_OUTPUT}"
+          echo "${N} worker slot(s)"
+
+  run:
+    name: "Agent run (${{ (inputs.harness || 'claude-code') }}, slot ${{ matrix.slot }})"
+    needs: plan
+    # A matrix, not N workflows or N concurrency groups chosen at random: one
+    # run per wake keeps the event → run → chain story readable, and the slot
+    # number is what keys each worker's concurrency group, claims file and
+    # artifact. fail-fast is off, so one worker's red verdict never cancels a
+    # sibling that is mid-task.
+    strategy:
+      fail-fast: false
+      matrix:
+        slot: ${{ fromJSON(needs.plan.outputs.slots) }}
+    # One group per slot (see the note above `permissions`).
+    concurrency:
+      group: agent-run-${{ (inputs.harness || 'claude-code') }}-slot-${{ matrix.slot }}
+      cancel-in-progress: false
     runs-on: ubuntu-26.04
     permissions:
       contents: write
       pull-requests: write
       actions: read
-    outputs:
-      result: ${{ steps.verdict.outputs.result }}
+    # No job outputs: a matrix job's outputs are last-writer-wins, so one
+    # SKIPPED worker finishing after an OK one would read as "nothing done".
+    # Each worker uploads its own verdict artifact for the chain job instead.
     environment: agent
     timeout-minutes: 90
     services:
@@ -99,7 +165,10 @@ jobs:
       NEXTAUTH_URL: http://localhost:3000
       NEXT_AUTH_PUBLIC_URL: http://localhost:3000
       NEXT_PUBLIC_BASE_URL: http://localhost:3000
-      ASTRID_FIXALL_CLAIMS_FILE: ${{ github.workspace }}/.agent-output/claims.txt
+      # Each slot is its own runner, so nothing on disk is shared; the slot is in
+      # the name anyway, so artifacts read side by side cannot be confused.
+      ASTRID_AGENT_SLOT: ${{ matrix.slot }}
+      ASTRID_FIXALL_CLAIMS_FILE: ${{ github.workspace }}/.agent-output/claims-slot-${{ matrix.slot }}.txt
       # docs/FIXALL_WORKFLOW.md → On an ephemeral runner: the checkout is this
       # job's alone (no lock), production is out of reach (prod questions are
       # handbacks), and the run stops at the PR.
@@ -133,8 +202,11 @@ jobs:
           git config user.name "Astrid agent (${ASTRID_FIXALL_HARNESS})"
           git config user.email "agent-${ASTRID_FIXALL_HARNESS}@users.noreply.github.com"
 
+      # Wake state is slot 1's alone: only slot 1 answers the inbox, so only it
+      # has wake keys to record, and one writer keeps the cache key unique.
       - name: Restore durable wake state
         id: wake-cache
+        if: ${{ matrix.slot == 1 }}
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .agent-state
@@ -142,7 +214,7 @@ jobs:
           restore-keys: agent-wake-v1-${{ (inputs.harness || 'claude-code') }}-${{ github.ref_name }}-
 
       - name: Restore retained state when the cache was evicted
-        if: ${{ steps.wake-cache.outputs.cache-matched-key == '' }}
+        if: ${{ matrix.slot == 1 && steps.wake-cache.outputs.cache-matched-key == '' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: npx tsx scripts/restore-cloud-wake-state.ts
@@ -162,8 +234,12 @@ jobs:
             npx tsx scripts/agent-queue-status.ts --agent "${AGENT}" --list "${ASTRID_OAUTH_LIST_ID}" \
               --require-polling --dry-run --no-write-seen && STATUS=0 || STATUS=$?
             if [ "${STATUS}" != 0 ] && [ "${STATUS}" != 3 ]; then exit "${STATUS}"; fi
-            npx tsx scripts/release-stuck-doing.ts --agent "${AGENT}" \
-              --list "${ASTRID_OAUTH_LIST_ID}" --stale-minutes 180
+            # Slot 1 only (ADEV-26): N workers sweeping at once could each release
+            # the same stale task, and a second release marker hands it back.
+            if [ "${ASTRID_AGENT_SLOT}" = 1 ]; then
+              npx tsx scripts/release-stuck-doing.ts --agent "${AGENT}" \
+                --list "${ASTRID_OAUTH_LIST_ID}" --stale-minutes 180
+            fi
           fi
           FLAGS=()
           if [ "${DRY_RUN}" = "true" ]; then FLAGS+=(--dry-run); fi
@@ -174,11 +250,18 @@ jobs:
             --require-polling --no-write-seen --seen .agent-state/seen.json \
             --output .agent-output/preflight.json "${FLAGS[@]}" && STATUS=0 || STATUS=$?
           if [ "${STATUS}" != 0 ] && [ "${STATUS}" != 3 ]; then exit "${STATUS}"; fi
+          # Slot 1 works on the full verdict: Ready work or an unanswered inbox item.
+          # Every other slot works only Ready tasks, and only while the queue holds
+          # one; it never answers the inbox, so it carries no wake keys to mark.
           node -e '
             const fs=require("fs"), p=JSON.parse(fs.readFileSync(".agent-output/preflight.json"));
             if(p.version!==1 || typeof p.work!=="boolean" || !Array.isArray(p.wakeKeys)) process.exit(1);
-            fs.writeFileSync(".agent-output/wake-keys.json",JSON.stringify(p.wakeKeys));
-            fs.appendFileSync(process.env.GITHUB_OUTPUT,`work=${p.work}\n`);
+            const slot=Number(process.env.ASTRID_AGENT_SLOT||"1");
+            const queued=Array.isArray(p.snapshot&&p.snapshot.queue)?p.snapshot.queue.length:0;
+            const work=slot===1 ? p.work : queued>0;
+            fs.writeFileSync(".agent-output/wake-keys.json",JSON.stringify(slot===1 ? p.wakeKeys : []));
+            fs.appendFileSync(process.env.GITHUB_OUTPUT,`work=${work}\n`);
+            console.log(`Slot ${slot}: ${queued} Ready task(s) queued, work=${work}`);
           '
 
       # Wake latency (AWTD-1556): from the event on the board to this run's
@@ -252,8 +335,44 @@ jobs:
             echo "::warning::${MESSAGE}"
           fi
 
+      # ADEV-26. Slots 2..N claim here, before the costly steps below, so a worker
+      # that finds every Ready task taken stops in seconds rather than after a
+      # browser install and a session. claim-next walks the queue in priority
+      # order and a 409 moves it on to the next task, so N workers starting from
+      # one snapshot take N different tasks; it re-reads the live queue before
+      # answering "none" (exit 3). It skips core tasks when ASTRID_CORE_PUSH=0.
+      # Slot 1 claims inside the session, because it alone may answer the inbox
+      # or take a resume instead; the prompt sends it through the same script.
+      - name: Take this worker's task
+        id: take
+        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
+        env:
+          AGENT: ${{ steps.preflight.outputs.agent }}
+        run: |
+          if [ "${ASTRID_AGENT_SLOT}" = 1 ]; then
+            echo "go=true" >> "${GITHUB_OUTPUT}"
+            echo "Slot 1 chooses in the session: the inbox, a resume, or the next Ready task"
+            exit 0
+          fi
+          npx tsx scripts/claim-next-fixall-task.ts --agent "${AGENT}" --list "${ASTRID_OAUTH_LIST_ID}" \
+            --preflight .agent-output/preflight.json > .agent-output/claim-next.txt && STATUS=0 || STATUS=$?
+          cat .agent-output/claim-next.txt
+          if [ "${STATUS}" = 3 ]; then
+            echo "go=false" >> "${GITHUB_OUTPUT}"
+            echo "Every Ready task is taken by another worker or session; slot ${ASTRID_AGENT_SLOT} has nothing to do"
+            exit 0
+          fi
+          if [ "${STATUS}" != 0 ]; then exit "${STATUS}"; fi
+          TASK=$(sed -n 's/^CLAIMED \([^ ]*\).*/\1/p' .agent-output/claim-next.txt | head -1)
+          if ! [[ "${TASK}" =~ ^[A-Za-z0-9-]+$ ]]; then
+            echo "::error::claim-next reported a claim without a task id"
+            exit 1
+          fi
+          echo "ASTRID_CLAIMED_TASK=${TASK}" >> "${GITHUB_ENV}"
+          echo "go=true" >> "${GITHUB_OUTPUT}"
+
       - name: Install the astrid-core Rust toolchain
-        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' && steps.core-queue.outputs.core == 'true' }}
+        if: ${{ !inputs.dry_run && steps.take.outputs.go == 'true' && steps.core-queue.outputs.core == 'true' }}
         working-directory: ${{ env.ASTRID_CORE_DIR }}
         run: |
           if ! command -v rustup >/dev/null; then
@@ -271,14 +390,14 @@ jobs:
           rustup show active-toolchain
 
       - name: Cache astrid-core's cargo build
-        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' && steps.core-queue.outputs.core == 'true' }}
+        if: ${{ !inputs.dry_run && steps.take.outputs.go == 'true' && steps.core-queue.outputs.core == 'true' }}
         uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: ${{ env.ASTRID_CORE_DIR }} -> target
           key: agent-run
 
       - name: Build and verify Astrid MCP
-        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
+        if: ${{ !inputs.dry_run && steps.take.outputs.go == 'true' }}
         run: |
           npm run build:mcp:oauth
           node --input-type=module -e '
@@ -304,13 +423,13 @@ jobs:
       # handed back for exactly that). Agent setup has already migrated the
       # database; migrating it again here failed with P3005 (AWTD-1410).
       - name: Install Chromium for e2e
-        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
+        if: ${{ !inputs.dry_run && steps.take.outputs.go == 'true' }}
         run: npx playwright install --with-deps chromium
 
       - name: Run Claude Code
         id: claude
         timeout-minutes: 75
-        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' && (inputs.harness || 'claude-code') == 'claude-code' }}
+        if: ${{ !inputs.dry_run && steps.take.outputs.go == 'true' && (inputs.harness || 'claude-code') == 'claude-code' }}
         env:
           # Subscription token from `claude setup-token` — never an API key
           # (Jon, 2026-09-19: the loops run on the subscription).
@@ -331,7 +450,7 @@ jobs:
       - name: Run Codex
         id: codex
         timeout-minutes: 75
-        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' && (inputs.harness || 'claude-code') == 'codex' }}
+        if: ${{ !inputs.dry_run && steps.take.outputs.go == 'true' && (inputs.harness || 'claude-code') == 'codex' }}
         env:
           CODEX_VERSION: ${{ vars.CODEX_VERSION }}
           CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
@@ -361,7 +480,7 @@ jobs:
       # line is the verdict; cleanup steps below still run on always().
       - name: Fail the run unless the agent reports OK or SKIPPED
         id: verdict
-        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
+        if: ${{ !inputs.dry_run && steps.take.outputs.go == 'true' }}
         run: |
           RESULT=$(grep -E '^RESULT: ' .agent-output/agent-transcript.txt 2>/dev/null | tail -1 || true)
           echo "${RESULT:-no RESULT line}"
@@ -375,7 +494,7 @@ jobs:
           echo "result=$(printf '%s\n' "${RESULT}" | sed -E 's/^RESULT: (OK|SKIPPED).*/\1/')" >> "${GITHUB_OUTPUT}"
 
       - name: Preserve unfinished work
-        if: ${{ always() && !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
+        if: ${{ always() && !inputs.dry_run && steps.take.outputs.go == 'true' }}
         run: |
           DIRTY=$(git status --porcelain)
           UNPUSHED=$(git rev-list --count HEAD --not --remotes=origin)
@@ -398,7 +517,7 @@ jobs:
       # leaves its work on agent/<harness>/recovery-… in astrid-core, and the bundle in
       # this run's artifact if that push is refused.
       - name: Preserve unfinished astrid-core work
-        if: ${{ always() && !inputs.dry_run && steps.preflight.outputs.work == 'true' && env.ASTRID_CORE_DIR != '' }}
+        if: ${{ always() && !inputs.dry_run && steps.take.outputs.go == 'true' && env.ASTRID_CORE_DIR != '' }}
         working-directory: ${{ env.ASTRID_CORE_DIR }}
         run: |
           DIRTY=$(git status --porcelain)
@@ -419,7 +538,7 @@ jobs:
           fi
 
       - name: Register finished cloud handoffs
-        if: ${{ always() && !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
+        if: ${{ always() && !inputs.dry_run && steps.take.outputs.go == 'true' }}
         env:
           AGENT: ${{ steps.preflight.outputs.agent }}
         run: |
@@ -435,7 +554,7 @@ jobs:
             --claims-file "${ASTRID_FIXALL_CLAIMS_FILE}"
 
       - name: Record wake outcome
-        if: ${{ always() && !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
+        if: ${{ always() && !inputs.dry_run && steps.take.outputs.go == 'true' && matrix.slot == 1 }}
         env:
           AGENT: ${{ steps.preflight.outputs.agent }}
           RUN_OK: ${{ job.status == 'success' }}
@@ -446,7 +565,7 @@ jobs:
             --seen .agent-state/seen.json --mark-seen --seen-keys-file .agent-output/wake-keys.json "${FLAGS[@]}"
 
       - name: Persist durable wake state
-        if: ${{ always() && !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
+        if: ${{ always() && !inputs.dry_run && steps.take.outputs.go == 'true' && matrix.slot == 1 }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .agent-state
@@ -456,13 +575,34 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: agent-run-${{ (inputs.harness || 'claude-code') }}-${{ github.run_id }}
+          # Per slot, or N workers would collide on one name. restore-cloud-wake-state.ts
+          # reads slot 1's (scripts/lib/wake-state-artifact.ts).
+          name: agent-run-${{ (inputs.harness || 'claude-code') }}-${{ github.run_id }}-slot-${{ matrix.slot }}
           path: |
             .agent-output/
             .agent-state/
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 30
+
+      # What the chain job reads (ADEV-26). Written by the runner, after every step
+      # passed, into RUNNER_TEMP rather than .agent-output, which the agent can write.
+      - name: Record this worker's verdict for the chain
+        if: ${{ success() && steps.verdict.outputs.result != '' }}
+        env:
+          RESULT: ${{ steps.verdict.outputs.result }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/agent-verdict"
+          printf '%s\n' "${RESULT}" > "${RUNNER_TEMP}/agent-verdict/result.txt"
+
+      - name: Upload this worker's verdict
+        if: ${{ success() && steps.verdict.outputs.result != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: agent-verdict-${{ (inputs.harness || 'claude-code') }}-${{ github.run_id }}-slot-${{ matrix.slot }}
+          path: ${{ runner.temp }}/agent-verdict/result.txt
+          if-no-files-found: error
+          retention-days: 7
 
   # GitHub creates scheduled runs when it can, not when asked: from 10-29 to
   # 10-31 it created 10 of the ~100 runs ':05,35' asks for, so the queue drained
@@ -475,10 +615,18 @@ jobs:
   # Contents write AGENT_GH_TOKEN already has. A workflow_dispatch would need
   # actions: write, and with that the job could dispatch a production deploy.
   # Only the default harness chains: a repository_dispatch carries no inputs.
+  #
+  # With N workers (ADEV-26) the run chains ONCE if ANY worker reported OK: one
+  # finished task means the queue may hold more, and the next run brings all N
+  # slots back. It reads the per-slot verdict artifacts, not needs.run.outputs,
+  # which a matrix overwrites with whichever worker finished last. It runs after
+  # a red or partly superseded matrix too (not after a cancelled workflow), so
+  # one worker's PARTIAL never stops the chain a sibling's OK earned. The depth
+  # cap is unchanged: one dispatch per run, depth + 1.
   chain:
     name: Start the next run
     needs: run
-    if: ${{ !inputs.dry_run && (inputs.harness || 'claude-code') == 'claude-code' && needs.run.result == 'success' && needs.run.outputs.result == 'OK' }}
+    if: ${{ !cancelled() && !inputs.dry_run && (inputs.harness || 'claude-code') == 'claude-code' && needs.run.result != 'skipped' }}
     runs-on: ubuntu-26.04
     # AGENT_GH_TOKEN is an `agent` environment secret; without this it reads empty.
     environment: agent
@@ -490,8 +638,22 @@ jobs:
       DEPTH: ${{ github.event.client_payload.chain_depth || '0' }}
       MAX_CHAIN: ${{ vars.ASTRID_AGENT_MAX_CHAIN || '8' }}
     steps:
+      # This run's artifacts only, through the job's runtime token: no
+      # permission, and a pattern that matches nothing downloads nothing.
+      - name: Collect the workers' verdicts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: agent-verdict-claude-code-${{ github.run_id }}-slot-*
+          path: ${{ runner.temp }}/agent-verdicts
+
       - name: Start the next run unless the chain is at its cap
+        env:
+          VERDICTS: ${{ runner.temp }}/agent-verdicts
         run: |
+          if ! grep -rqsx OK "${VERDICTS}"; then
+            echo "No worker reported OK (nothing done, or none finished); the schedule takes over"
+            exit 0
+          fi
           if [ "${DEPTH}" -ge "${MAX_CHAIN}" ]; then
             echo "Chain depth ${DEPTH} reached ASTRID_AGENT_MAX_CHAIN=${MAX_CHAIN}; the schedule takes over"
             exit 0
