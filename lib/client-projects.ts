@@ -13,6 +13,9 @@ export interface ClientProject {
   key?: string | null
   /** Keys this project had before a rename; ids under them still resolve (AWTD-1024). */
   keyAliases?: Array<{ key: string }> | null
+  /** Who may move a list in or out, and create in it (AWTD-1703, lib/list-project-moves.ts). */
+  ownerId?: string | null
+  members?: Array<{ userId: string; role?: string | null }> | null
   customStates?: unknown
   lists?: Array<{ id: string }> | null
 }

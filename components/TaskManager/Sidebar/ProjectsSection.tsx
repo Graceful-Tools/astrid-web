@@ -7,8 +7,10 @@
  * open board to add it as a row.
  */
 import React from "react"
-import { ChevronDown, ChevronRight, FolderKanban } from "lucide-react"
+import { ChevronDown, ChevronRight, FolderKanban, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { listProjectMoves } from "@/lib/list-project-moves"
 import { useTranslations } from "@/lib/i18n/client"
 import { useProjectMode } from "@/hooks/use-project-mode"
 import { useLoadedProjects } from "@/hooks/use-loaded-projects"
@@ -24,6 +26,9 @@ interface ProjectsSectionProps {
   onSelectProject: (projectId: string) => void
   onListClick: (listId: string) => void
   getTaskCountForList: (listId: string) => number
+  /** Whose standing decides which projects offer "New list in project" (AWTD-1703). */
+  currentUserId?: string
+  onCreateListInProject?: (name: string, projectId: string) => Promise<void> | void
 }
 
 export function ProjectsSection({
@@ -34,11 +39,29 @@ export function ProjectsSection({
   onSelectProject,
   onListClick,
   getTaskCountForList,
+  currentUserId,
+  onCreateListInProject,
 }: ProjectsSectionProps) {
   const { t } = useTranslations()
   const enabled = useProjectMode()
   const projects = useLoadedProjects()
   const [expanded, setExpanded] = React.useState<Set<string>>(() => new Set())
+  const [creatingIn, setCreatingIn] = React.useState<string | null>(null)
+  const [newListName, setNewListName] = React.useState("")
+
+  // The core's rule for where this person may create a list, not a guess from roles here.
+  const creatableIn = React.useMemo(
+    () => new Set(listProjectMoves(currentUserId ?? "", null, projects).creatableIn),
+    [currentUserId, projects],
+  )
+
+  const submitNewList = async (projectId: string) => {
+    const name = newListName.trim()
+    if (!name || !onCreateListInProject) return
+    setCreatingIn(null)
+    setNewListName("")
+    await onCreateListInProject(name, projectId)
+  }
 
   if (!enabled || projects.length === 0) return null
 
@@ -95,7 +118,45 @@ export function ProjectsSection({
                   <FolderKanban className="mr-2 h-4 w-4 shrink-0" aria-hidden="true" />
                   <span className="truncate">{name}</span>
                 </Button>
+                {onCreateListInProject && creatableIn.has(project.id) && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 shrink-0 p-0 theme-text-muted hover:theme-text-primary"
+                    aria-label={t("projectMode.newListInProject")}
+                    title={t("projectMode.newListInProject")}
+                    data-testid={`sidebar-project-${project.id}-new-list`}
+                    onClick={() => {
+                      setNewListName("")
+                      setCreatingIn(creatingIn === project.id ? null : project.id)
+                    }}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
+              {creatingIn === project.id && (
+                <form
+                  className="ml-6 mt-1"
+                  onSubmit={event => {
+                    event.preventDefault()
+                    void submitNewList(project.id)
+                  }}
+                >
+                  <Input
+                    autoFocus
+                    value={newListName}
+                    onChange={event => setNewListName(event.target.value)}
+                    onKeyDown={event => {
+                      if (event.key === "Escape") setCreatingIn(null)
+                    }}
+                    placeholder={t("projectMode.newListName")}
+                    aria-label={t("projectMode.newListInProject")}
+                    data-testid={`sidebar-project-${project.id}-new-list-name`}
+                    className="h-8 text-sm"
+                  />
+                </form>
+              )}
               {isOpen && (
                 <div className="ml-6 mt-1 space-y-1" data-testid={`sidebar-project-${project.id}-lists`}>
                   {projectLists.map(list => (

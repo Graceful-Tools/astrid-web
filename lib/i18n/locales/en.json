@@ -1815,7 +1815,14 @@
     "boardRemoveRow": "Remove {name} from this board",
     "boardEmpty": "Drag a list here from the sidebar, or use Add list.",
     "boardNoCandidates": "Every list is already on this board.",
-    "boardSaveFailed": "Couldn't save this board's lists. Please try again."
+    "boardSaveFailed": "Couldn't save this board's lists. Please try again.",
+    "projectLabel": "Project",
+    "projectNone": "None",
+    "projectMoveFailed": "Couldn't move this list",
+    "projectLockedIn": "In {name}. Only a project owner or admin can move it out.",
+    "newListInProject": "New list in project…",
+    "newListName": "List name",
+    "newListFailed": "Couldn't create the list"
   },
   "viewRotator": {
     "showList": "Show list",

@@ -1815,7 +1815,14 @@
     "boardRemoveRow": "{name} van dit bord verwijderen",
     "boardEmpty": "Sleep een lijst hierheen vanuit de zijbalk, of gebruik Lijst toevoegen.",
     "boardNoCandidates": "Alle lijsten staan al op dit bord.",
-    "boardSaveFailed": "De lijsten van dit bord konden niet worden opgeslagen. Probeer het opnieuw."
+    "boardSaveFailed": "De lijsten van dit bord konden niet worden opgeslagen. Probeer het opnieuw.",
+    "projectLabel": "Project",
+    "projectNone": "Geen",
+    "projectMoveFailed": "Kon deze lijst niet verplaatsen",
+    "projectLockedIn": "In {name}. Alleen een projecteigenaar of beheerder kan hem verplaatsen.",
+    "newListInProject": "Nieuwe lijst in project…",
+    "newListName": "Lijstnaam",
+    "newListFailed": "Kon de lijst niet maken"
   },
   "viewRotator": {
     "showList": "Lijst tonen",
