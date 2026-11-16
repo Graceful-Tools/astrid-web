@@ -22,6 +22,7 @@ import { GET as getProject, PUT as putProject } from '@/app/api/v1/projects/[id]
 import { authenticateAPI, requireScopes } from '@/lib/api-auth-middleware'
 import { prisma } from '@/lib/prisma'
 import { defaultOrchestrationPolicy } from '@/lib/orchestration-policy'
+import { canUserManageProject, getUserRoleInProject } from '@/lib/list-permissions'
 import { Prisma } from '@prisma/client'
 
 const LIST_ID = 'list-1'
@@ -88,6 +89,31 @@ describe('GET /api/v1/lists/:id/orchestration-policy (AWTD-1693)', () => {
     })
     expect(body.effective.autonomy).toMatchObject({ merge: 'ask', deploy: 'ask', release: 'never' })
     expect(body.effective.escalation).toEqual({ to: 'listOwner' })
+    // The server asked astrid-core, not the TypeScript mirror.
+    expect(body.engine).toBe('core')
+  })
+
+  it('an agent on the list reads it, so a harness knows what it may do', async () => {
+    vi.mocked(authenticateAPI).mockResolvedValue(person('claude-agent', true) as never)
+    const response = await getList(req(`/api/v1/lists/${LIST_ID}/orchestration-policy`), listParams)
+    expect(response.status).toBe(200)
+    expect((await response.json()).effective.autonomy).toMatchObject({ merge: 'allowed', deploy: 'ask' })
+  })
+
+  it('a stored row the rules refuse reads as nothing stored, never as a looser policy', async () => {
+    vi.mocked(prisma.taskList.findUnique).mockResolvedValue(
+      list({ orchestrationPolicy: { autonomy: { merge: 'sometimes' } }, projectId: null, project: null }) as never,
+    )
+    vi.mocked(authenticateAPI).mockResolvedValue(person('owner') as never)
+    const body = await (await getList(req(`/api/v1/lists/${LIST_ID}/orchestration-policy`), listParams)).json()
+    expect(body.list).toBeNull()
+    expect(body.effective).toEqual(defaultOrchestrationPolicy())
+  })
+
+  it('is 404 for a list that does not exist', async () => {
+    vi.mocked(prisma.taskList.findUnique).mockResolvedValue(null as never)
+    vi.mocked(authenticateAPI).mockResolvedValue(person('owner') as never)
+    expect((await getList(req(`/api/v1/lists/${LIST_ID}/orchestration-policy`), listParams)).status).toBe(404)
   })
 
   it('nothing stored anywhere is today\'s behaviour', async () => {
@@ -144,12 +170,32 @@ describe('PUT /api/v1/lists/:id/orchestration-policy (AWTD-1693)', () => {
     expect(prisma.taskList.update).not.toHaveBeenCalled()
   })
 
+  it('a project admin edits a list in that project', async () => {
+    vi.mocked(prisma.taskList.findUnique).mockResolvedValue(list({
+      project: { ...list().project, members: [{ userId: 'padmin', role: 'admin' }] },
+    }) as never)
+    vi.mocked(authenticateAPI).mockResolvedValue(person('padmin') as never)
+    const response = await putList(req(`/api/v1/lists/${LIST_ID}/orchestration-policy`, { policy: { autonomy: { merge: 'ask' } } }), listParams)
+    expect(response.status).toBe(200)
+    expect(prisma.taskList.update).toHaveBeenCalled()
+  })
+
   it('refuses a value the rules do not know, and a body without policy', async () => {
     vi.mocked(authenticateAPI).mockResolvedValue(person('owner') as never)
     const bad = await putList(req(`/api/v1/lists/${LIST_ID}/orchestration-policy`, { policy: { autonomy: { merge: 'sometimes' } } }), listParams)
     expect(bad.status).toBe(400)
     expect((await bad.json()).error).toContain('unknown variant `sometimes`')
     expect((await putList(req(`/api/v1/lists/${LIST_ID}/orchestration-policy`, { autonomy: {} }), listParams)).status).toBe(400)
+    for (const policy of [
+      { autonomy: { merge: 'allowed' }, extra: true },
+      { escalation: { to: 'everyone' } },
+      { routing: { assignTo: '' } },
+      { autonomy: { migrate: { additive: 'yes' } } },
+      'allowed',
+    ]) {
+      const response = await putList(req(`/api/v1/lists/${LIST_ID}/orchestration-policy`, { policy }), listParams)
+      expect(response.status, JSON.stringify(policy)).toBe(400)
+    }
     expect(prisma.taskList.update).not.toHaveBeenCalled()
   })
 
@@ -194,5 +240,60 @@ describe('/api/v1/projects/:id/orchestration-policy (AWTD-1693)', () => {
     vi.mocked(authenticateAPI).mockResolvedValue(person('owner', true) as never)
     const response = await putProject(req(`/api/v1/projects/${PROJECT_ID}/orchestration-policy`, { policy: null }), projectParams)
     expect(response.status).toBe(403)
+    expect(prisma.project.update).not.toHaveBeenCalled()
+  })
+
+  it('the owner clears it to SQL NULL', async () => {
+    vi.mocked(authenticateAPI).mockResolvedValue(person('owner') as never)
+    const response = await putProject(req(`/api/v1/projects/${PROJECT_ID}/orchestration-policy`, { policy: null }), projectParams)
+    expect(response.status).toBe(200)
+    expect(prisma.project.update).toHaveBeenCalledWith({ where: { id: PROJECT_ID }, data: { orchestrationPolicy: Prisma.DbNull } })
+    expect((await response.json()).canEdit).toBe(true)
+  })
+
+  it('refuses a value the rules do not know', async () => {
+    vi.mocked(authenticateAPI).mockResolvedValue(person('owner') as never)
+    const response = await putProject(
+      req(`/api/v1/projects/${PROJECT_ID}/orchestration-policy`, { policy: { autonomy: { deploy: 'sometimes' } } }),
+      projectParams,
+    )
+    expect(response.status).toBe(400)
+    expect((await response.json()).error).toContain('unknown variant `sometimes`')
+    expect(prisma.project.update).not.toHaveBeenCalled()
+  })
+
+  it('questions only go to people on the project or one of its boards', async () => {
+    vi.mocked(authenticateAPI).mockResolvedValue(person('owner') as never)
+    const response = await putProject(
+      req(`/api/v1/projects/${PROJECT_ID}/orchestration-policy`, { policy: { escalation: { to: 'people', userIds: ['stranger'] } } }),
+      projectParams,
+    )
+    expect(response.status).toBe(400)
+    expect(prisma.project.update).not.toHaveBeenCalled()
+  })
+
+  it('is 404 for a project that does not exist', async () => {
+    vi.mocked(prisma.project.findUnique).mockResolvedValue(null as never)
+    vi.mocked(authenticateAPI).mockResolvedValue(person('owner') as never)
+    expect((await getProject(req(`/api/v1/projects/${PROJECT_ID}/orchestration-policy`), projectParams)).status).toBe(404)
+  })
+})
+
+describe('project permission helpers in lib/list-permissions.ts (AWTD-1693)', () => {
+  const p = { ownerId: 'owner', members: [{ userId: 'a', role: 'ADMIN' }, { userId: 'm', role: 'member' }] }
+
+  it('owners and admins manage a project; members and strangers do not', () => {
+    expect(canUserManageProject({ id: 'owner' }, p)).toBe(true)
+    expect(canUserManageProject({ id: 'a' }, p)).toBe(true)
+    expect(canUserManageProject({ id: 'm' }, p)).toBe(false)
+    expect(canUserManageProject({ id: 'x' }, p)).toBe(false)
+    expect(canUserManageProject({ id: 'owner' }, null)).toBe(false)
+  })
+
+  it('reads the project role, owner as owner', () => {
+    expect(getUserRoleInProject({ id: 'owner' }, p)).toBe('owner')
+    expect(getUserRoleInProject({ id: 'a' }, p)).toBe('admin')
+    expect(getUserRoleInProject({ id: 'm' }, p)).toBe('member')
+    expect(getUserRoleInProject({ id: 'x' }, p)).toBeNull()
   })
 })

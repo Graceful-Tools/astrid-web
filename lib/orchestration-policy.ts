@@ -10,29 +10,40 @@
  *   another on `TaskList`. Every key is optional, and an absent key inherits. A bad value
  *   (`"merge": "sometimes"`) is refused, never read as `allowed`.
  * - **The TypeScript mirror** of the four rules-door kinds (`orchestrationPolicy`,
- *   `orchestrationRoute`, `orchestrationMay`, `orchestrationEscalate`). The server falls back to it
- *   while the vendored core build predates the rules (packages/astrid-rules/REVISION, ADEV-23). It
- *   is held to every case of the core's fixture by tests/lib/orchestration-policy-awtd-1693.test.ts.
+ *   `orchestrationRoute`, `orchestrationMay`, `orchestrationEscalate`). The server asks the core and
+ *   falls back to this only if the vendored build cannot answer; the settings UI uses it because
+ *   the browser package does not carry these kinds. It is held to every case of the core's fixture by tests/lib/orchestration-policy-awtd-1693.test.ts.
  *
  * Browser-safe: no Node imports, no Prisma.
  */
 import { handBackTs } from '@/lib/waiting-rules'
+import {
+  AUTONOMY_VALUES,
+  ESCALATION_TARGETS,
+  stricterAutonomy,
+  type Autonomy,
+  type AutonomyField,
+  type Escalation,
+  type OrchestrationPolicy,
+} from '@/lib/orchestration-autonomy'
 
-export const AUTONOMY_VALUES = ['allowed', 'ask', 'never'] as const
-export type Autonomy = (typeof AUTONOMY_VALUES)[number]
+export {
+  AUTONOMY_FIELDS,
+  AUTONOMY_VALUES,
+  ESCALATION_TARGETS,
+  autonomyFor,
+  stricterAutonomy,
+  type Autonomy,
+  type AutonomyField,
+  type Escalation,
+  type OrchestrationPolicy,
+} from '@/lib/orchestration-autonomy'
 
 export const ORCHESTRATION_ACTIONS = ['merge', 'deploy', 'migrate', 'release', 'spend'] as const
 export type OrchestrationAction = (typeof ORCHESTRATION_ACTIONS)[number]
 
 export const MIGRATION_KINDS = ['additive', 'destructive'] as const
 export type MigrationKind = (typeof MIGRATION_KINDS)[number]
-
-export const ESCALATION_TARGETS = ['listOwner', 'taskCreator', 'people'] as const
-export type Escalation = { to: 'listOwner' } | { to: 'taskCreator' } | { to: 'people'; userIds: string[] }
-
-/** The autonomy fields a policy decides, flattened for the settings UI and the skill text. */
-export const AUTONOMY_FIELDS = ['merge', 'deploy', 'migrateAdditive', 'migrateDestructive', 'release', 'spend'] as const
-export type AutonomyField = (typeof AUTONOMY_FIELDS)[number]
 
 export interface PolicyOverride {
   routing?: { assignTo?: string | null; agents?: string[] | null }
@@ -44,18 +55,6 @@ export interface PolicyOverride {
     spend?: Autonomy
   }
   escalation?: Escalation
-}
-
-export interface OrchestrationPolicy {
-  routing: { assignTo: string | null; agents: string[] | null }
-  autonomy: {
-    merge: Autonomy
-    deploy: Autonomy
-    migrate: { additive: Autonomy; destructive: Autonomy }
-    release: Autonomy
-    spend: Autonomy
-  }
-  escalation: Escalation
 }
 
 export type RouteReason = 'routed' | 'routedElsewhere' | 'anyAdmittedAgent' | 'notAdmitted'
@@ -248,9 +247,6 @@ export function routeAgent(policy: OrchestrationPolicy, agent: string): RouteAns
   return admits(policy, agent) ? { take: true, reason: 'anyAdmittedAgent' } : { take: false, reason: 'notAdmitted' }
 }
 
-const STRICTNESS: Record<Autonomy, number> = { allowed: 0, ask: 1, never: 2 }
-export const stricterAutonomy = (a: Autonomy, b: Autonomy): Autonomy => (STRICTNESS[a] >= STRICTNESS[b] ? a : b)
-
 /**
  * O4: what this agent may do alone. A destructive migration is never freer than an additive one,
  * and a migration of unstated kind is answered as destructive.
@@ -311,13 +307,6 @@ export function runOrchestrationTs(request: OrchestrationRequest): Orchestration
 }
 
 // ── Reading a policy ─────────────────────────────────────────────────────────
-
-/** One autonomy field of a policy, by its flattened name. */
-export function autonomyFor(policy: OrchestrationPolicy, field: AutonomyField): Autonomy {
-  if (field === 'migrateAdditive') return policy.autonomy.migrate.additive
-  if (field === 'migrateDestructive') return policy.autonomy.migrate.destructive
-  return policy.autonomy[field]
-}
 
 /** One autonomy field of an override, or undefined when it inherits. */
 export function overrideAutonomyFor(override: PolicyOverride | null, field: AutonomyField): Autonomy | undefined {

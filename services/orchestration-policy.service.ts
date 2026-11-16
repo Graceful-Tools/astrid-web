@@ -51,7 +51,7 @@ export interface ListOrchestrationPolicyView {
   project: PolicyOverride | null
   /** What agents on this list run under. */
   effective: OrchestrationPolicy
-  /** Which engine resolved it: `core` once the vendored build carries the rules. */
+  /** Which engine resolved it: `core`, or `typescript` when the mirror had to answer (fail-safe). */
   engine: 'core' | 'typescript'
   canEdit: { list: boolean; project: boolean }
 }

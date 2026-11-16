@@ -669,11 +669,9 @@ interface ProjectLike {
 }
 
 /**
- * This user's role on the project itself (AWTD-1693), or null.
- *
- * Distinct from {@link getUserRoleInList}'s project cascade, which deliberately reads a project
- * owner as a list *admin*. Here the question is about the project, so its owner is its owner.
- * Membership casing never decides access (task e2803305); presence is membership.
+ * This user's role on the project itself (AWTD-1693), or null. Unlike {@link getUserRoleInList}'s
+ * project cascade (owner reads as list admin), its owner is its owner. Membership casing never
+ * decides access (task e2803305).
  */
 export function getUserRoleInProject(user: UserLike, project: ProjectLike | null | undefined): "owner" | "admin" | "member" | null {
   if (!user?.id || !project) return null
@@ -683,10 +681,7 @@ export function getUserRoleInProject(user: UserLike, project: ProjectLike | null
   return membership.role?.toLowerCase() === "admin" ? "admin" : "member"
 }
 
-/**
- * May this user change a project's own settings, such as its orchestration policy (AWTD-1693)?
- * Owners and admins, the same bar as {@link canUserManageList}.
- */
+/** May this user change a project's own settings, e.g. its orchestration policy (AWTD-1693)? Owners and admins. */
 export function canUserManageProject(user: UserLike, project: ProjectLike | null | undefined): boolean {
   const role = getUserRoleInProject(user, project)
   return role === "owner" || role === "admin"

@@ -19,7 +19,7 @@ import {
   type Autonomy,
   type AutonomyField,
   type OrchestrationPolicy,
-} from '../lib/orchestration-policy'
+} from '../lib/orchestration-autonomy'
 
 export const ORCHESTRATION_TOOLS = [
   {

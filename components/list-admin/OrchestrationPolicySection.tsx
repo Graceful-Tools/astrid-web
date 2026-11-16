@@ -56,6 +56,13 @@ interface OrchestrationPolicySectionProps {
  *
  * Loaded lazily from list-admin-settings.tsx, so it costs no route its first load.
  */
+/** A response that is not the policy view (an error body, an older server) hides the section. */
+function isPolicyView(data: unknown): data is PolicyView {
+  if (!data || typeof data !== "object") return false
+  const view = data as Partial<PolicyView>
+  return !!view.effective && !!view.canEdit && typeof view.canEdit === "object"
+}
+
 export default function OrchestrationPolicySection({ list }: OrchestrationPolicySectionProps) {
   const { t } = useTranslations()
   const [view, setView] = useState<PolicyView | null>(null)
@@ -68,7 +75,7 @@ export default function OrchestrationPolicySection({ list }: OrchestrationPolicy
     let cancelled = false
     fetch(url, { credentials: "include" })
       .then(response => (response.ok ? response.json() : null))
-      .then(data => { if (!cancelled && data) setView(data as PolicyView) })
+      .then(data => { if (!cancelled && isPolicyView(data)) setView(data) })
       .catch(() => {})
     return () => { cancelled = true }
   }, [url])
@@ -98,7 +105,7 @@ export default function OrchestrationPolicySection({ list }: OrchestrationPolicy
       if (!response.ok) throw new Error(typeof data.error === "string" ? data.error : t("orchestrationPolicy.saveFailed"))
       // A project write answers the project's view; re-read the list's so its effective policy follows.
       const fresh = scope === "project" ? await fetch(url, { credentials: "include" }).then(r => r.json()) : data
-      setView(fresh as PolicyView)
+      if (isPolicyView(fresh)) setView(fresh)
     } catch (err) {
       setError(err instanceof Error ? err.message : t("orchestrationPolicy.saveFailed"))
     } finally {

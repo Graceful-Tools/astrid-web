@@ -2,18 +2,15 @@
 /**
  * AWTD-1693 — the orchestration policy, held to astrid-core's own fixture.
  *
- * tests/fixtures/core/orchestration.json is astrid-core's contracts/fixtures/orchestration.json
- * (core-first, AWTD-1685), copied byte for byte at core f2cd4e5c (unchanged at adef809). It lives
- * here rather than in packages/astrid-rules/fixtures/ because that directory holds the fixtures at
- * the pinned REVISION (654e004), which predates the rules. When the pin moves (ADEV-23), add
- * `orchestration` to scripts/build-astrid-rules.sh and read it from there.
+ * packages/astrid-rules/fixtures/orchestration.json is astrid-core's contracts/fixtures/orchestration.json
+ * (core-first, AWTD-1685), vendored by scripts/build-astrid-rules.sh at the pinned REVISION.
  *
  * Every case is replayed against:
- * - the TypeScript mirror (lib/orchestration-policy.ts), which the server falls back to and which
- *   validates writes;
- * - the server's entry point (lib/core-rules/orchestration-core.ts), whichever engine it picks;
- * - the vendored core build, once it carries the rules. Until then a tripwire pins the reason, so
- *   moving the pin turns the core half on deliberately rather than silently.
+ * - the vendored core build, which the server asks (and which must answer: a build that refuses the
+ *   kinds fails here rather than quietly handing every answer to the mirror);
+ * - the TypeScript mirror (lib/orchestration-policy.ts), which the settings UI uses in the browser
+ *   and the server falls back to;
+ * - the server's entry point (lib/core-rules/orchestration-core.ts) with each engine forced.
  *
  * `ASTRID_RULES_DIR=<dir>` points the core half at another build (for example one made with
  * `scripts/build-astrid-rules.sh --rev <sha>` in a scratch checkout).
@@ -46,11 +43,11 @@ interface Case {
   answer: { ok: true; value: unknown } | { ok: false; error: { kind: string; message: string } }
 }
 
-const fixture = JSON.parse(
-  readFileSync(path.join(process.cwd(), 'tests', 'fixtures', 'core', 'orchestration.json'), 'utf8'),
-) as { astridPolicy: unknown; cases: Case[] }
-
 const PACKAGE_DIR = process.env.ASTRID_RULES_DIR ?? path.join(process.cwd(), 'packages', 'astrid-rules')
+
+const fixture = JSON.parse(
+  readFileSync(path.join(PACKAGE_DIR, 'fixtures', 'orchestration.json'), 'utf8'),
+) as { astridPolicy: unknown; cases: Case[] }
 
 function vendoredCore(): CoreRules | null {
   try {
@@ -103,24 +100,19 @@ describe('orchestration.json — the server entry point, whichever engine answer
 
 describe('orchestration.json — through the vendored core build (AWTD-1693)', () => {
   const core = vendoredCore()
-  const answers = coreAnswersOrchestration(core)
 
-  it.runIf(answers)('decides every case itself and agrees with the fixture', () => {
-    setOrchestrationCoreForTests(core)
+  it('loads and answers the orchestration kinds, so the server asks the core', () => {
+    expect(core, 'packages/astrid-rules did not load').not.toBeNull()
+    expect(coreAnswersOrchestration(core)).toBe(true)
+    setOrchestrationCoreForTests(undefined)
     expect(orchestrationEngine()).toBe('core')
-    for (const c of fixture.cases) {
-      const reply = JSON.parse(core!.runJson(JSON.stringify(c.request)))
-      expect(reply, c.name).toEqual(c.answer)
-    }
   })
 
-  // Tripwire. When this fails, the pin has moved past core f2cd4e5c: delete this test, and the one
-  // above now runs against the build production uses.
-  it.skipIf(answers)('the vendored build predates the rules, so the mirror answers (pin 654e004; ADEV-23 moves it)', () => {
-    expect(readFileSync(path.join(PACKAGE_DIR, 'REVISION'), 'utf8').trim()).toMatch(/^654e004/)
-    setOrchestrationCoreForTests(core)
-    expect(orchestrationEngine()).toBe('typescript')
-  })
+  for (const c of fixture.cases) {
+    it(c.name, () => {
+      expect(JSON.parse(core!.runJson(JSON.stringify(c.request)))).toEqual(c.answer)
+    })
+  }
 })
 
 describe('stored overrides (AWTD-1693)', () => {
