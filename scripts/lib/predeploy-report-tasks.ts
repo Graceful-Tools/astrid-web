@@ -113,6 +113,11 @@ export function predeployReportScope(opts: {
   if (force === '0') return { file: false, reason: 'ASTRID_PREDEPLOY_FILE_TASKS=0' }
   const git = (...args: string[]) =>
     spawnSync('git', args, { cwd: opts.cwd, stdio: 'ignore' }).status === 0
+  // ADEV-44: staged or modified work on top of a main commit is work in progress.
+  const dirty = spawnSync('git', ['status', '--porcelain'], { cwd: opts.cwd, encoding: 'utf8' })
+  if (dirty.status === 0 && dirty.stdout.trim() !== '') {
+    return { file: false, reason: 'working tree has uncommitted changes (work in progress)' }
+  }
   if (git('rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main')) {
     return git('merge-base', '--is-ancestor', 'HEAD', 'refs/remotes/origin/main')
       ? { file: true, reason: 'HEAD is on origin/main' }
