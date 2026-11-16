@@ -79,3 +79,48 @@ describe('MCP blocker tools (AWTD-1086)', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 })
+
+describe('MCP handoff_task (AWTD-1686)', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('is advertised', () => {
+    expect(OAUTH_MCP_TOOLS.map(t => t.name)).toContain('handoff_task')
+  })
+
+  it('POSTs the half to the source task\'s handoff route', async () => {
+    const fetchMock = stubFetch({ taskId: 't7', half: { id: 'h1' }, returnAssigneeId: 'ai-agent-claude' })
+    const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_test' })
+
+    const result = await callTool(server, 'handoff_task', {
+      taskId: 'AWTD-7',
+      targetListId: 'ios-board',
+      title: '[ios] the other half',
+      description: 'contract',
+      priority: 2,
+    })
+
+    expect(result.isError).toBeFalsy()
+    expect(urlOf(fetchMock)).toMatch(/\/api\/v1\/tasks\/AWTD-7\/handoff$/)
+    expect(initOf(fetchMock).method).toBe('POST')
+    expect(JSON.parse(String(initOf(fetchMock).body))).toEqual({
+      targetListId: 'ios-board',
+      title: '[ios] the other half',
+      description: 'contract',
+      priority: 2,
+    })
+    expect(JSON.parse(result.content[0].text)).toMatchObject({ success: true, returnAssigneeId: 'ai-agent-claude' })
+  })
+
+  it('refuses a call with no target list, without touching the API', async () => {
+    const fetchMock = stubFetch({})
+    const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_test' })
+
+    const result = await callTool(server, 'handoff_task', { taskId: 'AWTD-7', title: 'x' })
+
+    expect(result.isError).toBe(true)
+    expect(result.content[0].text).toMatch(/targetListId/)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+})

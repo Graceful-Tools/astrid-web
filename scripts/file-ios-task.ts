@@ -1,7 +1,14 @@
 /**
  * File a task on the Astrid iOS To-do board, by list NAME.
  *
- *   npx tsx scripts/file-ios-task.ts "<title>" "<description>" [-p 0-3] [--dry-run]
+ *   npx tsx scripts/file-ios-task.ts "<title>" "<description>" [-p 0-3] [--from <taskId> --agent <mailbox>] [--dry-run]
+ *
+ * `--from <taskId>` (uuid or identifier like AWTD-1686) makes it a HANDOFF — the command, not a
+ * convention (AWTD-1686): `POST /api/v1/tasks/<taskId>/handoff` files the iOS half Ready, makes the
+ * source wait on it, and remembers who held the source, so when the iOS half is done the source
+ * wakes to Ready assigned back to the agent that handed it off. Use it whenever this side's task
+ * cannot finish until iOS does its half. Without `--from` it files a standalone task (a finding
+ * with no web task waiting on it).
  *
  * Written for the `/fixall` and `/fixstuff` loops running against astrid-web.
  * Those loops may only edit this repo, so any fix that needs a Swift change has
@@ -10,6 +17,8 @@
  * script was `create-ios-tasks.ts`, which takes a JSON file and writes through
  * Prisma with a PRODUCTION DATABASE_URL. That is a heavy, risky tool to reach
  * for when you want to file one follow-up.
+ *
+ * (`create-ios-tasks.ts` is gone, replaced by this script and the handoff command.)
  *
  * This one goes through the OAuth API instead — same path as
  * `move-task-to-list.ts`, and no direct production database access.
@@ -28,6 +37,7 @@
 export {}
 
 import { loadScriptEnv } from './lib/load-env'
+import { agentSignature } from './lib/agent-author'
 
 loadScriptEnv()
 
@@ -38,10 +48,19 @@ function parseArgs() {
   const args = process.argv.slice(2)
   let priority = 1
   let dryRun = false
+  let from: string | null = null
 
   for (let i = 0; i < args.length; i++) {
     if ((args[i] === '--priority' || args[i] === '-p') && args[i + 1]) {
       priority = parseInt(args[i + 1], 10)
+      args.splice(i, 2)
+      i--
+    } else if (args[i] === '--agent' && args[i + 1]) {
+      // Read by agentSignature (scripts/lib/agent-author.ts); not a positional.
+      args.splice(i, 2)
+      i--
+    } else if (args[i] === '--from' && args[i + 1]) {
+      from = args[i + 1]
       args.splice(i, 2)
       i--
     } else if (args[i] === '--dry-run') {
@@ -51,14 +70,14 @@ function parseArgs() {
     }
   }
 
-  return { title: args[0] || '', description: args[1] || '', priority, dryRun }
+  return { title: args[0] || '', description: args[1] || '', priority, dryRun, from }
 }
 
 async function main() {
-  const { title, description, priority, dryRun } = parseArgs()
+  const { title, description, priority, dryRun, from } = parseArgs()
 
   if (!title) {
-    console.error('Usage: npx tsx scripts/file-ios-task.ts "<title>" ["<description>"] [-p 0-3] [--dry-run]')
+    console.error('Usage: npx tsx scripts/file-ios-task.ts "<title>" ["<description>"] [-p 0-3] [--from <taskId> --agent <mailbox>] [--dry-run]')
     process.exit(1)
   }
 
@@ -115,17 +134,37 @@ async function main() {
   }
 
   if (dryRun) {
-    console.log(`🔎 dry run — would file on "${IOS_LIST_NAME}" (${target.id}):`)
+    console.log(`🔎 dry run — would ${from ? `hand off ${from} to` : 'file on'} "${IOS_LIST_NAME}" (${target.id}):`)
     console.log(`   title:    ${title}`)
     console.log(`   priority: ${priority}`)
     console.log(`   description: ${description ? `${description.slice(0, 80)}…` : '(none)'}`)
     return
   }
 
+  if (from) {
+    // The handoff command: half filed Ready, source waits on it and comes back to its holder.
+    const handoff = await fetch(`${ASTRID_API_BASE}/api/v1/tasks/${encodeURIComponent(from)}/handoff`, {
+      method: 'POST',
+      headers: auth,
+      // The move and the link are activity lines on the board: say who made them (AWTD-1311).
+      body: JSON.stringify({ targetListId: target.id, title, description, priority, ...(await agentSignature(token)) }),
+    })
+    if (!handoff.ok) {
+      console.error(`❌ Handoff refused: ${handoff.status}`, await handoff.text())
+      process.exit(1)
+    }
+    const result = await handoff.json()
+    console.log(`✅ Handed off to ${IOS_LIST_NAME}`)
+    console.log(`   Half:     ${result.half?.id} ${result.half?.identifier ?? ''}`.trimEnd())
+    console.log(`   Lists:    ${(result.half?.listIds ?? []).join(', ') || '(none — investigate)'}`)
+    console.log(`   Source:   ${from} now ${result.source?.statusRole ?? '(unknown)'}; returns to its holder when the half is done`)
+    return
+  }
+
   const response = await fetch(`${ASTRID_API_BASE}/api/v1/tasks`, {
     method: 'POST',
     headers: auth,
-    body: JSON.stringify({ title, description, priority, listIds: [target.id] }),
+    body: JSON.stringify({ title, description, priority, listIds: [target.id], statusRole: 'ready' }),
   })
 
   if (!response.ok) {

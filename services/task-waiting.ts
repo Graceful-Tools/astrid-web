@@ -11,6 +11,8 @@
  *   native clients show `error` verbatim. Except, while `WAITING_ENFORCE_NATIVE=lenient`, a move
  *   from a native app, which has no picker yet: let through, logged, counted (lib/waiting-enforcement.ts).
  * - **`assignee: "clear"`**: the assignee is cleared in the same write.
+ * - **`assignee: "return"`** (R8, AWTD-1686): a handed-off task woken by this edit goes back to the
+ *   holder its handoff remembered (`handoffReturnAssigneeId`). Leaving Waiting forgets that holder.
  * - **`transition` other than `none`**: the role the rules say (Waiting, Ready on a wake, Inbox for
  *   legacy data) replaces the one asked for.
  *
@@ -104,13 +106,22 @@ async function blockerToAdd(args: {
   return { ok: true, blocker: { id: blockingTaskId, completed: checked.completed } }
 }
 
-function columnsFor(statusRole: string | null, clear: boolean): Record<string, unknown> {
+function columnsFor(statusRole: string | null, clear: boolean, returnTo?: string): Record<string, unknown> {
   const data: Record<string, unknown> = { statusRole }
   if (clear) {
     data.assigneeId = null
     data.assigneeIds = []
   }
+  if (returnTo) {
+    data.assigneeId = returnTo
+    data.assigneeIds = [returnTo]
+  }
   return data
+}
+
+/** Out of Waiting, a handoff's remembered holder is spent (R8): the columns that forget it. */
+function forgetHolder(existingTask: { handoffReturnAssigneeId?: string | null }): Record<string, unknown> {
+  return existingTask.handoffReturnAssigneeId ? { handoffReturnAssigneeId: null } : {}
 }
 
 /**
@@ -125,6 +136,8 @@ export async function resolveWaitingForUpdate(args: {
     isAllDay?: boolean | null
     assigneeId?: string | null
     completed?: boolean | null
+    /** The holder a handoff remembered (R8), when the caller's row carries it. */
+    handoffReturnAssigneeId?: string | null
   }
   data: Record<string, unknown>
   requestedCompleted: boolean | undefined
@@ -142,7 +155,7 @@ export async function resolveWaitingForUpdate(args: {
 
   // Done owns the lane (services/task-completion.ts): nothing to decide for a finished task.
   const completedAfter = requestedCompleted ?? Boolean(existingTask.completed)
-  if (completedAfter) return { ok: true, data: {}, attachBlockerId, transition: 'none' }
+  if (completedAfter) return { ok: true, data: forgetHolder(existingTask), attachBlockerId, transition: 'none' }
 
   // Only what actually changes. The web sends the whole task back on every edit, so a title edit
   // carries the same role and date it read; that is not a move.
@@ -165,7 +178,7 @@ export async function resolveWaitingForUpdate(args: {
   const wasWaiting = !existingTask.completed && existingTask.statusRole === WAITING_ROLE
   const movesElsewhere = Object.hasOwn(change, 'statusRole') && change.statusRole !== WAITING_ROLE
   if (movesElsewhere || (!wasWaiting && change.statusRole !== WAITING_ROLE)) {
-    return { ok: true, data: {}, attachBlockerId, transition: 'none' }
+    return { ok: true, data: wasWaiting && movesElsewhere ? forgetHolder(existingTask) : {}, attachBlockerId, transition: 'none' }
   }
   if (request.keepAssignee) change.keepAssignee = true
 
@@ -179,7 +192,7 @@ export async function resolveWaitingForUpdate(args: {
     assigneeId: assigneeAfter,
     completed: false,
   }
-  const answer = waitingWrite(task, await loadWaitingBlockers(existingTask.id), change, now)
+  const answer = waitingWrite(task, await loadWaitingBlockers(existingTask.id), change, now, existingTask.handoffReturnAssigneeId)
   if (!answer.ok) {
     // Unticking a finished task restores the lane it was in. One that was Waiting with nothing to
     // wait on any more reopens into Inbox rather than refusing the reopen.
@@ -192,7 +205,16 @@ export async function resolveWaitingForUpdate(args: {
   }
   const { value } = answer
   if (value.transition === 'none') return { ok: true, data: {}, attachBlockerId, transition: 'none' }
-  return { ok: true, data: columnsFor(value.statusRole, value.assignee === 'clear'), attachBlockerId, transition: value.transition }
+  const leaves = value.transition === 'wake' || value.transition === 'inbox'
+  return {
+    ok: true,
+    data: {
+      ...columnsFor(value.statusRole, value.assignee === 'clear', value.assignee === 'return' ? value.returnAssigneeId : undefined),
+      ...(leaves ? forgetHolder(existingTask) : {}),
+    },
+    attachBlockerId,
+    transition: value.transition,
+  }
 }
 
 /** The Waiting rules on a create: only a task born in Waiting is their business. */

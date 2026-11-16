@@ -18,6 +18,11 @@
  * completes or the clock passes a date, `waitingWrite` when a blocker is added,
  * removed or reopened. Entering Waiting clears the assignee (R2); this module
  * only applies the answer.
+ *
+ * A HANDOFF (AWTD-1686, R8 — services/task-handoff.service.ts) also enters Waiting unassigned, but
+ * remembers who held the task in `handoffReturnAssigneeId`. Every wake path here hands that to the
+ * rules, and an `assignee: "return"` answer writes the holder back as it moves the task to Ready.
+ * Leaving Waiting, by rule or by hand, forgets it.
  */
 
 import { prisma } from '@/lib/prisma'
@@ -43,6 +48,7 @@ import { persistNotifications } from '@/lib/notification-store'
 import { enrichTaskForAgent } from '@/lib/agent-protocol'
 import { getTaskForUser } from '@/services/task.service'
 import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
+import { dispatchAgentAssignment } from '@/services/agent-assignment-dispatch'
 
 const log = createLogger('services.task-dependency')
 
@@ -183,12 +189,38 @@ async function moveLane(args: {
   clearAssignee?: boolean
   formerAssigneeId?: string | null
   /**
+   * The Waiting rules said `assignee: "return"` (R8): give the task back to this holder — only if
+   * it is still unassigned, since a reassignment since the decision is not ours to undo.
+   */
+  returnAssigneeId?: string
+  /** A handoff entering Waiting (R8): the holder to remember, or null for nobody. */
+  rememberReturnAssigneeId?: string | null
+  /**
    * The date the decision was made on. When given, the write only lands if it is still the
    * task's date — a concurrent date change makes the decision stale (the scheduled job).
    */
   expectDueDateTime?: Date | null
 }): Promise<boolean> {
-  const { taskId, from, to, kind, actorId, actorType, clearAssignee = false, formerAssigneeId = null, expectDueDateTime } = args
+  const {
+    taskId,
+    from,
+    to,
+    kind,
+    actorId,
+    actorType,
+    clearAssignee = false,
+    formerAssigneeId = null,
+    expectDueDateTime,
+    returnAssigneeId,
+    rememberReturnAssigneeId,
+  } = args
+
+  const data: Record<string, unknown> = { statusRole: to }
+  if (clearAssignee) Object.assign(data, { assigneeId: null, assigneeIds: [] })
+  if (returnAssigneeId) Object.assign(data, { assigneeId: returnAssigneeId, assigneeIds: [returnAssigneeId] })
+  // Out of Waiting, the remembered holder is spent (R8); a handoff entering sets it.
+  if (from === WAITING_STATUS_ROLE && to !== WAITING_STATUS_ROLE) data.handoffReturnAssigneeId = null
+  if (rememberReturnAssigneeId !== undefined) data.handoffReturnAssigneeId = rememberReturnAssigneeId
 
   const moved = await prisma.task.updateMany({
     where: {
@@ -197,11 +229,17 @@ async function moveLane(args: {
       completed: false,
       // Clear only the assignee the decision saw: a reassignment since then is not ours to undo.
       ...(clearAssignee ? { assigneeId: formerAssigneeId } : {}),
+      // Return only to a task still unassigned, for the same reason.
+      ...(returnAssigneeId ? { assigneeId: null } : {}),
       ...(expectDueDateTime !== undefined ? { dueDateTime: expectDueDateTime } : {}),
     },
-    data: clearAssignee ? { statusRole: to, assigneeId: null, assigneeIds: [] } : { statusRole: to },
+    data,
   })
   if (moved.count === 0) return false
+  // A returned agent hears about it as any assignment would (polling mode, webhooks).
+  if (returnAssigneeId) {
+    await dispatchAgentAssignment({ taskId, assigneeId: returnAssigneeId, previousAssigneeId: null, deferred: true })
+  }
   // An unassigned agent stops working it, as an ordinary unassign through the update path does.
   if (clearAssignee && formerAssigneeId) {
     await cancelActiveCodingWorkflow({ taskId, reason: 'Unassigned on entering Waiting' }).catch(error => {
@@ -212,6 +250,7 @@ async function moveLane(args: {
   const events: TaskEventInput[] = []
   if (from !== to) events.push({ kind, from, to })
   if (clearAssignee && formerAssigneeId) events.push({ kind: 'unassigned', from: formerAssigneeId, to: null })
+  if (returnAssigneeId) events.push({ kind: 'assigned', from: null, to: returnAssigneeId })
   const event = events[0] ?? { kind, from, to }
   await recordTaskEvents({ taskId, actorId, actorType, events })
   await announceTaskChange({ taskId, actorId, event, broadcast: true, formerAssigneeId: clearAssignee ? formerAssigneeId : null })
@@ -228,6 +267,8 @@ export async function applySettlement(args: {
   to: string | null
   clearAssignee: boolean
   formerAssigneeId: string | null
+  /** The settlement said `assignee: "return"` (R8): the holder to give it back to. */
+  returnAssigneeId?: string
   kind: 'status_changed' | 'unblocked'
   /** The date the plan was made on; the write is conditional on it (and on lane and assignee). */
   dueDateTime?: Date | null
@@ -246,7 +287,15 @@ export async function applySettlement(args: {
 async function waitingStateOf(taskId: string) {
   const task = await prisma.task.findUnique({
     where: { id: taskId },
-    select: { id: true, statusRole: true, dueDateTime: true, isAllDay: true, assigneeId: true, completed: true },
+    select: {
+      id: true,
+      statusRole: true,
+      dueDateTime: true,
+      isAllDay: true,
+      assigneeId: true,
+      completed: true,
+      handoffReturnAssigneeId: true,
+    },
   })
   if (!task) return null
   const rows = await prisma.taskDependency.findMany({
@@ -272,9 +321,9 @@ async function applyWaitingWrite(args: {
 }): Promise<boolean> {
   const state = await waitingStateOf(args.taskId)
   if (!state || state.task.completed) return false
-  const answer = waitingWrite(state.task, args.blockers, args.change, args.now)
+  const answer = waitingWrite(state.task, args.blockers, args.change, args.now, state.task.handoffReturnAssigneeId)
   if (!answer.ok) return false
-  const { transition, statusRole, assignee } = answer.value
+  const { transition, statusRole, assignee, returnAssigneeId } = answer.value
   if (transition === 'none' || transition === 'stay') return false
   return moveLane({
     taskId: args.taskId,
@@ -285,7 +334,27 @@ async function applyWaitingWrite(args: {
     actorType: args.actorType,
     clearAssignee: assignee === 'clear',
     formerAssigneeId: state.task.assigneeId,
+    returnAssigneeId: assignee === 'return' ? returnAssigneeId : undefined,
   })
+}
+
+/**
+ * Apply a handoff's plan to its SOURCE (AWTD-1686, R8 — services/task-handoff.service.ts): into
+ * Waiting on the half just attached, unassigned when the plan says so, remembering the holder.
+ * Conditional on the lane the plan was made on, like every move here.
+ */
+export async function applyHandoffToSource(args: {
+  taskId: string
+  from: string | null
+  to: string | null
+  clearAssignee: boolean
+  formerAssigneeId: string | null
+  returnAssigneeId: string | null
+  actorId: string
+  actorType: 'user' | 'agent'
+}): Promise<boolean> {
+  const { returnAssigneeId, ...move } = args
+  return moveLane({ ...move, kind: 'status_changed', rememberReturnAssigneeId: returnAssigneeId })
 }
 
 /**
@@ -515,7 +584,7 @@ async function promoteIfUnblocked(args: {
   if (!state || state.task.completed) return false
   if ((state.task.statusRole ?? '') !== WAITING_STATUS_ROLE) return false
 
-  const settlement = waitingSettle(state.task, state.blockers, now)
+  const settlement = waitingSettle(state.task, state.blockers, now, state.task.handoffReturnAssigneeId)
   if (settlement.action !== 'wakeToReady' && settlement.action !== 'resolveToInbox') return false
 
   return moveLane({
@@ -527,6 +596,7 @@ async function promoteIfUnblocked(args: {
     actorType,
     clearAssignee: settlement.assignee === 'clear',
     formerAssigneeId: state.task.assigneeId,
+    returnAssigneeId: settlement.assignee === 'return' ? settlement.returnAssigneeId : undefined,
   })
 }
 

@@ -2741,6 +2741,9 @@
       "keepAssignedTo": "{name} zugewiesen lassen",
       "theAssignee": "der zugewiesenen Person",
       "confirm": "Nach „Warten“ verschieben"
+    },
+    "handoff": {
+      "sourceDone": "Eine erledigte Aufgabe kann nicht übergeben werden. Öffne sie zuerst wieder."
     }
   },
   "helpPage": {

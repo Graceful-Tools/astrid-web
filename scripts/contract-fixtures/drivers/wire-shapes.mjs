@@ -263,6 +263,7 @@ function task(id, scalars, relations) {
       claimLeaseExpiresAt: null,
       claimHeartbeatAt: null,
       claimHolderId: null,
+      handoffReturnAssigneeId: null,
       creatorId: OWNER,
       originalTaskId: null,
       sourceListId: null,

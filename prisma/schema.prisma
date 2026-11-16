@@ -441,6 +441,11 @@ model Task {
   claimHeartbeatAt       DateTime?
   /// The agent account the lease belongs to. Null with no lease.
   claimHolderId          String?
+  /// Who held this task when it was handed off to another list (AWTD-1686,
+  /// astrid-core Waiting rule R8). The task waits unassigned on the other
+  /// half; when it wakes by rule with nobody assigned, it goes back to this
+  /// user or agent, and this is cleared. NULL for every task never handed off.
+  handoffReturnAssigneeId String?
   creatorId              String?
   originalTaskId         String?
   sourceListId           String?

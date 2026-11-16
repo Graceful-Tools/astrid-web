@@ -2741,6 +2741,9 @@
       "keepAssignedTo": "La laisser assignée à {name}",
       "theAssignee": "la personne assignée",
       "confirm": "Déplacer vers En attente"
+    },
+    "handoff": {
+      "sourceDone": "Une tâche terminée ne peut pas être transmise. Rouvrez-la d’abord."
     }
   },
   "helpPage": {
