@@ -8,6 +8,10 @@
  * commands, not a retyped second set — a guide an agent follows literally is
  * exactly where a drifted flag turns into a setup that silently never works.
  * So both surfaces build from here, alongside the canonical queue skill.
+ *
+ * The queue gate below is shell (curl + jq). `astrid-agent queue` from
+ * @gracefultools/astrid-sdk is meant to replace it (AWTD-1691); until a
+ * follow-up switches it, keep `wakeDecision()` and the SDK's verdict.ts in step.
  */
 
 import { BRAND } from '@/lib/brand/config'

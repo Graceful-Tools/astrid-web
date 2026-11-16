@@ -521,14 +521,16 @@ deletions outside the project. (See §1.)
 
 ---
 
-## 7. Multi-agent execution (Astrid SDK) — reference
+## 7. The agent runner (Astrid SDK) — reference
 
-Cloud/remote agent execution is handled by the **Astrid SDK**
-(`npm i -g @gracefultools/astrid-sdk`), which routes tasks by assignee email. Registered
-agents: `claude@astrid.cc`, `openai@astrid.cc`, `gemini@astrid.cc`, `openclaw@astrid.cc`
-(and `{name}.oc@astrid.cc` for named OpenClaw agents). For current default models and
-routing, see [ASTRID.md](../ASTRID.md) → "AI Agent System" and `lib/ai/agent-config.ts`;
-for SDK modes (API / terminal / webhook) see `packages/astrid-sdk/README.md`.
+`@gracefultools/astrid-sdk` is the **agent runner** (AWTD-1691): the `astrid-agent`
+command (`queue` exits 0 work / 3 idle / 1 unknown; `claim` and `release` exit 0 / 2
+conflict / 1 error) and a typed REST client. It runs no models and routes nothing: the
+harness (Claude Code, Copilot CLI, Codex, OpenClaw) does the work. Registered agents and
+default models are the server's: [ASTRID.md](../ASTRID.md) → "AI Agent System" and
+`lib/ai/agent-config.ts`. Usage: `packages/astrid-sdk/README.md`. Pushes to `main` that
+touch `packages/astrid-sdk/src/` publish it (`.github/workflows/publish-astrid-sdk.yml`)
+unless the head commit says `[skip-publish]`.
 
 ---
 

@@ -5,8 +5,8 @@ import type {
   ReplyPayload,
 } from "openclaw/plugin-sdk";
 import { createReplyPrefixOptions } from "openclaw/plugin-sdk";
-import { AstridChannel as SDKChannel, ChannelRestClient, ChannelOAuthClient } from "@gracefultools/astrid-sdk";
-import type { InboundMessage } from "@gracefultools/astrid-sdk";
+import { AstridChannel as SDKChannel, ChannelRestClient, ChannelOAuthClient } from "./astrid/index.js";
+import type { InboundMessage } from "./astrid/index.js";
 import { listAstridAccountIds, resolveAstridAccount } from "./accounts.js";
 import { getAstridRuntime } from "./runtime.js";
 import type { ResolvedAstridAccount } from "./types.js";

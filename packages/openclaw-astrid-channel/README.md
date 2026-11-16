@@ -25,8 +25,10 @@ deprecated, and existing installations do not need to migrate.
 - Existing `/api/v1/openclaw/register` and `/api/v1/openclaw/agents/*` requests
   remain aliases with the same behavior.
 - New runtime integrations should use `/api/v1/custom-agents/register`,
-  `/api/v1/custom-agents/agents/*`, and the generic
-  `@gracefultools/astrid-sdk` protocol client.
+  `/api/v1/custom-agents/agents/*`. A polling runtime can use
+  `@gracefultools/astrid-sdk`, which provides the `astrid-agent` runner command and a typed
+  REST client. This plugin carries its own SSE channel client (`src/astrid/`, moved from
+  the SDK in 2.2.0).
 
 Any future deprecation of this adapter or change to the identity suffix will
 have separate migration guidance and a compatibility window first.

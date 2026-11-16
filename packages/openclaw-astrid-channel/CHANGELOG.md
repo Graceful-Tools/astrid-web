@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-11-15
+
+### Changed
+- **The SSE channel lives here now (AWTD-1691).** The channel client (`SSEClient`, the REST
+  client with restart recovery, the delivery ledger, the session mapper and the message
+  formatters) moved from `@gracefultools/astrid-sdk` into `src/astrid/`. This package was its
+  only user. It also brings along restart recovery, the claim on delivery and SSE
+  backoff, which were added in the SDK repo after 0.8.2 but never published.
+- Dropped the `@gracefultools/astrid-sdk` dependency. The SDK is now an agent runner
+  (`astrid-agent`) and typed client, and no longer exports a channel.
+
 ## [2.1.0] - 2026-02-22
 
 ### Fixed

@@ -1,136 +1,158 @@
 # @gracefultools/astrid-sdk
 
-SDK for integrating AI agents with [Astrid.cc](https://www.astrid.cc) task management.
+The Astrid agent runner: the `astrid-agent` command that a scheduler or a CI job
+runs to check for work, claim it and give it back, plus the typed REST client
+that command is built on.
 
-## Installation
+It is **not** a library for building agents. Your agent is whatever harness you
+already run (Claude Code, Copilot CLI, Codex, your own service). This package
+answers three questions around it: is there work, is it mine, and what happens
+if the run dies.
+
+## Install
 
 ```bash
-npm install @gracefultools/astrid-sdk
+npm install -g @gracefultools/astrid-sdk     # puts astrid-agent on PATH
+# or, in a CI step:
+npx -p @gracefultools/astrid-sdk astrid-agent queue --agent claude
 ```
 
-## What's Included
+Node 18 or later.
 
-### OAuth API Client
-Full Astrid REST API client with OAuth2 client_credentials flow:
+## Credentials
 
-```typescript
-import { AstridOAuthClient } from '@gracefultools/astrid-sdk'
+Read from the environment and never printed:
 
-const client = new AstridOAuthClient({
-  clientId: 'your-client-id',
-  clientSecret: 'your-client-secret',
-})
+| Variable | Meaning |
+|---|---|
+| `ASTRID_TOKEN` | An agent-bound token (`astrid_mcp_…` or an agent consent token), sent as `Authorization: Bearer`. Preferred. Writes are signed as that agent, and the claim route knows which agent is claiming. |
+| `ASTRID_CLIENT_ID`, `ASTRID_CLIENT_SECRET` | OAuth client credentials, exchanged for a one-hour token and sent as `X-OAuth-Token`. `ASTRID_OAUTH_CLIENT_ID` and `ASTRID_OAUTH_CLIENT_SECRET` work too. |
+| `ASTRID_API_URL` | Server origin. Default `https://www.astrid.cc`. `--origin` overrides it. |
 
-// Get assigned tasks
-const tasks = await client.getTasks({ completed: false })
+## The command
 
-// Post a comment
-await client.addComment(taskId, 'Working on this now...')
+Exit codes are the interface, so a shell `if` or a workflow `if:` can branch on them.
 
-// Complete a task
-await client.updateTask(taskId, { completed: true })
+### `astrid-agent queue`
 
-// Atomically claim a Ready task for the authenticated agent
-const claim = await client.claimTask(taskId, { action: 'claim' })
-if (claim.unavailable) {
-  // The server does not expose the opt-in claim API yet.
+```bash
+astrid-agent queue --agent <mailbox> [--list <listId>] [--include-unassigned] \
+                   [--seen <file> [--write-seen]]
+```
+
+Reads `GET /api/v1/agent-queue` and decides whether a run should start.
+
+| Exit | Meaning |
+|---|---|
+| 0 | There is work: a Ready task, or a reply nobody has answered that this runner has not already woken for. Start a run. |
+| 3 | Nothing to do. Skip this tick. |
+| 1 | Could not tell (network, auth, server error). **Never treat this as idle.** |
+
+stdout is one JSON document (`work`, `reason`, `summary`, `wakeKeys`, `snapshot`),
+so you can pipe it to `jq`. The one-line `QUEUE:` summary goes to stderr.
+
+Waking is bounded. `--seen <file>` holds the reply keys that have already woken
+a run, and a key in that file does not wake another. `--write-seen` saves the
+current keys after the decision. Ready tasks are never muted this way: a Ready
+task stays work until someone moves it.
+
+### `astrid-agent claim <taskId>`
+
+```bash
+astrid-agent claim <taskId> [--agent <mailbox>] [--resume]
+astrid-agent claim <taskId> --fixall [--agent <mailbox>] [--list <listId>]
+```
+
+An atomic claim through `POST /api/v1/tasks/:id/claim`
+([contract](https://github.com/Graceful-Tools/astrid-web/blob/main/docs/AGENT_CLAIM_API.md)).
+`--resume` checks that a Doing claim still belongs to you after a restart.
+`--fixall` claims through `/claim-fixall` instead: that route serves Astrid's
+own scheduled loops on its allowlisted boards and accepts client credentials.
+If `ASTRID_FIXALL_CLAIMS_FILE` is set, each claimed id is appended to it, so the
+runner can release leftover claims after the run.
+
+| Exit | Meaning |
+|---|---|
+| 0 | Claimed (or, with `--resume`, still yours). Start the task. |
+| 2 | Another worker has it, or it is no longer Ready. Move on to the next task. |
+| 1 | Error, including a server where the claim API is turned off (`ASTRID_AGENT_CLAIM_API`). |
+
+A claim that answers `already_yours` exits 2: another worker on the same mailbox
+holds the task.
+
+### `astrid-agent release <taskId>`
+
+```bash
+astrid-agent release <taskId> [--agent <mailbox>] [--comment <text>]
+```
+
+Gives a Doing claim back: the task returns to Ready and this agent is
+unassigned. `--comment` posts the reason first. Exit 0 released, 2 not your
+Doing claim, 1 error.
+
+### Example: a GitHub Actions gate
+
+```yaml
+- name: Is there work?
+  id: queue
+  env:
+    ASTRID_TOKEN: ${{ secrets.ASTRID_CLAUDE_MCP_TOKEN }}
+  run: |
+    set +e
+    npx -y -p @gracefultools/astrid-sdk@1 astrid-agent queue --agent claude > queue.json
+    code=$?
+    case $code in
+      0) echo "has-work=true" >> "$GITHUB_OUTPUT" ;;
+      3) echo "has-work=false" >> "$GITHUB_OUTPUT" ;;
+      *) exit 1 ;;   # could not tell: fail loudly, never skip silently
+    esac
+```
+
+## The client
+
+```ts
+import { AstridClient } from '@gracefultools/astrid-sdk'
+
+const astrid = new AstridClient({ auth: { token: process.env.ASTRID_TOKEN! } })
+
+const snapshot = await astrid.getQueue({ agent: 'claude', listId })
+for (const task of snapshot.queue) {
+  const claim = await astrid.claimTask(task.id, { action: 'claim' })
+  if (claim.outcome !== 'claimed') continue
+  // ...run your harness...
+  await astrid.addComment(task.id, 'Done: ...')
 }
 ```
 
-`claimTask` also supports `resume` and `release`. A plain HTTP 404, 405, or 501
-returns `{ success: false, unavailable: true }`, so clients can distinguish an
-older or disabled server from a claim conflict.
+| Method | Endpoint |
+|---|---|
+| `getQueue({ agent, listId?, includeUnassigned? })` | `GET /api/v1/agent-queue` |
+| `claimTask(id, { action, agentMailbox? })` | `POST /api/v1/tasks/:id/claim`. Returns every documented outcome; `outcome: 'unavailable'` when the route is off. |
+| `releaseTask(id, agentMailbox?)` | the same route, `action: 'release'` |
+| `claimFixallTask(id, { action, agent?, listId?, commentWatermark? })` | `POST /api/v1/tasks/:id/claim-fixall` |
+| `getTask(id)`, `getComments(id)` | `GET /api/v1/tasks/:id`, `…/comments` |
+| `addComment(id, content, { aiAgentId? })` | `POST /api/v1/tasks/:id/comments` |
+| `setStatus(id, statusRole)` | `PUT /api/v1/tasks/:id` |
+| `handBack(id, personId)` | `PUT /api/v1/tasks/:id` with `{ statusRole: null, assigneeId }`: back to that person's Inbox |
 
-### OpenClaw Channel Plugin
-Connect [OpenClaw](https://openclaw.ai) to Astrid as a task channel. Your agent receives tasks via SSE (outbound connection — works behind NAT/firewalls):
+A refused request throws `AstridApiError`, with `status` and the server's reason.
+`decideQueueVerdict` and `wakeKeys` are exported too: they hold the wake rule
+that `astrid-agent queue` applies.
 
-```typescript
-import { AstridChannel, SSEClient, RestClient, SessionMapper, taskToMessage } from '@gracefultools/astrid-sdk'
-```
+## Upgrading from 0.x
 
-#### How it works
+1.0.0 removes the library half of the package:
 
-1. Agent connects **outbound** to `astrid.cc/api/v1/agent/events` (SSE)
-2. When a task is assigned → agent receives it in real-time
-3. **List description = agent instructions** — each list's description tells the agent how to handle tasks
-4. Agent posts results as task comments
-5. Agent marks task complete when done
+| Removed | Replacement |
+|---|---|
+| `AstridChannel`, `SSEClient`, `ChannelRestClient`, `ChannelOAuthClient`, `SessionMapper`, message formatters | Moved to `@gracefultools/openclaw-astrid-channel`, which was their only user. |
+| `AstridOAuthClient` | `AstridClient`. Its `claimTask` returns `{ status, outcome, task }`. |
+| `deployToVercel`, `isVercelConfigured` | None. Deploy with your own tooling. |
+| `loadAstridConfig`, `getAgentWorkflowConfig`, `.astrid.config.json` templates, platform detection | None. These belonged to the removed built-in executors. |
+| `AI_AGENT_CONFIG`, `getAgentModel` and the agent registry | None. Ask the server (`/api/v1/users/me/available-agents`). |
+| Executor types (`CodeGenerationRequest`, `ImplementationPlan`, …) | None. |
 
-#### Quick Setup
-
-Add to your OpenClaw config:
-
-```json5
-{
-  channels: {
-    astrid: {
-      enabled: true,
-      clientId: "your-client-id",
-      clientSecret: "your-client-secret"
-    }
-  }
-}
-```
-
-### Agent Protocol
-
-The SDK uses the Astrid Agent Protocol:
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/agent/events` | GET | SSE stream (task.assigned, task.commented, etc.) |
-| `/api/v1/agent/tasks` | GET | List assigned tasks |
-| `/api/v1/agent/tasks/:id` | GET/PATCH | Get or update a task |
-| `/api/v1/agent/tasks/:id/comments` | GET/POST | Read or post comments |
-
-All endpoints require OAuth Bearer token with appropriate scopes.
-
-### List Descriptions as Agent Instructions
-
-Each Astrid list's **description** field serves as instructions for AI agents:
-
-```markdown
-# Example "Code Reviews" list description:
-Review PRs for security issues, test coverage, and style.
-Post findings as comments. Mark complete when done.
-```
-
-When an agent receives a task from this list, the description is included as context. Different lists = different agent behaviors. No code changes needed.
-
-## Configuration
-
-### Agent Config
-```typescript
-import { getAgentConfig, isRegisteredAgent } from '@gracefultools/astrid-sdk'
-
-// Check if an email is a registered agent
-isRegisteredAgent('claude@astrid.cc')     // true
-isRegisteredAgent('mybot.oc@astrid.cc')   // true (OpenClaw pattern)
-
-// Get agent configuration
-const config = getAgentConfig('claude@astrid.cc')
-```
-
-### Workflow Config
-```typescript
-import { getAgentWorkflowConfig, buildWorkflowInstructions } from '@gracefultools/astrid-sdk'
-
-const config = getAgentWorkflowConfig(task, list, repository)
-const instructions = buildWorkflowInstructions(config)
-```
-
-## Changelog
-
-### 0.8.0
-- **Channel plugin**: OpenClaw integration via outbound SSE (no inbound gateway needed)
-- **Agent protocol**: SSE events, REST client, session mapper, message formatter
-- **Removed**: Built-in AI executors (Claude, OpenAI, Gemini) — agents run externally now
-- **Security**: Per-endpoint OAuth scope enforcement, comment rate limiting
-
-### 0.7.x
-- OAuth API client
-- Agent workflow configuration
-- Vercel deployment support
+0.8.x stays on npm for anyone who still needs it (`npm install @gracefultools/astrid-sdk@0.8`).
 
 ## License
 

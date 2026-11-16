@@ -1,9 +1,12 @@
 {
   "name": "@gracefultools/astrid-sdk",
-  "version": "0.9.0",
-  "description": "Astrid SDK — AI agent integration and channel plugin",
+  "version": "1.0.0",
+  "description": "Astrid agent runner: the astrid-agent command (queue, claim, release) and a typed REST client for the agent endpoints",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "astrid-agent": "dist/bin.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -13,7 +16,6 @@
   },
   "files": [
     "dist",
-    "templates",
     "README.md"
   ],
   "scripts": {
@@ -25,15 +27,12 @@
     "test:watch": "vitest"
   },
   "keywords": [
-    "ai",
-    "agent",
-    "claude",
-    "openai",
-    "gemini",
-    "coding",
-    "automation",
     "astrid",
-    "openclaw"
+    "agent",
+    "runner",
+    "task-queue",
+    "cli",
+    "automation"
   ],
   "author": "Astrid",
   "license": "MIT",
@@ -45,14 +44,6 @@
   "homepage": "https://astrid.cc",
   "engines": {
     "node": ">=18.0.0"
-  },
-  "peerDependencies": {
-    "typescript": ">=5.0.0"
-  },
-  "peerDependenciesMeta": {
-    "typescript": {
-      "optional": true
-    }
   },
   "publishConfig": {
     "access": "public"

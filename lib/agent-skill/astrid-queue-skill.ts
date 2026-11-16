@@ -18,7 +18,8 @@
 import { BRAND } from '@/lib/brand/config'
 
 export const QUEUE_SKILL_VERSION = '1.6.0'
-const CLAIM_REQUIRED_QUEUE_SKILL_VERSION = '1.7.0'
+// 1.7.1 (AWTD-1691): names `astrid-agent claim` instead of the deleted AstridOAuthClient.
+const CLAIM_REQUIRED_QUEUE_SKILL_VERSION = '1.7.1'
 
 export interface QueueSkillOptions {
   /** Agent mailbox this loop polls, e.g. "claude". Required — never guessed. */
@@ -62,7 +63,7 @@ export function queueContractLine({ mailbox, listId }: QueueSkillOptions): strin
   const agent = requireMailbox(mailbox)
   const listClause = listId ? ` and listId "${listId}"` : ''
   const claimGuidance = claimRequiredForBoard(listId)
-    ? ` Include unassigned Ready tasks with includeUnassigned: true, then claim each task with claim_task or AstridOAuthClient.claimTask before starting; start only when the result is claimed and skip it on any other result, and use resume to verify your Doing claim after a restart.`
+    ? ` Include unassigned Ready tasks with includeUnassigned: true, then claim each task with claim_task or \`astrid-agent claim <taskId>\` before starting; start only when the result is claimed and skip it on any other result, and use resume to verify your Doing claim after a restart.`
     : ''
   return `Call get_agent_queue with agent "${agent}"${listClause}.${claimGuidance} Work every task it returns to completion, commenting progress on each one. When runnable.reasons includes "attention", also answer the unanswered replies in attention. Stop only when there is no Ready work and nothing to answer; runnable.incomplete means part of the read was cut off, so say so, but it is not work on its own. (A server without runnable: stop on empty:true.)`
 }
@@ -76,10 +77,10 @@ export function canonicalQueueSkill(options: QueueSkillOptions): string {
     ? `always pass listId "${options.listId}" so this loop never takes another board's work.`
     : 'pick ONE board with get_lists and pass its listId on every queue call — an unscoped queue mixes boards worked by different harnesses.'
   const taskBoundary = claimRequired
-    ? `Ready tasks returned for this enrolled board are candidates, not yours yet. Claim each before work with claim_task or AstridOAuthClient.claimTask; start only when the result is claimed, and skip the task on any other result (already_yours on a claim means another worker on this mailbox holds it). After a restart, use action "resume" only for a claim this worker made, to verify it before continuing.`
+    ? `Ready tasks returned for this enrolled board are candidates, not yours yet. Claim each before work with claim_task or \`astrid-agent claim <taskId>\`; start only when the result is claimed, and skip the task on any other result (already_yours on a claim means another worker on this mailbox holds it). After a restart, use action "resume" only for a claim this worker made, to verify it before continuing.`
     : `Only tasks assigned to "${agent}" in Ready status are yours. get_agent_queue already filters for this; never work around it. An unassigned task is someone's untriaged note.`
   const taskStep = claimRequired
-    ? `1. Atomically claim the task with claim_task { taskId, action: "claim", agent: "${agent}" } or AstridOAuthClient.claimTask(taskId, { action: "claim" }) before starting work. Start only when the result is claimed; on any other result, skip the task. Then read the task AND its comments (get_task, get_task_comments) before changing anything.`
+    ? `1. Atomically claim the task with claim_task { taskId, action: "claim", agent: "${agent}" } or \`astrid-agent claim <taskId>\` before starting work. Start only when the result is claimed; on any other result, skip the task. Then read the task AND its comments (get_task, get_task_comments) before changing anything.`
     : '1. Read the task AND its comments (get_task, get_task_comments) before changing anything.'
 
   return `${BRAND.appName} queue skill v${skillVersion}
