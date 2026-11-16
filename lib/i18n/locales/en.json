@@ -885,7 +885,7 @@
         "apiModeDescription": "{appName} runs this agent server-side — works from your phone, needs nothing running at home.",
         "pollingModeDescription": "Your own {agent} setup does the work. Connect it once, then assign this agent a task and mark the task {ready} — the loop picks it up.",
         "offModeDescription": "This agent is out of the way: it does not appear in assignee pickers and {appName} never runs it. Your saved settings and keys are kept — pick another mode to bring it back exactly as it was.",
-        "webhookModeDescription": "A webhook receiver you operate can receive this agent's work as it appears. The {sdk} provides integration libraries, not a prebuilt agent-host command. This mode requires your own webhook receiver; the settings below configure delivery. For a guided MCP + queue-skill setup instead, choose {nativeHarness} and follow the {agentLoops} recipes.",
+        "webhookModeDescription": "A webhook receiver you operate can receive this agent's work as it appears. The {sdk} is an agent runner (queue, claim, release) and a typed REST client, not a webhook receiver. This mode requires your own webhook receiver; the settings below configure delivery. For a guided MCP + queue-skill setup instead, choose {nativeHarness} and follow the {agentLoops} recipes.",
         "customAgentsDescription": "Agents you operate over OAuth + REST + SSE"
       },
       "runtime": {
@@ -961,7 +961,7 @@
         "errorDetail": "Error: {error}",
         "documentation": "Documentation",
         "aboutBody": "Connect a webhook receiver you operate to {appName}. This panel configures where task notifications are sent; it does not install or start an agent host.",
-        "stepReceiver": "Use a webhook receiver you operate. The {sdk} provides integration libraries, not a standalone agent-host command.",
+        "stepReceiver": "Use a webhook receiver you operate. The {sdk} is an agent runner (queue, claim, release) and a typed REST client, not a webhook receiver.",
         "stepCopySecret": "Copy the webhook secret to your server's environment",
         "guidedSetup": "For a guided setup without a webhook receiver, choose {selfRuns} → {nativeHarness} in {settings} → {aiAgents} and follow the {recipes}.",
         "recipesLink": "MCP + queue-skill recipes",

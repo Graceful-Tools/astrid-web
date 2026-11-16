@@ -885,7 +885,7 @@
         "apiModeDescription": "{appName} exécute cet agent côté serveur : cela fonctionne depuis votre téléphone, sans rien laisser tourner chez vous.",
         "pollingModeDescription": "Votre propre installation {agent} fait le travail. Connectez-la une fois, puis assignez une tâche à cet agent et marquez-la {ready} : la boucle la prend en charge.",
         "offModeDescription": "Cet agent est mis de côté : il n’apparaît pas dans les sélecteurs de responsable et {appName} ne l’exécute jamais. Vos paramètres et clés enregistrés sont conservés — choisissez un autre mode pour le retrouver tel qu’il était.",
-        "webhookModeDescription": "Un récepteur de webhooks que vous exploitez peut recevoir le travail de cet agent dès qu’il apparaît. Le {sdk} fournit des bibliothèques d’intégration, pas une commande d’hébergement d’agent prête à l’emploi. Ce mode nécessite votre propre récepteur de webhooks ; les paramètres ci-dessous configurent la livraison. Pour une configuration guidée avec MCP et la skill de file d’attente, choisissez plutôt {nativeHarness} et suivez les recettes {agentLoops}.",
+        "webhookModeDescription": "Un récepteur de webhooks que vous exploitez peut recevoir le travail de cet agent dès qu’il apparaît. Le {sdk} est un exécuteur d’agent (file d’attente, prise en charge, libération) et un client REST typé, pas un récepteur de webhooks. Ce mode nécessite votre propre récepteur de webhooks ; les paramètres ci-dessous configurent la livraison. Pour une configuration guidée avec MCP et la skill de file d’attente, choisissez plutôt {nativeHarness} et suivez les recettes {agentLoops}.",
         "customAgentsDescription": "Agents que vous exploitez via OAuth + REST + SSE"
       },
       "runtime": {
@@ -961,7 +961,7 @@
         "errorDetail": "Erreur : {error}",
         "documentation": "Documentation",
         "aboutBody": "Connectez à {appName} un récepteur de webhooks que vous exploitez. Ce panneau configure la destination des notifications de tâches ; il n’installe ni ne démarre aucun hôte d’agent.",
-        "stepReceiver": "Utilisez un récepteur de webhooks que vous exploitez. Le {sdk} fournit des bibliothèques d’intégration, pas une commande autonome d’hébergement d’agent.",
+        "stepReceiver": "Utilisez un récepteur de webhooks que vous exploitez. Le {sdk} est un exécuteur d’agent (file d’attente, prise en charge, libération) et un client REST typé, pas un récepteur de webhooks.",
         "stepCopySecret": "Copiez le secret du webhook dans l’environnement de votre serveur",
         "guidedSetup": "Pour une configuration guidée sans récepteur de webhooks, choisissez {selfRuns} → {nativeHarness} dans {settings} → {aiAgents} et suivez les {recipes}.",
         "recipesLink": "recettes MCP + skill de file d’attente",
