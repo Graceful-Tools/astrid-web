@@ -2,7 +2,7 @@
 
 /**
  * Add a comment to a task on astrid.cc via OAuth API
- * Usage: npx tsx scripts/add-task-comment.ts <taskId> "<comment content>"
+ * Usage: npx tsx scripts/add-task-comment.ts <taskId> "<comment content>" [--agent <mailbox>]
  *
  * Comments are posted as the Claude Agent (claude@astrid.cc) so they appear
  * from the AI agent, not from the OAuth client owner.
@@ -13,19 +13,20 @@ import { loadScriptEnv } from './lib/load-env'
 // rule the sweep and the chat poster use (AWTD-970). This script grew that logic
 // first; it is shared now so there is one answer to "who is writing this".
 import { resolveAgentAuthorId } from './lib/agent-author'
+import { parseCommentArgs } from './lib/comment-args'
 
 loadScriptEnv()
 
 async function addTaskComment() {
-  const args = process.argv.slice(2)
-
-  if (args.length < 2) {
-    console.error('Usage: npx tsx scripts/add-task-comment.ts <taskId> "<comment content>"')
-    console.error('Example: npx tsx scripts/add-task-comment.ts "ab6fdbdc-ddd6-4e6b-ab7c-c1f5c1dd5c0a" "Fix completed successfully"')
+  let parsed: ReturnType<typeof parseCommentArgs>
+  try {
+    parsed = parseCommentArgs(process.argv.slice(2))
+  } catch (error) {
+    console.error(`❌ ${(error as Error).message}`)
+    console.error('Example: npx tsx scripts/add-task-comment.ts "ab6fdbdc-ddd6-4e6b-ab7c-c1f5c1dd5c0a" "Fix completed successfully" --agent claude')
     process.exit(1)
   }
-
-  const [taskId, commentContent] = args
+  const { taskId, content: commentContent, mailbox } = parsed
 
   console.log(`📝 Adding comment to task ${taskId}...`)
 
@@ -60,7 +61,7 @@ async function addTaskComment() {
     const { access_token } = await tokenResponse.json()
 
     // Step 2: Get the Claude agent ID so comments appear from the AI agent
-    const aiAgentId = await resolveAgentAuthorId({ mailbox: 'claude', accessToken: access_token })
+    const aiAgentId = await resolveAgentAuthorId({ mailbox, accessToken: access_token })
 
     // Step 3: Add comment using OAuth token, posting as Claude agent
     const body: { content: string; type: string; aiAgentId?: string } = {
@@ -70,7 +71,7 @@ async function addTaskComment() {
 
     if (aiAgentId) {
       body.aiAgentId = aiAgentId
-      console.log(`🤖 Posting comment as Claude Agent`)
+      console.log(`🤖 Posting comment as the ${mailbox} agent`)
     } else {
       console.warn('⚠️ Comment will be posted as OAuth user (Claude agent ID not found)')
     }
