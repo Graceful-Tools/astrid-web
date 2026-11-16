@@ -2942,5 +2942,42 @@
       "fallback": "웹훅 전송에 실패했습니다({reason}). 전송 정책이 대체(fallback)이므로 {appName}이(가) 자체 경로로 이 작업을 처리하고 있습니다.",
       "strict": "웹훅 전송에 실패했습니다({reason}). 엄격한 전송 정책에 따라 {appName}은(는) 자체 대체 경로를 사용하지 않았으며, 이 작업은 {until}까지 대기 중이고 여전히 저에게 할당되어 있습니다. 웹훅을 고친 다음 저에게 다시 할당하거나 댓글을 추가해 다시 시도하세요."
     }
+  },
+  "orchestrationPolicy": {
+    "title": "에이전트 정책",
+    "help": "할당되지 않은 준비 작업을 누가 맡는지, 에이전트가 스스로 할 수 있는 일, 누구에게 묻는지. 에이전트는 병합, 배포, 마이그레이션 전에 이것을 읽습니다.",
+    "saveFailed": "에이전트 정책을 저장하지 못했습니다",
+    "default": "기본값 ({value})",
+    "inherit": "상속됨 ({value})",
+    "line": "{label}: {value}",
+    "effective": "이 목록에 적용 중",
+    "scope": {
+      "project": "이 프로젝트",
+      "projectHelp": "목록이 따로 정하지 않으면 프로젝트의 모든 목록이 이것을 따릅니다.",
+      "list": "이 목록",
+      "listHelp": "여기서 항목을 설정하면 이 목록에만 적용됩니다. 설정하지 않은 항목은 프로젝트나 기본값을 따릅니다."
+    },
+    "routing": {
+      "label": "할당되지 않은 준비 작업 담당",
+      "anyAgent": "아무 에이전트 (먼저 가져가는 쪽)"
+    },
+    "action": {
+      "merge": "풀 리퀘스트 병합",
+      "deploy": "배포",
+      "migrateAdditive": "추가형 마이그레이션",
+      "migrateDestructive": "파괴적 마이그레이션",
+      "release": "스토어 출시",
+      "spend": "비용 지출"
+    },
+    "autonomy": {
+      "allowed": "허용",
+      "ask": "먼저 묻기",
+      "never": "안 함 (사람이 함)"
+    },
+    "escalation": {
+      "label": "질문 받는 사람",
+      "listOwner": "목록 소유자",
+      "taskCreator": "작업을 만든 사람"
+    }
   }
 }

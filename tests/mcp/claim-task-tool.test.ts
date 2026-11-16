@@ -128,6 +128,7 @@ describe('MCP claim_task tool (AWTD-1557)', () => {
     // Re-pinned for AWTD-1560 (2026-11-14): get_agent_queue explains runnable.
     // AWTD-1688 adds claim_task alongside and changes none of these.
     // Re-pinned for AWTD-1686 (2026-11-16): handoff_task added beside the blocker tools.
+    // Re-pinned for AWTD-1693 (2026-11-16): get_orchestration_policy appended; no existing tool changed.
     expect(createHash('sha256').update(JSON.stringify(OAUTH_MCP_TOOLS)).digest('hex')).toBe(
       '98b82112883dc7cdb62619ae82c8c5d34b2d5002ac7ab193bde82121c36be35e',
     )

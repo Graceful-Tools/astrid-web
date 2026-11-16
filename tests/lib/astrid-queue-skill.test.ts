@@ -11,6 +11,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  ORCHESTRATION_GUIDANCE,
   QUEUE_SKILL_VERSION,
   canonicalQueueSkill,
   queueContractLine,
@@ -27,6 +28,15 @@ describe('canonical queue skill (AWTD-759)', () => {
   it('requires an explicit mailbox instead of guessing an identity', () => {
     expect(() => canonicalQueueSkill({ mailbox: '' })).toThrow(/mailbox is required/)
     expect(() => queueContractLine({ mailbox: '   ' })).toThrow(/mailbox is required/)
+  })
+
+  it('defers merge, deploy, migrations, releases and spending to the stored policy (AWTD-1693)', () => {
+    const skill = canonicalQueueSkill(OPTS)
+    expect(skill).toContain(ORCHESTRATION_GUIDANCE)
+    expect(ORCHESTRATION_GUIDANCE).toContain('get_orchestration_policy')
+    // The default, and any failure to read the policy, is what the skill used to hard-code.
+    expect(ORCHESTRATION_GUIDANCE).toMatch(/With no policy stored, or if you cannot read it, every one of these is "never"/)
+    for (const adapter of queueSkillAdapters(OPTS)) expect(adapter.content).toContain(ORCHESTRATION_GUIDANCE)
   })
 
   it('states every canonical behavior', () => {
@@ -94,7 +104,7 @@ describe('canonical queue skill (AWTD-759)', () => {
     expect(enrolledSkill).toContain('start only when the result is claimed')
     expect(enrolledSkill).toContain('resume')
     expect(enrolledSkill).toContain('`astrid-agent heartbeat <taskId>`')
-    expect(enrolledSkill).toContain('queue skill v1.8.0')
+    expect(enrolledSkill).toContain('queue skill v1.9.0')
     expect(canonicalQueueSkill({ ...OPTS, claimRequired: false })).not.toContain('claim_task')
     // Enrollment is per board: without a board there is nothing enrolled.
     expect(canonicalQueueSkill({ mailbox: 'codex', claimRequired: true })).not.toContain('claim_task')
