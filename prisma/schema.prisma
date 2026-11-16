@@ -122,6 +122,7 @@ model User {
   createdTasks                 Task[]                     @relation("TaskCreator")
   createdTaskDependencies      TaskDependency[]           @relation("TaskDependencyCreator")
   ownedLists                   TaskList[]                 @relation("ListOwner")
+  agentListPresence            AgentListPresence[]        @relation("AgentPresenceAgent")
   analyticsEvents              AnalyticsEvent[]           @relation("AnalyticsEvents")
   adminUser                    AdminUser?                 @relation("AdminUsers")
   chatMessages                 ChatMessage[]
@@ -268,6 +269,7 @@ model TaskList {
   userListFavorites       UserListFavorite[]       @relation("ListFavorites")
   userListViewPreferences UserListViewPreference[] @relation("ListViewPreferences")
   owner                   User                     @relation("ListOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  agentPresence           AgentListPresence[]
   project                 Project?                 @relation(fields: [projectId], references: [id], onDelete: SetNull)
   tasks                   Task[]                   @relation("TaskToTaskList")
   externalLinks           ExternalListLink[]       @relation("ListExternalLinks")
@@ -2010,4 +2012,24 @@ model RuntimeBindingAuditEvent {
 
   @@index([bindingId, createdAt])
   @@index([createdAt])
+}
+
+/// When an agent last asked a board's queue and last renewed a claim there
+/// (AWTD-1697). Written from calls the server already receives; read by the
+/// list's agent roster and by the cron that tells the owner an agent went quiet.
+model AgentListPresence {
+  id               String    @id @default(cuid())
+  listId           String
+  agentId          String
+  lastQueueCheckAt DateTime?
+  lastHeartbeatAt  DateTime?
+  /// Set when the owner was told this agent went quiet; cleared when it is seen
+  /// again, so one silence is one notification, not one per cron tick.
+  quietNotifiedAt  DateTime?
+  createdAt        DateTime  @default(now())
+  list             TaskList  @relation(fields: [listId], references: [id], onDelete: Cascade)
+  agent            User      @relation("AgentPresenceAgent", fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, agentId])
+  @@index([agentId])
 }
