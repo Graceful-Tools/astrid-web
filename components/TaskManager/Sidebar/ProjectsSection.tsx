@@ -4,7 +4,8 @@
  * The sidebar's Projects section (AWTD-1660), drawn only for people with
  * Project Mode (`useProjectMode`). Each project opens its multi-list board and
  * expands to show its lists; any list in the sidebar can be dragged onto an
- * open board to add it as a row.
+ * open board to add it as a row. Which projects, which lists and in what order
+ * is astrid-core's contract (D70), in lib/sidebar-projects.ts (ADEV-14).
  */
 import React from "react"
 import { ChevronDown, ChevronRight, FolderKanban, Plus } from "lucide-react"
@@ -14,7 +15,7 @@ import { listProjectMoves } from "@/lib/list-project-moves"
 import { useTranslations } from "@/lib/i18n/client"
 import { useProjectMode } from "@/hooks/use-project-mode"
 import { useLoadedProjects } from "@/hooks/use-loaded-projects"
-import { isDomainList } from "@/lib/list-flavors"
+import { sidebarProjects } from "@/lib/sidebar-projects"
 import type { TaskList } from "@/types/task"
 import { ListItem } from "./ListItem"
 
@@ -74,7 +75,7 @@ export function ProjectsSection({
     })
   }
 
-  const sorted = [...projects].sort((a, b) => (a.name || "").localeCompare(b.name || ""))
+  const section = sidebarProjects(projects, lists) ?? []
 
   return (
     <div className="p-3 mt-4" data-testid="sidebar-projects">
@@ -82,13 +83,9 @@ export function ProjectsSection({
         {t("projectMode.projectsHeading")}
       </div>
       <div className="space-y-1">
-        {sorted.map(project => {
-          const name = project.name || project.key || ""
+        {section.map(({ project, name, lists: projectLists }) => {
           const isOpen = expanded.has(project.id)
           const isSelected = selectedProjectId === project.id
-          const projectLists = lists
-            .filter(list => list.projectId === project.id && isDomainList(list))
-            .filter((list, index, self) => self.findIndex(other => other.id === list.id) === index)
           return (
             <div key={project.id} data-testid={`sidebar-project-${project.id}`}>
               <div className="flex items-center">
