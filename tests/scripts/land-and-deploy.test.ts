@@ -42,6 +42,7 @@ const pr = (over: Partial<PullRequestSummary> = {}): PullRequestSummary => ({
   mergeable: 'MERGEABLE',
   mergeStateStatus: 'CLEAN',
   checks: green,
+  files: [{ path: 'lib/auth/cookies.ts' }],
   ...over,
 })
 
@@ -178,6 +179,35 @@ describe('a PR has to be actually green', () => {
 
   it('leaves a draft alone', () => {
     expect(landablePullRequests([pr({ isDraft: true })]).land).toHaveLength(0)
+  })
+})
+
+describe('ADEV-42: workflow changes wait for a human', () => {
+  // Granting the cloud token the Workflows permission lets an agent PR edit CI,
+  // including the deploy workflow and this ship bot. Those land only by hand.
+  it('ADEV-42: holds back a PR that touches .github/workflows/', () => {
+    const decision = landablePullRequests([pr({ files: [{ path: 'lib/x.ts' }, { path: '.github/workflows/production-deployment.yml' }] })])
+    expect(decision.land).toHaveLength(0)
+    expect(decision.skipped[0].why).toMatch(/\.github\/workflows\/production-deployment\.yml.*human/)
+  })
+
+  it('ADEV-42: holds back other .github/ files too (composite actions run inside workflows)', () => {
+    expect(landablePullRequests([pr({ files: [{ path: '.github/actions/setup/action.yml' }] })]).land).toHaveLength(0)
+  })
+
+  it('ADEV-42: fails closed when the changed files were not read', () => {
+    const decision = landablePullRequests([pr({ files: undefined })])
+    expect(decision.land).toHaveLength(0)
+    expect(decision.skipped[0].why).toMatch(/changed files/)
+  })
+
+  it('ADEV-42: fails closed at the 100-file cap gh pr list reports', () => {
+    const files = Array.from({ length: 100 }, (_, i) => ({ path: `lib/f${i}.ts` }))
+    expect(landablePullRequests([pr({ files })]).land).toHaveLength(0)
+  })
+
+  it('ADEV-42: still lands an ordinary PR', () => {
+    expect(landablePullRequests([pr({ files: [{ path: 'docs/github-workflows.md' }] })]).land).toHaveLength(1)
   })
 })
 

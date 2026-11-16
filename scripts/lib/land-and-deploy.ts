@@ -35,6 +35,26 @@ export interface PullRequestSummary {
   mergeStateStatus?: string
   /** `gh pr checks --json name,bucket`: pass | fail | pending | skipping | cancel. */
   checks?: Array<{ name: string; bucket: string }>
+  /** `gh pr list --json files`: the paths the PR changes (gh reports at most 100). */
+  files?: Array<{ path: string }>
+}
+
+/**
+ * Paths an agent PR may not land by itself (ADEV-42). `.github/` holds the
+ * workflows (CI, the production deploy, this ship bot) and the composite
+ * actions they run. Once the cloud token has the Workflows permission an agent
+ * can edit them, so those PRs wait for a human merge.
+ */
+const HUMAN_REVIEW_PREFIXES = ['.github/']
+/** `gh pr list --json files` stops at 100 paths; at the cap the rest are unseen. */
+const GH_FILES_CAP = 100
+
+/** Why this PR's changed files keep it from landing without a human, or null. */
+export function protectedPathHold(files: Array<{ path: string }> | undefined): string | null {
+  if (!files) return 'changed files were not read — a human merges this one'
+  if (files.length >= GH_FILES_CAP) return `${files.length}+ changed files; gh lists only ${GH_FILES_CAP}, so a human merges this one`
+  const hit = files.map(file => file.path).filter(path => HUMAN_REVIEW_PREFIXES.some(prefix => path.startsWith(prefix)))
+  return hit.length ? `changes ${hit.join(', ')} — a human reviews workflow changes` : null
 }
 
 /**
@@ -122,6 +142,8 @@ export function landablePullRequests(
       skipped.push({ number: pr.number, why: 'not opened by the runner — a human merges this one' })
     } else if (pr.headRefName.startsWith('agent/') && pr.cloudHandoffValid !== true) {
       skipped.push({ number: pr.number, why: 'cloud handoff is absent, stale, or no longer eligible on the Astrid board' })
+    } else if (protectedPathHold(pr.files)) {
+      skipped.push({ number: pr.number, why: protectedPathHold(pr.files)! })
     } else if (pr.isDraft) {
       skipped.push({ number: pr.number, why: 'draft' })
     } else if (pr.mergeable === 'UNKNOWN') {
