@@ -86,7 +86,9 @@ export const ACTIONS_SECRET_NAMES = {
 
 /**
  * Scopes the Actions gate requests: a queue read plus task/comment writes —
- * never the wildcard an MCP setup token maps to.
+ * never the wildcard an MCP setup token maps to. These are OAuth client scopes,
+ * which are enforced; an access token's read/write permissions are only
+ * recorded against scopes, not yet enforced (2026-11-16, AWTD-1549).
  */
 export const ACTIONS_QUEUE_SCOPES =
   'tasks:read tasks:write lists:read comments:read comments:write user:read'
