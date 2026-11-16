@@ -1815,7 +1815,14 @@
     "boardRemoveRow": "이 보드에서 {name} 제거",
     "boardEmpty": "사이드바에서 목록을 여기로 끌어오거나 목록 추가를 사용하세요.",
     "boardNoCandidates": "모든 목록이 이미 이 보드에 있습니다.",
-    "boardSaveFailed": "이 보드의 목록을 저장하지 못했습니다. 다시 시도해 주세요."
+    "boardSaveFailed": "이 보드의 목록을 저장하지 못했습니다. 다시 시도해 주세요.",
+    "projectLabel": "프로젝트",
+    "projectNone": "없음",
+    "projectMoveFailed": "이 목록을 이동할 수 없습니다",
+    "projectLockedIn": "{name}에 있습니다. 프로젝트 소유자 또는 관리자만 이동할 수 있습니다.",
+    "newListInProject": "프로젝트에 새 목록…",
+    "newListName": "목록 이름",
+    "newListFailed": "목록을 만들 수 없습니다"
   },
   "viewRotator": {
     "showList": "목록 보기",

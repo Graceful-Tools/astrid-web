@@ -1815,7 +1815,14 @@
     "boardRemoveRow": "{name} をこのボードから外す",
     "boardEmpty": "サイドバーからリストをここへドラッグするか、「リストを追加」を使ってください。",
     "boardNoCandidates": "すべてのリストがすでにこのボードにあります。",
-    "boardSaveFailed": "このボードのリストを保存できませんでした。もう一度お試しください。"
+    "boardSaveFailed": "このボードのリストを保存できませんでした。もう一度お試しください。",
+    "projectLabel": "プロジェクト",
+    "projectNone": "なし",
+    "projectMoveFailed": "このリストを移動できませんでした",
+    "projectLockedIn": "{name} にあります。プロジェクトのオーナーまたは管理者のみ移動できます。",
+    "newListInProject": "プロジェクトに新しいリスト…",
+    "newListName": "リスト名",
+    "newListFailed": "リストを作成できませんでした"
   },
   "viewRotator": {
     "showList": "リストを表示",

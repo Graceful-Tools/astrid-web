@@ -1815,7 +1815,14 @@
     "boardRemoveRow": "Rimuovi {name} da questa bacheca",
     "boardEmpty": "Trascina qui una lista dalla barra laterale, oppure usa Aggiungi lista.",
     "boardNoCandidates": "Tutte le liste sono già su questa bacheca.",
-    "boardSaveFailed": "Impossibile salvare le liste di questa bacheca. Riprova."
+    "boardSaveFailed": "Impossibile salvare le liste di questa bacheca. Riprova.",
+    "projectLabel": "Progetto",
+    "projectNone": "Nessuno",
+    "projectMoveFailed": "Impossibile spostare questa lista",
+    "projectLockedIn": "In {name}. Solo il proprietario o un amministratore del progetto può rimuoverla.",
+    "newListInProject": "Nuova lista nel progetto…",
+    "newListName": "Nome della lista",
+    "newListFailed": "Impossibile creare la lista"
   },
   "viewRotator": {
     "showList": "Mostra elenco",

@@ -193,7 +193,7 @@ export interface TaskManagerViewModel {
   ) => Promise<string | null>
   handleQuickCreateTask: (title: string, options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[] }) => Promise<string | null>
   handleCreateNewTask: () => void
-  handleCreateList: (listData: { name: string; description: string; memberEmails: string[] }) => Promise<void>
+  handleCreateList: (listData: { name: string; description: string; memberEmails: string[]; projectId?: string }) => Promise<void>
   handleCopyList: (listId: string) => Promise<void>
   handleCopyTask: (taskId: string, targetListId?: string, includeComments?: boolean) => Promise<void>
   handleDeleteList: (listId: string) => Promise<void>
@@ -740,7 +740,7 @@ const TaskManagerView = memo(function TaskManagerView({
     onLogoClick: loadData, activeView, onSelectSearch, sidebarSwipeToDismiss,
     isTaskDragActive: Boolean(activeDragTaskId), dragOverListId, isShiftDrag,
     onTaskDropOnList: handleTaskDropOnList, onTaskDragEnter: handleListDragEnter,
-    onTaskDragLeave: handleListDragLeave,
+    onTaskDragLeave: handleListDragLeave, onCreateListInProject: (name, projectId) => handleCreateList({ name, description: '', memberEmails: [], projectId }),
     onTaskDragOver: (shiftKey, listId) => handleListDragOver(listId, shiftKey)
   }
 
