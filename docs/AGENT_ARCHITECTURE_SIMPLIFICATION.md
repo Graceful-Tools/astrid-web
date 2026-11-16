@@ -16,7 +16,7 @@ MCP transports, and the SDK/OpenClaw channel:
 | Harness queue | `GET /api/v1/agent-queue` and `lib/agent-queue.ts` serve work and attention to a named agent identity. |
 | Webhook delivery | `lib/ai/agent-execution-mode.ts` still defines webhook mode; delivery is implemented in `lib/ai-agent-webhook-service.ts`. |
 | MCP | The hosted MCP setup and standalone stdio server are documented in [MCP OAuth Setup](./setup/MCP_OAUTH_SETUP.md); the stdio build output is `dist/mcp/mcp-server-oauth.js`. |
-| SDK / OpenClaw | `packages/astrid-sdk` provides the channel client and `packages/openclaw-astrid-channel` adapts it to OpenClaw. |
+| SDK / OpenClaw | `packages/openclaw-astrid-channel` owns the SSE channel client and adapts it to OpenClaw. `packages/astrid-sdk` is the agent runner (`astrid-agent`) and typed REST client (AWTD-1691). |
 
 The presence of the OpenClaw channel is one implemented integration, not evidence that
 provider executors were removed or that the SDK is Astrid's only agent runtime. The estimates

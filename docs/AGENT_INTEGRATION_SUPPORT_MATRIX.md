@@ -51,8 +51,8 @@ documents remain the authority for those details.
 - Harness identities and server-executor distinction: [`lib/ai/harness-agents.ts`](../lib/ai/harness-agents.ts),
   [`lib/ai/agent-config.ts`](../lib/ai/agent-config.ts), and
   [`lib/ai/agent-execution-mode.ts`](../lib/ai/agent-execution-mode.ts).
-- SDK channel and OpenClaw adapter: [`packages/astrid-sdk/src/channel/channel.ts`](../packages/astrid-sdk/src/channel/channel.ts),
-  [`packages/astrid-sdk/src/channel/oauth-client.ts`](../packages/astrid-sdk/src/channel/oauth-client.ts),
+- SDK channel and OpenClaw adapter: [`packages/openclaw-astrid-channel/src/astrid/channel.ts`](../packages/openclaw-astrid-channel/src/astrid/channel.ts),
+  [`packages/openclaw-astrid-channel/src/astrid/oauth-client.ts`](../packages/openclaw-astrid-channel/src/astrid/oauth-client.ts),
   and [`packages/openclaw-astrid-channel/src/plugin.ts`](../packages/openclaw-astrid-channel/src/plugin.ts).
 - MCP setup paths: [`docs/setup/MCP_OAUTH_SETUP.md`](./setup/MCP_OAUTH_SETUP.md),
   [`lib/agent-skill/loop-recipes.ts`](../lib/agent-skill/loop-recipes.ts),

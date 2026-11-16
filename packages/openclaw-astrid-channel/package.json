@@ -1,6 +1,6 @@
 {
   "name": "@gracefultools/openclaw-astrid-channel",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Astrid.cc channel plugin for OpenClaw - task management integration",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -31,9 +31,6 @@
     "url": "https://github.com/Graceful-Tools/astrid-web.git",
     "directory": "packages/openclaw-astrid-channel"
   },
-  "dependencies": {
-    "@gracefultools/astrid-sdk": "^0.8.2"
-  },
   "peerDependencies": {
     "openclaw": ">=2026.2.0"
   },
@@ -45,7 +42,9 @@
     "node": ">=18.0.0"
   },
   "openclaw": {
-    "extensions": ["./dist/index.js"]
+    "extensions": [
+      "./dist/index.js"
+    ]
   },
   "files": [
     "dist/",

@@ -76,9 +76,9 @@ export const INTEGRATION_METHODS: IntegrationMethod[] = [
   {
     id: 'sdk',
     name: `${BRAND.appName} SDK`,
-    tagline: 'Client library for Custom Agents',
+    tagline: 'Agent runner and typed client for Custom Agents',
     description:
-      `npm package for connecting an agent service you operate: OAuth client credentials, the server-sent task event stream, and REST task/comment calls. Coding harnesses connect through "Connect my coding agent" instead.`,
+      `npm package for an agent service you operate: the astrid-agent command (check the queue, claim, release) for schedulers and CI, and a typed REST client for the queue, claims and comments. Real-time delivery for OpenClaw is the OpenClaw channel plugin. Coding harnesses connect through "Connect my coding agent" instead.`,
     audience: 'Developers operating a Custom Agent runtime',
     icon: 'Terminal',
     externalUrl: 'https://www.npmjs.com/package/@gracefultools/astrid-sdk',

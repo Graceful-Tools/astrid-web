@@ -3,7 +3,7 @@
  *
  * Channel Adapter Session-Aware Dedup Tests
  *
- * Drives the real astridChannel adapter (packages/astrid-sdk/src/channel/channel.ts)
+ * Drives the real astridChannel adapter (packages/openclaw-astrid-channel/src/astrid/channel.ts)
  * over scripted SSE streams, with only fetch faked, and checks that its
  * task.assigned handler skips duplicate dispatches while a session exists.
  * This file used to re-implement the handler inside the test (AWTD-1433).
@@ -14,8 +14,8 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createSdkSseHarness, frame } from '../fixtures/sdk-sse'
-import { astridChannel } from '../../packages/astrid-sdk/src/channel/channel'
-import type { InboundMessage } from '../../packages/astrid-sdk/src/channel/types'
+import { astridChannel } from '../../packages/openclaw-astrid-channel/src/astrid/channel'
+import type { InboundMessage } from '../../packages/openclaw-astrid-channel/src/astrid/types'
 
 const PAST_SSE_DEDUP_WINDOW_MS = 6 * 60_000
 const RECONNECT_WAIT_MS = 10_000

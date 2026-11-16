@@ -1,5 +1,5 @@
 /**
- * Drives the real SDK SSEClient (packages/astrid-sdk/src/channel/sse-client.ts)
+ * Drives the real SDK SSEClient (packages/openclaw-astrid-channel/src/astrid/sse-client.ts)
  * with only the transport faked: `fetch` answers the OAuth token request and
  * serves each SSE connection from a queue of scripted stream bodies.
  *
@@ -7,9 +7,9 @@
  * and keepalive timers never fire on their own.
  */
 import { vi } from 'vitest'
-import { OAuthClient } from '../../packages/astrid-sdk/src/channel/oauth-client'
-import { SSEClient } from '../../packages/astrid-sdk/src/channel/sse-client'
-import type { AgentSSEEvent, AstridChannelConfig } from '../../packages/astrid-sdk/src/channel/types'
+import { OAuthClient } from '../../packages/openclaw-astrid-channel/src/astrid/oauth-client'
+import { SSEClient } from '../../packages/openclaw-astrid-channel/src/astrid/sse-client'
+import type { AgentSSEEvent, AstridChannelConfig } from '../../packages/openclaw-astrid-channel/src/astrid/types'
 
 const API_BASE = 'https://sdk-test.example/api/v1'
 

@@ -169,6 +169,17 @@ reply key (task comment id or chat message id) they have not already woken for, 
 seen set carried by `actions/cache`. They never wake on `incomplete` alone (Jon, 2026-11-13,
 AWTD-1560). Losing the cache re-wakes the replies still open, once.
 
+**`astrid-agent` is the intended entry point (AWTD-1691).** Today the gate is shell (`curl` plus a
+`jq` wake rule) inside the generated YAML, and Astrid's own loops repeat the same logic in their
+per-repo scripts. `@gracefultools/astrid-sdk` 1.0.0 ships that logic as one command:
+`astrid-agent queue` (exit 0 work / 3 idle / 1 could not tell, with a `--seen` file for the bounded
+reply wake), `astrid-agent claim <taskId>` (exit 2 on a conflict) and `astrid-agent release`. The
+generated workflows and the per-repo loop scripts still call `curl` and `scripts/*.ts` directly.
+Switching them over is follow-up work ("Generated queue workflows call astrid-agent instead of inline
+curl and jq", and "Per-repo loop scripts call astrid-agent for queue, claim and release"). Until
+then, a change to the wake rule must be made in both places: `loop-recipes.ts` `wakeDecision()` and
+`packages/astrid-sdk/src/verdict.ts`.
+
 ### `requireReady: false`, for people who do not use the board (AWTD-871)
 
 Ready is a BOARD state, and the board is a Project-Mode-shaped feature. Someone who
