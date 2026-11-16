@@ -6,12 +6,18 @@
  * browser package does not. Each request takes the overrides exactly as stored (`project`, `list`)
  * and the core does the resolving.
  *
- * **Until the vendored build carries the rules, the TypeScript mirror answers.** web's pin
- * (packages/astrid-rules/REVISION) predates them, and moving it is "Bump web's astrid-rules pin to
- * current core main" (ADEV-23). Whether the build answers is probed once per process, so moving the
- * pin switches every caller to the core with no change here. The mirror is held to the core's
- * fixture case for case (tests/lib/orchestration-policy-awtd-1693.test.ts), so the switch changes no
- * answer. If the core fails at run time, the mirror answers and the failure is logged once.
+ * **The core answers.** web's pin (packages/astrid-rules/REVISION, core a718622 and later) carries
+ * the kinds, and the server asks it for every resolution. The TypeScript in lib/orchestration-policy.ts
+ * stays for two reasons, as with the other core-first rules (waiting-core.ts):
+ *
+ * - **Browser.** The browser package does not carry these kinds, so the settings UI edits and
+ *   validates overrides with the mirror before it sends them, and the server validates writes with
+ *   the same parser.
+ * - **Fail-safe.** If the vendored build cannot be loaded, or refuses a request at run time, the
+ *   mirror answers and the failure is logged once. Both are held to the core's fixture case for case
+ *   (tests/lib/orchestration-policy-awtd-1693.test.ts), so the fallback changes no answer.
+ *
+ * Whether the build answers is probed once per process.
  */
 import { createLogger } from '@/lib/logger'
 import {
@@ -56,7 +62,7 @@ export function setOrchestrationCoreForTests(core: CoreRules | null | undefined)
   installed = core === undefined ? undefined : coreAnswersOrchestration(core) ? core : null
 }
 
-/** Which engine answers here: `core` once the vendored build carries the rules, else `typescript`. */
+/** Which engine answers here: `core` when the vendored build loads and answers, else `typescript` (fail-safe). */
 export function orchestrationEngine(): 'core' | 'typescript' {
   return orchestrationCore() ? 'core' : 'typescript'
 }
