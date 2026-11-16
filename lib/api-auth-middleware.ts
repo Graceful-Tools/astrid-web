@@ -37,6 +37,8 @@ export interface AuthContext {
    * wrapper logs every call the shadow would refuse (accessTokenShadowScopes).
    */
   shadowScopes?: string[]
+  /** MCPToken row id (access tokens only); hash-labels shadow telemetry and is never logged raw. */
+  tokenId?: string
   clientId?: string
   isAIAgent: boolean
   user: {
@@ -159,6 +161,7 @@ export function accessTokenShadowScopes(permissions: readonly string[]): string[
  * Validate an access token (MCPToken row)
  */
 async function validateMCPToken(token: string): Promise<{
+  tokenId: string
   userId: string
   permissions: string[]
   user: {
@@ -227,6 +230,7 @@ async function validateMCPToken(token: string): Promise<{
   }
 
   return {
+    tokenId: mcpToken.id,
     userId: mcpToken.userId,
     permissions: mcpToken.permissions ?? [],
     user: mcpToken.user,
@@ -323,6 +327,7 @@ export async function authenticateAPI(
         source: 'legacy_mcp',
         scopes: ['*'], // Full access today; see accessTokenShadowScopes for what comes next.
         shadowScopes: accessTokenShadowScopes(validated.permissions),
+        tokenId: validated.tokenId,
         isAIAgent: validated.user.isAIAgent,
         user: validated.user,
         agentUser: validated.agentUser,
