@@ -198,6 +198,14 @@
       "count": "评论（{count}）",
       "hideSystemTitle": "隐藏系统评论",
       "showSystemTitle": "显示系统评论",
+      "approval": {
+        "approve": "批准",
+        "decline": "拒绝",
+        "declineReasonPlaceholder": "为什么拒绝？",
+        "approvedBy": "{name} 已批准",
+        "declinedBy": "{name} 已拒绝：{reason}",
+        "decisionError": "无法记录你的决定，请重试。"
+      },
       "hideSystem": "隐藏系统",
       "showSystem": "显示系统",
       "refreshShort": "刷新",

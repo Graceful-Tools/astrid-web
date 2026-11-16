@@ -198,6 +198,14 @@
       "count": "Kommentare ({count})",
       "hideSystemTitle": "Systemkommentare ausblenden",
       "showSystemTitle": "Systemkommentare anzeigen",
+      "approval": {
+        "approve": "Genehmigen",
+        "decline": "Ablehnen",
+        "declineReasonPlaceholder": "Warum lehnst du ab?",
+        "approvedBy": "Genehmigt von {name}",
+        "declinedBy": "Abgelehnt von {name}: {reason}",
+        "decisionError": "Deine Entscheidung konnte nicht gespeichert werden. Versuche es erneut."
+      },
       "hideSystem": "System ausblenden",
       "showSystem": "System einblenden",
       "refreshShort": "Aktualisieren",

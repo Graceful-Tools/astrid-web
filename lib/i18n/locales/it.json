@@ -198,6 +198,14 @@
       "count": "Commenti ({count})",
       "hideSystemTitle": "Nascondi commenti di sistema",
       "showSystemTitle": "Mostra commenti di sistema",
+      "approval": {
+        "approve": "Approva",
+        "decline": "Rifiuta",
+        "declineReasonPlaceholder": "Perché rifiuti?",
+        "approvedBy": "Approvato da {name}",
+        "declinedBy": "Rifiutato da {name}: {reason}",
+        "decisionError": "Impossibile registrare la tua decisione. Riprova."
+      },
       "hideSystem": "Nascondi di sistema",
       "showSystem": "Mostra di sistema",
       "refreshShort": "Aggiorna",
