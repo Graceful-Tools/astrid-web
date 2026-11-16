@@ -311,6 +311,21 @@ a quiet run and a finished one are different things.
 the due date and the blocker rows. A task that is waiting on nothing the server can see is not
 in Waiting.
 
+### A Ready task with a blocker: check the blocker before parking it again
+
+A task can be in Ready and still list a blocker in `blockedBy`. Before calling it blocked, open
+**each** blocker (`get_task <id>`) and read `completed`. On 2026-11-16 three cloud runs re-parked
+a task on an Android blocker that had finished the day before, and twice handed it to Jon as
+"failed twice". They never checked; the Android board is private to them.
+
+- **Every blocker is done:** the task is unblocked. Do what is left, or complete it if its
+  acceptance is already met, and verify that against the repos, not against the comments.
+- **A blocker is still open:** move the task to **Waiting** on it (`set-task-status.ts <id>
+  Waiting --blocked-by <blocker>`). Leave it out of Ready, and don't count it toward "fails twice".
+  Waiting wakes it by itself when the blocker completes.
+- **You can't read a blocker** (another board, no access): say so on the task and move it to
+  Waiting with a recheck date. Never assume a blocker you couldn't read is still open.
+
 ---
 
 ## Say on the board what you are doing
