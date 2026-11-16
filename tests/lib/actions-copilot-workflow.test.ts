@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 
-import { queueContractLine } from '@/lib/agent-skill/astrid-queue-skill'
+import { queueContractLine, ORCHESTRATION_GUIDANCE } from '@/lib/agent-skill/astrid-queue-skill'
 import {
   COPILOT_TOKEN_SECRET,
   actionsCopilotWorkflow,
@@ -108,7 +108,9 @@ describe('Copilot CLI in GitHub Actions (AWTD-1502)', () => {
     expect(step.env!.GH_TOKEN).toBe('${{ github.token }}')
     expect(step.run).toMatch(/^copilot -p "\$PROMPT"/)
     expect(step.env!.PROMPT).toContain(queueContractLine({ mailbox: 'copilot', listId: 'list-review' }))
-    expect(step.env!.PROMPT).toMatch(/Never merge or deploy/)
+    // AWTD-1693: the stored orchestration policy decides merge and deploy, not the prompt; its default is still never.
+    expect(step.env!.PROMPT).toContain(ORCHESTRATION_GUIDANCE)
+    expect(step.env!.PROMPT).not.toMatch(/Never merge or deploy/)
     expect(step.run).toContain(`--additional-mcp-config "@$RUNNER_TEMP/${mcpServerName()}-mcp.json"`)
     expect(step.run).toContain('--allow-all-tools')
     expect(step.run).toContain('--no-ask-user')

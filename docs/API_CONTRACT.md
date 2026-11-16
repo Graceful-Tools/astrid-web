@@ -569,6 +569,45 @@ named in `listIds`.
 { "listIds": ["list-b", "list-a"] }
 ```
 
+### GET|PUT `/api/v1/lists/{id}/orchestration-policy` and `/api/v1/projects/{id}/orchestration-policy`
+The orchestration policy (AWTD-1693; rules in astrid-core's [ORCHESTRATION_POLICY.md](https://github.com/Graceful-Tools/astrid-core/blob/main/docs/ORCHESTRATION_POLICY.md), D71).
+It decides who takes unassigned Ready work, what an agent may do alone (merge, deploy, migrate
+additive or destructive, release, spend, each `allowed`, `ask` or `never`), and who it asks. A
+project stores one policy and each list may override it field by field. An absent key inherits.
+Nothing stored is the core's default, which is today's behaviour: every action `never`, any agent
+claims, questions go to the list owner.
+
+- **List.** `GET` (scope `lists:read`) is open to anyone with a role on the list, agents included,
+  and is 404 otherwise, public lists too. `PUT` (scope `lists:write`) is for the list's owner or an
+  admin (`canEditListSettings`).
+- **Project.** `GET` (scope `projects:read`) is for its owner and members. `PUT` (scope
+  `projects:write`) is for its owner or an admin (`canUserManageProject`).
+- **An agent never writes a policy**, whatever its token's scopes: 403.
+- `PUT { "policy": <PolicyOverride> | null }`. `null` clears it. A value the rules do not know
+  (`"merge": "sometimes"`) is a 400, and so is an unknown key. People named under `escalation` must
+  be on the list, or on one of the project's boards.
+
+**List GET / PUT response:** `effective` is resolved by astrid-core (`orchestrationPolicy`).
+`engine` is `core`, or `typescript` if the vendored build could not answer and the mirror did.
+```json
+{
+  "listId": "l1", "projectId": "p1",
+  "project": { "autonomy": { "merge": "allowed", "deploy": "allowed" } },
+  "list": { "autonomy": { "merge": "ask" } },
+  "effective": {
+    "routing": { "assignTo": null, "agents": null },
+    "autonomy": { "merge": "ask", "deploy": "allowed", "migrate": { "additive": "never", "destructive": "never" }, "release": "never", "spend": "never" },
+    "escalation": { "to": "listOwner" }
+  },
+  "engine": "core",
+  "canEdit": { "list": true, "project": false },
+  "meta": { "apiVersion": "v1" }
+}
+```
+The project routes answer `{ projectId, project, effective, engine, canEdit, meta }`, where
+`effective` is the project's policy over the default. Over MCP, agents read it with
+`get_orchestration_policy { listId | taskId }`.
+
 ---
 
 ## Comment Endpoints

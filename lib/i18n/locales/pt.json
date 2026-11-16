@@ -2942,5 +2942,42 @@
       "fallback": "A entrega do webhook falhou ({reason}). Sua política de entrega é de contingência, então o {appName} está tratando esta tarefa pela própria rota.",
       "strict": "A entrega do webhook falhou ({reason}). Com sua política de entrega estrita, o {appName} não usou a própria contingência, então esta tarefa está em «Aguardando» até {until}, ainda atribuída a mim. Corrija o webhook e depois atribua a tarefa a mim de novo ou adicione um comentário para tentar outra vez."
     }
+  },
+  "orchestrationPolicy": {
+    "title": "Política de agentes",
+    "help": "Quem assume as tarefas prontas sem responsável, o que os agentes podem fazer sozinhos e a quem perguntam. Os agentes leem isto antes de mesclar, implantar ou migrar.",
+    "saveFailed": "Não foi possível salvar a política de agentes",
+    "default": "Padrão ({value})",
+    "inherit": "Herdado ({value})",
+    "line": "{label}: {value}",
+    "effective": "Em vigor nesta lista",
+    "scope": {
+      "project": "Este projeto",
+      "projectHelp": "Todas as listas do projeto seguem isto, a menos que a lista defina a sua.",
+      "list": "Esta lista",
+      "listHelp": "Defina um campo aqui para alterá-lo só nesta lista. Campos não definidos seguem o projeto ou o padrão."
+    },
+    "routing": {
+      "label": "Tarefas prontas sem responsável vão para",
+      "anyAgent": "Qualquer agente (quem reivindicar primeiro)"
+    },
+    "action": {
+      "merge": "Mesclar pull requests",
+      "deploy": "Implantar",
+      "migrateAdditive": "Migrações aditivas",
+      "migrateDestructive": "Migrações destrutivas",
+      "release": "Lançamentos nas lojas",
+      "spend": "Gastar dinheiro"
+    },
+    "autonomy": {
+      "allowed": "Permitido",
+      "ask": "Perguntar antes",
+      "never": "Nunca (uma pessoa faz)"
+    },
+    "escalation": {
+      "label": "Perguntas vão para",
+      "listOwner": "O dono da lista",
+      "taskCreator": "Quem criou a tarefa"
+    }
   }
 }
