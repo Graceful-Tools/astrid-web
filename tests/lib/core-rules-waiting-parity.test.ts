@@ -7,6 +7,8 @@
  * against the TypeScript mirror in lib/waiting-rules.ts (the server's fallback, and what the
  * browser uses to decide whether to open the Waiting prompt), and against the vendored WebAssembly
  * installed as the server installs it. Both must give the fixture's answer.
+ *
+ * AWTD-1686 added R8 (the handoff): `waitingHandoff`, and `returnAssigneeId` on settle and write.
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -17,9 +19,12 @@ import {
   boardPresets,
   boardPresetsTs,
   handBackTs,
+  handoffTs,
+  HANDOFF_SOURCE_DONE,
   resolveWaitingWriteTs,
   setWaitingCore,
   settleWaitingTs,
+  waitingHandoff,
   waitingSettle,
   waitingWrite,
   wakeWaitingTs,
@@ -39,6 +44,7 @@ interface Case {
 }
 const fixture = JSON.parse(readFileSync(path.join(PACKAGE_DIR, 'fixtures', 'waiting.json'), 'utf8')) as {
   waitingNeedsCondition: string
+  handoffSourceDone: string
   cases: Case[]
 }
 
@@ -49,6 +55,8 @@ const req = (c: Case) => c.request as unknown as {
   now: string
   assigneeId?: string
   customStates?: unknown
+  source: WaitingTask
+  returnAssigneeId?: string
 }
 
 /** The TypeScript's answer, in the fixture's envelope. */
@@ -56,13 +64,17 @@ function typescriptAnswer(c: Case): unknown {
   const r = req(c)
   switch (c.request.kind) {
     case 'waitingWrite': {
-      const answer = resolveWaitingWriteTs(r.task, r.blockers ?? [], r.change ?? {}, new Date(r.now))
+      const answer = resolveWaitingWriteTs(r.task, r.blockers ?? [], r.change ?? {}, new Date(r.now), r.returnAssigneeId)
+      return answer.ok ? { ok: true, value: answer.value } : { ok: false, code: answer.code, message: answer.message }
+    }
+    case 'waitingHandoff': {
+      const answer = handoffTs(r.source, r.blockers ?? [], r.returnAssigneeId, new Date(r.now))
       return answer.ok ? { ok: true, value: answer.value } : { ok: false, code: answer.code, message: answer.message }
     }
     case 'waitingWake':
       return { ok: true, value: { action: wakeWaitingTs(r.task, r.blockers ?? [], new Date(r.now)) } }
     case 'waitingSettle':
-      return { ok: true, value: settleWaitingTs(r.task, r.blockers ?? [], new Date(r.now)) }
+      return { ok: true, value: settleWaitingTs(r.task, r.blockers ?? [], new Date(r.now), r.returnAssigneeId) }
     case 'handBack':
       return { ok: true, value: handBackTs(r.assigneeId as string) }
     case 'boardPresets':
@@ -81,9 +93,17 @@ afterEach(() => setWaitingCore(null))
 describe('waiting.json — the TypeScript mirror (the fallback)', () => {
   it('has the cases the core generated, every kind among them', () => {
     expect(fixture.waitingNeedsCondition).toBe(WAITING_NEEDS_CONDITION)
+    expect(fixture.handoffSourceDone).toBe(HANDOFF_SOURCE_DONE)
     const kinds = new Set(fixture.cases.map((c) => c.request.kind))
-    expect([...kinds].sort()).toEqual(['boardPresets', 'handBack', 'waitingSettle', 'waitingWake', 'waitingWrite'])
+    expect([...kinds].sort()).toEqual(['boardPresets', 'handBack', 'waitingHandoff', 'waitingSettle', 'waitingWake', 'waitingWrite'])
     expect(fixture.cases.some((c) => c.name.startsWith('create/'))).toBe(true)
+  })
+
+  it('AWTD-1686: covers the handoff round trip — plan, the half completing, the source waking to its holder', () => {
+    const names = fixture.cases.map((c) => c.name)
+    expect(names).toContain('handoff/doing-source-waits-unassigned-and-remembers-its-holder')
+    expect(names).toContain('handoff/half-done-source-wakes-to-ready-back-with-its-holder')
+    expect(names).toContain('handoff/somebody-assigned-during-the-wait-wins')
   })
 
   it.each(fixture.cases.map((c) => [c.name, c] as const))('%s', (_name, c) => {
@@ -100,20 +120,23 @@ describe('waiting.json — through the vendored core, installed as the server in
       disagreement: (details) => failures.push(details),
       failure: (details) => failures.push(details),
     }, { revision: core.revision, mode: 'decide', sampleEvery: 1 })
-    setWaitingCore({ write: hook.write, settle: hook.settle, presets: hook.presets })
+    setWaitingCore({ write: hook.write, settle: hook.settle, handoff: hook.handoff, presets: hook.presets })
 
     for (const c of fixture.cases) {
       const r = req(c)
       if (c.request.kind === 'waitingWrite') {
-        const answer = waitingWrite(r.task, r.blockers ?? [], r.change ?? {}, new Date(r.now))
+        const answer = waitingWrite(r.task, r.blockers ?? [], r.change ?? {}, new Date(r.now), r.returnAssigneeId)
+        expect(answer.ok ? { ok: true, value: answer.value } : { ok: false, code: answer.code, message: answer.message }, c.name).toEqual(expected(c))
+      } else if (c.request.kind === 'waitingHandoff') {
+        const answer = waitingHandoff(r.source, r.blockers ?? [], r.returnAssigneeId, new Date(r.now))
         expect(answer.ok ? { ok: true, value: answer.value } : { ok: false, code: answer.code, message: answer.message }, c.name).toEqual(expected(c))
       } else if (c.request.kind === 'waitingSettle') {
-        expect({ ok: true, value: waitingSettle(r.task, r.blockers ?? [], new Date(r.now)) }, c.name).toEqual(expected(c))
+        expect({ ok: true, value: waitingSettle(r.task, r.blockers ?? [], new Date(r.now), r.returnAssigneeId) }, c.name).toEqual(expected(c))
       } else if (c.request.kind === 'boardPresets') {
         expect({ ok: true, value: boardPresets(r.customStates) }, c.name).toEqual(expected(c))
       }
     }
-    const asked = fixture.cases.filter((c) => ['waitingWrite', 'waitingSettle', 'boardPresets'].includes(c.request.kind)).length
+    const asked = fixture.cases.filter((c) => ['waitingWrite', 'waitingHandoff', 'waitingSettle', 'boardPresets'].includes(c.request.kind)).length
     expect(failures).toEqual([])
     expect(hook.stats.failed).toBe(0)
     expect(hook.stats.agreed).toBe(asked)

@@ -2741,6 +2741,9 @@
       "keepAssignedTo": "Mantener asignada a {name}",
       "theAssignee": "la persona asignada",
       "confirm": "Mover a En espera"
+    },
+    "handoff": {
+      "sourceDone": "Una tarea terminada no se puede traspasar. Vuelve a abrirla primero."
     }
   },
   "helpPage": {

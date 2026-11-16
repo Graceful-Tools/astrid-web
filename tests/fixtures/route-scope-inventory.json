@@ -114,6 +114,7 @@
   "tasks/[id]/copy/route.ts": "all:tasks:write",
   "tasks/[id]/cost/route.ts": "all:tasks:write",
   "tasks/[id]/fields/[fieldId]/route.ts": "all:tasks:write",
+  "tasks/[id]/handoff/route.ts": "all:tasks:write",
   "tasks/[id]/route.ts": "all:tasks:delete,tasks:read,tasks:write",
   "tasks/copy/route.ts": "all:tasks:write",
   "tasks/route.ts": "all:tasks:read,tasks:write",

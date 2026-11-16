@@ -2741,6 +2741,9 @@
       "keepAssignedTo": "{name}에게 계속 할당",
       "theAssignee": "담당자",
       "confirm": "대기로 이동"
+    },
+    "handoff": {
+      "sourceDone": "완료된 작업은 넘길 수 없습니다. 먼저 다시 여세요."
     }
   },
   "helpPage": {

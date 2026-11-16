@@ -14,11 +14,15 @@ The test is where the code lives, not what the title says — **check the web
 behaviour first.** If web has the same bug it is cross-platform: do the web half
 here and file the iOS companion. Never commit to `astrid-ios`.
 
-**Filing the companion is a command, not a note to self:**
+**Filing the companion is a command, not a note to self.** When a web task waits on the iOS
+half, hand it off — the iOS half is filed Ready, the web task waits on it, and it comes back to
+you when iOS is done (AWTD-1686):
 
 ```bash
-npx tsx scripts/file-ios-task.ts "[ios] <what iOS must do>" "<contract to match>" -p 2
+npx tsx scripts/file-ios-task.ts "[ios] <what iOS must do>" "<contract to match>" -p 2 --from <webTaskId> --agent <mailbox>
 ```
+
+A finding with no web task waiting on it is filed standalone (the same command without `--from`).
 
 **Any fix that needs a Swift change gets one of these before you move on** —
 whether it is the iOS half of cross-platform work, or something you discovered

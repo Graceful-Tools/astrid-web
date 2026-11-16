@@ -2741,6 +2741,9 @@
       "keepAssignedTo": "Manter atribuída a {name}",
       "theAssignee": "a pessoa responsável",
       "confirm": "Mover para Em espera"
+    },
+    "handoff": {
+      "sourceDone": "Uma tarefa concluída não pode ser repassada. Reabra-a primeiro."
     }
   },
   "helpPage": {
