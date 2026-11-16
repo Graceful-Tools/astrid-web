@@ -60,6 +60,7 @@ import {
 import { isAwaitingDeploy, isAwaitingMerge } from './lib/doing-release'
 import { boardTasksUrl } from './lib/board-read-url'
 import { loadScriptEnv } from './lib/load-env'
+import type { OrchestrationPolicy } from '@/lib/orchestration-policy'
 import { SweepApi } from './lib/sweep-api'
 import {
   RUNNER_PR_MARKER,
@@ -69,8 +70,10 @@ import {
   landedDespiteError,
   deployVerdict,
   landablePullRequests,
+  astridFallbackPolicy,
   migrationApprovalSummary,
   migrationHold,
+  policyHold,
   migrationSqlPath,
   pendingMigrations,
   summary,
@@ -236,7 +239,7 @@ async function readAwaitingDeploy(listId: string) {
  * task gets an approval card bound to the merged commit; Approve dispatches the deploy.
  * One card per task and commit, so a tick that holds again posts nothing new. Best effort.
  */
-async function postMigrationApprovalCards(listId: string, input: { sha: string; hold: string; pending: PendingMigration[] }): Promise<string[]> {
+async function postMigrationApprovalCards(listId: string, input: { sha: string; hold: string; pending: PendingMigration[]; action: 'deploy' | 'migrate' }): Promise<string[]> {
   const board = await readAwaitingDeploy(listId)
   if (!board?.awaiting.length) return []
   const summaryText = migrationApprovalSummary(input)
@@ -252,7 +255,7 @@ async function postMigrationApprovalCards(listId: string, input: { sha: string; 
     if (!mailbox) continue
     const authorId = await resolveAgentAuthorId({ mailbox, accessToken: board.token, warn: log })
     const api = new SweepApi(board.auth, false, (...args) => log(args.join(' ')), authorId)
-    if (await api.requestApproval(task, { action: 'migrate', sha: input.sha, summary: summaryText })) posted.push(name)
+    if (await api.requestApproval(task, { action: input.action, sha: input.sha, summary: summaryText })) posted.push(name)
   }
   return posted
 }
@@ -564,13 +567,45 @@ async function landAndCompleteCore(repo: string, listId: string): Promise<CoreTi
   return result
 }
 
+/** The mailbox the runner asks the policy as: it lands and deploys for the Claude loop. */
+const POLICY_AGENT = 'claude'
+
+/**
+ * ADEV-20: the board's effective orchestration policy, as stored in Astrid. Nothing stored (or the
+ * endpoint unreadable) falls back to Astrid's own documented policy, so an outage never loosens it
+ * and a fresh install never freezes the loop.
+ */
+async function readPolicy(listId: string | null): Promise<OrchestrationPolicy> {
+  if (!listId) return astridFallbackPolicy()
+  try {
+    const { auth } = await astridAuth()
+    const response = await fetch(`${API}/api/v1/lists/${listId}/orchestration-policy`, { headers: auth })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    const body = (await response.json()) as { list?: unknown; project?: unknown; effective?: OrchestrationPolicy }
+    if (!body.effective || (body.list == null && body.project == null)) {
+      log('  policy: none stored on this board or its project — using the documented Astrid policy')
+      return astridFallbackPolicy()
+    }
+    log('  policy: read from the board')
+    return body.effective
+  } catch (error) {
+    log(`  ⚠️  policy unreadable (${(error as Error).message.split('\n')[0]}) — using the documented Astrid policy`)
+    return astridFallbackPolicy()
+  }
+}
+
 async function main() {
   run('git', ['fetch', 'origin', '--quiet'])
 
-  const { land, skipped } = landablePullRequests(await openPullRequests(), {
+  const policy = await readPolicy(options.listId)
+  const mergeHold = policyHold(policy, POLICY_AGENT, 'merge')
+  if (mergeHold) log(`  not landing PRs — ${mergeHold}`)
+
+  const { land: landable, skipped } = landablePullRequests(await openPullRequests(), {
     requireRunnerMarker: !options.includeHandOpened,
     only: options.only,
   })
+  const land = mergeHold ? [] : landable
   for (const skip of skipped) log(`  #${skip.number} held back — ${skip.why}`)
 
   const take = land.slice(0, Math.max(0, options.maxLand))
@@ -675,6 +710,8 @@ async function main() {
     landedOrAlreadyOnMain: hasSomethingToShip,
     pending,
     predeployGreen,
+    policy,
+    agent: POLICY_AGENT,
   })
 
   let verified = false
@@ -755,9 +792,16 @@ async function main() {
     verified = true
   } else {
     log(`  not deploying — ${verdict.reason}`)
-    if (verdict.code === 3 && options.listId) {
+    // An `ask` posts an approval request; `never` and a destructive-SQL hold keep today's behaviour.
+    const wantsCard = verdict.code === 3 && (verdict.approval !== undefined || heldByMigration !== null)
+    if (wantsCard && options.listId) {
       try {
-        const cards = await postMigrationApprovalCards(options.listId, { sha, hold: verdict.reason, pending })
+        const cards = await postMigrationApprovalCards(options.listId, {
+          sha,
+          hold: verdict.reason,
+          pending,
+          action: verdict.approval ?? 'migrate',
+        })
         if (cards.length) log(`  approval card on ${cards.join(', ')}`)
       } catch (error) {
         log(`  ⚠️  approval card failed: ${(error as Error).message.split('\n')[0]}`)
