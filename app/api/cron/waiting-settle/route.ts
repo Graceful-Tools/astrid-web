@@ -18,6 +18,7 @@ import { requireCronSecret } from '@/lib/cron-auth'
 import { runCronJob } from '@/lib/cron-observability'
 import { runWaitingSettleJob } from '@/services/waiting-settle-job'
 import { expireAgentClaimLeases } from '@/services/agent-claim-lease.service'
+import { notifyQuietAgents } from '@/services/agent-presence.service'
 import { createLogger } from '@/lib/logger'
 
 const log = createLogger('cron')
@@ -31,8 +32,13 @@ export async function GET(request: NextRequest) {
   return runCronJob('waiting-settle', async () => {
     // Counts only: the cron summary is logged, and it names no task.
     // The lease sweep runs whatever the settle job does, and its failure never fails the settle.
-    const [settled, expired] = await Promise.allSettled([runWaitingSettleJob(), expireAgentClaimLeases()])
+    const [settled, expired, quiet] = await Promise.allSettled([
+      runWaitingSettleJob(),
+      expireAgentClaimLeases(),
+      notifyQuietAgents(),
+    ])
     if (settled.status === 'rejected') throw settled.reason
+    if (quiet.status === 'rejected') log.error({ err: quiet.reason }, 'quiet agent notification FAILED')
     const report = settled.value
     const leases = expired.status === 'fulfilled' ? expired.value : { scanned: -1, released: 0, cleared: 0 }
     if (expired.status === 'rejected') log.error({ err: expired.reason }, 'claim lease expiry FAILED')
@@ -53,6 +59,7 @@ export async function GET(request: NextRequest) {
       leasesExpired: leases.scanned,
       leasesReleased: leases.released,
       leasesCleared: leases.cleared,
+      quietAgentsNotified: quiet.status === 'fulfilled' ? quiet.value.notified : -1,
     }
   })
 }

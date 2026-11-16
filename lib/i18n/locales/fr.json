@@ -1889,6 +1889,18 @@
       "label": "Les agents réservent les tâches avant de les traiter",
       "help": "Les agents de cette liste prennent les tâches Prêtes non attribuées, réservent chacune d'abord pour que deux agents ne prennent jamais la même, et maintiennent la réservation pendant leur travail. Une réservation qui n'est plus renouvelée renvoie la tâche dans Prête."
     },
+    "agentRoster": {
+      "title": "Agents sur ce tableau",
+      "empty": "Aucun agent n'a encore consulté ce tableau.",
+      "lastSeen": "Vu {when}",
+      "notSeen": "Pas vu depuis {when}",
+      "neverSeen": "Pas encore vu",
+      "holds": "Travaille sur {task}",
+      "idle": "Ne détient aucune tâche",
+      "readyWait": "{count} tâche(s) Prêtes attendent depuis {when}.",
+      "reasonNoAgent": "Aucun agent n'est inscrit sur ce tableau.",
+      "reasonNotSeen": "Aucun agent n'a été vu récemment sur ce tableau."
+    },
     "admin": {
       "descriptionLabel": "Description de la liste",
       "descriptionInfo": "La description de la liste sert d'instructions aux agents IA qui travaillent dans cette liste",
@@ -2597,7 +2609,8 @@
       "mentioned": "Mention",
       "replied": "Réponse",
       "commented": "Commentaire",
-      "statusChanged": "Statut modifié"
+      "statusChanged": "Statut modifié",
+      "agentQuiet": "Un agent ne répond plus"
     }
   },
   "admin": {

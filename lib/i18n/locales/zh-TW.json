@@ -1889,6 +1889,18 @@
       "label": "代理在處理任務前先認領",
       "help": "此清單中的代理會接手未指派的「就緒」任務，先認領每個任務以免兩個代理拿到同一個任務，並在工作期間保持認領有效。停止續期的認領會讓任務回到「就緒」。"
     },
+    "agentRoster": {
+      "title": "此看板上的代理",
+      "empty": "尚無代理檢查過此看板。",
+      "lastSeen": "最後出現 {when}",
+      "notSeen": "自 {when} 起未出現",
+      "neverSeen": "尚未出現",
+      "holds": "正在處理 {task}",
+      "idle": "未持有任務",
+      "readyWait": "有 {count} 個就緒任務自 {when} 起一直在等待。",
+      "reasonNoAgent": "此看板未登記任何代理。",
+      "reasonNotSeen": "最近在此看板上未發現任何代理。"
+    },
     "admin": {
       "descriptionLabel": "列表描述",
       "descriptionInfo": "列表描述會作為在此列表中工作的 AI 代理的指示",
@@ -2597,7 +2609,8 @@
       "mentioned": "被提及",
       "replied": "已回覆",
       "commented": "已留言",
-      "statusChanged": "狀態已變更"
+      "statusChanged": "狀態已變更",
+      "agentQuiet": "代理已無回應"
     }
   },
   "admin": {

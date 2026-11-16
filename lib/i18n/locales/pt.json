@@ -1889,6 +1889,18 @@
       "label": "Os agentes reivindicam as tarefas antes de trabalhar nelas",
       "help": "Os agentes desta lista pegam tarefas Prontas sem responsável, reivindicam cada uma primeiro para que dois agentes nunca peguem a mesma e mantêm a reivindicação ativa enquanto trabalham. Uma reivindicação que deixa de ser renovada devolve a tarefa para Pronta."
     },
+    "agentRoster": {
+      "title": "Agentes neste quadro",
+      "empty": "Nenhum agente consultou este quadro ainda.",
+      "lastSeen": "Visto pela última vez {when}",
+      "notSeen": "Não visto desde {when}",
+      "neverSeen": "Ainda não visto",
+      "holds": "Trabalhando em {task}",
+      "idle": "Sem tarefa em andamento",
+      "readyWait": "{count} tarefa(s) em Pronto aguardam desde {when}.",
+      "reasonNoAgent": "Nenhum agente está inscrito neste quadro.",
+      "reasonNotSeen": "Nenhum agente foi visto neste quadro recentemente."
+    },
     "admin": {
       "descriptionLabel": "Descrição da lista",
       "descriptionInfo": "A descrição da lista é usada como instruções para os agentes de IA que trabalham nesta lista",
@@ -2597,7 +2609,8 @@
       "mentioned": "Menção",
       "replied": "Resposta",
       "commented": "Comentário",
-      "statusChanged": "Status alterado"
+      "statusChanged": "Status alterado",
+      "agentQuiet": "Um agente parou de responder"
     }
   },
   "admin": {

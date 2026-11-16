@@ -1889,6 +1889,18 @@
       "label": "Agenten beanspruchen Aufgaben vor der Arbeit",
       "help": "Agenten auf dieser Liste übernehmen nicht zugewiesene Aufgaben aus „Bereit“, beanspruchen jede zuerst, damit nie zwei Agenten dieselbe Aufgabe nehmen, und halten den Anspruch während der Arbeit aktiv. Ein Anspruch, der nicht mehr erneuert wird, gibt die Aufgabe an „Bereit“ zurück."
     },
+    "agentRoster": {
+      "title": "Agenten in dieser Liste",
+      "empty": "Bisher hat kein Agent diese Liste abgefragt.",
+      "lastSeen": "Zuletzt gesehen {when}",
+      "notSeen": "Nicht gesehen seit {when}",
+      "neverSeen": "Noch nicht gesehen",
+      "holds": "Arbeitet an {task}",
+      "idle": "Hält keine Aufgabe",
+      "readyWait": "{count} Aufgabe(n) in Bereit warten seit {when}.",
+      "reasonNoAgent": "In dieser Liste ist kein Agent eingetragen.",
+      "reasonNotSeen": "In dieser Liste wurde kürzlich kein Agent gesehen."
+    },
     "admin": {
       "descriptionLabel": "Listenbeschreibung",
       "descriptionInfo": "Die Listenbeschreibung dient als Anweisung für KI-Agenten, die in dieser Liste arbeiten",
@@ -2597,7 +2609,8 @@
       "mentioned": "Erwähnt",
       "replied": "Geantwortet",
       "commented": "Kommentiert",
-      "statusChanged": "Status geändert"
+      "statusChanged": "Status geändert",
+      "agentQuiet": "Agent ist verstummt"
     }
   },
   "admin": {
