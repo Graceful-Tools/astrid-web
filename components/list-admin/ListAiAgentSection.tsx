@@ -46,6 +46,11 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
     () => list.aiAgentConfig?.allowMemberAssignment === true
   )
 
+  // --- agents claim before working this board (AWTD-1688) ---
+  const [agentClaimRequired, setAgentClaimRequired] = useState<boolean>(
+    () => list.agentClaimRequired === true
+  )
+
   // --- coding-agent repository (githubRepositoryId) ---
   const [tempGithubRepositoryId, setTempGithubRepositoryId] = useState<string | null>(list.githubRepositoryId || null)
   const [availableRepositories, setAvailableRepositories] = useState<Array<{ id: string; name: string; fullName: string }>>([])
@@ -120,6 +125,26 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
                 allowMemberAssignment: checked,
               },
             })
+          }}
+        />
+      </div>
+
+      {/* Claim enrollment (AWTD-1688): the queue skill this board serves tells
+          agents to claim unassigned Ready tasks and heartbeat. Explicit boolean,
+          like the switch above. */}
+      <div className="flex items-start justify-between gap-3" data-testid="agent-claim-required">
+        <div className="space-y-1">
+          <Label htmlFor="agent-claim-required" className="text-sm theme-text-primary">
+            {t('listSettings.agentClaimRequired.label')}
+          </Label>
+          <p className="text-xs theme-text-muted">{t('listSettings.agentClaimRequired.help')}</p>
+        </div>
+        <Switch
+          id="agent-claim-required"
+          checked={agentClaimRequired}
+          onCheckedChange={(checked) => {
+            setAgentClaimRequired(checked)
+            onUpdate({ ...list, agentClaimRequired: checked })
           }}
         />
       </div>
@@ -256,7 +281,7 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
                 values={{ ready: <strong>{t("listSettings.admin.readyStatus")}</strong> }}
               />
             </p>
-            <AgentLoopRecipes origin={origin} listId={list.id} />
+            <AgentLoopRecipes origin={origin} listId={list.id} claimRequired={agentClaimRequired} />
           </div>
         )}
       </div>

@@ -71,8 +71,8 @@ describe('canonical queue skill (AWTD-759)', () => {
     expect(skill).not.toContain('listId "board-123"')
   })
 
-  it('pins the old skill and queue line while the master switch is off, even for an enrolled board (AWTD-1557)', () => {
-    vi.stubEnv('ASTRID_AGENT_CLAIM_API', '')
+  it('pins the unenrolled skill and queue line, whatever the retired env flags say (AWTD-1557, AWTD-1688)', () => {
+    vi.stubEnv('ASTRID_AGENT_CLAIM_API', 'on')
     vi.stubEnv('ASTRID_AGENT_CLAIM_REQUIRED_LISTS', 'board-123')
     const options = { mailbox: 'codex', listId: 'board-123' }
 
@@ -84,19 +84,20 @@ describe('canonical queue skill (AWTD-759)', () => {
     )
   })
 
-  it('requires atomic claims only when the master switch is on and this board is enrolled (AWTD-1557)', () => {
-    vi.stubEnv('ASTRID_AGENT_CLAIM_API', 'on')
-    vi.stubEnv('ASTRID_AGENT_CLAIM_REQUIRED_LISTS', 'board-123, board-456')
+  it('requires atomic claims when the board\'s agentClaimRequired setting is on (AWTD-1688)', () => {
+    const enrolled = { ...OPTS, claimRequired: true }
 
-    const enrolledSkill = canonicalQueueSkill(OPTS)
-    expect(queueContractLine(OPTS)).toContain('includeUnassigned: true')
+    const enrolledSkill = canonicalQueueSkill(enrolled)
+    expect(queueContractLine(enrolled)).toContain('includeUnassigned: true')
+    expect(queueContractLine(enrolled)).toContain('heartbeat')
     expect(enrolledSkill).toContain('claim_task')
     expect(enrolledSkill).toContain('start only when the result is claimed')
     expect(enrolledSkill).toContain('resume')
-    expect(canonicalQueueSkill({ mailbox: 'codex', listId: 'board-other' })).not.toContain('claim_task')
-
-    vi.stubEnv('ASTRID_AGENT_CLAIM_API', 'off')
-    expect(canonicalQueueSkill(OPTS)).not.toContain('claim_task')
+    expect(enrolledSkill).toContain('`astrid-agent heartbeat <taskId>`')
+    expect(enrolledSkill).toContain('queue skill v1.8.0')
+    expect(canonicalQueueSkill({ ...OPTS, claimRequired: false })).not.toContain('claim_task')
+    // Enrollment is per board: without a board there is nothing enrolled.
+    expect(canonicalQueueSkill({ mailbox: 'codex', claimRequired: true })).not.toContain('claim_task')
   })
 
   it('points to supported setup and does not claim to install an agent host (AWTD-1568)', () => {

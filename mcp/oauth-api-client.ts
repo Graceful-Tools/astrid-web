@@ -36,7 +36,7 @@ export interface OAuthAPIClientOptions {
 }
 
 export interface ClaimTaskRequest {
-  action: 'claim' | 'resume' | 'release'
+  action: 'claim' | 'resume' | 'release' | 'heartbeat'
   agentMailbox?: string
 }
 
@@ -44,10 +44,12 @@ const AGENT_TASK_CLAIM_OUTCOMES = new Set([
   'claimed',
   'already_yours',
   'released',
+  'renewed',
   'conflict',
   'not_ready',
   'not_found',
   'forbidden',
+  'binding_denied',
 ])
 
 export class OAuthAPIClient {

@@ -88,6 +88,8 @@ export interface TaskList {
   // Show subtasks inline in this list. Absent/null = show (the default).
   // Combined with the user's subtaskDisplay by lib/list-subtask-visibility.ts.
   showSubtasks?: boolean | null
+  // Agents claim before working this board (AWTD-1688). Absent = not enrolled.
+  agentClaimRequired?: boolean | null
   filterDueDate?: string | null // "all", "today", "overdue", "this_week", "this_month", "this_calendar_week", "this_calendar_month"
   filterAssignee?: string | null // "current_user", "unassigned", specific user ID, etc.
   filterAssignedBy?: string | null // "current_user", specific user ID, etc.

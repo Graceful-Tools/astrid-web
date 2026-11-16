@@ -39,7 +39,7 @@ describe('MCP claim_task tool (AWTD-1557)', () => {
     vi.restoreAllMocks()
   })
 
-  it('registers only when enabled and proxies the atomic claim action', async () => {
+  it('registers and proxies the atomic claim action', async () => {
     vi.stubEnv('ASTRID_AGENT_CLAIM_API', 'on')
     const apiResult = { outcome: 'claimed', task: { id: 'task-1', statusRole: 'doing' } }
     const fetchMock = stubFetch(apiResult)
@@ -107,17 +107,18 @@ describe('MCP claim_task tool (AWTD-1557)', () => {
     expect(result.content[0].text).toContain(error)
   })
 
-  it('keeps the existing tools/list unchanged while the API flag is off', async () => {
+  it('lists claim_task with no env flag, and leaves every other tool as it was (AWTD-1688)', async () => {
     vi.stubEnv('ASTRID_AGENT_CLAIM_API', '')
     const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_test' })
     const listTools = (server as any).server._requestHandlers.get('tools/list')
     const { tools } = await listTools({ method: 'tools/list', params: {} }, {})
 
-    expect(tools).toBe(OAUTH_MCP_TOOLS)
-    expect(JSON.stringify(tools)).not.toContain('"claim_task"')
-    // The flag-off list is main's list. get_agent_queue now explains runnable: held at the
-    // 2026-11-10 review, released by Jon's option 1 on 2026-11-13 (AWTD-1560). Replies want
-    // an answer; incomplete is reported, never work on its own.
+    const claimTool = tools.find((tool: { name: string }) => tool.name === 'claim_task')
+    expect(claimTool?.inputSchema.properties.action.enum).toEqual(['claim', 'resume', 'release', 'heartbeat'])
+    expect(tools.filter((tool: { name: string }) => tool.name !== 'claim_task')).toEqual([...OAUTH_MCP_TOOLS])
+    // get_agent_queue now explains runnable: held at the 2026-11-10 review, released by
+    // Jon's option 1 on 2026-11-13 (AWTD-1560). Replies want an answer; incomplete is
+    // reported, never work on its own.
     const queueDescription = tools.find((tool: { name: string }) => tool.name === 'get_agent_queue')?.description
     expect(queueDescription).toContain('"attention"')
     expect(queueDescription).toContain('not work by itself')
@@ -125,23 +126,22 @@ describe('MCP claim_task tool (AWTD-1557)', () => {
     // keepAssignee and waitOnTaskId and their statusRole descriptions name the wait condition;
     // add_blocker / remove_blocker say the server wakes the task, not a sweep.
     // Re-pinned for AWTD-1560 (2026-11-14): get_agent_queue explains runnable.
-    expect(createHash('sha256').update(JSON.stringify(tools)).digest('hex')).toBe(
+    // AWTD-1688 adds claim_task alongside and changes none of these.
+    expect(createHash('sha256').update(JSON.stringify(OAUTH_MCP_TOOLS)).digest('hex')).toBe(
       'ba56a8837c2a3ad6a4aaad993e605657e622d36865fa5c3950b9923eb073d824',
     )
   })
 
-  it('refuses a manual claim call while the API flag is off', async () => {
+  it('proxies a heartbeat with no env flag (AWTD-1688)', async () => {
     vi.stubEnv('ASTRID_AGENT_CLAIM_API', '')
-    const fetchMock = stubFetch({})
+    const apiResult = { outcome: 'renewed', task: { id: 'task-1', statusRole: 'doing' } }
+    const fetchMock = stubFetch(apiResult)
     const server = new AstridMCPServerOAuth({ accessToken: 'astrid_mcp_test' })
 
-    const result = await callTool(server, 'claim_task', {
-      taskId: 'task-1',
-      action: 'claim',
-    })
+    const result = await callTool(server, 'claim_task', { taskId: 'task-1', action: 'heartbeat', agent: 'claude' })
 
-    expect(result.isError).toBe(true)
-    expect(result.content[0].text).toMatch(/unavailable/)
-    expect(fetchMock).not.toHaveBeenCalled()
+    expect(result.isError).toBeFalsy()
+    expect(bodyOf(fetchMock)).toEqual({ action: 'heartbeat', agentMailbox: 'claude' })
+    expect(JSON.parse(result.content[0].text)).toEqual(apiResult)
   })
 })

@@ -37,7 +37,6 @@ const denial = (reason: string) => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
-  vi.stubEnv('ASTRID_AGENT_CLAIM_API', 'on')
   vi.mocked(authenticateAPI).mockResolvedValue({
     userId: 'owner-1', source: 'oauth', scopes: ['tasks:write'], clientId: CLIENT, isAIAgent: true,
     user: { id: 'agent-claude', email: CLAUDE, name: 'Claude', isAIAgent: true },
