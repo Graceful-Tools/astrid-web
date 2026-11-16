@@ -80,7 +80,8 @@ export const V1_TASK_READ_INCLUDE = {
   // full shapes, with the permission filtering a title needs, are
   // /api/v1/tasks/:id/blockers. A client that has never heard of these
   // fields is unaffected, which is what lets the halves ship apart.
-  blockedBy: { select: { blockingTaskId: true } },
+  // `blockingTask.completed` lets the shape drop finished blockers (ADEV-45).
+  blockedBy: { select: { blockingTaskId: true, blockingTask: { select: { completed: true } } } },
   blocks: { select: { blockedTaskId: true } },
   // The occurrence chain, spawn mode only (AWTD-1219, §10.2). `previousOccurrenceId`
   // is a scalar and already rides this include; the SUCCESSOR is the reverse
@@ -147,7 +148,10 @@ export function shapeV1Task(task: V1TaskRow) {
     // are — only the detail shape carries it at all.
     nextOccurrenceId: task.nextOccurrences?.[0]?.id ?? null,
     ...({
-      blockedBy: task.blockedBy?.map(row => row.blockingTaskId) ?? [],
+      // Live blockers only (ADEV-45): a finished blocker on a board the caller
+      // cannot read otherwise looks like an open block, and agents re-parked
+      // tasks on it. The completed row stays in storage as history.
+      blockedBy: task.blockedBy?.filter(row => !row.blockingTask?.completed).map(row => row.blockingTaskId) ?? [],
       blocks: task.blocks?.map(row => row.blockedTaskId) ?? [],
     } satisfies V1TaskBlockerIds),
     // `fields` when there is something to say, and no key at all otherwise, so

@@ -2,7 +2,7 @@
 
 ## Runtime & Framework
 - **Runtime**: Node.js 24 — declared once in `.nvmrc` and `engines.node`; CI and Vercel both read it
-- **Framework**: Next.js 16.4.3 (App Router)
+- **Framework**: Next.js 16.4.6 (App Router)
 - **Language**: TypeScript 6
 - **Package Manager**: npm
 - **React**: React 19.3.1
@@ -23,15 +23,15 @@
 - **Rate Limiting**: Custom implementation with IP/user tracking
 
 ## Testing Stack
-- **Unit Tests**: Vitest 5.0.5
-- **E2E Tests**: Playwright 1.64.1
+- **Unit Tests**: Vitest 5.1.0
+- **E2E Tests**: Playwright 1.65.0
 - **Test Environment**: jsdom 30.1.1
 - **Test Utilities**: React Testing Library 16.3.3
 
 ## UI & Styling
 - **Styling**: Tailwind CSS 3.4.17
 - **Components**: Radix UI primitives (Shadcn/ui)
-- **Icons**: Lucide React 1.65.0 (brand glyphs in `components/ui/brand-icons.tsx` — v1 dropped them)
+- **Icons**: Lucide React 1.72.0 (brand glyphs in `components/ui/brand-icons.tsx` — v1 dropped them)
 - **Forms**: Zod 4.6.6 for validation (no form library)
 
 ## Build & Development
@@ -49,7 +49,7 @@
 - **GitHub Integration**: Octokit for repository access
 
 ## Email & Notifications
-- **Outbound Email**: Resend 6.36.0
+- **Outbound Email**: Resend 6.38.1
 - **Inbound Email**: Cloudflare Email Workers / Mailgun / Resend webhooks
 - **Email Parsing**: TurndownService (HTML to Markdown)
 - **Push Notifications**: web-push 3.6.7 (VAPID-based)
