@@ -885,7 +885,7 @@
         "apiModeDescription": "{appName}がこのエージェントをサーバー側で実行します。スマートフォンから使え、自宅で何かを動かしておく必要はありません。",
         "pollingModeDescription": "あなた自身の{agent}環境が作業を行います。一度接続したら、このエージェントにタスクを割り当てて{ready}にしてください。ループがそれを拾います。",
         "offModeDescription": "このエージェントは無効になっています。担当者の選択肢に表示されず、{appName}が実行することもありません。保存済みの設定とキーは保持されるので、別のモードを選べば元どおりに戻せます。",
-        "webhookModeDescription": "あなたが運用するWebhookレシーバーで、このエージェントの作業を発生と同時に受け取れます。{sdk}が提供するのは連携用ライブラリであり、既製のエージェントホスト用コマンドではありません。このモードには自前のWebhookレシーバーが必要で、下の設定で配信を構成します。MCPとキュースキルによるガイド付きセットアップを使う場合は、{nativeHarness}を選び、{agentLoops}のレシピに従ってください。",
+        "webhookModeDescription": "あなたが運用するWebhookレシーバーで、このエージェントの作業を発生と同時に受け取れます。{sdk}はエージェントランナー（キュー、クレーム、解放）と型付きのRESTクライアントであり、Webhookレシーバーではありません。このモードには自前のWebhookレシーバーが必要で、下の設定で配信を構成します。MCPとキュースキルによるガイド付きセットアップを使う場合は、{nativeHarness}を選び、{agentLoops}のレシピに従ってください。",
         "customAgentsDescription": "OAuth + REST + SSEで自分で運用するエージェント"
       },
       "runtime": {
@@ -961,7 +961,7 @@
         "errorDetail": "エラー: {error}",
         "documentation": "ドキュメント",
         "aboutBody": "あなたが運用するWebhookレシーバーを{appName}に接続します。このパネルではタスク通知の送信先を設定します。エージェントホストのインストールや起動は行いません。",
-        "stepReceiver": "あなたが運用するWebhookレシーバーを使います。{sdk}が提供するのは連携用ライブラリであり、単体のエージェントホスト用コマンドではありません。",
+        "stepReceiver": "あなたが運用するWebhookレシーバーを使います。{sdk}はエージェントランナー（キュー、クレーム、解放）と型付きのRESTクライアントであり、Webhookレシーバーではありません。",
         "stepCopySecret": "Webhook シークレットをサーバーの環境にコピーする",
         "guidedSetup": "Webhookレシーバーなしのガイド付きセットアップを使う場合は、{settings} → {aiAgents}で{selfRuns} → {nativeHarness}を選び、{recipes}に従ってください。",
         "recipesLink": "MCP + キュースキルのレシピ",

@@ -885,7 +885,7 @@
         "apiModeDescription": "{appName} 在伺服器端執行此代理——用手機就能操作，家裡不需要執行任何東西。",
         "pollingModeDescription": "由你自己的 {agent} 環境來完成工作。連接一次後，把任務指派給此代理並標記為 {ready}，循環就會接手。",
         "offModeDescription": "此代理已停用：它不會出現在負責人選擇器中，{appName} 也不會執行它。已儲存的設定和金鑰都會保留——選擇其他模式即可原樣恢復。",
-        "webhookModeDescription": "由你營運的 webhook 接收端可以在此代理的工作出現時立即接收。{sdk} 提供的是整合函式庫，而不是現成的代理託管指令。此模式需要你自己的 webhook 接收端；下方的設定用於設定傳送。如果想改用有引導的 MCP + 佇列技能設定，請選擇{nativeHarness}，並依照{agentLoops}中的方案操作。",
+        "webhookModeDescription": "由你營運的 webhook 接收端可以在此代理的工作出現時立即接收。{sdk} 是代理執行器（佇列、認領、釋放）加型別化的 REST 用戶端，而不是 webhook 接收端。此模式需要你自己的 webhook 接收端；下方的設定用於設定傳送。如果想改用有引導的 MCP + 佇列技能設定，請選擇{nativeHarness}，並依照{agentLoops}中的方案操作。",
         "customAgentsDescription": "你透過 OAuth + REST + SSE 營運的代理"
       },
       "runtime": {
@@ -961,7 +961,7 @@
         "errorDetail": "錯誤：{error}",
         "documentation": "文件",
         "aboutBody": "將你營運的 webhook 接收端連接到 {appName}。此面板用於設定任務通知的傳送位置；它不會安裝或啟動代理主機。",
-        "stepReceiver": "使用由你營運的 webhook 接收端。{sdk} 提供的是整合函式庫，而不是獨立的代理託管指令。",
+        "stepReceiver": "使用由你營運的 webhook 接收端。{sdk} 是代理執行器（佇列、認領、釋放）加型別化的 REST 用戶端，而不是 webhook 接收端。",
         "stepCopySecret": "將 Webhook 密鑰複製到你的伺服器環境中",
         "guidedSetup": "如果想在沒有 webhook 接收端的情況下使用有引導的設定，請在 {settings} → {aiAgents} 中選擇 {selfRuns} → {nativeHarness}，並依照{recipes}操作。",
         "recipesLink": "MCP + 佇列技能方案",
