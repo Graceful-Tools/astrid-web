@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextResponse } from 'next/server'
-import { withAuth } from '@/lib/api-auth-wrapper'
+import { withAuth, resetShadowSampler, SHADOW_SAMPLE_WINDOW_MS } from '@/lib/api-auth-wrapper'
 import {
   UnauthorizedError,
   ForbiddenError,
@@ -91,6 +91,54 @@ describe('withAuth — access-token shadow scopes', () => {
     vi.mocked(authenticateAPI).mockResolvedValue(FAKE_AUTH)
     const handler = vi.fn().mockResolvedValue(NextResponse.json({ ok: true }))
     const route = withAuth({ scopes: ['tasks:delete'], tag: 'test.shadow', onShadowDenied: warn }, handler)
+
+    await route(fakeReq(), {})
+
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it('AWTD-1549: names the token by a hash of its id, never the id or the secret', async () => {
+    resetShadowSampler()
+    vi.mocked(authenticateAPI).mockResolvedValue({ ...legacyAuth(['tasks:read']), tokenId: 'tok_secret_row_id' })
+    const route = withAuth({ scopes: ['tasks:write'], tag: 'test.shadow', onShadowDenied: warn },
+      vi.fn().mockResolvedValue(NextResponse.json({ ok: true })))
+
+    await route(fakeReq(), {})
+
+    const info = warn.mock.calls[0][0]
+    expect(info.tokenIdHash).toMatch(/^[0-9a-f]{12}$/)
+    expect(JSON.stringify(info)).not.toContain('tok_secret_row_id')
+  })
+
+  it('AWTD-1549: samples one would-deny per token and route per window, then again after it', async () => {
+    resetShadowSampler()
+    vi.useFakeTimers()
+    try {
+      vi.mocked(authenticateAPI).mockResolvedValue({ ...legacyAuth(['tasks:read']), tokenId: 'tok_a' })
+      const route = withAuth({ scopes: ['tasks:write'], tag: 'test.shadow', onShadowDenied: warn },
+        vi.fn().mockResolvedValue(NextResponse.json({ ok: true })))
+
+      await route(fakeReq(), {})
+      await route(fakeReq(), {})
+      expect(warn).toHaveBeenCalledTimes(1)
+
+      vi.mocked(authenticateAPI).mockResolvedValue({ ...legacyAuth(['tasks:read']), tokenId: 'tok_b' })
+      await route(fakeReq(), {})
+      expect(warn).toHaveBeenCalledTimes(2)
+
+      vi.advanceTimersByTime(SHADOW_SAMPLE_WINDOW_MS + 1)
+      await route(fakeReq(), {})
+      expect(warn).toHaveBeenCalledTimes(3)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('AWTD-1549: a route that needs no scope never reports a would-deny', async () => {
+    resetShadowSampler()
+    vi.mocked(authenticateAPI).mockResolvedValue({ ...legacyAuth([]), tokenId: 'tok_c' })
+    const route = withAuth({ tag: 'test.shadow', onShadowDenied: warn },
+      vi.fn().mockResolvedValue(NextResponse.json({ ok: true })))
 
     await route(fakeReq(), {})
 
