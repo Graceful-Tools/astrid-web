@@ -1813,6 +1813,8 @@
     "hideLists": "Скрыть списки в {name}",
     "boardAddList": "Добавить список",
     "boardRemoveRow": "Убрать {name} с этой доски",
+    "boardColumnCount": "{column}: {count}",
+    "boardDoneCount": "{column}: {count} (за {hours} ч)",
     "boardEmpty": "Перетащите сюда список с боковой панели или нажмите «Добавить список».",
     "boardNoCandidates": "Все списки уже на этой доске.",
     "boardSaveFailed": "Не удалось сохранить списки этой доски. Попробуйте ещё раз.",

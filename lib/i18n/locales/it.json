@@ -1813,6 +1813,8 @@
     "hideLists": "Nascondi le liste di {name}",
     "boardAddList": "Aggiungi lista",
     "boardRemoveRow": "Rimuovi {name} da questa bacheca",
+    "boardColumnCount": "{column}: {count}",
+    "boardDoneCount": "{column}: {count} (ultime {hours} h)",
     "boardEmpty": "Trascina qui una lista dalla barra laterale, oppure usa Aggiungi lista.",
     "boardNoCandidates": "Tutte le liste sono già su questa bacheca.",
     "boardSaveFailed": "Impossibile salvare le liste di questa bacheca. Riprova.",

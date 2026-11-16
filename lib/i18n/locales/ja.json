@@ -1813,6 +1813,8 @@
     "hideLists": "{name} のリストを隠す",
     "boardAddList": "リストを追加",
     "boardRemoveRow": "{name} をこのボードから外す",
+    "boardColumnCount": "{column}: {count}",
+    "boardDoneCount": "{column}: {count}（直近{hours}時間）",
     "boardEmpty": "サイドバーからリストをここへドラッグするか、「リストを追加」を使ってください。",
     "boardNoCandidates": "すべてのリストがすでにこのボードにあります。",
     "boardSaveFailed": "このボードのリストを保存できませんでした。もう一度お試しください。",

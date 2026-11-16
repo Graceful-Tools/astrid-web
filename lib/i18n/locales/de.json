@@ -1813,6 +1813,8 @@
     "hideLists": "Listen in {name} ausblenden",
     "boardAddList": "Liste hinzufügen",
     "boardRemoveRow": "{name} von diesem Board entfernen",
+    "boardColumnCount": "{column}: {count}",
+    "boardDoneCount": "{column}: {count} (letzte {hours} Std.)",
     "boardEmpty": "Ziehe eine Liste aus der Seitenleiste hierher oder nutze „Liste hinzufügen“.",
     "boardNoCandidates": "Alle Listen sind bereits auf diesem Board.",
     "boardSaveFailed": "Die Listen dieses Boards konnten nicht gespeichert werden. Bitte versuche es erneut.",

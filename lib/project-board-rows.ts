@@ -15,7 +15,13 @@
 import type { Task, TaskList } from '@/types/task'
 import { isDomainList } from '@/lib/list-flavors'
 import { getTaskProjectColumnId, type ProjectBoardColumn } from '@/lib/project-status'
-import { isTaskRecentlyCompleted, type RecentlyCompletedWindow } from '@/lib/recently-completed-window'
+import {
+  DEFAULT_RECENTLY_COMPLETED_WINDOW,
+  isTaskRecentlyCompleted,
+  type RecentlyCompletedWindow,
+} from '@/lib/recently-completed-window'
+import { contrast } from '@/lib/design/contrast'
+import type { Rgb } from '@/lib/design/tokens'
 import { sortTasksForList } from '@/lib/task-sort'
 
 export { PROJECT_BOARD_LIST_DRAG_TYPE, readDraggedListId } from '@/lib/project-board-list-drag'
@@ -104,4 +110,21 @@ export function buildSwimlanes(
     for (const task of sorted) cells[getTaskProjectColumnId(task, columns)]?.push(task)
     return { list, cells, total: sorted.length }
   })
+}
+
+/** The row header's text colour on a list's colour: whichever of white or near-black reads better. */
+export function boardRowTextColor(background: string | undefined | null): string | undefined {
+  const match = /^#?([0-9a-f]{6})$/i.exec((background ?? '').trim())
+  if (!match) return undefined
+  const value = parseInt(match[1], 16)
+  const rgb: Rgb = [(value >> 16) & 255, (value >> 8) & 255, value & 255]
+  return contrast(rgb, [255, 255, 255]) >= contrast(rgb, [17, 24, 39]) ? '#ffffff' : '#111827'
+}
+
+/** A row list's Done window in hours when it is a plain duration; null when it is calendar-based. */
+export function boardDoneWindowHours(list: TaskList): number | null {
+  const window = (list.recentlyCompletedWindow ?? DEFAULT_RECENTLY_COMPLETED_WINDOW) as RecentlyCompletedWindow
+  if (window.kind !== 'duration') return null
+  const perUnit = { hour: 1, day: 24, week: 168, month: 720 }[window.unit]
+  return window.amount * perUnit
 }

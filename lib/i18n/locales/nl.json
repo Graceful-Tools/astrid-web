@@ -1813,6 +1813,8 @@
     "hideLists": "Lijsten in {name} verbergen",
     "boardAddList": "Lijst toevoegen",
     "boardRemoveRow": "{name} van dit bord verwijderen",
+    "boardColumnCount": "{column}: {count}",
+    "boardDoneCount": "{column}: {count} (laatste {hours} u)",
     "boardEmpty": "Sleep een lijst hierheen vanuit de zijbalk, of gebruik Lijst toevoegen.",
     "boardNoCandidates": "Alle lijsten staan al op dit bord.",
     "boardSaveFailed": "De lijsten van dit bord konden niet worden opgeslagen. Probeer het opnieuw.",
