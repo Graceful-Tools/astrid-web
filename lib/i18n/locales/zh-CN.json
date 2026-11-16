@@ -187,6 +187,13 @@
       "expandDescription": "展开描述"
     },
     "commentsSection": {
+      "approvalApprove": "批准",
+      "approvalDecline": "拒绝",
+      "approvalConfirmDecline": "确认拒绝",
+      "approvalApproved": "已批准",
+      "approvalDeclined": "已拒绝",
+      "approvalReasonPlaceholder": "原因(可选)",
+      "approvalFailed": "无法记录你的决定",
       "addPlaceholder": "添加评论...",
       "replyPlaceholder": "写回复...",
       "refresh": "刷新评论",

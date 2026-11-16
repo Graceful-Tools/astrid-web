@@ -187,6 +187,13 @@
       "expandDescription": "Expand description"
     },
     "commentsSection": {
+      "approvalApprove": "Approve",
+      "approvalDecline": "Decline",
+      "approvalConfirmDecline": "Confirm decline",
+      "approvalApproved": "Approved",
+      "approvalDeclined": "Declined",
+      "approvalReasonPlaceholder": "Reason (optional)",
+      "approvalFailed": "Could not record your decision",
       "addPlaceholder": "Add a comment...",
       "replyPlaceholder": "Write a reply...",
       "refresh": "Refresh comments",
