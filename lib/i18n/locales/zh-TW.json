@@ -198,6 +198,14 @@
       "count": "留言（{count}）",
       "hideSystemTitle": "隱藏系統留言",
       "showSystemTitle": "顯示系統留言",
+      "approval": {
+        "approve": "核准",
+        "decline": "拒絕",
+        "declineReasonPlaceholder": "為什麼拒絕？",
+        "approvedBy": "{name} 已核准",
+        "declinedBy": "{name} 已拒絕：{reason}",
+        "decisionError": "無法記錄你的決定，請重試。"
+      },
       "hideSystem": "隱藏系統",
       "showSystem": "顯示系統",
       "refreshShort": "重新整理",

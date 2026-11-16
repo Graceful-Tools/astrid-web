@@ -17,6 +17,8 @@ import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
 import { RichTextInput } from "@/components/shared/RichTextInput"
 import { MessageBubble } from "@/components/shared/MessageBubble"
 import { DecisionCards } from "@/components/task-detail/DecisionCards"
+import { approvalRequestCard } from "@/components/task-detail/ApprovalCard"
+import { APPROVAL_REQUEST } from "@/lib/approvals"
 import { parseDecision, chosenNumber } from "@/lib/comment-formats"
 import { buildPendingComments, postPendingComments } from "@/lib/comment-posting"
 import { nestComments, updateComment, removeComment, settleOptimisticComment } from "@/lib/comment-stream"
@@ -512,8 +514,12 @@ export function CommentSection({
       )
     }
     // Decision cards (AWTD-1524): inert on your own question and once someone else has answered.
-    const decision = isSystem ? null : parseDecision(comment.content || '')
+    const decision = isSystem || comment.systemEventType === APPROVAL_REQUEST ? null : parseDecision(comment.content || '')
     let decisionContent: React.ReactNode = undefined
+    // Approval cards (AWTD-1694): only the server-made kind, decided only through the endpoint.
+    decisionContent = approvalRequestCard(comment, {
+      taskId: task.id, canDecide: !readOnly, decidedBy: a => getAuthorDisplay(a, t), onDecided: () => { void onRefreshComments?.() }, identifiers,
+    })
     if (decision) {
       const flat = (task.comments || []).flatMap((c: any) => [c, ...(c.replies || [])])
       const answer = flat

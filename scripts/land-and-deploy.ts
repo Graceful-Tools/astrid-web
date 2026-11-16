@@ -69,6 +69,7 @@ import {
   landedDespiteError,
   deployVerdict,
   landablePullRequests,
+  migrationApprovalSummary,
   migrationHold,
   migrationSqlPath,
   pendingMigrations,
@@ -182,7 +183,16 @@ async function servingSha(): Promise<string | null> {
  * that failed finishes nothing, because the question is put to production.
  * Best effort — a failure here leaves the task waiting for the next tick.
  */
-async function completeDeployedTasks(listId: string): Promise<string[]> {
+interface BoardTask {
+  id: string
+  identifier?: string | null
+  statusRole?: string | null
+  completed?: boolean
+  assignee?: { email?: string | null } | null
+}
+
+/** The board's tasks in the awaiting-deploy lane with a current `AWAITING-DEPLOY: <sha>`, or null when the board could not be read. */
+async function readAwaitingDeploy(listId: string) {
   const tokenResponse = await fetch(`${API}/api/v1/oauth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -194,7 +204,7 @@ async function completeDeployedTasks(listId: string): Promise<string[]> {
   })
   if (!tokenResponse.ok) {
     log(`  ⚠️  awaiting-deploy check skipped: OAuth token request failed with HTTP ${tokenResponse.status}`)
-    return []
+    return null
   }
   const { access_token: token } = (await tokenResponse.json()) as { access_token: string }
   const auth = { 'X-OAuth-Token': token }
@@ -203,13 +213,11 @@ async function completeDeployedTasks(listId: string): Promise<string[]> {
   const boardResponse = await fetch(boardTasksUrl({ boardId: listId, limit: 500 }), { headers: auth })
   if (!boardResponse.ok) {
     log(`  ⚠️  awaiting-deploy check skipped: board read failed with HTTP ${boardResponse.status}`)
-    return []
+    return null
   }
   const boardBody = (await boardResponse.json()) as { tasks?: unknown } | unknown[]
   const listed = (Array.isArray(boardBody) ? boardBody : (boardBody as { tasks?: unknown }).tasks) ?? []
-  const finished = (listed as Array<{ id: string; identifier?: string | null; statusRole?: string | null; completed?: boolean;
-    assignee?: { email?: string | null } | null }>)
-    .filter(isAwaitingDeployLane)
+  const finished = (listed as BoardTask[]).filter(isAwaitingDeployLane)
 
   const awaiting: AwaitingDeployTask[] = []
   for (const task of finished) {
@@ -220,6 +228,39 @@ async function completeDeployedTasks(listId: string): Promise<string[]> {
     const sha = parseBlockedConditions(comments).awaitingDeploy
     if (sha) awaiting.push({ id: task.id, identifier: task.identifier, sha })
   }
+  return { token, auth, finished, awaiting }
+}
+
+/**
+ * AWTD-1694: a migration holds the deploy, so say so where a person can answer. Each awaiting-deploy
+ * task gets an approval card bound to the merged commit; Approve dispatches the deploy.
+ * One card per task and commit, so a tick that holds again posts nothing new. Best effort.
+ */
+async function postMigrationApprovalCards(listId: string, input: { sha: string; hold: string; pending: PendingMigration[] }): Promise<string[]> {
+  const board = await readAwaitingDeploy(listId)
+  if (!board?.awaiting.length) return []
+  const summaryText = migrationApprovalSummary(input)
+  const posted: string[] = []
+  for (const task of board.awaiting) {
+    const name = task.identifier ?? task.id
+    if (options.dryRun) {
+      log(`  would post a migration approval card on ${name}`)
+      continue
+    }
+    const original = board.finished.find(row => row.id === task.id)
+    const mailbox = agentMailboxFromEmail(original?.assignee?.email ?? '')
+    if (!mailbox) continue
+    const authorId = await resolveAgentAuthorId({ mailbox, accessToken: board.token, warn: log })
+    const api = new SweepApi(board.auth, false, (...args) => log(args.join(' ')), authorId)
+    if (await api.requestApproval(task, { action: 'migrate', sha: input.sha, summary: summaryText })) posted.push(name)
+  }
+  return posted
+}
+
+async function completeDeployedTasks(listId: string): Promise<string[]> {
+  const board = await readAwaitingDeploy(listId)
+  if (!board) return []
+  const { token, auth, finished, awaiting } = board
   if (!awaiting.length) return []
 
   const serving = await servingSha()
@@ -714,6 +755,14 @@ async function main() {
     verified = true
   } else {
     log(`  not deploying — ${verdict.reason}`)
+    if (verdict.code === 3 && options.listId) {
+      try {
+        const cards = await postMigrationApprovalCards(options.listId, { sha, hold: verdict.reason, pending })
+        if (cards.length) log(`  approval card on ${cards.join(', ')}`)
+      } catch (error) {
+        log(`  ⚠️  approval card failed: ${(error as Error).message.split('\n')[0]}`)
+      }
+    }
   }
 
   let completedTasks: string[] = []

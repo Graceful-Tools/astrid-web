@@ -198,6 +198,14 @@
       "count": "Комментарии ({count})",
       "hideSystemTitle": "Скрыть системные комментарии",
       "showSystemTitle": "Показать системные комментарии",
+      "approval": {
+        "approve": "Одобрить",
+        "decline": "Отклонить",
+        "declineReasonPlaceholder": "Почему вы отклоняете?",
+        "approvedBy": "Одобрено: {name}",
+        "declinedBy": "Отклонено ({name}): {reason}",
+        "decisionError": "Не удалось записать ваше решение. Повторите попытку."
+      },
       "hideSystem": "Скрыть системные",
       "showSystem": "Показать системные",
       "refreshShort": "Обновить",

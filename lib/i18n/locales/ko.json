@@ -198,6 +198,14 @@
       "count": "댓글 ({count})",
       "hideSystemTitle": "시스템 댓글 숨기기",
       "showSystemTitle": "시스템 댓글 표시",
+      "approval": {
+        "approve": "승인",
+        "decline": "거절",
+        "declineReasonPlaceholder": "거절하는 이유는 무엇인가요?",
+        "approvedBy": "{name} 님이 승인함",
+        "declinedBy": "{name} 님이 거절함: {reason}",
+        "decisionError": "결정을 기록하지 못했습니다. 다시 시도하세요."
+      },
       "hideSystem": "시스템 숨기기",
       "showSystem": "시스템 표시",
       "refreshShort": "새로 고침",

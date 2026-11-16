@@ -198,6 +198,14 @@
       "count": "Comentarios ({count})",
       "hideSystemTitle": "Ocultar comentarios del sistema",
       "showSystemTitle": "Mostrar comentarios del sistema",
+      "approval": {
+        "approve": "Aprobar",
+        "decline": "Rechazar",
+        "declineReasonPlaceholder": "¿Por qué lo rechazas?",
+        "approvedBy": "Aprobado por {name}",
+        "declinedBy": "Rechazado por {name}: {reason}",
+        "decisionError": "No se pudo registrar tu decisión. Inténtalo de nuevo."
+      },
       "hideSystem": "Ocultar del sistema",
       "showSystem": "Mostrar del sistema",
       "refreshShort": "Actualizar",
