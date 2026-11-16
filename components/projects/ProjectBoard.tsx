@@ -144,10 +144,29 @@ export function ProjectBoard({
   // point. The row's gap plus this quarter-rem is the scroller's 1rem padding.
   const snapTail = isOneColumn ? <div className="w-1 shrink-0" aria-hidden="true" /> : null
 
+  // Cards per column across every row; Done already holds only what each row
+  // list's recently-completed window keeps (ADEV-22).
+  const columnCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const column of columns) {
+      counts[column.id] = lanes.reduce((sum, lane) => sum + (lane.cells[column.id]?.length ?? 0), 0)
+    }
+    return counts
+  }, [columns, lanes])
+
   const rowLabel = (lane: (typeof lanes)[number]) => (
     <>
-      <div className="min-w-0">
-        <div className="truncate text-sm font-semibold theme-text-primary">{lane.list.name}</div>
+      {lane.list.imageUrl && (
+         
+        <img
+          src={lane.list.imageUrl}
+          alt=""
+          className="h-8 w-8 shrink-0 rounded object-cover"
+          data-testid={`project-board-row-image-${lane.list.id}`}
+        />
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="break-words text-sm font-semibold theme-text-primary">{lane.list.name}</div>
         <div className="text-xs theme-text-muted">{lane.total}</div>
       </div>
       <Button
@@ -221,11 +240,18 @@ export function ProjectBoard({
           </div>
         ) : (
           <div className={`${isOneColumn ? "flex" : "inline-flex min-w-full"} flex-col gap-3`}>
-            <div className="flex gap-3" role="row">
-              {!isOneColumn && <div className="w-48 shrink-0" />}
+            <div className="sticky top-0 z-10 -mt-4 flex gap-3 pb-2 pt-4 theme-bg-primary" role="row" data-testid="project-board-header-row">
+              {!isOneColumn && <div className="w-32 shrink-0" />}
               {columns.map(column => (
                 <div key={column.id} className={`flex ${columnWidth} items-center gap-2 px-2 text-sm font-semibold theme-text-primary`} role="columnheader">
                   <span className="truncate">{boardColumnLabel(column, t)}</span>
+                  <span
+                    className="text-xs font-normal theme-text-muted"
+                    data-testid={`project-board-count-${column.id}`}
+                    title={column.kind === "done" ? t("projectMode.boardDoneCountHint") : undefined}
+                  >
+                    {columnCounts[column.id] ?? 0}
+                  </span>
                   {column.kind === "done" && <CheckCircle2 className="h-4 w-4 text-success" aria-hidden="true" />}
                   {column.kind === "inbox" && <Inbox className="h-4 w-4 theme-text-muted" aria-hidden="true" />}
                 </div>
@@ -236,7 +262,11 @@ export function ProjectBoard({
             {lanes.map(lane => (
               <div key={lane.list.id} className="flex h-80 gap-3" role="row" data-testid={`project-board-row-${lane.list.id}`}>
                 {!isOneColumn && (
-                  <div className="flex w-48 shrink-0 items-start justify-between gap-2 rounded-md border theme-border theme-bg-secondary px-3 py-2" role="rowheader">
+                  <div
+                    className="flex w-32 shrink-0 items-start justify-between gap-2 rounded-md border-2 theme-bg-secondary px-2 py-2"
+                    style={{ borderColor: lane.list.color || undefined }}
+                    role="rowheader"
+                  >
                     {rowLabel(lane)}
                   </div>
                 )}
