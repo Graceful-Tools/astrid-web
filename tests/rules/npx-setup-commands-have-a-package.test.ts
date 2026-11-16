@@ -28,7 +28,8 @@ function npxPackagesIn(path: string): Array<{ file: string; line: number; packag
   const commandPattern = /\bnpx\s+(?:(?:--yes|--no-install)\s+)*([^\s`"'\\]+)/g
 
   for (const match of contents.matchAll(commandPattern)) {
-    const token = match[1]
+    // `--package=<pkg> <bin>` names the package explicitly (ADEV-8); the package is what must be ours.
+    const token = match[1].replace(/^--package=/, '')
     const versionSeparator = token.startsWith('@')
       ? token.indexOf('@', token.indexOf('/') + 1)
       : token.indexOf('@')
@@ -56,6 +57,8 @@ function workspaceExecutables(): Set<string> {
       name?: string
       bin?: string | Record<string, string>
     }
+    // The package name itself, for `npx --package=<name> <bin>`.
+    if (manifest.name) executables.add(manifest.name)
     if (typeof manifest.bin === 'string' && manifest.name) {
       executables.add(manifest.name.split('/').at(-1)!)
     } else {
