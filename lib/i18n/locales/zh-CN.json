@@ -1815,7 +1815,14 @@
     "boardRemoveRow": "从此看板移除 {name}",
     "boardEmpty": "从侧边栏将列表拖到这里，或使用“添加列表”。",
     "boardNoCandidates": "所有列表都已在此看板上。",
-    "boardSaveFailed": "无法保存此看板的列表，请重试。"
+    "boardSaveFailed": "无法保存此看板的列表，请重试。",
+    "projectLabel": "项目",
+    "projectNone": "无",
+    "projectMoveFailed": "无法移动此列表",
+    "projectLockedIn": "在 {name} 中。只有项目所有者或管理员可以将其移出。",
+    "newListInProject": "在项目中新建列表…",
+    "newListName": "列表名称",
+    "newListFailed": "无法创建列表"
   },
   "viewRotator": {
     "showList": "显示列表",

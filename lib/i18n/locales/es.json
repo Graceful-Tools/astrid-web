@@ -1815,7 +1815,14 @@
     "boardRemoveRow": "Quitar {name} de este tablero",
     "boardEmpty": "Arrastra aquí una lista desde la barra lateral o usa Añadir lista.",
     "boardNoCandidates": "Todas las listas ya están en este tablero.",
-    "boardSaveFailed": "No se pudieron guardar las listas de este tablero. Inténtalo de nuevo."
+    "boardSaveFailed": "No se pudieron guardar las listas de este tablero. Inténtalo de nuevo.",
+    "projectLabel": "Proyecto",
+    "projectNone": "Ninguno",
+    "projectMoveFailed": "No se pudo mover esta lista",
+    "projectLockedIn": "En {name}. Solo el propietario o un administrador del proyecto puede sacarla.",
+    "newListInProject": "Nueva lista en el proyecto…",
+    "newListName": "Nombre de la lista",
+    "newListFailed": "No se pudo crear la lista"
   },
   "viewRotator": {
     "showList": "Mostrar lista",

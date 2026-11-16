@@ -743,7 +743,7 @@ export function useTaskManagerController({
 
   // === LIST MANAGEMENT METHODS ===
 
-  const handleCreateList = useCallback(async (listData: { name: string; description: string; memberEmails: string[] }) => {
+  const handleCreateList = useCallback(async (listData: { name: string; description: string; memberEmails: string[]; projectId?: string }) => {
     try {
       // apiPost, not fetch: /api/v1/lists is one of the shapes lib/api queues,
       // so creating a list offline now survives to the next connection instead
@@ -753,7 +753,7 @@ export function useTaskManagerController({
         name: listData.name,
         description: listData.description,
         privacy: 'PRIVATE',
-        memberEmails: listData.memberEmails
+        memberEmails: listData.memberEmails, projectId: listData.projectId, // IN the project, one write (AWTD-1703)
       })
 
       // v1 sends { list, meta }, offline the bare list; a raw body crashed the merge (AWTD-1635)

@@ -191,11 +191,16 @@ describe('BoardViewSection', () => {
     })
 
     it('shows the server message when the key is taken', async () => {
-      vi.mocked(global.fetch).mockResolvedValueOnce({
-        ok: false,
-        status: 409,
-        json: () => Promise.resolve({ error: 'The key WEB is already used by another project' }),
-      } as Response)
+      // The Project picker also reads GET /api/v1/projects (AWTD-1703); only the create is refused.
+      vi.mocked(global.fetch).mockImplementation(async url =>
+        url === '/api/v1/projects/from-list'
+          ? ({
+              ok: false,
+              status: 409,
+              json: () => Promise.resolve({ error: 'The key WEB is already used by another project' }),
+            } as Response)
+          : ({ ok: true, status: 200, json: () => Promise.resolve({ projects: [] }) } as Response),
+      )
       renderSection({ list: makeList({ name: 'Astrid Web To-do' }), canEditSettings: true })
       fireEvent.change(screen.getByRole('textbox', { name: 'Task ID prefix' }), { target: { value: 'WEB' } })
       fireEvent.click(screen.getByText('Create Board'))

@@ -1815,7 +1815,14 @@
     "boardRemoveRow": "{name} von diesem Board entfernen",
     "boardEmpty": "Ziehe eine Liste aus der Seitenleiste hierher oder nutze „Liste hinzufügen“.",
     "boardNoCandidates": "Alle Listen sind bereits auf diesem Board.",
-    "boardSaveFailed": "Die Listen dieses Boards konnten nicht gespeichert werden. Bitte versuche es erneut."
+    "boardSaveFailed": "Die Listen dieses Boards konnten nicht gespeichert werden. Bitte versuche es erneut.",
+    "projectLabel": "Projekt",
+    "projectNone": "Keins",
+    "projectMoveFailed": "Liste konnte nicht verschoben werden",
+    "projectLockedIn": "In {name}. Nur Projekteigentümer oder Admins können sie herausnehmen.",
+    "newListInProject": "Neue Liste im Projekt…",
+    "newListName": "Listenname",
+    "newListFailed": "Liste konnte nicht erstellt werden"
   },
   "viewRotator": {
     "showList": "Liste anzeigen",
