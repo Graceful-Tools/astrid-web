@@ -885,7 +885,7 @@
         "apiModeDescription": "{appName} 在服务器端运行此智能体——用手机就能操作，家里无需运行任何东西。",
         "pollingModeDescription": "由你自己的 {agent} 环境来完成工作。连接一次后，把任务分配给此智能体并标记为 {ready}，循环就会接手。",
         "offModeDescription": "此智能体已停用：它不会出现在负责人选择器中，{appName} 也不会运行它。已保存的设置和密钥都会保留——选择其他模式即可原样恢复。",
-        "webhookModeDescription": "由你运营的 webhook 接收端可以在此智能体的工作出现时立即接收。{sdk} 提供的是集成库，而不是现成的智能体托管命令。此模式需要你自己的 webhook 接收端；下方的设置用于配置投递。如果想改用带引导的 MCP + 队列技能设置，请选择{nativeHarness}，并按照{agentLoops}中的方案操作。",
+        "webhookModeDescription": "由你运营的 webhook 接收端可以在此智能体的工作出现时立即接收。{sdk} 是智能体运行器（队列、认领、释放）加类型化的 REST 客户端，而不是 webhook 接收端。此模式需要你自己的 webhook 接收端；下方的设置用于配置投递。如果想改用带引导的 MCP + 队列技能设置，请选择{nativeHarness}，并按照{agentLoops}中的方案操作。",
         "customAgentsDescription": "你通过 OAuth + REST + SSE 运营的智能体"
       },
       "runtime": {
@@ -961,7 +961,7 @@
         "errorDetail": "错误：{error}",
         "documentation": "文档",
         "aboutBody": "将你运营的 webhook 接收端连接到 {appName}。此面板用于配置任务通知的发送位置；它不会安装或启动智能体主机。",
-        "stepReceiver": "使用由你运营的 webhook 接收端。{sdk} 提供的是集成库，而不是独立的智能体托管命令。",
+        "stepReceiver": "使用由你运营的 webhook 接收端。{sdk} 是智能体运行器（队列、认领、释放）加类型化的 REST 客户端，而不是 webhook 接收端。",
         "stepCopySecret": "将 Webhook 密钥复制到你的服务器环境中",
         "guidedSetup": "如果想在没有 webhook 接收端的情况下使用带引导的设置，请在 {settings} → {aiAgents} 中选择 {selfRuns} → {nativeHarness}，并按照{recipes}操作。",
         "recipesLink": "MCP + 队列技能方案",

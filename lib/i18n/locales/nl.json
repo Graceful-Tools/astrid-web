@@ -885,7 +885,7 @@
         "apiModeDescription": "{appName} voert deze agent aan de serverkant uit — werkt vanaf je telefoon, thuis hoeft er niets te draaien.",
         "pollingModeDescription": "Je eigen {agent}-installatie doet het werk. Verbind die één keer, wijs deze agent daarna een taak toe en markeer de taak als {ready} — de loop pakt hem op.",
         "offModeDescription": "Deze agent staat aan de kant: hij verschijnt niet in de keuzelijsten voor toewijzing en {appName} voert hem nooit uit. Je opgeslagen instellingen en sleutels blijven bewaard — kies een andere modus om hem precies zo terug te halen.",
-        "webhookModeDescription": "Een webhook-ontvanger die je zelf beheert kan het werk van deze agent ontvangen zodra het verschijnt. De {sdk} biedt integratiebibliotheken, geen kant-en-klaar agent-hostcommando. Deze modus vereist je eigen webhook-ontvanger; de instellingen hieronder regelen de aflevering. Kies voor een begeleide installatie met MCP en wachtrij-skill in plaats daarvan {nativeHarness} en volg de recepten van {agentLoops}.",
+        "webhookModeDescription": "Een webhook-ontvanger die je zelf beheert kan het werk van deze agent ontvangen zodra het verschijnt. De {sdk} is een agent-runner (wachtrij, claimen, vrijgeven) en een getypeerde REST-client, geen webhook-ontvanger. Deze modus vereist je eigen webhook-ontvanger; de instellingen hieronder regelen de aflevering. Kies voor een begeleide installatie met MCP en wachtrij-skill in plaats daarvan {nativeHarness} en volg de recepten van {agentLoops}.",
         "customAgentsDescription": "Agents die je zelf beheert via OAuth + REST + SSE"
       },
       "runtime": {
@@ -961,7 +961,7 @@
         "errorDetail": "Fout: {error}",
         "documentation": "Documentatie",
         "aboutBody": "Verbind een webhook-ontvanger die je zelf beheert met {appName}. Dit paneel stelt in waar taakmeldingen naartoe worden gestuurd; het installeert of start geen agent-host.",
-        "stepReceiver": "Gebruik een webhook-ontvanger die je zelf beheert. De {sdk} biedt integratiebibliotheken, geen losstaand agent-hostcommando.",
+        "stepReceiver": "Gebruik een webhook-ontvanger die je zelf beheert. De {sdk} is een agent-runner (wachtrij, claimen, vrijgeven) en een getypeerde REST-client, geen webhook-ontvanger.",
         "stepCopySecret": "Kopieer het webhook-geheim naar de omgeving van je server",
         "guidedSetup": "Kies voor een begeleide installatie zonder webhook-ontvanger {selfRuns} → {nativeHarness} in {settings} → {aiAgents} en volg de {recipes}.",
         "recipesLink": "recepten voor MCP + wachtrij-skill",

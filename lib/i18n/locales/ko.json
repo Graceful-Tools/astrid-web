@@ -885,7 +885,7 @@
         "apiModeDescription": "{appName}이(가) 이 에이전트를 서버에서 실행합니다. 휴대폰에서도 쓸 수 있고 집에서 아무것도 켜 둘 필요가 없습니다.",
         "pollingModeDescription": "내 {agent} 환경이 작업을 처리합니다. 한 번 연결한 다음 이 에이전트에게 작업을 지정하고 {ready}(으)로 표시하세요. 루프가 작업을 가져갑니다.",
         "offModeDescription": "이 에이전트는 비켜 둔 상태입니다. 담당자 선택 목록에 나타나지 않으며 {appName}이(가) 실행하지도 않습니다. 저장한 설정과 키는 유지되므로 다른 모드를 선택하면 그대로 되돌릴 수 있습니다.",
-        "webhookModeDescription": "직접 운영하는 웹훅 수신기가 이 에이전트의 작업을 생기는 즉시 받을 수 있습니다. {sdk}는 통합 라이브러리를 제공할 뿐, 미리 만들어진 에이전트 호스트 명령은 아닙니다. 이 모드에는 자체 웹훅 수신기가 필요하며, 아래 설정에서 전달 방식을 구성합니다. MCP와 대기열 스킬을 이용한 안내형 설정을 원하면 {nativeHarness}을(를) 선택하고 {agentLoops} 레시피를 따르세요.",
+        "webhookModeDescription": "직접 운영하는 웹훅 수신기가 이 에이전트의 작업을 생기는 즉시 받을 수 있습니다. {sdk}는 에이전트 러너(대기열, 클레임, 해제)와 타입이 지정된 REST 클라이언트이며, 웹훅 수신기가 아닙니다. 이 모드에는 자체 웹훅 수신기가 필요하며, 아래 설정에서 전달 방식을 구성합니다. MCP와 대기열 스킬을 이용한 안내형 설정을 원하면 {nativeHarness}을(를) 선택하고 {agentLoops} 레시피를 따르세요.",
         "customAgentsDescription": "OAuth + REST + SSE로 직접 운영하는 에이전트"
       },
       "runtime": {
@@ -961,7 +961,7 @@
         "errorDetail": "오류: {error}",
         "documentation": "문서",
         "aboutBody": "직접 운영하는 웹훅 수신기를 {appName}에 연결하세요. 이 패널은 작업 알림을 보낼 위치를 구성할 뿐, 에이전트 호스트를 설치하거나 시작하지는 않습니다.",
-        "stepReceiver": "직접 운영하는 웹훅 수신기를 사용하세요. {sdk}는 통합 라이브러리를 제공할 뿐, 독립 실행형 에이전트 호스트 명령은 아닙니다.",
+        "stepReceiver": "직접 운영하는 웹훅 수신기를 사용하세요. {sdk}는 에이전트 러너(대기열, 클레임, 해제)와 타입이 지정된 REST 클라이언트이며, 웹훅 수신기가 아닙니다.",
         "stepCopySecret": "Webhook 시크릿을 서버 환경에 복사하세요",
         "guidedSetup": "웹훅 수신기 없이 안내형 설정을 하려면 {settings} → {aiAgents}에서 {selfRuns} → {nativeHarness}을(를) 선택하고 {recipes}를 따르세요.",
         "recipesLink": "MCP + 대기열 스킬 레시피",

@@ -885,7 +885,7 @@
         "apiModeDescription": "{appName} esegue questo agente lato server: funziona dal tuo telefono e non richiede nulla in esecuzione a casa.",
         "pollingModeDescription": "La tua installazione di {agent} fa il lavoro. Collegala una volta, poi assegna un’attività a questo agente e contrassegnala come {ready}: il loop la prende in carico.",
         "offModeDescription": "Questo agente è messo da parte: non compare nei selettori dell’assegnatario e {appName} non lo esegue mai. Le impostazioni e le chiavi salvate vengono conservate: scegli un’altra modalità per ripristinarlo esattamente com’era.",
-        "webhookModeDescription": "Un ricevitore webhook gestito da te può ricevere il lavoro di questo agente non appena compare. Il {sdk} fornisce librerie di integrazione, non un comando pronto per ospitare agenti. Questa modalità richiede un tuo ricevitore webhook; le impostazioni qui sotto configurano la consegna. Per una configurazione guidata con MCP e skill della coda, scegli invece {nativeHarness} e segui le ricette di {agentLoops}.",
+        "webhookModeDescription": "Un ricevitore webhook gestito da te può ricevere il lavoro di questo agente non appena compare. Il {sdk} è un runner per agenti (coda, presa in carico, rilascio) e un client REST tipizzato, non un ricevitore webhook. Questa modalità richiede un tuo ricevitore webhook; le impostazioni qui sotto configurano la consegna. Per una configurazione guidata con MCP e skill della coda, scegli invece {nativeHarness} e segui le ricette di {agentLoops}.",
         "customAgentsDescription": "Agenti gestiti da te tramite OAuth + REST + SSE"
       },
       "runtime": {
@@ -961,7 +961,7 @@
         "errorDetail": "Errore: {error}",
         "documentation": "Documentazione",
         "aboutBody": "Collega a {appName} un ricevitore webhook gestito da te. Questo pannello configura dove vengono inviate le notifiche delle attività; non installa né avvia un host di agenti.",
-        "stepReceiver": "Usa un ricevitore webhook gestito da te. Il {sdk} fornisce librerie di integrazione, non un comando autonomo per ospitare agenti.",
+        "stepReceiver": "Usa un ricevitore webhook gestito da te. Il {sdk} è un runner per agenti (coda, presa in carico, rilascio) e un client REST tipizzato, non un ricevitore webhook.",
         "stepCopySecret": "Copia il secret webhook nell’ambiente del tuo server",
         "guidedSetup": "Per una configurazione guidata senza ricevitore webhook, scegli {selfRuns} → {nativeHarness} in {settings} → {aiAgents} e segui le {recipes}.",
         "recipesLink": "ricette MCP + skill della coda",

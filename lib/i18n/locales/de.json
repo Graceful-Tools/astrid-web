@@ -885,7 +885,7 @@
         "apiModeDescription": "{appName} führt diesen Agenten serverseitig aus – funktioniert vom Handy aus, zu Hause muss nichts laufen.",
         "pollingModeDescription": "Dein eigenes {agent}-Setup erledigt die Arbeit. Verbinde es einmal, weise diesem Agenten dann eine Aufgabe zu und markiere sie als {ready} – die Schleife greift sie auf.",
         "offModeDescription": "Dieser Agent ist aus dem Weg: Er erscheint nicht in der Auswahl für Zuständige und {appName} führt ihn nie aus. Deine gespeicherten Einstellungen und Schlüssel bleiben erhalten – wähle einen anderen Modus, um ihn genau so zurückzuholen, wie er war.",
-        "webhookModeDescription": "Ein von dir betriebener Webhook-Empfänger kann die Arbeit dieses Agenten erhalten, sobald sie anfällt. Das {sdk} stellt Integrationsbibliotheken bereit, keinen fertigen Agent-Host-Befehl. Dieser Modus erfordert deinen eigenen Webhook-Empfänger; die Einstellungen unten konfigurieren die Zustellung. Für eine geführte Einrichtung mit MCP und Warteschlangen-Skill wähle stattdessen {nativeHarness} und folge den Rezepten unter {agentLoops}.",
+        "webhookModeDescription": "Ein von dir betriebener Webhook-Empfänger kann die Arbeit dieses Agenten erhalten, sobald sie anfällt. Das {sdk} ist ein Agent-Runner (Warteschlange, übernehmen, freigeben) und ein typisierter REST-Client, kein Webhook-Empfänger. Dieser Modus erfordert deinen eigenen Webhook-Empfänger; die Einstellungen unten konfigurieren die Zustellung. Für eine geführte Einrichtung mit MCP und Warteschlangen-Skill wähle stattdessen {nativeHarness} und folge den Rezepten unter {agentLoops}.",
         "customAgentsDescription": "Agenten, die du über OAuth + REST + SSE betreibst"
       },
       "runtime": {
@@ -961,7 +961,7 @@
         "errorDetail": "Fehler: {error}",
         "documentation": "Dokumentation",
         "aboutBody": "Verbinde einen von dir betriebenen Webhook-Empfänger mit {appName}. Dieser Bereich legt fest, wohin Aufgabenbenachrichtigungen gesendet werden; er installiert oder startet keinen Agent-Host.",
-        "stepReceiver": "Verwende einen von dir betriebenen Webhook-Empfänger. Das {sdk} stellt Integrationsbibliotheken bereit, keinen eigenständigen Agent-Host-Befehl.",
+        "stepReceiver": "Verwende einen von dir betriebenen Webhook-Empfänger. Das {sdk} ist ein Agent-Runner (Warteschlange, übernehmen, freigeben) und ein typisierter REST-Client, kein Webhook-Empfänger.",
         "stepCopySecret": "Kopiere das Webhook-Secret in die Umgebung deines Servers",
         "guidedSetup": "Für eine geführte Einrichtung ohne Webhook-Empfänger wähle {selfRuns} → {nativeHarness} unter {settings} → {aiAgents} und folge den {recipes}.",
         "recipesLink": "Rezepten für MCP + Warteschlangen-Skill",
