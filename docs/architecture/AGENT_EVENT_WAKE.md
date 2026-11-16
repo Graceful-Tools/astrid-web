@@ -96,7 +96,7 @@ practice, since GitHub created only about one in ten scheduled runs from 10-29 t
 
 **What is recorded.** Every `astrid-wake` run writes `.agent-output/wake-latency.json`
 (`event_at`, `queue_read_at`, `latency_seconds`, `reason`, `mailbox`, `work`) into its
-`agent-run-claude-code-<run id>` artifact, and one line to the run summary. `event_at` is stamped
+`agent-run-claude-code-<run id>-slot-<n>` artifact (one per worker slot, ADEV-26), and one line to the run summary. `event_at` is stamped
 by the server when the job is queued, so the figure includes the queue, the GitHub API call,
 runner start-up and agent setup. The claim follows within seconds of the queue read.
 

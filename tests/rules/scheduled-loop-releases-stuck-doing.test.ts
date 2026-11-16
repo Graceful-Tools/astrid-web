@@ -10,6 +10,8 @@ import { join } from 'path'
 const read = (path: string) => readFileSync(join(process.cwd(), path), 'utf8')
 const loop = read('scripts/fixall-loop.sh')
 const claim = read('scripts/claim-fixall-task.ts')
+const claimRequest = read('scripts/lib/fixall-claim-request.ts')
+const claimNext = read('scripts/claim-next-fixall-task.ts')
 
 describe('the scheduled loop releases stuck Doing claims', () => {
   it('releases abandoned claims at tick start, before deciding whether there is work', () => {
@@ -27,9 +29,12 @@ describe('the scheduled loop releases stuck Doing claims', () => {
     expect(release).toBeLessThan(afterRun.indexOf('Phase two of waking'))
   })
 
-  it('the claim script records Ready claims into the runner-provided file', () => {
-    expect(claim).toMatch(/process\.env\.ASTRID_FIXALL_CLAIMS_FILE/)
-    expect(claim).toMatch(/action === "ready" \|\| action === 'resume'/)
-    expect(claim).toMatch(/appendFileSync\(claimsFile/)
+  it('the claim scripts record Ready claims into the runner-provided file', () => {
+    // One copy, shared by the named claim and ADEV-26's claim-next (scripts/lib/fixall-claim-request.ts).
+    expect(claimRequest).toMatch(/process\.env\.ASTRID_FIXALL_CLAIMS_FILE/)
+    expect(claimRequest).toMatch(/action === 'ready' \|\| action === 'resume'/)
+    expect(claimRequest).toMatch(/appendFileSync\(claimsFile/)
+    expect(claim).toMatch(/recordClaim\(taskId, action\)/)
+    expect(claimNext).toMatch(/recordClaim\(/)
   })
 })

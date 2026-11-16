@@ -7,6 +7,7 @@
  * released, when a claim counts as abandoned, and where a release sends it.
  */
 import { describe, it, expect, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
 import {
   RELEASE_MARKER,
   branchesForTask,
@@ -15,6 +16,7 @@ import {
   isAwaitingBuild,
   isAwaitingDeploy,
   isFinishedOccurrence,
+  hasLiveClaimLease,
   isOrphanedDoing,
   parkFinishedOccurrence,
   isReleasableClaim,
@@ -393,5 +395,52 @@ describe('a finished recurring occurrence is not an unfinished claim (2026-11-04
     expect(text).not.toContain(RELEASE_MARKER)
     expect(text).not.toMatch(/before finishing|continue from/)
     expect(countReleases([{ content: text }])).toBe(0)
+  })
+})
+
+/**
+ * ADEV-26: local sessions and N cloud workers all claim as `claude`, so the assignee
+ * cannot tell whose Doing task this is. A live claim lease (AWTD-1688) can: its holder
+ * is heartbeating it, and no release may move it.
+ */
+describe('ADEV-26: a live claim lease is never released', () => {
+  const now = new Date('2026-11-16T02:00:00Z')
+
+  it('ADEV-26: holds a task whose lease is held and unexpired', () => {
+    expect(hasLiveClaimLease(task({ claimHolderId: 'ai-agent-claude', claimLeaseExpiresAt: '2026-11-16T02:10:00Z' }), now)).toBe(true)
+  })
+
+  it('ADEV-26: an expired lease is the lease sweep\'s to settle, so it holds nothing', () => {
+    expect(hasLiveClaimLease(task({ claimHolderId: 'ai-agent-claude', claimLeaseExpiresAt: '2026-11-16T01:59:59Z' }), now)).toBe(false)
+    expect(hasLiveClaimLease(task({ claimHolderId: 'ai-agent-claude', claimLeaseExpiresAt: '2026-11-16T02:00:00Z' }), now)).toBe(false)
+  })
+
+  it('ADEV-26: no holder, or no expiry, is no lease (a /claim-fixall claim carries none)', () => {
+    expect(hasLiveClaimLease(task(), now)).toBe(false)
+    expect(hasLiveClaimLease(task({ claimHolderId: null, claimLeaseExpiresAt: '2026-11-16T03:00:00Z' }), now)).toBe(false)
+    expect(hasLiveClaimLease(task({ claimHolderId: '  ', claimLeaseExpiresAt: '2026-11-16T03:00:00Z' }), now)).toBe(false)
+    expect(hasLiveClaimLease(task({ claimHolderId: 'ai-agent-claude', claimLeaseExpiresAt: null }), now)).toBe(false)
+  })
+
+  it('ADEV-26: an unreadable expiry reads as live, like an unreadable timestamp reads as active', () => {
+    expect(hasLiveClaimLease(task({ claimHolderId: 'ai-agent-claude', claimLeaseExpiresAt: 'soon' }), now)).toBe(true)
+  })
+
+  it('ADEV-26: a task idle far past the stale threshold is still kept while its lease is live', () => {
+    const idle = task({ updatedAt: '2026-11-15T20:00:00Z', claimHolderId: 'ai-agent-claude', claimLeaseExpiresAt: '2026-11-16T02:05:00Z' })
+    expect(isAbandonedClaim({ updatedAt: idle.updatedAt, comments: [], now, staleMinutes: 180 })).toBe(true)
+    expect(hasLiveClaimLease(idle, now)).toBe(true)
+  })
+
+  it('ADEV-26: the release script checks the lease before any release, in both modes', () => {
+    const source = readFileSync('scripts/release-stuck-doing.ts', 'utf8')
+    const leaseCheck = source.indexOf('hasLiveClaimLease(task, now)')
+    expect(leaseCheck).toBeGreaterThan(-1)
+    // Before the awaiting-handoff skips, the idle test, the occurrence park and the release itself.
+    for (const later of ['isAbandonedClaim({', 'parkFinishedOccurrence({', 'releaseDoingClaim({']) {
+      expect(source.indexOf(later), later).toBeGreaterThan(leaseCheck)
+    }
+    // Not scoped to one mode: a claims-file release must not take a task another holder leased either.
+    expect(source).toMatch(/\n    if \(hasLiveClaimLease\(task, now\)\) \{/)
   })
 })
