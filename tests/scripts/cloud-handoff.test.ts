@@ -47,7 +47,8 @@ describe('cloud lifecycle release handoff', () => {
   })
   it('never lands a cloud PR solely because its body carries the legacy runner marker', () => {
     const pr = { number: 1, headRefName: input.branch, body: RUNNER_PR_MARKER,
-      checks: [{ name: 'predeploy', bucket: 'pass' }], mergeable: 'MERGEABLE', mergeStateStatus: 'CLEAN' }
+      checks: [{ name: 'predeploy', bucket: 'pass' }], mergeable: 'MERGEABLE', mergeStateStatus: 'CLEAN',
+      files: [{ path: 'lib/x.ts' }] }
     expect(landablePullRequests([pr]).land).toHaveLength(0)
     expect(landablePullRequests([{ ...pr, cloudHandoffValid: true }]).land).toHaveLength(1)
     expect(landablePullRequests([{ ...pr, cloudHandoffValid: true, isDraft: true }]).land).toHaveLength(0)
