@@ -28,6 +28,7 @@ import { agentSignature } from './lib/agent-author'
 import { classifyVitestFailure, isVitestCheck } from './lib/vitest-starvation'
 import {
   PREDEPLOY_REPORT_TAG,
+  predeployReportScope,
   selectReportTaskFor,
 } from './lib/predeploy-report-tasks'
 
@@ -896,6 +897,13 @@ class SelfHealingPredeploy {
   ): Promise<string | null> {
     if (!CONFIG.createTasks) {
       console.log('\n📝 Task creation disabled, skipping...')
+      return null
+    }
+
+    // ADEV-31: the board hears about main, not about a branch's red gate.
+    const scope = predeployReportScope({ cwd: process.cwd(), env: process.env })
+    if (!scope.file) {
+      console.log(`\n📝 No board task: ${scope.reason}. Set ASTRID_PREDEPLOY_FILE_TASKS=1 to file anyway.`)
       return null
     }
 
