@@ -8,6 +8,8 @@
  *
  * PATCH /api/v1/projects/:id { key } - Rename the task-id key (owner only,
  *   AWTD-1024). Tasks become NEW-N; OLD-N keeps resolving as an alias.
+ * PATCH /api/v1/projects/:id { name } - Rename the project (owner or project
+ *   admin, ADEV-48). Sent with `key`, it stays owner-only.
  */
 
 import { NextResponse } from 'next/server'
@@ -18,6 +20,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { createLogger } from '@/lib/logger'
 import {
   authorizeBoardOwner,
+  authorizeProjectListMove,
   collectProjectMemberUserIds,
   deleteProjectAndDetachLists,
 } from '@/lib/projects-service'
@@ -35,23 +38,59 @@ export const PATCH = withAuth<RouteContext>(
   async (req, auth, { params }) => {
     const { id: projectId } = await params
     const body = await req.json().catch(() => null)
-    if (!body || typeof body !== 'object' || !('key' in body)) {
-      return NextResponse.json({ error: 'Nothing to update: send { key }' }, { status: 400 })
+    const hasKey = !!body && typeof body === 'object' && 'key' in body
+    const hasName = !!body && typeof body === 'object' && 'name' in body
+    if (!hasKey && !hasName) {
+      return NextResponse.json({ error: 'Nothing to update: send { name } or { key }' }, { status: 400 })
     }
 
-    const owner = await authorizeBoardOwner(projectId, auth.userId)
-    if ('error' in owner) {
-      return owner.error === 'not_found'
-        ? NextResponse.json({ error: 'Project not found' }, { status: 404 })
-        : NextResponse.json({ error: 'Only the owner can rename a project key' }, { status: 403 })
+    let name: string | undefined
+    if (hasName) {
+      name = typeof body.name === 'string' ? body.name.trim() : ''
+      if (!name) {
+        return NextResponse.json(
+          { error: 'name must not be empty', code: 'PROJECT_NAME_REQUIRED' },
+          { status: 400 },
+        )
+      }
     }
 
-    const result = await renameProjectKey(projectId, body.key)
-    if ('error' in result) {
-      return NextResponse.json({ error: result.error }, { status: result.status })
+    // The key is the owner's alone (AWTD-1024). The name is the owner's or a
+    // project admin's (ADEV-48), the same bar as moving a list in or out.
+    const allowed = hasKey
+      ? await authorizeBoardOwner(projectId, auth.userId)
+      : await authorizeProjectListMove(projectId, auth.userId)
+    if ('error' in allowed) {
+      if (allowed.error === 'not_found') {
+        return NextResponse.json({ error: 'Project not found' }, { status: 404 })
+      }
+      return hasKey
+        ? NextResponse.json({ error: 'Only the owner can rename a project key' }, { status: 403 })
+        : NextResponse.json(
+            { error: 'Only the owner or a project admin can rename a project', code: 'PROJECT_RENAME_FORBIDDEN' },
+            { status: 403 },
+          )
     }
 
-    // Every member's tasks just changed identifier.
+    let keyResult: { key: string; previousKey: string | null } | undefined
+    if (hasKey) {
+      const result = await renameProjectKey(projectId, body.key)
+      if ('error' in result) {
+        return NextResponse.json({ error: result.error }, { status: result.status })
+      }
+      keyResult = result
+    }
+
+    const renamed =
+      name === undefined
+        ? undefined
+        : await prisma.project.update({
+            where: { id: projectId },
+            data: { name },
+            select: { id: true, name: true },
+          })
+
+    // Every member's cached lists carry the project's name and task identifiers.
     const userIds = await collectProjectMemberUserIds([projectId])
     await Promise.all(
       userIds.map(async (userId) => {
@@ -64,8 +103,12 @@ export const PATCH = withAuth<RouteContext>(
     )
 
     return NextResponse.json({
-      project: { id: projectId, key: result.key },
-      previousKey: result.previousKey,
+      project: {
+        id: projectId,
+        ...(renamed ? { name: renamed.name } : {}),
+        ...(keyResult ? { key: keyResult.key } : {}),
+      },
+      ...(keyResult ? { previousKey: keyResult.previousKey } : {}),
       meta: { apiVersion: 'v1', authSource: auth.source },
     })
   },

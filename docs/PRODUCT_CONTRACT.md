@@ -70,6 +70,15 @@ A plain project member can no longer attach or detach (before 2026-11-15 any mem
 attach). Tasks move with the list; a task whose custom `statusRole` the destination lacks
 shows in Inbox there and keeps its stored role, so moving back restores it.
 
+**Renaming a project (ADEV-48).** `PATCH /api/v1/projects/:id { name }` (scope `projects:write`)
+sets the display name, trimmed and non-empty (`400 PROJECT_NAME_REQUIRED`), with no length limit,
+the same as create. Who may: the project's **owner or an admin**, the same bar as moving a list
+in or out. Decided 2026-11-16 (agent): Jon asked for "admin", and `authorizeBoardOwner` alone
+would have refused admins. A plain member or non-member gets `403 PROJECT_RENAME_FORBIDDEN`.
+`{ key }` stays owner-only (AWTD-1024), and `{ name, key }` together need the owner; if the key
+is refused nothing changes. Members' list caches are invalidated. Online only; old clients never
+send `name`, so the halves ship independently.
+
 An absent `project` relation means **"not loaded"**, never "no project access".
 Any query backing a permission check must include it (`PROJECT_ACCESS_INCLUDE`),
 or project members silently lose access. Visibility is derived from the same
