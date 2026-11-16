@@ -182,8 +182,11 @@ const EXPORTS: Record<string, () => Record<string, unknown>> = {
  * astrid-core would read a web-generated copy as the source of truth.
  *
  *   waiting.json — the Waiting lane (lib/waiting-rules.ts; tests/lib/core-rules-waiting-parity.test.ts)
+ *   sidebar-projects.json — the sidebar's Projects section, D70 (lib/sidebar-projects.ts;
+ *     tests/lib/sidebar-projects-contract-adev-14.test.ts). Copied from core 886817e7, ahead of
+ *     REVISION, without moving the pin (ADEV-14); the next re-vendor brings it in with the rest.
  */
-const CORE_OWNED = ['waiting.json'] as const
+const CORE_OWNED = ['waiting.json', 'sidebar-projects.json'] as const
 const vendoredDir = join(webRoot, 'packages', 'astrid-rules', 'fixtures')
 
 let failed = false
