@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dropped the `@gracefultools/astrid-sdk` dependency. The SDK is now an agent runner
   (`astrid-agent`) and typed client, and no longer exports a channel.
 
+### Fixed
+- **Loads on current OpenClaw.** OpenClaw 2026.11 exports its plugin SDK only as subpaths, so
+  the bare `openclaw/plugin-sdk` import of `createReplyPrefixOptions` failed with
+  `ERR_PACKAGE_PATH_NOT_EXPORTED`. It now comes from `openclaw/plugin-sdk/channel-outbound`,
+  falling back to the bare path on older hosts. Type-only imports are unaffected.
+
 ## [2.1.0] - 2026-02-22
 
 ### Fixed
