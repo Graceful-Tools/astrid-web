@@ -2741,6 +2741,9 @@
       "keepAssignedTo": "Aan {name} toegewezen laten",
       "theAssignee": "de toegewezen persoon",
       "confirm": "Naar Wachten verplaatsen"
+    },
+    "handoff": {
+      "sourceDone": "Een afgeronde taak kan niet worden overgedragen. Open hem eerst opnieuw."
     }
   },
   "helpPage": {

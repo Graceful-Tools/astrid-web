@@ -2741,6 +2741,9 @@
       "keepAssignedTo": "仍指派給 {name}",
       "theAssignee": "負責人",
       "confirm": "移至等待"
+    },
+    "handoff": {
+      "sourceDone": "已完成的任務無法移交。請先重新開啟它。"
     }
   },
   "helpPage": {

@@ -2741,6 +2741,9 @@
       "keepAssignedTo": "Keep assigned to {name}",
       "theAssignee": "the assignee",
       "confirm": "Move to Waiting"
+    },
+    "handoff": {
+      "sourceDone": "A finished task cannot be handed off. Reopen it first."
     }
   },
   "helpPage": {

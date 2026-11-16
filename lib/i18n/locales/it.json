@@ -2741,6 +2741,9 @@
       "keepAssignedTo": "Lascia assegnata a {name}",
       "theAssignee": "la persona assegnata",
       "confirm": "Sposta in In attesa"
+    },
+    "handoff": {
+      "sourceDone": "Un’attività completata non può essere passata ad altri. Riaprila prima."
     }
   },
   "helpPage": {

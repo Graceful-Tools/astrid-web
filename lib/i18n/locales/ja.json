@@ -2741,6 +2741,9 @@
       "keepAssignedTo": "{name} に割り当てたままにする",
       "theAssignee": "担当者",
       "confirm": "待機中に移動"
+    },
+    "handoff": {
+      "sourceDone": "完了したタスクは引き継げません。先に再開してください。"
     }
   },
   "helpPage": {

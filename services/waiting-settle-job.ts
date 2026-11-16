@@ -76,6 +76,8 @@ interface Candidate {
   isAllDay: boolean
   assigneeId: string | null
   completed: boolean
+  /** The holder a handoff remembered (AWTD-1686, R8): a wake gives the task back to them. */
+  handoffReturnAssigneeId?: string | null
   blockedBy: Array<{ blockingTaskId: string; blockingTask: { completed: boolean } | null }>
   /** Its latest marker comment is a current AWAITING-DEPLOY (lib/ready-queue-scope.ts). */
   awaitingDeploy?: boolean
@@ -98,7 +100,7 @@ export function planTask(
     plan.backfill = 'toDoing'
     return plan
   }
-  const settlement = waitingSettle(task, blockers, now)
+  const settlement = waitingSettle(task, blockers, now, task.handoffReturnAssigneeId)
 
   if (settlement.action !== 'stay') {
     plan.settle = {
@@ -211,6 +213,7 @@ export async function runWaitingSettleJob(args: {
         isAllDay: true,
         assigneeId: true,
         completed: true,
+        handoffReturnAssigneeId: true,
         blockedBy: { select: { blockingTaskId: true, blockingTask: { select: { completed: true } } } },
       },
       orderBy: { id: 'asc' },
@@ -260,7 +263,9 @@ export async function runWaitingSettleJob(args: {
           clearAssignee: settlement.assignee === 'clear',
         }
         if (named.title !== undefined) report.detail.push({ ...move, ...named })
-        if (settleMode === 'apply' && (await applyPlanned(move, task, now, nativeEnforcement))) report.settle.applied++
+        // The returned holder is not in `move`: the report never carries an assignee.
+        const returnTo = settlement.assignee === 'return' ? settlement.returnAssigneeId : undefined
+        if (settleMode === 'apply' && (await applyPlanned(move, task, now, nativeEnforcement, returnTo))) report.settle.applied++
       }
     }
     if (page.length < PAGE) break
@@ -285,7 +290,13 @@ export async function runWaitingSettleJob(args: {
  * from the task's blockers as they are now, so a concurrent edit makes the plan stale rather than
  * wrong (it is planned again on the next run).
  */
-async function applyPlanned(move: PlannedMove, planned: Candidate, now: Date, nativeEnforcement: NativeEnforcement): Promise<boolean> {
+async function applyPlanned(
+  move: PlannedMove,
+  planned: Candidate,
+  now: Date,
+  nativeEnforcement: NativeEnforcement,
+  returnAssigneeId?: string,
+): Promise<boolean> {
   try {
     return await applySettlement({
       taskId: move.taskId,
@@ -293,6 +304,7 @@ async function applyPlanned(move: PlannedMove, planned: Candidate, now: Date, na
       to: move.to,
       clearAssignee: move.clearAssignee,
       formerAssigneeId: planned.assigneeId,
+      returnAssigneeId,
       kind: move.action === 'wakeToReady' ? 'unblocked' : 'status_changed',
       dueDateTime: planned.dueDateTime,
       recheck: ({ task, blockers }) => {
