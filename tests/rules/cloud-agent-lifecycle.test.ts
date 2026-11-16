@@ -64,9 +64,9 @@ describe('cloud agent lifecycle wiring', () => {
     // What the verdict and preserve steps DO is executed below; here, only
     // when they run, which executing the script cannot show.
     const verdict = steps.find((s: { name?: string }) => s.name === VERDICT)
-    expect(verdict.if).toBe("${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' }}")
+    expect(verdict.if).toBe("${{ !inputs.dry_run && steps.take.outputs.go == 'true' }}")
     const preserve = steps.find((s: { name?: string }) => s.name === PRESERVE)
-    expect(preserve.if).toBe("${{ always() && !inputs.dry_run && steps.preflight.outputs.work == 'true' }}")
+    expect(preserve.if).toBe("${{ always() && !inputs.dry_run && steps.take.outputs.go == 'true' }}")
     expect(read('.github/agent-run-prompt.md')).toMatch(/^RESULT: OK \| SKIPPED \| PARTIAL \| FAILED/m)
   })
   it('a task already fixed on main is handed off as OK, not PARTIAL', () => {
@@ -169,6 +169,12 @@ describe('agent-run verdict step, executed', () => {
   ])('tells the chain job the verdict word for %s', (transcript, word) => {
     expect(verdictFor(transcript).status).toBe(0)
     expect(verdictOutput()).toBe(`result=${word}\n`)
+  })
+
+  it('ADEV-26: a PARTIAL run stays red but tells the chain it made progress', () => {
+    const result = verdictFor('RESULT: PARTIAL — ADEV-22 PR #826 open, one item left\n')
+    expect(result.status).toBe(1)
+    expect(verdictOutput()).toBe('result=PARTIAL\n')
   })
 
   it('fails when there is no transcript at all', () => {
@@ -306,12 +312,23 @@ describe('the loop keeps itself going without the scheduler', () => {
     expect(workflow.on.repository_dispatch.types).toEqual(['agent-run-next', 'astrid-wake'])
   })
 
-  it('chains only after a run that finished a task', () => {
+  it('ADEV-26: chains once if any worker finished a task, from per-slot verdicts, not matrix outputs', () => {
     const workflow = agentRun()
     expect(workflow.jobs.chain.if).toBe(
-      "${{ !inputs.dry_run && (inputs.harness || 'claude-code') == 'claude-code' && needs.run.result == 'success' && needs.run.outputs.result == 'OK' }}")
-    expect(workflow.jobs.run.outputs.result).toBe('${{ steps.verdict.outputs.result }}')
+      "${{ !cancelled() && !inputs.dry_run && (inputs.harness || 'claude-code') == 'claude-code' && needs.run.result != 'skipped' }}")
+    // A matrix job's outputs are last-writer-wins, so the chain must not read them.
+    expect(workflow.jobs.run.outputs).toBeUndefined()
+    expect(JSON.stringify(workflow.jobs.chain)).not.toContain('needs.run.outputs')
     expect(workflow.jobs.run.steps.find((s: { name?: string }) => s.name === VERDICT).id).toBe('verdict')
+    const collect = workflow.jobs.chain.steps.find((s: { name?: string }) => s.name === "Collect the workers' verdicts")
+    expect(collect.uses).toMatch(/^actions\/download-artifact@[0-9a-f]{40}$/)
+    expect(collect.with.pattern).toBe('agent-verdict-claude-code-${{ github.run_id }}-slot-*')
+    const record = workflow.jobs.run.steps.find((s: { name?: string }) => s.name === "Record this worker's verdict for the chain")
+    expect(record.if).toBe("${{ !cancelled() && steps.verdict.outputs.result != '' }}")
+    // Written by the runner outside .agent-output, which the agent can write.
+    expect(record.run).toContain('${RUNNER_TEMP}/agent-verdict/result.txt')
+    const upload = workflow.jobs.run.steps.find((s: { name?: string }) => s.name === "Upload this worker's verdict")
+    expect(upload.with.name).toBe("agent-verdict-${{ (inputs.harness || 'claude-code') }}-${{ github.run_id }}-slot-${{ matrix.slot }}")
     expect(workflow.jobs.chain.env.DEPTH).toBe("${{ github.event.client_payload.chain_depth || '0' }}")
     // The schedule stays as the fallback that restarts an ended chain.
     expect(workflow.on.schedule).toEqual([{ cron: '5,35 * * * *' }])
@@ -324,19 +341,26 @@ describe('the loop keeps itself going without the scheduler', () => {
       writeFileSync(join(dir, 'gh'), '#!/bin/sh\necho "$@" >> "$(dirname "$0")/gh-calls"\n', { mode: 0o755 })
     })
     afterEach(() => rmSync(dir, { recursive: true, force: true }))
-    const chain = (depth: string, max: string) => {
+    /** `verdicts` maps a downloaded artifact dir (or '' for a lone artifact at the root) to its word. */
+    const chain = (depth: string, max: string, verdicts: Record<string, string> = { 'agent-verdict-claude-code-1-slot-1': 'OK' }) => {
+      const root = join(dir, 'verdicts')
+      for (const [sub, word] of Object.entries(verdicts)) {
+        mkdirSync(join(root, sub), { recursive: true })
+        writeFileSync(join(root, sub, 'result.txt'), `${word}\n`)
+      }
       const result = runWorkflowStep(workflowStep(AGENT_RUN, 'chain', CHAIN_STEP), {
         cwd: dir,
-        env: { PATH: `${dir}:${process.env.PATH}`, GH_REPO: 'Graceful-Tools/astrid-web', DEPTH: depth, MAX_CHAIN: max },
+        env: { PATH: `${dir}:${process.env.PATH}`, GH_REPO: 'Graceful-Tools/astrid-web', DEPTH: depth, MAX_CHAIN: max, VERDICTS: root },
       })
       const calls = existsSync(join(dir, 'gh-calls')) ? read(join(dir, 'gh-calls')).trim() : ''
       return { ...result, calls }
     }
+    const DISPATCH_3 = 'api repos/Graceful-Tools/astrid-web/dispatches -f event_type=agent-run-next -F client_payload[chain_depth]=3'
 
     it('starts the next run one deeper', () => {
       const { status, calls } = chain('2', '8')
       expect(status).toBe(0)
-      expect(calls).toBe('api repos/Graceful-Tools/astrid-web/dispatches -f event_type=agent-run-next -F client_payload[chain_depth]=3')
+      expect(calls).toBe(DISPATCH_3)
     })
 
     it('stops at the cap and leaves the rest to the schedule', () => {
@@ -344,6 +368,35 @@ describe('the loop keeps itself going without the scheduler', () => {
       expect(status).toBe(0)
       expect(calls).toBe('')
       expect(stdout).toContain('the schedule takes over')
+    })
+
+    it('ADEV-26: one OK among SKIPPED workers chains, exactly once', () => {
+      const { status, calls } = chain('2', '8', {
+        'agent-verdict-claude-code-1-slot-1': 'SKIPPED',
+        'agent-verdict-claude-code-1-slot-2': 'OK',
+        'agent-verdict-claude-code-1-slot-3': 'OK',
+      })
+      expect(status).toBe(0)
+      expect(calls).toBe(DISPATCH_3)
+    })
+
+    it('ADEV-26: a PARTIAL worker (progress, PR open) keeps the chain going', () => {
+      expect(chain('2', '8', { 'agent-verdict-claude-code-1-slot-1': 'PARTIAL' }).calls).toBe(DISPATCH_3)
+    })
+
+    it('ADEV-26: a lone artifact downloaded to the root still counts', () => {
+      expect(chain('2', '8', { '': 'OK' }).calls).toBe(DISPATCH_3)
+    })
+
+    it('ADEV-26: only SKIPPED, or no verdict at all (every worker red or idle), ends the chain', () => {
+      const skipped = chain('2', '8', { 'agent-verdict-claude-code-1-slot-1': 'SKIPPED' })
+      expect(skipped.status).toBe(0)
+      expect(skipped.calls).toBe('')
+      rmSync(join(dir, 'verdicts'), { recursive: true, force: true })
+      const none = chain('2', '8', {})
+      expect(none.status).toBe(0)
+      expect(none.calls).toBe('')
+      expect(none.stdout).toContain('No worker reported OK or PARTIAL')
     })
   })
 
@@ -377,7 +430,7 @@ describe('AWTD-1556: an astrid-wake dispatch starts the cron\'s worker', () => {
 
   it('AWTD-1556: runs only for this harness\'s mailbox or an unassigned task, and keeps the queue read and claim', () => {
     const workflow = agentRun()
-    expect(workflow.jobs.run.if).toBe(
+    expect(workflow.jobs.plan.if).toBe(
       `\${{ github.event.action != 'astrid-wake' || contains(fromJSON('["claude","any"]'), github.event.client_payload.mailbox) }}`)
     // No special path: the preflight that reads the queue is the same step for every trigger.
     const preflight = workflow.jobs.run.steps.find((s: { name?: string }) => s.name === 'Queue and inbox preflight')
@@ -477,5 +530,176 @@ describe('AWTD-1682: the cloud worker does astrid-core tasks', () => {
     expect(prompt).toContain('AWAITING-MERGE: Graceful-Tools/astrid-core#<n> <full pushed HEAD sha>')
     expect(prompt).toContain('$ASTRID_CORE_DIR')
     expect(read('docs/FIXALL_WEB.md')).toContain('AWAITING-MERGE: Graceful-Tools/astrid-core#<n>')
+  })
+})
+
+/**
+ * ADEV-26: N parallel cloud workers. A matrix over slots, one concurrency group per slot,
+ * each worker on a different task, and only slot 1 on the inbox, the stale sweep and wake
+ * state.
+ */
+describe('ADEV-26: parallel cloud workers', () => {
+  const workflow = () => yaml.load(read(AGENT_RUN))
+  const runStep = (name: string) => (workflow().jobs.run.steps as Array<Record<string, any>>).find(s => s.name === name)!
+  let dir: string
+  beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'agent-run-adev26-')) })
+  afterEach(() => rmSync(dir, { recursive: true, force: true }))
+
+  /** A fake `npx` that logs its arguments, writes FAKE_PREFLIGHT to any --output, and exits FAKE_STATUS. */
+  const fakeNpx = (stdout = '') => {
+    writeFileSync(join(dir, 'npx'), [
+      '#!/bin/bash',
+      'echo "$@" >> "$(dirname "$0")/npx-calls"',
+      'args=("$@"); for i in "${!args[@]}"; do if [ "${args[$i]}" = --output ]; then printf "%s" "$FAKE_PREFLIGHT" > "${args[$((i+1))]}"; fi; done',
+      `printf '%s' ${JSON.stringify(stdout)}`,
+      'exit "${FAKE_STATUS:-0}"',
+    ].join('\n'), { mode: 0o755 })
+  }
+  const outputs = (file: string) =>
+    Object.fromEntries(read(file).trim().split('\n').filter(Boolean).map(l => l.split('=') as [string, string]))
+
+  it('ADEV-26: N comes from ASTRID_AGENT_WORKERS (default 3), clamped to 1..10, one for a dry run', () => {
+    const plan = workflow().jobs.plan
+    expect(plan.permissions).toEqual({})
+    expect(plan.steps[0].env.WORKERS).toBe("${{ vars.ASTRID_AGENT_WORKERS || '3' }}")
+    const slots = (workers: string, dryRun = 'false') => {
+      const output = join(dir, `out-${workers}-${dryRun}`)
+      writeFileSync(output, '')
+      const result = runWorkflowStep(workflowStep(AGENT_RUN, 'plan', 'Turn ASTRID_AGENT_WORKERS into worker slots'), {
+        cwd: dir, env: { WORKERS: workers, DRY_RUN: dryRun, GITHUB_OUTPUT: output },
+      })
+      expect(result.status, result.stderr).toBe(0)
+      return JSON.parse(outputs(output).slots)
+    }
+    expect(slots('3')).toEqual([1, 2, 3])
+    expect(slots('1')).toEqual([1])
+    expect(slots('0')).toEqual([1])
+    expect(slots('lots')).toEqual([1])
+    expect(slots('25')).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    expect(slots('3', 'true')).toEqual([1])
+  })
+
+  it('ADEV-26: the run job is a fail-fast-off matrix with one concurrency group per slot, and no workflow-wide group', () => {
+    const wf = workflow()
+    expect(wf.concurrency).toBeUndefined()
+    expect(wf.jobs.run.needs).toBe('plan')
+    expect(wf.jobs.run.strategy).toEqual({ 'fail-fast': false, matrix: { slot: '${{ fromJSON(needs.plan.outputs.slots) }}' } })
+    expect(wf.jobs.run.concurrency).toEqual({
+      group: "agent-run-${{ (inputs.harness || 'claude-code') }}-slot-${{ matrix.slot }}", 'cancel-in-progress': false })
+    // The note that explains why: GitHub keeps one pending run per concurrency group.
+    expect(read(AGENT_RUN)).toMatch(/keeps only ONE pending run per\s+# concurrency group/)
+  })
+
+  it('ADEV-26: per-worker claims file and artifacts never collide', () => {
+    const wf = workflow()
+    expect(wf.jobs.run.env.ASTRID_AGENT_SLOT).toBe('${{ matrix.slot }}')
+    expect(wf.jobs.run.env.ASTRID_FIXALL_CLAIMS_FILE).toBe('${{ github.workspace }}/.agent-output/claims-slot-${{ matrix.slot }}.txt')
+    expect(runStep('Persist run outputs and recovery evidence').with.name)
+      .toBe("agent-run-${{ (inputs.harness || 'claude-code') }}-${{ github.run_id }}-slot-${{ matrix.slot }}")
+  })
+
+  it("ADEV-26: wake state is slot 1's alone", () => {
+    expect(runStep('Restore durable wake state').if).toBe('${{ matrix.slot == 1 }}')
+    expect(runStep('Restore retained state when the cache was evicted').if).toContain('matrix.slot == 1')
+    expect(runStep('Record wake outcome').if).toContain('matrix.slot == 1')
+    expect(runStep('Persist durable wake state').if).toContain('matrix.slot == 1')
+  })
+
+  it('ADEV-26: the costly steps wait for this worker to hold a task', () => {
+    for (const name of ['Build and verify Astrid MCP', 'Install Chromium for e2e', 'Run Claude Code', 'Run Codex',
+      'Install the astrid-core Rust toolchain', VERDICT]) {
+      expect(runStep(name).if, name).toContain("steps.take.outputs.go == 'true'")
+    }
+  })
+
+  describe('the preflight, executed', () => {
+    const preflight = (slot: string, snapshot: object, opts: { work: boolean; wakeKeys?: string[] }) => {
+      fakeNpx()
+      mkdirSync(join(dir, '.agent-output'), { recursive: true })
+      const output = join(dir, 'github-output')
+      writeFileSync(output, '')
+      const result = runWorkflowStep(workflowStep(AGENT_RUN, 'run', 'Queue and inbox preflight'), {
+        cwd: dir,
+        env: {
+          PATH: `${dir}:${process.env.PATH}`, DRY_RUN: 'false', GITHUB_OUTPUT: output,
+          GH_TOKEN: 'token', ASTRID_FIXALL_HARNESS: 'claude-code', ASTRID_OAUTH_LIST_ID: 'board', ASTRID_AGENT_SLOT: slot,
+          FAKE_PREFLIGHT: JSON.stringify({ version: 1, work: opts.work, wakeKeys: opts.wakeKeys ?? [], snapshot }),
+        },
+      })
+      expect(result.status, result.stderr).toBe(0)
+      return {
+        work: outputs(output).work,
+        keys: JSON.parse(read(join(dir, '.agent-output', 'wake-keys.json'))),
+        calls: read(join(dir, 'npx-calls')),
+      }
+    }
+    const queue = (n: number) => ({ empty: n === 0, queue: Array.from({ length: n }, (_, i) => ({ id: `t${i}` })) })
+
+    it('ADEV-26: slot 1 follows the full verdict and keeps the wake keys', () => {
+      const r = preflight('1', queue(0), { work: true, wakeKeys: ['comment:c1'] })
+      expect(r.work).toBe('true')
+      expect(r.keys).toEqual(['comment:c1'])
+    })
+
+    it('ADEV-26: another slot works only Ready tasks, never the inbox, and carries no wake keys', () => {
+      expect(preflight('2', queue(1), { work: true, wakeKeys: ['comment:c1'] })).toMatchObject({ work: 'true', keys: [] })
+      expect(preflight('3', queue(0), { work: true, wakeKeys: ['comment:c1'] })).toMatchObject({ work: 'false', keys: [] })
+    })
+
+    it('ADEV-26: only slot 1 runs the stale-Doing sweep, so a task is never released twice', () => {
+      expect(preflight('1', queue(1), { work: true }).calls).toContain('release-stuck-doing.ts')
+      rmSync(join(dir, 'npx-calls'))
+      expect(preflight('2', queue(1), { work: true }).calls).not.toContain('release-stuck-doing.ts')
+    })
+  })
+
+  describe('the take step, executed', () => {
+    const take = (slot: string, stdout: string, status: string) => {
+      fakeNpx(stdout)
+      mkdirSync(join(dir, '.agent-output'), { recursive: true })
+      const output = join(dir, 'github-output')
+      const githubEnv = join(dir, 'github-env')
+      writeFileSync(output, '')
+      writeFileSync(githubEnv, '')
+      const result = runWorkflowStep(workflowStep(AGENT_RUN, 'run', "Take this worker's task"), {
+        cwd: dir,
+        env: { PATH: `${dir}:${process.env.PATH}`, AGENT: 'claude', ASTRID_OAUTH_LIST_ID: 'board', ASTRID_AGENT_SLOT: slot,
+          FAKE_STATUS: status, GITHUB_OUTPUT: output, GITHUB_ENV: githubEnv },
+      })
+      const calls = join(dir, 'npx-calls')
+      return { ...result, out: read(output), exported: read(githubEnv), called: existsSync(calls) ? read(calls) : '' }
+    }
+
+    it('ADEV-26: slot 1 claims inside its session, through the same script', () => {
+      const r = take('1', '', '0')
+      expect(r.status).toBe(0)
+      expect(r.out).toBe('go=true\n')
+      expect(r.called).toBe('')
+      expect(read('.github/agent-run-prompt.md'))
+        .toContain('npx tsx scripts/claim-next-fixall-task.ts --agent <your mailbox> --list "$ASTRID_OAUTH_LIST_ID"')
+    })
+
+    it('ADEV-26: another slot claims the next free task before the costly steps and hands it to the session', () => {
+      const r = take('2', 'CLAIMED 3f2a-77 ADEV-9 — Fix it\n', '0')
+      expect(r.status, r.stderr).toBe(0)
+      expect(r.called).toContain('scripts/claim-next-fixall-task.ts --agent claude --list board --preflight .agent-output/preflight.json')
+      expect(r.out).toBe('go=true\n')
+      expect(r.exported).toBe('ASTRID_CLAIMED_TASK=3f2a-77\n')
+      expect(read('.github/agent-run-prompt.md')).toContain('$ASTRID_CLAIMED_TASK')
+    })
+
+    it('ADEV-26: every Ready task taken (exit 3) ends the worker quietly, without a session', () => {
+      const r = take('2', 'NO_READY_TASK: nothing left\n', '3')
+      expect(r.status).toBe(0)
+      expect(r.out).toBe('go=false\n')
+      expect(r.exported).toBe('')
+    })
+
+    it('ADEV-26: a claim error fails the worker, and a malformed id never reaches GITHUB_ENV', () => {
+      expect(take('2', '', '1').status).toBe(1)
+      const forged = take('2', 'CLAIMED $(touch${IFS}pwned)\n', '0')
+      expect(forged.status).toBe(1)
+      expect(forged.exported).toBe('')
+    })
   })
 })

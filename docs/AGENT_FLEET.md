@@ -17,7 +17,7 @@ contention is per machine.
 
 | Where | Owns |
 |---|---|
-| **Cloud (`agent-run.yml`)** | The Claude Code web worker. A run that finishes a task starts the next one (up to `ASTRID_AGENT_MAX_CHAIN`, default 8), and the :05/:35 schedule restarts an ended chain; it shares the Web board's atomic claims with other web harnesses. The Mac's web loop, the Copilot app's web-queue cron and the `astrid-web` self-hosted runner were retired 2026-10-28 (AWTD-1363) |
+| **Cloud (`agent-run.yml`)** | The Claude Code web workers: N in parallel per run (repo variable `ASTRID_AGENT_WORKERS`, default 3; see *Parallel workers* below), each on its own task. A run in which any worker finishes or advances a task starts the next one (up to `ASTRID_AGENT_MAX_CHAIN`, default 8), and the :05/:35 schedule restarts an ended chain; it shares the Web board's atomic claims with other web harnesses. The Mac's web loop, the Copilot app's web-queue cron and the `astrid-web` self-hosted runner were retired 2026-10-28 (AWTD-1363) |
 | **GitHub's built-in Copilot coding agent** | Additional web changes and independent reviews of Claude changes, scoped to the Web board and `copilot` mailbox. `native-copilot-bridge.yml` bridges Astrid to GitHub's issue-assigned agent; `copilot-setup-steps.yml` prepares its worker. This is not Copilot CLI in Actions |
 | **Dedicated Apple device** | Keep the existing Claude Code iOS/Mac loop, Xcode and TestFlight work in astrid-ios |
 | **Windows device** | Keep its existing Claude Code worker and `fixall-loop.ps1`; `windows-latest` continues builds/unit tests |
@@ -109,12 +109,49 @@ monitor and production jobs now use ([AWTD-1372](https://astrid.cc/t/AWTD-1372))
 meantime, which is what stops a leaked token reading them
 (docs/CLI_OPERATIONS.md §0).
 
+## Parallel workers
+
+Local sessions and N cloud workers run **concurrently** on the same board (ADEV-26). They
+share the `claude` mailbox; atomic claims are what keep two of them off one task.
+
+- **How many.** N is the repo variable `ASTRID_AGENT_WORKERS` (default 3, clamped to
+  1..10). Change it with `gh variable set ASTRID_AGENT_WORKERS --body 5` or under
+  Settings → Secrets and variables → Actions → Variables; the next run uses it. `1` brings
+  back the old single worker. A dry run is always one worker.
+- **Shape.** `agent-run.yml`'s `plan` job turns N into slots, and the `run` job is a matrix
+  over them (`fail-fast: false`), one concurrency group per slot
+  (`agent-run-<harness>-slot-<n>`). GitHub keeps one pending job per group, so a wake waits
+  only while its slot is busy, and a newer wake replaces it then (it reads the same live
+  queue). With the old single group, every wake during a run was queued behind the whole
+  run or cancelled.
+- **Different tasks.** Slots 2..N claim before the costly setup with
+  `scripts/claim-next-fixall-task.ts`, which walks the queue in priority order. A 409 moves
+  it on to the next Ready task, and it re-reads the live queue before answering "none". A
+  worker that finds every task taken stops in seconds. Slot 1 claims inside its session
+  through the same script, because it alone answers the attention inbox and takes resumes.
+- **Slot 1 only.** The stale-Doing sweep (two workers releasing one task would hand it
+  back) and wake state.
+- **Chaining.** One dispatch per run, if any worker reported `RESULT: OK` or `RESULT: PARTIAL` (per-slot
+  verdict artifacts; matrix job outputs are last-writer-wins). The depth cap is unchanged.
+- **Leases.** The stale-Doing release never moves a task whose claim lease is live
+  (`claimHolderId` set, `claimLeaseExpiresAt` in the future; AWTD-1688). Without a lease,
+  only the 180-minute idle threshold protects a live session's task.
+
 ## Shipping
 
 Agents stop at the PR. A deterministic ship workflow, not an agent, does the rest:
 - merge a PR when `predeploy` is green on the merged commit;
 - dispatch `production-deployment.yml`;
 - check `commitSha` on `/api/health`.
+
+**Deploys queue.** `production-deployment.yml` runs in one concurrency group,
+`production-deployment`, with `cancel-in-progress: false`. A dispatch made while a deploy
+runs waits for it, and GitHub keeps only the newest waiting one (a dispatch deploys main's
+head, so the newest one is the right one to keep). Before deploying, the deploy job reads
+the live `/api/health` `commitSha`. If production already serves a newer commit that
+contains this one, the job skips with a notice instead of rolling production back, and the
+health check and `prod` advance skip with it. Redeploying the live commit itself still
+deploys. The destructive-migration gate is unchanged.
 
 A pending migration still goes to Jon (CLAUDE.md rule 3). `agent-ship.yml` is
 that wrapper, live since `ASTRID_SHIP_ENABLED=true` (2026-10-31). It runs when an
@@ -220,8 +257,8 @@ reassigned to start another agent. Native CI may also need GitHub's workflow
 approval setting; this change does not bypass it. An authorized operator must
 handle those boundaries until separately reconciled and smoke-proven.
 
-CLI cloud wake state is keyed by harness and branch, serialized by workflow
-concurrency, and saved after success **or failure**. Actions cache is backed by
+CLI cloud wake state is keyed by harness and branch, written only by worker slot 1
+(the one slot that answers the inbox, ADEV-26), and saved after success **or failure**. Actions cache is backed by
 30-day run artifacts; corrupt retained state fails loudly rather than resetting
 retry limits. After all retained history expires, the first new run explicitly
 starts fresh wake memory. Worker and ship outputs remain available as artifacts

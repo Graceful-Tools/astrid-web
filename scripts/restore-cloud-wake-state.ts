@@ -3,19 +3,19 @@ import { execFileSync } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseSeenKeys } from './lib/wake-keys'
+import { isRetainedWakeStateArtifact } from './lib/wake-state-artifact'
 
 const harness = process.env.ASTRID_FIXALL_HARNESS
 if (!harness || !['claude-code', 'github-copilot', 'codex'].includes(harness)) {
   throw new Error('A supported cloud harness is required')
 }
-const name = `agent-run-${harness}-`
 const pages = JSON.parse(execFileSync('gh', [
   'api', '--paginate', '--slurp', 'repos/{owner}/{repo}/actions/artifacts?per_page=100',
 ], { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 })) as Array<{ artifacts: Array<{
   id: number; name: string; expired: boolean; workflow_run?: { head_branch?: string }
 }> }>
-const candidates = pages.flatMap(page => page.artifacts).filter(artifact => artifact.name.startsWith(name) &&
-  artifact.name !== `${name}${process.env.GITHUB_RUN_ID}` &&
+const candidates = pages.flatMap(page => page.artifacts).filter(artifact =>
+  isRetainedWakeStateArtifact(artifact.name, harness, process.env.GITHUB_RUN_ID) &&
   !artifact.expired && artifact.workflow_run?.head_branch === process.env.GITHUB_REF_NAME)
 let restored = false
 for (const previous of candidates) {

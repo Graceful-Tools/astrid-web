@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 
-import { appendFileSync } from "fs"
 import { loadScriptEnv } from './lib/load-env'
 import { parseClaimArgs } from './lib/fixall-claim-args'
+import { fetchScriptToken, recordClaim, requestFixallClaim } from './lib/fixall-claim-request'
 
 loadScriptEnv()
 
@@ -10,6 +10,9 @@ loadScriptEnv()
  * Argv parsing lives in scripts/lib/fixall-claim-args.ts so it can be tested.
  * It used to be a `filter(arg => !arg.startsWith("--"))` here, which dropped
  * `--agent` but kept its value as the comment watermark — see AWTD-922.
+ *
+ * To take the first Ready task nobody else has rather than a named one, use
+ * scripts/claim-next-fixall-task.ts (ADEV-26), which moves past a 409 by itself.
  */
 let args
 try {
@@ -29,36 +32,10 @@ if (!clientId || !clientSecret) {
 }
 
 async function main() {
-  const tokenResponse = await fetch("https://astrid.cc/api/v1/oauth/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      grant_type: "client_credentials",
-      client_id: clientId,
-      client_secret: clientSecret,
-    }),
-  })
-  if (!tokenResponse.ok) {
-    throw new Error(`OAuth token request failed with HTTP ${tokenResponse.status}`)
-  }
-  const { access_token: token } = await tokenResponse.json()
+  const token = await fetchScriptToken({ clientId: clientId!, clientSecret: clientSecret! })
+  const attempt = await requestFixallClaim({ token, taskId, action, commentWatermark, agent, resume, listId })
 
-  const response = await fetch(`https://astrid.cc/api/v1/tasks/${taskId}/claim-fixall`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-OAuth-Token": token,
-    },
-    body: JSON.stringify({
-      action,
-      commentWatermark,
-      ...(agent ? { agent } : {}),
-      ...(resume ? { resume } : {}),
-      ...(listId ? { listId } : {}),
-    }),
-  })
-
-  if (response.status === 409) {
+  if (attempt.status === 'conflict') {
     // Exit 2, not 1: another session claimed it first. That is an ordinary
     // outcome of two loops sharing a board, and the caller should move to the
     // next task rather than treat it as a failure.
@@ -67,26 +44,16 @@ async function main() {
     // things — a lost race, and "no active agent account for <mailbox>" — and
     // printing one fixed sentence for both sent a /fixall run looking for a
     // peer session that did not exist (AWTD-922).
-    const reason = await response.text().catch(() => "")
     console.error(
       `CLAIM_CONFLICT ${taskId}: claimed by someone else, or no longer eligible${
-        reason ? ` — server said: ${reason}` : ""
+        attempt.reason ? ` — server said: ${attempt.reason}` : ""
       }`,
     )
     process.exit(2)
   }
-  if (!response.ok) {
-    throw new Error(`Claim failed with HTTP ${response.status}: ${await response.text()}`)
-  }
 
   console.log(`CLAIMED ${taskId}`)
-
-  // A scheduled runner passes a file to collect this run's claims. After the run
-  // it releases any of them still in Doing — the run died or stopped mid-task —
-  // so they do not sit there forever (scripts/release-stuck-doing.ts). Only a
-  // Ready or resume claim moves a task to Doing.
-  const claimsFile = process.env.ASTRID_FIXALL_CLAIMS_FILE
-  if (claimsFile && (action === "ready" || action === 'resume')) appendFileSync(claimsFile, `${taskId}\n`)
+  recordClaim(taskId, action)
 }
 
 main().catch(error => {
