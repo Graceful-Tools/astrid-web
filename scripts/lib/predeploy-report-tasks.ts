@@ -101,7 +101,8 @@ export function selectReportTaskFor<T extends PredeployTaskLike>(
  * A feature branch's red gate is that branch's business: on 2026-11-16 all three
  * "Predeploy Failed" tasks on the web board came from branches, and each one
  * outranked real work at the top of Ready. Without an `origin/main` ref (a
- * shallow CI checkout) it trusts `GITHUB_REF`. `ASTRID_PREDEPLOY_FILE_TASKS`
+ * shallow CI checkout) it trusts `GITHUB_REF`. A dirty working tree is work in
+ * progress, never main (ADEV-44). `ASTRID_PREDEPLOY_FILE_TASKS`
  * set to 1 forces filing and 0 forbids it.
  */
 export function predeployReportScope(opts: {
@@ -113,6 +114,11 @@ export function predeployReportScope(opts: {
   if (force === '0') return { file: false, reason: 'ASTRID_PREDEPLOY_FILE_TASKS=0' }
   const git = (...args: string[]) =>
     spawnSync('git', args, { cwd: opts.cwd, stdio: 'ignore' }).status === 0
+  // ADEV-44: staged or unstaged edits on a fresh branch still have HEAD on origin/main.
+  const status = spawnSync('git', ['status', '--porcelain'], { cwd: opts.cwd, encoding: 'utf8' })
+  if (status.status === 0 && status.stdout.trim() !== '') {
+    return { file: false, reason: 'working tree has uncommitted changes (work in progress)' }
+  }
   if (git('rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main')) {
     return git('merge-base', '--is-ancestor', 'HEAD', 'refs/remotes/origin/main')
       ? { file: true, reason: 'HEAD is on origin/main' }
