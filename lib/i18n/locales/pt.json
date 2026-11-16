@@ -1813,6 +1813,8 @@
     "hideLists": "Ocultar listas de {name}",
     "boardAddList": "Adicionar lista",
     "boardRemoveRow": "Remover {name} deste quadro",
+    "boardColumnCount": "{column}: {count}",
+    "boardDoneCount": "{column}: {count} (últimas {hours} h)",
     "boardEmpty": "Arraste uma lista da barra lateral para cá ou use Adicionar lista.",
     "boardNoCandidates": "Todas as listas já estão neste quadro.",
     "boardSaveFailed": "Não foi possível salvar as listas deste quadro. Tente novamente.",

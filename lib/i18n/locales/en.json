@@ -1813,6 +1813,8 @@
     "hideLists": "Hide lists in {name}",
     "boardAddList": "Add list",
     "boardRemoveRow": "Remove {name} from this board",
+    "boardColumnCount": "{column}: {count}",
+    "boardDoneCount": "{column}: {count} (last {hours}h)",
     "boardEmpty": "Drag a list here from the sidebar, or use Add list.",
     "boardNoCandidates": "Every list is already on this board.",
     "boardSaveFailed": "Couldn't save this board's lists. Please try again.",

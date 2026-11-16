@@ -1813,6 +1813,8 @@
     "hideLists": "隱藏 {name} 中的清單",
     "boardAddList": "新增清單",
     "boardRemoveRow": "從此看板移除 {name}",
+    "boardColumnCount": "{column}：{count}",
+    "boardDoneCount": "{column}：{count}（最近 {hours} 小時）",
     "boardEmpty": "從側邊欄將清單拖到這裡，或使用「新增清單」。",
     "boardNoCandidates": "所有清單都已在此看板上。",
     "boardSaveFailed": "無法儲存此看板的清單，請再試一次。",
