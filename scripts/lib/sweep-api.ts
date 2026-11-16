@@ -73,6 +73,23 @@ export class SweepApi {
     return response.ok
   }
 
+  /** Post an approval card (AWTD-1694). One card per action and commit: a repeat answers 200, not 201. */
+  async requestApproval(
+    task: { id: string },
+    approval: { action: 'deploy' | 'migrate'; sha: string; summary: string },
+  ): Promise<boolean> {
+    if (this.dryRun) return true
+    const response = await this.fetchImpl(`${this.apiBase}/api/v1/tasks/${task.id}/approvals`, {
+      method: "POST",
+      headers: { ...this.auth, "Content-Type": "application/json" },
+      body: this.signed(approval),
+    })
+    if (!response.ok) {
+      this.report(`  ⚠️ could not post an approval card on ${task.id}: HTTP ${response.status}`)
+    }
+    return response.ok
+  }
+
   async comment(task: { id: string }, content: string): Promise<void> {
     if (this.dryRun) return
     const response = await this.fetchImpl(`${this.apiBase}/api/v1/tasks/${task.id}/comments`, {

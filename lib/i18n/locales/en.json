@@ -198,6 +198,14 @@
       "count": "Comments ({count})",
       "hideSystemTitle": "Hide system comments",
       "showSystemTitle": "Show system comments",
+      "approval": {
+        "approve": "Approve",
+        "decline": "Decline",
+        "declineReasonPlaceholder": "Why are you declining?",
+        "approvedBy": "Approved by {name}",
+        "declinedBy": "Declined by {name}: {reason}",
+        "decisionError": "Could not record your decision. Try again."
+      },
       "hideSystem": "Hide system",
       "showSystem": "Show system",
       "refreshShort": "Refresh",

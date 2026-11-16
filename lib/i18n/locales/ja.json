@@ -198,6 +198,14 @@
       "count": "コメント ({count})",
       "hideSystemTitle": "システムコメントを非表示",
       "showSystemTitle": "システムコメントを表示",
+      "approval": {
+        "approve": "承認",
+        "decline": "却下",
+        "declineReasonPlaceholder": "却下する理由は？",
+        "approvedBy": "{name} が承認しました",
+        "declinedBy": "{name} が却下しました: {reason}",
+        "decisionError": "決定を記録できませんでした。もう一度お試しください。"
+      },
       "hideSystem": "システムを非表示",
       "showSystem": "システムを表示",
       "refreshShort": "更新",

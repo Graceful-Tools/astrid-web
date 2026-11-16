@@ -255,6 +255,27 @@ export function migrationHold(pending: PendingMigration[]): string | null {
 }
 
 /**
+ * What an approval card for a held deploy says (AWTD-1694): exactly what will run, so the person
+ * who taps Approve is approving this and nothing else. A migration is the only hold today, and
+ * `migrate` dispatches with `allow_destructive_migrations=true`, so the card says what that asserts.
+ */
+export function migrationApprovalSummary(input: { sha: string; hold: string; pending: PendingMigration[] }): string {
+  const lines = [
+    `**Approval needed to deploy \`${input.sha.slice(0, 8)}\` with its pending migration(s).**`,
+    '',
+    `Held because: ${input.hold}`,
+    '',
+    `Pending: ${input.pending.map(migration => `\`${migrationSqlPath(migration.name)}\``).join(', ') || '(none listed)'}`,
+    '',
+    `Approve runs \`production-deployment.yml\` on \`main\` at exactly \`${input.sha}\` with \`allow_destructive_migrations=true\`. ` +
+      'That states, on the record, that the code which stopped using whatever the migration drops or rewrites is already live ' +
+      '(docs/CLI_OPERATIONS.md, a destructive migration takes two deploys). If it is not, decline. ' +
+      'A newer commit on `main` makes the deploy refuse, and needs a new card.',
+  ]
+  return lines.join('\n')
+}
+
+/**
  * The last gate before production changes.
  *
  * Ordered by how expensive the mistake is, not by how likely: a destructive
