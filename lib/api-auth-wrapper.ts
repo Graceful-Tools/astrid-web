@@ -9,6 +9,7 @@ import {
   type AuthContext,
 } from './api-auth-middleware'
 import { createLogger } from './logger'
+import { createHash } from 'node:crypto'
 
 /**
  * Boilerplate-free auth wrapper for route handlers.
@@ -77,6 +78,32 @@ export interface ShadowDenied {
   path: string
   needed: string[]
   shadowScopes: string[]
+  /** Short hash of the token row id, so one noisy token is countable. Never the token. */
+  tokenIdHash?: string
+}
+
+/** One would-deny per token and route in this window; the rest are the same fact again. */
+export const SHADOW_SAMPLE_WINDOW_MS = 60_000
+const SHADOW_SAMPLE_MAX_KEYS = 5_000
+const shadowSeen = new Map<string, number>()
+
+export function resetShadowSampler(): void {
+  shadowSeen.clear()
+}
+
+function shadowTokenHash(tokenId: string | undefined): string | undefined {
+  return tokenId ? createHash('sha256').update(tokenId).digest('hex').slice(0, 12) : undefined
+}
+
+/** True when this (token, route) has not been reported inside the window. */
+function shouldSampleShadow(tokenIdHash: string | undefined, route: string): boolean {
+  const now = Date.now()
+  const key = `${tokenIdHash ?? 'anon'}|${route}`
+  const last = shadowSeen.get(key)
+  if (last !== undefined && now - last < SHADOW_SAMPLE_WINDOW_MS) return false
+  if (shadowSeen.size >= SHADOW_SAMPLE_MAX_KEYS) shadowSeen.clear()
+  shadowSeen.set(key, now)
+  return true
 }
 
 type Handler<TContext> = (
@@ -161,14 +188,18 @@ export function withAuth<TContext = unknown>(
         ((needed ? !hasRequiredScopes(shadow, needed) : false) ||
           (anyOf.length > 0 && !anyOf.some(scope => hasRequiredScopes(shadow, [scope]))))
       if (auth.source === 'legacy_mcp' && shadow && shadowDenied) {
-        const info: ShadowDenied = {
-          tag: options.tag,
-          path: req.nextUrl.pathname,
-          needed: needed ?? anyOf,
-          shadowScopes: shadow,
+        const tokenIdHash = shadowTokenHash(auth.tokenId)
+        if (shouldSampleShadow(tokenIdHash, `${options.tag ?? ''}|${req.nextUrl.pathname}`)) {
+          const info: ShadowDenied = {
+            tag: options.tag,
+            path: req.nextUrl.pathname,
+            needed: needed ?? anyOf,
+            shadowScopes: shadow,
+            tokenIdHash,
+          }
+          if (options.onShadowDenied) options.onShadowDenied(info)
+          else log.warn(info, 'access token would be denied under scope mapping')
         }
-        if (options.onShadowDenied) options.onShadowDenied(info)
-        else log.warn(info, 'access token would be denied under scope mapping')
       }
     }
 
