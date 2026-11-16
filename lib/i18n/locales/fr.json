@@ -1813,6 +1813,8 @@
     "hideLists": "Masquer les listes de {name}",
     "boardAddList": "Ajouter une liste",
     "boardRemoveRow": "Retirer {name} de ce tableau",
+    "boardColumnCount": "{column} : {count}",
+    "boardDoneCount": "{column} : {count} ({hours} dernières h)",
     "boardEmpty": "Faites glisser une liste depuis la barre latérale, ou utilisez Ajouter une liste.",
     "boardNoCandidates": "Toutes les listes sont déjà sur ce tableau.",
     "boardSaveFailed": "Impossible d'enregistrer les listes de ce tableau. Veuillez réessayer.",

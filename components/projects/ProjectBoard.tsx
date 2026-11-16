@@ -18,6 +18,10 @@
  * the scroller and snaps to its start. A scroller-wide cell leaves no room for
  * the row-header column, so each cell names its row's list instead.
  *
+ * The row header is a narrow card in its list's colour (ADEV-22): the list's
+ * image, the name wrapped, and a count for every column. The column headers
+ * stick to the top of the scroller so they stay visible on a long board.
+ *
  * Rows are chosen per person and saved on the server
  * (`useProjectBoardRows`): drag a list from the sidebar onto the board, or use
  * Add list, and × on a row header removes it. Loaded lazily from
@@ -50,7 +54,9 @@ import {
 } from "@/lib/project-status"
 import {
   addBoardRow,
+  boardDoneWindowHours,
   boardRowCandidates,
+  boardRowTextColor,
   buildSwimlanes,
   PROJECT_BOARD_LIST_DRAG_TYPE,
   readDraggedListId,
@@ -144,25 +150,53 @@ export function ProjectBoard({
   // point. The row's gap plus this quarter-rem is the scroller's 1rem padding.
   const snapTail = isOneColumn ? <div className="w-1 shrink-0" aria-hidden="true" /> : null
 
-  const rowLabel = (lane: (typeof lanes)[number]) => (
-    <>
-      <div className="min-w-0">
-        <div className="truncate text-sm font-semibold theme-text-primary">{lane.list.name}</div>
-        <div className="text-xs theme-text-muted">{lane.total}</div>
-      </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="h-6 w-6 shrink-0 p-0 theme-text-muted hover:theme-text-primary"
-        aria-label={t("projectMode.boardRemoveRow", { name: lane.list.name })}
-        title={t("projectMode.boardRemoveRow", { name: lane.list.name })}
-        data-testid={`project-board-remove-${lane.list.id}`}
-        onClick={() => removeRow(lane.list.id)}
-      >
-        <X className="h-4 w-4" aria-hidden="true" />
-      </Button>
-    </>
-  )
+  const rowLabel = (lane: (typeof lanes)[number]) => {
+    const hours = boardDoneWindowHours(lane.list)
+    return (
+      <>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex items-start gap-2">
+            {lane.list.imageUrl && (
+               
+              <img src={lane.list.imageUrl} alt="" className="h-6 w-6 shrink-0 rounded object-cover" />
+            )}
+            <div className="min-w-0 break-words text-sm font-semibold leading-tight">{lane.list.name}</div>
+          </div>
+          <ul className="space-y-0.5 text-xs opacity-90" data-testid={`project-board-counts-${lane.list.id}`}>
+            {columns.map(column => {
+              const count = lane.cells[column.id]?.length ?? 0
+              const label = boardColumnLabel(column, t)
+              return (
+                <li key={column.id}>
+                  {column.kind === "done" && hours !== null
+                    ? t("projectMode.boardDoneCount", { column: label, count: String(count), hours: String(hours) })
+                    : t("projectMode.boardColumnCount", { column: label, count: String(count) })}
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 shrink-0 p-0 text-current opacity-80 hover:bg-black/10 hover:opacity-100"
+          aria-label={t("projectMode.boardRemoveRow", { name: lane.list.name })}
+          title={t("projectMode.boardRemoveRow", { name: lane.list.name })}
+          data-testid={`project-board-remove-${lane.list.id}`}
+          onClick={() => removeRow(lane.list.id)}
+        >
+          <X className="h-4 w-4" aria-hidden="true" />
+        </Button>
+      </>
+    )
+  }
+
+  // The header card is the list's colour, with text chosen for contrast on it.
+  const rowHeaderStyle = (lane: (typeof lanes)[number]): React.CSSProperties | undefined => {
+    const color = lane.list.color
+    const text = boardRowTextColor(color)
+    return text ? { backgroundColor: color, color: text, borderColor: color } : undefined
+  }
 
   return (
     <div
@@ -221,8 +255,8 @@ export function ProjectBoard({
           </div>
         ) : (
           <div className={`${isOneColumn ? "flex" : "inline-flex min-w-full"} flex-col gap-3`}>
-            <div className="flex gap-3" role="row">
-              {!isOneColumn && <div className="w-48 shrink-0" />}
+            <div className="sticky top-0 z-10 -mx-4 -mt-4 flex gap-3 border-b theme-border theme-bg-primary px-4 py-2" role="row" data-testid="project-board-column-headers">
+              {!isOneColumn && <div className="w-32 shrink-0" />}
               {columns.map(column => (
                 <div key={column.id} className={`flex ${columnWidth} items-center gap-2 px-2 text-sm font-semibold theme-text-primary`} role="columnheader">
                   <span className="truncate">{boardColumnLabel(column, t)}</span>
@@ -236,7 +270,11 @@ export function ProjectBoard({
             {lanes.map(lane => (
               <div key={lane.list.id} className="flex h-80 gap-3" role="row" data-testid={`project-board-row-${lane.list.id}`}>
                 {!isOneColumn && (
-                  <div className="flex w-48 shrink-0 items-start justify-between gap-2 rounded-md border theme-border theme-bg-secondary px-3 py-2" role="rowheader">
+                  <div
+                    className="flex w-32 shrink-0 items-start justify-between gap-1 overflow-y-auto rounded-md border theme-border theme-bg-secondary px-2 py-2"
+                    style={rowHeaderStyle(lane)}
+                    role="rowheader"
+                  >
                     {rowLabel(lane)}
                   </div>
                 )}
@@ -257,7 +295,7 @@ export function ProjectBoard({
                     }}
                   >
                     {isOneColumn && (
-                      <div className="flex shrink-0 items-start justify-between gap-2 px-1 pb-2">
+                      <div className="mb-2 flex shrink-0 items-start justify-between gap-2 rounded-md border theme-border px-2 py-1" style={rowHeaderStyle(lane)}>
                         {rowLabel(lane)}
                       </div>
                     )}
