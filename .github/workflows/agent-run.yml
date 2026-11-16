@@ -438,9 +438,11 @@ jobs:
           set -o pipefail
           npm install --global @anthropic-ai/claude-code@2.1.306
           # The core checkout is outside the workspace, so it is added to what the agent may edit.
+          # The prompt ends with this run's ASTRID_CORE_PUSH (ADEV-33): on 2026-11-16 a worker
+          # claimed a core task, could not "tell whether this run can push", and released it.
           CORE_DIRS=()
           if [ -n "${ASTRID_CORE_DIR:-}" ]; then CORE_DIRS=(--add-dir "${ASTRID_CORE_DIR}"); fi
-          claude -p "$(cat .github/agent-run-prompt.md)" \
+          claude -p "$(cat .github/agent-run-prompt.md; printf '\n\n**This run (set by the runner):** ASTRID_CORE_PUSH=%s. 1 means you can push to astrid-core, so a `[core]` task is yours to do; 0 means take a web task.\n' "${ASTRID_CORE_PUSH:-0}")" \
             --mcp-config "${RUNNER_TEMP}/astrid-mcp.json" --strict-mcp-config \
             "${CORE_DIRS[@]}" \
             --permission-mode acceptEdits \
@@ -472,7 +474,7 @@ jobs:
             -c "mcp_servers.astrid.args=[\"${GITHUB_WORKSPACE}/mcp/astrid-mcp-launch.js\"]" \
             -c sandbox_workspace_write.network_access=true \
             "${CORE_ROOTS[@]}" \
-            exec --full-auto "$(cat .github/agent-run-prompt.md)" | tee .agent-output/agent-transcript.txt
+            exec --full-auto "$(cat .github/agent-run-prompt.md; printf '\n\n**This run (set by the runner):** ASTRID_CORE_PUSH=%s. 1 means you can push to astrid-core, so a `[core]` task is yours to do; 0 means take a web task.\n' "${ASTRID_CORE_PUSH:-0}")" | tee .agent-output/agent-transcript.txt
 
       # The harness exits 0 whether or not the agent finished. Smoke test 2
       # (AWTD-1366) could not open its PR, said RESULT: PARTIAL, and went green,
@@ -515,7 +517,13 @@ jobs:
             mkdir -p .agent-output
             git bundle create .agent-output/recovery.bundle HEAD --not --remotes=origin
             git rev-parse HEAD > .agent-output/recovery-head.txt
-            git push --set-upstream origin HEAD
+            # A task branch that moved on origin refuses this push (ADEV-33):
+            # the same HEAD goes to a recovery branch instead, never forced.
+            if ! git push --set-upstream origin HEAD; then
+              RECOVERY="agent/${ASTRID_FIXALL_HARNESS}/recovery-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+              echo "::warning::origin/${BRANCH} moved on; pushing this run's work to ${RECOVERY}"
+              git push origin "HEAD:refs/heads/${RECOVERY}"
+            fi
           fi
 
       # The same rescue for the core checkout (AWTD-1682): a run that died mid core task
@@ -539,7 +547,13 @@ jobs:
             mkdir -p "${GITHUB_WORKSPACE}/.agent-output"
             git bundle create "${GITHUB_WORKSPACE}/.agent-output/core-recovery.bundle" HEAD --not --remotes=origin
             git rev-parse HEAD > "${GITHUB_WORKSPACE}/.agent-output/core-recovery-head.txt"
-            git push --set-upstream origin HEAD
+            # A task branch that moved on origin refuses this push (ADEV-33):
+            # the same HEAD goes to a recovery branch instead, never forced.
+            if ! git push --set-upstream origin HEAD; then
+              RECOVERY="agent/${ASTRID_FIXALL_HARNESS}/recovery-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+              echo "::warning::origin/${BRANCH} moved on; pushing this run's work to ${RECOVERY}"
+              git push origin "HEAD:refs/heads/${RECOVERY}"
+            fi
           fi
 
       - name: Register finished cloud handoffs
