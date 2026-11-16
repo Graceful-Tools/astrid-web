@@ -488,6 +488,11 @@ jobs:
           # "RESULT: OKAY", and not the prompt's own format line
           # "RESULT: OK | SKIPPED | …" echoed back (AWTD-1424).
           if ! printf '%s\n' "${RESULT}" | grep -qE '^RESULT: (OK|SKIPPED)($| +[^| ])'; then
+            # A PARTIAL run still made progress (2026-11-16: an open PR, one
+            # item left), so the chain keeps going; the run stays red.
+            if printf '%s\n' "${RESULT}" | grep -qE '^RESULT: PARTIAL($| +[^| ])'; then
+              echo "result=PARTIAL" >> "${GITHUB_OUTPUT}"
+            fi
             echo "::error::The agent did not finish: ${RESULT:-it printed no RESULT line}"
             exit 1
           fi
@@ -585,10 +590,11 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      # What the chain job reads (ADEV-26). Written by the runner, after every step
-      # passed, into RUNNER_TEMP rather than .agent-output, which the agent can write.
+      # What the chain job reads (ADEV-26). Written by the runner, not the agent,
+      # into RUNNER_TEMP rather than .agent-output, which the agent can write. A
+      # PARTIAL worker is red but still records its word, so the chain goes on.
       - name: Record this worker's verdict for the chain
-        if: ${{ success() && steps.verdict.outputs.result != '' }}
+        if: ${{ !cancelled() && steps.verdict.outputs.result != '' }}
         env:
           RESULT: ${{ steps.verdict.outputs.result }}
         run: |
@@ -596,7 +602,7 @@ jobs:
           printf '%s\n' "${RESULT}" > "${RUNNER_TEMP}/agent-verdict/result.txt"
 
       - name: Upload this worker's verdict
-        if: ${{ success() && steps.verdict.outputs.result != '' }}
+        if: ${{ !cancelled() && steps.verdict.outputs.result != '' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: agent-verdict-${{ (inputs.harness || 'claude-code') }}-${{ github.run_id }}-slot-${{ matrix.slot }}
@@ -616,7 +622,8 @@ jobs:
   # actions: write, and with that the job could dispatch a production deploy.
   # Only the default harness chains: a repository_dispatch carries no inputs.
   #
-  # With N workers (ADEV-26) the run chains ONCE if ANY worker reported OK: one
+  # With N workers (ADEV-26) the run chains ONCE if ANY worker reported OK or
+  # PARTIAL (progress made): one
   # finished task means the queue may hold more, and the next run brings all N
   # slots back. It reads the per-slot verdict artifacts, not needs.run.outputs,
   # which a matrix overwrites with whichever worker finished last. It runs after
@@ -650,8 +657,8 @@ jobs:
         env:
           VERDICTS: ${{ runner.temp }}/agent-verdicts
         run: |
-          if ! grep -rqsx OK "${VERDICTS}"; then
-            echo "No worker reported OK (nothing done, or none finished); the schedule takes over"
+          if ! grep -rqsxE 'OK|PARTIAL' "${VERDICTS}"; then
+            echo "No worker reported OK or PARTIAL (nothing done, or none finished); the schedule takes over"
             exit 0
           fi
           if [ "${DEPTH}" -ge "${MAX_CHAIN}" ]; then
