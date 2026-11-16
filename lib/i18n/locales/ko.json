@@ -187,6 +187,13 @@
       "expandDescription": "설명 확대"
     },
     "commentsSection": {
+      "approvalApprove": "승인",
+      "approvalDecline": "거절",
+      "approvalConfirmDecline": "거절 확인",
+      "approvalApproved": "승인됨",
+      "approvalDeclined": "거절됨",
+      "approvalReasonPlaceholder": "사유(선택)",
+      "approvalFailed": "결정을 기록하지 못했습니다",
       "addPlaceholder": "댓글 추가...",
       "replyPlaceholder": "답글 작성...",
       "refresh": "댓글 새로고침",

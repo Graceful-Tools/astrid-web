@@ -187,6 +187,13 @@
       "expandDescription": "説明を拡大"
     },
     "commentsSection": {
+      "approvalApprove": "承認",
+      "approvalDecline": "却下",
+      "approvalConfirmDecline": "却下を確定",
+      "approvalApproved": "承認済み",
+      "approvalDeclined": "却下済み",
+      "approvalReasonPlaceholder": "理由(任意)",
+      "approvalFailed": "決定を記録できませんでした",
       "addPlaceholder": "コメントを追加...",
       "replyPlaceholder": "返信を書く...",
       "refresh": "コメントを更新",

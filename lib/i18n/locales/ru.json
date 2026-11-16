@@ -187,6 +187,13 @@
       "expandDescription": "Развернуть описание"
     },
     "commentsSection": {
+      "approvalApprove": "Одобрить",
+      "approvalDecline": "Отклонить",
+      "approvalConfirmDecline": "Подтвердить отказ",
+      "approvalApproved": "Одобрено",
+      "approvalDeclined": "Отклонено",
+      "approvalReasonPlaceholder": "Причина (необязательно)",
+      "approvalFailed": "Не удалось записать ваше решение",
       "addPlaceholder": "Добавить комментарий...",
       "replyPlaceholder": "Написать ответ...",
       "refresh": "Обновить комментарии",

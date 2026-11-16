@@ -187,6 +187,13 @@
       "expandDescription": "Beschrijving uitvouwen"
     },
     "commentsSection": {
+      "approvalApprove": "Goedkeuren",
+      "approvalDecline": "Afwijzen",
+      "approvalConfirmDecline": "Afwijzing bevestigen",
+      "approvalApproved": "Goedgekeurd",
+      "approvalDeclined": "Afgewezen",
+      "approvalReasonPlaceholder": "Reden (optioneel)",
+      "approvalFailed": "Je beslissing kon niet worden vastgelegd",
       "addPlaceholder": "Opmerking toevoegen...",
       "replyPlaceholder": "Schrijf een antwoord...",
       "refresh": "Opmerkingen vernieuwen",

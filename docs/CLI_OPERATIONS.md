@@ -71,6 +71,14 @@ it is serving (`commitSha`, below) and watch the run to completion.
   migrations (new table, nullable column, index) need no one (Jon, 2026-11-15). Anything with
   `DROP`, `RENAME`, `SET NOT NULL`, `UPDATE` or `DELETE` gets Jon, and
   `allow_destructive_migrations` stays `false` so the workflow refuses rather than guesses.
+  **The hold is an approval card (AWTD-1694).** When `land-and-deploy.ts` holds a deploy for a
+  migration it posts an approval request on each awaiting-deploy task
+  (`POST /api/v1/tasks/:id/approvals`): bound to one action and one full commit, stating the SQL
+  and the destructive-check result. A person the project's orchestration policy names under
+  `escalation` taps Approve (`POST /api/v1/tasks/:id/approvals/:commentId`), which records who
+  and dispatches `production-deployment.yml` with `expected_sha` through the GitHub App (needs its
+  `actions: write` permission). A reply in words is never approval, a newer commit needs a new
+  card, and `allow_destructive_migrations` stays `false`, so the two-deploy rule still holds.
 - **A red gate.** "All tests green" is the whole of the permission. A red gate that you
   believe is a false alarm is still red until you have shown why, on the record.
 

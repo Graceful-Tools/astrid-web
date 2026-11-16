@@ -187,6 +187,13 @@
       "expandDescription": "Beschreibung erweitern"
     },
     "commentsSection": {
+      "approvalApprove": "Genehmigen",
+      "approvalDecline": "Ablehnen",
+      "approvalConfirmDecline": "Ablehnung bestätigen",
+      "approvalApproved": "Genehmigt",
+      "approvalDeclined": "Abgelehnt",
+      "approvalReasonPlaceholder": "Grund (optional)",
+      "approvalFailed": "Deine Entscheidung konnte nicht gespeichert werden",
       "addPlaceholder": "Kommentar hinzufügen...",
       "replyPlaceholder": "Antwort schreiben...",
       "refresh": "Kommentare aktualisieren",

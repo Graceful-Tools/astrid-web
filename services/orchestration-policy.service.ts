@@ -232,3 +232,11 @@ export async function setProjectOrchestrationPolicy(
   await prisma.project.update({ where: { id: projectId }, data: { orchestrationPolicy: asJson(policy.value) } })
   return { ok: true, value: projectView({ ...project, orchestrationPolicy: policy.value as Prisma.JsonValue }, userId) }
 }
+
+/** What agents on a list run under, for a caller that already decided the reader may see it (AWTD-1694). */
+export async function effectivePolicyForList(listId: string): Promise<OrchestrationPolicy | null> {
+  const list = await loadList(listId)
+  if (!list) return null
+  const projectOverride = list.project ? storedOverride(list.project.orchestrationPolicy, `project ${list.project.id}`) : null
+  return resolve(projectOverride, storedOverride(list.orchestrationPolicy, `list ${list.id}`))
+}

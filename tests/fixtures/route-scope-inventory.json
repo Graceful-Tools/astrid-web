@@ -107,6 +107,8 @@
   "sync/google/task-links/route.ts": "all:tasks:read,tasks:write",
   "sync/google/tasklists/route.ts": "all:tasks:read,tasks:write",
   "sync/google/tasks/route.ts": "all:tasks:read,tasks:write",
+  "tasks/[id]/approvals/[commentId]/route.ts": "all:comments:write",
+  "tasks/[id]/approvals/route.ts": "all:comments:write",
   "tasks/[id]/attachment-uploads/route.ts": "all:comments:write",
   "tasks/[id]/blockers/[blockingTaskId]/route.ts": "all:tasks:write",
   "tasks/[id]/blockers/route.ts": "all:tasks:read,tasks:write",

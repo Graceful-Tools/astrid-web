@@ -187,6 +187,13 @@
       "expandDescription": "Espandi descrizione"
     },
     "commentsSection": {
+      "approvalApprove": "Approva",
+      "approvalDecline": "Rifiuta",
+      "approvalConfirmDecline": "Conferma il rifiuto",
+      "approvalApproved": "Approvato",
+      "approvalDeclined": "Rifiutato",
+      "approvalReasonPlaceholder": "Motivo (facoltativo)",
+      "approvalFailed": "Impossibile registrare la tua decisione",
       "addPlaceholder": "Aggiungi un commento...",
       "replyPlaceholder": "Scrivi una risposta...",
       "refresh": "Aggiorna commenti",

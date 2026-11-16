@@ -17,6 +17,8 @@ import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
 import { RichTextInput } from "@/components/shared/RichTextInput"
 import { MessageBubble } from "@/components/shared/MessageBubble"
 import { DecisionCards } from "@/components/task-detail/DecisionCards"
+import { ApprovalCard } from "@/components/task-detail/ApprovalCard"
+import { parseApprovalRequest } from "@/lib/approvals"
 import { parseDecision, chosenNumber } from "@/lib/comment-formats"
 import { buildPendingComments, postPendingComments } from "@/lib/comment-posting"
 import { nestComments, updateComment, removeComment, settleOptimisticComment } from "@/lib/comment-stream"
@@ -529,6 +531,10 @@ export function CommentSection({
           identifiers={identifiers}
         />
       )
+    }
+    // Approval requests (AWTD-1694): the server marks them, so a reply cannot pose as one.
+    if (!isSystem && parseApprovalRequest(comment.systemEventType)) {
+      decisionContent = <ApprovalCard taskId={task.id} comment={comment} thread={task.comments || []} canDecide={!readOnly} onDecided={onRefreshComments} identifiers={identifiers} />
     }
     return (
       <MessageBubble

@@ -61,6 +61,7 @@ import { isAwaitingDeploy, isAwaitingMerge } from './lib/doing-release'
 import { boardTasksUrl } from './lib/board-read-url'
 import { loadScriptEnv } from './lib/load-env'
 import { SweepApi } from './lib/sweep-api'
+import { findDestructiveStatements } from './lib/destructive-migrations'
 import {
   RUNNER_PR_MARKER,
   carriesTaskId,
@@ -182,7 +183,9 @@ async function servingSha(): Promise<string | null> {
  * that failed finishes nothing, because the question is put to production.
  * Best effort — a failure here leaves the task waiting for the next tick.
  */
-async function completeDeployedTasks(listId: string): Promise<string[]> {
+/** The board's tasks with a current `AWAITING-DEPLOY:` handoff, read with the OAuth client's token. */
+async function awaitingDeployOnBoard(listId: string) {
+  const empty = { token: '', auth: {} as Record<string, string>, finished: [] as BoardRow[], awaiting: [] as AwaitingDeployTask[] }
   const tokenResponse = await fetch(`${API}/api/v1/oauth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -194,7 +197,7 @@ async function completeDeployedTasks(listId: string): Promise<string[]> {
   })
   if (!tokenResponse.ok) {
     log(`  ⚠️  awaiting-deploy check skipped: OAuth token request failed with HTTP ${tokenResponse.status}`)
-    return []
+    return empty
   }
   const { access_token: token } = (await tokenResponse.json()) as { access_token: string }
   const auth = { 'X-OAuth-Token': token }
@@ -203,13 +206,11 @@ async function completeDeployedTasks(listId: string): Promise<string[]> {
   const boardResponse = await fetch(boardTasksUrl({ boardId: listId, limit: 500 }), { headers: auth })
   if (!boardResponse.ok) {
     log(`  ⚠️  awaiting-deploy check skipped: board read failed with HTTP ${boardResponse.status}`)
-    return []
+    return empty
   }
   const boardBody = (await boardResponse.json()) as { tasks?: unknown } | unknown[]
   const listed = (Array.isArray(boardBody) ? boardBody : (boardBody as { tasks?: unknown }).tasks) ?? []
-  const finished = (listed as Array<{ id: string; identifier?: string | null; statusRole?: string | null; completed?: boolean;
-    assignee?: { email?: string | null } | null }>)
-    .filter(isAwaitingDeployLane)
+  const finished = (listed as BoardRow[]).filter(isAwaitingDeployLane)
 
   const awaiting: AwaitingDeployTask[] = []
   for (const task of finished) {
@@ -220,6 +221,58 @@ async function completeDeployedTasks(listId: string): Promise<string[]> {
     const sha = parseBlockedConditions(comments).awaitingDeploy
     if (sha) awaiting.push({ id: task.id, identifier: task.identifier, sha })
   }
+  return { token, auth, finished, awaiting }
+}
+
+type BoardRow = { id: string; identifier?: string | null; statusRole?: string | null; completed?: boolean;
+  assignee?: { email?: string | null } | null }
+
+/**
+ * A migration holds the deploy: put the decision on the board instead of a terminal (AWTD-1694).
+ * Each awaiting-deploy task of this commit gets an approval card stating the SQL and the
+ * destructive-check result. Approving it dispatches the deploy through the GitHub App; a
+ * destructive migration keeps its two-deploy rule, because the workflow's own check still refuses
+ * it. The server posts at most one open card per task and commit, so a tick may repeat this.
+ */
+async function requestMigrationApprovals(listId: string, sha: string, pending: PendingMigration[], reason: string) {
+  const { token, auth, finished, awaiting } = await awaitingDeployOnBoard(listId)
+  const sql = pending
+    .map(migration => `- \`${migrationSqlPath(migration.name)}\`: ${(migration.sql ?? '(unreadable)').trim().split('\n').slice(0, 6).join(' ').slice(0, 300)}`)
+    .join('\n')
+  const destructive = pending.some(migration => migration.sql === null || findDestructiveStatements(migration.sql).length > 0)
+  const summary = [
+    `Runs \`production-deployment.yml\` for \`${sha.slice(0, 8)}\`, applying ${pending.length} pending migration(s):`,
+    sql,
+    '',
+    `Destructive check: ${destructive ? 'REFUSES. ' + reason : 'passes (all additive).'}`,
+    destructive
+      ? 'Approving runs the deploy with `allow_destructive_migrations=false`, so the workflow will still refuse a destructive migration. Ship the code step first, then the migration (two deploys).'
+      : 'Approving ships the code and applies these migrations.',
+  ].join('\n')
+  for (const task of awaiting) {
+    const original = finished.find(row => row.id === task.id)
+    const mailbox = agentMailboxFromEmail(original?.assignee?.email ?? '')
+    if (!mailbox) continue
+    const authorId = await resolveAgentAuthorId({ mailbox, accessToken: token, warn: log })
+    const response = await fetch(`${API}/api/v1/tasks/${encodeURIComponent(task.id)}/approvals`, {
+      method: 'POST',
+      headers: { ...auth, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'migrate',
+        sha,
+        summary,
+        migration: destructive ? 'destructive' : 'additive',
+        ...(authorId ? { aiAgentId: authorId } : {}),
+      }),
+    })
+    log(response.ok
+      ? `  approval card for ${task.identifier ?? task.id} (${sha.slice(0, 8)})`
+      : `  ⚠️  approval card for ${task.identifier ?? task.id} failed: HTTP ${response.status}`)
+  }
+}
+
+async function completeDeployedTasks(listId: string): Promise<string[]> {
+  const { token, auth, finished, awaiting } = await awaitingDeployOnBoard(listId)
   if (!awaiting.length) return []
 
   const serving = await servingSha()
@@ -635,6 +688,14 @@ async function main() {
     pending,
     predeployGreen,
   })
+
+  if (heldByMigration && hasSomethingToShip && options.listId && !options.dryRun) {
+    try {
+      await requestMigrationApprovals(options.listId, sha, pending, heldByMigration)
+    } catch (error) {
+      log(`  ⚠️  could not post the approval card: ${(error as Error).message.split('\n')[0]}`)
+    }
+  }
 
   let verified = false
   let runUrl: string | undefined
