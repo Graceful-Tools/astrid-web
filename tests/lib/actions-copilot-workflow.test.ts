@@ -11,10 +11,10 @@
  */
 
 import { execFileSync } from 'node:child_process'
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it, vi } from 'vitest'
 
 import { queueContractLine, ORCHESTRATION_GUIDANCE } from '@/lib/agent-skill/astrid-queue-skill'
 import {
@@ -25,7 +25,12 @@ import {
 } from '@/lib/agent-skill/loop-recipes'
 import { STARTER_AGENTS, starterAgentSetup, startHereMarkdown } from '@/lib/start-here/business-blueprint'
 
+import { installAgentStub } from './astrid-agent-gate-stub'
+
 const { load } = require('js-yaml') as { load(source: string): unknown }
+
+// The gate step starts the real CLI under tsx, which is slow when the full suite shares the CPU.
+vi.setConfig({ testTimeout: 60_000 })
 
 const ORIGIN = 'https://example.test'
 const workflow = actionsCopilotWorkflow({ mailbox: 'copilot', origin: ORIGIN, listId: 'list-review' })
@@ -36,25 +41,22 @@ const doc = load(workflow.content) as { on: Record<string, unknown>; jobs: Recor
 const tmp = mkdtempSync(join(tmpdir(), 'astrid-copilot-gate-'))
 afterAll(() => rmSync(tmp, { recursive: true, force: true }))
 
-function runGate(queue: unknown): { hasWork: string; curlArgs: string } {
+/** Run the gate step with `npx astrid-agent` answering from `queue` (ADEV-8). */
+function runGate(queue: unknown): { hasWork: string; args: string; env: string } {
   const gate = doc.jobs['queue-gate'].steps.find(s => s.id === 'queue')!
-  const script = gate.run!.replace(/\$\{\{ secrets\.[A-Z_]+ \}\}/g, 'astrid_mcp_test')
-  const bin = join(tmp, 'bin')
-  execFileSync('mkdir', ['-p', bin])
-  writeFileSync(join(tmp, 'queue-fixture.json'), JSON.stringify(queue))
-  writeFileSync(
-    join(bin, 'curl'),
-    `#!/bin/bash\necho "$@" > "${join(tmp, 'curl-args')}"\ncat "${join(tmp, 'queue-fixture.json')}"\n`,
-  )
-  chmodSync(join(bin, 'curl'), 0o755)
+  // GitHub substitutes ${{ secrets.X }} and puts the step's `env:` in the environment.
+  const fill = (value: string) => value.replace(/\$\{\{ secrets\.[A-Z_]+ \}\}/g, 'astrid_mcp_test')
+  const stepEnv = Object.fromEntries(Object.entries(gate.env ?? {}).map(([k, v]) => [k, fill(v)]))
+  const bin = installAgentStub(tmp)
+  writeFileSync(join(tmp, 'fixture.json'), JSON.stringify(queue))
   const output = join(tmp, 'github-output')
   writeFileSync(output, '')
-  execFileSync('bash', ['-e', '-c', script], {
+  execFileSync('bash', ['-e', '-c', fill(gate.run!)], {
     cwd: tmp,
-    env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_OUTPUT: output },
+    env: { ...process.env, ...stepEnv, PATH: `${bin}:${process.env.PATH}`, GITHUB_OUTPUT: output },
   })
   const hasWork = /has-work=(\w+)/.exec(readFileSync(output, 'utf8'))?.[1] ?? ''
-  return { hasWork, curlArgs: readFileSync(join(tmp, 'curl-args'), 'utf8') }
+  return { hasWork, args: readFileSync(join(tmp, 'npx-args'), 'utf8'), env: readFileSync(join(tmp, 'npx-env'), 'utf8') }
 }
 
 const agentJob = () => doc.jobs.copilot
@@ -69,10 +71,14 @@ describe('Copilot CLI in GitHub Actions (AWTD-1502)', () => {
 
   it('gate: an empty queue starts nothing, queued work starts Copilot (AWTD-1502)', () => {
     expect(runGate({ empty: true, queue: [] }).hasWork).toBe('false')
-    const { hasWork, curlArgs } = runGate({ empty: false, queue: [{ id: 't1' }] })
+    const { hasWork, args, env } = runGate({ empty: false, queue: [{ id: 't1' }] })
     expect(hasWork).toBe('true')
-    expect(curlArgs).toContain(`${ORIGIN}/api/v1/agent-queue?agent=copilot&listId=list-review`)
-    expect(curlArgs).toContain('Authorization: Bearer astrid_mcp_test')
+    // One astrid-agent call, on the SDK's major 1, against this list's queue.
+    expect(args).toContain('@gracefultools/astrid-sdk@1 astrid-agent queue --agent copilot --list list-review')
+    // The same agent-bound token the worker uses, as ASTRID_TOKEN.
+    expect(env).toContain('ASTRID_TOKEN=astrid_mcp_test')
+    expect(env).toContain(`ASTRID_API_URL=${ORIGIN}`)
+    expect(doc.jobs['queue-gate'].steps.find(s => s.id === 'queue')!.run).not.toMatch(/curl|jq/)
     expect(agentJob().needs).toBe('queue-gate')
     expect(agentJob().if).toBe("needs.queue-gate.outputs.has-work == 'true'")
   })

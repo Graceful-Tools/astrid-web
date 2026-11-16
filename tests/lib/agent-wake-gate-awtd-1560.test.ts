@@ -8,15 +8,17 @@
  * either would start a paid agent session every half hour. The gate keeps a
  * seen set between runs instead, the way the local runner's seen-file does.
  *
- * Each test RUNS the generated gate step with `curl` stubbed, in a directory
- * that persists between ticks, the way actions/cache carries `.astrid-wake/`.
+ * Since ADEV-8 the decision is `astrid-agent queue`'s, not shell's. Each test
+ * RUNS the generated gate step with `npx` stubbed to the real CLI source (see
+ * astrid-agent-gate-stub.ts), in a directory that persists between ticks, the
+ * way actions/cache carries `.astrid-wake/`.
  */
 
 import { execFileSync } from 'node:child_process'
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it, vi } from 'vitest'
 
 import {
   actionsClaudeCodeWorkflow,
@@ -24,10 +26,15 @@ import {
   actionsQueueGateWorkflow,
 } from '@/lib/agent-skill/loop-recipes'
 
+import { installAgentStub } from './astrid-agent-gate-stub'
+
 const { load } = require('js-yaml') as { load(source: string): unknown }
 
-type Step = { id?: string; uses?: string; run?: string; if?: string; with?: Record<string, string> }
+type Step = { id?: string; uses?: string; run?: string; if?: string; with?: Record<string, string>; env?: Record<string, string> }
 type Doc = { jobs: Record<string, { steps: Step[] }> }
+
+// Every tick starts the real CLI under tsx, which is slow when the full suite shares the CPU.
+vi.setConfig({ testTimeout: 60_000 })
 
 const ORIGIN = 'https://example.test'
 const roots: string[] = []
@@ -45,10 +52,7 @@ function gate(content: string) {
   const steps = doc.jobs['queue-gate'].steps
   const dir = mkdtempSync(join(tmpdir(), 'astrid-wake-'))
   roots.push(dir)
-  const bin = join(dir, 'bin')
-  mkdirSync(bin)
-  writeFileSync(join(bin, 'curl'), `#!/bin/bash\nif [[ "$*" == *oauth/token* ]]; then echo '{"access_token":"t"}'; else cat "${join(dir, 'fixture.json')}"; fi\n`)
-  chmodSync(join(bin, 'curl'), 0o755)
+  const bin = installAgentStub(dir)
   const work = join(dir, 'work')
   mkdirSync(work)
   return {
@@ -57,10 +61,13 @@ function gate(content: string) {
       writeFileSync(join(dir, 'fixture.json'), JSON.stringify(queue))
       const output = join(dir, 'out')
       writeFileSync(output, '')
-      const script = steps.find(s => s.id === 'queue')!.run!.replace(/\$\{\{[^}]+\}\}/g, 'x')
-      execFileSync('bash', ['-e', '-c', script], {
+      const step = steps.find(s => s.id === 'queue')!
+      // GitHub substitutes ${{ secrets.X }} and puts the step's `env:` in the environment.
+      const fill = (value: string) => value.replace(/\$\{\{[^}]+\}\}/g, 'x')
+      const stepEnv = Object.fromEntries(Object.entries(step.env ?? {}).map(([k, v]) => [k, fill(v)]))
+      execFileSync('bash', ['-e', '-c', fill(step.run!)], {
         cwd: work,
-        env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_OUTPUT: output },
+        env: { ...process.env, ...stepEnv, PATH: `${bin}:${process.env.PATH}`, GITHUB_OUTPUT: output },
       })
       return /has-work=(\w+)/.exec(readFileSync(output, 'utf8'))?.[1] ?? ''
     },
@@ -99,10 +106,14 @@ describe.each(Object.entries(GATES))('the %s wakes per Jon\'s option 1 (AWTD-156
     expect(g.tick(partial)).toBe('false')
   })
 
-  it('falls back to the old Ready-only rule on a server without runnable', () => {
+  it('wakes on Ready work from a server that predates runnable', () => {
     const g = gate(workflow.content)
     expect(g.tick({ empty: false, queue: [{ id: 'q1' }] })).toBe('true')
-    expect(g.tick({ empty: true, queue: [], attention: { tasks: [reply('c1')], messages: [] } })).toBe('false')
+  })
+
+  it('fails the job, never idles, when the queue cannot be read (ADEV-8)', () => {
+    const g = gate(workflow.content)
+    expect(() => g.tick({ status: 500, error: 'boom' })).toThrow()
   })
 
   it('carries the seen set between runs with actions/cache, restored before and saved after the read', () => {
