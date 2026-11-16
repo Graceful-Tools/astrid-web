@@ -25,7 +25,7 @@ function textFiles(path: string): string[] {
 function npxPackagesIn(path: string): Array<{ file: string; line: number; packageName: string }> {
   const contents = readFileSync(path, 'utf8')
   const results: Array<{ file: string; line: number; packageName: string }> = []
-  const commandPattern = /\bnpx\s+(?:(?:--yes|--no-install)\s+)*([^\s`"'\\]+)/g
+  const commandPattern = /\bnpx\s+(?:(?:--yes|--no-install|-p|--package)\s+)*([^\s`"'\\]+)/g
 
   for (const match of contents.matchAll(commandPattern)) {
     const token = match[1]
@@ -56,6 +56,8 @@ function workspaceExecutables(): Set<string> {
       name?: string
       bin?: string | Record<string, string>
     }
+    // `npx -p <package> <bin>` names the package, not the executable.
+    if (manifest.name) executables.add(manifest.name)
     if (typeof manifest.bin === 'string' && manifest.name) {
       executables.add(manifest.name.split('/').at(-1)!)
     } else {

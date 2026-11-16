@@ -19,7 +19,8 @@ import { BRAND } from '@/lib/brand/config'
 
 // 1.9.0 (AWTD-1693): merge, deploy, migrations, releases and spending follow the stored
 // orchestration policy (get_orchestration_policy) instead of a hard-coded "never".
-export const QUEUE_SKILL_VERSION = '1.9.0'
+// 1.10.0 (ADEV-8): generated gates call `astrid-agent queue` instead of inline curl and jq.
+export const QUEUE_SKILL_VERSION = '1.10.0'
 // 1.7.1 (AWTD-1691): names `astrid-agent claim` instead of the deleted AstridOAuthClient.
 // 1.8.0 (AWTD-1688): a claim carries a lease; heartbeat while working.
 // 1.9.0 (AWTD-1693): the orchestration policy, as above.

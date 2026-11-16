@@ -35,27 +35,24 @@ const doc = load(workflow.content) as { on: Record<string, unknown>; jobs: Recor
 const tmp = mkdtempSync(join(tmpdir(), 'astrid-gate-'))
 afterAll(() => rmSync(tmp, { recursive: true, force: true }))
 
-/** Run the gate step's script with curl stubbed to return `queue`. */
-function runGate(queue: unknown): { hasWork: string; curlArgs: string } {
+/** Run the gate step's script with `npx` stubbed to exit `code` (0 work, 3 idle). */
+function runGate(code: number): { hasWork: string; npxArgs: string } {
   const gate = doc.jobs['queue-gate'].steps.find(s => s.id === 'queue')!
-  // GitHub substitutes ${{ secrets.X }} before the shell runs.
-  const script = gate.run!.replace(/\$\{\{ secrets\.[A-Z_]+ \}\}/g, 'astrid_mcp_test')
   const bin = join(tmp, 'bin')
   execFileSync('mkdir', ['-p', bin])
-  writeFileSync(join(tmp, 'queue-fixture.json'), JSON.stringify(queue))
   writeFileSync(
-    join(bin, 'curl'),
-    `#!/bin/bash\necho "$@" > "${join(tmp, 'curl-args')}"\ncat "${join(tmp, 'queue-fixture.json')}"\n`,
+    join(bin, 'npx'),
+    `#!/bin/bash\necho "$@" > "${join(tmp, 'npx-args')}"\necho '{"version":1}'\nexit ${code}\n`,
   )
-  chmodSync(join(bin, 'curl'), 0o755)
+  chmodSync(join(bin, 'npx'), 0o755)
   const output = join(tmp, 'github-output')
   writeFileSync(output, '')
-  execFileSync('bash', ['-e', '-c', script], {
+  execFileSync('bash', ['-e', '-c', gate.run!], {
     cwd: tmp,
     env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_OUTPUT: output },
   })
   const hasWork = /has-work=(\w+)/.exec(readFileSync(output, 'utf8'))?.[1] ?? ''
-  return { hasWork, curlArgs: readFileSync(join(tmp, 'curl-args'), 'utf8') }
+  return { hasWork, npxArgs: readFileSync(join(tmp, 'npx-args'), 'utf8') }
 }
 
 describe('Claude Code in GitHub Actions (AWTD-1494)', () => {
@@ -65,15 +62,17 @@ describe('Claude Code in GitHub Actions (AWTD-1494)', () => {
   })
 
   it('gate: an empty queue starts nothing — a quiet half hour costs no Claude usage', () => {
-    expect(runGate({ empty: true, queue: [] }).hasWork).toBe('false')
+    expect(runGate(3).hasWork).toBe('false')
   })
 
   it('gate: queued work starts the Claude job', () => {
-    const { hasWork, curlArgs } = runGate({ empty: false, queue: [{ id: 't1' }] })
+    const { hasWork, npxArgs } = runGate(0)
     expect(hasWork).toBe('true')
-    // The same agent-bound token, as a bearer, against this list's queue.
-    expect(curlArgs).toContain(`${ORIGIN}/api/v1/agent-queue?agent=claude&listId=list-build`)
-    expect(curlArgs).toContain('Authorization: Bearer astrid_mcp_test')
+    // astrid-agent queue against this list, with the same agent-bound token as ASTRID_TOKEN.
+    expect(npxArgs).toContain('astrid-agent queue --agent claude --list list-build')
+    expect(npxArgs).toContain(`--origin ${ORIGIN}`)
+    const gate = doc.jobs['queue-gate'].steps.find(s => s.id === 'queue')!
+    expect(gate.env!.ASTRID_TOKEN).toBe(`\${{ secrets.${mcpTokenSecretName('claude')} }}`)
   })
 
   it('the Claude job only runs when the gate says so', () => {

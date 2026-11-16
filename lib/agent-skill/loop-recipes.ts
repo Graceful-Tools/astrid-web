@@ -9,9 +9,8 @@
  * exactly where a drifted flag turns into a setup that silently never works.
  * So both surfaces build from here, alongside the canonical queue skill.
  *
- * The queue gate below is shell (curl + jq). `astrid-agent queue` from
- * @gracefultools/astrid-sdk is meant to replace it (AWTD-1691); until a
- * follow-up switches it, keep `wakeDecision()` and the SDK's verdict.ts in step.
+ * The queue gate is one `astrid-agent queue` call from @gracefultools/astrid-sdk
+ * (ADEV-8). The wake rule lives in the SDK's verdict.ts, not in generated shell.
  */
 
 import { BRAND } from '@/lib/brand/config'
@@ -91,7 +90,7 @@ export const ACTIONS_SECRET_NAMES = {
 } as const
 
 /**
- * Scopes the Actions gate requests: a queue read plus task/comment writes —
+ * Scopes the Actions gate's OAuth client is created with: a queue read plus task/comment writes —
  * never the wildcard an MCP setup token maps to. These are OAuth client scopes,
  * which are enforced; an access token's read/write permissions are only
  * recorded against scopes, not yet enforced (2026-11-16, AWTD-1549).
@@ -106,26 +105,23 @@ export const ACTIONS_QUEUE_SCOPES =
 const WAKE_DIR = '.astrid-wake'
 
 /**
- * The gate's wake decision, as shell (AWTD-1560, Jon's option 1, 2026-11-13).
- *
- * Wake on Ready work, or on an unanswered reply (task comment or list-chat
- * message) this gate has not already woken for. Never on `runnable.incomplete`
- * alone: a token without the chat scopes reports it on every poll, and waking
- * on it would start a paid session every half hour. A server without
- * `runnable` keeps the old Ready-only rule. Each reply key wakes one run; the
- * seen set is bounded, and losing it re-wakes open replies once.
+ * The gate's one queue call (ADEV-8). `astrid-agent queue` exits 0 for work,
+ * 3 for idle and 1 when it could not tell, which must fail the job rather than
+ * read as idle. `--seen` carries the reply keys already woken for, so an
+ * unanswered reply wakes one run and never on `incomplete` alone (AWTD-1560).
+ * The SDK keys replies as `comment:<task>:<comment>`, so a cache written by the
+ * old shell gate is ignored and open replies wake once more on the switch.
  */
-function wakeDecision(): string {
+function queueCommand({ origin, mailbox, listId }: LoopRecipeOptions): string {
   return `          mkdir -p ${WAKE_DIR}
-          [ -s ${WAKE_DIR}/seen.json ] || echo '[]' > ${WAKE_DIR}/seen.json
-          DECISION=$(jq -c --slurpfile seen ${WAKE_DIR}/seen.json '
-            ($seen[0] // []) as $s
-            | ([.attention.tasks[]?.lastComment.id, .attention.messages[]?.id] | map(select(. != null))) as $keys
-            | ($keys - $s) as $new
-            | (if .runnable? then ((.runnable.reasons // []) | index("ready")) != null else (.empty | not) end) as $ready
-            | { wake: ($ready or (.runnable? != null and ($new | length) > 0)), seen: (($s + $new) | .[-500:]) }' queue.json)
-          echo "has-work=$(echo "$DECISION" | jq -r .wake)" >> "$GITHUB_OUTPUT"
-          echo "$DECISION" | jq -c .seen > ${WAKE_DIR}/seen.json`
+          CODE=0
+          npx --yes -p @gracefultools/astrid-sdk@1 astrid-agent queue --agent ${mailbox}${listId ? ` --list ${listId}` : ''} \\
+            --origin ${origin} --seen ${WAKE_DIR}/seen.json --write-seen > queue.json || CODE=$?
+          case "$CODE" in
+            0) echo "has-work=true" >> "$GITHUB_OUTPUT" ;;
+            3) echo "has-work=false" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::error::astrid-agent queue could not read the queue (exit $CODE)"; exit 1 ;;
+          esac`
 }
 
 /** The cache steps around a gate's queue read, so the seen set survives between runs. */
@@ -150,10 +146,9 @@ function wakeCacheSteps(mailbox: string): { restore: string; save: string } {
 /** The GitHub Actions queue-gate workflow file (path + YAML). */
 export function actionsQueueGateWorkflow(options: LoopRecipeOptions): { path: string; content: string } {
   const name = mcpServerName()
-  const { origin, mailbox, listId } = options
+  const { mailbox } = options
   const clientId = `\${{ secrets.${ACTIONS_SECRET_NAMES.clientId} }}`
   const clientSecret = `\${{ secrets.${ACTIONS_SECRET_NAMES.clientSecret} }}`
-  const token = '${{ steps.token.outputs.access-token }}'
   const path = `.github/workflows/${name}-queue.yml`
   const cache = wakeCacheSteps(mailbox)
   return {
@@ -170,23 +165,14 @@ jobs:
     outputs:
       has-work: \${{ steps.queue.outputs.has-work }}
     steps:
-      - name: Exchange client credentials for a one-hour token
-        id: token
-        run: |
-          ACCESS_TOKEN=$(curl -fsS -X POST "${origin}/api/v1/oauth/token" \\
-            -d grant_type=client_credentials \\
-            -d client_id="${clientId}" \\
-            -d client_secret="${clientSecret}" \\
-            -d "scope=${ACTIONS_QUEUE_SCOPES}" | jq -r .access_token)
-          echo "::add-mask::$ACCESS_TOKEN"
-          echo "access-token=$ACCESS_TOKEN" >> "$GITHUB_OUTPUT"
 ${cache.restore}
       - name: Read the queue
         id: queue
+        env:
+          ASTRID_CLIENT_ID: ${clientId}
+          ASTRID_CLIENT_SECRET: ${clientSecret}
         run: |
-          curl -fsS "${origin}/api/v1/agent-queue?agent=${mailbox}${listId ? `&listId=${listId}` : ''}" \\
-            -H "X-OAuth-Token: ${token}" > queue.json
-${wakeDecision()}
+${queueCommand(options)}
 ${cache.save}
 
   run-your-agent:
@@ -229,9 +215,9 @@ function actionsAgentPrompt({ mailbox, listId, claimRequired }: LoopRecipeOption
  * agent-bound token, and `has-work` for the agent job to wait on. A quiet half
  * hour costs one HTTP call and none of the user's plan.
  */
-function bearerQueueGateJob({ origin, mailbox, listId }: LoopRecipeOptions): string {
+function bearerQueueGateJob(options: LoopRecipeOptions): string {
+  const { mailbox } = options
   const tokenSecret = `\${{ secrets.${mcpTokenSecretName(mailbox)} }}`
-  const queueUrl = `${origin}/api/v1/agent-queue?agent=${mailbox}${listId ? `&listId=${listId}` : ''}`
   const cache = wakeCacheSteps(mailbox)
   return `  queue-gate:
     runs-on: ubuntu-latest
@@ -241,10 +227,10 @@ function bearerQueueGateJob({ origin, mailbox, listId }: LoopRecipeOptions): str
 ${cache.restore}
       - name: Is anything queued for ${mailbox}?
         id: queue
+        env:
+          ASTRID_TOKEN: ${tokenSecret}
         run: |
-          curl -fsS "${queueUrl}" \\
-            -H "Authorization: Bearer ${tokenSecret}" > queue.json
-${wakeDecision()}
+${queueCommand(options)}
 ${cache.save}`
 }
 

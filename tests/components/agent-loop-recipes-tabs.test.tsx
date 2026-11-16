@@ -130,12 +130,9 @@ describe('AgentLoopRecipes guided connection flow (AWTD-758)', () => {
     const gate = screen.getByTestId('actions-queue-gate').textContent ?? ''
     expect(gate).toContain('ASTRID_CLIENT_ID')
     expect(gate).toContain('ASTRID_CLIENT_SECRET')
-    expect(gate).toContain('/api/v1/oauth/token')
-    expect(gate).toContain(
-      'tasks:read tasks:write lists:read comments:read comments:write user:read',
-    )
-    expect(gate).toContain('X-OAuth-Token:')
-    expect(gate).toContain('agent=copilot&listId=board-123')
+    expect(gate).toContain('astrid-agent queue --agent copilot --list board-123')
+    expect(gate).toContain('@gracefultools/astrid-sdk@1')
+    expect(gate).not.toMatch(/\b(curl|jq)\b/)
     expect(gate).not.toContain('ASTRID_TOKEN')
     expect(gate).not.toContain('astrid_mcp_')
   })

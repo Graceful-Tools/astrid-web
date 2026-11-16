@@ -36,25 +36,24 @@ const doc = load(workflow.content) as { on: Record<string, unknown>; jobs: Recor
 const tmp = mkdtempSync(join(tmpdir(), 'astrid-copilot-gate-'))
 afterAll(() => rmSync(tmp, { recursive: true, force: true }))
 
-function runGate(queue: unknown): { hasWork: string; curlArgs: string } {
+/** Run the gate step's script with `npx` stubbed to exit `code` (0 work, 3 idle). */
+function runGate(code: number): { hasWork: string; npxArgs: string } {
   const gate = doc.jobs['queue-gate'].steps.find(s => s.id === 'queue')!
-  const script = gate.run!.replace(/\$\{\{ secrets\.[A-Z_]+ \}\}/g, 'astrid_mcp_test')
   const bin = join(tmp, 'bin')
   execFileSync('mkdir', ['-p', bin])
-  writeFileSync(join(tmp, 'queue-fixture.json'), JSON.stringify(queue))
   writeFileSync(
-    join(bin, 'curl'),
-    `#!/bin/bash\necho "$@" > "${join(tmp, 'curl-args')}"\ncat "${join(tmp, 'queue-fixture.json')}"\n`,
+    join(bin, 'npx'),
+    `#!/bin/bash\necho "$@" > "${join(tmp, 'npx-args')}"\necho '{"version":1}'\nexit ${code}\n`,
   )
-  chmodSync(join(bin, 'curl'), 0o755)
+  chmodSync(join(bin, 'npx'), 0o755)
   const output = join(tmp, 'github-output')
   writeFileSync(output, '')
-  execFileSync('bash', ['-e', '-c', script], {
+  execFileSync('bash', ['-e', '-c', gate.run!], {
     cwd: tmp,
     env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_OUTPUT: output },
   })
   const hasWork = /has-work=(\w+)/.exec(readFileSync(output, 'utf8'))?.[1] ?? ''
-  return { hasWork, curlArgs: readFileSync(join(tmp, 'curl-args'), 'utf8') }
+  return { hasWork, npxArgs: readFileSync(join(tmp, 'npx-args'), 'utf8') }
 }
 
 const agentJob = () => doc.jobs.copilot
@@ -68,11 +67,13 @@ describe('Copilot CLI in GitHub Actions (AWTD-1502)', () => {
   })
 
   it('gate: an empty queue starts nothing, queued work starts Copilot (AWTD-1502)', () => {
-    expect(runGate({ empty: true, queue: [] }).hasWork).toBe('false')
-    const { hasWork, curlArgs } = runGate({ empty: false, queue: [{ id: 't1' }] })
+    expect(runGate(3).hasWork).toBe('false')
+    const { hasWork, npxArgs } = runGate(0)
     expect(hasWork).toBe('true')
-    expect(curlArgs).toContain(`${ORIGIN}/api/v1/agent-queue?agent=copilot&listId=list-review`)
-    expect(curlArgs).toContain('Authorization: Bearer astrid_mcp_test')
+    expect(npxArgs).toContain('astrid-agent queue --agent copilot --list list-review')
+    expect(npxArgs).toContain(`--origin ${ORIGIN}`)
+    const gate = doc.jobs['queue-gate'].steps.find(s => s.id === 'queue')!
+    expect(gate.env!.ASTRID_TOKEN).toBe(`\${{ secrets.${mcpTokenSecretName('copilot')} }}`)
     expect(agentJob().needs).toBe('queue-gate')
     expect(agentJob().if).toBe("needs.queue-gate.outputs.has-work == 'true'")
   })

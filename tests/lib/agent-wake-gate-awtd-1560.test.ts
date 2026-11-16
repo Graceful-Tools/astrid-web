@@ -1,18 +1,14 @@
 /**
- * AWTD-1560 — a generated loop wakes on Ready work, or on a reply it has not
- * already been woken for; never on `incomplete` alone.
+ * AWTD-1560 / ADEV-8 — a generated loop's gate is one `astrid-agent queue` call.
  *
- * Jon's call (2026-11-13, option 1). The queue's `runnable` verdict reports
- * `incomplete: true` on every poll for a token without the chat scopes, and an
- * unanswered "thanks" stays in `attention` forever, so a gate that woke on
- * either would start a paid agent session every half hour. The gate keeps a
- * seen set between runs instead, the way the local runner's seen-file does.
- *
- * Each test RUNS the generated gate step with `curl` stubbed, in a directory
- * that persists between ticks, the way actions/cache carries `.astrid-wake/`.
+ * The wake rule (Ready work, or a reply not yet woken for, never `incomplete`
+ * alone) lives in the SDK's verdict.ts and is tested there. These tests RUN the
+ * generated gate step with `npx` stubbed, and pin what the workflow owns: the
+ * exit-code mapping (0 work, 3 idle, anything else fails the job), the seen file
+ * carried by actions/cache, and the credentials the call is given.
  */
 
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -26,7 +22,7 @@ import {
 
 const { load } = require('js-yaml') as { load(source: string): unknown }
 
-type Step = { id?: string; uses?: string; run?: string; if?: string; with?: Record<string, string> }
+type Step = { id?: string; uses?: string; run?: string; if?: string; env?: Record<string, string>; with?: Record<string, string> }
 type Doc = { jobs: Record<string, { steps: Step[] }> }
 
 const ORIGIN = 'https://example.test'
@@ -39,70 +35,68 @@ const GATES = {
   'Copilot workflow': actionsCopilotWorkflow({ mailbox: 'copilot', origin: ORIGIN, listId: 'l1' }),
 }
 
-/** A gate whose working directory survives between ticks. */
+/** Run the gate step with an `npx` that records its arguments and exits `code`. */
 function gate(content: string) {
-  const doc = load(content) as Doc
-  const steps = doc.jobs['queue-gate'].steps
+  const steps = (load(content) as Doc).jobs['queue-gate'].steps
   const dir = mkdtempSync(join(tmpdir(), 'astrid-wake-'))
   roots.push(dir)
   const bin = join(dir, 'bin')
   mkdirSync(bin)
-  writeFileSync(join(bin, 'curl'), `#!/bin/bash\nif [[ "$*" == *oauth/token* ]]; then echo '{"access_token":"t"}'; else cat "${join(dir, 'fixture.json')}"; fi\n`)
-  chmodSync(join(bin, 'curl'), 0o755)
+  writeFileSync(join(bin, 'npx'), `#!/bin/bash\necho "$@" > "${join(dir, 'npx-args')}"\necho '{"version":1}'\nexit "$(cat "${join(dir, 'code')}")"\n`)
+  chmodSync(join(bin, 'npx'), 0o755)
   const work = join(dir, 'work')
   mkdirSync(work)
   return {
     steps,
-    tick(queue: unknown): string {
-      writeFileSync(join(dir, 'fixture.json'), JSON.stringify(queue))
+    tick(code: number): { status: number | null; hasWork: string; args: string } {
+      writeFileSync(join(dir, 'code'), String(code))
       const output = join(dir, 'out')
       writeFileSync(output, '')
-      const script = steps.find(s => s.id === 'queue')!.run!.replace(/\$\{\{[^}]+\}\}/g, 'x')
-      execFileSync('bash', ['-e', '-c', script], {
+      const script = steps.find(s => s.id === 'queue')!.run!
+      const result = spawnSync('bash', ['-e', '-c', script], {
         cwd: work,
         env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, GITHUB_OUTPUT: output },
       })
-      return /has-work=(\w+)/.exec(readFileSync(output, 'utf8'))?.[1] ?? ''
+      return {
+        status: result.status,
+        hasWork: /has-work=(\w+)/.exec(readFileSync(output, 'utf8'))?.[1] ?? '',
+        args: execFileSync('cat', [join(dir, 'npx-args')]).toString(),
+      }
     },
   }
 }
 
-const quiet = { empty: true, queue: [], attention: { tasks: [], messages: [], truncated: false, skipped: [] } }
-const runnable = (reasons: string[], incomplete = false) => ({ version: 1, hasWork: reasons.length > 0, reasons, incomplete })
-const reply = (commentId: string) => ({ id: 't1', lastComment: { id: commentId } })
-
-describe.each(Object.entries(GATES))('the %s wakes per Jon\'s option 1 (AWTD-1560)', (_name, workflow) => {
-  it('wakes on Ready work, every tick it is there', () => {
-    const g = gate(workflow.content)
-    const ready = { ...quiet, empty: false, queue: [{ id: 'q1' }], runnable: runnable(['ready']) }
-    expect(g.tick(ready)).toBe('true')
-    expect(g.tick(ready)).toBe('true')
+describe.each(Object.entries(GATES))('the %s is one astrid-agent queue call (ADEV-8)', (_name, workflow) => {
+  it('wakes the agent job on exit 0', () => {
+    const r = gate(workflow.content).tick(0)
+    expect(r.status).toBe(0)
+    expect(r.hasWork).toBe('true')
   })
 
-  it('wakes once for an unanswered reply, then not again for the same one', () => {
-    const g = gate(workflow.content)
-    const waiting = { ...quiet, attention: { ...quiet.attention, tasks: [reply('c1')] }, runnable: runnable(['attention']) }
-    expect(g.tick(waiting)).toBe('true')
-    expect(g.tick(waiting)).toBe('false')
+  it('stays idle on exit 3', () => {
+    const r = gate(workflow.content).tick(3)
+    expect(r.status).toBe(0)
+    expect(r.hasWork).toBe('false')
   })
 
-  it('wakes again for a NEW reply, and for a list-chat message', () => {
-    const g = gate(workflow.content)
-    expect(g.tick({ ...quiet, attention: { ...quiet.attention, tasks: [reply('c1')] }, runnable: runnable(['attention']) })).toBe('true')
-    expect(g.tick({ ...quiet, attention: { ...quiet.attention, tasks: [reply('c2')] }, runnable: runnable(['attention']) })).toBe('true')
-    expect(g.tick({ ...quiet, attention: { ...quiet.attention, messages: [{ id: 'm1' }] }, runnable: runnable(['attention']) })).toBe('true')
+  it('fails the job on exit 1 — never reads "could not tell" as idle', () => {
+    const r = gate(workflow.content).tick(1)
+    expect(r.status).not.toBe(0)
+    expect(r.hasWork).toBe('')
   })
 
-  it('never wakes on incomplete alone', () => {
-    const g = gate(workflow.content)
-    const partial = { ...quiet, attention: { ...quiet.attention, truncated: true, skipped: ['list chat: no chat:read'] }, runnable: runnable([], true) }
-    expect(g.tick(partial)).toBe('false')
+  it('runs the 1.x SDK against this origin, list and seen file', () => {
+    const { args } = gate(workflow.content).tick(0)
+    expect(args).toContain('@gracefultools/astrid-sdk@1')
+    expect(args).toContain('astrid-agent queue --agent')
+    expect(args).toContain('--list l1')
+    expect(args).toContain(`--origin ${ORIGIN}`)
+    expect(args).toContain('--seen .astrid-wake/seen.json --write-seen')
   })
 
-  it('falls back to the old Ready-only rule on a server without runnable', () => {
-    const g = gate(workflow.content)
-    expect(g.tick({ empty: false, queue: [{ id: 'q1' }] })).toBe('true')
-    expect(g.tick({ empty: true, queue: [], attention: { tasks: [reply('c1')], messages: [] } })).toBe('false')
+  it('has no inline curl or jq in the gate', () => {
+    const run = gate(workflow.content).steps.find(s => s.id === 'queue')!.run!
+    expect(run).not.toMatch(/\b(curl|jq)\b/)
   })
 
   it('carries the seen set between runs with actions/cache, restored before and saved after the read', () => {
