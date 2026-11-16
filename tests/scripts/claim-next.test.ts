@@ -6,6 +6,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { claimNextReady, isCoreCandidate, type ClaimCandidate } from '@/scripts/lib/claim-next'
 import { ASTRID_API, recordClaim, requestFixallClaim } from '@/scripts/lib/fixall-claim-request'
+import { scriptClient } from '@/scripts/lib/script-client'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -110,28 +111,42 @@ describe('ADEV-26: claim the next Ready task nobody else has', () => {
 })
 
 describe('ADEV-26: the shared claim request', () => {
-  const response = (status: number, body = '') => new Response(body, { status })
+  const json = (status: number, body: unknown = {}) => new Response(JSON.stringify(body), { status })
+
+  /** A script client whose token exchange succeeds, so the next response is the claim's. */
+  function clientFor(claimReply: () => Response) {
+    const fetchImpl = vi.fn(async (url: string | URL | Request, _init?: RequestInit) =>
+      String(url).endsWith('/oauth/token') ? json(200, { access_token: 'x', expires_in: 3600 }) : claimReply())
+    return { fetchImpl, client: scriptClient({ clientId: 'id', clientSecret: 'secret', fetchImpl: fetchImpl as unknown as typeof fetch }) }
+  }
 
   it('ADEV-26: a 409 is a conflict value carrying the server reason, not an error', async () => {
-    const fetchImpl = vi.fn(async () => response(409, 'already claimed')) as unknown as typeof fetch
-    await expect(requestFixallClaim({ token: 'x', taskId: 't1', action: 'ready', agent: 'claude', fetchImpl }))
+    const { client } = clientFor(() => json(409, { error: 'already claimed' }))
+    await expect(requestFixallClaim({ client, taskId: 't1', action: 'ready', agent: 'claude' }))
       .resolves.toEqual({ status: 'conflict', reason: 'already claimed' })
   })
 
   it('ADEV-26: sends the mailbox and board, and a 200 is a claim', async () => {
-    const fetchImpl = vi.fn(async (_url: string, _init: RequestInit) => response(200, '{}'))
-    await expect(requestFixallClaim({
-      token: 'x', taskId: 't1', action: 'ready', agent: 'claude', listId: 'board', fetchImpl: fetchImpl as unknown as typeof fetch,
-    })).resolves.toEqual({ status: 'claimed' })
-    const [url, init] = fetchImpl.mock.calls[0]
+    const { client, fetchImpl } = clientFor(() => json(200))
+    await expect(requestFixallClaim({ client, taskId: 't1', action: 'ready', agent: 'claude', listId: 'board' }))
+      .resolves.toEqual({ status: 'claimed' })
+    const [url, init] = fetchImpl.mock.calls[1]
     expect(url).toBe(`${ASTRID_API}/api/v1/tasks/t1/claim-fixall`)
-    expect((init.headers as Record<string, string>)['X-OAuth-Token']).toBe('x')
-    expect(JSON.parse(String(init.body))).toEqual({ action: 'ready', commentWatermark: null, agent: 'claude', listId: 'board' })
+    expect((init?.headers as Record<string, string>)['X-OAuth-Token']).toBe('x')
+    expect(JSON.parse(String(init?.body))).toEqual({ action: 'ready', commentWatermark: null, agent: 'claude', listId: 'board' })
   })
 
   it('ADEV-26: any other failure throws', async () => {
-    const fetchImpl = vi.fn(async () => response(500, 'boom')) as unknown as typeof fetch
-    await expect(requestFixallClaim({ token: 'x', taskId: 't1', action: 'ready', fetchImpl })).rejects.toThrow('HTTP 500')
+    const { client } = clientFor(() => json(500, { error: 'boom' }))
+    await expect(requestFixallClaim({ client, taskId: 't1', action: 'ready' })).rejects.toThrow('HTTP 500')
+  })
+
+  it('ADEV-9: a resume claim carries the watermark and context to the same route', async () => {
+    const { client, fetchImpl } = clientFor(() => json(200))
+    await requestFixallClaim({ client, taskId: 't1', action: 'resume', commentWatermark: 'c1', resume: { a: 1 }, agent: 'claude' })
+    expect(JSON.parse(String(fetchImpl.mock.calls[1][1]?.body))).toEqual({
+      action: 'resume', commentWatermark: 'c1', agent: 'claude', resume: { a: 1 },
+    })
   })
 
   it('ADEV-26: records only Ready and resume claims, in the worker\'s own claims file', () => {

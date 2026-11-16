@@ -2,7 +2,8 @@
 
 import { loadScriptEnv } from './lib/load-env'
 import { parseClaimArgs } from './lib/fixall-claim-args'
-import { fetchScriptToken, recordClaim, requestFixallClaim } from './lib/fixall-claim-request'
+import { recordClaim, requestFixallClaim } from './lib/fixall-claim-request'
+import { scriptClient } from './lib/script-client'
 
 loadScriptEnv()
 
@@ -32,8 +33,8 @@ if (!clientId || !clientSecret) {
 }
 
 async function main() {
-  const token = await fetchScriptToken({ clientId: clientId!, clientSecret: clientSecret! })
-  const attempt = await requestFixallClaim({ token, taskId, action, commentWatermark, agent, resume, listId })
+  const client = scriptClient({ clientId: clientId!, clientSecret: clientSecret! })
+  const attempt = await requestFixallClaim({ client, taskId, action: action as 'ready' | 'resume' | 'pause', commentWatermark, agent, resume, listId })
 
   if (attempt.status === 'conflict') {
     // Exit 2, not 1: another session claimed it first. That is an ordinary

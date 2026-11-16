@@ -127,6 +127,11 @@ export class AstridClient {
     return this.request<AgentQueueResponse>(`/api/v1/agent-queue?${params}`)
   }
 
+  /** `GET /api/v1/lists`: the body as the server sent it, for a caller that resolves a board by name. */
+  async getLists(): Promise<unknown> {
+    return this.request<unknown>('/api/v1/lists')
+  }
+
   /**
    * `POST /api/v1/tasks/:id/claim`: atomic claim, resume or release. Every
    * documented outcome is returned, not thrown, so a caller can branch on a

@@ -39,7 +39,9 @@ describe('the scheduled loop wakes only for new work', () => {
   it('counts unassigned Ready tasks as work, as /fixall does', () => {
     const call = loop.match(/QUEUE_OUT=\$\([^\n]*agent-queue-status\.ts[^\n]*/)?.[0] ?? ''
     expect(call, `${LOOP} must pass --include-unassigned to ${STATUS}`).toMatch(/--include-unassigned\b/)
-    expect(status).toMatch(/includeUnassigned=true/)
+    // ADEV-9: the SDK client turns the option into `includeUnassigned=true` on the wire.
+    expect(status).toMatch(/const query = \{[^}]*\bincludeUnassigned\b[^}]*\}/)
+    expect(status).toMatch(/client\.getQueue\(query\)/)
   })
 
   it('decides through the tested verdict, not the endpoint flag alone', () => {

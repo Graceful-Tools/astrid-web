@@ -89,12 +89,22 @@ import { adoptLegacySeenFile, defaultSeenFile } from './lib/fixall-seen-file'
 import { decideQueueVerdict, type QueueSnapshot } from './lib/agent-queue-verdict'
 import { MAX_FAILED_ATTEMPTS, parseSeenKeys, recordFailedRun, recordFinishedRun } from './lib/wake-keys'
 import { DEFAULT_LONG_RUN_WINDOW, parseLongRunWindow, planRun } from './lib/long-run'
-import { parseBoardTarget, resolveBoardListId } from './lib/board-by-name'
+import { findBoardList, parseBoardTarget } from './lib/board-by-name'
 import { readSeenKeysInput } from './lib/seen-keys-input'
+import { scriptClient } from './lib/script-client'
 
 loadScriptEnv()
 
-const API = 'https://astrid.cc'
+/** The script OAuth client from the environment; a missing pair is "could not tell" (exit 1). */
+function requireClient() {
+  const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
+  const clientSecret = process.env.ASTRID_OAUTH_CLIENT_SECRET
+  if (!clientId || !clientSecret) {
+    console.error('QUEUE: unknown — ASTRID_OAUTH_CLIENT_ID and ASTRID_OAUTH_CLIENT_SECRET are required')
+    process.exit(1)
+  }
+  return scriptClient({ clientId, clientSecret })
+}
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name)
@@ -157,17 +167,8 @@ async function main() {
 
   if (board) parseBoardTarget({ board })
   if (!listId && board) {
-    const response = await fetch(`${API}/api/v1/oauth/token`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ grant_type: 'client_credentials',
-        client_id: process.env.ASTRID_OAUTH_CLIENT_ID, client_secret: process.env.ASTRID_OAUTH_CLIENT_SECRET }),
-    })
-    if (!response.ok) throw new Error(`Board resolution OAuth failed: HTTP ${response.status}`)
-    const { access_token: token } = await response.json()
     const target = parseBoardTarget({ board })
-    if (target?.kind === 'board') listId = await resolveBoardListId({
-      board: target.board, auth: { 'X-OAuth-Token': token }, origin: API,
-    })
+    if (target?.kind === 'board') listId = findBoardList(await requireClient().getLists(), target.board).id
   }
   if (!listId) {
     console.error(
@@ -212,40 +213,15 @@ async function main() {
     process.exit(ok ? 0 : 1)
   }
 
-  const clientId = process.env.ASTRID_OAUTH_CLIENT_ID
-  const clientSecret = process.env.ASTRID_OAUTH_CLIENT_SECRET
-  if (!clientId || !clientSecret) {
-    console.error('QUEUE: unknown — ASTRID_OAUTH_CLIENT_ID and ASTRID_OAUTH_CLIENT_SECRET are required')
-    process.exit(1)
-  }
-
-  const tokenResponse = await fetch(`${API}/api/v1/oauth/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret }),
-  })
-  if (!tokenResponse.ok) {
-    console.error(`QUEUE: unknown — OAuth token request failed with HTTP ${tokenResponse.status}`)
-    process.exit(1)
-  }
-  const { access_token: token } = await tokenResponse.json()
-
-  const url =
-    `${API}/api/v1/agent-queue?agent=${encodeURIComponent(agent)}&listId=${encodeURIComponent(listId)}` +
-    (includeUnassigned ? '&includeUnassigned=true' : '')
+  const client = requireClient()
+  const query = { agent, listId, includeUnassigned }
+  // The SDK client's errors read "HTTP <n> from /api/v1/agent-queue", and main() below prints
+  // anything thrown as `QUEUE: unknown — …` with exit 1: could not tell, never idle.
   if (process.argv.includes('--require-polling')) {
-    const modeResponse = await fetch(url, { headers: { 'X-OAuth-Token': token } })
-    if (!modeResponse.ok) throw new Error(`Polling activation check failed: HTTP ${modeResponse.status}`)
-    const mode = (await modeResponse.json()).mode
+    const mode = (await client.getQueue(query)).mode
     if (mode !== 'polling') throw new Error(`Agent ${agent} mode is "${mode}", not polling — refusing duplicate dispatch`)
   }
-  const response = await fetch(url, { headers: { 'X-OAuth-Token': token } })
-  if (!response.ok) {
-    console.error(`QUEUE: unknown — HTTP ${response.status} from /api/v1/agent-queue`)
-    process.exit(1)
-  }
-
-  const fetched = (await response.json()) as QueueSnapshot
+  const fetched: QueueSnapshot = await client.getQueue(query)
   for (const skipped of fetched.attention?.skipped ?? []) console.error(`ATTENTION: ${skipped}`)
 
   // Long runs (AWTD-1041), opt-in so the iOS loop's calls are unchanged. The
