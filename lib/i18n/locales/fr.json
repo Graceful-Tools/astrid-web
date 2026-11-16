@@ -198,6 +198,14 @@
       "count": "Commentaires ({count})",
       "hideSystemTitle": "Masquer les commentaires système",
       "showSystemTitle": "Afficher les commentaires système",
+      "approval": {
+        "approve": "Approuver",
+        "decline": "Refuser",
+        "declineReasonPlaceholder": "Pourquoi refusez-vous ?",
+        "approvedBy": "Approuvé par {name}",
+        "declinedBy": "Refusé par {name} : {reason}",
+        "decisionError": "Impossible d'enregistrer votre décision. Réessayez."
+      },
       "hideSystem": "Masquer le système",
       "showSystem": "Afficher le système",
       "refreshShort": "Actualiser",

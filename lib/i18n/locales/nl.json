@@ -198,6 +198,14 @@
       "count": "Opmerkingen ({count})",
       "hideSystemTitle": "Systeemopmerkingen verbergen",
       "showSystemTitle": "Systeemopmerkingen tonen",
+      "approval": {
+        "approve": "Goedkeuren",
+        "decline": "Afwijzen",
+        "declineReasonPlaceholder": "Waarom wijs je af?",
+        "approvedBy": "Goedgekeurd door {name}",
+        "declinedBy": "Afgewezen door {name}: {reason}",
+        "decisionError": "Je beslissing kon niet worden vastgelegd. Probeer het opnieuw."
+      },
       "hideSystem": "Systeem verbergen",
       "showSystem": "Systeem tonen",
       "refreshShort": "Vernieuwen",
