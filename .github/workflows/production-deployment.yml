@@ -40,6 +40,19 @@ on:
         default: false
         type: boolean
 
+# One production deploy at a time (ADEV-26). Without a group, two dispatches ran
+# side by side and the OLDER commit could finish last and overwrite the newer
+# one; with N agent workers handing off at once, two dispatches minutes apart are
+# ordinary. Never cancel-in-progress: a deploy cancelled between its migration
+# job and its deploy job is the half-shipped state AWTD-959 describes. GitHub
+# keeps one PENDING run per group, so a third dispatch replaces a waiting second
+# one, and since a dispatch deploys main's head the newest one waiting is the
+# right one to keep. The deploy job also refuses to put an older commit over a
+# newer live one (Skip when production already serves a newer commit).
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -358,20 +371,55 @@ jobs:
     outputs:
       deployment-url: ${{ steps.deploy.outputs.deployment-url }}
       deployment-success: ${{ steps.deploy.outputs.success }}
+      superseded: ${{ steps.fresh.outputs.superseded }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # The whole history, so the live commit can be compared with this one.
+          fetch-depth: 0
+
+      # ADEV-26. The concurrency group runs deploys one at a time, but a re-run of
+      # an old run, or a dispatch that waited behind a newer one, still holds an
+      # older commit. Deploying it would roll production back. So when production
+      # already serves a strict descendant of this commit, this job says so and
+      # deploys nothing; this commit's code is live inside the newer one, which is
+      # also what land-and-deploy.ts accepts as served. The SAME commit still
+      # deploys, as before: redeploying the live commit is how a Vercel env
+      # change is picked up. An unreadable answer, or a live commit this checkout
+      # does not know, deploys as before: the check only ever skips on proof.
+      # Migrations ran in the job before this one; an older commit's migrations
+      # are a subset of what the newer live commit already applied.
+      - name: Skip when production already serves a newer commit
+        id: fresh
+        run: |
+          live=$(curl -sS --max-time 15 "$PRODUCTION_URL/api/health" 2>/dev/null \
+            | grep -oE '"commitSha"[[:space:]]*:[[:space:]]*"[0-9a-f]{7,40}"' | head -1 \
+            | sed -E 's/.*"([0-9a-f]+)"$/\1/' || true)
+          echo "ℹ️  Production is serving: ${live:-(no answer)}"
+          echo "ℹ️  This run would deploy: $GITHUB_SHA"
+          if [ -n "$live" ] && [ "$live" != "$GITHUB_SHA" ] \
+              && git cat-file -e "${live}^{commit}" 2>/dev/null \
+              && git merge-base --is-ancestor "$GITHUB_SHA" "$live"; then
+            echo "::notice::Production already serves $live, which contains $GITHUB_SHA. Not deploying an older commit over a newer one."
+            echo "superseded=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "superseded=false" >> "$GITHUB_OUTPUT"
 
       - name: Setup Node.js
+        if: steps.fresh.outputs.superseded != 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .nvmrc
           cache: 'npm'
 
       - name: Install Vercel CLI
+        if: steps.fresh.outputs.superseded != 'true'
         run: npm install --global vercel@latest
 
       - name: Pull Vercel Environment Information
+        if: steps.fresh.outputs.superseded != 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: vercel pull --yes --environment=production --token=$VERCEL_TOKEN
@@ -393,9 +441,11 @@ jobs:
       # unreachable localhost placeholder, because `prisma generate` hard-fails
       # on one that is merely undefined. Keys are logged, never values.
       - name: Keep redacted secrets out of the build
+        if: steps.fresh.outputs.superseded != 'true'
         run: npx tsx scripts/sanitize-pulled-env.ts .vercel/.env.production.local
 
       - name: Build Project Artifacts
+        if: steps.fresh.outputs.superseded != 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: vercel build --prod --token=$VERCEL_TOKEN
@@ -426,6 +476,7 @@ jobs:
       #      and only production knows which happened.
       - name: Deploy to Vercel
         id: deploy
+        if: steps.fresh.outputs.superseded != 'true'
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
@@ -497,7 +548,11 @@ jobs:
     # reports failure is exactly when someone needs to know what production is
     # serving, so this now runs whenever the deploy was ATTEMPTED and fails on
     # its own findings rather than inheriting the deploy job's verdict.
-    if: always() && needs.deploy-production.result != 'skipped'
+    # ADEV-26: not when the deploy job proved a newer commit is live and deployed
+    # nothing: production is meant to serve that newer commit, so asking it for
+    # this one would fail, and advance-prod-branch (which needs this) must not
+    # move `prod` back to the older commit.
+    if: always() && needs.deploy-production.result != 'skipped' && needs.deploy-production.outputs.superseded != 'true'
     steps:
       # Needed for scripts/verify-deployed-sha.sh. This job had no checkout,
       # which is the same omission that made the removed Job 5 dead code.
@@ -594,10 +649,13 @@ jobs:
           HEALTH_RESULT: ${{ needs.health-check.result }}
           DEPLOYMENT_SUCCESS: ${{ needs.deploy-production.outputs.deployment-success }}
           DEPLOY_ENVIRONMENT: ${{ inputs.deploy_environment || 'production' }}
+          SUPERSEDED: ${{ needs.deploy-production.outputs.superseded }}
         run: |
           echo "## 🚀 Production Deployment Summary"
           echo ""
-          if [ "$DEPLOYMENT_SUCCESS" = "true" ]; then
+          if [ "$SUPERSEDED" = "true" ]; then
+            echo "**Deployment Status:** ⏭️ SKIPPED: production already serves a newer commit that contains this one (ADEV-26)"
+          elif [ "$DEPLOYMENT_SUCCESS" = "true" ]; then
             echo "**Deployment Status:** ✅ SUCCESS"
           else
             echo "**Deployment Status:** ❌ FAILED"

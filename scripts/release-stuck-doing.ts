@@ -43,6 +43,7 @@ import {
   isAwaitingDeploy,
   isAwaitingMerge,
   isFinishedOccurrence,
+  hasLiveClaimLease,
   isOrphanedDoing,
   parkFinishedOccurrence,
   isReleasableClaim,
@@ -204,6 +205,11 @@ async function main() {
     // takes it too (AWTD-1409); a run's own claims are always assigned.
     const releasable = task && (isReleasableClaim(task, email) || (mode === 'stale' && isOrphanedDoing(task)))
     if (!task || !releasable) continue
+    // ADEV-26: a live lease is a runner heartbeating this task now, whoever's mailbox it is.
+    if (hasLiveClaimLease(task, now)) {
+      console.log(`  RELEASE: ${task.identifier ?? task.id} kept — its claim lease is live until ${task.claimLeaseExpiresAt}`)
+      continue
+    }
     const comments = await sweep.comments(task)
     // Done and pushed: it waits for its build (iOS, close-built-tasks closes it) or its
     // production deploy (web, R6: land-and-deploy completes it) or its astrid-core merge

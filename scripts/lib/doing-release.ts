@@ -60,6 +60,9 @@ export interface DoingTask {
   repeating?: string | null
   dueDateTime?: string | null
   isAllDay?: boolean | null
+  /** The claim lease (AWTD-1688): who holds it, and until when. Null on a `/claim-fixall` claim. */
+  claimHolderId?: string | null
+  claimLeaseExpiresAt?: string | null
 }
 
 export interface ReleaseComment extends TimestampedComment {
@@ -90,6 +93,24 @@ export function isReleasableClaim(task: DoingTask, agentEmail: string): boolean 
   if (task.completed) return false
   if ((task.statusRole ?? '').trim().toLowerCase() !== DOING_STATUS_ROLE) return false
   return (task.assignee?.email ?? '').toLowerCase() === agentEmail.toLowerCase()
+}
+
+/**
+ * Held under a live claim lease (ADEV-26)? Then a runner is heartbeating it right now, and
+ * no release may touch it — not the idle backstop, and not another run's claims file.
+ *
+ * Local sessions and every cloud worker claim as the same mailbox (`claude`), so the
+ * assignee cannot say whose claim a Doing task is; before leases only the 180-minute idle
+ * threshold kept the sweep off a live session's task. A lease (AWTD-1688) is the holder
+ * saying "still mine" every few minutes, which is the signal the sweep was missing. An
+ * expired lease is the lease sweep's to settle (services/agent-claim-lease.service.ts), so
+ * it blocks nothing here. An unreadable expiry reads as LIVE, for the same reason an
+ * unreadable timestamp reads as active in `isAbandonedClaim`.
+ */
+export function hasLiveClaimLease(task: Pick<DoingTask, 'claimHolderId' | 'claimLeaseExpiresAt'>, now: Date): boolean {
+  if (!(task.claimHolderId ?? '').trim() || !task.claimLeaseExpiresAt) return false
+  const expires = new Date(task.claimLeaseExpiresAt).getTime()
+  return Number.isNaN(expires) || expires > now.getTime()
 }
 
 /**

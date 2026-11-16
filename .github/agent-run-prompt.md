@@ -17,6 +17,22 @@ read it, then use the atomic `resume` claim from docs/FIXALL_WORKFLOW.md before
 implementing anything. Do not claim another harness's assignments.
 Every claim must pass `--list "$ASTRID_OAUTH_LIST_ID"` to pin the selected board.
 
+**You are one of several workers.** This run is worker slot `$ASTRID_AGENT_SLOT` of
+`ASTRID_AGENT_WORKERS`, and local sessions work the same board as the same mailbox, so
+every one of them sees the same top task. Claims are atomic: one wins, the rest get
+`CLAIM_CONFLICT` (exit 2).
+
+- **If `$ASTRID_CLAIMED_TASK` is set**, the runner has already claimed that task for you
+  (Doing, assigned to you). Work that task and only that one. Do not claim another, and
+  leave the attention inbox to slot 1.
+- **Otherwise** (slot 1), answer the attention inbox and take resumes as above. To take a
+  Ready task, claim it with
+  `npx tsx scripts/claim-next-fixall-task.ts --agent <your mailbox> --list "$ASTRID_OAUTH_LIST_ID"`.
+  It walks the queue in priority order and moves past any task a peer already claimed;
+  `CLAIMED <id> …` is yours. Exit 3 (`NO_READY_TASK`) means every Ready task is taken:
+  with nothing else to do, say `RESULT: SKIPPED`. A conflict is not a task taken and never
+  a reason to stop. If you claim one task by id and get exit 2, go on to the next task.
+
 A disposable Postgres is already running and migrated at `$DATABASE_URL`, and
 Chromium is installed. Do not probe it with `pg_isready` or `psql`; use the npm
 scripts. For signed-in e2e work: `npm run build:next`, then
