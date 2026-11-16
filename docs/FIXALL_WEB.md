@@ -106,7 +106,7 @@ past. The full mechanics are in [AGENT_FLEET.md → Parallel workers](./AGENT_FL
 
 - **Cloud workers stop at a verified PR handoff.** `agent-run.yml` runs
   on a schedule (:05/:35, claude-code) and on dispatch (Claude Code or Codex), as N parallel
-  workers (*Parallel workers* above). A claude-code run in which any worker reports `RESULT: OK` starts the next run itself, up to
+  workers (*Parallel workers* above). A claude-code run in which any worker reports `RESULT: OK` or `RESULT: PARTIAL` starts the next run itself, up to
   `ASTRID_AGENT_MAX_CHAIN` (default 8) in a row, because GitHub creates only a
   fraction of the scheduled runs. It is how
   Claude works this board; the Mac loop was retired on 2026-10-28 (AWTD-1363). Its preflight reads queue + inbox + lanes,

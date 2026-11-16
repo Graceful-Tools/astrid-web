@@ -171,6 +171,12 @@ describe('agent-run verdict step, executed', () => {
     expect(verdictOutput()).toBe(`result=${word}\n`)
   })
 
+  it('ADEV-26: a PARTIAL run stays red but tells the chain it made progress', () => {
+    const result = verdictFor('RESULT: PARTIAL — ADEV-22 PR #826 open, one item left\n')
+    expect(result.status).toBe(1)
+    expect(verdictOutput()).toBe('result=PARTIAL\n')
+  })
+
   it('fails when there is no transcript at all', () => {
     expect(verdictFor(null).status).toBe(1)
   })
@@ -318,7 +324,7 @@ describe('the loop keeps itself going without the scheduler', () => {
     expect(collect.uses).toMatch(/^actions\/download-artifact@[0-9a-f]{40}$/)
     expect(collect.with.pattern).toBe('agent-verdict-claude-code-${{ github.run_id }}-slot-*')
     const record = workflow.jobs.run.steps.find((s: { name?: string }) => s.name === "Record this worker's verdict for the chain")
-    expect(record.if).toBe("${{ success() && steps.verdict.outputs.result != '' }}")
+    expect(record.if).toBe("${{ !cancelled() && steps.verdict.outputs.result != '' }}")
     // Written by the runner outside .agent-output, which the agent can write.
     expect(record.run).toContain('${RUNNER_TEMP}/agent-verdict/result.txt')
     const upload = workflow.jobs.run.steps.find((s: { name?: string }) => s.name === "Upload this worker's verdict")
@@ -374,6 +380,10 @@ describe('the loop keeps itself going without the scheduler', () => {
       expect(calls).toBe(DISPATCH_3)
     })
 
+    it('ADEV-26: a PARTIAL worker (progress, PR open) keeps the chain going', () => {
+      expect(chain('2', '8', { 'agent-verdict-claude-code-1-slot-1': 'PARTIAL' }).calls).toBe(DISPATCH_3)
+    })
+
     it('ADEV-26: a lone artifact downloaded to the root still counts', () => {
       expect(chain('2', '8', { '': 'OK' }).calls).toBe(DISPATCH_3)
     })
@@ -386,7 +396,7 @@ describe('the loop keeps itself going without the scheduler', () => {
       const none = chain('2', '8', {})
       expect(none.status).toBe(0)
       expect(none.calls).toBe('')
-      expect(none.stdout).toContain('No worker reported OK')
+      expect(none.stdout).toContain('No worker reported OK or PARTIAL')
     })
   })
 

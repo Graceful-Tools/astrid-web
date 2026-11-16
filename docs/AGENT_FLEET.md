@@ -17,7 +17,7 @@ contention is per machine.
 
 | Where | Owns |
 |---|---|
-| **Cloud (`agent-run.yml`)** | The Claude Code web workers: N in parallel per run (repo variable `ASTRID_AGENT_WORKERS`, default 3; see *Parallel workers* below), each on its own task. A run in which any worker finishes a task starts the next one (up to `ASTRID_AGENT_MAX_CHAIN`, default 8), and the :05/:35 schedule restarts an ended chain; it shares the Web board's atomic claims with other web harnesses. The Mac's web loop, the Copilot app's web-queue cron and the `astrid-web` self-hosted runner were retired 2026-10-28 (AWTD-1363) |
+| **Cloud (`agent-run.yml`)** | The Claude Code web workers: N in parallel per run (repo variable `ASTRID_AGENT_WORKERS`, default 3; see *Parallel workers* below), each on its own task. A run in which any worker finishes or advances a task starts the next one (up to `ASTRID_AGENT_MAX_CHAIN`, default 8), and the :05/:35 schedule restarts an ended chain; it shares the Web board's atomic claims with other web harnesses. The Mac's web loop, the Copilot app's web-queue cron and the `astrid-web` self-hosted runner were retired 2026-10-28 (AWTD-1363) |
 | **GitHub's built-in Copilot coding agent** | Additional web changes and independent reviews of Claude changes, scoped to the Web board and `copilot` mailbox. `native-copilot-bridge.yml` bridges Astrid to GitHub's issue-assigned agent; `copilot-setup-steps.yml` prepares its worker. This is not Copilot CLI in Actions |
 | **Dedicated Apple device** | Keep the existing Claude Code iOS/Mac loop, Xcode and TestFlight work in astrid-ios |
 | **Windows device** | Keep its existing Claude Code worker and `fixall-loop.ps1`; `windows-latest` continues builds/unit tests |
@@ -131,7 +131,7 @@ share the `claude` mailbox; atomic claims are what keep two of them off one task
   through the same script, because it alone answers the attention inbox and takes resumes.
 - **Slot 1 only.** The stale-Doing sweep (two workers releasing one task would hand it
   back) and wake state.
-- **Chaining.** One dispatch per run, if any worker reported `RESULT: OK` (per-slot
+- **Chaining.** One dispatch per run, if any worker reported `RESULT: OK` or `RESULT: PARTIAL` (per-slot
   verdict artifacts; matrix job outputs are last-writer-wins). The depth cap is unchanged.
 - **Leases.** The stale-Doing release never moves a task whose claim lease is live
   (`claimHolderId` set, `claimLeaseExpiresAt` in the future; AWTD-1688). Without a lease,
