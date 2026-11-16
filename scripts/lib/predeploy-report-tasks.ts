@@ -31,6 +31,8 @@
  * bug.
  */
 
+import { spawnSync } from 'node:child_process'
+
 export interface PredeployTaskLike {
   id?: string
   title?: string | null
@@ -90,4 +92,33 @@ export function selectReportTaskFor<T extends PredeployTaskLike>(
         (task.title ?? '').toLowerCase().includes(summary),
     ) ?? null
   )
+}
+
+/**
+ * ADEV-31: whether this predeploy run may file or comment on a board task.
+ *
+ * Only a run on main, or on a merged commit behind it (the gate worktree), files.
+ * A feature branch's red gate is that branch's business: on 2026-11-16 all three
+ * "Predeploy Failed" tasks on the web board came from branches, and each one
+ * outranked real work at the top of Ready. Without an `origin/main` ref (a
+ * shallow CI checkout) it trusts `GITHUB_REF`. `ASTRID_PREDEPLOY_FILE_TASKS`
+ * set to 1 forces filing and 0 forbids it.
+ */
+export function predeployReportScope(opts: {
+  cwd: string
+  env: Record<string, string | undefined>
+}): { file: boolean; reason: string } {
+  const force = opts.env.ASTRID_PREDEPLOY_FILE_TASKS
+  if (force === '1') return { file: true, reason: 'ASTRID_PREDEPLOY_FILE_TASKS=1' }
+  if (force === '0') return { file: false, reason: 'ASTRID_PREDEPLOY_FILE_TASKS=0' }
+  const git = (...args: string[]) =>
+    spawnSync('git', args, { cwd: opts.cwd, stdio: 'ignore' }).status === 0
+  if (git('rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main')) {
+    return git('merge-base', '--is-ancestor', 'HEAD', 'refs/remotes/origin/main')
+      ? { file: true, reason: 'HEAD is on origin/main' }
+      : { file: false, reason: 'HEAD is not on origin/main (a branch run)' }
+  }
+  return opts.env.GITHUB_REF === 'refs/heads/main'
+    ? { file: true, reason: 'GITHUB_REF is main' }
+    : { file: false, reason: 'no origin/main ref and GITHUB_REF is not main' }
 }

@@ -723,6 +723,8 @@ When issues can't be auto-fixed, tasks are created in the **Bugs & Polish** list
 - Fix attempts history
 - Action item checklist
 
+Only a run on `main`, or on a merged commit behind it, files or comments (ADEV-31). A feature branch's red gate prints its report and files nothing. `ASTRID_PREDEPLOY_FILE_TASKS=1` forces filing; `0` forbids it.
+
 Configure via environment:
 ```bash
 ASTRID_BUGS_LIST_ID=your-list-uuid  # Target list for auto-created tasks
