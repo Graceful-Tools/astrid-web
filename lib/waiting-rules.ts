@@ -21,6 +21,9 @@
  * - R4: waiting on a PERSON is Inbox, assigned to them.
  * - R5: a Ready task with a future date is parked in Waiting, unassigned.
  * - R7: optional preset columns a board can add (the first: `testing`).
+ * - R8: a handoff (AWTD-1686) files the other half Ready on another list and parks the source in
+ *   Waiting on it, unassigned, remembering its holder; when the source wakes by rule with nobody
+ *   assigned, the answer is `assignee: "return"` with that holder (`returnAssigneeId`).
  *
  * Imports only lib/lazy-value.ts and lib/board-presets.ts, so client components may use it.
  */
@@ -37,6 +40,10 @@ export const READY_ROLE = 'ready'
 export const WAITING_NEEDS_CONDITION = 'WAITING_NEEDS_CONDITION'
 /** The core's own refusal message; the server answers a user-readable one (see services/task-waiting.ts). */
 export const WAITING_NEEDS_CONDITION_MESSAGE = 'Waiting needs a date or a task to wait on'
+/** R8: the refusal code for a handoff whose source is finished. */
+export const HANDOFF_SOURCE_DONE = 'HANDOFF_SOURCE_DONE'
+/** The core's own refusal message for it. */
+export const HANDOFF_SOURCE_DONE_MESSAGE = 'A finished task cannot be handed off'
 
 export interface WaitingBlocker {
   id: string
@@ -65,13 +72,16 @@ export interface WaitingChange {
   keepAssignee?: boolean
 }
 
-export type AssigneeWrite = 'keep' | 'clear'
+/** `return`: write the assignee back to the holder a handoff remembered (R8), `returnAssigneeId`. */
+export type AssigneeWrite = 'keep' | 'clear' | 'return'
 export type WaitingTransition = 'none' | 'enter' | 'stay' | 'wake' | 'inbox'
 
 export interface ResolvedWaitingWrite {
   statusRole: string | null
   assignee: AssigneeWrite
   transition: WaitingTransition
+  /** With `assignee: 'return'` only (R8). */
+  returnAssigneeId?: string
 }
 
 export type WaitingWriteAnswer =
@@ -85,7 +95,22 @@ export interface Settlement {
   action: SettleAction
   statusRole: string | null
   assignee: AssigneeWrite
+  /** With `assignee: 'return'` only (R8). */
+  returnAssigneeId?: string
 }
+
+/** R8: what one handoff writes (astrid-core `waitingHandoff`). */
+export interface HandoffPlan {
+  half: { statusRole: string; originTaskId: string }
+  /** The source's write: `enter` (unassigned when it was assigned), or `stay` if already waiting. */
+  source: ResolvedWaitingWrite
+  /** Who held the source, to be remembered; null when nobody did. */
+  returnAssigneeId: string | null
+}
+
+export type HandoffAnswer =
+  | { ok: true; value: HandoffPlan }
+  | { ok: false; code: typeof HANDOFF_SOURCE_DONE; message: string }
 
 // ── The TypeScript mirror ────────────────────────────────────────────────────
 
@@ -125,8 +150,27 @@ function blockersAfter(blockers: readonly WaitingBlocker[], change: WaitingChang
   ]
 }
 
-/** R1/R2: the TypeScript answer to `waitingWrite`. */
+/** R8: who a task leaving Waiting by rule goes back to — nobody if somebody is assigned now. */
+function holderToReturn(task: WaitingTask, returnTo: string | null | undefined): string | undefined {
+  if (task.assigneeId) return undefined
+  return returnTo ? returnTo : undefined
+}
+
+/** R1/R2/R8: the TypeScript answer to `waitingWrite`; `returnTo` is the holder a handoff remembered. */
 export function resolveWaitingWriteTs(
+  task: WaitingTask,
+  blockers: readonly WaitingBlocker[],
+  change: WaitingChange,
+  now: Date,
+  returnTo?: string | null,
+): WaitingWriteAnswer {
+  const answer = resolveWaitingWriteNoReturn(task, blockers, change, now)
+  if (!answer.ok || (answer.value.transition !== 'wake' && answer.value.transition !== 'inbox')) return answer
+  const holder = holderToReturn(task, returnTo)
+  return holder ? { ok: true, value: { ...answer.value, assignee: 'return', returnAssigneeId: holder } } : answer
+}
+
+function resolveWaitingWriteNoReturn(
   task: WaitingTask,
   blockers: readonly WaitingBlocker[],
   change: WaitingChange,
@@ -172,8 +216,20 @@ export function wakeWaitingTs(task: WaitingTask, blockers: readonly WaitingBlock
   return due !== null || blockers.length > 0 ? 'wakeToReady' : 'resolveToInbox'
 }
 
-/** R3 + R5: the TypeScript answer to `waitingSettle`. */
-export function settleWaitingTs(task: WaitingTask, blockers: readonly WaitingBlocker[], now: Date): Settlement {
+/** R3 + R5 + R8: the TypeScript answer to `waitingSettle`; `returnTo` is the remembered holder. */
+export function settleWaitingTs(
+  task: WaitingTask,
+  blockers: readonly WaitingBlocker[],
+  now: Date,
+  returnTo?: string | null,
+): Settlement {
+  const settlement = settleNoReturn(task, blockers, now)
+  if (settlement.action !== 'wakeToReady' && settlement.action !== 'resolveToInbox') return settlement
+  const holder = holderToReturn(task, returnTo)
+  return holder ? { ...settlement, assignee: 'return', returnAssigneeId: holder } : settlement
+}
+
+function settleNoReturn(task: WaitingTask, blockers: readonly WaitingBlocker[], now: Date): Settlement {
   const stay: Settlement = { action: 'stay', statusRole: roleOf(task), assignee: 'keep' }
   if (task.completed) return stay
   if (isWaitingTask(task)) {
@@ -197,6 +253,36 @@ export function handBackTs(assigneeId: string): { statusRole: null; assigneeId: 
   return { statusRole: null, assigneeId, completed: false }
 }
 
+/**
+ * R8: the TypeScript answer to `waitingHandoff`. `heldReturn` is the holder an earlier handoff
+ * remembered for the source, if any. The half has no id yet; an open blocker is a condition (R1).
+ */
+export function handoffTs(
+  source: WaitingTask,
+  blockers: readonly WaitingBlocker[],
+  heldReturn: string | null | undefined,
+  now: Date,
+): HandoffAnswer {
+  if (source.completed) return { ok: false, code: HANDOFF_SOURCE_DONE, message: HANDOFF_SOURCE_DONE_MESSAGE }
+  const write = resolveWaitingWriteNoReturn(
+    source,
+    blockers,
+    { statusRole: WAITING_ROLE, addBlockers: [{ id: '\u0000pending-half', completed: false }] },
+    now,
+  )
+  const sourceWrite: ResolvedWaitingWrite = write.ok
+    ? write.value
+    : { statusRole: WAITING_ROLE, assignee: 'clear', transition: 'enter' }
+  return {
+    ok: true,
+    value: {
+      half: { statusRole: READY_ROLE, originTaskId: source.id },
+      source: sourceWrite,
+      returnAssigneeId: source.assigneeId || heldReturn || null,
+    },
+  }
+}
+
 /** R7: the TypeScript answer to `boardPresets` (lib/board-presets.ts). */
 export function boardPresetsTs(customStates: unknown): BoardPreset[] {
   return availableBoardPresets(customStates)
@@ -211,13 +297,18 @@ export function boardPresetsTs(customStates: unknown): BoardPreset[] {
  */
 export interface WaitingCore {
   write(
-    question: { task: WaitingTask; blockers: readonly WaitingBlocker[]; change: WaitingChange; now: Date },
+    question: { task: WaitingTask; blockers: readonly WaitingBlocker[]; change: WaitingChange; now: Date; returnAssigneeId?: string | null },
     typescriptAnswer: () => WaitingWriteAnswer,
   ): WaitingWriteAnswer | undefined
   settle(
-    question: { task: WaitingTask; blockers: readonly WaitingBlocker[]; now: Date },
+    question: { task: WaitingTask; blockers: readonly WaitingBlocker[]; now: Date; returnAssigneeId?: string | null },
     typescriptAnswer: () => Settlement,
   ): Settlement | undefined
+  /** R8. Optional: a core installed before the handoff rule leaves the TypeScript standing. */
+  handoff?(
+    question: { source: WaitingTask; blockers: readonly WaitingBlocker[]; returnAssigneeId?: string | null; now: Date },
+    typescriptAnswer: () => HandoffAnswer,
+  ): HandoffAnswer | undefined
   presets(customStates: unknown, typescriptAnswer: () => BoardPreset[]): BoardPreset[] | undefined
 }
 
@@ -243,24 +334,46 @@ function throughCore<T>(ask: (core: WaitingCore, typescript: () => T) => T | und
   }
 }
 
-/** R1/R2 — `waitingWrite`. Core first, TypeScript fallback. */
+/**
+ * R1/R2 (and R8) — `waitingWrite`. Core first, TypeScript fallback. `returnAssigneeId` is the holder
+ * a handoff remembered for the task (`Task.handoffReturnAssigneeId`), when there is one.
+ */
 export function waitingWrite(
   task: WaitingTask,
   blockers: readonly WaitingBlocker[],
   change: WaitingChange,
   now: Date = new Date(),
+  returnAssigneeId?: string | null,
 ): WaitingWriteAnswer {
   return throughCore(
-    (core, typescript) => core.write({ task, blockers, change, now }, typescript),
-    () => resolveWaitingWriteTs(task, blockers, change, now),
+    (core, typescript) => core.write({ task, blockers, change, now, returnAssigneeId }, typescript),
+    () => resolveWaitingWriteTs(task, blockers, change, now, returnAssigneeId),
   )
 }
 
-/** R3 + R5 — `waitingSettle`. Core first, TypeScript fallback. */
-export function waitingSettle(task: WaitingTask, blockers: readonly WaitingBlocker[], now: Date = new Date()): Settlement {
+/** R3 + R5 (and R8) — `waitingSettle`. Core first, TypeScript fallback. */
+export function waitingSettle(
+  task: WaitingTask,
+  blockers: readonly WaitingBlocker[],
+  now: Date = new Date(),
+  returnAssigneeId?: string | null,
+): Settlement {
   return throughCore(
-    (core, typescript) => core.settle({ task, blockers, now }, typescript),
-    () => settleWaitingTs(task, blockers, now),
+    (core, typescript) => core.settle({ task, blockers, now, returnAssigneeId }, typescript),
+    () => settleWaitingTs(task, blockers, now, returnAssigneeId),
+  )
+}
+
+/** R8 — `waitingHandoff`. Core first, TypeScript fallback. */
+export function waitingHandoff(
+  source: WaitingTask,
+  blockers: readonly WaitingBlocker[],
+  returnAssigneeId: string | null | undefined,
+  now: Date = new Date(),
+): HandoffAnswer {
+  return throughCore(
+    (core, typescript) => core.handoff?.({ source, blockers, returnAssigneeId, now }, typescript),
+    () => handoffTs(source, blockers, returnAssigneeId, now),
   )
 }
 

@@ -469,20 +469,31 @@ failed, and move on.
 Some bugs cannot be fixed where they are reported. The 30-day sign-out was one: only the server
 could issue a fresh token, so no amount of Swift would have helped.
 
-**File that half on the other board** — Astrid Web To-do `a623f322-4c3c-49b5-8a94-d2d9f00c82ba`,
-Astrid iOS To-do `aa41c1a3-bd63-4c6d-9b87-42c6e0aafa36` — and say on the original task that you
-have done so. A task parked on the wrong board is invisible to the loop that works that board:
-it just sits, and every re-run reports it as blocked. That is exactly what happened with the
-session bug, which idled for a full cycle before anyone noticed the work belonged elsewhere.
+**Hand that half to the other board with the handoff command** (AWTD-1686) — Astrid Web To-do
+`a623f322-4c3c-49b5-8a94-d2d9f00c82ba`, Astrid iOS To-do `aa41c1a3-bd63-4c6d-9b87-42c6e0aafa36`. One
+step files the half **Ready** on the target board, makes the original wait on it (Waiting, with the
+half as its blocker), and remembers who held the original. When the half is completed, the server
+wakes the original to **Ready assigned back to you** — it reappears in your own queue, with no
+`includeUnassigned` and no polling. A task parked on the wrong board is invisible to the loop that
+works that board: it just sits, and every re-run reports it as blocked. That is exactly what
+happened with the session bug, which idled for a full cycle before anyone noticed the work
+belonged elsewhere.
 
 ```
-create_task { listId: "<target board id>", title: "[web] <what the other side must do>",
-              statusRole: "ready", priority: 3,
-              description: "<contract, evidence, and what this side does once it exists>" }
+handoff_task { taskId: "<this task>", targetListId: "<target board id>",
+               title: "[web] <what the other side must do>", priority: 3,
+               description: "<contract, evidence, and what this side does once it exists>" }
 ```
 
-(`get_tasks { listId }` first, so a re-run does not file the same title twice. File it **Ready**,
-not Inbox — see *Autonomy* above.)
+The same command is `POST /api/v1/tasks/<taskId>/handoff` `{ targetListId, title, description,
+priority }`, and from astrid-web `npx tsx scripts/file-ios-task.ts "<title>" "<description>" -p 2
+--from <taskId> --agent <mailbox>` for the iOS board. Do not hand-roll it with `create_task` + `add_blocker`: adding a
+blocker unassigns the original (the Waiting rules), so it would wake with nobody on it. A finding
+with no task of yours waiting on it is filed standalone (`file-ios-task.ts` without `--from`, or
+`create_task` with `statusRole: "ready"`).
+
+(`get_tasks { listId }` first, so a re-run does not file the same title twice. The half is filed
+**Ready**, not Inbox — see *Autonomy* above.)
 
 **What that task must contain**, because whoever picks it up will not have your context:
 
@@ -496,7 +507,8 @@ not Inbox — see *Autonomy* above.)
 - **Whether the halves can ship independently.** Usually yes if the new field is optional — say
   so explicitly, because it decides whether anyone has to coordinate a release.
 
-**Then keep the original honest.** Do the half you can and say plainly what remains. Do not
+**Then keep the original honest.** Do the half you can and say plainly what remains; the
+original waits in Waiting until the half is done, then comes back to you. Do not
 close a task while users are still affected. A merged branch is not a deployed one: astrid-web
 does not auto-deploy, so `main` having the fix changes nothing until someone deploys — which,
 since 2026-10-13, is the run's own job on web (*Deploying is part of finishing*, below).

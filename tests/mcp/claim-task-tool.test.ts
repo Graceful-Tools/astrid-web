@@ -127,8 +127,9 @@ describe('MCP claim_task tool (AWTD-1557)', () => {
     // add_blocker / remove_blocker say the server wakes the task, not a sweep.
     // Re-pinned for AWTD-1560 (2026-11-14): get_agent_queue explains runnable.
     // AWTD-1688 adds claim_task alongside and changes none of these.
+    // Re-pinned for AWTD-1686 (2026-11-16): handoff_task added beside the blocker tools.
     expect(createHash('sha256').update(JSON.stringify(OAUTH_MCP_TOOLS)).digest('hex')).toBe(
-      'ba56a8837c2a3ad6a4aaad993e605657e622d36865fa5c3950b9923eb073d824',
+      '98b82112883dc7cdb62619ae82c8c5d34b2d5002ac7ab193bde82121c36be35e',
     )
   })
 

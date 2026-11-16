@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "One brand profile, in sections. `env` names the NEXT_PUBLIC_*/BRAND_* key a field is also readable as, so today's web profiles validate unchanged. `default` is Astrid's own value, used when a profile does not state one \u2014 the colours' defaults come from design/tokens.json's brand block rather than being restated here.",
+  "description": "One brand profile, in sections. `env` names the NEXT_PUBLIC_*/BRAND_* key a field is also readable as, so today's web profiles validate unchanged. `alias` names the key(s) a field is also readable as INSIDE its own block \u2014 the spellings each client already uses in a platform block. `default` is Astrid's own value, used when a profile does not state one \u2014 the colours' defaults come from design/tokens.json's brand block rather than being restated here. A field's own name wins over an alias, which wins over `env`, which wins over the default.",
   "sections": {
     "identity": {
       "name": {
@@ -74,7 +74,8 @@
       },
       "accent-hover": {
         "type": "color",
-        "derived": true
+        "derived": true,
+        "env": "NEXT_PUBLIC_BRAND_ACCENT_HOVER_COLOR"
       },
       "accent-ink": {
         "type": "color",
@@ -103,6 +104,10 @@
       "icon": {
         "type": "path",
         "env": "NEXT_PUBLIC_BRAND_ICON"
+      },
+      "icon-source": {
+        "type": "path",
+        "alias": "iconSource"
       },
       "icon-small": {
         "type": "path",
@@ -216,67 +221,107 @@
     "web": {},
     "ios": {
       "bundle-id": {
-        "type": "string"
+        "type": "string",
+        "alias": "bundleId"
       },
       "app-group": {
-        "type": "string"
+        "type": "string",
+        "alias": "appGroup"
       },
       "keychain-group": {
-        "type": "string"
+        "type": "string",
+        "alias": "keychainGroup"
       },
       "development-team": {
-        "type": "string"
+        "type": "string",
+        "alias": "developmentTeam"
       },
       "display-name": {
-        "type": "string"
+        "type": "string",
+        "alias": "displayName"
       },
       "app-ids": {
         "type": "list",
+        "alias": "appIds",
         "env": "BRAND_APPLE_APP_IDS"
       }
     },
     "mac": {
       "bundle-id": {
-        "type": "string"
+        "type": "string",
+        "alias": "bundleId"
       },
       "display-name": {
-        "type": "string"
+        "type": "string",
+        "alias": "displayName"
       }
     },
     "android": {
       "package": {
-        "type": "string"
+        "type": "string",
+        "alias": ["applicationId", "packageName"]
+      },
+      "app-name": {
+        "type": "string",
+        "alias": "appName"
       },
       "app-links": {
         "type": "list",
+        "alias": "appLinks",
         "env": "BRAND_ANDROID_APP_LINKS"
       }
     },
     "windows": {
       "package-identity": {
-        "type": "string"
+        "type": "string",
+        "alias": "identityName"
       },
       "publisher": {
-        "type": "string"
+        "type": "string",
+        "alias": "identityPublisher"
+      },
+      "publisher-display-name": {
+        "type": "string",
+        "alias": "publisherDisplayName"
       },
       "display-name": {
-        "type": "string"
+        "type": "string",
+        "alias": "displayName"
+      },
+      "assets": {
+        "type": "path",
+        "alias": "assets"
       }
     },
     "vscode": {
       "publisher": {
         "type": "string"
       },
+      "display-name": {
+        "type": "string",
+        "alias": "displayName"
+      },
       "extension-id": {
-        "type": "string"
+        "type": "string",
+        "alias": "extensionId"
       }
     },
     "code": {
       "bundle-id": {
-        "type": "string"
+        "type": "string",
+        "alias": "bundleId"
       },
       "application-name": {
-        "type": "string"
+        "type": "string",
+        "alias": "applicationName"
+      },
+      "name-short": {
+        "type": "string",
+        "alias": "nameShort"
+      },
+      "name-long": {
+        "type": "string",
+        "alias": "nameLong"
       }
     }
   }

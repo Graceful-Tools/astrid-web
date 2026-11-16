@@ -17,9 +17,11 @@
  */
 import { createLogger } from '@/lib/logger'
 import {
+  HANDOFF_SOURCE_DONE,
   setWaitingCore,
   WAITING_NEEDS_CONDITION,
   type BoardPreset,
+  type HandoffAnswer,
   type Settlement,
   type WaitingBlocker,
   type WaitingChange,
@@ -38,7 +40,7 @@ interface Reporter {
 const MAX_LOGGED = 50
 const TRANSITIONS = new Set(['none', 'enter', 'stay', 'wake', 'inbox'])
 const ACTIONS = new Set(['stay', 'wakeToReady', 'resolveToInbox', 'parkInWaiting'])
-const ASSIGNEE = new Set(['keep', 'clear'])
+const ASSIGNEE = new Set(['keep', 'clear', 'return'])
 
 const isString = (value: unknown): value is string => typeof value === 'string'
 const isRole = (value: unknown) => value === null || isString(value)
@@ -75,6 +77,15 @@ function wireChange(change: WaitingChange) {
 
 const wireBlockers = (blockers: readonly WaitingBlocker[]) => blockers.map(({ id, completed }) => ({ id, completed: Boolean(completed) }))
 
+/** `return` needs the holder beside it (R8); any other assignee write must not carry one. */
+function returnFields(value: Record<string, unknown>): { returnAssigneeId?: string } | null {
+  if (value.assignee === 'return') return isString(value.returnAssigneeId) ? { returnAssigneeId: value.returnAssigneeId } : null
+  return {}
+}
+
+/** The holder a handoff remembered, on the wire only when there is one. */
+const wireReturn = (returnAssigneeId: string | null | undefined) => (returnAssigneeId ? { returnAssigneeId } : {})
+
 /** A `waitingWrite` envelope as an answer, or null when it is not one. */
 export function writeAnswerFrom(raw: string): WaitingWriteAnswer | null {
   const reply = JSON.parse(raw) as { ok: boolean; value?: Record<string, unknown>; error?: { code?: string; message?: string } }
@@ -86,12 +97,36 @@ export function writeAnswerFrom(raw: string): WaitingWriteAnswer | null {
   if (!value || !isRole(value.statusRole) || !ASSIGNEE.has(value.assignee as string) || !TRANSITIONS.has(value.transition as string)) {
     return null
   }
+  const returned = returnFields(value)
+  if (!returned) return null
   return {
     ok: true,
     value: {
       statusRole: (value.statusRole as string | null) ?? null,
-      assignee: value.assignee as 'keep' | 'clear',
+      assignee: value.assignee as 'keep' | 'clear' | 'return',
       transition: value.transition as never,
+      ...returned,
+    },
+  }
+}
+
+/** A `waitingHandoff` envelope as an answer (R8), or null when it is not one. */
+export function handoffAnswerFrom(raw: string): HandoffAnswer | null {
+  const reply = JSON.parse(raw) as { ok: boolean; value?: Record<string, any>; error?: { code?: string; message?: string } }
+  if (!reply.ok) {
+    if (reply.error?.code !== HANDOFF_SOURCE_DONE) return null
+    return { ok: false, code: HANDOFF_SOURCE_DONE, message: reply.error.message ?? '' }
+  }
+  const value = reply.value
+  const source = writeAnswerFrom(JSON.stringify({ ok: true, value: value?.source }))
+  if (!value || !value.half || !isString(value.half.statusRole) || !isString(value.half.originTaskId) || !source || !source.ok) return null
+  if (value.returnAssigneeId !== null && !isString(value.returnAssigneeId)) return null
+  return {
+    ok: true,
+    value: {
+      half: { statusRole: value.half.statusRole, originTaskId: value.half.originTaskId },
+      source: source.value,
+      returnAssigneeId: value.returnAssigneeId ?? null,
     },
   }
 }
@@ -99,11 +134,21 @@ export function writeAnswerFrom(raw: string): WaitingWriteAnswer | null {
 function differingWrite(a: WaitingWriteAnswer, b: WaitingWriteAnswer): string[] {
   if (a.ok !== b.ok) return ['refused']
   if (!a.ok || !b.ok) return []
-  return (['statusRole', 'assignee', 'transition'] as const).filter((field) => a.value[field] !== b.value[field])
+  return (['statusRole', 'assignee', 'transition', 'returnAssigneeId'] as const).filter((field) => a.value[field] !== b.value[field])
 }
 
 function differingSettle(a: Settlement, b: Settlement): string[] {
-  return (['action', 'statusRole', 'assignee'] as const).filter((field) => a[field] !== b[field])
+  return (['action', 'statusRole', 'assignee', 'returnAssigneeId'] as const).filter((field) => a[field] !== b[field])
+}
+
+function differingHandoff(a: HandoffAnswer, b: HandoffAnswer): string[] {
+  if (a.ok !== b.ok) return ['refused']
+  if (!a.ok || !b.ok) return []
+  const fields: string[] = []
+  if (a.value.half.statusRole !== b.value.half.statusRole || a.value.half.originTaskId !== b.value.half.originTaskId) fields.push('half')
+  if (differingWrite({ ok: true, value: a.value.source }, { ok: true, value: b.value.source }).length > 0) fields.push('source')
+  if (a.value.returnAssigneeId !== b.value.returnAssigneeId) fields.push('returnAssigneeId')
+  return fields
 }
 
 function differingPresets(a: BoardPreset[], b: BoardPreset[]): string[] {
@@ -214,7 +259,7 @@ export function createWaitingCore(
   }
 
   function write(
-    question: { task: WaitingTask; blockers: readonly WaitingBlocker[]; change: WaitingChange; now: Date },
+    question: { task: WaitingTask; blockers: readonly WaitingBlocker[]; change: WaitingChange; now: Date; returnAssigneeId?: string | null },
     typescriptAnswer: () => WaitingWriteAnswer,
   ): WaitingWriteAnswer | undefined {
     const started = begin('waitingWrite')
@@ -225,6 +270,7 @@ export function createWaitingCore(
       task: wireTask(task),
       blockers: wireBlockers(blockers),
       change: wireChange(change),
+      ...wireReturn(question.returnAssigneeId),
       now: now.toISOString(),
     })
     if (raw === undefined) return undefined
@@ -242,28 +288,67 @@ export function createWaitingCore(
   }
 
   function settle(
-    question: { task: WaitingTask; blockers: readonly WaitingBlocker[]; now: Date },
+    question: { task: WaitingTask; blockers: readonly WaitingBlocker[]; now: Date; returnAssigneeId?: string | null },
     typescriptAnswer: () => Settlement,
   ): Settlement | undefined {
     const started = begin('waitingSettle')
     if (!started) return undefined
     const { task, blockers, now } = question
-    const raw = call('waitingSettle', { kind: 'waitingSettle', task: wireTask(task), blockers: wireBlockers(blockers), now: now.toISOString() })
+    const raw = call('waitingSettle', {
+      kind: 'waitingSettle',
+      task: wireTask(task),
+      blockers: wireBlockers(blockers),
+      ...wireReturn(question.returnAssigneeId),
+      now: now.toISOString(),
+    })
     if (raw === undefined) return undefined
     const value = okValue('waitingSettle', raw) as Record<string, unknown> | undefined
     if (value === undefined) return undefined
-    if (!value || !ACTIONS.has(value.action as string) || !isRole(value.statusRole) || !ASSIGNEE.has(value.assignee as string)) {
+    const returned = value ? returnFields(value) : null
+    if (!value || !ACTIONS.has(value.action as string) || !isRole(value.statusRole) || !ASSIGNEE.has(value.assignee as string) || !returned) {
       return fail('waitingSettle', 'core answered something that is not a settlement')
     }
     const core: Settlement = {
       action: value.action as Settlement['action'],
       statusRole: (value.statusRole as string | null) ?? null,
       assignee: value.assignee as Settlement['assignee'],
+      ...returned,
     }
     return compare('waitingSettle', core, started.compared, () => differingSettle(core, typescriptAnswer()), () => ({
       from: task.completed ? 'done' : task.statusRole === 'waiting' ? 'waiting' : task.statusRole === 'ready' ? 'ready' : 'other',
       blockers: blockers.length,
       dated: Boolean(task.dueDateTime),
+    }))
+  }
+
+  function handoff(
+    question: { source: WaitingTask; blockers: readonly WaitingBlocker[]; returnAssigneeId?: string | null; now: Date },
+    typescriptAnswer: () => HandoffAnswer,
+  ): HandoffAnswer | undefined {
+    const started = begin('waitingHandoff')
+    if (!started) return undefined
+    const { source, blockers, now } = question
+    const raw = call('waitingHandoff', {
+      kind: 'waitingHandoff',
+      source: wireTask(source),
+      blockers: wireBlockers(blockers),
+      ...wireReturn(question.returnAssigneeId),
+      now: now.toISOString(),
+    })
+    if (raw === undefined) return undefined
+    let core: HandoffAnswer | null
+    try {
+      core = handoffAnswerFrom(raw)
+    } catch (error) {
+      return fail('waitingHandoff', error)
+    }
+    // A core vendored before R8 answers "unknown kind": the TypeScript stands, logged as a failure.
+    if (!core) return fail('waitingHandoff', 'core answered something that is not a handoff')
+    const answer = core
+    return compare('waitingHandoff', answer, started.compared, () => differingHandoff(answer, typescriptAnswer()), () => ({
+      from: source.completed ? 'done' : source.statusRole === 'waiting' ? 'waiting' : source.statusRole ? 'status' : 'inbox',
+      blockers: blockers.length,
+      assigned: Boolean(source.assigneeId),
     }))
   }
 
@@ -285,7 +370,7 @@ export function createWaitingCore(
     }))
   }
 
-  return { write, settle, presets, stats }
+  return { write, settle, handoff, presets, stats }
 }
 
 const STATUS_KEY = Symbol.for('astrid.waiting.coreStatus')
@@ -325,7 +410,7 @@ export function installWaitingCore(setting: string | undefined = process.env.AST
       },
       { revision: core.revision, mode, sampleEvery },
     )
-    setWaitingCore({ write: hook.write, settle: hook.settle, presets: hook.presets })
+    setWaitingCore({ write: hook.write, settle: hook.settle, handoff: hook.handoff, presets: hook.presets })
     host[STATUS_KEY] = { mode, sampleEvery, loaded: true, revision: core.revision, stats: hook.stats }
     log.info({ revision: core.revision, mode }, 'waiting: astrid-core installed')
     return true

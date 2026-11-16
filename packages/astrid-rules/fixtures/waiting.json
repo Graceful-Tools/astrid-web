@@ -1337,6 +1337,262 @@
     {
       "answer": {
         "ok": true,
+        "value": {
+          "half": {
+            "originTaskId": "src",
+            "statusRole": "ready"
+          },
+          "returnAssigneeId": "agent",
+          "source": {
+            "assignee": "clear",
+            "statusRole": "waiting",
+            "transition": "enter"
+          }
+        }
+      },
+      "name": "handoff/doing-source-waits-unassigned-and-remembers-its-holder",
+      "request": {
+        "blockers": [],
+        "kind": "waitingHandoff",
+        "now": "2026-11-12T12:00:00.000Z",
+        "source": {
+          "assigneeId": "agent",
+          "id": "src",
+          "statusRole": "doing"
+        }
+      },
+      "rule": "R8"
+    },
+    {
+      "answer": {
+        "ok": true,
+        "value": {
+          "half": {
+            "originTaskId": "src",
+            "statusRole": "ready"
+          },
+          "returnAssigneeId": null,
+          "source": {
+            "assignee": "keep",
+            "statusRole": "waiting",
+            "transition": "enter"
+          }
+        }
+      },
+      "name": "handoff/ready-source-with-nobody-assigned-remembers-nobody",
+      "request": {
+        "blockers": [],
+        "kind": "waitingHandoff",
+        "now": "2026-11-12T12:00:00.000Z",
+        "source": {
+          "id": "src",
+          "statusRole": "ready"
+        }
+      },
+      "rule": "R8"
+    },
+    {
+      "answer": {
+        "ok": true,
+        "value": {
+          "half": {
+            "originTaskId": "src",
+            "statusRole": "ready"
+          },
+          "returnAssigneeId": "agent",
+          "source": {
+            "assignee": "keep",
+            "statusRole": "waiting",
+            "transition": "stay"
+          }
+        }
+      },
+      "name": "handoff/source-already-waiting-keeps-the-remembered-holder",
+      "request": {
+        "blockers": [
+          {
+            "completed": false,
+            "id": "half-1"
+          }
+        ],
+        "kind": "waitingHandoff",
+        "now": "2026-11-12T12:00:00.000Z",
+        "returnAssigneeId": "agent",
+        "source": {
+          "id": "src",
+          "statusRole": "waiting"
+        }
+      },
+      "rule": "R8"
+    },
+    {
+      "answer": {
+        "error": {
+          "code": "HANDOFF_SOURCE_DONE",
+          "kind": "refused",
+          "message": "A finished task cannot be handed off"
+        },
+        "ok": false
+      },
+      "name": "handoff/a-finished-source-is-refused",
+      "request": {
+        "blockers": [],
+        "kind": "waitingHandoff",
+        "now": "2026-11-12T12:00:00.000Z",
+        "source": {
+          "assigneeId": "agent",
+          "completed": true,
+          "id": "src",
+          "statusRole": "doing"
+        }
+      },
+      "rule": "R8"
+    },
+    {
+      "answer": {
+        "ok": true,
+        "value": {
+          "action": "wakeToReady",
+          "assignee": "return",
+          "returnAssigneeId": "agent",
+          "statusRole": "ready"
+        }
+      },
+      "name": "handoff/half-done-source-wakes-to-ready-back-with-its-holder",
+      "request": {
+        "blockers": [
+          {
+            "completed": true,
+            "id": "half"
+          }
+        ],
+        "kind": "waitingSettle",
+        "now": "2026-11-12T12:00:00.000Z",
+        "returnAssigneeId": "agent",
+        "task": {
+          "id": "src",
+          "statusRole": "waiting"
+        }
+      },
+      "rule": "R3/R8"
+    },
+    {
+      "answer": {
+        "ok": true,
+        "value": {
+          "action": "stay",
+          "assignee": "keep",
+          "statusRole": "waiting"
+        }
+      },
+      "name": "handoff/half-still-open-source-stays-and-returns-nobody",
+      "request": {
+        "blockers": [
+          {
+            "completed": false,
+            "id": "half"
+          }
+        ],
+        "kind": "waitingSettle",
+        "now": "2026-11-12T12:00:00.000Z",
+        "returnAssigneeId": "agent",
+        "task": {
+          "id": "src",
+          "statusRole": "waiting"
+        }
+      },
+      "rule": "R3/R8"
+    },
+    {
+      "answer": {
+        "ok": true,
+        "value": {
+          "action": "wakeToReady",
+          "assignee": "keep",
+          "statusRole": "ready"
+        }
+      },
+      "name": "handoff/somebody-assigned-during-the-wait-wins",
+      "request": {
+        "blockers": [
+          {
+            "completed": true,
+            "id": "half"
+          }
+        ],
+        "kind": "waitingSettle",
+        "now": "2026-11-12T12:00:00.000Z",
+        "returnAssigneeId": "agent",
+        "task": {
+          "assigneeId": "u-jon",
+          "id": "src",
+          "statusRole": "waiting"
+        }
+      },
+      "rule": "R3/R8"
+    },
+    {
+      "answer": {
+        "ok": true,
+        "value": {
+          "assignee": "return",
+          "returnAssigneeId": "agent",
+          "statusRole": "ready",
+          "transition": "wake"
+        }
+      },
+      "name": "handoff/removing-the-half-wakes-the-source-back-to-its-holder",
+      "request": {
+        "blockers": [
+          {
+            "completed": false,
+            "id": "half"
+          }
+        ],
+        "change": {
+          "removeBlockerIds": [
+            "half"
+          ]
+        },
+        "kind": "waitingWrite",
+        "now": "2026-11-12T12:00:00.000Z",
+        "returnAssigneeId": "agent",
+        "task": {
+          "id": "src",
+          "statusRole": "waiting"
+        }
+      },
+      "rule": "R2/R8"
+    },
+    {
+      "answer": {
+        "ok": true,
+        "value": {
+          "action": "wakeToReady",
+          "assignee": "keep",
+          "statusRole": "ready"
+        }
+      },
+      "name": "handoff/a-plain-wake-remembers-nobody",
+      "request": {
+        "blockers": [
+          {
+            "completed": true,
+            "id": "b1"
+          }
+        ],
+        "kind": "waitingSettle",
+        "now": "2026-11-12T12:00:00.000Z",
+        "task": {
+          "id": "t",
+          "statusRole": "waiting"
+        }
+      },
+      "rule": "R3/R8"
+    },
+    {
+      "answer": {
+        "ok": true,
         "value": [
           {
             "description": "Deploying, in canary, or in an experiment.",
@@ -1420,5 +1676,6 @@
   ],
   "door": "astrid_rules::rules::run_json — the WebAssembly build's runJson. Send `request`, expect `answer`.",
   "generatedFrom": "crates/astrid-rules/src/waiting.rs, crates/astrid-rules/src/board.rs (presets)",
+  "handoffSourceDone": "HANDOFF_SOURCE_DONE",
   "waitingNeedsCondition": "WAITING_NEEDS_CONDITION"
 }
