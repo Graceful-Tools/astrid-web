@@ -1,18 +1,24 @@
 import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
-import { NextResponse, type NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import {
+  claimsOnBehalfOfAgent,
   parseAgentTaskClaimRequest,
   resolveAgentTaskClaimPrincipal,
   type AgentTaskClaimOutcome,
 } from '@/lib/agent-task-claim'
-import { claimAgentTask } from '@/services/agent-task-claim.service'
+import { claimAgentTask, resolveDelegatedClaimPrincipal } from '@/services/agent-task-claim.service'
 import { runtimePrincipalOf } from '@/lib/runtime-binding/task-runtime'
 import { runtimeBindingDenialStatus } from '@/lib/runtime-binding/denial-response'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
-const handlePost = withAuth<RouteContext>(
+/**
+ * POST /api/v1/tasks/:id/claim — the agent claim for every board
+ * (docs/AGENT_CLAIM_API.md). On by default since AWTD-1688: no env flag, any
+ * board, and every claim carries a lease its holder renews with `heartbeat`.
+ */
+export const POST = withAuth<RouteContext>(
   { scopes: ['tasks:write'], tag: 'v1.tasks.claim' },
   async (request, auth, { params }) => {
     let body
@@ -25,16 +31,21 @@ const handlePost = withAuth<RouteContext>(
       )
     }
 
-    const principal = resolveAgentTaskClaimPrincipal(auth, body.agentMailbox)
-    if (!principal) {
-      return NextResponse.json({ outcome: 'forbidden', task: null }, { status: 403 })
-    }
-
     // Identifiers are accepted wherever a task id is (AWTD-1016); claim_task says so.
     const { id: rawId } = await params
     const taskId = await resolveTaskIdOrIdentifier(rawId)
     if (!taskId) {
       return NextResponse.json({ outcome: 'not_found', task: null }, { status: 404 })
+    }
+
+    // An agent's own credential acts as that agent; a person's (a
+    // client-credentials token, AWTD-1688) names the agent it claims for.
+    const principal = resolveAgentTaskClaimPrincipal(auth, body.agentMailbox)
+      ?? (claimsOnBehalfOfAgent(auth) && body.agentMailbox
+        ? await resolveDelegatedClaimPrincipal({ taskId, actorId: auth.userId, agentMailbox: body.agentMailbox })
+        : null)
+    if (!principal) {
+      return NextResponse.json({ outcome: 'forbidden', task: null }, { status: 403 })
     }
     const result = await claimAgentTask({
       taskId,
@@ -43,6 +54,7 @@ const handlePost = withAuth<RouteContext>(
       action: body.action,
       agentEmail: principal.agentEmail,
       principal: runtimePrincipalOf(auth),
+      leaseSeconds: body.leaseSeconds,
     })
     return NextResponse.json(result, {
       status: result.outcome === 'binding_denied' && result.binding
@@ -57,6 +69,7 @@ function statusForOutcome(outcome: AgentTaskClaimOutcome): number {
     case 'claimed':
     case 'already_yours':
     case 'released':
+    case 'renewed':
       return 200
     case 'not_found':
       return 404
@@ -68,11 +81,4 @@ function statusForOutcome(outcome: AgentTaskClaimOutcome): number {
     case 'binding_denied':
       return 403
   }
-}
-
-export async function POST(request: NextRequest, context: RouteContext) {
-  if (process.env.ASTRID_AGENT_CLAIM_API !== 'on') {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  }
-  return handlePost(request, context)
 }

@@ -249,6 +249,12 @@ model TaskList {
   /// (lib/ai/agent-execution-mode.ts). A non-null binding that cannot be used
   /// is a denial, never a fall-back to null. No default, no backfill.
   runtimeBindingId        String?
+  /// Agents claim before working this board (AWTD-1688): the generated queue
+  /// skill tells them to pick up unassigned Ready tasks, claim each one, and
+  /// heartbeat. An expired lease here unassigns its holder, so the task goes
+  /// back to the pool. Replaces ASTRID_AGENT_CLAIM_REQUIRED_LISTS. The claim
+  /// route works on every board either way.
+  agentClaimRequired      Boolean                  @default(false)
   listInvites             ListInvite[]
   listMembers             ListMember[]
   mcpTokens               MCPToken[]
@@ -425,6 +431,16 @@ model Task {
   /// Every assignee, primary first (AWTD-1190). Read it through assigneeIdsOf:
   /// assigneeId is the primary whatever this holds.
   assigneeIds            String[]           @default([])
+  /// An agent claim's lease (AWTD-1688, docs/AGENT_CLAIM_API.md). Set by a
+  /// `claim` through POST /api/v1/tasks/:id/claim, renewed by `heartbeat`,
+  /// cleared by `release`. Once it passes, the waiting-settle cron returns the
+  /// task to Ready if `claimHolderId` still holds it in Doing, and otherwise
+  /// just clears it. Null: no lease (every task claimed any other way).
+  claimLeaseExpiresAt    DateTime?
+  /// The holder's last heartbeat (or the claim itself). Null with no lease.
+  claimHeartbeatAt       DateTime?
+  /// The agent account the lease belongs to. Null with no lease.
+  claimHolderId          String?
   creatorId              String?
   originalTaskId         String?
   sourceListId           String?
@@ -510,6 +526,7 @@ model Task {
   @@index([previousOccurrenceId])
   @@index([closedReason])
   @@index([statusRole])
+  @@index([claimLeaseExpiresAt])
   /// Trigram indexes for search's ILIKE '%term%' (AWTD-1452).
   @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
   @@index([description(ops: raw("gin_trgm_ops"))], type: Gin)

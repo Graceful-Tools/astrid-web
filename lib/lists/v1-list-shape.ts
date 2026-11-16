@@ -125,6 +125,7 @@ export function shapeV1List(
     listType: (list.listType ?? 'regular') as V1List['listType'],
     recentlyCompletedWindow: list.recentlyCompletedWindow ?? null,
     showSubtasks: list.showSubtasks ?? DEFAULT_LIST_SHOW_SUBTASKS,
+    agentClaimRequired: list.agentClaimRequired ?? false,
     ...listBackendFields(list, backendInfo),
     createdAt: list.createdAt,
     updatedAt: list.updatedAt,

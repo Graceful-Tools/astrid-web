@@ -571,3 +571,88 @@ describe('the Prisma 7 driver adapter against a real database (AWTD-1423)', () =
     await expect(prisma.user.count({ where: { email } })).resolves.toBe(0)
   })
 })
+
+// AWTD-1688: the acceptance criteria of the agent claim, against real row locks.
+describe('agent claim leases against a real database (AWTD-1688)', () => {
+  let boards = 0
+  async function board(enrolled: boolean) {
+    const key = `${runPrefix}-lease-${(boards += 1)}`
+    const owner = await prisma.user.create({ data: buildUserCreate({ email: `${key}-owner@example.test` }) })
+    const agentA = await prisma.user.create({ data: buildUserCreate({ email: `${key}-a@example.test`, isAIAgent: true }) })
+    const agentB = await prisma.user.create({ data: buildUserCreate({ email: `${key}-b@example.test`, isAIAgent: true }) })
+    const list = await prisma.taskList.create({ data: buildListCreate(owner.id, { agentClaimRequired: enrolled }) })
+    const task = await prisma.task.create({
+      data: buildTaskCreate(owner.id, list.id, { title: key, statusRole: 'ready' }),
+    })
+    return { owner, agentA, agentB, task }
+  }
+
+  it('two agents racing for one task: exactly one wins, and the lease is the winner\'s', async () => {
+    const { claimAgentTask } = await import('@/services/agent-task-claim.service')
+    const { owner, agentA, agentB, task } = await board(true)
+
+    const results = await Promise.all([agentA, agentB].map(agent => claimAgentTask({
+      taskId: task.id, userId: owner.id, agentId: agent.id, action: 'claim',
+    })))
+
+    expect(results.map(result => result.outcome).sort()).toEqual(['claimed', 'conflict'])
+    const winner = results[0].outcome === 'claimed' ? agentA : agentB
+    const row = await prisma.task.findUniqueOrThrow({ where: { id: task.id } })
+    expect(row).toMatchObject({ statusRole: 'doing', assigneeId: winner.id, claimHolderId: winner.id })
+    expect(row.claimLeaseExpiresAt!.getTime()).toBeGreaterThan(Date.now())
+  })
+
+  it('a holder that stops heartbeating loses the task back to Ready on its own; a heartbeat keeps it', async () => {
+    const { claimAgentTask } = await import('@/services/agent-task-claim.service')
+    const { expireAgentClaimLeases } = await import('@/services/agent-claim-lease.service')
+    const { owner, agentA, task } = await board(true)
+
+    await claimAgentTask({ taskId: task.id, userId: owner.id, agentId: agentA.id, action: 'claim', leaseSeconds: 60 })
+    const claimed = await prisma.task.findUniqueOrThrow({ where: { id: task.id } })
+
+    // A heartbeat renews the lease and is not an edit.
+    const renewed = await claimAgentTask({ taskId: task.id, userId: owner.id, agentId: agentA.id, action: 'heartbeat', leaseSeconds: 120 })
+    expect(renewed.outcome).toBe('renewed')
+    const afterHeartbeat = await prisma.task.findUniqueOrThrow({ where: { id: task.id } })
+    expect(afterHeartbeat.updatedAt.getTime()).toBe(claimed.updatedAt.getTime())
+    expect(afterHeartbeat.claimLeaseExpiresAt!.getTime()).toBeGreaterThan(claimed.claimLeaseExpiresAt!.getTime())
+
+    // Nothing is due yet.
+    expect((await expireAgentClaimLeases({ now: new Date() })).released).toBe(0)
+
+    // Then the heartbeats stop.
+    const later = new Date(afterHeartbeat.claimLeaseExpiresAt!.getTime() + 1000)
+    const report = await expireAgentClaimLeases({ now: later })
+    expect(report.released).toBeGreaterThanOrEqual(1)
+
+    const released = await prisma.task.findUniqueOrThrow({
+      where: { id: task.id },
+      include: { comments: true },
+    })
+    // Enrolled board: back to the unassigned pool.
+    expect(released).toMatchObject({
+      statusRole: 'ready', assigneeId: null, assigneeIds: [],
+      claimLeaseExpiresAt: null, claimHeartbeatAt: null, claimHolderId: null,
+    })
+    expect(released.comments.map(comment => comment.content).join('\n')).toContain('claim lease expired')
+
+    // The holder's next heartbeat is told the claim is gone.
+    const late = await claimAgentTask({ taskId: task.id, userId: owner.id, agentId: agentA.id, action: 'heartbeat' })
+    expect(late.outcome).toBe('not_ready')
+  })
+
+  it('an expired lease on a task a person already moved is only cleared', async () => {
+    const { claimAgentTask } = await import('@/services/agent-task-claim.service')
+    const { expireAgentClaimLeases } = await import('@/services/agent-claim-lease.service')
+    const { owner, agentA, task } = await board(false)
+
+    await claimAgentTask({ taskId: task.id, userId: owner.id, agentId: agentA.id, action: 'claim', leaseSeconds: 60 })
+    await prisma.task.update({ where: { id: task.id }, data: { completed: true, statusRole: null } })
+    const lease = (await prisma.task.findUniqueOrThrow({ where: { id: task.id } })).claimLeaseExpiresAt!
+
+    await expireAgentClaimLeases({ now: new Date(lease.getTime() + 1000) })
+
+    const row = await prisma.task.findUniqueOrThrow({ where: { id: task.id } })
+    expect(row).toMatchObject({ completed: true, statusRole: null, assigneeId: agentA.id, claimLeaseExpiresAt: null })
+  })
+})

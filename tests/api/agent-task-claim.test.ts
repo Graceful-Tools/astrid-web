@@ -49,7 +49,6 @@ function request(body: unknown) {
 describe('POST /api/v1/tasks/:id/claim (AWTD-1555)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.stubEnv('ASTRID_AGENT_CLAIM_API', 'on')
     vi.mocked(authenticateAPI).mockResolvedValue({
       userId: 'owner-1',
       source: 'oauth',
@@ -75,13 +74,13 @@ describe('POST /api/v1/tasks/:id/claim (AWTD-1555)', () => {
 
   afterEach(() => vi.unstubAllEnvs())
 
-  it('returns 404 before authentication unless the flag is exactly on', async () => {
-    vi.stubEnv('ASTRID_AGENT_CLAIM_API', 'true')
+  it('is on with no env flag set (AWTD-1688)', async () => {
+    vi.stubEnv('ASTRID_AGENT_CLAIM_API', '')
 
-    const response = await POST(request({ action: 'claim' }), { params })
+    const response = await POST(request({ action: 'claim', agentMailbox: 'codex' }), { params })
 
-    expect(response.status).toBe(404)
-    expect(authenticateAPI).not.toHaveBeenCalled()
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({ outcome: 'claimed' })
   })
 
   it('accepts a task identifier, as claim_task says it does (AWTD-1557 review)', async () => {
@@ -116,11 +115,11 @@ describe('POST /api/v1/tasks/:id/claim (AWTD-1555)', () => {
           { OR: [{ assigneeId: null }, { assigneeId: 'codex-1' }] },
         ]),
       }),
-      data: {
+      data: expect.objectContaining({
         assigneeId: 'codex-1',
         assigneeIds: ['codex-1'],
         statusRole: 'doing',
-      },
+      }),
     }))
   })
 
@@ -219,6 +218,10 @@ describe('POST /api/v1/tasks/:id/claim (AWTD-1555)', () => {
         assigneeId: 'human-1',
         assigneeIds: ['human-1'],
         statusRole: 'ready',
+        // AWTD-1688: a release ends the lease.
+        claimLeaseExpiresAt: null,
+        claimHeartbeatAt: null,
+        claimHolderId: null,
       },
     }))
   })

@@ -1883,6 +1883,10 @@
       "label": "Los miembros pueden pasar cualquier tarea a un agente",
       "help": "Permite a cualquier miembro de esta lista asignar un agente a cualquier tarea, no solo a las que creó. Los agentes usan los planes del propietario de la lista."
     },
+    "agentClaimRequired": {
+      "label": "Los agentes reclaman las tareas antes de trabajarlas",
+      "help": "Los agentes de esta lista toman tareas Listas sin asignar, reclaman cada una primero para que dos agentes nunca tomen la misma y mantienen el reclamo activo mientras trabajan. Un reclamo que deja de renovarse devuelve la tarea a Lista."
+    },
     "admin": {
       "descriptionLabel": "Descripción de la lista",
       "descriptionInfo": "La descripción de la lista se usa como instrucciones para los agentes de IA que trabajan en esta lista",

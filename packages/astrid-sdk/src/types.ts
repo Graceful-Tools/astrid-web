@@ -24,12 +24,14 @@ export interface AgentQueueQuery {
 }
 
 /** `POST /api/v1/tasks/:id/claim` (docs/AGENT_CLAIM_API.md). */
-export type ClaimAction = 'claim' | 'resume' | 'release'
+export type ClaimAction = 'claim' | 'resume' | 'release' | 'heartbeat'
 
 export type ClaimOutcome =
   | 'claimed'
   | 'already_yours'
   | 'released'
+  /** A heartbeat renewed the claim lease. */
+  | 'renewed'
   | 'conflict'
   | 'not_ready'
   | 'not_found'
@@ -43,20 +45,27 @@ export interface ClaimTaskSnapshot {
   assigneeId: string | null
   assigneeIds: string[]
   updatedAt: string
+  /** When the claim lease runs out unless renewed; absent from servers without leases. */
+  claimLeaseExpiresAt?: string | null
 }
 
 export interface ClaimRequest {
   action: ClaimAction
-  /** Confirms the token's bound mailbox; sent as its local part. */
+  /**
+   * Confirms an agent-bound token's mailbox; with client credentials, names
+   * the agent to claim for. Sent as its local part.
+   */
   agentMailbox?: string
+  /** Lease length in seconds (60–3600) for claim and heartbeat; the server's default (900) when absent. */
+  leaseSeconds?: number
 }
 
 export interface ClaimResult {
   /** HTTP status. */
   status: number
   /**
-   * The server's outcome, or `unavailable` when the route is off or absent
-   * (`ASTRID_AGENT_CLAIM_API` unset answers a bare 404).
+   * The server's outcome, or `unavailable` when the route is absent (a server
+   * older than the claim API, or one that still gates it behind a flag).
    */
   outcome: ClaimOutcome | 'unavailable'
   task: ClaimTaskSnapshot | null

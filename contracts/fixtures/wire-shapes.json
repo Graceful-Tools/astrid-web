@@ -453,6 +453,9 @@
           "assigneeIds": [
             "user-member-0002"
           ],
+          "claimLeaseExpiresAt": null,
+          "claimHeartbeatAt": null,
+          "claimHolderId": null,
           "creatorId": "user-owner-0001",
           "originalTaskId": null,
           "sourceListId": null,
@@ -611,6 +614,9 @@
             "ai-agent-claude",
             "user-member-0002"
           ],
+          "claimLeaseExpiresAt": null,
+          "claimHeartbeatAt": null,
+          "claimHolderId": null,
           "creatorId": "user-owner-0001",
           "originalTaskId": null,
           "sourceListId": null,
@@ -811,6 +817,7 @@
           "listType": "regular",
           "recentlyCompletedWindow": null,
           "showSubtasks": true,
+          "agentClaimRequired": false,
           "backend": null,
           "remote": null,
           "supports": {
@@ -930,6 +937,7 @@
             "unit": "days"
           },
           "showSubtasks": false,
+          "agentClaimRequired": true,
           "backend": "github_project",
           "remote": {
             "url": "https://github.com/orgs/acme/projects/7",

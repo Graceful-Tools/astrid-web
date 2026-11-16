@@ -63,7 +63,7 @@ realtime bus for the agent's channel. The SDK channel (AWTD-1565) treats it as "
 Not in the first canary.
 
 **Enrollment.** Opt-in per board, by an env list (`ASTRID_AGENT_WAKE_LISTS`, the same shape as
-`ASTRID_AGENT_CLAIM_REQUIRED_LISTS`) plus a master switch `ASTRID_AGENT_WAKE=on`. Off by default:
+the retired `ASTRID_AGENT_CLAIM_REQUIRED_LISTS`, now the `agentClaimRequired` list setting) plus a master switch `ASTRID_AGENT_WAKE=on`. Off by default:
 with either unset, no job is enqueued and nothing changes.
 
 ## Idempotency and "exactly once"

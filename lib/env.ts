@@ -221,8 +221,6 @@ export const ENV_VARS: EnvVar[] = [
 
   // ── MCP ───────────────────────────────────────────────────────────────────
   { name: 'ASTRID_API_BASE_URL', scope: 'optional', description: 'API base the standalone MCP servers call. Defaults to this brand’s own origin.', validate: isUrl },
-  { name: 'ASTRID_AGENT_CLAIM_API', scope: 'optional', description: 'Enables the additive agent task claim API only when set to "on"; unset or any other value leaves it disabled.' },
-  { name: 'ASTRID_AGENT_CLAIM_REQUIRED_LISTS', scope: 'optional', description: 'Comma-separated board IDs whose generated queue skill requires atomic claims. Ignored unless ASTRID_AGENT_CLAIM_API is "on"; empty enrolls no boards.' },
   { name: 'ASTRID_AGENT_WAKE', scope: 'optional', description: 'Enables the opt-in event-driven agent wake (AWTD-1556) only when set to "on"; unset or any other value queues no wake and changes nothing.' },
   { name: 'ASTRID_AGENT_WAKE_LISTS', scope: 'optional', description: 'Comma-separated board IDs whose polling worker is woken by repository_dispatch when work becomes runnable; an entry may be "boardId=owner/repo" to name the repository, else the board\'s connected one. Ignored unless ASTRID_AGENT_WAKE is "on"; empty enrolls no boards.' },
   { name: 'ASTRID_API_URL', scope: 'tooling', description: 'API base used by the SDK and local scripts.', validate: isUrl },

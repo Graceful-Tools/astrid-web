@@ -1,8 +1,8 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`canonical queue skill (AWTD-759) > pins the old skill and queue line while the master switch is off, even for an enrolled board (AWTD-1557) > claim-disabled legacy queue line 1`] = `"Call get_agent_queue with agent "codex" and listId "<board>". Work every task it returns to completion, commenting progress on each one. When runnable.reasons includes "attention", also answer the unanswered replies in attention. Stop only when there is no Ready work and nothing to answer; runnable.incomplete means part of the read was cut off, so say so, but it is not work on its own. (A server without runnable: stop on empty:true.)"`;
+exports[`canonical queue skill (AWTD-759) > pins the unenrolled skill and queue line, whatever the retired env flags say (AWTD-1557, AWTD-1688) > claim-disabled legacy queue line 1`] = `"Call get_agent_queue with agent "codex" and listId "<board>". Work every task it returns to completion, commenting progress on each one. When runnable.reasons includes "attention", also answer the unanswered replies in attention. Stop only when there is no Ready work and nothing to answer; runnable.incomplete means part of the read was cut off, so say so, but it is not work on its own. (A server without runnable: stop on empty:true.)"`;
 
-exports[`canonical queue skill (AWTD-759) > pins the old skill and queue line while the master switch is off, even for an enrolled board (AWTD-1557) > claim-disabled legacy skill 1`] = `
+exports[`canonical queue skill (AWTD-759) > pins the unenrolled skill and queue line, whatever the retired env flags say (AWTD-1557, AWTD-1688) > claim-disabled legacy skill 1`] = `
 "Astrid queue skill v1.6.0
 
 Call get_agent_queue with agent "codex" and listId "<board>". Work every task it returns to completion, commenting progress on each one. When runnable.reasons includes "attention", also answer the unanswered replies in attention. Stop only when there is no Ready work and nothing to answer; runnable.incomplete means part of the read was cut off, so say so, but it is not work on its own. (A server without runnable: stop on empty:true.)
