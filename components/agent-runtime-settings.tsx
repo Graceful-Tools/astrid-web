@@ -195,6 +195,7 @@ export function AgentLoopRecipes({
   mailbox,
   origin,
   listId,
+  claimRequired,
 }: {
   /**
    * Pin every tab to one agent identity (the per-agent runtime rows do this).
@@ -208,6 +209,8 @@ export function AgentLoopRecipes({
    * passing it here is what makes "run a /fixall loop per list" one paste.
    */
   listId?: string | null
+  /** The list's `agentClaimRequired` setting: enrolled boards get claim guidance (AWTD-1688). */
+  claimRequired?: boolean | null
 }) {
   const { t } = useTranslations()
   const mcpUrl = mcpUrlFor(origin)
@@ -218,14 +221,14 @@ export function AgentLoopRecipes({
   // plain-markdown /starthere.md serves the identical commands.
   const connectCmd = (harness: LoopHarness) => loopConnectCommand(harness, origin)
   const scheduleCmd = (harness: LoopHarness, tab: string) =>
-    loopScheduleCommand(harness, { mailbox: agentFor(tab), origin, listId })
+    loopScheduleCommand(harness, { mailbox: agentFor(tab), origin, listId, claimRequired })
   const listClause = listId ? ` and listId "${listId}"` : ''
   const agentFor = (tab: string) => mailbox ?? TAB_MAILBOX[tab] ?? 'claude'
-  const queueLine = (tab: string) => queueContractLine({ mailbox: agentFor(tab), listId })
+  const queueLine = (tab: string) => queueContractLine({ mailbox: agentFor(tab), listId, claimRequired })
   // Install steps serve the canonical queue skill's generated adapter, so a
   // recipe and the skill it installs cannot drift (lib/agent-skill).
   const adapterFor = (harness: QueueSkillHarness, tab: string) =>
-    queueSkillAdapter(harness, { mailbox: agentFor(tab), listId })
+    queueSkillAdapter(harness, { mailbox: agentFor(tab), listId, claimRequired })
   const installBlock = (harness: QueueSkillHarness, tab: string) => {
     const adapter = adapterFor(harness, tab)
     return `# ${adapter.installPath}

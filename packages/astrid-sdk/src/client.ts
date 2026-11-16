@@ -48,7 +48,7 @@ export class AstridApiError extends Error {
 }
 
 const CLAIM_OUTCOMES: ReadonlySet<string> = new Set<ClaimOutcome>([
-  'claimed', 'already_yours', 'released', 'conflict', 'not_ready', 'not_found', 'forbidden', 'binding_denied',
+  'claimed', 'already_yours', 'released', 'renewed', 'conflict', 'not_ready', 'not_found', 'forbidden', 'binding_denied',
 ])
 
 function reasonOf(body: unknown): string | undefined {
@@ -140,16 +140,26 @@ export class AstridClient {
         // The route compares the mailbox with the token identity's local part,
         // so a Custom Agent address is sent without its domain.
         ...(request.agentMailbox ? { agentMailbox: request.agentMailbox.split('@')[0] } : {}),
+        ...(request.leaseSeconds !== undefined ? { leaseSeconds: request.leaseSeconds } : {}),
       },
     })
     if (body && typeof body === 'object' && 'outcome' in body && typeof body.outcome === 'string' && CLAIM_OUTCOMES.has(body.outcome)) {
       const task = 'task' in body ? (body.task as ClaimResult['task']) : null
       return { status, outcome: body.outcome as ClaimOutcome, task: task ?? null }
     }
-    // The route is off (ASTRID_AGENT_CLAIM_API unset) or absent on this server.
+    // The route is absent on this server (or an older one still gates it).
     if ([404, 405, 501].includes(status)) return { status, outcome: 'unavailable', task: null }
     const reason = reasonOf(body)
     throw new AstridApiError(status, `HTTP ${status} from claim${reason ? `: ${reason}` : ''}`, body)
+  }
+
+  /**
+   * Renew this agent's claim lease. Send it every few minutes while working:
+   * a claim with no heartbeat for its lease (15 minutes by default) returns to
+   * Ready. `renewed` means keep going; anything else means the claim is gone.
+   */
+  async heartbeatTask(taskId: string, options: { agentMailbox?: string; leaseSeconds?: number } = {}): Promise<ClaimResult> {
+    return this.claimTask(taskId, { action: 'heartbeat', ...options })
   }
 
   /** Give a Doing claim back: the task returns to Ready and this agent is unassigned. */

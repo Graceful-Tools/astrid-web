@@ -258,6 +258,9 @@ export const PUT = withAuth<RouteContext>(
       // than resetting it.
       const showSubtasks = normalizeShowSubtasks(body.showSubtasks)
       if (showSubtasks !== undefined) updateData.showSubtasks = showSubtasks
+      // Claim enrollment (AWTD-1688), on the same terms: only a real boolean
+      // writes it, so a client round-tripping an older list shape keeps it.
+      if (typeof body.agentClaimRequired === 'boolean') updateData.agentClaimRequired = body.agentClaimRequired
       if (body.listType !== undefined) updateData.listType = body.listType
       // The four TaskList.status* fields used to be applied here (task
       // dc143ab2, when ManageStatusesPanel reordered columns by PUTing

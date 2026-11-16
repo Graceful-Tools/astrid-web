@@ -1883,6 +1883,10 @@
       "label": "Members can hand any task to an agent",
       "help": "Lets every member of this list assign an agent to any task here, not only tasks they created. The agents run on the list owner's plans."
     },
+    "agentClaimRequired": {
+      "label": "Agents claim tasks before working them",
+      "help": "Agents working this list pick up unassigned Ready tasks, claim each one first so two agents never take the same task, and keep the claim alive while they work. A claim that stops being renewed returns the task to Ready."
+    },
     "admin": {
       "descriptionLabel": "List Description",
       "descriptionInfo": "The list description is used as instructions for AI agents that work in this list",

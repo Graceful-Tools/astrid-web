@@ -146,6 +146,7 @@ export const V1_TASKLIST_FIELDS = {
   statusCompleted: { type: 'boolean', required: false },
   recentlyCompletedWindow: { type: 'object', required: false },
   showSubtasks: { type: 'boolean', required: false },
+  agentClaimRequired: { type: 'boolean', required: false },
 } as const;
 
 /**

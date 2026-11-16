@@ -59,12 +59,15 @@ task stays work until someone moves it.
 ### `astrid-agent claim <taskId>`
 
 ```bash
-astrid-agent claim <taskId> [--agent <mailbox>] [--resume]
+astrid-agent claim <taskId> [--agent <mailbox>] [--resume] [--lease-seconds <n>]
 astrid-agent claim <taskId> --fixall [--agent <mailbox>] [--list <listId>]
 ```
 
 An atomic claim through `POST /api/v1/tasks/:id/claim`
-([contract](https://github.com/Graceful-Tools/astrid-web/blob/main/docs/AGENT_CLAIM_API.md)).
+([contract](https://github.com/Graceful-Tools/astrid-web/blob/main/docs/AGENT_CLAIM_API.md)),
+on any board. The claim holds a lease (15 minutes, or `--lease-seconds` from 60
+to 3600): run `astrid-agent heartbeat` while you work, or the task returns to
+Ready. With client credentials, `--agent` names the agent you claim for.
 `--resume` checks that a Doing claim still belongs to you after a restart.
 `--fixall` claims through `/claim-fixall` instead: that route serves Astrid's
 own scheduled loops on its allowlisted boards and accepts client credentials.
@@ -75,10 +78,20 @@ runner can release leftover claims after the run.
 |---|---|
 | 0 | Claimed (or, with `--resume`, still yours). Start the task. |
 | 2 | Another worker has it, or it is no longer Ready. Move on to the next task. |
-| 1 | Error, including a server where the claim API is turned off (`ASTRID_AGENT_CLAIM_API`). |
+| 1 | Error, including a server too old to have the claim API. |
 
 A claim that answers `already_yours` exits 2: another worker on the same mailbox
 holds the task.
+
+### `astrid-agent heartbeat <taskId>`
+
+```bash
+astrid-agent heartbeat <taskId> [--agent <mailbox>] [--lease-seconds <n>]
+```
+
+Renews your claim lease. Send it every few minutes while working. Exit 0
+renewed; 2 the claim is gone (the lease expired and the task went back to
+Ready, or someone else holds it), so stop work; 1 error.
 
 ### `astrid-agent release <taskId>`
 
@@ -127,7 +140,8 @@ for (const task of snapshot.queue) {
 | Method | Endpoint |
 |---|---|
 | `getQueue({ agent, listId?, includeUnassigned? })` | `GET /api/v1/agent-queue` |
-| `claimTask(id, { action, agentMailbox? })` | `POST /api/v1/tasks/:id/claim`. Returns every documented outcome; `outcome: 'unavailable'` when the route is off. |
+| `claimTask(id, { action, agentMailbox?, leaseSeconds? })` | `POST /api/v1/tasks/:id/claim`. Returns every documented outcome; `outcome: 'unavailable'` when the route is absent. |
+| `heartbeatTask(id, { agentMailbox?, leaseSeconds? })` | the same route, `action: 'heartbeat'`; `outcome: 'renewed'` means keep going |
 | `releaseTask(id, agentMailbox?)` | the same route, `action: 'release'` |
 | `claimFixallTask(id, { action, agent?, listId?, commentWatermark? })` | `POST /api/v1/tasks/:id/claim-fixall` |
 | `getTask(id)`, `getComments(id)` | `GET /api/v1/tasks/:id`, `…/comments` |

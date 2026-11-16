@@ -161,6 +161,7 @@ function list(id, scalars, relations) {
       filterCompletion: 'default',
       recentlyCompletedWindow: null,
       showSubtasks: true,
+      agentClaimRequired: false,
       filterDueDate: null,
       filterInLists: null,
       filterPriority: null,
@@ -209,6 +210,7 @@ const githubList = list(GITHUB_LIST, {
   manualSortOrder: null,
   recentlyCompletedWindow: { amount: 3, unit: 'days' },
   showSubtasks: false,
+  agentClaimRequired: true,
 })
 
 // ── Tasks ─────────────────────────────────────────────────────────────
@@ -258,6 +260,9 @@ function task(id, scalars, relations) {
       updatedAt: at(30),
       assigneeId: null,
       assigneeIds: [],
+      claimLeaseExpiresAt: null,
+      claimHeartbeatAt: null,
+      claimHolderId: null,
       creatorId: OWNER,
       originalTaskId: null,
       sourceListId: null,

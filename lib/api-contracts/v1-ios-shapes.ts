@@ -163,6 +163,9 @@ export interface V1List {
   // column is emitted as `true`, because absent must mean SHOW. Combine with
   // the user's subtaskDisplay per lib/list-subtask-visibility.ts.
   showSubtasks: boolean
+  // Agents claim before working this board (AWTD-1688). Always a boolean on the
+  // wire; false when not enrolled.
+  agentClaimRequired: boolean
   // What this list's backend can do (AWTD-1190, spec §11.2). Optional: a
   // server older than the field omits it, and absent means classic.
   supports?: ListSupports

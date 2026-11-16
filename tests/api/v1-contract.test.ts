@@ -289,6 +289,8 @@ describe('v1 contract — V1List shape (lists/[id] + lists[].element)', () => {
     'defaultPriority', 'defaultRepeating', 'defaultAssigneeId',
     'defaultAssignee', 'defaultIsPrivate', 'defaultDueDate', 'defaultDueTime',
     'aiAgentsEnabled', 'aiAgentConfig', 'publicListType', 'showSubtasks',
+    // AWTD-1688: claim enrollment, a list setting.
+    'agentClaimRequired',
     'githubRepositoryId', 'preferredAiProvider',
     // Board-related fields (added 2026-05-11). Required for iOS to render
     // project status boards and the per-list "Recently completed" window.
@@ -325,7 +327,7 @@ describe('v1 contract — V1List shape (lists/[id] + lists[].element)', () => {
       defaultIsPrivate: null, defaultDueDate: null, defaultDueTime: null,
       aiAgentsEnabled: [],
       aiAgentConfig: { enabledTypes: [], defaultAgentId: null },
-      publicListType: null, showSubtasks: false,
+      publicListType: null, showSubtasks: false, agentClaimRequired: false,
       githubRepositoryId: null, preferredAiProvider: null,
       projectId: null, listType: 'regular',
       recentlyCompletedWindow: null,

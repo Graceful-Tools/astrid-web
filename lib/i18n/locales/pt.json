@@ -1883,6 +1883,10 @@
       "label": "Membros podem passar qualquer tarefa para um agente",
       "help": "Permite que qualquer membro desta lista atribua um agente a qualquer tarefa aqui, não apenas às que criou. Os agentes usam os planos do dono da lista."
     },
+    "agentClaimRequired": {
+      "label": "Os agentes reivindicam as tarefas antes de trabalhar nelas",
+      "help": "Os agentes desta lista pegam tarefas Prontas sem responsável, reivindicam cada uma primeiro para que dois agentes nunca peguem a mesma e mantêm a reivindicação ativa enquanto trabalham. Uma reivindicação que deixa de ser renovada devolve a tarefa para Pronta."
+    },
     "admin": {
       "descriptionLabel": "Descrição da lista",
       "descriptionInfo": "A descrição da lista é usada como instruções para os agentes de IA que trabalham nesta lista",

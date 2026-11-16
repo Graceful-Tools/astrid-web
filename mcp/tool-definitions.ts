@@ -384,7 +384,7 @@ export const OAUTH_MCP_TOOLS = [
 const CLAIM_TASK_TOOL = {
   name: 'claim_task',
   description:
-    'Atomically claim, resume, or release a task for the authenticated agent. The API requires write access to the task and derives the agent from the authenticated credential. Use claim before starting a Ready task, and resume to verify an existing Doing claim after a restart.',
+    'Atomically claim, resume, release, or heartbeat a task for an agent. The API requires write access to the task. A claim holds the task under a 15-minute lease: send heartbeat every few minutes while working, or the task returns to Ready. Use claim before starting a Ready task, and resume to verify an existing Doing claim after a restart.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -394,14 +394,14 @@ const CLAIM_TASK_TOOL = {
       },
       action: {
         type: 'string',
-        enum: ['claim', 'resume', 'release'],
+        enum: ['claim', 'resume', 'release', 'heartbeat'],
         description:
-          'claim moves an incomplete Ready task to Doing for this agent; resume confirms its existing Doing claim; release returns its Doing task to Ready.',
+          'claim moves an incomplete Ready task to Doing for this agent; resume confirms its existing Doing claim; release returns its Doing task to Ready; heartbeat renews its claim lease (outcome renewed).',
       },
       agent: {
         type: 'string',
         description:
-          'Optional mailbox confirmation (claude, copilot, codex, …). It must match the agent bound to the authenticated credential.',
+          'Agent mailbox (claude, copilot, codex, …). With an agent-bound credential it is optional and must match that agent; with client credentials it names the agent to claim for, which the caller must be allowed to assign.',
       },
     },
     required: ['taskId', 'action'],
@@ -409,9 +409,7 @@ const CLAIM_TASK_TOOL = {
   },
 } as const
 
-/** Register the additive tool only when the server-side API is enabled. */
+/** Every tool, claim_task included: the claim API is on for every board (AWTD-1688). */
 export function getOAuthMcpTools() {
-  return process.env.ASTRID_AGENT_CLAIM_API === 'on'
-    ? [...OAUTH_MCP_TOOLS, CLAIM_TASK_TOOL]
-    : OAUTH_MCP_TOOLS
+  return [...OAUTH_MCP_TOOLS, CLAIM_TASK_TOOL]
 }

@@ -1883,6 +1883,10 @@
       "label": "Leden kunnen elke taak aan een agent geven",
       "help": "Laat elk lid van deze lijst een agent aan elke taak hier toewijzen, niet alleen aan taken die ze zelf hebben gemaakt. De agents draaien op de abonnementen van de lijsteigenaar."
     },
+    "agentClaimRequired": {
+      "label": "Agents claimen taken voordat ze eraan werken",
+      "help": "Agents op deze lijst pakken niet-toegewezen Klaar-taken op, claimen elke taak eerst zodat nooit twee agents dezelfde taak nemen, en houden de claim actief terwijl ze werken. Een claim die niet meer wordt vernieuwd, zet de taak terug naar Klaar."
+    },
     "admin": {
       "descriptionLabel": "Lijstbeschrijving",
       "descriptionInfo": "De lijstbeschrijving wordt gebruikt als instructies voor AI-agents die in deze lijst werken",
