@@ -8,8 +8,8 @@ import type { TaskList } from '@/types/task'
 
 describe('ADEV-22 board row header', () => {
   it('picks white on dark list colours and dark on light ones', () => {
-    expect(boardRowTextColor('#1e3a8a')).toBe('#ffffff')
-    expect(boardRowTextColor('#fde68a')).toBe('#111827')
+    expect(boardRowTextColor('#1e3a8a')).toBe('white')
+    expect(boardRowTextColor('#fde68a')).toBe('black')
   })
 
   it('leaves a colour it cannot read alone', () => {

@@ -118,7 +118,7 @@ export function boardRowTextColor(background: string | undefined | null): string
   if (!match) return undefined
   const value = parseInt(match[1], 16)
   const rgb: Rgb = [(value >> 16) & 255, (value >> 8) & 255, value & 255]
-  return contrast(rgb, [255, 255, 255]) >= contrast(rgb, [17, 24, 39]) ? '#ffffff' : '#111827'
+  return contrast(rgb, [255, 255, 255]) >= contrast(rgb, [0, 0, 0]) ? 'white' : 'black'
 }
 
 /** A row list's Done window in hours when it is a plain duration; null when it is calendar-based. */
