@@ -16,6 +16,8 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     task: { findFirst: vi.fn(), findUnique: vi.fn(), updateManyAndReturn: vi.fn() },
     user: { findUnique: vi.fn() },
+    // ADEV-36: an unassigned claim asks the board's orchestration policy; no list means the default.
+    taskList: { findUnique: vi.fn().mockResolvedValue(null) },
   },
 }))
 

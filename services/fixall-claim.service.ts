@@ -9,6 +9,7 @@ import {
   pendingDeployHandoff,
 } from "@/lib/fixall-claim"
 import { prisma } from "@/lib/prisma"
+import { routingRefusal } from '@/services/orchestration-policy.service'
 import { pendingAgentHandback } from '@/lib/agent-handback'
 import { parseBlockedConditions } from '@/lib/ready-queue-scope'
 import { DOING_STATUS_ROLE, READY_STATUS_ROLE } from '@/lib/task-status'
@@ -21,6 +22,8 @@ export type FixallClaimResult =
   | { status: "agent-unavailable" }
   | { status: "conflict" }
   | { status: "handed-off"; sha: string }
+  /** The board's orchestration policy does not let this agent take unassigned work (ADEV-36). */
+  | { status: "policy-denied"; reason: string; message: string }
   /** A bound board refused this claim (AWTD-1669). Never a fall-back. */
   | { status: "binding-denied"; denial: RuntimeBindingDenial }
 
@@ -142,6 +145,14 @@ export async function claimFixallTask(
       })
       return result.count === 1 ? { status: 'claimed', assigneeEmail: agent.email } : { status: 'conflict' }
     })
+  }
+
+  // Taking a task nobody assigned is the routing question (ADEV-36); one assigned to this
+  // agent was routed by whoever assigned it.
+  const unassigned = await prisma.task.findUnique({ where: { id: taskId }, select: { assigneeId: true } })
+  if (unassigned && !unassigned.assigneeId) {
+    const refusal = await routingRefusal(taskId, claim.agent)
+    if (refusal) return { status: 'policy-denied', ...refusal }
   }
 
   if (claim.nativeDispatch) {

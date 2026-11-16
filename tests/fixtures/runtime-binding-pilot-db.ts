@@ -194,6 +194,8 @@ export function createPilotDb(): PilotDb {
         },
       },
       taskList: {
+        // ADEV-36: the orchestration policy read. These boards store none, so the default applies.
+        findUnique: async () => null,
         findFirst: async ({ where, select }: Row) => {
           await tick(); log('taskList.findFirst')
           const l = db.lists.find(x => matchRow(x, where, relatedOf('list')))

@@ -109,6 +109,8 @@ export interface AgentTaskClaimResult {
   task: AgentTaskClaimTask | null
   /** Only with `binding_denied`: identity and reason, never a credential or payer reference. */
   binding?: Pick<RuntimeBindingDenial, 'reason' | 'bindingId' | 'boardId' | 'message'>
+  /** Only with `forbidden` by orchestration policy (ADEV-36): why the board's policy refused this agent. */
+  policy?: { reason: string; message: string }
 }
 
 export interface AgentTaskClaimPrincipal {
