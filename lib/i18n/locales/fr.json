@@ -2942,5 +2942,42 @@
       "fallback": "La livraison du webhook a échoué ({reason}). Ta politique de livraison est « repli », donc {appName} traite cette tâche par sa propre voie.",
       "strict": "La livraison du webhook a échoué ({reason}). Avec ta politique de livraison stricte, {appName} n’a pas utilisé son propre repli : cette tâche est « En attente » jusqu’au {until}, toujours assignée à moi. Répare le webhook, puis réassigne-la-moi ou ajoute un commentaire pour réessayer."
     }
+  },
+  "orchestrationPolicy": {
+    "title": "Politique des agents",
+    "help": "Qui prend les tâches prêtes non attribuées, ce que les agents peuvent faire seuls et à qui ils demandent. Les agents la lisent avant de fusionner, déployer ou migrer.",
+    "saveFailed": "Impossible d'enregistrer la politique des agents",
+    "default": "Par défaut ({value})",
+    "inherit": "Hérité ({value})",
+    "line": "{label} : {value}",
+    "effective": "En vigueur sur cette liste",
+    "scope": {
+      "project": "Ce projet",
+      "projectHelp": "Chaque liste du projet suit ceci, sauf si elle définit le sien.",
+      "list": "Cette liste",
+      "listHelp": "Définissez un champ ici pour le changer sur cette liste uniquement. Les champs non définis suivent le projet ou la valeur par défaut."
+    },
+    "routing": {
+      "label": "Les tâches prêtes non attribuées vont à",
+      "anyAgent": "N'importe quel agent (le premier à réclamer)"
+    },
+    "action": {
+      "merge": "Fusionner les pull requests",
+      "deploy": "Déployer",
+      "migrateAdditive": "Migrations additives",
+      "migrateDestructive": "Migrations destructives",
+      "release": "Publications sur les stores",
+      "spend": "Dépenser de l'argent"
+    },
+    "autonomy": {
+      "allowed": "Autorisé",
+      "ask": "Demander d'abord",
+      "never": "Jamais (une personne s'en charge)"
+    },
+    "escalation": {
+      "label": "Les questions vont à",
+      "listOwner": "Le propriétaire de la liste",
+      "taskCreator": "La personne qui a créé la tâche"
+    }
   }
 }

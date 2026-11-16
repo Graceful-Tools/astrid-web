@@ -255,6 +255,11 @@ model TaskList {
   /// back to the pool. Replaces ASTRID_AGENT_CLAIM_REQUIRED_LISTS. The claim
   /// route works on every board either way.
   agentClaimRequired      Boolean                  @default(false)
+  /// This list's override of its project's orchestration policy (AWTD-1693): who takes unassigned
+  /// Ready work, what an agent may do alone, and who it asks. A `PolicyOverride` (lib/orchestration-policy.ts,
+  /// astrid-core docs/ORCHESTRATION_POLICY.md §2): every key optional, an absent key inherits.
+  /// A list with no project has only this. NULL = inherit everything.
+  orchestrationPolicy     Json?
   listInvites             ListInvite[]
   listMembers             ListMember[]
   mcpTokens               MCPToken[]
@@ -302,6 +307,10 @@ model Project {
   /// (ready/doing/waiting) are code constants shared by every board and are
   /// NOT stored here. A custom state may not shadow a default role.
   customStates         Json?
+  /// The project's orchestration policy (AWTD-1693), a `PolicyOverride` laid over astrid-core's
+  /// default; each list may override it (TaskList.orchestrationPolicy). NULL = the default, which
+  /// is today's behaviour: every action needs a person, any agent claims, questions go to the list owner.
+  orchestrationPolicy  Json?
   /// Next identifier to hand out. Allocated with an atomic UPDATE ... RETURNING
   /// inside the task-create transaction — never SELECT max()+1, because
   /// concurrent creation from web, iOS, MCP and agents is the normal case here,

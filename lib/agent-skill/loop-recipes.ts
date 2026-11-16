@@ -15,7 +15,7 @@
  */
 
 import { BRAND } from '@/lib/brand/config'
-import { queueContractLine } from '@/lib/agent-skill/astrid-queue-skill'
+import { ORCHESTRATION_GUIDANCE, queueContractLine } from '@/lib/agent-skill/astrid-queue-skill'
 
 /** Harnesses that connect over MCP and poll the queue on a schedule. */
 export type LoopHarness = 'claude-code' | 'copilot' | 'codex' | 'muse'
@@ -215,9 +215,13 @@ export function mcpTokenSecretName(mailbox: string): string {
 /** The secret `claude setup-token` produces for the official Claude action. */
 export const CLAUDE_OAUTH_SECRET = 'CLAUDE_CODE_OAUTH_TOKEN'
 
-/** What a hosted agent job is told: the queue contract plus the PR hand-off. */
+/**
+ * What a hosted agent job is told: the queue contract, the PR hand-off, and the board's
+ * orchestration policy for anything past the PR (AWTD-1693). It used to end "Never merge or
+ * deploy"; the policy now decides, and its default is still never.
+ */
 function actionsAgentPrompt({ mailbox, listId, claimRequired }: LoopRecipeOptions): string {
-  return `${queueContractLine({ mailbox, listId, claimRequired })} For a task that changes code: work on a new branch named after its identifier, commit, push, open a pull request with gh, and put the PR link in your completion comment. For a review task, post your findings on the existing pull request and on the task instead; there is nothing to commit. Never merge or deploy.`
+  return `${queueContractLine({ mailbox, listId, claimRequired })} For a task that changes code: work on a new branch named after its identifier, commit, push, open a pull request with gh, and put the PR link in your completion comment. For a review task, post your findings on the existing pull request and on the task instead; there is nothing to commit. ${ORCHESTRATION_GUIDANCE}`
 }
 
 /**

@@ -14,7 +14,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 
-import { queueContractLine } from '@/lib/agent-skill/astrid-queue-skill'
+import { queueContractLine, ORCHESTRATION_GUIDANCE } from '@/lib/agent-skill/astrid-queue-skill'
 import {
   CLAUDE_OAUTH_SECRET,
   actionsClaudeCodeWorkflow,
@@ -89,7 +89,9 @@ describe('Claude Code in GitHub Actions (AWTD-1494)', () => {
     expect(Object.keys(action.with!).sort()).toEqual(['claude_args', 'claude_code_oauth_token', 'prompt'])
     expect(action.with!.claude_code_oauth_token).toBe(`\${{ secrets.${CLAUDE_OAUTH_SECRET} }}`)
     expect(action.with!.prompt).toContain(queueContractLine({ mailbox: 'claude', listId: 'list-build' }))
-    expect(action.with!.prompt).toMatch(/Never merge or deploy/)
+    // AWTD-1693: the stored orchestration policy decides merge and deploy, not the prompt; its default is still never.
+    expect(action.with!.prompt).toContain(ORCHESTRATION_GUIDANCE)
+    expect(action.with!.prompt).not.toMatch(/Never merge or deploy/)
   })
 
   it('connects Claude Code to this server\'s MCP with the agent-bound token, and allows its tools', () => {

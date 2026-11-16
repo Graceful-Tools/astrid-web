@@ -22,6 +22,7 @@ import { MIN_TASK_PRIORITY, MAX_TASK_PRIORITY } from "../lib/task-priority"
 import { BLOCKER_TOOLS } from "./blockers"
 import { ATTACHMENT_TOOLS } from "./task-attachments"
 import { LIST_TOOLS } from "./list-tools"
+import { ORCHESTRATION_TOOLS } from "./orchestration-policy-tool"
 
 /**
  * The Decision and trade-off grid formats, short enough for a tool description (AWTD-1531).
@@ -379,6 +380,7 @@ export const OAUTH_MCP_TOOLS = [
       ...BLOCKER_TOOLS,
       ...ATTACHMENT_TOOLS,
       ...LIST_TOOLS,
+      ...ORCHESTRATION_TOOLS,
 ] as const
 
 const CLAIM_TASK_TOOL = {

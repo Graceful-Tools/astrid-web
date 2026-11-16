@@ -2942,5 +2942,42 @@
       "fallback": "Webhook-Zustellung fehlgeschlagen ({reason}). Deine Zustellrichtlinie ist „Fallback“, daher bearbeitet {appName} diese Aufgabe stattdessen über seinen eigenen Weg.",
       "strict": "Webhook-Zustellung fehlgeschlagen ({reason}). Wegen deiner strikten Zustellrichtlinie hat {appName} keinen eigenen Fallback genutzt. Diese Aufgabe steht daher bis {until} in „Wartet“ und bleibt mir zugewiesen. Repariere den Webhook und weise sie mir dann erneut zu oder schreibe einen Kommentar, um es noch einmal zu versuchen."
     }
+  },
+  "orchestrationPolicy": {
+    "title": "Agenten-Richtlinie",
+    "help": "Wer nicht zugewiesene bereite Aufgaben übernimmt, was Agenten selbst tun dürfen und wen sie fragen. Agenten lesen dies vor dem Mergen, Deployen oder Migrieren.",
+    "saveFailed": "Die Agenten-Richtlinie konnte nicht gespeichert werden",
+    "default": "Standard ({value})",
+    "inherit": "Geerbt ({value})",
+    "line": "{label}: {value}",
+    "effective": "Gilt für diese Liste",
+    "scope": {
+      "project": "Dieses Projekt",
+      "projectHelp": "Jede Liste im Projekt folgt dem, sofern sie nichts Eigenes festlegt.",
+      "list": "Diese Liste",
+      "listHelp": "Lege hier ein Feld fest, um es nur für diese Liste zu ändern. Nicht gesetzte Felder folgen dem Projekt oder dem Standard."
+    },
+    "routing": {
+      "label": "Nicht zugewiesene bereite Aufgaben gehen an",
+      "anyAgent": "Beliebiger Agent (wer zuerst beansprucht)"
+    },
+    "action": {
+      "merge": "Pull Requests mergen",
+      "deploy": "Deployen",
+      "migrateAdditive": "Additive Migrationen",
+      "migrateDestructive": "Destruktive Migrationen",
+      "release": "Store-Veröffentlichungen",
+      "spend": "Geld ausgeben"
+    },
+    "autonomy": {
+      "allowed": "Erlaubt",
+      "ask": "Erst fragen",
+      "never": "Nie (eine Person macht es)"
+    },
+    "escalation": {
+      "label": "Fragen gehen an",
+      "listOwner": "Den Listeninhaber",
+      "taskCreator": "Wer die Aufgabe erstellt hat"
+    }
   }
 }

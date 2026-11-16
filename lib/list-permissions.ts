@@ -662,6 +662,36 @@ export function canEditListSettings(list: ListLike | null | undefined, userId?: 
   return canUserManageList({ id: userId }, list)
 }
 
+/** Minimal project shape for the project-level questions below. */
+interface ProjectLike {
+  ownerId: string
+  members?: Array<{ userId: string; role: string }> | null
+}
+
+/**
+ * This user's role on the project itself (AWTD-1693), or null.
+ *
+ * Distinct from {@link getUserRoleInList}'s project cascade, which deliberately reads a project
+ * owner as a list *admin*. Here the question is about the project, so its owner is its owner.
+ * Membership casing never decides access (task e2803305); presence is membership.
+ */
+export function getUserRoleInProject(user: UserLike, project: ProjectLike | null | undefined): "owner" | "admin" | "member" | null {
+  if (!user?.id || !project) return null
+  if (project.ownerId === user.id) return "owner"
+  const membership = project.members?.find((member) => member.userId === user.id)
+  if (!membership) return null
+  return membership.role?.toLowerCase() === "admin" ? "admin" : "member"
+}
+
+/**
+ * May this user change a project's own settings, such as its orchestration policy (AWTD-1693)?
+ * Owners and admins, the same bar as {@link canUserManageList}.
+ */
+export function canUserManageProject(user: UserLike, project: ProjectLike | null | undefined): boolean {
+  const role = getUserRoleInProject(user, project)
+  return role === "owner" || role === "admin"
+}
+
 /**
  * May this user point an AI agent at this task?
  *
