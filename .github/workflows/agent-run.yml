@@ -434,9 +434,19 @@ jobs:
           # Subscription token from `claude setup-token` — never an API key
           # (Jon, 2026-09-19: the loops run on the subscription).
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          HEARTBEAT_AGENT: ${{ steps.preflight.outputs.agent }}
         run: |
           set -o pipefail
           npm install --global @anthropic-ai/claude-code@2.1.306
+          # Renew this run's claim leases while the agent works (ADEV-37): MCP claim_task
+          # holds a 15-minute lease, and without a heartbeat the task went back to Ready
+          # mid-run. Only leases taken since now are renewed (scripts/lib/held-claims.ts).
+          export ASTRID_RUN_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          ( while sleep 300; do
+              npx tsx scripts/heartbeat-held-claims.ts --agent "${HEARTBEAT_AGENT}" --list "${ASTRID_OAUTH_LIST_ID}" || true
+            done ) &
+          HEARTBEAT=$!
+          trap 'kill "${HEARTBEAT}" 2>/dev/null || true' EXIT
           # The core checkout is outside the workspace, so it is added to what the agent may edit.
           # The prompt ends with this run's ASTRID_CORE_PUSH (ADEV-33): on 2026-11-16 a worker
           # claimed a core task, could not "tell whether this run can push", and released it.
@@ -456,6 +466,7 @@ jobs:
         env:
           CODEX_VERSION: ${{ vars.CODEX_VERSION }}
           CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+          HEARTBEAT_AGENT: ${{ steps.preflight.outputs.agent }}
         run: |
           # Unverified: set the CODEX_VERSION variable and the CODEX_AUTH_JSON
           # secret (a ChatGPT-plan login) before the first codex run.
@@ -465,6 +476,15 @@ jobs:
           fi
           set -o pipefail
           npm install --global "@openai/codex@${CODEX_VERSION}"
+          # Renew this run's claim leases while the agent works (ADEV-37): MCP claim_task
+          # holds a 15-minute lease, and without a heartbeat the task went back to Ready
+          # mid-run. Only leases taken since now are renewed (scripts/lib/held-claims.ts).
+          export ASTRID_RUN_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          ( while sleep 300; do
+              npx tsx scripts/heartbeat-held-claims.ts --agent "${HEARTBEAT_AGENT}" --list "${ASTRID_OAUTH_LIST_ID}" || true
+            done ) &
+          HEARTBEAT=$!
+          trap 'kill "${HEARTBEAT}" 2>/dev/null || true' EXIT
           mkdir -p ~/.codex && printf '%s' "${CODEX_AUTH_JSON}" > ~/.codex/auth.json
           CORE_ROOTS=()
           if [ -n "${ASTRID_CORE_DIR:-}" ]; then
