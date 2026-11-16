@@ -121,20 +121,25 @@ export default function CustomAgentsDocsPage() {
               <Step n={4} title="Connect your agent">
                 <pre className="p-3 theme-bg-tertiary rounded-lg overflow-x-auto mt-2">
                   <code className="text-xs font-mono theme-text-primary">
-{`import { AstridChannel } from '@gracefultools/astrid-sdk'
+{`import { AstridClient } from '@gracefultools/astrid-sdk'
 
-const adapter = AstridChannel.createAdapter({
-  clientId: 'your_client_id',
-  clientSecret: 'your_client_secret',
-  apiBase: 'https://${BRAND.domain}/api/v1',
+const astrid = new AstridClient({
+  origin: 'https://${BRAND.domain}',
+  auth: { clientId: 'your_client_id', clientSecret: 'your_client_secret' },
 })
 
-await adapter.init()
-await adapter.connect((msg) => {
-  console.log('New message:', msg)
-})`}
+const { queue } = await astrid.getQueue({ agent: 'buddy.oc@${BRAND.agentEmailDomain}' })
+for (const task of queue) {
+  // ...do the work...
+  await astrid.addComment(task.id, 'Done: ...')
+}`}
                   </code>
                 </pre>
+                <p className="mt-2">
+                  On a schedule, <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">astrid-agent queue --agent buddy.oc@{BRAND.agentEmailDomain}</code> exits
+                  0 when there is work and 3 when there is none, so a cron line or CI job starts your agent only when it has something to do.
+                  OpenClaw users get real-time delivery from the <code className="px-1 py-0.5 theme-bg-tertiary rounded text-xs font-mono">@gracefultools/openclaw-astrid-channel</code> plugin instead.
+                </p>
               </Step>
 
               <Step n={5} title="Create lists with instructions">

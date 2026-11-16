@@ -57,7 +57,7 @@ astrid-web/  (this repository)
 │   └── fixtures/              # *.json, written by scripts/export-contract-fixtures.ts
 └── packages/         # SDK and tool packages
     ├── astrid-rules/          # astrid-core's rules as WebAssembly, built and committed
-    ├── astrid-sdk/            # Multi-provider AI agent SDK
+    ├── astrid-sdk/            # Agent runner (astrid-agent) + typed REST client
     └── openclaw-astrid-channel/  # OpenClaw channel adapter
 ```
 
@@ -989,8 +989,8 @@ The `packages/` directory contains reusable SDK and tool packages:
 
 | Package | Description |
 |---------|-------------|
-| `astrid-sdk` | Multi-provider AI agent SDK library for building integrations; it does not include a standalone agent-host CLI. |
-| `openclaw-astrid-channel` | OpenClaw channel adapter |
+| `astrid-sdk` | The agent runner: the `astrid-agent` command (`queue` / `claim` / `release`, exit codes as the interface) and a typed REST client for the agent endpoints. Not a library for building agents (AWTD-1691). Pushes to `main` touching `packages/astrid-sdk/src/` publish to npm. |
+| `openclaw-astrid-channel` | OpenClaw channel adapter; owns the SSE channel client (`packages/openclaw-astrid-channel/src/astrid/`) |
 | `astrid-rules` | astrid-core's rules as WebAssembly, at a pinned revision |
 | `astrid-design` | astrid-core's design tokens (colours, spacing, type, motion), at a pinned revision. Never edited here: `scripts/sync-design-tokens.sh` |
 

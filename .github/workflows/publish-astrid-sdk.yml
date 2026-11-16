@@ -9,11 +9,12 @@ on:
   workflow_dispatch:
     inputs:
       version_bump:
-        description: 'Version bump type'
+        description: 'none = publish the version in package.json as-is (it must not be on npm yet)'
         required: true
-        default: 'patch'
+        default: 'none'
         type: choice
         options:
+          - none
           - patch
           - minor
           - major
@@ -27,6 +28,13 @@ jobs:
       !contains(github.event.head_commit.message, 'chore: bump @gracefultools/astrid-sdk')
     permissions:
       contents: write
+      # npm trusted publishing (OIDC). The repo has never had an NPM_TOKEN secret,
+      # which is why every publish since February failed with ENEEDAUTH
+      # (AWTD-1691). Trusted publishing needs no stored token: configure it once
+      # at npmjs.com → @gracefultools/astrid-sdk → Settings → Trusted publishing
+      # (GitHub Actions, Graceful-Tools/astrid-web, publish-astrid-sdk.yml).
+      # An NPM_TOKEN secret, if one is ever added, still works as a fallback.
+      id-token: write
     defaults:
       run:
         working-directory: packages/astrid-sdk
@@ -64,6 +72,17 @@ jobs:
           node-version-file: .nvmrc
           registry-url: 'https://registry.npmjs.org'
 
+      - name: Use an npm that supports trusted publishing (11.5.1+)
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          CURRENT_NPM=$(npm --version)
+          if node -e 'const [a,b,c]=process.argv[1].split(".").map(Number); process.exit(a>11||(a===11&&(b>5||(b===5&&c>=1)))?0:1)' "$CURRENT_NPM"; then
+            echo "npm $CURRENT_NPM supports trusted publishing"
+          else
+            npm install -g npm@^11.5.1
+            npm --version
+          fi
+
       - name: Configure git
         if: steps.changes.outputs.has_changes == 'true'
         run: |
@@ -82,27 +101,45 @@ jobs:
         if: steps.changes.outputs.has_changes == 'true'
         run: npm test
 
-      - name: Bump version
+      # The version in package.json is the one to publish when npm does not have
+      # it yet: a deliberate bump (1.0.0 for AWTD-1691's breaking change) ships as
+      # written instead of becoming 1.0.1. Only a version npm already has is bumped
+      # (patch on push, or the dispatch input).
+      - name: Choose the version
         if: steps.changes.outputs.has_changes == 'true'
         env:
-          BUMP_TYPE: ${{ github.event.inputs.version_bump || 'patch' }}
+          BUMP_TYPE: ${{ github.event.inputs.version_bump || 'auto' }}
         run: |
+          NAME=$(node -p "require('./package.json').name")
+          CURRENT=$(node -p "require('./package.json').version")
+          PUBLISHED=$(npm view "$NAME@$CURRENT" version 2>/dev/null || true)
           case "$BUMP_TYPE" in
-            patch|minor|major) ;;
+            auto)
+              if [ -z "$PUBLISHED" ]; then BUMP="none"; else BUMP="patch"; fi ;;
+            none)
+              if [ -n "$PUBLISHED" ]; then echo "::error::$NAME@$CURRENT is already on npm; pick patch, minor or major"; exit 1; fi
+              BUMP="none" ;;
+            patch|minor|major) BUMP="$BUMP_TYPE" ;;
             *) echo "Unsupported version bump: $BUMP_TYPE"; exit 1 ;;
           esac
-          npm version "$BUMP_TYPE" --no-git-tag-version
+          if [ "$BUMP" != none ]; then npm version "$BUMP" --no-git-tag-version; fi
           NEW_VERSION=$(node -p "require('./package.json').version")
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "Publishing $NAME@$NEW_VERSION (package.json had $CURRENT, bump: $BUMP)"
+          echo "NEW_VERSION=$NEW_VERSION" >> "$GITHUB_ENV"
+          echo "BUMPED=$([ "$BUMP" != none ] && echo true || echo false)" >> "$GITHUB_ENV"
 
       - name: Publish to npm
         if: steps.changes.outputs.has_changes == 'true'
-        run: npm publish --access public
+        run: |
+          npm publish --access public || {
+            echo "::error::npm publish failed. If the log says ENEEDAUTH or E404, trusted publishing is not configured for this package at npmjs.com (repository Graceful-Tools/astrid-web, workflow publish-astrid-sdk.yml), and there is no NPM_TOKEN secret."
+            exit 1
+          }
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Commit version bump
-        if: steps.changes.outputs.has_changes == 'true'
+        if: steps.changes.outputs.has_changes == 'true' && env.BUMPED == 'true'
         run: |
           cd ../..
           git add packages/astrid-sdk/package.json packages/astrid-sdk/package-lock.json
@@ -123,7 +160,7 @@ jobs:
             npm install @gracefultools/astrid-sdk@${{ env.NEW_VERSION }}
             ```
 
-            The SDK is a library, not a standalone agent-host CLI. See the README for integration examples.
+            The agent runner: `astrid-agent queue | claim | release` plus a typed REST client. See the README.
           draft: false
           prerelease: false
 

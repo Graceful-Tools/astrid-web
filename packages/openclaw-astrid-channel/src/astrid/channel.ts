@@ -1,5 +1,5 @@
 import type { AgentComment, AgentTask, AstridChannelConfig, InboundMessage, OutboundMessage } from './types.js'
-import { resolveApiBase } from '../config/api-base.js'
+import { resolveApiBase } from './api-base.js'
 import { OAuthClient } from './oauth-client.js'
 import { RestClient } from './rest-client.js'
 import { SSEClient } from './sse-client.js'

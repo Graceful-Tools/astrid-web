@@ -42,8 +42,9 @@ existing `/api/v1/tasks/:id/claim-fixall` route or its board/mailbox
 allowlists.
 
 The OAuth MCP server exposes this operation as `claim_task` only when
-`ASTRID_AGENT_CLAIM_API=on`, and `@gracefultools/astrid-sdk` exposes it as
-`AstridOAuthClient.claimTask`. The MCP tool maps its optional `agent` mailbox
+`ASTRID_AGENT_CLAIM_API=on`, and `@gracefultools/astrid-sdk` (1.0.0+) exposes it as
+`AstridClient.claimTask` and the `astrid-agent claim <taskId>` command (exit 0
+claimed, 2 conflict, 1 error). The MCP tool maps its optional `agent` mailbox
 to `agentMailbox`.
 
 `ASTRID_AGENT_CLAIM_REQUIRED_LISTS` is a comma-separated board-ID allowlist
