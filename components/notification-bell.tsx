@@ -16,6 +16,7 @@ const NOTIFICATION_KIND_KEYS: Record<NotificationKind, string> = {
   commented: "notificationBell.kinds.commented",
   status_changed: "notificationBell.kinds.statusChanged",
   completed: "tasks.completed",
+  agent_quiet: "notificationBell.kinds.agentQuiet",
 }
 
 type NotificationItem = {

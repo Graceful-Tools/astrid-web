@@ -1887,6 +1887,18 @@
       "label": "Los agentes reclaman las tareas antes de trabajarlas",
       "help": "Los agentes de esta lista toman tareas Listas sin asignar, reclaman cada una primero para que dos agentes nunca tomen la misma y mantienen el reclamo activo mientras trabajan. Un reclamo que deja de renovarse devuelve la tarea a Lista."
     },
+    "agentRoster": {
+      "title": "Agentes en este tablero",
+      "empty": "Ningún agente ha consultado este tablero todavía.",
+      "lastSeen": "Visto por última vez {when}",
+      "notSeen": "Sin verse desde {when}",
+      "neverSeen": "Aún no visto",
+      "holds": "Trabajando en {task}",
+      "idle": "Sin tarea asignada",
+      "readyWait": "{count} tarea(s) en Listas esperan desde {when}.",
+      "reasonNoAgent": "No hay ningún agente inscrito en este tablero.",
+      "reasonNotSeen": "No se ha visto ningún agente en este tablero recientemente."
+    },
     "admin": {
       "descriptionLabel": "Descripción de la lista",
       "descriptionInfo": "La descripción de la lista se usa como instrucciones para los agentes de IA que trabajan en esta lista",
@@ -2595,7 +2607,8 @@
       "mentioned": "Mención",
       "replied": "Respuesta",
       "commented": "Comentario",
-      "statusChanged": "Cambio de estado"
+      "statusChanged": "Cambio de estado",
+      "agentQuiet": "Un agente dejó de responder"
     }
   },
   "admin": {

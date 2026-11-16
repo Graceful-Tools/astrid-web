@@ -50,6 +50,7 @@
   "integrations/google/complete/route.ts": "all:tasks:write",
   "integrations/resume/route.ts": "handler-auth",
   "integrations/route.ts": "all:tasks:read,tasks:write",
+  "lists/[id]/agents/route.ts": "all:lists:read",
   "lists/[id]/copy/route.ts": "all:lists:write",
   "lists/[id]/favorite/route.ts": "all:lists:write",
   "lists/[id]/insights/route.ts": "all:lists:read",

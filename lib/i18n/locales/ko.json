@@ -1887,6 +1887,18 @@
       "label": "에이전트가 작업 전에 작업을 확보합니다",
       "help": "이 목록의 에이전트는 할당되지 않은 준비 작업을 가져가며, 두 에이전트가 같은 작업을 가져가지 않도록 먼저 확보하고 작업하는 동안 확보를 유지합니다. 갱신이 멈춘 확보는 작업을 준비 상태로 되돌립니다."
     },
+    "agentRoster": {
+      "title": "이 보드의 에이전트",
+      "empty": "아직 이 보드를 확인한 에이전트가 없습니다.",
+      "lastSeen": "마지막 확인 {when}",
+      "notSeen": "{when}부터 확인되지 않음",
+      "neverSeen": "아직 확인되지 않음",
+      "holds": "{task} 작업 중",
+      "idle": "맡은 작업 없음",
+      "readyWait": "준비됨 작업 {count}개가 {when}부터 대기 중입니다.",
+      "reasonNoAgent": "이 보드에 등록된 에이전트가 없습니다.",
+      "reasonNotSeen": "최근 이 보드에서 확인된 에이전트가 없습니다."
+    },
     "admin": {
       "descriptionLabel": "목록 설명",
       "descriptionInfo": "목록 설명은 이 목록에서 작업하는 AI 에이전트의 지침으로 사용됩니다",
@@ -2595,7 +2607,8 @@
       "mentioned": "멘션됨",
       "replied": "답글",
       "commented": "댓글",
-      "statusChanged": "상태 변경됨"
+      "statusChanged": "상태 변경됨",
+      "agentQuiet": "에이전트가 응답하지 않습니다"
     }
   },
   "admin": {
