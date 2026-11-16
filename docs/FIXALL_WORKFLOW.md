@@ -130,6 +130,18 @@ under the submitter's own title, marked untriaged.
 > want to review changes that are high risk. All implementation of shared design, system or
 > performance enhancement, or code cleanup you should just add to ready and pick up."*
 
+**The stored policy is the source (ADEV-20).** What an agent may do alone on a board (merge, deploy,
+migrate additive or destructive, release, spend) and who it asks is the board's **orchestration
+policy**, stored on the project and overridable per board (settings → Orchestration, or
+`GET /api/v1/lists/:id/orchestration-policy`). `scripts/land-and-deploy.ts` reads it and asks the
+core's `orchestrationMay` before it merges, deploys and ships a pending migration; only an
+answer of `ask` or `never` holds, and an `ask` posts an approval card on the awaiting-deploy task.
+Setting `migrate.additive: ask` holds an additive migration with no code or doc edit. Gates are not
+policy: a red gate holds regardless, and a destructive migration is still held by the workflow's
+own check. With nothing stored, the runner uses `astridPolicy` from the core fixture
+(`packages/astrid-rules/fixtures/orchestration.json`). The rest of this section describes
+Astrid's stored values: it is prose about the policy, not a second copy of it.
+
 **The default is to do the work, not to ask.** That holds for every board and every harness:
 
 - **Found an issue? File it straight to `Ready`**: on the right board, with `statusRole: "ready"`,
