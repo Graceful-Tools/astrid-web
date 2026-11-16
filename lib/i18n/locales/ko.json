@@ -1813,6 +1813,8 @@
     "hideLists": "{name}의 목록 숨기기",
     "boardAddList": "목록 추가",
     "boardRemoveRow": "이 보드에서 {name} 제거",
+    "boardColumnCount": "{column}: {count}",
+    "boardDoneCount": "{column}: {count} (최근 {hours}시간)",
     "boardEmpty": "사이드바에서 목록을 여기로 끌어오거나 목록 추가를 사용하세요.",
     "boardNoCandidates": "모든 목록이 이미 이 보드에 있습니다.",
     "boardSaveFailed": "이 보드의 목록을 저장하지 못했습니다. 다시 시도해 주세요.",

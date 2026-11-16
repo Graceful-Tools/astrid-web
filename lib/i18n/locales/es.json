@@ -1813,6 +1813,8 @@
     "hideLists": "Ocultar listas de {name}",
     "boardAddList": "Añadir lista",
     "boardRemoveRow": "Quitar {name} de este tablero",
+    "boardColumnCount": "{column}: {count}",
+    "boardDoneCount": "{column}: {count} (últimas {hours} h)",
     "boardEmpty": "Arrastra aquí una lista desde la barra lateral o usa Añadir lista.",
     "boardNoCandidates": "Todas las listas ya están en este tablero.",
     "boardSaveFailed": "No se pudieron guardar las listas de este tablero. Inténtalo de nuevo.",

@@ -1813,6 +1813,8 @@
     "hideLists": "隐藏 {name} 中的列表",
     "boardAddList": "添加列表",
     "boardRemoveRow": "从此看板移除 {name}",
+    "boardColumnCount": "{column}：{count}",
+    "boardDoneCount": "{column}：{count}（最近 {hours} 小时）",
     "boardEmpty": "从侧边栏将列表拖到这里，或使用“添加列表”。",
     "boardNoCandidates": "所有列表都已在此看板上。",
     "boardSaveFailed": "无法保存此看板的列表，请重试。",
