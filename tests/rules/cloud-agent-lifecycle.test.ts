@@ -271,6 +271,38 @@ describe('agent-run preserve-work step, executed', () => {
     ].sort())
   })
 
+  it('ADEV-33: a task branch that moved on origin gets the work on a recovery branch, and the step stays green', () => {
+    // Run 43888643418 (2026-11-16) said RESULT: OK, then its preserve step pushed
+    // an unpushed local commit onto the task branch, which had moved on. The
+    // non-fast-forward refusal turned the run red and skipped the chain.
+    const task = 'agent/claude/ADEV-22-project-board-layout'
+    git('switch', '-q', '-c', task)
+    writeFileSync(join(work, 'task.txt'), 'pushed by an earlier run\n')
+    git('commit', '-qam', 'earlier run')
+    git('push', '-q', '-u', 'origin', task)
+    const earlier = git('rev-parse', 'HEAD')
+    // Origin moves on (a sibling run, or the PR branch updated)...
+    git('reset', '-q', '--hard', base)
+    writeFileSync(join(work, 'other.txt'), 'someone else\n')
+    git('add', '.')
+    git('commit', '-qm', 'someone else')
+    git('push', '-q', '-f', 'origin', `HEAD:${task}`)
+    const theirs = git('rev-parse', 'HEAD')
+    // ...while this run holds its own local commit on the old tip.
+    git('reset', '-q', '--hard', earlier)
+    writeFileSync(join(work, 'task.txt'), 'this run, unpushed\n')
+    git('commit', '-qam', 'this run')
+    const mine = git('rev-parse', 'HEAD')
+
+    const result = preserve()
+    expect(result.status, result.stderr).toBe(0)
+    expect(remoteHeads().sort()).toEqual([
+      `refs/heads/${task} ${theirs}`, // never overwritten
+      `refs/heads/agent/claude-code/recovery-4242-1 ${mine}`,
+      `refs/heads/main ${base}`,
+    ].sort())
+  })
+
   it('does nothing with a clean, fully pushed tree', () => {
     const result = preserve()
     expect(result.status, result.stderr).toBe(0)

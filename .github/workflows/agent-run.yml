@@ -515,7 +515,13 @@ jobs:
             mkdir -p .agent-output
             git bundle create .agent-output/recovery.bundle HEAD --not --remotes=origin
             git rev-parse HEAD > .agent-output/recovery-head.txt
-            git push --set-upstream origin HEAD
+            # A task branch that moved on origin refuses this push (ADEV-33):
+            # the same HEAD goes to a recovery branch instead, never forced.
+            if ! git push --set-upstream origin HEAD; then
+              RECOVERY="agent/${ASTRID_FIXALL_HARNESS}/recovery-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+              echo "::warning::origin/${BRANCH} moved on; pushing this run's work to ${RECOVERY}"
+              git push origin "HEAD:refs/heads/${RECOVERY}"
+            fi
           fi
 
       # The same rescue for the core checkout (AWTD-1682): a run that died mid core task
@@ -539,7 +545,13 @@ jobs:
             mkdir -p "${GITHUB_WORKSPACE}/.agent-output"
             git bundle create "${GITHUB_WORKSPACE}/.agent-output/core-recovery.bundle" HEAD --not --remotes=origin
             git rev-parse HEAD > "${GITHUB_WORKSPACE}/.agent-output/core-recovery-head.txt"
-            git push --set-upstream origin HEAD
+            # A task branch that moved on origin refuses this push (ADEV-33):
+            # the same HEAD goes to a recovery branch instead, never forced.
+            if ! git push --set-upstream origin HEAD; then
+              RECOVERY="agent/${ASTRID_FIXALL_HARNESS}/recovery-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+              echo "::warning::origin/${BRANCH} moved on; pushing this run's work to ${RECOVERY}"
+              git push origin "HEAD:refs/heads/${RECOVERY}"
+            fi
           fi
 
       - name: Register finished cloud handoffs
