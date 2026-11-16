@@ -333,7 +333,7 @@ const classicTask = task(
     attachments: [
       record({ id: 'attachment-1', name: 'plants.jpg', url: 'https://example.com/plants.jpg', type: 'image/jpeg', size: 1024, createdAt: at(5), taskId: TASK }),
     ],
-    blockedBy: [record({ blockingTaskId: BLOCKER })],
+    blockedBy: [record({ blockingTaskId: BLOCKER }, { blockingTask: record({ completed: false }) })],
   },
 )
 
