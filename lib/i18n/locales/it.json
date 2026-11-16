@@ -2942,5 +2942,42 @@
       "fallback": "La consegna del webhook non è riuscita ({reason}). La tua regola di consegna è di riserva, quindi {appName} sta gestendo questa attività tramite il proprio percorso.",
       "strict": "La consegna del webhook non è riuscita ({reason}). Con la tua regola di consegna rigorosa {appName} non ha usato il proprio percorso di riserva, quindi questa attività è In attesa fino a {until}, ancora assegnata a me. Correggi il webhook, poi riassegnamela o aggiungi un commento per riprovare."
     }
+  },
+  "orchestrationPolicy": {
+    "title": "Criterio degli agenti",
+    "help": "Chi prende le attività pronte non assegnate, cosa possono fare gli agenti da soli e a chi chiedono. Gli agenti lo leggono prima di unire, distribuire o migrare.",
+    "saveFailed": "Impossibile salvare il criterio degli agenti",
+    "default": "Predefinito ({value})",
+    "inherit": "Ereditato ({value})",
+    "line": "{label}: {value}",
+    "effective": "In vigore su questa lista",
+    "scope": {
+      "project": "Questo progetto",
+      "projectHelp": "Ogni lista del progetto segue questo, a meno che la lista non imposti il proprio.",
+      "list": "Questa lista",
+      "listHelp": "Imposta un campo qui per cambiarlo solo per questa lista. I campi non impostati seguono il progetto o il predefinito."
+    },
+    "routing": {
+      "label": "Le attività pronte non assegnate vanno a",
+      "anyAgent": "Qualsiasi agente (vince chi rivendica per primo)"
+    },
+    "action": {
+      "merge": "Unire pull request",
+      "deploy": "Distribuire",
+      "migrateAdditive": "Migrazioni additive",
+      "migrateDestructive": "Migrazioni distruttive",
+      "release": "Pubblicazioni negli store",
+      "spend": "Spendere denaro"
+    },
+    "autonomy": {
+      "allowed": "Consentito",
+      "ask": "Chiedi prima",
+      "never": "Mai (lo fa una persona)"
+    },
+    "escalation": {
+      "label": "Le domande vanno a",
+      "listOwner": "Il proprietario della lista",
+      "taskCreator": "Chi ha creato l'attività"
+    }
   }
 }

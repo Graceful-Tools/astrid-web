@@ -15,6 +15,11 @@ import { AgentInstructionsSection } from "@/components/list-admin/AgentInstructi
 import { DefaultTaskSettingsSection } from "@/components/list-admin/DefaultTaskSettingsSection"
 import { ListAiAgentSection } from "@/components/list-admin/ListAiAgentSection"
 import { ListIdSection } from "@/components/list-admin/ListIdSection"
+import dynamic from "next/dynamic"
+
+// The orchestration policy (AWTD-1693) loads only when list settings open, so it costs no route
+// its first load (npm run check:bundle).
+const OrchestrationPolicySection = dynamic(() => import("@/components/list-admin/OrchestrationPolicySection"), { ssr: false })
 
 interface ListAdminSettingsProps {
   list: TaskList
@@ -75,6 +80,9 @@ export function ListAdminSettings({
 
       {/* Everything AI about this list: model, repo, per-list loop */}
       <ListAiAgentSection list={list} canEditSettings={canEditSettings} onUpdate={onUpdate} />
+
+      {/* Orchestration policy: who takes Ready work, what agents may do alone, who they ask */}
+      {canEditSettings && <OrchestrationPolicySection list={list} />}
 
       {/* Agent Instructions (List Description) */}
       <AgentInstructionsSection list={list} canEditSettings={canEditSettings} onUpdate={onUpdate} />

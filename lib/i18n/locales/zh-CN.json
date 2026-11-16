@@ -2942,5 +2942,42 @@
       "fallback": "Webhook 投递失败（{reason}）。你的投递策略为回退，因此 {appName} 正在通过自身途径处理此任务。",
       "strict": "Webhook 投递失败（{reason}）。根据你的严格投递策略，{appName} 未使用自身的回退方式，因此此任务将等待至 {until}，仍分配给我。请修复 webhook，然后重新分配给我或添加评论以重试。"
     }
+  },
+  "orchestrationPolicy": {
+    "title": "智能体策略",
+    "help": "谁来接手未分配的就绪任务、智能体可以自行做什么，以及向谁询问。智能体在合并、部署或迁移前会读取此设置。",
+    "saveFailed": "无法保存智能体策略",
+    "default": "默认（{value}）",
+    "inherit": "继承（{value}）",
+    "line": "{label}：{value}",
+    "effective": "在此列表生效",
+    "scope": {
+      "project": "此项目",
+      "projectHelp": "除非列表自行设置，否则项目中的每个列表都遵循此设置。",
+      "list": "此列表",
+      "listHelp": "在此设置某项只会改变此列表。未设置的项遵循项目或默认值。"
+    },
+    "routing": {
+      "label": "未分配的就绪任务交给",
+      "anyAgent": "任意智能体（先认领者得）"
+    },
+    "action": {
+      "merge": "合并拉取请求",
+      "deploy": "部署",
+      "migrateAdditive": "增量迁移",
+      "migrateDestructive": "破坏性迁移",
+      "release": "应用商店发布",
+      "spend": "花钱"
+    },
+    "autonomy": {
+      "allowed": "允许",
+      "ask": "先询问",
+      "never": "从不（由人来做）"
+    },
+    "escalation": {
+      "label": "问题发给",
+      "listOwner": "列表所有者",
+      "taskCreator": "任务创建者"
+    }
   }
 }

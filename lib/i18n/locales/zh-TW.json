@@ -2942,5 +2942,42 @@
       "fallback": "Webhook 傳送失敗（{reason}）。你的傳送政策為備援，因此 {appName} 正透過自身途徑處理此任務。",
       "strict": "Webhook 傳送失敗（{reason}）。依照你的嚴格傳送政策，{appName} 未使用自身的備援方式，因此此任務將等待至 {until}，仍指派給我。請修正 webhook，然後重新指派給我或新增留言以重試。"
     }
+  },
+  "orchestrationPolicy": {
+    "title": "代理程式政策",
+    "help": "誰來接手未指派的就緒任務、代理程式可以自行做什麼，以及向誰詢問。代理程式在合併、部署或遷移前會讀取此設定。",
+    "saveFailed": "無法儲存代理程式政策",
+    "default": "預設（{value}）",
+    "inherit": "繼承（{value}）",
+    "line": "{label}：{value}",
+    "effective": "在此清單生效",
+    "scope": {
+      "project": "此專案",
+      "projectHelp": "除非清單自行設定，否則專案中的每個清單都遵循此設定。",
+      "list": "此清單",
+      "listHelp": "在此設定某項只會改變此清單。未設定的項目遵循專案或預設值。"
+    },
+    "routing": {
+      "label": "未指派的就緒任務交給",
+      "anyAgent": "任何代理程式（先認領者得）"
+    },
+    "action": {
+      "merge": "合併拉取請求",
+      "deploy": "部署",
+      "migrateAdditive": "增量遷移",
+      "migrateDestructive": "破壞性遷移",
+      "release": "商店發佈",
+      "spend": "花錢"
+    },
+    "autonomy": {
+      "allowed": "允許",
+      "ask": "先詢問",
+      "never": "從不（由人來做）"
+    },
+    "escalation": {
+      "label": "問題發給",
+      "listOwner": "清單擁有者",
+      "taskCreator": "任務建立者"
+    }
   }
 }

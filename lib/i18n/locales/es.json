@@ -2942,5 +2942,42 @@
       "fallback": "La entrega del webhook falló ({reason}). Tu política de entrega es de respaldo, así que {appName} está gestionando esta tarea por su propia vía.",
       "strict": "La entrega del webhook falló ({reason}). Con tu política de entrega estricta, {appName} no usó su propia alternativa, así que esta tarea está en «En espera» hasta {until}, todavía asignada a mí. Arregla el webhook y luego vuelve a asignármela o añade un comentario para reintentarlo."
     }
+  },
+  "orchestrationPolicy": {
+    "title": "Política de agentes",
+    "help": "Quién toma las tareas listas sin asignar, qué pueden hacer los agentes por su cuenta y a quién preguntan. Los agentes lo leen antes de fusionar, desplegar o migrar.",
+    "saveFailed": "No se pudo guardar la política de agentes",
+    "default": "Predeterminado ({value})",
+    "inherit": "Heredado ({value})",
+    "line": "{label}: {value}",
+    "effective": "Vigente en esta lista",
+    "scope": {
+      "project": "Este proyecto",
+      "projectHelp": "Todas las listas del proyecto siguen esto salvo que la lista fije lo suyo.",
+      "list": "Esta lista",
+      "listHelp": "Fija un campo aquí para cambiarlo solo en esta lista. Los campos sin fijar siguen al proyecto o al valor predeterminado."
+    },
+    "routing": {
+      "label": "Las tareas listas sin asignar van a",
+      "anyAgent": "Cualquier agente (gana el primero en reclamar)"
+    },
+    "action": {
+      "merge": "Fusionar pull requests",
+      "deploy": "Desplegar",
+      "migrateAdditive": "Migraciones aditivas",
+      "migrateDestructive": "Migraciones destructivas",
+      "release": "Publicaciones en tiendas",
+      "spend": "Gastar dinero"
+    },
+    "autonomy": {
+      "allowed": "Permitido",
+      "ask": "Preguntar antes",
+      "never": "Nunca (lo hace una persona)"
+    },
+    "escalation": {
+      "label": "Las preguntas van a",
+      "listOwner": "El propietario de la lista",
+      "taskCreator": "Quien creó la tarea"
+    }
   }
 }
