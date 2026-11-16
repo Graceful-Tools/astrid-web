@@ -41,6 +41,7 @@ const pr = (over: Partial<CorePullRequest> = {}): CorePullRequest => ({
   mergeable: 'MERGEABLE',
   mergeStateStatus: 'CLEAN',
   checks: [{ name: 'core (linux)', bucket: 'pass' }, { name: 'astrid-rules (wasm32)', bucket: 'pass' }],
+  files: [{ path: 'crates/astrid-rules/src/lib.rs' }],
   ...over,
 })
 const eligible = (over: Partial<Parameters<typeof coreHandoffEligible>[0]> = {}) =>

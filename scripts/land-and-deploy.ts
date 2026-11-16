@@ -318,7 +318,7 @@ async function openPullRequests(): Promise<PullRequestSummary[]> {
       '--limit',
       '60',
       '--json',
-      'number,headRefName,headRefOid,title,body,isDraft,mergeable,mergeStateStatus',
+      'number,headRefName,headRefOid,title,body,isDraft,mergeable,mergeStateStatus,files',
     ]),
   ) as PullRequestSummary[]
 
@@ -436,7 +436,7 @@ async function landAndCompleteCore(repo: string, listId: string): Promise<CoreTi
   const { token, auth } = await astridAuth()
 
   const listed = JSON.parse(ghCore(['pr', 'list', '--repo', repo, '--state', 'open', '--limit', '60', '--json',
-    'number,headRefName,headRefOid,baseRefName,title,isDraft,mergeable,mergeStateStatus'])) as CorePullRequest[]
+    'number,headRefName,headRefOid,baseRefName,title,isDraft,mergeable,mergeStateStatus,files'])) as CorePullRequest[]
   const prs: CorePullRequest[] = []
   for (const pr of listed) {
     const identifier = AGENT_BRANCH.exec(pr.headRefName)?.[2]
