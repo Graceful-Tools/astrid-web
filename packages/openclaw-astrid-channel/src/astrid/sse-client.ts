@@ -1,4 +1,4 @@
-import { resolveApiBase } from '../config/api-base.js'
+import { resolveApiBase } from './api-base.js'
 import type { OAuthClient } from './oauth-client.js'
 import type { AstridChannelConfig, AgentSSEEvent } from './types.js'
 

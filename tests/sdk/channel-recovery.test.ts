@@ -5,9 +5,9 @@ import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { astridChannel } from '../../packages/astrid-sdk/src/channel/channel'
-import { DeliveryLedger } from '../../packages/astrid-sdk/src/channel/delivery-ledger'
-import type { AgentTask } from '../../packages/astrid-sdk/src/channel/types'
+import { astridChannel } from '../../packages/openclaw-astrid-channel/src/astrid/channel'
+import { DeliveryLedger } from '../../packages/openclaw-astrid-channel/src/astrid/delivery-ledger'
+import type { AgentTask } from '../../packages/openclaw-astrid-channel/src/astrid/types'
 import { frame } from '../fixtures/sdk-sse'
 import { BRAND } from '@/lib/brand/config'
 

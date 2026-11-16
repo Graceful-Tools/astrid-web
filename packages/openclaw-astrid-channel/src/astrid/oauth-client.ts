@@ -1,4 +1,4 @@
-import { resolveApiBase } from '../config/api-base.js'
+import { resolveApiBase } from './api-base.js'
 import type { AstridChannelConfig } from './types.js'
 
 /**

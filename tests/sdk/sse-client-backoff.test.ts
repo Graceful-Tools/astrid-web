@@ -7,9 +7,9 @@
  * with only fetch faked and the clock under fake timers.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { OAuthClient } from '../../packages/astrid-sdk/src/channel/oauth-client'
-import { SSEClient } from '../../packages/astrid-sdk/src/channel/sse-client'
-import type { AstridChannelConfig } from '../../packages/astrid-sdk/src/channel/types'
+import { OAuthClient } from '../../packages/openclaw-astrid-channel/src/astrid/oauth-client'
+import { SSEClient } from '../../packages/openclaw-astrid-channel/src/astrid/sse-client'
+import type { AstridChannelConfig } from '../../packages/openclaw-astrid-channel/src/astrid/types'
 import { frame } from '../fixtures/sdk-sse'
 
 const config: AstridChannelConfig = {

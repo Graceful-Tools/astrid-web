@@ -6,7 +6,7 @@
  * export (OpenClawPluginDefinition) from the package root.
  */
 
-import { AstridChannel as SDKChannel } from '@gracefultools/astrid-sdk';
+import { AstridChannel as SDKChannel } from './astrid/index.js';
 import type { AstridChannelConfig } from './types.js';
 
 /** Legacy plugin API shape (v1 compat) */

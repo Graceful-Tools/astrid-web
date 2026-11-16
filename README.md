@@ -462,7 +462,7 @@ npm run predeploy        # Full test suite
 - **iOS and Mac apps**: [astrid-ios](https://github.com/Graceful-Tools/astrid-ios) - SwiftUI, on astrid-core
 - **Windows app**: [astrid-windows](https://github.com/Graceful-Tools/astrid-windows) - WinUI 3, on astrid-core
 - **Android app**: [astrid-android](https://github.com/Graceful-Tools/astrid-android) - Kotlin and Compose, on astrid-core
-- **SDK**: [@gracefultools/astrid-sdk](https://www.npmjs.com/package/@gracefultools/astrid-sdk) - AI agent SDK
+- **SDK**: [@gracefultools/astrid-sdk](https://www.npmjs.com/package/@gracefultools/astrid-sdk) - agent runner (`astrid-agent`) and typed REST client
 
 ## License
 
