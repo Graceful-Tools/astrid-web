@@ -47,18 +47,25 @@ describe('taskReferencesInPullRequest (AWTD-1492)', () => {
     expect(taskReferencesInPullRequest({
       branch: 'agent/claude-code/awtd-1492-pr-comments',
       title: 'Fix (AWTD-1492)',
-      body: 'Also touches AITD-7.',
+      body: 'Task: AITD-7',
     })).toEqual(['AWTD-1492', 'AITD-7'])
   })
 
   it('finds task links by uuid', () => {
     expect(taskReferencesInPullRequest({
-      body: 'For https://tasks.example.com/tasks/D8B899C5-A8EF-49E7-9FD5-0480C9701F46',
+      body: '**Task:** https://tasks.example.com/tasks/D8B899C5-A8EF-49E7-9FD5-0480C9701F46',
     })).toEqual(['d8b899c5-a8ef-49e7-9fd5-0480c9701f46'])
   })
 
+  it('ignores a task mentioned in passing in the body (ADEV-35)', () => {
+    expect(taskReferencesInPullRequest({
+      branch: 'agent/claude/ADEV-31-predeploy',
+      title: 'Predeploy files a task only for main (ADEV-31)',
+      body: 'Closes ADEV-31.\n\nRelated to the orchestration policy in AWTD-1693, see https://x/tasks/d8b899c5-a8ef-49e7-9fd5-0480c9701f46.',
+    })).toEqual(['ADEV-31'])
+  })
   it('caps the number of tasks one PR can comment on', () => {
-    const body = Array.from({ length: 20 }, (_, i) => `AWTD-${i + 1}`).join(' ')
+    const body = Array.from({ length: 20 }, (_, i) => `Task: AWTD-${i + 1}`).join('\n')
     expect(taskReferencesInPullRequest({ body })).toHaveLength(MAX_TASK_REFS)
   })
 })
