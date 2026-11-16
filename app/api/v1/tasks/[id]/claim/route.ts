@@ -52,6 +52,7 @@ export const POST = withAuth<RouteContext>(
       taskId,
       userId: auth.userId,
       agentId: principal.agentId,
+      agentMailbox: principal.agentMailbox,
       action: body.action,
       agentEmail: principal.agentEmail,
       principal: runtimePrincipalOf(auth),

@@ -32,6 +32,7 @@ import { runtimeBindingResolverEnabled } from '@/lib/env'
 import { pilotQueueScope } from '@/lib/runtime-binding/task-runtime'
 import { observeAgentExecutionMode } from '@/lib/ai/agent-execution-mode-shadow'
 import { collectListInstructions, LIST_INSTRUCTIONS_MAX_CHARS, type AgentListInstructions } from '@/lib/agent-queue-list-instructions'
+import { listPolicyForAgent, type AgentListPolicyView } from '@/services/orchestration-policy.service'
 import { pendingAgentHandback, type AgentResumeContext } from '@/lib/agent-handback'
 
 /**
@@ -154,6 +155,8 @@ export interface AgentQueueResult {
    * credential or payer reference.
    */
   runtimeBinding?: { id: string; revision: number }
+  /** The named board's effective orchestration policy as this agent sees it (ADEV-36); absent without `listId`. */
+  orchestrationPolicy?: AgentListPolicyView[]
 }
 
 /**
@@ -423,11 +426,10 @@ export async function buildAgentQueue({
     lists: listScope,
   }
 
-  // `includeUnassigned` widens it for a board the caller keeps for their own
-  // agents (see AgentQueueOptions). Membership, not visibility, and Ready only.
-  // (`listId` is checked above; testing it again narrows the type.)
+  // `includeUnassigned` widens it (see AgentQueueOptions), routed by orchestration policy (ADEV-36).
+  const policy = listId ? await listPolicyForAgent(listId, mailbox, userId) : null
   const unassignedOnOwnBoard: Prisma.TaskWhereInput | null =
-    includeUnassigned && listId
+    includeUnassigned && listId && (policy?.route.take ?? true)
       ? {
           assigneeId: null,
           statusRole: READY_STATUS_ROLE,
@@ -515,6 +517,7 @@ export async function buildAgentQueue({
       reasons,
       incomplete: truncated || attention.truncated || attention.skipped.length > 0,
     },
+    ...(policy ? { orchestrationPolicy: [policy] } : {}),
     ...(runtimeBinding ? { runtimeBinding } : {}),
   }
 }
