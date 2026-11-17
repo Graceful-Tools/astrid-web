@@ -25,7 +25,8 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { loadScriptEnv } from './lib/load-env'
 import { claimNextReady, isCoreCandidate, runnerClaimedTask, type ClaimCandidate } from './lib/claim-next'
-import { ASTRID_API, fetchScriptToken, recordClaim, requestFixallClaim } from './lib/fixall-claim-request'
+import { recordClaim, requestFixallClaim } from './lib/fixall-claim-request'
+import { scriptClient } from './lib/script-client'
 import { FIXALL_CLAIM_MAILBOXES } from '@/lib/fixall-claim'
 
 loadScriptEnv()
@@ -70,14 +71,10 @@ async function main() {
     return
   }
 
-  const token = await fetchScriptToken({ clientId, clientSecret })
+  const client = scriptClient({ clientId, clientSecret })
   const refresh = async (): Promise<ClaimCandidate[]> => {
-    const url = `${ASTRID_API}/api/v1/agent-queue?agent=${encodeURIComponent(agent)}` +
-      `&listId=${encodeURIComponent(listId)}&includeUnassigned=true`
-    const response = await fetch(url, { headers: { 'X-OAuth-Token': token } })
-    if (!response.ok) throw new Error(`Queue read failed with HTTP ${response.status}`)
-    const queue = (await response.json())?.queue
-    return Array.isArray(queue) ? queue : []
+    const { queue } = await client.getQueue({ agent, listId, includeUnassigned: true })
+    return Array.isArray(queue) ? (queue as unknown as ClaimCandidate[]) : []
   }
 
   const result = await claimNextReady({
@@ -85,7 +82,7 @@ async function main() {
     refresh,
     skip: noCore ? isCoreCandidate : undefined,
     claim: async task => {
-      const attempt = await requestFixallClaim({ token, taskId: task.id, action: 'ready', agent, listId })
+      const attempt = await requestFixallClaim({ client, taskId: task.id, action: 'ready', agent, listId })
       if (attempt.status === 'conflict' && attempt.reason) console.error(`  server said: ${attempt.reason}`)
       return attempt.status
     },

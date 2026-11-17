@@ -48,8 +48,9 @@ export const USAGE = `Usage: astrid-agent <command> [options]
 
 Commands:
   queue    --agent <mailbox> [--list <listId>] [--include-unassigned]
-           [--seen <file> [--write-seen]]
+           [--seen <file> [--write-seen]] [--require-polling]
            Print the queue verdict as JSON. Exit 0 work, 3 idle, 1 could not tell.
+           --require-polling exits 1 unless the agent is in polling mode.
   claim    <taskId> [--agent <mailbox>] [--resume] [--lease-seconds <n>]
            Atomic claim (POST /api/v1/tasks/:id/claim). Exit 0 claimed, 2 taken, 1 error.
            The claim holds a lease (15 min by default): heartbeat while you work.
@@ -57,6 +58,9 @@ Commands:
            Renew the claim lease. Exit 0 renewed, 2 the claim is gone (stop), 1 error.
   claim    <taskId> --fixall [--agent <mailbox>] [--list <listId>]
            Claim through /claim-fixall (Astrid's allowlisted boards).
+  claim    <taskId> --fixall --resume --watermark <commentId>
+           [--resume-context <json> | --resume-context-file <path>] [--agent <mailbox>] [--list <listId>]
+           Answer a human reply to your own handback.
   release  <taskId> [--agent <mailbox>] [--comment <text>]
            Give a Doing claim back to Ready. Exit 0 released, 2 not yours, 1 error.
 
@@ -68,8 +72,13 @@ Options:
 Environment:
   ASTRID_TOKEN, or ASTRID_CLIENT_ID and ASTRID_CLIENT_SECRET`
 
-const VALUED = new Set(['--agent', '--list', '--seen', '--origin', '--comment', '--lease-seconds'])
-const BOOLEAN = new Set(['--include-unassigned', '--write-seen', '--resume', '--fixall', '--help', '-h', '--version', '-v'])
+const VALUED = new Set([
+  '--agent', '--list', '--seen', '--origin', '--comment', '--lease-seconds',
+  '--watermark', '--resume-context', '--resume-context-file',
+])
+const BOOLEAN = new Set([
+  '--include-unassigned', '--write-seen', '--require-polling', '--resume', '--fixall', '--help', '-h', '--version', '-v',
+])
 
 interface Parsed {
   positional: string[]
@@ -122,6 +131,20 @@ function readSeen(file: string): Set<string> {
   }
 }
 
+/** The resume context as JSON, from the flag or a file; the server validates its shape. */
+function readResumeContext(args: Parsed): unknown {
+  const inline = args.flags.get('--resume-context')
+  const file = args.flags.get('--resume-context-file')
+  if (inline !== undefined && file !== undefined) throw new UsageError('Use --resume-context or --resume-context-file, not both')
+  const text = file !== undefined ? readFileSync(file, 'utf8') : inline
+  if (text === undefined) return undefined
+  try {
+    return JSON.parse(text.replace(/^﻿/, ''))
+  } catch {
+    throw new UsageError('The resume context is not valid JSON')
+  }
+}
+
 function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
@@ -149,6 +172,10 @@ async function queue(client: AstridClient, args: Parsed, io: CliIO): Promise<num
       listId: args.flags.get('--list'),
       includeUnassigned: args.switches.has('--include-unassigned'),
     })
+    // A webhook-mode agent is woken by the server; a poll as well would dispatch twice.
+    if (args.switches.has('--require-polling') && snapshot.mode !== 'polling') {
+      throw new Error(`Agent ${agent} mode is "${snapshot.mode}", not polling — refusing duplicate dispatch`)
+    }
   } catch (error) {
     io.stderr(`QUEUE: unknown — ${message(error)}`)
     return EXIT.ERROR
@@ -186,9 +213,14 @@ async function claim(client: AstridClient, args: Parsed, io: CliIO): Promise<num
   const resume = args.switches.has('--resume')
 
   if (args.switches.has('--fixall')) {
-    if (resume) throw new UsageError('--fixall --resume needs a watermark and resume context; use scripts/claim-fixall-task.ts')
+    const watermark = args.flags.get('--watermark')
+    if (resume && !watermark) throw new UsageError('claim --fixall --resume needs --watermark <comment id>')
+    if (!resume && watermark) throw new UsageError('--watermark only applies to claim --fixall --resume')
+    const resumeContext = resume ? readResumeContext(args) : undefined
     const result = await client.claimFixallTask(taskId, {
-      action: 'ready',
+      action: resume ? 'resume' : 'ready',
+      ...(watermark ? { commentWatermark: watermark } : {}),
+      ...(resumeContext !== undefined ? { resume: resumeContext } : {}),
       ...(agent ? { agent } : {}),
       ...(args.flags.get('--list') ? { listId: args.flags.get('--list') } : {}),
     })

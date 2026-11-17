@@ -56,6 +56,20 @@ describe('astrid-agent queue (AWTD-1691)', () => {
     expect(url.searchParams.get('listId')).toBe('list-1')
   })
 
+  it('ADEV-9: --require-polling exits 1 and prints nothing to act on when the agent is not in polling mode', async () => {
+    const h = harness(fakeFetch({ status: 200, body: { ...EMPTY, mode: 'webhook' } }))
+
+    expect(await h.run(['queue', '--agent', 'claude', '--require-polling'])).toBe(EXIT.ERROR)
+    expect(h.err.join('\n')).toContain('not polling')
+    expect(h.out).toEqual([])
+  })
+
+  it('ADEV-9: --require-polling proceeds when the agent polls', async () => {
+    const h = harness(fakeFetch({ status: 200, body: { ...EMPTY, mode: 'polling' } }))
+
+    expect(await h.run(['queue', '--agent', 'claude', '--require-polling'])).toBe(EXIT.IDLE)
+  })
+
   it('exits 3 when nothing is queued and nothing is unanswered', async () => {
     const h = harness(fakeFetch({ status: 200, body: EMPTY }))
 
@@ -200,6 +214,33 @@ describe('astrid-agent claim (AWTD-1691)', () => {
 
       expect(await h.run(['claim', 'task-1', '--fixall', '--agent', 'codex'])).toBe(EXIT.CONFLICT)
       expect(h.err.join('\n')).toContain('No active agent account for codex')
+    })
+
+    it('ADEV-9: --resume sends the watermark and resume context, and records the claim', async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'astrid-agent-'))
+      try {
+        const claims = join(dir, 'claims')
+        const context = join(dir, 'context.json')
+        writeFileSync(context, '﻿{"reply":"go ahead"}')
+        const fetchImpl = fakeFetch({ status: 200, body: { claimed: true } })
+        const h = harness(fetchImpl, { ASTRID_TOKEN: 't', ASTRID_FIXALL_CLAIMS_FILE: claims })
+
+        expect(await h.run([
+          'claim', 'task-1', '--fixall', '--resume', '--watermark', 'c-9', '--resume-context-file', context, '--agent', 'claude',
+        ])).toBe(EXIT.WORK)
+        expect(JSON.parse(String(fetchImpl.mock.calls[0][1]?.body))).toEqual({
+          action: 'resume', commentWatermark: 'c-9', agent: 'claude', resume: { reply: 'go ahead' },
+        })
+        expect(readFileSync(claims, 'utf8')).toBe('task-1\n')
+      } finally {
+        rmSync(dir, { recursive: true, force: true })
+      }
+    })
+
+    it('ADEV-9: --resume without a watermark is a usage error', async () => {
+      const h = harness(fakeFetch())
+      expect(await h.run(['claim', 'task-1', '--fixall', '--resume'])).toBe(EXIT.ERROR)
+      expect(h.err.join('\n')).toContain('--watermark')
     })
 
     it('appends a ready claim to ASTRID_FIXALL_CLAIMS_FILE for the post-run release', async () => {
