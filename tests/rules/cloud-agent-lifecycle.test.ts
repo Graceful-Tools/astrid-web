@@ -749,6 +749,12 @@ describe('ADEV-26: parallel cloud workers', () => {
       expect(run).toContain('astrid-agent run --agent "${HEARTBEAT_AGENT}"')
       expect(run).toContain('--fixall --harness custom')
       expect(run).toContain('ASTRID_TASK_ID:-')
+      // The runner spawns --command through /bin/sh (dash on Ubuntu), which drops the
+      // BASH_FUNC_* variable `export -f` relies on: hand bash a script file instead.
+      expect(run).not.toContain('export -f')
+      expect(run).toContain('declare -f run_claude > "${RUNNER_TEMP}/run-claude.sh"')
+      expect(run).toContain('--command "bash')
+      expect(run).toContain('run-claude.sh')
     })
 
     it('ADEV-26: another slot claims the next free task before the costly steps and hands it to the session', () => {

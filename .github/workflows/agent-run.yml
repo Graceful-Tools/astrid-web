@@ -479,11 +479,14 @@ jobs:
               | tee .agent-output/agent-transcript.txt
           }
           if [ "${USE_RUNNER}" = true ] && [ "${ASTRID_AGENT_SLOT}" != 1 ]; then
-            export -f run_claude
+            # The runner spawns --command through /bin/sh (dash here), which drops the
+            # BASH_FUNC_* variable an exported bash function travels in, so bash gets it as a file.
+            declare -f run_claude > "${RUNNER_TEMP}/run-claude.sh"
+            echo run_claude >> "${RUNNER_TEMP}/run-claude.sh"
             export ASTRID_CORE_PUSH
             npx --yes -p @gracefultools/astrid-sdk@1.0.3 astrid-agent run --agent "${HEARTBEAT_AGENT}" \
               --list "${ASTRID_OAUTH_LIST_ID}" --include-unassigned --fixall --harness custom \
-              --command 'bash -c run_claude' && STATUS=0 || STATUS=$?
+              --command "bash \"${RUNNER_TEMP}/run-claude.sh\"" && STATUS=0 || STATUS=$?
             if [ "${STATUS}" = 3 ]; then
               echo "RESULT: SKIPPED — every Ready task is taken by another worker or session" | tee .agent-output/agent-transcript.txt
               exit 0
