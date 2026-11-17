@@ -2715,6 +2715,14 @@
       "done": "Concluído",
       "testing": "Testes"
     },
+    "empty": {
+      "inbox": "Nada novo para organizar! Tarefas sem status ficam aqui.",
+      "ready": "Nada na fila! Mova uma tarefa para cá quando ela estiver pronta para começar.",
+      "doing": "Nada em andamento. Escolha algo em Pronto e mãos à obra!",
+      "waiting": "Nada em espera! Tarefas aguardando uma data ou outra tarefa aparecem aqui.",
+      "done": "Ainda não há tarefas concluídas. Conclua uma e comemore aqui!",
+      "custom": "Nada aqui ainda! Arraste uma tarefa para fazê-la avançar."
+    },
     "blurb": {
       "inbox": "Mova-as para \"Pronto\" quando estiverem... prontas!",
       "ready": "Hora de trabalhar!",
