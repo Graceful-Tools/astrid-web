@@ -321,7 +321,7 @@ fi
 # then simply arrives in the queue.
 #
 # And it stays cheap in the other direction: an inbox item wakes ONE
-# run (scripts/agent-queue-status.ts keeps a seen-file), so something the
+# run (`astrid-agent queue` keeps a seen-file; ADEV-83), so something the
 # agent chose not to answer cannot start a session every half hour.
 #
 # The seen-file write is the SECOND phase of waking. The preflight below runs
@@ -341,7 +341,7 @@ fi
 # task flagged LONG-RUN is deferred outside the window — so a queue holding
 # only that one is idle this tick — and taken first inside it. "Size the run",
 # below, applies the answer.
-QUEUE_OUT=$("$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" --board web --include-unassigned --no-write-seen --long-run-window "$LONG_RUN_WINDOW" --default-minutes "$MAX_MINUTES" --max-tasks "$ASTRID_FIXALL_MAX_TASKS" 2>&1)
+QUEUE_OUT=$("$TSX" scripts/astrid-agent.ts queue --lines --agent claude --list "$WEB_LIST_ID" --board web --include-unassigned --no-write-seen --long-run-window "$LONG_RUN_WINDOW" --default-minutes "$MAX_MINUTES" --max-tasks "$ASTRID_FIXALL_MAX_TASKS" 2>&1)
 QUEUE_STATUS=$?
 QUEUE_LINES=$(echo "$QUEUE_OUT" | grep -E '^(QUEUE|LANES|SEEN|RUN):')
 QUEUE_KEYS=$(echo "$QUEUE_OUT" | sed -n 's/^KEYS: //p' | head -1)
@@ -575,9 +575,9 @@ rm -f "$CLAIMS_FILE"
 # a strike instead; scripts/lib/wake-keys.ts holds the strike limit.
 if [ -n "$QUEUE_KEYS" ]; then
   if [ "$STATUS" -eq 0 ]; then
-    "$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" --mark-seen --seen-keys "$QUEUE_KEYS" 2>&1 | sed 's/^/  /'
+    "$TSX" scripts/astrid-agent.ts queue --lines --agent claude --list "$WEB_LIST_ID" --mark-seen --seen-keys "$QUEUE_KEYS" 2>&1 | sed 's/^/  /'
   else
-    "$TSX" scripts/agent-queue-status.ts --agent claude --list "$WEB_LIST_ID" --mark-seen --failed --seen-keys "$QUEUE_KEYS" 2>&1 | sed 's/^/  /'
+    "$TSX" scripts/astrid-agent.ts queue --lines --agent claude --list "$WEB_LIST_ID" --mark-seen --failed --seen-keys "$QUEUE_KEYS" 2>&1 | sed 's/^/  /'
   fi
 fi
 
