@@ -1,10 +1,15 @@
 "use client"
 
 /**
- * Moving a list into or out of a project from the sidebar (ADEV-61): its row's
- * Move to Project ▸ / Remove from Project, or a drop on a project header. One
- * PUT, the same call the list settings' Project picker makes (BoardViewSection);
- * the sidebar updates only on success, and a refusal shows the server's reason.
+ * The lists' side of project changes (ADEV-61).
+ *
+ * `moveListToProject`: a sidebar row's Move to Project ▸ / Remove from Project,
+ * or a drop on a project header. One PUT, the same call the list settings'
+ * Project picker makes (BoardViewSection); the sidebar updates only on success,
+ * and a refusal shows the server's reason.
+ *
+ * `detachProjectLists`: a project was deleted (its sidebar header, or the list
+ * settings). Its own status columns go with it; its lists stay, outside any project.
  */
 import React from "react"
 import { apiCall, refusalReason } from "@/lib/api"
@@ -28,5 +33,14 @@ export function useSidebarProjectActions(setLists: (value: React.SetStateAction<
     }
   }, [setLists, t, toast])
 
-  return { moveListToProject }
+  const detachProjectLists = React.useCallback((projectId: string, detachedListIds: string[]) => {
+    const detached = new Set(detachedListIds)
+    setLists(previous =>
+      previous
+        .filter(list => !(list.projectId === projectId && list.listType === "status"))
+        .map(list => (list.projectId === projectId || detached.has(list.id) ? { ...list, projectId: null } : list)),
+    )
+  }, [setLists])
+
+  return { moveListToProject, detachProjectLists }
 }

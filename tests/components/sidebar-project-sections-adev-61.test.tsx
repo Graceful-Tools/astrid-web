@@ -244,6 +244,16 @@ describe('the list row menu (ADEV-61)', () => {
     expect(onMove).toHaveBeenCalledWith('home', 'alpha')
   })
 
+  it('makes a movable row draggable onto a project header', async () => {
+    renderRow(list('home', 'Home', null))
+    await act(async () => {})
+    const wrapper = screen.getByTestId('row').parentElement!
+    expect(wrapper).toHaveAttribute('draggable', 'true')
+    const setData = vi.fn()
+    fireEvent.dragStart(wrapper, { dataTransfer: { setData, effectAllowed: 'none' } })
+    expect(setData).toHaveBeenCalledWith(PROJECT_BOARD_LIST_DRAG_TYPE, 'home')
+  })
+
   it('Remove from Project asks first, then takes the list out', async () => {
     const onMove = renderRow(list('web', 'Web', 'alpha'))
     await act(async () => {})
