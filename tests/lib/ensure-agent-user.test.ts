@@ -17,9 +17,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const findFirst = vi.fn()
 const create = vi.fn()
+const update = vi.fn()
 
 vi.mock('@/lib/prisma', () => ({
-  prisma: { user: { findFirst: (...a: unknown[]) => findFirst(...a), create: (...a: unknown[]) => create(...a) } },
+  prisma: {
+    user: {
+      findFirst: (...a: unknown[]) => findFirst(...a),
+      create: (...a: unknown[]) => create(...a),
+      update: (...a: unknown[]) => update(...a),
+    },
+  },
 }))
 
 import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
@@ -28,6 +35,7 @@ import { BRAND } from '@/lib/brand/config'
 beforeEach(() => {
   findFirst.mockReset()
   create.mockReset()
+  update.mockReset()
 })
 
 describe('ensureAgentUser', () => {
@@ -86,5 +94,38 @@ describe('ensureAgentUser', () => {
 
     expect(agent).toBeNull()
     expect(create).not.toHaveBeenCalled()
+  })
+
+  // ADEV-55: copilot and muse rows were created with image null, so the web
+  // picker and search showed them without their brand icons.
+  it.each(['copilot', 'muse'])('creates %s with its brand icon as the image (ADEV-55)', async (mailbox) => {
+    findFirst.mockResolvedValue(null)
+    create.mockImplementation(({ data }: { data: Record<string, unknown> }) => ({ id: 'new-id', ...data }))
+
+    await ensureAgentUser(`${mailbox}@${BRAND.agentEmailDomain}`)
+
+    expect(create.mock.calls[0][0].data.image).toBe(`/api/v1/agent-icon/${mailbox}`)
+  })
+
+  it('backfills the brand icon on an existing row that has no image (ADEV-55)', async () => {
+    findFirst.mockResolvedValue({ id: 'u1', name: 'Muse Agent', email: `muse@${BRAND.agentEmailDomain}`, image: null })
+    update.mockResolvedValue({})
+
+    const agent = await ensureAgentUser(`muse@${BRAND.agentEmailDomain}`)
+
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'u1' },
+      data: { image: '/api/v1/agent-icon/muse' },
+    }))
+    expect(agent?.image).toBe('/api/v1/agent-icon/muse')
+  })
+
+  it('keeps an existing image', async () => {
+    findFirst.mockResolvedValue({ id: 'u1', email: `claude@${BRAND.agentEmailDomain}`, image: 'https://blob/claude.png' })
+
+    const agent = await ensureAgentUser(`claude@${BRAND.agentEmailDomain}`)
+
+    expect(update).not.toHaveBeenCalled()
+    expect(agent?.image).toBe('https://blob/claude.png')
   })
 })

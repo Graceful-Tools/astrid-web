@@ -16,6 +16,7 @@ import { openClawEmailSuffix } from '@/lib/brand/agent-emails'
 import { resolveSearchListIds } from '@/lib/user-search-scope'
 import { getAssignableAgentEmails, getOfferableAgentEmails } from '@/lib/ai/assignable-agents'
 import { ensureOfferedAgentUsers } from '@/lib/ai/ensure-agent-user'
+import { agentMailboxFromEmail } from '@/lib/brand/agent-emails'
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { prisma } from '@/lib/prisma'
@@ -189,8 +190,11 @@ export const GET = withAuth(
       const usersWithMetadata = allUsers.slice(0, 10).map(user => {
         const isListMember = listMembers.some(m => m.id === user.id)
         const isAnyAIAgent = !!user.isAIAgent
+        // An agent row seeded without an image still shows its brand icon (ADEV-55).
+        const agentMailbox = isAnyAIAgent && !user.image ? agentMailboxFromEmail(user.email) : null
         return {
           ...user,
+          ...(agentMailbox ? { image: `/api/v1/agent-icon/${agentMailbox}` } : {}),
           isListMember: isListMember || isAnyAIAgent,
           isCodingAgent: isCodingAgent(user),
         }
