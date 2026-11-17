@@ -406,3 +406,53 @@ describe('PATCH /api/v1/projects/:id — rename the project (ADEV-48)', () => {
     })
   })
 })
+
+describe('PATCH /api/v1/projects/:id — description and color (ADEV-67)', () => {
+  const params = Promise.resolve({ id: 'p1' })
+  const patch = (body: unknown) =>
+    patchProject(makeReq('PATCH', body, 'http://localhost/api/v1/projects/p1'), { params } as any)
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockAuth.mockResolvedValue(ownerAuth as any)
+    mockMove.mockResolvedValue({ ok: true })
+    mockPrisma.project.update.mockResolvedValue({
+      id: 'p1',
+      name: 'Kept',
+      description: 'About',
+      color: '#112233',
+    } as any)
+  })
+
+  it('ADEV-67: updates description and color together and answers the updated project', async () => {
+    const res = await patch({ description: '  About  ', color: '#112233' })
+
+    expect(res.status).toBe(200)
+    expect(mockPrisma.project.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'p1' }, data: { description: 'About', color: '#112233' } }),
+    )
+    expect(await res.json()).toMatchObject({
+      project: { id: 'p1', name: 'Kept', description: 'About', color: '#112233' },
+    })
+  })
+
+  it('ADEV-67: an empty description clears it', async () => {
+    await patch({ description: '   ' })
+    expect(mockPrisma.project.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { description: null } }),
+    )
+  })
+
+  it('ADEV-67: 400s a color that is not #rrggbb and changes nothing', async () => {
+    const res = await patch({ name: 'X', color: 'red' })
+    expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({ code: 'PROJECT_COLOR_INVALID' })
+    expect(mockPrisma.project.update).not.toHaveBeenCalled()
+  })
+
+  it('ADEV-67: 403s a plain member', async () => {
+    mockMove.mockResolvedValue({ error: 'forbidden' })
+    expect((await patch({ color: '#112233' })).status).toBe(403)
+    expect(mockPrisma.project.update).not.toHaveBeenCalled()
+  })
+})
