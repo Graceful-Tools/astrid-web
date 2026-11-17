@@ -769,9 +769,9 @@ describe('ADEV-26: parallel cloud workers', () => {
       const run = workflowStep(AGENT_RUN, 'run', 'Run Claude Code').run as string
       expect(run).toContain('TASK_FLAGS=(--task "${PINNED_TASK}")')
       expect(run).toContain('"${TASK_FLAGS[@]}" --command')
-      expect(workflowStep(AGENT_RUN, 'run', 'Run Claude Code').env.PINNED_TASK).toContain('inputs.use_runner')
+      expect(workflowStep(AGENT_RUN, 'run', 'Run Claude Code').env?.PINNED_TASK).toContain('inputs.use_runner')
       const preflight = workflowStep(AGENT_RUN, 'run', 'Queue and inbox preflight')
-      expect(preflight.env.PINNED_TASK).toContain('inputs.use_runner')
+      expect(preflight.env?.PINNED_TASK).toContain('inputs.use_runner')
       expect(preflight.run).toContain('const work=pinned ? slot===2 :')
     })
 
