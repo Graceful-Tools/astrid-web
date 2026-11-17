@@ -1830,6 +1830,8 @@
     "projectNone": "Geen",
     "projectMoveFailed": "Kon deze lijst niet verplaatsen",
     "projectLockedIn": "In {name}. Alleen een projecteigenaar of beheerder kan hem verplaatsen.",
+    "projectNew": "Nieuw project…",
+    "projectLeaveConfirm": "{list} uit {project} verwijderen?",
     "newListInProject": "Nieuwe lijst in project…",
     "newListName": "Lijstnaam",
     "newListFailed": "Kon de lijst niet maken",

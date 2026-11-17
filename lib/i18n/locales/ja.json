@@ -1830,6 +1830,8 @@
     "projectNone": "なし",
     "projectMoveFailed": "このリストを移動できませんでした",
     "projectLockedIn": "{name} にあります。プロジェクトのオーナーまたは管理者のみ移動できます。",
+    "projectNew": "新規プロジェクト…",
+    "projectLeaveConfirm": "{project} から {list} を削除しますか？",
     "newListInProject": "プロジェクトに新しいリスト…",
     "newListName": "リスト名",
     "newListFailed": "リストを作成できませんでした",
