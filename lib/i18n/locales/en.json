@@ -1835,7 +1835,15 @@
     "newListInProject": "New list in project…",
     "newListName": "List name",
     "newListFailed": "Couldn't create the list",
-    "boardNewList": "New List…"
+    "boardNewList": "New List…",
+    "moveToProject": "Move to Project",
+    "removeFromProject": "Remove from Project",
+    "projectLeaveDetail": "Its tasks go with it. A task in one of this project's own columns shows in Inbox until the list joins a project with that column again.",
+    "deleteProject": "Delete Project…",
+    "deleteProjectConfirm": "Delete {name}?",
+    "deleteProjectDetail": "Its lists stay, outside any project. The board's own columns go with it.",
+    "deleteProjectAction": "Delete",
+    "deleteProjectFailed": "Couldn't delete the project"
   },
   "viewRotator": {
     "showList": "Show list",

@@ -1835,7 +1835,15 @@
     "newListInProject": "Nieuwe lijst in project…",
     "newListName": "Lijstnaam",
     "newListFailed": "Kon de lijst niet maken",
-    "boardNewList": "Nieuwe lijst…"
+    "boardNewList": "Nieuwe lijst…",
+    "moveToProject": "Naar project verplaatsen",
+    "removeFromProject": "Uit project verwijderen",
+    "projectLeaveDetail": "De taken gaan mee. Een taak in een eigen kolom van dit project staat in Inbox tot de lijst weer bij een project met die kolom hoort.",
+    "deleteProject": "Project verwijderen…",
+    "deleteProjectConfirm": "{name} verwijderen?",
+    "deleteProjectDetail": "De lijsten blijven, buiten elk project. De eigen kolommen van het bord gaan mee.",
+    "deleteProjectAction": "Verwijderen",
+    "deleteProjectFailed": "Het project kon niet worden verwijderd"
   },
   "viewRotator": {
     "showList": "Lijst tonen",

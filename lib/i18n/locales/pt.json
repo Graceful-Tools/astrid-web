@@ -1835,7 +1835,15 @@
     "newListInProject": "Nova lista no projeto…",
     "newListName": "Nome da lista",
     "newListFailed": "Não foi possível criar a lista",
-    "boardNewList": "Nova lista…"
+    "boardNewList": "Nova lista…",
+    "moveToProject": "Mover para projeto",
+    "removeFromProject": "Remover do projeto",
+    "projectLeaveDetail": "As tarefas vão junto. Uma tarefa em uma das colunas próprias deste projeto aparece na Caixa de entrada até a lista voltar a um projeto com essa coluna.",
+    "deleteProject": "Excluir projeto…",
+    "deleteProjectConfirm": "Excluir {name}?",
+    "deleteProjectDetail": "As listas permanecem, fora de qualquer projeto. As colunas próprias do quadro são excluídas com ele.",
+    "deleteProjectAction": "Excluir",
+    "deleteProjectFailed": "Não foi possível excluir o projeto"
   },
   "viewRotator": {
     "showList": "Mostrar lista",

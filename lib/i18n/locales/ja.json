@@ -1835,7 +1835,15 @@
     "newListInProject": "プロジェクトに新しいリスト…",
     "newListName": "リスト名",
     "newListFailed": "リストを作成できませんでした",
-    "boardNewList": "新しいリスト…"
+    "boardNewList": "新しいリスト…",
+    "moveToProject": "プロジェクトへ移動",
+    "removeFromProject": "プロジェクトから削除",
+    "projectLeaveDetail": "タスクもリストと一緒に移動します。このプロジェクト独自の列にあるタスクは、その列を持つプロジェクトにリストが再び加わるまで受信箱に表示されます。",
+    "deleteProject": "プロジェクトを削除…",
+    "deleteProjectConfirm": "{name}を削除しますか？",
+    "deleteProjectDetail": "リストはどのプロジェクトにも属さない状態で残ります。ボード独自の列は一緒に削除されます。",
+    "deleteProjectAction": "削除",
+    "deleteProjectFailed": "プロジェクトを削除できませんでした"
   },
   "viewRotator": {
     "showList": "リストを表示",

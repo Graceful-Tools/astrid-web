@@ -1835,7 +1835,15 @@
     "newListInProject": "Nuova lista nel progetto…",
     "newListName": "Nome della lista",
     "newListFailed": "Impossibile creare la lista",
-    "boardNewList": "Nuova lista…"
+    "boardNewList": "Nuova lista…",
+    "moveToProject": "Sposta nel progetto",
+    "removeFromProject": "Rimuovi dal progetto",
+    "projectLeaveDetail": "Le sue attività la seguono. Un'attività in una delle colonne proprie di questo progetto appare nella Posta in arrivo finché la lista non torna in un progetto con quella colonna.",
+    "deleteProject": "Elimina progetto…",
+    "deleteProjectConfirm": "Eliminare {name}?",
+    "deleteProjectDetail": "Le sue liste restano, fuori da qualsiasi progetto. Le colonne proprie della bacheca vengono eliminate con esso.",
+    "deleteProjectAction": "Elimina",
+    "deleteProjectFailed": "Impossibile eliminare il progetto"
   },
   "viewRotator": {
     "showList": "Mostra elenco",
