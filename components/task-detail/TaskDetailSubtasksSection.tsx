@@ -19,11 +19,17 @@
  * completion path here would be a second place for repeating tasks, streaks,
  * board columns and offline queuing to be got wrong — and the repo already has
  * a rule test about completion going through one service for that reason.
+ *
+ * **A child that is not yours asks first (ADEV-71)**, by the CHILD's assignee:
+ * a subtask is a task with its own owner, and the parent being yours says
+ * nothing about whose work the child is. Same hook and rule as every other
+ * completion surface (components/completion-confirmation.tsx).
  */
 
 import { useState } from "react"
 import { Plus } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useCompletionConfirmation } from "@/components/completion-confirmation"
 import { useTranslations } from "@/lib/i18n/client"
 import type { Task } from "@/types/task"
 
@@ -35,6 +41,8 @@ interface TaskDetailSubtasksSectionProps {
   /** Creating a child. Absent means the add row is not offered. */
   onAdd?: (title: string) => void | Promise<void>
   readOnly?: boolean
+  /** The viewer, to tell their own subtasks from everyone else's. */
+  currentUserId?: string | null
 }
 
 export function TaskDetailSubtasksSection({
@@ -42,8 +50,10 @@ export function TaskDetailSubtasksSection({
   onToggleComplete,
   onAdd,
   readOnly = false,
+  currentUserId,
 }: TaskDetailSubtasksSectionProps) {
   const { t } = useTranslations()
+  const completion = useCompletionConfirmation(currentUserId)
   const [title, setTitle] = useState("")
   const [saving, setSaving] = useState(false)
 
@@ -90,7 +100,9 @@ export function TaskDetailSubtasksSection({
             <Checkbox
               checked={subtask.completed}
               disabled={readOnly || !onToggleComplete}
-              onCheckedChange={() => onToggleComplete?.(subtask.id)}
+              onCheckedChange={() => {
+                if (onToggleComplete) completion.request(subtask, () => void onToggleComplete(subtask.id))
+              }}
               aria-label={subtask.title}
             />
             {/* The same task link a `!task` reference renders (lib/markdown.ts),
@@ -106,6 +118,7 @@ export function TaskDetailSubtasksSection({
           </li>
         ))}
       </ul>
+      {completion.dialog}
 
       {canAdd && (
         <div className="flex items-center gap-2">

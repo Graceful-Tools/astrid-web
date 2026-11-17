@@ -47,7 +47,9 @@ export function ReminderProvider({
 
     // Only process tasks that haven't been processed recently or have changed
     const tasksToProcess = tasksWithDueDates.filter(task => {
-      const taskKey = `${task.id}-${task.dueDateTime}-${task.reminderTime}-${task.completed}`
+      // The assignee too: a reassigned task's notification must re-learn whether
+      // its Complete may complete without asking (ADEV-71).
+      const taskKey = `${task.id}-${task.dueDateTime}-${task.reminderTime}-${task.completed}-${task.assigneeId}`
       const alreadyProcessed = processedTasksRef.current.has(taskKey)
       
       if (!alreadyProcessed) {
