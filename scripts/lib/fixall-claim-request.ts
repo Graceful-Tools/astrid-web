@@ -1,23 +1,26 @@
 /**
  * The HTTP half of a /fixall claim, shared by `scripts/claim-fixall-task.ts` (one named
  * task) and `scripts/claim-next-fixall-task.ts` (the first Ready task nobody else has,
- * ADEV-26). One copy, so the two cannot disagree about what a 409 means.
+ * ADEV-26). One copy, so the two cannot disagree about what a 409 means. The request itself is
+ * the SDK client's (ADEV-9): this file adds only the claim-or-conflict value and the claims file.
  */
 
 import { appendFileSync } from 'node:fs'
 
-export const ASTRID_API = 'https://astrid.cc'
+import type { AstridClient } from '../../packages/astrid-sdk/src/client'
+import { ASTRID_API } from './script-client'
 
-type Fetch = typeof fetch
+export { ASTRID_API }
 
-/** A client-credentials token for the script OAuth client in the environment. */
-export async function fetchScriptToken(input: {
-  clientId: string
-  clientSecret: string
-  fetchImpl?: Fetch
-  origin?: string
-}): Promise<string> {
-  const response = await (input.fetchImpl ?? fetch)(`${input.origin ?? ASTRID_API}/api/v1/oauth/token`, {
+/**
+ * A client-credentials token for the script OAuth client in the environment.
+ *
+ * Kept for `scripts/heartbeat-held-claims.ts` (ADEV-37) alone: it reads a board's tasks to
+ * find its leases, and `AstridClient` has no board read yet. Move it onto the client, and
+ * delete this, when the SDK gains one (ADEV-9).
+ */
+export async function fetchScriptToken(input: { clientId: string; clientSecret: string; origin?: string }): Promise<string> {
+  const response = await fetch(`${input.origin ?? ASTRID_API}/api/v1/oauth/token`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ grant_type: 'client_credentials', client_id: input.clientId, client_secret: input.clientSecret }),
@@ -36,36 +39,22 @@ export type ClaimAttempt = { status: 'claimed' } | { status: 'conflict'; reason:
  * (AWTD-922). Any other failure throws.
  */
 export async function requestFixallClaim(input: {
-  token: string
+  client: AstridClient
   taskId: string
-  action: string
+  action: 'ready' | 'resume' | 'pause'
   commentWatermark?: string | null
   agent?: string
   resume?: unknown
   listId?: string
-  fetchImpl?: Fetch
-  origin?: string
 }): Promise<ClaimAttempt> {
-  const { agent } = input
-  const response = await (input.fetchImpl ?? fetch)(
-    `${input.origin ?? ASTRID_API}/api/v1/tasks/${input.taskId}/claim-fixall`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-OAuth-Token': input.token },
-      body: JSON.stringify({
-        action: input.action,
-        commentWatermark: input.commentWatermark ?? null,
-        ...(agent ? { agent } : {}),
-        ...(input.resume ? { resume: input.resume } : {}),
-        ...(input.listId ? { listId: input.listId } : {}),
-      }),
-    },
-  )
-  if (response.status === 409) {
-    return { status: 'conflict', reason: await response.text().catch(() => '') }
-  }
-  if (!response.ok) throw new Error(`Claim failed with HTTP ${response.status}: ${await response.text()}`)
-  return { status: 'claimed' }
+  const result = await input.client.claimFixallTask(input.taskId, {
+    action: input.action,
+    commentWatermark: input.commentWatermark ?? null,
+    ...(input.agent ? { agent: input.agent } : {}),
+    ...(input.resume ? { resume: input.resume } : {}),
+    ...(input.listId ? { listId: input.listId } : {}),
+  })
+  return result.claimed ? { status: 'claimed' } : { status: 'conflict', reason: result.error ?? '' }
 }
 
 /**
