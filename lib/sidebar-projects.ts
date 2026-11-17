@@ -54,6 +54,11 @@ function firstById<T extends { id: string }>(items: readonly T[]): T[] {
   return items.filter(item => !seen.has(item.id) && Boolean(seen.add(item.id)))
 }
 
+/** A project's sidebar name: its name, else its key, else empty (rule 2's fallback). */
+export function sidebarProjectName(project: Pick<SidebarProjectInput, 'name' | 'key'>): string {
+  return project.name || project.key || ''
+}
+
 export function sidebarProjects<P extends SidebarProjectInput, L extends SidebarListInput>(
   projects: readonly P[] | null | undefined,
   lists: readonly L[],
@@ -64,7 +69,7 @@ export function sidebarProjects<P extends SidebarProjectInput, L extends Sidebar
     .map(project => ({
       project,
       id: project.id,
-      name: project.name || project.key || '',
+      name: sidebarProjectName(project),
       lists: firstById(places.filter(list => list.projectId === project.id))
         .map(list => ({ list, id: list.id, name: list.name || '' }))
         .sort(byFoldedNameThenId)

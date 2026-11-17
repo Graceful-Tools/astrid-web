@@ -74,6 +74,13 @@ export function renameLoadedProject(projectId: string, name: string) {
   for (const listener of projectListeners) listener(cachedProjects)
 }
 
+/** Drop a deleted project from the sidebar and the open board now, not after a reload (ADEV-61). */
+export function removeLoadedProject(projectId: string) {
+  if (!cachedProjects) return
+  cachedProjects = cachedProjects.filter(project => project.id !== projectId)
+  for (const listener of projectListeners) listener(cachedProjects)
+}
+
 /** What `loadProjectsOnce` already holds, without asking. */
 export function peekLoadedProjects(): ClientProject[] | null {
   return cachedProjects

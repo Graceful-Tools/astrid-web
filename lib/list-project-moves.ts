@@ -59,6 +59,10 @@ const runs = (userId: string, project: MovesProject) => atLeast(projectRole(user
 /** Owner or project admin: who the server lets rename a project (ADEV-48) and open its settings (ADEV-54). */
 export const mayAdministerProject = runs
 
+/** Only the owner: who the server lets delete a project (DELETE /api/v1/projects/:id; iOS ADEV-46). */
+export const mayDeleteProject = (userId: string, project: MovesProject): boolean =>
+  projectRole(userId, project) === 'owner'
+
 /** Owner or admin of the list by its own ownership and membership, never the project's cascade. */
 function mayMoveList(userId: string, list: MovesList): boolean {
   if (list.listType === 'status') return false
