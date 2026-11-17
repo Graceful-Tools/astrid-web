@@ -388,8 +388,8 @@ describe('ADEV-71: the sheet decides by assigneeId, not the loaded assignee', ()
       />,
     )
 
-    fireEvent.click(screen.getByTestId('task-options-complete'))
-    expect(onToggleComplete).not.toHaveBeenCalled()
+    // The sheet opens on the question (ADEV-71's two-step flow), as assigned, not as nobody's.
+    expect(confirmTitle()).not.toBeNull()
     expect(screen.queryByText('tasks.confirmCompleteUnassigned')).toBeNull()
   })
 })
