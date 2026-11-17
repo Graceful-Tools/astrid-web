@@ -28,6 +28,14 @@ import { TaskRow, type TaskRowProps, type TaskRowControllerSlice } from '@/compo
 import { getBoardRowContext, getProjectBoardColumns } from '@/lib/project-status'
 import type { Task, TaskList } from '@/types/task'
 
+// The row loads the options sheet lazily (ADEV-71); render the real sheet synchronously here,
+// since these tests are about what it offers, not when its chunk arrives.
+vi.mock('@/components/TaskManager/lazy-panels', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/components/TaskManager/lazy-panels')>()),
+  LazyPriorityAssigneePicker: (await import('@/components/priority-assignee-picker')).PriorityAssigneePicker,
+}))
+
+
 vi.mock('@/lib/i18n/client', () => ({ useTranslations: () => ({ t: (k: string) => k }) }))
 
 beforeEach(() => {

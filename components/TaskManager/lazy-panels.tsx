@@ -19,6 +19,17 @@ function PanelLoadingFallback({ modal = false }: { modal?: boolean }) {
   )
 }
 
+/**
+ * The task options sheet (priority, assignee, status, complete). Every row that is not yours
+ * and quick add mount it closed, so a static import put all of it in the first load; it opens
+ * only on a tap (ADEV-71: the two-step completion it now carries took the list routes past the
+ * initial-JS ceiling). Closed, it draws nothing, so it needs no loading fallback.
+ */
+export const LazyPriorityAssigneePicker = dynamic(
+  () => import("../priority-assignee-picker").then(module => module.PriorityAssigneePicker),
+  { ssr: false, loading: () => null },
+)
+
 const loadTaskDetail = () => import("../task-detail")
 const TaskDetailPanel = dynamic(
   () => loadTaskDetail().then(module => module.TaskDetail),
