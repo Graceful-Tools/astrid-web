@@ -66,7 +66,7 @@ describe('list settings Project picker (AWTD-1703)', () => {
     renderSection(makeList())
     await screen.findByRole('combobox')
     // Alpha (owner) and Beta (admin), by name; Gamma (member) and Epsilon (stranger) are left out.
-    expect(optionValues()).toEqual(['', 'mine', 'run'])
+    expect(optionValues()).toEqual(['', 'mine', 'run', '__new_project__'])
   })
 
   it('moves the list with one PUT and reports the new project (AWTD-1703)', async () => {
@@ -87,6 +87,7 @@ describe('list settings Project picker (AWTD-1703)', () => {
     const select = await screen.findByRole('combobox')
     expect(select).toHaveValue('mine')
     fireEvent.change(select, { target: { value: '' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }))
 
     await waitFor(() => expect(onUpdate).toHaveBeenCalled())
     expect(apiCall).toHaveBeenCalledWith('/api/v1/lists/list-1', {
@@ -112,7 +113,63 @@ describe('list settings Project picker (AWTD-1703)', () => {
   it('is read-only and names the project when the list cannot leave it (AWTD-1703)', async () => {
     // A plain member of "join": the list is in it but they may not move it out.
     renderSection(makeList({ projectId: 'join' }))
-    expect(await screen.findByText(/In Gamma\. Only a project owner or admin/)).toBeInTheDocument()
+    expect(await screen.findByText('Gamma')).toBeInTheDocument()
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+  })
+})
+
+describe('list settings Project picker follows iOS (ADEV-62)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    fetchProjects.mockResolvedValue(PROJECTS)
+    apiCall.mockResolvedValue({ json: async () => ({}) })
+  })
+
+  it('offers New Project… last for a list in no project, and creates it through the from-list flow (ADEV-62)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ project: { lists: [] }, list: { id: 'list-1', projectId: 'new' } }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const onUpdate = renderSection(makeList())
+    const select = await screen.findByRole('combobox')
+    const values = optionValues()
+    expect(values[values.length - 1]).toBe('__new_project__')
+    fireEvent.change(select, { target: { value: '__new_project__' } })
+    await waitFor(() => expect(onUpdate).toHaveBeenCalled())
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/projects/from-list', expect.objectContaining({ method: 'POST' }))
+    vi.unstubAllGlobals()
+  })
+
+  it('does not offer New Project… for a list already in a project (ADEV-62)', async () => {
+    renderSection(makeList({ projectId: 'mine' }))
+    await screen.findByRole('combobox')
+    expect(optionValues()).not.toContain('__new_project__')
+  })
+
+  it('asks before choosing None and only then removes the list (ADEV-62)', async () => {
+    const onUpdate = renderSection(makeList({ projectId: 'mine' }))
+    const select = await screen.findByRole('combobox')
+    fireEvent.change(select, { target: { value: '' } })
+    expect(await screen.findByText('Remove Groceries from Alpha?')).toBeInTheDocument()
+    expect(apiCall).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }))
+    await waitFor(() => expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ projectId: null })))
+    expect(apiCall).toHaveBeenCalledTimes(1)
+  })
+
+  it('cancelling the None confirmation leaves the list in its project (ADEV-62)', async () => {
+    const onUpdate = renderSection(makeList({ projectId: 'mine' }))
+    const select = await screen.findByRole('combobox')
+    fireEvent.change(select, { target: { value: '' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+    expect(apiCall).not.toHaveBeenCalled()
+    expect(onUpdate).not.toHaveBeenCalled()
+  })
+
+  it('shows only the project name, read-only, when the list cannot leave (ADEV-62)', async () => {
+    renderSection(makeList({ projectId: 'join' }))
+    expect(await screen.findByText('Gamma')).toBeInTheDocument()
+    expect(screen.queryByText(/Only a project owner or admin/)).not.toBeInTheDocument()
   })
 })

@@ -3,6 +3,7 @@
     "myTasks": "Mis Tareas",
     "today": "Hoy",
     "lists": "Listas",
+    "favorites": "Favoritos",
     "addList": "Agregar Lista",
     "publicSharedLists": "Listas Públicas Compartidas",
     "publicLists": "Listas Públicas",
@@ -109,6 +110,7 @@
     "createdBy": "Creado por",
     "confirmCompleteTitle": "¿Completar esta tarea?",
     "confirmCompleteAssigned": "Asignada a {name}",
+    "confirmCompleteUnassigned": "No está asignada a nadie",
     "waitingOn": {
       "label": "Esperando a",
       "add": "Esperar a una tarea…",
@@ -198,6 +200,14 @@
       "count": "Comentarios ({count})",
       "hideSystemTitle": "Ocultar comentarios del sistema",
       "showSystemTitle": "Mostrar comentarios del sistema",
+      "approval": {
+        "approve": "Aprobar",
+        "decline": "Rechazar",
+        "declineReasonPlaceholder": "¿Por qué lo rechazas?",
+        "approvedBy": "Aprobado por {name}",
+        "declinedBy": "Rechazado por {name}: {reason}",
+        "decisionError": "No se pudo registrar tu decisión. Inténtalo de nuevo."
+      },
       "hideSystem": "Ocultar del sistema",
       "showSystem": "Mostrar del sistema",
       "refreshShort": "Actualizar",
@@ -233,7 +243,8 @@
     "userAvatarAlt": "Usuario",
     "assigneeYou": "Tú",
     "board": {
-      "addTaskTo": "Añadir tarea a {name}"
+      "addTaskTo": "Añadir tarea a {name}",
+      "addTaskPlaceholder": "Añadir una tarea"
     },
     "dropToPlaceFirst": "Suelta aquí para colocar la primera tarea"
   },
@@ -1370,15 +1381,6 @@
         "quickAccess": "Presiona ? en cualquier lugar del gestor de tareas para abrir atajos de teclado.",
         "quickAccessLabel": "Acceso rápido"
       },
-      "taskDisplayMode": {
-        "title": "Diseño del detalle de tarea",
-        "description": "Cómo aparecen la prioridad, el responsable y el estado en una tarea (sincronizado entre dispositivos)",
-        "label": "Diseño",
-        "list": "Lista",
-        "project": "Proyecto",
-        "listDesc": "La casilla completa la tarea, y la prioridad y el responsable tienen cada uno su propia fila.",
-        "projectDesc": "Compacto. Al tocar la casilla se abren prioridad, responsable, estado y completar."
-      },
       "taskTitles": {
         "title": "Títulos de tareas",
         "description": "Cuánto de un título largo muestra la fila de una tarea (se guarda en este dispositivo)",
@@ -1812,6 +1814,12 @@
     "showLists": "Mostrar listas de {name}",
     "hideLists": "Ocultar listas de {name}",
     "boardAddList": "Añadir lista",
+    "boardSettings": "Ajustes del proyecto",
+    "settingsTitle": "Ajustes del proyecto",
+    "settingsNameLabel": "Nombre del proyecto",
+    "settingsSave": "Guardar",
+    "settingsCancel": "Cancelar",
+    "settingsSaveFailed": "No se pudo guardar el nombre del proyecto. Inténtalo de nuevo.",
     "boardRemoveRow": "Quitar {name} de este tablero",
     "boardColumnCount": "{column}: {count}",
     "boardDoneCount": "{column}: {count} (últimas {hours} h)",
@@ -1822,9 +1830,20 @@
     "projectNone": "Ninguno",
     "projectMoveFailed": "No se pudo mover esta lista",
     "projectLockedIn": "En {name}. Solo el propietario o un administrador del proyecto puede sacarla.",
+    "projectNew": "Nuevo proyecto…",
+    "projectLeaveConfirm": "¿Quitar {list} de {project}?",
     "newListInProject": "Nueva lista en el proyecto…",
     "newListName": "Nombre de la lista",
-    "newListFailed": "No se pudo crear la lista"
+    "newListFailed": "No se pudo crear la lista",
+    "boardNewList": "Nueva lista…",
+    "moveToProject": "Mover a proyecto",
+    "removeFromProject": "Quitar del proyecto",
+    "projectLeaveDetail": "Sus tareas se van con ella. Una tarea en una de las columnas propias de este proyecto aparece en la Bandeja de entrada hasta que la lista vuelva a un proyecto con esa columna.",
+    "deleteProject": "Eliminar proyecto…",
+    "deleteProjectConfirm": "¿Eliminar {name}?",
+    "deleteProjectDetail": "Sus listas se conservan, fuera de cualquier proyecto. Las columnas propias del tablero se eliminan con él.",
+    "deleteProjectAction": "Eliminar",
+    "deleteProjectFailed": "No se pudo eliminar el proyecto"
   },
   "viewRotator": {
     "showList": "Mostrar lista",
@@ -1888,6 +1907,18 @@
     "agentClaimRequired": {
       "label": "Los agentes reclaman las tareas antes de trabajarlas",
       "help": "Los agentes de esta lista toman tareas Listas sin asignar, reclaman cada una primero para que dos agentes nunca tomen la misma y mantienen el reclamo activo mientras trabajan. Un reclamo que deja de renovarse devuelve la tarea a Lista."
+    },
+    "agentRoster": {
+      "title": "Agentes en este tablero",
+      "empty": "Ningún agente ha consultado este tablero todavía.",
+      "lastSeen": "Visto por última vez {when}",
+      "notSeen": "Sin verse desde {when}",
+      "neverSeen": "Aún no visto",
+      "holds": "Trabajando en {task}",
+      "idle": "Sin tarea asignada",
+      "readyWait": "{count} tarea(s) en Listas esperan desde {when}.",
+      "reasonNoAgent": "No hay ningún agente inscrito en este tablero.",
+      "reasonNotSeen": "No se ha visto ningún agente en este tablero recientemente."
     },
     "admin": {
       "descriptionLabel": "Descripción de la lista",
@@ -2597,7 +2628,8 @@
       "mentioned": "Mención",
       "replied": "Respuesta",
       "commented": "Comentario",
-      "statusChanged": "Cambio de estado"
+      "statusChanged": "Cambio de estado",
+      "agentQuiet": "Un agente dejó de responder"
     }
   },
   "admin": {

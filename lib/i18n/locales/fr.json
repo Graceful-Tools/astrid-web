@@ -3,6 +3,7 @@
     "myTasks": "Mes Tâches",
     "today": "Aujourd'hui",
     "lists": "Listes",
+    "favorites": "Favoris",
     "addList": "Ajouter une liste",
     "publicSharedLists": "Listes Publiques Partagées",
     "publicLists": "Listes Publiques",
@@ -109,6 +110,7 @@
     "createdBy": "Créé par",
     "confirmCompleteTitle": "Terminer cette tâche ?",
     "confirmCompleteAssigned": "Assignée à {name}",
+    "confirmCompleteUnassigned": "N'est assignée à personne",
     "waitingOn": {
       "label": "En attente de",
       "add": "Attendre une tâche…",
@@ -198,6 +200,14 @@
       "count": "Commentaires ({count})",
       "hideSystemTitle": "Masquer les commentaires système",
       "showSystemTitle": "Afficher les commentaires système",
+      "approval": {
+        "approve": "Approuver",
+        "decline": "Refuser",
+        "declineReasonPlaceholder": "Pourquoi refusez-vous ?",
+        "approvedBy": "Approuvé par {name}",
+        "declinedBy": "Refusé par {name} : {reason}",
+        "decisionError": "Impossible d'enregistrer votre décision. Réessayez."
+      },
       "hideSystem": "Masquer le système",
       "showSystem": "Afficher le système",
       "refreshShort": "Actualiser",
@@ -233,7 +243,8 @@
     "userAvatarAlt": "Utilisateur",
     "assigneeYou": "Vous",
     "board": {
-      "addTaskTo": "Ajouter une tâche à {name}"
+      "addTaskTo": "Ajouter une tâche à {name}",
+      "addTaskPlaceholder": "Ajouter une tâche"
     },
     "dropToPlaceFirst": "Déposez ici pour placer la première tâche"
   },
@@ -1370,15 +1381,6 @@
         "quickAccess": "Appuyez sur ? n'importe où dans le gestionnaire de tâches pour ouvrir les raccourcis clavier.",
         "quickAccessLabel": "Accès rapide"
       },
-      "taskDisplayMode": {
-        "title": "Disposition du détail de tâche",
-        "description": "Comment la priorité, l'assigné et l'état apparaissent sur une tâche (synchronisé entre appareils)",
-        "label": "Disposition",
-        "list": "Liste",
-        "project": "Projet",
-        "listDesc": "La case à cocher termine la tâche, et la priorité et l'assigné ont chacun leur propre ligne.",
-        "projectDesc": "Compact. Toucher la case ouvre priorité, assigné, état et terminer."
-      },
       "taskTitles": {
         "title": "Titres des tâches",
         "description": "Quelle part d'un long titre une ligne de tâche affiche (enregistré sur cet appareil)",
@@ -1812,6 +1814,12 @@
     "showLists": "Afficher les listes de {name}",
     "hideLists": "Masquer les listes de {name}",
     "boardAddList": "Ajouter une liste",
+    "boardSettings": "Paramètres du projet",
+    "settingsTitle": "Paramètres du projet",
+    "settingsNameLabel": "Nom du projet",
+    "settingsSave": "Enregistrer",
+    "settingsCancel": "Annuler",
+    "settingsSaveFailed": "Impossible d'enregistrer le nom du projet. Réessayez.",
     "boardRemoveRow": "Retirer {name} de ce tableau",
     "boardColumnCount": "{column} : {count}",
     "boardDoneCount": "{column} : {count} ({hours} dernières h)",
@@ -1822,9 +1830,20 @@
     "projectNone": "Aucun",
     "projectMoveFailed": "Impossible de déplacer cette liste",
     "projectLockedIn": "Dans {name}. Seul le propriétaire ou un admin du projet peut l'en retirer.",
+    "projectNew": "Nouveau projet…",
+    "projectLeaveConfirm": "Retirer {list} de {project} ?",
     "newListInProject": "Nouvelle liste dans le projet…",
     "newListName": "Nom de la liste",
-    "newListFailed": "Impossible de créer la liste"
+    "newListFailed": "Impossible de créer la liste",
+    "boardNewList": "Nouvelle liste…",
+    "moveToProject": "Déplacer vers un projet",
+    "removeFromProject": "Retirer du projet",
+    "projectLeaveDetail": "Ses tâches la suivent. Une tâche dans une des colonnes propres à ce projet apparaît dans la Boîte de réception jusqu'à ce que la liste rejoigne un projet ayant cette colonne.",
+    "deleteProject": "Supprimer le projet…",
+    "deleteProjectConfirm": "Supprimer {name} ?",
+    "deleteProjectDetail": "Ses listes sont conservées, hors de tout projet. Les colonnes propres au tableau sont supprimées avec lui.",
+    "deleteProjectAction": "Supprimer",
+    "deleteProjectFailed": "Impossible de supprimer le projet"
   },
   "viewRotator": {
     "showList": "Afficher la liste",
@@ -1888,6 +1907,18 @@
     "agentClaimRequired": {
       "label": "Les agents réservent les tâches avant de les traiter",
       "help": "Les agents de cette liste prennent les tâches Prêtes non attribuées, réservent chacune d'abord pour que deux agents ne prennent jamais la même, et maintiennent la réservation pendant leur travail. Une réservation qui n'est plus renouvelée renvoie la tâche dans Prête."
+    },
+    "agentRoster": {
+      "title": "Agents sur ce tableau",
+      "empty": "Aucun agent n'a encore consulté ce tableau.",
+      "lastSeen": "Vu {when}",
+      "notSeen": "Pas vu depuis {when}",
+      "neverSeen": "Pas encore vu",
+      "holds": "Travaille sur {task}",
+      "idle": "Ne détient aucune tâche",
+      "readyWait": "{count} tâche(s) Prêtes attendent depuis {when}.",
+      "reasonNoAgent": "Aucun agent n'est inscrit sur ce tableau.",
+      "reasonNotSeen": "Aucun agent n'a été vu récemment sur ce tableau."
     },
     "admin": {
       "descriptionLabel": "Description de la liste",
@@ -2597,7 +2628,8 @@
       "mentioned": "Mention",
       "replied": "Réponse",
       "commented": "Commentaire",
-      "statusChanged": "Statut modifié"
+      "statusChanged": "Statut modifié",
+      "agentQuiet": "Un agent ne répond plus"
     }
   },
   "admin": {

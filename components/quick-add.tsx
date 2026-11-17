@@ -55,6 +55,8 @@ interface QuickAddProps {
   placement?: QuickAddPlacement
   /** Inline only — picks the contextual placeholder. */
   layoutType?: LayoutType
+  /** Overrides the contextual placeholder, e.g. a board column's "Add a task" (ADEV-63). */
+  placeholderKey?: string
 }
 
 export function QuickAdd({
@@ -70,6 +72,7 @@ export function QuickAdd({
   className = "",
   placement = "fixed-bottom",
   layoutType,
+  placeholderKey,
 }: QuickAddProps) {
   const { t } = useTranslations()
   const [isCreating, setIsCreating] = useState(false)
@@ -341,7 +344,7 @@ export function QuickAdd({
             <div className="flex-1 relative flex items-center">
               <textarea
                 ref={textareaRef}
-                placeholder={t(placeholder.key, placeholder.params)}
+                placeholder={placeholderKey ? t(placeholderKey) : t(placeholder.key, placeholder.params)}
                 value={quickTaskInput}
                 onChange={(e) => setQuickTaskInput(e.target.value)}
                 onKeyDown={handleKeyDown}

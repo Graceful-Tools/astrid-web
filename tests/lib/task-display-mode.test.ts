@@ -23,8 +23,6 @@ import {
   DEFAULT_TASK_DISPLAY_MODE,
   normalizeTaskDisplayMode,
   isTaskDisplayMode,
-  usesCompactTaskDetail,
-  checkboxCompletesTask,
 } from '@/lib/task-display-mode'
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8')
@@ -61,20 +59,15 @@ describe('the two modes (task ffa5bbb5)', () => {
   })
 })
 
-describe('what each mode means for the UI (task ffa5bbb5)', () => {
-  it('list mode completes on the checkbox and does not compact', () => {
-    expect(checkboxCompletesTask('list')).toBe(true)
-    expect(usesCompactTaskDetail('list')).toBe(false)
-  })
-
-  it('project mode compacts and moves completion into the popover', () => {
-    expect(usesCompactTaskDetail('project')).toBe(true)
-    expect(checkboxCompletesTask('project')).toBe(false)
-  })
-
-  it('an unset preference behaves as list on both questions', () => {
-    expect(checkboxCompletesTask(null)).toBe(true)
-    expect(usesCompactTaskDetail(null)).toBe(false)
+describe('web no longer acts on the mode (ADEV-56)', () => {
+  it('drops the web-only layout helpers while keeping the stored value valid', async () => {
+    // iOS, Mac and astrid-core still read and write `project`; web renders the
+    // list layout whatever is stored, so the helpers that branched on it are
+    // gone rather than left to be re-wired.
+    const mod: Record<string, unknown> = await import('@/lib/task-display-mode')
+    expect(mod.usesCompactTaskDetail).toBeUndefined()
+    expect(mod.checkboxCompletesTask).toBeUndefined()
+    expect(isTaskDisplayMode('project')).toBe(true)
   })
 })
 
@@ -87,11 +80,12 @@ describe('the column and the settings surface carry it (task ffa5bbb5)', () => {
   it.each([
     'app/api/v1/users/me/smart-tasks/route.ts',
   ])('%s reads and writes taskDisplayMode', file => {
+    // Still needed after ADEV-56: the native clients' toggle writes here.
     const src = read(file)
     expect(src, 'not selected, so the client never learns the stored value').toMatch(
       /taskDisplayMode:\s*true/,
     )
-    expect(src, 'not writable, so the Appearance toggle would not persist').toMatch(
+    expect(src, 'not writable, so the native toggle would not persist').toMatch(
       /'taskDisplayMode'/,
     )
   })

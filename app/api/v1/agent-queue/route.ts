@@ -19,6 +19,7 @@ import { BadQueueOptionError, buildAgentQueue, UnknownAgentError } from '@/lib/a
 import { RuntimeBindingDeniedError } from '@/lib/ai/runtime-binding-resolver'
 import { hasRequiredScopes } from '@/lib/oauth/oauth-scopes'
 import { createLogger } from '@/lib/logger'
+import { recordAgentQueueCheck } from '@/services/agent-presence.service'
 import { runtimePrincipalOf } from '@/lib/runtime-binding/task-runtime'
 import { runtimeBindingDenialResponse } from '@/lib/runtime-binding/denial-response'
 
@@ -76,6 +77,15 @@ export const GET = withAuth(
         // work is discoverable solely by its binding's enrolled OAuth client.
         runtimePrincipal: runtimePrincipalOf(auth),
       })
+
+      // The queue check is the agent's sign of life on each board it named or
+      // was handed work from (AWTD-1697).
+      const listIds = new Set<string>(result.queue.flatMap(task => (task.listId ? [task.listId] : [])))
+      const named = url.searchParams.get('listId')
+      if (named) listIds.add(named)
+      if (result.agent.id) {
+        await recordAgentQueueCheck({ agentId: result.agent.id, userId: auth.userId, listIds: [...listIds] })
+      }
 
       return NextResponse.json({
         ...result,

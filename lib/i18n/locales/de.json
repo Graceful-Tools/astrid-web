@@ -3,6 +3,7 @@
     "myTasks": "Meine Aufgaben",
     "today": "Heute",
     "lists": "Listen",
+    "favorites": "Favoriten",
     "addList": "Liste hinzufügen",
     "publicSharedLists": "Öffentliche geteilte Listen",
     "publicLists": "Öffentliche Listen",
@@ -109,6 +110,7 @@
     "createdBy": "Erstellt von",
     "confirmCompleteTitle": "Diese Aufgabe abschließen?",
     "confirmCompleteAssigned": "Zugewiesen an {name}",
+    "confirmCompleteUnassigned": "Niemandem zugewiesen",
     "waitingOn": {
       "label": "Wartet auf",
       "add": "Auf Aufgabe warten…",
@@ -198,6 +200,14 @@
       "count": "Kommentare ({count})",
       "hideSystemTitle": "Systemkommentare ausblenden",
       "showSystemTitle": "Systemkommentare anzeigen",
+      "approval": {
+        "approve": "Genehmigen",
+        "decline": "Ablehnen",
+        "declineReasonPlaceholder": "Warum lehnst du ab?",
+        "approvedBy": "Genehmigt von {name}",
+        "declinedBy": "Abgelehnt von {name}: {reason}",
+        "decisionError": "Deine Entscheidung konnte nicht gespeichert werden. Versuche es erneut."
+      },
       "hideSystem": "System ausblenden",
       "showSystem": "System einblenden",
       "refreshShort": "Aktualisieren",
@@ -233,7 +243,8 @@
     "userAvatarAlt": "Benutzer",
     "assigneeYou": "Du",
     "board": {
-      "addTaskTo": "Aufgabe zu {name} hinzufügen"
+      "addTaskTo": "Aufgabe zu {name} hinzufügen",
+      "addTaskPlaceholder": "Aufgabe hinzufügen"
     },
     "dropToPlaceFirst": "Hier ablegen, um die erste Aufgabe zu platzieren"
   },
@@ -1370,15 +1381,6 @@
         "quickAccess": "Drücke ? irgendwo im Aufgabenmanager, um die Tastaturkürzel zu öffnen.",
         "quickAccessLabel": "Schnellzugriff"
       },
-      "taskDisplayMode": {
-        "title": "Layout der Aufgabendetails",
-        "description": "Wie Priorität, zugewiesene Person und Status in einer Aufgabe erscheinen (geräteübergreifend synchronisiert)",
-        "label": "Layout",
-        "list": "Liste",
-        "project": "Projekt",
-        "listDesc": "Das Kontrollkästchen schließt die Aufgabe ab; Priorität und zugewiesene Person haben je eine eigene Zeile.",
-        "projectDesc": "Kompakt. Ein Tippen auf das Kontrollkästchen öffnet Priorität, zugewiesene Person, Status und Abschließen."
-      },
       "taskTitles": {
         "title": "Aufgabentitel",
         "description": "Wie viel von einem langen Titel eine Aufgabenzeile zeigt (auf diesem Gerät gespeichert)",
@@ -1812,6 +1814,12 @@
     "showLists": "Listen in {name} anzeigen",
     "hideLists": "Listen in {name} ausblenden",
     "boardAddList": "Liste hinzufügen",
+    "boardSettings": "Projekteinstellungen",
+    "settingsTitle": "Projekteinstellungen",
+    "settingsNameLabel": "Projektname",
+    "settingsSave": "Speichern",
+    "settingsCancel": "Abbrechen",
+    "settingsSaveFailed": "Der Projektname konnte nicht gespeichert werden. Versuche es erneut.",
     "boardRemoveRow": "{name} von diesem Board entfernen",
     "boardColumnCount": "{column}: {count}",
     "boardDoneCount": "{column}: {count} (letzte {hours} Std.)",
@@ -1822,9 +1830,20 @@
     "projectNone": "Keins",
     "projectMoveFailed": "Liste konnte nicht verschoben werden",
     "projectLockedIn": "In {name}. Nur Projekteigentümer oder Admins können sie herausnehmen.",
+    "projectNew": "Neues Projekt…",
+    "projectLeaveConfirm": "{list} aus {project} entfernen?",
     "newListInProject": "Neue Liste im Projekt…",
     "newListName": "Listenname",
-    "newListFailed": "Liste konnte nicht erstellt werden"
+    "newListFailed": "Liste konnte nicht erstellt werden",
+    "boardNewList": "Neue Liste…",
+    "moveToProject": "In Projekt verschieben",
+    "removeFromProject": "Aus Projekt entfernen",
+    "projectLeaveDetail": "Die Aufgaben der Liste wandern mit. Eine Aufgabe in einer eigenen Spalte dieses Projekts erscheint im Eingang, bis die Liste wieder einem Projekt mit dieser Spalte beitritt.",
+    "deleteProject": "Projekt löschen…",
+    "deleteProjectConfirm": "{name} löschen?",
+    "deleteProjectDetail": "Die Listen bleiben erhalten, außerhalb jedes Projekts. Die eigenen Spalten des Boards werden mit gelöscht.",
+    "deleteProjectAction": "Löschen",
+    "deleteProjectFailed": "Das Projekt konnte nicht gelöscht werden"
   },
   "viewRotator": {
     "showList": "Liste anzeigen",
@@ -1888,6 +1907,18 @@
     "agentClaimRequired": {
       "label": "Agenten beanspruchen Aufgaben vor der Arbeit",
       "help": "Agenten auf dieser Liste übernehmen nicht zugewiesene Aufgaben aus „Bereit“, beanspruchen jede zuerst, damit nie zwei Agenten dieselbe Aufgabe nehmen, und halten den Anspruch während der Arbeit aktiv. Ein Anspruch, der nicht mehr erneuert wird, gibt die Aufgabe an „Bereit“ zurück."
+    },
+    "agentRoster": {
+      "title": "Agenten in dieser Liste",
+      "empty": "Bisher hat kein Agent diese Liste abgefragt.",
+      "lastSeen": "Zuletzt gesehen {when}",
+      "notSeen": "Nicht gesehen seit {when}",
+      "neverSeen": "Noch nicht gesehen",
+      "holds": "Arbeitet an {task}",
+      "idle": "Hält keine Aufgabe",
+      "readyWait": "{count} Aufgabe(n) in Bereit warten seit {when}.",
+      "reasonNoAgent": "In dieser Liste ist kein Agent eingetragen.",
+      "reasonNotSeen": "In dieser Liste wurde kürzlich kein Agent gesehen."
     },
     "admin": {
       "descriptionLabel": "Listenbeschreibung",
@@ -2597,7 +2628,8 @@
       "mentioned": "Erwähnt",
       "replied": "Geantwortet",
       "commented": "Kommentiert",
-      "statusChanged": "Status geändert"
+      "statusChanged": "Status geändert",
+      "agentQuiet": "Agent ist verstummt"
     }
   },
   "admin": {

@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast"
 import { TaskCheckbox } from "@/components/task-checkbox"
 import { formatMonthDay } from "@/lib/i18n/date-format"
 import { useTranslations } from "@/lib/i18n/client"
+import { useCompletionConfirmation } from "@/components/completion-confirmation"
 
 interface AstridReminderPopoverProps {
   task: Task
@@ -101,14 +102,18 @@ export function AstridReminderPopover({
       )
     : ""
 
-  const handleComplete = () => {
+  // A reminder's Complete is a completion like any other: a task that is not
+  // yours asks first, by the same rule as the row and the sheet (ADEV-71). The
+  // reminder stays up until the answer, so Cancel leaves it to snooze or dismiss.
+  const completion = useCompletionConfirmation(currentUser.id)
+  const handleComplete = () => completion.request(task, () => {
     onComplete(task.id)
     toast({
       title: "🎉 " + t("reminders.ui.completedToast"),
       duration: 3000,
     })
     onDismiss()
-  }
+  })
 
   const handleSnooze = (minutes: number) => {
     onSnooze(task.id, minutes)
@@ -119,6 +124,7 @@ export function AstridReminderPopover({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      {completion.dialog}
       <div className="theme-bg-primary theme-border w-full max-w-lg shadow-2xl rounded-lg overflow-hidden">
         <div className="p-6 space-y-6">
           {/* Task Row - Exactly like a task */}

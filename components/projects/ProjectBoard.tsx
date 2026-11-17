@@ -28,10 +28,16 @@
  * components/TaskManager/lazy-panels.tsx, so none of this is first-load JS.
  */
 import React from "react"
-import { CheckCircle2, Inbox, Plus, X } from "lucide-react"
+import { Plus, Settings, X } from "lucide-react"
+import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
+import { BoardColumnQuickAdd } from "@/components/board-column-quick-add"
+import { shouldShowTaskIdentifier } from "@/lib/task-identifier-links"
+import type { CreateTaskOptions } from "@/hooks/task-manager/create-task-options"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ProjectSettingsDialog } from "@/components/projects/ProjectSettingsDialog"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
+import { useCompletionConfirmation } from "@/components/completion-confirmation"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,7 +46,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { TaskRowContent } from "@/components/task-row-content"
 import { isSomeoneElsesTask } from "@/lib/task-leading-control"
-import { useUserSettings } from "@/hooks/useUserSettings"
 import { useTranslations } from "@/lib/i18n/client"
 import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
 import { useProjectBoardRows } from "@/hooks/use-project-board-rows"
@@ -49,12 +54,10 @@ import {
   applyProjectColumnTo,
   getProjectBoardColumns,
   getTaskProjectColumnId,
-  resolveProjectColumnCreate,
   type ProjectBoardColumn,
 } from "@/lib/project-status"
 import {
   addBoardRow,
-  boardDoneWindowHours,
   boardRowCandidates,
   boardRowTextColor,
   buildSwimlanes,
@@ -68,11 +71,15 @@ import type { Task, TaskList, User } from "@/types/task"
 export interface ProjectBoardProps {
   projectId: string
   projectName: string
+  /** Owner or project admin: the board offers Project settings (ADEV-54). */
+  canEditSettings?: boolean
   lists: TaskList[]
   allTasks: Task[]
   currentUser?: User | null
   onUpdateTask: (task: Task) => void
-  onCreateTask: (title: string, options?: { listIds?: string[]; statusRole?: string }) => Promise<string | null>
+  onCreateTask: (title: string, options?: CreateTaskOptions) => Promise<string | null>
+  /** Offered only where the person may create a list in this project (the sidebar's rule). */
+  onCreateListInProject?: (name: string, projectId: string) => Promise<void> | void
   /** Opens a card's details as a list row does, anchored to the card (AITD-679). */
   onOpenTask?: (taskId: string, anchor?: HTMLElement) => void
   /** The task whose details are open, so its card reads as selected. */
@@ -81,28 +88,27 @@ export interface ProjectBoardProps {
   isOneColumn?: boolean
 }
 
-const cellKey = (listId: string, columnId: string) => `${listId}:${columnId}`
-
 export function ProjectBoard({
   projectId,
   projectName,
+  canEditSettings = false,
   lists,
   allTasks,
   currentUser,
   onUpdateTask,
   onCreateTask,
+  onCreateListInProject,
   onOpenTask,
   selectedTaskId = null,
   isOneColumn = false,
 }: ProjectBoardProps) {
   const { t } = useTranslations()
-  const { taskDisplayMode } = useUserSettings()
   const customStates = useProjectCustomStates(projectId)
   const columns = React.useMemo(() => getProjectBoardColumns(customStates), [customStates])
   const { listIds, loaded, saveFailed, save } = useProjectBoardRows(projectId)
+  const [settingsOpen, setSettingsOpen] = React.useState(false)
   const [isListDragOver, setIsListDragOver] = React.useState(false)
-  const [drafts, setDrafts] = React.useState<Record<string, string>>({})
-  const [creatingCell, setCreatingCell] = React.useState<string | null>(null)
+  const [newListName, setNewListName] = React.useState<string | null>(null)
   const [optionsTaskId, setOptionsTaskId] = React.useState<string | null>(null)
 
   const rows = React.useMemo(() => resolveBoardRows(listIds, projectId, lists), [listIds, projectId, lists])
@@ -116,26 +122,12 @@ export function ProjectBoard({
   }
   const removeRow = (listId: string) => void save(removeBoardRow(rowIds, listId))
 
+  // A drop or the sheet's state: Done asks first when the task is not yours,
+  // and nothing moves until the answer (ADEV-71).
+  const completion = useCompletionConfirmation(currentUser?.id)
   const moveTask = (taskId: string, column: ProjectBoardColumn) => {
     const task = allTasks.find(candidate => candidate.id === taskId)
-    if (task) applyProjectColumnTo(task, column.id, columns, lists, onUpdateTask)
-  }
-
-  const createInCell = async (event: React.FormEvent, listId: string, column: ProjectBoardColumn) => {
-    event.preventDefault()
-    const cell = cellKey(listId, column.id)
-    const title = drafts[cell]?.trim()
-    if (!title) return
-    setCreatingCell(cell)
-    try {
-      // The column is a role, never a list id (see resolveProjectColumnCreate);
-      // the row is the list the card joins.
-      const { statusRole } = resolveProjectColumnCreate(column, listId)
-      await onCreateTask(title, { listIds: [listId], statusRole })
-      setDrafts(previous => ({ ...previous, [cell]: "" }))
-    } finally {
-      setCreatingCell(null)
-    }
+    if (task) completion.requestColumnMove(task, column, () => applyProjectColumnTo(task, column.id, columns, lists, onUpdateTask))
   }
 
   const optionsTask = optionsTaskId ? allTasks.find(candidate => candidate.id === optionsTaskId) : undefined
@@ -151,30 +143,13 @@ export function ProjectBoard({
   const snapTail = isOneColumn ? <div className="w-1 shrink-0" aria-hidden="true" /> : null
 
   const rowLabel = (lane: (typeof lanes)[number]) => {
-    const hours = boardDoneWindowHours(lane.list)
     return (
       <>
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <div className="flex items-start gap-2">
-            {lane.list.imageUrl && (
-               
-              <img src={lane.list.imageUrl} alt="" className="h-6 w-6 shrink-0 rounded object-cover" />
-            )}
-            <div className="min-w-0 break-words text-sm font-semibold leading-tight">{lane.list.name}</div>
-          </div>
-          <ul className="space-y-0.5 text-xs opacity-90" data-testid={`project-board-counts-${lane.list.id}`}>
-            {columns.map(column => {
-              const count = lane.cells[column.id]?.length ?? 0
-              const label = boardColumnLabel(column, t)
-              return (
-                <li key={column.id}>
-                  {column.kind === "done" && hours !== null
-                    ? t("projectMode.boardDoneCount", { column: label, count: String(count), hours: String(hours) })
-                    : t("projectMode.boardColumnCount", { column: label, count: String(count) })}
-                </li>
-              )
-            })}
-          </ul>
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {lane.list.imageUrl && (
+            <img src={lane.list.imageUrl} alt="" className="h-6 w-6 shrink-0 rounded object-cover" />
+          )}
+          <div className="min-w-0 truncate text-sm font-semibold leading-tight">{lane.list.name}</div>
         </div>
         <Button
           variant="ghost"
@@ -219,33 +194,89 @@ export function ProjectBoard({
         addRow(listId)
       }}
     >
-      <div className="flex items-center justify-between gap-3 border-b theme-border px-4 py-4">
-        <h1 className="truncate text-2xl font-semibold tracking-tight theme-text-primary">{projectName}</h1>
+      {/* No project-name heading: TaskManagerHeader already names the project (ADEV-63). */}
+      <div className="flex items-center justify-end gap-3 border-b theme-border px-4 py-3">
+        <div className="flex shrink-0 items-center gap-2">
+        {canEditSettings && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label={t("projectMode.boardSettings")}
+              title={t("projectMode.boardSettings")}
+              data-testid="project-board-settings"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Settings className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <ProjectSettingsDialog
+              projectId={projectId}
+              projectName={projectName}
+              open={settingsOpen}
+              onOpenChange={setSettingsOpen}
+            />
+          </>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" data-testid="project-board-add-list">
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="project-board-add-list"
+              disabled={candidates.length === 0 && !onCreateListInProject}
+            >
               <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
               {t("projectMode.boardAddList")}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="max-h-80 overflow-y-auto">
-            {candidates.length === 0 ? (
-              <DropdownMenuItem disabled>{t("projectMode.boardNoCandidates")}</DropdownMenuItem>
-            ) : candidates.map(list => (
+            {candidates.map(list => (
               <DropdownMenuItem key={list.id} onSelect={() => addRow(list.id)}>
                 {list.name}
               </DropdownMenuItem>
             ))}
+            {onCreateListInProject && (
+              <DropdownMenuItem data-testid="project-board-new-list" onSelect={() => setNewListName("")}>
+                {t("projectMode.boardNewList")}
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
+
+      {newListName !== null && onCreateListInProject && (
+        <form
+          className="border-b theme-border px-4 py-2"
+          onSubmit={event => {
+            event.preventDefault()
+            const name = newListName.trim()
+            if (!name) return
+            setNewListName(null)
+            void onCreateListInProject(name, projectId)
+          }}
+        >
+          <Input
+            autoFocus
+            value={newListName}
+            onChange={event => setNewListName(event.target.value)}
+            onKeyDown={event => {
+              if (event.key === "Escape") setNewListName(null)
+            }}
+            placeholder={t("projectMode.newListName")}
+            aria-label={t("projectMode.boardNewList")}
+            data-testid="project-board-new-list-name"
+            className="h-8 text-sm"
+          />
+        </form>
+      )}
 
       {saveFailed && (
         <p role="alert" className="px-4 pt-2 text-xs text-destructive">{t("projectMode.boardSaveFailed")}</p>
       )}
 
       <div
-        className={`flex-1 min-h-0 overflow-auto p-4 ${isOneColumn ? "snap-x snap-mandatory scroll-px-4 overscroll-x-contain" : ""}`}
+        className={`flex-1 min-h-0 overflow-auto p-4 pt-0 ${isOneColumn ? "snap-x snap-mandatory scroll-px-4 overscroll-x-contain" : ""}`}
         data-testid="project-board-scroller"
         data-board-callout-viewport
       >
@@ -255,34 +286,23 @@ export function ProjectBoard({
           </div>
         ) : (
           <div className={`${isOneColumn ? "flex" : "inline-flex min-w-full"} flex-col gap-3`}>
-            <div className="sticky top-0 z-10 -mx-4 -mt-4 flex gap-3 border-b theme-border theme-bg-primary px-4 py-2" role="row" data-testid="project-board-column-headers">
-              {!isOneColumn && <div className="w-32 shrink-0" />}
-              {columns.map(column => (
-                <div key={column.id} className={`flex ${columnWidth} items-center gap-2 px-2 text-sm font-semibold theme-text-primary`} role="columnheader">
-                  <span className="truncate">{boardColumnLabel(column, t)}</span>
-                  {column.kind === "done" && <CheckCircle2 className="h-4 w-4 text-success" aria-hidden="true" />}
-                  {column.kind === "inbox" && <Inbox className="h-4 w-4 theme-text-muted" aria-hidden="true" />}
-                </div>
-              ))}
-              {snapTail}
-            </div>
-
             {lanes.map(lane => (
-              <div key={lane.list.id} className="flex h-80 gap-3" role="row" data-testid={`project-board-row-${lane.list.id}`}>
+              <div key={lane.list.id} className="flex flex-col gap-2" data-testid={`project-board-row-${lane.list.id}`}>
+                {/* One row per list: a header strip, then the list's own board (ADEV-63). */}
                 {!isOneColumn && (
                   <div
-                    className="flex w-32 shrink-0 items-start justify-between gap-1 overflow-y-auto rounded-md border theme-border theme-bg-secondary px-2 py-2"
+                    className="flex items-center justify-between gap-2 rounded-md border theme-border theme-bg-secondary px-2 py-1"
                     style={rowHeaderStyle(lane)}
                     role="rowheader"
                   >
                     {rowLabel(lane)}
                   </div>
                 )}
-
+                <div className="flex gap-3" role="row">
                 {columns.map(column => (
                   <div
                     key={column.id}
-                    className={`board-column flex min-h-0 ${columnWidth} flex-col rounded-md border theme-border theme-bg-secondary p-2`}
+                    className={`board-column flex min-h-0 ${columnWidth} flex-col rounded-md border theme-border theme-bg-secondary`}
                     data-testid={`project-board-cell-${lane.list.id}-${column.id}`}
                     onDragOver={(event) => {
                       if (!isListDrag(event)) event.preventDefault()
@@ -299,7 +319,17 @@ export function ProjectBoard({
                         {rowLabel(lane)}
                       </div>
                     )}
-                    <div className="flex-1 min-h-0 space-y-2 overflow-y-auto" data-testid={`project-board-cell-body-${lane.list.id}-${column.id}`}>
+                    <div className="flex shrink-0 items-center justify-between gap-2 border-b theme-border px-3 py-2" data-testid={`project-board-cell-header-${lane.list.id}-${column.id}`}>
+                      <span className="truncate text-sm font-semibold theme-text-primary">{boardColumnLabel(column, t)}</span>
+                      <span className="min-w-6 rounded-full theme-bg-hover px-2 py-0.5 text-center text-xs theme-text-secondary">
+                        {lane.cells[column.id]?.length ?? 0}
+                      </span>
+                    </div>
+                    {/* Fixed height, about 3–4 cards: the cards scroll inside it (ADEV-63). */}
+                    <div className="h-64 shrink-0 space-y-2 overflow-y-auto p-2" data-testid={`project-board-cell-body-${lane.list.id}-${column.id}`}>
+                      {(lane.cells[column.id]?.length ?? 0) === 0 && (
+                        <AstridEmptyState listType="default" listName={lane.list.name} className="py-4" />
+                      )}
                       {lane.cells[column.id]?.map(task => {
                         return (
                           <div
@@ -334,7 +364,7 @@ export function ProjectBoard({
                               isSelected={selectedTaskId === task.id}
                               onToggleComplete={() => onUpdateTask({ ...task, completed: !task.completed })}
                               onCopyPublic={() => {}}
-                              displayMode={taskDisplayMode}
+                              identifier={shouldShowTaskIdentifier(task, "row-board", lists) ? task.identifier : null}
                               currentListId={lane.list.id}
                               onOpenOptions={
                                 isSomeoneElsesTask({ assigneeId: task.assigneeId, currentUserId: currentUser?.id })
@@ -347,35 +377,19 @@ export function ProjectBoard({
                       })}
                     </div>
                     {column.kind !== "done" && (
-                      <form
-                        className="flex shrink-0 items-center gap-2 pt-2"
-                        onSubmit={(event) => createInCell(event, lane.list.id, column)}
-                      >
-                        <Input
-                          value={drafts[cellKey(lane.list.id, column.id)] || ""}
-                          onChange={(event) => {
-                            const value = event.target.value
-                            setDrafts(previous => ({ ...previous, [cellKey(lane.list.id, column.id)]: value }))
-                          }}
-                          placeholder={t("tasks.addTaskPlaceholder")}
-                          className="h-9 min-w-0 theme-input theme-text-primary"
-                          disabled={creatingCell === cellKey(lane.list.id, column.id)}
-                          data-testid={`project-board-add-input-${lane.list.id}-${column.id}`}
-                        />
-                        <Button
-                          type="submit"
-                          size="sm"
-                          className="h-9 w-9 shrink-0 p-0"
-                          disabled={creatingCell === cellKey(lane.list.id, column.id) || !(drafts[cellKey(lane.list.id, column.id)] || "").trim()}
-                          aria-label={t("tasks.board.addTaskTo", { name: boardColumnLabel(column, t) })}
-                        >
-                          <Plus className="h-4 w-4" aria-hidden="true" />
-                        </Button>
-                      </form>
+                      <BoardColumnQuickAdd
+                        listId={lane.list.id}
+                        lists={lists}
+                        column={column}
+                        currentUser={currentUser}
+                        onCreateTask={onCreateTask}
+                        testId={`project-board-add-${lane.list.id}-${column.id}`}
+                      />
                     )}
                   </div>
                 ))}
                 {snapTail}
+                </div>
               </div>
             ))}
           </div>
@@ -397,6 +411,7 @@ export function ProjectBoard({
           }}
           selectedPriority={optionsTask.priority}
           selectedAssignee={optionsTask.assignee ?? null}
+          assigneeId={optionsTask.assigneeId ?? null}
           unassign={{ task: optionsTask, apply: onUpdateTask }}
           availableUsers={[]}
           taskId={optionsTask.id}
@@ -416,6 +431,7 @@ export function ProjectBoard({
           }}
         />
       )}
+      {completion.dialog}
     </div>
   )
 }

@@ -70,9 +70,16 @@ describe('TaskDetailSubtasksSection (AWTD-1227)', () => {
     // That handler is handleToggleTaskComplete — the list row's. A second
     // completion path here is a second place to get repeating tasks, streaks
     // and offline queuing wrong.
+    //
+    // Superseded by ADEV-71: the child is YOURS here. An unassigned or someone
+    // else's child asks first (tests/components/adev-71-confirm-remaining-paths.test.tsx).
     const onToggleComplete = vi.fn()
     render(
-      <TaskDetailSubtasksSection subtasks={[child('a', 'Order washer')]} onToggleComplete={onToggleComplete} />,
+      <TaskDetailSubtasksSection
+        subtasks={[{ ...child('a', 'Order washer'), assigneeId: 'me' } as Task]}
+        currentUserId="me"
+        onToggleComplete={onToggleComplete}
+      />,
     )
 
     await userEvent.click(screen.getByRole('checkbox', { name: 'Order washer' }))

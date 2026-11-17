@@ -145,10 +145,8 @@ const mockProps = {
  * share ONE row — labelled "Priority", with the assignee sitting beside the
  * picker — so this is a real change, not something already satisfied.
  *
- * And on project mode: "we compact the task details so priority and assignee
- * and complete/mark as incomplete are accessed by tapping on the checkbox."
- * Compacting means those rows LEAVE the panel; the leading control already
- * opens the popover that carries them (slice 3).
+ * Project mode once compacted those rows out of the panel; web removed that
+ * layout in ADEV-56, so the rows always render.
  *
  * THE PUBLIC-LIST CASE is the trap in splitting this row. A public task shows
  * "Created by" with its creator INSTEAD of an assignee, and hides the priority
@@ -173,24 +171,17 @@ function rowsLabelled(label: string) {
   ]
 }
 
-describe('list mode gives priority and assignee their own rows (task ffa5bbb5)', () => {
+describe('priority and assignee get their own rows (task ffa5bbb5)', () => {
   const rowLabel = (label: string) => rowsLabelled(label)
 
   it('renders a Priority row and a separate Assignee row', () => {
-    render(<TaskDetail {...mockProps} displayMode="list" />)
+    render(<TaskDetail {...mockProps} />)
     expect(rowLabel('Priority').length, 'no Priority row').toBeGreaterThan(0)
     expect(rowLabel('Assignee').length, 'assignee still shares the priority row').toBeGreaterThan(0)
   })
 
-  it('defaults to list mode when no mode is given', () => {
-    // Every existing call site omits the prop.
-    render(<TaskDetail {...mockProps} />)
-    expect(rowLabel('Priority').length).toBeGreaterThan(0)
-    expect(rowLabel('Assignee').length).toBeGreaterThan(0)
-  })
-
   it('still shows the priority picker', () => {
-    render(<TaskDetail {...mockProps} displayMode="list" />)
+    render(<TaskDetail {...mockProps} />)
     const buttons = Array.from(document.querySelectorAll('button')).filter(b =>
       /^(○|!+)$/.test((b.textContent || '').trim()),
     )
@@ -198,29 +189,19 @@ describe('list mode gives priority and assignee their own rows (task ffa5bbb5)',
   })
 })
 
-describe('project mode compacts them out of the panel (task ffa5bbb5)', () => {
+describe('there is no compact layout on web any more (ADEV-56)', () => {
   const rowLabel = (label: string) => rowsLabelled(label)
 
-  it('drops both rows', () => {
-    render(<TaskDetail {...mockProps} displayMode="project" />)
-    expect(rowLabel('Priority').length, 'priority row survived compaction').toBe(0)
-    expect(rowLabel('Assignee').length, 'assignee row survived compaction').toBe(0)
-  })
-
-  it('drops the priority picker with them', () => {
-    // The row could be hidden while the control leaked out elsewhere.
-    render(<TaskDetail {...mockProps} displayMode="project" />)
+  it('keeps both rows and the picker even if a stored "project" value is handed over', () => {
+    // The prop is gone; spread through a cast so an old caller passing the
+    // stored value cannot compact the panel.
+    render(<TaskDetail {...mockProps} {...({ displayMode: 'project' } as object)} />)
+    expect(rowLabel('Priority').length, 'priority row compacted away').toBeGreaterThan(0)
+    expect(rowLabel('Assignee').length, 'assignee row compacted away').toBeGreaterThan(0)
     const buttons = Array.from(document.querySelectorAll('button')).filter(b =>
       /^(○|!+)$/.test((b.textContent || '').trim()),
     )
-    expect(buttons.length).toBe(0)
-  })
-
-  it('keeps the rest of the panel', () => {
-    // Compact means priority and assignee move, not that the panel empties.
-    render(<TaskDetail {...mockProps} displayMode="project" />)
-    expect(rowLabel('Lists').length).toBeGreaterThan(0)
-    expect(rowLabel('Description').length).toBeGreaterThan(0)
+    expect(buttons.length).toBeGreaterThan(0)
   })
 })
 
@@ -249,7 +230,6 @@ describe('a public task shows neither row (task ffa5bbb5)', () => {
         {...mockProps}
         task={publicTask as never}
         availableLists={[publicList] as never}
-        displayMode="list"
       />,
     )
     expect(rowLabel('Priority').length).toBe(0)

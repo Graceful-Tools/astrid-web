@@ -3,6 +3,7 @@
     "myTasks": "I miei compiti",
     "today": "Oggi",
     "lists": "Liste",
+    "favorites": "Preferiti",
     "addList": "Aggiungi lista",
     "publicSharedLists": "Liste pubbliche condivise",
     "publicLists": "Liste pubbliche",
@@ -109,6 +110,7 @@
     "createdBy": "Creato da",
     "confirmCompleteTitle": "Completare questa attività?",
     "confirmCompleteAssigned": "Assegnata a {name}",
+    "confirmCompleteUnassigned": "Non assegnata a nessuno",
     "waitingOn": {
       "label": "In attesa di",
       "add": "Attendi un'attività…",
@@ -198,6 +200,14 @@
       "count": "Commenti ({count})",
       "hideSystemTitle": "Nascondi commenti di sistema",
       "showSystemTitle": "Mostra commenti di sistema",
+      "approval": {
+        "approve": "Approva",
+        "decline": "Rifiuta",
+        "declineReasonPlaceholder": "Perché rifiuti?",
+        "approvedBy": "Approvato da {name}",
+        "declinedBy": "Rifiutato da {name}: {reason}",
+        "decisionError": "Impossibile registrare la tua decisione. Riprova."
+      },
       "hideSystem": "Nascondi di sistema",
       "showSystem": "Mostra di sistema",
       "refreshShort": "Aggiorna",
@@ -233,7 +243,8 @@
     "userAvatarAlt": "Utente",
     "assigneeYou": "Tu",
     "board": {
-      "addTaskTo": "Aggiungi attività a {name}"
+      "addTaskTo": "Aggiungi attività a {name}",
+      "addTaskPlaceholder": "Aggiungi un'attività"
     },
     "dropToPlaceFirst": "Rilascia qui per posizionare la prima attività"
   },
@@ -1370,15 +1381,6 @@
         "quickAccess": "Premi ? ovunque nel gestore attività per aprire le scorciatoie da tastiera.",
         "quickAccessLabel": "Accesso rapido"
       },
-      "taskDisplayMode": {
-        "title": "Layout dei dettagli attività",
-        "description": "Come priorità, assegnatario e stato appaiono in un'attività (sincronizzato tra dispositivi)",
-        "label": "Layout",
-        "list": "Elenco",
-        "project": "Progetto",
-        "listDesc": "La casella completa l'attività, e priorità e assegnatario hanno ciascuno la propria riga.",
-        "projectDesc": "Compatto. Toccando la casella si aprono priorità, assegnatario, stato e completa."
-      },
       "taskTitles": {
         "title": "Titoli delle attività",
         "description": "Quanta parte di un titolo lungo mostra la riga di un'attività (salvato su questo dispositivo)",
@@ -1812,6 +1814,12 @@
     "showLists": "Mostra le liste di {name}",
     "hideLists": "Nascondi le liste di {name}",
     "boardAddList": "Aggiungi lista",
+    "boardSettings": "Impostazioni del progetto",
+    "settingsTitle": "Impostazioni del progetto",
+    "settingsNameLabel": "Nome del progetto",
+    "settingsSave": "Salva",
+    "settingsCancel": "Annulla",
+    "settingsSaveFailed": "Impossibile salvare il nome del progetto. Riprova.",
     "boardRemoveRow": "Rimuovi {name} da questa bacheca",
     "boardColumnCount": "{column}: {count}",
     "boardDoneCount": "{column}: {count} (ultime {hours} h)",
@@ -1822,9 +1830,20 @@
     "projectNone": "Nessuno",
     "projectMoveFailed": "Impossibile spostare questa lista",
     "projectLockedIn": "In {name}. Solo il proprietario o un amministratore del progetto può rimuoverla.",
+    "projectNew": "Nuovo progetto…",
+    "projectLeaveConfirm": "Rimuovere {list} da {project}?",
     "newListInProject": "Nuova lista nel progetto…",
     "newListName": "Nome della lista",
-    "newListFailed": "Impossibile creare la lista"
+    "newListFailed": "Impossibile creare la lista",
+    "boardNewList": "Nuova lista…",
+    "moveToProject": "Sposta nel progetto",
+    "removeFromProject": "Rimuovi dal progetto",
+    "projectLeaveDetail": "Le sue attività la seguono. Un'attività in una delle colonne proprie di questo progetto appare nella Posta in arrivo finché la lista non torna in un progetto con quella colonna.",
+    "deleteProject": "Elimina progetto…",
+    "deleteProjectConfirm": "Eliminare {name}?",
+    "deleteProjectDetail": "Le sue liste restano, fuori da qualsiasi progetto. Le colonne proprie della bacheca vengono eliminate con esso.",
+    "deleteProjectAction": "Elimina",
+    "deleteProjectFailed": "Impossibile eliminare il progetto"
   },
   "viewRotator": {
     "showList": "Mostra elenco",
@@ -1888,6 +1907,18 @@
     "agentClaimRequired": {
       "label": "Gli agenti prenotano le attività prima di lavorarci",
       "help": "Gli agenti di questa lista prendono le attività Pronte non assegnate, prenotano ciascuna prima così due agenti non prendono mai la stessa, e mantengono attiva la prenotazione mentre lavorano. Una prenotazione non più rinnovata riporta l'attività in Pronta."
+    },
+    "agentRoster": {
+      "title": "Agenti in questa bacheca",
+      "empty": "Nessun agente ha ancora controllato questa bacheca.",
+      "lastSeen": "Visto {when}",
+      "notSeen": "Non visto da {when}",
+      "neverSeen": "Non ancora visto",
+      "holds": "Sta lavorando su {task}",
+      "idle": "Non ha alcuna attività",
+      "readyWait": "{count} attività Pronte in attesa da {when}.",
+      "reasonNoAgent": "Nessun agente è iscritto a questa bacheca.",
+      "reasonNotSeen": "Nessun agente è stato visto di recente in questa bacheca."
     },
     "admin": {
       "descriptionLabel": "Descrizione della lista",
@@ -2597,7 +2628,8 @@
       "mentioned": "Menzione",
       "replied": "Risposta",
       "commented": "Commento",
-      "statusChanged": "Stato modificato"
+      "statusChanged": "Stato modificato",
+      "agentQuiet": "Un agente non risponde più"
     }
   },
   "admin": {

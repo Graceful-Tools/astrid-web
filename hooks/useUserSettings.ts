@@ -9,11 +9,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useSSESubscription } from './use-sse-subscription'
 import { useToast } from './use-toast'
-import {
-  DEFAULT_TASK_DISPLAY_MODE,
-  normalizeTaskDisplayMode,
-  type TaskDisplayMode,
-} from '@/lib/task-display-mode'
+import { DEFAULT_TASK_DISPLAY_MODE } from '@/lib/task-display-mode'
 
 export interface UserSettings {
   smartTaskCreationEnabled: boolean
@@ -22,7 +18,11 @@ export interface UserSettings {
   defaultDueTime: string
   /** "indented" (subtasks in lists, indented) | "under_parent" (detail only) */
   subtaskDisplay: string
-  /** "list" | "project" — which task-detail design this user sees. */
+  /**
+   * "list" | "project". Web no longer acts on it — the project layout was
+   * removed in ADEV-56 — but iOS, Mac and astrid-core still read and write it,
+   * so it stays in the settings payload.
+   */
   taskDisplayMode: string
   /**
    * "Show list images". DEPRECATED (AWTD-1387): web always draws list images
@@ -147,10 +147,5 @@ export function useUserSettings() {
     // Convenience getter for smart task creation
     smartTaskCreationEnabled: settings.smartTaskCreationEnabled,
     subtaskDisplay: settings.subtaskDisplay,
-    // Normalized at the boundary so no consumer compares the raw string. The
-    // server can send null for a row written before the column existed, and an
-    // older client can send a mode this build does not know; both must render
-    // the safe layout rather than neither (task ffa5bbb5).
-    taskDisplayMode: normalizeTaskDisplayMode(settings.taskDisplayMode) as TaskDisplayMode,
   }
 }

@@ -53,7 +53,8 @@ const prisma = {
       return state.queue.notReadyCount
     },
     async findUnique({ select }) {
-      return projectSelectedFields({ comments: state.claim.task.comments }, select)
+      // An unassigned task on no list: the orchestration policy (ADEV-36) has nothing to refuse.
+      return projectSelectedFields({ comments: state.claim.task.comments, assigneeId: null, lists: [] }, select)
     },
     async updateMany({ where }) {
       if (state.claim.forceConflict) return { count: 0 }

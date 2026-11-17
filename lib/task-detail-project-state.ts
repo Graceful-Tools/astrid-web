@@ -13,20 +13,17 @@
  * record: Priority-before-Who shipped on iOS AND Mac simultaneously because two
  * views each decided the same layout question for themselves (task c8a1ff51).
  *
- * The narrowing that makes the row correct rather than a hybrid: a board column
- * IS a project idea, and a row for one in the list layout would rebuild exactly
- * the mixture the display-mode setting exists to end — for a task that has no
- * board column. For a task that is ON a board, the column is real information
- * the list layout was merely hiding, and before this row the only way to reach
- * it was to switch display modes. `isInProject` is the whole design.
+ * The narrowing that makes the row correct: a board column IS a project idea,
+ * so a task that has no board column gets no row. For a task that is ON a
+ * board, the column is real information, and before this row the only way to
+ * reach it was the (since removed, ADEV-56) project layout. `isInProject` is
+ * the whole design.
  */
 import type { Task, TaskList } from '@/types/task'
 import { VIRTUAL_DONE_COLUMN_ID, type ProjectBoardColumn } from '@/lib/project-status'
 import { shouldShowTaskIdentifier } from '@/lib/task-identifier-links'
 
 export interface TaskDetailProjectStateVisibility {
-  /** The viewer's Appearance setting: 'list' | 'project'; absent means list. */
-  displayMode: string | null | undefined
   /** Does the task have a board column at all? Ask `isTaskInProject`. */
   isInProject: boolean
   /** The public-list viewer, who may read but not write. */
@@ -36,22 +33,15 @@ export interface TaskDetailProjectStateVisibility {
 /**
  * Does the board-state row appear?
  *
- * - **Both display modes** (AWTD-1665; astrid-core CONTRACTS D63, iOS
- *   AITD-555). This used to be list mode only, on the claim that "in project
- *   mode the state already lives behind the leading control". It does not: that
- *   control depicts WHO and PRIORITY, never the column, so in the display mode
- *   whose whole subject is boards the detail never said where the task was. Do
- *   not restore the mode condition for that reason. `displayMode` stays a
- *   parameter on purpose, as it does in the core and on iOS, so no call site can
- *   re-add the rule by passing something else.
+ * - **Whatever the display mode** (AWTD-1665; astrid-core CONTRACTS D63, iOS
+ *   AITD-555). The core and iOS still take a display mode here and ignore it;
+ *   web has no project layout at all since ADEV-56, so it takes none.
  * - **On a board only** — see the module comment.
  * - **Not read-only.** The row is a MOVER, not a label: its chips write. So it
  *   follows Who and Priority, which are hidden from a public-list viewer
  *   rather than rendered as controls that cannot be used.
  */
 export function showsTaskDetailProjectState({
-  // Kept in the interface deliberately; see "Both display modes" above.
-  displayMode: _displayMode,
   isInProject,
   isReadOnly,
 }: TaskDetailProjectStateVisibility): boolean {
@@ -76,8 +66,8 @@ export interface TaskBlockersVisibility {
  *
  * Three differences from the board-state row, each deliberate:
  *
- * - **Both display modes.** Blocking is not said anywhere else in the compact
- *   layout, so there is no duplicate to avoid.
+ * - **Not limited to a layout.** Blocking is not said anywhere else, so there
+ *   is no duplicate to avoid.
  * - **Read-only viewers see it.** The row is a LABEL before it is a control,
  *   and a public-list reader benefits from knowing a task is blocked. The
  *   controls inside it are what hides for them.
@@ -162,7 +152,7 @@ export function projectStateChips(columns: ProjectBoardColumn[]): ProjectBoardCo
  * outright is a silent regression:
  *
  * - **Status.** `TaskDetailBoardStateRow` renders only for a task on a project
- *   list, in either display mode (`showsTaskDetailProjectState` above). On an
+ *   list (`showsTaskDetailProjectState` above). On an
  *   ordinary list the menu is the only way to reach `statusRole: "ready"` —
  *   which is exactly what `get_agent_queue` requires, and what task ba1a4c4c
  *   put the control in the menu for: a user could otherwise assign a dozen
@@ -179,12 +169,10 @@ export function projectStateChips(columns: ProjectBoardColumn[]): ProjectBoardCo
 export function taskMenuDuplicatesPaneControls(args: {
   task: Task
   availableLists: TaskList[]
-  displayMode?: string | null
   readOnly: boolean
 }): { status: boolean; copyIdentifier: boolean } {
   return {
     status: showsTaskDetailProjectState({
-      displayMode: args.displayMode,
       isInProject: isTaskInProject(args.task, args.availableLists),
       isReadOnly: args.readOnly,
     }),

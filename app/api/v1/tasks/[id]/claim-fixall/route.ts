@@ -37,6 +37,9 @@ export const POST = withAuth<RouteContext>(
         { status: 409 },
       )
     }
+    if (result.status === "policy-denied") {
+      return NextResponse.json({ error: result.message, reason: result.reason }, { status: 403 })
+    }
     if (result.status === "handed-off") {
       return NextResponse.json(
         { error: `Already handed off: waiting for production to serve ${result.sha}. Moved back to Doing.` },

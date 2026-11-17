@@ -285,7 +285,6 @@ describe('TaskManagerView', () => {
     },
 
     // Display mode
-    taskDisplayMode: 'list' as const,
     handleToggleListFavorite: vi.fn(),
 
     // Drag and manual sort

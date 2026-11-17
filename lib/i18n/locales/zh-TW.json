@@ -3,6 +3,7 @@
     "myTasks": "我的任務",
     "today": "今天",
     "lists": "列表",
+    "favorites": "我的最愛",
     "addList": "添加清單",
     "publicSharedLists": "公開共享清單",
     "publicLists": "公開清單",
@@ -109,6 +110,7 @@
     "createdBy": "建立者",
     "confirmCompleteTitle": "完成此任務？",
     "confirmCompleteAssigned": "指派給 {name}",
+    "confirmCompleteUnassigned": "未指派給任何人",
     "waitingOn": {
       "label": "等待中",
       "add": "新增等待的任務",
@@ -198,6 +200,14 @@
       "count": "留言（{count}）",
       "hideSystemTitle": "隱藏系統留言",
       "showSystemTitle": "顯示系統留言",
+      "approval": {
+        "approve": "核准",
+        "decline": "拒絕",
+        "declineReasonPlaceholder": "為什麼拒絕？",
+        "approvedBy": "{name} 已核准",
+        "declinedBy": "{name} 已拒絕：{reason}",
+        "decisionError": "無法記錄你的決定，請重試。"
+      },
       "hideSystem": "隱藏系統",
       "showSystem": "顯示系統",
       "refreshShort": "重新整理",
@@ -233,7 +243,8 @@
     "userAvatarAlt": "使用者",
     "assigneeYou": "你",
     "board": {
-      "addTaskTo": "新增任務至 {name}"
+      "addTaskTo": "新增任務至 {name}",
+      "addTaskPlaceholder": "新增工作"
     },
     "dropToPlaceFirst": "拖放到此處以放置第一個任務"
   },
@@ -1370,15 +1381,6 @@
         "quickAccess": "在任務管理器中隨時按?開啟鍵盤快速鍵。",
         "quickAccessLabel": "快速存取"
       },
-      "taskDisplayMode": {
-        "title": "任務詳情版面",
-        "description": "任務中優先順序、負責人與狀態的顯示方式（跨裝置同步）",
-        "label": "版面",
-        "list": "清單",
-        "project": "專案",
-        "listDesc": "核取方塊用於完成任務，優先順序與負責人各佔一列。",
-        "projectDesc": "精簡模式。點按核取方塊會開啟優先順序、負責人、狀態與完成。"
-      },
       "taskTitles": {
         "title": "任務標題",
         "description": "任務列顯示多長的標題（儲存在此裝置上）",
@@ -1812,6 +1814,12 @@
     "showLists": "顯示 {name} 中的清單",
     "hideLists": "隱藏 {name} 中的清單",
     "boardAddList": "新增清單",
+    "boardSettings": "專案設定",
+    "settingsTitle": "專案設定",
+    "settingsNameLabel": "專案名稱",
+    "settingsSave": "儲存",
+    "settingsCancel": "取消",
+    "settingsSaveFailed": "無法儲存專案名稱。請再試一次。",
     "boardRemoveRow": "從此看板移除 {name}",
     "boardColumnCount": "{column}：{count}",
     "boardDoneCount": "{column}：{count}（最近 {hours} 小時）",
@@ -1822,9 +1830,20 @@
     "projectNone": "無",
     "projectMoveFailed": "無法移動此清單",
     "projectLockedIn": "在 {name} 中。只有專案擁有者或管理員可以將其移出。",
+    "projectNew": "新增專案…",
+    "projectLeaveConfirm": "從 {project} 移除 {list}？",
     "newListInProject": "在專案中新增清單…",
     "newListName": "清單名稱",
-    "newListFailed": "無法建立清單"
+    "newListFailed": "無法建立清單",
+    "boardNewList": "新增清單…",
+    "moveToProject": "移至專案",
+    "removeFromProject": "從專案中移除",
+    "projectLeaveDetail": "其任務會一同移動。位於此專案專屬欄位中的任務會顯示在收件匣中，直到該清單重新加入具有該欄位的專案。",
+    "deleteProject": "刪除專案…",
+    "deleteProjectConfirm": "刪除{name}？",
+    "deleteProjectDetail": "其清單會保留，不屬於任何專案。看板專屬的欄位會一同刪除。",
+    "deleteProjectAction": "刪除",
+    "deleteProjectFailed": "無法刪除專案"
   },
   "viewRotator": {
     "showList": "顯示清單",
@@ -1888,6 +1907,18 @@
     "agentClaimRequired": {
       "label": "代理在處理任務前先認領",
       "help": "此清單中的代理會接手未指派的「就緒」任務，先認領每個任務以免兩個代理拿到同一個任務，並在工作期間保持認領有效。停止續期的認領會讓任務回到「就緒」。"
+    },
+    "agentRoster": {
+      "title": "此看板上的代理",
+      "empty": "尚無代理檢查過此看板。",
+      "lastSeen": "最後出現 {when}",
+      "notSeen": "自 {when} 起未出現",
+      "neverSeen": "尚未出現",
+      "holds": "正在處理 {task}",
+      "idle": "未持有任務",
+      "readyWait": "有 {count} 個就緒任務自 {when} 起一直在等待。",
+      "reasonNoAgent": "此看板未登記任何代理。",
+      "reasonNotSeen": "最近在此看板上未發現任何代理。"
     },
     "admin": {
       "descriptionLabel": "列表描述",
@@ -2597,7 +2628,8 @@
       "mentioned": "被提及",
       "replied": "已回覆",
       "commented": "已留言",
-      "statusChanged": "狀態已變更"
+      "statusChanged": "狀態已變更",
+      "agentQuiet": "代理已無回應"
     }
   },
   "admin": {

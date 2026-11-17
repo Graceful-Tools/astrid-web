@@ -13,6 +13,7 @@ import { DrawerTapGuard } from "./TaskManager/DrawerTapGuard"
 import { DesktopSettingsDetailPane } from "./TaskManager/DesktopSettingsDetailPane"
 import { MainContent } from "./TaskManager/MainContent/MainContent"
 import { useSelectedProjectId } from "@/hooks/use-selected-project"
+import { useSidebarProjectActions } from "@/hooks/task-manager/useSidebarProjectActions"
 import { LoadingScreen } from "./loading-screen"
 import { computeTaskPaneLeftOffset } from "./TaskManager/task-pane-position"
 import { Input } from "@/components/ui/input"
@@ -40,7 +41,6 @@ import { isCollaborativePublicTask } from "@/lib/public-list-utils"
 import { useSlideCloseAnimation } from "@/hooks/task-manager/useSlideCloseAnimation"
 import { useTaskManagerLayoutRouter } from "@/hooks/task-manager/useTaskManagerLayoutRouter"
 import type { useFilterState } from "@/hooks/useFilterState"
-import type { TaskDisplayMode } from "@/lib/task-display-mode"
 import type { TaskManagerControllerReturn } from "@/hooks/task-manager/controller-contract"
 
 export interface TaskManagerViewModel {
@@ -181,8 +181,6 @@ export interface TaskManagerViewModel {
   loadData: () => Promise<void>
   handleTaskClick: (taskId: string, taskElement?: HTMLElement) => void
   handleUpdateTask: (task: Task) => void
-  /** Viewer's task display mode: 'list' | 'project' (task ffa5bbb5). */
-  taskDisplayMode: TaskDisplayMode
   handleLocalUpdateTask: (task: Task) => void
   handleToggleTaskComplete: (taskId: string) => Promise<void>
   handleDeleteTask: (taskId: string) => void
@@ -368,7 +366,6 @@ const TaskManagerView = memo(function TaskManagerView({
   loadData,
   handleTaskClick,
   handleUpdateTask,
-  taskDisplayMode,
   handleLocalUpdateTask,
   handleToggleTaskComplete,
   handleDeleteTask,
@@ -461,19 +458,11 @@ const TaskManagerView = memo(function TaskManagerView({
     })
   }, [setLists])
 
+  const { moveListToProject, detachProjectLists } = useSidebarProjectActions(setLists)
   const handleProjectBoardRemoved = React.useCallback((projectId: string, detachedListIds: string[]) => {
-    const detachedSet = new Set(detachedListIds)
-    setLists(prevLists =>
-      prevLists
-        .filter(list => !(list.projectId === projectId && list.listType === 'status'))
-        .map(list =>
-          list.projectId === projectId || detachedSet.has(list.id)
-            ? { ...list, projectId: null }
-            : list
-        )
-    )
+    detachProjectLists(projectId, detachedListIds)
     setTaskViewMode('list')
-  }, [setLists])
+  }, [detachProjectLists])
 
   React.useEffect(() => {
     if (!hasProjectBoard && taskViewMode === 'board') {
@@ -741,7 +730,8 @@ const TaskManagerView = memo(function TaskManagerView({
     isTaskDragActive: Boolean(activeDragTaskId), dragOverListId, isShiftDrag,
     onTaskDropOnList: handleTaskDropOnList, onTaskDragEnter: handleListDragEnter,
     onTaskDragLeave: handleListDragLeave, onCreateListInProject: (name, projectId) => handleCreateList({ name, description: '', memberEmails: [], projectId }),
-    onTaskDragOver: (shiftKey, listId) => handleListDragOver(listId, shiftKey)
+    onTaskDragOver: (shiftKey, listId) => handleListDragOver(listId, shiftKey),
+    onMoveListToProject: moveListToProject, onProjectDeleted: handleProjectBoardRemoved
   }
 
   // iOS drawer: sidebar is always rendered, content slides to reveal it
@@ -831,7 +821,7 @@ const TaskManagerView = memo(function TaskManagerView({
             />
           </div>
         ) : projectBoardOpen && !isSearchActive ? (
-          <LazyProjectBoardHost lists={lists} tasks={tasks} currentUser={effectiveSession?.user as User | undefined} onUpdateTask={handleUpdateTask} onCreateTask={handleQuickCreateTask} onOpenTask={handleTaskClick} selectedTaskId={selectedTaskId} isOneColumn={columnCount === 1} />
+          <LazyProjectBoardHost lists={lists} tasks={tasks} currentUser={effectiveSession?.user as User | undefined} onUpdateTask={handleUpdateTask} onCreateTask={handleQuickCreateTask} onOpenTask={handleTaskClick} onCreateListInProject={(name, projectId) => handleCreateList({ name, description: '', memberEmails: [], projectId })} selectedTaskId={selectedTaskId} isOneColumn={columnCount === 1} />
         ) : (
           <MainContent
             isMobile={isMobile}
@@ -884,7 +874,6 @@ const TaskManagerView = memo(function TaskManagerView({
             handleAddTaskButtonClick={handleAddTaskButtonClick}
             handleTaskClick={async (taskId: string, taskElement?: HTMLElement) => handleTaskClick(taskId, taskElement)}
             handleUpdateTask={handleUpdateTask}
-            taskDisplayMode={taskDisplayMode}
             handleToggleTaskComplete={handleToggleTaskComplete}
             handleQuickCreateTask={handleQuickCreateTask}
             handleCreateNewTask={handleCreateNewTask}
@@ -970,7 +959,7 @@ const TaskManagerView = memo(function TaskManagerView({
             <LazyTaskDetail
               {...taskDetailPaneProps({
                 task: selectedTask, lists, selectedListId, tasks, finalFilteredTasks,
-                user: effectiveSession.user, displayMode: taskDisplayMode,
+                user: effectiveSession.user,
                 handleUpdateTask, handleLocalUpdateTask, handleDeleteTask, handleCopyTask,
                 handleToggleTaskComplete, handleCreateTask,
               })}
@@ -985,7 +974,7 @@ const TaskManagerView = memo(function TaskManagerView({
       {/* A board card's details: the same pane, as a callout beside the card (AITD-679). */}
       {layout.showBoardTaskCallout && selectedTask && effectiveSession?.user && (
         <BoardTaskCallout taskId={selectedTask.id} anchor={selectedTaskElement} onClose={closeTaskDetail} closing={isTaskPaneClosing} paneProps={taskDetailPaneProps({
-          task: selectedTask, lists, selectedListId, tasks, finalFilteredTasks, user: effectiveSession.user, displayMode: taskDisplayMode,
+          task: selectedTask, lists, selectedListId, tasks, finalFilteredTasks, user: effectiveSession.user,
           handleUpdateTask, handleLocalUpdateTask, handleDeleteTask, handleCopyTask, handleToggleTaskComplete, handleCreateTask,
         })} />
       )}
@@ -1022,7 +1011,7 @@ const TaskManagerView = memo(function TaskManagerView({
             <LazyTaskDetail
               {...taskDetailPaneProps({
                 task: selectedTask, lists, selectedListId, tasks, finalFilteredTasks,
-                user: effectiveSession.user, displayMode: taskDisplayMode,
+                user: effectiveSession.user,
                 handleUpdateTask, handleLocalUpdateTask, handleDeleteTask, handleCopyTask,
                 handleToggleTaskComplete, handleCreateTask,
               })}

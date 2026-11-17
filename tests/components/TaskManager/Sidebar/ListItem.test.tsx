@@ -62,3 +62,36 @@ describe('Sidebar ListItem drag indicator', () => {
     expect(button.className).toContain('ring-brand')
   })
 })
+
+describe('Sidebar ListItem icons and count (ADEV-64)', () => {
+  it('ADEV-64: public list globe is accent, count is a secondary-text pill', () => {
+    const { container } = render(
+      <ListItem
+        list={{ ...baseList, privacy: 'PUBLIC' as const }}
+        selectedListId="other"
+        isMobile={false}
+        taskCount={3}
+        onClick={vi.fn()}
+      />
+    )
+    expect(container.querySelector('svg.text-brand')).not.toBeNull()
+    expect(container.querySelector('svg.text-success')).toBeNull()
+    const pill = screen.getByText('3')
+    expect(pill.className).toContain('rounded-full')
+    expect(pill.className).toContain('theme-text-secondary')
+    expect(pill.className).not.toContain('theme-text-primary')
+  })
+
+  it('ADEV-64: shared list two-person icon is green', () => {
+    const { container } = render(
+      <ListItem
+        list={{ ...baseList, listMembers: [{ userId: 'u2', role: 'member' }] as never }}
+        selectedListId="other"
+        isMobile={false}
+        taskCount={3}
+        onClick={vi.fn()}
+      />
+    )
+    expect(container.querySelector('svg.text-success')).not.toBeNull()
+  })
+})

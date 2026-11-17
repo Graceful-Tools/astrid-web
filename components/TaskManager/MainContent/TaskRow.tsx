@@ -3,6 +3,7 @@
 import React from "react"
 import { TaskRowContent } from "../../task-row-content"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
+import { useCompletionConfirmation } from "@/components/completion-confirmation"
 import type { TaskDragCapability } from "@/lib/touch-drag-sort"
 import { boardColumnsFor, resolveColumnMove, taskColumnId } from "@/lib/task-status"
 import {
@@ -10,7 +11,6 @@ import {
   getTaskProjectColumnId,
   resolveProjectColumnMove,
 } from "@/lib/project-status"
-import { usesCompactTaskDetail } from "@/lib/task-display-mode"
 import {
   isSomeoneElsesTask,
   leadingControlOpensOptions,
@@ -49,7 +49,6 @@ export type TaskRowControllerSlice = Pick<
   | 'handleTaskDragLeaveTask'
   | 'handleTaskDragEnd'
   | 'handleUpdateTask'
-  | 'taskDisplayMode'
 >
 
 export interface TaskRowProps {
@@ -146,39 +145,29 @@ function TaskRowImpl({
     handleTaskDragLeaveTask: onDragLeaveTask,
     handleTaskDragEnd: onDragEnd,
     handleUpdateTask,
-    taskDisplayMode,
   } = controller
   const currentUserId = effectiveSession?.user?.id
   const isDragging = activeDragTaskId === task.id
 
-  // Project mode: tapping the leading control opens this sheet rather than
-  // completing the task (task ffa5bbb5). A row on a BOARD opens it too, in
-  // every display mode (task 036ef139), and so does SOMEONE ELSE'S task
-  // (AWTD-877) — on a plain list row their avatar was inert, which was safe but
-  // also withheld reassign, reprioritise and move-column.
+  // A row on a BOARD opens this sheet rather than completing the task (task
+  // 036ef139), and so does SOMEONE ELSE'S task (AWTD-877) — on a plain list row
+  // their avatar was inert, which was safe but also withheld reassign,
+  // reprioritise and move-column. The "project" display mode used to open it
+  // too (task ffa5bbb5); web removed that layout in ADEV-56.
   //
   // The gate has to match `leadingControlOpensOptions`, because the control
   // only opens what this renders: a mismatch is a dead avatar, not a fallback.
-  const [optionsOpen, setOptionsOpen] = React.useState(false)
-  const compact = usesCompactTaskDetail(taskDisplayMode)
   //
   // The MARK is part of the gate since AWTD-919: a tap completes a checkbox and
   // nothing else, so an unassigned task's "U" opens the sheet on a plain list
   // row like everyone else's avatar already did.
-  //
-  // No circularity, though the control's own `effectiveMode` depends on whether
-  // it was given a handler. `taskLeadingControlKind`'s displayMode only decides
-  // the "your own task in project mode wears your photo" branch, and project
-  // mode already opens the sheet on its own — so the only answer the kind
-  // CHANGES here is 'unassigned', which is decided before displayMode is read.
+  const [optionsOpen, setOptionsOpen] = React.useState(false)
   const leadingKind = taskLeadingControlKind({
     assigneeId: task.assigneeId,
     currentUserId,
     completed: task.completed,
-    displayMode: taskDisplayMode,
   })
   const opensOptions = leadingControlOpensOptions({
-    displayMode: taskDisplayMode,
     onBoard: Boolean(board),
     isSomeoneElses: isSomeoneElsesTask({ assigneeId: task.assigneeId, currentUserId }),
     kind: leadingKind,
@@ -195,6 +184,10 @@ function TaskRowImpl({
     ? getTaskProjectColumnId(task, board.columns)
     : taskColumnId(task)
 
+  // Choosing Done completes the task, so a task that is not yours asks first
+  // (ADEV-71) — held until the answer, never moved and moved back.
+  const completion = useCompletionConfirmation(currentUserId)
+  const { requestColumnMove } = completion
   const applyColumn = React.useCallback(
     (columnId: string) => {
       setOptionsOpen(false)
@@ -205,24 +198,28 @@ function TaskRowImpl({
         // The board's own move function, so a state set from the row and a
         // card dragged into a column cannot mean different things — including
         // the stale status membership it strips.
-        const move = resolveProjectColumnMove(task, column, board.lists)
-        const listById = new Map(board.lists.map(entry => [entry.id, entry]))
-        const nextLists = move.listIds
-          .map(listId => listById.get(listId))
-          .filter((entry): entry is TaskList => Boolean(entry))
-        handleUpdateTask({
-          ...task,
-          completed: move.completed,
-          lists: nextLists,
-          statusRole: move.statusRole,
-        } as Task)
+        requestColumnMove(task, column, () => {
+          const move = resolveProjectColumnMove(task, column, board.lists)
+          const listById = new Map(board.lists.map(entry => [entry.id, entry]))
+          const nextLists = move.listIds
+            .map(listId => listById.get(listId))
+            .filter((entry): entry is TaskList => Boolean(entry))
+          handleUpdateTask({
+            ...task,
+            completed: move.completed,
+            lists: nextLists,
+            statusRole: move.statusRole,
+          } as Task)
+        })
         return
       }
 
-      const move = resolveColumnMove(task, columnId)
-      handleUpdateTask({ ...task, statusRole: move.statusRole, completed: move.completed })
+      requestColumnMove(task, genericColumns.find(candidate => candidate.id === columnId), () => {
+        const move = resolveColumnMove(task, columnId)
+        handleUpdateTask({ ...task, statusRole: move.statusRole, completed: move.completed })
+      })
     },
-    [task, handleUpdateTask, board],
+    [task, handleUpdateTask, board, genericColumns, requestColumnMove],
   )
   // The board column as a coloured pill — this is a LIST row (AWTD-1582).
   const boardStatus = React.useMemo(
@@ -434,7 +431,6 @@ function TaskRowImpl({
           isMobile={isMobile}
           onToggleComplete={() => onToggleComplete(task.id)}
           onCopyPublic={() => onCopyPublic(task.id)}
-          displayMode={taskDisplayMode}
           onOpenOptions={opensOptions ? () => setOptionsOpen(true) : undefined}
           onBoard={Boolean(board)}
           currentListId={currentListId}
@@ -455,6 +451,7 @@ function TaskRowImpl({
             }}
             selectedPriority={task.priority}
             selectedAssignee={task.assignee ?? null}
+            assigneeId={task.assigneeId ?? null}
             unassign={{ task, apply: handleUpdateTask }}
             availableUsers={[]}
             taskId={task.id}
@@ -470,6 +467,7 @@ function TaskRowImpl({
             }}
           />
         )}
+        {completion.dialog}
         {dragCapability.touchDrag && manualSortActive && (
           <div
             className="absolute bottom-0.5 left-1/2 z-30 flex -translate-x-1/2 items-end justify-center"

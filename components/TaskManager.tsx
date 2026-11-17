@@ -443,7 +443,6 @@ export function TaskManager({
       loadData={controller.loadData}
       handleTaskClick={controller.handleTaskClick}
       handleUpdateTask={controller.handleUpdateTask}
-      taskDisplayMode={controller.taskDisplayMode}
       handleLocalUpdateTask={controller.handleLocalUpdateTask}
       handleToggleTaskComplete={controller.handleToggleTaskComplete}
       handleDeleteTask={controller.handleDeleteTask}
@@ -547,6 +546,8 @@ export function TaskManager({
         />
       )}
 
+      {/* The complete-task shortcut's "not yours" confirmation (ADEV-56). */}
+      {controller.completionConfirmationDialog}
     </ReminderProvider>
   )
 }

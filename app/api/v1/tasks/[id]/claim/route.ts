@@ -8,6 +8,7 @@ import {
   type AgentTaskClaimOutcome,
 } from '@/lib/agent-task-claim'
 import { claimAgentTask, resolveDelegatedClaimPrincipal } from '@/services/agent-task-claim.service'
+import { recordAgentHeartbeat } from '@/services/agent-presence.service'
 import { runtimePrincipalOf } from '@/lib/runtime-binding/task-runtime'
 import { runtimeBindingDenialStatus } from '@/lib/runtime-binding/denial-response'
 
@@ -51,11 +52,15 @@ export const POST = withAuth<RouteContext>(
       taskId,
       userId: auth.userId,
       agentId: principal.agentId,
+      agentMailbox: principal.agentMailbox,
       action: body.action,
       agentEmail: principal.agentEmail,
       principal: runtimePrincipalOf(auth),
       leaseSeconds: body.leaseSeconds,
     })
+    if (result.outcome === 'claimed' || result.outcome === 'already_yours' || result.outcome === 'renewed') {
+      await recordAgentHeartbeat({ agentId: principal.agentId, taskId })
+    }
     return NextResponse.json(result, {
       status: result.outcome === 'binding_denied' && result.binding
         ? runtimeBindingDenialStatus(result.binding)

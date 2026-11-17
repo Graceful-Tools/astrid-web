@@ -15,12 +15,13 @@ vi.mock('@/lib/projects-service', () => ({
   createProjectForUser: vi.fn(),
   deleteProjectAndDetachLists: vi.fn(),
   authorizeBoardOwner: vi.fn(),
+  authorizeProjectListMove: vi.fn(),
   collectProjectMemberUserIds: vi.fn(async () => []),
 }))
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    project: { findUnique: vi.fn() },
+    project: { findUnique: vi.fn(), update: vi.fn() },
     // checkRequestedProjectKey also refuses a renamed-away key or a minted prefix (AWTD-1024).
     projectKeyAlias: { findUnique: vi.fn() },
     task: { findFirst: vi.fn() },
@@ -80,6 +81,7 @@ import {
   createProjectForUser,
   deleteProjectAndDetachLists,
   authorizeBoardOwner,
+  authorizeProjectListMove,
 } from '@/lib/projects-service'
 import { prisma } from '@/lib/prisma'
 import { projectModeGate } from '@/lib/project-mode'
@@ -92,6 +94,7 @@ const mockDelete = vi.mocked(deleteProjectAndDetachLists)
 const mockPrisma = vi.mocked(prisma, true)
 const mockRename = vi.mocked(renameProjectKey)
 const mockOwner = vi.mocked(authorizeBoardOwner)
+const mockMove = vi.mocked(authorizeProjectListMove)
 
 const ownerAuth = {
   userId: 'owner-1',
@@ -332,8 +335,8 @@ describe('PATCH /api/v1/projects/:id — rename the key (AWTD-1024)', () => {
     expect(await res.json()).toMatchObject({ error: 'The key AITD is already taken' })
   })
 
-  it('400s a body without a key', async () => {
-    expect((await patch({ name: 'x' })).status).toBe(400)
+  it('400s a body with neither key nor name', async () => {
+    expect((await patch({ color: 'x' })).status).toBe(400)
     expect(mockRename).not.toHaveBeenCalled()
   })
 
@@ -341,5 +344,115 @@ describe('PATCH /api/v1/projects/:id — rename the key (AWTD-1024)', () => {
     mockAuth.mockResolvedValue(readOnlyAuth as any)
     expect((await patch({ key: 'WEB' })).status).toBe(403)
     expect(mockRename).not.toHaveBeenCalled()
+  })
+})
+
+describe('PATCH /api/v1/projects/:id — rename the project (ADEV-48)', () => {
+  const params = Promise.resolve({ id: 'p1' })
+  const patch = (body: unknown) =>
+    patchProject(makeReq('PATCH', body, 'http://localhost/api/v1/projects/p1'), { params } as any)
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockAuth.mockResolvedValue(ownerAuth as any)
+    mockOwner.mockResolvedValue({ ok: true })
+    mockMove.mockResolvedValue({ ok: true })
+    mockPrisma.project.update.mockResolvedValue({ id: 'p1', name: 'New name' } as any)
+  })
+
+  it('ADEV-48: renames with a trimmed name for the owner or a project admin', async () => {
+    const res = await patch({ name: '  New name  ' })
+
+    expect(res.status).toBe(200)
+    expect(mockMove).toHaveBeenCalledWith('p1', 'owner-1')
+    expect(mockPrisma.project.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'p1' }, data: { name: 'New name' } }),
+    )
+    expect(mockRename).not.toHaveBeenCalled()
+    expect(await res.json()).toMatchObject({ project: { id: 'p1', name: 'New name' } })
+  })
+
+  it('ADEV-48: 400s an empty or blank name', async () => {
+    const res = await patch({ name: '   ' })
+    expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({ code: 'PROJECT_NAME_REQUIRED' })
+    expect(mockPrisma.project.update).not.toHaveBeenCalled()
+  })
+
+  it('ADEV-48: 403s PROJECT_RENAME_FORBIDDEN for a plain member, 404s an unknown project', async () => {
+    mockMove.mockResolvedValue({ error: 'forbidden' })
+    const res = await patch({ name: 'X' })
+    expect(res.status).toBe(403)
+    expect(await res.json()).toMatchObject({ code: 'PROJECT_RENAME_FORBIDDEN' })
+    mockMove.mockResolvedValue({ error: 'not_found' })
+    expect((await patch({ name: 'X' })).status).toBe(404)
+    expect(mockPrisma.project.update).not.toHaveBeenCalled()
+  })
+
+  it('ADEV-48: a refused key changes nothing, name included', async () => {
+    mockRename.mockResolvedValue({ error: 'The key AITD is already taken', status: 409 })
+    const res = await patch({ name: 'X', key: 'AITD' })
+    expect(res.status).toBe(409)
+    expect(mockPrisma.project.update).not.toHaveBeenCalled()
+  })
+
+  it('ADEV-48: name and key together answer both', async () => {
+    mockRename.mockResolvedValue({ key: 'WEB', previousKey: 'AWTD' })
+    const res = await patch({ name: 'New name', key: 'web' })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({
+      project: { id: 'p1', name: 'New name', key: 'WEB' },
+      previousKey: 'AWTD',
+    })
+  })
+})
+
+describe('PATCH /api/v1/projects/:id — description and color (ADEV-67)', () => {
+  const params = Promise.resolve({ id: 'p1' })
+  const patch = (body: unknown) =>
+    patchProject(makeReq('PATCH', body, 'http://localhost/api/v1/projects/p1'), { params } as any)
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockAuth.mockResolvedValue(ownerAuth as any)
+    mockMove.mockResolvedValue({ ok: true })
+    mockPrisma.project.update.mockResolvedValue({
+      id: 'p1',
+      name: 'Kept',
+      description: 'About',
+      color: '#112233',
+    } as any)
+  })
+
+  it('ADEV-67: updates description and color together and answers the updated project', async () => {
+    const res = await patch({ description: '  About  ', color: '#112233' })
+
+    expect(res.status).toBe(200)
+    expect(mockPrisma.project.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'p1' }, data: { description: 'About', color: '#112233' } }),
+    )
+    expect(await res.json()).toMatchObject({
+      project: { id: 'p1', name: 'Kept', description: 'About', color: '#112233' },
+    })
+  })
+
+  it('ADEV-67: an empty description clears it', async () => {
+    await patch({ description: '   ' })
+    expect(mockPrisma.project.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { description: null } }),
+    )
+  })
+
+  it('ADEV-67: 400s a color that is not #rrggbb and changes nothing', async () => {
+    const res = await patch({ name: 'X', color: 'red' })
+    expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({ code: 'PROJECT_COLOR_INVALID' })
+    expect(mockPrisma.project.update).not.toHaveBeenCalled()
+  })
+
+  it('ADEV-67: 403s a plain member', async () => {
+    mockMove.mockResolvedValue({ error: 'forbidden' })
+    expect((await patch({ color: '#112233' })).status).toBe(403)
+    expect(mockPrisma.project.update).not.toHaveBeenCalled()
   })
 })

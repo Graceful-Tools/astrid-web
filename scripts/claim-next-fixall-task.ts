@@ -16,14 +16,15 @@
  * when the runner found it cannot push to astrid-core (`ASTRID_CORE_PUSH=0`).
  *
  * Exit codes, matching claim-fixall-task.ts and agent-queue-status.ts:
- *   0  `CLAIMED <id> <identifier> — <title>`: the task is this session's, in Doing
+ *   0  `CLAIMED <id> <identifier> — <title>`: the task is this session's, in Doing. When the
+ *      runner already claimed one for this worker (`ASTRID_CLAIMED_TASK`), that one, unasked.
  *   3  `NO_READY_TASK`: every Ready task is taken or skipped — say RESULT: SKIPPED
  *   1  could not tell (auth, network, a non-409 refusal). Not the same as empty.
  */
 
 import { existsSync, readFileSync } from 'node:fs'
 import { loadScriptEnv } from './lib/load-env'
-import { claimNextReady, isCoreCandidate, type ClaimCandidate } from './lib/claim-next'
+import { claimNextReady, isCoreCandidate, runnerClaimedTask, type ClaimCandidate } from './lib/claim-next'
 import { recordClaim, requestFixallClaim } from './lib/fixall-claim-request'
 import { scriptClient } from './lib/script-client'
 import { FIXALL_CLAIM_MAILBOXES } from '@/lib/fixall-claim'
@@ -60,6 +61,14 @@ async function main() {
   if (!clientId || !clientSecret) {
     console.error('ASTRID_OAUTH_CLIENT_ID and ASTRID_OAUTH_CLIENT_SECRET are required')
     process.exit(1)
+  }
+
+  // The runner claimed this worker's task before the session started (ADEV-75). It is
+  // already ours, in Doing; re-walking the queue would answer NO_READY_TASK for it.
+  const held = runnerClaimedTask(process.env)
+  if (held) {
+    console.log(`CLAIMED ${held} — already claimed for this worker by the runner; work it`)
+    return
   }
 
   const client = scriptClient({ clientId, clientSecret })

@@ -23,7 +23,6 @@ import { render, act } from '@testing-library/react'
 import { renderHook } from '@testing-library/react'
 import { TaskRow, type TaskRowProps, type TaskRowControllerSlice } from '@/components/TaskManager/MainContent/TaskRow'
 import { useTaskRowController } from '@/hooks/task-manager/useTaskRowController'
-import { TASK_DISPLAY_MODES } from '@/lib/task-display-mode'
 import type { Task } from '@/types/task'
 
 const rowContentRenders = vi.fn()
@@ -53,7 +52,6 @@ function makeController(overrides: Partial<TaskRowControllerSlice> = {}): TaskRo
     handleTaskDragLeaveTask: vi.fn(),
     handleTaskDragEnd: vi.fn(),
     handleUpdateTask: vi.fn(),
-    taskDisplayMode: 'list',
     ...overrides,
   } as unknown as TaskRowControllerSlice
 }
@@ -144,7 +142,6 @@ describe('the controller bundle rows receive is stable (task ed1d85ba)', () => {
     handleTaskDragLeaveTask: vi.fn(),
     handleTaskDragEnd: vi.fn(),
     handleUpdateTask: vi.fn(),
-    taskDisplayMode: 'list',
   }
 
   it('returns the same object when nothing a row cares about changed', () => {
@@ -170,17 +167,6 @@ describe('the controller bundle rows receive is stable (task ed1d85ba)', () => {
 
     expect(result.current).not.toBe(first)
     expect(result.current.selectedTaskId).toBe('task-1')
-  })
-
-  it('normalises the display mode rather than passing a bare string down', () => {
-    const { result } = renderHook(() =>
-      useTaskRowController({ ...input, taskDisplayMode: 'not-a-mode' }),
-    )
-
-    // A mode that travelled down a long prop chain must not reach a row as an
-    // unrecognised value (task ffa5bbb5) — the reason this was adapted rather
-    // than cast when it was a literal.
-    expect(TASK_DISPLAY_MODES).toContain(result.current.taskDisplayMode)
   })
 })
 
