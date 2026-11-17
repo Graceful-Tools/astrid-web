@@ -1828,6 +1828,8 @@
     "projectNone": "Ninguno",
     "projectMoveFailed": "No se pudo mover esta lista",
     "projectLockedIn": "En {name}. Solo el propietario o un administrador del proyecto puede sacarla.",
+    "projectNew": "Nuevo proyecto…",
+    "projectLeaveConfirm": "¿Quitar {list} de {project}?",
     "newListInProject": "Nueva lista en el proyecto…",
     "newListName": "Nombre de la lista",
     "newListFailed": "No se pudo crear la lista"
