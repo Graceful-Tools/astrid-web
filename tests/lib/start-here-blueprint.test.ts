@@ -139,9 +139,9 @@ describe('/starthere.md, followed literally by each agent', () => {
           const workflow = actionsQueueGateWorkflow({ mailbox: agent.mailbox, origin: ORIGIN, listId: '<list id>' })
           expect(section).toContain(workflow.path)
           expect(blocks).toContain(workflow.content)
-          expect(workflow.content).toContain(`${ORIGIN}/api/v1/oauth/token`)
-          expect(workflow.content).toContain(`agent=${agent.mailbox}&listId=<list id>`)
-          expect(workflow.content).toContain('X-OAuth-Token')
+          // ADEV-8: one astrid-agent call exchanges the credentials and reads the queue.
+          expect(workflow.content).toContain(`ASTRID_API_URL: ${ORIGIN}`)
+          expect(workflow.content).toContain(`astrid-agent queue --agent ${agent.mailbox} --list <list id>`)
           expect(workflow.content).toContain('cron: "*/30 * * * *"')
         })
       }
