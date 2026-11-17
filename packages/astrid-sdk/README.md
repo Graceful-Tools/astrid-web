@@ -103,6 +103,38 @@ Gives a Doing claim back: the task returns to Ready and this agent is
 unassigned. `--comment` posts the reason first. Exit 0 released, 2 not your
 Doing claim, 1 error.
 
+### `astrid-agent run`
+
+```bash
+astrid-agent run --agent <mailbox> [--list <listId>] [--task <taskId>] [--include-unassigned] \
+                 [--harness claude|codex|copilot|custom] [--command <shell command>] [--lease-seconds <n>]
+```
+
+One call for a whole run: reads the queue, claims the first task a peer has not
+taken, starts the harness with the task as its prompt, renews the claim lease
+every third of the lease while it works, and, if the harness fails, comments the
+reason and releases the claim so the next run can take the task.
+
+`--harness` is a setting (default `claude`): `claude -p`, `codex exec`,
+`copilot -p`, or `custom` with `--command`, which runs through a shell and reads
+`ASTRID_TASK_ID`, `ASTRID_TASK_IDENTIFIER`, `ASTRID_TASK_TITLE`,
+`ASTRID_TASK_PROMPT` and `ASTRID_AGENT` from its environment.
+
+| Exit | Meaning |
+|---|---|
+| 0 | The harness finished. |
+| 3 | Nothing to claim. |
+| 2 | The claim was lost mid-run (the lease lapsed); the harness was stopped. |
+| 1 | The harness failed (the task was released), or an error. |
+
+### `astrid-agent status`
+
+```bash
+astrid-agent status --agent <mailbox> [--list <listId>] [--include-unassigned]
+```
+
+Prints `{ mode, queued, attention, snapshot }` as JSON.
+
 ### Example: a GitHub Actions gate
 
 ```yaml

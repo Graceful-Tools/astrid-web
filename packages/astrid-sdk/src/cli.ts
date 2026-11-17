@@ -25,6 +25,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import { dirname, join } from 'node:path'
 
 import { AstridApiError, AstridClient, type AstridAuth } from './client.js'
+import { HARNESSES, runAgent, type Harness, type RunDeps } from './run.js'
 import { decideQueueVerdict } from './verdict.js'
 
 export const EXIT = {
@@ -40,6 +41,8 @@ export const EXIT = {
 export interface CliIO {
   env: Record<string, string | undefined>
   fetch?: typeof fetch
+  /** Starts the harness process; injected by tests. */
+  start?: RunDeps['start']
   stdout: (line: string) => void
   stderr: (line: string) => void
 }
@@ -64,6 +67,14 @@ Commands:
   release  <taskId> [--agent <mailbox>] [--comment <text>]
            Give a Doing claim back to Ready. Exit 0 released, 2 not yours, 1 error.
 
+  run      --agent <mailbox> [--list <listId>] [--task <taskId>] [--include-unassigned]
+           [--harness claude|codex|copilot|custom] [--command <shell command>] [--lease-seconds <n>]
+           Claim a task, start the harness on it, heartbeat while it runs, and
+           release the claim if it fails. Exit 0 done, 3 nothing to claim,
+           1 harness failed or error, 2 the claim was lost mid-run.
+  status   --agent <mailbox> [--list <listId>] [--include-unassigned]
+           Print the queue and the agent's mode as JSON. Exit 1 if it cannot tell.
+
 Options:
   --origin <url>   Server origin (default: ASTRID_API_URL, then production)
   -h, --help       Show this help
@@ -74,7 +85,7 @@ Environment:
 
 const VALUED = new Set([
   '--agent', '--list', '--seen', '--origin', '--comment', '--lease-seconds',
-  '--watermark', '--resume-context', '--resume-context-file',
+  '--watermark', '--resume-context', '--resume-context-file', '--harness', '--command', '--task',
 ])
 const BOOLEAN = new Set([
   '--include-unassigned', '--write-seen', '--require-polling', '--resume', '--fixall', '--help', '-h', '--version', '-v',
@@ -320,6 +331,49 @@ async function release(client: AstridClient, args: Parsed, io: CliIO): Promise<n
   return EXIT.ERROR
 }
 
+async function run(client: AstridClient, args: Parsed, io: CliIO): Promise<number> {
+  const agent = args.flags.get('--agent')
+  if (!agent) throw new UsageError('run needs --agent <mailbox>')
+  const harness = (args.flags.get('--harness') ?? 'claude') as Harness
+  if (!HARNESSES.includes(harness)) throw new UsageError(`--harness must be one of ${HARNESSES.join(', ')}`)
+  if (harness === 'custom' && !args.flags.get('--command')) throw new UsageError('--harness custom needs --command')
+  const deps: RunDeps = { client, env: io.env, log: io.stderr, ...(io.start ? { start: io.start } : {}) }
+  const outcome = await runAgent({
+    agent,
+    harness,
+    listId: args.flags.get('--list'),
+    command: args.flags.get('--command'),
+    taskId: args.flags.get('--task'),
+    includeUnassigned: args.switches.has('--include-unassigned'),
+    leaseSeconds: leaseSecondsOf(args),
+  }, deps)
+  switch (outcome.kind) {
+    case 'idle': io.stderr('RUN: nothing to claim'); return EXIT.IDLE
+    case 'done': io.stdout(`DONE ${outcome.taskId}`); return EXIT.WORK
+    case 'lost': io.stderr(`RUN_LOST ${outcome.taskId}: the claim was lost mid-run`); return EXIT.CONFLICT
+    case 'failed': io.stderr(`RUN_FAILED ${outcome.taskId}: ${outcome.reason}`); return EXIT.ERROR
+  }
+}
+
+async function status(client: AstridClient, args: Parsed, io: CliIO): Promise<number> {
+  const agent = args.flags.get('--agent')
+  if (!agent) throw new UsageError('status needs --agent <mailbox>')
+  const snapshot = await client.getQueue({
+    agent,
+    listId: args.flags.get('--list'),
+    includeUnassigned: args.switches.has('--include-unassigned'),
+  })
+  io.stdout(JSON.stringify({
+    version: 1,
+    agent,
+    mode: snapshot.mode ?? null,
+    queued: snapshot.queue?.length ?? 0,
+    attention: snapshot.attention?.tasks?.length ?? 0,
+    snapshot,
+  }, null, 2))
+  return EXIT.WORK
+}
+
 /** Runs one command and resolves to its exit code. Never calls process.exit. */
 export async function runCli(argv: string[], io: CliIO): Promise<number> {
   let args: Parsed
@@ -339,7 +393,7 @@ export async function runCli(argv: string[], io: CliIO): Promise<number> {
   }
 
   const command = args.positional[0]
-  const handlers: Record<string, typeof queue> = { queue, claim, heartbeat, release }
+  const handlers: Record<string, typeof queue> = { queue, claim, heartbeat, release, run, status }
   const handler = command ? handlers[command] : undefined
   if (!handler) {
     io.stderr(`${command ? `Unknown command "${command}"` : 'No command given'}\n\n${USAGE}`)
