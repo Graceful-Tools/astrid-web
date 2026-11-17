@@ -4,7 +4,7 @@
  * end SKIPPED while unclaimed Ready work remains.
  */
 import { describe, expect, it, vi } from 'vitest'
-import { claimNextReady, isCoreCandidate, type ClaimCandidate } from '@/scripts/lib/claim-next'
+import { claimNextReady, isCoreCandidate, runnerClaimedTask, type ClaimCandidate } from '@/scripts/lib/claim-next'
 import { ASTRID_API, recordClaim, requestFixallClaim } from '@/scripts/lib/fixall-claim-request'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -146,5 +146,18 @@ describe('ADEV-26: the shared claim request', () => {
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
+  })
+})
+
+describe('ADEV-75: a task the runner already claimed for this worker', () => {
+  it('is answered as this worker\'s claim instead of re-walking the queue to NO_READY_TASK', () => {
+    expect(runnerClaimedTask({ ASTRID_CLAIMED_TASK: '07824c1f-9e53-432e-abb5-7edcd6516e47' }))
+      .toBe('07824c1f-9e53-432e-abb5-7edcd6516e47')
+  })
+
+  it('is absent for slot 1, a local session, or a malformed value', () => {
+    expect(runnerClaimedTask({})).toBeUndefined()
+    expect(runnerClaimedTask({ ASTRID_CLAIMED_TASK: '' })).toBeUndefined()
+    expect(runnerClaimedTask({ ASTRID_CLAIMED_TASK: 'abc; rm -rf /' })).toBeUndefined()
   })
 })
