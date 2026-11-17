@@ -59,6 +59,12 @@ interface GithubPull {
 
 const isCopilot = (login?: string) => ['copilot-swe-agent[bot]', 'copilot-swe-agent', 'Copilot'].includes(login || '')
 const sourceMarker = (list: string, task: string) => `<!-- astrid-native:v1:${list}:${task} -->`
+const prRequirements = (marker: string) => [
+  '## Pull request requirements',
+  'Your pull request description MUST contain this exact line, copied verbatim. It links the PR to its Astrid task; without it the PR is ignored and the task is parked as stalled:',
+  '```', marker, '```',
+  'It must also contain `Fixes #<this issue number>`.',
+].join('\n')
 const replyMarker = (comment: TaskComment) => `<!-- astrid-reply:${comment.id}:${comment.updatedAt} -->`
 
 /** Bounded pagination must fail, not truncate the history used for idempotency. */
@@ -170,7 +176,10 @@ export async function runNativeCopilotBridge(options: {
       ).join('\n\n')
       issue = await api.github<GithubIssue>(`/repos/${repo}/issues`, {
         title: `[${task.identifier || taskId}] ${task.title}`,
-        body: `${options.issueTemplate}\n\n## Astrid source of truth\n${task.description || 'N/A'}\n\n${context}\n\n${marker}`,
+        // The marker binds the PR to this task (see the timeline match below). Copilot
+        // never copied it from the hidden instructions or the trailing comment, so the
+        // issue states it visibly, before anything else (AWTD-1580).
+        body: `${prRequirements(marker)}\n\n${options.issueTemplate}\n\n## Astrid source of truth\n${task.description || 'N/A'}\n\n${context}\n\n${marker}`,
       })
     }
     if (issue.state !== 'open') {
