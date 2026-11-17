@@ -11,13 +11,11 @@
  * all; this is how its loop reaches the start-of-tick Doing release.
  */
 import { READY_QUEUE_BOARDS, type ReadyQueueBoard } from '@/lib/ready-queue-scope'
+// The name lookup and the --list/--board rule are the SDK's (ADEV-83): `astrid-agent queue --board`
+// resolves a board the same way, and two copies would drift about which board `windows` means.
+import { BOARD_LIST_NAMES, findBoardList, parseBoardTarget, type BoardTarget } from '../../packages/astrid-sdk/src/board'
 
-export const BOARD_LIST_NAMES: Record<ReadyQueueBoard, string> = {
-  web: 'Astrid Web To-do',
-  ios: 'Astrid iOS To-do',
-  windows: 'Astrid Windows To-do',
-  android: 'Astrid Android To-do',
-}
+export { BOARD_LIST_NAMES, findBoardList, parseBoardTarget, type BoardTarget }
 
 /**
  * The checkouts each board's workflow can touch, its own repo first (AWTD-1510).
@@ -44,21 +42,6 @@ export function boardForRepo(repoName: string): ReadyQueueBoard | null {
   return board ?? null
 }
 
-type BoardList = { id: string; name?: string }
-
-/** Pick the board out of a `GET /api/v1/lists` body, or throw. */
-export function findBoardList(listsBody: unknown, board: ReadyQueueBoard): BoardList {
-  const name = BOARD_LIST_NAMES[board]
-  const lists = (listsBody as { lists?: unknown })?.lists ?? listsBody
-  const matches = (Array.isArray(lists) ? lists : []).filter(
-    (list: { name?: string }) => list?.name === name,
-  ) as BoardList[]
-  if (matches.length > 1) throw new Error(`Multiple lists named "${name}" found — pass an explicit --list id.`)
-  const found = matches[0]
-  if (!found) throw new Error(`No list named "${name}" found — refusing to run unscoped.`)
-  return found
-}
-
 export async function resolveBoardListId(options: {
   board: ReadyQueueBoard
   auth: Record<string, string>
@@ -71,22 +54,4 @@ export async function resolveBoardListId(options: {
     throw new Error(`Could not read lists to find "${BOARD_LIST_NAMES[board]}" — HTTP ${response.status}`)
   }
   return findBoardList(await response.json(), board).id
-}
-
-export type BoardTarget =
-  | { kind: 'list'; listId: string }
-  | { kind: 'board'; board: ReadyQueueBoard }
-
-/**
- * `--list <id>` or `--board <name>`, at most one. Neither is `null`: no board
- * pass, which the caller may or may not accept.
- */
-export function parseBoardTarget(args: { list?: string; board?: string }): BoardTarget | null {
-  if (args.list && args.board) throw new Error('Pass --list <listId> or --board <name>, not both.')
-  if (args.list) return { kind: 'list', listId: args.list }
-  if (args.board === undefined) return null
-  if (!READY_QUEUE_BOARDS.includes(args.board as ReadyQueueBoard)) {
-    throw new Error(`Unknown board "${args.board}". Expected one of: ${READY_QUEUE_BOARDS.join(', ')}`)
-  }
-  return { kind: 'board', board: args.board as ReadyQueueBoard }
 }

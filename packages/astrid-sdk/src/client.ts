@@ -133,6 +133,33 @@ export class AstridClient {
   }
 
   /**
+   * `GET /api/v1/tasks` for a board's open tasks, in the lean shape a sweep wants:
+   * no descriptions (80% of the wire bytes, and an omitted field is ABSENT, not null),
+   * no repeated list-member rows. A caller that needs a description reads `getTask`.
+   * `meta.total` above `limit` means the page truncated; say so.
+   */
+  async getBoardTasks(query: { listId: string; limit: number }): Promise<{ tasks: AstridTask[]; meta?: { total?: number } }> {
+    const params = new URLSearchParams({
+      listId: query.listId,
+      completed: 'false',
+      leanListMembers: '1',
+      omit: 'description',
+      limit: String(query.limit),
+    })
+    const body = await this.request<{ tasks?: AstridTask[]; meta?: { total?: number } }>(`/api/v1/tasks?${params}`)
+    return { tasks: body.tasks ?? [], ...(body.meta ? { meta: body.meta } : {}) }
+  }
+
+  /**
+   * The OAuth access token behind this client, for a caller that hands it to a helper
+   * taking a bare `X-OAuth-Token` value. Exchanged once and cached like any request's.
+   */
+  async accessToken(): Promise<string> {
+    const headers = await this.authHeaders()
+    return headers['X-OAuth-Token'] ?? headers.Authorization.replace(/^Bearer /, '')
+  }
+
+  /**
    * `POST /api/v1/tasks/:id/claim`: atomic claim, resume or release. Every
    * documented outcome is returned, not thrown, so a caller can branch on a
    * conflict; only an undocumented answer throws.

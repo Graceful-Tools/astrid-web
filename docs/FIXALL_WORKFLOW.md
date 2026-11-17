@@ -582,8 +582,8 @@ LONG-RUN            ← 8 hours, the maximum
 LONG-RUN: 3h        ← or any shorter length (90m, 2.5 hours…), capped at 8h
 ```
 
-The web runner's preflight (`scripts/agent-queue-status.ts --long-run-window`, decided in
-`scripts/lib/long-run.ts`) then plans the tick:
+The web runner's preflight (`astrid-agent queue --lines --long-run-window`, run through
+`scripts/astrid-agent.ts`, decided in `packages/astrid-sdk/src/long-run.ts`) then plans the tick:
 
 - **Outside the long-run window** (22:00–06:00 local by default, `FIXALL_LONG_RUN_WINDOW`) the
   flagged task is **deferred** — the run works the rest of the queue under the ordinary watchdog
@@ -693,9 +693,11 @@ explicit human approval requirements.
 
 ### Launcher preflight and acknowledgement
 
-`agent-queue-status.ts --agent <mailbox> --board <platform> --list <boardId>
+`astrid-agent queue --lines --agent <mailbox> --board <platform> --list <boardId>
 `--include-unassigned --require-polling --no-write-seen --seen <durable-file>`
-checks activation before any claim. An API/webhook/off mode is an error,
+checks activation before any claim. (`scripts/agent-queue-status.ts` is a shim over the same
+command for callers that still name it; `scripts/astrid-agent.ts` is the bin with `.env.local`
+loaded. ADEV-83.) An API/webhook/off mode is an error,
 not an idle queue: otherwise the worker would race the hosted dispatcher.
 Unread list chat is reported explicitly; task replies do not require `chat:read`.
 

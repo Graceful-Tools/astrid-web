@@ -24,7 +24,10 @@ import { join } from 'path'
 
 const ROOT = process.cwd()
 const LOOP = 'scripts/fixall-loop.sh'
-const STATUS = 'scripts/agent-queue-status.ts'
+// The status logic moved into `astrid-agent queue --lines` (ADEV-83); the loop calls it through
+// scripts/astrid-agent.ts, which loads .env.local first.
+const STATUS = 'packages/astrid-sdk/src/queue-loop.ts'
+const CLI = 'packages/astrid-sdk/src/cli.ts'
 
 const loop = readFileSync(join(ROOT, LOOP), 'utf8')
 const status = readFileSync(join(ROOT, STATUS), 'utf8')
@@ -32,12 +35,12 @@ const status = readFileSync(join(ROOT, STATUS), 'utf8')
 describe('the scheduled loop wakes only for new work', () => {
   it('names the web board to the status script', () => {
     // The invocation, not the comment that mentions the script above it.
-    const call = loop.match(/QUEUE_OUT=\$\([^\n]*agent-queue-status\.ts[^\n]*/)?.[0] ?? ''
+    const call = loop.match(/QUEUE_OUT=\$\([^\n]*astrid-agent\.ts[^\n]*/)?.[0] ?? ''
     expect(call, `${LOOP} must pass --board web to ${STATUS}`).toMatch(/--board web\b/)
   })
 
   it('counts unassigned Ready tasks as work, as /fixall does', () => {
-    const call = loop.match(/QUEUE_OUT=\$\([^\n]*agent-queue-status\.ts[^\n]*/)?.[0] ?? ''
+    const call = loop.match(/QUEUE_OUT=\$\([^\n]*astrid-agent\.ts[^\n]*/)?.[0] ?? ''
     expect(call, `${LOOP} must pass --include-unassigned to ${STATUS}`).toMatch(/--include-unassigned\b/)
     // ADEV-9: the SDK client turns the option into `includeUnassigned=true` on the wire.
     expect(status).toMatch(/const query = \{[^}]*\bincludeUnassigned\b[^}]*\}/)
@@ -58,14 +61,15 @@ describe('the scheduled loop wakes only for new work', () => {
   it('bounds waking with a seen-file by default, not only when asked', () => {
     // The iOS loop calls this script with no flags; an unanswered item there
     // must not become a session every tick either.
-    expect(status).toMatch(/arg\('--seen'\)\s*\?\?\s*defaultSeenFile\(/)
+    expect(status).toMatch(/args\.flag\('--seen'\)/)
+    expect(status).toMatch(/defaultSeenFile\(agent, listId\)/)
   })
 
   it('keeps the default seen-file out of node_modules', () => {
     // node_modules/.cache was wiped by every `npm ci`, and the next tick woke
     // every unanswered item at once. The default belongs in the OS cache dir;
     // node_modules survives only in the one-time legacy adoption path.
-    const seenLib = readFileSync(join(ROOT, 'scripts/lib/fixall-seen-file.ts'), 'utf8')
+    const seenLib = readFileSync(join(ROOT, 'packages/astrid-sdk/src/seen-file.ts'), 'utf8')
     const defaultFn = seenLib.match(/export function defaultSeenFile\([\s\S]*?\n\}/)?.[0] ?? ''
     expect(defaultFn, 'defaultSeenFile must not point at node_modules').not.toMatch(/node_modules/)
     expect(defaultFn).toMatch(/Caches/)
@@ -84,16 +88,16 @@ describe('the scheduled loop wakes only for new work', () => {
     // budget-exhausted run then muted its inbox/lane items forever: "one run
     // per item" became "one attempt ever". The preflight must defer the
     // write, and the script must honor the flag it is passed.
-    const call = loop.match(/QUEUE_OUT=\$\([^\n]*agent-queue-status\.ts[^\n]*/)?.[0] ?? ''
+    const call = loop.match(/QUEUE_OUT=\$\([^\n]*astrid-agent\.ts[^\n]*/)?.[0] ?? ''
     expect(call, `${LOOP} preflight must defer the seen-file write`).toMatch(/--no-write-seen\b/)
-    expect(status, `${STATUS} must honor --no-write-seen`).toMatch(/process\.argv\.includes\('--no-write-seen'\)/)
+    expect(status, `${STATUS} must honor --no-write-seen`).toMatch(/args\.has\('--no-write-seen'\)/)
   })
 
   it('records wake keys by how the run ended, before its RESULT line (AWTD-986)', () => {
     // The invocations, not the comments that describe them: a finished run
     // marks its keys seen, a failed one gives them a strike, and both happen
     // before the RESULT line so that line stays the last one in the log.
-    const calls = [...loop.matchAll(/^\s*"\$TSX" scripts\/agent-queue-status\.ts[^\n]*--mark-seen[^\n]*$/gm)].map(m => m[0])
+    const calls = [...loop.matchAll(/^\s*"\$TSX" scripts\/astrid-agent\.ts queue[^\n]*--mark-seen[^\n]*$/gm)].map(m => m[0])
     expect(calls, `${LOOP} must call --mark-seen for a finished run and --mark-seen --failed for a failed one`).toHaveLength(2)
     expect(calls.some(c => /--mark-seen --seen-keys/.test(c))).toBe(true)
     expect(calls.some(c => /--mark-seen --failed --seen-keys/.test(c))).toBe(true)
@@ -103,8 +107,8 @@ describe('the scheduled loop wakes only for new work', () => {
     const lastCall = calls.map(c => loop.indexOf(c)).sort((a, b) => b - a)[0]
     expect(lastCall, 'mark-seen must run before the RESULT lines').toBeLessThan(loop.lastIndexOf('echo "RESULT: OK'))
     expect(lastCall).toBeLessThan(loop.lastIndexOf('echo "RESULT: FAILED'))
-    expect(status, `${STATUS} must handle --mark-seen`).toMatch(/process\.argv\.includes\('--mark-seen'\)/)
-    expect(status, `${STATUS} must handle --failed`).toMatch(/process\.argv\.includes\('--failed'\)/)
+    expect(readFileSync(join(ROOT, CLI), 'utf8'), `${CLI} must handle --mark-seen`).toMatch(/switches\.has\('--mark-seen'\)/)
+    expect(status, `${STATUS} must handle --failed`).toMatch(/args\.has\('--failed'\)/)
   })
 
   it('bounds a run that keeps failing instead of re-waking it every tick (AWTD-986)', () => {
