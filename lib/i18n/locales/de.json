@@ -243,7 +243,8 @@
     "userAvatarAlt": "Benutzer",
     "assigneeYou": "Du",
     "board": {
-      "addTaskTo": "Aufgabe zu {name} hinzufügen"
+      "addTaskTo": "Aufgabe zu {name} hinzufügen",
+      "addTaskPlaceholder": "Aufgabe hinzufügen"
     },
     "dropToPlaceFirst": "Hier ablegen, um die erste Aufgabe zu platzieren"
   },
@@ -1831,7 +1832,8 @@
     "projectLockedIn": "In {name}. Nur Projekteigentümer oder Admins können sie herausnehmen.",
     "newListInProject": "Neue Liste im Projekt…",
     "newListName": "Listenname",
-    "newListFailed": "Liste konnte nicht erstellt werden"
+    "newListFailed": "Liste konnte nicht erstellt werden",
+    "boardNewList": "Neue Liste…"
   },
   "viewRotator": {
     "showList": "Liste anzeigen",

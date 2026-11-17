@@ -243,7 +243,8 @@
     "userAvatarAlt": "User",
     "assigneeYou": "You",
     "board": {
-      "addTaskTo": "Add task to {name}"
+      "addTaskTo": "Add task to {name}",
+      "addTaskPlaceholder": "Add a task"
     },
     "dropToPlaceFirst": "Drop here to place the first task"
   },
@@ -1831,7 +1832,8 @@
     "projectLockedIn": "In {name}. Only a project owner or admin can move it out.",
     "newListInProject": "New list in project…",
     "newListName": "List name",
-    "newListFailed": "Couldn't create the list"
+    "newListFailed": "Couldn't create the list",
+    "boardNewList": "New List…"
   },
   "viewRotator": {
     "showList": "Show list",
