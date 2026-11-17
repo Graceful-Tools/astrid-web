@@ -68,7 +68,7 @@ Commands:
            Give a Doing claim back to Ready. Exit 0 released, 2 not yours, 1 error.
 
   run      --agent <mailbox> [--list <listId>] [--task <taskId>] [--include-unassigned]
-           [--harness claude|codex|copilot|custom] [--command <shell command>] [--lease-seconds <n>]
+           [--harness claude|codex|copilot|custom] [--command <shell command>] [--lease-seconds <n>] [--fixall]
            Claim a task, start the harness on it, heartbeat while it runs, and
            release the claim if it fails. Exit 0 done, 3 nothing to claim,
            1 harness failed or error, 2 the claim was lost mid-run.
@@ -346,6 +346,7 @@ async function run(client: AstridClient, args: Parsed, io: CliIO): Promise<numbe
     taskId: args.flags.get('--task'),
     includeUnassigned: args.switches.has('--include-unassigned'),
     leaseSeconds: leaseSecondsOf(args),
+    fixall: args.switches.has('--fixall'),
   }, deps)
   switch (outcome.kind) {
     case 'idle': io.stderr('RUN: nothing to claim'); return EXIT.IDLE

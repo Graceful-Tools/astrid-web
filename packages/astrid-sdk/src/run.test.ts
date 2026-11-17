@@ -117,3 +117,65 @@ describe('astrid-agent status (AWTD-1696)', () => {
     expect(JSON.parse(h.out.join('\n'))).toMatchObject({ mode: 'polling', queued: 1, attention: 0 })
   })
 })
+
+describe('astrid-agent run --fixall: the claim a client-credentials worker can make (ADEV-86)', () => {
+  // agent-run.yml holds client credentials. The generic claim route answers them
+  // `forbidden`, so `run` could not claim, heartbeat or release from the cloud
+  // worker; claim-fixall is the route those credentials can use.
+  const TOKEN = { status: 200, body: { access_token: 'cc', expires_in: 3600 } }
+
+  function fixallSetup(fetchImpl: ReturnType<typeof fakeFetch>, exit: number | null, claimsFile?: string) {
+    const out: string[] = []
+    const err: string[] = []
+    const spawned: { argv?: string[]; env?: Record<string, string | undefined> } = {}
+    const run = (argv: string[]) => runCli(argv, {
+      env: {
+        ASTRID_API_URL: 'https://astrid.test', ASTRID_CLIENT_ID: 'id', ASTRID_CLIENT_SECRET: 'secret',
+        ...(claimsFile ? { ASTRID_FIXALL_CLAIMS_FILE: claimsFile } : {}),
+      },
+      fetch: fetchImpl,
+      start: (argv, env) => { spawned.argv = argv; spawned.env = env; return { exited: Promise.resolve(exit), kill: () => undefined } },
+      stdout: line => out.push(line),
+      stderr: line => err.push(line),
+    })
+    return { out, err, spawned, run }
+  }
+
+  it('claims through claim-fixall, moving past a task a peer took first', async () => {
+    const fetchImpl = fakeFetch(
+      TOKEN,
+      QUEUE,
+      { status: 409, body: { error: 'Task changed after queue selection and was not claimed' } },
+      { status: 200, body: { claimed: true } },
+      { status: 200, body: { task: { id: 't2', identifier: 'AWTD-2', title: 'Next' } } },
+    )
+    const h = fixallSetup(fetchImpl, 0)
+    expect(await h.run(['run', '--agent', 'claude', '--list', 'board', '--fixall', '--harness', 'claude'])).toBe(EXIT.WORK)
+    const urls = fetchImpl.mock.calls.map(call => String(call[0]))
+    expect(urls.filter(u => u.endsWith('/claim-fixall'))).toHaveLength(2)
+    expect(urls.some(u => /\/claim$/.test(u))).toBe(false)
+    const claimBody = JSON.parse(String((fetchImpl.mock.calls[3][1] as RequestInit).body))
+    expect(claimBody).toMatchObject({ action: 'ready', agent: 'claude', listId: 'board' })
+    expect(h.spawned.env?.ASTRID_TASK_ID).toBe('t2')
+  })
+
+  it('sends no lease heartbeat, records the claim, and leaves a failed task to the worker\'s release step', async () => {
+    const { mkdtempSync, readFileSync } = await import('node:fs')
+    const { tmpdir } = await import('node:os')
+    const { join } = await import('node:path')
+    const claims = join(mkdtempSync(join(tmpdir(), 'adev86-')), 'claims.txt')
+    const fetchImpl = fakeFetch(
+      TOKEN,
+      QUEUE,
+      { status: 200, body: { claimed: true } },
+      TASK,
+      { status: 200, body: { comment: { id: 'c1' } } },
+    )
+    const h = fixallSetup(fetchImpl, 1, claims)
+    expect(await h.run(['run', '--agent', 'claude', '--list', 'board', '--fixall', '--harness', 'claude'])).toBe(EXIT.ERROR)
+    const urls = fetchImpl.mock.calls.map(call => String(call[0]))
+    expect(urls.some(u => /\/claim$/.test(u))).toBe(false)
+    expect(urls.filter(u => u.endsWith('/comments'))).toHaveLength(1)
+    expect(readFileSync(claims, 'utf8')).toContain('t1')
+  })
+})

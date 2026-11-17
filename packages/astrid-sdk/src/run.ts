@@ -5,6 +5,7 @@
  */
 
 import { spawn, type ChildProcess } from 'node:child_process'
+import { appendFileSync } from 'node:fs'
 
 import type { AstridClient } from './client.js'
 import type { AstridTask } from './types.js'
@@ -32,6 +33,13 @@ export interface RunOptions {
   leaseSeconds?: number
   /** How often to renew the lease. Defaults to a third of the lease. */
   heartbeatMs?: number
+  /**
+   * Claim through `claim-fixall` (ADEV-86): the route client credentials can use, as
+   * Astrid's own cloud worker holds. Such a claim carries no lease, so no heartbeat is
+   * sent; the claim is recorded in `ASTRID_FIXALL_CLAIMS_FILE`, and a failed task is left
+   * to the worker's own release step rather than released here.
+   */
+  fixall?: boolean
 }
 
 export interface HarnessProcess {
@@ -93,6 +101,12 @@ export async function runAgent(options: RunOptions, deps: RunDeps): Promise<RunO
 
   let claimed: string | null = null
   for (const id of candidates) {
+    if (options.fixall) {
+      const result = await client.claimFixallTask(id, { action: 'ready', agent: options.agent, listId: options.listId })
+      if (result.claimed) { claimed = id; break }
+      log(`CLAIM_CONFLICT ${id}: ${result.error ?? 'taken'}`)
+      continue
+    }
     const result = await client.claimTask(id, {
       action: 'claim',
       agentMailbox: options.agent,
@@ -109,6 +123,9 @@ export async function runAgent(options: RunOptions, deps: RunDeps): Promise<RunO
   if (!claimed) return { kind: 'idle' }
   const taskId = claimed
   log(`CLAIMED ${taskId}`)
+  // The worker's release step reads this file to give back what a dead run claimed.
+  const claimsFile = deps.env.ASTRID_FIXALL_CLAIMS_FILE
+  if (options.fixall && claimsFile) appendFileSync(claimsFile, `${taskId}\n`)
 
   const task = await client.getTask(taskId)
   const prompt = buildPrompt(task, options.agent)
@@ -127,7 +144,8 @@ export async function runAgent(options: RunOptions, deps: RunDeps): Promise<RunO
 
   let lost = false
   const leaseSeconds = options.leaseSeconds ?? DEFAULT_LEASE_SECONDS
-  const timer = setInterval(() => {
+  // A fixall claim has no lease to renew; a heartbeat would answer "not yours" and stop the harness.
+  const timer = options.fixall ? undefined : setInterval(() => {
     client.heartbeatTask(taskId, { agentMailbox: options.agent, ...(options.leaseSeconds ? { leaseSeconds } : {}) })
       .then(result => {
         if (result.outcome === 'renewed') return
@@ -144,13 +162,18 @@ export async function runAgent(options: RunOptions, deps: RunDeps): Promise<RunO
   try {
     code = await proc.exited
   } finally {
-    clearInterval(timer)
+    if (timer) clearInterval(timer)
   }
 
   if (lost) return { kind: 'lost', taskId }
   if (code === 0) return { kind: 'done', taskId }
 
   const reason = `the ${options.harness} harness exited ${code === null ? 'on a signal' : `with code ${code}`}`
+  if (options.fixall) {
+    // The worker's release step gives it back, with the branch it left (ASTRID_FIXALL_CLAIMS_FILE).
+    await client.addComment(taskId, `Agent run failed: ${reason}. The worker's release step returns the task.`).catch(() => undefined)
+    return { kind: 'failed', taskId, reason }
+  }
   // Say why, then give the task back so the next run can take it.
   await client.addComment(taskId, `Agent run failed: ${reason}. Releasing the claim.`).catch(() => undefined)
   await client.releaseTask(taskId, options.agent).catch(() => undefined)
