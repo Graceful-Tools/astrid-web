@@ -104,7 +104,7 @@ describe('canonical queue skill (AWTD-759)', () => {
     expect(enrolledSkill).toContain('start only when the result is claimed')
     expect(enrolledSkill).toContain('resume')
     expect(enrolledSkill).toContain('`astrid-agent heartbeat <taskId>`')
-    expect(enrolledSkill).toContain('queue skill v1.9.0')
+    expect(enrolledSkill).toContain('queue skill v1.10.0')
     expect(canonicalQueueSkill({ ...OPTS, claimRequired: false })).not.toContain('claim_task')
     // Enrollment is per board: without a board there is nothing enrolled.
     expect(canonicalQueueSkill({ mailbox: 'codex', claimRequired: true })).not.toContain('claim_task')
