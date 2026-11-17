@@ -10,6 +10,9 @@
  *   AWTD-1024). Tasks become NEW-N; OLD-N keeps resolving as an alias.
  * PATCH /api/v1/projects/:id { name } - Rename the project (owner or project
  *   admin, ADEV-48). Sent with `key`, it stays owner-only.
+ * PATCH /api/v1/projects/:id { description, color } - Edit the project's
+ *   details, same bar as the name (ADEV-67). Any mix of name, description and
+ *   color in one call.
  */
 
 import { NextResponse } from 'next/server'
@@ -24,6 +27,7 @@ import {
   collectProjectMemberUserIds,
   deleteProjectAndDetachLists,
 } from '@/lib/projects-service'
+import { isListColor } from '@/lib/brand/colors'
 import { renameProjectKey } from '@/lib/task-identifier'
 
 const log = createLogger('v1.projects.id')
@@ -40,8 +44,29 @@ export const PATCH = withAuth<RouteContext>(
     const body = await req.json().catch(() => null)
     const hasKey = !!body && typeof body === 'object' && 'key' in body
     const hasName = !!body && typeof body === 'object' && 'name' in body
-    if (!hasKey && !hasName) {
-      return NextResponse.json({ error: 'Nothing to update: send { name } or { key }' }, { status: 400 })
+    const hasDescription = !!body && typeof body === 'object' && 'description' in body
+    const hasColor = !!body && typeof body === 'object' && 'color' in body
+    if (!hasKey && !hasName && !hasDescription && !hasColor) {
+      return NextResponse.json(
+        { error: 'Nothing to update: send { name }, { description }, { color } or { key }' },
+        { status: 400 },
+      )
+    }
+
+    let description: string | null | undefined
+    if (hasDescription) {
+      description = typeof body.description === 'string' ? body.description.trim() || null : null
+    }
+
+    let color: string | undefined
+    if (hasColor) {
+      if (!isListColor(body.color)) {
+        return NextResponse.json(
+          { error: 'Invalid color (must be #rrggbb)', code: 'PROJECT_COLOR_INVALID' },
+          { status: 400 },
+        )
+      }
+      color = body.color
     }
 
     let name: string | undefined
@@ -81,13 +106,18 @@ export const PATCH = withAuth<RouteContext>(
       keyResult = result
     }
 
-    const renamed =
-      name === undefined
+    const data = {
+      ...(name !== undefined ? { name } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(color !== undefined ? { color } : {}),
+    }
+    const updated =
+      Object.keys(data).length === 0
         ? undefined
         : await prisma.project.update({
             where: { id: projectId },
-            data: { name },
-            select: { id: true, name: true },
+            data,
+            select: { id: true, name: true, description: true, color: true },
           })
 
     // Every member's cached lists carry the project's name and task identifiers.
@@ -105,7 +135,9 @@ export const PATCH = withAuth<RouteContext>(
     return NextResponse.json({
       project: {
         id: projectId,
-        ...(renamed ? { name: renamed.name } : {}),
+        ...(updated
+          ? { name: updated.name, description: updated.description, color: updated.color }
+          : {}),
         ...(keyResult ? { key: keyResult.key } : {}),
       },
       ...(keyResult ? { previousKey: keyResult.previousKey } : {}),
