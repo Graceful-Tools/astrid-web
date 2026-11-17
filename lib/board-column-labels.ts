@@ -52,6 +52,22 @@ export function boardColumnLabel(column: { id: string; name: string }, t: Transl
   return translated(t, `board.status.${builtIn.role}`, column.name)
 }
 
+/**
+ * The i18n key of the message an empty column shows (ADEV-85, iOS ADEV-81
+ * parity). Inbox, Done and the three default roles each speak to their own
+ * state; every other column (custom, preset) gets the generic one. Decided by
+ * the column's id/kind rather than its name, so a rename keeps its message.
+ */
+export function boardColumnEmptyKey(column: { id: string; kind?: string }): string {
+  if (column.kind === 'inbox') return 'board.empty.inbox'
+  if (column.kind === 'done') return 'board.empty.done'
+  const role = BUILT_IN_TEXT[column.id]?.role
+  if (role === 'inbox' || role === 'ready' || role === 'doing' || role === 'waiting' || role === 'done') {
+    return `board.empty.${role}`
+  }
+  return 'board.empty.custom'
+}
+
 export function boardColumnBlurb(column: { id: string; description?: string | null }, t: Translate): string {
   const description = column.description ?? ''
   const builtIn = BUILT_IN_TEXT[column.id]

@@ -2715,6 +2715,14 @@
       "done": "Gedaan",
       "testing": "Testen"
     },
+    "empty": {
+      "inbox": "Niets nieuws om te sorteren! Taken zonder status komen hier terecht.",
+      "ready": "Niets in de wachtrij! Verplaats een taak hierheen als die klaar is om te starten.",
+      "doing": "Niets in uitvoering. Kies iets uit Klaar en ga aan de slag!",
+      "waiting": "Niets in de wacht! Taken die op een datum of een andere taak wachten, verschijnen hier.",
+      "done": "Nog geen afgeronde taken. Rond er een af en vier het hier!",
+      "custom": "Hier is nog niets! Sleep een taak hierheen om hem verder te helpen."
+    },
     "blurb": {
       "inbox": "Zet ze op \"Klaar\" als ze... klaar zijn!",
       "ready": "Tijd om aan de slag te gaan!",
