@@ -444,3 +444,20 @@ describe('ADEV-26: a live claim lease is never released', () => {
     expect(source).toMatch(/\n    if \(hasLiveClaimLease\(task, now\)\) \{/)
   })
 })
+
+describe('ADEV-75: a person moving a handed-back task to Ready gives it a fresh attempt', () => {
+  const release = { content: `${RELEASE_MARKER}. The scheduled run that claimed it ended before finishing it. Back to Ready.` }
+  const handback = { content: `${RELEASE_MARKER} — for the second time. The scheduled run that claimed it ended before finishing it. A task that fails twice is not retried automatically.` }
+
+  it('counts only the releases since the last handback', () => {
+    // ADEV-61 (2026-11-17): handed back at 05:42, re-Readied by Jon, then one short
+    // run bounced it straight back as a "second release" — twice more.
+    expect(countReleases([release, handback])).toBe(0)
+    expect(countReleases([release, handback, release])).toBe(1)
+  })
+
+  it('still counts two releases with no handback between them', () => {
+    expect(countReleases([release])).toBe(1)
+    expect(countReleases([release, release])).toBe(2)
+  })
+})

@@ -247,8 +247,19 @@ export async function parkFinishedOccurrence(input: {
   )
 }
 
+/** The second release's comment: it hands the task back, and ends that attempt. */
+const HANDBACK_RELEASE = `${RELEASE_MARKER} — for the second time`
+
+/**
+ * Releases since the last handback. A handback asks the person to "move it to Ready to
+ * try again", so the try they ask for starts a fresh count: counting every release ever
+ * bounced ADEV-61 straight back after one short run, three times (ADEV-75).
+ */
 export function countReleases(comments: ReleaseComment[]): number {
-  return comments.filter(comment => (comment.content ?? '').startsWith(RELEASE_MARKER)).length
+  const time = (comment: ReleaseComment) => (comment.createdAt ? new Date(comment.createdAt).getTime() : 0)
+  const ordered = comments.every(comment => comment.createdAt) ? [...comments].sort((a, b) => time(a) - time(b)) : comments
+  const lastHandback = ordered.findLastIndex(comment => (comment.content ?? '').startsWith(HANDBACK_RELEASE))
+  return ordered.slice(lastHandback + 1).filter(comment => (comment.content ?? '').startsWith(RELEASE_MARKER)).length
 }
 
 /** Branch names that carry this task's id, e.g. `fix/awtd-1025-hide-chip` for AWTD-1025. */
@@ -346,7 +357,7 @@ export async function releaseDoingClaim(input: {
     await api.handBack(task, to)
     await api.comment(
       task,
-      `${RELEASE_MARKER} — for the second time. ${why} A task that fails twice is not retried ` +
+      `${HANDBACK_RELEASE}. ${why} A task that fails twice is not retried ` +
         `automatically (docs/FIXALL_WORKFLOW.md), so it is handed back${to ? ' to its creator' : ''} ` +
         `in the Inbox: split it, clarify it, or move it to Ready to try again.${where}` +
         (to && mailbox ? `\nAGENT-HANDBACK: ${mailbox}` : ''),
