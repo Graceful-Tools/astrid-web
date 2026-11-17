@@ -243,7 +243,8 @@
     "userAvatarAlt": "Usuário",
     "assigneeYou": "Você",
     "board": {
-      "addTaskTo": "Adicionar tarefa a {name}"
+      "addTaskTo": "Adicionar tarefa a {name}",
+      "addTaskPlaceholder": "Adicionar uma tarefa"
     },
     "dropToPlaceFirst": "Solte aqui para posicionar a primeira tarefa"
   },
@@ -1831,7 +1832,8 @@
     "projectLockedIn": "Em {name}. Somente o proprietário ou um administrador do projeto pode removê-la.",
     "newListInProject": "Nova lista no projeto…",
     "newListName": "Nome da lista",
-    "newListFailed": "Não foi possível criar a lista"
+    "newListFailed": "Não foi possível criar a lista",
+    "boardNewList": "Nova lista…"
   },
   "viewRotator": {
     "showList": "Mostrar lista",

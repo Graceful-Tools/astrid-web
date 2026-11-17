@@ -12,7 +12,7 @@
  *     adds it.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import type { Task, TaskList } from '@/types/task'
 
 const flags = vi.hoisted(() => ({ projectMode: true }))
@@ -196,11 +196,14 @@ describe('ProjectBoard rows (AWTD-1660)', () => {
     renderBoard(vi.fn(), onCreateTask)
     await screen.findByTestId('project-board-row-ios')
 
-    fireEvent.change(screen.getByTestId('project-board-add-input-ios-doing'), { target: { value: 'Ship it' } })
-    fireEvent.submit(screen.getByTestId('project-board-add-input-ios-doing').closest('form')!)
+    // ADEV-63: the column's add bar is the full quick-add (a growing field, Enter adds).
+    const field = within(screen.getByTestId('project-board-add-ios-doing')).getByRole('textbox')
+    expect(field).toHaveAttribute('placeholder', 'Add a task')
+    fireEvent.change(field, { target: { value: 'Ship it' } })
+    fireEvent.keyDown(field, { key: 'Enter' })
 
-    await waitFor(() => expect(onCreateTask).toHaveBeenCalledWith('Ship it', { listIds: ['ios'], statusRole: 'doing' }))
-    expect(screen.queryByTestId('project-board-add-input-ios-done')).toBeNull()
+    await waitFor(() => expect(onCreateTask).toHaveBeenCalledWith('Ship it', expect.objectContaining({ listIds: ['ios'], statusRole: 'doing' })))
+    expect(screen.queryByTestId('project-board-add-ios-done')).toBeNull()
   })
 
   it('× on a row header removes the row and saves the choice on the server', async () => {
@@ -277,7 +280,8 @@ describe('ProjectBoardHost gating (AWTD-1660)', () => {
   it('draws the selected project\'s board for someone with project_mode', async () => {
     setSelectedProjectId('p1')
     renderHost()
-    expect(await screen.findByTestId('project-board')).toHaveTextContent('Astrid')
+    // The board no longer repeats the project name (ADEV-63); the header names it.
+    expect(await screen.findByTestId('project-board')).toBeInTheDocument()
   })
 
   it('without project_mode it draws nothing and closes the selection', async () => {
