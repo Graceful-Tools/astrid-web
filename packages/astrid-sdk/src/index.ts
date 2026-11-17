@@ -55,6 +55,7 @@ export {
   type RunPlan,
 } from './long-run.js'
 export { MAX_FAILED_ATTEMPTS, parseSeenKeys, recordFailedRun, recordFinishedRun } from './wake-keys.js'
+export { runAgent, buildPrompt, harnessArgv, HARNESSES, type Harness, type RunOptions, type RunOutcome } from './run.js'
 
 export { runCli, EXIT, USAGE, type CliIO } from './cli.js'
 

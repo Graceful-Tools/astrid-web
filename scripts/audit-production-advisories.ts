@@ -303,6 +303,58 @@ export function findingsFor(
   )
 }
 
+export interface AcceptedAdvisory {
+  ghsa: string
+  package: string
+  reason: string
+  /** ISO date (inclusive). After it the acceptance lapses and the advisory blocks again. */
+  reviewBy: string
+}
+
+/**
+ * Advisories accepted on purpose (ADEV-84, Jon 2026-11-17). Each is named by
+ * GHSA id AND package, carries its reason, and lapses on `reviewBy` so the
+ * weekly recheck cannot be forgotten: past the date it blocks the gate again.
+ * Remove the entry as soon as a fixed version exists.
+ */
+export const ACCEPTED_ADVISORIES: AcceptedAdvisory[] = [
+  {
+    ghsa: 'GHSA-fc5q-39xc-vjpf',
+    package: 'picomatch',
+    reason:
+      'ReDoS needs an attacker-controlled glob fed to @parcel/watcher, a build/dev-time ' +
+      'file watcher used by next-intl; request handling never calls it. No fixed version ' +
+      'exists (4.0.7 is latest).',
+    reviewBy: '2026-11-24',
+  },
+]
+
+export function partitionAccepted(
+  findings: Finding[],
+  accepted: AcceptedAdvisory[] = ACCEPTED_ADVISORIES,
+  now: Date = new Date()
+): { blocking: Finding[]; accepted: Finding[]; expired: Finding[] } {
+  const result = {
+    blocking: [] as Finding[],
+    accepted: [] as Finding[],
+    expired: [] as Finding[],
+  }
+  for (const finding of findings) {
+    const entry = accepted.find(
+      a => a.package === finding.name && finding.advisory.url.endsWith(`/${a.ghsa}`)
+    )
+    if (!entry) {
+      result.blocking.push(finding)
+    } else if (now.getTime() > Date.parse(`${entry.reviewBy}T23:59:59Z`)) {
+      result.expired.push(finding)
+      result.blocking.push(finding)
+    } else {
+      result.accepted.push(finding)
+    }
+  }
+  return result
+}
+
 export function countBySeverity(findings: Finding[]): Record<Severity, number> {
   const counts = Object.fromEntries(SEVERITY_ORDER.map(s => [s, 0])) as Record<
     Severity,
@@ -383,7 +435,10 @@ async function main(): Promise<number> {
   }
 
   const counts = countBySeverity(findings)
-  const blocking = counts.critical + counts.high
+  const split = partitionAccepted(findings)
+  const blockingCounts = countBySeverity(split.blocking)
+  const blocking = blockingCounts.critical + blockingCounts.high
+  const acceptedSet = new Set(split.accepted)
   const declared = declaredRanges()
 
   if (asJson) {
@@ -400,6 +455,7 @@ async function main(): Promise<number> {
             advisory: f.advisory.url,
             title: f.advisory.title,
             vulnerableVersions: f.advisory.vulnerable_versions,
+            accepted: acceptedSet.has(f),
             declared: declared.get(f.name) ?? null,
             paths: f.paths,
           })),
@@ -420,7 +476,7 @@ async function main(): Promise<number> {
     console.log(
       [
         '',
-        `${advisory.severity.toUpperCase()}  ${finding.name}@${finding.version}`,
+        `${advisory.severity.toUpperCase()}${acceptedSet.has(finding) ? ' (ACCEPTED, ADEV-84)' : ''}  ${finding.name}@${finding.version}`,
         `  ${advisory.title}`,
         `  ${advisory.url}`,
         `  vulnerable: ${advisory.vulnerable_versions}`,
@@ -435,7 +491,9 @@ async function main(): Promise<number> {
   console.log(
     blocking > 0
       ? `\nFOUND — ${blocking} critical/high in the shipping tree. File each as its own task.`
-      : `\nCLEAN — nothing critical or high in the shipping tree.`
+      : split.accepted.length > 0
+        ? `\nCLEAN — nothing critical or high in the shipping tree except ${split.accepted.length} accepted advisory(ies); recheck by ${[...new Set(ACCEPTED_ADVISORIES.map(a => a.reviewBy))].join(', ')}.`
+        : `\nCLEAN — nothing critical or high in the shipping tree.`
   )
   return blocking > 0 ? EXIT_FOUND : EXIT_CLEAN
 }
