@@ -43,6 +43,8 @@ export {
   type QueueVerdictReason,
 } from './verdict.js'
 
+export { runAgent, buildPrompt, harnessArgv, HARNESSES, type Harness, type RunOptions, type RunOutcome } from './run.js'
+
 export { runCli, EXIT, USAGE, type CliIO } from './cli.js'
 
 export { resolveApiBase, resolveOrigin } from './config/api-base.js'
