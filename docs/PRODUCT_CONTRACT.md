@@ -190,8 +190,19 @@ answers, not two:
 Unassigned used to be folded in with "mine", so a task nobody owns rendered
 identically to a task you own. That is the bug this rule exists to prevent.
 
-- **The mark changes; the action does not.** Tapping the unassigned mark still
-  completes the task.
+- **The mark changes; so may the action.** On web, the unassigned mark and
+  someone else's photo open the task options sheet rather than completing
+  (AWTD-877, AWTD-919); your own checkbox completes in one tap.
+- **Completing a task that is not yours asks first** (ADEV-56, widening
+  AWTD-877). Someone else's task *and an unassigned one* show "Complete this
+  task?" naming the assignee, or saying nobody holds it, before completing.
+  Your own task never asks, and reopening never asks. Web:
+  `completionNeedsConfirmation` in `lib/task-leading-control.ts`, asked by the
+  options sheet, the leading control and the complete-task shortcut.
+- **Web has no "Project" task layout** (ADEV-56). The `taskDisplayMode`
+  setting is still stored and served for iOS/Mac, where `project` remains a
+  valid value; web always renders the list layout and no longer offers the
+  choice in Appearance.
 - **The picker shows the mark you will then see.** The assignee picker's
   unassigned option uses the same mark.
 - **It applies everywhere the control appears** — task row, task details,

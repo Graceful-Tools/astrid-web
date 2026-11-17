@@ -11,7 +11,7 @@ import {
   leadingControlOpensOptions,
   taskLeadingControlKind,
 } from "@/lib/task-leading-control"
-import { usesCompactTaskDetail } from "@/lib/task-display-mode"
+import { useCompletionConfirmation } from "@/components/completion-confirmation"
 
 /**
  * The leading control on a task — one component for all three answers to
@@ -22,10 +22,10 @@ import { usesCompactTaskDetail } from "@/lib/task-display-mode"
  * identical to "mine" in some places and not others. The rule itself lives in
  * `lib/task-leading-control.ts`.
  *
- * In LIST mode, tapping any of the three marks completes the task: the mark
- * changes, the action does not — unless the task is on a project BOARD (task
- * 036ef139), where the tap opens the options popover so the board's states are
- * reachable from the row. The mark is untouched there: still the checkbox.
+ * Tapping your own checkbox completes the task — unless the task is on a
+ * project BOARD (task 036ef139), where the tap opens the options popover so the
+ * board's states are reachable from the row. The mark is untouched there:
+ * still the checkbox.
  *
  * SOMEONE ELSE'S TASK opens that popover too, on every surface and in both
  * modes (AWTD-877). Their avatar used to be inert on a row and grew a bespoke
@@ -36,9 +36,15 @@ import { usesCompactTaskDetail } from "@/lib/task-display-mode"
  * The confirmation moved with the tap: it lives on the sheet's Complete button
  * now (components/completion-confirmation.tsx), not here.
  *
- * In PROJECT mode both change (task ffa5bbb5). Your own task wears your photo,
- * and tapping ANY of the three opens the options popover — priority, assignee,
- * board state, complete — instead of completing outright.
+ * There is no PROJECT layout on web any more (ADEV-56); the control no longer
+ * takes a display mode.
+ *
+ * A DIRECT COMPLETION OF A TASK THAT IS NOT YOURS ASKS (ADEV-56). With a sheet
+ * to open, an unassigned or someone else's task opens it and the sheet's
+ * Complete button asks. A call site that passes no `onOpenOptions` leaves the
+ * unassigned "U" completing on a tap, so that path asks here, through the same
+ * `useCompletionConfirmation` the sheet uses. Your own checkbox stays one tap,
+ * and reopening never asks.
  */
 interface TaskLeadingControlProps {
   assigneeId?: string | null
@@ -50,24 +56,20 @@ interface TaskLeadingControlProps {
   assignee?: { name?: string | null; email?: string | null; image?: string | null } | null
   onToggleComplete: () => void
   /**
-   * The user's task display mode. Absent means list, so every call site that
-   * predates task ffa5bbb5 keeps today's behaviour untouched.
-   */
-  displayMode?: string | null
-  /**
-   * Open the options popover. Project mode only.
+   * Open the options popover — used when `leadingControlOpensOptions` says the
+   * tap opens it (a board, someone else's task, an unassigned "U").
    *
    * Optional so a call site that has not been given a popover yet degrades to
-   * completing rather than becoming a control that does nothing — a dead
-   * control is a worse regression than one behaving like list mode.
+   * completing (behind the ADEV-56 confirmation when the task is not yours)
+   * rather than becoming a control that does nothing.
    */
   onOpenOptions?: () => void
   /**
    * Is this task's list part of a project board (task 036ef139)?
    *
-   * On a board the tap opens the options sheet whatever the display mode, so
-   * the board's states are reachable from the row. Absent means no board,
-   * which is every call site that predates the task.
+   * On a board the tap opens the options sheet, so the board's states are
+   * reachable from the row. Absent means no board, which is every call site
+   * that predates the task.
    */
   onBoard?: boolean
 }
@@ -195,57 +197,48 @@ export function TaskLeadingControl({
   repeating = false,
   assignee,
   onToggleComplete,
-  displayMode,
   onOpenOptions,
   onBoard = false,
 }: TaskLeadingControlProps) {
   const { t } = useTranslations()
   const borderColor = getPriorityColor(priority)
 
-  // Project mode needs somewhere for the tap to GO. Without a popover handler
-  // it degrades to list mode wholesale — mark included, not just action.
-  //
-  // Falling back on the action alone was the first attempt and it produced a
-  // DEAD CONTROL: the rule gave your own task an avatar, the avatar is only
-  // clickable in project mode, and so nothing was tappable at all. Deciding the
-  // effective mode once, here, is what keeps the mark and the action agreeing.
-  //
-  // The MARK and the ACTION are decided separately, and only on a board do they
-  // disagree (task 036ef139): there the checkbox stays a checkbox — Jon asked
-  // for "the checkbox when tapped" — while the tap opens the sheet.
-  const compactMark = usesCompactTaskDetail(displayMode) && Boolean(onOpenOptions)
   const isSomeoneElses = isSomeoneElsesTask({ assigneeId, currentUserId })
-  const effectiveMode = compactMark ? 'project' : 'list'
-  // The MARK is decided first now, because the ACTION depends on it: a tap
+  // The MARK is decided first, because the ACTION depends on it: a tap
   // completes a checkbox and nothing else (AWTD-919). These two lines used to
   // be the other way round, which is precisely how the "U" glyph ended up
   // completing the task it was drawn to distinguish.
-  const kind = taskLeadingControlKind({
-    assigneeId,
-    currentUserId,
-    completed,
-    displayMode: effectiveMode,
-  })
+  //
+  // The MARK and the ACTION are decided separately, and on a board they
+  // disagree (task 036ef139): there the checkbox stays a checkbox — Jon asked
+  // for "the checkbox when tapped" — while the tap opens the sheet.
+  const kind = taskLeadingControlKind({ assigneeId, currentUserId, completed })
   const opensOptions =
-    leadingControlOpensOptions({ displayMode, onBoard, isSomeoneElses, kind }) &&
-    Boolean(onOpenOptions)
-  const activate = opensOptions ? onOpenOptions! : onToggleComplete
+    leadingControlOpensOptions({ onBoard, isSomeoneElses, kind }) && Boolean(onOpenOptions)
+  // Completing directly still asks when the task is not yours (ADEV-56).
+  const completion = useCompletionConfirmation(currentUserId)
+  const completeDirectly = () =>
+    completion.request({ assigneeId, assignee, completed }, onToggleComplete)
+  const activate = opensOptions ? onOpenOptions! : completeDirectly
 
   if (kind === 'checkbox') {
     return (
-      <TaskCheckbox
-        checked={completed}
-        onToggle={activate}
-        completes={!opensOptions}
-        priority={priority as 0 | 1 | 2 | 3}
-        repeating={repeating}
-      />
+      <>
+        <TaskCheckbox
+          checked={completed}
+          onToggle={activate}
+          completes={!opensOptions}
+          priority={priority as 0 | 1 | 2 | 3}
+          repeating={repeating}
+        />
+        {completion.dialog}
+      </>
     )
   }
 
   if (kind === 'avatar') {
-    // Someone else's task, or your own in project mode: a photo rather than a
-    // checkbox you could mistake for your own.
+    // Someone else's task: a photo rather than a checkbox you could mistake
+    // for your own.
     //
     // Tappable wherever the tap has a sheet to open — which, since AWTD-877, is
     // every surface for someone else's task. It stays INERT when the call site
@@ -296,28 +289,31 @@ export function TaskLeadingControl({
     </span>
   )
   return (
-    <div
-      className="relative p-2 -m-2 cursor-pointer flex items-center justify-center self-center"
-      role="button"
-      tabIndex={0}
-      aria-label={t('tasks.unassigned')}
-      onClick={(e) => {
-        e.stopPropagation()
-        activate()
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
+    <>
+      <div
+        className="relative p-2 -m-2 cursor-pointer flex items-center justify-center self-center"
+        role="button"
+        tabIndex={0}
+        aria-label={t('tasks.unassigned')}
+        onClick={(e) => {
           e.stopPropagation()
           activate()
-        }
-      }}
-    >
-      {repeating ? (
-        <RepeatFrame priority={priority}>{unassignedMark}</RepeatFrame>
-      ) : (
-        <div className={SQUARE_CLASS} style={{ borderColor }}>{unassignedMark}</div>
-      )}
-    </div>
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            e.stopPropagation()
+            activate()
+          }
+        }}
+      >
+        {repeating ? (
+          <RepeatFrame priority={priority}>{unassignedMark}</RepeatFrame>
+        ) : (
+          <div className={SQUARE_CLASS} style={{ borderColor }}>{unassignedMark}</div>
+        )}
+      </div>
+      {completion.dialog}
+    </>
   )
 }

@@ -109,6 +109,7 @@
     "createdBy": "Créé par",
     "confirmCompleteTitle": "Terminer cette tâche ?",
     "confirmCompleteAssigned": "Assignée à {name}",
+    "confirmCompleteUnassigned": "N'est assignée à personne",
     "waitingOn": {
       "label": "En attente de",
       "add": "Attendre une tâche…",
@@ -1377,15 +1378,6 @@
         "viewDesc": "Voir tous les raccourcis clavier disponibles pour une gestion efficace des tâches",
         "quickAccess": "Appuyez sur ? n'importe où dans le gestionnaire de tâches pour ouvrir les raccourcis clavier.",
         "quickAccessLabel": "Accès rapide"
-      },
-      "taskDisplayMode": {
-        "title": "Disposition du détail de tâche",
-        "description": "Comment la priorité, l'assigné et l'état apparaissent sur une tâche (synchronisé entre appareils)",
-        "label": "Disposition",
-        "list": "Liste",
-        "project": "Projet",
-        "listDesc": "La case à cocher termine la tâche, et la priorité et l'assigné ont chacun leur propre ligne.",
-        "projectDesc": "Compact. Toucher la case ouvre priorité, assigné, état et terminer."
       },
       "taskTitles": {
         "title": "Titres des tâches",

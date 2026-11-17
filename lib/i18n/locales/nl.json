@@ -109,6 +109,7 @@
     "createdBy": "Gemaakt door",
     "confirmCompleteTitle": "Deze taak voltooien?",
     "confirmCompleteAssigned": "Toegewezen aan {name}",
+    "confirmCompleteUnassigned": "Aan niemand toegewezen",
     "waitingOn": {
       "label": "Wacht op",
       "add": "Op een taak wachten…",
@@ -1377,15 +1378,6 @@
         "viewDesc": "Bekijk alle beschikbare sneltoetsen voor efficiënt taakbeheer",
         "quickAccess": "Druk overal in de taakmanager op ? om sneltoetsen te openen.",
         "quickAccessLabel": "Snelle toegang"
-      },
-      "taskDisplayMode": {
-        "title": "Indeling van taakdetails",
-        "description": "Hoe prioriteit, toegewezen persoon en status op een taak verschijnen (gesynchroniseerd tussen apparaten)",
-        "label": "Indeling",
-        "list": "Lijst",
-        "project": "Project",
-        "listDesc": "Het selectievakje voltooit de taak, en prioriteit en toegewezen persoon krijgen elk een eigen rij.",
-        "projectDesc": "Compact. Tikken op het selectievakje opent prioriteit, toegewezen persoon, status en voltooien."
       },
       "taskTitles": {
         "title": "Taaktitels",

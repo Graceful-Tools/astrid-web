@@ -47,7 +47,6 @@ function renderControl(props: Record<string, unknown>) {
       completed={false}
       priority={0}
       onToggleComplete={vi.fn()}
-      displayMode="list"
       {...props}
     />,
   )
@@ -61,13 +60,12 @@ function theTappableMark(container: HTMLElement): Element {
 }
 
 describe('someone else\'s task opens the options sheet (AWTD-877)', () => {
-  // Every surface, both display modes. The point of the rule is that one task
+  // Every surface. The point of the rule is that one task
   // stops behaving three different ways depending on where you meet it.
   for (const [surface, extraProps] of [
     ['a plain list row', {}],
     ['task details', {}],
     ['a board card', { onBoard: true }],
-    ['project mode', { displayMode: 'project' }],
   ] as const) {
     it(`opens it from ${surface}, rather than completing`, () => {
       const onToggleComplete = vi.fn()

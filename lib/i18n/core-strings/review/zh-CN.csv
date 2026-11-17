@@ -41,7 +41,6 @@ settingsPages.aiAgents.hub.customAgentsDescription,conflict,Agents you operate o
 settingsPages.aiAgents.title,conflict,AI Agents,AI与助手,AI 代理 ‖ AI 智能体,lists.ai_agents settings.agents.title,
 settingsPages.apiAccess.apps.aiAgentPreset,conflict,AI Agent,AI 智能体,AI 代理 ‖ AI助手,lists.ai_agent.section picker.ai_agent profile.ai_agent,
 settingsPages.appearancePage.subtasks.underParent,differ,Inside parent task only,仅在父任务内,仅在父任务中显示,settings.subtasks.under_parent,
-settingsPages.appearancePage.taskDisplayMode.list,conflict,List,列表,清单 ‖ 列表,lists.list settings.task_display.list sync.list,
 settingsPages.connections.actsAsYou,conflict,You,您,您 ‖ 你,assignee.you profile.you,
 settingsPages.connections.columns.never,conflict,Never,从不,从不 ‖ 永不,lists.never never repeating.never,
 settingsPages.customAgents.credentials.description,differ,Save these credentials now. The client secret will not be shown again.,请立即保存这些凭据。客户端密钥不会再次显示。,请立即保存这些凭证。客户端密钥将不会再次显示。,settings.openclaw.credentials_warning,

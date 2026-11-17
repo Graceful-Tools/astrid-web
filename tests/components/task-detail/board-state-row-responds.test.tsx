@@ -49,25 +49,24 @@ describe('the board-state row responds in list view (AWTD-1253)', () => {
   const onUpdate = vi.fn()
   beforeEach(() => onUpdate.mockClear())
 
-  const renderRow = (displayMode: string | null) =>
+  const renderRow = () =>
     render(
       <TaskDetailBoardStateRow
         task={task()}
         availableLists={[projectList]}
-        displayMode={displayMode}
         readOnly={false}
         onUpdate={onUpdate}
       />,
     )
 
-  it('renders its chips in list mode — this is the mode the report is about', () => {
-    renderRow('list')
+  it('renders its chips — list view is what the report is about', () => {
+    renderRow()
     expect(screen.getByRole('group', { name: 'tasks.boardState' })).toBeTruthy()
     expect(screen.getByTestId('task-detail-board-state-ready')).toBeTruthy()
   })
 
   it('hands a move to onUpdate when a chip is clicked', async () => {
-    renderRow('list')
+    renderRow()
     await userEvent.click(screen.getByTestId('task-detail-board-state-ready'))
 
     expect(onUpdate).toHaveBeenCalledTimes(1)
@@ -81,16 +80,11 @@ describe('the board-state row responds in list view (AWTD-1253)', () => {
     // and returns the ids to keep. Mapping those back through availableLists is
     // the row's job, and getting it wrong would silently remove the task from
     // the board it was just filed on.
-    renderRow('list')
+    renderRow()
     return userEvent.click(screen.getByTestId('task-detail-board-state-ready')).then(() => {
       const updated = onUpdate.mock.calls[0][0] as Task
       expect((updated.lists ?? []).map(list => list.id)).toContain('board')
     })
-  })
-
-  it('AITD-555: renders in project mode too (core D63), with no second mode guard of its own', () => {
-    renderRow('project')
-    expect(screen.getByTestId('task-detail-board-state-ready')).toBeTruthy()
   })
 
   it('renders nothing for a read-only viewer', () => {
@@ -98,7 +92,6 @@ describe('the board-state row responds in list view (AWTD-1253)', () => {
       <TaskDetailBoardStateRow
         task={task()}
         availableLists={[projectList]}
-        displayMode="list"
         readOnly
         onUpdate={onUpdate}
       />,
@@ -118,7 +111,6 @@ describe('the click is REFLECTED, which is what "unresponsive" means to a user (
       <TaskDetailBoardStateRow
         task={task({ statusRole: 'ready' } as Partial<Task>)}
         availableLists={[projectList]}
-        displayMode="list"
         readOnly={false}
         onUpdate={onUpdate}
       />,
@@ -132,7 +124,6 @@ describe('the click is REFLECTED, which is what "unresponsive" means to a user (
       <TaskDetailBoardStateRow
         task={task({ statusRole: 'doing' } as Partial<Task>)}
         availableLists={[projectList]}
-        displayMode="list"
         readOnly={false}
         onUpdate={onUpdate}
       />,

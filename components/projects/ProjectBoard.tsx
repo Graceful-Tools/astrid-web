@@ -41,7 +41,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { TaskRowContent } from "@/components/task-row-content"
 import { isSomeoneElsesTask } from "@/lib/task-leading-control"
-import { useUserSettings } from "@/hooks/useUserSettings"
 import { useTranslations } from "@/lib/i18n/client"
 import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
 import { useProjectBoardRows } from "@/hooks/use-project-board-rows"
@@ -100,7 +99,6 @@ export function ProjectBoard({
   isOneColumn = false,
 }: ProjectBoardProps) {
   const { t } = useTranslations()
-  const { taskDisplayMode } = useUserSettings()
   const customStates = useProjectCustomStates(projectId)
   const columns = React.useMemo(() => getProjectBoardColumns(customStates), [customStates])
   const { listIds, loaded, saveFailed, save } = useProjectBoardRows(projectId)
@@ -361,7 +359,6 @@ export function ProjectBoard({
                               isSelected={selectedTaskId === task.id}
                               onToggleComplete={() => onUpdateTask({ ...task, completed: !task.completed })}
                               onCopyPublic={() => {}}
-                              displayMode={taskDisplayMode}
                               currentListId={lane.list.id}
                               onOpenOptions={
                                 isSomeoneElsesTask({ assigneeId: task.assigneeId, currentUserId: currentUser?.id })

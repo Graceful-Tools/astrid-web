@@ -24,7 +24,6 @@ vi.mock('@/lib/client-projects', () => ({
 
 const api = vi.hoisted(() => ({ apiGet: vi.fn(), apiPut: vi.fn() }))
 vi.mock('@/lib/api', () => api)
-vi.mock('@/hooks/useUserSettings', () => ({ useUserSettings: () => ({ taskDisplayMode: 'list' }) }))
 vi.mock('@/components/task-row-content', () => ({
   TaskRowContent: ({ task }: { task: Task }) => <span>{task.title}</span>,
 }))

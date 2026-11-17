@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { buildTask, buildUser } from '../fixtures/domain'
 import { row } from '../fixtures/prisma-rows'
 import { buildTaskList } from '../fixtures/domain'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TaskDetail } from '@/components/task-detail'
 import type { Task, User, TaskList } from '@/types/task'
@@ -187,6 +187,8 @@ describe('TaskDetail readOnly priority (task 72cb4a13)', () => {
 
     const leading = screen.getByRole('button', { name: /unassigned/i })
     fireEvent.click(leading)
+    // An unassigned task is not yours, so completing it asks first (ADEV-56).
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /complete/i }))
 
     expect(onUpdate).toHaveBeenCalled()
   })
