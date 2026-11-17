@@ -32,7 +32,14 @@ jobs:
       # Runtime packages ship with the app. New vulnerable dev dependencies are
       # still blocked by dependency-review above; Prisma's CLI dependency tree
       # currently carries a high advisory that is not present at runtime.
-      - run: npm audit --audit-level=high --omit=dev
+      #
+      # The same gate predeploy runs (scripts/audit-production-advisories.ts): the
+      # question bare npm audit (high and above, runtime tree only) asks, of the same
+      # registry, plus the advisories accepted on the record (ACCEPTED_ADVISORIES,
+      # each with a reason and a review date, ADEV-84). Bare `npm audit` could not
+      # read that list, so the two gates disagreed. It exits 3 when it cannot prove
+      # its answer, which fails the job too.
+      - run: npm run audit:prod
 
   secret-scan:
     runs-on: ubuntu-26.04
