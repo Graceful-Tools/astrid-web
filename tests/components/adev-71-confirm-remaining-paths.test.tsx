@@ -50,6 +50,14 @@ import { ProjectBoard } from '@/components/projects/ProjectBoard'
 import { TaskRow, type TaskRowProps, type TaskRowControllerSlice } from '@/components/TaskManager/MainContent/TaskRow'
 import { getProjectBoardColumns, VIRTUAL_DONE_COLUMN_ID } from '@/lib/project-status'
 
+// The row loads the options sheet lazily (ADEV-71); render the real sheet synchronously here,
+// since these tests are about what it offers, not when its chunk arrives.
+vi.mock('@/components/TaskManager/lazy-panels', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/components/TaskManager/lazy-panels')>()),
+  LazyPriorityAssigneePicker: (await import('@/components/priority-assignee-picker')).PriorityAssigneePicker,
+}))
+
+
 const ME = 'user-me'
 const THEM = 'user-them'
 
