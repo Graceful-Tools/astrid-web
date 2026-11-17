@@ -715,7 +715,7 @@ describe('ADEV-26: parallel cloud workers', () => {
       const result = runWorkflowStep(workflowStep(AGENT_RUN, 'run', "Take this worker's task"), {
         cwd: dir,
         env: { PATH: `${dir}:${process.env.PATH}`, AGENT: 'claude', ASTRID_OAUTH_LIST_ID: 'board', ASTRID_AGENT_SLOT: slot,
-          FAKE_STATUS: status, GITHUB_OUTPUT: output, GITHUB_ENV: githubEnv },
+          USE_RUNNER: '', FAKE_STATUS: status, GITHUB_OUTPUT: output, GITHUB_ENV: githubEnv },
       })
       const calls = join(dir, 'npx-calls')
       return { ...result, out: read(output), exported: read(githubEnv), called: existsSync(calls) ? read(calls) : '' }
@@ -728,6 +728,27 @@ describe('ADEV-26: parallel cloud workers', () => {
       expect(r.called).toBe('')
       expect(read('.github/agent-run-prompt.md'))
         .toContain('npx tsx scripts/claim-next-fixall-task.ts --agent <your mailbox> --list "$ASTRID_OAUTH_LIST_ID"')
+    })
+
+    it('ADEV-86: use_runner defers slots 2..N to astrid-agent run, and is off unless dispatched on', () => {
+      const workflow = yaml.load(read('.github/workflows/agent-run.yml'))
+      expect(workflow.on.workflow_dispatch.inputs.use_runner).toMatchObject({ default: false, type: 'boolean' })
+      fakeNpx('')
+      mkdirSync(join(dir, '.agent-output'), { recursive: true })
+      const output = join(dir, 'github-output')
+      writeFileSync(output, '')
+      const result = runWorkflowStep(workflowStep(AGENT_RUN, 'run', "Take this worker's task"), {
+        cwd: dir,
+        env: { PATH: `${dir}:${process.env.PATH}`, AGENT: 'claude', ASTRID_OAUTH_LIST_ID: 'board', ASTRID_AGENT_SLOT: '2',
+          USE_RUNNER: 'true', GITHUB_OUTPUT: output, GITHUB_ENV: join(dir, 'github-env') },
+      })
+      expect(result.status, result.stderr).toBe(0)
+      expect(read(output)).toBe('go=true\n')
+      expect(existsSync(join(dir, 'npx-calls'))).toBe(false)
+      const run = workflowStep(AGENT_RUN, 'run', 'Run Claude Code').run as string
+      expect(run).toContain('astrid-agent run --agent "${HEARTBEAT_AGENT}"')
+      expect(run).toContain('--fixall --harness custom')
+      expect(run).toContain('ASTRID_TASK_ID:-')
     })
 
     it('ADEV-26: another slot claims the next free task before the costly steps and hands it to the session', () => {

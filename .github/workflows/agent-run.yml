@@ -57,6 +57,11 @@ on:
         required: false
         default: false
         type: boolean
+      use_runner:
+        description: 'Slots 2..N claim and run through astrid-agent run --fixall (ADEV-86); off keeps the shell claim'
+        required: false
+        default: false
+        type: boolean
 
 # No workflow-level concurrency group (ADEV-26). There used to be one,
 # agent-run-<harness>, which made the whole loop ONE worker: a run held the
@@ -348,10 +353,17 @@ jobs:
         if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
         env:
           AGENT: ${{ steps.preflight.outputs.agent }}
+          USE_RUNNER: ${{ inputs.use_runner }}
         run: |
           if [ "${ASTRID_AGENT_SLOT}" = 1 ]; then
             echo "go=true" >> "${GITHUB_OUTPUT}"
             echo "Slot 1 chooses in the session: the inbox, a resume, or the next Ready task"
+            exit 0
+          fi
+          # use_runner (ADEV-86): astrid-agent run claims inside the Run Claude Code step.
+          if [ "${USE_RUNNER}" = true ]; then
+            echo "go=true" >> "${GITHUB_OUTPUT}"
+            echo "Slot ${ASTRID_AGENT_SLOT} claims through astrid-agent run in the Run step"
             exit 0
           fi
           npx tsx scripts/claim-next-fixall-task.ts --agent "${AGENT}" --list "${ASTRID_OAUTH_LIST_ID}" \
@@ -435,6 +447,7 @@ jobs:
           # (Jon, 2026-09-19: the loops run on the subscription).
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           HEARTBEAT_AGENT: ${{ steps.preflight.outputs.agent }}
+          USE_RUNNER: ${{ inputs.use_runner }}
         run: |
           set -o pipefail
           npm install --global @anthropic-ai/claude-code@2.1.306
@@ -450,14 +463,34 @@ jobs:
           # The core checkout is outside the workspace, so it is added to what the agent may edit.
           # The prompt ends with this run's ASTRID_CORE_PUSH (ADEV-33): on 2026-11-16 a worker
           # claimed a core task, could not "tell whether this run can push", and released it.
-          CORE_DIRS=()
-          if [ -n "${ASTRID_CORE_DIR:-}" ]; then CORE_DIRS=(--add-dir "${ASTRID_CORE_DIR}"); fi
-          claude -p "$(cat .github/agent-run-prompt.md; printf '\n\n**This run (set by the runner):** ASTRID_CORE_PUSH=%s. 1 means you can push to astrid-core, so a `[core]` task is yours to do; 0 means take a web task. ASTRID_CLAIMED_TASK=%s. A task id means the runner already claimed that task for you (Doing, assigned to you): work it and do not run a claim script; empty means you are slot 1 and claim in the session.\n' "${ASTRID_CORE_PUSH:-0}" "${ASTRID_CLAIMED_TASK:-}")" \
-            --mcp-config "${RUNNER_TEMP}/astrid-mcp.json" --strict-mcp-config \
-            "${CORE_DIRS[@]}" \
-            --permission-mode acceptEdits \
-            --allowedTools "Bash(npm run *),Bash(npx tsx scripts/*),Bash(npx vitest *),Bash(git *),Bash(gh pr *),Bash(cargo *),Bash(rustup *),mcp__astrid__*,Read,Edit,Write,Grep,Glob" \
-            | tee .agent-output/agent-transcript.txt
+          # One function, so the shell claim and astrid-agent run (ADEV-86) start the
+          # same claude. The runner sets ASTRID_TASK_ID where the shell claim set
+          # ASTRID_CLAIMED_TASK.
+          run_claude() {
+            set -o pipefail
+            ASTRID_CLAIMED_TASK="${ASTRID_TASK_ID:-${ASTRID_CLAIMED_TASK:-}}"
+            CORE_DIRS=()
+            if [ -n "${ASTRID_CORE_DIR:-}" ]; then CORE_DIRS=(--add-dir "${ASTRID_CORE_DIR}"); fi
+            claude -p "$(cat .github/agent-run-prompt.md; printf '\n\n**This run (set by the runner):** ASTRID_CORE_PUSH=%s. 1 means you can push to astrid-core, so a `[core]` task is yours to do; 0 means take a web task. ASTRID_CLAIMED_TASK=%s. A task id means the runner already claimed that task for you (Doing, assigned to you): work it and do not run a claim script; empty means you are slot 1 and claim in the session.\n' "${ASTRID_CORE_PUSH:-0}" "${ASTRID_CLAIMED_TASK:-}")" \
+              --mcp-config "${RUNNER_TEMP}/astrid-mcp.json" --strict-mcp-config \
+              "${CORE_DIRS[@]}" \
+              --permission-mode acceptEdits \
+              --allowedTools "Bash(npm run *),Bash(npx tsx scripts/*),Bash(npx vitest *),Bash(git *),Bash(gh pr *),Bash(cargo *),Bash(rustup *),mcp__astrid__*,Read,Edit,Write,Grep,Glob" \
+              | tee .agent-output/agent-transcript.txt
+          }
+          if [ "${USE_RUNNER}" = true ] && [ "${ASTRID_AGENT_SLOT}" != 1 ]; then
+            export -f run_claude
+            export ASTRID_CORE_PUSH
+            npx --yes -p @gracefultools/astrid-sdk@1.0.3 astrid-agent run --agent "${HEARTBEAT_AGENT}" \
+              --list "${ASTRID_OAUTH_LIST_ID}" --include-unassigned --fixall --harness custom \
+              --command 'bash -c run_claude' && STATUS=0 || STATUS=$?
+            if [ "${STATUS}" = 3 ]; then
+              echo "RESULT: SKIPPED — every Ready task is taken by another worker or session" | tee .agent-output/agent-transcript.txt
+              exit 0
+            fi
+            exit "${STATUS}"
+          fi
+          run_claude
 
       - name: Run Codex
         id: codex
