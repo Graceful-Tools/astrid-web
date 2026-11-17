@@ -1828,6 +1828,8 @@
     "projectNone": "無",
     "projectMoveFailed": "無法移動此清單",
     "projectLockedIn": "在 {name} 中。只有專案擁有者或管理員可以將其移出。",
+    "projectNew": "新增專案…",
+    "projectLeaveConfirm": "從 {project} 移除 {list}？",
     "newListInProject": "在專案中新增清單…",
     "newListName": "清單名稱",
     "newListFailed": "無法建立清單"

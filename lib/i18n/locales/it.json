@@ -1828,6 +1828,8 @@
     "projectNone": "Nessuno",
     "projectMoveFailed": "Impossibile spostare questa lista",
     "projectLockedIn": "In {name}. Solo il proprietario o un amministratore del progetto può rimuoverla.",
+    "projectNew": "Nuovo progetto…",
+    "projectLeaveConfirm": "Rimuovere {list} da {project}?",
     "newListInProject": "Nuova lista nel progetto…",
     "newListName": "Nome della lista",
     "newListFailed": "Impossibile creare la lista"

@@ -1828,6 +1828,8 @@
     "projectNone": "Нет",
     "projectMoveFailed": "Не удалось переместить список",
     "projectLockedIn": "В {name}. Только владелец или администратор проекта может его перенести.",
+    "projectNew": "Новый проект…",
+    "projectLeaveConfirm": "Убрать {list} из {project}?",
     "newListInProject": "Новый список в проекте…",
     "newListName": "Название списка",
     "newListFailed": "Не удалось создать список"

@@ -1828,6 +1828,8 @@
     "projectNone": "无",
     "projectMoveFailed": "无法移动此列表",
     "projectLockedIn": "在 {name} 中。只有项目所有者或管理员可以将其移出。",
+    "projectNew": "新建项目…",
+    "projectLeaveConfirm": "从 {project} 中移除 {list}？",
     "newListInProject": "在项目中新建列表…",
     "newListName": "列表名称",
     "newListFailed": "无法创建列表"
