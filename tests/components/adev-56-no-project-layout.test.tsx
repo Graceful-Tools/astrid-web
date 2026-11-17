@@ -154,12 +154,11 @@ describe('completing a task that is not yours asks first (ADEV-56)', () => {
       />,
     )
 
-    fireEvent.click(screen.getByTestId('task-options-complete'))
-
-    expect(onToggleComplete).not.toHaveBeenCalled()
+    // Since ADEV-71 the sheet opens on the question itself: it says nobody owns
+    // the task before anything is pressed, and Cancel completes nothing.
     expect(screen.getByText('tasks.confirmCompleteUnassigned')).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'common.cancel' }))
+    fireEvent.click(screen.getByTestId('task-options-complete-cancel'))
     expect(onToggleComplete).not.toHaveBeenCalled()
   })
 

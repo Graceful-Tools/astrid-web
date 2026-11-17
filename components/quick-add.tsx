@@ -24,7 +24,7 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { Button } from "@/components/ui/button"
 import { Plus, Hash } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { PriorityAssigneePicker } from "./priority-assignee-picker"
+import { LazyPriorityAssigneePicker as PriorityAssigneePicker } from "@/components/TaskManager/lazy-panels"
 import type { User, TaskList } from '@/types/task'
 import { useTranslations } from "@/lib/i18n/client"
 import { getPriorityColor } from "@/lib/task-leading-control"

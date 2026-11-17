@@ -61,58 +61,51 @@ function openSheet(props: Record<string, unknown>) {
 }
 
 const completeButton = () => screen.getByTestId('task-options-complete')
-const confirmButton = () => screen.getByRole('button', { name: 'common.complete' })
 
-describe('completing someone else\'s task from the options sheet (AWTD-877)', () => {
-  it('asks rather than completing on the first press', () => {
-    const onToggleComplete = vi.fn()
-    openSheet({ onToggleComplete })
-
-    fireEvent.click(completeButton())
-
-    expect(onToggleComplete).not.toHaveBeenCalled()
-    expect(confirmButton()).toBeTruthy()
-  })
-
-  it('completes once the confirmation is accepted', () => {
-    const onToggleComplete = vi.fn()
-    openSheet({ onToggleComplete })
-
-    fireEvent.click(completeButton())
-    fireEvent.click(confirmButton())
-
-    expect(onToggleComplete).toHaveBeenCalledTimes(1)
-  })
-
-  it('completes nothing when the confirmation is dismissed', () => {
-    const onToggleComplete = vi.fn()
-    openSheet({ onToggleComplete })
-
-    fireEvent.click(completeButton())
-    fireEvent.click(screen.getByRole('button', { name: 'common.cancel' }))
-
-    expect(onToggleComplete).not.toHaveBeenCalled()
-  })
-
-  it('names the person whose task it is, so the confirmation is not blind', () => {
+/*
+ * ADEV-71 (Jon, 2026-11-17, matching iOS ADEV-79): "Tap the checkbox. It
+ * confirms. Completes. Done." The sheet used to show a Complete button that
+ * opened a second "Complete this task?" dialog — three taps. For a task that is
+ * not yours the sheet now OPENS ON the question, so the checkbox is tap one and
+ * the sheet's Complete is tap two.
+ */
+describe('completing someone else\'s task from the options sheet (AWTD-877, ADEV-71)', () => {
+  it('opens on the question itself, naming whose task it is', () => {
     openSheet({ onToggleComplete: vi.fn() })
 
+    expect(screen.getByText('tasks.confirmCompleteTitle')).toBeTruthy()
+    expect(screen.getByText(/Sam Smith/)).toBeTruthy()
+    expect(completeButton()).toHaveTextContent('common.complete')
+  })
+
+  it('completes on one press of Complete, with no second dialog (ADEV-71)', () => {
+    const onToggleComplete = vi.fn()
+    openSheet({ onToggleComplete })
+
     fireEvent.click(completeButton())
 
-    expect(screen.getByText(/Sam Smith/)).toBeTruthy()
+    expect(onToggleComplete).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('Cancel closes the sheet and completes nothing', () => {
+    const onToggleComplete = vi.fn()
+    const onClose = vi.fn()
+    openSheet({ onToggleComplete, onClose })
+
+    fireEvent.click(screen.getByTestId('task-options-complete-cancel'))
+
+    expect(onToggleComplete).not.toHaveBeenCalled()
   })
 
   it('reads the viewer off currentUser too, for callers that hold the row', () => {
-    const onToggleComplete = vi.fn()
     openSheet({
-      onToggleComplete,
+      onToggleComplete: vi.fn(),
       currentUserId: undefined,
       currentUser: { id: ME, name: 'Me', email: 'me@example.com', createdAt: new Date() },
     })
 
-    fireEvent.click(completeButton())
-
-    expect(onToggleComplete).not.toHaveBeenCalled()
+    expect(screen.getByText('tasks.confirmCompleteTitle')).toBeTruthy()
   })
 })
 
@@ -127,6 +120,7 @@ describe('what completes without asking (AWTD-877)', () => {
       selectedAssignee: { id: ME, name: 'Me', email: 'me@example.com', createdAt: new Date() },
     })
 
+    expect(screen.queryByText('tasks.confirmCompleteTitle')).toBeNull()
     fireEvent.click(completeButton())
 
     expect(onToggleComplete).toHaveBeenCalledTimes(1)

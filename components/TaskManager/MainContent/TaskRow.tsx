@@ -2,7 +2,7 @@
 
 import React from "react"
 import { TaskRowContent } from "../../task-row-content"
-import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
+import { LazyPriorityAssigneePicker as PriorityAssigneePicker } from "@/components/TaskManager/lazy-panels"
 import { useCompletionConfirmation } from "@/components/completion-confirmation"
 import type { TaskDragCapability } from "@/lib/touch-drag-sort"
 import { boardColumnsFor, resolveColumnMove, taskColumnId } from "@/lib/task-status"
