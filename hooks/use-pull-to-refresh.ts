@@ -7,6 +7,13 @@ interface PullToRefreshOptions {
   disabled?: boolean
 }
 
+function hasScrolledAncestor(element: HTMLElement): boolean {
+  for (let el = element.parentElement; el; el = el.parentElement) {
+    if (el.scrollTop > 0 && el.scrollHeight > el.clientHeight) return true
+  }
+  return false
+}
+
 export function usePullToRefresh(options: PullToRefreshOptions = {}) {
   const {
     threshold = 60,
@@ -42,8 +49,9 @@ export function usePullToRefresh(options: PullToRefreshOptions = {}) {
       const scrollTop = element.scrollTop
       const touch = e.touches[0]
 
-      // Only enable pull-to-refresh when scrolled to top
-      if (scrollTop === 0) {
+      // Only enable pull-to-refresh when scrolled to top, and when no scrolling ancestor is
+      // scrolled down: a downward drag there is that pane scrolling up (ADEV-74).
+      if (scrollTop === 0 && !hasScrolledAncestor(element)) {
         touchStartRef.current = {
           y: touch.clientY,
           scrollTop
