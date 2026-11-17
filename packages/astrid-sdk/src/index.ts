@@ -43,6 +43,18 @@ export {
   type QueueVerdictReason,
 } from './verdict.js'
 
+export { BOARDS, BOARD_LIST_NAMES, findBoardList, parseBoardTarget, type Board, type BoardTarget } from './board.js'
+export {
+  DEFAULT_LONG_RUN_WINDOW,
+  LONG_RUN_MAX_MINUTES,
+  inLongRunWindow,
+  parseLongRun,
+  parseLongRunWindow,
+  planRun,
+  type LongRunWindow,
+  type RunPlan,
+} from './long-run.js'
+export { MAX_FAILED_ATTEMPTS, parseSeenKeys, recordFailedRun, recordFinishedRun } from './wake-keys.js'
 export { runAgent, buildPrompt, harnessArgv, HARNESSES, type Harness, type RunOptions, type RunOutcome } from './run.js'
 
 export { runCli, EXIT, USAGE, type CliIO } from './cli.js'

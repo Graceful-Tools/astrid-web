@@ -11,8 +11,7 @@
  */
 import { loadScriptEnv } from './lib/load-env'
 import { resolveAgentAuthorId } from './lib/agent-author'
-import { boardTasksUrl } from './lib/board-read-url'
-import { ASTRID_API, fetchScriptToken } from './lib/fixall-claim-request'
+import { scriptClient } from './lib/script-client'
 import { claimsToRenew, type HeldClaimTask } from './lib/held-claims'
 
 loadScriptEnv()
@@ -37,26 +36,17 @@ async function main(): Promise<void> {
     console.error('HEARTBEAT: no OAuth client in the environment')
     return
   }
-  const token = await fetchScriptToken({ clientId, clientSecret })
-  const agentId = await resolveAgentAuthorId({ mailbox, accessToken: token })
+  const client = scriptClient({ clientId, clientSecret })
+  const agentId = await resolveAgentAuthorId({ mailbox, accessToken: await client.accessToken() })
   if (!agentId) {
     console.error(`HEARTBEAT: could not resolve the ${mailbox} agent`)
     return
   }
-  const auth = { 'X-OAuth-Token': token }
-  const board = await fetch(boardTasksUrl({ boardId: listId, limit: 500, origin: ASTRID_API }), { headers: auth })
-  if (!board.ok) {
-    console.error(`HEARTBEAT: could not read the board — HTTP ${board.status}`)
-    return
-  }
-  const tasks: HeldClaimTask[] = (await board.json()).tasks ?? []
-  for (const id of claimsToRenew(tasks, { agentId, runStartedAt, now: new Date() })) {
-    const response = await fetch(`${ASTRID_API}/api/v1/tasks/${id}/claim`, {
-      method: 'POST',
-      headers: { ...auth, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'heartbeat', agentMailbox: mailbox }),
-    })
-    console.log(`HEARTBEAT: ${id} → HTTP ${response.status}`)
+  // A failed board read throws (`HTTP <n> from /api/v1/tasks`) and main() prints it.
+  const { tasks } = await client.getBoardTasks({ listId, limit: 500 })
+  for (const id of claimsToRenew(tasks as HeldClaimTask[], { agentId, runStartedAt, now: new Date() })) {
+    const result = await client.heartbeatTask(id, { agentMailbox: mailbox })
+    console.log(`HEARTBEAT: ${id} → HTTP ${result.status}`)
   }
 }
 

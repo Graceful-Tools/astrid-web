@@ -25,6 +25,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import { dirname, join } from 'node:path'
 
 import { AstridApiError, AstridClient, type AstridAuth } from './client.js'
+import { couldNotTell, loopQueue, markSeen, type LoopArgs } from './queue-loop.js'
 import { HARNESSES, runAgent, type Harness, type RunDeps } from './run.js'
 import { decideQueueVerdict } from './verdict.js'
 
@@ -54,6 +55,12 @@ Commands:
            [--seen <file> [--write-seen]] [--require-polling]
            Print the queue verdict as JSON. Exit 0 work, 3 idle, 1 could not tell.
            --require-polling exits 1 unless the agent is in polling mode.
+  queue    --lines --agent <mailbox> (--list <listId> | --board web|ios|windows|android) [--include-unassigned]
+           [--seen <file>] [--no-write-seen] [--long-run-window <h-h|always> --default-minutes <n> --max-tasks <n>]
+           [--output <file>] [--json] [--dry-run] [--require-polling]
+           The scheduled loop's preflight: QUEUE:/KEYS:/RUN-* lines on stdout, seen-file in the OS cache dir.
+  queue    --lines --mark-seen --list <listId> (--seen-keys <json> | --seen-keys-file <path>) [--failed]
+           Phase two of waking: record the keys a run was woken for (--failed gives each a strike).
   claim    <taskId> [--agent <mailbox>] [--resume] [--lease-seconds <n>]
            Atomic claim (POST /api/v1/tasks/:id/claim). Exit 0 claimed, 2 taken, 1 error.
            The claim holds a lease (15 min by default): heartbeat while you work.
@@ -86,9 +93,11 @@ Environment:
 const VALUED = new Set([
   '--agent', '--list', '--seen', '--origin', '--comment', '--lease-seconds',
   '--watermark', '--resume-context', '--resume-context-file', '--harness', '--command', '--task',
+  '--board', '--seen-keys', '--seen-keys-file', '--long-run-window', '--default-minutes', '--max-tasks', '--output',
 ])
 const BOOLEAN = new Set([
   '--include-unassigned', '--write-seen', '--require-polling', '--resume', '--fixall', '--help', '-h', '--version', '-v',
+  '--lines', '--no-write-seen', '--mark-seen', '--failed', '--dry-run', '--json',
 ])
 
 interface Parsed {
@@ -170,7 +179,18 @@ function packageVersion(): string {
   }
 }
 
+function loopArgs(args: Parsed): LoopArgs {
+  return { flag: name => args.flags.get(name), has: name => args.switches.has(name) }
+}
+
 async function queue(client: AstridClient, args: Parsed, io: CliIO): Promise<number> {
+  if (args.switches.has('--lines')) {
+    try {
+      return await loopQueue(client, loopArgs(args), io)
+    } catch (error) {
+      return couldNotTell(error, io)
+    }
+  }
   const agent = args.flags.get('--agent')
   if (!agent) throw new UsageError('queue needs --agent <mailbox>')
   const seenFile = args.flags.get('--seen')
@@ -401,6 +421,15 @@ export async function runCli(argv: string[], io: CliIO): Promise<number> {
     return EXIT.ERROR
   }
 
+  // Recording what a finished run was woken for needs no network and no credentials.
+  if (command === 'queue' && args.switches.has('--lines') && args.switches.has('--mark-seen')) {
+    try {
+      return markSeen(loopArgs(args), io)
+    } catch (error) {
+      return couldNotTell(error, io)
+    }
+  }
+
   try {
     const client = new AstridClient({
       origin: args.flags.get('--origin') || io.env.ASTRID_API_URL || io.env.ASTRID_API_BASE_URL,
@@ -409,6 +438,10 @@ export async function runCli(argv: string[], io: CliIO): Promise<number> {
     })
     return await handler(client, args, io)
   } catch (error) {
+    if (error instanceof UsageError && command === 'queue' && args.switches.has('--lines')) {
+      // A loop log greps for QUEUE:, and exit 1 must read as "could not tell", never idle.
+      return couldNotTell(error, io)
+    }
     if (error instanceof UsageError) {
       io.stderr(`${error.message}\n\n${USAGE}`)
     } else {
