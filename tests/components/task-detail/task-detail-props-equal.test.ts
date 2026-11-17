@@ -29,9 +29,10 @@ describe('AWTD-1275: TaskDetail re-renders when its board state changes', () => 
     expect(taskDetailPropsEqual(props({ statusRole: 'ready' }), props({ statusRole: 'doing' }))).toBe(false)
   })
 
-  it('AWTD-1275: becoming read-only or switching display mode is a change', () => {
+  it('AWTD-1275: becoming read-only is a change', () => {
+    // (Switching display mode was one too, until web dropped the project
+    // layout in ADEV-56 and the pane stopped taking a display mode.)
     expect(taskDetailPropsEqual(props({}, { readOnly: false }), props({}, { readOnly: true }))).toBe(false)
-    expect(taskDetailPropsEqual(props({}, { displayMode: 'list' }), props({}, { displayMode: 'project' }))).toBe(false)
   })
 
   it('an identical task is still not a re-render', () => {

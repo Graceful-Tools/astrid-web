@@ -20,7 +20,6 @@ vi.mock('@/lib/client-projects', () => ({
   subscribeLoadedProjects: vi.fn(() => () => {}),
   renameLoadedProject,
 }))
-vi.mock('@/hooks/useUserSettings', () => ({ useUserSettings: () => ({ taskDisplayMode: 'list' }) }))
 
 import { ProjectBoard } from '@/components/projects/ProjectBoard'
 

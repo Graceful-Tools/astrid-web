@@ -24,9 +24,7 @@ import {
   resolveProjectColumnCreate,
 } from "@/lib/project-status"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
-import { usesCompactTaskDetail } from "@/lib/task-display-mode"
 import { isSomeoneElsesTask } from "@/lib/task-leading-control"
-import { useUserSettings } from "@/hooks/useUserSettings"
 import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
 import { VirtualizedTaskList } from "@/components/TaskManager/MainContent/VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
@@ -120,9 +118,6 @@ export function ProjectStatusBoard({
   selectedTaskId = null,
 }: ProjectStatusBoardProps) {
   const { t } = useTranslations()
-  // One call for the whole board rather than one per row (task ffa5bbb5).
-  const { taskDisplayMode } = useUserSettings()
-  const compact = usesCompactTaskDetail(taskDisplayMode)
   const [optionsTaskId, setOptionsTaskId] = React.useState<string | null>(null)
 
   const projectId = getProjectIdForBoard(lists, selectedListId)
@@ -455,15 +450,14 @@ export function ProjectStatusBoard({
                         isMobile={isOneColumn}
                         onToggleComplete={handleToggleComplete}
                         onCopyPublic={handleCopyPublic}
-                        displayMode={taskDisplayMode}
                         identifier={shouldShowTaskIdentifier(task, "row-board", lists) ? task.identifier : null}
                         currentListId={selectedListId}
-                        /* Someone else's card opens the sheet too, in either
-                           display mode (AWTD-877) — it is the only route to
-                           reassign, reprioritise or move it, and to a
-                           completion that asks first. */
+                        /* Someone else's card opens the sheet (AWTD-877) —
+                           it is the only route to reassign, reprioritise or
+                           move it, and to a completion that asks first. An
+                           unassigned card's "U" asks before completing in the
+                           control itself (ADEV-56). */
                         onOpenOptions={
-                          compact ||
                           isSomeoneElsesTask({
                             assigneeId: task.assigneeId,
                             currentUserId: currentUser?.id,
@@ -506,8 +500,9 @@ export function ProjectStatusBoard({
         </div>
       </div>
 
-      {/* Project mode: the leading control on a card opens this instead of
-          completing the task (task ffa5bbb5).
+      {/* The leading control on someone else's card opens this instead of
+          completing the task (AWTD-877; the project layout that also opened
+          it, task ffa5bbb5, left web in ADEV-56).
 
           THE BOARD PASSES ITS OWN COLUMNS, which is the whole reason this is
           wired separately from the list rows. getProjectBoardColumns carries

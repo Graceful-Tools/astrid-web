@@ -47,7 +47,7 @@ const BUDGETS: Record<string, number> = {
   // 1661 → 1659: AWTD-1227's add-subtask option did not fit. The options both
   // create entry points take — declared inline and identically, twice — became
   // hooks/task-manager/create-task-options.ts, so the next field is added once.
-  'hooks/useTaskManagerController.ts': 1558,
+  'hooks/useTaskManagerController.ts': 1557,
   // 1585 → 1591: AWTD-877 made someone else's task open the options sheet on
   // every surface, and this panel is one of the three that owns a sheet. Six
   // lines — the predicate, the import, and two props — with the rule itself in
@@ -62,7 +62,7 @@ const BUDGETS: Record<string, number> = {
   // 1477 → 1473: AITD-679 took the board card's in-place `inline` mode out
   // (cards open a callout now) and an unused English `priorityLabels` with it,
   // which more than paid for the callout's arrow.
-  'components/task-detail.tsx': 1473,
+  'components/task-detail.tsx': 1463,
   'lib/ai-orchestrator.ts': 1547,
   // 1205 → 1199: AWTD-1227 needed four more props on the task-detail pane, and
   // this file renders that pane TWICE — desktop and mobile — with a dozen
@@ -87,7 +87,7 @@ const BUDGETS: Record<string, number> = {
   // 1129 → 1128: AITD-679 renders a board card's details as a callout. The
   // render site is five lines; the two pane sites' unused canEdit lookups and
   // MainContent's board-only delete/local-update props paid for it.
-  'components/TaskManagerView.tsx': 1128,
+  'components/TaskManagerView.tsx': 1123,
   // 1125 → 1115: the list header's two buttons moved to ListHeaderActions
   // when Sort & Filters gained its own control (task aa4e7eb0).
   // 1115 → 1100: the board-row context memos moved to useBoardRowContext (AWTD-1025).
@@ -102,7 +102,7 @@ const BUDGETS: Record<string, number> = {
   // 1008 → 1002: the Copy List button moved to TaskManager/CopyListButton (AWTD-1575).
   // 996 → 990: the board no longer renders TaskDetail itself (AITD-679), so its
   // delete and local-update props stopped passing through here.
-  'components/TaskManager/MainContent/MainContent.tsx': 990,
+  'components/TaskManager/MainContent/MainContent.tsx': 986,
   'lib/cache-manager.ts': 935,
   // 819 → 797: its two hand-rolled comment inserts and SSE fan-outs went
   // through the comment service (spec §5.2 step 4).
@@ -177,7 +177,7 @@ const BUDGETS: Record<string, number> = {
   // is smaller than before the feature once more.
   // 895 → 828: the custom-repeat summary went to custom-repeating-summary.ts when
   // it was translated (AWTD-1575) — as sentences per language it no longer fit here.
-  'components/task-detail/TaskFieldEditors.tsx': 817,
+  'components/task-detail/TaskFieldEditors.tsx': 806,
   'components/oauth-api-tester.tsx': 973,
   // 957 → 688: AWTD-871 needed to add a `requireReady` parameter to the
   // get_agent_queue schema, which pushed this over. The 280-line

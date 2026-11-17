@@ -44,7 +44,6 @@ function controller(overrides: Partial<TaskRowControllerSlice> = {}): TaskRowCon
     handleTaskDragLeaveTask: vi.fn(),
     handleTaskDragEnd: vi.fn(),
     handleUpdateTask: vi.fn(),
-    taskDisplayMode: 'list',
     ...overrides,
   } as unknown as TaskRowControllerSlice
 }

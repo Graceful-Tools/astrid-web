@@ -10,7 +10,6 @@ import {
   getTaskProjectColumnId,
   resolveProjectColumnMove,
 } from "@/lib/project-status"
-import { usesCompactTaskDetail } from "@/lib/task-display-mode"
 import {
   isSomeoneElsesTask,
   leadingControlOpensOptions,
@@ -49,7 +48,6 @@ export type TaskRowControllerSlice = Pick<
   | 'handleTaskDragLeaveTask'
   | 'handleTaskDragEnd'
   | 'handleUpdateTask'
-  | 'taskDisplayMode'
 >
 
 export interface TaskRowProps {
@@ -146,39 +144,29 @@ function TaskRowImpl({
     handleTaskDragLeaveTask: onDragLeaveTask,
     handleTaskDragEnd: onDragEnd,
     handleUpdateTask,
-    taskDisplayMode,
   } = controller
   const currentUserId = effectiveSession?.user?.id
   const isDragging = activeDragTaskId === task.id
 
-  // Project mode: tapping the leading control opens this sheet rather than
-  // completing the task (task ffa5bbb5). A row on a BOARD opens it too, in
-  // every display mode (task 036ef139), and so does SOMEONE ELSE'S task
-  // (AWTD-877) — on a plain list row their avatar was inert, which was safe but
-  // also withheld reassign, reprioritise and move-column.
+  // A row on a BOARD opens this sheet rather than completing the task (task
+  // 036ef139), and so does SOMEONE ELSE'S task (AWTD-877) — on a plain list row
+  // their avatar was inert, which was safe but also withheld reassign,
+  // reprioritise and move-column. The "project" display mode used to open it
+  // too (task ffa5bbb5); web removed that layout in ADEV-56.
   //
   // The gate has to match `leadingControlOpensOptions`, because the control
   // only opens what this renders: a mismatch is a dead avatar, not a fallback.
-  const [optionsOpen, setOptionsOpen] = React.useState(false)
-  const compact = usesCompactTaskDetail(taskDisplayMode)
   //
   // The MARK is part of the gate since AWTD-919: a tap completes a checkbox and
   // nothing else, so an unassigned task's "U" opens the sheet on a plain list
   // row like everyone else's avatar already did.
-  //
-  // No circularity, though the control's own `effectiveMode` depends on whether
-  // it was given a handler. `taskLeadingControlKind`'s displayMode only decides
-  // the "your own task in project mode wears your photo" branch, and project
-  // mode already opens the sheet on its own — so the only answer the kind
-  // CHANGES here is 'unassigned', which is decided before displayMode is read.
+  const [optionsOpen, setOptionsOpen] = React.useState(false)
   const leadingKind = taskLeadingControlKind({
     assigneeId: task.assigneeId,
     currentUserId,
     completed: task.completed,
-    displayMode: taskDisplayMode,
   })
   const opensOptions = leadingControlOpensOptions({
-    displayMode: taskDisplayMode,
     onBoard: Boolean(board),
     isSomeoneElses: isSomeoneElsesTask({ assigneeId: task.assigneeId, currentUserId }),
     kind: leadingKind,
@@ -434,7 +422,6 @@ function TaskRowImpl({
           isMobile={isMobile}
           onToggleComplete={() => onToggleComplete(task.id)}
           onCopyPublic={() => onCopyPublic(task.id)}
-          displayMode={taskDisplayMode}
           onOpenOptions={opensOptions ? () => setOptionsOpen(true) : undefined}
           onBoard={Boolean(board)}
           currentListId={currentListId}

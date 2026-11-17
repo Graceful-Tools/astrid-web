@@ -17,28 +17,28 @@
  * This is the web mirror. Decide here, render in
  * `components/task-leading-control.tsx`, never per component.
  *
- * The MARK changes between the three; in LIST mode the ACTION does not —
- * tapping any of them completes the task.
+ * The MARK changes between the three. Tapping your own checkbox completes the
+ * task.
  *
- * PROJECT MODE CHANGES BOTH (task ffa5bbb5). Your own task shows YOUR photo
- * rather than the checkbox — "assigned to you should also show your profile
- * photo" — and tapping opens the options popover (priority, assignee, board
- * state, complete) instead of completing outright. That sentence about the
- * action being invariant was true for two years and is now conditional; it is
- * left above rather than deleted because list mode is still the default and
- * still works exactly that way.
+ * THERE IS NO PROJECT LAYOUT ON WEB ANY MORE (ADEV-56). Task ffa5bbb5 added a
+ * "project" display mode in which your own task wore your photo and every tap
+ * opened the options popover; Jon removed it once board items opened in a
+ * popout. The stored `taskDisplayMode` survives for the native clients, but
+ * nothing here reads it.
  *
- * A BOARD'S TASK CHANGES THE ACTION ALONE (task 036ef139). Seen in list view,
- * tapping it opens the same sheet — the board's states are otherwise
- * unreachable from the row — but the mark stays the list-mode checkbox. See
- * `leadingControlOpensOptions` below for why the two are decided separately.
+ * A BOARD'S TASK CHANGES THE ACTION ALONE (task 036ef139). Tapping it opens
+ * the options sheet — the board's states are otherwise unreachable from the
+ * row — but the mark stays the checkbox. See `leadingControlOpensOptions`
+ * below for why the two are decided separately.
  *
  * SOMEONE ELSE'S TASK CHANGES THE ACTION EVERYWHERE (AWTD-877, with iOS
  * AITD-375). Jon, for both platforms: "When not yours, always confirm before
  * completing. On web and iOS it should give the popover to show assignment,
  * complete, priority and status options just like in project mode." So the
- * tap opens the sheet on every surface and in both modes, and completing from
- * that sheet asks first. The mark is untouched: it was already their photo.
+ * tap opens the sheet on every surface, and completing from that sheet asks
+ * first. The mark is untouched: it was already their photo. ADEV-56 widened
+ * the confirmation to any task that is not yours — unassigned included — see
+ * `completionNeedsConfirmation`.
  *
  * A TAP COMPLETES ONLY WHAT IS DRAWN AS A CHECKBOX (AWTD-919, with iOS
  * AITD-382). The three rules above are all about WHERE you are and WHOSE the
@@ -57,7 +57,6 @@
  */
 
 import { priorityColor } from '@/lib/design/priority'
-import { usesCompactTaskDetail, type TaskDisplayMode } from '@/lib/task-display-mode'
 
 export type TaskLeadingControlKind = 'avatar' | 'checkbox' | 'unassigned'
 
@@ -66,13 +65,6 @@ export interface TaskLeadingControlInput {
   currentUserId?: string | null
   /** Completed tasks need a mark that can read as checked; "U" cannot. */
   completed?: boolean
-  /**
-   * The user's task display mode. Optional, and absent means list — every
-   * call site that predates task ffa5bbb5 omits it, and none of them may
-   * change behaviour. Normalized rather than compared directly so an
-   * unrecognised value renders the safe layout.
-   */
-  displayMode?: TaskDisplayMode | string | null
 }
 
 /**
@@ -82,9 +74,10 @@ export interface TaskLeadingControlInput {
  * differently. iOS keeps the same predicate in `TaskLeadingControlKind`, and the
  * three traps it exists to avoid are all cases where a near-miss looks right:
  *
- *  1. "Is it an avatar" is NOT "is it theirs". In project mode your own task
- *     wears your photo too (task ffa5bbb5), so keying anything off the MARK
- *     makes people confirm their own completions. This compares ids.
+ *  1. "Is it an avatar" is NOT "is it theirs". iOS and Mac's project layout
+ *     still puts your own photo on your own task (task ffa5bbb5), so keying
+ *     anything off the MARK makes people confirm their own completions. This
+ *     compares ids.
  *  2. Unassigned is nobody's, and `''` is how the API says unassigned — not
  *     just null. There is no one whose work you would be finishing.
  *  3. An unknown viewer counts as "not yours". If `currentUserId` is absent you
@@ -105,12 +98,11 @@ export function isSomeoneElsesTask({
  * Does tapping the leading control open the options sheet rather than
  * completing the task?
  *
- * FOUR conditions, OR'd (tasks 036ef139, AWTD-877, AWTD-919):
+ * THREE conditions, OR'd (tasks 036ef139, AWTD-877, AWTD-919):
  *
  *   the mark is not a  a tap completes a CHECKBOX; "U" and an avatar are not
  *   CHECKBOX           checkboxes and must not finish anyone's work (AWTD-919)
  *
- *   project display mode  the user's own Appearance preference (task ffa5bbb5)
  *   the task is on a BOARD  Jon: "In board view, when in 'list' mode the
  *                         checkbox when tapped should provide the 'status'
  *                         picker (inbox, ready, doing, waiting, done, or
@@ -119,22 +111,18 @@ export function isSomeoneElsesTask({
  *                         to show assignment, complete, priority and status
  *                         options just like in project mode"
  *
- * Each was ADDED rather than substituted. Until boards were added the only
- * route to the sheet was the display-mode preference, so a board's own tasks
- * completed on tap for everyone who never opened Appearance — the board's
- * states were unreachable from the row that belongs to them. Substituting
- * would have taken the sheet away from project-mode users on a plain list,
- * which nothing asked for.
+ * There used to be a fourth, the user's "project" display mode (task
+ * ffa5bbb5). Web removed that layout in ADEV-56; the three above never
+ * depended on it and are unchanged.
  *
  * Someone else's task is the condition that holds on EVERY surface, which is
  * why it is checked here rather than per-surface: the row offered nothing at
  * all (its avatar was inert) and details had grown a confirm-on-tap of its own,
  * so the same task behaved three different ways depending on where you met it.
  *
- * ONLY THE ACTION. The MARK still comes from `taskLeadingControlKind` and its
- * display mode alone: "the checkbox when tapped" says the checkbox stays, so a
- * board must not swap in the project-mode avatar for a user who never chose it.
- * Someone else's task needs no help here — it already wears their photo.
+ * ONLY THE ACTION. The MARK still comes from `taskLeadingControlKind`: "the
+ * checkbox when tapped" says the checkbox stays on a board. Someone else's
+ * task needs no help here — it already wears their photo.
  *
  * The `kind` clause READS that decision without making it, which is why it
  * takes the kind rather than an `assigneeId`. `taskLeadingControlKind` returns
@@ -144,78 +132,80 @@ export function isSomeoneElsesTask({
  * the assignee would have quietly taken it away.
  */
 export function leadingControlOpensOptions({
-  displayMode,
   onBoard = false,
   isSomeoneElses = false,
   kind = 'checkbox',
 }: {
-  displayMode?: TaskDisplayMode | string | null
   /** Is this task's list part of a project board? */
   onBoard?: boolean
   /** From `isSomeoneElsesTask`. Absent means it is yours or nobody's. */
   isSomeoneElses?: boolean
   /**
-   * The mark `taskLeadingControlKind` actually drew. Absent means a checkbox,
-   * the same convention `displayMode` uses above: callers that predate
-   * AWTD-919 must not change behaviour, and every one of them was a checkbox.
+   * The mark `taskLeadingControlKind` actually drew. Absent means a checkbox:
+   * callers that predate AWTD-919 must not change behaviour, and every one of
+   * them was a checkbox.
    */
   kind?: TaskLeadingControlKind
 }): boolean {
   // A tap completes a task only when the mark it lands on is a CHECKBOX.
   if (kind !== 'checkbox') return true
-  return usesCompactTaskDetail(displayMode) || onBoard || isSomeoneElses
+  return onBoard || isSomeoneElses
 }
 
 /**
  * Does completing this task ask for confirmation first?
  *
- * IT IS SOMEONE ELSE'S — that is the whole rule (AWTD-877). Jon: "When not
- * yours, always confirm before completing."
+ * IT IS NOT YOURS — that is the whole rule (ADEV-56, widening AWTD-877).
+ * Jon: "show confirmation before completing a task that isn't [assigned to
+ * me] (including unassigned)."
  *
- * This replaces `leadingControlConfirmsCompletion({ kind, opensOptions,
- * surface })` (task 43bcc76c), and the shrunken signature IS the fix. The old
- * one asked where you were standing and which mark you were looking at, so it
- * could only be true in task details, on an avatar, when the options sheet was
- * not already claiming the tap — three coordinates for a question that has one.
- * Whose work you are about to finish does not change with the surface.
+ * AWTD-877 asked only for SOMEONE ELSE'S task and deliberately let an
+ * unassigned one through ("there is nobody the dialog could name"). ADEV-56
+ * reverses that half: the question is "is it mine?", not "is it theirs?", so
+ * this compares the assignee to the viewer directly rather than asking
+ * `isSomeoneElsesTask`, which still (correctly) calls an unassigned task
+ * nobody's for the purpose of the MARK and the sheet.
  *
- * It also stopped being a TAP OUTCOME. The tap opens the options sheet now, on
- * every surface; the confirmation sits on that sheet's Complete button, where
- * it also covers the project-mode and board completions that previously had
- * none.
+ * - `''` is how the API says unassigned, the same as null — both ask.
+ * - An unknown viewer asks: you cannot show the task is yours.
+ * - REOPENING never asks (`completed: true`). Undoing a completion takes
+ *   nothing away from anyone.
+ *
+ * Where you are standing does not enter into it (task 43bcc76c's three-
+ * coordinate version was the bug). The completion surfaces all ask this one
+ * function: the leading control's direct tap and the options sheet's Complete
+ * button through `useCompletionConfirmation`
+ * (components/completion-confirmation.tsx), and the complete-task keyboard
+ * shortcut in hooks/useTaskManagerController.ts.
  */
 export function completionNeedsConfirmation({
   assigneeId,
   currentUserId,
+  completed = false,
 }: {
   assigneeId?: string | null
   currentUserId?: string | null
+  /** Is the task completed NOW? True means the action is a reopen. */
+  completed?: boolean
 }): boolean {
-  return isSomeoneElsesTask({ assigneeId, currentUserId })
+  if (completed) return false
+  if (!currentUserId) return true
+  return assigneeId !== currentUserId
 }
 
 export function taskLeadingControlKind({
   assigneeId,
   currentUserId,
   completed = false,
-  displayMode,
 }: TaskLeadingControlInput): TaskLeadingControlKind {
   if (!assigneeId) {
     // A completed task must still show that it is completed, and the "U" mark
     // has no checked state to show. Fall back to the checkbox rather than
     // inventing a checked "U".
-    //
-    // Unchanged in project mode: "also show your photo" is about assignment,
-    // and a task nobody owns has no photo to show.
     return completed ? 'checkbox' : 'unassigned'
   }
 
   if (assigneeId !== currentUserId) return 'avatar'
-
-  // Your own task. In project mode it wears your photo — EXCEPT when it is
-  // completed, because an avatar has no checked state and completion has to
-  // stay legible in both modes. Same reasoning as the unassigned case above.
-  if (!completed && usesCompactTaskDetail(displayMode)) return 'avatar'
 
   return 'checkbox'
 }

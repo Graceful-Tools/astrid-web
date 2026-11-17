@@ -109,6 +109,7 @@
     "createdBy": "Created by",
     "confirmCompleteTitle": "Complete this task?",
     "confirmCompleteAssigned": "Assigned to {name}",
+    "confirmCompleteUnassigned": "Not assigned to anyone",
     "waitingOn": {
       "label": "Waiting on",
       "add": "Wait on a task…",
@@ -1377,15 +1378,6 @@
         "viewDesc": "See all available keyboard shortcuts for efficient task management",
         "quickAccess": "Press ? anywhere in the task manager to open keyboard shortcuts.",
         "quickAccessLabel": "Quick Access"
-      },
-      "taskDisplayMode": {
-        "title": "Task detail layout",
-        "description": "How priority, assignee and state appear on a task (synced across devices)",
-        "label": "Layout",
-        "list": "List",
-        "project": "Project",
-        "listDesc": "The checkbox completes the task, and priority and assignee each get their own row.",
-        "projectDesc": "Compact. Tapping the checkbox opens priority, assignee, state and complete."
       },
       "taskTitles": {
         "title": "Task titles",

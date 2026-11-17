@@ -109,6 +109,7 @@
     "createdBy": "Criado por",
     "confirmCompleteTitle": "Concluir esta tarefa?",
     "confirmCompleteAssigned": "Atribuída a {name}",
+    "confirmCompleteUnassigned": "Não atribuída a ninguém",
     "waitingOn": {
       "label": "À espera de",
       "add": "Esperar por uma tarefa…",
@@ -1377,15 +1378,6 @@
         "viewDesc": "Veja todos os atalhos de teclado disponíveis para gerenciamento eficiente de tarefas",
         "quickAccess": "Pressione ? em qualquer lugar no gerenciador de tarefas para abrir atalhos de teclado.",
         "quickAccessLabel": "Acesso rápido"
-      },
-      "taskDisplayMode": {
-        "title": "Layout dos detalhes da tarefa",
-        "description": "Como prioridade, responsável e estado aparecem numa tarefa (sincronizado entre dispositivos)",
-        "label": "Layout",
-        "list": "Lista",
-        "project": "Projeto",
-        "listDesc": "A caixa de seleção conclui a tarefa, e prioridade e responsável têm cada um a sua própria linha.",
-        "projectDesc": "Compacto. Tocar na caixa abre prioridade, responsável, estado e concluir."
       },
       "taskTitles": {
         "title": "Títulos das tarefas",

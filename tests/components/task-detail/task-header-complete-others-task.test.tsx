@@ -59,7 +59,6 @@ function renderHeader(overrides: Record<string, unknown> = {}) {
     <TaskHeader
       task={theirTask}
       currentUser={me}
-      displayMode="list"
       tempCompleted={false}
       tempTitle={theirTask.title}
       editingTitle={false}
@@ -97,7 +96,7 @@ describe('completing someone else\'s task from task details (AWTD-877)', () => {
   })
 })
 
-describe('task-detail supplies that sheet in list mode (AWTD-877)', () => {
+describe('task-detail supplies that sheet (AWTD-877)', () => {
   // Source-level, like project-board-display-mode.test.ts: rendering the whole
   // panel would drag in its data layer to prove one prop. Without these two the
   // header above is handed no handler, its avatar goes inert, and details is
@@ -109,8 +108,8 @@ describe('task-detail supplies that sheet in list mode (AWTD-877)', () => {
     expect(src).toMatch(/isSomeoneElsesTask\(\{/)
   })
 
-  it('opens the sheet for compact mode OR someone else\'s task', () => {
-    expect(src).toMatch(/onOpenOptions=\{compactTaskDetail \|\| taskIsSomeoneElses/)
-    expect(src).toMatch(/\(compactTaskDetail \|\| taskIsSomeoneElses\) && \(/)
+  it('opens the sheet for someone else\'s task (the compact-mode half went with ADEV-56)', () => {
+    expect(src).toMatch(/onOpenOptions=\{taskIsSomeoneElses \?/)
+    expect(src).toMatch(/\{taskIsSomeoneElses && \(/)
   })
 })
