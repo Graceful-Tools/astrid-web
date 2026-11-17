@@ -132,6 +132,23 @@ describe('native GitHub Copilot bridge (AWTD-1383)', () => {
     expect(f.writes.filter(row => row.path.endsWith('/claim-fixall'))).toHaveLength(1)
   })
 
+  it('AWTD-1580: the issue text visibly tells Copilot to copy the source marker into the PR body', async () => {
+    // Copilot never read the marker from the hidden assignment instructions or the
+    // trailing HTML comment: PRs #623 and #711 lacked it, so the bridge could not
+    // link them and parked the task as stalled.
+    const f = fixture()
+    await f.run()
+    const create = f.writes.find(row => row.path.endsWith('/issues'))!
+    const body = (create.body as { body: string }).body
+    const marker = `<!-- astrid-native:v1:${listId}:task-1 -->`
+    const requirements = body.indexOf('## Pull request requirements')
+    expect(requirements).toBeGreaterThanOrEqual(0)
+    expect(requirements).toBeLessThan(body.indexOf('## Astrid source of truth'))
+    expect(body).toContain('```\n' + marker + '\n```')
+    expect(body).toMatch(/Fixes #/)
+    expect(body.trimEnd().endsWith(marker)).toBe(true)
+  })
+
   it('never takes a human task without the scoped pending-handback resume context', async () => {
     const f = fixture()
     f.task.assigneeId = 'human'
