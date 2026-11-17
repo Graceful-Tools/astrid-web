@@ -26,6 +26,16 @@ export function isCoreCandidate(task: ClaimCandidate): boolean {
   return /^\s*\[core\]/i.test(title) || /\bastrid-core\b/i.test(title)
 }
 
+/**
+ * ADEV-75: the task agent-run's "Take this worker's task" step already claimed for this
+ * worker (slots 2..N), or undefined. A session that re-walks the queue finds that task in
+ * Doing, answers NO_READY_TASK, reports SKIPPED, and the release hands the task back.
+ */
+export function runnerClaimedTask(env: Record<string, string | undefined>): string | undefined {
+  const id = env.ASTRID_CLAIMED_TASK?.trim()
+  return id && /^[A-Za-z0-9-]+$/.test(id) ? id : undefined
+}
+
 export interface ClaimNextResult {
   claimed: ClaimCandidate | null
   /** Ids that answered 409, in the order tried. */
