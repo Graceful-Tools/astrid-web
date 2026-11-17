@@ -664,7 +664,7 @@ describe('ADEV-26: parallel cloud workers', () => {
   })
 
   describe('the preflight, executed', () => {
-    const preflight = (slot: string, snapshot: object, opts: { work: boolean; wakeKeys?: string[] }) => {
+    const preflight = (slot: string, snapshot: object, opts: { work: boolean; wakeKeys?: string[]; pinned?: string }) => {
       fakeNpx()
       mkdirSync(join(dir, '.agent-output'), { recursive: true })
       const output = join(dir, 'github-output')
@@ -672,7 +672,7 @@ describe('ADEV-26: parallel cloud workers', () => {
       const result = runWorkflowStep(workflowStep(AGENT_RUN, 'run', 'Queue and inbox preflight'), {
         cwd: dir,
         env: {
-          PATH: `${dir}:${process.env.PATH}`, DRY_RUN: 'false', GITHUB_OUTPUT: output,
+          PATH: `${dir}:${process.env.PATH}`, DRY_RUN: 'false', GITHUB_OUTPUT: output, PINNED_TASK: opts.pinned ?? '',
           GH_TOKEN: 'token', ASTRID_FIXALL_HARNESS: 'claude-code', ASTRID_OAUTH_LIST_ID: 'board', ASTRID_AGENT_SLOT: slot,
           FAKE_PREFLIGHT: JSON.stringify({ version: 1, work: opts.work, wakeKeys: opts.wakeKeys ?? [], snapshot }),
         },
@@ -695,6 +695,12 @@ describe('ADEV-26: parallel cloud workers', () => {
     it('ADEV-26: another slot works only Ready tasks, never the inbox, and carries no wake keys', () => {
       expect(preflight('2', queue(1), { work: true, wakeKeys: ['comment:c1'] })).toMatchObject({ work: 'true', keys: [] })
       expect(preflight('3', queue(0), { work: true, wakeKeys: ['comment:c1'] })).toMatchObject({ work: 'false', keys: [] })
+    })
+
+    it('ADEV-88: a pinned task_id works on slot 2 even with an empty queue, and nowhere else', () => {
+      expect(preflight('2', queue(0), { work: false, pinned: 'ADEV-88' }).work).toBe('true')
+      expect(preflight('1', queue(3), { work: true, pinned: 'ADEV-88' }).work).toBe('false')
+      expect(preflight('3', queue(3), { work: false, pinned: 'ADEV-88' }).work).toBe('false')
     })
 
     it('ADEV-26: only slot 1 runs the stale-Doing sweep, so a task is never released twice', () => {
@@ -755,6 +761,18 @@ describe('ADEV-26: parallel cloud workers', () => {
       expect(run).toContain('declare -f run_claude > "${RUNNER_TEMP}/run-claude.sh"')
       expect(run).toContain('--command "bash')
       expect(run).toContain('run-claude.sh')
+    })
+
+    it('ADEV-88: a task_id dispatch input pins the task slot 2 runs, and the other slots stand down', () => {
+      const workflow = yaml.load(read('.github/workflows/agent-run.yml'))
+      expect(workflow.on.workflow_dispatch.inputs.task_id).toMatchObject({ default: '', type: 'string' })
+      const run = workflowStep(AGENT_RUN, 'run', 'Run Claude Code').run as string
+      expect(run).toContain('TASK_FLAGS=(--task "${PINNED_TASK}")')
+      expect(run).toContain('"${TASK_FLAGS[@]}" --command')
+      expect(workflowStep(AGENT_RUN, 'run', 'Run Claude Code').env.PINNED_TASK).toContain('inputs.use_runner')
+      const preflight = workflowStep(AGENT_RUN, 'run', 'Queue and inbox preflight')
+      expect(preflight.env.PINNED_TASK).toContain('inputs.use_runner')
+      expect(preflight.run).toContain('const work=pinned ? slot===2 :')
     })
 
     it('ADEV-26: another slot claims the next free task before the costly steps and hands it to the session', () => {
