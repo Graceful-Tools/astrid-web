@@ -13,6 +13,7 @@ import { DrawerTapGuard } from "./TaskManager/DrawerTapGuard"
 import { DesktopSettingsDetailPane } from "./TaskManager/DesktopSettingsDetailPane"
 import { MainContent } from "./TaskManager/MainContent/MainContent"
 import { useSelectedProjectId } from "@/hooks/use-selected-project"
+import { useSidebarProjectActions } from "@/hooks/task-manager/useSidebarProjectActions"
 import { LoadingScreen } from "./loading-screen"
 import { computeTaskPaneLeftOffset } from "./TaskManager/task-pane-position"
 import { Input } from "@/components/ui/input"
@@ -457,19 +458,11 @@ const TaskManagerView = memo(function TaskManagerView({
     })
   }, [setLists])
 
+  const { moveListToProject, detachProjectLists } = useSidebarProjectActions(setLists)
   const handleProjectBoardRemoved = React.useCallback((projectId: string, detachedListIds: string[]) => {
-    const detachedSet = new Set(detachedListIds)
-    setLists(prevLists =>
-      prevLists
-        .filter(list => !(list.projectId === projectId && list.listType === 'status'))
-        .map(list =>
-          list.projectId === projectId || detachedSet.has(list.id)
-            ? { ...list, projectId: null }
-            : list
-        )
-    )
+    detachProjectLists(projectId, detachedListIds)
     setTaskViewMode('list')
-  }, [setLists])
+  }, [detachProjectLists])
 
   React.useEffect(() => {
     if (!hasProjectBoard && taskViewMode === 'board') {
@@ -737,7 +730,8 @@ const TaskManagerView = memo(function TaskManagerView({
     isTaskDragActive: Boolean(activeDragTaskId), dragOverListId, isShiftDrag,
     onTaskDropOnList: handleTaskDropOnList, onTaskDragEnter: handleListDragEnter,
     onTaskDragLeave: handleListDragLeave, onCreateListInProject: (name, projectId) => handleCreateList({ name, description: '', memberEmails: [], projectId }),
-    onTaskDragOver: (shiftKey, listId) => handleListDragOver(listId, shiftKey)
+    onTaskDragOver: (shiftKey, listId) => handleListDragOver(listId, shiftKey),
+    onMoveListToProject: moveListToProject, onProjectDeleted: handleProjectBoardRemoved
   }
 
   // iOS drawer: sidebar is always rendered, content slides to reveal it

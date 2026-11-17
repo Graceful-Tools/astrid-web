@@ -23,6 +23,19 @@ import type { TaskList } from "@/types/task"
 // Only people with Project Mode see it (AWTD-1660), so it is not first-load JS.
 const ProjectsSection = dynamic(() => import("./ProjectsSection").then(m => m.ProjectsSection), { ssr: false })
 
+// A list row's Move to Project menu (ADEV-61). Lazy, like ProjectsSection: it decides Project
+// Mode itself, so neither it nor the brand capabilities it reads are first-load JS. The plain row
+// is its own fallback, so rows never blink while the menu's code arrives.
+const LazyListProjectMenu = React.lazy(() => import("./ListProjectMenu").then(m => ({ default: m.ListProjectMenu })))
+
+function ListProjectMenu({ children, ...props }: React.ComponentProps<typeof LazyListProjectMenu>) {
+  return (
+    <React.Suspense fallback={children}>
+      <LazyListProjectMenu {...props}>{children}</LazyListProjectMenu>
+    </React.Suspense>
+  )
+}
+
 interface LeftSidebarProps {
   // Layout and responsive
   isMobile: boolean
@@ -71,6 +84,10 @@ interface LeftSidebarProps {
   onTaskDragOver: (shiftKey: boolean, listId: string) => void
   /** Make a new list inside a project and open it (AWTD-1703). */
   onCreateListInProject?: (name: string, projectId: string) => Promise<void> | void
+  /** Move a list into a project, or out with null: a row's menu or a header drop (ADEV-61). */
+  onMoveListToProject?: (listId: string, projectId: string | null) => Promise<void> | void
+  /** A project deleted from its sidebar header (ADEV-61). */
+  onProjectDeleted?: (projectId: string, detachedListIds: string[]) => void
 }
 
 export function LeftSidebar({
@@ -104,7 +121,9 @@ export function LeftSidebar({
   onTaskDragEnter,
   onTaskDragLeave,
   onTaskDragOver,
-  onCreateListInProject
+  onCreateListInProject,
+  onMoveListToProject,
+  onProjectDeleted
 }: LeftSidebarProps) {
   const router = useRouter()
   const { t } = useTranslations()
@@ -311,24 +330,30 @@ export function LeftSidebar({
               })
               .sort((a, b) => (a.favoriteOrder || 0) - (b.favoriteOrder || 0))
               .map((list) => (
-                <ListItem
+                <ListProjectMenu
                   key={list.id}
                   list={list}
-                  selectedListId={effectiveSelectedListId}
-                  isMobile={isMobile}
-                  taskCount={list.isVirtual ? getSavedFilterTaskCountMemo(list) : getTaskCountForListMemo(list.id)}
-                  onClick={handleListClick}
-                  onSettingsClick={setShowSettingsPopover || undefined}
-                  droppable={canDropOnList(list)}
-                  isDragActive={isTaskDragActive}
-                  isDropTarget={dragOverListId === list.id}
-                  dropMode={isShiftDrag ? 'add' : 'move'}
-                  onTaskDrop={(shiftKey) => onTaskDropOnList(list.id, { shiftKey })}
-                  onTaskDragEnter={(shiftKey) => onTaskDragEnter(list.id, shiftKey)}
-                  onTaskDragLeave={() => onTaskDragLeave(list.id)}
-                  onTaskDragOver={onTaskDragOver}
-                  listDraggable={Boolean(selectedProjectId) && !list.isVirtual}
-                />
+                  currentUserId={currentUser?.id}
+                  onMoveListToProject={onMoveListToProject}
+                >
+                  <ListItem
+                    list={list}
+                    selectedListId={effectiveSelectedListId}
+                    isMobile={isMobile}
+                    taskCount={list.isVirtual ? getSavedFilterTaskCountMemo(list) : getTaskCountForListMemo(list.id)}
+                    onClick={handleListClick}
+                    onSettingsClick={setShowSettingsPopover || undefined}
+                    droppable={canDropOnList(list)}
+                    isDragActive={isTaskDragActive}
+                    isDropTarget={dragOverListId === list.id}
+                    dropMode={isShiftDrag ? 'add' : 'move'}
+                    onTaskDrop={(shiftKey) => onTaskDropOnList(list.id, { shiftKey })}
+                    onTaskDragEnter={(shiftKey) => onTaskDragEnter(list.id, shiftKey)}
+                    onTaskDragLeave={() => onTaskDragLeave(list.id)}
+                    onTaskDragOver={onTaskDragOver}
+                    listDraggable={Boolean(selectedProjectId) && !list.isVirtual}
+                  />
+                </ListProjectMenu>
               ))}
           </div>
         </div>
@@ -343,6 +368,8 @@ export function LeftSidebar({
           getTaskCountForList={getTaskCountForListMemo}
           currentUserId={effectiveSession?.user?.id}
           onCreateListInProject={onCreateListInProject}
+          onMoveListToProject={onMoveListToProject}
+          onProjectDeleted={onProjectDeleted}
         />
 
         {/* Lists */}
@@ -380,24 +407,30 @@ export function LeftSidebar({
               })
               .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
               .map((list) => (
-                <ListItem
+                <ListProjectMenu
                   key={list.id}
                   list={list}
-                  selectedListId={effectiveSelectedListId}
-                  isMobile={isMobile}
-                  taskCount={list.isVirtual ? getSavedFilterTaskCountMemo(list) : getTaskCountForListMemo(list.id)}
-                  onClick={handleListClick}
-                  onSettingsClick={setShowSettingsPopover || undefined}
-                  droppable={canDropOnList(list)}
-                  isDragActive={isTaskDragActive}
-                  isDropTarget={dragOverListId === list.id}
-                  dropMode={isShiftDrag ? 'add' : 'move'}
-                  onTaskDrop={(shiftKey) => onTaskDropOnList(list.id, { shiftKey })}
-                  onTaskDragEnter={(shiftKey) => onTaskDragEnter(list.id, shiftKey)}
-                  onTaskDragLeave={() => onTaskDragLeave(list.id)}
-                  onTaskDragOver={onTaskDragOver}
-                  listDraggable={Boolean(selectedProjectId) && !list.isVirtual}
-                />
+                  currentUserId={currentUser?.id}
+                  onMoveListToProject={onMoveListToProject}
+                >
+                  <ListItem
+                    list={list}
+                    selectedListId={effectiveSelectedListId}
+                    isMobile={isMobile}
+                    taskCount={list.isVirtual ? getSavedFilterTaskCountMemo(list) : getTaskCountForListMemo(list.id)}
+                    onClick={handleListClick}
+                    onSettingsClick={setShowSettingsPopover || undefined}
+                    droppable={canDropOnList(list)}
+                    isDragActive={isTaskDragActive}
+                    isDropTarget={dragOverListId === list.id}
+                    dropMode={isShiftDrag ? 'add' : 'move'}
+                    onTaskDrop={(shiftKey) => onTaskDropOnList(list.id, { shiftKey })}
+                    onTaskDragEnter={(shiftKey) => onTaskDragEnter(list.id, shiftKey)}
+                    onTaskDragLeave={() => onTaskDragLeave(list.id)}
+                    onTaskDragOver={onTaskDragOver}
+                    listDraggable={Boolean(selectedProjectId) && !list.isVirtual}
+                  />
+                </ListProjectMenu>
               ))}
           </div>
         </div>
