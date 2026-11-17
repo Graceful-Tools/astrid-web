@@ -42,3 +42,15 @@ describe('predeploy runs the production advisory audit (AWTD-1301)', () => {
     expect(pkg.devDependencies.vite).toBeDefined()
   })
 })
+
+describe("CI's dependency-audit answers with the same gate (ADEV-84)", () => {
+  it('runs npm run audit:prod, so an advisory accepted on the record is accepted in both places', () => {
+    // Jon accepted GHSA-fc5q-39xc-vjpf (picomatch, no fix published) in
+    // ACCEPTED_ADVISORIES. CI's job ran bare `npm audit`, which cannot read that list,
+    // so every PR stayed red and the ship workflow, which lands only green PRs, stalled.
+    const workflow = read('.github/workflows/security-gates.yml')
+    const job = workflow.slice(workflow.indexOf('dependency-audit:'))
+    expect(job).toMatch(/run: npm run audit:prod/)
+    expect(job).not.toMatch(/npm audit --audit-level/)
+  })
+})
