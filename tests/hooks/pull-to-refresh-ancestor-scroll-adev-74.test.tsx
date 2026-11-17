@@ -7,9 +7,13 @@ import React from 'react'
 import { render } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh'
+import { hasScrolledAncestor } from '@/lib/has-scrolled-ancestor'
 
 function Harness() {
-  const { bindToElement } = usePullToRefresh({ onRefresh: () => {} })
+  const { bindToElement } = usePullToRefresh({
+    onRefresh: () => {},
+    canStart: (element) => !hasScrolledAncestor(element)
+  })
   return (
     <div data-testid="pane" style={{ overflowY: 'auto' }}>
       <div data-testid="list" ref={bindToElement} />

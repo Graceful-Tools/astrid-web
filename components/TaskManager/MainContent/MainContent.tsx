@@ -129,9 +129,6 @@ interface MainContentProps {
     canRefresh: boolean
     pullDistance: number
     bindToElement: (element: HTMLElement | null) => void
-    onTouchStart: (e: React.TouchEvent) => void
-    onTouchMove: (e: React.TouchEvent) => void
-    onTouchEnd: (e: React.TouchEvent) => void
   }
 
   // Handler functions
@@ -818,9 +815,6 @@ export function MainContent({
                 (pullToRefresh.bindToElement as React.MutableRefObject<HTMLDivElement | null>).current = el
               }
             }}
-            onTouchStart={pullToRefresh.onTouchStart}
-            onTouchMove={pullToRefresh.onTouchMove}
-            onTouchEnd={pullToRefresh.onTouchEnd}
             onScroll={() => {
               // Close task detail on scroll ONLY in 2-column and 3-column layouts
               // Don't close in 1-column mobile view, and don't close if scrolling via keyboard navigation

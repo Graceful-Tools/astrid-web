@@ -238,9 +238,6 @@ describe('TaskManagerView', () => {
       canRefresh: false,
       pullDistance: 0,
       bindToElement: vi.fn(),
-      onTouchStart: vi.fn(),
-      onTouchMove: vi.fn(),
-      onTouchEnd: vi.fn(),
     },
 
     // ---------------------------------------------------------------------

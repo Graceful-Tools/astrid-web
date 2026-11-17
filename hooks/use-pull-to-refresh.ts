@@ -5,13 +5,8 @@ interface PullToRefreshOptions {
   maxDistance?: number
   onRefresh?: () => Promise<void> | void
   disabled?: boolean
-}
-
-function hasScrolledAncestor(element: HTMLElement): boolean {
-  for (let el = element.parentElement; el; el = el.parentElement) {
-    if (el.scrollTop > 0 && el.scrollHeight > el.clientHeight) return true
-  }
-  return false
+  /** Asked at touch start; false leaves the drag to the browser (ADEV-74). */
+  canStart?: (element: HTMLElement) => boolean
 }
 
 export function usePullToRefresh(options: PullToRefreshOptions = {}) {
@@ -19,7 +14,8 @@ export function usePullToRefresh(options: PullToRefreshOptions = {}) {
     threshold = 60,
     maxDistance = 120,
     onRefresh,
-    disabled = false
+    disabled = false,
+    canStart
   } = options
 
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -30,12 +26,12 @@ export function usePullToRefresh(options: PullToRefreshOptions = {}) {
   const touchStartRef = useRef<{ y: number; scrollTop: number } | null>(null)
   // Track pullDistance synchronously for touch handlers
   const pullDistanceRef = useRef(0)
-  const optionsRef = useRef({ disabled, isRefreshing, threshold, onRefresh, maxDistance })
+  const optionsRef = useRef({ disabled, isRefreshing, threshold, onRefresh, maxDistance, canStart })
 
   // Keep optionsRef in sync (but not pullDistance - that's tracked separately)
   useEffect(() => {
-    optionsRef.current = { disabled, isRefreshing, threshold, onRefresh, maxDistance }
-  }, [disabled, isRefreshing, threshold, onRefresh, maxDistance])
+    optionsRef.current = { disabled, isRefreshing, threshold, onRefresh, maxDistance, canStart }
+  }, [disabled, isRefreshing, threshold, onRefresh, maxDistance, canStart])
 
   // Use native event listeners to allow preventDefault on touch events
   useEffect(() => {
@@ -43,15 +39,14 @@ export function usePullToRefresh(options: PullToRefreshOptions = {}) {
     if (!element) return
 
     const handleTouchStart = (e: TouchEvent) => {
-      const { disabled, isRefreshing } = optionsRef.current
+      const { disabled, isRefreshing, canStart } = optionsRef.current
       if (disabled || isRefreshing) return
 
       const scrollTop = element.scrollTop
       const touch = e.touches[0]
 
-      // Only enable pull-to-refresh when scrolled to top, and when no scrolling ancestor is
-      // scrolled down: a downward drag there is that pane scrolling up (ADEV-74).
-      if (scrollTop === 0 && !hasScrolledAncestor(element)) {
+      // Only enable pull-to-refresh when scrolled to top
+      if (scrollTop === 0 && (!canStart || canStart(element))) {
         touchStartRef.current = {
           y: touch.clientY,
           scrollTop
@@ -117,19 +112,11 @@ export function usePullToRefresh(options: PullToRefreshOptions = {}) {
     setBoundElement(element)
   }, [])
 
-  // Keep React event handlers as no-ops for backwards compatibility
-  const onTouchStart = useCallback(() => {}, [])
-  const onTouchMove = useCallback(() => {}, [])
-  const onTouchEnd = useCallback(() => {}, [])
-
   return {
     isRefreshing,
     pullDistance,
     isPulling,
     canRefresh: pullDistance >= threshold,
-    onTouchStart,
-    onTouchMove,
-    onTouchEnd,
     bindToElement
   }
 }

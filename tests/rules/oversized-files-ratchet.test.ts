@@ -64,7 +64,7 @@ const BUDGETS: Record<string, number> = {
   // which more than paid for the callout's arrow.
   // 1463 → 1456: ADEV-71 gave the status picker's Done and the subtasks their
   // confirmation (six lines), paid for by thirteen imports nothing here used.
-  'components/task-detail.tsx': 1456,
+  'components/task-detail.tsx': 1453,
   'lib/ai-orchestrator.ts': 1547,
   // 1205 → 1199: AWTD-1227 needed four more props on the task-detail pane, and
   // this file renders that pane TWICE — desktop and mobile — with a dozen
@@ -89,7 +89,7 @@ const BUDGETS: Record<string, number> = {
   // 1129 → 1128: AITD-679 renders a board card's details as a callout. The
   // render site is five lines; the two pane sites' unused canEdit lookups and
   // MainContent's board-only delete/local-update props paid for it.
-  'components/TaskManagerView.tsx': 1117,
+  'components/TaskManagerView.tsx': 1114,
   // 1125 → 1115: the list header's two buttons moved to ListHeaderActions
   // when Sort & Filters gained its own control (task aa4e7eb0).
   // 1115 → 1100: the board-row context memos moved to useBoardRowContext (AWTD-1025).
@@ -104,7 +104,7 @@ const BUDGETS: Record<string, number> = {
   // 1008 → 1002: the Copy List button moved to TaskManager/CopyListButton (AWTD-1575).
   // 996 → 990: the board no longer renders TaskDetail itself (AITD-679), so its
   // delete and local-update props stopped passing through here.
-  'components/TaskManager/MainContent/MainContent.tsx': 986,
+  'components/TaskManager/MainContent/MainContent.tsx': 980,
   'lib/cache-manager.ts': 935,
   // 819 → 797: its two hand-rolled comment inserts and SSE fan-outs went
   // through the comment service (spec §5.2 step 4).

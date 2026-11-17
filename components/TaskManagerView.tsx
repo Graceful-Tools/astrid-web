@@ -144,9 +144,6 @@ export interface TaskManagerViewModel {
     canRefresh: boolean
     pullDistance: number
     bindToElement: (element: HTMLElement | null) => void
-    onTouchStart: (e: React.TouchEvent) => void
-    onTouchMove: (e: React.TouchEvent) => void
-    onTouchEnd: (e: React.TouchEvent) => void
   }
 
   // Data from modal manager

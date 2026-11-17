@@ -14,6 +14,7 @@ import { Paperclip, Send, X, Image as ImageIcon, FileText, Loader2, RefreshCw, C
 import { format } from "date-fns"
 import { isMobileDevice } from "@/lib/layout-detection"
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
+import { hasScrolledAncestor } from "@/lib/has-scrolled-ancestor"
 import { RichTextInput } from "@/components/shared/RichTextInput"
 import { MessageBubble } from "@/components/shared/MessageBubble"
 import { DecisionCards } from "@/components/task-detail/DecisionCards"
@@ -189,11 +190,12 @@ export function CommentSection({
     threshold: 60,
     maxDistance: 120,
     onRefresh: onRefreshComments,
-    disabled: !isMobileDevice() || !onRefreshComments
+    disabled: !isMobileDevice() || !onRefreshComments,
+    canStart: (element) => !hasScrolledAncestor(element)
   })
 
   // Bind the comments container to the pull-to-refresh hook
-  const { bindToElement, onTouchStart, onTouchMove, onTouchEnd, isRefreshing, pullDistance, isPulling, canRefresh } = pullToRefresh
+  const { bindToElement, isRefreshing, pullDistance, isPulling, canRefresh } = pullToRefresh
 
   // `textOverride` posts a comment that did not come from the input bar (a Decision card click,
   // AWTD-1524) and leaves whatever the user has typed there alone.
@@ -678,9 +680,6 @@ export function CommentSection({
           commentsContainerRef.current = el
           bindToElement(el)
         }}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
         className="flex-1 overflow-y-auto scrollbar-hide space-y-4 pr-2 mb-4"
       >
         {commentEntries.map((entry) => {
