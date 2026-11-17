@@ -16,7 +16,7 @@ import { join } from 'path'
 
 const loop = readFileSync(join(process.cwd(), 'scripts/fixall-loop.sh'), 'utf8')
 const sizing = loop.slice(loop.indexOf('# ── Size the run'), loop.indexOf('# ── Can this machine'))
-const preflight = loop.match(/QUEUE_OUT=\$\([^\n]*agent-queue-status\.ts[^\n]*/)?.[0] ?? ''
+const preflight = loop.match(/QUEUE_OUT=\$\([^\n]*astrid-agent\.ts[^\n]*/)?.[0] ?? ''
 
 function size(queueOut: string, env: Record<string, string> = {}): Record<string, string> {
   const script = [

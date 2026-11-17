@@ -12,24 +12,6 @@ import { ASTRID_API } from './script-client'
 
 export { ASTRID_API }
 
-/**
- * A client-credentials token for the script OAuth client in the environment.
- *
- * Kept for `scripts/heartbeat-held-claims.ts` (ADEV-37) alone: it reads a board's tasks to
- * find its leases, and `AstridClient` has no board read yet. Move it onto the client, and
- * delete this, when the SDK gains one (ADEV-9).
- */
-export async function fetchScriptToken(input: { clientId: string; clientSecret: string; origin?: string }): Promise<string> {
-  const response = await fetch(`${input.origin ?? ASTRID_API}/api/v1/oauth/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ grant_type: 'client_credentials', client_id: input.clientId, client_secret: input.clientSecret }),
-  })
-  if (!response.ok) throw new Error(`OAuth token request failed with HTTP ${response.status}`)
-  const { access_token: token } = await response.json()
-  return token
-}
-
 export type ClaimAttempt = { status: 'claimed' } | { status: 'conflict'; reason: string }
 
 /**
