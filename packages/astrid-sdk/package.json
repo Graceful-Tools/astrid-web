@@ -1,6 +1,6 @@
 {
   "name": "@gracefultools/astrid-sdk",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Astrid agent runner: the astrid-agent command (queue, claim, release) and a typed REST client for the agent endpoints",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
