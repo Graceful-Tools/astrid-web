@@ -2715,6 +2715,14 @@
       "done": "Done",
       "testing": "Testing"
     },
+    "empty": {
+      "inbox": "Nothing new to sort! Tasks without a status land here.",
+      "ready": "Nothing queued up! Move a task here when it's ready to start.",
+      "doing": "Nothing in progress. Pick something from Ready and get going!",
+      "waiting": "Nothing on hold! Tasks waiting on a date or another task show up here.",
+      "done": "No finished tasks yet. Complete one and celebrate it here!",
+      "custom": "Nothing here yet! Drag a task in to move it along."
+    },
     "blurb": {
       "inbox": "Move them to \"Ready\" when they are... ready!",
       "ready": "Time to get to work!",

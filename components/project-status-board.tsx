@@ -29,7 +29,7 @@ import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
 import { VirtualizedTaskList } from "@/components/TaskManager/MainContent/VirtualizedTaskList"
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { useTranslations } from "@/lib/i18n/client"
-import { boardColumnBlurb, boardColumnLabel } from "@/lib/board-column-labels"
+import { boardColumnBlurb, boardColumnEmptyKey, boardColumnLabel } from "@/lib/board-column-labels"
 import { shouldShowTaskIdentifier } from "@/lib/task-identifier-links"
 import { useProjectFields } from "@/hooks/use-project-fields"
 import { useProjectFieldValues } from "@/hooks/use-project-field-values"
@@ -372,7 +372,12 @@ export function ProjectStatusBoard({
               <BoardColumnBody
                 tasks={tasksForColumn}
                 emptyState={(
-                  <AstridEmptyState listType="default" listName={selectedList?.name} className="py-4" />
+                  <AstridEmptyState
+                    listType="default"
+                    listName={selectedList?.name}
+                    message={t(boardColumnEmptyKey(column))}
+                    className="py-4"
+                  />
                 )}
                 renderCard={(task) => {
                   const handleToggleComplete = () => {

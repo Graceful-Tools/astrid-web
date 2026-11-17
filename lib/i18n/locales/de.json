@@ -2715,6 +2715,14 @@
       "done": "Erledigt",
       "testing": "Test"
     },
+    "empty": {
+      "inbox": "Nichts Neues zu sortieren! Aufgaben ohne Status landen hier.",
+      "ready": "Nichts in der Warteschlange! Verschiebe eine Aufgabe hierher, wenn sie startklar ist.",
+      "doing": "Nichts in Arbeit. Wähle etwas aus „Bereit“ und leg los!",
+      "waiting": "Nichts pausiert! Aufgaben, die auf ein Datum oder eine andere Aufgabe warten, erscheinen hier.",
+      "done": "Noch keine erledigten Aufgaben. Schließe eine ab und feiere sie hier!",
+      "custom": "Noch nichts hier! Ziehe eine Aufgabe hinein, um sie voranzubringen."
+    },
     "blurb": {
       "inbox": "Verschiebe sie nach „Bereit“, wenn sie … bereit sind!",
       "ready": "Zeit, loszulegen!",

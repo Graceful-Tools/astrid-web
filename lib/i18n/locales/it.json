@@ -2715,6 +2715,14 @@
       "done": "Fatto",
       "testing": "Test"
     },
+    "empty": {
+      "inbox": "Niente di nuovo da smistare! Le attività senza stato arrivano qui.",
+      "ready": "Niente in coda! Sposta qui un'attività quando è pronta a partire.",
+      "doing": "Niente in corso. Scegli qualcosa da Pronto e mettiti al lavoro!",
+      "waiting": "Niente in pausa! Le attività in attesa di una data o di un'altra attività compaiono qui.",
+      "done": "Ancora nessuna attività completata. Completane una e festeggia qui!",
+      "custom": "Ancora niente qui! Trascina un'attività per farla avanzare."
+    },
     "blurb": {
       "inbox": "Spostale in «Pronto» quando sono… pronte!",
       "ready": "È ora di mettersi al lavoro!",

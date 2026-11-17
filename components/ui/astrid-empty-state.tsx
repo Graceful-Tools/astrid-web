@@ -11,6 +11,8 @@ interface AstridEmptyStateProps {
   listName?: string
   isViewingFromFeatured?: boolean
   className?: string
+  /** Overrides the list-type message, e.g. a board column's own (ADEV-85). */
+  message?: string
 }
 
 /**
@@ -23,12 +25,14 @@ export const AstridEmptyState = memo<AstridEmptyStateProps>(({
   listType,
   listName,
   isViewingFromFeatured = false,
-  className = ''
+  className = '',
+  message: messageOverride,
 }) => {
   const { t } = useTranslations()
 
   // Get contextual message based on list type
   const getMessage = (): string => {
+    if (messageOverride) return messageOverride
     if (isViewingFromFeatured) {
       return t("emptyState.featured")
     }
