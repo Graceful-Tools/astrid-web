@@ -6,7 +6,8 @@ import { Check } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import type { Task, User } from '@/types/task'
 import { isCodingAgent } from "@/lib/ai-agent-utils"
-import { useCompletionConfirmation } from "@/components/completion-confirmation"
+import { completionAssigneeLabel } from "@/components/completion-confirmation"
+import { completionNeedsConfirmation } from "@/lib/task-leading-control"
 import { priorityFillClass, priorityOutlineClass } from "@/lib/design/priority"
 import { useTranslations } from "@/lib/i18n/client"
 import { boardColumnBlurb, boardColumnLabel } from "@/lib/board-column-labels"
@@ -115,6 +116,13 @@ export function PriorityAssigneePicker({
    * unassigned tasks by ADEV-56). Jon: "show confirmation before completing a
    * task that isn't [assigned to me] (including unassigned)."
    *
+   * The sheet IS the question (ADEV-71, matching iOS ADEV-79). It used to show a
+   * Complete button that opened a second "Complete this task?" dialog: checkbox,
+   * Complete, confirm — three taps. Jon: "Tap the checkbox. It confirms.
+   * Completes. Done." So for a task that is not yours the sheet opens on the
+   * question, with its own Complete and Cancel, and the leading control's tap
+   * that opened the sheet is the first of two.
+   *
    * Decided HERE rather than by each caller, because this sheet is the route to
    * completion for someone else's task, an unassigned one and a board's on
    * every surface — a row, task details and a board card all open it.
@@ -125,7 +133,12 @@ export function PriorityAssigneePicker({
    * Reopening never asks. The rule is about finishing work, and undoing a
    * completion takes nothing away from the person it belongs to.
    */
-  const completion = useCompletionConfirmation(currentUser?.id ?? currentUserId)
+  const holderId = assigneeId !== undefined ? assigneeId : selectedAssignee?.id
+  const asksBeforeCompleting = completionNeedsConfirmation({
+    assigneeId: holderId,
+    currentUserId: currentUser?.id ?? currentUserId,
+    completed,
+  })
 
   // Fetch list members and AI agents when picker opens
   useEffect(() => {
@@ -369,32 +382,47 @@ export function PriorityAssigneePicker({
           )}
 
           {/* Complete / reopen — the route to completion for a task on a
-              board, unassigned, or assigned to somebody else. */}
+              board, unassigned, or assigned to somebody else. For a task that
+              is not yours it is the confirmation itself (ADEV-71). */}
           {onToggleComplete && (
             <>
               <div className="px-4 py-4">
-                <button
-                  type="button"
-                  data-testid="task-options-complete"
-                  onClick={() =>
-                    completion.request(
-                      {
-                        assigneeId: assigneeId !== undefined ? assigneeId : selectedAssignee?.id,
-                        assignee: selectedAssignee,
-                        completed,
-                      },
-                      onToggleComplete,
-                    )
-                  }
-                  className="w-full h-11 rounded-lg text-sm font-medium border-2 border-theme-button text-theme-secondary transition-all duration-fast active:scale-95"
-                >
-                  {completed ? t('tasks.markIncomplete') : t('tasks.markComplete')}
-                </button>
+                {asksBeforeCompleting && (
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-theme-primary">{t('tasks.confirmCompleteTitle')}</p>
+                    <p className="mt-1 text-xs text-theme-muted">
+                      {holderId
+                        ? t('tasks.confirmCompleteAssigned', { name: completionAssigneeLabel(holderId, selectedAssignee) ?? '' })
+                        : t('tasks.confirmCompleteUnassigned')}
+                    </p>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  {asksBeforeCompleting && (
+                    <button
+                      type="button"
+                      data-testid="task-options-complete-cancel"
+                      onClick={handleClose}
+                      className="flex-1 h-11 rounded-lg text-sm font-medium text-theme-secondary transition-all duration-fast active:scale-95"
+                    >
+                      {t('common.cancel')}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    data-testid="task-options-complete"
+                    onClick={onToggleComplete}
+                    className="flex-1 h-11 rounded-lg text-sm font-medium border-2 border-theme-button text-theme-secondary transition-all duration-fast active:scale-95"
+                  >
+                    {asksBeforeCompleting
+                      ? t('common.complete')
+                      : completed ? t('tasks.markIncomplete') : t('tasks.markComplete')}
+                  </button>
+                </div>
               </div>
               <div className="h-px bg-theme-active" />
             </>
           )}
-          {completion.dialog}
 
           {/* Assignee Section */}
           <div className="px-4 py-4">
