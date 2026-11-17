@@ -1830,6 +1830,8 @@
     "projectNone": "없음",
     "projectMoveFailed": "이 목록을 이동할 수 없습니다",
     "projectLockedIn": "{name}에 있습니다. 프로젝트 소유자 또는 관리자만 이동할 수 있습니다.",
+    "projectNew": "새 프로젝트…",
+    "projectLeaveConfirm": "{project}에서 {list}을(를) 제거할까요?",
     "newListInProject": "프로젝트에 새 목록…",
     "newListName": "목록 이름",
     "newListFailed": "목록을 만들 수 없습니다",

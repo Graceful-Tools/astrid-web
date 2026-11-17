@@ -1830,6 +1830,8 @@
     "projectNone": "Aucun",
     "projectMoveFailed": "Impossible de déplacer cette liste",
     "projectLockedIn": "Dans {name}. Seul le propriétaire ou un admin du projet peut l'en retirer.",
+    "projectNew": "Nouveau projet…",
+    "projectLeaveConfirm": "Retirer {list} de {project} ?",
     "newListInProject": "Nouvelle liste dans le projet…",
     "newListName": "Nom de la liste",
     "newListFailed": "Impossible de créer la liste",
